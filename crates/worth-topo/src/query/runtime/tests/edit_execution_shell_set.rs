@@ -1,14 +1,17 @@
 use std::collections::BTreeSet;
 
-use forge_query::facade::ForgeQueryExistingTruthAssertionMode;
-use worth_schema::facade::{
-    created_ref, seed_milestone_one_primitive, WorthCreateKey, WorthEntityKind,
-    WorthMilestoneOnePrimitiveCase, WorthTopologyEntityKind,
+use forge_query::facade::{
+    ForgeQueryContinuityOutcomeClass, ForgeQueryExistingTruthAssertionMode,
+    ForgeQueryGraphCompositionProgramStepKind,
 };
+use worth_schema::facade::topology_authoring::{
+    created_ref, seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
+};
+use worth_schema::facade::{WorthCreateKey, WorthEntityKind, WorthTopologyEntityKind};
 
 use crate::edit::{
     WorthShellOrWireMembershipKind, WorthTopologyEditApplicationMode, WorthTopologyEditBatch,
-    WorthTopologyEditContract, WorthTopologyEditFamily, WorthTopologyQueryEditRunner,
+    WorthTopologyEditContract, WorthTopologyEditFamily,
 };
 use crate::query::{
     worth_topology_runtime, WorthTopologyQueryAssembly, WorthTopologyRuntimeAdapters,
@@ -62,8 +65,7 @@ fn current_head_runtime_executes_rehome_all_owned_faces_to_new_shell_workflow() 
     ])
     .expect("non-empty edit batch");
 
-    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let execution = assembly.apply_edit(&mut workspace, batch, WorthTopologyEditApplicationMode::Mainline)
         .expect("full face-set shell rehome should execute through the admitted shell owner-rehome lane");
 
     assert_eq!(
@@ -89,6 +91,37 @@ fn current_head_runtime_executes_rehome_all_owned_faces_to_new_shell_workflow() 
             .batch_mutation_evidence()
             .backend_verified_delete_count(),
         1
+    );
+    assert_eq!(
+        execution
+            .receipt
+            .graph_composition_program()
+            .expect("shell face-set rehome should expose graph program")
+            .steps()
+            .iter()
+            .map(|step| step.kind())
+            .collect::<Vec<_>>(),
+        vec![
+            ForgeQueryGraphCompositionProgramStepKind::SymbolicEntityDeclaration,
+            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetarget,
+            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetarget,
+            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetarget,
+            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetirement,
+        ]
+    );
+    assert_eq!(
+        execution
+            .receipt
+            .graph_composition_lineage_summary()
+            .expect("shell face-set rehome should expose lineage summary")
+            .entries()
+            .iter()
+            .filter(|entry| {
+                entry.outcome_class()
+                    == ForgeQueryContinuityOutcomeClass::ContinuesAsSingleSuccessor
+            })
+            .count(),
+        3
     );
     assert!(execution
         .inspection
@@ -171,8 +204,7 @@ fn current_head_runtime_denies_shell_face_set_rehome_with_duplicate_face_members
     ])
     .expect("non-empty edit batch");
 
-    let error = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let error = assembly.apply_edit(&mut workspace, batch, WorthTopologyEditApplicationMode::Mainline)
         .expect_err("shell face-set rehome must fail closed if face attachments do not form a unique full set");
 
     assert!(matches!(

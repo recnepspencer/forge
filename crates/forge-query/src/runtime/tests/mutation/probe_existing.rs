@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn probe_existing_returns_backend_verified_values_for_entity_targets() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.probe-existing-entity")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -59,16 +59,7 @@ fn probe_existing_returns_backend_verified_values_for_entity_targets() {
 
 #[test]
 fn probe_existing_returns_backend_verified_values_for_relation_targets() {
-    let runtime = ForgeQueryRuntime::builder()
-        .compatibility_in_memory_collections([ForgeQueryCollection::new(
-            "TaskRelation",
-            [
-                crate::memory_workspace::ForgeQueryAspect::new("identity.id", "identity.id"),
-                crate::memory_workspace::ForgeQueryAspect::new("kind.value", "kind.value"),
-            ],
-        )])
-        .build()
-        .expect("runtime should build");
+    let runtime = stateful_bridge_task_relation_runtime();
     let mut workspace = runtime
         .workspace("tasks.probe-existing-relation")
         .expect("workspace should open");
@@ -118,7 +109,7 @@ fn probe_existing_returns_backend_verified_values_for_relation_targets() {
 
 #[test]
 fn probe_existing_denies_missing_aspect_typed_and_early() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.probe-existing-missing-aspect")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -165,7 +156,7 @@ fn probe_existing_denies_missing_aspect_typed_and_early() {
 
 #[test]
 fn probe_existing_reports_the_actual_missing_aspect_in_multi_aspect_requests() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.probe-existing-multi-missing-aspect")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace

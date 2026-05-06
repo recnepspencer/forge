@@ -1,10 +1,11 @@
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
-use worth_schema::facade::{
+use worth_schema::facade::topology_authoring::{
     seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch, seed_minimal_topology,
-    VerifiedTopologyCommit, WorthMilestoneOnePrimitiveAuthoringError,
-    WorthMilestoneOnePrimitiveCase, WorthMinimalTopologySeed, WorthMutationOrigin,
+    WorthMilestoneOnePrimitiveAuthoringError, WorthMilestoneOnePrimitiveCase,
+    WorthMinimalTopologySeed,
 };
+use worth_schema::facade::{VerifiedTopologyCommit, WorthMutationOrigin};
 
 pub(crate) fn seeded_bootstrap(
     runtime: &mut RelationalRuntime,

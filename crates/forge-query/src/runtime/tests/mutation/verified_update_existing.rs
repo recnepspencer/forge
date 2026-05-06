@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn update_existing_verified_preserves_backend_verified_assertion_evidence_on_update_receipt() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.update-existing-verified")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -88,7 +88,7 @@ fn update_existing_verified_preserves_backend_verified_assertion_evidence_on_upd
 
 #[test]
 fn update_existing_verified_denies_mismatch_typed_and_leaves_truth_unchanged() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.update-existing-verified-mismatch")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -154,7 +154,7 @@ fn update_existing_verified_denies_mismatch_typed_and_leaves_truth_unchanged() {
 
 #[test]
 fn batch_update_existing_verified_preserves_aggregate_assertion_digest() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.batch-update-existing-verified")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -351,7 +351,7 @@ fn update_existing_verified_denies_unsupported_backend_typed_and_early() {
 
 #[test]
 fn preview_update_existing_verified_requires_authoritative_lane() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-update-existing-verified")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace

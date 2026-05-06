@@ -7,10 +7,9 @@ This is the authority boundary for changing truth or staging future change.
 `workspace.delete(...)`, `workspace.delete_with(...)`, `workspace.delete_existing(...)`,
 and `workspace.batch(...)` are the preferred
 direct mutation paths.
-`workspace.write(...)` remains a stable lower-level compatibility seam. Intent
-surfaces exist in the public vocabulary, but they remain support-gated and
-must not be treated as part of the same stable compatibility closure as direct
-writes.
+`workspace.write(...)` remains a stable lower-level seam. Intent surfaces exist
+in the public vocabulary, but they remain support-gated and must not be
+treated as part of the same stable public closure as direct writes.
 
 On primary backends, a multi-command `workspace.batch(...)` is one backend
 commit boundary, not a nice-looking wrapper around separate per-command
@@ -20,7 +19,7 @@ nobody looks in the middle.”
 
 The important posture is simple: ordinary runtime code should not need
 `workspace.write(...)` or `ForgeQueryWriteCommand::*`. Those exist as expert or
-compatibility seams while the substrate is being replaced underneath the facade.
+lower-level seams while the substrate is being replaced underneath the facade.
 
 On admitted families, `workspace.bind_existing_relation(...)` plus
 `workspace.update_existing(...)` is also the identity-preserving relation
@@ -52,7 +51,7 @@ Stable:
 - `workspace.delete_existing(...)`
 - `workspace.batch(...)`
 - `workspace.write(...)`
-- `workspace.public_mutation_api_compatibility_report()`
+- `workspace.public_mutation_surface_report()`
 
 Vocabulary with support gate:
 
@@ -72,11 +71,11 @@ Important boundary:
 - backend-verified existing-truth lanes are public and typed, but callers must
   read the bridge-backed verification support rows before teaching them as
   ordinary bridge-backed production flows
-- intent execution is public vocabulary, but not in the stable compatibility
-  support set yet
+- intent execution is public vocabulary, but not in the stable public support
+  set yet
 - callers must treat support admission and backend capability as authoritative
-- the mutation compatibility report is the source of truth for which mutation
-  surfaces are preferred, compatibility-only, or deprecated compatibility
+- the mutation surface report is the source of truth for which mutation
+  surfaces are preferred, lower-level, or support-gated
 
 ## Core Mental Model
 
@@ -108,8 +107,8 @@ Direct write path:
    `workspace.update_existing(...)`, `workspace.assert_existing(...)`,
    `workspace.verify_existing(...)`, `workspace.update_existing_verified(...)`,
    `workspace.delete(...)`, `workspace.delete_existing(...)`,
-   `workspace.delete_existing_verified(...)`, `workspace.batch(...)`, or the lower-level
-   `workspace.write(...)` compatibility path.
+   `workspace.delete_existing_verified(...)`, `workspace.batch(...)`, or the
+   lower-level `workspace.write(...)` path.
 3. Receive a canonical write receipt.
 4. Live, computed, and effect consequences route from that write.
 

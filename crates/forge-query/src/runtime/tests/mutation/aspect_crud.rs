@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn workspace_insert_uses_aspect_native_authoring_and_routes_live_delivery() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-insert")
         .expect("task runtime should open a named workspace");
     let live: ForgeQueryLiveView<Value> = workspace
@@ -99,7 +99,7 @@ fn workspace_insert_uses_aspect_native_authoring_and_routes_live_delivery() {
 }
 #[test]
 fn workspace_update_supports_multi_aspect_authoring_and_narrows_by_touched_meaning() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-update")
         .expect("task runtime should open a named workspace");
     let live: ForgeQueryLiveView<Value> = workspace
@@ -164,7 +164,7 @@ fn workspace_update_supports_multi_aspect_authoring_and_narrows_by_touched_meani
 
 #[test]
 fn write_receipt_inspection_retains_authored_mutation_metadata() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-metadata")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -217,7 +217,7 @@ fn write_receipt_inspection_retains_authored_mutation_metadata() {
 
 #[test]
 fn workspace_update_clear_supports_typed_reset_without_waking_unrelated_surfaces() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-clear")
         .expect("task runtime should open a named workspace");
     let live: ForgeQueryLiveView<Value> = workspace
@@ -297,7 +297,7 @@ fn workspace_update_clear_supports_typed_reset_without_waking_unrelated_surfaces
 
 #[test]
 fn preview_insert_uses_aspect_native_authoring_and_stays_preview_local() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-aspect-insert")
         .expect("task runtime should open a named workspace");
     let mut preview = workspace

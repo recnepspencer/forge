@@ -1,5 +1,6 @@
 use std::collections::BTreeSet;
 
+use crate::facade::topology_authoring::created_ref;
 use crate::facade::{
     admit_worth_query_mutation_batch, worth_query_aspect_path_strings,
     worth_query_aspect_paths_from_set, worth_query_mutation_support_contract,
@@ -13,7 +14,7 @@ use crate::facade::{
 };
 use forge_query::facade::{
     ForgeQueryAuthoritativeMutationEvidenceCloseout,
-    ForgeQueryAuthoritativeMutationEvidenceSupport, ForgeQueryMutationApiCompatibilityReport,
+    ForgeQueryAuthoritativeMutationEvidenceSupport, ForgeQueryMutationSurfaceReport,
     ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimePublicApiContract,
     ForgeQueryRuntimePublicApiNamingContract, ForgeQueryRuntimePublicSupportMatrix,
     ForgeQueryRuntimeSupportProfile,
@@ -38,8 +39,12 @@ fn query_collections_and_schema_bases_have_stable_worth_names() {
         WorthQuerySchemaBasis::TopologyValidationComputed.as_str(),
         "worth.schema.computed.topology_validation"
     );
+    assert_eq!(
+        WorthQuerySchemaBasis::TopologyDomainQuery.as_str(),
+        "worth.schema.domain.topology_query"
+    );
     assert_eq!(WorthQueryCollection::ALL.len(), 9);
-    assert_eq!(WorthQuerySchemaBasis::ALL.len(), 10);
+    assert_eq!(WorthQuerySchemaBasis::ALL.len(), 11);
 }
 
 #[test]
@@ -285,7 +290,7 @@ fn query_mutation_support_contract_tracks_upstream_authority_closeout() {
     let support_matrix =
         ForgeQueryRuntimePublicSupportMatrix::from_public_api_contract(&public_api_contract);
     let naming_contract = ForgeQueryRuntimePublicApiNamingContract::standard();
-    let mutation_compatibility = ForgeQueryMutationApiCompatibilityReport::derive(
+    let mutation_surface = ForgeQueryMutationSurfaceReport::derive(
         public_api_contract.backend_posture(),
         &support_matrix,
         &naming_contract,
@@ -296,7 +301,7 @@ fn query_mutation_support_contract_tracks_upstream_authority_closeout() {
     let closeout = ForgeQueryAuthoritativeMutationEvidenceCloseout::derive(
         public_api_contract.backend_posture(),
         &support_matrix,
-        &mutation_compatibility,
+        &mutation_surface,
         &naming_contract,
         &query_support,
         &bridge_support,
@@ -376,8 +381,8 @@ fn query_mutation_admission_marks_same_batch_topology_relation_creation_as_ready
                 kind: WorthRelationKind::Topology(
                     crate::facade::WorthTopologyRelationKind::HalfEdgeNext,
                 ),
-                source: crate::facade::created_ref("query-ready.source"),
-                target: crate::facade::created_ref("query-ready.target"),
+                source: created_ref("query-ready.source"),
+                target: created_ref("query-ready.target"),
             },
         ],
         crate::facade::WorthMutationOrigin::LocalEdit,
@@ -399,8 +404,8 @@ fn query_mutation_admission_rejects_geometry_and_diagnostics_truth_outside_topol
                 kind: WorthRelationKind::Diagnostics(
                     WorthDiagnosticsRelationKind::WireHasInterpretation,
                 ),
-                source: crate::facade::created_ref("query-gap.a"),
-                target: crate::facade::created_ref("query-gap.b"),
+                source: created_ref("query-gap.a"),
+                target: created_ref("query-gap.b"),
             },
         ],
         crate::facade::WorthMutationOrigin::LocalEdit,

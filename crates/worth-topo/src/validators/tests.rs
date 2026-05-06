@@ -7,7 +7,8 @@ mod validator_tests {
     use forge_relational::facade::transactions::{
         CreateIntent, EntitySpec, MutationIntent, TransactionOptions, WorkerIntentBatch,
     };
-    use worth_schema::facade::{seed_minimal_topology, worth_bootstrap_schema_registry};
+    use worth_schema::facade::topology_authoring::seed_minimal_topology;
+    use worth_schema::facade::worth_bootstrap_schema_registry;
 
     use crate::data::topology_view::{
         WorthTopologyBody, WorthTopologyEdge, WorthTopologyFace, WorthTopologyHalfEdge,

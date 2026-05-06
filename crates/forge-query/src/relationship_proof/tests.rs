@@ -119,29 +119,13 @@ fn tenant_membership_descriptor_binds_tenant_schema_basis() {
 
 #[test]
 fn bounded_ancestor_descriptor_requires_nonzero_bound() {
-    let canonical = canonical_query();
-    let admitted = admitted(&canonical);
-    let descriptors = RelationshipProofDescriptorSet::new(
-        vec![RelationshipProofDescriptor::bounded_ancestor(
-            "manager",
-            0,
-            admitted.bundle().policy_digest(),
-        )],
-        RelationshipProofBudget::bounded(1, 1),
-    );
+    let error = RelationshipProofDescriptor::bounded_ancestor("manager", 0, "policy-a")
+        .expect_err("zero-depth bounded ancestors must fail before admission");
 
-    let error = admit_relationship_proofs(canonical.query(), &admitted, &descriptors).unwrap_err();
-
-    assert_eq!(
-        error.failure_class(),
-        RelationshipProofFailureClass::UnboundedProofTopology
-    );
-    assert_eq!(
-        error
-            .counters()
-            .relationship_proof_recursive_broadening_denial_count(),
-        1
-    );
+    assert!(matches!(
+        error,
+        crate::authoring::AuthoringError::UnsupportedTraversalDepth { depth: 0 }
+    ));
 }
 
 #[test]

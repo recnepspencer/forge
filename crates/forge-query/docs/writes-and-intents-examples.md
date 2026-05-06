@@ -158,7 +158,7 @@ let verified_update_row = support
     })
     .unwrap();
 
-assert!(verified_update_row.compatibility_runtime_supported());
+assert!(verified_update_row.scaffold_profile_supported());
 if verified_update_row.primary_bridge_backed_runtime_supported() {
     assert_eq!(
         verified_update_row.current_posture_status(),
@@ -368,7 +368,7 @@ What is authoritative:
 
 - `workspace.insert(...)`, `workspace.update(...)`, `workspace.delete(...)`
 - `workspace.delete_with(...)`
-- `workspace.write(...)` as the lower-level compatibility path
+- `workspace.write(...)` as the lower-level mutation path
 - admitted `workspace.intent(...)` only when the runtime actually supports it
 
 What is staged:

@@ -8,6 +8,8 @@ fn runtime_builder_rejects_missing_backend_inputs() {
     };
 
     assert!(matches!(error, ForgeQueryRuntimeError::MissingBackend));
+    assert!(error.to_string().contains("build_backend_from_parts()"));
+    assert!(error.to_string().contains("backend(...) only"));
 }
 
 #[test]
@@ -149,13 +151,13 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
         .declare_live_view("external.tasks", task_live_request(), task_schema())
         .expect("external backend should declare live view");
     let receipt = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "external-1" },
-                "title": { "value": "External task" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("external-1")),
+                ("title.value", json!("External task")),
+            ],
+        ))
         .expect("external write authority should execute");
 
     assert_eq!(view.name(), "external.tasks");

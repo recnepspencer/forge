@@ -17,7 +17,7 @@ use worth_schema::facade::{
 };
 
 use crate::facade::{WorthNamingAttachmentReport, WorthNamingAttachmentRow};
-use crate::query::materialized::{parse_entity_identity, required_text};
+use crate::query::{parse_entity_identity, required_text};
 
 use super::WorthTopologyQuerySurfaceError;
 

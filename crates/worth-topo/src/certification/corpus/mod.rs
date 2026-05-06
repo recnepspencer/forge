@@ -2,10 +2,11 @@ use std::collections::BTreeMap;
 
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
-use worth_schema::facade::{
+use worth_schema::facade::topology_authoring::{
     WorthMilestoneOnePrimitiveCase, WorthMilestoneOnePrimitiveExpectedOutcome,
-    WorthMilestoneOnePrimitiveRole, WorthMilestoneOnePrimitiveScenario, WorthMutationOrigin,
+    WorthMilestoneOnePrimitiveRole, WorthMilestoneOnePrimitiveScenario,
 };
+use worth_schema::facade::WorthMutationOrigin;
 
 use crate::certification::error::WorthMilestoneOneCertificationError;
 use crate::certification::rejections::summarize_primitive_rejection;

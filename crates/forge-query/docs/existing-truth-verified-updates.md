@@ -35,7 +35,7 @@ let update_row = support
     })
     .unwrap();
 
-assert!(update_row.compatibility_runtime_supported());
+assert!(update_row.scaffold_profile_supported());
 if update_row.primary_bridge_backed_runtime_supported() {
     assert_eq!(
         update_row.current_posture_status(),

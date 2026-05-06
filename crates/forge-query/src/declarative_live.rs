@@ -2,8 +2,9 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use crate::authoring::{
     AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, GuidedAuthoringPath,
-    OrderingSelector, RawAuthoredQuery, RawAuthoredResultShape, RootEntityKey,
-    ScalarPredicateValue,
+    IntegerComparisonOperator, IntegerComparisonPredicate, OrderingDirection, OrderingSelector,
+    PresencePredicate, RawAuthoredQuery, RawAuthoredResultShape, RootEntityKey,
+    ScalarPredicateValue, SetMembershipPredicate, StringContainsPredicate, TraversalSelector,
 };
 use crate::basis::{
     preflight_execution_basis, resolve_snapshot_basis, BasisAuthorityFamily, BasisResolutionMode,
@@ -66,10 +67,222 @@ impl DeclarativeProjectionField {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DeclarativeOrderingField {
+    aspect: String,
+    field: String,
+    direction: OrderingDirection,
+}
+
+impl DeclarativeOrderingField {
+    pub fn ascending(aspect: impl Into<String>, field: impl Into<String>) -> Self {
+        Self {
+            aspect: aspect.into(),
+            field: field.into(),
+            direction: OrderingDirection::Ascending,
+        }
+    }
+
+    pub fn descending(aspect: impl Into<String>, field: impl Into<String>) -> Self {
+        Self {
+            aspect: aspect.into(),
+            field: field.into(),
+            direction: OrderingDirection::Descending,
+        }
+    }
+
+    pub fn aspect(&self) -> &str {
+        &self.aspect
+    }
+
+    pub fn field(&self) -> &str {
+        &self.field
+    }
+
+    pub fn direction(&self) -> OrderingDirection {
+        self.direction
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DeclarativeEqualityFilter {
     aspect: String,
     field: String,
     value: ScalarPredicateValue,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DeclarativeIntegerComparisonFilter {
+    aspect: String,
+    field: String,
+    operator: IntegerComparisonOperator,
+    value: i64,
+}
+
+impl DeclarativeIntegerComparisonFilter {
+    pub fn greater_than(aspect: impl Into<String>, field: impl Into<String>, value: i64) -> Self {
+        Self {
+            aspect: aspect.into(),
+            field: field.into(),
+            operator: IntegerComparisonOperator::GreaterThan,
+            value,
+        }
+    }
+
+    pub fn less_than(aspect: impl Into<String>, field: impl Into<String>, value: i64) -> Self {
+        Self {
+            aspect: aspect.into(),
+            field: field.into(),
+            operator: IntegerComparisonOperator::LessThan,
+            value,
+        }
+    }
+
+    pub fn aspect(&self) -> &str {
+        &self.aspect
+    }
+
+    pub fn field(&self) -> &str {
+        &self.field
+    }
+
+    pub fn operator(&self) -> IntegerComparisonOperator {
+        self.operator
+    }
+
+    pub fn value(&self) -> i64 {
+        self.value
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DeclarativeStringContainsFilter {
+    aspect: String,
+    field: String,
+    value: String,
+}
+
+impl DeclarativeStringContainsFilter {
+    pub fn new(
+        aspect: impl Into<String>,
+        field: impl Into<String>,
+        value: impl Into<String>,
+    ) -> Self {
+        Self {
+            aspect: aspect.into(),
+            field: field.into(),
+            value: value.into(),
+        }
+    }
+
+    pub fn aspect(&self) -> &str {
+        &self.aspect
+    }
+
+    pub fn field(&self) -> &str {
+        &self.field
+    }
+
+    pub fn value(&self) -> &str {
+        &self.value
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DeclarativeSetMembershipFilter {
+    aspect: String,
+    field: String,
+    values: Vec<ScalarPredicateValue>,
+}
+
+impl DeclarativeSetMembershipFilter {
+    pub fn new(
+        aspect: impl Into<String>,
+        field: impl Into<String>,
+        values: impl IntoIterator<Item = ScalarPredicateValue>,
+    ) -> Self {
+        Self {
+            aspect: aspect.into(),
+            field: field.into(),
+            values: values.into_iter().collect(),
+        }
+    }
+
+    pub fn aspect(&self) -> &str {
+        &self.aspect
+    }
+
+    pub fn field(&self) -> &str {
+        &self.field
+    }
+
+    pub fn values(&self) -> &[ScalarPredicateValue] {
+        &self.values
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DeclarativePresenceFilterKind {
+    IsPresent,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DeclarativePresenceFilter {
+    aspect: String,
+    field: String,
+    kind: DeclarativePresenceFilterKind,
+}
+
+impl DeclarativePresenceFilter {
+    pub fn is_present(aspect: impl Into<String>, field: impl Into<String>) -> Self {
+        Self {
+            aspect: aspect.into(),
+            field: field.into(),
+            kind: DeclarativePresenceFilterKind::IsPresent,
+        }
+    }
+
+    pub fn aspect(&self) -> &str {
+        &self.aspect
+    }
+
+    pub fn field(&self) -> &str {
+        &self.field
+    }
+
+    pub fn kind(&self) -> DeclarativePresenceFilterKind {
+        self.kind
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum DeclarativePredicateFilter {
+    Equality(DeclarativeEqualityFilter),
+    IntegerComparison(DeclarativeIntegerComparisonFilter),
+    StringContains(DeclarativeStringContainsFilter),
+    SetMembership(DeclarativeSetMembershipFilter),
+    Presence(DeclarativePresenceFilter),
+}
+
+impl DeclarativePredicateFilter {
+    pub fn aspect(&self) -> &str {
+        match self {
+            Self::Equality(filter) => filter.aspect(),
+            Self::IntegerComparison(filter) => filter.aspect(),
+            Self::StringContains(filter) => filter.aspect(),
+            Self::SetMembership(filter) => filter.aspect(),
+            Self::Presence(filter) => filter.aspect(),
+        }
+    }
+
+    pub fn field(&self) -> &str {
+        match self {
+            Self::Equality(filter) => filter.field(),
+            Self::IntegerComparison(filter) => filter.field(),
+            Self::StringContains(filter) => filter.field(),
+            Self::SetMembership(filter) => filter.field(),
+            Self::Presence(filter) => filter.field(),
+        }
+    }
 }
 
 impl DeclarativeEqualityFilter {
@@ -200,9 +413,11 @@ impl DeclarativeLiveViewShape {
 pub struct DeclarativeLiveQueryRequest {
     target: String,
     view_shape: DeclarativeLiveViewShape,
-    projection: Vec<DeclarativeProjectionField>,
-    equality_filters: Vec<DeclarativeEqualityFilter>,
-    ordering: Option<DeclarativeProjectionField>,
+    query_projection: Vec<DeclarativeProjectionField>,
+    result_fields: Vec<DeclarativeProjectionField>,
+    predicate_filters: Vec<DeclarativePredicateFilter>,
+    traversal: Vec<TraversalSelector>,
+    ordering: Vec<DeclarativeOrderingField>,
     inspector_identity: Option<InspectorIdentityArtifact>,
 }
 
@@ -211,9 +426,11 @@ impl DeclarativeLiveQueryRequest {
         Self {
             target: target.into(),
             view_shape,
-            projection: Vec::new(),
-            equality_filters: Vec::new(),
-            ordering: None,
+            query_projection: Vec::new(),
+            result_fields: Vec::new(),
+            predicate_filters: Vec::new(),
+            traversal: Vec::new(),
+            ordering: Vec::new(),
             inspector_identity: None,
         }
     }
@@ -226,16 +443,28 @@ impl DeclarativeLiveQueryRequest {
         &self.view_shape
     }
 
+    pub fn query_projection(&self) -> &[DeclarativeProjectionField] {
+        &self.query_projection
+    }
+
     pub fn projection(&self) -> &[DeclarativeProjectionField] {
-        &self.projection
+        self.result_fields()
     }
 
-    pub fn equality_filters(&self) -> &[DeclarativeEqualityFilter] {
-        &self.equality_filters
+    pub fn result_fields(&self) -> &[DeclarativeProjectionField] {
+        &self.result_fields
     }
 
-    pub fn ordering(&self) -> Option<&DeclarativeProjectionField> {
-        self.ordering.as_ref()
+    pub fn predicate_filters(&self) -> &[DeclarativePredicateFilter] {
+        &self.predicate_filters
+    }
+
+    pub fn traversal(&self) -> &[TraversalSelector] {
+        &self.traversal
+    }
+
+    pub fn ordering(&self) -> &[DeclarativeOrderingField] {
+        &self.ordering
     }
 
     pub fn inspector_identity(&self) -> Option<&InspectorIdentityArtifact> {
@@ -243,22 +472,77 @@ impl DeclarativeLiveQueryRequest {
     }
 
     pub fn project(mut self, field: DeclarativeProjectionField) -> Self {
-        self.projection.push(field);
+        self.query_projection.push(field.clone());
+        self.result_fields.push(field);
         self
     }
 
     pub fn where_equal(mut self, filter: DeclarativeEqualityFilter) -> Self {
-        self.equality_filters.push(filter);
+        self.predicate_filters
+            .push(DeclarativePredicateFilter::Equality(filter));
+        self
+    }
+
+    pub fn where_greater_than(mut self, filter: DeclarativeIntegerComparisonFilter) -> Self {
+        self.predicate_filters
+            .push(DeclarativePredicateFilter::IntegerComparison(filter));
+        self
+    }
+
+    pub fn where_less_than(mut self, filter: DeclarativeIntegerComparisonFilter) -> Self {
+        self.predicate_filters
+            .push(DeclarativePredicateFilter::IntegerComparison(filter));
+        self
+    }
+
+    pub fn where_contains(mut self, filter: DeclarativeStringContainsFilter) -> Self {
+        self.predicate_filters
+            .push(DeclarativePredicateFilter::StringContains(filter));
+        self
+    }
+
+    pub fn where_in(mut self, filter: DeclarativeSetMembershipFilter) -> Self {
+        self.predicate_filters
+            .push(DeclarativePredicateFilter::SetMembership(filter));
+        self
+    }
+
+    pub fn where_present(mut self, filter: DeclarativePresenceFilter) -> Self {
+        self.predicate_filters
+            .push(DeclarativePredicateFilter::Presence(filter));
+        self
+    }
+
+    pub fn traverse(mut self, selector: TraversalSelector) -> Self {
+        self.traversal.push(selector);
         self
     }
 
     pub fn order_by(mut self, field: DeclarativeProjectionField) -> Self {
-        self.ordering = Some(field);
+        self.ordering.push(DeclarativeOrderingField::ascending(
+            field.aspect(),
+            field.field(),
+        ));
+        self
+    }
+
+    pub fn order_by_direction(mut self, field: DeclarativeOrderingField) -> Self {
+        self.ordering.push(field);
         self
     }
 
     pub fn with_inspector_identity(mut self, artifact: InspectorIdentityArtifact) -> Self {
         self.inspector_identity = Some(artifact);
+        self
+    }
+
+    pub(crate) fn project_query_only(mut self, field: DeclarativeProjectionField) -> Self {
+        self.query_projection.push(field);
+        self
+    }
+
+    pub(crate) fn result_field(mut self, field: DeclarativeProjectionField) -> Self {
+        self.result_fields.push(field);
         self
     }
 }
@@ -269,6 +553,19 @@ pub enum DeclarativeLiveQueryError {
     Authoring(String),
     Canonicalization(String),
     ViewShape(String),
+    DuplicateTraversal {
+        relation: String,
+        depth: u8,
+    },
+    TraversalNotDeclaredInSchema {
+        relation: String,
+        requested_depth: u8,
+    },
+    TraversalExceedsSchemaDepth {
+        relation: String,
+        requested_depth: u8,
+        max_depth: u8,
+    },
     BasisResolution(String),
     BasisPreflight(String),
     LiveLowering(String),
@@ -305,10 +602,6 @@ impl DeclarativeLiveQuerySession {
 
     pub fn live_view(&self) -> &LiveViewShapeArtifact {
         &self.live_view
-    }
-
-    pub(crate) fn advance_live_view(&mut self, live_view: LiveViewShapeArtifact) {
-        self.live_view = live_view;
     }
 }
 
@@ -701,6 +994,7 @@ pub fn declare_runtime_live_query_session_with_grouped_baseline(
         SnapshotLineageClass::CurrentHead,
         false,
     );
+    validate_declared_traversal_contract(&request, &schema_view)?;
     let canonical = canonicalize_declarative_request(&request)?;
     let view_plan =
         plan_declarative_request(&request, &canonical, schema_view, basis_intent.clone())?;
@@ -734,6 +1028,7 @@ pub fn declare_live_query_session(
     basis_intent: ExecutionBasisIntent,
     basis: ResolvedSnapshotBasis,
 ) -> Result<DeclarativeLiveQuerySession, DeclarativeLiveQueryError> {
+    validate_declared_traversal_contract(&request, &schema_view)?;
     let canonical = canonicalize_declarative_request(&request)?;
     let view_plan = plan_declarative_request(&request, &canonical, schema_view, basis_intent)?;
     finish_declarative_live_query_session(request, canonical, view_plan, basis, None)
@@ -991,38 +1286,35 @@ fn finish_declarative_live_query_session(
     })
 }
 
-fn canonicalize_declarative_request(
+pub(crate) fn canonicalize_declarative_request(
     request: &DeclarativeLiveQueryRequest,
 ) -> Result<CanonicalQueryBundle, DeclarativeLiveQueryError> {
     let root = RootEntityKey::new(request.target())
         .map_err(|_| DeclarativeLiveQueryError::InvalidTarget)?;
-    let projection = normalized_projection(request);
+    let query_projection = normalized_query_projection(request);
+    let result_fields = normalized_result_fields(request, &query_projection);
 
     if request.view_shape().collection_backed() {
+        let ordering = normalized_ordering(request);
         let mut query = RawAuthoredQuery::collection_builder(root);
-        for field in &projection {
+        for field in &query_projection {
             query = query.project(
                 AspectFieldSelector::new(field.aspect(), field.field())
                     .map_err(|error| DeclarativeLiveQueryError::Authoring(format!("{error:?}")))?,
             );
         }
-        for filter in request.equality_filters() {
-            query = query.where_equal(
-                EqualityPredicate::new(filter.aspect(), filter.field(), filter.value().clone())
-                    .map_err(|error| DeclarativeLiveQueryError::Authoring(format!("{error:?}")))?,
-            );
+        for filter in request.predicate_filters() {
+            query = apply_declarative_predicate_filter(query, filter)?;
         }
-        let ordering = request
-            .ordering
-            .clone()
-            .unwrap_or_else(|| DeclarativeProjectionField::new("identity", "id"));
-        query = query.order_by(
-            OrderingSelector::ascending(ordering.aspect(), ordering.field())
-                .map_err(|error| DeclarativeLiveQueryError::Authoring(format!("{error:?}")))?,
-        );
+        for traversal in request.traversal() {
+            query = query.traverse(traversal.clone());
+        }
+        for ordering in &ordering {
+            query = apply_declarative_ordering(query, ordering)?;
+        }
 
         let mut shape = RawAuthoredResultShape::collection_builder();
-        for field in &projection {
+        for field in &result_fields {
             shape = shape.field(
                 AuthoredResultShapeField::new(
                     field.aspect(),
@@ -1043,21 +1335,21 @@ fn canonicalize_declarative_request(
         .map_err(|error| DeclarativeLiveQueryError::Canonicalization(format!("{error:?}")))
     } else {
         let mut query = RawAuthoredQuery::detail_builder(root);
-        for field in &projection {
+        for field in &query_projection {
             query = query.project(
                 AspectFieldSelector::new(field.aspect(), field.field())
                     .map_err(|error| DeclarativeLiveQueryError::Authoring(format!("{error:?}")))?,
             );
         }
-        for filter in request.equality_filters() {
-            query = query.where_equal(
-                EqualityPredicate::new(filter.aspect(), filter.field(), filter.value().clone())
-                    .map_err(|error| DeclarativeLiveQueryError::Authoring(format!("{error:?}")))?,
-            );
+        for filter in request.predicate_filters() {
+            query = apply_declarative_predicate_filter(query, filter)?;
+        }
+        for traversal in request.traversal() {
+            query = query.traverse(traversal.clone());
         }
 
         let mut shape = RawAuthoredResultShape::detail_builder();
-        for field in &projection {
+        for field in &result_fields {
             shape = shape.field(
                 AuthoredResultShapeField::new(
                     field.aspect(),
@@ -1079,25 +1371,79 @@ fn canonicalize_declarative_request(
     }
 }
 
-fn normalized_projection(request: &DeclarativeLiveQueryRequest) -> Vec<DeclarativeProjectionField> {
-    let mut fields = request.projection().to_vec();
+fn normalized_query_projection(
+    request: &DeclarativeLiveQueryRequest,
+) -> Vec<DeclarativeProjectionField> {
+    let mut fields = request.query_projection().to_vec();
     if fields.is_empty() {
         fields.push(DeclarativeProjectionField::new("identity", "id"));
-        for filter in request.equality_filters() {
-            push_unique_field(
-                &mut fields,
-                DeclarativeProjectionField::new(filter.aspect(), filter.field()),
-            );
+        for filter in request.predicate_filters() {
+            push_unique_field(&mut fields, declarative_field_from_predicate(filter));
         }
     }
     if request.view_shape().collection_backed() {
-        let ordering = request
-            .ordering
-            .clone()
-            .unwrap_or_else(|| DeclarativeProjectionField::new("identity", "id"));
-        push_unique_field(&mut fields, ordering);
+        let ordering = normalized_ordering(request);
+        for field in ordering {
+            push_unique_field(
+                &mut fields,
+                DeclarativeProjectionField::new(field.aspect(), field.field()),
+            );
+        }
     }
     fields
+}
+
+fn normalized_result_fields(
+    request: &DeclarativeLiveQueryRequest,
+    query_projection: &[DeclarativeProjectionField],
+) -> Vec<DeclarativeProjectionField> {
+    if request.result_fields().is_empty() {
+        query_projection.to_vec()
+    } else {
+        request.result_fields().to_vec()
+    }
+}
+
+fn normalized_ordering(request: &DeclarativeLiveQueryRequest) -> Vec<DeclarativeOrderingField> {
+    if request.ordering().is_empty() && request.view_shape().collection_backed() {
+        vec![DeclarativeOrderingField::ascending("identity", "id")]
+    } else {
+        request.ordering().to_vec()
+    }
+}
+
+fn declarative_field_from_predicate(
+    filter: &DeclarativePredicateFilter,
+) -> DeclarativeProjectionField {
+    DeclarativeProjectionField::new(filter.aspect(), filter.field())
+}
+
+pub(crate) fn validate_declared_traversal_contract(
+    request: &DeclarativeLiveQueryRequest,
+    schema_view: &QuerySchemaView,
+) -> Result<(), DeclarativeLiveQueryError> {
+    let mut seen = BTreeSet::new();
+    for traversal in request.traversal() {
+        let relation = traversal.relation().to_string();
+        let depth = traversal.depth();
+        if !seen.insert((relation.clone(), depth)) {
+            return Err(DeclarativeLiveQueryError::DuplicateTraversal { relation, depth });
+        }
+        let Some(schema_relation) = schema_view.relation(&relation) else {
+            return Err(DeclarativeLiveQueryError::TraversalNotDeclaredInSchema {
+                relation,
+                requested_depth: depth,
+            });
+        };
+        if depth > schema_relation.max_depth() {
+            return Err(DeclarativeLiveQueryError::TraversalExceedsSchemaDepth {
+                relation,
+                requested_depth: depth,
+                max_depth: schema_relation.max_depth(),
+            });
+        }
+    }
+    Ok(())
 }
 
 fn push_unique_field(
@@ -1112,10 +1458,73 @@ fn push_unique_field(
     }
 }
 
+fn apply_declarative_predicate_filter<F: crate::authoring::QueryAuthoringFamily>(
+    mut query: crate::authoring::QueryBuilder<F>,
+    filter: &DeclarativePredicateFilter,
+) -> Result<crate::authoring::QueryBuilder<F>, DeclarativeLiveQueryError> {
+    query = match filter {
+        DeclarativePredicateFilter::Equality(filter) => query.where_equal(
+            EqualityPredicate::new(filter.aspect(), filter.field(), filter.value().clone())
+                .map_err(|error| DeclarativeLiveQueryError::Authoring(format!("{error:?}")))?,
+        ),
+        DeclarativePredicateFilter::IntegerComparison(filter) => match filter.operator() {
+            IntegerComparisonOperator::GreaterThan => query.where_greater_than(
+                IntegerComparisonPredicate::greater_than(
+                    filter.aspect(),
+                    filter.field(),
+                    filter.value(),
+                )
+                .map_err(|error| DeclarativeLiveQueryError::Authoring(format!("{error:?}")))?,
+            ),
+            IntegerComparisonOperator::LessThan => query.where_less_than(
+                IntegerComparisonPredicate::less_than(
+                    filter.aspect(),
+                    filter.field(),
+                    filter.value(),
+                )
+                .map_err(|error| DeclarativeLiveQueryError::Authoring(format!("{error:?}")))?,
+            ),
+        },
+        DeclarativePredicateFilter::StringContains(filter) => query.where_contains(
+            StringContainsPredicate::new(filter.aspect(), filter.field(), filter.value())
+                .map_err(|error| DeclarativeLiveQueryError::Authoring(format!("{error:?}")))?,
+        ),
+        DeclarativePredicateFilter::SetMembership(filter) => query.where_in(
+            SetMembershipPredicate::new(
+                filter.aspect(),
+                filter.field(),
+                filter.values().iter().cloned(),
+            )
+            .map_err(|error| DeclarativeLiveQueryError::Authoring(format!("{error:?}")))?,
+        ),
+        DeclarativePredicateFilter::Presence(filter) => query.where_present(
+            PresencePredicate::is_present(filter.aspect(), filter.field())
+                .map_err(|error| DeclarativeLiveQueryError::Authoring(format!("{error:?}")))?,
+        ),
+    };
+    Ok(query)
+}
+
+fn apply_declarative_ordering<F: crate::authoring::QueryAuthoringFamily>(
+    query: crate::authoring::QueryBuilder<F>,
+    ordering: &DeclarativeOrderingField,
+) -> Result<crate::authoring::QueryBuilder<F>, DeclarativeLiveQueryError> {
+    let selector = match ordering.direction() {
+        OrderingDirection::Ascending => {
+            OrderingSelector::ascending(ordering.aspect(), ordering.field())
+        }
+        OrderingDirection::Descending => {
+            OrderingSelector::descending(ordering.aspect(), ordering.field())
+        }
+    }
+    .map_err(|error| DeclarativeLiveQueryError::Authoring(format!("{error:?}")))?;
+    Ok(query.order_by(selector))
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::schema_view::{SchemaFieldKind, SchemaFieldView};
+    use crate::schema_view::{SchemaFieldKind, SchemaFieldView, SchemaRelationView};
     use crate::view_shape_live::LiveViewShapeFamily;
     use crate::workflow::{WorkflowFreshnessBinding, WorkflowStalenessClass};
 
@@ -1174,7 +1583,7 @@ mod tests {
                     ScalarPredicateValue::String("incomplete".to_string()),
                 ));
 
-        let fields = normalized_projection(&request);
+        let fields = normalized_query_projection(&request);
 
         assert_eq!(
             fields
@@ -1242,5 +1651,115 @@ mod tests {
                 .expect_err("empty proxy flushes should never mint writeback authority");
 
         assert_eq!(error, DeclarativeLiveQueryError::EmptyWritebackIntent);
+    }
+
+    #[test]
+    fn runtime_declarative_request_preserves_traversal_into_canonical_query() {
+        let request = DeclarativeLiveQueryRequest::new("Todo", DeclarativeLiveViewShape::detail())
+            .project(DeclarativeProjectionField::new("identity", "id"))
+            .traverse(TraversalSelector::bounded("worth.todo_parent", 2).unwrap());
+        let schema = QuerySchemaView::new(
+            "todo-demo-schema-with-traversal",
+            [
+                SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
+                SchemaFieldView::new("status", "state", SchemaFieldKind::String),
+                SchemaFieldView::new("title", "value", SchemaFieldKind::String),
+            ],
+            [SchemaRelationView::new("worth.todo_parent", 2)],
+        );
+
+        let session = declare_runtime_live_query_session(request, schema, "runtime-head-traversal")
+            .expect("declarative traversal should lower into the canonical query");
+
+        assert_eq!(session.request().traversal().len(), 1);
+        assert_eq!(session.canonical().query().traversal().len(), 1);
+        assert_eq!(
+            session.canonical().query().traversal()[0].relation.as_str(),
+            "worth.todo_parent"
+        );
+        assert_eq!(session.canonical().query().traversal()[0].depth, 2);
+    }
+
+    #[test]
+    fn runtime_declarative_request_rejects_duplicate_traversal_before_canonicalization() {
+        let request = DeclarativeLiveQueryRequest::new("Todo", DeclarativeLiveViewShape::detail())
+            .project(DeclarativeProjectionField::new("identity", "id"))
+            .traverse(TraversalSelector::bounded("worth.todo_parent", 2).unwrap())
+            .traverse(TraversalSelector::bounded("worth.todo_parent", 2).unwrap());
+        let schema = QuerySchemaView::new(
+            "todo-demo-schema-with-traversal",
+            [
+                SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
+                SchemaFieldView::new("status", "state", SchemaFieldKind::String),
+                SchemaFieldView::new("title", "value", SchemaFieldKind::String),
+            ],
+            [SchemaRelationView::new("worth.todo_parent", 2)],
+        );
+
+        let error = declare_runtime_live_query_session(request, schema, "runtime-head-traversal")
+            .expect_err("duplicate traversal should fail at the declarative boundary");
+
+        assert!(matches!(
+            error,
+            DeclarativeLiveQueryError::DuplicateTraversal { .. }
+        ));
+    }
+
+    #[test]
+    fn declarative_request_preserves_query_only_projection_and_delivered_result_fields() {
+        let request = DeclarativeLiveQueryRequest::new("Todo", DeclarativeLiveViewShape::table())
+            .project_query_only(DeclarativeProjectionField::new("identity", "id"))
+            .result_field(DeclarativeProjectionField::new("title", "value").delivered_as("title"))
+            .order_by_direction(DeclarativeOrderingField::descending("title", "value"));
+
+        let query_projection = normalized_query_projection(&request);
+        let result_fields = normalized_result_fields(&request, &query_projection);
+
+        assert_eq!(
+            query_projection
+                .iter()
+                .map(|field| (field.aspect(), field.field()))
+                .collect::<Vec<_>>(),
+            vec![("identity", "id"), ("title", "value")]
+        );
+        assert_eq!(
+            result_fields
+                .iter()
+                .map(|field| (field.aspect(), field.field(), field.delivered_name()))
+                .collect::<Vec<_>>(),
+            vec![("title", "value", "title")]
+        );
+    }
+
+    #[test]
+    fn runtime_declarative_request_preserves_non_equality_predicates_and_descending_ordering() {
+        let request = DeclarativeLiveQueryRequest::new("Todo", DeclarativeLiveViewShape::table())
+            .project(DeclarativeProjectionField::new("identity", "id"))
+            .where_greater_than(DeclarativeIntegerComparisonFilter::greater_than(
+                "metrics", "priority", 5,
+            ))
+            .where_contains(DeclarativeStringContainsFilter::new(
+                "title", "value", "milk",
+            ))
+            .where_in(DeclarativeSetMembershipFilter::new(
+                "status",
+                "state",
+                [
+                    ScalarPredicateValue::String("todo".to_string()),
+                    ScalarPredicateValue::String("doing".to_string()),
+                ],
+            ))
+            .where_present(DeclarativePresenceFilter::is_present("owner", "name"))
+            .order_by_direction(DeclarativeOrderingField::descending("metrics", "priority"));
+
+        let canonical = canonicalize_declarative_request(&request)
+            .expect("declarative request should preserve full predicate families");
+
+        assert_eq!(canonical.query().predicates().len(), 4);
+        assert_eq!(canonical.query().ordering().len(), 1);
+        assert_eq!(
+            canonical.query().ordering()[0].direction,
+            OrderingDirection::Descending
+        );
     }
 }

@@ -1,25 +1,17 @@
 use forge_query::facade::{
     ForgeQueryDerivedPatch, ForgeQueryDerivedView, ForgeQueryDerivedViewHandle,
-    ForgeQueryDerivedViewMaintainer, ForgeQueryDerivedViewMaterialization, ForgeQueryEntity,
-    ForgeQueryLiveView, ForgeQueryRuntimeError, ForgeQueryWorkspace, ForgeQueryWorkspaceError,
+    ForgeQueryDerivedViewMaintainer, ForgeQueryDerivedViewMaterialization, ForgeQueryLiveView,
+    ForgeQueryRuntimeError, ForgeQueryWorkspace, ForgeQueryWorkspaceError,
     ForgeQueryWorkspaceLiveViewDeclaration,
 };
-use forge_relational::facade::identity::{EntityId, PartitionId, RelationId, VersionId};
-use forge_relational::facade::payloads::RecordPayload;
-use forge_relational::facade::runtime::{EntityReadRecord, RelationReadRecord};
-use forge_relational::facade::schema::{KindResolution, SchemaId, SchemaVersionId};
-use forge_relational::facade::storage::RecordLifecycleState;
-use serde_json::{json, Value};
+use serde_json::json;
 use worth_schema::facade::{
-    WorthEntityKind, WorthQueryAspectPath, WorthQueryCollection,
-    WorthQueryComputedDeclarationBuilder, WorthQueryDeclarationError,
-    WorthQueryLiveDeclarationBuilder, WorthQueryLiveField, WorthQuerySchemaBasis,
-    WorthRelationKind,
+    WorthQueryAspectPath, WorthQueryCollection, WorthQueryComputedDeclarationBuilder,
+    WorthQueryDeclarationError, WorthQueryLiveDeclarationBuilder, WorthQueryLiveField,
+    WorthQuerySchemaBasis, WorthRelationKind,
 };
 
-use crate::materialization::{
-    MaterializedTopologyView, WorthTopologyMaterializationError, WorthTopologyMaterializer,
-};
+use crate::materialization::WorthTopologyMaterializer;
 
 use super::QUERY_SURFACE_FAILURE_ROW_KEY;
 
@@ -76,7 +68,10 @@ impl ForgeQueryDerivedViewMaintainer for WorthTopologyMaterializedMaintainer {
         let entity_rows = upstreams.live_rows(&self.entity_view_name).unwrap_or(&[]);
         let relation_rows = upstreams.live_rows(&self.relation_view_name).unwrap_or(&[]);
 
-        let payload = match materialized_topology_from_query_rows(entity_rows, relation_rows) {
+        let payload = match WorthTopologyMaterializer::materialize_from_query_rows(
+            entity_rows,
+            relation_rows,
+        ) {
             Ok(materialized) => serde_json::to_value(materialized)
                 .expect("materialized topology view must serialize"),
             Err(error) => json!({ QUERY_SURFACE_FAILURE_ROW_KEY: error.to_string() }),
@@ -207,101 +202,6 @@ pub fn declare_worth_topology_materialized_surface<T, E, R>(
     )
 }
 
-pub(crate) fn materialized_topology_from_query_rows(
-    entity_rows: &[ForgeQueryEntity],
-    relation_rows: &[ForgeQueryEntity],
-) -> Result<MaterializedTopologyView, WorthTopologyMaterializationError> {
-    let entity_records = entity_rows
-        .iter()
-        .map(entity_record_from_query_row)
-        .collect::<Result<Vec<_>, _>>()?;
-    let relation_records = relation_rows
-        .iter()
-        .enumerate()
-        .map(|(index, row)| relation_record_from_query_row(index as u64, row))
-        .collect::<Result<Vec<_>, _>>()?;
-    WorthTopologyMaterializer::materialize_from_records(&entity_records, &relation_records)
-}
-
-fn entity_record_from_query_row(
-    row: &ForgeQueryEntity,
-) -> Result<EntityReadRecord, WorthTopologyMaterializationError> {
-    let entity_id = parse_entity_identity(&row.identity)?;
-    let kind_name = required_text(&row.payload, "topology.kind")?;
-    let kind = parse_entity_kind(kind_name)?;
-    let payload = json!({
-        "topology": {
-            "structure": row
-                .payload
-                .get("topology")
-                .and_then(|value| value.get("structure"))
-                .cloned()
-                .unwrap_or_else(|| Value::String(kind.kind_name().to_string())),
-        },
-        "naming": {
-            "persistent_name": row
-                .payload
-                .get("naming")
-                .and_then(|value| value.get("persistent_name"))
-                .cloned()
-                .unwrap_or(Value::Null),
-        }
-    });
-    Ok(EntityReadRecord {
-        entity_id,
-        lineage_id: None,
-        kind: entity_kind_resolution(kind),
-        lifecycle: RecordLifecycleState::Live,
-        created_at_version: VersionId(1),
-        retired_at_version: None,
-        payload: RecordPayload::from(payload),
-    })
-}
-
-fn relation_record_from_query_row(
-    ordinal: u64,
-    row: &ForgeQueryEntity,
-) -> Result<RelationReadRecord, WorthTopologyMaterializationError> {
-    let kind_name = required_text(&row.payload, "topology.kind")?;
-    let kind = parse_relation_kind(kind_name)?;
-    Ok(RelationReadRecord {
-        relation_id: RelationId::new(PartitionId::main(), ordinal + 1, 0),
-        kind: relation_kind_resolution(kind),
-        lifecycle: RecordLifecycleState::Live,
-        created_at_version: VersionId(1),
-        retired_at_version: None,
-        source: parse_entity_identity(required_text(&row.payload, "topology.source_identity")?)?,
-        target: parse_entity_identity(required_text(&row.payload, "topology.target_identity")?)?,
-        payload: None,
-    })
-}
-
-fn parse_entity_kind(
-    kind_name: &str,
-) -> Result<WorthEntityKind, WorthTopologyMaterializationError> {
-    WorthEntityKind::ALL
-        .into_iter()
-        .find(|kind| kind.kind_name() == kind_name)
-        .ok_or_else(|| {
-            WorthTopologyMaterializationError::new(format!(
-                "unknown worth topology entity kind `{kind_name}` in query row"
-            ))
-        })
-}
-
-pub(crate) fn parse_relation_kind(
-    kind_name: &str,
-) -> Result<WorthRelationKind, WorthTopologyMaterializationError> {
-    WorthRelationKind::ALL
-        .into_iter()
-        .find(|kind| kind.kind_name() == kind_name)
-        .ok_or_else(|| {
-            WorthTopologyMaterializationError::new(format!(
-                "unknown worth topology relation kind `{kind_name}` in query row"
-            ))
-        })
-}
-
 pub(crate) fn topology_relation_dependency_path(kind: WorthRelationKind) -> Option<&'static str> {
     match kind {
         WorthRelationKind::Topology(
@@ -327,81 +227,4 @@ pub(crate) fn topology_relation_dependency_path(kind: WorthRelationKind) -> Opti
         ) => Some(WorthQueryAspectPath::TOPOLOGY_RADIAL.as_str()),
         _ => None,
     }
-}
-
-fn entity_kind_resolution(kind: WorthEntityKind) -> KindResolution {
-    KindResolution {
-        kind_id: kind.kind_id(),
-        kind_name: kind.kind_name().to_string(),
-        schema_id: SchemaId(worth_schema::facade::WORTH_SCHEMA_ID.to_string()),
-        schema_version_id: SchemaVersionId(worth_schema::facade::WORTH_SCHEMA_VERSION_ID),
-    }
-}
-
-fn relation_kind_resolution(kind: WorthRelationKind) -> KindResolution {
-    KindResolution {
-        kind_id: kind.kind_id(),
-        kind_name: kind.kind_name().to_string(),
-        schema_id: SchemaId(worth_schema::facade::WORTH_SCHEMA_ID.to_string()),
-        schema_version_id: SchemaVersionId(worth_schema::facade::WORTH_SCHEMA_VERSION_ID),
-    }
-}
-
-pub(crate) fn required_text<'a>(
-    payload: &'a Value,
-    path: &str,
-) -> Result<&'a str, WorthTopologyMaterializationError> {
-    let mut current = payload;
-    for part in path.split('.') {
-        current = current.get(part).ok_or_else(|| {
-            WorthTopologyMaterializationError::new(format!(
-                "query truth row is missing required field `{path}`"
-            ))
-        })?;
-    }
-    current.as_str().ok_or_else(|| {
-        WorthTopologyMaterializationError::new(format!(
-            "query truth row field `{path}` must be a string"
-        ))
-    })
-}
-
-pub(crate) fn parse_entity_identity(
-    identity: &str,
-) -> Result<EntityId, WorthTopologyMaterializationError> {
-    let mut parts = identity.split(':');
-    if parts.next() != Some("entity") {
-        return Err(WorthTopologyMaterializationError::new(format!(
-            "expected forge-query entity identity, found `{identity}`"
-        )));
-    }
-    let partition = parse_identity_part(parts.next(), "partition", identity)?;
-    let slot = parse_identity_part(parts.next(), "slot", identity)?;
-    let generation = parse_identity_part(parts.next(), "generation", identity)?;
-    if parts.next().is_some() {
-        return Err(WorthTopologyMaterializationError::new(format!(
-            "unexpected trailing forge-query identity data in `{identity}`"
-        )));
-    }
-    Ok(EntityId::new(PartitionId(partition), slot, generation))
-}
-
-fn parse_identity_part<T>(
-    part: Option<&str>,
-    label: &str,
-    identity: &str,
-) -> Result<T, WorthTopologyMaterializationError>
-where
-    T: std::str::FromStr,
-{
-    let value = part.ok_or_else(|| {
-        WorthTopologyMaterializationError::new(format!(
-            "missing {label} component in forge-query identity `{identity}`"
-        ))
-    })?;
-    value.parse::<T>().map_err(|_| {
-        WorthTopologyMaterializationError::new(format!(
-            "invalid {label} component in forge-query identity `{identity}`"
-        ))
-    })
 }

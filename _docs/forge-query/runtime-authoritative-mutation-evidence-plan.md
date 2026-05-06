@@ -405,7 +405,7 @@ Must preserve:
 
 - the public mutation surface stays aspect-native
 - deferred temporal/async/store/durable neighbors remain deferred
-- domains do not learn expert compatibility seams as the ordinary path
+- domains do not learn expert lower-level seams as the ordinary path
 
 Additional scenario rows, must-ship lists, proof obligations, roadmap
 placement, failure taxonomy, and self-check live in the appendix:

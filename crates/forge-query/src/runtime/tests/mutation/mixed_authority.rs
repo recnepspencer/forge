@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn mixed_batch_preserves_existing_truth_mode_and_neighbor_aggregate_evidence() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.mixed-authority-batch")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace

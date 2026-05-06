@@ -2,16 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn compose_graph_without_lineage_steps_fails_closed_on_lineage_summary() {
-    let mut workspace = ForgeQueryRuntime::builder()
-        .compatibility_in_memory_collections([ForgeQueryCollection::new(
-            "Vertex",
-            [
-                crate::memory_workspace::ForgeQueryAspect::new("identity.id", "identity.id"),
-                crate::memory_workspace::ForgeQueryAspect::new("kind.value", "kind.value"),
-            ],
-        )])
-        .build()
-        .expect("runtime should build")
+    let mut workspace = stateful_bridge_vertex_runtime()
         .workspace("topology.graph-composition-no-lineage-summary")
         .expect("workspace should open");
     let _: ForgeQueryLiveView<Value> = workspace

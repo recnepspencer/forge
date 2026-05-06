@@ -1,5 +1,6 @@
 pub(crate) mod error;
 mod fallback;
+mod loop_cycle;
 pub(crate) mod lowering;
 #[allow(dead_code)]
 pub(crate) mod parity;

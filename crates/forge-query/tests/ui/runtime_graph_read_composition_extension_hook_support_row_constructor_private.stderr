@@ -1,0 +1,13 @@
+error[E0451]: fields `family`, `boundary`, `semantic_bypass_allowed` and `row_digest` of struct `ForgeQueryReadCompositionExtensionHookSupportRow` are private
+  --> tests/ui/runtime_graph_read_composition_extension_hook_support_row_constructor_private.rs:9:9
+   |
+ 8 |     let _ = ForgeQueryReadCompositionExtensionHookSupportRow {
+   |             ------------------------------------------------ in this type
+ 9 |         family: ForgeQueryReadCompositionExtensionHookFamily::DomainReadFamilyLowering,
+   |         ^^^^^^ private field
+10 |         boundary: ForgeQueryReadCompositionExtensionHookBoundary::Lowering,
+   |         ^^^^^^^^ private field
+11 |         semantic_bypass_allowed: false,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         row_digest: String::new(),
+   |         ^^^^^^^^^^ private field

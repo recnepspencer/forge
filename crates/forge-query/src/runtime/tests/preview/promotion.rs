@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn preview_discard_closeout_separates_temporary_writes_from_authoritative_residue() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>("tasks.preview-closeout", task_live_request(), task_schema())
         .expect("live should declare");
@@ -13,22 +13,22 @@ fn preview_discard_closeout_separates_temporary_writes_from_authoritative_residu
             .expect("preview session should be admitted");
         preview.use_view(&live);
         preview
-            .write(ForgeQueryWriteCommand::Insert {
-                collection: "Task".to_string(),
-                payload: json!({
-                    "identity": { "id": "preview-temp-1" },
-                    "title": { "value": "Temporary one" },
-                }),
-            })
+            .write(insert_command(
+                "Task",
+                [
+                    ("identity.id", json!("preview-temp-1")),
+                    ("title.value", json!("Temporary one")),
+                ],
+            ))
             .expect("first preview write should stage");
         preview
-            .write(ForgeQueryWriteCommand::Insert {
-                collection: "Task".to_string(),
-                payload: json!({
-                    "identity": { "id": "preview-temp-2" },
-                    "title": { "value": "Temporary two" },
-                }),
-            })
+            .write(insert_command(
+                "Task",
+                [
+                    ("identity.id", json!("preview-temp-2")),
+                    ("title.value", json!("Temporary two")),
+                ],
+            ))
             .expect("second preview write should stage");
         preview.discard()
     };
@@ -56,7 +56,7 @@ fn preview_discard_closeout_separates_temporary_writes_from_authoritative_residu
 
 #[test]
 fn preview_promotion_closeout_records_consumed_staging_without_preview_lane_mutation() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare before preview-safe operation runs");
@@ -134,13 +134,13 @@ fn preview_promotion_rejects_stale_basis_before_authority_execution() {
             .preview("stale basis")
             .expect("preview session should be admitted");
         preview
-            .write(ForgeQueryWriteCommand::Insert {
-                collection: "Task".to_string(),
-                payload: json!({
-                    "identity": { "id": "stale-preview" },
-                    "title": { "value": "Should not promote" },
-                }),
-            })
+            .write(insert_command(
+                "Task",
+                [
+                    ("identity.id", json!("stale-preview")),
+                    ("title.value", json!("Should not promote")),
+                ],
+            ))
             .expect("preview write should stage");
         preview
             .promote()
@@ -185,13 +185,13 @@ fn preview_promotion_write_failure_is_typed_and_not_silently_dropped() {
             .preview("write failure")
             .expect("preview session should be admitted");
         preview
-            .write(ForgeQueryWriteCommand::Insert {
-                collection: "Task".to_string(),
-                payload: json!({
-                    "identity": { "id": "denied-preview" },
-                    "title": { "value": "Denied preview write" },
-                }),
-            })
+            .write(insert_command(
+                "Task",
+                [
+                    ("identity.id", json!("denied-preview")),
+                    ("title.value", json!("Denied preview write")),
+                ],
+            ))
             .expect("preview write should stage");
         preview
             .promote()
@@ -237,22 +237,22 @@ fn preview_promotion_rejects_multi_write_batch_before_partial_authority_executio
             .preview("multi write promotion")
             .expect("preview session should be admitted");
         preview
-            .write(ForgeQueryWriteCommand::Insert {
-                collection: "Task".to_string(),
-                payload: json!({
-                    "identity": { "id": "preview-batch-1" },
-                    "title": { "value": "First staged write" },
-                }),
-            })
+            .write(insert_command(
+                "Task",
+                [
+                    ("identity.id", json!("preview-batch-1")),
+                    ("title.value", json!("First staged write")),
+                ],
+            ))
             .expect("first preview write should stage");
         preview
-            .write(ForgeQueryWriteCommand::Insert {
-                collection: "Task".to_string(),
-                payload: json!({
-                    "identity": { "id": "preview-batch-2" },
-                    "title": { "value": "Second staged write" },
-                }),
-            })
+            .write(insert_command(
+                "Task",
+                [
+                    ("identity.id", json!("preview-batch-2")),
+                    ("title.value", json!("Second staged write")),
+                ],
+            ))
             .expect("second preview write should stage");
         preview
             .promote()

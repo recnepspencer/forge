@@ -255,7 +255,8 @@ Must ship:
 - a final naming decision for create/insert, update, batch mutation, delete,
   intent mutation, and staged effect intent consumption
 - a public ontology statement that ordinary mutation authoring is aspect-native
-- a compatibility posture for existing payload-first commands and names
+- a lower-level or deletion posture for any remaining payload-first command
+  names
 - explicit statement that JSON may remain an internal lowering adapter during
   transition, but is not the public semantic model
 
@@ -300,7 +301,7 @@ Must ship:
 
 Must preserve:
 
-- the lowering layer remains internal or compatibility-scoped
+- the lowering layer remains internal or lower-level-scoped
 - lower-runtime JSON plumbing is not reachable from ordinary public examples
 - touched-aspect evidence is preserved through lowering
 
@@ -390,9 +391,9 @@ Forbidden shortcuts:
 
 - leaving JSON in public docs "temporarily"
 - updating examples without updating the support and limits language
-- teaching internal compatibility APIs as the preferred story
+- teaching internal lower-level APIs as the preferred story
 
-### Phase 5: Certification, Support Matrix, And Compatibility Closure
+### Phase 5: Certification, Support Matrix, And Legacy-Surface Closure
 
 Purpose:
 
@@ -402,7 +403,7 @@ Purpose:
 Must ship:
 
 - support-matrix rows for aspect-native mutation families
-- compatibility/deprecation list for payload-first public names and examples
+- alternate-name or deletion list for payload-first public names and examples
 - compile-fail or visibility tests preventing new public dependencies on
   transitional payload surfaces where possible
 - certification suites for public mutation parity and denial behavior
@@ -440,7 +441,7 @@ Must ship:
 - explicit "safe to build now" list for downstream runtimes
 - explicit "must not assume yet" list covering internal substrate semantics,
   store-backed behavior, temporal, async, and durable restart
-- migration notes for remaining compatibility surfaces
+- migration notes for remaining lower-level surfaces
 
 Must preserve:
 
@@ -471,7 +472,7 @@ Forbidden shortcuts:
 - support-matrix rows and typed denial behavior for admitted and deferred
   mutation families
 - updated public docs and golden examples that teach aspect-native writes
-- compatibility/deprecation posture for payload-first public surfaces
+- lower-level or deletion posture for payload-first public surfaces
 - closeout guidance that downstream runtimes can cite before the deeper
   aspect-native storage rewrite begins
 
@@ -509,7 +510,7 @@ This plan is complete only when Forge Query can prove:
   inspection evidence aligned with touched aspects and touched surfaces
 - admitted mutation families are support-matrix-backed and certification-backed
 - unsupported mutation neighbors fail typed and early
-- compatibility surfaces are explicitly marked rather than silently remaining
+- lower-level surfaces are explicitly marked rather than silently remaining
   co-equal public paths
 - downstream runtimes can build against the stable facade without depending on
   payload-shaped internals
@@ -564,7 +565,7 @@ This plan is therefore the last public-API freeze line before the deeper
   and storage authorities underneath it.
 - Does the plan define proof obligations, not just feature work? Yes. It
   requires support metadata, typed denials, canonical receipts, inspection
-  evidence, doc replacement, and compatibility closure.
+  evidence, doc replacement, and legacy-surface closure.
 - Could a competent engineer map this into honest modules, tests, and closeout
   artifacts? Yes. Each phase names the surface, boundary, and proof needed.
 - Does this belong in the roadmap sequence? Yes. It is the public mutation

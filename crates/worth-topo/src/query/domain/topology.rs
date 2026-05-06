@@ -8,7 +8,6 @@ use super::proof::WorthTopologyDomainQueryProofLedger;
 use super::report::WorthTopologyDomainQueryAggregateReport;
 use super::report::{WorthTopologyDomainQueryRequestFamily, WorthTopologyDomainQueryRequestReport};
 use super::request::WorthTopologyDomainQueryRequest;
-use super::views::WorthTopologyLoopCycleView;
 use super::views::{
     WorthTopologyHalfEdgeRadialNeighborhoodView, WorthTopologyHalfEdgeSharedVertexNeighborhoodView,
     WorthTopologyLocalRewireNeighborhoodView,
@@ -19,7 +18,7 @@ use forge_relational::facade::identity::{EntityId, RelationId};
 use serde_json::Value;
 use worth_schema::facade::WorthTopologyRelationKind;
 pub(crate) struct WorthTopologyDomainQuery {
-    snapshot_index: WorthTopologyQuerySnapshotIndex,
+    pub(super) snapshot_index: WorthTopologyQuerySnapshotIndex,
     #[allow(dead_code)]
     fallback_posture: WorthTopologyDomainQueryFallbackPosture,
     pub(super) request_reports: RefCell<Vec<WorthTopologyDomainQueryRequestReport>>,
@@ -38,7 +37,7 @@ impl WorthTopologyDomainQuery {
         Ok(WorthTopologyDomainQueryRequestReport::snapshot_indexed_fallback(lowering_artifact))
     }
 
-    fn record_report(
+    pub(super) fn record_report(
         &self,
         report: WorthTopologyDomainQueryRequestReport,
     ) -> WorthTopologyDomainQueryRequestReport {
@@ -46,7 +45,7 @@ impl WorthTopologyDomainQuery {
         report
     }
 
-    fn require_supported_traversal_depth(
+    pub(super) fn require_supported_traversal_depth(
         request_family: WorthTopologyDomainQueryRequestFamily,
         requested_depth: usize,
     ) -> Result<(), WorthTopologyDomainQueryError> {
@@ -316,34 +315,6 @@ impl WorthTopologyDomainQuery {
             different_edge_half_edge_identities,
         })
     }
-
-    #[allow(dead_code)]
-    pub(crate) fn loop_cycle(
-        &self,
-        start_identity: &str,
-        count: usize,
-    ) -> Result<WorthTopologyLoopCycleView, WorthTopologyDomainQueryError> {
-        let request = WorthTopologyDomainQueryRequest::LoopCycleNeighborhood {
-            start_half_edge_identity: start_identity.to_string(),
-            depth: u8::try_from(count).expect("supported traversal depth must fit in u8"),
-        };
-        Self::require_supported_traversal_depth(
-            WorthTopologyDomainQueryRequestFamily::LoopCycleNeighborhood,
-            count,
-        )?;
-        let cycle_identities = self
-            .snapshot_index
-            .successor_cycle_identities(start_identity, count)
-            .map_err(|error| {
-                WorthTopologyDomainQueryError::snapshot_indexed_resolution(error.to_string())
-            })?;
-        Ok(WorthTopologyLoopCycleView {
-            request_report: self.record_report(self.snapshot_fallback_report(&request)?),
-            start_half_edge_identity: start_identity.to_string(),
-            cycle_identities,
-        })
-    }
-
     pub(crate) fn local_rewire_neighborhood(
         &self,
         moved_identity: &str,

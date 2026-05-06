@@ -72,8 +72,8 @@ designed to prevent:
   into truth without admission
 - inspection explains retained handle and receipt artifacts instead of
   re-running lowering or exposing mutable internals
-- compatibility memory backends and demo consumers use the runtime facade
-  without pretending memory is the architectural source of truth
+- memory-backed scaffolds and demo consumers use the runtime facade without
+  pretending memory is the architectural source of truth
 
 ## Shipped Scope
 
@@ -89,7 +89,7 @@ Closed:
   inspection families are admitted.
 - Runtime builder assembly rejects missing backend parts and support overclaims
   with typed errors.
-- Memory-backed assembly is explicitly compatibility posture, not primary
+- Memory-backed assembly is explicitly scaffold posture, not primary
   architecture.
 
 ### Automatic Live Subscription Installation
@@ -182,9 +182,10 @@ Closed:
 Closed:
 
 - Forge UI's todo workspace uses the runtime facade over an explicit
-  compatibility backend and has read/live/write regression coverage.
-- ambiguous `in_memory_collections` builder spelling is deprecated in favor of
-  explicit compatibility construction.
+  memory-backed scaffold and has read/live/write regression coverage.
+- ambiguous `in_memory_collections` builder construction is gone; compile-fail
+  fixtures now prove those builder methods are missing rather than merely
+  discouraged.
 - compile-fail fixtures reject raw CDC subscription, raw bridge activation,
   host observer callbacks, direct active-lane mutation, raw preview lane
   sharing, grouped baseline injection, raw authoritative preview policy,
@@ -214,7 +215,7 @@ The final QA passes specifically corrected these closure risks:
 - preview and branch constructors could panic on unsupported backends instead
   of returning typed denials
 - missing backend messages still pointed users toward ambiguous memory
-  construction rather than explicit compatibility backend construction
+  construction rather than explicit scaffold construction
 - public-looking effect and intent lane override paths needed stricter
   compile-fail proof
 - grouped baseline helpers, intent execution artifacts, and derived-to-truth
@@ -272,7 +273,7 @@ Later work must not assume:
 
 - temporal/async surfaces already exist
 - store-backed or durable restart semantics are admitted
-- memory compatibility backends are the source of architectural truth
+- memory-backed scaffolds are the source of architectural truth
 - low-level subscription, active-lane, bridge, signal, or relational shortcuts
   are appropriate for ordinary app or DSL code
 - derived runtime state may become authoritative truth without explicit intent

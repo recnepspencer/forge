@@ -10,7 +10,7 @@ impl ForgeQueryRuntime {
     pub fn drain_patches<T>(&mut self, view: &ForgeQueryLiveView<T>) -> ForgeQueryPatchBatch {
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Live)
             .expect("live support was admitted before patch draining");
-        let _compatibility_patches = self.backend.drain_live_patches(view.name());
+        let _legacy_patch_buffer = self.backend.drain_live_patches(view.name());
         ForgeQueryPatchBatch {
             view_name: view.name().to_string(),
             live_patches: Vec::new(),
@@ -183,7 +183,7 @@ impl ForgeQueryRuntime {
                     trace.record_replay_or_parity(format!("read-live:{view_name}"));
                 }
                 ForgeQueryProgramEffect::DrainPatches { view_name } => {
-                    let _compatibility_patches = self.backend.drain_live_patches(&view_name);
+                    let _legacy_patch_buffer = self.backend.drain_live_patches(&view_name);
                     let query_delivery_batches = self
                         .live_subscriptions
                         .get_mut(&view_name)

@@ -22,7 +22,7 @@ pub struct ForgeQueryBridgeBackedVerificationSupportRow {
     operation_family: String,
     target_binding_family: String,
     current_posture_status: ForgeQueryBridgeBackedVerificationSupportStatus,
-    compatibility_runtime_supported: bool,
+    scaffold_profile_supported: bool,
     primary_bridge_backed_runtime_supported: bool,
     denial_class_when_unsupported: Option<String>,
     row_digest: String,
@@ -33,7 +33,7 @@ impl ForgeQueryBridgeBackedVerificationSupportRow {
         operation_family: impl Into<String>,
         target_binding_family: impl Into<String>,
         current_posture_status: ForgeQueryBridgeBackedVerificationSupportStatus,
-        compatibility_runtime_supported: bool,
+        scaffold_profile_supported: bool,
         primary_bridge_backed_runtime_supported: bool,
         denial_class_when_unsupported: Option<&str>,
     ) -> Self {
@@ -44,7 +44,7 @@ impl ForgeQueryBridgeBackedVerificationSupportRow {
             format!("operation:{operation_family}"),
             format!("binding:{target_binding_family}"),
             format!("status:{}", current_posture_status.as_str()),
-            format!("compatibility:{compatibility_runtime_supported}"),
+            format!("scaffold:{scaffold_profile_supported}"),
             format!("primary:{primary_bridge_backed_runtime_supported}"),
         ];
         if let Some(denial) = &denial_class_when_unsupported {
@@ -55,7 +55,7 @@ impl ForgeQueryBridgeBackedVerificationSupportRow {
             operation_family,
             target_binding_family,
             current_posture_status,
-            compatibility_runtime_supported,
+            scaffold_profile_supported,
             primary_bridge_backed_runtime_supported,
             denial_class_when_unsupported,
             row_digest,
@@ -74,8 +74,8 @@ impl ForgeQueryBridgeBackedVerificationSupportRow {
         self.current_posture_status
     }
 
-    pub fn compatibility_runtime_supported(&self) -> bool {
-        self.compatibility_runtime_supported
+    pub fn scaffold_profile_supported(&self) -> bool {
+        self.scaffold_profile_supported
     }
 
     pub fn primary_bridge_backed_runtime_supported(&self) -> bool {
@@ -99,9 +99,7 @@ pub(crate) fn bridge_backed_verification_support_rows(
         .iter()
         .map(|row| {
             let current_posture_status = match support_profile.posture() {
-                ForgeQueryRuntimeBackendPosture::Compatibility
-                    if row.compatibility_runtime_supported() =>
-                {
+                ForgeQueryRuntimeBackendPosture::Scaffold if row.scaffold_profile_supported() => {
                     ForgeQueryBridgeBackedVerificationSupportStatus::Admitted
                 }
                 ForgeQueryRuntimeBackendPosture::Primary
@@ -109,7 +107,7 @@ pub(crate) fn bridge_backed_verification_support_rows(
                 {
                     ForgeQueryBridgeBackedVerificationSupportStatus::Admitted
                 }
-                ForgeQueryRuntimeBackendPosture::Compatibility
+                ForgeQueryRuntimeBackendPosture::Scaffold
                 | ForgeQueryRuntimeBackendPosture::Primary => {
                     ForgeQueryBridgeBackedVerificationSupportStatus::Denied
                 }
@@ -124,7 +122,7 @@ pub(crate) fn bridge_backed_verification_support_rows(
                 row.operation_family(),
                 row.target_binding_family(),
                 current_posture_status,
-                row.compatibility_runtime_supported(),
+                row.scaffold_profile_supported(),
                 row.primary_bridge_backed_runtime_supported(),
                 denial_class,
             )

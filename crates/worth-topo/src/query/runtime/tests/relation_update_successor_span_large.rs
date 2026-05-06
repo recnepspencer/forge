@@ -1,11 +1,11 @@
 use forge_query::facade::ForgeQueryExistingTruthAssertionMode;
-use worth_schema::facade::{seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase};
+use worth_schema::facade::topology_authoring::{
+    seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
+};
 
 use super::relation_update_successor_span_support::successor_span_relocation_batch;
-use super::relation_update_support::{find_entity_id_by_identity, successor_cycle_identities};
-use crate::edit::{
-    WorthTopologyEditApplicationMode, WorthTopologyEditFamily, WorthTopologyQueryEditRunner,
-};
+use super::relation_update_support::RelationUpdateQuerySupport;
+use crate::edit::{WorthTopologyEditApplicationMode, WorthTopologyEditFamily};
 use crate::query::{
     worth_topology_runtime, WorthTopologyQueryAssembly, WorthTopologyRuntimeAdapters,
 };
@@ -27,30 +27,27 @@ fn current_head_runtime_executes_four_half_edge_span_relocation_on_larger_loop()
     )
     .expect("workspace");
     let assembly = WorthTopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let entity_rows = workspace.read(assembly.entities());
-    let relation_rows = workspace.read(assembly.relations());
-    let moved_start_identity = relation_rows
-        .iter()
-        .find_map(|row| {
-            (row.payload["topology"]["kind"].as_str()
-                == Some(worth_schema::facade::WorthTopologyRelationKind::HalfEdgeNext.kind_name()))
-            .then(|| row.payload["topology"]["source_identity"].as_str())
-            .flatten()
-        })
-        .expect("sheet disk should expose halfedge successor wiring");
-    let cycle = successor_cycle_identities(&entity_rows, &relation_rows, moved_start_identity, 7);
-    let moved_end_id = find_entity_id_by_identity(&entity_rows, cycle[3].as_str());
-    let new_successor_id = find_entity_id_by_identity(&entity_rows, cycle[6].as_str());
+    let support = RelationUpdateQuerySupport::load(&workspace, &assembly);
+    let moved_start_identity = support.first_source_identity_for_relation_kind(
+        worth_schema::facade::WorthTopologyRelationKind::HalfEdgeNext,
+    );
+    let cycle = support.successor_cycle_identities(&mut workspace, &moved_start_identity, 7);
+    let moved_end_id = support.find_entity_id_by_identity(cycle[3].as_str());
+    let new_successor_id = support.find_entity_id_by_identity(cycle[6].as_str());
     let batch = successor_span_relocation_batch(
-        &entity_rows,
-        &relation_rows,
-        moved_start_identity,
+        &mut workspace,
+        &support,
+        &moved_start_identity,
         cycle[6].as_str(),
         4,
     );
 
-    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let execution = assembly
+        .apply_edit(
+            &mut workspace,
+            batch,
+            WorthTopologyEditApplicationMode::Mainline,
+        )
         .expect("four-halfedge span relocation should execute through the contiguous span lane");
 
     assert!(execution

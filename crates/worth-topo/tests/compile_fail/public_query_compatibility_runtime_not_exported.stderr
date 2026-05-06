@@ -1,5 +1,0 @@
-error[E0432]: unresolved import `worth_topo::facade::worth_topology_query_workspace`
- --> tests/compile_fail/public_query_compatibility_runtime_not_exported.rs:1:5
-  |
-1 | use worth_topo::facade::worth_topology_query_workspace;
-  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `worth_topology_query_workspace` in `facade`

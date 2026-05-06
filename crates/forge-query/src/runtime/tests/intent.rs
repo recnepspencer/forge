@@ -947,13 +947,13 @@ fn composed_runtime_surface_proves_facade_handles_stay_proof_bearing_across_prev
             .use_effect(&effect)
             .expect("sandboxed preview should bind pending-intent effect");
         preview
-            .write(ForgeQueryWriteCommand::Insert {
-                collection: "Task".to_string(),
-                payload: json!({
-                    "identity": { "id": "preview-deep-task" },
-                    "title": { "value": "Preview-only deep task" },
-                }),
-            })
+            .write(insert_command(
+                "Task",
+                [
+                    ("identity.id", json!("preview-deep-task")),
+                    ("title.value", json!("Preview-only deep task")),
+                ],
+            ))
             .expect("preview write should route only preview evidence");
         (
             preview.preview_execution_evidence().to_vec(),

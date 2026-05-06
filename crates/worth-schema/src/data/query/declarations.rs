@@ -6,6 +6,8 @@ use forge_query::facade::{
     ForgeQueryWorkspaceLiveViewDeclaration,
 };
 
+use crate::data::relations::WorthRelationKind;
+
 use super::{
     WorthQueryAspectPath, WorthQueryCollection, WorthQueryLiveField, WorthQuerySchemaBasis,
 };
@@ -101,6 +103,13 @@ impl WorthQueryLiveDeclarationBuilder {
 
     pub fn order_by_field(mut self, field: WorthQueryLiveField) -> Self {
         self.inner = self.inner.order_by(field.delivered_name());
+        self
+    }
+
+    pub fn allow_traversal_relation(mut self, relation: WorthRelationKind, max_depth: u8) -> Self {
+        self.inner = self
+            .inner
+            .allow_traversal_relation(relation.kind_name(), max_depth);
         self
     }
 

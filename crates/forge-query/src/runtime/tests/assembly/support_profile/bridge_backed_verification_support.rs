@@ -17,20 +17,14 @@ fn support_row<'a>(
 
 #[test]
 fn runtime_authoritative_mutation_support_exposes_bridge_backed_verification_rows() {
-    let compatibility =
-        ForgeQueryRuntime::public_authoritative_mutation_evidence_support_for_posture(
-            ForgeQueryRuntimeBackendPosture::Compatibility,
-        );
+    let scaffold = ForgeQueryRuntime::public_authoritative_mutation_evidence_support_for_posture(
+        ForgeQueryRuntimeBackendPosture::Scaffold,
+    );
     let primary = ForgeQueryRuntime::public_authoritative_mutation_evidence_support_for_posture(
         ForgeQueryRuntimeBackendPosture::Primary,
     );
 
-    assert_eq!(
-        compatibility
-            .bridge_backed_verification_support_rows()
-            .len(),
-        8
-    );
+    assert_eq!(scaffold.bridge_backed_verification_support_rows().len(), 8);
     assert_eq!(primary.bridge_backed_verification_support_rows().len(), 8);
 
     for operation_family in [
@@ -40,22 +34,21 @@ fn runtime_authoritative_mutation_support_exposes_bridge_backed_verification_row
         "delete_existing_verified",
     ] {
         for target_binding_family in ["direct_entity_identity", "direct_relation_identity"] {
-            let compatibility_row =
-                support_row(&compatibility, operation_family, target_binding_family);
+            let scaffold_row = support_row(&scaffold, operation_family, target_binding_family);
             assert_eq!(
-                compatibility_row.current_posture_status(),
+                scaffold_row.current_posture_status(),
                 ForgeQueryBridgeBackedVerificationSupportStatus::Admitted
             );
-            assert!(compatibility_row.compatibility_runtime_supported());
-            assert!(!compatibility_row.primary_bridge_backed_runtime_supported());
-            assert_eq!(compatibility_row.denial_class_when_unsupported(), None);
+            assert!(scaffold_row.scaffold_profile_supported());
+            assert!(!scaffold_row.primary_bridge_backed_runtime_supported());
+            assert_eq!(scaffold_row.denial_class_when_unsupported(), None);
 
             let primary_row = support_row(&primary, operation_family, target_binding_family);
             assert_eq!(
                 primary_row.current_posture_status(),
                 ForgeQueryBridgeBackedVerificationSupportStatus::Denied
             );
-            assert!(primary_row.compatibility_runtime_supported());
+            assert!(primary_row.scaffold_profile_supported());
             assert!(!primary_row.primary_bridge_backed_runtime_supported());
             let expected_denial = if operation_family == "probe_existing" {
                 Some("backend_probe_unsupported")
@@ -69,7 +62,7 @@ fn runtime_authoritative_mutation_support_exposes_bridge_backed_verification_row
 
 #[test]
 fn runtime_authoritative_mutation_closeout_carries_bridge_backed_verification_guidance() {
-    let workspace = task_runtime()
+    let workspace = stateful_bridge_task_runtime()
         .workspace("tasks.bridge-backed-verification-closeout")
         .expect("workspace should open");
     let closeout = workspace.public_authoritative_mutation_evidence_closeout();

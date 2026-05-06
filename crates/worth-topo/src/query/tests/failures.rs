@@ -22,8 +22,9 @@ fn query_materializer_rejects_malformed_relation_endpoints() {
         }),
     }];
 
-    let error = materialized_topology_from_query_rows(&entity_rows, &relation_rows)
-        .expect_err("malformed query rows must fail closed");
+    let error =
+        WorthTopologyMaterializer::materialize_from_query_rows(&entity_rows, &relation_rows)
+            .expect_err("malformed query rows must fail closed");
 
     assert!(error
         .to_string()

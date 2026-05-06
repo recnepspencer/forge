@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `forge_query::facade::ForgeQueryMemoryApp`
+ --> tests/ui/runtime_memory_app_missing.rs:1:5
+  |
+1 | use forge_query::facade::ForgeQueryMemoryApp;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `ForgeQueryMemoryApp` in `facade`

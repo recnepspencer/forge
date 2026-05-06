@@ -1,127 +1,70 @@
 use super::*;
-use crate::declarative_live::{DeclarativeLiveViewShape, DeclarativeProjectionField};
-use crate::schema_view::{SchemaFieldKind, SchemaFieldView};
-use crate::view_shape_live::ViewShapePatchFamily;
+use crate::runtime::ForgeQueryAspectValue;
 use serde_json::json;
 
 #[test]
-fn memory_app_routes_mutations_through_declared_live_views() {
-    let mut app = ForgeQueryMemoryApp::new([ForgeQueryCollection::new(
+fn memory_workspace_insert_aspects_tracks_changed_paths() {
+    let mut workspace = ForgeQueryMemoryWorkspace::collection(
         "Task",
         [
-            ForgeQueryAspect::new("identity.id", "identity.id"),
-            ForgeQueryAspect::new("title.value", "title.value"),
+            aspect("identity.id", "identity.id"),
+            aspect("title.value", "title.value"),
         ],
-    )])
-    .expect("memory app should build");
-    app.declare_live_view(
-        "tasks.table",
-        crate::declarative_live::DeclarativeLiveQueryRequest::new(
-            "Task",
-            DeclarativeLiveViewShape::table(),
-        )
-        .project(DeclarativeProjectionField::new("identity", "id").delivered_as("identity.id"))
-        .project(DeclarativeProjectionField::new("title", "value").delivered_as("title"))
-        .order_by(DeclarativeProjectionField::new("title", "value")),
-        QuerySchemaView::new(
-            "todo-task",
-            [
-                SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-                SchemaFieldView::new("title", "value", SchemaFieldKind::String),
-            ],
-            [],
-        ),
     )
-    .expect("live view should declare");
+    .expect("memory workspace should build");
 
-    let insert = app
-        .insert(
-            "Task",
-            json!({
-                "identity": { "id": "task-1" },
-                "title": { "value": "First task" }
-            }),
-        )
-        .expect("insert should execute");
+    let receipt = workspace
+        .insert_aspects(vec![
+            ForgeQueryAspectValue::new("identity.id", json!("task-1")).expect("identity aspect"),
+            ForgeQueryAspectValue::new("title.value", json!("First task")).expect("title aspect"),
+        ])
+        .expect("insert should succeed");
 
-    let patches = app.drain_live_patches("tasks.table");
-    assert_eq!(patches.len(), 1);
-    assert_eq!(patches[0].entity_identity, insert.deltas[0].entity_identity);
-    assert_eq!(patches[0].mutation_kind, ForgeQueryMutationKind::Created);
+    assert_eq!(receipt.deltas.len(), 1);
+    assert_eq!(receipt.deltas[0].kind, ForgeQueryMutationKind::Created);
     assert_eq!(
-        patches[0].envelope.patch_family(),
-        Some(ViewShapePatchFamily::TableRowPatch)
+        receipt.deltas[0].aspect_paths,
+        ["identity.id", "title.value"]
     );
-    assert_eq!(app.live_entities("tasks.table").len(), 1);
+    assert_eq!(workspace.entities().len(), 1);
 }
 
 #[test]
-fn memory_app_declares_grouped_live_view_with_internal_baseline() {
-    let mut app = ForgeQueryMemoryApp::new([ForgeQueryCollection::new(
+fn memory_workspace_update_and_delete_preserve_entity_lifecycle() {
+    let mut workspace = ForgeQueryMemoryWorkspace::collection(
         "Task",
         [
-            ForgeQueryAspect::new("identity.id", "identity.id"),
-            ForgeQueryAspect::new("title.value", "title.value"),
-            ForgeQueryAspect::new("status.value", "status.value"),
+            aspect("identity.id", "identity.id"),
+            aspect("title.value", "title.value"),
         ],
-    )])
-    .expect("memory app should build");
-    app.declare_live_view(
-        "tasks.seed-table",
-        crate::declarative_live::DeclarativeLiveQueryRequest::new(
-            "Task",
-            DeclarativeLiveViewShape::table(),
-        )
-        .project(DeclarativeProjectionField::new("identity", "id").delivered_as("identity.id"))
-        .project(DeclarativeProjectionField::new("status", "value").delivered_as("status.value"))
-        .order_by(DeclarativeProjectionField::new("status", "value")),
-        grouped_task_schema(),
     )
-    .expect("seed table live view should declare");
-    app.insert(
-        "Task",
-        json!({
+    .expect("memory workspace should build");
+
+    let insert = workspace
+        .insert(json!({
             "identity": { "id": "task-1" },
-            "title": { "value": "First task" },
-            "status": { "value": "todo" }
-        }),
-    )
-    .expect("seed insert should execute");
-    app.insert(
-        "Task",
-        json!({
-            "identity": { "id": "task-2" },
-            "title": { "value": "Second task" },
-            "status": { "value": "doing" }
-        }),
-    )
-    .expect("second seed insert should execute");
+            "title": { "value": "First task" }
+        }))
+        .expect("seed insert should succeed");
+    let entity_identity = insert.deltas[0].entity_identity.clone();
 
-    app.declare_live_view(
-        "tasks.kanban",
-        crate::declarative_live::DeclarativeLiveQueryRequest::new(
-            "Task",
-            DeclarativeLiveViewShape::kanban_grouped("status"),
-        )
-        .project(DeclarativeProjectionField::new("identity", "id").delivered_as("identity.id"))
-        .project(DeclarativeProjectionField::new("title", "value").delivered_as("title.value"))
-        .project(DeclarativeProjectionField::new("status", "value").delivered_as("status.value")),
-        grouped_task_schema(),
-    )
-    .expect("kanban grouped live view should declare");
+    let update = workspace
+        .update_aspect(&entity_identity, "title.value", json!("Updated task"))
+        .expect("update should succeed");
+    assert_eq!(update.deltas[0].kind, ForgeQueryMutationKind::Updated);
+    assert_eq!(update.deltas[0].aspect_paths, ["title.value"]);
+    assert_eq!(
+        workspace.entities()[0].payload["title"]["value"],
+        json!("Updated task")
+    );
 
-    let live_entities = app.live_entities("tasks.kanban");
-    assert_eq!(live_entities.len(), 2);
+    let delete = workspace
+        .delete(&entity_identity)
+        .expect("delete should succeed");
+    assert_eq!(delete.deltas[0].kind, ForgeQueryMutationKind::Deleted);
+    assert!(workspace.entities().is_empty());
 }
 
-fn grouped_task_schema() -> QuerySchemaView {
-    QuerySchemaView::new(
-        "grouped-task",
-        [
-            SchemaFieldView::new("identity", "id", SchemaFieldKind::String),
-            SchemaFieldView::new("title", "value", SchemaFieldKind::String),
-            SchemaFieldView::new("status", "value", SchemaFieldKind::String),
-        ],
-        [],
-    )
+fn aspect(label: &str, payload_path: &str) -> crate::memory_workspace::ForgeQueryAspect {
+    crate::memory_workspace::ForgeQueryAspect::new(label, payload_path)
 }

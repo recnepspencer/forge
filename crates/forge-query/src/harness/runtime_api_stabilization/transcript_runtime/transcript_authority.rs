@@ -9,7 +9,6 @@ use crate::facade::{
 pub(super) struct TranscriptWriteAuthority;
 
 impl ForgeQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
-    #[allow(deprecated)]
     fn write(
         &mut self,
         _bridge: &RuntimeBridge,
@@ -17,7 +16,6 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
         command: ForgeQueryWriteCommand,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
         let (collection, aspect_paths) = match command {
-            ForgeQueryWriteCommand::Insert { collection, .. } => (collection, Vec::new()),
             ForgeQueryWriteCommand::InsertAspects {
                 collection,
                 aspects,

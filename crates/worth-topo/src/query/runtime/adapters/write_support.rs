@@ -217,10 +217,8 @@ pub(super) fn live_entity_label_exists(
     })
 }
 
-#[allow(deprecated)]
 pub(super) fn write_command_label(command: &ForgeQueryWriteCommand) -> &'static str {
     match command {
-        ForgeQueryWriteCommand::Insert { .. } => "compatibility_insert",
         ForgeQueryWriteCommand::InsertAspects { .. } => "insert_aspects",
         ForgeQueryWriteCommand::UpdateAspect { .. } => "update_aspect",
         ForgeQueryWriteCommand::UpdateAspects { .. } => "update_aspects",
@@ -237,7 +235,7 @@ pub(super) fn write_command_label(command: &ForgeQueryWriteCommand) -> &'static 
         ForgeQueryWriteCommand::DeleteAspects { .. } => "delete_aspects",
         ForgeQueryWriteCommand::DeleteExistingAspects { .. } => "delete_existing",
         ForgeQueryWriteCommand::DeleteSymbolicAspects { .. } => "delete_symbolic",
-        ForgeQueryWriteCommand::Delete { .. } => "compatibility_delete",
+        ForgeQueryWriteCommand::Delete { .. } => "delete",
     }
 }
 

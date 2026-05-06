@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `worth_topo::facade::WorthTopologyReader`
- --> tests/compile_fail/public_reader_not_exported.rs:1:5
-  |
-1 | use worth_topo::facade::WorthTopologyReader;
-  |     ^^^^^^^^^^^^^^^^^^^^-------------------
-  |     |                   |
-  |     |                   help: a similar name exists in the module: `WorthTopologyFace`
-  |     no `WorthTopologyReader` in `facade`

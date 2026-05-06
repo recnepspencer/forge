@@ -3,7 +3,7 @@ use super::super::super::support::*;
 #[test]
 fn runtime_support_denies_unsupported_write_family_before_execution() {
     let mut runtime = bridge_runtime_with_support(
-        ForgeQueryRuntimeSupportProfile::compatibility_backend().with_family_support(
+        ForgeQueryRuntimeSupportProfile::scaffold_backend_profile().with_family_support(
             ForgeQueryRuntimeFamilySupport::unsupported(
                 ForgeQueryRuntimeFacadeFamily::Write,
                 "test backend disabled write authority",
@@ -12,13 +12,13 @@ fn runtime_support_denies_unsupported_write_family_before_execution() {
     );
 
     let error = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "external-1" },
-                "title": { "value": "Should not write" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("external-1")),
+                ("title.value", json!("Should not write")),
+            ],
+        ))
         .expect_err("unsupported write family should deny before write authority");
 
     match error {
@@ -32,7 +32,7 @@ fn runtime_support_denies_unsupported_write_family_before_execution() {
 
 #[test]
 fn runtime_builder_rejects_support_profiles_that_overclaim_unimplemented_families() {
-    let profile = ForgeQueryRuntimeSupportProfile::compatibility_backend().with_family_support(
+    let profile = ForgeQueryRuntimeSupportProfile::scaffold_backend_profile().with_family_support(
         ForgeQueryRuntimeFamilySupport::supported(
             ForgeQueryRuntimeFacadeFamily::Intent,
             [ForgeQueryAuthorityLane::PendingWriteIntent],
@@ -70,7 +70,7 @@ fn runtime_builder_rejects_support_profiles_that_overclaim_unimplemented_familie
 #[test]
 fn runtime_support_denies_unsupported_computed_family_before_registration() {
     let mut runtime = bridge_runtime_with_support(
-        ForgeQueryRuntimeSupportProfile::compatibility_backend().with_family_support(
+        ForgeQueryRuntimeSupportProfile::scaffold_backend_profile().with_family_support(
             ForgeQueryRuntimeFamilySupport::unsupported(
                 ForgeQueryRuntimeFacadeFamily::Computed,
                 "test backend disabled computed resources",
@@ -97,7 +97,7 @@ fn runtime_support_denies_unsupported_computed_family_before_registration() {
 #[test]
 fn runtime_support_denies_unsupported_preview_and_branch_sessions_without_panicking() {
     let mut runtime = bridge_runtime_with_support(
-        ForgeQueryRuntimeSupportProfile::compatibility_backend().with_family_support(
+        ForgeQueryRuntimeSupportProfile::scaffold_backend_profile().with_family_support(
             ForgeQueryRuntimeFamilySupport::unsupported(
                 ForgeQueryRuntimeFacadeFamily::BranchPreview,
                 "test backend disabled branch and preview sessions",

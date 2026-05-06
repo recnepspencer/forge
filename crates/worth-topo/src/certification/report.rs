@@ -10,9 +10,12 @@ use forge_relational::facade::history::BranchId;
 use forge_relational::facade::identity::{EntityId, RelationId};
 use forge_relational::facade::replay::{ReplayFailureClass, ReplayObservableSurface};
 use serde::{Deserialize, Serialize};
+use worth_schema::facade::topology_authoring::{
+    WorthMilestoneOnePrimitiveCase, WorthMilestoneOnePrimitiveExpectedOutcome,
+    WorthMilestoneOnePrimitiveRole,
+};
 use worth_schema::facade::{
-    CertifiedTopologyInterpretation, WorthBridgeTraceAnchor, WorthMilestoneOnePrimitiveCase,
-    WorthMilestoneOnePrimitiveExpectedOutcome, WorthMilestoneOnePrimitiveRole, WorthMutationOrigin,
+    CertifiedTopologyInterpretation, WorthBridgeTraceAnchor, WorthMutationOrigin,
     WorthTopologyReadArtifact,
 };
 

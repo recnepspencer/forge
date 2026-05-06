@@ -1,12 +1,12 @@
 #[cfg(test)]
 mod runtime_invariant_tests {
     use forge_relational::facade::transactions::TransactionCommitError;
+    use worth_schema::facade::topology_authoring::{seed_minimal_topology, verify_topology_intent};
     use worth_schema::facade::{
-        seed_minimal_topology, verify_topology_intent, worth_bootstrap_runtime_invariant_plan,
-        RawWorthTopologyIntent, WorthCreateKey, WorthEntityKind, WorthEntityReference,
-        WorthMutationOrigin, WorthNamingEntityKind, WorthNamingRelationKind, WorthRelationKind,
-        WorthTopologyAuthorityError, WorthTopologyEntityKind, WorthTopologyMutation,
-        WorthTopologyRelationKind,
+        worth_bootstrap_runtime_invariant_plan, RawWorthTopologyIntent, WorthCreateKey,
+        WorthEntityKind, WorthEntityReference, WorthMutationOrigin, WorthNamingEntityKind,
+        WorthNamingRelationKind, WorthRelationKind, WorthTopologyAuthorityError,
+        WorthTopologyEntityKind, WorthTopologyMutation, WorthTopologyRelationKind,
     };
 
     use crate::facade::{

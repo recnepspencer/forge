@@ -1,16 +1,20 @@
 use std::collections::BTreeSet;
 
-use forge_query::facade::ForgeQueryExistingTruthAssertionMode;
+use forge_query::facade::{
+    ForgeQueryContinuityOutcomeClass, ForgeQueryExistingTruthAssertionMode,
+    ForgeQueryGraphCompositionProgramStepKind,
+};
+use worth_schema::facade::topology_authoring::{
+    created_ref, seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
+};
 use worth_schema::facade::{
-    created_ref, seed_milestone_one_primitive, DerivedTopologyReadBasis, WorthCreateKey,
-    WorthEntityKind, WorthMilestoneOnePrimitiveCase, WorthRelationKind, WorthTopologyEntityKind,
-    WorthTopologyRelationKind,
+    DerivedTopologyReadBasis, WorthCreateKey, WorthEntityKind, WorthRelationKind,
+    WorthTopologyEntityKind, WorthTopologyRelationKind,
 };
 
 use crate::edit::{
     WorthShellOrWireMembershipKind, WorthTopologyEditApplicationMode, WorthTopologyEditBatch,
     WorthTopologyEditContract, WorthTopologyEditFamily, WorthTopologyQueryEditExecutionError,
-    WorthTopologyQueryEditRunner,
 };
 use crate::query::{
     worth_topology_runtime, WorthTopologyQueryAssembly, WorthTopologyRuntimeAdapters,
@@ -55,8 +59,12 @@ fn current_head_runtime_executes_connected_wire_split_workflow() {
     ])
     .expect("non-empty edit batch");
 
-    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let execution = assembly
+        .apply_edit(
+            &mut workspace,
+            batch,
+            WorthTopologyEditApplicationMode::Mainline,
+        )
         .expect("connected wire split should execute through the admitted owner-preserving lane");
 
     assert_eq!(
@@ -80,6 +88,35 @@ fn current_head_runtime_executes_connected_wire_split_workflow() {
             .batch_mutation_evidence()
             .backend_verified_delete_count(),
         0
+    );
+    assert_eq!(
+        execution
+            .receipt
+            .graph_composition_program()
+            .expect("wire split should expose graph program")
+            .steps()
+            .iter()
+            .map(|step| step.kind())
+            .collect::<Vec<_>>(),
+        vec![
+            ForgeQueryGraphCompositionProgramStepKind::SymbolicEntityDeclaration,
+            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetarget,
+            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetarget,
+        ]
+    );
+    assert_eq!(
+        execution
+            .receipt
+            .graph_composition_lineage_summary()
+            .expect("wire split should expose lineage summary")
+            .entries()
+            .iter()
+            .filter(|entry| {
+                entry.outcome_class()
+                    == ForgeQueryContinuityOutcomeClass::ContinuesAsSingleSuccessor
+            })
+            .count(),
+        2
     );
     assert!(execution
         .inspection
@@ -169,8 +206,12 @@ fn current_head_runtime_denies_wire_split_when_moved_subset_is_disconnected() {
     ])
     .expect("non-empty edit batch");
 
-    let error = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let error = assembly
+        .apply_edit(
+            &mut workspace,
+            batch,
+            WorthTopologyEditApplicationMode::Mainline,
+        )
         .expect_err("wire split must fail closed when the moved half-edge subset is disconnected");
 
     assert!(matches!(

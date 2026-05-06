@@ -1,6 +1,8 @@
 #[cfg(test)]
 mod parity_tests {
-    use worth_schema::facade::seed_milestone_one_primitive;
+    use worth_schema::facade::topology_authoring::{
+        seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
+    };
 
     use crate::facade::{
         build_derived_equivalence_contract, compare_derived_equivalence_contracts,
@@ -18,7 +20,7 @@ mod parity_tests {
         let verified = seed_milestone_one_primitive(
             &mut runtime,
             "phase-six-parity",
-            &worth_schema::facade::WorthMilestoneOnePrimitiveCase::SheetPatch { face_count: 3 },
+            &WorthMilestoneOnePrimitiveCase::SheetPatch { face_count: 3 },
         )
         .expect("verified primitive");
         let read_view = runtime
@@ -67,7 +69,7 @@ mod parity_tests {
         let verified = seed_milestone_one_primitive(
             &mut runtime,
             "phase-six-replay",
-            &worth_schema::facade::WorthMilestoneOnePrimitiveCase::WireBranch { branch_count: 4 },
+            &WorthMilestoneOnePrimitiveCase::WireBranch { branch_count: 4 },
         )
         .expect("verified primitive");
         let read_view = runtime
@@ -109,7 +111,7 @@ mod parity_tests {
         let verified = seed_milestone_one_primitive(
             &mut runtime,
             "phase-six-certification",
-            &worth_schema::facade::WorthMilestoneOnePrimitiveCase::SolidShell { face_count: 4 },
+            &WorthMilestoneOnePrimitiveCase::SolidShell { face_count: 4 },
         )
         .expect("verified primitive");
 

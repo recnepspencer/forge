@@ -90,8 +90,8 @@ Already landed:
 - `ForgeQueryRuntimeBackendParts`, bridge-backed runtime backend assembly, and
   runtime builder seams for schema/source/write/signal adapters exist in code
   and should be treated as the starting point, not as the final DX.
-- `ForgeQueryMemoryApp` implements the backend seam while executing writes
-  through RuntimeBridge writeback admission and authority execution.
+- a memory-backed scaffold backend exists for local/runtime certification, but
+  it is not the ordinary architectural path.
 - Compiled program effects can bind typed operation inputs into
   `ForgeQueryWriteCommandTemplate`.
 - Write receipts expose changed deltas, affected live view ids, affected
@@ -344,7 +344,7 @@ Implementation notes:
   where responsibilities differ.
 - Existing `ForgeQueryRuntimeBackendParts` and `ForgeQueryBridgeBackedRuntimeBackend`
   should be extended only when they preserve subsystem ownership.
-- Memory-backed paths are compatibility/convenience backends, not the
+- Memory-backed paths are scaffold/convenience backends, not the
   architectural source of truth for the API.
 - Do not expose domain operation names, domain entity kinds, or DSL-specific
   concepts in these types.
@@ -355,8 +355,8 @@ Tests:
 - Support metadata and executable admission behavior agree.
 - Memory and fake external backends expose the same facade families where both
   claim support.
-- Runtime facade never stores or branches on `ForgeQueryMemoryApp` concrete
-  type.
+- Runtime facade never stores or branches on concrete memory-scaffold backend
+  types.
 - Unsupported facade families fail before lower-runtime probing or fallback.
 
 ## Batch 2: Live Declaration Automatically Installs Query Subscriptions
@@ -692,7 +692,7 @@ from depending on lower-level facades for ordinary work.
 
 Implementation notes:
 
-- Rework `ForgeQueryMemoryApp` into a compatibility wrapper over the hardened
+- Keep any memory-backed helper path as an explicit scaffold over the hardened
   backend and subscription path where possible.
 - Update demos and internal consumers to use only runtime/workspace facade
   families for ordinary read/live/computed/effect/branch/write/intent/inspect
@@ -728,11 +728,11 @@ Closeout evidence added during Batch 9 hardening:
 - Preview and branch session constructors now return typed support denials
   instead of panicking when the backend does not admit the branch/preview
   facade family.
-- Memory-backed runtime assembly is marked as a compatibility backend, and the
-  ambiguous `in_memory_collections` builder spelling is deprecated with
-  compile-fail coverage under strict consumers.
+- Memory-backed runtime assembly is marked as a scaffold backend, and the
+  old `in_memory_collections` builder methods are deleted with compile-fail
+  coverage proving those constructor names are missing.
 - Forge UI's todo workspace uses the runtime facade over an explicit
-  compatibility backend, with a regression covering read/live/write behavior.
+  memory-backed scaffold, with a regression covering read/live/write behavior.
 - Grouped baseline helpers are not exported through the ordinary facade.
 - Intent execution artifacts cannot be spent as commit receipts or inspected as
   admitted runtime receipts without going through runtime admission.

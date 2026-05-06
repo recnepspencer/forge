@@ -44,6 +44,7 @@ fn domain_query_replay_parity_matches_for_local_rewire_view() {
     assert_eq!(report.request_family, left.request_family());
     assert!(report.branch_identity_match);
     assert!(report.snapshot_identity_match);
+    assert!(report.execution_engine_match);
     assert!(report.fallback_posture_match);
     assert!(report.canonical_query_digest_match);
     assert!(report.canonical_result_shape_digest_match);
@@ -266,14 +267,14 @@ fn loop_cycle_parity_artifact(
     read_basis: &DerivedTopologyReadBasis,
     depth: usize,
 ) -> crate::query::domain::parity::WorthTopologyDomainQueryViewParityArtifact {
-    let (workspace, assembly) = snapshot_basis_workspace(runtime, stem, read_basis);
+    let (mut workspace, assembly) = snapshot_basis_workspace(runtime, stem, read_basis);
     let domain_query =
         WorthTopologyDomainQuery::load(&workspace, &assembly).expect("domain query should load");
     let start_identity = domain_query
         .first_source_identity_for_relation_kind(WorthTopologyRelationKind::HalfEdgeNext)
         .expect("wire should expose successor source");
     let loop_cycle = domain_query
-        .loop_cycle(&start_identity, depth)
+        .loop_cycle(&mut workspace, &start_identity, depth)
         .expect("loop cycle should load");
     build_domain_query_view_parity_artifact(
         read_basis,

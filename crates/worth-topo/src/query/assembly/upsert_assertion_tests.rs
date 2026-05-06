@@ -2,9 +2,10 @@ use forge_query::facade::{
     ForgeQueryEntity, ForgeQueryExistingTruthAssertionDenialKind, ForgeQueryRuntimeError,
 };
 use forge_relational::facade::identity::{EntityId, RelationId};
-use worth_schema::facade::{
-    seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase, WorthTopologyRelationKind,
+use worth_schema::facade::topology_authoring::{
+    seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
 };
+use worth_schema::facade::WorthTopologyRelationKind;
 use worth_schema::facade::{
     RawWorthTopologyIntent, WorthEntityKind, WorthMutationOrigin, WorthRelationKind,
     WorthTopologyEntityKind, WorthTopologyMutation,

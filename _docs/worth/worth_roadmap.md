@@ -25,6 +25,10 @@ The operating rule is:
 - `Forge Query Runtime Rewrite Gate`: Proposed, blocks further Milestone 3
   implementation and rewrites Worth runtime mutation onto Forge Query's
   aspect-native public mutation surface
+- `Worth Read Composition Side Quest`: Proposed, blocks further query-heavy
+  Milestone 3 widening and promotes bounded read composition into a first-class
+  Forge Query product so Worth neighborhoods stop rebuilding caller-owned row
+  joins
 - `Milestone 3`: Active, to be rewritten onto the query-native substrate
 - Milestones `4+`: Planned
 
@@ -34,6 +38,8 @@ Milestone 2 closeout record:
 - [milestone-2-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-2-closeout.md)
 Forge Query runtime rewrite gate:
 - [forge-query-runtime-rewrite-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/forge-query-runtime-rewrite-plan.md)
+Worth read composition side quest:
+- [worth-query-domain-substrate.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-query-domain-substrate.md)
 
 ## Global Adversarial Constraint
 
@@ -434,11 +440,12 @@ These should be widened across `Milestone 18` through `Milestone 20`:
 Critical path:
 
 - `Milestone 1` -> `Milestone 2` -> `Forge Query Runtime Rewrite Gate` ->
-  `Milestone 3` -> `Milestone 4` -> `Milestone 5` -> `Milestone 6` ->
-  `Milestone 7` -> `Milestone 8` -> `Milestone 9` -> `Milestone 10` ->
-  `Milestone 11` -> `Milestone 12` -> `Milestone 13` -> `Milestone 14` ->
-  `Milestone 15` -> `Milestone 16` -> `Milestone 17` -> `Milestone 18` ->
-  `Milestone 19` -> `Milestone 20`
+  `Worth Read Composition Side Quest` -> `Milestone 3` ->
+  `Milestone 4` -> `Milestone 5` -> `Milestone 6` -> `Milestone 7` ->
+  `Milestone 8` -> `Milestone 9` -> `Milestone 10` -> `Milestone 11` ->
+  `Milestone 12` -> `Milestone 13` -> `Milestone 14` -> `Milestone 15` ->
+  `Milestone 16` -> `Milestone 17` -> `Milestone 18` -> `Milestone 19` ->
+  `Milestone 20`
 
 Parallel tracks:
 
@@ -809,6 +816,11 @@ silently depending on toy topology.
 
 This belongs before planar hostile proof because the hostile proof must target a
 real edit-capable substrate, not only seeded fixtures.
+The
+[Worth Read Composition Side Quest](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-query-domain-substrate.md)
+belongs inside this milestone's remaining expansion window before more
+query-heavy hostile lanes widen, so topology edit certification does not keep
+rebuilding neighborhood logic as caller-owned row joins.
 
 ## Milestone 4: Topology-Certified Primitive Construction
 

@@ -12,11 +12,11 @@ use crate::facade::{
     WorthPrimitiveCorpusCoverageMatrix, WorthPrimitiveCorpusParityReport,
 };
 use forge_relational::facade::history::BranchId;
-use worth_schema::facade::{
-    RawWorthTopologyIntent, WorthMilestoneOnePrimitiveCase,
-    WorthMilestoneOnePrimitiveExpectedOutcome, WorthMilestoneOnePrimitiveRole, WorthMutationOrigin,
-    WorthTopologyMutation,
+use worth_schema::facade::topology_authoring::{
+    WorthMilestoneOnePrimitiveCase, WorthMilestoneOnePrimitiveExpectedOutcome,
+    WorthMilestoneOnePrimitiveRole,
 };
+use worth_schema::facade::{RawWorthTopologyIntent, WorthMutationOrigin, WorthTopologyMutation};
 use worth_schema::facade::{WorthShellInterpretationClass, WorthWireInterpretationClass};
 
 use crate::certification::{
@@ -33,6 +33,7 @@ use crate::fixtures::validated_topology::{
 };
 
 mod closeout;
+mod milestone_three;
 mod parameter_sweeps;
 mod primitive_corpus;
 mod query_runtime;

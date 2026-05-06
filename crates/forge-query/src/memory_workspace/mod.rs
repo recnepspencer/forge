@@ -1,21 +1,9 @@
-use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex};
-
-use crate::declarative_live::{DeclarativeLiveQuerySession, DeclarativeLiveViewShape};
-use crate::live::BridgeChangeSummary;
-use crate::schema_view::QuerySchemaView;
 use crate::view_shape_live::ViewShapePatchEnvelope;
 use forge_relational::facade::identity::{EntityId, KindId};
 use forge_relational::facade::runtime::RelationalRuntime;
-use forge_relational::facade::symbols::InternedString;
-use forge_runtime_bridge::facade::{BridgeMutationAuthorityBundle, RuntimeBridge};
+use forge_runtime_bridge::facade::BridgeMutationAuthorityBundle;
 use serde_json::Value;
 
-mod app_construction;
-mod app_mutations;
-mod app_writeback;
-mod backend;
-mod bridge;
 mod helpers;
 #[cfg(test)]
 mod tests;
@@ -116,90 +104,4 @@ pub struct ForgeQueryMemoryWorkspace {
     kind_id: KindId,
     kind_name: String,
     next_client_key: u64,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ForgeQueryCollection {
-    name: String,
-    aspects: Vec<ForgeQueryAspect>,
-}
-
-impl ForgeQueryCollection {
-    pub fn new(
-        name: impl Into<String>,
-        aspects: impl IntoIterator<Item = ForgeQueryAspect>,
-    ) -> Self {
-        Self {
-            name: name.into(),
-            aspects: aspects.into_iter().collect(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-struct ForgeQueryCollectionRuntime {
-    kind_id: KindId,
-    next_client_key: u64,
-}
-
-#[derive(Debug, Clone)]
-struct ForgeQueryLiveViewRuntime {
-    session: DeclarativeLiveQuerySession,
-    patches: Vec<ForgeQueryLivePatch>,
-}
-
-#[derive(Clone, Debug)]
-struct ForgeQueryBridgeSource;
-
-#[derive(Clone, Debug)]
-struct ForgeQueryBridgeSnapshotReader {
-    identity: forge_runtime_bridge::facade::TruthSnapshotIdentity,
-}
-
-#[derive(Clone, Debug)]
-struct ForgeQueryBridgeSink;
-
-#[derive(Clone)]
-struct ForgeQueryWritebackAuthority {
-    state: Arc<Mutex<ForgeQueryAuthorityState>>,
-}
-
-struct ForgeQueryAuthorityState {
-    runtime: RelationalRuntime,
-    pending: BTreeMap<String, ForgeQueryPendingWriteback>,
-    completed: BTreeMap<String, ForgeQueryMutationReceipt>,
-}
-
-#[derive(Clone, Debug)]
-struct ForgeQueryPendingWriteback {
-    collection: String,
-    kind: ForgeQueryMutationKind,
-    aspect_paths: Vec<String>,
-    operation: ForgeQueryPendingOperation,
-}
-
-#[derive(Clone, Debug)]
-enum ForgeQueryPendingOperation {
-    Insert {
-        kind_id: KindId,
-        client_key: InternedString,
-        payload: Value,
-    },
-    Update {
-        entity_id: EntityId,
-        payload: Value,
-        existing_truth_binding: Option<crate::runtime::ForgeQueryExistingTruthTargetBinding>,
-    },
-    Delete {
-        entity_id: EntityId,
-        existing_truth_binding: Option<crate::runtime::ForgeQueryExistingTruthTargetBinding>,
-    },
-}
-
-pub struct ForgeQueryMemoryApp {
-    authority_state: Arc<Mutex<ForgeQueryAuthorityState>>,
-    bridge: RuntimeBridge,
-    collections: BTreeMap<String, ForgeQueryCollectionRuntime>,
-    entity_collections: BTreeMap<String, String>,
-    live_views: BTreeMap<String, ForgeQueryLiveViewRuntime>,
 }

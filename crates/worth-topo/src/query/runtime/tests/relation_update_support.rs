@@ -32,10 +32,11 @@ impl RelationUpdateQuerySupport {
         workspace: &ForgeQueryWorkspace,
         assembly: &WorthTopologyQueryAssembly,
     ) -> Self {
+        let entity_rows = workspace.read::<Value>(assembly.entities());
         Self {
-            domain_query: WorthTopologyDomainQuery::load(workspace, assembly)
+            domain_query: WorthTopologyDomainQuery::load(&workspace, assembly)
                 .expect("topology domain query should load for relation update support"),
-            entity_rows: workspace.read::<Value>(assembly.entities()),
+            entity_rows,
         }
     }
 
@@ -167,11 +168,12 @@ impl RelationUpdateQuerySupport {
 
     pub(super) fn successor_cycle_identities(
         &self,
+        workspace: &mut ForgeQueryWorkspace,
         start_identity: &str,
         count: usize,
     ) -> Vec<String> {
         self.domain_query
-            .loop_cycle(start_identity, count)
+            .loop_cycle(workspace, start_identity, count)
             .expect("seeded topology should expose a closed successor cycle")
             .cycle_identities
     }

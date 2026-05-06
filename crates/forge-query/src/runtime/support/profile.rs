@@ -30,7 +30,7 @@ impl ForgeQueryRuntimeSupportProfile {
         }
     }
 
-    pub fn compatibility_backend() -> Self {
+    pub fn scaffold_backend_profile() -> Self {
         Self::new([
             ForgeQueryRuntimeFamilySupport::supported(
                 ForgeQueryRuntimeFacadeFamily::Read,
@@ -115,7 +115,7 @@ impl ForgeQueryRuntimeSupportProfile {
                 "durable restart and artifact reload are deferred to Milestone 11",
             ),
         ])
-        .with_posture(ForgeQueryRuntimeBackendPosture::Compatibility)
+        .with_posture(ForgeQueryRuntimeBackendPosture::Scaffold)
     }
 
     pub fn bridge_backed(
@@ -126,7 +126,7 @@ impl ForgeQueryRuntimeSupportProfile {
         let subscription_activation_evidence = subscription_activation_evidence.into();
         let preview_basis_evidence = preview_basis_evidence.into();
         let inspector_evidence = inspector_evidence.into();
-        Self::compatibility_backend()
+        Self::scaffold_backend_profile()
             .with_family_support(ForgeQueryRuntimeFamilySupport::supported(
                 ForgeQueryRuntimeFacadeFamily::Live,
                 [ForgeQueryAuthorityLane::AuthoritativeTruth],
@@ -220,7 +220,7 @@ impl ForgeQueryRuntimeSupportProfile {
         self,
         operation_family: impl Into<String>,
         target_binding_family: impl Into<String>,
-        compatibility_runtime_supported: bool,
+        scaffold_profile_supported: bool,
         primary_bridge_backed_runtime_supported: bool,
         denial_class_when_primary_unsupported: Option<&str>,
     ) -> Self {
@@ -228,7 +228,7 @@ impl ForgeQueryRuntimeSupportProfile {
             ForgeQueryBridgeBackedVerificationSupportProfileRow::new(
                 operation_family,
                 target_binding_family,
-                compatibility_runtime_supported,
+                scaffold_profile_supported,
                 primary_bridge_backed_runtime_supported,
                 denial_class_when_primary_unsupported,
             ),

@@ -15,5 +15,6 @@
 #![forbid(unsafe_code)]
 
 mod data;
+mod topology_authoring;
 
 pub mod facade;

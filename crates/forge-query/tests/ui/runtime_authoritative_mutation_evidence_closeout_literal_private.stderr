@@ -8,7 +8,7 @@ warning: unreachable expression
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
-error[E0451]: fields `backend_posture`, `support_matrix_digest`, `mutation_compatibility_digest`, `naming_contract_digest`, `query_support_digest`, `bridge_support_digest`, `bridge_closeout_digest`, `safe_to_build_now`, `must_not_assume_yet`, `migration_guidance`, `required_verification_commands` and `closeout_digest` of struct `ForgeQueryAuthoritativeMutationEvidenceCloseout` are private
+error[E0451]: fields `backend_posture`, `support_matrix_digest`, `mutation_surface_digest`, `naming_contract_digest`, `query_support_digest`, `bridge_support_digest`, `bridge_closeout_digest`, `safe_to_build_now`, `must_not_assume_yet`, `migration_guidance`, `required_verification_commands` and `closeout_digest` of struct `ForgeQueryAuthoritativeMutationEvidenceCloseout` are private
   --> tests/ui/runtime_authoritative_mutation_evidence_closeout_literal_private.rs:5:9
    |
  4 |     let _ = ForgeQueryAuthoritativeMutationEvidenceCloseout {
@@ -17,8 +17,8 @@ error[E0451]: fields `backend_posture`, `support_matrix_digest`, `mutation_compa
    |         ^^^^^^^^^^^^^^^ private field
  6 |         support_matrix_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^^^^^ private field
- 7 |         mutation_compatibility_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 7 |         mutation_surface_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
  8 |         naming_contract_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field
  9 |         query_support_digest: String::new(),

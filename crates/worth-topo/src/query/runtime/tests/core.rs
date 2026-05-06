@@ -4,6 +4,7 @@ use crate::query::{
 };
 use crate::runtime_invariants::build_worth_milestone_one_runtime;
 use forge_query::facade::ForgeQueryBridgeBackedVerificationSupportStatus;
+use worth_schema::facade::topology_authoring::seed_minimal_topology;
 
 #[test]
 fn current_head_runtime_support_reports_authoritative_current_head_posture() {
@@ -73,8 +74,7 @@ fn current_head_runtime_support_reports_authoritative_current_head_posture() {
 #[test]
 fn current_head_runtime_reads_seeded_topology_without_query_import() {
     let mut runtime = build_worth_milestone_one_runtime().expect("worth runtime");
-    worth_schema::facade::seed_minimal_topology(&mut runtime, "worth-query-runtime")
-        .expect("seed topology");
+    seed_minimal_topology(&mut runtime, "worth-query-runtime").expect("seed topology");
     let adapters = WorthTopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         worth_topology_runtime(adapters, "worth.current-head.runtime").expect("workspace");
@@ -160,8 +160,7 @@ fn current_head_runtime_denies_unsupported_insert_collections() {
 fn snapshot_read_only_runtime_support_reports_historical_read_only_posture() {
     let mut runtime = build_worth_milestone_one_runtime().expect("worth runtime");
     let seeded =
-        worth_schema::facade::seed_minimal_topology(&mut runtime, "worth-query-runtime-snapshot")
-            .expect("seed topology");
+        seed_minimal_topology(&mut runtime, "worth-query-runtime-snapshot").expect("seed topology");
     let read_view = runtime
         .read_truth()
         .read_snapshot(&seeded.snapshot)
@@ -181,8 +180,7 @@ fn snapshot_read_only_runtime_support_reports_historical_read_only_posture() {
 fn snapshot_read_only_runtime_reads_seeded_topology_and_denies_writes() {
     let mut runtime = build_worth_milestone_one_runtime().expect("worth runtime");
     let seeded =
-        worth_schema::facade::seed_minimal_topology(&mut runtime, "worth-query-runtime-snapshot")
-            .expect("seed topology");
+        seed_minimal_topology(&mut runtime, "worth-query-runtime-snapshot").expect("seed topology");
     let read_view = runtime
         .read_truth()
         .read_snapshot(&seeded.snapshot)
@@ -218,8 +216,7 @@ fn snapshot_read_only_runtime_reads_seeded_topology_and_denies_writes() {
 fn current_head_runtime_admits_bridge_backed_entity_verification_families() {
     let mut runtime = build_worth_milestone_one_runtime().expect("worth runtime");
     let seeded =
-        worth_schema::facade::seed_minimal_topology(&mut runtime, "worth-query-runtime-verify")
-            .expect("seed topology");
+        seed_minimal_topology(&mut runtime, "worth-query-runtime-verify").expect("seed topology");
     let adapters = WorthTopologyRuntimeAdapters::current_head(runtime);
     let mut workspace =
         worth_topology_runtime(adapters, "worth.current-head.verify-existing").expect("workspace");
@@ -296,8 +293,7 @@ fn current_head_runtime_admits_bridge_backed_entity_verification_families() {
 fn current_head_runtime_admits_bridge_backed_relation_verification_families() {
     let mut runtime = build_worth_milestone_one_runtime().expect("worth runtime");
     let seeded =
-        worth_schema::facade::seed_minimal_topology(&mut runtime, "worth-query-runtime-probe")
-            .expect("seed topology");
+        seed_minimal_topology(&mut runtime, "worth-query-runtime-probe").expect("seed topology");
     let read_view = runtime
         .read_truth()
         .read_snapshot(&seeded.snapshot)

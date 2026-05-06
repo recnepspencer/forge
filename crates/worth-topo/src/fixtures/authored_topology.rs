@@ -1,4 +1,4 @@
-use worth_schema::facade::{
+use worth_schema::facade::topology_authoring::{
     milestone_one_admitted_range_sweep_out_of_class_scenarios,
     milestone_one_admitted_range_sweep_scenarios, milestone_one_default_primitive_corpus,
     WorthMilestoneOnePrimitiveScenario,

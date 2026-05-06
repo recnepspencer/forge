@@ -278,7 +278,7 @@ pub fn validation_report_from_query_rows(
     validate_interpreted_topology(&materialized, &interpreted).map_err(validation_surface_error)
 }
 
-pub(super) fn decode_single_computed_row<T>(
+pub(crate) fn decode_single_computed_row<T>(
     rows: &[Value],
     surface_label: &str,
 ) -> Result<T, WorthTopologyQuerySurfaceError>

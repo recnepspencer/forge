@@ -1,9 +1,7 @@
 use super::super::super::support::*;
-use crate::memory_workspace::ForgeQueryAspect;
-
 #[test]
 fn runtime_public_handle_contract_freezes_inspection_sections_and_future_state_lanes() {
-    let workspace = task_runtime()
+    let workspace = stateful_bridge_task_runtime()
         .workspace("task.handle-contract")
         .expect("task runtime should open a named workspace");
     let contract = workspace.public_handle_contract();
@@ -38,7 +36,7 @@ fn runtime_public_handle_contract_freezes_inspection_sections_and_future_state_l
 
 #[test]
 fn runtime_workspace_rejects_empty_names_before_public_use() {
-    let error = match task_runtime().workspace("  ") {
+    let error = match stateful_bridge_task_runtime().workspace("  ") {
         Ok(_) => panic!("empty workspace names should not enter the public API"),
         Err(error) => error,
     };
@@ -55,7 +53,7 @@ fn runtime_workspace_rejects_empty_names_before_public_use() {
 
 #[test]
 fn runtime_workspace_declares_observes_and_inspects_with_preferred_names() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("task.workspace")
         .expect("task runtime should open a named workspace");
     let view: ForgeQueryLiveView<Value> = workspace
@@ -87,7 +85,7 @@ fn runtime_workspace_declares_observes_and_inspects_with_preferred_names() {
 
 #[test]
 fn runtime_workspace_closure_builders_cover_live_computed_effect_dx() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("task.builder-workspace")
         .expect("task runtime should open a named workspace");
     let view: ForgeQueryLiveView<Value> = workspace
@@ -147,6 +145,7 @@ fn runtime_public_declaration_builders_support_downstream_vocab_layers() {
         .from("Task")
         .select(["identity.id", "title.value"])
         .order_by("title.value")
+        .allow_traversal_relation("manager", 2)
         .schema_basis("external-task-table")
         .build()
         .expect("public live declaration builder should lower without a workspace");
@@ -158,13 +157,16 @@ fn runtime_public_declaration_builders_support_downstream_vocab_layers() {
         .expect("public computed declaration builder should lower without a workspace");
 
     assert_eq!(live.request().target(), "Task");
+    assert_eq!(live.request().traversal().len(), 1);
+    assert_eq!(live.request().traversal()[0].relation(), "manager");
+    assert_eq!(live.request().traversal()[0].depth(), 2);
     assert_eq!(computed.name(), "tasks.external-summary");
     assert!(!computed.incremental());
 }
 
 #[test]
 fn runtime_workspace_state_snapshots_are_async_safe_and_support_gated() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("task.state-workspace")
         .expect("task runtime should open a named workspace");
     let view: ForgeQueryLiveView<Value> = workspace
@@ -235,18 +237,5 @@ fn runtime_state_snapshot_rejects_ready_state_through_deferred_constructor() {
         "shape:table",
         ForgeQueryAuthorityLane::AuthoritativeTruth,
         "ready state must not enter through the deferred constructor",
-    );
-}
-
-#[test]
-fn compatibility_memory_backend_constructor_is_explicit_and_runtime_builder_matches_it() {
-    let backend = ForgeQueryMemoryApp::compatibility_backend([ForgeQueryCollection::new(
-        "Task",
-        [ForgeQueryAspect::new("title", "title.value")],
-    )])
-    .expect("compatibility backend should build");
-    assert_eq!(
-        crate::runtime::ForgeQueryRuntimeBackend::support_profile(&backend).posture(),
-        ForgeQueryRuntimeBackendPosture::Compatibility
     );
 }

@@ -1,7 +1,10 @@
 use worth_schema::facade::DerivedTopologyReadBasis;
 
 use super::fallback::WorthTopologyDomainQueryFallbackPosture;
-use super::report::{WorthTopologyDomainQueryRequestFamily, WorthTopologyDomainQueryRequestReport};
+use super::report::{
+    WorthTopologyDomainQueryExecutionEngine, WorthTopologyDomainQueryRequestFamily,
+    WorthTopologyDomainQueryRequestReport,
+};
 use super::views::{
     WorthTopologyHalfEdgeRadialNeighborhoodView, WorthTopologyHalfEdgeSharedVertexNeighborhoodView,
     WorthTopologyLocalRewireNeighborhoodView, WorthTopologyLoopCycleView,
@@ -18,7 +21,9 @@ pub(crate) struct WorthTopologyDomainQueryViewParityArtifact {
     request_family: WorthTopologyDomainQueryRequestFamily,
     authority_snapshot_id: u64,
     authority_branch_id: String,
+    execution_engine: WorthTopologyDomainQueryExecutionEngine,
     fallback_posture: WorthTopologyDomainQueryFallbackPosture,
+    query_native_execution_count: usize,
     canonical_query_digest: String,
     canonical_result_shape_digest: String,
     lowered_traversal_count: usize,
@@ -58,6 +63,7 @@ pub(crate) struct WorthTopologyDomainQueryViewParityReport {
     pub(crate) branch_identity_match: bool,
     pub(crate) snapshot_identity_match: bool,
     pub(crate) fallback_posture_match: bool,
+    pub(crate) execution_engine_match: bool,
     pub(crate) canonical_query_digest_match: bool,
     pub(crate) canonical_result_shape_digest_match: bool,
     pub(crate) breadth_counters_match: bool,
@@ -156,11 +162,10 @@ pub(crate) fn build_domain_query_view_parity_artifact(
         request_family: request_report.request_family,
         authority_snapshot_id: read_basis.snapshot().snapshot_id.0,
         authority_branch_id: read_basis.branch_id().0.clone(),
+        execution_engine: request_report.execution_engine,
         fallback_posture: request_report.fallback_posture,
-        canonical_query_digest: request_report
-            .lowering_artifact
-            .canonical_query_digest()
-            .to_string(),
+        query_native_execution_count: request_report.query_native_execution_count,
+        canonical_query_digest: parity_query_digest(request_report),
         canonical_result_shape_digest: request_report
             .lowering_artifact
             .canonical_result_shape_digest()
@@ -181,11 +186,14 @@ pub(crate) fn compare_domain_query_view_parity(
 ) -> WorthTopologyDomainQueryViewParityReport {
     let branch_identity_match = left.authority_branch_id == right.authority_branch_id;
     let snapshot_identity_match = left.authority_snapshot_id == right.authority_snapshot_id;
+    let execution_engine_match = left.execution_engine == right.execution_engine;
     let fallback_posture_match = left.fallback_posture == right.fallback_posture;
     let canonical_query_digest_match = left.canonical_query_digest == right.canonical_query_digest;
     let canonical_result_shape_digest_match =
         left.canonical_result_shape_digest == right.canonical_result_shape_digest;
-    let breadth_counters_match = left.lowered_traversal_count == right.lowered_traversal_count
+    let breadth_counters_match = left.query_native_execution_count
+        == right.query_native_execution_count
+        && left.lowered_traversal_count == right.lowered_traversal_count
         && left.relationship_proof_admission_count == right.relationship_proof_admission_count
         && left.row_scan_fallback_count == right.row_scan_fallback_count
         && left.whole_view_fallback_count == right.whole_view_fallback_count
@@ -194,6 +202,7 @@ pub(crate) fn compare_domain_query_view_parity(
     let parity_verified = left.request_family == right.request_family
         && branch_identity_match
         && snapshot_identity_match
+        && execution_engine_match
         && fallback_posture_match
         && canonical_query_digest_match
         && canonical_result_shape_digest_match
@@ -208,6 +217,7 @@ pub(crate) fn compare_domain_query_view_parity(
         right_snapshot_id: right.authority_snapshot_id,
         branch_identity_match,
         snapshot_identity_match,
+        execution_engine_match,
         fallback_posture_match,
         canonical_query_digest_match,
         canonical_result_shape_digest_match,
@@ -226,6 +236,15 @@ fn request_report<'a>(
         WorthTopologyDomainQueryViewRef::LoopCycle(view) => &view.request_report,
         WorthTopologyDomainQueryViewRef::LocalRewire(view) => &view.request_report,
     }
+}
+
+fn parity_query_digest(report: &WorthTopologyDomainQueryRequestReport) -> String {
+    report.executed_query_digest.clone().unwrap_or_else(|| {
+        report
+            .lowering_artifact
+            .canonical_query_digest()
+            .to_string()
+    })
 }
 
 fn view_digest_parts(view: &WorthTopologyDomainQueryViewRef<'_>) -> Vec<String> {

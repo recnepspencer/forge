@@ -5,6 +5,7 @@ pub enum RelationshipProofSurface {
     DescriptorAdmission,
     DirectEdgeTopology,
     BoundedAncestorTopology,
+    BoundedDescendantTopology,
     TenantMembershipTopology,
     RuntimeProofEvaluation,
     HostCallbackProofs,
@@ -16,6 +17,7 @@ impl RelationshipProofSurface {
             Self::DescriptorAdmission => "descriptor_admission",
             Self::DirectEdgeTopology => "direct_edge_topology",
             Self::BoundedAncestorTopology => "bounded_ancestor_topology",
+            Self::BoundedDescendantTopology => "bounded_descendant_topology",
             Self::TenantMembershipTopology => "tenant_membership_topology",
             Self::RuntimeProofEvaluation => "runtime_proof_evaluation",
             Self::HostCallbackProofs => "host_callback_proofs",
@@ -83,6 +85,10 @@ pub fn runtime_backed_relationship_proof_support_profile() -> RelationshipProofS
         ),
         (
             RelationshipProofSurface::BoundedAncestorTopology,
+            RelationshipProofSupportStatus::Verified,
+        ),
+        (
+            RelationshipProofSurface::BoundedDescendantTopology,
             RelationshipProofSupportStatus::Verified,
         ),
         (

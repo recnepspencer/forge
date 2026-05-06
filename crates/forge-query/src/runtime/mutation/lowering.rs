@@ -18,7 +18,6 @@ pub(crate) fn aspect_values_to_payload(
     Ok(payload)
 }
 
-#[allow(deprecated)]
 pub(crate) fn command_declared_aspect_paths(command: &ForgeQueryWriteCommand) -> Vec<String> {
     command_declared_aspect_operations(command)
         .into_iter()
@@ -26,12 +25,10 @@ pub(crate) fn command_declared_aspect_paths(command: &ForgeQueryWriteCommand) ->
         .collect()
 }
 
-#[allow(deprecated)]
 pub(crate) fn command_declared_aspect_operations(
     command: &ForgeQueryWriteCommand,
 ) -> Vec<ForgeQueryAspectMutationOperation> {
     match command {
-        ForgeQueryWriteCommand::Insert { .. } => Vec::new(),
         ForgeQueryWriteCommand::InsertAspects {
             aspects,
             symbolic_aspect_references,
@@ -100,7 +97,6 @@ pub(crate) fn command_declared_aspect_operations(
     }
 }
 
-#[allow(deprecated)]
 pub(crate) fn command_declared_aspect_value_digest(
     command: &ForgeQueryWriteCommand,
 ) -> Option<String> {
@@ -211,8 +207,7 @@ pub(crate) fn command_declared_aspect_value_digest(
                     .collect::<Vec<_>>(),
             ))
         }
-        ForgeQueryWriteCommand::Insert { .. }
-        | ForgeQueryWriteCommand::UpdateAspect { .. }
+        ForgeQueryWriteCommand::UpdateAspect { .. }
         | ForgeQueryWriteCommand::DeleteAspects { .. }
         | ForgeQueryWriteCommand::DeleteExistingAspects { .. }
         | ForgeQueryWriteCommand::DeleteSymbolicAspects { .. }

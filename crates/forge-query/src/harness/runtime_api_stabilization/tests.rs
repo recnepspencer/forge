@@ -71,7 +71,7 @@ fn runtime_api_stabilization_rows_have_required_outputs_and_meaningful_assertion
             );
             assert!(
                 lane.counter_snapshot.contains("preferred_names=")
-                    && lane.counter_snapshot.contains("compat_names="),
+                    && lane.counter_snapshot.contains("alternate_names="),
                 "runtime API counter snapshot must include canonical naming contract counters"
             );
             assert!(
@@ -292,21 +292,33 @@ fn runtime_api_stabilization_closeout_answers_required_questions() {
 }
 
 #[test]
+fn runtime_api_stabilization_closeout_doc_uses_mutation_surface_language() {
+    assert!(
+        CLOSEOUT_DOC.contains("`workspace.public_mutation_surface_report()`"),
+        "runtime API closeout doc must point callers at the mutation surface report"
+    );
+    assert!(
+        !CLOSEOUT_DOC.contains("public_mutation_api_compatibility_report"),
+        "runtime API closeout doc must not teach the deleted compatibility report name"
+    );
+}
+
+#[test]
 fn runtime_api_stabilization_closeout_carries_migration_and_verification_contract() {
     let artifact =
         RuntimeApiStabilizationAdapter::runtime_api_golden_dx_and_async_safe_facade_artifact();
     let closeout = &artifact.closeout;
 
     assert!(closeout
-        .compatibility_names
+        .alternate_names
         .iter()
         .any(|row| row == "computed_definition=>computed"));
     assert!(closeout
-        .compatibility_names
+        .alternate_names
         .iter()
         .any(|row| row == "preview_with_options=>preview"));
     assert!(closeout
-        .compatibility_names
+        .alternate_names
         .iter()
         .all(|row| !row.contains("computed_declaration")));
     assert!(closeout
@@ -387,11 +399,11 @@ fn runtime_api_stabilization_closeout_document_matches_certified_contract() {
 
     assert!(
         CLOSEOUT_DOC.contains("`workspace.intent(...)` remains part of the public vocabulary"),
-        "closeout doc must explain that intent is vocabulary but not yet stable compatibility support"
+        "closeout doc must explain that intent is vocabulary but not yet in the stable support set"
     );
     assert!(
-        CLOSEOUT_DOC.contains("not in\nthe stable compatibility support set yet")
-            || CLOSEOUT_DOC.contains("not in the stable compatibility support set yet"),
+        CLOSEOUT_DOC.contains("not in\nthe stable support set yet")
+            || CLOSEOUT_DOC.contains("not in the stable support set yet"),
         "closeout doc must state the intent support boundary explicitly"
     );
 

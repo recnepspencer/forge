@@ -32,6 +32,21 @@ specific workspace instance, `ForgeQueryLiveViewBuilder::surface(...)` is also
 public. That seam exists for declaration reuse, not as a replacement for the
 ordinary workspace DX.
 
+Good to know:
+
+- `allow_traversal_relation(...)` is a real declaration input, not just schema
+  metadata. When you use it, the declared bounded traversal is carried into the
+  lower live-query request as well as the schema admission view.
+- Traversal relations must be declared once each with a non-zero max depth.
+- If you use the lower-level `workspace.live_view_request(...)` path, the
+  runtime still checks that request traversal and schema traversal stay aligned.
+  A traversal-bearing request with missing or narrower schema relation support
+  is rejected before admission.
+- The lower declarative request can now preserve hidden query-only projection,
+  delivered result fields, non-equality predicates, traversal, and ordering.
+  That same lower request shape is also what `compose_read(...)` uses before
+  canonicalization.
+
 ## Core Mental Model
 
 A live view is not just a query result. It is a retained runtime installation.
@@ -64,6 +79,10 @@ What the runtime tracks automatically:
 
 Relevant writes produce live patch batches only when the changed meaning touches
 the declared projection or grouping basis.
+
+If the live surface includes declared traversal relations, the runtime keeps
+that traversal posture attached to the admitted query identity instead of
+asking downstream domain code to reconstruct it later.
 
 ## Small Example
 
@@ -137,6 +156,23 @@ match inspection {
 }
 ```
 
+Traversal-bearing declaration example:
+
+```rust
+let topology = workspace
+    .live_view("topology.half-edge-detail", |q| {
+        q.from("WorthTopologyEntity")
+            .detail()
+            .select(["identity.id", "half_edge.kind"])
+            .allow_traversal_relation("HalfEdgeNext", 2)
+            .schema_basis("topology-half-edge-detail")
+    })
+    .unwrap();
+```
+
+Use this when the surface itself needs bounded graph reach. Do not treat it as
+an after-the-fact schema note.
+
 What is authoritative:
 
 - the underlying `Task` truth
@@ -186,6 +222,7 @@ not affect it.
 - Treating a live view as a one-shot query result instead of a retained runtime
   surface.
 - Declaring a broad projection and then expecting narrow patch behavior.
+- Treating `allow_traversal_relation(...)` as documentation-only metadata.
 - Using lower-runtime installation helpers in ordinary product code.
 - Expecting irrelevant aspect churn to affect the view when the declared
   projection does not include that meaning.

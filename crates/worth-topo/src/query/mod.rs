@@ -9,9 +9,13 @@
 mod assembly;
 mod derived;
 mod diagnostics;
+mod domain;
 mod materialized;
 mod naming;
 mod runtime;
+mod snapshot_index;
+mod snapshot_rows;
+mod support;
 
 pub use assembly::{
     WorthTopologyQueryAppliedIntent, WorthTopologyQueryApplyError, WorthTopologyQueryAssembly,
@@ -31,6 +35,7 @@ pub use diagnostics::{
     worth_topology_equivalence_contract_computed_declaration, WorthTopologyDiagnosticsMaintainer,
     WorthTopologyEquivalenceContractMaintainer, WorthTopologyQueryMutationEvidence,
 };
+pub(crate) use domain::WorthTopologyDomainQuery;
 pub(crate) use materialized::topology_relation_dependency_path;
 pub use materialized::{
     declare_worth_topology_entity_live_view, declare_worth_topology_materialized_surface,
@@ -45,6 +50,12 @@ pub use naming::{
 pub use runtime::{
     worth_topology_runtime, WorthTopologyQueryEditFamilySupportStatus,
     WorthTopologyRuntimeAdapters, WorthTopologyRuntimeFailure, WorthTopologyRuntimeSupport,
+};
+pub(crate) use snapshot_index::WorthTopologyQuerySnapshotIndex;
+#[cfg(test)]
+pub(crate) use snapshot_rows::{query_entity_id_from_row, query_relation_id_from_row};
+pub(crate) use support::{
+    parse_entity_identity, parse_entity_kind, parse_relation_kind, required_text,
 };
 
 const QUERY_SURFACE_FAILURE_ROW_KEY: &str = "query_surface_error";

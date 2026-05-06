@@ -1,37 +1,12 @@
 use super::super::support::*;
 
 fn task_edge_runtime() -> ForgeQueryRuntime {
-    ForgeQueryRuntime::builder()
-        .compatibility_in_memory_collections([
-            ForgeQueryCollection::new(
-                "Task",
-                [
-                    crate::memory_workspace::ForgeQueryAspect::new("identity.id", "identity.id"),
-                    crate::memory_workspace::ForgeQueryAspect::new("title.value", "title.value"),
-                ],
-            ),
-            ForgeQueryCollection::new(
-                "TaskEdge",
-                [
-                    crate::memory_workspace::ForgeQueryAspect::new("edge.kind", "edge.kind"),
-                    crate::memory_workspace::ForgeQueryAspect::new(
-                        "edge.source_identity",
-                        "edge.source_identity",
-                    ),
-                    crate::memory_workspace::ForgeQueryAspect::new(
-                        "edge.target_identity",
-                        "edge.target_identity",
-                    ),
-                ],
-            ),
-        ])
-        .build()
-        .expect("runtime should build")
+    stateful_bridge_task_edge_runtime()
 }
 
 #[test]
 fn compose_graph_denies_empty_composition_typed_and_early() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.graph-composition-empty")
         .expect("task runtime should open a named workspace");
 
@@ -66,7 +41,7 @@ fn compose_graph_denies_empty_composition_typed_and_early() {
 
 #[test]
 fn compose_graph_denies_duplicate_symbol_declarations_typed_and_early() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.graph-composition-duplicate")
         .expect("task runtime should open a named workspace");
 
@@ -194,7 +169,7 @@ fn compose_graph_denies_relation_symbol_reuse_across_compositions_typed_and_earl
 
 #[test]
 fn compose_graph_denies_entity_symbol_reuse_across_compositions_typed_and_early() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.graph-composition-entity-leak")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace

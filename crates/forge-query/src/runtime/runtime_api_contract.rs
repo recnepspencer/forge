@@ -5,7 +5,7 @@ impl ForgeQueryRuntime {
         posture: ForgeQueryRuntimeBackendPosture,
     ) -> ForgeQueryAuthoritativeMutationEvidenceSupport {
         ForgeQueryAuthoritativeMutationEvidenceSupport::derive(
-            &ForgeQueryRuntimeSupportProfile::compatibility_backend().with_posture(posture),
+            &ForgeQueryRuntimeSupportProfile::scaffold_backend_profile().with_posture(posture),
         )
     }
 
@@ -23,7 +23,7 @@ impl ForgeQueryRuntime {
         let support_matrix =
             ForgeQueryRuntimePublicSupportMatrix::from_public_api_contract(&public_api_contract);
         let naming_contract = Self::public_api_naming_contract();
-        let mutation_compatibility = ForgeQueryMutationApiCompatibilityReport::derive(
+        let mutation_surface = ForgeQueryMutationSurfaceReport::derive(
             public_api_contract.backend_posture(),
             &support_matrix,
             &naming_contract,
@@ -39,7 +39,7 @@ impl ForgeQueryRuntime {
         ForgeQueryAuthoritativeMutationEvidenceCloseout::derive(
             public_api_contract.backend_posture(),
             &support_matrix,
-            &mutation_compatibility,
+            &mutation_surface,
             &naming_contract,
             &query_support,
             &bridge_support,
@@ -74,10 +74,8 @@ impl ForgeQueryRuntime {
         ForgeQueryRuntimePublicSupportMatrix::from_public_api_contract(&self.public_api_contract())
     }
 
-    pub fn public_mutation_api_compatibility_report(
-        &self,
-    ) -> ForgeQueryMutationApiCompatibilityReport {
-        ForgeQueryMutationApiCompatibilityReport::derive(
+    pub fn public_mutation_surface_report(&self) -> ForgeQueryMutationSurfaceReport {
+        ForgeQueryMutationSurfaceReport::derive(
             self.public_api_contract().backend_posture(),
             &self.public_support_matrix(),
             &Self::public_api_naming_contract(),
@@ -98,7 +96,7 @@ impl ForgeQueryRuntime {
         ForgeQueryAspectApiFinalizationCloseout::derive(
             self.public_api_contract().backend_posture(),
             &self.public_support_matrix(),
-            &self.public_mutation_api_compatibility_report(),
+            &self.public_mutation_surface_report(),
             &Self::public_api_naming_contract(),
         )
     }

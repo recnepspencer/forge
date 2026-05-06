@@ -1,18 +1,7 @@
 use super::super::support::*;
 
 fn task_relation_runtime() -> ForgeQueryRuntime {
-    ForgeQueryRuntime::builder()
-        .compatibility_in_memory_collections([ForgeQueryCollection::new(
-            "TaskRelation",
-            [
-                crate::memory_workspace::ForgeQueryAspect::new("identity.id", "identity.id"),
-                crate::memory_workspace::ForgeQueryAspect::new("kind.value", "kind.value"),
-                crate::memory_workspace::ForgeQueryAspect::new("source.id", "source.id"),
-                crate::memory_workspace::ForgeQueryAspect::new("target.id", "target.id"),
-            ],
-        )])
-        .build()
-        .expect("runtime should build")
+    stateful_bridge_runtime_with_collections(&["TaskRelation"])
 }
 
 fn seed_relation_binding(

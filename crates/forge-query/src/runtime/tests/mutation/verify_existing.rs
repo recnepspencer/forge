@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn verify_existing_preserves_backend_verified_assertion_evidence_without_mutation_deltas() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.verify-existing")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -74,7 +74,7 @@ fn verify_existing_preserves_backend_verified_assertion_evidence_without_mutatio
 
 #[test]
 fn verify_existing_denies_missing_asserted_aspect_typed_and_early() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.verify-existing-missing-aspect")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -122,7 +122,7 @@ fn verify_existing_denies_missing_asserted_aspect_typed_and_early() {
 
 #[test]
 fn verify_existing_denies_mismatched_value_typed_and_early() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.verify-existing-mismatch")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -173,7 +173,7 @@ fn verify_existing_denies_mismatched_value_typed_and_early() {
 
 #[test]
 fn verify_existing_reports_the_actual_failing_aspect_in_multi_aspect_requests() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.verify-existing-multi-mismatch")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -225,7 +225,7 @@ fn verify_existing_reports_the_actual_failing_aspect_in_multi_aspect_requests() 
 
 #[test]
 fn batch_verify_existing_preserves_aggregate_assertion_digest() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.batch-verify-existing")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -307,7 +307,7 @@ fn batch_verify_existing_preserves_aggregate_assertion_digest() {
 
 #[test]
 fn preview_verify_existing_requires_authoritative_lane() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-verify-existing")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -353,16 +353,7 @@ fn preview_verify_existing_requires_authoritative_lane() {
 
 #[test]
 fn verify_existing_relation_preserves_backend_verified_assertion_evidence() {
-    let runtime = ForgeQueryRuntime::builder()
-        .compatibility_in_memory_collections([ForgeQueryCollection::new(
-            "TaskRelation",
-            [
-                crate::memory_workspace::ForgeQueryAspect::new("identity.id", "identity.id"),
-                crate::memory_workspace::ForgeQueryAspect::new("kind.value", "kind.value"),
-            ],
-        )])
-        .build()
-        .expect("runtime should build");
+    let runtime = stateful_bridge_task_relation_runtime();
     let mut workspace = runtime
         .workspace("tasks.verify-existing-relation")
         .expect("workspace should open");

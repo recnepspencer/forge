@@ -4,7 +4,7 @@ fn main() {
     let _ = ForgeQueryAuthoritativeMutationEvidenceCloseout {
         backend_posture: todo!(),
         support_matrix_digest: String::new(),
-        mutation_compatibility_digest: String::new(),
+        mutation_surface_digest: String::new(),
         naming_contract_digest: String::new(),
         query_support_digest: String::new(),
         bridge_support_digest: String::new(),

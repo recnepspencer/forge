@@ -1,7 +1,7 @@
 use crate::materialization::WorthTopologyMaterializationError;
 use crate::query::WorthTopologyQuerySurfaceError;
 use crate::validators::WorthTopologyValidationError;
-use worth_schema::facade::WorthMilestoneOnePrimitiveAuthoringError;
+use worth_schema::facade::topology_authoring::WorthMilestoneOnePrimitiveAuthoringError;
 
 #[derive(Debug)]
 pub enum WorthMilestoneOneCertificationError {
@@ -11,6 +11,8 @@ pub enum WorthMilestoneOneCertificationError {
     Materialization(WorthTopologyMaterializationError),
     Validation(WorthTopologyValidationError),
 }
+
+pub type WorthTopologyCertificationError = WorthMilestoneOneCertificationError;
 
 impl std::fmt::Display for WorthMilestoneOneCertificationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

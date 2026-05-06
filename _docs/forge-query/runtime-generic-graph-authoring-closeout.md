@@ -177,7 +177,7 @@ Downstream code must not assume:
 - any plain existing-target update automatically counts as retarget or
   supersession without explicit continuity semantics
 - split-successor continuity is a retarget lane
-- bridge-backed verification support on compatibility runtimes implies
+- bridge-backed verification support on scaffold runtimes implies
   production support on a runtime posture that still denies it
 - domain-invariant rejection may be collapsed into `GraphCompositionDenied(...)`
 - admitted runtime-backed graph authoring closes temporal, async/resource,
