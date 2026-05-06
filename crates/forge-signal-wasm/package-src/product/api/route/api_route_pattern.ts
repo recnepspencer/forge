@@ -120,10 +120,9 @@ function encodeRouteParamValue(route, name, value) {
   if (
     typeof value !== "string"
     && typeof value !== "number"
-    && typeof value !== "boolean"
   ) {
     throw new TypeError(
-      `${route} path param "${name}" must be a string, number, or boolean`,
+      `${route} path param "${name}" must be a string or number`,
     );
   }
   return encodeURIComponent(String(value));

@@ -90,4 +90,4 @@ export type ApiRouteConstraint<TRoute extends string> =
 export type RoutePathParams<TRoute extends string> =
   [RouteParamNames<TRoute>] extends [never]
     ? Record<string, never>
-    : { [K in RouteParamNames<TRoute>]: string | number | boolean };
+    : { [K in RouteParamNames<TRoute>]: string | number };

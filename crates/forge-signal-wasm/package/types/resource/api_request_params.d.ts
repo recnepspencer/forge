@@ -371,7 +371,7 @@ export interface ApiCollectionResourceFamily<
   TValue,
   TItem = SignalValue,
   TReconcile extends ResourceCollectionShape<
-    TValue,
+    any,
     TItem,
     ResourceItemAspectMap<TItem>,
     ResourceValueSummaryMap<TValue>,
@@ -407,7 +407,7 @@ export interface ApiPagedResourceFamily<
   TValue,
   TItem = SignalValue,
   TReconcile extends ResourceCollectionShape<
-    TValue,
+    any,
     TItem,
     ResourceItemAspectMap<TItem>,
     ResourceValueSummaryMap<TValue>,

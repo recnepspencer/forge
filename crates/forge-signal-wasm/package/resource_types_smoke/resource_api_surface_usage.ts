@@ -7,6 +7,8 @@ import {
   resourceValueSummaries,
 } from "../index.js";
 import type {
+  ApiCollectionResourceFamily,
+  ApiDetailResourceFamily,
   ResourceCollectionShape,
   ResourceItemAspect,
   ResourceValueSummary,
@@ -254,6 +256,33 @@ const scopedDetail = scopedFeatureApi.url("/products/:productId").detail({
 const homeDetail = api.url("/").detail({
   load: () => ({ ok: true }),
 });
+const asyncWorkspaceDetail = api.url("/workspaces/:workspaceId").detail({
+  load: async ({ workspaceId }) => {
+    const typedWorkspaceId: string | number = workspaceId;
+    void typedWorkspaceId;
+    return { id: String(workspaceId) };
+  },
+});
+const asyncWorkspaceVersions = api.url("/workspaces/:workspaceId/versions/:versionId").list({
+  itemIdentity: (item: { id: string }) => item.id,
+  load: async ({ workspaceId, versionId }) => {
+    const typedWorkspaceId: string | number = workspaceId;
+    const typedVersionId: string | number = versionId;
+    void typedWorkspaceId;
+    void typedVersionId;
+    return [{ id: `${workspaceId}:${versionId}` }];
+  },
+});
+const typedAsyncWorkspaceDetail:
+  ApiDetailResourceFamily<"/workspaces/:workspaceId", undefined, { id: string }> =
+    asyncWorkspaceDetail;
+const typedAsyncWorkspaceVersions:
+  ApiCollectionResourceFamily<
+    "/workspaces/:workspaceId/versions/:versionId",
+    undefined,
+    readonly { id: string }[],
+    { id: string }
+  > = asyncWorkspaceVersions;
 
 const userLine = userDetail.line({ userId: "u1" });
 const userSearchLine = userSearch.line({
@@ -311,6 +340,11 @@ const directTaskListLine = directTaskList.line({ workspaceId: "demo" });
 const directTaskPagesLine = directTaskPages.line({ workspaceId: "demo" });
 const directTaskCatalogLine = directTaskCatalog.line({ workspaceId: "demo" });
 const directTaskPageWindowLine = directTaskPageWindow.line({ workspaceId: "demo" });
+const asyncWorkspaceDetailLine = typedAsyncWorkspaceDetail.line({ workspaceId: "demo" });
+const asyncWorkspaceVersionsLine = typedAsyncWorkspaceVersions.line({
+  workspaceId: "demo",
+  versionId: 7,
+});
 const userRequestBaseUrl: string | null = userLine.request().baseUrl;
 const createUserRequestMethod = createUserLine.request().method;
 const createUserRequestBody = createUserLine.request().body;

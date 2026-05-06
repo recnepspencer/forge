@@ -58,6 +58,12 @@ export type ApiRouteResolvedDownloadValue<
   TDownloadsOwned extends boolean,
 > = TDownloadsOwned extends true ? TDownloadValue : TValue;
 
+export type ApiRouteSettledTransferValue<
+  TValue,
+  TProcessingKind extends ApiRouteProcessingKind,
+  TUploadKind extends ApiRouteUploadKind,
+> = Awaited<ApiRouteTransferValue<Awaited<TValue>, TProcessingKind, TUploadKind>>;
+
 export type ApiRouteDetailDeclarationForState<
   TRoute extends string,
   TValue,

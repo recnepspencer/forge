@@ -48,6 +48,8 @@ type ResourceBinaryUploadCompatibleValue<TValue> =
   | ResourceUploadCompatibleValue<TValue>
   | ResourceBinaryValue<ResourcePlainValue<ResourceUploadCompatibleValue<TValue>>>;
 
+type ResourceMaybePromise<TValue> = TValue | PromiseLike<TValue>;
+
 export interface DetailResourceDeclaration<TParams, TValue> {
   params: DeclaredResourceParams<TParams>;
   baseUrl?: string | ((params: TParams) => string);
@@ -68,7 +70,7 @@ export interface DetailResourceDeclaration<TParams, TValue> {
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ): ResourceBinaryCompatibleValue<TValue>;
+  ): ResourceMaybePromise<ResourceBinaryCompatibleValue<Awaited<TValue>>>;
 }
 
 export interface ProcessingDetailResourceDeclaration<TParams, TValue> {
@@ -94,7 +96,10 @@ export interface ProcessingDetailResourceDeclaration<TParams, TValue> {
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ): ResourceBinaryProcessingCompatibleValue<TValue> | ResourceProcessingResultValue;
+  ): ResourceMaybePromise<
+    | ResourceBinaryProcessingCompatibleValue<Awaited<TValue>>
+    | ResourceProcessingResultValue
+  >;
 }
 
 export interface UploadDetailResourceDeclaration<TParams, TValue> {
@@ -120,7 +125,10 @@ export interface UploadDetailResourceDeclaration<TParams, TValue> {
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ): ResourceBinaryUploadCompatibleValue<TValue> | ResourceUploadResultValue;
+  ): ResourceMaybePromise<
+    | ResourceBinaryUploadCompatibleValue<Awaited<TValue>>
+    | ResourceUploadResultValue
+  >;
 }
 
 export interface ProcessingUploadDetailResourceDeclaration<TParams, TValue> {
@@ -146,10 +154,11 @@ export interface ProcessingUploadDetailResourceDeclaration<TParams, TValue> {
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ):
-    | ResourceBinaryCompatibleValue<TValue>
+  ): ResourceMaybePromise<
+    | ResourceBinaryCompatibleValue<Awaited<TValue>>
     | ResourceProcessingResultValue
-    | ResourceUploadResultValue;
+    | ResourceUploadResultValue
+  >;
 }
 
 export interface CollectionResourceDeclaration<
@@ -185,7 +194,7 @@ export interface CollectionResourceDeclaration<
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ): ResourceBinaryCompatibleValue<TValue>;
+  ): ResourceMaybePromise<ResourceBinaryCompatibleValue<Awaited<TValue>>>;
 }
 
 export interface ProcessingCollectionResourceDeclaration<
@@ -224,7 +233,10 @@ export interface ProcessingCollectionResourceDeclaration<
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ): ResourceBinaryProcessingCompatibleValue<TValue> | ResourceProcessingResultValue;
+  ): ResourceMaybePromise<
+    | ResourceBinaryProcessingCompatibleValue<Awaited<TValue>>
+    | ResourceProcessingResultValue
+  >;
 }
 
 export interface UploadCollectionResourceDeclaration<
@@ -263,7 +275,10 @@ export interface UploadCollectionResourceDeclaration<
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ): ResourceBinaryUploadCompatibleValue<TValue> | ResourceUploadResultValue;
+  ): ResourceMaybePromise<
+    | ResourceBinaryUploadCompatibleValue<Awaited<TValue>>
+    | ResourceUploadResultValue
+  >;
 }
 
 export interface ProcessingUploadCollectionResourceDeclaration<
@@ -302,10 +317,11 @@ export interface ProcessingUploadCollectionResourceDeclaration<
   load(
     params: TParams,
     request: ResourceRequestDescriptor<TParams>,
-  ):
-    | ResourceBinaryCompatibleValue<TValue>
+  ): ResourceMaybePromise<
+    | ResourceBinaryCompatibleValue<Awaited<TValue>>
     | ResourceProcessingResultValue
-    | ResourceUploadResultValue;
+    | ResourceUploadResultValue
+  >;
 }
 
 export type {

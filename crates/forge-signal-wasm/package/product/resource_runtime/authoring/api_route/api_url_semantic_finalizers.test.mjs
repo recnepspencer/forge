@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createRealRequestRuntime } from "../../runtime_fixture/real_request_runtime.mjs";
+import { createDeferred } from "../../runtime_fixture/async/deferred.mjs";
 import { normalizeRouteLineArtifact } from "./route_line_artifact_proof.mjs";
 
 test("api.url(...).detail(...) lowers to the same route-bound family truth as a raw detail declaration", async () => {
@@ -112,6 +113,64 @@ test("api.url(...) path params form stable canonical identity and deny missing o
       () => detail.line({ tenantId: "acme", userId: "u1", search: "x" }),
       /does not admit undeclared path param "search"/,
     );
+    assert.throws(
+      () => detail.line({ tenantId: true, userId: "u1" }),
+      /path param "tenantId" must be a string or number/,
+    );
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("api.url(...).detail(...) and list(...) admit promise-backed load functions as the normal async fetch lane", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const detailDeferred = createDeferred();
+    const listDeferred = createDeferred();
+    const detail = runtime.signals.api({})
+      .url("/workspaces/:workspaceId")
+      .detail({
+        load: ({ workspaceId }) =>
+          detailDeferred.promise.then(() => ({ id: String(workspaceId) })),
+      });
+    const list = runtime.signals.api({})
+      .url("/workspaces/:workspaceId/versions/:versionId/tasks")
+      .list({
+        itemIdentity: (item) => item.id,
+        load: ({ workspaceId, versionId }) =>
+          listDeferred.promise.then(() => [{ id: `${workspaceId}:${versionId}` }]),
+      });
+
+    const detailLine = detail.line({ workspaceId: "demo" });
+    const listLine = list.line({ workspaceId: "demo", versionId: 3 });
+
+    assert.deepEqual(detailLine.status(), {
+      kind: "pending",
+      operation: "initialLoad",
+      continuity: "noVisibleValueYet",
+    });
+    assert.deepEqual(listLine.status(), {
+      kind: "pending",
+      operation: "initialLoad",
+      continuity: "noVisibleValueYet",
+    });
+
+    detailDeferred.resolve();
+    listDeferred.resolve();
+    await detailDeferred.promise;
+    await listDeferred.promise;
+    await Promise.resolve();
+
+    assert.deepEqual(detailLine.value(), { id: "demo" });
+    assert.deepEqual(detailLine.status(), {
+      kind: "fulfilled",
+      operation: "initialLoad",
+    });
+    assert.deepEqual(listLine.value(), [{ id: "demo:3" }]);
+    assert.deepEqual(listLine.status(), {
+      kind: "fulfilled",
+      operation: "initialLoad",
+    });
   } finally {
     await runtime.cleanup();
   }

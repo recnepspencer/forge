@@ -1,5 +1,5 @@
 export function buildTypeSmokeSource(packageName) {
-  return `import init, { clockCapability, createSignals, hostCapabilityPlan, onlineCapability, persistenceCapability, resourceCollectionShape, resourceDelivery, resourceItemAspects, resourcePatch, resourceValueSummaries, viewportCapability, visibilityCapability, type GraphMutationRequest, type PublishedGraphTransaction, type ScopedSignalNamespace, type SignalNamespace } from "${packageName}";
+  return `import init, { clockCapability, createSignals, hostCapabilityPlan, onlineCapability, persistenceCapability, resourceCollectionShape, resourceDelivery, resourceItemAspects, resourcePatch, resourceValueSummaries, viewportCapability, visibilityCapability, type ApiCollectionResourceFamily, type ApiDetailResourceFamily, type GraphMutationRequest, type PublishedGraphTransaction, type ScopedSignalNamespace, type SignalNamespace } from "${packageName}";
 import {
   createReactSignalsStore,
   useOutputValue,
@@ -89,6 +89,30 @@ const auditTaskList = api.url("/tasks").params<{
 }>().list({
   itemIdentity: (item: { id: string }) => item.id,
   load: ({ params }) => [{ id: params.search ?? "all" }],
+});
+const auditAsyncWorkspaceDetail = api.url("/workspaces/:workspaceId").detail({
+  load: async ({ workspaceId }) => ({ id: String(workspaceId) }),
+});
+const auditAsyncWorkspaceVersions = api.url("/workspaces/:workspaceId/versions/:versionId").list({
+  itemIdentity: (item: { id: string }) => item.id,
+  load: async ({ workspaceId, versionId }) => [{ id: String(workspaceId) + ":" + String(versionId) }],
+});
+const typedAuditAsyncWorkspaceDetail:
+  ApiDetailResourceFamily<"/workspaces/:workspaceId", undefined, { id: string }> =
+    auditAsyncWorkspaceDetail;
+const typedAuditAsyncWorkspaceVersions:
+  ApiCollectionResourceFamily<
+    "/workspaces/:workspaceId/versions/:versionId",
+    undefined,
+    readonly { id: string }[],
+    { id: string }
+  > = auditAsyncWorkspaceVersions;
+const typedAuditAsyncWorkspaceDetailLine = typedAuditAsyncWorkspaceDetail.line({
+  workspaceId: "ws-1",
+});
+const typedAuditAsyncWorkspaceVersionsLine = typedAuditAsyncWorkspaceVersions.line({
+  workspaceId: "ws-1",
+  versionId: 3,
 });
 const auditUserLine = auditUserDetail.line({ userId: "user-1" });
 const auditTaskLine = auditTaskList.line({ params: { search: "ada" } });
@@ -888,6 +912,8 @@ void doubledView;
 void diagnosticsView;
 void auditUserLine.value();
 void auditTaskLine.value();
+void typedAuditAsyncWorkspaceDetailLine.value();
+void typedAuditAsyncWorkspaceVersionsLine.value();
 void emptyHostCapabilityPlan;
 void auditOutput.value();
 void storeInput.value();

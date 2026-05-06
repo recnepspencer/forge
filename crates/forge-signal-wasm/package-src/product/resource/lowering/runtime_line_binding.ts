@@ -30,7 +30,7 @@ function bindSynchronousLineValue(
   const value = load(params, requestDescriptor);
   if (value && typeof value.then === "function") {
     throw new TypeError(
-      `${family} resources do not admit promise-backed load(...) until Phase 2 async lowering lands`,
+      `${family} synchronous-only resource binding does not admit promise-backed load(...)`,
     );
   }
   if (isProcessingResult(value)) {

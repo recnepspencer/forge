@@ -161,6 +161,9 @@ exportReport.line({});
 // @ts-expect-error required route param must remain mandatory at line(...)
 detail.line({});
 
+// @ts-expect-error path params must not admit booleans
+detail.line({ userId: true });
+
 // @ts-expect-error create(...) lines must require a body
 createUser.line({});
 

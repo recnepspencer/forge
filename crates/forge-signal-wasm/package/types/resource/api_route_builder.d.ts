@@ -24,7 +24,7 @@ import type {
   ApiRoutePagedDeclarationForState,
   ApiRouteReconcile,
   ApiRouteResolvedDownloadValue,
-  ApiRouteTransferValue,
+  ApiRouteSettledTransferValue,
 } from "./api_route_builder_declarations.js";
 
 interface ApiRouteBuilderBase<
@@ -55,7 +55,7 @@ interface ApiRouteBuilderBase<
   ): ApiDetailResourceFamily<
     TRoute,
     TRequestParams,
-    ApiRouteTransferValue<
+    ApiRouteSettledTransferValue<
       ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
       TProcessingKind,
       TUploadKind
@@ -87,7 +87,7 @@ interface ApiRouteBuilderBase<
   ): ApiCollectionResourceFamily<
     TRoute,
     TRequestParams,
-    ApiRouteTransferValue<
+    ApiRouteSettledTransferValue<
       ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
       TProcessingKind,
       TUploadKind
@@ -121,7 +121,7 @@ interface ApiRouteBuilderBase<
   ): ApiPagedResourceFamily<
     TRoute,
     TRequestParams,
-    ApiRouteTransferValue<
+    ApiRouteSettledTransferValue<
       ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
       TProcessingKind,
       TUploadKind
@@ -160,7 +160,7 @@ interface ApiRouteBuilderStandardFinalizers<
   ): ApiDetailResourceFamily<
     TRoute,
     TRequestParams,
-    ApiRouteTransferValue<
+    ApiRouteSettledTransferValue<
       ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
       TProcessingKind,
       TUploadKind
@@ -186,7 +186,7 @@ interface ApiRouteBuilderStandardFinalizers<
   ): ApiDetailResourceFamily<
     TRoute,
     TRequestParams,
-    ApiRouteTransferValue<
+    ApiRouteSettledTransferValue<
       ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
       TProcessingKind,
       TUploadKind
@@ -210,7 +210,7 @@ interface ApiRouteBuilderStandardFinalizers<
   ): ApiDetailResourceFamily<
     TRoute,
     TRequestParams,
-    ApiRouteTransferValue<
+    ApiRouteSettledTransferValue<
       ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
       TProcessingKind,
       TUploadKind
