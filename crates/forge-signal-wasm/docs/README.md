@@ -1,133 +1,80 @@
 # forge-signal-wasm Documentation
 
-These docs cover the shipped `forge-signal-wasm` product surface.
+These docs are organized around shipped features and common developer tasks.
 
-They are organized around feature use, not milestone history.
-
-If you are not sure where to start:
-
-- building local app state: start with
-  [app_surface_reference.md](./app_surface_reference.md)
-- building API-backed state: start with
-  [api_resources_overview.md](./api_resources_overview.md)
-- trying to install or consume the package: start with
-  [consuming_the_package.md](./consuming_the_package.md)
+If you are trying to answer "how do I do multipart upload?" or "where do I go
+for downloads?", start with the feature pages below instead of the older
+category references.
 
 ## Start Here
 
-- [README.md](../README.md)
-  Product overview and the shortest path through the package.
-- [consuming_the_package.md](./consuming_the_package.md)
-  Install, build, verify, import, and consume the package.
+- [start_here.md](./start_here.md)
+  The shortest path to route-first resources, line usage, and the raw escape
+  hatch.
+- [feature_index.md](./feature_index.md)
+  One-line index of every first-class resource feature and its canonical doc.
+- [resource_recipes.md](./resource_recipes.md)
+  Task-first examples for the most common happy paths.
+
+## Feature Docs
+
+- [feature_fetch_and_write_api_resources.md](./feature_fetch_and_write_api_resources.md)
+  Detail, list, paged, create, update, remove, params, and advanced
+  `verb/body/headers`.
+- [feature_request_posture_and_policy.md](./feature_request_posture_and_policy.md)
+  Auth, headers, request context, policy profiles, continuation, and request
+  posture inspection.
+- [feature_collections_and_delivery.md](./feature_collections_and_delivery.md)
+  `items(...)`, `reconcile(...)`, aspects, summaries, patch helpers, and
+  delivery helpers.
+- [feature_transfers.md](./feature_transfers.md)
+  Signed upload, multipart upload, finalize-required flows, and deferred
+  processing.
+- [feature_downloads.md](./feature_downloads.md)
+  Builder-owned downloads, binary descriptors, and multipart download handoff.
+- [feature_line_inspection.md](./feature_line_inspection.md)
+  `line.summary()`, request inspection, diagnostics, history, upload,
+  processing, and download reads.
+- [feature_history_and_restore.md](./feature_history_and_restore.md)
+  History availability, exact restore, exact replay posture, and verification
+  packages.
+- [feature_external_delivery_and_compatibility.md](./feature_external_delivery_and_compatibility.md)
+  External definitions, pushed packets, basis refresh, and compatibility
+  delivery.
+- [feature_raw_escape_hatch.md](./feature_raw_escape_hatch.md)
+  When to use `signals.resource.*(...)` directly and how it relates to the
+  pleasant lane.
+
+## Reference Docs
+
+Use these when you already know the feature and want the lower-level surface
+details.
+
+- [api_route_authoring_reference.md](./api_route_authoring_reference.md)
+- [resource_family_authoring_reference.md](./resource_family_authoring_reference.md)
+- [resource_request_and_policy_reference.md](./resource_request_and_policy_reference.md)
+- [resource_reconciliation_reference.md](./resource_reconciliation_reference.md)
+- [resource_transfers_reference.md](./resource_transfers_reference.md)
+- [resource_binary_and_download_reference.md](./resource_binary_and_download_reference.md)
+- [resource_line_reference.md](./resource_line_reference.md)
+- [resource_inspection_and_history_reference.md](./resource_inspection_and_history_reference.md)
+- [resource_delivery_and_compatibility_reference.md](./resource_delivery_and_compatibility_reference.md)
+
+## Non-Resource Docs
+
 - [app_surface_reference.md](./app_surface_reference.md)
-  Main app-facing API: local state, linked state, controllers, graphs,
-  mutation helpers, and inspection surfaces.
+- [consuming_the_package.md](./consuming_the_package.md)
+- [react_adapter_reference.md](./react_adapter_reference.md)
+- [host_capabilities.md](./host_capabilities.md)
+- [diagnostics_and_history_reference.md](./diagnostics_and_history_reference.md)
+- [compatibility_surface_reference.md](./compatibility_surface_reference.md)
+- [api_resources_overview.md](./api_resources_overview.md)
+- [aspects_reference.md](./aspects_reference.md)
 
-## Subject Guide
+## Reading Order
 
-- **Local state, derived values, linked state, controllers, and graphs**
-  [app_surface_reference.md](./app_surface_reference.md)
-- **API resources**
-  [api_resources_overview.md](./api_resources_overview.md)
-- **Resource family authoring**
-  [resource_family_authoring_reference.md](./resource_family_authoring_reference.md)
-- **Resource lines**
-  [resource_line_reference.md](./resource_line_reference.md)
-- **Resource request and policy posture**
-  [resource_request_and_policy_reference.md](./resource_request_and_policy_reference.md)
-- **Resource reconciliation**
-  [resource_reconciliation_reference.md](./resource_reconciliation_reference.md)
-- **Resource transfers**
-  [resource_transfers_reference.md](./resource_transfers_reference.md)
-- **Resource binary and download support**
-  [resource_binary_and_download_reference.md](./resource_binary_and_download_reference.md)
-- **Resource delivery and compatibility**
-  [resource_delivery_and_compatibility_reference.md](./resource_delivery_and_compatibility_reference.md)
-- **Resource inspection and history**
-  [resource_inspection_and_history_reference.md](./resource_inspection_and_history_reference.md)
-- **Resource recipes**
-  [resource_recipes.md](./resource_recipes.md)
-- **Host capabilities**
-  [host_capabilities.md](./host_capabilities.md)
-- **Diagnostics, history, replay, export, and restore**
-  [diagnostics_and_history_reference.md](./diagnostics_and_history_reference.md)
-- **Aspects**
-  [aspects_reference.md](./aspects_reference.md)
-- **Compatibility / lower-level runtime surfaces**
-  [compatibility_surface_reference.md](./compatibility_surface_reference.md)
-- **React integration**
-  [react_adapter_reference.md](./react_adapter_reference.md)
-
-## Recommended Reading Order
-
-For someone learning the package from scratch:
-
-1. [README.md](../README.md)
-2. [consuming_the_package.md](./consuming_the_package.md)
-3. [app_surface_reference.md](./app_surface_reference.md)
-4. [api_resources_overview.md](./api_resources_overview.md)
-5. [resource_family_authoring_reference.md](./resource_family_authoring_reference.md)
-6. [resource_line_reference.md](./resource_line_reference.md)
-7. [resource_request_and_policy_reference.md](./resource_request_and_policy_reference.md)
-8. [resource_reconciliation_reference.md](./resource_reconciliation_reference.md)
-9. [resource_transfers_reference.md](./resource_transfers_reference.md)
-10. [resource_binary_and_download_reference.md](./resource_binary_and_download_reference.md)
-11. [resource_delivery_and_compatibility_reference.md](./resource_delivery_and_compatibility_reference.md)
-12. [resource_inspection_and_history_reference.md](./resource_inspection_and_history_reference.md)
-13. [resource_recipes.md](./resource_recipes.md)
-14. [host_capabilities.md](./host_capabilities.md)
-15. [diagnostics_and_history_reference.md](./diagnostics_and_history_reference.md)
-16. [react_adapter_reference.md](./react_adapter_reference.md)
-
-## Fast Paths
-
-If you already know what you are trying to build, use one of these shorter
-paths.
-
-### I just want local app state
-
-1. [consuming_the_package.md](./consuming_the_package.md)
-2. [app_surface_reference.md](./app_surface_reference.md)
-3. [diagnostics_and_history_reference.md](./diagnostics_and_history_reference.md)
-
-### I just want API-backed state
-
-1. [api_resources_overview.md](./api_resources_overview.md)
-2. [resource_family_authoring_reference.md](./resource_family_authoring_reference.md)
-3. [resource_line_reference.md](./resource_line_reference.md)
-4. [resource_recipes.md](./resource_recipes.md)
-
-### I just want React usage
-
-1. [consuming_the_package.md](./consuming_the_package.md)
-2. [app_surface_reference.md](./app_surface_reference.md)
-3. [react_adapter_reference.md](./react_adapter_reference.md)
-
-## What These Docs Intentionally Do Not Cover
-
-This folder is for product-facing docs.
-
-It does not carry:
-
-- milestone sequencing
-- implementation closeouts
-- architecture history
-- engineering planning prose
-
-Those live here:
-
-- [_docs/forge_signal_wasm](../../../_docs/forge_signal_wasm)
-
-## Current Product Surface Summary
-
-The package has three main lanes:
-
-1. Local signal and graph authoring
-   Inputs, computed values, outputs, linked state, controllers, graphs, and
-   graph-boundary mutation helpers.
-2. API resources
-   Detail, collection, and paged resources with request posture, lifecycle,
-   refresh, patching, delivery, uploads, downloads, diagnostics, and history.
-3. Integration and tooling
-   Host capabilities, diagnostics/history, compatibility surfaces, and the
-   optional React adapter.
+1. [start_here.md](./start_here.md)
+2. [feature_index.md](./feature_index.md)
+3. [resource_recipes.md](./resource_recipes.md)
+4. the one feature page that matches your task
+5. the matching reference page only if you need lower-level detail

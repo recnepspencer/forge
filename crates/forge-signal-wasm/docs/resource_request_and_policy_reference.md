@@ -1,5 +1,10 @@
 # Resource Request And Policy Reference
 
+If your question is "how do I set auth, request headers, retry policy, or
+continuation posture?", start with
+[feature_request_posture_and_policy.md](./feature_request_posture_and_policy.md)
+before using this lower-level reference page.
+
 ## What This Feature Is
 
 This is the part of the resource surface that controls:
@@ -24,7 +29,12 @@ it talks to the outside world.
 
 ## Stable Entry Points
 
-Policy helpers:
+Recommended shared-default lane:
+
+- `signals.api(...)`
+- `api.scope(...)`
+
+Lower-level policy helpers:
 
 - `resourcePolicyProfiles.stable()`
 - `resourcePolicyProfiles.immediatelyStale()`
@@ -92,37 +102,35 @@ Those then become:
 import {
   createSignals,
   resourceAuth,
-  resourceParamIdentity,
-  resourceParams,
   resourceRequestContext,
 } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const productDetail = signals.resource.detail({
-  params: resourceParams<{ workspaceId: string; productId: string }>(),
+const workspaceApi = signals.api({
   auth: resourceAuth.workspace(),
+}).scope({
   requestContext: ({ workspaceId }) =>
     resourceRequestContext({
       headers: { "x-workspace-id": workspaceId },
       correlationId: `product:${workspaceId}`,
     }),
-  normalizeParams: ({ workspaceId, productId }) =>
-    resourceParamIdentity(
-      { workspaceId, productId },
-      `${workspaceId}:${productId}`,
-    ),
-  load: ({ productId }, request) => ({
-    id: productId,
-    authKind: request.auth.kind,
-  }),
 });
+
+const productDetail = workspaceApi
+  .url("/workspaces/:workspaceId/products/:productId")
+  .detail({
+    load: ({ productId }, request) => ({
+      id: productId,
+      authKind: request.auth.kind,
+    }),
+  });
 ```
 
 This is the smallest honest example because it shows the most common setup:
 
 - auth
-- request headers
+- scoped request headers
 - correlation id
 
 ## Real Example
@@ -132,23 +140,18 @@ import {
   createSignals,
   resourceAuth,
   resourceContinuation,
-  resourceParamIdentity,
-  resourceParams,
   resourcePolicyProfiles,
-  resourceProcessingJob,
   resourceRequestContext,
-  resourceUploadTransport,
 } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const receiptPipeline = signals.resource.detail({
-  params: resourceParams<{ workspaceId: string; receiptId: string }>(),
-  policy: resourcePolicyProfiles.retryOnce(),
-  auth: ({ workspaceId }) =>
+const receiptApi = signals.api({
+  auth: ({ workspaceId }: { workspaceId: string }) =>
     workspaceId === "demo"
       ? resourceAuth.workspace()
       : resourceAuth.authenticated(),
+}).scope({
   requestContext: ({ workspaceId, receiptId }) =>
     resourceRequestContext({
       headers: {
@@ -158,22 +161,24 @@ const receiptPipeline = signals.resource.detail({
       correlationId: `receipt:${workspaceId}:${receiptId}`,
       basisId: `basis:${receiptId}`,
     }),
-  continuation: resourceContinuation.callback({
-    callbackId: "receipt-finished",
-    returnTo: "/receipts",
-  }),
-  processingJob: resourceProcessingJob.poll(),
-  uploadTransport: resourceUploadTransport.signed({
+});
+
+const receiptPipeline = receiptApi.url(
+  "/workspaces/:workspaceId/receipts/:receiptId",
+)
+  .signedUpload({
     method: "POST",
     finalizeRequired: true,
-  }),
-  normalizeParams: ({ workspaceId, receiptId }) =>
-    resourceParamIdentity(
-      { workspaceId, receiptId },
-      `${workspaceId}:${receiptId}`,
-    ),
-  load: ({ receiptId }) => ({ id: receiptId }),
-});
+  })
+  .processing("poll")
+  .detail({
+    policy: resourcePolicyProfiles.retryOnce(),
+    continuation: resourceContinuation.callback({
+      callbackId: "receipt-finished",
+      returnTo: "/receipts",
+    }),
+    load: ({ receiptId }) => ({ id: receiptId }),
+  });
 
 const line = receiptPipeline.line({
   workspaceId: "demo",
@@ -186,7 +191,7 @@ console.log(line.diagnostics().request);
 
 What is authoritative:
 
-- the family declaration decides the posture
+- the API root, scopes, and endpoint declaration together decide the posture
 - the line exposes the admitted result
 
 What gets inspected:
@@ -209,6 +214,7 @@ Use:
 - `line.request()`
 - `line.diagnostics().request`
 - `line.diagnosticsSummary().request`
+- `line.request().sources`
 - `line.diagnostics().policyProfileName`
 - `line.diagnostics().freshnessPolicy`
 
@@ -229,6 +235,7 @@ These tell you both what was configured and what actually got admitted.
 ## Related Docs
 
 - [api_resources_overview.md](./api_resources_overview.md)
+- [api_route_authoring_reference.md](./api_route_authoring_reference.md)
 - [resource_family_authoring_reference.md](./resource_family_authoring_reference.md)
 - [resource_transfers_reference.md](./resource_transfers_reference.md)
 - [resource_line_reference.md](./resource_line_reference.md)

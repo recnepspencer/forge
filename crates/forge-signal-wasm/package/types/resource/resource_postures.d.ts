@@ -314,49 +314,35 @@ export interface ResourceUploadResult {
     message?: string;
   }): ResourceUploadUploadedResult;
 }
-
+export type ResourceDownloadTransportKind = "simple" | "directMultipart";
 export interface ResourceDownloadReady {
   readonly kind: "ready";
+  readonly transportKind: ResourceDownloadTransportKind;
   readonly url: string;
   readonly method: "GET" | "POST";
   readonly headers: Readonly<Record<string, string>>;
+  readonly fields: Readonly<Record<string, string>>;
+  readonly objectKey: string | null;
   readonly expiresAt: string | null;
   readonly [forgeSignalResourceDownloadBrand]: "resourceDownload";
 }
-
 export interface ResourceDownloadUnavailable {
-  readonly kind: "unavailable";
-  readonly reason: "notReady" | "unavailable";
-  readonly detail: string;
+  readonly kind: "unavailable"; readonly reason: "notReady" | "unavailable"; readonly detail: string;
   readonly [forgeSignalResourceDownloadBrand]: "resourceDownload";
 }
-
 export interface ResourceDownloadIncompatible {
-  readonly kind: "incompatible";
-  readonly reason: "staleDescriptor" | "transportBoundary";
-  readonly detail: string;
+  readonly kind: "incompatible"; readonly reason: "staleDescriptor" | "transportBoundary"; readonly detail: string;
   readonly [forgeSignalResourceDownloadBrand]: "resourceDownload";
 }
-
-export type ResourceDownloadDescriptorState =
-  | ResourceDownloadReady
-  | ResourceDownloadUnavailable
-  | ResourceDownloadIncompatible;
-
+export type ResourceDownloadDescriptorState = ResourceDownloadReady | ResourceDownloadUnavailable | ResourceDownloadIncompatible;
 export interface ResourceBinaryDescriptor {
-  readonly kind: "file" | "media" | "export";
-  readonly id: string;
-  readonly label: string | null;
-  readonly fileName: string | null;
-  readonly mediaType: string | null;
-  readonly byteLength: number | null;
+  readonly kind: "file" | "media" | "export"; readonly id: string; readonly label: string | null;
+  readonly fileName: string | null; readonly mediaType: string | null; readonly byteLength: number | null;
   readonly download: ResourceDownloadDescriptorState;
   readonly [forgeSignalResourceBinaryDescriptorBrand]: "resourceBinaryDescriptor";
 }
-
 export interface ResourceBinaryValue<TValue> {
-  readonly value: TValue;
-  readonly descriptors: readonly ResourceBinaryDescriptor[];
+  readonly value: TValue; readonly descriptors: readonly ResourceBinaryDescriptor[];
   readonly [forgeSignalResourceBinaryValueBrand]: "resourceBinaryValue";
 }
 
@@ -365,6 +351,13 @@ export interface ResourceDownload {
     url: string;
     method: "GET" | "POST";
     headers?: Readonly<Record<string, string>>;
+    expiresAt?: string | null;
+  }): ResourceDownloadReady;
+  multipart(options: {
+    url: string;
+    headers?: Readonly<Record<string, string>>;
+    fields?: Readonly<Record<string, string>>;
+    objectKey?: string | null;
     expiresAt?: string | null;
   }): ResourceDownloadReady;
   unavailable(options: {
@@ -425,11 +418,15 @@ export interface ResourceRequestTarget {
   readonly url: string | null;
 }
 
+export type ResourceRequestMethod = "GET" | "POST" | "PUT" | "DELETE";
+
 export interface ResourceRequestDescriptor<TParams> {
   readonly family: ResourceFamilyIdentity;
   readonly canonicalParams: ResourceParamIdentity<TParams>;
   readonly target: ResourceRequestTarget;
   readonly baseUrl: string | null;
+  readonly method: ResourceRequestMethod;
+  readonly body: unknown | null;
   readonly auth: ResourceAuthPosture;
   readonly context: ResourceRequestContext;
   readonly continuation: ResourceContinuationPosture;
@@ -447,6 +444,8 @@ export interface ResourceRequestContextSummary {
 export interface ResourceRequestDiagnostics {
   readonly baseUrl: string | null;
   readonly target: ResourceRequestTarget;
+  readonly method: ResourceRequestMethod;
+  readonly bodyPresent: boolean;
   readonly auth: ResourceAuthPosture;
   readonly context: ResourceRequestContextSummary;
   readonly continuation: ResourceContinuationPosture;

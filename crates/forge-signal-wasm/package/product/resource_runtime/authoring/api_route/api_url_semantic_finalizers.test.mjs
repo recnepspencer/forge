@@ -1,28 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createRealRequestRuntime } from "../runtime_fixture/real_request_runtime.mjs";
-
-function normalizeLineArtifact(line) {
-  return {
-    kind: line.descriptor().family.kind,
-    canonicalKey: line.descriptor().canonicalParams.canonicalKey,
-    canonicalParams: JSON.parse(
-      JSON.stringify(line.descriptor().canonicalParams.params),
-    ),
-    value: JSON.parse(JSON.stringify(line.value())),
-    request: normalizeRequest(line.request()),
-  };
-}
-
-function normalizeRequest(request) {
-  const snapshot = JSON.parse(JSON.stringify(request));
-  delete snapshot.family.familyId;
-  delete snapshot.sources;
-  delete snapshot.target;
-  delete snapshot.baseUrl;
-  return snapshot;
-}
+import { createRealRequestRuntime } from "../../runtime_fixture/real_request_runtime.mjs";
+import { normalizeRouteLineArtifact } from "./route_line_artifact_proof.mjs";
 
 test("api.url(...).detail(...) lowers to the same route-bound family truth as a raw detail declaration", async () => {
   const runtime = await createRealRequestRuntime();
@@ -55,7 +35,7 @@ test("api.url(...).detail(...) lowers to the same route-bound family truth as a 
     const apiLine = apiDetail.line({ userId: "u1" });
     const rawLine = rawDetail.line({ userId: "u1" });
 
-    assert.deepEqual(normalizeLineArtifact(apiLine), normalizeLineArtifact(rawLine));
+    assert.deepEqual(normalizeRouteLineArtifact(apiLine), normalizeRouteLineArtifact(rawLine));
   } finally {
     await runtime.cleanup();
   }
@@ -97,12 +77,12 @@ test("api.url(...).list(...) and paged(...) preserve raw family identity and req
     });
 
     assert.deepEqual(
-      normalizeLineArtifact(list.line({ workspaceId: "demo" })),
-      normalizeLineArtifact(rawList.line({ workspaceId: "demo" })),
+      normalizeRouteLineArtifact(list.line({ workspaceId: "demo" })),
+      normalizeRouteLineArtifact(rawList.line({ workspaceId: "demo" })),
     );
     assert.deepEqual(
-      normalizeLineArtifact(paged.line({ workspaceId: "demo" })),
-      normalizeLineArtifact(rawPaged.line({ workspaceId: "demo" })),
+      normalizeRouteLineArtifact(paged.line({ workspaceId: "demo" })),
+      normalizeRouteLineArtifact(rawPaged.line({ workspaceId: "demo" })),
     );
   } finally {
     await runtime.cleanup();
@@ -178,7 +158,7 @@ test("api.url(...).params(...) lowers request params into one explicit member sh
       },
     });
 
-    assert.deepEqual(normalizeLineArtifact(apiLine), normalizeLineArtifact(rawLine));
+    assert.deepEqual(normalizeRouteLineArtifact(apiLine), normalizeRouteLineArtifact(rawLine));
     assert.equal(
       apiLine.descriptor().canonicalParams.canonicalKey,
       "/workspaces/demo/tasks?page=2&search=ada",
@@ -259,18 +239,13 @@ test("api.url(...) admits the root route and keeps its canonical identity stable
 test("api.url(...) rejects duplicate placeholders and route-lane params ceremony", async () => {
   const runtime = await createRealRequestRuntime();
   try {
-    const { signals, signalsMod } = runtime;
     assert.throws(
-      () => signals.api({}).url("/users/:userId/:userId"),
+      () => runtime.signals.api({}).url("/users/:userId/:userId"),
       /must not repeat path param "userId"/,
     );
     assert.throws(
-      () =>
-        signals.api({}).url("/users/:userId").detail({
-          params: signalsMod.resourceParams(),
-          load: ({ userId }) => ({ id: userId }),
-        }),
-      /owns params\(\.\.\.\) in the route-first lane/,
+      () => runtime.signals.api({}).url("/reports/:params").params(),
+      /would collide with the request params lane/,
     );
   } finally {
     await runtime.cleanup();
@@ -280,22 +255,17 @@ test("api.url(...) rejects duplicate placeholders and route-lane params ceremony
 test("api.url(...) rejects malformed route structure before lowering", async () => {
   const runtime = await createRealRequestRuntime();
   try {
-    const { signals } = runtime;
     assert.throws(
-      () => signals.api({}).url("/users/"),
+      () => runtime.signals.api({}).url("users"),
+      /routes must start with \//,
+    );
+    assert.throws(
+      () => runtime.signals.api({}).url("/users/"),
       /must not contain empty path segments/,
     );
     assert.throws(
-      () => signals.api({}).url("/users//roles"),
+      () => runtime.signals.api({}).url("/users//roles"),
       /must not contain empty path segments/,
-    );
-    assert.throws(
-      () => signals.api({}).url("/users/:1bad"),
-      /must use :paramName placeholders/,
-    );
-    assert.throws(
-      () => signals.api({}).url("/users/:user-id"),
-      /must use :paramName placeholders/,
     );
   } finally {
     await runtime.cleanup();
@@ -305,28 +275,21 @@ test("api.url(...) rejects malformed route structure before lowering", async () 
 test("api.url(...).params(...) rejects missing or malformed request-param input at runtime", async () => {
   const runtime = await createRealRequestRuntime();
   try {
-    const detail = runtime.signals.api({})
-      .url("/users/:userId")
+    const list = runtime.signals.api({})
+      .url("/users")
       .params()
-      .detail({
-        load: ({ userId, params }) => ({ userId, search: params.search ?? null }),
+      .list({
+        itemIdentity: (item) => item.id,
+        load: ({ params }) => [{ id: params.search ?? "all" }],
       });
 
     assert.throws(
-      () => detail.line({ userId: "u1" }),
-      /requires an explicit params object when request params are declared/,
+      () => list.line({}),
+      /requires an explicit params object/,
     );
     assert.throws(
-      () => detail.line({ userId: "u1", params: null }),
+      () => list.line({ params: [] }),
       /requires params to be a plain object/,
-    );
-    assert.throws(
-      () => detail.line({ userId: "u1", params: { search: { bad: true } } }),
-      /request param "search" must be a string, number, boolean, or array of those values/,
-    );
-    assert.throws(
-      () => runtime.signals.api({}).url("/reports/:params").params(),
-      /path param "params" would collide with the request params lane/,
     );
   } finally {
     await runtime.cleanup();

@@ -162,6 +162,23 @@ export interface ResourceLineVerificationBoundaryPerformanceEnvelope {
   readonly lifecycleEntryCount: number;
   readonly downloadDescriptorCount: number;
   readonly summaryReadShape: "inspectionSummary";
+  readonly commonLineReadShape: "groupedLineSummary";
+}
+
+export interface ResourceLineVerificationCapabilityDigest {
+  readonly summary: true;
+  readonly diagnosticsSummary: true;
+  readonly requestRead: true;
+  readonly processingRead: true;
+  readonly uploadRead: true;
+  readonly downloadRead: true;
+  readonly historyRead: true;
+  readonly patch: boolean;
+  readonly deliver: boolean;
+  readonly reconciliationRead: boolean;
+  readonly broadReplace: boolean;
+  readonly narrowItem: boolean;
+  readonly narrowSummary: boolean;
 }
 
 export interface ResourceLineVerificationTypedDenialsDigest {
@@ -188,5 +205,6 @@ export interface ResourceLineVerificationPackage {
   readonly externalCompatibility: ResourceLineCompatibilityDigest;
   readonly boundaryPerformanceEnvelope:
     ResourceLineVerificationBoundaryPerformanceEnvelope;
+  readonly capabilities: ResourceLineVerificationCapabilityDigest;
   readonly typedDenials: ResourceLineVerificationTypedDenialsDigest;
 }

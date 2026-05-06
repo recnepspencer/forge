@@ -34,6 +34,23 @@ test("resource lines expose one canonical facade and rematerialize with stable f
       incompatibleCount: 0,
       descriptors: [],
     });
+    assert.deepEqual(first.summary(), {
+      current: {
+        status: {
+          kind: "fulfilled",
+          operation: "initialLoad",
+        },
+        freshness: { kind: "fresh" },
+        hasVisibleValue: true,
+        visibleValueVersion: 1,
+      },
+      request: first.request(),
+      processing: first.processing(),
+      upload: first.upload(),
+      download: first.download(),
+      diagnostics: first.diagnosticsSummary(),
+      explainability: first.history().availability,
+    });
     assert.deepEqual(firstSignal(), { id: "history" });
     assert.equal(Array.isArray(firstHistory.replay.frames), true);
     assert.equal(firstHistory.replay.frames.length, 1);
@@ -233,6 +250,22 @@ test("resource lines expose one canonical facade and rematerialize with stable f
       lifecycleEntryCount: 1,
       downloadDescriptorCount: 0,
       summaryReadShape: "inspectionSummary",
+      commonLineReadShape: "groupedLineSummary",
+    });
+    assert.deepEqual(verificationPackage.capabilities, {
+      summary: true,
+      diagnosticsSummary: true,
+      requestRead: true,
+      processingRead: true,
+      uploadRead: true,
+      downloadRead: true,
+      historyRead: true,
+      patch: false,
+      deliver: false,
+      reconciliationRead: false,
+      broadReplace: false,
+      narrowItem: false,
+      narrowSummary: false,
     });
     assert.deepEqual(verificationPackage.typedDenials, {
       replay: null,
@@ -277,6 +310,7 @@ test("released resource lines deny operational reads after free and Symbol.dispo
       () => line.value(),
       () => line.signal(),
       () => line.request(),
+      () => line.summary(),
       () => line.download(),
       () => line.history(),
       () => line.processing(),

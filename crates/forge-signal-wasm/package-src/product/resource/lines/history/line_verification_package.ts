@@ -14,6 +14,7 @@ function readLineVerificationPackage(materialization, historyRead) {
   const diagnostics = readLineDiagnostics(materialization);
   const summary = readLineDiagnosticsSummary(materialization);
   const download = readLineDownload(materialization);
+  const patchCapable = descriptor.family.kind !== "detail";
   return Object.freeze({
     declaration: Object.freeze({
       familyKind: descriptor.family.kind,
@@ -137,6 +138,22 @@ function readLineVerificationPackage(materialization, historyRead) {
       lifecycleEntryCount: historyRead.lifecycle.length,
       downloadDescriptorCount: download.count,
       summaryReadShape: "inspectionSummary",
+      commonLineReadShape: "groupedLineSummary",
+    }),
+    capabilities: Object.freeze({
+      summary: true,
+      diagnosticsSummary: true,
+      requestRead: true,
+      processingRead: true,
+      uploadRead: true,
+      downloadRead: true,
+      historyRead: true,
+      patch: patchCapable,
+      deliver: patchCapable,
+      reconciliationRead: patchCapable,
+      broadReplace: materialization.patch.broadReplace,
+      narrowItem: materialization.patch.narrowItem,
+      narrowSummary: materialization.patch.narrowSummary,
     }),
       typedDenials: Object.freeze({
         replay: historyRead.availability.replay.kind === "unavailable"

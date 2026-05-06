@@ -2,11 +2,11 @@ const API_ROUTE_TARGET_METADATA = Symbol(
   "forgeSignal.apiRouteTargetMetadata",
 );
 
-function attachApiRouteTargetMetadata(declaration) {
+function attachApiRouteTargetMetadata(declaration, requestPath) {
   const decorated = { ...declaration };
   Object.defineProperty(decorated, API_ROUTE_TARGET_METADATA, {
     value: Object.freeze({
-      requestPathFromCanonicalKey: true,
+      requestPath,
     }),
     enumerable: true,
     configurable: false,

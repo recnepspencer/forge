@@ -6,6 +6,8 @@ function createLineRequestState(requestDescriptor) {
     canonicalParams: requestDescriptor.canonicalParams,
     target: requestDescriptor.target,
     baseUrl: requestDescriptor.baseUrl,
+    method: requestDescriptor.method,
+    body: requestDescriptor.body,
     auth: requestDescriptor.auth,
     continuation: requestDescriptor.continuation,
     processingJob: requestDescriptor.processingJob,

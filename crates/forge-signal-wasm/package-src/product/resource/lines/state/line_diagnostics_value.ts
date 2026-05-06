@@ -232,6 +232,8 @@ function createRequestDiagnostics(requestDescriptor) {
   return Object.freeze({
     baseUrl: requestDescriptor.baseUrl,
     target: requestDescriptor.target,
+    method: requestDescriptor.method,
+    bodyPresent: requestDescriptor.body !== null,
     auth: requestDescriptor.auth,
     context: Object.freeze({
       headerNames: Object.freeze(

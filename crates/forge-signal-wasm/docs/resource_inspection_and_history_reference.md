@@ -1,5 +1,10 @@
 # Resource Inspection And History Reference
 
+If your question is "how do I check restore availability, replay availability,
+or verification packages?", start with
+[feature_history_and_restore.md](./feature_history_and_restore.md) before using
+this lower-level reference page.
+
 ## What This Feature Is
 
 This is the part of the resource surface you use when you need to understand
@@ -92,18 +97,13 @@ Current shipped posture:
 ## Small Example
 
 ```ts
-import {
-  createSignals,
-  resourceParamIdentity,
-  resourceParams,
-} from "forge-signal-wasm";
+import { createSignals } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const productDetail = signals.resource.detail({
-  params: resourceParams<{ productId: string }>(),
-  normalizeParams: ({ productId }) =>
-    resourceParamIdentity({ productId }, productId),
+const productDetail = signals.api({
+  baseUrl: "/api",
+}).url("/products/:productId").detail({
   load: ({ productId }) => ({ id: productId }),
 });
 
@@ -123,33 +123,23 @@ This is the quickest useful inspection pattern:
 ```ts
 import {
   createSignals,
-  resourceCollectionShape,
-  resourceItemAspects,
-  resourceParamIdentity,
-  resourceParams,
   resourcePatch,
 } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const tasks = signals.resource.collection({
-  params: resourceParams<{ workspaceId: string }>(),
-  normalizeParams: ({ workspaceId }) =>
-    resourceParamIdentity({ workspaceId }, workspaceId),
-  itemIdentity: (item: { id: string; title: string }) => item.id,
-  reconcile: resourceCollectionShape({
-    items: (value: { items: Array<{ id: string; title: string }> }) =>
-      value.items,
-    replaceItems: (value, nextItems) => ({ ...value, items: [...nextItems] }),
-    aspects: resourceItemAspects({
-      title: {
-        read: (item: { id: string; title: string }) => item.title,
-        write: (item, title: string) => ({ ...item, title }),
-      },
-    }),
-  }),
-  load: ({ workspaceId }) => ({
-    items: [{ id: `${workspaceId}:1`, title: "First" }],
+const tasks = signals.api({}).url("/workspaces/:workspaceId/tasks")
+  .items((item: { id: string; title: string }) => item.id)
+  .aspect(
+    "title",
+    (item) => item.title,
+    (item, title: string) => ({ ...item, title }),
+  )
+  .list({
+    load: ({ workspaceId }) => [{
+      id: `${workspaceId}:1`,
+      title: "First",
+    }],
   }),
 });
 
@@ -199,6 +189,9 @@ Use `diagnosticsSummary()` when you need:
 - grouped current state
 - grouped counts
 - a fast UI-friendly explanation
+
+Start with `line.summary()` when you want the smallest app-facing read before
+dropping into diagnostics and history detail.
 
 Use `history()` when you need:
 

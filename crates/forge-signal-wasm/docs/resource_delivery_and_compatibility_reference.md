@@ -1,5 +1,10 @@
 # Resource Delivery And Compatibility Reference
 
+If your question is "how do I handle pushed packets, external definitions, or
+basis refresh?", start with
+[feature_external_delivery_and_compatibility.md](./feature_external_delivery_and_compatibility.md)
+before using this lower-level reference page.
+
 ## What This Feature Is
 
 This is the resource surface for server-push updates and external resource

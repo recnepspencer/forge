@@ -1,5 +1,9 @@
 # Resource Transfers Reference
 
+If your question is "how do I do signed upload, multipart upload, or deferred
+processing?", start with [feature_transfers.md](./feature_transfers.md) before
+using this lower-level reference page.
+
 ## What This Feature Is
 
 This is the resource surface for uploads and deferred processing.
@@ -19,6 +23,14 @@ loaded", but something like:
 - inspect upload and processing from the same line you already render
 
 ## Stable Entry Points
+
+Recommended declaration lane:
+
+- `signals.api(...)`
+- `api.url(...)`
+- `.signedUpload(...)`
+- `.multipartUpload(...)`
+- `.processing(...)`
 
 Transfer posture helpers:
 
@@ -83,37 +95,34 @@ The line then exposes:
 ```ts
 import {
   createSignals,
-  resourceParamIdentity,
-  resourceParams,
   resourceUploadResult,
-  resourceUploadTransport,
 } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const receiptUpload = signals.resource.detail({
-  params: resourceParams<{ receiptId: string }>(),
-  uploadTransport: resourceUploadTransport.signed({
+const receiptUpload = signals.api({
+  baseUrl: "/api",
+}).url("/receipts/:receiptId/upload")
+  .signedUpload({
     method: "PUT",
     finalizeRequired: true,
-  }),
-  normalizeParams: ({ receiptId }) =>
-    resourceParamIdentity({ receiptId }, receiptId),
-  load: ({ receiptId }) =>
-    resourceUploadResult.prepared({
-      uploadId: `upload:${receiptId}`,
-      descriptor: {
-        kind: "signed",
-        url: `https://uploads.example/${receiptId}`,
-        method: "PUT",
-        headers: { "x-upload-token": "demo" },
-        fields: {},
-        objectKey: `receipts/${receiptId}.png`,
-        expiresAt: null,
-      },
-      finalizeRequired: true,
-    }),
-});
+  })
+  .detail({
+    load: ({ receiptId }) =>
+      resourceUploadResult.prepared({
+        uploadId: `upload:${receiptId}`,
+        descriptor: {
+          kind: "signed",
+          url: `https://uploads.example/${receiptId}`,
+          method: "PUT",
+          headers: { "x-upload-token": "demo" },
+          fields: {},
+          objectKey: `receipts/${receiptId}.png`,
+          expiresAt: null,
+        },
+        finalizeRequired: true,
+      }),
+  });
 
 const line = receiptUpload.line({ receiptId: "r1" });
 console.log(line.upload());
@@ -127,45 +136,41 @@ final value.
 ```ts
 import {
   createSignals,
-  resourceParamIdentity,
-  resourceParams,
-  resourceProcessingJob,
   resourceProcessingResult,
   resourceUploadResult,
-  resourceUploadTransport,
 } from "forge-signal-wasm";
 
 const signals = createSignals();
 let callCount = 0;
 
-const receiptPipeline = signals.resource.detail({
-  params: resourceParams<{ receiptId: string }>(),
-  processingJob: resourceProcessingJob.poll(),
-  uploadTransport: resourceUploadTransport.signed({
+const receiptPipeline = signals.api({
+  baseUrl: "/api",
+}).url("/receipts/:receiptId/upload")
+  .signedUpload({
     method: "POST",
     finalizeRequired: true,
-  }),
-  normalizeParams: ({ receiptId }) =>
-    resourceParamIdentity({ receiptId }, receiptId),
-  load: ({ receiptId }) => {
-    callCount += 1;
-    if (callCount === 1) {
-      return resourceUploadResult.uploaded({
-        uploadId: `upload:${receiptId}`,
-        finalizeRequired: true,
-        awaitingProcessing: true,
-        message: "processing upload",
-      });
-    }
-    if (callCount === 2) {
-      return resourceProcessingResult.processing({
-        jobId: `job:${receiptId}`,
-        message: "extracting receipt",
-      });
-    }
-    return { id: receiptId, status: "ready" };
-  },
-});
+  })
+  .processing("poll")
+  .detail({
+    load: ({ receiptId }) => {
+      callCount += 1;
+      if (callCount === 1) {
+        return resourceUploadResult.uploaded({
+          uploadId: `upload:${receiptId}`,
+          finalizeRequired: true,
+          awaitingProcessing: true,
+          message: "processing upload",
+        });
+      }
+      if (callCount === 2) {
+        return resourceProcessingResult.processing({
+          jobId: `job:${receiptId}`,
+          message: "extracting receipt",
+        });
+      }
+      return { id: receiptId, status: "ready" };
+    },
+  });
 
 const line = receiptPipeline.line({ receiptId: "r1" });
 
@@ -214,6 +219,7 @@ Check these first:
 
 ## Related Docs
 
+- [api_route_authoring_reference.md](./api_route_authoring_reference.md)
 - [resource_request_and_policy_reference.md](./resource_request_and_policy_reference.md)
 - [resource_binary_and_download_reference.md](./resource_binary_and_download_reference.md)
 - [resource_line_reference.md](./resource_line_reference.md)

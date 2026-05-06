@@ -2,6 +2,7 @@ import { requireDeclaredResourceParams } from "../../params/declared_resource_pa
 import { requireResourceAuthPosture } from "../../requests/auth_posture.js";
 import { requireResourceContinuationPosture } from "../../requests/continuation_posture.js";
 import { requireResourceRequestContext } from "../../requests/request_context.js";
+import { requireResourceRequestMethod } from "../../requests/resource_request_method.js";
 import { requireResourceProcessingJobPosture } from "../../processing/processing_job_posture.js";
 import { requireResourceUploadTransportPosture } from "../../uploads/upload_transport_posture.js";
 
@@ -19,6 +20,15 @@ function requireResourceDeclarationBase(kind, declaration) {
   }
   if (typeof declaration.load !== "function") {
     throw new TypeError(`${kind} resources require load(...)`);
+  }
+  if (declaration.method !== undefined) {
+    requireResourceRequestMethod(declaration.method, kind);
+  }
+  if (
+    declaration.requestBody !== undefined
+    && typeof declaration.requestBody !== "function"
+  ) {
+    throw new TypeError(`${kind} resources require requestBody(...) to be a function when provided`);
   }
   if (
     declaration.auth !== undefined &&

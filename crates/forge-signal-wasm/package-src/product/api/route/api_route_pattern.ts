@@ -2,6 +2,7 @@ import {
   createRouteQueryString,
   createRouteRequestParams,
 } from "./api_route_request_params.js";
+import { createApiRouteBodyCanonicalSuffix } from "./api_route_body_identity.js";
 
 function parseApiRoutePattern(route) {
   if (typeof route !== "string" || route.length === 0) {
@@ -49,7 +50,12 @@ function parseApiRoutePattern(route) {
   });
 }
 
-function createRouteBoundParams(pattern, requestParamsState, rawParams) {
+function createRouteBoundParams(
+  pattern,
+  requestParamsState,
+  rawParams,
+  bodyMode = "forbidden",
+) {
   if (!rawParams || typeof rawParams !== "object" || Array.isArray(rawParams)) {
     throw new TypeError(
       `${pattern.route} line(...) requires an object containing exactly the declared path params`,
@@ -71,6 +77,9 @@ function createRouteBoundParams(pattern, requestParamsState, rawParams) {
     if (requestParamsState.declared && name === "params") {
       continue;
     }
+    if (bodyMode !== "forbidden" && name === "body") {
+      continue;
+    }
     if (!pattern.pathParamNames.includes(name)) {
       throw new TypeError(
         `${pattern.route} line(...) does not admit undeclared path param "${name}"`,
@@ -80,15 +89,31 @@ function createRouteBoundParams(pattern, requestParamsState, rawParams) {
   if (requestParams !== undefined) {
     params.params = requestParams;
   }
+  if (bodyMode === "required") {
+    if (!("body" in rawParams) || rawParams.body === undefined) {
+      throw new TypeError(
+        `${pattern.route} line(...) requires an explicit body value for this write declaration`,
+      );
+    }
+    params.body = rawParams.body;
+  } else if (bodyMode === "forbidden" && "body" in rawParams) {
+    throw new TypeError(
+      `${pattern.route} line(...) does not admit a body for this declaration`,
+    );
+  }
   return Object.freeze(params);
 }
 
-function createRouteCanonicalKey(pattern, params) {
+function createRouteCanonicalKey(pattern, params, includeBody = false) {
+  return `${createRouteRequestPath(pattern, params)}${createRouteQueryString(pattern.route, params.params ?? {})}${includeBody ? createApiRouteBodyCanonicalSuffix(pattern.route, params.body) : ""}`;
+}
+
+function createRouteRequestPath(pattern, params) {
   const requestParams = params.params;
   if (pattern.tokens.length === 0) {
-    return `/${createRouteQueryString(pattern.route, requestParams ?? {})}`;
+    return "/";
   }
-  return `/${pattern.tokens.map((token) => renderRouteToken(pattern.route, token, params)).join("/")}${createRouteQueryString(pattern.route, requestParams ?? {})}`;
+  return `/${pattern.tokens.map((token) => renderRouteToken(pattern.route, token, params)).join("/")}`;
 }
 
 function encodeRouteParamValue(route, name, value) {
@@ -165,5 +190,6 @@ function isAsciiDigit(character) {
 export {
   createRouteBoundParams,
   createRouteCanonicalKey,
+  createRouteRequestPath,
   parseApiRoutePattern,
 };

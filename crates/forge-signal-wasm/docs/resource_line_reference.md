@@ -1,5 +1,9 @@
 # Resource Line Reference
 
+If you want the shortest path to line reads, start with
+[feature_line_inspection.md](./feature_line_inspection.md) before using this
+full line reference.
+
 ## What This Feature Is
 
 A resource line is the live handle you get back for one specific resource
@@ -37,6 +41,7 @@ Stable line methods:
 - `line.signal()`
 - `line.descriptor()`
 - `line.request()`
+- `line.summary()`
 - `line.status()`
 - `line.freshness()`
 - `line.refresh()`
@@ -93,18 +98,13 @@ executing exact replay.
 ## Small Example
 
 ```ts
-import {
-  createSignals,
-  resourceParamIdentity,
-  resourceParams,
-} from "forge-signal-wasm";
+import { createSignals } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const productDetail = signals.resource.detail({
-  params: resourceParams<{ productId: string }>(),
-  normalizeParams: ({ productId }) =>
-    resourceParamIdentity({ productId }, productId),
+const productDetail = signals.api({
+  baseUrl: "/api",
+}).url("/products/:productId").detail({
   load: ({ productId }) => ({
     id: productId,
     title: `Product ${productId}`,
@@ -125,32 +125,42 @@ usually need first:
 - status
 - freshness
 
+If you want the first product-shaped read instead of stitching a few calls
+together, start with:
+
+- `line.summary()`
+
+That grouped read keeps the common lane on one object:
+
+- current status and freshness
+- request posture
+- upload, processing, and download state
+- diagnostics summary plus explainability availability
+
 ## Real Example
 
 ```ts
 import {
   createSignals,
   resourceAuth,
-  resourceParamIdentity,
-  resourceParams,
   resourceRequestContext,
 } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const accountDetail = signals.resource.detail({
-  params: resourceParams<{ workspaceId: string; accountId: string }>(),
+const workspaceApi = signals.api({
   auth: resourceAuth.workspace(),
+}).scope({
   requestContext: ({ workspaceId }) =>
     resourceRequestContext({
       headers: { "x-workspace-id": workspaceId },
       correlationId: `account:${workspaceId}`,
     }),
-  normalizeParams: ({ workspaceId, accountId }) =>
-    resourceParamIdentity(
-      { workspaceId, accountId },
-      `${workspaceId}:${accountId}`,
-    ),
+});
+
+const accountDetail = workspaceApi.url(
+  "/workspaces/:workspaceId/accounts/:accountId",
+).detail({
   load: ({ accountId }) => ({
     id: accountId,
     label: `Account ${accountId}`,
@@ -190,6 +200,7 @@ Use this pattern when:
 
 When a line is not behaving the way you expect, start with:
 
+- `line.summary()`
 - `line.status()`
 - `line.freshness()`
 - `line.request()`
@@ -208,6 +219,8 @@ If that is not enough, move to:
 - storing only `line.value()` when you still care about loading or debugging
 - treating `refresh()` and `revalidate()` like they mean the same thing
 - assuming `view(...)` creates a second resource line
+- building new UI helper objects first when `line.summary()` already gives the
+  common grouped read
 
 ## Current Limits
 

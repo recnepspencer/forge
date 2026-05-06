@@ -8,6 +8,7 @@ import type {
   ResourceProcessingJobPosture,
   ResourceProcessingResultValue,
   ResourceBinaryValue,
+  ResourceRequestMethod,
   ResourceRequestContext,
   ResourceRequestDescriptor,
   ResourceUploadResultValue,
@@ -50,6 +51,7 @@ type ResourceBinaryUploadCompatibleValue<TValue> =
 export interface DetailResourceDeclaration<TParams, TValue> {
   params: DeclaredResourceParams<TParams>;
   baseUrl?: string | ((params: TParams) => string);
+  method?: ResourceRequestMethod;
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:
@@ -58,6 +60,7 @@ export interface DetailResourceDeclaration<TParams, TValue> {
   continuation?:
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
+  requestBody?: (params: TParams) => unknown;
   uploadTransport?:
     | ResourceUploadTransportPosture
     | ((params: TParams) => ResourceUploadTransportPosture);
@@ -71,6 +74,7 @@ export interface DetailResourceDeclaration<TParams, TValue> {
 export interface ProcessingDetailResourceDeclaration<TParams, TValue> {
   params: DeclaredResourceParams<TParams>;
   baseUrl?: string | ((params: TParams) => string);
+  method?: ResourceRequestMethod;
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:
@@ -79,6 +83,7 @@ export interface ProcessingDetailResourceDeclaration<TParams, TValue> {
   continuation?:
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
+  requestBody?: (params: TParams) => unknown;
   processingJob:
     | ResourceProcessingJobPosture
     | ((params: TParams) => ResourceProcessingJobPosture);
@@ -95,6 +100,7 @@ export interface ProcessingDetailResourceDeclaration<TParams, TValue> {
 export interface UploadDetailResourceDeclaration<TParams, TValue> {
   params: DeclaredResourceParams<TParams>;
   baseUrl?: string | ((params: TParams) => string);
+  method?: ResourceRequestMethod;
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:
@@ -103,6 +109,7 @@ export interface UploadDetailResourceDeclaration<TParams, TValue> {
   continuation?:
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
+  requestBody?: (params: TParams) => unknown;
   processingJob?:
     | ResourceProcessingJobPosture
     | ((params: TParams) => ResourceProcessingJobPosture);
@@ -119,6 +126,7 @@ export interface UploadDetailResourceDeclaration<TParams, TValue> {
 export interface ProcessingUploadDetailResourceDeclaration<TParams, TValue> {
   params: DeclaredResourceParams<TParams>;
   baseUrl?: string | ((params: TParams) => string);
+  method?: ResourceRequestMethod;
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:
@@ -127,6 +135,7 @@ export interface ProcessingUploadDetailResourceDeclaration<TParams, TValue> {
   continuation?:
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
+  requestBody?: (params: TParams) => unknown;
   processingJob:
     | ResourceProcessingJobPosture
     | ((params: TParams) => ResourceProcessingJobPosture);
@@ -157,6 +166,7 @@ export interface CollectionResourceDeclaration<
 > {
   params: DeclaredResourceParams<TParams>;
   baseUrl?: string | ((params: TParams) => string);
+  method?: ResourceRequestMethod;
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:
@@ -165,6 +175,7 @@ export interface CollectionResourceDeclaration<
   continuation?:
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
+  requestBody?: (params: TParams) => unknown;
   uploadTransport?:
     | ResourceUploadTransportPosture
     | ((params: TParams) => ResourceUploadTransportPosture);
@@ -191,6 +202,7 @@ export interface ProcessingCollectionResourceDeclaration<
 > {
   params: DeclaredResourceParams<TParams>;
   baseUrl?: string | ((params: TParams) => string);
+  method?: ResourceRequestMethod;
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:
@@ -199,6 +211,7 @@ export interface ProcessingCollectionResourceDeclaration<
   continuation?:
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
+  requestBody?: (params: TParams) => unknown;
   processingJob:
     | ResourceProcessingJobPosture
     | ((params: TParams) => ResourceProcessingJobPosture);
@@ -228,6 +241,7 @@ export interface UploadCollectionResourceDeclaration<
 > {
   params: DeclaredResourceParams<TParams>;
   baseUrl?: string | ((params: TParams) => string);
+  method?: ResourceRequestMethod;
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:
@@ -236,6 +250,7 @@ export interface UploadCollectionResourceDeclaration<
   continuation?:
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
+  requestBody?: (params: TParams) => unknown;
   processingJob?:
     | ResourceProcessingJobPosture
     | ((params: TParams) => ResourceProcessingJobPosture);
@@ -265,6 +280,7 @@ export interface ProcessingUploadCollectionResourceDeclaration<
 > {
   params: DeclaredResourceParams<TParams>;
   baseUrl?: string | ((params: TParams) => string);
+  method?: ResourceRequestMethod;
   policy?: ResourcePolicyProfile;
   auth?: ResourceAuthPosture | ((params: TParams) => ResourceAuthPosture);
   requestContext?:
@@ -273,6 +289,7 @@ export interface ProcessingUploadCollectionResourceDeclaration<
   continuation?:
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
+  requestBody?: (params: TParams) => unknown;
   processingJob:
     | ResourceProcessingJobPosture
     | ((params: TParams) => ResourceProcessingJobPosture);

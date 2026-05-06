@@ -44,6 +44,8 @@ test("resource lines refresh in place and record diagnostics", async () => {
           requestPath: null,
           url: null,
         },
+        method: "GET",
+        bodyPresent: false,
         auth: {
           kind: "anonymous",
         },

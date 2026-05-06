@@ -1,5 +1,9 @@
 # Resource Family Authoring Reference
 
+If you are deciding whether to use the raw lane at all, start with
+[feature_raw_escape_hatch.md](./feature_raw_escape_hatch.md). This page is the
+lower-level family reference once you already know you need it.
+
 ## What This Feature Is
 
 Resource family authoring is how you define a resource before you load any
@@ -12,6 +16,15 @@ This is where you say:
 - how it loads
 - whether it is a detail, collection, or paged resource
 
+For most app code, you should do that through the API route lane first:
+
+- `signals.api(...).url(...).detail(...)`
+- `signals.api(...).url(...).list(...)`
+- `signals.api(...).url(...).paged(...)`
+
+This page also covers the raw family declaration surface, because that still
+matters as the explicit escape hatch.
+
 ## Why You Use It
 
 - keep API shape and request rules in one place
@@ -21,7 +34,13 @@ This is where you say:
 
 ## Stable Entry Points
 
-Main authoring entry points:
+Recommended default lane:
+
+- `signals.api(...)`
+- `api.scope(...)`
+- `api.url(...)`
+
+Raw family entry points:
 
 - `signals.resource.detail(...)`
 - `signals.resource.collection(...)`
@@ -45,6 +64,12 @@ Common declaration helpers:
 
 A family is the recipe.
 A line is one live instance of that recipe.
+
+The main authoring choice is:
+
+- use the route lane when the endpoint is ordinary app-facing API work
+- use the raw family lane when you intentionally need full manual control over
+  params, canonical identity, or compatibility-oriented declaration shape
 
 Use:
 
@@ -80,18 +105,13 @@ The family shape rules are strict on purpose:
 ## Small Example
 
 ```ts
-import {
-  createSignals,
-  resourceParamIdentity,
-  resourceParams,
-} from "forge-signal-wasm";
+import { createSignals } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const profileDetail = signals.resource.detail({
-  params: resourceParams<{ profileId: string }>(),
-  normalizeParams: ({ profileId }) =>
-    resourceParamIdentity({ profileId }, profileId),
+const profileDetail = signals.api({
+  baseUrl: "/api",
+}).url("/profiles/:profileId").detail({
   load: ({ profileId }) => ({
     id: profileId,
     label: `Profile ${profileId}`,
@@ -101,8 +121,8 @@ const profileDetail = signals.resource.detail({
 
 This is the smallest honest example because it shows the minimum contract:
 
-- declared params
-- canonical identity
+- declared route params
+- route-derived canonical identity
 - `load(...)`
 
 ## Real Example
@@ -188,6 +208,8 @@ What is derived later:
   behavior.
 - Move to reconciliation docs when collection or paged values need narrow
   patching.
+- Stay on this page when you intentionally need the raw `signals.resource.*(...)`
+  escape hatch.
 
 ## Inspection And Debugging
 
@@ -215,6 +237,7 @@ If those are wrong, everything later gets harder.
 ## Related Docs
 
 - [api_resources_overview.md](./api_resources_overview.md)
+- [api_route_authoring_reference.md](./api_route_authoring_reference.md)
 - [resource_line_reference.md](./resource_line_reference.md)
 - [resource_request_and_policy_reference.md](./resource_request_and_policy_reference.md)
 - [resource_recipes.md](./resource_recipes.md)

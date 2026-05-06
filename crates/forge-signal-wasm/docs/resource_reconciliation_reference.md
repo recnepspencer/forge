@@ -43,6 +43,15 @@ Line methods:
 
 Reconciliation only applies to:
 
+- collection and paged families
+
+Recommended native declaration lane:
+
+- `signals.api(...).url(...).items(...).list(...)`
+- `signals.api(...).url(...).items(...).paged(...)`
+
+Raw reconciliation escape hatch:
+
 - `signals.resource.collection(...)`
 - `signals.resource.paged(...)`
 
@@ -89,34 +98,21 @@ Common rejection cases:
 ```ts
 import {
   createSignals,
-  resourceCollectionShape,
-  resourceItemAspects,
-  resourceParamIdentity,
-  resourceParams,
   resourcePatch,
 } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const tasks = signals.resource.collection({
-  params: resourceParams<{ workspaceId: string }>(),
-  normalizeParams: ({ workspaceId }) =>
-    resourceParamIdentity({ workspaceId }, workspaceId),
-  itemIdentity: (item: { id: string; title: string }) => item.id,
-  reconcile: resourceCollectionShape({
-    items: (value: { items: Array<{ id: string; title: string }> }) =>
-      value.items,
-    replaceItems: (value, nextItems) => ({ ...value, items: [...nextItems] }),
-    aspects: resourceItemAspects({
-      title: {
-        read: (item: { id: string; title: string }) => item.title,
-        write: (item, title: string) => ({ ...item, title }),
-      },
-    }),
-  }),
-  load: () => ({
-    items: [{ id: "t1", title: "First" }],
-  }),
+const tasks = signals.api({}).url("/workspaces/:workspaceId/tasks")
+  .items((item: { id: string; title: string }) => item.id)
+  .aspect(
+    "title",
+    (item) => item.title,
+    (item, title: string) => ({ ...item, title }),
+  )
+  .list({
+    load: () => [{ id: "t1", title: "First" }],
+  });
 });
 
 const line = tasks.line({ workspaceId: "demo" });
@@ -138,54 +134,27 @@ item.
 ```ts
 import {
   createSignals,
-  resourceCollectionShape,
-  resourceItemAspects,
-  resourceParamIdentity,
-  resourceParams,
   resourcePatch,
-  resourceValueSummaries,
 } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const feed = signals.resource.paged({
-  params: resourceParams<{ workspaceId: string }>(),
-  normalizeParams: ({ workspaceId }) =>
-    resourceParamIdentity({ workspaceId }, workspaceId),
-  itemIdentity: (item: { id: string; title: string }) => item.id,
-  reconcile: resourceCollectionShape({
-    items: (
-      value: {
-        items: Array<{ id: string; title: string }>;
-        cursor: string | null;
-        visibleCount: number;
-      },
-    ) => value.items,
-    replaceItems: (value, nextItems) => ({ ...value, items: [...nextItems] }),
-    aspects: resourceItemAspects({
-      title: {
-        read: (item: { id: string; title: string }) => item.title,
-        write: (item, title: string) => ({ ...item, title }),
-      },
-    }),
-    summaries: resourceValueSummaries.pageWindow({
-      visibleCount: {
-        read: (value) => value.visibleCount,
-        write: (value, visibleCount: number) => ({ ...value, visibleCount }),
-      },
-    }),
-  }),
-  accumulatePage: (existing, next) => ({
-    items: [...existing.items, ...next.items],
-    cursor: next.cursor,
-    visibleCount: next.visibleCount,
-  }),
-  load: ({ workspaceId }) => ({
-    items: [{ id: `${workspaceId}:1`, title: "First" }],
-    cursor: null,
-    visibleCount: 1,
-  }),
-});
+const feed = signals.api({}).url("/workspaces/:workspaceId/feed")
+  .items((item: { id: string; title: string }) => item.id)
+  .aspect(
+    "title",
+    (item) => item.title,
+    (item, title: string) => ({ ...item, title }),
+  )
+  .pageWindowSummary(
+    "visibleCount",
+    (value: { id: string; title: string }[]) => value.length,
+    (value, visibleCount: number) => value.slice(0, visibleCount),
+  )
+  .paged({
+    accumulatePage: (existing, next) => [...existing, ...next],
+    load: ({ workspaceId }) => [{ id: `${workspaceId}:1`, title: "First" }],
+  });
 
 const line = feed.line({ workspaceId: "demo" });
 
@@ -213,6 +182,8 @@ Use this pattern when:
 
 ## How It Relates To Other Features
 
+- API route docs explain the small direct-array and collection-owned builder
+  lane before you drop to raw reconciliation helpers.
 - Delivery uses the same patch shapes when pushed updates arrive later.
 - Family authoring decides whether reconciliation exists at all.
 - Line diagnostics and history explain what the last patch actually did.
@@ -242,6 +213,7 @@ That usually tells you both what the line supports and what actually happened.
 
 ## Related Docs
 
+- [api_route_authoring_reference.md](./api_route_authoring_reference.md)
 - [resource_family_authoring_reference.md](./resource_family_authoring_reference.md)
 - [resource_delivery_and_compatibility_reference.md](./resource_delivery_and_compatibility_reference.md)
 - [resource_line_reference.md](./resource_line_reference.md)

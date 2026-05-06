@@ -7,9 +7,30 @@ const resourceDownload = Object.freeze({
     }
     return Object.freeze({
       kind: "ready",
+      transportKind: "simple",
       url: requireString(options.url, "url"),
       method: requireMethod(options.method),
       headers: snapshotStringMap(options.headers, "headers"),
+      fields: Object.freeze({}),
+      objectKey: null,
+      expiresAt: normalizeOptionalString(options.expiresAt, "expiresAt"),
+      [RESOURCE_DOWNLOAD_BRAND]: "resourceDownload",
+    });
+  },
+  multipart(options) {
+    if (!options || typeof options !== "object" || Array.isArray(options)) {
+      throw new TypeError(
+        "resourceDownload.multipart(...) requires an options object",
+      );
+    }
+    return Object.freeze({
+      kind: "ready",
+      transportKind: "directMultipart",
+      url: requireString(options.url, "url"),
+      method: "POST",
+      headers: snapshotStringMap(options.headers, "headers"),
+      fields: snapshotStringMap(options.fields, "fields"),
+      objectKey: normalizeOptionalString(options.objectKey, "objectKey"),
       expiresAt: normalizeOptionalString(options.expiresAt, "expiresAt"),
       [RESOURCE_DOWNLOAD_BRAND]: "resourceDownload",
     });
@@ -45,7 +66,7 @@ const resourceDownload = Object.freeze({
 function requireResourceDownload(value) {
   if (!value || value[RESOURCE_DOWNLOAD_BRAND] !== "resourceDownload") {
     throw new TypeError(
-      "resource binary descriptors require download created with resourceDownload.ready(...), resourceDownload.unavailable(...), or resourceDownload.incompatible(...)",
+      "resource binary descriptors require download created with resourceDownload.ready(...), resourceDownload.multipart(...), resourceDownload.unavailable(...), or resourceDownload.incompatible(...)",
     );
   }
   return value;

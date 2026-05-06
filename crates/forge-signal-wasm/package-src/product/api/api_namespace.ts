@@ -1,5 +1,5 @@
 import { mergeApiDeclaration, normalizeApiLayer } from "./api_request_defaults.js";
-import { createApiRouteBuilder } from "./api_route_builder.js";
+import { createApiRouteBuilder } from "./route/api_route_builder.js";
 
 function createApiFactory(signalNamespace) {
   const state = { nextScopeId: 1 };

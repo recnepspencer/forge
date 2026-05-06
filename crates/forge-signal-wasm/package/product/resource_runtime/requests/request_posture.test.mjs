@@ -41,6 +41,8 @@ test("resource request posture lowers auth and context into line request truth a
         url: null,
       },
       baseUrl: "/api",
+      method: "GET",
+      body: null,
       auth: {
         kind: "authenticated",
       },
@@ -116,6 +118,8 @@ test("resource request posture lowers auth and context into line request truth a
           requestPath: null,
           url: null,
         },
+        method: "GET",
+        bodyPresent: false,
         auth: {
           kind: "authenticated",
         },

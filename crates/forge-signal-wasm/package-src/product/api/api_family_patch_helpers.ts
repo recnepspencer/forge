@@ -1,4 +1,5 @@
 import { resourcePatch } from "../resource/reconciliation/resource_patch.js";
+import { readApiFamilyReconcileCapabilities } from "./api_family_reconcile_capabilities.js";
 
 function attachApiFamilyPatchHelpers(familyKind, family, declaration) {
   return Object.freeze({
@@ -13,25 +14,22 @@ function createApiFamilyPatchHelpers(familyKind, declaration) {
       return resourcePatch.replace(nextValue);
     },
   };
-  const reconcile = declaration.reconcile ?? null;
-  if (reconcile === null) {
+  const capabilities = readApiFamilyReconcileCapabilities(
+    familyKind,
+    declaration,
+  );
+  if (!capabilities.hasReconcile) {
     return Object.freeze(helpers);
   }
   helpers.item = function item(options) {
     return resourcePatch.item(options);
   };
-  const aspectNames = Object.keys(reconcile.aspects?.definitions ?? {});
-  if (aspectNames.length > 0) {
+  if (capabilities.hasAspects) {
     helpers.itemAspect = function itemAspect(options) {
       return resourcePatch.itemAspect(options);
     };
   }
-  const summaries = reconcile.summaries ?? null;
-  const summaryNames = Object.keys(summaries?.definitions ?? {});
-  const admitsSummary =
-    summaryNames.length > 0
-    && (familyKind === "collection" || summaries.patchScope === "pageWindow");
-  if (admitsSummary) {
+  if (capabilities.admitsSummary) {
     helpers.summary = function summary(options) {
       return resourcePatch.summary(options);
     };

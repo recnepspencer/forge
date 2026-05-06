@@ -1,201 +1,75 @@
 # API Resources Overview
 
-## What This Feature Is
+This page is the feature router for server-backed resource state.
 
-API resources are the part of `forge-signal-wasm` you use for server-backed
-state.
+If you are trying to answer "which resource feature owns my problem?", start
+here and then jump to the canonical feature page.
 
-If you have something that is loaded from an API, needs refresh/retry/stale
-behavior, and should still feel like normal signal state once it is in memory,
-this is the surface you reach for.
+## Default Path
 
-## Why You Use It
+For ordinary app code, the default lane is:
 
-- load server data without inventing your own fetch/cache/retry layer
-- keep request setup, stale behavior, and inspection on one surface
-- treat API-backed state like graph-native state once it is materialized
-- get line-level status, diagnostics, history, replay, and restore without
-  bolting on a second tool
+1. `signals.api(...)`
+2. `api.scope(...)` when one feature area needs shared defaults
+3. `api.url(...)`
+4. the semantic finalizer or feature step that matches your endpoint
+5. `family.line(...)`
+6. `line.summary()`
 
-## Stable Entry Points
+## Feature Map
 
-Most app code starts here:
+- fetch, list, paged, create, update, remove, and advanced request shaping:
+  [feature_fetch_and_write_api_resources.md](./feature_fetch_and_write_api_resources.md)
+- auth, request context, retry policy, continuation, and request posture:
+  [feature_request_posture_and_policy.md](./feature_request_posture_and_policy.md)
+- collection identity, reconcile, patch helpers, and delivery helpers:
+  [feature_collections_and_delivery.md](./feature_collections_and_delivery.md)
+- signed upload, multipart upload, and deferred processing:
+  [feature_transfers.md](./feature_transfers.md)
+- downloads and multipart download handoff:
+  [feature_downloads.md](./feature_downloads.md)
+- grouped line reads, diagnostics, and history entrypoints:
+  [feature_line_inspection.md](./feature_line_inspection.md)
+- retained history, exact restore, replay availability, and verification:
+  [feature_history_and_restore.md](./feature_history_and_restore.md)
+- external definitions, pushed packets, compatibility delivery, and basis
+  refresh:
+  [feature_external_delivery_and_compatibility.md](./feature_external_delivery_and_compatibility.md)
+- raw family declarations and manual identity control:
+  [feature_raw_escape_hatch.md](./feature_raw_escape_hatch.md)
 
-- `signals.resource.detail(...)`
-- `signals.resource.collection(...)`
-- `signals.resource.paged(...)`
+## Fast Decisions
 
-Helpers you will use right away:
+- "How do I fetch one thing or write one thing?"
+  [feature_fetch_and_write_api_resources.md](./feature_fetch_and_write_api_resources.md)
+- "How do I declare retry, headers, or continuation?"
+  [feature_request_posture_and_policy.md](./feature_request_posture_and_policy.md)
+- "How do I patch or deliver into a collection?"
+  [feature_collections_and_delivery.md](./feature_collections_and_delivery.md)
+- "How do I do multipart upload?"
+  [feature_transfers.md](./feature_transfers.md)
+- "How do I do multipart download?"
+  [feature_downloads.md](./feature_downloads.md)
+- "How do I understand whether exact restore is available?"
+  [feature_history_and_restore.md](./feature_history_and_restore.md)
+- "How do I apply external basis refresh?"
+  [feature_external_delivery_and_compatibility.md](./feature_external_delivery_and_compatibility.md)
 
-- `resourceParams(...)`
-- `resourceParamIdentity(...)`
-- `resourcePolicyProfiles.*()`
-- `resourceAuth.*()`
-- `resourceRequestContext(...)`
+## Task-First Companion
 
-## Core Mental Model
+- [resource_recipes.md](./resource_recipes.md)
 
-Think in two steps:
+## Lower-Level References
 
-1. declare a resource family
-2. get a line from that family
+Once you already know the feature, use the lower-level reference pages for
+exact surface detail:
 
-The family is the reusable definition.
-The line is the live resource member for one specific set of params.
-
-You will also see the term `canonical identity` in some adjacent docs. In plain
-English, that just means the stable key for "this exact resource member".
-
-Example:
-
-- family: "product detail"
-- line: "product detail for `productId = p1`"
-
-Once you have a line, that line owns:
-
-- the current visible value
-- current status
-- stale/fresh state
-- request info
-- diagnostics and history
-
-That means you do not need one object for "data", another for "loading", and a
-third for "debugging". The line is the whole thing.
-
-## How It Executes
-
-This is the normal flow:
-
-1. you declare a family with params, identity, and `load(...)`
-2. you call `family.line(params)`
-3. the runtime normalizes those params into one stable identity key
-4. the line runs `load(...)`
-5. the line exposes value, status, request, and diagnostics
-6. later refreshes, retries, patches, deliveries, replay, or restore all
-   happen on that same line
-
-## Small Example
-
-```ts
-import {
-  createSignals,
-  resourceParamIdentity,
-  resourceParams,
-} from "forge-signal-wasm";
-
-const signals = createSignals();
-
-const productDetail = signals.resource.detail({
-  params: resourceParams<{ productId: string }>(),
-  normalizeParams: ({ productId }) =>
-    resourceParamIdentity({ productId }, productId),
-  load: ({ productId }) => ({
-    id: productId,
-    title: `Product ${productId}`,
-  }),
-});
-
-const line = productDetail.line({ productId: "p1" });
-
-console.log(line.value());
-console.log(line.status());
-console.log(line.freshness());
-```
-
-This is the best starting example because it shows the full shape:
-
-- declare the family
-- materialize the line
-- read value and lifecycle state from the line
-
-## Real Example
-
-```ts
-import {
-  createSignals,
-  resourceAuth,
-  resourceParamIdentity,
-  resourceParams,
-  resourcePolicyProfiles,
-  resourceRequestContext,
-} from "forge-signal-wasm";
-
-const signals = createSignals();
-
-const invoiceDetail = signals.resource.detail({
-  params: resourceParams<{ workspaceId: string; invoiceId: string }>(),
-  policy: resourcePolicyProfiles.retryOnce(),
-  auth: resourceAuth.workspace(),
-  requestContext: ({ workspaceId }) =>
-    resourceRequestContext({
-      headers: { "x-workspace-id": workspaceId },
-      correlationId: `invoice:${workspaceId}`,
-    }),
-  normalizeParams: ({ workspaceId, invoiceId }) =>
-    resourceParamIdentity(
-      { workspaceId, invoiceId },
-      `${workspaceId}:${invoiceId}`,
-    ),
-  load: ({ invoiceId }, request) => ({
-    id: invoiceId,
-    authKind: request.auth.kind,
-  }),
-});
-
-const line = invoiceDetail.line({
-  workspaceId: "acme",
-  invoiceId: "inv-7",
-});
-
-console.log(line.value());
-console.log(line.request());
-console.log(line.diagnosticsSummary());
-```
-
-In this example:
-
-- the family declaration decides params, identity, and request posture
-- the line owns the current state for that resource member
-
-## How It Relates To Other Features
-
-- Use controllers and graphs when a resource belongs inside a larger feature.
-- Use ordinary `input(...)` and `computed(...)` for local state that does not
-  come from an API.
-- Later router work should consume resources, not replace them.
-
-## Inspection And Debugging
-
-When something feels off, start with:
-
-- `line.status()`
-- `line.freshness()`
-- `line.request()`
-- `line.diagnosticsSummary()`
-- `line.history().availability`
-
-Those usually answer:
-
-- did this load succeed
-- is it stale
-- what request posture did it use
-- can this line replay or restore on this runtime
-
-## Anti-Patterns
-
-- using resources for local UI state that is not really API-backed
-- rebuilding request or stale logic outside the family declaration
-- treating the line like it is only a value holder and ignoring its status and
-  diagnostics surfaces
-
-## Current Limits
-
-- this surface is for resource state, not mutation workflow orchestration
-- the planned router should consume this resource lane instead of replacing it
-
-## Related Docs
-
+- [api_route_authoring_reference.md](./api_route_authoring_reference.md)
 - [resource_family_authoring_reference.md](./resource_family_authoring_reference.md)
 - [resource_line_reference.md](./resource_line_reference.md)
 - [resource_request_and_policy_reference.md](./resource_request_and_policy_reference.md)
-- [resource_recipes.md](./resource_recipes.md)
+- [resource_reconciliation_reference.md](./resource_reconciliation_reference.md)
+- [resource_transfers_reference.md](./resource_transfers_reference.md)
+- [resource_binary_and_download_reference.md](./resource_binary_and_download_reference.md)
+- [resource_inspection_and_history_reference.md](./resource_inspection_and_history_reference.md)
+- [resource_delivery_and_compatibility_reference.md](./resource_delivery_and_compatibility_reference.md)

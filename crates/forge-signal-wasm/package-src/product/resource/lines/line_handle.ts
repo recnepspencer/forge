@@ -13,6 +13,7 @@ import { readLineProcessing } from "./reads/line_processing_read.js";
 import { readLineRequest } from "./reads/line_request_read.js";
 import { readLineSignal } from "./reads/line_signal_read.js";
 import { readLineStatus } from "./reads/line_status_read.js";
+import { readLineSummary } from "./reads/line_summary_read.js";
 import { readLineUpload } from "./reads/line_upload_read.js";
 import { readLineValue } from "./reads/line_value_read.js";
 import { createLineView } from "./line_view_factory.js";
@@ -38,6 +39,11 @@ function createLineHandle(lineBacking) {
       const materialization = requireCurrentMaterialization(lineBacking);
       requireActiveLine(materialization, "request");
       return readLineRequest(materialization);
+    },
+    summary() {
+      const materialization = requireCurrentMaterialization(lineBacking);
+      requireActiveLine(materialization, "summary");
+      return readLineSummary(materialization);
     },
     download() {
       const materialization = requireCurrentMaterialization(lineBacking);

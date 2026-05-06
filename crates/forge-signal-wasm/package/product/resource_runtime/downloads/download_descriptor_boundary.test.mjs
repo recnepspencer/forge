@@ -144,3 +144,34 @@ test("transport-boundary download incompatibility stays self-describing through 
     await runtime.cleanup();
   }
 });
+
+test("multipart-ready downloads reject non-string field values at the descriptor boundary", async () => {
+  const runtime = await createRealResourceRuntime();
+  try {
+    const detail = createRealDownloadDetail(runtime.mod, runtime.signals, {
+      load: ({ assetId }) =>
+        runtime.mod.resourceBinaryValue({
+          value: { id: assetId, status: "ready" },
+          descriptors: [
+            runtime.mod.resourceBinaryDescriptor.export({
+              id: "bundle",
+              fileName: `${assetId}.zip`,
+              mediaType: "application/zip",
+              byteLength: 4096,
+              download: runtime.mod.resourceDownload.multipart({
+                url: `https://downloads.example/${assetId}`,
+                fields: { token: 7 },
+              }),
+            }),
+          ],
+        }),
+    });
+
+    assert.throws(
+      () => detail.line({ assetId: "bundle-8" }),
+      /resourceDownload fields\.token must be a string/,
+    );
+  } finally {
+    await runtime.cleanup();
+  }
+});
