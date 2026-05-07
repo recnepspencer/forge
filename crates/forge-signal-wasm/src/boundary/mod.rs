@@ -13,6 +13,7 @@ pub mod signals;
 pub mod signals_model;
 pub mod specialist;
 pub mod types;
+pub mod worker;
 
 #[cfg(test)]
 mod tests;

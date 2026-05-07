@@ -1498,10 +1498,11 @@ dependencies = [
 
 [[package]]
 name = "forge-signal-wasm"
-version = "0.1.15"
+version = "0.1.16"
 dependencies = [
  "base64 0.22.1",
  "console_error_panic_hook",
+ "forge-proof",
  "forge-signal",
  "js-sys",
  "rmp-serde",
@@ -1509,6 +1510,7 @@ dependencies = [
  "serde-wasm-bindgen",
  "serde_json",
  "sha2",
+ "trybuild",
  "wasm-bindgen",
 ]
 

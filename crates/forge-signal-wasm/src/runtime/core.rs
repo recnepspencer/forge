@@ -19,6 +19,7 @@ use crate::runtime::web_callbacks;
 
 mod aspects;
 mod branches;
+pub(crate) mod certification_digest;
 mod debug;
 mod diagnostics;
 mod envelopes;
@@ -26,10 +27,12 @@ mod evaluation;
 mod keyed_families;
 mod keyed_runtime;
 mod merge;
+mod runtime_async_lifecycle_certification;
 mod signals;
 mod snapshots;
 mod state;
 mod transactions;
+mod worker_placement_declaration_candidates;
 
 use self::aspects::resolve_selected_aspects;
 pub(crate) use self::envelopes::ExactRuntimeRestoreArtifact;

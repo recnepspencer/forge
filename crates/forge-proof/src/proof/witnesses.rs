@@ -17,6 +17,10 @@ where
     pub(crate) fn mint() -> Self {
         Self(PhantomData)
     }
+
+    pub fn from_authority_marker(_marker: A) -> Self {
+        Self(PhantomData)
+    }
 }
 
 #[derive(Debug, PartialEq, Eq)]
@@ -30,6 +34,10 @@ where
 {
     #[allow(dead_code)]
     pub(crate) fn mint() -> Self {
+        Self(PhantomData)
+    }
+
+    pub fn from_capability_marker(_marker: C) -> Self {
         Self(PhantomData)
     }
 }
@@ -71,11 +79,16 @@ mod tests {
         let capability = mint_capability_witness::<CanonicalizationCapability>();
         let second_authority = AuthorityWitness::<DeploymentAuthority>::mint();
         let second_capability = CapabilityWitness::<CanonicalizationCapability>::mint();
+        let marker_authority = AuthorityWitness::from_authority_marker(DeploymentAuthority);
+        let marker_capability =
+            CapabilityWitness::from_capability_marker(CanonicalizationCapability);
 
         let _ = authority;
         let _ = capability;
         let _ = second_authority;
         let _ = second_capability;
+        let _ = marker_authority;
+        let _ = marker_capability;
         assert_eq!(size_of::<AuthorityWitness<DeploymentAuthority>>(), 0);
         assert_eq!(
             size_of::<CapabilityWitness<CanonicalizationCapability>>(),

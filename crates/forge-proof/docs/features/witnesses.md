@@ -21,11 +21,18 @@ Public usage pattern:
 
 - define your authority or capability marker type
 - implement the marker trait
+- keep authority and capability marker construction inside the domain boundary
+  that owns the trust decision
+- turn that marker into a witness with
+  `AuthorityWitness::from_authority_marker(...)` or
+  `CapabilityWitness::from_capability_marker(...)`
 - consume the witness in progression APIs that require it
 
 Important boundary:
 
-- public code does not mint witnesses directly
+- public code does not call the sealed `mint` constructors directly
+- marker visibility is the domain-owned guardrail: if callers should not obtain
+  an authority, do not expose a constructible marker for that authority
 
 ## DX Posture
 
@@ -53,21 +60,29 @@ That distinction is one of the most important laws in this crate.
 
 Typical witness flow:
 
-1. some trusted crate-local or test-only surface obtains a witness
-2. the witness is passed into a transition context or transition constructor
-3. the transition consumes it to progress a weaker form into a stronger one
-4. the resulting stronger form carries semantic truth, not the witness itself
+1. some trusted crate-local or test-only surface owns a constructible marker
+   for the authority or capability
+2. that trusted surface converts the marker into a witness
+3. the witness is passed into a transition context or transition constructor
+4. the transition consumes it to progress a weaker form into a stronger one
+5. the resulting stronger form carries semantic truth, not the witness itself
 
 ## Small Example
 
 ```rust
-use forge_proof::AuthorityMarker;
+use forge_proof::{AuthorityMarker, AuthorityWitness};
 
 struct ResolutionAuthority;
 impl AuthorityMarker for ResolutionAuthority {}
+
+fn resolution_authority() -> AuthorityWitness<ResolutionAuthority> {
+    AuthorityWitness::from_authority_marker(ResolutionAuthority)
+}
 ```
 
-This is the smallest honest public example because marker definition is the part a consumer actually writes. Public witness minting is intentionally unavailable.
+This is the smallest honest public example. If the authority must not be
+available outside the owning module or crate, keep `ResolutionAuthority` private
+or make its fields private.
 
 ## Real Example
 
@@ -117,7 +132,8 @@ What this shows:
 
 ## Current Limits
 
-- witness minting is intentionally sealed
+- sealed witness minting remains unavailable; public witness construction goes
+  through domain-owned marker values
 - witnesses authorize progression, but they do not describe rich policy or diagnostics
 - the meaning of a specific authority or capability marker remains domain-owned
 

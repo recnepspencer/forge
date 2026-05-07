@@ -112,6 +112,11 @@ Where a suite names a compile-time boundary, the package must maintain explicit
 compile-fail fixtures or equivalent type-surface proof artifacts that stay in
 sync with the public placement contract.
 
+Because the worker placement plan requires `forge-proof` for the Rust-side
+placement/lowering/readmission proof chain, compile-time boundary suites must
+prove the `forge-proof` progression cannot be skipped or forged. It is not
+enough to test that local structs have private fields.
+
 ## Verification Package Standard
 
 Every broad certification family should emit a canonical verification package
@@ -220,9 +225,11 @@ Equivalent histories must match exactly when semantically equivalent.
 
 - Full milestone closeout additionally requires suite 0.
 - Phase 1 is closed only by suites 1 through 2.
-- Phase 2 is closed only by suites 3 through 4.
+- Phase 2 is closed only by suite 3 plus the non-callback/non-host slice of
+  suite 4.
 - Phase 3 is closed only by suites 5 through 7.
-- Phase 4 is closed only by suites 8 through 9.
+- Phase 4 is closed only by suites 8 through 9 plus the callback and
+  main-thread-hosted slices of suite 4.
 - Phase 5 is closed only by suites 10 through 11.
 - Phase 6 is closed only by suites 12 through 13.
 - Phase 7 is closed only by suites 14 through 15.
@@ -273,6 +280,15 @@ What to stress
 - widening maybe-worker declarations into definitely worker-executable use
 - passing raw callbacks or raw declarations past the proving boundary
 - constructing lowered worker or host execution plans without sealed proof types
+- treating a `forge-proof` unresolved/raw placement payload as placement
+  classified
+- treating a placement-classified declaration as lowered without the worker or
+  host lowering capability witness
+- treating a lowered worker or host plan as execution-ready without the
+  runtime-admission or host-boundary authority witness
+- treating a boundary-bridged transport, restore, import/export, or host
+  acknowledgement form as readmitted without explicit `forge-proof`
+  readmission
 
 What to verify
 
@@ -280,13 +296,18 @@ What to verify
 - runtime admission rejects any remaining forged or widened paths before
   execution begins
 - undeclared fallback paths cannot be reached through ordinary product APIs
+- checked `forge-proof` outcomes preserve denial, fallback, unavailable, stale,
+  rebind-required, and failed categories instead of flattening them into one
+  ordinary error
 
 Pass condition
 
 No worker-only declaration helper, host-only execution surface, or boundary
 envelope proof may be reachable without the corresponding declaration-bearing
 proof path. Raw declarations must not be admissible to worker-first publication
-or execution APIs once the proving boundary exists.
+or execution APIs once the proving boundary exists. Compile-fail fixtures must
+cover the `forge-proof` placement progression stages directly, including
+resolution, lowering, readiness, and readmission misuse.
 
 ## Phase 2: Worker-Owned Runtime Shell And Graph Lifecycle
 
@@ -343,6 +364,20 @@ Pass condition
 
 The verification package must emit placement-frontier digest, worker-breadth
 digest, main-thread-hosted digest, and broadening denial artifact.
+
+Phase ownership note
+
+This suite intentionally spans two gates:
+
+- Phase 2 owns only the already-lowered, non-callback, non-host isolation slice
+  required to prove the worker runtime shell does not collapse ordinary
+  placement breadth.
+- Phase 4 owns the callback-authored, main-thread-hosted, unavailable, and
+  denial/fallback slices after placement classification and host-execution
+  lowering exist.
+
+Phase 2 may not satisfy this suite by inventing a provisional raw-callback
+transport or temporary main-thread execution escape hatch.
 
 ## Phase 3: Main-Thread Host Capability And Host Effect Bridges
 

@@ -464,6 +464,114 @@ Required consequence:
 - compatibility mode and worker-first mode differ in placement, not in meaning
 - the bridge is a boundary around authority, not a convenience callback layer
 
+### 10.1.1 Implementation Topology
+
+The implementation should introduce named responsibility homes before worker
+code fans out. The exact file names may evolve during implementation, but the
+responsibility split is normative:
+
+- `runtime/placement`
+  Owns placement classification, placement identity, fallback or denial
+  classification, and the proof-bearing progression from raw authored
+  declaration into placement-classified form.
+- `runtime/placement/lowering`
+  Owns lowering from placement-classified declarations into sealed worker
+  execution plans, sealed main-thread-hosted execution plans, or typed denial
+  and unavailability artifacts.
+- `runtime/worker_bridge`
+  Owns worker-side boundary-envelope admission, causality ordering, transaction
+  submission/result envelopes, host-capability ingress admission, output and
+  observation delivery envelopes, diagnostics/history request envelopes, and
+  lifecycle control envelopes.
+- `runtime/worker_host`
+  Owns the worker runtime shell, bootstrap state, worker-runtime identity, and
+  worker-side admission of typed host results. It may not own browser facts or
+  main-thread effects.
+- `boundary/worker`
+  Owns wasm-facing worker-first construction, deployment posture selection,
+  worker handle lifecycle, and public bridge facade methods. It should not
+  implement placement classification or runtime semantics.
+- `package/product/worker_runtime` or equivalent package-side surface
+  Owns TypeScript worker startup, message transport, browser-host adapters,
+  examples, and product-facing docs. It must consume the frozen bridge envelope
+  vocabulary rather than invent package-local RPC bags.
+- `tests/worker_runtime` or equivalent proof lanes
+  Owns worker-first versus compatibility parity, placement compile-fail
+  boundaries, bridge boundedness, host ingress/egress, callback eligibility,
+  replay/restore/import/export capability posture, and the hostile closeout
+  suite.
+
+Existing oversized or responsibility-heavy implementation files must not become
+the worker home by convenience. In particular, new worker placement code should
+not be added to broad compatibility, adapter, summary, or app-boundary files
+unless the edit is part of splitting that file toward the topology above.
+
+### 10.1.2 Required `forge-proof` Substrate Use
+
+This milestone must use `forge-proof` for the Rust-side placement and
+readmission proof chain. Worker placement is exactly the kind of progression
+law `forge-proof` exists to encode: raw authoring must not skip into lowered
+execution, lowered plans must not masquerade as execution-ready, and transported
+or restored artifacts must not retain trust without explicit readmission.
+
+This requirement is narrow. It does not turn the milestone into a general
+proof-crate migration project, and it does not move transport, diagnostics,
+runtime scheduling, or product documentation into `forge-proof`.
+
+Use `forge-proof` for:
+
+- raw authored declaration -> placement-classified declaration
+- placement-classified declaration -> lowered worker execution plan
+- placement-classified declaration -> lowered main-thread-hosted execution plan
+- placement-classified declaration -> typed denial or unavailability artifact
+- lowered plan crossing the worker/main-thread bridge -> boundary-bridged form
+- boundary-bridged result, restore, import, or host acknowledgement -> explicit
+  worker-side readmission before runtime authority consumes it
+- capability or authority gates for worker-executable lowering,
+  main-thread-hosted lowering, host-effect acknowledgement admission, and
+  compatibility fallback admission
+
+The expected proof grammar is:
+
+- raw authored declarations enter as unresolved or raw placement payloads
+- placement classification resolves them under a placement authority witness
+- worker-executable and main-thread-hosted lanes lower only with the matching
+  capability witness
+- execution admission/readiness requires worker-runtime or host-boundary
+  authority as appropriate
+- denied, fallback, unavailable, stale, rebind-required, and failed outcomes
+  stay distinguishable through checked progression rather than flattening into
+  `Result`
+- any form that crosses JavaScript, worker transport, restore, import, export,
+  or host acknowledgement must bridge trust and regain strong Rust-side status
+  through explicit readmission before runtime authority consumes it
+
+Do not use `forge-proof` for:
+
+- worker message transport
+- diagnostics schemas, provenance, history, or verification-package payloads
+- runtime scheduling or execution
+- TypeScript-facing product artifacts that need structural serialization
+- generic dynamic proof bags at the bridge boundary
+
+Normative guidance:
+
+- if a placement stage is statically known inside Rust, it should be represented
+  through static `forge-proof` progression unless a phase explicitly documents a
+  narrower crate-local sealed type that wraps or terminates in a `forge-proof`
+  form before execution
+- if a form crosses JavaScript, worker transport, restore, import, or export,
+  use canonical serializable artifacts plus explicit readmission back into a
+  static proof-bearing Rust form before hot-path execution resumes
+- `forge-proof` may be introduced incrementally for the placement/lowering
+  proof chain without forcing existing callback, diagnostics, resource, or
+  router surfaces through the proof substrate in this milestone
+- the implementation may wrap `forge-proof` types behind domain-specific names
+  such as `PlacementClassifiedDeclaration`, `LoweredWorkerPlan`, or
+  `ReadmittedHostEffectAcknowledgement`, but those wrappers must preserve the
+  underlying proof progression rather than recreating an unrelated typestate
+  system
+
 ### 10.2 Main Thread And Worker Must Exchange Typed Boundary Envelopes
 
 Cross-thread traffic must use typed, self-describing envelopes rather than ad
@@ -492,6 +600,17 @@ Required consequence:
 - result or acknowledgement envelopes from the host are admissible evidence only
   after worker-side canonical admission; receiving a message does not itself
   mutate truth
+
+Phase dependency consequence:
+
+- Phase 2 must introduce the minimal committed transaction/result envelope
+  needed for parity harnesses to observe worker-owned committed truth without a
+  temporary observation engine
+- Phase 5 owns the full public observation, output, diagnostics, and history
+  delivery boundary
+- any Phase 2 delivery surface must either be the first narrow slice of the
+  final envelope vocabulary or be removed before Phase 2 closes; provisional
+  worker message shapes are out of spec
 
 ### 10.3 Placement Eligibility Must Be Proven Before Execution
 
@@ -713,6 +832,20 @@ Phase 1 gate:
 - no later phase begins until placement classification and bridge-envelope
   categories are precise enough that the worker boundary can be implemented
   without semantic guesswork
+- the phase must name the concrete sealed Rust type families, or an equivalent
+  `forge-proof`-backed proof topology, for:
+  - raw authored declarations
+  - placement-classified declarations
+  - lowered worker execution plans
+  - lowered main-thread-hosted execution plans
+  - typed denial, fallback, and unavailability artifacts
+  - boundary-bridged envelopes that require readmission after transport,
+    restore, import, export, or host acknowledgement
+- the phase must state which `forge-proof` surfaces it uses for placement
+  resolution, lowering capability, execution readiness, checked denial, and
+  boundary readmission
+- any crate-local sealed wrappers introduced in this phase must wrap or
+  terminate in the `forge-proof` progression chain rather than replacing it
 
 ### Phase 2: Worker-Owned Runtime Shell And Graph Lifecycle
 
@@ -729,6 +862,9 @@ This phase must ship:
 - graph publication and graph-owned lifecycle behavior for already lowered or
   placement-classified non-callback workloads that remains honest when the
   runtime authority is worker-owned
+- the minimal committed transaction/result envelope needed to compare
+  worker-first and compatibility committed truth without introducing temporary
+  observation or delivery folklore
 - main-thread compatibility parity harnesses for equivalent graphs
 
 Phase 2 restriction:
@@ -743,8 +879,40 @@ Phase 2 gate:
 
 - no later phase begins until worker-first mode and compatibility mode can
   prove the same committed graph truth for equivalent non-host workloads
+- the committed transaction/result envelope used by Phase 2 parity must be
+  compatible with the final Phase 5 delivery vocabulary, not a throwaway worker
+  RPC shape
 - general callback-authored worker-first publication remains blocked until Phase
   4 closes placement classification and lowering honestly
+
+Phase 2 closeout evidence:
+
+- `boundary/worker` owns the wasm-facing Phase 2 worker-first construction
+  surface through `SignalWorkerRuntime`.
+- `runtime/worker_host` owns the worker runtime shell, bootstrap record,
+  worker-runtime identity, portable graph publication admission, and committed
+  transaction/result envelope.
+- Phase 2 graph publication is intentionally named and typed as portable graph
+  publication. Callback-backed definition envelopes remain denied before
+  placement lowering closes.
+- The Phase 2 bootstrap transport posture is
+  `inProcessBootstrapBeforeTransportBridge`.
+  Browser Worker message transport, host-capability ingress, host-effect egress,
+  output delivery, observation delivery, diagnostics/history delivery, replay,
+  restore, import, and export capability posture remain later-phase work.
+- Suite 3 evidence is covered by worker-first versus compatibility committed
+  truth, async lifecycle, observation, diagnostics, branch fork, and branch
+  restore certification.
+- The Phase 2 slice of suite 4 is covered by portable non-host region isolation
+  plus an unpublished-region frontier denial artifact. Callback-authored,
+  main-thread-hosted, unavailable, and fallback slices remain Phase 4 work.
+- Verification commands used for closeout:
+  - `cargo fmt -p forge-signal-wasm`
+  - `cargo check -p forge-signal-wasm`
+  - `cargo test -p forge-signal-wasm --lib worker_runtime`
+  - `cargo test -p forge-signal-wasm --lib worker_runtime_bootstrap`
+  - `cargo test -p forge-signal-wasm --lib`
+  - `cargo test -p forge-signal-wasm --test worker_boundary_type_surface_compile_fail`
 
 ### Phase 3: Main-Thread Host Capability And Host Effect Bridges
 
@@ -765,6 +933,62 @@ Phase 3 gate:
 
 - no later phase begins until browser-only host facts and main-thread-only host
   effects are integrated without ambient reads or imperative side channels
+
+Phase 3 implementation evidence:
+
+- The first Phase 3 slice introduces typed worker-host boundary admission for
+  host-capability ingress, browser-history ingress, host-effect requests, and
+  host-effect acknowledgements through the `SignalWorkerRuntime` boundary.
+- Host-capability ingress coalesces repeated updates by capability family and
+  registration identity before emitting canonical envelope, lifecycle, truth,
+  and coalescing digests.
+- Host-capability ingress may now admit coalesced host facts into worker-owned
+  runtime source truth through a single runtime transaction. Certification
+  compares the resulting worker-first committed truth digest against an
+  equivalent compatibility runtime.
+- Host-capability ingress now classifies admitted, stale, denied, detached, and
+  unavailable host facts as explicit boundary artifacts. Reports emit artifact
+  counts and a host-boundary artifact digest, and malformed non-admitted
+  artifacts that try to carry runtime mutations reject before coalescing can
+  hide them.
+- Browser-history ingress emits canonical browser-history envelope, route
+  truth, and continuity digests while explicitly denying ambient worker
+  location reads.
+- Browser-history ingress may now admit typed route facts into worker-owned
+  runtime source truth through the same worker authority path used by ordinary
+  transactions. Certification compares the resulting worker-first route truth
+  digest against an equivalent compatibility runtime, and malformed partial
+  route admissions reject before runtime mutation.
+- Browser-history ingress may now admit typed route-local continuity facts
+  beside route facts in the same worker-owned transaction. Reports emit
+  separate route and continuity admission counts plus replay/restore digest
+  evidence, and certification covers branch restore after browser-history
+  ingress followed by additional browser-history ingress on the restored
+  branch.
+- Host-effect egress emits closed main-thread host-effect requests and typed
+  acknowledgement reports. Acknowledgements explicitly remain non-authoritative
+  until worker-side readmission.
+- Host-effect acknowledgements now cross the worker boundary as `forge-proof`
+  bridged artifacts and may readmit paired lifecycle source/value facts into
+  worker-owned runtime truth through a single runtime transaction. The
+  acknowledgement report emits the lifecycle artifact, `forge-proof`
+  readmission digest, admitted lifecycle count, mutation breadth, and
+  worker-first truth digest; unpaired lifecycle readmission is rejected before
+  runtime mutation.
+- Every added Phase 3 boundary report carries transaction-sequence/generation
+  causality with `transactionSequenceThenGeneration` ordering.
+- Phase 3 now emits a canonical main-thread host-bridge certification package
+  that bundles suite 5 through 7 evidence from real host-capability ingress,
+  browser-history ingress, host-effect request, and host-effect acknowledgement
+  reports. The package carries the required envelope, truth, coalescing,
+  continuity, replay/restore, denial/unavailability, lifecycle-integrity,
+  forge-proof readmission, causality, and boundary-performance digests, and
+  rejects out-of-order boundary evidence or host-effect acknowledgements that
+  do not match the issued request digest. Non-host runtime mutations and graph
+  lifecycle changes clear retained Phase 3 evidence so stale host-boundary
+  reports cannot certify a newer runtime truth story.
+- Phase 3 is implementation-closed pending the hostile QA loop and final
+  closeout judgment against the full worker-runtime certification standard.
 
 ### Phase 4: Computation Placement, Callback Eligibility, And Honest Fallback
 
@@ -806,6 +1030,21 @@ Phase 4 gate:
 - no later phase begins until callback placement, denial, and fallback are
   explicit enough that worker-first mode no longer relies on folklore about
   closure portability
+
+Phase 4 implementation evidence:
+
+- The first Phase 4 slice emits a callback placement eligibility certification
+  package from `RuntimeCore` and the diagnostics facade. The package classifies
+  callback-authored declarations into worker-executable, main-thread-hosted, and
+  unavailable rows, carries denial/fallback/capability/identity/performance
+  digests, records signal-read and host-capability breadth, and keeps fallback
+  count at zero until an explicit fallback lane exists.
+- Callback eligibility now denies raw live-callback transport as a placement
+  fact rather than treating "compiled once" as worker portability. Main-thread
+  hosted rows explicitly require a closed request/result lane, while unavailable
+  rows emit unavailability artifacts instead of widening into fallback.
+- This slice intentionally does not implement main-thread-hosted execution or
+  import/export callback reattachment; those remain Phase 4 and Phase 6 work.
 
 ### Phase 5: Observation, Output, Diagnostics, And History Boundary
 

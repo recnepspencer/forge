@@ -1,6 +1,6 @@
 ---
 name: code-quality-qa
-description: Run a Forge-quality structural review of production code. Use when the question is whether code is well composed and well organized under `composition_laws.md` and `domain_structure_laws.md`, especially for file structure, function structure, naming, helper placement, module boundaries, and directory topology.
+description: Run a hostile Forge-quality structural review of production code. Use when the question is whether code truly lives up to `composition_laws.md` and `domain_structure_laws.md`, especially directory topology, file names, function decomposition, naming, helper placement, and module boundaries.
 ---
 
 # Code Quality QA
@@ -22,7 +22,7 @@ It is not about:
 
 Read these in this order before running the pass:
 
-1. `_docs/coding_guidelines/composition_laws.md` if it is populated
+1. `_docs/coding_guidelines/composition_laws.md`
 2. `_docs/coding_guidelines/domain_structure_laws.md`
 
 Then read:
@@ -34,13 +34,30 @@ Then read:
 Review as a hostile engineer who assumes code can be technically correct while
 still being structurally bad.
 
-The bar is:
-- files own one real responsibility
-- functions read like named semantic steps
-- names predict meaning
-- helpers live at the right layer
-- folders teach the subsystem
-- the next correct edit is obvious
+The bar is stricter than ordinary "clean code", stricter than Google-style
+readability, and biased toward Forge's opinionated architecture standards.
+
+Assume the structure is guilty until it proves itself:
+- a directory must truly earn its boundary, not merely group related files
+- a filename must let a new engineer predict its contents before opening it
+- a function must truly be decomposed into named semantic steps, not just be
+  short enough to tolerate
+- a helper must reveal the parent responsibility it serves, not just reduce
+  line count
+- a module boundary must make the next correct edit easier than the convenient
+  edit
+- a name must carry phase, authority, truth status, and domain meaning when
+  those distinctions matter
+
+Do not grade on an industry curve. A structure that would pass ordinary code
+review can still fail this skill if it is less explicit, less navigable, or
+less predictive than Forge's laws demand.
+
+Assume the surrounding codebase may not yet meet this bar. Existing local
+patterns are evidence to inspect, not precedent to copy. When reviewing new or
+touched work, prefer setting the better structural precedent over matching
+nearby weaker files, unless compatibility with the existing shape is a real
+architectural constraint.
 
 ## Scope of this skill
 
@@ -62,15 +79,33 @@ Do not use this skill to judge:
 
 ## Core review questions
 
-1. Does this file have one real responsibility?
-2. Does the filename predict its contents?
-3. Do the main functions read like semantic steps instead of raw mechanics?
-4. Is domain classification named, or buried inline?
-5. Are helpers local, child-module, sibling-module, or shared at the correct layer?
-6. Is the directory structure organized by real responsibility instead of buckets?
-7. Are any files acting like god files or any functions acting like god functions?
-8. Are there vague bucket names like `helpers`, `common`, `utils`, or `logic` hiding structure?
-9. Is the next correct edit obvious from the structure?
+Ask these with real skepticism, not as checklist affirmations:
+
+1. Does this directory truly earn its boundary, or is it just a folder for
+   related things?
+2. Does each filename truly predict its contents without opening the file?
+3. If a filename is broad, is it an honest facade/aggregation point, or a
+   responsibility sink?
+4. Does each file truly own one semantic responsibility that can be deleted,
+   replaced, tested, and reviewed as one idea?
+5. Do the main functions truly read like named semantic steps, or do they hide
+   classification, policy, transformation, projection, or formatting inline?
+6. Are the functions decomposed because the domain has named substeps, or only
+   because the body got long?
+7. Does every branch that represents a domain classification have a name?
+8. Does every helper live at the narrowest honest semantic radius?
+9. Are any helpers fake decomposition that moved code without clarifying
+   responsibility?
+10. Are names carrying the phase, authority, proof status, and domain meaning
+    that callers need at the point of use?
+11. Are there vague bucket names like `helpers`, `common`, `utils`, `logic`,
+    `types`, `model`, `service`, `manager`, or `processor` hiding structure?
+12. Would a new engineer know where to make the next correct edit without grep
+    archaeology?
+13. Is the current structure merely acceptable, or does it teach the subsystem
+    under pressure?
+14. Is the code copying a weak surrounding pattern when it should instead set a
+    stronger precedent for future work?
 
 ## Typical findings
 
@@ -82,6 +117,13 @@ Look aggressively for:
 - vague names
 - fake helpers that only moved code without naming the responsibility
 - bucket folders
+- filenames that are technically accurate but not predictive enough
+- directories that group related things without encoding structural fate
+- files that would become deletion-resistant if one behavior were removed
+- functions that are small but still hide domain decisions
+- broad facade-looking modules that implement rather than aggregate
+- new code inheriting weak local structure as though existing code were the
+  standard
 - flat directories that need substructure
 - files over 400 lines without exemption
 - directories over 10 files without honest subdivision
@@ -93,8 +135,13 @@ Look aggressively for:
 3. Perform a hostile review.
 4. Report findings first.
 5. Fix the findings.
-6. Reassess whether better decomposition is still needed.
+6. Reassess whether the new directory names, file names, and function names
+   truly predict their contents.
 7. Repeat until no meaningful findings remain.
+
+Do not run tests before structural edits are complete unless a compile error is
+needed to unblock the refactor. Prefer static review, targeted reads, and name
+audits while editing; verify once the structure has stabilized.
 
 ## Required output discipline
 
@@ -112,10 +159,16 @@ Preserve this wording exactly when you use it internally as your review frame.
 Perform a brutal code-quality QA pass focused only on composition and structure.
 
 Evaluate the code against:
-- `composition_laws.md`, if it is populated
+- `composition_laws.md`
 - `domain_structure_laws.md`
 
-Assume the bar is production-grade. Look for god functions, god files, vague naming, bucket modules, bad helper placement, mixed abstraction levels, fake decomposition, flat directory sprawl, and any structure that makes the next correct edit harder than the next convenient edit.
+Assume the bar is stricter than ordinary production code, stricter than Google readability, and biased toward Forge's most opinionated standards.
+
+Start from skepticism. Ask whether each directory truly earns its boundary, whether each filename truly predicts its contents before opening it, and whether each function is truly decomposed into named semantic steps rather than merely being short, tidy, or locally understandable.
+
+Assume the surrounding codebase may fail this skill. Treat nearby patterns as context, not permission. New or touched code should set the better precedent unless an explicit architectural constraint requires alignment with existing weaker structure.
+
+Look for god functions, god files, vague naming, bucket modules, filenames that are accurate but not predictive, bad helper placement, mixed abstraction levels, fake decomposition, flat directory sprawl, deletion-resistant files, helper swamps, new code copying weak local precedent, and any structure that makes the next correct edit harder than the next convenient edit.
 
 Report findings first.
 

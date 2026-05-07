@@ -163,7 +163,7 @@ impl RuntimeCore {
         let reads = canonicalize_callback_reads(invocation.captured_read_ids);
         let current_reads = reads.iter().map(|read| read.id().to_owned()).collect();
         let value = invocation.value;
-        if reads.is_empty() {
+        if reads.is_empty() && invocation.captured_host_capability_reads.is_empty() {
             let disposed = compute_callbacks::dispose_compute(token);
             debug_assert!(
                 disposed,

@@ -262,6 +262,18 @@ pub struct WebPerformanceSummary {
     pub compatibility_read_breadth: u64,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeAsyncLifecycleCertification {
+    pub node_id: String,
+    pub payload_contract_id: u64,
+    pub payload_byte_len: u64,
+    pub request_admitted: bool,
+    pub completion_committed: bool,
+    pub resource_runtime_digest: String,
+    pub resource_replay_digest: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeSnapshotEnvelope {

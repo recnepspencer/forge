@@ -1,4 +1,7 @@
-use forge_signal::facade::runtime::{ObservationHandle, ObservationPolicy};
+use forge_signal::facade::runtime::{
+    ObservationHandle, ObservationListener, ObservationNotice, ObservationPolicy,
+    ObservationReadContext,
+};
 use js_sys::Function;
 
 use crate::boundary::errors::ForgeSignalJsError;
@@ -8,10 +11,22 @@ use crate::runtime::diagnostics_callbacks::DiagnosticsCallbackToken;
 use crate::runtime::summaries::WebPerformanceSummary;
 use crate::runtime::web_callbacks::{self, ObservationCallbackToken};
 
-use super::super::state::WebSignalKind;
+use super::super::state::{SharedStore, WebSignalKind};
 use super::super::{RuntimeCore, WasmEffectListener, WasmWatchListener};
 
 impl RuntimeCore {
+    pub(crate) fn observe_signal_for_runtime_certification(
+        &mut self,
+        id: &str,
+    ) -> Result<ObservationHandle, ForgeSignalJsError> {
+        let node = self.node_for_id(id)?;
+        Ok(self.runtime.observe_nodes(
+            ObservationPolicy::meaningful_change(),
+            [node],
+            Box::new(RuntimeCertificationObservationListener),
+        ))
+    }
+
     pub fn watch_signal(
         &mut self,
         id: &str,
@@ -229,5 +244,16 @@ impl RuntimeCore {
             compatibility_read_count: self.web_metrics.compatibility_read_count,
             compatibility_read_breadth: self.web_metrics.compatibility_read_breadth,
         }
+    }
+}
+
+struct RuntimeCertificationObservationListener;
+
+impl ObservationListener<(), (), (), SharedStore, ()> for RuntimeCertificationObservationListener {
+    fn on_observation(
+        &self,
+        _ctx: ObservationReadContext<'_, (), (), (), SharedStore, ()>,
+        _notice: &ObservationNotice<'_>,
+    ) {
     }
 }

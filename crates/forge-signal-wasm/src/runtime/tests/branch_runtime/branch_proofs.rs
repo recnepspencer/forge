@@ -1,4 +1,4 @@
-use super::support::*;
+use super::super::support::*;
 
 #[test]
 fn replay_parity_proof_distinguishes_equivalent_and_divergent_branch_states() {
