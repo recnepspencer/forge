@@ -1,12 +1,13 @@
 use forge_query::facade::{ForgeQueryExistingRelationTarget, ForgeQueryExistingTruthAssertionMode};
-use worth_schema::facade::{
-    seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase, WorthTopologyRelationKind,
+use worth_schema::facade::topology_authoring::{
+    seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
 };
+use worth_schema::facade::WorthTopologyRelationKind;
 
 use super::relation_update_support::{query_entity_id_from_row, query_relation_id_from_row};
 use crate::edit::{
     WorthLoopEndpointKind, WorthTopologyEditApplicationMode, WorthTopologyEditBatch,
-    WorthTopologyEditContract, WorthTopologyEditFamily, WorthTopologyQueryEditRunner,
+    WorthTopologyEditContract, WorthTopologyEditFamily,
 };
 use crate::query::{
     worth_topology_runtime, WorthTopologyQueryAssembly, WorthTopologyRuntimeAdapters,
@@ -170,8 +171,12 @@ fn current_head_runtime_executes_rewire_loop_endpoint_through_query_native_edit_
     )])
     .expect("non-empty edit batch");
 
-    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let execution = assembly
+        .apply_edit(
+            &mut workspace,
+            batch,
+            WorthTopologyEditApplicationMode::Mainline,
+        )
         .expect("endpoint rewire should execute through the admitted runtime family");
 
     assert_eq!(

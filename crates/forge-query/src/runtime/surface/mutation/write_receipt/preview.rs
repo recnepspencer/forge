@@ -12,7 +12,6 @@ use super::{
 };
 
 impl ForgeQueryWriteReceipt {
-    #[allow(deprecated)]
     pub(in crate::runtime) fn preview(
         label: &str,
         sequence: usize,
@@ -94,22 +93,12 @@ impl ForgeQueryWriteReceipt {
     }
 }
 
-#[allow(deprecated)]
 pub(super) fn preview_receipt_delta(
     command: &ForgeQueryWriteCommand,
     label: &str,
     sequence: usize,
 ) -> crate::memory_workspace::ForgeQueryMutationDelta {
     match command {
-        ForgeQueryWriteCommand::Insert {
-            collection,
-            payload: _,
-        } => crate::memory_workspace::ForgeQueryMutationDelta {
-            collection: collection.clone(),
-            entity_identity: format!("preview:{label}:{sequence}"),
-            kind: crate::memory_workspace::ForgeQueryMutationKind::Created,
-            aspect_paths: Vec::new(),
-        },
         ForgeQueryWriteCommand::InsertAspects { collection, .. } => {
             crate::memory_workspace::ForgeQueryMutationDelta {
                 collection: collection.clone(),

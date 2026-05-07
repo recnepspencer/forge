@@ -1,4 +1,6 @@
 mod core;
+mod domain_query_breadth;
+mod domain_query_parity;
 mod edit_execution;
 mod edit_execution_shell;
 mod edit_execution_shell_set;

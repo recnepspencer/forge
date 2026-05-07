@@ -149,7 +149,7 @@ capabilities inherit.
   runtime capability, but they do not get to define the public Query contract
   or the roadmap shape of generic graph composition
 - production bridge-backed runtime support is the governing support bar; memory
-  and compatibility runtimes may lead implementation, but they do not define
+  and scaffold runtimes may lead implementation, but they do not define
   completion
 
 ## Governing Summaries
@@ -192,7 +192,7 @@ capabilities inherit.
 - `runtime-api-public-stabilization-plan.md`
   The most important thing it protects is beautiful ordinary DX. The new
   surfaces must feel like stable public runtime authoring, not expert-only
-  compatibility seams.
+  lower-level seams.
 - `../worth/forge-query-runtime-kernel-hard-break.md`
   The most important thing it protects is the downstream kernel bar. Worth
   should not solve generic graph authoring, verified mutation, or identity-
@@ -734,7 +734,7 @@ Explicit first-ship debt:
 - graph workflows that still require downstream invariant-complete subgraph
   widening
 - verification families that remain unavailable on production bridge-backed
-  runtimes even if memory or compatibility runtimes can prove them earlier
+  runtimes even if memory or scaffold runtimes can prove them earlier
 
 Allowed first-ship conservatism:
 
@@ -983,7 +983,7 @@ Must preserve:
   fabricated by Query
 - unsupported families fail closed rather than degrading into retained local
   assertions with the same public shape
-- production runtimes and memory/compatibility runtimes remain phase-typed in
+- production runtimes and memory/scaffold runtimes remain phase-typed in
   support posture
 - assumption/read-set evidence stays distinct from binding and result evidence
   in receipt, inspection, and certification output
@@ -1020,8 +1020,8 @@ Must preserve:
 
 - the public docs teach only admitted stable or explicitly denied/deferred
   surfaces
-- compatibility or deprecated mutation seams remain documented as such and are
-  not mixed into the new authoring story
+- deleted builder-shaped seams and any surviving lower-level mutation seams
+  remain named honestly and are not mixed into the new authoring story
 
 This phase is complete only when public docs, roadmap placement, support
 metadata, and certification suites all tell the same story.
@@ -1405,7 +1405,8 @@ Documentation must explicitly distinguish:
 
 - stable public runtime support
 - denied-but-planned neighbors
-- compatibility or deprecated mutation seams
+- deleted builder-shaped mutation seams and any surviving lower-level mutation
+  seams
 - first-ship debt that remains explicit after implementation
 - any fallback or workaround examples must be labeled non-ordinary and may not
   appear before the canonical authoring examples in feature docs

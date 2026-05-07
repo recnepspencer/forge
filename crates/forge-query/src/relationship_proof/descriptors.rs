@@ -1,9 +1,11 @@
+use crate::authoring::{AuthoringError, RelationName};
 use crate::identity::hash_parts;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum RelationshipProofTopologyClass {
     DirectEdge,
     BoundedAncestor,
+    BoundedDescendant,
     TenantMembership,
 }
 
@@ -12,6 +14,7 @@ impl RelationshipProofTopologyClass {
         match self {
             Self::DirectEdge => "direct_edge",
             Self::BoundedAncestor => "bounded_ancestor",
+            Self::BoundedDescendant => "bounded_descendant",
             Self::TenantMembership => "tenant_membership",
         }
     }
@@ -58,6 +61,11 @@ pub enum RelationshipProofDescriptor {
         max_depth: u8,
         policy_digest: String,
     },
+    BoundedDescendant {
+        relation: String,
+        max_depth: u8,
+        policy_digest: String,
+    },
     TenantMembership {
         tenant_schema_basis_digest: String,
     },
@@ -74,8 +82,18 @@ pub enum RelationshipProofDescriptor {
 
 impl RelationshipProofDescriptor {
     pub fn direct_edge(relation: impl Into<String>, policy_digest: impl Into<String>) -> Self {
+        Self::direct_edge_relation_name(
+            RelationName::new(relation).expect("relationship proof relation must be non-empty"),
+            policy_digest,
+        )
+    }
+
+    pub fn direct_edge_relation_name(
+        relation: RelationName,
+        policy_digest: impl Into<String>,
+    ) -> Self {
         Self::DirectEdge {
-            relation: relation.into(),
+            relation: relation.as_str().to_string(),
             policy_digest: policy_digest.into(),
         }
     }
@@ -84,12 +102,54 @@ impl RelationshipProofDescriptor {
         relation: impl Into<String>,
         max_depth: u8,
         policy_digest: impl Into<String>,
-    ) -> Self {
-        Self::BoundedAncestor {
-            relation: relation.into(),
+    ) -> Result<Self, AuthoringError> {
+        Self::bounded_ancestor_relation_name(
+            RelationName::new(relation).expect("relationship proof relation must be non-empty"),
+            max_depth,
+            policy_digest,
+        )
+    }
+
+    pub fn bounded_ancestor_relation_name(
+        relation: RelationName,
+        max_depth: u8,
+        policy_digest: impl Into<String>,
+    ) -> Result<Self, AuthoringError> {
+        if max_depth == 0 {
+            return Err(AuthoringError::UnsupportedTraversalDepth { depth: 0 });
+        }
+        Ok(Self::BoundedAncestor {
+            relation: relation.as_str().to_string(),
             max_depth,
             policy_digest: policy_digest.into(),
+        })
+    }
+
+    pub fn bounded_descendant(
+        relation: impl Into<String>,
+        max_depth: u8,
+        policy_digest: impl Into<String>,
+    ) -> Result<Self, AuthoringError> {
+        Self::bounded_descendant_relation_name(
+            RelationName::new(relation).expect("relationship proof relation must be non-empty"),
+            max_depth,
+            policy_digest,
+        )
+    }
+
+    pub fn bounded_descendant_relation_name(
+        relation: RelationName,
+        max_depth: u8,
+        policy_digest: impl Into<String>,
+    ) -> Result<Self, AuthoringError> {
+        if max_depth == 0 {
+            return Err(AuthoringError::UnsupportedTraversalDepth { depth: 0 });
         }
+        Ok(Self::BoundedDescendant {
+            relation: relation.as_str().to_string(),
+            max_depth,
+            policy_digest: policy_digest.into(),
+        })
     }
 
     pub fn tenant_membership(tenant_schema_basis_digest: impl Into<String>) -> Self {
@@ -105,8 +165,14 @@ impl RelationshipProofDescriptor {
     }
 
     pub fn unbounded_recursive_walk_for_test(relation: impl Into<String>) -> Self {
+        Self::unbounded_recursive_walk_relation_name_for_test(
+            RelationName::new(relation).expect("relationship proof relation must be non-empty"),
+        )
+    }
+
+    pub fn unbounded_recursive_walk_relation_name_for_test(relation: RelationName) -> Self {
         Self::UnboundedRecursiveWalk {
-            relation: relation.into(),
+            relation: relation.as_str().to_string(),
         }
     }
 
@@ -120,7 +186,9 @@ impl RelationshipProofDescriptor {
     pub(crate) fn topology_width(&self) -> Option<usize> {
         match self {
             Self::DirectEdge { .. } | Self::TenantMembership { .. } => Some(1),
-            Self::BoundedAncestor { max_depth, .. } => Some(usize::from(*max_depth)),
+            Self::BoundedAncestor { max_depth, .. } | Self::BoundedDescendant { max_depth, .. } => {
+                Some(usize::from(*max_depth))
+            }
             Self::QueryShapeMismatch { .. }
             | Self::UnboundedRecursiveWalk { .. }
             | Self::HostCallbackForbidden { .. } => None,
@@ -138,6 +206,11 @@ impl RelationshipProofDescriptor {
                 max_depth,
                 policy_digest,
             } => format!("ancestor:{relation}:{max_depth}:{policy_digest}"),
+            Self::BoundedDescendant {
+                relation,
+                max_depth,
+                policy_digest,
+            } => format!("descendant:{relation}:{max_depth}:{policy_digest}"),
             Self::TenantMembership {
                 tenant_schema_basis_digest,
             } => format!("tenant_membership:{tenant_schema_basis_digest}"),
@@ -253,5 +326,46 @@ impl RelationshipProofAdmission {
 
     pub fn descriptor_count(&self) -> usize {
         self.descriptor_count
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::RelationshipProofDescriptor;
+    use crate::authoring::{AuthoringError, RelationName};
+
+    #[test]
+    fn relationship_proof_descriptors_can_reuse_validated_relation_names() {
+        let relation = RelationName::new("worth.half_edge_next").expect("valid relation");
+        let direct =
+            RelationshipProofDescriptor::direct_edge_relation_name(relation.clone(), "policy-a");
+        let ancestor = RelationshipProofDescriptor::bounded_ancestor_relation_name(
+            relation.clone(),
+            4,
+            "policy-a",
+        )
+        .expect("validated bounded-ancestor descriptors should construct");
+        let denied =
+            RelationshipProofDescriptor::unbounded_recursive_walk_relation_name_for_test(relation);
+
+        assert_eq!(direct.digest_part(), "direct:worth.half_edge_next:policy-a");
+        assert_eq!(
+            ancestor.digest_part(),
+            "ancestor:worth.half_edge_next:4:policy-a"
+        );
+        assert_eq!(denied.digest_part(), "unbounded:worth.half_edge_next");
+    }
+
+    #[test]
+    fn bounded_ancestor_relation_name_rejects_zero_depth() {
+        let relation = RelationName::new("worth.half_edge_next").expect("valid relation");
+        let error =
+            RelationshipProofDescriptor::bounded_ancestor_relation_name(relation, 0, "policy-a")
+                .expect_err("zero-depth bounded ancestors must fail at construction");
+
+        assert!(matches!(
+            error,
+            AuthoringError::UnsupportedTraversalDepth { depth: 0 }
+        ));
     }
 }

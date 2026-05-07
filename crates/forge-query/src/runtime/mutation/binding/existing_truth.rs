@@ -269,6 +269,7 @@ pub struct ForgeQueryExistingTruthBindingDenial {
 }
 
 impl ForgeQueryExistingTruthBindingDenial {
+    #[cfg(test)]
     pub(crate) fn new(
         binding: &ForgeQueryExistingTruthTargetBinding,
         kind: ForgeQueryExistingTruthBindingDenialKind,

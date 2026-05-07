@@ -1,5 +1,7 @@
 use super::*;
-use worth_schema::facade::{verify_topology_intent, verify_topology_intent_on_branch};
+use worth_schema::facade::topology_authoring::{
+    verify_topology_intent, verify_topology_intent_on_branch,
+};
 
 #[test]
 fn public_facade_exports_closeout_field_types() {

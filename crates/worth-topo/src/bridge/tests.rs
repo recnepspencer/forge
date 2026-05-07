@@ -5,9 +5,10 @@ use forge_runtime_bridge::facade::{
     BridgeDeliveryReceipt, BridgeSignalInvalidationDelivery, BridgeTruthViewEvaluationRequest,
     InvalidationSink, SignalBridgeSinkError, TruthBranchIdentity,
 };
+use worth_schema::facade::topology_authoring::seed_minimal_topology;
 use worth_schema::facade::{
-    explain_bridge_trace, seed_minimal_topology, worth_milestone_two_invalidation_declarations,
-    WorthBridgeTraceAnchor, WorthDerivedInvalidationTarget, WorthDerivedTruthSurfaceKind,
+    explain_bridge_trace, worth_milestone_two_invalidation_declarations, WorthBridgeTraceAnchor,
+    WorthDerivedInvalidationTarget, WorthDerivedTruthSurfaceKind,
 };
 
 use crate::bridge::{

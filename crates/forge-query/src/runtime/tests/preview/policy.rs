@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn runtime_surfaces_authority_lanes_on_public_handles_and_receipts() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>("tasks.authority", task_live_request(), task_schema())
         .expect("live view should declare");
@@ -14,13 +14,13 @@ fn runtime_surfaces_authority_lanes_on_public_handles_and_receipts() {
         .expect("derived view should declare");
 
     let receipt = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Authority lane task" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Authority lane task")),
+            ],
+        ))
         .expect("insert should write");
     let patches = runtime.drain_derived_patches(derived.name());
     let inspector = runtime.inspect_receipt(&receipt);
@@ -49,7 +49,7 @@ fn runtime_surfaces_authority_lanes_on_public_handles_and_receipts() {
 
 #[test]
 fn preview_defaults_to_derive_only_effect_policy_but_keeps_explicit_writes_preview_local() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let mut preview = runtime
         .preview("default policy")
         .expect("preview session should be admitted");
@@ -85,13 +85,13 @@ fn preview_defaults_to_derive_only_effect_policy_but_keeps_explicit_writes_previ
     ));
 
     let preview_receipt = preview
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Preview-local task" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Preview-local task")),
+            ],
+        ))
         .expect("explicit preview write should stage");
     assert_eq!(
         preview_receipt.authority_lane(),
@@ -106,7 +106,7 @@ fn preview_defaults_to_derive_only_effect_policy_but_keeps_explicit_writes_previ
 
 #[test]
 fn sandboxed_preview_policy_admits_only_sandboxed_write_intents() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let preview = runtime
         .preview_with_options(
             "sandboxed writes",
@@ -144,7 +144,7 @@ fn sandboxed_preview_policy_admits_only_sandboxed_write_intents() {
 
 #[test]
 fn derive_only_preview_denies_operation_write_effects() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare before preview-safe operation runs");

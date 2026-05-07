@@ -1,14 +1,16 @@
-use forge_query::facade::ForgeQueryExistingTruthAssertionMode;
-use worth_schema::facade::{seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase};
-
-use super::relation_update_support::{
-    find_entity_id_by_identity, half_edge_identities_for_different_loops, next_target_half_edge_id,
-    prev_target_half_edge_id, query_entity_id_from_row, relation_id_for_source_kind,
+use forge_query::facade::{
+    ForgeQueryContinuityMutationFamily, ForgeQueryContinuityOutcomeClass,
+    ForgeQueryExistingTruthAssertionMode, ForgeQueryGraphCompositionLifecycleOutcomeKind,
+    ForgeQueryGraphCompositionProgramStepKind,
 };
+use worth_schema::facade::topology_authoring::{
+    seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
+};
+
+use super::relation_update_support::RelationUpdateQuerySupport;
 use crate::edit::{
     WorthLoopSuccessorKind, WorthTopologyEditApplicationMode, WorthTopologyEditBatch,
     WorthTopologyEditContract, WorthTopologyEditFamily, WorthTopologyQueryEditExecutionError,
-    WorthTopologyQueryEditRunner,
 };
 use crate::query::{
     worth_topology_runtime, WorthTopologyQueryAssembly, WorthTopologyRuntimeAdapters,
@@ -29,55 +31,29 @@ fn current_head_runtime_executes_half_edge_relocation_successor_workflow() {
         worth_topology_runtime(adapters, "worth.current-head.query-edit-rewire-successor")
             .expect("workspace");
     let assembly = WorthTopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let entity_rows = workspace.read(assembly.entities());
-    let relation_rows = workspace.read(assembly.relations());
-    let moved_identity = relation_rows
-        .iter()
-        .find_map(|row| {
-            (row.payload["topology"]["kind"].as_str()
-                == Some(worth_schema::facade::WorthTopologyRelationKind::HalfEdgeNext.kind_name()))
-            .then(|| row.payload["topology"]["source_identity"].as_str())
-            .flatten()
-        })
-        .expect("sheet disk should expose halfedge successor wiring");
-    let moved_half_edge_id = find_entity_id_by_identity(&entity_rows, moved_identity);
-    let old_successor_id = next_target_half_edge_id(&entity_rows, &relation_rows, moved_identity);
-    let old_predecessor_id = prev_target_half_edge_id(&entity_rows, &relation_rows, moved_identity);
-    let new_successor_id = next_target_half_edge_id(
-        &entity_rows,
-        &relation_rows,
-        &entity_rows
-            .iter()
-            .find(|row| query_entity_id_from_row(row) == old_successor_id)
-            .expect("old successor should remain visible")
-            .identity,
+    let support = RelationUpdateQuerySupport::load(&workspace, &assembly);
+    let moved_identity = support.first_source_identity_for_relation_kind(
+        worth_schema::facade::WorthTopologyRelationKind::HalfEdgeNext,
     );
-    let new_successor_id = next_target_half_edge_id(
-        &entity_rows,
-        &relation_rows,
-        &entity_rows
-            .iter()
-            .find(|row| query_entity_id_from_row(row) == new_successor_id)
-            .expect("intermediate successor should remain visible")
-            .identity,
-    );
-    let new_successor_identity = entity_rows
-        .iter()
-        .find(|row| query_entity_id_from_row(row) == new_successor_id)
-        .expect("new successor should remain visible")
-        .identity
-        .clone();
-    let new_predecessor_id =
-        prev_target_half_edge_id(&entity_rows, &relation_rows, &new_successor_identity);
-    let batch = successor_relocation_batch(
-        &entity_rows,
-        &relation_rows,
-        moved_identity,
-        &new_successor_identity,
-    );
+    let moved_half_edge_id = support.find_entity_id_by_identity(&moved_identity);
+    let old_successor_id = support.next_target_half_edge_id(&moved_identity);
+    let old_predecessor_id = support.prev_target_half_edge_id(&moved_identity);
+    let intermediate_successor_identity = support.find_entity_identity_by_id(old_successor_id);
+    let intermediate_successor_id =
+        support.next_target_half_edge_id(&intermediate_successor_identity);
+    let second_intermediate_identity =
+        support.find_entity_identity_by_id(intermediate_successor_id);
+    let new_successor_id = support.next_target_half_edge_id(&second_intermediate_identity);
+    let new_successor_identity = support.find_entity_identity_by_id(new_successor_id);
+    let new_predecessor_id = support.prev_target_half_edge_id(&new_successor_identity);
+    let batch = successor_relocation_batch(&support, &moved_identity, &new_successor_identity);
 
-    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let execution = assembly
+        .apply_edit(
+            &mut workspace,
+            batch,
+            WorthTopologyEditApplicationMode::Mainline,
+        )
         .expect("halfedge relocation workflow should execute through admitted successor lane");
 
     assert_eq!(execution.families.len(), 6);
@@ -92,6 +68,49 @@ fn current_head_runtime_executes_half_edge_relocation_successor_workflow() {
             .backend_verified_update_count(),
         6
     );
+    assert_eq!(
+        execution
+            .receipt
+            .graph_composition_program()
+            .expect("successor relocation should expose graph composition program")
+            .steps()
+            .iter()
+            .map(|step| step.kind())
+            .collect::<Vec<_>>(),
+        vec![ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetarget; 6]
+    );
+    assert_eq!(
+        execution
+            .receipt
+            .graph_composition_lifecycle_outcomes()
+            .expect("successor relocation should expose graph lifecycle")
+            .entries()
+            .iter()
+            .map(|entry| entry.outcome_kind())
+            .collect::<Vec<_>>(),
+        vec![ForgeQueryGraphCompositionLifecycleOutcomeKind::RetargetedIdentityPreserved; 6]
+    );
+    assert_eq!(
+        execution
+            .receipt
+            .graph_composition_assumption_summary()
+            .expect("successor relocation should expose graph assumption summary")
+            .verified_step_count(),
+        6
+    );
+    let lineage = execution
+        .receipt
+        .graph_composition_lineage_summary()
+        .expect("successor relocation should expose graph lineage summary");
+    assert_eq!(
+        lineage.counter_snapshot(),
+        "continuity_entries=6;single_successors=6;split_successors=0;merge_successors=0;rejections=0"
+    );
+    assert!(lineage.entries().iter().all(|entry| {
+        entry.family() == ForgeQueryContinuityMutationFamily::RebindExistingTarget
+            && entry.outcome_class() == ForgeQueryContinuityOutcomeClass::ContinuesAsSingleSuccessor
+            && entry.target_collection() == Some("WorthTopologyRelation")
+    }));
     assert_eq!(execution.inspection.component_operations().len(), 6);
     assert!(execution
         .inspection
@@ -106,6 +125,35 @@ fn current_head_runtime_executes_half_edge_relocation_successor_workflow() {
                         evidence.mode()
                             == ForgeQueryExistingTruthAssertionMode::BackendVerifiedAssertion
                     })
+        }));
+    assert_eq!(
+        execution
+            .inspection
+            .graph_composition_program()
+            .expect("inspection should expose graph program")
+            .component_count(),
+        6
+    );
+    assert_eq!(
+        execution
+            .inspection
+            .graph_composition_lineage_summary()
+            .expect("inspection should expose graph lineage summary")
+            .lineage_summary_digest(),
+        lineage.lineage_summary_digest()
+    );
+    assert!(execution
+        .inspection
+        .component_operations()
+        .iter()
+        .all(|operation| {
+            operation
+                .continuity_mutation_evidence()
+                .is_some_and(|evidence| {
+                    evidence.family() == ForgeQueryContinuityMutationFamily::RebindExistingTarget
+                        && evidence.outcome_class()
+                            == ForgeQueryContinuityOutcomeClass::ContinuesAsSingleSuccessor
+                })
         }));
     let moved_half_edge = execution
         .materialized
@@ -142,19 +190,17 @@ fn current_head_runtime_denies_cross_loop_successor_relocation_workflow() {
     )
     .expect("workspace");
     let assembly = WorthTopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let entity_rows = workspace.read(assembly.entities());
-    let relation_rows = workspace.read(assembly.relations());
+    let support = RelationUpdateQuerySupport::load(&workspace, &assembly);
     let (moved_identity, new_successor_identity) =
-        half_edge_identities_for_different_loops(&entity_rows, &relation_rows);
-    let batch = successor_relocation_batch(
-        &entity_rows,
-        &relation_rows,
-        &moved_identity,
-        &new_successor_identity,
-    );
+        support.half_edge_identities_for_different_loops();
+    let batch = successor_relocation_batch(&support, &moved_identity, &new_successor_identity);
 
-    let error = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let error = assembly
+        .apply_edit(
+            &mut workspace,
+            batch,
+            WorthTopologyEditApplicationMode::Mainline,
+        )
         .expect_err("cross-loop successor relocation must fail closed");
 
     assert!(matches!(
@@ -165,40 +211,22 @@ fn current_head_runtime_denies_cross_loop_successor_relocation_workflow() {
 }
 
 fn successor_relocation_batch(
-    entity_rows: &[forge_query::facade::ForgeQueryEntity],
-    relation_rows: &[forge_query::facade::ForgeQueryEntity],
+    support: &RelationUpdateQuerySupport,
     moved_identity: &str,
     new_successor_identity: &str,
 ) -> WorthTopologyEditBatch {
-    let moved_half_edge_id = find_entity_id_by_identity(entity_rows, moved_identity);
-    let old_successor_id = next_target_half_edge_id(entity_rows, relation_rows, moved_identity);
-    let old_predecessor_id = prev_target_half_edge_id(entity_rows, relation_rows, moved_identity);
-    let new_successor_id = find_entity_id_by_identity(entity_rows, new_successor_identity);
-    let new_predecessor_id =
-        prev_target_half_edge_id(entity_rows, relation_rows, new_successor_identity);
-    let old_successor_identity = entity_rows
-        .iter()
-        .find(|row| query_entity_id_from_row(row) == old_successor_id)
-        .expect("old successor should remain visible")
-        .identity
-        .clone();
-    let old_predecessor_identity = entity_rows
-        .iter()
-        .find(|row| query_entity_id_from_row(row) == old_predecessor_id)
-        .expect("old predecessor should remain visible")
-        .identity
-        .clone();
-    let new_predecessor_identity = entity_rows
-        .iter()
-        .find(|row| query_entity_id_from_row(row) == new_predecessor_id)
-        .expect("new predecessor should remain visible")
-        .identity
-        .clone();
+    let moved_half_edge_id = support.find_entity_id_by_identity(moved_identity);
+    let old_successor_id = support.next_target_half_edge_id(moved_identity);
+    let old_predecessor_id = support.prev_target_half_edge_id(moved_identity);
+    let new_successor_id = support.find_entity_id_by_identity(new_successor_identity);
+    let new_predecessor_id = support.prev_target_half_edge_id(new_successor_identity);
+    let old_successor_identity = support.find_entity_identity_by_id(old_successor_id);
+    let old_predecessor_identity = support.find_entity_identity_by_id(old_predecessor_id);
+    let new_predecessor_identity = support.find_entity_identity_by_id(new_predecessor_id);
 
     WorthTopologyEditBatch::new(vec![
         WorthTopologyEditContract::rewire_loop_successor(
-            relation_id_for_source_kind(
-                relation_rows,
+            support.relation_id_for_source_kind(
                 moved_identity,
                 worth_schema::facade::WorthTopologyRelationKind::HalfEdgeNext,
             ),
@@ -207,8 +235,7 @@ fn successor_relocation_batch(
             new_successor_id,
         ),
         WorthTopologyEditContract::rewire_loop_successor(
-            relation_id_for_source_kind(
-                relation_rows,
+            support.relation_id_for_source_kind(
                 moved_identity,
                 worth_schema::facade::WorthTopologyRelationKind::HalfEdgePrev,
             ),
@@ -217,8 +244,7 @@ fn successor_relocation_batch(
             new_predecessor_id,
         ),
         WorthTopologyEditContract::rewire_loop_successor(
-            relation_id_for_source_kind(
-                relation_rows,
+            support.relation_id_for_source_kind(
                 &old_predecessor_identity,
                 worth_schema::facade::WorthTopologyRelationKind::HalfEdgeNext,
             ),
@@ -227,8 +253,7 @@ fn successor_relocation_batch(
             old_successor_id,
         ),
         WorthTopologyEditContract::rewire_loop_successor(
-            relation_id_for_source_kind(
-                relation_rows,
+            support.relation_id_for_source_kind(
                 &old_successor_identity,
                 worth_schema::facade::WorthTopologyRelationKind::HalfEdgePrev,
             ),
@@ -237,8 +262,7 @@ fn successor_relocation_batch(
             old_predecessor_id,
         ),
         WorthTopologyEditContract::rewire_loop_successor(
-            relation_id_for_source_kind(
-                relation_rows,
+            support.relation_id_for_source_kind(
                 &new_predecessor_identity,
                 worth_schema::facade::WorthTopologyRelationKind::HalfEdgeNext,
             ),
@@ -247,8 +271,7 @@ fn successor_relocation_batch(
             moved_half_edge_id,
         ),
         WorthTopologyEditContract::rewire_loop_successor(
-            relation_id_for_source_kind(
-                relation_rows,
+            support.relation_id_for_source_kind(
                 new_successor_identity,
                 worth_schema::facade::WorthTopologyRelationKind::HalfEdgePrev,
             ),

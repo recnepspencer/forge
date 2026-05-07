@@ -3,7 +3,7 @@ use super::super::super::support::*;
 #[test]
 fn runtime_authoritative_mutation_support_exposes_graph_composition_capability_rows() {
     let support = ForgeQueryRuntime::public_authoritative_mutation_evidence_support_for_posture(
-        ForgeQueryRuntimeBackendPosture::Compatibility,
+        ForgeQueryRuntimeBackendPosture::Scaffold,
     );
     let rows = support.graph_composition_capability_support_rows();
 
@@ -60,7 +60,7 @@ fn runtime_authoritative_mutation_support_exposes_graph_composition_capability_r
 #[test]
 fn runtime_authoritative_mutation_support_exposes_graph_composition_hook_rows() {
     let support = ForgeQueryRuntime::public_authoritative_mutation_evidence_support_for_posture(
-        ForgeQueryRuntimeBackendPosture::Compatibility,
+        ForgeQueryRuntimeBackendPosture::Scaffold,
     );
     let rows = support.graph_composition_extension_hook_support_rows();
 

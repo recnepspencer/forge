@@ -68,6 +68,25 @@ impl InvalidationSink for TestBridgeSink {
     }
 }
 
+#[derive(Clone, Debug)]
+struct StaticWritebackAuthority;
+
+impl forge_runtime_bridge::facade::TruthWritebackAuthority for StaticWritebackAuthority {
+    fn execute_writeback(
+        &self,
+        request: forge_runtime_bridge::facade::TruthWritebackRequest,
+    ) -> Result<
+        forge_runtime_bridge::facade::TruthWritebackReceipt,
+        forge_runtime_bridge::facade::TruthWritebackAuthorityError,
+    > {
+        Ok(forge_runtime_bridge::facade::TruthWritebackReceipt::new(
+            forge_runtime_bridge::facade::BridgeWritebackOutcomeClass::AuthoritativeCommit,
+            format!("authoritative-artifact:{}", request.digest()),
+            &request,
+        ))
+    }
+}
+
 pub(in crate::runtime::tests) fn test_bridge() -> RuntimeBridge {
     RuntimeBridgeBuilder::new()
         .with_relational_source(TestBridgeSource)
@@ -84,4 +103,23 @@ pub(in crate::runtime::tests) fn test_bridge() -> RuntimeBridge {
         ))
         .build()
         .expect("test bridge should build")
+}
+
+pub(in crate::runtime::tests) fn test_bridge_with_writeback_authority() -> RuntimeBridge {
+    RuntimeBridgeBuilder::new()
+        .with_relational_source(TestBridgeSource)
+        .with_signal_sink(TestBridgeSink)
+        .with_writeback_authority(StaticWritebackAuthority)
+        .register_mapping(BridgeMappingRegistration::new(
+            BridgeMappingId::new("external-test"),
+            TruthPatchScope::new(
+                MappingSelector::any(),
+                MappingSelector::any(),
+                MappingSelector::any(),
+            ),
+            SignalInvalidationScope::new("external-test"),
+            CoarseRoutingMode::Direct,
+        ))
+        .build()
+        .expect("test bridge with writeback authority should build")
 }

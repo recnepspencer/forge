@@ -13,8 +13,7 @@ use crate::declarative_live::{
     DeclarativeLiveQueryRequest, DeclarativeLiveViewShape,
 };
 use crate::memory_workspace::{
-    ForgeQueryCollection, ForgeQueryEntity, ForgeQueryMemoryApp, ForgeQueryMutationKind,
-    ForgeQueryMutationReceipt, ForgeQueryWorkspaceError,
+    ForgeQueryEntity, ForgeQueryMutationKind, ForgeQueryMutationReceipt, ForgeQueryWorkspaceError,
 };
 use crate::program::{
     validate_inputs, ForgeQueryAuthorityRequirement, ForgeQueryDerivedView,
@@ -37,7 +36,7 @@ use crate::subscription::{
 use crate::view_shape_live::LiveViewShapeFamily;
 
 mod aspect_api_closeout;
-mod authoritative_mutation_evidence_bridge_compat;
+mod authoritative_mutation_evidence_bridge_alignment;
 mod authoritative_mutation_evidence_closeout;
 mod authoritative_mutation_evidence_support;
 mod authoritative_mutation_evidence_support_bridge;
@@ -55,9 +54,25 @@ mod inspection;
 mod intent;
 mod live_subscription;
 mod mutation;
-mod mutation_compatibility;
+mod mutation_surface;
 mod preview;
 mod public_api;
+mod read_composition;
+mod read_composition_builder_shared;
+mod read_composition_builder_walks;
+mod read_composition_frontier;
+mod read_composition_frontier_search;
+mod read_composition_hooks;
+mod read_composition_lowering;
+mod read_composition_operator_builders;
+mod read_composition_phase_gate;
+mod read_composition_phase_one_closeout;
+mod read_composition_relationship_proof;
+mod read_composition_runtime;
+mod read_composition_shared;
+mod read_composition_successor;
+mod read_composition_support_report;
+mod read_composition_walks;
 mod runtime_api_contract;
 mod runtime_batch_writes;
 mod runtime_batching;
@@ -76,6 +91,7 @@ mod workspace;
 mod workspace_declaration;
 mod workspace_graph;
 mod workspace_queries;
+mod workspace_read_composition_support;
 
 const RUNTIME_SUBSCRIPTION_FAMILY_BUDGET_POLICY: &str =
     "runtime-live-subscription-family:scratch_buffer_only:canonical=64:relationship=64:policy=64:projection=512:tenant=1";
@@ -193,9 +209,8 @@ pub use mutation::{
     ForgeQuerySymbolicTargetReferenceDenial, ForgeQuerySymbolicTargetReferenceDenialKind,
     ForgeQuerySymbolicTargetReferenceFamily,
 };
-pub use mutation_compatibility::{
-    ForgeQueryMutationApiCompatibilityReport, ForgeQueryMutationCompatibilityPosture,
-    ForgeQueryMutationCompatibilityRow,
+pub use mutation_surface::{
+    ForgeQueryMutationSurfacePosture, ForgeQueryMutationSurfaceReport, ForgeQueryMutationSurfaceRow,
 };
 pub use preview::{
     ForgeQueryPreviewCloseoutEvidence, ForgeQueryPreviewCloseoutKind, ForgeQueryPreviewDiff,
@@ -210,6 +225,22 @@ pub use public_api::{
     ForgeQueryRuntimePublicApiNamingContract, ForgeQueryRuntimePublicApiNamingRow,
     ForgeQueryRuntimePublicApiTranscriptEvidence, ForgeQueryRuntimeStateKind,
     ForgeQueryRuntimeStateSnapshot,
+};
+pub use read_composition::ForgeQueryReadBuilder;
+pub use read_composition_hooks::{
+    ForgeQueryReadInvariantPackContext, ForgeQueryReadInvariantPackViolation,
+};
+pub use read_composition_operator_builders::{
+    CollectionReadOperatorQueryBuilder, DetailReadOperatorQueryBuilder,
+};
+pub use read_composition_phase_gate::{
+    ForgeQueryReadCompositionPhaseGate, ForgeQueryReadCompositionPhaseGateFamily,
+    ForgeQueryReadCompositionPhaseGateRow, ForgeQueryReadCompositionPhaseGateStatus,
+};
+pub use read_composition_phase_one_closeout::ForgeQueryReadCompositionPhaseOneCloseout;
+pub use read_composition_support_report::{
+    ForgeQueryReadCompositionSupportClass, ForgeQueryReadCompositionSupportReport,
+    ForgeQueryReadCompositionSupportRow,
 };
 #[cfg(test)]
 use runtime_helpers::runtime_subscription_budget_digest;
@@ -258,6 +289,16 @@ pub use surface::{
     ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetClass,
     ForgeQueryMutationTargetDescriptor, ForgeQueryMutationTargetEvidence,
     ForgeQueryNamingMutationEvidence, ForgeQueryNamingMutationOutcome, ForgeQueryPatchBatch,
+    ForgeQueryReadBreadth, ForgeQueryReadBuiltInOperator, ForgeQueryReadBuiltInOperatorDenial,
+    ForgeQueryReadBuiltInOperatorDenialReason, ForgeQueryReadCompositionExtensionHookBoundary,
+    ForgeQueryReadCompositionExtensionHookFamily, ForgeQueryReadCompositionExtensionHookSupportRow,
+    ForgeQueryReadDenial, ForgeQueryReadDenialKind, ForgeQueryReadDomainInvariantDenial,
+    ForgeQueryReadDomainInvariantSummary, ForgeQueryReadExecutionEngine,
+    ForgeQueryReadFallbackClass, ForgeQueryReadFamily, ForgeQueryReadFamilyAdmission,
+    ForgeQueryReadFamilyInvariantEvidence, ForgeQueryReadGraph, ForgeQueryReadGraphFamily,
+    ForgeQueryReadOperatorFamily, ForgeQueryReadReceipt, ForgeQueryReadRelationshipProofDenial,
+    ForgeQueryReadRelationshipProofDenialStage, ForgeQueryReadRelationshipProofPosture,
+    ForgeQueryReadResult, ForgeQueryReadScopeClass, ForgeQueryReadScopeShapeMismatch,
     ForgeQueryRunReceipt, ForgeQuerySymbolicAspectResolutionEvidence,
     ForgeQuerySymbolicTargetReferenceEvidence, ForgeQuerySymbolicTargetReferenceOutcome,
     ForgeQueryVerificationReadSetBreadth, ForgeQueryVerifiedAssumptionSet, ForgeQueryWriteCommand,
@@ -298,4 +339,4 @@ struct ForgeQueryRoutedMutationSummary {
 }
 
 #[cfg(test)]
-mod tests;
+pub(crate) mod tests;

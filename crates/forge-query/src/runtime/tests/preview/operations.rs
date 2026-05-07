@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare before preview-safe operation runs");
@@ -87,7 +87,7 @@ fn sandboxed_preview_run_operation_stages_compiled_writes_until_promote() {
 
 #[test]
 fn preview_run_operation_discard_keeps_authoritative_state_unchanged() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare before preview-safe operation runs");
@@ -127,7 +127,7 @@ fn preview_run_operation_discard_keeps_authoritative_state_unchanged() {
 
 #[test]
 fn preview_run_operation_rejects_declaration_effects_before_runtime_mutation() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let program =
         ForgeQueryProgram::compile(FakeDsl, &FakeSchemaAdapter).expect("fake DSL should compile");
     let installed = runtime

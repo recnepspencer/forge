@@ -15,14 +15,14 @@ actually available before they build on it.
   dependency on future async work
 - you need typed denials instead of silent fallback when a family is deferred
   or unsupported
-- you want a machine-checkable compatibility posture rather than a prose promise
+- you want a machine-checkable support posture rather than a prose promise
 
 ## Stable Entry Points
 
 - `workspace.public_api_contract()`
 - `workspace.public_handle_contract()`
 - `workspace.public_support_matrix()`
-- `workspace.public_mutation_api_compatibility_report()`
+- `workspace.public_mutation_surface_report()`
 - `workspace.admit_public_api_family(...)`
 - `ForgeQueryRuntimeFacadeFamily`
 - `ForgeQueryRuntimeFamilySupportStatus`
@@ -39,8 +39,8 @@ There are three different questions here:
 - which families are visible only so future work extends the same facade
 
 The support matrix answers those questions row by row.
-For mutation-specific preferred-versus-compatibility posture, pair it with
-`workspace.public_mutation_api_compatibility_report()`.
+For mutation-specific preferred-versus-lower-level posture, pair it with
+`workspace.public_mutation_surface_report()`.
 
 Each row tells you:
 
@@ -148,7 +148,7 @@ What is visible but deferred:
 - `StoreBackedExecution` -> Milestone 10
 - `DurableArtifacts` -> Milestone 11
 
-What is vocabulary but not stable compatibility support:
+What is vocabulary but not stable public support:
 
 - `Intent`
 

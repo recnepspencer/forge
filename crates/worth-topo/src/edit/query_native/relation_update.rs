@@ -1,5 +1,6 @@
 use forge_query::facade::{
-    ForgeQueryEntity, ForgeQueryExistingRelationTarget, ForgeQueryMutationBatchBuilder,
+    ForgeQueryEntity, ForgeQueryExistingRelationTarget, ForgeQueryExistingTruthTargetBinding,
+    ForgeQueryMutationBatchBuilder,
 };
 use forge_relational::facade::identity::{EntityId, RelationId};
 use worth_schema::facade::{WorthTopologyEntityKind, WorthTopologyRelationKind};
@@ -12,17 +13,28 @@ use super::{WorthTopologyQueryEditExecutionError, WorthTopologyQueryEditRunner};
 use crate::edit::{WorthLoopEndpointKind, WorthLoopSuccessorKind};
 use crate::query::topology_relation_dependency_path;
 
+#[derive(Clone)]
+pub(super) struct ResolvedLoopSuccessorRewire {
+    pub(super) binding: ForgeQueryExistingTruthTargetBinding,
+    pub(super) relation_kind: WorthTopologyRelationKind,
+    pub(super) authoritative_identity: String,
+    pub(super) successor_authoritative_identity: String,
+    pub(super) source_query_identity: String,
+    pub(super) current_target_query_identity: String,
+    pub(super) updated_target_query_identity: String,
+    pub(super) dependency_path: Option<&'static str>,
+}
+
 impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> {
-    pub(super) fn lower_rewire_loop_successor(
+    pub(super) fn resolve_loop_successor_rewire(
         &self,
-        builder: ForgeQueryMutationBatchBuilder,
         entity_rows: &[ForgeQueryEntity],
         relation_rows: &[ForgeQueryEntity],
         relation_id: RelationId,
         kind: WorthLoopSuccessorKind,
         half_edge_id: EntityId,
         successor_half_edge_id: EntityId,
-    ) -> Result<ForgeQueryMutationBatchBuilder, WorthTopologyQueryEditExecutionError> {
+    ) -> Result<ResolvedLoopSuccessorRewire, WorthTopologyQueryEditExecutionError> {
         let relation_kind = kind.relation_kind();
         let relation_binding = query_relation_binding(relation_rows, relation_id)?.ok_or(
             WorthTopologyQueryEditExecutionError::MissingExistingRelationBinding(relation_id),
@@ -95,22 +107,54 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                 },
             );
         }
+        let authoritative_identity = format!("{relation_id:?}");
         let binding = self.workspace.bind_existing_relation(
             ForgeQueryExistingRelationTarget::new(
-                format!("{relation_id:?}"),
+                authoritative_identity.clone(),
                 relation_binding.query_identity,
             )?
             .in_target_collection("WorthTopologyRelation")?,
         )?;
-        let source_query_identity = source_half_edge_binding.query_identity;
-        let verified_source_query_identity = source_query_identity.clone();
-        let current_target_query_identity = relation_binding.target_query_identity;
-        let updated_target_query_identity = target_half_edge_binding.query_identity;
-        let dependency_path = topology_relation_dependency_path(
-            worth_schema::facade::WorthRelationKind::Topology(relation_kind),
-        );
-        Ok(builder.update_existing_verified(
+        Ok(ResolvedLoopSuccessorRewire {
             binding,
+            relation_kind,
+            authoritative_identity: authoritative_identity.clone(),
+            successor_authoritative_identity: format!("{authoritative_identity}:successor"),
+            source_query_identity: source_half_edge_binding.query_identity,
+            current_target_query_identity: relation_binding.target_query_identity,
+            updated_target_query_identity: target_half_edge_binding.query_identity,
+            dependency_path: topology_relation_dependency_path(
+                worth_schema::facade::WorthRelationKind::Topology(relation_kind),
+            ),
+        })
+    }
+
+    pub(super) fn lower_rewire_loop_successor(
+        &self,
+        builder: ForgeQueryMutationBatchBuilder,
+        entity_rows: &[ForgeQueryEntity],
+        relation_rows: &[ForgeQueryEntity],
+        relation_id: RelationId,
+        kind: WorthLoopSuccessorKind,
+        half_edge_id: EntityId,
+        successor_half_edge_id: EntityId,
+    ) -> Result<ForgeQueryMutationBatchBuilder, WorthTopologyQueryEditExecutionError> {
+        let resolved = self.resolve_loop_successor_rewire(
+            entity_rows,
+            relation_rows,
+            relation_id,
+            kind,
+            half_edge_id,
+            successor_half_edge_id,
+        )?;
+        let relation_kind = resolved.relation_kind;
+        let source_query_identity = resolved.source_query_identity;
+        let verified_source_query_identity = source_query_identity.clone();
+        let current_target_query_identity = resolved.current_target_query_identity;
+        let updated_target_query_identity = resolved.updated_target_query_identity;
+        let dependency_path = resolved.dependency_path;
+        Ok(builder.update_existing_verified(
+            resolved.binding,
             |verify| {
                 let verify = verify
                     .aspect("topology.kind", relation_kind.kind_name())

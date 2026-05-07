@@ -1,13 +1,17 @@
-use forge_query::facade::ForgeQueryExistingTruthAssertionMode;
+use forge_query::facade::{
+    ForgeQueryContinuityOutcomeClass, ForgeQueryExistingTruthAssertionMode,
+    ForgeQueryGraphCompositionProgramStepKind,
+};
 use forge_relational::facade::identity::RelationId;
+use worth_schema::facade::topology_authoring::{created_ref, seed_minimal_topology};
 use worth_schema::facade::{
-    created_ref, seed_minimal_topology, WorthCreateKey, WorthRelationKind, WorthTopologyEntityKind,
-    WorthTopologyRelationKind,
+    WorthCreateKey, WorthRelationKind, WorthTopologyEntityKind, WorthTopologyRelationKind,
 };
 
 use crate::edit::{
-    WorthShellOrWireMembershipKind, WorthTopologyEditApplicationMode, WorthTopologyEditBatch,
-    WorthTopologyEditContract, WorthTopologyEditFamily, WorthTopologyQueryEditRunner,
+    WorthRejectedEditScopeRow, WorthShellOrWireMembershipKind, WorthTopologyEditApplicationMode,
+    WorthTopologyEditBatch, WorthTopologyEditContract, WorthTopologyEditFamily,
+    WorthTopologyEditRejectionClass,
 };
 use crate::query::{
     worth_topology_runtime, WorthTopologyQueryAssembly, WorthTopologyRuntimeAdapters,
@@ -35,8 +39,12 @@ fn current_head_runtime_executes_detach_shell_or_wire_membership_through_query_n
     ])
     .expect("non-empty edit batch");
 
-    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let execution = assembly
+        .apply_edit(
+            &mut workspace,
+            batch,
+            WorthTopologyEditApplicationMode::Mainline,
+        )
         .expect("detach shell-or-wire membership should execute through query runtime");
 
     assert_eq!(
@@ -96,8 +104,12 @@ fn current_head_runtime_executes_rehome_single_half_edge_to_new_wire_workflow() 
     ])
     .expect("non-empty edit batch");
 
-    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let execution = assembly
+        .apply_edit(
+            &mut workspace,
+            batch,
+            WorthTopologyEditApplicationMode::Mainline,
+        )
         .expect("wire rehome should execute through the admitted created-wire owner-rehome lane");
 
     assert_eq!(
@@ -120,6 +132,35 @@ fn current_head_runtime_executes_rehome_single_half_edge_to_new_wire_workflow() 
             .receipt
             .batch_mutation_evidence()
             .backend_verified_delete_count(),
+        1
+    );
+    assert_eq!(
+        execution
+            .receipt
+            .graph_composition_program()
+            .expect("wire rehome should expose graph program")
+            .steps()
+            .iter()
+            .map(|step| step.kind())
+            .collect::<Vec<_>>(),
+        vec![
+            ForgeQueryGraphCompositionProgramStepKind::SymbolicEntityDeclaration,
+            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetarget,
+            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetirement,
+        ]
+    );
+    assert_eq!(
+        execution
+            .receipt
+            .graph_composition_lineage_summary()
+            .expect("wire rehome should expose lineage summary")
+            .entries()
+            .iter()
+            .filter(|entry| {
+                entry.outcome_class()
+                    == ForgeQueryContinuityOutcomeClass::ContinuesAsSingleSuccessor
+            })
+            .count(),
         1
     );
     assert!(execution
@@ -178,15 +219,39 @@ fn current_head_runtime_denies_region_owns_shell_membership_until_invariant_comp
     ])
     .expect("non-empty edit batch");
 
-    let error = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let error = assembly.apply_edit(&mut workspace, batch.clone(), WorthTopologyEditApplicationMode::Mainline)
         .expect_err("attach shell-or-wire membership must fail closed until invariant-complete shell subgraphs are admitted");
 
     assert!(matches!(
         error,
-        crate::edit::WorthTopologyQueryEditExecutionError::UnsupportedFamilies(families)
-            if families == vec![WorthTopologyEditFamily::AttachShellOrWireMembership]
+        crate::edit::WorthTopologyQueryEditExecutionError::UnsupportedFamilies(ref families)
+            if families == &vec![WorthTopologyEditFamily::AttachShellOrWireMembership]
     ));
+    assert_eq!(
+        error.rejection_class(),
+        Some(WorthTopologyEditRejectionClass::OutOfClassEdit)
+    );
+    assert_eq!(
+        error.rejected_edit_scope_report(&batch),
+        Some(crate::edit::WorthRejectedEditScopeReport {
+            rows: vec![WorthRejectedEditScopeRow {
+                family: WorthTopologyEditFamily::AttachShellOrWireMembership,
+                rejection_class: WorthTopologyEditRejectionClass::OutOfClassEdit,
+                changed_scopes: vec![
+                    crate::edit::WorthTopologyEditChangedScope::Relation,
+                    crate::edit::WorthTopologyEditChangedScope::Shell,
+                    crate::edit::WorthTopologyEditChangedScope::LocalNeighborhood,
+                ],
+                naming_scopes: vec![crate::edit::WorthTopologyEditNamingScope::AdjacentEntityNames],
+                derived_regions: vec![
+                    crate::edit::WorthTopologyDerivedRegion::ShellRegion,
+                    crate::edit::WorthTopologyDerivedRegion::EditLocalNeighborhoodRegion,
+                    crate::edit::WorthTopologyDerivedRegion::NamingContinuityRegion,
+                ],
+                detail: "worth topology query edit execution does not admit families `[AttachShellOrWireMembership]` yet".to_string(),
+            }],
+        })
+    );
 }
 
 fn seeded_wire_owns_half_edge_relation(

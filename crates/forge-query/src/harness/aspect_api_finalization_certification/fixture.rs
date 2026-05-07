@@ -1,4 +1,5 @@
 use crate::program::ForgeQueryDerivedView;
+use crate::runtime::tests::support::stateful_bridge_task_runtime as build_stateful_bridge_task_runtime;
 use crate::runtime::{
     ForgeQueryDerivedPatch, ForgeQueryDerivedViewMaintainer, ForgeQueryDerivedViewMaterialization,
     ForgeQueryLiveView, ForgeQueryRuntime, ForgeQueryWorkspace,
@@ -30,21 +31,8 @@ impl ForgeQueryDerivedViewMaintainer for CertificationTitleListMaintainer {
     }
 }
 
-pub(super) fn task_runtime() -> ForgeQueryRuntime {
-    ForgeQueryRuntime::builder()
-        .compatibility_in_memory_collections([crate::memory_workspace::ForgeQueryCollection::new(
-            "Task",
-            [
-                crate::memory_workspace::ForgeQueryAspect::new("identity.id", "identity.id"),
-                crate::memory_workspace::ForgeQueryAspect::new("title.value", "title.value"),
-                crate::memory_workspace::ForgeQueryAspect::new(
-                    "description.value",
-                    "description.value",
-                ),
-            ],
-        )])
-        .build()
-        .expect("runtime should build")
+pub(super) fn stateful_bridge_task_runtime() -> ForgeQueryRuntime {
+    build_stateful_bridge_task_runtime()
 }
 
 pub(super) fn task_live_view<T>(

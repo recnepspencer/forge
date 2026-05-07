@@ -1,4 +1,4 @@
-use worth_schema::facade::WorthMilestoneOnePrimitiveCase;
+use worth_schema::facade::topology_authoring::WorthMilestoneOnePrimitiveCase;
 
 pub(crate) fn milestone_one_bridge_proof_cases() -> [WorthMilestoneOnePrimitiveCase; 7] {
     [

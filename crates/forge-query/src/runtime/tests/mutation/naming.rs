@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn update_existing_preserves_naming_evidence_on_receipt_and_inspection() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.naming-existing")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -76,7 +76,7 @@ fn update_existing_preserves_naming_evidence_on_receipt_and_inspection() {
 
 #[test]
 fn batch_naming_evidence_preserves_attach_and_rebind_outcomes() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.naming-batch")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -158,7 +158,7 @@ fn batch_naming_evidence_preserves_attach_and_rebind_outcomes() {
 
 #[test]
 fn naming_existing_target_denies_missing_binding_typed_and_early() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.naming-denial")
         .expect("task runtime should open a named workspace");
 
@@ -183,7 +183,7 @@ fn naming_existing_target_denies_missing_binding_typed_and_early() {
 
 #[test]
 fn delete_existing_preserves_naming_removal_evidence_on_receipt_and_inspection() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.naming-remove")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -255,7 +255,7 @@ fn delete_existing_preserves_naming_removal_evidence_on_receipt_and_inspection()
 
 #[test]
 fn naming_remove_denies_non_delete_family_typed_and_early() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.naming-remove-denial")
         .expect("task runtime should open a named workspace");
 
@@ -287,7 +287,7 @@ fn naming_remove_denies_non_delete_family_typed_and_early() {
 
 #[test]
 fn preview_batch_symbolic_naming_preserves_typed_evidence() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-naming")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace

@@ -17,21 +17,22 @@ use super::{
     declare_worth_topology_entity_live_view, declare_worth_topology_equivalence_contract_surface,
     declare_worth_topology_interpreted_surface, declare_worth_topology_materialized_surface,
     declare_worth_topology_relation_live_view, declare_worth_topology_validation_surface,
-    equivalence_contract_from_diagnostics_rows, interpreted_topology_from_materialized_rows,
-    naming_attachment_report_from_query_rows, validation_report_from_query_rows,
-    WorthTopologyQuerySurfaceError,
+    naming_attachment_report_from_query_rows, WorthTopologyQuerySurfaceError,
 };
-use crate::diagnostics::build_derived_read_diagnostics;
+use crate::edit::{
+    WorthTopologyEditApplicationMode, WorthTopologyEditBatch, WorthTopologyQueryEditExecution,
+    WorthTopologyQueryEditExecutionError,
+};
 use crate::facade::{
     DerivedTopologyValidationReport, InterpretedTopologyView, MaterializedTopologyView,
     WorthDerivedEquivalenceContractReport, WorthDerivedReadDiagnostics,
     WorthNamingAttachmentReport,
 };
-use crate::interpretation::interpret_topology_view;
-use crate::validators::validate_interpreted_topology;
 
 mod authority;
 mod authority_support;
+mod historical_rows;
+mod snapshot_decode;
 pub use self::authority::{WorthTopologyQueryAppliedIntent, WorthTopologyQueryApplyError};
 
 const ENTITY_SURFACE: &str = "worth.topology.entities";
@@ -144,6 +145,15 @@ impl WorthTopologyQueryAssembly {
         &self.equivalence_contract
     }
 
+    pub fn apply_edit(
+        &self,
+        workspace: &mut ForgeQueryWorkspace,
+        batch: WorthTopologyEditBatch,
+        mode: WorthTopologyEditApplicationMode,
+    ) -> Result<WorthTopologyQueryEditExecution, WorthTopologyQueryEditExecutionError> {
+        crate::edit::WorthTopologyQueryEditRunner::new(workspace, self).apply(batch, mode)
+    }
+
     pub fn snapshot(
         &self,
         workspace: &mut ForgeQueryWorkspace,
@@ -168,44 +178,18 @@ impl WorthTopologyQueryAssembly {
         let naming_attachments =
             naming_attachment_report_from_query_rows(&entity_rows, &persistent_name_rows)?;
         let materialized_rows = workspace.materialize(&self.materialized);
-        let materialized: MaterializedTopologyView =
-            serde_json::from_value(materialized_rows[0].clone()).map_err(|error| {
-                WorthTopologyQuerySurfaceError::new(format!(
-                    "query-derived `materialized topology` row failed to decode: {error}"
-                ))
-            })?;
         let interpreted_rows = workspace.materialize(&self.interpreted);
-        let _validation_rows = workspace.materialize(&self.validation);
+        let validation_rows = workspace.materialize(&self.validation);
         let diagnostics_rows = workspace.materialize(&self.diagnostics);
         let equivalence_rows = workspace.materialize(&self.equivalence_contract);
-        let interpreted = interpreted_topology_from_materialized_rows(&materialized_rows)?;
-        let validation = validation_report_from_query_rows(&materialized_rows, &interpreted_rows)?;
-        let diagnostics: WorthDerivedReadDiagnostics =
-            serde_json::from_value(diagnostics_rows[0].clone()).map_err(|error| {
-                WorthTopologyQuerySurfaceError::new(format!(
-                    "query-derived `derived read diagnostics` row failed to decode: {error}"
-                ))
-            })?;
-        let equivalence_contract = equivalence_contract_from_diagnostics_rows(&diagnostics_rows)?;
-        let decoded_equivalence: WorthDerivedEquivalenceContractReport =
-            serde_json::from_value(equivalence_rows[0].clone()).map_err(|error| {
-                WorthTopologyQuerySurfaceError::new(format!(
-                    "query-derived `derived equivalence contract` row failed to decode: {error}"
-                ))
-            })?;
-        if equivalence_contract != decoded_equivalence {
-            return Err(WorthTopologyQuerySurfaceError::new(
-                "query-derived equivalence contract row and diagnostics-carried equivalence contract diverged",
-            ));
-        }
-        Ok(WorthTopologyQuerySnapshot {
+        snapshot_decode::snapshot_from_query_rows(
             naming_attachments,
-            materialized,
-            interpreted,
-            validation,
-            diagnostics,
-            equivalence_contract,
-        })
+            &materialized_rows,
+            &interpreted_rows,
+            &validation_rows,
+            &diagnostics_rows,
+            &equivalence_rows,
+        )
     }
 
     pub fn snapshot_for_read_basis(
@@ -213,38 +197,71 @@ impl WorthTopologyQueryAssembly {
         workspace: &mut ForgeQueryWorkspace,
         read_basis: &DerivedTopologyReadBasis,
     ) -> Result<WorthTopologyQuerySnapshot, WorthTopologyQuerySurfaceError> {
-        let entity_rows = workspace.read(&self.entities);
-        let relation_rows = workspace.read(&self.relations);
-        let persistent_name_rows = workspace.read(&self.persistent_names);
-        let naming_attachments =
-            naming_attachment_report_from_query_rows(&entity_rows, &persistent_name_rows)?;
-        let materialized = super::materialized::materialized_topology_from_query_rows(
-            &entity_rows,
-            &relation_rows,
-        )
-        .map_err(|error| WorthTopologyQuerySurfaceError::new(error.to_string()))?;
-        let interpreted = interpret_topology_view(&materialized);
-        let validation =
-            validate_interpreted_topology(&materialized, &interpreted).map_err(|error| {
-                WorthTopologyQuerySurfaceError::new(format!(
-                    "query-derived validation refresh failed: {error}"
-                ))
-            })?;
-        let diagnostics =
-            build_derived_read_diagnostics(read_basis, &materialized, &interpreted, &validation);
-        let equivalence_contract = diagnostics.equivalence_contract_report.clone();
-
-        Ok(WorthTopologyQuerySnapshot {
-            naming_attachments,
-            materialized,
-            interpreted,
-            validation,
-            diagnostics,
-            equivalence_contract,
-        })
+        let rows = historical_rows::historical_derived_rows(self, workspace, read_basis)?;
+        let snapshot = snapshot_decode::snapshot_from_query_rows(
+            rows.naming_attachments,
+            &rows.materialized_rows,
+            &rows.interpreted_rows,
+            &rows.validation_rows,
+            &rows.diagnostics_rows,
+            &rows.equivalence_rows,
+        )?;
+        ensure_snapshot_matches_read_basis(&snapshot, read_basis)?;
+        Ok(snapshot)
     }
 }
 
+fn ensure_snapshot_matches_read_basis(
+    snapshot: &WorthTopologyQuerySnapshot,
+    read_basis: &DerivedTopologyReadBasis,
+) -> Result<(), WorthTopologyQuerySurfaceError> {
+    let equivalence = &snapshot.equivalence_contract;
+    if equivalence.authority_snapshot_id != read_basis.snapshot().snapshot_id.0 {
+        return Err(WorthTopologyQuerySurfaceError::new(format!(
+            "query-derived snapshot authority snapshot id `{}` did not match requested read basis snapshot `{}`",
+            equivalence.authority_snapshot_id,
+            read_basis.snapshot().snapshot_id.0
+        )));
+    }
+    if equivalence.authority_branch_id != read_basis.branch_id().0 {
+        return Err(WorthTopologyQuerySurfaceError::new(format!(
+            "query-derived snapshot authority branch id `{}` did not match requested read basis branch `{}`",
+            equivalence.authority_branch_id,
+            read_basis.branch_id().0
+        )));
+    }
+    if equivalence.authoritative_mutation_origin != read_basis.authoritative_mutation_origin() {
+        return Err(WorthTopologyQuerySurfaceError::new(
+            "query-derived snapshot authoritative mutation origin diverged from requested read basis",
+        ));
+    }
+    if equivalence.derivation_origin != read_basis.derivation_origin() {
+        return Err(WorthTopologyQuerySurfaceError::new(
+            "query-derived snapshot derivation origin diverged from requested read basis",
+        ));
+    }
+    if equivalence.truth_basis_digest_hex
+        != read_basis
+            .authority
+            .truth_basis_identity
+            .mutation_batch_digest_hex
+    {
+        return Err(WorthTopologyQuerySurfaceError::new(
+            "query-derived snapshot truth basis digest diverged from requested read basis",
+        ));
+    }
+    if equivalence.touched_aspect_count != read_basis.touched_aspects().len() {
+        return Err(WorthTopologyQuerySurfaceError::new(format!(
+            "query-derived snapshot touched-aspect count `{}` did not match requested read basis count `{}`",
+            equivalence.touched_aspect_count,
+            read_basis.touched_aspects().len()
+        )));
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod snapshot_tests;
 #[cfg(test)]
 mod tests;
 #[cfg(test)]

@@ -231,7 +231,9 @@ pub fn build_derived_fallback_report_from_counts(
 
 #[cfg(test)]
 mod tests {
-    use worth_schema::facade::seed_milestone_one_primitive;
+    use worth_schema::facade::topology_authoring::{
+        seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
+    };
 
     use crate::diagnostics::build_derived_read_diagnostics;
     use crate::facade::{
@@ -247,7 +249,7 @@ mod tests {
         let verified = seed_milestone_one_primitive(
             &mut runtime,
             "phase-seven-diagnostics",
-            &worth_schema::facade::WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
+            &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
         )
         .expect("verified primitive");
         let read_view = runtime

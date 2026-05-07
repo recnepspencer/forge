@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn update_existing_preserves_continuity_evidence_on_receipt_and_inspection() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.continuity-existing")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -101,7 +101,7 @@ fn update_existing_preserves_continuity_evidence_on_receipt_and_inspection() {
 
 #[test]
 fn mixed_batch_preserves_continuity_and_naming_session_evidence() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.continuity-batch")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -213,7 +213,7 @@ fn mixed_batch_preserves_continuity_and_naming_session_evidence() {
 
 #[test]
 fn continuity_update_denies_missing_binding_typed_and_early() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.continuity-denial")
         .expect("task runtime should open a named workspace");
 
@@ -238,7 +238,7 @@ fn continuity_update_denies_missing_binding_typed_and_early() {
 
 #[test]
 fn continuity_insert_denies_non_update_family_typed_and_early() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.continuity-insert-denial")
         .expect("task runtime should open a named workspace");
 
@@ -263,7 +263,7 @@ fn continuity_insert_denies_non_update_family_typed_and_early() {
 
 #[test]
 fn preview_update_existing_denies_continuity_without_authoritative_lane() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-continuity-denial")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -317,7 +317,7 @@ fn preview_update_existing_denies_continuity_without_authoritative_lane() {
 
 #[test]
 fn preview_batch_denies_continuity_without_authoritative_lane() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-batch-continuity-denial")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace

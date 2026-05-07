@@ -19,8 +19,8 @@ use worth_topo::facade::{
     WorthTopologyEditBatch, WorthTopologyQueryAppliedIntent, WorthTopologyQueryApplyError,
     WorthTopologyQueryAssembly, WorthTopologyQueryEditExecution,
     WorthTopologyQueryEditExecutionError, WorthTopologyQueryEditFamilySupportStatus,
-    WorthTopologyQueryEditRunner, WorthTopologyQueryMutationEvidence, WorthTopologyQuerySnapshot,
-    WorthTopologyRuntimeAdapters, WorthTopologyRuntimeFailure, WorthTopologyRuntimeSupport,
+    WorthTopologyQueryMutationEvidence, WorthTopologyQuerySnapshot, WorthTopologyRuntimeAdapters,
+    WorthTopologyRuntimeFailure, WorthTopologyRuntimeSupport,
     WorthTracedMilestoneOneCertificationReport, WorthTracedMilestoneTwoDerivedReadReport,
 };
 
@@ -65,11 +65,12 @@ fn _m2_commit_cert_contract(
 }
 
 fn _edit_apply_contract(
-    runner: &mut WorthTopologyQueryEditRunner<'_, '_>,
+    assembly: &WorthTopologyQueryAssembly,
+    workspace: &mut forge_query::facade::ForgeQueryWorkspace,
     batch: WorthTopologyEditBatch,
     mode: WorthTopologyEditApplicationMode,
 ) -> Result<WorthTopologyQueryEditExecution, WorthTopologyQueryEditExecutionError> {
-    runner.apply(batch, mode)
+    assembly.apply_edit(workspace, batch, mode)
 }
 
 fn _worth_vocab_live_query_declaration_contract() {

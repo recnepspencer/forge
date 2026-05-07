@@ -11,28 +11,6 @@ impl ForgeQueryRuntimeBuilder {
         Self::default()
     }
 
-    #[deprecated(
-        note = "memory-backed runtime assembly is a compatibility backend; use compatibility_in_memory_collections for explicit compatibility posture"
-    )]
-    pub fn in_memory_collections(
-        self,
-        collections: impl IntoIterator<Item = ForgeQueryCollection>,
-    ) -> Self {
-        self.compatibility_in_memory_collections(collections)
-    }
-
-    pub fn compatibility_in_memory_collections(
-        mut self,
-        collections: impl IntoIterator<Item = ForgeQueryCollection>,
-    ) -> Self {
-        self.backend = Some(
-            ForgeQueryMemoryApp::compatibility_backend(collections)
-                .map(|backend| Box::new(backend) as Box<dyn ForgeQueryRuntimeBackend>)
-                .map_err(ForgeQueryRuntimeError::Workspace),
-        );
-        self
-    }
-
     pub fn backend(mut self, backend: impl ForgeQueryRuntimeBackend + 'static) -> Self {
         self.backend = Some(Ok(Box::new(backend)));
         self

@@ -1,4 +1,4 @@
-mod support;
+pub(crate) mod support;
 
 #[allow(deprecated)]
 mod assembly;
@@ -15,3 +15,4 @@ mod mutation;
 #[allow(deprecated)]
 mod preview;
 mod program;
+mod read_composition;

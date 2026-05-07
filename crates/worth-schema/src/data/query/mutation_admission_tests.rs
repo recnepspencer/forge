@@ -1,3 +1,4 @@
+use crate::facade::topology_authoring::created_ref;
 use crate::facade::{
     admit_worth_query_mutation_batch, worth_query_mutation_support_contract,
     RawWorthTopologyIntent, WorthEntityKind, WorthMutationOrigin, WorthNamingEntityKind,
@@ -18,8 +19,8 @@ fn query_mutation_admission_surfaces_naming_writeback_blockers_literally() {
                 kind: WorthRelationKind::Naming(
                     WorthNamingRelationKind::PersistentNameTargetsEntity,
                 ),
-                source: crate::facade::created_ref("query-gap.name"),
-                target: crate::facade::created_ref("query-gap.target"),
+                source: created_ref("query-gap.name"),
+                target: created_ref("query-gap.target"),
             },
         ],
         WorthMutationOrigin::LocalEdit,

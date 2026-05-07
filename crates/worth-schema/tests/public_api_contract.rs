@@ -1,28 +1,13 @@
-use forge_relational::facade::history::BranchId;
-use worth_schema::facade::WorthBoundaryFailure;
-use worth_schema::facade::{
-    admit_worth_query_mutation_batch, verify_topology_intent, verify_topology_intent_on_branch,
-    worth_query_mutation_support_contract, RawWorthTopologyIntent, VerifiedTopologyCommit,
-    WorthQueryAspectPath, WorthQueryCollection, WorthQueryComputedDeclarationBuilder,
-    WorthQueryLiveDeclarationBuilder, WorthQueryMutationAdmission,
-    WorthQueryMutationAdmissionBlocker, WorthQueryMutationSupportContract, WorthQuerySchemaBasis,
-    WorthTopologyAuthorityError,
+use worth_schema::facade::topology_authoring::{
+    milestone_one_default_primitive_corpus, WorthMilestoneOnePrimitiveScenario,
 };
-
-fn _apply_main_contract(
-    runtime: &mut forge_relational::facade::runtime::RelationalRuntime,
-    intent: RawWorthTopologyIntent,
-) -> Result<VerifiedTopologyCommit, WorthBoundaryFailure<WorthTopologyAuthorityError>> {
-    verify_topology_intent(runtime, intent)
-}
-
-fn _apply_branch_contract(
-    runtime: &mut forge_relational::facade::runtime::RelationalRuntime,
-    intent: RawWorthTopologyIntent,
-    branch_id: BranchId,
-) -> Result<VerifiedTopologyCommit, WorthBoundaryFailure<WorthTopologyAuthorityError>> {
-    verify_topology_intent_on_branch(runtime, intent, branch_id)
-}
+use worth_schema::facade::{
+    admit_worth_query_mutation_batch, worth_query_mutation_support_contract,
+    RawWorthTopologyIntent, WorthQueryAspectPath, WorthQueryCollection,
+    WorthQueryComputedDeclarationBuilder, WorthQueryLiveDeclarationBuilder,
+    WorthQueryMutationAdmission, WorthQueryMutationAdmissionBlocker,
+    WorthQueryMutationSupportContract, WorthQuerySchemaBasis,
+};
 
 fn _live_declaration_contract() {
     let _ = WorthQueryLiveDeclarationBuilder::new(
@@ -59,14 +44,17 @@ fn _query_mutation_support_contract(
     worth_query_mutation_support_contract()
 }
 
+fn _topology_authoring_contract() -> Vec<WorthMilestoneOnePrimitiveScenario> {
+    milestone_one_default_primitive_corpus()
+}
+
 #[test]
-fn worth_schema_public_verification_and_query_declaration_boundaries_compile() {
-    let _ = _apply_main_contract;
-    let _ = _apply_branch_contract;
+fn worth_schema_public_query_declaration_boundaries_compile() {
     let _ = _live_declaration_contract;
     let _ = _computed_declaration_contract;
     let _ = _query_aspect_roundtrip_contract;
     let _ = _query_mutation_admission_contract;
     let _ = _query_mutation_support_contract;
+    let _ = _topology_authoring_contract;
     let _ = WorthQueryMutationAdmissionBlocker::ExistingIdentityBindingRequired;
 }

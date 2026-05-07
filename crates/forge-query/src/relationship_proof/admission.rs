@@ -66,6 +66,32 @@ pub fn admit_relationship_proofs(
                 counters.admit(width);
                 topology_classes.push(RelationshipProofTopologyClass::BoundedAncestor);
             }
+            RelationshipProofDescriptor::BoundedDescendant {
+                max_depth,
+                policy_digest,
+                ..
+            } => {
+                if *max_depth == 0 {
+                    counters.deny_recursive_broadening();
+                    return Err(RelationshipProofError::new(
+                        RelationshipProofFailureClass::UnboundedProofTopology,
+                        "bounded descendant proof requires a non-zero explicit bound",
+                        counters,
+                    ));
+                }
+                if policy_digest != admitted.bundle().policy_digest() {
+                    counters.deny();
+                    return Err(RelationshipProofError::new(
+                        RelationshipProofFailureClass::PolicyMismatch,
+                        "relationship proof policy digest must match admitted policy basis",
+                        counters,
+                    ));
+                }
+                let width = usize::from(*max_depth);
+                topology_width += width;
+                counters.admit(width);
+                topology_classes.push(RelationshipProofTopologyClass::BoundedDescendant);
+            }
             RelationshipProofDescriptor::TenantMembership {
                 tenant_schema_basis_digest,
             } => {

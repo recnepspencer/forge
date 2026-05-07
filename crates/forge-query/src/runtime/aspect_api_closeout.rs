@@ -1,7 +1,7 @@
 use crate::identity::hash_parts;
 
 use super::{
-    ForgeQueryMutationApiCompatibilityReport, ForgeQueryMutationCompatibilityPosture,
+    ForgeQueryMutationSurfacePosture, ForgeQueryMutationSurfaceReport,
     ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimePublicApiNamingContract,
     ForgeQueryRuntimePublicSupportMatrix,
 };
@@ -10,11 +10,10 @@ use super::{
 pub struct ForgeQueryAspectApiFinalizationCloseout {
     backend_posture: ForgeQueryRuntimeBackendPosture,
     support_matrix_digest: String,
-    mutation_compatibility_digest: String,
+    mutation_surface_digest: String,
     naming_contract_digest: String,
     preferred_stable_surfaces: Vec<String>,
-    stable_compatibility_surfaces: Vec<String>,
-    deprecated_compatibility_surfaces: Vec<String>,
+    lower_level_stable_surfaces: Vec<String>,
     support_gated_surfaces: Vec<String>,
     safe_to_build_now: Vec<String>,
     must_not_assume_yet: Vec<String>,
@@ -28,43 +27,29 @@ impl ForgeQueryAspectApiFinalizationCloseout {
     pub fn derive(
         backend_posture: ForgeQueryRuntimeBackendPosture,
         support_matrix: &ForgeQueryRuntimePublicSupportMatrix,
-        mutation_compatibility: &ForgeQueryMutationApiCompatibilityReport,
+        mutation_surface: &ForgeQueryMutationSurfaceReport,
         naming_contract: &ForgeQueryRuntimePublicApiNamingContract,
     ) -> Self {
-        let preferred_stable_surfaces = mutation_compatibility
+        let preferred_stable_surfaces = mutation_surface
             .rows()
             .iter()
-            .filter(|row| row.posture() == ForgeQueryMutationCompatibilityPosture::PreferredStable)
+            .filter(|row| row.posture() == ForgeQueryMutationSurfacePosture::PreferredStable)
             .map(|row| row.surface().to_string())
             .collect::<Vec<_>>();
-        let stable_compatibility_surfaces = mutation_compatibility
+        let lower_level_stable_surfaces = mutation_surface
             .rows()
             .iter()
-            .filter(|row| {
-                row.posture() == ForgeQueryMutationCompatibilityPosture::StableCompatibility
-            })
+            .filter(|row| row.posture() == ForgeQueryMutationSurfacePosture::LowerLevelStable)
             .map(|row| {
                 row.preferred_replacement()
                     .map(|replacement| format!("{}=>{}", row.surface(), replacement))
                     .unwrap_or_else(|| row.surface().to_string())
             })
             .collect::<Vec<_>>();
-        let deprecated_compatibility_surfaces = mutation_compatibility
+        let support_gated_surfaces = mutation_surface
             .rows()
             .iter()
-            .filter(|row| {
-                row.posture() == ForgeQueryMutationCompatibilityPosture::DeprecatedCompatibility
-            })
-            .map(|row| {
-                row.preferred_replacement()
-                    .map(|replacement| format!("{}=>{}", row.surface(), replacement))
-                    .unwrap_or_else(|| row.surface().to_string())
-            })
-            .collect::<Vec<_>>();
-        let support_gated_surfaces = mutation_compatibility
-            .rows()
-            .iter()
-            .filter(|row| row.posture() == ForgeQueryMutationCompatibilityPosture::SupportGated)
+            .filter(|row| row.posture() == ForgeQueryMutationSurfacePosture::SupportGated)
             .map(|row| row.surface().to_string())
             .collect::<Vec<_>>();
 
@@ -83,7 +68,7 @@ impl ForgeQueryAspectApiFinalizationCloseout {
         let must_not_assume_yet = vec![
             "JSON has already been removed from forge-query, forge-relational, forge-store, or the runtime bridge internally"
                 .to_string(),
-            "payload-first compatibility commands are the preferred ordinary public story"
+            "lower-level write commands are the preferred ordinary public story"
                 .to_string(),
             "intent authority, effect-intent consumption, temporal execution, async/resource execution, or mixed-cause delivery are admitted stable mutation families"
                 .to_string(),
@@ -95,9 +80,11 @@ impl ForgeQueryAspectApiFinalizationCloseout {
         let migration_guidance = vec![
             "author new runtime code against workspace.insert/update/delete/batch and preview.insert/update/delete/batch"
                 .to_string(),
-            "treat workspace.write(...) and ForgeQueryWriteCommand::* as compatibility or lower-level seams, not the daily-driver API"
+            "treat workspace.write(...) and ForgeQueryWriteCommand::* as lower-level seams, not the daily-driver API"
                 .to_string(),
-            "keep workspace.write(...) available as an expert compatibility seam during the substrate rewrite, but do not require it in ordinary downstream runtime APIs"
+            "use `workspace.public_mutation_surface_report()` when a runtime or doc needs the exact preferred-versus-lower-level-versus-support-gated mutation posture"
+                .to_string(),
+            "keep workspace.write(...) available as an expert lower-level seam during the substrate rewrite, but do not require it in ordinary downstream runtime APIs"
                 .to_string(),
             "keep mutation receipts, state snapshots, and inspect output as the downstream explanation contract"
                 .to_string(),
@@ -111,7 +98,7 @@ impl ForgeQueryAspectApiFinalizationCloseout {
             "cargo check -p forge-query --tests".to_string(),
             "cargo test --manifest-path crates/forge-query/Cargo.toml --test phase_boundaries_compile_fail".to_string(),
             "cargo test -p forge-query".to_string(),
-            "cargo test -p forge-query runtime_public_mutation_compatibility_report_marks_payload_insert_deprecated".to_string(),
+            "cargo test -p forge-query runtime_public_mutation_surface_report_lists_only_live_lower_level_command_surfaces".to_string(),
             "cargo test -p forge-query runtime_public_aspect_api_finalization_closeout_answers_substrate_handoff_questions".to_string(),
             "git diff --check".to_string(),
         ];
@@ -119,10 +106,6 @@ impl ForgeQueryAspectApiFinalizationCloseout {
             format!(
                 "preferred public mutation DX is aspect-native: {} preferred stable surfaces",
                 preferred_stable_surfaces.len()
-            ),
-            format!(
-                "payload-first ordinary authoring is closed off: {} deprecated compatibility surfaces",
-                deprecated_compatibility_surfaces.len()
             ),
             format!(
                 "support-gated mutation neighbors stay fail-closed: {} gated surfaces",
@@ -133,8 +116,8 @@ impl ForgeQueryAspectApiFinalizationCloseout {
                 support_matrix.rows().len()
             ),
             format!(
-                "compatibility seams stay explicit rather than co-equal: {} stable compatibility surfaces",
-                stable_compatibility_surfaces.len()
+                "lower-level seams stay explicit rather than co-equal: {} lower-level stable surfaces",
+                lower_level_stable_surfaces.len()
             ),
             "downstream runtimes may build on the facade now, while lower-crate JSON removal remains an internal rewrite".to_string(),
         ];
@@ -143,7 +126,7 @@ impl ForgeQueryAspectApiFinalizationCloseout {
             "forge_query_aspect_api_finalization_closeout_v1".to_string(),
             format!("posture:{}", backend_posture.as_str()),
             format!("support:{}", support_matrix.matrix_digest()),
-            format!("mutation:{}", mutation_compatibility.report_digest()),
+            format!("mutation:{}", mutation_surface.report_digest()),
             format!("naming:{}", naming_contract.contract_digest()),
         ];
         parts.extend(
@@ -152,14 +135,9 @@ impl ForgeQueryAspectApiFinalizationCloseout {
                 .map(|item| format!("preferred:{item}")),
         );
         parts.extend(
-            stable_compatibility_surfaces
+            lower_level_stable_surfaces
                 .iter()
-                .map(|item| format!("compat:{item}")),
-        );
-        parts.extend(
-            deprecated_compatibility_surfaces
-                .iter()
-                .map(|item| format!("deprecated:{item}")),
+                .map(|item| format!("lower_level:{item}")),
         );
         parts.extend(
             support_gated_surfaces
@@ -176,11 +154,10 @@ impl ForgeQueryAspectApiFinalizationCloseout {
         Self {
             backend_posture,
             support_matrix_digest: support_matrix.matrix_digest().to_string(),
-            mutation_compatibility_digest: mutation_compatibility.report_digest().to_string(),
+            mutation_surface_digest: mutation_surface.report_digest().to_string(),
             naming_contract_digest: naming_contract.contract_digest().to_string(),
             preferred_stable_surfaces,
-            stable_compatibility_surfaces,
-            deprecated_compatibility_surfaces,
+            lower_level_stable_surfaces,
             support_gated_surfaces,
             safe_to_build_now,
             must_not_assume_yet,
@@ -199,8 +176,8 @@ impl ForgeQueryAspectApiFinalizationCloseout {
         &self.support_matrix_digest
     }
 
-    pub fn mutation_compatibility_digest(&self) -> &str {
-        &self.mutation_compatibility_digest
+    pub fn mutation_surface_digest(&self) -> &str {
+        &self.mutation_surface_digest
     }
 
     pub fn naming_contract_digest(&self) -> &str {
@@ -211,12 +188,8 @@ impl ForgeQueryAspectApiFinalizationCloseout {
         &self.preferred_stable_surfaces
     }
 
-    pub fn stable_compatibility_surfaces(&self) -> &[String] {
-        &self.stable_compatibility_surfaces
-    }
-
-    pub fn deprecated_compatibility_surfaces(&self) -> &[String] {
-        &self.deprecated_compatibility_surfaces
+    pub fn lower_level_stable_surfaces(&self) -> &[String] {
+        &self.lower_level_stable_surfaces
     }
 
     pub fn support_gated_surfaces(&self) -> &[String] {

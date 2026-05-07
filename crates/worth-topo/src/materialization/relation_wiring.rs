@@ -1,7 +1,6 @@
 use std::collections::BTreeMap;
 
 use forge_relational::facade::identity::EntityId;
-use forge_relational::facade::runtime::RelationReadRecord;
 use worth_schema::facade::{
     WorthEntityKind, WorthGeometryRelationKind, WorthRelationKind, WorthTopologyEntityKind,
     WorthTopologyRelationKind,
@@ -9,26 +8,27 @@ use worth_schema::facade::{
 
 use crate::data::topology_view::WorthTopologyView;
 use crate::materialization::errors::WorthTopologyMaterializationError;
+use crate::materialization::input_rows::MaterializationRelationRow;
 use crate::materialization::traits::HasEntityId;
 
 pub fn apply_relation(
     view: &mut WorthTopologyView,
     entity_kind_map: &BTreeMap<EntityId, WorthEntityKind>,
-    relation: &RelationReadRecord,
+    relation: &MaterializationRelationRow,
 ) -> Result<(), WorthTopologyMaterializationError> {
-    let Some(kind) = WorthRelationKind::from_kind_id(relation.kind.kind_id) else {
-        return Ok(());
-    };
+    let kind = relation.kind;
     let Some(source_kind) = entity_kind_map.get(&relation.source).copied() else {
         return Err(WorthTopologyMaterializationError::new(format!(
             "worth relation `{}` references missing source entity {:?}",
-            relation.kind.kind_name, relation.source
+            kind.kind_name(),
+            relation.source
         )));
     };
     let Some(target_kind) = entity_kind_map.get(&relation.target).copied() else {
         return Err(WorthTopologyMaterializationError::new(format!(
             "worth relation `{}` references missing target entity {:?}",
-            relation.kind.kind_name, relation.target
+            kind.kind_name(),
+            relation.target
         )));
     };
 

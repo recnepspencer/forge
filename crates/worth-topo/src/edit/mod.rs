@@ -1,12 +1,15 @@
 mod facade;
+mod proof;
 mod query_native;
 mod types;
 
 pub use facade::{WorthTopologyEditApplicationMode, WorthTopologyEditBatch};
-pub use query_native::{
-    WorthTopologyQueryEditExecution, WorthTopologyQueryEditExecutionError,
-    WorthTopologyQueryEditRunner,
+pub use proof::{
+    WorthNamingEditContinuityMatrix, WorthRejectedEditScopeReport, WorthRejectedEditScopeRow,
+    WorthTopologyEditDigest, WorthTopologyEditRejectionClass,
 };
+pub(crate) use query_native::WorthTopologyQueryEditRunner;
+pub use query_native::{WorthTopologyQueryEditExecution, WorthTopologyQueryEditExecutionError};
 pub use types::{
     WorthBoundaryMembershipKind, WorthLoopEndpointKind, WorthLoopSuccessorKind,
     WorthShellOrWireMembershipKind, WorthTopologyDerivedRegion, WorthTopologyEditAction,
@@ -17,7 +20,3 @@ pub use types::{
 
 #[cfg(test)]
 mod contract_tests;
-#[cfg(test)]
-mod query_native_test_support;
-#[cfg(test)]
-mod query_native_tests;

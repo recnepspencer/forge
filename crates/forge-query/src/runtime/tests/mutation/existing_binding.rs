@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn update_existing_preserves_authoritative_binding_evidence() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.update-existing")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -85,7 +85,7 @@ fn update_existing_preserves_authoritative_binding_evidence() {
 
 #[test]
 fn update_existing_denies_missing_target_typed_and_early() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.update-existing-denial")
         .expect("task runtime should open a named workspace");
     let binding = workspace
@@ -115,7 +115,7 @@ fn update_existing_denies_missing_target_typed_and_early() {
 
 #[test]
 fn batch_existing_targets_preserve_component_and_aggregate_binding_evidence() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.batch-existing")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -224,7 +224,7 @@ fn batch_existing_targets_preserve_component_and_aggregate_binding_evidence() {
 
 #[test]
 fn mixed_existing_and_symbolic_batch_preserves_aggregate_session_digests() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.batch-existing-symbolic")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -287,16 +287,7 @@ fn mixed_existing_and_symbolic_batch_preserves_aggregate_session_digests() {
 
 #[test]
 fn delete_existing_relation_preserves_relation_binding_family() {
-    let runtime = ForgeQueryRuntime::builder()
-        .compatibility_in_memory_collections([ForgeQueryCollection::new(
-            "TaskRelation",
-            [
-                crate::memory_workspace::ForgeQueryAspect::new("identity.id", "identity.id"),
-                crate::memory_workspace::ForgeQueryAspect::new("kind.value", "kind.value"),
-            ],
-        )])
-        .build()
-        .expect("runtime should build");
+    let runtime = stateful_bridge_task_relation_runtime();
     let mut workspace = runtime
         .workspace("tasks.delete-existing-relation")
         .expect("workspace should open");

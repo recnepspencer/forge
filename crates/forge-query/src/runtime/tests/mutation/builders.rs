@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn aspect_native_mutation_builders_reject_empty_or_duplicate_authoring() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-errors")
         .expect("task runtime should open a named workspace");
 

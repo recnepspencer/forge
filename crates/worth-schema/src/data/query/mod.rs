@@ -126,6 +126,7 @@ impl From<WorthQueryCollection> for String {
 pub enum WorthQuerySchemaBasis {
     AuthoritativeTopologyTruth,
     TopologyEntityLiveView,
+    TopologyDomainQuery,
     TopologyRelationLiveView,
     PersistentNameLiveView,
     TopologyDiagnosticLiveView,
@@ -137,9 +138,10 @@ pub enum WorthQuerySchemaBasis {
 }
 
 impl WorthQuerySchemaBasis {
-    pub const ALL: [Self; 10] = [
+    pub const ALL: [Self; 11] = [
         Self::AuthoritativeTopologyTruth,
         Self::TopologyEntityLiveView,
+        Self::TopologyDomainQuery,
         Self::TopologyRelationLiveView,
         Self::PersistentNameLiveView,
         Self::TopologyDiagnosticLiveView,
@@ -154,6 +156,7 @@ impl WorthQuerySchemaBasis {
         match self {
             Self::AuthoritativeTopologyTruth => "worth.schema.authoritative_topology_truth",
             Self::TopologyEntityLiveView => "worth.schema.live.topology_entity",
+            Self::TopologyDomainQuery => "worth.schema.domain.topology_query",
             Self::TopologyRelationLiveView => "worth.schema.live.topology_relation",
             Self::PersistentNameLiveView => "worth.schema.live.persistent_name",
             Self::TopologyDiagnosticLiveView => "worth.schema.live.topology_diagnostic",
@@ -370,3 +373,5 @@ pub fn worth_query_aspect_paths_from_set(
 mod mutation_admission_tests;
 #[cfg(test)]
 mod tests;
+#[cfg(test)]
+mod traversal_tests;

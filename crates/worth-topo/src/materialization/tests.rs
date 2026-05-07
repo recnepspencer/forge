@@ -1,6 +1,6 @@
 #[cfg(test)]
 mod materializer_tests {
-    use worth_schema::facade::seed_minimal_topology;
+    use worth_schema::facade::topology_authoring::seed_minimal_topology;
 
     use crate::materialization::WorthTopologyMaterializer;
 

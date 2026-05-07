@@ -45,9 +45,9 @@ cross-runtime authority-evidence lane right now.
 
 - authority-mutation evidence closes durable restart, temporal, async, or store-backed mutation semantics
 - unsupported identity-binding, naming, or continuity families remain fail-closed until explicitly admitted
-- unsupported existing-truth binding, assertion, verified-mutation, and probe neighbors remain typed and fail-closed rather than degrading into best-effort compatibility
+- unsupported existing-truth binding, assertion, verified-mutation, and probe neighbors remain typed and fail-closed rather than degrading into best-effort fallback behavior
 - unsupported identity-preserving relation update families remain fail-closed until the lower runtime can preserve target identity honestly
-- bridge-backed verified-existing support rows that deny on the primary posture may not be treated as production-ready just because compatibility runtimes admit them
+- bridge-backed verified-existing support rows that deny on the primary posture may not be treated as production-ready just because the scaffold posture admits them
 - downstream code may bypass Query receipts and inspect raw bridge/runtime provenance bags directly
 
 ## Migration Guidance
@@ -64,7 +64,7 @@ cross-runtime authority-evidence lane right now.
 - keep invariant-complete multi-command workflows inside one `workspace.batch(...)` so the primary runtime can preserve one commit boundary all the way down
 - delete local existing-target rebinding, naming outcome reconstruction, and continuity breadcrumb glue once equivalent Query evidence is available
 - delete local graph-program rejection reconstruction once `admission_trace()` and `domain_invariant_summary()` cover the denied-path explanation contract
-- treat unsupported mutation-evidence neighbors as fail-closed support gates rather than compatibility seams
+- treat unsupported mutation-evidence neighbors as fail-closed support gates rather than alternate runtime seams
 
 ## Bridge Carry-Forward Contract
 

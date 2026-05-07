@@ -1,0 +1,150 @@
+use super::super::*;
+use super::state::StatefulBridgeState;
+use serde_json::Value;
+
+pub(super) fn apply_command(
+    state: &mut StatefulBridgeState,
+    command: &ForgeQueryWriteCommand,
+    collection: &str,
+    entity_identity: &str,
+) -> Result<ForgeQueryMutationKind, ForgeQueryWorkspaceError> {
+    match command.mutation_family() {
+        ForgeQueryMutationFamily::Insert => {
+            let payload = payload_from_command(state, command)?;
+            state
+                .rows_by_collection
+                .entry(collection.to_string())
+                .or_default()
+                .insert(entity_identity.to_string(), payload);
+            state
+                .collection_by_identity
+                .insert(entity_identity.to_string(), collection.to_string());
+            if let Some(reference) = command.symbolic_target_reference() {
+                state
+                    .identity_by_symbol
+                    .insert(reference.symbol().to_string(), entity_identity.to_string());
+            }
+            Ok(ForgeQueryMutationKind::Created)
+        }
+        ForgeQueryMutationFamily::Update | ForgeQueryMutationFamily::Assertion => {
+            let resolved_aspects = resolved_aspects(state, command)?;
+            let row = state
+                .rows_by_collection
+                .entry(collection.to_string())
+                .or_default()
+                .get_mut(entity_identity)
+                .ok_or_else(|| {
+                    ForgeQueryWorkspaceError::new(format!(
+                        "stateful bridge update could not find `{entity_identity}` in `{collection}`"
+                    ))
+                })?;
+            apply_aspects(row, &resolved_aspects)?;
+            Ok(ForgeQueryMutationKind::Updated)
+        }
+        ForgeQueryMutationFamily::Delete => {
+            if let Some(rows) = state.rows_by_collection.get_mut(collection) {
+                rows.remove(entity_identity);
+            }
+            state.collection_by_identity.remove(entity_identity);
+            state
+                .identity_by_symbol
+                .retain(|_, resolved_identity| resolved_identity != entity_identity);
+            Ok(ForgeQueryMutationKind::Deleted)
+        }
+    }
+}
+
+fn payload_from_command(
+    state: &StatefulBridgeState,
+    command: &ForgeQueryWriteCommand,
+) -> Result<Value, ForgeQueryWorkspaceError> {
+    payload_from_aspects(&resolved_aspects(state, command)?)
+}
+
+fn resolved_aspects(
+    state: &StatefulBridgeState,
+    command: &ForgeQueryWriteCommand,
+) -> Result<Vec<ForgeQueryAspectValue>, ForgeQueryWorkspaceError> {
+    let mut aspects = command.aspect_values().to_vec();
+    for reference in command.symbolic_aspect_references() {
+        let resolved_identity = state
+            .identity_by_symbol
+            .get(reference.reference().symbol())
+            .cloned()
+            .ok_or_else(|| {
+                ForgeQueryWorkspaceError::new(format!(
+                    "stateful bridge could not resolve symbolic aspect reference `{}`",
+                    reference.reference().symbol()
+                ))
+            })?;
+        aspects.push(ForgeQueryAspectValue::new_set(
+            reference.aspect_path().to_string(),
+            resolved_identity,
+        )?);
+    }
+    Ok(aspects)
+}
+
+fn payload_from_aspects(
+    aspects: &[ForgeQueryAspectValue],
+) -> Result<Value, ForgeQueryWorkspaceError> {
+    let mut payload = Value::Object(serde_json::Map::new());
+    apply_aspects(&mut payload, aspects)?;
+    Ok(payload)
+}
+
+fn apply_aspects(
+    payload: &mut Value,
+    aspects: &[ForgeQueryAspectValue],
+) -> Result<(), ForgeQueryWorkspaceError> {
+    for aspect in aspects {
+        set_payload_path(payload, aspect.aspect_path(), aspect.value().clone())?;
+    }
+    Ok(())
+}
+
+fn set_payload_path(
+    payload: &mut Value,
+    dotted_path: &str,
+    value: Value,
+) -> Result<(), ForgeQueryWorkspaceError> {
+    let mut current = payload;
+    let mut parts = dotted_path.split('.').peekable();
+    while let Some(part) = parts.next() {
+        if parts.peek().is_none() {
+            return match current {
+                Value::Object(object) => {
+                    object.insert(part.to_string(), value);
+                    Ok(())
+                }
+                _ => Err(ForgeQueryWorkspaceError::new(format!(
+                    "stateful bridge payload path `{dotted_path}` crossed a non-object boundary"
+                ))),
+            };
+        }
+        current = match current {
+            Value::Object(object) => object
+                .entry(part.to_string())
+                .or_insert_with(|| Value::Object(serde_json::Map::new())),
+            _ => {
+                return Err(ForgeQueryWorkspaceError::new(format!(
+                    "stateful bridge payload path `{dotted_path}` crossed a non-object boundary"
+                )))
+            }
+        };
+    }
+    Ok(())
+}
+
+pub(super) fn payload_text(payload: &Value, dotted_path: &str) -> Option<String> {
+    let mut current = payload;
+    for part in dotted_path.split('.') {
+        current = current.get(part)?;
+    }
+    match current {
+        Value::String(text) => Some(text.clone()),
+        Value::Number(number) => Some(number.to_string()),
+        Value::Bool(flag) => Some(flag.to_string()),
+        _ => None,
+    }
+}

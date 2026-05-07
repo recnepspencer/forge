@@ -1,12 +1,9 @@
 use forge_query::facade::{
-    ForgeQueryCollection, ForgeQueryIntentExecution, ForgeQueryMutationReceipt, ForgeQueryRuntime,
+    ForgeQueryIntentExecution, ForgeQueryMutationReceipt, ForgeQueryRuntime,
 };
 
 fn main() {
-    let runtime = ForgeQueryRuntime::builder()
-        .compatibility_in_memory_collections([ForgeQueryCollection::new("Task", [])])
-        .build()
-        .unwrap();
+    let runtime = fake_runtime();
     let execution = ForgeQueryIntentExecution::idempotent_noop(
         "strategy",
         "v1",
@@ -20,4 +17,8 @@ fn main() {
 
     let _ = runtime.inspect(&execution);
     let _: ForgeQueryMutationReceipt = execution;
+}
+
+fn fake_runtime() -> ForgeQueryRuntime {
+    todo!()
 }

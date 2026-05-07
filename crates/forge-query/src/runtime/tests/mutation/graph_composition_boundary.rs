@@ -1,32 +1,7 @@
 use super::super::support::*;
 
 fn task_edge_runtime() -> ForgeQueryRuntime {
-    ForgeQueryRuntime::builder()
-        .compatibility_in_memory_collections([
-            ForgeQueryCollection::new(
-                "Task",
-                [
-                    crate::memory_workspace::ForgeQueryAspect::new("identity.id", "identity.id"),
-                    crate::memory_workspace::ForgeQueryAspect::new("title.value", "title.value"),
-                ],
-            ),
-            ForgeQueryCollection::new(
-                "TaskEdge",
-                [
-                    crate::memory_workspace::ForgeQueryAspect::new("edge.kind", "edge.kind"),
-                    crate::memory_workspace::ForgeQueryAspect::new(
-                        "edge.source_identity",
-                        "edge.source_identity",
-                    ),
-                    crate::memory_workspace::ForgeQueryAspect::new(
-                        "edge.target_identity",
-                        "edge.target_identity",
-                    ),
-                ],
-            ),
-        ])
-        .build()
-        .expect("runtime should build")
+    stateful_bridge_task_edge_runtime()
 }
 
 #[test]

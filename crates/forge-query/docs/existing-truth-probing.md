@@ -42,7 +42,7 @@ let probe_row = support
     })
     .unwrap();
 
-assert!(probe_row.compatibility_runtime_supported());
+assert!(probe_row.scaffold_profile_supported());
 if probe_row.primary_bridge_backed_runtime_supported() {
     assert_eq!(
         probe_row.current_posture_status(),

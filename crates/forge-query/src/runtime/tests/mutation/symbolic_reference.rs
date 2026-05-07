@@ -1,37 +1,12 @@
 use super::super::support::*;
 
 fn task_edge_runtime() -> ForgeQueryRuntime {
-    ForgeQueryRuntime::builder()
-        .compatibility_in_memory_collections([
-            ForgeQueryCollection::new(
-                "Task",
-                [
-                    crate::memory_workspace::ForgeQueryAspect::new("identity.id", "identity.id"),
-                    crate::memory_workspace::ForgeQueryAspect::new("title.value", "title.value"),
-                ],
-            ),
-            ForgeQueryCollection::new(
-                "TaskEdge",
-                [
-                    crate::memory_workspace::ForgeQueryAspect::new("edge.kind", "edge.kind"),
-                    crate::memory_workspace::ForgeQueryAspect::new(
-                        "edge.source_identity",
-                        "edge.source_identity",
-                    ),
-                    crate::memory_workspace::ForgeQueryAspect::new(
-                        "edge.target_identity",
-                        "edge.target_identity",
-                    ),
-                ],
-            ),
-        ])
-        .build()
-        .expect("runtime should build")
+    stateful_bridge_task_edge_runtime()
 }
 
 #[test]
 fn mixed_batch_symbolic_and_existing_targets_preserve_distinct_evidence() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.mixed-target-batch")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -120,7 +95,7 @@ fn mixed_batch_symbolic_and_existing_targets_preserve_distinct_evidence() {
 
 #[test]
 fn symbolic_target_reference_denies_missing_same_batch_target() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.symbolic-denial")
         .expect("task runtime should open a named workspace");
     let symbolic = ForgeQuerySymbolicTargetReference::new("missing-task")
@@ -148,7 +123,7 @@ fn symbolic_target_reference_denies_missing_same_batch_target() {
 
 #[test]
 fn preview_batch_symbolic_target_preserves_symbolic_evidence() {
-    let runtime = task_runtime();
+    let runtime = stateful_bridge_task_runtime();
     let mut workspace = runtime
         .workspace("tasks.preview-symbolic")
         .expect("task runtime should open a named workspace");

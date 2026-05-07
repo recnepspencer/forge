@@ -1,4 +1,4 @@
-error[E0451]: fields `operation_family`, `target_binding_family`, `current_posture_status`, `compatibility_runtime_supported`, `primary_bridge_backed_runtime_supported`, `denial_class_when_unsupported` and `row_digest` of struct `ForgeQueryBridgeBackedVerificationSupportRow` are private
+error[E0451]: fields `operation_family`, `target_binding_family`, `current_posture_status`, `scaffold_profile_supported`, `primary_bridge_backed_runtime_supported`, `denial_class_when_unsupported` and `row_digest` of struct `ForgeQueryBridgeBackedVerificationSupportRow` are private
   --> tests/ui/runtime_bridge_backed_verification_support_row_constructor_private.rs:8:9
    |
  7 |     let _ = ForgeQueryBridgeBackedVerificationSupportRow {
@@ -9,8 +9,8 @@ error[E0451]: fields `operation_family`, `target_binding_family`, `current_postu
    |         ^^^^^^^^^^^^^^^^^^^^^ private field
 10 |         current_posture_status: ForgeQueryBridgeBackedVerificationSupportStatus::Admitted,
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         compatibility_runtime_supported: true,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         scaffold_profile_supported: true,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
 12 |         primary_bridge_backed_runtime_supported: false,
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
 13 |         denial_class_when_unsupported: None,

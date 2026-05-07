@@ -4,6 +4,7 @@ mod core;
 mod corpus;
 mod error;
 mod facade;
+mod milestone_three;
 mod milestone_two;
 mod read_view;
 mod rejections;
@@ -20,14 +21,27 @@ pub use core::{
     WorthCertificationSuiteDefinition, WorthCertificationSuiteRequirements,
     WorthCertificationValidatorExpectation,
 };
-pub use error::WorthMilestoneOneCertificationError;
+pub use error::{WorthMilestoneOneCertificationError, WorthTopologyCertificationError};
 pub use facade::{
     certify_milestone_one_branch_local_primitive_scenarios, certify_milestone_one_closeout,
     certify_milestone_one_default_primitive_corpus, certify_milestone_one_primitive_corpus,
     certify_milestone_one_primitive_scenarios, certify_milestone_one_read_basis_traced,
+    certify_milestone_three_ambiguous_local_rewire_continuity,
+    certify_milestone_three_bowtie_adjacent_rewire,
+    certify_milestone_three_broken_radial_localization,
+    certify_milestone_three_cancellation_chain_parity, certify_milestone_three_hostile_suite,
     certify_milestone_two_closeout, certify_milestone_two_default_derived_corpus,
     certify_milestone_two_read_basis_traced, certify_milestone_two_verified_topology_commit_traced,
     certify_verified_topology_commit_traced,
+};
+pub use milestone_three::{
+    WorthMilestoneThreeAmbiguousLocalRewireWitness, WorthMilestoneThreeBowtieAdjacentWitness,
+    WorthMilestoneThreeBrokenRadialWitness, WorthMilestoneThreeEditReplayParityReport,
+    WorthMilestoneThreeEditReplayStepRow, WorthMilestoneThreeHostileCoverageRow,
+    WorthMilestoneThreeHostileFamilyCoverageRow, WorthMilestoneThreeHostileNamingDistributionRow,
+    WorthMilestoneThreeHostileOutcomeClass, WorthMilestoneThreeHostileRejectionDistributionRow,
+    WorthMilestoneThreeHostileScenario, WorthMilestoneThreeHostileScenarioReport,
+    WorthMilestoneThreeHostileSuiteReport,
 };
 pub use milestone_two::WorthTracedMilestoneTwoDerivedReadReport;
 pub use read_view::WorthMilestoneOneCertificationHarness;

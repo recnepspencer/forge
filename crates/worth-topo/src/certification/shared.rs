@@ -1,6 +1,5 @@
-use worth_schema::facade::{
-    WorthMilestoneOnePrimitiveCase, WorthTopologyMutation, WorthTopologyMutationBatch,
-};
+use worth_schema::facade::topology_authoring::WorthMilestoneOnePrimitiveCase;
+use worth_schema::facade::{WorthTopologyMutation, WorthTopologyMutationBatch};
 
 use crate::certification::report::{
     WorthDeterministicDigest, WorthPrimitiveCorpusCaseReport, WorthPrimitiveCorpusCoverageEntry,

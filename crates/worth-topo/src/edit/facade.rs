@@ -4,7 +4,6 @@ use worth_schema::facade::{RawWorthTopologyIntent, WorthMutationOrigin};
 use super::types::{
     WorthTopologyEditContract, WorthTopologyEditFamily, WorthTopologyEditNamingReport,
 };
-
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum WorthTopologyEditApplicationMode {
     Mainline,

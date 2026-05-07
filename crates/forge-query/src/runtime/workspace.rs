@@ -8,13 +8,13 @@ use super::{
     ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryHandleContract, ForgeQueryIntentDeclaration,
     ForgeQueryIntentReceipt, ForgeQueryLiveView, ForgeQueryLiveViewBuilder,
-    ForgeQueryMutationApiCompatibilityReport, ForgeQueryMutationBatchBuilder,
-    ForgeQueryMutationMetadata, ForgeQueryPreviewOptions, ForgeQueryPreviewSession,
-    ForgeQueryRuntime, ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily,
-    ForgeQueryRuntimePublicApiContract, ForgeQueryRuntimePublicApiFamilyContract,
-    ForgeQueryRuntimePublicSupportMatrix, ForgeQueryRuntimeStateSnapshot,
-    ForgeQueryRuntimeStateTarget, ForgeQueryWorkspaceLiveViewDeclaration, ForgeQueryWriteCommand,
-    ForgeQueryWriteReceipt, QuerySchemaView,
+    ForgeQueryMutationBatchBuilder, ForgeQueryMutationMetadata, ForgeQueryMutationSurfaceReport,
+    ForgeQueryPreviewOptions, ForgeQueryPreviewSession, ForgeQueryRuntime, ForgeQueryRuntimeError,
+    ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimePublicApiContract,
+    ForgeQueryRuntimePublicApiFamilyContract, ForgeQueryRuntimePublicSupportMatrix,
+    ForgeQueryRuntimeStateSnapshot, ForgeQueryRuntimeStateTarget,
+    ForgeQueryWorkspaceLiveViewDeclaration, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    QuerySchemaView,
 };
 use crate::program::ForgeQueryDerivedView;
 
@@ -59,10 +59,8 @@ impl ForgeQueryWorkspace {
         self.runtime.public_support_matrix()
     }
 
-    pub fn public_mutation_api_compatibility_report(
-        &self,
-    ) -> ForgeQueryMutationApiCompatibilityReport {
-        self.runtime.public_mutation_api_compatibility_report()
+    pub fn public_mutation_surface_report(&self) -> ForgeQueryMutationSurfaceReport {
+        self.runtime.public_mutation_surface_report()
     }
 
     pub fn public_authoritative_mutation_evidence_support(
@@ -121,7 +119,7 @@ impl ForgeQueryWorkspace {
         schema_view: QuerySchemaView,
     ) -> Result<ForgeQueryLiveView<T>, ForgeQueryRuntimeError> {
         let declaration =
-            ForgeQueryWorkspaceLiveViewDeclaration::from_request(request, schema_view);
+            ForgeQueryWorkspaceLiveViewDeclaration::try_from_request(request, schema_view)?;
         let (request, schema_view) = declaration.into_parts();
         self.runtime.declare_live_view(name, request, schema_view)
     }

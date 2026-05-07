@@ -4,14 +4,14 @@ use crate::runtime::{ForgeQueryAuthorityLane, ForgeQueryEffectPolicy};
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum ForgeQueryRuntimeBackendPosture {
     Primary,
-    Compatibility,
+    Scaffold,
 }
 
 impl ForgeQueryRuntimeBackendPosture {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::Primary => "primary",
-            Self::Compatibility => "compatibility",
+            Self::Scaffold => "scaffold",
         }
     }
 }

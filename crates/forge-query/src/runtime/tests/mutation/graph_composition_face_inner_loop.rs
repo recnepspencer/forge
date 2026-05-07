@@ -1,44 +1,12 @@
 use super::super::support::*;
 
 fn face_loop_runtime() -> ForgeQueryRuntime {
-    ForgeQueryRuntime::builder()
-        .compatibility_in_memory_collections([
-            ForgeQueryCollection::new(
-                "Loop",
-                [
-                    crate::memory_workspace::ForgeQueryAspect::new("identity.id", "identity.id"),
-                    crate::memory_workspace::ForgeQueryAspect::new("kind.value", "kind.value"),
-                ],
-            ),
-            ForgeQueryCollection::new(
-                "HalfEdge",
-                [
-                    crate::memory_workspace::ForgeQueryAspect::new("identity.id", "identity.id"),
-                    crate::memory_workspace::ForgeQueryAspect::new("kind.value", "kind.value"),
-                ],
-            ),
-            ForgeQueryCollection::new(
-                "FaceLoopRelation",
-                [
-                    crate::memory_workspace::ForgeQueryAspect::new("face.id", "face.id"),
-                    crate::memory_workspace::ForgeQueryAspect::new("loop.id", "loop.id"),
-                    crate::memory_workspace::ForgeQueryAspect::new("role.value", "role.value"),
-                ],
-            ),
-            ForgeQueryCollection::new(
-                "LoopHalfEdgeRelation",
-                [
-                    crate::memory_workspace::ForgeQueryAspect::new("loop.id", "loop.id"),
-                    crate::memory_workspace::ForgeQueryAspect::new("half_edge.id", "half_edge.id"),
-                    crate::memory_workspace::ForgeQueryAspect::new(
-                        "position.ordinal",
-                        "position.ordinal",
-                    ),
-                ],
-            ),
-        ])
-        .build()
-        .expect("runtime should build")
+    stateful_bridge_runtime_with_collections(&[
+        "Loop",
+        "HalfEdge",
+        "FaceLoopRelation",
+        "LoopHalfEdgeRelation",
+    ])
 }
 
 #[test]

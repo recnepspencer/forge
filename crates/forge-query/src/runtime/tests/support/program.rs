@@ -14,24 +14,18 @@ pub(in crate::runtime::tests) fn preview_safe_program() -> ForgeQueryProgram {
             .requires(ForgeQueryAuthorityRequirement::Live)
             .requires(ForgeQueryAuthorityRequirement::Writeback)
             .with_effect(ForgeQueryProgramEffect::WriteTemplate(
-                ForgeQueryWriteCommandTemplate::Insert {
+                ForgeQueryWriteCommandTemplate::InsertAspects {
                     collection: "Task".to_string(),
-                    payload: ForgeQueryValueExpr::object([
-                        (
-                            "identity".to_string(),
-                            ForgeQueryValueExpr::object([(
-                                "id".to_string(),
-                                ForgeQueryValueExpr::literal(Value::String(String::new())),
-                            )]),
+                    aspects: vec![
+                        ForgeQueryAspectValueTemplate::new(
+                            "identity.id",
+                            ForgeQueryValueExpr::literal(Value::String(String::new())),
                         ),
-                        (
-                            "title".to_string(),
-                            ForgeQueryValueExpr::object([(
-                                "value".to_string(),
-                                ForgeQueryValueExpr::input("title"),
-                            )]),
+                        ForgeQueryAspectValueTemplate::new(
+                            "title.value",
+                            ForgeQueryValueExpr::input("title"),
                         ),
-                    ]),
+                    ],
                 },
             ))
             .with_effect(ForgeQueryProgramEffect::ReadLive {
@@ -175,24 +169,18 @@ impl ForgeQueryProgramSource for FakeDsl {
                     schema_view,
                 })
                 .with_effect(ForgeQueryProgramEffect::WriteTemplate(
-                    ForgeQueryWriteCommandTemplate::Insert {
+                    ForgeQueryWriteCommandTemplate::InsertAspects {
                         collection: "Task".to_string(),
-                        payload: ForgeQueryValueExpr::object([
-                            (
-                                "identity".to_string(),
-                                ForgeQueryValueExpr::object([(
-                                    "id".to_string(),
-                                    ForgeQueryValueExpr::literal(Value::String(String::new())),
-                                )]),
+                        aspects: vec![
+                            ForgeQueryAspectValueTemplate::new(
+                                "identity.id",
+                                ForgeQueryValueExpr::literal(Value::String(String::new())),
                             ),
-                            (
-                                "title".to_string(),
-                                ForgeQueryValueExpr::object([(
-                                    "value".to_string(),
-                                    ForgeQueryValueExpr::input("title"),
-                                )]),
+                            ForgeQueryAspectValueTemplate::new(
+                                "title.value",
+                                ForgeQueryValueExpr::input("title"),
                             ),
-                        ]),
+                        ],
                     },
                 ))
                 .with_effect(ForgeQueryProgramEffect::ReadLive {

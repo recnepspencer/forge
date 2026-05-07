@@ -22,8 +22,8 @@ pub use crate::authoring::{
     CollectionQueryBuilder, CollectionResultShapeBuilder, DetailAuthoredQuery,
     DetailAuthoredResultShape, DetailQueryBuilder, DetailResultShapeBuilder, EqualityPredicate,
     GuidedAuthoringPath, IntegerComparisonOperator, IntegerComparisonPredicate, OrderingDirection,
-    OrderingSelector, PredicateSelector, QueryFamily, ResultShapeFamily, RootEntityKey,
-    ScalarPredicateValue, TraversalSelector,
+    OrderingSelector, PredicateSelector, QueryFamily, RelationName, ResultShapeFamily,
+    RootEntityKey, ScalarPredicateValue, TraversalSelector,
 };
 pub use crate::authorized_projection::{
     runtime_backed_authorized_projection_support_profile, AuthorizedProjectionArtifact,
@@ -99,10 +99,12 @@ pub use crate::declarative_live::{
     DeclarativeBranchCompareArtifact, DeclarativeBranchCompareChangeFamily,
     DeclarativeBranchCompareFieldDelta, DeclarativeBranchCompareIdentityClass,
     DeclarativeBranchCompareInputRow, DeclarativeBranchCompareRow, DeclarativeBranchCompareValue,
-    DeclarativeEqualityFilter, DeclarativeLiveQueryError, DeclarativeLiveQueryRequest,
-    DeclarativeLiveQuerySession, DeclarativeLiveViewShape, DeclarativeProjectionField,
-    DeclarativeWritebackArtifact, DeclarativeWritebackChange, DeclarativeWritebackIntent,
-    DeclarativeWritebackValue,
+    DeclarativeEqualityFilter, DeclarativeIntegerComparisonFilter, DeclarativeLiveQueryError,
+    DeclarativeLiveQueryRequest, DeclarativeLiveQuerySession, DeclarativeLiveViewShape,
+    DeclarativeOrderingField, DeclarativePredicateFilter, DeclarativePresenceFilter,
+    DeclarativePresenceFilterKind, DeclarativeProjectionField, DeclarativeSetMembershipFilter,
+    DeclarativeStringContainsFilter, DeclarativeWritebackArtifact, DeclarativeWritebackChange,
+    DeclarativeWritebackIntent, DeclarativeWritebackValue,
 };
 pub use crate::diagnostics::{
     CanonicalizationCounters, CanonicalizationReport, CanonicalizationWarning,
@@ -214,8 +216,7 @@ pub use crate::live_performance::{
     RefreshCostClass, VerifiedPerformance,
 };
 pub use crate::memory_workspace::{
-    ForgeQueryAspect, ForgeQueryCollection, ForgeQueryEntity, ForgeQueryLivePatch,
-    ForgeQueryLiveViewHandle, ForgeQueryMemoryApp, ForgeQueryMemoryWorkspace,
-    ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
-    ForgeQueryWorkspaceError,
+    ForgeQueryAspect, ForgeQueryEntity, ForgeQueryLivePatch, ForgeQueryLiveViewHandle,
+    ForgeQueryMemoryWorkspace, ForgeQueryMutationDelta, ForgeQueryMutationKind,
+    ForgeQueryMutationReceipt, ForgeQueryWorkspaceError,
 };

@@ -1,14 +1,16 @@
-use std::collections::BTreeSet;
+use std::collections::{BTreeMap, BTreeSet};
 
 use super::{
     DeclarativeLiveQueryRequest, DeclarativeLiveViewShape, ForgeQueryDerivedViewHandle,
     ForgeQueryEffectCondition, ForgeQueryEffectDeclaration, ForgeQueryEffectTrigger,
     ForgeQueryLiveView, ForgeQueryRuntimeError, QuerySchemaView,
 };
+use crate::authoring::TraversalSelector;
+use crate::declarative_live::validate_declared_traversal_contract;
 use crate::declarative_live::DeclarativeProjectionField;
 use crate::memory_workspace::ForgeQueryWorkspaceError;
 use crate::program::ForgeQueryDerivedView;
-use crate::schema_view::{SchemaFieldKind, SchemaFieldView};
+use crate::schema_view::{SchemaFieldKind, SchemaFieldView, SchemaRelationView};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryWorkspaceLiveViewDeclaration {
@@ -17,14 +19,16 @@ pub struct ForgeQueryWorkspaceLiveViewDeclaration {
 }
 
 impl ForgeQueryWorkspaceLiveViewDeclaration {
-    pub fn from_request(
+    pub fn try_from_request(
         request: DeclarativeLiveQueryRequest,
         schema_view: QuerySchemaView,
-    ) -> Self {
-        Self {
+    ) -> Result<Self, ForgeQueryRuntimeError> {
+        validate_declared_traversal_contract(&request, &schema_view)
+            .map_err(|error| workspace_error(format!("{error:?}")))?;
+        Ok(Self {
             request,
             schema_view,
-        }
+        })
     }
 
     pub fn request(&self) -> &DeclarativeLiveQueryRequest {
@@ -38,6 +42,16 @@ impl ForgeQueryWorkspaceLiveViewDeclaration {
     pub(in crate::runtime) fn into_parts(self) -> (DeclarativeLiveQueryRequest, QuerySchemaView) {
         (self.request, self.schema_view)
     }
+
+    pub(in crate::runtime) fn from_request(
+        request: DeclarativeLiveQueryRequest,
+        schema_view: QuerySchemaView,
+    ) -> Self {
+        Self {
+            request,
+            schema_view,
+        }
+    }
 }
 
 pub struct ForgeQueryLiveViewBuilder {
@@ -46,6 +60,7 @@ pub struct ForgeQueryLiveViewBuilder {
     view_shape: DeclarativeLiveViewShape,
     projection: Vec<String>,
     ordering: Option<String>,
+    schema_relations: Vec<(String, u8)>,
     schema_basis_marker: Option<String>,
 }
 
@@ -61,6 +76,7 @@ impl ForgeQueryLiveViewBuilder {
             view_shape: DeclarativeLiveViewShape::table(),
             projection: Vec::new(),
             ordering: None,
+            schema_relations: Vec::new(),
             schema_basis_marker: None,
         }
     }
@@ -100,6 +116,11 @@ impl ForgeQueryLiveViewBuilder {
         self
     }
 
+    pub fn allow_traversal_relation(mut self, relation: impl Into<String>, max_depth: u8) -> Self {
+        self.schema_relations.push((relation.into(), max_depth));
+        self
+    }
+
     pub fn schema_basis(mut self, basis_marker: impl Into<String>) -> Self {
         self.schema_basis_marker = Some(basis_marker.into());
         self
@@ -132,6 +153,13 @@ impl ForgeQueryLiveViewBuilder {
             request = request.order_by(DeclarativeProjectionField::new(section, field));
             schema_fields.insert((section.to_string(), field.to_string()));
         }
+        let schema_relations = normalize_schema_relations(self.schema_relations)?;
+        for (relation, max_depth) in &schema_relations {
+            request = request.traverse(
+                TraversalSelector::bounded(relation.clone(), *max_depth)
+                    .map_err(|error| workspace_error(format!("{error:?}")))?,
+            );
+        }
         let schema_view = QuerySchemaView::new(
             self.schema_basis_marker.unwrap_or_else(|| {
                 format!(
@@ -143,7 +171,9 @@ impl ForgeQueryLiveViewBuilder {
             schema_fields.into_iter().map(|(section, field)| {
                 SchemaFieldView::new(section, field, SchemaFieldKind::String)
             }),
-            std::iter::empty(),
+            schema_relations
+                .into_iter()
+                .map(|(relation, max_depth)| SchemaRelationView::new(relation, max_depth)),
         );
         Ok(ForgeQueryWorkspaceLiveViewDeclaration::from_request(
             request,
@@ -332,6 +362,29 @@ fn non_empty(value: Option<String>, message: &str) -> Result<String, ForgeQueryR
     Ok(value)
 }
 
+fn normalize_schema_relations(
+    relations: Vec<(String, u8)>,
+) -> Result<Vec<(String, u8)>, ForgeQueryRuntimeError> {
+    let mut declared = BTreeMap::<String, u8>::new();
+    for (relation, max_depth) in relations {
+        if max_depth == 0 {
+            return Err(workspace_error(format!(
+                "workspace traversal relation `{relation}` must declare a non-zero max depth"
+            )));
+        }
+        if declared.insert(relation.clone(), max_depth).is_some() {
+            return Err(workspace_error(format!(
+                "workspace traversal relation `{relation}` may only be declared once per live view"
+            )));
+        }
+    }
+    Ok(declared.into_iter().collect())
+}
+
 fn workspace_error(message: impl Into<String>) -> ForgeQueryRuntimeError {
     ForgeQueryRuntimeError::Workspace(ForgeQueryWorkspaceError::new(message))
 }
+
+#[cfg(test)]
+#[path = "workspace_declaration_tests.rs"]
+mod tests;

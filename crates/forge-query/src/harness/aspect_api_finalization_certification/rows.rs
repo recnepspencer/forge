@@ -8,7 +8,9 @@ use crate::runtime::{
 use serde_json::Value;
 
 use super::digests::{inspection_digest, touched_aspect_digest};
-use super::fixture::{task_live_view, task_runtime, CertificationTitleListMaintainer};
+use super::fixture::{
+    stateful_bridge_task_runtime, task_live_view, CertificationTitleListMaintainer,
+};
 use super::{
     AspectApiFinalizationCertificationBundle, AspectApiFinalizationFailureClass,
     AspectApiFinalizationPerturbationClass, AspectApiFinalizationRejectionBundle,
@@ -49,13 +51,13 @@ pub(super) fn canonical_rows() -> Vec<
             parity_lane: preview_batch_lane(),
         },
         CanonicalCertificationRow {
-            row_name: "compatibility-closeout-contract-sync",
-            perturbation_class: AspectApiFinalizationPerturbationClass::CompatibilityCloseoutSync,
+            row_name: "mutation-surface-closeout-contract-sync",
+            perturbation_class: AspectApiFinalizationPerturbationClass::MutationSurfaceCloseoutSync,
             hostile_expectation: HostileExpectation::EquivalentToControl,
             parity_anchor: ParityAnchor::Control,
-            control_lane: compatibility_contract_lane(),
-            hostile_lane: compatibility_contract_lane(),
-            parity_lane: compatibility_contract_lane(),
+            control_lane: mutation_surface_contract_lane(),
+            hostile_lane: mutation_surface_contract_lane(),
+            parity_lane: mutation_surface_contract_lane(),
         },
     ]
 }
@@ -72,17 +74,17 @@ pub(super) fn rejection_rows() -> Vec<
             row_name: "unsupported-intent-family-fails-typed-and-early",
             perturbation_class:
                 AspectApiFinalizationPerturbationClass::UnsupportedIntentFamilyDenied,
-            control_lane: compatibility_contract_lane(),
+            control_lane: mutation_surface_contract_lane(),
             hostile_lane: unsupported_intent_rejection(),
-            parity_lane: compatibility_contract_lane(),
+            parity_lane: mutation_surface_contract_lane(),
         },
         RejectionCertificationRow {
             row_name: "duplicate-clear-and-set-denied-before-routing",
             perturbation_class:
                 AspectApiFinalizationPerturbationClass::DuplicateAspectAuthoringDenied,
-            control_lane: compatibility_contract_lane(),
+            control_lane: mutation_surface_contract_lane(),
             hostile_lane: duplicate_aspect_authoring_rejection(),
-            parity_lane: compatibility_contract_lane(),
+            parity_lane: mutation_surface_contract_lane(),
         },
     ]
 }
@@ -92,7 +94,7 @@ fn authoritative_crud_lane(
     initial_title: &str,
     renamed_title: &str,
 ) -> AspectApiFinalizationCertificationBundle {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("aspect-api.crud")
         .expect("workspace should open");
     let live: ForgeQueryLiveView<Value> = task_live_view(&mut workspace, "tasks.cert-crud");
@@ -126,8 +128,8 @@ fn authoritative_crud_lane(
             .public_support_matrix()
             .matrix_digest()
             .to_string(),
-        compatibility_report_digest: workspace
-            .public_mutation_api_compatibility_report()
+        mutation_surface_report_digest: workspace
+            .public_mutation_surface_report()
             .report_digest()
             .to_string(),
         closeout_digest: workspace
@@ -147,7 +149,7 @@ fn authoritative_crud_lane(
 }
 
 fn clear_lane(aspect_path: &str) -> AspectApiFinalizationCertificationBundle {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("aspect-api.clear")
         .expect("workspace should open");
     let live: ForgeQueryLiveView<Value> = task_live_view(&mut workspace, "tasks.cert-clear");
@@ -179,8 +181,8 @@ fn clear_lane(aspect_path: &str) -> AspectApiFinalizationCertificationBundle {
             .public_support_matrix()
             .matrix_digest()
             .to_string(),
-        compatibility_report_digest: workspace
-            .public_mutation_api_compatibility_report()
+        mutation_surface_report_digest: workspace
+            .public_mutation_surface_report()
             .report_digest()
             .to_string(),
         closeout_digest: workspace
@@ -200,7 +202,7 @@ fn clear_lane(aspect_path: &str) -> AspectApiFinalizationCertificationBundle {
 }
 
 fn authoritative_batch_lane() -> AspectApiFinalizationCertificationBundle {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("aspect-api.batch")
         .expect("workspace should open");
     let live: ForgeQueryLiveView<Value> = task_live_view(&mut workspace, "tasks.cert-batch");
@@ -243,8 +245,8 @@ fn authoritative_batch_lane() -> AspectApiFinalizationCertificationBundle {
             .public_support_matrix()
             .matrix_digest()
             .to_string(),
-        compatibility_report_digest: workspace
-            .public_mutation_api_compatibility_report()
+        mutation_surface_report_digest: workspace
+            .public_mutation_surface_report()
             .report_digest()
             .to_string(),
         closeout_digest: workspace
@@ -264,7 +266,7 @@ fn authoritative_batch_lane() -> AspectApiFinalizationCertificationBundle {
 }
 
 fn preview_batch_lane() -> AspectApiFinalizationCertificationBundle {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("aspect-api.preview-batch")
         .expect("workspace should open");
     let mut preview = workspace
@@ -300,8 +302,8 @@ fn preview_batch_lane() -> AspectApiFinalizationCertificationBundle {
             .public_support_matrix()
             .matrix_digest()
             .to_string(),
-        compatibility_report_digest: workspace
-            .public_mutation_api_compatibility_report()
+        mutation_surface_report_digest: workspace
+            .public_mutation_surface_report()
             .report_digest()
             .to_string(),
         closeout_digest: workspace
@@ -320,19 +322,24 @@ fn preview_batch_lane() -> AspectApiFinalizationCertificationBundle {
     }
 }
 
-fn compatibility_contract_lane() -> AspectApiFinalizationCertificationBundle {
-    let workspace = task_runtime()
+fn mutation_surface_contract_lane() -> AspectApiFinalizationCertificationBundle {
+    let workspace = stateful_bridge_task_runtime()
         .workspace("aspect-api.contract")
         .expect("workspace should open");
-    let report = workspace.public_mutation_api_compatibility_report();
+    let report = workspace.public_mutation_surface_report();
     let closeout = workspace.public_aspect_api_finalization_closeout();
 
     AspectApiFinalizationCertificationBundle {
-        mutation_surface_label: "workspace.public_mutation_api_compatibility_report/public_aspect_api_finalization_closeout".to_string(),
+        mutation_surface_label:
+            "workspace.public_mutation_surface_report/public_aspect_api_finalization_closeout"
+                .to_string(),
         authority_lane_label: ForgeQueryAuthorityLane::AuthoritativeTruth.to_string(),
         mutation_family_label: "contract".to_string(),
-        support_matrix_digest: workspace.public_support_matrix().matrix_digest().to_string(),
-        compatibility_report_digest: report.report_digest().to_string(),
+        support_matrix_digest: workspace
+            .public_support_matrix()
+            .matrix_digest()
+            .to_string(),
+        mutation_surface_report_digest: report.report_digest().to_string(),
         closeout_digest: closeout.closeout_digest().to_string(),
         receipt_digest: report.report_digest().to_string(),
         state_digest: closeout.closeout_digest().to_string(),
@@ -348,18 +355,18 @@ fn compatibility_contract_lane() -> AspectApiFinalizationCertificationBundle {
                 .collect::<Vec<_>>(),
         ),
         affected_live_view_count: report.preferred_stable_count(),
-        affected_derived_view_count: report.stable_compatibility_count(),
-        routed_patch_count: report.deprecated_compatibility_count(),
+        affected_derived_view_count: report.lower_level_stable_count(),
+        routed_patch_count: report.lower_level_stable_count(),
         materialized_row_count: report.support_gated_count(),
         preview_residue_count: 0,
     }
 }
 
 fn unsupported_intent_rejection() -> AspectApiFinalizationRejectionBundle {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("aspect-api.intent-denial")
         .expect("workspace should open");
-    let report = workspace.public_mutation_api_compatibility_report();
+    let report = workspace.public_mutation_surface_report();
     let closeout = workspace.public_aspect_api_finalization_closeout();
     let error = workspace
         .intent(ForgeQueryIntentDeclaration::strategy_commit(
@@ -384,7 +391,7 @@ fn unsupported_intent_rejection() -> AspectApiFinalizationRejectionBundle {
                     .public_support_matrix()
                     .matrix_digest()
                     .to_string(),
-                compatibility_report_digest: report.report_digest().to_string(),
+                mutation_surface_report_digest: report.report_digest().to_string(),
                 closeout_digest: closeout.closeout_digest().to_string(),
             }
         }
@@ -393,10 +400,10 @@ fn unsupported_intent_rejection() -> AspectApiFinalizationRejectionBundle {
 }
 
 fn duplicate_aspect_authoring_rejection() -> AspectApiFinalizationRejectionBundle {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("aspect-api.duplicate-denial")
         .expect("workspace should open");
-    let report = workspace.public_mutation_api_compatibility_report();
+    let report = workspace.public_mutation_surface_report();
     let closeout = workspace.public_aspect_api_finalization_closeout();
     let error = workspace
         .update("entity:1:1:1", |task| {
@@ -413,7 +420,7 @@ fn duplicate_aspect_authoring_rejection() -> AspectApiFinalizationRejectionBundl
                 .public_support_matrix()
                 .matrix_digest()
                 .to_string(),
-            compatibility_report_digest: report.report_digest().to_string(),
+            mutation_surface_report_digest: report.report_digest().to_string(),
             closeout_digest: closeout.closeout_digest().to_string(),
         },
         other => panic!("expected workspace authoring denial, got {other:?}"),

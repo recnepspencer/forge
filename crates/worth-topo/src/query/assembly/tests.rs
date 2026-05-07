@@ -1,4 +1,6 @@
-use worth_schema::facade::{seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase};
+use worth_schema::facade::topology_authoring::{
+    seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
+};
 use worth_schema::facade::{
     RawWorthTopologyIntent, WorthCreateKey, WorthEntityKind, WorthEntityReference,
     WorthMutationOrigin, WorthTopologyEntityKind, WorthTopologyMutation, WorthTopologyRelationKind,

@@ -217,7 +217,7 @@ pub struct ForgeQueryRuntimePublicApiContract {
 pub struct ForgeQueryRuntimePublicApiNamingRow {
     concept: String,
     preferred_name: String,
-    compatibility_names: Vec<String>,
+    alternate_names: Vec<String>,
     boundary_crossing: bool,
     naming_digest: String,
 }
@@ -226,12 +226,12 @@ impl ForgeQueryRuntimePublicApiNamingRow {
     fn new(
         concept: impl Into<String>,
         preferred_name: impl Into<String>,
-        compatibility_names: impl IntoIterator<Item = impl Into<String>>,
+        alternate_names: impl IntoIterator<Item = impl Into<String>>,
         boundary_crossing: bool,
     ) -> Self {
         let concept = concept.into();
         let preferred_name = preferred_name.into();
-        let compatibility_names = compatibility_names
+        let alternate_names = alternate_names
             .into_iter()
             .map(Into::into)
             .collect::<Vec<_>>();
@@ -241,15 +241,15 @@ impl ForgeQueryRuntimePublicApiNamingRow {
             format!("boundary:{boundary_crossing}"),
         ];
         parts.extend(
-            compatibility_names
+            alternate_names
                 .iter()
-                .map(|name| format!("compatibility:{name}")),
+                .map(|name| format!("alternate:{name}")),
         );
         let naming_digest = hash_parts(&parts);
         Self {
             concept,
             preferred_name,
-            compatibility_names,
+            alternate_names,
             boundary_crossing,
             naming_digest,
         }
@@ -263,8 +263,8 @@ impl ForgeQueryRuntimePublicApiNamingRow {
         &self.preferred_name
     }
 
-    pub fn compatibility_names(&self) -> &[String] {
-        &self.compatibility_names
+    pub fn alternate_names(&self) -> &[String] {
+        &self.alternate_names
     }
 
     pub fn boundary_crossing(&self) -> bool {
@@ -280,7 +280,7 @@ impl ForgeQueryRuntimePublicApiNamingRow {
 pub struct ForgeQueryRuntimePublicApiNamingContract {
     rows: Vec<ForgeQueryRuntimePublicApiNamingRow>,
     preferred_entrypoint_count: usize,
-    compatibility_name_count: usize,
+    alternate_name_count: usize,
     boundary_crossing_name_count: usize,
     contract_digest: String,
 }
@@ -350,10 +350,7 @@ impl ForgeQueryRuntimePublicApiNamingContract {
             ForgeQueryRuntimePublicApiNamingRow::new(
                 "insert",
                 "insert",
-                [
-                    "write + ForgeQueryWriteCommand::InsertAspects",
-                    "write + ForgeQueryWriteCommand::Insert (deprecated payload-first compatibility)",
-                ],
+                ["write + ForgeQueryWriteCommand::InsertAspects"],
                 true,
             ),
             ForgeQueryRuntimePublicApiNamingRow::new(
@@ -403,13 +400,13 @@ impl ForgeQueryRuntimePublicApiNamingContract {
             ),
         ];
         let preferred_entrypoint_count = rows.len();
-        let compatibility_name_count = rows.iter().map(|row| row.compatibility_names().len()).sum();
+        let alternate_name_count = rows.iter().map(|row| row.alternate_names().len()).sum();
         let boundary_crossing_name_count =
             rows.iter().filter(|row| row.boundary_crossing()).count();
         let mut parts = vec![
             "forge_query_runtime_public_api_naming_contract_v1".to_string(),
             format!("preferred:{preferred_entrypoint_count}"),
-            format!("compatibility:{compatibility_name_count}"),
+            format!("alternate:{alternate_name_count}"),
             format!("boundary:{boundary_crossing_name_count}"),
         ];
         parts.extend(rows.iter().map(|row| row.naming_digest().to_string()));
@@ -417,7 +414,7 @@ impl ForgeQueryRuntimePublicApiNamingContract {
         Self {
             rows,
             preferred_entrypoint_count,
-            compatibility_name_count,
+            alternate_name_count,
             boundary_crossing_name_count,
             contract_digest,
         }
@@ -431,8 +428,8 @@ impl ForgeQueryRuntimePublicApiNamingContract {
         self.preferred_entrypoint_count
     }
 
-    pub fn compatibility_name_count(&self) -> usize {
-        self.compatibility_name_count
+    pub fn alternate_name_count(&self) -> usize {
+        self.alternate_name_count
     }
 
     pub fn boundary_crossing_name_count(&self) -> usize {

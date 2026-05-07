@@ -15,6 +15,9 @@ use crate::data::seed::{
     milestone_one_admitted_range_sweep_out_of_class_scenarios,
     milestone_one_admitted_range_sweep_scenarios, seed_minimal_topology,
 };
+use crate::facade::topology_authoring::{
+    WorthMilestoneOnePrimitiveExpectedOutcome, WorthMilestoneOnePrimitiveRole,
+};
 use std::collections::BTreeSet;
 
 #[test]
@@ -170,10 +173,9 @@ fn admitted_range_sweep_generators_cover_the_declared_milestone_one_ranges() {
 
     assert_eq!(out_of_class.len(), 7);
     assert!(out_of_class.iter().all(|scenario| {
-        scenario.expected_outcome
-            == crate::facade::WorthMilestoneOnePrimitiveExpectedOutcome::Reject
+        scenario.expected_outcome == WorthMilestoneOnePrimitiveExpectedOutcome::Reject
     }));
-    assert!(out_of_class.iter().all(|scenario| {
-        scenario.role == crate::facade::WorthMilestoneOnePrimitiveRole::OutOfClass
-    }));
+    assert!(out_of_class
+        .iter()
+        .all(|scenario| { scenario.role == WorthMilestoneOnePrimitiveRole::OutOfClass }));
 }

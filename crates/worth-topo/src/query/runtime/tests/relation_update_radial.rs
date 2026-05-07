@@ -1,15 +1,13 @@
 use forge_query::facade::ForgeQueryExistingTruthAssertionMode;
-use worth_schema::facade::{
-    seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase, WorthTopologyRelationKind,
+use worth_schema::facade::topology_authoring::{
+    seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
 };
+use worth_schema::facade::WorthTopologyRelationKind;
 
-use super::relation_update_support::{
-    alternate_same_edge_half_edge_id, different_edge_half_edge_id, find_entity_id_by_identity,
-    query_relation_id_from_row,
-};
+use super::relation_update_support::{query_relation_id_from_row, RelationUpdateQuerySupport};
 use crate::edit::{
     WorthTopologyEditApplicationMode, WorthTopologyEditBatch, WorthTopologyEditContract,
-    WorthTopologyEditFamily, WorthTopologyQueryEditExecutionError, WorthTopologyQueryEditRunner,
+    WorthTopologyEditFamily, WorthTopologyEditRejectionClass, WorthTopologyQueryEditExecutionError,
 };
 use crate::query::{
     worth_topology_runtime, WorthTopologyQueryAssembly, WorthTopologyRuntimeAdapters,
@@ -30,8 +28,8 @@ fn current_head_runtime_executes_splice_radial_adjacency_through_query_native_ed
         worth_topology_runtime(adapters, "worth.current-head.query-edit-splice-radial")
             .expect("workspace");
     let assembly = WorthTopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let support = RelationUpdateQuerySupport::load(&workspace, &assembly);
     let relation_rows = workspace.read(assembly.relations());
-    let entity_rows = workspace.read(assembly.entities());
     let relation = relation_rows
         .iter()
         .find(|row| {
@@ -56,10 +54,9 @@ fn current_head_runtime_executes_splice_radial_adjacency_through_query_native_ed
         .and_then(|value| value.get("target_identity"))
         .and_then(|value| value.as_str())
         .expect("radial relation should expose topology.target_identity");
-    let half_edge_id = find_entity_id_by_identity(&entity_rows, source_identity);
-    let radial_next_half_edge_id = alternate_same_edge_half_edge_id(
-        &entity_rows,
-        &relation_rows,
+    let half_edge_id = support.find_entity_id_by_identity(source_identity);
+    let radial_next_half_edge_id = support.alternate_same_edge_half_edge_id(
+        &mut workspace,
         source_identity,
         current_target_identity,
     );
@@ -71,8 +68,12 @@ fn current_head_runtime_executes_splice_radial_adjacency_through_query_native_ed
         )])
         .expect("non-empty edit batch");
 
-    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let execution = assembly
+        .apply_edit(
+            &mut workspace,
+            batch,
+            WorthTopologyEditApplicationMode::Mainline,
+        )
         .expect("radial splice should execute through the admitted runtime family");
 
     assert_eq!(
@@ -130,8 +131,8 @@ fn current_head_runtime_denies_splice_radial_adjacency_with_mismatched_source_bi
     )
     .expect("workspace");
     let assembly = WorthTopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let support = RelationUpdateQuerySupport::load(&workspace, &assembly);
     let relation_rows = workspace.read(assembly.relations());
-    let entity_rows = workspace.read(assembly.entities());
     let relation = relation_rows
         .iter()
         .find(|row| {
@@ -156,10 +157,9 @@ fn current_head_runtime_denies_splice_radial_adjacency_with_mismatched_source_bi
         .and_then(|value| value.get("target_identity"))
         .and_then(|value| value.as_str())
         .expect("radial relation should expose topology.target_identity");
-    let wrong_half_edge_id = find_entity_id_by_identity(&entity_rows, current_target_identity);
-    let radial_next_half_edge_id = alternate_same_edge_half_edge_id(
-        &entity_rows,
-        &relation_rows,
+    let wrong_half_edge_id = support.find_entity_id_by_identity(current_target_identity);
+    let radial_next_half_edge_id = support.alternate_same_edge_half_edge_id(
+        &mut workspace,
         source_identity,
         current_target_identity,
     );
@@ -171,8 +171,12 @@ fn current_head_runtime_denies_splice_radial_adjacency_with_mismatched_source_bi
         )])
         .expect("non-empty edit batch");
 
-    let error = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let error = assembly
+        .apply_edit(
+            &mut workspace,
+            batch.clone(),
+            WorthTopologyEditApplicationMode::Mainline,
+        )
         .expect_err("radial splice with mismatched source binding must fail typed and early");
 
     assert!(matches!(
@@ -184,6 +188,28 @@ fn current_head_runtime_denies_splice_radial_adjacency_with_mismatched_source_bi
         } if relation_id == query_relation_id_from_row(relation)
             && expected_source_entity_id == wrong_half_edge_id
     ));
+    assert_eq!(
+        error.rejection_class(),
+        Some(WorthTopologyEditRejectionClass::InvariantBlocked)
+    );
+    let report = error
+        .rejected_edit_scope_report(&batch)
+        .expect("invariant-block denial should expose exact rejected scope report");
+    assert_eq!(report.rows.len(), 1);
+    assert_eq!(
+        report.rows[0].rejection_class,
+        WorthTopologyEditRejectionClass::InvariantBlocked
+    );
+    assert_eq!(
+        report.rows[0].family,
+        WorthTopologyEditFamily::SpliceRadialAdjacency
+    );
+    assert!(report.rows[0]
+        .changed_scopes
+        .contains(&crate::edit::WorthTopologyEditChangedScope::RadialNeighborhood));
+    assert!(report.rows[0]
+        .derived_regions
+        .contains(&crate::edit::WorthTopologyDerivedRegion::RadialNeighborhoodRegion));
 }
 
 #[test]
@@ -202,8 +228,8 @@ fn current_head_runtime_denies_splice_radial_adjacency_across_different_edges() 
     )
     .expect("workspace");
     let assembly = WorthTopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
+    let support = RelationUpdateQuerySupport::load(&workspace, &assembly);
     let relation_rows = workspace.read(assembly.relations());
-    let entity_rows = workspace.read(assembly.entities());
     let relation = relation_rows
         .iter()
         .find(|row| {
@@ -222,9 +248,9 @@ fn current_head_runtime_denies_splice_radial_adjacency_across_different_edges() 
         .and_then(|value| value.get("source_identity"))
         .and_then(|value| value.as_str())
         .expect("radial relation should expose topology.source_identity");
-    let half_edge_id = find_entity_id_by_identity(&entity_rows, source_identity);
+    let half_edge_id = support.find_entity_id_by_identity(source_identity);
     let expected_target_half_edge_id =
-        different_edge_half_edge_id(&entity_rows, &relation_rows, source_identity);
+        support.different_edge_half_edge_id(&mut workspace, source_identity);
     let batch =
         WorthTopologyEditBatch::new(vec![WorthTopologyEditContract::splice_radial_adjacency(
             query_relation_id_from_row(relation),
@@ -233,8 +259,12 @@ fn current_head_runtime_denies_splice_radial_adjacency_across_different_edges() 
         )])
         .expect("non-empty edit batch");
 
-    let error = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let error = assembly
+        .apply_edit(
+            &mut workspace,
+            batch,
+            WorthTopologyEditApplicationMode::Mainline,
+        )
         .expect_err("radial splice across different edges must fail typed and early");
 
     assert!(matches!(

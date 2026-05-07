@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn workspace_batch_aggregates_touched_surfaces_and_remains_inspectable() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-batch")
         .expect("task runtime should open a named workspace");
     let live: ForgeQueryLiveView<Value> = workspace
@@ -215,7 +215,7 @@ fn workspace_batch_aggregates_touched_surfaces_and_remains_inspectable() {
 
 #[test]
 fn preview_batch_stages_multiple_aspect_native_writes_in_preview_lane() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-batch")
         .expect("task runtime should open a named workspace");
     let mut preview = workspace
@@ -256,7 +256,7 @@ fn preview_batch_stages_multiple_aspect_native_writes_in_preview_lane() {
 
 #[test]
 fn preview_batch_uses_batch_target_evidence_without_authority_bundles() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-batch-evidence")
         .expect("task runtime should open a named workspace");
     let mut preview = workspace

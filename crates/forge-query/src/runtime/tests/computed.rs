@@ -2,7 +2,7 @@ use super::support::*;
 
 #[test]
 fn derived_view_receives_narrow_or_fallback_patch_notes() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let _: ForgeQueryLiveView<Value> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
@@ -13,13 +13,13 @@ fn derived_view_receives_narrow_or_fallback_patch_notes() {
         )
         .expect("derived view should declare");
     let insert = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Derived task" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Derived task")),
+            ],
+        ))
         .expect("insert should route to derived view");
     let update = runtime
         .write(ForgeQueryWriteCommand::UpdateAspect {
@@ -44,7 +44,7 @@ fn derived_view_receives_narrow_or_fallback_patch_notes() {
 
 #[test]
 fn maintained_derived_view_materializes_incremental_patches() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let _: ForgeQueryLiveView<Value> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
@@ -56,13 +56,13 @@ fn maintained_derived_view_materializes_incremental_patches() {
         .expect("maintained derived view should declare");
 
     let insert = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "First title" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("First title")),
+            ],
+        ))
         .expect("insert should route derived patch");
     let patches = runtime.drain_derived_patches(titles.name());
 
@@ -89,7 +89,7 @@ fn maintained_derived_view_materializes_incremental_patches() {
 
 #[test]
 fn nested_computed_views_route_in_deterministic_dependency_order() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
@@ -111,13 +111,13 @@ fn nested_computed_views_route_in_deterministic_dependency_order() {
         .expect("nested computed view should declare");
 
     let insert = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Nested title" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Nested title")),
+            ],
+        ))
         .expect("insert should update nested computeds");
     let title_patches = runtime.drain_derived_patches(titles.name());
     let summary_patches = runtime.drain_derived_patches(summary.name());
@@ -167,7 +167,7 @@ fn nested_computed_views_route_in_deterministic_dependency_order() {
 
 #[test]
 fn computed_dependency_index_replaces_redeclared_view_membership() {
-    let mut runtime = task_issue_memory_runtime();
+    let mut runtime = stateful_bridge_task_issue_runtime();
     let task_live = runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("task live should declare");
@@ -193,13 +193,16 @@ fn computed_dependency_index_replaces_redeclared_view_membership() {
         .expect("redeclared computed should replace old dependency index membership");
 
     let task_write = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Task should not wake redeclared computed" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                (
+                    "title.value",
+                    json!("Task should not wake redeclared computed"),
+                ),
+            ],
+        ))
         .expect("task write should execute");
     assert!(task_write.affected_derived_view_ids().is_empty());
     assert_eq!(task_write.considered_computed_view_count(), 0);
@@ -209,13 +212,13 @@ fn computed_dependency_index_replaces_redeclared_view_membership() {
         .is_empty());
 
     let issue_write = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Issue".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "summary": { "value": "Issue wakes computed" },
-            }),
-        })
+        .write(insert_command(
+            "Issue",
+            [
+                ("identity.id", json!("")),
+                ("summary.value", json!("Issue wakes computed")),
+            ],
+        ))
         .expect("issue write should execute");
     let issue_patches = runtime.drain_derived_patches(computed.name());
 
@@ -233,7 +236,7 @@ fn computed_dependency_index_replaces_redeclared_view_membership() {
 
 #[test]
 fn computed_handle_inspection_reports_dependencies_aspects_and_materialization() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("live should declare");
@@ -246,13 +249,13 @@ fn computed_handle_inspection_reports_dependencies_aspects_and_materialization()
         )
         .expect("computed should declare");
     runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Inspectable task" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Inspectable task")),
+            ],
+        ))
         .expect("write should materialize computed output");
 
     let evidence = runtime
@@ -280,7 +283,7 @@ fn computed_handle_inspection_reports_dependencies_aspects_and_materialization()
     assert!(!evidence.pending_patch_digest().is_empty());
     assert!(!evidence.inspection_digest().is_empty());
 
-    let foreign_runtime = task_runtime();
+    let foreign_runtime = stateful_bridge_task_runtime();
     let error = foreign_runtime
         .inspect_derived_view(&computed)
         .expect_err("foreign computed handle should not inspect in another runtime");
@@ -292,7 +295,7 @@ fn computed_handle_inspection_reports_dependencies_aspects_and_materialization()
 
 #[test]
 fn nested_computed_inspection_explains_dependency_and_patch_posture() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
@@ -328,13 +331,13 @@ fn nested_computed_inspection_explains_dependency_and_patch_posture() {
     assert!(before.incremental_delivery());
 
     let insert = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Nested inspectable" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Nested inspectable")),
+            ],
+        ))
         .expect("insert should update nested computeds");
     let after = runtime
         .inspect_derived_view(&summary)
@@ -360,7 +363,7 @@ fn nested_computed_inspection_explains_dependency_and_patch_posture() {
 
 #[test]
 fn refresh_fallback_computed_inspection_reports_fallback_posture() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let _: ForgeQueryLiveView<Value> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
@@ -378,13 +381,13 @@ fn refresh_fallback_computed_inspection_reports_fallback_posture() {
     assert!(!before.incremental_delivery());
 
     runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Refresh inspectable" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Refresh inspectable")),
+            ],
+        ))
         .expect("insert should route fallback computed patch");
     let after = runtime
         .inspect_derived_view(&computed)
@@ -404,7 +407,7 @@ fn refresh_fallback_computed_inspection_reports_fallback_posture() {
 
 #[test]
 fn refresh_fallback_maintainer_rebuilds_from_retained_live_rows() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
@@ -419,13 +422,13 @@ fn refresh_fallback_maintainer_rebuilds_from_retained_live_rows() {
         .expect("refresh maintainer computed should declare");
 
     let first = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "First title" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("First title")),
+            ],
+        ))
         .expect("first insert should route retained refresh rebuild");
     let first_patches = runtime.drain_derived_patches(computed.name());
 
@@ -450,13 +453,13 @@ fn refresh_fallback_maintainer_rebuilds_from_retained_live_rows() {
     );
 
     runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Second title" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Second title")),
+            ],
+        ))
         .expect("second insert should rebuild from retained live rows");
 
     assert_eq!(
@@ -467,7 +470,7 @@ fn refresh_fallback_maintainer_rebuilds_from_retained_live_rows() {
 
 #[test]
 fn refresh_fallback_maintainer_receives_all_declared_upstream_live_rows() {
-    let mut runtime = task_issue_memory_runtime();
+    let mut runtime = stateful_bridge_task_issue_runtime();
     let tasks = runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("task live view should declare");
@@ -486,24 +489,24 @@ fn refresh_fallback_maintainer_receives_all_declared_upstream_live_rows() {
         .expect("multi-upstream refresh maintainer should declare");
 
     runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Issue".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "summary": { "value": "Sibling upstream row" },
-            }),
-        })
+        .write(insert_command(
+            "Issue",
+            [
+                ("identity.id", json!("")),
+                ("summary.value", json!("Sibling upstream row")),
+            ],
+        ))
         .expect("issue insert should seed sibling upstream");
     runtime.drain_derived_patches(computed.name());
 
     let insert = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Task wakes refresh computed" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Task wakes refresh computed")),
+            ],
+        ))
         .expect("task insert should rebuild from both retained upstreams");
     let patches = runtime.drain_derived_patches(computed.name());
 
@@ -526,7 +529,7 @@ fn refresh_fallback_maintainer_receives_all_declared_upstream_live_rows() {
 
 #[test]
 fn refresh_rebuilt_computed_wakes_downstream_dependencies_through_produced_aspects() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
@@ -549,13 +552,13 @@ fn refresh_rebuilt_computed_wakes_downstream_dependencies_through_produced_aspec
         .expect("downstream computed should declare");
 
     let insert = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Nested refresh" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Nested refresh")),
+            ],
+        ))
         .expect("insert should wake refresh and downstream computeds");
     let refresh_patches = runtime.drain_derived_patches(refresh.name());
     let downstream_patches = runtime.drain_derived_patches(downstream.name());
@@ -637,7 +640,7 @@ fn downstream_refresh_fallback_receives_declared_live_siblings_through_computed_
         }
     }
 
-    let mut runtime = task_issue_memory_runtime();
+    let mut runtime = stateful_bridge_task_issue_runtime();
     let tasks = runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("task live view should declare");
@@ -668,25 +671,25 @@ fn downstream_refresh_fallback_receives_declared_live_siblings_through_computed_
         .expect("downstream mixed refresh maintainer should declare");
 
     runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Issue".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "summary": { "value": "Issue sibling stays retained" },
-            }),
-        })
+        .write(insert_command(
+            "Issue",
+            [
+                ("identity.id", json!("")),
+                ("summary.value", json!("Issue sibling stays retained")),
+            ],
+        ))
         .expect("issue insert should seed sibling live state");
     runtime.drain_derived_patches(refresh.name());
     runtime.drain_derived_patches(downstream.name());
 
     runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Task wakes upstream refresh" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Task wakes upstream refresh")),
+            ],
+        ))
         .expect("task insert should rebuild downstream from derived and live siblings");
     let downstream_rows = runtime.read_derived(&downstream);
 
@@ -755,7 +758,7 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
         }
     }
 
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("computed.refresh.metadata")
         .expect("task runtime should open a named workspace");
     let tasks: ForgeQueryLiveView<Value> = workspace
@@ -795,7 +798,7 @@ fn refresh_fallback_maintainer_receives_retained_mutation_metadata() {
 
 #[test]
 fn computed_dependency_admission_rejects_missing_or_cyclic_upstream_views() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let missing_live = runtime
         .declare_maintained_derived_view::<Value>(
             ForgeQueryDerivedView::new("computed.missing-live", ["title".to_string()])

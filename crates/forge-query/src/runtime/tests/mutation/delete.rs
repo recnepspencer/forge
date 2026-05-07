@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn workspace_delete_receipt_preserves_family_target_and_inspection_posture() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-delete")
         .expect("task runtime should open a named workspace");
     let live: ForgeQueryLiveView<Value> = workspace
@@ -88,7 +88,7 @@ fn workspace_delete_receipt_preserves_family_target_and_inspection_posture() {
 
 #[test]
 fn workspace_delete_with_preserves_touched_aspects_and_metadata_for_routing() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.aspect-delete-with")
         .expect("task runtime should open a named workspace");
     let live: ForgeQueryLiveView<Value> = workspace
@@ -163,7 +163,7 @@ fn workspace_delete_with_preserves_touched_aspects_and_metadata_for_routing() {
 
 #[test]
 fn preview_delete_with_preserves_declared_target_collection_and_delete_meaning() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.preview-delete-with")
         .expect("task runtime should open a named workspace");
     let _: ForgeQueryLiveView<Value> = workspace
@@ -232,7 +232,7 @@ fn preview_delete_with_preserves_declared_target_collection_and_delete_meaning()
 
 #[test]
 fn workspace_batch_routes_shared_computeds_once_per_batch_boundary() {
-    let mut workspace = task_runtime()
+    let mut workspace = stateful_bridge_task_runtime()
         .workspace("tasks.batch-computed-routing")
         .expect("task runtime should open a named workspace");
     let live: ForgeQueryLiveView<Value> = workspace

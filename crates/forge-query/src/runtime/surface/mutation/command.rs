@@ -4,6 +4,7 @@ use crate::runtime::mutation::{
     command_declared_aspect_operations, command_declared_aspect_paths,
     ForgeQueryContinuityMutationIntent, ForgeQueryMutationMetadata, ForgeQueryNamingMutationIntent,
 };
+use crate::runtime::surface::mutation::ForgeQueryMutationFamily;
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryAspectValue, ForgeQueryExistingTruthTargetBinding,
     ForgeQuerySymbolicAspectReference, ForgeQuerySymbolicTargetReference,
@@ -11,13 +12,6 @@ use crate::runtime::{
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum ForgeQueryWriteCommand {
-    #[deprecated(
-        note = "payload-first insert is a compatibility path; prefer workspace.insert(...) or preview.insert(...) with aspect-native authoring"
-    )]
-    Insert {
-        collection: String,
-        payload: Value,
-    },
     InsertAspects {
         collection: String,
         aspects: Vec<ForgeQueryAspectValue>,
@@ -104,19 +98,17 @@ pub enum ForgeQueryWriteCommand {
 }
 
 impl ForgeQueryWriteCommand {
-    #[allow(deprecated)]
-    pub(crate) fn declared_aspect_paths(&self) -> Vec<String> {
+    pub fn declared_aspect_paths(&self) -> Vec<String> {
         command_declared_aspect_paths(self)
     }
 
-    pub(crate) fn declared_aspect_operations(&self) -> Vec<ForgeQueryAspectMutationOperation> {
+    pub fn declared_aspect_operations(&self) -> Vec<ForgeQueryAspectMutationOperation> {
         command_declared_aspect_operations(self)
     }
 
-    #[allow(deprecated)]
-    pub(crate) fn mutation_family(&self) -> ForgeQueryMutationFamily {
+    pub fn mutation_family(&self) -> ForgeQueryMutationFamily {
         match self {
-            Self::Insert { .. } | Self::InsertAspects { .. } => ForgeQueryMutationFamily::Insert,
+            Self::InsertAspects { .. } => ForgeQueryMutationFamily::Insert,
             Self::UpdateAspect { .. }
             | Self::UpdateAspects { .. }
             | Self::UpdateExistingAspects { .. }
@@ -133,12 +125,13 @@ impl ForgeQueryWriteCommand {
         }
     }
 
-    #[allow(deprecated)]
-    pub(crate) fn declared_collection(&self) -> Option<String> {
+    pub fn declared_collection(&self) -> Option<String> {
+        self.declared_collection_ref().map(str::to_string)
+    }
+
+    pub fn declared_collection_ref(&self) -> Option<&str> {
         match self {
-            Self::Insert { collection, .. } | Self::InsertAspects { collection, .. } => {
-                Some(collection.clone())
-            }
+            Self::InsertAspects { collection, .. } => Some(collection.as_str()),
             Self::UpdateAspect { .. }
             | Self::UpdateAspects { .. }
             | Self::UpdateExistingAspects { .. }
@@ -149,39 +142,31 @@ impl ForgeQueryWriteCommand {
                 ..
             } => {
                 if let Some(collection) = binding.target_collection() {
-                    Some(collection.to_string())
+                    Some(collection)
                 } else {
                     symbolic_aspect_references
                         .first()
                         .and_then(|reference| reference.reference().target_collection())
-                        .map(str::to_string)
                 }
             }
-            Self::VerifyThenDeleteExistingAspects { binding, .. } => {
-                binding.target_collection().map(str::to_string)
-            }
-            Self::AssertExistingAspects { binding, .. } => {
-                binding.target_collection().map(str::to_string)
-            }
-            Self::VerifyExistingAspects { binding, .. } => {
-                binding.target_collection().map(str::to_string)
-            }
+            Self::VerifyThenDeleteExistingAspects { binding, .. }
+            | Self::AssertExistingAspects { binding, .. }
+            | Self::VerifyExistingAspects { binding, .. }
+            | Self::DeleteExistingAspects { binding, .. } => binding.target_collection(),
             Self::UpdateSymbolicAspects { reference, .. }
-            | Self::DeleteSymbolicAspects { reference, .. } => {
-                reference.target_collection().map(str::to_string)
-            }
+            | Self::DeleteSymbolicAspects { reference, .. } => reference.target_collection(),
             Self::DeleteAspects {
                 declared_collection,
                 ..
-            } => declared_collection.clone(),
-            Self::DeleteExistingAspects { binding, .. } => {
-                binding.target_collection().map(str::to_string)
-            }
+            } => declared_collection.as_deref(),
         }
     }
 
-    #[allow(deprecated)]
-    pub(crate) fn declared_entity_identity(&self) -> Option<String> {
+    pub fn declared_entity_identity(&self) -> Option<String> {
+        self.declared_entity_identity_ref().map(str::to_string)
+    }
+
+    pub fn declared_entity_identity_ref(&self) -> Option<&str> {
         match self {
             Self::UpdateAspect {
                 entity_identity, ..
@@ -192,29 +177,26 @@ impl ForgeQueryWriteCommand {
             | Self::DeleteAspects {
                 entity_identity, ..
             }
-            | Self::Delete { entity_identity } => Some(entity_identity.clone()),
-            Self::VerifyThenUpdateExistingAspects { binding, .. } => {
-                Some(binding.resolved_target_identity().to_string())
+            | Self::Delete { entity_identity } => Some(entity_identity.as_str()),
+            Self::VerifyThenUpdateExistingAspects { binding, .. }
+            | Self::VerifyThenDeleteExistingAspects { binding, .. }
+            | Self::AssertExistingAspects { binding, .. }
+            | Self::VerifyExistingAspects { binding, .. } => {
+                Some(binding.resolved_target_identity())
             }
-            Self::VerifyThenDeleteExistingAspects { binding, .. } => {
-                Some(binding.resolved_target_identity().to_string())
-            }
-            Self::AssertExistingAspects { binding, .. } => {
-                Some(binding.resolved_target_identity().to_string())
-            }
-            Self::VerifyExistingAspects { binding, .. } => {
-                Some(binding.resolved_target_identity().to_string())
-            }
-            Self::UpdateSymbolicAspects { .. } | Self::DeleteSymbolicAspects { .. } => None,
-            Self::UpdateExistingAspects { .. }
+            Self::UpdateSymbolicAspects { .. }
+            | Self::DeleteSymbolicAspects { .. }
+            | Self::UpdateExistingAspects { .. }
             | Self::DeleteExistingAspects { .. }
-            | Self::Insert { .. }
             | Self::InsertAspects { .. } => None,
         }
     }
 
-    #[allow(deprecated)]
-    pub(crate) fn mutation_metadata(&self) -> ForgeQueryMutationMetadata {
+    pub fn mutation_metadata(&self) -> ForgeQueryMutationMetadata {
+        self.mutation_metadata_ref().cloned().unwrap_or_default()
+    }
+
+    pub fn mutation_metadata_ref(&self) -> Option<&ForgeQueryMutationMetadata> {
         match self {
             Self::InsertAspects { metadata, .. }
             | Self::UpdateAspects { metadata, .. }
@@ -226,14 +208,82 @@ impl ForgeQueryWriteCommand {
             | Self::UpdateSymbolicAspects { metadata, .. }
             | Self::DeleteAspects { metadata, .. }
             | Self::DeleteExistingAspects { metadata, .. }
-            | Self::DeleteSymbolicAspects { metadata, .. } => metadata.clone(),
-            Self::Insert { .. } | Self::UpdateAspect { .. } | Self::Delete { .. } => {
-                ForgeQueryMutationMetadata::default()
-            }
+            | Self::DeleteSymbolicAspects { metadata, .. } => Some(metadata),
+            Self::UpdateAspect { .. } | Self::Delete { .. } => None,
         }
     }
 
-    pub(crate) fn existing_truth_binding(&self) -> Option<&ForgeQueryExistingTruthTargetBinding> {
+    pub fn aspect_values(&self) -> &[ForgeQueryAspectValue] {
+        match self {
+            Self::InsertAspects { aspects, .. }
+            | Self::UpdateAspects { aspects, .. }
+            | Self::UpdateExistingAspects { aspects, .. }
+            | Self::VerifyThenUpdateExistingAspects { aspects, .. }
+            | Self::AssertExistingAspects { aspects, .. }
+            | Self::VerifyExistingAspects { aspects, .. }
+            | Self::UpdateSymbolicAspects { aspects, .. } => aspects,
+            Self::UpdateAspect { .. }
+            | Self::VerifyThenDeleteExistingAspects { .. }
+            | Self::DeleteAspects { .. }
+            | Self::DeleteExistingAspects { .. }
+            | Self::DeleteSymbolicAspects { .. }
+            | Self::Delete { .. } => &[],
+        }
+    }
+
+    pub fn asserted_aspect_values(&self) -> &[ForgeQueryAspectValue] {
+        match self {
+            Self::VerifyThenUpdateExistingAspects {
+                asserted_aspects, ..
+            }
+            | Self::VerifyThenDeleteExistingAspects {
+                asserted_aspects, ..
+            } => asserted_aspects,
+            Self::InsertAspects { .. }
+            | Self::UpdateAspect { .. }
+            | Self::UpdateAspects { .. }
+            | Self::UpdateExistingAspects { .. }
+            | Self::AssertExistingAspects { .. }
+            | Self::VerifyExistingAspects { .. }
+            | Self::UpdateSymbolicAspects { .. }
+            | Self::DeleteAspects { .. }
+            | Self::DeleteExistingAspects { .. }
+            | Self::DeleteSymbolicAspects { .. }
+            | Self::Delete { .. } => &[],
+        }
+    }
+
+    pub fn touched_aspect_paths(&self) -> &[String] {
+        match self {
+            Self::VerifyThenDeleteExistingAspects {
+                touched_aspect_paths,
+                ..
+            }
+            | Self::DeleteAspects {
+                touched_aspect_paths,
+                ..
+            }
+            | Self::DeleteExistingAspects {
+                touched_aspect_paths,
+                ..
+            }
+            | Self::DeleteSymbolicAspects {
+                touched_aspect_paths,
+                ..
+            } => touched_aspect_paths,
+            Self::InsertAspects { .. }
+            | Self::UpdateAspect { .. }
+            | Self::UpdateAspects { .. }
+            | Self::UpdateExistingAspects { .. }
+            | Self::VerifyThenUpdateExistingAspects { .. }
+            | Self::AssertExistingAspects { .. }
+            | Self::VerifyExistingAspects { .. }
+            | Self::UpdateSymbolicAspects { .. }
+            | Self::Delete { .. } => &[],
+        }
+    }
+
+    pub fn existing_truth_binding(&self) -> Option<&ForgeQueryExistingTruthTargetBinding> {
         match self {
             Self::UpdateExistingAspects { binding, .. }
             | Self::VerifyThenUpdateExistingAspects { binding, .. }
@@ -245,7 +295,7 @@ impl ForgeQueryWriteCommand {
         }
     }
 
-    pub(crate) fn symbolic_target_reference(&self) -> Option<&ForgeQuerySymbolicTargetReference> {
+    pub fn symbolic_target_reference(&self) -> Option<&ForgeQuerySymbolicTargetReference> {
         match self {
             Self::InsertAspects {
                 symbolic_target_reference,
@@ -257,8 +307,7 @@ impl ForgeQueryWriteCommand {
         }
     }
 
-    #[allow(deprecated)]
-    pub(crate) fn naming_intent(&self) -> Option<&ForgeQueryNamingMutationIntent> {
+    pub fn naming_intent(&self) -> Option<&ForgeQueryNamingMutationIntent> {
         match self {
             Self::InsertAspects { naming_intent, .. }
             | Self::UpdateAspects { naming_intent, .. }
@@ -269,13 +318,14 @@ impl ForgeQueryWriteCommand {
             | Self::DeleteAspects { naming_intent, .. }
             | Self::DeleteExistingAspects { naming_intent, .. }
             | Self::DeleteSymbolicAspects { naming_intent, .. } => naming_intent.as_ref(),
-            Self::AssertExistingAspects { .. } | Self::VerifyExistingAspects { .. } => None,
-            Self::Insert { .. } | Self::UpdateAspect { .. } | Self::Delete { .. } => None,
+            Self::AssertExistingAspects { .. }
+            | Self::VerifyExistingAspects { .. }
+            | Self::UpdateAspect { .. }
+            | Self::Delete { .. } => None,
         }
     }
 
-    #[allow(deprecated)]
-    pub(crate) fn continuity_intent(&self) -> Option<&ForgeQueryContinuityMutationIntent> {
+    pub fn continuity_intent(&self) -> Option<&ForgeQueryContinuityMutationIntent> {
         match self {
             Self::InsertAspects {
                 continuity_intent, ..
@@ -292,9 +342,9 @@ impl ForgeQueryWriteCommand {
             | Self::UpdateSymbolicAspects {
                 continuity_intent, ..
             } => continuity_intent.as_ref(),
-            Self::VerifyThenDeleteExistingAspects { .. } => None,
-            Self::AssertExistingAspects { .. } | Self::VerifyExistingAspects { .. } => None,
-            Self::Insert { .. }
+            Self::VerifyThenDeleteExistingAspects { .. }
+            | Self::AssertExistingAspects { .. }
+            | Self::VerifyExistingAspects { .. }
             | Self::UpdateAspect { .. }
             | Self::DeleteAspects { .. }
             | Self::DeleteExistingAspects { .. }
@@ -303,8 +353,7 @@ impl ForgeQueryWriteCommand {
         }
     }
 
-    #[allow(deprecated)]
-    pub(crate) fn symbolic_aspect_references(&self) -> &[ForgeQuerySymbolicAspectReference] {
+    pub fn symbolic_aspect_references(&self) -> &[ForgeQuerySymbolicAspectReference] {
         match self {
             Self::InsertAspects {
                 symbolic_aspect_references,
@@ -314,8 +363,7 @@ impl ForgeQueryWriteCommand {
                 symbolic_aspect_references,
                 ..
             } => symbolic_aspect_references,
-            Self::Insert { .. }
-            | Self::UpdateAspect { .. }
+            Self::UpdateAspect { .. }
             | Self::UpdateAspects { .. }
             | Self::UpdateExistingAspects { .. }
             | Self::VerifyThenDeleteExistingAspects { .. }
@@ -327,30 +375,5 @@ impl ForgeQueryWriteCommand {
             | Self::DeleteSymbolicAspects { .. }
             | Self::Delete { .. } => &[],
         }
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
-pub enum ForgeQueryMutationFamily {
-    Insert,
-    Update,
-    Assertion,
-    Delete,
-}
-
-impl ForgeQueryMutationFamily {
-    pub fn as_str(self) -> &'static str {
-        match self {
-            Self::Insert => "insert",
-            Self::Update => "update",
-            Self::Assertion => "assertion",
-            Self::Delete => "delete",
-        }
-    }
-}
-
-impl std::fmt::Display for ForgeQueryMutationFamily {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str(self.as_str())
     }
 }

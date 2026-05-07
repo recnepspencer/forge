@@ -1,19 +1,24 @@
 use forge_relational::facade::identity::RelationId;
+use worth_schema::facade::topology_authoring::{
+    created_ref, seed_milestone_one_primitive, seed_minimal_topology,
+    WorthMilestoneOnePrimitiveCase,
+};
 use worth_schema::facade::{
-    created_ref, seed_milestone_one_primitive, seed_minimal_topology, WorthCreateKey,
-    WorthEntityKind, WorthMilestoneOnePrimitiveCase, WorthRelationKind, WorthTopologyEntityKind,
+    WorthCreateKey, WorthEntityKind, WorthRelationKind, WorthTopologyEntityKind,
     WorthTopologyRelationKind,
 };
 
 use crate::edit::{
     WorthBoundaryMembershipKind, WorthTopologyEditApplicationMode, WorthTopologyEditBatch,
-    WorthTopologyEditContract, WorthTopologyEditFamily, WorthTopologyQueryEditRunner,
+    WorthTopologyEditContract, WorthTopologyEditFamily, WorthTopologyEditNamingOutcome,
 };
 use crate::query::{
     worth_topology_runtime, WorthTopologyQueryAssembly, WorthTopologyRuntimeAdapters,
 };
 use crate::runtime_invariants::build_worth_milestone_one_runtime;
-use forge_query::facade::ForgeQueryExistingTruthAssertionMode;
+use forge_query::facade::{
+    ForgeQueryExistingTruthAssertionMode, ForgeQueryGraphCompositionProgramStepKind,
+};
 
 #[test]
 fn current_head_runtime_executes_create_topology_entity_through_query_native_edit_runner() {
@@ -29,13 +34,27 @@ fn current_head_runtime_executes_create_topology_entity_through_query_native_edi
         )])
         .expect("non-empty edit batch");
 
-    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let execution = assembly
+        .apply_edit(
+            &mut workspace,
+            batch,
+            WorthTopologyEditApplicationMode::Mainline,
+        )
         .expect("create topology entity should execute through query runtime");
 
     assert_eq!(
         execution.families,
         vec![WorthTopologyEditFamily::CreateTopologyEntity]
+    );
+    assert_eq!(execution.topology_edit_digest.contract_count, 1);
+    assert_eq!(execution.topology_edit_digest.family_count, 1);
+    assert_eq!(execution.naming_continuity_matrix.rows.len(), 1);
+    assert_eq!(execution.naming_continuity_matrix.preserved_count, 1);
+    assert_eq!(execution.naming_continuity_matrix.ambiguous_count, 0);
+    assert_eq!(execution.naming_continuity_matrix.rejected_count, 0);
+    assert_eq!(
+        execution.naming_continuity_matrix.rows[0].outcome,
+        WorthTopologyEditNamingOutcome::Preserved
     );
     assert_eq!(execution.naming_report.rows.len(), 1);
     assert!(execution
@@ -70,8 +89,12 @@ fn current_head_runtime_executes_retire_topology_entity_through_query_native_edi
         )])
         .expect("non-empty edit batch");
 
-    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let execution = assembly
+        .apply_edit(
+            &mut workspace,
+            batch,
+            WorthTopologyEditApplicationMode::Mainline,
+        )
         .expect("retire topology entity should execute through query runtime");
 
     assert_eq!(
@@ -129,8 +152,12 @@ fn current_head_runtime_executes_detach_boundary_membership_through_query_native
         )])
         .expect("non-empty edit batch");
 
-    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let execution = assembly
+        .apply_edit(
+            &mut workspace,
+            batch,
+            WorthTopologyEditApplicationMode::Mainline,
+        )
         .expect("detach boundary membership should execute through query runtime");
 
     assert_eq!(
@@ -210,8 +237,7 @@ fn current_head_runtime_executes_create_inner_loop_on_existing_face_workflow() {
     ])
     .expect("non-empty edit batch");
 
-    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let execution = assembly.apply_edit(&mut workspace, batch, WorthTopologyEditApplicationMode::Mainline)
         .expect("create-inner-loop workflow should execute through the admitted invariant-complete runtime lane");
 
     assert_eq!(
@@ -225,6 +251,20 @@ fn current_head_runtime_executes_create_inner_loop_on_existing_face_workflow() {
         .receipt
         .affected_derived_view_ids()
         .contains(&assembly.materialized().name().to_string()));
+    assert_eq!(
+        execution
+            .receipt
+            .graph_composition_program()
+            .expect("inner-loop workflow should expose graph program")
+            .steps()
+            .iter()
+            .map(|step| step.kind())
+            .collect::<Vec<_>>(),
+        vec![
+            ForgeQueryGraphCompositionProgramStepKind::SymbolicEntityDeclaration,
+            ForgeQueryGraphCompositionProgramStepKind::RelationDeclaration,
+        ]
+    );
     let face = execution
         .materialized
         .topology()
@@ -259,8 +299,12 @@ fn current_head_runtime_executes_detach_radial_adjacency_through_query_native_ed
         )])
         .expect("non-empty edit batch");
 
-    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let execution = assembly
+        .apply_edit(
+            &mut workspace,
+            batch,
+            WorthTopologyEditApplicationMode::Mainline,
+        )
         .expect("detach radial adjacency should execute through query runtime");
 
     assert_eq!(

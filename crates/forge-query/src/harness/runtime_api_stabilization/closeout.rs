@@ -12,7 +12,7 @@ pub struct RuntimeApiStabilizationCloseout {
     pub stable_runtime_surfaces: Vec<String>,
     pub deferred_runtime_surfaces: Vec<String>,
     pub unsupported_runtime_surfaces: Vec<String>,
-    pub compatibility_names: Vec<String>,
+    pub alternate_names: Vec<String>,
     pub safe_to_build_now: Vec<String>,
     pub must_not_assume_yet: Vec<String>,
     pub migration_guidance: Vec<String>,
@@ -27,7 +27,7 @@ pub struct RuntimeApiStabilizationCloseout {
 impl RuntimeApiStabilizationCloseout {
     pub(super) fn from_matrix(matrix: &RuntimeApiStabilizationCertificationMatrix) -> Self {
         let support_contract = ForgeQueryRuntimePublicApiContract::from_support_profile(
-            &ForgeQueryRuntimeSupportProfile::compatibility_backend(),
+            &ForgeQueryRuntimeSupportProfile::scaffold_backend_profile(),
         );
         let support_matrix =
             ForgeQueryRuntimePublicSupportMatrix::from_public_api_contract(&support_contract);
@@ -52,11 +52,11 @@ impl RuntimeApiStabilizationCloseout {
             .filter(|row| row.status() == ForgeQueryRuntimeFamilySupportStatus::Unsupported)
             .map(|row| row.surface().to_string())
             .collect::<Vec<_>>();
-        let compatibility_names = naming_contract
+        let alternate_names = naming_contract
             .rows()
             .iter()
             .flat_map(|row| {
-                row.compatibility_names()
+                row.alternate_names()
                     .iter()
                     .map(|name| format!("{}=>{}", name, row.preferred_name()))
             })
@@ -81,7 +81,9 @@ impl RuntimeApiStabilizationCloseout {
         let migration_guidance = vec![
             "enter through ForgeQueryRuntime::workspace and keep downstream APIs handle-shaped"
                 .to_string(),
-            "prefer canonical names from the naming contract; keep compatibility names as adapters"
+            "prefer canonical names from the naming contract; keep alternate names as adapters"
+                .to_string(),
+            "use workspace.public_support_matrix() for family admission and workspace.public_mutation_surface_report() for lower-level mutation posture"
                 .to_string(),
             "use aspects, lanes, state snapshots, support rows, and inspect output as the extension points"
                 .to_string(),
@@ -166,7 +168,7 @@ impl RuntimeApiStabilizationCloseout {
             stable_runtime_surfaces,
             deferred_runtime_surfaces,
             unsupported_runtime_surfaces,
-            compatibility_names,
+            alternate_names,
             safe_to_build_now,
             must_not_assume_yet,
             migration_guidance,

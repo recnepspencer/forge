@@ -78,7 +78,7 @@ fn aspect_api_finalization_rows_have_required_outputs() {
             row.row_name
         );
         assert!(
-            !row.hostile_lane.compatibility_report_digest.is_empty(),
+            !row.hostile_lane.mutation_surface_report_digest.is_empty(),
             "row '{}'",
             row.row_name
         );
@@ -182,7 +182,7 @@ fn aspect_api_finalization_preferred_public_story_never_requires_command_surface
         AspectApiFinalizationCertificationAdapter::public_aspect_api_finalization_artifact();
 
     for row in &artifact.matrix.rows {
-        if row.row_name == "compatibility-closeout-contract-sync" {
+        if row.row_name == "mutation-surface-closeout-contract-sync" {
             continue;
         }
         for surface in [

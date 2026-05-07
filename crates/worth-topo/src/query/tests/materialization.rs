@@ -1,7 +1,9 @@
 use super::support::seeded_sheet_disk_workspace;
 use crate::facade::worth_milestone_one_runtime_builder;
 use crate::read_stage::{open_topology_read_view, stage_topology_read_from_view};
-use worth_schema::facade::{seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase};
+use worth_schema::facade::topology_authoring::{
+    seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
+};
 
 #[test]
 fn query_materializer_rebuilds_minimal_topology_from_production_runtime_rows() {

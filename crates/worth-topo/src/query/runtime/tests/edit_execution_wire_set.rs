@@ -1,16 +1,20 @@
 use std::collections::BTreeSet;
 
-use forge_query::facade::ForgeQueryExistingTruthAssertionMode;
+use forge_query::facade::{
+    ForgeQueryContinuityOutcomeClass, ForgeQueryExistingTruthAssertionMode,
+    ForgeQueryGraphCompositionProgramStepKind,
+};
+use worth_schema::facade::topology_authoring::{
+    created_ref, seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
+};
 use worth_schema::facade::{
-    created_ref, seed_milestone_one_primitive, DerivedTopologyReadBasis, WorthCreateKey,
-    WorthEntityKind, WorthMilestoneOnePrimitiveCase, WorthRelationKind, WorthTopologyEntityKind,
-    WorthTopologyRelationKind,
+    DerivedTopologyReadBasis, WorthCreateKey, WorthEntityKind, WorthRelationKind,
+    WorthTopologyEntityKind, WorthTopologyRelationKind,
 };
 
 use crate::edit::{
     WorthShellOrWireMembershipKind, WorthTopologyEditApplicationMode, WorthTopologyEditBatch,
     WorthTopologyEditContract, WorthTopologyEditFamily, WorthTopologyQueryEditExecutionError,
-    WorthTopologyQueryEditRunner,
 };
 use crate::query::{
     worth_topology_runtime, WorthTopologyQueryAssembly, WorthTopologyRuntimeAdapters,
@@ -54,8 +58,7 @@ fn current_head_runtime_executes_rehome_all_owned_half_edges_to_new_wire_workflo
     ));
     let batch = WorthTopologyEditBatch::new(contracts).expect("non-empty edit batch");
 
-    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let execution = assembly.apply_edit(&mut workspace, batch, WorthTopologyEditApplicationMode::Mainline)
         .expect("full half-edge-set wire rehome should execute through the admitted wire owner-rehome lane");
 
     assert_eq!(
@@ -82,6 +85,38 @@ fn current_head_runtime_executes_rehome_all_owned_half_edges_to_new_wire_workflo
             .batch_mutation_evidence()
             .backend_verified_delete_count(),
         1
+    );
+    assert_eq!(
+        execution
+            .receipt
+            .graph_composition_program()
+            .expect("wire half-edge-set rehome should expose graph program")
+            .steps()
+            .iter()
+            .map(|step| step.kind())
+            .collect::<Vec<_>>(),
+        vec![
+            ForgeQueryGraphCompositionProgramStepKind::SymbolicEntityDeclaration,
+            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetarget,
+            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetarget,
+            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetarget,
+            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetarget,
+            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetirement,
+        ]
+    );
+    assert_eq!(
+        execution
+            .receipt
+            .graph_composition_lineage_summary()
+            .expect("wire half-edge-set rehome should expose lineage summary")
+            .entries()
+            .iter()
+            .filter(|entry| {
+                entry.outcome_class()
+                    == ForgeQueryContinuityOutcomeClass::ContinuesAsSingleSuccessor
+            })
+            .count(),
+        4
     );
     assert!(execution
         .inspection
@@ -168,8 +203,12 @@ fn current_head_runtime_denies_wire_rehome_without_moving_the_full_owned_half_ed
     ])
     .expect("non-empty edit batch");
 
-    let error = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let error = assembly
+        .apply_edit(
+            &mut workspace,
+            batch,
+            WorthTopologyEditApplicationMode::Mainline,
+        )
         .expect_err(
             "wire set rehome must fail closed unless it moves the wire's full owned half-edge set",
         );
@@ -229,8 +268,12 @@ fn current_head_runtime_denies_wire_rehome_when_created_wire_keys_diverge() {
     ));
     let batch = WorthTopologyEditBatch::new(contracts).expect("non-empty edit batch");
 
-    let error = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let error = assembly
+        .apply_edit(
+            &mut workspace,
+            batch,
+            WorthTopologyEditApplicationMode::Mainline,
+        )
         .expect_err("wire set rehome must fail closed when created wire keys diverge");
 
     assert!(matches!(

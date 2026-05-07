@@ -1,4 +1,3 @@
-use forge_relational::facade::runtime::EntityReadRecord;
 use worth_schema::facade::{WorthEntityKind, WorthTopologyEntityKind};
 
 use crate::data::topology_view::{
@@ -6,25 +5,21 @@ use crate::data::topology_view::{
     WorthTopologyLoop, WorthTopologyLump, WorthTopologyModel, WorthTopologyRegion,
     WorthTopologyShell, WorthTopologyVertex, WorthTopologyView, WorthTopologyWire,
 };
-use crate::materialization::entity_labels::entity_label;
+use crate::materialization::input_rows::MaterializationEntityRow;
 
-pub fn push_entity_record(view: &mut WorthTopologyView, record: &EntityReadRecord) {
-    let Some(kind) = WorthEntityKind::from_kind_id(record.kind.kind_id) else {
-        return;
-    };
-
-    match kind {
+pub fn push_entity_row(view: &mut WorthTopologyView, record: &MaterializationEntityRow) {
+    match record.kind {
         WorthEntityKind::Topology(WorthTopologyEntityKind::Model) => {
             view.models.push(WorthTopologyModel {
                 entity_id: record.entity_id,
-                label: entity_label(record),
+                label: record.label.clone(),
                 body_ids: Vec::new(),
             });
         }
         WorthEntityKind::Topology(WorthTopologyEntityKind::Body) => {
             view.bodies.push(WorthTopologyBody {
                 entity_id: record.entity_id,
-                label: entity_label(record),
+                label: record.label.clone(),
                 model_id: None,
                 lump_ids: Vec::new(),
             });
@@ -32,7 +27,7 @@ pub fn push_entity_record(view: &mut WorthTopologyView, record: &EntityReadRecor
         WorthEntityKind::Topology(WorthTopologyEntityKind::Lump) => {
             view.lumps.push(WorthTopologyLump {
                 entity_id: record.entity_id,
-                label: entity_label(record),
+                label: record.label.clone(),
                 body_id: None,
                 region_ids: Vec::new(),
             });
@@ -40,7 +35,7 @@ pub fn push_entity_record(view: &mut WorthTopologyView, record: &EntityReadRecor
         WorthEntityKind::Topology(WorthTopologyEntityKind::Region) => {
             view.regions.push(WorthTopologyRegion {
                 entity_id: record.entity_id,
-                label: entity_label(record),
+                label: record.label.clone(),
                 lump_id: None,
                 shell_ids: Vec::new(),
             });
@@ -48,7 +43,7 @@ pub fn push_entity_record(view: &mut WorthTopologyView, record: &EntityReadRecor
         WorthEntityKind::Topology(WorthTopologyEntityKind::Shell) => {
             view.shells.push(WorthTopologyShell {
                 entity_id: record.entity_id,
-                label: entity_label(record),
+                label: record.label.clone(),
                 region_id: None,
                 face_ids: Vec::new(),
             });
@@ -56,7 +51,7 @@ pub fn push_entity_record(view: &mut WorthTopologyView, record: &EntityReadRecor
         WorthEntityKind::Topology(WorthTopologyEntityKind::Face) => {
             view.faces.push(WorthTopologyFace {
                 entity_id: record.entity_id,
-                label: entity_label(record),
+                label: record.label.clone(),
                 shell_id: None,
                 outer_loop_id: None,
                 inner_loop_ids: Vec::new(),
@@ -66,7 +61,7 @@ pub fn push_entity_record(view: &mut WorthTopologyView, record: &EntityReadRecor
         WorthEntityKind::Topology(WorthTopologyEntityKind::Loop) => {
             view.loops.push(WorthTopologyLoop {
                 entity_id: record.entity_id,
-                label: entity_label(record),
+                label: record.label.clone(),
                 face_ids: Vec::new(),
                 half_edge_ids: Vec::new(),
             });
@@ -74,14 +69,14 @@ pub fn push_entity_record(view: &mut WorthTopologyView, record: &EntityReadRecor
         WorthEntityKind::Topology(WorthTopologyEntityKind::Wire) => {
             view.wires.push(WorthTopologyWire {
                 entity_id: record.entity_id,
-                label: entity_label(record),
+                label: record.label.clone(),
                 half_edge_ids: Vec::new(),
             });
         }
         WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge) => {
             view.half_edges.push(WorthTopologyHalfEdge {
                 entity_id: record.entity_id,
-                label: entity_label(record),
+                label: record.label.clone(),
                 loop_id: None,
                 wire_id: None,
                 next_half_edge_id: None,
@@ -96,13 +91,13 @@ pub fn push_entity_record(view: &mut WorthTopologyView, record: &EntityReadRecor
         WorthEntityKind::Topology(WorthTopologyEntityKind::Edge) => {
             view.edges.push(WorthTopologyEdge {
                 entity_id: record.entity_id,
-                label: entity_label(record),
+                label: record.label.clone(),
             });
         }
         WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex) => {
             view.vertices.push(WorthTopologyVertex {
                 entity_id: record.entity_id,
-                label: entity_label(record),
+                label: record.label.clone(),
             });
         }
         WorthEntityKind::Geometry(_)

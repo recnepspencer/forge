@@ -2,7 +2,7 @@
 pub(crate) struct ForgeQueryBridgeBackedVerificationSupportProfileRow {
     operation_family: String,
     target_binding_family: String,
-    compatibility_runtime_supported: bool,
+    scaffold_profile_supported: bool,
     primary_bridge_backed_runtime_supported: bool,
     denial_class_when_primary_unsupported: Option<String>,
 }
@@ -11,14 +11,14 @@ impl ForgeQueryBridgeBackedVerificationSupportProfileRow {
     pub(crate) fn new(
         operation_family: impl Into<String>,
         target_binding_family: impl Into<String>,
-        compatibility_runtime_supported: bool,
+        scaffold_profile_supported: bool,
         primary_bridge_backed_runtime_supported: bool,
         denial_class_when_primary_unsupported: Option<&str>,
     ) -> Self {
         Self {
             operation_family: operation_family.into(),
             target_binding_family: target_binding_family.into(),
-            compatibility_runtime_supported,
+            scaffold_profile_supported,
             primary_bridge_backed_runtime_supported,
             denial_class_when_primary_unsupported: denial_class_when_primary_unsupported
                 .map(str::to_string),
@@ -33,8 +33,8 @@ impl ForgeQueryBridgeBackedVerificationSupportProfileRow {
         &self.target_binding_family
     }
 
-    pub(crate) fn compatibility_runtime_supported(&self) -> bool {
-        self.compatibility_runtime_supported
+    pub(crate) fn scaffold_profile_supported(&self) -> bool {
+        self.scaffold_profile_supported
     }
 
     pub(crate) fn primary_bridge_backed_runtime_supported(&self) -> bool {

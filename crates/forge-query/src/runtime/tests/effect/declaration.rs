@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn effect_declaration_rejects_missing_triggers_before_registration() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let missing = ForgeQueryEffectDeclaration::deliver(
         "ui.missing",
         ForgeQueryEffectTrigger::live_view_name("tasks.missing", ["title"]),
@@ -28,7 +28,7 @@ fn effect_declaration_rejects_missing_triggers_before_registration() {
 
 #[test]
 fn effect_declaration_rejects_truth_delivery_without_intent_boundary() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("live should declare");

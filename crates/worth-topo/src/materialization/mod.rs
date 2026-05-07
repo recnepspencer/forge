@@ -1,6 +1,7 @@
 mod entity_catalog;
 mod entity_labels;
 mod errors;
+mod input_rows;
 mod relation_wiring;
 mod traits;
 mod types;
@@ -16,9 +17,11 @@ pub use types::{
 };
 
 use crate::materialization::entity_catalog::collect_entity_kinds;
+use crate::materialization::input_rows::{MaterializationEntityRow, MaterializationRelationRow};
 use crate::materialization::relation_wiring::{apply_relation, finalize_topology_membership};
-use crate::materialization::view_builder::{has_topology_content, push_entity_record};
-use forge_relational::facade::runtime::{EntityReadRecord, RelationReadRecord, RelationalReadView};
+use crate::materialization::view_builder::{has_topology_content, push_entity_row};
+use forge_query::facade::ForgeQueryEntity;
+use forge_relational::facade::runtime::RelationalReadView;
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct WorthTopologyMaterializer;
@@ -27,18 +30,55 @@ impl WorthTopologyMaterializer {
     pub fn materialize_from_truth(
         read_view: &RelationalReadView,
     ) -> Result<MaterializedTopologyView, WorthTopologyMaterializationError> {
-        Self::materialize_from_records(read_view.entities(), read_view.relations())
+        let entities = read_view
+            .entities()
+            .iter()
+            .filter_map(MaterializationEntityRow::from_truth_record)
+            .collect::<Vec<_>>();
+        let relations = read_view
+            .relations()
+            .iter()
+            .filter_map(MaterializationRelationRow::from_truth_record)
+            .collect::<Vec<_>>();
+        Self::materialize_from_rows(
+            &entities,
+            &relations,
+            read_view.entities().len(),
+            read_view.relations().len(),
+        )
     }
 
-    pub(crate) fn materialize_from_records(
-        entities: &[EntityReadRecord],
-        relations: &[RelationReadRecord],
+    pub(crate) fn materialize_from_query_rows(
+        entity_rows: &[ForgeQueryEntity],
+        relation_rows: &[ForgeQueryEntity],
+    ) -> Result<MaterializedTopologyView, WorthTopologyMaterializationError> {
+        let entities = entity_rows
+            .iter()
+            .map(MaterializationEntityRow::from_query_row)
+            .collect::<Result<Vec<_>, _>>()?;
+        let relations = relation_rows
+            .iter()
+            .map(MaterializationRelationRow::from_query_row)
+            .collect::<Result<Vec<_>, _>>()?;
+        Self::materialize_from_rows(
+            &entities,
+            &relations,
+            entity_rows.len(),
+            relation_rows.len(),
+        )
+    }
+
+    fn materialize_from_rows(
+        entities: &[MaterializationEntityRow],
+        relations: &[MaterializationRelationRow],
+        entity_count: usize,
+        relation_count: usize,
     ) -> Result<MaterializedTopologyView, WorthTopologyMaterializationError> {
         let mut view = crate::data::topology_view::WorthTopologyView::default();
         let entity_kind_map = collect_entity_kinds(entities);
 
         for record in entities {
-            push_entity_record(&mut view, record);
+            push_entity_row(&mut view, record);
         }
 
         for relation in relations {
@@ -67,10 +107,10 @@ impl WorthTopologyMaterializer {
         let topology_relation_count = relations
             .iter()
             .filter(|relation| {
-                worth_schema::facade::WorthRelationKind::from_kind_id(relation.kind.kind_id)
-                    .is_some_and(|kind| {
-                        matches!(kind, worth_schema::facade::WorthRelationKind::Topology(_))
-                    })
+                matches!(
+                    relation.kind,
+                    worth_schema::facade::WorthRelationKind::Topology(_)
+                )
             })
             .count();
 
@@ -78,8 +118,8 @@ impl WorthTopologyMaterializer {
             view,
             MaterializationReport {
                 breadth: MaterializationBreadthReport {
-                    entity_count: entities.len(),
-                    relation_count: relations.len(),
+                    entity_count,
+                    relation_count,
                     topology_entity_count,
                     topology_relation_count,
                 },

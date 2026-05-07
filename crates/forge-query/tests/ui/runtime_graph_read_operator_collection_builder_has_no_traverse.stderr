@@ -1,0 +1,5 @@
+error[E0599]: no method named `traverse` found for struct `CollectionReadOperatorQueryBuilder` in the current scope
+ --> tests/ui/runtime_graph_read_operator_collection_builder_has_no_traverse.rs:4:19
+  |
+4 |     let _ = query.traverse(TraversalSelector::bounded("manager", 1).unwrap());
+  |                   ^^^^^^^^ method not found in `CollectionReadOperatorQueryBuilder`

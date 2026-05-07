@@ -1,4 +1,4 @@
-use worth_schema::facade::{
+use worth_schema::facade::topology_authoring::{
     milestone_one_heavy_branch_local_sweep_scenarios, WorthMilestoneOnePrimitiveExpectedOutcome,
     WorthMilestoneOnePrimitiveScenario,
 };

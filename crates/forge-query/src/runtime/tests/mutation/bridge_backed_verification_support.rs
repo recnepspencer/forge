@@ -1,27 +1,64 @@
 use super::super::support::*;
 
 fn task_relation_runtime() -> ForgeQueryRuntime {
-    ForgeQueryRuntime::builder()
-        .compatibility_in_memory_collections([
-            ForgeQueryCollection::new(
-                "Task",
-                [
-                    crate::memory_workspace::ForgeQueryAspect::new("identity.id", "identity.id"),
-                    crate::memory_workspace::ForgeQueryAspect::new("title.value", "title.value"),
-                    crate::memory_workspace::ForgeQueryAspect::new("status.value", "status.value"),
-                ],
+    stateful_bridge_runtime_with_support(
+        &["Task", "TaskRelation"],
+        admitted_profile("direct_entity_identity")
+            .with_bridge_backed_verification_support(
+                "verify_existing",
+                "direct_relation_identity",
+                true,
+                true,
+                None,
+            )
+            .with_bridge_backed_verification_support(
+                "probe_existing",
+                "direct_relation_identity",
+                true,
+                true,
+                None,
+            )
+            .with_bridge_backed_verification_support(
+                "update_existing_verified",
+                "direct_relation_identity",
+                true,
+                true,
+                None,
+            )
+            .with_bridge_backed_verification_support(
+                "delete_existing_verified",
+                "direct_relation_identity",
+                true,
+                true,
+                None,
             ),
-            ForgeQueryCollection::new(
-                "TaskRelation",
-                [
-                    crate::memory_workspace::ForgeQueryAspect::new("identity.id", "identity.id"),
-                    crate::memory_workspace::ForgeQueryAspect::new("kind.value", "kind.value"),
-                    crate::memory_workspace::ForgeQueryAspect::new("status.value", "status.value"),
-                ],
-            ),
-        ])
-        .build()
-        .expect("runtime should build")
+    )
+}
+
+fn admitted_profile(target_binding_family: &str) -> ForgeQueryRuntimeSupportProfile {
+    [
+        "verify_existing",
+        "probe_existing",
+        "update_existing_verified",
+        "delete_existing_verified",
+    ]
+    .into_iter()
+    .fold(
+        ForgeQueryRuntimeSupportProfile::bridge_backed(
+            "test-subscription-activation",
+            "test-preview-basis",
+            "test-inspector-evidence",
+        ),
+        |profile, operation_family| {
+            profile.with_bridge_backed_verification_support(
+                operation_family,
+                target_binding_family,
+                true,
+                true,
+                None,
+            )
+        },
+    )
 }
 
 fn verification_row<'a>(
@@ -40,19 +77,21 @@ fn verification_row<'a>(
 }
 
 #[test]
-fn compatibility_entity_bridge_backed_verification_rows_match_runtime_behavior() {
-    let mut workspace = task_relation_runtime()
-        .workspace("tasks.compatibility-entity-verification-support")
+fn bridge_backed_entity_verification_rows_match_runtime_behavior() {
+    let runtime =
+        stateful_bridge_runtime_with_support(&["Task"], admitted_profile("direct_entity_identity"));
+    let mut workspace = runtime
+        .workspace("tasks.bridge-backed-entity-verification-support")
         .expect("workspace should open");
     let support = workspace.public_authoritative_mutation_evidence_support();
     let _: ForgeQueryLiveView<Value> = workspace
         .live_view(
-            "tasks.compatibility-entity-verification-support-table",
+            "tasks.bridge-backed-entity-verification-support-table",
             |q| {
                 q.from("Task")
                     .select(["identity.id", "status.value"])
                     .order_by("identity.id")
-                    .schema_basis("tasks-compatibility-entity-verification-support-table")
+                    .schema_basis("tasks-bridge-backed-entity-verification-support-table")
             },
         )
         .expect("entity live view should declare");
@@ -112,19 +151,19 @@ fn compatibility_entity_bridge_backed_verification_rows_match_runtime_behavior()
 }
 
 #[test]
-fn compatibility_relation_bridge_backed_verification_rows_match_runtime_behavior() {
+fn bridge_backed_relation_verification_rows_match_runtime_behavior() {
     let mut workspace = task_relation_runtime()
-        .workspace("tasks.compatibility-relation-verification-support")
+        .workspace("tasks.bridge-backed-relation-verification-support")
         .expect("workspace should open");
     let support = workspace.public_authoritative_mutation_evidence_support();
     let _: ForgeQueryLiveView<Value> = workspace
         .live_view(
-            "tasks.compatibility-relation-verification-support-table",
+            "tasks.bridge-backed-relation-verification-support-table",
             |q| {
                 q.from("TaskRelation")
                     .select(["identity.id", "status.value"])
                     .order_by("identity.id")
-                    .schema_basis("tasks-compatibility-relation-verification-support-table")
+                    .schema_basis("tasks-bridge-backed-relation-verification-support-table")
             },
         )
         .expect("relation live view should declare");

@@ -3,9 +3,9 @@ use forge_runtime_bridge::facade::{
     BridgeAuthoritativeMutationEvidenceCloseout, BridgeAuthoritativeMutationEvidenceSupport,
 };
 
-use super::authoritative_mutation_evidence_bridge_compat::assert_bridge_support_compatibility;
+use super::authoritative_mutation_evidence_bridge_alignment::assert_bridge_support_alignment;
 use super::{
-    ForgeQueryAuthoritativeMutationEvidenceSupport, ForgeQueryMutationApiCompatibilityReport,
+    ForgeQueryAuthoritativeMutationEvidenceSupport, ForgeQueryMutationSurfaceReport,
     ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimePublicApiNamingContract,
     ForgeQueryRuntimePublicSupportMatrix,
 };
@@ -14,7 +14,7 @@ use super::{
 pub struct ForgeQueryAuthoritativeMutationEvidenceCloseout {
     backend_posture: ForgeQueryRuntimeBackendPosture,
     support_matrix_digest: String,
-    mutation_compatibility_digest: String,
+    mutation_surface_digest: String,
     naming_contract_digest: String,
     query_support_digest: String,
     bridge_support_digest: String,
@@ -30,13 +30,13 @@ impl ForgeQueryAuthoritativeMutationEvidenceCloseout {
     pub fn derive(
         backend_posture: ForgeQueryRuntimeBackendPosture,
         support_matrix: &ForgeQueryRuntimePublicSupportMatrix,
-        mutation_compatibility: &ForgeQueryMutationApiCompatibilityReport,
+        mutation_surface: &ForgeQueryMutationSurfaceReport,
         naming_contract: &ForgeQueryRuntimePublicApiNamingContract,
         query_support: &ForgeQueryAuthoritativeMutationEvidenceSupport,
         bridge_support: &BridgeAuthoritativeMutationEvidenceSupport,
         bridge_closeout: &BridgeAuthoritativeMutationEvidenceCloseout,
     ) -> Self {
-        assert_bridge_support_compatibility(query_support, bridge_support, bridge_closeout);
+        assert_bridge_support_alignment(query_support, bridge_support, bridge_closeout);
         let bridge_support_digest = bridge_support.support_digest().to_string();
         let bridge_closeout_digest = bridge_closeout.closeout_digest().to_string();
         let safe_to_build_now = vec![
@@ -79,9 +79,9 @@ impl ForgeQueryAuthoritativeMutationEvidenceCloseout {
         let must_not_assume_yet = vec![
             "authority-mutation evidence closes durable restart, temporal, async, or store-backed mutation semantics".to_string(),
             "unsupported identity-binding, naming, or continuity families remain fail-closed until explicitly admitted".to_string(),
-            "unsupported existing-truth binding, assertion, verified-mutation, and probe neighbors remain typed and fail-closed rather than degrading into best-effort compatibility".to_string(),
+            "unsupported existing-truth binding, assertion, verified-mutation, and probe neighbors remain typed and fail-closed rather than degrading into best-effort fallback behavior".to_string(),
             "unsupported identity-preserving relation update families remain fail-closed until the lower runtime can preserve target identity honestly".to_string(),
-            "bridge-backed verified-existing support rows that deny on the primary posture may not be treated as production-ready just because compatibility runtimes admit them".to_string(),
+            "bridge-backed verified-existing support rows that deny on the primary posture may not be treated as production-ready just because the scaffold posture admits them".to_string(),
             "downstream code may bypass Query receipts and inspect raw bridge/runtime provenance bags directly".to_string(),
         ];
         let migration_guidance = vec![
@@ -96,7 +96,7 @@ impl ForgeQueryAuthoritativeMutationEvidenceCloseout {
             "use `workspace.delete_existing_verified(...)` when the backend must prove current stored truth immediately before an existing-target delete-family mutation".to_string(),
             "delete local existing-target rebinding, naming outcome reconstruction, and continuity breadcrumb glue once equivalent Query evidence is available".to_string(),
             "delete local graph-program rejection reconstruction once `admission_trace()` and `domain_invariant_summary()` cover the denied-path explanation contract".to_string(),
-            "treat unsupported mutation-evidence neighbors as fail-closed support gates rather than compatibility seams".to_string(),
+            "treat unsupported mutation-evidence neighbors as fail-closed support gates rather than alternate runtime seams".to_string(),
         ];
         let required_verification_commands = vec![
             "cargo fmt -p forge-query".to_string(),
@@ -113,7 +113,7 @@ impl ForgeQueryAuthoritativeMutationEvidenceCloseout {
             "forge_query_authoritative_mutation_evidence_closeout_v1".to_string(),
             format!("posture:{}", backend_posture.as_str()),
             format!("matrix:{}", support_matrix.matrix_digest()),
-            format!("mutation:{}", mutation_compatibility.report_digest()),
+            format!("mutation:{}", mutation_surface.report_digest()),
             format!("naming:{}", naming_contract.contract_digest()),
             format!("query-support:{}", query_support.support_digest()),
             format!("bridge-support:{bridge_support_digest}"),
@@ -139,7 +139,7 @@ impl ForgeQueryAuthoritativeMutationEvidenceCloseout {
         Self {
             backend_posture,
             support_matrix_digest: support_matrix.matrix_digest().to_string(),
-            mutation_compatibility_digest: mutation_compatibility.report_digest().to_string(),
+            mutation_surface_digest: mutation_surface.report_digest().to_string(),
             naming_contract_digest: naming_contract.contract_digest().to_string(),
             query_support_digest: query_support.support_digest().to_string(),
             bridge_support_digest,
@@ -160,8 +160,8 @@ impl ForgeQueryAuthoritativeMutationEvidenceCloseout {
         &self.support_matrix_digest
     }
 
-    pub fn mutation_compatibility_digest(&self) -> &str {
-        &self.mutation_compatibility_digest
+    pub fn mutation_surface_digest(&self) -> &str {
+        &self.mutation_surface_digest
     }
 
     pub fn naming_contract_digest(&self) -> &str {

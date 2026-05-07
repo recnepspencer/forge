@@ -1,15 +1,20 @@
 use std::collections::BTreeSet;
 
-use forge_query::facade::ForgeQueryExistingTruthAssertionMode;
+use forge_query::facade::{
+    ForgeQueryContinuityOutcomeClass, ForgeQueryExistingTruthAssertionMode,
+    ForgeQueryGraphCompositionProgramStepKind,
+};
+use worth_schema::facade::topology_authoring::{
+    created_ref, seed_milestone_one_primitive, seed_minimal_topology,
+    WorthMilestoneOnePrimitiveCase,
+};
 use worth_schema::facade::{
-    created_ref, seed_milestone_one_primitive, seed_minimal_topology, DerivedTopologyReadBasis,
-    WorthCreateKey, WorthEntityKind, WorthMilestoneOnePrimitiveCase, WorthTopologyEntityKind,
+    DerivedTopologyReadBasis, WorthCreateKey, WorthEntityKind, WorthTopologyEntityKind,
 };
 
 use crate::edit::{
     WorthShellOrWireMembershipKind, WorthTopologyEditApplicationMode, WorthTopologyEditBatch,
     WorthTopologyEditContract, WorthTopologyEditFamily, WorthTopologyQueryEditExecutionError,
-    WorthTopologyQueryEditRunner,
 };
 use crate::query::{
     worth_topology_runtime, WorthTopologyQueryAssembly, WorthTopologyRuntimeAdapters,
@@ -55,8 +60,7 @@ fn current_head_runtime_executes_single_face_two_face_shell_split_workflow() {
     ])
     .expect("non-empty edit batch");
 
-    let execution = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let execution = assembly.apply_edit(&mut workspace, batch, WorthTopologyEditApplicationMode::Mainline)
         .expect("single-face two-face shell split should execute through the admitted owner-preserving shell lane");
 
     assert_eq!(
@@ -80,6 +84,35 @@ fn current_head_runtime_executes_single_face_two_face_shell_split_workflow() {
             .batch_mutation_evidence()
             .backend_verified_delete_count(),
         0
+    );
+    assert_eq!(
+        execution
+            .receipt
+            .graph_composition_program()
+            .expect("shell split should expose graph program")
+            .steps()
+            .iter()
+            .map(|step| step.kind())
+            .collect::<Vec<_>>(),
+        vec![
+            ForgeQueryGraphCompositionProgramStepKind::SymbolicEntityDeclaration,
+            ForgeQueryGraphCompositionProgramStepKind::RelationDeclaration,
+            ForgeQueryGraphCompositionProgramStepKind::ExistingTargetVerifiedRetarget,
+        ]
+    );
+    assert_eq!(
+        execution
+            .receipt
+            .graph_composition_lineage_summary()
+            .expect("shell split should expose lineage summary")
+            .entries()
+            .iter()
+            .filter(|entry| {
+                entry.outcome_class()
+                    == ForgeQueryContinuityOutcomeClass::ContinuesAsSingleSuccessor
+            })
+            .count(),
+        1
     );
     assert!(execution
         .inspection
@@ -168,8 +201,7 @@ fn current_head_runtime_denies_shell_split_when_old_shell_owns_more_than_two_fac
     ])
     .expect("non-empty edit batch");
 
-    let error = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let error = assembly.apply_edit(&mut workspace, batch, WorthTopologyEditApplicationMode::Mainline)
         .expect_err("owner-preserving shell split must stay fail-closed beyond the admitted two-face shell lane");
 
     assert!(matches!(
@@ -221,8 +253,7 @@ fn current_head_runtime_denies_shell_split_when_created_shell_keys_diverge() {
     ])
     .expect("non-empty edit batch");
 
-    let error = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let error = assembly.apply_edit(&mut workspace, batch, WorthTopologyEditApplicationMode::Mainline)
         .expect_err(
             "owner-preserving shell split must fail closed when the two owner updates target different created shells",
         );
@@ -280,8 +311,7 @@ fn current_head_runtime_denies_shell_split_when_region_does_not_own_source_shell
     ])
     .expect("non-empty edit batch");
 
-    let error = WorthTopologyQueryEditRunner::new(&mut workspace, &assembly)
-        .apply(batch, WorthTopologyEditApplicationMode::Mainline)
+    let error = assembly.apply_edit(&mut workspace, batch, WorthTopologyEditApplicationMode::Mainline)
         .expect_err(
             "owner-preserving shell split must fail closed when the nominated region does not own the source shell",
         );

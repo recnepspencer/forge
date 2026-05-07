@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn effect_delivery_routes_from_live_trigger_with_expression_metadata() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("live should declare");
@@ -22,13 +22,13 @@ fn effect_delivery_routes_from_live_trigger_with_expression_metadata() {
         .expect("effect should declare");
 
     let write = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Effect task" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Effect task")),
+            ],
+        ))
         .expect("write should route effect");
     let evidence = runtime
         .inspect_effect(&effect)
@@ -89,7 +89,7 @@ fn effect_delivery_routes_from_live_trigger_with_expression_metadata() {
         deliveries[0].authority_lane(),
         ForgeQueryAuthorityLane::EffectDeliveryState
     );
-    assert_eq!(deliveries[0].aspect_paths(), &["title".to_string()]);
+    assert_eq!(deliveries[0].aspect_paths(), &["title.value".to_string()]);
     assert_eq!(deliveries[0].payload()["condition"], "expr.title.badge");
 
     let graph = runtime
@@ -118,7 +118,7 @@ fn effect_delivery_routes_from_live_trigger_with_expression_metadata() {
 
 #[test]
 fn effect_delivery_routes_from_computed_trigger_after_computed_patch() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("live should declare");
@@ -139,13 +139,13 @@ fn effect_delivery_routes_from_computed_trigger_after_computed_patch() {
         .expect("computed-triggered effect should declare");
 
     let write = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Computed effect task" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Computed effect task")),
+            ],
+        ))
         .expect("write should route computed effect");
     let deliveries = runtime
         .drain_effect_deliveries(&effect)
@@ -169,7 +169,7 @@ fn effect_delivery_routes_from_computed_trigger_after_computed_patch() {
 
 #[test]
 fn computed_effect_does_not_replay_stale_undrained_computed_patch() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("live should declare");
@@ -190,13 +190,13 @@ fn computed_effect_does_not_replay_stale_undrained_computed_patch() {
         .expect("computed-triggered effect should declare");
 
     runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "First effect task" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("First effect task")),
+            ],
+        ))
         .expect("first write should route computed effect");
     let first_deliveries = runtime
         .drain_effect_deliveries(&effect)
@@ -225,7 +225,7 @@ fn computed_effect_does_not_replay_stale_undrained_computed_patch() {
 
 #[test]
 fn effect_expression_suppression_and_failure_are_typed_and_counted() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("live should declare");
@@ -259,13 +259,13 @@ fn effect_expression_suppression_and_failure_are_typed_and_counted() {
         .expect("failing effect should declare");
 
     let write = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Conditional task" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Conditional task")),
+            ],
+        ))
         .expect("write should route effects");
     let suppressed_evidence = runtime
         .inspect_effect(&suppressed_effect)
@@ -310,7 +310,7 @@ fn effect_expression_suppression_and_failure_are_typed_and_counted() {
 
 #[test]
 fn meaningful_change_suppression_counts_semantic_delta_suppression() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("live should declare");
@@ -326,13 +326,13 @@ fn meaningful_change_suppression_counts_semantic_delta_suppression() {
         .expect("meaningful effect should declare");
 
     let inserted = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Meaningful task" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Meaningful task")),
+            ],
+        ))
         .expect("insert should deliver because whole-row delta is meaningful");
     assert_eq!(inserted.delivered_effect_count(), 1);
     assert_eq!(inserted.meaningful_effect_suppression_count(), 0);
