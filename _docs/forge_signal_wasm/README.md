@@ -25,6 +25,8 @@ Product-facing package docs live separately in:
 - [host_capability_spec.md](host_capability_spec.md)
 - [host_capability_closeout.md](host_capability_closeout.md)
 - [react_adapter_spec.md](react_adapter_spec.md)
+- [worker_runtime_placement_plan.md](worker_runtime_placement_plan.md)
+- [worker_runtime_test_requirements.md](worker_runtime_test_requirements.md)
 
 ## Reading Order
 
@@ -35,3 +37,5 @@ Product-facing package docs live separately in:
 5. [opaque_identity_and_ergonomic_authoring_plan.md](opaque_identity_and_ergonomic_authoring_plan.md)
 6. [api_surface_plan.md](api_surface_plan.md)
 7. [wasm_product_roadmap.md](wasm_product_roadmap.md)
+8. [worker_runtime_placement_plan.md](worker_runtime_placement_plan.md)
+9. [worker_runtime_test_requirements.md](worker_runtime_test_requirements.md)

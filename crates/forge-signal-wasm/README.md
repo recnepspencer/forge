@@ -2,11 +2,25 @@
 
 Framework-agnostic browser bindings for Forge Signal.
 
-`forge-signal-wasm` gives you a typed app-facing signal surface for browser
-apps, explicit graph publication when you want stable public contracts,
-host-capability integration for browser facts, aspect-aware invalidation,
-diagnostics and history surfaces, exact graph restore, lower-level
-compatibility lanes, and an optional React adapter.
+`forge-signal-wasm` gives you one package for three jobs:
+
+- local reactive app state
+- API-backed resource state
+- browser and framework integration around that state
+
+You can use it for ordinary signal-style state, larger controller and graph
+composition, and resource lines that own loading, freshness, uploads,
+downloads, diagnostics, and history.
+
+The root package is a mixed umbrella entrypoint:
+
+- the default export initializes the raw wasm module
+- named exports expose the modern callable, graph, resource, and host-capability
+  surfaces
+
+The published npm package is ESM-first. `import` and bundler resolution are the
+supported consumer paths. CommonJS callers should use dynamic `import(...)`
+instead of `require(...)`.
 
 ## Install
 
@@ -34,11 +48,23 @@ scripts/wasm/publish-forge-signal-wasm.ps1 -SkipPublish
 - graph-scoped input mutation with write, patch, and reset helpers
 - linked writable state for "follow source until overridden" flows
 - aspect-aware invalidation and explicit aspect-filtered spec authoring
+- API resources with detail, collection, and paged family authoring
+- line-scoped request, freshness, retry, upload, download, and inspection
+  surfaces for resource-backed state
 - browser host facts such as visibility, viewport, online status, clock, and
   persistence
 - runtime diagnostics, history, replay, branching, merge planning, and exact
   graph restore
 - lower-level compatibility surfaces for advanced and migration-oriented use
+
+## Where To Start
+
+- If you want local app state, start with the examples below and then read
+  [App Surface Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/app_surface_reference.md).
+- If you want API-backed state, jump to
+  [API Resources Overview](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/api_resources_overview.md).
+- If you want package setup and local package workflow, start with
+  [Consuming forge-signal-wasm](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/consuming_the_package.md).
 
 ## The Main Authoring Model
 
@@ -68,7 +94,7 @@ key.
 
 ## Small Example
 
-This is the smallest honest example of the app lane:
+This is the simplest useful example of the app lane:
 
 ```ts
 import { createSignals } from "forge-signal-wasm";
@@ -153,13 +179,12 @@ itemWorkspace.patchInput("draft", {
 console.log(itemWorkspace.read());
 ```
 
-This is still one runtime truth model:
+In this example:
 
-- `serverItem` is authoritative source state
-- `draft` is mutable local state
-- `effectiveItem` is derived
-- graph publication is where public names and public input posture become
-  explicit
+- `serverItem` is the source data
+- `draft` is local editable state
+- `effectiveItem` is derived from both
+- graph publication is where public names and input rules become explicit
 
 ## Explicit Named Lane
 
@@ -330,6 +355,57 @@ Available families today:
 - `online`
 - `clock`
 - `persistence`
+
+## API Resources
+
+The package also ships a first-class resource surface for request-shaped,
+resource-backed state:
+
+```ts
+import {
+  createSignals,
+  resourceParamIdentity,
+  resourceParams,
+} from "forge-signal-wasm";
+
+const signals = createSignals();
+
+const productDetail = signals.resource.detail({
+  params: resourceParams<{ productId: string }>(),
+  normalizeParams: ({ productId }) =>
+    resourceParamIdentity({ productId }, productId),
+  load: ({ productId }) => ({ id: productId, title: `Product ${productId}` }),
+});
+
+const line = productDetail.line({ productId: "p1" });
+
+console.log(line.value());
+console.log(line.status());
+console.log(line.request());
+```
+
+Use resources when the state is really a parameterized resource line with:
+
+- request posture
+- freshness and retry behavior
+- upload or processing posture
+- binary/download truth
+- line-scoped diagnostics, history, replay, and restore
+
+Start with the resource docs cluster when that is your main use case:
+
+- [API Resources Overview](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/api_resources_overview.md)
+- [Resource Family Authoring Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_family_authoring_reference.md)
+- [Resource Line Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_line_reference.md)
+- [Resource Recipes](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_recipes.md)
+
+Ignore the deeper resource pages at first if you do not need them yet. For most
+teams the right path is:
+
+1. overview
+2. family authoring
+3. line reference
+4. recipes
 
 ## Diagnostics
 
@@ -518,8 +594,8 @@ dependencies, replay, and lineage already projected onto the boundary.
 
 ## React Adapter
 
-The optional React adapter is intentionally thin. React consumes runtime truth;
-it does not become a second state engine.
+The optional React adapter is intentionally thin. React reads and writes the
+same signal state; it does not become a second state engine.
 
 ```ts
 import { createReactSignalsStore } from "forge-signal-wasm/react";
@@ -585,6 +661,16 @@ should stay on the callable surface.
 - [Documentation Index](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/README.md)
 - [Consuming forge-signal-wasm](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/consuming_the_package.md)
 - [App Surface Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/app_surface_reference.md)
+- [API Resources Overview](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/api_resources_overview.md)
+- [Resource Family Authoring Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_family_authoring_reference.md)
+- [Resource Line Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_line_reference.md)
+- [Resource Request And Policy Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_request_and_policy_reference.md)
+- [Resource Reconciliation Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_reconciliation_reference.md)
+- [Resource Transfers Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_transfers_reference.md)
+- [Resource Binary And Download Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_binary_and_download_reference.md)
+- [Resource Delivery And Compatibility Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_delivery_and_compatibility_reference.md)
+- [Resource Inspection And History Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_inspection_and_history_reference.md)
+- [Resource Recipes](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_recipes.md)
 - [Aspects Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/aspects_reference.md)
 - [Host Capabilities](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/host_capabilities.md)
 - [Diagnostics And History Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/diagnostics_and_history_reference.md)

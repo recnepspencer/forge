@@ -2,6 +2,9 @@
   "name": "forge-signal-wasm-dev",
   "private": true,
   "type": "module",
+  "scripts": {
+    "typecheck:package-surface": "tsc -p ./tsconfig.package-types.json --pretty false"
+  },
   "devDependencies": {
     "@types/react": "^19.2.2",
     "react": "^19.2.0",

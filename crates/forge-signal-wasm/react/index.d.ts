@@ -7,7 +7,9 @@ import type {
 
 export type { ReactPerformanceSummary, ReactSignalsStore, SignalsDiagnosticsSnapshot } from "./model.js";
 
-export declare function createReactSignalsStore(signals: SignalsLike): ReactSignalsStore;
+export declare function createReactSignalsStore<TSignals extends SignalsLike>(
+  signals: TSignals,
+): ReactSignalsStore<TSignals>;
 
 export declare function useSignalValue<T = unknown>(
   signal: SignalHandleLike,

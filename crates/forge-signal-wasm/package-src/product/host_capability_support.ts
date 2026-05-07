@@ -388,7 +388,7 @@ function persistenceCapability(options) {
   });
 }
 
-function hostCapabilityPlan(options) {
+function hostCapabilityPlan(options = {}) {
   const normalized = requirePlainObject(
     options,
     "hostCapabilityPlan options must be an object",

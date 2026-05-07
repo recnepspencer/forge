@@ -60,14 +60,14 @@ export interface SignalsLike {
   batch(callback: (tx: SignalsTransactionLike) => void): unknown;
 }
 
-export interface ReactSignalsStore {
-  readonly signals: SignalsLike;
+export interface ReactSignalsStore<TSignals extends SignalsLike = SignalsLike> {
+  readonly signals: TSignals;
   subscribeSignal(signal: SignalHandleLike | string, listener: () => void): () => void;
   getSignalSnapshot(signal: SignalHandleLike | string): unknown;
   subscribeDiagnostics(listener: () => void): () => void;
   getDiagnosticsSnapshot(): SignalsDiagnosticsSnapshot;
-  transaction(callback: (tx: SignalsTransactionLike) => void): unknown;
-  batch(callback: (tx: SignalsTransactionLike) => void): unknown;
+  transaction(callback: Parameters<TSignals["transaction"]>[0]): unknown;
+  batch(callback: Parameters<TSignals["batch"]>[0]): unknown;
   refreshDiagnostics(): SignalsDiagnosticsSnapshot;
   performanceSummary(): ReactPerformanceSummary;
   dispose(): void;

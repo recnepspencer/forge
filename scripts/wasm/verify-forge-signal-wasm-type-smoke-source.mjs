@@ -1,5 +1,5 @@
 export function buildTypeSmokeSource(packageName) {
-  return `import { clockCapability, createSignals, hostCapabilityPlan, onlineCapability, persistenceCapability, viewportCapability, visibilityCapability, type GraphMutationRequest, type PublishedGraphTransaction, type ScopedSignalNamespace, type SignalNamespace } from "${packageName}";
+  return `import init, { clockCapability, createSignals, hostCapabilityPlan, onlineCapability, persistenceCapability, resourceCollectionShape, resourceDelivery, resourceItemAspects, resourcePatch, resourceValueSummaries, viewportCapability, visibilityCapability, type ApiCollectionResourceFamily, type ApiDetailResourceFamily, type GraphMutationRequest, type PublishedGraphTransaction, type ScopedSignalNamespace, type SignalNamespace } from "${packageName}";
 import {
   createReactSignalsStore,
   useOutputValue,
@@ -7,12 +7,14 @@ import {
   useSignalsDiagnostics,
 } from "${packageName}/react";
 
+const initialized = init();
 let visibilityState: "visible" | "hidden" = "visible";
 let viewportState = { width: 1280, height: 720 };
 let onlineState: "online" | "offline" = "online";
 let clockTick = 0;
 let persistedDraft = { mode: "draft" as const, revision: 1 };
 type ShippingOption = { id: string; label: string };
+const emptyHostCapabilityPlan = hostCapabilityPlan();
 const signals = createSignals({
   hostCapabilities: hostCapabilityPlan({
     visibility: visibilityCapability({
@@ -62,6 +64,58 @@ const signals = createSignals({
     }),
   }),
 });
+const api = signals.api({ baseUrl: "/api" });
+const auditScope = signals.scope("audit");
+const auditInput = auditScope.input("value", { debugName: "x" });
+const auditComputed = auditScope.computedSpec("computedValue", {
+  compute: () => auditInput.value(),
+});
+const auditOutput = auditScope.outputSpec("outputValue", {
+  compute: () => auditComputed.value(),
+});
+const collectionShapeFactory = resourceCollectionShape;
+const deliveryFactory = resourceDelivery;
+const itemAspectFactory = resourceItemAspects;
+const patchFactory = resourcePatch;
+const valueSummaryFactory = resourceValueSummaries;
+const auditUserDetail = api.url("/users/:userId").detail({
+  load: ({ userId }) => ({
+    id: String(userId),
+    name: "Ada",
+  }),
+});
+const auditTaskList = api.url("/tasks").params<{
+  search?: string;
+}>().list({
+  itemIdentity: (item: { id: string }) => item.id,
+  load: ({ params }) => [{ id: params.search ?? "all" }],
+});
+const auditAsyncWorkspaceDetail = api.url("/workspaces/:workspaceId").detail({
+  load: async ({ workspaceId }) => ({ id: String(workspaceId) }),
+});
+const auditAsyncWorkspaceVersions = api.url("/workspaces/:workspaceId/versions/:versionId").list({
+  itemIdentity: (item: { id: string }) => item.id,
+  load: async ({ workspaceId, versionId }) => [{ id: String(workspaceId) + ":" + String(versionId) }],
+});
+const typedAuditAsyncWorkspaceDetail:
+  ApiDetailResourceFamily<"/workspaces/:workspaceId", undefined, { id: string }> =
+    auditAsyncWorkspaceDetail;
+const typedAuditAsyncWorkspaceVersions:
+  ApiCollectionResourceFamily<
+    "/workspaces/:workspaceId/versions/:versionId",
+    undefined,
+    readonly { id: string }[],
+    { id: string }
+  > = auditAsyncWorkspaceVersions;
+const typedAuditAsyncWorkspaceDetailLine = typedAuditAsyncWorkspaceDetail.line({
+  workspaceId: "ws-1",
+});
+const typedAuditAsyncWorkspaceVersionsLine = typedAuditAsyncWorkspaceVersions.line({
+  workspaceId: "ws-1",
+  versionId: 3,
+});
+const auditUserLine = auditUserDetail.line({ userId: "user-1" });
+const auditTaskLine = auditTaskList.line({ params: { search: "ada" } });
 const count = signals.input(1, { debugName: "count" });
 const hostViewport = signals.host.viewport;
 const doubled = signals.computed(() => count() * 2, { debugName: "doubled" });
@@ -436,6 +490,7 @@ const authorityGraph = createSignals().graph("taskAuthority", (graph) => {
   });
 });
 const store = createReactSignalsStore(signals);
+const storeInput = store.signals.input(1);
 persistedDraft = { mode: "draft", revision: 2 };
 const persistenceCommit = hostPersistence?.commit();
 const adapters = signals.adapters();
@@ -855,6 +910,19 @@ void pageModalModalOutputId;
 void countView;
 void doubledView;
 void diagnosticsView;
+void auditUserLine.value();
+void auditTaskLine.value();
+void typedAuditAsyncWorkspaceDetailLine.value();
+void typedAuditAsyncWorkspaceVersionsLine.value();
+void emptyHostCapabilityPlan;
+void auditOutput.value();
+void storeInput.value();
+void initialized;
+void collectionShapeFactory;
+void deliveryFactory;
+void itemAspectFactory;
+void patchFactory;
+void valueSummaryFactory;
 void viewportState;
 void hostViewport;
 void viewportLabel;

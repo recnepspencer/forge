@@ -393,7 +393,7 @@ export function persistenceCapability(options) {
   });
 }
 
-export function hostCapabilityPlan(options) {
+export function hostCapabilityPlan(options = {}) {
   const normalized = requirePlainObject(
     options,
     "hostCapabilityPlan options must be an object",

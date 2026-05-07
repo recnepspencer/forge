@@ -13,6 +13,8 @@ import type {
   ObservationSurfaceSummary,
   ReplaySummary,
   RuntimeDefinitionEnvelope,
+  RuntimeEnvelope,
+  RuntimeSnapshotEnvelope,
   WhySummary,
 } from "./diagnostics.js";
 
@@ -433,9 +435,13 @@ export type PublishedGraphValues<TDefinitions extends GraphOutputDefinitions> = 
       : never;
 };
 
-export type ImportedGraphSignals<TDefinitions extends Record<string, GraphReadableHandle | GraphInputHandle>> = {
+export type ImportedGraphSignals<
+  TDefinitions extends Record<string, GraphReadableHandle | GraphInputDefinition>,
+> = {
   readonly [TName in keyof NormalizeGraphRecord<TDefinitions>]:
-    TDefinitions[TName] extends GraphReadableHandle<infer TValue> | GraphInputHandle<infer TValue>
+    TDefinitions[TName] extends GraphReadableHandle<infer TValue>
+      ? import("./callable_surface.js").Signal<TValue>
+      : UnwrapGraphInputHandle<TDefinitions[TName]> extends GraphInputHandle<infer TValue>
       ? import("./callable_surface.js").Signal<TValue>
       : never;
 };
