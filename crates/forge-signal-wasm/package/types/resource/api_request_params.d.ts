@@ -374,7 +374,7 @@ export interface ApiCollectionResourceFamily<
     any,
     TItem,
     ResourceItemAspectMap<TItem>,
-    ResourceValueSummaryMap<TValue>,
+    any,
     any
   > | undefined = undefined,
   TBody = undefined,
@@ -410,7 +410,7 @@ export interface ApiPagedResourceFamily<
     any,
     TItem,
     ResourceItemAspectMap<TItem>,
-    ResourceValueSummaryMap<TValue>,
+    any,
     any
   > | undefined = undefined,
   TBody = undefined,

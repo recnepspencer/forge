@@ -38,10 +38,10 @@ export type ApiRouteReconcile<
   TValue,
   TItem,
 > = ResourceCollectionShape<
-  TValue,
+  any,
   TItem,
   ResourceItemAspectMap<TItem>,
-  ResourceValueSummaryMap<TValue>,
+  any,
   any
 >;
 
