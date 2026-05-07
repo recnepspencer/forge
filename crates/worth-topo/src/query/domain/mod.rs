@@ -1,3 +1,4 @@
+mod adjacency;
 pub(crate) mod error;
 mod fallback;
 mod loop_cycle;

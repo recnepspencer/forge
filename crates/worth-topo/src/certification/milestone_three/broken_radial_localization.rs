@@ -1,3 +1,4 @@
+use forge_query::facade::ForgeQueryWorkspace;
 use forge_relational::facade::runtime::RelationalRuntime;
 use worth_schema::facade::topology_authoring::{
     seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
@@ -138,7 +139,7 @@ where
     let source_half_edge_id = domain_query
         .find_entity_id_by_identity(&source_identity)
         .map_err(|error| WorthTopologyCertificationError::Query(error.to_string()))?;
-    let witness = build_broken_radial_witness(&domain_query, &source_identity)?;
+    let witness = build_broken_radial_witness(&domain_query, &mut workspace, &source_identity)?;
     let illegal_target_half_edge_id = domain_query
         .find_entity_id_by_identity(&witness.illegal_target_half_edge_identity)
         .map_err(|error| WorthTopologyCertificationError::Query(error.to_string()))?;
@@ -202,10 +203,11 @@ where
 
 fn build_broken_radial_witness(
     domain_query: &WorthTopologyDomainQuery,
+    workspace: &mut ForgeQueryWorkspace,
     source_identity: &str,
 ) -> Result<WorthMilestoneThreeBrokenRadialWitness, WorthTopologyCertificationError> {
     let radial = domain_query
-        .radial_half_edge_neighborhood(source_identity)
+        .radial_half_edge_neighborhood(workspace, source_identity)
         .map_err(|error| WorthTopologyCertificationError::Query(error.to_string()))?;
     let illegal_target_half_edge_identity = radial
         .different_edge_half_edge_identities

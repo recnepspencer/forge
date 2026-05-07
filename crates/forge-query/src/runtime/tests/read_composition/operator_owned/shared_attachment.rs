@@ -1,5 +1,8 @@
 use super::super::support::*;
-use crate::authoring::{AspectFieldSelector, AuthoredResultShapeField, OrderingSelector};
+use crate::authoring::{
+    AspectFieldSelector, AuthoredResultShapeField, EqualityPredicate, OrderingSelector,
+    ScalarPredicateValue,
+};
 use crate::runtime::{
     ForgeQueryReadBuiltInOperator, ForgeQueryReadBuiltInOperatorDenialReason,
     ForgeQueryReadScopeClass, ForgeQueryRuntimeError,
@@ -118,6 +121,54 @@ fn compose_read_executes_operator_owned_shared_attachment_collection() {
         .expect("operator-owned shared attachment collection should execute");
 
     assert!(!result.payload().is_empty());
+    assert_collection_receipt(&result, ForgeQueryReadScopeClass::LocalNeighborhood);
+    assert_eq!(
+        result.receipt().built_in_operator_coverage(),
+        [ForgeQueryReadBuiltInOperator::SharedAttachment]
+    );
+}
+
+#[test]
+fn compose_read_keeps_identity_anchored_shared_attachment_collection_local() {
+    let mut workspace = read_runtime()
+        .workspace("runtime.read-composition.operator-shared-attachment-identity-anchor")
+        .expect("read-backed runtime should open a workspace");
+
+    let result = workspace
+        .compose_read(|read| {
+            read.local_shared_attachment_collection(
+                "user",
+                frontier_manager_schema(),
+                [manager_relation_name(), mentor_relation_name()],
+                |query| {
+                    query
+                        .project(
+                            AspectFieldSelector::new("identity", "id")
+                                .expect("identity projection should build"),
+                        )
+                        .where_equal(
+                            EqualityPredicate::new(
+                                "identity",
+                                "id",
+                                ScalarPredicateValue::String("user-ada".to_string()),
+                            )
+                            .expect("identity anchor predicate should build"),
+                        )
+                        .order_by(
+                            OrderingSelector::ascending("identity", "id")
+                                .expect("ordering should build"),
+                        )
+                },
+                |shape| {
+                    shape.field(
+                        AuthoredResultShapeField::new("identity", "id", "id")
+                            .expect("identity result-shape field should build"),
+                    )
+                },
+            )
+        })
+        .expect("identity-anchored shared attachment collection should stay local");
+
     assert_collection_receipt(&result, ForgeQueryReadScopeClass::LocalNeighborhood);
     assert_eq!(
         result.receipt().built_in_operator_coverage(),

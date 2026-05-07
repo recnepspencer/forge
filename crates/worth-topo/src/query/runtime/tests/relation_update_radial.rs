@@ -55,8 +55,11 @@ fn current_head_runtime_executes_splice_radial_adjacency_through_query_native_ed
         .and_then(|value| value.as_str())
         .expect("radial relation should expose topology.target_identity");
     let half_edge_id = support.find_entity_id_by_identity(source_identity);
-    let radial_next_half_edge_id =
-        support.alternate_same_edge_half_edge_id(source_identity, current_target_identity);
+    let radial_next_half_edge_id = support.alternate_same_edge_half_edge_id(
+        &mut workspace,
+        source_identity,
+        current_target_identity,
+    );
     let batch =
         WorthTopologyEditBatch::new(vec![WorthTopologyEditContract::splice_radial_adjacency(
             query_relation_id_from_row(relation),
@@ -155,8 +158,11 @@ fn current_head_runtime_denies_splice_radial_adjacency_with_mismatched_source_bi
         .and_then(|value| value.as_str())
         .expect("radial relation should expose topology.target_identity");
     let wrong_half_edge_id = support.find_entity_id_by_identity(current_target_identity);
-    let radial_next_half_edge_id =
-        support.alternate_same_edge_half_edge_id(source_identity, current_target_identity);
+    let radial_next_half_edge_id = support.alternate_same_edge_half_edge_id(
+        &mut workspace,
+        source_identity,
+        current_target_identity,
+    );
     let batch =
         WorthTopologyEditBatch::new(vec![WorthTopologyEditContract::splice_radial_adjacency(
             query_relation_id_from_row(relation),
@@ -243,7 +249,8 @@ fn current_head_runtime_denies_splice_radial_adjacency_across_different_edges() 
         .and_then(|value| value.as_str())
         .expect("radial relation should expose topology.source_identity");
     let half_edge_id = support.find_entity_id_by_identity(source_identity);
-    let expected_target_half_edge_id = support.different_edge_half_edge_id(source_identity);
+    let expected_target_half_edge_id =
+        support.different_edge_half_edge_id(&mut workspace, source_identity);
     let batch =
         WorthTopologyEditBatch::new(vec![WorthTopologyEditContract::splice_radial_adjacency(
             query_relation_id_from_row(relation),

@@ -3,17 +3,34 @@
 `worth-topo` owns the topology-facing read facade on top of the generic
 `forge-query` read-composition kernel.
 
-The current first migrated family is:
+The current migrated families are:
 
+- `HalfEdgeSharedVertexNeighborhood`
+- `HalfEdgeRadialNeighborhood`
 - `LoopCycleNeighborhood`
 
 ## Current Posture
 
-`LoopCycleNeighborhood` now lowers to a Query-owned read family and executes
+`HalfEdgeSharedVertexNeighborhood`, `HalfEdgeRadialNeighborhood`, and
+`LoopCycleNeighborhood` now lower to Query-owned read families and execute
 through the `forge-query` read kernel with:
 
 - execution engine: `query_runtime_current`
 - fallback posture: `whole_view_debt`
+
+For the two local half-edge adjacency families:
+
+- `HalfEdgeSharedVertexNeighborhood` executes through the operator-owned
+  `SharedEndpoint` read surface over the vertex endpoint relations
+- `HalfEdgeRadialNeighborhood` executes through the operator-owned
+  `SharedAttachment` read surface over the radial-next and edge-attachment
+  relations
+
+In both cases, the executed scope, query digest, traversal breadth, and
+relationship-proof admission are Query-backed at the returned boundary, and the
+remaining debt is explicit: final neighborhood classification still uses a
+Worth-owned whole-view decode helper after Query execution has already
+succeeded.
 
 For multi-hop cycle reads, the current migrated lane executes through the
 operator-owned `FrontierSearch` read surface over the successor relation, so the
@@ -22,11 +39,9 @@ admission are now Query-backed at the returned boundary. The remaining debt is
 explicitly narrower: final cycle ordering still uses a Worth-owned whole-view
 decode helper after Query execution has already succeeded.
 
-The other topology-domain families are not migrated yet and remain explicit
+The remaining topology-domain family is not migrated yet and remains explicit
 snapshot fallback debt:
 
-- `HalfEdgeSharedVertexNeighborhood`
-- `HalfEdgeRadialNeighborhood`
 - `LocalRewireNeighborhood`
 
 ## Rules

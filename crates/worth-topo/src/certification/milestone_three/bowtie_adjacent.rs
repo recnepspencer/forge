@@ -1,3 +1,4 @@
+use forge_query::facade::ForgeQueryWorkspace;
 use forge_relational::facade::runtime::RelationalRuntime;
 use worth_schema::facade::topology_authoring::{
     seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
@@ -47,7 +48,8 @@ where
     let source_half_edge_id = domain_query
         .find_entity_id_by_identity(&source_identity)
         .map_err(|error| WorthTopologyCertificationError::Query(error.to_string()))?;
-    let bowtie_adjacent_witness = build_bowtie_adjacent_witness(&domain_query, &source_identity)?;
+    let bowtie_adjacent_witness =
+        build_bowtie_adjacent_witness(&domain_query, &mut workspace, &source_identity)?;
     let batch =
         WorthTopologyEditBatch::new(vec![WorthTopologyEditContract::splice_radial_adjacency(
             domain_query
@@ -124,10 +126,11 @@ where
 
 fn build_bowtie_adjacent_witness(
     domain_query: &WorthTopologyDomainQuery,
+    workspace: &mut ForgeQueryWorkspace,
     source_identity: &str,
 ) -> Result<WorthMilestoneThreeBowtieAdjacentWitness, WorthTopologyCertificationError> {
     let neighborhood = domain_query
-        .shared_vertex_half_edge_neighborhood(source_identity)
+        .shared_vertex_half_edge_neighborhood(workspace, source_identity)
         .map_err(|error| WorthTopologyCertificationError::Query(error.to_string()))?;
     let target_half_edge_identity = neighborhood
         .vertex_adjacent_different_edge_half_edge_identities

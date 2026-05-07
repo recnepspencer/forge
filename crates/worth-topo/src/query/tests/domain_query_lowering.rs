@@ -6,6 +6,7 @@ use crate::query::domain::lowering::{
     lower_topology_domain_query, WorthTopologyDomainQueryLoweringPosture,
     WorthTopologyDomainQueryRelationshipProofPosture,
 };
+use crate::query::domain::report::WorthTopologyDomainQueryExecutionEngine;
 use crate::query::domain::request::WorthTopologyDomainQueryRequest;
 use crate::query::domain::schema::{
     worth_topology_domain_query_schema_view, WorthTopologyDomainTraversalRelation,
@@ -140,10 +141,10 @@ fn topology_domain_views_expose_canonical_lowering_and_explicit_debt_rows() {
         .expect("edge fan should expose radial source");
 
     let shared_vertex = domain_query
-        .shared_vertex_half_edge_neighborhood(&source_identity)
+        .shared_vertex_half_edge_neighborhood(&mut workspace, &source_identity)
         .expect("shared-vertex neighborhood should load");
     let radial = domain_query
-        .radial_half_edge_neighborhood(&source_identity)
+        .radial_half_edge_neighborhood(&mut workspace, &source_identity)
         .expect("radial neighborhood should load");
     let aggregate = domain_query.aggregate_report();
 
@@ -186,6 +187,17 @@ fn topology_domain_views_expose_canonical_lowering_and_explicit_debt_rows() {
         2
     );
     assert_eq!(radial.request_report.relationship_proof_admission_count, 2);
+    assert_eq!(
+        shared_vertex.request_report.execution_engine,
+        WorthTopologyDomainQueryExecutionEngine::QueryRuntimeCurrent
+    );
+    assert_eq!(
+        radial.request_report.execution_engine,
+        WorthTopologyDomainQueryExecutionEngine::QueryRuntimeCurrent
+    );
+    assert_eq!(aggregate.query_native_execution_count, 2);
+    assert_eq!(aggregate.row_scan_fallback_count, 0);
+    assert_eq!(aggregate.whole_view_fallback_count, 2);
     assert_eq!(aggregate.lowered_traversal_count, 4);
     assert_eq!(aggregate.relationship_proof_admission_count, 4);
     assert_eq!(aggregate.debt_rows.len(), 2);

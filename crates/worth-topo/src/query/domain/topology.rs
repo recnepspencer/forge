@@ -8,10 +8,7 @@ use super::proof::WorthTopologyDomainQueryProofLedger;
 use super::report::WorthTopologyDomainQueryAggregateReport;
 use super::report::{WorthTopologyDomainQueryRequestFamily, WorthTopologyDomainQueryRequestReport};
 use super::request::WorthTopologyDomainQueryRequest;
-use super::views::{
-    WorthTopologyHalfEdgeRadialNeighborhoodView, WorthTopologyHalfEdgeSharedVertexNeighborhoodView,
-    WorthTopologyLocalRewireNeighborhoodView,
-};
+use super::views::WorthTopologyLocalRewireNeighborhoodView;
 use crate::query::{WorthTopologyQueryAssembly, WorthTopologyQuerySnapshotIndex};
 use forge_query::facade::ForgeQueryWorkspace;
 use forge_relational::facade::identity::{EntityId, RelationId};
@@ -219,102 +216,6 @@ impl WorthTopologyDomainQuery {
         )
     }
 
-    pub(crate) fn shared_vertex_half_edge_neighborhood(
-        &self,
-        source_identity: &str,
-    ) -> Result<WorthTopologyHalfEdgeSharedVertexNeighborhoodView, WorthTopologyDomainQueryError>
-    {
-        let request = WorthTopologyDomainQueryRequest::HalfEdgeSharedVertexNeighborhood {
-            source_half_edge_identity: source_identity.to_string(),
-        };
-        let source_edge_identity = self
-            .snapshot_index
-            .edge_identity_of_half_edge(source_identity)
-            .map_err(|error| {
-                WorthTopologyDomainQueryError::snapshot_indexed_resolution(error.to_string())
-            })?;
-        let source_vertex_identities = self
-            .snapshot_index
-            .half_edge_vertex_identities(source_identity)
-            .map_err(|error| {
-                WorthTopologyDomainQueryError::snapshot_indexed_resolution(error.to_string())
-            })?;
-        let vertex_adjacent_half_edge_identities = self
-            .snapshot_index
-            .half_edge_identities_sharing_vertex(source_identity)
-            .map_err(|error| {
-                WorthTopologyDomainQueryError::snapshot_indexed_resolution(error.to_string())
-            })?;
-        let vertex_adjacent_different_edge_half_edge_identities =
-            vertex_adjacent_half_edge_identities
-                .iter()
-                .filter(|identity| {
-                    self.snapshot_index
-                        .edge_identity_of_half_edge(identity)
-                        .is_ok_and(|edge_identity| edge_identity != source_edge_identity)
-                })
-                .cloned()
-                .collect();
-        Ok(WorthTopologyHalfEdgeSharedVertexNeighborhoodView {
-            request_report: self.record_report(self.snapshot_fallback_report(&request)?),
-            source_half_edge_identity: source_identity.to_string(),
-            source_edge_identity,
-            source_vertex_identities,
-            vertex_adjacent_half_edge_identities,
-            vertex_adjacent_different_edge_half_edge_identities,
-        })
-    }
-
-    pub(crate) fn radial_half_edge_neighborhood(
-        &self,
-        source_identity: &str,
-    ) -> Result<WorthTopologyHalfEdgeRadialNeighborhoodView, WorthTopologyDomainQueryError> {
-        let request = WorthTopologyDomainQueryRequest::HalfEdgeRadialNeighborhood {
-            source_half_edge_identity: source_identity.to_string(),
-        };
-        let source_edge_identity = self
-            .snapshot_index
-            .edge_identity_of_half_edge(source_identity)
-            .map_err(|error| {
-                WorthTopologyDomainQueryError::snapshot_indexed_resolution(error.to_string())
-            })?;
-        let current_target_half_edge_identity = self
-            .snapshot_index
-            .outgoing_target_identity(
-                source_identity,
-                WorthTopologyRelationKind::HalfEdgeRadialNext,
-            )
-            .map_err(|error| {
-                WorthTopologyDomainQueryError::snapshot_indexed_resolution(error.to_string())
-            })?;
-        let current_target_edge_identity = self
-            .snapshot_index
-            .edge_identity_of_half_edge(&current_target_half_edge_identity)
-            .map_err(|error| {
-                WorthTopologyDomainQueryError::snapshot_indexed_resolution(error.to_string())
-            })?;
-        let same_edge_half_edge_identities = self
-            .snapshot_index
-            .half_edge_identities_on_same_edge(source_identity)
-            .map_err(|error| {
-                WorthTopologyDomainQueryError::snapshot_indexed_resolution(error.to_string())
-            })?;
-        let different_edge_half_edge_identities = self
-            .snapshot_index
-            .half_edge_identities_on_different_edge(source_identity)
-            .map_err(|error| {
-                WorthTopologyDomainQueryError::snapshot_indexed_resolution(error.to_string())
-            })?;
-        Ok(WorthTopologyHalfEdgeRadialNeighborhoodView {
-            request_report: self.record_report(self.snapshot_fallback_report(&request)?),
-            source_half_edge_identity: source_identity.to_string(),
-            source_edge_identity,
-            current_target_half_edge_identity,
-            current_target_edge_identity,
-            same_edge_half_edge_identities,
-            different_edge_half_edge_identities,
-        })
-    }
     pub(crate) fn local_rewire_neighborhood(
         &self,
         moved_identity: &str,

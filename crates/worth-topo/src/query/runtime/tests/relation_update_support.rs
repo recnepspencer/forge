@@ -82,11 +82,12 @@ impl RelationUpdateQuerySupport {
 
     pub(super) fn alternate_same_edge_half_edge_id(
         &self,
+        workspace: &mut ForgeQueryWorkspace,
         source_identity: &str,
         current_target_identity: &str,
     ) -> EntityId {
         self.domain_query
-            .radial_half_edge_neighborhood(source_identity)
+            .radial_half_edge_neighborhood(workspace, source_identity)
             .expect("seeded topology should expose radial neighborhood")
             .same_edge_half_edge_identities
             .iter()
@@ -97,9 +98,22 @@ impl RelationUpdateQuerySupport {
             .expect("seeded edge fan should provide an alternate halfedge on the same edge")
     }
 
-    pub(super) fn different_edge_half_edge_id(&self, source_identity: &str) -> EntityId {
+    pub(super) fn radial_current_target_identity(&self, source_identity: &str) -> String {
         self.domain_query
-            .radial_half_edge_neighborhood(source_identity)
+            .outgoing_target_identity(
+                source_identity,
+                WorthTopologyRelationKind::HalfEdgeRadialNext,
+            )
+            .expect("seeded topology should expose radial successor binding")
+    }
+
+    pub(super) fn different_edge_half_edge_id(
+        &self,
+        workspace: &mut ForgeQueryWorkspace,
+        source_identity: &str,
+    ) -> EntityId {
+        self.domain_query
+            .radial_half_edge_neighborhood(workspace, source_identity)
             .expect("seeded topology should expose radial neighborhood")
             .different_edge_half_edge_identities
             .iter()

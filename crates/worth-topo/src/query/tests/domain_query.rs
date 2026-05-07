@@ -62,10 +62,10 @@ fn domain_query_exposes_shared_vertex_and_radial_half_edge_neighborhoods() {
         .first_source_identity_for_relation_kind(WorthTopologyRelationKind::HalfEdgeRadialNext)
         .expect("edge fan should expose radial source");
     let shared_vertex = domain_query
-        .shared_vertex_half_edge_neighborhood(&source_identity)
+        .shared_vertex_half_edge_neighborhood(&mut workspace, &source_identity)
         .expect("shared-vertex neighborhood should load");
     let radial = domain_query
-        .radial_half_edge_neighborhood(&source_identity)
+        .radial_half_edge_neighborhood(&mut workspace, &source_identity)
         .expect("radial neighborhood should load");
 
     assert!(!shared_vertex.source_vertex_identities.is_empty());
@@ -76,10 +76,22 @@ fn domain_query_exposes_shared_vertex_and_radial_half_edge_neighborhoods() {
         .vertex_adjacent_different_edge_half_edge_identities
         .is_empty());
     assert_eq!(
-        shared_vertex.request_report.fallback_posture.as_str(),
-        "snapshot_indexed_fallback"
+        shared_vertex.request_report.execution_engine,
+        WorthTopologyDomainQueryExecutionEngine::QueryRuntimeCurrent
     );
-    assert_eq!(shared_vertex.request_report.row_scan_fallback_count, 1);
+    assert_eq!(
+        shared_vertex.request_report.executed_scope_class,
+        Some(ForgeQueryReadScopeClass::LocalNeighborhood)
+    );
+    assert_eq!(
+        shared_vertex
+            .request_report
+            .executed_built_in_operator_coverage,
+        vec![ForgeQueryReadBuiltInOperator::SharedEndpoint]
+    );
+    assert_eq!(shared_vertex.request_report.query_native_execution_count, 1);
+    assert_eq!(shared_vertex.request_report.row_scan_fallback_count, 0);
+    assert_eq!(shared_vertex.request_report.whole_view_fallback_count, 1);
     assert_eq!(shared_vertex.request_report.lowered_traversal_count, 2);
     assert_eq!(
         shared_vertex
@@ -105,20 +117,46 @@ fn domain_query_exposes_shared_vertex_and_radial_half_edge_neighborhoods() {
     assert!(!radial.same_edge_half_edge_identities.is_empty());
     assert!(!radial.different_edge_half_edge_identities.is_empty());
     assert_eq!(
-        radial.request_report.fallback_posture.as_str(),
-        "snapshot_indexed_fallback"
+        radial.request_report.execution_engine,
+        WorthTopologyDomainQueryExecutionEngine::QueryRuntimeCurrent
     );
-    assert_eq!(radial.request_report.row_scan_fallback_count, 1);
+    assert_eq!(
+        radial.request_report.executed_scope_class,
+        Some(ForgeQueryReadScopeClass::LocalNeighborhood)
+    );
+    assert_eq!(
+        radial.request_report.executed_built_in_operator_coverage,
+        vec![ForgeQueryReadBuiltInOperator::SharedAttachment]
+    );
+    assert_eq!(radial.request_report.query_native_execution_count, 1);
+    assert_eq!(radial.request_report.row_scan_fallback_count, 0);
+    assert_eq!(radial.request_report.whole_view_fallback_count, 1);
     assert_eq!(radial.request_report.lowered_traversal_count, 2);
     assert_eq!(radial.request_report.relationship_proof_admission_count, 2);
     let aggregate = domain_query.aggregate_report();
     assert_eq!(aggregate.request_count, 2);
-    assert_eq!(aggregate.row_scan_fallback_count, 2);
+    assert_eq!(aggregate.query_native_execution_count, 2);
+    assert_eq!(aggregate.row_scan_fallback_count, 0);
+    assert_eq!(aggregate.whole_view_fallback_count, 2);
     assert_eq!(aggregate.lowered_traversal_count, 4);
     assert_eq!(aggregate.relationship_proof_admission_count, 4);
     assert_eq!(aggregate.debt_rows.len(), 2);
     assert_eq!(aggregate.family_rows.len(), 2);
-    let _ = &mut workspace;
+    assert!(aggregate.family_rows.iter().any(|row| {
+        row.request_family
+            == WorthTopologyDomainQueryRequestFamily::HalfEdgeSharedVertexNeighborhood
+            && row.request_count == 1
+            && row.query_native_execution_count == 1
+            && row.row_scan_fallback_count == 0
+            && row.whole_view_fallback_count == 1
+    }));
+    assert!(aggregate.family_rows.iter().any(|row| {
+        row.request_family == WorthTopologyDomainQueryRequestFamily::HalfEdgeRadialNeighborhood
+            && row.request_count == 1
+            && row.query_native_execution_count == 1
+            && row.row_scan_fallback_count == 0
+            && row.whole_view_fallback_count == 1
+    }));
 }
 
 #[test]

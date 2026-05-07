@@ -56,6 +56,45 @@ fn domain_query_replay_parity_matches_for_local_rewire_view() {
 }
 
 #[test]
+fn domain_query_replay_parity_matches_for_radial_view() {
+    let mut runtime = build_worth_milestone_one_runtime().expect("worth runtime");
+    let verified = seed_milestone_one_primitive(
+        &mut runtime,
+        "query.domain-query-parity.radial",
+        &WorthMilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
+    )
+    .expect("seed primitive");
+    let replay_basis = verified.read_basis.replay_of();
+
+    let left = radial_parity_artifact(
+        &runtime,
+        "query.domain-query-parity.radial.left",
+        &verified.read_basis,
+    );
+    let right = radial_parity_artifact(
+        &runtime,
+        "query.domain-query-parity.radial.right",
+        &replay_basis,
+    );
+    let report =
+        compare_domain_query_view_parity(WorthTopologyDomainQueryParityKind::Replay, &left, &right);
+
+    assert_eq!(
+        report.request_family,
+        crate::query::domain::report::WorthTopologyDomainQueryRequestFamily::HalfEdgeRadialNeighborhood
+    );
+    assert!(report.branch_identity_match);
+    assert!(report.snapshot_identity_match);
+    assert!(report.execution_engine_match);
+    assert!(report.fallback_posture_match);
+    assert!(report.canonical_query_digest_match);
+    assert!(report.canonical_result_shape_digest_match);
+    assert!(report.breadth_counters_match);
+    assert!(report.view_digest_match);
+    assert!(report.parity_verified);
+}
+
+#[test]
 fn domain_query_branch_local_parity_matches_for_feature_loop_cycle_view() {
     let mut runtime = build_worth_milestone_one_runtime().expect("worth runtime");
     runtime
@@ -279,5 +318,25 @@ fn loop_cycle_parity_artifact(
     build_domain_query_view_parity_artifact(
         read_basis,
         WorthTopologyDomainQueryViewRef::LoopCycle(&loop_cycle),
+    )
+}
+
+fn radial_parity_artifact(
+    runtime: &forge_relational::facade::runtime::RelationalRuntime,
+    stem: &str,
+    read_basis: &DerivedTopologyReadBasis,
+) -> crate::query::domain::parity::WorthTopologyDomainQueryViewParityArtifact {
+    let (mut workspace, assembly) = snapshot_basis_workspace(runtime, stem, read_basis);
+    let domain_query =
+        WorthTopologyDomainQuery::load(&workspace, &assembly).expect("domain query should load");
+    let source_identity = domain_query
+        .first_source_identity_for_relation_kind(WorthTopologyRelationKind::HalfEdgeRadialNext)
+        .expect("edge fan should expose radial source");
+    let radial = domain_query
+        .radial_half_edge_neighborhood(&mut workspace, &source_identity)
+        .expect("radial neighborhood should load");
+    build_domain_query_view_parity_artifact(
+        read_basis,
+        WorthTopologyDomainQueryViewRef::Radial(&radial),
     )
 }
