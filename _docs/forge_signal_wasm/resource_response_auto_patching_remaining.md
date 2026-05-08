@@ -67,7 +67,29 @@ plumbing, broad replacement, or malformed response truth.
   finalizers, and manual route-owned reconciliation after `.response(...)`.
 - Package-facing docs now describe the automatic typed response contract model.
 
-## Left To Finish Before Calling This Fully Closed
+## Closeout Status
+
+This feature slice is now closed for collection response contracts. The
+remaining sections below describe the proof expectations that were added, and
+the closeout matrix names the concrete evidence.
+
+## Closeout Matrix
+
+| Proof surface | Evidence |
+| --- | --- |
+| API surface implemented | `crates/forge-signal-wasm/package-src/product/resource/response/resource_response_contract.ts`, `crates/forge-signal-wasm/package-src/product/resource/response/resource_collection_response_contract.ts`, `crates/forge-signal-wasm/package-src/product/api/route/api_route_builder.ts` |
+| Runtime list happy paths | `crates/forge-signal-wasm/package/product/resource_runtime/authoring/response_contract/list_response_contracts.test.mjs` |
+| Runtime response contract denials | `crates/forge-signal-wasm/package/product/resource_runtime/authoring/response_contract/response_contract_denial_boundaries.test.mjs` |
+| Runtime paged parity | `crates/forge-signal-wasm/package/product/resource_runtime/authoring/response_contract/paged_response_contracts.test.mjs` |
+| Runtime hostile custom shapes | `crates/forge-signal-wasm/package/product/resource_runtime/reconciliation/custom_shape_response_contracts.test.mjs` |
+| Runtime failure atomicity | `crates/forge-signal-wasm/package/product/resource_runtime/reconciliation/failed_response_contract_mutation_atomicity.test.mjs` |
+| Runtime builder boundary | `crates/forge-signal-wasm/package/product/resource_runtime/authoring/response_contract/response_owned_builder_boundary.test.mjs` |
+| Type denials | `crates/forge-signal-wasm/package/resource_types_smoke/resource_api_response_contract_denials.ts` |
+| Type usage | `crates/forge-signal-wasm/package/resource_types_smoke/resource_api_response_contract_usage.ts` |
+| Product docs | `crates/forge-signal-wasm/docs/feature_collections_and_delivery.md`, `crates/forge-signal-wasm/docs/api_resources_overview.md` |
+| Mechanically enforced limitations | response-contract builders omit manual reconciliation, aspect, summary, page-window summary, and detail finalizers; summary and detail response contracts remain out of scope |
+
+## Finished Closeout Work
 
 ### 1. Add Explicit Paged Runtime Certification
 
@@ -86,6 +108,9 @@ Add hostile paged tests for:
 
 Acceptance bar: paged response contracts prove parity with list response
 contracts, including fail-closed malformed-shape behavior.
+
+Status: complete. Covered by
+`package/product/resource_runtime/authoring/response_contract/paged_response_contracts.test.mjs`.
 
 ### 2. Broaden Custom-Shape Hostile Coverage
 
@@ -107,6 +132,9 @@ Acceptance bar: the generic lane proves that only real arrays are admitted and
 that outer response preservation is the contract author's responsibility, with
 bad replacement caught when it stops producing extractable item arrays.
 
+Status: complete. Covered by
+`package/product/resource_runtime/reconciliation/custom_shape_response_contracts.test.mjs`.
+
 ### 3. Certify Mutation Atomicity For Failed Aspect Writes
 
 There is coverage for object-aspect writes against non-object items preserving
@@ -123,6 +151,9 @@ Add tests for:
 Acceptance bar: every response-contract failure mode proves the authoritative
 line value is unchanged.
 
+Status: complete. Covered by
+`package/product/resource_runtime/reconciliation/failed_response_contract_mutation_atomicity.test.mjs`.
+
 ### 4. Add Architecture-Level Regression Tests For Builder Boundaries
 
 The type smoke tests and runtime checks already reject several manual-plumbing
@@ -137,6 +168,11 @@ The invariant:
 
 Acceptance bar: the runtime builder shape and TypeScript surface both certify
 that the wrong lane is unrepresentable or unavailable.
+
+Status: complete. Runtime shape is covered by
+`package/product/resource_runtime/authoring/response_contract/response_owned_builder_boundary.test.mjs`;
+TypeScript unrepresentability is covered by
+`package/resource_types_smoke/resource_api_response_contract_denials.ts`.
 
 ### 5. Decide Whether Summary Contracts Belong In Response Contracts
 
@@ -154,6 +190,11 @@ They should not be slipped into the current object-aspect mechanism.
 Acceptance bar: either the denial stays mechanically enforced and documented,
 or a new summary contract design lands with type/runtime/docs/tests together.
 
+Decision: keep summaries on the explicit
+`.items(...).reconcile(...).summary(...)` lane only for this slice. Response
+contracts do not own summary patching yet, and the builder/type denials keep
+that boundary mechanical.
+
 ### 6. Decide Whether Detail Resources Need A Separate Auto-Patching Surface
 
 Current response contracts are collection contracts. Detail resources are
@@ -167,6 +208,10 @@ Decision needed:
 
 Acceptance bar: collection response contracts must not become a disguised
 detail patching API.
+
+Decision: keep detail resources out of this feature. Collection response
+contracts stay collection-only, and detail finalizers remain unavailable after
+`.response(...)`.
 
 ### 7. Add A Closeout Matrix For This Feature Slice
 
@@ -183,6 +228,8 @@ proof surfaces:
 
 Acceptance bar: every row points to a concrete test or document path.
 
+Status: complete. See the closeout matrix above.
+
 ## Not Required For This Slice
 
 The following are not blockers for the current collection response contract
@@ -196,9 +243,9 @@ work unless the product scope expands:
 
 Those would be new design surfaces, not missing plumbing.
 
-## Recommended Next Batch
+## Completed Closeout Batch
 
-Do the remaining work in this order:
+The closeout work landed in this order:
 
 1. Add paged runtime certification.
 2. Add no-partial-mutation tests for failed patch and delivery paths.
@@ -207,7 +254,7 @@ Do the remaining work in this order:
 5. Write the closeout matrix and update the package docs only if the limits
    change.
 
-After that, the feature can be called closed under the mentality standard:
-the hard problem is specified, the normal path is ergonomic, the wrong paths
-are mechanically denied, and the adversarial cases are certified rather than
-left to convention.
+The feature can now be called closed under the mentality standard: the hard
+problem is specified, the normal path is ergonomic, the wrong paths are
+mechanically denied, and the adversarial cases are certified rather than left
+to convention.

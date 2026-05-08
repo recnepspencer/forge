@@ -122,6 +122,8 @@ The intended dependency order is:
 9. wasm product work adds router and navigation projection
 10. wasm product work adds worker-first runtime placement and main-thread host
     bridge truth
+11. wasm product work adds response lens contracts for advanced resource
+    response topology
 
 That order is normative for this roadmap.
 
@@ -844,6 +846,121 @@ Why it belongs here:
   the UI thread is a product boundary for serious web apps, not an optional
   post-roadmap optimization
 
+## Milestone 10: Branch-Native Resource Effects And Response Lenses
+
+Engineering spec:
+[resource_response_lens_contracts_plan.md](./resource_response_lens_contracts_plan.md)
+
+Predecessor feature closeout:
+[resource_response_auto_patching_remaining.md](./resource_response_auto_patching_remaining.md)
+
+### Goal
+
+Make local patches, delivered patches, optimistic writes, server
+confirmations, server failures, rollbacks, branch restores, rebases, and
+advanced response topology automatic by lowering them into one branch-native
+resource effect model.
+
+This milestone exists because the closed collection response contract slice is
+correct and useful, but the next product layer must not build a weaker
+TypeScript optimistic/cache engine beside the existing `forge-signal` branch,
+snapshot, restore, replay, merge, aspect, and proof substrate.
+
+Response lenses remain part of the milestone, but they are now topology
+lowering strategies into resource effect loci rather than the foundational
+authority model.
+
+### Must Ship
+
+- product exposure for native branch/merge policy dimensions resource effects
+  need, including merge strategy, merge base, source-only policy, conflict
+  isolation, identity matcher, deletion policy, and aspect policy bindings
+- one canonical branch-native resource effect envelope for local patch,
+  delivery, optimistic write, confirmation, failure, rollback, restore, merge,
+  and rebase provenance
+- speculative branch lifecycle as the default optimistic resource posture
+- typed optimistic lifecycle events for applied, committed, rolled back,
+  denied, rebased, conflicted, superseded, and unavailable outcomes
+- rollback through exact branch restore, inverse effect, or explicit
+  optimistic-unavailable artifact
+- rebase through native branch merge planning plus resource-locus conflict
+  explanation
+- response-lens declaration and compiled-lens proof vocabulary that lowers
+  topology into branch-native effect loci
+- collection and paged parity with the already-shipped response contract slice
+- JSON item aspect effects with hostile path denial, identity preservation,
+  rollback or unavailability posture, and path cost proof
+- advanced topology effect support for GraphQL connections, normalized entity
+  bags, grouped collections, tuple-discriminated envelopes, sparse page chunks,
+  map-backed collections, multiple named collections, recursive trees, detail
+  responses, and summary responses
+- diagnostics/history derived from the canonical effect envelope
+
+### Must Preserve
+
+- the closed resource family and line model from the API surface milestone
+- the shipped collection response contract behavior as a valid subset
+- runtime-owned lifecycle, freshness, delivery, branch, replay, restore, and
+  diagnostics truth
+- native signal branch and merge authority; resource code must consume it, not
+  recreate it
+- response lenses as topology lowering rather than resource truth authority
+- detail, collection, paged, summary, membership, entity-store, JSON aspect,
+  item aspect, and broad-response distinctions
+- broad replacement as an explicit branch effect with broad scope and broad cost
+- UI policy separation; toasts, banners, modals, logging, and analytics consume
+  typed lifecycle events rather than executing inside the resource runtime
+
+### Explicit Boundary
+
+Milestone 10 includes branch-native resource effect envelopes, product-level
+branch/merge exposure, speculative branch lifecycle, optimistic lifecycle
+events, response-lens effect-locus lowering, JSON item aspect effects, advanced
+response topology effects, rollback/rebase/conflict certification, and derived
+patch or delivery helpers for admitted effect families.
+
+Milestone 10 does not include network transport ownership, service-worker
+synchronization, UI toast/banner/modal execution, arbitrary identity inference,
+automatic topology inference without declaration, identity migration after
+patch, or core branch/merge semantics that belong in native `forge-signal`
+first.
+
+### Acceptance Evidence
+
+This milestone is complete only when the wasm product surface can prove:
+
+- product history exposes the native branch/merge controls resource effects
+  require
+- local patch, delivery patch, optimistic write, confirmation, failure,
+  rollback, branch restore, merge, and rebase derive from one effect envelope
+- optimistic resource truth lives on signal branches by default
+- response lenses lower declared topology into effect loci rather than running
+  a second response patch engine
+- rollback is exact branch restore, inverse effect, or explicit unavailable
+  artifact
+- rebase and conflict explanation use native branch merge plans plus
+  resource-locus evidence
+- direct arrays, object envelopes, custom collections, and paged responses
+  preserve the behavior already closed by the current response contract slice
+- JSON and advanced topology effects prove admitted local, delivery,
+  optimistic, broad replacement, denial, branch restore, and merge/rebase
+  posture where applicable
+- diagnostics and history distinguish item-local, JSON aspect-local,
+  membership-local, entity-store-local, summary-local, detail-local,
+  optimistic, rollback, rebase, conflict, and broad replacement scopes
+
+Why it belongs here:
+
+- it comes after the worker milestone because the worker closeout already
+  exists as Milestone 9 and should not be renumbered retroactively
+- it comes after API DX hardening and the response auto-patching closeout
+  because those closed the common route/resource lane and exposed the need for
+  branch-native resource effects rather than route-local optimistic caches
+- it remains before roadmap completion because advanced response topology,
+  delivery, forms submission, router continuity, and external integration must
+  not normalize weaker JS-side resource effect machinery while native signal
+  branches already exist
+
 ## Roadmap Done When
 
 This roadmap is complete only when:
@@ -854,6 +971,9 @@ This roadmap is complete only when:
 - API surface work consumes the completed semantics above it
 - API surface ergonomics are hardened enough that common app authoring does not
   require substrate-shaped ceremony
+- branch-native resource effects let local patch, delivery, optimistic write,
+  rollback, rebase, and advanced response topology consume signal branch truth
+  without manual route patch plumbing or a second optimistic cache
 - route and navigation products consume URL, browser-history, branch, and
   resource continuity truth without creating a second state machine
 - worker-first deployment keeps most runtime work off the UI thread while

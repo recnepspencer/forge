@@ -130,6 +130,10 @@ construction unless the module is intentionally escaping the common lane.
   needs a nice API surface for route-local resources and request defaults; it
   should not become the place where API authoring ergonomics are fixed by
   router-specific sugar.
+- `resource_response_lens_contracts_plan.md`
+  The most important thing it protects is response topology automation. The DX
+  lane should hand off advanced response-shape patching to response lenses
+  rather than expanding into manual per-route reconciliation folklore.
 - `forge-signal-wasm/test-requirements.md`
   The most important thing it protects is proof quality. The new authoring lane
   must certify raw-vs-builder equivalence, inheritance honesty, and hostile
@@ -930,6 +934,13 @@ This milestone belongs before the router because:
   its own route-local API sugar
 - route-local resources will be much easier to author once shared request
   defaults and the `url(...)` declaration lane already exist
+
+This milestone now also belongs before response lens contracts because:
+
+- response lenses should deepen the pleasant API resource lane after the
+  route/request authoring grammar exists
+- collection-owned DX provides the immediate predecessor for broader
+  response-shape automation
 
 Current judgment:
 
