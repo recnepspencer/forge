@@ -1,7 +1,10 @@
+mod accessors;
+mod aggregate_acceptance;
 mod ambiguous_local_rewire;
 mod bowtie_adjacent;
 mod broken_radial_localization;
 mod cancellation_chain;
+mod direct_acceptance;
 mod report;
 mod shared;
 mod side_quest_closeout;
@@ -16,14 +19,18 @@ pub(crate) use broken_radial_localization::certify_milestone_three_broken_radial
 pub(crate) use cancellation_chain::certify_milestone_three_cancellation_chain_parity_impl;
 pub use report::{
     MilestoneThreeAmbiguousLocalRewireWitness, MilestoneThreeBowtieAdjacentWitness,
-    MilestoneThreeBrokenRadialWitness, MilestoneThreeEditReplayParityReport,
-    MilestoneThreeEditReplayStepRow, MilestoneThreeHostileCoverageRow,
-    MilestoneThreeHostileFamilyCoverageRow, MilestoneThreeHostileNamingDistributionRow,
-    MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileRejectionDistributionRow,
-    MilestoneThreeHostileScenario, MilestoneThreeHostileScenarioReport,
-    MilestoneThreeHostileSuiteReport, MilestoneThreeReturnGateBlockerRow,
-    MilestoneThreeSideQuestBlockerRow, MilestoneThreeSideQuestCloseoutReport,
-    MilestoneThreeSideQuestContractRow, MilestoneThreeSplitCollapseChurnWitness,
+    MilestoneThreeBrokenRadialWitness, MilestoneThreeChangedScopeCoverageRow,
+    MilestoneThreeDerivedRegionCoverageRow, MilestoneThreeEditBreadthCounterRow,
+    MilestoneThreeEditReplayParityReport, MilestoneThreeEditReplayParityRow,
+    MilestoneThreeEditReplayStepRow, MilestoneThreeFailureLocalityRow,
+    MilestoneThreeHostileCoverageRow, MilestoneThreeHostileFamilyCoverageRow,
+    MilestoneThreeHostileNamingDistributionRow, MilestoneThreeHostileOutcomeClass,
+    MilestoneThreeHostileRejectionDistributionRow, MilestoneThreeHostileScenario,
+    MilestoneThreeHostileScenarioReport, MilestoneThreeHostileSuiteReport,
+    MilestoneThreeNamingContinuityMatrixRow, MilestoneThreeRejectedEditScopeReportRow,
+    MilestoneThreeReturnGateBlockerRow, MilestoneThreeSideQuestBlockerRow,
+    MilestoneThreeSideQuestCloseoutReport, MilestoneThreeSideQuestContractRow,
+    MilestoneThreeSplitCollapseChurnWitness, MilestoneThreeTopologyEditDigestRow,
 };
 pub(crate) use split_collapse_churn::certify_milestone_three_split_collapse_churn_impl;
 pub(crate) use suite::{

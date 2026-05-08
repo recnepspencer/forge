@@ -15,6 +15,14 @@ fn milestone_three_hostile_suite_reports_implemented_coverage_and_missing_named_
 
     assert_eq!(report.scenario_reports.len(), 5);
     assert_eq!(report.coverage_rows.len(), 5);
+    assert_eq!(report.topology_edit_digest_rows.len(), 5);
+    assert_eq!(report.naming_edit_continuity_matrix_rows.len(), 5);
+    assert_eq!(report.edit_replay_parity_rows.len(), 5);
+    assert_eq!(report.rejected_edit_scope_report_rows.len(), 2);
+    assert_eq!(report.edit_breadth_counter_rows.len(), 5);
+    assert_eq!(report.failure_locality_rows.len(), 2);
+    assert!(!report.changed_scope_coverage_rows.is_empty());
+    assert!(!report.derived_region_coverage_rows.is_empty());
     assert_eq!(report.implemented_scenario_count, 5);
     assert_eq!(report.required_scenario_count, 5);
     assert!(report.side_quest_closeout_report.phase_three_ready);
@@ -37,6 +45,37 @@ fn milestone_three_hostile_suite_reports_implemented_coverage_and_missing_named_
             && row.replay_checked
             && row.replay_parity_status == ReplayParityStatus::Match
     }));
+    assert!(report.topology_edit_digest_rows.iter().all(|row| {
+        row.topology_edit_digest.contract_count > 0
+            && row
+                .row_digest
+                .starts_with(&format!("scenario={};", row.scenario.as_str()))
+    }));
+    assert!(report.naming_edit_continuity_matrix_rows.iter().all(|row| {
+        !row.naming_edit_continuity_matrix.rows.is_empty()
+            && row
+                .row_digest
+                .starts_with(&format!("scenario={};", row.scenario.as_str()))
+    }));
+    assert!(report.edit_replay_parity_rows.iter().all(|row| row
+        .row_digest
+        .starts_with(&format!("scenario={};", row.scenario.as_str()))));
+    assert!(report.edit_breadth_counter_rows.iter().all(|row| {
+        row.contract_count > 0
+            && row.replay_checked
+            && row
+                .row_digest
+                .starts_with(&format!("scenario={};", row.scenario.as_str()))
+    }));
+    assert!(report
+        .changed_scope_coverage_rows
+        .iter()
+        .any(|row| row.changed_scope == crate::edit::TopologyEditChangedScope::LocalNeighborhood));
+    assert!(report
+        .derived_region_coverage_rows
+        .iter()
+        .any(|row| row.derived_region
+            == crate::edit::TopologyDerivedRegion::EditLocalNeighborhoodRegion));
     let split_collapse_report = report
         .scenario_reports
         .iter()
@@ -58,6 +97,30 @@ fn milestone_three_hostile_suite_reports_implemented_coverage_and_missing_named_
             && row.outcome_class == MilestoneThreeHostileOutcomeClass::Rejected
             && row.replay_checked
             && row.replay_parity_status == ReplayParityStatus::Match
+    }));
+    assert!(report.rejected_edit_scope_report_rows.iter().any(|row| {
+        row.scenario == MilestoneThreeHostileScenario::BrokenRadialLocalization
+            && row.rejection_class == TopologyEditRejectionClass::InvariantBlocked
+            && !row.rejected_edit_scope_report.rows.is_empty()
+    }));
+    assert!(report.rejected_edit_scope_report_rows.iter().any(|row| {
+        row.scenario == MilestoneThreeHostileScenario::BowtieAdjacentRewire
+            && row.rejection_class == TopologyEditRejectionClass::InvariantBlocked
+            && !row.rejected_edit_scope_report.rows.is_empty()
+    }));
+    assert!(report.failure_locality_rows.iter().any(|row| {
+        row.scenario == MilestoneThreeHostileScenario::BrokenRadialLocalization
+            && row.rejection_class == TopologyEditRejectionClass::InvariantBlocked
+            && row.scope_row_count > 0
+            && !row.changed_scopes.is_empty()
+            && !row.derived_regions.is_empty()
+    }));
+    assert!(report.failure_locality_rows.iter().any(|row| {
+        row.scenario == MilestoneThreeHostileScenario::BowtieAdjacentRewire
+            && row.rejection_class == TopologyEditRejectionClass::InvariantBlocked
+            && row.scope_row_count > 0
+            && !row.changed_scopes.is_empty()
+            && !row.derived_regions.is_empty()
     }));
     assert!(report.coverage_rows.iter().any(|row| {
         row.scenario == MilestoneThreeHostileScenario::CancellationChainParity

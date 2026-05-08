@@ -36,14 +36,18 @@ pub use facade::{
 };
 pub use milestone_three::{
     MilestoneThreeAmbiguousLocalRewireWitness, MilestoneThreeBowtieAdjacentWitness,
-    MilestoneThreeBrokenRadialWitness, MilestoneThreeEditReplayParityReport,
-    MilestoneThreeEditReplayStepRow, MilestoneThreeHostileCoverageRow,
-    MilestoneThreeHostileFamilyCoverageRow, MilestoneThreeHostileNamingDistributionRow,
-    MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileRejectionDistributionRow,
-    MilestoneThreeHostileScenario, MilestoneThreeHostileScenarioReport,
-    MilestoneThreeHostileSuiteReport, MilestoneThreeReturnGateBlockerRow,
-    MilestoneThreeSideQuestBlockerRow, MilestoneThreeSideQuestCloseoutReport,
-    MilestoneThreeSideQuestContractRow, MilestoneThreeSplitCollapseChurnWitness,
+    MilestoneThreeBrokenRadialWitness, MilestoneThreeChangedScopeCoverageRow,
+    MilestoneThreeDerivedRegionCoverageRow, MilestoneThreeEditBreadthCounterRow,
+    MilestoneThreeEditReplayParityReport, MilestoneThreeEditReplayParityRow,
+    MilestoneThreeEditReplayStepRow, MilestoneThreeFailureLocalityRow,
+    MilestoneThreeHostileCoverageRow, MilestoneThreeHostileFamilyCoverageRow,
+    MilestoneThreeHostileNamingDistributionRow, MilestoneThreeHostileOutcomeClass,
+    MilestoneThreeHostileRejectionDistributionRow, MilestoneThreeHostileScenario,
+    MilestoneThreeHostileScenarioReport, MilestoneThreeHostileSuiteReport,
+    MilestoneThreeNamingContinuityMatrixRow, MilestoneThreeRejectedEditScopeReportRow,
+    MilestoneThreeReturnGateBlockerRow, MilestoneThreeSideQuestBlockerRow,
+    MilestoneThreeSideQuestCloseoutReport, MilestoneThreeSideQuestContractRow,
+    MilestoneThreeSplitCollapseChurnWitness, MilestoneThreeTopologyEditDigestRow,
 };
 pub use milestone_two::TracedMilestoneTwoDerivedReadReport;
 pub use read_view::MilestoneOneCertificationHarness;

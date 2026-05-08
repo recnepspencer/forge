@@ -6,6 +6,7 @@ use super::ambiguous_local_rewire::certify_milestone_three_ambiguous_local_rewir
 use super::bowtie_adjacent::certify_milestone_three_bowtie_adjacent_rewire_impl;
 use super::broken_radial_localization::certify_milestone_three_broken_radial_localization_impl;
 use super::cancellation_chain::certify_milestone_three_cancellation_chain_parity_impl;
+use super::direct_acceptance::{build_direct_acceptance_rows, ensure_direct_acceptance_proof_rows};
 use super::report::{
     MilestoneThreeHostileCoverageRow, MilestoneThreeHostileFamilyCoverageRow,
     MilestoneThreeHostileNamingDistributionRow, MilestoneThreeHostileOutcomeClass,
@@ -56,6 +57,7 @@ where
     let family_coverage_rows = build_family_coverage_rows(&scenario_reports);
     let rejection_distribution_rows = build_rejection_distribution_rows(&scenario_reports);
     let naming_distribution_rows = build_naming_distribution_rows(&scenario_reports);
+    let direct_acceptance_rows = build_direct_acceptance_rows(&scenario_reports);
     let side_quest_closeout_report =
         certify_milestone_three_side_quest_closeout_impl(&mut runtime_factory, stem)?;
     let implemented_scenarios = scenario_reports
@@ -81,6 +83,15 @@ where
         family_coverage_rows,
         rejection_distribution_rows,
         naming_distribution_rows,
+        topology_edit_digest_rows: direct_acceptance_rows.topology_edit_digest_rows,
+        naming_edit_continuity_matrix_rows: direct_acceptance_rows
+            .naming_edit_continuity_matrix_rows,
+        rejected_edit_scope_report_rows: direct_acceptance_rows.rejected_edit_scope_report_rows,
+        edit_replay_parity_rows: direct_acceptance_rows.edit_replay_parity_rows,
+        changed_scope_coverage_rows: direct_acceptance_rows.changed_scope_coverage_rows,
+        derived_region_coverage_rows: direct_acceptance_rows.derived_region_coverage_rows,
+        edit_breadth_counter_rows: direct_acceptance_rows.edit_breadth_counter_rows,
+        failure_locality_rows: direct_acceptance_rows.failure_locality_rows,
         side_quest_closeout_report,
         side_quest_gate_ready,
         missing_required_scenarios: missing_required_scenarios.clone(),
@@ -158,6 +169,7 @@ fn ensure_milestone_three_closeout_requirements(
             "hostile aggregate coverage rows are incomplete",
         ));
     }
+    ensure_direct_acceptance_proof_rows(report)?;
     let side_quest = &report.side_quest_closeout_report;
     if !side_quest.phase_three_ready
         || side_quest.domain_read_request_count == 0

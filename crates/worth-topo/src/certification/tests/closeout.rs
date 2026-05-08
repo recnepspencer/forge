@@ -199,6 +199,30 @@ fn milestone_three_closeout_requirements_registry_matches_hostile_return_gate_sh
         .contains(&CertificationRequiredOutput::MilestoneThreeHostileSuiteReport));
     assert!(requirements
         .required_outputs
+        .contains(&CertificationRequiredOutput::MilestoneThreeTopologyEditDigestRows));
+    assert!(requirements
+        .required_outputs
+        .contains(&CertificationRequiredOutput::MilestoneThreeNamingContinuityMatrixRows));
+    assert!(requirements
+        .required_outputs
+        .contains(&CertificationRequiredOutput::MilestoneThreeRejectedEditScopeReportRows));
+    assert!(requirements
+        .required_outputs
+        .contains(&CertificationRequiredOutput::MilestoneThreeEditReplayParityRows));
+    assert!(requirements
+        .required_outputs
+        .contains(&CertificationRequiredOutput::MilestoneThreeChangedScopeCoverageRows));
+    assert!(requirements
+        .required_outputs
+        .contains(&CertificationRequiredOutput::MilestoneThreeDerivedRegionCoverageRows));
+    assert!(requirements
+        .required_outputs
+        .contains(&CertificationRequiredOutput::MilestoneThreeEditBreadthCounterRows));
+    assert!(requirements
+        .required_outputs
+        .contains(&CertificationRequiredOutput::MilestoneThreeFailureLocalityRows));
+    assert!(requirements
+        .required_outputs
         .contains(&CertificationRequiredOutput::MilestoneThreeSideQuestCloseoutReport));
     assert!(requirements
         .required_outputs
@@ -245,6 +269,48 @@ fn milestone_three_closeout_enforces_declared_closeout_requirements() {
     assert!(!report.family_coverage_rows.is_empty());
     assert!(!report.rejection_distribution_rows.is_empty());
     assert!(!report.naming_distribution_rows.is_empty());
+    assert_eq!(
+        report.topology_edit_digest_rows.len(),
+        requirements.required_family_rows.len()
+    );
+    assert_eq!(
+        report.naming_edit_continuity_matrix_rows.len(),
+        requirements.required_family_rows.len()
+    );
+    assert_eq!(
+        report.edit_replay_parity_rows.len(),
+        requirements.required_family_rows.len()
+    );
+    assert_eq!(
+        report.rejected_edit_scope_report_rows.len(),
+        requirements.required_rejection_rows.len()
+    );
+    assert_eq!(
+        report.edit_breadth_counter_rows.len(),
+        requirements.required_family_rows.len()
+    );
+    assert_eq!(
+        report.failure_locality_rows.len(),
+        requirements.required_rejection_rows.len()
+    );
+    assert!(!report.changed_scope_coverage_rows.is_empty());
+    assert!(!report.derived_region_coverage_rows.is_empty());
+    assert!(report
+        .topology_edit_digest_rows
+        .iter()
+        .all(|row| row.topology_edit_digest.contract_count > 0));
+    assert!(report
+        .naming_edit_continuity_matrix_rows
+        .iter()
+        .all(|row| !row.naming_edit_continuity_matrix.rows.is_empty()));
+    assert!(report
+        .edit_breadth_counter_rows
+        .iter()
+        .all(|row| row.contract_count > 0 && row.replay_checked));
+    assert!(report
+        .failure_locality_rows
+        .iter()
+        .all(|row| row.scope_row_count > 0 && !row.changed_scopes.is_empty()));
     assert!(report.side_quest_closeout_report.phase_three_ready);
     assert!(report.side_quest_closeout_report.domain_read_request_count > 0);
     assert!(report.side_quest_closeout_report.domain_read_parity_count > 0);

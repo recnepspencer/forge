@@ -34,4 +34,7 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
     t.compile_fail("tests/compile_fail/public_domain_query_closeout_report_not_forgeable.rs");
     t.compile_fail("tests/compile_fail/public_domain_query_closeout_row_not_forgeable.rs");
     t.compile_fail("tests/compile_fail/public_no_n_plus_one_contract_row_not_forgeable.rs");
+    t.compile_fail(
+        "tests/compile_fail/public_milestone_three_topology_edit_digest_row_not_forgeable.rs",
+    );
 }

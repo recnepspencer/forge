@@ -1,7 +1,8 @@
 use crate::certification::{DeterministicDigest, ReplayParityStatus};
 use crate::edit::{
-    NamingEditContinuityMatrix, RejectedEditScopeReport, TopologyEditDigest, TopologyEditFamily,
-    TopologyEditNamingOutcome, TopologyEditRejectionClass,
+    NamingEditContinuityMatrix, RejectedEditScopeReport, TopologyDerivedRegion,
+    TopologyEditChangedScope, TopologyEditDigest, TopologyEditFamily, TopologyEditNamingOutcome,
+    TopologyEditNamingScope, TopologyEditRejectionClass,
 };
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 use serde::{Deserialize, Serialize};
@@ -153,6 +154,82 @@ pub struct MilestoneThreeHostileNamingDistributionRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MilestoneThreeTopologyEditDigestRow {
+    pub(crate) scenario: MilestoneThreeHostileScenario,
+    pub(crate) topology_edit_digest: TopologyEditDigest,
+    pub(crate) row_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MilestoneThreeNamingContinuityMatrixRow {
+    pub(crate) scenario: MilestoneThreeHostileScenario,
+    pub(crate) naming_edit_continuity_matrix: NamingEditContinuityMatrix,
+    pub(crate) continuity_outcome_class: TopologyEditNamingOutcome,
+    pub(crate) continuity_rejection_class: Option<TopologyEditRejectionClass>,
+    pub(crate) row_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MilestoneThreeRejectedEditScopeReportRow {
+    pub(crate) scenario: MilestoneThreeHostileScenario,
+    pub(crate) rejection_class: TopologyEditRejectionClass,
+    pub(crate) rejected_edit_scope_report: RejectedEditScopeReport,
+    pub(crate) row_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MilestoneThreeEditReplayParityRow {
+    pub(crate) scenario: MilestoneThreeHostileScenario,
+    pub(crate) replay_checked: bool,
+    pub(crate) parity_status: ReplayParityStatus,
+    pub(crate) mismatch_count: usize,
+    pub(crate) step_count: usize,
+    pub(crate) replay_step_count: usize,
+    pub(crate) row_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MilestoneThreeChangedScopeCoverageRow {
+    pub(crate) changed_scope: TopologyEditChangedScope,
+    pub(crate) scenario_count: usize,
+    pub(crate) scenarios: Vec<MilestoneThreeHostileScenario>,
+    pub(crate) row_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MilestoneThreeDerivedRegionCoverageRow {
+    pub(crate) derived_region: TopologyDerivedRegion,
+    pub(crate) scenario_count: usize,
+    pub(crate) scenarios: Vec<MilestoneThreeHostileScenario>,
+    pub(crate) row_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MilestoneThreeEditBreadthCounterRow {
+    pub(crate) scenario: MilestoneThreeHostileScenario,
+    pub(crate) contract_count: usize,
+    pub(crate) family_count: usize,
+    pub(crate) changed_scope_count: usize,
+    pub(crate) naming_scope_count: usize,
+    pub(crate) derived_region_count: usize,
+    pub(crate) replay_step_count: usize,
+    pub(crate) replay_checked: bool,
+    pub(crate) row_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MilestoneThreeFailureLocalityRow {
+    pub(crate) scenario: MilestoneThreeHostileScenario,
+    pub(crate) rejection_class: TopologyEditRejectionClass,
+    pub(crate) scope_row_count: usize,
+    pub(crate) families: Vec<TopologyEditFamily>,
+    pub(crate) changed_scopes: Vec<TopologyEditChangedScope>,
+    pub(crate) naming_scopes: Vec<TopologyEditNamingScope>,
+    pub(crate) derived_regions: Vec<TopologyDerivedRegion>,
+    pub(crate) row_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MilestoneThreeSideQuestContractRow {
     pub contract_name: String,
     pub status: String,
@@ -195,6 +272,14 @@ pub struct MilestoneThreeHostileSuiteReport {
     pub family_coverage_rows: Vec<MilestoneThreeHostileFamilyCoverageRow>,
     pub rejection_distribution_rows: Vec<MilestoneThreeHostileRejectionDistributionRow>,
     pub naming_distribution_rows: Vec<MilestoneThreeHostileNamingDistributionRow>,
+    pub topology_edit_digest_rows: Vec<MilestoneThreeTopologyEditDigestRow>,
+    pub naming_edit_continuity_matrix_rows: Vec<MilestoneThreeNamingContinuityMatrixRow>,
+    pub rejected_edit_scope_report_rows: Vec<MilestoneThreeRejectedEditScopeReportRow>,
+    pub edit_replay_parity_rows: Vec<MilestoneThreeEditReplayParityRow>,
+    pub changed_scope_coverage_rows: Vec<MilestoneThreeChangedScopeCoverageRow>,
+    pub derived_region_coverage_rows: Vec<MilestoneThreeDerivedRegionCoverageRow>,
+    pub edit_breadth_counter_rows: Vec<MilestoneThreeEditBreadthCounterRow>,
+    pub failure_locality_rows: Vec<MilestoneThreeFailureLocalityRow>,
     pub side_quest_closeout_report: MilestoneThreeSideQuestCloseoutReport,
     pub side_quest_gate_ready: bool,
     pub missing_required_scenarios: Vec<String>,
