@@ -23,6 +23,8 @@
 >
 > **Test requirements:** [worker_runtime_test_requirements.md](./worker_runtime_test_requirements.md)
 >
+> **Closeout:** [worker_runtime_placement_closeout.md](./worker_runtime_placement_closeout.md)
+>
 > **Primary architectural driver:** make worker-first deployment the canonical
 > `forge-signal-wasm` execution posture so runtime-owned derived work leaves the
 > UI thread without creating a second main-thread truth engine or pretending
