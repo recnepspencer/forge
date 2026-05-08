@@ -392,8 +392,6 @@ crates/worth-schema/src/data/tracing/mod.rs
 crates/worth-topo/src/certification/milestone_two.rs
 crates/worth-topo/src/certification/read_view.rs
 crates/worth-topo/src/certification/report.rs
-crates/worth-topo/src/edit/types.rs
-crates/worth-topo/src/interpretation/tests.rs
-crates/worth-topo/src/reader.rs
-crates/worth-topo/src/runtime_invariants/tests.rs
-crates/worth-topo/src/validators/tests.rs
+crates/worth-topo/src/derived_topology/traversal_views/tests.rs
+crates/worth-topo/src/validation/reference_integrity/tests.rs
+crates/worth-topo/src/validation/tests.rs

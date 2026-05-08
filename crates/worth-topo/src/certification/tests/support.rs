@@ -71,7 +71,7 @@ pub(super) fn assert_milestone_one_closeout_surface_integrity(report: &Milestone
         .rows
         .iter()
         .any(|row| row.family == "WireBranch(k)"
-            && row.validator == "vertex_branching"
+            && row.validator == "vertex_disks"
             && row.passed_count >= 1));
     assert!(report
         .validator_coverage_report
@@ -85,7 +85,7 @@ pub(super) fn assert_milestone_one_closeout_surface_integrity(report: &Milestone
         .rows
         .iter()
         .any(|row| row.family == "NmtEdgeFan(k)"
-            && row.validator == "radial"
+            && row.validator == "radial_rings"
             && row.passed_count >= 1));
     assert!(report.branch_local_topology_report.mainline_case_count >= 1);
     assert!(report.branch_local_topology_report.branch_local_case_count >= 1);
@@ -163,7 +163,7 @@ pub(super) fn assert_milestone_one_closeout_surface_integrity(report: &Milestone
         .rows
         .iter()
         .any(|row| row.family == "NmtEdgeFan(k)"
-            && row.validator_family.as_deref() == Some("radial")
+            && row.validator_family.as_deref() == Some("radial_rings")
             && row.rejection_class == "IllegalAdmittedTopology"));
 }
 

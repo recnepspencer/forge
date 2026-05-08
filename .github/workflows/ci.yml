@@ -54,6 +54,9 @@ jobs:
       - name: Workspace Rust line caps
         run: bash scripts/ci/check_workspace_rust_line_caps.sh
 
+      - name: Worth topology domain structure gate
+        run: bash scripts/ci/check_worth_topo_domain_structure.sh
+
       - name: Build workspace
         run: cargo build --workspace
 

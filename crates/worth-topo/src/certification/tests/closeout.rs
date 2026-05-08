@@ -45,7 +45,7 @@ fn milestone_two_closeout_emits_direct_derived_proof_surfaces() {
         .derived_validator_coverage_report
         .rows
         .iter()
-        .any(|row| row.family == "WireBranch(k)" && row.validator == "vertex_branching"));
+        .any(|row| row.family == "WireBranch(k)" && row.validator == "vertex_disks"));
     assert!(report
         .derived_validator_coverage_report
         .rows
@@ -94,7 +94,7 @@ fn milestone_one_closeout_requirements_registry_matches_canonical_closeout_shape
             && expectation
                 .validators
                 .iter()
-                .any(|validator| validator == "vertex_branching")));
+                .any(|validator| validator == "vertex_disks")));
     assert!(requirements
         .validator_expectations
         .iter()
@@ -144,7 +144,7 @@ fn milestone_two_closeout_requirements_registry_matches_direct_derived_outputs()
             && expectation
                 .validators
                 .iter()
-                .any(|validator| validator == "vertex_branching")));
+                .any(|validator| validator == "vertex_disks")));
     assert!(requirements
         .validator_expectations
         .iter()
@@ -153,169 +153,6 @@ fn milestone_two_closeout_requirements_registry_matches_direct_derived_outputs()
                 .validators
                 .iter()
                 .any(|validator| validator == "shell_closure")));
-}
-
-#[test]
-fn milestone_three_closeout_requirements_registry_matches_hostile_return_gate_shape() {
-    let requirements = milestone_three_closeout_requirements();
-    let suite = milestone_three_closeout_suite_definition();
-
-    assert_eq!(requirements.suite_name, ".milestone_3.closeout");
-    assert_eq!(requirements.required_family_rows.len(), 5);
-    assert_eq!(
-        requirements.required_family_rows,
-        vec![
-            "BowtieAdjacentRewire".to_string(),
-            "CancellationChainParity".to_string(),
-            "SplitCollapseChurn".to_string(),
-            "AmbiguousLocalRewireContinuity".to_string(),
-            "BrokenRadialLocalization".to_string(),
-        ]
-    );
-    assert_eq!(
-        requirements.required_rejection_rows,
-        vec![
-            "BowtieAdjacentRewire".to_string(),
-            "BrokenRadialLocalization".to_string(),
-        ]
-    );
-    assert_eq!(
-        requirements.required_parity_rows,
-        vec![
-            "CancellationChainParity".to_string(),
-            "SplitCollapseChurn".to_string(),
-            "AmbiguousLocalRewireContinuity".to_string(),
-            "BrokenRadialLocalization".to_string(),
-        ]
-    );
-    assert!(requirements.required_bridge_rows.is_empty());
-    assert!(requirements.validator_expectations.is_empty());
-    assert_eq!(suite.suite_name, requirements.suite_name);
-    assert_eq!(suite.canonical_rows.len(), 5);
-    assert_eq!(suite.rejection_rows.len(), 2);
-    assert_eq!(suite.parity_rows.len(), 4);
-    assert!(requirements
-        .required_outputs
-        .contains(&CertificationRequiredOutput::MilestoneThreeHostileSuiteReport));
-    assert!(requirements
-        .required_outputs
-        .contains(&CertificationRequiredOutput::MilestoneThreeTopologyEditDigestRows));
-    assert!(requirements
-        .required_outputs
-        .contains(&CertificationRequiredOutput::MilestoneThreeNamingContinuityMatrixRows));
-    assert!(requirements
-        .required_outputs
-        .contains(&CertificationRequiredOutput::MilestoneThreeRejectedEditScopeReportRows));
-    assert!(requirements
-        .required_outputs
-        .contains(&CertificationRequiredOutput::MilestoneThreeEditReplayParityRows));
-    assert!(requirements
-        .required_outputs
-        .contains(&CertificationRequiredOutput::MilestoneThreeChangedScopeCoverageRows));
-    assert!(requirements
-        .required_outputs
-        .contains(&CertificationRequiredOutput::MilestoneThreeDerivedRegionCoverageRows));
-    assert!(requirements
-        .required_outputs
-        .contains(&CertificationRequiredOutput::MilestoneThreeEditBreadthCounterRows));
-    assert!(requirements
-        .required_outputs
-        .contains(&CertificationRequiredOutput::MilestoneThreeFailureLocalityRows));
-    assert!(requirements
-        .required_outputs
-        .contains(&CertificationRequiredOutput::MilestoneThreeSideQuestCloseoutReport));
-    assert!(requirements
-        .required_outputs
-        .contains(&CertificationRequiredOutput::MilestoneThreeReturnGateReport));
-}
-
-#[test]
-fn milestone_three_closeout_enforces_declared_closeout_requirements() {
-    let requirements = milestone_three_closeout_requirements();
-    let report = certify_milestone_three_closeout(
-        || {
-            crate::facade::milestone_one_runtime_builder()
-                .expect(" milestone one runtime builder")
-                .build()
-        },
-        "milestone-three-closeout-requirements",
-    )
-    .expect("milestone three closeout should certify");
-    let coverage_scenarios = report
-        .coverage_rows
-        .iter()
-        .map(|row| row.scenario.as_str().to_string())
-        .collect::<Vec<_>>();
-    let rejected_scenarios = report
-        .coverage_rows
-        .iter()
-        .filter(|row| {
-            row.outcome_class == MilestoneThreeHostileOutcomeClass::Rejected
-                && row.rejection_class.is_some()
-        })
-        .map(|row| row.scenario.as_str().to_string())
-        .collect::<Vec<_>>();
-    let replay_scenarios = report
-        .coverage_rows
-        .iter()
-        .filter(|row| row.replay_checked && row.replay_parity_status == ReplayParityStatus::Match)
-        .map(|row| row.scenario.as_str().to_string())
-        .collect::<Vec<_>>();
-
-    assert_eq!(coverage_scenarios, requirements.required_family_rows);
-    assert_eq!(rejected_scenarios, requirements.required_rejection_rows);
-    assert_eq!(replay_scenarios, requirements.required_parity_rows);
-    assert!(!report.coverage_rows.is_empty());
-    assert!(!report.family_coverage_rows.is_empty());
-    assert!(!report.rejection_distribution_rows.is_empty());
-    assert!(!report.naming_distribution_rows.is_empty());
-    assert_eq!(
-        report.topology_edit_digest_rows.len(),
-        requirements.required_family_rows.len()
-    );
-    assert_eq!(
-        report.naming_edit_continuity_matrix_rows.len(),
-        requirements.required_family_rows.len()
-    );
-    assert_eq!(
-        report.edit_replay_parity_rows.len(),
-        requirements.required_family_rows.len()
-    );
-    assert_eq!(
-        report.rejected_edit_scope_report_rows.len(),
-        requirements.required_rejection_rows.len()
-    );
-    assert_eq!(
-        report.edit_breadth_counter_rows.len(),
-        requirements.required_family_rows.len()
-    );
-    assert_eq!(
-        report.failure_locality_rows.len(),
-        requirements.required_rejection_rows.len()
-    );
-    assert!(!report.changed_scope_coverage_rows.is_empty());
-    assert!(!report.derived_region_coverage_rows.is_empty());
-    assert!(report
-        .topology_edit_digest_rows
-        .iter()
-        .all(|row| row.topology_edit_digest.contract_count > 0));
-    assert!(report
-        .naming_edit_continuity_matrix_rows
-        .iter()
-        .all(|row| !row.naming_edit_continuity_matrix.rows.is_empty()));
-    assert!(report
-        .edit_breadth_counter_rows
-        .iter()
-        .all(|row| row.contract_count > 0 && row.replay_checked));
-    assert!(report
-        .failure_locality_rows
-        .iter()
-        .all(|row| row.scope_row_count > 0 && !row.changed_scopes.is_empty()));
-    assert!(report.side_quest_closeout_report.phase_three_ready);
-    assert!(report.side_quest_closeout_report.domain_read_request_count > 0);
-    assert!(report.side_quest_closeout_report.domain_read_parity_count > 0);
-    assert!(report.milestone_three_return_gate_ready);
-    assert!(report.milestone_three_return_gate_blocker_rows.is_empty());
 }
 
 #[test]

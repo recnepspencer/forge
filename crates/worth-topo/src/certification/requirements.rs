@@ -3,13 +3,13 @@ use crate::certification::core::{
     CertificationRejectionRow, CertificationRequiredOutput, CertificationSuiteDefinition,
     CertificationSuiteRequirements, CertificationValidatorExpectation,
 };
-use crate::certification::milestone_three::{
-    milestone_three_rejected_scenario_names, milestone_three_replay_scenario_names,
-    milestone_three_required_scenario_names,
-};
 use crate::certification::shared::{
     canonical_milestone_one_primitive_families, derived_validator_expectations_for_family,
     validator_expectations_for_family,
+};
+use crate::certification::topology_operator_closeout::{
+    milestone_three_rejected_scenario_names, milestone_three_replay_scenario_names,
+    milestone_three_required_scenario_names, milestone_three_validator_expectations,
 };
 
 pub fn milestone_one_closeout_suite_definition() -> CertificationSuiteDefinition {
@@ -261,7 +261,7 @@ pub fn milestone_three_closeout_requirements() -> CertificationSuiteRequirements
         suite_name: ".milestone_3.closeout".to_string(),
         required_family_rows: milestone_three_required_scenario_names(),
         required_rejection_rows: milestone_three_rejected_scenario_names(),
-        validator_expectations: Vec::new(),
+        validator_expectations: milestone_three_validator_expectations(),
         required_parity_rows: milestone_three_replay_scenario_names(),
         required_bridge_rows: Vec::new(),
         required_outputs: vec![
@@ -270,13 +270,20 @@ pub fn milestone_three_closeout_requirements() -> CertificationSuiteRequirements
             CertificationRequiredOutput::MilestoneThreeHostileFamilyCoverageRows,
             CertificationRequiredOutput::MilestoneThreeRejectionDistributionRows,
             CertificationRequiredOutput::MilestoneThreeNamingDistributionRows,
+            CertificationRequiredOutput::MilestoneThreeHostileCertificationCategoryRows,
+            CertificationRequiredOutput::MilestoneThreePrimitiveFamilyClosureRows,
             CertificationRequiredOutput::MilestoneThreeTopologyEditDigestRows,
             CertificationRequiredOutput::MilestoneThreeNamingContinuityMatrixRows,
             CertificationRequiredOutput::MilestoneThreeRejectedEditScopeReportRows,
             CertificationRequiredOutput::MilestoneThreeEditReplayParityRows,
+            CertificationRequiredOutput::MilestoneThreeEditBranchLocalParityRows,
+            CertificationRequiredOutput::MilestoneThreeEditedTopologyQueryTraversalRows,
+            CertificationRequiredOutput::MilestoneThreeValidatorFamilyCoverageRows,
             CertificationRequiredOutput::MilestoneThreeChangedScopeCoverageRows,
             CertificationRequiredOutput::MilestoneThreeDerivedRegionCoverageRows,
+            CertificationRequiredOutput::MilestoneThreeDeterminismRuleRows,
             CertificationRequiredOutput::MilestoneThreeEditBreadthCounterRows,
+            CertificationRequiredOutput::MilestoneThreeEditFalloutBreadthRows,
             CertificationRequiredOutput::MilestoneThreeFailureLocalityRows,
             CertificationRequiredOutput::MilestoneThreeSideQuestCloseoutReport,
             CertificationRequiredOutput::MilestoneThreeReturnGateReport,

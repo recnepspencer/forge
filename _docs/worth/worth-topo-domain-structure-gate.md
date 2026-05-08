@@ -1,12 +1,17 @@
 # Worth Topology Domain Structure Gate
 
-> **Status:** Proposed structural gate before further Milestone 3 widening
+> **Status:** Closed; structural gate completed before further Milestone 3
+> widening
 >
 > **Roadmap parent:** [worth_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth_roadmap.md)
 >
 > **Primary adjacent milestone:** [milestone-3.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/milestone-3.md)
 >
 > **Primary predecessor side quest:** [worth-query-domain-substrate.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-query-domain-substrate.md)
+>
+> **Phase 1 migration map:** [worth-topo-domain-structure-migration-map.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-topo-domain-structure-migration-map.md)
+>
+> **Closeout:** [worth-topo-domain-structure-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-topo-domain-structure-closeout.md)
 >
 > **Test requirements:**
 > - [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/test-requirements.md)
@@ -20,7 +25,7 @@ the topology domain story directly:
 - authoritative B-rep topology truth
 - rebuildable derived topology
 - invariant-family validation
-- topology-only editing
+- topology-only operator families
 - runtime projection surfaces
 - certification and hostile proof
 - narrow reusable test support
@@ -82,7 +87,7 @@ The gate fails if:
 
 ## Product Decision Lock
 
-- `worth-topo` owns topology truth semantics, topology editing semantics,
+- `worth-topo` owns topology truth semantics, topology operator semantics,
   topology-derived interpretation, topology validation, topology certification,
   and topology hostility proof.
 - `worth-topo` remains geometry-free except for explicitly permitted opaque
@@ -99,8 +104,8 @@ The gate fails if:
   topology tree may expose projection boundary code, but it must not own bridge
   authority.
 - public consumers depend on the `worth-topo` facade, not internal topology.
-- provenance names belong in closeout records, compatibility shims, audit
-  metadata, and release notes, not in permanent domain folders.
+- provenance names belong in closeout records, audit metadata, and release
+  notes, not in permanent domain folders, duplicate roots, or export aliases.
 - global `fixtures`, generic `tests`, `helpers`, `utils`, `common`, and
   tool-shaped folders are not acceptable permanent homes for topology meaning.
 
@@ -150,13 +155,19 @@ crates/worth-topo/src/
     naming/
     determinism/
 
-  editing/
+  topology_operators/
     contracts/
-    entity_lifecycle/
-    boundary_membership/
-    loop_rewiring/
-    shell_wire_membership/
-    radial_splicing/
+    local_rewrites/
+      euler_2_manifold/
+      entity_lifecycle/
+      boundary_wiring/
+      radial_cycles/
+      vertex_disks/
+      cellular_regions/
+      sheet_wire_laminar/
+      degeneracy_collapse/
+      sewing_gluing/
+    composite_programs/
     cancellation/
     naming_continuity/
     rejection_locality/
@@ -174,8 +185,8 @@ crates/worth-topo/src/
   certification/
     authority_closeout/
     derived_topology_closeout/
-    editing_closeout/
-    hostile_editing/
+    topology_operator_closeout/
+    hostile_topology_operators/
     primitive_corpus/
     scale_sweeps/
     support/
@@ -256,22 +267,29 @@ Rules:
   sweeps, closeout aggregation, or regression harness logic. Those are
   certification responsibilities.
 
-### `editing`
+### `topology_operators`
 
-`editing` owns topology-only edit meaning.
+`topology_operators` owns topology-only operator meaning.
 
-This is where Milestone 3 should become navigable. A new topology edit family
-should have an obvious home by operation family and proof responsibility:
-entity lifecycle, boundary membership, loop rewiring, shell/wire membership,
-radial splicing, cancellation, naming continuity, rejection locality, replay,
+This is where Milestone 3 should become navigable. A new topology operator
+family should have an obvious home by topological neighborhood and proof
+responsibility: entity lifecycle, boundary wiring, radial cycles, vertex disks,
+cellular regions, sheet/wire/laminar topology, degeneracy/collapse,
+sewing/gluing, cancellation, naming continuity, rejection locality, replay,
 branch-local behavior, and application.
+
+The name is intentionally not plain `operations`. `operations` is too broad and
+can attract reads, validators, projections, certification runners, debug
+commands, construction programs, and runtime orchestration. `topology_operators`
+keeps the kernel vocabulary while preserving the boundary: these are topology
+truth-changing or topology-truth-delta-producing transformations.
 
 Rules:
 
-- editing code consumes authoritative topology contracts and emits declarative
-  topology effects.
-- editing must not depend on geometry semantics, primitive construction policy,
-  or spatial classification.
+- topology-operator code consumes authoritative topology contracts and emits
+  declarative topology effects.
+- topology operators must not depend on geometry semantics, primitive
+  construction policy, or spatial classification.
 - edit contracts, validation, application, naming outcome, diagnostics, and
   replay proof must remain distinguishable.
 - broad scans or widened derived fallout must surface explicit fallback
@@ -308,8 +326,8 @@ Rules:
 - projection may not repair missing authority.
 - `projection/read_views` may decode and present topology read products, but it
   must not become the place where domain read meaning is invented.
-- projection must not own edit semantics. Edit application belongs in
-  `editing/application`; projection may expose the result.
+- projection must not own topology operator semantics. Operator application
+  belongs in `topology_operators/application`; projection may expose the result.
 - projection must not be named `query_integration`. Calling it that would be
   like naming a domain folder after the transport protocol rather than the
   responsibility.
@@ -329,16 +347,16 @@ provenance:
 
 - authority closeout
 - derived topology closeout
-- editing closeout
-- hostile editing
+- topology operator closeout
+- hostile topology operators
 - primitive corpus
 - scale sweeps
 - certification support
 
 Rules:
 
-- milestone names may remain in public closeout records when historical
-  compatibility is itself the responsibility.
+- milestone names may remain in public closeout records only when they are the
+  permanent public contract, not as a legacy detour.
 - permanent internal folders should use proof names, not `milestone_three`.
 - certification should emit direct aggregate surfaces rather than requiring
   downstream reconstruction from nested helper artifacts.
@@ -386,7 +404,7 @@ Required columns:
 | `Current role` | What responsibility the path actually serves today, not what its name claims. |
 | `Target path` | Intended destination or deletion target. |
 | `Responsibility class` | The target ownership regime. |
-| `Public API impact` | Whether public semantics are preserved, shimmed, or intentionally changed. |
+| `Public API impact` | Whether public semantics are preserved through permanent target exports or intentionally changed. |
 | `Move type` | The mechanical migration kind. |
 | `Tests affected` | Direct test, fixture, certification, compile-fail, or doc surfaces impacted. |
 | `Risk` | Main correctness, public API, proof, or sequencing risk. |
@@ -397,12 +415,11 @@ Required columns:
 - authoritative topology truth
 - derived topology
 - validation
-- editing
+- topology operators
 - projection
 - certification
 - test support
-- compatibility facade
-- temporary migration shim
+- public facade
 
 `Move type` must be one of:
 
@@ -410,9 +427,8 @@ Required columns:
 - `split`
 - `merge`
 - `delete`
-- `shim`
-- `public_facade_preserve`
-- `public_facade_break`
+- `public_contract_preserve`
+- `public_contract_break`
 
 The map itself must carry proof posture:
 
@@ -422,10 +438,9 @@ The map itself must carry proof posture:
 - a `merge` row identifies the shared responsibility that justifies unification
 - a `delete` row identifies the proof or replacement that makes the path
   unnecessary
-- a `shim` row identifies the compatibility period and exit condition
-- a `public_facade_preserve` row identifies the facade contract that remains
-  stable
-- a `public_facade_break` row identifies the intentional break, migration path,
+- a `public_contract_preserve` row identifies the permanent public contract
+  that remains stable without adding an old-name export path
+- a `public_contract_break` row identifies the intentional break, migration path,
   and required owner approval
 
 This map should be checked in with the gate implementation or embedded in the
@@ -499,33 +514,40 @@ This phase is complete when the phrase "query integration" is unnecessary to
 understand the domain structure. The tree should say what is being projected,
 not which tool performs the projection.
 
-### Phase 4: Rehome Topology Editing
+### Phase 4: Rehome Topology Operators
 
-Move Milestone 3 edit work into operation-family and proof-family homes.
+Move Milestone 3 topology-operator work into neighborhood-family and
+proof-family homes.
 
-This phase must transform the current editing shape into a topology-editing
-story that can scale to arbitrary admitted workflow classes.
+This phase must transform the current edit shape into a topology-operator story
+that can scale to arbitrary admitted workflow classes and eventually hundreds
+of operator names without turning each operator into a top-level folder.
 
-At minimum, admitted edit work should classify into:
+At minimum, admitted topology-operator work should classify into:
 
-- `editing/contracts`
-- `editing/entity_lifecycle`
-- `editing/boundary_membership`
-- `editing/loop_rewiring`
-- `editing/shell_wire_membership`
-- `editing/radial_splicing`
-- `editing/cancellation`
-- `editing/naming_continuity`
-- `editing/rejection_locality`
-- `editing/replay`
-- `editing/branch_local`
-- `editing/application`
+- `topology_operators/contracts`
+- `topology_operators/local_rewrites/euler_2_manifold`
+- `topology_operators/local_rewrites/entity_lifecycle`
+- `topology_operators/local_rewrites/boundary_wiring`
+- `topology_operators/local_rewrites/radial_cycles`
+- `topology_operators/local_rewrites/vertex_disks`
+- `topology_operators/local_rewrites/cellular_regions`
+- `topology_operators/local_rewrites/sheet_wire_laminar`
+- `topology_operators/local_rewrites/degeneracy_collapse`
+- `topology_operators/local_rewrites/sewing_gluing`
+- `topology_operators/composite_programs`
+- `topology_operators/cancellation`
+- `topology_operators/naming_continuity`
+- `topology_operators/rejection_locality`
+- `topology_operators/replay`
+- `topology_operators/branch_local`
+- `topology_operators/application`
 
 Rules:
 
-- edit execution mechanics do not live in `projection`
-- edit contracts do not hide under read/query terminology
-- topology edits remain geometry-free
+- operator execution mechanics do not live in `projection`
+- topology-operator contracts do not hide under read/query terminology
+- topology operators remain geometry-free
 - branch/replay/naming/rejection surfaces are explicit, not report helpers
 - current in-progress Milestone 3 work must either be integrated into this
   structure or explicitly backed out before closeout
@@ -543,7 +565,7 @@ a structure that reveals what is being proven.
 
 Rules:
 
-- milestone closeout compatibility may remain public where required
+- milestone closeout public stability may remain public where required
 - internal certification folders use proof names rather than milestone
   chronology
 - primitive corpus generation is shared only through `test_support` or
@@ -588,7 +610,7 @@ memory and good intentions.
 - authoritative topology concepts under `brep`
 - rebuildable derived topology under `derived_topology`
 - invariant-family validation under `validation`
-- Milestone 3 topology edit work under `editing`
+- Milestone 3 topology operator work under `topology_operators`
 - runtime-projected surfaces under `projection`
 - proof programs under responsibility-shaped `certification`
 - reusable test infrastructure under narrow `test_support`
@@ -607,8 +629,8 @@ memory and good intentions.
   facade
 - Milestone 3 topology-only edit boundary and admitted workflow intent
 - `worth-topo` geometry purity
-- public facade compatibility or deliberate compatibility shims for external
-  callers
+- public facade stability through permanent target exports, without legacy
+  facade aliases or duplicate export paths for external callers
 - branch/replay parity evidence for admitted topology families
 - certification artifact meaning, even when internal module paths change
 
@@ -621,9 +643,8 @@ Required evidence:
 - a proof-carrying file-to-responsibility migration map produced in Phase 1,
   using the required columns and controlled `Responsibility class` / `Move type`
   vocabularies
-- every `public_facade_break` row has explicit owner approval and a migration
+- every `public_contract_break` row has explicit owner approval and a migration
   path before implementation
-- every `shim` row has an exit condition and is tracked as temporary debt
 - every `split`, `merge`, or `delete` row identifies the proof surface that
   preserves or replaces the old behavior
 - no permanent `query_native`, generic `fixtures`, generic `helpers`, generic
@@ -637,8 +658,8 @@ Required evidence:
 - Milestone 2 closeout still verifies against the moved structure
 - the closed read-composition side quest still verifies against the moved
   projection structure
-- current Milestone 3 certification and hostile-editing tests still compile and
-  pass or are explicitly rehomed with equivalent proof names
+- current Milestone 3 certification and hostile topology-operator tests still
+  compile and pass or are explicitly rehomed with equivalent proof names
 - `cargo fmt --check`
 - `cargo test -p worth-topo`
 - any crate-level public API or compile-fail tests needed to protect facade
@@ -711,7 +732,7 @@ responsibility is the projected surface and its proof posture.
 ### Provenance Compatibility
 
 Some public report names may keep milestone terminology because those names are
-historical compatibility or roadmap-facing audit surfaces.
+historical audit or roadmap-facing public surfaces.
 
 That exception does not license permanent internal folders named after
 milestones, implementation batches, tickets, or recent side quests. Internal
@@ -729,12 +750,12 @@ Reason:
 - the remaining blocker is now local to `worth-topo`: the topology crate's own
   architecture does not tell the domain story clearly enough to scale edit
   families safely
-- broad Milestone 3 expansion will add more editing, proof, projection, and
-  hostile-test code, which would calcify the bad skeleton if the structure is
-  not fixed first
-- Milestone 4 and later consume topology editing as a foundation, so this gate
-  is cheaper and safer now than after primitive construction, spatial binding,
-  booleans, NURBS, or fillets depend on the current internal topology
+- broad Milestone 3 expansion will add more topology operators, proof,
+  projection, and hostile-test code, which would calcify the bad skeleton if
+  the structure is not fixed first
+- Milestone 4 and later consume topology operators as a foundation, so this
+  gate is cheaper and safer now than after primitive construction, spatial
+  binding, booleans, NURBS, or fillets depend on the current internal topology
 
 This gate is not a substitute for Milestone 3. It is the structural pause that
 lets Milestone 3 continue without leaving a mess for every later milestone.

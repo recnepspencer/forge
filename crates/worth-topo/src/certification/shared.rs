@@ -1,7 +1,7 @@
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 use schema::facade::{TopologyMutation, TopologyMutationBatch};
 
-use crate::certification::report::{
+use crate::certification::support::reporting::{
     DeterministicDigest, PrimitiveCorpusCaseReport, PrimitiveCorpusCoverageEntry,
     PrimitiveCorpusParityEntry, PrimitiveFamilyCoverageEntry,
 };
@@ -68,23 +68,23 @@ pub(crate) fn validator_expectations_for_family(family: &str) -> &'static [&'sta
     match family {
         "WireOpen(n)" => &["ownership", "loop_wiring", "naming"],
         "WireClosed(n)" => &["ownership", "loop_wiring", "naming"],
-        "WireBranch(k)" => &["ownership", "loop_wiring", "vertex_branching", "naming"],
+        "WireBranch(k)" => &["ownership", "loop_wiring", "vertex_disks", "naming"],
         "SheetDisk(n)" => &["ownership", "loop_wiring", "shell_closure", "naming"],
         "SheetPatch(f)" => &[
             "ownership",
             "loop_wiring",
             "shell_closure",
-            "radial",
+            "radial_rings",
             "naming",
         ],
         "SolidShell(f)" => &[
             "ownership",
             "loop_wiring",
             "shell_closure",
-            "radial",
+            "radial_rings",
             "naming",
         ],
-        "NmtEdgeFan(k)" => &["ownership", "loop_wiring", "radial", "naming"],
+        "NmtEdgeFan(k)" => &["ownership", "loop_wiring", "radial_rings", "naming"],
         _ => &[],
     }
 }
@@ -93,11 +93,11 @@ pub(crate) fn derived_validator_expectations_for_family(family: &str) -> &'stati
     match family {
         "WireOpen(n)" => &["ownership", "loop_wiring"],
         "WireClosed(n)" => &["ownership", "loop_wiring"],
-        "WireBranch(k)" => &["ownership", "loop_wiring", "vertex_branching"],
+        "WireBranch(k)" => &["ownership", "loop_wiring", "vertex_disks"],
         "SheetDisk(n)" => &["ownership", "loop_wiring", "shell_closure"],
-        "SheetPatch(f)" => &["ownership", "loop_wiring", "shell_closure", "radial"],
-        "SolidShell(f)" => &["ownership", "loop_wiring", "shell_closure", "radial"],
-        "NmtEdgeFan(k)" => &["ownership", "loop_wiring", "radial"],
+        "SheetPatch(f)" => &["ownership", "loop_wiring", "shell_closure", "radial_rings"],
+        "SolidShell(f)" => &["ownership", "loop_wiring", "shell_closure", "radial_rings"],
+        "NmtEdgeFan(k)" => &["ownership", "loop_wiring", "radial_rings"],
         _ => &[],
     }
 }

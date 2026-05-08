@@ -551,7 +551,7 @@ The first domain adoption ship must target:
   - local rewire witness neighborhood
 - first migrated callers:
   - topology runtime relation-update support under
-    `crates/worth-topo/src/query/runtime/tests/relation_update/`
+    `crates/worth-topo/src/projection/runtime_boundary/query_runtime/tests/relation_update/`
   - topology-domain query support under
     `crates/worth-topo/src/query/tests/domain_query/`
   - any current loop-cycle or local-successor callers that can consume the

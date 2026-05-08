@@ -81,7 +81,7 @@ Lane support rows additionally freeze:
 - whether the lane is admitted
 - whether execution is `ScalarMutation` or `GraphComposition`
 
-The current-head runtime currently admits graph-composed lanes such as:
+The current-head runtime currently admits composed operator lanes such as:
 
 - `CreateInnerLoopOnExistingFace`
 - `RehomeAllOwnedHalfEdgesToNewWire`

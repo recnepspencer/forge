@@ -1,0 +1,15 @@
+error[E0451]: fields `family`, `status`, `admitted_lanes`, `reason` and `row_digest` of struct `TopologyRuntimeEditFamilySupportRow` are private
+  --> src/certification/public_facade_contracts/compile_fail/public_runtime_edit_family_support_row_not_forgeable.rs:8:9
+   |
+ 7 |     let _ = TopologyRuntimeEditFamilySupportRow {
+   |             ----------------------------------- in this type
+ 8 |         family: TopologyEditFamily::CreateTopologyEntity,
+   |         ^^^^^^ private field
+ 9 |         status: TopologyQueryEditFamilySupportStatus::Admitted,
+   |         ^^^^^^ private field
+10 |         admitted_lanes: vec![TopologyQueryEditLane::CreateTopologyEntity],
+   |         ^^^^^^^^^^^^^^ private field
+11 |         reason: String::new(),
+   |         ^^^^^^ private field
+12 |         row_digest: String::new(),
+   |         ^^^^^^^^^^ private field

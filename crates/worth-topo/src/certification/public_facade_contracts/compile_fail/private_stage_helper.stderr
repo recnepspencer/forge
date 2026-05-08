@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `topology::read_stage`
+ --> src/certification/public_facade_contracts/compile_fail/private_stage_helper.rs:1:15
+  |
+1 | use topology::read_stage::stage_topology_read_from_view;
+  |               ^^^^^^^^^^ could not find `read_stage` in `topology`

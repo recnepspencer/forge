@@ -542,7 +542,7 @@ to them honestly:
     real bridge-backed path
 - `WorthTopologyRuntimeFailure`
   - typed runtime assembly / capability / basis failures for the public facade
-- `WorthTopologyQueryEditExecution`
+- `WorthTopologyOperatorExecution`
   - typed edit execution result family over Query receipts/inspection rather
     than direct authority envelopes
 - `WorthTopologyGraphEditLowering`
@@ -667,7 +667,7 @@ cost posture and explicit debt where optimization is not yet certified.
 - This spec belongs before further Worth Milestone 3 widening because topology
   editing on top of the compatibility mirror would certify the wrong kernel.
 - This spec is intentionally stricter than a migration-safe adapter plan. It
-  rejects legacy seams as an end-state because this runtime is the foundation
+  rejects old migration seams as an end-state because this runtime is the foundation
   for later editor, rendering, and cube-generation work.
 - If a required capability is missing in Forge Query, the fix belongs in
   `forge-query`, not in a new Worth-local runtime substitute.

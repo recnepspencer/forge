@@ -8,15 +8,15 @@ use forge_runtime_bridge::facade::{
 use schema::facade::BridgeTraceAnchor;
 
 use crate::certification::error::MilestoneOneCertificationError;
-use crate::certification::report::{
-    BridgeFamilyCoverageReport, BridgeFamilyCoverageRow, BridgeProofReport,
-};
 use crate::certification::shared::{
     canonical_milestone_one_primitive_families, digest_rows, primitive_family_name,
 };
+use crate::certification::support::reporting::{
+    BridgeFamilyCoverageReport, BridgeFamilyCoverageRow, BridgeProofReport,
+};
 use crate::facade::build_milestone_one_bridge;
-use crate::fixtures::bridge_cases::milestone_one_bridge_proof_cases;
-use crate::fixtures::validated_topology::verified_primitive;
+use crate::test_support::primitive_corpus::bridge_cases::milestone_one_bridge_proof_cases;
+use crate::test_support::primitive_corpus::validated_topology::verified_primitive;
 
 #[derive(Clone)]
 struct BridgeCertificationSink;

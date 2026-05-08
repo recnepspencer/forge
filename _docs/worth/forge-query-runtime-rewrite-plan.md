@@ -114,7 +114,7 @@ Worth.
 
 Worth topology truth, naming truth, topology edits, derived topology reads,
 branch-local reads, replay certification, and diagnostic inspection must flow
-through Forge Query's public workspace facade without preserving legacy Worth
+through Forge Query's public workspace facade without preserving old Worth
 runtime APIs or inventing Worth-local substitute query machinery.
 
 The rewrite fails if:
@@ -178,7 +178,7 @@ The short phase map is:
 5. Rebuild derived topology as computed surfaces.
 6. Finish query-native authoritative write execution.
 7. Rewrite topology editing onto Query receipts.
-8. Cut legacy public runtime surfaces.
+8. Cut old public runtime surfaces.
 9. Rewrite certification and closeout around query-native proof.
 10. Update docs, roadmaps, and public examples.
 
@@ -186,12 +186,12 @@ The short phase map is:
 
 - `WorthTopologyAuthority` ordinary public commit path:
   killed by Phase 6 and fully removed from the public runtime story by Phase 8
-- `WorthTopologyEditRunner` legacy execution shape:
+- `WorthTopologyEditRunner` old execution shape:
   rewritten in Phase 7 and removed from the old public form in Phase 8
 - `WorthTopologyReader` public orchestration role:
   functionally bypassed by completed query-native read/certification work and
   removed as a public runtime dependency in Phase 8
-- legacy runtime coexistence in certification:
+- old runtime coexistence in certification:
   eliminated in Phase 9
 
 ## Endgame Sequence
@@ -200,11 +200,11 @@ The remaining work must proceed in this order:
 
 1. finish query-native authoritative write execution
 2. rewrite topology edit execution onto Query
-3. cut legacy public runtime surfaces
+3. cut old public runtime surfaces
 4. close certification and closeout on the query-native path only
 5. clean docs and examples so they describe only the surviving public story
 
-This order is acceptance-critical. Doing legacy deletion before edit execution
+This order is acceptance-critical. Doing old-surface deletion before edit execution
 would strand admitted workflows; doing certification closeout before deletion
 would risk certifying a coexistence architecture we do not want.
 

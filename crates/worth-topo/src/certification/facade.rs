@@ -4,32 +4,33 @@ use schema::facade::topology_authoring::{
 };
 use schema::facade::{DerivedTopologyReadBasis, VerifiedTopologyCommit};
 
-use crate::certification::closeout::certify_milestone_one_closeout_impl;
-use crate::certification::corpus::{
+use crate::certification::authority_closeout::certify_milestone_one_closeout_impl;
+use crate::certification::authority_closeout::read_view::{
+    MilestoneOneCertificationHarness, TracedMilestoneOneCertificationReport,
+};
+use crate::certification::derived_topology_closeout::TracedMilestoneTwoDerivedReadReport;
+use crate::certification::derived_topology_closeout::{
+    certify_milestone_two_closeout_impl, certify_milestone_two_default_derived_corpus_impl,
+    certify_milestone_two_read_basis_runtime_traced_impl,
+    certify_milestone_two_verified_commit_traced_impl,
+};
+use crate::certification::error::{MilestoneOneCertificationError, TopologyCertificationError};
+use crate::certification::primitive_corpus::{
     certify_milestone_one_branch_local_primitive_scenarios_impl,
     certify_milestone_one_default_primitive_corpus_impl,
     certify_milestone_one_primitive_corpus_impl, certify_milestone_one_primitive_scenarios_impl,
 };
-use crate::certification::error::{MilestoneOneCertificationError, TopologyCertificationError};
-use crate::certification::milestone_three::{
+use crate::certification::support::reporting::{
+    MilestoneOneCloseoutReport, MilestoneTwoCloseoutReport, MilestoneTwoDerivedCorpusReport,
+    PrimitiveCorpusReport,
+};
+use crate::certification::topology_operator_closeout::{
     certify_milestone_three_ambiguous_local_rewire_continuity_impl,
     certify_milestone_three_bowtie_adjacent_rewire_impl,
     certify_milestone_three_broken_radial_localization_impl,
     certify_milestone_three_cancellation_chain_parity_impl, certify_milestone_three_closeout_impl,
     certify_milestone_three_hostile_suite_impl, certify_milestone_three_split_collapse_churn_impl,
     MilestoneThreeHostileScenarioReport, MilestoneThreeHostileSuiteReport,
-};
-use crate::certification::milestone_two::TracedMilestoneTwoDerivedReadReport;
-use crate::certification::milestone_two::{
-    certify_milestone_two_closeout_impl, certify_milestone_two_default_derived_corpus_impl,
-    certify_milestone_two_read_basis_runtime_traced_impl,
-    certify_milestone_two_verified_commit_traced_impl,
-};
-use crate::certification::read_view::MilestoneOneCertificationHarness;
-use crate::certification::read_view::TracedMilestoneOneCertificationReport;
-use crate::certification::report::{
-    MilestoneOneCloseoutReport, MilestoneTwoCloseoutReport, MilestoneTwoDerivedCorpusReport,
-    PrimitiveCorpusReport,
 };
 use schema::facade::BoundaryFailure;
 

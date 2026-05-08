@@ -144,26 +144,26 @@ local-rewire neighborhood directly from Query output.
   explicitly
 - if a family is Query-backed, the returned request report must expose that
   query-native execution count directly
-- if a workflow needs the aggregate posture across multiple migrated reads, it
+- if a caller needs the aggregate posture across multiple migrated reads, it
   should inspect the domain proof / closeout report instead of inferring from
   individual helper calls
-- if a workflow needs the Milestone 3 resume gate, it should inspect the
+- if a caller needs the Milestone 3 resume gate, it should inspect the
   hostile-suite return gate fields; scenario coverage and side-quest closeout
   readiness are separate inputs, and `milestone_three_return_gate_blocker_rows`
   names the remaining blocker rows directly
-- if a workflow needs to know why executed-read closeout is or is not ready, it
+- if a caller needs to know why executed-read closeout is or is not ready, it
   should inspect the typed closeout family rows, phase-three blocker rows, and
   no-N-plus-one contract rows
   instead of reverse-engineering the answer from scalar counters alone; family
   rows now carry explicit reasons and structural row digests so callers do not
   have to reconstruct the meaning of `Unobserved`, `ExecutionGap`, or
   `QueryExecutedWithDebt` from raw counters
-- if a workflow only needs the public runtime admission/deletion contract, it
+- if a caller only needs the public runtime admission/deletion contract, it
   should inspect `TopologyRuntimeSupport::query_read_family_support_rows()`
   and `TopologyRuntimeSupport::closeout()` rather than reaching into
-  domain-only proof artifacts; workflows that need the edit-side runtime
+  domain-only proof artifacts; callers that need the edit-side runtime
   contract should inspect the typed edit family/lane support rows on
-  `TopologyRuntimeSupport`, and workflows that need runtime-basis posture
+  `TopologyRuntimeSupport`, and callers that need runtime-basis posture
   should inspect the typed runtime posture rows rather than relying on boolean
   convenience helpers
 - decoded topology views remain derived and disposable; callers must issue a

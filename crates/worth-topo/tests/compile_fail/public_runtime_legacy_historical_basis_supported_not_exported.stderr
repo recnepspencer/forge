@@ -1,5 +1,0 @@
-error[E0599]: no method named `historical_basis_supported` found for struct `TopologyRuntimeSupport` in the current scope
- --> tests/compile_fail/public_runtime_legacy_historical_basis_supported_not_exported.rs:5:21
-  |
-5 |     let _ = support.historical_basis_supported();
-  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `TopologyRuntimeSupport`

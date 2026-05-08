@@ -1,7 +1,7 @@
 use super::*;
-use crate::diagnostics::build_derived_read_diagnostics;
-use crate::parity::build_derived_equivalence_contract;
-use crate::read_stage::stage_topology_read_from_view;
+use crate::certification::support::parity::build_derived_equivalence_contract;
+use crate::facade::build_derived_read_diagnostics;
+use crate::projection::runtime_boundary::read_stage::stage_topology_read_from_view;
 
 #[test]
 fn seeded_bootstrap_earns_milestone_one_certification_report() {

@@ -7,20 +7,12 @@
 
 #![forbid(unsafe_code)]
 
-mod bridge;
+mod brep;
 mod certification;
-mod data;
-mod diagnostics;
-mod edit;
-mod fixtures;
-mod interpretation;
-mod materialization;
-mod parity;
-mod query;
-mod runtime_invariants;
-mod validators;
+mod derived_topology;
+mod projection;
+mod test_support;
+mod topology_operators;
+mod validation;
 
 pub mod facade;
-
-#[cfg(test)]
-mod read_stage;

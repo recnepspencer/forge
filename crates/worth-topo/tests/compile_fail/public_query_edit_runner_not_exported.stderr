@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `topology::facade::TopologyQueryEditRunner`
- --> tests/compile_fail/public_query_edit_runner_not_exported.rs:1:5
-  |
-1 | use topology::facade::TopologyQueryEditRunner;
-  |     ^^^^^^^^^^^^^^^^^^-----------------------
-  |     |                 |
-  |     |                 help: a similar name exists in the module: `TopologyQueryEditLane`
-  |     no `TopologyQueryEditRunner` in `facade`

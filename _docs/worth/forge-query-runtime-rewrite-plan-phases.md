@@ -168,8 +168,8 @@ Implementation shape:
   continuity-sensitive mutation do not require Worth-local recovery glue
 - public Worth examples and proof lanes stop teaching direct authority-path
   commit entrypoints as the ordinary path
-- if direct authority remains reachable during migration, it is isolated behind
-  an explicitly legacy seam rather than the main public facade
+- if direct authority remains reachable during migration, it is not re-exported
+  through the main public facade and must be deleted before closeout
 - write receipts remain the canonical authority evidence surface
 - branch-local authoritative writes only use admitted Forge Query branch/basis
   capability; unsupported branch families still fail closed
@@ -217,7 +217,7 @@ executes entirely through Query, fallout routing comes from Query receipts /
 retained computed evidence, and branch-local edit behavior uses admitted Query
 branch facilities or fails typed and early.
 
-### Phase 8: Cut Legacy Public Runtime Surfaces
+### Phase 8: Cut Old Public Runtime Surfaces
 
 Once write authority and edit execution are query-native, remove the old
 public runtime story aggressively rather than preserving a coexistence period.
@@ -228,7 +228,7 @@ Delete or privatize:
 - public read helpers that bypass Query live/computed/state/inspection handles
 - public direct `WorthTopologyAuthority` commit APIs that remain exposed after
   Phase 6
-- public `WorthTopologyEditRunner` execution APIs in their legacy
+- public `WorthTopologyEditRunner` execution APIs in their old
   authority/reader-owned form
 
 ### Phase 9: Rewrite Certification And Closeout Around Query-Native Proof

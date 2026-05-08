@@ -1,0 +1,50 @@
+warning: unreachable expression
+ --> src/certification/public_facade_contracts/compile_fail/public_domain_query_closeout_report_not_forgeable.rs:6:38
+  |
+5 |         proof_report: todo!(),
+  |                       ------- any code following this expression is unreachable
+6 |         query_executed_family_count: 0,
+  |                                      ^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error: cannot construct `TopologyDomainQueryCloseoutReport` with struct literal syntax due to private fields
+  --> src/certification/public_facade_contracts/compile_fail/public_domain_query_closeout_report_not_forgeable.rs:4:13
+   |
+ 4 |     let _ = TopologyDomainQueryCloseoutReport {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |         proof_report: todo!(),
+   |         --------------------- private field
+ 6 |         query_executed_family_count: 0,
+   |         ------------------------------ private field
+ 7 |         query_executed_debt_free_family_count: 0,
+   |         ---------------------------------------- private field
+ 8 |         query_executed_debt_backed_family_count: 0,
+   |         ------------------------------------------ private field
+ 9 |         debt_family_count: 0,
+   |         -------------------- private field
+10 |         whole_view_debt_request_count: 0,
+   |         -------------------------------- private field
+11 |         row_scan_fallback_request_count: 0,
+   |         ---------------------------------- private field
+12 |         repeated_rediscovery_denied_count: 0,
+   |         ------------------------------------ private field
+13 |         phase_three_ready: false,
+   |         ------------------------ private field
+   |
+   = note: ...and other private fields `family_rows`, `phase_three_blocker_rows` and `no_n_plus_one_contract_rows` that were not provided
+help: you might have meant to use the `from_proof_report` associated function
+   |
+ 4 -     let _ = TopologyDomainQueryCloseoutReport {
+ 5 -         proof_report: todo!(),
+ 6 -         query_executed_family_count: 0,
+ 7 -         query_executed_debt_free_family_count: 0,
+ 8 -         query_executed_debt_backed_family_count: 0,
+ 9 -         debt_family_count: 0,
+10 -         whole_view_debt_request_count: 0,
+11 -         row_scan_fallback_request_count: 0,
+12 -         repeated_rediscovery_denied_count: 0,
+13 -         phase_three_ready: false,
+14 -     };
+ 4 +     let _ = TopologyDomainQueryCloseoutReport::from_proof_report(_);
+   |

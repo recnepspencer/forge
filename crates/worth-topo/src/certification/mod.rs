@@ -1,25 +1,33 @@
+mod authority_closeout;
 mod bridge;
-mod closeout;
 mod core;
-mod corpus;
+mod derived_topology_closeout;
 mod error;
 mod facade;
-mod milestone_three;
-mod milestone_two;
-mod read_view;
+mod primitive_corpus;
+#[cfg(test)]
+mod projection_closeout;
 mod rejections;
-mod report;
 mod requirements;
 mod shared;
+#[cfg(test)]
+mod structure_guard;
+#[cfg(test)]
+mod structure_guard_support;
+pub(crate) mod support;
 
 #[cfg(test)]
 mod tests;
+mod topology_operator_closeout;
 
+pub use authority_closeout::read_view::MilestoneOneCertificationHarness;
+pub use authority_closeout::read_view::TracedMilestoneOneCertificationReport;
 pub use core::{
     CertificationBridgeExpectation, CertificationCanonicalRow, CertificationParityRow,
     CertificationRejectionRow, CertificationRequiredOutput, CertificationSuiteDefinition,
     CertificationSuiteRequirements, CertificationValidatorExpectation,
 };
+pub use derived_topology_closeout::TracedMilestoneTwoDerivedReadReport;
 pub use error::{MilestoneOneCertificationError, TopologyCertificationError};
 pub use facade::{
     certify_milestone_one_branch_local_primitive_scenarios, certify_milestone_one_closeout,
@@ -34,25 +42,12 @@ pub use facade::{
     certify_milestone_two_read_basis_traced, certify_milestone_two_verified_topology_commit_traced,
     certify_verified_topology_commit_traced,
 };
-pub use milestone_three::{
-    MilestoneThreeAmbiguousLocalRewireWitness, MilestoneThreeBowtieAdjacentWitness,
-    MilestoneThreeBrokenRadialWitness, MilestoneThreeChangedScopeCoverageRow,
-    MilestoneThreeDerivedRegionCoverageRow, MilestoneThreeEditBreadthCounterRow,
-    MilestoneThreeEditReplayParityReport, MilestoneThreeEditReplayParityRow,
-    MilestoneThreeEditReplayStepRow, MilestoneThreeFailureLocalityRow,
-    MilestoneThreeHostileCoverageRow, MilestoneThreeHostileFamilyCoverageRow,
-    MilestoneThreeHostileNamingDistributionRow, MilestoneThreeHostileOutcomeClass,
-    MilestoneThreeHostileRejectionDistributionRow, MilestoneThreeHostileScenario,
-    MilestoneThreeHostileScenarioReport, MilestoneThreeHostileSuiteReport,
-    MilestoneThreeNamingContinuityMatrixRow, MilestoneThreeRejectedEditScopeReportRow,
-    MilestoneThreeReturnGateBlockerRow, MilestoneThreeSideQuestBlockerRow,
-    MilestoneThreeSideQuestCloseoutReport, MilestoneThreeSideQuestContractRow,
-    MilestoneThreeSplitCollapseChurnWitness, MilestoneThreeTopologyEditDigestRow,
+pub use requirements::{
+    milestone_one_closeout_requirements, milestone_one_closeout_suite_definition,
+    milestone_three_closeout_requirements, milestone_three_closeout_suite_definition,
+    milestone_two_closeout_requirements, milestone_two_closeout_suite_definition,
 };
-pub use milestone_two::TracedMilestoneTwoDerivedReadReport;
-pub use read_view::MilestoneOneCertificationHarness;
-pub use read_view::TracedMilestoneOneCertificationReport;
-pub use report::{
+pub use support::reporting::{
     AdmittedRangeSweepReport, AdmittedRangeSweepRow, BranchLocalTopologyReport,
     BridgeFamilyCoverageReport, BridgeFamilyCoverageRow, BridgeProofReport,
     DerivedEquivalenceContractAggregateReport, DerivedEquivalenceContractAggregateRow,
@@ -78,8 +73,25 @@ pub use report::{
     TopologyLocalizationAggregateRelationRow, TopologyLocalizationAggregateReport,
     TopologyLocalizationEntityRow, TopologyLocalizationRelationRow, TopologyLocalizationReport,
 };
-pub use requirements::{
-    milestone_one_closeout_requirements, milestone_one_closeout_suite_definition,
-    milestone_three_closeout_requirements, milestone_three_closeout_suite_definition,
-    milestone_two_closeout_requirements, milestone_two_closeout_suite_definition,
+pub use topology_operator_closeout::{
+    MilestoneThreeAmbiguousLocalRewireWitness, MilestoneThreeBowtieAdjacentWitness,
+    MilestoneThreeBrokenRadialWitness, MilestoneThreeChangedScopeCoverageRow,
+    MilestoneThreeDerivedRegionCoverageRow, MilestoneThreeDeterminismRuleKind,
+    MilestoneThreeDeterminismRuleRow, MilestoneThreeEditBranchLocalParityRow,
+    MilestoneThreeEditBreadthCounterRow, MilestoneThreeEditFalloutBreadthRow,
+    MilestoneThreeEditFalloutClass, MilestoneThreeEditReplayParityReport,
+    MilestoneThreeEditReplayParityRow, MilestoneThreeEditReplayStepRow,
+    MilestoneThreeEditedTopologyQueryTraversalRow, MilestoneThreeEditedTopologyQueryTraversalView,
+    MilestoneThreeFailureLocalityRow, MilestoneThreeHostileCertificationCategory,
+    MilestoneThreeHostileCertificationCategoryRow, MilestoneThreeHostileCertificationStatus,
+    MilestoneThreeHostileCoverageRow, MilestoneThreeHostileFamilyCoverageRow,
+    MilestoneThreeHostileNamingDistributionRow, MilestoneThreeHostileOutcomeClass,
+    MilestoneThreeHostileRejectionDistributionRow, MilestoneThreeHostileScenario,
+    MilestoneThreeHostileScenarioReport, MilestoneThreeHostileSuiteReport,
+    MilestoneThreeNamingContinuityMatrixRow, MilestoneThreePrimitiveFamilyClosureRow,
+    MilestoneThreeRejectedEditScopeReportRow, MilestoneThreeReturnGateBlockerRow,
+    MilestoneThreeSideQuestBlockerRow, MilestoneThreeSideQuestCloseoutReport,
+    MilestoneThreeSideQuestContractRow, MilestoneThreeSplitCollapseChurnWitness,
+    MilestoneThreeTopologyEditDigestRow, MilestoneThreeValidatorFamily,
+    MilestoneThreeValidatorFamilyCoverageRow,
 };

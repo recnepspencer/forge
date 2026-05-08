@@ -28,12 +28,13 @@ The operating rule is:
 - `Worth Read Composition Side Quest`: Closed for the Milestone 3 return gate;
   promoted bounded read composition into a first-class Forge Query product so
   Worth neighborhoods stop rebuilding caller-owned row joins
-- `Worth Topology Domain Structure Gate`: Proposed, blocks further Milestone 3
-  widening until `worth-topo` is rehomed into a topology-domain skeleton that
-  cleanly separates B-rep truth, derived topology, validation, editing,
-  projection, certification, and test support
-- `Milestone 3`: Active, resumed on the query-backed substrate but gated from
-  further broad edit expansion until the topology-domain structure gate closes
+- `Worth Topology Domain Structure Gate`: Closed; `worth-topo` is rehomed into
+  a topology-domain skeleton that cleanly separates B-rep truth, derived
+  topology, validation, topology operators, projection, certification, and test
+  support
+- `Milestone 3`: Active, resumed on the query-backed substrate and unblocked
+  for further topology-operator expansion under the closed domain-structure
+  gate
 - Milestones `4+`: Planned
 
 Milestone 1 closeout record:

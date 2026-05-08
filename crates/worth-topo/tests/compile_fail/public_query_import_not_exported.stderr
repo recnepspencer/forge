@@ -1,5 +1,0 @@
-error[E0599]: no function or associated item named `import_read_view` found for struct `TopologyQueryAssembly` in the current scope
- --> tests/compile_fail/public_query_import_not_exported.rs:4:36
-  |
-4 |     let _ = TopologyQueryAssembly::import_read_view;
-  |                                    ^^^^^^^^^^^^^^^^ function or associated item not found in `TopologyQueryAssembly`

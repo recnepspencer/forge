@@ -1,0 +1,13 @@
+error[E0451]: fields `family`, `status`, `reason` and `row_digest` of struct `TopologyRuntimeCloseoutRow` are private
+  --> src/certification/public_facade_contracts/compile_fail/public_runtime_closeout_row_not_forgeable.rs:8:9
+   |
+ 7 |     let _ = TopologyRuntimeCloseoutRow {
+   |             -------------------------- in this type
+ 8 |         family: TopologyRuntimeCloseoutFamily::QueryNativeTopologyReadFamilies,
+   |         ^^^^^^ private field
+ 9 |         status: TopologyRuntimeCloseoutStatus::Satisfied,
+   |         ^^^^^^ private field
+10 |         reason: String::new(),
+   |         ^^^^^^ private field
+11 |         row_digest: String::new(),
+   |         ^^^^^^^^^^ private field

@@ -12,10 +12,10 @@ use schema::facade::{
 };
 
 use crate::certification::error::MilestoneOneCertificationError;
-use crate::certification::report::{
+use crate::certification::shared::digest_rows;
+use crate::certification::support::reporting::{
     IllegalTopologyRejectionCaseReport, IllegalTopologyRejectionReport, PrimitiveRejectionReport,
 };
-use crate::certification::shared::digest_rows;
 
 pub(crate) fn summarize_primitive_rejection(
     error: &MilestoneOnePrimitiveAuthoringError,
@@ -133,7 +133,7 @@ where
         "disconnected_wire",
         "WireOpen(n)",
         "IllegalAdmittedTopology",
-        Some("vertex_branching"),
+        Some("vertex_disks"),
         disconnected_wire_intent(&format!("{stem}.disconnected_wire")),
         &mut cases,
     )?;
@@ -142,7 +142,7 @@ where
         "illegal_wire_branch",
         "WireBranch(k)",
         "IllegalAdmittedTopology",
-        Some("vertex_branching"),
+        Some("vertex_disks"),
         illegal_wire_branch_intent(&format!("{stem}.illegal_wire_branch")),
         &mut cases,
     )?;
@@ -169,7 +169,7 @@ where
         "broken_radial_ring",
         "NmtEdgeFan(k)",
         "IllegalAdmittedTopology",
-        Some("radial"),
+        Some("radial_rings"),
         broken_radial_ring_intent(&format!("{stem}.broken_radial_ring")),
         &mut cases,
     )?;

@@ -1,8 +1,14 @@
 //! Public API boundary for topology.
 
-pub use crate::bridge::{
-    build_milestone_one_bridge, milestone_one_bridge_aspect_registrations,
-    milestone_one_bridge_mapping_registrations,
+pub use crate::brep::topology_graph::{
+    TopologyBody, TopologyEdge, TopologyFace, TopologyHalfEdge, TopologyLoop, TopologyLump,
+    TopologyModel, TopologyRegion, TopologyShell, TopologyVertex, TopologyView, TopologyWire,
+};
+pub use crate::certification::support::parity::{
+    build_derived_equivalence_contract, compare_derived_equivalence_contracts,
+    digest_derived_validation_report, digest_interpreted_topology_view,
+    digest_materialized_topology_view, DerivedEquivalenceContractReport,
+    DerivedParityComparisonReport,
 };
 pub use crate::certification::{
     certify_milestone_one_branch_local_primitive_scenarios, certify_milestone_one_closeout,
@@ -39,65 +45,69 @@ pub use crate::certification::{
     MilestoneOneValidatorCoverageRow, MilestoneThreeAmbiguousLocalRewireWitness,
     MilestoneThreeBowtieAdjacentWitness, MilestoneThreeBrokenRadialWitness,
     MilestoneThreeChangedScopeCoverageRow, MilestoneThreeDerivedRegionCoverageRow,
-    MilestoneThreeEditBreadthCounterRow, MilestoneThreeEditReplayParityReport,
-    MilestoneThreeEditReplayParityRow, MilestoneThreeEditReplayStepRow,
-    MilestoneThreeFailureLocalityRow, MilestoneThreeHostileCoverageRow,
+    MilestoneThreeDeterminismRuleKind, MilestoneThreeDeterminismRuleRow,
+    MilestoneThreeEditBranchLocalParityRow, MilestoneThreeEditBreadthCounterRow,
+    MilestoneThreeEditFalloutBreadthRow, MilestoneThreeEditFalloutClass,
+    MilestoneThreeEditReplayParityReport, MilestoneThreeEditReplayParityRow,
+    MilestoneThreeEditReplayStepRow, MilestoneThreeEditedTopologyQueryTraversalRow,
+    MilestoneThreeEditedTopologyQueryTraversalView, MilestoneThreeFailureLocalityRow,
+    MilestoneThreeHostileCertificationCategory, MilestoneThreeHostileCertificationCategoryRow,
+    MilestoneThreeHostileCertificationStatus, MilestoneThreeHostileCoverageRow,
     MilestoneThreeHostileFamilyCoverageRow, MilestoneThreeHostileNamingDistributionRow,
     MilestoneThreeHostileOutcomeClass, MilestoneThreeHostileRejectionDistributionRow,
     MilestoneThreeHostileScenario, MilestoneThreeHostileScenarioReport,
     MilestoneThreeHostileSuiteReport, MilestoneThreeNamingContinuityMatrixRow,
-    MilestoneThreeRejectedEditScopeReportRow, MilestoneThreeReturnGateBlockerRow,
-    MilestoneThreeSideQuestBlockerRow, MilestoneThreeSideQuestCloseoutReport,
-    MilestoneThreeSideQuestContractRow, MilestoneThreeSplitCollapseChurnWitness,
-    MilestoneThreeTopologyEditDigestRow, MilestoneTwoBranchLocalParityReport,
-    MilestoneTwoCloseoutReport, MilestoneTwoCounters, MilestoneTwoDerivedCorpusReport,
-    MilestoneTwoDerivedReadReport, MilestoneTwoReplayParityReport, NamingAttachmentAggregateReport,
-    NamingAttachmentAggregateRow, NamingAttachmentReport, NamingAttachmentRow,
-    PrimitiveCorpusCaseReport, PrimitiveCorpusCoverageEntry, PrimitiveCorpusCoverageMatrix,
-    PrimitiveCorpusParityEntry, PrimitiveCorpusParityReport, PrimitiveCorpusRejectedCaseReport,
-    PrimitiveCorpusReport, PrimitiveFamilyCoverageEntry, PrimitiveFamilyCoverageMatrix,
-    PrimitiveRejectionReport, ReplayParityReport, ReplayParityStatus, TopologyCertificationError,
-    TopologyLocalizationAggregateEntityRow, TopologyLocalizationAggregateRelationRow,
-    TopologyLocalizationAggregateReport, TopologyLocalizationEntityRow,
-    TopologyLocalizationRelationRow, TopologyLocalizationReport,
+    MilestoneThreePrimitiveFamilyClosureRow, MilestoneThreeRejectedEditScopeReportRow,
+    MilestoneThreeReturnGateBlockerRow, MilestoneThreeSideQuestBlockerRow,
+    MilestoneThreeSideQuestCloseoutReport, MilestoneThreeSideQuestContractRow,
+    MilestoneThreeSplitCollapseChurnWitness, MilestoneThreeTopologyEditDigestRow,
+    MilestoneThreeValidatorFamily, MilestoneThreeValidatorFamilyCoverageRow,
+    MilestoneTwoBranchLocalParityReport, MilestoneTwoCloseoutReport, MilestoneTwoCounters,
+    MilestoneTwoDerivedCorpusReport, MilestoneTwoDerivedReadReport, MilestoneTwoReplayParityReport,
+    NamingAttachmentAggregateReport, NamingAttachmentAggregateRow, NamingAttachmentReport,
+    NamingAttachmentRow, PrimitiveCorpusCaseReport, PrimitiveCorpusCoverageEntry,
+    PrimitiveCorpusCoverageMatrix, PrimitiveCorpusParityEntry, PrimitiveCorpusParityReport,
+    PrimitiveCorpusRejectedCaseReport, PrimitiveCorpusReport, PrimitiveFamilyCoverageEntry,
+    PrimitiveFamilyCoverageMatrix, PrimitiveRejectionReport, ReplayParityReport,
+    ReplayParityStatus, TopologyCertificationError, TopologyLocalizationAggregateEntityRow,
+    TopologyLocalizationAggregateRelationRow, TopologyLocalizationAggregateReport,
+    TopologyLocalizationEntityRow, TopologyLocalizationRelationRow, TopologyLocalizationReport,
     TracedMilestoneOneCertificationReport, TracedMilestoneTwoDerivedReadReport,
 };
-pub use crate::data::topology_view::{
-    TopologyBody, TopologyEdge, TopologyFace, TopologyHalfEdge, TopologyLoop, TopologyLump,
-    TopologyModel, TopologyRegion, TopologyShell, TopologyVertex, TopologyView, TopologyWire,
+pub use crate::derived_topology::materialized_graph::{
+    MaterializationBreadthReport, MaterializationFallbackClass, MaterializationReport,
+    MaterializedTopologyView, TopologyMaterializationError, TopologyMaterializer,
 };
-pub use crate::diagnostics::{
-    build_derived_fallback_report, build_derived_invalidation_report,
-    build_derived_read_diagnostics, build_derived_rebuild_report, DerivedFallbackReport,
-    DerivedInvalidationReport, DerivedInvalidationTargetRow, DerivedReadDiagnostics,
-    DerivedRebuildReport,
-};
-pub use crate::edit::{
-    BoundaryMembershipKind, LoopEndpointKind, LoopSuccessorKind, NamingEditContinuityMatrix,
-    RejectedEditScopeReport, RejectedEditScopeRow, ShellOrWireMembershipKind,
-    TopologyDerivedRegion, TopologyEditAction, TopologyEditApplicationMode, TopologyEditBatch,
-    TopologyEditChangedScope, TopologyEditContract, TopologyEditDigest, TopologyEditFamily,
-    TopologyEditNamingOutcome, TopologyEditNamingReport, TopologyEditNamingRow,
-    TopologyEditNamingScope, TopologyEditRejectionClass, TopologyQueryEditExecution,
-    TopologyQueryEditExecutionError,
-};
-pub use crate::interpretation::{
+pub use crate::derived_topology::traversal_views::{
     build_topology_read_artifact, certify_topology_view, interpret_topology_view,
     BoundaryInterpretationSummary, InterpretationReport, InterpretedTopologyView,
     RadialInterpretationSummary, ShellInterpretation, TopologyInterpretationSet,
     TopologyInterpreter, WireInterpretation,
 };
-pub use crate::materialization::{
-    MaterializationBreadthReport, MaterializationFallbackClass, MaterializationReport,
-    MaterializedTopologyView, TopologyMaterializationError, TopologyMaterializer,
+pub use crate::projection::diagnostic_surfaces::{
+    build_derived_fallback_report, build_derived_invalidation_report,
+    build_derived_read_diagnostics, build_derived_rebuild_report, DerivedFallbackReport,
+    DerivedInvalidationReport, DerivedInvalidationTargetRow, DerivedReadDiagnostics,
+    DerivedRebuildReport,
 };
-pub use crate::parity::{
-    build_derived_equivalence_contract, compare_derived_equivalence_contracts,
-    digest_derived_validation_report, digest_interpreted_topology_view,
-    digest_materialized_topology_view, DerivedEquivalenceContractReport,
-    DerivedParityComparisonReport,
+pub use crate::projection::runtime_boundary::bridge::{
+    build_milestone_one_bridge, milestone_one_bridge_aspect_registrations,
+    milestone_one_bridge_mapping_registrations,
 };
-pub use crate::query::{
+pub use crate::projection::runtime_boundary::query_assembly::{
+    TopologyQueryAppliedIntent, TopologyQueryApplyError, TopologyQueryAssembly,
+    TopologyQuerySnapshot,
+};
+pub use crate::projection::runtime_boundary::query_runtime::{
+    topology_runtime, TopologyQueryEditFamilySupportStatus, TopologyQueryEditLane,
+    TopologyQueryEditLaneExecutionShape, TopologyQueryEditLaneSupportStatus,
+    TopologyQueryReadFamilySupportStatus, TopologyRuntimeAdapters, TopologyRuntimeCloseout,
+    TopologyRuntimeCloseoutFamily, TopologyRuntimeCloseoutRow, TopologyRuntimeCloseoutStatus,
+    TopologyRuntimeEditFamilySupportRow, TopologyRuntimeEditLaneSupportRow, TopologyRuntimeFailure,
+    TopologyRuntimePostureCapability, TopologyRuntimePostureRow, TopologyRuntimePostureStatus,
+    TopologyRuntimeReadFamilySupportRow, TopologyRuntimeSupport,
+};
+pub use crate::projection::{
     declare_persistent_name_live_view, declare_topology_diagnostics_surface,
     declare_topology_entity_live_view, declare_topology_equivalence_contract_surface,
     declare_topology_interpreted_surface, declare_topology_materialized_surface,
@@ -107,38 +117,39 @@ pub use crate::query::{
     persistent_name_live_view_declaration, topology_diagnostics_computed_declaration,
     topology_entity_live_view_declaration, topology_equivalence_contract_computed_declaration,
     topology_interpreted_computed_declaration, topology_materialized_computed_declaration,
-    topology_relation_live_view_declaration, topology_runtime,
-    topology_validation_computed_declaration, validation_report_from_query_rows,
-    TopologyDiagnosticsMaintainer, TopologyDomainQuery, TopologyDomainQueryAggregateReport,
-    TopologyDomainQueryCloseoutReport, TopologyDomainQueryCloseoutRow,
-    TopologyDomainQueryCloseoutStatus, TopologyDomainQueryDebtRow, TopologyDomainQueryError,
-    TopologyDomainQueryErrorKind, TopologyDomainQueryExecutionAggregateRow,
-    TopologyDomainQueryExecutionEngine, TopologyDomainQueryFallbackPosture,
-    TopologyDomainQueryFamilyAggregateRow, TopologyDomainQueryLoweringPosture,
-    TopologyDomainQueryParityAggregateReport, TopologyDomainQueryParityAggregateRow,
-    TopologyDomainQueryParityKind, TopologyDomainQueryPhaseThreeBlocker,
-    TopologyDomainQueryPhaseThreeBlockerRow, TopologyDomainQueryPhaseThreeBlockerStatus,
-    TopologyDomainQueryProofReport, TopologyDomainQueryRelationshipProofPosture,
-    TopologyDomainQueryRequestFamily, TopologyDomainQueryRequestReport,
-    TopologyEquivalenceContractMaintainer, TopologyHalfEdgeRadialNeighborhoodView,
-    TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyInterpretedMaintainer,
-    TopologyLocalRewireNeighborhoodView, TopologyLoopCycleView, TopologyMaterializedMaintainer,
-    TopologyNoNPlusOneContract, TopologyNoNPlusOneContractRow, TopologyNoNPlusOneContractStatus,
-    TopologyQueryAppliedIntent, TopologyQueryApplyError, TopologyQueryAssembly,
-    TopologyQueryEditFamilySupportStatus, TopologyQueryEditLane,
-    TopologyQueryEditLaneExecutionShape, TopologyQueryEditLaneSupportStatus,
-    TopologyQueryMutationEvidence, TopologyQueryReadFamilySupportStatus, TopologyQuerySnapshot,
-    TopologyQuerySurfaceError, TopologyRuntimeAdapters, TopologyRuntimeCloseout,
-    TopologyRuntimeCloseoutFamily, TopologyRuntimeCloseoutRow, TopologyRuntimeCloseoutStatus,
-    TopologyRuntimeEditFamilySupportRow, TopologyRuntimeEditLaneSupportRow, TopologyRuntimeFailure,
-    TopologyRuntimePostureCapability, TopologyRuntimePostureRow, TopologyRuntimePostureStatus,
-    TopologyRuntimeReadFamilySupportRow, TopologyRuntimeSupport, TopologyValidationMaintainer,
+    topology_relation_live_view_declaration, topology_validation_computed_declaration,
+    validation_report_from_query_rows, TopologyDiagnosticsMaintainer, TopologyDomainQuery,
+    TopologyDomainQueryAggregateReport, TopologyDomainQueryCloseoutReport,
+    TopologyDomainQueryCloseoutRow, TopologyDomainQueryCloseoutStatus, TopologyDomainQueryDebtRow,
+    TopologyDomainQueryError, TopologyDomainQueryErrorKind,
+    TopologyDomainQueryExecutionAggregateRow, TopologyDomainQueryExecutionEngine,
+    TopologyDomainQueryFallbackPosture, TopologyDomainQueryFamilyAggregateRow,
+    TopologyDomainQueryLoweringPosture, TopologyDomainQueryParityAggregateReport,
+    TopologyDomainQueryParityAggregateRow, TopologyDomainQueryParityKind,
+    TopologyDomainQueryPhaseThreeBlocker, TopologyDomainQueryPhaseThreeBlockerRow,
+    TopologyDomainQueryPhaseThreeBlockerStatus, TopologyDomainQueryProofReport,
+    TopologyDomainQueryRelationshipProofPosture, TopologyDomainQueryRequestFamily,
+    TopologyDomainQueryRequestReport, TopologyEquivalenceContractMaintainer,
+    TopologyHalfEdgeRadialNeighborhoodView, TopologyHalfEdgeSharedVertexNeighborhoodView,
+    TopologyInterpretedMaintainer, TopologyLocalRewireNeighborhoodView, TopologyLoopCycleView,
+    TopologyMaterializedMaintainer, TopologyNoNPlusOneContract, TopologyNoNPlusOneContractRow,
+    TopologyNoNPlusOneContractStatus, TopologyQueryMutationEvidence, TopologyQuerySurfaceError,
+    TopologyValidationMaintainer,
 };
-pub use crate::runtime_invariants::{
+pub use crate::topology_operators::{
+    BoundaryMembershipKind, LoopEndpointKind, LoopSuccessorKind, NamingEditContinuityMatrix,
+    RejectedEditScopeReport, RejectedEditScopeRow, ShellOrWireMembershipKind,
+    TopologyDerivedRegion, TopologyEditAction, TopologyEditApplicationMode, TopologyEditBatch,
+    TopologyEditChangedScope, TopologyEditContract, TopologyEditDigest, TopologyEditFamily,
+    TopologyEditNamingOutcome, TopologyEditNamingReport, TopologyEditNamingRow,
+    TopologyEditNamingScope, TopologyEditRejectionClass, TopologyOperatorExecution,
+    TopologyOperatorExecutionError,
+};
+pub use crate::validation::reference_integrity::{
     build_milestone_one_runtime, configure_milestone_one_runtime_builder,
     milestone_one_runtime_builder, milestone_one_runtime_invariants, MilestoneOneRuntimeSetupError,
 };
-pub use crate::validators::{
+pub use crate::validation::{
     topology_validation_report, validate_interpreted_topology, validate_materialized_topology,
     validate_named_topology_truth, validate_topology_view, DerivedTopologyValidationReport,
     TopologyValidationError, TopologyValidationInputClass, TopologyValidationPhase,

@@ -1,6 +1,6 @@
-use crate::materialization::TopologyMaterializationError;
-use crate::query::TopologyQuerySurfaceError;
-use crate::validators::TopologyValidationError;
+use crate::derived_topology::materialized_graph::TopologyMaterializationError;
+use crate::projection::TopologyQuerySurfaceError;
+use crate::validation::TopologyValidationError;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveAuthoringError;
 
 #[derive(Debug)]
