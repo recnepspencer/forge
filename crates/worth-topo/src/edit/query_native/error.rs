@@ -1,33 +1,33 @@
 use forge_query::facade::{ForgeQueryRuntimeError, ForgeQueryWorkspaceError};
 use forge_relational::facade::identity::{EntityId, RelationId};
-use worth_schema::facade::{WorthTopologyEntityKind, WorthTopologyRelationKind};
+use schema::facade::{TopologyEntityKind, TopologyRelationKind};
 
-use crate::query::WorthTopologyQuerySurfaceError;
+use crate::query::TopologyQuerySurfaceError;
 
-use super::super::types::WorthTopologyEditFamily;
-use super::WorthTopologyEditApplicationMode;
+use super::super::types::TopologyEditFamily;
+use super::TopologyEditApplicationMode;
 
 #[derive(Debug)]
-pub enum WorthTopologyQueryEditExecutionError {
-    UnsupportedMode(WorthTopologyEditApplicationMode),
-    UnsupportedFamilies(Vec<WorthTopologyEditFamily>),
+pub enum TopologyQueryEditExecutionError {
+    UnsupportedMode(TopologyEditApplicationMode),
+    UnsupportedFamilies(Vec<TopologyEditFamily>),
     MissingCreatedEntityReference(String),
     MissingExistingEntityBinding(EntityId),
     MissingExistingRelationBinding(RelationId),
     CreatedEntityKindMismatch {
         create_key: String,
-        expected: WorthTopologyEntityKind,
-        actual: WorthTopologyEntityKind,
+        expected: TopologyEntityKind,
+        actual: TopologyEntityKind,
     },
     ExistingEntityKindMismatch {
         entity_id: EntityId,
-        expected: WorthTopologyEntityKind,
-        actual: WorthTopologyEntityKind,
+        expected: TopologyEntityKind,
+        actual: TopologyEntityKind,
     },
     ExistingRelationKindMismatch {
         relation_id: RelationId,
-        expected: WorthTopologyRelationKind,
-        actual: WorthTopologyRelationKind,
+        expected: TopologyRelationKind,
+        actual: TopologyRelationKind,
     },
     ExistingRelationSourceMismatch {
         relation_id: RelationId,
@@ -36,13 +36,13 @@ pub enum WorthTopologyQueryEditExecutionError {
     },
     ExistingEntityOutgoingRelationCountMismatch {
         entity_id: EntityId,
-        relation_kind: WorthTopologyRelationKind,
+        relation_kind: TopologyRelationKind,
         expected: usize,
         actual: usize,
     },
     ExistingEntityIncomingRelationCountMismatch {
         entity_id: EntityId,
-        relation_kind: WorthTopologyRelationKind,
+        relation_kind: TopologyRelationKind,
         expected: usize,
         actual: usize,
     },
@@ -61,33 +61,33 @@ pub enum WorthTopologyQueryEditExecutionError {
         target_loop_identity: String,
     },
     Query(ForgeQueryRuntimeError),
-    Surface(WorthTopologyQuerySurfaceError),
+    Surface(TopologyQuerySurfaceError),
     MaterializedDecode(String),
     UnexpectedInspectionFamily,
 }
 
-impl std::fmt::Display for WorthTopologyQueryEditExecutionError {
+impl std::fmt::Display for TopologyQueryEditExecutionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::UnsupportedMode(mode) => write!(
                 f,
-                "worth topology query edit execution does not admit mode `{mode:?}` yet"
+                "topology query edit execution does not admit mode `{mode:?}` yet"
             ),
             Self::UnsupportedFamilies(families) => write!(
                 f,
-                "worth topology query edit execution does not admit families `{families:?}` yet"
+                "topology query edit execution does not admit families `{families:?}` yet"
             ),
             Self::MissingCreatedEntityReference(create_key) => write!(
                 f,
-                "worth topology query edit execution is missing same-batch created entity `{create_key}`"
+                "topology query edit execution is missing same-batch created entity `{create_key}`"
             ),
             Self::MissingExistingEntityBinding(entity_id) => write!(
                 f,
-                "worth topology query edit execution is missing live query binding for authoritative entity `{entity_id:?}`"
+                "topology query edit execution is missing live query binding for authoritative entity `{entity_id:?}`"
             ),
             Self::MissingExistingRelationBinding(relation_id) => write!(
                 f,
-                "worth topology query edit execution is missing live query binding for authoritative relation `{relation_id:?}`"
+                "topology query edit execution is missing live query binding for authoritative relation `{relation_id:?}`"
             ),
             Self::CreatedEntityKindMismatch {
                 create_key,
@@ -95,7 +95,7 @@ impl std::fmt::Display for WorthTopologyQueryEditExecutionError {
                 actual,
             } => write!(
                 f,
-                "worth topology query edit execution expected created entity `{create_key}` to be `{}`, found `{}`",
+                "topology query edit execution expected created entity `{create_key}` to be `{}`, found `{}`",
                 expected.kind_name(),
                 actual.kind_name()
             ),
@@ -105,7 +105,7 @@ impl std::fmt::Display for WorthTopologyQueryEditExecutionError {
                 actual,
             } => write!(
                 f,
-                "worth topology query edit execution expected authoritative entity `{entity_id:?}` to be `{}`, found `{}`",
+                "topology query edit execution expected authoritative entity `{entity_id:?}` to be `{}`, found `{}`",
                 expected.kind_name(),
                 actual.kind_name()
             ),
@@ -115,7 +115,7 @@ impl std::fmt::Display for WorthTopologyQueryEditExecutionError {
                 actual,
             } => write!(
                 f,
-                "worth topology query edit execution expected authoritative relation `{relation_id:?}` to be `{}`, found `{}`",
+                "topology query edit execution expected authoritative relation `{relation_id:?}` to be `{}`, found `{}`",
                 expected.kind_name(),
                 actual.kind_name()
             ),
@@ -125,7 +125,7 @@ impl std::fmt::Display for WorthTopologyQueryEditExecutionError {
                 actual_source_identity,
             } => write!(
                 f,
-                "worth topology query edit execution expected authoritative relation `{relation_id:?}` to originate from halfedge `{expected_source_entity_id:?}`, found query source identity `{actual_source_identity}`"
+                "topology query edit execution expected authoritative relation `{relation_id:?}` to originate from halfedge `{expected_source_entity_id:?}`, found query source identity `{actual_source_identity}`"
             ),
             Self::ExistingEntityOutgoingRelationCountMismatch {
                 entity_id,
@@ -134,7 +134,7 @@ impl std::fmt::Display for WorthTopologyQueryEditExecutionError {
                 actual,
             } => write!(
                 f,
-                "worth topology query edit execution expected authoritative entity `{entity_id:?}` to have exactly {expected} outgoing `{}` relation(s), found {actual}",
+                "topology query edit execution expected authoritative entity `{entity_id:?}` to have exactly {expected} outgoing `{}` relation(s), found {actual}",
                 relation_kind.kind_name()
             ),
             Self::ExistingEntityIncomingRelationCountMismatch {
@@ -144,7 +144,7 @@ impl std::fmt::Display for WorthTopologyQueryEditExecutionError {
                 actual,
             } => write!(
                 f,
-                "worth topology query edit execution expected authoritative entity `{entity_id:?}` to have exactly {expected} incoming `{}` relation(s), found {actual}",
+                "topology query edit execution expected authoritative entity `{entity_id:?}` to have exactly {expected} incoming `{}` relation(s), found {actual}",
                 relation_kind.kind_name()
             ),
             Self::ExistingHalfEdgesNotOnSameEdge {
@@ -155,7 +155,7 @@ impl std::fmt::Display for WorthTopologyQueryEditExecutionError {
                 target_edge_identity,
             } => write!(
                 f,
-                "worth topology query edit execution expected radial splice relation `{relation_id:?}` to keep halfedges `{source_half_edge_id:?}` and `{target_half_edge_id:?}` on the same edge, found source edge `{source_edge_identity}` and target edge `{target_edge_identity}`"
+                "topology query edit execution expected radial splice relation `{relation_id:?}` to keep halfedges `{source_half_edge_id:?}` and `{target_half_edge_id:?}` on the same edge, found source edge `{source_edge_identity}` and target edge `{target_edge_identity}`"
             ),
             Self::ExistingHalfEdgesNotOnSameLoop {
                 relation_id,
@@ -165,35 +165,35 @@ impl std::fmt::Display for WorthTopologyQueryEditExecutionError {
                 target_loop_identity,
             } => write!(
                 f,
-                "worth topology query edit execution expected loop-successor relation `{relation_id:?}` to keep halfedges `{source_half_edge_id:?}` and `{target_half_edge_id:?}` on the same loop, found source loop `{source_loop_identity}` and target loop `{target_loop_identity}`"
+                "topology query edit execution expected loop-successor relation `{relation_id:?}` to keep halfedges `{source_half_edge_id:?}` and `{target_half_edge_id:?}` on the same loop, found source loop `{source_loop_identity}` and target loop `{target_loop_identity}`"
             ),
             Self::Query(error) => write!(f, "{error}"),
             Self::Surface(error) => write!(f, "{error}"),
             Self::MaterializedDecode(message) => write!(f, "{message}"),
             Self::UnexpectedInspectionFamily => write!(
                 f,
-                "worth topology query edit execution expected batch-write receipt inspection"
+                "topology query edit execution expected batch-write receipt inspection"
             ),
         }
     }
 }
 
-impl std::error::Error for WorthTopologyQueryEditExecutionError {}
+impl std::error::Error for TopologyQueryEditExecutionError {}
 
-impl From<ForgeQueryRuntimeError> for WorthTopologyQueryEditExecutionError {
+impl From<ForgeQueryRuntimeError> for TopologyQueryEditExecutionError {
     fn from(value: ForgeQueryRuntimeError) -> Self {
         Self::Query(value)
     }
 }
 
-impl From<ForgeQueryWorkspaceError> for WorthTopologyQueryEditExecutionError {
+impl From<ForgeQueryWorkspaceError> for TopologyQueryEditExecutionError {
     fn from(value: ForgeQueryWorkspaceError) -> Self {
         Self::Query(ForgeQueryRuntimeError::Workspace(value))
     }
 }
 
-impl From<WorthTopologyQuerySurfaceError> for WorthTopologyQueryEditExecutionError {
-    fn from(value: WorthTopologyQuerySurfaceError) -> Self {
+impl From<TopologyQuerySurfaceError> for TopologyQueryEditExecutionError {
+    fn from(value: TopologyQuerySurfaceError) -> Self {
         Self::Surface(value)
     }
 }

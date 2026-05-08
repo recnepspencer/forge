@@ -1,7 +1,7 @@
-use worth_topo::facade::{WorthTopologyRuntimeAdapters, WorthTopologyRuntimeSupport};
+use topology::facade::{TopologyRuntimeAdapters, TopologyRuntimeSupport};
 
 fn main() {
-    let _ = WorthTopologyRuntimeAdapters {
-        support: WorthTopologyRuntimeSupport::snapshot_read_only(),
+    let _ = TopologyRuntimeAdapters {
+        support: TopologyRuntimeSupport::snapshot_read_only(),
     };
 }

@@ -1,5 +1,5 @@
-use worth_topo::facade::WorthTopologyQueryAssembly;
+use topology::facade::TopologyQueryAssembly;
 
 fn main() {
-    let _ = WorthTopologyQueryAssembly::import_read_view;
+    let _ = TopologyQueryAssembly::import_read_view;
 }

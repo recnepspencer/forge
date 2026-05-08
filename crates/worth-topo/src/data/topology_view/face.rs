@@ -2,7 +2,7 @@ use forge_relational::facade::identity::EntityId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthTopologyFace {
+pub struct TopologyFace {
     pub entity_id: EntityId,
     pub label: String,
     pub shell_id: Option<EntityId>,

@@ -7,13 +7,13 @@ use super::relation_shell_face_rehome_support::{
 use super::relation_wire_rehome_support::{
     supports_connected_wire_split_workflow, supports_owned_half_edge_set_wire_rehome_workflow,
 };
-use super::{WorthTopologyQueryEditExecutionError, WorthTopologyQueryEditRunner};
-use crate::edit::WorthTopologyEditContract;
+use super::{TopologyQueryEditExecutionError, TopologyQueryEditRunner};
+use crate::edit::TopologyEditContract;
 
 pub(super) fn supports_admitted_shell_or_wire_create_workflow(
     entity_rows: &[ForgeQueryEntity],
     relation_rows: &[ForgeQueryEntity],
-    contracts: &[WorthTopologyEditContract],
+    contracts: &[TopologyEditContract],
 ) -> bool {
     supports_owned_half_edge_set_wire_rehome_workflow(entity_rows, relation_rows, contracts)
         || supports_connected_wire_split_workflow(entity_rows, relation_rows, contracts)
@@ -22,13 +22,13 @@ pub(super) fn supports_admitted_shell_or_wire_create_workflow(
         || supports_owned_face_set_shell_rehome_workflow(entity_rows, relation_rows, contracts)
 }
 
-impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> {
+impl<'workspace, 'assembly> TopologyQueryEditRunner<'workspace, 'assembly> {
     pub(super) fn lower_admitted_shell_or_wire_create_workflow(
         &self,
         entity_rows: &[ForgeQueryEntity],
         relation_rows: &[ForgeQueryEntity],
-        contracts: &[WorthTopologyEditContract],
-    ) -> Result<ForgeQueryMutationBatchBuilder, WorthTopologyQueryEditExecutionError> {
+        contracts: &[TopologyEditContract],
+    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyQueryEditExecutionError> {
         if supports_owned_half_edge_set_wire_rehome_workflow(entity_rows, relation_rows, contracts)
         {
             self.lower_rehome_owned_half_edge_set_to_new_wire_workflow(
@@ -65,9 +65,9 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                 contracts,
             )
         } else {
-            Err(WorthTopologyQueryEditExecutionError::UnsupportedFamilies(
-                vec![crate::edit::WorthTopologyEditFamily::AttachShellOrWireMembership],
-            ))
+            Err(TopologyQueryEditExecutionError::UnsupportedFamilies(vec![
+                crate::edit::TopologyEditFamily::AttachShellOrWireMembership,
+            ]))
         }
     }
 }

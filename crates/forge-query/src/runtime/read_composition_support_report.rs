@@ -238,6 +238,7 @@ const ENTRY_POINTS: &[&str] = &[
     "define_read_family",
     "define_read_family_with_invariant_pack",
     "execute_read_family",
+    "execute_read_family_in_basis_context",
 ];
 
 const GRAPH_ARTIFACTS: &[&str] = &[
@@ -255,7 +256,12 @@ const SCOPE_CLASSES: &[&str] = &[
 
 const GRAPH_FAMILIES: &[&str] = &["detail", "collection"];
 
-const EXECUTION_ENGINES: &[&str] = &["query_runtime_current"];
+const EXECUTION_ENGINES: &[&str] = &[
+    "query_runtime_current",
+    "query_runtime_branch",
+    "query_runtime_historical",
+    "query_runtime_preview_derived",
+];
 
 const FALLBACK_CLASSES: &[&str] = &["none", "snapshot_indexed_debt", "whole_view_debt"];
 

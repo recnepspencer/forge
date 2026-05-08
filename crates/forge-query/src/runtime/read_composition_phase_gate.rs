@@ -117,13 +117,13 @@ impl ForgeQueryReadCompositionPhaseGate {
             ),
             ForgeQueryReadCompositionPhaseGateRow::new(
                 ForgeQueryReadCompositionPhaseGateFamily::PhaseThreeAggregateProofComplete,
-                ForgeQueryReadCompositionPhaseGateStatus::Blocked,
-                "aggregate query-native-versus-fallback breadth and debt proof cannot complete until Worth migrates active topology families onto the frozen kernel",
+                ForgeQueryReadCompositionPhaseGateStatus::Satisfied,
+                "Worth topology now exposes aggregate query-native-versus-fallback breadth, debt, parity, and no-N-plus-one proof through its domain closeout surfaces",
             ),
             ForgeQueryReadCompositionPhaseGateRow::new(
                 ForgeQueryReadCompositionPhaseGateFamily::MilestoneThreeResumeReady,
-                ForgeQueryReadCompositionPhaseGateStatus::Blocked,
-                "Milestone 3 remains blocked until the side quest reaches Phase 3 aggregate closeout proof and names any remaining fallback consumers as debt rows",
+                ForgeQueryReadCompositionPhaseGateStatus::Satisfied,
+                "Milestone 3 may resume through the Worth topology side-quest closeout gate because Phase 3 aggregate proof is now enforced outside the generic kernel",
             ),
         ];
         let mut parts = vec![

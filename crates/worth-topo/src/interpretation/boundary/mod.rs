@@ -1,14 +1,12 @@
-use crate::interpretation::types::{
-    WorthBoundaryInterpretationSummary, WorthTopologyInterpretationSet,
-};
+use crate::interpretation::types::{BoundaryInterpretationSummary, TopologyInterpretationSet};
 
 pub fn interpret_boundaries(
-    interpretations: &WorthTopologyInterpretationSet,
-) -> Vec<WorthBoundaryInterpretationSummary> {
+    interpretations: &TopologyInterpretationSet,
+) -> Vec<BoundaryInterpretationSummary> {
     interpretations
         .shells
         .iter()
-        .map(|shell| WorthBoundaryInterpretationSummary {
+        .map(|shell| BoundaryInterpretationSummary {
             shell_id: shell.shell_id,
             boundary_component_count: shell.boundary_component_count,
             boundary_half_edge_count: shell.boundary_half_edge_count,

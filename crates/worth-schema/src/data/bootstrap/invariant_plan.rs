@@ -1,52 +1,42 @@
 use crate::data::invariants::{
-    WorthDiagnosticsInvariantGroup, WorthGeometryInvariantGroup, WorthInvariantGroup,
-    WorthLineageInvariantGroup, WorthNamingInvariantGroup, WorthTopologyInvariantGroup,
+    DiagnosticsInvariantGroup, GeometryInvariantGroup, InvariantGroup, LineageInvariantGroup,
+    NamingInvariantGroup, TopologyInvariantGroup,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WorthBootstrapInvariantPlan {
-    pub topology: Vec<WorthTopologyInvariantGroup>,
-    pub geometry: Vec<WorthGeometryInvariantGroup>,
-    pub lineage: Vec<WorthLineageInvariantGroup>,
-    pub naming: Vec<WorthNamingInvariantGroup>,
-    pub diagnostics: Vec<WorthDiagnosticsInvariantGroup>,
+pub struct BootstrapInvariantPlan {
+    pub topology: Vec<TopologyInvariantGroup>,
+    pub geometry: Vec<GeometryInvariantGroup>,
+    pub lineage: Vec<LineageInvariantGroup>,
+    pub naming: Vec<NamingInvariantGroup>,
+    pub diagnostics: Vec<DiagnosticsInvariantGroup>,
 }
 
-impl WorthBootstrapInvariantPlan {
-    pub fn all_groups(&self) -> Vec<WorthInvariantGroup> {
+impl BootstrapInvariantPlan {
+    pub fn all_groups(&self) -> Vec<InvariantGroup> {
         self.topology
             .iter()
             .copied()
-            .map(WorthInvariantGroup::Topology)
-            .chain(
-                self.geometry
-                    .iter()
-                    .copied()
-                    .map(WorthInvariantGroup::Geometry),
-            )
-            .chain(
-                self.lineage
-                    .iter()
-                    .copied()
-                    .map(WorthInvariantGroup::Lineage),
-            )
-            .chain(self.naming.iter().copied().map(WorthInvariantGroup::Naming))
+            .map(InvariantGroup::Topology)
+            .chain(self.geometry.iter().copied().map(InvariantGroup::Geometry))
+            .chain(self.lineage.iter().copied().map(InvariantGroup::Lineage))
+            .chain(self.naming.iter().copied().map(InvariantGroup::Naming))
             .chain(
                 self.diagnostics
                     .iter()
                     .copied()
-                    .map(WorthInvariantGroup::Diagnostics),
+                    .map(InvariantGroup::Diagnostics),
             )
             .collect()
     }
 }
 
-pub fn worth_bootstrap_invariant_plan() -> WorthBootstrapInvariantPlan {
-    WorthBootstrapInvariantPlan {
-        topology: WorthTopologyInvariantGroup::ALL.to_vec(),
-        geometry: WorthGeometryInvariantGroup::ALL.to_vec(),
-        lineage: WorthLineageInvariantGroup::ALL.to_vec(),
-        naming: WorthNamingInvariantGroup::ALL.to_vec(),
-        diagnostics: WorthDiagnosticsInvariantGroup::ALL.to_vec(),
+pub fn bootstrap_invariant_plan() -> BootstrapInvariantPlan {
+    BootstrapInvariantPlan {
+        topology: TopologyInvariantGroup::ALL.to_vec(),
+        geometry: GeometryInvariantGroup::ALL.to_vec(),
+        lineage: LineageInvariantGroup::ALL.to_vec(),
+        naming: NamingInvariantGroup::ALL.to_vec(),
+        diagnostics: DiagnosticsInvariantGroup::ALL.to_vec(),
     }
 }

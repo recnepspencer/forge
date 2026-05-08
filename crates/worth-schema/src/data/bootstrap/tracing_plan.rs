@@ -1,42 +1,36 @@
 use crate::data::aspects::{
-    WorthAspect, WorthDiagnosticsAspect, WorthGeometryAspect, WorthLineageAspect,
-    WorthNamingAspect, WorthTopologyAspect,
+    Aspect, DiagnosticsAspect, GeometryAspect, LineageAspect, NamingAspect, TopologyAspect,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WorthBootstrapTracingPlan {
-    pub topology: Vec<WorthTopologyAspect>,
-    pub geometry: Vec<WorthGeometryAspect>,
-    pub lineage: Vec<WorthLineageAspect>,
-    pub naming: Vec<WorthNamingAspect>,
-    pub diagnostics: Vec<WorthDiagnosticsAspect>,
+pub struct BootstrapTracingPlan {
+    pub topology: Vec<TopologyAspect>,
+    pub geometry: Vec<GeometryAspect>,
+    pub lineage: Vec<LineageAspect>,
+    pub naming: Vec<NamingAspect>,
+    pub diagnostics: Vec<DiagnosticsAspect>,
 }
 
-impl WorthBootstrapTracingPlan {
-    pub fn all_aspects(&self) -> Vec<WorthAspect> {
+impl BootstrapTracingPlan {
+    pub fn all_aspects(&self) -> Vec<Aspect> {
         self.topology
             .iter()
             .copied()
-            .map(WorthAspect::Topology)
-            .chain(self.geometry.iter().copied().map(WorthAspect::Geometry))
-            .chain(self.lineage.iter().copied().map(WorthAspect::Lineage))
-            .chain(self.naming.iter().copied().map(WorthAspect::Naming))
-            .chain(
-                self.diagnostics
-                    .iter()
-                    .copied()
-                    .map(WorthAspect::Diagnostics),
-            )
+            .map(Aspect::Topology)
+            .chain(self.geometry.iter().copied().map(Aspect::Geometry))
+            .chain(self.lineage.iter().copied().map(Aspect::Lineage))
+            .chain(self.naming.iter().copied().map(Aspect::Naming))
+            .chain(self.diagnostics.iter().copied().map(Aspect::Diagnostics))
             .collect()
     }
 }
 
-pub fn worth_bootstrap_tracing_plan() -> WorthBootstrapTracingPlan {
-    WorthBootstrapTracingPlan {
-        topology: WorthTopologyAspect::ALL.to_vec(),
-        geometry: WorthGeometryAspect::ALL.to_vec(),
-        lineage: WorthLineageAspect::ALL.to_vec(),
-        naming: WorthNamingAspect::ALL.to_vec(),
-        diagnostics: WorthDiagnosticsAspect::ALL.to_vec(),
+pub fn bootstrap_tracing_plan() -> BootstrapTracingPlan {
+    BootstrapTracingPlan {
+        topology: TopologyAspect::ALL.to_vec(),
+        geometry: GeometryAspect::ALL.to_vec(),
+        lineage: LineageAspect::ALL.to_vec(),
+        naming: NamingAspect::ALL.to_vec(),
+        diagnostics: DiagnosticsAspect::ALL.to_vec(),
     }
 }

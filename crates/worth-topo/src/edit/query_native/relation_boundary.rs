@@ -1,29 +1,27 @@
 use std::collections::BTreeMap;
 
 use forge_query::facade::{ForgeQueryEntity, ForgeQueryMutationBatchBuilder};
-use worth_schema::facade::{WorthEntityReference, WorthTopologyEntityKind};
+use schema::facade::{EntityReference, TopologyEntityKind};
 
-use super::{WorthTopologyQueryEditExecutionError, WorthTopologyQueryEditRunner};
-use crate::edit::{
-    WorthBoundaryMembershipKind, WorthTopologyEditAction, WorthTopologyEditContract,
-};
+use super::{TopologyQueryEditExecutionError, TopologyQueryEditRunner};
+use crate::edit::{BoundaryMembershipKind, TopologyEditAction, TopologyEditContract};
 
 pub(super) fn supports_admitted_relation_create_workflow(
-    contracts: &[WorthTopologyEditContract],
+    contracts: &[TopologyEditContract],
 ) -> bool {
     let [create, attach] = contracts else {
         return false;
     };
     let (
-        WorthTopologyEditAction::CreateTopologyEntity {
+        TopologyEditAction::CreateTopologyEntity {
             create_key,
-            kind: WorthTopologyEntityKind::Loop,
+            kind: TopologyEntityKind::Loop,
             ..
         },
-        WorthTopologyEditAction::AttachBoundaryMembership {
-            kind: WorthBoundaryMembershipKind::FaceInnerLoop,
-            owner: WorthEntityReference::Existing(_),
-            member: WorthEntityReference::Created(member_key),
+        TopologyEditAction::AttachBoundaryMembership {
+            kind: BoundaryMembershipKind::FaceInnerLoop,
+            owner: EntityReference::Existing(_),
+            member: EntityReference::Created(member_key),
             ..
         },
     ) = (&create.action, &attach.action)
@@ -33,25 +31,23 @@ pub(super) fn supports_admitted_relation_create_workflow(
     create_key.as_str() == member_key.as_str()
 }
 
-impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> {
+impl<'workspace, 'assembly> TopologyQueryEditRunner<'workspace, 'assembly> {
     pub(super) fn lower_attach_boundary_membership(
         &self,
         builder: ForgeQueryMutationBatchBuilder,
         entity_rows: &[ForgeQueryEntity],
-        created_entity_kinds: &BTreeMap<String, WorthTopologyEntityKind>,
-        kind: WorthBoundaryMembershipKind,
-        owner: &WorthEntityReference,
-        member: &WorthEntityReference,
-    ) -> Result<ForgeQueryMutationBatchBuilder, WorthTopologyQueryEditExecutionError> {
+        created_entity_kinds: &BTreeMap<String, TopologyEntityKind>,
+        kind: BoundaryMembershipKind,
+        owner: &EntityReference,
+        member: &EntityReference,
+    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyQueryEditExecutionError> {
         let (expected_owner_kind, expected_member_kind) = match kind {
-            WorthBoundaryMembershipKind::FaceOuterLoop
-            | WorthBoundaryMembershipKind::FaceInnerLoop => {
-                (WorthTopologyEntityKind::Face, WorthTopologyEntityKind::Loop)
+            BoundaryMembershipKind::FaceOuterLoop | BoundaryMembershipKind::FaceInnerLoop => {
+                (TopologyEntityKind::Face, TopologyEntityKind::Loop)
             }
-            WorthBoundaryMembershipKind::LoopOwnsHalfEdge => (
-                WorthTopologyEntityKind::Loop,
-                WorthTopologyEntityKind::HalfEdge,
-            ),
+            BoundaryMembershipKind::LoopOwnsHalfEdge => {
+                (TopologyEntityKind::Loop, TopologyEntityKind::HalfEdge)
+            }
         };
         self.lower_relation_create(
             builder,

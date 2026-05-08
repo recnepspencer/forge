@@ -1,22 +1,22 @@
 use crate::interpretation::boundary::interpret_boundaries;
 use crate::interpretation::shells::interpret_shells;
 use crate::interpretation::types::{
-    InterpretationReport, InterpretedTopologyView, WorthTopologyInterpretationSet,
+    InterpretationReport, InterpretedTopologyView, TopologyInterpretationSet,
 };
 use crate::interpretation::wires::interpret_wires;
 use crate::materialization::MaterializedTopologyView;
-use worth_schema::facade::{
-    CertifiedTopologyInterpretation, DerivedTopologyReadBasis, WorthTopologyReadArtifact,
+use schema::facade::{
+    CertifiedTopologyInterpretation, DerivedTopologyReadBasis, TopologyReadArtifact,
 };
 
 #[derive(Debug, Default, Clone, Copy)]
-pub struct WorthTopologyInterpreter;
+pub struct TopologyInterpreter;
 
-impl WorthTopologyInterpreter {
+impl TopologyInterpreter {
     pub fn interpret(view: &MaterializedTopologyView) -> InterpretedTopologyView {
         let wires = interpret_wires(view);
         let (shells, radial_summaries) = interpret_shells(view);
-        let interpretations = WorthTopologyInterpretationSet { wires, shells };
+        let interpretations = TopologyInterpretationSet { wires, shells };
         let boundary_summaries = interpret_boundaries(&interpretations);
         let report = InterpretationReport {
             interpreted_wire_count: interpretations.wires.len(),
@@ -36,14 +36,14 @@ impl WorthTopologyInterpreter {
 }
 
 pub fn interpret_topology_view(view: &MaterializedTopologyView) -> InterpretedTopologyView {
-    WorthTopologyInterpreter::interpret(view)
+    TopologyInterpreter::interpret(view)
 }
 
 pub fn build_topology_read_artifact(
     read_basis: &DerivedTopologyReadBasis,
     view: &InterpretedTopologyView,
-) -> WorthTopologyReadArtifact {
-    WorthTopologyReadArtifact::from_read_basis_and_interpretation(
+) -> TopologyReadArtifact {
+    TopologyReadArtifact::from_read_basis_and_interpretation(
         read_basis,
         view.interpretations().clone(),
     )

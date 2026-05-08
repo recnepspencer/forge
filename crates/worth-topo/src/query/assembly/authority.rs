@@ -5,30 +5,30 @@ use forge_query::facade::{
     ForgeQueryRuntimeError, ForgeQueryWorkspace, ForgeQueryWorkspaceError,
 };
 use forge_relational::facade::identity::{EntityId, RelationId};
-use worth_schema::facade::{
-    admit_worth_query_mutation_batch, DerivedTopologyReadBasis, RawWorthTopologyIntent,
-    WorthEntityKind, WorthEntityReference, WorthQueryMutationAdmission,
-    WorthQueryMutationAdmissionReport, WorthRelationKind, WorthTopologyMutation,
+use schema::facade::{
+    admit_query_mutation_batch, DerivedTopologyReadBasis, EntityKind, EntityReference,
+    QueryMutationAdmission, QueryMutationAdmissionReport, RawTopologyIntent, RelationKind,
+    TopologyMutation,
 };
 
 use crate::query::materialized::topology_relation_dependency_path;
-use crate::query::WorthTopologyQueryMutationEvidence;
+use crate::query::TopologyQueryMutationEvidence;
 
 use super::authority_support::{
     index_imported_entities, index_imported_relations, mutation_evidence_for_intent,
     relation_touched_aspects,
 };
-use super::WorthTopologyQueryAssembly;
+use super::TopologyQueryAssembly;
 
 #[derive(Debug, Clone)]
-pub struct WorthTopologyQueryAppliedIntent {
+pub struct TopologyQueryAppliedIntent {
     pub receipt: ForgeQueryBatchWriteReceipt,
-    pub mutation_evidence: WorthTopologyQueryMutationEvidence,
+    pub mutation_evidence: TopologyQueryMutationEvidence,
 }
 
 #[derive(Debug)]
-pub enum WorthTopologyQueryApplyError {
-    AdmissionBlocked(Vec<WorthQueryMutationAdmissionReport>),
+pub enum TopologyQueryApplyError {
+    AdmissionBlocked(Vec<QueryMutationAdmissionReport>),
     MissingCreatedEntityReference(String),
     MissingExistingEntityBinding(EntityId),
     MissingExistingRelationBinding(RelationId),
@@ -38,12 +38,12 @@ pub enum WorthTopologyQueryApplyError {
     Query(ForgeQueryRuntimeError),
 }
 
-impl std::fmt::Display for WorthTopologyQueryApplyError {
+impl std::fmt::Display for TopologyQueryApplyError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::AdmissionBlocked(rows) => write!(
                 f,
-                "worth query apply is blocked for this raw intent: {}",
+                " query apply is blocked for this raw intent: {}",
                 rows.iter()
                     .map(|row| row.blocker.message())
                     .collect::<Vec<_>>()
@@ -79,15 +79,15 @@ impl std::fmt::Display for WorthTopologyQueryApplyError {
     }
 }
 
-impl std::error::Error for WorthTopologyQueryApplyError {}
+impl std::error::Error for TopologyQueryApplyError {}
 
-impl From<ForgeQueryRuntimeError> for WorthTopologyQueryApplyError {
+impl From<ForgeQueryRuntimeError> for TopologyQueryApplyError {
     fn from(value: ForgeQueryRuntimeError) -> Self {
         Self::Query(value)
     }
 }
 
-impl From<ForgeQueryWorkspaceError> for WorthTopologyQueryApplyError {
+impl From<ForgeQueryWorkspaceError> for TopologyQueryApplyError {
     fn from(value: ForgeQueryWorkspaceError) -> Self {
         Self::Query(ForgeQueryRuntimeError::Workspace(value))
     }
@@ -96,27 +96,27 @@ impl From<ForgeQueryWorkspaceError> for WorthTopologyQueryApplyError {
 #[derive(Debug, Clone)]
 pub(super) struct ImportedTopologyEntity {
     pub(super) query_identity: String,
-    pub(super) kind: WorthEntityKind,
+    pub(super) kind: EntityKind,
 }
 
 #[derive(Debug, Clone)]
 pub(super) struct ImportedTopologyRelation {
     pub(super) query_identity: String,
-    pub(super) kind: WorthRelationKind,
+    pub(super) kind: RelationKind,
     pub(super) source_query_identity: String,
     pub(super) target_query_identity: String,
 }
 
-impl WorthTopologyQueryAssembly {
+impl TopologyQueryAssembly {
     pub fn apply_raw_intent(
         &self,
         workspace: &mut ForgeQueryWorkspace,
-        intent: RawWorthTopologyIntent,
+        intent: RawTopologyIntent,
         read_basis: &DerivedTopologyReadBasis,
-    ) -> Result<WorthTopologyQueryAppliedIntent, WorthTopologyQueryApplyError> {
-        let admission = admit_worth_query_mutation_batch(&intent);
-        if let WorthQueryMutationAdmission::Blocked(rows) = admission {
-            return Err(WorthTopologyQueryApplyError::AdmissionBlocked(rows));
+    ) -> Result<TopologyQueryAppliedIntent, TopologyQueryApplyError> {
+        let admission = admit_query_mutation_batch(&intent);
+        if let QueryMutationAdmission::Blocked(rows) = admission {
+            return Err(TopologyQueryApplyError::AdmissionBlocked(rows));
         }
 
         let entities = index_imported_entities(workspace.read(self.entities()))?;
@@ -128,16 +128,16 @@ impl WorthTopologyQueryAssembly {
 
         for mutation in intent.mutations {
             match mutation {
-                WorthTopologyMutation::CreateEntity { create_key, kind } => {
-                    let WorthEntityKind::Topology(_) = kind else {
-                        return Err(WorthTopologyQueryApplyError::UnsupportedMutation(format!(
+                TopologyMutation::CreateEntity { create_key, kind } => {
+                    let EntityKind::Topology(_) = kind else {
+                        return Err(TopologyQueryApplyError::UnsupportedMutation(format!(
                             "{kind:?}"
                         )));
                     };
-                    let receipt = workspace.insert("WorthTopologyEntity", |builder| {
+                    let receipt = workspace.insert("TopologyEntity", |builder| {
                         builder
                             .metadata(
-                                WorthTopologyQueryMutationEvidence::metadata_key(),
+                                TopologyQueryMutationEvidence::metadata_key(),
                                 &mutation_evidence,
                             )
                             .aspect("topology.kind", kind.kind_name())
@@ -150,7 +150,7 @@ impl WorthTopologyQueryAssembly {
                     );
                     receipts.push(receipt);
                 }
-                WorthTopologyMutation::CreateRelation {
+                TopologyMutation::CreateRelation {
                     kind,
                     source,
                     target,
@@ -160,10 +160,10 @@ impl WorthTopologyQueryAssembly {
                         resolve_entity_reference(&source, &entities, &created_entities)?;
                     let target_identity =
                         resolve_entity_reference(&target, &entities, &created_entities)?;
-                    receipts.push(workspace.insert("WorthTopologyRelation", |builder| {
+                    receipts.push(workspace.insert("TopologyRelation", |builder| {
                         let builder = builder
                             .metadata(
-                                WorthTopologyQueryMutationEvidence::metadata_key(),
+                                TopologyQueryMutationEvidence::metadata_key(),
                                 &mutation_evidence,
                             )
                             .aspect("topology.kind", kind.kind_name())
@@ -176,89 +176,89 @@ impl WorthTopologyQueryAssembly {
                         }
                     })?);
                 }
-                WorthTopologyMutation::RemoveEntity { entity_id } => {
+                TopologyMutation::RemoveEntity { entity_id } => {
                     let imported = entities.get(&entity_id).ok_or(
-                        WorthTopologyQueryApplyError::MissingExistingEntityBinding(entity_id),
+                        TopologyQueryApplyError::MissingExistingEntityBinding(entity_id),
                     )?;
                     let binding = workspace.bind_existing_entity(
                         ForgeQueryExistingEntityTarget::new(
                             format!("{entity_id:?}"),
                             imported.query_identity.clone(),
                         )?
-                        .in_target_collection("WorthTopologyEntity")?,
+                        .in_target_collection("TopologyEntity")?,
                     )?;
                     receipts.push(workspace.delete_existing_with(binding, |delete| {
                         delete
-                            .target_collection("WorthTopologyEntity")
+                            .target_collection("TopologyEntity")
                             .touches(mutation_evidence.touched_aspect_paths.clone())
                             .metadata(
-                                WorthTopologyQueryMutationEvidence::metadata_key(),
+                                TopologyQueryMutationEvidence::metadata_key(),
                                 &mutation_evidence,
                             )
                     })?);
                 }
-                WorthTopologyMutation::RemoveRelation { relation_id } => {
+                TopologyMutation::RemoveRelation { relation_id } => {
                     let imported = relations.get(&relation_id).ok_or(
-                        WorthTopologyQueryApplyError::MissingExistingRelationBinding(relation_id),
+                        TopologyQueryApplyError::MissingExistingRelationBinding(relation_id),
                     )?;
                     let binding = workspace.bind_existing_relation(
                         ForgeQueryExistingRelationTarget::new(
                             format!("{relation_id:?}"),
                             imported.query_identity.clone(),
                         )?
-                        .in_target_collection("WorthTopologyRelation")?,
+                        .in_target_collection("TopologyRelation")?,
                     )?;
                     receipts.push(workspace.delete_existing_with(binding, |delete| {
                         delete
-                            .target_collection("WorthTopologyRelation")
-                            .touches(worth_schema::facade::worth_query_aspect_path_strings(
+                            .target_collection("TopologyRelation")
+                            .touches(schema::facade::query_aspect_path_strings(
                                 relation_touched_aspects(imported.kind),
                             ))
                             .metadata(
-                                WorthTopologyQueryMutationEvidence::metadata_key(),
+                                TopologyQueryMutationEvidence::metadata_key(),
                                 &mutation_evidence,
                             )
                     })?);
                 }
-                WorthTopologyMutation::UpsertEntity { entity_id, kind } => {
+                TopologyMutation::UpsertEntity { entity_id, kind } => {
                     let imported = entities.get(&entity_id).ok_or(
-                        WorthTopologyQueryApplyError::MissingExistingEntityBinding(entity_id),
+                        TopologyQueryApplyError::MissingExistingEntityBinding(entity_id),
                     )?;
                     let binding = workspace.bind_existing_entity(
                         ForgeQueryExistingEntityTarget::new(
                             format!("{entity_id:?}"),
                             imported.query_identity.clone(),
                         )?
-                        .in_target_collection("WorthTopologyEntity")?,
+                        .in_target_collection("TopologyEntity")?,
                     )?;
                     receipts.push(workspace.verify_existing(binding, |assertion| {
                         assertion
                             .metadata(
-                                WorthTopologyQueryMutationEvidence::metadata_key(),
+                                TopologyQueryMutationEvidence::metadata_key(),
                                 &mutation_evidence,
                             )
                             .aspect("topology.kind", kind.kind_name())
                     })?);
                 }
-                WorthTopologyMutation::UpsertRelation {
+                TopologyMutation::UpsertRelation {
                     relation_id,
                     kind,
                     source,
                     target,
                 } => {
                     let imported = relations.get(&relation_id).ok_or(
-                        WorthTopologyQueryApplyError::MissingExistingRelationBinding(relation_id),
+                        TopologyQueryApplyError::MissingExistingRelationBinding(relation_id),
                     )?;
                     let expected_source = entities
                         .get(&source)
-                        .ok_or(WorthTopologyQueryApplyError::MissingExistingEntityBinding(
+                        .ok_or(TopologyQueryApplyError::MissingExistingEntityBinding(
                             source,
                         ))?
                         .query_identity
                         .clone();
                     let expected_target = entities
                         .get(&target)
-                        .ok_or(WorthTopologyQueryApplyError::MissingExistingEntityBinding(
+                        .ok_or(TopologyQueryApplyError::MissingExistingEntityBinding(
                             target,
                         ))?
                         .query_identity
@@ -268,7 +268,7 @@ impl WorthTopologyQueryAssembly {
                             format!("{relation_id:?}"),
                             imported.query_identity.clone(),
                         )?
-                        .in_target_collection("WorthTopologyRelation")?,
+                        .in_target_collection("TopologyRelation")?,
                     )?;
                     if imported.kind != kind
                         || imported.source_query_identity != expected_source
@@ -291,7 +291,7 @@ impl WorthTopologyQueryAssembly {
                             |update| {
                                 let update = update
                                     .metadata(
-                                        WorthTopologyQueryMutationEvidence::metadata_key(),
+                                        TopologyQueryMutationEvidence::metadata_key(),
                                         &mutation_evidence,
                                     )
                                     .aspect("topology.kind", kind.kind_name())
@@ -308,7 +308,7 @@ impl WorthTopologyQueryAssembly {
                         receipts.push(workspace.verify_existing(binding, |assertion| {
                             let assertion = assertion
                                 .metadata(
-                                    WorthTopologyQueryMutationEvidence::metadata_key(),
+                                    TopologyQueryMutationEvidence::metadata_key(),
                                     &mutation_evidence,
                                 )
                                 .aspect("topology.kind", kind.kind_name())
@@ -325,7 +325,7 @@ impl WorthTopologyQueryAssembly {
             }
         }
 
-        Ok(WorthTopologyQueryAppliedIntent {
+        Ok(TopologyQueryAppliedIntent {
             receipt: ForgeQueryBatchWriteReceipt::from_write_receipts(receipts)?,
             mutation_evidence,
         })
@@ -333,22 +333,22 @@ impl WorthTopologyQueryAssembly {
 }
 
 fn resolve_entity_reference(
-    reference: &WorthEntityReference,
+    reference: &EntityReference,
     entities: &BTreeMap<EntityId, ImportedTopologyEntity>,
     created_entities: &BTreeMap<String, String>,
-) -> Result<String, WorthTopologyQueryApplyError> {
+) -> Result<String, TopologyQueryApplyError> {
     match reference {
-        WorthEntityReference::Existing(entity_id) => entities
+        EntityReference::Existing(entity_id) => entities
             .get(entity_id)
             .map(|entry| entry.query_identity.clone())
-            .ok_or(WorthTopologyQueryApplyError::MissingExistingEntityBinding(
+            .ok_or(TopologyQueryApplyError::MissingExistingEntityBinding(
                 *entity_id,
             )),
-        WorthEntityReference::Created(create_key) => created_entities
+        EntityReference::Created(create_key) => created_entities
             .get(create_key.as_str())
             .cloned()
             .ok_or_else(|| {
-                WorthTopologyQueryApplyError::MissingCreatedEntityReference(
+                TopologyQueryApplyError::MissingCreatedEntityReference(
                     create_key.as_str().to_string(),
                 )
             }),

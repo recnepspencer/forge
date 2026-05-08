@@ -3,12 +3,11 @@ use super::*;
 
 #[test]
 fn traced_certification_read_view_surfaces_schema_owned_trace() {
-    let mut runtime = crate::facade::worth_milestone_one_runtime_builder()
-        .expect("worth milestone one runtime builder")
+    let mut runtime = crate::facade::milestone_one_runtime_builder()
+        .expect(" milestone one runtime builder")
         .build();
 
-    let seeded =
-        seeded_bootstrap(&mut runtime, "cert-traced-surface").expect("seed worth topology");
+    let seeded = seeded_bootstrap(&mut runtime, "cert-traced-surface").expect("seed  topology");
     let traced = certify_milestone_one_read_basis_traced(&mut runtime, seeded.read_basis.clone())
         .expect("traced milestone one certification");
 
@@ -65,11 +64,11 @@ fn traced_certification_read_view_surfaces_schema_owned_trace() {
 
 #[test]
 fn traced_milestone_two_read_view_reuses_certification_trace_packet() {
-    let mut runtime = crate::facade::worth_milestone_one_runtime_builder()
-        .expect("worth milestone one runtime builder")
+    let mut runtime = crate::facade::milestone_one_runtime_builder()
+        .expect(" milestone one runtime builder")
         .build();
 
-    let seeded = seeded_bootstrap(&mut runtime, "cert-m2-traced").expect("seed worth topology");
+    let seeded = seeded_bootstrap(&mut runtime, "cert-m2-traced").expect("seed  topology");
     let traced = certify_milestone_two_read_basis_traced(&mut runtime, seeded.read_basis)
         .expect("traced milestone two read certification");
 
@@ -126,14 +125,14 @@ fn traced_milestone_two_read_view_reuses_certification_trace_packet() {
 
 #[test]
 fn verified_commit_earns_direct_milestone_two_read_report() {
-    let mut runtime = crate::facade::worth_milestone_one_runtime_builder()
-        .expect("worth milestone one runtime builder")
+    let mut runtime = crate::facade::milestone_one_runtime_builder()
+        .expect(" milestone one runtime builder")
         .build();
 
     let verified = verified_primitive(
         &mut runtime,
         "cert-m2-verified",
-        &WorthMilestoneOnePrimitiveCase::WireBranch { branch_count: 4 },
+        &MilestoneOnePrimitiveCase::WireBranch { branch_count: 4 },
     )
     .expect("verified primitive");
 
@@ -155,8 +154,8 @@ fn verified_commit_earns_direct_milestone_two_read_report() {
 fn default_primitive_corpus_earns_direct_milestone_two_derived_corpus_report() {
     let report = certify_milestone_two_default_derived_corpus(
         || {
-            crate::facade::worth_milestone_one_runtime_builder()
-                .expect("worth milestone one runtime builder")
+            crate::facade::milestone_one_runtime_builder()
+                .expect(" milestone one runtime builder")
                 .build()
         },
         "cert-m2-corpus",

@@ -1,21 +1,18 @@
-use worth_schema::facade::topology_authoring::{
-    milestone_one_heavy_branch_local_sweep_scenarios, WorthMilestoneOnePrimitiveExpectedOutcome,
-    WorthMilestoneOnePrimitiveScenario,
+use schema::facade::topology_authoring::{
+    milestone_one_heavy_branch_local_sweep_scenarios, MilestoneOnePrimitiveExpectedOutcome,
+    MilestoneOnePrimitiveScenario,
 };
 
 use crate::fixtures::authored_topology::milestone_one_default_corpus_scenarios;
 
 pub(crate) fn milestone_one_default_branch_local_admitted_scenarios(
-) -> Vec<WorthMilestoneOnePrimitiveScenario> {
+) -> Vec<MilestoneOnePrimitiveScenario> {
     milestone_one_default_corpus_scenarios()
         .into_iter()
-        .filter(|scenario| {
-            scenario.expected_outcome == WorthMilestoneOnePrimitiveExpectedOutcome::Admit
-        })
+        .filter(|scenario| scenario.expected_outcome == MilestoneOnePrimitiveExpectedOutcome::Admit)
         .collect()
 }
 
-pub(crate) fn milestone_one_heavy_branch_local_scenarios() -> Vec<WorthMilestoneOnePrimitiveScenario>
-{
+pub(crate) fn milestone_one_heavy_branch_local_scenarios() -> Vec<MilestoneOnePrimitiveScenario> {
     milestone_one_heavy_branch_local_sweep_scenarios()
 }

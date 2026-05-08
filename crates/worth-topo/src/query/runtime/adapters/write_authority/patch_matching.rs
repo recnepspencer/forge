@@ -34,7 +34,7 @@ impl LoweredPatchMatch {
     ) -> Vec<usize> {
         let runtime = runtime
             .read()
-            .expect("worth topology runtime write authority lock poisoned");
+            .expect("topology runtime write authority lock poisoned");
         patch
             .iter()
             .enumerate()
@@ -59,7 +59,7 @@ impl LoweredPatchMatch {
                 persistent_name,
             } => {
                 match target_collection_for_patch(runtime, version_id, &record.target).as_deref() {
-                    Some("WorthTopologyEntity") => match record.target {
+                    Some("TopologyEntity") => match record.target {
                         RecordRef::Entity(entity_id) => {
                             projection.entity_record(entity_id).is_some_and(|entity| {
                                 entity
@@ -72,7 +72,7 @@ impl LoweredPatchMatch {
                         }
                         RecordRef::Relation(_) => false,
                     },
-                    Some("WorthPersistentName") => match record.target {
+                    Some("PersistentName") => match record.target {
                         RecordRef::Entity(entity_id) => {
                             projection.entity_record(entity_id).is_some_and(|entity| {
                                 entity
@@ -94,7 +94,7 @@ impl LoweredPatchMatch {
                 source_identity,
                 target_identity,
             } => {
-                let Some("WorthTopologyRelation") =
+                let Some("TopologyRelation") =
                     target_collection_for_patch(runtime, version_id, &record.target).as_deref()
                 else {
                     return false;
@@ -105,7 +105,7 @@ impl LoweredPatchMatch {
                 let Some(relation) = projection.relation_record(relation_id) else {
                     return false;
                 };
-                worth_schema::facade::WorthRelationKind::from_kind_id(relation.kind.kind_id)
+                schema::facade::RelationKind::from_kind_id(relation.kind.kind_id)
                     .is_some_and(|kind| kind.kind_name() == kind_name)
                     && entity_matches_identity(
                         runtime,

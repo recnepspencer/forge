@@ -9,9 +9,7 @@ use forge_relational::facade::runtime::{
     InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup,
     InvariantGroupSet,
 };
-use worth_schema::facade::{
-    WorthEntityKind, WorthRelationKind, WorthTopologyEntityKind, WorthTopologyRelationKind,
-};
+use schema::facade::{EntityKind, RelationKind, TopologyEntityKind, TopologyRelationKind};
 
 use super::shared::{RuntimeEntityRef, RuntimeTopologyGraph};
 
@@ -31,11 +29,11 @@ impl CustomInvariantRule for ShellClosureRule {
         CustomInvariantDescriptor {
             identity: CustomInvariantSemanticIdentity {
                 rule_id: forge_relational::facade::runtime::CustomInvariantRuleId::new(
-                    "worth.m1.topology.shell_closure",
+                    ".m1.topology.shell_closure",
                 ),
                 semantic_version: CustomInvariantSemanticVersion::new(1, 0),
             },
-            display_name: Arc::from("Worth Milestone 1 Shell Closure"),
+            display_name: Arc::from(" Milestone 1 Shell Closure"),
             operational: CustomInvariantOperationalMetadata {
                 execution_point: InvariantExecutionPoint::CommitBoundary,
                 groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance),
@@ -57,14 +55,12 @@ impl CustomInvariantRule for ShellClosureRule {
         _context: &CustomInvariantExecutionContext<'_>,
         scope: &Self::Scope,
     ) -> Result<CustomInvariantVerdict, CustomInvariantExecutionError> {
-        let shell_kind = WorthEntityKind::Topology(WorthTopologyEntityKind::Shell).kind_id();
-        let shell_owns_face = WorthRelationKind::Topology(WorthTopologyRelationKind::ShellOwnsFace);
-        let face_outer = WorthRelationKind::Topology(WorthTopologyRelationKind::FaceOuterLoop);
-        let face_inner = WorthRelationKind::Topology(WorthTopologyRelationKind::FaceInnerLoop);
-        let loop_owns_halfedge =
-            WorthRelationKind::Topology(WorthTopologyRelationKind::LoopOwnsHalfEdge);
-        let halfedge_uses_edge =
-            WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeUsesEdge);
+        let shell_kind = EntityKind::Topology(TopologyEntityKind::Shell).kind_id();
+        let shell_owns_face = RelationKind::Topology(TopologyRelationKind::ShellOwnsFace);
+        let face_outer = RelationKind::Topology(TopologyRelationKind::FaceOuterLoop);
+        let face_inner = RelationKind::Topology(TopologyRelationKind::FaceInnerLoop);
+        let loop_owns_halfedge = RelationKind::Topology(TopologyRelationKind::LoopOwnsHalfEdge);
+        let halfedge_uses_edge = RelationKind::Topology(TopologyRelationKind::HalfEdgeUsesEdge);
 
         for (shell_id, kind_id) in &scope.topology_entities {
             if *kind_id != shell_kind {

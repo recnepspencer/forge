@@ -1,9 +1,9 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WorthTopologyMaterializationError {
+pub struct TopologyMaterializationError {
     message: String,
 }
 
-impl WorthTopologyMaterializationError {
+impl TopologyMaterializationError {
     pub fn new(message: impl Into<String>) -> Self {
         Self {
             message: message.into(),
@@ -15,10 +15,10 @@ impl WorthTopologyMaterializationError {
     }
 }
 
-impl std::fmt::Display for WorthTopologyMaterializationError {
+impl std::fmt::Display for TopologyMaterializationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str(&self.message)
     }
 }
 
-impl std::error::Error for WorthTopologyMaterializationError {}
+impl std::error::Error for TopologyMaterializationError {}

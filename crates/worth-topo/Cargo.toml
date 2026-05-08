@@ -3,7 +3,10 @@ name = "worth-topo"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
-description = "Worth topology materialization and structural interpretation"
+description = "Topology materialization and structural interpretation"
+
+[lib]
+name = "topology"
 
 [dependencies]
 forge-query.workspace = true
@@ -11,7 +14,7 @@ forge-relational.workspace = true
 forge-runtime-bridge.workspace = true
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
-worth-schema.workspace = true
+schema = { package = "worth-schema", path = "../worth-schema" }
 
 [dev-dependencies]
 trybuild.workspace = true

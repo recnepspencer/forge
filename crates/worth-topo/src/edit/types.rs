@@ -7,12 +7,9 @@ mod naming;
 #[path = "types/vocabulary.rs"]
 mod vocabulary;
 
-pub use contracts::{WorthTopologyEditAction, WorthTopologyEditContract};
-pub use naming::{
-    WorthTopologyEditNamingOutcome, WorthTopologyEditNamingReport, WorthTopologyEditNamingRow,
-};
+pub use contracts::{TopologyEditAction, TopologyEditContract};
+pub use naming::{TopologyEditNamingOutcome, TopologyEditNamingReport, TopologyEditNamingRow};
 pub use vocabulary::{
-    WorthBoundaryMembershipKind, WorthLoopEndpointKind, WorthLoopSuccessorKind,
-    WorthShellOrWireMembershipKind, WorthTopologyDerivedRegion, WorthTopologyEditChangedScope,
-    WorthTopologyEditFamily, WorthTopologyEditNamingScope,
+    BoundaryMembershipKind, LoopEndpointKind, LoopSuccessorKind, ShellOrWireMembershipKind,
+    TopologyDerivedRegion, TopologyEditChangedScope, TopologyEditFamily, TopologyEditNamingScope,
 };

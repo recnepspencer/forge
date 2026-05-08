@@ -1,12 +1,11 @@
 use forge_relational::facade::runtime::RelationalRuntimeApi;
 use forge_relational::facade::transactions::CommitLog;
 
-use crate::data::bootstrap::worth_bootstrap_schema_registry;
-use crate::data::seed::{seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase};
+use crate::data::bootstrap::bootstrap_schema_registry;
+use crate::data::seed::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use crate::data::tracing::{
-    WorthAuthorityTraceAnchor, WorthAuthorityTraceEvidence, WorthBoundaryEnvelope,
-    WorthBoundaryFailure, WorthDecisionTrace, WorthIntegrityMarkers, WorthNamedCounter,
-    WorthPerformanceAccounting,
+    AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure, DecisionTrace,
+    IntegrityMarkers, NamedCounter, PerformanceAccounting,
 };
 
 #[test]
@@ -23,7 +22,7 @@ fn authority_trace_evidence_summarizes_commit_logs() {
         "blocked",
     );
 
-    let evidence = WorthAuthorityTraceEvidence::from_commit_logs(
+    let evidence = AuthorityTraceEvidence::from_commit_logs(
         forge_relational::facade::history::BranchId("main".to_string()),
         vec![published, rejected],
     );
@@ -36,20 +35,16 @@ fn authority_trace_evidence_summarizes_commit_logs() {
 #[test]
 fn authority_trace_anchor_tracks_runtime_coordinates() {
     let mut runtime = RelationalRuntimeApi::builder()
-        .schema_registry(
-            worth_bootstrap_schema_registry().expect("worth bootstrap schema registry"),
-        )
+        .schema_registry(bootstrap_schema_registry().expect(" bootstrap schema registry"))
         .build();
     let verified = seed_milestone_one_primitive(
         &mut runtime,
         "trace-anchor",
-        &WorthMilestoneOnePrimitiveCase::WireClosed { half_edge_count: 3 },
+        &MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 3 },
     )
-    .expect("seed worth topology");
-    let anchor = WorthAuthorityTraceAnchor::from_commit_results(
-        verified.branch_id.clone(),
-        &verified.commits,
-    );
+    .expect("seed  topology");
+    let anchor =
+        AuthorityTraceAnchor::from_commit_results(verified.branch_id.clone(), &verified.commits);
 
     assert_eq!(anchor.branch_id, verified.branch_id);
     assert_eq!(anchor.transaction_ids.len(), verified.commits.len());
@@ -76,17 +71,17 @@ fn authority_trace_anchor_tracks_runtime_coordinates() {
 
 #[test]
 fn boundary_envelope_helpers_preserve_trace_metadata_while_mapping_primary_result() {
-    let envelope = WorthBoundaryEnvelope::success(
+    let envelope = BoundaryEnvelope::success(
         7usize,
         Vec::new(),
-        WorthDecisionTrace::default(),
-        WorthIntegrityMarkers::default(),
-        WorthPerformanceAccounting::new([WorthNamedCounter::new("test.counter", 3)]),
+        DecisionTrace::default(),
+        IntegrityMarkers::default(),
+        PerformanceAccounting::new([NamedCounter::new("test.counter", 3)]),
     );
 
     let mapped = envelope
         .map_primary_result(|value| value.to_string())
-        .with_performance_accounting(WorthPerformanceAccounting::new([WorthNamedCounter::new(
+        .with_performance_accounting(PerformanceAccounting::new([NamedCounter::new(
             "test.counter",
             5,
         )]));
@@ -98,12 +93,12 @@ fn boundary_envelope_helpers_preserve_trace_metadata_while_mapping_primary_resul
 
 #[test]
 fn boundary_failure_helpers_preserve_trace_metadata_while_mapping_error() {
-    let failure = WorthBoundaryFailure::failure(
+    let failure = BoundaryFailure::failure(
         "boom",
         Vec::new(),
-        WorthDecisionTrace::default(),
-        WorthIntegrityMarkers::default(),
-        WorthPerformanceAccounting::default(),
+        DecisionTrace::default(),
+        IntegrityMarkers::default(),
+        PerformanceAccounting::default(),
     );
 
     let mapped = failure.map_error(|error| format!("wrapped:{error}"));

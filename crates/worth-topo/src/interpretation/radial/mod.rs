@@ -2,11 +2,11 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use forge_relational::facade::identity::EntityId;
 
-use crate::data::topology_view::WorthTopologyHalfEdge;
-use crate::interpretation::types::WorthRadialInterpretationSummary;
+use crate::data::topology_view::TopologyHalfEdge;
+use crate::interpretation::types::RadialInterpretationSummary;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WorthRadialInterpretation {
+pub struct RadialInterpretation {
     pub boundary_half_edge_count: usize,
     pub non_manifold_edge_ids: Vec<EntityId>,
 }
@@ -14,10 +14,10 @@ pub struct WorthRadialInterpretation {
 pub fn summarize_shell_radial(
     shell_id: EntityId,
     shell_half_edges: &BTreeSet<EntityId>,
-    half_edge_map: &BTreeMap<EntityId, &WorthTopologyHalfEdge>,
-) -> WorthRadialInterpretationSummary {
+    half_edge_map: &BTreeMap<EntityId, &TopologyHalfEdge>,
+) -> RadialInterpretationSummary {
     let radial = interpret_radial_surface(shell_half_edges, half_edge_map);
-    WorthRadialInterpretationSummary {
+    RadialInterpretationSummary {
         shell_id,
         boundary_half_edge_count: radial.boundary_half_edge_count,
         non_manifold_edge_ids: radial.non_manifold_edge_ids,
@@ -26,8 +26,8 @@ pub fn summarize_shell_radial(
 
 pub fn interpret_radial_surface(
     shell_half_edges: &BTreeSet<EntityId>,
-    half_edge_map: &BTreeMap<EntityId, &WorthTopologyHalfEdge>,
-) -> WorthRadialInterpretation {
+    half_edge_map: &BTreeMap<EntityId, &TopologyHalfEdge>,
+) -> RadialInterpretation {
     let mut boundary_half_edge_count = 0;
     let mut non_manifold_edge_ids = BTreeSet::new();
 
@@ -47,7 +47,7 @@ pub fn interpret_radial_surface(
         }
     }
 
-    WorthRadialInterpretation {
+    RadialInterpretation {
         boundary_half_edge_count,
         non_manifold_edge_ids: non_manifold_edge_ids.into_iter().collect(),
     }
@@ -55,7 +55,7 @@ pub fn interpret_radial_surface(
 
 pub fn walk_radial_ring_len(
     start_id: EntityId,
-    half_edge_map: &BTreeMap<EntityId, &WorthTopologyHalfEdge>,
+    half_edge_map: &BTreeMap<EntityId, &TopologyHalfEdge>,
 ) -> usize {
     let mut count = 0;
     let mut seen = BTreeSet::new();

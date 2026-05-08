@@ -24,9 +24,9 @@ impl ForgeQueryReadCompositionPhaseOneCloseout {
         read_support: &ForgeQueryReadCompositionSupportReport,
     ) -> Self {
         let safe_to_build_now = vec![
-            "compose_read, compose_read_with_invariant_pack, define_read_family, define_read_family_with_invariant_pack, and execute_read_family form one public read-composition product instead of separate helper stories".to_string(),
+            "compose_read, compose_read_with_invariant_pack, define_read_family, define_read_family_with_invariant_pack, execute_read_family, and execute_read_family_in_basis_context form one public read-composition product instead of separate helper stories".to_string(),
             "the canonical read artifact is ReadGraph and every admitted execution returns a ReadReceipt with scope class, graph family, breadth, fallback posture, and relationship-proof admission identity".to_string(),
-            "the Phase 1 runtime taxonomy now freezes query_runtime_current together with none, snapshot_indexed_debt, and whole_view_debt fallback classes as public read-kernel posture".to_string(),
+            "the Phase 1 runtime taxonomy now freezes query_runtime_current, query_runtime_historical, and fallback classes as public read-kernel posture".to_string(),
             "scope classes are kernel-owned and freeze local_neighborhood, anchored_expansion, and explicit_broad_search at the shared boundary instead of letting callers relabel the same lowered read".to_string(),
             "operator-owned graph lanes now cover direct_edge, successor_walk, shared_endpoint, shared_attachment, bounded_ancestor, bounded_descendant, anchored_frontier, and frontier_search".to_string(),
             "traversal-bearing reads now admit descriptor-backed synthetic runtime relationship proof before execution instead of reporting only a receipt heuristic".to_string(),
@@ -36,16 +36,16 @@ impl ForgeQueryReadCompositionPhaseOneCloseout {
             "later domain adoption must extend through the frozen read-composition hooks for domain_read_family_lowering, domain_invariant_pack, domain_decoder, and domain_result_certification instead of rebuilding a second local read stack".to_string(),
         ];
         let must_not_assume_yet = vec![
-            "do not assume Phase 2 Worth topology migration is complete; this closeout only certifies that the generic read kernel is ready for honest adoption".to_string(),
-            "do not assume the side quest is fully closed; Phase 3 still owes aggregate query-native-versus-fallback breadth and debt proof after Worth migration".to_string(),
+            "do not assume this Phase 1 kernel artifact by itself certifies Worth topology migration; that closure lives in the Worth topology-domain closeout surfaces".to_string(),
+            "do not assume this generic gate certifies future non-topology Worth domains; later trim, carrier, NURBS, fillet, and branch-history vocabularies still need domain-owned adoption on top of this kernel".to_string(),
             "do not assume all future domain families already exist; later topology, trim, carrier, NURBS, fillet, and branch-history vocabularies still need domain-owned adoption on top of this kernel".to_string(),
         ];
         let migration_guidance = vec![
-            "start Phase 2 by moving one bounded Worth topology family such as LoopCycleNeighborhood onto compose_read plus a domain-owned decoded view".to_string(),
-            "bind the first Worth topology family through the frozen lowering, invariant-pack, decoder, and certification hook boundaries instead of inventing topology-local extension seams".to_string(),
+            "for new domain adoption, start by moving one bounded read family onto compose_read plus a domain-owned decoded view before widening the family set".to_string(),
+            "bind each new domain family through the frozen lowering, invariant-pack, decoder, and certification hook boundaries instead of inventing local extension seams".to_string(),
             "prefer an operator-owned read lane whenever the domain shape matches one of the admitted built-in operators instead of open-coding traverse in the Worth facade".to_string(),
-            "keep snapshot_index behind the Worth read facade only as explicit fallback debt and surface that fallback exactly on the returned receipt/view boundary".to_string(),
-            "do not resume Milestone 3 hostility widening until Worth migration lands and the side-quest aggregate closeout proof names any remaining fallback consumers as debt rows".to_string(),
+            "for topology snapshot read-only posture, use the admitted historical basis-aware read-family path instead of carrying stale fallback debt wording".to_string(),
+            "for later Worth domains, do not resume domain-specific widening until that domain has an aggregate closeout proof naming any remaining fallback consumers as debt rows".to_string(),
         ];
         let required_verification_commands = vec![
             "cargo fmt --package forge-query".to_string(),

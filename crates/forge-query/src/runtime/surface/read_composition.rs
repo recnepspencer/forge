@@ -1,10 +1,12 @@
+use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::identity::{hash_parts, SchemaBasisDigest};
-use crate::planning::{ExecutionPlanBundle, FallbackDisposition, PlannedExecutionRoute};
+use crate::planning::ExecutionPlanBundle;
 use crate::relationship_proof::{
     RelationshipProofAdmission, RelationshipProofSupportProfile, RelationshipProofSupportStatus,
 };
-use crate::runtime::read_composition_relationship_proof::support_profile_for_relationship_proof;
+use crate::schema_view::QuerySchemaView;
 
+use super::read_receipt_support::relationship_proof_support_surface_count;
 use super::{ForgeQueryReadBreadth, ForgeQueryReadBuiltInOperator, ForgeQueryReadOperatorFamily};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -33,6 +35,9 @@ pub enum ForgeQueryReadGraphFamily {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ForgeQueryReadExecutionEngine {
     QueryRuntimeCurrent,
+    QueryRuntimeBranch,
+    QueryRuntimeHistorical,
+    QueryRuntimePreviewDerived,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -67,6 +72,8 @@ pub struct ForgeQueryReadGraph {
     declared_traversal_clause_count: usize,
     declared_traversal_depth_limit: usize,
     relationship_proof_admission: Option<RelationshipProofAdmission>,
+    declarative_request: DeclarativeLiveQueryRequest,
+    schema_view: QuerySchemaView,
     execution_plan: ExecutionPlanBundle,
 }
 
@@ -110,8 +117,16 @@ impl ForgeQueryReadGraph {
         &self.execution_plan
     }
 
+    pub fn declarative_request(&self) -> &DeclarativeLiveQueryRequest {
+        &self.declarative_request
+    }
+
     pub fn relationship_proof_admission(&self) -> Option<&RelationshipProofAdmission> {
         self.relationship_proof_admission.as_ref()
+    }
+
+    pub fn schema_view(&self) -> &QuerySchemaView {
+        &self.schema_view
     }
 
     pub fn operator_families(&self) -> Vec<ForgeQueryReadOperatorFamily> {
@@ -140,6 +155,8 @@ impl ForgeQueryReadGraph {
         declared_traversal_clause_count: usize,
         declared_traversal_depth_limit: usize,
         relationship_proof_admission: Option<RelationshipProofAdmission>,
+        declarative_request: DeclarativeLiveQueryRequest,
+        schema_view: QuerySchemaView,
         execution_plan: ExecutionPlanBundle,
     ) -> Self {
         let digest = hash_parts(&[
@@ -166,6 +183,8 @@ impl ForgeQueryReadGraph {
             declared_traversal_clause_count,
             declared_traversal_depth_limit,
             relationship_proof_admission,
+            declarative_request,
+            schema_view,
             execution_plan,
         }
     }
@@ -173,22 +192,22 @@ impl ForgeQueryReadGraph {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryReadReceipt {
-    read_graph_digest: String,
-    graph_family: ForgeQueryReadGraphFamily,
-    query_digest: String,
-    basis_digest: String,
-    result_digest: String,
-    snapshot_token: String,
-    scope_class: ForgeQueryReadScopeClass,
-    execution_engine: ForgeQueryReadExecutionEngine,
-    fallback_class: ForgeQueryReadFallbackClass,
-    fallback_count: usize,
-    operator_families: Vec<ForgeQueryReadOperatorFamily>,
-    built_in_operator_coverage: Vec<ForgeQueryReadBuiltInOperator>,
-    relationship_proof_posture: ForgeQueryReadRelationshipProofPosture,
-    relationship_proof_admission: Option<RelationshipProofAdmission>,
-    relationship_proof_support_profile: Option<RelationshipProofSupportProfile>,
-    breadth: ForgeQueryReadBreadth,
+    pub(super) read_graph_digest: String,
+    pub(super) graph_family: ForgeQueryReadGraphFamily,
+    pub(super) query_digest: String,
+    pub(super) basis_digest: String,
+    pub(super) result_digest: String,
+    pub(super) snapshot_token: String,
+    pub(super) scope_class: ForgeQueryReadScopeClass,
+    pub(super) execution_engine: ForgeQueryReadExecutionEngine,
+    pub(super) fallback_class: ForgeQueryReadFallbackClass,
+    pub(super) fallback_count: usize,
+    pub(super) operator_families: Vec<ForgeQueryReadOperatorFamily>,
+    pub(super) built_in_operator_coverage: Vec<ForgeQueryReadBuiltInOperator>,
+    pub(super) relationship_proof_posture: ForgeQueryReadRelationshipProofPosture,
+    pub(super) relationship_proof_admission: Option<RelationshipProofAdmission>,
+    pub(super) relationship_proof_support_profile: Option<RelationshipProofSupportProfile>,
+    pub(super) breadth: ForgeQueryReadBreadth,
 }
 
 impl ForgeQueryReadReceipt {
@@ -290,109 +309,5 @@ impl ForgeQueryReadReceipt {
 
     pub fn breadth(&self) -> &ForgeQueryReadBreadth {
         &self.breadth
-    }
-
-    pub(in crate::runtime) fn from_execution(
-        read_graph: &ForgeQueryReadGraph,
-        snapshot_token: String,
-        execution: &crate::execution::ExecutionResultEnvelope,
-    ) -> Self {
-        let query = read_graph.execution_plan().query();
-        let planning = read_graph.execution_plan().counters();
-        let execution_counters = execution.counters();
-        let fallback_class = match query.fallback() {
-            FallbackDisposition::Forbidden | FallbackDisposition::AdmittedButUnused => {
-                ForgeQueryReadFallbackClass::None
-            }
-            FallbackDisposition::AdmittedAndSelected => {
-                ForgeQueryReadFallbackClass::SnapshotIndexedDebt
-            }
-        };
-        let execution_engine = match query.route() {
-            PlannedExecutionRoute::RuntimeSnapshotRead
-            | PlannedExecutionRoute::RuntimeExpandedSnapshotRead
-            | PlannedExecutionRoute::StoreSnapshotRead => {
-                ForgeQueryReadExecutionEngine::QueryRuntimeCurrent
-            }
-        };
-        let relationship_proof_admission = read_graph.relationship_proof_admission().cloned();
-        let relationship_proof_support_profile = relationship_proof_admission
-            .as_ref()
-            .map(support_profile_for_relationship_proof);
-        Self {
-            read_graph_digest: read_graph.digest().to_string(),
-            graph_family: read_graph.family().clone(),
-            query_digest: execution.report().query_digest().as_str().to_string(),
-            basis_digest: execution.report().basis_digest().as_str().to_string(),
-            result_digest: execution.report().result_digest().as_str().to_string(),
-            snapshot_token,
-            scope_class: read_graph.scope_class().clone(),
-            execution_engine,
-            fallback_class,
-            fallback_count: execution_counters.execution_fallback_taken_count(),
-            operator_families: read_graph.operator_families(),
-            built_in_operator_coverage: read_graph.built_in_operators().to_vec(),
-            relationship_proof_posture: if relationship_proof_admission.is_some() {
-                ForgeQueryReadRelationshipProofPosture::DescriptorAdmittedSyntheticRuntime
-            } else {
-                ForgeQueryReadRelationshipProofPosture::NotRequired
-            },
-            relationship_proof_admission,
-            relationship_proof_support_profile,
-            breadth: ForgeQueryReadBreadth {
-                planned_read_surface_count: planning.planned_read_surface_count(),
-                planned_traversal_clause_count: planning
-                    .planned_traversal_clause_count()
-                    .max(read_graph.declared_traversal_clause_count()),
-                planned_traversal_depth_limit: planning
-                    .planned_traversal_depth_limit()
-                    .max(read_graph.declared_traversal_depth_limit()),
-                execution_read_operation_count: execution_counters.execution_read_operation_count(),
-                execution_records_examined_count: execution_counters
-                    .execution_records_examined_count(),
-                execution_records_emitted_count: execution_counters
-                    .execution_records_emitted_count(),
-                execution_page_width: execution_counters.page_width(),
-                execution_page_truncation_count: execution_counters.page_truncation_count(),
-                execution_cursor_advance_count: execution_counters.cursor_advance_count(),
-                execution_materialized_relation_count: execution_counters
-                    .materialized_relation_count(),
-            },
-        }
-    }
-}
-
-fn relationship_proof_support_surface_count(
-    profile: Option<&RelationshipProofSupportProfile>,
-    status: RelationshipProofSupportStatus,
-) -> usize {
-    profile
-        .map(|profile| {
-            profile
-                .surfaces()
-                .iter()
-                .filter(|(_, surface_status)| *surface_status == status)
-                .count()
-        })
-        .unwrap_or(0)
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ForgeQueryReadResult {
-    payload: Vec<String>,
-    receipt: ForgeQueryReadReceipt,
-}
-
-impl ForgeQueryReadResult {
-    pub fn payload(&self) -> &[String] {
-        &self.payload
-    }
-
-    pub fn receipt(&self) -> &ForgeQueryReadReceipt {
-        &self.receipt
-    }
-
-    pub(in crate::runtime) fn new(payload: Vec<String>, receipt: ForgeQueryReadReceipt) -> Self {
-        Self { payload, receipt }
     }
 }

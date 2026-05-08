@@ -1,5 +1,5 @@
 #[test]
-fn worth_topo_public_boundary_rejects_internal_runtime_bypass() {
+fn topo_public_boundary_rejects_internal_runtime_bypass() {
     let t = trybuild::TestCases::new();
     t.compile_fail("tests/compile_fail/private_stage_helper.rs");
     t.compile_fail("tests/compile_fail/mint_materialized_topology_view.rs");
@@ -13,4 +13,25 @@ fn worth_topo_public_boundary_rejects_internal_runtime_bypass() {
     t.compile_fail("tests/compile_fail/public_runtime_constructor_requires_adapters.rs");
     t.compile_fail("tests/compile_fail/public_query_import_not_exported.rs");
     t.compile_fail("tests/compile_fail/public_query_row_materializer_not_exported.rs");
+    t.compile_fail("tests/compile_fail/public_runtime_read_family_support_row_not_forgeable.rs");
+    t.compile_fail("tests/compile_fail/public_runtime_edit_family_support_row_not_forgeable.rs");
+    t.compile_fail("tests/compile_fail/public_runtime_edit_lane_support_row_not_forgeable.rs");
+    t.compile_fail("tests/compile_fail/public_runtime_posture_row_not_forgeable.rs");
+    t.compile_fail(
+        "tests/compile_fail/public_runtime_legacy_edit_execution_supported_not_exported.rs",
+    );
+    t.compile_fail(
+        "tests/compile_fail/public_runtime_legacy_edit_lane_string_support_not_exported.rs",
+    );
+    t.compile_fail(
+        "tests/compile_fail/public_runtime_legacy_current_head_live_reads_supported_not_exported.rs",
+    );
+    t.compile_fail(
+        "tests/compile_fail/public_runtime_legacy_historical_basis_supported_not_exported.rs",
+    );
+    t.compile_fail("tests/compile_fail/public_runtime_closeout_row_not_forgeable.rs");
+    t.compile_fail("tests/compile_fail/public_domain_query_request_report_not_forgeable.rs");
+    t.compile_fail("tests/compile_fail/public_domain_query_closeout_report_not_forgeable.rs");
+    t.compile_fail("tests/compile_fail/public_domain_query_closeout_row_not_forgeable.rs");
+    t.compile_fail("tests/compile_fail/public_no_n_plus_one_contract_row_not_forgeable.rs");
 }

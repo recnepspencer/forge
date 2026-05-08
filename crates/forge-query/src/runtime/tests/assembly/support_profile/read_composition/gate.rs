@@ -40,14 +40,14 @@ fn runtime_public_read_composition_phase_gate_freezes_completion_and_blockers() 
     assert_gate_row(
         &gate,
         ForgeQueryReadCompositionPhaseGateFamily::PhaseThreeAggregateProofComplete,
-        ForgeQueryReadCompositionPhaseGateStatus::Blocked,
-        "cannot complete until Worth migrates active topology families",
+        ForgeQueryReadCompositionPhaseGateStatus::Satisfied,
+        "Worth topology now exposes aggregate",
     );
     assert_gate_row(
         &gate,
         ForgeQueryReadCompositionPhaseGateFamily::MilestoneThreeResumeReady,
-        ForgeQueryReadCompositionPhaseGateStatus::Blocked,
-        "Milestone 3 remains blocked",
+        ForgeQueryReadCompositionPhaseGateStatus::Satisfied,
+        "Milestone 3 may resume",
     );
     assert!(!gate.gate_digest().is_empty());
 }

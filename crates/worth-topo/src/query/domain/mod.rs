@@ -1,16 +1,35 @@
-mod adjacency;
 pub(crate) mod error;
-mod fallback;
-mod loop_cycle;
+mod execution;
 pub(crate) mod lowering;
-#[allow(dead_code)]
-pub(crate) mod parity;
-#[allow(dead_code)]
 pub(crate) mod proof;
-pub(crate) mod report;
 pub(crate) mod request;
-pub(crate) mod schema;
 mod topology;
 mod views;
 
-pub(crate) use topology::WorthTopologyDomainQuery;
+pub use error::{TopologyDomainQueryError, TopologyDomainQueryErrorKind};
+#[allow(unused_imports)]
+pub(crate) use lowering::schema;
+pub use lowering::{
+    TopologyDomainQueryLoweringPosture, TopologyDomainQueryRelationshipProofPosture,
+};
+#[allow(unused_imports)]
+pub(crate) use proof::{closeout, no_n_plus_one, parity, report};
+pub use proof::{
+    TopologyDomainQueryAggregateReport, TopologyDomainQueryCloseoutReport,
+    TopologyDomainQueryCloseoutRow, TopologyDomainQueryCloseoutStatus, TopologyDomainQueryDebtRow,
+    TopologyDomainQueryExecutionAggregateRow, TopologyDomainQueryExecutionEngine,
+    TopologyDomainQueryFallbackPosture, TopologyDomainQueryFamilyAggregateRow,
+    TopologyDomainQueryParityAggregateReport, TopologyDomainQueryParityAggregateRow,
+    TopologyDomainQueryParityKind, TopologyDomainQueryPhaseThreeBlocker,
+    TopologyDomainQueryPhaseThreeBlockerRow, TopologyDomainQueryPhaseThreeBlockerStatus,
+    TopologyDomainQueryProofReport, TopologyDomainQueryRequestFamily,
+    TopologyDomainQueryRequestReport, TopologyNoNPlusOneContract, TopologyNoNPlusOneContractRow,
+    TopologyNoNPlusOneContractStatus,
+};
+pub use topology::TopologyDomainQuery;
+#[allow(unused_imports)]
+pub use views::{
+    TopologyAdjacentHalfEdgeEvidence, TopologyHalfEdgeRadialNeighborhoodView,
+    TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyLocalRewireNeighborhoodView,
+    TopologyLoopCycleView, TopologyLoopNeighborEvidence, TopologyRadialCandidateEvidence,
+};

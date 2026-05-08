@@ -43,6 +43,10 @@ impl ForgeQueryWorkspace {
         &self.name
     }
 
+    pub fn snapshot_token(&self) -> String {
+        self.runtime.snapshot_token()
+    }
+
     pub fn into_runtime(self) -> ForgeQueryRuntime {
         self.runtime
     }

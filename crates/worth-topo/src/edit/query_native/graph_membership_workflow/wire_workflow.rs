@@ -1,34 +1,33 @@
 use forge_query::facade::{
     ForgeQueryBatchWriteReceipt, ForgeQueryEntity, ForgeQuerySymbolicTargetReference,
 };
-use worth_schema::facade::{WorthTopologyEntityKind, WorthTopologyRelationKind};
+use schema::facade::{TopologyEntityKind, TopologyRelationKind};
 
 use super::shared::{
     bind_existing_entity_handle, bind_existing_relation_handle, delete_existing_entity_from_graph,
 };
-use crate::edit::WorthTopologyEditContract;
-use crate::edit::{WorthTopologyQueryEditExecutionError, WorthTopologyQueryEditRunner};
+use crate::edit::TopologyEditContract;
+use crate::edit::{TopologyQueryEditExecutionError, TopologyQueryEditRunner};
 use crate::query::topology_relation_dependency_path;
 
-impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> {
+impl<'workspace, 'assembly> TopologyQueryEditRunner<'workspace, 'assembly> {
     pub(super) fn compose_wire_rehome_workflow(
         &mut self,
         workflow: super::super::relation_wire_rehome_support::WireRehomeWorkflow,
-        contracts: &[WorthTopologyEditContract],
+        contracts: &[TopologyEditContract],
         entity_rows: &[ForgeQueryEntity],
         relation_rows: &[ForgeQueryEntity],
-    ) -> Result<ForgeQueryBatchWriteReceipt, WorthTopologyQueryEditExecutionError> {
+    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyQueryEditExecutionError> {
         let retired_wire_binding =
             super::super::bindings::query_entity_binding(entity_rows, workflow.retired_wire_id)?
                 .ok_or(
-                    WorthTopologyQueryEditExecutionError::MissingExistingEntityBinding(
+                    TopologyQueryEditExecutionError::MissingExistingEntityBinding(
                         workflow.retired_wire_id,
                     ),
                 )?;
-        let dependency_path =
-            topology_relation_dependency_path(worth_schema::facade::WorthRelationKind::Topology(
-                WorthTopologyRelationKind::WireOwnsHalfEdge,
-            ));
+        let dependency_path = topology_relation_dependency_path(
+            schema::facade::RelationKind::Topology(TopologyRelationKind::WireOwnsHalfEdge),
+        );
         let created_wire_key = workflow.create_key.clone();
         let retired_wire_identity = retired_wire_binding.query_identity.clone();
         let retire_contract = contracts
@@ -38,26 +37,24 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
             self,
             entity_rows,
             workflow.retired_wire_id,
-            WorthTopologyEntityKind::Wire,
+            TopologyEntityKind::Wire,
         )?;
         let mut relation_rows_to_move = Vec::with_capacity(workflow.half_edge_ids.len());
         for half_edge_id in &workflow.half_edge_ids {
             let half_edge_binding =
                 super::super::bindings::query_entity_binding(entity_rows, *half_edge_id)?.ok_or(
-                    WorthTopologyQueryEditExecutionError::MissingExistingEntityBinding(
-                        *half_edge_id,
-                    ),
+                    TopologyQueryEditExecutionError::MissingExistingEntityBinding(*half_edge_id),
                 )?;
             let incoming_relation_ids = super::super::bindings::query_incoming_relation_ids(
                 relation_rows,
                 &half_edge_binding.query_identity,
-                WorthTopologyRelationKind::WireOwnsHalfEdge,
+                TopologyRelationKind::WireOwnsHalfEdge,
             )?;
             let [relation_id] = incoming_relation_ids.as_slice() else {
                 return Err(
-                    WorthTopologyQueryEditExecutionError::ExistingEntityIncomingRelationCountMismatch {
+                    TopologyQueryEditExecutionError::ExistingEntityIncomingRelationCountMismatch {
                         entity_id: *half_edge_id,
-                        relation_kind: WorthTopologyRelationKind::WireOwnsHalfEdge,
+                        relation_kind: TopologyRelationKind::WireOwnsHalfEdge,
                         expected: 1,
                         actual: incoming_relation_ids.len(),
                     },
@@ -66,7 +63,7 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
             let relation_binding =
                 super::super::bindings::query_relation_binding(relation_rows, *relation_id)?
                     .ok_or(
-                        WorthTopologyQueryEditExecutionError::MissingExistingRelationBinding(
+                        TopologyQueryEditExecutionError::MissingExistingRelationBinding(
                             *relation_id,
                         ),
                     )?;
@@ -82,16 +79,12 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
         }
         self.workspace
             .compose_graph(|graph| {
-                graph.insert_entity(
-                    created_wire_key.clone(),
-                    "WorthTopologyEntity",
-                    |mutation| {
-                        mutation
-                            .aspect("topology.kind", WorthTopologyEntityKind::Wire.kind_name())
-                            .aspect("topology.structure", created_wire_key.clone())
-                            .aspect("naming.persistent_name", created_wire_key.clone())
-                    },
-                )?;
+                graph.insert_entity(created_wire_key.clone(), "TopologyEntity", |mutation| {
+                    mutation
+                        .aspect("topology.kind", TopologyEntityKind::Wire.kind_name())
+                        .aspect("topology.structure", created_wire_key.clone())
+                        .aspect("naming.persistent_name", created_wire_key.clone())
+                })?;
                 for (relation_handle, relation_id, half_edge_identity) in &relation_rows_to_move {
                     graph.retarget_existing_verified(
                         relation_handle.clone(),
@@ -99,14 +92,14 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                             let verify = verify
                                 .aspect(
                                     "topology.kind",
-                                    WorthTopologyRelationKind::WireOwnsHalfEdge.kind_name(),
+                                    TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                                 )
                                 .aspect("topology.source_identity", retired_wire_identity.clone())
                                 .aspect("topology.target_identity", half_edge_identity.clone());
                             if let Some(path) = dependency_path {
                                 verify.aspect(
                                     path,
-                                    WorthTopologyRelationKind::WireOwnsHalfEdge.kind_name(),
+                                    TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                                 )
                             } else {
                                 verify
@@ -120,7 +113,7 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                                 )
                                 .aspect(
                                     "topology.kind",
-                                    WorthTopologyRelationKind::WireOwnsHalfEdge.kind_name(),
+                                    TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                                 )
                                 .symbolic_entity_identity(
                                     "topology.source_identity",
@@ -133,7 +126,7 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                             if let Some(path) = dependency_path {
                                 update.aspect(
                                     path,
-                                    WorthTopologyRelationKind::WireOwnsHalfEdge.kind_name(),
+                                    TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                                 )
                             } else {
                                 update
@@ -144,8 +137,8 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                 delete_existing_entity_from_graph(
                     graph,
                     retired_wire_handle.clone(),
-                    "WorthTopologyEntity",
-                    WorthTopologyEntityKind::Wire.kind_name(),
+                    "TopologyEntity",
+                    TopologyEntityKind::Wire.kind_name(),
                     retire_contract,
                 )?;
                 Ok(())
@@ -158,40 +151,35 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
         workflow: super::super::relation_wire_rehome_support::WireSplitWorkflow,
         entity_rows: &[ForgeQueryEntity],
         relation_rows: &[ForgeQueryEntity],
-    ) -> Result<ForgeQueryBatchWriteReceipt, WorthTopologyQueryEditExecutionError> {
+    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyQueryEditExecutionError> {
         let retained_wire_id = workflow
             .retained_wire_id
             .expect("resolved wire split workflow always sets retained wire id");
         let retained_wire_binding =
             super::super::bindings::query_entity_binding(entity_rows, retained_wire_id)?.ok_or(
-                WorthTopologyQueryEditExecutionError::MissingExistingEntityBinding(
-                    retained_wire_id,
-                ),
+                TopologyQueryEditExecutionError::MissingExistingEntityBinding(retained_wire_id),
             )?;
-        let dependency_path =
-            topology_relation_dependency_path(worth_schema::facade::WorthRelationKind::Topology(
-                WorthTopologyRelationKind::WireOwnsHalfEdge,
-            ));
+        let dependency_path = topology_relation_dependency_path(
+            schema::facade::RelationKind::Topology(TopologyRelationKind::WireOwnsHalfEdge),
+        );
         let created_wire_key = workflow.create_key.clone();
         let retained_wire_identity = retained_wire_binding.query_identity.clone();
         let mut moved_relations = Vec::with_capacity(workflow.half_edge_ids.len());
         for half_edge_id in &workflow.half_edge_ids {
             let half_edge_binding =
                 super::super::bindings::query_entity_binding(entity_rows, *half_edge_id)?.ok_or(
-                    WorthTopologyQueryEditExecutionError::MissingExistingEntityBinding(
-                        *half_edge_id,
-                    ),
+                    TopologyQueryEditExecutionError::MissingExistingEntityBinding(*half_edge_id),
                 )?;
             let incoming_relation_ids = super::super::bindings::query_incoming_relation_ids(
                 relation_rows,
                 &half_edge_binding.query_identity,
-                WorthTopologyRelationKind::WireOwnsHalfEdge,
+                TopologyRelationKind::WireOwnsHalfEdge,
             )?;
             let [relation_id] = incoming_relation_ids.as_slice() else {
                 return Err(
-                    WorthTopologyQueryEditExecutionError::ExistingEntityIncomingRelationCountMismatch {
+                    TopologyQueryEditExecutionError::ExistingEntityIncomingRelationCountMismatch {
                         entity_id: *half_edge_id,
-                        relation_kind: WorthTopologyRelationKind::WireOwnsHalfEdge,
+                        relation_kind: TopologyRelationKind::WireOwnsHalfEdge,
                         expected: 1,
                         actual: incoming_relation_ids.len(),
                     },
@@ -200,7 +188,7 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
             let relation_binding =
                 super::super::bindings::query_relation_binding(relation_rows, *relation_id)?
                     .ok_or(
-                        WorthTopologyQueryEditExecutionError::MissingExistingRelationBinding(
+                        TopologyQueryEditExecutionError::MissingExistingRelationBinding(
                             *relation_id,
                         ),
                     )?;
@@ -216,16 +204,12 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
         }
         self.workspace
             .compose_graph(|graph| {
-                graph.insert_entity(
-                    created_wire_key.clone(),
-                    "WorthTopologyEntity",
-                    |mutation| {
-                        mutation
-                            .aspect("topology.kind", WorthTopologyEntityKind::Wire.kind_name())
-                            .aspect("topology.structure", created_wire_key.clone())
-                            .aspect("naming.persistent_name", created_wire_key.clone())
-                    },
-                )?;
+                graph.insert_entity(created_wire_key.clone(), "TopologyEntity", |mutation| {
+                    mutation
+                        .aspect("topology.kind", TopologyEntityKind::Wire.kind_name())
+                        .aspect("topology.structure", created_wire_key.clone())
+                        .aspect("naming.persistent_name", created_wire_key.clone())
+                })?;
                 for (relation_handle, relation_id, half_edge_identity) in &moved_relations {
                     graph.retarget_existing_verified(
                         relation_handle.clone(),
@@ -233,14 +217,14 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                             let verify = verify
                                 .aspect(
                                     "topology.kind",
-                                    WorthTopologyRelationKind::WireOwnsHalfEdge.kind_name(),
+                                    TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                                 )
                                 .aspect("topology.source_identity", retained_wire_identity.clone())
                                 .aspect("topology.target_identity", half_edge_identity.clone());
                             if let Some(path) = dependency_path {
                                 verify.aspect(
                                     path,
-                                    WorthTopologyRelationKind::WireOwnsHalfEdge.kind_name(),
+                                    TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                                 )
                             } else {
                                 verify
@@ -254,7 +238,7 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                                 )
                                 .aspect(
                                     "topology.kind",
-                                    WorthTopologyRelationKind::WireOwnsHalfEdge.kind_name(),
+                                    TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                                 )
                                 .symbolic_entity_identity(
                                     "topology.source_identity",
@@ -267,7 +251,7 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                             if let Some(path) = dependency_path {
                                 update.aspect(
                                     path,
-                                    WorthTopologyRelationKind::WireOwnsHalfEdge.kind_name(),
+                                    TopologyRelationKind::WireOwnsHalfEdge.kind_name(),
                                 )
                             } else {
                                 update

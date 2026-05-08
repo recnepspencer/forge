@@ -1,6 +1,6 @@
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::identity::{EntityId, RelationId};
-use worth_schema::facade::{WorthTopologyRelationKind, WorthTopologyRelationKind::*};
+use schema::facade::{TopologyRelationKind, TopologyRelationKind::*};
 
 use super::bindings::{
     query_entity_binding, query_entity_id_by_identity, query_incoming_relation_source_identities,
@@ -12,7 +12,7 @@ pub(super) fn matches_expected_rewire(
     relation_rows: &[ForgeQueryEntity],
     desired: Option<&DesiredLoopSuccessorRewire>,
     source_half_edge_id: EntityId,
-    relation_kind: WorthTopologyRelationKind,
+    relation_kind: TopologyRelationKind,
     expected_target_half_edge_id: EntityId,
 ) -> bool {
     let Some(desired) = desired else {
@@ -34,7 +34,7 @@ pub(super) fn live_relation_for_source(
     entity_rows: &[ForgeQueryEntity],
     relation_rows: &[ForgeQueryEntity],
     source_half_edge_id: EntityId,
-    relation_kind: WorthTopologyRelationKind,
+    relation_kind: TopologyRelationKind,
 ) -> Option<LiveLoopSuccessorRelation> {
     let source_binding = query_entity_binding(entity_rows, source_half_edge_id).ok()??;
     let targets = query_outgoing_relation_target_identities(

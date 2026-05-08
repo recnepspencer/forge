@@ -2,19 +2,19 @@ use forge_relational::facade::identity::KindId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthGeometryEntityKind {
+pub enum GeometryEntityKind {
     SurfaceBinding,
     CurveBinding,
     CoedgeBinding,
     VertexGeometryBinding,
 }
 
-impl WorthGeometryEntityKind {
-    pub const WRAPPED_ALL: [super::WorthEntityKind; 4] = [
-        super::WorthEntityKind::Geometry(Self::SurfaceBinding),
-        super::WorthEntityKind::Geometry(Self::CurveBinding),
-        super::WorthEntityKind::Geometry(Self::CoedgeBinding),
-        super::WorthEntityKind::Geometry(Self::VertexGeometryBinding),
+impl GeometryEntityKind {
+    pub const WRAPPED_ALL: [super::EntityKind; 4] = [
+        super::EntityKind::Geometry(Self::SurfaceBinding),
+        super::EntityKind::Geometry(Self::CurveBinding),
+        super::EntityKind::Geometry(Self::CoedgeBinding),
+        super::EntityKind::Geometry(Self::VertexGeometryBinding),
     ];
 
     pub const ALL: [Self; 4] = [
@@ -35,10 +35,10 @@ impl WorthGeometryEntityKind {
 
     pub const fn kind_name(self) -> &'static str {
         match self {
-            Self::SurfaceBinding => "worth.surface_binding",
-            Self::CurveBinding => "worth.curve_binding",
-            Self::CoedgeBinding => "worth.coedge_binding",
-            Self::VertexGeometryBinding => "worth.vertex_geometry_binding",
+            Self::SurfaceBinding => ".surface_binding",
+            Self::CurveBinding => ".curve_binding",
+            Self::CoedgeBinding => ".coedge_binding",
+            Self::VertexGeometryBinding => ".vertex_geometry_binding",
         }
     }
 

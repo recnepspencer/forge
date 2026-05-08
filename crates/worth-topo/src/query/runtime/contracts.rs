@@ -6,190 +6,122 @@ use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
 use forge_relational::facade::snapshots::SnapshotHandle;
 use forge_runtime_bridge::facade::BridgeBuildError;
 
-use crate::edit::WorthTopologyEditFamily;
+use crate::edit::TopologyEditFamily;
 
-use super::adapters::WorthTopologyRuntimeBinding;
+use super::adapters::TopologyRuntimeBinding;
+use super::edit_support::{
+    current_head_edit_family_support_rows, current_head_edit_lane_support_rows,
+    snapshot_edit_family_support_rows, snapshot_edit_lane_support_rows,
+    TopologyQueryEditFamilySupportStatus, TopologyRuntimeEditFamilySupportRow,
+    TopologyRuntimeEditLaneSupportRow,
+};
+use super::read_support::{
+    current_head_query_read_family_support_rows, snapshot_query_read_family_support_rows,
+    TopologyRuntimeReadFamilySupportRow,
+};
+use super::runtime_closeout::{runtime_closeout_from_support_rows, TopologyRuntimeCloseout};
+use super::runtime_posture::{
+    current_head_runtime_posture_rows, snapshot_runtime_posture_rows,
+    TopologyRuntimePostureCapability, TopologyRuntimePostureRow,
+};
 
-/// Public support status for a Worth topology edit family on the bridge-backed
-/// Query runtime.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum WorthTopologyQueryEditFamilySupportStatus {
-    /// No admitted lane exists for this family on the current runtime posture.
-    Denied,
-    /// One or more named lanes are admitted, but the family is not generally
-    /// open beyond those lanes.
-    PartiallyAdmittedByLane,
-    /// The family is admitted without lane-specific narrowing.
-    Admitted,
-}
+pub(crate) const TOPOLOGY_SNAPSHOT_HISTORICAL_BASIS_EVIDENCE: &str =
+    "topology-snapshot-historical-basis";
 
 #[derive(Debug)]
-pub struct WorthTopologyRuntimeAdapters {
-    pub(super) binding: WorthTopologyRuntimeBinding,
-    support: WorthTopologyRuntimeSupport,
+pub struct TopologyRuntimeAdapters {
+    pub(super) binding: TopologyRuntimeBinding,
+    support: TopologyRuntimeSupport,
 }
 
-impl WorthTopologyRuntimeAdapters {
+impl TopologyRuntimeAdapters {
     pub fn current_head(runtime: RelationalRuntime) -> Self {
         Self {
-            binding: WorthTopologyRuntimeBinding::current_head(runtime),
-            support: WorthTopologyRuntimeSupport::current_head_authoritative(),
+            binding: TopologyRuntimeBinding::current_head(runtime),
+            support: TopologyRuntimeSupport::current_head_authoritative(),
         }
     }
 
     pub fn snapshot_read_only(read_view: RelationalReadView, snapshot: SnapshotHandle) -> Self {
         Self {
-            binding: WorthTopologyRuntimeBinding::snapshot_read_only(read_view, snapshot),
-            support: WorthTopologyRuntimeSupport::snapshot_read_only(),
+            binding: TopologyRuntimeBinding::snapshot_read_only(read_view, snapshot),
+            support: TopologyRuntimeSupport::snapshot_read_only(),
         }
     }
 
-    pub fn support(&self) -> &WorthTopologyRuntimeSupport {
+    pub fn support(&self) -> &TopologyRuntimeSupport {
         &self.support
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WorthTopologyRuntimeSupport {
-    current_head_live_reads_supported: bool,
-    current_head_materialization_supported: bool,
-    post_write_materialization_supported: bool,
-    historical_basis_supported: bool,
-    authoritative_writes_supported: bool,
-    admitted_query_edit_families: Vec<WorthTopologyEditFamily>,
-    partially_admitted_query_edit_families: Vec<WorthTopologyEditFamily>,
-    admitted_query_edit_lanes: Vec<&'static str>,
+pub struct TopologyRuntimeSupport {
+    pub(super) runtime_posture_rows: Vec<TopologyRuntimePostureRow>,
+    pub(super) query_edit_family_support_rows: Vec<TopologyRuntimeEditFamilySupportRow>,
+    pub(super) query_edit_lane_support_rows: Vec<TopologyRuntimeEditLaneSupportRow>,
+    pub(super) query_read_family_support_rows: Vec<TopologyRuntimeReadFamilySupportRow>,
+    pub(super) closeout: TopologyRuntimeCloseout,
 }
 
-impl WorthTopologyRuntimeSupport {
+impl TopologyRuntimeSupport {
     pub fn current_head_authoritative() -> Self {
+        let runtime_posture_rows = current_head_runtime_posture_rows();
+        let query_read_family_support_rows = current_head_query_read_family_support_rows();
+        let query_edit_family_support_rows = current_head_edit_family_support_rows();
+        let query_edit_lane_support_rows = current_head_edit_lane_support_rows();
         Self {
-            current_head_live_reads_supported: true,
-            current_head_materialization_supported: false,
-            post_write_materialization_supported: true,
-            historical_basis_supported: false,
-            authoritative_writes_supported: true,
-            admitted_query_edit_families: vec![
-                WorthTopologyEditFamily::CreateTopologyEntity,
-                WorthTopologyEditFamily::DetachBoundaryMembership,
-                WorthTopologyEditFamily::DetachRadialAdjacency,
-                WorthTopologyEditFamily::DetachShellOrWireMembership,
-                WorthTopologyEditFamily::RewireLoopEndpoint,
-                WorthTopologyEditFamily::SpliceRadialAdjacency,
-                WorthTopologyEditFamily::RetireTopologyEntity,
-            ],
-            partially_admitted_query_edit_families: vec![
-                WorthTopologyEditFamily::AttachBoundaryMembership,
-                WorthTopologyEditFamily::AttachShellOrWireMembership,
-                WorthTopologyEditFamily::RewireLoopSuccessor,
-            ],
-            admitted_query_edit_lanes: vec![
-                "CreateTopologyEntity",
-                "CreateInnerLoopOnExistingFace",
-                "RehomeAllOwnedHalfEdgesToNewWire",
-                "SplitConnectedHalfEdgeSetIntoNewWire",
-                "SplitSingleFaceFromTwoFaceShellToNewShell",
-                "RehomeAllOwnedFacesToNewShell",
-                "RetireTopologyEntity",
-                "DetachBoundaryMembership",
-                "DetachRadialAdjacency",
-                "DetachShellOrWireMembership",
-                "RelocateHalfEdgeBeforeSuccessor",
-                "RelocateHalfEdgeSpanBeforeSuccessor",
-                "RewireLoopEndpoint",
-                "SpliceRadialAdjacency",
-            ],
+            runtime_posture_rows,
+            closeout: runtime_closeout_from_support_rows(
+                &query_read_family_support_rows,
+                &query_edit_family_support_rows,
+                &query_edit_lane_support_rows,
+            ),
+            query_edit_family_support_rows,
+            query_edit_lane_support_rows,
+            query_read_family_support_rows,
         }
     }
 
     pub fn snapshot_read_only() -> Self {
+        let runtime_posture_rows = snapshot_runtime_posture_rows();
+        let query_read_family_support_rows = snapshot_query_read_family_support_rows();
+        let query_edit_family_support_rows = snapshot_edit_family_support_rows();
+        let query_edit_lane_support_rows = snapshot_edit_lane_support_rows();
         Self {
-            current_head_live_reads_supported: false,
-            current_head_materialization_supported: false,
-            post_write_materialization_supported: false,
-            historical_basis_supported: true,
-            authoritative_writes_supported: false,
-            admitted_query_edit_families: Vec::new(),
-            partially_admitted_query_edit_families: Vec::new(),
-            admitted_query_edit_lanes: Vec::new(),
+            runtime_posture_rows,
+            closeout: runtime_closeout_from_support_rows(
+                &query_read_family_support_rows,
+                &query_edit_family_support_rows,
+                &query_edit_lane_support_rows,
+            ),
+            query_edit_family_support_rows,
+            query_edit_lane_support_rows,
+            query_read_family_support_rows,
         }
-    }
-
-    pub fn current_head_live_reads_supported(&self) -> bool {
-        self.current_head_live_reads_supported
-    }
-
-    pub fn current_head_materialization_supported(&self) -> bool {
-        self.current_head_materialization_supported
-    }
-
-    pub fn post_write_materialization_supported(&self) -> bool {
-        self.post_write_materialization_supported
-    }
-
-    pub fn historical_basis_supported(&self) -> bool {
-        self.historical_basis_supported
-    }
-
-    pub fn authoritative_writes_supported(&self) -> bool {
-        self.authoritative_writes_supported
-    }
-
-    pub fn query_edit_execution_supported(&self) -> bool {
-        !self.admitted_query_edit_lanes.is_empty()
-    }
-
-    /// Families admitted without lane-specific narrowing.
-    pub fn admitted_query_edit_families(&self) -> &[WorthTopologyEditFamily] {
-        &self.admitted_query_edit_families
-    }
-
-    /// Families that are supported only through specific admitted lanes.
-    pub fn partially_admitted_query_edit_families(&self) -> &[WorthTopologyEditFamily] {
-        &self.partially_admitted_query_edit_families
-    }
-
-    /// Named admitted edit lanes on the current runtime posture.
-    pub fn admitted_query_edit_lanes(&self) -> &[&'static str] {
-        &self.admitted_query_edit_lanes
-    }
-
-    pub fn query_edit_lane_supported(&self, lane: &str) -> bool {
-        self.admitted_query_edit_lanes.contains(&lane)
-    }
-
-    /// Returns `true` when at least one admitted lane exists for the family.
-    ///
-    /// Callers that need to distinguish fully admitted families from
-    /// lane-specific support must inspect `query_edit_family_support_status`.
-    pub fn query_edit_family_supported(&self, family: WorthTopologyEditFamily) -> bool {
-        self.query_edit_family_support_status(family)
-            != WorthTopologyQueryEditFamilySupportStatus::Denied
     }
 
     pub fn query_edit_family_support_status(
         &self,
-        family: WorthTopologyEditFamily,
-    ) -> WorthTopologyQueryEditFamilySupportStatus {
-        if self.admitted_query_edit_families.contains(&family) {
-            WorthTopologyQueryEditFamilySupportStatus::Admitted
-        } else if self
-            .partially_admitted_query_edit_families
-            .contains(&family)
-        {
-            WorthTopologyQueryEditFamilySupportStatus::PartiallyAdmittedByLane
-        } else {
-            WorthTopologyQueryEditFamilySupportStatus::Denied
-        }
+        family: TopologyEditFamily,
+    ) -> TopologyQueryEditFamilySupportStatus {
+        self.query_edit_family_support_rows
+            .iter()
+            .find(|row| row.family() == family)
+            .map(TopologyRuntimeEditFamilySupportRow::status)
+            .unwrap_or_else(|| {
+                panic!(" runtime edit-family support rows should cover every declared family")
+            })
     }
 
     pub(super) fn support_profile(&self) -> ForgeQueryRuntimeSupportProfile {
+        let (subscription_activation_evidence, preview_basis_evidence, inspector_evidence) =
+            self.runtime_support_profile_evidence();
         let mut profile = ForgeQueryRuntimeSupportProfile::bridge_backed(
-            "worth-topology-current-head-subscription-activation",
-            "worth-topology-current-head-preview-denial",
-            "worth-topology-current-head-inspector-evidence",
+            subscription_activation_evidence,
+            preview_basis_evidence,
+            inspector_evidence,
         );
-        if self.authoritative_writes_supported {
+        if self.supports_posture(TopologyRuntimePostureCapability::AuthoritativeWrites) {
             for operation_family in [
                 "verify_existing",
                 "probe_existing",
@@ -214,53 +146,103 @@ impl WorthTopologyRuntimeSupport {
                 None,
             );
         }
-        if !self.historical_basis_supported {
-            profile = profile.with_family_support(ForgeQueryRuntimeFamilySupport::unsupported(
-                ForgeQueryRuntimeFacadeFamily::BranchPreview,
-                "worth-topology production runtime current-head slice does not admit historical or preview bases yet",
-            ));
-        }
-        if !self.authoritative_writes_supported {
+        profile = profile.with_family_support(self.branch_preview_support_row());
+        if !self.supports_posture(TopologyRuntimePostureCapability::AuthoritativeWrites) {
             profile = profile.with_family_support(ForgeQueryRuntimeFamilySupport::unsupported(
                 ForgeQueryRuntimeFacadeFamily::Write,
-                "worth-topology snapshot certification runtime is read-only and does not admit authoritative writes",
+                "topology snapshot certification runtime is read-only and does not admit authoritative writes",
             ));
         }
         profile
     }
+
+    pub(super) fn supports_posture(&self, capability: TopologyRuntimePostureCapability) -> bool {
+        self.runtime_posture_status(capability).is_admitted()
+    }
+
+    pub(super) fn subscription_activation_evidence(&self) -> &'static str {
+        self.runtime_support_profile_evidence().0
+    }
+
+    pub(super) fn inspector_evidence_label(&self) -> &'static str {
+        self.runtime_support_profile_evidence().2
+    }
+
+    pub(super) fn write_receipt_evidence_label(&self) -> &'static str {
+        if self.supports_posture(TopologyRuntimePostureCapability::HistoricalBasis) {
+            "topology-snapshot-write-receipt"
+        } else {
+            "topology-current-head-write-receipt"
+        }
+    }
+
+    pub(super) fn preview_basis_denial_reason(&self) -> &'static str {
+        if self.supports_posture(TopologyRuntimePostureCapability::HistoricalBasis) {
+            "topology snapshot runtime is bound to one historical basis and does not admit preview or branch-local sessions"
+        } else {
+            "topology production runtime current-head slice does not admit historical or preview bases yet"
+        }
+    }
+
+    fn branch_preview_support_row(&self) -> ForgeQueryRuntimeFamilySupport {
+        if self.supports_posture(TopologyRuntimePostureCapability::HistoricalBasis) {
+            return ForgeQueryRuntimeFamilySupport::unsupported_with_evidence(
+                ForgeQueryRuntimeFacadeFamily::BranchPreview,
+                self.preview_basis_denial_reason(),
+                [TOPOLOGY_SNAPSHOT_HISTORICAL_BASIS_EVIDENCE],
+            );
+        }
+        ForgeQueryRuntimeFamilySupport::unsupported(
+            ForgeQueryRuntimeFacadeFamily::BranchPreview,
+            self.preview_basis_denial_reason(),
+        )
+    }
+
+    fn runtime_support_profile_evidence(&self) -> (&'static str, &'static str, &'static str) {
+        if self.supports_posture(TopologyRuntimePostureCapability::HistoricalBasis) {
+            (
+                "topology-snapshot-subscription-activation",
+                "topology-snapshot-preview-denial",
+                "topology-snapshot-inspector-evidence",
+            )
+        } else {
+            (
+                "topology-current-head-subscription-activation",
+                "topology-current-head-preview-denial",
+                "topology-current-head-inspector-evidence",
+            )
+        }
+    }
 }
 
 #[derive(Debug)]
-pub enum WorthTopologyRuntimeFailure {
+pub enum TopologyRuntimeFailure {
     BridgeBuild(BridgeBuildError),
     QueryRuntime(ForgeQueryRuntimeError),
 }
 
-impl std::fmt::Display for WorthTopologyRuntimeFailure {
+impl std::fmt::Display for TopologyRuntimeFailure {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::BridgeBuild(error) => {
-                write!(
-                    f,
-                    "worth topology query runtime bridge build failed: {error}"
-                )
+                write!(f, " topology query runtime bridge build failed: {error}")
             }
             Self::QueryRuntime(error) => {
-                write!(f, "worth topology query runtime assembly failed: {error}")
+                write!(f, " topology query runtime assembly failed: {error}")
             }
         }
     }
 }
 
-impl std::error::Error for WorthTopologyRuntimeFailure {}
+impl std::error::Error for TopologyRuntimeFailure {}
 
-impl From<BridgeBuildError> for WorthTopologyRuntimeFailure {
+impl From<BridgeBuildError> for TopologyRuntimeFailure {
     fn from(value: BridgeBuildError) -> Self {
         Self::BridgeBuild(value)
     }
 }
 
-impl From<ForgeQueryRuntimeError> for WorthTopologyRuntimeFailure {
+impl From<ForgeQueryRuntimeError> for TopologyRuntimeFailure {
     fn from(value: ForgeQueryRuntimeError) -> Self {
         Self::QueryRuntime(value)
     }

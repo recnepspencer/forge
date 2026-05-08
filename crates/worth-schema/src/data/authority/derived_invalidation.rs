@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthDerivedInvalidationTarget {
+pub enum DerivedInvalidationTarget {
     TopologyStructure,
     TopologyOwnership,
     TopologyBoundary,
@@ -9,82 +9,81 @@ pub enum WorthDerivedInvalidationTarget {
     NamingPersistentName,
 }
 
-impl WorthDerivedInvalidationTarget {
+impl DerivedInvalidationTarget {
     pub fn bridge_scope(self) -> &'static str {
         match self {
-            Self::TopologyStructure => "worth.derived.topology.structure",
-            Self::TopologyOwnership => "worth.derived.topology.ownership",
-            Self::TopologyBoundary => "worth.derived.topology.boundary",
-            Self::TopologyRadial => "worth.derived.topology.radial",
-            Self::NamingPersistentName => "worth.derived.naming.persistent_name",
+            Self::TopologyStructure => ".derived.topology.structure",
+            Self::TopologyOwnership => ".derived.topology.ownership",
+            Self::TopologyBoundary => ".derived.topology.boundary",
+            Self::TopologyRadial => ".derived.topology.radial",
+            Self::NamingPersistentName => ".derived.naming.persistent_name",
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthDerivedTruthSurfaceKind {
+pub enum DerivedTruthSurfaceKind {
     EntityField,
     EntityRelationEndpoint,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthTruthToDerivedInvalidationDeclaration {
+pub struct TruthToDerivedInvalidationDeclaration {
     pub declaration_id: &'static str,
     pub truth_patch_field: &'static str,
-    pub truth_surface_kind: WorthDerivedTruthSurfaceKind,
-    pub target: WorthDerivedInvalidationTarget,
+    pub truth_surface_kind: DerivedTruthSurfaceKind,
+    pub target: DerivedInvalidationTarget,
 }
 
-pub fn worth_milestone_two_invalidation_declarations(
-) -> Vec<WorthTruthToDerivedInvalidationDeclaration> {
+pub fn milestone_two_invalidation_declarations() -> Vec<TruthToDerivedInvalidationDeclaration> {
     vec![
-        WorthTruthToDerivedInvalidationDeclaration {
+        TruthToDerivedInvalidationDeclaration {
             declaration_id: "relation-source-structural",
             truth_patch_field: "source",
-            truth_surface_kind: WorthDerivedTruthSurfaceKind::EntityRelationEndpoint,
-            target: WorthDerivedInvalidationTarget::TopologyStructure,
+            truth_surface_kind: DerivedTruthSurfaceKind::EntityRelationEndpoint,
+            target: DerivedInvalidationTarget::TopologyStructure,
         },
-        WorthTruthToDerivedInvalidationDeclaration {
+        TruthToDerivedInvalidationDeclaration {
             declaration_id: "relation-target-structural",
             truth_patch_field: "target",
-            truth_surface_kind: WorthDerivedTruthSurfaceKind::EntityRelationEndpoint,
-            target: WorthDerivedInvalidationTarget::TopologyStructure,
+            truth_surface_kind: DerivedTruthSurfaceKind::EntityRelationEndpoint,
+            target: DerivedInvalidationTarget::TopologyStructure,
         },
-        WorthTruthToDerivedInvalidationDeclaration {
+        TruthToDerivedInvalidationDeclaration {
             declaration_id: "topology-structural-lifecycle",
             truth_patch_field: "lifecycle",
-            truth_surface_kind: WorthDerivedTruthSurfaceKind::EntityField,
-            target: WorthDerivedInvalidationTarget::TopologyStructure,
+            truth_surface_kind: DerivedTruthSurfaceKind::EntityField,
+            target: DerivedInvalidationTarget::TopologyStructure,
         },
-        WorthTruthToDerivedInvalidationDeclaration {
+        TruthToDerivedInvalidationDeclaration {
             declaration_id: "topology-structure",
             truth_patch_field: "topology.structure",
-            truth_surface_kind: WorthDerivedTruthSurfaceKind::EntityField,
-            target: WorthDerivedInvalidationTarget::TopologyStructure,
+            truth_surface_kind: DerivedTruthSurfaceKind::EntityField,
+            target: DerivedInvalidationTarget::TopologyStructure,
         },
-        WorthTruthToDerivedInvalidationDeclaration {
+        TruthToDerivedInvalidationDeclaration {
             declaration_id: "topology-ownership",
             truth_patch_field: "topology.ownership",
-            truth_surface_kind: WorthDerivedTruthSurfaceKind::EntityRelationEndpoint,
-            target: WorthDerivedInvalidationTarget::TopologyOwnership,
+            truth_surface_kind: DerivedTruthSurfaceKind::EntityRelationEndpoint,
+            target: DerivedInvalidationTarget::TopologyOwnership,
         },
-        WorthTruthToDerivedInvalidationDeclaration {
+        TruthToDerivedInvalidationDeclaration {
             declaration_id: "topology-boundary",
             truth_patch_field: "topology.boundary",
-            truth_surface_kind: WorthDerivedTruthSurfaceKind::EntityRelationEndpoint,
-            target: WorthDerivedInvalidationTarget::TopologyBoundary,
+            truth_surface_kind: DerivedTruthSurfaceKind::EntityRelationEndpoint,
+            target: DerivedInvalidationTarget::TopologyBoundary,
         },
-        WorthTruthToDerivedInvalidationDeclaration {
+        TruthToDerivedInvalidationDeclaration {
             declaration_id: "topology-radial",
             truth_patch_field: "topology.radial",
-            truth_surface_kind: WorthDerivedTruthSurfaceKind::EntityRelationEndpoint,
-            target: WorthDerivedInvalidationTarget::TopologyRadial,
+            truth_surface_kind: DerivedTruthSurfaceKind::EntityRelationEndpoint,
+            target: DerivedInvalidationTarget::TopologyRadial,
         },
-        WorthTruthToDerivedInvalidationDeclaration {
+        TruthToDerivedInvalidationDeclaration {
             declaration_id: "naming-persistent-name",
             truth_patch_field: "naming.persistent_name",
-            truth_surface_kind: WorthDerivedTruthSurfaceKind::EntityRelationEndpoint,
-            target: WorthDerivedInvalidationTarget::NamingPersistentName,
+            truth_surface_kind: DerivedTruthSurfaceKind::EntityRelationEndpoint,
+            target: DerivedInvalidationTarget::NamingPersistentName,
         },
     ]
 }
@@ -93,11 +92,11 @@ pub fn worth_milestone_two_invalidation_declarations(
 mod tests {
     use std::collections::BTreeSet;
 
-    use super::{worth_milestone_two_invalidation_declarations, WorthDerivedInvalidationTarget};
+    use super::{milestone_two_invalidation_declarations, DerivedInvalidationTarget};
 
     #[test]
     fn milestone_two_invalidation_declarations_cover_unique_fields_and_targets() {
-        let declarations = worth_milestone_two_invalidation_declarations();
+        let declarations = milestone_two_invalidation_declarations();
 
         assert_eq!(declarations.len(), 8);
         let unique_ids = declarations
@@ -115,10 +114,10 @@ mod tests {
 
         assert_eq!(unique_ids.len(), declarations.len());
         assert_eq!(unique_fields.len(), declarations.len());
-        assert!(targets.contains(&WorthDerivedInvalidationTarget::TopologyStructure));
-        assert!(targets.contains(&WorthDerivedInvalidationTarget::TopologyOwnership));
-        assert!(targets.contains(&WorthDerivedInvalidationTarget::TopologyBoundary));
-        assert!(targets.contains(&WorthDerivedInvalidationTarget::TopologyRadial));
-        assert!(targets.contains(&WorthDerivedInvalidationTarget::NamingPersistentName));
+        assert!(targets.contains(&DerivedInvalidationTarget::TopologyStructure));
+        assert!(targets.contains(&DerivedInvalidationTarget::TopologyOwnership));
+        assert!(targets.contains(&DerivedInvalidationTarget::TopologyBoundary));
+        assert!(targets.contains(&DerivedInvalidationTarget::TopologyRadial));
+        assert!(targets.contains(&DerivedInvalidationTarget::NamingPersistentName));
     }
 }

@@ -2,21 +2,18 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use forge_query::facade::{ForgeQueryEntity, ForgeQueryRuntimeError, ForgeQueryWorkspaceError};
 use forge_relational::facade::identity::{EntityId, RelationId};
+use schema::facade::{
+    query_aspect_path_strings, Aspect, DerivedTopologyReadBasis, EntityKind, MutationOrigin,
+    RawTopologyIntent, RelationKind, TopologyAspect, TopologyMutation, TopologyRelationKind,
+};
 use serde_json::Value;
-use worth_schema::facade::{
-    worth_query_aspect_path_strings, DerivedTopologyReadBasis, RawWorthTopologyIntent, WorthAspect,
-    WorthEntityKind, WorthMutationOrigin, WorthRelationKind, WorthTopologyAspect,
-    WorthTopologyMutation, WorthTopologyRelationKind,
-};
 
-use super::authority::{
-    ImportedTopologyEntity, ImportedTopologyRelation, WorthTopologyQueryApplyError,
-};
-use crate::query::WorthTopologyQueryMutationEvidence;
+use super::authority::{ImportedTopologyEntity, ImportedTopologyRelation, TopologyQueryApplyError};
+use crate::query::TopologyQueryMutationEvidence;
 
 pub fn index_imported_entities(
     rows: Vec<ForgeQueryEntity>,
-) -> Result<BTreeMap<EntityId, ImportedTopologyEntity>, WorthTopologyQueryApplyError> {
+) -> Result<BTreeMap<EntityId, ImportedTopologyEntity>, TopologyQueryApplyError> {
     let mut entities = BTreeMap::new();
     for row in rows {
         let Some(provenance) = row
@@ -27,7 +24,7 @@ pub fn index_imported_entities(
             continue;
         };
         let entity_id: EntityId = serde_json::from_value(provenance.clone()).map_err(|error| {
-            WorthTopologyQueryApplyError::Query(ForgeQueryRuntimeError::Workspace(
+            TopologyQueryApplyError::Query(ForgeQueryRuntimeError::Workspace(
                 ForgeQueryWorkspaceError::new(format!(
                     "entity provenance failed to decode: {error}"
                 )),
@@ -38,13 +35,13 @@ pub fn index_imported_entities(
             .get("topology")
             .and_then(|value| value.get("kind"))
             .and_then(Value::as_str)
-            .ok_or(WorthTopologyQueryApplyError::MissingExistingEntityKind(
+            .ok_or(TopologyQueryApplyError::MissingExistingEntityKind(
                 entity_id,
             ))?;
-        let kind = WorthEntityKind::ALL
+        let kind = EntityKind::ALL
             .into_iter()
             .find(|kind| kind.kind_name() == kind_name)
-            .ok_or(WorthTopologyQueryApplyError::MissingExistingEntityKind(
+            .ok_or(TopologyQueryApplyError::MissingExistingEntityKind(
                 entity_id,
             ))?;
         entities.insert(
@@ -60,7 +57,7 @@ pub fn index_imported_entities(
 
 pub fn index_imported_relations(
     rows: Vec<ForgeQueryEntity>,
-) -> Result<BTreeMap<RelationId, ImportedTopologyRelation>, WorthTopologyQueryApplyError> {
+) -> Result<BTreeMap<RelationId, ImportedTopologyRelation>, TopologyQueryApplyError> {
     let mut relations = BTreeMap::new();
     for row in rows {
         let Some(provenance) = row
@@ -72,7 +69,7 @@ pub fn index_imported_relations(
         };
         let relation_id: RelationId =
             serde_json::from_value(provenance.clone()).map_err(|error| {
-                WorthTopologyQueryApplyError::Query(ForgeQueryRuntimeError::Workspace(
+                TopologyQueryApplyError::Query(ForgeQueryRuntimeError::Workspace(
                     ForgeQueryWorkspaceError::new(format!(
                         "relation provenance failed to decode: {error}"
                     )),
@@ -83,13 +80,13 @@ pub fn index_imported_relations(
             .get("topology")
             .and_then(|value| value.get("kind"))
             .and_then(Value::as_str)
-            .ok_or(WorthTopologyQueryApplyError::MissingExistingRelationKind(
+            .ok_or(TopologyQueryApplyError::MissingExistingRelationKind(
                 relation_id,
             ))?;
-        let kind = WorthRelationKind::ALL
+        let kind = RelationKind::ALL
             .into_iter()
             .find(|kind| kind.kind_name() == kind_name)
-            .ok_or(WorthTopologyQueryApplyError::MissingExistingRelationKind(
+            .ok_or(TopologyQueryApplyError::MissingExistingRelationKind(
                 relation_id,
             ))?;
         relations.insert(
@@ -102,18 +99,18 @@ pub fn index_imported_relations(
                     .get("topology")
                     .and_then(|value| value.get("source_identity"))
                     .and_then(Value::as_str)
-                    .ok_or(
-                        WorthTopologyQueryApplyError::MissingExistingRelationBinding(relation_id),
-                    )?
+                    .ok_or(TopologyQueryApplyError::MissingExistingRelationBinding(
+                        relation_id,
+                    ))?
                     .to_string(),
                 target_query_identity: row
                     .payload
                     .get("topology")
                     .and_then(|value| value.get("target_identity"))
                     .and_then(Value::as_str)
-                    .ok_or(
-                        WorthTopologyQueryApplyError::MissingExistingRelationBinding(relation_id),
-                    )?
+                    .ok_or(TopologyQueryApplyError::MissingExistingRelationBinding(
+                        relation_id,
+                    ))?
                     .to_string(),
             },
         );
@@ -123,42 +120,42 @@ pub fn index_imported_relations(
 
 pub fn mutation_evidence_for_intent(
     read_basis: &DerivedTopologyReadBasis,
-    intent: &RawWorthTopologyIntent,
+    intent: &RawTopologyIntent,
     entities: &BTreeMap<EntityId, ImportedTopologyEntity>,
     relations: &BTreeMap<RelationId, ImportedTopologyRelation>,
-) -> Result<WorthTopologyQueryMutationEvidence, WorthTopologyQueryApplyError> {
-    let mut evidence = WorthTopologyQueryMutationEvidence::from_read_basis(read_basis);
+) -> Result<TopologyQueryMutationEvidence, TopologyQueryApplyError> {
+    let mut evidence = TopologyQueryMutationEvidence::from_read_basis(read_basis);
     let mut touched = BTreeSet::new();
     for mutation in &intent.mutations {
         match mutation {
-            WorthTopologyMutation::CreateEntity { kind, .. } => {
+            TopologyMutation::CreateEntity { kind, .. } => {
                 touched.extend(entity_touched_aspects(*kind));
             }
-            WorthTopologyMutation::CreateRelation { kind, .. } => {
+            TopologyMutation::CreateRelation { kind, .. } => {
                 touched.extend(relation_touched_aspects(*kind));
             }
-            WorthTopologyMutation::RemoveEntity { entity_id } => {
+            TopologyMutation::RemoveEntity { entity_id } => {
                 let kind = entities
                     .get(entity_id)
-                    .ok_or(WorthTopologyQueryApplyError::MissingExistingEntityBinding(
+                    .ok_or(TopologyQueryApplyError::MissingExistingEntityBinding(
                         *entity_id,
                     ))?
                     .kind;
                 touched.extend(entity_touched_aspects(kind));
             }
-            WorthTopologyMutation::RemoveRelation { relation_id } => {
+            TopologyMutation::RemoveRelation { relation_id } => {
                 let kind = relations
                     .get(relation_id)
-                    .ok_or(
-                        WorthTopologyQueryApplyError::MissingExistingRelationBinding(*relation_id),
-                    )?
+                    .ok_or(TopologyQueryApplyError::MissingExistingRelationBinding(
+                        *relation_id,
+                    ))?
                     .kind;
                 touched.extend(relation_touched_aspects(kind));
             }
-            WorthTopologyMutation::UpsertEntity { kind, .. } => {
+            TopologyMutation::UpsertEntity { kind, .. } => {
                 touched.extend(entity_touched_aspects(*kind));
             }
-            WorthTopologyMutation::UpsertRelation {
+            TopologyMutation::UpsertRelation {
                 relation_id, kind, ..
             } => {
                 if let Some(imported) = relations.get(relation_id) {
@@ -168,54 +165,46 @@ pub fn mutation_evidence_for_intent(
             }
         }
     }
-    evidence.touched_aspect_paths = worth_query_aspect_path_strings(touched);
-    evidence.derivation_origin = WorthMutationOrigin::LocalEdit;
+    evidence.touched_aspect_paths = query_aspect_path_strings(touched);
+    evidence.derivation_origin = MutationOrigin::LocalEdit;
     Ok(evidence)
 }
 
-fn entity_touched_aspects(kind: WorthEntityKind) -> [WorthAspect; 2] {
+fn entity_touched_aspects(kind: EntityKind) -> [Aspect; 2] {
     [
         match kind {
-            WorthEntityKind::Topology(_) => WorthAspect::Topology(WorthTopologyAspect::Structure),
-            WorthEntityKind::Geometry(_) => {
-                WorthAspect::Geometry(worth_schema::facade::WorthGeometryAspect::Binding)
+            EntityKind::Topology(_) => Aspect::Topology(TopologyAspect::Structure),
+            EntityKind::Geometry(_) => Aspect::Geometry(schema::facade::GeometryAspect::Binding),
+            EntityKind::Naming(_) => Aspect::Naming(schema::facade::NamingAspect::PersistentName),
+            EntityKind::Diagnostics(_) => {
+                Aspect::Diagnostics(schema::facade::DiagnosticsAspect::Interpretations)
             }
-            WorthEntityKind::Naming(_) => {
-                WorthAspect::Naming(worth_schema::facade::WorthNamingAspect::PersistentName)
-            }
-            WorthEntityKind::Diagnostics(_) => WorthAspect::Diagnostics(
-                worth_schema::facade::WorthDiagnosticsAspect::Interpretations,
-            ),
         },
-        WorthAspect::Diagnostics(worth_schema::facade::WorthDiagnosticsAspect::Decisions),
+        Aspect::Diagnostics(schema::facade::DiagnosticsAspect::Decisions),
     ]
 }
 
-pub fn relation_touched_aspects(kind: WorthRelationKind) -> [WorthAspect; 2] {
+pub fn relation_touched_aspects(kind: RelationKind) -> [Aspect; 2] {
     [
         match kind {
-            WorthRelationKind::Topology(WorthTopologyRelationKind::ModelOwnsBody)
-            | WorthRelationKind::Topology(WorthTopologyRelationKind::BodyOwnsLump)
-            | WorthRelationKind::Topology(WorthTopologyRelationKind::LumpOwnsRegion)
-            | WorthRelationKind::Topology(WorthTopologyRelationKind::RegionOwnsShell)
-            | WorthRelationKind::Topology(WorthTopologyRelationKind::ShellOwnsFace)
-            | WorthRelationKind::Topology(WorthTopologyRelationKind::WireOwnsHalfEdge) => {
-                WorthAspect::Topology(WorthTopologyAspect::Ownership)
+            RelationKind::Topology(TopologyRelationKind::ModelOwnsBody)
+            | RelationKind::Topology(TopologyRelationKind::BodyOwnsLump)
+            | RelationKind::Topology(TopologyRelationKind::LumpOwnsRegion)
+            | RelationKind::Topology(TopologyRelationKind::RegionOwnsShell)
+            | RelationKind::Topology(TopologyRelationKind::ShellOwnsFace)
+            | RelationKind::Topology(TopologyRelationKind::WireOwnsHalfEdge) => {
+                Aspect::Topology(TopologyAspect::Ownership)
             }
-            WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeRadialNext) => {
-                WorthAspect::Topology(WorthTopologyAspect::Radial)
+            RelationKind::Topology(TopologyRelationKind::HalfEdgeRadialNext) => {
+                Aspect::Topology(TopologyAspect::Radial)
             }
-            WorthRelationKind::Topology(_) => WorthAspect::Topology(WorthTopologyAspect::Boundary),
-            WorthRelationKind::Geometry(_) => {
-                WorthAspect::Geometry(worth_schema::facade::WorthGeometryAspect::Binding)
+            RelationKind::Topology(_) => Aspect::Topology(TopologyAspect::Boundary),
+            RelationKind::Geometry(_) => Aspect::Geometry(schema::facade::GeometryAspect::Binding),
+            RelationKind::Naming(_) => Aspect::Naming(schema::facade::NamingAspect::PersistentName),
+            RelationKind::Diagnostics(_) => {
+                Aspect::Diagnostics(schema::facade::DiagnosticsAspect::Interpretations)
             }
-            WorthRelationKind::Naming(_) => {
-                WorthAspect::Naming(worth_schema::facade::WorthNamingAspect::PersistentName)
-            }
-            WorthRelationKind::Diagnostics(_) => WorthAspect::Diagnostics(
-                worth_schema::facade::WorthDiagnosticsAspect::Interpretations,
-            ),
         },
-        WorthAspect::Diagnostics(worth_schema::facade::WorthDiagnosticsAspect::Decisions),
+        Aspect::Diagnostics(schema::facade::DiagnosticsAspect::Decisions),
     ]
 }

@@ -1,10 +1,10 @@
 use std::collections::BTreeSet;
 
 use crate::interpretation::InterpretedTopologyView;
-use crate::validators::error::WorthTopologyValidationError;
+use crate::validators::error::TopologyValidationError;
 use crate::validators::shared::err;
 
-pub fn validate(view: &InterpretedTopologyView) -> Result<(), WorthTopologyValidationError> {
+pub fn validate(view: &InterpretedTopologyView) -> Result<(), TopologyValidationError> {
     let topology = view.materialized().topology();
     validate_radial_presence(view)?;
     validate_radial_cycle_uniqueness(topology)?;
@@ -12,9 +12,7 @@ pub fn validate(view: &InterpretedTopologyView) -> Result<(), WorthTopologyValid
     Ok(())
 }
 
-fn validate_radial_presence(
-    view: &InterpretedTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
+fn validate_radial_presence(view: &InterpretedTopologyView) -> Result<(), TopologyValidationError> {
     let topology = view.materialized().topology();
     for half_edge in &topology.half_edges {
         if half_edge.radial_next_half_edge_id.is_none() {
@@ -31,8 +29,8 @@ fn validate_radial_presence(
 }
 
 fn validate_radial_cycle_uniqueness(
-    view: &crate::data::topology_view::WorthTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
+    view: &crate::data::topology_view::TopologyView,
+) -> Result<(), TopologyValidationError> {
     for half_edge in &view.half_edges {
         let mut seen = BTreeSet::new();
         let mut current_id = half_edge.entity_id;
@@ -75,9 +73,9 @@ fn validate_radial_cycle_uniqueness(
 }
 
 fn validate_radial_edge_consistency(
-    topology: &crate::data::topology_view::WorthTopologyView,
+    topology: &crate::data::topology_view::TopologyView,
     interpreted: &InterpretedTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
+) -> Result<(), TopologyValidationError> {
     for half_edge in &topology.half_edges {
         let edge_id = half_edge.edge_id.ok_or_else(|| {
             err(

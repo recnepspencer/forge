@@ -1,7 +1,6 @@
-pub type WorthWireInterpretation = worth_schema::facade::WorthWireInterpretationRecord;
-pub type WorthShellInterpretation = worth_schema::facade::WorthShellInterpretationRecord;
-pub type WorthTopologyInterpretationSet =
-    worth_schema::facade::WorthTopologyInterpretationRecordSet;
+pub type WireInterpretation = schema::facade::WireInterpretationRecord;
+pub type ShellInterpretation = schema::facade::ShellInterpretationRecord;
+pub type TopologyInterpretationSet = schema::facade::TopologyInterpretationRecordSet;
 
 use forge_relational::facade::identity::EntityId;
 use serde::{Deserialize, Serialize};
@@ -9,7 +8,7 @@ use serde::{Deserialize, Serialize};
 use crate::materialization::MaterializedTopologyView;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthBoundaryInterpretationSummary {
+pub struct BoundaryInterpretationSummary {
     pub shell_id: EntityId,
     pub boundary_component_count: usize,
     pub boundary_half_edge_count: usize,
@@ -17,7 +16,7 @@ pub struct WorthBoundaryInterpretationSummary {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthRadialInterpretationSummary {
+pub struct RadialInterpretationSummary {
     pub shell_id: EntityId,
     pub boundary_half_edge_count: usize,
     pub non_manifold_edge_ids: Vec<EntityId>,
@@ -34,18 +33,18 @@ pub struct InterpretationReport {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct InterpretedTopologyView {
     materialized: MaterializedTopologyView,
-    interpretations: WorthTopologyInterpretationSet,
-    boundary_summaries: Vec<WorthBoundaryInterpretationSummary>,
-    radial_summaries: Vec<WorthRadialInterpretationSummary>,
+    interpretations: TopologyInterpretationSet,
+    boundary_summaries: Vec<BoundaryInterpretationSummary>,
+    radial_summaries: Vec<RadialInterpretationSummary>,
     report: InterpretationReport,
 }
 
 impl InterpretedTopologyView {
     pub(crate) fn new(
         materialized: MaterializedTopologyView,
-        interpretations: WorthTopologyInterpretationSet,
-        boundary_summaries: Vec<WorthBoundaryInterpretationSummary>,
-        radial_summaries: Vec<WorthRadialInterpretationSummary>,
+        interpretations: TopologyInterpretationSet,
+        boundary_summaries: Vec<BoundaryInterpretationSummary>,
+        radial_summaries: Vec<RadialInterpretationSummary>,
         report: InterpretationReport,
     ) -> Self {
         Self {
@@ -61,15 +60,15 @@ impl InterpretedTopologyView {
         &self.materialized
     }
 
-    pub fn interpretations(&self) -> &WorthTopologyInterpretationSet {
+    pub fn interpretations(&self) -> &TopologyInterpretationSet {
         &self.interpretations
     }
 
-    pub fn boundary_summaries(&self) -> &[WorthBoundaryInterpretationSummary] {
+    pub fn boundary_summaries(&self) -> &[BoundaryInterpretationSummary] {
         &self.boundary_summaries
     }
 
-    pub fn radial_summaries(&self) -> &[WorthRadialInterpretationSummary] {
+    pub fn radial_summaries(&self) -> &[RadialInterpretationSummary] {
         &self.radial_summaries
     }
 

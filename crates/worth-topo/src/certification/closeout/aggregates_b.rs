@@ -1,15 +1,15 @@
 use super::*;
 
 pub(super) fn build_failure_locality_report(
-    primitive_corpus: &WorthPrimitiveCorpusReport,
-    illegal_topology_rejections: &WorthIllegalTopologyRejectionReport,
-) -> WorthFailureLocalityReport {
+    primitive_corpus: &PrimitiveCorpusReport,
+    illegal_topology_rejections: &IllegalTopologyRejectionReport,
+) -> FailureLocalityReport {
     let mut rows = Vec::new();
     rows.extend(
         primitive_corpus
             .rejected_cases
             .iter()
-            .map(|case| WorthFailureLocalityRow {
+            .map(|case| FailureLocalityRow {
                 family: case.family.clone(),
                 role: format!("{:?}", case.role),
                 validator_family: case.rejection.validator_family.clone(),
@@ -23,7 +23,7 @@ pub(super) fn build_failure_locality_report(
         illegal_topology_rejections
             .cases
             .iter()
-            .map(|case| WorthFailureLocalityRow {
+            .map(|case| FailureLocalityRow {
                 family: case.family.clone(),
                 role: case.role.clone(),
                 validator_family: case.rejection.validator_family.clone(),
@@ -33,13 +33,13 @@ pub(super) fn build_failure_locality_report(
                 localized_relation_count: case.rejection.localized_relation_count,
             }),
     );
-    WorthFailureLocalityReport { rows }
+    FailureLocalityReport { rows }
 }
 
 pub(super) fn build_closeout_branch_local_report(
-    seeded_bootstrap: &WorthMilestoneOneCertificationReport,
-    primitive_corpus: &WorthPrimitiveCorpusReport,
-) -> WorthMilestoneOneBranchLocalAggregateReport {
+    seeded_bootstrap: &MilestoneOneCertificationReport,
+    primitive_corpus: &PrimitiveCorpusReport,
+) -> MilestoneOneBranchLocalAggregateReport {
     let mainline_case_count = 1 + primitive_corpus
         .parity_report
         .entries
@@ -63,7 +63,7 @@ pub(super) fn build_closeout_branch_local_report(
     for entry in &primitive_corpus.parity_report.entries {
         branch_ids.extend(entry.branch_ids.iter().cloned());
     }
-    WorthMilestoneOneBranchLocalAggregateReport {
+    MilestoneOneBranchLocalAggregateReport {
         mainline_case_count,
         branch_local_case_count,
         branch_ids: branch_ids.into_iter().collect(),
@@ -77,9 +77,9 @@ pub(super) fn build_closeout_branch_local_report(
 }
 
 pub(super) fn build_closeout_replay_report(
-    seeded_bootstrap: &WorthMilestoneOneCertificationReport,
-    primitive_corpus: &WorthPrimitiveCorpusReport,
-) -> WorthMilestoneOneReplayAggregateReport {
+    seeded_bootstrap: &MilestoneOneCertificationReport,
+    primitive_corpus: &PrimitiveCorpusReport,
+) -> MilestoneOneReplayAggregateReport {
     let replay_checked_case_count = usize::from(
         seeded_bootstrap
             .milestone_1_replay_parity_report
@@ -104,7 +104,7 @@ pub(super) fn build_closeout_replay_report(
         seeded_bootstrap
             .milestone_1_replay_parity_report
             .parity_status,
-        WorthReplayParityStatus::Mismatch
+        ReplayParityStatus::Mismatch
     )) + primitive_corpus
         .parity_report
         .entries
@@ -127,7 +127,7 @@ pub(super) fn build_closeout_replay_report(
         .iter()
         .map(|entry| entry.branch_local_replay_verified_case_count)
         .sum::<usize>();
-    WorthMilestoneOneReplayAggregateReport {
+    MilestoneOneReplayAggregateReport {
         replay_checked_case_count,
         replay_verified_case_count,
         replay_mismatch_case_count,
@@ -142,15 +142,15 @@ pub(super) fn build_closeout_replay_report(
 }
 
 pub(super) fn build_closeout_rejection_class_report(
-    primitive_corpus: &WorthPrimitiveCorpusReport,
-    illegal_topology_rejections: &WorthIllegalTopologyRejectionReport,
-) -> WorthMilestoneOneRejectionClassReport {
-    let mut rows = BTreeMap::<(String, String), WorthMilestoneOneRejectionClassRow>::new();
+    primitive_corpus: &PrimitiveCorpusReport,
+    illegal_topology_rejections: &IllegalTopologyRejectionReport,
+) -> MilestoneOneRejectionClassReport {
+    let mut rows = BTreeMap::<(String, String), MilestoneOneRejectionClassRow>::new();
     for case in &primitive_corpus.rejected_cases {
         let key = (case.family.clone(), case.rejection.rejection_class.clone());
         let entry = rows
             .entry(key.clone())
-            .or_insert_with(|| WorthMilestoneOneRejectionClassRow {
+            .or_insert_with(|| MilestoneOneRejectionClassRow {
                 family: key.0.clone(),
                 rejection_class: key.1.clone(),
                 case_count: 0,
@@ -161,14 +161,14 @@ pub(super) fn build_closeout_rejection_class_report(
         let key = (case.family.clone(), case.rejection.rejection_class.clone());
         let entry = rows
             .entry(key.clone())
-            .or_insert_with(|| WorthMilestoneOneRejectionClassRow {
+            .or_insert_with(|| MilestoneOneRejectionClassRow {
                 family: key.0.clone(),
                 rejection_class: key.1.clone(),
                 case_count: 0,
             });
         entry.case_count += 1;
     }
-    WorthMilestoneOneRejectionClassReport {
+    MilestoneOneRejectionClassReport {
         rows: rows.into_values().collect(),
     }
 }

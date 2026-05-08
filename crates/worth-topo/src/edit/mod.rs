@@ -3,19 +3,18 @@ mod proof;
 mod query_native;
 mod types;
 
-pub use facade::{WorthTopologyEditApplicationMode, WorthTopologyEditBatch};
+pub use facade::{TopologyEditApplicationMode, TopologyEditBatch};
 pub use proof::{
-    WorthNamingEditContinuityMatrix, WorthRejectedEditScopeReport, WorthRejectedEditScopeRow,
-    WorthTopologyEditDigest, WorthTopologyEditRejectionClass,
+    NamingEditContinuityMatrix, RejectedEditScopeReport, RejectedEditScopeRow, TopologyEditDigest,
+    TopologyEditRejectionClass,
 };
-pub(crate) use query_native::WorthTopologyQueryEditRunner;
-pub use query_native::{WorthTopologyQueryEditExecution, WorthTopologyQueryEditExecutionError};
+pub(crate) use query_native::TopologyQueryEditRunner;
+pub use query_native::{TopologyQueryEditExecution, TopologyQueryEditExecutionError};
 pub use types::{
-    WorthBoundaryMembershipKind, WorthLoopEndpointKind, WorthLoopSuccessorKind,
-    WorthShellOrWireMembershipKind, WorthTopologyDerivedRegion, WorthTopologyEditAction,
-    WorthTopologyEditChangedScope, WorthTopologyEditContract, WorthTopologyEditFamily,
-    WorthTopologyEditNamingOutcome, WorthTopologyEditNamingReport, WorthTopologyEditNamingRow,
-    WorthTopologyEditNamingScope,
+    BoundaryMembershipKind, LoopEndpointKind, LoopSuccessorKind, ShellOrWireMembershipKind,
+    TopologyDerivedRegion, TopologyEditAction, TopologyEditChangedScope, TopologyEditContract,
+    TopologyEditFamily, TopologyEditNamingOutcome, TopologyEditNamingReport, TopologyEditNamingRow,
+    TopologyEditNamingScope,
 };
 
 #[cfg(test)]

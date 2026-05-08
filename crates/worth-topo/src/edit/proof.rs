@@ -1,15 +1,15 @@
 use serde::{Deserialize, Serialize};
 
-use crate::certification::WorthDeterministicDigest;
+use crate::certification::DeterministicDigest;
 
 use super::{
-    WorthTopologyDerivedRegion, WorthTopologyEditBatch, WorthTopologyEditChangedScope,
-    WorthTopologyEditContract, WorthTopologyEditFamily, WorthTopologyEditNamingOutcome,
-    WorthTopologyEditNamingRow, WorthTopologyEditNamingScope, WorthTopologyQueryEditExecutionError,
+    TopologyDerivedRegion, TopologyEditBatch, TopologyEditChangedScope, TopologyEditContract,
+    TopologyEditFamily, TopologyEditNamingOutcome, TopologyEditNamingRow, TopologyEditNamingScope,
+    TopologyQueryEditExecutionError,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum WorthTopologyEditRejectionClass {
+pub enum TopologyEditRejectionClass {
     OutOfClassEdit,
     InvariantBlocked,
     NamingContinuityAmbiguous,
@@ -17,8 +17,8 @@ pub enum WorthTopologyEditRejectionClass {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthTopologyEditDigest {
-    pub digest: WorthDeterministicDigest,
+pub struct TopologyEditDigest {
+    pub digest: DeterministicDigest,
     pub contract_count: usize,
     pub family_count: usize,
     pub changed_scope_count: usize,
@@ -27,54 +27,54 @@ pub struct WorthTopologyEditDigest {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthNamingEditContinuityMatrix {
-    pub rows: Vec<WorthTopologyEditNamingRow>,
+pub struct NamingEditContinuityMatrix {
+    pub rows: Vec<TopologyEditNamingRow>,
     pub preserved_count: usize,
     pub ambiguous_count: usize,
     pub rejected_count: usize,
 }
 
-impl WorthNamingEditContinuityMatrix {
-    pub fn outcome_class(&self) -> WorthTopologyEditNamingOutcome {
+impl NamingEditContinuityMatrix {
+    pub fn outcome_class(&self) -> TopologyEditNamingOutcome {
         if self.rejected_count > 0 {
-            WorthTopologyEditNamingOutcome::Rejected
+            TopologyEditNamingOutcome::Rejected
         } else if self.ambiguous_count > 0 {
-            WorthTopologyEditNamingOutcome::Ambiguous
+            TopologyEditNamingOutcome::Ambiguous
         } else {
-            WorthTopologyEditNamingOutcome::Preserved
+            TopologyEditNamingOutcome::Preserved
         }
     }
 
-    pub fn rejection_class(&self) -> Option<WorthTopologyEditRejectionClass> {
+    pub fn rejection_class(&self) -> Option<TopologyEditRejectionClass> {
         match self.outcome_class() {
-            WorthTopologyEditNamingOutcome::Preserved => None,
-            WorthTopologyEditNamingOutcome::Ambiguous => {
-                Some(WorthTopologyEditRejectionClass::NamingContinuityAmbiguous)
+            TopologyEditNamingOutcome::Preserved => None,
+            TopologyEditNamingOutcome::Ambiguous => {
+                Some(TopologyEditRejectionClass::NamingContinuityAmbiguous)
             }
-            WorthTopologyEditNamingOutcome::Rejected => {
-                Some(WorthTopologyEditRejectionClass::NamingContinuityRejected)
+            TopologyEditNamingOutcome::Rejected => {
+                Some(TopologyEditRejectionClass::NamingContinuityRejected)
             }
         }
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthRejectedEditScopeRow {
-    pub family: WorthTopologyEditFamily,
-    pub rejection_class: WorthTopologyEditRejectionClass,
-    pub changed_scopes: Vec<WorthTopologyEditChangedScope>,
-    pub naming_scopes: Vec<WorthTopologyEditNamingScope>,
-    pub derived_regions: Vec<WorthTopologyDerivedRegion>,
+pub struct RejectedEditScopeRow {
+    pub family: TopologyEditFamily,
+    pub rejection_class: TopologyEditRejectionClass,
+    pub changed_scopes: Vec<TopologyEditChangedScope>,
+    pub naming_scopes: Vec<TopologyEditNamingScope>,
+    pub derived_regions: Vec<TopologyDerivedRegion>,
     pub detail: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthRejectedEditScopeReport {
-    pub rows: Vec<WorthRejectedEditScopeRow>,
+pub struct RejectedEditScopeReport {
+    pub rows: Vec<RejectedEditScopeRow>,
 }
 
-impl WorthTopologyEditBatch {
-    pub fn topology_edit_digest(&self) -> WorthTopologyEditDigest {
+impl TopologyEditBatch {
+    pub fn topology_edit_digest(&self) -> TopologyEditDigest {
         let rows = self.contracts().iter().map(contract_digest_row);
         let changed_scope_count = self
             .contracts()
@@ -91,7 +91,7 @@ impl WorthTopologyEditBatch {
             .iter()
             .map(|contract| contract.derived_regions().len())
             .sum();
-        WorthTopologyEditDigest {
+        TopologyEditDigest {
             digest: digest_rows(rows),
             contract_count: self.contracts().len(),
             family_count: self.families().len(),
@@ -101,21 +101,21 @@ impl WorthTopologyEditBatch {
         }
     }
 
-    pub fn naming_edit_continuity_matrix(&self) -> WorthNamingEditContinuityMatrix {
+    pub fn naming_edit_continuity_matrix(&self) -> NamingEditContinuityMatrix {
         let rows = self.naming_report().rows;
         let preserved_count = rows
             .iter()
-            .filter(|row| row.outcome == WorthTopologyEditNamingOutcome::Preserved)
+            .filter(|row| row.outcome == TopologyEditNamingOutcome::Preserved)
             .count();
         let ambiguous_count = rows
             .iter()
-            .filter(|row| row.outcome == WorthTopologyEditNamingOutcome::Ambiguous)
+            .filter(|row| row.outcome == TopologyEditNamingOutcome::Ambiguous)
             .count();
         let rejected_count = rows
             .iter()
-            .filter(|row| row.outcome == WorthTopologyEditNamingOutcome::Rejected)
+            .filter(|row| row.outcome == TopologyEditNamingOutcome::Rejected)
             .count();
-        WorthNamingEditContinuityMatrix {
+        NamingEditContinuityMatrix {
             rows,
             preserved_count,
             ambiguous_count,
@@ -124,11 +124,11 @@ impl WorthTopologyEditBatch {
     }
 }
 
-impl WorthTopologyQueryEditExecutionError {
-    pub fn rejection_class(&self) -> Option<WorthTopologyEditRejectionClass> {
+impl TopologyQueryEditExecutionError {
+    pub fn rejection_class(&self) -> Option<TopologyEditRejectionClass> {
         match self {
             Self::UnsupportedMode(_) | Self::UnsupportedFamilies(_) => {
-                Some(WorthTopologyEditRejectionClass::OutOfClassEdit)
+                Some(TopologyEditRejectionClass::OutOfClassEdit)
             }
             Self::MissingCreatedEntityReference(_)
             | Self::MissingExistingEntityBinding(_)
@@ -141,7 +141,7 @@ impl WorthTopologyQueryEditExecutionError {
             | Self::ExistingEntityIncomingRelationCountMismatch { .. }
             | Self::ExistingHalfEdgesNotOnSameEdge { .. }
             | Self::ExistingHalfEdgesNotOnSameLoop { .. } => {
-                Some(WorthTopologyEditRejectionClass::InvariantBlocked)
+                Some(TopologyEditRejectionClass::InvariantBlocked)
             }
             Self::Query(_)
             | Self::Surface(_)
@@ -152,13 +152,13 @@ impl WorthTopologyQueryEditExecutionError {
 
     pub fn rejected_edit_scope_report(
         &self,
-        batch: &WorthTopologyEditBatch,
-    ) -> Option<WorthRejectedEditScopeReport> {
+        batch: &TopologyEditBatch,
+    ) -> Option<RejectedEditScopeReport> {
         let rejection_class = self.rejection_class()?;
         let detail = self.to_string();
         let rows = rejected_contracts(self, batch)
             .into_iter()
-            .map(|contract| WorthRejectedEditScopeRow {
+            .map(|contract| RejectedEditScopeRow {
                 family: contract.family,
                 rejection_class,
                 changed_scopes: contract.changed_scopes().to_vec(),
@@ -167,16 +167,16 @@ impl WorthTopologyQueryEditExecutionError {
                 detail: detail.clone(),
             })
             .collect();
-        Some(WorthRejectedEditScopeReport { rows })
+        Some(RejectedEditScopeReport { rows })
     }
 }
 
 fn rejected_contracts<'a>(
-    error: &WorthTopologyQueryEditExecutionError,
-    batch: &'a WorthTopologyEditBatch,
-) -> Vec<&'a WorthTopologyEditContract> {
+    error: &TopologyQueryEditExecutionError,
+    batch: &'a TopologyEditBatch,
+) -> Vec<&'a TopologyEditContract> {
     match error {
-        WorthTopologyQueryEditExecutionError::UnsupportedFamilies(families) => batch
+        TopologyQueryEditExecutionError::UnsupportedFamilies(families) => batch
             .contracts()
             .iter()
             .filter(|contract| families.contains(&contract.family))
@@ -185,11 +185,11 @@ fn rejected_contracts<'a>(
     }
 }
 
-fn contract_digest_row(contract: &WorthTopologyEditContract) -> String {
-    serde_json::to_string(contract).expect("worth topology edit contracts should serialize")
+fn contract_digest_row(contract: &TopologyEditContract) -> String {
+    serde_json::to_string(contract).expect(" topology edit contracts should serialize")
 }
 
-fn digest_rows(rows: impl IntoIterator<Item = String>) -> WorthDeterministicDigest {
+fn digest_rows(rows: impl IntoIterator<Item = String>) -> DeterministicDigest {
     let mut count = 0usize;
     let mut hash = 0xcbf29ce484222325u64;
     for row in rows {
@@ -201,7 +201,7 @@ fn digest_rows(rows: impl IntoIterator<Item = String>) -> WorthDeterministicDige
         hash ^= u64::from(b'\n');
         hash = hash.wrapping_mul(0x100000001b3);
     }
-    WorthDeterministicDigest {
+    DeterministicDigest {
         algorithm: "fnv1a64".to_string(),
         digest_hex: format!("{hash:016x}"),
         row_count: count,

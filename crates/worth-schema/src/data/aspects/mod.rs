@@ -8,38 +8,38 @@ use forge_relational::facade::publication::AspectKey;
 use forge_relational::facade::symbols::InternedString;
 use serde::{Deserialize, Serialize};
 
-pub use diagnostics::WorthDiagnosticsAspect;
-pub use geometry::WorthGeometryAspect;
-pub use lineage::WorthLineageAspect;
-pub use naming::WorthNamingAspect;
-pub use topology::WorthTopologyAspect;
+pub use diagnostics::DiagnosticsAspect;
+pub use geometry::GeometryAspect;
+pub use lineage::LineageAspect;
+pub use naming::NamingAspect;
+pub use topology::TopologyAspect;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthAspect {
-    Topology(WorthTopologyAspect),
-    Geometry(WorthGeometryAspect),
-    Lineage(WorthLineageAspect),
-    Naming(WorthNamingAspect),
-    Diagnostics(WorthDiagnosticsAspect),
+pub enum Aspect {
+    Topology(TopologyAspect),
+    Geometry(GeometryAspect),
+    Lineage(LineageAspect),
+    Naming(NamingAspect),
+    Diagnostics(DiagnosticsAspect),
 }
 
-impl WorthAspect {
+impl Aspect {
     pub const ALL: [Self; 15] = [
-        Self::Topology(WorthTopologyAspect::Structure),
-        Self::Topology(WorthTopologyAspect::Ownership),
-        Self::Topology(WorthTopologyAspect::Boundary),
-        Self::Topology(WorthTopologyAspect::Radial),
-        Self::Geometry(WorthGeometryAspect::Binding),
-        Self::Geometry(WorthGeometryAspect::Embedding),
-        Self::Geometry(WorthGeometryAspect::Provenance),
-        Self::Geometry(WorthGeometryAspect::Approximation),
-        Self::Geometry(WorthGeometryAspect::UvAnchoring),
-        Self::Geometry(WorthGeometryAspect::Carrier),
-        Self::Geometry(WorthGeometryAspect::Precision),
-        Self::Geometry(WorthGeometryAspect::Fallback),
-        Self::Lineage(WorthLineageAspect::Provenance),
-        Self::Naming(WorthNamingAspect::PersistentName),
-        Self::Diagnostics(WorthDiagnosticsAspect::Decisions),
+        Self::Topology(TopologyAspect::Structure),
+        Self::Topology(TopologyAspect::Ownership),
+        Self::Topology(TopologyAspect::Boundary),
+        Self::Topology(TopologyAspect::Radial),
+        Self::Geometry(GeometryAspect::Binding),
+        Self::Geometry(GeometryAspect::Embedding),
+        Self::Geometry(GeometryAspect::Provenance),
+        Self::Geometry(GeometryAspect::Approximation),
+        Self::Geometry(GeometryAspect::UvAnchoring),
+        Self::Geometry(GeometryAspect::Carrier),
+        Self::Geometry(GeometryAspect::Precision),
+        Self::Geometry(GeometryAspect::Fallback),
+        Self::Lineage(LineageAspect::Provenance),
+        Self::Naming(NamingAspect::PersistentName),
+        Self::Diagnostics(DiagnosticsAspect::Decisions),
     ];
 
     pub const fn as_str(self) -> &'static str {

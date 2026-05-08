@@ -1,4 +1,4 @@
-//! Query-native naming truth helpers for Worth topology.
+//! Query-native naming truth helpers for  topology.
 //!
 //! This module keeps persistent-name truth as a first-class query surface so
 //! query-native certification and inspection can reason about attachment and
@@ -10,42 +10,41 @@ use forge_query::facade::{
     ForgeQueryEntity, ForgeQueryLiveView, ForgeQueryRuntimeError, ForgeQueryWorkspace,
     ForgeQueryWorkspaceError, ForgeQueryWorkspaceLiveViewDeclaration,
 };
-use worth_schema::facade::{
-    WorthEntityKind, WorthNamingEntityKind, WorthQueryAspectPath, WorthQueryCollection,
-    WorthQueryDeclarationError, WorthQueryLiveDeclarationBuilder, WorthQueryLiveField,
-    WorthQuerySchemaBasis, WorthTopologyEntityKind,
+use schema::facade::{
+    EntityKind, NamingEntityKind, QueryAspectPath, QueryCollection, QueryDeclarationError,
+    QueryLiveDeclarationBuilder, QueryLiveField, QuerySchemaBasis, TopologyEntityKind,
 };
 
-use crate::facade::{WorthNamingAttachmentReport, WorthNamingAttachmentRow};
+use crate::facade::{NamingAttachmentReport, NamingAttachmentRow};
 use crate::query::{parse_entity_identity, required_text};
 
-use super::WorthTopologyQuerySurfaceError;
+use super::TopologyQuerySurfaceError;
 
-pub fn worth_persistent_name_live_view_declaration(
+pub fn persistent_name_live_view_declaration(
     surface_name: impl Into<String>,
-) -> Result<ForgeQueryWorkspaceLiveViewDeclaration, WorthQueryDeclarationError> {
-    WorthQueryLiveDeclarationBuilder::new(
+) -> Result<ForgeQueryWorkspaceLiveViewDeclaration, QueryDeclarationError> {
+    QueryLiveDeclarationBuilder::new(
         surface_name,
-        WorthQueryCollection::PersistentName,
-        WorthQuerySchemaBasis::PersistentNameLiveView,
+        QueryCollection::PersistentName,
+        QuerySchemaBasis::PersistentNameLiveView,
     )
     .select_fields([
-        WorthQueryLiveField::IdentityId,
-        WorthQueryLiveField::LineageProvenance,
-        WorthQueryAspectPath::NAMING_PERSISTENT_NAME.into(),
-        WorthQueryLiveField::NamingTargetIdentity,
+        QueryLiveField::IdentityId,
+        QueryLiveField::LineageProvenance,
+        QueryAspectPath::NAMING_PERSISTENT_NAME.into(),
+        QueryLiveField::NamingTargetIdentity,
     ])
-    .order_by_field(WorthQueryLiveField::IdentityId)
+    .order_by_field(QueryLiveField::IdentityId)
     .build()
 }
 
-pub fn declare_worth_persistent_name_live_view<T>(
+pub fn declare_persistent_name_live_view<T>(
     workspace: &mut ForgeQueryWorkspace,
     surface_name: impl Into<String>,
 ) -> Result<ForgeQueryLiveView<T>, ForgeQueryRuntimeError> {
     let surface_name = surface_name.into();
     let declaration =
-        worth_persistent_name_live_view_declaration(surface_name.clone()).map_err(|error| {
+        persistent_name_live_view_declaration(surface_name.clone()).map_err(|error| {
             ForgeQueryRuntimeError::Workspace(ForgeQueryWorkspaceError::new(error.to_string()))
         })?;
     let request = declaration.request().clone();
@@ -56,8 +55,8 @@ pub fn declare_worth_persistent_name_live_view<T>(
 pub fn naming_attachment_report_from_query_rows(
     entity_rows: &[ForgeQueryEntity],
     persistent_name_rows: &[ForgeQueryEntity],
-) -> Result<WorthNamingAttachmentReport, WorthTopologyQuerySurfaceError> {
-    let topology_kind_names: BTreeSet<_> = WorthTopologyEntityKind::WRAPPED_ALL
+) -> Result<NamingAttachmentReport, TopologyQuerySurfaceError> {
+    let topology_kind_names: BTreeSet<_> = TopologyEntityKind::WRAPPED_ALL
         .into_iter()
         .map(|kind| kind.kind_name())
         .collect();
@@ -66,9 +65,9 @@ pub fn naming_attachment_report_from_query_rows(
     let mut topology_identities = BTreeMap::new();
     for row in entity_rows {
         let entity_id = parse_entity_identity(&row.identity)
-            .map_err(|error| WorthTopologyQuerySurfaceError::new(error.to_string()))?;
+            .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
         let kind_name = required_text(&row.payload, "topology.kind")
-            .map_err(|error| WorthTopologyQuerySurfaceError::new(error.to_string()))?;
+            .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
         let entity_kind = row
             .payload
             .get("topology")
@@ -83,28 +82,28 @@ pub fn naming_attachment_report_from_query_rows(
     }
 
     let mut attachments = BTreeMap::<_, Vec<_>>::new();
-    let persistent_name_kind = WorthEntityKind::Naming(WorthNamingEntityKind::PersistentName);
+    let persistent_name_kind = EntityKind::Naming(NamingEntityKind::PersistentName);
     let mut orphan_persistent_name_ids = Vec::new();
     for row in persistent_name_rows {
         let persistent_name_id = parse_entity_identity(&row.identity)
-            .map_err(|error| WorthTopologyQuerySurfaceError::new(error.to_string()))?;
+            .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
         let kind_name = required_text(&row.payload, "topology.kind")
-            .map_err(|error| WorthTopologyQuerySurfaceError::new(error.to_string()))?;
+            .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
         if kind_name != persistent_name_kind.kind_name() {
-            return Err(WorthTopologyQuerySurfaceError::new(format!(
+            return Err(TopologyQuerySurfaceError::new(format!(
                 "query persistent-name surface expected `{}`, found `{kind_name}`",
                 persistent_name_kind.kind_name()
             )));
         }
         required_text(&row.payload, "naming.persistent_name")
-            .map_err(|error| WorthTopologyQuerySurfaceError::new(error.to_string()))?;
+            .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
         if row
             .payload
             .get("lineage")
             .and_then(|value| value.get("provenance"))
             .is_none()
         {
-            return Err(WorthTopologyQuerySurfaceError::new(format!(
+            return Err(TopologyQuerySurfaceError::new(format!(
                 "query persistent-name row `{}` is missing lineage.provenance",
                 row.identity
             )));
@@ -117,7 +116,7 @@ pub fn naming_attachment_report_from_query_rows(
         match target_identity {
             Some(identity) => {
                 let Some(target_entity_id) = topology_identities.get(identity) else {
-                    return Err(WorthTopologyQuerySurfaceError::new(format!(
+                    return Err(TopologyQuerySurfaceError::new(format!(
                         "query persistent-name row `{}` targets unknown topology identity `{identity}`",
                         row.identity
                     )));
@@ -134,7 +133,7 @@ pub fn naming_attachment_report_from_query_rows(
     let attachment_rows = topology_entities
         .into_iter()
         .map(
-            |(topology_entity_id, topology_kind_name)| WorthNamingAttachmentRow {
+            |(topology_entity_id, topology_kind_name)| NamingAttachmentRow {
                 topology_entity_id,
                 topology_kind_name,
                 attached_persistent_name_ids: attachments
@@ -150,7 +149,7 @@ pub fn naming_attachment_report_from_query_rows(
         .map(|row| row.topology_entity_id)
         .collect::<BTreeSet<_>>();
 
-    Ok(WorthNamingAttachmentReport {
+    Ok(NamingAttachmentReport {
         fully_named: attachment_rows.len() == named_entity_ids.len()
             && orphan_persistent_name_ids.is_empty(),
         orphan_persistent_name_ids,
@@ -160,8 +159,8 @@ pub fn naming_attachment_report_from_query_rows(
 
 #[cfg(test)]
 mod tests {
+    use schema::facade::TopologyEntityKind;
     use serde_json::json;
-    use worth_schema::facade::WorthTopologyEntityKind;
 
     use super::*;
 
@@ -171,7 +170,7 @@ mod tests {
             identity: "entity:0:1:0".to_string(),
             payload: json!({
                 "topology": {
-                    "kind": WorthTopologyEntityKind::Vertex.kind_name(),
+                    "kind": TopologyEntityKind::Vertex.kind_name(),
                     "structure": "vertex-a",
                 }
             }),
@@ -180,7 +179,7 @@ mod tests {
             identity: "entity:0:2:0".to_string(),
             payload: json!({
                 "topology": {
-                    "kind": WorthEntityKind::Naming(WorthNamingEntityKind::PersistentName).kind_name(),
+                    "kind": EntityKind::Naming(NamingEntityKind::PersistentName).kind_name(),
                 },
                 "lineage": {
                     "provenance": "entity:0:2:0",

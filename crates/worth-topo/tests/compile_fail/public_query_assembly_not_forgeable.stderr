@@ -1,7 +1,7 @@
-error: cannot construct `WorthTopologyQueryAssembly` with struct literal syntax due to private fields
+error: cannot construct `TopologyQueryAssembly` with struct literal syntax due to private fields
  --> tests/compile_fail/public_query_assembly_not_forgeable.rs:4:13
   |
-4 |     let _ = WorthTopologyQueryAssembly {};
-  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^
+4 |     let _ = TopologyQueryAssembly {};
+  |             ^^^^^^^^^^^^^^^^^^^^^
   |
   = note: private fields that were not provided

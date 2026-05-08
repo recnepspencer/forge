@@ -13,6 +13,7 @@ Public read-composition entry points:
 - `define_read_family`
 - `define_read_family_with_invariant_pack`
 - `execute_read_family`
+- `execute_read_family_in_basis_context`
 
 Canonical graph artifacts:
 
@@ -35,6 +36,9 @@ Graph families:
 Execution engines:
 
 - `query_runtime_current`
+- `query_runtime_branch`
+- `query_runtime_historical`
+- `query_runtime_preview_derived`
 
 Fallback classes:
 
@@ -95,9 +99,9 @@ Denial lanes:
 
 ## Safe To Build Now
 
-- compose_read, compose_read_with_invariant_pack, define_read_family, define_read_family_with_invariant_pack, and execute_read_family form one public read-composition product instead of separate helper stories
+- compose_read, compose_read_with_invariant_pack, define_read_family, define_read_family_with_invariant_pack, execute_read_family, and execute_read_family_in_basis_context form one public read-composition product instead of separate helper stories
 - the canonical read artifact is ReadGraph and every admitted execution returns a ReadReceipt with scope class, graph family, breadth, fallback posture, and relationship-proof admission identity
-- the Phase 1 runtime taxonomy now freezes query_runtime_current together with none, snapshot_indexed_debt, and whole_view_debt fallback classes as public read-kernel posture
+- the Phase 1 runtime taxonomy now freezes query_runtime_current, query_runtime_historical, and fallback classes as public read-kernel posture
 - scope classes are kernel-owned and freeze local_neighborhood, anchored_expansion, and explicit_broad_search at the shared boundary instead of letting callers relabel the same lowered read
 - operator-owned graph lanes now cover direct_edge, successor_walk, shared_endpoint, shared_attachment, bounded_ancestor, bounded_descendant, anchored_frontier, and frontier_search
 - traversal-bearing reads now admit descriptor-backed synthetic runtime relationship proof before execution instead of reporting only a receipt heuristic
@@ -108,17 +112,17 @@ Denial lanes:
 
 ## Must Not Assume Yet
 
-- do not assume Phase 2 Worth topology migration is complete; this closeout only certifies that the generic read kernel is ready for honest adoption
-- do not assume the side quest is fully closed; Phase 3 still owes aggregate query-native-versus-fallback breadth and debt proof after Worth migration
+- do not assume this Phase 1 kernel artifact by itself certifies Worth topology migration; that closure lives in the Worth topology-domain closeout surfaces
+- do not assume this generic gate certifies future non-topology Worth domains; later trim, carrier, NURBS, fillet, and branch-history vocabularies still need domain-owned adoption on top of this kernel
 - do not assume all future domain families already exist; later topology, trim, carrier, NURBS, fillet, and branch-history vocabularies still need domain-owned adoption on top of this kernel
 
 ## Migration Guidance
 
-- start Phase 2 by moving one bounded Worth topology family such as LoopCycleNeighborhood onto compose_read plus a domain-owned decoded view
-- bind the first Worth topology family through the frozen lowering, invariant-pack, decoder, and certification hook boundaries instead of inventing topology-local extension seams
+- for new domain adoption, start by moving one bounded read family onto compose_read plus a domain-owned decoded view before widening the family set
+- bind each new domain family through the frozen lowering, invariant-pack, decoder, and certification hook boundaries instead of inventing local extension seams
 - prefer an operator-owned read lane whenever the domain shape matches one of the admitted built-in operators instead of open-coding traverse in the Worth facade
-- keep snapshot_index behind the Worth read facade only as explicit fallback debt and surface that fallback exactly on the returned receipt/view boundary
-- do not resume Milestone 3 hostility widening until Worth migration lands and the side-quest aggregate closeout proof names any remaining fallback consumers as debt rows
+- for topology snapshot read-only posture, use the admitted historical basis-aware read-family path instead of carrying stale fallback debt wording
+- for later Worth domains, do not resume domain-specific widening until that domain has an aggregate closeout proof naming any remaining fallback consumers as debt rows
 
 ## Phase Gate
 
@@ -129,11 +133,11 @@ Denial lanes:
   - `satisfied`
   - Worth may begin domain adoption through the frozen lowering, invariant-pack, decoder, and certification hooks, starting with loop_cycle_neighborhood
 - `phase_three_aggregate_proof_complete`
-  - `blocked`
-  - aggregate query-native-versus-fallback breadth and debt proof cannot complete until Worth migrates active topology families onto the frozen kernel
+  - `satisfied`
+  - Worth topology now exposes aggregate query-native-versus-fallback breadth, debt, parity, and no-N-plus-one proof through its domain closeout surfaces
 - `milestone_three_resume_ready`
-  - `blocked`
-  - Milestone 3 remains blocked until the side quest reaches Phase 3 aggregate closeout proof and names any remaining fallback consumers as debt rows
+  - `satisfied`
+  - Milestone 3 may resume through the Worth topology side-quest closeout gate because Phase 3 aggregate proof is now enforced outside the generic kernel
 
 ## Required Verification Commands
 

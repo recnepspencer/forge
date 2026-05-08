@@ -10,7 +10,7 @@ mod view_builder;
 #[cfg(test)]
 mod tests;
 
-pub use errors::WorthTopologyMaterializationError;
+pub use errors::TopologyMaterializationError;
 pub use types::{
     MaterializationBreadthReport, MaterializationFallbackClass, MaterializationReport,
     MaterializedTopologyView,
@@ -24,12 +24,12 @@ use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::runtime::RelationalReadView;
 
 #[derive(Debug, Default, Clone, Copy)]
-pub struct WorthTopologyMaterializer;
+pub struct TopologyMaterializer;
 
-impl WorthTopologyMaterializer {
+impl TopologyMaterializer {
     pub fn materialize_from_truth(
         read_view: &RelationalReadView,
-    ) -> Result<MaterializedTopologyView, WorthTopologyMaterializationError> {
+    ) -> Result<MaterializedTopologyView, TopologyMaterializationError> {
         let entities = read_view
             .entities()
             .iter()
@@ -51,7 +51,7 @@ impl WorthTopologyMaterializer {
     pub(crate) fn materialize_from_query_rows(
         entity_rows: &[ForgeQueryEntity],
         relation_rows: &[ForgeQueryEntity],
-    ) -> Result<MaterializedTopologyView, WorthTopologyMaterializationError> {
+    ) -> Result<MaterializedTopologyView, TopologyMaterializationError> {
         let entities = entity_rows
             .iter()
             .map(MaterializationEntityRow::from_query_row)
@@ -73,8 +73,8 @@ impl WorthTopologyMaterializer {
         relations: &[MaterializationRelationRow],
         entity_count: usize,
         relation_count: usize,
-    ) -> Result<MaterializedTopologyView, WorthTopologyMaterializationError> {
-        let mut view = crate::data::topology_view::WorthTopologyView::default();
+    ) -> Result<MaterializedTopologyView, TopologyMaterializationError> {
+        let mut view = crate::data::topology_view::TopologyView::default();
         let entity_kind_map = collect_entity_kinds(entities);
 
         for record in entities {
@@ -88,8 +88,8 @@ impl WorthTopologyMaterializer {
         finalize_topology_membership(&mut view)?;
 
         if !has_topology_content(&view) {
-            return Err(WorthTopologyMaterializationError::new(
-                "worth topology materialization requires at least one topological entity kind",
+            return Err(TopologyMaterializationError::new(
+                " topology materialization requires at least one topological entity kind",
             ));
         }
 
@@ -106,12 +106,7 @@ impl WorthTopologyMaterializer {
             + view.vertices.len();
         let topology_relation_count = relations
             .iter()
-            .filter(|relation| {
-                matches!(
-                    relation.kind,
-                    worth_schema::facade::WorthRelationKind::Topology(_)
-                )
-            })
+            .filter(|relation| matches!(relation.kind, schema::facade::RelationKind::Topology(_)))
             .count();
 
         Ok(MaterializedTopologyView::new(

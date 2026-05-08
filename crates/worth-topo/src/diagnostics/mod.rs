@@ -1,34 +1,34 @@
 use std::collections::BTreeMap;
 
-use worth_schema::facade::{
-    worth_milestone_two_invalidation_declarations, DerivedTopologyReadBasis, WorthAspect,
-    WorthDerivedInvalidationTarget,
+use schema::facade::{
+    milestone_two_invalidation_declarations, Aspect, DerivedInvalidationTarget,
+    DerivedTopologyReadBasis,
 };
 
 use crate::interpretation::InterpretedTopologyView;
 use crate::materialization::{MaterializationFallbackClass, MaterializedTopologyView};
-use crate::parity::{build_derived_equivalence_contract, WorthDerivedEquivalenceContractReport};
+use crate::parity::{build_derived_equivalence_contract, DerivedEquivalenceContractReport};
 use crate::validators::DerivedTopologyValidationReport;
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct WorthDerivedInvalidationTargetRow {
-    pub target: WorthDerivedInvalidationTarget,
+pub struct DerivedInvalidationTargetRow {
+    pub target: DerivedInvalidationTarget,
     pub bridge_scope: String,
     pub declaration_ids: Vec<String>,
     pub triggered: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct WorthDerivedInvalidationReport {
+pub struct DerivedInvalidationReport {
     pub touched_aspect_count: usize,
     pub topology_touched: bool,
     pub naming_touched: bool,
     pub triggered_target_count: usize,
-    pub rows: Vec<WorthDerivedInvalidationTargetRow>,
+    pub rows: Vec<DerivedInvalidationTargetRow>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct WorthDerivedRebuildReport {
+pub struct DerivedRebuildReport {
     pub whole_view_rebuild: bool,
     pub topology_entity_count: usize,
     pub topology_relation_count: usize,
@@ -40,7 +40,7 @@ pub struct WorthDerivedRebuildReport {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct WorthDerivedFallbackReport {
+pub struct DerivedFallbackReport {
     pub whole_view_materialization: bool,
     pub materialization_fallback_class: Option<MaterializationFallbackClass>,
     pub precision_fallback_count: usize,
@@ -49,11 +49,11 @@ pub struct WorthDerivedFallbackReport {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
-pub struct WorthDerivedReadDiagnostics {
-    pub invalidation_report: WorthDerivedInvalidationReport,
-    pub rebuild_report: WorthDerivedRebuildReport,
-    pub fallback_report: WorthDerivedFallbackReport,
-    pub equivalence_contract_report: WorthDerivedEquivalenceContractReport,
+pub struct DerivedReadDiagnostics {
+    pub invalidation_report: DerivedInvalidationReport,
+    pub rebuild_report: DerivedRebuildReport,
+    pub fallback_report: DerivedFallbackReport,
+    pub equivalence_contract_report: DerivedEquivalenceContractReport,
 }
 
 pub fn build_derived_read_diagnostics(
@@ -61,8 +61,8 @@ pub fn build_derived_read_diagnostics(
     materialized: &MaterializedTopologyView,
     interpreted: &InterpretedTopologyView,
     validation: &DerivedTopologyValidationReport,
-) -> WorthDerivedReadDiagnostics {
-    WorthDerivedReadDiagnostics {
+) -> DerivedReadDiagnostics {
+    DerivedReadDiagnostics {
         invalidation_report: build_derived_invalidation_report(read_basis),
         rebuild_report: build_derived_rebuild_report(materialized, interpreted, validation),
         fallback_report: build_derived_fallback_report(read_basis, materialized),
@@ -77,23 +77,23 @@ pub fn build_derived_read_diagnostics(
 
 pub fn build_derived_invalidation_report(
     read_basis: &DerivedTopologyReadBasis,
-) -> WorthDerivedInvalidationReport {
+) -> DerivedInvalidationReport {
     build_derived_invalidation_report_from_aspects(read_basis.touched_aspects().iter().copied())
 }
 
 pub fn build_derived_invalidation_report_from_aspects(
-    touched_aspects: impl IntoIterator<Item = WorthAspect>,
-) -> WorthDerivedInvalidationReport {
+    touched_aspects: impl IntoIterator<Item = Aspect>,
+) -> DerivedInvalidationReport {
     let touched_aspects = touched_aspects.into_iter().collect::<Vec<_>>();
     let topology_touched = touched_aspects
         .iter()
-        .any(|aspect| matches!(aspect, WorthAspect::Topology(_)));
+        .any(|aspect| matches!(aspect, Aspect::Topology(_)));
     let naming_touched = touched_aspects
         .iter()
-        .any(|aspect| matches!(aspect, WorthAspect::Naming(_)));
+        .any(|aspect| matches!(aspect, Aspect::Naming(_)));
 
-    let mut grouped = BTreeMap::<WorthDerivedInvalidationTarget, Vec<String>>::new();
-    for declaration in worth_milestone_two_invalidation_declarations() {
+    let mut grouped = BTreeMap::<DerivedInvalidationTarget, Vec<String>>::new();
+    for declaration in milestone_two_invalidation_declarations() {
         grouped
             .entry(declaration.target)
             .or_default()
@@ -106,7 +106,7 @@ pub fn build_derived_invalidation_report_from_aspects(
         .into_iter()
         .map(|(target, declaration_ids)| {
             let triggered = triggered_targets.contains(&target);
-            WorthDerivedInvalidationTargetRow {
+            DerivedInvalidationTargetRow {
                 target,
                 bridge_scope: target.bridge_scope().to_string(),
                 declaration_ids,
@@ -115,7 +115,7 @@ pub fn build_derived_invalidation_report_from_aspects(
         })
         .collect::<Vec<_>>();
 
-    WorthDerivedInvalidationReport {
+    DerivedInvalidationReport {
         touched_aspect_count: touched_aspects.len(),
         topology_touched,
         naming_touched,
@@ -126,46 +126,34 @@ pub fn build_derived_invalidation_report_from_aspects(
 
 pub(crate) fn triggered_invalidation_targets(
     read_basis: &DerivedTopologyReadBasis,
-) -> Vec<WorthDerivedInvalidationTarget> {
+) -> Vec<DerivedInvalidationTarget> {
     triggered_invalidation_targets_from_aspects(read_basis.touched_aspects().iter().copied())
 }
 
 pub(crate) fn triggered_invalidation_targets_from_aspects(
-    touched_aspects: impl IntoIterator<Item = WorthAspect>,
-) -> Vec<WorthDerivedInvalidationTarget> {
+    touched_aspects: impl IntoIterator<Item = Aspect>,
+) -> Vec<DerivedInvalidationTarget> {
     let mut targets = Vec::new();
     for aspect in touched_aspects {
         match aspect {
-            WorthAspect::Topology(topology) => match topology {
-                worth_schema::facade::WorthTopologyAspect::Structure => {
-                    push_unique_target(
-                        &mut targets,
-                        WorthDerivedInvalidationTarget::TopologyStructure,
-                    );
+            Aspect::Topology(topology) => match topology {
+                schema::facade::TopologyAspect::Structure => {
+                    push_unique_target(&mut targets, DerivedInvalidationTarget::TopologyStructure);
                 }
-                worth_schema::facade::WorthTopologyAspect::Ownership => {
-                    push_unique_target(
-                        &mut targets,
-                        WorthDerivedInvalidationTarget::TopologyOwnership,
-                    );
+                schema::facade::TopologyAspect::Ownership => {
+                    push_unique_target(&mut targets, DerivedInvalidationTarget::TopologyOwnership);
                 }
-                worth_schema::facade::WorthTopologyAspect::Boundary => {
-                    push_unique_target(
-                        &mut targets,
-                        WorthDerivedInvalidationTarget::TopologyBoundary,
-                    );
+                schema::facade::TopologyAspect::Boundary => {
+                    push_unique_target(&mut targets, DerivedInvalidationTarget::TopologyBoundary);
                 }
-                worth_schema::facade::WorthTopologyAspect::Radial => {
-                    push_unique_target(
-                        &mut targets,
-                        WorthDerivedInvalidationTarget::TopologyRadial,
-                    );
+                schema::facade::TopologyAspect::Radial => {
+                    push_unique_target(&mut targets, DerivedInvalidationTarget::TopologyRadial);
                 }
             },
-            WorthAspect::Naming(worth_schema::facade::WorthNamingAspect::PersistentName) => {
+            Aspect::Naming(schema::facade::NamingAspect::PersistentName) => {
                 push_unique_target(
                     &mut targets,
-                    WorthDerivedInvalidationTarget::NamingPersistentName,
+                    DerivedInvalidationTarget::NamingPersistentName,
                 );
             }
             _ => {}
@@ -175,8 +163,8 @@ pub(crate) fn triggered_invalidation_targets_from_aspects(
 }
 
 fn push_unique_target(
-    targets: &mut Vec<WorthDerivedInvalidationTarget>,
-    target: WorthDerivedInvalidationTarget,
+    targets: &mut Vec<DerivedInvalidationTarget>,
+    target: DerivedInvalidationTarget,
 ) {
     if !targets.contains(&target) {
         targets.push(target);
@@ -187,8 +175,8 @@ pub fn build_derived_rebuild_report(
     materialized: &MaterializedTopologyView,
     interpreted: &InterpretedTopologyView,
     validation: &DerivedTopologyValidationReport,
-) -> WorthDerivedRebuildReport {
-    WorthDerivedRebuildReport {
+) -> DerivedRebuildReport {
+    DerivedRebuildReport {
         whole_view_rebuild: materialized.report().whole_view_materialization,
         topology_entity_count: materialized.report().breadth.topology_entity_count,
         topology_relation_count: materialized.report().breadth.topology_relation_count,
@@ -203,7 +191,7 @@ pub fn build_derived_rebuild_report(
 pub fn build_derived_fallback_report(
     read_basis: &DerivedTopologyReadBasis,
     materialized: &MaterializedTopologyView,
-) -> WorthDerivedFallbackReport {
+) -> DerivedFallbackReport {
     build_derived_fallback_report_from_counts(
         read_basis.precision_fallbacks.len(),
         read_basis.precision_budget_fallbacks.len(),
@@ -215,12 +203,12 @@ pub fn build_derived_fallback_report_from_counts(
     precision_fallback_count: usize,
     precision_budget_fallback_count: usize,
     materialized: &MaterializedTopologyView,
-) -> WorthDerivedFallbackReport {
+) -> DerivedFallbackReport {
     let explicit_fallback_count = precision_fallback_count
         + precision_budget_fallback_count
         + usize::from(materialized.report().fallback_class.is_some());
 
-    WorthDerivedFallbackReport {
+    DerivedFallbackReport {
         whole_view_materialization: materialized.report().whole_view_materialization,
         materialization_fallback_class: materialized.report().fallback_class,
         precision_fallback_count,
@@ -231,25 +219,25 @@ pub fn build_derived_fallback_report_from_counts(
 
 #[cfg(test)]
 mod tests {
-    use worth_schema::facade::topology_authoring::{
-        seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
+    use schema::facade::topology_authoring::{
+        seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
     };
 
     use crate::diagnostics::build_derived_read_diagnostics;
     use crate::facade::{
-        interpret_topology_view, validate_interpreted_topology,
-        worth_milestone_one_runtime_builder, WorthTopologyMaterializer,
+        interpret_topology_view, milestone_one_runtime_builder, validate_interpreted_topology,
+        TopologyMaterializer,
     };
 
     #[test]
     fn derived_diagnostics_reports_are_explicit_and_deterministic() {
-        let mut runtime = worth_milestone_one_runtime_builder()
-            .expect("worth milestone one runtime builder")
+        let mut runtime = milestone_one_runtime_builder()
+            .expect(" milestone one runtime builder")
             .build();
         let verified = seed_milestone_one_primitive(
             &mut runtime,
             "phase-seven-diagnostics",
-            &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
+            &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
         )
         .expect("verified primitive");
         let read_view = runtime
@@ -257,7 +245,7 @@ mod tests {
             .read_snapshot(&verified.persisted_truth.snapshot)
             .expect("snapshot read");
         let materialized =
-            WorthTopologyMaterializer::materialize_from_truth(&read_view).expect("materialized");
+            TopologyMaterializer::materialize_from_truth(&read_view).expect("materialized");
         let interpreted = interpret_topology_view(&materialized);
         let validation =
             validate_interpreted_topology(&materialized, &interpreted).expect("validation");
@@ -275,16 +263,18 @@ mod tests {
             .invalidation_report
             .rows
             .iter()
-            .any(|row| row.target
-                == worth_schema::facade::WorthDerivedInvalidationTarget::TopologyStructure
-                && row.triggered));
+            .any(
+                |row| row.target == schema::facade::DerivedInvalidationTarget::TopologyStructure
+                    && row.triggered
+            ));
         assert!(diagnostics
             .invalidation_report
             .rows
             .iter()
-            .any(|row| row.target
-                == worth_schema::facade::WorthDerivedInvalidationTarget::TopologyBoundary
-                && row.triggered));
+            .any(
+                |row| row.target == schema::facade::DerivedInvalidationTarget::TopologyBoundary
+                    && row.triggered
+            ));
         assert!(diagnostics.rebuild_report.whole_view_rebuild);
         assert_eq!(
             diagnostics.rebuild_report.validation_row_count,

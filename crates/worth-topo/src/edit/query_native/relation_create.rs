@@ -4,40 +4,37 @@ use forge_query::facade::{
     ForgeQueryAspectMutationBuilder, ForgeQueryEntity, ForgeQueryMutationBatchBuilder,
     ForgeQuerySymbolicTargetReference,
 };
-use worth_schema::facade::{WorthEntityReference, WorthTopologyEntityKind};
+use schema::facade::{EntityReference, TopologyEntityKind};
 
 use super::bindings::{query_entity_binding, QueryEntityBinding};
-use super::{WorthTopologyQueryEditExecutionError, WorthTopologyQueryEditRunner};
-use crate::edit::WorthShellOrWireMembershipKind;
+use super::{TopologyQueryEditExecutionError, TopologyQueryEditRunner};
+use crate::edit::ShellOrWireMembershipKind;
 
 enum LoweredEntityReference {
     Existing(QueryEntityBinding),
     Created { create_key: String },
 }
 
-impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> {
+impl<'workspace, 'assembly> TopologyQueryEditRunner<'workspace, 'assembly> {
     pub(super) fn lower_attach_shell_or_wire_membership(
         &self,
         builder: ForgeQueryMutationBatchBuilder,
         entity_rows: &[ForgeQueryEntity],
-        created_entity_kinds: &BTreeMap<String, WorthTopologyEntityKind>,
-        kind: WorthShellOrWireMembershipKind,
-        owner: &WorthEntityReference,
-        member: &WorthEntityReference,
-    ) -> Result<ForgeQueryMutationBatchBuilder, WorthTopologyQueryEditExecutionError> {
+        created_entity_kinds: &BTreeMap<String, TopologyEntityKind>,
+        kind: ShellOrWireMembershipKind,
+        owner: &EntityReference,
+        member: &EntityReference,
+    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyQueryEditExecutionError> {
         let (expected_owner_kind, expected_member_kind) = match kind {
-            WorthShellOrWireMembershipKind::RegionOwnsShell => (
-                WorthTopologyEntityKind::Region,
-                WorthTopologyEntityKind::Shell,
-            ),
-            WorthShellOrWireMembershipKind::ShellOwnsFace => (
-                WorthTopologyEntityKind::Shell,
-                WorthTopologyEntityKind::Face,
-            ),
-            WorthShellOrWireMembershipKind::WireOwnsHalfEdge => (
-                WorthTopologyEntityKind::Wire,
-                WorthTopologyEntityKind::HalfEdge,
-            ),
+            ShellOrWireMembershipKind::RegionOwnsShell => {
+                (TopologyEntityKind::Region, TopologyEntityKind::Shell)
+            }
+            ShellOrWireMembershipKind::ShellOwnsFace => {
+                (TopologyEntityKind::Shell, TopologyEntityKind::Face)
+            }
+            ShellOrWireMembershipKind::WireOwnsHalfEdge => {
+                (TopologyEntityKind::Wire, TopologyEntityKind::HalfEdge)
+            }
         };
         self.lower_relation_create(
             builder,
@@ -55,13 +52,13 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
         &self,
         builder: ForgeQueryMutationBatchBuilder,
         entity_rows: &[ForgeQueryEntity],
-        created_entity_kinds: &BTreeMap<String, WorthTopologyEntityKind>,
-        relation_kind: worth_schema::facade::WorthTopologyRelationKind,
-        source: &WorthEntityReference,
-        expected_source_kind: WorthTopologyEntityKind,
-        target: &WorthEntityReference,
-        expected_target_kind: WorthTopologyEntityKind,
-    ) -> Result<ForgeQueryMutationBatchBuilder, WorthTopologyQueryEditExecutionError> {
+        created_entity_kinds: &BTreeMap<String, TopologyEntityKind>,
+        relation_kind: schema::facade::TopologyRelationKind,
+        source: &EntityReference,
+        expected_source_kind: TopologyEntityKind,
+        target: &EntityReference,
+        expected_target_kind: TopologyEntityKind,
+    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyQueryEditExecutionError> {
         let source = lower_entity_reference(
             entity_rows,
             created_entity_kinds,
@@ -74,7 +71,7 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
             target,
             expected_target_kind,
         )?;
-        Ok(builder.insert("WorthTopologyRelation", |mutation| {
+        Ok(builder.insert("TopologyRelation", |mutation| {
             let mutation = authored_relation_endpoint(
                 mutation.aspect("topology.kind", relation_kind.kind_name()),
                 "topology.source_identity",
@@ -87,18 +84,17 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
 
 fn lower_entity_reference(
     entity_rows: &[ForgeQueryEntity],
-    created_entity_kinds: &BTreeMap<String, WorthTopologyEntityKind>,
-    reference: &WorthEntityReference,
-    expected_kind: WorthTopologyEntityKind,
-) -> Result<LoweredEntityReference, WorthTopologyQueryEditExecutionError> {
+    created_entity_kinds: &BTreeMap<String, TopologyEntityKind>,
+    reference: &EntityReference,
+    expected_kind: TopologyEntityKind,
+) -> Result<LoweredEntityReference, TopologyQueryEditExecutionError> {
     match reference {
-        WorthEntityReference::Existing(entity_id) => {
-            let binding = query_entity_binding(entity_rows, *entity_id)?.ok_or(
-                WorthTopologyQueryEditExecutionError::MissingExistingEntityBinding(*entity_id),
-            )?;
+        EntityReference::Existing(entity_id) => {
+            let binding = query_entity_binding(entity_rows, *entity_id)?
+                .ok_or(TopologyQueryEditExecutionError::MissingExistingEntityBinding(*entity_id))?;
             if binding.kind != expected_kind {
                 return Err(
-                    WorthTopologyQueryEditExecutionError::ExistingEntityKindMismatch {
+                    TopologyQueryEditExecutionError::ExistingEntityKindMismatch {
                         entity_id: *entity_id,
                         expected: expected_kind,
                         actual: binding.kind,
@@ -107,22 +103,20 @@ fn lower_entity_reference(
             }
             Ok(LoweredEntityReference::Existing(binding))
         }
-        WorthEntityReference::Created(create_key) => {
+        EntityReference::Created(create_key) => {
             let Some(actual_kind) = created_entity_kinds.get(create_key.as_str()).copied() else {
                 return Err(
-                    WorthTopologyQueryEditExecutionError::MissingCreatedEntityReference(
+                    TopologyQueryEditExecutionError::MissingCreatedEntityReference(
                         create_key.as_str().to_string(),
                     ),
                 );
             };
             if actual_kind != expected_kind {
-                return Err(
-                    WorthTopologyQueryEditExecutionError::CreatedEntityKindMismatch {
-                        create_key: create_key.as_str().to_string(),
-                        expected: expected_kind,
-                        actual: actual_kind,
-                    },
-                );
+                return Err(TopologyQueryEditExecutionError::CreatedEntityKindMismatch {
+                    create_key: create_key.as_str().to_string(),
+                    expected: expected_kind,
+                    actual: actual_kind,
+                });
             }
             Ok(LoweredEntityReference::Created {
                 create_key: create_key.as_str().to_string(),

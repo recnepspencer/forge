@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthGeometryInvariantGroup {
+pub enum GeometryInvariantGroup {
     BindingCoverage,
     CarrierCompatibility,
     UvAnchoringContinuity,
@@ -13,7 +13,7 @@ pub enum WorthGeometryInvariantGroup {
     FallbackProofSufficiency,
 }
 
-impl WorthGeometryInvariantGroup {
+impl GeometryInvariantGroup {
     pub const ALL: [Self; 9] = [
         Self::BindingCoverage,
         Self::CarrierCompatibility,

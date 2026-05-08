@@ -1,5 +1,5 @@
-use worth_topo::facade::WorthTopologyQueryEditRunner;
+use topology::facade::TopologyQueryEditRunner;
 
 fn main() {
-    let _ = std::any::type_name::<WorthTopologyQueryEditRunner<'static, 'static>>();
+    let _ = std::any::type_name::<TopologyQueryEditRunner<'static, 'static>>();
 }

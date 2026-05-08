@@ -6,43 +6,43 @@ mod topology;
 use forge_relational::facade::identity::KindId;
 use serde::{Deserialize, Serialize};
 
-pub use diagnostics::WorthDiagnosticsRelationKind;
-pub use geometry::WorthGeometryRelationKind;
-pub use naming::WorthNamingRelationKind;
-pub use topology::WorthTopologyRelationKind;
+pub use diagnostics::DiagnosticsRelationKind;
+pub use geometry::GeometryRelationKind;
+pub use naming::NamingRelationKind;
+pub use topology::TopologyRelationKind;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthRelationKind {
-    Topology(WorthTopologyRelationKind),
-    Geometry(WorthGeometryRelationKind),
-    Naming(WorthNamingRelationKind),
-    Diagnostics(WorthDiagnosticsRelationKind),
+pub enum RelationKind {
+    Topology(TopologyRelationKind),
+    Geometry(GeometryRelationKind),
+    Naming(NamingRelationKind),
+    Diagnostics(DiagnosticsRelationKind),
 }
 
-impl WorthRelationKind {
+impl RelationKind {
     pub const ALL: [Self; 22] = [
-        Self::Topology(WorthTopologyRelationKind::ModelOwnsBody),
-        Self::Topology(WorthTopologyRelationKind::BodyOwnsLump),
-        Self::Topology(WorthTopologyRelationKind::LumpOwnsRegion),
-        Self::Topology(WorthTopologyRelationKind::RegionOwnsShell),
-        Self::Topology(WorthTopologyRelationKind::ShellOwnsFace),
-        Self::Topology(WorthTopologyRelationKind::FaceOuterLoop),
-        Self::Topology(WorthTopologyRelationKind::FaceInnerLoop),
-        Self::Topology(WorthTopologyRelationKind::LoopOwnsHalfEdge),
-        Self::Topology(WorthTopologyRelationKind::WireOwnsHalfEdge),
-        Self::Topology(WorthTopologyRelationKind::HalfEdgeNext),
-        Self::Topology(WorthTopologyRelationKind::HalfEdgePrev),
-        Self::Topology(WorthTopologyRelationKind::HalfEdgeRadialNext),
-        Self::Topology(WorthTopologyRelationKind::HalfEdgeUsesEdge),
-        Self::Topology(WorthTopologyRelationKind::HalfEdgeStartsAtVertex),
-        Self::Topology(WorthTopologyRelationKind::HalfEdgeEndsAtVertex),
-        Self::Geometry(WorthGeometryRelationKind::FaceUsesSurfaceBinding),
-        Self::Geometry(WorthGeometryRelationKind::EdgeUsesCurveBinding),
-        Self::Geometry(WorthGeometryRelationKind::HalfEdgeUsesCoedgeBinding),
-        Self::Geometry(WorthGeometryRelationKind::VertexUsesGeometryBinding),
-        Self::Naming(WorthNamingRelationKind::PersistentNameTargetsEntity),
-        Self::Diagnostics(WorthDiagnosticsRelationKind::WireHasInterpretation),
-        Self::Diagnostics(WorthDiagnosticsRelationKind::ShellHasInterpretation),
+        Self::Topology(TopologyRelationKind::ModelOwnsBody),
+        Self::Topology(TopologyRelationKind::BodyOwnsLump),
+        Self::Topology(TopologyRelationKind::LumpOwnsRegion),
+        Self::Topology(TopologyRelationKind::RegionOwnsShell),
+        Self::Topology(TopologyRelationKind::ShellOwnsFace),
+        Self::Topology(TopologyRelationKind::FaceOuterLoop),
+        Self::Topology(TopologyRelationKind::FaceInnerLoop),
+        Self::Topology(TopologyRelationKind::LoopOwnsHalfEdge),
+        Self::Topology(TopologyRelationKind::WireOwnsHalfEdge),
+        Self::Topology(TopologyRelationKind::HalfEdgeNext),
+        Self::Topology(TopologyRelationKind::HalfEdgePrev),
+        Self::Topology(TopologyRelationKind::HalfEdgeRadialNext),
+        Self::Topology(TopologyRelationKind::HalfEdgeUsesEdge),
+        Self::Topology(TopologyRelationKind::HalfEdgeStartsAtVertex),
+        Self::Topology(TopologyRelationKind::HalfEdgeEndsAtVertex),
+        Self::Geometry(GeometryRelationKind::FaceUsesSurfaceBinding),
+        Self::Geometry(GeometryRelationKind::EdgeUsesCurveBinding),
+        Self::Geometry(GeometryRelationKind::HalfEdgeUsesCoedgeBinding),
+        Self::Geometry(GeometryRelationKind::VertexUsesGeometryBinding),
+        Self::Naming(NamingRelationKind::PersistentNameTargetsEntity),
+        Self::Diagnostics(DiagnosticsRelationKind::WireHasInterpretation),
+        Self::Diagnostics(DiagnosticsRelationKind::ShellHasInterpretation),
     ];
 
     pub const fn kind_id(self) -> KindId {
@@ -64,15 +64,15 @@ impl WorthRelationKind {
     }
 
     pub fn from_kind_id(kind_id: KindId) -> Option<Self> {
-        if let Some(kind) = WorthTopologyRelationKind::from_kind_id(kind_id) {
+        if let Some(kind) = TopologyRelationKind::from_kind_id(kind_id) {
             return Some(Self::Topology(kind));
         }
-        if let Some(kind) = WorthGeometryRelationKind::from_kind_id(kind_id) {
+        if let Some(kind) = GeometryRelationKind::from_kind_id(kind_id) {
             return Some(Self::Geometry(kind));
         }
-        if let Some(kind) = WorthNamingRelationKind::from_kind_id(kind_id) {
+        if let Some(kind) = NamingRelationKind::from_kind_id(kind_id) {
             return Some(Self::Naming(kind));
         }
-        WorthDiagnosticsRelationKind::from_kind_id(kind_id).map(Self::Diagnostics)
+        DiagnosticsRelationKind::from_kind_id(kind_id).map(Self::Diagnostics)
     }
 }

@@ -1,23 +1,23 @@
 #[cfg(test)]
 mod materializer_tests {
-    use worth_schema::facade::topology_authoring::seed_minimal_topology;
+    use schema::facade::topology_authoring::seed_minimal_topology;
 
-    use crate::materialization::WorthTopologyMaterializer;
+    use crate::materialization::TopologyMaterializer;
 
     #[test]
-    fn materialize_from_truth_reads_bootstrap_worth_structure_from_relational_snapshot() {
-        let mut runtime = crate::facade::worth_milestone_one_runtime_builder()
-            .expect("worth milestone one runtime builder")
+    fn materialize_from_truth_reads_bootstrap_structure_from_relational_snapshot() {
+        let mut runtime = crate::facade::milestone_one_runtime_builder()
+            .expect(" milestone one runtime builder")
             .build();
 
-        let seeded = seed_minimal_topology(&mut runtime, "topo").expect("seed worth topology");
+        let seeded = seed_minimal_topology(&mut runtime, "topo").expect("seed  topology");
         let read_view = runtime
             .read_truth()
             .read_snapshot(&seeded.snapshot)
-            .expect("worth snapshot read");
+            .expect(" snapshot read");
 
-        let topology = WorthTopologyMaterializer::materialize_from_truth(&read_view)
-            .expect("worth topology materialization");
+        let topology = TopologyMaterializer::materialize_from_truth(&read_view)
+            .expect(" topology materialization");
 
         assert!(topology.report().whole_view_materialization);
         assert_eq!(

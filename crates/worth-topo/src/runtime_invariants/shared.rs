@@ -3,9 +3,9 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use forge_relational::facade::identity::{EntityId, KindId, RelationId};
 use forge_relational::facade::runtime::CustomInvariantScopePlanner;
 use forge_relational::facade::transactions::{CreatedEntityRef, EntityReference};
-use worth_schema::facade::{
-    WorthEntityKind, WorthNamingEntityKind, WorthNamingRelationKind, WorthRelationKind,
-    WorthTopologyEntityKind, WorthTopologyRelationKind,
+use schema::facade::{
+    EntityKind, NamingEntityKind, NamingRelationKind, RelationKind, TopologyEntityKind,
+    TopologyRelationKind,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -49,9 +49,9 @@ impl RuntimeTopologyGraph {
             .collect::<BTreeSet<_>>();
         let planned_relation_endpoint_updates = touched.planned_relation_endpoint_updates();
         let relations = planner.relations();
-        let topology_kind_ids: BTreeSet<KindId> = WorthTopologyEntityKind::WRAPPED_ALL
+        let topology_kind_ids: BTreeSet<KindId> = TopologyEntityKind::WRAPPED_ALL
             .into_iter()
-            .map(WorthEntityKind::kind_id)
+            .map(EntityKind::kind_id)
             .collect();
         let visible_existing_topology_entity_ids = visible_entity_ids
             .iter()
@@ -188,7 +188,7 @@ impl RuntimeTopologyGraph {
     pub fn outgoing_kind(
         &self,
         entity_id: &RuntimeEntityRef,
-        kind: WorthRelationKind,
+        kind: RelationKind,
     ) -> Vec<RuntimeRelationRecord> {
         let kind_id = kind.kind_id();
         self.outgoing_by_entity
@@ -203,7 +203,7 @@ impl RuntimeTopologyGraph {
     pub fn incoming_kind(
         &self,
         entity_id: &RuntimeEntityRef,
-        kind: WorthRelationKind,
+        kind: RelationKind,
     ) -> Vec<RuntimeRelationRecord> {
         let kind_id = kind.kind_id();
         self.incoming_by_entity
@@ -218,7 +218,7 @@ impl RuntimeTopologyGraph {
     pub fn planned_outgoing_kind(
         &self,
         entity_id: &RuntimeEntityRef,
-        kind: WorthRelationKind,
+        kind: RelationKind,
     ) -> Vec<RuntimeRelationRecord> {
         let kind_id = kind.kind_id();
         self.planned_relation_endpoint_updates
@@ -228,7 +228,7 @@ impl RuntimeTopologyGraph {
             .collect()
     }
 
-    pub fn planned_kind(&self, kind: WorthRelationKind) -> Vec<RuntimeRelationRecord> {
+    pub fn planned_kind(&self, kind: RelationKind) -> Vec<RuntimeRelationRecord> {
         let kind_id = kind.kind_id();
         self.planned_relation_endpoint_updates
             .values()
@@ -284,10 +284,10 @@ fn collect_supporting_existing_relation_ids(
 }
 
 fn invariant_support_relation_kind_ids() -> BTreeSet<KindId> {
-    WorthTopologyRelationKind::WRAPPED_ALL
+    TopologyRelationKind::WRAPPED_ALL
         .into_iter()
         .chain(std::iter::once(naming_relation_kind()))
-        .map(WorthRelationKind::kind_id)
+        .map(RelationKind::kind_id)
         .collect()
 }
 
@@ -324,29 +324,29 @@ fn runtime_entity_ref_survives(
 }
 
 pub fn kind_name(kind_id: KindId) -> &'static str {
-    if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Model).kind_id() {
+    if kind_id == EntityKind::Topology(TopologyEntityKind::Model).kind_id() {
         "Topology::Model"
-    } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Body).kind_id() {
+    } else if kind_id == EntityKind::Topology(TopologyEntityKind::Body).kind_id() {
         "Topology::Body"
-    } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Lump).kind_id() {
+    } else if kind_id == EntityKind::Topology(TopologyEntityKind::Lump).kind_id() {
         "Topology::Lump"
-    } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Region).kind_id() {
+    } else if kind_id == EntityKind::Topology(TopologyEntityKind::Region).kind_id() {
         "Topology::Region"
-    } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Shell).kind_id() {
+    } else if kind_id == EntityKind::Topology(TopologyEntityKind::Shell).kind_id() {
         "Topology::Shell"
-    } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Face).kind_id() {
+    } else if kind_id == EntityKind::Topology(TopologyEntityKind::Face).kind_id() {
         "Topology::Face"
-    } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Loop).kind_id() {
+    } else if kind_id == EntityKind::Topology(TopologyEntityKind::Loop).kind_id() {
         "Topology::Loop"
-    } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Wire).kind_id() {
+    } else if kind_id == EntityKind::Topology(TopologyEntityKind::Wire).kind_id() {
         "Topology::Wire"
-    } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge).kind_id() {
+    } else if kind_id == EntityKind::Topology(TopologyEntityKind::HalfEdge).kind_id() {
         "Topology::HalfEdge"
-    } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Edge).kind_id() {
+    } else if kind_id == EntityKind::Topology(TopologyEntityKind::Edge).kind_id() {
         "Topology::Edge"
-    } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex).kind_id() {
+    } else if kind_id == EntityKind::Topology(TopologyEntityKind::Vertex).kind_id() {
         "Topology::Vertex"
-    } else if kind_id == WorthEntityKind::Naming(WorthNamingEntityKind::PersistentName).kind_id() {
+    } else if kind_id == EntityKind::Naming(NamingEntityKind::PersistentName).kind_id() {
         "Naming::PersistentName"
     } else {
         "UnknownKind"
@@ -376,34 +376,26 @@ pub fn connected_components(
     components
 }
 
-pub fn naming_relation_kind() -> WorthRelationKind {
-    WorthRelationKind::Naming(WorthNamingRelationKind::PersistentNameTargetsEntity)
+pub fn naming_relation_kind() -> RelationKind {
+    RelationKind::Naming(NamingRelationKind::PersistentNameTargetsEntity)
 }
 
-pub fn owner_relation_for_kind(kind_id: KindId) -> Option<WorthRelationKind> {
-    if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Body).kind_id() {
-        Some(WorthRelationKind::Topology(
-            WorthTopologyRelationKind::ModelOwnsBody,
+pub fn owner_relation_for_kind(kind_id: KindId) -> Option<RelationKind> {
+    if kind_id == EntityKind::Topology(TopologyEntityKind::Body).kind_id() {
+        Some(RelationKind::Topology(TopologyRelationKind::ModelOwnsBody))
+    } else if kind_id == EntityKind::Topology(TopologyEntityKind::Lump).kind_id() {
+        Some(RelationKind::Topology(TopologyRelationKind::BodyOwnsLump))
+    } else if kind_id == EntityKind::Topology(TopologyEntityKind::Region).kind_id() {
+        Some(RelationKind::Topology(TopologyRelationKind::LumpOwnsRegion))
+    } else if kind_id == EntityKind::Topology(TopologyEntityKind::Shell).kind_id() {
+        Some(RelationKind::Topology(
+            TopologyRelationKind::RegionOwnsShell,
         ))
-    } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Lump).kind_id() {
-        Some(WorthRelationKind::Topology(
-            WorthTopologyRelationKind::BodyOwnsLump,
-        ))
-    } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Region).kind_id() {
-        Some(WorthRelationKind::Topology(
-            WorthTopologyRelationKind::LumpOwnsRegion,
-        ))
-    } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Shell).kind_id() {
-        Some(WorthRelationKind::Topology(
-            WorthTopologyRelationKind::RegionOwnsShell,
-        ))
-    } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Face).kind_id() {
-        Some(WorthRelationKind::Topology(
-            WorthTopologyRelationKind::ShellOwnsFace,
-        ))
-    } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::Loop).kind_id() {
+    } else if kind_id == EntityKind::Topology(TopologyEntityKind::Face).kind_id() {
+        Some(RelationKind::Topology(TopologyRelationKind::ShellOwnsFace))
+    } else if kind_id == EntityKind::Topology(TopologyEntityKind::Loop).kind_id() {
         None
-    } else if kind_id == WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge).kind_id() {
+    } else if kind_id == EntityKind::Topology(TopologyEntityKind::HalfEdge).kind_id() {
         None
     } else {
         None

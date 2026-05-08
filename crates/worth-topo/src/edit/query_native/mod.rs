@@ -22,46 +22,44 @@ use forge_query::facade::{
     ForgeQueryBatchWriteReceipt, ForgeQueryBatchWriteReceiptInspection, ForgeQueryEntity,
     ForgeQueryInspection, ForgeQueryMutationBatchBuilder, ForgeQueryWorkspace,
 };
-use worth_schema::facade::{WorthTopologyEntityKind, WorthTopologyRelationKind};
+use schema::facade::{TopologyEntityKind, TopologyRelationKind};
 
 use crate::materialization::MaterializedTopologyView;
-use crate::query::WorthTopologyQueryAssembly;
+use crate::query::TopologyQueryAssembly;
 
 use super::types::{
-    WorthTopologyEditAction, WorthTopologyEditContract, WorthTopologyEditFamily,
-    WorthTopologyEditNamingReport,
+    TopologyEditAction, TopologyEditContract, TopologyEditFamily, TopologyEditNamingReport,
 };
 use super::{
-    WorthNamingEditContinuityMatrix, WorthTopologyEditApplicationMode, WorthTopologyEditBatch,
-    WorthTopologyEditDigest,
+    NamingEditContinuityMatrix, TopologyEditApplicationMode, TopologyEditBatch, TopologyEditDigest,
 };
 use admission::{planned_created_entity_kinds, unsupported_families};
-pub use error::WorthTopologyQueryEditExecutionError;
+pub use error::TopologyQueryEditExecutionError;
 use graph_membership_workflow::supports_graph_composed_membership_workflow;
 use graph_successor_workflow::supports_graph_composed_loop_successor_workflow;
 use relation_shell_or_wire::supports_admitted_shell_or_wire_create_workflow;
 
 #[derive(Debug, Clone)]
-pub struct WorthTopologyQueryEditExecution {
-    pub mode: WorthTopologyEditApplicationMode,
-    pub families: Vec<WorthTopologyEditFamily>,
+pub struct TopologyQueryEditExecution {
+    pub mode: TopologyEditApplicationMode,
+    pub families: Vec<TopologyEditFamily>,
     pub receipt: ForgeQueryBatchWriteReceipt,
     pub inspection: ForgeQueryBatchWriteReceiptInspection,
     pub materialized: MaterializedTopologyView,
-    pub topology_edit_digest: WorthTopologyEditDigest,
-    pub naming_continuity_matrix: WorthNamingEditContinuityMatrix,
-    pub naming_report: WorthTopologyEditNamingReport,
+    pub topology_edit_digest: TopologyEditDigest,
+    pub naming_continuity_matrix: NamingEditContinuityMatrix,
+    pub naming_report: TopologyEditNamingReport,
 }
 
-pub(crate) struct WorthTopologyQueryEditRunner<'workspace, 'assembly> {
+pub(crate) struct TopologyQueryEditRunner<'workspace, 'assembly> {
     workspace: &'workspace mut ForgeQueryWorkspace,
-    assembly: &'assembly WorthTopologyQueryAssembly,
+    assembly: &'assembly TopologyQueryAssembly,
 }
 
-impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> {
+impl<'workspace, 'assembly> TopologyQueryEditRunner<'workspace, 'assembly> {
     pub(crate) fn new(
         workspace: &'workspace mut ForgeQueryWorkspace,
-        assembly: &'assembly WorthTopologyQueryAssembly,
+        assembly: &'assembly TopologyQueryAssembly,
     ) -> Self {
         Self {
             workspace,
@@ -71,11 +69,11 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
 
     pub(crate) fn apply(
         &mut self,
-        batch: WorthTopologyEditBatch,
-        mode: WorthTopologyEditApplicationMode,
-    ) -> Result<WorthTopologyQueryEditExecution, WorthTopologyQueryEditExecutionError> {
-        if mode != WorthTopologyEditApplicationMode::Mainline {
-            return Err(WorthTopologyQueryEditExecutionError::UnsupportedMode(mode));
+        batch: TopologyEditBatch,
+        mode: TopologyEditApplicationMode,
+    ) -> Result<TopologyQueryEditExecution, TopologyQueryEditExecutionError> {
+        if mode != TopologyEditApplicationMode::Mainline {
+            return Err(TopologyQueryEditExecutionError::UnsupportedMode(mode));
         }
 
         let topology_edit_digest = batch.topology_edit_digest();
@@ -87,7 +85,7 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
         let relation_rows = self.workspace.read(self.assembly.relations());
         let unsupported = unsupported_families(&entity_rows, &relation_rows, &families, contracts);
         if !unsupported.is_empty() {
-            return Err(WorthTopologyQueryEditExecutionError::UnsupportedFamilies(
+            return Err(TopologyQueryEditExecutionError::UnsupportedFamilies(
                 unsupported,
             ));
         }
@@ -145,16 +143,16 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
         let receipt = self.workspace.batch(|_| lowered_batch)?;
         let inspection = match self.workspace.inspect(&receipt)? {
             ForgeQueryInspection::BatchWriteReceipt(inspection) => inspection,
-            _ => return Err(WorthTopologyQueryEditExecutionError::UnexpectedInspectionFamily),
+            _ => return Err(TopologyQueryEditExecutionError::UnexpectedInspectionFamily),
         };
         let materialized_rows = self.workspace.materialize(self.assembly.materialized());
         let materialized: MaterializedTopologyView =
             serde_json::from_value(materialized_rows[0].clone()).map_err(|error| {
-                WorthTopologyQueryEditExecutionError::MaterializedDecode(format!(
+                TopologyQueryEditExecutionError::MaterializedDecode(format!(
                     "query-derived `materialized topology` row failed to decode: {error}"
                 ))
             })?;
-        Ok(WorthTopologyQueryEditExecution {
+        Ok(TopologyQueryEditExecution {
             mode,
             families,
             receipt,
@@ -171,11 +169,11 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
         builder: ForgeQueryMutationBatchBuilder,
         entity_rows: &[ForgeQueryEntity],
         relation_rows: &[ForgeQueryEntity],
-        created_entity_kinds: &BTreeMap<String, WorthTopologyEntityKind>,
-        contract: &WorthTopologyEditContract,
-    ) -> Result<ForgeQueryMutationBatchBuilder, WorthTopologyQueryEditExecutionError> {
+        created_entity_kinds: &BTreeMap<String, TopologyEntityKind>,
+        contract: &TopologyEditContract,
+    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyQueryEditExecutionError> {
         match &contract.action {
-            WorthTopologyEditAction::AttachBoundaryMembership {
+            TopologyEditAction::AttachBoundaryMembership {
                 kind,
                 owner,
                 member,
@@ -188,7 +186,7 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                 owner,
                 member,
             ),
-            WorthTopologyEditAction::AttachShellOrWireMembership {
+            TopologyEditAction::AttachShellOrWireMembership {
                 kind,
                 owner,
                 member,
@@ -201,19 +199,17 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                 owner,
                 member,
             ),
-            WorthTopologyEditAction::CreateTopologyEntity {
+            TopologyEditAction::CreateTopologyEntity {
                 create_key, kind, ..
-            } => Ok(builder.insert_symbolic(
-                create_key.as_str(),
-                "WorthTopologyEntity",
-                |mutation| {
+            } => Ok(
+                builder.insert_symbolic(create_key.as_str(), "TopologyEntity", |mutation| {
                     mutation
                         .aspect("topology.kind", kind.kind_name())
                         .aspect("topology.structure", create_key.as_str())
                         .aspect("naming.persistent_name", create_key.as_str())
-                },
-            )),
-            WorthTopologyEditAction::DetachBoundaryMembership {
+                }),
+            ),
+            TopologyEditAction::DetachBoundaryMembership {
                 relation_id, kind, ..
             } => self.lower_delete_existing_relation(
                 builder,
@@ -222,15 +218,15 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                 kind.relation_kind(),
                 contract,
             ),
-            WorthTopologyEditAction::DetachRadialAdjacency { relation_id } => self
+            TopologyEditAction::DetachRadialAdjacency { relation_id } => self
                 .lower_delete_existing_relation(
                     builder,
                     relation_rows,
                     *relation_id,
-                    WorthTopologyRelationKind::HalfEdgeRadialNext,
+                    TopologyRelationKind::HalfEdgeRadialNext,
                     contract,
                 ),
-            WorthTopologyEditAction::DetachShellOrWireMembership {
+            TopologyEditAction::DetachShellOrWireMembership {
                 relation_id, kind, ..
             } => self.lower_delete_existing_relation(
                 builder,
@@ -239,7 +235,7 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                 kind.relation_kind(),
                 contract,
             ),
-            WorthTopologyEditAction::RewireLoopEndpoint {
+            TopologyEditAction::RewireLoopEndpoint {
                 relation_id,
                 endpoint,
                 half_edge_id,
@@ -253,7 +249,7 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                 *half_edge_id,
                 *vertex_id,
             ),
-            WorthTopologyEditAction::RewireLoopSuccessor {
+            TopologyEditAction::RewireLoopSuccessor {
                 relation_id,
                 kind,
                 half_edge_id,
@@ -267,7 +263,7 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                 *half_edge_id,
                 *successor_half_edge_id,
             ),
-            WorthTopologyEditAction::SpliceRadialAdjacency {
+            TopologyEditAction::SpliceRadialAdjacency {
                 relation_id,
                 half_edge_id,
                 radial_next_half_edge_id,
@@ -279,7 +275,7 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                 *half_edge_id,
                 *radial_next_half_edge_id,
             ),
-            WorthTopologyEditAction::RetireTopologyEntity {
+            TopologyEditAction::RetireTopologyEntity {
                 entity_id, kind, ..
             } => {
                 self.lower_retire_topology_entity(builder, entity_rows, *entity_id, *kind, contract)

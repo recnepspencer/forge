@@ -5,18 +5,17 @@ use forge_relational::facade::identity::{EntityId, RelationId};
 use forge_relational::facade::snapshots::SnapshotHandle;
 use serde::{Deserialize, Serialize};
 
-use crate::data::aspects::WorthAspect;
+use crate::data::aspects::Aspect;
 use crate::data::authority::{
-    WorthPrecisionBudgetFallbackRecord, WorthPrecisionFallbackRecord,
-    WorthTopologyInterpretationRecordSet,
+    PrecisionBudgetFallbackRecord, PrecisionFallbackRecord, TopologyInterpretationRecordSet,
 };
-use crate::data::entities::WorthEntityKind;
-use crate::data::relations::WorthRelationKind;
+use crate::data::entities::EntityKind;
+use crate::data::relations::RelationKind;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct WorthCreateKey(pub String);
+pub struct CreateKey(pub String);
 
-impl WorthCreateKey {
+impl CreateKey {
     pub fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
@@ -27,25 +26,25 @@ impl WorthCreateKey {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum WorthEntityReference {
+pub enum EntityReference {
     Existing(EntityId),
-    Created(WorthCreateKey),
+    Created(CreateKey),
 }
 
-impl From<EntityId> for WorthEntityReference {
+impl From<EntityId> for EntityReference {
     fn from(value: EntityId) -> Self {
         Self::Existing(value)
     }
 }
 
-impl From<WorthCreateKey> for WorthEntityReference {
-    fn from(value: WorthCreateKey) -> Self {
+impl From<CreateKey> for EntityReference {
+    fn from(value: CreateKey) -> Self {
         Self::Created(value)
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthMutationOrigin {
+pub enum MutationOrigin {
     Seed,
     LocalEdit,
     Replay,
@@ -53,24 +52,24 @@ pub enum WorthMutationOrigin {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum WorthTopologyMutation {
+pub enum TopologyMutation {
     CreateEntity {
-        create_key: WorthCreateKey,
-        kind: WorthEntityKind,
+        create_key: CreateKey,
+        kind: EntityKind,
     },
     CreateRelation {
-        create_key: WorthCreateKey,
-        kind: WorthRelationKind,
-        source: WorthEntityReference,
-        target: WorthEntityReference,
+        create_key: CreateKey,
+        kind: RelationKind,
+        source: EntityReference,
+        target: EntityReference,
     },
     UpsertEntity {
         entity_id: EntityId,
-        kind: WorthEntityKind,
+        kind: EntityKind,
     },
     UpsertRelation {
         relation_id: RelationId,
-        kind: WorthRelationKind,
+        kind: RelationKind,
         source: EntityId,
         target: EntityId,
     },
@@ -83,37 +82,37 @@ pub enum WorthTopologyMutation {
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct WorthTopologyMutationBatch {
-    pub mutations: Vec<WorthTopologyMutation>,
-    pub touched_aspects: BTreeSet<WorthAspect>,
-    pub mutation_origin: WorthMutationOrigin,
-    pub precision_fallbacks: Vec<WorthPrecisionFallbackRecord>,
-    pub precision_budget_fallbacks: Vec<WorthPrecisionBudgetFallbackRecord>,
+pub struct TopologyMutationBatch {
+    pub mutations: Vec<TopologyMutation>,
+    pub touched_aspects: BTreeSet<Aspect>,
+    pub mutation_origin: MutationOrigin,
+    pub precision_fallbacks: Vec<PrecisionFallbackRecord>,
+    pub precision_budget_fallbacks: Vec<PrecisionBudgetFallbackRecord>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct RawWorthTopologyIntent {
-    pub mutations: Vec<WorthTopologyMutation>,
-    pub mutation_origin: WorthMutationOrigin,
-    pub precision_fallbacks: Vec<WorthPrecisionFallbackRecord>,
-    pub precision_budget_fallbacks: Vec<WorthPrecisionBudgetFallbackRecord>,
+pub struct RawTopologyIntent {
+    pub mutations: Vec<TopologyMutation>,
+    pub mutation_origin: MutationOrigin,
+    pub precision_fallbacks: Vec<PrecisionFallbackRecord>,
+    pub precision_budget_fallbacks: Vec<PrecisionBudgetFallbackRecord>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CanonicalTopologyMutationBatch {
-    pub batch: WorthTopologyMutationBatch,
+    pub batch: TopologyMutationBatch,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct PersistedTopologyTruthBatch {
-    pub batch: WorthTopologyMutationBatch,
+    pub batch: TopologyMutationBatch,
     pub snapshot: SnapshotHandle,
     pub branch_id: BranchId,
-    pub mutation_origin: WorthMutationOrigin,
+    pub mutation_origin: MutationOrigin,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthDerivedTruthBasisIdentity {
+pub struct DerivedTruthBasisIdentity {
     pub mutation_batch_digest_hex: String,
     pub touched_aspect_count: usize,
 }
@@ -122,40 +121,37 @@ pub struct WorthDerivedTruthBasisIdentity {
 pub struct AuthoritativeTopologySnapshot {
     pub snapshot: SnapshotHandle,
     pub branch_id: BranchId,
-    pub touched_aspects: BTreeSet<WorthAspect>,
-    pub authoritative_mutation_origin: WorthMutationOrigin,
-    pub truth_basis_identity: WorthDerivedTruthBasisIdentity,
+    pub touched_aspects: BTreeSet<Aspect>,
+    pub authoritative_mutation_origin: MutationOrigin,
+    pub truth_basis_identity: DerivedTruthBasisIdentity,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct DerivedTopologyReadBasis {
     pub authority: AuthoritativeTopologySnapshot,
-    pub derivation_origin: WorthMutationOrigin,
-    pub precision_fallbacks: Vec<WorthPrecisionFallbackRecord>,
-    pub precision_budget_fallbacks: Vec<WorthPrecisionBudgetFallbackRecord>,
+    pub derivation_origin: MutationOrigin,
+    pub precision_fallbacks: Vec<PrecisionFallbackRecord>,
+    pub precision_budget_fallbacks: Vec<PrecisionBudgetFallbackRecord>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct WorthTopologyReadArtifact {
+pub struct TopologyReadArtifact {
     pub snapshot: SnapshotHandle,
-    pub precision_fallbacks: Vec<WorthPrecisionFallbackRecord>,
-    pub precision_budget_fallbacks: Vec<WorthPrecisionBudgetFallbackRecord>,
-    pub interpretations: WorthTopologyInterpretationRecordSet,
+    pub precision_fallbacks: Vec<PrecisionFallbackRecord>,
+    pub precision_budget_fallbacks: Vec<PrecisionBudgetFallbackRecord>,
+    pub interpretations: TopologyInterpretationRecordSet,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CertifiedTopologyInterpretation {
     pub read_basis: DerivedTopologyReadBasis,
-    pub precision_fallbacks: Vec<WorthPrecisionFallbackRecord>,
-    pub precision_budget_fallbacks: Vec<WorthPrecisionBudgetFallbackRecord>,
-    pub interpretations: WorthTopologyInterpretationRecordSet,
+    pub precision_fallbacks: Vec<PrecisionFallbackRecord>,
+    pub precision_budget_fallbacks: Vec<PrecisionBudgetFallbackRecord>,
+    pub interpretations: TopologyInterpretationRecordSet,
 }
 
-impl RawWorthTopologyIntent {
-    pub fn new(
-        mutations: Vec<WorthTopologyMutation>,
-        mutation_origin: WorthMutationOrigin,
-    ) -> Self {
+impl RawTopologyIntent {
+    pub fn new(mutations: Vec<TopologyMutation>, mutation_origin: MutationOrigin) -> Self {
         Self {
             mutations,
             mutation_origin,
@@ -164,28 +160,22 @@ impl RawWorthTopologyIntent {
         }
     }
 
-    pub fn with_precision_fallback(
-        mut self,
-        fallback: impl Into<WorthPrecisionFallbackRecord>,
-    ) -> Self {
+    pub fn with_precision_fallback(mut self, fallback: impl Into<PrecisionFallbackRecord>) -> Self {
         self.precision_fallbacks.push(fallback.into());
         self
     }
 
     pub fn with_precision_budget_fallback(
         mut self,
-        fallback: impl Into<WorthPrecisionBudgetFallbackRecord>,
+        fallback: impl Into<PrecisionBudgetFallbackRecord>,
     ) -> Self {
         self.precision_budget_fallbacks.push(fallback.into());
         self
     }
 }
 
-impl WorthTopologyMutationBatch {
-    pub fn from_raw_intent(
-        intent: RawWorthTopologyIntent,
-        touched_aspects: BTreeSet<WorthAspect>,
-    ) -> Self {
+impl TopologyMutationBatch {
+    pub fn from_raw_intent(intent: RawTopologyIntent, touched_aspects: BTreeSet<Aspect>) -> Self {
         Self {
             mutations: intent.mutations,
             touched_aspects,
@@ -204,7 +194,7 @@ impl DerivedTopologyReadBasis {
                 branch_id: batch.branch_id.clone(),
                 touched_aspects: batch.batch.touched_aspects.clone(),
                 authoritative_mutation_origin: batch.mutation_origin,
-                truth_basis_identity: WorthDerivedTruthBasisIdentity {
+                truth_basis_identity: DerivedTruthBasisIdentity {
                     mutation_batch_digest_hex: mutation_batch_digest_hex(&batch.batch),
                     touched_aspect_count: batch.batch.touched_aspects.len(),
                 },
@@ -217,7 +207,7 @@ impl DerivedTopologyReadBasis {
 
     pub fn replay_of(&self) -> Self {
         let mut replay = self.clone();
-        replay.derivation_origin = WorthMutationOrigin::Replay;
+        replay.derivation_origin = MutationOrigin::Replay;
         replay
     }
 
@@ -229,32 +219,32 @@ impl DerivedTopologyReadBasis {
         &self.authority.branch_id
     }
 
-    pub fn touched_aspects(&self) -> &BTreeSet<WorthAspect> {
+    pub fn touched_aspects(&self) -> &BTreeSet<Aspect> {
         &self.authority.touched_aspects
     }
 
-    pub fn authoritative_mutation_origin(&self) -> WorthMutationOrigin {
+    pub fn authoritative_mutation_origin(&self) -> MutationOrigin {
         self.authority.authoritative_mutation_origin
     }
 
-    pub fn derivation_origin(&self) -> WorthMutationOrigin {
+    pub fn derivation_origin(&self) -> MutationOrigin {
         self.derivation_origin
     }
 }
 
-impl WorthTopologyReadArtifact {
+impl TopologyReadArtifact {
     pub fn from_read_basis(read_basis: &DerivedTopologyReadBasis) -> Self {
         Self {
             snapshot: read_basis.snapshot().clone(),
             precision_fallbacks: read_basis.precision_fallbacks.clone(),
             precision_budget_fallbacks: read_basis.precision_budget_fallbacks.clone(),
-            interpretations: WorthTopologyInterpretationRecordSet::default(),
+            interpretations: TopologyInterpretationRecordSet::default(),
         }
     }
 
     pub fn from_read_basis_and_interpretation(
         read_basis: &DerivedTopologyReadBasis,
-        interpretations: WorthTopologyInterpretationRecordSet,
+        interpretations: TopologyInterpretationRecordSet,
     ) -> Self {
         Self {
             snapshot: read_basis.snapshot().clone(),
@@ -270,14 +260,14 @@ impl CertifiedTopologyInterpretation {
         Self {
             precision_fallbacks: read_basis.precision_fallbacks.clone(),
             precision_budget_fallbacks: read_basis.precision_budget_fallbacks.clone(),
-            interpretations: WorthTopologyInterpretationRecordSet::default(),
+            interpretations: TopologyInterpretationRecordSet::default(),
             read_basis,
         }
     }
 
     pub fn from_read_basis_and_interpretation(
         read_basis: DerivedTopologyReadBasis,
-        interpretations: WorthTopologyInterpretationRecordSet,
+        interpretations: TopologyInterpretationRecordSet,
     ) -> Self {
         Self {
             precision_fallbacks: read_basis.precision_fallbacks.clone(),
@@ -288,7 +278,7 @@ impl CertifiedTopologyInterpretation {
     }
 }
 
-fn mutation_batch_digest_hex(batch: &WorthTopologyMutationBatch) -> String {
+fn mutation_batch_digest_hex(batch: &TopologyMutationBatch) -> String {
     let mut state: u64 = 0xcbf29ce484222325;
     fn write_str(state: &mut u64, value: &str) {
         for byte in value.as_bytes() {

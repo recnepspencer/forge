@@ -6,12 +6,12 @@ use forge_query::facade::{
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
-use crate::data::authority::{RawWorthTopologyIntent, WorthEntityReference, WorthTopologyMutation};
-use crate::data::entities::WorthEntityKind;
-use crate::data::relations::WorthRelationKind;
+use crate::data::authority::{EntityReference, RawTopologyIntent, TopologyMutation};
+use crate::data::entities::EntityKind;
+use crate::data::relations::RelationKind;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum WorthQueryMutationAdmissionBlocker {
+pub enum QueryMutationAdmissionBlocker {
     ExistingIdentityBindingRequired,
     SymbolicCreateReferenceRequired,
     ProjectedNamingWritebackRequired,
@@ -19,7 +19,7 @@ pub enum WorthQueryMutationAdmissionBlocker {
     UnsupportedDiagnosticsTruthMutation,
 }
 
-impl WorthQueryMutationAdmissionBlocker {
+impl QueryMutationAdmissionBlocker {
     pub fn message(&self) -> &'static str {
         match self {
             Self::ExistingIdentityBindingRequired => {
@@ -29,7 +29,7 @@ impl WorthQueryMutationAdmissionBlocker {
                 "query-native batch authoring still needs admitted symbolic create references for same-batch topology graph construction"
             }
             Self::ProjectedNamingWritebackRequired => {
-                "query-native lowering still needs admitted projected naming writeback to author persistent-name truth without a shadow Worth runtime"
+                "query-native lowering still needs admitted projected naming writeback to author persistent-name truth without a shadow  runtime"
             }
             Self::UnsupportedGeometryTruthMutation => {
                 "geometry truth mutation is outside the current topology-only query rewrite lane"
@@ -42,24 +42,24 @@ impl WorthQueryMutationAdmissionBlocker {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthQueryMutationAdmissionReport {
+pub struct QueryMutationAdmissionReport {
     pub mutation_index: usize,
-    pub blocker: WorthQueryMutationAdmissionBlocker,
+    pub blocker: QueryMutationAdmissionBlocker,
     pub mutation_summary: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum WorthQueryMutationAdmission {
+pub enum QueryMutationAdmission {
     Admitted,
-    Blocked(Vec<WorthQueryMutationAdmissionReport>),
+    Blocked(Vec<QueryMutationAdmissionReport>),
 }
 
-impl WorthQueryMutationAdmission {
+impl QueryMutationAdmission {
     pub fn is_admitted(&self) -> bool {
         matches!(self, Self::Admitted)
     }
 
-    pub fn blockers(&self) -> &[WorthQueryMutationAdmissionReport] {
+    pub fn blockers(&self) -> &[QueryMutationAdmissionReport] {
         match self {
             Self::Admitted => &[],
             Self::Blocked(blockers) => blockers,
@@ -68,7 +68,7 @@ impl WorthQueryMutationAdmission {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthQueryMutationSupportContract {
+pub struct QueryMutationSupportContract {
     pub query_support_digest: String,
     pub query_closeout_digest: String,
     pub admitted_query_substrate_families: Vec<String>,
@@ -77,8 +77,8 @@ pub struct WorthQueryMutationSupportContract {
     pub contract_digest: String,
 }
 
-pub fn worth_query_mutation_support_contract(
-) -> Result<WorthQueryMutationSupportContract, ForgeQueryRuntimeError> {
+pub fn query_mutation_support_contract(
+) -> Result<QueryMutationSupportContract, ForgeQueryRuntimeError> {
     let query_support = public_authoritative_mutation_evidence_support();
     let query_closeout = public_authoritative_mutation_evidence_closeout(&query_support);
 
@@ -87,28 +87,28 @@ pub fn worth_query_mutation_support_contract(
             .symbolic_target_reference_families()
             .iter()
             .any(|family| family == "same_batch_declared_target"),
-        "forge-query authoritative mutation evidence must admit same-batch symbolic target references before worth widens raw topology creation",
+        "forge-query authoritative mutation evidence must admit same-batch symbolic target references before  widens raw topology creation",
     );
     assert!(
         query_support
             .symbolic_aspect_reference_families()
             .iter()
             .any(|family| family == "same_batch_declared_entity_identity"),
-        "forge-query authoritative mutation evidence must admit same-batch symbolic aspect entity-identity references before worth widens same-batch topology relation construction",
+        "forge-query authoritative mutation evidence must admit same-batch symbolic aspect entity-identity references before  widens same-batch topology relation construction",
     );
     assert!(
         query_support
             .existing_truth_binding_families()
             .iter()
             .any(|family| family == "direct_entity_identity"),
-        "forge-query authoritative mutation evidence must admit direct existing-truth bindings before worth widens existing-truth updates",
+        "forge-query authoritative mutation evidence must admit direct existing-truth bindings before  widens existing-truth updates",
     );
     assert!(
         query_support
             .existing_truth_binding_families()
             .iter()
             .any(|family| family == "direct_relation_identity"),
-        "forge-query authoritative mutation evidence must admit direct existing-truth relation bindings before worth widens imported topology relation removal",
+        "forge-query authoritative mutation evidence must admit direct existing-truth relation bindings before  widens imported topology relation removal",
     );
 
     let admitted_query_substrate_families = vec![
@@ -134,7 +134,7 @@ pub fn worth_query_mutation_support_contract(
         "diagnostics_truth_outside_topology_lane".to_string(),
     ];
     let contract_digest = hash_parts(
-        &std::iter::once("worth_query_mutation_support_contract_v1".to_string())
+        &std::iter::once("query_mutation_support_contract_v1".to_string())
             .chain(std::iter::once(format!(
                 "query-support:{}",
                 query_support.support_digest()
@@ -161,7 +161,7 @@ pub fn worth_query_mutation_support_contract(
             .collect::<Vec<_>>(),
     );
 
-    Ok(WorthQueryMutationSupportContract {
+    Ok(QueryMutationSupportContract {
         query_support_digest: query_support.support_digest().to_string(),
         query_closeout_digest: query_closeout.closeout_digest().to_string(),
         admitted_query_substrate_families,
@@ -171,129 +171,125 @@ pub fn worth_query_mutation_support_contract(
     })
 }
 
-pub fn admit_worth_query_mutation_batch(
-    intent: &RawWorthTopologyIntent,
-) -> WorthQueryMutationAdmission {
+pub fn admit_query_mutation_batch(intent: &RawTopologyIntent) -> QueryMutationAdmission {
     let mut blockers = Vec::new();
     for (mutation_index, mutation) in intent.mutations.iter().enumerate() {
         classify_mutation(mutation_index, mutation, &mut blockers);
     }
     if blockers.is_empty() {
-        WorthQueryMutationAdmission::Admitted
+        QueryMutationAdmission::Admitted
     } else {
-        WorthQueryMutationAdmission::Blocked(blockers)
+        QueryMutationAdmission::Blocked(blockers)
     }
 }
 
 fn classify_mutation(
     mutation_index: usize,
-    mutation: &WorthTopologyMutation,
-    blockers: &mut Vec<WorthQueryMutationAdmissionReport>,
+    mutation: &TopologyMutation,
+    blockers: &mut Vec<QueryMutationAdmissionReport>,
 ) {
     match mutation {
-        WorthTopologyMutation::CreateEntity { kind, .. } => match kind {
-            WorthEntityKind::Topology(_) => {}
-            WorthEntityKind::Naming(_) => push_blocker(
+        TopologyMutation::CreateEntity { kind, .. } => match kind {
+            EntityKind::Topology(_) => {}
+            EntityKind::Naming(_) => push_blocker(
                 blockers,
                 mutation_index,
                 mutation,
-                WorthQueryMutationAdmissionBlocker::ProjectedNamingWritebackRequired,
+                QueryMutationAdmissionBlocker::ProjectedNamingWritebackRequired,
             ),
-            WorthEntityKind::Geometry(_) => push_blocker(
+            EntityKind::Geometry(_) => push_blocker(
                 blockers,
                 mutation_index,
                 mutation,
-                WorthQueryMutationAdmissionBlocker::UnsupportedGeometryTruthMutation,
+                QueryMutationAdmissionBlocker::UnsupportedGeometryTruthMutation,
             ),
-            WorthEntityKind::Diagnostics(_) => push_blocker(
+            EntityKind::Diagnostics(_) => push_blocker(
                 blockers,
                 mutation_index,
                 mutation,
-                WorthQueryMutationAdmissionBlocker::UnsupportedDiagnosticsTruthMutation,
+                QueryMutationAdmissionBlocker::UnsupportedDiagnosticsTruthMutation,
             ),
         },
-        WorthTopologyMutation::CreateRelation {
+        TopologyMutation::CreateRelation {
             kind,
             source,
             target,
             ..
         } => match kind {
-            WorthRelationKind::Topology(_) => {
-                let _same_batch_symbolic_reference =
-                    matches!(source, WorthEntityReference::Created(_))
-                        || matches!(target, WorthEntityReference::Created(_));
+            RelationKind::Topology(_) => {
+                let _same_batch_symbolic_reference = matches!(source, EntityReference::Created(_))
+                    || matches!(target, EntityReference::Created(_));
             }
-            WorthRelationKind::Naming(_) => push_blocker(
+            RelationKind::Naming(_) => push_blocker(
                 blockers,
                 mutation_index,
                 mutation,
-                WorthQueryMutationAdmissionBlocker::ProjectedNamingWritebackRequired,
+                QueryMutationAdmissionBlocker::ProjectedNamingWritebackRequired,
             ),
-            WorthRelationKind::Geometry(_) => push_blocker(
+            RelationKind::Geometry(_) => push_blocker(
                 blockers,
                 mutation_index,
                 mutation,
-                WorthQueryMutationAdmissionBlocker::UnsupportedGeometryTruthMutation,
+                QueryMutationAdmissionBlocker::UnsupportedGeometryTruthMutation,
             ),
-            WorthRelationKind::Diagnostics(_) => push_blocker(
+            RelationKind::Diagnostics(_) => push_blocker(
                 blockers,
                 mutation_index,
                 mutation,
-                WorthQueryMutationAdmissionBlocker::UnsupportedDiagnosticsTruthMutation,
-            ),
-        },
-        WorthTopologyMutation::UpsertEntity { kind, .. } => match kind {
-            WorthEntityKind::Topology(_) => {}
-            WorthEntityKind::Naming(_) => push_blocker(
-                blockers,
-                mutation_index,
-                mutation,
-                WorthQueryMutationAdmissionBlocker::ProjectedNamingWritebackRequired,
-            ),
-            WorthEntityKind::Geometry(_) => push_blocker(
-                blockers,
-                mutation_index,
-                mutation,
-                WorthQueryMutationAdmissionBlocker::UnsupportedGeometryTruthMutation,
-            ),
-            WorthEntityKind::Diagnostics(_) => push_blocker(
-                blockers,
-                mutation_index,
-                mutation,
-                WorthQueryMutationAdmissionBlocker::UnsupportedDiagnosticsTruthMutation,
+                QueryMutationAdmissionBlocker::UnsupportedDiagnosticsTruthMutation,
             ),
         },
-        WorthTopologyMutation::UpsertRelation { kind, .. } => match kind {
-            WorthRelationKind::Topology(_) => {}
-            WorthRelationKind::Naming(_) => push_blocker(
+        TopologyMutation::UpsertEntity { kind, .. } => match kind {
+            EntityKind::Topology(_) => {}
+            EntityKind::Naming(_) => push_blocker(
                 blockers,
                 mutation_index,
                 mutation,
-                WorthQueryMutationAdmissionBlocker::ProjectedNamingWritebackRequired,
+                QueryMutationAdmissionBlocker::ProjectedNamingWritebackRequired,
             ),
-            WorthRelationKind::Geometry(_) => push_blocker(
+            EntityKind::Geometry(_) => push_blocker(
                 blockers,
                 mutation_index,
                 mutation,
-                WorthQueryMutationAdmissionBlocker::UnsupportedGeometryTruthMutation,
+                QueryMutationAdmissionBlocker::UnsupportedGeometryTruthMutation,
             ),
-            WorthRelationKind::Diagnostics(_) => push_blocker(
+            EntityKind::Diagnostics(_) => push_blocker(
                 blockers,
                 mutation_index,
                 mutation,
-                WorthQueryMutationAdmissionBlocker::UnsupportedDiagnosticsTruthMutation,
+                QueryMutationAdmissionBlocker::UnsupportedDiagnosticsTruthMutation,
             ),
         },
-        WorthTopologyMutation::RemoveEntity { .. }
-        | WorthTopologyMutation::RemoveRelation { .. } => {}
+        TopologyMutation::UpsertRelation { kind, .. } => match kind {
+            RelationKind::Topology(_) => {}
+            RelationKind::Naming(_) => push_blocker(
+                blockers,
+                mutation_index,
+                mutation,
+                QueryMutationAdmissionBlocker::ProjectedNamingWritebackRequired,
+            ),
+            RelationKind::Geometry(_) => push_blocker(
+                blockers,
+                mutation_index,
+                mutation,
+                QueryMutationAdmissionBlocker::UnsupportedGeometryTruthMutation,
+            ),
+            RelationKind::Diagnostics(_) => push_blocker(
+                blockers,
+                mutation_index,
+                mutation,
+                QueryMutationAdmissionBlocker::UnsupportedDiagnosticsTruthMutation,
+            ),
+        },
+        TopologyMutation::RemoveEntity { .. } | TopologyMutation::RemoveRelation { .. } => {}
     }
 }
 
 fn push_blocker(
-    blockers: &mut Vec<WorthQueryMutationAdmissionReport>,
+    blockers: &mut Vec<QueryMutationAdmissionReport>,
     mutation_index: usize,
-    mutation: &WorthTopologyMutation,
-    blocker: WorthQueryMutationAdmissionBlocker,
+    mutation: &TopologyMutation,
+    blocker: QueryMutationAdmissionBlocker,
 ) {
     if blockers
         .iter()
@@ -301,7 +297,7 @@ fn push_blocker(
     {
         return;
     }
-    blockers.push(WorthQueryMutationAdmissionReport {
+    blockers.push(QueryMutationAdmissionReport {
         mutation_index,
         blocker,
         mutation_summary: format!("{mutation:?}"),
@@ -328,9 +324,9 @@ fn public_authoritative_mutation_evidence_closeout(
     _query_support: &ForgeQueryAuthoritativeMutationEvidenceSupport,
 ) -> ForgeQueryAuthoritativeMutationEvidenceCloseout {
     let support_profile = ForgeQueryRuntimeSupportProfile::bridge_backed(
-        "worth-query-mutation-support-contract-live",
-        "worth-query-mutation-support-contract-preview",
-        "worth-query-mutation-support-contract-inspect",
+        "query-mutation-support-contract-live",
+        "query-mutation-support-contract-preview",
+        "query-mutation-support-contract-inspect",
     );
     ForgeQueryRuntime::public_authoritative_mutation_evidence_closeout_for_support_profile(
         &support_profile,

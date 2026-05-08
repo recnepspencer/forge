@@ -1,13 +1,13 @@
-use worth_schema::facade::{
-    WorthBoundaryEnvelope, WorthDecisionTrace, WorthIntegrityMarkers, WorthPerformanceAccounting,
+use schema::facade::{
+    BoundaryEnvelope, DecisionTrace, IntegrityMarkers, PerformanceAccounting,
 };
 
 fn main() {
-    let _forged = WorthBoundaryEnvelope {
+    let _forged = BoundaryEnvelope {
         primary_result: 7u32,
         warnings: Vec::new(),
-        decision_trace: WorthDecisionTrace::default(),
-        integrity_markers: WorthIntegrityMarkers::default(),
-        performance_accounting: WorthPerformanceAccounting::default(),
+        decision_trace: DecisionTrace::default(),
+        integrity_markers: IntegrityMarkers::default(),
+        performance_accounting: PerformanceAccounting::default(),
     };
 }

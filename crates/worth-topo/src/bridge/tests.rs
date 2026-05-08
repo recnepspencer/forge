@@ -5,15 +5,15 @@ use forge_runtime_bridge::facade::{
     BridgeDeliveryReceipt, BridgeSignalInvalidationDelivery, BridgeTruthViewEvaluationRequest,
     InvalidationSink, SignalBridgeSinkError, TruthBranchIdentity,
 };
-use worth_schema::facade::topology_authoring::seed_minimal_topology;
-use worth_schema::facade::{
-    explain_bridge_trace, worth_milestone_two_invalidation_declarations, WorthBridgeTraceAnchor,
-    WorthDerivedInvalidationTarget, WorthDerivedTruthSurfaceKind,
+use schema::facade::topology_authoring::seed_minimal_topology;
+use schema::facade::{
+    explain_bridge_trace, milestone_two_invalidation_declarations, BridgeTraceAnchor,
+    DerivedInvalidationTarget, DerivedTruthSurfaceKind,
 };
 
 use crate::bridge::{
-    build_worth_milestone_one_bridge, worth_milestone_one_bridge_aspect_registrations,
-    worth_milestone_one_bridge_mapping_registrations,
+    build_milestone_one_bridge, milestone_one_bridge_aspect_registrations,
+    milestone_one_bridge_mapping_registrations,
 };
 
 #[derive(Clone)]
@@ -33,15 +33,15 @@ impl InvalidationSink for RecordingSink {
 
 #[test]
 fn milestone_one_bridge_registration_packs_cover_topology_and_naming_aspects() {
-    let mappings = worth_milestone_one_bridge_mapping_registrations();
-    let aspects = worth_milestone_one_bridge_aspect_registrations();
-    let declarations = worth_milestone_two_invalidation_declarations();
+    let mappings = milestone_one_bridge_mapping_registrations();
+    let aspects = milestone_one_bridge_aspect_registrations();
+    let declarations = milestone_two_invalidation_declarations();
 
     assert_eq!(mappings.len(), declarations.len());
     assert_eq!(aspects.len(), declarations.len());
     for declaration in declarations {
         assert!(mappings.iter().any(|registration| {
-            registration.mapping_id().as_str() == format!("worth:m2:{}", declaration.declaration_id)
+            registration.mapping_id().as_str() == format!(":m2:{}", declaration.declaration_id)
                 && registration.signal_scope().as_str() == declaration.target.bridge_scope()
                 && registration.truth_scope().aspect_selector()
                     == &forge_runtime_bridge::facade::MappingSelector::exact(
@@ -50,16 +50,16 @@ fn milestone_one_bridge_registration_packs_cover_topology_and_naming_aspects() {
         }));
         assert!(aspects.iter().any(|registration| {
             registration.registration_id().as_str()
-                == format!("worth:m2:aspect:{}", declaration.declaration_id)
+                == format!(":m2:aspect:{}", declaration.declaration_id)
                 && registration.truth_scope().aspect_selector()
                     == &forge_runtime_bridge::facade::MappingSelector::exact(
                         declaration.truth_patch_field,
                     )
                 && registration.truth_surface_kind() == match declaration.truth_surface_kind {
-                    WorthDerivedTruthSurfaceKind::EntityField => {
+                    DerivedTruthSurfaceKind::EntityField => {
                         forge_runtime_bridge::facade::TruthDeltaSurfaceKind::EntityField
                     }
-                    WorthDerivedTruthSurfaceKind::EntityRelationEndpoint => {
+                    DerivedTruthSurfaceKind::EntityRelationEndpoint => {
                         forge_runtime_bridge::facade::TruthDeltaSurfaceKind::EntityRelationEndpoint
                     }
                 }
@@ -69,47 +69,39 @@ fn milestone_one_bridge_registration_packs_cover_topology_and_naming_aspects() {
 
 #[test]
 fn milestone_two_bridge_target_vocabulary_remains_canonical() {
-    let declarations = worth_milestone_two_invalidation_declarations();
+    let declarations = milestone_two_invalidation_declarations();
 
-    assert!(
-        declarations
-            .iter()
-            .any(|declaration| declaration.target
-                == WorthDerivedInvalidationTarget::TopologyStructure)
-    );
-    assert!(
-        declarations
-            .iter()
-            .any(|declaration| declaration.target
-                == WorthDerivedInvalidationTarget::TopologyOwnership)
-    );
     assert!(declarations
         .iter()
-        .any(|declaration| declaration.target == WorthDerivedInvalidationTarget::TopologyBoundary));
+        .any(|declaration| declaration.target == DerivedInvalidationTarget::TopologyStructure));
     assert!(declarations
         .iter()
-        .any(|declaration| declaration.target == WorthDerivedInvalidationTarget::TopologyRadial));
+        .any(|declaration| declaration.target == DerivedInvalidationTarget::TopologyOwnership));
     assert!(declarations
         .iter()
-        .any(|declaration| declaration.target
-            == WorthDerivedInvalidationTarget::NamingPersistentName));
+        .any(|declaration| declaration.target == DerivedInvalidationTarget::TopologyBoundary));
+    assert!(declarations
+        .iter()
+        .any(|declaration| declaration.target == DerivedInvalidationTarget::TopologyRadial));
+    assert!(declarations
+        .iter()
+        .any(|declaration| declaration.target == DerivedInvalidationTarget::NamingPersistentName));
 }
 
 #[test]
-fn milestone_one_bridge_builder_registers_worth_mapping_pack() {
-    let runtime = Arc::new(crate::runtime_invariants::build_worth_milestone_one_runtime().unwrap());
+fn milestone_one_bridge_builder_registers_mapping_pack() {
+    let runtime = Arc::new(crate::runtime_invariants::build_milestone_one_runtime().unwrap());
 
-    let _bridge = build_worth_milestone_one_bridge(runtime, RecordingSink).unwrap();
+    let _bridge = build_milestone_one_bridge(runtime, RecordingSink).unwrap();
 }
 
 #[test]
-fn milestone_one_bridge_routes_and_evaluates_seeded_worth_commit() {
-    let mut runtime = crate::runtime_invariants::worth_milestone_one_runtime_builder()
-        .expect("worth milestone one runtime builder")
+fn milestone_one_bridge_routes_and_evaluates_seeded_commit() {
+    let mut runtime = crate::runtime_invariants::milestone_one_runtime_builder()
+        .expect(" milestone one runtime builder")
         .build();
 
-    let _seeded =
-        seed_minimal_topology(&mut runtime, "bridge-worth-seeded").expect("seed worth topology");
+    let _seeded = seed_minimal_topology(&mut runtime, "bridge--seeded").expect("seed  topology");
     let history = runtime.history();
     let head_commit_id = history
         .branch_head(&BranchId("main".to_string()))
@@ -117,17 +109,17 @@ fn milestone_one_bridge_routes_and_evaluates_seeded_worth_commit() {
         .commit_id;
 
     let runtime = Arc::new(runtime);
-    let bridge = build_worth_milestone_one_bridge(Arc::clone(&runtime), RecordingSink)
-        .expect("worth bridge should build");
+    let bridge = build_milestone_one_bridge(Arc::clone(&runtime), RecordingSink)
+        .expect(" bridge should build");
 
     let route = bridge
         .route(format!("commit-{}", head_commit_id.0))
-        .expect("worth bridge should route a seeded commit");
+        .expect(" bridge should route a seeded commit");
     let evaluation = bridge
         .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
             TruthBranchIdentity::new("main"),
         ))
-        .expect("worth bridge should evaluate current main branch head");
+        .expect(" bridge should evaluate current main branch head");
 
     assert_eq!(
         route.result().receipt().snapshot_identity(),
@@ -142,12 +134,11 @@ fn milestone_one_bridge_routes_and_evaluates_seeded_worth_commit() {
 
 #[test]
 fn bridge_trace_explanation_queries_real_runtime_diagnostics() {
-    let mut runtime = crate::runtime_invariants::worth_milestone_one_runtime_builder()
-        .expect("worth milestone one runtime builder")
+    let mut runtime = crate::runtime_invariants::milestone_one_runtime_builder()
+        .expect(" milestone one runtime builder")
         .build();
 
-    let _seeded =
-        seed_minimal_topology(&mut runtime, "bridge-worth-explained").expect("seed worth topology");
+    let _seeded = seed_minimal_topology(&mut runtime, "bridge--explained").expect("seed  topology");
     let history = runtime.history();
     let head_commit_id = history
         .branch_head(&BranchId("main".to_string()))
@@ -155,20 +146,20 @@ fn bridge_trace_explanation_queries_real_runtime_diagnostics() {
         .commit_id;
 
     let runtime = Arc::new(runtime);
-    let bridge = build_worth_milestone_one_bridge(Arc::clone(&runtime), RecordingSink)
-        .expect("worth bridge should build");
+    let bridge = build_milestone_one_bridge(Arc::clone(&runtime), RecordingSink)
+        .expect(" bridge should build");
     let _route = bridge
         .route(format!("commit-{}", head_commit_id.0))
-        .expect("worth bridge should route a seeded commit");
+        .expect(" bridge should route a seeded commit");
     let _evaluation = bridge
         .evaluate(BridgeTruthViewEvaluationRequest::for_branch_head(
             TruthBranchIdentity::new("main"),
         ))
-        .expect("worth bridge should evaluate current main branch head");
+        .expect(" bridge should evaluate current main branch head");
 
     let route_records = bridge.diagnostics().route_records();
     let historical_records = bridge.diagnostics().historical_evaluation_records();
-    let anchor = WorthBridgeTraceAnchor::new(
+    let anchor = BridgeTraceAnchor::new(
         route_records
             .iter()
             .map(|record| record.route_identity().as_str().to_string()),

@@ -11,7 +11,7 @@ use forge_runtime_bridge::facade::{
     TruthBranchIdentity, TruthSnapshotIdentity, TruthSnapshotReader,
 };
 
-use super::binding::WorthTopologyRuntimeBinding;
+use super::binding::TopologyRuntimeBinding;
 use super::bridge_source_support::{
     missing_aspect_error, missing_record_error, parse_bridge_commit_identity,
     parse_bridge_record_identity, parse_bridge_snapshot_identity, payload_bytes_for_entity_aspect,
@@ -19,17 +19,17 @@ use super::bridge_source_support::{
 };
 
 #[derive(Clone)]
-pub(super) struct WorthTopologyRuntimeBridgeSource {
-    binding: WorthTopologyRuntimeBinding,
+pub(super) struct TopologyRuntimeBridgeSource {
+    binding: TopologyRuntimeBinding,
 }
 
-impl WorthTopologyRuntimeBridgeSource {
-    pub(super) fn new(binding: WorthTopologyRuntimeBinding) -> Self {
+impl TopologyRuntimeBridgeSource {
+    pub(super) fn new(binding: TopologyRuntimeBinding) -> Self {
         Self { binding }
     }
 }
 
-impl CommittedPatchSource for WorthTopologyRuntimeBridgeSource {
+impl CommittedPatchSource for TopologyRuntimeBridgeSource {
     fn load_committed_patch(
         &self,
         request: RelationalCommittedPatchRequest,
@@ -37,23 +37,23 @@ impl CommittedPatchSource for WorthTopologyRuntimeBridgeSource {
         let commit_id = parse_bridge_commit_identity(request.commit_identity())?;
         let Some(runtime) = self.binding.runtime() else {
             return Err(RelationalBridgeSourceError::new(format!(
-                "worth topology snapshot certification runtime does not expose committed patch loading for `{}`",
+                "topology snapshot certification runtime does not expose committed patch loading for `{}`",
                 request.commit_identity()
             )));
         };
         let runtime = runtime
             .read()
-            .expect("worth topology bridge source lock poisoned");
+            .expect("topology bridge source lock poisoned");
         let publication = runtime.publication();
         let bundle = publication.latest_bundle().ok_or_else(|| {
             RelationalBridgeSourceError::new(format!(
-                "worth topology runtime has no published bundle for bridge commit `{}`",
+                "topology runtime has no published bundle for bridge commit `{}`",
                 request.commit_identity()
             ))
         })?;
         if bundle.commit.commit_id != commit_id {
             return Err(RelationalBridgeSourceError::new(format!(
-                "worth topology runtime could not resolve authoritative commit `{}`",
+                "topology runtime could not resolve authoritative commit `{}`",
                 request.commit_identity()
             )));
         }
@@ -61,38 +61,38 @@ impl CommittedPatchSource for WorthTopologyRuntimeBridgeSource {
     }
 }
 
-impl SnapshotReadSource for WorthTopologyRuntimeBridgeSource {
+impl SnapshotReadSource for TopologyRuntimeBridgeSource {
     fn open_snapshot(
         &self,
         identity: &TruthSnapshotIdentity,
     ) -> Result<Box<dyn TruthSnapshotReader>, RelationalBridgeSourceError> {
         match &self.binding {
-            WorthTopologyRuntimeBinding::CurrentHead(runtime) => {
+            TopologyRuntimeBinding::CurrentHead(runtime) => {
                 let version_id = {
                     let runtime = runtime
                         .read()
-                        .expect("worth topology bridge source lock poisoned");
+                        .expect("topology bridge source lock poisoned");
                     resolve_bridge_snapshot_version(&runtime, identity)?
                 };
-                Ok(Box::new(WorthTopologySnapshotReader::current_head(
+                Ok(Box::new(TopologySnapshotReader::current_head(
                     runtime.clone(),
                     identity.clone(),
                     version_id,
                 )))
             }
-            WorthTopologyRuntimeBinding::SnapshotReadOnly {
+            TopologyRuntimeBinding::SnapshotReadOnly {
                 read_view,
                 snapshot,
             } => {
                 let expected = bridge_snapshot_identity_for_handle(snapshot);
                 if expected != *identity {
                     return Err(RelationalBridgeSourceError::new(format!(
-                        "worth topology snapshot certification runtime only exposes authoritative snapshot `{}`; requested `{}`",
+                        "topology snapshot certification runtime only exposes authoritative snapshot `{}`; requested `{}`",
                         expected.as_str(),
                         identity.as_str()
                     )));
                 }
-                Ok(Box::new(WorthTopologySnapshotReader::snapshot_read_only(
+                Ok(Box::new(TopologySnapshotReader::snapshot_read_only(
                     read_view.clone(),
                     identity.clone(),
                 )))
@@ -101,30 +101,30 @@ impl SnapshotReadSource for WorthTopologyRuntimeBridgeSource {
     }
 }
 
-impl TruthBranchHeadSource for WorthTopologyRuntimeBridgeSource {
+impl TruthBranchHeadSource for TopologyRuntimeBridgeSource {
     fn load_branch_head_patch(
         &self,
         branch_identity: &TruthBranchIdentity,
     ) -> Result<RawCommittedPatchEnvelope, RelationalBridgeSourceError> {
         let Some(runtime) = self.binding.runtime() else {
             return Err(RelationalBridgeSourceError::new(format!(
-                "worth topology snapshot certification runtime does not expose branch-head patch loading for `{}`",
+                "topology snapshot certification runtime does not expose branch-head patch loading for `{}`",
                 branch_identity.as_str()
             )));
         };
         let runtime = runtime
             .read()
-            .expect("worth topology bridge source lock poisoned");
+            .expect("topology bridge source lock poisoned");
         let publication = runtime.publication();
         let bundle = publication.latest_bundle().ok_or_else(|| {
             RelationalBridgeSourceError::new(format!(
-                "worth topology runtime has no published bundle for branch `{}`",
+                "topology runtime has no published bundle for branch `{}`",
                 branch_identity.as_str()
             ))
         })?;
         if bundle.commit.branch_id.0 != branch_identity.as_str() {
             return Err(RelationalBridgeSourceError::new(format!(
-                "worth topology current-head bridge source only exposes latest branch `{}`; requested `{}`",
+                "topology current-head bridge source only exposes latest branch `{}`; requested `{}`",
                 bundle.commit.branch_id.0,
                 branch_identity.as_str()
             )));
@@ -133,7 +133,7 @@ impl TruthBranchHeadSource for WorthTopologyRuntimeBridgeSource {
     }
 }
 
-enum WorthTopologySnapshotReadMode {
+enum TopologySnapshotReadMode {
     CurrentHead {
         runtime: std::sync::Arc<std::sync::RwLock<RelationalRuntime>>,
         version_id: VersionId,
@@ -143,19 +143,19 @@ enum WorthTopologySnapshotReadMode {
     },
 }
 
-struct WorthTopologySnapshotReader {
-    mode: WorthTopologySnapshotReadMode,
+struct TopologySnapshotReader {
+    mode: TopologySnapshotReadMode,
     snapshot_identity: TruthSnapshotIdentity,
 }
 
-impl WorthTopologySnapshotReader {
+impl TopologySnapshotReader {
     fn current_head(
         runtime: std::sync::Arc<std::sync::RwLock<RelationalRuntime>>,
         snapshot_identity: TruthSnapshotIdentity,
         version_id: VersionId,
     ) -> Self {
         Self {
-            mode: WorthTopologySnapshotReadMode::CurrentHead {
+            mode: TopologySnapshotReadMode::CurrentHead {
                 runtime,
                 version_id,
             },
@@ -168,13 +168,13 @@ impl WorthTopologySnapshotReader {
         snapshot_identity: TruthSnapshotIdentity,
     ) -> Self {
         Self {
-            mode: WorthTopologySnapshotReadMode::SnapshotReadOnly { read_view },
+            mode: TopologySnapshotReadMode::SnapshotReadOnly { read_view },
             snapshot_identity,
         }
     }
 }
 
-impl TruthSnapshotReader for WorthTopologySnapshotReader {
+impl TruthSnapshotReader for TopologySnapshotReader {
     fn snapshot_identity(&self) -> TruthSnapshotIdentity {
         self.snapshot_identity.clone()
     }
@@ -188,13 +188,13 @@ impl TruthSnapshotReader for WorthTopologySnapshotReader {
             let record_ref = parse_bridge_record_identity(read.entity_identity())
                 .map_err(|error| BridgeSnapshotReadError::new(error.to_string()))?;
             let payload = match &self.mode {
-                WorthTopologySnapshotReadMode::CurrentHead {
+                TopologySnapshotReadMode::CurrentHead {
                     runtime,
                     version_id,
                 } => {
                     let runtime = runtime
                         .read()
-                        .expect("worth topology bridge source lock poisoned");
+                        .expect("topology bridge source lock poisoned");
                     let projection = runtime.read_truth().project_version(*version_id);
                     match record_ref {
                         RecordRef::Entity(entity_id) => {
@@ -236,7 +236,7 @@ impl TruthSnapshotReader for WorthTopologySnapshotReader {
                         }
                     }
                 }
-                WorthTopologySnapshotReadMode::SnapshotReadOnly { read_view } => {
+                TopologySnapshotReadMode::SnapshotReadOnly { read_view } => {
                     payload_from_read_view(read_view, &self.snapshot_identity, read, record_ref)?
                 }
             };
@@ -263,13 +263,13 @@ fn resolve_bridge_snapshot_version(
         })
         .ok_or_else(|| {
             RelationalBridgeSourceError::new(format!(
-                "worth topology bridge snapshot identity `{}` does not resolve to the current-head published bundle",
+                "topology bridge snapshot identity `{}` does not resolve to the current-head published bundle",
                 identity.as_str()
             ))
         })?;
     if observed_version_id != expected_version_id {
         return Err(RelationalBridgeSourceError::new(format!(
-            "worth topology bridge snapshot identity `{}` expected version `{}` but authoritative binding resolved to version `{}`",
+            "topology bridge snapshot identity `{}` expected version `{}` but authoritative binding resolved to version `{}`",
             identity.as_str(),
             expected_version_id.0,
             observed_version_id.0

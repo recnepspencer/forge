@@ -1,15 +1,15 @@
 error[E0061]: this function takes 2 arguments but 1 argument was supplied
  --> tests/compile_fail/public_runtime_constructor_requires_adapters.rs:4:13
   |
-4 |     let _ = worth_topology_runtime("worth.runtime.bypass");
-  |             ^^^^^^^^^^^^^^^^^^^^^^ ---------------------- argument #1 of type `WorthTopologyRuntimeAdapters` is missing
+4 |     let _ = topology_runtime(".runtime.bypass");
+  |             ^^^^^^^^^^^^^^^^ ----------------- argument #1 of type `TopologyRuntimeAdapters` is missing
   |
 note: function defined here
  --> src/query/runtime/mod.rs
   |
-  | pub fn worth_topology_runtime(
-  |        ^^^^^^^^^^^^^^^^^^^^^^
+  | pub fn topology_runtime(
+  |        ^^^^^^^^^^^^^^^^
 help: provide the argument
   |
-4 |     let _ = worth_topology_runtime(/* WorthTopologyRuntimeAdapters */, "worth.runtime.bypass");
-  |                                    +++++++++++++++++++++++++++++++++++
+4 |     let _ = topology_runtime(/* TopologyRuntimeAdapters */, ".runtime.bypass");
+  |                              ++++++++++++++++++++++++++++++

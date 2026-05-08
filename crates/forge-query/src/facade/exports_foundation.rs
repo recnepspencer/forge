@@ -34,10 +34,11 @@ pub use crate::authorized_projection::{
     PolicyInfluenceSet, PolicyMaskSnapshot, ProjectionVisibility,
 };
 pub use crate::basis::{
-    preflight_execution_basis, resolve_snapshot_basis, snapshot_resolution_report,
-    BasisAuthorityFamily, BasisPreflightError, BasisResolutionError, BasisResolutionMode,
-    ExecutionBasisIntent, ExecutionPreflightBundle, ResolvedBasisProof, ResolvedSnapshotBasis,
-    ResolvedSnapshotIdentity, SnapshotLineageClass, SnapshotResolutionReport,
+    preflight_execution_basis, resolve_runtime_current_snapshot_basis, resolve_snapshot_basis,
+    snapshot_resolution_report, BasisAuthorityFamily, BasisPreflightError, BasisResolutionError,
+    BasisResolutionMode, ExecutionBasisIntent, ExecutionPreflightBundle, ResolvedBasisProof,
+    ResolvedSnapshotBasis, ResolvedSnapshotIdentity, SnapshotLineageClass,
+    SnapshotResolutionReport,
 };
 pub use crate::binding::{
     derive_binding_requirements, resolve_bindings, BindingError, BindingFailureClass,

@@ -19,7 +19,7 @@ error[E0308]: mismatched types
   = note: expected reference `&ParallelAdmissionRoute`
              found reference `&SerialFallbackRoute`
 note: function defined here
- --> src/execution/mod.rs
+ --> src/execution/preflight.rs
   |
   | pub fn execute_parallel_admission_route(
   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

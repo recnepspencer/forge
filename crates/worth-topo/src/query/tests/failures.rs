@@ -6,7 +6,7 @@ fn query_materializer_rejects_malformed_relation_endpoints() {
         identity: "entity:0:1:0".to_string(),
         payload: json!({
             "topology": {
-                "kind": WorthTopologyEntityKind::Model.kind_name(),
+                "kind": TopologyEntityKind::Model.kind_name(),
                 "structure": "model-a",
             }
         }),
@@ -15,16 +15,15 @@ fn query_materializer_rejects_malformed_relation_endpoints() {
         identity: "entity:0:9:0".to_string(),
         payload: json!({
             "topology": {
-                "kind": WorthTopologyRelationKind::ModelOwnsBody.kind_name(),
+                "kind": TopologyRelationKind::ModelOwnsBody.kind_name(),
                 "source_identity": "bad-source",
                 "target_identity": "entity:0:2:0",
             }
         }),
     }];
 
-    let error =
-        WorthTopologyMaterializer::materialize_from_query_rows(&entity_rows, &relation_rows)
-            .expect_err("malformed query rows must fail closed");
+    let error = TopologyMaterializer::materialize_from_query_rows(&entity_rows, &relation_rows)
+        .expect_err("malformed query rows must fail closed");
 
     assert!(error
         .to_string()
@@ -43,9 +42,8 @@ fn interpreted_surface_rejects_malformed_materialized_rows() {
 
 #[test]
 fn validation_surface_rejects_malformed_interpreted_rows() {
-    let materialized = MaterializedTopologyView::whole_view(
-        crate::data::topology_view::WorthTopologyView::default(),
-    );
+    let materialized =
+        MaterializedTopologyView::whole_view(crate::data::topology_view::TopologyView::default());
     let materialized_rows =
         vec![serde_json::to_value(materialized).expect("materialized topology should serialize")];
 

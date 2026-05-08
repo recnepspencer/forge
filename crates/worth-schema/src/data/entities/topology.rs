@@ -2,7 +2,7 @@ use forge_relational::facade::identity::KindId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthTopologyEntityKind {
+pub enum TopologyEntityKind {
     Model,
     Body,
     Lump,
@@ -16,19 +16,19 @@ pub enum WorthTopologyEntityKind {
     Vertex,
 }
 
-impl WorthTopologyEntityKind {
-    pub const WRAPPED_ALL: [super::WorthEntityKind; 11] = [
-        super::WorthEntityKind::Topology(Self::Model),
-        super::WorthEntityKind::Topology(Self::Body),
-        super::WorthEntityKind::Topology(Self::Lump),
-        super::WorthEntityKind::Topology(Self::Region),
-        super::WorthEntityKind::Topology(Self::Shell),
-        super::WorthEntityKind::Topology(Self::Face),
-        super::WorthEntityKind::Topology(Self::Loop),
-        super::WorthEntityKind::Topology(Self::Wire),
-        super::WorthEntityKind::Topology(Self::HalfEdge),
-        super::WorthEntityKind::Topology(Self::Edge),
-        super::WorthEntityKind::Topology(Self::Vertex),
+impl TopologyEntityKind {
+    pub const WRAPPED_ALL: [super::EntityKind; 11] = [
+        super::EntityKind::Topology(Self::Model),
+        super::EntityKind::Topology(Self::Body),
+        super::EntityKind::Topology(Self::Lump),
+        super::EntityKind::Topology(Self::Region),
+        super::EntityKind::Topology(Self::Shell),
+        super::EntityKind::Topology(Self::Face),
+        super::EntityKind::Topology(Self::Loop),
+        super::EntityKind::Topology(Self::Wire),
+        super::EntityKind::Topology(Self::HalfEdge),
+        super::EntityKind::Topology(Self::Edge),
+        super::EntityKind::Topology(Self::Vertex),
     ];
 
     pub const ALL: [Self; 11] = [
@@ -63,17 +63,17 @@ impl WorthTopologyEntityKind {
 
     pub const fn kind_name(self) -> &'static str {
         match self {
-            Self::Model => "worth.model",
-            Self::Body => "worth.body",
-            Self::Lump => "worth.lump",
-            Self::Region => "worth.region",
-            Self::Shell => "worth.shell",
-            Self::Face => "worth.face",
-            Self::Loop => "worth.loop",
-            Self::Wire => "worth.wire",
-            Self::HalfEdge => "worth.half_edge",
-            Self::Edge => "worth.edge",
-            Self::Vertex => "worth.vertex",
+            Self::Model => ".model",
+            Self::Body => ".body",
+            Self::Lump => ".lump",
+            Self::Region => ".region",
+            Self::Shell => ".shell",
+            Self::Face => ".face",
+            Self::Loop => ".loop",
+            Self::Wire => ".wire",
+            Self::HalfEdge => ".half_edge",
+            Self::Edge => ".edge",
+            Self::Vertex => ".vertex",
         }
     }
 

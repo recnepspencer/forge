@@ -1,10 +1,10 @@
-use worth_topo::facade::{
+use topology::facade::{
     MaterializationBreadthReport, MaterializationReport, MaterializedTopologyView,
-    WorthTopologyView,
+    TopologyView,
 };
 
 fn main() {
-    let topology = WorthTopologyView::default();
+    let topology = TopologyView::default();
     let report = MaterializationReport {
         breadth: MaterializationBreadthReport {
             entity_count: 0,

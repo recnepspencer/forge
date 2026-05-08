@@ -2,18 +2,18 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::identity::EntityId;
-use worth_schema::facade::WorthTopologyRelationKind::*;
+use schema::facade::TopologyRelationKind::*;
 
 use super::relation_successor_support::{
     live_relation_for_source, matches_expected_rewire, same_loop, ContiguousSpanCandidate,
     DesiredLoopSuccessorRewire, DesiredLoopSuccessorWorkflow,
 };
-use crate::edit::{WorthLoopSuccessorKind, WorthTopologyEditAction, WorthTopologyEditContract};
+use crate::edit::{LoopSuccessorKind, TopologyEditAction, TopologyEditContract};
 
 pub(super) fn supports_admitted_loop_successor_workflow(
     entity_rows: &[ForgeQueryEntity],
     relation_rows: &[ForgeQueryEntity],
-    contracts: &[WorthTopologyEditContract],
+    contracts: &[TopologyEditContract],
 ) -> bool {
     let Some(workflow) = desired_successor_workflow(contracts) else {
         return false;
@@ -41,7 +41,7 @@ pub(super) fn supports_admitted_loop_successor_workflow(
 }
 
 fn desired_successor_workflow(
-    contracts: &[WorthTopologyEditContract],
+    contracts: &[TopologyEditContract],
 ) -> Option<DesiredLoopSuccessorWorkflow> {
     if contracts.len() != 6 {
         return None;
@@ -49,7 +49,7 @@ fn desired_successor_workflow(
     let mut next = BTreeMap::new();
     let mut prev = BTreeMap::new();
     for contract in contracts {
-        let WorthTopologyEditAction::RewireLoopSuccessor {
+        let TopologyEditAction::RewireLoopSuccessor {
             relation_id,
             kind,
             half_edge_id,
@@ -63,10 +63,10 @@ fn desired_successor_workflow(
             target_half_edge_id: successor_half_edge_id,
         };
         match kind {
-            WorthLoopSuccessorKind::Next => {
+            LoopSuccessorKind::Next => {
                 next.insert(half_edge_id, desired);
             }
-            WorthLoopSuccessorKind::Prev => {
+            LoopSuccessorKind::Prev => {
                 prev.insert(half_edge_id, desired);
             }
         }

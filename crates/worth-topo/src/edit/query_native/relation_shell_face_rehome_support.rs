@@ -1,14 +1,14 @@
 use std::collections::BTreeSet;
 
 use forge_query::facade::ForgeQueryEntity;
-use worth_schema::facade::{WorthEntityReference, WorthTopologyEntityKind};
+use schema::facade::{EntityReference, TopologyEntityKind};
 
 use super::bindings::{
     query_entity_binding, query_entity_id_by_identity, query_incoming_relation_ids,
     query_outgoing_relation_target_identities,
 };
-use super::WorthTopologyEditContract;
-use crate::edit::{WorthShellOrWireMembershipKind, WorthTopologyEditAction};
+use super::TopologyEditContract;
+use crate::edit::{ShellOrWireMembershipKind, TopologyEditAction};
 
 pub(super) struct ShellFaceRehomeWorkflow {
     pub(super) create_key: String,
@@ -25,26 +25,26 @@ pub(super) struct ShellFaceSplitWorkflow {
 }
 
 pub(super) fn parse_shell_face_rehome_workflow(
-    contracts: &[WorthTopologyEditContract],
+    contracts: &[TopologyEditContract],
 ) -> Option<ShellFaceRehomeWorkflow> {
     let [create, attach_region, face_attaches @ .., retire] = contracts else {
         return None;
     };
     let (
-        WorthTopologyEditAction::CreateTopologyEntity {
+        TopologyEditAction::CreateTopologyEntity {
             create_key,
-            kind: WorthTopologyEntityKind::Shell,
+            kind: TopologyEntityKind::Shell,
             ..
         },
-        WorthTopologyEditAction::AttachShellOrWireMembership {
-            kind: WorthShellOrWireMembershipKind::RegionOwnsShell,
-            owner: WorthEntityReference::Existing(region_id),
-            member: WorthEntityReference::Created(member_key),
+        TopologyEditAction::AttachShellOrWireMembership {
+            kind: ShellOrWireMembershipKind::RegionOwnsShell,
+            owner: EntityReference::Existing(region_id),
+            member: EntityReference::Created(member_key),
             ..
         },
-        WorthTopologyEditAction::RetireTopologyEntity {
+        TopologyEditAction::RetireTopologyEntity {
             entity_id: retired_shell_id,
-            kind: WorthTopologyEntityKind::Shell,
+            kind: TopologyEntityKind::Shell,
         },
     ) = (&create.action, &attach_region.action, &retire.action)
     else {
@@ -56,10 +56,10 @@ pub(super) fn parse_shell_face_rehome_workflow(
     let mut face_ids = Vec::with_capacity(face_attaches.len());
     let mut seen_face_ids = BTreeSet::new();
     for attach in face_attaches {
-        let WorthTopologyEditAction::AttachShellOrWireMembership {
-            kind: WorthShellOrWireMembershipKind::ShellOwnsFace,
-            owner: WorthEntityReference::Created(owner_key),
-            member: WorthEntityReference::Existing(face_id),
+        let TopologyEditAction::AttachShellOrWireMembership {
+            kind: ShellOrWireMembershipKind::ShellOwnsFace,
+            owner: EntityReference::Created(owner_key),
+            member: EntityReference::Existing(face_id),
             ..
         } = &attach.action
         else {
@@ -79,27 +79,27 @@ pub(super) fn parse_shell_face_rehome_workflow(
 }
 
 pub(super) fn parse_shell_face_split_workflow(
-    contracts: &[WorthTopologyEditContract],
+    contracts: &[TopologyEditContract],
 ) -> Option<ShellFaceSplitWorkflow> {
     let [create, attach_region, attach_face] = contracts else {
         return None;
     };
     let (
-        WorthTopologyEditAction::CreateTopologyEntity {
+        TopologyEditAction::CreateTopologyEntity {
             create_key,
-            kind: WorthTopologyEntityKind::Shell,
+            kind: TopologyEntityKind::Shell,
             ..
         },
-        WorthTopologyEditAction::AttachShellOrWireMembership {
-            kind: WorthShellOrWireMembershipKind::RegionOwnsShell,
-            owner: WorthEntityReference::Existing(region_id),
-            member: WorthEntityReference::Created(member_key),
+        TopologyEditAction::AttachShellOrWireMembership {
+            kind: ShellOrWireMembershipKind::RegionOwnsShell,
+            owner: EntityReference::Existing(region_id),
+            member: EntityReference::Created(member_key),
             ..
         },
-        WorthTopologyEditAction::AttachShellOrWireMembership {
-            kind: WorthShellOrWireMembershipKind::ShellOwnsFace,
-            owner: WorthEntityReference::Created(owner_key),
-            member: WorthEntityReference::Existing(face_id),
+        TopologyEditAction::AttachShellOrWireMembership {
+            kind: ShellOrWireMembershipKind::ShellOwnsFace,
+            owner: EntityReference::Created(owner_key),
+            member: EntityReference::Existing(face_id),
             ..
         },
     ) = (&create.action, &attach_region.action, &attach_face.action)
@@ -120,7 +120,7 @@ pub(super) fn parse_shell_face_split_workflow(
 pub(super) fn supports_owned_face_set_shell_rehome_workflow(
     entity_rows: &[ForgeQueryEntity],
     relation_rows: &[ForgeQueryEntity],
-    contracts: &[WorthTopologyEditContract],
+    contracts: &[TopologyEditContract],
 ) -> bool {
     let Some(workflow) = parse_shell_face_rehome_workflow(contracts) else {
         return false;
@@ -134,14 +134,14 @@ pub(super) fn supports_owned_face_set_shell_rehome_workflow(
     let Ok(incoming_region_ids) = query_incoming_relation_ids(
         relation_rows,
         &retired_shell_binding.query_identity,
-        worth_schema::facade::WorthTopologyRelationKind::RegionOwnsShell,
+        schema::facade::TopologyRelationKind::RegionOwnsShell,
     ) else {
         return false;
     };
     let Ok(outgoing_face_targets) = query_outgoing_relation_target_identities(
         relation_rows,
         &retired_shell_binding.query_identity,
-        worth_schema::facade::WorthTopologyRelationKind::ShellOwnsFace,
+        schema::facade::TopologyRelationKind::ShellOwnsFace,
     ) else {
         return false;
     };
@@ -176,7 +176,7 @@ pub(super) fn supports_owned_face_set_shell_rehome_workflow(
 pub(super) fn resolve_single_face_two_face_shell_split_workflow(
     entity_rows: &[ForgeQueryEntity],
     relation_rows: &[ForgeQueryEntity],
-    contracts: &[WorthTopologyEditContract],
+    contracts: &[TopologyEditContract],
 ) -> Option<ShellFaceSplitWorkflow> {
     let mut workflow = parse_shell_face_split_workflow(contracts)?;
     let face_binding = query_entity_binding(entity_rows, workflow.face_id)
@@ -185,7 +185,7 @@ pub(super) fn resolve_single_face_two_face_shell_split_workflow(
     let incoming_shell_ids = query_incoming_relation_ids(
         relation_rows,
         &face_binding.query_identity,
-        worth_schema::facade::WorthTopologyRelationKind::ShellOwnsFace,
+        schema::facade::TopologyRelationKind::ShellOwnsFace,
     )
     .ok()?;
     let [shell_owns_face_relation_id] = incoming_shell_ids.as_slice() else {
@@ -205,7 +205,7 @@ pub(super) fn resolve_single_face_two_face_shell_split_workflow(
     let incoming_region_ids = query_incoming_relation_ids(
         relation_rows,
         &retained_shell_binding.query_identity,
-        worth_schema::facade::WorthTopologyRelationKind::RegionOwnsShell,
+        schema::facade::TopologyRelationKind::RegionOwnsShell,
     )
     .ok()?;
     let [region_owns_shell_relation_id] = incoming_region_ids.as_slice() else {
@@ -227,7 +227,7 @@ pub(super) fn resolve_single_face_two_face_shell_split_workflow(
     let outgoing_face_targets = query_outgoing_relation_target_identities(
         relation_rows,
         &retained_shell_binding.query_identity,
-        worth_schema::facade::WorthTopologyRelationKind::ShellOwnsFace,
+        schema::facade::TopologyRelationKind::ShellOwnsFace,
     )
     .ok()?;
     if outgoing_face_targets.len() != 2 {

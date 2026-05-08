@@ -1,10 +1,10 @@
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WorthTopologyValidationError {
+pub struct TopologyValidationError {
     validator: &'static str,
     message: String,
 }
 
-impl WorthTopologyValidationError {
+impl TopologyValidationError {
     pub fn new(validator: &'static str, message: impl Into<String>) -> Self {
         Self {
             validator,
@@ -21,10 +21,10 @@ impl WorthTopologyValidationError {
     }
 }
 
-impl std::fmt::Display for WorthTopologyValidationError {
+impl std::fmt::Display for TopologyValidationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}: {}", self.validator, self.message)
     }
 }
 
-impl std::error::Error for WorthTopologyValidationError {}
+impl std::error::Error for TopologyValidationError {}

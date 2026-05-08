@@ -1,52 +1,49 @@
 use crate::facade::topology_authoring::created_ref;
 use crate::facade::{
-    admit_worth_query_mutation_batch, worth_query_mutation_support_contract,
-    RawWorthTopologyIntent, WorthEntityKind, WorthMutationOrigin, WorthNamingEntityKind,
-    WorthNamingRelationKind, WorthQueryMutationAdmissionBlocker, WorthRelationKind,
-    WorthTopologyEntityKind, WorthTopologyMutation, WorthTopologyRelationKind,
+    admit_query_mutation_batch, query_mutation_support_contract, EntityKind, MutationOrigin,
+    NamingEntityKind, NamingRelationKind, QueryMutationAdmissionBlocker, RawTopologyIntent,
+    RelationKind, TopologyEntityKind, TopologyMutation, TopologyRelationKind,
 };
 
 #[test]
 fn query_mutation_admission_surfaces_naming_writeback_blockers_literally() {
-    let admission = admit_worth_query_mutation_batch(&RawWorthTopologyIntent::new(
+    let admission = admit_query_mutation_batch(&RawTopologyIntent::new(
         vec![
-            WorthTopologyMutation::CreateEntity {
-                create_key: crate::facade::WorthCreateKey::new("query-gap.name"),
-                kind: WorthEntityKind::Naming(WorthNamingEntityKind::PersistentName),
+            TopologyMutation::CreateEntity {
+                create_key: crate::facade::CreateKey::new("query-gap.name"),
+                kind: EntityKind::Naming(NamingEntityKind::PersistentName),
             },
-            WorthTopologyMutation::CreateRelation {
-                create_key: crate::facade::WorthCreateKey::new("query-gap.name.targets"),
-                kind: WorthRelationKind::Naming(
-                    WorthNamingRelationKind::PersistentNameTargetsEntity,
-                ),
+            TopologyMutation::CreateRelation {
+                create_key: crate::facade::CreateKey::new("query-gap.name.targets"),
+                kind: RelationKind::Naming(NamingRelationKind::PersistentNameTargetsEntity),
                 source: created_ref("query-gap.name"),
                 target: created_ref("query-gap.target"),
             },
         ],
-        WorthMutationOrigin::LocalEdit,
+        MutationOrigin::LocalEdit,
     ));
 
     let blockers = admission.blockers();
     assert!(blockers.iter().any(|row| {
-        row.blocker == WorthQueryMutationAdmissionBlocker::ProjectedNamingWritebackRequired
+        row.blocker == QueryMutationAdmissionBlocker::ProjectedNamingWritebackRequired
     }));
     assert!(!blockers.iter().any(|row| {
-        row.blocker == WorthQueryMutationAdmissionBlocker::SymbolicCreateReferenceRequired
+        row.blocker == QueryMutationAdmissionBlocker::SymbolicCreateReferenceRequired
     }));
 }
 
 #[test]
 fn query_mutation_admission_surfaces_existing_identity_and_kind_gaps_for_removals() {
-    let admission = admit_worth_query_mutation_batch(&RawWorthTopologyIntent::new(
+    let admission = admit_query_mutation_batch(&RawTopologyIntent::new(
         vec![
-            WorthTopologyMutation::RemoveEntity {
+            TopologyMutation::RemoveEntity {
                 entity_id: forge_relational::facade::identity::EntityId::new(
                     forge_relational::facade::identity::PartitionId::main(),
                     7,
                     1,
                 ),
             },
-            WorthTopologyMutation::RemoveRelation {
+            TopologyMutation::RemoveRelation {
                 relation_id: forge_relational::facade::identity::RelationId::new(
                     forge_relational::facade::identity::PartitionId::main(),
                     8,
@@ -54,7 +51,7 @@ fn query_mutation_admission_surfaces_existing_identity_and_kind_gaps_for_removal
                 ),
             },
         ],
-        WorthMutationOrigin::LocalEdit,
+        MutationOrigin::LocalEdit,
     ));
 
     assert!(
@@ -65,25 +62,23 @@ fn query_mutation_admission_surfaces_existing_identity_and_kind_gaps_for_removal
 
 #[test]
 fn query_mutation_admission_marks_topology_existing_truth_verification_as_ready() {
-    let admission = admit_worth_query_mutation_batch(&RawWorthTopologyIntent::new(
+    let admission = admit_query_mutation_batch(&RawTopologyIntent::new(
         vec![
-            WorthTopologyMutation::UpsertEntity {
+            TopologyMutation::UpsertEntity {
                 entity_id: forge_relational::facade::identity::EntityId::new(
                     forge_relational::facade::identity::PartitionId::main(),
                     10,
                     1,
                 ),
-                kind: WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex),
+                kind: EntityKind::Topology(TopologyEntityKind::Vertex),
             },
-            WorthTopologyMutation::UpsertRelation {
+            TopologyMutation::UpsertRelation {
                 relation_id: forge_relational::facade::identity::RelationId::new(
                     forge_relational::facade::identity::PartitionId::main(),
                     11,
                     1,
                 ),
-                kind: WorthRelationKind::Topology(
-                    WorthTopologyRelationKind::HalfEdgeStartsAtVertex,
-                ),
+                kind: RelationKind::Topology(TopologyRelationKind::HalfEdgeStartsAtVertex),
                 source: forge_relational::facade::identity::EntityId::new(
                     forge_relational::facade::identity::PartitionId::main(),
                     12,
@@ -96,7 +91,7 @@ fn query_mutation_admission_marks_topology_existing_truth_verification_as_ready(
                 ),
             },
         ],
-        WorthMutationOrigin::LocalEdit,
+        MutationOrigin::LocalEdit,
     ));
 
     assert!(
@@ -107,8 +102,8 @@ fn query_mutation_admission_marks_topology_existing_truth_verification_as_ready(
 
 #[test]
 fn query_mutation_support_contract_distinguishes_substrate_from_workflow_widening() {
-    let contract = worth_query_mutation_support_contract()
-        .expect("worth query mutation contract should derive");
+    let contract =
+        query_mutation_support_contract().expect(" query mutation contract should derive");
 
     assert!(contract
         .admitted_query_substrate_families

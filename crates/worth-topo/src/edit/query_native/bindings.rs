@@ -1,19 +1,17 @@
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::identity::{EntityId, RelationId};
-use worth_schema::facade::{
-    WorthEntityKind, WorthRelationKind, WorthTopologyEntityKind, WorthTopologyRelationKind,
-};
+use schema::facade::{EntityKind, RelationKind, TopologyEntityKind, TopologyRelationKind};
 
-use super::WorthTopologyQueryEditExecutionError;
+use super::TopologyQueryEditExecutionError;
 
 pub(super) struct QueryEntityBinding {
     pub(super) query_identity: String,
-    pub(super) kind: WorthTopologyEntityKind,
+    pub(super) kind: TopologyEntityKind,
 }
 
 pub(super) struct QueryRelationBinding {
     pub(super) query_identity: String,
-    pub(super) kind: WorthTopologyRelationKind,
+    pub(super) kind: TopologyRelationKind,
     pub(super) source_query_identity: String,
     pub(super) target_query_identity: String,
 }
@@ -21,8 +19,8 @@ pub(super) struct QueryRelationBinding {
 pub(super) fn query_outgoing_relation_target_identities(
     rows: &[ForgeQueryEntity],
     source_query_identity: &str,
-    expected_kind: WorthTopologyRelationKind,
-) -> Result<Vec<String>, WorthTopologyQueryEditExecutionError> {
+    expected_kind: TopologyRelationKind,
+) -> Result<Vec<String>, TopologyQueryEditExecutionError> {
     let mut target_identities = Vec::new();
     for row in rows {
         let Some(kind_name) = row
@@ -53,7 +51,7 @@ pub(super) fn query_outgoing_relation_target_identities(
             .and_then(|value| value.get("target_identity"))
             .and_then(serde_json::Value::as_str)
             .ok_or_else(|| {
-                WorthTopologyQueryEditExecutionError::MaterializedDecode(format!(
+                TopologyQueryEditExecutionError::MaterializedDecode(format!(
                     "query relation `{}` is missing topology.target_identity while resolving outgoing `{}` binding",
                     row.identity,
                     expected_kind.kind_name()
@@ -67,8 +65,8 @@ pub(super) fn query_outgoing_relation_target_identities(
 pub(super) fn query_outgoing_relation_ids(
     rows: &[ForgeQueryEntity],
     source_query_identity: &str,
-    expected_kind: WorthTopologyRelationKind,
-) -> Result<Vec<RelationId>, WorthTopologyQueryEditExecutionError> {
+    expected_kind: TopologyRelationKind,
+) -> Result<Vec<RelationId>, TopologyQueryEditExecutionError> {
     let mut relation_ids = Vec::new();
     for row in rows {
         let Some(kind_name) = row
@@ -102,7 +100,7 @@ pub(super) fn query_outgoing_relation_ids(
         };
         let relation_id = serde_json::from_value::<RelationId>(provenance.clone()).map_err(
             |error| {
-                WorthTopologyQueryEditExecutionError::MaterializedDecode(format!(
+                TopologyQueryEditExecutionError::MaterializedDecode(format!(
                     "failed to decode query relation provenance while resolving outgoing `{}` bindings: {error}",
                     expected_kind.kind_name()
                 ))
@@ -116,8 +114,8 @@ pub(super) fn query_outgoing_relation_ids(
 pub(super) fn query_incoming_relation_source_identities(
     rows: &[ForgeQueryEntity],
     target_query_identity: &str,
-    expected_kind: WorthTopologyRelationKind,
-) -> Result<Vec<String>, WorthTopologyQueryEditExecutionError> {
+    expected_kind: TopologyRelationKind,
+) -> Result<Vec<String>, TopologyQueryEditExecutionError> {
     let mut source_identities = Vec::new();
     for row in rows {
         let Some(kind_name) = row
@@ -148,7 +146,7 @@ pub(super) fn query_incoming_relation_source_identities(
             .and_then(|value| value.get("source_identity"))
             .and_then(serde_json::Value::as_str)
             .ok_or_else(|| {
-                WorthTopologyQueryEditExecutionError::MaterializedDecode(format!(
+                TopologyQueryEditExecutionError::MaterializedDecode(format!(
                     "query relation `{}` is missing topology.source_identity while resolving incoming `{}` binding",
                     row.identity,
                     expected_kind.kind_name()
@@ -162,8 +160,8 @@ pub(super) fn query_incoming_relation_source_identities(
 pub(super) fn query_incoming_relation_ids(
     rows: &[ForgeQueryEntity],
     target_query_identity: &str,
-    expected_kind: WorthTopologyRelationKind,
-) -> Result<Vec<RelationId>, WorthTopologyQueryEditExecutionError> {
+    expected_kind: TopologyRelationKind,
+) -> Result<Vec<RelationId>, TopologyQueryEditExecutionError> {
     let mut relation_ids = Vec::new();
     for row in rows {
         let Some(kind_name) = row
@@ -197,7 +195,7 @@ pub(super) fn query_incoming_relation_ids(
         };
         let relation_id = serde_json::from_value::<RelationId>(provenance.clone()).map_err(
             |error| {
-                WorthTopologyQueryEditExecutionError::MaterializedDecode(format!(
+                TopologyQueryEditExecutionError::MaterializedDecode(format!(
                     "failed to decode query relation provenance while resolving incoming `{}` bindings: {error}",
                     expected_kind.kind_name()
                 ))
@@ -211,7 +209,7 @@ pub(super) fn query_incoming_relation_ids(
 pub(super) fn query_entity_id_by_identity(
     rows: &[ForgeQueryEntity],
     query_identity: &str,
-) -> Result<Option<EntityId>, WorthTopologyQueryEditExecutionError> {
+) -> Result<Option<EntityId>, TopologyQueryEditExecutionError> {
     for row in rows {
         if row.identity != query_identity {
             continue;
@@ -224,7 +222,7 @@ pub(super) fn query_entity_id_by_identity(
             continue;
         };
         let entity_id = serde_json::from_value::<EntityId>(provenance.clone()).map_err(|error| {
-            WorthTopologyQueryEditExecutionError::MaterializedDecode(format!(
+            TopologyQueryEditExecutionError::MaterializedDecode(format!(
                 "failed to decode query entity provenance while resolving query identity `{query_identity}`: {error}"
             ))
         })?;
@@ -236,7 +234,7 @@ pub(super) fn query_entity_id_by_identity(
 pub(super) fn query_entity_binding(
     rows: &[ForgeQueryEntity],
     entity_id: EntityId,
-) -> Result<Option<QueryEntityBinding>, WorthTopologyQueryEditExecutionError> {
+) -> Result<Option<QueryEntityBinding>, TopologyQueryEditExecutionError> {
     for row in rows {
         let Some(provenance) = row
             .payload
@@ -247,7 +245,7 @@ pub(super) fn query_entity_binding(
         };
         let row_entity_id: EntityId = serde_json::from_value::<EntityId>(provenance.clone())
             .map_err(|error| {
-                WorthTopologyQueryEditExecutionError::MaterializedDecode(format!(
+                TopologyQueryEditExecutionError::MaterializedDecode(format!(
                     "failed to decode query entity provenance while resolving existing binding: {error}"
                 ))
             })?;
@@ -258,15 +256,15 @@ pub(super) fn query_entity_binding(
                 .and_then(|value| value.get("kind"))
                 .and_then(serde_json::Value::as_str)
                 .ok_or_else(|| {
-                    WorthTopologyQueryEditExecutionError::MaterializedDecode(format!(
+                    TopologyQueryEditExecutionError::MaterializedDecode(format!(
                         "query entity `{}` is missing topology.kind while resolving existing binding",
                         row.identity
                     ))
                 })?;
-            let kind = WorthEntityKind::ALL
+            let kind = EntityKind::ALL
                 .into_iter()
                 .find_map(|kind| match kind {
-                    WorthEntityKind::Topology(topology_kind)
+                    EntityKind::Topology(topology_kind)
                         if topology_kind.kind_name() == kind_name =>
                     {
                         Some(topology_kind)
@@ -274,7 +272,7 @@ pub(super) fn query_entity_binding(
                     _ => None,
                 })
                 .ok_or_else(|| {
-                    WorthTopologyQueryEditExecutionError::MaterializedDecode(format!(
+                    TopologyQueryEditExecutionError::MaterializedDecode(format!(
                         "query entity `{}` reported unknown topology kind `{kind_name}` while resolving existing binding",
                         row.identity
                     ))
@@ -291,7 +289,7 @@ pub(super) fn query_entity_binding(
 pub(super) fn query_relation_binding(
     rows: &[ForgeQueryEntity],
     relation_id: RelationId,
-) -> Result<Option<QueryRelationBinding>, WorthTopologyQueryEditExecutionError> {
+) -> Result<Option<QueryRelationBinding>, TopologyQueryEditExecutionError> {
     for row in rows {
         let Some(provenance) = row
             .payload
@@ -302,7 +300,7 @@ pub(super) fn query_relation_binding(
         };
         let row_relation_id: RelationId =
             serde_json::from_value::<RelationId>(provenance.clone()).map_err(|error| {
-                WorthTopologyQueryEditExecutionError::MaterializedDecode(format!(
+                TopologyQueryEditExecutionError::MaterializedDecode(format!(
                     "failed to decode query relation provenance while resolving existing binding: {error}"
                 ))
             })?;
@@ -313,15 +311,15 @@ pub(super) fn query_relation_binding(
                 .and_then(|value| value.get("kind"))
                 .and_then(serde_json::Value::as_str)
                 .ok_or_else(|| {
-                    WorthTopologyQueryEditExecutionError::MaterializedDecode(format!(
+                    TopologyQueryEditExecutionError::MaterializedDecode(format!(
                         "query relation `{}` is missing topology.kind while resolving existing binding",
                         row.identity
                     ))
                 })?;
-            let kind = WorthRelationKind::ALL
+            let kind = RelationKind::ALL
                 .into_iter()
                 .find_map(|kind| match kind {
-                    WorthRelationKind::Topology(topology_kind)
+                    RelationKind::Topology(topology_kind)
                         if topology_kind.kind_name() == kind_name =>
                     {
                         Some(topology_kind)
@@ -329,7 +327,7 @@ pub(super) fn query_relation_binding(
                     _ => None,
                 })
                 .ok_or_else(|| {
-                    WorthTopologyQueryEditExecutionError::MaterializedDecode(format!(
+                    TopologyQueryEditExecutionError::MaterializedDecode(format!(
                         "query relation `{}` reported unknown topology kind `{kind_name}` while resolving existing binding",
                         row.identity
                     ))
@@ -340,7 +338,7 @@ pub(super) fn query_relation_binding(
                 .and_then(|value| value.get("source_identity"))
                 .and_then(serde_json::Value::as_str)
                 .ok_or_else(|| {
-                    WorthTopologyQueryEditExecutionError::MaterializedDecode(format!(
+                    TopologyQueryEditExecutionError::MaterializedDecode(format!(
                         "query relation `{}` is missing topology.source_identity while resolving existing binding",
                         row.identity
                     ))
@@ -352,7 +350,7 @@ pub(super) fn query_relation_binding(
                 .and_then(|value| value.get("target_identity"))
                 .and_then(serde_json::Value::as_str)
                 .ok_or_else(|| {
-                    WorthTopologyQueryEditExecutionError::MaterializedDecode(format!(
+                    TopologyQueryEditExecutionError::MaterializedDecode(format!(
                         "query relation `{}` is missing topology.target_identity while resolving existing binding",
                         row.identity
                     ))

@@ -118,12 +118,20 @@ impl ForgeQueryRuntimeFamilySupport {
     }
 
     pub fn unsupported(family: ForgeQueryRuntimeFacadeFamily, reason: impl Into<String>) -> Self {
+        Self::unsupported_with_evidence(family, reason, std::iter::empty::<String>())
+    }
+
+    pub fn unsupported_with_evidence(
+        family: ForgeQueryRuntimeFacadeFamily,
+        reason: impl Into<String>,
+        evidence: impl IntoIterator<Item = impl Into<String>>,
+    ) -> Self {
         Self {
             family,
             status: ForgeQueryRuntimeFamilySupportStatus::Unsupported,
             authority_lanes: Vec::new(),
             effect_policies: Vec::new(),
-            evidence: Vec::new(),
+            evidence: evidence.into_iter().map(Into::into).collect(),
             denial_reason: Some(reason.into()),
         }
     }

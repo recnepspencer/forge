@@ -1,38 +1,35 @@
 #[cfg(test)]
 mod runtime_invariant_tests {
     use forge_relational::facade::transactions::TransactionCommitError;
-    use worth_schema::facade::topology_authoring::{seed_minimal_topology, verify_topology_intent};
-    use worth_schema::facade::{
-        worth_bootstrap_runtime_invariant_plan, RawWorthTopologyIntent, WorthCreateKey,
-        WorthEntityKind, WorthEntityReference, WorthMutationOrigin, WorthNamingEntityKind,
-        WorthNamingRelationKind, WorthRelationKind, WorthTopologyAuthorityError,
-        WorthTopologyEntityKind, WorthTopologyMutation, WorthTopologyRelationKind,
+    use schema::facade::topology_authoring::{seed_minimal_topology, verify_topology_intent};
+    use schema::facade::{
+        bootstrap_runtime_invariant_plan, CreateKey, EntityKind, EntityReference, MutationOrigin,
+        NamingEntityKind, NamingRelationKind, RawTopologyIntent, RelationKind,
+        TopologyAuthorityError, TopologyEntityKind, TopologyMutation, TopologyRelationKind,
     };
 
-    use crate::facade::{
-        worth_milestone_one_runtime_builder, worth_milestone_one_runtime_invariants,
-    };
+    use crate::facade::{milestone_one_runtime_builder, milestone_one_runtime_invariants};
 
     #[test]
     fn runtime_invariant_pack_matches_declared_bootstrap_plan() {
-        let declared = worth_bootstrap_runtime_invariant_plan();
+        let declared = bootstrap_runtime_invariant_plan();
         let registrations =
-            worth_milestone_one_runtime_invariants().expect("runtime invariant registrations");
+            milestone_one_runtime_invariants().expect("runtime invariant registrations");
 
         assert_eq!(registrations.len(), declared.topology.len());
     }
 
     #[test]
     fn runtime_builder_helper_applies_schema_and_runtime_invariants() {
-        let _runtime = worth_milestone_one_runtime_builder()
-            .expect("worth milestone one runtime builder")
+        let _runtime = milestone_one_runtime_builder()
+            .expect(" milestone one runtime builder")
             .build();
     }
 
     #[test]
     fn runtime_invariants_accept_seeded_topology_on_the_actual_authority_path() {
-        let mut runtime = worth_milestone_one_runtime_builder()
-            .expect("worth milestone one runtime builder")
+        let mut runtime = milestone_one_runtime_builder()
+            .expect(" milestone one runtime builder")
             .build();
 
         let seeded = seed_minimal_topology(&mut runtime, "runtime-invariant-seed")
@@ -48,28 +45,28 @@ mod runtime_invariant_tests {
 
     #[test]
     fn runtime_invariants_block_create_batches_missing_persistent_names() {
-        let mut runtime = worth_milestone_one_runtime_builder()
-            .expect("worth milestone one runtime builder")
+        let mut runtime = milestone_one_runtime_builder()
+            .expect(" milestone one runtime builder")
             .build();
 
-        let intent = RawWorthTopologyIntent::new(
+        let intent = RawTopologyIntent::new(
             vec![
-                WorthTopologyMutation::CreateEntity {
-                    create_key: WorthCreateKey::new("unnamed.model"),
-                    kind: WorthEntityKind::Topology(WorthTopologyEntityKind::Model),
+                TopologyMutation::CreateEntity {
+                    create_key: CreateKey::new("unnamed.model"),
+                    kind: EntityKind::Topology(TopologyEntityKind::Model),
                 },
-                WorthTopologyMutation::CreateEntity {
-                    create_key: WorthCreateKey::new("unnamed.body"),
-                    kind: WorthEntityKind::Topology(WorthTopologyEntityKind::Body),
+                TopologyMutation::CreateEntity {
+                    create_key: CreateKey::new("unnamed.body"),
+                    kind: EntityKind::Topology(TopologyEntityKind::Body),
                 },
-                WorthTopologyMutation::CreateRelation {
-                    create_key: WorthCreateKey::new("unnamed.model.owns_body"),
-                    kind: WorthRelationKind::Topology(WorthTopologyRelationKind::ModelOwnsBody),
-                    source: WorthEntityReference::Created(WorthCreateKey::new("unnamed.model")),
-                    target: WorthEntityReference::Created(WorthCreateKey::new("unnamed.body")),
+                TopologyMutation::CreateRelation {
+                    create_key: CreateKey::new("unnamed.model.owns_body"),
+                    kind: RelationKind::Topology(TopologyRelationKind::ModelOwnsBody),
+                    source: EntityReference::Created(CreateKey::new("unnamed.model")),
+                    target: EntityReference::Created(CreateKey::new("unnamed.body")),
                 },
             ],
-            WorthMutationOrigin::LocalEdit,
+            MutationOrigin::LocalEdit,
         );
 
         let error = verify_topology_intent(&mut runtime, intent)
@@ -78,163 +75,163 @@ mod runtime_invariant_tests {
 
         assert!(matches!(
             error,
-            WorthTopologyAuthorityError::Commit(TransactionCommitError::Conflict { .. })
+            TopologyAuthorityError::Commit(TransactionCommitError::Conflict { .. })
         ));
     }
 
     #[test]
     fn runtime_invariants_block_disconnected_wire_creation_at_commit_boundary() {
-        let mut runtime = worth_milestone_one_runtime_builder()
-            .expect("worth milestone one runtime builder")
+        let mut runtime = milestone_one_runtime_builder()
+            .expect(" milestone one runtime builder")
             .build();
 
-        let intent = RawWorthTopologyIntent::new(
+        let intent = RawTopologyIntent::new(
             vec![
-                entity("wire.model", WorthTopologyEntityKind::Model),
-                entity("wire.body", WorthTopologyEntityKind::Body),
-                entity("wire.lump", WorthTopologyEntityKind::Lump),
-                entity("wire.region", WorthTopologyEntityKind::Region),
-                entity("wire.shell", WorthTopologyEntityKind::Shell),
-                entity("wire.face", WorthTopologyEntityKind::Face),
-                entity("wire.loop", WorthTopologyEntityKind::Loop),
-                entity("wire.wire", WorthTopologyEntityKind::Wire),
-                entity("wire.he0", WorthTopologyEntityKind::HalfEdge),
-                entity("wire.he1", WorthTopologyEntityKind::HalfEdge),
-                entity("wire.edge0", WorthTopologyEntityKind::Edge),
-                entity("wire.edge1", WorthTopologyEntityKind::Edge),
-                entity("wire.v0", WorthTopologyEntityKind::Vertex),
-                entity("wire.v1", WorthTopologyEntityKind::Vertex),
-                entity("wire.v2", WorthTopologyEntityKind::Vertex),
-                entity("wire.v3", WorthTopologyEntityKind::Vertex),
+                entity("wire.model", TopologyEntityKind::Model),
+                entity("wire.body", TopologyEntityKind::Body),
+                entity("wire.lump", TopologyEntityKind::Lump),
+                entity("wire.region", TopologyEntityKind::Region),
+                entity("wire.shell", TopologyEntityKind::Shell),
+                entity("wire.face", TopologyEntityKind::Face),
+                entity("wire.loop", TopologyEntityKind::Loop),
+                entity("wire.wire", TopologyEntityKind::Wire),
+                entity("wire.he0", TopologyEntityKind::HalfEdge),
+                entity("wire.he1", TopologyEntityKind::HalfEdge),
+                entity("wire.edge0", TopologyEntityKind::Edge),
+                entity("wire.edge1", TopologyEntityKind::Edge),
+                entity("wire.v0", TopologyEntityKind::Vertex),
+                entity("wire.v1", TopologyEntityKind::Vertex),
+                entity("wire.v2", TopologyEntityKind::Vertex),
+                entity("wire.v3", TopologyEntityKind::Vertex),
                 relation(
                     "wire.model.owns_body",
-                    WorthTopologyRelationKind::ModelOwnsBody,
+                    TopologyRelationKind::ModelOwnsBody,
                     "wire.model",
                     "wire.body",
                 ),
                 relation(
                     "wire.body.owns_lump",
-                    WorthTopologyRelationKind::BodyOwnsLump,
+                    TopologyRelationKind::BodyOwnsLump,
                     "wire.body",
                     "wire.lump",
                 ),
                 relation(
                     "wire.lump.owns_region",
-                    WorthTopologyRelationKind::LumpOwnsRegion,
+                    TopologyRelationKind::LumpOwnsRegion,
                     "wire.lump",
                     "wire.region",
                 ),
                 relation(
                     "wire.region.owns_shell",
-                    WorthTopologyRelationKind::RegionOwnsShell,
+                    TopologyRelationKind::RegionOwnsShell,
                     "wire.region",
                     "wire.shell",
                 ),
                 relation(
                     "wire.shell.owns_face",
-                    WorthTopologyRelationKind::ShellOwnsFace,
+                    TopologyRelationKind::ShellOwnsFace,
                     "wire.shell",
                     "wire.face",
                 ),
                 relation(
                     "wire.face.outer_loop",
-                    WorthTopologyRelationKind::FaceOuterLoop,
+                    TopologyRelationKind::FaceOuterLoop,
                     "wire.face",
                     "wire.loop",
                 ),
                 relation(
                     "wire.loop.owns_he0",
-                    WorthTopologyRelationKind::LoopOwnsHalfEdge,
+                    TopologyRelationKind::LoopOwnsHalfEdge,
                     "wire.loop",
                     "wire.he0",
                 ),
                 relation(
                     "wire.loop.owns_he1",
-                    WorthTopologyRelationKind::LoopOwnsHalfEdge,
+                    TopologyRelationKind::LoopOwnsHalfEdge,
                     "wire.loop",
                     "wire.he1",
                 ),
                 relation(
                     "wire.wire.owns_he0",
-                    WorthTopologyRelationKind::WireOwnsHalfEdge,
+                    TopologyRelationKind::WireOwnsHalfEdge,
                     "wire.wire",
                     "wire.he0",
                 ),
                 relation(
                     "wire.wire.owns_he1",
-                    WorthTopologyRelationKind::WireOwnsHalfEdge,
+                    TopologyRelationKind::WireOwnsHalfEdge,
                     "wire.wire",
                     "wire.he1",
                 ),
                 relation(
                     "wire.he0.next",
-                    WorthTopologyRelationKind::HalfEdgeNext,
+                    TopologyRelationKind::HalfEdgeNext,
                     "wire.he0",
                     "wire.he0",
                 ),
                 relation(
                     "wire.he0.prev",
-                    WorthTopologyRelationKind::HalfEdgePrev,
+                    TopologyRelationKind::HalfEdgePrev,
                     "wire.he0",
                     "wire.he0",
                 ),
                 relation(
                     "wire.he1.next",
-                    WorthTopologyRelationKind::HalfEdgeNext,
+                    TopologyRelationKind::HalfEdgeNext,
                     "wire.he1",
                     "wire.he1",
                 ),
                 relation(
                     "wire.he1.prev",
-                    WorthTopologyRelationKind::HalfEdgePrev,
+                    TopologyRelationKind::HalfEdgePrev,
                     "wire.he1",
                     "wire.he1",
                 ),
                 relation(
                     "wire.he0.radial",
-                    WorthTopologyRelationKind::HalfEdgeRadialNext,
+                    TopologyRelationKind::HalfEdgeRadialNext,
                     "wire.he0",
                     "wire.he0",
                 ),
                 relation(
                     "wire.he1.radial",
-                    WorthTopologyRelationKind::HalfEdgeRadialNext,
+                    TopologyRelationKind::HalfEdgeRadialNext,
                     "wire.he1",
                     "wire.he1",
                 ),
                 relation(
                     "wire.he0.edge",
-                    WorthTopologyRelationKind::HalfEdgeUsesEdge,
+                    TopologyRelationKind::HalfEdgeUsesEdge,
                     "wire.he0",
                     "wire.edge0",
                 ),
                 relation(
                     "wire.he1.edge",
-                    WorthTopologyRelationKind::HalfEdgeUsesEdge,
+                    TopologyRelationKind::HalfEdgeUsesEdge,
                     "wire.he1",
                     "wire.edge1",
                 ),
                 relation(
                     "wire.he0.start",
-                    WorthTopologyRelationKind::HalfEdgeStartsAtVertex,
+                    TopologyRelationKind::HalfEdgeStartsAtVertex,
                     "wire.he0",
                     "wire.v0",
                 ),
                 relation(
                     "wire.he0.end",
-                    WorthTopologyRelationKind::HalfEdgeEndsAtVertex,
+                    TopologyRelationKind::HalfEdgeEndsAtVertex,
                     "wire.he0",
                     "wire.v1",
                 ),
                 relation(
                     "wire.he1.start",
-                    WorthTopologyRelationKind::HalfEdgeStartsAtVertex,
+                    TopologyRelationKind::HalfEdgeStartsAtVertex,
                     "wire.he1",
                     "wire.v2",
                 ),
                 relation(
                     "wire.he1.end",
-                    WorthTopologyRelationKind::HalfEdgeEndsAtVertex,
+                    TopologyRelationKind::HalfEdgeEndsAtVertex,
                     "wire.he1",
                     "wire.v3",
                 ),
@@ -259,7 +256,7 @@ mod runtime_invariant_tests {
                 "wire.v3",
             ]))
             .collect(),
-            WorthMutationOrigin::LocalEdit,
+            MutationOrigin::LocalEdit,
         );
 
         let error = verify_topology_intent(&mut runtime, intent)
@@ -268,212 +265,212 @@ mod runtime_invariant_tests {
 
         assert!(matches!(
             error,
-            WorthTopologyAuthorityError::Commit(TransactionCommitError::Conflict { .. })
+            TopologyAuthorityError::Commit(TransactionCommitError::Conflict { .. })
         ));
     }
 
     #[test]
     fn runtime_invariants_block_illegal_wire_branch_with_non_distinct_edges() {
-        let mut runtime = worth_milestone_one_runtime_builder()
-            .expect("worth milestone one runtime builder")
+        let mut runtime = milestone_one_runtime_builder()
+            .expect(" milestone one runtime builder")
             .build();
 
-        let intent = RawWorthTopologyIntent::new(
+        let intent = RawTopologyIntent::new(
             vec![
-                entity("branch.model", WorthTopologyEntityKind::Model),
-                entity("branch.body", WorthTopologyEntityKind::Body),
-                entity("branch.lump", WorthTopologyEntityKind::Lump),
-                entity("branch.region", WorthTopologyEntityKind::Region),
-                entity("branch.shell", WorthTopologyEntityKind::Shell),
-                entity("branch.face", WorthTopologyEntityKind::Face),
-                entity("branch.loop", WorthTopologyEntityKind::Loop),
-                entity("branch.wire", WorthTopologyEntityKind::Wire),
-                entity("branch.he0", WorthTopologyEntityKind::HalfEdge),
-                entity("branch.he1", WorthTopologyEntityKind::HalfEdge),
-                entity("branch.he2", WorthTopologyEntityKind::HalfEdge),
-                entity("branch.edge0", WorthTopologyEntityKind::Edge),
-                entity("branch.edge2", WorthTopologyEntityKind::Edge),
-                entity("branch.center", WorthTopologyEntityKind::Vertex),
-                entity("branch.v1", WorthTopologyEntityKind::Vertex),
-                entity("branch.v2", WorthTopologyEntityKind::Vertex),
-                entity("branch.v3", WorthTopologyEntityKind::Vertex),
+                entity("branch.model", TopologyEntityKind::Model),
+                entity("branch.body", TopologyEntityKind::Body),
+                entity("branch.lump", TopologyEntityKind::Lump),
+                entity("branch.region", TopologyEntityKind::Region),
+                entity("branch.shell", TopologyEntityKind::Shell),
+                entity("branch.face", TopologyEntityKind::Face),
+                entity("branch.loop", TopologyEntityKind::Loop),
+                entity("branch.wire", TopologyEntityKind::Wire),
+                entity("branch.he0", TopologyEntityKind::HalfEdge),
+                entity("branch.he1", TopologyEntityKind::HalfEdge),
+                entity("branch.he2", TopologyEntityKind::HalfEdge),
+                entity("branch.edge0", TopologyEntityKind::Edge),
+                entity("branch.edge2", TopologyEntityKind::Edge),
+                entity("branch.center", TopologyEntityKind::Vertex),
+                entity("branch.v1", TopologyEntityKind::Vertex),
+                entity("branch.v2", TopologyEntityKind::Vertex),
+                entity("branch.v3", TopologyEntityKind::Vertex),
                 relation(
                     "branch.model.owns_body",
-                    WorthTopologyRelationKind::ModelOwnsBody,
+                    TopologyRelationKind::ModelOwnsBody,
                     "branch.model",
                     "branch.body",
                 ),
                 relation(
                     "branch.body.owns_lump",
-                    WorthTopologyRelationKind::BodyOwnsLump,
+                    TopologyRelationKind::BodyOwnsLump,
                     "branch.body",
                     "branch.lump",
                 ),
                 relation(
                     "branch.lump.owns_region",
-                    WorthTopologyRelationKind::LumpOwnsRegion,
+                    TopologyRelationKind::LumpOwnsRegion,
                     "branch.lump",
                     "branch.region",
                 ),
                 relation(
                     "branch.region.owns_shell",
-                    WorthTopologyRelationKind::RegionOwnsShell,
+                    TopologyRelationKind::RegionOwnsShell,
                     "branch.region",
                     "branch.shell",
                 ),
                 relation(
                     "branch.shell.owns_face",
-                    WorthTopologyRelationKind::ShellOwnsFace,
+                    TopologyRelationKind::ShellOwnsFace,
                     "branch.shell",
                     "branch.face",
                 ),
                 relation(
                     "branch.face.outer_loop",
-                    WorthTopologyRelationKind::FaceOuterLoop,
+                    TopologyRelationKind::FaceOuterLoop,
                     "branch.face",
                     "branch.loop",
                 ),
                 relation(
                     "branch.loop.owns_he0",
-                    WorthTopologyRelationKind::LoopOwnsHalfEdge,
+                    TopologyRelationKind::LoopOwnsHalfEdge,
                     "branch.loop",
                     "branch.he0",
                 ),
                 relation(
                     "branch.loop.owns_he1",
-                    WorthTopologyRelationKind::LoopOwnsHalfEdge,
+                    TopologyRelationKind::LoopOwnsHalfEdge,
                     "branch.loop",
                     "branch.he1",
                 ),
                 relation(
                     "branch.loop.owns_he2",
-                    WorthTopologyRelationKind::LoopOwnsHalfEdge,
+                    TopologyRelationKind::LoopOwnsHalfEdge,
                     "branch.loop",
                     "branch.he2",
                 ),
                 relation(
                     "branch.wire.owns_he0",
-                    WorthTopologyRelationKind::WireOwnsHalfEdge,
+                    TopologyRelationKind::WireOwnsHalfEdge,
                     "branch.wire",
                     "branch.he0",
                 ),
                 relation(
                     "branch.wire.owns_he1",
-                    WorthTopologyRelationKind::WireOwnsHalfEdge,
+                    TopologyRelationKind::WireOwnsHalfEdge,
                     "branch.wire",
                     "branch.he1",
                 ),
                 relation(
                     "branch.wire.owns_he2",
-                    WorthTopologyRelationKind::WireOwnsHalfEdge,
+                    TopologyRelationKind::WireOwnsHalfEdge,
                     "branch.wire",
                     "branch.he2",
                 ),
                 relation(
                     "branch.he0.next",
-                    WorthTopologyRelationKind::HalfEdgeNext,
+                    TopologyRelationKind::HalfEdgeNext,
                     "branch.he0",
                     "branch.he0",
                 ),
                 relation(
                     "branch.he0.prev",
-                    WorthTopologyRelationKind::HalfEdgePrev,
+                    TopologyRelationKind::HalfEdgePrev,
                     "branch.he0",
                     "branch.he0",
                 ),
                 relation(
                     "branch.he1.next",
-                    WorthTopologyRelationKind::HalfEdgeNext,
+                    TopologyRelationKind::HalfEdgeNext,
                     "branch.he1",
                     "branch.he1",
                 ),
                 relation(
                     "branch.he1.prev",
-                    WorthTopologyRelationKind::HalfEdgePrev,
+                    TopologyRelationKind::HalfEdgePrev,
                     "branch.he1",
                     "branch.he1",
                 ),
                 relation(
                     "branch.he2.next",
-                    WorthTopologyRelationKind::HalfEdgeNext,
+                    TopologyRelationKind::HalfEdgeNext,
                     "branch.he2",
                     "branch.he2",
                 ),
                 relation(
                     "branch.he2.prev",
-                    WorthTopologyRelationKind::HalfEdgePrev,
+                    TopologyRelationKind::HalfEdgePrev,
                     "branch.he2",
                     "branch.he2",
                 ),
                 relation(
                     "branch.he0.radial",
-                    WorthTopologyRelationKind::HalfEdgeRadialNext,
+                    TopologyRelationKind::HalfEdgeRadialNext,
                     "branch.he0",
                     "branch.he0",
                 ),
                 relation(
                     "branch.he1.radial",
-                    WorthTopologyRelationKind::HalfEdgeRadialNext,
+                    TopologyRelationKind::HalfEdgeRadialNext,
                     "branch.he1",
                     "branch.he1",
                 ),
                 relation(
                     "branch.he2.radial",
-                    WorthTopologyRelationKind::HalfEdgeRadialNext,
+                    TopologyRelationKind::HalfEdgeRadialNext,
                     "branch.he2",
                     "branch.he2",
                 ),
                 relation(
                     "branch.he0.edge",
-                    WorthTopologyRelationKind::HalfEdgeUsesEdge,
+                    TopologyRelationKind::HalfEdgeUsesEdge,
                     "branch.he0",
                     "branch.edge0",
                 ),
                 relation(
                     "branch.he1.edge",
-                    WorthTopologyRelationKind::HalfEdgeUsesEdge,
+                    TopologyRelationKind::HalfEdgeUsesEdge,
                     "branch.he1",
                     "branch.edge0",
                 ),
                 relation(
                     "branch.he2.edge",
-                    WorthTopologyRelationKind::HalfEdgeUsesEdge,
+                    TopologyRelationKind::HalfEdgeUsesEdge,
                     "branch.he2",
                     "branch.edge2",
                 ),
                 relation(
                     "branch.he0.start",
-                    WorthTopologyRelationKind::HalfEdgeStartsAtVertex,
+                    TopologyRelationKind::HalfEdgeStartsAtVertex,
                     "branch.he0",
                     "branch.center",
                 ),
                 relation(
                     "branch.he0.end",
-                    WorthTopologyRelationKind::HalfEdgeEndsAtVertex,
+                    TopologyRelationKind::HalfEdgeEndsAtVertex,
                     "branch.he0",
                     "branch.v1",
                 ),
                 relation(
                     "branch.he1.start",
-                    WorthTopologyRelationKind::HalfEdgeStartsAtVertex,
+                    TopologyRelationKind::HalfEdgeStartsAtVertex,
                     "branch.he1",
                     "branch.center",
                 ),
                 relation(
                     "branch.he1.end",
-                    WorthTopologyRelationKind::HalfEdgeEndsAtVertex,
+                    TopologyRelationKind::HalfEdgeEndsAtVertex,
                     "branch.he1",
                     "branch.v2",
                 ),
                 relation(
                     "branch.he2.start",
-                    WorthTopologyRelationKind::HalfEdgeStartsAtVertex,
+                    TopologyRelationKind::HalfEdgeStartsAtVertex,
                     "branch.he2",
                     "branch.center",
                 ),
                 relation(
                     "branch.he2.end",
-                    WorthTopologyRelationKind::HalfEdgeEndsAtVertex,
+                    TopologyRelationKind::HalfEdgeEndsAtVertex,
                     "branch.he2",
                     "branch.v3",
                 ),
@@ -499,7 +496,7 @@ mod runtime_invariant_tests {
                 "branch.v3",
             ]))
             .collect(),
-            WorthMutationOrigin::LocalEdit,
+            MutationOrigin::LocalEdit,
         );
 
         let error = verify_topology_intent(&mut runtime, intent)
@@ -508,48 +505,46 @@ mod runtime_invariant_tests {
 
         assert!(matches!(
             error,
-            WorthTopologyAuthorityError::Commit(TransactionCommitError::Conflict { .. })
+            TopologyAuthorityError::Commit(TransactionCommitError::Conflict { .. })
         ));
     }
 
-    fn entity(create_key: &str, kind: WorthTopologyEntityKind) -> WorthTopologyMutation {
-        WorthTopologyMutation::CreateEntity {
-            create_key: WorthCreateKey::new(create_key),
-            kind: WorthEntityKind::Topology(kind),
+    fn entity(create_key: &str, kind: TopologyEntityKind) -> TopologyMutation {
+        TopologyMutation::CreateEntity {
+            create_key: CreateKey::new(create_key),
+            kind: EntityKind::Topology(kind),
         }
     }
 
     fn relation(
         create_key: &str,
-        kind: WorthTopologyRelationKind,
+        kind: TopologyRelationKind,
         source: &str,
         target: &str,
-    ) -> WorthTopologyMutation {
-        WorthTopologyMutation::CreateRelation {
-            create_key: WorthCreateKey::new(create_key),
-            kind: WorthRelationKind::Topology(kind),
-            source: WorthEntityReference::Created(WorthCreateKey::new(source)),
-            target: WorthEntityReference::Created(WorthCreateKey::new(target)),
+    ) -> TopologyMutation {
+        TopologyMutation::CreateRelation {
+            create_key: CreateKey::new(create_key),
+            kind: RelationKind::Topology(kind),
+            source: EntityReference::Created(CreateKey::new(source)),
+            target: EntityReference::Created(CreateKey::new(target)),
         }
     }
 
     fn naming_bundle<'a>(
         topology_keys: &'a [&'a str],
-    ) -> impl Iterator<Item = WorthTopologyMutation> + 'a {
+    ) -> impl Iterator<Item = TopologyMutation> + 'a {
         topology_keys.iter().flat_map(|topology_key| {
             let name_key = format!("{topology_key}.persistent_name");
             [
-                WorthTopologyMutation::CreateEntity {
-                    create_key: WorthCreateKey::new(name_key.clone()),
-                    kind: WorthEntityKind::Naming(WorthNamingEntityKind::PersistentName),
+                TopologyMutation::CreateEntity {
+                    create_key: CreateKey::new(name_key.clone()),
+                    kind: EntityKind::Naming(NamingEntityKind::PersistentName),
                 },
-                WorthTopologyMutation::CreateRelation {
-                    create_key: WorthCreateKey::new(format!("{name_key}.targets")),
-                    kind: WorthRelationKind::Naming(
-                        WorthNamingRelationKind::PersistentNameTargetsEntity,
-                    ),
-                    source: WorthEntityReference::Created(WorthCreateKey::new(name_key)),
-                    target: WorthEntityReference::Created(WorthCreateKey::new(*topology_key)),
+                TopologyMutation::CreateRelation {
+                    create_key: CreateKey::new(format!("{name_key}.targets")),
+                    kind: RelationKind::Naming(NamingRelationKind::PersistentNameTargetsEntity),
+                    source: EntityReference::Created(CreateKey::new(name_key)),
+                    target: EntityReference::Created(CreateKey::new(*topology_key)),
                 },
             ]
             .into_iter()

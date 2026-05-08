@@ -1,9 +1,9 @@
-//! # worth-topo
+//! # Topology
 //!
-//! Worth topology semantics layered over the Forge runtime stack.
+//! Topology semantics layered over the Forge runtime stack.
 //!
 //! This crate is intended to own topology materialization and interpretation
-//! for Worth without becoming a second truth runtime.
+//! without becoming a second truth runtime.
 
 #![forbid(unsafe_code)]
 

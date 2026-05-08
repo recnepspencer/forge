@@ -1,10 +1,10 @@
 use super::*;
 
 pub(super) fn build_closeout_counter_report(
-    seeded_bootstrap: &WorthMilestoneOneCertificationReport,
-    primitive_corpus: &WorthPrimitiveCorpusReport,
-    illegal_topology_rejection_report: &WorthIllegalTopologyRejectionReport,
-) -> WorthMilestoneOneCounters {
+    seeded_bootstrap: &MilestoneOneCertificationReport,
+    primitive_corpus: &PrimitiveCorpusReport,
+    illegal_topology_rejection_report: &IllegalTopologyRejectionReport,
+) -> MilestoneOneCounters {
     let mut counter_report = seeded_bootstrap.counters.clone();
     counter_report.commit_boundary_rejection_count = illegal_topology_rejection_report.case_count;
     for case in &primitive_corpus.cases {
@@ -38,10 +38,10 @@ pub(super) fn build_closeout_counter_report(
 }
 
 pub(super) fn build_closeout_digest(
-    seeded_bootstrap: &WorthMilestoneOneCertificationReport,
-    primitive_corpus: &WorthPrimitiveCorpusReport,
-    select: impl Fn(&WorthMilestoneOneCertificationReport) -> WorthDeterministicDigest,
-) -> WorthDeterministicDigest {
+    seeded_bootstrap: &MilestoneOneCertificationReport,
+    primitive_corpus: &PrimitiveCorpusReport,
+    select: impl Fn(&MilestoneOneCertificationReport) -> DeterministicDigest,
+) -> DeterministicDigest {
     digest_rows(
         std::iter::once(("seeded_bootstrap".to_string(), select(seeded_bootstrap)))
             .chain(
@@ -60,23 +60,23 @@ pub(super) fn build_closeout_digest(
 }
 
 pub(super) fn build_closeout_validation_report(
-    seeded_bootstrap: &WorthMilestoneOneCertificationReport,
-    primitive_corpus: &WorthPrimitiveCorpusReport,
-) -> WorthMilestoneOneValidationAggregateReport {
+    seeded_bootstrap: &MilestoneOneCertificationReport,
+    primitive_corpus: &PrimitiveCorpusReport,
+) -> MilestoneOneValidationAggregateReport {
     let mut rows = Vec::new();
     rows.extend(
         seeded_bootstrap
             .topology_validation_report
             .rows
             .iter()
-            .map(|row| WorthMilestoneOneValidationAggregateRow {
+            .map(|row| MilestoneOneValidationAggregateRow {
                 source: "seeded_bootstrap".to_string(),
                 family: "SeededBootstrap".to_string(),
                 validator: row.validator.clone(),
                 status: row.status.clone(),
             }),
     );
-    rows.push(WorthMilestoneOneValidationAggregateRow {
+    rows.push(MilestoneOneValidationAggregateRow {
         source: "seeded_bootstrap".to_string(),
         family: "SeededBootstrap".to_string(),
         validator: "naming".to_string(),
@@ -91,32 +91,35 @@ pub(super) fn build_closeout_validation_report(
             .topology_validation_report
             .rows
             .iter()
-            .map(move |row| WorthMilestoneOneValidationAggregateRow {
+            .map(move |row| MilestoneOneValidationAggregateRow {
                 source: case.stem.clone(),
                 family: case.family.clone(),
                 validator: row.validator.clone(),
                 status: row.status.clone(),
             })
     }));
-    rows.extend(primitive_corpus.cases.iter().map(|case| {
-        WorthMilestoneOneValidationAggregateRow {
-            source: case.stem.clone(),
-            family: case.family.clone(),
-            validator: "naming".to_string(),
-            status: if case.certification.named_truth_validated {
-                "passed".to_string()
-            } else {
-                "failed".to_string()
-            },
-        }
-    }));
-    WorthMilestoneOneValidationAggregateReport { rows }
+    rows.extend(
+        primitive_corpus
+            .cases
+            .iter()
+            .map(|case| MilestoneOneValidationAggregateRow {
+                source: case.stem.clone(),
+                family: case.family.clone(),
+                validator: "naming".to_string(),
+                status: if case.certification.named_truth_validated {
+                    "passed".to_string()
+                } else {
+                    "failed".to_string()
+                },
+            }),
+    );
+    MilestoneOneValidationAggregateReport { rows }
 }
 
 pub(super) fn build_closeout_localization_report(
-    seeded_bootstrap: &WorthMilestoneOneCertificationReport,
-    primitive_corpus: &WorthPrimitiveCorpusReport,
-) -> WorthTopologyLocalizationAggregateReport {
+    seeded_bootstrap: &MilestoneOneCertificationReport,
+    primitive_corpus: &PrimitiveCorpusReport,
+) -> TopologyLocalizationAggregateReport {
     let mut topology_entities = Vec::new();
     let mut topology_relations = Vec::new();
     topology_entities.extend(
@@ -124,7 +127,7 @@ pub(super) fn build_closeout_localization_report(
             .topology_localization_report
             .topology_entities
             .iter()
-            .map(|row| WorthTopologyLocalizationAggregateEntityRow {
+            .map(|row| TopologyLocalizationAggregateEntityRow {
                 source: "seeded_bootstrap".to_string(),
                 entity_id: row.entity_id,
                 kind_name: row.kind_name.clone(),
@@ -135,7 +138,7 @@ pub(super) fn build_closeout_localization_report(
             .topology_localization_report
             .topology_relations
             .iter()
-            .map(|row| WorthTopologyLocalizationAggregateRelationRow {
+            .map(|row| TopologyLocalizationAggregateRelationRow {
                 source: "seeded_bootstrap".to_string(),
                 relation_id: row.relation_id,
                 kind_name: row.kind_name.clone(),
@@ -147,7 +150,7 @@ pub(super) fn build_closeout_localization_report(
                 .topology_localization_report
                 .topology_entities
                 .iter()
-                .map(|row| WorthTopologyLocalizationAggregateEntityRow {
+                .map(|row| TopologyLocalizationAggregateEntityRow {
                     source: case.stem.clone(),
                     entity_id: row.entity_id,
                     kind_name: row.kind_name.clone(),
@@ -158,23 +161,23 @@ pub(super) fn build_closeout_localization_report(
                 .topology_localization_report
                 .topology_relations
                 .iter()
-                .map(|row| WorthTopologyLocalizationAggregateRelationRow {
+                .map(|row| TopologyLocalizationAggregateRelationRow {
                     source: case.stem.clone(),
                     relation_id: row.relation_id,
                     kind_name: row.kind_name.clone(),
                 }),
         );
     }
-    WorthTopologyLocalizationAggregateReport {
+    TopologyLocalizationAggregateReport {
         topology_entities,
         topology_relations,
     }
 }
 
 pub(super) fn build_closeout_naming_attachment_report(
-    seeded_bootstrap: &WorthMilestoneOneCertificationReport,
-    primitive_corpus: &WorthPrimitiveCorpusReport,
-) -> WorthNamingAttachmentAggregateReport {
+    seeded_bootstrap: &MilestoneOneCertificationReport,
+    primitive_corpus: &PrimitiveCorpusReport,
+) -> NamingAttachmentAggregateReport {
     let mut attachments = Vec::new();
     let mut orphan_persistent_name_ids = BTreeSet::new();
     attachments.extend(
@@ -182,7 +185,7 @@ pub(super) fn build_closeout_naming_attachment_report(
             .naming_attachment_report
             .attachments
             .iter()
-            .map(|row| WorthNamingAttachmentAggregateRow {
+            .map(|row| NamingAttachmentAggregateRow {
                 source: "seeded_bootstrap".to_string(),
                 topology_entity_id: row.topology_entity_id,
                 topology_kind_name: row.topology_kind_name.clone(),
@@ -202,7 +205,7 @@ pub(super) fn build_closeout_naming_attachment_report(
                 .naming_attachment_report
                 .attachments
                 .iter()
-                .map(|row| WorthNamingAttachmentAggregateRow {
+                .map(|row| NamingAttachmentAggregateRow {
                     source: case.stem.clone(),
                     topology_entity_id: row.topology_entity_id,
                     topology_kind_name: row.topology_kind_name.clone(),
@@ -217,7 +220,7 @@ pub(super) fn build_closeout_naming_attachment_report(
                 .copied(),
         );
     }
-    WorthNamingAttachmentAggregateReport {
+    NamingAttachmentAggregateReport {
         fully_named: orphan_persistent_name_ids.is_empty(),
         orphan_persistent_name_ids: orphan_persistent_name_ids.into_iter().collect(),
         attachments,
@@ -225,13 +228,13 @@ pub(super) fn build_closeout_naming_attachment_report(
 }
 
 pub(super) fn build_closeout_validator_coverage_report(
-    aggregate: &WorthMilestoneOneValidationAggregateReport,
-) -> WorthMilestoneOneValidatorCoverageReport {
-    let mut rows = BTreeMap::<(String, String), WorthMilestoneOneValidatorCoverageRow>::new();
+    aggregate: &MilestoneOneValidationAggregateReport,
+) -> MilestoneOneValidatorCoverageReport {
+    let mut rows = BTreeMap::<(String, String), MilestoneOneValidatorCoverageRow>::new();
     for row in &aggregate.rows {
         let entry = rows
             .entry((row.family.clone(), row.validator.clone()))
-            .or_insert_with(|| WorthMilestoneOneValidatorCoverageRow {
+            .or_insert_with(|| MilestoneOneValidatorCoverageRow {
                 family: row.family.clone(),
                 validator: row.validator.clone(),
                 passed_count: 0,
@@ -242,7 +245,7 @@ pub(super) fn build_closeout_validator_coverage_report(
             entry.passed_count += 1;
         }
     }
-    WorthMilestoneOneValidatorCoverageReport {
+    MilestoneOneValidatorCoverageReport {
         rows: rows.into_values().collect(),
     }
 }

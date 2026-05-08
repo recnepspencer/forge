@@ -6,25 +6,25 @@ use forge_query::facade::{
 };
 use serde_json::Value;
 
-use super::binding::WorthTopologyRuntimeBinding;
+use super::binding::TopologyRuntimeBinding;
 use super::query_rows::{topology_entity_rows, topology_relation_rows};
 
-pub(crate) struct WorthTopologyExistingTruthVerificationAdapter {
-    binding: WorthTopologyRuntimeBinding,
+pub(crate) struct TopologyExistingTruthVerificationAdapter {
+    binding: TopologyRuntimeBinding,
 }
 
-impl WorthTopologyExistingTruthVerificationAdapter {
-    pub(crate) fn new(binding: WorthTopologyRuntimeBinding) -> Self {
+impl TopologyExistingTruthVerificationAdapter {
+    pub(crate) fn new(binding: TopologyRuntimeBinding) -> Self {
         Self { binding }
     }
 
     fn target_row(&self, binding: &ForgeQueryExistingTruthTargetBinding) -> Option<Value> {
         match binding.target_collection() {
-            Some("WorthTopologyEntity") => topology_entity_rows(&self.binding)
+            Some("TopologyEntity") => topology_entity_rows(&self.binding)
                 .into_iter()
                 .find(|row| row.identity == binding.resolved_target_identity())
                 .map(|row| row.payload),
-            Some("WorthTopologyRelation") => topology_relation_rows(&self.binding)
+            Some("TopologyRelation") => topology_relation_rows(&self.binding)
                 .into_iter()
                 .find(|row| row.identity == binding.resolved_target_identity())
                 .map(|row| row.payload),
@@ -34,7 +34,7 @@ impl WorthTopologyExistingTruthVerificationAdapter {
 }
 
 impl ForgeQueryRuntimeExistingTruthVerificationAdapter
-    for WorthTopologyExistingTruthVerificationAdapter
+    for TopologyExistingTruthVerificationAdapter
 {
     fn verify_existing_truth_assertion(
         &self,
@@ -48,7 +48,7 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter
                 None,
                 None,
                 None,
-                "worth topology authoritative truth did not resolve the bound target",
+                "topology authoritative truth did not resolve the bound target",
             ));
         };
         for aspect in aspects {
@@ -59,7 +59,7 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter
                     Some(aspect.aspect_path().to_string()),
                     None,
                     None,
-                    "worth topology bridge-backed verification does not admit clear assertions",
+                    "topology bridge-backed verification does not admit clear assertions",
                 ));
             }
             let Some(found) = nested_value(&payload, aspect.aspect_path()) else {
@@ -69,7 +69,7 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter
                     Some(aspect.aspect_path().to_string()),
                     Some(aspect.value().to_string()),
                     None,
-                    "worth topology authoritative truth did not contain the asserted aspect",
+                    "topology authoritative truth did not contain the asserted aspect",
                 ));
             };
             if found != aspect.value() {
@@ -79,7 +79,7 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter
                     Some(aspect.aspect_path().to_string()),
                     Some(aspect.value().to_string()),
                     Some(found.to_string()),
-                    "worth topology authoritative truth did not match the asserted value",
+                    "topology authoritative truth did not match the asserted value",
                 ));
             }
         }
@@ -95,7 +95,7 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter
                 request.binding(),
                 ForgeQueryExistingTruthProbeDenialKind::ResolvedTargetUnavailable,
                 None,
-                "worth topology authoritative truth did not resolve the bound target",
+                "topology authoritative truth did not resolve the bound target",
             ));
         };
         let mut fields = Vec::with_capacity(request.aspect_paths().len());
@@ -105,7 +105,7 @@ impl ForgeQueryRuntimeExistingTruthVerificationAdapter
                     request.binding(),
                     ForgeQueryExistingTruthProbeDenialKind::MissingProbedAspect,
                     Some(aspect_path.to_string()),
-                    "worth topology authoritative truth did not contain the probed aspect",
+                    "topology authoritative truth did not contain the probed aspect",
                 ));
             };
             fields.push((aspect_path.to_string(), value));

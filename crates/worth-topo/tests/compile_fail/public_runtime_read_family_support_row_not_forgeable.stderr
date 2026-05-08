@@ -1,0 +1,13 @@
+error[E0451]: fields `family`, `status`, `reason` and `row_digest` of struct `TopologyRuntimeReadFamilySupportRow` are private
+  --> tests/compile_fail/public_runtime_read_family_support_row_not_forgeable.rs:8:9
+   |
+ 7 |     let _ = TopologyRuntimeReadFamilySupportRow {
+   |             ----------------------------------- in this type
+ 8 |         family: TopologyDomainQueryRequestFamily::LoopCycleNeighborhood,
+   |         ^^^^^^ private field
+ 9 |         status: TopologyQueryReadFamilySupportStatus::Admitted,
+   |         ^^^^^^ private field
+10 |         reason: String::new(),
+   |         ^^^^^^ private field
+11 |         row_digest: String::new(),
+   |         ^^^^^^^^^^ private field

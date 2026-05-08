@@ -334,6 +334,10 @@ impl AdmittedQueryBasisContext {
         self.binding.request.family()
     }
 
+    pub fn declared_basis_label(&self) -> &str {
+        self.binding.request.declared_basis_label()
+    }
+
     pub fn query_digest(&self) -> &str {
         self.binding.query_digest()
     }

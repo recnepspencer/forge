@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthBootstrapRuntimeInvariant {
+pub enum BootstrapRuntimeInvariant {
     OwnershipSurface,
     LoopWiring,
     RadialSurface,
@@ -11,7 +11,7 @@ pub enum WorthBootstrapRuntimeInvariant {
     NamingCoverage,
 }
 
-impl WorthBootstrapRuntimeInvariant {
+impl BootstrapRuntimeInvariant {
     pub const ALL: [Self; 7] = [
         Self::OwnershipSurface,
         Self::LoopWiring,
@@ -24,18 +24,18 @@ impl WorthBootstrapRuntimeInvariant {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WorthBootstrapRuntimeInvariantPlan {
-    pub topology: Vec<WorthBootstrapRuntimeInvariant>,
+pub struct BootstrapRuntimeInvariantPlan {
+    pub topology: Vec<BootstrapRuntimeInvariant>,
 }
 
-impl WorthBootstrapRuntimeInvariantPlan {
-    pub fn all_invariants(&self) -> Vec<WorthBootstrapRuntimeInvariant> {
+impl BootstrapRuntimeInvariantPlan {
+    pub fn all_invariants(&self) -> Vec<BootstrapRuntimeInvariant> {
         self.topology.clone()
     }
 }
 
-pub fn worth_bootstrap_runtime_invariant_plan() -> WorthBootstrapRuntimeInvariantPlan {
-    WorthBootstrapRuntimeInvariantPlan {
-        topology: WorthBootstrapRuntimeInvariant::ALL.to_vec(),
+pub fn bootstrap_runtime_invariant_plan() -> BootstrapRuntimeInvariantPlan {
+    BootstrapRuntimeInvariantPlan {
+        topology: BootstrapRuntimeInvariant::ALL.to_vec(),
     }
 }

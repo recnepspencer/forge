@@ -1,64 +1,63 @@
 use forge_relational::facade::identity::EntityId;
 
 use crate::data::topology_view::{
-    WorthTopologyBody, WorthTopologyFace, WorthTopologyHalfEdge, WorthTopologyLoop,
-    WorthTopologyLump, WorthTopologyModel, WorthTopologyRegion, WorthTopologyShell,
-    WorthTopologyWire,
+    TopologyBody, TopologyFace, TopologyHalfEdge, TopologyLoop, TopologyLump, TopologyModel,
+    TopologyRegion, TopologyShell, TopologyWire,
 };
 
 pub trait HasEntityId {
     fn entity_id(&self) -> EntityId;
 }
 
-impl HasEntityId for WorthTopologyModel {
+impl HasEntityId for TopologyModel {
     fn entity_id(&self) -> EntityId {
         self.entity_id
     }
 }
 
-impl HasEntityId for WorthTopologyBody {
+impl HasEntityId for TopologyBody {
     fn entity_id(&self) -> EntityId {
         self.entity_id
     }
 }
 
-impl HasEntityId for WorthTopologyLump {
+impl HasEntityId for TopologyLump {
     fn entity_id(&self) -> EntityId {
         self.entity_id
     }
 }
 
-impl HasEntityId for WorthTopologyRegion {
+impl HasEntityId for TopologyRegion {
     fn entity_id(&self) -> EntityId {
         self.entity_id
     }
 }
 
-impl HasEntityId for WorthTopologyShell {
+impl HasEntityId for TopologyShell {
     fn entity_id(&self) -> EntityId {
         self.entity_id
     }
 }
 
-impl HasEntityId for WorthTopologyFace {
+impl HasEntityId for TopologyFace {
     fn entity_id(&self) -> EntityId {
         self.entity_id
     }
 }
 
-impl HasEntityId for WorthTopologyLoop {
+impl HasEntityId for TopologyLoop {
     fn entity_id(&self) -> EntityId {
         self.entity_id
     }
 }
 
-impl HasEntityId for WorthTopologyHalfEdge {
+impl HasEntityId for TopologyHalfEdge {
     fn entity_id(&self) -> EntityId {
         self.entity_id
     }
 }
 
-impl HasEntityId for WorthTopologyWire {
+impl HasEntityId for TopologyWire {
     fn entity_id(&self) -> EntityId {
         self.entity_id
     }

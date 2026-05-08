@@ -1,27 +1,40 @@
-use crate::certification::{WorthDeterministicDigest, WorthReplayParityStatus};
+use crate::certification::{DeterministicDigest, ReplayParityStatus};
 use crate::edit::{
-    WorthNamingEditContinuityMatrix, WorthRejectedEditScopeReport, WorthTopologyEditDigest,
-    WorthTopologyEditFamily, WorthTopologyEditNamingOutcome, WorthTopologyEditRejectionClass,
+    NamingEditContinuityMatrix, RejectedEditScopeReport, TopologyEditDigest, TopologyEditFamily,
+    TopologyEditNamingOutcome, TopologyEditRejectionClass,
 };
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 use serde::{Deserialize, Serialize};
-use worth_schema::facade::topology_authoring::WorthMilestoneOnePrimitiveCase;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum WorthMilestoneThreeHostileScenario {
+pub enum MilestoneThreeHostileScenario {
     BowtieAdjacentRewire,
     CancellationChainParity,
+    SplitCollapseChurn,
     AmbiguousLocalRewireContinuity,
     BrokenRadialLocalization,
 }
 
+impl MilestoneThreeHostileScenario {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::BowtieAdjacentRewire => "BowtieAdjacentRewire",
+            Self::CancellationChainParity => "CancellationChainParity",
+            Self::SplitCollapseChurn => "SplitCollapseChurn",
+            Self::AmbiguousLocalRewireContinuity => "AmbiguousLocalRewireContinuity",
+            Self::BrokenRadialLocalization => "BrokenRadialLocalization",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
-pub enum WorthMilestoneThreeHostileOutcomeClass {
+pub enum MilestoneThreeHostileOutcomeClass {
     Accepted,
     Rejected,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthMilestoneThreeBowtieAdjacentWitness {
+pub struct MilestoneThreeBowtieAdjacentWitness {
     pub source_half_edge_identity: String,
     pub target_half_edge_identity: String,
     pub source_edge_identity: String,
@@ -30,19 +43,19 @@ pub struct WorthMilestoneThreeBowtieAdjacentWitness {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthMilestoneThreeAmbiguousLocalRewireWitness {
+pub struct MilestoneThreeAmbiguousLocalRewireWitness {
     pub moved_half_edge_identity: String,
     pub alternate_moved_half_edge_identity: String,
     pub old_successor_identity: String,
     pub alternate_old_successor_identity: String,
     pub chosen_successor_identity: String,
     pub alternate_successor_identity: String,
-    pub chosen_materialized_topology_digest: WorthDeterministicDigest,
-    pub alternate_materialized_topology_digest: WorthDeterministicDigest,
+    pub chosen_materialized_topology_digest: DeterministicDigest,
+    pub alternate_materialized_topology_digest: DeterministicDigest,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthMilestoneThreeBrokenRadialWitness {
+pub struct MilestoneThreeBrokenRadialWitness {
     pub source_half_edge_identity: String,
     pub current_target_half_edge_identity: String,
     pub illegal_target_half_edge_identity: String,
@@ -52,90 +65,142 @@ pub struct WorthMilestoneThreeBrokenRadialWitness {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthMilestoneThreeEditReplayStepRow {
-    pub step_index: usize,
-    pub edit_families: Vec<WorthTopologyEditFamily>,
-    pub topology_edit_digest: WorthTopologyEditDigest,
-    pub naming_edit_continuity_matrix: WorthNamingEditContinuityMatrix,
-    pub outcome_class: WorthMilestoneThreeHostileOutcomeClass,
-    pub rejection_class: Option<WorthTopologyEditRejectionClass>,
-    pub resulting_materialized_topology_digest: Option<WorthDeterministicDigest>,
+pub struct MilestoneThreeSplitCollapseChurnWitness {
+    pub original_wire_identity: String,
+    pub split_wire_identity: String,
+    pub collapse_wire_identity: String,
+    pub moved_half_edge_identities: Vec<String>,
+    pub retained_half_edge_identities: Vec<String>,
+    pub split_step_wire_count: usize,
+    pub final_wire_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthMilestoneThreeEditReplayParityReport {
+pub struct MilestoneThreeEditReplayStepRow {
+    pub step_index: usize,
+    pub edit_families: Vec<TopologyEditFamily>,
+    pub topology_edit_digest: TopologyEditDigest,
+    pub naming_edit_continuity_matrix: NamingEditContinuityMatrix,
+    pub outcome_class: MilestoneThreeHostileOutcomeClass,
+    pub rejection_class: Option<TopologyEditRejectionClass>,
+    pub resulting_materialized_topology_digest: Option<DeterministicDigest>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MilestoneThreeEditReplayParityReport {
     pub replay_checked: bool,
-    pub parity_status: WorthReplayParityStatus,
+    pub parity_status: ReplayParityStatus,
     pub mismatch_count: usize,
-    pub step_rows: Vec<WorthMilestoneThreeEditReplayStepRow>,
-    pub replay_step_rows: Vec<WorthMilestoneThreeEditReplayStepRow>,
-    pub baseline_materialized_topology_digest: Option<WorthDeterministicDigest>,
-    pub final_materialized_topology_digest: Option<WorthDeterministicDigest>,
-    pub replay_final_materialized_topology_digest: Option<WorthDeterministicDigest>,
+    pub step_rows: Vec<MilestoneThreeEditReplayStepRow>,
+    pub replay_step_rows: Vec<MilestoneThreeEditReplayStepRow>,
+    pub baseline_materialized_topology_digest: Option<DeterministicDigest>,
+    pub final_materialized_topology_digest: Option<DeterministicDigest>,
+    pub replay_final_materialized_topology_digest: Option<DeterministicDigest>,
     pub returned_to_baseline: Option<bool>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthMilestoneThreeHostileScenarioReport {
-    pub scenario: WorthMilestoneThreeHostileScenario,
+pub struct MilestoneThreeHostileScenarioReport {
+    pub scenario: MilestoneThreeHostileScenario,
     pub primitive_family: String,
-    pub primitive: WorthMilestoneOnePrimitiveCase,
-    pub edit_families: Vec<WorthTopologyEditFamily>,
-    pub bowtie_adjacent_witness: Option<WorthMilestoneThreeBowtieAdjacentWitness>,
-    pub ambiguous_local_rewire_witness: Option<WorthMilestoneThreeAmbiguousLocalRewireWitness>,
-    pub broken_radial_witness: Option<WorthMilestoneThreeBrokenRadialWitness>,
-    pub topology_edit_digest: WorthTopologyEditDigest,
-    pub naming_edit_continuity_matrix: WorthNamingEditContinuityMatrix,
-    pub continuity_outcome_class: WorthTopologyEditNamingOutcome,
-    pub continuity_rejection_class: Option<WorthTopologyEditRejectionClass>,
-    pub outcome_class: WorthMilestoneThreeHostileOutcomeClass,
-    pub rejection_class: Option<WorthTopologyEditRejectionClass>,
-    pub rejected_edit_scope_report: Option<WorthRejectedEditScopeReport>,
-    pub edit_replay_parity_report: WorthMilestoneThreeEditReplayParityReport,
+    pub primitive: MilestoneOnePrimitiveCase,
+    pub edit_families: Vec<TopologyEditFamily>,
+    pub bowtie_adjacent_witness: Option<MilestoneThreeBowtieAdjacentWitness>,
+    pub ambiguous_local_rewire_witness: Option<MilestoneThreeAmbiguousLocalRewireWitness>,
+    pub split_collapse_churn_witness: Option<MilestoneThreeSplitCollapseChurnWitness>,
+    pub broken_radial_witness: Option<MilestoneThreeBrokenRadialWitness>,
+    pub topology_edit_digest: TopologyEditDigest,
+    pub naming_edit_continuity_matrix: NamingEditContinuityMatrix,
+    pub continuity_outcome_class: TopologyEditNamingOutcome,
+    pub continuity_rejection_class: Option<TopologyEditRejectionClass>,
+    pub outcome_class: MilestoneThreeHostileOutcomeClass,
+    pub rejection_class: Option<TopologyEditRejectionClass>,
+    pub rejected_edit_scope_report: Option<RejectedEditScopeReport>,
+    pub edit_replay_parity_report: MilestoneThreeEditReplayParityReport,
     pub detail: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthMilestoneThreeHostileCoverageRow {
-    pub scenario: WorthMilestoneThreeHostileScenario,
-    pub outcome_class: WorthMilestoneThreeHostileOutcomeClass,
-    pub rejection_class: Option<WorthTopologyEditRejectionClass>,
-    pub continuity_outcome_class: WorthTopologyEditNamingOutcome,
-    pub continuity_rejection_class: Option<WorthTopologyEditRejectionClass>,
+pub struct MilestoneThreeHostileCoverageRow {
+    pub scenario: MilestoneThreeHostileScenario,
+    pub outcome_class: MilestoneThreeHostileOutcomeClass,
+    pub rejection_class: Option<TopologyEditRejectionClass>,
+    pub continuity_outcome_class: TopologyEditNamingOutcome,
+    pub continuity_rejection_class: Option<TopologyEditRejectionClass>,
     pub replay_checked: bool,
-    pub replay_parity_status: WorthReplayParityStatus,
+    pub replay_parity_status: ReplayParityStatus,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthMilestoneThreeHostileFamilyCoverageRow {
-    pub family: WorthTopologyEditFamily,
+pub struct MilestoneThreeHostileFamilyCoverageRow {
+    pub family: TopologyEditFamily,
     pub scenario_count: usize,
-    pub scenarios: Vec<WorthMilestoneThreeHostileScenario>,
+    pub scenarios: Vec<MilestoneThreeHostileScenario>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthMilestoneThreeHostileRejectionDistributionRow {
-    pub rejection_class: WorthTopologyEditRejectionClass,
+pub struct MilestoneThreeHostileRejectionDistributionRow {
+    pub rejection_class: TopologyEditRejectionClass,
     pub case_count: usize,
-    pub scenarios: Vec<WorthMilestoneThreeHostileScenario>,
+    pub scenarios: Vec<MilestoneThreeHostileScenario>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthMilestoneThreeHostileNamingDistributionRow {
-    pub continuity_outcome_class: WorthTopologyEditNamingOutcome,
+pub struct MilestoneThreeHostileNamingDistributionRow {
+    pub continuity_outcome_class: TopologyEditNamingOutcome,
     pub case_count: usize,
-    pub scenarios: Vec<WorthMilestoneThreeHostileScenario>,
+    pub scenarios: Vec<MilestoneThreeHostileScenario>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthMilestoneThreeHostileSuiteReport {
-    pub scenario_reports: Vec<WorthMilestoneThreeHostileScenarioReport>,
-    pub coverage_rows: Vec<WorthMilestoneThreeHostileCoverageRow>,
-    pub family_coverage_rows: Vec<WorthMilestoneThreeHostileFamilyCoverageRow>,
-    pub rejection_distribution_rows: Vec<WorthMilestoneThreeHostileRejectionDistributionRow>,
-    pub naming_distribution_rows: Vec<WorthMilestoneThreeHostileNamingDistributionRow>,
+pub struct MilestoneThreeSideQuestContractRow {
+    pub contract_name: String,
+    pub status: String,
+    pub reason: String,
+    pub row_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MilestoneThreeSideQuestBlockerRow {
+    pub blocker_name: String,
+    pub status: String,
+    pub reason: String,
+    pub row_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MilestoneThreeSideQuestCloseoutReport {
+    pub domain_read_request_count: usize,
+    pub domain_read_parity_count: usize,
+    pub replay_checked_count: usize,
+    pub replay_verified_count: usize,
+    pub branch_local_checked_count: usize,
+    pub branch_local_verified_count: usize,
+    pub contract_rows: Vec<MilestoneThreeSideQuestContractRow>,
+    pub blocker_rows: Vec<MilestoneThreeSideQuestBlockerRow>,
+    pub phase_three_ready: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MilestoneThreeReturnGateBlockerRow {
+    pub blocker_name: String,
+    pub reason: String,
+    pub row_digest: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MilestoneThreeHostileSuiteReport {
+    pub scenario_reports: Vec<MilestoneThreeHostileScenarioReport>,
+    pub coverage_rows: Vec<MilestoneThreeHostileCoverageRow>,
+    pub family_coverage_rows: Vec<MilestoneThreeHostileFamilyCoverageRow>,
+    pub rejection_distribution_rows: Vec<MilestoneThreeHostileRejectionDistributionRow>,
+    pub naming_distribution_rows: Vec<MilestoneThreeHostileNamingDistributionRow>,
+    pub side_quest_closeout_report: MilestoneThreeSideQuestCloseoutReport,
+    pub side_quest_gate_ready: bool,
     pub missing_required_scenarios: Vec<String>,
+    pub milestone_three_return_gate_blocker_rows: Vec<MilestoneThreeReturnGateBlockerRow>,
     pub implemented_scenario_count: usize,
     pub required_scenario_count: usize,
     pub coverage_complete: bool,
+    pub milestone_three_return_gate_ready: bool,
 }

@@ -1,22 +1,21 @@
 use serde::{Deserialize, Serialize};
 
 use crate::data::topology_view::{
-    WorthTopologyBody, WorthTopologyEdge, WorthTopologyFace, WorthTopologyHalfEdge,
-    WorthTopologyLoop, WorthTopologyLump, WorthTopologyModel, WorthTopologyRegion,
-    WorthTopologyShell, WorthTopologyVertex, WorthTopologyWire,
+    TopologyBody, TopologyEdge, TopologyFace, TopologyHalfEdge, TopologyLoop, TopologyLump,
+    TopologyModel, TopologyRegion, TopologyShell, TopologyVertex, TopologyWire,
 };
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthTopologyView {
-    pub models: Vec<WorthTopologyModel>,
-    pub bodies: Vec<WorthTopologyBody>,
-    pub lumps: Vec<WorthTopologyLump>,
-    pub regions: Vec<WorthTopologyRegion>,
-    pub shells: Vec<WorthTopologyShell>,
-    pub faces: Vec<WorthTopologyFace>,
-    pub loops: Vec<WorthTopologyLoop>,
-    pub wires: Vec<WorthTopologyWire>,
-    pub half_edges: Vec<WorthTopologyHalfEdge>,
-    pub edges: Vec<WorthTopologyEdge>,
-    pub vertices: Vec<WorthTopologyVertex>,
+pub struct TopologyView {
+    pub models: Vec<TopologyModel>,
+    pub bodies: Vec<TopologyBody>,
+    pub lumps: Vec<TopologyLump>,
+    pub regions: Vec<TopologyRegion>,
+    pub shells: Vec<TopologyShell>,
+    pub faces: Vec<TopologyFace>,
+    pub loops: Vec<TopologyLoop>,
+    pub wires: Vec<TopologyWire>,
+    pub half_edges: Vec<TopologyHalfEdge>,
+    pub edges: Vec<TopologyEdge>,
+    pub vertices: Vec<TopologyVertex>,
 }

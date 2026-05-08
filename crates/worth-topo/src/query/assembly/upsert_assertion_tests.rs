@@ -2,41 +2,38 @@ use forge_query::facade::{
     ForgeQueryEntity, ForgeQueryExistingTruthAssertionDenialKind, ForgeQueryRuntimeError,
 };
 use forge_relational::facade::identity::{EntityId, RelationId};
-use worth_schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
-};
-use worth_schema::facade::WorthTopologyRelationKind;
-use worth_schema::facade::{
-    RawWorthTopologyIntent, WorthEntityKind, WorthMutationOrigin, WorthRelationKind,
-    WorthTopologyEntityKind, WorthTopologyMutation,
+use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::TopologyRelationKind;
+use schema::facade::{
+    EntityKind, MutationOrigin, RawTopologyIntent, RelationKind, TopologyEntityKind,
+    TopologyMutation,
 };
 
 use super::*;
-use crate::facade::worth_milestone_one_runtime_builder;
+use crate::facade::milestone_one_runtime_builder;
 use crate::query::assembly::authority_support::mutation_evidence_for_intent;
-use crate::query::{worth_topology_runtime, WorthTopologyRuntimeAdapters};
+use crate::query::{topology_runtime, TopologyRuntimeAdapters};
 
 fn seeded_current_head_workspace(
     stem: &str,
 ) -> (
     forge_query::facade::ForgeQueryWorkspace,
-    WorthTopologyQueryAssembly,
-    worth_schema::facade::VerifiedTopologyCommit,
+    TopologyQueryAssembly,
+    schema::facade::VerifiedTopologyCommit,
 ) {
-    let mut runtime = worth_milestone_one_runtime_builder()
-        .expect("worth milestone one runtime builder")
+    let mut runtime = milestone_one_runtime_builder()
+        .expect(" milestone one runtime builder")
         .build();
     let verified = seed_milestone_one_primitive(
         &mut runtime,
         stem,
-        &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
+        &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
     )
     .expect("verified primitive");
-    let adapters = WorthTopologyRuntimeAdapters::current_head(runtime);
-    let mut workspace =
-        worth_topology_runtime(adapters, stem).expect("query workspace should build");
+    let adapters = TopologyRuntimeAdapters::current_head(runtime);
+    let mut workspace = topology_runtime(adapters, stem).expect("query workspace should build");
     let assembly =
-        WorthTopologyQueryAssembly::declare(&mut workspace).expect("query assembly should declare");
+        TopologyQueryAssembly::declare(&mut workspace).expect("query assembly should declare");
     (workspace, assembly, verified)
 }
 
@@ -62,27 +59,27 @@ fn decode_relation_id(row: &ForgeQueryEntity) -> RelationId {
     .expect("relation provenance should decode")
 }
 
-fn decode_entity_kind(row: &ForgeQueryEntity) -> WorthEntityKind {
+fn decode_entity_kind(row: &ForgeQueryEntity) -> EntityKind {
     let kind_name = row
         .payload
         .get("topology")
         .and_then(|value| value.get("kind"))
         .and_then(serde_json::Value::as_str)
         .expect("entity kind");
-    WorthEntityKind::ALL
+    EntityKind::ALL
         .into_iter()
         .find(|kind| kind.kind_name() == kind_name)
         .expect("entity kind should decode")
 }
 
-fn decode_relation_kind(row: &ForgeQueryEntity) -> WorthRelationKind {
+fn decode_relation_kind(row: &ForgeQueryEntity) -> RelationKind {
     let kind_name = row
         .payload
         .get("topology")
         .and_then(|value| value.get("kind"))
         .and_then(serde_json::Value::as_str)
         .expect("relation kind");
-    WorthRelationKind::ALL
+    RelationKind::ALL
         .into_iter()
         .find(|kind| kind.kind_name() == kind_name)
         .expect("relation kind should decode")
@@ -130,12 +127,12 @@ fn query_native_assembly_applies_topology_entity_upsert_with_backend_verified_as
     let applied = assembly
         .apply_raw_intent(
             &mut workspace,
-            RawWorthTopologyIntent::new(
-                vec![WorthTopologyMutation::UpsertEntity {
+            RawTopologyIntent::new(
+                vec![TopologyMutation::UpsertEntity {
                     entity_id,
                     kind: entity_kind,
                 }],
-                WorthMutationOrigin::LocalEdit,
+                MutationOrigin::LocalEdit,
             ),
             &verified.read_basis,
         )
@@ -165,14 +162,14 @@ fn query_native_assembly_applies_topology_relation_upsert_with_backend_verified_
     let applied = assembly
         .apply_raw_intent(
             &mut workspace,
-            RawWorthTopologyIntent::new(
-                vec![WorthTopologyMutation::UpsertRelation {
+            RawTopologyIntent::new(
+                vec![TopologyMutation::UpsertRelation {
                     relation_id,
                     kind: relation_kind,
                     source: source_id,
                     target: target_id,
                 }],
-                WorthMutationOrigin::LocalEdit,
+                MutationOrigin::LocalEdit,
             ),
             &verified.read_basis,
         )
@@ -196,29 +193,28 @@ fn query_native_assembly_rejects_topology_entity_upsert_when_live_kind_mismatche
     let entity_row = workspace.read(assembly.entities())[0].clone();
     let entity_id = decode_entity_id(&entity_row);
     let live_kind = decode_entity_kind(&entity_row);
-    let mismatched_kind = if live_kind == WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex)
-    {
-        WorthEntityKind::Topology(WorthTopologyEntityKind::Face)
+    let mismatched_kind = if live_kind == EntityKind::Topology(TopologyEntityKind::Vertex) {
+        EntityKind::Topology(TopologyEntityKind::Face)
     } else {
-        WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex)
+        EntityKind::Topology(TopologyEntityKind::Vertex)
     };
 
     let error = assembly
         .apply_raw_intent(
             &mut workspace,
-            RawWorthTopologyIntent::new(
-                vec![WorthTopologyMutation::UpsertEntity {
+            RawTopologyIntent::new(
+                vec![TopologyMutation::UpsertEntity {
                     entity_id,
                     kind: mismatched_kind,
                 }],
-                WorthMutationOrigin::LocalEdit,
+                MutationOrigin::LocalEdit,
             ),
             &verified.read_basis,
         )
         .expect_err("mismatched entity kind should fail closed");
 
     match error {
-        super::authority::WorthTopologyQueryApplyError::Query(
+        super::authority::TopologyQueryApplyError::Query(
             ForgeQueryRuntimeError::ExistingTruthAssertionDenied(denial),
         ) => {
             assert_eq!(
@@ -242,36 +238,36 @@ fn query_native_assembly_lowers_changed_topology_relation_kind_upserts_into_veri
     let entity_rows = workspace.read(assembly.entities());
     let (source_id, target_id) = decode_relation_endpoints(&relation_row, &entity_rows);
     let mismatched_kind = if live_relation_kind
-        == WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeStartsAtVertex)
+        == RelationKind::Topology(TopologyRelationKind::HalfEdgeStartsAtVertex)
     {
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeEndsAtVertex)
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeEndsAtVertex)
     } else {
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeStartsAtVertex)
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeStartsAtVertex)
     };
 
     let error = assembly
         .apply_raw_intent(
             &mut workspace,
-            RawWorthTopologyIntent::new(
-                vec![WorthTopologyMutation::UpsertRelation {
+            RawTopologyIntent::new(
+                vec![TopologyMutation::UpsertRelation {
                     relation_id,
                     kind: mismatched_kind,
                     source: source_id,
                     target: target_id,
                 }],
-                WorthMutationOrigin::LocalEdit,
+                MutationOrigin::LocalEdit,
             ),
             &verified.read_basis,
         )
         .expect_err("changed relation kind should reach the verified update lane and then fail closed on the runtime's kind-preserving relation update substrate");
 
     match error {
-        super::authority::WorthTopologyQueryApplyError::Query(
-            ForgeQueryRuntimeError::Workspace(workspace_error),
-        ) => {
+        super::authority::TopologyQueryApplyError::Query(ForgeQueryRuntimeError::Workspace(
+            workspace_error,
+        )) => {
             let message = workspace_error.to_string();
             assert!(
-                message.contains("worth.m1.topology.ownership_surface"),
+                message.contains(".m1.topology.ownership_surface"),
                 "expected runtime ownership-surface invariant denial after verified relation update lowering, got: {message}"
             );
             assert!(
@@ -296,7 +292,7 @@ fn query_native_assembly_applies_changed_topology_relation_endpoint_upserts_thro
         .into_iter()
         .find(|row| {
             decode_relation_kind(row)
-                == WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeEndsAtVertex)
+                == RelationKind::Topology(TopologyRelationKind::HalfEdgeEndsAtVertex)
         })
         .expect("seeded topology should contain half-edge endpoint relation");
     let relation_id = decode_relation_id(&relation_row);
@@ -304,9 +300,7 @@ fn query_native_assembly_applies_changed_topology_relation_endpoint_upserts_thro
     let (source_id, current_target_id) = decode_relation_endpoints(&relation_row, &entity_rows);
     let alternate_target_id = entity_rows
         .iter()
-        .filter(|row| {
-            decode_entity_kind(row) == WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex)
-        })
+        .filter(|row| decode_entity_kind(row) == EntityKind::Topology(TopologyEntityKind::Vertex))
         .map(decode_entity_id)
         .find(|entity_id| *entity_id != current_target_id && *entity_id != source_id)
         .expect("seeded topology should expose an alternate vertex target");
@@ -314,14 +308,14 @@ fn query_native_assembly_applies_changed_topology_relation_endpoint_upserts_thro
     let applied = assembly
         .apply_raw_intent(
             &mut workspace,
-            RawWorthTopologyIntent::new(
-                vec![WorthTopologyMutation::UpsertRelation {
+            RawTopologyIntent::new(
+                vec![TopologyMutation::UpsertRelation {
                     relation_id,
                     kind: relation_kind,
                     source: source_id,
                     target: alternate_target_id,
                 }],
-                WorthMutationOrigin::LocalEdit,
+                MutationOrigin::LocalEdit,
             ),
             &verified.read_basis,
         )
@@ -351,8 +345,7 @@ fn query_native_assembly_retains_both_live_and_desired_relation_aspect_families_
         .read(assembly.relations())
         .into_iter()
         .find(|row| {
-            decode_relation_kind(row)
-                == WorthRelationKind::Topology(WorthTopologyRelationKind::ModelOwnsBody)
+            decode_relation_kind(row) == RelationKind::Topology(TopologyRelationKind::ModelOwnsBody)
         })
         .expect("seeded topology should contain an ownership relation");
     let relation_id = decode_relation_id(&relation_row);
@@ -372,19 +365,18 @@ fn query_native_assembly_retains_both_live_and_desired_relation_aspect_families_
             .find(|row| row.identity == imported.target_query_identity)
             .expect("target row should exist"),
     );
-    let desired_kind =
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeStartsAtVertex);
+    let desired_kind = RelationKind::Topology(TopologyRelationKind::HalfEdgeStartsAtVertex);
 
     let evidence = mutation_evidence_for_intent(
         &verified.read_basis,
-        &RawWorthTopologyIntent::new(
-            vec![WorthTopologyMutation::UpsertRelation {
+        &RawTopologyIntent::new(
+            vec![TopologyMutation::UpsertRelation {
                 relation_id,
                 kind: desired_kind,
                 source: source_id,
                 target: target_id,
             }],
-            WorthMutationOrigin::LocalEdit,
+            MutationOrigin::LocalEdit,
         ),
         &entities,
         &relations,

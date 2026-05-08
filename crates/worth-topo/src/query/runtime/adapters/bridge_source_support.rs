@@ -13,12 +13,12 @@ pub(super) fn parse_bridge_commit_identity(
 ) -> Result<CommitId, RelationalBridgeSourceError> {
     let raw = identity.strip_prefix("commit-").ok_or_else(|| {
         RelationalBridgeSourceError::new(format!(
-            "unsupported worth topology bridge commit identity `{identity}`"
+            "unsupported topology bridge commit identity `{identity}`"
         ))
     })?;
     let commit_id = raw.parse::<u64>().map_err(|_| {
         RelationalBridgeSourceError::new(format!(
-            "invalid worth topology bridge commit identity `{identity}`"
+            "invalid topology bridge commit identity `{identity}`"
         ))
     })?;
     Ok(CommitId(commit_id))
@@ -33,7 +33,7 @@ pub(super) fn parse_bridge_snapshot_identity(
         .ok_or_else(|| RelationalBridgeSourceError::new("missing bridge snapshot prefix"))?;
     if prefix != "relational-snapshot" {
         return Err(RelationalBridgeSourceError::new(format!(
-            "unsupported worth topology bridge snapshot identity `{}`",
+            "unsupported topology bridge snapshot identity `{}`",
             identity.as_str()
         )));
     }
@@ -49,7 +49,7 @@ pub(super) fn parse_bridge_snapshot_identity(
         .ok_or_else(|| RelationalBridgeSourceError::new("missing relational version segment"))?;
     if version_segment != "version" {
         return Err(RelationalBridgeSourceError::new(format!(
-            "unsupported worth topology bridge snapshot version segment `{version_segment}`"
+            "unsupported topology bridge snapshot version segment `{version_segment}`"
         )));
     }
     let version_id = VersionId(
@@ -61,7 +61,7 @@ pub(super) fn parse_bridge_snapshot_identity(
     );
     if parts.next().is_some() {
         return Err(RelationalBridgeSourceError::new(
-            "worth topology bridge snapshot identity had too many fields",
+            "topology bridge snapshot identity had too many fields",
         ));
     }
     Ok((snapshot_id, version_id))
@@ -113,7 +113,7 @@ pub(super) fn missing_record_error(
     snapshot_identity: &TruthSnapshotIdentity,
 ) -> BridgeSnapshotReadError {
     BridgeSnapshotReadError::new(format!(
-        "worth topology snapshot reader could not find {kind} `{identity}` in authoritative snapshot `{}`",
+        "topology snapshot reader could not find {kind} `{identity}` in authoritative snapshot `{}`",
         snapshot_identity.as_str()
     ))
 }
@@ -125,7 +125,7 @@ pub(super) fn missing_aspect_error(
     snapshot_identity: &TruthSnapshotIdentity,
 ) -> BridgeSnapshotReadError {
     BridgeSnapshotReadError::new(format!(
-        "worth topology snapshot reader could not resolve aspect `{aspect}` on {kind} `{identity}` in authoritative snapshot `{}`",
+        "topology snapshot reader could not resolve aspect `{aspect}` on {kind} `{identity}` in authoritative snapshot `{}`",
         snapshot_identity.as_str()
     ))
 }

@@ -1,69 +1,62 @@
 use forge_relational::facade::history::BranchId;
-use worth_schema::facade::{RawWorthTopologyIntent, WorthMutationOrigin};
+use schema::facade::{MutationOrigin, RawTopologyIntent};
 
-use super::types::{
-    WorthTopologyEditContract, WorthTopologyEditFamily, WorthTopologyEditNamingReport,
-};
+use super::types::{TopologyEditContract, TopologyEditFamily, TopologyEditNamingReport};
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum WorthTopologyEditApplicationMode {
+pub enum TopologyEditApplicationMode {
     Mainline,
     BranchLocal(BranchId),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct WorthTopologyEditBatch {
-    contracts: Vec<WorthTopologyEditContract>,
+pub struct TopologyEditBatch {
+    contracts: Vec<TopologyEditContract>,
 }
 
-impl WorthTopologyEditBatch {
-    pub fn new(
-        contracts: Vec<WorthTopologyEditContract>,
-    ) -> Result<Self, WorthTopologyEditBatchError> {
+impl TopologyEditBatch {
+    pub fn new(contracts: Vec<TopologyEditContract>) -> Result<Self, TopologyEditBatchError> {
         if contracts.is_empty() {
-            return Err(WorthTopologyEditBatchError::EmptyBatch);
+            return Err(TopologyEditBatchError::EmptyBatch);
         }
         Ok(Self { contracts })
     }
 
-    pub fn contracts(&self) -> &[WorthTopologyEditContract] {
+    pub fn contracts(&self) -> &[TopologyEditContract] {
         &self.contracts
     }
 
-    pub fn naming_report(&self) -> WorthTopologyEditNamingReport {
+    pub fn naming_report(&self) -> TopologyEditNamingReport {
         let rows = self
             .contracts
             .iter()
             .flat_map(|contract| contract.naming_report().rows)
             .collect();
-        WorthTopologyEditNamingReport { rows }
+        TopologyEditNamingReport { rows }
     }
 
-    pub fn families(&self) -> Vec<WorthTopologyEditFamily> {
+    pub fn families(&self) -> Vec<TopologyEditFamily> {
         self.contracts
             .iter()
             .map(|contract| contract.family)
             .collect()
     }
 
-    pub fn into_raw_intent(
-        self,
-        mode: &WorthTopologyEditApplicationMode,
-    ) -> RawWorthTopologyIntent {
+    pub fn into_raw_intent(self, mode: &TopologyEditApplicationMode) -> RawTopologyIntent {
         let mutations = self
             .contracts
             .into_iter()
             .flat_map(|contract| contract.lowered_mutations().to_vec())
             .collect();
-        RawWorthTopologyIntent::new(mutations, mutation_origin_for_mode(mode))
+        RawTopologyIntent::new(mutations, mutation_origin_for_mode(mode))
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub enum WorthTopologyEditBatchError {
+pub enum TopologyEditBatchError {
     EmptyBatch,
 }
 
-impl std::fmt::Display for WorthTopologyEditBatchError {
+impl std::fmt::Display for TopologyEditBatchError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::EmptyBatch => write!(f, "topology edit batch must contain at least one contract"),
@@ -71,13 +64,11 @@ impl std::fmt::Display for WorthTopologyEditBatchError {
     }
 }
 
-impl std::error::Error for WorthTopologyEditBatchError {}
+impl std::error::Error for TopologyEditBatchError {}
 
-fn mutation_origin_for_mode(mode: &WorthTopologyEditApplicationMode) -> WorthMutationOrigin {
+fn mutation_origin_for_mode(mode: &TopologyEditApplicationMode) -> MutationOrigin {
     match mode {
-        WorthTopologyEditApplicationMode::Mainline => WorthMutationOrigin::LocalEdit,
-        WorthTopologyEditApplicationMode::BranchLocal(_) => {
-            WorthMutationOrigin::BranchLocalApplication
-        }
+        TopologyEditApplicationMode::Mainline => MutationOrigin::LocalEdit,
+        TopologyEditApplicationMode::BranchLocal(_) => MutationOrigin::BranchLocalApplication,
     }
 }

@@ -1,10 +1,10 @@
 use super::*;
 
 pub(crate) fn build_primitive_corpus_parity_report(
-    cases: &[WorthPrimitiveCorpusCaseReport],
-    branch_local_cases: Option<&[WorthPrimitiveCorpusCaseReport]>,
-) -> WorthPrimitiveCorpusParityReport {
-    let mut rows = BTreeMap::<String, WorthPrimitiveCorpusParityEntry>::new();
+    cases: &[PrimitiveCorpusCaseReport],
+    branch_local_cases: Option<&[PrimitiveCorpusCaseReport]>,
+) -> PrimitiveCorpusParityReport {
+    let mut rows = BTreeMap::<String, PrimitiveCorpusParityEntry>::new();
 
     for family in canonical_milestone_one_primitive_families() {
         rows.insert(family.to_string(), empty_corpus_parity_entry(family));
@@ -66,7 +66,7 @@ pub(crate) fn build_primitive_corpus_parity_report(
         }
     }
 
-    let mut branch_lookup = BTreeMap::<String, &WorthPrimitiveCorpusCaseReport>::new();
+    let mut branch_lookup = BTreeMap::<String, &PrimitiveCorpusCaseReport>::new();
     if let Some(branch_local_cases) = branch_local_cases {
         for case in branch_local_cases {
             let row = rows
@@ -158,7 +158,7 @@ pub(crate) fn build_primitive_corpus_parity_report(
             && cross_branch_scope_satisfied;
     }
 
-    WorthPrimitiveCorpusParityReport {
+    PrimitiveCorpusParityReport {
         entries: rows.into_values().collect(),
     }
 }

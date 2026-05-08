@@ -4,19 +4,19 @@ use super::*;
 fn primitive_corpus_certification_runs_cases_through_authority_and_reports_family_coverage() {
     let corpus = certify_milestone_one_primitive_corpus(
         || {
-            crate::facade::worth_milestone_one_runtime_builder()
-                .expect("worth milestone one runtime builder")
+            crate::facade::milestone_one_runtime_builder()
+                .expect(" milestone one runtime builder")
                 .build()
         },
         "cert-corpus",
         &[
-            WorthMilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 },
-            WorthMilestoneOnePrimitiveCase::WireClosed { half_edge_count: 4 },
-            WorthMilestoneOnePrimitiveCase::WireBranch { branch_count: 4 },
-            WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 5 },
-            WorthMilestoneOnePrimitiveCase::SheetPatch { face_count: 3 },
-            WorthMilestoneOnePrimitiveCase::SolidShell { face_count: 4 },
-            WorthMilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
+            MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 },
+            MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 4 },
+            MilestoneOnePrimitiveCase::WireBranch { branch_count: 4 },
+            MilestoneOnePrimitiveCase::SheetDisk { edge_count: 5 },
+            MilestoneOnePrimitiveCase::SheetPatch { face_count: 3 },
+            MilestoneOnePrimitiveCase::SolidShell { face_count: 4 },
+            MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
         ],
     )
     .expect("primitive corpus certification should succeed");
@@ -52,37 +52,31 @@ fn primitive_corpus_certification_runs_cases_through_authority_and_reports_famil
             && !entry.parity_closure_complete
     }));
     assert!(corpus.cases.iter().any(|case| {
-        matches!(
-            case.primitive,
-            WorthMilestoneOnePrimitiveCase::WireOpen { .. }
-        ) && case
-            .certification
-            .primitive_family_coverage_matrix
-            .entries
-            .iter()
-            .any(|entry| entry.family == "WireOpen(n)" && entry.observed)
+        matches!(case.primitive, MilestoneOnePrimitiveCase::WireOpen { .. })
+            && case
+                .certification
+                .primitive_family_coverage_matrix
+                .entries
+                .iter()
+                .any(|entry| entry.family == "WireOpen(n)" && entry.observed)
     }));
     assert!(corpus.cases.iter().any(|case| {
-        matches!(
-            case.primitive,
-            WorthMilestoneOnePrimitiveCase::SolidShell { .. }
-        ) && case
-            .certification
-            .primitive_family_coverage_matrix
-            .entries
-            .iter()
-            .any(|entry| entry.family == "SolidShell(f)" && entry.observed)
+        matches!(case.primitive, MilestoneOnePrimitiveCase::SolidShell { .. })
+            && case
+                .certification
+                .primitive_family_coverage_matrix
+                .entries
+                .iter()
+                .any(|entry| entry.family == "SolidShell(f)" && entry.observed)
     }));
     assert!(corpus.cases.iter().any(|case| {
-        matches!(
-            case.primitive,
-            WorthMilestoneOnePrimitiveCase::NmtEdgeFan { .. }
-        ) && case
-            .certification
-            .primitive_family_coverage_matrix
-            .entries
-            .iter()
-            .any(|entry| entry.family == "NmtEdgeFan(k)" && entry.observed)
+        matches!(case.primitive, MilestoneOnePrimitiveCase::NmtEdgeFan { .. })
+            && case
+                .certification
+                .primitive_family_coverage_matrix
+                .entries
+                .iter()
+                .any(|entry| entry.family == "NmtEdgeFan(k)" && entry.observed)
     }));
 }
 
@@ -90,12 +84,12 @@ fn primitive_corpus_certification_runs_cases_through_authority_and_reports_famil
 fn primitive_corpus_reports_keep_the_full_canonical_family_set_even_when_input_is_partial() {
     let corpus = certify_milestone_one_primitive_corpus(
         || {
-            crate::facade::worth_milestone_one_runtime_builder()
-                .expect("worth milestone one runtime builder")
+            crate::facade::milestone_one_runtime_builder()
+                .expect(" milestone one runtime builder")
                 .build()
         },
         "cert-partial-corpus",
-        &[WorthMilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 }],
+        &[MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 }],
     )
     .expect("partial primitive corpus certification should succeed");
 
@@ -122,8 +116,8 @@ fn primitive_corpus_reports_keep_the_full_canonical_family_set_even_when_input_i
 fn default_primitive_corpus_includes_smallest_generic_hostile_and_out_of_class_members() {
     let corpus = certify_milestone_one_default_primitive_corpus(
         || {
-            crate::facade::worth_milestone_one_runtime_builder()
-                .expect("worth milestone one runtime builder")
+            crate::facade::milestone_one_runtime_builder()
+                .expect(" milestone one runtime builder")
                 .build()
         },
         "cert-default-corpus",
@@ -133,19 +127,19 @@ fn default_primitive_corpus_includes_smallest_generic_hostile_and_out_of_class_m
     assert!(corpus
         .cases
         .iter()
-        .any(|case| case.role == WorthMilestoneOnePrimitiveRole::Smallest));
+        .any(|case| case.role == MilestoneOnePrimitiveRole::Smallest));
     assert!(corpus
         .cases
         .iter()
-        .any(|case| case.role == WorthMilestoneOnePrimitiveRole::Generic));
+        .any(|case| case.role == MilestoneOnePrimitiveRole::Generic));
     assert!(corpus
         .cases
         .iter()
-        .any(|case| case.role == WorthMilestoneOnePrimitiveRole::HostileAdmitted));
+        .any(|case| case.role == MilestoneOnePrimitiveRole::HostileAdmitted));
     assert!(corpus
         .rejected_cases
         .iter()
-        .all(|case| case.expected_outcome == WorthMilestoneOnePrimitiveExpectedOutcome::Reject));
+        .all(|case| case.expected_outcome == MilestoneOnePrimitiveExpectedOutcome::Reject));
     assert!(corpus
         .rejected_cases
         .iter()
@@ -159,7 +153,7 @@ fn default_primitive_corpus_includes_smallest_generic_hostile_and_out_of_class_m
     assert!(corpus
         .rejected_cases
         .iter()
-        .any(|case| case.role == WorthMilestoneOnePrimitiveRole::OutOfClass));
+        .any(|case| case.role == MilestoneOnePrimitiveRole::OutOfClass));
     assert!(corpus
         .rejected_cases
         .iter()
@@ -201,8 +195,8 @@ fn branch_local_default_primitive_corpus_preserves_branch_local_reports_for_admi
 
     let corpus = certify_milestone_one_branch_local_primitive_scenarios(
         &mut || {
-            crate::facade::worth_milestone_one_runtime_builder()
-                .expect("worth milestone one runtime builder")
+            crate::facade::milestone_one_runtime_builder()
+                .expect(" milestone one runtime builder")
                 .build()
         },
         "cert-branch-corpus",

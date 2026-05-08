@@ -1,11 +1,11 @@
-use super::error::WorthTopologyDomainQueryError;
+use super::error::TopologyDomainQueryError;
+use super::lowering::schema::TopologyDomainTraversalRelation;
 use forge_query::facade::RelationName;
 
-use super::report::WorthTopologyDomainQueryRequestFamily;
-use super::schema::WorthTopologyDomainTraversalRelation;
+use super::proof::report::TopologyDomainQueryRequestFamily;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(crate) enum WorthTopologyDomainQueryRequest {
+pub(crate) enum TopologyDomainQueryRequest {
     HalfEdgeSharedVertexNeighborhood {
         source_half_edge_identity: String,
     },
@@ -23,13 +23,13 @@ pub(crate) enum WorthTopologyDomainQueryRequest {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(crate) struct WorthTopologyDomainQueryTraversalStep {
-    relation: WorthTopologyDomainTraversalRelation,
+pub(crate) struct TopologyDomainQueryTraversalStep {
+    relation: TopologyDomainTraversalRelation,
     depth: u8,
 }
 
-impl WorthTopologyDomainQueryTraversalStep {
-    pub(crate) fn new(relation: WorthTopologyDomainTraversalRelation, depth: u8) -> Self {
+impl TopologyDomainQueryTraversalStep {
+    pub(crate) fn new(relation: TopologyDomainTraversalRelation, depth: u8) -> Self {
         Self { relation, depth }
     }
 
@@ -43,12 +43,12 @@ impl WorthTopologyDomainQueryTraversalStep {
 
     fn validate(
         self,
-        request_family: WorthTopologyDomainQueryRequestFamily,
-    ) -> Result<(), WorthTopologyDomainQueryError> {
+        request_family: TopologyDomainQueryRequestFamily,
+    ) -> Result<(), TopologyDomainQueryError> {
         let maximum_supported_depth = usize::from(self.relation.max_depth());
         let requested_depth = usize::from(self.depth);
         if requested_depth == 0 || requested_depth > maximum_supported_depth {
-            return Err(WorthTopologyDomainQueryError::unsupported_traversal_depth(
+            return Err(TopologyDomainQueryError::unsupported_traversal_depth(
                 request_family,
                 requested_depth,
                 maximum_supported_depth,
@@ -58,8 +58,8 @@ impl WorthTopologyDomainQueryTraversalStep {
     }
 }
 
-impl WorthTopologyDomainQueryRequest {
-    pub(crate) fn validate(&self) -> Result<(), WorthTopologyDomainQueryError> {
+impl TopologyDomainQueryRequest {
+    pub(crate) fn validate(&self) -> Result<(), TopologyDomainQueryError> {
         let request_family = self.family();
         for step in self.traversal_steps() {
             step.validate(request_family)?;
@@ -67,19 +67,19 @@ impl WorthTopologyDomainQueryRequest {
         Ok(())
     }
 
-    pub(crate) fn family(&self) -> WorthTopologyDomainQueryRequestFamily {
+    pub(crate) fn family(&self) -> TopologyDomainQueryRequestFamily {
         match self {
             Self::HalfEdgeSharedVertexNeighborhood { .. } => {
-                WorthTopologyDomainQueryRequestFamily::HalfEdgeSharedVertexNeighborhood
+                TopologyDomainQueryRequestFamily::HalfEdgeSharedVertexNeighborhood
             }
             Self::HalfEdgeRadialNeighborhood { .. } => {
-                WorthTopologyDomainQueryRequestFamily::HalfEdgeRadialNeighborhood
+                TopologyDomainQueryRequestFamily::HalfEdgeRadialNeighborhood
             }
             Self::LoopCycleNeighborhood { .. } => {
-                WorthTopologyDomainQueryRequestFamily::LoopCycleNeighborhood
+                TopologyDomainQueryRequestFamily::LoopCycleNeighborhood
             }
             Self::LocalRewireNeighborhood { .. } => {
-                WorthTopologyDomainQueryRequestFamily::LocalRewireNeighborhood
+                TopologyDomainQueryRequestFamily::LocalRewireNeighborhood
             }
         }
     }
@@ -103,41 +103,41 @@ impl WorthTopologyDomainQueryRequest {
         }
     }
 
-    pub(crate) fn traversal_steps(&self) -> Vec<WorthTopologyDomainQueryTraversalStep> {
+    pub(crate) fn traversal_steps(&self) -> Vec<TopologyDomainQueryTraversalStep> {
         match self {
             Self::HalfEdgeSharedVertexNeighborhood { .. } => vec![
-                WorthTopologyDomainQueryTraversalStep::new(
-                    WorthTopologyDomainTraversalRelation::HalfEdgeStartsAtVertex,
+                TopologyDomainQueryTraversalStep::new(
+                    TopologyDomainTraversalRelation::HalfEdgeStartsAtVertex,
                     1,
                 ),
-                WorthTopologyDomainQueryTraversalStep::new(
-                    WorthTopologyDomainTraversalRelation::HalfEdgeEndsAtVertex,
+                TopologyDomainQueryTraversalStep::new(
+                    TopologyDomainTraversalRelation::HalfEdgeEndsAtVertex,
                     1,
                 ),
             ],
             Self::HalfEdgeRadialNeighborhood { .. } => vec![
-                WorthTopologyDomainQueryTraversalStep::new(
-                    WorthTopologyDomainTraversalRelation::HalfEdgeRadialNext,
+                TopologyDomainQueryTraversalStep::new(
+                    TopologyDomainTraversalRelation::HalfEdgeRadialNext,
                     1,
                 ),
-                WorthTopologyDomainQueryTraversalStep::new(
-                    WorthTopologyDomainTraversalRelation::HalfEdgeUsesEdge,
+                TopologyDomainQueryTraversalStep::new(
+                    TopologyDomainTraversalRelation::HalfEdgeUsesEdge,
                     1,
                 ),
             ],
             Self::LoopCycleNeighborhood { depth, .. } => {
-                vec![WorthTopologyDomainQueryTraversalStep::new(
-                    WorthTopologyDomainTraversalRelation::HalfEdgeNext,
+                vec![TopologyDomainQueryTraversalStep::new(
+                    TopologyDomainTraversalRelation::HalfEdgeNext,
                     *depth,
                 )]
             }
             Self::LocalRewireNeighborhood { cycle_depth, .. } => vec![
-                WorthTopologyDomainQueryTraversalStep::new(
-                    WorthTopologyDomainTraversalRelation::HalfEdgeNext,
+                TopologyDomainQueryTraversalStep::new(
+                    TopologyDomainTraversalRelation::HalfEdgeNext,
                     *cycle_depth,
                 ),
-                WorthTopologyDomainQueryTraversalStep::new(
-                    WorthTopologyDomainTraversalRelation::HalfEdgePrev,
+                TopologyDomainQueryTraversalStep::new(
+                    TopologyDomainTraversalRelation::HalfEdgePrev,
                     1,
                 ),
             ],

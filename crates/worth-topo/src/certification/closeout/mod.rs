@@ -1,31 +1,28 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use forge_relational::facade::runtime::RelationalRuntime;
-use worth_schema::facade::WorthBoundaryFailure;
+use schema::facade::BoundaryFailure;
 
 use crate::certification::bridge::certify_milestone_one_bridge_proof;
-use crate::certification::core::{
-    WorthCertificationRequiredOutput, WorthCertificationSuiteRequirements,
-};
+use crate::certification::core::{CertificationRequiredOutput, CertificationSuiteRequirements};
 use crate::certification::corpus::{
     certify_milestone_one_admitted_range_sweeps,
     certify_milestone_one_default_primitive_corpus_impl,
 };
-use crate::certification::error::WorthMilestoneOneCertificationError;
-use crate::certification::read_view::WorthMilestoneOneCertificationHarness;
+use crate::certification::error::MilestoneOneCertificationError;
+use crate::certification::read_view::MilestoneOneCertificationHarness;
 use crate::certification::rejections::certify_milestone_one_illegal_topology_rejections;
 use crate::certification::report::{
-    WorthAdmittedRangeSweepReport, WorthDeterministicDigest, WorthFailureLocalityReport,
-    WorthFailureLocalityRow, WorthIllegalTopologyRejectionReport,
-    WorthMilestoneOneBranchLocalAggregateReport, WorthMilestoneOneCertificationReport,
-    WorthMilestoneOneCloseoutReport, WorthMilestoneOneCounters,
-    WorthMilestoneOneRejectionClassReport, WorthMilestoneOneRejectionClassRow,
-    WorthMilestoneOneReplayAggregateReport, WorthMilestoneOneValidationAggregateReport,
-    WorthMilestoneOneValidationAggregateRow, WorthMilestoneOneValidatorCoverageReport,
-    WorthMilestoneOneValidatorCoverageRow, WorthNamingAttachmentAggregateReport,
-    WorthNamingAttachmentAggregateRow, WorthPrimitiveCorpusReport, WorthReplayParityStatus,
-    WorthTopologyLocalizationAggregateEntityRow, WorthTopologyLocalizationAggregateRelationRow,
-    WorthTopologyLocalizationAggregateReport,
+    AdmittedRangeSweepReport, DeterministicDigest, FailureLocalityReport, FailureLocalityRow,
+    IllegalTopologyRejectionReport, MilestoneOneBranchLocalAggregateReport,
+    MilestoneOneCertificationReport, MilestoneOneCloseoutReport, MilestoneOneCounters,
+    MilestoneOneRejectionClassReport, MilestoneOneRejectionClassRow,
+    MilestoneOneReplayAggregateReport, MilestoneOneValidationAggregateReport,
+    MilestoneOneValidationAggregateRow, MilestoneOneValidatorCoverageReport,
+    MilestoneOneValidatorCoverageRow, NamingAttachmentAggregateReport,
+    NamingAttachmentAggregateRow, PrimitiveCorpusReport, ReplayParityStatus,
+    TopologyLocalizationAggregateEntityRow, TopologyLocalizationAggregateRelationRow,
+    TopologyLocalizationAggregateReport,
 };
 use crate::certification::requirements::milestone_one_closeout_requirements;
 use crate::certification::shared::digest_rows;
@@ -53,7 +50,7 @@ use self::closures::{
 pub fn certify_milestone_one_closeout_impl<F>(
     mut runtime_factory: F,
     stem: &str,
-) -> Result<WorthMilestoneOneCloseoutReport, WorthMilestoneOneCertificationError>
+) -> Result<MilestoneOneCloseoutReport, MilestoneOneCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
 {
@@ -61,18 +58,18 @@ where
     let mut baseline_runtime = runtime_factory();
     let seeded =
         seeded_bootstrap(&mut baseline_runtime, &format!("{stem}.bootstrap")).map_err(|error| {
-            WorthMilestoneOneCertificationError::ReadView(format!(
-                "worth milestone one closeout failed to seed bootstrap truth: {error:?}"
+            MilestoneOneCertificationError::ReadView(format!(
+                " milestone one closeout failed to seed bootstrap truth: {error:?}"
             ))
         })?;
     let seeded_bootstrap =
-        WorthMilestoneOneCertificationHarness::certify_read_basis_with_runtime_traced(
+        MilestoneOneCertificationHarness::certify_read_basis_with_runtime_traced(
             &mut baseline_runtime,
             seeded.read_basis,
             Some(&seeded.persisted_truth.batch),
             1,
         )
-        .map_err(WorthBoundaryFailure::into_error)?
+        .map_err(BoundaryFailure::into_error)?
         .into_primary_result();
     let primitive_corpus = certify_milestone_one_default_primitive_corpus_impl(
         &mut runtime_factory,
@@ -134,7 +131,7 @@ where
     ensure_failure_locality_closure(&failure_locality_report, &requirements)?;
     ensure_bridge_coverage_closure(&bridge_proof_report.family_coverage_report, &requirements)?;
 
-    let closeout = WorthMilestoneOneCloseoutReport {
+    let closeout = MilestoneOneCloseoutReport {
         topology_truth_digest,
         naming_truth_digest,
         topology_validation_digest,

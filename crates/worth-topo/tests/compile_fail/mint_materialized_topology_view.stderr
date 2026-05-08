@@ -1,4 +1,4 @@
-error[E0451]: fields `topology` and `report` of struct `worth_topo::facade::MaterializedTopologyView` are private
+error[E0451]: fields `topology` and `report` of struct `topology::facade::MaterializedTopologyView` are private
   --> tests/compile_fail/mint_materialized_topology_view.rs:19:46
    |
 19 |     let _forged = MaterializedTopologyView { topology, report };

@@ -13,36 +13,33 @@ use super::relation_shell_or_wire::supports_admitted_shell_or_wire_create_workfl
 use super::relation_wire_rehome_support::{
     parse_wire_rehome_workflow, resolve_wire_split_workflow,
 };
-use super::{
-    WorthTopologyQueryEditExecution, WorthTopologyQueryEditExecutionError,
-    WorthTopologyQueryEditRunner,
-};
+use super::{TopologyQueryEditExecution, TopologyQueryEditExecutionError, TopologyQueryEditRunner};
 use crate::edit::{
-    WorthNamingEditContinuityMatrix, WorthTopologyEditApplicationMode, WorthTopologyEditContract,
-    WorthTopologyEditDigest, WorthTopologyEditFamily,
+    NamingEditContinuityMatrix, TopologyEditApplicationMode, TopologyEditContract,
+    TopologyEditDigest, TopologyEditFamily,
 };
 
 pub(super) fn supports_graph_composed_membership_workflow(
     entity_rows: &[ForgeQueryEntity],
     relation_rows: &[ForgeQueryEntity],
-    contracts: &[WorthTopologyEditContract],
+    contracts: &[TopologyEditContract],
 ) -> bool {
     supports_admitted_relation_create_workflow(contracts)
         || supports_admitted_shell_or_wire_create_workflow(entity_rows, relation_rows, contracts)
 }
 
-impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> {
+impl<'workspace, 'assembly> TopologyQueryEditRunner<'workspace, 'assembly> {
     pub(super) fn apply_graph_composed_membership_workflow(
         &mut self,
-        mode: WorthTopologyEditApplicationMode,
-        families: Vec<WorthTopologyEditFamily>,
-        topology_edit_digest: WorthTopologyEditDigest,
-        naming_continuity_matrix: WorthNamingEditContinuityMatrix,
-        naming_report: crate::edit::WorthTopologyEditNamingReport,
-        contracts: &[WorthTopologyEditContract],
+        mode: TopologyEditApplicationMode,
+        families: Vec<TopologyEditFamily>,
+        topology_edit_digest: TopologyEditDigest,
+        naming_continuity_matrix: NamingEditContinuityMatrix,
+        naming_report: crate::edit::TopologyEditNamingReport,
+        contracts: &[TopologyEditContract],
         entity_rows: &[ForgeQueryEntity],
         relation_rows: &[ForgeQueryEntity],
-    ) -> Result<WorthTopologyQueryEditExecution, WorthTopologyQueryEditExecutionError> {
+    ) -> Result<TopologyQueryEditExecution, TopologyQueryEditExecutionError> {
         let receipt = if supports_admitted_relation_create_workflow(contracts) {
             self.compose_face_inner_loop_workflow(contracts, entity_rows)?
         } else if let Some(workflow) = parse_shell_face_rehome_workflow(contracts) {
@@ -58,12 +55,10 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
         {
             self.compose_wire_split_workflow(workflow, entity_rows, relation_rows)?
         } else {
-            return Err(WorthTopologyQueryEditExecutionError::UnsupportedFamilies(
-                vec![
-                    WorthTopologyEditFamily::AttachBoundaryMembership,
-                    WorthTopologyEditFamily::AttachShellOrWireMembership,
-                ],
-            ));
+            return Err(TopologyQueryEditExecutionError::UnsupportedFamilies(vec![
+                TopologyEditFamily::AttachBoundaryMembership,
+                TopologyEditFamily::AttachShellOrWireMembership,
+            ]));
         };
         self.finish_graph_membership_execution(
             mode,
@@ -77,25 +72,25 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
 
     fn finish_graph_membership_execution(
         &mut self,
-        mode: WorthTopologyEditApplicationMode,
-        families: Vec<WorthTopologyEditFamily>,
-        topology_edit_digest: WorthTopologyEditDigest,
-        naming_continuity_matrix: WorthNamingEditContinuityMatrix,
-        naming_report: crate::edit::WorthTopologyEditNamingReport,
+        mode: TopologyEditApplicationMode,
+        families: Vec<TopologyEditFamily>,
+        topology_edit_digest: TopologyEditDigest,
+        naming_continuity_matrix: NamingEditContinuityMatrix,
+        naming_report: crate::edit::TopologyEditNamingReport,
         receipt: ForgeQueryBatchWriteReceipt,
-    ) -> Result<WorthTopologyQueryEditExecution, WorthTopologyQueryEditExecutionError> {
+    ) -> Result<TopologyQueryEditExecution, TopologyQueryEditExecutionError> {
         let inspection = match self.workspace.inspect(&receipt)? {
             ForgeQueryInspection::BatchWriteReceipt(inspection) => inspection,
-            _ => return Err(WorthTopologyQueryEditExecutionError::UnexpectedInspectionFamily),
+            _ => return Err(TopologyQueryEditExecutionError::UnexpectedInspectionFamily),
         };
         let materialized_rows = self.workspace.materialize(self.assembly.materialized());
         let materialized =
             serde_json::from_value(materialized_rows[0].clone()).map_err(|error| {
-                WorthTopologyQueryEditExecutionError::MaterializedDecode(format!(
+                TopologyQueryEditExecutionError::MaterializedDecode(format!(
                     "query-derived `materialized topology` row failed to decode: {error}"
                 ))
             })?;
-        Ok(WorthTopologyQueryEditExecution {
+        Ok(TopologyQueryEditExecution {
             mode,
             families,
             receipt,

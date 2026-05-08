@@ -1,8 +1,8 @@
+use schema::facade::TopologyRelationKind;
 use serde::{Deserialize, Serialize};
-use worth_schema::facade::WorthTopologyRelationKind;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthTopologyEditFamily {
+pub enum TopologyEditFamily {
     CreateTopologyEntity,
     RetireTopologyEntity,
     AttachBoundaryMembership,
@@ -16,7 +16,7 @@ pub enum WorthTopologyEditFamily {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthTopologyEditChangedScope {
+pub enum TopologyEditChangedScope {
     Entity,
     Relation,
     LocalNeighborhood,
@@ -28,13 +28,13 @@ pub enum WorthTopologyEditChangedScope {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthTopologyEditNamingScope {
+pub enum TopologyEditNamingScope {
     EditedEntityNames,
     AdjacentEntityNames,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthTopologyDerivedRegion {
+pub enum TopologyDerivedRegion {
     LoopRegion,
     WireRegion,
     ShellRegion,
@@ -44,65 +44,65 @@ pub enum WorthTopologyDerivedRegion {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthBoundaryMembershipKind {
+pub enum BoundaryMembershipKind {
     FaceOuterLoop,
     FaceInnerLoop,
     LoopOwnsHalfEdge,
 }
 
-impl WorthBoundaryMembershipKind {
-    pub const fn relation_kind(self) -> WorthTopologyRelationKind {
+impl BoundaryMembershipKind {
+    pub const fn relation_kind(self) -> TopologyRelationKind {
         match self {
-            Self::FaceOuterLoop => WorthTopologyRelationKind::FaceOuterLoop,
-            Self::FaceInnerLoop => WorthTopologyRelationKind::FaceInnerLoop,
-            Self::LoopOwnsHalfEdge => WorthTopologyRelationKind::LoopOwnsHalfEdge,
+            Self::FaceOuterLoop => TopologyRelationKind::FaceOuterLoop,
+            Self::FaceInnerLoop => TopologyRelationKind::FaceInnerLoop,
+            Self::LoopOwnsHalfEdge => TopologyRelationKind::LoopOwnsHalfEdge,
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthLoopSuccessorKind {
+pub enum LoopSuccessorKind {
     Next,
     Prev,
 }
 
-impl WorthLoopSuccessorKind {
-    pub const fn relation_kind(self) -> WorthTopologyRelationKind {
+impl LoopSuccessorKind {
+    pub const fn relation_kind(self) -> TopologyRelationKind {
         match self {
-            Self::Next => WorthTopologyRelationKind::HalfEdgeNext,
-            Self::Prev => WorthTopologyRelationKind::HalfEdgePrev,
+            Self::Next => TopologyRelationKind::HalfEdgeNext,
+            Self::Prev => TopologyRelationKind::HalfEdgePrev,
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthLoopEndpointKind {
+pub enum LoopEndpointKind {
     Start,
     End,
 }
 
-impl WorthLoopEndpointKind {
-    pub const fn relation_kind(self) -> WorthTopologyRelationKind {
+impl LoopEndpointKind {
+    pub const fn relation_kind(self) -> TopologyRelationKind {
         match self {
-            Self::Start => WorthTopologyRelationKind::HalfEdgeStartsAtVertex,
-            Self::End => WorthTopologyRelationKind::HalfEdgeEndsAtVertex,
+            Self::Start => TopologyRelationKind::HalfEdgeStartsAtVertex,
+            Self::End => TopologyRelationKind::HalfEdgeEndsAtVertex,
         }
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthShellOrWireMembershipKind {
+pub enum ShellOrWireMembershipKind {
     RegionOwnsShell,
     ShellOwnsFace,
     WireOwnsHalfEdge,
 }
 
-impl WorthShellOrWireMembershipKind {
-    pub const fn relation_kind(self) -> WorthTopologyRelationKind {
+impl ShellOrWireMembershipKind {
+    pub const fn relation_kind(self) -> TopologyRelationKind {
         match self {
-            Self::RegionOwnsShell => WorthTopologyRelationKind::RegionOwnsShell,
-            Self::ShellOwnsFace => WorthTopologyRelationKind::ShellOwnsFace,
-            Self::WireOwnsHalfEdge => WorthTopologyRelationKind::WireOwnsHalfEdge,
+            Self::RegionOwnsShell => TopologyRelationKind::RegionOwnsShell,
+            Self::ShellOwnsFace => TopologyRelationKind::ShellOwnsFace,
+            Self::WireOwnsHalfEdge => TopologyRelationKind::WireOwnsHalfEdge,
         }
     }
 }

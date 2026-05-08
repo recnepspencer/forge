@@ -1,31 +1,27 @@
-use worth_schema::facade::{
-    DerivedTopologyReadBasis, WorthDerivedInvalidationTarget, WorthMutationOrigin,
-};
+use schema::facade::{DerivedInvalidationTarget, DerivedTopologyReadBasis, MutationOrigin};
 
-use crate::certification::WorthDeterministicDigest;
+use crate::certification::DeterministicDigest;
 use crate::diagnostics::triggered_invalidation_targets;
 use crate::interpretation::InterpretedTopologyView;
 use crate::materialization::MaterializedTopologyView;
-use crate::parity::types::{
-    WorthDerivedEquivalenceContractReport, WorthDerivedParityComparisonReport,
-};
+use crate::parity::types::{DerivedEquivalenceContractReport, DerivedParityComparisonReport};
 use crate::validators::DerivedTopologyValidationReport;
 
 pub fn digest_materialized_topology_view(
     materialized: &MaterializedTopologyView,
-) -> WorthDeterministicDigest {
+) -> DeterministicDigest {
     digest_structured_value(materialized)
 }
 
 pub fn digest_interpreted_topology_view(
     interpreted: &InterpretedTopologyView,
-) -> WorthDeterministicDigest {
+) -> DeterministicDigest {
     digest_structured_value(interpreted)
 }
 
 pub fn digest_derived_validation_report(
     validation: &DerivedTopologyValidationReport,
-) -> WorthDeterministicDigest {
+) -> DeterministicDigest {
     digest_structured_value(validation)
 }
 
@@ -34,7 +30,7 @@ pub fn build_derived_equivalence_contract(
     materialized: &MaterializedTopologyView,
     interpreted: &InterpretedTopologyView,
     validation: &DerivedTopologyValidationReport,
-) -> WorthDerivedEquivalenceContractReport {
+) -> DerivedEquivalenceContractReport {
     build_derived_equivalence_contract_report(
         read_basis.snapshot().snapshot_id.0,
         read_basis.branch_id().0.clone(),
@@ -61,18 +57,18 @@ pub fn build_derived_equivalence_contract(
 pub fn build_derived_equivalence_contract_report(
     authority_snapshot_id: u64,
     authority_branch_id: String,
-    authoritative_mutation_origin: WorthMutationOrigin,
-    derivation_origin: WorthMutationOrigin,
+    authoritative_mutation_origin: MutationOrigin,
+    derivation_origin: MutationOrigin,
     truth_basis_digest_hex: String,
     touched_aspect_count: usize,
-    triggered_invalidation_targets: Vec<WorthDerivedInvalidationTarget>,
+    triggered_invalidation_targets: Vec<DerivedInvalidationTarget>,
     precision_fallback_count: usize,
     precision_budget_fallback_count: usize,
     materialized: &MaterializedTopologyView,
     interpreted: &InterpretedTopologyView,
     validation: &DerivedTopologyValidationReport,
-) -> WorthDerivedEquivalenceContractReport {
-    WorthDerivedEquivalenceContractReport {
+) -> DerivedEquivalenceContractReport {
+    DerivedEquivalenceContractReport {
         authority_snapshot_id,
         authority_branch_id,
         authoritative_mutation_origin,
@@ -89,9 +85,9 @@ pub fn build_derived_equivalence_contract_report(
 }
 
 pub fn compare_derived_equivalence_contracts(
-    lhs: &WorthDerivedEquivalenceContractReport,
-    rhs: &WorthDerivedEquivalenceContractReport,
-) -> WorthDerivedParityComparisonReport {
+    lhs: &DerivedEquivalenceContractReport,
+    rhs: &DerivedEquivalenceContractReport,
+) -> DerivedParityComparisonReport {
     let authority_identity_match = lhs.authority_snapshot_id == rhs.authority_snapshot_id
         && lhs.truth_basis_digest_hex == rhs.truth_basis_digest_hex
         && lhs.authoritative_mutation_origin == rhs.authoritative_mutation_origin
@@ -106,7 +102,7 @@ pub fn compare_derived_equivalence_contracts(
     let derived_validation_digest_match =
         lhs.derived_validation_digest == rhs.derived_validation_digest;
 
-    WorthDerivedParityComparisonReport {
+    DerivedParityComparisonReport {
         authority_identity_match,
         branch_identity_match,
         invalidation_target_match,
@@ -119,13 +115,13 @@ pub fn compare_derived_equivalence_contracts(
     }
 }
 
-fn digest_structured_value<T: serde::Serialize>(value: &T) -> WorthDeterministicDigest {
+fn digest_structured_value<T: serde::Serialize>(value: &T) -> DeterministicDigest {
     let json = serde_json::to_string(value)
-        .expect("worth derived parity serialization should be deterministic");
+        .expect(" derived parity serialization should be deterministic");
     digest_rows(std::iter::once(json))
 }
 
-fn digest_rows(rows: impl IntoIterator<Item = String>) -> WorthDeterministicDigest {
+fn digest_rows(rows: impl IntoIterator<Item = String>) -> DeterministicDigest {
     let mut state: u64 = 0xcbf29ce484222325;
     let mut row_count = 0usize;
     for row in rows {
@@ -136,7 +132,7 @@ fn digest_rows(rows: impl IntoIterator<Item = String>) -> WorthDeterministicDige
         }
     }
 
-    WorthDeterministicDigest {
+    DeterministicDigest {
         algorithm: "fnv1a64".to_string(),
         digest_hex: format!("{state:016x}"),
         row_count,

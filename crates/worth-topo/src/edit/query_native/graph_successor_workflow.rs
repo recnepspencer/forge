@@ -5,40 +5,37 @@ use forge_query::facade::{
 
 use super::relation_successor::supports_admitted_loop_successor_workflow;
 use super::relation_update::ResolvedLoopSuccessorRewire;
-use super::{
-    WorthTopologyQueryEditExecution, WorthTopologyQueryEditExecutionError,
-    WorthTopologyQueryEditRunner,
-};
+use super::{TopologyQueryEditExecution, TopologyQueryEditExecutionError, TopologyQueryEditRunner};
 use crate::edit::{
-    WorthNamingEditContinuityMatrix, WorthTopologyEditAction, WorthTopologyEditApplicationMode,
-    WorthTopologyEditContract, WorthTopologyEditDigest, WorthTopologyEditFamily,
+    NamingEditContinuityMatrix, TopologyEditAction, TopologyEditApplicationMode,
+    TopologyEditContract, TopologyEditDigest, TopologyEditFamily,
 };
 use crate::materialization::MaterializedTopologyView;
 
 pub(super) fn supports_graph_composed_loop_successor_workflow(
     entity_rows: &[ForgeQueryEntity],
     relation_rows: &[ForgeQueryEntity],
-    contracts: &[WorthTopologyEditContract],
+    contracts: &[TopologyEditContract],
 ) -> bool {
     supports_admitted_loop_successor_workflow(entity_rows, relation_rows, contracts)
 }
 
-impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> {
+impl<'workspace, 'assembly> TopologyQueryEditRunner<'workspace, 'assembly> {
     pub(super) fn apply_graph_composed_loop_successor_workflow(
         &mut self,
-        mode: WorthTopologyEditApplicationMode,
-        families: Vec<WorthTopologyEditFamily>,
-        topology_edit_digest: WorthTopologyEditDigest,
-        naming_continuity_matrix: WorthNamingEditContinuityMatrix,
-        naming_report: crate::edit::WorthTopologyEditNamingReport,
-        contracts: &[WorthTopologyEditContract],
+        mode: TopologyEditApplicationMode,
+        families: Vec<TopologyEditFamily>,
+        topology_edit_digest: TopologyEditDigest,
+        naming_continuity_matrix: NamingEditContinuityMatrix,
+        naming_report: crate::edit::TopologyEditNamingReport,
+        contracts: &[TopologyEditContract],
         entity_rows: &[ForgeQueryEntity],
         relation_rows: &[ForgeQueryEntity],
-    ) -> Result<WorthTopologyQueryEditExecution, WorthTopologyQueryEditExecutionError> {
+    ) -> Result<TopologyQueryEditExecution, TopologyQueryEditExecutionError> {
         let rewires = contracts
             .iter()
             .map(|contract| match contract.action {
-                WorthTopologyEditAction::RewireLoopSuccessor {
+                TopologyEditAction::RewireLoopSuccessor {
                     relation_id,
                     kind,
                     half_edge_id,
@@ -51,9 +48,9 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                     half_edge_id,
                     successor_half_edge_id,
                 ),
-                _ => Err(WorthTopologyQueryEditExecutionError::UnsupportedFamilies(
-                    vec![WorthTopologyEditFamily::RewireLoopSuccessor],
-                )),
+                _ => Err(TopologyQueryEditExecutionError::UnsupportedFamilies(vec![
+                    TopologyEditFamily::RewireLoopSuccessor,
+                ])),
             })
             .collect::<Result<Vec<_>, _>>()?;
 
@@ -66,16 +63,16 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
         let inspection: ForgeQueryBatchWriteReceiptInspection =
             match self.workspace.inspect(&receipt)? {
                 ForgeQueryInspection::BatchWriteReceipt(inspection) => inspection,
-                _ => return Err(WorthTopologyQueryEditExecutionError::UnexpectedInspectionFamily),
+                _ => return Err(TopologyQueryEditExecutionError::UnexpectedInspectionFamily),
             };
         let materialized_rows = self.workspace.materialize(self.assembly.materialized());
         let materialized: MaterializedTopologyView =
             serde_json::from_value(materialized_rows[0].clone()).map_err(|error| {
-                WorthTopologyQueryEditExecutionError::MaterializedDecode(format!(
+                TopologyQueryEditExecutionError::MaterializedDecode(format!(
                     "query-derived `materialized topology` row failed to decode: {error}"
                 ))
             })?;
-        Ok(WorthTopologyQueryEditExecution {
+        Ok(TopologyQueryEditExecution {
             mode,
             families,
             receipt,

@@ -21,30 +21,29 @@ mod query_rows;
 pub(super) mod write_authority;
 pub(super) mod write_support;
 
-pub(crate) use self::binding::WorthTopologyRuntimeBinding;
-use self::bridge_source::WorthTopologyRuntimeBridgeSource;
-pub(crate) use self::existing_truth_verification::WorthTopologyExistingTruthVerificationAdapter;
+pub(crate) use self::binding::TopologyRuntimeBinding;
+use self::bridge_source::TopologyRuntimeBridgeSource;
+pub(crate) use self::existing_truth_verification::TopologyExistingTruthVerificationAdapter;
 use self::query_rows::{persistent_name_rows, topology_entity_rows, topology_relation_rows};
 
 pub(super) fn build_runtime_bridge(
-    binding: WorthTopologyRuntimeBinding,
+    binding: TopologyRuntimeBinding,
 ) -> Result<RuntimeBridge, forge_runtime_bridge::facade::BridgeBuildError> {
     use forge_runtime_bridge::facade::RuntimeBridgeBuilder;
 
-    let source = WorthTopologyRuntimeBridgeSource::new(binding);
+    let source = TopologyRuntimeBridgeSource::new(binding);
     let builder = RuntimeBridgeBuilder::new()
         .with_relational_source(source.clone())
         .with_truth_branch_head_source(source)
-        .with_signal_sink(WorthTopologyStaticBridgeSink);
-    let mut mappings =
-        crate::bridge::worth_milestone_one_bridge_mapping_registrations().into_iter();
+        .with_signal_sink(TopologyStaticBridgeSink);
+    let mut mappings = crate::bridge::milestone_one_bridge_mapping_registrations().into_iter();
     let first = mappings
         .next()
-        .expect("worth milestone 1 bridge mapping pack should not be empty");
+        .expect(" milestone 1 bridge mapping pack should not be empty");
     let builder = mappings.fold(builder.register_mapping(first), |builder, registration| {
         builder.register_mapping(registration)
     });
-    let builder = crate::bridge::worth_milestone_one_bridge_aspect_registrations()
+    let builder = crate::bridge::milestone_one_bridge_aspect_registrations()
         .into_iter()
         .fold(builder, |builder, registration| {
             builder.register_aspect_mapping(registration)
@@ -52,9 +51,9 @@ pub(super) fn build_runtime_bridge(
     builder.build()
 }
 
-pub(super) struct WorthTopologyRuntimeSchemaAdapter;
+pub(super) struct TopologyRuntimeSchemaAdapter;
 
-impl ForgeQueryRuntimeSchemaAdapter for WorthTopologyRuntimeSchemaAdapter {
+impl ForgeQueryRuntimeSchemaAdapter for TopologyRuntimeSchemaAdapter {
     fn admit_live_view(
         &self,
         _name: &str,
@@ -62,21 +61,21 @@ impl ForgeQueryRuntimeSchemaAdapter for WorthTopologyRuntimeSchemaAdapter {
         _schema_view: &QuerySchemaView,
     ) -> Result<(), ForgeQueryWorkspaceError> {
         match request.target() {
-            "WorthTopologyEntity" | "WorthTopologyRelation" | "WorthPersistentName" => Ok(()),
+            "TopologyEntity" | "TopologyRelation" | "PersistentName" => Ok(()),
             other => Err(ForgeQueryWorkspaceError::new(format!(
-                "worth topology production runtime does not admit live view target `{other}` yet"
+                "topology production runtime does not admit live view target `{other}` yet"
             ))),
         }
     }
 }
 
-pub(super) struct WorthTopologyRuntimeSourceAdapter {
-    binding: WorthTopologyRuntimeBinding,
+pub(super) struct TopologyRuntimeSourceAdapter {
+    binding: TopologyRuntimeBinding,
     live_views: BTreeMap<String, String>,
 }
 
-impl WorthTopologyRuntimeSourceAdapter {
-    pub(super) fn new(binding: WorthTopologyRuntimeBinding) -> Self {
+impl TopologyRuntimeSourceAdapter {
+    pub(super) fn new(binding: TopologyRuntimeBinding) -> Self {
         Self {
             binding,
             live_views: BTreeMap::new(),
@@ -84,7 +83,7 @@ impl WorthTopologyRuntimeSourceAdapter {
     }
 }
 
-impl ForgeQueryRuntimeSourceAdapter for WorthTopologyRuntimeSourceAdapter {
+impl ForgeQueryRuntimeSourceAdapter for TopologyRuntimeSourceAdapter {
     fn declare_live_view(
         &mut self,
         name: String,
@@ -101,9 +100,9 @@ impl ForgeQueryRuntimeSourceAdapter for WorthTopologyRuntimeSourceAdapter {
             return Vec::new();
         };
         match target.as_str() {
-            "WorthTopologyEntity" => topology_entity_rows(&self.binding),
-            "WorthTopologyRelation" => topology_relation_rows(&self.binding),
-            "WorthPersistentName" => persistent_name_rows(&self.binding),
+            "TopologyEntity" => topology_entity_rows(&self.binding),
+            "TopologyRelation" => topology_relation_rows(&self.binding),
+            "PersistentName" => persistent_name_rows(&self.binding),
             _ => Vec::new(),
         }
     }
@@ -133,9 +132,9 @@ impl ForgeQueryRuntimeSourceAdapter for WorthTopologyRuntimeSourceAdapter {
     }
 }
 
-pub(super) struct WorthTopologyStaticSignalSink;
+pub(super) struct TopologyStaticSignalSink;
 
-impl ForgeQueryRuntimeSignalSinkAdapter for WorthTopologyStaticSignalSink {
+impl ForgeQueryRuntimeSignalSinkAdapter for TopologyStaticSignalSink {
     fn route_write_receipt(
         &mut self,
         _receipt: &ForgeQueryMutationReceipt,
@@ -144,10 +143,19 @@ impl ForgeQueryRuntimeSignalSinkAdapter for WorthTopologyStaticSignalSink {
     }
 }
 
-pub(super) struct WorthTopologySubscriptionActivation;
-impl ForgeQueryRuntimeSubscriptionActivationAdapter for WorthTopologySubscriptionActivation {
+pub(super) struct TopologySubscriptionActivation {
+    support_evidence: &'static str,
+}
+
+impl TopologySubscriptionActivation {
+    pub(super) fn new(support_evidence: &'static str) -> Self {
+        Self { support_evidence }
+    }
+}
+
+impl ForgeQueryRuntimeSubscriptionActivationAdapter for TopologySubscriptionActivation {
     fn support_evidence(&self) -> String {
-        "worth-topology-current-head-subscription-activation".to_string()
+        self.support_evidence.to_string()
     }
     fn admit_activation(
         &mut self,
@@ -155,28 +163,48 @@ impl ForgeQueryRuntimeSubscriptionActivationAdapter for WorthTopologySubscriptio
         activation: &SubscriptionActivationInput,
     ) -> Result<String, ForgeQueryWorkspaceError> {
         Ok(format!(
-            "worth-topology-subscription:{view_name}:{}",
+            "topology-subscription:{view_name}:{}",
             activation.activation_digest()
         ))
     }
 }
 
-pub(super) struct WorthTopologyPreviewBasis;
-impl ForgeQueryRuntimePreviewBasisAdapter for WorthTopologyPreviewBasis {
+pub(super) struct TopologyPreviewBasis {
+    denial_reason: &'static str,
+}
+
+impl TopologyPreviewBasis {
+    pub(super) fn new(denial_reason: &'static str) -> Self {
+        Self { denial_reason }
+    }
+}
+
+impl ForgeQueryRuntimePreviewBasisAdapter for TopologyPreviewBasis {
     fn admit_preview_basis(
         &self,
         _label: &str,
         _effect_policy: ForgeQueryEffectPolicy,
         _authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError> {
-        Err(ForgeQueryWorkspaceError::new(
-            "worth topology production runtime current-head slice does not admit preview bases yet",
-        ))
+        Err(ForgeQueryWorkspaceError::new(self.denial_reason))
     }
 }
 
-pub(super) struct WorthTopologyInspectorEvidence;
-impl ForgeQueryRuntimeInspectorEvidenceAdapter for WorthTopologyInspectorEvidence {
+pub(super) struct TopologyInspectorEvidence {
+    receipt_label: &'static str,
+    evidence_label: &'static str,
+}
+
+impl TopologyInspectorEvidence {
+    pub(super) fn new(receipt_label: &'static str, evidence_label: &'static str) -> Self {
+        Self {
+            receipt_label,
+            evidence_label,
+        }
+    }
+}
+
+impl ForgeQueryRuntimeInspectorEvidenceAdapter for TopologyInspectorEvidence {
     fn inspect_write_receipt(
         &self,
         receipt: &ForgeQueryWriteReceipt,
@@ -184,17 +212,17 @@ impl ForgeQueryRuntimeInspectorEvidenceAdapter for WorthTopologyInspectorEvidenc
     ) -> Result<ForgeQueryRuntimeInspectionEvidence, ForgeQueryWorkspaceError> {
         Ok(ForgeQueryRuntimeInspectionEvidence::new(
             authority,
-            "worth-topology-current-head-write-receipt",
+            self.receipt_label,
             receipt.authority_lane(),
-            ["worth-topology-current-head-inspector-evidence"],
+            [self.evidence_label],
         ))
     }
 }
 
 #[derive(Clone)]
-struct WorthTopologyStaticBridgeSink;
+struct TopologyStaticBridgeSink;
 
-impl InvalidationSink for WorthTopologyStaticBridgeSink {
+impl InvalidationSink for TopologyStaticBridgeSink {
     fn deliver_invalidation(
         &self,
         delivery: forge_runtime_bridge::facade::BridgeSignalInvalidationDelivery,

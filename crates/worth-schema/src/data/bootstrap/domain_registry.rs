@@ -9,18 +9,16 @@ use crate::data::bootstrap::relation_aspects::relation_aspects;
 use crate::data::bootstrap::relation_integrity::relation_integrity;
 use crate::data::bootstrap::schema_identity::{schema_id, schema_version_id};
 use crate::data::entities::{
-    WorthDiagnosticsEntityKind, WorthGeometryEntityKind, WorthNamingEntityKind,
-    WorthTopologyEntityKind,
+    DiagnosticsEntityKind, GeometryEntityKind, NamingEntityKind, TopologyEntityKind,
 };
 use crate::data::relations::{
-    WorthDiagnosticsRelationKind, WorthGeometryRelationKind, WorthNamingRelationKind,
-    WorthTopologyRelationKind,
+    DiagnosticsRelationKind, GeometryRelationKind, NamingRelationKind, TopologyRelationKind,
 };
 
 pub fn register_topology_schema(
     mut registry: RelationalSchemaRegistry,
 ) -> Result<RelationalSchemaRegistry, SchemaRegistryError> {
-    for kind in WorthTopologyEntityKind::WRAPPED_ALL {
+    for kind in TopologyEntityKind::WRAPPED_ALL {
         registry = registry.register_entity_kind(EntityKindRegistration {
             kind_id: kind.kind_id(),
             kind_name: kind.kind_name().to_string(),
@@ -30,7 +28,7 @@ pub fn register_topology_schema(
         })?;
     }
 
-    for kind in WorthTopologyRelationKind::WRAPPED_ALL {
+    for kind in TopologyRelationKind::WRAPPED_ALL {
         registry = registry.register_relation_kind(RelationKindRegistration {
             kind_id: kind.kind_id(),
             kind_name: kind.kind_name().to_string(),
@@ -50,7 +48,7 @@ pub fn register_topology_schema(
 pub fn register_geometry_schema(
     mut registry: RelationalSchemaRegistry,
 ) -> Result<RelationalSchemaRegistry, SchemaRegistryError> {
-    for kind in WorthGeometryEntityKind::WRAPPED_ALL {
+    for kind in GeometryEntityKind::WRAPPED_ALL {
         registry = registry.register_entity_kind(EntityKindRegistration {
             kind_id: kind.kind_id(),
             kind_name: kind.kind_name().to_string(),
@@ -60,7 +58,7 @@ pub fn register_geometry_schema(
         })?;
     }
 
-    for kind in WorthGeometryRelationKind::WRAPPED_ALL {
+    for kind in GeometryRelationKind::WRAPPED_ALL {
         registry = registry.register_relation_kind(RelationKindRegistration {
             kind_id: kind.kind_id(),
             kind_name: kind.kind_name().to_string(),
@@ -86,7 +84,7 @@ pub fn register_lineage_schema(
 pub fn register_naming_schema(
     mut registry: RelationalSchemaRegistry,
 ) -> Result<RelationalSchemaRegistry, SchemaRegistryError> {
-    for kind in WorthNamingEntityKind::WRAPPED_ALL {
+    for kind in NamingEntityKind::WRAPPED_ALL {
         registry = registry.register_entity_kind(EntityKindRegistration {
             kind_id: kind.kind_id(),
             kind_name: kind.kind_name().to_string(),
@@ -96,7 +94,7 @@ pub fn register_naming_schema(
         })?;
     }
 
-    for kind in WorthNamingRelationKind::WRAPPED_ALL {
+    for kind in NamingRelationKind::WRAPPED_ALL {
         registry = registry.register_relation_kind(RelationKindRegistration {
             kind_id: kind.kind_id(),
             kind_name: kind.kind_name().to_string(),
@@ -116,7 +114,7 @@ pub fn register_naming_schema(
 pub fn register_diagnostics_schema(
     mut registry: RelationalSchemaRegistry,
 ) -> Result<RelationalSchemaRegistry, SchemaRegistryError> {
-    for kind in WorthDiagnosticsEntityKind::WRAPPED_ALL {
+    for kind in DiagnosticsEntityKind::WRAPPED_ALL {
         registry = registry.register_entity_kind(EntityKindRegistration {
             kind_id: kind.kind_id(),
             kind_name: kind.kind_name().to_string(),
@@ -126,7 +124,7 @@ pub fn register_diagnostics_schema(
         })?;
     }
 
-    for kind in WorthDiagnosticsRelationKind::WRAPPED_ALL {
+    for kind in DiagnosticsRelationKind::WRAPPED_ALL {
         registry = registry.register_relation_kind(RelationKindRegistration {
             kind_id: kind.kind_id(),
             kind_name: kind.kind_name().to_string(),

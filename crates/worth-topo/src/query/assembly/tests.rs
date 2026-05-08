@@ -1,14 +1,12 @@
-use worth_schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
-};
-use worth_schema::facade::{
-    RawWorthTopologyIntent, WorthCreateKey, WorthEntityKind, WorthEntityReference,
-    WorthMutationOrigin, WorthTopologyEntityKind, WorthTopologyMutation, WorthTopologyRelationKind,
+use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::{
+    CreateKey, EntityKind, EntityReference, MutationOrigin, RawTopologyIntent, TopologyEntityKind,
+    TopologyMutation, TopologyRelationKind,
 };
 
 use super::*;
-use crate::facade::{certify_milestone_one_read_basis_traced, worth_milestone_one_runtime_builder};
-use crate::query::{worth_topology_runtime, WorthTopologyRuntimeAdapters};
+use crate::facade::{certify_milestone_one_read_basis_traced, milestone_one_runtime_builder};
+use crate::query::{topology_runtime, TopologyRuntimeAdapters};
 use crate::read_stage::{open_topology_read_view, stage_topology_read_from_view};
 
 fn current_head_workspace(
@@ -16,18 +14,17 @@ fn current_head_workspace(
     name: &str,
 ) -> (
     forge_query::facade::ForgeQueryWorkspace,
-    WorthTopologyQueryAssembly,
+    TopologyQueryAssembly,
 ) {
-    let adapters = WorthTopologyRuntimeAdapters::current_head(runtime);
-    let mut workspace =
-        worth_topology_runtime(adapters, name).expect("query workspace should build");
+    let adapters = TopologyRuntimeAdapters::current_head(runtime);
+    let mut workspace = topology_runtime(adapters, name).expect("query workspace should build");
     let assembly =
-        WorthTopologyQueryAssembly::declare(&mut workspace).expect("query assembly should declare");
+        TopologyQueryAssembly::declare(&mut workspace).expect("query assembly should declare");
     (workspace, assembly)
 }
 
 fn sorted_naming_attachments(
-    report: &crate::facade::WorthNamingAttachmentReport,
+    report: &crate::facade::NamingAttachmentReport,
 ) -> Vec<(String, String, Vec<String>)> {
     let mut rows = report
         .attachments
@@ -52,32 +49,31 @@ fn sorted_naming_attachments(
 
 #[test]
 fn query_native_assembly_reads_production_runtime_and_matches_staged_outputs() {
-    let mut runtime = worth_milestone_one_runtime_builder()
-        .expect("worth milestone one runtime builder")
+    let mut runtime = milestone_one_runtime_builder()
+        .expect(" milestone one runtime builder")
         .build();
     let verified = seed_milestone_one_primitive(
         &mut runtime,
         "query-native-assembly-sheet-disk",
-        &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
+        &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
     )
     .expect("verified primitive");
     let read_view =
         open_topology_read_view(&runtime, &verified.read_basis).expect("read view should open");
-    let (mut workspace, assembly) =
-        current_head_workspace(runtime, "worth-topology-query-assembly");
+    let (mut workspace, assembly) = current_head_workspace(runtime, "topology-query-assembly");
     let snapshot = assembly
         .snapshot_for_read_basis(&mut workspace, &verified.read_basis)
         .expect("query snapshot should decode");
     let persistent_name_rows = workspace.read(assembly.persistent_names());
     let staged = stage_topology_read_from_view(&read_view).expect("read stage should succeed");
 
-    let mut certification_runtime = worth_milestone_one_runtime_builder()
-        .expect("worth milestone one runtime builder")
+    let mut certification_runtime = milestone_one_runtime_builder()
+        .expect(" milestone one runtime builder")
         .build();
     let _verified = seed_milestone_one_primitive(
         &mut certification_runtime,
         "query-native-assembly-sheet-disk",
-        &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
+        &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
     )
     .expect("verified primitive");
     let certified_runtime_report = certify_milestone_one_read_basis_traced(
@@ -211,47 +207,43 @@ fn query_native_assembly_reads_production_runtime_and_matches_staged_outputs() {
 
 #[test]
 fn query_native_assembly_denies_created_entity_refs_when_partial_subgraph_breaks_invariants() {
-    let mut runtime = worth_milestone_one_runtime_builder()
-        .expect("worth milestone one runtime builder")
+    let mut runtime = milestone_one_runtime_builder()
+        .expect(" milestone one runtime builder")
         .build();
     let verified = seed_milestone_one_primitive(
         &mut runtime,
         "query-native-assembly-apply-created-refs",
-        &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
+        &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
     )
     .expect("verified primitive");
     let (mut workspace, assembly) =
-        current_head_workspace(runtime, "worth-topology-query-apply-created-refs");
+        current_head_workspace(runtime, "topology-query-apply-created-refs");
     let entity_count_before = workspace.read(assembly.entities()).len();
     let relation_count_before = workspace.read(assembly.relations()).len();
 
     let error = assembly
         .apply_raw_intent(
             &mut workspace,
-            RawWorthTopologyIntent::new(
+            RawTopologyIntent::new(
                 vec![
-                    WorthTopologyMutation::CreateEntity {
-                        create_key: WorthCreateKey::new("query.apply.half-edge-a"),
-                        kind: WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
+                    TopologyMutation::CreateEntity {
+                        create_key: CreateKey::new("query.apply.half-edge-a"),
+                        kind: EntityKind::Topology(TopologyEntityKind::HalfEdge),
                     },
-                    WorthTopologyMutation::CreateEntity {
-                        create_key: WorthCreateKey::new("query.apply.vertex-b"),
-                        kind: WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex),
+                    TopologyMutation::CreateEntity {
+                        create_key: CreateKey::new("query.apply.vertex-b"),
+                        kind: EntityKind::Topology(TopologyEntityKind::Vertex),
                     },
-                    WorthTopologyMutation::CreateRelation {
-                        create_key: WorthCreateKey::new("query.apply.link"),
-                        kind: worth_schema::facade::WorthRelationKind::Topology(
-                            WorthTopologyRelationKind::HalfEdgeStartsAtVertex,
+                    TopologyMutation::CreateRelation {
+                        create_key: CreateKey::new("query.apply.link"),
+                        kind: schema::facade::RelationKind::Topology(
+                            TopologyRelationKind::HalfEdgeStartsAtVertex,
                         ),
-                        source: WorthEntityReference::Created(WorthCreateKey::new(
-                            "query.apply.half-edge-a",
-                        )),
-                        target: WorthEntityReference::Created(WorthCreateKey::new(
-                            "query.apply.vertex-b",
-                        )),
+                        source: EntityReference::Created(CreateKey::new("query.apply.half-edge-a")),
+                        target: EntityReference::Created(CreateKey::new("query.apply.vertex-b")),
                     },
                 ],
-                WorthMutationOrigin::LocalEdit,
+                MutationOrigin::LocalEdit,
             ),
             &verified.read_basis,
         )
@@ -266,12 +258,12 @@ fn query_native_assembly_denies_created_entity_refs_when_partial_subgraph_breaks
         relation_count_before
     );
     match error {
-        super::authority::WorthTopologyQueryApplyError::Query(
+        super::authority::TopologyQueryApplyError::Query(
             forge_query::facade::ForgeQueryRuntimeError::Workspace(workspace_error),
         ) => {
             assert!(workspace_error
                 .to_string()
-                .contains("worth.m1.topology.ownership_surface"));
+                .contains(".m1.topology.ownership_surface"));
         }
         other => panic!("expected invariant-backed workspace error, got {other:?}"),
     }
@@ -279,13 +271,13 @@ fn query_native_assembly_denies_created_entity_refs_when_partial_subgraph_breaks
 
 #[test]
 fn query_native_assembly_applies_topology_relation_delete_through_existing_binding() {
-    let mut runtime = worth_milestone_one_runtime_builder()
-        .expect("worth milestone one runtime builder")
+    let mut runtime = milestone_one_runtime_builder()
+        .expect(" milestone one runtime builder")
         .build();
     let verified = seed_milestone_one_primitive(
         &mut runtime,
         "query-native-assembly-apply-delete",
-        &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
+        &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
     )
     .expect("verified primitive");
     let relation_id = runtime
@@ -294,16 +286,15 @@ fn query_native_assembly_applies_topology_relation_delete_through_existing_bindi
         .expect("read view should open")
         .relations()[0]
         .relation_id;
-    let (mut workspace, assembly) =
-        current_head_workspace(runtime, "worth-topology-query-apply-delete");
+    let (mut workspace, assembly) = current_head_workspace(runtime, "topology-query-apply-delete");
     let relation_count_before = workspace.read(assembly.relations()).len();
 
     let applied = assembly
         .apply_raw_intent(
             &mut workspace,
-            RawWorthTopologyIntent::new(
-                vec![WorthTopologyMutation::RemoveRelation { relation_id }],
-                WorthMutationOrigin::LocalEdit,
+            RawTopologyIntent::new(
+                vec![TopologyMutation::RemoveRelation { relation_id }],
+                MutationOrigin::LocalEdit,
             ),
             &verified.read_basis,
         )
@@ -316,7 +307,7 @@ fn query_native_assembly_applies_topology_relation_delete_through_existing_bindi
             .existing_truth_binding_evidence()
             .expect("delete should retain existing-binding evidence")
             .target_collection(),
-        Some("WorthTopologyRelation")
+        Some("TopologyRelation")
     );
     assert_eq!(relation_rows.len(), relation_count_before - 1);
     assert!(!relation_rows.iter().any(|row| {

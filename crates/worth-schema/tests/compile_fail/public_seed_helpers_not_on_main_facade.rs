@@ -1,4 +1,4 @@
-use worth_schema::facade::{
+use schema::facade::{
     seed_minimal_topology, seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch,
     verify_topology_intent, verify_topology_intent_on_branch,
 };

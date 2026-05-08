@@ -1,26 +1,25 @@
 #[cfg(test)]
 mod parity_tests {
-    use worth_schema::facade::topology_authoring::{
-        seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
+    use schema::facade::topology_authoring::{
+        seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
     };
 
     use crate::facade::{
         build_derived_equivalence_contract, compare_derived_equivalence_contracts,
         digest_derived_validation_report, digest_interpreted_topology_view,
-        digest_materialized_topology_view, interpret_topology_view, validate_interpreted_topology,
-        worth_milestone_one_runtime_builder, WorthMilestoneOneCertificationHarness,
-        WorthTopologyMaterializer,
+        digest_materialized_topology_view, interpret_topology_view, milestone_one_runtime_builder,
+        validate_interpreted_topology, MilestoneOneCertificationHarness, TopologyMaterializer,
     };
 
     #[test]
     fn derived_equivalence_contract_is_deterministic_for_same_snapshot() {
-        let mut runtime = worth_milestone_one_runtime_builder()
-            .expect("worth milestone one runtime builder")
+        let mut runtime = milestone_one_runtime_builder()
+            .expect(" milestone one runtime builder")
             .build();
         let verified = seed_milestone_one_primitive(
             &mut runtime,
             "phase-six-parity",
-            &WorthMilestoneOnePrimitiveCase::SheetPatch { face_count: 3 },
+            &MilestoneOnePrimitiveCase::SheetPatch { face_count: 3 },
         )
         .expect("verified primitive");
         let read_view = runtime
@@ -28,7 +27,7 @@ mod parity_tests {
             .read_snapshot(&verified.persisted_truth.snapshot)
             .expect("snapshot read");
         let materialized =
-            WorthTopologyMaterializer::materialize_from_truth(&read_view).expect("materialized");
+            TopologyMaterializer::materialize_from_truth(&read_view).expect("materialized");
         let interpreted = interpret_topology_view(&materialized);
         let validation =
             validate_interpreted_topology(&materialized, &interpreted).expect("validation");
@@ -63,13 +62,13 @@ mod parity_tests {
 
     #[test]
     fn replay_basis_preserves_equivalent_derived_meaning_while_recording_derivation_shift() {
-        let mut runtime = worth_milestone_one_runtime_builder()
-            .expect("worth milestone one runtime builder")
+        let mut runtime = milestone_one_runtime_builder()
+            .expect(" milestone one runtime builder")
             .build();
         let verified = seed_milestone_one_primitive(
             &mut runtime,
             "phase-six-replay",
-            &WorthMilestoneOnePrimitiveCase::WireBranch { branch_count: 4 },
+            &MilestoneOnePrimitiveCase::WireBranch { branch_count: 4 },
         )
         .expect("verified primitive");
         let read_view = runtime
@@ -77,7 +76,7 @@ mod parity_tests {
             .read_snapshot(&verified.persisted_truth.snapshot)
             .expect("snapshot read");
         let materialized =
-            WorthTopologyMaterializer::materialize_from_truth(&read_view).expect("materialized");
+            TopologyMaterializer::materialize_from_truth(&read_view).expect("materialized");
         let interpreted = interpret_topology_view(&materialized);
         let validation =
             validate_interpreted_topology(&materialized, &interpreted).expect("validation");
@@ -105,18 +104,18 @@ mod parity_tests {
 
     #[test]
     fn certification_harness_embeds_phase_six_equivalence_contracts() {
-        let mut runtime = worth_milestone_one_runtime_builder()
-            .expect("worth milestone one runtime builder")
+        let mut runtime = milestone_one_runtime_builder()
+            .expect(" milestone one runtime builder")
             .build();
         let verified = seed_milestone_one_primitive(
             &mut runtime,
             "phase-six-certification",
-            &WorthMilestoneOnePrimitiveCase::SolidShell { face_count: 4 },
+            &MilestoneOnePrimitiveCase::SolidShell { face_count: 4 },
         )
         .expect("verified primitive");
 
         let report =
-            WorthMilestoneOneCertificationHarness::certify_verified_commit(&mut runtime, &verified)
+            MilestoneOneCertificationHarness::certify_verified_commit(&mut runtime, &verified)
                 .expect("certification");
 
         assert!(

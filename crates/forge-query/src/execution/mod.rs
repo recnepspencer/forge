@@ -1,6 +1,11 @@
 use crate::basis::ExecutionPreflightBundle;
 use crate::identity::{BasisDigest, PlanDigest, ResultDigest, ValidatedQueryDigest};
-use crate::planning::{ParallelAdmissionRoute, SerialFallbackRoute};
+
+mod preflight;
+
+pub use preflight::{
+    execute_parallel_admission_route, execute_preflight_bundle, execute_serial_fallback_route,
+};
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 pub struct ExecutionCounters {
@@ -80,6 +85,11 @@ impl ExecutionCounters {
 
     pub fn executor_semantic_rediscovery_count(&self) -> usize {
         self.executor_semantic_rediscovery_count
+    }
+
+    pub(crate) fn with_materialized_row_count(mut self, row_count: usize) -> Self {
+        self.execution_records_emitted_count = row_count;
+        self
     }
 
     #[cfg(test)]
@@ -286,132 +296,4 @@ impl ExecutionResultEnvelope {
         envelope.check_invariants()?;
         Ok(envelope)
     }
-}
-
-pub fn execute_preflight_bundle(
-    preflight: &ExecutionPreflightBundle,
-) -> Result<ExecutionResultEnvelope, ExecutionError> {
-    let collection = preflight.plan().collection();
-    let is_cdc_collection = collection
-        .map(|collection| {
-            matches!(
-                collection.post_read_shaping().result_family(),
-                crate::collection::CollectionResultFamily::CdcCollection
-            )
-        })
-        .unwrap_or(false);
-    let is_count_rollup = collection
-        .map(|collection| {
-            matches!(
-                collection
-                    .post_read_shaping()
-                    .aggregate_shape()
-                    .function_family(),
-                crate::collection::AggregateFunctionFamily::CountRows
-            )
-        })
-        .unwrap_or(false);
-    let is_display_label_derived =
-        collection
-            .map(|collection| {
-                matches!(
-                collection.post_read_shaping().derived_field_plan().computation_class(),
-                crate::collection::DerivedFieldComputationClass::DisplayLabelFromIdentityAndProfile
-            )
-            })
-            .unwrap_or(false);
-    let payload: Vec<String> = (0..preflight.plan().result_shape().binding_count())
-        .map(|index| {
-            if is_cdc_collection {
-                format!(
-                    "cdc:{}:{}:{}",
-                    preflight.plan().query().plan_digest().as_str(),
-                    preflight.basis().proof().digest().as_str(),
-                    index
-                )
-            } else if is_count_rollup {
-                format!(
-                    "aggregate:count_rows:{}:{}:{}",
-                    preflight.plan().query().plan_digest().as_str(),
-                    preflight.basis().proof().digest().as_str(),
-                    preflight
-                        .plan()
-                        .collection()
-                        .unwrap()
-                        .post_read_shaping()
-                        .aggregate_shape()
-                        .input_breadth()
-                        .value()
-                )
-            } else if is_display_label_derived {
-                format!(
-                    "derived:display_label:{}:{}:{}",
-                    preflight.plan().query().plan_digest().as_str(),
-                    preflight.basis().proof().digest().as_str(),
-                    index
-                )
-            } else {
-                format!(
-                    "result:{}:{}:{}",
-                    preflight.plan().query().plan_digest().as_str(),
-                    preflight.basis().proof().digest().as_str(),
-                    index
-                )
-            }
-        })
-        .collect();
-
-    let counters = ExecutionCounters::from_preflight(preflight);
-    let result_digest = ResultDigest::from_parts(
-        &payload
-            .iter()
-            .cloned()
-            .chain(std::iter::once(format!(
-                "plan:{}",
-                preflight.plan().query().plan_digest().as_str()
-            )))
-            .chain(std::iter::once(format!(
-                "basis:{}",
-                preflight.basis().proof().digest().as_str()
-            )))
-            .chain(std::iter::once(format!(
-                "collection_result_family:{}",
-                if is_cdc_collection {
-                    "cdc_collection"
-                } else {
-                    "ordinary_collection"
-                }
-            )))
-            .chain(std::iter::once(format!(
-                "aggregate_family:{}",
-                if is_count_rollup {
-                    "count_rows"
-                } else {
-                    "none_admitted_yet"
-                }
-            )))
-            .chain(std::iter::once(format!(
-                "derived_field_family:{}",
-                if is_display_label_derived {
-                    "display_label"
-                } else {
-                    "none_admitted_yet"
-                }
-            )))
-            .collect::<Vec<_>>(),
-    );
-    let report = ExecutionReport::from_preflight(preflight, result_digest);
-    ExecutionResultEnvelope::new(payload, report, counters)
-}
-
-pub fn execute_parallel_admission_route(
-    route: &ParallelAdmissionRoute,
-) -> Result<ExecutionResultEnvelope, ExecutionError> {
-    execute_preflight_bundle(route.preflight())
-}
-
-pub fn execute_serial_fallback_route(
-    route: &SerialFallbackRoute,
-) -> Result<ExecutionResultEnvelope, ExecutionError> {
-    execute_preflight_bundle(route.preflight())
 }

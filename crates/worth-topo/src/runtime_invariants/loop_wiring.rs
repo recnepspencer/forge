@@ -8,9 +8,7 @@ use forge_relational::facade::runtime::{
     InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup,
     InvariantGroupSet,
 };
-use worth_schema::facade::{
-    WorthEntityKind, WorthRelationKind, WorthTopologyEntityKind, WorthTopologyRelationKind,
-};
+use schema::facade::{EntityKind, RelationKind, TopologyEntityKind, TopologyRelationKind};
 
 use super::shared::RuntimeTopologyGraph;
 
@@ -30,11 +28,11 @@ impl CustomInvariantRule for LoopWiringRule {
         CustomInvariantDescriptor {
             identity: CustomInvariantSemanticIdentity {
                 rule_id: forge_relational::facade::runtime::CustomInvariantRuleId::new(
-                    "worth.m1.topology.loop_wiring",
+                    ".m1.topology.loop_wiring",
                 ),
                 semantic_version: CustomInvariantSemanticVersion::new(1, 0),
             },
-            display_name: Arc::from("Worth Milestone 1 Loop Wiring"),
+            display_name: Arc::from(" Milestone 1 Loop Wiring"),
             operational: CustomInvariantOperationalMetadata {
                 execution_point: InvariantExecutionPoint::CommitBoundary,
                 groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance),
@@ -56,9 +54,9 @@ impl CustomInvariantRule for LoopWiringRule {
         _context: &CustomInvariantExecutionContext<'_>,
         scope: &Self::Scope,
     ) -> Result<CustomInvariantVerdict, CustomInvariantExecutionError> {
-        let halfedge_kind = WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge).kind_id();
-        let next_kind = WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeNext);
-        let prev_kind = WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgePrev);
+        let halfedge_kind = EntityKind::Topology(TopologyEntityKind::HalfEdge).kind_id();
+        let next_kind = RelationKind::Topology(TopologyRelationKind::HalfEdgeNext);
+        let prev_kind = RelationKind::Topology(TopologyRelationKind::HalfEdgePrev);
 
         for (entity_id, kind_id) in &scope.topology_entities {
             if *kind_id != halfedge_kind {

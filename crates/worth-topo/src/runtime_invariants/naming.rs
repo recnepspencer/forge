@@ -27,11 +27,11 @@ impl CustomInvariantRule for NamingCoverageRule {
         CustomInvariantDescriptor {
             identity: CustomInvariantSemanticIdentity {
                 rule_id: forge_relational::facade::runtime::CustomInvariantRuleId::new(
-                    "worth.m1.naming.coverage",
+                    ".m1.naming.coverage",
                 ),
                 semantic_version: CustomInvariantSemanticVersion::new(1, 0),
             },
-            display_name: Arc::from("Worth Milestone 1 Naming Coverage"),
+            display_name: Arc::from(" Milestone 1 Naming Coverage"),
             operational: CustomInvariantOperationalMetadata {
                 execution_point: InvariantExecutionPoint::CommitBoundary,
                 groups: InvariantGroupSet::of(InvariantGroup::SchemaCompliance),

@@ -1,40 +1,39 @@
 use crate::facade::{
-    certify_milestone_three_ambiguous_local_rewire_continuity,
-    WorthMilestoneThreeHostileOutcomeClass, WorthMilestoneThreeHostileScenario,
-    WorthReplayParityStatus, WorthTopologyEditFamily, WorthTopologyEditNamingOutcome,
-    WorthTopologyEditRejectionClass,
+    certify_milestone_three_ambiguous_local_rewire_continuity, MilestoneThreeHostileOutcomeClass,
+    MilestoneThreeHostileScenario, ReplayParityStatus, TopologyEditFamily,
+    TopologyEditNamingOutcome, TopologyEditRejectionClass,
 };
-use crate::runtime_invariants::build_worth_milestone_one_runtime;
-use worth_schema::facade::topology_authoring::WorthMilestoneOnePrimitiveCase;
+use crate::runtime_invariants::build_milestone_one_runtime;
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
 #[test]
 fn milestone_three_ambiguous_local_rewire_continuity_certifies_accepted_ambiguity_with_witness() {
     let report = certify_milestone_three_ambiguous_local_rewire_continuity(
-        || build_worth_milestone_one_runtime().expect("worth milestone one runtime builder"),
+        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
         "m3.ambiguous_local_rewire",
     )
     .expect("milestone three ambiguous local rewire certification should succeed");
 
     assert_eq!(
         report.scenario,
-        WorthMilestoneThreeHostileScenario::AmbiguousLocalRewireContinuity
+        MilestoneThreeHostileScenario::AmbiguousLocalRewireContinuity
     );
     assert_eq!(report.primitive_family, "SheetDisk(n)");
     assert_eq!(
         report.primitive,
-        WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 }
+        MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 }
     );
     assert_eq!(
         report.outcome_class,
-        WorthMilestoneThreeHostileOutcomeClass::Accepted
+        MilestoneThreeHostileOutcomeClass::Accepted
     );
     assert_eq!(
         report.continuity_outcome_class,
-        WorthTopologyEditNamingOutcome::Ambiguous
+        TopologyEditNamingOutcome::Ambiguous
     );
     assert_eq!(
         report.continuity_rejection_class,
-        Some(WorthTopologyEditRejectionClass::NamingContinuityAmbiguous)
+        Some(TopologyEditRejectionClass::NamingContinuityAmbiguous)
     );
     assert!(report.rejection_class.is_none());
     assert!(report.rejected_edit_scope_report.is_none());
@@ -62,7 +61,7 @@ fn milestone_three_ambiguous_local_rewire_continuity_certifies_accepted_ambiguit
     assert!(report
         .edit_families
         .iter()
-        .all(|family| *family == WorthTopologyEditFamily::RewireLoopSuccessor));
+        .all(|family| *family == TopologyEditFamily::RewireLoopSuccessor));
     assert_eq!(report.topology_edit_digest.contract_count, 6);
     assert_eq!(report.naming_edit_continuity_matrix.rows.len(), 6);
     assert_eq!(report.naming_edit_continuity_matrix.ambiguous_count, 6);
@@ -71,7 +70,7 @@ fn milestone_three_ambiguous_local_rewire_continuity_certifies_accepted_ambiguit
     assert!(report.edit_replay_parity_report.replay_checked);
     assert_eq!(
         report.edit_replay_parity_report.parity_status,
-        WorthReplayParityStatus::Match
+        ReplayParityStatus::Match
     );
     assert_eq!(report.edit_replay_parity_report.mismatch_count, 0);
     assert_eq!(report.edit_replay_parity_report.step_rows.len(), 1);
@@ -85,12 +84,12 @@ fn milestone_three_ambiguous_local_rewire_continuity_certifies_accepted_ambiguit
 #[test]
 fn milestone_three_ambiguous_local_rewire_report_is_deterministic_for_same_seeded_history() {
     let left = certify_milestone_three_ambiguous_local_rewire_continuity(
-        || build_worth_milestone_one_runtime().expect("worth milestone one runtime builder"),
+        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
         "m3.ambiguous_local_rewire.deterministic",
     )
     .expect("left ambiguous local rewire certification should succeed");
     let right = certify_milestone_three_ambiguous_local_rewire_continuity(
-        || build_worth_milestone_one_runtime().expect("worth milestone one runtime builder"),
+        || build_milestone_one_runtime().expect(" milestone one runtime builder"),
         "m3.ambiguous_local_rewire.deterministic",
     )
     .expect("right ambiguous local rewire certification should succeed");

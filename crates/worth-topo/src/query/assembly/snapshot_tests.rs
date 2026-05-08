@@ -1,13 +1,11 @@
+use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::TopologyEntityKind;
 use serde_json::json;
-use worth_schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
-};
-use worth_schema::facade::WorthTopologyEntityKind;
 
 use super::*;
-use crate::facade::worth_milestone_one_runtime_builder;
+use crate::facade::milestone_one_runtime_builder;
 use crate::query::equivalence_contract_from_diagnostics_rows;
-use crate::query::{worth_topology_runtime, WorthTopologyRuntimeAdapters};
+use crate::query::{topology_runtime, TopologyRuntimeAdapters};
 use crate::read_stage::open_topology_read_view;
 
 fn current_head_workspace(
@@ -15,40 +13,37 @@ fn current_head_workspace(
     name: &str,
 ) -> (
     forge_query::facade::ForgeQueryWorkspace,
-    WorthTopologyQueryAssembly,
+    TopologyQueryAssembly,
 ) {
-    let adapters = WorthTopologyRuntimeAdapters::current_head(runtime);
-    let mut workspace =
-        worth_topology_runtime(adapters, name).expect("query workspace should build");
+    let adapters = TopologyRuntimeAdapters::current_head(runtime);
+    let mut workspace = topology_runtime(adapters, name).expect("query workspace should build");
     let assembly =
-        WorthTopologyQueryAssembly::declare(&mut workspace).expect("query assembly should declare");
+        TopologyQueryAssembly::declare(&mut workspace).expect("query assembly should declare");
     (workspace, assembly)
 }
 
 #[test]
 fn snapshot_read_only_assembly_synthesizes_complete_query_shaped_derived_rows() {
-    let mut runtime = worth_milestone_one_runtime_builder()
-        .expect("worth milestone one runtime builder")
+    let mut runtime = milestone_one_runtime_builder()
+        .expect(" milestone one runtime builder")
         .build();
     let verified = seed_milestone_one_primitive(
         &mut runtime,
         "query-native-assembly-historical-derived-rows",
-        &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
+        &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
     )
     .expect("verified primitive");
     let read_view =
         open_topology_read_view(&runtime, &verified.read_basis).expect("read view should open");
-    let adapters = WorthTopologyRuntimeAdapters::snapshot_read_only(
+    let adapters = TopologyRuntimeAdapters::snapshot_read_only(
         read_view,
         verified.read_basis.snapshot().clone(),
     );
-    let mut workspace = worth_topology_runtime(
-        adapters,
-        "worth-topology-query-assembly-historical-derived-rows",
-    )
-    .expect("query workspace should build");
+    let mut workspace =
+        topology_runtime(adapters, "topology-query-assembly-historical-derived-rows")
+            .expect("query workspace should build");
     let assembly =
-        WorthTopologyQueryAssembly::declare(&mut workspace).expect("query assembly should declare");
+        TopologyQueryAssembly::declare(&mut workspace).expect("query assembly should declare");
 
     assert!(workspace.materialize(assembly.diagnostics()).is_empty());
     assert!(workspace
@@ -77,36 +72,36 @@ fn snapshot_read_only_assembly_synthesizes_complete_query_shaped_derived_rows() 
 
 #[test]
 fn current_head_snapshot_decoder_rejects_malformed_retained_validation_rows() {
-    let mut runtime = worth_milestone_one_runtime_builder()
-        .expect("worth milestone one runtime builder")
+    let mut runtime = milestone_one_runtime_builder()
+        .expect(" milestone one runtime builder")
         .build();
     let verified = seed_milestone_one_primitive(
         &mut runtime,
         "query-native-assembly-current-head-validation-decode",
-        &WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
+        &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 4 },
     )
     .expect("verified primitive");
     let (mut workspace, assembly) = current_head_workspace(
         runtime,
-        "worth-topology-query-assembly-current-head-validation-decode",
+        "topology-query-assembly-current-head-validation-decode",
     );
     workspace
-        .insert("WorthTopologyEntity", |builder| {
+        .insert("TopologyEntity", |builder| {
             builder
                 .metadata(
-                    crate::query::WorthTopologyQueryMutationEvidence::metadata_key(),
-                    crate::query::WorthTopologyQueryMutationEvidence::from_read_basis(
+                    crate::query::TopologyQueryMutationEvidence::metadata_key(),
+                    crate::query::TopologyQueryMutationEvidence::from_read_basis(
                         &verified.read_basis,
                     ),
                 )
-                .aspect("topology.kind", WorthTopologyEntityKind::Vertex.kind_name())
+                .aspect("topology.kind", TopologyEntityKind::Vertex.kind_name())
                 .aspect(
                     "topology.structure",
-                    "worth-topology-query-assembly.current-head.extra-vertex",
+                    "topology-query-assembly.current-head.extra-vertex",
                 )
                 .aspect(
                     "naming.persistent_name",
-                    "worth-topology-query-assembly.current-head.extra-vertex",
+                    "topology-query-assembly.current-head.extra-vertex",
                 )
         })
         .expect("current-head mutation should retain derived rows");

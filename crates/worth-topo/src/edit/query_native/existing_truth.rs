@@ -3,27 +3,25 @@ use forge_query::facade::{
     ForgeQueryMutationBatchBuilder,
 };
 use forge_relational::facade::identity::{EntityId, RelationId};
-use worth_schema::facade::{WorthTopologyEntityKind, WorthTopologyRelationKind};
+use schema::facade::{TopologyEntityKind, TopologyRelationKind};
 
 use super::bindings::{query_entity_binding, query_relation_binding};
-use super::{
-    WorthTopologyEditContract, WorthTopologyQueryEditExecutionError, WorthTopologyQueryEditRunner,
-};
+use super::{TopologyEditContract, TopologyQueryEditExecutionError, TopologyQueryEditRunner};
 
-impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> {
+impl<'workspace, 'assembly> TopologyQueryEditRunner<'workspace, 'assembly> {
     pub(super) fn lower_retire_topology_entity(
         &self,
         builder: ForgeQueryMutationBatchBuilder,
         entity_rows: &[ForgeQueryEntity],
         entity_id: EntityId,
-        expected_kind: WorthTopologyEntityKind,
-        contract: &WorthTopologyEditContract,
-    ) -> Result<ForgeQueryMutationBatchBuilder, WorthTopologyQueryEditExecutionError> {
+        expected_kind: TopologyEntityKind,
+        contract: &TopologyEditContract,
+    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyQueryEditExecutionError> {
         let binding = query_entity_binding(entity_rows, entity_id)?
-            .ok_or(WorthTopologyQueryEditExecutionError::MissingExistingEntityBinding(entity_id))?;
+            .ok_or(TopologyQueryEditExecutionError::MissingExistingEntityBinding(entity_id))?;
         if binding.kind != expected_kind {
             return Err(
-                WorthTopologyQueryEditExecutionError::ExistingEntityKindMismatch {
+                TopologyQueryEditExecutionError::ExistingEntityKindMismatch {
                     entity_id,
                     expected: expected_kind,
                     actual: binding.kind,
@@ -32,14 +30,14 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
         }
         let binding = self.workspace.bind_existing_entity(
             ForgeQueryExistingEntityTarget::new(format!("{entity_id:?}"), binding.query_identity)?
-                .in_target_collection("WorthTopologyEntity")?,
+                .in_target_collection("TopologyEntity")?,
         )?;
         Ok(builder.delete_existing_verified(
             binding,
             |verify| verify.aspect("topology.kind", expected_kind.kind_name()),
             |delete| {
-                let mut delete = delete.target_collection("WorthTopologyEntity");
-                for path in worth_schema::facade::worth_query_aspect_path_strings(
+                let mut delete = delete.target_collection("TopologyEntity");
+                for path in schema::facade::query_aspect_path_strings(
                     contract.touched_aspects.iter().copied(),
                 ) {
                     delete = delete.touch(path);
@@ -54,15 +52,14 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
         builder: ForgeQueryMutationBatchBuilder,
         relation_rows: &[ForgeQueryEntity],
         relation_id: RelationId,
-        expected_kind: WorthTopologyRelationKind,
-        contract: &WorthTopologyEditContract,
-    ) -> Result<ForgeQueryMutationBatchBuilder, WorthTopologyQueryEditExecutionError> {
-        let binding = query_relation_binding(relation_rows, relation_id)?.ok_or(
-            WorthTopologyQueryEditExecutionError::MissingExistingRelationBinding(relation_id),
-        )?;
+        expected_kind: TopologyRelationKind,
+        contract: &TopologyEditContract,
+    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyQueryEditExecutionError> {
+        let binding = query_relation_binding(relation_rows, relation_id)?
+            .ok_or(TopologyQueryEditExecutionError::MissingExistingRelationBinding(relation_id))?;
         if binding.kind != expected_kind {
             return Err(
-                WorthTopologyQueryEditExecutionError::ExistingRelationKindMismatch {
+                TopologyQueryEditExecutionError::ExistingRelationKindMismatch {
                     relation_id,
                     expected: expected_kind,
                     actual: binding.kind,
@@ -74,14 +71,14 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                 format!("{relation_id:?}"),
                 binding.query_identity,
             )?
-            .in_target_collection("WorthTopologyRelation")?,
+            .in_target_collection("TopologyRelation")?,
         )?;
         Ok(builder.delete_existing_verified(
             binding,
             |verify| verify.aspect("topology.kind", expected_kind.kind_name()),
             |delete| {
-                let mut delete = delete.target_collection("WorthTopologyRelation");
-                for path in worth_schema::facade::worth_query_aspect_path_strings(
+                let mut delete = delete.target_collection("TopologyRelation");
+                for path in schema::facade::query_aspect_path_strings(
                     contract.touched_aspects.iter().copied(),
                 ) {
                     delete = delete.touch(path);

@@ -1,55 +1,54 @@
-use worth_schema::facade::{WorthEntityKind, WorthTopologyEntityKind};
+use schema::facade::{EntityKind, TopologyEntityKind};
 
 use crate::data::topology_view::{
-    WorthTopologyBody, WorthTopologyEdge, WorthTopologyFace, WorthTopologyHalfEdge,
-    WorthTopologyLoop, WorthTopologyLump, WorthTopologyModel, WorthTopologyRegion,
-    WorthTopologyShell, WorthTopologyVertex, WorthTopologyView, WorthTopologyWire,
+    TopologyBody, TopologyEdge, TopologyFace, TopologyHalfEdge, TopologyLoop, TopologyLump,
+    TopologyModel, TopologyRegion, TopologyShell, TopologyVertex, TopologyView, TopologyWire,
 };
 use crate::materialization::input_rows::MaterializationEntityRow;
 
-pub fn push_entity_row(view: &mut WorthTopologyView, record: &MaterializationEntityRow) {
+pub fn push_entity_row(view: &mut TopologyView, record: &MaterializationEntityRow) {
     match record.kind {
-        WorthEntityKind::Topology(WorthTopologyEntityKind::Model) => {
-            view.models.push(WorthTopologyModel {
+        EntityKind::Topology(TopologyEntityKind::Model) => {
+            view.models.push(TopologyModel {
                 entity_id: record.entity_id,
                 label: record.label.clone(),
                 body_ids: Vec::new(),
             });
         }
-        WorthEntityKind::Topology(WorthTopologyEntityKind::Body) => {
-            view.bodies.push(WorthTopologyBody {
+        EntityKind::Topology(TopologyEntityKind::Body) => {
+            view.bodies.push(TopologyBody {
                 entity_id: record.entity_id,
                 label: record.label.clone(),
                 model_id: None,
                 lump_ids: Vec::new(),
             });
         }
-        WorthEntityKind::Topology(WorthTopologyEntityKind::Lump) => {
-            view.lumps.push(WorthTopologyLump {
+        EntityKind::Topology(TopologyEntityKind::Lump) => {
+            view.lumps.push(TopologyLump {
                 entity_id: record.entity_id,
                 label: record.label.clone(),
                 body_id: None,
                 region_ids: Vec::new(),
             });
         }
-        WorthEntityKind::Topology(WorthTopologyEntityKind::Region) => {
-            view.regions.push(WorthTopologyRegion {
+        EntityKind::Topology(TopologyEntityKind::Region) => {
+            view.regions.push(TopologyRegion {
                 entity_id: record.entity_id,
                 label: record.label.clone(),
                 lump_id: None,
                 shell_ids: Vec::new(),
             });
         }
-        WorthEntityKind::Topology(WorthTopologyEntityKind::Shell) => {
-            view.shells.push(WorthTopologyShell {
+        EntityKind::Topology(TopologyEntityKind::Shell) => {
+            view.shells.push(TopologyShell {
                 entity_id: record.entity_id,
                 label: record.label.clone(),
                 region_id: None,
                 face_ids: Vec::new(),
             });
         }
-        WorthEntityKind::Topology(WorthTopologyEntityKind::Face) => {
-            view.faces.push(WorthTopologyFace {
+        EntityKind::Topology(TopologyEntityKind::Face) => {
+            view.faces.push(TopologyFace {
                 entity_id: record.entity_id,
                 label: record.label.clone(),
                 shell_id: None,
@@ -58,23 +57,23 @@ pub fn push_entity_row(view: &mut WorthTopologyView, record: &MaterializationEnt
                 boundary_half_edge_ids: Vec::new(),
             });
         }
-        WorthEntityKind::Topology(WorthTopologyEntityKind::Loop) => {
-            view.loops.push(WorthTopologyLoop {
+        EntityKind::Topology(TopologyEntityKind::Loop) => {
+            view.loops.push(TopologyLoop {
                 entity_id: record.entity_id,
                 label: record.label.clone(),
                 face_ids: Vec::new(),
                 half_edge_ids: Vec::new(),
             });
         }
-        WorthEntityKind::Topology(WorthTopologyEntityKind::Wire) => {
-            view.wires.push(WorthTopologyWire {
+        EntityKind::Topology(TopologyEntityKind::Wire) => {
+            view.wires.push(TopologyWire {
                 entity_id: record.entity_id,
                 label: record.label.clone(),
                 half_edge_ids: Vec::new(),
             });
         }
-        WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge) => {
-            view.half_edges.push(WorthTopologyHalfEdge {
+        EntityKind::Topology(TopologyEntityKind::HalfEdge) => {
+            view.half_edges.push(TopologyHalfEdge {
                 entity_id: record.entity_id,
                 label: record.label.clone(),
                 loop_id: None,
@@ -88,25 +87,23 @@ pub fn push_entity_row(view: &mut WorthTopologyView, record: &MaterializationEnt
                 face_id: None,
             });
         }
-        WorthEntityKind::Topology(WorthTopologyEntityKind::Edge) => {
-            view.edges.push(WorthTopologyEdge {
+        EntityKind::Topology(TopologyEntityKind::Edge) => {
+            view.edges.push(TopologyEdge {
                 entity_id: record.entity_id,
                 label: record.label.clone(),
             });
         }
-        WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex) => {
-            view.vertices.push(WorthTopologyVertex {
+        EntityKind::Topology(TopologyEntityKind::Vertex) => {
+            view.vertices.push(TopologyVertex {
                 entity_id: record.entity_id,
                 label: record.label.clone(),
             });
         }
-        WorthEntityKind::Geometry(_)
-        | WorthEntityKind::Naming(_)
-        | WorthEntityKind::Diagnostics(_) => {}
+        EntityKind::Geometry(_) | EntityKind::Naming(_) | EntityKind::Diagnostics(_) => {}
     }
 }
 
-pub fn has_topology_content(view: &WorthTopologyView) -> bool {
+pub fn has_topology_content(view: &TopologyView) -> bool {
     !view.bodies.is_empty()
         || !view.lumps.is_empty()
         || !view.regions.is_empty()

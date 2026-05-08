@@ -1,56 +1,53 @@
 use forge_query::facade::{ForgeQueryBatchWriteReceipt, ForgeQueryEntity};
-use worth_schema::facade::{
-    WorthEntityReference, WorthTopologyEntityKind, WorthTopologyRelationKind,
-};
+use schema::facade::{EntityReference, TopologyEntityKind, TopologyRelationKind};
 
-use super::{WorthTopologyQueryEditExecutionError, WorthTopologyQueryEditRunner};
+use super::{TopologyQueryEditExecutionError, TopologyQueryEditRunner};
 use crate::edit::{
-    WorthBoundaryMembershipKind, WorthTopologyEditAction, WorthTopologyEditContract,
-    WorthTopologyEditFamily,
+    BoundaryMembershipKind, TopologyEditAction, TopologyEditContract, TopologyEditFamily,
 };
 use crate::query::topology_relation_dependency_path;
 
-impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> {
+impl<'workspace, 'assembly> TopologyQueryEditRunner<'workspace, 'assembly> {
     pub(super) fn compose_face_inner_loop_workflow(
         &mut self,
-        contracts: &[WorthTopologyEditContract],
+        contracts: &[TopologyEditContract],
         entity_rows: &[ForgeQueryEntity],
-    ) -> Result<ForgeQueryBatchWriteReceipt, WorthTopologyQueryEditExecutionError> {
+    ) -> Result<ForgeQueryBatchWriteReceipt, TopologyQueryEditExecutionError> {
         let [create, attach] = contracts else {
-            return Err(WorthTopologyQueryEditExecutionError::UnsupportedFamilies(
-                vec![WorthTopologyEditFamily::AttachBoundaryMembership],
-            ));
+            return Err(TopologyQueryEditExecutionError::UnsupportedFamilies(vec![
+                TopologyEditFamily::AttachBoundaryMembership,
+            ]));
         };
         let (
-            WorthTopologyEditAction::CreateTopologyEntity {
+            TopologyEditAction::CreateTopologyEntity {
                 create_key,
-                kind: WorthTopologyEntityKind::Loop,
+                kind: TopologyEntityKind::Loop,
                 ..
             },
-            WorthTopologyEditAction::AttachBoundaryMembership {
-                kind: WorthBoundaryMembershipKind::FaceInnerLoop,
-                owner: WorthEntityReference::Existing(face_id),
-                member: WorthEntityReference::Created(member_key),
+            TopologyEditAction::AttachBoundaryMembership {
+                kind: BoundaryMembershipKind::FaceInnerLoop,
+                owner: EntityReference::Existing(face_id),
+                member: EntityReference::Created(member_key),
                 ..
             },
         ) = (&create.action, &attach.action)
         else {
-            return Err(WorthTopologyQueryEditExecutionError::UnsupportedFamilies(
-                vec![WorthTopologyEditFamily::AttachBoundaryMembership],
-            ));
+            return Err(TopologyQueryEditExecutionError::UnsupportedFamilies(vec![
+                TopologyEditFamily::AttachBoundaryMembership,
+            ]));
         };
         if create_key.as_str() != member_key.as_str() {
-            return Err(WorthTopologyQueryEditExecutionError::UnsupportedFamilies(
-                vec![WorthTopologyEditFamily::AttachBoundaryMembership],
-            ));
+            return Err(TopologyQueryEditExecutionError::UnsupportedFamilies(vec![
+                TopologyEditFamily::AttachBoundaryMembership,
+            ]));
         }
         let face_binding = super::super::bindings::query_entity_binding(entity_rows, *face_id)?
-            .ok_or(WorthTopologyQueryEditExecutionError::MissingExistingEntityBinding(*face_id))?;
-        if face_binding.kind != WorthTopologyEntityKind::Face {
+            .ok_or(TopologyQueryEditExecutionError::MissingExistingEntityBinding(*face_id))?;
+        if face_binding.kind != TopologyEntityKind::Face {
             return Err(
-                WorthTopologyQueryEditExecutionError::ExistingEntityKindMismatch {
+                TopologyQueryEditExecutionError::ExistingEntityKindMismatch {
                     entity_id: *face_id,
-                    expected: WorthTopologyEntityKind::Face,
+                    expected: TopologyEntityKind::Face,
                     actual: face_binding.kind,
                 },
             );
@@ -59,17 +56,17 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
         self.workspace
             .compose_graph(|graph| {
                 let loop_symbol =
-                    graph.insert_entity(create_key.clone(), "WorthTopologyEntity", |mutation| {
+                    graph.insert_entity(create_key.clone(), "TopologyEntity", |mutation| {
                         mutation
-                            .aspect("topology.kind", WorthTopologyEntityKind::Loop.kind_name())
+                            .aspect("topology.kind", TopologyEntityKind::Loop.kind_name())
                             .aspect("topology.structure", create_key.clone())
                             .aspect("naming.persistent_name", create_key.clone())
                     })?;
-                graph.insert_relation("WorthTopologyRelation", |relation| {
+                graph.insert_relation("TopologyRelation", |relation| {
                     let relation = relation
                         .aspect(
                             "topology.kind",
-                            WorthTopologyRelationKind::FaceInnerLoop.kind_name(),
+                            TopologyRelationKind::FaceInnerLoop.kind_name(),
                         )
                         .existing_entity_identity(
                             "topology.source_identity",
@@ -77,11 +74,9 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                         )
                         .symbolic_entity_identity("topology.target_identity", &loop_symbol);
                     if let Some(path) = topology_relation_dependency_path(
-                        worth_schema::facade::WorthRelationKind::Topology(
-                            WorthTopologyRelationKind::FaceInnerLoop,
-                        ),
+                        schema::facade::RelationKind::Topology(TopologyRelationKind::FaceInnerLoop),
                     ) {
-                        relation.aspect(path, WorthTopologyRelationKind::FaceInnerLoop.kind_name())
+                        relation.aspect(path, TopologyRelationKind::FaceInnerLoop.kind_name())
                     } else {
                         relation
                     }

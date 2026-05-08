@@ -4,43 +4,43 @@ use forge_query::facade::{
     ForgeQueryRetainedMutationContext, ForgeQueryRetainedUpstreamInputs, ForgeQueryRuntimeError,
     ForgeQueryWorkspace, ForgeQueryWorkspaceError,
 };
+use schema::facade::{
+    query_aspect_paths_from_set, Aspect, DerivedTopologyReadBasis, MutationOrigin, QueryAspectPath,
+    QueryComputedDeclarationBuilder, QueryDeclarationError,
+};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use worth_schema::facade::{
-    worth_query_aspect_paths_from_set, DerivedTopologyReadBasis, WorthAspect, WorthMutationOrigin,
-    WorthQueryAspectPath, WorthQueryComputedDeclarationBuilder, WorthQueryDeclarationError,
-};
 
 use crate::diagnostics::{
     build_derived_fallback_report_from_counts, build_derived_invalidation_report_from_aspects,
-    WorthDerivedReadDiagnostics,
+    DerivedReadDiagnostics,
 };
 use crate::facade::{
-    DerivedTopologyValidationReport, InterpretedTopologyView, MaterializedTopologyView,
-    WorthDerivedEquivalenceContractReport,
+    DerivedEquivalenceContractReport, DerivedTopologyValidationReport, InterpretedTopologyView,
+    MaterializedTopologyView,
 };
 use crate::parity::build_derived_equivalence_contract_report;
 
 use super::{
-    derived::{decode_single_computed_row, WorthTopologyQuerySurfaceError},
+    derived::{decode_single_computed_row, TopologyQuerySurfaceError},
     QUERY_SURFACE_FAILURE_ROW_KEY,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthTopologyQueryMutationEvidence {
+pub struct TopologyQueryMutationEvidence {
     pub authority_snapshot_id: u64,
     pub authority_branch_id: String,
-    pub authoritative_mutation_origin: WorthMutationOrigin,
-    pub derivation_origin: WorthMutationOrigin,
+    pub authoritative_mutation_origin: MutationOrigin,
+    pub derivation_origin: MutationOrigin,
     pub truth_basis_digest_hex: String,
     pub touched_aspect_paths: Vec<String>,
     pub precision_fallback_count: usize,
     pub precision_budget_fallback_count: usize,
 }
 
-impl WorthTopologyQueryMutationEvidence {
+impl TopologyQueryMutationEvidence {
     pub const fn metadata_key() -> &'static str {
-        "worth.topology.read_basis"
+        ".topology.read_basis"
     }
 
     pub fn from_read_basis(read_basis: &DerivedTopologyReadBasis) -> Self {
@@ -54,7 +54,7 @@ impl WorthTopologyQueryMutationEvidence {
                 .truth_basis_identity
                 .mutation_batch_digest_hex
                 .clone(),
-            touched_aspect_paths: worth_query_aspect_paths_from_set(read_basis.touched_aspects())
+            touched_aspect_paths: query_aspect_paths_from_set(read_basis.touched_aspects())
                 .into_iter()
                 .map(|aspect| aspect.as_str().to_string())
                 .collect(),
@@ -65,44 +65,44 @@ impl WorthTopologyQueryMutationEvidence {
 
     fn from_mutation(
         mutation: &ForgeQueryRetainedMutationContext,
-    ) -> Result<Self, WorthTopologyQuerySurfaceError> {
+    ) -> Result<Self, TopologyQuerySurfaceError> {
         let Some(value) = mutation.mutation_metadata().get(Self::metadata_key()) else {
-            return Err(WorthTopologyQuerySurfaceError::new(format!(
+            return Err(TopologyQuerySurfaceError::new(format!(
                 "query-derived mutation context is missing `{}` metadata",
                 Self::metadata_key()
             )));
         };
         serde_json::from_value(value.clone()).map_err(|error| {
-            WorthTopologyQuerySurfaceError::new(format!(
+            TopologyQuerySurfaceError::new(format!(
                 "query-derived mutation metadata `{}` failed to decode: {error}",
                 Self::metadata_key()
             ))
         })
     }
 
-    fn touched_aspects(&self) -> Result<Vec<WorthAspect>, WorthTopologyQuerySurfaceError> {
+    fn touched_aspects(&self) -> Result<Vec<Aspect>, TopologyQuerySurfaceError> {
         self.touched_aspect_paths
             .iter()
             .map(|path| {
-                let path = WorthQueryAspectPath::from_str(path).ok_or_else(|| {
-                    WorthTopologyQuerySurfaceError::new(format!(
+                let path = QueryAspectPath::from_str(path).ok_or_else(|| {
+                    TopologyQuerySurfaceError::new(format!(
                         "query-derived mutation metadata declared unsupported touched aspect `{path}`"
                     ))
                 })?;
-                Ok(path.into_worth_aspect())
+                Ok(path.into_aspect())
             })
             .collect()
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct WorthTopologyDiagnosticsMaintainer {
+pub struct TopologyDiagnosticsMaintainer {
     materialized_view_name: String,
     interpreted_view_name: String,
     validation_view_name: String,
 }
 
-impl WorthTopologyDiagnosticsMaintainer {
+impl TopologyDiagnosticsMaintainer {
     pub fn new(
         materialized_view_name: impl Into<String>,
         interpreted_view_name: impl Into<String>,
@@ -116,7 +116,7 @@ impl WorthTopologyDiagnosticsMaintainer {
     }
 }
 
-impl ForgeQueryDerivedViewMaintainer for WorthTopologyDiagnosticsMaintainer {
+impl ForgeQueryDerivedViewMaintainer for TopologyDiagnosticsMaintainer {
     fn maintain(
         &mut self,
         view: &ForgeQueryDerivedView,
@@ -133,7 +133,7 @@ impl ForgeQueryDerivedViewMaintainer for WorthTopologyDiagnosticsMaintainer {
         materialization.replace_rows([payload.clone()]);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            "worth-topology-diagnostics-incremental-unexpected",
+            "topology-diagnostics-incremental-unexpected",
             delta.entity_identity.clone(),
             if view.produced_aspects().is_empty() {
                 delta.aspect_paths.clone()
@@ -171,24 +171,24 @@ impl ForgeQueryDerivedViewMaintainer for WorthTopologyDiagnosticsMaintainer {
         materialization.replace_rows([payload.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            "worth-topology-diagnostics",
+            "topology-diagnostics",
             if view.produced_aspects().is_empty() {
                 view.dependency_aspects().to_vec()
             } else {
                 view.produced_aspects().to_vec()
             },
             payload,
-            "worth-topology-derived-diagnostics",
+            "topology-derived-diagnostics",
         ))
     }
 }
 
 #[derive(Debug, Clone)]
-pub struct WorthTopologyEquivalenceContractMaintainer {
+pub struct TopologyEquivalenceContractMaintainer {
     diagnostics_view_name: String,
 }
 
-impl WorthTopologyEquivalenceContractMaintainer {
+impl TopologyEquivalenceContractMaintainer {
     pub fn new(diagnostics_view_name: impl Into<String>) -> Self {
         Self {
             diagnostics_view_name: diagnostics_view_name.into(),
@@ -196,7 +196,7 @@ impl WorthTopologyEquivalenceContractMaintainer {
     }
 }
 
-impl ForgeQueryDerivedViewMaintainer for WorthTopologyEquivalenceContractMaintainer {
+impl ForgeQueryDerivedViewMaintainer for TopologyEquivalenceContractMaintainer {
     fn maintain(
         &mut self,
         view: &ForgeQueryDerivedView,
@@ -213,7 +213,7 @@ impl ForgeQueryDerivedViewMaintainer for WorthTopologyEquivalenceContractMaintai
         materialization.replace_rows([payload.clone()]);
         ForgeQueryDerivedPatch::incremental(
             view.name(),
-            "worth-topology-equivalence-incremental-unexpected",
+            "topology-equivalence-incremental-unexpected",
             delta.entity_identity.clone(),
             if view.produced_aspects().is_empty() {
                 delta.aspect_paths.clone()
@@ -243,48 +243,48 @@ impl ForgeQueryDerivedViewMaintainer for WorthTopologyEquivalenceContractMaintai
         materialization.replace_rows([payload.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),
-            "worth-topology-equivalence-contract",
+            "topology-equivalence-contract",
             if view.produced_aspects().is_empty() {
                 view.dependency_aspects().to_vec()
             } else {
                 view.produced_aspects().to_vec()
             },
             payload,
-            "worth-topology-derived-equivalence-contract",
+            "topology-derived-equivalence-contract",
         ))
     }
 }
 
-pub fn worth_topology_diagnostics_computed_declaration(
+pub fn topology_diagnostics_computed_declaration(
     surface_name: impl Into<String>,
-) -> Result<ForgeQueryDerivedView, WorthQueryDeclarationError> {
-    WorthQueryComputedDeclarationBuilder::new(surface_name)
+) -> Result<ForgeQueryDerivedView, QueryDeclarationError> {
+    QueryComputedDeclarationBuilder::new(surface_name)
         .reads([
-            WorthQueryAspectPath::TOPOLOGY_STRUCTURE,
-            WorthQueryAspectPath::TOPOLOGY_OWNERSHIP,
-            WorthQueryAspectPath::TOPOLOGY_BOUNDARY,
-            WorthQueryAspectPath::TOPOLOGY_RADIAL,
-            WorthQueryAspectPath::NAMING_PERSISTENT_NAME,
-            WorthQueryAspectPath::DIAGNOSTICS_INTERPRETATIONS,
-            WorthQueryAspectPath::DIAGNOSTICS_DECISIONS,
+            QueryAspectPath::TOPOLOGY_STRUCTURE,
+            QueryAspectPath::TOPOLOGY_OWNERSHIP,
+            QueryAspectPath::TOPOLOGY_BOUNDARY,
+            QueryAspectPath::TOPOLOGY_RADIAL,
+            QueryAspectPath::NAMING_PERSISTENT_NAME,
+            QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS,
+            QueryAspectPath::DIAGNOSTICS_DECISIONS,
         ])
         .whole_refresh_fallback()
         .build()
 }
 
-pub fn worth_topology_equivalence_contract_computed_declaration(
+pub fn topology_equivalence_contract_computed_declaration(
     surface_name: impl Into<String>,
-) -> Result<ForgeQueryDerivedView, WorthQueryDeclarationError> {
-    WorthQueryComputedDeclarationBuilder::new(surface_name)
+) -> Result<ForgeQueryDerivedView, QueryDeclarationError> {
+    QueryComputedDeclarationBuilder::new(surface_name)
         .reads([
-            WorthQueryAspectPath::DIAGNOSTICS_INTERPRETATIONS,
-            WorthQueryAspectPath::DIAGNOSTICS_DECISIONS,
+            QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS,
+            QueryAspectPath::DIAGNOSTICS_DECISIONS,
         ])
         .whole_refresh_fallback()
         .build()
 }
 
-pub fn declare_worth_topology_diagnostics_surface<T, M, I, V>(
+pub fn declare_topology_diagnostics_surface<T, M, I, V>(
     workspace: &mut ForgeQueryWorkspace,
     surface_name: impl Into<String>,
     materialized_view: &ForgeQueryDerivedViewHandle<M>,
@@ -292,7 +292,7 @@ pub fn declare_worth_topology_diagnostics_surface<T, M, I, V>(
     validation_view: &ForgeQueryDerivedViewHandle<V>,
 ) -> Result<ForgeQueryDerivedViewHandle<T>, ForgeQueryRuntimeError> {
     let surface_name = surface_name.into();
-    let view = worth_topology_diagnostics_computed_declaration(surface_name)
+    let view = topology_diagnostics_computed_declaration(surface_name)
         .map_err(|error| {
             ForgeQueryRuntimeError::Workspace(ForgeQueryWorkspaceError::new(error.to_string()))
         })?
@@ -301,7 +301,7 @@ pub fn declare_worth_topology_diagnostics_surface<T, M, I, V>(
         .depends_on_derived_name(validation_view.name());
     workspace.computed_view(
         view,
-        WorthTopologyDiagnosticsMaintainer::new(
+        TopologyDiagnosticsMaintainer::new(
             materialized_view.name(),
             interpreted_view.name(),
             validation_view.name(),
@@ -309,20 +309,20 @@ pub fn declare_worth_topology_diagnostics_surface<T, M, I, V>(
     )
 }
 
-pub fn declare_worth_topology_equivalence_contract_surface<T, D>(
+pub fn declare_topology_equivalence_contract_surface<T, D>(
     workspace: &mut ForgeQueryWorkspace,
     surface_name: impl Into<String>,
     diagnostics_view: &ForgeQueryDerivedViewHandle<D>,
 ) -> Result<ForgeQueryDerivedViewHandle<T>, ForgeQueryRuntimeError> {
     let surface_name = surface_name.into();
-    let view = worth_topology_equivalence_contract_computed_declaration(surface_name)
+    let view = topology_equivalence_contract_computed_declaration(surface_name)
         .map_err(|error| {
             ForgeQueryRuntimeError::Workspace(ForgeQueryWorkspaceError::new(error.to_string()))
         })?
         .depends_on_derived_name(diagnostics_view.name());
     workspace.computed_view(
         view,
-        WorthTopologyEquivalenceContractMaintainer::new(diagnostics_view.name()),
+        TopologyEquivalenceContractMaintainer::new(diagnostics_view.name()),
     )
 }
 
@@ -331,8 +331,8 @@ pub fn derived_read_diagnostics_from_query_rows(
     materialized_rows: &[Value],
     interpreted_rows: &[Value],
     validation_rows: &[Value],
-) -> Result<WorthDerivedReadDiagnostics, WorthTopologyQuerySurfaceError> {
-    let evidence = WorthTopologyQueryMutationEvidence::from_mutation(mutation)?;
+) -> Result<DerivedReadDiagnostics, TopologyQuerySurfaceError> {
+    let evidence = TopologyQueryMutationEvidence::from_mutation(mutation)?;
     let touched_aspects = evidence.touched_aspects()?;
     let materialized: MaterializedTopologyView =
         decode_single_computed_row(materialized_rows, "materialized topology")?;
@@ -341,7 +341,7 @@ pub fn derived_read_diagnostics_from_query_rows(
     let validation: DerivedTopologyValidationReport =
         decode_single_computed_row(validation_rows, "topology validation")?;
 
-    Ok(WorthDerivedReadDiagnostics {
+    Ok(DerivedReadDiagnostics {
         invalidation_report: build_derived_invalidation_report_from_aspects(
             touched_aspects.iter().copied(),
         ),
@@ -376,8 +376,8 @@ pub fn derived_read_diagnostics_from_query_rows(
 
 pub fn equivalence_contract_from_diagnostics_rows(
     diagnostics_rows: &[Value],
-) -> Result<WorthDerivedEquivalenceContractReport, WorthTopologyQuerySurfaceError> {
-    let diagnostics: WorthDerivedReadDiagnostics =
+) -> Result<DerivedEquivalenceContractReport, TopologyQuerySurfaceError> {
+    let diagnostics: DerivedReadDiagnostics =
         decode_single_computed_row(diagnostics_rows, "derived read diagnostics")?;
     Ok(diagnostics.equivalence_contract_report)
 }

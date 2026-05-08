@@ -12,29 +12,29 @@ use forge_relational::facade::transactions::{
 };
 use forge_runtime_bridge::facade::RuntimeBridge;
 
+mod command_lowering;
 mod patch_matching;
 mod write_lowering;
 
-use self::write_lowering::{
-    lower_topology_entity_insert, lower_topology_relation_insert, lower_write_command,
-};
+use self::command_lowering::lower_write_command;
+use self::write_lowering::{lower_topology_entity_insert, lower_topology_relation_insert};
 use super::write_support::{
     aspect_map, mutation_deltas_from_commit, mutation_deltas_from_patch_records,
     parse_entity_identity, parse_relation_identity, write_command_label,
 };
-use super::WorthTopologyRuntimeBinding;
+use super::TopologyRuntimeBinding;
 
-pub(crate) struct WorthTopologyRuntimeWriteAuthority {
-    binding: WorthTopologyRuntimeBinding,
+pub(crate) struct TopologyRuntimeWriteAuthority {
+    binding: TopologyRuntimeBinding,
 }
 
-impl WorthTopologyRuntimeWriteAuthority {
-    pub(crate) fn new(binding: WorthTopologyRuntimeBinding) -> Self {
+impl TopologyRuntimeWriteAuthority {
+    pub(crate) fn new(binding: TopologyRuntimeBinding) -> Self {
         Self { binding }
     }
 }
 
-impl ForgeQueryRuntimeWriteAuthorityAdapter for WorthTopologyRuntimeWriteAuthority {
+impl ForgeQueryRuntimeWriteAuthorityAdapter for TopologyRuntimeWriteAuthority {
     fn write(
         &mut self,
         _bridge: &RuntimeBridge,
@@ -56,7 +56,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for WorthTopologyRuntimeWriteAuthori
                 ..
             } => self.write_delete_existing(binding, touched_aspect_paths),
             other => Err(ForgeQueryWorkspaceError::new(format!(
-                "worth topology production runtime current-head slice does not admit `{}` write command yet",
+                "topology production runtime current-head slice does not admit `{}` write command yet",
                 write_command_label(&other)
             ))),
         }
@@ -83,19 +83,19 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for WorthTopologyRuntimeWriteAuthori
             let runtime_handle = self.runtime()?;
             let mut runtime = runtime_handle
                 .write()
-                .expect("worth topology runtime write authority lock poisoned");
+                .expect("topology runtime write authority lock poisoned");
             let mut tx = runtime.begin_transaction(TransactionOptions::default());
             let batch = lowered
                 .iter()
                 .flat_map(|command| command.intents.iter().cloned())
                 .fold(
-                    WorkerIntentBatch::new("worth-query-runtime-atomic-batch"),
+                    WorkerIntentBatch::new("query-runtime-atomic-batch"),
                     |batch, intent| batch.push(intent),
                 );
             tx.push_batch(batch);
             tx.commit().map_err(|error| {
                 ForgeQueryWorkspaceError::new(format!(
-                    "worth topology production runtime write commit failed: {error:?}"
+                    "topology production runtime write commit failed: {error:?}"
                 ))
             })?
         };
@@ -119,7 +119,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for WorthTopologyRuntimeWriteAuthori
                 );
                 if matched_indexes.len() != command.expected_observable_patch_count {
                     return Err(ForgeQueryWorkspaceError::new(format!(
-                        "worth topology production runtime expected {} observable patch records for `{}`, observed {}",
+                        "topology production runtime expected {} observable patch records for `{}`, observed {}",
                         command.expected_observable_patch_count,
                         command.batch_label,
                         matched_indexes.len(),
@@ -141,7 +141,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for WorthTopologyRuntimeWriteAuthori
                 )
                 .map_err(|error| {
                     ForgeQueryWorkspaceError::new(format!(
-                        "worth topology production runtime could not derive observable query deltas for `{}`: {}",
+                        "topology production runtime could not derive observable query deltas for `{}`: {}",
                         command.batch_label, error
                     ))
                 })?;
@@ -156,7 +156,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for WorthTopologyRuntimeWriteAuthori
     }
 }
 
-impl WorthTopologyRuntimeWriteAuthority {
+impl TopologyRuntimeWriteAuthority {
     fn runtime(
         &self,
     ) -> Result<
@@ -165,7 +165,7 @@ impl WorthTopologyRuntimeWriteAuthority {
     > {
         self.binding.runtime().ok_or_else(|| {
             ForgeQueryWorkspaceError::new(
-                "worth topology snapshot certification runtime is read-only and does not admit authoritative writes",
+                "topology snapshot certification runtime is read-only and does not admit authoritative writes",
             )
         })
     }
@@ -182,13 +182,13 @@ impl WorthTopologyRuntimeWriteAuthority {
             .map(|aspect| aspect.aspect_path().to_string())
             .collect::<Vec<_>>();
         let intents = match collection.as_str() {
-            "WorthTopologyEntity" => lower_topology_entity_insert(&runtime, &aspect_map)?.0,
-            "WorthTopologyRelation" => vec![MutationIntent::Create(CreateIntent::Relation(
+            "TopologyEntity" => lower_topology_entity_insert(&runtime, &aspect_map)?.0,
+            "TopologyRelation" => vec![MutationIntent::Create(CreateIntent::Relation(
                 lower_topology_relation_insert(&runtime, &aspect_map, &[], &BTreeMap::new())?,
             ))],
             other => {
                 return Err(ForgeQueryWorkspaceError::new(format!(
-                    "worth topology production runtime does not admit insert collection `{other}`"
+                    "topology production runtime does not admit insert collection `{other}`"
                 )))
             }
         };
@@ -197,16 +197,16 @@ impl WorthTopologyRuntimeWriteAuthority {
             let runtime_handle = self.runtime()?;
             let mut runtime = runtime_handle
                 .write()
-                .expect("worth topology runtime write authority lock poisoned");
+                .expect("topology runtime write authority lock poisoned");
             let mut tx = runtime.begin_transaction(TransactionOptions::default());
             let batch = intents.into_iter().fold(
-                WorkerIntentBatch::new("worth-query-runtime-insert"),
+                WorkerIntentBatch::new("query-runtime-insert"),
                 |batch, intent| batch.push(intent),
             );
             tx.push_batch(batch);
             tx.commit().map_err(|error| {
                 ForgeQueryWorkspaceError::new(format!(
-                    "worth topology production runtime write commit failed: {error:?}"
+                    "topology production runtime write commit failed: {error:?}"
                 ))
             })?
         };
@@ -235,24 +235,24 @@ impl WorthTopologyRuntimeWriteAuthority {
             .target_collection()
             .ok_or_else(|| {
                 ForgeQueryWorkspaceError::new(
-                    "worth topology production runtime delete requires a declared target collection",
+                    "topology production runtime delete requires a declared target collection",
                 )
             })?
             .to_string();
         let intent = match collection.as_str() {
-            "WorthTopologyEntity" => {
+            "TopologyEntity" => {
                 MutationIntent::Entity(EntityMutationIntent::Delete(DeleteEntityIntent {
                     entity_id: parse_entity_identity(binding.resolved_target_identity())?,
                 }))
             }
-            "WorthTopologyRelation" => {
+            "TopologyRelation" => {
                 MutationIntent::Relation(RelationMutationIntent::Delete(DeleteRelationIntent {
                     relation_id: parse_relation_identity(binding.resolved_target_identity())?,
                 }))
             }
             other => {
                 return Err(ForgeQueryWorkspaceError::new(format!(
-                    "worth topology production runtime does not admit delete collection `{other}`"
+                    "topology production runtime does not admit delete collection `{other}`"
                 )))
             }
         };
@@ -261,12 +261,12 @@ impl WorthTopologyRuntimeWriteAuthority {
             let runtime_handle = self.runtime()?;
             let mut runtime = runtime_handle
                 .write()
-                .expect("worth topology runtime write authority lock poisoned");
+                .expect("topology runtime write authority lock poisoned");
             let mut tx = runtime.begin_transaction(TransactionOptions::default());
-            tx.push_batch(WorkerIntentBatch::new("worth-query-runtime-delete").push(intent));
+            tx.push_batch(WorkerIntentBatch::new("query-runtime-delete").push(intent));
             tx.commit().map_err(|error| {
                 ForgeQueryWorkspaceError::new(format!(
-                    "worth topology production runtime delete commit failed: {error:?}"
+                    "topology production runtime delete commit failed: {error:?}"
                 ))
             })?
         };
@@ -312,16 +312,16 @@ impl WorthTopologyRuntimeWriteAuthority {
             let runtime_handle = self.runtime()?;
             let mut runtime = runtime_handle
                 .write()
-                .expect("worth topology runtime write authority lock poisoned");
+                .expect("topology runtime write authority lock poisoned");
             let mut tx = runtime.begin_transaction(TransactionOptions::default());
             let batch = lowered.intents.into_iter().fold(
-                WorkerIntentBatch::new("worth-query-runtime-update"),
+                WorkerIntentBatch::new("query-runtime-update"),
                 |batch, intent| batch.push(intent),
             );
             tx.push_batch(batch);
             tx.commit().map_err(|error| {
                 ForgeQueryWorkspaceError::new(format!(
-                    "worth topology production runtime update commit failed: {error:?}"
+                    "topology production runtime update commit failed: {error:?}"
                 ))
             })?
         };
@@ -330,7 +330,7 @@ impl WorthTopologyRuntimeWriteAuthority {
             &runtime,
             &commit,
             &declared_aspect_paths,
-            Some("WorthTopologyRelation"),
+            Some("TopologyRelation"),
         )?;
         Ok(ForgeQueryMutationReceipt {
             commit_identity: format!("commit-{}", commit.envelope().commit.commit_id.0),

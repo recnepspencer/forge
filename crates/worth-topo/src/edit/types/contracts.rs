@@ -1,62 +1,60 @@
 use std::collections::BTreeSet;
 
 use forge_relational::facade::identity::{EntityId, RelationId};
-use serde::{Deserialize, Serialize};
-use worth_schema::facade::{
-    WorthAspect, WorthCreateKey, WorthEntityReference, WorthMutationOrigin,
-    WorthTopologyEntityKind, WorthTopologyMutation,
+use schema::facade::{
+    Aspect, CreateKey, EntityReference, MutationOrigin, TopologyEntityKind, TopologyMutation,
 };
+use serde::{Deserialize, Serialize};
 
 use super::{
-    WorthBoundaryMembershipKind, WorthLoopEndpointKind, WorthLoopSuccessorKind,
-    WorthShellOrWireMembershipKind, WorthTopologyDerivedRegion, WorthTopologyEditChangedScope,
-    WorthTopologyEditFamily, WorthTopologyEditNamingOutcome, WorthTopologyEditNamingReport,
-    WorthTopologyEditNamingRow, WorthTopologyEditNamingScope,
+    BoundaryMembershipKind, LoopEndpointKind, LoopSuccessorKind, ShellOrWireMembershipKind,
+    TopologyDerivedRegion, TopologyEditChangedScope, TopologyEditFamily, TopologyEditNamingOutcome,
+    TopologyEditNamingReport, TopologyEditNamingRow, TopologyEditNamingScope,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum WorthTopologyEditAction {
+pub enum TopologyEditAction {
     CreateTopologyEntity {
-        create_key: WorthCreateKey,
-        kind: WorthTopologyEntityKind,
-        persistent_name_key: WorthCreateKey,
-        persistent_name_relation_key: WorthCreateKey,
+        create_key: CreateKey,
+        kind: TopologyEntityKind,
+        persistent_name_key: CreateKey,
+        persistent_name_relation_key: CreateKey,
     },
     RetireTopologyEntity {
         entity_id: EntityId,
-        kind: WorthTopologyEntityKind,
+        kind: TopologyEntityKind,
     },
     AttachBoundaryMembership {
-        create_key: WorthCreateKey,
-        kind: WorthBoundaryMembershipKind,
-        owner: WorthEntityReference,
-        member: WorthEntityReference,
+        create_key: CreateKey,
+        kind: BoundaryMembershipKind,
+        owner: EntityReference,
+        member: EntityReference,
     },
     DetachBoundaryMembership {
         relation_id: RelationId,
-        kind: WorthBoundaryMembershipKind,
+        kind: BoundaryMembershipKind,
     },
     RewireLoopSuccessor {
         relation_id: RelationId,
-        kind: WorthLoopSuccessorKind,
+        kind: LoopSuccessorKind,
         half_edge_id: EntityId,
         successor_half_edge_id: EntityId,
     },
     RewireLoopEndpoint {
         relation_id: RelationId,
-        endpoint: WorthLoopEndpointKind,
+        endpoint: LoopEndpointKind,
         half_edge_id: EntityId,
         vertex_id: EntityId,
     },
     AttachShellOrWireMembership {
-        create_key: WorthCreateKey,
-        kind: WorthShellOrWireMembershipKind,
-        owner: WorthEntityReference,
-        member: WorthEntityReference,
+        create_key: CreateKey,
+        kind: ShellOrWireMembershipKind,
+        owner: EntityReference,
+        member: EntityReference,
     },
     DetachShellOrWireMembership {
         relation_id: RelationId,
-        kind: WorthShellOrWireMembershipKind,
+        kind: ShellOrWireMembershipKind,
     },
     SpliceRadialAdjacency {
         relation_id: RelationId,
@@ -69,87 +67,87 @@ pub enum WorthTopologyEditAction {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthTopologyEditContract {
-    pub family: WorthTopologyEditFamily,
-    pub action: WorthTopologyEditAction,
-    pub touched_aspects: BTreeSet<WorthAspect>,
-    pub changed_scopes: Vec<WorthTopologyEditChangedScope>,
-    pub naming_scopes: Vec<WorthTopologyEditNamingScope>,
-    pub derived_regions: Vec<WorthTopologyDerivedRegion>,
-    pub lowered_mutations: Vec<WorthTopologyMutation>,
+pub struct TopologyEditContract {
+    pub family: TopologyEditFamily,
+    pub action: TopologyEditAction,
+    pub touched_aspects: BTreeSet<Aspect>,
+    pub changed_scopes: Vec<TopologyEditChangedScope>,
+    pub naming_scopes: Vec<TopologyEditNamingScope>,
+    pub derived_regions: Vec<TopologyDerivedRegion>,
+    pub lowered_mutations: Vec<TopologyMutation>,
 }
 
-impl WorthTopologyEditContract {
+impl TopologyEditContract {
     pub fn mutation_origin_for(
-        mode: &super::super::facade::WorthTopologyEditApplicationMode,
-    ) -> WorthMutationOrigin {
+        mode: &super::super::facade::TopologyEditApplicationMode,
+    ) -> MutationOrigin {
         match mode {
-            super::super::facade::WorthTopologyEditApplicationMode::Mainline => {
-                WorthMutationOrigin::LocalEdit
+            super::super::facade::TopologyEditApplicationMode::Mainline => {
+                MutationOrigin::LocalEdit
             }
-            super::super::facade::WorthTopologyEditApplicationMode::BranchLocal(_) => {
-                WorthMutationOrigin::BranchLocalApplication
+            super::super::facade::TopologyEditApplicationMode::BranchLocal(_) => {
+                MutationOrigin::BranchLocalApplication
             }
         }
     }
 
-    pub fn touched_aspects(&self) -> &BTreeSet<WorthAspect> {
+    pub fn touched_aspects(&self) -> &BTreeSet<Aspect> {
         &self.touched_aspects
     }
 
-    pub fn changed_scopes(&self) -> &[WorthTopologyEditChangedScope] {
+    pub fn changed_scopes(&self) -> &[TopologyEditChangedScope] {
         &self.changed_scopes
     }
 
-    pub fn naming_scopes(&self) -> &[WorthTopologyEditNamingScope] {
+    pub fn naming_scopes(&self) -> &[TopologyEditNamingScope] {
         &self.naming_scopes
     }
 
-    pub fn derived_regions(&self) -> &[WorthTopologyDerivedRegion] {
+    pub fn derived_regions(&self) -> &[TopologyDerivedRegion] {
         &self.derived_regions
     }
 
-    pub fn lowered_mutations(&self) -> &[WorthTopologyMutation] {
+    pub fn lowered_mutations(&self) -> &[TopologyMutation] {
         &self.lowered_mutations
     }
 
-    pub fn naming_report(&self) -> WorthTopologyEditNamingReport {
+    pub fn naming_report(&self) -> TopologyEditNamingReport {
         let rows = self
             .naming_scopes
             .iter()
             .copied()
             .map(|scope| match self.family {
-                WorthTopologyEditFamily::CreateTopologyEntity => WorthTopologyEditNamingRow {
+                TopologyEditFamily::CreateTopologyEntity => TopologyEditNamingRow {
                     family: self.family,
                     scope,
-                    outcome: WorthTopologyEditNamingOutcome::Preserved,
+                    outcome: TopologyEditNamingOutcome::Preserved,
                     reason: "new topology entity publishes with one attached persistent name".into(),
                 },
-                WorthTopologyEditFamily::RetireTopologyEntity => WorthTopologyEditNamingRow {
+                TopologyEditFamily::RetireTopologyEntity => TopologyEditNamingRow {
                     family: self.family,
                     scope,
-                    outcome: WorthTopologyEditNamingOutcome::Rejected,
+                    outcome: TopologyEditNamingOutcome::Rejected,
                     reason:
                         "retired topology entity does not preserve one canonical successor naming target"
                             .into(),
                 },
-                WorthTopologyEditFamily::AttachBoundaryMembership
-                | WorthTopologyEditFamily::DetachBoundaryMembership
-                | WorthTopologyEditFamily::RewireLoopSuccessor
-                | WorthTopologyEditFamily::RewireLoopEndpoint
-                | WorthTopologyEditFamily::AttachShellOrWireMembership
-                | WorthTopologyEditFamily::DetachShellOrWireMembership
-                | WorthTopologyEditFamily::SpliceRadialAdjacency
-                | WorthTopologyEditFamily::DetachRadialAdjacency => WorthTopologyEditNamingRow {
+                TopologyEditFamily::AttachBoundaryMembership
+                | TopologyEditFamily::DetachBoundaryMembership
+                | TopologyEditFamily::RewireLoopSuccessor
+                | TopologyEditFamily::RewireLoopEndpoint
+                | TopologyEditFamily::AttachShellOrWireMembership
+                | TopologyEditFamily::DetachShellOrWireMembership
+                | TopologyEditFamily::SpliceRadialAdjacency
+                | TopologyEditFamily::DetachRadialAdjacency => TopologyEditNamingRow {
                     family: self.family,
                     scope,
-                    outcome: WorthTopologyEditNamingOutcome::Ambiguous,
+                    outcome: TopologyEditNamingOutcome::Ambiguous,
                     reason:
                         "topology neighborhood changed without a declared canonical continuity mapping"
                             .into(),
                 },
             })
             .collect();
-        WorthTopologyEditNamingReport { rows }
+        TopologyEditNamingReport { rows }
     }
 }

@@ -9,8 +9,8 @@ use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
 use forge_relational::facade::publication::{PatchRecord, RecordStructuralChange};
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::{CommitResult, RecordRef};
+use schema::facade::{EntityKind, NamingEntityKind, RelationKind};
 use serde_json::Value;
-use worth_schema::facade::{WorthEntityKind, WorthNamingEntityKind, WorthRelationKind};
 
 pub(super) fn mutation_deltas_from_commit(
     runtime: &Arc<RwLock<RelationalRuntime>>,
@@ -36,7 +36,7 @@ pub(super) fn mutation_deltas_from_patch_records(
 ) -> Result<Vec<ForgeQueryMutationDelta>, ForgeQueryWorkspaceError> {
     let runtime = runtime
         .read()
-        .expect("worth topology runtime write authority lock poisoned");
+        .expect("topology runtime write authority lock poisoned");
     let mut deltas = Vec::new();
     for record in patch_records {
         let Some(collection) = target_collection_for_patch(&runtime, version_id, &record.target)
@@ -53,7 +53,7 @@ pub(super) fn mutation_deltas_from_patch_records(
     }
     if deltas.is_empty() {
         return Err(ForgeQueryWorkspaceError::new(
-            "worth topology production runtime write produced no observable query deltas",
+            "topology production runtime write produced no observable query deltas",
         ));
     }
     Ok(deltas)
@@ -76,7 +76,7 @@ pub(super) fn required_text(
         .map(str::to_string)
         .ok_or_else(|| {
             ForgeQueryWorkspaceError::new(format!(
-                "worth topology production runtime requires string aspect `{key}`"
+                "topology production runtime requires string aspect `{key}`"
             ))
         })
 }
@@ -90,7 +90,7 @@ pub(super) fn parse_entity_identity(identity: &str) -> Result<EntityId, ForgeQue
     let kind = parts.next().unwrap_or_default();
     if kind != "entity" {
         return Err(ForgeQueryWorkspaceError::new(format!(
-            "worth topology production runtime expected entity identity, got `{identity}`"
+            "topology production runtime expected entity identity, got `{identity}`"
         )));
     }
     let partition_id = parts
@@ -127,7 +127,7 @@ pub(super) fn parse_relation_identity(
     let kind = parts.next().unwrap_or_default();
     if kind != "relation" {
         return Err(ForgeQueryWorkspaceError::new(format!(
-            "worth topology production runtime expected relation identity, got `{identity}`"
+            "topology production runtime expected relation identity, got `{identity}`"
         )));
     }
     let partition_id = parts
@@ -164,14 +164,14 @@ pub(super) fn ensure_live_entity_exists(
 ) -> Result<(), ForgeQueryWorkspaceError> {
     let runtime = runtime
         .read()
-        .expect("worth topology runtime write authority lock poisoned");
+        .expect("topology runtime write authority lock poisoned");
     let version_id = runtime
         .publication()
         .latest_bundle()
         .map(|bundle| bundle.commit.version_id)
         .ok_or_else(|| {
             ForgeQueryWorkspaceError::new(format!(
-                "worth topology production runtime requires current-head truth before `{label}` relation endpoint resolution"
+                "topology production runtime requires current-head truth before `{label}` relation endpoint resolution"
             ))
         })?;
     if runtime
@@ -181,7 +181,7 @@ pub(super) fn ensure_live_entity_exists(
         .is_none()
     {
         return Err(ForgeQueryWorkspaceError::new(format!(
-            "worth topology production runtime relation `{label}` endpoint `{entity_id:?}` does not exist in current-head truth"
+            "topology production runtime relation `{label}` endpoint `{entity_id:?}` does not exist in current-head truth"
         )));
     }
     Ok(())
@@ -193,7 +193,7 @@ pub(super) fn live_entity_label_exists(
 ) -> bool {
     let runtime = runtime
         .read()
-        .expect("worth topology runtime write authority lock poisoned");
+        .expect("topology runtime write authority lock poisoned");
     let Some(version_id) = runtime
         .publication()
         .latest_bundle()
@@ -202,7 +202,7 @@ pub(super) fn live_entity_label_exists(
         return false;
     };
     let projection = runtime.read_truth().project_version(version_id);
-    WorthEntityKind::ALL.into_iter().any(|kind| {
+    EntityKind::ALL.into_iter().any(|kind| {
         projection
             .entity_records(kind.kind_id())
             .into_iter()
@@ -248,19 +248,19 @@ pub(super) fn target_collection_for_patch(
     match target {
         RecordRef::Entity(entity_id) => {
             let record = projection.entity_record(*entity_id)?;
-            let kind = WorthEntityKind::from_kind_id(record.kind.kind_id)?;
+            let kind = EntityKind::from_kind_id(record.kind.kind_id)?;
             if kind.is_topological() {
-                Some("WorthTopologyEntity".to_string())
-            } else if kind == WorthEntityKind::Naming(WorthNamingEntityKind::PersistentName) {
-                Some("WorthPersistentName".to_string())
+                Some("TopologyEntity".to_string())
+            } else if kind == EntityKind::Naming(NamingEntityKind::PersistentName) {
+                Some("PersistentName".to_string())
             } else {
                 None
             }
         }
         RecordRef::Relation(relation_id) => {
             let record = projection.relation_record(*relation_id)?;
-            match WorthRelationKind::from_kind_id(record.kind.kind_id)? {
-                WorthRelationKind::Topology(_) => Some("WorthTopologyRelation".to_string()),
+            match RelationKind::from_kind_id(record.kind.kind_id)? {
+                RelationKind::Topology(_) => Some("TopologyRelation".to_string()),
                 _ => None,
             }
         }

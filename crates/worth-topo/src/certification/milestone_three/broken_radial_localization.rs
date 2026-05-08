@@ -1,49 +1,48 @@
-use forge_query::facade::ForgeQueryWorkspace;
 use forge_relational::facade::runtime::RelationalRuntime;
-use worth_schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase,
-};
-use worth_schema::facade::WorthTopologyRelationKind;
+use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
+use schema::facade::TopologyRelationKind;
+use serde_json::Value;
 
 use super::report::{
-    WorthMilestoneThreeBrokenRadialWitness, WorthMilestoneThreeHostileOutcomeClass,
-    WorthMilestoneThreeHostileScenario, WorthMilestoneThreeHostileScenarioReport,
+    MilestoneThreeBrokenRadialWitness, MilestoneThreeHostileOutcomeClass,
+    MilestoneThreeHostileScenario, MilestoneThreeHostileScenarioReport,
 };
 use super::shared::{
     accepted_step_row, aggregate_naming_edit_continuity_matrix, aggregate_topology_edit_digest,
-    rejected_step_row, replay_checked, replay_checked_rejected,
+    entity_id_from_query_identity, first_source_identity_for_relation_kind, rejected_step_row,
+    relation_id_from_query_identity, replay_checked, replay_checked_rejected,
 };
-use crate::certification::error::WorthTopologyCertificationError;
+use crate::certification::error::TopologyCertificationError;
 use crate::certification::shared::primitive_family_name;
 use crate::edit::{
-    WorthTopologyEditApplicationMode, WorthTopologyEditBatch, WorthTopologyEditContract,
-    WorthTopologyEditDigest, WorthTopologyEditFamily, WorthTopologyEditRejectionClass,
+    TopologyEditApplicationMode, TopologyEditBatch, TopologyEditContract, TopologyEditDigest,
+    TopologyEditFamily, TopologyEditRejectionClass,
 };
 use crate::parity::digest_materialized_topology_view;
 use crate::query::{
-    worth_topology_runtime, WorthTopologyDomainQuery, WorthTopologyQueryAssembly,
-    WorthTopologyRuntimeAdapters,
+    topology_runtime, TopologyDomainQuery, TopologyHalfEdgeSharedVertexNeighborhoodView,
+    TopologyQueryAssembly, TopologyRuntimeAdapters,
 };
 
-struct WorthMilestoneThreeBrokenRadialRun {
+struct MilestoneThreeBrokenRadialRun {
     primitive_family: String,
-    primitive: WorthMilestoneOnePrimitiveCase,
-    topology_edit_digest: WorthTopologyEditDigest,
-    naming_edit_continuity_matrix: crate::edit::WorthNamingEditContinuityMatrix,
-    step_rows: Vec<super::report::WorthMilestoneThreeEditReplayStepRow>,
-    baseline_materialized_topology_digest: crate::certification::WorthDeterministicDigest,
-    final_materialized_topology_digest: Option<crate::certification::WorthDeterministicDigest>,
-    outcome_class: WorthMilestoneThreeHostileOutcomeClass,
-    rejection_class: Option<WorthTopologyEditRejectionClass>,
-    rejected_edit_scope_report: Option<crate::edit::WorthRejectedEditScopeReport>,
-    witness: WorthMilestoneThreeBrokenRadialWitness,
+    primitive: MilestoneOnePrimitiveCase,
+    topology_edit_digest: TopologyEditDigest,
+    naming_edit_continuity_matrix: crate::edit::NamingEditContinuityMatrix,
+    step_rows: Vec<super::report::MilestoneThreeEditReplayStepRow>,
+    baseline_materialized_topology_digest: crate::certification::DeterministicDigest,
+    final_materialized_topology_digest: Option<crate::certification::DeterministicDigest>,
+    outcome_class: MilestoneThreeHostileOutcomeClass,
+    rejection_class: Option<TopologyEditRejectionClass>,
+    rejected_edit_scope_report: Option<crate::edit::RejectedEditScopeReport>,
+    witness: MilestoneThreeBrokenRadialWitness,
     detail: String,
 }
 
 pub(crate) fn certify_milestone_three_broken_radial_localization_impl<F>(
     mut runtime_factory: F,
     stem: &str,
-) -> Result<WorthMilestoneThreeHostileScenarioReport, WorthTopologyCertificationError>
+) -> Result<MilestoneThreeHostileScenarioReport, TopologyCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
 {
@@ -56,7 +55,7 @@ where
             replay.final_materialized_topology_digest.clone(),
         ) {
             (
-                WorthMilestoneThreeHostileOutcomeClass::Accepted,
+                MilestoneThreeHostileOutcomeClass::Accepted,
                 Some(final_materialized_topology_digest),
                 Some(replay_final_materialized_topology_digest),
             ) => replay_checked(
@@ -66,24 +65,25 @@ where
                 final_materialized_topology_digest,
                 replay_final_materialized_topology_digest,
             ),
-            (WorthMilestoneThreeHostileOutcomeClass::Rejected, _, _) => replay_checked_rejected(
+            (MilestoneThreeHostileOutcomeClass::Rejected, _, _) => replay_checked_rejected(
                 left.step_rows.clone(),
                 replay.step_rows.clone(),
                 left.baseline_materialized_topology_digest.clone(),
             ),
-            _ => return Err(WorthTopologyCertificationError::Query(
+            _ => return Err(TopologyCertificationError::Query(
                 "broken radial localization replay should preserve an honest final digest basis"
                     .to_string(),
             )),
         };
 
-    Ok(WorthMilestoneThreeHostileScenarioReport {
-        scenario: WorthMilestoneThreeHostileScenario::BrokenRadialLocalization,
+    Ok(MilestoneThreeHostileScenarioReport {
+        scenario: MilestoneThreeHostileScenario::BrokenRadialLocalization,
         primitive_family: left.primitive_family,
         primitive: left.primitive,
-        edit_families: vec![WorthTopologyEditFamily::SpliceRadialAdjacency],
+        edit_families: vec![TopologyEditFamily::SpliceRadialAdjacency],
         bowtie_adjacent_witness: None,
         ambiguous_local_rewire_witness: None,
+        split_collapse_churn_witness: None,
         broken_radial_witness: Some(left.witness),
         topology_edit_digest: left.topology_edit_digest,
         naming_edit_continuity_matrix: left.naming_edit_continuity_matrix.clone(),
@@ -100,11 +100,11 @@ where
 fn execute_broken_radial_localization<F>(
     runtime_factory: &mut F,
     stem: &str,
-) -> Result<WorthMilestoneThreeBrokenRadialRun, WorthTopologyCertificationError>
+) -> Result<MilestoneThreeBrokenRadialRun, TopologyCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
 {
-    let primitive = WorthMilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 };
+    let primitive = MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 };
     let primitive_family = primitive_family_name(&primitive).to_string();
     let mut runtime = runtime_factory();
     let verified = seed_milestone_one_primitive(
@@ -112,62 +112,57 @@ where
         &format!("{stem}.broken_radial_localization"),
         &primitive,
     )?;
-    let adapters = WorthTopologyRuntimeAdapters::current_head(runtime);
-    let mut workspace = worth_topology_runtime(
+    let adapters = TopologyRuntimeAdapters::current_head(runtime);
+    let mut workspace = topology_runtime(
         adapters,
         &format!("{stem}.broken_radial_localization.runtime"),
     )
-    .map_err(|error| WorthTopologyCertificationError::Query(error.to_string()))?;
-    let assembly = WorthTopologyQueryAssembly::declare(&mut workspace)
-        .map_err(|error| WorthTopologyCertificationError::Query(error.to_string()))?;
+    .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    let assembly = TopologyQueryAssembly::declare(&mut workspace)
+        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_snapshot = assembly
         .snapshot_for_read_basis(&mut workspace, &verified.read_basis)
-        .map_err(|error| WorthTopologyCertificationError::Query(error.to_string()))?;
+        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
     let baseline_materialized_topology_digest =
         digest_materialized_topology_view(&baseline_snapshot.materialized);
-    let domain_query = WorthTopologyDomainQuery::load(&workspace, &assembly)
-        .map_err(|error| WorthTopologyCertificationError::Query(error.to_string()))?;
-    let source_identity = domain_query
-        .first_source_identity_for_relation_kind(WorthTopologyRelationKind::HalfEdgeRadialNext)
-        .map_err(|error| WorthTopologyCertificationError::Query(error.to_string()))?;
-    let current_target_identity = domain_query
-        .outgoing_target_identity(
-            &source_identity,
-            WorthTopologyRelationKind::HalfEdgeRadialNext,
-        )
-        .map_err(|error| WorthTopologyCertificationError::Query(error.to_string()))?;
-    let source_half_edge_id = domain_query
-        .find_entity_id_by_identity(&source_identity)
-        .map_err(|error| WorthTopologyCertificationError::Query(error.to_string()))?;
-    let witness = build_broken_radial_witness(&domain_query, &mut workspace, &source_identity)?;
-    let illegal_target_half_edge_id = domain_query
-        .find_entity_id_by_identity(&witness.illegal_target_half_edge_identity)
-        .map_err(|error| WorthTopologyCertificationError::Query(error.to_string()))?;
-    let batch =
-        WorthTopologyEditBatch::new(vec![WorthTopologyEditContract::splice_radial_adjacency(
-            domain_query
-                .relation_id_for_source_kind(
-                    &source_identity,
-                    WorthTopologyRelationKind::HalfEdgeRadialNext,
-                )
-                .map_err(|error| WorthTopologyCertificationError::Query(error.to_string()))?,
-            source_half_edge_id,
-            illegal_target_half_edge_id,
-        )])
-        .expect("broken radial localization batch should be non-empty");
+    let domain_query = TopologyDomainQuery::load();
+    let relation_rows = workspace.read::<Value>(assembly.relations());
+    let source_identity = first_source_identity_for_relation_kind(
+        &relation_rows,
+        TopologyRelationKind::HalfEdgeRadialNext,
+    )?;
+    let source_half_edge_id = entity_id_from_query_identity(&source_identity)?;
+    let radial = domain_query
+        .radial_half_edge_neighborhood(&mut workspace, &source_identity)
+        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    let shared_vertex = domain_query
+        .shared_vertex_half_edge_neighborhood(&mut workspace, &source_identity)
+        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    let current_target_identity = radial.current_target_half_edge_identity().to_string();
+    let source_radial_next_relation_identity =
+        radial.source_radial_next_relation_identity().to_string();
+    let witness = build_broken_radial_witness(radial, shared_vertex)?;
+    let illegal_target_half_edge_id =
+        entity_id_from_query_identity(&witness.illegal_target_half_edge_identity)?;
+    let batch = TopologyEditBatch::new(vec![TopologyEditContract::splice_radial_adjacency(
+        relation_id_from_query_identity(&source_radial_next_relation_identity)?,
+        source_half_edge_id,
+        illegal_target_half_edge_id,
+    )])
+    .expect("broken radial localization batch should be non-empty");
     let batches = vec![batch.clone()];
 
     match assembly.apply_edit(
         &mut workspace,
         batch.clone(),
-        WorthTopologyEditApplicationMode::Mainline,
+        TopologyEditApplicationMode::Mainline,
     ) {
         Ok(execution) => {
             let detail = format!(
                 "radial splice from `{source_identity}` to illegal target `{}` unexpectedly admitted from current target `{current_target_identity}`",
                 witness.illegal_target_half_edge_identity
             );
-            Ok(WorthMilestoneThreeBrokenRadialRun {
+            Ok(MilestoneThreeBrokenRadialRun {
                 primitive_family,
                 primitive,
                 topology_edit_digest: aggregate_topology_edit_digest(&batches),
@@ -177,14 +172,14 @@ where
                 final_materialized_topology_digest: Some(digest_materialized_topology_view(
                     &execution.materialized,
                 )),
-                outcome_class: WorthMilestoneThreeHostileOutcomeClass::Accepted,
+                outcome_class: MilestoneThreeHostileOutcomeClass::Accepted,
                 rejection_class: None,
                 rejected_edit_scope_report: None,
                 witness,
                 detail,
             })
         }
-        Err(error) => Ok(WorthMilestoneThreeBrokenRadialRun {
+        Err(error) => Ok(MilestoneThreeBrokenRadialRun {
             primitive_family,
             primitive,
             topology_edit_digest: aggregate_topology_edit_digest(&batches),
@@ -192,7 +187,7 @@ where
             step_rows: vec![rejected_step_row(0, &batch, &error)],
             baseline_materialized_topology_digest,
             final_materialized_topology_digest: None,
-            outcome_class: WorthMilestoneThreeHostileOutcomeClass::Rejected,
+            outcome_class: MilestoneThreeHostileOutcomeClass::Rejected,
             rejection_class: error.rejection_class(),
             rejected_edit_scope_report: error.rejected_edit_scope_report(&batch),
             witness,
@@ -202,29 +197,25 @@ where
 }
 
 fn build_broken_radial_witness(
-    domain_query: &WorthTopologyDomainQuery,
-    workspace: &mut ForgeQueryWorkspace,
-    source_identity: &str,
-) -> Result<WorthMilestoneThreeBrokenRadialWitness, WorthTopologyCertificationError> {
-    let radial = domain_query
-        .radial_half_edge_neighborhood(workspace, source_identity)
-        .map_err(|error| WorthTopologyCertificationError::Query(error.to_string()))?;
-    let illegal_target_half_edge_identity = radial
-        .different_edge_half_edge_identities
-        .into_iter()
-        .find(|identity| identity != &radial.current_target_half_edge_identity)
+    radial: crate::query::TopologyHalfEdgeRadialNeighborhoodView,
+    shared_vertex: TopologyHalfEdgeSharedVertexNeighborhoodView,
+) -> Result<MilestoneThreeBrokenRadialWitness, TopologyCertificationError> {
+    let illegal_target = shared_vertex
+        .vertex_adjacent_different_edge_half_edges()
+        .iter()
+        .find(|candidate| {
+            candidate.half_edge_identity() != radial.current_target_half_edge_identity()
+        })
         .ok_or_else(|| {
-            WorthTopologyCertificationError::Query(
+            TopologyCertificationError::Query(
                 "seeded edge fan should expose an illegal radial target on a different edge"
                     .to_string(),
             )
         })?;
-    let illegal_target_edge_identity = domain_query
-        .edge_identity_of_half_edge(&illegal_target_half_edge_identity)
-        .map_err(|error| WorthTopologyCertificationError::Query(error.to_string()))?;
-
-    Ok(WorthMilestoneThreeBrokenRadialWitness {
-        source_half_edge_identity: source_identity.to_string(),
+    let illegal_target_half_edge_identity = illegal_target.half_edge_identity().to_string();
+    let illegal_target_edge_identity = illegal_target.edge_identity().to_string();
+    Ok(MilestoneThreeBrokenRadialWitness {
+        source_half_edge_identity: radial.source_half_edge_identity().to_string(),
         current_target_half_edge_identity: radial.current_target_half_edge_identity,
         illegal_target_half_edge_identity,
         source_edge_identity: radial.source_edge_identity,

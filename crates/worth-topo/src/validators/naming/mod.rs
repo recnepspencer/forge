@@ -2,36 +2,36 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use forge_relational::facade::identity::EntityId;
 use forge_relational::facade::runtime::RelationalReadView;
-use worth_schema::facade::{WorthEntityKind, WorthNamingRelationKind, WorthRelationKind};
+use schema::facade::{EntityKind, NamingRelationKind, RelationKind};
 
-use crate::validators::error::WorthTopologyValidationError;
+use crate::validators::error::TopologyValidationError;
 use crate::validators::shared::err;
 
 pub fn validate_named_topology_truth(
     read_view: &RelationalReadView,
-) -> Result<(), WorthTopologyValidationError> {
-    let entity_kind_map: BTreeMap<EntityId, WorthEntityKind> = read_view
+) -> Result<(), TopologyValidationError> {
+    let entity_kind_map: BTreeMap<EntityId, EntityKind> = read_view
         .entities()
         .iter()
         .filter_map(|record| {
-            WorthEntityKind::from_kind_id(record.kind.kind_id).map(|kind| (record.entity_id, kind))
+            EntityKind::from_kind_id(record.kind.kind_id).map(|kind| (record.entity_id, kind))
         })
         .collect();
 
     let topology_entity_ids: BTreeSet<_> = entity_kind_map
         .iter()
         .filter_map(|(entity_id, kind)| {
-            matches!(kind, WorthEntityKind::Topology(_)).then_some(*entity_id)
+            matches!(kind, EntityKind::Topology(_)).then_some(*entity_id)
         })
         .collect();
 
     let mut targeted_by_name: BTreeMap<EntityId, BTreeSet<EntityId>> = BTreeMap::new();
 
     for relation in read_view.relations() {
-        let Some(kind) = WorthRelationKind::from_kind_id(relation.kind.kind_id) else {
+        let Some(kind) = RelationKind::from_kind_id(relation.kind.kind_id) else {
             continue;
         };
-        if kind != WorthRelationKind::Naming(WorthNamingRelationKind::PersistentNameTargetsEntity) {
+        if kind != RelationKind::Naming(NamingRelationKind::PersistentNameTargetsEntity) {
             continue;
         }
 
@@ -54,7 +54,7 @@ pub fn validate_named_topology_truth(
             ));
         };
 
-        if !matches!(source_kind, WorthEntityKind::Naming(_)) {
+        if !matches!(source_kind, EntityKind::Naming(_)) {
             return Err(err(
                 "naming.persistent_name_coverage",
                 format!(
@@ -63,7 +63,7 @@ pub fn validate_named_topology_truth(
                 ),
             ));
         }
-        if !matches!(target_kind, WorthEntityKind::Topology(_)) {
+        if !matches!(target_kind, EntityKind::Topology(_)) {
             continue;
         }
 

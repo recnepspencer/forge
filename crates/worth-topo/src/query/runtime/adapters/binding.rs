@@ -7,7 +7,7 @@ use forge_relational::facade::runtime::{
 use forge_relational::facade::snapshots::SnapshotHandle;
 
 #[derive(Debug, Clone)]
-pub(crate) enum WorthTopologyRuntimeBinding {
+pub(crate) enum TopologyRuntimeBinding {
     CurrentHead(Arc<RwLock<RelationalRuntime>>),
     SnapshotReadOnly {
         read_view: Arc<RelationalReadView>,
@@ -15,7 +15,7 @@ pub(crate) enum WorthTopologyRuntimeBinding {
     },
 }
 
-impl WorthTopologyRuntimeBinding {
+impl TopologyRuntimeBinding {
     pub(crate) fn current_head(runtime: RelationalRuntime) -> Self {
         Self::CurrentHead(Arc::new(RwLock::new(runtime)))
     }
@@ -42,7 +42,7 @@ impl WorthTopologyRuntimeBinding {
             Self::CurrentHead(runtime) => {
                 let runtime = runtime
                     .read()
-                    .expect("worth topology runtime binding lock poisoned");
+                    .expect("topology runtime binding lock poisoned");
                 let Some(version_id) = runtime
                     .publication()
                     .latest_bundle()
@@ -51,7 +51,7 @@ impl WorthTopologyRuntimeBinding {
                     return Vec::new();
                 };
                 let projection = runtime.read_truth().project_version(version_id);
-                worth_schema::facade::WorthEntityKind::ALL
+                schema::facade::EntityKind::ALL
                     .into_iter()
                     .flat_map(|kind| projection.entity_records(kind.kind_id()))
                     .collect()
@@ -65,7 +65,7 @@ impl WorthTopologyRuntimeBinding {
             Self::CurrentHead(runtime) => {
                 let runtime = runtime
                     .read()
-                    .expect("worth topology runtime binding lock poisoned");
+                    .expect("topology runtime binding lock poisoned");
                 let Some(version_id) = runtime
                     .publication()
                     .latest_bundle()
@@ -74,7 +74,7 @@ impl WorthTopologyRuntimeBinding {
                     return Vec::new();
                 };
                 let projection = runtime.read_truth().project_version(version_id);
-                worth_schema::facade::WorthRelationKind::ALL
+                schema::facade::RelationKind::ALL
                     .into_iter()
                     .flat_map(|kind| projection.relation_records(kind.kind_id()))
                     .collect()
@@ -87,7 +87,7 @@ impl WorthTopologyRuntimeBinding {
         match self {
             Self::CurrentHead(runtime) => runtime
                 .read()
-                .expect("worth topology runtime binding lock poisoned")
+                .expect("topology runtime binding lock poisoned")
                 .publication()
                 .latest_bundle()
                 .map(|bundle| {

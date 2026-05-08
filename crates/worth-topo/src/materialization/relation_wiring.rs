@@ -1,45 +1,44 @@
 use std::collections::BTreeMap;
 
 use forge_relational::facade::identity::EntityId;
-use worth_schema::facade::{
-    WorthEntityKind, WorthGeometryRelationKind, WorthRelationKind, WorthTopologyEntityKind,
-    WorthTopologyRelationKind,
+use schema::facade::{
+    EntityKind, GeometryRelationKind, RelationKind, TopologyEntityKind, TopologyRelationKind,
 };
 
-use crate::data::topology_view::WorthTopologyView;
-use crate::materialization::errors::WorthTopologyMaterializationError;
+use crate::data::topology_view::TopologyView;
+use crate::materialization::errors::TopologyMaterializationError;
 use crate::materialization::input_rows::MaterializationRelationRow;
 use crate::materialization::traits::HasEntityId;
 
 pub fn apply_relation(
-    view: &mut WorthTopologyView,
-    entity_kind_map: &BTreeMap<EntityId, WorthEntityKind>,
+    view: &mut TopologyView,
+    entity_kind_map: &BTreeMap<EntityId, EntityKind>,
     relation: &MaterializationRelationRow,
-) -> Result<(), WorthTopologyMaterializationError> {
+) -> Result<(), TopologyMaterializationError> {
     let kind = relation.kind;
     let Some(source_kind) = entity_kind_map.get(&relation.source).copied() else {
-        return Err(WorthTopologyMaterializationError::new(format!(
-            "worth relation `{}` references missing source entity {:?}",
+        return Err(TopologyMaterializationError::new(format!(
+            " relation `{}` references missing source entity {:?}",
             kind.kind_name(),
             relation.source
         )));
     };
     let Some(target_kind) = entity_kind_map.get(&relation.target).copied() else {
-        return Err(WorthTopologyMaterializationError::new(format!(
-            "worth relation `{}` references missing target entity {:?}",
+        return Err(TopologyMaterializationError::new(format!(
+            " relation `{}` references missing target entity {:?}",
             kind.kind_name(),
             relation.target
         )));
     };
 
     match kind {
-        WorthRelationKind::Topology(WorthTopologyRelationKind::ModelOwnsBody) => {
+        RelationKind::Topology(TopologyRelationKind::ModelOwnsBody) => {
             ensure_relation_types(
                 kind,
                 source_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Model),
+                EntityKind::Topology(TopologyEntityKind::Model),
                 target_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Body),
+                EntityKind::Topology(TopologyEntityKind::Body),
             )?;
             push_child_to_parent(
                 &mut view.models,
@@ -51,13 +50,13 @@ pub fn apply_relation(
                 &mut body.model_id
             })?;
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::BodyOwnsLump) => {
+        RelationKind::Topology(TopologyRelationKind::BodyOwnsLump) => {
             ensure_relation_types(
                 kind,
                 source_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Body),
+                EntityKind::Topology(TopologyEntityKind::Body),
                 target_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Lump),
+                EntityKind::Topology(TopologyEntityKind::Lump),
             )?;
             push_child_to_parent(&mut view.bodies, relation.source, relation.target, |body| {
                 &mut body.lump_ids
@@ -66,13 +65,13 @@ pub fn apply_relation(
                 &mut lump.body_id
             })?;
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::LumpOwnsRegion) => {
+        RelationKind::Topology(TopologyRelationKind::LumpOwnsRegion) => {
             ensure_relation_types(
                 kind,
                 source_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Lump),
+                EntityKind::Topology(TopologyEntityKind::Lump),
                 target_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Region),
+                EntityKind::Topology(TopologyEntityKind::Region),
             )?;
             push_child_to_parent(&mut view.lumps, relation.source, relation.target, |lump| {
                 &mut lump.region_ids
@@ -84,13 +83,13 @@ pub fn apply_relation(
                 |region| &mut region.lump_id,
             )?;
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::RegionOwnsShell) => {
+        RelationKind::Topology(TopologyRelationKind::RegionOwnsShell) => {
             ensure_relation_types(
                 kind,
                 source_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Region),
+                EntityKind::Topology(TopologyEntityKind::Region),
                 target_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Shell),
+                EntityKind::Topology(TopologyEntityKind::Shell),
             )?;
             push_child_to_parent(
                 &mut view.regions,
@@ -105,13 +104,13 @@ pub fn apply_relation(
                 |shell| &mut shell.region_id,
             )?;
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::ShellOwnsFace) => {
+        RelationKind::Topology(TopologyRelationKind::ShellOwnsFace) => {
             ensure_relation_types(
                 kind,
                 source_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Shell),
+                EntityKind::Topology(TopologyEntityKind::Shell),
                 target_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Face),
+                EntityKind::Topology(TopologyEntityKind::Face),
             )?;
             push_child_to_parent(
                 &mut view.shells,
@@ -123,13 +122,13 @@ pub fn apply_relation(
                 &mut face.shell_id
             })?;
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::FaceOuterLoop) => {
+        RelationKind::Topology(TopologyRelationKind::FaceOuterLoop) => {
             ensure_relation_types(
                 kind,
                 source_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Face),
+                EntityKind::Topology(TopologyEntityKind::Face),
                 target_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Loop),
+                EntityKind::Topology(TopologyEntityKind::Loop),
             )?;
             set_optional_parent(&mut view.faces, relation.source, relation.target, |face| {
                 &mut face.outer_loop_id
@@ -141,13 +140,13 @@ pub fn apply_relation(
                 |loop_record| &mut loop_record.face_ids,
             )?;
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::FaceInnerLoop) => {
+        RelationKind::Topology(TopologyRelationKind::FaceInnerLoop) => {
             ensure_relation_types(
                 kind,
                 source_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Face),
+                EntityKind::Topology(TopologyEntityKind::Face),
                 target_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Loop),
+                EntityKind::Topology(TopologyEntityKind::Loop),
             )?;
             push_child_to_parent(&mut view.faces, relation.source, relation.target, |face| {
                 &mut face.inner_loop_ids
@@ -159,13 +158,13 @@ pub fn apply_relation(
                 |loop_record| &mut loop_record.face_ids,
             )?;
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::LoopOwnsHalfEdge) => {
+        RelationKind::Topology(TopologyRelationKind::LoopOwnsHalfEdge) => {
             ensure_relation_types(
                 kind,
                 source_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Loop),
+                EntityKind::Topology(TopologyEntityKind::Loop),
                 target_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
+                EntityKind::Topology(TopologyEntityKind::HalfEdge),
             )?;
             push_child_to_parent(
                 &mut view.loops,
@@ -180,13 +179,13 @@ pub fn apply_relation(
                 |half_edge| &mut half_edge.loop_id,
             )?;
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::WireOwnsHalfEdge) => {
+        RelationKind::Topology(TopologyRelationKind::WireOwnsHalfEdge) => {
             ensure_relation_types(
                 kind,
                 source_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Wire),
+                EntityKind::Topology(TopologyEntityKind::Wire),
                 target_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
+                EntityKind::Topology(TopologyEntityKind::HalfEdge),
             )?;
             push_child_to_parent(&mut view.wires, relation.source, relation.target, |wire| {
                 &mut wire.half_edge_ids
@@ -198,13 +197,13 @@ pub fn apply_relation(
                 |half_edge| &mut half_edge.wire_id,
             )?;
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeNext) => {
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeNext) => {
             ensure_relation_types(
                 kind,
                 source_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
+                EntityKind::Topology(TopologyEntityKind::HalfEdge),
                 target_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
+                EntityKind::Topology(TopologyEntityKind::HalfEdge),
             )?;
             set_optional_parent(
                 &mut view.half_edges,
@@ -213,13 +212,13 @@ pub fn apply_relation(
                 |half_edge| &mut half_edge.next_half_edge_id,
             )?;
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgePrev) => {
+        RelationKind::Topology(TopologyRelationKind::HalfEdgePrev) => {
             ensure_relation_types(
                 kind,
                 source_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
+                EntityKind::Topology(TopologyEntityKind::HalfEdge),
                 target_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
+                EntityKind::Topology(TopologyEntityKind::HalfEdge),
             )?;
             set_optional_parent(
                 &mut view.half_edges,
@@ -228,13 +227,13 @@ pub fn apply_relation(
                 |half_edge| &mut half_edge.prev_half_edge_id,
             )?;
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeRadialNext) => {
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeRadialNext) => {
             ensure_relation_types(
                 kind,
                 source_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
+                EntityKind::Topology(TopologyEntityKind::HalfEdge),
                 target_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
+                EntityKind::Topology(TopologyEntityKind::HalfEdge),
             )?;
             set_optional_parent(
                 &mut view.half_edges,
@@ -243,13 +242,13 @@ pub fn apply_relation(
                 |half_edge| &mut half_edge.radial_next_half_edge_id,
             )?;
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeUsesEdge) => {
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeUsesEdge) => {
             ensure_relation_types(
                 kind,
                 source_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
+                EntityKind::Topology(TopologyEntityKind::HalfEdge),
                 target_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Edge),
+                EntityKind::Topology(TopologyEntityKind::Edge),
             )?;
             set_optional_parent(
                 &mut view.half_edges,
@@ -258,13 +257,13 @@ pub fn apply_relation(
                 |half_edge| &mut half_edge.edge_id,
             )?;
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeStartsAtVertex) => {
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeStartsAtVertex) => {
             ensure_relation_types(
                 kind,
                 source_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
+                EntityKind::Topology(TopologyEntityKind::HalfEdge),
                 target_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex),
+                EntityKind::Topology(TopologyEntityKind::Vertex),
             )?;
             set_optional_parent(
                 &mut view.half_edges,
@@ -273,13 +272,13 @@ pub fn apply_relation(
                 |half_edge| &mut half_edge.origin_vertex_id,
             )?;
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeEndsAtVertex) => {
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeEndsAtVertex) => {
             ensure_relation_types(
                 kind,
                 source_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
+                EntityKind::Topology(TopologyEntityKind::HalfEdge),
                 target_kind,
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex),
+                EntityKind::Topology(TopologyEntityKind::Vertex),
             )?;
             set_optional_parent(
                 &mut view.half_edges,
@@ -288,21 +287,21 @@ pub fn apply_relation(
                 |half_edge| &mut half_edge.target_vertex_id,
             )?;
         }
-        WorthRelationKind::Geometry(
-            WorthGeometryRelationKind::FaceUsesSurfaceBinding
-            | WorthGeometryRelationKind::EdgeUsesCurveBinding
-            | WorthGeometryRelationKind::HalfEdgeUsesCoedgeBinding
-            | WorthGeometryRelationKind::VertexUsesGeometryBinding,
+        RelationKind::Geometry(
+            GeometryRelationKind::FaceUsesSurfaceBinding
+            | GeometryRelationKind::EdgeUsesCurveBinding
+            | GeometryRelationKind::HalfEdgeUsesCoedgeBinding
+            | GeometryRelationKind::VertexUsesGeometryBinding,
         ) => {}
-        WorthRelationKind::Naming(_) | WorthRelationKind::Diagnostics(_) => {}
+        RelationKind::Naming(_) | RelationKind::Diagnostics(_) => {}
     }
 
     Ok(())
 }
 
 pub fn finalize_topology_membership(
-    view: &mut WorthTopologyView,
-) -> Result<(), WorthTopologyMaterializationError> {
+    view: &mut TopologyView,
+) -> Result<(), TopologyMaterializationError> {
     let loop_memberships: Vec<(EntityId, Vec<EntityId>, Vec<EntityId>)> = view
         .loops
         .iter()
@@ -335,15 +334,15 @@ pub fn finalize_topology_membership(
 }
 
 fn ensure_relation_types(
-    relation_kind: WorthRelationKind,
-    actual_source: WorthEntityKind,
-    expected_source: WorthEntityKind,
-    actual_target: WorthEntityKind,
-    expected_target: WorthEntityKind,
-) -> Result<(), WorthTopologyMaterializationError> {
+    relation_kind: RelationKind,
+    actual_source: EntityKind,
+    expected_source: EntityKind,
+    actual_target: EntityKind,
+    expected_target: EntityKind,
+) -> Result<(), TopologyMaterializationError> {
     if actual_source != expected_source || actual_target != expected_target {
-        return Err(WorthTopologyMaterializationError::new(format!(
-            "worth relation `{}` expected {} -> {} but saw {} -> {}",
+        return Err(TopologyMaterializationError::new(format!(
+            " relation `{}` expected {} -> {} but saw {} -> {}",
             relation_kind.kind_name(),
             expected_source.kind_name(),
             expected_target.kind_name(),
@@ -360,7 +359,7 @@ fn push_child_to_parent<T, F>(
     entity_id: EntityId,
     child_id: EntityId,
     children: F,
-) -> Result<(), WorthTopologyMaterializationError>
+) -> Result<(), TopologyMaterializationError>
 where
     F: Fn(&mut T) -> &mut Vec<EntityId>,
     T: HasEntityId,
@@ -378,7 +377,7 @@ fn set_optional_parent<T, F>(
     entity_id: EntityId,
     parent_id: EntityId,
     field: F,
-) -> Result<(), WorthTopologyMaterializationError>
+) -> Result<(), TopologyMaterializationError>
 where
     F: Fn(&mut T) -> &mut Option<EntityId>,
     T: HasEntityId,
@@ -391,7 +390,7 @@ where
 fn find_record_mut<T>(
     records: &mut [T],
     entity_id: EntityId,
-) -> Result<&mut T, WorthTopologyMaterializationError>
+) -> Result<&mut T, TopologyMaterializationError>
 where
     T: HasEntityId,
 {
@@ -399,8 +398,8 @@ where
         .iter_mut()
         .find(|record| record.entity_id() == entity_id)
         .ok_or_else(|| {
-            WorthTopologyMaterializationError::new(format!(
-                "worth topology materialization could not find entity {:?} while wiring structure",
+            TopologyMaterializationError::new(format!(
+                " topology materialization could not find entity {:?} while wiring structure",
                 entity_id
             ))
         })

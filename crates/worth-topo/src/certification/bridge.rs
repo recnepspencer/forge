@@ -5,23 +5,23 @@ use forge_runtime_bridge::facade::{
     BridgeDeliveryReceipt, BridgeSignalInvalidationDelivery, BridgeTruthViewEvaluationRequest,
     InvalidationSink, SignalBridgeSinkError, TruthBranchIdentity,
 };
-use worth_schema::facade::WorthBridgeTraceAnchor;
+use schema::facade::BridgeTraceAnchor;
 
-use crate::certification::error::WorthMilestoneOneCertificationError;
+use crate::certification::error::MilestoneOneCertificationError;
 use crate::certification::report::{
-    WorthBridgeFamilyCoverageReport, WorthBridgeFamilyCoverageRow, WorthBridgeProofReport,
+    BridgeFamilyCoverageReport, BridgeFamilyCoverageRow, BridgeProofReport,
 };
 use crate::certification::shared::{
     canonical_milestone_one_primitive_families, digest_rows, primitive_family_name,
 };
-use crate::facade::build_worth_milestone_one_bridge;
+use crate::facade::build_milestone_one_bridge;
 use crate::fixtures::bridge_cases::milestone_one_bridge_proof_cases;
 use crate::fixtures::validated_topology::verified_primitive;
 
 #[derive(Clone)]
-struct WorthBridgeCertificationSink;
+struct BridgeCertificationSink;
 
-impl InvalidationSink for WorthBridgeCertificationSink {
+impl InvalidationSink for BridgeCertificationSink {
     fn deliver_invalidation(
         &self,
         delivery: BridgeSignalInvalidationDelivery,
@@ -35,7 +35,7 @@ impl InvalidationSink for WorthBridgeCertificationSink {
 
 pub(crate) fn build_bridge_family_coverage_report(
     family_rows: &[(String, usize, usize)],
-) -> WorthBridgeFamilyCoverageReport {
+) -> BridgeFamilyCoverageReport {
     let family_map = family_rows
         .iter()
         .map(|(family, routed_case_count, historical_evaluation_count)| {
@@ -46,10 +46,10 @@ pub(crate) fn build_bridge_family_coverage_report(
         })
         .collect::<BTreeMap<_, _>>();
 
-    WorthBridgeFamilyCoverageReport {
+    BridgeFamilyCoverageReport {
         rows: canonical_milestone_one_primitive_families()
             .into_iter()
-            .map(|family| WorthBridgeFamilyCoverageRow {
+            .map(|family| BridgeFamilyCoverageRow {
                 family: family.to_string(),
                 routed_case_count: family_map.get(family).map(|row| row.0).unwrap_or(0),
                 historical_evaluation_count: family_map.get(family).map(|row| row.1).unwrap_or(0),
@@ -64,7 +64,7 @@ pub(crate) fn build_bridge_family_coverage_report(
 
 pub(crate) fn certify_milestone_one_bridge_proof(
     stem: &str,
-) -> Result<WorthBridgeProofReport, WorthMilestoneOneCertificationError> {
+) -> Result<BridgeProofReport, MilestoneOneCertificationError> {
     let proof_cases = milestone_one_bridge_proof_cases();
     let mut proved_families = Vec::with_capacity(proof_cases.len());
     let mut source_branch = None;
@@ -79,39 +79,36 @@ pub(crate) fn certify_milestone_one_bridge_proof(
     let mut family_rows = Vec::with_capacity(proof_cases.len());
 
     for (index, primitive) in proof_cases.iter().enumerate() {
-        let mut runtime = crate::facade::worth_milestone_one_runtime_builder()
+        let mut runtime = crate::facade::milestone_one_runtime_builder()
             .map_err(|error| {
-                WorthMilestoneOneCertificationError::ReadView(format!(
-                    "worth milestone one bridge proof could not build runtime builder: {error:?}"
+                MilestoneOneCertificationError::ReadView(format!(
+                    " milestone one bridge proof could not build runtime builder: {error:?}"
                 ))
             })?
             .build();
         let verified =
             verified_primitive(&mut runtime, &format!("{stem}.case.{index}"), primitive)?;
         let commit = verified.commits.last().ok_or_else(|| {
-            WorthMilestoneOneCertificationError::ReadView(
-                "worth milestone one bridge proof requires a committed topology mutation"
-                    .to_string(),
+            MilestoneOneCertificationError::ReadView(
+                " milestone one bridge proof requires a committed topology mutation".to_string(),
             )
         })?;
         let family = primitive_family_name(primitive).to_string();
         let branch_id = verified.branch_id.0.clone();
         let commit_id = commit.outcome.commit.commit_id.0.to_string();
         let bridge_runtime = Arc::new(runtime);
-        let bridge = build_worth_milestone_one_bridge(
-            Arc::clone(&bridge_runtime),
-            WorthBridgeCertificationSink,
-        )
-        .map_err(|error| {
-            WorthMilestoneOneCertificationError::ReadView(format!(
-                "worth milestone one bridge proof could not build bridge: {error:?}"
-            ))
-        })?;
+        let bridge =
+            build_milestone_one_bridge(Arc::clone(&bridge_runtime), BridgeCertificationSink)
+                .map_err(|error| {
+                    MilestoneOneCertificationError::ReadView(format!(
+                        " milestone one bridge proof could not build bridge: {error:?}"
+                    ))
+                })?;
         let _route = bridge
             .route(format!("commit-{commit_id}"))
             .map_err(|error| {
-                WorthMilestoneOneCertificationError::ReadView(format!(
-                    "worth milestone one bridge proof could not route committed truth: {error:?}"
+                MilestoneOneCertificationError::ReadView(format!(
+                    " milestone one bridge proof could not route committed truth: {error:?}"
                 ))
             })?;
         let evaluation = bridge
@@ -119,8 +116,8 @@ pub(crate) fn certify_milestone_one_bridge_proof(
                 TruthBranchIdentity::new(branch_id.as_str()),
             ))
             .map_err(|error| {
-                WorthMilestoneOneCertificationError::ReadView(format!(
-                    "worth milestone one bridge proof could not evaluate branch head: {error:?}"
+                MilestoneOneCertificationError::ReadView(format!(
+                    " milestone one bridge proof could not evaluate branch head: {error:?}"
                 ))
             })?;
         let route_records = bridge.diagnostics().route_records();
@@ -174,11 +171,11 @@ pub(crate) fn certify_milestone_one_bridge_proof(
     let historical_evaluation_record_count = family_rows.iter().map(|row| row.2).sum::<usize>();
     let family_coverage_report = build_bridge_family_coverage_report(&family_rows);
 
-    Ok(WorthBridgeProofReport {
+    Ok(BridgeProofReport {
         proof_case_count: proof_cases.len(),
         proved_families,
         family_coverage_report,
-        bridge_trace_anchor: WorthBridgeTraceAnchor::new(
+        bridge_trace_anchor: BridgeTraceAnchor::new(
             route_identities,
             invalidation_identities,
             snapshot_identities,

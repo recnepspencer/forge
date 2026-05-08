@@ -1,21 +1,21 @@
 use forge_query::facade::ForgeQueryWorkspace;
+use schema::facade::DerivedTopologyReadBasis;
 use serde_json::Value;
-use worth_schema::facade::DerivedTopologyReadBasis;
 
-use super::{WorthTopologyQueryAssembly, WorthTopologyQuerySurfaceError};
+use super::{TopologyQueryAssembly, TopologyQuerySurfaceError};
 use crate::diagnostics::build_derived_read_diagnostics;
 use crate::facade::{
-    DerivedTopologyValidationReport, InterpretedTopologyView, WorthDerivedReadDiagnostics,
+    DerivedReadDiagnostics, DerivedTopologyValidationReport, InterpretedTopologyView,
 };
-use crate::materialization::WorthTopologyMaterializer;
+use crate::materialization::TopologyMaterializer;
 use crate::query::{
     interpreted_topology_from_materialized_rows, naming_attachment_report_from_query_rows,
     validation_report_from_query_rows,
 };
 
 #[derive(Debug, Clone)]
-pub(super) struct WorthTopologyHistoricalDerivedRows {
-    pub naming_attachments: crate::facade::WorthNamingAttachmentReport,
+pub(super) struct TopologyHistoricalDerivedRows {
+    pub naming_attachments: crate::facade::NamingAttachmentReport,
     pub materialized_rows: Vec<Value>,
     pub interpreted_rows: Vec<Value>,
     pub validation_rows: Vec<Value>,
@@ -24,10 +24,10 @@ pub(super) struct WorthTopologyHistoricalDerivedRows {
 }
 
 pub(super) fn historical_derived_rows(
-    assembly: &WorthTopologyQueryAssembly,
+    assembly: &TopologyQueryAssembly,
     workspace: &mut ForgeQueryWorkspace,
     read_basis: &DerivedTopologyReadBasis,
-) -> Result<WorthTopologyHistoricalDerivedRows, WorthTopologyQuerySurfaceError> {
+) -> Result<TopologyHistoricalDerivedRows, TopologyQuerySurfaceError> {
     let entity_rows = workspace.read(assembly.entities());
     let relation_rows = workspace.read(assembly.relations());
     let persistent_name_rows = workspace.read(assembly.persistent_names());
@@ -35,8 +35,8 @@ pub(super) fn historical_derived_rows(
         naming_attachment_report_from_query_rows(&entity_rows, &persistent_name_rows)?;
 
     let materialized =
-        WorthTopologyMaterializer::materialize_from_query_rows(&entity_rows, &relation_rows)
-            .map_err(|error| WorthTopologyQuerySurfaceError::new(error.to_string()))?;
+        TopologyMaterializer::materialize_from_query_rows(&entity_rows, &relation_rows)
+            .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
     let materialized_rows = vec![encode_row(
         &materialized,
         "query-derived `materialized topology` row",
@@ -53,7 +53,7 @@ pub(super) fn historical_derived_rows(
     } else {
         let interpreted: InterpretedTopologyView =
             serde_json::from_value(interpreted_rows[0].clone()).map_err(|error| {
-                WorthTopologyQuerySurfaceError::new(format!(
+                TopologyQuerySurfaceError::new(format!(
                     "query-derived `interpreted topology` row failed to decode: {error}"
                 ))
             })?;
@@ -71,7 +71,7 @@ pub(super) fn historical_derived_rows(
     } else {
         let validation: DerivedTopologyValidationReport =
             serde_json::from_value(validation_rows[0].clone()).map_err(|error| {
-                WorthTopologyQuerySurfaceError::new(format!(
+                TopologyQuerySurfaceError::new(format!(
                     "query-derived `topology validation` row failed to decode: {error}"
                 ))
             })?;
@@ -88,9 +88,9 @@ pub(super) fn historical_derived_rows(
         )?];
         (diagnostics, diagnostics_rows)
     } else {
-        let diagnostics: WorthDerivedReadDiagnostics =
+        let diagnostics: DerivedReadDiagnostics =
             serde_json::from_value(diagnostics_rows[0].clone()).map_err(|error| {
-                WorthTopologyQuerySurfaceError::new(format!(
+                TopologyQuerySurfaceError::new(format!(
                     "query-derived `derived read diagnostics` row failed to decode: {error}"
                 ))
             })?;
@@ -107,7 +107,7 @@ pub(super) fn historical_derived_rows(
         equivalence_rows
     };
 
-    Ok(WorthTopologyHistoricalDerivedRows {
+    Ok(TopologyHistoricalDerivedRows {
         naming_attachments,
         materialized_rows,
         interpreted_rows,
@@ -120,8 +120,8 @@ pub(super) fn historical_derived_rows(
 fn encode_row<T: serde::Serialize>(
     value: &T,
     label: &str,
-) -> Result<Value, WorthTopologyQuerySurfaceError> {
+) -> Result<Value, TopologyQuerySurfaceError> {
     serde_json::to_value(value).map_err(|error| {
-        WorthTopologyQuerySurfaceError::new(format!("{label} failed to encode: {error}"))
+        TopologyQuerySurfaceError::new(format!("{label} failed to encode: {error}"))
     })
 }

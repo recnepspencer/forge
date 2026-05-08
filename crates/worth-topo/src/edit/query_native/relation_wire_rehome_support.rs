@@ -1,14 +1,14 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use forge_query::facade::ForgeQueryEntity;
-use worth_schema::facade::{WorthEntityReference, WorthTopologyEntityKind};
+use schema::facade::{EntityReference, TopologyEntityKind};
 
 use super::bindings::{
     query_entity_binding, query_entity_id_by_identity, query_incoming_relation_ids,
     query_outgoing_relation_target_identities, query_relation_binding,
 };
-use super::WorthTopologyEditContract;
-use crate::edit::{WorthShellOrWireMembershipKind, WorthTopologyEditAction};
+use super::TopologyEditContract;
+use crate::edit::{ShellOrWireMembershipKind, TopologyEditAction};
 
 pub(super) struct WireRehomeWorkflow {
     pub(super) create_key: String,
@@ -17,20 +17,20 @@ pub(super) struct WireRehomeWorkflow {
 }
 
 pub(super) fn parse_wire_rehome_workflow(
-    contracts: &[WorthTopologyEditContract],
+    contracts: &[TopologyEditContract],
 ) -> Option<WireRehomeWorkflow> {
     let [create, attaches @ .., retire] = contracts else {
         return None;
     };
     let (
-        WorthTopologyEditAction::CreateTopologyEntity {
+        TopologyEditAction::CreateTopologyEntity {
             create_key,
-            kind: WorthTopologyEntityKind::Wire,
+            kind: TopologyEntityKind::Wire,
             ..
         },
-        WorthTopologyEditAction::RetireTopologyEntity {
+        TopologyEditAction::RetireTopologyEntity {
             entity_id: retired_wire_id,
-            kind: WorthTopologyEntityKind::Wire,
+            kind: TopologyEntityKind::Wire,
         },
     ) = (&create.action, &retire.action)
     else {
@@ -42,10 +42,10 @@ pub(super) fn parse_wire_rehome_workflow(
     let mut half_edge_ids = Vec::with_capacity(attaches.len());
     let mut seen_half_edge_ids = BTreeSet::new();
     for attach in attaches {
-        let WorthTopologyEditAction::AttachShellOrWireMembership {
-            kind: WorthShellOrWireMembershipKind::WireOwnsHalfEdge,
-            owner: WorthEntityReference::Created(owner_key),
-            member: WorthEntityReference::Existing(half_edge_id),
+        let TopologyEditAction::AttachShellOrWireMembership {
+            kind: ShellOrWireMembershipKind::WireOwnsHalfEdge,
+            owner: EntityReference::Created(owner_key),
+            member: EntityReference::Existing(half_edge_id),
             ..
         } = &attach.action
         else {
@@ -66,7 +66,7 @@ pub(super) fn parse_wire_rehome_workflow(
 pub(super) fn supports_owned_half_edge_set_wire_rehome_workflow(
     entity_rows: &[ForgeQueryEntity],
     relation_rows: &[ForgeQueryEntity],
-    contracts: &[WorthTopologyEditContract],
+    contracts: &[TopologyEditContract],
 ) -> bool {
     let Some(workflow) = parse_wire_rehome_workflow(contracts) else {
         return false;
@@ -80,7 +80,7 @@ pub(super) fn supports_owned_half_edge_set_wire_rehome_workflow(
     let Ok(outgoing_half_edge_targets) = query_outgoing_relation_target_identities(
         relation_rows,
         &retired_wire_binding.query_identity,
-        worth_schema::facade::WorthTopologyRelationKind::WireOwnsHalfEdge,
+        schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
     ) else {
         return false;
     };
@@ -109,14 +109,14 @@ pub(super) struct WireSplitWorkflow {
 }
 
 pub(super) fn parse_wire_split_workflow(
-    contracts: &[WorthTopologyEditContract],
+    contracts: &[TopologyEditContract],
 ) -> Option<WireSplitWorkflow> {
     let [create, attaches @ ..] = contracts else {
         return None;
     };
-    let WorthTopologyEditAction::CreateTopologyEntity {
+    let TopologyEditAction::CreateTopologyEntity {
         create_key,
-        kind: WorthTopologyEntityKind::Wire,
+        kind: TopologyEntityKind::Wire,
         ..
     } = &create.action
     else {
@@ -128,10 +128,10 @@ pub(super) fn parse_wire_split_workflow(
     let mut half_edge_ids = Vec::with_capacity(attaches.len());
     let mut seen_half_edge_ids = BTreeSet::new();
     for attach in attaches {
-        let WorthTopologyEditAction::AttachShellOrWireMembership {
-            kind: WorthShellOrWireMembershipKind::WireOwnsHalfEdge,
-            owner: WorthEntityReference::Created(owner_key),
-            member: WorthEntityReference::Existing(half_edge_id),
+        let TopologyEditAction::AttachShellOrWireMembership {
+            kind: ShellOrWireMembershipKind::WireOwnsHalfEdge,
+            owner: EntityReference::Created(owner_key),
+            member: EntityReference::Existing(half_edge_id),
             ..
         } = &attach.action
         else {
@@ -152,7 +152,7 @@ pub(super) fn parse_wire_split_workflow(
 pub(super) fn supports_connected_wire_split_workflow(
     entity_rows: &[ForgeQueryEntity],
     relation_rows: &[ForgeQueryEntity],
-    contracts: &[WorthTopologyEditContract],
+    contracts: &[TopologyEditContract],
 ) -> bool {
     let Some(mut workflow) = parse_wire_split_workflow(contracts) else {
         return false;
@@ -172,7 +172,7 @@ pub(super) fn supports_connected_wire_split_workflow(
     let Ok(outgoing_half_edge_targets) = query_outgoing_relation_target_identities(
         relation_rows,
         &retained_wire_binding.query_identity,
-        worth_schema::facade::WorthTopologyRelationKind::WireOwnsHalfEdge,
+        schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
     ) else {
         return false;
     };
@@ -204,7 +204,7 @@ pub(super) fn supports_connected_wire_split_workflow(
 pub(super) fn resolve_wire_split_workflow(
     entity_rows: &[ForgeQueryEntity],
     relation_rows: &[ForgeQueryEntity],
-    contracts: &[WorthTopologyEditContract],
+    contracts: &[TopologyEditContract],
 ) -> Option<WireSplitWorkflow> {
     let mut workflow = parse_wire_split_workflow(contracts)?;
     workflow.retained_wire_id = Some(shared_existing_wire_owner_id(
@@ -229,7 +229,7 @@ fn shared_existing_wire_owner_id(
         let incoming_relation_ids = query_incoming_relation_ids(
             relation_rows,
             &half_edge_binding.query_identity,
-            worth_schema::facade::WorthTopologyRelationKind::WireOwnsHalfEdge,
+            schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
         )
         .ok()?;
         let [relation_id] = incoming_relation_ids.as_slice() else {
@@ -267,8 +267,8 @@ fn connected_by_incident_vertices(
         };
         let mut vertices = BTreeSet::new();
         for kind in [
-            worth_schema::facade::WorthTopologyRelationKind::HalfEdgeStartsAtVertex,
-            worth_schema::facade::WorthTopologyRelationKind::HalfEdgeEndsAtVertex,
+            schema::facade::TopologyRelationKind::HalfEdgeStartsAtVertex,
+            schema::facade::TopologyRelationKind::HalfEdgeEndsAtVertex,
         ] {
             let Ok(target_identities) = query_outgoing_relation_target_identities(
                 relation_rows,

@@ -1,8 +1,8 @@
+use math::arithmetic::precision::{EscalationEvent, PrecisionEscalation, PrecisionMode};
 use serde::{Deserialize, Serialize};
-use worth_math::arithmetic::precision::{EscalationEvent, PrecisionEscalation, PrecisionMode};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthPrecisionRegime {
+pub enum PrecisionRegime {
     Float64,
     ExpansionB,
     ExpansionC,
@@ -10,7 +10,7 @@ pub enum WorthPrecisionRegime {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthPrecisionEscalationCause {
+pub enum PrecisionEscalationCause {
     NearBoundary,
     FloatDisagreement,
     ResidualExceeded,
@@ -19,7 +19,7 @@ pub enum WorthPrecisionEscalationCause {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthFallbackDisposition {
+pub enum FallbackDisposition {
     NoneRequired,
     EscalatePrecision,
     FailClosed,
@@ -28,18 +28,18 @@ pub enum WorthFallbackDisposition {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthFallbackProofClass {
+pub enum FallbackProofClass {
     LocalDiagnosticOnly,
     ReplayRequired,
     CertificationRequired,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct WorthPrecisionFallbackRecord {
-    pub resolved_regime: WorthPrecisionRegime,
-    pub escalation_cause: WorthPrecisionEscalationCause,
-    pub disposition: WorthFallbackDisposition,
-    pub proof_class: WorthFallbackProofClass,
+pub struct PrecisionFallbackRecord {
+    pub resolved_regime: PrecisionRegime,
+    pub escalation_cause: PrecisionEscalationCause,
+    pub disposition: FallbackDisposition,
+    pub proof_class: FallbackProofClass,
     pub float_agreed: bool,
     pub expansion_length: Option<usize>,
     pub target_triple: String,
@@ -47,38 +47,38 @@ pub struct WorthPrecisionFallbackRecord {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthPrecisionBudgetFallbackRecord {
-    pub resolved_regime: WorthPrecisionRegime,
-    pub escalation_cause: WorthPrecisionEscalationCause,
-    pub disposition: WorthFallbackDisposition,
-    pub proof_class: WorthFallbackProofClass,
+pub struct PrecisionBudgetFallbackRecord {
+    pub resolved_regime: PrecisionRegime,
+    pub escalation_cause: PrecisionEscalationCause,
+    pub disposition: FallbackDisposition,
+    pub proof_class: FallbackProofClass,
     pub bit_length_before: u32,
     pub bit_length_after: u32,
     pub threshold: u32,
     pub sign_preserved: bool,
 }
 
-impl WorthPrecisionFallbackRecord {
+impl PrecisionFallbackRecord {
     pub fn from_precision_escalation(escalation: &PrecisionEscalation) -> Self {
         let escalation_cause = if !escalation.float_agreed {
-            WorthPrecisionEscalationCause::FloatDisagreement
+            PrecisionEscalationCause::FloatDisagreement
         } else {
-            WorthPrecisionEscalationCause::NearBoundary
+            PrecisionEscalationCause::NearBoundary
         };
 
         let disposition = match escalation.resolved_at {
-            PrecisionMode::Float64 => WorthFallbackDisposition::NoneRequired,
+            PrecisionMode::Float64 => FallbackDisposition::NoneRequired,
             PrecisionMode::ExpansionB
             | PrecisionMode::ExpansionC
-            | PrecisionMode::ExactRational => WorthFallbackDisposition::EscalatePrecision,
+            | PrecisionMode::ExactRational => FallbackDisposition::EscalatePrecision,
         };
 
         let proof_class = match escalation.resolved_at {
-            PrecisionMode::Float64 => WorthFallbackProofClass::LocalDiagnosticOnly,
+            PrecisionMode::Float64 => FallbackProofClass::LocalDiagnosticOnly,
             PrecisionMode::ExpansionB | PrecisionMode::ExpansionC => {
-                WorthFallbackProofClass::ReplayRequired
+                FallbackProofClass::ReplayRequired
             }
-            PrecisionMode::ExactRational => WorthFallbackProofClass::CertificationRequired,
+            PrecisionMode::ExactRational => FallbackProofClass::CertificationRequired,
         };
 
         Self {
@@ -94,13 +94,13 @@ impl WorthPrecisionFallbackRecord {
     }
 }
 
-impl WorthPrecisionBudgetFallbackRecord {
+impl PrecisionBudgetFallbackRecord {
     pub fn from_budget_escalation(event: &EscalationEvent) -> Self {
         Self {
-            resolved_regime: WorthPrecisionRegime::ExactRational,
-            escalation_cause: WorthPrecisionEscalationCause::BudgetExceeded,
-            disposition: WorthFallbackDisposition::RetainedExactOverride,
-            proof_class: WorthFallbackProofClass::CertificationRequired,
+            resolved_regime: PrecisionRegime::ExactRational,
+            escalation_cause: PrecisionEscalationCause::BudgetExceeded,
+            disposition: FallbackDisposition::RetainedExactOverride,
+            proof_class: FallbackProofClass::CertificationRequired,
             bit_length_before: event.bit_length_before,
             bit_length_after: event.bit_length_after,
             threshold: event.threshold,
@@ -109,7 +109,7 @@ impl WorthPrecisionBudgetFallbackRecord {
     }
 }
 
-impl From<PrecisionMode> for WorthPrecisionRegime {
+impl From<PrecisionMode> for PrecisionRegime {
     fn from(value: PrecisionMode) -> Self {
         match value {
             PrecisionMode::Float64 => Self::Float64,
@@ -120,25 +120,25 @@ impl From<PrecisionMode> for WorthPrecisionRegime {
     }
 }
 
-impl From<&PrecisionEscalation> for WorthPrecisionFallbackRecord {
+impl From<&PrecisionEscalation> for PrecisionFallbackRecord {
     fn from(value: &PrecisionEscalation) -> Self {
         Self::from_precision_escalation(value)
     }
 }
 
-impl From<PrecisionEscalation> for WorthPrecisionFallbackRecord {
+impl From<PrecisionEscalation> for PrecisionFallbackRecord {
     fn from(value: PrecisionEscalation) -> Self {
         Self::from_precision_escalation(&value)
     }
 }
 
-impl From<&EscalationEvent> for WorthPrecisionBudgetFallbackRecord {
+impl From<&EscalationEvent> for PrecisionBudgetFallbackRecord {
     fn from(value: &EscalationEvent) -> Self {
         Self::from_budget_escalation(value)
     }
 }
 
-impl From<EscalationEvent> for WorthPrecisionBudgetFallbackRecord {
+impl From<EscalationEvent> for PrecisionBudgetFallbackRecord {
     fn from(value: EscalationEvent) -> Self {
         Self::from_budget_escalation(&value)
     }

@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::data::topology_view::WorthTopologyView;
+use crate::data::topology_view::TopologyView;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MaterializationFallbackClass {
@@ -24,16 +24,16 @@ pub struct MaterializationReport {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MaterializedTopologyView {
-    topology: WorthTopologyView,
+    topology: TopologyView,
     report: MaterializationReport,
 }
 
 impl MaterializedTopologyView {
-    pub(crate) fn new(topology: WorthTopologyView, report: MaterializationReport) -> Self {
+    pub(crate) fn new(topology: TopologyView, report: MaterializationReport) -> Self {
         Self { topology, report }
     }
 
-    pub(crate) fn whole_view(topology: WorthTopologyView) -> Self {
+    pub(crate) fn whole_view(topology: TopologyView) -> Self {
         let topology_entity_count = topology.models.len()
             + topology.bodies.len()
             + topology.lumps.len()
@@ -60,7 +60,7 @@ impl MaterializedTopologyView {
         }
     }
 
-    pub fn topology(&self) -> &WorthTopologyView {
+    pub fn topology(&self) -> &TopologyView {
         &self.topology
     }
 
@@ -69,7 +69,7 @@ impl MaterializedTopologyView {
     }
 
     #[allow(dead_code)]
-    pub(crate) fn topology_mut(&mut self) -> &mut WorthTopologyView {
+    pub(crate) fn topology_mut(&mut self) -> &mut TopologyView {
         &mut self.topology
     }
 }

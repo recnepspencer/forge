@@ -2,36 +2,33 @@
 mod interpretation_tests {
     use forge_relational::facade::identity::{EntityId, PartitionId};
     use forge_relational::facade::runtime::RelationalRuntimeApi;
-    use worth_schema::facade::topology_authoring::seed_minimal_topology;
-    use worth_schema::facade::worth_bootstrap_schema_registry;
+    use schema::facade::bootstrap_schema_registry;
+    use schema::facade::topology_authoring::seed_minimal_topology;
 
     use crate::data::topology_view::{
-        WorthTopologyBody, WorthTopologyEdge, WorthTopologyFace, WorthTopologyHalfEdge,
-        WorthTopologyLoop, WorthTopologyLump, WorthTopologyModel, WorthTopologyRegion,
-        WorthTopologyShell, WorthTopologyVertex, WorthTopologyView, WorthTopologyWire,
+        TopologyBody, TopologyEdge, TopologyFace, TopologyHalfEdge, TopologyLoop, TopologyLump,
+        TopologyModel, TopologyRegion, TopologyShell, TopologyVertex, TopologyView, TopologyWire,
     };
     use crate::facade::{
         build_topology_read_artifact, certify_topology_view, interpret_topology_view,
-        WorthTopologyMaterializer,
+        TopologyMaterializer,
     };
-    use worth_schema::facade::{WorthShellInterpretationClass, WorthWireInterpretationClass};
+    use schema::facade::{ShellInterpretationClass, WireInterpretationClass};
 
     #[test]
     fn seeded_bootstrap_interprets_as_open_sheet_with_one_wire() {
         let mut runtime = RelationalRuntimeApi::builder()
-            .schema_registry(
-                worth_bootstrap_schema_registry().expect("worth bootstrap schema registry"),
-            )
+            .schema_registry(bootstrap_schema_registry().expect(" bootstrap schema registry"))
             .build();
 
-        let seeded = seed_minimal_topology(&mut runtime, "interpret").expect("seed worth topology");
+        let seeded = seed_minimal_topology(&mut runtime, "interpret").expect("seed  topology");
         let read_view = runtime
             .read_truth()
             .read_snapshot(&seeded.snapshot)
-            .expect("worth snapshot read");
+            .expect(" snapshot read");
 
-        let topology = WorthTopologyMaterializer::materialize_from_truth(&read_view)
-            .expect("worth topology materialization");
+        let topology = TopologyMaterializer::materialize_from_truth(&read_view)
+            .expect(" topology materialization");
         let interpretation = interpret_topology_view(&topology);
 
         assert_eq!(interpretation.report().interpreted_wire_count, 1);
@@ -51,13 +48,13 @@ mod interpretation_tests {
         );
         assert_eq!(
             interpretation.interpretations().wires[0].class,
-            WorthWireInterpretationClass::OpenChain
+            WireInterpretationClass::OpenChain
         );
 
         assert_eq!(interpretation.interpretations().shells.len(), 1);
         assert_eq!(
             interpretation.interpretations().shells[0].class,
-            WorthShellInterpretationClass::OpenSheet
+            ShellInterpretationClass::OpenSheet
         );
         assert_eq!(interpretation.interpretations().shells[0].face_count, 1);
         assert_eq!(
@@ -75,19 +72,17 @@ mod interpretation_tests {
     #[test]
     fn seeded_bootstrap_certification_retains_interpretation_records() {
         let mut runtime = RelationalRuntimeApi::builder()
-            .schema_registry(
-                worth_bootstrap_schema_registry().expect("worth bootstrap schema registry"),
-            )
+            .schema_registry(bootstrap_schema_registry().expect(" bootstrap schema registry"))
             .build();
 
-        let seeded = seed_minimal_topology(&mut runtime, "certify").expect("seed worth topology");
+        let seeded = seed_minimal_topology(&mut runtime, "certify").expect("seed  topology");
         let read_view = runtime
             .read_truth()
             .read_snapshot(&seeded.snapshot)
-            .expect("worth snapshot read");
+            .expect(" snapshot read");
 
-        let topology = WorthTopologyMaterializer::materialize_from_truth(&read_view)
-            .expect("worth topology materialization");
+        let topology = TopologyMaterializer::materialize_from_truth(&read_view)
+            .expect(" topology materialization");
         let interpreted = interpret_topology_view(&topology);
         let read_artifact = build_topology_read_artifact(&seeded.read_basis, &interpreted);
         let certified = certify_topology_view(seeded.read_basis.clone(), &interpreted);
@@ -109,7 +104,7 @@ mod interpretation_tests {
         assert_eq!(interpretation.interpretations().wires.len(), 1);
         let wire = &interpretation.interpretations().wires[0];
         assert_eq!(wire.connected_component_count, 1);
-        assert_eq!(wire.class, WorthWireInterpretationClass::ClosedCycle);
+        assert_eq!(wire.class, WireInterpretationClass::ClosedCycle);
         assert!(wire.terminal_vertex_ids.is_empty());
         assert!(wire.branch_vertex_ids.is_empty());
     }
@@ -123,7 +118,7 @@ mod interpretation_tests {
 
         assert_eq!(interpretation.interpretations().wires.len(), 1);
         let wire = &interpretation.interpretations().wires[0];
-        assert_eq!(wire.class, WorthWireInterpretationClass::OpenChain);
+        assert_eq!(wire.class, WireInterpretationClass::OpenChain);
         assert_eq!(wire.connected_component_count, 1);
         assert_eq!(wire.terminal_vertex_ids.len(), 2);
         assert!(wire.branch_vertex_ids.is_empty());
@@ -138,7 +133,7 @@ mod interpretation_tests {
 
         assert_eq!(interpretation.interpretations().wires.len(), 1);
         let wire = &interpretation.interpretations().wires[0];
-        assert_eq!(wire.class, WorthWireInterpretationClass::ClosedCycle);
+        assert_eq!(wire.class, WireInterpretationClass::ClosedCycle);
         assert_eq!(wire.connected_component_count, 1);
         assert!(wire.terminal_vertex_ids.is_empty());
         assert!(wire.branch_vertex_ids.is_empty());
@@ -153,7 +148,7 @@ mod interpretation_tests {
 
         assert_eq!(interpretation.interpretations().wires.len(), 1);
         let wire = &interpretation.interpretations().wires[0];
-        assert_eq!(wire.class, WorthWireInterpretationClass::ConnectedBranch);
+        assert_eq!(wire.class, WireInterpretationClass::ConnectedBranch);
         assert_eq!(wire.connected_component_count, 1);
         assert_eq!(wire.branch_vertex_ids.len(), 1);
         assert_eq!(wire.terminal_vertex_ids.len(), 4);
@@ -168,7 +163,7 @@ mod interpretation_tests {
 
         assert_eq!(interpretation.interpretations().shells.len(), 1);
         let shell = &interpretation.interpretations().shells[0];
-        assert_eq!(shell.class, WorthShellInterpretationClass::OpenNonManifold);
+        assert_eq!(shell.class, ShellInterpretationClass::OpenNonManifold);
         assert_eq!(shell.face_count, 3);
         assert!(shell.boundary_half_edge_count > 0);
         assert_eq!(shell.non_manifold_edge_ids.len(), 1);
@@ -183,7 +178,7 @@ mod interpretation_tests {
 
         assert_eq!(interpretation.interpretations().shells.len(), 1);
         let shell = &interpretation.interpretations().shells[0];
-        assert_eq!(shell.class, WorthShellInterpretationClass::OpenNonManifold);
+        assert_eq!(shell.class, ShellInterpretationClass::OpenNonManifold);
         assert_eq!(shell.face_count, 4);
         assert!(shell.boundary_half_edge_count > 0);
         assert_eq!(shell.non_manifold_edge_ids.len(), 1);
@@ -203,7 +198,7 @@ mod interpretation_tests {
             interpretation.boundary_summaries()[0].boundary_component_count,
             1
         );
-        assert_eq!(shell.class, WorthShellInterpretationClass::OpenSheet);
+        assert_eq!(shell.class, ShellInterpretationClass::OpenSheet);
         assert_eq!(shell.face_count, 1);
         assert_eq!(shell.boundary_component_count, 1);
         assert_eq!(shell.boundary_half_edge_count, 5);
@@ -221,18 +216,18 @@ mod interpretation_tests {
         let shell = &interpretation.interpretations().shells[0];
         assert_eq!(interpretation.boundary_summaries().len(), 1);
         assert!(interpretation.boundary_summaries()[0].boundary_component_count >= 1);
-        assert_eq!(shell.class, WorthShellInterpretationClass::OpenSheet);
+        assert_eq!(shell.class, ShellInterpretationClass::OpenSheet);
         assert_eq!(shell.face_count, 3);
         assert!(shell.boundary_component_count >= 1);
         assert!(shell.boundary_half_edge_count >= 5);
         assert!(shell.non_manifold_edge_ids.is_empty());
     }
 
-    fn closed_wire_cycle_view() -> WorthTopologyView {
+    fn closed_wire_cycle_view() -> TopologyView {
         closed_wire_cycle_of_size(3)
     }
 
-    fn open_wire_chain_view(length: usize) -> WorthTopologyView {
+    fn open_wire_chain_view(length: usize) -> TopologyView {
         assert!(
             length >= 2,
             "open wire chain requires at least two half-edges"
@@ -278,8 +273,8 @@ mod interpretation_tests {
             half_edge_ids.push(half_edge_id);
         }
 
-        WorthTopologyView {
-            wires: vec![WorthTopologyWire {
+        TopologyView {
+            wires: vec![TopologyWire {
                 entity_id: wire_id,
                 label: "open-chain".into(),
                 half_edge_ids,
@@ -287,11 +282,11 @@ mod interpretation_tests {
             half_edges,
             edges,
             vertices,
-            ..WorthTopologyView::default()
+            ..TopologyView::default()
         }
     }
 
-    fn connected_wire_branch_view(branch_count: usize) -> WorthTopologyView {
+    fn connected_wire_branch_view(branch_count: usize) -> TopologyView {
         assert!(
             branch_count >= 3,
             "connected wire branch requires at least three arms"
@@ -325,8 +320,8 @@ mod interpretation_tests {
             half_edge_ids.push(half_edge_id);
         }
 
-        WorthTopologyView {
-            wires: vec![WorthTopologyWire {
+        TopologyView {
+            wires: vec![TopologyWire {
                 entity_id: wire_id,
                 label: "branch".into(),
                 half_edge_ids,
@@ -334,11 +329,11 @@ mod interpretation_tests {
             half_edges,
             edges,
             vertices,
-            ..WorthTopologyView::default()
+            ..TopologyView::default()
         }
     }
 
-    fn closed_wire_cycle_of_size(length: usize) -> WorthTopologyView {
+    fn closed_wire_cycle_of_size(length: usize) -> TopologyView {
         assert!(
             length >= 3,
             "closed wire cycle requires at least three half-edges"
@@ -377,8 +372,8 @@ mod interpretation_tests {
             half_edge_ids.push(half_edge_id);
         }
 
-        WorthTopologyView {
-            wires: vec![WorthTopologyWire {
+        TopologyView {
+            wires: vec![TopologyWire {
                 entity_id: wire_id,
                 label: "cycle".into(),
                 half_edge_ids,
@@ -386,11 +381,11 @@ mod interpretation_tests {
             half_edges,
             edges,
             vertices,
-            ..WorthTopologyView::default()
+            ..TopologyView::default()
         }
     }
 
-    fn open_shell_nmt_fan_view(fan_size: usize) -> WorthTopologyView {
+    fn open_shell_nmt_fan_view(fan_size: usize) -> TopologyView {
         assert!(
             fan_size >= 3,
             "nmt fan requires at least three incident faces"
@@ -441,7 +436,7 @@ mod interpretation_tests {
             edges.push(edge(&format!("ea{index}"), edge_a));
             edges.push(edge(&format!("eb{index}"), edge_b));
 
-            faces.push(WorthTopologyFace {
+            faces.push(TopologyFace {
                 entity_id: face_id,
                 label: format!("f{index}"),
                 shell_id: Some(shell_id),
@@ -449,7 +444,7 @@ mod interpretation_tests {
                 inner_loop_ids: vec![],
                 boundary_half_edge_ids: vec![first_shared_he, second_he, third_he],
             });
-            loops.push(WorthTopologyLoop {
+            loops.push(TopologyLoop {
                 entity_id: loop_id,
                 label: format!("l{index}"),
                 face_ids: vec![face_id],
@@ -504,31 +499,31 @@ mod interpretation_tests {
             }
         }
 
-        WorthTopologyView {
-            models: vec![WorthTopologyModel {
+        TopologyView {
+            models: vec![TopologyModel {
                 entity_id: model_id,
                 label: "model".into(),
                 body_ids: vec![body_id],
             }],
-            bodies: vec![WorthTopologyBody {
+            bodies: vec![TopologyBody {
                 entity_id: body_id,
                 label: "body".into(),
                 model_id: Some(model_id),
                 lump_ids: vec![lump_id],
             }],
-            lumps: vec![WorthTopologyLump {
+            lumps: vec![TopologyLump {
                 entity_id: lump_id,
                 label: "lump".into(),
                 body_id: Some(body_id),
                 region_ids: vec![region_id],
             }],
-            regions: vec![WorthTopologyRegion {
+            regions: vec![TopologyRegion {
                 entity_id: region_id,
                 label: "region".into(),
                 lump_id: Some(lump_id),
                 shell_ids: vec![shell_id],
             }],
-            shells: vec![WorthTopologyShell {
+            shells: vec![TopologyShell {
                 entity_id: shell_id,
                 label: "sheet".into(),
                 region_id: Some(region_id),
@@ -539,11 +534,11 @@ mod interpretation_tests {
             half_edges,
             edges,
             vertices,
-            ..WorthTopologyView::default()
+            ..TopologyView::default()
         }
     }
 
-    fn single_face_sheet_disk_view(edge_count: usize) -> WorthTopologyView {
+    fn single_face_sheet_disk_view(edge_count: usize) -> TopologyView {
         assert!(
             edge_count >= 3,
             "sheet disk requires at least three boundary edges"
@@ -593,37 +588,37 @@ mod interpretation_tests {
             half_edge_ids.push(half_edge_id);
         }
 
-        WorthTopologyView {
-            models: vec![WorthTopologyModel {
+        TopologyView {
+            models: vec![TopologyModel {
                 entity_id: model_id,
                 label: "model".into(),
                 body_ids: vec![body_id],
             }],
-            bodies: vec![WorthTopologyBody {
+            bodies: vec![TopologyBody {
                 entity_id: body_id,
                 label: "body".into(),
                 model_id: Some(model_id),
                 lump_ids: vec![lump_id],
             }],
-            lumps: vec![WorthTopologyLump {
+            lumps: vec![TopologyLump {
                 entity_id: lump_id,
                 label: "lump".into(),
                 body_id: Some(body_id),
                 region_ids: vec![region_id],
             }],
-            regions: vec![WorthTopologyRegion {
+            regions: vec![TopologyRegion {
                 entity_id: region_id,
                 label: "region".into(),
                 lump_id: Some(lump_id),
                 shell_ids: vec![shell_id],
             }],
-            shells: vec![WorthTopologyShell {
+            shells: vec![TopologyShell {
                 entity_id: shell_id,
                 label: "sheet-disk".into(),
                 region_id: Some(region_id),
                 face_ids: vec![face_id],
             }],
-            faces: vec![WorthTopologyFace {
+            faces: vec![TopologyFace {
                 entity_id: face_id,
                 label: "disk-face".into(),
                 shell_id: Some(shell_id),
@@ -631,7 +626,7 @@ mod interpretation_tests {
                 inner_loop_ids: vec![],
                 boundary_half_edge_ids: half_edge_ids.clone(),
             }],
-            loops: vec![WorthTopologyLoop {
+            loops: vec![TopologyLoop {
                 entity_id: loop_id,
                 label: "disk-loop".into(),
                 face_ids: vec![face_id],
@@ -640,11 +635,11 @@ mod interpretation_tests {
             half_edges,
             edges,
             vertices,
-            ..WorthTopologyView::default()
+            ..TopologyView::default()
         }
     }
 
-    fn open_sheet_patch_view(face_count: usize) -> WorthTopologyView {
+    fn open_sheet_patch_view(face_count: usize) -> TopologyView {
         assert!(face_count >= 2, "sheet patch requires at least two faces");
         assert!(
             face_count <= 3,
@@ -688,7 +683,7 @@ mod interpretation_tests {
         ];
 
         let all_faces = vec![
-            WorthTopologyFace {
+            TopologyFace {
                 entity_id: face_ids[0],
                 label: "patch-f0".into(),
                 shell_id: Some(shell_id),
@@ -696,7 +691,7 @@ mod interpretation_tests {
                 inner_loop_ids: vec![],
                 boundary_half_edge_ids: vec![half_edge_ids[0], half_edge_ids[1], half_edge_ids[2]],
             },
-            WorthTopologyFace {
+            TopologyFace {
                 entity_id: face_ids[1],
                 label: "patch-f1".into(),
                 shell_id: Some(shell_id),
@@ -704,7 +699,7 @@ mod interpretation_tests {
                 inner_loop_ids: vec![],
                 boundary_half_edge_ids: vec![half_edge_ids[3], half_edge_ids[4], half_edge_ids[5]],
             },
-            WorthTopologyFace {
+            TopologyFace {
                 entity_id: face_ids[2],
                 label: "patch-f2".into(),
                 shell_id: Some(shell_id),
@@ -714,19 +709,19 @@ mod interpretation_tests {
             },
         ];
         let all_loops = vec![
-            WorthTopologyLoop {
+            TopologyLoop {
                 entity_id: loop_ids[0],
                 label: "patch-l0".into(),
                 face_ids: vec![face_ids[0]],
                 half_edge_ids: vec![half_edge_ids[0], half_edge_ids[1], half_edge_ids[2]],
             },
-            WorthTopologyLoop {
+            TopologyLoop {
                 entity_id: loop_ids[1],
                 label: "patch-l1".into(),
                 face_ids: vec![face_ids[1]],
                 half_edge_ids: vec![half_edge_ids[3], half_edge_ids[4], half_edge_ids[5]],
             },
-            WorthTopologyLoop {
+            TopologyLoop {
                 entity_id: loop_ids[2],
                 label: "patch-l2".into(),
                 face_ids: vec![face_ids[2]],
@@ -858,31 +853,31 @@ mod interpretation_tests {
             .map(|(index, entity_id)| vertex(&format!("patch-v{index}"), *entity_id))
             .collect::<Vec<_>>();
 
-        WorthTopologyView {
-            models: vec![WorthTopologyModel {
+        TopologyView {
+            models: vec![TopologyModel {
                 entity_id: model_id,
                 label: "model".into(),
                 body_ids: vec![body_id],
             }],
-            bodies: vec![WorthTopologyBody {
+            bodies: vec![TopologyBody {
                 entity_id: body_id,
                 label: "body".into(),
                 model_id: Some(model_id),
                 lump_ids: vec![lump_id],
             }],
-            lumps: vec![WorthTopologyLump {
+            lumps: vec![TopologyLump {
                 entity_id: lump_id,
                 label: "lump".into(),
                 body_id: Some(body_id),
                 region_ids: vec![region_id],
             }],
-            regions: vec![WorthTopologyRegion {
+            regions: vec![TopologyRegion {
                 entity_id: region_id,
                 label: "region".into(),
                 lump_id: Some(lump_id),
                 shell_ids: vec![shell_id],
             }],
-            shells: vec![WorthTopologyShell {
+            shells: vec![TopologyShell {
                 entity_id: shell_id,
                 label: "sheet-patch".into(),
                 region_id: Some(region_id),
@@ -893,7 +888,7 @@ mod interpretation_tests {
             half_edges: all_half_edges[..(face_count * 3)].to_vec(),
             edges: all_edges,
             vertices,
-            ..WorthTopologyView::default()
+            ..TopologyView::default()
         }
     }
 
@@ -901,15 +896,15 @@ mod interpretation_tests {
         EntityId::new(PartitionId::main(), slot, 1)
     }
 
-    fn edge(label: &str, entity_id: EntityId) -> WorthTopologyEdge {
-        WorthTopologyEdge {
+    fn edge(label: &str, entity_id: EntityId) -> TopologyEdge {
+        TopologyEdge {
             entity_id,
             label: label.into(),
         }
     }
 
-    fn vertex(label: &str, entity_id: EntityId) -> WorthTopologyVertex {
-        WorthTopologyVertex {
+    fn vertex(label: &str, entity_id: EntityId) -> TopologyVertex {
+        TopologyVertex {
             entity_id,
             label: label.into(),
         }
@@ -926,8 +921,8 @@ mod interpretation_tests {
         origin_vertex_id: Option<EntityId>,
         target_vertex_id: Option<EntityId>,
         face_id: Option<EntityId>,
-    ) -> WorthTopologyHalfEdge {
-        WorthTopologyHalfEdge {
+    ) -> TopologyHalfEdge {
+        TopologyHalfEdge {
             entity_id,
             label: "he".into(),
             loop_id,

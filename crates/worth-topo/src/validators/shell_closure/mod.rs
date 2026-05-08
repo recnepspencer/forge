@@ -1,13 +1,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use forge_relational::facade::identity::EntityId;
-use worth_schema::facade::WorthShellInterpretationClass;
+use schema::facade::ShellInterpretationClass;
 
 use crate::interpretation::InterpretedTopologyView;
-use crate::validators::error::WorthTopologyValidationError;
+use crate::validators::error::TopologyValidationError;
 use crate::validators::shared::err;
 
-pub fn validate(view: &InterpretedTopologyView) -> Result<(), WorthTopologyValidationError> {
+pub fn validate(view: &InterpretedTopologyView) -> Result<(), TopologyValidationError> {
     let topology = view.materialized().topology();
     validate_interpretation_summary(view)?;
     validate_shell_faces(topology)?;
@@ -19,10 +19,10 @@ pub fn validate(view: &InterpretedTopologyView) -> Result<(), WorthTopologyValid
 
 fn validate_interpretation_summary(
     view: &InterpretedTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
+) -> Result<(), TopologyValidationError> {
     for shell in &view.interpretations().shells {
         if shell.boundary_half_edge_count == 0
-            && matches!(shell.class, WorthShellInterpretationClass::OpenSheet)
+            && matches!(shell.class, ShellInterpretationClass::OpenSheet)
         {
             return Err(err(
                 "shell_closure.interpretation_summary",
@@ -37,10 +37,10 @@ fn validate_interpretation_summary(
 }
 
 fn validate_shell_closure_mode(
-    view: &crate::data::topology_view::WorthTopologyView,
+    view: &crate::data::topology_view::TopologyView,
     interpreted: &InterpretedTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
-    let shell_classes: BTreeMap<EntityId, WorthShellInterpretationClass> = interpreted
+) -> Result<(), TopologyValidationError> {
+    let shell_classes: BTreeMap<EntityId, ShellInterpretationClass> = interpreted
         .interpretations()
         .shells
         .iter()
@@ -139,8 +139,7 @@ fn validate_shell_closure_mode(
             )?;
             if !matches!(
                 shell_class,
-                WorthShellInterpretationClass::ClosedSolid
-                    | WorthShellInterpretationClass::ClosedNonManifold
+                ShellInterpretationClass::ClosedSolid | ShellInterpretationClass::ClosedNonManifold
             ) {
                 return Err(err(
                     "shell_closure.interpretation_summary",
@@ -152,8 +151,7 @@ fn validate_shell_closure_mode(
             }
         } else if matches!(
             shell_class,
-            WorthShellInterpretationClass::ClosedSolid
-                | WorthShellInterpretationClass::ClosedNonManifold
+            ShellInterpretationClass::ClosedSolid | ShellInterpretationClass::ClosedNonManifold
         ) {
             return Err(err(
                 "shell_closure.interpretation_summary",
@@ -170,8 +168,8 @@ fn validate_shell_closure_mode(
 }
 
 fn validate_shell_faces(
-    view: &crate::data::topology_view::WorthTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
+    view: &crate::data::topology_view::TopologyView,
+) -> Result<(), TopologyValidationError> {
     for shell in &view.shells {
         if shell.face_ids.is_empty() {
             return Err(err(
@@ -184,8 +182,8 @@ fn validate_shell_faces(
 }
 
 fn validate_face_shell_membership(
-    view: &crate::data::topology_view::WorthTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
+    view: &crate::data::topology_view::TopologyView,
+) -> Result<(), TopologyValidationError> {
     let shell_face_sets: BTreeMap<EntityId, std::collections::BTreeSet<EntityId>> = view
         .shells
         .iter()
@@ -222,8 +220,8 @@ fn validate_face_shell_membership(
 }
 
 fn validate_face_boundaries(
-    view: &crate::data::topology_view::WorthTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
+    view: &crate::data::topology_view::TopologyView,
+) -> Result<(), TopologyValidationError> {
     for face in &view.faces {
         if face.boundary_half_edge_ids.is_empty() {
             return Err(err(
@@ -236,9 +234,9 @@ fn validate_face_boundaries(
 }
 
 fn shell_boundary_half_edges(
-    view: &crate::data::topology_view::WorthTopologyView,
+    view: &crate::data::topology_view::TopologyView,
     shell_face_ids: &BTreeSet<EntityId>,
-) -> Result<BTreeSet<EntityId>, WorthTopologyValidationError> {
+) -> Result<BTreeSet<EntityId>, TopologyValidationError> {
     let mut half_edge_ids = BTreeSet::new();
     for face in &view.faces {
         if shell_face_ids.contains(&face.entity_id) {
@@ -259,8 +257,8 @@ fn shell_boundary_half_edges(
 fn validate_closed_shell_manifold_edges(
     shell_id: EntityId,
     shell_half_edges: &BTreeSet<EntityId>,
-    half_edge_map: &BTreeMap<EntityId, &crate::data::topology_view::WorthTopologyHalfEdge>,
-) -> Result<(), WorthTopologyValidationError> {
+    half_edge_map: &BTreeMap<EntityId, &crate::data::topology_view::TopologyHalfEdge>,
+) -> Result<(), TopologyValidationError> {
     let mut validated_edges = BTreeSet::new();
 
     for half_edge_id in shell_half_edges {
@@ -340,8 +338,8 @@ fn validate_closed_shell_manifold_edges(
 
 fn walk_radial_ring(
     start_id: EntityId,
-    half_edge_map: &BTreeMap<EntityId, &crate::data::topology_view::WorthTopologyHalfEdge>,
-) -> Result<Vec<EntityId>, WorthTopologyValidationError> {
+    half_edge_map: &BTreeMap<EntityId, &crate::data::topology_view::TopologyHalfEdge>,
+) -> Result<Vec<EntityId>, TopologyValidationError> {
     let mut ring = Vec::new();
     let mut seen = BTreeSet::new();
     let mut current_id = start_id;

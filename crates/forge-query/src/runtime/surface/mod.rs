@@ -24,7 +24,10 @@ mod read_domain_invariant_summary;
 mod read_extension_hook_support;
 mod read_family;
 mod read_operator_coverage;
+mod read_receipt_construction;
+mod read_receipt_support;
 mod read_relationship_proof_denial;
+mod read_result;
 mod symbolic_aspect_resolution_evidence;
 mod symbolic_target_reference_evidence;
 mod verified_assumption_set;
@@ -78,7 +81,7 @@ pub use read_built_in_operator_denial::{
 pub use read_composition::{
     ForgeQueryReadExecutionEngine, ForgeQueryReadFallbackClass, ForgeQueryReadGraph,
     ForgeQueryReadGraphFamily, ForgeQueryReadReceipt, ForgeQueryReadRelationshipProofPosture,
-    ForgeQueryReadResult, ForgeQueryReadScopeClass,
+    ForgeQueryReadScopeClass,
 };
 pub use read_denial::{
     ForgeQueryReadDenial, ForgeQueryReadDenialKind, ForgeQueryReadScopeShapeMismatch,
@@ -96,6 +99,7 @@ pub use read_operator_coverage::{ForgeQueryReadBuiltInOperator, ForgeQueryReadOp
 pub use read_relationship_proof_denial::{
     ForgeQueryReadRelationshipProofDenial, ForgeQueryReadRelationshipProofDenialStage,
 };
+pub use read_result::ForgeQueryReadResult;
 pub use symbolic_aspect_resolution_evidence::ForgeQuerySymbolicAspectResolutionEvidence;
 pub use symbolic_target_reference_evidence::{
     ForgeQuerySymbolicTargetReferenceEvidence, ForgeQuerySymbolicTargetReferenceOutcome,

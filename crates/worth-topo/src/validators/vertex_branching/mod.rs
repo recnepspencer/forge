@@ -1,14 +1,14 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use forge_relational::facade::identity::EntityId;
-use worth_schema::facade::WorthWireInterpretationClass;
+use schema::facade::WireInterpretationClass;
 
-use crate::data::topology_view::WorthTopologyHalfEdge;
+use crate::data::topology_view::TopologyHalfEdge;
 use crate::interpretation::InterpretedTopologyView;
-use crate::validators::error::WorthTopologyValidationError;
+use crate::validators::error::TopologyValidationError;
 use crate::validators::shared::err;
 
-pub fn validate(view: &InterpretedTopologyView) -> Result<(), WorthTopologyValidationError> {
+pub fn validate(view: &InterpretedTopologyView) -> Result<(), TopologyValidationError> {
     let topology = view.materialized().topology();
     validate_wire_interpretation_summary(view)?;
     validate_wire_half_edge_membership(topology)?;
@@ -20,10 +20,10 @@ pub fn validate(view: &InterpretedTopologyView) -> Result<(), WorthTopologyValid
 
 fn validate_wire_interpretation_summary(
     view: &InterpretedTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
+) -> Result<(), TopologyValidationError> {
     for wire in &view.interpretations().wires {
         match wire.class {
-            WorthWireInterpretationClass::ConnectedBranch if wire.branch_vertex_ids.is_empty() => {
+            WireInterpretationClass::ConnectedBranch if wire.branch_vertex_ids.is_empty() => {
                 return Err(err(
                     "vertex_branching.interpretation_summary",
                     format!(
@@ -32,7 +32,7 @@ fn validate_wire_interpretation_summary(
                     ),
                 ));
             }
-            WorthWireInterpretationClass::ClosedCycle if !wire.terminal_vertex_ids.is_empty() => {
+            WireInterpretationClass::ClosedCycle if !wire.terminal_vertex_ids.is_empty() => {
                 return Err(err(
                     "vertex_branching.interpretation_summary",
                     format!(
@@ -48,8 +48,8 @@ fn validate_wire_interpretation_summary(
 }
 
 fn validate_wire_half_edge_membership(
-    view: &crate::data::topology_view::WorthTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
+    view: &crate::data::topology_view::TopologyView,
+) -> Result<(), TopologyValidationError> {
     for wire in &view.wires {
         if wire.half_edge_ids.is_empty() {
             return Err(err(
@@ -86,8 +86,8 @@ fn validate_wire_half_edge_membership(
 }
 
 fn validate_vertex_presence_for_branching(
-    view: &crate::data::topology_view::WorthTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
+    view: &crate::data::topology_view::TopologyView,
+) -> Result<(), TopologyValidationError> {
     let vertex_ids: BTreeSet<EntityId> = view
         .vertices
         .iter()
@@ -129,9 +129,9 @@ fn validate_vertex_presence_for_branching(
 }
 
 fn validate_wire_connectivity(
-    view: &crate::data::topology_view::WorthTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
-    let half_edge_map: BTreeMap<EntityId, &WorthTopologyHalfEdge> = view
+    view: &crate::data::topology_view::TopologyView,
+) -> Result<(), TopologyValidationError> {
+    let half_edge_map: BTreeMap<EntityId, &TopologyHalfEdge> = view
         .half_edges
         .iter()
         .map(|record| (record.entity_id, record))
@@ -201,10 +201,10 @@ fn validate_wire_connectivity(
 }
 
 fn validate_branch_vertices_use_distinct_edges(
-    view: &crate::data::topology_view::WorthTopologyView,
+    view: &crate::data::topology_view::TopologyView,
     interpreted: &InterpretedTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
-    let half_edge_map: BTreeMap<EntityId, &WorthTopologyHalfEdge> = view
+) -> Result<(), TopologyValidationError> {
+    let half_edge_map: BTreeMap<EntityId, &TopologyHalfEdge> = view
         .half_edges
         .iter()
         .map(|record| (record.entity_id, record))
@@ -278,7 +278,7 @@ fn validate_branch_vertices_use_distinct_edges(
         }
         if matches!(
             interpreted_wire.class,
-            WorthWireInterpretationClass::ConnectedBranch
+            WireInterpretationClass::ConnectedBranch
         ) && interpreted_wire.branch_vertex_ids.is_empty()
         {
             return Err(err(
@@ -295,9 +295,9 @@ fn validate_branch_vertices_use_distinct_edges(
 }
 
 fn incident_vertices(
-    half_edge: &WorthTopologyHalfEdge,
-    half_edge_map: &BTreeMap<EntityId, &WorthTopologyHalfEdge>,
-) -> Result<BTreeSet<EntityId>, WorthTopologyValidationError> {
+    half_edge: &TopologyHalfEdge,
+    half_edge_map: &BTreeMap<EntityId, &TopologyHalfEdge>,
+) -> Result<BTreeSet<EntityId>, TopologyValidationError> {
     let mut vertices = BTreeSet::new();
     let origin = half_edge.origin_vertex_id.ok_or_else(|| {
         err(

@@ -1,11 +1,11 @@
 use forge_relational::facade::identity::EntityId;
 
-use crate::data::topology_view::WorthTopologyView;
+use crate::data::topology_view::TopologyView;
 use crate::materialization::MaterializedTopologyView;
-use crate::validators::error::WorthTopologyValidationError;
+use crate::validators::error::TopologyValidationError;
 use crate::validators::shared::{err, face_outer_loop_map, loop_face_map, unique_ids};
 
-pub fn validate(view: &MaterializedTopologyView) -> Result<(), WorthTopologyValidationError> {
+pub fn validate(view: &MaterializedTopologyView) -> Result<(), TopologyValidationError> {
     let view = view.topology();
     validate_unique_entity_ids(view)?;
     validate_hierarchy(view)?;
@@ -15,9 +15,7 @@ pub fn validate(view: &MaterializedTopologyView) -> Result<(), WorthTopologyVali
     Ok(())
 }
 
-fn validate_unique_entity_ids(
-    view: &WorthTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
+fn validate_unique_entity_ids(view: &TopologyView) -> Result<(), TopologyValidationError> {
     unique_ids(&view.models, |record| record.entity_id)?;
     unique_ids(&view.bodies, |record| record.entity_id)?;
     unique_ids(&view.lumps, |record| record.entity_id)?;
@@ -32,7 +30,7 @@ fn validate_unique_entity_ids(
     Ok(())
 }
 
-fn validate_hierarchy(view: &WorthTopologyView) -> Result<(), WorthTopologyValidationError> {
+fn validate_hierarchy(view: &TopologyView) -> Result<(), TopologyValidationError> {
     for body in &view.bodies {
         if body.model_id.is_none() {
             return Err(err(
@@ -76,9 +74,7 @@ fn validate_hierarchy(view: &WorthTopologyView) -> Result<(), WorthTopologyValid
     Ok(())
 }
 
-fn validate_face_loop_existence(
-    view: &WorthTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
+fn validate_face_loop_existence(view: &TopologyView) -> Result<(), TopologyValidationError> {
     for face in &view.faces {
         if face.outer_loop_id.is_none() {
             return Err(err(
@@ -90,9 +86,7 @@ fn validate_face_loop_existence(
     Ok(())
 }
 
-fn validate_loop_face_membership(
-    view: &WorthTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
+fn validate_loop_face_membership(view: &TopologyView) -> Result<(), TopologyValidationError> {
     let outer_loop_map = face_outer_loop_map(view);
     let loop_face_map = loop_face_map(view);
     for face in &view.faces {
@@ -124,9 +118,7 @@ fn validate_loop_face_membership(
     Ok(())
 }
 
-fn validate_half_edge_membership_refs(
-    view: &WorthTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
+fn validate_half_edge_membership_refs(view: &TopologyView) -> Result<(), TopologyValidationError> {
     let loop_ids = unique_ids(&view.loops, |record| record.entity_id)?;
     let wire_ids = unique_ids(&view.wires, |record| record.entity_id)?;
     let face_ids = unique_ids(&view.faces, |record| record.entity_id)?;
@@ -173,7 +165,7 @@ fn validate_optional_ref(
     owner_id: EntityId,
     target_id: Option<EntityId>,
     valid_ids: &std::collections::BTreeSet<EntityId>,
-) -> Result<(), WorthTopologyValidationError> {
+) -> Result<(), TopologyValidationError> {
     if let Some(target_id) = target_id {
         if !valid_ids.contains(&target_id) {
             return Err(err(

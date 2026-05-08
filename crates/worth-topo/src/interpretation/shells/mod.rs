@@ -1,21 +1,18 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use forge_relational::facade::identity::EntityId;
-use worth_schema::facade::WorthShellInterpretationClass;
+use schema::facade::ShellInterpretationClass;
 
-use crate::data::topology_view::{WorthTopologyHalfEdge, WorthTopologyView};
+use crate::data::topology_view::{TopologyHalfEdge, TopologyView};
 use crate::interpretation::radial::summarize_shell_radial;
-use crate::interpretation::types::{WorthRadialInterpretationSummary, WorthShellInterpretation};
+use crate::interpretation::types::{RadialInterpretationSummary, ShellInterpretation};
 use crate::materialization::MaterializedTopologyView;
 
 pub fn interpret_shells(
     view: &MaterializedTopologyView,
-) -> (
-    Vec<WorthShellInterpretation>,
-    Vec<WorthRadialInterpretationSummary>,
-) {
+) -> (Vec<ShellInterpretation>, Vec<RadialInterpretationSummary>) {
     let topology = view.topology();
-    let half_edge_map: BTreeMap<EntityId, &WorthTopologyHalfEdge> = topology
+    let half_edge_map: BTreeMap<EntityId, &TopologyHalfEdge> = topology
         .half_edges
         .iter()
         .map(|record| (record.entity_id, record))
@@ -33,19 +30,19 @@ pub fn interpret_shells(
             let radial = summarize_shell_radial(shell.entity_id, &shell_half_edges, &half_edge_map);
             radial_summaries.push(radial.clone());
 
-            WorthShellInterpretation {
+            ShellInterpretation {
                 shell_id: shell.entity_id,
                 class: if radial.boundary_half_edge_count == 0 {
                     if radial.non_manifold_edge_ids.is_empty() {
-                        WorthShellInterpretationClass::ClosedSolid
+                        ShellInterpretationClass::ClosedSolid
                     } else {
-                        WorthShellInterpretationClass::ClosedNonManifold
+                        ShellInterpretationClass::ClosedNonManifold
                     }
                 } else {
                     if radial.non_manifold_edge_ids.is_empty() {
-                        WorthShellInterpretationClass::OpenSheet
+                        ShellInterpretationClass::OpenSheet
                     } else {
-                        WorthShellInterpretationClass::OpenNonManifold
+                        ShellInterpretationClass::OpenNonManifold
                     }
                 },
                 face_count: shell.face_ids.len(),
@@ -60,7 +57,7 @@ pub fn interpret_shells(
 }
 
 fn shell_boundary_half_edges(
-    view: &WorthTopologyView,
+    view: &TopologyView,
     shell_face_ids: &BTreeSet<EntityId>,
 ) -> BTreeSet<EntityId> {
     let mut half_edge_ids = BTreeSet::new();
@@ -76,7 +73,7 @@ fn shell_boundary_half_edges(
 
 fn count_boundary_components(
     shell_half_edges: &BTreeSet<EntityId>,
-    half_edge_map: &BTreeMap<EntityId, &WorthTopologyHalfEdge>,
+    half_edge_map: &BTreeMap<EntityId, &TopologyHalfEdge>,
 ) -> usize {
     let boundary_half_edges = shell_half_edges
         .iter()

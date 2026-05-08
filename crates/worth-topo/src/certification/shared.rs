@@ -1,31 +1,31 @@
-use worth_schema::facade::topology_authoring::WorthMilestoneOnePrimitiveCase;
-use worth_schema::facade::{WorthTopologyMutation, WorthTopologyMutationBatch};
+use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
+use schema::facade::{TopologyMutation, TopologyMutationBatch};
 
 use crate::certification::report::{
-    WorthDeterministicDigest, WorthPrimitiveCorpusCaseReport, WorthPrimitiveCorpusCoverageEntry,
-    WorthPrimitiveCorpusParityEntry, WorthPrimitiveFamilyCoverageEntry,
+    DeterministicDigest, PrimitiveCorpusCaseReport, PrimitiveCorpusCoverageEntry,
+    PrimitiveCorpusParityEntry, PrimitiveFamilyCoverageEntry,
 };
 
 pub(crate) fn coverage_entry(
     family: &str,
     observed_member_count: usize,
-) -> WorthPrimitiveFamilyCoverageEntry {
-    WorthPrimitiveFamilyCoverageEntry {
+) -> PrimitiveFamilyCoverageEntry {
+    PrimitiveFamilyCoverageEntry {
         family: family.to_string(),
         observed: observed_member_count > 0,
         observed_member_count,
     }
 }
 
-pub(crate) fn primitive_family_name(primitive: &WorthMilestoneOnePrimitiveCase) -> &'static str {
+pub(crate) fn primitive_family_name(primitive: &MilestoneOnePrimitiveCase) -> &'static str {
     match primitive {
-        WorthMilestoneOnePrimitiveCase::WireOpen { .. } => "WireOpen(n)",
-        WorthMilestoneOnePrimitiveCase::WireClosed { .. } => "WireClosed(n)",
-        WorthMilestoneOnePrimitiveCase::WireBranch { .. } => "WireBranch(k)",
-        WorthMilestoneOnePrimitiveCase::SheetDisk { .. } => "SheetDisk(n)",
-        WorthMilestoneOnePrimitiveCase::SheetPatch { .. } => "SheetPatch(f)",
-        WorthMilestoneOnePrimitiveCase::SolidShell { .. } => "SolidShell(f)",
-        WorthMilestoneOnePrimitiveCase::NmtEdgeFan { .. } => "NmtEdgeFan(k)",
+        MilestoneOnePrimitiveCase::WireOpen { .. } => "WireOpen(n)",
+        MilestoneOnePrimitiveCase::WireClosed { .. } => "WireClosed(n)",
+        MilestoneOnePrimitiveCase::WireBranch { .. } => "WireBranch(k)",
+        MilestoneOnePrimitiveCase::SheetDisk { .. } => "SheetDisk(n)",
+        MilestoneOnePrimitiveCase::SheetPatch { .. } => "SheetPatch(f)",
+        MilestoneOnePrimitiveCase::SolidShell { .. } => "SolidShell(f)",
+        MilestoneOnePrimitiveCase::NmtEdgeFan { .. } => "NmtEdgeFan(k)",
     }
 }
 
@@ -102,8 +102,8 @@ pub(crate) fn derived_validator_expectations_for_family(family: &str) -> &'stati
     }
 }
 
-pub(crate) fn empty_corpus_coverage_entry(family: &str) -> WorthPrimitiveCorpusCoverageEntry {
-    WorthPrimitiveCorpusCoverageEntry {
+pub(crate) fn empty_corpus_coverage_entry(family: &str) -> PrimitiveCorpusCoverageEntry {
+    PrimitiveCorpusCoverageEntry {
         family: family.to_string(),
         admitted_smallest_count: 0,
         admitted_generic_count: 0,
@@ -113,8 +113,8 @@ pub(crate) fn empty_corpus_coverage_entry(family: &str) -> WorthPrimitiveCorpusC
     }
 }
 
-pub(crate) fn empty_corpus_parity_entry(family: &str) -> WorthPrimitiveCorpusParityEntry {
-    WorthPrimitiveCorpusParityEntry {
+pub(crate) fn empty_corpus_parity_entry(family: &str) -> PrimitiveCorpusParityEntry {
+    PrimitiveCorpusParityEntry {
         family: family.to_string(),
         mainline_case_count: 0,
         branch_local_case_count: 0,
@@ -130,11 +130,11 @@ pub(crate) fn empty_corpus_parity_entry(family: &str) -> WorthPrimitiveCorpusPar
     }
 }
 
-pub(crate) fn parity_case_key(case: &WorthPrimitiveCorpusCaseReport) -> String {
+pub(crate) fn parity_case_key(case: &PrimitiveCorpusCaseReport) -> String {
     format!("{}:{:?}:{:?}", case.family, case.role, case.primitive)
 }
 
-pub(crate) fn digest_rows(rows: impl Iterator<Item = String>) -> WorthDeterministicDigest {
+pub(crate) fn digest_rows(rows: impl Iterator<Item = String>) -> DeterministicDigest {
     let mut count = 0usize;
     let mut hash = 0xcbf29ce484222325u64;
     for row in rows {
@@ -147,33 +147,33 @@ pub(crate) fn digest_rows(rows: impl Iterator<Item = String>) -> WorthDeterminis
         hash = hash.wrapping_mul(0x100000001b3);
     }
 
-    WorthDeterministicDigest {
+    DeterministicDigest {
         algorithm: "fnv1a64".to_string(),
         digest_hex: format!("{hash:016x}"),
         row_count: count,
     }
 }
 
-pub(crate) fn count_batch_mutations(batch: &WorthTopologyMutationBatch) -> (usize, usize, usize) {
+pub(crate) fn count_batch_mutations(batch: &TopologyMutationBatch) -> (usize, usize, usize) {
     let mut entity_upserts = 0usize;
     let mut relation_upserts = 0usize;
     let mut relation_removes = 0usize;
 
     for mutation in &batch.mutations {
         match mutation {
-            WorthTopologyMutation::CreateEntity { kind, .. }
-            | WorthTopologyMutation::UpsertEntity { kind, .. }
-                if matches!(kind, worth_schema::facade::WorthEntityKind::Topology(_)) =>
+            TopologyMutation::CreateEntity { kind, .. }
+            | TopologyMutation::UpsertEntity { kind, .. }
+                if matches!(kind, schema::facade::EntityKind::Topology(_)) =>
             {
                 entity_upserts += 1;
             }
-            WorthTopologyMutation::CreateRelation { kind, .. }
-            | WorthTopologyMutation::UpsertRelation { kind, .. }
-                if matches!(kind, worth_schema::facade::WorthRelationKind::Topology(_)) =>
+            TopologyMutation::CreateRelation { kind, .. }
+            | TopologyMutation::UpsertRelation { kind, .. }
+                if matches!(kind, schema::facade::RelationKind::Topology(_)) =>
             {
                 relation_upserts += 1;
             }
-            WorthTopologyMutation::RemoveRelation { .. } => {
+            TopologyMutation::RemoveRelation { .. } => {
                 relation_removes += 1;
             }
             _ => {}

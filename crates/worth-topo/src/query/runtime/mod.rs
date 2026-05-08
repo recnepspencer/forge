@@ -1,44 +1,68 @@
 mod adapters;
 mod contracts;
+mod edit_support;
+mod read_support;
+mod runtime_closeout;
+mod runtime_posture;
 
 #[cfg(test)]
 mod tests;
 
 use forge_query::facade::{ForgeQueryRuntime, ForgeQueryWorkspace};
 
-pub use contracts::{
-    WorthTopologyQueryEditFamilySupportStatus, WorthTopologyRuntimeAdapters,
-    WorthTopologyRuntimeFailure, WorthTopologyRuntimeSupport,
+pub(crate) use contracts::TOPOLOGY_SNAPSHOT_HISTORICAL_BASIS_EVIDENCE;
+pub use contracts::{TopologyRuntimeAdapters, TopologyRuntimeFailure, TopologyRuntimeSupport};
+pub use edit_support::{
+    TopologyQueryEditFamilySupportStatus, TopologyQueryEditLane,
+    TopologyQueryEditLaneExecutionShape, TopologyQueryEditLaneSupportStatus,
+    TopologyRuntimeEditFamilySupportRow, TopologyRuntimeEditLaneSupportRow,
+};
+pub use read_support::{TopologyQueryReadFamilySupportStatus, TopologyRuntimeReadFamilySupportRow};
+pub use runtime_closeout::{
+    TopologyRuntimeCloseout, TopologyRuntimeCloseoutFamily, TopologyRuntimeCloseoutRow,
+    TopologyRuntimeCloseoutStatus,
+};
+pub use runtime_posture::{
+    TopologyRuntimePostureCapability, TopologyRuntimePostureRow, TopologyRuntimePostureStatus,
 };
 
-use self::adapters::write_authority::WorthTopologyRuntimeWriteAuthority;
+use self::adapters::write_authority::TopologyRuntimeWriteAuthority;
 use self::adapters::{
-    build_runtime_bridge, WorthTopologyExistingTruthVerificationAdapter,
-    WorthTopologyInspectorEvidence, WorthTopologyPreviewBasis, WorthTopologyRuntimeSchemaAdapter,
-    WorthTopologyRuntimeSourceAdapter, WorthTopologyStaticSignalSink,
-    WorthTopologySubscriptionActivation,
+    build_runtime_bridge, TopologyExistingTruthVerificationAdapter, TopologyInspectorEvidence,
+    TopologyPreviewBasis, TopologyRuntimeSchemaAdapter, TopologyRuntimeSourceAdapter,
+    TopologyStaticSignalSink, TopologySubscriptionActivation,
 };
 
-pub fn worth_topology_runtime(
-    adapters: WorthTopologyRuntimeAdapters,
+pub fn topology_runtime(
+    adapters: TopologyRuntimeAdapters,
     name: impl Into<String>,
-) -> Result<ForgeQueryWorkspace, WorthTopologyRuntimeFailure> {
+) -> Result<ForgeQueryWorkspace, TopologyRuntimeFailure> {
     let support_profile = adapters.support().support_profile();
     let binding = adapters.binding.clone();
     let write_binding = binding.clone();
     let mut builder = ForgeQueryRuntime::builder()
         .runtime_bridge(build_runtime_bridge(binding.clone())?)
-        .schema_adapter(WorthTopologyRuntimeSchemaAdapter)
-        .source_adapter(WorthTopologyRuntimeSourceAdapter::new(binding.clone()))
-        .write_authority(WorthTopologyRuntimeWriteAuthority::new(write_binding))
-        .signal_sink(WorthTopologyStaticSignalSink)
-        .subscription_activation(WorthTopologySubscriptionActivation)
-        .preview_basis(WorthTopologyPreviewBasis)
-        .inspector_evidence(WorthTopologyInspectorEvidence)
+        .schema_adapter(TopologyRuntimeSchemaAdapter)
+        .source_adapter(TopologyRuntimeSourceAdapter::new(binding.clone()))
+        .write_authority(TopologyRuntimeWriteAuthority::new(write_binding))
+        .signal_sink(TopologyStaticSignalSink)
+        .subscription_activation(TopologySubscriptionActivation::new(
+            adapters.support().subscription_activation_evidence(),
+        ))
+        .preview_basis(TopologyPreviewBasis::new(
+            adapters.support().preview_basis_denial_reason(),
+        ))
+        .inspector_evidence(TopologyInspectorEvidence::new(
+            adapters.support().write_receipt_evidence_label(),
+            adapters.support().inspector_evidence_label(),
+        ))
         .support_profile(support_profile);
-    if adapters.support().authoritative_writes_supported() {
+    if adapters
+        .support()
+        .supports_posture(runtime_posture::TopologyRuntimePostureCapability::AuthoritativeWrites)
+    {
         builder = builder.existing_truth_verification(
-            WorthTopologyExistingTruthVerificationAdapter::new(binding.clone()),
+            TopologyExistingTruthVerificationAdapter::new(binding.clone()),
         );
     }
     let runtime = builder.build_backend_from_parts().build()?;

@@ -2,12 +2,12 @@ use forge_relational::facade::identity::KindId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthNamingRelationKind {
+pub enum NamingRelationKind {
     PersistentNameTargetsEntity,
 }
 
-impl WorthNamingRelationKind {
-    pub const WRAPPED_ALL: [super::WorthRelationKind; 1] = [super::WorthRelationKind::Naming(
+impl NamingRelationKind {
+    pub const WRAPPED_ALL: [super::RelationKind; 1] = [super::RelationKind::Naming(
         Self::PersistentNameTargetsEntity,
     )];
 
@@ -21,7 +21,7 @@ impl WorthNamingRelationKind {
 
     pub const fn kind_name(self) -> &'static str {
         match self {
-            Self::PersistentNameTargetsEntity => "worth.persistent_name_targets_entity",
+            Self::PersistentNameTargetsEntity => ".persistent_name_targets_entity",
         }
     }
 

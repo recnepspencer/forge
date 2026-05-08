@@ -2,19 +2,18 @@ use std::collections::BTreeMap;
 
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
-use worth_schema::facade::topology_authoring::{
-    WorthMilestoneOnePrimitiveCase, WorthMilestoneOnePrimitiveExpectedOutcome,
-    WorthMilestoneOnePrimitiveRole, WorthMilestoneOnePrimitiveScenario,
+use schema::facade::topology_authoring::{
+    MilestoneOnePrimitiveCase, MilestoneOnePrimitiveExpectedOutcome, MilestoneOnePrimitiveRole,
+    MilestoneOnePrimitiveScenario,
 };
-use worth_schema::facade::WorthMutationOrigin;
+use schema::facade::MutationOrigin;
 
-use crate::certification::error::WorthMilestoneOneCertificationError;
+use crate::certification::error::MilestoneOneCertificationError;
 use crate::certification::rejections::summarize_primitive_rejection;
 use crate::certification::report::{
-    WorthAdmittedRangeSweepReport, WorthAdmittedRangeSweepRow, WorthPrimitiveCorpusCaseReport,
-    WorthPrimitiveCorpusCoverageEntry, WorthPrimitiveCorpusCoverageMatrix,
-    WorthPrimitiveCorpusParityEntry, WorthPrimitiveCorpusParityReport,
-    WorthPrimitiveCorpusRejectedCaseReport, WorthPrimitiveCorpusReport,
+    AdmittedRangeSweepReport, AdmittedRangeSweepRow, PrimitiveCorpusCaseReport,
+    PrimitiveCorpusCoverageEntry, PrimitiveCorpusCoverageMatrix, PrimitiveCorpusParityEntry,
+    PrimitiveCorpusParityReport, PrimitiveCorpusRejectedCaseReport, PrimitiveCorpusReport,
 };
 use crate::certification::shared::{
     admitted_range_expected_branch_local_count, admitted_range_expected_mainline_count,
@@ -38,8 +37,8 @@ use self::parity::build_primitive_corpus_parity_report;
 pub fn certify_milestone_one_primitive_corpus_impl<F>(
     mut runtime_factory: F,
     stem: &str,
-    primitives: &[WorthMilestoneOnePrimitiveCase],
-) -> Result<WorthPrimitiveCorpusReport, WorthMilestoneOneCertificationError>
+    primitives: &[MilestoneOnePrimitiveCase],
+) -> Result<PrimitiveCorpusReport, MilestoneOneCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
 {
@@ -50,19 +49,19 @@ where
         let mut runtime = runtime_factory();
         let verified = verified_primitive(&mut runtime, &case_stem, primitive)?;
         let certification = certified_verified_commit(&mut runtime, &verified)?;
-        cases.push(WorthPrimitiveCorpusCaseReport {
+        cases.push(PrimitiveCorpusCaseReport {
             stem: case_stem,
             family: primitive_family_name(primitive).to_string(),
-            role: WorthMilestoneOnePrimitiveRole::Generic,
+            role: MilestoneOnePrimitiveRole::Generic,
             primitive: primitive.clone(),
-            expected_outcome: WorthMilestoneOnePrimitiveExpectedOutcome::Admit,
+            expected_outcome: MilestoneOnePrimitiveExpectedOutcome::Admit,
             certification,
         });
     }
 
     let coverage_matrix = build_primitive_corpus_coverage_matrix(&cases, &rejected_cases);
     let parity_report = build_primitive_corpus_parity_report(&cases, None);
-    Ok(WorthPrimitiveCorpusReport {
+    Ok(PrimitiveCorpusReport {
         coverage_matrix,
         parity_report,
         cases,
@@ -73,7 +72,7 @@ where
 pub fn certify_milestone_one_default_primitive_corpus_impl<F>(
     mut runtime_factory: F,
     stem: &str,
-) -> Result<WorthPrimitiveCorpusReport, WorthMilestoneOneCertificationError>
+) -> Result<PrimitiveCorpusReport, MilestoneOneCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
 {
@@ -95,8 +94,8 @@ where
 pub fn certify_milestone_one_primitive_scenarios_impl<F>(
     runtime_factory: &mut F,
     stem: &str,
-    scenarios: &[WorthMilestoneOnePrimitiveScenario],
-) -> Result<WorthPrimitiveCorpusReport, WorthMilestoneOneCertificationError>
+    scenarios: &[MilestoneOnePrimitiveScenario],
+) -> Result<PrimitiveCorpusReport, MilestoneOneCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
 {
@@ -106,10 +105,10 @@ where
         let case_stem = format!("{stem}.case.{index}");
         let mut runtime = runtime_factory();
         match scenario.expected_outcome {
-            WorthMilestoneOnePrimitiveExpectedOutcome::Admit => {
+            MilestoneOnePrimitiveExpectedOutcome::Admit => {
                 let verified = verified_primitive(&mut runtime, &case_stem, &scenario.primitive)?;
                 let certification = certified_verified_commit(&mut runtime, &verified)?;
-                cases.push(WorthPrimitiveCorpusCaseReport {
+                cases.push(PrimitiveCorpusCaseReport {
                     stem: case_stem,
                     family: scenario.family.clone(),
                     role: scenario.role,
@@ -118,18 +117,18 @@ where
                     certification,
                 });
             }
-            WorthMilestoneOnePrimitiveExpectedOutcome::Reject => {
+            MilestoneOnePrimitiveExpectedOutcome::Reject => {
                 let rejection =
                     match verified_primitive(&mut runtime, &case_stem, &scenario.primitive) {
                         Ok(_) => {
-                            return Err(WorthMilestoneOneCertificationError::ReadView(format!(
+                            return Err(MilestoneOneCertificationError::ReadView(format!(
                                 "out-of-class scenario `{}` unexpectedly admitted",
                                 scenario.family
                             )));
                         }
                         Err(error) => summarize_primitive_rejection(&error),
                     };
-                rejected_cases.push(WorthPrimitiveCorpusRejectedCaseReport {
+                rejected_cases.push(PrimitiveCorpusRejectedCaseReport {
                     stem: case_stem,
                     family: scenario.family.clone(),
                     role: scenario.role,
@@ -143,7 +142,7 @@ where
 
     let coverage_matrix = build_primitive_corpus_coverage_matrix(&cases, &rejected_cases);
     let parity_report = build_primitive_corpus_parity_report(&cases, None);
-    Ok(WorthPrimitiveCorpusReport {
+    Ok(PrimitiveCorpusReport {
         coverage_matrix,
         parity_report,
         cases,
@@ -155,8 +154,8 @@ pub fn certify_milestone_one_branch_local_primitive_scenarios_impl<F>(
     runtime_factory: &mut F,
     stem: &str,
     branch_id: &str,
-    scenarios: &[WorthMilestoneOnePrimitiveScenario],
-) -> Result<WorthPrimitiveCorpusReport, WorthMilestoneOneCertificationError>
+    scenarios: &[MilestoneOnePrimitiveScenario],
+) -> Result<PrimitiveCorpusReport, MilestoneOneCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
 {
@@ -172,21 +171,21 @@ where
                 &BranchId("main".to_string()),
             )
             .map_err(|error| {
-                WorthMilestoneOneCertificationError::ReadView(format!(
+                MilestoneOneCertificationError::ReadView(format!(
                     "failed to create branch `{branch_id}`: {error:?}"
                 ))
             })?;
         match scenario.expected_outcome {
-            WorthMilestoneOnePrimitiveExpectedOutcome::Admit => {
+            MilestoneOnePrimitiveExpectedOutcome::Admit => {
                 let verified = verified_primitive_on_branch(
                     &mut runtime,
                     &case_stem,
                     &scenario.primitive,
                     BranchId(branch_id.to_string()),
-                    WorthMutationOrigin::BranchLocalApplication,
+                    MutationOrigin::BranchLocalApplication,
                 )?;
                 let certification = certified_verified_commit(&mut runtime, &verified)?;
-                cases.push(WorthPrimitiveCorpusCaseReport {
+                cases.push(PrimitiveCorpusCaseReport {
                     stem: case_stem,
                     family: scenario.family.clone(),
                     role: scenario.role,
@@ -195,23 +194,23 @@ where
                     certification,
                 });
             }
-            WorthMilestoneOnePrimitiveExpectedOutcome::Reject => {
+            MilestoneOnePrimitiveExpectedOutcome::Reject => {
                 let rejection = match verified_primitive_on_branch(
                     &mut runtime,
                     &case_stem,
                     &scenario.primitive,
                     BranchId(branch_id.to_string()),
-                    WorthMutationOrigin::BranchLocalApplication,
+                    MutationOrigin::BranchLocalApplication,
                 ) {
                     Ok(_) => {
-                        return Err(WorthMilestoneOneCertificationError::ReadView(format!(
+                        return Err(MilestoneOneCertificationError::ReadView(format!(
                             "out-of-class branch-local scenario `{}` unexpectedly admitted",
                             scenario.family
                         )));
                     }
                     Err(error) => summarize_primitive_rejection(&error),
                 };
-                rejected_cases.push(WorthPrimitiveCorpusRejectedCaseReport {
+                rejected_cases.push(PrimitiveCorpusRejectedCaseReport {
                     stem: case_stem,
                     family: scenario.family.clone(),
                     role: scenario.role,
@@ -225,7 +224,7 @@ where
 
     let coverage_matrix = build_primitive_corpus_coverage_matrix(&cases, &rejected_cases);
     let parity_report = build_primitive_corpus_parity_report(&cases, None);
-    Ok(WorthPrimitiveCorpusReport {
+    Ok(PrimitiveCorpusReport {
         coverage_matrix,
         parity_report,
         cases,
@@ -236,7 +235,7 @@ where
 pub(crate) fn certify_milestone_one_admitted_range_sweeps<F>(
     runtime_factory: &mut F,
     stem: &str,
-) -> Result<WorthAdmittedRangeSweepReport, WorthMilestoneOneCertificationError>
+) -> Result<AdmittedRangeSweepReport, MilestoneOneCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
 {
@@ -257,11 +256,11 @@ where
         &milestone_one_out_of_class_range_scenarios(),
     )?;
 
-    let mut rows = BTreeMap::<String, WorthAdmittedRangeSweepRow>::new();
+    let mut rows = BTreeMap::<String, AdmittedRangeSweepRow>::new();
     for family in canonical_milestone_one_primitive_families() {
         rows.insert(
             family.to_string(),
-            WorthAdmittedRangeSweepRow {
+            AdmittedRangeSweepRow {
                 family: family.to_string(),
                 mainline_case_count: 0,
                 branch_local_case_count: 0,
@@ -317,16 +316,16 @@ where
             && row.out_of_class_rejection_count >= 1;
     }
 
-    Ok(WorthAdmittedRangeSweepReport {
+    Ok(AdmittedRangeSweepReport {
         rows: rows.into_values().collect(),
     })
 }
 
 pub(crate) fn build_primitive_corpus_coverage_matrix(
-    cases: &[WorthPrimitiveCorpusCaseReport],
-    rejected_cases: &[WorthPrimitiveCorpusRejectedCaseReport],
-) -> WorthPrimitiveCorpusCoverageMatrix {
-    let mut rows = BTreeMap::<String, WorthPrimitiveCorpusCoverageEntry>::new();
+    cases: &[PrimitiveCorpusCaseReport],
+    rejected_cases: &[PrimitiveCorpusRejectedCaseReport],
+) -> PrimitiveCorpusCoverageMatrix {
+    let mut rows = BTreeMap::<String, PrimitiveCorpusCoverageEntry>::new();
 
     for family in canonical_milestone_one_primitive_families() {
         rows.insert(family.to_string(), empty_corpus_coverage_entry(family));
@@ -337,10 +336,10 @@ pub(crate) fn build_primitive_corpus_coverage_matrix(
             .entry(case.family.clone())
             .or_insert_with(|| empty_corpus_coverage_entry(&case.family));
         match case.role {
-            WorthMilestoneOnePrimitiveRole::Smallest => row.admitted_smallest_count += 1,
-            WorthMilestoneOnePrimitiveRole::Generic => row.admitted_generic_count += 1,
-            WorthMilestoneOnePrimitiveRole::HostileAdmitted => row.admitted_hostile_count += 1,
-            WorthMilestoneOnePrimitiveRole::OutOfClass => {}
+            MilestoneOnePrimitiveRole::Smallest => row.admitted_smallest_count += 1,
+            MilestoneOnePrimitiveRole::Generic => row.admitted_generic_count += 1,
+            MilestoneOnePrimitiveRole::HostileAdmitted => row.admitted_hostile_count += 1,
+            MilestoneOnePrimitiveRole::OutOfClass => {}
         }
     }
 
@@ -348,7 +347,7 @@ pub(crate) fn build_primitive_corpus_coverage_matrix(
         let row = rows
             .entry(case.family.clone())
             .or_insert_with(|| empty_corpus_coverage_entry(&case.family));
-        if case.role == WorthMilestoneOnePrimitiveRole::OutOfClass {
+        if case.role == MilestoneOnePrimitiveRole::OutOfClass {
             row.rejected_out_of_class_count += 1;
         }
     }
@@ -360,7 +359,7 @@ pub(crate) fn build_primitive_corpus_coverage_matrix(
             && row.rejected_out_of_class_count > 0;
     }
 
-    WorthPrimitiveCorpusCoverageMatrix {
+    PrimitiveCorpusCoverageMatrix {
         entries: rows.into_values().collect(),
     }
 }

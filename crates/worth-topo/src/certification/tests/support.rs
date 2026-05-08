@@ -1,7 +1,7 @@
 use super::*;
 
 pub(super) fn counter_value(
-    accounting: &worth_schema::facade::WorthPerformanceAccounting,
+    accounting: &schema::facade::PerformanceAccounting,
     name: &str,
 ) -> Option<u64> {
     accounting
@@ -11,9 +11,7 @@ pub(super) fn counter_value(
         .map(|counter| counter.value)
 }
 
-pub(super) fn assert_milestone_one_closeout_surface_integrity(
-    report: &WorthMilestoneOneCloseoutReport,
-) {
+pub(super) fn assert_milestone_one_closeout_surface_integrity(report: &MilestoneOneCloseoutReport) {
     assert!(report.seeded_bootstrap.named_truth_validated);
     assert!(report.seeded_bootstrap.topology_validated);
     assert_eq!(report.topology_truth_digest.algorithm, "fnv1a64");
@@ -169,9 +167,7 @@ pub(super) fn assert_milestone_one_closeout_surface_integrity(
             && row.rejection_class == "IllegalAdmittedTopology"));
 }
 
-pub(super) fn assert_milestone_one_closeout_bridge_and_corpus(
-    report: &WorthMilestoneOneCloseoutReport,
-) {
+pub(super) fn assert_milestone_one_closeout_bridge_and_corpus(report: &MilestoneOneCloseoutReport) {
     assert_eq!(
         report
             .seeded_bootstrap
@@ -197,7 +193,7 @@ pub(super) fn assert_milestone_one_closeout_bridge_and_corpus(
             .seeded_bootstrap
             .milestone_1_replay_parity_report
             .parity_status,
-        WorthReplayParityStatus::NotChecked
+        ReplayParityStatus::NotChecked
     );
     assert_eq!(
         report

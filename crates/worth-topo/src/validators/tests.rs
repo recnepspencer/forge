@@ -7,35 +7,32 @@ mod validator_tests {
     use forge_relational::facade::transactions::{
         CreateIntent, EntitySpec, MutationIntent, TransactionOptions, WorkerIntentBatch,
     };
-    use worth_schema::facade::topology_authoring::seed_minimal_topology;
-    use worth_schema::facade::worth_bootstrap_schema_registry;
+    use schema::facade::bootstrap_schema_registry;
+    use schema::facade::topology_authoring::seed_minimal_topology;
 
     use crate::data::topology_view::{
-        WorthTopologyBody, WorthTopologyEdge, WorthTopologyFace, WorthTopologyHalfEdge,
-        WorthTopologyLoop, WorthTopologyLump, WorthTopologyModel, WorthTopologyRegion,
-        WorthTopologyShell, WorthTopologyVertex, WorthTopologyView,
+        TopologyBody, TopologyEdge, TopologyFace, TopologyHalfEdge, TopologyLoop, TopologyLump,
+        TopologyModel, TopologyRegion, TopologyShell, TopologyVertex, TopologyView,
     };
     use crate::facade::{
         validate_interpreted_topology, validate_named_topology_truth, validate_topology_view,
-        WorthTopologyMaterializer,
+        TopologyMaterializer,
     };
 
     #[test]
     fn seeded_topology_view_passes_milestone_one_validators() {
         let mut runtime = RelationalRuntimeApi::builder()
-            .schema_registry(
-                worth_bootstrap_schema_registry().expect("worth bootstrap schema registry"),
-            )
+            .schema_registry(bootstrap_schema_registry().expect(" bootstrap schema registry"))
             .build();
 
-        let seeded = seed_minimal_topology(&mut runtime, "validator").expect("seed worth topology");
+        let seeded = seed_minimal_topology(&mut runtime, "validator").expect("seed  topology");
         let read_view = runtime
             .read_truth()
             .read_snapshot(&seeded.snapshot)
-            .expect("worth snapshot read");
+            .expect(" snapshot read");
 
-        let topology = WorthTopologyMaterializer::materialize_from_truth(&read_view)
-            .expect("worth topology materialization");
+        let topology = TopologyMaterializer::materialize_from_truth(&read_view)
+            .expect(" topology materialization");
 
         let interpreted = crate::facade::interpret_topology_view(&topology);
         let report = validate_interpreted_topology(&topology, &interpreted)
@@ -44,14 +41,14 @@ mod validator_tests {
             row.validator == "ownership"
                 && matches!(
                     row.phase,
-                    crate::facade::WorthTopologyValidationPhase::DerivedMaterialization
+                    crate::facade::TopologyValidationPhase::DerivedMaterialization
                 )
         }));
         assert!(report.rows.iter().any(|row| {
             row.validator == "shell_closure"
                 && matches!(
                     row.phase,
-                    crate::facade::WorthTopologyValidationPhase::DerivedInterpretation
+                    crate::facade::TopologyValidationPhase::DerivedInterpretation
                 )
         }));
         validate_named_topology_truth(&read_view).expect("seeded topology should be fully named");
@@ -60,21 +57,18 @@ mod validator_tests {
     #[test]
     fn validator_rejects_topology_truth_missing_persistent_name() {
         let mut runtime = RelationalRuntimeApi::builder()
-            .schema_registry(
-                worth_bootstrap_schema_registry().expect("worth bootstrap schema registry"),
-            )
+            .schema_registry(bootstrap_schema_registry().expect(" bootstrap schema registry"))
             .build();
 
-        let seeded =
-            seed_minimal_topology(&mut runtime, "missing-name").expect("seed worth topology");
+        let seeded = seed_minimal_topology(&mut runtime, "missing-name").expect("seed  topology");
 
         let mut tx = runtime.begin_transaction(TransactionOptions::default());
         tx.push_batch(
-            WorkerIntentBatch::new("worth-missing-name-vertex").push(MutationIntent::Create(
+            WorkerIntentBatch::new("-missing-name-vertex").push(MutationIntent::Create(
                 CreateIntent::Entity(EntitySpec {
                     partition_id: PartitionId::main(),
-                    kind_id: worth_schema::facade::WorthEntityKind::Topology(
-                        worth_schema::facade::WorthTopologyEntityKind::Vertex,
+                    kind_id: schema::facade::EntityKind::Topology(
+                        schema::facade::TopologyEntityKind::Vertex,
                     )
                     .kind_id(),
                     client_key: InternedString::Raw("missing-name.vertex".to_string()),
@@ -105,19 +99,17 @@ mod validator_tests {
     #[test]
     fn validator_rejects_missing_prev_link() {
         let mut runtime = RelationalRuntimeApi::builder()
-            .schema_registry(
-                worth_bootstrap_schema_registry().expect("worth bootstrap schema registry"),
-            )
+            .schema_registry(bootstrap_schema_registry().expect(" bootstrap schema registry"))
             .build();
 
-        let seeded = seed_minimal_topology(&mut runtime, "validator").expect("seed worth topology");
+        let seeded = seed_minimal_topology(&mut runtime, "validator").expect("seed  topology");
         let read_view = runtime
             .read_truth()
             .read_snapshot(&seeded.snapshot)
-            .expect("worth snapshot read");
+            .expect(" snapshot read");
 
-        let mut topology = WorthTopologyMaterializer::materialize_from_truth(&read_view)
-            .expect("worth topology materialization");
+        let mut topology = TopologyMaterializer::materialize_from_truth(&read_view)
+            .expect(" topology materialization");
         topology.topology_mut().half_edges[0].prev_half_edge_id = None;
 
         let error = validate_topology_view(topology.topology())
@@ -255,7 +247,7 @@ mod validator_tests {
         let loop_c = entity(23);
         let he12_c = entity(24);
 
-        topology.faces.push(WorthTopologyFace {
+        topology.faces.push(TopologyFace {
             entity_id: face_c,
             label: "face-c".into(),
             shell_id: Some(topology.shells[0].entity_id),
@@ -263,7 +255,7 @@ mod validator_tests {
             inner_loop_ids: vec![],
             boundary_half_edge_ids: vec![he12_c],
         });
-        topology.loops.push(WorthTopologyLoop {
+        topology.loops.push(TopologyLoop {
             entity_id: loop_c,
             label: "loop-c".into(),
             face_ids: vec![face_c],
@@ -291,26 +283,24 @@ mod validator_tests {
         assert_eq!(error.validator(), "shell_closure.closed_shell_manifold");
     }
 
-    fn base_seeded_view(stem: &str) -> WorthTopologyView {
+    fn base_seeded_view(stem: &str) -> TopologyView {
         let mut runtime = RelationalRuntimeApi::builder()
-            .schema_registry(
-                worth_bootstrap_schema_registry().expect("worth bootstrap schema registry"),
-            )
+            .schema_registry(bootstrap_schema_registry().expect(" bootstrap schema registry"))
             .build();
 
-        let seeded = seed_minimal_topology(&mut runtime, stem).expect("seed worth topology");
+        let seeded = seed_minimal_topology(&mut runtime, stem).expect("seed  topology");
         let read_view = runtime
             .read_truth()
             .read_snapshot(&seeded.snapshot)
-            .expect("worth snapshot read");
+            .expect(" snapshot read");
 
-        WorthTopologyMaterializer::materialize_from_truth(&read_view)
-            .expect("worth topology materialization")
+        TopologyMaterializer::materialize_from_truth(&read_view)
+            .expect(" topology materialization")
             .topology()
             .clone()
     }
 
-    fn closed_shell_view() -> WorthTopologyView {
+    fn closed_shell_view() -> TopologyView {
         let model_id = entity(1);
         let body_id = entity(2);
         let lump_id = entity(3);
@@ -333,38 +323,38 @@ mod validator_tests {
         let he13_b = entity(20);
         let he32_b = entity(21);
 
-        WorthTopologyView {
-            models: vec![WorthTopologyModel {
+        TopologyView {
+            models: vec![TopologyModel {
                 entity_id: model_id,
                 label: "model".into(),
                 body_ids: vec![body_id],
             }],
-            bodies: vec![WorthTopologyBody {
+            bodies: vec![TopologyBody {
                 entity_id: body_id,
                 label: "body".into(),
                 model_id: Some(model_id),
                 lump_ids: vec![lump_id],
             }],
-            lumps: vec![WorthTopologyLump {
+            lumps: vec![TopologyLump {
                 entity_id: lump_id,
                 label: "lump".into(),
                 body_id: Some(body_id),
                 region_ids: vec![region_id],
             }],
-            regions: vec![WorthTopologyRegion {
+            regions: vec![TopologyRegion {
                 entity_id: region_id,
                 label: "region".into(),
                 lump_id: Some(lump_id),
                 shell_ids: vec![shell_id],
             }],
-            shells: vec![WorthTopologyShell {
+            shells: vec![TopologyShell {
                 entity_id: shell_id,
                 label: "solid-shell".into(),
                 region_id: Some(region_id),
                 face_ids: vec![face_a, face_b],
             }],
             faces: vec![
-                WorthTopologyFace {
+                TopologyFace {
                     entity_id: face_a,
                     label: "face-a".into(),
                     shell_id: Some(shell_id),
@@ -372,7 +362,7 @@ mod validator_tests {
                     inner_loop_ids: vec![],
                     boundary_half_edge_ids: vec![he12_a, he23_a, he31_a],
                 },
-                WorthTopologyFace {
+                TopologyFace {
                     entity_id: face_b,
                     label: "face-b".into(),
                     shell_id: Some(shell_id),
@@ -382,13 +372,13 @@ mod validator_tests {
                 },
             ],
             loops: vec![
-                WorthTopologyLoop {
+                TopologyLoop {
                     entity_id: loop_a,
                     label: "loop-a".into(),
                     face_ids: vec![face_a],
                     half_edge_ids: vec![he12_a, he23_a, he31_a],
                 },
-                WorthTopologyLoop {
+                TopologyLoop {
                     entity_id: loop_b,
                     label: "loop-b".into(),
                     face_ids: vec![face_b],
@@ -481,7 +471,7 @@ mod validator_tests {
         }
     }
 
-    fn tetrahedral_closed_shell_view() -> WorthTopologyView {
+    fn tetrahedral_closed_shell_view() -> TopologyView {
         let model_id = entity(200);
         let body_id = entity(201);
         let lump_id = entity(202);
@@ -514,38 +504,38 @@ mod validator_tests {
             entity(261),
         ];
 
-        WorthTopologyView {
-            models: vec![WorthTopologyModel {
+        TopologyView {
+            models: vec![TopologyModel {
                 entity_id: model_id,
                 label: "model".into(),
                 body_ids: vec![body_id],
             }],
-            bodies: vec![WorthTopologyBody {
+            bodies: vec![TopologyBody {
                 entity_id: body_id,
                 label: "body".into(),
                 model_id: Some(model_id),
                 lump_ids: vec![lump_id],
             }],
-            lumps: vec![WorthTopologyLump {
+            lumps: vec![TopologyLump {
                 entity_id: lump_id,
                 label: "lump".into(),
                 body_id: Some(body_id),
                 region_ids: vec![region_id],
             }],
-            regions: vec![WorthTopologyRegion {
+            regions: vec![TopologyRegion {
                 entity_id: region_id,
                 label: "region".into(),
                 lump_id: Some(lump_id),
                 shell_ids: vec![shell_id],
             }],
-            shells: vec![WorthTopologyShell {
+            shells: vec![TopologyShell {
                 entity_id: shell_id,
                 label: "tetra".into(),
                 region_id: Some(region_id),
                 face_ids: face_ids.to_vec(),
             }],
             faces: vec![
-                WorthTopologyFace {
+                TopologyFace {
                     entity_id: face_ids[0],
                     label: "f012".into(),
                     shell_id: Some(shell_id),
@@ -557,7 +547,7 @@ mod validator_tests {
                         half_edge_ids[2],
                     ],
                 },
-                WorthTopologyFace {
+                TopologyFace {
                     entity_id: face_ids[1],
                     label: "f013".into(),
                     shell_id: Some(shell_id),
@@ -569,7 +559,7 @@ mod validator_tests {
                         half_edge_ids[5],
                     ],
                 },
-                WorthTopologyFace {
+                TopologyFace {
                     entity_id: face_ids[2],
                     label: "f123".into(),
                     shell_id: Some(shell_id),
@@ -581,7 +571,7 @@ mod validator_tests {
                         half_edge_ids[8],
                     ],
                 },
-                WorthTopologyFace {
+                TopologyFace {
                     entity_id: face_ids[3],
                     label: "f023".into(),
                     shell_id: Some(shell_id),
@@ -595,25 +585,25 @@ mod validator_tests {
                 },
             ],
             loops: vec![
-                WorthTopologyLoop {
+                TopologyLoop {
                     entity_id: loop_ids[0],
                     label: "l012".into(),
                     face_ids: vec![face_ids[0]],
                     half_edge_ids: vec![half_edge_ids[0], half_edge_ids[1], half_edge_ids[2]],
                 },
-                WorthTopologyLoop {
+                TopologyLoop {
                     entity_id: loop_ids[1],
                     label: "l013".into(),
                     face_ids: vec![face_ids[1]],
                     half_edge_ids: vec![half_edge_ids[3], half_edge_ids[4], half_edge_ids[5]],
                 },
-                WorthTopologyLoop {
+                TopologyLoop {
                     entity_id: loop_ids[2],
                     label: "l123".into(),
                     face_ids: vec![face_ids[2]],
                     half_edge_ids: vec![half_edge_ids[6], half_edge_ids[7], half_edge_ids[8]],
                 },
-                WorthTopologyLoop {
+                TopologyLoop {
                     entity_id: loop_ids[3],
                     label: "l023".into(),
                     face_ids: vec![face_ids[3]],
@@ -796,7 +786,7 @@ mod validator_tests {
         }
     }
 
-    fn open_wire_chain_view(length: usize) -> WorthTopologyView {
+    fn open_wire_chain_view(length: usize) -> TopologyView {
         assert!(
             length >= 2,
             "open wire chain requires at least two half-edges"
@@ -833,8 +823,8 @@ mod validator_tests {
             half_edge_ids.push(half_edge_id);
         }
 
-        WorthTopologyView {
-            wires: vec![crate::data::topology_view::WorthTopologyWire {
+        TopologyView {
+            wires: vec![crate::data::topology_view::TopologyWire {
                 entity_id: wire_id,
                 label: "chain".into(),
                 half_edge_ids,
@@ -842,11 +832,11 @@ mod validator_tests {
             half_edges,
             edges,
             vertices,
-            ..WorthTopologyView::default()
+            ..TopologyView::default()
         }
     }
 
-    fn connected_wire_branch_view(branch_count: usize) -> WorthTopologyView {
+    fn connected_wire_branch_view(branch_count: usize) -> TopologyView {
         assert!(
             branch_count >= 3,
             "connected wire branch requires at least three arms"
@@ -881,8 +871,8 @@ mod validator_tests {
             half_edge_ids.push(half_edge_id);
         }
 
-        WorthTopologyView {
-            wires: vec![crate::data::topology_view::WorthTopologyWire {
+        TopologyView {
+            wires: vec![crate::data::topology_view::TopologyWire {
                 entity_id: wire_id,
                 label: "branch".into(),
                 half_edge_ids,
@@ -890,11 +880,11 @@ mod validator_tests {
             half_edges,
             edges,
             vertices,
-            ..WorthTopologyView::default()
+            ..TopologyView::default()
         }
     }
 
-    fn open_shell_nmt_fan_view(fan_size: usize) -> WorthTopologyView {
+    fn open_shell_nmt_fan_view(fan_size: usize) -> TopologyView {
         assert!(
             fan_size >= 3,
             "nmt fan requires at least three incident faces"
@@ -945,7 +935,7 @@ mod validator_tests {
             edges.push(edge(&format!("fane{index}a"), edge_a));
             edges.push(edge(&format!("fane{index}b"), edge_b));
 
-            faces.push(WorthTopologyFace {
+            faces.push(TopologyFace {
                 entity_id: face_id,
                 label: format!("fanf{index}"),
                 shell_id: Some(shell_id),
@@ -953,7 +943,7 @@ mod validator_tests {
                 inner_loop_ids: vec![],
                 boundary_half_edge_ids: vec![shared_he, side_a, side_b],
             });
-            loops.push(WorthTopologyLoop {
+            loops.push(TopologyLoop {
                 entity_id: loop_id,
                 label: format!("fanl{index}"),
                 face_ids: vec![face_id],
@@ -1011,31 +1001,31 @@ mod validator_tests {
             }
         }
 
-        WorthTopologyView {
-            models: vec![WorthTopologyModel {
+        TopologyView {
+            models: vec![TopologyModel {
                 entity_id: model_id,
                 label: "model".into(),
                 body_ids: vec![body_id],
             }],
-            bodies: vec![WorthTopologyBody {
+            bodies: vec![TopologyBody {
                 entity_id: body_id,
                 label: "body".into(),
                 model_id: Some(model_id),
                 lump_ids: vec![lump_id],
             }],
-            lumps: vec![WorthTopologyLump {
+            lumps: vec![TopologyLump {
                 entity_id: lump_id,
                 label: "lump".into(),
                 body_id: Some(body_id),
                 region_ids: vec![region_id],
             }],
-            regions: vec![WorthTopologyRegion {
+            regions: vec![TopologyRegion {
                 entity_id: region_id,
                 label: "region".into(),
                 lump_id: Some(lump_id),
                 shell_ids: vec![shell_id],
             }],
-            shells: vec![WorthTopologyShell {
+            shells: vec![TopologyShell {
                 entity_id: shell_id,
                 label: "sheet".into(),
                 region_id: Some(region_id),
@@ -1046,11 +1036,11 @@ mod validator_tests {
             half_edges,
             edges,
             vertices,
-            ..WorthTopologyView::default()
+            ..TopologyView::default()
         }
     }
 
-    fn single_face_sheet_disk_view(edge_count: usize) -> WorthTopologyView {
+    fn single_face_sheet_disk_view(edge_count: usize) -> TopologyView {
         assert!(
             edge_count >= 3,
             "sheet disk requires at least three boundary edges"
@@ -1101,37 +1091,37 @@ mod validator_tests {
             half_edge_ids.push(half_edge_id);
         }
 
-        WorthTopologyView {
-            models: vec![WorthTopologyModel {
+        TopologyView {
+            models: vec![TopologyModel {
                 entity_id: model_id,
                 label: "model".into(),
                 body_ids: vec![body_id],
             }],
-            bodies: vec![WorthTopologyBody {
+            bodies: vec![TopologyBody {
                 entity_id: body_id,
                 label: "body".into(),
                 model_id: Some(model_id),
                 lump_ids: vec![lump_id],
             }],
-            lumps: vec![WorthTopologyLump {
+            lumps: vec![TopologyLump {
                 entity_id: lump_id,
                 label: "lump".into(),
                 body_id: Some(body_id),
                 region_ids: vec![region_id],
             }],
-            regions: vec![WorthTopologyRegion {
+            regions: vec![TopologyRegion {
                 entity_id: region_id,
                 label: "region".into(),
                 lump_id: Some(lump_id),
                 shell_ids: vec![shell_id],
             }],
-            shells: vec![WorthTopologyShell {
+            shells: vec![TopologyShell {
                 entity_id: shell_id,
                 label: "sheet-disk".into(),
                 region_id: Some(region_id),
                 face_ids: vec![face_id],
             }],
-            faces: vec![WorthTopologyFace {
+            faces: vec![TopologyFace {
                 entity_id: face_id,
                 label: "disk-face".into(),
                 shell_id: Some(shell_id),
@@ -1139,7 +1129,7 @@ mod validator_tests {
                 inner_loop_ids: vec![],
                 boundary_half_edge_ids: half_edge_ids.clone(),
             }],
-            loops: vec![WorthTopologyLoop {
+            loops: vec![TopologyLoop {
                 entity_id: loop_id,
                 label: "disk-loop".into(),
                 face_ids: vec![face_id],
@@ -1148,11 +1138,11 @@ mod validator_tests {
             half_edges,
             edges,
             vertices,
-            ..WorthTopologyView::default()
+            ..TopologyView::default()
         }
     }
 
-    fn open_sheet_patch_view(face_count: usize) -> WorthTopologyView {
+    fn open_sheet_patch_view(face_count: usize) -> TopologyView {
         assert!(face_count >= 2, "sheet patch requires at least two faces");
         assert!(
             face_count <= 3,
@@ -1196,7 +1186,7 @@ mod validator_tests {
         ];
 
         let all_faces = vec![
-            WorthTopologyFace {
+            TopologyFace {
                 entity_id: face_ids[0],
                 label: "patch-f0".into(),
                 shell_id: Some(shell_id),
@@ -1204,7 +1194,7 @@ mod validator_tests {
                 inner_loop_ids: vec![],
                 boundary_half_edge_ids: vec![half_edge_ids[0], half_edge_ids[1], half_edge_ids[2]],
             },
-            WorthTopologyFace {
+            TopologyFace {
                 entity_id: face_ids[1],
                 label: "patch-f1".into(),
                 shell_id: Some(shell_id),
@@ -1212,7 +1202,7 @@ mod validator_tests {
                 inner_loop_ids: vec![],
                 boundary_half_edge_ids: vec![half_edge_ids[3], half_edge_ids[4], half_edge_ids[5]],
             },
-            WorthTopologyFace {
+            TopologyFace {
                 entity_id: face_ids[2],
                 label: "patch-f2".into(),
                 shell_id: Some(shell_id),
@@ -1222,19 +1212,19 @@ mod validator_tests {
             },
         ];
         let all_loops = vec![
-            WorthTopologyLoop {
+            TopologyLoop {
                 entity_id: loop_ids[0],
                 label: "patch-l0".into(),
                 face_ids: vec![face_ids[0]],
                 half_edge_ids: vec![half_edge_ids[0], half_edge_ids[1], half_edge_ids[2]],
             },
-            WorthTopologyLoop {
+            TopologyLoop {
                 entity_id: loop_ids[1],
                 label: "patch-l1".into(),
                 face_ids: vec![face_ids[1]],
                 half_edge_ids: vec![half_edge_ids[3], half_edge_ids[4], half_edge_ids[5]],
             },
-            WorthTopologyLoop {
+            TopologyLoop {
                 entity_id: loop_ids[2],
                 label: "patch-l2".into(),
                 face_ids: vec![face_ids[2]],
@@ -1375,31 +1365,31 @@ mod validator_tests {
             .map(|(index, entity_id)| vertex(&format!("patch-v{index}"), *entity_id))
             .collect::<Vec<_>>();
 
-        WorthTopologyView {
-            models: vec![WorthTopologyModel {
+        TopologyView {
+            models: vec![TopologyModel {
                 entity_id: model_id,
                 label: "model".into(),
                 body_ids: vec![body_id],
             }],
-            bodies: vec![WorthTopologyBody {
+            bodies: vec![TopologyBody {
                 entity_id: body_id,
                 label: "body".into(),
                 model_id: Some(model_id),
                 lump_ids: vec![lump_id],
             }],
-            lumps: vec![WorthTopologyLump {
+            lumps: vec![TopologyLump {
                 entity_id: lump_id,
                 label: "lump".into(),
                 body_id: Some(body_id),
                 region_ids: vec![region_id],
             }],
-            regions: vec![WorthTopologyRegion {
+            regions: vec![TopologyRegion {
                 entity_id: region_id,
                 label: "region".into(),
                 lump_id: Some(lump_id),
                 shell_ids: vec![shell_id],
             }],
-            shells: vec![WorthTopologyShell {
+            shells: vec![TopologyShell {
                 entity_id: shell_id,
                 label: "sheet-patch".into(),
                 region_id: Some(region_id),
@@ -1410,7 +1400,7 @@ mod validator_tests {
             half_edges: all_half_edges[..(face_count * 3)].to_vec(),
             edges: all_edges,
             vertices,
-            ..WorthTopologyView::default()
+            ..TopologyView::default()
         }
     }
 
@@ -1418,15 +1408,15 @@ mod validator_tests {
         EntityId::new(PartitionId::main(), slot, 1)
     }
 
-    fn edge(label: &str, entity_id: EntityId) -> WorthTopologyEdge {
-        WorthTopologyEdge {
+    fn edge(label: &str, entity_id: EntityId) -> TopologyEdge {
+        TopologyEdge {
             entity_id,
             label: label.into(),
         }
     }
 
-    fn vertex(label: &str, entity_id: EntityId) -> WorthTopologyVertex {
-        WorthTopologyVertex {
+    fn vertex(label: &str, entity_id: EntityId) -> TopologyVertex {
+        TopologyVertex {
             entity_id,
             label: label.into(),
         }
@@ -1440,7 +1430,7 @@ mod validator_tests {
         origin_vertex_id: Option<EntityId>,
         target_vertex_id: Option<EntityId>,
         face_id: Option<EntityId>,
-    ) -> WorthTopologyHalfEdge {
+    ) -> TopologyHalfEdge {
         half_edge_with_links(
             entity_id,
             label,
@@ -1468,8 +1458,8 @@ mod validator_tests {
         origin_vertex_id: Option<EntityId>,
         target_vertex_id: Option<EntityId>,
         face_id: Option<EntityId>,
-    ) -> WorthTopologyHalfEdge {
-        WorthTopologyHalfEdge {
+    ) -> TopologyHalfEdge {
+        TopologyHalfEdge {
             entity_id,
             label: label.into(),
             loop_id,

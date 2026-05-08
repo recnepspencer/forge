@@ -2,12 +2,12 @@ use std::collections::BTreeSet;
 
 use forge_relational::facade::identity::EntityId;
 
-use crate::data::topology_view::WorthTopologyView;
+use crate::data::topology_view::TopologyView;
 use crate::materialization::MaterializedTopologyView;
-use crate::validators::error::WorthTopologyValidationError;
+use crate::validators::error::TopologyValidationError;
 use crate::validators::shared::err;
 
-pub fn validate(view: &MaterializedTopologyView) -> Result<(), WorthTopologyValidationError> {
+pub fn validate(view: &MaterializedTopologyView) -> Result<(), TopologyValidationError> {
     let view = view.topology();
     validate_loop_membership(view)?;
     validate_prev_next_symmetry(view)?;
@@ -16,7 +16,7 @@ pub fn validate(view: &MaterializedTopologyView) -> Result<(), WorthTopologyVali
     Ok(())
 }
 
-fn validate_loop_membership(view: &WorthTopologyView) -> Result<(), WorthTopologyValidationError> {
+fn validate_loop_membership(view: &TopologyView) -> Result<(), TopologyValidationError> {
     for loop_record in &view.loops {
         if loop_record.half_edge_ids.is_empty() {
             return Err(err(
@@ -52,9 +52,7 @@ fn validate_loop_membership(view: &WorthTopologyView) -> Result<(), WorthTopolog
     Ok(())
 }
 
-fn validate_prev_next_symmetry(
-    view: &WorthTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
+fn validate_prev_next_symmetry(view: &TopologyView) -> Result<(), TopologyValidationError> {
     for half_edge in &view.half_edges {
         let Some(next_id) = half_edge.next_half_edge_id else {
             return Err(err(
@@ -94,7 +92,7 @@ fn validate_prev_next_symmetry(
     Ok(())
 }
 
-fn validate_loop_cardinality(view: &WorthTopologyView) -> Result<(), WorthTopologyValidationError> {
+fn validate_loop_cardinality(view: &TopologyView) -> Result<(), TopologyValidationError> {
     for loop_record in &view.loops {
         if loop_record.half_edge_ids.len() < 1 {
             return Err(err(
@@ -111,8 +109,8 @@ fn validate_loop_cardinality(view: &WorthTopologyView) -> Result<(), WorthTopolo
 }
 
 fn validate_no_duplicate_half_edges_in_loop(
-    view: &WorthTopologyView,
-) -> Result<(), WorthTopologyValidationError> {
+    view: &TopologyView,
+) -> Result<(), TopologyValidationError> {
     for loop_record in &view.loops {
         let mut seen = BTreeSet::new();
         for half_edge_id in &loop_record.half_edge_ids {
@@ -131,10 +129,10 @@ fn validate_no_duplicate_half_edges_in_loop(
 }
 
 fn lookup_half_edge<'a>(
-    view: &'a WorthTopologyView,
+    view: &'a TopologyView,
     entity_id: EntityId,
     validator: &'static str,
-) -> Result<&'a crate::data::topology_view::WorthTopologyHalfEdge, WorthTopologyValidationError> {
+) -> Result<&'a crate::data::topology_view::TopologyHalfEdge, TopologyValidationError> {
     view.half_edges
         .iter()
         .find(|record| record.entity_id == entity_id)

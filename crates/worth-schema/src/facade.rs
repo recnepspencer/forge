@@ -1,4 +1,4 @@
-//! Public API boundary for `worth-schema`.
+//! Public API boundary for `-schema`.
 
 pub mod topology_authoring {
     pub use crate::topology_authoring::{
@@ -7,70 +7,62 @@ pub mod topology_authoring {
         milestone_one_admitted_range_sweep_scenarios, milestone_one_default_primitive_corpus,
         milestone_one_heavy_branch_local_sweep_scenarios, seed_milestone_one_primitive,
         seed_milestone_one_primitive_on_branch, seed_minimal_topology, verify_topology_intent,
-        verify_topology_intent_on_branch, WorthMilestoneOnePrimitiveAuthoringError,
-        WorthMilestoneOnePrimitiveCase, WorthMilestoneOnePrimitiveExpectedOutcome,
-        WorthMilestoneOnePrimitiveRole, WorthMilestoneOnePrimitiveScenario,
-        WorthMinimalTopologySeed, WorthTopologyCreateBatchBuilder,
+        verify_topology_intent_on_branch, MilestoneOnePrimitiveAuthoringError,
+        MilestoneOnePrimitiveCase, MilestoneOnePrimitiveExpectedOutcome, MilestoneOnePrimitiveRole,
+        MilestoneOnePrimitiveScenario, MinimalTopologySeed, TopologyCreateBatchBuilder,
     };
 }
 
 pub use crate::data::aspects::{
-    WorthAspect, WorthDiagnosticsAspect, WorthGeometryAspect, WorthLineageAspect,
-    WorthNamingAspect, WorthTopologyAspect,
+    Aspect, DiagnosticsAspect, GeometryAspect, LineageAspect, NamingAspect, TopologyAspect,
 };
 pub use crate::data::authority::{
-    worth_milestone_two_invalidation_declarations, AuthoritativeTopologySnapshot,
-    CanonicalTopologyMutationBatch, CertifiedTopologyInterpretation, DerivedTopologyReadBasis,
-    PersistedTopologyTruthBatch, RawWorthTopologyIntent, VerifiedTopologyCommit,
-    WorthCoedgeCurveKind, WorthCreateKey, WorthCurveBindingKind, WorthCurveProvenanceKind,
-    WorthDerivedInvalidationTarget, WorthDerivedTruthBasisIdentity, WorthDerivedTruthSurfaceKind,
-    WorthEntityReference, WorthFallbackDisposition, WorthFallbackProofClass, WorthMutationOrigin,
-    WorthPrecisionBudgetFallbackRecord, WorthPrecisionEscalationCause,
-    WorthPrecisionFallbackRecord, WorthPrecisionRegime, WorthShellInterpretationClass,
-    WorthShellInterpretationRecord, WorthSurfaceBindingKind, WorthSurfaceRelationKind,
-    WorthTopologyAuthorityError, WorthTopologyClass, WorthTopologyInterpretationRecordSet,
-    WorthTopologyMutation, WorthTopologyMutationBatch, WorthTopologyReadArtifact,
-    WorthTruthToDerivedInvalidationDeclaration, WorthVertexGeometryProvenanceKind,
-    WorthVertexToleranceRegime, WorthWireInterpretationClass, WorthWireInterpretationRecord,
+    milestone_two_invalidation_declarations, AuthoritativeTopologySnapshot,
+    CanonicalTopologyMutationBatch, CertifiedTopologyInterpretation, CoedgeCurveKind, CreateKey,
+    CurveBindingKind, CurveProvenanceKind, DerivedInvalidationTarget, DerivedTopologyReadBasis,
+    DerivedTruthBasisIdentity, DerivedTruthSurfaceKind, EntityReference, FallbackDisposition,
+    FallbackProofClass, MutationOrigin, PersistedTopologyTruthBatch, PrecisionBudgetFallbackRecord,
+    PrecisionEscalationCause, PrecisionFallbackRecord, PrecisionRegime, RawTopologyIntent,
+    ShellInterpretationClass, ShellInterpretationRecord, SurfaceBindingKind, SurfaceRelationKind,
+    TopologyAuthorityError, TopologyClass, TopologyInterpretationRecordSet, TopologyMutation,
+    TopologyMutationBatch, TopologyReadArtifact, TruthToDerivedInvalidationDeclaration,
+    VerifiedTopologyCommit, VertexGeometryProvenanceKind, VertexToleranceRegime,
+    WireInterpretationClass, WireInterpretationRecord,
 };
 pub use crate::data::bootstrap::{
-    worth_bootstrap_invariant_plan, worth_bootstrap_runtime_invariant_plan,
-    worth_bootstrap_schema_registry, worth_bootstrap_tracing_plan, WorthBootstrapInvariantPlan,
-    WorthBootstrapRuntimeInvariant, WorthBootstrapRuntimeInvariantPlan, WorthBootstrapTracingPlan,
-    WorthSchemaBuildError, WorthSchemaBuilder, WORTH_SCHEMA_ID, WORTH_SCHEMA_VERSION_ID,
+    bootstrap_invariant_plan, bootstrap_runtime_invariant_plan, bootstrap_schema_registry,
+    bootstrap_tracing_plan, BootstrapInvariantPlan, BootstrapRuntimeInvariant,
+    BootstrapRuntimeInvariantPlan, BootstrapTracingPlan, SchemaBuildError, SchemaBuilder,
+    SCHEMA_ID, SCHEMA_VERSION_ID,
 };
 pub use crate::data::entities::{
-    WorthDiagnosticsEntityKind, WorthEntityKind, WorthGeometryEntityKind, WorthNamingEntityKind,
-    WorthTopologyEntityKind,
+    DiagnosticsEntityKind, EntityKind, GeometryEntityKind, NamingEntityKind, TopologyEntityKind,
 };
 pub use crate::data::explanation::{
     explain_authority_trace, explain_bridge_trace, explain_derived_trace, explain_signal_trace,
     narrate_boundary_envelope, narrate_boundary_failure, narrate_decision_trace,
-    WorthAuthorityNarrative, WorthBridgeHistoricalNarrative, WorthBridgeNarrative,
-    WorthBridgeRouteNarrative, WorthDerivedNarrative, WorthNarratedTrace, WorthNarrativeLine,
-    WorthSignalNarrative,
+    AuthorityNarrative, BridgeHistoricalNarrative, BridgeNarrative, BridgeRouteNarrative,
+    DerivedNarrative, NarratedTrace, NarrativeLine, SignalNarrative,
 };
 pub use crate::data::invariants::{
-    WorthDiagnosticsInvariantGroup, WorthGeometryInvariantGroup, WorthInvariantGroup,
-    WorthLineageInvariantGroup, WorthNamingInvariantGroup, WorthTopologyInvariantGroup,
+    DiagnosticsInvariantGroup, GeometryInvariantGroup, InvariantGroup, LineageInvariantGroup,
+    NamingInvariantGroup, TopologyInvariantGroup,
 };
 pub use crate::data::query::{
-    admit_worth_query_mutation_batch, worth_query_aspect_path_strings, worth_query_aspect_paths,
-    worth_query_aspect_paths_from_set, worth_query_mutation_support_contract,
-    WorthQueryAspectFamily, WorthQueryAspectPath, WorthQueryCollection,
-    WorthQueryComputedDeclarationBuilder, WorthQueryDeclarationError,
-    WorthQueryLiveDeclarationBuilder, WorthQueryLiveField, WorthQueryMutationAdmission,
-    WorthQueryMutationAdmissionBlocker, WorthQueryMutationAdmissionReport,
-    WorthQueryMutationSupportContract, WorthQuerySchemaBasis,
+    admit_query_mutation_batch, query_aspect_path_strings, query_aspect_paths,
+    query_aspect_paths_from_set, query_mutation_support_contract, QueryAspectFamily,
+    QueryAspectPath, QueryCollection, QueryComputedDeclarationBuilder, QueryDeclarationError,
+    QueryLiveDeclarationBuilder, QueryLiveField, QueryMutationAdmission,
+    QueryMutationAdmissionBlocker, QueryMutationAdmissionReport, QueryMutationSupportContract,
+    QuerySchemaBasis,
 };
 pub use crate::data::relations::{
-    WorthDiagnosticsRelationKind, WorthGeometryRelationKind, WorthNamingRelationKind,
-    WorthRelationKind, WorthTopologyRelationKind,
+    DiagnosticsRelationKind, GeometryRelationKind, NamingRelationKind, RelationKind,
+    TopologyRelationKind,
 };
 pub use crate::data::tracing::{
-    WorthAuthorityTraceAnchor, WorthAuthorityTraceEvidence, WorthBoundaryEnvelope,
-    WorthBoundaryFailure, WorthBridgeTraceAnchor, WorthBridgeTraceEvidence, WorthDecisionTrace,
-    WorthDerivedTraceAnchor, WorthDerivedTraceEvidence, WorthIntegrityMarkers, WorthNamedCounter,
-    WorthPerformanceAccounting, WorthSignalTraceAnchor, WorthSignalTraceEvidence,
-    WorthTraceAvailability, WorthTraceWarning,
+    AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure,
+    BridgeTraceAnchor, BridgeTraceEvidence, DecisionTrace, DerivedTraceAnchor,
+    DerivedTraceEvidence, IntegrityMarkers, NamedCounter, PerformanceAccounting, SignalTraceAnchor,
+    SignalTraceEvidence, TraceAvailability, TraceWarning,
 };

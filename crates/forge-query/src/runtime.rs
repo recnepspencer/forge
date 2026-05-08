@@ -64,6 +64,7 @@ mod read_composition_frontier;
 mod read_composition_frontier_search;
 mod read_composition_hooks;
 mod read_composition_lowering;
+mod read_composition_materialization;
 mod read_composition_operator_builders;
 mod read_composition_phase_gate;
 mod read_composition_phase_one_closeout;
@@ -315,6 +316,7 @@ pub struct ForgeQueryRuntime {
     evidence_authority: ForgeQueryRuntimeEvidenceAuthority,
     active_subscriptions: ActiveSubscriptionRuntime,
     live_subscriptions: BTreeMap<String, ForgeQueryRuntimeLiveSubscriptionState>,
+    materialized_read_views: BTreeMap<String, DeclarativeLiveQueryRequest>,
     live_subscription_index: BTreeMap<String, BTreeSet<String>>,
     installed_programs: BTreeMap<String, ForgeQueryProgram>,
     run_traces: BTreeMap<String, ForgeQueryProgramTrace>,

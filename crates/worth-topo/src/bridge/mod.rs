@@ -12,11 +12,10 @@ use forge_runtime_bridge::facade::{
 };
 
 pub use mappings::{
-    worth_milestone_one_bridge_aspect_registrations,
-    worth_milestone_one_bridge_mapping_registrations,
+    milestone_one_bridge_aspect_registrations, milestone_one_bridge_mapping_registrations,
 };
 
-pub fn build_worth_milestone_one_bridge<S>(
+pub fn build_milestone_one_bridge<S>(
     runtime: Arc<RelationalRuntime>,
     sink: S,
 ) -> Result<RuntimeBridge, BridgeBuildError>
@@ -28,14 +27,14 @@ where
         .with_relational_source(source.clone())
         .with_truth_branch_head_source(source)
         .with_signal_sink(sink);
-    let mut mappings = worth_milestone_one_bridge_mapping_registrations().into_iter();
+    let mut mappings = milestone_one_bridge_mapping_registrations().into_iter();
     let first = mappings
         .next()
-        .expect("worth milestone 1 bridge mapping pack should not be empty");
+        .expect(" milestone 1 bridge mapping pack should not be empty");
     let builder = mappings.fold(builder.register_mapping(first), |builder, registration| {
         builder.register_mapping(registration)
     });
-    let builder = worth_milestone_one_bridge_aspect_registrations()
+    let builder = milestone_one_bridge_aspect_registrations()
         .into_iter()
         .fold(builder, |builder, registration| {
             builder.register_aspect_mapping(registration)

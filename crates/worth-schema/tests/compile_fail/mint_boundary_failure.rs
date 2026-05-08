@@ -1,13 +1,13 @@
-use worth_schema::facade::{
-    WorthBoundaryFailure, WorthDecisionTrace, WorthIntegrityMarkers, WorthPerformanceAccounting,
+use schema::facade::{
+    BoundaryFailure, DecisionTrace, IntegrityMarkers, PerformanceAccounting,
 };
 
 fn main() {
-    let _forged = WorthBoundaryFailure {
+    let _forged = BoundaryFailure {
         error: "nope",
         warnings: Vec::new(),
-        decision_trace: WorthDecisionTrace::default(),
-        integrity_markers: WorthIntegrityMarkers::default(),
-        performance_accounting: WorthPerformanceAccounting::default(),
+        decision_trace: DecisionTrace::default(),
+        integrity_markers: IntegrityMarkers::default(),
+        performance_accounting: PerformanceAccounting::default(),
     };
 }

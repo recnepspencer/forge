@@ -1,28 +1,28 @@
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::identity::EntityId;
 use forge_relational::facade::runtime::{EntityReadRecord, RelationReadRecord};
-use worth_schema::facade::{WorthEntityKind, WorthRelationKind};
+use schema::facade::{EntityKind, RelationKind};
 
-use crate::materialization::WorthTopologyMaterializationError;
+use crate::materialization::TopologyMaterializationError;
 use crate::query::{parse_entity_identity, parse_entity_kind, parse_relation_kind, required_text};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct MaterializationEntityRow {
     pub entity_id: EntityId,
-    pub kind: WorthEntityKind,
+    pub kind: EntityKind,
     pub label: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct MaterializationRelationRow {
-    pub kind: WorthRelationKind,
+    pub kind: RelationKind,
     pub source: EntityId,
     pub target: EntityId,
 }
 
 impl MaterializationEntityRow {
     pub(crate) fn from_truth_record(record: &EntityReadRecord) -> Option<Self> {
-        let kind = WorthEntityKind::from_kind_id(record.kind.kind_id)?;
+        let kind = EntityKind::from_kind_id(record.kind.kind_id)?;
         Some(Self {
             entity_id: record.entity_id,
             kind,
@@ -32,7 +32,7 @@ impl MaterializationEntityRow {
 
     pub(crate) fn from_query_row(
         row: &ForgeQueryEntity,
-    ) -> Result<Self, WorthTopologyMaterializationError> {
+    ) -> Result<Self, TopologyMaterializationError> {
         let entity_id = parse_entity_identity(&row.identity)?;
         let kind = parse_entity_kind(required_text(&row.payload, "topology.kind")?)?;
         let label = row
@@ -58,7 +58,7 @@ impl MaterializationEntityRow {
 
 impl MaterializationRelationRow {
     pub(crate) fn from_truth_record(record: &RelationReadRecord) -> Option<Self> {
-        let kind = WorthRelationKind::from_kind_id(record.kind.kind_id)?;
+        let kind = RelationKind::from_kind_id(record.kind.kind_id)?;
         Some(Self {
             kind,
             source: record.source,
@@ -68,7 +68,7 @@ impl MaterializationRelationRow {
 
     pub(crate) fn from_query_row(
         row: &ForgeQueryEntity,
-    ) -> Result<Self, WorthTopologyMaterializationError> {
+    ) -> Result<Self, TopologyMaterializationError> {
         Ok(Self {
             kind: parse_relation_kind(required_text(&row.payload, "topology.kind")?)?,
             source: parse_entity_identity(required_text(

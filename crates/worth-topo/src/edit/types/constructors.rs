@@ -1,57 +1,52 @@
 use std::collections::BTreeSet;
 
 use forge_relational::facade::identity::{EntityId, RelationId};
-use worth_schema::facade::{
-    WorthAspect, WorthCreateKey, WorthDiagnosticsAspect, WorthEntityReference, WorthNamingAspect,
-    WorthRelationKind, WorthTopologyAspect, WorthTopologyEntityKind, WorthTopologyMutation,
-    WorthTopologyRelationKind,
+use schema::facade::{
+    Aspect, CreateKey, DiagnosticsAspect, EntityReference, NamingAspect, RelationKind,
+    TopologyAspect, TopologyEntityKind, TopologyMutation, TopologyRelationKind,
 };
 
 use super::{
-    WorthBoundaryMembershipKind, WorthLoopEndpointKind, WorthLoopSuccessorKind,
-    WorthShellOrWireMembershipKind, WorthTopologyDerivedRegion, WorthTopologyEditAction,
-    WorthTopologyEditChangedScope, WorthTopologyEditContract, WorthTopologyEditFamily,
-    WorthTopologyEditNamingScope,
+    BoundaryMembershipKind, LoopEndpointKind, LoopSuccessorKind, ShellOrWireMembershipKind,
+    TopologyDerivedRegion, TopologyEditAction, TopologyEditChangedScope, TopologyEditContract,
+    TopologyEditFamily, TopologyEditNamingScope,
 };
 
-impl WorthTopologyEditContract {
-    pub fn create_topology_entity(
-        create_key: impl Into<String>,
-        kind: WorthTopologyEntityKind,
-    ) -> Self {
-        let create_key = WorthCreateKey::new(create_key.into());
+impl TopologyEditContract {
+    pub fn create_topology_entity(create_key: impl Into<String>, kind: TopologyEntityKind) -> Self {
+        let create_key = CreateKey::new(create_key.into());
         let persistent_name_key =
-            WorthCreateKey::new(format!("{}.persistent_name", create_key.as_str()));
+            CreateKey::new(format!("{}.persistent_name", create_key.as_str()));
         let persistent_name_relation_key =
-            WorthCreateKey::new(format!("{}.targets", persistent_name_key.as_str()));
+            CreateKey::new(format!("{}.targets", persistent_name_key.as_str()));
         let touched_aspects = BTreeSet::from([
-            WorthAspect::Topology(WorthTopologyAspect::Structure),
-            WorthAspect::Naming(WorthNamingAspect::PersistentName),
-            WorthAspect::Diagnostics(WorthDiagnosticsAspect::Decisions),
+            Aspect::Topology(TopologyAspect::Structure),
+            Aspect::Naming(NamingAspect::PersistentName),
+            Aspect::Diagnostics(DiagnosticsAspect::Decisions),
         ]);
         let lowered_mutations = vec![
-            WorthTopologyMutation::CreateEntity {
+            TopologyMutation::CreateEntity {
                 create_key: create_key.clone(),
-                kind: worth_schema::facade::WorthEntityKind::Topology(kind),
+                kind: schema::facade::EntityKind::Topology(kind),
             },
-            WorthTopologyMutation::CreateEntity {
+            TopologyMutation::CreateEntity {
                 create_key: persistent_name_key.clone(),
-                kind: worth_schema::facade::WorthEntityKind::Naming(
-                    worth_schema::facade::WorthNamingEntityKind::PersistentName,
+                kind: schema::facade::EntityKind::Naming(
+                    schema::facade::NamingEntityKind::PersistentName,
                 ),
             },
-            WorthTopologyMutation::CreateRelation {
+            TopologyMutation::CreateRelation {
                 create_key: persistent_name_relation_key.clone(),
-                kind: WorthRelationKind::Naming(
-                    worth_schema::facade::WorthNamingRelationKind::PersistentNameTargetsEntity,
+                kind: RelationKind::Naming(
+                    schema::facade::NamingRelationKind::PersistentNameTargetsEntity,
                 ),
-                source: WorthEntityReference::Created(persistent_name_key.clone()),
-                target: WorthEntityReference::Created(create_key.clone()),
+                source: EntityReference::Created(persistent_name_key.clone()),
+                target: EntityReference::Created(create_key.clone()),
             },
         ];
         Self {
-            family: WorthTopologyEditFamily::CreateTopologyEntity,
-            action: WorthTopologyEditAction::CreateTopologyEntity {
+            family: TopologyEditFamily::CreateTopologyEntity,
+            action: TopologyEditAction::CreateTopologyEntity {
                 create_key,
                 kind,
                 persistent_name_key,
@@ -59,63 +54,63 @@ impl WorthTopologyEditContract {
             },
             touched_aspects,
             changed_scopes: vec![
-                WorthTopologyEditChangedScope::Entity,
-                WorthTopologyEditChangedScope::Naming,
+                TopologyEditChangedScope::Entity,
+                TopologyEditChangedScope::Naming,
             ],
-            naming_scopes: vec![WorthTopologyEditNamingScope::EditedEntityNames],
+            naming_scopes: vec![TopologyEditNamingScope::EditedEntityNames],
             derived_regions: vec![
-                WorthTopologyDerivedRegion::EditLocalNeighborhoodRegion,
-                WorthTopologyDerivedRegion::NamingContinuityRegion,
+                TopologyDerivedRegion::EditLocalNeighborhoodRegion,
+                TopologyDerivedRegion::NamingContinuityRegion,
             ],
             lowered_mutations,
         }
     }
 
-    pub fn retire_topology_entity(entity_id: EntityId, kind: WorthTopologyEntityKind) -> Self {
+    pub fn retire_topology_entity(entity_id: EntityId, kind: TopologyEntityKind) -> Self {
         let touched_aspects = BTreeSet::from([
-            WorthAspect::Topology(WorthTopologyAspect::Structure),
-            WorthAspect::Diagnostics(WorthDiagnosticsAspect::Decisions),
+            Aspect::Topology(TopologyAspect::Structure),
+            Aspect::Diagnostics(DiagnosticsAspect::Decisions),
         ]);
         Self {
-            family: WorthTopologyEditFamily::RetireTopologyEntity,
-            action: WorthTopologyEditAction::RetireTopologyEntity { entity_id, kind },
+            family: TopologyEditFamily::RetireTopologyEntity,
+            action: TopologyEditAction::RetireTopologyEntity { entity_id, kind },
             touched_aspects,
             changed_scopes: vec![
-                WorthTopologyEditChangedScope::Entity,
-                WorthTopologyEditChangedScope::LocalNeighborhood,
+                TopologyEditChangedScope::Entity,
+                TopologyEditChangedScope::LocalNeighborhood,
             ],
-            naming_scopes: vec![WorthTopologyEditNamingScope::EditedEntityNames],
+            naming_scopes: vec![TopologyEditNamingScope::EditedEntityNames],
             derived_regions: vec![
-                WorthTopologyDerivedRegion::EditLocalNeighborhoodRegion,
-                WorthTopologyDerivedRegion::NamingContinuityRegion,
+                TopologyDerivedRegion::EditLocalNeighborhoodRegion,
+                TopologyDerivedRegion::NamingContinuityRegion,
             ],
-            lowered_mutations: vec![WorthTopologyMutation::RemoveEntity { entity_id }],
+            lowered_mutations: vec![TopologyMutation::RemoveEntity { entity_id }],
         }
     }
 
     pub fn attach_boundary_membership(
         create_key: impl Into<String>,
-        kind: WorthBoundaryMembershipKind,
-        owner: impl Into<WorthEntityReference>,
-        member: impl Into<WorthEntityReference>,
+        kind: BoundaryMembershipKind,
+        owner: impl Into<EntityReference>,
+        member: impl Into<EntityReference>,
     ) -> Self {
         let owner = owner.into();
         let member = member.into();
         let touched_aspects = BTreeSet::from([
-            WorthAspect::Topology(WorthTopologyAspect::Boundary),
-            WorthAspect::Diagnostics(WorthDiagnosticsAspect::Decisions),
+            Aspect::Topology(TopologyAspect::Boundary),
+            Aspect::Diagnostics(DiagnosticsAspect::Decisions),
         ]);
-        let lowered_mutations = vec![WorthTopologyMutation::CreateRelation {
-            create_key: WorthCreateKey::new(create_key.into()),
-            kind: WorthRelationKind::Topology(kind.relation_kind()),
+        let lowered_mutations = vec![TopologyMutation::CreateRelation {
+            create_key: CreateKey::new(create_key.into()),
+            kind: RelationKind::Topology(kind.relation_kind()),
             source: owner.clone(),
             target: member.clone(),
         }];
         Self {
-            family: WorthTopologyEditFamily::AttachBoundaryMembership,
-            action: WorthTopologyEditAction::AttachBoundaryMembership {
+            family: TopologyEditFamily::AttachBoundaryMembership,
+            action: TopologyEditAction::AttachBoundaryMembership {
                 create_key: match &lowered_mutations[0] {
-                    WorthTopologyMutation::CreateRelation { create_key, .. } => create_key.clone(),
+                    TopologyMutation::CreateRelation { create_key, .. } => create_key.clone(),
                     _ => unreachable!(),
                 },
                 kind,
@@ -124,15 +119,15 @@ impl WorthTopologyEditContract {
             },
             touched_aspects,
             changed_scopes: vec![
-                WorthTopologyEditChangedScope::Relation,
-                WorthTopologyEditChangedScope::Loop,
-                WorthTopologyEditChangedScope::LocalNeighborhood,
+                TopologyEditChangedScope::Relation,
+                TopologyEditChangedScope::Loop,
+                TopologyEditChangedScope::LocalNeighborhood,
             ],
-            naming_scopes: vec![WorthTopologyEditNamingScope::AdjacentEntityNames],
+            naming_scopes: vec![TopologyEditNamingScope::AdjacentEntityNames],
             derived_regions: vec![
-                WorthTopologyDerivedRegion::LoopRegion,
-                WorthTopologyDerivedRegion::EditLocalNeighborhoodRegion,
-                WorthTopologyDerivedRegion::NamingContinuityRegion,
+                TopologyDerivedRegion::LoopRegion,
+                TopologyDerivedRegion::EditLocalNeighborhoodRegion,
+                TopologyDerivedRegion::NamingContinuityRegion,
             ],
             lowered_mutations,
         }
@@ -140,44 +135,44 @@ impl WorthTopologyEditContract {
 
     pub fn detach_boundary_membership(
         relation_id: RelationId,
-        kind: WorthBoundaryMembershipKind,
+        kind: BoundaryMembershipKind,
     ) -> Self {
         let touched_aspects = BTreeSet::from([
-            WorthAspect::Topology(WorthTopologyAspect::Boundary),
-            WorthAspect::Diagnostics(WorthDiagnosticsAspect::Decisions),
+            Aspect::Topology(TopologyAspect::Boundary),
+            Aspect::Diagnostics(DiagnosticsAspect::Decisions),
         ]);
         Self {
-            family: WorthTopologyEditFamily::DetachBoundaryMembership,
-            action: WorthTopologyEditAction::DetachBoundaryMembership { relation_id, kind },
+            family: TopologyEditFamily::DetachBoundaryMembership,
+            action: TopologyEditAction::DetachBoundaryMembership { relation_id, kind },
             touched_aspects,
             changed_scopes: vec![
-                WorthTopologyEditChangedScope::Relation,
-                WorthTopologyEditChangedScope::Loop,
-                WorthTopologyEditChangedScope::LocalNeighborhood,
+                TopologyEditChangedScope::Relation,
+                TopologyEditChangedScope::Loop,
+                TopologyEditChangedScope::LocalNeighborhood,
             ],
-            naming_scopes: vec![WorthTopologyEditNamingScope::AdjacentEntityNames],
+            naming_scopes: vec![TopologyEditNamingScope::AdjacentEntityNames],
             derived_regions: vec![
-                WorthTopologyDerivedRegion::LoopRegion,
-                WorthTopologyDerivedRegion::EditLocalNeighborhoodRegion,
-                WorthTopologyDerivedRegion::NamingContinuityRegion,
+                TopologyDerivedRegion::LoopRegion,
+                TopologyDerivedRegion::EditLocalNeighborhoodRegion,
+                TopologyDerivedRegion::NamingContinuityRegion,
             ],
-            lowered_mutations: vec![WorthTopologyMutation::RemoveRelation { relation_id }],
+            lowered_mutations: vec![TopologyMutation::RemoveRelation { relation_id }],
         }
     }
 
     pub fn rewire_loop_successor(
         relation_id: RelationId,
-        kind: WorthLoopSuccessorKind,
+        kind: LoopSuccessorKind,
         half_edge_id: EntityId,
         successor_half_edge_id: EntityId,
     ) -> Self {
         let touched_aspects = BTreeSet::from([
-            WorthAspect::Topology(WorthTopologyAspect::Boundary),
-            WorthAspect::Diagnostics(WorthDiagnosticsAspect::Decisions),
+            Aspect::Topology(TopologyAspect::Boundary),
+            Aspect::Diagnostics(DiagnosticsAspect::Decisions),
         ]);
         Self {
-            family: WorthTopologyEditFamily::RewireLoopSuccessor,
-            action: WorthTopologyEditAction::RewireLoopSuccessor {
+            family: TopologyEditFamily::RewireLoopSuccessor,
+            action: TopologyEditAction::RewireLoopSuccessor {
                 relation_id,
                 kind,
                 half_edge_id,
@@ -185,19 +180,19 @@ impl WorthTopologyEditContract {
             },
             touched_aspects,
             changed_scopes: vec![
-                WorthTopologyEditChangedScope::Relation,
-                WorthTopologyEditChangedScope::Loop,
-                WorthTopologyEditChangedScope::LocalNeighborhood,
+                TopologyEditChangedScope::Relation,
+                TopologyEditChangedScope::Loop,
+                TopologyEditChangedScope::LocalNeighborhood,
             ],
-            naming_scopes: vec![WorthTopologyEditNamingScope::AdjacentEntityNames],
+            naming_scopes: vec![TopologyEditNamingScope::AdjacentEntityNames],
             derived_regions: vec![
-                WorthTopologyDerivedRegion::LoopRegion,
-                WorthTopologyDerivedRegion::EditLocalNeighborhoodRegion,
-                WorthTopologyDerivedRegion::NamingContinuityRegion,
+                TopologyDerivedRegion::LoopRegion,
+                TopologyDerivedRegion::EditLocalNeighborhoodRegion,
+                TopologyDerivedRegion::NamingContinuityRegion,
             ],
-            lowered_mutations: vec![WorthTopologyMutation::UpsertRelation {
+            lowered_mutations: vec![TopologyMutation::UpsertRelation {
                 relation_id,
-                kind: WorthRelationKind::Topology(kind.relation_kind()),
+                kind: RelationKind::Topology(kind.relation_kind()),
                 source: half_edge_id,
                 target: successor_half_edge_id,
             }],
@@ -206,17 +201,17 @@ impl WorthTopologyEditContract {
 
     pub fn rewire_loop_endpoint(
         relation_id: RelationId,
-        endpoint: WorthLoopEndpointKind,
+        endpoint: LoopEndpointKind,
         half_edge_id: EntityId,
         vertex_id: EntityId,
     ) -> Self {
         let touched_aspects = BTreeSet::from([
-            WorthAspect::Topology(WorthTopologyAspect::Boundary),
-            WorthAspect::Diagnostics(WorthDiagnosticsAspect::Decisions),
+            Aspect::Topology(TopologyAspect::Boundary),
+            Aspect::Diagnostics(DiagnosticsAspect::Decisions),
         ]);
         Self {
-            family: WorthTopologyEditFamily::RewireLoopEndpoint,
-            action: WorthTopologyEditAction::RewireLoopEndpoint {
+            family: TopologyEditFamily::RewireLoopEndpoint,
+            action: TopologyEditAction::RewireLoopEndpoint {
                 relation_id,
                 endpoint,
                 half_edge_id,
@@ -224,19 +219,19 @@ impl WorthTopologyEditContract {
             },
             touched_aspects,
             changed_scopes: vec![
-                WorthTopologyEditChangedScope::Relation,
-                WorthTopologyEditChangedScope::Loop,
-                WorthTopologyEditChangedScope::LocalNeighborhood,
+                TopologyEditChangedScope::Relation,
+                TopologyEditChangedScope::Loop,
+                TopologyEditChangedScope::LocalNeighborhood,
             ],
-            naming_scopes: vec![WorthTopologyEditNamingScope::AdjacentEntityNames],
+            naming_scopes: vec![TopologyEditNamingScope::AdjacentEntityNames],
             derived_regions: vec![
-                WorthTopologyDerivedRegion::LoopRegion,
-                WorthTopologyDerivedRegion::EditLocalNeighborhoodRegion,
-                WorthTopologyDerivedRegion::NamingContinuityRegion,
+                TopologyDerivedRegion::LoopRegion,
+                TopologyDerivedRegion::EditLocalNeighborhoodRegion,
+                TopologyDerivedRegion::NamingContinuityRegion,
             ],
-            lowered_mutations: vec![WorthTopologyMutation::UpsertRelation {
+            lowered_mutations: vec![TopologyMutation::UpsertRelation {
                 relation_id,
-                kind: WorthRelationKind::Topology(endpoint.relation_kind()),
+                kind: RelationKind::Topology(endpoint.relation_kind()),
                 source: half_edge_id,
                 target: vertex_id,
             }],
@@ -245,53 +240,49 @@ impl WorthTopologyEditContract {
 
     pub fn attach_shell_or_wire_membership(
         create_key: impl Into<String>,
-        kind: WorthShellOrWireMembershipKind,
-        owner: impl Into<WorthEntityReference>,
-        member: impl Into<WorthEntityReference>,
+        kind: ShellOrWireMembershipKind,
+        owner: impl Into<EntityReference>,
+        member: impl Into<EntityReference>,
     ) -> Self {
-        let create_key = WorthCreateKey::new(create_key.into());
+        let create_key = CreateKey::new(create_key.into());
         let owner = owner.into();
         let member = member.into();
         let changed_scope = match kind {
-            WorthShellOrWireMembershipKind::RegionOwnsShell
-            | WorthShellOrWireMembershipKind::ShellOwnsFace => WorthTopologyEditChangedScope::Shell,
-            WorthShellOrWireMembershipKind::WireOwnsHalfEdge => WorthTopologyEditChangedScope::Wire,
+            ShellOrWireMembershipKind::RegionOwnsShell
+            | ShellOrWireMembershipKind::ShellOwnsFace => TopologyEditChangedScope::Shell,
+            ShellOrWireMembershipKind::WireOwnsHalfEdge => TopologyEditChangedScope::Wire,
         };
         let derived_region = match kind {
-            WorthShellOrWireMembershipKind::RegionOwnsShell
-            | WorthShellOrWireMembershipKind::ShellOwnsFace => {
-                WorthTopologyDerivedRegion::ShellRegion
-            }
-            WorthShellOrWireMembershipKind::WireOwnsHalfEdge => {
-                WorthTopologyDerivedRegion::WireRegion
-            }
+            ShellOrWireMembershipKind::RegionOwnsShell
+            | ShellOrWireMembershipKind::ShellOwnsFace => TopologyDerivedRegion::ShellRegion,
+            ShellOrWireMembershipKind::WireOwnsHalfEdge => TopologyDerivedRegion::WireRegion,
         };
         Self {
-            family: WorthTopologyEditFamily::AttachShellOrWireMembership,
-            action: WorthTopologyEditAction::AttachShellOrWireMembership {
+            family: TopologyEditFamily::AttachShellOrWireMembership,
+            action: TopologyEditAction::AttachShellOrWireMembership {
                 create_key: create_key.clone(),
                 kind,
                 owner: owner.clone(),
                 member: member.clone(),
             },
             touched_aspects: BTreeSet::from([
-                WorthAspect::Topology(WorthTopologyAspect::Ownership),
-                WorthAspect::Diagnostics(WorthDiagnosticsAspect::Decisions),
+                Aspect::Topology(TopologyAspect::Ownership),
+                Aspect::Diagnostics(DiagnosticsAspect::Decisions),
             ]),
             changed_scopes: vec![
-                WorthTopologyEditChangedScope::Relation,
+                TopologyEditChangedScope::Relation,
                 changed_scope,
-                WorthTopologyEditChangedScope::LocalNeighborhood,
+                TopologyEditChangedScope::LocalNeighborhood,
             ],
-            naming_scopes: vec![WorthTopologyEditNamingScope::AdjacentEntityNames],
+            naming_scopes: vec![TopologyEditNamingScope::AdjacentEntityNames],
             derived_regions: vec![
                 derived_region,
-                WorthTopologyDerivedRegion::EditLocalNeighborhoodRegion,
-                WorthTopologyDerivedRegion::NamingContinuityRegion,
+                TopologyDerivedRegion::EditLocalNeighborhoodRegion,
+                TopologyDerivedRegion::NamingContinuityRegion,
             ],
-            lowered_mutations: vec![WorthTopologyMutation::CreateRelation {
+            lowered_mutations: vec![TopologyMutation::CreateRelation {
                 create_key,
-                kind: WorthRelationKind::Topology(kind.relation_kind()),
+                kind: RelationKind::Topology(kind.relation_kind()),
                 source: owner,
                 target: member,
             }],
@@ -300,41 +291,37 @@ impl WorthTopologyEditContract {
 
     pub fn detach_shell_or_wire_membership(
         relation_id: RelationId,
-        kind: WorthShellOrWireMembershipKind,
+        kind: ShellOrWireMembershipKind,
     ) -> Self {
         let changed_scope = match kind {
-            WorthShellOrWireMembershipKind::RegionOwnsShell
-            | WorthShellOrWireMembershipKind::ShellOwnsFace => WorthTopologyEditChangedScope::Shell,
-            WorthShellOrWireMembershipKind::WireOwnsHalfEdge => WorthTopologyEditChangedScope::Wire,
+            ShellOrWireMembershipKind::RegionOwnsShell
+            | ShellOrWireMembershipKind::ShellOwnsFace => TopologyEditChangedScope::Shell,
+            ShellOrWireMembershipKind::WireOwnsHalfEdge => TopologyEditChangedScope::Wire,
         };
         let derived_region = match kind {
-            WorthShellOrWireMembershipKind::RegionOwnsShell
-            | WorthShellOrWireMembershipKind::ShellOwnsFace => {
-                WorthTopologyDerivedRegion::ShellRegion
-            }
-            WorthShellOrWireMembershipKind::WireOwnsHalfEdge => {
-                WorthTopologyDerivedRegion::WireRegion
-            }
+            ShellOrWireMembershipKind::RegionOwnsShell
+            | ShellOrWireMembershipKind::ShellOwnsFace => TopologyDerivedRegion::ShellRegion,
+            ShellOrWireMembershipKind::WireOwnsHalfEdge => TopologyDerivedRegion::WireRegion,
         };
         Self {
-            family: WorthTopologyEditFamily::DetachShellOrWireMembership,
-            action: WorthTopologyEditAction::DetachShellOrWireMembership { relation_id, kind },
+            family: TopologyEditFamily::DetachShellOrWireMembership,
+            action: TopologyEditAction::DetachShellOrWireMembership { relation_id, kind },
             touched_aspects: BTreeSet::from([
-                WorthAspect::Topology(WorthTopologyAspect::Ownership),
-                WorthAspect::Diagnostics(WorthDiagnosticsAspect::Decisions),
+                Aspect::Topology(TopologyAspect::Ownership),
+                Aspect::Diagnostics(DiagnosticsAspect::Decisions),
             ]),
             changed_scopes: vec![
-                WorthTopologyEditChangedScope::Relation,
+                TopologyEditChangedScope::Relation,
                 changed_scope,
-                WorthTopologyEditChangedScope::LocalNeighborhood,
+                TopologyEditChangedScope::LocalNeighborhood,
             ],
-            naming_scopes: vec![WorthTopologyEditNamingScope::AdjacentEntityNames],
+            naming_scopes: vec![TopologyEditNamingScope::AdjacentEntityNames],
             derived_regions: vec![
                 derived_region,
-                WorthTopologyDerivedRegion::EditLocalNeighborhoodRegion,
-                WorthTopologyDerivedRegion::NamingContinuityRegion,
+                TopologyDerivedRegion::EditLocalNeighborhoodRegion,
+                TopologyDerivedRegion::NamingContinuityRegion,
             ],
-            lowered_mutations: vec![WorthTopologyMutation::RemoveRelation { relation_id }],
+            lowered_mutations: vec![TopologyMutation::RemoveRelation { relation_id }],
         }
     }
 
@@ -344,30 +331,30 @@ impl WorthTopologyEditContract {
         radial_next_half_edge_id: EntityId,
     ) -> Self {
         Self {
-            family: WorthTopologyEditFamily::SpliceRadialAdjacency,
-            action: WorthTopologyEditAction::SpliceRadialAdjacency {
+            family: TopologyEditFamily::SpliceRadialAdjacency,
+            action: TopologyEditAction::SpliceRadialAdjacency {
                 relation_id,
                 half_edge_id,
                 radial_next_half_edge_id,
             },
             touched_aspects: BTreeSet::from([
-                WorthAspect::Topology(WorthTopologyAspect::Radial),
-                WorthAspect::Diagnostics(WorthDiagnosticsAspect::Decisions),
+                Aspect::Topology(TopologyAspect::Radial),
+                Aspect::Diagnostics(DiagnosticsAspect::Decisions),
             ]),
             changed_scopes: vec![
-                WorthTopologyEditChangedScope::Relation,
-                WorthTopologyEditChangedScope::RadialNeighborhood,
-                WorthTopologyEditChangedScope::LocalNeighborhood,
+                TopologyEditChangedScope::Relation,
+                TopologyEditChangedScope::RadialNeighborhood,
+                TopologyEditChangedScope::LocalNeighborhood,
             ],
-            naming_scopes: vec![WorthTopologyEditNamingScope::AdjacentEntityNames],
+            naming_scopes: vec![TopologyEditNamingScope::AdjacentEntityNames],
             derived_regions: vec![
-                WorthTopologyDerivedRegion::RadialNeighborhoodRegion,
-                WorthTopologyDerivedRegion::EditLocalNeighborhoodRegion,
-                WorthTopologyDerivedRegion::NamingContinuityRegion,
+                TopologyDerivedRegion::RadialNeighborhoodRegion,
+                TopologyDerivedRegion::EditLocalNeighborhoodRegion,
+                TopologyDerivedRegion::NamingContinuityRegion,
             ],
-            lowered_mutations: vec![WorthTopologyMutation::UpsertRelation {
+            lowered_mutations: vec![TopologyMutation::UpsertRelation {
                 relation_id,
-                kind: WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeRadialNext),
+                kind: RelationKind::Topology(TopologyRelationKind::HalfEdgeRadialNext),
                 source: half_edge_id,
                 target: radial_next_half_edge_id,
             }],
@@ -376,24 +363,24 @@ impl WorthTopologyEditContract {
 
     pub fn detach_radial_adjacency(relation_id: RelationId) -> Self {
         Self {
-            family: WorthTopologyEditFamily::DetachRadialAdjacency,
-            action: WorthTopologyEditAction::DetachRadialAdjacency { relation_id },
+            family: TopologyEditFamily::DetachRadialAdjacency,
+            action: TopologyEditAction::DetachRadialAdjacency { relation_id },
             touched_aspects: BTreeSet::from([
-                WorthAspect::Topology(WorthTopologyAspect::Radial),
-                WorthAspect::Diagnostics(WorthDiagnosticsAspect::Decisions),
+                Aspect::Topology(TopologyAspect::Radial),
+                Aspect::Diagnostics(DiagnosticsAspect::Decisions),
             ]),
             changed_scopes: vec![
-                WorthTopologyEditChangedScope::Relation,
-                WorthTopologyEditChangedScope::RadialNeighborhood,
-                WorthTopologyEditChangedScope::LocalNeighborhood,
+                TopologyEditChangedScope::Relation,
+                TopologyEditChangedScope::RadialNeighborhood,
+                TopologyEditChangedScope::LocalNeighborhood,
             ],
-            naming_scopes: vec![WorthTopologyEditNamingScope::AdjacentEntityNames],
+            naming_scopes: vec![TopologyEditNamingScope::AdjacentEntityNames],
             derived_regions: vec![
-                WorthTopologyDerivedRegion::RadialNeighborhoodRegion,
-                WorthTopologyDerivedRegion::EditLocalNeighborhoodRegion,
-                WorthTopologyDerivedRegion::NamingContinuityRegion,
+                TopologyDerivedRegion::RadialNeighborhoodRegion,
+                TopologyDerivedRegion::EditLocalNeighborhoodRegion,
+                TopologyDerivedRegion::NamingContinuityRegion,
             ],
-            lowered_mutations: vec![WorthTopologyMutation::RemoveRelation { relation_id }],
+            lowered_mutations: vec![TopologyMutation::RemoveRelation { relation_id }],
         }
     }
 }

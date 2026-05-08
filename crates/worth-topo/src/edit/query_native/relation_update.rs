@@ -3,20 +3,20 @@ use forge_query::facade::{
     ForgeQueryMutationBatchBuilder,
 };
 use forge_relational::facade::identity::{EntityId, RelationId};
-use worth_schema::facade::{WorthTopologyEntityKind, WorthTopologyRelationKind};
+use schema::facade::{TopologyEntityKind, TopologyRelationKind};
 
 use super::bindings::{
     query_entity_binding, query_incoming_relation_source_identities,
     query_outgoing_relation_target_identities, query_relation_binding,
 };
-use super::{WorthTopologyQueryEditExecutionError, WorthTopologyQueryEditRunner};
-use crate::edit::{WorthLoopEndpointKind, WorthLoopSuccessorKind};
+use super::{TopologyQueryEditExecutionError, TopologyQueryEditRunner};
+use crate::edit::{LoopEndpointKind, LoopSuccessorKind};
 use crate::query::topology_relation_dependency_path;
 
 #[derive(Clone)]
 pub(super) struct ResolvedLoopSuccessorRewire {
     pub(super) binding: ForgeQueryExistingTruthTargetBinding,
-    pub(super) relation_kind: WorthTopologyRelationKind,
+    pub(super) relation_kind: TopologyRelationKind,
     pub(super) authoritative_identity: String,
     pub(super) successor_authoritative_identity: String,
     pub(super) source_query_identity: String,
@@ -25,44 +25,42 @@ pub(super) struct ResolvedLoopSuccessorRewire {
     pub(super) dependency_path: Option<&'static str>,
 }
 
-impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> {
+impl<'workspace, 'assembly> TopologyQueryEditRunner<'workspace, 'assembly> {
     pub(super) fn resolve_loop_successor_rewire(
         &self,
         entity_rows: &[ForgeQueryEntity],
         relation_rows: &[ForgeQueryEntity],
         relation_id: RelationId,
-        kind: WorthLoopSuccessorKind,
+        kind: LoopSuccessorKind,
         half_edge_id: EntityId,
         successor_half_edge_id: EntityId,
-    ) -> Result<ResolvedLoopSuccessorRewire, WorthTopologyQueryEditExecutionError> {
+    ) -> Result<ResolvedLoopSuccessorRewire, TopologyQueryEditExecutionError> {
         let relation_kind = kind.relation_kind();
-        let relation_binding = query_relation_binding(relation_rows, relation_id)?.ok_or(
-            WorthTopologyQueryEditExecutionError::MissingExistingRelationBinding(relation_id),
-        )?;
+        let relation_binding = query_relation_binding(relation_rows, relation_id)?
+            .ok_or(TopologyQueryEditExecutionError::MissingExistingRelationBinding(relation_id))?;
         if relation_binding.kind != relation_kind {
             return Err(
-                WorthTopologyQueryEditExecutionError::ExistingRelationKindMismatch {
+                TopologyQueryEditExecutionError::ExistingRelationKindMismatch {
                     relation_id,
                     expected: relation_kind,
                     actual: relation_binding.kind,
                 },
             );
         }
-        let source_half_edge_binding = query_entity_binding(entity_rows, half_edge_id)?.ok_or(
-            WorthTopologyQueryEditExecutionError::MissingExistingEntityBinding(half_edge_id),
-        )?;
-        if source_half_edge_binding.kind != WorthTopologyEntityKind::HalfEdge {
+        let source_half_edge_binding = query_entity_binding(entity_rows, half_edge_id)?
+            .ok_or(TopologyQueryEditExecutionError::MissingExistingEntityBinding(half_edge_id))?;
+        if source_half_edge_binding.kind != TopologyEntityKind::HalfEdge {
             return Err(
-                WorthTopologyQueryEditExecutionError::ExistingEntityKindMismatch {
+                TopologyQueryEditExecutionError::ExistingEntityKindMismatch {
                     entity_id: half_edge_id,
-                    expected: WorthTopologyEntityKind::HalfEdge,
+                    expected: TopologyEntityKind::HalfEdge,
                     actual: source_half_edge_binding.kind,
                 },
             );
         }
         if relation_binding.source_query_identity != source_half_edge_binding.query_identity {
             return Err(
-                WorthTopologyQueryEditExecutionError::ExistingRelationSourceMismatch {
+                TopologyQueryEditExecutionError::ExistingRelationSourceMismatch {
                     relation_id,
                     expected_source_entity_id: half_edge_id,
                     actual_source_identity: relation_binding.source_query_identity,
@@ -71,15 +69,13 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
         }
         let target_half_edge_binding = query_entity_binding(entity_rows, successor_half_edge_id)?
             .ok_or(
-            WorthTopologyQueryEditExecutionError::MissingExistingEntityBinding(
-                successor_half_edge_id,
-            ),
+            TopologyQueryEditExecutionError::MissingExistingEntityBinding(successor_half_edge_id),
         )?;
-        if target_half_edge_binding.kind != WorthTopologyEntityKind::HalfEdge {
+        if target_half_edge_binding.kind != TopologyEntityKind::HalfEdge {
             return Err(
-                WorthTopologyQueryEditExecutionError::ExistingEntityKindMismatch {
+                TopologyQueryEditExecutionError::ExistingEntityKindMismatch {
                     entity_id: successor_half_edge_id,
-                    expected: WorthTopologyEntityKind::HalfEdge,
+                    expected: TopologyEntityKind::HalfEdge,
                     actual: target_half_edge_binding.kind,
                 },
             );
@@ -88,17 +84,17 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
             relation_rows,
             half_edge_id,
             &source_half_edge_binding.query_identity,
-            WorthTopologyRelationKind::LoopOwnsHalfEdge,
+            TopologyRelationKind::LoopOwnsHalfEdge,
         )?;
         let target_loop_identity = single_incoming_relation_source_identity(
             relation_rows,
             successor_half_edge_id,
             &target_half_edge_binding.query_identity,
-            WorthTopologyRelationKind::LoopOwnsHalfEdge,
+            TopologyRelationKind::LoopOwnsHalfEdge,
         )?;
         if source_loop_identity != target_loop_identity {
             return Err(
-                WorthTopologyQueryEditExecutionError::ExistingHalfEdgesNotOnSameLoop {
+                TopologyQueryEditExecutionError::ExistingHalfEdgesNotOnSameLoop {
                     relation_id,
                     source_half_edge_id: half_edge_id,
                     target_half_edge_id: successor_half_edge_id,
@@ -113,7 +109,7 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                 authoritative_identity.clone(),
                 relation_binding.query_identity,
             )?
-            .in_target_collection("WorthTopologyRelation")?,
+            .in_target_collection("TopologyRelation")?,
         )?;
         Ok(ResolvedLoopSuccessorRewire {
             binding,
@@ -124,7 +120,7 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
             current_target_query_identity: relation_binding.target_query_identity,
             updated_target_query_identity: target_half_edge_binding.query_identity,
             dependency_path: topology_relation_dependency_path(
-                worth_schema::facade::WorthRelationKind::Topology(relation_kind),
+                schema::facade::RelationKind::Topology(relation_kind),
             ),
         })
     }
@@ -135,10 +131,10 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
         entity_rows: &[ForgeQueryEntity],
         relation_rows: &[ForgeQueryEntity],
         relation_id: RelationId,
-        kind: WorthLoopSuccessorKind,
+        kind: LoopSuccessorKind,
         half_edge_id: EntityId,
         successor_half_edge_id: EntityId,
-    ) -> Result<ForgeQueryMutationBatchBuilder, WorthTopologyQueryEditExecutionError> {
+    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyQueryEditExecutionError> {
         let resolved = self.resolve_loop_successor_rewire(
             entity_rows,
             relation_rows,
@@ -186,37 +182,35 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
         entity_rows: &[ForgeQueryEntity],
         relation_rows: &[ForgeQueryEntity],
         relation_id: RelationId,
-        endpoint: WorthLoopEndpointKind,
+        endpoint: LoopEndpointKind,
         half_edge_id: EntityId,
         vertex_id: EntityId,
-    ) -> Result<ForgeQueryMutationBatchBuilder, WorthTopologyQueryEditExecutionError> {
-        let relation_binding = query_relation_binding(relation_rows, relation_id)?.ok_or(
-            WorthTopologyQueryEditExecutionError::MissingExistingRelationBinding(relation_id),
-        )?;
+    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyQueryEditExecutionError> {
+        let relation_binding = query_relation_binding(relation_rows, relation_id)?
+            .ok_or(TopologyQueryEditExecutionError::MissingExistingRelationBinding(relation_id))?;
         if relation_binding.kind != endpoint.relation_kind() {
             return Err(
-                WorthTopologyQueryEditExecutionError::ExistingRelationKindMismatch {
+                TopologyQueryEditExecutionError::ExistingRelationKindMismatch {
                     relation_id,
                     expected: endpoint.relation_kind(),
                     actual: relation_binding.kind,
                 },
             );
         }
-        let half_edge_binding = query_entity_binding(entity_rows, half_edge_id)?.ok_or(
-            WorthTopologyQueryEditExecutionError::MissingExistingEntityBinding(half_edge_id),
-        )?;
-        if half_edge_binding.kind != WorthTopologyEntityKind::HalfEdge {
+        let half_edge_binding = query_entity_binding(entity_rows, half_edge_id)?
+            .ok_or(TopologyQueryEditExecutionError::MissingExistingEntityBinding(half_edge_id))?;
+        if half_edge_binding.kind != TopologyEntityKind::HalfEdge {
             return Err(
-                WorthTopologyQueryEditExecutionError::ExistingEntityKindMismatch {
+                TopologyQueryEditExecutionError::ExistingEntityKindMismatch {
                     entity_id: half_edge_id,
-                    expected: WorthTopologyEntityKind::HalfEdge,
+                    expected: TopologyEntityKind::HalfEdge,
                     actual: half_edge_binding.kind,
                 },
             );
         }
         if relation_binding.source_query_identity != half_edge_binding.query_identity {
             return Err(
-                WorthTopologyQueryEditExecutionError::ExistingRelationSourceMismatch {
+                TopologyQueryEditExecutionError::ExistingRelationSourceMismatch {
                     relation_id,
                     expected_source_entity_id: half_edge_id,
                     actual_source_identity: relation_binding.source_query_identity,
@@ -224,12 +218,12 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
             );
         }
         let vertex_binding = query_entity_binding(entity_rows, vertex_id)?
-            .ok_or(WorthTopologyQueryEditExecutionError::MissingExistingEntityBinding(vertex_id))?;
-        if vertex_binding.kind != WorthTopologyEntityKind::Vertex {
+            .ok_or(TopologyQueryEditExecutionError::MissingExistingEntityBinding(vertex_id))?;
+        if vertex_binding.kind != TopologyEntityKind::Vertex {
             return Err(
-                WorthTopologyQueryEditExecutionError::ExistingEntityKindMismatch {
+                TopologyQueryEditExecutionError::ExistingEntityKindMismatch {
                     entity_id: vertex_id,
-                    expected: WorthTopologyEntityKind::Vertex,
+                    expected: TopologyEntityKind::Vertex,
                     actual: vertex_binding.kind,
                 },
             );
@@ -239,14 +233,14 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                 format!("{relation_id:?}"),
                 relation_binding.query_identity,
             )?
-            .in_target_collection("WorthTopologyRelation")?,
+            .in_target_collection("TopologyRelation")?,
         )?;
         let source_query_identity = half_edge_binding.query_identity;
         let verified_source_query_identity = source_query_identity.clone();
         let current_target_query_identity = relation_binding.target_query_identity;
         let updated_target_query_identity = vertex_binding.query_identity;
         let dependency_path = topology_relation_dependency_path(
-            worth_schema::facade::WorthRelationKind::Topology(endpoint.relation_kind()),
+            schema::facade::RelationKind::Topology(endpoint.relation_kind()),
         );
         Ok(builder.update_existing_verified(
             binding,
@@ -283,35 +277,33 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
         relation_id: RelationId,
         half_edge_id: EntityId,
         radial_next_half_edge_id: EntityId,
-    ) -> Result<ForgeQueryMutationBatchBuilder, WorthTopologyQueryEditExecutionError> {
-        let relation_kind = WorthTopologyRelationKind::HalfEdgeRadialNext;
-        let relation_binding = query_relation_binding(relation_rows, relation_id)?.ok_or(
-            WorthTopologyQueryEditExecutionError::MissingExistingRelationBinding(relation_id),
-        )?;
+    ) -> Result<ForgeQueryMutationBatchBuilder, TopologyQueryEditExecutionError> {
+        let relation_kind = TopologyRelationKind::HalfEdgeRadialNext;
+        let relation_binding = query_relation_binding(relation_rows, relation_id)?
+            .ok_or(TopologyQueryEditExecutionError::MissingExistingRelationBinding(relation_id))?;
         if relation_binding.kind != relation_kind {
             return Err(
-                WorthTopologyQueryEditExecutionError::ExistingRelationKindMismatch {
+                TopologyQueryEditExecutionError::ExistingRelationKindMismatch {
                     relation_id,
                     expected: relation_kind,
                     actual: relation_binding.kind,
                 },
             );
         }
-        let source_half_edge_binding = query_entity_binding(entity_rows, half_edge_id)?.ok_or(
-            WorthTopologyQueryEditExecutionError::MissingExistingEntityBinding(half_edge_id),
-        )?;
-        if source_half_edge_binding.kind != WorthTopologyEntityKind::HalfEdge {
+        let source_half_edge_binding = query_entity_binding(entity_rows, half_edge_id)?
+            .ok_or(TopologyQueryEditExecutionError::MissingExistingEntityBinding(half_edge_id))?;
+        if source_half_edge_binding.kind != TopologyEntityKind::HalfEdge {
             return Err(
-                WorthTopologyQueryEditExecutionError::ExistingEntityKindMismatch {
+                TopologyQueryEditExecutionError::ExistingEntityKindMismatch {
                     entity_id: half_edge_id,
-                    expected: WorthTopologyEntityKind::HalfEdge,
+                    expected: TopologyEntityKind::HalfEdge,
                     actual: source_half_edge_binding.kind,
                 },
             );
         }
         if relation_binding.source_query_identity != source_half_edge_binding.query_identity {
             return Err(
-                WorthTopologyQueryEditExecutionError::ExistingRelationSourceMismatch {
+                TopologyQueryEditExecutionError::ExistingRelationSourceMismatch {
                     relation_id,
                     expected_source_entity_id: half_edge_id,
                     actual_source_identity: relation_binding.source_query_identity,
@@ -320,15 +312,15 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
         }
         let target_half_edge_binding = query_entity_binding(entity_rows, radial_next_half_edge_id)?
             .ok_or(
-                WorthTopologyQueryEditExecutionError::MissingExistingEntityBinding(
+                TopologyQueryEditExecutionError::MissingExistingEntityBinding(
                     radial_next_half_edge_id,
                 ),
             )?;
-        if target_half_edge_binding.kind != WorthTopologyEntityKind::HalfEdge {
+        if target_half_edge_binding.kind != TopologyEntityKind::HalfEdge {
             return Err(
-                WorthTopologyQueryEditExecutionError::ExistingEntityKindMismatch {
+                TopologyQueryEditExecutionError::ExistingEntityKindMismatch {
                     entity_id: radial_next_half_edge_id,
-                    expected: WorthTopologyEntityKind::HalfEdge,
+                    expected: TopologyEntityKind::HalfEdge,
                     actual: target_half_edge_binding.kind,
                 },
             );
@@ -337,17 +329,17 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
             relation_rows,
             half_edge_id,
             &source_half_edge_binding.query_identity,
-            WorthTopologyRelationKind::HalfEdgeUsesEdge,
+            TopologyRelationKind::HalfEdgeUsesEdge,
         )?;
         let target_edge_identity = single_outgoing_relation_target_identity(
             relation_rows,
             radial_next_half_edge_id,
             &target_half_edge_binding.query_identity,
-            WorthTopologyRelationKind::HalfEdgeUsesEdge,
+            TopologyRelationKind::HalfEdgeUsesEdge,
         )?;
         if source_edge_identity != target_edge_identity {
             return Err(
-                WorthTopologyQueryEditExecutionError::ExistingHalfEdgesNotOnSameEdge {
+                TopologyQueryEditExecutionError::ExistingHalfEdgesNotOnSameEdge {
                     relation_id,
                     source_half_edge_id: half_edge_id,
                     target_half_edge_id: radial_next_half_edge_id,
@@ -362,14 +354,14 @@ impl<'workspace, 'assembly> WorthTopologyQueryEditRunner<'workspace, 'assembly> 
                 format!("{relation_id:?}"),
                 relation_binding.query_identity,
             )?
-            .in_target_collection("WorthTopologyRelation")?,
+            .in_target_collection("TopologyRelation")?,
         )?;
         let source_query_identity = source_half_edge_binding.query_identity;
         let verified_source_query_identity = source_query_identity.clone();
         let current_target_query_identity = relation_binding.target_query_identity;
         let updated_target_query_identity = target_half_edge_binding.query_identity;
         let dependency_path = topology_relation_dependency_path(
-            worth_schema::facade::WorthRelationKind::Topology(relation_kind),
+            schema::facade::RelationKind::Topology(relation_kind),
         );
         Ok(builder.update_existing_verified(
             binding,
@@ -403,8 +395,8 @@ fn single_outgoing_relation_target_identity(
     relation_rows: &[ForgeQueryEntity],
     entity_id: EntityId,
     source_query_identity: &str,
-    relation_kind: WorthTopologyRelationKind,
-) -> Result<String, WorthTopologyQueryEditExecutionError> {
+    relation_kind: TopologyRelationKind,
+) -> Result<String, TopologyQueryEditExecutionError> {
     let identities = query_outgoing_relation_target_identities(
         relation_rows,
         source_query_identity,
@@ -412,7 +404,7 @@ fn single_outgoing_relation_target_identity(
     )?;
     if identities.len() != 1 {
         return Err(
-            WorthTopologyQueryEditExecutionError::ExistingEntityOutgoingRelationCountMismatch {
+            TopologyQueryEditExecutionError::ExistingEntityOutgoingRelationCountMismatch {
                 entity_id,
                 relation_kind,
                 expected: 1,
@@ -427,8 +419,8 @@ fn single_incoming_relation_source_identity(
     relation_rows: &[ForgeQueryEntity],
     entity_id: EntityId,
     target_query_identity: &str,
-    relation_kind: WorthTopologyRelationKind,
-) -> Result<String, WorthTopologyQueryEditExecutionError> {
+    relation_kind: TopologyRelationKind,
+) -> Result<String, TopologyQueryEditExecutionError> {
     let identities = query_incoming_relation_source_identities(
         relation_rows,
         target_query_identity,
@@ -436,7 +428,7 @@ fn single_incoming_relation_source_identity(
     )?;
     if identities.len() != 1 {
         return Err(
-            WorthTopologyQueryEditExecutionError::ExistingEntityIncomingRelationCountMismatch {
+            TopologyQueryEditExecutionError::ExistingEntityIncomingRelationCountMismatch {
                 entity_id,
                 relation_kind,
                 expected: 1,

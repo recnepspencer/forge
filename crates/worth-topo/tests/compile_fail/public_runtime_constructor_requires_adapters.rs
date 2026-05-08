@@ -1,5 +1,5 @@
-use worth_topo::facade::worth_topology_runtime;
+use topology::facade::topology_runtime;
 
 fn main() {
-    let _ = worth_topology_runtime("worth.runtime.bypass");
+    let _ = topology_runtime(".runtime.bypass");
 }
