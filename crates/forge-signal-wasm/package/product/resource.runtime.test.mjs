@@ -1,6 +1,7 @@
 import "./resource_runtime/authoring/declaration_validation.test.mjs";
 import "./resource_runtime/authoring/api_family_patch_helpers.test.mjs";
-import "./resource_runtime/authoring/api_url_semantic_finalizers.test.mjs";
+import "./resource_runtime/authoring/api_response_contract_builder.test.mjs";
+import "./resource_runtime/authoring/api_route/api_url_semantic_finalizers.test.mjs";
 import "./resource_runtime/authoring/external_definition_compatibility.test.mjs";
 import "./resource_runtime/authoring/family_identity_equivalence.test.mjs";
 import "./resource_runtime/authoring/line_facade_stability.test.mjs";

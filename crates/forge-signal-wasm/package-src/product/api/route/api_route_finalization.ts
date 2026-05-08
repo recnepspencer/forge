@@ -132,12 +132,12 @@ function lowerDirectArrayRouteDeclaration(
   );
   if ("itemIdentity" in declaration) {
     throw new TypeError(
-      `api.url("${pattern.route}").items(...) owns itemIdentity(...) in the direct-array lane`,
+      `api.url("${pattern.route}").${directItemsState.source}(...) owns itemIdentity(...) in the direct-array lane`,
     );
   }
   if ("reconcile" in declaration) {
     throw new TypeError(
-      `api.url("${pattern.route}").items(...) owns reconcile(...) in the direct-array lane`,
+      `api.url("${pattern.route}").${directItemsState.source}(...) owns reconcile(...) in the direct-array lane`,
     );
   }
   return Object.freeze({

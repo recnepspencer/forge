@@ -27,6 +27,9 @@ test("API resources overview entrypoint points at the default lane and its featu
 
     assert.match(overview, /signals\.api\(\.\.\.\)/);
     assert.match(overview, /line\.summary\(\)/);
+    assert.match(overview, /signals\.resource\.response\.array\(\.\.\.\)/);
+    assert.match(overview, /signals\.resource\.response\.objectItems<T>\(\)\(\.\.\.\)/);
+    assert.match(overview, /signals\.resource\.response\.collection<T>\(\)\(\.\.\.\)/);
     assert.match(overview, /feature_transfers\.md/);
     assert.match(overview, /feature_downloads\.md/);
     assert.match(overview, /feature_external_delivery_and_compatibility\.md/);

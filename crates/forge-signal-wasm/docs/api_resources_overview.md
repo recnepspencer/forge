@@ -24,6 +24,11 @@ For ordinary app code, the default lane is:
   [feature_request_posture_and_policy.md](./feature_request_posture_and_policy.md)
 - collection identity, reconcile, patch helpers, and delivery helpers:
   [feature_collections_and_delivery.md](./feature_collections_and_delivery.md)
+  Use `signals.resource.response.array(...)`,
+  `signals.resource.response.objectItems<T>()(...)`, or
+  `signals.resource.response.collection<T>()(...)` with `.response(...)` when typed
+  responses should own item extraction and object-field aspect patching
+  automatically.
 - signed upload, multipart upload, and deferred processing:
   [feature_transfers.md](./feature_transfers.md)
 - downloads and multipart download handoff:

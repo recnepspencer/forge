@@ -49,6 +49,7 @@ import type {
   ResourceValueSummaryMap,
   ResourceValueSummaries,
 } from "./resource_reconciliation.js";
+import type { ResourceResponseFactory } from "./resource_response.js";
 
 export interface ResourceCompatibilityNamespace {
   readonly delivery: ResourceExternalDeliveryFactory;
@@ -97,6 +98,7 @@ export interface ResourceCompatibilityNamespace {
 
 export interface ResourceNamespace {
   readonly compatibility: ResourceCompatibilityNamespace;
+  readonly response: ResourceResponseFactory;
   detail<TParams, TValue>(
     declaration: ProcessingUploadDetailResourceDeclaration<TParams, TValue>,
   ): DetailResourceFamily<TParams, TValue | null>;
@@ -274,6 +276,7 @@ export const resourcePatch: ResourcePatchFactory;
 export const resourcePolicyProfiles: ResourcePolicyProfiles;
 export const resourceProcessingJob: ResourceProcessingJob;
 export const resourceProcessingResult: ResourceProcessingResult;
+export const resourceResponse: ResourceResponseFactory;
 export const resourceUploadTransport: ResourceUploadTransport;
 export const resourceUploadResult: ResourceUploadResult;
 

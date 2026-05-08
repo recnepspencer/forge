@@ -1,6 +1,8 @@
 import "./resource_types_smoke/resource_surface_usage.ts";
 import "./resource_types_smoke/resource_authoring_denials.ts";
 import "./resource_types_smoke/resource_api_surface_usage.ts";
+import "./resource_types_smoke/resource_api_response_contract_usage.ts";
+import "./resource_types_smoke/resource_api_response_contract_denials.ts";
 import "./resource_types_smoke/resource_api_authoring_denials.ts";
 import "./resource_types_smoke/resource_api_download_surface_usage.ts";
 import "./resource_types_smoke/resource_api_download_authoring_denials.ts";

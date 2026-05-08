@@ -1,11 +1,15 @@
 import { resourceCollectionShape } from "../../resource/reconciliation/resource_collection_shape.js";
 import { resourceItemAspects } from "../../resource/reconciliation/resource_item_aspects.js";
 import { resourceValueSummaries } from "../../resource/reconciliation/resource_value_summaries.js";
+import { requireResourceCollectionResponse } from "../../resource/response/resource_collection_response_contract.js";
+import { createResourceCollectionResponseReconcile } from "../../resource/response/resource_collection_response_reconcile.js";
 
 function createApiRouteItemsState() {
   return Object.freeze({
     declared: false,
+    source: null,
     itemIdentity: null,
+    response: null,
     reconcileMode: "directArray",
     items: null,
     replaceItems: null,
@@ -23,7 +27,9 @@ function requireApiRouteItemsState(itemIdentity, route) {
   }
   return Object.freeze({
     declared: true,
+    source: "items",
     itemIdentity,
+    response: null,
     reconcileMode: "directArray",
     items: null,
     replaceItems: null,
@@ -60,6 +66,25 @@ function requireApiRouteItemsReconcileState(
     reconcileMode: "custom",
     items,
     replaceItems,
+  });
+}
+
+function requireApiRouteResponseItemsState(response, route) {
+  const collectionResponse = requireResourceCollectionResponse(
+    response,
+    `api.url("${route}").response(...)`,
+  );
+  return Object.freeze({
+    declared: true,
+    source: "response",
+    itemIdentity: collectionResponse.itemIdentity,
+    response: collectionResponse,
+    reconcileMode: "responseCollection",
+    items: null,
+    replaceItems: null,
+    aspects: Object.freeze({}),
+    summaries: Object.freeze({}),
+    summaryPatchScope: null,
   });
 }
 
@@ -126,6 +151,9 @@ function extendApiRouteItemsSummary(
 }
 
 function createApiRouteItemsReconcile(route, state) {
+  if (state.reconcileMode === "responseCollection") {
+    return createResourceCollectionResponseReconcile(state.response);
+  }
   const aspects =
     Object.keys(state.aspects).length === 0
       ? undefined
@@ -211,6 +239,7 @@ export {
   createApiRouteItemsState,
   extendApiRouteItemsAspect,
   extendApiRouteItemsSummary,
+  requireApiRouteResponseItemsState,
   requireApiRouteItemsReconcileState,
   requireApiRouteItemsState,
 };

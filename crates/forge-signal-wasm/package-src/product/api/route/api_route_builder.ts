@@ -9,6 +9,7 @@ import {
   extendApiRouteItemsAspect,
   extendApiRouteItemsSummary,
   requireApiRouteItemsReconcileState,
+  requireApiRouteResponseItemsState,
   requireApiRouteItemsState,
 } from "./api_route_items_reconcile.js";
 import { mergeApiDeclaration } from "../api_request_defaults.js";
@@ -89,6 +90,18 @@ function createConfiguredApiRouteBuilder(
         requestParamsState,
         requestShapeState,
         requireApiRouteItemsState(itemIdentity, pattern.route),
+        transferState,
+        downloadsState,
+      );
+    },
+    response(responseContract) {
+      return createConfiguredApiRouteBuilder(
+        signalNamespace,
+        layers,
+        pattern,
+        requestParamsState,
+        requestShapeState,
+        requireApiRouteResponseItemsState(responseContract, pattern.route),
         transferState,
         downloadsState,
       );

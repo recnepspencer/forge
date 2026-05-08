@@ -12,6 +12,7 @@ import { resourceParams } from "./params/declared_resource_params.js";
 import { resourcePolicyProfiles } from "./policies/resource_policy_profiles.js";
 import { resourceProcessingJob } from "./processing/resource_processing_job.js";
 import { resourceProcessingResult } from "./processing/processing_result.js";
+import { resourceResponse } from "./response/resource_response_contract.js";
 import { resourceCollectionShape } from "./reconciliation/resource_collection_shape.js";
 import { resourceItemAspects } from "./reconciliation/resource_item_aspects.js";
 import { resourcePatch } from "./reconciliation/resource_patch.js";
@@ -55,6 +56,7 @@ function createResourceNamespace(signalNamespace, rawSignals) {
         declaration,
       );
     },
+    response: resourceResponse,
   });
 }
 
@@ -78,4 +80,5 @@ export {
   resourceUploadResult,
   resourceUploadTransport,
   resourceRequestContext,
+  resourceResponse,
 };

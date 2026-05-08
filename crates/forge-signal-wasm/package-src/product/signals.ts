@@ -49,6 +49,7 @@ import {
   resourcePolicyProfiles,
   resourceProcessingJob,
   resourceProcessingResult,
+  resourceResponse,
   resourceUploadResult,
   resourceUploadTransport,
   resourceRequestContext,
@@ -353,6 +354,7 @@ export {
   resourceUploadResult,
   resourceUploadTransport,
   resourceRequestContext,
+  resourceResponse,
   viewportCapability,
   visibilityCapability,
 };

@@ -13,6 +13,13 @@ import type {
 import type { ApiRouteDownloadsDeclaration } from "./api_route_downloads.js";
 import type { ApiRouteArrayItemsBuilder } from "./api_route_array_items_builder.js";
 import type { ApiRouteBuilder } from "./api_route_builder.js";
+import type { ApiRouteReconcileBuilder } from "./api_route_reconcile_builder.js";
+import type {
+  ResourceCollectionResponse,
+  ResourceResponseAspectMap,
+  ResourceResponseItem,
+  ResourceResponseValue,
+} from "./resource_response.js";
 import type {
   ApiRouteProcessingKind,
   ApiRouteUploadKind,
@@ -235,4 +242,21 @@ export type ApiRouteBuilderItemsStep<
     THeadersOwned,
     TMethod
   >;
+  response<TResponse extends ResourceCollectionResponse<any, any, any>>(
+    response: TResponse,
+  ): Omit<ApiRouteReconcileBuilder<
+    TRoute,
+    TRequestParams,
+    ResourceResponseValue<TResponse>,
+    ResourceResponseItem<TResponse>,
+    ResourceResponseAspectMap<TResponse>,
+    {},
+    "none",
+    TProcessingKind,
+    TUploadKind,
+    TBody,
+    TDownloadsOwned,
+    THeadersOwned,
+    TMethod
+  >, "aspect" | "reconcile" | "summary" | "pageWindowSummary">;
 };
