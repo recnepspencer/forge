@@ -101,6 +101,7 @@ fn portable_dashboard_publication() -> WorkerPortableGraphPublication {
                 },
             ),
         ],
+        output_ids: vec!["dashboardView".to_owned()],
     }
 }
 

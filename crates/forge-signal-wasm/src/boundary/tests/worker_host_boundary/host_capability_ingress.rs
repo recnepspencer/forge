@@ -324,6 +324,7 @@ fn host_capability_publication() -> WorkerPortableGraphPublication {
             identity: Some(IdentitySpec::Exact),
             produces_aspects: None,
         }],
+        output_ids: Vec::new(),
     }
 }
 

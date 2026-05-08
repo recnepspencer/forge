@@ -13,7 +13,7 @@ pub(crate) fn compare_worker_diagnostics_truth(
     compatibility_runtime: &RuntimeCore,
 ) -> Result<WorkerRuntimeDiagnosticsTruthReport, ForgeSignalJsError> {
     let worker_first_diagnostics_digest = canonical_worker_certification_digest(
-        &StableDiagnosticsTruthProjection::from(worker_shell.diagnostics_summary_now()?),
+        &StableDiagnosticsTruthProjection::from(worker_shell.core.diagnostics_summary_now()?),
     )?;
     let compatibility_mode_diagnostics_digest = canonical_worker_certification_digest(
         &StableDiagnosticsTruthProjection::from(compatibility_runtime.diagnostics_summary_now()?),

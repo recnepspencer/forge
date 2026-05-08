@@ -14,7 +14,9 @@ pub fn certify_worker_compatibility(
 ) -> Result<WorkerCompatibilityCertificationReport, ForgeSignalJsError> {
     let mut worker_shell = WorkerRuntimeShell::new(scenario.publication.policy.clone())?;
     let worker_publication_summary = worker_shell.publish_graph(scenario.publication.clone())?;
-    worker_shell.observe_signal_for_runtime_certification(&scenario.observed_signal_id)?;
+    worker_shell
+        .core
+        .observe_signal_for_runtime_certification(&scenario.observed_signal_id)?;
 
     let mut compatibility_runtime = RuntimeCore::new(scenario.publication.policy.clone())?;
     let compatibility_publication_summary = publish_definition_envelope_into_worker_runtime(

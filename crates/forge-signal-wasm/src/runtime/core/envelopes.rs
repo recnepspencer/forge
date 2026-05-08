@@ -164,12 +164,24 @@ impl RuntimeCore {
             .web_metrics
             .compute_callback_missing_unavailability_count
             .saturating_add(unavailable_callbacks.len() as u64);
+        let worker_public_output_ids = self
+            .web_signals
+            .iter()
+            .filter_map(|(id, kind)| {
+                if matches!(kind, super::state::WebSignalKind::Output) {
+                    Some(id.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
         Ok(RuntimeDefinitionEnvelope {
             policy: self.policy.clone(),
             sources,
             recipes,
             source_families,
             recipe_families,
+            worker_public_output_ids,
             unavailable_callbacks,
         })
     }
@@ -335,10 +347,12 @@ impl RuntimeCore {
         for source in envelope.definitions.sources {
             rebuilt.define_source(source)?;
         }
+        let worker_public_output_ids = envelope.definitions.worker_public_output_ids;
         for recipe in envelope.definitions.recipes {
             rebuilt.define_recipe(recipe)?;
         }
         rebuilt.restore_snapshot(envelope.snapshot)?;
+        rebuilt.mark_worker_public_outputs(worker_public_output_ids)?;
         *self = rebuilt;
         Ok(())
     }

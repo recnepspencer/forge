@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct WorkerHostBoundaryCausality {
     pub transaction_sequence: u64,
     pub generation: u64,
-    pub ordering_basis: &'static str,
+    pub ordering_basis: String,
 }
 
 impl WorkerHostBoundaryCausality {
@@ -13,7 +13,7 @@ impl WorkerHostBoundaryCausality {
         Self {
             transaction_sequence,
             generation: 0,
-            ordering_basis: "transactionSequenceThenGeneration",
+            ordering_basis: "transactionSequenceThenGeneration".to_owned(),
         }
     }
 }

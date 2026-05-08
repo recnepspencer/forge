@@ -23,6 +23,13 @@ pub(crate) fn read(id: &str) -> Expr {
     Expr::Read { id: id.to_owned() }
 }
 
+pub(crate) fn assert_digest_shape(digest: &str) {
+    assert_eq!(digest.len(), 64);
+    assert!(digest
+        .chars()
+        .all(|character| character.is_ascii_hexdigit()));
+}
+
 pub(crate) fn build_adversarial_merge_runtime(
     policy: RuntimePolicySpec,
 ) -> (RuntimeCore, u64, u64, String) {

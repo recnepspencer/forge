@@ -120,7 +120,7 @@ impl WorkerHostEffectRequestEnvelope {
     ) -> Result<Self, ForgeSignalJsError> {
         Ok(Self {
             envelope_family: "hostEffectEgress",
-            causality,
+            causality: causality.clone(),
             request_digest: canonical_worker_certification_digest(&request)?,
             host_execution_boundary: "mainThreadHostEffect",
             performance: WorkerHostBoundaryPerformanceEnvelope::host_effect_request(
@@ -145,7 +145,7 @@ impl WorkerHostEffectAcknowledgementReport {
 
         Ok(Self {
             envelope_family: "hostEffectEgress",
-            causality,
+            causality: causality.clone(),
             acknowledged_request_digest: acknowledgement.payload().request_digest.clone(),
             acknowledgement_digest: canonical_worker_certification_digest(
                 acknowledgement.payload(),

@@ -198,6 +198,7 @@ fn callback_placement_eligibility_certifies_closed_request_lane_without_fallback
     assert_digest_shape(&package.denial_digest);
     assert_digest_shape(&package.fallback_digest);
     assert_digest_shape(&package.capability_availability_digest);
+    assert_digest_shape(&package.replay_import_compatibility_digest);
     assert_digest_shape(&package.placement_identity_digest);
     assert_digest_shape(&package.performance_digest);
 }
@@ -270,11 +271,4 @@ fn callback_placement_eligibility_preserves_shared_debug_shape_postures() {
             ),
         ]
     );
-}
-
-fn assert_digest_shape(digest: &str) {
-    assert_eq!(digest.len(), 64);
-    assert!(digest
-        .chars()
-        .all(|character| character.is_ascii_hexdigit()));
 }

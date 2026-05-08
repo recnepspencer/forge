@@ -32,6 +32,10 @@ mod signals;
 mod snapshots;
 mod state;
 mod transactions;
+mod worker_callback_definition_publication;
+mod worker_callback_reattachment_import;
+mod worker_definition_publication_plan;
+mod worker_main_thread_hosted_callbacks;
 mod worker_placement_declaration_candidates;
 
 use self::aspects::resolve_selected_aspects;
@@ -44,6 +48,11 @@ use self::state::{
     WebRuntimeMetrics,
 };
 pub use self::state::{MergePolicyPreviewRequest, SharedCore, WebSignalKind};
+pub(crate) use self::worker_callback_definition_publication::DefinitionEnvelopeCallbackReattachment;
+pub(crate) use self::worker_callback_reattachment_import::RuntimeEnvelopeCallbackReattachment;
+pub(crate) use self::worker_main_thread_hosted_callbacks::{
+    MainThreadHostedCallbackAdmission, MainThreadHostedCallbackClosedInput,
+};
 use crate::runtime::web_callbacks::ObservationCallbackToken;
 
 const DEFAULT_ASPECT: forge_signal::facade::Aspect = forge_signal::facade::Aspect::new(0);

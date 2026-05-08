@@ -53,7 +53,7 @@ impl WorkerBrowserHistoryIngressReport {
     ) -> Result<Self, ForgeSignalJsError> {
         Ok(Self {
             envelope_family: "browserHistoryIngress",
-            causality,
+            causality: causality.clone(),
             browser_history_envelope_digest: canonical_worker_certification_digest(&ingress)?,
             route_truth_digest: canonical_worker_certification_digest(&(
                 ingress.navigation_kind.as_str(),
@@ -64,7 +64,7 @@ impl WorkerBrowserHistoryIngressReport {
                 ingress.raw_location.as_str(),
                 ingress.route_identity.as_str(),
                 runtime_admitted_continuity_count,
-                causality,
+                causality.clone(),
             ))?,
             replay_restore_digest: canonical_worker_certification_digest(&(
                 "runtimeOwnedRouteReplayRestore",

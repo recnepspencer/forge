@@ -4,9 +4,11 @@ use wasm_bindgen::prelude::*;
 use crate::boundary::serde::{from_js, to_js};
 use crate::recipe::model::TransactionOp;
 use crate::runtime::worker_host::{
-    certify_worker_compatibility, probe_worker_branch_lifecycle_parity,
+    certify_worker_compatibility, certify_worker_phase7_performance_contracts,
+    certify_worker_phase7_product_guidance, certify_worker_phase7_test_requirements,
+    certify_worker_unavailable_compatibility_artifact, probe_worker_branch_lifecycle_parity,
     probe_worker_graph_committed_truth_parity, WorkerCompatibilityCertificationScenario,
-    WorkerPortableGraphPublication,
+    WorkerPortableGraphPublication, WorkerUnavailableCompatibilityCertificationPackage,
 };
 use serde::Serialize;
 
@@ -146,6 +148,36 @@ impl SignalDiagnostics {
         to_js(&report).map_err(JsValue::from)
     }
 
+    #[wasm_bindgen(js_name = workerUnavailableCompatibilityCertification)]
+    pub fn worker_unavailable_compatibility_certification(
+        &self,
+        scenario: JsValue,
+    ) -> Result<JsValue, JsValue> {
+        let scenario: WorkerCompatibilityCertificationScenario =
+            from_js(scenario).map_err(JsValue::from)?;
+        let package: WorkerUnavailableCompatibilityCertificationPackage =
+            certify_worker_unavailable_compatibility_artifact(scenario)?;
+        to_js(&package).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = workerPhase7PerformanceContracts)]
+    pub fn worker_phase7_performance_contracts(&self) -> Result<JsValue, JsValue> {
+        let package = certify_worker_phase7_performance_contracts()?;
+        to_js(&package).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = workerPhase7ProductGuidance)]
+    pub fn worker_phase7_product_guidance(&self) -> Result<JsValue, JsValue> {
+        let package = certify_worker_phase7_product_guidance()?;
+        to_js(&package).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = workerPhase7TestRequirements)]
+    pub fn worker_phase7_test_requirements(&self) -> Result<JsValue, JsValue> {
+        let package = certify_worker_phase7_test_requirements()?;
+        to_js(&package).map_err(JsValue::from)
+    }
+
     pub fn subscribe(&self, callback: Function) -> Result<DisposableHandle, JsValue> {
         let callback_token = self
             .core
@@ -204,6 +236,35 @@ impl SignalDiagnostics {
 
 #[cfg(test)]
 impl SignalDiagnostics {
+    pub(crate) fn worker_unavailable_compatibility_certification_for_test(
+        &self,
+        scenario: WorkerCompatibilityCertificationScenario,
+    ) -> Result<WorkerUnavailableCompatibilityCertificationPackage, JsValue> {
+        certify_worker_unavailable_compatibility_artifact(scenario).map_err(JsValue::from)
+    }
+
+    pub(crate) fn worker_phase7_performance_contracts_for_test(
+        &self,
+    ) -> Result<crate::runtime::worker_host::WorkerPhase7PerformanceContractPackage, JsValue> {
+        certify_worker_phase7_performance_contracts().map_err(JsValue::from)
+    }
+
+    pub(crate) fn worker_phase7_product_guidance_for_test(
+        &self,
+    ) -> Result<crate::runtime::worker_host::WorkerPhase7ProductGuidanceCertificationPackage, JsValue>
+    {
+        certify_worker_phase7_product_guidance().map_err(JsValue::from)
+    }
+
+    pub(crate) fn worker_phase7_test_requirements_for_test(
+        &self,
+    ) -> Result<
+        crate::runtime::worker_host::WorkerPhase7TestRequirementsCertificationPackage,
+        JsValue,
+    > {
+        certify_worker_phase7_test_requirements().map_err(JsValue::from)
+    }
+
     pub(super) fn latest_observation_for_test(
         &self,
     ) -> Result<

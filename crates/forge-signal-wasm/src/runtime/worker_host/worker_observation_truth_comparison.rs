@@ -10,7 +10,7 @@ pub(crate) fn compare_worker_observation_truth(
     compatibility_runtime: &RuntimeCore,
 ) -> Result<WorkerRuntimeObservationTruthReport, ForgeSignalJsError> {
     let worker_first_observation_digest =
-        canonical_worker_certification_digest(&worker_shell.latest_observation_summary()?)?;
+        canonical_worker_certification_digest(&worker_shell.core.latest_observation()?)?;
     let compatibility_mode_observation_digest =
         canonical_worker_certification_digest(&compatibility_runtime.latest_observation()?)?;
 

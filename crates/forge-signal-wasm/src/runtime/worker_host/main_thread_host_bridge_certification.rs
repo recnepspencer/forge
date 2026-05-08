@@ -64,10 +64,10 @@ impl WorkerMainThreadHostBridgeCertificationPackage {
             &host_effect_acknowledgement.performance,
         )?;
         let causality_digest = canonical_worker_certification_digest(&(
-            host_capability_report.causality,
-            browser_history_report.causality,
-            host_effect_request.causality,
-            host_effect_acknowledgement.causality,
+            host_capability_report.causality.clone(),
+            browser_history_report.causality.clone(),
+            host_effect_request.causality.clone(),
+            host_effect_acknowledgement.causality.clone(),
         ))?;
         let certification_digest =
             canonical_worker_certification_digest(&MainThreadHostBridgeCertificationDigestSeed {

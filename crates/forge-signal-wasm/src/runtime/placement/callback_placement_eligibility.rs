@@ -23,6 +23,7 @@ pub struct WorkerCallbackPlacementEligibilityPackage {
     pub denial_digest: String,
     pub fallback_digest: String,
     pub capability_availability_digest: String,
+    pub replay_import_compatibility_digest: String,
     pub placement_identity_digest: String,
     pub performance_digest: String,
     pub rows: Vec<WorkerCallbackPlacementEligibilityRow>,
@@ -76,6 +77,15 @@ pub(crate) fn certify_callback_placement_eligibility(
         capability_availability_digest: canonical_certification_digest(&(
             "callbackCapabilityAvailability",
             counts.unavailable_callback_count,
+            &rows,
+        ))?,
+        replay_import_compatibility_digest: canonical_certification_digest(&(
+            "callbackReplayImportCompatibility",
+            counts.worker_executable_callback_count,
+            counts.main_thread_hosted_callback_count,
+            counts.unavailable_callback_count,
+            "sameRuntimeCallbackReattachmentRequired",
+            "portableImportEmitsUnavailability",
             &rows,
         ))?,
         placement_identity_digest: canonical_certification_digest(&(

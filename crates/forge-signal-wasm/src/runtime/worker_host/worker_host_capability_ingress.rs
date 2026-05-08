@@ -95,7 +95,7 @@ impl WorkerHostCapabilityIngressReport {
 
         Ok(Self {
             envelope_family: "hostCapabilityIngress",
-            causality,
+            causality: causality.clone(),
             submitted_update_count,
             submitted_admitted_update_count: submitted_artifact_counts.admitted_update_count,
             submitted_stale_update_count: submitted_artifact_counts.stale_update_count,

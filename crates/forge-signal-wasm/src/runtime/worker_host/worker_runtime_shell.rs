@@ -1,30 +1,79 @@
+use std::collections::BTreeMap;
+
 use crate::boundary::errors::ForgeSignalJsError;
 use crate::recipe::model::TransactionOp;
 use crate::runtime::adapters::RuntimeDefinitionEnvelope;
 use crate::runtime::core::RuntimeCore;
 use crate::runtime::policy::RuntimePolicySpec;
-use crate::runtime::summaries::{ObservationSurfaceSummary, RuntimeAsyncLifecycleCertification};
-use forge_signal::facade::history::{RuntimeBranch, RuntimeSnapshot};
-use forge_signal::facade::runtime::ObservationHandle;
+use crate::runtime::summaries::RuntimeAsyncLifecycleCertification;
 
 use super::{
     committed_truth_digest_for_runtime, publish_definition_envelope_into_worker_runtime,
-    WorkerBranchTruthEnvelope, WorkerBrowserHistoryIngress, WorkerBrowserHistoryIngressReport,
-    WorkerCommittedTransactionEnvelope, WorkerGraphPublicationSummary, WorkerHostBoundaryCausality,
+    WorkerBrowserHistoryIngress, WorkerBrowserHistoryIngressReport,
+    WorkerCallbackCapabilityExportCertificationPackage, WorkerDefinitionEnvelopePublicationReport,
+    WorkerDiagnosticsSummaryReadPacket, WorkerGraphPublicationSummary, WorkerHostBoundaryCausality,
     WorkerHostCapabilityIngressBatch, WorkerHostCapabilityIngressReport,
     WorkerHostEffectAcknowledgement, WorkerHostEffectAcknowledgementReport,
     WorkerHostEffectRequest, WorkerHostEffectRequestEnvelope,
-    WorkerMainThreadHostBridgeCertificationPackage, WorkerPortableGraphPublication,
-    WorkerRuntimeBootstrapRecord, WorkerRuntimeShellLock,
+    WorkerMainThreadHostBridgeCertificationPackage, WorkerMainThreadHostedCallbackRequestEnvelope,
+    WorkerMainThreadHostedCallbackResultReport, WorkerObservationDeliveryPacket,
+    WorkerOutputDeliveryPacket, WorkerPortableGraphPublication,
+    WorkerReplayCheckpointRetainedHistoryCertificationPackage,
+    WorkerReplayCheckpointRetainedHistoryReport, WorkerReplayRestoreCapabilityCertificationPackage,
+    WorkerReplayRestoreCapabilityReport, WorkerRuntimeBootstrapRecord,
+    WorkerRuntimeEnvelopeImportReport, WorkerRuntimeShellLock,
+};
+use super::{
+    WorkerImportExportCallbackUnavailabilityCertificationPackage, WorkerLifecycleControlPacket,
+    WorkerObservationDeliverySubscription,
 };
 
 pub struct WorkerRuntimeShell {
-    core: RuntimeCore,
-    next_host_boundary_sequence: u64,
-    latest_host_capability_report: Option<WorkerHostCapabilityIngressReport>,
-    latest_browser_history_report: Option<WorkerBrowserHistoryIngressReport>,
-    latest_host_effect_request: Option<WorkerHostEffectRequestEnvelope>,
-    latest_host_effect_acknowledgement: Option<WorkerHostEffectAcknowledgementReport>,
+    pub(in crate::runtime::worker_host) core: RuntimeCore,
+    pub(in crate::runtime::worker_host) next_host_boundary_sequence: u64,
+    pub(in crate::runtime::worker_host) latest_host_capability_report:
+        Option<WorkerHostCapabilityIngressReport>,
+    pub(in crate::runtime::worker_host) latest_browser_history_report:
+        Option<WorkerBrowserHistoryIngressReport>,
+    pub(in crate::runtime::worker_host) latest_host_effect_request:
+        Option<WorkerHostEffectRequestEnvelope>,
+    pub(in crate::runtime::worker_host) latest_host_effect_acknowledgement:
+        Option<WorkerHostEffectAcknowledgementReport>,
+    pub(in crate::runtime::worker_host) latest_main_thread_hosted_callback_request:
+        Option<WorkerMainThreadHostedCallbackRequestEnvelope>,
+    pub(in crate::runtime::worker_host) latest_main_thread_hosted_callback_report:
+        Option<WorkerMainThreadHostedCallbackResultReport>,
+    pub(in crate::runtime::worker_host) latest_worker_runtime_envelope_import_report:
+        Option<WorkerRuntimeEnvelopeImportReport>,
+    pub(in crate::runtime::worker_host) latest_worker_callback_capability_export_certification:
+        Option<WorkerCallbackCapabilityExportCertificationPackage>,
+    pub(in crate::runtime::worker_host) latest_worker_runtime_envelope_import_denial_report:
+        Option<WorkerRuntimeEnvelopeImportReport>,
+    pub(in crate::runtime::worker_host) latest_worker_runtime_envelope_import_reattachment_report:
+        Option<WorkerRuntimeEnvelopeImportReport>,
+    pub(in crate::runtime::worker_host) latest_worker_definition_publication_report:
+        Option<WorkerDefinitionEnvelopePublicationReport>,
+    pub(in crate::runtime::worker_host) latest_worker_observation_delivery_packet:
+        Option<WorkerObservationDeliveryPacket>,
+    pub(in crate::runtime::worker_host) latest_worker_output_delivery_packet:
+        Option<WorkerOutputDeliveryPacket>,
+    pub(in crate::runtime::worker_host) latest_worker_diagnostics_summary_read_packet:
+        Option<WorkerDiagnosticsSummaryReadPacket>,
+    pub(in crate::runtime::worker_host) latest_worker_lifecycle_control_packet:
+        Option<WorkerLifecycleControlPacket>,
+    pub(in crate::runtime::worker_host) latest_worker_replay_restore_capability_report:
+        Option<WorkerReplayRestoreCapabilityReport>,
+    pub(in crate::runtime::worker_host) latest_worker_replay_checkpoint_retained_history_report:
+        Option<WorkerReplayCheckpointRetainedHistoryReport>,
+    pub(in crate::runtime::worker_host) latest_worker_replay_restore_capability_certification:
+        Option<WorkerReplayRestoreCapabilityCertificationPackage>,
+    pub(in crate::runtime::worker_host) latest_worker_replay_checkpoint_retained_history_certification:
+        Option<WorkerReplayCheckpointRetainedHistoryCertificationPackage>,
+    pub(in crate::runtime::worker_host) latest_worker_import_export_callback_unavailability_certification:
+        Option<WorkerImportExportCallbackUnavailabilityCertificationPackage>,
+    pub(in crate::runtime::worker_host) next_worker_lifecycle_subscription_id: u64,
+    pub(in crate::runtime::worker_host) worker_observation_delivery_subscriptions:
+        BTreeMap<u64, WorkerObservationDeliverySubscription>,
 }
 
 impl WorkerRuntimeShell {
@@ -36,6 +85,24 @@ impl WorkerRuntimeShell {
             latest_browser_history_report: None,
             latest_host_effect_request: None,
             latest_host_effect_acknowledgement: None,
+            latest_main_thread_hosted_callback_request: None,
+            latest_main_thread_hosted_callback_report: None,
+            latest_worker_runtime_envelope_import_report: None,
+            latest_worker_callback_capability_export_certification: None,
+            latest_worker_runtime_envelope_import_denial_report: None,
+            latest_worker_runtime_envelope_import_reattachment_report: None,
+            latest_worker_definition_publication_report: None,
+            latest_worker_observation_delivery_packet: None,
+            latest_worker_output_delivery_packet: None,
+            latest_worker_diagnostics_summary_read_packet: None,
+            latest_worker_lifecycle_control_packet: None,
+            latest_worker_replay_restore_capability_report: None,
+            latest_worker_replay_checkpoint_retained_history_report: None,
+            latest_worker_replay_restore_capability_certification: None,
+            latest_worker_replay_checkpoint_retained_history_certification: None,
+            latest_worker_import_export_callback_unavailability_certification: None,
+            next_worker_lifecycle_subscription_id: 1,
+            worker_observation_delivery_subscriptions: BTreeMap::new(),
         })
     }
 
@@ -51,7 +118,11 @@ impl WorkerRuntimeShell {
         &mut self,
         publication: WorkerPortableGraphPublication,
     ) -> Result<WorkerGraphPublicationSummary, ForgeSignalJsError> {
-        self.publish_definition_envelope(publication.into_definition_envelope())
+        publication.validate_public_output_ids()?;
+        let output_ids = publication.output_ids.clone();
+        let summary = self.publish_definition_envelope(publication.into_definition_envelope())?;
+        self.core.mark_worker_public_outputs(output_ids)?;
+        Ok(summary)
     }
 
     pub fn publish_definition_envelope(
@@ -59,24 +130,8 @@ impl WorkerRuntimeShell {
         envelope: RuntimeDefinitionEnvelope,
     ) -> Result<WorkerGraphPublicationSummary, ForgeSignalJsError> {
         let summary = publish_definition_envelope_into_worker_runtime(&mut self.core, envelope)?;
-        self.clear_main_thread_host_bridge_certification_evidence();
+        self.clear_worker_boundary_certification_evidence();
         Ok(summary)
-    }
-
-    pub fn apply_committed_transaction(
-        &mut self,
-        ops: Vec<TransactionOp>,
-    ) -> Result<WorkerCommittedTransactionEnvelope, ForgeSignalJsError> {
-        let run_summary = self.core.apply_transaction(ops)?;
-        let branch = self.core.current_branch();
-        let committed_truth_digest = committed_truth_digest_for_runtime(&self.core)?;
-        let envelope = WorkerCommittedTransactionEnvelope::from_committed_worker_transaction(
-            branch.id.0,
-            committed_truth_digest,
-            run_summary,
-        );
-        self.clear_main_thread_host_bridge_certification_evidence();
-        Ok(envelope)
     }
 
     pub fn admit_host_capability_ingress(
@@ -207,25 +262,6 @@ impl WorkerRuntimeShell {
         )
     }
 
-    pub fn observe_signal_for_runtime_certification(
-        &mut self,
-        id: &str,
-    ) -> Result<ObservationHandle, ForgeSignalJsError> {
-        self.core.observe_signal_for_runtime_certification(id)
-    }
-
-    pub fn latest_observation_summary(
-        &self,
-    ) -> Result<Option<ObservationSurfaceSummary>, ForgeSignalJsError> {
-        self.core.latest_observation()
-    }
-
-    pub fn diagnostics_summary_now(
-        &self,
-    ) -> Result<forge_signal::facade::diagnostics::GraphSummary, ForgeSignalJsError> {
-        self.core.diagnostics_summary_now()
-    }
-
     pub fn certify_async_lifecycle(
         &mut self,
         id: &str,
@@ -236,73 +272,32 @@ impl WorkerRuntimeShell {
             .certify_runtime_async_lifecycle(id, payload_contract_id, payload_byte_len)
     }
 
-    pub fn create_branch(&mut self, name: String) -> Result<RuntimeBranch, ForgeSignalJsError> {
-        self.core.create_branch(name)
-    }
-
-    pub fn switch_branch(
+    pub(in crate::runtime::worker_host) fn next_host_boundary_causality(
         &mut self,
-        branch_id: u64,
-    ) -> Result<WorkerBranchTruthEnvelope, ForgeSignalJsError> {
-        self.core.switch_branch(branch_id)?;
-        self.clear_main_thread_host_bridge_certification_evidence();
-        self.branch_truth_envelope()
-    }
-
-    pub fn branch_snapshot(
-        &mut self,
-        branch_id: u64,
-    ) -> Result<RuntimeSnapshot, ForgeSignalJsError> {
-        self.core.branch_snapshot(branch_id)
-    }
-
-    pub fn restore_branch_snapshot(
-        &mut self,
-        branch_id: u64,
-        snapshot: RuntimeSnapshot,
-    ) -> Result<WorkerBranchTruthEnvelope, ForgeSignalJsError> {
-        self.core.restore_branch_snapshot(branch_id, snapshot)?;
-        self.clear_main_thread_host_bridge_certification_evidence();
-        self.branch_truth_envelope_for_branch(branch_id)
-    }
-
-    #[cfg(test)]
-    pub fn read_value(
-        &mut self,
-        id: &str,
-    ) -> Result<crate::expression::model::SignalValue, ForgeSignalJsError> {
-        self.core.read_value(id)
-    }
-
-    pub fn branch_truth_envelope(&self) -> Result<WorkerBranchTruthEnvelope, ForgeSignalJsError> {
-        let branch = self.core.current_branch();
-        self.branch_truth_envelope_for_branch(branch.id.0)
-    }
-
-    fn branch_truth_envelope_for_branch(
-        &self,
-        branch_id: u64,
-    ) -> Result<WorkerBranchTruthEnvelope, ForgeSignalJsError> {
-        let proof = self.core.branch_state_proof(branch_id)?;
-        Ok(WorkerBranchTruthEnvelope::from_worker_branch(
-            proof.branch_id,
-            proof.branch_name,
-            proof.snapshot_id,
-            proof.state_digest,
-        ))
-    }
-
-    fn next_host_boundary_causality(&mut self) -> WorkerHostBoundaryCausality {
+    ) -> WorkerHostBoundaryCausality {
         let causality = WorkerHostBoundaryCausality::new(self.next_host_boundary_sequence);
         self.next_host_boundary_sequence = self.next_host_boundary_sequence.saturating_add(1);
         causality
     }
 
-    fn clear_main_thread_host_bridge_certification_evidence(&mut self) {
+    pub(in crate::runtime::worker_host) fn clear_worker_boundary_certification_evidence(&mut self) {
         self.latest_host_capability_report = None;
         self.latest_browser_history_report = None;
         self.latest_host_effect_request = None;
         self.latest_host_effect_acknowledgement = None;
+        self.latest_main_thread_hosted_callback_request = None;
+        self.latest_main_thread_hosted_callback_report = None;
+        self.latest_worker_runtime_envelope_import_report = None;
+        self.latest_worker_callback_capability_export_certification = None;
+        self.latest_worker_runtime_envelope_import_denial_report = None;
+        self.latest_worker_runtime_envelope_import_reattachment_report = None;
+        self.latest_worker_definition_publication_report = None;
+        self.latest_worker_observation_delivery_packet = None;
+        self.latest_worker_output_delivery_packet = None;
+        self.latest_worker_diagnostics_summary_read_packet = None;
+        self.latest_worker_lifecycle_control_packet = None;
+        self.latest_worker_replay_restore_capability_report = None;
+        self.latest_worker_replay_checkpoint_retained_history_report = None;
     }
 
     fn latest_host_capability_report(

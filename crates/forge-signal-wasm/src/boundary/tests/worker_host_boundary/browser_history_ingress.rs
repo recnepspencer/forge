@@ -273,6 +273,7 @@ fn route_publication() -> WorkerPortableGraphPublication {
                 produces_aspects: None,
             },
         ],
+        output_ids: Vec::new(),
     }
 }
 

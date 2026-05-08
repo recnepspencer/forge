@@ -251,6 +251,7 @@ fn main_thread_host_bridge_publication() -> WorkerPortableGraphPublication {
                 produces_aspects: None,
             },
         ],
+        output_ids: Vec::new(),
     }
 }
 

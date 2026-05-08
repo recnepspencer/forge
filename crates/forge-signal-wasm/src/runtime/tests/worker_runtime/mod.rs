@@ -1,6 +1,15 @@
 mod boundary_contract;
 mod branch_lifecycle;
 mod compatibility;
+mod diagnostics_history_read;
 mod fixtures;
+mod import_export_callback_unavailability;
+mod lifecycle_control;
+mod observation_delivery;
+mod phase5_closeout;
+mod phase6_closeout;
+mod phase7;
 mod placement;
 mod publication;
+mod replay_checkpoint_retained_history;
+mod replay_restore_capability;

@@ -1043,8 +1043,74 @@ Phase 4 implementation evidence:
   fact rather than treating "compiled once" as worker portability. Main-thread
   hosted rows explicitly require a closed request/result lane, while unavailable
   rows emit unavailability artifacts instead of widening into fallback.
-- This slice intentionally does not implement main-thread-hosted execution or
-  import/export callback reattachment; those remain Phase 4 and Phase 6 work.
+- The second Phase 4 slice introduces the narrow main-thread-hosted callback
+  execution boundary. `SignalWorkerRuntime` can now issue a closed
+  worker-owned callback request for a declared hosted callback and readmit a
+  paired main-thread result only after the request digest, callback identity,
+  closed input frontier, and result artifact classify honestly.
+- Main-thread-hosted callback readmission mutates worker-owned callback truth
+  only for completed artifacts. Failed, denied, and unavailable artifacts emit
+  typed reports with zero runtime mutation breadth; completed artifacts reject
+  any ambient graph read outside the worker-issued closed input frontier.
+- The hosted callback result report now carries callback execution artifact,
+  closed request/result digest, runtime admitted result count, mutation breadth,
+  worker-first truth digest, boundary performance envelope, ambient graph-read
+  denial, non-authoritative host-result posture, and fallback count.
+- The third Phase 4 slice adds a hosted callback execution certification
+  package that binds placement eligibility evidence to the worker-retained
+  closed request/result boundary. The package carries placement, denial, fallback,
+  capability-availability, replay/import compatibility, placement-identity,
+  hosted-execution, and worker-first truth digests, and rejects stale evidence
+  after later worker runtime mutation.
+- The fourth Phase 4 slice adds worker-first callback capability transport
+  posture for runtime-envelope export/import. Worker exports now surface
+  callback-backed nodes as unavailable portable artifacts with host-capability
+  transport outcomes, certification binds those artifacts to placement and
+  replay/import compatibility digests, and worker runtime-envelope import emits
+  typed admitted or denied reports with zero fallback.
+- The fifth Phase 4 slice adds explicit callback reattachment admission for
+  worker runtime-envelope import. Imports with callback-unavailable artifacts
+  can now be admitted only when every required callback is reattached with a
+  live host callback registration; missing or extra reattachments are rejected,
+  admitted reports distinguish normal import from reattached import, and
+  fallback remains zero.
+- The sixth Phase 4 slice adds the matching callback reattachment lane for
+  worker definition-envelope publication. The ordinary portable publication API
+  still denies callback-backed definitions, while the explicit reattachment API
+  admits them only when every exported unavailable callback has a live callback
+  registration that preserves the exported read frontier. Publication reports
+  bind published source/recipe counts, reattached callback ids, host-capability
+  transport count, worker-first truth digest, and zero fallback into a digest.
+- The seventh Phase 4 slice hardens worker definition publication with an
+  atomic preflight boundary. Callback-free portable publication and callback
+  reattachment publication now validate duplicate ids, dependency availability,
+  keyed-family reads, callback artifact frontiers, and reattachment shape before
+  mutating worker runtime truth. Rejected publication leaves no partially
+  defined sources or callbacks, and rejected callback reattachments dispose live
+  tokens instead of leaking host registry state. QA tightened this boundary into
+  an explicit dependency publication plan so recipes can depend on reattached
+  callbacks without relying on declaration order, unplannable recipe/callback
+  dependencies reject before mutation with actionable blocked-read evidence, and
+  invalid recipe read aspects reject before partial publication.
+- The eighth Phase 4 slice exposes callback reattachment batching through the
+  wasm worker facade. Runtime-envelope import and definition-envelope
+  publication now accept JS arrays of `{ callbackId, callback }` reattachments,
+  register and invoke them through one boundary lifecycle helper, dispose
+  already-registered tokens if batch parsing fails, and preserve the scalar
+  one-callback methods as convenience wrappers. Worker-host tests certify
+  multiple callback reattachments through both import and publication lanes.
+- The ninth Phase 4 slice adds a callback placement closeout certification gate.
+  `SignalWorkerRuntime` can now emit a `workerCallbackPhase4CloseoutCertification`
+  package that binds current placement digests, callback-bearing portable import
+  denial evidence, callback reattachment publication evidence, current worker
+  truth, callback counts, host-capability transport counts, and a closeout
+  digest. The package is built from worker-retained evidence only, exposes the
+  closeout gate mode and source report outcomes, and rejects missing, stale, or
+  non-callback zero-fallback evidence after later worker mutation.
+- Phase 4 intentionally does not implement arbitrary closure serialization,
+  dynamic dependency widening across the main-thread-hosted boundary, or public
+  output/observation delivery; those remain later Phase 4, Phase 5, and Phase 6
+  work.
 
 ### Phase 5: Observation, Output, Diagnostics, And History Boundary
 
@@ -1067,6 +1133,59 @@ Phase 5 gate:
 - no later phase begins until observation, output, and diagnostics reads can be
   shown to preserve one runtime story with bounded delivery breadth
 
+Implementation evidence so far:
+
+- The first Phase 5 slice adds committed observation delivery packets from the
+  worker-owned runtime. `SignalWorkerRuntime.deliverLatestObservation` emits an
+  `observationDelivery` packet carrying the committed observation summary,
+  delivery breadth counters, current worker truth digest, an observation digest,
+  and a boundary performance envelope. `certifyWorkerObservationDelivery` binds
+  the retained packet into a certification package and rejects missing or
+  cleared delivery evidence after later worker mutation.
+- The second Phase 5 slice adds committed output delivery packets. The worker
+  facade now accepts an explicit `deliverOutputs({ outputIds })` request and
+  emits an `outputDelivery` packet carrying delivered output values, delivery
+  breadth, payload byte breadth, current worker truth digest, an output digest,
+  and a boundary performance envelope. QA tightened this lane so portable graph
+  publication declares public output ids, validates those ids before mutation,
+  and delivery rejects arbitrary source or non-output ids instead of allowing
+  general runtime reads to masquerade as output delivery.
+  `certifyWorkerOutputDelivery` binds the retained packet into certification
+  evidence and rejects malformed output requests or cleared delivery evidence
+  after later worker mutation.
+- The third Phase 5 slice adds diagnostics/history read envelopes with explicit
+  cost attribution. `SignalWorkerRuntime.readDiagnosticsSummary` emits a
+  `diagnosticsHistoryRead` packet in `SummaryDiagnosticsRead` mode carrying a
+  stable diagnostics summary digest, rich-read availability digest, current
+  worker truth digest, and a boundary performance envelope whose diagnostics
+  cold-reconstruction count is zero. `readDiagnosticsHistory` is the separate
+  rich-read boundary and carries its own cold-reconstruction attribution so
+  summary reads cannot hide rich history reconstruction.
+  `certifyWorkerDiagnosticsSummaryRead` binds retained summary evidence and
+  rejects cleared or stale evidence after later worker mutation.
+- The fourth Phase 5 slice adds worker-owned lifecycle/disposal control for
+  public observation delivery. `SignalWorkerRuntime.attachObservationDelivery`
+  creates a typed `lifecycleControl` packet for a published public output and
+  keeps the runtime `ObservationHandle` inside worker authority instead of
+  exporting opaque handles to the main thread.
+  `detachObservationDelivery` emits `ObserverDetached` packets for valid
+  subscriptions and `ObserverDetachDenied` packets for unknown or stale ids
+  without mutating worker truth. Observation delivery now requires an active
+  lifecycle subscription, and observation delivery packets carry an active
+  lifecycle subscription count plus lifecycle digest that certification
+  revalidates against the current observer set, so detached observers or
+  observer-set churn cannot certify stale public delivery folklore.
+  `certifyWorkerLifecycleControl` binds retained lifecycle evidence and rejects
+  missing or stale lifecycle evidence after later worker mutation.
+- The fifth Phase 5 slice adds closeout certification for the public delivery
+  boundary. `SignalWorkerRuntime.certifyWorkerPhase5Closeout` binds retained
+  observation delivery, output delivery, diagnostics summary read, current
+  worker truth, active observation lifecycle digest, delivery breadth digest,
+  and aggregate boundary-performance digest into one Phase 5 package. The
+  certification rejects missing evidence, cleared evidence after mutation,
+  lifecycle churn after delivery, detached observation lifecycle, and any
+  summary read that would report nonzero cold reconstruction.
+
 ### Phase 6: Replay, Restore, Import/Export, And Capability Parity
 
 Purpose:
@@ -1088,6 +1207,72 @@ Phase 6 gate:
 - no later phase begins until historical operations preserve capability posture
   explicitly instead of only reconstructing output values
 
+Implementation evidence so far:
+
+- The first Phase 6 slice adds same-runtime branch restore capability
+  certification. `SignalWorkerRuntime.createWorkerBranch`,
+  `switchWorkerBranch`, `workerBranchSnapshot`,
+  `restoreBranchSnapshotWithCapabilityReport`, and
+  `certifyWorkerReplayRestoreCapability` expose the worker historical branch
+  protocol through the facade. Restore reports now distinguish
+  `SameRuntimeExactRestore` from portable restore posture, bind snapshot digest,
+  replay/restore digest, restored branch truth, placement identity digest,
+  replay/import compatibility digest, lowered-plan identity digest, capability
+  availability digest, and a zero-fallback exact-restore artifact.
+  Certification rechecks retained restore evidence against current restored
+  branch truth, current capability posture, and current lowered-plan identity,
+  rejecting missing evidence, mutation-cleared evidence, and capability churn
+  after restore.
+- The second Phase 6 slice adds import/export callback unavailability
+  certification. Worker runtime shells now retain callback-unavailability
+  export evidence, portable import denial evidence, and same-runtime
+  reattachment import evidence as one historical certification sequence.
+  `SignalWorkerRuntime.certifyWorkerImportExportCallbackUnavailability` emits a
+  Suite 13 package binding export digest, denied portable import digest,
+  honest reattachment import digest, capability reattachment digest,
+  callback-unavailability digest, host-capability transport count, and zero
+  fallback. Certification rejects missing export, missing portable denial,
+  missing reattachment import, and exports without callback-unavailability
+  artifacts so portable import cannot silently reuse stale callback-derived
+  truth as live capability.
+- The third Phase 6 slice adds checkpoint-plus-retained-history replay
+  certification for Suite 12. Worker shells now record a branch checkpoint
+  snapshot together with the retained replay suffix that occurs after the
+  checkpoint, then `SignalWorkerRuntime.recordWorkerReplayCheckpointRetainedHistory`
+  and `certifyWorkerReplayCheckpointRetainedHistory` expose the proof through
+  the facade. The package binds checkpoint digest, full replay digest, retained
+  history digest, replay/restore digest, current worker truth, capability
+  availability, replay/import compatibility, placement identity, lowered-plan
+  identity, an exact checkpoint-plus-retained-history restore artifact, and
+  zero fallback. Certification rejects missing evidence, mutation-cleared
+  evidence, branch or snapshot topology churn after evidence capture,
+  capability churn, cross-branch checkpoints, and checkpoints with no retained
+  replay history after them.
+- The fourth Phase 6 slice adds no-worker compatibility artifact
+  certification. `SignalDiagnostics.workerUnavailableCompatibilityCertification`
+  certifies the explicit `mainThreadCompatibility` deployment posture when
+  dedicated worker support is unavailable, binding compatibility truth
+  convergence, deployment posture, product-declared fallback policy,
+  concrete denial/fallback digests and callback classification counts,
+  capability availability, replay/import compatibility, placement identity,
+  historical capability posture, a `dedicatedWorkerUnavailable` incompatibility
+  artifact, and zero hidden fallback. Certification rejects non-convergent
+  compatibility truth so main-thread compatibility cannot become an unproven
+  semantic fallback.
+- The fifth Phase 6 slice adds closeout certification for the historical
+  worker boundary. Worker shells now retain the certified Phase 6 subproofs
+  produced by `certifyWorkerReplayRestoreCapability`,
+  `certifyWorkerReplayCheckpointRetainedHistory`, and
+  `certifyWorkerImportExportCallbackUnavailability`, then
+  `SignalWorkerRuntime.certifyWorkerPhase6Closeout` combines those historical
+  certificates with a freshly computed worker-unavailable compatibility package.
+  The closeout binds exact same-runtime restore, checkpoint-plus-retained
+  history, callback-unavailability export/import/reattachment, explicit
+  no-worker compatibility posture, capability parity digest, artifact digest,
+  callback transport counts, and zero fallback. It rejects missing certified
+  subproofs and weak worker-unavailable packages, which keeps Phase 6 closed on
+  certification artifacts rather than stale raw evidence.
+
 ### Phase 7: Certification, Performance Closeout, And Product Guidance
 
 Purpose:
@@ -1108,6 +1293,80 @@ Phase 7 gate:
 
 - the milestone is not closed until worker-first mode can be recommended
   without a giant footnote that "real semantics still live on the main thread"
+
+Implementation evidence so far:
+
+- The first Phase 7 slice adds a performance-contract certification catalogue.
+  `SignalDiagnostics.workerPhase7PerformanceContracts` now exposes a canonical
+  `workerPhase7PerformanceContractCertification` package that names the required
+  worker boundary counters, complexity contracts, and prohibited performance
+  failure modes from Sections 14 and 14.1. The package digests the counter
+  catalogue, contract catalogue, and failure-mode catalogue, and its validator
+  rejects missing required counters as well as vague forbidden cost bases such
+  as `totalGraphSize` or `ambientMainThreadState`. This gives the final
+  milestone closeout a machine-checkable performance vocabulary instead of
+  relying on prose-only guidance.
+- QA tightened the performance-contract catalogue by making bridge allocation
+  posture explicit and digest-bound, requiring each named complexity contract to
+  carry its required cost bases, and rejecting duplicate counters, contracts, or
+  failure-mode rows that could inflate coverage counts without increasing real
+  proof coverage.
+- The second Phase 7 slice adds test-requirements certification. `SignalDiagnostics
+  .workerPhase7TestRequirements` now emits
+  `workerPhase7TestRequirementsCertification`, mapping all 13 required proof
+  families from Section 15 to concrete runtime test files, boundary test files,
+  certification surfaces, and hostile requirements. The package also binds the
+  acceptance artifact checklist from Section 16, records all proof families as
+  `ClosedByCanonicalCertification`, and reports a zero final-closeout pending
+  count. Its validator rejects missing proof families, duplicate proof rows,
+  rows that remain pending or lack concrete test/certification surfaces, missing
+  acceptance artifacts, and duplicate acceptance artifacts.
+- The third Phase 7 slice adds product-guidance certification.
+  `SignalDiagnostics.workerPhase7ProductGuidance` now emits
+  `workerPhase7ProductGuidanceCertification`, naming worker-first runtime-owned
+  graphs as the recommended default posture and binding explicit compatibility
+  guidance for main-thread-hosted callbacks, placement denial, typed host
+  authority boundaries, and worker-unavailable compatibility mode. The package
+  forbids hidden fallback, digests the product and compatibility guidance rows,
+  and rejects missing worker-first recommendation, duplicate posture rows, vague
+  `best effort` compatibility language, empty artifacts, and any rule that
+  permits hidden fallback.
+- The fourth Phase 7 slice adds suite 0 closeout-readiness certification.
+  `SignalWorkerRuntime.certifyWorkerPhase7CloseoutReadiness` now binds current
+  Phase 5 delivery/diagnostics/lifecycle evidence, Phase 6 replay/restore/
+  import/export/worker-unavailable capability evidence, Phase 7 performance
+  contracts, Phase 7 product guidance, the test-requirements acceptance
+  artifact digest, and current worker truth into a
+  `workerPhase7CloseoutReadinessCertification` package. The package is
+  intentionally honest: it reports `Suite0TrackedPendingFinalCloseout`,
+  keeps `milestoneClosed` false while all 13 proof families remain
+  `CoveredPendingFinalCloseout`, and rejects missing Phase 5 evidence, missing
+  Phase 6 evidence, hidden bridge allocation, and weak Phase 7 proof tracking.
+  The slice also hardens runtime-envelope import/export so worker public output
+  roles travel with runtime envelopes and callback reattachment imports restore
+  those roles before committed output delivery certification. Without that,
+  historical capability evidence and public delivery evidence could not
+  coexist in one suite 0 path.
+- The final Phase 7 closeout pass promotes suite 0 from readiness to closure.
+  `SignalWorkerRuntime.certifyWorkerPhase7Closeout` emits
+  `workerPhase7CloseoutCertification`, requires the 13 proof families to be
+  `ClosedByCanonicalCertification`, requires `finalCloseoutPendingCount = 0`,
+  reports `Suite0FinalCloseoutCertified`, and sets `milestoneClosed = true`.
+  The final package top-level binds proof-family, counter-catalog, complexity-
+  contract, failure-mode, bridge-allocation-posture, acceptance-artifact,
+  worker-first truth, capability-parity, and boundary-performance digests. It
+  still rejects missing Phase 5 delivery/lifecycle evidence, missing Phase 6
+  capability evidence, hidden bridge allocation, and stale pending
+  test-requirement rows. The older readiness facade remains as a compatibility
+  alias, but the closed milestone surface is the final closeout package.
+- A final test QA pass moved the Phase 7 runtime tests under
+  `runtime/tests/worker_runtime/phase7/` and the Phase 7 boundary tests under
+  `boundary/tests/phase7/`, keeping the parent test directories below the
+  10-direct-file test-topology cap. The boundary closeout test now also asserts
+  the top-level Section 16 digest fields exposed by the final closeout package,
+  so the facade cannot silently drop proof-family, performance, allocation,
+  acceptance, truth, parity, or boundary-performance artifacts while runtime
+  tests still pass.
 
 ## 12. Must Ship
 

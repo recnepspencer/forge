@@ -10,23 +10,8 @@ pub(crate) fn publish_definition_envelope_into_worker_runtime(
 ) -> Result<WorkerGraphPublicationSummary, ForgeSignalJsError> {
     deny_callback_backed_publication_before_lowering(&envelope)?;
 
-    let mut published_source_count = 0_u64;
-    let mut published_recipe_count = 0_u64;
-
-    for family in envelope.source_families {
-        runtime.define_source_family(family)?;
-    }
-    for family in envelope.recipe_families {
-        runtime.define_keyed_recipe_family(family)?;
-    }
-    for source in envelope.sources {
-        runtime.define_source(source)?;
-        published_source_count = published_source_count.saturating_add(1);
-    }
-    for recipe in envelope.recipes {
-        runtime.define_recipe(recipe)?;
-        published_recipe_count = published_recipe_count.saturating_add(1);
-    }
+    let (published_source_count, published_recipe_count) =
+        runtime.publish_callback_free_definition_envelope(envelope)?;
 
     Ok(WorkerGraphPublicationSummary {
         published_source_count,
