@@ -3,12 +3,14 @@ import type {
   ReplaySummary,
 } from "../diagnostics.js";
 import type { ResourceLineVerificationPackage } from "./resource_verification.js";
+import type { ResourceEffectEnvelope } from "./resource_effect_envelope.js";
 import type {
   ResourceLineContinuity,
   ResourceLineFreshness,
   ResourceLineOperation,
   ResourceLineStatus,
 } from "./resource_lifecycle.js";
+import type { ResourceLineVisibleSelection } from "./resource_line_diagnostics.js";
 
 export type ResourceLineHistoryEvent =
   | "materialized"
@@ -69,6 +71,8 @@ export interface ResourceLineHistoryEntry {
     | null;
   readonly lastDeliveryPacketId: string | null;
   readonly lastDeliveryBasisId: string | null;
+  readonly lastEffect: ResourceEffectEnvelope | null;
+  readonly visibleSelection: ResourceLineVisibleSelection;
   readonly currentBasisId: string | null;
   readonly basisAdvanceCount: number;
   readonly lastBasisAdvanceFromId: string | null;
@@ -197,6 +201,39 @@ export type ResourceLineExactRestoreResult =
   | ResourceLineExactRestoreResultRestored
   | ResourceLineExactRestoreResultUnavailable;
 
+export interface ResourceLineEffectRollbackResultRolledBack {
+  readonly kind: "rolledBack";
+  readonly mode: "SameRuntimeBranchExact" | "CompactInversePatch";
+  readonly effectId: string;
+  readonly branchId: number;
+  readonly snapshotId: number;
+  readonly basisCurrentId: string | null;
+  readonly basisAdvanceCount: number;
+  readonly rollback: ResourceEffectEnvelope["optimistic"]["rollback"];
+  readonly reloadStatus: ResourceLineStatus;
+}
+
+export interface ResourceLineEffectRollbackResultUnavailable {
+  readonly kind: "unavailable";
+  readonly reason:
+    | "noEffect"
+    | "notApplicable"
+    | "rollbackUnavailable"
+    | "unsupportedByRuntime"
+    | "branchHeadUnavailable"
+    | "runtimeRejected"
+    | "restoreUnavailable";
+  readonly detail: string;
+  readonly effectId: string | null;
+  readonly basisCurrentId: string | null;
+  readonly basisAdvanceCount: number;
+  readonly rollback: ResourceEffectEnvelope["optimistic"]["rollback"] | null;
+}
+
+export type ResourceLineEffectRollbackResult =
+  | ResourceLineEffectRollbackResultRolledBack
+  | ResourceLineEffectRollbackResultUnavailable;
+
 export interface ResourceLineExactReplayResultReplayed {
   readonly kind: "replayed";
   readonly mode: "SameRuntimeSignalExact";
@@ -235,5 +272,6 @@ export interface ResourceLineHistory {
   readonly lifecycle: readonly ResourceLineHistoryEntry[];
   replayExact(): ResourceLineExactReplayResult;
   restoreExact(): ResourceLineExactRestoreResult;
+  rollbackLastEffect(): ResourceLineEffectRollbackResult;
   verificationPackage(): ResourceLineVerificationPackage;
 }

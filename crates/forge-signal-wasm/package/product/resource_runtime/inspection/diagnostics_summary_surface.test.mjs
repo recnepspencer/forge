@@ -176,6 +176,7 @@ test("resource line diagnostics summary keeps latest patch truth aligned with re
       basisCurrentId: null,
       basisAdvanceFromId: null,
       basisAdvanceToId: null,
+      effect: line.diagnostics().lastEffect,
       supersededOperation: null,
       timeoutOperation: null,
       errorMessage: null,

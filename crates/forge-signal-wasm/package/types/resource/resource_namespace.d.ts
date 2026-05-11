@@ -50,6 +50,8 @@ import type {
   ResourceValueSummaries,
 } from "./resource_reconciliation.js";
 import type { ResourceResponseFactory } from "./resource_response.js";
+import type { ResourceBranchNamespace } from "./resource_branch.js";
+import type { ResourceEffects } from "./resource_effect_profiles.js";
 
 export interface ResourceCompatibilityNamespace {
   readonly delivery: ResourceExternalDeliveryFactory;
@@ -97,7 +99,9 @@ export interface ResourceCompatibilityNamespace {
 }
 
 export interface ResourceNamespace {
+  readonly branch: ResourceBranchNamespace;
   readonly compatibility: ResourceCompatibilityNamespace;
+  readonly effects: ResourceEffects;
   readonly response: ResourceResponseFactory;
   detail<TParams, TValue>(
     declaration: ProcessingUploadDetailResourceDeclaration<TParams, TValue>,
@@ -272,6 +276,7 @@ export const resourceDownload: ResourceDownload;
 export const resourceAuth: ResourceAuth;
 export const resourceContinuation: ResourceContinuation;
 export const resourceDelivery: ResourceDeliveryFactory;
+export const resourceEffects: ResourceEffects;
 export const resourcePatch: ResourcePatchFactory;
 export const resourcePolicyProfiles: ResourcePolicyProfiles;
 export const resourceProcessingJob: ResourceProcessingJob;

@@ -9,6 +9,7 @@ function createResourceRequestDescriptor(
   continuation,
   processingJob,
   uploadTransport,
+  effects,
   sources,
 ) {
   return Object.freeze({
@@ -23,6 +24,7 @@ function createResourceRequestDescriptor(
     continuation,
     processingJob,
     uploadTransport,
+    effects,
     sources,
   });
 }

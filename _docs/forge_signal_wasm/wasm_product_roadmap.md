@@ -875,14 +875,29 @@ authority model.
 - product exposure for native branch/merge policy dimensions resource effects
   need, including merge strategy, merge base, source-only policy, conflict
   isolation, identity matcher, deletion policy, and aspect policy bindings
+- typed resource effect profiles inherited through API, scope, and route
+  settings beside request posture, with preconfigured profiles for common
+  branch-native, server-canonical, pessimistic, delivery-authoritative,
+  non-reversible, and sensitive-data postures
 - one canonical branch-native resource effect envelope for local patch,
   delivery, optimistic write, confirmation, failure, rollback, restore, merge,
   and rebase provenance
+- effect identity, idempotency, server correlation, retry-lineage, and causal
+  sequencing proof so duplicate packets, retries, confirmations, failures, and
+  replay observations cannot be confused with distinct same-locus work
 - speculative branch lifecycle as the default optimistic resource posture
+- explicit resource line visible-branch selection so committed, speculative,
+  confirmed, restored, or merged truth never lives in a package-local optimistic
+  overlay
 - typed optimistic lifecycle events for applied, committed, rolled back,
   denied, rebased, conflicted, superseded, and unavailable outcomes
+- server confirmation canonicalization for exact confirmation, transformed
+  canonical server truth, partial confirmation, failure, and drift-driven
+  merge/rebase
 - rollback through exact branch restore, inverse effect, or explicit
   optimistic-unavailable artifact
+- inverse and preimage storage posture with named breadth, privacy, and cost
+  evidence
 - rebase through native branch merge planning plus resource-locus conflict
   explanation
 - response-lens declaration and compiled-lens proof vocabulary that lowers
@@ -895,6 +910,9 @@ authority model.
   map-backed collections, multiple named collections, recursive trees, detail
   responses, and summary responses
 - diagnostics/history derived from the canonical effect envelope
+- runtime-issued proof brands for branch summaries, lowered effect plans,
+  compiled response lenses, and effect loci so object-shape forgery denies at
+  admission
 
 ### Must Preserve
 
@@ -931,9 +949,16 @@ This milestone is complete only when the wasm product surface can prove:
 
 - product history exposes the native branch/merge controls resource effects
   require
+- resource effect posture is typed, mostly preconfigured, and inherited through
+  API/scope/route settings rather than embedded in response topology
 - local patch, delivery patch, optimistic write, confirmation, failure,
   rollback, branch restore, merge, and rebase derive from one effect envelope
 - optimistic resource truth lives on signal branches by default
+- resource line visible truth derives from explicit branch selection proof
+- server confirmation can admit canonicalized server truth instead of merely
+  keeping the speculative value
+- duplicated, retried, confirmed, failed, and replayed observations converge
+  through effect identity and idempotency proof
 - response lenses lower declared topology into effect loci rather than running
   a second response patch engine
 - rollback is exact branch restore, inverse effect, or explicit unavailable
@@ -945,6 +970,8 @@ This milestone is complete only when the wasm product surface can prove:
 - JSON and advanced topology effects prove admitted local, delivery,
   optimistic, broad replacement, denial, branch restore, and merge/rebase
   posture where applicable
+- each advanced topology family closes through its own proof lane rather than a
+  single representative topology
 - diagnostics and history distinguish item-local, JSON aspect-local,
   membership-local, entity-store-local, summary-local, detail-local,
   optimistic, rollback, rebase, conflict, and broad replacement scopes

@@ -11,6 +11,7 @@ function createFamilyDefinitionRecord(
   continuation,
   processingJob,
   uploadTransport,
+  effects,
   requestTarget,
   compatibility,
 ) {
@@ -27,6 +28,7 @@ function createFamilyDefinitionRecord(
     continuation,
     processingJob,
     uploadTransport,
+    effects,
     requestTarget,
     compatibility,
   });

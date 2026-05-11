@@ -1,6 +1,10 @@
 import { recordLineHistoryEntry } from "../history/record_line_history_entry.js";
 import { createPatchedDiagnostics } from "../state/line_diagnostics_value.js";
+import { createLinePatchInverseDescriptor } from "./line_patch_inverse.js";
+import { createLocalPatchEffectEnvelope } from "../../effects/resource_effect_envelope.js";
+import { createLocalPatchEffectPlan } from "../../effects/resource_effect_plan.js";
 import { requireResourcePatch } from "../../reconciliation/resource_patch.js";
+import { assertLinePatchRecordAdmitsPatch } from "./line_patch_admission.js";
 
 import { areLineValuesSemanticallyEqual } from "../state/line_value_semantic_equality.js";
 
@@ -9,7 +13,8 @@ function executeLinePatch(materialization, patch) {
     patch,
     materialization.patch.familyKind,
   );
-  if (materialization.binding.diagnosticsSignal().pendingOperation !== null) {
+  const previousDiagnostics = materialization.binding.diagnosticsSignal();
+  if (previousDiagnostics.pendingOperation !== null) {
     throw new TypeError(
       `${materialization.patch.familyKind} resource lines do not admit patch(...) while reload is pending`,
     );
@@ -20,12 +25,24 @@ function executeLinePatch(materialization, patch) {
       `${materialization.patch.familyKind} resource lines do not admit patch(...) before visible value exists`,
     );
   }
+  assertLinePatchRecordAdmitsPatch(materialization.patch, patchValue);
+  const effectPlan = createLocalPatchEffectPlan(
+    materialization,
+    previousDiagnostics,
+    createLinePatchInverseDescriptor(materialization, patchValue, currentValue),
+  );
   const patchOutcome =
     applyPatchValue(materialization, patchValue, currentValue);
-  const diagnostics = createPatchedDiagnostics(
-    materialization.binding.diagnosticsSignal(),
+  const effectEnvelope = createLocalPatchEffectEnvelope(
+    effectPlan,
     patchValue,
     patchOutcome.diagnostics,
+  );
+  const diagnostics = createPatchedDiagnostics(
+    previousDiagnostics,
+    patchValue,
+    patchOutcome.diagnostics,
+    effectEnvelope,
   );
   materialization.binding.diagnosticsSignal.set(diagnostics);
   recordLineHistoryEntry(
@@ -45,6 +62,10 @@ function applyPatchValue(materialization, patchValue, currentValue) {
 }
 
 function applyReplacePatch(materialization, patch, currentValue) {
+  const valueChanged = !areLineValuesSemanticallyEqual(
+    patch.nextValue,
+    currentValue,
+  );
   materialization.binding.valueSignal.set(patch.nextValue);
   return Object.freeze({
     result: Object.freeze({
@@ -58,9 +79,9 @@ function applyReplacePatch(materialization, patch, currentValue) {
       itemId: null,
       aspect: null,
       summary: null,
-      valueChanged: !areLineValuesSemanticallyEqual(patch.nextValue, currentValue),
+      valueChanged,
     }),
-    valueChanged: !areLineValuesSemanticallyEqual(patch.nextValue, currentValue),
+    valueChanged,
   });
 }
 
@@ -71,6 +92,11 @@ function applySummaryPatch(materialization, patch, currentValue) {
   if (patchRecord.familyKind === "paged" && summaryPatchScope !== "pageWindow") {
     throw new TypeError(
       'paged resource lines require resourceValueSummaries.pageWindow(...) for narrow summary patch(...) admission',
+    );
+  }
+  if (patchRecord.familyKind !== "paged" && summaryPatchScope === "pageWindow") {
+    throw new TypeError(
+      `${patchRecord.familyKind} resource lines do not admit resourceValueSummaries.pageWindow(...) summary patch(...)`,
     );
   }
   if (summaryDefinitions === null || !(patch.summary in summaryDefinitions)) {
@@ -173,9 +199,12 @@ function applyItemScopedPatch(materialization, patch, currentValue) {
       );
     }
     currentItems[itemIndex] = patch.nextItem;
-    materialization.binding.valueSignal.set(
-      patchRecord.reconcile.replaceItems(currentValue, currentItems),
+    const nextValue = patchRecord.reconcile.replaceItems(
+      currentValue,
+      currentItems,
     );
+    const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
+    materialization.binding.valueSignal.set(nextValue);
     return Object.freeze({
       result: Object.freeze({
         kind: "narrowed",
@@ -188,9 +217,9 @@ function applyItemScopedPatch(materialization, patch, currentValue) {
         itemId: patch.itemId,
         aspect: null,
         summary: null,
-        valueChanged: true,
+        valueChanged,
       }),
-      valueChanged: true,
+      valueChanged,
     });
   }
   const aspectDefinitions = patchRecord.reconcile.aspects?.definitions ?? null;
@@ -203,9 +232,12 @@ function applyItemScopedPatch(materialization, patch, currentValue) {
     currentItems[itemIndex],
     patch.value,
   );
-  materialization.binding.valueSignal.set(
-    patchRecord.reconcile.replaceItems(currentValue, currentItems),
+  const nextValue = patchRecord.reconcile.replaceItems(
+    currentValue,
+    currentItems,
   );
+  const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
+  materialization.binding.valueSignal.set(nextValue);
   return Object.freeze({
     result: Object.freeze({
       kind: "narrowed",
@@ -218,9 +250,9 @@ function applyItemScopedPatch(materialization, patch, currentValue) {
       itemId: patch.itemId,
       aspect: patch.aspect,
       summary: null,
-      valueChanged: true,
+      valueChanged,
     }),
-    valueChanged: true,
+    valueChanged,
   });
 }
 

@@ -4,6 +4,8 @@ export * from "./resource/resource_reconciliation.js";
 export * from "./resource/resource_response.js";
 export * from "./resource/resource_declarations.js";
 export * from "./resource/resource_family_surfaces.js";
+export * from "./resource/resource_request_descriptor.js";
+export * from "./resource/resource_effect_envelope.js";
 export {
   type ApiFactory,
   type ApiNamespace,
@@ -37,6 +39,7 @@ export {
   resourceBinaryDescriptor,
   resourceBinaryValue,
   resourceContinuation,
+  resourceEffects,
   resourceDownload,
   resourceParamIdentity,
   resourceParams,
@@ -48,3 +51,5 @@ export {
   resourceUploadResult,
   resourceUploadTransport,
 } from "./resource/resource_namespace.js";
+export * from "./resource/resource_effect_profiles.js";
+export * from "./resource/resource_branch.js";

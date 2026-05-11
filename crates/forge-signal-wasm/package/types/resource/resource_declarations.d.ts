@@ -24,6 +24,7 @@ import type {
   ResourcePatchResult,
   ResourceValueSummaryMap,
 } from "./resource_reconciliation.js";
+import type { ResourceEffectProfile } from "./resource_effect_profiles.js";
 
 type ResourcePlainValue<TValue> =
   TValue extends ResourceProcessingResultValue | ResourceUploadResultValue
@@ -49,6 +50,9 @@ type ResourceBinaryUploadCompatibleValue<TValue> =
   | ResourceBinaryValue<ResourcePlainValue<ResourceUploadCompatibleValue<TValue>>>;
 
 type ResourceMaybePromise<TValue> = TValue | PromiseLike<TValue>;
+type ResourceEffectProfileInput<TParams> =
+  | ResourceEffectProfile
+  | ((params: TParams) => ResourceEffectProfile);
 
 export interface DetailResourceDeclaration<TParams, TValue> {
   params: DeclaredResourceParams<TParams>;
@@ -63,6 +67,7 @@ export interface DetailResourceDeclaration<TParams, TValue> {
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
   requestBody?: (params: TParams) => unknown;
+  effects?: ResourceEffectProfileInput<TParams>;
   uploadTransport?:
     | ResourceUploadTransportPosture
     | ((params: TParams) => ResourceUploadTransportPosture);
@@ -86,6 +91,7 @@ export interface ProcessingDetailResourceDeclaration<TParams, TValue> {
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
   requestBody?: (params: TParams) => unknown;
+  effects?: ResourceEffectProfileInput<TParams>;
   processingJob:
     | ResourceProcessingJobPosture
     | ((params: TParams) => ResourceProcessingJobPosture);
@@ -115,6 +121,7 @@ export interface UploadDetailResourceDeclaration<TParams, TValue> {
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
   requestBody?: (params: TParams) => unknown;
+  effects?: ResourceEffectProfileInput<TParams>;
   processingJob?:
     | ResourceProcessingJobPosture
     | ((params: TParams) => ResourceProcessingJobPosture);
@@ -144,6 +151,7 @@ export interface ProcessingUploadDetailResourceDeclaration<TParams, TValue> {
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
   requestBody?: (params: TParams) => unknown;
+  effects?: ResourceEffectProfileInput<TParams>;
   processingJob:
     | ResourceProcessingJobPosture
     | ((params: TParams) => ResourceProcessingJobPosture);
@@ -185,6 +193,7 @@ export interface CollectionResourceDeclaration<
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
   requestBody?: (params: TParams) => unknown;
+  effects?: ResourceEffectProfileInput<TParams>;
   uploadTransport?:
     | ResourceUploadTransportPosture
     | ((params: TParams) => ResourceUploadTransportPosture);
@@ -221,6 +230,7 @@ export interface ProcessingCollectionResourceDeclaration<
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
   requestBody?: (params: TParams) => unknown;
+  effects?: ResourceEffectProfileInput<TParams>;
   processingJob:
     | ResourceProcessingJobPosture
     | ((params: TParams) => ResourceProcessingJobPosture);
@@ -263,6 +273,7 @@ export interface UploadCollectionResourceDeclaration<
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
   requestBody?: (params: TParams) => unknown;
+  effects?: ResourceEffectProfileInput<TParams>;
   processingJob?:
     | ResourceProcessingJobPosture
     | ((params: TParams) => ResourceProcessingJobPosture);
@@ -305,6 +316,7 @@ export interface ProcessingUploadCollectionResourceDeclaration<
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
   requestBody?: (params: TParams) => unknown;
+  effects?: ResourceEffectProfileInput<TParams>;
   processingJob:
     | ResourceProcessingJobPosture
     | ((params: TParams) => ResourceProcessingJobPosture);

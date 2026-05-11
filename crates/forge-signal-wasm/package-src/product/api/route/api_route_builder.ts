@@ -1,43 +1,13 @@
 import { attachApiFamilyDeliveryHelpers } from "../api_family_delivery_helpers.js";
 import { attachApiFamilyPatchHelpers } from "../api_family_patch_helpers.js";
-import {
-  createApiRouteDownloadsState,
-  withApiRouteDownloads,
-} from "./api_route_download_state.js";
-import {
-  createApiRouteItemsState,
-  extendApiRouteItemsAspect,
-  extendApiRouteItemsSummary,
-  requireApiRouteItemsReconcileState,
-  requireApiRouteResponseItemsState,
-  requireApiRouteItemsState,
-} from "./api_route_items_reconcile.js";
+import { createApiRouteDownloadsState, withApiRouteDownloads } from "./api_route_download_state.js";
+import { createApiRouteItemsState, extendApiRouteItemsAspect, extendApiRouteItemsSummary, requireApiRouteItemsReconcileState, requireApiRouteResponseItemsState, requireApiRouteItemsState } from "./api_route_items_reconcile.js";
 import { mergeApiDeclaration } from "../api_request_defaults.js";
-import {
-  lowerDirectArrayRouteDeclaration,
-  lowerReadRouteDeclaration,
-  lowerRemoveRouteDeclaration,
-  lowerWriteRouteDeclaration,
-} from "./api_route_finalization.js";
-import {
-  parseApiRoutePattern,
-} from "./api_route_pattern.js";
-import {
-  createApiRouteRequestParamsState,
-  withDeclaredApiRouteRequestParams,
-} from "./api_route_request_params.js";
-import {
-  createApiRouteRequestShapeState,
-  withApiRouteBody,
-  withApiRouteHeaders,
-  withApiRouteVerb,
-} from "./api_route_request_shape_state.js";
-import {
-  createApiRouteTransferState,
-  withApiRouteMultipartUpload,
-  withApiRouteProcessing,
-  withApiRouteSignedUpload,
-} from "./api_route_transfer_state.js";
+import { lowerDirectArrayRouteDeclaration, lowerReadRouteDeclaration, lowerRemoveRouteDeclaration, lowerWriteRouteDeclaration } from "./api_route_finalization.js";
+import { parseApiRoutePattern } from "./api_route_pattern.js";
+import { createApiRouteRequestParamsState, withDeclaredApiRouteRequestParams } from "./api_route_request_params.js";
+import { createApiRouteRequestShapeState, withApiRouteBody, withApiRouteEffects, withApiRouteHeaders, withApiRouteVerb } from "./api_route_request_shape_state.js";
+import { createApiRouteTransferState, withApiRouteMultipartUpload, withApiRouteProcessing, withApiRouteSignedUpload } from "./api_route_transfer_state.js";
 import { applyApiRouteBuilderVisibility } from "./api_route_builder_visibility.js";
 
 function createApiRouteBuilder(signalNamespace, layers, route) {
@@ -137,6 +107,18 @@ function createConfiguredApiRouteBuilder(
         pattern,
         requestParamsState,
         withApiRouteHeaders(requestShapeState, pattern.route, headers),
+        directItemsState,
+        transferState,
+        downloadsState,
+      );
+    },
+    effects(effects) {
+      return createConfiguredApiRouteBuilder(
+        signalNamespace,
+        layers,
+        pattern,
+        requestParamsState,
+        withApiRouteEffects(requestShapeState, pattern.route, effects),
         directItemsState,
         transferState,
         downloadsState,

@@ -1,5 +1,6 @@
 import { createCollectionFamily } from "./families/collection_family.js";
 import { createResourceCompatibilityNamespace } from "./compatibility/resource_compatibility_namespace.js";
+import { createResourceBranchNamespace } from "./branch/resource_branch_capabilities.js";
 import { createDetailFamily } from "./families/detail_family.js";
 import { resourceDelivery } from "./delivery/resource_delivery.js";
 import { nextResourceFamilyId } from "./families/family_id_sequence.js";
@@ -13,6 +14,7 @@ import { resourcePolicyProfiles } from "./policies/resource_policy_profiles.js";
 import { resourceProcessingJob } from "./processing/resource_processing_job.js";
 import { resourceProcessingResult } from "./processing/processing_result.js";
 import { resourceResponse } from "./response/resource_response_contract.js";
+import { resourceEffects } from "./effects/resource_effect_profile.js";
 import { resourceCollectionShape } from "./reconciliation/resource_collection_shape.js";
 import { resourceItemAspects } from "./reconciliation/resource_item_aspects.js";
 import { resourcePatch } from "./reconciliation/resource_patch.js";
@@ -32,6 +34,7 @@ function createResourceNamespace(signalNamespace, rawSignals) {
       rawSignals,
       resourceLineEpoch,
     ),
+    branch: createResourceBranchNamespace(rawSignals),
     detail(declaration) {
       return createDetailFamily(
         signalNamespace,
@@ -56,6 +59,7 @@ function createResourceNamespace(signalNamespace, rawSignals) {
         declaration,
       );
     },
+    effects: resourceEffects,
     response: resourceResponse,
   });
 }
@@ -67,6 +71,7 @@ export {
   resourceAuth,
   resourceCollectionShape,
   resourceContinuation,
+  resourceEffects,
   resourceDelivery,
   resourceDownload,
   resourceItemAspects,

@@ -29,3 +29,4 @@ export {
   visibilityCapability,
   wrapSignals,
 } from "./product/signals.js";
+export { resourceEffects } from "./product/resource/facade.js";

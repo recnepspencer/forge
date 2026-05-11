@@ -1,4 +1,4 @@
-import { createSignals } from "../index.js";
+import { createSignals } from "../../../index.js";
 
 const signals = createSignals();
 const api = signals.api({});

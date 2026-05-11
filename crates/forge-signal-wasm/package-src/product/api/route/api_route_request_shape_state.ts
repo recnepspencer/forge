@@ -1,10 +1,12 @@
 import { requireResourceRequestMethod } from "../../resource/requests/resource_request_method.js";
+import { requireResourceEffectProfile } from "../../resource/effects/resource_effect_profile.js";
 
 function createApiRouteRequestShapeState() {
   return Object.freeze({
     method: undefined,
     bodyDeclared: false,
     headers: undefined,
+    effects: undefined,
   });
 }
 
@@ -51,6 +53,21 @@ function withApiRouteHeaders(state, route, headers) {
   });
 }
 
+function withApiRouteEffects(state, route, effects) {
+  if (state.effects !== undefined) {
+    throw new TypeError(
+      `api.url("${route}").effects(...) is already declared in this route lane`,
+    );
+  }
+  if (typeof effects !== "function") {
+    requireResourceEffectProfile(effects, `api.url("${route}").effects(...)`);
+  }
+  return Object.freeze({
+    ...state,
+    effects,
+  });
+}
+
 function hasAdvancedApiRouteRequestShape(state) {
   return state.method !== undefined || state.bodyDeclared;
 }
@@ -69,6 +86,7 @@ export {
   createApiRouteRequestShapeState,
   hasAdvancedApiRouteRequestShape,
   withApiRouteBody,
+  withApiRouteEffects,
   withApiRouteHeaders,
   withApiRouteVerb,
 };

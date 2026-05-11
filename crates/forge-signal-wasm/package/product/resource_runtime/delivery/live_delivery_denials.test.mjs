@@ -147,6 +147,7 @@ test("delivery invalidation is recorded as delivery provenance instead of manual
       basisCurrentId: "basis-1",
       basisAdvanceFromId: null,
       basisAdvanceToId: null,
+      effect: line.diagnostics().lastEffect,
       supersededOperation: null,
       timeoutOperation: null,
       errorMessage: null,

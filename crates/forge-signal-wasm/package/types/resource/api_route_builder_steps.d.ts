@@ -5,6 +5,7 @@ import type {
   SignedUploadTransportOptions,
   WebhookProcessingJobOptions,
 } from "./resource_postures.js";
+import type { ResourceEffectProfile } from "./resource_effect_profiles.js";
 import type {
   ApiRequestParamsShape,
   ApiRouteLineParams,
@@ -18,6 +19,7 @@ import type {
   ResourceCollectionResponse,
   ResourceResponseAspectMap,
   ResourceResponseItem,
+  ResourceResponseSummaryMap,
   ResourceResponseValue,
 } from "./resource_response.js";
 import type {
@@ -34,6 +36,7 @@ export type ApiRouteBuilderParamsStep<
   TDownloadValue,
   TDownloadsOwned extends boolean,
   THeadersOwned extends boolean,
+  TEffectsOwned extends boolean,
   TMethod extends ResourceRequestMethod | undefined,
 > = [TRequestParams] extends [undefined]
   ? ApiRouteParamsConstraint<TRoute> extends {
@@ -50,6 +53,7 @@ export type ApiRouteBuilderParamsStep<
           TDownloadValue,
           TDownloadsOwned,
           THeadersOwned,
+          TEffectsOwned,
           TMethod
         >;
       }
@@ -64,6 +68,7 @@ export type ApiRouteBuilderTransferStep<
   TDownloadValue,
   TDownloadsOwned extends boolean,
   THeadersOwned extends boolean,
+  TEffectsOwned extends boolean,
   TMethod extends ResourceRequestMethod | undefined,
 > = (TUploadKind extends "none"
   ? {
@@ -76,6 +81,7 @@ export type ApiRouteBuilderTransferStep<
         TDownloadValue,
         TDownloadsOwned,
         THeadersOwned,
+        TEffectsOwned,
         TMethod
       >;
       multipartUpload(options?: DirectMultipartUploadTransportOptions): ApiRouteBuilder<
@@ -87,6 +93,7 @@ export type ApiRouteBuilderTransferStep<
         TDownloadValue,
         TDownloadsOwned,
         THeadersOwned,
+        TEffectsOwned,
         TMethod
       >;
     }
@@ -102,6 +109,7 @@ export type ApiRouteBuilderTransferStep<
           TDownloadValue,
           TDownloadsOwned,
           THeadersOwned,
+          TEffectsOwned,
           TMethod
         >;
         processing(
@@ -116,6 +124,7 @@ export type ApiRouteBuilderTransferStep<
           TDownloadValue,
           TDownloadsOwned,
           THeadersOwned,
+          TEffectsOwned,
           TMethod
         >;
         processing(
@@ -130,6 +139,7 @@ export type ApiRouteBuilderTransferStep<
           TDownloadValue,
           TDownloadsOwned,
           THeadersOwned,
+          TEffectsOwned,
           TMethod
         >;
       }
@@ -144,6 +154,7 @@ export type ApiRouteBuilderRequestShapeStep<
   TDownloadValue,
   TDownloadsOwned extends boolean,
   THeadersOwned extends boolean,
+  TEffectsOwned extends boolean,
   TMethod extends ResourceRequestMethod | undefined,
 > = (TDownloadsOwned extends true
   ? {}
@@ -162,6 +173,7 @@ export type ApiRouteBuilderRequestShapeStep<
         TNextDownloadValue,
         true,
         THeadersOwned,
+        TEffectsOwned,
         TMethod
       >;
     }) &
@@ -181,6 +193,27 @@ export type ApiRouteBuilderRequestShapeStep<
           TDownloadValue,
           TDownloadsOwned,
           true,
+          TEffectsOwned,
+          TMethod
+        >;
+      }) &
+  (TEffectsOwned extends true
+    ? {}
+    : {
+        effects(
+          effects:
+            | ResourceEffectProfile
+            | ((params: ApiRouteLineParams<TRoute, TRequestParams, TBody>) => ResourceEffectProfile),
+        ): ApiRouteBuilder<
+          TRoute,
+          TRequestParams,
+          TProcessingKind,
+          TUploadKind,
+          TBody,
+          TDownloadValue,
+          TDownloadsOwned,
+          THeadersOwned,
+          true,
           TMethod
         >;
       }) &
@@ -195,6 +228,7 @@ export type ApiRouteBuilderRequestShapeStep<
           TDownloadValue,
           TDownloadsOwned,
           THeadersOwned,
+          TEffectsOwned,
           TMethod
         >;
       }
@@ -212,6 +246,7 @@ export type ApiRouteBuilderRequestShapeStep<
           TDownloadValue,
           TDownloadsOwned,
           THeadersOwned,
+          TEffectsOwned,
           TNextMethod
         >;
       }
@@ -226,6 +261,7 @@ export type ApiRouteBuilderItemsStep<
   TDownloadValue,
   TDownloadsOwned extends boolean,
   THeadersOwned extends boolean,
+  TEffectsOwned extends boolean,
   TMethod extends ResourceRequestMethod | undefined,
 > = {
   items<TItem>(itemIdentity: (item: TItem) => string): ApiRouteArrayItemsBuilder<
@@ -242,7 +278,7 @@ export type ApiRouteBuilderItemsStep<
     THeadersOwned,
     TMethod
   >;
-  response<TResponse extends ResourceCollectionResponse<any, any, any>>(
+  response<TResponse extends ResourceCollectionResponse<any, any, any, any>>(
     response: TResponse,
   ): Omit<ApiRouteReconcileBuilder<
     TRoute,
@@ -250,7 +286,7 @@ export type ApiRouteBuilderItemsStep<
     ResourceResponseValue<TResponse>,
     ResourceResponseItem<TResponse>,
     ResourceResponseAspectMap<TResponse>,
-    {},
+    ResourceResponseSummaryMap<TResponse>,
     "none",
     TProcessingKind,
     TUploadKind,

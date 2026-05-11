@@ -24,6 +24,7 @@ import type {
   ResourceItemAspectMap,
   ResourceValueSummaryMap,
 } from "./resource_reconciliation.js";
+import type { ResourceEffectProfile } from "./resource_effect_profiles.js";
 
 type ResourcePlainValue<TValue> =
   TValue extends ResourceProcessingResultValue | ResourceUploadResultValue
@@ -47,6 +48,9 @@ type ResourceBinaryProcessingCompatibleValue<TValue> =
 type ResourceBinaryUploadCompatibleValue<TValue> =
   | ResourceUploadCompatibleValue<TValue>
   | ResourceBinaryValue<ResourcePlainValue<ResourceUploadCompatibleValue<TValue>>>;
+type ResourceEffectProfileInput<TParams> =
+  | ResourceEffectProfile
+  | ((params: TParams) => ResourceEffectProfile);
 
 export interface PagedResourceDeclaration<
   TParams,
@@ -72,6 +76,7 @@ export interface PagedResourceDeclaration<
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
   requestBody?: (params: TParams) => unknown;
+  effects?: ResourceEffectProfileInput<TParams>;
   uploadTransport?:
     | ResourceUploadTransportPosture
     | ((params: TParams) => ResourceUploadTransportPosture);
@@ -109,6 +114,7 @@ export interface ProcessingPagedResourceDeclaration<
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
   requestBody?: (params: TParams) => unknown;
+  effects?: ResourceEffectProfileInput<TParams>;
   processingJob:
     | ResourceProcessingJobPosture
     | ((params: TParams) => ResourceProcessingJobPosture);
@@ -149,6 +155,7 @@ export interface UploadPagedResourceDeclaration<
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
   requestBody?: (params: TParams) => unknown;
+  effects?: ResourceEffectProfileInput<TParams>;
   processingJob?:
     | ResourceProcessingJobPosture
     | ((params: TParams) => ResourceProcessingJobPosture);
@@ -189,6 +196,7 @@ export interface ProcessingUploadPagedResourceDeclaration<
     | ResourceContinuationPosture
     | ((params: TParams) => ResourceContinuationPosture);
   requestBody?: (params: TParams) => unknown;
+  effects?: ResourceEffectProfileInput<TParams>;
   processingJob:
     | ResourceProcessingJobPosture
     | ((params: TParams) => ResourceProcessingJobPosture);

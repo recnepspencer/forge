@@ -61,6 +61,7 @@ test("resource request posture lowers auth and context into line request truth a
       uploadTransport: {
         kind: "none",
       },
+      effects: null,
       sources: {
         baseUrl: {
           sources: ["endpoint.baseUrl"],
@@ -101,6 +102,10 @@ test("resource request posture lowers auth and context into line request truth a
           source: "default.uploadTransport",
           overridden: false,
         },
+        effects: {
+          source: "default.effects",
+          overridden: false,
+        },
       },
     });
     assert.deepEqual(
@@ -138,6 +143,7 @@ test("resource request posture lowers auth and context into line request truth a
         uploadTransport: {
           kind: "none",
         },
+        effects: null,
         sources: {
           baseUrl: {
             sources: ["endpoint.baseUrl"],
@@ -176,6 +182,10 @@ test("resource request posture lowers auth and context into line request truth a
           },
           uploadTransport: {
             source: "default.uploadTransport",
+            overridden: false,
+          },
+          effects: {
+            source: "default.effects",
             overridden: false,
           },
         },
@@ -232,6 +242,7 @@ test("resource request posture lowers auth and context into line request truth a
       lastDeliveryScope: null,
       lastDeliveryPacketId: null,
       lastDeliveryBasisId: null,
+      lastEffect: null,
       preservedVisibleValueOnLastRejection: false,
       lastTimeoutOperation: null,
       lastErrorMessage: null,

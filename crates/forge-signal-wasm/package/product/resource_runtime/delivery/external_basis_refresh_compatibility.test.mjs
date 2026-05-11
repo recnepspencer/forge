@@ -71,6 +71,7 @@ test("external basis refresh advances basis and reloads through the same line mo
       basisCurrentId: "basis-2",
       basisAdvanceFromId: "basis-1",
       basisAdvanceToId: "basis-2",
+      effect: line.diagnostics().lastEffect,
       supersededOperation: null,
       timeoutOperation: null,
       errorMessage: null,

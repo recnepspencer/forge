@@ -7,6 +7,7 @@ import type {
   ResourceRequestContext,
   ResourceUploadTransportPosture,
 } from "./resource_postures.js";
+import type { ResourceEffectProfile } from "./resource_effect_profiles.js";
 import type { ApiRouteBuilder } from "./api_route_builder.js";
 import type { ApiRouteConstraint } from "./api_route_types.js";
 
@@ -32,6 +33,9 @@ export interface ApiScopedDefaults<
   uploadTransport?:
     | ResourceUploadTransportPosture
     | ((params: TParams) => ResourceUploadTransportPosture);
+  effects?:
+    | ResourceEffectProfile
+    | ((params: TParams) => ResourceEffectProfile);
 }
 
 export interface ApiNamespace

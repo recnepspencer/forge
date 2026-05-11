@@ -1,4 +1,4 @@
-import { createSignals, resourceProcessingResult, resourceUploadResult } from "../index.js";
+import { createSignals, resourceProcessingResult, resourceUploadResult } from "../../../index.js";
 
 const signals = createSignals();
 const api = signals.api({});

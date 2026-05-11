@@ -2,7 +2,7 @@ import {
   createSignals,
   resourceProcessingJob,
   resourceUploadTransport,
-} from "../index.js";
+} from "../../../index.js";
 
 const signals = createSignals();
 

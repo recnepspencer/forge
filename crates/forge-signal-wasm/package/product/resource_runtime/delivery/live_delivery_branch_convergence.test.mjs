@@ -95,6 +95,7 @@ test("delivery patch can supersede a pending refresh and become the authoritativ
       basisCurrentId: "basis-2",
       basisAdvanceFromId: "basis-1",
       basisAdvanceToId: "basis-2",
+      effect: line.diagnostics().lastEffect,
       supersededOperation: "refresh",
       timeoutOperation: null,
       errorMessage: null,

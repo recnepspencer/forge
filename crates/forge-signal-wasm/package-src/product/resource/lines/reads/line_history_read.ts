@@ -4,6 +4,7 @@ import {
   readHistoryRuntimeErrorDetail,
 } from "../history/line_history_availability.js";
 import { readLineBasisHistory } from "../history/line_basis_history_read.js";
+import { executeLineEffectRollback } from "../history/line_effect_rollback.js";
 import { executeLineHistoryExactReplay } from "../history/line_history_replay.js";
 import { executeLineHistoryExactRestore } from "../history/line_history_restore.js";
 import { readLineHistorySignalId } from "../history/line_history_signal_id.js";
@@ -16,7 +17,9 @@ function readLineHistory(materialization) {
     "resource line history is unavailable because readableValueSignal.id rejected explainability",
   );
   const historyAvailability = readLineHistoryAvailability(materialization);
-  const lifecycle = materialization.lifecycleHistory.entries();
+  const lifecycle = materialization.lifecycleHistory
+    .entries()
+    .map(createPublicLifecycleEntry);
   const replayRead = readHistoryArtifact(
     history,
     "replay_for",
@@ -59,6 +62,14 @@ function readLineHistory(materialization) {
     configurable: false,
     writable: false,
   });
+  Object.defineProperty(historyRead, "rollbackLastEffect", {
+    value() {
+      return executeLineEffectRollback(materialization, historyRead);
+    },
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  });
   Object.defineProperty(historyRead, "verificationPackage", {
     value() {
       return readLineVerificationPackage(materialization, historyRead);
@@ -68,6 +79,19 @@ function readLineHistory(materialization) {
     writable: false,
   });
   return Object.freeze(historyRead);
+}
+
+function createPublicLifecycleEntry(entry) {
+  const publicEntry = {
+    ...entry,
+  };
+  Object.defineProperty(publicEntry, "visibleSelection", {
+    value: entry.visibleSelection,
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  });
+  return Object.freeze(publicEntry);
 }
 
 function readHistoryArtifact(

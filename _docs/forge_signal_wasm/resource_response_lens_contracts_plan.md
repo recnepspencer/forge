@@ -33,6 +33,9 @@ The target outcome is:
   grouped lists, tuple envelopes, sparse pages, detail responses, summaries,
   and JSON-bearing items compile into effect-local loci instead of route-local
   patch folklore
+- API authors select typed resource effect profiles through API, scope, or
+  route settings, with preconfigured profiles covering the normal product
+  postures
 - every speculative or committed effect either applies through a declared
   branch/aspect/lens proof or denies before visible truth changes
 
@@ -139,6 +142,8 @@ If two semantically equivalent histories can produce:
   recorded effect proof
 - or a merge/rebase conflict that cannot name the response locus, aspect, or
   topology family that caused it
+- or a duplicated, retried, confirmed, failed, or replayed operation that cannot
+  prove whether it is the same resource effect or a distinct one
 
 then this milestone has failed.
 
@@ -148,6 +153,15 @@ then this milestone has failed.
   truth, not an optional future integration.
 - A resource effect is the canonical artifact. Patches, delivery packets,
   optimistic writes, confirmations, rollbacks, and rebases derive from it.
+- Every resource effect must carry stable effect identity, idempotency basis,
+  server correlation, and causal sequencing posture sufficient to distinguish
+  duplicate transport from distinct semantic work.
+- Effect posture is typed API/resource policy, not response topology. It is
+  inherited through API, scope, and route settings beside request posture such
+  as headers, auth, retry, continuation, transfer, and processing policy.
+- The default product lane must provide named preconfigured effect profiles for
+  common postures. Bespoke effect profiles are reserved for endpoints whose
+  semantics genuinely differ from the inherited policy.
 - Response lenses are lowering strategies from declared response topology into
   branch-native resource effect loci.
 - Every admitted effect must name its branch, basis, resource family, line,
@@ -157,6 +171,10 @@ then this milestone has failed.
   merge explanation must deny before changing visible truth.
 - Optimistic resource updates must run on speculative branches by default unless
   the declaration proves direct committed application is the intended posture.
+- Resource line visibility must be branch-explicit. A line may expose committed
+  truth, selected speculative truth, or merged/confirmed truth only through a
+  declared visible-branch selection proof; it must not maintain a package-local
+  optimistic overlay.
 - Rollback must be exact branch restore, inverse effect application, or a typed
   optimistic-unavailable denial. Route-local inverse folklore is out of spec.
 - Rebase must be merge-plan-driven. A resource effect cannot invent its own
@@ -181,6 +199,8 @@ Normative consequence:
 - any implementation that exposes only narrow local patch helpers but cannot
   express the same operation as delivery, speculation, rollback, and merge is
   below the product bar
+- any implementation that treats server success as "keep the speculative value"
+  without admitting server-canonicalized confirmation truth is out of spec
 
 ## Architectural Model
 
@@ -198,6 +218,8 @@ Normative consequence:
    - converts authored local patch, delivery packet, optimistic mutation, or
      confirmation/failure input into a lowered branch-native resource effect
      plan
+   - consumes typed effect profiles inherited from API, scope, or route settings
+      rather than asking response lenses to own effect lifecycle policy
    - resolves branch posture, basis posture, merge posture, inverse posture,
      locus, aspect/region scope, and cost before execution
 4. **Response topology lowering**
@@ -210,6 +232,49 @@ Normative consequence:
      speculative applied, committed, rolled back, denied, rebased, conflicted,
      superseded, and unavailable
    - does not own UI behavior
+
+### Typed Effect Profiles
+
+Resource effect posture must be selected through typed profile declarations.
+
+Profiles belong with API settings because they describe resource effect
+admission and lifecycle policy, not response topology:
+
+- API-level defaults for one backend or product area
+- scope-level overrides for workspace, tenant, or feature-area semantics
+- route-level overrides only when a specific endpoint has different mutation,
+  delivery, rollback, confirmation, rebase, idempotency, or preimage posture
+
+The common path should use preconfigured profiles rather than bespoke option
+bags. Expected product profiles include:
+
+- branch-native optimistic profile
+- server-canonical confirmation profile
+- pessimistic/no-optimism profile
+- delivery-authoritative profile
+- non-reversible command profile
+- sensitive-data profile with restricted preimage retention
+
+Bespoke profiles are allowed only when an endpoint needs a real semantic
+exception, such as:
+
+- non-reversible operations like email sends, payments, legal submissions, or
+  destructive commands
+- server-assigned ids, timestamps, ordering, permission fields, or summary
+  counts
+- high-conflict collaborative aspects that need stricter merge policy
+- very large, sparse, recursive, or grouped responses where preimage retention
+  would be too broad
+- sensitive values where full preimage retention or rich diagnostics would be
+  privacy-hostile
+- delivery-heavy resources whose authoritative truth arrives through server
+  packets and idempotency must bind to delivery ids
+- eventually consistent backends where confirmation means accepted-pending-
+  canonical-delivery rather than exact commit
+
+Stringly policy bags are out of spec. A profile must be a runtime-issued or
+runtime-admitted declaration whose legal combinations are typed and whose
+lowered effect posture can deny impossible combinations before route execution.
 
 The resource effect planner is therefore not:
 
@@ -228,6 +293,8 @@ Every admitted resource effect must lower into one canonical envelope family.
 
 The envelope must carry:
 
+- effect id, idempotency key, server correlation id, retry lineage, and causal
+  sequence posture where applicable
 - resource family identity and line identity
 - current branch id and intended target branch id
 - basis snapshot id, delivery basis id, or branch-state proof where applicable
@@ -250,7 +317,11 @@ The envelope must carry:
   - broad response
 - response topology family when the effect touches response-shaped value
 - affected aspects and host-declared regions where available
-- preimage, inverse descriptor, or optimistic-unavailable reason
+- preimage posture, inverse descriptor, optimistic-unavailable reason, and the
+  cost/privacy posture for any retained preimage material
+- confirmation posture, including whether server success preserves the
+  speculative value, replaces it with canonical server truth, or requires a
+  merge/rebase against committed drift
 - merge policy posture and conflict-isolation posture
 - diagnostics/history compact facts
 - performance counters for lookup, traversal, reconstruction, branch work, and
@@ -259,6 +330,86 @@ The envelope must carry:
 This envelope is the artifact from which diagnostics, history, delivery
 acknowledgment, optimistic lifecycle events, replay evidence, and verification
 packages derive.
+
+### Effect Identity And Idempotency
+
+Effect identity is part of the authority model, not transport metadata.
+
+The planner must distinguish:
+
+- one semantic effect observed through local patch, delivery retry,
+  confirmation, failure, replay, or retained history
+- a duplicate packet or retry of a previously admitted effect
+- a superseding server confirmation for a speculative effect
+- a distinct effect that happens to touch the same resource locus
+
+The effect identity proof must be available before execution and must be
+included in diagnostics/history. Transport callers may supply correlation
+material, but they must not be able to forge the runtime's admitted effect
+identity proof.
+
+### Branch Visible Truth Selection
+
+Resource lines may show committed truth or speculative truth, but the visible
+branch must be selected explicitly.
+
+The line facade must not keep an optimistic response overlay beside signal
+branches. Instead, visible resource truth must derive from:
+
+- committed branch selection
+- selected speculative branch selection
+- confirmation or merge selection after server success
+- restore or inverse-effect selection after server failure
+
+Each visible selection must expose compact diagnostics that name the selected
+branch, effect identity, speculative lifecycle state, and committed basis it is
+derived from.
+
+### Server Confirmation Canonicalization
+
+Server success is not always "the optimistic value was correct."
+
+The confirmation path must support:
+
+- exact confirmation where the speculative effect becomes committed unchanged
+- canonicalizing confirmation where the server returns changed ids, fields,
+  ordering, summaries, timestamps, or derived values
+- partial confirmation where only part of an optimistic effect is accepted
+- rejection/failure where rollback, inverse, or unavailable posture applies
+- committed-branch drift where confirmation must merge or rebase rather than
+  overwrite
+
+Confirmation is therefore a resource effect provenance, not a boolean status
+flag. It must produce or consume the same canonical envelope family as local
+patch, delivery, rollback, and rebase.
+
+### Preimage And Inverse Storage Posture
+
+Rollback proof must not accidentally become broad, expensive, or privacy-hostile.
+
+Each effect must declare one inverse posture:
+
+- exact branch snapshot restore
+- compact inverse descriptor
+- retained preimage fragment
+- digest-only preimage proof plus optimistic-unavailable rollback
+- explicit optimistic-unavailable artifact
+
+Full preimages are legal only when the effect cost/privacy envelope names their
+breadth and retention posture. JSON, recursive, normalized, and broad-response
+effects must prove why the retained inverse material is narrow enough or deny
+optimism explicitly.
+
+### Proof Boundary Enforcement
+
+Compiled branch summaries, lowered effect plans, response lens proofs, and
+effect-locus proofs must be runtime-issued authority artifacts.
+
+The TypeScript surface may make invalid construction inconvenient, but runtime
+admission must also reject forged plain objects, stale proof brands, wrong
+runtime brands, branch-mismatched proofs, and lens proofs whose source
+declaration no longer matches the admitted line. Any proof accepted only because
+its object shape looks right is out of spec.
 
 ### Response Lens Role
 
@@ -420,6 +571,15 @@ Purpose:
 This phase must ship:
 
 - sealed or branded resource effect declaration and lowered effect plan types
+- typed resource effect profile declarations with API, scope, and route
+  inheritance semantics
+- preconfigured effect profiles for branch-native optimism, server-canonical
+  confirmation, pessimistic/no-optimism, delivery-authoritative,
+  non-reversible commands, and sensitive-data posture
+- bespoke profile construction only through a typed advanced builder that can
+  reject illegal posture combinations
+- runtime-issued effect identity, idempotency, correlation, retry-lineage, and
+  causal-sequence proof types
 - effect provenance taxonomy
 - semantic locus taxonomy for item, item aspect, JSON item aspect, membership,
   entity store, summary, detail field, and broad response
@@ -432,6 +592,9 @@ This phase must ship:
 - basis posture taxonomy covering line basis, delivery basis, branch-state
   proof, snapshot proof, and optimistic preimage
 - one admission path that consumes the lowered effect plan before line mutation
+- duplicate, retry, confirmation, failure, and replay admission rules that prove
+  whether incoming work is the same effect, a superseding effect, or a distinct
+  effect
 - compact diagnostics/history facts derived from the effect envelope
 - performance counters for effect planning breadth and effect execution breadth
 
@@ -439,6 +602,27 @@ Phase 2 gate:
 
 - local patch and delivery paths must be expressible as the same resource
   effect envelope even before advanced response topology is added.
+- ordinary route declarations must inherit a typed preconfigured effect profile
+  through API settings without declaring bespoke effect posture at the response
+  topology boundary.
+
+Current implementation evidence:
+
+- typed preconfigured and custom effect profiles lower through resource
+  declarations, API defaults, scopes, and route-owned settings
+- local patch, delivery patch, delivery replace, delivery invalidate, and
+  delivery basis refresh paths now emit runtime-issued
+  `resource-effect-envelope-v1` records through diagnostics, latest-change
+  summaries, lifecycle history, and verification packages
+- effect envelopes are now derived from an internal lowered effect plan with
+  plan id, admission kind, causal sequence, retry lineage, and planning /
+  execution breadth counters; local patch and delivery paths create this plan
+  before line mutation
+- duplicate delivery packets, stale-basis packets, and denied local patches
+  preserve the previous effect envelope instead of fabricating effect evidence
+- the public declaration surface splits `ResourceEffectEnvelope` and
+  `ResourceLineDiagnostics` into focused type files so the effect proof surface
+  stays typed without growing an oversized lifecycle declaration
 
 ### Phase 3: Speculative Branch Lifecycle And Optimistic Events
 
@@ -449,6 +633,8 @@ Purpose:
 This phase must ship:
 
 - speculative branch creation, reuse, restore, disposal, and leak-denial posture
+- visible-branch selection through committed, speculative, confirmed, restored,
+  or merged branch proof rather than package-local overlays
 - optimistic application through lowered resource effect plans
 - optimistic lifecycle events:
   - applied
@@ -464,6 +650,8 @@ This phase must ship:
   effect proof is sufficient
 - explicit optimistic-unavailable artifacts when neither branch restore nor
   inverse effect is safe
+- server confirmation application for exact confirmation, canonicalized server
+  truth, partial confirmation, failure, and drift-driven merge/rebase
 - no UI execution hooks; events are typed facts for UI/framework consumers
 
 Phase 3 gate:
@@ -471,6 +659,64 @@ Phase 3 gate:
 - an optimistic item/aspect effect must be able to apply speculatively, confirm,
   rollback, and explain itself without route-local inverse code or a parallel
   optimistic cache.
+- server-confirmed visible truth must prove whether it preserved speculative
+  truth, consumed canonical server truth, or merged/rebased after committed
+  drift.
+
+Current implementation evidence:
+
+- lowered local patch plans now classify branch posture as `speculativeBranch`,
+  `committedOnly`, or `optimisticUnavailable` before line mutation
+- branch-speculative local patches carry same-runtime branch id, exact snapshot
+  id, restore mode, rollback profile, and proof breadth in the effect envelope
+  when the runtime exposes a safe exact branch restore target
+- effect envelopes now carry branch lifecycle posture that distinguishes
+  selected existing Signals branches from resource-owned disposable branches,
+  records current-branch reuse and explicit non-creation by the resource
+  runtime, marks disposal as not resource-owned where appropriate, emits
+  leak-denial facts, and exposes a
+  `branchLifecycleBreadth` counter
+- missing branch proof or missing exact restore support emits an explicit
+  `optimisticUnavailable` plan artifact instead of falling back to a route-local
+  optimistic cache, overlay, or unproved inverse
+- delivery plans are intentionally classified as `committedOnly` because they
+  represent authoritative server input rather than local speculative admission
+- the public type surface exposes the branch posture and
+  `branchProofBreadth` counter through `ResourceEffectEnvelope`, and focused
+  runtime tests cover speculative admission plus unsupported-branch and
+  missing-restore denials
+- effect envelopes now carry a canonical optimistic lifecycle fact:
+  `applied` for branch-native speculative local patches, `unavailable` for
+  unsafe speculation, and `committed` for committed-only delivery or
+  non-optimistic local profiles
+- diagnostics, line history, and verification packages inherit the optimistic
+  lifecycle fact through `lastEffect`, keeping one canonical effect artifact
+  instead of a parallel optimistic event stream
+- delivery envelopes now classify server confirmation against the previous
+  pending speculative effect as exact-locus `preservedSpeculativeTruth`,
+  `consumedCanonicalServerTruth`, or `independentServerTruth`
+- server confirmation facts include previous effect id, previous plan id,
+  branch id, snapshot id, locus-match evidence, value-change evidence where
+  canonical truth was consumed, and a `serverConfirmationBreadth` counter
+- optimistic lifecycle facts now include rollback readiness: exact branch
+  restore availability for speculative branch effects, explicit unavailable
+  rollback when neither exact restore nor inverse is safe, and committed-only
+  not-applicable facts with a `rollbackReadinessBreadth` counter
+- `history().rollbackLastEffect()` now consumes the recorded effect envelope's
+  rollback proof, restores the exact branch/snapshot target through the shared
+  line restore executor when available, and returns typed unavailable rollback
+  artifacts for missing effects or unavailable rollback proof without rewriting
+  visible truth
+- compact inverse rollback is now available for declared narrow local item,
+  item-aspect, and summary effects when captured branch snapshot restore by id
+  is unavailable; the inverse descriptor records the retained preimage breadth,
+  denies broad response replacement as non-compact, and executes through
+  `history().rollbackLastEffect()` without route-local inverse code
+- diagnostics, diagnostics summaries, lifecycle history entries, and
+  verification packages now carry a `visibleSelection` proof that names whether
+  visible resource truth is unavailable, committed, speculative, confirmed, or
+  restored, including the effect id, branch/snapshot basis, confirmation kind,
+  rollback kind, and basis id where applicable
 
 ### Phase 4: Response Topology Lowering Into Effect Loci
 
@@ -495,6 +741,35 @@ Phase 4 gate:
 
 - response lenses are closed only when they produce branch-native effect loci,
   not when they merely patch response values directly.
+
+Current implementation evidence:
+
+- `resource.response.array`, `resource.response.objectItems`, and
+  `resource.response.collection` now compile into sealed
+  `resource-response-lens-proof-v1` artifacts that name direct-array,
+  object-items, or custom-collection topology, item-field posture, admitted
+  capability rows, declared aspect names, declared summary names, and summary
+  patch scope
+- response-derived reconciliation carries the compiled lens proof into line
+  patch records without adding author-facing plumbing or allowing forged plain
+  objects through `resourceCollectionShape(...)`
+- canonical effect envelopes now lower compiled response lens proof into
+  `resource-effect-locus-proof-v1` evidence for broad-response, membership,
+  item-aspect, and response-declared summary loci, including topology source,
+  patch scope, aspect or summary name, summary patch scope, and proof breadth
+- response contracts can now declare value summaries through the same
+  `resourceValueSummaries(...)` proof surface used by raw collection
+  reconciliation, and API response families expose typed summary patch helpers
+  only when the compiled lens proof admits summary lowering
+- effect counters now distinguish response-lens proof breadth from generic
+  effect-locus proof breadth, so response-shaped APIs do not hide topology
+  compilation behind cheap-looking patch helpers
+- hostile runtime tests cover object envelope responses, direct array parity,
+  custom collection topology, paged response parity, response-declared summary
+  locus admission, page-window summary scope proof, page-window/list scope
+  denial, forged lens-proof denial, unsupported summary-locus denial, and
+  corrupt topology denial without visible value, diagnostics, or effect evidence
+  side effects
 
 ### Phase 5: JSON Item Aspect Effects
 
@@ -555,6 +830,11 @@ Phase 6 gate:
 - no topology is considered supported until local, delivery, speculative, broad
   replacement, denial, diagnostics/history, and merge/rebase posture are all
   certified.
+- Phase 6 must close topology families through separate internal closeout lanes
+  for graph connections, normalized bags, grouped collections, tuple envelopes,
+  sparse pages, maps, multiple collections, recursive trees, detail responses,
+  and summary responses. The parent phase may not close by proving only one
+  representative topology.
 
 ### Phase 7: Branch Merge Rebase And Conflict Certification
 
@@ -656,23 +936,37 @@ Purpose:
 
 What to stress:
 
+- API-level, scope-level, and route-level typed effect profile inheritance
+- preconfigured branch-native, server-canonical, pessimistic,
+  delivery-authoritative, non-reversible, and sensitive-data profiles
+- bespoke effect profile declarations for endpoints whose semantics genuinely
+  differ
 - item replacement
 - item-aspect replacement
 - summary replacement
 - broad replacement
 - equivalent local and delivered paths
+- duplicate delivery, retry, confirmation, failure, and replay observations of
+  the same semantic effect
+- distinct same-locus effects that must not collapse under idempotency
 - malformed basis and stale delivery basis
 
 What to verify:
 
+- ordinary routes inherit effect posture without response-topology-local
+  plumbing
+- illegal custom profile combinations deny before lowered effect construction
 - both paths emit the same semantic effect envelope where equivalent
+- effect identity, idempotency, server correlation, retry lineage, and causal
+  sequence posture distinguish duplicate work from distinct work
 - denials happen before line mutation
 - diagnostics/history derive from the effect envelope, not from separate local
   and delivery code paths
 
 Pass condition:
 
-- emit effect-declaration digest, lowered-effect digest, basis digest,
+- emit effect-profile digest, inherited-profile digest, effect-declaration
+  digest, effect-identity digest, lowered-effect digest, basis digest,
   diagnostics/history digest, no-side-effect digest, and execution-breadth
   envelope
 
@@ -687,10 +981,13 @@ What to stress:
 
 - optimistic apply
 - server success
+- server success with canonicalized ids, fields, ordering, timestamps, and
+  summary values
 - server failure
 - branch restore rollback
 - inverse-effect rollback
 - unavailable rollback
+- committed branch drift before confirmation
 - speculative branch disposal
 - repeated optimistic writes on one line
 
@@ -698,6 +995,10 @@ What to verify:
 
 - speculative visible truth is branch-local
 - committed truth remains unchanged until confirmation or merge
+- line visibility derives from committed/speculative/confirmed branch selection
+  proof rather than a package-local overlay
+- canonical server truth is admitted as confirmation effect truth rather than
+  silently preserving stale speculative values
 - rollback restores exact previous truth
 - no orphan speculative branch state survives disposal
 - UI lifecycle events are typed facts and do not execute UI callbacks
@@ -705,7 +1006,8 @@ What to verify:
 Pass condition:
 
 - emit committed-branch digest, speculative-branch digest, optimistic-event
-  digest, rollback digest, disposal digest, and branch-state proof digest
+  digest, visible-selection digest, confirmation-canonicalization digest,
+  rollback digest, disposal digest, and branch-state proof digest
 
 ### The Response Lens Effect Locus Test
 
@@ -784,6 +1086,8 @@ Each topology proof must stress:
 - one admitted local effect
 - one equivalent delivered effect
 - one optimistic effect when reversible
+- one canonicalized server confirmation when the topology can legally transform
+  the optimistic effect
 - one broad replacement branch history
 - one illegal topology-corrupting effect
 - one branch restore after the effect
@@ -805,6 +1109,7 @@ Each topology proof must emit:
 - local-effect digest
 - delivery-effect digest
 - optimistic-posture digest
+- confirmation-canonicalization digest or canonicalization-unavailable artifact
 - branch-restore digest
 - merge/rebase digest or merge-unavailable artifact
 - denial digest
@@ -854,6 +1159,7 @@ What to stress:
 - delivered patch
 - optimistic write
 - server success
+- server success with canonicalized truth
 - server failure
 - rollback
 - branch restore
@@ -867,6 +1173,10 @@ What to verify:
 
 - equivalent histories converge to the same committed line truth
 - speculative histories remain branch-local until admitted
+- duplicated, retried, confirmed, failed, and replayed observations of one
+  semantic effect converge through one effect identity proof
+- visible resource truth is always attributable to a committed, speculative,
+  confirmed, restored, or merged branch selection
 - diagnostics summary stays compact
 - rich history reconstructs from canonical effect envelopes
 - replay/restore/merge proofs stay aligned with resource effect proof
@@ -874,9 +1184,10 @@ What to verify:
 Pass condition:
 
 - emit family identity digest, line identity digest, branch-state digest,
-  effect-envelope digest, optimistic-lifecycle digest, rollback digest,
-  merge/rebase digest, diagnostics/history digest, replay/restore digest, and
-  boundary performance envelope
+  effect-envelope digest, effect-identity digest, visible-selection digest,
+  optimistic-lifecycle digest, confirmation-canonicalization digest, rollback
+  digest, merge/rebase digest, diagnostics/history digest, replay/restore
+  digest, and boundary performance envelope
 
 ## Acceptance Evidence
 
@@ -884,11 +1195,21 @@ This milestone is complete only when the wasm product surface can prove:
 
 - resource effects are canonical artifacts for local patch, delivery,
   optimistic write, confirmation, failure, rollback, branch restore, and rebase
+- effect posture is selected through typed API, scope, and route settings with
+  preconfigured profiles for common cases and typed bespoke construction only
+  for real endpoint-specific semantics
+- effect identity and idempotency distinguish duplicate, retried, confirmed,
+  failed, and replayed observations from distinct same-locus work
 - product history exposes the native branch/merge controls resource effects
   need, including aspect policy bindings
 - response lenses lower into branch-native effect loci rather than executing a
   parallel response patch engine
 - optimistic resource truth lives on signal branches by default
+- resource line visible truth derives from explicit branch selection proof, not
+  from a package-local optimistic overlay
+- server confirmations can preserve speculative truth, admit transformed
+  canonical server truth, partially confirm, reject, or merge/rebase after
+  committed drift
 - rollback is exact branch restore, inverse effect, or explicit unavailable
   artifact
 - rebase and conflict explanation use native branch merge plans plus
@@ -898,6 +1219,11 @@ This milestone is complete only when the wasm product surface can prove:
 - UI lifecycle behavior is exposed as typed events and never executed by the
   resource runtime
 - type denials and runtime denials agree on every public capability boundary
+- illegal effect-profile combinations deny at type or runtime admission before
+  any response topology or branch execution work is constructed
+- runtime-issued proof brands are required for branch summaries, lowered effect
+  plans, compiled response lenses, and effect loci; object-shape forgery must
+  deny at admission
 
 ## Performance And Cost Contracts
 
@@ -907,6 +1233,8 @@ Required cost posture:
 - execution consumes lowered branch/resource/lens proof, not raw declarations
 - branch work, response lookup, response reconstruction, inverse capture,
   diagnostics materialization, and merge planning each expose separate counters
+- retained preimage, compact inverse, digest-only proof, and unavailable
+  rollback postures must expose separate breadth/privacy/cost counters
 - direct entity-store and map-backed loci must prove O(1) lookup where declared
 - array, grouped, connection, sparse, recursive, and multiple-collection loci
   must name visible-item, group, page, loaded-range, descendant, or collection

@@ -1,10 +1,13 @@
 function createLinePatchRecord(familyKind, itemIdentity, reconcile) {
+  const summaryPatchScope = reconcile?.summaries?.patchScope ?? null;
   const admitsSummaryNarrowing =
     reconcile?.summaries !== null
     && reconcile?.summaries !== undefined
+    && familyKind !== "detail"
     && (
-      familyKind !== "paged"
-      || reconcile.summaries.patchScope === "pageWindow"
+      familyKind === "paged"
+        ? summaryPatchScope === "pageWindow"
+        : summaryPatchScope === "line"
     );
   const aspectNames =
     reconcile?.aspects === null || reconcile?.aspects === undefined
@@ -18,13 +21,13 @@ function createLinePatchRecord(familyKind, itemIdentity, reconcile) {
     familyKind,
     itemIdentity,
     reconcile,
+    responseLensProof: reconcile?.responseLensProof ?? null,
     broadReplace: familyKind !== "detail",
     narrowItem:
       familyKind !== "detail"
       && typeof itemIdentity === "function"
       && reconcile !== null,
-    narrowSummary:
-      familyKind !== "detail" && summaryNames.length > 0,
+    narrowSummary: summaryNames.length > 0,
     aspectNames,
     summaryNames,
   });

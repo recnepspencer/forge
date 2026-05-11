@@ -19,6 +19,8 @@ function createResourceCollectionResponseReconcile(response) {
       return nextValue;
     },
     aspects: response.aspects ?? undefined,
+    summaries: response.summaries ?? undefined,
+    responseLensProof: response.lensProof,
   });
 }
 

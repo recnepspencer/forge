@@ -10,16 +10,10 @@ import { createLinePatchRecord } from "../../lowering/line_patch_record.js";
 import { createLineReloadRecord } from "../../lowering/line_reload_record.js";
 import { requireCanonicalParamIdentity } from "../../params/param_identity_factory.js";
 import { resolveResourcePolicyProfile } from "../../policies/policy_profile_resolution.js";
-import { resolveResourceProcessingJobPosture } from "../../processing/processing_job_resolution.js";
-import { createResourceRequestDescriptor } from "../../requests/request_descriptor.js";
-import { requireResourceRequestMethod, RESOURCE_REQUEST_METHODS } from "../../requests/resource_request_method.js";
-import { resolveResourceUploadTransportPosture } from "../../uploads/upload_transport_resolution.js";
 import {
-  resolveResourceBaseUrlPosture,
-  resolveResourceAuthPosture,
-  resolveResourceContinuationPosture,
-  resolveResourceRequestContext,
-} from "../../requests/request_posture_resolution.js";
+  createRequestTargetRecord,
+  createResolvedRequestDescriptor,
+} from "./resolved_request_descriptor.js";
 import { createLineHandle } from "../../lines/line_handle.js";
 import { createPatchCapableLineHandle } from "../../lines/line_patch_capable_handle.js";
 import { createInitialLineBinding } from "../../lines/actions/initial_load_settlement.js";
@@ -31,8 +25,6 @@ import { createLineBackingRef } from "../../lines/state/line_backing_ref.js";
 import { createLineRegistryEntry } from "../../lines/state/line_registry_entry.js";
 import { createLineDeliveryState } from "../../lines/state/line_delivery_state.js";
 import { createLineRequestState } from "../../requests/line_request_state.js";
-import { readApiRouteTargetMetadata } from "../../../api/route/api_route_target_metadata.js";
-import { composeBaseUrlWithRoute } from "../../requests/base_url_resolution.js";
 
 function createMaterializedFamily(
   kind,
@@ -58,6 +50,7 @@ function createMaterializedFamily(
     declaration.continuation,
     declaration.processingJob,
     declaration.uploadTransport,
+    declaration.effects,
     createRequestTargetRecord(declaration),
     compatibility,
   );
@@ -273,108 +266,6 @@ function createConcreteMaterialization(
       rematerialize,
       resourceLineEpoch,
     );
-}
-
-function createResolvedRequestDescriptor(lineIdentity, familyRecord, params) {
-  const baseUrl = resolveResourceBaseUrlPosture(
-    familyRecord.baseUrl,
-    params,
-    familyRecord.identity.kind,
-  );
-  const auth = resolveResourceAuthPosture(
-    familyRecord.auth,
-    params,
-    familyRecord.identity.kind,
-  );
-  const context = resolveResourceRequestContext(
-    familyRecord.requestContext,
-    params,
-    familyRecord.identity.kind,
-  );
-  const continuation = resolveResourceContinuationPosture(
-    familyRecord.continuation,
-    params,
-    familyRecord.identity.kind,
-  );
-  const processingJob = resolveResourceProcessingJobPosture(
-    familyRecord.processingJob,
-    params,
-    familyRecord.identity.kind,
-  );
-  const uploadTransport = resolveResourceUploadTransportPosture(
-    familyRecord.uploadTransport,
-    params,
-    familyRecord.identity.kind,
-  );
-  const target = createResolvedRequestTarget(
-    familyRecord.requestTarget,
-    lineIdentity.canonicalParams.params,
-    baseUrl.value,
-  );
-  return createResourceRequestDescriptor(
-    lineIdentity,
-    target,
-    baseUrl.value,
-    resolveResourceRequestMethod(familyRecord),
-    resolveResourceRequestBody(familyRecord, params),
-    auth.value,
-    context.value,
-    continuation.value,
-    processingJob.value,
-    uploadTransport.value,
-    Object.freeze({
-      baseUrl: baseUrl.source,
-      auth: auth.source,
-      context: context.source,
-      continuation: continuation.source,
-      processingJob: processingJob.source,
-      uploadTransport: uploadTransport.source,
-    }),
-  );
-}
-
-function createRequestTargetRecord(declaration) {
-  const metadata = readApiRouteTargetMetadata(declaration);
-  if (metadata === null) {
-    return null;
-  }
-  return Object.freeze({
-    requestPath: metadata.requestPath,
-  });
-}
-
-function createResolvedRequestTarget(requestTarget, params, baseUrl) {
-  if (requestTarget === null) {
-    return Object.freeze({
-      baseUrl,
-      requestPath: null,
-      url: null,
-    });
-  }
-  const requestPath = requestTarget.requestPath(params);
-  return Object.freeze({
-    baseUrl,
-    requestPath,
-    url: composeBaseUrlWithRoute(baseUrl, requestPath),
-  });
-}
-
-function resolveResourceRequestMethod(familyRecord) {
-  if (familyRecord.method === undefined) {
-    return RESOURCE_REQUEST_METHODS.get;
-  }
-  return requireResourceRequestMethod(
-    familyRecord.method,
-    familyRecord.identity.kind,
-  );
-}
-
-function resolveResourceRequestBody(familyRecord, params) {
-  if (familyRecord.requestBody === undefined) {
-    return null;
-  }
-  const body = familyRecord.requestBody(params);
-  return body === undefined ? null : body;
 }
 
 function createBinding(

@@ -112,6 +112,7 @@ test("resource lines expose one canonical facade and rematerialize with stable f
       continuationKind: "none",
       processingKind: "none",
       uploadKind: "none",
+      effectsName: null,
     });
     assert.deepEqual(verificationPackage.processing, {
       kind: "ready",
@@ -145,6 +146,7 @@ test("resource lines expose one canonical facade and rematerialize with stable f
       patchCount: 0,
       deliveryCount: 0,
       basisAdvanceCount: 0,
+      lastEffect: null,
     });
     assert.deepEqual(verificationPackage.continuity, {
       continuity: "preserveVisibleValue",
@@ -209,6 +211,7 @@ test("resource lines expose one canonical facade and rematerialize with stable f
           basisCurrentId: null,
           basisAdvanceFromId: null,
           basisAdvanceToId: null,
+          effect: null,
           supersededOperation: null,
           timeoutOperation: null,
           errorMessage: null,
@@ -238,6 +241,7 @@ test("resource lines expose one canonical facade and rematerialize with stable f
       lastDeliveryScope: null,
       lastDeliveryPacketId: null,
       lastDeliveryBasisId: null,
+      lastEffect: null,
       basisCurrentId: null,
       basisAdvanceCount: 0,
       basisAdvanceFromId: null,

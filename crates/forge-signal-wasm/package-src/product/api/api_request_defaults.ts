@@ -3,6 +3,12 @@ import {
   createTaggedRequestSourceInput,
 } from "../resource/requests/request_source_metadata.js";
 import {
+  resolveHeaderObject,
+  validateBaseUrlInput,
+  validateHeadersInput,
+  validatePostureInput,
+} from "./api_layer_input_validation.js";
+import {
   composeResourceBaseUrl,
   requireResourceBaseUrl,
 } from "../resource/requests/base_url_resolution.js";
@@ -20,6 +26,9 @@ import {
 import {
   requireResourceUploadTransportPosture,
 } from "../resource/uploads/upload_transport_posture.js";
+import {
+  requireResourceEffectProfile,
+} from "../resource/effects/resource_effect_profile.js";
 
 const API_LAYER_KEYS = new Set([
   "baseUrl",
@@ -29,6 +38,7 @@ const API_LAYER_KEYS = new Set([
   "continuation",
   "processingJob",
   "uploadTransport",
+  "effects",
 ]);
 
 function normalizeApiLayer(label, options = {}) {
@@ -65,6 +75,11 @@ function normalizeApiLayer(label, options = {}) {
     options.uploadTransport,
     requireResourceUploadTransportPosture,
   );
+  validatePostureInput(
+    "effects",
+    options.effects,
+    requireResourceEffectProfile,
+  );
   return Object.freeze({
     label,
     baseUrl: options.baseUrl,
@@ -74,6 +89,7 @@ function normalizeApiLayer(label, options = {}) {
     continuation: options.continuation,
     processingJob: options.processingJob,
     uploadTransport: options.uploadTransport,
+    effects: options.effects,
   });
 }
 
@@ -114,6 +130,12 @@ function mergeApiDeclaration(layers, declaration) {
     declaration.uploadTransport,
     "uploadTransport",
     "default.uploadTransport",
+  );
+  merged.effects = mergeTaggedInput(
+    layers,
+    declaration.effects,
+    "effects",
+    "default.effects",
   );
   return merged;
 }
@@ -353,48 +375,6 @@ function resolveOptionalContext(input, params) {
 
 function resolveInputValue(input, params, field) {
   return typeof input === "function" ? input(params) : input;
-}
-
-function resolveHeaderObject(value) {
-  if (!isPlainObject(value)) {
-    throw new TypeError(
-      "signals.api(...) headers must resolve to a plain object of string values",
-    );
-  }
-  const snapshot = {};
-  for (const [name, headerValue] of Object.entries(value)) {
-    if (typeof headerValue !== "string") {
-      throw new TypeError(
-        "signals.api(...) headers must resolve to a plain object of string values",
-      );
-    }
-    snapshot[name] = headerValue;
-  }
-  return snapshot;
-}
-
-function validateHeadersInput(input) {
-  if (input === undefined || typeof input === "function") {
-    return;
-  }
-  resolveHeaderObject(input);
-}
-
-function validateBaseUrlInput(input) {
-  if (
-    input !== undefined
-    && typeof input !== "string"
-    && typeof input !== "function"
-  ) {
-    throw new TypeError("signals.api(...) baseUrl must be a string or function");
-  }
-}
-
-function validatePostureInput(name, input, validator) {
-  if (input === undefined || typeof input === "function") {
-    return;
-  }
-  validator(input, `signals.api ${name}`);
 }
 
 function freezeFieldSource(source, overridden) {

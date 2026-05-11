@@ -5,7 +5,7 @@ import {
   resourceParams,
   resourceUploadTransport,
   resourceValueSummaries,
-} from "../index.js";
+} from "../../../index.js";
 
 const signals = createSignals();
 

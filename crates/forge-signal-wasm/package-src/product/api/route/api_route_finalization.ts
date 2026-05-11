@@ -240,6 +240,14 @@ function applyOwnedRequestShape(route, declaration, requestShapeState) {
     }
     lowered.headers = requestShapeState.headers;
   }
+  if (requestShapeState.effects !== undefined) {
+    if ("effects" in declaration) {
+      throw new TypeError(
+        `api.url("${route}").effects(...) owns effects(...) in the route-first lane`,
+      );
+    }
+    lowered.effects = requestShapeState.effects;
+  }
   if (requestShapeState.method !== undefined) {
     lowered.method = requestShapeState.method;
   }

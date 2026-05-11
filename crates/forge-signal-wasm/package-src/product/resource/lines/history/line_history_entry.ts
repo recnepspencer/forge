@@ -5,7 +5,7 @@ function createLineHistoryEntry(
   diagnostics,
   overrides = {},
 ) {
-  return Object.freeze({
+  const entry = {
     sequence: 0,
     event,
     status,
@@ -34,6 +34,7 @@ function createLineHistoryEntry(
     lastDeliveryScope: diagnostics.lastDeliveryScope,
     lastDeliveryPacketId: diagnostics.lastDeliveryPacketId,
     lastDeliveryBasisId: diagnostics.lastDeliveryBasisId,
+    lastEffect: diagnostics.lastEffect,
     currentBasisId: diagnostics.basis.currentBasisId,
     basisAdvanceCount: diagnostics.basis.advanceCount,
     lastBasisAdvanceFromId: diagnostics.basis.lastAdvanceFromBasisId,
@@ -49,7 +50,14 @@ function createLineHistoryEntry(
     visibleValueVersion: diagnostics.visibleValueVersion,
     supersededOperation: null,
     ...overrides,
+  };
+  Object.defineProperty(entry, "visibleSelection", {
+    value: diagnostics.visibleSelection,
+    enumerable: true,
+    configurable: false,
+    writable: false,
   });
+  return Object.freeze(entry);
 }
 
 export { createLineHistoryEntry };

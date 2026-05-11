@@ -1,0 +1,172 @@
+import { requireResourceEffectPlan } from "./resource_effect_plan.js";
+import { createResourceEffectBranchLifecycle } from "./resource_effect_branch_lifecycle.js";
+import { createResourceEffectOptimisticLifecycle } from "./resource_effect_optimistic_lifecycle.js";
+import { lowerResponseLensProofToEffectLocus } from "../response/resource_response_lens_proof.js";
+
+const RESOURCE_EFFECT_ENVELOPE_VERSION = "resource-effect-envelope-v1";
+
+function createLocalPatchEffectEnvelope(effectPlan, patch, result) {
+  return createResourceEffectEnvelope({
+    effectPlan,
+    delivery: null,
+    patch: Object.freeze({
+      kind: patch.kind,
+      scope: result.scope,
+      itemId: result.itemId,
+      aspect: result.aspect,
+      summary: result.summary,
+      valueChanged: result.valueChanged,
+    }),
+  });
+}
+
+function createDeliveryEffectEnvelope(effectPlan, delivery) {
+  return createResourceEffectEnvelope({
+    effectPlan,
+    delivery: Object.freeze({
+      kind: delivery.deliveryKind,
+      scope: delivery.deliveryScope,
+      packetId: delivery.packetId,
+      basisId: delivery.basisId,
+      nextBasisId: delivery.nextBasisId,
+    }),
+    patch: Object.freeze({
+      kind: delivery.patchKind,
+      scope: delivery.patchScope,
+      itemId: delivery.patchedItemId,
+      aspect: delivery.patchedAspect,
+      summary: delivery.patchedSummary,
+      valueChanged: delivery.valueChanged,
+    }),
+  });
+}
+
+function createResourceEffectEnvelope(options) {
+  const effectPlan = requireResourceEffectPlan(options.effectPlan);
+  const requestDescriptor = effectPlan.requestDescriptor;
+  const lineIdentity = effectPlan.lineIdentity;
+  const patch = options.patch;
+  const locus = createEffectLocus(patch, options.delivery);
+  const locusProof = lowerResponseLensProofToEffectLocus(
+    effectPlan.responseLensProof,
+    locus,
+  );
+  return Object.freeze({
+    version: RESOURCE_EFFECT_ENVELOPE_VERSION,
+    effectId: createEffectId(effectPlan, options.delivery),
+    provenance: effectPlan.provenance,
+    idempotencyKey: effectPlan.idempotencyKey,
+    serverCorrelationId: effectPlan.serverCorrelationId,
+    plan: Object.freeze({
+      planId: effectPlan.planId,
+      admissionKind: effectPlan.admissionKind,
+      causalSequence: effectPlan.causalSequence,
+      retryLineageId: effectPlan.retryLineageId,
+      branch: effectPlan.branchPosture,
+    }),
+    family: Object.freeze({
+      kind: lineIdentity.family.kind,
+      familyId: lineIdentity.family.familyId,
+    }),
+    line: Object.freeze({
+      runtimeLineId: lineIdentity.runtimeLineId,
+      scopeId: lineIdentity.scopeId,
+      canonicalKey: lineIdentity.canonicalParams.canonicalKey,
+    }),
+    profile: createProfileDigest(requestDescriptor.effects),
+    branchLifecycle: createResourceEffectBranchLifecycle(effectPlan),
+    optimistic: createResourceEffectOptimisticLifecycle(
+      effectPlan,
+      locus,
+      patch,
+    ),
+    request: Object.freeze({
+      correlationId: requestDescriptor.context.correlationId,
+      branchId: requestDescriptor.context.branchId,
+      basisId: requestDescriptor.context.basisId,
+    }),
+    delivery: options.delivery,
+    locus,
+    locusProof,
+    patch,
+    counters: Object.freeze({
+      ...effectPlan.counters,
+    }),
+  });
+}
+
+function createProfileDigest(profile) {
+  if (profile === null) {
+    return null;
+  }
+  return Object.freeze({
+    name: profile.name,
+    optimism: profile.optimism,
+    confirmation: profile.confirmation,
+    rollback: profile.rollback,
+    rebase: profile.rebase,
+    preimage: profile.preimage,
+  });
+}
+
+function createEffectLocus(patch, delivery) {
+  if (delivery !== null) {
+    const deliveryLocus = createDeliveryOnlyEffectLocus(delivery.scope);
+    if (deliveryLocus !== null) {
+      return deliveryLocus;
+    }
+  }
+  switch (patch.scope) {
+    case "line":
+      return Object.freeze({ kind: "line" });
+    case "item":
+      return Object.freeze({ kind: "item", itemId: patch.itemId });
+    case "aspect":
+      return Object.freeze({
+        kind: "itemAspect",
+        itemId: patch.itemId,
+        aspect: patch.aspect,
+      });
+    case "summary":
+      return Object.freeze({ kind: "summary", summary: patch.summary });
+    default:
+      throw new TypeError(
+        `resource effect envelope cannot classify patch scope "${patch.scope}"`,
+      );
+  }
+}
+
+function createDeliveryOnlyEffectLocus(deliveryScope) {
+  switch (deliveryScope) {
+    case "basis":
+      return Object.freeze({ kind: "basis" });
+    case "invalidate":
+      return Object.freeze({ kind: "invalidation" });
+    case "line":
+    case "item":
+    case "aspect":
+    case "summary":
+      return null;
+    default:
+      throw new TypeError(
+        `resource effect envelope cannot classify delivery scope "${deliveryScope}"`,
+      );
+  }
+}
+
+function createEffectId(effectPlan, delivery) {
+  if (delivery !== null) {
+    return [
+      effectPlan.lineIdentity.family.familyId,
+      effectPlan.lineIdentity.canonicalParams.canonicalKey,
+      effectPlan.provenance,
+      delivery.packetId,
+    ].join(":");
+  }
+  return effectPlan.planId;
+}
+
+export {
+  createDeliveryEffectEnvelope,
+  createLocalPatchEffectEnvelope,
+};

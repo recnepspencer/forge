@@ -6,13 +6,20 @@ function readLineDiagnosticsSummary(materialization) {
   const freshness = materialization.binding.freshnessSignal();
   const visibleValue = materialization.binding.valueSignal();
   const history = readLineHistoryAvailability(materialization);
+  const current = {
+    status,
+    freshness,
+    hasVisibleValue: visibleValue !== null,
+    visibleValueVersion: diagnostics.visibleValueVersion,
+  };
+  Object.defineProperty(current, "visibleSelection", {
+    value: diagnostics.visibleSelection,
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  });
   return Object.freeze({
-    current: Object.freeze({
-      status,
-      freshness,
-      hasVisibleValue: visibleValue !== null,
-      visibleValueVersion: diagnostics.visibleValueVersion,
-    }),
+    current: Object.freeze(current),
     activity: Object.freeze({
       lastOperation: diagnostics.lastOperation,
       lastOutcome: diagnostics.lastOutcome,
@@ -47,6 +54,7 @@ function readLineDiagnosticsSummary(materialization) {
       basisCurrentId: diagnostics.basis.currentBasisId,
       basisAdvanceFromId: diagnostics.basis.lastAdvanceFromBasisId,
       basisAdvanceToId: diagnostics.basis.lastAdvanceToBasisId,
+      effect: diagnostics.lastEffect,
       supersededOperation: diagnostics.lastSupersededOperation,
       timeoutOperation: diagnostics.lastTimeoutOperation,
       errorMessage: diagnostics.lastErrorMessage,

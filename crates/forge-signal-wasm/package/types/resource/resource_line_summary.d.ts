@@ -2,6 +2,7 @@ import type {
   ResourceRequestDescriptor,
   ResourceRequestDiagnostics,
 } from "./resource_postures.js";
+import type { ResourceEffectEnvelope } from "./resource_effect_envelope.js";
 import type {
   ResourceLineDownload,
   ResourceLineDownloadDiagnostics,
@@ -13,12 +14,14 @@ import type {
 } from "./resource_lifecycle.js";
 import type { ResourcePolicyProfileName } from "./resource_postures.js";
 import type { ResourceLineHistoryAvailability } from "./resource_line_history.js";
+import type { ResourceLineVisibleSelection } from "./resource_line_diagnostics.js";
 
 export interface ResourceLineDiagnosticsCurrentSummary {
   readonly status: ResourceLineStatus;
   readonly freshness: ResourceLineFreshness;
   readonly hasVisibleValue: boolean;
   readonly visibleValueVersion: number;
+  readonly visibleSelection: ResourceLineVisibleSelection;
 }
 
 export interface ResourceLineDiagnosticsActivitySummary {
@@ -44,6 +47,7 @@ export interface ResourceLineDiagnosticsChangeCountSummary {
 
 export interface ResourceLineDiagnosticsLatestChangeSummary {
   readonly invalidationCause:
+    | "deliveryInvalidate"
     | "manualLineInvalidate"
     | "manualFamilyInvalidate"
     | "manualFamilyInvalidateAll"
@@ -73,6 +77,7 @@ export interface ResourceLineDiagnosticsLatestChangeSummary {
   readonly basisCurrentId: string | null;
   readonly basisAdvanceFromId: string | null;
   readonly basisAdvanceToId: string | null;
+  readonly effect: ResourceEffectEnvelope | null;
   readonly supersededOperation: import("./resource_lifecycle.js").ResourceLineOperation | null;
   readonly timeoutOperation: import("./resource_lifecycle.js").ResourceLineOperation | null;
   readonly errorMessage: string | null;

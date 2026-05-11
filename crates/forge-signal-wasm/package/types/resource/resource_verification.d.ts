@@ -13,6 +13,8 @@ import type {
   ResourceLineDiagnosticsCurrentSummary,
   ResourceLineDiagnosticsLatestChangeSummary,
 } from "./resource_line_summary.js";
+import type { ResourceEffectEnvelope } from "./resource_effect_envelope.js";
+import type { ResourceLineVisibleSelection } from "./resource_line_diagnostics.js";
 
 export interface ResourceLineNativeCompatibilityDigest {
   readonly kind: "native";
@@ -66,6 +68,8 @@ export interface ResourceLineVerificationLifecycleDigest {
   readonly patchCount: number;
   readonly deliveryCount: number;
   readonly basisAdvanceCount: number;
+  readonly lastEffect: ResourceEffectEnvelope | null;
+  readonly visibleSelection: ResourceLineVisibleSelection;
 }
 
 export interface ResourceLineVerificationProcessingDigest {
@@ -89,6 +93,7 @@ export interface ResourceLineVerificationContinuityDigest {
   readonly continuity: "preserveVisibleValue";
   readonly hasVisibleValue: boolean;
   readonly visibleValueVersion: number;
+  readonly visibleSelection: ResourceLineVisibleSelection;
 }
 
 export interface ResourceLineVerificationReconciliationDigest {
@@ -156,6 +161,7 @@ export interface ResourceLineVerificationDeliveryProvenanceDigest {
     | null;
   readonly lastDeliveryPacketId: string | null;
   readonly lastDeliveryBasisId: string | null;
+  readonly lastEffect: ResourceEffectEnvelope | null;
   readonly basisCurrentId: string | null;
   readonly basisAdvanceCount: number;
   readonly basisAdvanceFromId: string | null;

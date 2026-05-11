@@ -20,6 +20,7 @@ import type {
   ApiRouteCollectionDeclarationForState,
   ApiRouteCreateDeclarationForState,
   ApiRouteDetailDeclarationForState,
+  ApiRouteOwnedEffectsDeclaration,
   ApiRouteOwnedHeadersDeclaration,
   ApiRoutePagedDeclarationForState,
   ApiRouteReconcile,
@@ -36,11 +37,12 @@ interface ApiRouteBuilderBase<
   TDownloadValue = never,
   TDownloadsOwned extends boolean = false,
   THeadersOwned extends boolean = false,
+  TEffectsOwned extends boolean = false,
 > {
   detail<
     TValue,
   >(
-    declaration: ApiRouteOwnedHeadersDeclaration<
+    declaration: ApiRouteOwnedEffectsDeclaration<ApiRouteOwnedHeadersDeclaration<
       ApiRouteDetailDeclarationForState<
         TRoute,
         ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
@@ -51,7 +53,7 @@ interface ApiRouteBuilderBase<
         TBody
       >,
       THeadersOwned
-    >,
+    >, TEffectsOwned>,
   ): ApiDetailResourceFamily<
     TRoute,
     TRequestParams,
@@ -70,7 +72,7 @@ interface ApiRouteBuilderBase<
       TItem
     > | undefined = undefined,
   >(
-    declaration: ApiRouteOwnedHeadersDeclaration<
+    declaration: ApiRouteOwnedEffectsDeclaration<ApiRouteOwnedHeadersDeclaration<
       ApiRouteCollectionDeclarationForState<
         TRoute,
         TRequestParams,
@@ -83,7 +85,7 @@ interface ApiRouteBuilderBase<
         TBody
       >,
       THeadersOwned
-    >,
+    >, TEffectsOwned>,
   ): ApiCollectionResourceFamily<
     TRoute,
     TRequestParams,
@@ -104,7 +106,7 @@ interface ApiRouteBuilderBase<
       TItem
     > | undefined = undefined,
   >(
-    declaration: ApiRouteOwnedHeadersDeclaration<
+    declaration: ApiRouteOwnedEffectsDeclaration<ApiRouteOwnedHeadersDeclaration<
       ApiRoutePagedDeclarationForState<
         TRoute,
         TRequestParams,
@@ -117,7 +119,7 @@ interface ApiRouteBuilderBase<
         TBody
       >,
       THeadersOwned
-    >,
+    >, TEffectsOwned>,
   ): ApiPagedResourceFamily<
     TRoute,
     TRequestParams,
@@ -140,12 +142,13 @@ interface ApiRouteBuilderStandardFinalizers<
   TDownloadValue = never,
   TDownloadsOwned extends boolean = false,
   THeadersOwned extends boolean = false,
+  TEffectsOwned extends boolean = false,
 > {
   create<
     TValue,
     TBody,
   >(
-    declaration: ApiRouteOwnedHeadersDeclaration<
+    declaration: ApiRouteOwnedEffectsDeclaration<ApiRouteOwnedHeadersDeclaration<
       ApiRouteCreateDeclarationForState<
         TRoute,
         ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
@@ -156,7 +159,7 @@ interface ApiRouteBuilderStandardFinalizers<
         TDownloadsOwned
       >,
       THeadersOwned
-    >,
+    >, TEffectsOwned>,
   ): ApiDetailResourceFamily<
     TRoute,
     TRequestParams,
@@ -171,7 +174,7 @@ interface ApiRouteBuilderStandardFinalizers<
     TValue,
     TBody,
   >(
-    declaration: ApiRouteOwnedHeadersDeclaration<
+    declaration: ApiRouteOwnedEffectsDeclaration<ApiRouteOwnedHeadersDeclaration<
       ApiRouteCreateDeclarationForState<
         TRoute,
         ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
@@ -182,7 +185,7 @@ interface ApiRouteBuilderStandardFinalizers<
         TDownloadsOwned
       >,
       THeadersOwned
-    >,
+    >, TEffectsOwned>,
   ): ApiDetailResourceFamily<
     TRoute,
     TRequestParams,
@@ -196,7 +199,7 @@ interface ApiRouteBuilderStandardFinalizers<
   remove<
     TValue,
   >(
-    declaration: ApiRouteOwnedHeadersDeclaration<
+    declaration: ApiRouteOwnedEffectsDeclaration<ApiRouteOwnedHeadersDeclaration<
       ApiRouteDetailDeclarationForState<
         TRoute,
         ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
@@ -206,7 +209,7 @@ interface ApiRouteBuilderStandardFinalizers<
         TDownloadsOwned
       >,
       THeadersOwned
-    >,
+    >, TEffectsOwned>,
   ): ApiDetailResourceFamily<
     TRoute,
     TRequestParams,
@@ -227,6 +230,7 @@ export type ApiRouteBuilder<
   TDownloadValue = never,
   TDownloadsOwned extends boolean = false,
   THeadersOwned extends boolean = false,
+  TEffectsOwned extends boolean = false,
   TMethod extends ResourceRequestMethod | undefined = undefined,
 > = ApiRouteBuilderBase<
   TRoute,
@@ -236,7 +240,8 @@ export type ApiRouteBuilder<
   TBody,
   TDownloadValue,
   TDownloadsOwned,
-  THeadersOwned
+  THeadersOwned,
+  TEffectsOwned
 >
   & ([TBody] extends [undefined]
     ? [TMethod] extends [undefined]
@@ -247,7 +252,8 @@ export type ApiRouteBuilder<
           TUploadKind,
           TDownloadValue,
           TDownloadsOwned,
-          THeadersOwned
+          THeadersOwned,
+          TEffectsOwned
         >
       : {}
     : {})
@@ -260,6 +266,7 @@ export type ApiRouteBuilder<
     TDownloadValue,
     TDownloadsOwned,
     THeadersOwned,
+    TEffectsOwned,
     TMethod
   >
   & ApiRouteBuilderTransferStep<
@@ -271,6 +278,7 @@ export type ApiRouteBuilder<
     TDownloadValue,
     TDownloadsOwned,
     THeadersOwned,
+    TEffectsOwned,
     TMethod
   >
   & ApiRouteBuilderRequestShapeStep<
@@ -282,6 +290,7 @@ export type ApiRouteBuilder<
     TDownloadValue,
     TDownloadsOwned,
     THeadersOwned,
+    TEffectsOwned,
     TMethod
   >
   & ApiRouteBuilderItemsStep<
@@ -293,5 +302,6 @@ export type ApiRouteBuilder<
     TDownloadValue,
     TDownloadsOwned,
     THeadersOwned,
+    TEffectsOwned,
     TMethod
   >;

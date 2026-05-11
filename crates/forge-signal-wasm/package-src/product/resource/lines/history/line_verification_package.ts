@@ -5,6 +5,16 @@ import { readLineFreshness } from "../reads/line_freshness_read.js";
 import { readLineStatus } from "../reads/line_status_read.js";
 import { readLineValue } from "../reads/line_value_read.js";
 
+function freezeWithVisibleSelection(value, visibleSelection) {
+  Object.defineProperty(value, "visibleSelection", {
+    value: visibleSelection,
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  });
+  return Object.freeze(value);
+}
+
 function readLineVerificationPackage(materialization, historyRead) {
   const descriptor = materialization.lineIdentity;
   const request = materialization.requestState.readDescriptor();
@@ -35,6 +45,7 @@ function readLineVerificationPackage(materialization, historyRead) {
       continuationKind: request.continuation.kind,
       processingKind: request.processingJob.kind,
       uploadKind: request.uploadTransport.kind,
+      effectsName: request.effects?.name ?? null,
     }),
     processing: Object.freeze({
       kind: diagnostics.processing.kind,
@@ -51,7 +62,7 @@ function readLineVerificationPackage(materialization, historyRead) {
       message: diagnostics.upload.message,
       hasDescriptor: diagnostics.upload.descriptor !== null,
     }),
-    lifecycle: Object.freeze({
+    lifecycle: freezeWithVisibleSelection({
       status,
       freshness,
       lastOperation: diagnostics.lastOperation,
@@ -68,12 +79,13 @@ function readLineVerificationPackage(materialization, historyRead) {
       patchCount: diagnostics.patchCount,
       deliveryCount: diagnostics.deliveryCount,
       basisAdvanceCount: diagnostics.basis.advanceCount,
-    }),
-    continuity: Object.freeze({
+      lastEffect: diagnostics.lastEffect,
+    }, diagnostics.visibleSelection),
+    continuity: freezeWithVisibleSelection({
       continuity: diagnostics.continuity,
       hasVisibleValue: summary.current.hasVisibleValue,
       visibleValueVersion: summary.current.visibleValueVersion,
-    }),
+    }, summary.current.visibleSelection),
     reconciliation: Object.freeze({
       broadReplace: materialization.patch.broadReplace,
       narrowItem: materialization.patch.narrowItem,
@@ -126,6 +138,7 @@ function readLineVerificationPackage(materialization, historyRead) {
       lastDeliveryScope: diagnostics.lastDeliveryScope,
       lastDeliveryPacketId: diagnostics.lastDeliveryPacketId,
       lastDeliveryBasisId: diagnostics.lastDeliveryBasisId,
+      lastEffect: diagnostics.lastEffect,
       basisCurrentId: diagnostics.basis.currentBasisId,
       basisAdvanceCount: diagnostics.basis.advanceCount,
       basisAdvanceFromId: diagnostics.basis.lastAdvanceFromBasisId,

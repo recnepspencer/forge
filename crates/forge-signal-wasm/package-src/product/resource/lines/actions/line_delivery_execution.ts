@@ -1,4 +1,12 @@
 import { requireResourceDelivery } from "../../delivery/resource_delivery.js";
+import { createDeliveryEffectEnvelope } from "../../effects/resource_effect_envelope.js";
+import { createDeliveryEffectPlan } from "../../effects/resource_effect_plan.js";
+import { assertLinePatchRecordAdmitsPatch } from "./line_patch_admission.js";
+import {
+  createBasisRefreshDeliveryEffectSummary,
+  createInvalidateDeliveryEffectSummary,
+  createPatchDeliveryEffectSummary,
+} from "./line_delivery_effect_summary.js";
 import { applyPatchValue } from "./line_patch_execution.js";
 import { recordLineHistoryEntry } from "../history/record_line_history_entry.js";
 import { executeLineReload } from "./line_reload_execution.js";
@@ -44,6 +52,11 @@ function executeLineDelivery(materialization, packet) {
     );
   }
 
+  const patchValue = createPatchValueForDelivery(packetValue);
+  if (patchValue !== null) {
+    assertLinePatchRecordAdmitsPatch(materialization.patch, patchValue);
+  }
+
   const supersededOperation = materialization.lifecycle.supersedePendingReload();
   if (supersededOperation !== null) {
     recordLineHistoryEntry(
@@ -61,6 +74,17 @@ function executeLineDelivery(materialization, packet) {
     const stagedBasis = materialization.requestState.stageDescriptor(
       resolvedNextBasisId,
     );
+    const deliveryEffectSummary = createBasisRefreshDeliveryEffectSummary(
+      packetValue,
+      resolvedNextBasisId,
+      supersededOperation,
+    );
+    const effectPlan = createDeliveryEffectPlan(
+      materialization,
+      stagedBasis.descriptor,
+      materialization.binding.diagnosticsSignal(),
+      deliveryEffectSummary,
+    );
     deliveryState.remember(packetValue.packetId);
     const reloadStatus = executeLineReload(
       materialization,
@@ -69,21 +93,15 @@ function executeLineDelivery(materialization, packet) {
         fulfilledEvent: "delivered",
         requestDescriptorOverride: stagedBasis.descriptor,
         finalizeFulfilledDiagnostics(nextDiagnostics) {
+          const effectEnvelope = createDeliveryEffectEnvelope(
+            effectPlan,
+            deliveryEffectSummary,
+          );
           return createDeliveredDiagnostics(
             nextDiagnostics,
             Object.freeze({
-              deliveryKind: "basisRefresh",
-              deliveryScope: "basis",
-              packetId: packetValue.packetId,
-              basisId: packetValue.basisId,
-              nextBasisId: resolvedNextBasisId,
-              supersededOperation,
-              patchKind: null,
-              patchScope: null,
-              patchedItemId: null,
-              patchedAspect: null,
-              patchedSummary: null,
-              valueChanged: false,
+              ...deliveryEffectSummary,
+              effectEnvelope,
             }),
           );
         },
@@ -105,25 +123,31 @@ function executeLineDelivery(materialization, packet) {
   if (packetValue.kind === "invalidate") {
     const status = createFulfilledLineStatus("delivery");
     const freshness = createInvalidatedFreshness("deliveryInvalidate");
-    const diagnostics = createDeliveredDiagnostics(
-      createInvalidatedDiagnostics(
-        materialization.binding.diagnosticsSignal(),
-        "deliveryInvalidate",
-        "line",
+    const priorDiagnostics = materialization.binding.diagnosticsSignal();
+    const previousDiagnostics = createInvalidatedDiagnostics(
+      priorDiagnostics,
+      "deliveryInvalidate",
+      "line",
+    );
+    const deliveryEffectSummary = createInvalidateDeliveryEffectSummary(
+      packetValue,
+      resolvedNextBasisId,
+      supersededOperation,
+    );
+    const effectEnvelope = createDeliveryEffectEnvelope(
+      createDeliveryEffectPlan(
+        materialization,
+        materialization.requestState.readDescriptor(),
+        priorDiagnostics,
+        deliveryEffectSummary,
       ),
+      deliveryEffectSummary,
+    );
+    const diagnostics = createDeliveredDiagnostics(
+      previousDiagnostics,
       Object.freeze({
-        deliveryKind: "invalidate",
-        deliveryScope: "invalidate",
-        packetId: packetValue.packetId,
-        basisId: packetValue.basisId,
-        nextBasisId: resolvedNextBasisId,
-        supersededOperation,
-        patchKind: null,
-        patchScope: null,
-        patchedItemId: null,
-        patchedAspect: null,
-        patchedSummary: null,
-        valueChanged: false,
+        ...deliveryEffectSummary,
+        effectEnvelope,
       }),
     );
     materialization.binding.statusSignal.set(status);
@@ -139,31 +163,32 @@ function executeLineDelivery(materialization, packet) {
       supersededOperation,
     });
   } else {
-    const patchValue =
-      packetValue.kind === "replace"
-        ? Object.freeze({
-            kind: "replace",
-            nextValue: packetValue.nextValue,
-          })
-        : packetValue.patch;
+    const effectPlan = createDeliveryEffectPlan(
+      materialization,
+      materialization.requestState.readDescriptor(),
+      materialization.binding.diagnosticsSignal(),
+      packetValue,
+    );
     const patchOutcome = applyPatchValue(materialization, patchValue, currentValue);
     const status = createFulfilledLineStatus("delivery");
     const freshness = createFreshnessFromPolicy(materialization.reload.policy);
+    const previousDiagnostics = materialization.binding.diagnosticsSignal();
+    const deliveryEffectSummary = createPatchDeliveryEffectSummary(
+      packetValue,
+      patchValue,
+      patchOutcome.diagnostics,
+      resolvedNextBasisId,
+      supersededOperation,
+    );
+    const effectEnvelope = createDeliveryEffectEnvelope(
+      effectPlan,
+      deliveryEffectSummary,
+    );
     const diagnostics = createDeliveredDiagnostics(
-      materialization.binding.diagnosticsSignal(),
+      previousDiagnostics,
       Object.freeze({
-        deliveryKind: packetValue.kind,
-        deliveryScope: patchOutcome.diagnostics.scope,
-        packetId: packetValue.packetId,
-        basisId: packetValue.basisId,
-        nextBasisId: resolvedNextBasisId,
-        supersededOperation,
-        patchKind: patchValue.kind,
-        patchScope: patchOutcome.diagnostics.scope,
-        patchedItemId: patchOutcome.diagnostics.itemId,
-        patchedAspect: patchOutcome.diagnostics.aspect,
-        patchedSummary: patchOutcome.diagnostics.summary,
-        valueChanged: patchOutcome.diagnostics.valueChanged,
+        ...deliveryEffectSummary,
+        effectEnvelope,
       }),
     );
     materialization.binding.statusSignal.set(status);
@@ -188,6 +213,19 @@ function executeLineDelivery(materialization, packet) {
     "delivered",
   );
   return applied;
+}
+
+function createPatchValueForDelivery(packetValue) {
+  if (packetValue.kind === "replace") {
+    return Object.freeze({
+      kind: "replace",
+      nextValue: packetValue.nextValue,
+    });
+  }
+  if (packetValue.kind === "patch") {
+    return packetValue.patch;
+  }
+  return null;
 }
 
 export { executeLineDelivery };

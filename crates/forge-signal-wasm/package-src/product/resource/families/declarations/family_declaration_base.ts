@@ -5,6 +5,7 @@ import { requireResourceRequestContext } from "../../requests/request_context.js
 import { requireResourceRequestMethod } from "../../requests/resource_request_method.js";
 import { requireResourceProcessingJobPosture } from "../../processing/processing_job_posture.js";
 import { requireResourceUploadTransportPosture } from "../../uploads/upload_transport_posture.js";
+import { requireResourceEffectProfile } from "../../effects/resource_effect_profile.js";
 
 function requireResourceDeclarationBase(kind, declaration) {
   if (
@@ -59,6 +60,12 @@ function requireResourceDeclarationBase(kind, declaration) {
     typeof declaration.uploadTransport !== "function"
   ) {
     requireResourceUploadTransportPosture(declaration.uploadTransport, kind);
+  }
+  if (
+    declaration.effects !== undefined &&
+    typeof declaration.effects !== "function"
+  ) {
+    requireResourceEffectProfile(declaration.effects, kind);
   }
   return declaration;
 }

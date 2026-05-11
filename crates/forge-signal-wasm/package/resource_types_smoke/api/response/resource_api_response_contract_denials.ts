@@ -1,4 +1,4 @@
-import { createSignals, resourceCollectionShape } from "../index.js";
+import { createSignals, resourceCollectionShape } from "../../../index.js";
 
 const signals = createSignals();
 

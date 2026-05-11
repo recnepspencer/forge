@@ -1,4 +1,5 @@
 import type { SignalValue } from "../model.js";
+import type { ResourceResponseLensProof } from "./resource_response.js";
 
 declare const forgeSignalResourceItemAspectsBrand: unique symbol;
 declare const forgeSignalResourceCollectionShapeBrand: unique symbol;
@@ -61,6 +62,7 @@ export interface ResourceCollectionShape<
   replaceItems(value: TValue, nextItems: readonly TItem[]): TValue;
   readonly aspects: ResourceItemAspects<TItem, TAspectMap> | null;
   readonly summaries: ResourceValueSummaries<TValue, TSummaryMap, TSummaryPatchScope> | null;
+  readonly responseLensProof: ResourceResponseLensProof | null;
   readonly [forgeSignalResourceCollectionShapeBrand]: "resourceCollectionShape";
 }
 
@@ -247,83 +249,62 @@ export interface ResourcePatchFactory {
 }
 
 export interface ReplaceResourceDelivery<TValue> {
-  readonly kind: "replace";
-  readonly packetId: string;
-  readonly basisId: string | null;
-  readonly nextBasisId: string | null | undefined;
+  readonly kind: "replace"; readonly packetId: string;
+  readonly basisId: string | null; readonly nextBasisId: string | null | undefined;
   readonly nextValue: TValue;
   readonly [forgeSignalResourceDeliveryBrand]: "resourceDelivery";
 }
 
 export interface PatchResourceDelivery<
-  TValue,
-  TItem,
-  TReconcile,
+  TValue, TItem, TReconcile,
   TFamilyKind extends "collection" | "paged" = "collection",
 > {
-  readonly kind: "patch";
-  readonly packetId: string;
-  readonly basisId: string | null;
-  readonly nextBasisId: string | null | undefined;
+  readonly kind: "patch"; readonly packetId: string;
+  readonly basisId: string | null; readonly nextBasisId: string | null | undefined;
   readonly patch: ResourcePatchForReconcile<TValue, TItem, TReconcile, TFamilyKind>;
   readonly [forgeSignalResourceDeliveryBrand]: "resourceDelivery";
 }
 
 export interface InvalidateResourceDelivery {
-  readonly kind: "invalidate";
-  readonly packetId: string;
-  readonly basisId: string | null;
-  readonly nextBasisId: string | null | undefined;
+  readonly kind: "invalidate"; readonly packetId: string;
+  readonly basisId: string | null; readonly nextBasisId: string | null | undefined;
   readonly [forgeSignalResourceDeliveryBrand]: "resourceDelivery";
 }
 
 export interface ExternalReplaceResourceDelivery<TValue> {
-  readonly kind: "replace";
-  readonly packetId: string;
-  readonly basisId: string | null;
-  readonly nextBasisId: string | null | undefined;
-  readonly nextValue: TValue;
-  readonly version: "forge-resource-external-delivery-v1";
+  readonly kind: "replace"; readonly packetId: string;
+  readonly basisId: string | null; readonly nextBasisId: string | null | undefined;
+  readonly nextValue: TValue; readonly version: "forge-resource-external-delivery-v1";
   readonly contract: "basis-compat-v1";
 }
 
 export interface ExternalPatchResourceDelivery<
-  TValue,
-  TItem,
-  TReconcile,
+  TValue, TItem, TReconcile,
   TFamilyKind extends "collection" | "paged" = "collection",
 > {
-  readonly kind: "patch";
-  readonly packetId: string;
-  readonly basisId: string | null;
-  readonly nextBasisId: string | null | undefined;
+  readonly kind: "patch"; readonly packetId: string;
+  readonly basisId: string | null; readonly nextBasisId: string | null | undefined;
   readonly patch: ResourcePatchForReconcile<TValue, TItem, TReconcile, TFamilyKind>;
   readonly version: "forge-resource-external-delivery-v1";
   readonly contract: "basis-compat-v1";
 }
 
 export interface ExternalInvalidateResourceDelivery {
-  readonly kind: "invalidate";
-  readonly packetId: string;
-  readonly basisId: string | null;
-  readonly nextBasisId: string | null | undefined;
+  readonly kind: "invalidate"; readonly packetId: string;
+  readonly basisId: string | null; readonly nextBasisId: string | null | undefined;
   readonly version: "forge-resource-external-delivery-v1";
   readonly contract: "basis-compat-v1";
 }
 
 export interface ExternalBasisRefreshResourceDelivery {
-  readonly kind: "basisRefresh";
-  readonly packetId: string;
-  readonly basisId: string | null;
-  readonly nextBasisId: string;
+  readonly kind: "basisRefresh"; readonly packetId: string;
+  readonly basisId: string | null; readonly nextBasisId: string;
   readonly version: "forge-resource-external-delivery-v1";
   readonly contract: "basis-compat-v1";
 }
 
 export type ResourceDeliveryForReconcile<
-  TValue,
-  TItem,
-  TReconcile,
+  TValue, TItem, TReconcile,
   TFamilyKind extends "collection" | "paged" = "collection",
 > =
   | ReplaceResourceDelivery<TValue>
@@ -335,37 +316,26 @@ export type ResourceDeliveryForReconcile<
   | ExternalBasisRefreshResourceDelivery;
 
 export interface AppliedResourceDeliveryResult {
-  readonly kind: "applied";
-  readonly deliveryKind: "replace" | "patch" | "invalidate";
+  readonly kind: "applied"; readonly deliveryKind: "replace" | "patch" | "invalidate";
   readonly scope: "line" | "item" | "aspect" | "summary" | "invalidate";
-  readonly packetId: string;
-  readonly basisId: string | null;
+  readonly packetId: string; readonly basisId: string | null;
   readonly nextBasisId: string | null;
-  readonly supersededOperation:
-    | "initialLoad"
-    | "refresh"
-    | "revalidate"
-    | null;
+  readonly supersededOperation: "initialLoad" | "refresh" | "revalidate" | null;
 }
 
 export interface DuplicateIgnoredResourceDeliveryResult {
-  readonly kind: "duplicateIgnored";
-  readonly packetId: string;
+  readonly kind: "duplicateIgnored"; readonly packetId: string;
   readonly deliveryKind: "replace" | "patch" | "invalidate" | "basisRefresh";
 }
 
 export interface BasisRejectedResourceDeliveryResult {
-  readonly kind: "basisRejected";
-  readonly packetId: string;
-  readonly expectedBasisId: string | null;
-  readonly actualBasisId: string;
+  readonly kind: "basisRejected"; readonly packetId: string;
+  readonly expectedBasisId: string | null; readonly actualBasisId: string;
 }
 
 export interface BasisRefreshedResourceDeliveryResult {
-  readonly kind: "basisRefreshed";
-  readonly packetId: string;
-  readonly basisId: string | null;
-  readonly nextBasisId: string | null;
+  readonly kind: "basisRefreshed"; readonly packetId: string;
+  readonly basisId: string | null; readonly nextBasisId: string | null;
   readonly reloadStatus:
     | import("./resource_lifecycle.js").ResourceLinePendingStatus
     | import("./resource_lifecycle.js").ResourceLineFulfilledStatus
@@ -381,56 +351,38 @@ export type ResourceDeliveryResult =
 
 export interface ResourceDeliveryFactory {
   replace<TValue>(options: {
-    packetId: string;
-    basisId?: string | null;
-    nextBasisId?: string | null;
-    nextValue: TValue;
+    packetId: string; basisId?: string | null;
+    nextBasisId?: string | null; nextValue: TValue;
   }): ReplaceResourceDelivery<TValue>;
   patch<
-    TValue,
-    TItem,
-    TReconcile,
+    TValue, TItem, TReconcile,
     TFamilyKind extends "collection" | "paged" = "collection",
   >(options: {
-    packetId: string;
-    basisId?: string | null;
-    nextBasisId?: string | null;
+    packetId: string; basisId?: string | null; nextBasisId?: string | null;
     patch: ResourcePatchForReconcile<TValue, TItem, TReconcile, TFamilyKind>;
   }): PatchResourceDelivery<TValue, TItem, TReconcile, TFamilyKind>;
   invalidate(options: {
-    packetId: string;
-    basisId?: string | null;
-    nextBasisId?: string | null;
+    packetId: string; basisId?: string | null; nextBasisId?: string | null;
   }): InvalidateResourceDelivery;
 }
 
 export interface ResourceExternalDeliveryFactory {
   replace<TValue>(options: {
-    packetId: string;
-    basisId?: string | null;
-    nextBasisId?: string | null;
-    nextValue: TValue;
+    packetId: string; basisId?: string | null;
+    nextBasisId?: string | null; nextValue: TValue;
   }): ExternalReplaceResourceDelivery<TValue>;
   patch<
-    TValue,
-    TItem,
-    TReconcile,
+    TValue, TItem, TReconcile,
     TFamilyKind extends "collection" | "paged" = "collection",
   >(options: {
-    packetId: string;
-    basisId?: string | null;
-    nextBasisId?: string | null;
+    packetId: string; basisId?: string | null; nextBasisId?: string | null;
     patch: ResourcePatchForReconcile<TValue, TItem, TReconcile, TFamilyKind>;
   }): ExternalPatchResourceDelivery<TValue, TItem, TReconcile, TFamilyKind>;
   invalidate(options: {
-    packetId: string;
-    basisId?: string | null;
-    nextBasisId?: string | null;
+    packetId: string; basisId?: string | null; nextBasisId?: string | null;
   }): ExternalInvalidateResourceDelivery;
   basisRefresh(options: {
-    packetId: string;
-    basisId?: string | null;
-    nextBasisId: string;
+    packetId: string; basisId?: string | null; nextBasisId: string;
   }): ExternalBasisRefreshResourceDelivery;
 }
 

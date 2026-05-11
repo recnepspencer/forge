@@ -13,7 +13,6 @@ import type {
   ResourceProcessingCompletionKind,
   ResourceBinaryDescriptor,
   ResourceRequestDescriptor,
-  ResourceRequestDiagnostics,
   ResourceUploadDescriptor,
   ResourceUploadTransportKind,
 } from "./resource_postures.js";
@@ -30,6 +29,7 @@ import type {
   ResourceLineDiagnosticsSummary,
   ResourceLineSummary,
 } from "./resource_line_summary.js";
+import type { ResourceLineDiagnostics } from "./resource_line_diagnostics.js";
 
 export type ResourceLineOperation =
   | "initialLoad"
@@ -328,69 +328,6 @@ export interface ResourceLineDownloadDiagnostics {
   readonly descriptors: readonly ResourceLineDownloadDescriptorDiagnostics[];
 }
 
-export interface ResourceLineBasisDiagnostics {
-  readonly currentBasisId: string | null;
-  readonly advanceCount: number;
-  readonly lastAdvanceFromBasisId: string | null;
-  readonly lastAdvanceToBasisId: string | null;
-}
-
-export interface ResourceLineDiagnostics {
-  readonly policyProfileName: ResourcePolicyProfileName;
-  readonly continuity: "preserveVisibleValue";
-  readonly freshnessPolicy: ResourcePolicyProfileName;
-  readonly request: ResourceRequestDiagnostics;
-  readonly basis: ResourceLineBasisDiagnostics;
-  readonly processing: ResourceLineProcessing;
-  readonly upload: ResourceLineUploadDiagnostics;
-  readonly download: ResourceLineDownloadDiagnostics;
-  readonly lastOperation: ResourceLineOperation;
-  readonly lastOutcome: "fulfilled" | "rejected" | "pending" | "timedOut";
-  readonly pendingOperation: ResourceLineOperation | null;
-  readonly refreshCount: number;
-  readonly revalidateCount: number;
-  readonly retryAttemptCount: number;
-  readonly rejectionCount: number;
-  readonly timeoutCount: number;
-  readonly supersessionCount: number;
-  readonly invalidationCount: number;
-  readonly patchCount: number;
-  readonly deliveryCount: number;
-  readonly lastSupersededOperation: ResourceLineOperation | null;
-  readonly lastInvalidationCause:
-    | "deliveryInvalidate"
-    | "manualLineInvalidate"
-    | "manualFamilyInvalidate"
-    | "manualFamilyInvalidateAll"
-    | null;
-  readonly lastInvalidationScope: "line" | "familyMember" | "familyAll" | null;
-  readonly lastPatchKind: "replace" | "item" | "itemAspect" | "summary" | null;
-  readonly lastPatchScope: "line" | "item" | "aspect" | "summary" | null;
-  readonly lastPatchedItemId: string | null;
-  readonly lastPatchedAspect: string | null;
-  readonly lastPatchedSummary: string | null;
-  readonly lastDeliveryKind:
-    | "replace"
-    | "patch"
-    | "invalidate"
-    | "basisRefresh"
-    | null;
-  readonly lastDeliveryScope:
-    | "line"
-    | "item"
-    | "aspect"
-    | "summary"
-    | "basis"
-    | "invalidate"
-    | null;
-  readonly lastDeliveryPacketId: string | null;
-  readonly lastDeliveryBasisId: string | null;
-  readonly preservedVisibleValueOnLastRejection: boolean;
-  readonly lastTimeoutOperation: ResourceLineOperation | null;
-  readonly lastErrorMessage: string | null;
-  readonly visibleValueVersion: number;
-}
-
 export interface ResourceLine<TParams = unknown, TValue = SignalValue> {
   value(): TValue;
   signal(): ComputedSignalHandle<TValue>;
@@ -418,9 +355,15 @@ export interface ResourceLine<TParams = unknown, TValue = SignalValue> {
 export interface ResourceLineView<TValue = SignalValue> extends Signal<TValue> {}
 
 export type {
+  ResourceLineEffectRollbackResult,
   ResourceLineHistory,
   ResourceLineHistoryAvailability,
 } from "./resource_line_history.js";
+export type {
+  ResourceLineBasisDiagnostics,
+  ResourceLineDiagnostics,
+  ResourceLineVisibleSelection,
+} from "./resource_line_diagnostics.js";
 export type {
   ResourceLineDiagnosticsSummary,
   ResourceLineSummary,

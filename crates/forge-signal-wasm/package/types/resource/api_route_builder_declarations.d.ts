@@ -52,6 +52,13 @@ export type ApiRouteOwnedHeadersDeclaration<
   ? Omit<TDeclaration, "headers"> & { headers?: never }
   : TDeclaration;
 
+export type ApiRouteOwnedEffectsDeclaration<
+  TDeclaration,
+  TEffectsOwned extends boolean,
+> = TEffectsOwned extends true
+  ? Omit<TDeclaration, "effects"> & { effects?: never }
+  : TDeclaration;
+
 export type ApiRouteResolvedDownloadValue<
   TValue,
   TDownloadValue,

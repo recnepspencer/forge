@@ -9,6 +9,7 @@ import {
   createReloadRejectedDiagnostics,
   createTimedOutReloadDiagnostics,
 } from "../state/line_diagnostics_value.js";
+import { createRestoredVisibleSelection } from "../state/line_visible_selection.js";
 import {
   createFulfilledLineStatus,
   createPendingLineStatus,
@@ -29,6 +30,10 @@ function executeLineHistoryExactRestore(materialization, historyRead) {
       basisAdvanceCount: basis.advanceCount,
     });
   }
+  return executeLineExactBranchRestore(materialization, availability, basis);
+}
+
+function executeLineExactBranchRestore(materialization, restoreTarget, basis) {
   const fallbackRequestDescriptor = readRequestDescriptorFallback(materialization);
   const fallbackPreviousValue = readPreviousValueFallback(materialization);
   const previousDiagnostics = readPreviousDiagnosticsFallback(materialization);
@@ -38,16 +43,16 @@ function executeLineHistoryExactRestore(materialization, historyRead) {
     const history = materialization.history;
     if (typeof history.restore_branch_snapshot_by_id === "function") {
       history.restore_branch_snapshot_by_id(
-        BigInt(availability.branchId),
-        BigInt(availability.snapshotId),
+        BigInt(restoreTarget.branchId),
+        BigInt(restoreTarget.snapshotId),
       );
     } else if (
       typeof history.restore_exact_branch_snapshot === "function"
       && typeof history.branch_snapshot === "function"
     ) {
-      const snapshot = history.branch_snapshot(BigInt(availability.branchId));
+      const snapshot = history.branch_snapshot(BigInt(restoreTarget.branchId));
       history.restore_exact_branch_snapshot(
-        BigInt(availability.branchId),
+        BigInt(restoreTarget.branchId),
         snapshot,
       );
     } else {
@@ -107,9 +112,9 @@ function executeLineHistoryExactRestore(materialization, historyRead) {
   );
   return Object.freeze({
     kind: "restored",
-    mode: availability.mode,
-    branchId: availability.branchId,
-    snapshotId: availability.snapshotId,
+    mode: restoreTarget.mode,
+    branchId: restoreTarget.branchId,
+    snapshotId: restoreTarget.snapshotId,
     basisCurrentId: basis.currentBasisId,
     basisAdvanceCount: basis.advanceCount,
     reloadStatus,
@@ -243,7 +248,7 @@ function cloneLifecycleHistory(entries, lifecycleHistory) {
 }
 
 function createRestoreReloadDiagnostics(nextDiagnostics, requestDescriptor) {
-  return Object.freeze({
+  const diagnostics = {
     ...nextDiagnostics,
     request: Object.freeze({
       baseUrl: requestDescriptor.baseUrl,
@@ -260,13 +265,25 @@ function createRestoreReloadDiagnostics(nextDiagnostics, requestDescriptor) {
       continuation: requestDescriptor.continuation,
       processingJob: requestDescriptor.processingJob,
       uploadTransport: requestDescriptor.uploadTransport,
+      effects: requestDescriptor.effects,
       sources: requestDescriptor.sources,
     }),
     basis: Object.freeze({
       ...nextDiagnostics.basis,
       currentBasisId: requestDescriptor.context.basisId,
     }),
+  };
+  Object.defineProperty(diagnostics, "visibleSelection", {
+    value: createRestoredVisibleSelection(
+      nextDiagnostics.visibleSelection,
+      nextDiagnostics.lastEffect?.optimistic?.rollback ?? null,
+      nextDiagnostics.lastEffect,
+    ),
+    enumerable: true,
+    configurable: false,
+    writable: false,
   });
+  return Object.freeze(diagnostics);
 }
 
 function readRequestDescriptorFallback(materialization) {
@@ -285,4 +302,7 @@ function readPreviousValueFallback(materialization) {
   }
 }
 
-export { executeLineHistoryExactRestore };
+export {
+  executeLineExactBranchRestore,
+  executeLineHistoryExactRestore,
+};

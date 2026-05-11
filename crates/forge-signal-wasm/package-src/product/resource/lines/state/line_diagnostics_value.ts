@@ -1,5 +1,12 @@
 import { createUploadDiagnostics } from "./line_upload_diagnostics_value.js";
 import { createDownloadDiagnostics } from "./line_download_diagnostics_value.js";
+import {
+  createDeliveredVisibleSelection,
+  createInitialVisibleSelection,
+  createPatchedVisibleSelection,
+  createReloadFulfilledVisibleSelection,
+  createRestoredVisibleSelection,
+} from "./line_visible_selection.js";
 
 function createInitialLineDiagnostics(
   policy,
@@ -9,7 +16,41 @@ function createInitialLineDiagnostics(
   download,
   hasVisibleValue,
 ) {
-  return Object.freeze({
+  return freezeWithVisibleSelection(
+    createInitialDiagnosticsShape(
+      policy,
+      requestDescriptor,
+      processing,
+      upload,
+      download,
+      hasVisibleValue,
+    ),
+    createInitialVisibleSelection(
+      requestDescriptor,
+      hasVisibleValue,
+    ),
+  );
+}
+
+function freezeWithVisibleSelection(diagnostics, visibleSelection) {
+  Object.defineProperty(diagnostics, "visibleSelection", {
+    value: visibleSelection,
+    enumerable: true,
+    configurable: false,
+    writable: false,
+  });
+  return Object.freeze(diagnostics);
+}
+
+function createInitialDiagnosticsShape(
+  policy,
+  requestDescriptor,
+  processing,
+  upload,
+  download,
+  hasVisibleValue,
+) {
+  return {
     policyProfileName: policy.profileName,
     continuity: "preserveVisibleValue",
     freshnessPolicy: policy.staleAfterSettle ? "immediatelyStale" : "stable",
@@ -42,11 +83,12 @@ function createInitialLineDiagnostics(
     lastDeliveryScope: null,
     lastDeliveryPacketId: null,
     lastDeliveryBasisId: null,
+    lastEffect: null,
     preservedVisibleValueOnLastRejection: false,
     lastTimeoutOperation: null,
     lastErrorMessage: null,
     visibleValueVersion: hasVisibleValue ? 1 : 0,
-  });
+  };
 }
 
 function createReloadFulfilledDiagnostics(
@@ -59,47 +101,58 @@ function createReloadFulfilledDiagnostics(
   retryAttempts,
 ) {
   const countsAlreadyAdvanced = previous.pendingOperation === operation;
-  return Object.freeze({
-    ...previous,
-    processing,
-    upload: createUploadDiagnostics(upload),
-    download: createDownloadDiagnostics(download),
-    lastOperation: operation,
-    lastOutcome: "fulfilled",
-    pendingOperation: null,
-    refreshCount:
-      previous.refreshCount
-      + (operation === "refresh" && !countsAlreadyAdvanced ? 1 : 0),
-    revalidateCount:
-      previous.revalidateCount
-      + (operation === "revalidate" && !countsAlreadyAdvanced ? 1 : 0),
-    retryAttemptCount: previous.retryAttemptCount + retryAttempts,
-    preservedVisibleValueOnLastRejection: false,
-    lastErrorMessage: null,
-    visibleValueVersion:
-      previous.visibleValueVersion + (visibleValueChanged ? 1 : 0),
-  });
+  return freezeWithVisibleSelection(
+    {
+      ...previous,
+      processing,
+      upload: createUploadDiagnostics(upload),
+      download: createDownloadDiagnostics(download),
+      lastOperation: operation,
+      lastOutcome: "fulfilled",
+      pendingOperation: null,
+      refreshCount:
+        previous.refreshCount
+        + (operation === "refresh" && !countsAlreadyAdvanced ? 1 : 0),
+      revalidateCount:
+        previous.revalidateCount
+        + (operation === "revalidate" && !countsAlreadyAdvanced ? 1 : 0),
+      retryAttemptCount: previous.retryAttemptCount + retryAttempts,
+      preservedVisibleValueOnLastRejection: false,
+      lastErrorMessage: null,
+      visibleValueVersion:
+        previous.visibleValueVersion + (visibleValueChanged ? 1 : 0),
+    },
+    createReloadFulfilledVisibleSelection(
+      previous.visibleSelection,
+      previous.request,
+      operation,
+      visibleValueChanged,
+    ),
+  );
 }
 
 function createReloadRejectedDiagnostics(previous, operation, message, retryAttempts) {
   const countsAlreadyAdvanced = previous.pendingOperation === operation;
-  return Object.freeze({
-    ...previous,
-    lastOperation: operation,
-    lastOutcome: "rejected",
-    pendingOperation: null,
-    refreshCount:
-      previous.refreshCount
-      + (operation === "refresh" && !countsAlreadyAdvanced ? 1 : 0),
-    revalidateCount:
-      previous.revalidateCount
-      + (operation === "revalidate" && !countsAlreadyAdvanced ? 1 : 0),
-    retryAttemptCount: previous.retryAttemptCount + retryAttempts,
-    rejectionCount: previous.rejectionCount + 1,
-    preservedVisibleValueOnLastRejection: true,
-    lastTimeoutOperation: null,
-    lastErrorMessage: message,
-  });
+  return freezeWithVisibleSelection(
+    {
+      ...previous,
+      lastOperation: operation,
+      lastOutcome: "rejected",
+      pendingOperation: null,
+      refreshCount:
+        previous.refreshCount
+        + (operation === "refresh" && !countsAlreadyAdvanced ? 1 : 0),
+      revalidateCount:
+        previous.revalidateCount
+        + (operation === "revalidate" && !countsAlreadyAdvanced ? 1 : 0),
+      retryAttemptCount: previous.retryAttemptCount + retryAttempts,
+      rejectionCount: previous.rejectionCount + 1,
+      preservedVisibleValueOnLastRejection: true,
+      lastTimeoutOperation: null,
+      lastErrorMessage: message,
+    },
+    previous.visibleSelection,
+  );
 }
 
 function createPendingReloadDiagnostics(
@@ -107,58 +160,99 @@ function createPendingReloadDiagnostics(
   operation,
   supersededOperation,
 ) {
-  return Object.freeze({
-    ...previous,
-    lastOperation: operation,
-    lastOutcome: "pending",
-    pendingOperation: operation,
-    refreshCount: previous.refreshCount + (operation === "refresh" ? 1 : 0),
-    revalidateCount:
-      previous.revalidateCount + (operation === "revalidate" ? 1 : 0),
-    supersessionCount:
-      previous.supersessionCount + (supersededOperation === null ? 0 : 1),
-    lastSupersededOperation: supersededOperation,
-    preservedVisibleValueOnLastRejection: false,
-    lastTimeoutOperation: null,
-    lastErrorMessage: null,
-  });
+  return freezeWithVisibleSelection(
+    {
+      ...previous,
+      lastOperation: operation,
+      lastOutcome: "pending",
+      pendingOperation: operation,
+      refreshCount: previous.refreshCount + (operation === "refresh" ? 1 : 0),
+      revalidateCount:
+        previous.revalidateCount + (operation === "revalidate" ? 1 : 0),
+      supersessionCount:
+        previous.supersessionCount + (supersededOperation === null ? 0 : 1),
+      lastSupersededOperation: supersededOperation,
+      preservedVisibleValueOnLastRejection: false,
+      lastTimeoutOperation: null,
+      lastErrorMessage: null,
+    },
+    previous.visibleSelection,
+  );
 }
 
 function createTimedOutReloadDiagnostics(previous, operation, retryAttempts) {
-  return Object.freeze({
-    ...previous,
-    lastOperation: operation,
-    lastOutcome: "timedOut",
-    pendingOperation: null,
-    retryAttemptCount: previous.retryAttemptCount + retryAttempts,
-    timeoutCount: previous.timeoutCount + 1,
-    preservedVisibleValueOnLastRejection: true,
-    lastTimeoutOperation: operation,
-    lastErrorMessage: `${operation} timed out`,
-  });
+  return freezeWithVisibleSelection(
+    {
+      ...previous,
+      lastOperation: operation,
+      lastOutcome: "timedOut",
+      pendingOperation: null,
+      retryAttemptCount: previous.retryAttemptCount + retryAttempts,
+      timeoutCount: previous.timeoutCount + 1,
+      preservedVisibleValueOnLastRejection: true,
+      lastTimeoutOperation: operation,
+      lastErrorMessage: `${operation} timed out`,
+    },
+    previous.visibleSelection,
+  );
 }
 
 function createInvalidatedDiagnostics(previous, cause, scope) {
-  return Object.freeze({
-    ...previous,
-    invalidationCount: previous.invalidationCount + 1,
-    lastInvalidationCause: cause,
-    lastInvalidationScope: scope,
-  });
+  return freezeWithVisibleSelection(
+    {
+      ...previous,
+      invalidationCount: previous.invalidationCount + 1,
+      lastInvalidationCause: cause,
+      lastInvalidationScope: scope,
+    },
+    previous.visibleSelection,
+  );
 }
 
-function createPatchedDiagnostics(previous, patch, result) {
-  return Object.freeze({
-    ...previous,
-    patchCount: previous.patchCount + 1,
-    lastPatchKind: patch.kind,
-    lastPatchScope: result.scope,
-    lastPatchedItemId: result.itemId,
-    lastPatchedAspect: result.aspect,
-    lastPatchedSummary: result.summary,
-    visibleValueVersion:
-      previous.visibleValueVersion + (result.valueChanged ? 1 : 0),
-  });
+function createPatchedDiagnostics(previous, patch, result, effectEnvelope) {
+  return freezeWithVisibleSelection(
+    {
+      ...previous,
+      patchCount: previous.patchCount + 1,
+      lastPatchKind: patch.kind,
+      lastPatchScope: result.scope,
+      lastPatchedItemId: result.itemId,
+      lastPatchedAspect: result.aspect,
+      lastPatchedSummary: result.summary,
+      lastEffect: effectEnvelope,
+      visibleValueVersion:
+        previous.visibleValueVersion + (result.valueChanged ? 1 : 0),
+    },
+    createPatchedVisibleSelection(
+      previous.visibleSelection,
+      effectEnvelope,
+    ),
+  );
+}
+
+function createInverseRollbackDiagnostics(previous, rollback, result) {
+  return freezeWithVisibleSelection(
+    {
+      ...previous,
+      lastOperation: "restore",
+      lastOutcome: "fulfilled",
+      pendingOperation: null,
+      lastPatchKind: rollback.inverse.patch.kind,
+      lastPatchScope: result.scope,
+      lastPatchedItemId: result.itemId,
+      lastPatchedAspect: result.aspect,
+      lastPatchedSummary: result.summary,
+      preservedVisibleValueOnLastRejection: false,
+      lastTimeoutOperation: null,
+      lastErrorMessage: null,
+      visibleValueVersion:
+        previous.visibleValueVersion + (result.valueChanged ? 1 : 0),
+    },
+    createRestoredVisibleSelection(
+      previous.visibleSelection,
+      rollback,
+    ),
+  );
 }
 
 function createDeliveredDiagnostics(previous, delivery) {
@@ -171,40 +265,47 @@ function createDeliveredDiagnostics(previous, delivery) {
     delivery.basisId,
     basisId,
   );
-  return Object.freeze({
-    ...previous,
-    request: Object.freeze({
-      ...previous.request,
-      context: Object.freeze({
-        ...previous.request.context,
-        basisId,
+  return freezeWithVisibleSelection(
+    {
+      ...previous,
+      request: Object.freeze({
+        ...previous.request,
+        context: Object.freeze({
+          ...previous.request.context,
+          basisId,
+        }),
       }),
-    }),
-    basis,
-    lastOperation: "delivery",
-    lastOutcome: "fulfilled",
-    pendingOperation: null,
-    patchCount:
-      delivery.patchKind === null ? previous.patchCount : previous.patchCount + 1,
-    deliveryCount: previous.deliveryCount + 1,
-    supersessionCount:
-      previous.supersessionCount + (delivery.supersededOperation === null ? 0 : 1),
-    lastSupersededOperation: delivery.supersededOperation,
-    lastPatchKind: delivery.patchKind,
-    lastPatchScope: delivery.patchScope,
-    lastPatchedItemId: delivery.patchedItemId,
-    lastPatchedAspect: delivery.patchedAspect,
-    lastPatchedSummary: delivery.patchedSummary,
-    lastDeliveryKind: delivery.deliveryKind,
-    lastDeliveryScope: delivery.deliveryScope,
-    lastDeliveryPacketId: delivery.packetId,
-    lastDeliveryBasisId: delivery.basisId,
-    preservedVisibleValueOnLastRejection: false,
-    lastTimeoutOperation: null,
-    lastErrorMessage: null,
-    visibleValueVersion:
-      previous.visibleValueVersion + (delivery.valueChanged ? 1 : 0),
-  });
+      basis,
+      lastOperation: "delivery",
+      lastOutcome: "fulfilled",
+      pendingOperation: null,
+      patchCount:
+        delivery.patchKind === null
+          ? previous.patchCount
+          : previous.patchCount + 1,
+      deliveryCount: previous.deliveryCount + 1,
+      supersessionCount:
+        previous.supersessionCount
+        + (delivery.supersededOperation === null ? 0 : 1),
+      lastSupersededOperation: delivery.supersededOperation,
+      lastPatchKind: delivery.patchKind,
+      lastPatchScope: delivery.patchScope,
+      lastPatchedItemId: delivery.patchedItemId,
+      lastPatchedAspect: delivery.patchedAspect,
+      lastPatchedSummary: delivery.patchedSummary,
+      lastDeliveryKind: delivery.deliveryKind,
+      lastDeliveryScope: delivery.deliveryScope,
+      lastDeliveryPacketId: delivery.packetId,
+      lastDeliveryBasisId: delivery.basisId,
+      lastEffect: delivery.effectEnvelope,
+      preservedVisibleValueOnLastRejection: false,
+      lastTimeoutOperation: null,
+      lastErrorMessage: null,
+      visibleValueVersion:
+        previous.visibleValueVersion + (delivery.valueChanged ? 1 : 0),
+    },
+    createDeliveredVisibleSelection(delivery.effectEnvelope),
+  );
 }
 
 function createInitialBasisDiagnostics(currentBasisId) {
@@ -247,6 +348,7 @@ function createRequestDiagnostics(requestDescriptor) {
     continuation: requestDescriptor.continuation,
     processingJob: requestDescriptor.processingJob,
     uploadTransport: requestDescriptor.uploadTransport,
+    effects: requestDescriptor.effects,
   });
 }
 
@@ -254,6 +356,7 @@ export {
   createInvalidatedDiagnostics,
   createDeliveredDiagnostics,
   createInitialLineDiagnostics,
+  createInverseRollbackDiagnostics,
   createPatchedDiagnostics,
   createPendingReloadDiagnostics,
   createReloadFulfilledDiagnostics,
