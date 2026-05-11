@@ -3,7 +3,9 @@ use serde_json::Value;
 use super::read_composition_hooks::{
     ForgeQueryReadInvariantPackContext, ForgeQueryReadInvariantPackViolation,
 };
-use super::read_composition_runtime::execute_runtime_current_read_graph;
+use super::read_composition_runtime::{
+    execute_runtime_basis_context_read_graph, execute_runtime_current_read_graph,
+};
 use super::{
     ForgeQueryDerivedViewHandle, ForgeQueryInspection, ForgeQueryInspectionTarget,
     ForgeQueryInstalledProgram, ForgeQueryPatchBatch, ForgeQueryProgram, ForgeQueryReadBuilder,
@@ -41,7 +43,7 @@ impl ForgeQueryWorkspace {
                 ForgeQueryReadDomainInvariantDenial::from_violation(violation, &invariant_context),
             )
         })?;
-        execute_runtime_current_read_graph(&self.runtime, &read_graph)
+        execute_runtime_current_read_graph(&mut self.runtime, &read_graph)
             .map_err(ForgeQueryRuntimeError::ReadCompositionDenied)
     }
 
@@ -100,7 +102,18 @@ impl ForgeQueryWorkspace {
     ) -> Result<ForgeQueryReadResult, ForgeQueryRuntimeError> {
         self.runtime
             .admit_facade_family(super::ForgeQueryRuntimeFacadeFamily::Read)?;
-        execute_runtime_current_read_graph(&self.runtime, family.read_graph())
+        execute_runtime_current_read_graph(&mut self.runtime, family.read_graph())
+            .map_err(ForgeQueryRuntimeError::ReadCompositionDenied)
+    }
+
+    pub fn execute_read_family_in_basis_context(
+        &mut self,
+        family: &ForgeQueryReadFamily,
+        context: &crate::query_context::AdmittedQueryBasisContext,
+    ) -> Result<ForgeQueryReadResult, ForgeQueryRuntimeError> {
+        self.runtime
+            .admit_facade_family(super::ForgeQueryRuntimeFacadeFamily::Read)?;
+        execute_runtime_basis_context_read_graph(&mut self.runtime, family.read_graph(), context)
             .map_err(ForgeQueryRuntimeError::ReadCompositionDenied)
     }
 

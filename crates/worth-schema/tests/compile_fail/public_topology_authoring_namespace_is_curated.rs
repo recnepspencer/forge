@@ -1,5 +1,5 @@
-use worth_schema::facade::topology_authoring::WorthTopologyAuthorityError;
+use schema::facade::topology_authoring::TopologyAuthorityError;
 
 fn main() {
-    let _ = std::mem::size_of::<WorthTopologyAuthorityError>();
+    let _ = std::mem::size_of::<TopologyAuthorityError>();
 }

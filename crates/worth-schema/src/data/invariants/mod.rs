@@ -6,42 +6,42 @@ mod topology;
 
 use serde::{Deserialize, Serialize};
 
-pub use diagnostics::WorthDiagnosticsInvariantGroup;
-pub use geometry::WorthGeometryInvariantGroup;
-pub use lineage::WorthLineageInvariantGroup;
-pub use naming::WorthNamingInvariantGroup;
-pub use topology::WorthTopologyInvariantGroup;
+pub use diagnostics::DiagnosticsInvariantGroup;
+pub use geometry::GeometryInvariantGroup;
+pub use lineage::LineageInvariantGroup;
+pub use naming::NamingInvariantGroup;
+pub use topology::TopologyInvariantGroup;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthInvariantGroup {
-    Topology(WorthTopologyInvariantGroup),
-    Geometry(WorthGeometryInvariantGroup),
-    Lineage(WorthLineageInvariantGroup),
-    Naming(WorthNamingInvariantGroup),
-    Diagnostics(WorthDiagnosticsInvariantGroup),
+pub enum InvariantGroup {
+    Topology(TopologyInvariantGroup),
+    Geometry(GeometryInvariantGroup),
+    Lineage(LineageInvariantGroup),
+    Naming(NamingInvariantGroup),
+    Diagnostics(DiagnosticsInvariantGroup),
 }
 
-impl WorthInvariantGroup {
+impl InvariantGroup {
     pub const ALL: [Self; 20] = [
-        Self::Topology(WorthTopologyInvariantGroup::OwnershipConsistency),
-        Self::Topology(WorthTopologyInvariantGroup::RequiredSingleRelationPresence),
-        Self::Topology(WorthTopologyInvariantGroup::LoopEntryCoherence),
-        Self::Topology(WorthTopologyInvariantGroup::HalfEdgeNextCoherence),
-        Self::Topology(WorthTopologyInvariantGroup::HalfEdgeRadialCoherence),
-        Self::Topology(WorthTopologyInvariantGroup::EdgeIncidenceLegality),
-        Self::Topology(WorthTopologyInvariantGroup::VertexOriginLegality),
-        Self::Geometry(WorthGeometryInvariantGroup::BindingCoverage),
-        Self::Geometry(WorthGeometryInvariantGroup::CarrierCompatibility),
-        Self::Geometry(WorthGeometryInvariantGroup::UvAnchoringContinuity),
-        Self::Geometry(WorthGeometryInvariantGroup::ApproximationBounded),
-        Self::Geometry(WorthGeometryInvariantGroup::ToleranceRegimeValidity),
-        Self::Geometry(WorthGeometryInvariantGroup::ProvenanceCompleteness),
-        Self::Geometry(WorthGeometryInvariantGroup::PrecisionEscalationDeclared),
-        Self::Geometry(WorthGeometryInvariantGroup::FallbackDispositionDeclared),
-        Self::Geometry(WorthGeometryInvariantGroup::FallbackProofSufficiency),
-        Self::Lineage(WorthLineageInvariantGroup::ProvenanceCompleteness),
-        Self::Naming(WorthNamingInvariantGroup::PersistentNameStability),
-        Self::Naming(WorthNamingInvariantGroup::PersistentNameUniqueness),
-        Self::Diagnostics(WorthDiagnosticsInvariantGroup::DecisionTraceCoverage),
+        Self::Topology(TopologyInvariantGroup::OwnershipConsistency),
+        Self::Topology(TopologyInvariantGroup::RequiredSingleRelationPresence),
+        Self::Topology(TopologyInvariantGroup::LoopEntryCoherence),
+        Self::Topology(TopologyInvariantGroup::HalfEdgeNextCoherence),
+        Self::Topology(TopologyInvariantGroup::HalfEdgeRadialCoherence),
+        Self::Topology(TopologyInvariantGroup::EdgeIncidenceLegality),
+        Self::Topology(TopologyInvariantGroup::VertexOriginLegality),
+        Self::Geometry(GeometryInvariantGroup::BindingCoverage),
+        Self::Geometry(GeometryInvariantGroup::CarrierCompatibility),
+        Self::Geometry(GeometryInvariantGroup::UvAnchoringContinuity),
+        Self::Geometry(GeometryInvariantGroup::ApproximationBounded),
+        Self::Geometry(GeometryInvariantGroup::ToleranceRegimeValidity),
+        Self::Geometry(GeometryInvariantGroup::ProvenanceCompleteness),
+        Self::Geometry(GeometryInvariantGroup::PrecisionEscalationDeclared),
+        Self::Geometry(GeometryInvariantGroup::FallbackDispositionDeclared),
+        Self::Geometry(GeometryInvariantGroup::FallbackProofSufficiency),
+        Self::Lineage(LineageInvariantGroup::ProvenanceCompleteness),
+        Self::Naming(NamingInvariantGroup::PersistentNameStability),
+        Self::Naming(NamingInvariantGroup::PersistentNameUniqueness),
+        Self::Diagnostics(DiagnosticsInvariantGroup::DecisionTraceCoverage),
     ];
 }

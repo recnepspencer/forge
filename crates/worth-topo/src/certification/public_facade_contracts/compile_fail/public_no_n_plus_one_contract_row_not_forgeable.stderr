@@ -1,0 +1,13 @@
+error[E0451]: fields `contract`, `status`, `reason` and `row_digest` of struct `TopologyNoNPlusOneContractRow` are private
+  --> src/certification/public_facade_contracts/compile_fail/public_no_n_plus_one_contract_row_not_forgeable.rs:8:9
+   |
+ 7 |     let _ = TopologyNoNPlusOneContractRow {
+   |             ----------------------------- in this type
+ 8 |         contract: TopologyNoNPlusOneContract::LoweringBreadth,
+   |         ^^^^^^^^ private field
+ 9 |         status: TopologyNoNPlusOneContractStatus::Satisfied,
+   |         ^^^^^^ private field
+10 |         reason: String::new(),
+   |         ^^^^^^ private field
+11 |         row_digest: String::new(),
+   |         ^^^^^^^^^^ private field

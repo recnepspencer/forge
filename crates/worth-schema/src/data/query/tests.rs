@@ -2,15 +2,13 @@ use std::collections::BTreeSet;
 
 use crate::facade::topology_authoring::created_ref;
 use crate::facade::{
-    admit_worth_query_mutation_batch, worth_query_aspect_path_strings,
-    worth_query_aspect_paths_from_set, worth_query_mutation_support_contract,
-    RawWorthTopologyIntent, WorthAspect, WorthDiagnosticsAspect, WorthDiagnosticsRelationKind,
-    WorthEntityKind, WorthGeometryAspect, WorthGeometryEntityKind, WorthLineageAspect,
-    WorthNamingAspect, WorthQueryAspectFamily, WorthQueryAspectPath, WorthQueryCollection,
-    WorthQueryComputedDeclarationBuilder, WorthQueryDeclarationError,
-    WorthQueryLiveDeclarationBuilder, WorthQueryLiveField, WorthQueryMutationAdmission,
-    WorthQueryMutationAdmissionBlocker, WorthQuerySchemaBasis, WorthRelationKind,
-    WorthTopologyAspect, WorthTopologyEntityKind, WorthTopologyMutation,
+    admit_query_mutation_batch, query_aspect_path_strings, query_aspect_paths_from_set,
+    query_mutation_support_contract, Aspect, DiagnosticsAspect, DiagnosticsRelationKind,
+    EntityKind, GeometryAspect, GeometryEntityKind, LineageAspect, NamingAspect, QueryAspectFamily,
+    QueryAspectPath, QueryCollection, QueryComputedDeclarationBuilder, QueryDeclarationError,
+    QueryLiveDeclarationBuilder, QueryLiveField, QueryMutationAdmission,
+    QueryMutationAdmissionBlocker, QuerySchemaBasis, RawTopologyIntent, RelationKind,
+    TopologyAspect, TopologyEntityKind, TopologyMutation,
 };
 use forge_query::facade::{
     ForgeQueryAuthoritativeMutationEvidenceCloseout,
@@ -22,34 +20,31 @@ use forge_query::facade::{
 use forge_runtime_bridge::facade::RuntimeBridge;
 
 #[test]
-fn query_collections_and_schema_bases_have_stable_worth_names() {
+fn query_collections_and_schema_bases_have_stable_names() {
+    assert_eq!(QueryCollection::TopologyEntity.as_str(), "TopologyEntity");
     assert_eq!(
-        WorthQueryCollection::TopologyEntity.as_str(),
-        "WorthTopologyEntity"
+        QueryCollection::TopologyEquivalenceContract.as_str(),
+        "TopologyEquivalenceContract"
     );
     assert_eq!(
-        WorthQueryCollection::TopologyEquivalenceContract.as_str(),
-        "WorthTopologyEquivalenceContract"
+        QuerySchemaBasis::AuthoritativeTopologyTruth.as_str(),
+        ".schema.authoritative_topology_truth"
     );
     assert_eq!(
-        WorthQuerySchemaBasis::AuthoritativeTopologyTruth.as_str(),
-        "worth.schema.authoritative_topology_truth"
+        QuerySchemaBasis::TopologyValidationComputed.as_str(),
+        ".schema.computed.topology_validation"
     );
     assert_eq!(
-        WorthQuerySchemaBasis::TopologyValidationComputed.as_str(),
-        "worth.schema.computed.topology_validation"
+        QuerySchemaBasis::TopologyDomainQuery.as_str(),
+        ".schema.domain.topology_query"
     );
-    assert_eq!(
-        WorthQuerySchemaBasis::TopologyDomainQuery.as_str(),
-        "worth.schema.domain.topology_query"
-    );
-    assert_eq!(WorthQueryCollection::ALL.len(), 9);
-    assert_eq!(WorthQuerySchemaBasis::ALL.len(), 11);
+    assert_eq!(QueryCollection::ALL.len(), 9);
+    assert_eq!(QuerySchemaBasis::ALL.len(), 11);
 }
 
 #[test]
 fn query_aspect_paths_are_valid_forge_query_aspect_field_paths() {
-    for path in WorthQueryAspectPath::ALL {
+    for path in QueryAspectPath::ALL {
         let value = path.as_str();
         let (section, field) = value
             .split_once('.')
@@ -64,25 +59,19 @@ fn query_aspect_paths_are_valid_forge_query_aspect_field_paths() {
 #[test]
 fn query_aspect_paths_normalize_legacy_single_segment_aspects() {
     assert_eq!(
-        WorthAspect::Diagnostics(WorthDiagnosticsAspect::Decisions).as_str(),
+        Aspect::Diagnostics(DiagnosticsAspect::Decisions).as_str(),
         "diagnostics"
     );
     assert_eq!(
-        WorthQueryAspectPath::from_worth_aspect(WorthAspect::Diagnostics(
-            WorthDiagnosticsAspect::Decisions
-        ))
-        .as_str(),
+        QueryAspectPath::from_aspect(Aspect::Diagnostics(DiagnosticsAspect::Decisions)).as_str(),
         "diagnostics.decisions"
     );
     assert_eq!(
-        WorthAspect::Lineage(WorthLineageAspect::Provenance).as_str(),
+        Aspect::Lineage(LineageAspect::Provenance).as_str(),
         "lineage"
     );
     assert_eq!(
-        WorthQueryAspectPath::from_worth_aspect(WorthAspect::Lineage(
-            WorthLineageAspect::Provenance
-        ))
-        .as_str(),
+        QueryAspectPath::from_aspect(Aspect::Lineage(LineageAspect::Provenance)).as_str(),
         "lineage.provenance"
     );
 }
@@ -90,22 +79,22 @@ fn query_aspect_paths_normalize_legacy_single_segment_aspects() {
 #[test]
 fn touched_aspect_sets_convert_to_deterministic_query_paths() {
     let aspects = BTreeSet::from([
-        WorthAspect::Diagnostics(WorthDiagnosticsAspect::Decisions),
-        WorthAspect::Topology(WorthTopologyAspect::Boundary),
-        WorthAspect::Naming(WorthNamingAspect::PersistentName),
+        Aspect::Diagnostics(DiagnosticsAspect::Decisions),
+        Aspect::Topology(TopologyAspect::Boundary),
+        Aspect::Naming(NamingAspect::PersistentName),
     ]);
 
-    let paths = worth_query_aspect_paths_from_set(&aspects);
+    let paths = query_aspect_paths_from_set(&aspects);
     assert_eq!(
         paths,
         vec![
-            WorthQueryAspectPath::TOPOLOGY_BOUNDARY,
-            WorthQueryAspectPath::NAMING_PERSISTENT_NAME,
-            WorthQueryAspectPath::DIAGNOSTICS_DECISIONS,
+            QueryAspectPath::TOPOLOGY_BOUNDARY,
+            QueryAspectPath::NAMING_PERSISTENT_NAME,
+            QueryAspectPath::DIAGNOSTICS_DECISIONS,
         ]
     );
 
-    let path_strings = worth_query_aspect_path_strings(aspects);
+    let path_strings = query_aspect_path_strings(aspects);
     assert_eq!(
         path_strings,
         vec![
@@ -119,38 +108,36 @@ fn touched_aspect_sets_convert_to_deterministic_query_paths() {
 #[test]
 fn query_aspect_families_preserve_domain_boundaries_without_runtime_behavior() {
     assert_eq!(
-        WorthQueryAspectPath::TOPOLOGY_STRUCTURE.family(),
-        WorthQueryAspectFamily::Topology
+        QueryAspectPath::TOPOLOGY_STRUCTURE.family(),
+        QueryAspectFamily::Topology
     );
     assert_eq!(
-        WorthQueryAspectPath::GEOMETRY_BINDING.family(),
-        WorthQueryAspectFamily::Geometry
+        QueryAspectPath::GEOMETRY_BINDING.family(),
+        QueryAspectFamily::Geometry
     );
     assert_eq!(
-        WorthQueryAspectPath::from_worth_aspect(WorthAspect::Geometry(
-            WorthGeometryAspect::Fallback
-        )),
-        WorthQueryAspectPath::GEOMETRY_FALLBACK
+        QueryAspectPath::from_aspect(Aspect::Geometry(GeometryAspect::Fallback)),
+        QueryAspectPath::GEOMETRY_FALLBACK
     );
 }
 
 #[test]
-fn worth_live_query_declarations_lower_with_worth_owned_vocabularies() {
-    let declaration = WorthQueryLiveDeclarationBuilder::new(
-        "worth.topology.entities",
-        WorthQueryCollection::TopologyEntity,
-        WorthQuerySchemaBasis::TopologyEntityLiveView,
+fn live_query_declarations_lower_with_owned_vocabularies() {
+    let declaration = QueryLiveDeclarationBuilder::new(
+        ".topology.entities",
+        QueryCollection::TopologyEntity,
+        QuerySchemaBasis::TopologyEntityLiveView,
     )
-    .grouped_by(WorthQueryAspectPath::TOPOLOGY_BOUNDARY)
+    .grouped_by(QueryAspectPath::TOPOLOGY_BOUNDARY)
     .select([
-        WorthQueryAspectPath::TOPOLOGY_STRUCTURE,
-        WorthQueryAspectPath::NAMING_PERSISTENT_NAME,
+        QueryAspectPath::TOPOLOGY_STRUCTURE,
+        QueryAspectPath::NAMING_PERSISTENT_NAME,
     ])
-    .order_by(WorthQueryAspectPath::NAMING_PERSISTENT_NAME)
+    .order_by(QueryAspectPath::NAMING_PERSISTENT_NAME)
     .build()
-    .expect("worth live declaration should lower into forge-query");
+    .expect(" live declaration should lower into forge-query");
 
-    assert_eq!(declaration.request().target(), "WorthTopologyEntity");
+    assert_eq!(declaration.request().target(), "TopologyEntity");
     assert_eq!(
         declaration.request().view_shape().as_str(),
         "kanban_grouped"
@@ -168,8 +155,9 @@ fn worth_live_query_declarations_lower_with_worth_owned_vocabularies() {
         declaration
             .request()
             .ordering()
-            .expect("worth live declaration should preserve ordering")
-            .delivered_name(),
+            .first()
+            .expect("live declaration should preserve ordering")
+            .field(),
         "persistent_name"
     );
     assert!(declaration.schema_view().has_aspect("topology"));
@@ -177,23 +165,23 @@ fn worth_live_query_declarations_lower_with_worth_owned_vocabularies() {
 }
 
 #[test]
-fn worth_live_query_declarations_can_carry_topology_runtime_metadata_fields() {
-    let declaration = WorthQueryLiveDeclarationBuilder::new(
-        "worth.topology.relations",
-        WorthQueryCollection::TopologyRelation,
-        WorthQuerySchemaBasis::TopologyRelationLiveView,
+fn live_query_declarations_can_carry_topology_runtime_metadata_fields() {
+    let declaration = QueryLiveDeclarationBuilder::new(
+        ".topology.relations",
+        QueryCollection::TopologyRelation,
+        QuerySchemaBasis::TopologyRelationLiveView,
     )
     .select_fields([
-        WorthQueryLiveField::IdentityId,
-        WorthQueryLiveField::TopologyKind,
-        WorthQueryLiveField::TopologySourceIdentity,
-        WorthQueryLiveField::TopologyTargetIdentity,
+        QueryLiveField::IdentityId,
+        QueryLiveField::TopologyKind,
+        QueryLiveField::TopologySourceIdentity,
+        QueryLiveField::TopologyTargetIdentity,
     ])
-    .order_by_field(WorthQueryLiveField::IdentityId)
+    .order_by_field(QueryLiveField::IdentityId)
     .build()
-    .expect("worth relation live declaration should lower runtime metadata fields");
+    .expect(" relation live declaration should lower runtime metadata fields");
 
-    assert_eq!(declaration.request().target(), "WorthTopologyRelation");
+    assert_eq!(declaration.request().target(), "TopologyRelation");
     assert_eq!(declaration.request().projection().len(), 4);
     assert_eq!(declaration.request().projection()[0].aspect(), "identity");
     assert_eq!(declaration.request().projection()[0].field(), "id");
@@ -207,28 +195,29 @@ fn worth_live_query_declarations_can_carry_topology_runtime_metadata_fields() {
         declaration
             .request()
             .ordering()
+            .first()
             .expect("metadata declaration should preserve ordering")
-            .delivered_name(),
+            .field(),
         "id"
     );
 }
 
 #[test]
-fn worth_computed_query_declarations_lower_with_worth_owned_aspect_contracts() {
-    let declaration = WorthQueryComputedDeclarationBuilder::new("worth.topology.validation")
+fn computed_query_declarations_lower_with_owned_aspect_contracts() {
+    let declaration = QueryComputedDeclarationBuilder::new(".topology.validation")
         .reads([
-            WorthQueryAspectPath::TOPOLOGY_STRUCTURE,
-            WorthQueryAspectPath::NAMING_PERSISTENT_NAME,
+            QueryAspectPath::TOPOLOGY_STRUCTURE,
+            QueryAspectPath::NAMING_PERSISTENT_NAME,
         ])
         .produces([
-            WorthQueryAspectPath::DIAGNOSTICS_DECISIONS,
-            WorthQueryAspectPath::DIAGNOSTICS_INTERPRETATIONS,
+            QueryAspectPath::DIAGNOSTICS_DECISIONS,
+            QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS,
         ])
         .whole_refresh_fallback()
         .build()
-        .expect("worth computed declaration should lower into forge-query");
+        .expect(" computed declaration should lower into forge-query");
 
-    assert_eq!(declaration.name(), "worth.topology.validation");
+    assert_eq!(declaration.name(), ".topology.validation");
     assert_eq!(
         declaration.dependency_aspects(),
         &[
@@ -247,39 +236,33 @@ fn worth_computed_query_declarations_lower_with_worth_owned_aspect_contracts() {
 }
 
 #[test]
-fn worth_query_declarations_reject_blank_surface_names_early() {
-    let error = WorthQueryLiveDeclarationBuilder::new(
+fn query_declarations_reject_blank_surface_names_early() {
+    let error = QueryLiveDeclarationBuilder::new(
         "   ",
-        WorthQueryCollection::TopologyEntity,
-        WorthQuerySchemaBasis::TopologyEntityLiveView,
+        QueryCollection::TopologyEntity,
+        QuerySchemaBasis::TopologyEntityLiveView,
     )
-    .select([WorthQueryAspectPath::TOPOLOGY_STRUCTURE])
+    .select([QueryAspectPath::TOPOLOGY_STRUCTURE])
     .build()
-    .expect_err("blank worth live surface names must fail early");
-    assert!(matches!(
-        error,
-        WorthQueryDeclarationError::EmptySurfaceName
-    ));
+    .expect_err("blank  live surface names must fail early");
+    assert!(matches!(error, QueryDeclarationError::EmptySurfaceName));
 
-    let error = WorthQueryComputedDeclarationBuilder::new("")
-        .reads([WorthQueryAspectPath::TOPOLOGY_STRUCTURE])
-        .produces([WorthQueryAspectPath::DIAGNOSTICS_DECISIONS])
+    let error = QueryComputedDeclarationBuilder::new("")
+        .reads([QueryAspectPath::TOPOLOGY_STRUCTURE])
+        .produces([QueryAspectPath::DIAGNOSTICS_DECISIONS])
         .build()
-        .expect_err("blank worth computed surface names must fail early");
-    assert!(matches!(
-        error,
-        WorthQueryDeclarationError::EmptySurfaceName
-    ));
+        .expect_err("blank  computed surface names must fail early");
+    assert!(matches!(error, QueryDeclarationError::EmptySurfaceName));
 }
 
 #[test]
 fn query_mutation_support_contract_tracks_upstream_authority_closeout() {
-    let contract = worth_query_mutation_support_contract()
-        .expect("worth query support contract should derive");
+    let contract =
+        query_mutation_support_contract().expect(" query support contract should derive");
     let support_profile = ForgeQueryRuntimeSupportProfile::bridge_backed(
-        "worth-query-mutation-support-contract-live",
-        "worth-query-mutation-support-contract-preview",
-        "worth-query-mutation-support-contract-inspect",
+        "query-mutation-support-contract-live",
+        "query-mutation-support-contract-preview",
+        "query-mutation-support-contract-inspect",
     );
     let public_api_contract =
         ForgeQueryRuntimePublicApiContract::from_support_profile(&support_profile);
@@ -353,69 +336,65 @@ fn query_mutation_support_contract_tracks_upstream_authority_closeout() {
 
 #[test]
 fn query_mutation_admission_marks_simple_topology_creates_as_ready() {
-    let admission = admit_worth_query_mutation_batch(&RawWorthTopologyIntent::new(
-        vec![WorthTopologyMutation::CreateEntity {
-            create_key: crate::facade::WorthCreateKey::new("query-ready.model"),
-            kind: WorthEntityKind::Topology(WorthTopologyEntityKind::Model),
+    let admission = admit_query_mutation_batch(&RawTopologyIntent::new(
+        vec![TopologyMutation::CreateEntity {
+            create_key: crate::facade::CreateKey::new("query-ready.model"),
+            kind: EntityKind::Topology(TopologyEntityKind::Model),
         }],
-        crate::facade::WorthMutationOrigin::Seed,
+        crate::facade::MutationOrigin::Seed,
     ));
 
-    assert!(matches!(admission, WorthQueryMutationAdmission::Admitted));
+    assert!(matches!(admission, QueryMutationAdmission::Admitted));
 }
 
 #[test]
 fn query_mutation_admission_marks_same_batch_topology_relation_creation_as_ready() {
-    let admission = admit_worth_query_mutation_batch(&RawWorthTopologyIntent::new(
+    let admission = admit_query_mutation_batch(&RawTopologyIntent::new(
         vec![
-            WorthTopologyMutation::CreateEntity {
-                create_key: crate::facade::WorthCreateKey::new("query-ready.source"),
-                kind: WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex),
+            TopologyMutation::CreateEntity {
+                create_key: crate::facade::CreateKey::new("query-ready.source"),
+                kind: EntityKind::Topology(TopologyEntityKind::Vertex),
             },
-            WorthTopologyMutation::CreateEntity {
-                create_key: crate::facade::WorthCreateKey::new("query-ready.target"),
-                kind: WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex),
+            TopologyMutation::CreateEntity {
+                create_key: crate::facade::CreateKey::new("query-ready.target"),
+                kind: EntityKind::Topology(TopologyEntityKind::Vertex),
             },
-            WorthTopologyMutation::CreateRelation {
-                create_key: crate::facade::WorthCreateKey::new("query-ready.edge"),
-                kind: WorthRelationKind::Topology(
-                    crate::facade::WorthTopologyRelationKind::HalfEdgeNext,
-                ),
+            TopologyMutation::CreateRelation {
+                create_key: crate::facade::CreateKey::new("query-ready.edge"),
+                kind: RelationKind::Topology(crate::facade::TopologyRelationKind::HalfEdgeNext),
                 source: created_ref("query-ready.source"),
                 target: created_ref("query-ready.target"),
             },
         ],
-        crate::facade::WorthMutationOrigin::LocalEdit,
+        crate::facade::MutationOrigin::LocalEdit,
     ));
 
-    assert!(matches!(admission, WorthQueryMutationAdmission::Admitted));
+    assert!(matches!(admission, QueryMutationAdmission::Admitted));
 }
 
 #[test]
 fn query_mutation_admission_rejects_geometry_and_diagnostics_truth_outside_topology_lane() {
-    let admission = admit_worth_query_mutation_batch(&RawWorthTopologyIntent::new(
+    let admission = admit_query_mutation_batch(&RawTopologyIntent::new(
         vec![
-            WorthTopologyMutation::CreateEntity {
-                create_key: crate::facade::WorthCreateKey::new("query-gap.geometry"),
-                kind: WorthEntityKind::Geometry(WorthGeometryEntityKind::SurfaceBinding),
+            TopologyMutation::CreateEntity {
+                create_key: crate::facade::CreateKey::new("query-gap.geometry"),
+                kind: EntityKind::Geometry(GeometryEntityKind::SurfaceBinding),
             },
-            WorthTopologyMutation::CreateRelation {
-                create_key: crate::facade::WorthCreateKey::new("query-gap.diag-rel"),
-                kind: WorthRelationKind::Diagnostics(
-                    WorthDiagnosticsRelationKind::WireHasInterpretation,
-                ),
+            TopologyMutation::CreateRelation {
+                create_key: crate::facade::CreateKey::new("query-gap.diag-rel"),
+                kind: RelationKind::Diagnostics(DiagnosticsRelationKind::WireHasInterpretation),
                 source: created_ref("query-gap.a"),
                 target: created_ref("query-gap.b"),
             },
         ],
-        crate::facade::WorthMutationOrigin::LocalEdit,
+        crate::facade::MutationOrigin::LocalEdit,
     ));
 
     let blockers = admission.blockers();
     assert!(blockers.iter().any(|row| {
-        row.blocker == WorthQueryMutationAdmissionBlocker::UnsupportedGeometryTruthMutation
+        row.blocker == QueryMutationAdmissionBlocker::UnsupportedGeometryTruthMutation
     }));
     assert!(blockers.iter().any(|row| {
-        row.blocker == WorthQueryMutationAdmissionBlocker::UnsupportedDiagnosticsTruthMutation
+        row.blocker == QueryMutationAdmissionBlocker::UnsupportedDiagnosticsTruthMutation
     }));
 }

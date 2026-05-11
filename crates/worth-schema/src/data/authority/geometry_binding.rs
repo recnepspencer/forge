@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthSurfaceBindingKind {
+pub enum SurfaceBindingKind {
     Plane,
     Cylinder,
     Cone,
@@ -10,7 +10,7 @@ pub enum WorthSurfaceBindingKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthCurveBindingKind {
+pub enum CurveBindingKind {
     Line,
     Circle,
     Ellipse,
@@ -18,14 +18,14 @@ pub enum WorthCurveBindingKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthCoedgeCurveKind {
+pub enum CoedgeCurveKind {
     Line,
     Circle,
     Nurbs,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthCurveProvenanceKind {
+pub enum CurveProvenanceKind {
     AnalyticIntersection,
     SsiSolver,
     SplitInherited,
@@ -33,7 +33,7 @@ pub enum WorthCurveProvenanceKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthVertexGeometryProvenanceKind {
+pub enum VertexGeometryProvenanceKind {
     ThreePlaneIntersection,
     EdgeSplit,
     Imported,
@@ -41,7 +41,7 @@ pub enum WorthVertexGeometryProvenanceKind {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthVertexToleranceRegime {
+pub enum VertexToleranceRegime {
     Exact,
     Modeled,
     Healed,
@@ -49,7 +49,7 @@ pub enum WorthVertexToleranceRegime {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthSurfaceRelationKind {
+pub enum SurfaceRelationKind {
     Coincident,
     Disjoint,
     General,

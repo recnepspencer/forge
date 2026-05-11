@@ -4,66 +4,66 @@ use super::*;
 fn admitted_family_parameter_sweeps_certify_across_ranges() {
     let cases = [
         (
-            WorthMilestoneOnePrimitiveCase::WireOpen { half_edge_count: 1 },
+            MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 1 },
             "WireOpen(n)",
         ),
         (
-            WorthMilestoneOnePrimitiveCase::WireOpen { half_edge_count: 8 },
+            MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 8 },
             "WireOpen(n)",
         ),
         (
-            WorthMilestoneOnePrimitiveCase::WireClosed { half_edge_count: 3 },
+            MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 3 },
             "WireClosed(n)",
         ),
         (
-            WorthMilestoneOnePrimitiveCase::WireClosed { half_edge_count: 9 },
+            MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 9 },
             "WireClosed(n)",
         ),
         (
-            WorthMilestoneOnePrimitiveCase::WireBranch { branch_count: 3 },
+            MilestoneOnePrimitiveCase::WireBranch { branch_count: 3 },
             "WireBranch(k)",
         ),
         (
-            WorthMilestoneOnePrimitiveCase::WireBranch { branch_count: 9 },
+            MilestoneOnePrimitiveCase::WireBranch { branch_count: 9 },
             "WireBranch(k)",
         ),
         (
-            WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 3 },
+            MilestoneOnePrimitiveCase::SheetDisk { edge_count: 3 },
             "SheetDisk(n)",
         ),
         (
-            WorthMilestoneOnePrimitiveCase::SheetDisk { edge_count: 10 },
+            MilestoneOnePrimitiveCase::SheetDisk { edge_count: 10 },
             "SheetDisk(n)",
         ),
         (
-            WorthMilestoneOnePrimitiveCase::SheetPatch { face_count: 2 },
+            MilestoneOnePrimitiveCase::SheetPatch { face_count: 2 },
             "SheetPatch(f)",
         ),
         (
-            WorthMilestoneOnePrimitiveCase::SheetPatch { face_count: 8 },
+            MilestoneOnePrimitiveCase::SheetPatch { face_count: 8 },
             "SheetPatch(f)",
         ),
         (
-            WorthMilestoneOnePrimitiveCase::SolidShell { face_count: 4 },
+            MilestoneOnePrimitiveCase::SolidShell { face_count: 4 },
             "SolidShell(f)",
         ),
         (
-            WorthMilestoneOnePrimitiveCase::SolidShell { face_count: 10 },
+            MilestoneOnePrimitiveCase::SolidShell { face_count: 10 },
             "SolidShell(f)",
         ),
         (
-            WorthMilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 3 },
+            MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 3 },
             "NmtEdgeFan(k)",
         ),
         (
-            WorthMilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 9 },
+            MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 9 },
             "NmtEdgeFan(k)",
         ),
     ];
 
     for (index, (primitive, family)) in cases.into_iter().enumerate() {
-        let mut runtime = crate::facade::worth_milestone_one_runtime_builder()
-            .expect("worth milestone one runtime builder")
+        let mut runtime = crate::facade::milestone_one_runtime_builder()
+            .expect(" milestone one runtime builder")
             .build();
         let verified = verified_primitive(&mut runtime, &format!("sweep.case.{index}"), &primitive)
             .expect("admitted primitive commit");
@@ -101,26 +101,26 @@ fn admitted_family_parameter_sweeps_certify_across_ranges() {
 fn branch_local_parameter_sweeps_preserve_branch_and_replay_truth() {
     let cases = [
         (
-            WorthMilestoneOnePrimitiveCase::WireBranch { branch_count: 8 },
+            MilestoneOnePrimitiveCase::WireBranch { branch_count: 8 },
             "WireBranch(k)",
         ),
         (
-            WorthMilestoneOnePrimitiveCase::SheetPatch { face_count: 7 },
+            MilestoneOnePrimitiveCase::SheetPatch { face_count: 7 },
             "SheetPatch(f)",
         ),
         (
-            WorthMilestoneOnePrimitiveCase::SolidShell { face_count: 9 },
+            MilestoneOnePrimitiveCase::SolidShell { face_count: 9 },
             "SolidShell(f)",
         ),
         (
-            WorthMilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 8 },
+            MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 8 },
             "NmtEdgeFan(k)",
         ),
     ];
 
     for (index, (primitive, family)) in cases.into_iter().enumerate() {
-        let mut runtime = crate::facade::worth_milestone_one_runtime_builder()
-            .expect("worth milestone one runtime builder")
+        let mut runtime = crate::facade::milestone_one_runtime_builder()
+            .expect(" milestone one runtime builder")
             .build();
         runtime
             .history_authority()
@@ -134,7 +134,7 @@ fn branch_local_parameter_sweeps_preserve_branch_and_replay_truth() {
             &format!("branch-sweep.case.{index}"),
             &primitive,
             BranchId("feature".to_string()),
-            WorthMutationOrigin::BranchLocalApplication,
+            MutationOrigin::BranchLocalApplication,
         )
         .expect("branch-local admitted primitive commit");
         let report = certify_verified_topology_commit_traced(&mut runtime, &verified)

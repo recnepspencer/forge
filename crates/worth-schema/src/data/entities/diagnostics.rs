@@ -2,15 +2,15 @@ use forge_relational::facade::identity::KindId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthDiagnosticsEntityKind {
+pub enum DiagnosticsEntityKind {
     WireInterpretation,
     ShellInterpretation,
 }
 
-impl WorthDiagnosticsEntityKind {
-    pub const WRAPPED_ALL: [super::WorthEntityKind; 2] = [
-        super::WorthEntityKind::Diagnostics(Self::WireInterpretation),
-        super::WorthEntityKind::Diagnostics(Self::ShellInterpretation),
+impl DiagnosticsEntityKind {
+    pub const WRAPPED_ALL: [super::EntityKind; 2] = [
+        super::EntityKind::Diagnostics(Self::WireInterpretation),
+        super::EntityKind::Diagnostics(Self::ShellInterpretation),
     ];
 
     pub const ALL: [Self; 2] = [Self::WireInterpretation, Self::ShellInterpretation];
@@ -24,8 +24,8 @@ impl WorthDiagnosticsEntityKind {
 
     pub const fn kind_name(self) -> &'static str {
         match self {
-            Self::WireInterpretation => "worth.wire_interpretation",
-            Self::ShellInterpretation => "worth.shell_interpretation",
+            Self::WireInterpretation => ".wire_interpretation",
+            Self::ShellInterpretation => ".shell_interpretation",
         }
     }
 

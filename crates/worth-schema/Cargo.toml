@@ -3,14 +3,17 @@ name = "worth-schema"
 edition.workspace = true
 version.workspace = true
 license.workspace = true
-description = "Worth truth vocabulary, aspects, and invariant declarations"
+description = "Topology truth vocabulary, aspects, and invariant declarations"
+
+[lib]
+name = "schema"
 
 [dependencies]
 forge-query.workspace = true
 forge-relational.workspace = true
 forge-runtime-bridge.workspace = true
 forge-signal.workspace = true
-worth-math.workspace = true
+math = { package = "worth-math", path = "../worth-math" }
 serde = { workspace = true, features = ["derive"] }
 serde_json.workspace = true
 sha2 = "0.10"

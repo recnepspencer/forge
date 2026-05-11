@@ -5,31 +5,30 @@ use forge_relational::facade::schema::{
 use forge_relational::facade::symbols::InternedString;
 
 use crate::data::aspects::{
-    WorthAspect, WorthDiagnosticsAspect, WorthGeometryAspect, WorthNamingAspect,
-    WorthTopologyAspect,
+    Aspect, DiagnosticsAspect, GeometryAspect, NamingAspect, TopologyAspect,
 };
-use crate::data::entities::{WorthDiagnosticsEntityKind, WorthEntityKind};
+use crate::data::entities::{DiagnosticsEntityKind, EntityKind};
 
-pub fn entity_aspects(kind: WorthEntityKind) -> KindAspectDeclarations {
+pub fn entity_aspects(kind: EntityKind) -> KindAspectDeclarations {
     KindAspectDeclarations::new(vec![
         entity_payload_aspect(domain_aspect(kind), domain_field(kind)),
         lifecycle_aspect(),
     ])
 }
 
-fn domain_aspect(kind: WorthEntityKind) -> WorthAspect {
+fn domain_aspect(kind: EntityKind) -> Aspect {
     match kind {
-        WorthEntityKind::Topology(_) => WorthAspect::Topology(WorthTopologyAspect::Structure),
-        WorthEntityKind::Geometry(_) => WorthAspect::Geometry(WorthGeometryAspect::Binding),
-        WorthEntityKind::Naming(_) => WorthAspect::Naming(WorthNamingAspect::PersistentName),
-        WorthEntityKind::Diagnostics(WorthDiagnosticsEntityKind::WireInterpretation)
-        | WorthEntityKind::Diagnostics(WorthDiagnosticsEntityKind::ShellInterpretation) => {
-            WorthAspect::Diagnostics(WorthDiagnosticsAspect::Interpretations)
+        EntityKind::Topology(_) => Aspect::Topology(TopologyAspect::Structure),
+        EntityKind::Geometry(_) => Aspect::Geometry(GeometryAspect::Binding),
+        EntityKind::Naming(_) => Aspect::Naming(NamingAspect::PersistentName),
+        EntityKind::Diagnostics(DiagnosticsEntityKind::WireInterpretation)
+        | EntityKind::Diagnostics(DiagnosticsEntityKind::ShellInterpretation) => {
+            Aspect::Diagnostics(DiagnosticsAspect::Interpretations)
         }
     }
 }
 
-fn entity_payload_aspect(aspect: WorthAspect, field: &str) -> DeclaredAspect {
+fn entity_payload_aspect(aspect: Aspect, field: &str) -> DeclaredAspect {
     DeclaredAspect {
         key: aspect.aspect_key(),
         binding: AspectBinding::EntityPayloadField {
@@ -40,15 +39,13 @@ fn entity_payload_aspect(aspect: WorthAspect, field: &str) -> DeclaredAspect {
     }
 }
 
-fn domain_field(kind: WorthEntityKind) -> &'static str {
+fn domain_field(kind: EntityKind) -> &'static str {
     match kind {
-        WorthEntityKind::Topology(_) => "structure",
-        WorthEntityKind::Geometry(_) => "binding",
-        WorthEntityKind::Naming(_) => "persistent_name",
-        WorthEntityKind::Diagnostics(WorthDiagnosticsEntityKind::WireInterpretation)
-        | WorthEntityKind::Diagnostics(WorthDiagnosticsEntityKind::ShellInterpretation) => {
-            "interpretations"
-        }
+        EntityKind::Topology(_) => "structure",
+        EntityKind::Geometry(_) => "binding",
+        EntityKind::Naming(_) => "persistent_name",
+        EntityKind::Diagnostics(DiagnosticsEntityKind::WireInterpretation)
+        | EntityKind::Diagnostics(DiagnosticsEntityKind::ShellInterpretation) => "interpretations",
     }
 }
 

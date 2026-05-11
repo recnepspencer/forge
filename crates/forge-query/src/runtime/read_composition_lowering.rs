@@ -186,6 +186,7 @@ pub(super) fn build_scoped_read_graph_from_authored(
     validate_declared_traversal_contract(&request, &schema_view).map_err(declarative_denial)?;
     let canonical = canonicalize_declarative_request(&request).map_err(declarative_denial)?;
     let canonical_query = canonical.query().clone();
+    let schema_view_for_runtime = schema_view.clone();
     let validated = validate_canonical_bundle(canonical, schema_view).map_err(validation_denial)?;
     let scope_class = classify_scope_shape_with_operators(&validated, &built_in_operators);
     if scope_class != expected_scope_class {
@@ -218,6 +219,8 @@ pub(super) fn build_scoped_read_graph_from_authored(
             .max()
             .unwrap_or(0),
         relationship_proof_admission,
+        request,
+        schema_view_for_runtime,
         execution_plan,
     ))
 }

@@ -5,16 +5,15 @@ use forge_signal::facade::{
 };
 
 use crate::data::authority::DerivedTopologyReadBasis;
-use crate::data::bootstrap::worth_bootstrap_schema_registry;
+use crate::data::bootstrap::bootstrap_schema_registry;
 use crate::data::explanation::{
     explain_authority_trace, explain_derived_trace, explain_signal_trace, narrate_boundary_envelope,
 };
-use crate::data::seed::{seed_milestone_one_primitive, WorthMilestoneOnePrimitiveCase};
+use crate::data::seed::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
 use crate::data::tracing::{
-    WorthAuthorityTraceAnchor, WorthAuthorityTraceEvidence, WorthBoundaryEnvelope,
-    WorthDecisionTrace, WorthDerivedTraceAnchor, WorthDerivedTraceEvidence, WorthIntegrityMarkers,
-    WorthNamedCounter, WorthPerformanceAccounting, WorthSignalTraceAnchor,
-    WorthSignalTraceEvidence, WorthTraceAvailability,
+    AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, DecisionTrace,
+    DerivedTraceAnchor, DerivedTraceEvidence, IntegrityMarkers, NamedCounter,
+    PerformanceAccounting, SignalTraceAnchor, SignalTraceEvidence, TraceAvailability,
 };
 
 const SIGNAL_ASPECT: Aspect = Aspect::new(0);
@@ -22,28 +21,22 @@ const SIGNAL_ASPECT: Aspect = Aspect::new(0);
 #[test]
 fn authority_trace_explanation_surfaces_commit_story_and_query_hints() {
     let mut runtime = RelationalRuntimeApi::builder()
-        .schema_registry(
-            worth_bootstrap_schema_registry().expect("worth bootstrap schema registry"),
-        )
+        .schema_registry(bootstrap_schema_registry().expect(" bootstrap schema registry"))
         .build();
     let verified = seed_milestone_one_primitive(
         &mut runtime,
         "authority-explanation",
-        &WorthMilestoneOnePrimitiveCase::WireClosed { half_edge_count: 3 },
+        &MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 3 },
     )
-    .expect("seed worth topology");
-    let anchor = WorthAuthorityTraceAnchor::from_commit_results(
-        verified.branch_id.clone(),
-        &verified.commits,
-    );
-    let evidence = WorthAuthorityTraceEvidence::from_commit_results(
-        verified.branch_id.clone(),
-        &verified.commits,
-    );
+    .expect("seed  topology");
+    let anchor =
+        AuthorityTraceAnchor::from_commit_results(verified.branch_id.clone(), &verified.commits);
+    let evidence =
+        AuthorityTraceEvidence::from_commit_results(verified.branch_id.clone(), &verified.commits);
 
     let narrative = explain_authority_trace(&runtime, &anchor, Some(&evidence));
 
-    assert_eq!(narrative.availability, WorthTraceAvailability::Present);
+    assert_eq!(narrative.availability, TraceAvailability::Present);
     assert!(narrative.headline.contains("Authority committed"));
     assert!(narrative.branch_head_matches_latest_commit);
     assert!(narrative.changed_record_count > 0);
@@ -52,27 +45,25 @@ fn authority_trace_explanation_surfaces_commit_story_and_query_hints() {
 }
 
 #[test]
-fn derived_trace_explanation_reopens_snapshot_and_mentions_touched_worth_aspects() {
+fn derived_trace_explanation_reopens_snapshot_and_mentions_touched_aspects() {
     let mut runtime = RelationalRuntimeApi::builder()
-        .schema_registry(
-            worth_bootstrap_schema_registry().expect("worth bootstrap schema registry"),
-        )
+        .schema_registry(bootstrap_schema_registry().expect(" bootstrap schema registry"))
         .build();
     let verified = seed_milestone_one_primitive(
         &mut runtime,
         "derived-explanation",
-        &WorthMilestoneOnePrimitiveCase::WireClosed { half_edge_count: 3 },
+        &MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 3 },
     )
-    .expect("seed worth topology");
+    .expect("seed  topology");
     let read_basis = DerivedTopologyReadBasis::from_persisted_truth(&verified.persisted_truth);
-    let anchor = WorthDerivedTraceAnchor::from_read_basis(&read_basis);
-    let evidence = WorthDerivedTraceEvidence {
-        availability: WorthTraceAvailability::Present,
+    let anchor = DerivedTraceAnchor::from_read_basis(&read_basis);
+    let evidence = DerivedTraceEvidence {
+        availability: TraceAvailability::Present,
         invalidation_target_count: 3,
         fallback_classes: vec!["WholeViewRebuild".to_string()],
         equivalence_digest: Some("digest:test".to_string()),
     };
-    let markers = WorthIntegrityMarkers::new(
+    let markers = IntegrityMarkers::new(
         Some(read_basis.branch_id().clone()),
         read_basis.touched_aspects().clone(),
         Some(read_basis.authoritative_mutation_origin()),
@@ -83,7 +74,7 @@ fn derived_trace_explanation_reopens_snapshot_and_mentions_touched_worth_aspects
 
     let narrative = explain_derived_trace(&runtime, &anchor, Some(&evidence), Some(&markers));
 
-    assert_eq!(narrative.availability, WorthTraceAvailability::Present);
+    assert_eq!(narrative.availability, TraceAvailability::Present);
     assert!(narrative.headline.contains("Derived trace reopened"));
     assert!(narrative.entity_count > 0);
     assert!(narrative.relation_count > 0);
@@ -98,31 +89,29 @@ fn derived_trace_explanation_reopens_snapshot_and_mentions_touched_worth_aspects
 #[test]
 fn boundary_envelope_narration_uses_query_rooted_decision_trace() {
     let mut runtime = RelationalRuntimeApi::builder()
-        .schema_registry(
-            worth_bootstrap_schema_registry().expect("worth bootstrap schema registry"),
-        )
+        .schema_registry(bootstrap_schema_registry().expect(" bootstrap schema registry"))
         .build();
     let verified = seed_milestone_one_primitive(
         &mut runtime,
         "narrated-envelope",
-        &WorthMilestoneOnePrimitiveCase::WireClosed { half_edge_count: 3 },
+        &MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 3 },
     )
-    .expect("seed worth topology");
+    .expect("seed  topology");
     let read_basis = DerivedTopologyReadBasis::from_persisted_truth(&verified.persisted_truth);
-    let decision_trace = WorthDecisionTrace {
-        authority_anchor: Some(WorthAuthorityTraceAnchor::from_commit_results(
+    let decision_trace = DecisionTrace {
+        authority_anchor: Some(AuthorityTraceAnchor::from_commit_results(
             verified.branch_id.clone(),
             &verified.commits,
         )),
         bridge_anchor: None,
-        derived_anchor: Some(WorthDerivedTraceAnchor::from_read_basis(&read_basis)),
-        authority: Some(WorthAuthorityTraceEvidence::from_commit_results(
+        derived_anchor: Some(DerivedTraceAnchor::from_read_basis(&read_basis)),
+        authority: Some(AuthorityTraceEvidence::from_commit_results(
             verified.branch_id.clone(),
             &verified.commits,
         )),
         bridge: None,
-        derived: Some(WorthDerivedTraceEvidence {
-            availability: WorthTraceAvailability::Present,
+        derived: Some(DerivedTraceEvidence {
+            availability: TraceAvailability::Present,
             invalidation_target_count: 2,
             fallback_classes: Vec::new(),
             equivalence_digest: None,
@@ -130,11 +119,11 @@ fn boundary_envelope_narration_uses_query_rooted_decision_trace() {
         signal_anchor: None,
         signal: None,
     };
-    let envelope = WorthBoundaryEnvelope::success(
+    let envelope = BoundaryEnvelope::success(
         "ok",
         Vec::new(),
         decision_trace,
-        WorthIntegrityMarkers::new(
+        IntegrityMarkers::new(
             Some(read_basis.branch_id().clone()),
             read_basis.touched_aspects().clone(),
             Some(read_basis.authoritative_mutation_origin()),
@@ -142,7 +131,7 @@ fn boundary_envelope_narration_uses_query_rooted_decision_trace() {
             read_basis.precision_fallbacks.len(),
             read_basis.precision_budget_fallbacks.len(),
         ),
-        WorthPerformanceAccounting::new([WorthNamedCounter::new("test.counter", 1)]),
+        PerformanceAccounting::new([NamedCounter::new("test.counter", 1)]),
     );
 
     let narrative = narrate_boundary_envelope(&runtime, None, None, &envelope);
@@ -200,14 +189,13 @@ fn signal_trace_explanation_queries_node_replay_lineage_and_artifacts() {
         .expect("refresh execution");
 
     let _diagnostics = diagnostics_for_graph(&graph);
-    let anchor = WorthSignalTraceAnchor::from_graph(&graph, dependent).expect("signal anchor");
-    let evidence =
-        WorthSignalTraceEvidence::from_graph(&graph, dependent).expect("signal evidence");
+    let anchor = SignalTraceAnchor::from_graph(&graph, dependent).expect("signal anchor");
+    let evidence = SignalTraceEvidence::from_graph(&graph, dependent).expect("signal evidence");
 
     let narrative =
         explain_signal_trace(&graph, &anchor, Some(&evidence)).expect("signal narrative");
 
-    assert_eq!(narrative.availability, WorthTraceAvailability::Present);
+    assert_eq!(narrative.availability, TraceAvailability::Present);
     assert!(narrative.headline.contains("Signal tracked node"));
     assert!(narrative.replay_event_count > 0);
     assert!(narrative.execution_record_id.is_some());

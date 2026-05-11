@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthTopologyInvariantGroup {
+pub enum TopologyInvariantGroup {
     OwnershipConsistency,
     RequiredSingleRelationPresence,
     LoopEntryCoherence,
@@ -11,7 +11,7 @@ pub enum WorthTopologyInvariantGroup {
     VertexOriginLegality,
 }
 
-impl WorthTopologyInvariantGroup {
+impl TopologyInvariantGroup {
     pub const ALL: [Self; 7] = [
         Self::OwnershipConsistency,
         Self::RequiredSingleRelationPresence,

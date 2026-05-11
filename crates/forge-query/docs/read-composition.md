@@ -36,6 +36,7 @@ Current stable entry points:
 - `workspace.define_read_family(...)`
 - `workspace.define_read_family_with_invariant_pack(...)`
 - `workspace.execute_read_family(...)`
+- `workspace.execute_read_family_in_basis_context(...)`
 - `workspace.public_read_composition_support_report(...)`
 - `workspace.public_read_composition_phase_one_closeout(...)`
 - `workspace.public_read_composition_phase_gate(...)`
@@ -403,6 +404,24 @@ assert_eq!(
 );
 ```
 
+When the caller already holds an admitted query basis context, execute the same
+family through `workspace.execute_read_family_in_basis_context(...)` instead.
+That preserves the reusable read graph while letting the receipt report whether
+the admitted basis was current, branch, historical, or preview-derived. If the
+workspace is not itself bound to the admitted non-current basis, the returned
+rows are derived from the admitted query-context execution artifact instead of
+from current-head runtime materialization. The runtime denies the call before
+materialization if the context query digest does not match the family read
+graph, so an admitted basis cannot be substituted for an unrelated reusable
+read family.
+
+Domain runtimes that need to bind a read-only runtime snapshot into that path
+should resolve the basis through `resolve_runtime_current_snapshot_basis(...)`
+and then preflight the reusable family execution plan. That keeps
+`ResolvedSnapshotIdentity` sealed while still producing a basis digest and
+snapshot token that `execute_read_family_in_basis_context(...)` can preserve on
+the historical read receipt.
+
 If the reusable family must carry domain admission proof, define it through the
 invariant-packed variant and give that admission a stable family name:
 
@@ -674,6 +693,8 @@ So the split is:
 - one-shot bounded graph reads: `compose_read(...)`
 - reusable bounded graph reads: `define_read_family(...)` plus
   `execute_read_family(...)`
+- basis-aware reusable bounded graph reads:
+  `define_read_family(...)` plus `execute_read_family_in_basis_context(...)`
 - authoritative mutation composition: graph composition / write surfaces
 
 Later domain adoption is expected to plug into the read kernel through four
@@ -745,7 +766,8 @@ public support artifacts are part of this feature too:
   into typed runtime evidence for:
   - Phase 1 completion
   - Phase 2 Worth-adoption readiness
-  - the fact that Milestone 3 remains blocked until Phase 3 aggregate closeout
+  - the fact that the topology-first Phase 3 aggregate closeout gate is now
+    satisfied for Milestone 3 resume
 
 ## Anti-Patterns
 
@@ -788,9 +810,11 @@ Current limits:
   domain adoption, but those hooks still certify the generic kernel boundary,
   not completed Worth-side domain vocabularies
 - the Phase 1 phase-gate artifact now freezes that the generic kernel is
-  complete and that Worth may begin Phase 2 adoption, while still keeping
-  Milestone 3 blocked until the later aggregate closeout proof exists
-- the current execution engine is the runtime-current execution substrate
+  complete, that Worth may adopt it through domain-owned facades, and that the
+  topology-first Phase 3 aggregate proof has closed for Milestone 3 resume
+- read-family execution can now use an already-admitted current, branch,
+  historical, or preview-derived query basis context, while the one-shot
+  `compose_read(...)` path still resolves the current runtime snapshot basis
 - the lower declarative request can now preserve hidden query-only projection,
   delivered result fields, non-equality predicates, traversal, and ordering
 - collection reads no longer require an explicit ordering clause to stay
@@ -806,8 +830,9 @@ Current limits:
   reads from traversal-bearing reads; traversal reads now carry a real
   synthetic-runtime descriptor admission, while runtime proof evaluation still
   remains explicitly deferred in the receipt support profile
-- this does not yet replace every manual domain-level neighborhood helper in
-  downstream crates
+- this does not automatically migrate every future domain-level neighborhood
+  helper in downstream crates; each later domain still needs its own
+  domain-owned facade, decoded views, and aggregate closeout proof
 
 In other words, the surface is real and stable enough to build against, but it
 is still growing toward the full read-composition kernel described in the wider

@@ -25,21 +25,29 @@ The operating rule is:
 - `Forge Query Runtime Rewrite Gate`: Proposed, blocks further Milestone 3
   implementation and rewrites Worth runtime mutation onto Forge Query's
   aspect-native public mutation surface
-- `Worth Read Composition Side Quest`: Proposed, blocks further query-heavy
-  Milestone 3 widening and promotes bounded read composition into a first-class
-  Forge Query product so Worth neighborhoods stop rebuilding caller-owned row
-  joins
-- `Milestone 3`: Active, to be rewritten onto the query-native substrate
-- Milestones `4+`: Planned
+- `Worth Read Composition Side Quest`: Closed for the Milestone 3 return gate;
+  promoted bounded read composition into a first-class Forge Query product so
+  Worth neighborhoods stop rebuilding caller-owned row joins
+- `Worth Topology Domain Structure Gate`: Closed; `worth-topo` is rehomed into
+  a topology-domain skeleton that cleanly separates B-rep truth, derived
+  topology, validation, topology operators, projection, certification, and test
+  support
+- `Milestone 3`: Complete
+- `Milestone 4`: Active
+- Milestones `5+`: Planned
 
 Milestone 1 closeout record:
 - [milestone-1-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-1-closeout.md)
 Milestone 2 closeout record:
 - [milestone-2-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-2-closeout.md)
+Milestone 3 closeout record:
+- [milestone-3-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-3-closeout.md)
 Forge Query runtime rewrite gate:
 - [forge-query-runtime-rewrite-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/forge-query-runtime-rewrite-plan.md)
 Worth read composition side quest:
 - [worth-query-domain-substrate.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-query-domain-substrate.md)
+Worth topology domain structure gate:
+- [worth-topo-domain-structure-gate.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-topo-domain-structure-gate.md)
 
 ## Global Adversarial Constraint
 
@@ -440,7 +448,8 @@ These should be widened across `Milestone 18` through `Milestone 20`:
 Critical path:
 
 - `Milestone 1` -> `Milestone 2` -> `Forge Query Runtime Rewrite Gate` ->
-  `Worth Read Composition Side Quest` -> `Milestone 3` ->
+  `Worth Read Composition Side Quest` ->
+  `Worth Topology Domain Structure Gate` -> `Milestone 3` ->
   `Milestone 4` -> `Milestone 5` -> `Milestone 6` -> `Milestone 7` ->
   `Milestone 8` -> `Milestone 9` -> `Milestone 10` -> `Milestone 11` ->
   `Milestone 12` -> `Milestone 13` -> `Milestone 14` -> `Milestone 15` ->
@@ -716,7 +725,7 @@ derived topology surface and diagnostic story.
 
 ## Milestone 3: Topology Editing Core
 
-> **Status:** Active
+> **Status:** Complete
 
 ### Goal
 
@@ -2410,6 +2419,7 @@ Worth is roadmap-complete only when:
 - [VISION.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/VISION.md)
 - [worth_bootstrap_plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/worth_bootstrap_plan.md)
 - [milestone-1.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-1.md)
+- [worth-topo-domain-structure-gate.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth-topo-domain-structure-gate.md)
 - [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/test-requirements.md)
 - [test-requirements_pt2.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/test-requirements_pt2.md)
 - [metaboss_tier4.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/metaboss_tier4.md)

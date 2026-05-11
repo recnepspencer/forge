@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthTopologyClass {
+pub enum TopologyClass {
     WireOpen,
     WireClosed,
     WireBranch,
@@ -11,7 +11,7 @@ pub enum WorthTopologyClass {
     NmtEdgeFan,
 }
 
-impl WorthTopologyClass {
+impl TopologyClass {
     pub const ALL: [Self; 7] = [
         Self::WireOpen,
         Self::WireClosed,
@@ -24,13 +24,13 @@ impl WorthTopologyClass {
 
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::WireOpen => "worth.class.wire_open",
-            Self::WireClosed => "worth.class.wire_closed",
-            Self::WireBranch => "worth.class.wire_branch",
-            Self::SheetDisk => "worth.class.sheet_disk",
-            Self::SheetPatch => "worth.class.sheet_patch",
-            Self::SolidShellGenus0 => "worth.class.solid_shell_genus0",
-            Self::NmtEdgeFan => "worth.class.nmt_edge_fan",
+            Self::WireOpen => ".class.wire_open",
+            Self::WireClosed => ".class.wire_closed",
+            Self::WireBranch => ".class.wire_branch",
+            Self::SheetDisk => ".class.sheet_disk",
+            Self::SheetPatch => ".class.sheet_patch",
+            Self::SolidShellGenus0 => ".class.solid_shell_genus0",
+            Self::NmtEdgeFan => ".class.nmt_edge_fan",
         }
     }
 }

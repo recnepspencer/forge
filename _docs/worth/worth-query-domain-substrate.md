@@ -1,6 +1,7 @@
 # Worth Read Composition Side Quest
 
-> **Status:** Proposed
+> **Status:** Closed - Phase 1 through Phase 3 complete; Phase 4 remains future
+> domain-adoption guidance
 >
 > **Roadmap parent:** [worth_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/_docs/worth/worth_roadmap.md)
 >
@@ -20,23 +21,56 @@ then narrow Worth onto that product through domain-owned read families so
 topology, later spatial, and later kernel code no longer rebuild row joins,
 neighborhood indexes, or ad hoc traversal logic in user space.
 
+## Closeout Status
+
+This side quest is closed for the Milestone 3 return gate.
+
+Closed phases:
+
+- **Phase 1:** `forge-query` now exposes the public read-composition product:
+  `compose_read(...)`, `compose_read_with_invariant_pack(...)`,
+  `define_read_family(...)`, `execute_read_family(...)`,
+  `ForgeQueryReadGraph`, `ForgeQueryReadReceipt`, and typed read denials.
+- **Phase 2:** `worth-topo` now exposes the topology-domain read facade through
+  `TopologyDomainQuery`, typed request families, decoded topology views,
+  proof reports, aggregate reports, and closeout reports.
+- **Phase 3:** the no-N+1 proof surface is machine-checkable through
+  `topology_read_lowering_breadth`,
+  `topology_read_fallback_posture`, `topology_read_view_parity`, and
+  `topology_read_relationship_proof_posture`; Milestone 3 closeout is
+  enforced by `certify_milestone_three_closeout()`.
+
+Phase 4 is intentionally not part of this closeout. It remains the adoption
+pattern for later Worth domains after the topology-first gate.
+
+Developer-facing docs shipped with the implementation:
+
+- `crates/forge-query/docs/read-composition.md`
+- `crates/worth-topo/docs/domain-reads.md`
+- `crates/worth-topo/docs/runtime-support.md`
+
+Final verification:
+
+- `cargo fmt --check`
+- `cargo test -p worth-topo`
+
 ## Why This Side Quest Exists
 
 Worth is already better than the old mirror-runtime shape, but it still has a
 structural read-product gap.
 
-Today:
+At kickoff:
 
 - `forge-query` already ships authored query families, bounded traversal
   selectors, canonicalized composition, live-family promotion, relationship
   proof admission, and bridge lowering for relation-scoped subscriptions
-- `worth-topo` still performs repeated row-decoding and neighborhood discovery
+- `worth-topo` still performed repeated row-decoding and neighborhood discovery
   locally in certification helpers, witness builders, and runtime test support
-- the new `snapshot_index` fixes the immediate `O(E * R)` and repeated table
-  scan smell, but it is still a post-read helper rather than a first-class
-  execution product
+- the interim snapshot row/index helpers fixed the immediate `O(E * R)` and
+  repeated table scan smell, but they were still post-read helpers rather than
+  a first-class execution product
 
-That is honest tactical progress and still the wrong final product shape.
+That was honest tactical progress and still the wrong final product shape.
 
 The bad product shape is:
 
@@ -187,8 +221,8 @@ The design fails if:
   - domain-decoded view families
   - domain-specific invariant packs
   - domain read certification meaning
-- `snapshot_index` is allowed as tactical fallback and migration debt, not as
-  the permanent primary execution engine.
+- snapshot row/index helpers were allowed as tactical fallback and migration
+  debt during the migration, not as the permanent primary execution engine.
 - Raw `workspace.read(...)` row sets are not the desired external authoring or
   recurring execution model for graph-shaped Worth reads.
 - Repeated caller-owned row joins in active Worth runtime, certification, or
@@ -516,13 +550,17 @@ The first domain adoption ship must target:
   - half-edge radial neighborhood
   - local rewire witness neighborhood
 - first migrated callers:
-  - [relation_update_support.rs](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/crates/worth-topo/src/query/runtime/tests/relation_update_support.rs)
+  - topology runtime relation-update support under
+    `crates/worth-topo/src/projection/runtime_boundary/query_runtime/tests/relation_update/`
+  - topology-domain query support under
+    `crates/worth-topo/src/query/tests/domain_query/`
   - any current loop-cycle or local-successor callers that can consume the
     first real Query-executed family without semantic drift
   - then:
-    - [bowtie_adjacent.rs](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/crates/worth-topo/src/certification/milestone_three/bowtie_adjacent.rs)
-    - [ambiguous_local_rewire.rs](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/crates/worth-topo/src/certification/milestone_three/ambiguous_local_rewire.rs)
-    - [broken_radial_localization.rs](/Users/Esther/Documents/Programming/forge_workspace/worktree_2/crates/worth-topo/src/certification/milestone_three/broken_radial_localization.rs)
+    - `crates/worth-topo/src/certification/milestone_three/bowtie_adjacent.rs`
+    - `crates/worth-topo/src/certification/milestone_three/ambiguous_local_rewire.rs`
+    - `crates/worth-topo/src/certification/milestone_three/broken_radial_localization.rs`
+    - `crates/worth-topo/src/certification/milestone_three/split_collapse_churn.rs`
 
 The intended first-ship API shape is:
 
@@ -609,11 +647,12 @@ The implementation order is mandatory:
 3. close the side quest with aggregate proof and explicit remaining debt rows
 4. only then resume broader Milestone 3 work
 
-Adjacent proof or receipt work is allowed only when it belongs to the current
-phase's exit condition. Work from a later phase must not be pulled forward just
-because it is easier to land first.
+That ordering has now been satisfied for the topology-first Milestone 3 gate.
+Future adoption work must still preserve the same ordering inside each later
+domain rather than widening domain read families faster than the generic
+execution product can support honestly.
 
-### Phase 1: Finish The Query-Native Read Composition Kernel
+### Phase 1: Finish The Query-Native Read Composition Kernel - Closed
 
 Solve the real hard problem first in `forge-query` and keep working there until
 the generic read product is complete enough for honest Worth adoption.
@@ -644,9 +683,9 @@ This phase must freeze:
   - `AnchoredExpansion`
   - `ExplicitBroadSearch`
 - the runtime distinction between:
-  - canonical Query-backed execution
-  - snapshot-index fallback
-  - whole-view fallback
+  - query-runtime current execution
+  - query-runtime historical execution
+  - explicit fallback / debt classes
 - the generic read-operator surface required not only for active Worth
   topology migration, but also for later trim, carrier, NURBS, fillet, and
   branch-history domains, so later widening does not force those domains back
@@ -660,11 +699,11 @@ This phase must freeze:
 This phase is complete only when `forge-query` can do more than declare and
 admit traversal. It must be able to execute the bounded read families Worth
 actually needs through a first-class runtime product without forcing active
-Worth callers back into snapshot-index-primary execution, and it must expose a
+Worth callers back into tactical snapshot-row execution, and it must expose a
 generic operator set broad enough that later domains can compose their reads
 without reopening the row-product failure mode.
 
-### Phase 2: Move Active Worth Topology Read Families Onto The Finished Kernel
+### Phase 2: Move Active Worth Topology Read Families Onto The Finished Kernel - Closed
 
 Only after Phase 1 is complete may Worth freeze its domain boundary and migrate
 active topology reads onto the kernel.
@@ -725,10 +764,10 @@ The resulting view types must:
 
 Examples of the intended shape:
 
-- `WorthTopologyHalfEdgeNeighborhoodView`
-- `WorthTopologyLoopCycleView`
-- `WorthTopologyRadialNeighborhoodView`
-- `WorthTopologyWitnessView`
+- `TopologyHalfEdgeSharedVertexNeighborhoodView`
+- `TopologyHalfEdgeRadialNeighborhoodView`
+- `TopologyLoopCycleView`
+- `TopologyLocalRewireNeighborhoodView`
 
 Equivalent names are acceptable if the responsibilities remain distinct.
 
@@ -744,8 +783,8 @@ The migration rule is:
 
 - if the neighborhood can execute honestly through the new Query-native
   read-composition runtime surface, do that
-- if it still needs `snapshot_index`, consume it only through the new Worth
-  read facade with explicit fallback evidence
+- if any future family still needs tactical snapshot rows, consume them only
+  through the topology-domain read facade with explicit fallback evidence
 - no caller is allowed to reach around the new facade and assemble the old row
   joins again
 
@@ -761,9 +800,10 @@ instead of a mixture of:
 and when the recurring topology hostility and witness lanes no longer teach
 local row-join patterns to the rest of Worth.
 
-At the end of this phase, `snapshot_index` should no longer appear as the
-primary language in those active callers. If it still exists, it should be
-visible only behind the new read facade or explicit fallback evidence.
+At the end of this phase, snapshot row/index helpers should no longer appear
+as the primary language in active callers. If tactical helpers still exist,
+they should be visible only behind the new read facade or explicit fallback
+evidence.
 
 The derived-view rule is strict:
 
@@ -772,7 +812,7 @@ The derived-view rule is strict:
 - if a caller needs a different neighborhood, it must issue a new request
   rather than mutating the returned view
 
-### Phase 3: Close The Side Quest With No-N-plus-1 Proof And Debt Closure
+### Phase 3: Close The Side Quest With No-N-plus-1 Proof And Debt Closure - Closed
 
 Turn the performance claim into a closeout obligation only after active Worth
 callers are genuinely on the new kernel.
@@ -823,15 +863,15 @@ This phase is complete only when all of the following are true:
 
 Named closeout contracts should include surfaces analogous to:
 
-- `worth_topology_read_lowering_breadth`
-- `worth_topology_read_fallback_posture`
-- `worth_topology_read_view_parity`
-- `worth_topology_read_relationship_proof_posture`
+- `topology_read_lowering_breadth`
+- `topology_read_fallback_posture`
+- `topology_read_view_parity`
+- `topology_read_relationship_proof_posture`
 
-### Phase 4: Widen Domain Adoption Beyond Topology
+### Phase 4: Widen Domain Adoption Beyond Topology - Future Guidance
 
 This phase is future-facing and is not allowed to distract from the
-Phase 1-3 gate that blocks Milestone 3 return.
+closed Phase 1-3 gate that unblocks Milestone 3 return.
 
 Define how the already-complete generic kernel and side-quest proof surfaces
 scale into later Worth domains without copying topology-specific assumptions.
@@ -892,8 +932,8 @@ The implementation sequence is gated and must be followed in order:
    - preserve mixed-path honesty while migrating
    - one request family should be genuinely Query-executed before broader
      migrations continue
-   - other families may remain explicit snapshot fallback debt temporarily, but
-     the returned proof surface must distinguish them exactly
+   - other families were allowed to remain explicit fallback debt temporarily,
+     but the returned proof surface had to distinguish them exactly
 4. `worth-topo` plus `forge-query`: close the side quest with aggregate proof.
    - certify which families are Query-executed
    - certify which families still fall back
@@ -969,28 +1009,40 @@ The implementation must explicitly avoid these traps:
   - an anchored expansion or broad search is reported or wrapped as a "local
     neighborhood" because that API shape feels nicer
 
-## Must Ship
+## Shipped Closeout Evidence
 
-- one `forge-query` read-composition kernel document and implementation plan
-- one first-class Query-native bounded read-composition execution surface
-- one first-class `compose_read(...)` surface plus `ReadGraph` artifact,
-  receipt, and typed denial lane
-- one topology-first domain read-family vocabulary
-- one topology-first lowering path onto the read-composition kernel plus
-  relationship-proof capability
-- one topology-first decoded read-view family
-- one explicit execution / fallback taxonomy for Query-executed versus
-  snapshot-indexed versus broad fallback query paths
-- one direct performance and breadth proof surface that makes N+1 or repeated
-  rediscovery visible
-- one migrated topology hostility/witness cluster proving the new boundary is
-  real rather than aspirational
-- matching developer-facing feature docs for:
-  - the generic `compose_read(...)` / `ReadGraph` product
-  - the first Worth topology-domain read families
-  - the receipt / inspection / denial posture
-  These docs should be authored or revised intentionally using the
-  `feature-doc-writer` skill rather than left as milestone-spec spillover.
+- `forge-query` read-composition kernel document and implementation plan:
+  `crates/forge-query/docs/read-composition.md`
+- first-class Query-native bounded read-composition execution surface:
+  `workspace.compose_read(...)`,
+  `workspace.compose_read_with_invariant_pack(...)`,
+  `workspace.define_read_family(...)`, and
+  `workspace.execute_read_family(...)`
+- first-class read artifact, receipt, and typed denial lane:
+  `ForgeQueryReadGraph`, `ForgeQueryReadResult`, `ForgeQueryReadReceipt`, and
+  `ForgeQueryReadDenial`
+- topology-first domain read-family vocabulary:
+  `TopologyDomainQueryRequestFamily`
+- topology-first lowering path onto the read-composition kernel plus
+  relationship-proof capability:
+  the migrated domain query families lower through Query-owned read families
+  and expose relationship-proof posture in their request reports
+- topology-first decoded read-view family:
+  shared-vertex, radial, loop-cycle, and local-rewire topology-domain views
+- explicit execution / fallback taxonomy:
+  query-runtime current execution, query-runtime historical execution, any
+  remaining fallback/debt rows, and phase-three blocker rows are exposed at the
+  domain closeout boundary
+- direct performance and breadth proof surface:
+  no-N+1 contract rows expose lowering breadth, fallback posture, view parity,
+  and relationship-proof posture
+- migrated topology hostility/witness cluster:
+  Milestone 3 hostile scenarios now consume the side-quest closeout and return
+  gate through `certify_milestone_three_closeout()`
+- matching developer-facing feature docs:
+  `crates/forge-query/docs/read-composition.md`,
+  `crates/worth-topo/docs/domain-reads.md`, and
+  `crates/worth-topo/docs/runtime-support.md`
 
 ## Must Preserve
 
@@ -999,8 +1051,8 @@ The implementation must explicitly avoid these traps:
 - Worth remains the owner of domain semantics, domain invariant meaning, and
   decoded domain views
 - authority remains separate from derivation
-- `snapshot_index` may remain tactical debt but must not become shadow
-  authority
+- tactical snapshot row helpers may remain only as explicit debt and must not
+  become shadow authority
 - unsupported traversal shapes fail typed and early
 - hidden broad scans remain forbidden in recurring local-claim workflows
 
@@ -1010,9 +1062,10 @@ The implementation must explicitly avoid these traps:
   neighborhood request families
 - a canonical parity proof that equivalent Worth read requests lower to
   identical Query-backed read graphs
-- at least one admitted Worth read family whose neighborhood result is
-  actually executed through the Query-native read-composition runtime surface
-  rather than snapshot fallback
+- admitted topology read families whose neighborhood results execute through
+  the Query-native read-composition runtime surface, including snapshot
+  read-only execution through the historical basis-aware path rather than
+  snapshot fallback
 - a topology hostility proof showing the migrated witness lanes no longer use
   caller-owned row joins
 - exact breadth counters proving when a request executed natively versus fell
@@ -1024,7 +1077,7 @@ The implementation must explicitly avoid these traps:
   deterministic across those contexts
 - aggregate proof that recurring Worth topology read workflows no longer carry
   hidden N+1 joins in their active certification/runtime paths
-- explicit debt rows for any remaining snapshot-index fallback consumers
+- explicit debt rows for any remaining tactical fallback consumers
 - public developer docs that explain:
   - what `compose_read(...)` is for
   - how `ReadGraph` relates to the public API
@@ -1036,9 +1089,9 @@ The implementation must explicitly avoid these traps:
 - The intended end state is not "every Worth caller learns Forge Query
   internals." The end state is "every Worth caller composes one domain read and
   gets one domain view backed by one real read-composition substrate."
-- `snapshot_index` is still useful as a migration and tactical honesty tool.
-  The problem is not its existence. The problem would be letting it become the
-  final public or recurring query story.
+- tactical snapshot row helpers remain useful as migration and honesty tools.
+  The problem is not their existence. The problem would be letting them become
+  the final public or recurring query story.
 - This side quest should prefer Query composition, traversal authoring,
   relationship proof admission, read-graph admission, and bridge-lowered
   subscription family selection wherever those capabilities already exist, so
@@ -1054,15 +1107,16 @@ The implementation must explicitly avoid these traps:
   is already consuming the real Query runtime rather than a mirror.
 - It belongs before more Milestone 3 hostility widening because otherwise each
   new hostile lane will keep inventing its own neighborhood logic.
-- Milestone 3 must remain blocked until Phase 3 of this side quest is complete.
-  Phase 1 kernel work and Phase 2 Worth migration are not sufficient on their
-  own; the unblock requires the side quest closeout proof and explicit debt
-  rows.
+- Milestone 3 was blocked until Phase 3 of this side quest was complete.
+  Phase 1 kernel work and Phase 2 Worth migration were not sufficient on their
+  own; the unblock required the side quest closeout proof and explicit debt
+  rows. That closeout proof now exists and is enforced by
+  `certify_milestone_three_closeout()`.
 - It also belongs before later spatial, NURBS, fillet, and branch-history
   query-heavy milestones because the generic kernel must be widened early
   enough to survive those domains without forcing them back into local
   reinvention, even though domain-family adoption itself still waits until
   after the side quest closeout gate.
 - This is a side quest, not a replacement milestone. Milestone 3 remains the
-  active topology-edit milestone, but its remaining expansion should consume
-  this substrate rather than bypass it.
+  active topology-edit milestone, and its remaining expansion should consume
+  this closed substrate rather than bypass it.

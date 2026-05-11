@@ -3,9 +3,16 @@ use crate::basis::{
     ExecutionBasisIntent, SnapshotLineageClass,
 };
 use crate::execution::execute_preflight_bundle;
+use crate::query_context::{
+    execute_query_basis_context, AdmittedQueryBasisContext, QueryContextFamily,
+};
 use crate::runtime::{
     ForgeQueryReadBuiltInOperator, ForgeQueryReadDenial, ForgeQueryReadDenialKind,
     ForgeQueryReadGraph, ForgeQueryReadResult, ForgeQueryReadScopeClass, ForgeQueryRuntime,
+};
+
+use super::read_composition_materialization::{
+    materialize_query_context_rows, materialize_read_rows,
 };
 
 pub(super) fn classify_scope_shape_with_operators(
@@ -59,7 +66,7 @@ pub(super) fn runtime_basis_intent() -> ExecutionBasisIntent {
 }
 
 pub(in crate::runtime) fn execute_runtime_current_read_graph(
-    runtime: &ForgeQueryRuntime,
+    runtime: &mut ForgeQueryRuntime,
     read_graph: &ForgeQueryReadGraph,
 ) -> Result<ForgeQueryReadResult, ForgeQueryReadDenial> {
     let snapshot_token = runtime.snapshot_token();
@@ -94,13 +101,68 @@ pub(in crate::runtime) fn execute_runtime_current_read_graph(
             format!("{error:?}"),
         )
     })?;
-    let receipt = crate::runtime::ForgeQueryReadReceipt::from_execution(
+    let rows = materialize_read_rows(runtime, read_graph)?;
+    let receipt = crate::runtime::ForgeQueryReadReceipt::from_materialized_rows(
         read_graph,
         snapshot_token,
         &execution,
+        &rows,
     );
-    Ok(ForgeQueryReadResult::new(
-        execution.payload().to_vec(),
-        receipt,
+    Ok(ForgeQueryReadResult::new(rows, receipt))
+}
+
+pub(in crate::runtime) fn execute_runtime_basis_context_read_graph(
+    runtime: &mut ForgeQueryRuntime,
+    read_graph: &ForgeQueryReadGraph,
+    context: &AdmittedQueryBasisContext,
+) -> Result<ForgeQueryReadResult, ForgeQueryReadDenial> {
+    ensure_context_matches_read_graph(read_graph, context)?;
+    let context_execution = execute_query_basis_context(context).map_err(|error| {
+        ForgeQueryReadDenial::new(
+            ForgeQueryReadDenialKind::BasisPreflightDenied,
+            format!("{error:?}"),
+        )
+    })?;
+    let snapshot_token = runtime.snapshot_token();
+    let rows = if context_allows_runtime_materialization(snapshot_token.as_str(), context) {
+        materialize_read_rows(runtime, read_graph)?
+    } else {
+        materialize_query_context_rows(&context_execution)
+    };
+    let receipt = crate::runtime::ForgeQueryReadReceipt::from_query_context_execution(
+        read_graph,
+        snapshot_token,
+        &context_execution,
+        &rows,
+    );
+    Ok(ForgeQueryReadResult::new(rows, receipt))
+}
+
+fn ensure_context_matches_read_graph(
+    read_graph: &ForgeQueryReadGraph,
+    context: &AdmittedQueryBasisContext,
+) -> Result<(), ForgeQueryReadDenial> {
+    if context.query_digest() == read_graph.query_digest() {
+        return Ok(());
+    }
+    Err(ForgeQueryReadDenial::new(
+        ForgeQueryReadDenialKind::BasisPreflightDenied,
+        "admitted query basis context does not match reusable read-family query digest",
     ))
+}
+
+fn context_allows_runtime_materialization(
+    runtime_snapshot_token: &str,
+    context: &AdmittedQueryBasisContext,
+) -> bool {
+    match context.family() {
+        QueryContextFamily::CurrentBranchHead => true,
+        QueryContextFamily::HistoricalSnapshot => {
+            context.declared_basis_label() == runtime_snapshot_token
+        }
+        QueryContextFamily::BranchHead
+        | QueryContextFamily::HistoricalCommit
+        | QueryContextFamily::PreviewDerivedHistorical
+        | QueryContextFamily::DiffComparison => false,
+    }
 }

@@ -1,44 +1,38 @@
 use crate::facade::{
-    WorthQueryCollection, WorthQueryLiveDeclarationBuilder, WorthQueryLiveField,
-    WorthQuerySchemaBasis, WorthRelationKind, WorthTopologyRelationKind,
+    QueryCollection, QueryLiveDeclarationBuilder, QueryLiveField, QuerySchemaBasis, RelationKind,
+    TopologyRelationKind,
 };
 
 #[test]
-fn worth_live_query_declarations_can_admit_traversal_relations_in_schema_view() {
-    let domain_declaration = WorthQueryLiveDeclarationBuilder::new(
-        "worth.topology.domain-query-schema",
-        WorthQueryCollection::TopologyEntity,
-        WorthQuerySchemaBasis::TopologyDomainQuery,
+fn live_query_declarations_can_admit_traversal_relations_in_schema_view() {
+    let domain_declaration = QueryLiveDeclarationBuilder::new(
+        ".topology.domain-query-schema",
+        QueryCollection::TopologyEntity,
+        QuerySchemaBasis::TopologyDomainQuery,
     )
-    .select_fields([
-        WorthQueryLiveField::IdentityId,
-        WorthQueryLiveField::TopologyKind,
-    ])
+    .select_fields([QueryLiveField::IdentityId, QueryLiveField::TopologyKind])
     .allow_traversal_relation(
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeNext),
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeNext),
         64,
     )
     .allow_traversal_relation(
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeEndsAtVertex),
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeEndsAtVertex),
         1,
     )
     .build()
     .expect("traversal-aware domain declaration should lower");
-    let live_declaration = WorthQueryLiveDeclarationBuilder::new(
-        "worth.topology.entity-live-schema",
-        WorthQueryCollection::TopologyEntity,
-        WorthQuerySchemaBasis::TopologyEntityLiveView,
+    let live_declaration = QueryLiveDeclarationBuilder::new(
+        ".topology.entity-live-schema",
+        QueryCollection::TopologyEntity,
+        QuerySchemaBasis::TopologyEntityLiveView,
     )
-    .select_fields([
-        WorthQueryLiveField::IdentityId,
-        WorthQueryLiveField::TopologyKind,
-    ])
+    .select_fields([QueryLiveField::IdentityId, QueryLiveField::TopologyKind])
     .allow_traversal_relation(
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeNext),
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeNext),
         64,
     )
     .allow_traversal_relation(
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeEndsAtVertex),
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeEndsAtVertex),
         1,
     )
     .build()
@@ -46,11 +40,11 @@ fn worth_live_query_declarations_can_admit_traversal_relations_in_schema_view() 
 
     let next = domain_declaration
         .schema_view()
-        .relation(WorthTopologyRelationKind::HalfEdgeNext.kind_name())
+        .relation(TopologyRelationKind::HalfEdgeNext.kind_name())
         .expect("next traversal relation should be registered");
     let end = domain_declaration
         .schema_view()
-        .relation(WorthTopologyRelationKind::HalfEdgeEndsAtVertex.kind_name())
+        .relation(TopologyRelationKind::HalfEdgeEndsAtVertex.kind_name())
         .expect("end traversal relation should be registered");
 
     assert_eq!(next.max_depth(), 64);
@@ -62,15 +56,15 @@ fn worth_live_query_declarations_can_admit_traversal_relations_in_schema_view() 
 }
 
 #[test]
-fn worth_live_query_declarations_reject_zero_depth_traversal_relations() {
-    let error = WorthQueryLiveDeclarationBuilder::new(
-        "worth.topology.domain-query-schema",
-        WorthQueryCollection::TopologyEntity,
-        WorthQuerySchemaBasis::TopologyDomainQuery,
+fn live_query_declarations_reject_zero_depth_traversal_relations() {
+    let error = QueryLiveDeclarationBuilder::new(
+        ".topology.domain-query-schema",
+        QueryCollection::TopologyEntity,
+        QuerySchemaBasis::TopologyDomainQuery,
     )
-    .select_fields([WorthQueryLiveField::IdentityId])
+    .select_fields([QueryLiveField::IdentityId])
     .allow_traversal_relation(
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeNext),
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeNext),
         0,
     )
     .build()
@@ -82,19 +76,19 @@ fn worth_live_query_declarations_reject_zero_depth_traversal_relations() {
 }
 
 #[test]
-fn worth_live_query_declarations_reject_duplicate_traversal_relations() {
-    let error = WorthQueryLiveDeclarationBuilder::new(
-        "worth.topology.domain-query-schema",
-        WorthQueryCollection::TopologyEntity,
-        WorthQuerySchemaBasis::TopologyDomainQuery,
+fn live_query_declarations_reject_duplicate_traversal_relations() {
+    let error = QueryLiveDeclarationBuilder::new(
+        ".topology.domain-query-schema",
+        QueryCollection::TopologyEntity,
+        QuerySchemaBasis::TopologyDomainQuery,
     )
-    .select_fields([WorthQueryLiveField::IdentityId])
+    .select_fields([QueryLiveField::IdentityId])
     .allow_traversal_relation(
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeNext),
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeNext),
         2,
     )
     .allow_traversal_relation(
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeNext),
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeNext),
         4,
     )
     .build()

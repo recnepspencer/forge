@@ -1,60 +1,51 @@
 use super::*;
-use worth_schema::facade::topology_authoring::{
+use schema::facade::topology_authoring::{
     verify_topology_intent, verify_topology_intent_on_branch,
 };
 
 #[test]
 fn public_facade_exports_closeout_field_types() {
     fn _accepts_surface_types(
-        _digest: WorthDeterministicDigest,
-        _coverage: WorthPrimitiveCorpusCoverageMatrix,
-        _parity: WorthPrimitiveCorpusParityReport,
-        _sweeps: WorthAdmittedRangeSweepReport,
-        _failures: WorthFailureLocalityReport,
-        _bridge_family_coverage: crate::facade::WorthBridgeFamilyCoverageReport,
-        _bridge: WorthBridgeProofReport,
-        _counters: WorthMilestoneOneCounters,
+        _digest: DeterministicDigest,
+        _coverage: PrimitiveCorpusCoverageMatrix,
+        _parity: PrimitiveCorpusParityReport,
+        _sweeps: AdmittedRangeSweepReport,
+        _failures: FailureLocalityReport,
+        _bridge_family_coverage: crate::facade::BridgeFamilyCoverageReport,
+        _bridge: BridgeProofReport,
+        _counters: MilestoneOneCounters,
     ) {
     }
 
-    fn _closeout_fields_are_publicly_reachable(
-        report: crate::facade::WorthMilestoneOneCloseoutReport,
-    ) {
-        let _: WorthAdmittedRangeSweepReport = report.admitted_range_sweep_report;
-        let _: WorthFailureLocalityReport = report.failure_locality_report;
-        let _: crate::facade::WorthBridgeFamilyCoverageReport =
-            report.bridge_family_coverage_report;
-        let _: WorthBridgeProofReport = report.bridge_proof_report;
-        let _: WorthMilestoneOneCounters = report.milestone_1_counter_report;
+    fn _closeout_fields_are_publicly_reachable(report: crate::facade::MilestoneOneCloseoutReport) {
+        let _: AdmittedRangeSweepReport = report.admitted_range_sweep_report;
+        let _: FailureLocalityReport = report.failure_locality_report;
+        let _: crate::facade::BridgeFamilyCoverageReport = report.bridge_family_coverage_report;
+        let _: BridgeProofReport = report.bridge_proof_report;
+        let _: MilestoneOneCounters = report.milestone_1_counter_report;
     }
 
-    fn _milestone_two_closeout_fields_are_publicly_reachable(
-        report: WorthMilestoneTwoCloseoutReport,
-    ) {
-        let _: WorthDerivedValidatorCoverageReport = report.derived_validator_coverage_report;
-        let _: WorthDerivedInvalidationAggregateReport = report.derived_invalidation_report;
-        let _: WorthDerivedRebuildAggregateReport = report.derived_rebuild_report;
-        let _: WorthDerivedEquivalenceContractAggregateReport =
+    fn _milestone_two_closeout_fields_are_publicly_reachable(report: MilestoneTwoCloseoutReport) {
+        let _: DerivedValidatorCoverageReport = report.derived_validator_coverage_report;
+        let _: DerivedInvalidationAggregateReport = report.derived_invalidation_report;
+        let _: DerivedRebuildAggregateReport = report.derived_rebuild_report;
+        let _: DerivedEquivalenceContractAggregateReport =
             report.derived_equivalence_contract_report;
-        let _: WorthDerivedFallbackAggregateReport = report.derived_fallback_report;
-        let _: WorthMilestoneTwoCounters = report.milestone_2_counter_report;
+        let _: DerivedFallbackAggregateReport = report.derived_fallback_report;
+        let _: MilestoneTwoCounters = report.milestone_2_counter_report;
     }
 }
 
 #[test]
 fn verified_topology_commit_is_the_canonical_certification_input() {
-    let mut runtime = crate::facade::worth_milestone_one_runtime_builder()
-        .expect("worth milestone one runtime builder")
+    let mut runtime = crate::facade::milestone_one_runtime_builder()
+        .expect(" milestone one runtime builder")
         .build();
 
-    let _seeded =
-        seeded_bootstrap(&mut runtime, "cert-verified-commit").expect("seed worth topology");
+    let _seeded = seeded_bootstrap(&mut runtime, "cert-verified-commit").expect("seed  topology");
     let verified = verify_topology_intent(
         &mut runtime,
-        RawWorthTopologyIntent::new(
-            Vec::<WorthTopologyMutation>::new(),
-            WorthMutationOrigin::LocalEdit,
-        ),
+        RawTopologyIntent::new(Vec::<TopologyMutation>::new(), MutationOrigin::LocalEdit),
     )
     .expect("verified topology commit");
 
@@ -70,7 +61,7 @@ fn verified_topology_commit_is_the_canonical_certification_input() {
     );
     assert_eq!(
         report.branch_local_topology_report.mutation_origin,
-        WorthMutationOrigin::LocalEdit
+        MutationOrigin::LocalEdit
     );
     assert_eq!(report.branch_local_topology_report.branch_id.0, "main");
     assert!(
@@ -85,18 +76,18 @@ fn verified_topology_commit_is_the_canonical_certification_input() {
     );
     assert_eq!(
         report.milestone_1_replay_parity_report.parity_status,
-        WorthReplayParityStatus::NotChecked
+        ReplayParityStatus::NotChecked
     );
     assert!(verified.commits.is_empty());
 }
 
 #[test]
 fn branch_local_verified_commit_certifies_against_the_feature_branch_truth_basis() {
-    let mut runtime = crate::facade::worth_milestone_one_runtime_builder()
-        .expect("worth milestone one runtime builder")
+    let mut runtime = crate::facade::milestone_one_runtime_builder()
+        .expect(" milestone one runtime builder")
         .build();
 
-    let _seeded = seeded_bootstrap(&mut runtime, "cert-branch-local").expect("seed worth topology");
+    let _seeded = seeded_bootstrap(&mut runtime, "cert-branch-local").expect("seed  topology");
     runtime
         .history_authority()
         .create_branch(
@@ -107,9 +98,9 @@ fn branch_local_verified_commit_certifies_against_the_feature_branch_truth_basis
 
     let verified = verify_topology_intent_on_branch(
         &mut runtime,
-        RawWorthTopologyIntent::new(
-            Vec::<WorthTopologyMutation>::new(),
-            WorthMutationOrigin::BranchLocalApplication,
+        RawTopologyIntent::new(
+            Vec::<TopologyMutation>::new(),
+            MutationOrigin::BranchLocalApplication,
         ),
         BranchId("feature".to_string()),
     )
@@ -139,21 +130,21 @@ fn branch_local_verified_commit_certifies_against_the_feature_branch_truth_basis
     );
     assert_eq!(
         report.milestone_1_replay_parity_report.parity_status,
-        WorthReplayParityStatus::NotChecked
+        ReplayParityStatus::NotChecked
     );
     assert!(verified.commits.is_empty());
 }
 
 #[test]
 fn verified_commit_certification_runs_relational_replay_when_commit_exists() {
-    let mut runtime = crate::facade::worth_milestone_one_runtime_builder()
-        .expect("worth milestone one runtime builder")
+    let mut runtime = crate::facade::milestone_one_runtime_builder()
+        .expect(" milestone one runtime builder")
         .build();
 
     let verified = verified_primitive(
         &mut runtime,
         "replay-backed-certification",
-        &WorthMilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 },
+        &MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 4 },
     )
     .expect("verified admitted primitive commit");
 
@@ -173,7 +164,7 @@ fn verified_commit_certification_runs_relational_replay_when_commit_exists() {
     );
     assert_eq!(
         report.milestone_1_replay_parity_report.parity_status,
-        WorthReplayParityStatus::Match
+        ReplayParityStatus::Match
     );
     assert!(report
         .milestone_1_replay_parity_report

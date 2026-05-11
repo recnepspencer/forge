@@ -3,26 +3,23 @@ use std::collections::BTreeSet;
 use serde::{Deserialize, Serialize};
 
 use crate::data::aspects::{
-    WorthAspect, WorthDiagnosticsAspect, WorthGeometryAspect, WorthLineageAspect,
-    WorthNamingAspect, WorthTopologyAspect,
+    Aspect, DiagnosticsAspect, GeometryAspect, LineageAspect, NamingAspect, TopologyAspect,
 };
 
 mod declarations;
 mod mutation_admission;
 
 pub use declarations::{
-    WorthQueryComputedDeclarationBuilder, WorthQueryDeclarationError,
-    WorthQueryLiveDeclarationBuilder,
+    QueryComputedDeclarationBuilder, QueryDeclarationError, QueryLiveDeclarationBuilder,
 };
 pub use mutation_admission::{
-    admit_worth_query_mutation_batch, worth_query_mutation_support_contract,
-    WorthQueryMutationAdmission, WorthQueryMutationAdmissionBlocker,
-    WorthQueryMutationAdmissionReport, WorthQueryMutationSupportContract,
+    admit_query_mutation_batch, query_mutation_support_contract, QueryMutationAdmission,
+    QueryMutationAdmissionBlocker, QueryMutationAdmissionReport, QueryMutationSupportContract,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub enum WorthQueryLiveField {
-    Aspect(WorthQueryAspectPath),
+pub enum QueryLiveField {
+    Aspect(QueryAspectPath),
     IdentityId,
     LineageProvenance,
     TopologyKind,
@@ -31,7 +28,7 @@ pub enum WorthQueryLiveField {
     NamingTargetIdentity,
 }
 
-impl WorthQueryLiveField {
+impl QueryLiveField {
     pub fn aspect(self) -> &'static str {
         match self {
             Self::Aspect(path) => path.section(),
@@ -69,14 +66,14 @@ impl WorthQueryLiveField {
     }
 }
 
-impl From<WorthQueryAspectPath> for WorthQueryLiveField {
-    fn from(value: WorthQueryAspectPath) -> Self {
+impl From<QueryAspectPath> for QueryLiveField {
+    fn from(value: QueryAspectPath) -> Self {
         Self::Aspect(value)
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthQueryCollection {
+pub enum QueryCollection {
     TopologyEntity,
     TopologyRelation,
     PersistentName,
@@ -88,7 +85,7 @@ pub enum WorthQueryCollection {
     TopologyEquivalenceContract,
 }
 
-impl WorthQueryCollection {
+impl QueryCollection {
     pub const ALL: [Self; 9] = [
         Self::TopologyEntity,
         Self::TopologyRelation,
@@ -103,27 +100,27 @@ impl WorthQueryCollection {
 
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::TopologyEntity => "WorthTopologyEntity",
-            Self::TopologyRelation => "WorthTopologyRelation",
-            Self::PersistentName => "WorthPersistentName",
-            Self::TopologyDiagnostic => "WorthTopologyDiagnostic",
-            Self::MaterializedTopology => "WorthMaterializedTopology",
-            Self::InterpretedTopology => "WorthInterpretedTopology",
-            Self::TopologyValidation => "WorthTopologyValidation",
-            Self::DerivedReadDiagnostics => "WorthDerivedReadDiagnostics",
-            Self::TopologyEquivalenceContract => "WorthTopologyEquivalenceContract",
+            Self::TopologyEntity => "TopologyEntity",
+            Self::TopologyRelation => "TopologyRelation",
+            Self::PersistentName => "PersistentName",
+            Self::TopologyDiagnostic => "TopologyDiagnostic",
+            Self::MaterializedTopology => "MaterializedTopology",
+            Self::InterpretedTopology => "InterpretedTopology",
+            Self::TopologyValidation => "TopologyValidation",
+            Self::DerivedReadDiagnostics => "DerivedReadDiagnostics",
+            Self::TopologyEquivalenceContract => "TopologyEquivalenceContract",
         }
     }
 }
 
-impl From<WorthQueryCollection> for String {
-    fn from(value: WorthQueryCollection) -> Self {
+impl From<QueryCollection> for String {
+    fn from(value: QueryCollection) -> Self {
         value.as_str().to_string()
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthQuerySchemaBasis {
+pub enum QuerySchemaBasis {
     AuthoritativeTopologyTruth,
     TopologyEntityLiveView,
     TopologyDomainQuery,
@@ -137,7 +134,7 @@ pub enum WorthQuerySchemaBasis {
     TopologyEquivalenceContractComputed,
 }
 
-impl WorthQuerySchemaBasis {
+impl QuerySchemaBasis {
     pub const ALL: [Self; 11] = [
         Self::AuthoritativeTopologyTruth,
         Self::TopologyEntityLiveView,
@@ -154,33 +151,31 @@ impl WorthQuerySchemaBasis {
 
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::AuthoritativeTopologyTruth => "worth.schema.authoritative_topology_truth",
-            Self::TopologyEntityLiveView => "worth.schema.live.topology_entity",
-            Self::TopologyDomainQuery => "worth.schema.domain.topology_query",
-            Self::TopologyRelationLiveView => "worth.schema.live.topology_relation",
-            Self::PersistentNameLiveView => "worth.schema.live.persistent_name",
-            Self::TopologyDiagnosticLiveView => "worth.schema.live.topology_diagnostic",
-            Self::MaterializedTopologyComputed => "worth.schema.computed.materialized_topology",
-            Self::InterpretedTopologyComputed => "worth.schema.computed.interpreted_topology",
-            Self::TopologyValidationComputed => "worth.schema.computed.topology_validation",
-            Self::DerivedReadDiagnosticsComputed => {
-                "worth.schema.computed.derived_read_diagnostics"
-            }
+            Self::AuthoritativeTopologyTruth => ".schema.authoritative_topology_truth",
+            Self::TopologyEntityLiveView => ".schema.live.topology_entity",
+            Self::TopologyDomainQuery => ".schema.domain.topology_query",
+            Self::TopologyRelationLiveView => ".schema.live.topology_relation",
+            Self::PersistentNameLiveView => ".schema.live.persistent_name",
+            Self::TopologyDiagnosticLiveView => ".schema.live.topology_diagnostic",
+            Self::MaterializedTopologyComputed => ".schema.computed.materialized_topology",
+            Self::InterpretedTopologyComputed => ".schema.computed.interpreted_topology",
+            Self::TopologyValidationComputed => ".schema.computed.topology_validation",
+            Self::DerivedReadDiagnosticsComputed => ".schema.computed.derived_read_diagnostics",
             Self::TopologyEquivalenceContractComputed => {
-                "worth.schema.computed.topology_equivalence_contract"
+                ".schema.computed.topology_equivalence_contract"
             }
         }
     }
 }
 
-impl From<WorthQuerySchemaBasis> for String {
-    fn from(value: WorthQuerySchemaBasis) -> Self {
+impl From<QuerySchemaBasis> for String {
+    fn from(value: QuerySchemaBasis) -> Self {
         value.as_str().to_string()
     }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthQueryAspectFamily {
+pub enum QueryAspectFamily {
     Topology,
     Geometry,
     Lineage,
@@ -189,46 +184,41 @@ pub enum WorthQueryAspectFamily {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub struct WorthQueryAspectPath {
-    family: WorthQueryAspectFamily,
+pub struct QueryAspectPath {
+    family: QueryAspectFamily,
     path: &'static str,
 }
 
-impl WorthQueryAspectPath {
+impl QueryAspectPath {
     pub const TOPOLOGY_STRUCTURE: Self =
-        Self::new(WorthQueryAspectFamily::Topology, "topology.structure");
+        Self::new(QueryAspectFamily::Topology, "topology.structure");
     pub const TOPOLOGY_OWNERSHIP: Self =
-        Self::new(WorthQueryAspectFamily::Topology, "topology.ownership");
-    pub const TOPOLOGY_BOUNDARY: Self =
-        Self::new(WorthQueryAspectFamily::Topology, "topology.boundary");
-    pub const TOPOLOGY_RADIAL: Self =
-        Self::new(WorthQueryAspectFamily::Topology, "topology.radial");
+        Self::new(QueryAspectFamily::Topology, "topology.ownership");
+    pub const TOPOLOGY_BOUNDARY: Self = Self::new(QueryAspectFamily::Topology, "topology.boundary");
+    pub const TOPOLOGY_RADIAL: Self = Self::new(QueryAspectFamily::Topology, "topology.radial");
 
-    pub const GEOMETRY_BINDING: Self =
-        Self::new(WorthQueryAspectFamily::Geometry, "geometry.binding");
+    pub const GEOMETRY_BINDING: Self = Self::new(QueryAspectFamily::Geometry, "geometry.binding");
     pub const GEOMETRY_EMBEDDING: Self =
-        Self::new(WorthQueryAspectFamily::Geometry, "geometry.embedding");
+        Self::new(QueryAspectFamily::Geometry, "geometry.embedding");
     pub const GEOMETRY_PROVENANCE: Self =
-        Self::new(WorthQueryAspectFamily::Geometry, "geometry.provenance");
+        Self::new(QueryAspectFamily::Geometry, "geometry.provenance");
     pub const GEOMETRY_APPROXIMATION: Self =
-        Self::new(WorthQueryAspectFamily::Geometry, "geometry.approximation");
+        Self::new(QueryAspectFamily::Geometry, "geometry.approximation");
     pub const GEOMETRY_UV_ANCHORING: Self =
-        Self::new(WorthQueryAspectFamily::Geometry, "geometry.uv_anchoring");
-    pub const GEOMETRY_CARRIER: Self =
-        Self::new(WorthQueryAspectFamily::Geometry, "geometry.carrier");
+        Self::new(QueryAspectFamily::Geometry, "geometry.uv_anchoring");
+    pub const GEOMETRY_CARRIER: Self = Self::new(QueryAspectFamily::Geometry, "geometry.carrier");
     pub const GEOMETRY_PRECISION: Self =
-        Self::new(WorthQueryAspectFamily::Geometry, "geometry.precision");
-    pub const GEOMETRY_FALLBACK: Self =
-        Self::new(WorthQueryAspectFamily::Geometry, "geometry.fallback");
+        Self::new(QueryAspectFamily::Geometry, "geometry.precision");
+    pub const GEOMETRY_FALLBACK: Self = Self::new(QueryAspectFamily::Geometry, "geometry.fallback");
 
     pub const LINEAGE_PROVENANCE: Self =
-        Self::new(WorthQueryAspectFamily::Lineage, "lineage.provenance");
+        Self::new(QueryAspectFamily::Lineage, "lineage.provenance");
     pub const NAMING_PERSISTENT_NAME: Self =
-        Self::new(WorthQueryAspectFamily::Naming, "naming.persistent_name");
+        Self::new(QueryAspectFamily::Naming, "naming.persistent_name");
     pub const DIAGNOSTICS_DECISIONS: Self =
-        Self::new(WorthQueryAspectFamily::Diagnostics, "diagnostics.decisions");
+        Self::new(QueryAspectFamily::Diagnostics, "diagnostics.decisions");
     pub const DIAGNOSTICS_INTERPRETATIONS: Self = Self::new(
-        WorthQueryAspectFamily::Diagnostics,
+        QueryAspectFamily::Diagnostics,
         "diagnostics.interpretations",
     );
 
@@ -251,11 +241,11 @@ impl WorthQueryAspectPath {
         Self::DIAGNOSTICS_INTERPRETATIONS,
     ];
 
-    const fn new(family: WorthQueryAspectFamily, path: &'static str) -> Self {
+    const fn new(family: QueryAspectFamily, path: &'static str) -> Self {
         Self { family, path }
     }
 
-    pub const fn family(self) -> WorthQueryAspectFamily {
+    pub const fn family(self) -> QueryAspectFamily {
         self.family
     }
 
@@ -273,100 +263,86 @@ impl WorthQueryAspectPath {
         self.path
             .split_once('.')
             .map(|(section, _)| section)
-            .expect("worth query aspect paths are static aspect.field values")
+            .expect(" query aspect paths are static aspect.field values")
     }
 
     pub fn field(self) -> &'static str {
         self.path
             .split_once('.')
             .map(|(_, field)| field)
-            .expect("worth query aspect paths are static aspect.field values")
+            .expect(" query aspect paths are static aspect.field values")
     }
 
-    pub const fn from_worth_aspect(aspect: WorthAspect) -> Self {
+    pub const fn from_aspect(aspect: Aspect) -> Self {
         match aspect {
-            WorthAspect::Topology(WorthTopologyAspect::Structure) => Self::TOPOLOGY_STRUCTURE,
-            WorthAspect::Topology(WorthTopologyAspect::Ownership) => Self::TOPOLOGY_OWNERSHIP,
-            WorthAspect::Topology(WorthTopologyAspect::Boundary) => Self::TOPOLOGY_BOUNDARY,
-            WorthAspect::Topology(WorthTopologyAspect::Radial) => Self::TOPOLOGY_RADIAL,
-            WorthAspect::Geometry(WorthGeometryAspect::Binding) => Self::GEOMETRY_BINDING,
-            WorthAspect::Geometry(WorthGeometryAspect::Embedding) => Self::GEOMETRY_EMBEDDING,
-            WorthAspect::Geometry(WorthGeometryAspect::Provenance) => Self::GEOMETRY_PROVENANCE,
-            WorthAspect::Geometry(WorthGeometryAspect::Approximation) => {
-                Self::GEOMETRY_APPROXIMATION
-            }
-            WorthAspect::Geometry(WorthGeometryAspect::UvAnchoring) => Self::GEOMETRY_UV_ANCHORING,
-            WorthAspect::Geometry(WorthGeometryAspect::Carrier) => Self::GEOMETRY_CARRIER,
-            WorthAspect::Geometry(WorthGeometryAspect::Precision) => Self::GEOMETRY_PRECISION,
-            WorthAspect::Geometry(WorthGeometryAspect::Fallback) => Self::GEOMETRY_FALLBACK,
-            WorthAspect::Lineage(WorthLineageAspect::Provenance) => Self::LINEAGE_PROVENANCE,
-            WorthAspect::Naming(WorthNamingAspect::PersistentName) => Self::NAMING_PERSISTENT_NAME,
-            WorthAspect::Diagnostics(WorthDiagnosticsAspect::Decisions) => {
-                Self::DIAGNOSTICS_DECISIONS
-            }
-            WorthAspect::Diagnostics(WorthDiagnosticsAspect::Interpretations) => {
+            Aspect::Topology(TopologyAspect::Structure) => Self::TOPOLOGY_STRUCTURE,
+            Aspect::Topology(TopologyAspect::Ownership) => Self::TOPOLOGY_OWNERSHIP,
+            Aspect::Topology(TopologyAspect::Boundary) => Self::TOPOLOGY_BOUNDARY,
+            Aspect::Topology(TopologyAspect::Radial) => Self::TOPOLOGY_RADIAL,
+            Aspect::Geometry(GeometryAspect::Binding) => Self::GEOMETRY_BINDING,
+            Aspect::Geometry(GeometryAspect::Embedding) => Self::GEOMETRY_EMBEDDING,
+            Aspect::Geometry(GeometryAspect::Provenance) => Self::GEOMETRY_PROVENANCE,
+            Aspect::Geometry(GeometryAspect::Approximation) => Self::GEOMETRY_APPROXIMATION,
+            Aspect::Geometry(GeometryAspect::UvAnchoring) => Self::GEOMETRY_UV_ANCHORING,
+            Aspect::Geometry(GeometryAspect::Carrier) => Self::GEOMETRY_CARRIER,
+            Aspect::Geometry(GeometryAspect::Precision) => Self::GEOMETRY_PRECISION,
+            Aspect::Geometry(GeometryAspect::Fallback) => Self::GEOMETRY_FALLBACK,
+            Aspect::Lineage(LineageAspect::Provenance) => Self::LINEAGE_PROVENANCE,
+            Aspect::Naming(NamingAspect::PersistentName) => Self::NAMING_PERSISTENT_NAME,
+            Aspect::Diagnostics(DiagnosticsAspect::Decisions) => Self::DIAGNOSTICS_DECISIONS,
+            Aspect::Diagnostics(DiagnosticsAspect::Interpretations) => {
                 Self::DIAGNOSTICS_INTERPRETATIONS
             }
         }
     }
 
-    pub fn into_worth_aspect(self) -> WorthAspect {
+    pub fn into_aspect(self) -> Aspect {
         match self {
-            Self::TOPOLOGY_STRUCTURE => WorthAspect::Topology(WorthTopologyAspect::Structure),
-            Self::TOPOLOGY_OWNERSHIP => WorthAspect::Topology(WorthTopologyAspect::Ownership),
-            Self::TOPOLOGY_BOUNDARY => WorthAspect::Topology(WorthTopologyAspect::Boundary),
-            Self::TOPOLOGY_RADIAL => WorthAspect::Topology(WorthTopologyAspect::Radial),
-            Self::GEOMETRY_BINDING => WorthAspect::Geometry(WorthGeometryAspect::Binding),
-            Self::GEOMETRY_EMBEDDING => WorthAspect::Geometry(WorthGeometryAspect::Embedding),
-            Self::GEOMETRY_PROVENANCE => WorthAspect::Geometry(WorthGeometryAspect::Provenance),
-            Self::GEOMETRY_APPROXIMATION => {
-                WorthAspect::Geometry(WorthGeometryAspect::Approximation)
-            }
-            Self::GEOMETRY_UV_ANCHORING => WorthAspect::Geometry(WorthGeometryAspect::UvAnchoring),
-            Self::GEOMETRY_CARRIER => WorthAspect::Geometry(WorthGeometryAspect::Carrier),
-            Self::GEOMETRY_PRECISION => WorthAspect::Geometry(WorthGeometryAspect::Precision),
-            Self::GEOMETRY_FALLBACK => WorthAspect::Geometry(WorthGeometryAspect::Fallback),
-            Self::LINEAGE_PROVENANCE => WorthAspect::Lineage(WorthLineageAspect::Provenance),
-            Self::NAMING_PERSISTENT_NAME => WorthAspect::Naming(WorthNamingAspect::PersistentName),
-            Self::DIAGNOSTICS_DECISIONS => {
-                WorthAspect::Diagnostics(WorthDiagnosticsAspect::Decisions)
-            }
+            Self::TOPOLOGY_STRUCTURE => Aspect::Topology(TopologyAspect::Structure),
+            Self::TOPOLOGY_OWNERSHIP => Aspect::Topology(TopologyAspect::Ownership),
+            Self::TOPOLOGY_BOUNDARY => Aspect::Topology(TopologyAspect::Boundary),
+            Self::TOPOLOGY_RADIAL => Aspect::Topology(TopologyAspect::Radial),
+            Self::GEOMETRY_BINDING => Aspect::Geometry(GeometryAspect::Binding),
+            Self::GEOMETRY_EMBEDDING => Aspect::Geometry(GeometryAspect::Embedding),
+            Self::GEOMETRY_PROVENANCE => Aspect::Geometry(GeometryAspect::Provenance),
+            Self::GEOMETRY_APPROXIMATION => Aspect::Geometry(GeometryAspect::Approximation),
+            Self::GEOMETRY_UV_ANCHORING => Aspect::Geometry(GeometryAspect::UvAnchoring),
+            Self::GEOMETRY_CARRIER => Aspect::Geometry(GeometryAspect::Carrier),
+            Self::GEOMETRY_PRECISION => Aspect::Geometry(GeometryAspect::Precision),
+            Self::GEOMETRY_FALLBACK => Aspect::Geometry(GeometryAspect::Fallback),
+            Self::LINEAGE_PROVENANCE => Aspect::Lineage(LineageAspect::Provenance),
+            Self::NAMING_PERSISTENT_NAME => Aspect::Naming(NamingAspect::PersistentName),
+            Self::DIAGNOSTICS_DECISIONS => Aspect::Diagnostics(DiagnosticsAspect::Decisions),
             Self::DIAGNOSTICS_INTERPRETATIONS => {
-                WorthAspect::Diagnostics(WorthDiagnosticsAspect::Interpretations)
+                Aspect::Diagnostics(DiagnosticsAspect::Interpretations)
             }
-            _ => unreachable!("worth query aspect paths must be one of the declared constants"),
+            _ => unreachable!(" query aspect paths must be one of the declared constants"),
         }
     }
 }
 
-impl From<WorthQueryAspectPath> for String {
-    fn from(value: WorthQueryAspectPath) -> Self {
+impl From<QueryAspectPath> for String {
+    fn from(value: QueryAspectPath) -> Self {
         value.as_str().to_string()
     }
 }
 
-pub fn worth_query_aspect_paths(
-    aspects: impl IntoIterator<Item = WorthAspect>,
-) -> Vec<WorthQueryAspectPath> {
+pub fn query_aspect_paths(aspects: impl IntoIterator<Item = Aspect>) -> Vec<QueryAspectPath> {
     aspects
         .into_iter()
-        .map(WorthQueryAspectPath::from_worth_aspect)
+        .map(QueryAspectPath::from_aspect)
         .collect()
 }
 
-pub fn worth_query_aspect_path_strings(
-    aspects: impl IntoIterator<Item = WorthAspect>,
-) -> Vec<String> {
-    worth_query_aspect_paths(aspects)
+pub fn query_aspect_path_strings(aspects: impl IntoIterator<Item = Aspect>) -> Vec<String> {
+    query_aspect_paths(aspects)
         .into_iter()
         .map(String::from)
         .collect()
 }
 
-pub fn worth_query_aspect_paths_from_set(
-    aspects: &BTreeSet<WorthAspect>,
-) -> Vec<WorthQueryAspectPath> {
-    worth_query_aspect_paths(aspects.iter().copied())
+pub fn query_aspect_paths_from_set(aspects: &BTreeSet<Aspect>) -> Vec<QueryAspectPath> {
+    query_aspect_paths(aspects.iter().copied())
 }
 
 #[cfg(test)]

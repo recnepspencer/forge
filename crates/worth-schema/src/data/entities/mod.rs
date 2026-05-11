@@ -6,39 +6,39 @@ mod topology;
 use forge_relational::facade::identity::KindId;
 use serde::{Deserialize, Serialize};
 
-pub use diagnostics::WorthDiagnosticsEntityKind;
-pub use geometry::WorthGeometryEntityKind;
-pub use naming::WorthNamingEntityKind;
-pub use topology::WorthTopologyEntityKind;
+pub use diagnostics::DiagnosticsEntityKind;
+pub use geometry::GeometryEntityKind;
+pub use naming::NamingEntityKind;
+pub use topology::TopologyEntityKind;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthEntityKind {
-    Topology(WorthTopologyEntityKind),
-    Geometry(WorthGeometryEntityKind),
-    Naming(WorthNamingEntityKind),
-    Diagnostics(WorthDiagnosticsEntityKind),
+pub enum EntityKind {
+    Topology(TopologyEntityKind),
+    Geometry(GeometryEntityKind),
+    Naming(NamingEntityKind),
+    Diagnostics(DiagnosticsEntityKind),
 }
 
-impl WorthEntityKind {
+impl EntityKind {
     pub const ALL: [Self; 18] = [
-        Self::Topology(WorthTopologyEntityKind::Model),
-        Self::Topology(WorthTopologyEntityKind::Body),
-        Self::Topology(WorthTopologyEntityKind::Lump),
-        Self::Topology(WorthTopologyEntityKind::Region),
-        Self::Topology(WorthTopologyEntityKind::Shell),
-        Self::Topology(WorthTopologyEntityKind::Face),
-        Self::Topology(WorthTopologyEntityKind::Loop),
-        Self::Topology(WorthTopologyEntityKind::Wire),
-        Self::Topology(WorthTopologyEntityKind::HalfEdge),
-        Self::Topology(WorthTopologyEntityKind::Edge),
-        Self::Topology(WorthTopologyEntityKind::Vertex),
-        Self::Geometry(WorthGeometryEntityKind::SurfaceBinding),
-        Self::Geometry(WorthGeometryEntityKind::CurveBinding),
-        Self::Geometry(WorthGeometryEntityKind::CoedgeBinding),
-        Self::Geometry(WorthGeometryEntityKind::VertexGeometryBinding),
-        Self::Naming(WorthNamingEntityKind::PersistentName),
-        Self::Diagnostics(WorthDiagnosticsEntityKind::WireInterpretation),
-        Self::Diagnostics(WorthDiagnosticsEntityKind::ShellInterpretation),
+        Self::Topology(TopologyEntityKind::Model),
+        Self::Topology(TopologyEntityKind::Body),
+        Self::Topology(TopologyEntityKind::Lump),
+        Self::Topology(TopologyEntityKind::Region),
+        Self::Topology(TopologyEntityKind::Shell),
+        Self::Topology(TopologyEntityKind::Face),
+        Self::Topology(TopologyEntityKind::Loop),
+        Self::Topology(TopologyEntityKind::Wire),
+        Self::Topology(TopologyEntityKind::HalfEdge),
+        Self::Topology(TopologyEntityKind::Edge),
+        Self::Topology(TopologyEntityKind::Vertex),
+        Self::Geometry(GeometryEntityKind::SurfaceBinding),
+        Self::Geometry(GeometryEntityKind::CurveBinding),
+        Self::Geometry(GeometryEntityKind::CoedgeBinding),
+        Self::Geometry(GeometryEntityKind::VertexGeometryBinding),
+        Self::Naming(NamingEntityKind::PersistentName),
+        Self::Diagnostics(DiagnosticsEntityKind::WireInterpretation),
+        Self::Diagnostics(DiagnosticsEntityKind::ShellInterpretation),
     ];
 
     pub const fn kind_id(self) -> KindId {
@@ -60,16 +60,16 @@ impl WorthEntityKind {
     }
 
     pub fn from_kind_id(kind_id: KindId) -> Option<Self> {
-        if let Some(kind) = WorthTopologyEntityKind::from_kind_id(kind_id) {
+        if let Some(kind) = TopologyEntityKind::from_kind_id(kind_id) {
             return Some(Self::Topology(kind));
         }
-        if let Some(kind) = WorthGeometryEntityKind::from_kind_id(kind_id) {
+        if let Some(kind) = GeometryEntityKind::from_kind_id(kind_id) {
             return Some(Self::Geometry(kind));
         }
-        if let Some(kind) = WorthNamingEntityKind::from_kind_id(kind_id) {
+        if let Some(kind) = NamingEntityKind::from_kind_id(kind_id) {
             return Some(Self::Naming(kind));
         }
-        WorthDiagnosticsEntityKind::from_kind_id(kind_id).map(Self::Diagnostics)
+        DiagnosticsEntityKind::from_kind_id(kind_id).map(Self::Diagnostics)
     }
 
     pub const fn is_topological(self) -> bool {

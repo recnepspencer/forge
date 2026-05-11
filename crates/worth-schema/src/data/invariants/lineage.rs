@@ -1,10 +1,10 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthLineageInvariantGroup {
+pub enum LineageInvariantGroup {
     ProvenanceCompleteness,
 }
 
-impl WorthLineageInvariantGroup {
+impl LineageInvariantGroup {
     pub const ALL: [Self; 1] = [Self::ProvenanceCompleteness];
 }

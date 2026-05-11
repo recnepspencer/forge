@@ -118,6 +118,7 @@ impl ForgeQueryRuntimeBuilder {
             evidence_authority: ForgeQueryRuntimeEvidenceAuthority::new(),
             active_subscriptions: ActiveSubscriptionRuntime::new(),
             live_subscriptions: BTreeMap::new(),
+            materialized_read_views: BTreeMap::new(),
             live_subscription_index: BTreeMap::new(),
             installed_programs: BTreeMap::new(),
             run_traces: BTreeMap::new(),

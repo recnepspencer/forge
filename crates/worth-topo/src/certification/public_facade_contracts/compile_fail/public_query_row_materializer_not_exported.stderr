@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `topology::facade::materialized_topology_from_query_rows`
+ --> src/certification/public_facade_contracts/compile_fail/public_query_row_materializer_not_exported.rs:1:5
+  |
+1 | use topology::facade::materialized_topology_from_query_rows;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `materialized_topology_from_query_rows` in `facade`

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum WorthCertificationRequiredOutput {
+pub enum CertificationRequiredOutput {
     TopologyTruthDigest,
     NamingTruthDigest,
     TopologyValidationDigest,
@@ -37,54 +37,84 @@ pub enum WorthCertificationRequiredOutput {
     DerivedReplayParityReport,
     DerivedBridgeFamilyCoverageReport,
     MilestoneTwoCounterReport,
+    MilestoneThreeHostileSuiteReport,
+    MilestoneThreeHostileCoverageRows,
+    MilestoneThreeHostileFamilyCoverageRows,
+    MilestoneThreeRejectionDistributionRows,
+    MilestoneThreeNamingDistributionRows,
+    MilestoneThreeHostileCertificationCategoryRows,
+    MilestoneThreeOperatorFamilyClosureRows,
+    MilestoneThreePrimitiveFamilyClosureRows,
+    MilestoneThreeScalePressureRows,
+    MilestoneThreeTopologyEditDigestRows,
+    MilestoneThreeNamingContinuityMatrixRows,
+    MilestoneThreeNamingContinuityBreadthRows,
+    MilestoneThreeRejectedEditScopeReportRows,
+    MilestoneThreeEditReplayParityRows,
+    MilestoneThreeEditBranchLocalParityRows,
+    MilestoneThreeReplayBranchBreadthRows,
+    MilestoneThreeEditedTopologyQueryTraversalRows,
+    MilestoneThreeValidatorFamilyCoverageRows,
+    MilestoneThreeValidationBreadthRows,
+    MilestoneThreeChangedScopeCoverageRows,
+    MilestoneThreeDerivedRegionCoverageRows,
+    MilestoneThreeDeterminismRuleRows,
+    MilestoneThreeEditBreadthCounterRows,
+    MilestoneThreeEditFalloutBreadthRows,
+    MilestoneThreeDerivedFallbackPolicyDenialRows,
+    MilestoneThreeDerivedReuseLegalityRows,
+    MilestoneThreeDerivedWorkBreadthRows,
+    MilestoneThreeFailureLocalityRows,
+    MilestoneThreeSideQuestCloseoutReport,
+    MilestoneThreeReturnGateReport,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthCertificationCanonicalRow {
+pub struct CertificationCanonicalRow {
     pub family: String,
     pub role: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthCertificationRejectionRow {
+pub struct CertificationRejectionRow {
     pub family: String,
     pub role: String,
     pub rejection_class: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthCertificationParityRow {
+pub struct CertificationParityRow {
     pub family: String,
     pub parity_kind: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthCertificationValidatorExpectation {
+pub struct CertificationValidatorExpectation {
     pub family: String,
     pub validators: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthCertificationBridgeExpectation {
+pub struct CertificationBridgeExpectation {
     pub family: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthCertificationSuiteRequirements {
+pub struct CertificationSuiteRequirements {
     pub suite_name: String,
     pub required_family_rows: Vec<String>,
     pub required_rejection_rows: Vec<String>,
-    pub validator_expectations: Vec<WorthCertificationValidatorExpectation>,
+    pub validator_expectations: Vec<CertificationValidatorExpectation>,
     pub required_parity_rows: Vec<String>,
-    pub required_bridge_rows: Vec<WorthCertificationBridgeExpectation>,
-    pub required_outputs: Vec<WorthCertificationRequiredOutput>,
+    pub required_bridge_rows: Vec<CertificationBridgeExpectation>,
+    pub required_outputs: Vec<CertificationRequiredOutput>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthCertificationSuiteDefinition {
+pub struct CertificationSuiteDefinition {
     pub suite_name: String,
-    pub canonical_rows: Vec<WorthCertificationCanonicalRow>,
-    pub rejection_rows: Vec<WorthCertificationRejectionRow>,
-    pub parity_rows: Vec<WorthCertificationParityRow>,
-    pub required_outputs: Vec<WorthCertificationRequiredOutput>,
+    pub canonical_rows: Vec<CertificationCanonicalRow>,
+    pub rejection_rows: Vec<CertificationRejectionRow>,
+    pub parity_rows: Vec<CertificationParityRow>,
+    pub required_outputs: Vec<CertificationRequiredOutput>,
 }

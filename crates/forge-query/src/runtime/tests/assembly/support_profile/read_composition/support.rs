@@ -19,6 +19,7 @@ fn runtime_public_read_composition_support_report_freezes_phase_one_kernel_surfa
             "define_read_family",
             "define_read_family_with_invariant_pack",
             "execute_read_family",
+            "execute_read_family_in_basis_context",
         ]
     );
     assert_eq!(
@@ -30,7 +31,15 @@ fn runtime_public_read_composition_support_report_freezes_phase_one_kernel_surfa
         ]
     );
     assert_eq!(report.graph_families(), &["detail", "collection"]);
-    assert_eq!(report.execution_engines(), &["query_runtime_current"]);
+    assert_eq!(
+        report.execution_engines(),
+        &[
+            "query_runtime_current",
+            "query_runtime_branch",
+            "query_runtime_historical",
+            "query_runtime_preview_derived",
+        ]
+    );
     assert_eq!(
         report.fallback_classes(),
         &["none", "snapshot_indexed_debt", "whole_view_debt"]

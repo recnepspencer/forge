@@ -2,32 +2,30 @@ use forge_relational::facade::diagnostics::DiagnosticCode;
 use forge_relational::facade::errors::ErrorContext;
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::{RecordRef, TransactionCommitError};
-use worth_schema::facade::topology_authoring::{
+use schema::facade::topology_authoring::{
     build_milestone_one_primitive_intent, verify_topology_intent,
-    WorthMilestoneOnePrimitiveAuthoringError, WorthMilestoneOnePrimitiveCase,
+    MilestoneOnePrimitiveAuthoringError, MilestoneOnePrimitiveCase,
 };
-use worth_schema::facade::{
-    RawWorthTopologyIntent, WorthCreateKey, WorthEntityKind, WorthEntityReference,
-    WorthMutationOrigin, WorthRelationKind, WorthTopologyAuthorityError, WorthTopologyMutation,
-    WorthTopologyRelationKind,
+use schema::facade::{
+    CreateKey, EntityKind, EntityReference, MutationOrigin, RawTopologyIntent, RelationKind,
+    TopologyAuthorityError, TopologyMutation, TopologyRelationKind,
 };
 
-use crate::certification::error::WorthMilestoneOneCertificationError;
-use crate::certification::report::{
-    WorthIllegalTopologyRejectionCaseReport, WorthIllegalTopologyRejectionReport,
-    WorthPrimitiveRejectionReport,
-};
+use crate::certification::error::MilestoneOneCertificationError;
 use crate::certification::shared::digest_rows;
+use crate::certification::support::reporting::{
+    IllegalTopologyRejectionCaseReport, IllegalTopologyRejectionReport, PrimitiveRejectionReport,
+};
 
 pub(crate) fn summarize_primitive_rejection(
-    error: &WorthMilestoneOnePrimitiveAuthoringError,
-) -> WorthPrimitiveRejectionReport {
+    error: &MilestoneOnePrimitiveAuthoringError,
+) -> PrimitiveRejectionReport {
     match error {
-        WorthMilestoneOnePrimitiveAuthoringError::InvalidParameter {
+        MilestoneOnePrimitiveAuthoringError::InvalidParameter {
             family,
             parameter,
             requirement,
-        } => WorthPrimitiveRejectionReport {
+        } => PrimitiveRejectionReport {
             rejection_class: "OutOfClass".to_string(),
             validator_family: None,
             diagnostic_code: None,
@@ -39,22 +37,22 @@ pub(crate) fn summarize_primitive_rejection(
             localized_entity_count: 0,
             localized_relation_count: 0,
         },
-        WorthMilestoneOnePrimitiveAuthoringError::Authority(authority) => {
+        MilestoneOnePrimitiveAuthoringError::Authority(authority) => {
             summarize_authority_rejection(authority, None, None)
         }
     }
 }
 
 pub(crate) fn summarize_authority_rejection(
-    error: &WorthTopologyAuthorityError,
+    error: &TopologyAuthorityError,
     rejection_class_override: Option<&str>,
     validator_family_override: Option<&str>,
-) -> WorthPrimitiveRejectionReport {
+) -> PrimitiveRejectionReport {
     match error {
-        WorthTopologyAuthorityError::Commit(TransactionCommitError::Conflict { error, .. }) => {
+        TopologyAuthorityError::Commit(TransactionCommitError::Conflict { error, .. }) => {
             let (localized_entity_count, localized_relation_count) =
                 summarize_localized_record_counts(&error.context);
-            WorthPrimitiveRejectionReport {
+            PrimitiveRejectionReport {
                 rejection_class: rejection_class_override
                     .unwrap_or("InvariantFailure")
                     .to_string(),
@@ -69,7 +67,7 @@ pub(crate) fn summarize_authority_rejection(
                 localized_relation_count,
             }
         }
-        other => WorthPrimitiveRejectionReport {
+        other => PrimitiveRejectionReport {
             rejection_class: rejection_class_override
                 .unwrap_or("AuthorityBlocked")
                 .to_string(),
@@ -115,7 +113,7 @@ fn infer_validator_family(
 pub(crate) fn certify_milestone_one_illegal_topology_rejections<F>(
     runtime_factory: &mut F,
     stem: &str,
-) -> Result<WorthIllegalTopologyRejectionReport, WorthMilestoneOneCertificationError>
+) -> Result<IllegalTopologyRejectionReport, MilestoneOneCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
 {
@@ -135,7 +133,7 @@ where
         "disconnected_wire",
         "WireOpen(n)",
         "IllegalAdmittedTopology",
-        Some("vertex_branching"),
+        Some("vertex_disks"),
         disconnected_wire_intent(&format!("{stem}.disconnected_wire")),
         &mut cases,
     )?;
@@ -144,7 +142,7 @@ where
         "illegal_wire_branch",
         "WireBranch(k)",
         "IllegalAdmittedTopology",
-        Some("vertex_branching"),
+        Some("vertex_disks"),
         illegal_wire_branch_intent(&format!("{stem}.illegal_wire_branch")),
         &mut cases,
     )?;
@@ -171,7 +169,7 @@ where
         "broken_radial_ring",
         "NmtEdgeFan(k)",
         "IllegalAdmittedTopology",
-        Some("radial"),
+        Some("radial_rings"),
         broken_radial_ring_intent(&format!("{stem}.broken_radial_ring")),
         &mut cases,
     )?;
@@ -198,7 +196,7 @@ where
         )
     }));
 
-    Ok(WorthIllegalTopologyRejectionReport {
+    Ok(IllegalTopologyRejectionReport {
         case_count: cases.len(),
         cases,
         rejection_digest,
@@ -211,16 +209,16 @@ fn run_illegal_case<F>(
     family: &str,
     role: &str,
     validator_family: Option<&str>,
-    intent: RawWorthTopologyIntent,
-    cases: &mut Vec<WorthIllegalTopologyRejectionCaseReport>,
-) -> Result<(), WorthMilestoneOneCertificationError>
+    intent: RawTopologyIntent,
+    cases: &mut Vec<IllegalTopologyRejectionCaseReport>,
+) -> Result<(), MilestoneOneCertificationError>
 where
     F: FnMut() -> RelationalRuntime,
 {
     let mut runtime = runtime_factory();
     let rejection = match verify_topology_intent(&mut runtime, intent) {
         Ok(_) => {
-            return Err(WorthMilestoneOneCertificationError::ReadView(format!(
+            return Err(MilestoneOneCertificationError::ReadView(format!(
                 "illegal topology case `{name}` unexpectedly admitted"
             )))
         }
@@ -228,7 +226,7 @@ where
             summarize_authority_rejection(&error.into_error(), Some(role), validator_family)
         }
     };
-    cases.push(WorthIllegalTopologyRejectionCaseReport {
+    cases.push(IllegalTopologyRejectionCaseReport {
         name: name.to_string(),
         family: family.to_string(),
         role: role.to_string(),
@@ -237,52 +235,48 @@ where
     Ok(())
 }
 
-fn missing_persistent_names_intent(stem: &str) -> RawWorthTopologyIntent {
-    RawWorthTopologyIntent::new(
+fn missing_persistent_names_intent(stem: &str) -> RawTopologyIntent {
+    RawTopologyIntent::new(
         vec![
-            WorthTopologyMutation::CreateEntity {
-                create_key: WorthCreateKey::new(format!("{stem}.model")),
-                kind: WorthEntityKind::Topology(
-                    worth_schema::facade::WorthTopologyEntityKind::Model,
-                ),
+            TopologyMutation::CreateEntity {
+                create_key: CreateKey::new(format!("{stem}.model")),
+                kind: EntityKind::Topology(schema::facade::TopologyEntityKind::Model),
             },
-            WorthTopologyMutation::CreateEntity {
-                create_key: WorthCreateKey::new(format!("{stem}.body")),
-                kind: WorthEntityKind::Topology(
-                    worth_schema::facade::WorthTopologyEntityKind::Body,
-                ),
+            TopologyMutation::CreateEntity {
+                create_key: CreateKey::new(format!("{stem}.body")),
+                kind: EntityKind::Topology(schema::facade::TopologyEntityKind::Body),
             },
-            WorthTopologyMutation::CreateRelation {
-                create_key: WorthCreateKey::new(format!("{stem}.owns_body")),
-                kind: WorthRelationKind::Topology(WorthTopologyRelationKind::ModelOwnsBody),
-                source: WorthEntityReference::Created(WorthCreateKey::new(format!("{stem}.model"))),
-                target: WorthEntityReference::Created(WorthCreateKey::new(format!("{stem}.body"))),
+            TopologyMutation::CreateRelation {
+                create_key: CreateKey::new(format!("{stem}.owns_body")),
+                kind: RelationKind::Topology(TopologyRelationKind::ModelOwnsBody),
+                source: EntityReference::Created(CreateKey::new(format!("{stem}.model"))),
+                target: EntityReference::Created(CreateKey::new(format!("{stem}.body"))),
             },
         ],
-        WorthMutationOrigin::LocalEdit,
+        MutationOrigin::LocalEdit,
     )
 }
 
-fn disconnected_wire_intent(stem: &str) -> RawWorthTopologyIntent {
+fn disconnected_wire_intent(stem: &str) -> RawTopologyIntent {
     let mut intent = build_milestone_one_primitive_intent(
         stem,
-        &WorthMilestoneOnePrimitiveCase::WireOpen { half_edge_count: 2 },
+        &MilestoneOnePrimitiveCase::WireOpen { half_edge_count: 2 },
     )
     .expect("build disconnected wire intent");
     intent.mutations.retain(|mutation| {
         !matches!(
             mutation,
-            WorthTopologyMutation::CreateRelation { create_key, .. }
+            TopologyMutation::CreateRelation { create_key, .. }
                 if create_key.as_str().ends_with("wire_open.half_edge.1.start")
         )
     });
     intent
 }
 
-fn illegal_wire_branch_intent(stem: &str) -> RawWorthTopologyIntent {
+fn illegal_wire_branch_intent(stem: &str) -> RawTopologyIntent {
     let mut intent = build_milestone_one_primitive_intent(
         stem,
-        &WorthMilestoneOnePrimitiveCase::WireBranch { branch_count: 3 },
+        &MilestoneOnePrimitiveCase::WireBranch { branch_count: 3 },
     )
     .expect("build illegal wire branch intent");
     for suffix in [
@@ -293,7 +287,7 @@ fn illegal_wire_branch_intent(stem: &str) -> RawWorthTopologyIntent {
         intent.mutations.retain(|mutation| {
             !matches!(
                 mutation,
-                WorthTopologyMutation::CreateRelation { create_key, .. }
+                TopologyMutation::CreateRelation { create_key, .. }
                     if create_key.as_str().ends_with(suffix)
             )
         });
@@ -301,85 +295,85 @@ fn illegal_wire_branch_intent(stem: &str) -> RawWorthTopologyIntent {
     intent.mutations.push(topology_relation(
         stem,
         "wire_branch.branch_half_edge.1.edge.illegal_reuse",
-        WorthTopologyRelationKind::HalfEdgeUsesEdge,
+        TopologyRelationKind::HalfEdgeUsesEdge,
         "wire_branch.branch_half_edge.1",
         "wire_branch.branch_edge.0",
     ));
     intent.mutations.push(topology_relation(
         stem,
         "wire_branch.branch_half_edge.1.start.illegal_reuse",
-        WorthTopologyRelationKind::HalfEdgeStartsAtVertex,
+        TopologyRelationKind::HalfEdgeStartsAtVertex,
         "wire_branch.branch_half_edge.1",
         "wire_branch.center_vertex",
     ));
     intent.mutations.push(topology_relation(
         stem,
         "wire_branch.branch_half_edge.1.end.illegal_reuse",
-        WorthTopologyRelationKind::HalfEdgeEndsAtVertex,
+        TopologyRelationKind::HalfEdgeEndsAtVertex,
         "wire_branch.branch_half_edge.1",
         "wire_branch.branch_vertex.0",
     ));
     intent
 }
 
-fn non_manifold_closed_shell_intent(stem: &str) -> RawWorthTopologyIntent {
+fn non_manifold_closed_shell_intent(stem: &str) -> RawTopologyIntent {
     let mut intent = build_milestone_one_primitive_intent(
         stem,
-        &WorthMilestoneOnePrimitiveCase::SolidShell { face_count: 4 },
+        &MilestoneOnePrimitiveCase::SolidShell { face_count: 4 },
     )
     .expect("build non-manifold closed shell intent");
     intent.mutations.retain(|mutation| {
         !matches!(
             mutation,
-            WorthTopologyMutation::CreateRelation { create_key, .. }
+            TopologyMutation::CreateRelation { create_key, .. }
                 if create_key.as_str().ends_with("solid_shell.base_half_edge.1.radial")
         )
     });
     intent
 }
 
-fn broken_loop_wiring_intent(stem: &str) -> RawWorthTopologyIntent {
+fn broken_loop_wiring_intent(stem: &str) -> RawTopologyIntent {
     let mut intent = build_milestone_one_primitive_intent(
         stem,
-        &WorthMilestoneOnePrimitiveCase::WireClosed { half_edge_count: 4 },
+        &MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 4 },
     )
     .expect("build broken loop wiring intent");
     intent.mutations.retain(|mutation| {
         !matches!(
             mutation,
-            WorthTopologyMutation::CreateRelation { create_key, .. }
+            TopologyMutation::CreateRelation { create_key, .. }
                 if create_key.as_str().ends_with("wire_closed.half_edge.0.prev")
         )
     });
     intent
 }
 
-fn broken_radial_ring_intent(stem: &str) -> RawWorthTopologyIntent {
+fn broken_radial_ring_intent(stem: &str) -> RawTopologyIntent {
     let mut intent = build_milestone_one_primitive_intent(
         stem,
-        &WorthMilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
+        &MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
     )
     .expect("build broken radial ring intent");
     intent.mutations.retain(|mutation| {
         !matches!(
             mutation,
-            WorthTopologyMutation::CreateRelation { create_key, .. }
+            TopologyMutation::CreateRelation { create_key, .. }
                 if create_key.as_str().ends_with("nmt_edge_fan.shared_half_edge.0.radial")
         )
     });
     intent
 }
 
-fn open_boundary_solid_shell_intent(stem: &str) -> RawWorthTopologyIntent {
+fn open_boundary_solid_shell_intent(stem: &str) -> RawTopologyIntent {
     let mut intent = build_milestone_one_primitive_intent(
         stem,
-        &WorthMilestoneOnePrimitiveCase::SolidShell { face_count: 4 },
+        &MilestoneOnePrimitiveCase::SolidShell { face_count: 4 },
     )
     .expect("build open boundary solid shell intent");
     intent.mutations.retain(|mutation| {
         !matches!(
             mutation,
-            WorthTopologyMutation::CreateRelation { create_key, .. }
+            TopologyMutation::CreateRelation { create_key, .. }
                 if create_key.as_str().ends_with("solid_shell.base_half_edge.0.radial")
         )
     });
@@ -389,14 +383,14 @@ fn open_boundary_solid_shell_intent(stem: &str) -> RawWorthTopologyIntent {
 fn topology_relation(
     stem: &str,
     key: &str,
-    kind: WorthTopologyRelationKind,
+    kind: TopologyRelationKind,
     source: &str,
     target: &str,
-) -> WorthTopologyMutation {
-    WorthTopologyMutation::CreateRelation {
-        create_key: WorthCreateKey::new(format!("{stem}.{key}")),
-        kind: WorthRelationKind::Topology(kind),
-        source: WorthEntityReference::Created(WorthCreateKey::new(format!("{stem}.{source}"))),
-        target: WorthEntityReference::Created(WorthCreateKey::new(format!("{stem}.{target}"))),
+) -> TopologyMutation {
+    TopologyMutation::CreateRelation {
+        create_key: CreateKey::new(format!("{stem}.{key}")),
+        kind: RelationKind::Topology(kind),
+        source: EntityReference::Created(CreateKey::new(format!("{stem}.{source}"))),
+        target: EntityReference::Created(CreateKey::new(format!("{stem}.{target}"))),
     }
 }

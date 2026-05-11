@@ -1,4 +1,4 @@
-error[E0432]: unresolved imports `worth_schema::facade::seed_minimal_topology`, `worth_schema::facade::seed_milestone_one_primitive`, `worth_schema::facade::seed_milestone_one_primitive_on_branch`, `worth_schema::facade::verify_topology_intent`, `worth_schema::facade::verify_topology_intent_on_branch`
+error[E0432]: unresolved imports `schema::facade::seed_minimal_topology`, `schema::facade::seed_milestone_one_primitive`, `schema::facade::seed_milestone_one_primitive_on_branch`, `schema::facade::verify_topology_intent`, `schema::facade::verify_topology_intent_on_branch`
  --> tests/compile_fail/public_seed_helpers_not_on_main_facade.rs:2:5
   |
 2 |     seed_minimal_topology, seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch,

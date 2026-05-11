@@ -8,26 +8,25 @@ mod topology_class;
 
 pub use commit_flow::{
     AuthoritativeTopologySnapshot, CanonicalTopologyMutationBatch, CertifiedTopologyInterpretation,
-    DerivedTopologyReadBasis, PersistedTopologyTruthBatch, RawWorthTopologyIntent, WorthCreateKey,
-    WorthDerivedTruthBasisIdentity, WorthEntityReference, WorthMutationOrigin,
-    WorthTopologyMutation, WorthTopologyMutationBatch, WorthTopologyReadArtifact,
+    CreateKey, DerivedTopologyReadBasis, DerivedTruthBasisIdentity, EntityReference,
+    MutationOrigin, PersistedTopologyTruthBatch, RawTopologyIntent, TopologyMutation,
+    TopologyMutationBatch, TopologyReadArtifact,
 };
 pub use derived_invalidation::{
-    worth_milestone_two_invalidation_declarations, WorthDerivedInvalidationTarget,
-    WorthDerivedTruthSurfaceKind, WorthTruthToDerivedInvalidationDeclaration,
+    milestone_two_invalidation_declarations, DerivedInvalidationTarget, DerivedTruthSurfaceKind,
+    TruthToDerivedInvalidationDeclaration,
 };
-pub use gateway::{VerifiedTopologyCommit, WorthTopologyAuthority, WorthTopologyAuthorityError};
+pub use gateway::{TopologyAuthority, TopologyAuthorityError, VerifiedTopologyCommit};
 pub use geometry_binding::{
-    WorthCoedgeCurveKind, WorthCurveBindingKind, WorthCurveProvenanceKind, WorthSurfaceBindingKind,
-    WorthSurfaceRelationKind, WorthVertexGeometryProvenanceKind, WorthVertexToleranceRegime,
+    CoedgeCurveKind, CurveBindingKind, CurveProvenanceKind, SurfaceBindingKind,
+    SurfaceRelationKind, VertexGeometryProvenanceKind, VertexToleranceRegime,
 };
 pub use interpretation::{
-    WorthShellInterpretationClass, WorthShellInterpretationRecord,
-    WorthTopologyInterpretationRecordSet, WorthWireInterpretationClass,
-    WorthWireInterpretationRecord,
+    ShellInterpretationClass, ShellInterpretationRecord, TopologyInterpretationRecordSet,
+    WireInterpretationClass, WireInterpretationRecord,
 };
 pub use precision_fallback::{
-    WorthFallbackDisposition, WorthFallbackProofClass, WorthPrecisionBudgetFallbackRecord,
-    WorthPrecisionEscalationCause, WorthPrecisionFallbackRecord, WorthPrecisionRegime,
+    FallbackDisposition, FallbackProofClass, PrecisionBudgetFallbackRecord,
+    PrecisionEscalationCause, PrecisionFallbackRecord, PrecisionRegime,
 };
-pub use topology_class::WorthTopologyClass;
+pub use topology_class::TopologyClass;

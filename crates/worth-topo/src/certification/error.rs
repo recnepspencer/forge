@@ -1,20 +1,20 @@
-use crate::materialization::WorthTopologyMaterializationError;
-use crate::query::WorthTopologyQuerySurfaceError;
-use crate::validators::WorthTopologyValidationError;
-use worth_schema::facade::topology_authoring::WorthMilestoneOnePrimitiveAuthoringError;
+use crate::derived_topology::materialized_graph::TopologyMaterializationError;
+use crate::projection::TopologyQuerySurfaceError;
+use crate::validation::TopologyValidationError;
+use schema::facade::topology_authoring::MilestoneOnePrimitiveAuthoringError;
 
 #[derive(Debug)]
-pub enum WorthMilestoneOneCertificationError {
-    Authoring(WorthMilestoneOnePrimitiveAuthoringError),
+pub enum MilestoneOneCertificationError {
+    Authoring(MilestoneOnePrimitiveAuthoringError),
     Query(String),
     ReadView(String),
-    Materialization(WorthTopologyMaterializationError),
-    Validation(WorthTopologyValidationError),
+    Materialization(TopologyMaterializationError),
+    Validation(TopologyValidationError),
 }
 
-pub type WorthTopologyCertificationError = WorthMilestoneOneCertificationError;
+pub type TopologyCertificationError = MilestoneOneCertificationError;
 
-impl std::fmt::Display for WorthMilestoneOneCertificationError {
+impl std::fmt::Display for MilestoneOneCertificationError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Authoring(error) => write!(f, "authoring: {error}"),
@@ -26,28 +26,28 @@ impl std::fmt::Display for WorthMilestoneOneCertificationError {
     }
 }
 
-impl std::error::Error for WorthMilestoneOneCertificationError {}
+impl std::error::Error for MilestoneOneCertificationError {}
 
-impl From<WorthTopologyMaterializationError> for WorthMilestoneOneCertificationError {
-    fn from(value: WorthTopologyMaterializationError) -> Self {
+impl From<TopologyMaterializationError> for MilestoneOneCertificationError {
+    fn from(value: TopologyMaterializationError) -> Self {
         Self::Materialization(value)
     }
 }
 
-impl From<WorthTopologyValidationError> for WorthMilestoneOneCertificationError {
-    fn from(value: WorthTopologyValidationError) -> Self {
+impl From<TopologyValidationError> for MilestoneOneCertificationError {
+    fn from(value: TopologyValidationError) -> Self {
         Self::Validation(value)
     }
 }
 
-impl From<WorthMilestoneOnePrimitiveAuthoringError> for WorthMilestoneOneCertificationError {
-    fn from(value: WorthMilestoneOnePrimitiveAuthoringError) -> Self {
+impl From<MilestoneOnePrimitiveAuthoringError> for MilestoneOneCertificationError {
+    fn from(value: MilestoneOnePrimitiveAuthoringError) -> Self {
         Self::Authoring(value)
     }
 }
 
-impl From<WorthTopologyQuerySurfaceError> for WorthMilestoneOneCertificationError {
-    fn from(value: WorthTopologyQuerySurfaceError) -> Self {
+impl From<TopologyQuerySurfaceError> for MilestoneOneCertificationError {
+    fn from(value: TopologyQuerySurfaceError) -> Self {
         Self::Query(value.to_string())
     }
 }

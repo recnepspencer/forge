@@ -1,7 +1,7 @@
-//! Domain-owned Worth topology authoring support.
+//! Domain-owned  topology authoring support.
 //!
 //! These helpers provide the primitive corpus, seed, and verification surfaces
-//! used by Worth certification, fixtures, and topology authoring support.
+//! used by  certification, fixtures, and topology authoring support.
 
 pub use crate::data::seed::{
     build_milestone_one_primitive_intent, created_ref,
@@ -9,8 +9,7 @@ pub use crate::data::seed::{
     milestone_one_admitted_range_sweep_scenarios, milestone_one_default_primitive_corpus,
     milestone_one_heavy_branch_local_sweep_scenarios, seed_milestone_one_primitive,
     seed_milestone_one_primitive_on_branch, seed_minimal_topology, verify_topology_intent,
-    verify_topology_intent_on_branch, WorthMilestoneOnePrimitiveAuthoringError,
-    WorthMilestoneOnePrimitiveCase, WorthMilestoneOnePrimitiveExpectedOutcome,
-    WorthMilestoneOnePrimitiveRole, WorthMilestoneOnePrimitiveScenario, WorthMinimalTopologySeed,
-    WorthTopologyCreateBatchBuilder,
+    verify_topology_intent_on_branch, MilestoneOnePrimitiveAuthoringError,
+    MilestoneOnePrimitiveCase, MilestoneOnePrimitiveExpectedOutcome, MilestoneOnePrimitiveRole,
+    MilestoneOnePrimitiveScenario, MinimalTopologySeed, TopologyCreateBatchBuilder,
 };

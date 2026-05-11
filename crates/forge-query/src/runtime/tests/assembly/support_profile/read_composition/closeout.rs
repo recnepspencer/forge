@@ -41,7 +41,7 @@ fn runtime_public_read_composition_phase_one_closeout_answers_kernel_gate() {
     assert!(closeout
         .safe_to_build_now()
         .iter()
-        .any(|line| line.contains("snapshot_indexed_debt")));
+        .any(|line| line.contains("query_runtime_historical")));
     assert!(closeout
         .safe_to_build_now()
         .iter()
@@ -53,15 +53,15 @@ fn runtime_public_read_composition_phase_one_closeout_answers_kernel_gate() {
     assert!(closeout
         .must_not_assume_yet()
         .iter()
-        .any(|line| line.contains("do not assume Phase 2 Worth topology migration is complete")));
+        .any(|line| line.contains("by itself certifies Worth topology migration")));
     assert!(closeout
         .must_not_assume_yet()
         .iter()
-        .any(|line| line.contains("do not assume the side quest is fully closed")));
+        .any(|line| line.contains("future non-topology Worth domains")));
     assert!(closeout
         .migration_guidance()
         .iter()
-        .any(|line| line.contains("LoopCycleNeighborhood")));
+        .any(|line| line.contains("one bounded read family onto compose_read")));
     assert!(closeout
         .migration_guidance()
         .iter()
@@ -70,6 +70,10 @@ fn runtime_public_read_composition_phase_one_closeout_answers_kernel_gate() {
         .migration_guidance()
         .iter()
         .any(|line| line.contains("prefer an operator-owned read lane")));
+    assert!(closeout
+        .migration_guidance()
+        .iter()
+        .any(|line| line.contains("historical basis-aware read-family path")));
     assert!(closeout.required_verification_commands().iter().any(
         |line| line == "cargo test -p forge-query --test phase_boundaries_compile_fail --quiet"
     ));

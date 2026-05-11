@@ -49,7 +49,7 @@ types, but must not remain ordinary public runtime entrypoints:
 - a topology write receipt test proving affected live and computed surfaces
 - a topology live view read/observe test over authored truth
 - a materialized/interpreted/validated computed-surface test
-- a query-native edit application test over at least one admitted topology edit
+- a topology-operator application test over at least one admitted topology edit
   family
 - a query-native graph-shaped edit application test over at least one admitted
   topology edit family that requires Query graph composition rather than scalar

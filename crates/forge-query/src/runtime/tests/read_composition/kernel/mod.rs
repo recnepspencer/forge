@@ -1,3 +1,4 @@
+mod basis_context;
 mod declarative_parity;
 mod family;
 mod invariant_pack;

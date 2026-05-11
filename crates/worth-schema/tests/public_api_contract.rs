@@ -1,60 +1,57 @@
-use worth_schema::facade::topology_authoring::{
-    milestone_one_default_primitive_corpus, WorthMilestoneOnePrimitiveScenario,
+use schema::facade::topology_authoring::{
+    milestone_one_default_primitive_corpus, MilestoneOnePrimitiveScenario,
 };
-use worth_schema::facade::{
-    admit_worth_query_mutation_batch, worth_query_mutation_support_contract,
-    RawWorthTopologyIntent, WorthQueryAspectPath, WorthQueryCollection,
-    WorthQueryComputedDeclarationBuilder, WorthQueryLiveDeclarationBuilder,
-    WorthQueryMutationAdmission, WorthQueryMutationAdmissionBlocker,
-    WorthQueryMutationSupportContract, WorthQuerySchemaBasis,
+use schema::facade::{
+    admit_query_mutation_batch, query_mutation_support_contract, QueryAspectPath, QueryCollection,
+    QueryComputedDeclarationBuilder, QueryLiveDeclarationBuilder, QueryMutationAdmission,
+    QueryMutationAdmissionBlocker, QueryMutationSupportContract, QuerySchemaBasis,
+    RawTopologyIntent,
 };
 
 fn _live_declaration_contract() {
-    let _ = WorthQueryLiveDeclarationBuilder::new(
-        "worth.public.topology",
-        WorthQueryCollection::TopologyEntity,
-        WorthQuerySchemaBasis::TopologyEntityLiveView,
+    let _ = QueryLiveDeclarationBuilder::new(
+        ".public.topology",
+        QueryCollection::TopologyEntity,
+        QuerySchemaBasis::TopologyEntityLiveView,
     )
-    .select([WorthQueryAspectPath::TOPOLOGY_STRUCTURE])
+    .select([QueryAspectPath::TOPOLOGY_STRUCTURE])
     .build()
     .unwrap();
 }
 
 fn _computed_declaration_contract() {
-    let _ = WorthQueryComputedDeclarationBuilder::new("worth.public.validation")
-        .reads([WorthQueryAspectPath::TOPOLOGY_STRUCTURE])
-        .produces([WorthQueryAspectPath::DIAGNOSTICS_DECISIONS])
+    let _ = QueryComputedDeclarationBuilder::new(".public.validation")
+        .reads([QueryAspectPath::TOPOLOGY_STRUCTURE])
+        .produces([QueryAspectPath::DIAGNOSTICS_DECISIONS])
         .build()
         .unwrap();
 }
 
 fn _query_aspect_roundtrip_contract() {
-    let path = WorthQueryAspectPath::from_str("topology.structure").unwrap();
-    let _aspect = path.into_worth_aspect();
+    let path = QueryAspectPath::from_str("topology.structure").unwrap();
+    let _aspect = path.into_aspect();
 }
 
-fn _query_mutation_admission_contract(
-    intent: &RawWorthTopologyIntent,
-) -> WorthQueryMutationAdmission {
-    admit_worth_query_mutation_batch(intent)
+fn _query_mutation_admission_contract(intent: &RawTopologyIntent) -> QueryMutationAdmission {
+    admit_query_mutation_batch(intent)
 }
 
 fn _query_mutation_support_contract(
-) -> Result<WorthQueryMutationSupportContract, forge_query::facade::ForgeQueryRuntimeError> {
-    worth_query_mutation_support_contract()
+) -> Result<QueryMutationSupportContract, forge_query::facade::ForgeQueryRuntimeError> {
+    query_mutation_support_contract()
 }
 
-fn _topology_authoring_contract() -> Vec<WorthMilestoneOnePrimitiveScenario> {
+fn _topology_authoring_contract() -> Vec<MilestoneOnePrimitiveScenario> {
     milestone_one_default_primitive_corpus()
 }
 
 #[test]
-fn worth_schema_public_query_declaration_boundaries_compile() {
+fn schema_public_query_declaration_boundaries_compile() {
     let _ = _live_declaration_contract;
     let _ = _computed_declaration_contract;
     let _ = _query_aspect_roundtrip_contract;
     let _ = _query_mutation_admission_contract;
     let _ = _query_mutation_support_contract;
     let _ = _topology_authoring_contract;
-    let _ = WorthQueryMutationAdmissionBlocker::ExistingIdentityBindingRequired;
+    let _ = QueryMutationAdmissionBlocker::ExistingIdentityBindingRequired;
 }

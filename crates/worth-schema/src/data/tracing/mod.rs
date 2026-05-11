@@ -13,31 +13,29 @@ use forge_signal::facade::{
 };
 use serde::{Deserialize, Serialize};
 
-use crate::data::aspects::WorthAspect;
-use crate::data::authority::{
-    DerivedTopologyReadBasis, WorthDerivedTruthBasisIdentity, WorthMutationOrigin,
-};
+use crate::data::aspects::Aspect;
+use crate::data::authority::{DerivedTopologyReadBasis, DerivedTruthBasisIdentity, MutationOrigin};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum WorthTraceAvailability {
+pub enum TraceAvailability {
     Present,
     OmittedByPolicy,
     Unavailable,
 }
 
-impl Default for WorthTraceAvailability {
+impl Default for TraceAvailability {
     fn default() -> Self {
         Self::Unavailable
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthTraceWarning {
+pub struct TraceWarning {
     pub code: String,
     pub detail: String,
 }
 
-impl WorthTraceWarning {
+impl TraceWarning {
     pub fn new(code: impl Into<String>, detail: impl Into<String>) -> Self {
         Self {
             code: code.into(),
@@ -47,12 +45,12 @@ impl WorthTraceWarning {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthNamedCounter {
+pub struct NamedCounter {
     pub name: String,
     pub value: u64,
 }
 
-impl WorthNamedCounter {
+impl NamedCounter {
     pub fn new(name: impl Into<String>, value: u64) -> Self {
         Self {
             name: name.into(),
@@ -62,12 +60,12 @@ impl WorthNamedCounter {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
-pub struct WorthPerformanceAccounting {
-    pub counters: Vec<WorthNamedCounter>,
+pub struct PerformanceAccounting {
+    pub counters: Vec<NamedCounter>,
 }
 
-impl WorthPerformanceAccounting {
-    pub fn new(counters: impl IntoIterator<Item = WorthNamedCounter>) -> Self {
+impl PerformanceAccounting {
+    pub fn new(counters: impl IntoIterator<Item = NamedCounter>) -> Self {
         Self {
             counters: counters.into_iter().collect(),
         }
@@ -75,21 +73,21 @@ impl WorthPerformanceAccounting {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
-pub struct WorthIntegrityMarkers {
+pub struct IntegrityMarkers {
     pub branch_id: Option<BranchId>,
-    pub touched_aspects: BTreeSet<WorthAspect>,
-    pub authoritative_mutation_origin: Option<WorthMutationOrigin>,
-    pub truth_basis_identity: Option<WorthDerivedTruthBasisIdentity>,
+    pub touched_aspects: BTreeSet<Aspect>,
+    pub authoritative_mutation_origin: Option<MutationOrigin>,
+    pub truth_basis_identity: Option<DerivedTruthBasisIdentity>,
     pub precision_fallback_count: usize,
     pub precision_budget_fallback_count: usize,
 }
 
-impl WorthIntegrityMarkers {
+impl IntegrityMarkers {
     pub fn new(
         branch_id: Option<BranchId>,
-        touched_aspects: BTreeSet<WorthAspect>,
-        authoritative_mutation_origin: Option<WorthMutationOrigin>,
-        truth_basis_identity: Option<WorthDerivedTruthBasisIdentity>,
+        touched_aspects: BTreeSet<Aspect>,
+        authoritative_mutation_origin: Option<MutationOrigin>,
+        truth_basis_identity: Option<DerivedTruthBasisIdentity>,
         precision_fallback_count: usize,
         precision_budget_fallback_count: usize,
     ) -> Self {
@@ -105,7 +103,7 @@ impl WorthIntegrityMarkers {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthAuthorityTraceEvidence {
+pub struct AuthorityTraceEvidence {
     pub branch_id: BranchId,
     pub commit_count: usize,
     pub published_commit_count: usize,
@@ -116,7 +114,7 @@ pub struct WorthAuthorityTraceEvidence {
     pub commit_logs: Vec<CommitLog>,
 }
 
-impl WorthAuthorityTraceEvidence {
+impl AuthorityTraceEvidence {
     pub fn from_commit_results(branch_id: BranchId, commits: &[CommitResult]) -> Self {
         Self::from_commit_logs(
             branch_id,
@@ -161,23 +159,23 @@ impl WorthAuthorityTraceEvidence {
         }
     }
 
-    pub fn performance_accounting(&self) -> WorthPerformanceAccounting {
-        WorthPerformanceAccounting::new([
-            WorthNamedCounter::new("authority.commit_count", self.commit_count as u64),
-            WorthNamedCounter::new(
+    pub fn performance_accounting(&self) -> PerformanceAccounting {
+        PerformanceAccounting::new([
+            NamedCounter::new("authority.commit_count", self.commit_count as u64),
+            NamedCounter::new(
                 "authority.published_commit_count",
                 self.published_commit_count as u64,
             ),
-            WorthNamedCounter::new("authority.total_phase_count", self.total_phase_count as u64),
-            WorthNamedCounter::new(
+            NamedCounter::new("authority.total_phase_count", self.total_phase_count as u64),
+            NamedCounter::new(
                 "authority.history_summary_count",
                 self.history_summary_count as u64,
             ),
-            WorthNamedCounter::new(
+            NamedCounter::new(
                 "authority.publication_summary_count",
                 self.publication_summary_count as u64,
             ),
-            WorthNamedCounter::new(
+            NamedCounter::new(
                 "authority.invariant_result_count",
                 self.invariant_result_count as u64,
             ),
@@ -186,7 +184,7 @@ impl WorthAuthorityTraceEvidence {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthAuthorityTraceAnchor {
+pub struct AuthorityTraceAnchor {
     pub branch_id: BranchId,
     pub runtime_instance_ids: Vec<u64>,
     pub transaction_ids: Vec<TransactionId>,
@@ -195,7 +193,7 @@ pub struct WorthAuthorityTraceAnchor {
     pub version_ids: Vec<VersionId>,
 }
 
-impl WorthAuthorityTraceAnchor {
+impl AuthorityTraceAnchor {
     pub fn from_commit_results(branch_id: BranchId, commits: &[CommitResult]) -> Self {
         Self {
             branch_id,
@@ -248,38 +246,38 @@ impl WorthAuthorityTraceAnchor {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
-pub struct WorthBridgeTraceEvidence {
-    pub availability: WorthTraceAvailability,
+pub struct BridgeTraceEvidence {
+    pub availability: TraceAvailability,
     pub route_identities: Vec<String>,
     pub invalidation_identities: Vec<String>,
     pub snapshot_identities: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
-pub struct WorthDerivedTraceEvidence {
-    pub availability: WorthTraceAvailability,
+pub struct DerivedTraceEvidence {
+    pub availability: TraceAvailability,
     pub invalidation_target_count: usize,
     pub fallback_classes: Vec<String>,
     pub equivalence_digest: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthSignalTraceEvidence {
-    pub availability: WorthTraceAvailability,
+pub struct SignalTraceEvidence {
+    pub availability: TraceAvailability,
     pub explanation_availability: Option<String>,
     pub provenance_availability: Option<String>,
     pub replay_event_count: usize,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
-pub struct WorthBridgeTraceAnchor {
+pub struct BridgeTraceAnchor {
     pub route_identities: Vec<String>,
     pub invalidation_identities: Vec<String>,
     pub snapshot_identities: Vec<String>,
     pub historical_record_identities: Vec<String>,
 }
 
-impl WorthBridgeTraceAnchor {
+impl BridgeTraceAnchor {
     pub fn new(
         route_identities: impl IntoIterator<Item = String>,
         invalidation_identities: impl IntoIterator<Item = String>,
@@ -296,15 +294,15 @@ impl WorthBridgeTraceAnchor {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthDerivedTraceAnchor {
+pub struct DerivedTraceAnchor {
     pub branch_id: BranchId,
     pub runtime_instance_id: u64,
     pub snapshot_id: SnapshotId,
     pub version_id: VersionId,
-    pub truth_basis_identity: WorthDerivedTruthBasisIdentity,
+    pub truth_basis_identity: DerivedTruthBasisIdentity,
 }
 
-impl WorthDerivedTraceAnchor {
+impl DerivedTraceAnchor {
     pub fn from_read_basis(basis: &DerivedTopologyReadBasis) -> Self {
         Self {
             branch_id: basis.branch_id().clone(),
@@ -328,7 +326,7 @@ impl WorthDerivedTraceAnchor {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthSignalTraceAnchor {
+pub struct SignalTraceAnchor {
     pub node: SignalNodeId,
     pub replay_cursor: Option<ReplayCursor>,
     pub execution_record_id: Option<u64>,
@@ -336,7 +334,7 @@ pub struct WorthSignalTraceAnchor {
     pub lineage_artifact_id: Option<LineageArtifactId>,
 }
 
-impl WorthSignalTraceAnchor {
+impl SignalTraceAnchor {
     pub fn from_graph(
         graph: &SignalGraph,
         node: SignalNodeId,
@@ -354,7 +352,7 @@ impl WorthSignalTraceAnchor {
     }
 }
 
-impl WorthSignalTraceEvidence {
+impl SignalTraceEvidence {
     pub fn from_graph(
         graph: &SignalGraph,
         node: SignalNodeId,
@@ -365,7 +363,7 @@ impl WorthSignalTraceEvidence {
         let (_, explanation_availability) = forensic.materialize_explanation_artifact(node)?;
         let (_, provenance_availability) = forensic.materialize_provenance_artifact(node)?;
         Ok(Self {
-            availability: WorthTraceAvailability::Present,
+            availability: TraceAvailability::Present,
             explanation_availability: Some(format_signal_diagnostics_availability(
                 explanation_availability,
             )),
@@ -382,51 +380,51 @@ fn format_signal_diagnostics_availability(availability: SignalDiagnosticsAvailab
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
-pub struct WorthDecisionTrace {
-    pub authority_anchor: Option<WorthAuthorityTraceAnchor>,
-    pub bridge_anchor: Option<WorthBridgeTraceAnchor>,
-    pub derived_anchor: Option<WorthDerivedTraceAnchor>,
-    pub signal_anchor: Option<WorthSignalTraceAnchor>,
-    pub authority: Option<WorthAuthorityTraceEvidence>,
-    pub bridge: Option<WorthBridgeTraceEvidence>,
-    pub derived: Option<WorthDerivedTraceEvidence>,
-    pub signal: Option<WorthSignalTraceEvidence>,
+pub struct DecisionTrace {
+    pub authority_anchor: Option<AuthorityTraceAnchor>,
+    pub bridge_anchor: Option<BridgeTraceAnchor>,
+    pub derived_anchor: Option<DerivedTraceAnchor>,
+    pub signal_anchor: Option<SignalTraceAnchor>,
+    pub authority: Option<AuthorityTraceEvidence>,
+    pub bridge: Option<BridgeTraceEvidence>,
+    pub derived: Option<DerivedTraceEvidence>,
+    pub signal: Option<SignalTraceEvidence>,
 }
 
-impl WorthDecisionTrace {
-    pub fn authority_anchor(&self) -> Option<&WorthAuthorityTraceAnchor> {
+impl DecisionTrace {
+    pub fn authority_anchor(&self) -> Option<&AuthorityTraceAnchor> {
         self.authority_anchor.as_ref()
     }
 
-    pub fn bridge_anchor(&self) -> Option<&WorthBridgeTraceAnchor> {
+    pub fn bridge_anchor(&self) -> Option<&BridgeTraceAnchor> {
         self.bridge_anchor.as_ref()
     }
 
-    pub fn derived_anchor(&self) -> Option<&WorthDerivedTraceAnchor> {
+    pub fn derived_anchor(&self) -> Option<&DerivedTraceAnchor> {
         self.derived_anchor.as_ref()
     }
 
-    pub fn signal_anchor(&self) -> Option<&WorthSignalTraceAnchor> {
+    pub fn signal_anchor(&self) -> Option<&SignalTraceAnchor> {
         self.signal_anchor.as_ref()
     }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthBoundaryEnvelope<T> {
+pub struct BoundaryEnvelope<T> {
     primary_result: T,
-    warnings: Vec<WorthTraceWarning>,
-    decision_trace: WorthDecisionTrace,
-    integrity_markers: WorthIntegrityMarkers,
-    performance_accounting: WorthPerformanceAccounting,
+    warnings: Vec<TraceWarning>,
+    decision_trace: DecisionTrace,
+    integrity_markers: IntegrityMarkers,
+    performance_accounting: PerformanceAccounting,
 }
 
-impl<T> WorthBoundaryEnvelope<T> {
+impl<T> BoundaryEnvelope<T> {
     pub fn success(
         primary_result: T,
-        warnings: Vec<WorthTraceWarning>,
-        decision_trace: WorthDecisionTrace,
-        integrity_markers: WorthIntegrityMarkers,
-        performance_accounting: WorthPerformanceAccounting,
+        warnings: Vec<TraceWarning>,
+        decision_trace: DecisionTrace,
+        integrity_markers: IntegrityMarkers,
+        performance_accounting: PerformanceAccounting,
     ) -> Self {
         Self {
             primary_result,
@@ -445,10 +443,10 @@ impl<T> WorthBoundaryEnvelope<T> {
         self.primary_result
     }
 
-    pub fn map_primary_result<U>(self, map: impl FnOnce(T) -> U) -> WorthBoundaryEnvelope<U> {
+    pub fn map_primary_result<U>(self, map: impl FnOnce(T) -> U) -> BoundaryEnvelope<U> {
         let (primary_result, warnings, decision_trace, integrity_markers, performance_accounting) =
             self.into_parts();
-        WorthBoundaryEnvelope::success(
+        BoundaryEnvelope::success(
             map(primary_result),
             warnings,
             decision_trace,
@@ -457,19 +455,19 @@ impl<T> WorthBoundaryEnvelope<T> {
         )
     }
 
-    pub fn warnings(&self) -> &[WorthTraceWarning] {
+    pub fn warnings(&self) -> &[TraceWarning] {
         &self.warnings
     }
 
-    pub fn decision_trace(&self) -> &WorthDecisionTrace {
+    pub fn decision_trace(&self) -> &DecisionTrace {
         &self.decision_trace
     }
 
-    pub fn integrity_markers(&self) -> &WorthIntegrityMarkers {
+    pub fn integrity_markers(&self) -> &IntegrityMarkers {
         &self.integrity_markers
     }
 
-    pub fn performance_accounting(&self) -> &WorthPerformanceAccounting {
+    pub fn performance_accounting(&self) -> &PerformanceAccounting {
         &self.performance_accounting
     }
 
@@ -477,10 +475,10 @@ impl<T> WorthBoundaryEnvelope<T> {
         self,
     ) -> (
         T,
-        Vec<WorthTraceWarning>,
-        WorthDecisionTrace,
-        WorthIntegrityMarkers,
-        WorthPerformanceAccounting,
+        Vec<TraceWarning>,
+        DecisionTrace,
+        IntegrityMarkers,
+        PerformanceAccounting,
     ) {
         (
             self.primary_result,
@@ -491,7 +489,7 @@ impl<T> WorthBoundaryEnvelope<T> {
         )
     }
 
-    pub fn with_decision_trace(self, decision_trace: WorthDecisionTrace) -> Self {
+    pub fn with_decision_trace(self, decision_trace: DecisionTrace) -> Self {
         let (primary_result, warnings, _, integrity_markers, performance_accounting) =
             self.into_parts();
         Self::success(
@@ -503,10 +501,7 @@ impl<T> WorthBoundaryEnvelope<T> {
         )
     }
 
-    pub fn map_decision_trace(
-        self,
-        map: impl FnOnce(WorthDecisionTrace) -> WorthDecisionTrace,
-    ) -> Self {
+    pub fn map_decision_trace(self, map: impl FnOnce(DecisionTrace) -> DecisionTrace) -> Self {
         let (primary_result, warnings, decision_trace, integrity_markers, performance_accounting) =
             self.into_parts();
         Self::success(
@@ -518,7 +513,7 @@ impl<T> WorthBoundaryEnvelope<T> {
         )
     }
 
-    pub fn with_integrity_markers(self, integrity_markers: WorthIntegrityMarkers) -> Self {
+    pub fn with_integrity_markers(self, integrity_markers: IntegrityMarkers) -> Self {
         let (primary_result, warnings, decision_trace, _, performance_accounting) =
             self.into_parts();
         Self::success(
@@ -532,7 +527,7 @@ impl<T> WorthBoundaryEnvelope<T> {
 
     pub fn with_performance_accounting(
         self,
-        performance_accounting: WorthPerformanceAccounting,
+        performance_accounting: PerformanceAccounting,
     ) -> Self {
         let (primary_result, warnings, decision_trace, integrity_markers, _) = self.into_parts();
         Self::success(
@@ -546,21 +541,21 @@ impl<T> WorthBoundaryEnvelope<T> {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthBoundaryFailure<E> {
+pub struct BoundaryFailure<E> {
     error: E,
-    warnings: Vec<WorthTraceWarning>,
-    decision_trace: WorthDecisionTrace,
-    integrity_markers: WorthIntegrityMarkers,
-    performance_accounting: WorthPerformanceAccounting,
+    warnings: Vec<TraceWarning>,
+    decision_trace: DecisionTrace,
+    integrity_markers: IntegrityMarkers,
+    performance_accounting: PerformanceAccounting,
 }
 
-impl<E> WorthBoundaryFailure<E> {
+impl<E> BoundaryFailure<E> {
     pub fn failure(
         error: E,
-        warnings: Vec<WorthTraceWarning>,
-        decision_trace: WorthDecisionTrace,
-        integrity_markers: WorthIntegrityMarkers,
-        performance_accounting: WorthPerformanceAccounting,
+        warnings: Vec<TraceWarning>,
+        decision_trace: DecisionTrace,
+        integrity_markers: IntegrityMarkers,
+        performance_accounting: PerformanceAccounting,
     ) -> Self {
         Self {
             error,
@@ -579,10 +574,10 @@ impl<E> WorthBoundaryFailure<E> {
         self.error
     }
 
-    pub fn map_error<F>(self, map: impl FnOnce(E) -> F) -> WorthBoundaryFailure<F> {
+    pub fn map_error<F>(self, map: impl FnOnce(E) -> F) -> BoundaryFailure<F> {
         let (error, warnings, decision_trace, integrity_markers, performance_accounting) =
             self.into_parts();
-        WorthBoundaryFailure::failure(
+        BoundaryFailure::failure(
             map(error),
             warnings,
             decision_trace,
@@ -591,19 +586,19 @@ impl<E> WorthBoundaryFailure<E> {
         )
     }
 
-    pub fn warnings(&self) -> &[WorthTraceWarning] {
+    pub fn warnings(&self) -> &[TraceWarning] {
         &self.warnings
     }
 
-    pub fn decision_trace(&self) -> &WorthDecisionTrace {
+    pub fn decision_trace(&self) -> &DecisionTrace {
         &self.decision_trace
     }
 
-    pub fn integrity_markers(&self) -> &WorthIntegrityMarkers {
+    pub fn integrity_markers(&self) -> &IntegrityMarkers {
         &self.integrity_markers
     }
 
-    pub fn performance_accounting(&self) -> &WorthPerformanceAccounting {
+    pub fn performance_accounting(&self) -> &PerformanceAccounting {
         &self.performance_accounting
     }
 
@@ -611,10 +606,10 @@ impl<E> WorthBoundaryFailure<E> {
         self,
     ) -> (
         E,
-        Vec<WorthTraceWarning>,
-        WorthDecisionTrace,
-        WorthIntegrityMarkers,
-        WorthPerformanceAccounting,
+        Vec<TraceWarning>,
+        DecisionTrace,
+        IntegrityMarkers,
+        PerformanceAccounting,
     ) {
         (
             self.error,
@@ -625,7 +620,7 @@ impl<E> WorthBoundaryFailure<E> {
         )
     }
 
-    pub fn with_decision_trace(self, decision_trace: WorthDecisionTrace) -> Self {
+    pub fn with_decision_trace(self, decision_trace: DecisionTrace) -> Self {
         let (error, warnings, _, integrity_markers, performance_accounting) = self.into_parts();
         Self::failure(
             error,
@@ -636,10 +631,7 @@ impl<E> WorthBoundaryFailure<E> {
         )
     }
 
-    pub fn map_decision_trace(
-        self,
-        map: impl FnOnce(WorthDecisionTrace) -> WorthDecisionTrace,
-    ) -> Self {
+    pub fn map_decision_trace(self, map: impl FnOnce(DecisionTrace) -> DecisionTrace) -> Self {
         let (error, warnings, decision_trace, integrity_markers, performance_accounting) =
             self.into_parts();
         Self::failure(
@@ -651,7 +643,7 @@ impl<E> WorthBoundaryFailure<E> {
         )
     }
 
-    pub fn with_integrity_markers(self, integrity_markers: WorthIntegrityMarkers) -> Self {
+    pub fn with_integrity_markers(self, integrity_markers: IntegrityMarkers) -> Self {
         let (error, warnings, decision_trace, _, performance_accounting) = self.into_parts();
         Self::failure(
             error,
@@ -664,7 +656,7 @@ impl<E> WorthBoundaryFailure<E> {
 
     pub fn with_performance_accounting(
         self,
-        performance_accounting: WorthPerformanceAccounting,
+        performance_accounting: PerformanceAccounting,
     ) -> Self {
         let (error, warnings, decision_trace, integrity_markers, _) = self.into_parts();
         Self::failure(

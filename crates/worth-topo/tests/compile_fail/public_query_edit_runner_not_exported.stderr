@@ -1,8 +1,0 @@
-error[E0432]: unresolved import `worth_topo::facade::WorthTopologyQueryEditRunner`
- --> tests/compile_fail/public_query_edit_runner_not_exported.rs:1:5
-  |
-1 | use worth_topo::facade::WorthTopologyQueryEditRunner;
-  |     ^^^^^^^^^^^^^^^^^^^^----------------------------
-  |     |                   |
-  |     |                   help: a similar name exists in the module: `WorthTopologyQueryEditExecution`
-  |     no `WorthTopologyQueryEditRunner` in `facade`
