@@ -17,6 +17,8 @@ pub struct TopologyEditDigest {
     pub changed_scope_count: usize,
     pub naming_scope_count: usize,
     pub derived_region_count: usize,
+    pub fallback_policy_count: usize,
+    pub fallback_rejection_policy_count: usize,
 }
 
 impl TopologyEditBatch {
@@ -37,6 +39,15 @@ impl TopologyEditBatch {
             .iter()
             .map(|contract| contract.derived_regions().len())
             .sum();
+        let fallback_policy_count = self.contracts().len();
+        let fallback_rejection_policy_count = self
+            .contracts()
+            .iter()
+            .filter(|contract| {
+                contract.derived_fallback_policy()
+                    == super::TopologyEditDerivedFallbackPolicy::RejectAnyFallback
+            })
+            .count();
         TopologyEditDigest {
             digest: digest_rows(rows),
             contract_count: self.contracts().len(),
@@ -44,6 +55,8 @@ impl TopologyEditBatch {
             changed_scope_count,
             naming_scope_count,
             derived_region_count,
+            fallback_policy_count,
+            fallback_rejection_policy_count,
         }
     }
 }

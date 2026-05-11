@@ -1,50 +1,44 @@
-mod accessors;
-mod aggregate_acceptance;
-mod ambiguous_local_rewire;
-mod bowtie_adjacent;
-mod branch_local_acceptance;
-mod branch_local_parity;
-mod broken_radial_localization;
-mod cancellation_chain;
+mod acceptance_rows;
 #[cfg(test)]
 mod contract_tests;
-mod determinism_rules;
-mod direct_acceptance;
-mod edited_query_traversal;
-mod edited_query_traversal_accessors;
-mod edited_query_traversal_types;
-mod hostile_category_accessors;
-mod hostile_category_posture;
-mod hostile_category_requirements;
-mod hostile_category_types;
-mod local_successor_rewire;
-mod primitive_family_closure;
-mod primitive_family_closure_accessors;
-mod primitive_family_closure_types;
+mod derived_fallout;
+mod hostile_categories;
+mod naming_continuity_breadth_row;
+mod operator_family_proof;
+mod query_traversal_proof;
+mod replay_branch_breadth_row;
 mod report;
+mod row_accessors;
+mod scale_pressure_proof;
+mod scenario_programs;
 mod shared;
-mod side_quest_closeout;
-mod side_quest_types;
-mod split_collapse_churn;
+mod side_quest_gate;
 mod suite;
 #[cfg(test)]
 mod tests;
-mod validator_family_coverage;
+mod validation_breadth_row;
 
 use report::MilestoneThreeHostileScenario as HostileScenario;
 
-pub(crate) use ambiguous_local_rewire::certify_milestone_three_ambiguous_local_rewire_continuity_impl;
-pub(crate) use bowtie_adjacent::certify_milestone_three_bowtie_adjacent_rewire_impl;
-pub(crate) use broken_radial_localization::certify_milestone_three_broken_radial_localization_impl;
-pub(crate) use cancellation_chain::certify_milestone_three_cancellation_chain_parity_impl;
-pub use edited_query_traversal_types::{
-    MilestoneThreeEditedTopologyQueryTraversalRow, MilestoneThreeEditedTopologyQueryTraversalView,
+pub(crate) use acceptance_rows::milestone_three_validator_expectations;
+pub use derived_fallout::{
+    MilestoneThreeDerivedFallbackPolicyDenialRow, MilestoneThreeDerivedReuseLegalityRow,
 };
-pub use hostile_category_types::{
+pub use derived_fallout::{
+    MilestoneThreeDerivedWorkBreadthClass, MilestoneThreeDerivedWorkBreadthRow,
+};
+pub use hostile_categories::{
     MilestoneThreeHostileCertificationCategory, MilestoneThreeHostileCertificationCategoryRow,
     MilestoneThreeHostileCertificationStatus,
 };
-pub use primitive_family_closure_types::MilestoneThreePrimitiveFamilyClosureRow;
+pub use naming_continuity_breadth_row::MilestoneThreeNamingContinuityBreadthRow;
+pub use operator_family_proof::{
+    MilestoneThreeOperatorFamilyClosureRow, MilestoneThreePrimitiveFamilyClosureRow,
+};
+pub use query_traversal_proof::{
+    MilestoneThreeEditedTopologyQueryTraversalRow, MilestoneThreeEditedTopologyQueryTraversalView,
+};
+pub use replay_branch_breadth_row::MilestoneThreeReplayBranchBreadthRow;
 pub use report::{
     MilestoneThreeAmbiguousLocalRewireWitness, MilestoneThreeBowtieAdjacentWitness,
     MilestoneThreeBrokenRadialWitness, MilestoneThreeChangedScopeCoverageRow,
@@ -62,15 +56,22 @@ pub use report::{
     MilestoneThreeTopologyEditDigestRow, MilestoneThreeValidatorFamily,
     MilestoneThreeValidatorFamilyCoverageRow,
 };
-pub use side_quest_types::{
+pub use scale_pressure_proof::{MilestoneThreeScalePressureRow, MilestoneThreeScalePressureSweep};
+pub(crate) use scenario_programs::{
+    certify_milestone_three_ambiguous_local_rewire_continuity_impl,
+    certify_milestone_three_bowtie_adjacent_rewire_impl,
+    certify_milestone_three_broken_radial_localization_impl,
+    certify_milestone_three_cancellation_chain_parity_impl,
+    certify_milestone_three_split_collapse_churn_impl,
+};
+pub use side_quest_gate::{
     MilestoneThreeReturnGateBlockerRow, MilestoneThreeSideQuestBlockerRow,
     MilestoneThreeSideQuestCloseoutReport, MilestoneThreeSideQuestContractRow,
 };
-pub(crate) use split_collapse_churn::certify_milestone_three_split_collapse_churn_impl;
 pub(crate) use suite::{
     certify_milestone_three_closeout_impl, certify_milestone_three_hostile_suite_impl,
 };
-pub(crate) use validator_family_coverage::milestone_three_validator_expectations;
+pub use validation_breadth_row::MilestoneThreeValidationBreadthRow;
 
 const MILESTONE_THREE_REQUIRED_SCENARIOS: &[HostileScenario] = &[
     HostileScenario::BowtieAdjacentRewire,

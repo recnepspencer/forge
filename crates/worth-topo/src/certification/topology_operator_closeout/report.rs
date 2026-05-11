@@ -1,19 +1,31 @@
 use crate::certification::{DeterministicDigest, ReplayParityStatus};
+use crate::derived_topology::materialized_graph::MaterializationFallbackClass;
 use crate::topology_operators::{
     NamingEditContinuityMatrix, RejectedEditScopeReport, TopologyDerivedRegion,
-    TopologyEditChangedScope, TopologyEditDigest, TopologyEditFamily, TopologyEditNamingOutcome,
-    TopologyEditNamingScope, TopologyEditRejectionClass,
+    TopologyEditChangedScope, TopologyEditDerivedFallbackPolicy, TopologyEditDigest,
+    TopologyEditFamily, TopologyEditNamingOutcome, TopologyEditNamingScope,
+    TopologyEditRejectionClass,
 };
 use crate::validation::DerivedTopologyValidationReport;
 use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 use serde::{Deserialize, Serialize};
 
-use super::edited_query_traversal_types::MilestoneThreeEditedTopologyQueryTraversalRow;
-use super::hostile_category_types::MilestoneThreeHostileCertificationCategoryRow;
-use super::primitive_family_closure_types::MilestoneThreePrimitiveFamilyClosureRow;
-use super::side_quest_types::{
+use super::derived_fallout::{
+    MilestoneThreeDerivedFallbackPolicyDenialRow, MilestoneThreeDerivedReuseLegalityRow,
+    MilestoneThreeDerivedWorkBreadthRow,
+};
+use super::hostile_categories::MilestoneThreeHostileCertificationCategoryRow;
+use super::naming_continuity_breadth_row::MilestoneThreeNamingContinuityBreadthRow;
+use super::operator_family_proof::{
+    MilestoneThreeOperatorFamilyClosureRow, MilestoneThreePrimitiveFamilyClosureRow,
+};
+use super::query_traversal_proof::MilestoneThreeEditedTopologyQueryTraversalRow;
+use super::replay_branch_breadth_row::MilestoneThreeReplayBranchBreadthRow;
+use super::scale_pressure_proof::MilestoneThreeScalePressureRow;
+use super::side_quest_gate::{
     MilestoneThreeReturnGateBlockerRow, MilestoneThreeSideQuestCloseoutReport,
 };
+use super::validation_breadth_row::MilestoneThreeValidationBreadthRow;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
 pub enum MilestoneThreeHostileScenario {
@@ -126,6 +138,7 @@ pub struct MilestoneThreeHostileScenarioReport {
     pub rejection_class: Option<TopologyEditRejectionClass>,
     pub rejected_edit_scope_report: Option<RejectedEditScopeReport>,
     pub derived_validation_report: Option<DerivedTopologyValidationReport>,
+    pub derived_materialization_fallback_class: Option<MaterializationFallbackClass>,
     pub edit_replay_parity_report: MilestoneThreeEditReplayParityReport,
     pub detail: String,
 }
@@ -146,6 +159,7 @@ pub struct MilestoneThreeHostileFamilyCoverageRow {
     pub family: TopologyEditFamily,
     pub scenario_count: usize,
     pub scenarios: Vec<MilestoneThreeHostileScenario>,
+    pub row_digest: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -153,6 +167,7 @@ pub struct MilestoneThreeHostileRejectionDistributionRow {
     pub rejection_class: TopologyEditRejectionClass,
     pub case_count: usize,
     pub scenarios: Vec<MilestoneThreeHostileScenario>,
+    pub row_digest: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -160,6 +175,7 @@ pub struct MilestoneThreeHostileNamingDistributionRow {
     pub continuity_outcome_class: TopologyEditNamingOutcome,
     pub case_count: usize,
     pub scenarios: Vec<MilestoneThreeHostileScenario>,
+    pub row_digest: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -319,6 +335,9 @@ pub enum MilestoneThreeEditFalloutClass {
 pub struct MilestoneThreeEditFalloutBreadthRow {
     pub(crate) scenario: MilestoneThreeHostileScenario,
     pub(crate) fallout_class: MilestoneThreeEditFalloutClass,
+    pub(crate) fallback_policy: TopologyEditDerivedFallbackPolicy,
+    pub(crate) fallback_policy_exceeded: bool,
+    pub(crate) fallback_rejection_class: Option<TopologyEditRejectionClass>,
     pub(crate) declared_derived_region_count: usize,
     pub(crate) derived_validation_row_count: usize,
     pub(crate) fallback_count: usize,
@@ -346,19 +365,27 @@ pub struct MilestoneThreeHostileSuiteReport {
     pub rejection_distribution_rows: Vec<MilestoneThreeHostileRejectionDistributionRow>,
     pub naming_distribution_rows: Vec<MilestoneThreeHostileNamingDistributionRow>,
     pub hostile_certification_category_rows: Vec<MilestoneThreeHostileCertificationCategoryRow>,
+    pub operator_family_closure_rows: Vec<MilestoneThreeOperatorFamilyClosureRow>,
     pub primitive_family_closure_rows: Vec<MilestoneThreePrimitiveFamilyClosureRow>,
+    pub scale_pressure_rows: Vec<MilestoneThreeScalePressureRow>,
     pub topology_edit_digest_rows: Vec<MilestoneThreeTopologyEditDigestRow>,
     pub naming_edit_continuity_matrix_rows: Vec<MilestoneThreeNamingContinuityMatrixRow>,
+    pub naming_continuity_breadth_rows: Vec<MilestoneThreeNamingContinuityBreadthRow>,
     pub rejected_edit_scope_report_rows: Vec<MilestoneThreeRejectedEditScopeReportRow>,
     pub edit_replay_parity_rows: Vec<MilestoneThreeEditReplayParityRow>,
     pub edit_branch_local_parity_rows: Vec<MilestoneThreeEditBranchLocalParityRow>,
+    pub replay_branch_breadth_rows: Vec<MilestoneThreeReplayBranchBreadthRow>,
     pub edited_query_traversal_rows: Vec<MilestoneThreeEditedTopologyQueryTraversalRow>,
     pub validator_family_coverage_rows: Vec<MilestoneThreeValidatorFamilyCoverageRow>,
+    pub validation_breadth_rows: Vec<MilestoneThreeValidationBreadthRow>,
     pub changed_scope_coverage_rows: Vec<MilestoneThreeChangedScopeCoverageRow>,
     pub derived_region_coverage_rows: Vec<MilestoneThreeDerivedRegionCoverageRow>,
     pub determinism_rule_rows: Vec<MilestoneThreeDeterminismRuleRow>,
     pub edit_breadth_counter_rows: Vec<MilestoneThreeEditBreadthCounterRow>,
     pub edit_fallout_breadth_rows: Vec<MilestoneThreeEditFalloutBreadthRow>,
+    pub derived_fallback_policy_denial_rows: Vec<MilestoneThreeDerivedFallbackPolicyDenialRow>,
+    pub derived_reuse_legality_rows: Vec<MilestoneThreeDerivedReuseLegalityRow>,
+    pub derived_work_breadth_rows: Vec<MilestoneThreeDerivedWorkBreadthRow>,
     pub failure_locality_rows: Vec<MilestoneThreeFailureLocalityRow>,
     pub side_quest_closeout_report: MilestoneThreeSideQuestCloseoutReport,
     pub side_quest_gate_ready: bool,

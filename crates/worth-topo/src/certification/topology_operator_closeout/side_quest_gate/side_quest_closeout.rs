@@ -1,0 +1,268 @@
+use forge_query::facade::ForgeQueryWorkspace;
+use forge_relational::facade::history::BranchId;
+use forge_relational::facade::runtime::RelationalRuntime;
+use schema::facade::topology_authoring::{
+    seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch, MilestoneOnePrimitiveCase,
+};
+use schema::facade::{
+    DerivedTopologyReadBasis, MutationOrigin, RelationKind, TopologyRelationKind,
+};
+
+use super::side_quest_types::{
+    MilestoneThreeSideQuestBlockerRow, MilestoneThreeSideQuestCloseoutReport,
+    MilestoneThreeSideQuestContractRow,
+};
+use crate::certification::error::TopologyCertificationError;
+use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use crate::projection::runtime_boundary::query_runtime::{
+    topology_runtime, TopologyRuntimeAdapters,
+};
+use crate::projection::{
+    build_domain_query_view_parity_artifact, query_entity_identity, TopologyDomainQuery,
+    TopologyDomainQueryParityKind, TopologyDomainQueryViewParityArtifact,
+    TopologyDomainQueryViewRef,
+};
+
+pub(in crate::certification::topology_operator_closeout) fn certify_milestone_three_side_quest_closeout_impl<
+    F,
+>(
+    runtime_factory: &mut F,
+    stem: &str,
+) -> Result<MilestoneThreeSideQuestCloseoutReport, TopologyCertificationError>
+where
+    F: FnMut() -> RelationalRuntime,
+{
+    let query = TopologyDomainQuery::load();
+    let (replay_left, replay_right) =
+        replay_local_rewire_parity_artifacts(runtime_factory, stem, &query)?;
+    let replay_parity = query.record_view_parity(
+        TopologyDomainQueryParityKind::Replay,
+        &replay_left,
+        &replay_right,
+    );
+    let (branch_left, branch_right) =
+        branch_local_loop_cycle_parity_artifacts(runtime_factory, stem, &query)?;
+    let branch_parity = query.record_view_parity(
+        TopologyDomainQueryParityKind::BranchLocal,
+        &branch_left,
+        &branch_right,
+    );
+    if !replay_parity.parity_verified || !branch_parity.parity_verified {
+        return Err(TopologyCertificationError::Query(
+            "milestone three side quest closeout failed replay or branch-local parity".to_string(),
+        ));
+    }
+
+    let closeout = query.closeout_report();
+    let proof_report = closeout.proof_report();
+    Ok(MilestoneThreeSideQuestCloseoutReport {
+        domain_read_request_count: proof_report.request_aggregate().request_count(),
+        domain_read_parity_count: proof_report.parity_aggregate().domain_query_parity_count(),
+        replay_checked_count: proof_report.parity_aggregate().replay_checked_count(),
+        replay_verified_count: proof_report.parity_aggregate().replay_verified_count(),
+        branch_local_checked_count: proof_report.parity_aggregate().branch_local_checked_count(),
+        branch_local_verified_count: proof_report
+            .parity_aggregate()
+            .branch_local_verified_count(),
+        contract_rows: closeout
+            .no_n_plus_one_contract_rows()
+            .iter()
+            .map(|row| MilestoneThreeSideQuestContractRow {
+                contract_name: row.contract().as_str().to_string(),
+                status: row.status().as_str().to_string(),
+                reason: row.reason().to_string(),
+                row_digest: row.row_digest().to_string(),
+            })
+            .collect(),
+        blocker_rows: closeout
+            .phase_three_blocker_rows()
+            .iter()
+            .map(|row| MilestoneThreeSideQuestBlockerRow {
+                blocker_name: row.blocker().as_str().to_string(),
+                status: row.status().as_str().to_string(),
+                reason: row.reason().to_string(),
+                row_digest: row.row_digest().to_string(),
+            })
+            .collect(),
+        phase_three_ready: closeout.phase_three_ready(),
+    })
+}
+
+fn replay_local_rewire_parity_artifacts<F>(
+    runtime_factory: &mut F,
+    stem: &str,
+    query: &TopologyDomainQuery,
+) -> Result<
+    (
+        TopologyDomainQueryViewParityArtifact,
+        TopologyDomainQueryViewParityArtifact,
+    ),
+    TopologyCertificationError,
+>
+where
+    F: FnMut() -> RelationalRuntime,
+{
+    let mut runtime = runtime_factory();
+    let verified = seed_milestone_one_primitive(
+        &mut runtime,
+        &format!("{stem}.side_quest.replay"),
+        &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
+    )?;
+    let replay_basis = verified.read_basis.replay_of();
+    Ok((
+        local_rewire_parity_artifact(
+            &runtime,
+            &format!("{stem}.side_quest.replay.left"),
+            &verified.read_basis,
+            query,
+        )?,
+        local_rewire_parity_artifact(
+            &runtime,
+            &format!("{stem}.side_quest.replay.right"),
+            &replay_basis,
+            query,
+        )?,
+    ))
+}
+
+fn branch_local_loop_cycle_parity_artifacts<F>(
+    runtime_factory: &mut F,
+    stem: &str,
+    query: &TopologyDomainQuery,
+) -> Result<
+    (
+        TopologyDomainQueryViewParityArtifact,
+        TopologyDomainQueryViewParityArtifact,
+    ),
+    TopologyCertificationError,
+>
+where
+    F: FnMut() -> RelationalRuntime,
+{
+    let mut runtime = runtime_factory();
+    runtime
+        .history_authority()
+        .create_branch(
+            BranchId("feature".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .map_err(|error| TopologyCertificationError::Query(format!("{error:?}")))?;
+    let verified = seed_milestone_one_primitive_on_branch(
+        &mut runtime,
+        &format!("{stem}.side_quest.branch"),
+        &MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 5 },
+        BranchId("feature".to_string()),
+        MutationOrigin::BranchLocalApplication,
+    )?;
+    let replay_basis = verified.read_basis.replay_of();
+    Ok((
+        loop_cycle_parity_artifact(
+            &runtime,
+            &format!("{stem}.side_quest.branch.left"),
+            &verified.read_basis,
+            query,
+            5,
+        )?,
+        loop_cycle_parity_artifact(
+            &runtime,
+            &format!("{stem}.side_quest.branch.right"),
+            &replay_basis,
+            query,
+            5,
+        )?,
+    ))
+}
+
+fn local_rewire_parity_artifact(
+    runtime: &RelationalRuntime,
+    stem: &str,
+    read_basis: &DerivedTopologyReadBasis,
+    query: &TopologyDomainQuery,
+) -> Result<TopologyDomainQueryViewParityArtifact, TopologyCertificationError> {
+    let moved_identity = first_source_identity_for_snapshot_relation(
+        runtime,
+        read_basis,
+        TopologyRelationKind::HalfEdgeNext,
+    )?;
+    let (mut workspace, _assembly) = snapshot_basis_workspace(runtime, stem, read_basis)?;
+    let local_rewire = query
+        .local_rewire_neighborhood(&mut workspace, &moved_identity, 6)
+        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    Ok(build_domain_query_view_parity_artifact(
+        read_basis,
+        TopologyDomainQueryViewRef::LocalRewire(&local_rewire),
+    ))
+}
+
+fn loop_cycle_parity_artifact(
+    runtime: &RelationalRuntime,
+    stem: &str,
+    read_basis: &DerivedTopologyReadBasis,
+    query: &TopologyDomainQuery,
+    depth: usize,
+) -> Result<TopologyDomainQueryViewParityArtifact, TopologyCertificationError> {
+    let start_identity = first_source_identity_for_snapshot_relation(
+        runtime,
+        read_basis,
+        TopologyRelationKind::HalfEdgeNext,
+    )?;
+    let (mut workspace, _assembly) = snapshot_basis_workspace(runtime, stem, read_basis)?;
+    let loop_cycle = query
+        .loop_cycle(&mut workspace, &start_identity, depth)
+        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    Ok(build_domain_query_view_parity_artifact(
+        read_basis,
+        TopologyDomainQueryViewRef::LoopCycle(&loop_cycle),
+    ))
+}
+
+fn snapshot_basis_workspace(
+    runtime: &RelationalRuntime,
+    stem: &str,
+    read_basis: &DerivedTopologyReadBasis,
+) -> Result<(ForgeQueryWorkspace, TopologyQueryAssembly), TopologyCertificationError> {
+    let read_view = runtime
+        .read_truth()
+        .read_snapshot(read_basis.snapshot())
+        .ok_or_else(|| {
+            TopologyCertificationError::Query(format!(
+                "milestone three side quest could not open snapshot {:?}",
+                read_basis.snapshot()
+            ))
+        })?;
+    let adapters =
+        TopologyRuntimeAdapters::snapshot_read_only(read_view, read_basis.snapshot().clone());
+    let mut workspace = topology_runtime(adapters, stem)
+        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    let assembly = TopologyQueryAssembly::declare(&mut workspace)
+        .map_err(|error| TopologyCertificationError::Query(error.to_string()))?;
+    Ok((workspace, assembly))
+}
+
+fn first_source_identity_for_snapshot_relation(
+    runtime: &RelationalRuntime,
+    read_basis: &DerivedTopologyReadBasis,
+    relation_kind: TopologyRelationKind,
+) -> Result<String, TopologyCertificationError> {
+    let read_view = runtime
+        .read_truth()
+        .read_snapshot(read_basis.snapshot())
+        .ok_or_else(|| {
+            TopologyCertificationError::Query(format!(
+                "milestone three side quest could not open snapshot {:?}",
+                read_basis.snapshot()
+            ))
+        })?;
+    let expected_kind = RelationKind::Topology(relation_kind).kind_id();
+    read_view
+        .relations()
+        .iter()
+        .find(|record| record.kind.kind_id == expected_kind)
+        .map(|record| query_entity_identity(record.source))
+        .ok_or_else(|| {
+            TopologyCertificationError::Query(format!(
+                "milestone three side quest snapshot did not expose `{}` source identities",
+                relation_kind.kind_name()
+            ))
+        })
+}

@@ -145,6 +145,15 @@ pub(super) fn aggregate_topology_edit_digest(
         .flat_map(|batch| batch.contracts().iter())
         .map(|contract| contract.derived_regions().len())
         .sum();
+    let fallback_policy_count = batches.iter().map(|batch| batch.contracts().len()).sum();
+    let fallback_rejection_policy_count = batches
+        .iter()
+        .flat_map(|batch| batch.contracts().iter())
+        .filter(|contract| {
+            contract.derived_fallback_policy()
+                == crate::topology_operators::TopologyEditDerivedFallbackPolicy::RejectAnyFallback
+        })
+        .count();
     DeterministicDigestBackedEditDigest {
         digest: digest_rows(rows),
         contract_count,
@@ -152,6 +161,8 @@ pub(super) fn aggregate_topology_edit_digest(
         changed_scope_count,
         naming_scope_count,
         derived_region_count,
+        fallback_policy_count,
+        fallback_rejection_policy_count,
     }
 }
 

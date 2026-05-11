@@ -189,7 +189,6 @@ fn broad_direct_file_clusters_stay_explicitly_reviewed() {
     let allowed_dense_directories = [
         "certification",
         "certification/public_facade_contracts/compile_fail",
-        "certification/topology_operator_closeout",
         "derived_topology/materialized_graph",
         "projection/diagnostic_surfaces/read_proof",
         "projection/runtime_boundary/query_assembly",

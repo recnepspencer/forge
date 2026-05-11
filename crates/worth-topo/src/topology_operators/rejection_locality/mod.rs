@@ -11,6 +11,30 @@ pub enum TopologyEditRejectionClass {
     InvariantBlocked,
     NamingContinuityAmbiguous,
     NamingContinuityRejected,
+    ScopeLocalizationUnavailable,
+    DerivedFallbackExceeded,
+}
+
+impl TopologyEditRejectionClass {
+    pub const ALL: [Self; 6] = [
+        Self::OutOfClassEdit,
+        Self::InvariantBlocked,
+        Self::NamingContinuityAmbiguous,
+        Self::NamingContinuityRejected,
+        Self::ScopeLocalizationUnavailable,
+        Self::DerivedFallbackExceeded,
+    ];
+
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::OutOfClassEdit => "OutOfClassEdit",
+            Self::InvariantBlocked => "InvariantBlocked",
+            Self::NamingContinuityAmbiguous => "NamingContinuityAmbiguous",
+            Self::NamingContinuityRejected => "NamingContinuityRejected",
+            Self::ScopeLocalizationUnavailable => "ScopeLocalizationUnavailable",
+            Self::DerivedFallbackExceeded => "DerivedFallbackExceeded",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -37,12 +61,14 @@ impl TopologyOperatorExecutionError {
             Self::MissingCreatedEntityReference(_)
             | Self::MissingExistingEntityBinding(_)
             | Self::MissingExistingRelationBinding(_)
-            | Self::CreatedEntityKindMismatch { .. }
+            | Self::ExistingEntityOutgoingRelationCountMismatch { .. }
+            | Self::ExistingEntityIncomingRelationCountMismatch { .. } => {
+                Some(TopologyEditRejectionClass::ScopeLocalizationUnavailable)
+            }
+            Self::CreatedEntityKindMismatch { .. }
             | Self::ExistingEntityKindMismatch { .. }
             | Self::ExistingRelationKindMismatch { .. }
             | Self::ExistingRelationSourceMismatch { .. }
-            | Self::ExistingEntityOutgoingRelationCountMismatch { .. }
-            | Self::ExistingEntityIncomingRelationCountMismatch { .. }
             | Self::ExistingHalfEdgesNotOnSameEdge { .. }
             | Self::ExistingHalfEdgesNotOnSameLoop { .. } => {
                 Some(TopologyEditRejectionClass::InvariantBlocked)

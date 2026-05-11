@@ -1,5 +1,5 @@
 use crate::certification::topology_operator_closeout::MilestoneThreeHostileSuiteReport;
-use crate::certification::CertificationValidatorExpectation;
+use crate::certification::{CertificationRequiredOutput, CertificationValidatorExpectation};
 use crate::facade::{
     MilestoneThreeDeterminismRuleKind, MilestoneThreeHostileOutcomeClass, ReplayParityStatus,
 };
@@ -39,6 +39,21 @@ pub(super) fn accepted_branch_local_row_count(report: &MilestoneThreeHostileSuit
                 && row.branch_truth_digest.is_some()
         })
         .count()
+}
+
+pub(super) fn accepted_branch_local_scenarios_from_report(
+    report: &MilestoneThreeHostileSuiteReport,
+) -> Vec<String> {
+    report
+        .edit_branch_local_parity_rows
+        .iter()
+        .filter(|row| {
+            row.outcome_class == MilestoneThreeHostileOutcomeClass::Accepted
+                && row.branch_head_diverged_from_main
+                && row.branch_truth_digest.is_some()
+        })
+        .filter_map(|row| row.scenario.map(|scenario| scenario.as_str().to_string()))
+        .collect()
 }
 
 pub(super) fn rejected_branch_local_scenarios_from_report(
@@ -134,4 +149,38 @@ fn accepted_validator_expectations() -> Vec<String> {
         "naming_continuity".to_string(),
         "derived_validation_inspection".to_string(),
     ]
+}
+
+pub(super) fn assert_milestone_three_required_outputs(
+    required_outputs: &[CertificationRequiredOutput],
+) {
+    for output in [
+        CertificationRequiredOutput::MilestoneThreeHostileSuiteReport,
+        CertificationRequiredOutput::MilestoneThreeHostileCertificationCategoryRows,
+        CertificationRequiredOutput::MilestoneThreeOperatorFamilyClosureRows,
+        CertificationRequiredOutput::MilestoneThreePrimitiveFamilyClosureRows,
+        CertificationRequiredOutput::MilestoneThreeScalePressureRows,
+        CertificationRequiredOutput::MilestoneThreeTopologyEditDigestRows,
+        CertificationRequiredOutput::MilestoneThreeNamingContinuityMatrixRows,
+        CertificationRequiredOutput::MilestoneThreeNamingContinuityBreadthRows,
+        CertificationRequiredOutput::MilestoneThreeRejectedEditScopeReportRows,
+        CertificationRequiredOutput::MilestoneThreeEditReplayParityRows,
+        CertificationRequiredOutput::MilestoneThreeEditBranchLocalParityRows,
+        CertificationRequiredOutput::MilestoneThreeReplayBranchBreadthRows,
+        CertificationRequiredOutput::MilestoneThreeEditedTopologyQueryTraversalRows,
+        CertificationRequiredOutput::MilestoneThreeChangedScopeCoverageRows,
+        CertificationRequiredOutput::MilestoneThreeValidationBreadthRows,
+        CertificationRequiredOutput::MilestoneThreeDerivedRegionCoverageRows,
+        CertificationRequiredOutput::MilestoneThreeDeterminismRuleRows,
+        CertificationRequiredOutput::MilestoneThreeEditBreadthCounterRows,
+        CertificationRequiredOutput::MilestoneThreeEditFalloutBreadthRows,
+        CertificationRequiredOutput::MilestoneThreeDerivedReuseLegalityRows,
+        CertificationRequiredOutput::MilestoneThreeDerivedWorkBreadthRows,
+        CertificationRequiredOutput::MilestoneThreeFailureLocalityRows,
+        CertificationRequiredOutput::MilestoneThreeValidatorFamilyCoverageRows,
+        CertificationRequiredOutput::MilestoneThreeSideQuestCloseoutReport,
+        CertificationRequiredOutput::MilestoneThreeReturnGateReport,
+    ] {
+        assert!(required_outputs.contains(&output));
+    }
 }

@@ -1,6 +1,6 @@
 # Milestone 3 Engineering Spec: Topology Editing Core
 
-> **Status:** Active
+> **Status:** Closed
 >
 > **Roadmap parent:** [worth_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/worth_roadmap.md)
 >
@@ -11,6 +11,9 @@
 > **Predecessor closeouts:**
 > - [milestone-1-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-1-closeout.md)
 > - [milestone-2-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-2-closeout.md)
+>
+> **Closeout:**
+> - [milestone-3-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-3-closeout.md)
 >
 > **Vision parent:** [VISION.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/VISION.md)
 >

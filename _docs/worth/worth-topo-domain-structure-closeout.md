@@ -72,8 +72,6 @@ to split or enter an explicit reviewed list. The current reviewed clusters are:
 - `certification`: root proof orchestration and public closeout entry points.
 - `certification/public_facade_contracts/compile_fail`: trybuild fixture cases
   where each file is a deliberately isolated public/private access scenario.
-- `certification/topology_operator_closeout`: proof-surface cluster for current
-  topology-operator closeout rows.
 - `derived_topology/materialized_graph`: materialized graph responsibility
   cluster split by relation and graph product.
 - `projection/diagnostic_surfaces/read_proof`: read-proof row/report cluster,
@@ -86,6 +84,9 @@ to split or enter an explicit reviewed list. The current reviewed clusters are:
   relation pressure.
 
 These are not blanket exemptions. New dense folders fail until reviewed.
+`certification/topology_operator_closeout` is no longer a reviewed dense
+cluster; its closeout proof now splits by responsibility and is enforced by the
+same direct-file-count guard as ordinary folders.
 
 ## Verification Commands
 

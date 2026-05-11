@@ -8,8 +8,9 @@ use serde::{Deserialize, Serialize};
 
 use super::{
     BoundaryMembershipKind, LoopEndpointKind, LoopSuccessorKind, ShellOrWireMembershipKind,
-    TopologyDerivedRegion, TopologyEditChangedScope, TopologyEditFamily, TopologyEditNamingOutcome,
-    TopologyEditNamingReport, TopologyEditNamingRow, TopologyEditNamingScope,
+    TopologyDerivedRegion, TopologyEditChangedScope, TopologyEditDerivedFallbackPolicy,
+    TopologyEditFamily, TopologyEditNamingOutcome, TopologyEditNamingReport, TopologyEditNamingRow,
+    TopologyEditNamingScope,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -74,6 +75,7 @@ pub struct TopologyEditContract {
     pub changed_scopes: Vec<TopologyEditChangedScope>,
     pub naming_scopes: Vec<TopologyEditNamingScope>,
     pub derived_regions: Vec<TopologyDerivedRegion>,
+    pub derived_fallback_policy: TopologyEditDerivedFallbackPolicy,
     pub lowered_mutations: Vec<TopologyMutation>,
 }
 
@@ -105,6 +107,18 @@ impl TopologyEditContract {
 
     pub fn derived_regions(&self) -> &[TopologyDerivedRegion] {
         &self.derived_regions
+    }
+
+    pub fn derived_fallback_policy(&self) -> TopologyEditDerivedFallbackPolicy {
+        self.derived_fallback_policy
+    }
+
+    pub fn with_derived_fallback_policy(
+        mut self,
+        policy: TopologyEditDerivedFallbackPolicy,
+    ) -> Self {
+        self.derived_fallback_policy = policy;
+        self
     }
 
     pub fn lowered_mutations(&self) -> &[TopologyMutation] {

@@ -9,7 +9,7 @@ use schema::facade::{
 use super::{
     BoundaryMembershipKind, LoopEndpointKind, LoopSuccessorKind, ShellOrWireMembershipKind,
     TopologyDerivedRegion, TopologyEditAction, TopologyEditChangedScope, TopologyEditContract,
-    TopologyEditFamily, TopologyEditNamingScope,
+    TopologyEditDerivedFallbackPolicy, TopologyEditFamily, TopologyEditNamingScope,
 };
 
 impl TopologyEditContract {
@@ -62,6 +62,7 @@ impl TopologyEditContract {
                 TopologyDerivedRegion::EditLocalNeighborhoodRegion,
                 TopologyDerivedRegion::NamingContinuityRegion,
             ],
+            derived_fallback_policy: TopologyEditDerivedFallbackPolicy::AllowExplicitFallback,
             lowered_mutations,
         }
     }
@@ -84,6 +85,7 @@ impl TopologyEditContract {
                 TopologyDerivedRegion::EditLocalNeighborhoodRegion,
                 TopologyDerivedRegion::NamingContinuityRegion,
             ],
+            derived_fallback_policy: TopologyEditDerivedFallbackPolicy::AllowExplicitFallback,
             lowered_mutations: vec![TopologyMutation::RemoveEntity { entity_id }],
         }
     }
@@ -129,6 +131,7 @@ impl TopologyEditContract {
                 TopologyDerivedRegion::EditLocalNeighborhoodRegion,
                 TopologyDerivedRegion::NamingContinuityRegion,
             ],
+            derived_fallback_policy: TopologyEditDerivedFallbackPolicy::AllowExplicitFallback,
             lowered_mutations,
         }
     }
@@ -156,6 +159,7 @@ impl TopologyEditContract {
                 TopologyDerivedRegion::EditLocalNeighborhoodRegion,
                 TopologyDerivedRegion::NamingContinuityRegion,
             ],
+            derived_fallback_policy: TopologyEditDerivedFallbackPolicy::AllowExplicitFallback,
             lowered_mutations: vec![TopologyMutation::RemoveRelation { relation_id }],
         }
     }
@@ -190,6 +194,7 @@ impl TopologyEditContract {
                 TopologyDerivedRegion::EditLocalNeighborhoodRegion,
                 TopologyDerivedRegion::NamingContinuityRegion,
             ],
+            derived_fallback_policy: TopologyEditDerivedFallbackPolicy::AllowExplicitFallback,
             lowered_mutations: vec![TopologyMutation::UpsertRelation {
                 relation_id,
                 kind: RelationKind::Topology(kind.relation_kind()),
@@ -229,6 +234,7 @@ impl TopologyEditContract {
                 TopologyDerivedRegion::EditLocalNeighborhoodRegion,
                 TopologyDerivedRegion::NamingContinuityRegion,
             ],
+            derived_fallback_policy: TopologyEditDerivedFallbackPolicy::AllowExplicitFallback,
             lowered_mutations: vec![TopologyMutation::UpsertRelation {
                 relation_id,
                 kind: RelationKind::Topology(endpoint.relation_kind()),
@@ -280,6 +286,7 @@ impl TopologyEditContract {
                 TopologyDerivedRegion::EditLocalNeighborhoodRegion,
                 TopologyDerivedRegion::NamingContinuityRegion,
             ],
+            derived_fallback_policy: TopologyEditDerivedFallbackPolicy::AllowExplicitFallback,
             lowered_mutations: vec![TopologyMutation::CreateRelation {
                 create_key,
                 kind: RelationKind::Topology(kind.relation_kind()),
@@ -321,6 +328,7 @@ impl TopologyEditContract {
                 TopologyDerivedRegion::EditLocalNeighborhoodRegion,
                 TopologyDerivedRegion::NamingContinuityRegion,
             ],
+            derived_fallback_policy: TopologyEditDerivedFallbackPolicy::AllowExplicitFallback,
             lowered_mutations: vec![TopologyMutation::RemoveRelation { relation_id }],
         }
     }
@@ -352,6 +360,7 @@ impl TopologyEditContract {
                 TopologyDerivedRegion::EditLocalNeighborhoodRegion,
                 TopologyDerivedRegion::NamingContinuityRegion,
             ],
+            derived_fallback_policy: TopologyEditDerivedFallbackPolicy::AllowExplicitFallback,
             lowered_mutations: vec![TopologyMutation::UpsertRelation {
                 relation_id,
                 kind: RelationKind::Topology(TopologyRelationKind::HalfEdgeRadialNext),
@@ -380,6 +389,7 @@ impl TopologyEditContract {
                 TopologyDerivedRegion::EditLocalNeighborhoodRegion,
                 TopologyDerivedRegion::NamingContinuityRegion,
             ],
+            derived_fallback_policy: TopologyEditDerivedFallbackPolicy::AllowExplicitFallback,
             lowered_mutations: vec![TopologyMutation::RemoveRelation { relation_id }],
         }
     }

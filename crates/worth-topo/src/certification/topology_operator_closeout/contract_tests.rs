@@ -3,8 +3,9 @@ use schema::facade::{Aspect, DiagnosticsAspect, NamingAspect, TopologyAspect, To
 
 use crate::topology_operators::{
     BoundaryMembershipKind, TopologyDerivedRegion, TopologyEditBatch, TopologyEditChangedScope,
-    TopologyEditContract, TopologyEditFamily, TopologyEditNamingOutcome, TopologyEditNamingScope,
-    TopologyEditRejectionClass,
+    TopologyEditContract, TopologyEditDerivedFallbackPolicy, TopologyEditFamily,
+    TopologyEditNamingOutcome, TopologyEditNamingScope, TopologyEditRejectionClass,
+    TopologyOperatorExecutionError,
 };
 
 #[test]
@@ -41,6 +42,10 @@ fn create_topology_entity_contract_is_topology_only_and_naming_aware() {
             TopologyDerivedRegion::EditLocalNeighborhoodRegion,
             TopologyDerivedRegion::NamingContinuityRegion,
         ]
+    );
+    assert_eq!(
+        contract.derived_fallback_policy(),
+        TopologyEditDerivedFallbackPolicy::AllowExplicitFallback
     );
 }
 
@@ -94,6 +99,24 @@ fn edit_batch_digest_is_deterministic_for_same_contracts() {
     assert_eq!(left_digest.changed_scope_count, 5);
     assert_eq!(left_digest.naming_scope_count, 2);
     assert_eq!(left_digest.derived_region_count, 5);
+    assert_eq!(left_digest.fallback_policy_count, 2);
+    assert_eq!(left_digest.fallback_rejection_policy_count, 0);
+}
+
+#[test]
+fn edit_batch_digest_tracks_locality_only_fallback_policy() {
+    let contract = TopologyEditContract::attach_boundary_membership(
+        "m3.digest.local_only.loop",
+        BoundaryMembershipKind::LoopOwnsHalfEdge,
+        EntityId::new(PartitionId::main(), 1, 1),
+        EntityId::new(PartitionId::main(), 2, 1),
+    )
+    .with_derived_fallback_policy(TopologyEditDerivedFallbackPolicy::RejectAnyFallback);
+    let batch = TopologyEditBatch::new(vec![contract]).expect("non-empty edit batch");
+    let digest = batch.topology_edit_digest();
+
+    assert_eq!(digest.fallback_policy_count, 1);
+    assert_eq!(digest.fallback_rejection_policy_count, 1);
 }
 
 #[test]
@@ -154,5 +177,40 @@ fn continuity_matrix_exposes_overall_outcome_class() {
     assert_eq!(
         rejected.rejection_class(),
         Some(TopologyEditRejectionClass::NamingContinuityRejected)
+    );
+}
+
+#[test]
+fn topology_edit_rejection_taxonomy_matches_milestone_three_spec() {
+    assert_eq!(
+        TopologyEditRejectionClass::ALL,
+        [
+            TopologyEditRejectionClass::OutOfClassEdit,
+            TopologyEditRejectionClass::InvariantBlocked,
+            TopologyEditRejectionClass::NamingContinuityAmbiguous,
+            TopologyEditRejectionClass::NamingContinuityRejected,
+            TopologyEditRejectionClass::ScopeLocalizationUnavailable,
+            TopologyEditRejectionClass::DerivedFallbackExceeded,
+        ]
+    );
+    assert_eq!(
+        TopologyEditRejectionClass::ScopeLocalizationUnavailable.as_str(),
+        "ScopeLocalizationUnavailable"
+    );
+    assert_eq!(
+        TopologyEditRejectionClass::DerivedFallbackExceeded.as_str(),
+        "DerivedFallbackExceeded"
+    );
+}
+
+#[test]
+fn missing_authoritative_scope_reports_scope_localization_unavailable() {
+    let missing_entity = EntityId::new(PartitionId::main(), 99, 1);
+    let error = TopologyOperatorExecutionError::MissingExistingEntityBinding(missing_entity);
+
+    assert_eq!(
+        error.rejection_class(),
+        Some(TopologyEditRejectionClass::ScopeLocalizationUnavailable),
+        "a missing live authority binding means the edit runner cannot localize the requested scope, not that a specific invariant was proven false"
     );
 }

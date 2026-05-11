@@ -12,8 +12,8 @@ pub use application::{TopologyOperatorExecution, TopologyOperatorExecutionError}
 pub use contracts::{
     BoundaryMembershipKind, LoopEndpointKind, LoopSuccessorKind, ShellOrWireMembershipKind,
     TopologyDerivedRegion, TopologyEditAction, TopologyEditChangedScope, TopologyEditContract,
-    TopologyEditFamily, TopologyEditNamingOutcome, TopologyEditNamingReport, TopologyEditNamingRow,
-    TopologyEditNamingScope,
+    TopologyEditDerivedFallbackPolicy, TopologyEditFamily, TopologyEditNamingOutcome,
+    TopologyEditNamingReport, TopologyEditNamingRow, TopologyEditNamingScope,
 };
 pub use facade::{TopologyEditApplicationMode, TopologyEditBatch};
 pub use naming_continuity::NamingEditContinuityMatrix;

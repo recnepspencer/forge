@@ -32,15 +32,16 @@ The operating rule is:
   a topology-domain skeleton that cleanly separates B-rep truth, derived
   topology, validation, topology operators, projection, certification, and test
   support
-- `Milestone 3`: Active, resumed on the query-backed substrate and unblocked
-  for further topology-operator expansion under the closed domain-structure
-  gate
-- Milestones `4+`: Planned
+- `Milestone 3`: Complete
+- `Milestone 4`: Active
+- Milestones `5+`: Planned
 
 Milestone 1 closeout record:
 - [milestone-1-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-1-closeout.md)
 Milestone 2 closeout record:
 - [milestone-2-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-2-closeout.md)
+Milestone 3 closeout record:
+- [milestone-3-closeout.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-3-closeout.md)
 Forge Query runtime rewrite gate:
 - [forge-query-runtime-rewrite-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/forge-query-runtime-rewrite-plan.md)
 Worth read composition side quest:
@@ -724,7 +725,7 @@ derived topology surface and diagnostic story.
 
 ## Milestone 3: Topology Editing Core
 
-> **Status:** Active
+> **Status:** Complete
 
 ### Goal
 

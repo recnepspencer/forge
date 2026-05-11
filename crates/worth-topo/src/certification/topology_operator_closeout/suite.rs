@@ -1,34 +1,40 @@
-use std::collections::BTreeMap;
-
 use forge_relational::facade::runtime::RelationalRuntime;
 
-use super::ambiguous_local_rewire::certify_milestone_three_ambiguous_local_rewire_continuity_impl;
-use super::bowtie_adjacent::certify_milestone_three_bowtie_adjacent_rewire_impl;
-use super::branch_local_acceptance::ensure_branch_local_edit_parity_rows;
-use super::branch_local_parity::certify_milestone_three_branch_local_edit_parity_impl;
-use super::broken_radial_localization::certify_milestone_three_broken_radial_localization_impl;
-use super::cancellation_chain::certify_milestone_three_cancellation_chain_parity_impl;
-use super::direct_acceptance::{build_direct_acceptance_rows, ensure_direct_acceptance_proof_rows};
-use super::edited_query_traversal::{
-    certify_milestone_three_edited_query_traversal_impl, ensure_edited_query_traversal_rows,
+use super::acceptance_rows::{
+    build_direct_acceptance_rows, build_family_coverage_rows, build_naming_distribution_rows,
+    build_rejection_distribution_rows, build_replay_branch_breadth_rows,
+    build_validation_breadth_rows, build_validator_family_coverage_rows,
+    certify_milestone_three_branch_local_edit_parity_impl, ensure_branch_local_edit_parity_rows,
+    ensure_direct_acceptance_proof_rows, ensure_hostile_distribution_rows,
+    ensure_replay_branch_breadth_rows, ensure_validation_breadth_rows,
+    ensure_validator_family_coverage_rows,
 };
-use super::hostile_category_posture::{
+use super::hostile_categories::{
     build_hostile_certification_category_rows, ensure_hostile_certification_category_rows,
 };
-use super::primitive_family_closure::{
-    certify_milestone_three_primitive_family_closure_impl, ensure_primitive_family_closure_rows,
+use super::operator_family_proof::{
+    build_operator_family_closure_rows, certify_milestone_three_primitive_family_closure_impl,
+    ensure_operator_family_closure_rows, ensure_primitive_family_closure_rows,
+};
+use super::query_traversal_proof::{
+    certify_milestone_three_edited_query_traversal_impl, ensure_edited_query_traversal_rows,
 };
 use super::report::{
-    MilestoneThreeHostileCoverageRow, MilestoneThreeHostileFamilyCoverageRow,
-    MilestoneThreeHostileNamingDistributionRow, MilestoneThreeHostileOutcomeClass,
-    MilestoneThreeHostileRejectionDistributionRow, MilestoneThreeHostileScenario,
+    MilestoneThreeHostileCoverageRow, MilestoneThreeHostileOutcomeClass,
     MilestoneThreeHostileScenarioReport, MilestoneThreeHostileSuiteReport,
 };
-use super::side_quest_closeout::certify_milestone_three_side_quest_closeout_impl;
-use super::side_quest_types::MilestoneThreeReturnGateBlockerRow;
-use super::split_collapse_churn::certify_milestone_three_split_collapse_churn_impl;
-use super::validator_family_coverage::{
-    build_validator_family_coverage_rows, ensure_validator_family_coverage_rows,
+use super::scale_pressure_proof::{
+    certify_milestone_three_scale_pressure_impl, ensure_scale_pressure_rows,
+};
+use super::scenario_programs::{
+    certify_milestone_three_ambiguous_local_rewire_continuity_impl,
+    certify_milestone_three_bowtie_adjacent_rewire_impl,
+    certify_milestone_three_broken_radial_localization_impl,
+    certify_milestone_three_cancellation_chain_parity_impl,
+    certify_milestone_three_split_collapse_churn_impl,
+};
+use super::side_quest_gate::{
+    certify_milestone_three_side_quest_closeout_impl, MilestoneThreeReturnGateBlockerRow,
 };
 use super::{
     milestone_three_rejected_scenarios, milestone_three_replay_scenarios,
@@ -36,9 +42,6 @@ use super::{
 };
 use crate::certification::error::TopologyCertificationError;
 use crate::certification::support::reporting::ReplayParityStatus;
-use crate::topology_operators::{
-    TopologyEditFamily, TopologyEditNamingOutcome, TopologyEditRejectionClass,
-};
 
 pub(crate) fn certify_milestone_three_hostile_suite_impl<F>(
     mut runtime_factory: F,
@@ -75,6 +78,8 @@ where
     let naming_distribution_rows = build_naming_distribution_rows(&scenario_reports);
     let direct_acceptance_rows = build_direct_acceptance_rows(&scenario_reports);
     let validator_family_coverage_rows = build_validator_family_coverage_rows(&scenario_reports);
+    let validation_breadth_rows =
+        build_validation_breadth_rows(&scenario_reports, &validator_family_coverage_rows);
     let edit_branch_local_parity_rows = certify_milestone_three_branch_local_edit_parity_impl(
         &mut runtime_factory,
         stem,
@@ -82,6 +87,8 @@ where
     )?;
     let primitive_family_closure_rows =
         certify_milestone_three_primitive_family_closure_impl(&mut runtime_factory, stem)?;
+    let scale_pressure_rows =
+        certify_milestone_three_scale_pressure_impl(&mut runtime_factory, stem)?;
     let edited_query_traversal_rows =
         certify_milestone_three_edited_query_traversal_impl(&mut runtime_factory, stem)?;
     let side_quest_closeout_report =
@@ -110,20 +117,29 @@ where
         rejection_distribution_rows,
         naming_distribution_rows,
         hostile_certification_category_rows: Vec::new(),
+        operator_family_closure_rows: Vec::new(),
         primitive_family_closure_rows,
+        scale_pressure_rows,
         topology_edit_digest_rows: direct_acceptance_rows.topology_edit_digest_rows,
         naming_edit_continuity_matrix_rows: direct_acceptance_rows
             .naming_edit_continuity_matrix_rows,
+        naming_continuity_breadth_rows: direct_acceptance_rows.naming_continuity_breadth_rows,
         rejected_edit_scope_report_rows: direct_acceptance_rows.rejected_edit_scope_report_rows,
         edit_replay_parity_rows: direct_acceptance_rows.edit_replay_parity_rows,
         edit_branch_local_parity_rows,
+        replay_branch_breadth_rows: Vec::new(),
         edited_query_traversal_rows,
         validator_family_coverage_rows,
+        validation_breadth_rows,
         changed_scope_coverage_rows: direct_acceptance_rows.changed_scope_coverage_rows,
         derived_region_coverage_rows: direct_acceptance_rows.derived_region_coverage_rows,
         determinism_rule_rows: direct_acceptance_rows.determinism_rule_rows,
         edit_breadth_counter_rows: direct_acceptance_rows.edit_breadth_counter_rows,
         edit_fallout_breadth_rows: direct_acceptance_rows.edit_fallout_breadth_rows,
+        derived_fallback_policy_denial_rows: direct_acceptance_rows
+            .derived_fallback_policy_denial_rows,
+        derived_reuse_legality_rows: direct_acceptance_rows.derived_reuse_legality_rows,
+        derived_work_breadth_rows: direct_acceptance_rows.derived_work_breadth_rows,
         failure_locality_rows: direct_acceptance_rows.failure_locality_rows,
         side_quest_closeout_report,
         side_quest_gate_ready,
@@ -134,7 +150,9 @@ where
         coverage_complete,
         milestone_three_return_gate_ready,
     };
+    report.operator_family_closure_rows = build_operator_family_closure_rows(&report);
     report.hostile_certification_category_rows = build_hostile_certification_category_rows(&report);
+    report.replay_branch_breadth_rows = build_replay_branch_breadth_rows(&report);
     Ok(report)
 }
 
@@ -196,19 +214,16 @@ fn ensure_milestone_three_closeout_requirements(
             )));
         }
     }
-    if report.family_coverage_rows.is_empty()
-        || report.rejection_distribution_rows.is_empty()
-        || report.naming_distribution_rows.is_empty()
-    {
-        return Err(closeout_requirement_error(
-            "hostile aggregate coverage rows are incomplete",
-        ));
-    }
+    ensure_hostile_distribution_rows(report)?;
     ensure_direct_acceptance_proof_rows(report)?;
+    ensure_operator_family_closure_rows(report)?;
     ensure_branch_local_edit_parity_rows(report)?;
+    ensure_replay_branch_breadth_rows(report)?;
     ensure_primitive_family_closure_rows(report)?;
+    ensure_scale_pressure_rows(report)?;
     ensure_edited_query_traversal_rows(report)?;
     ensure_validator_family_coverage_rows(report)?;
+    ensure_validation_breadth_rows(report)?;
     ensure_hostile_certification_category_rows(report)?;
     let side_quest = &report.side_quest_closeout_report;
     if !side_quest.phase_three_ready
@@ -278,75 +293,6 @@ fn build_coverage_rows(
             continuity_rejection_class: report.continuity_rejection_class,
             replay_checked: report.edit_replay_parity_report.replay_checked,
             replay_parity_status: report.edit_replay_parity_report.parity_status,
-        })
-        .collect()
-}
-
-fn build_family_coverage_rows(
-    reports: &[MilestoneThreeHostileScenarioReport],
-) -> Vec<MilestoneThreeHostileFamilyCoverageRow> {
-    let mut rows = BTreeMap::<TopologyEditFamily, Vec<MilestoneThreeHostileScenario>>::new();
-    for report in reports {
-        for family in &report.edit_families {
-            rows.entry(*family).or_default().push(report.scenario);
-        }
-    }
-    rows.into_iter()
-        .map(|(family, mut scenarios)| {
-            scenarios.sort();
-            scenarios.dedup();
-            MilestoneThreeHostileFamilyCoverageRow {
-                family,
-                scenario_count: scenarios.len(),
-                scenarios,
-            }
-        })
-        .collect()
-}
-
-fn build_rejection_distribution_rows(
-    reports: &[MilestoneThreeHostileScenarioReport],
-) -> Vec<MilestoneThreeHostileRejectionDistributionRow> {
-    let mut rows =
-        BTreeMap::<TopologyEditRejectionClass, Vec<MilestoneThreeHostileScenario>>::new();
-    for report in reports {
-        if let Some(rejection_class) = report.rejection_class {
-            rows.entry(rejection_class)
-                .or_default()
-                .push(report.scenario);
-        }
-    }
-    rows.into_iter()
-        .map(|(rejection_class, mut scenarios)| {
-            scenarios.sort();
-            scenarios.dedup();
-            MilestoneThreeHostileRejectionDistributionRow {
-                rejection_class,
-                case_count: scenarios.len(),
-                scenarios,
-            }
-        })
-        .collect()
-}
-
-fn build_naming_distribution_rows(
-    reports: &[MilestoneThreeHostileScenarioReport],
-) -> Vec<MilestoneThreeHostileNamingDistributionRow> {
-    let mut rows = BTreeMap::<TopologyEditNamingOutcome, Vec<MilestoneThreeHostileScenario>>::new();
-    for report in reports {
-        rows.entry(report.continuity_outcome_class)
-            .or_default()
-            .push(report.scenario);
-    }
-    rows.into_iter()
-        .map(|(continuity_outcome_class, mut scenarios)| {
-            scenarios.sort();
-            scenarios.dedup();
-            MilestoneThreeHostileNamingDistributionRow {
-                continuity_outcome_class,
-                case_count: scenarios.len(),
-                scenarios,
-            }
         })
         .collect()
 }

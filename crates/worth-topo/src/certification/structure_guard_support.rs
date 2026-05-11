@@ -62,8 +62,8 @@ pub(super) fn domain_structure_closeout_violations(workspace_root: &Path) -> Vec
             read_doc(&docs, "worth_roadmap.md"),
             &[
                 "`Worth Topology Domain Structure Gate`: Closed",
-                "unblocked",
-                "topology-operator expansion",
+                "`Milestone 3`: Complete",
+                "`Milestone 4`: Active",
             ][..],
         ),
         (

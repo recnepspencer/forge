@@ -15,6 +15,21 @@ pub enum TopologyEditFamily {
     DetachRadialAdjacency,
 }
 
+impl TopologyEditFamily {
+    pub const ALL: [Self; 10] = [
+        Self::CreateTopologyEntity,
+        Self::RetireTopologyEntity,
+        Self::AttachBoundaryMembership,
+        Self::DetachBoundaryMembership,
+        Self::RewireLoopSuccessor,
+        Self::RewireLoopEndpoint,
+        Self::AttachShellOrWireMembership,
+        Self::DetachShellOrWireMembership,
+        Self::SpliceRadialAdjacency,
+        Self::DetachRadialAdjacency,
+    ];
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum TopologyEditChangedScope {
     Entity,
@@ -41,6 +56,28 @@ pub enum TopologyDerivedRegion {
     RadialNeighborhoodRegion,
     EditLocalNeighborhoodRegion,
     NamingContinuityRegion,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
+pub enum TopologyEditDerivedFallbackPolicy {
+    AllowExplicitFallback,
+    RejectAnyFallback,
+}
+
+impl TopologyEditDerivedFallbackPolicy {
+    pub const fn as_str(self) -> &'static str {
+        match self {
+            Self::AllowExplicitFallback => "allow_explicit_fallback",
+            Self::RejectAnyFallback => "reject_any_fallback",
+        }
+    }
+
+    pub const fn is_exceeded_by(self, fallback_count: usize) -> bool {
+        match self {
+            Self::AllowExplicitFallback => false,
+            Self::RejectAnyFallback => fallback_count > 0,
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
