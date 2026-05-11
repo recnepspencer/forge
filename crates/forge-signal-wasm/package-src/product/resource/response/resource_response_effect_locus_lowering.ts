@@ -49,6 +49,29 @@ function lowerResponseLensProofToEffectLocus(lensProof, locus) {
 
 function createEffectLocusCostCounters(proof, capability, locus) {
   if (
+    proof.topology === "entityStore"
+    && (capability.locus === "entityStore" || isAspectLocus(locus))
+  ) {
+    return Object.freeze({
+      lookup: "entity-id",
+      lookupBreadth: 1,
+      traversal: "single-entity-record",
+      traversalBreadth: 1,
+      reconstruction: "replaceEntity",
+      reconstructionBreadth: 1,
+    });
+  }
+  if (proof.topology === "entityStore" && capability.locus === "broadResponse") {
+    return Object.freeze({
+      lookup: "whole-entity-record",
+      lookupBreadth: 0,
+      traversal: "whole-response",
+      traversalBreadth: 1,
+      reconstruction: "replaceEntities",
+      reconstructionBreadth: 1,
+    });
+  }
+  if (
     proof.topology === "mapCollection"
     && (capability.locus === "mapCollection" || isAspectLocus(locus))
   ) {

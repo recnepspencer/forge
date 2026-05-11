@@ -2,11 +2,13 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createRealRequestRuntime } from "../../runtime_fixture/real_request_runtime.mjs";
+import { createBranchHead } from "../../runtime_fixture/real_resource_signals.mjs";
 
 test("entity-store responses lower item replacement through entity-store effect loci", async () => {
   const runtime = await createRealRequestRuntime();
   try {
     const { signals, signalsMod } = runtime;
+    createBranchHead(signals, "entity-store");
     let fullRecordReplacementCount = 0;
     let singleEntityReplacementCount = 0;
     const response = signals.resource.response.entityStore()({
@@ -37,7 +39,7 @@ test("entity-store responses lower item replacement through entity-store effect 
     ), true);
 
     const tasks = signals.api({
-      effects: signals.resource.effects.pessimistic(),
+      effects: signals.resource.effects.branchNative(),
     }).url("/entity-store")
       .response(response)
       .list({
@@ -68,6 +70,25 @@ test("entity-store responses lower item replacement through entity-store effect 
     assert.equal(itemEffect.locusProof.locus, "entityStore");
     assert.equal(itemEffect.locusProof.patchScope, "item");
     assert.equal(itemEffect.locusProof.effectLocusDigest.includes("entityStore"), true);
+    assert.deepEqual(itemEffect.locusProof.cost, {
+      lookup: "entity-id",
+      lookupBreadth: 1,
+      traversal: "single-entity-record",
+      traversalBreadth: 1,
+      reconstruction: "replaceEntity",
+      reconstructionBreadth: 1,
+    });
+    assert.equal(itemEffect.optimistic.rollback.kind, "exactBranchRestoreAvailable");
+    assert.equal(itemEffect.profile.rebase, "nativeMergePlan");
+    const mergePlan = signals.resource.branch.planMerge({
+      source_branch_id: itemEffect.optimistic.branchId,
+      target_branch_id: 0,
+    });
+    assert.equal(mergePlan.kind, "planned");
+    assert.equal(mergePlan.sourceBranchId, itemEffect.optimistic.branchId);
+    assert.equal(mergePlan.targetBranchId, 0);
+    assert.equal(Number.isInteger(mergePlan.breadth.nodePlanCount), true);
+    assert.equal(typeof mergePlan.proof.planDigest, "string");
 
     line.deliver(signalsMod.resourceDelivery.patch({
       packetId: "pkt-entity-store",
@@ -99,6 +120,14 @@ test("entity-store responses lower item replacement through entity-store effect 
     });
     assert.equal(aspectEffect.locus.kind, "itemAspect");
     assert.equal(aspectEffect.locusProof.locus, "itemAspect");
+    assert.deepEqual(aspectEffect.locusProof.cost, {
+      lookup: "entity-id",
+      lookupBreadth: 1,
+      traversal: "single-entity-record",
+      traversalBreadth: 1,
+      reconstruction: "replaceEntity",
+      reconstructionBreadth: 1,
+    });
     assert.equal(fullRecordReplacementCount, 0);
     assert.equal(singleEntityReplacementCount, 3);
 
@@ -110,6 +139,56 @@ test("entity-store responses lower item replacement through entity-store effect 
     })), /preserve item identity/);
     assert.deepEqual(line.value(), beforeValue);
     assert.deepEqual(line.diagnostics().lastEffect, beforeEffect);
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("entity-store broad replacements preserve normalized topology proof", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const { signals } = runtime;
+    const response = signals.resource.response.entityStore()({
+      itemId: (task) => task.id,
+      entities: (value) => value.entities,
+      replaceEntities: (value, entities) => ({ ...value, entities }),
+      replaceEntity: (value, itemId, nextItem) => ({
+        ...value,
+        entities: { ...value.entities, [itemId]: nextItem },
+      }),
+    });
+    const tasks = signals.api({
+      effects: signals.resource.effects.pessimistic(),
+    }).url("/entity-store-broad")
+      .response(response)
+      .list({
+        load: () => ({
+          entities: { "task:1": { id: "task:1", title: "First" } },
+        }),
+      });
+    const line = tasks.line({});
+
+    line.patch(tasks.patch.replace({
+      entities: { "task:2": { id: "task:2", title: "Broad" } },
+    }));
+    const effect = line.diagnostics().lastEffect;
+
+    assert.deepEqual(effect.locus, { kind: "broadResponse" });
+    assert.equal(effect.locusProof.topology, "entityStore");
+    assert.equal(effect.locusProof.locus, "broadResponse");
+    assert.deepEqual(effect.locusProof.cost, {
+      lookup: "whole-entity-record",
+      lookupBreadth: 0,
+      traversal: "whole-response",
+      traversalBreadth: 1,
+      reconstruction: "replaceEntities",
+      reconstructionBreadth: 1,
+    });
+    assert.deepEqual(
+      line.history().verificationPackage().lifecycle.lastEffect.locusProof,
+      effect.locusProof,
+    );
+    assert.equal(line.value().entities["task:2"].title, "Broad");
   } finally {
     await runtime.cleanup();
   }

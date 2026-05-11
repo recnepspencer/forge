@@ -897,6 +897,14 @@ Phase 6 gate:
 
 Current implementation evidence:
 
+- `resource.response.entityStore<T>()(...)` closes the normalized entity bag
+  lane with sealed `entityStore` topology/effect-locus proof. Runtime coverage
+  proves local item replacement, delivered item replacement, direct aspect
+  replacement through `replaceEntity`, branch-native optimistic rollback proof,
+  broad replacement topology parity in history, native merge-plan posture,
+  entity-id lookup/traversal/reconstruction cost counters, malformed entity
+  record denial before effects, key/itemId coherence denial, and missing-key
+  replacement denial before value or diagnostics mutation.
 - `resource.response.map<T>()(...)` starts the map-backed collection lane with
   sealed `mapCollection` topology/effect-locus proof. Runtime coverage proves
   local item replacement, delivered item replacement, direct aspect replacement
