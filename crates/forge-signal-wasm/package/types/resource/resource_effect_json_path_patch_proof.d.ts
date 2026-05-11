@@ -10,7 +10,7 @@ export interface ResourceEffectJsonPathPatchProof {
     readonly containerWrite: "immutableCopy";
     readonly extensibility: "immutableCopy";
     readonly objectPrototype: "plainOrNull";
-    readonly prototypeReconstruction: "preservePlainOrNull";
+    readonly prototypeReconstruction: "plainOrNullCopy";
     readonly arrayIndex: "explicitExistingIndex";
     readonly accessor: "denyWithoutInvocation";
   };

@@ -20,7 +20,7 @@ function createResourceJsonPathAspectProof(aspect, path) {
       containerWrite: "immutableCopy",
       extensibility: "immutableCopy",
       objectPrototype: "plainOrNull",
-      prototypeReconstruction: "preservePlainOrNull",
+      prototypeReconstruction: "plainOrNullCopy",
       arrayIndex: "explicitExistingIndex",
       accessor: "denyWithoutInvocation",
     }),
@@ -37,6 +37,7 @@ function createResourceJsonPathAspectProof(aspect, path) {
       `traverse:${traversalBreadth}`,
       `reconstruct:${reconstructionBreadth}`,
       "immutable-copy",
+      "prototype-reconstruction:plain-or-null-copy",
     ].join("|"),
   });
 }

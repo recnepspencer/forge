@@ -150,7 +150,7 @@ function assertJsonPathProof(effect, expected) {
   assert.equal(effect.patch.jsonPath.policy.objectPrototype, "plainOrNull");
   assert.equal(
     effect.patch.jsonPath.policy.prototypeReconstruction,
-    "preservePlainOrNull",
+    "plainOrNullCopy",
   );
   assert.equal(effect.patch.jsonPath.policy.arrayIndex, "explicitExistingIndex");
   assert.equal(effect.patch.jsonPath.policy.accessor, "denyWithoutInvocation");
@@ -161,4 +161,8 @@ function assertJsonPathProof(effect, expected) {
   );
   assert.equal(effect.patch.jsonPath.cost.cloneBreadth, expected.reconstructionBreadth);
   assert.match(effect.patch.jsonPath.proofDigest, /immutable-copy/);
+  assert.match(
+    effect.patch.jsonPath.proofDigest,
+    /prototype-reconstruction:plain-or-null-copy/,
+  );
 }

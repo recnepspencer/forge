@@ -105,6 +105,32 @@ test("JSON path aspect writes preserve null-prototype containers during reconstr
     assert.equal(payload.label, "dictionary");
     assert.notEqual(nextItem.metadata, metadata);
     assert.notEqual(nextItem.metadata.payload, payload);
+
+    createBranchHead(signals, "json-path-null-prototype-reconstruction-proof");
+    const tasks = createJsonMetadataApi(signals, metadata);
+    const line = tasks.line({});
+
+    line.patch(tasks.patch.itemAspect({
+      itemId: "t1",
+      aspect: "payloadLabel",
+      value: "line-copied",
+    }));
+    const effect = line.diagnostics().lastEffect;
+    const linePayload = line.value().tasks[0].metadata.payload;
+
+    assertJsonPlainOrNullObject(line.value().tasks[0].metadata);
+    assertJsonPlainOrNullObject(linePayload);
+    assert.equal(linePayload.label, "line-copied");
+    assert.equal(linePayload.keep, true);
+    assert.equal(effect.locus.kind, "jsonItemAspect");
+    assert.equal(
+      effect.patch.jsonPath.policy.prototypeReconstruction,
+      "plainOrNullCopy",
+    );
+
+    assert.equal(line.history().rollbackLastEffect().kind, "rolledBack");
+    assert.equal(line.value().tasks[0].metadata.payload.label, "dictionary");
+    assert.equal(line.value().tasks[0].metadata.payload.keep, true);
   } finally {
     await runtime.cleanup();
   }
@@ -232,6 +258,14 @@ function createJsonMetadataApi(signals, metadata = { payload: { label: "loaded" 
 }
 
 createJsonMetadataApi.nextId = 0;
+
+function assertJsonPlainOrNullObject(value) {
+  const prototype = Object.getPrototypeOf(value);
+  assert.equal(
+    prototype === null || Object.getPrototypeOf(prototype) === null,
+    true,
+  );
+}
 
 function createMetadataPayloadResponse(signals) {
   return signals.resource.response.objectItems()({
