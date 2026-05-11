@@ -744,32 +744,37 @@ Phase 4 gate:
 
 Current implementation evidence:
 
-- `resource.response.array`, `resource.response.objectItems`, and
-  `resource.response.collection` now compile into sealed
-  `resource-response-lens-proof-v1` artifacts that name direct-array,
-  object-items, or custom-collection topology, item-field posture, admitted
-  capability rows, declared aspect names, declared summary names, and summary
-  patch scope
+- `resource.response.array`, `resource.response.objectItems`,
+  `resource.response.collection`, `resource.response.entityStore`,
+  `resource.response.detail`, and `resource.response.summary` now compile into
+  sealed `resource-response-lens-proof-v1` artifacts that name direct-array,
+  object-items, custom-collection, entity-store, detail, or summary topology;
+  item-field posture; admitted capability rows; declared aspect names;
+  declared JSON aspect names; declared summary names; and summary patch scope
 - response-derived reconciliation carries the compiled lens proof into line
   patch records without adding author-facing plumbing or allowing forged plain
   objects through `resourceCollectionShape(...)`
 - canonical effect envelopes now lower compiled response lens proof into
-  `resource-effect-locus-proof-v1` evidence for broad-response, membership,
-  item-aspect, and response-declared summary loci, including topology source,
-  patch scope, aspect or summary name, summary patch scope, and proof breadth
+  `resource-effect-locus-proof-v1` evidence for broad-response,
+  detail-response, summary-response, membership, entity-store, item-aspect,
+  JSON item-aspect, and response-declared summary loci, including topology
+  source, patch scope, aspect or summary name, summary patch scope, and proof
+  breadth
 - response contracts can now declare value summaries through the same
   `resourceValueSummaries(...)` proof surface used by raw collection
   reconciliation, and API response families expose typed summary patch helpers
   only when the compiled lens proof admits summary lowering
 - effect counters now distinguish response-lens proof breadth from generic
-  effect-locus proof breadth, so response-shaped APIs do not hide topology
-  compilation behind cheap-looking patch helpers
+  effect-locus proof breadth, and entity-store responses carry explicit
+  `replaceEntity(value, itemId, nextItem)` mechanics so narrow entity patches
+  do not silently fall back to full collection reconstruction
 - hostile runtime tests cover object envelope responses, direct array parity,
-  custom collection topology, paged response parity, response-declared summary
-  locus admission, page-window summary scope proof, page-window/list scope
-  denial, forged lens-proof denial, unsupported summary-locus denial, and
-  corrupt topology denial without visible value, diagnostics, or effect evidence
-  side effects
+  custom collection topology, entity-store topology, paged response parity,
+  detail response broad replacement, summary response broad replacement,
+  response-declared summary locus admission, page-window summary scope proof,
+  page-window/list scope denial, forged lens-proof denial, unsupported
+  summary-locus denial, malformed entity-store denial, and corrupt topology
+  denial without visible value, diagnostics, or effect evidence side effects
 
 ### Phase 5: JSON Item Aspect Effects
 

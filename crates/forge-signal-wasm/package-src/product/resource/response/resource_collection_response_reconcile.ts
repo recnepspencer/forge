@@ -21,6 +21,8 @@ function createResourceCollectionResponseReconcile(response) {
         );
         return nextValue;
       },
+      readItem: response.readItem,
+      replaceItem: response.replaceItem,
       aspects: response.aspects ?? undefined,
       summaries: response.summaries ?? undefined,
     },

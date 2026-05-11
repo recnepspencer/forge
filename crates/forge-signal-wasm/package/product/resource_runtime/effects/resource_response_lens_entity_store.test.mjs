@@ -7,10 +7,26 @@ test("entity-store responses lower item replacement through entity-store effect 
   const runtime = await createRealRequestRuntime();
   try {
     const { signals, signalsMod } = runtime;
+    let fullRecordReplacementCount = 0;
+    let singleEntityReplacementCount = 0;
     const response = signals.resource.response.entityStore()({
       itemId: (task) => task.id,
       entities: (value) => value.entities,
-      replaceEntities: (value, entities) => ({ ...value, entities }),
+      replaceEntities: (value, entities) => {
+        fullRecordReplacementCount += 1;
+        return { ...value, entities };
+      },
+      replaceEntity: (value, itemId, nextItem) => {
+        singleEntityReplacementCount += 1;
+        return {
+          ...value,
+          entities: replaceEntityWithoutReadingSiblings(
+            value.entities,
+            itemId,
+            nextItem,
+          ),
+        };
+      },
       aspects: signals.resource.response.objectAspects()({
         title: "title",
       }),
@@ -41,6 +57,8 @@ test("entity-store responses lower item replacement through entity-store effect 
       id: "task:1",
       title: "Replaced",
     });
+    assert.equal(fullRecordReplacementCount, 0);
+    assert.equal(singleEntityReplacementCount, 1);
     assert.deepEqual(itemEffect.locus, {
       kind: "entityStore",
       itemId: "task:1",
@@ -64,8 +82,25 @@ test("entity-store responses lower item replacement through entity-store effect 
       id: "task:1",
       title: "Delivered",
     });
+    assert.equal(fullRecordReplacementCount, 0);
+    assert.equal(singleEntityReplacementCount, 2);
     assert.equal(deliveryEffect.locus.kind, "entityStore");
     assert.equal(deliveryEffect.locusProof.locus, "entityStore");
+
+    line.patch(tasks.patch.itemAspect({
+      itemId: "task:1",
+      aspect: "title",
+      value: "Aspect",
+    }));
+    const aspectEffect = line.diagnostics().lastEffect;
+    assert.deepEqual(line.value().entities["task:1"], {
+      id: "task:1",
+      title: "Aspect",
+    });
+    assert.equal(aspectEffect.locus.kind, "itemAspect");
+    assert.equal(aspectEffect.locusProof.locus, "itemAspect");
+    assert.equal(fullRecordReplacementCount, 0);
+    assert.equal(singleEntityReplacementCount, 3);
 
     const beforeValue = line.value();
     const beforeEffect = line.diagnostics().lastEffect;
@@ -80,6 +115,18 @@ test("entity-store responses lower item replacement through entity-store effect 
   }
 });
 
+function replaceEntityWithoutReadingSiblings(entities, itemId, nextItem) {
+  const nextEntities = Object.create(Object.getPrototypeOf(entities));
+  Object.defineProperties(nextEntities, Object.getOwnPropertyDescriptors(entities));
+  Object.defineProperty(nextEntities, itemId, {
+    value: nextItem,
+    enumerable: true,
+    configurable: true,
+    writable: true,
+  });
+  return nextEntities;
+}
+
 test("malformed entity-store responses deny before value diagnostics or effect proof changes", async () => {
   const runtime = await createRealRequestRuntime();
   try {
@@ -88,6 +135,10 @@ test("malformed entity-store responses deny before value diagnostics or effect p
       itemId: (task) => task.id,
       entities: (value) => value.entities,
       replaceEntities: (value, entities) => ({ ...value, entities }),
+      replaceEntity: (value, itemId, nextItem) => ({
+        ...value,
+        entities: { ...value.entities, [itemId]: nextItem },
+      }),
     });
     const tasks = signals.api({
       effects: signals.resource.effects.pessimistic(),

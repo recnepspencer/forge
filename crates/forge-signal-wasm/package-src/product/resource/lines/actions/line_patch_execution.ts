@@ -173,6 +173,12 @@ function applyItemScopedPatch(materialization, patch, currentValue) {
       `${patchRecord.familyKind} resource lines require reconcile: resourceCollectionShape(...) for narrow patch(...) admission`,
     );
   }
+  if (
+    typeof patchRecord.reconcile.readItem === "function" &&
+    typeof patchRecord.reconcile.replaceItem === "function"
+  ) {
+    return applyDirectItemScopedPatch(patchRecord, patch, currentValue, materialization);
+  }
   const currentItems = [...patchRecord.reconcile.items(currentValue)];
   const matchingIndexes = [];
   for (let index = 0; index < currentItems.length; index += 1) {
@@ -254,6 +260,61 @@ function applyItemScopedPatch(materialization, patch, currentValue) {
     }),
     valueChanged,
   });
+}
+
+function applyDirectItemScopedPatch(patchRecord, patch, currentValue, materialization) {
+  const locatedItem = patchRecord.reconcile.readItem(currentValue, patch.itemId);
+  if (locatedItem?.found !== true) {
+    throw new RangeError(
+      `${patchRecord.familyKind} resource lines could not find itemId "${patch.itemId}" for patch(...)`,
+    );
+  }
+  const nextItem = patch.kind === "item"
+    ? requireIdentityPreservingItemPatch(patchRecord, patch)
+    : applyDirectAspectPatch(patchRecord, patch, locatedItem.item);
+  const nextValue = patchRecord.reconcile.replaceItem(
+    currentValue,
+    patch.itemId,
+    nextItem,
+  );
+  const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
+  materialization.binding.valueSignal.set(nextValue);
+  return Object.freeze({
+    result: Object.freeze({
+      kind: "narrowed",
+      scope: patch.kind === "item" ? "item" : "aspect",
+      itemId: patch.itemId,
+      aspect: patch.kind === "item" ? null : patch.aspect,
+    }),
+    diagnostics: Object.freeze({
+      scope: patch.kind === "item" ? "item" : "aspect",
+      itemId: patch.itemId,
+      aspect: patch.kind === "item" ? null : patch.aspect,
+      summary: null,
+      valueChanged,
+    }),
+    valueChanged,
+  });
+}
+
+function requireIdentityPreservingItemPatch(patchRecord, patch) {
+  const nextItemId = patchRecord.itemIdentity(patch.nextItem);
+  if (nextItemId !== patch.itemId) {
+    throw new TypeError(
+      `${patchRecord.familyKind} resource lines require resourcePatch.item(...) to preserve item identity "${patch.itemId}"; use resourcePatch.replace(...) when the patch changes identity to "${nextItemId}"`,
+    );
+  }
+  return patch.nextItem;
+}
+
+function applyDirectAspectPatch(patchRecord, patch, currentItem) {
+  const aspectDefinitions = patchRecord.reconcile.aspects?.definitions ?? null;
+  if (aspectDefinitions === null || !(patch.aspect in aspectDefinitions)) {
+    throw new TypeError(
+      `${patchRecord.familyKind} resource lines do not admit itemAspect patch(...) for undeclared aspect "${patch.aspect}"`,
+    );
+  }
+  return aspectDefinitions[patch.aspect].write(currentItem, patch.value);
 }
 
 export { applyPatchValue, executeLinePatch };

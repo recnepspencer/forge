@@ -267,6 +267,7 @@ export interface ResourceResponseFactory {
     itemId(item: TItem): string;
     entities(value: TValue): Readonly<Record<string, TItem>>;
     replaceEntities(value: TValue, nextEntities: Readonly<Record<string, TItem>>): TValue;
+    replaceEntity(value: TValue, itemId: string, nextItem: TItem): TValue;
     aspects?: ResourceItemAspects<TItem, TAspectMap>;
     summaries?: ResourceValueSummaries<TValue, TSummaryMap, any>;
   }) => ResourceEntityStoreResponse<TValue, TItem, TAspectMap, TSummaryMap>;

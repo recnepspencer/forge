@@ -165,6 +165,10 @@ const taskEntityStoreResponse = signals.resource.response.entityStore<TaskEntity
   itemId: (item) => item.id,
   entities: (value) => value.entities,
   replaceEntities: (value, entities) => ({ ...value, entities }),
+  replaceEntity: (value, itemId, nextItem) => ({
+    ...value,
+    entities: { ...value.entities, [itemId]: nextItem },
+  }),
   aspects: signals.resource.response.objectAspects<Task>()({
     title: "title",
   }),

@@ -61,6 +61,9 @@ function createResourceCollectionShape(options, responseLensProof, kind) {
   return Object.freeze({
     items: options.items,
     replaceItems: options.replaceItems,
+    readItem: typeof options.readItem === "function" ? options.readItem : null,
+    replaceItem:
+      typeof options.replaceItem === "function" ? options.replaceItem : null,
     aspects,
     summaries,
     responseLensProof,
@@ -90,6 +93,8 @@ function normalizeResourceCollectionShape(kind, shape) {
   return Object.freeze({
     items: shape.items,
     replaceItems: shape.replaceItems,
+    readItem: typeof shape.readItem === "function" ? shape.readItem : null,
+    replaceItem: typeof shape.replaceItem === "function" ? shape.replaceItem : null,
     aspects,
     summaries,
     responseLensProof,

@@ -89,6 +89,11 @@ function entityStore() {
         "resource.response.entityStore<T>()(...) requires replaceEntities(value, nextEntities)",
       );
     }
+    if (typeof options.replaceEntity !== "function") {
+      throw new TypeError(
+        "resource.response.entityStore<T>()(...) requires replaceEntity(value, itemId, nextItem)",
+      );
+    }
     return createCollectionResponse(
       "resource.response.entityStore<T>()(...)",
       {
@@ -104,6 +109,18 @@ function entityStore() {
             value,
             createEntityStoreRecord(options.itemId, nextItems),
           );
+        },
+        readItem(value, itemIdValue) {
+          return readEntityStoreItem(options.entities(value), itemIdValue);
+        },
+        replaceItem(value, itemIdValue, nextItem) {
+          const entities = requireEntityStoreRecord(options.entities(value));
+          if (!Object.prototype.hasOwnProperty.call(entities, itemIdValue)) {
+            throw new RangeError(
+              `resource.response.entityStore<T>()(...) could not find entity id "${itemIdValue}"`,
+            );
+          }
+          return options.replaceEntity(value, itemIdValue, nextItem);
         },
       },
       { topology: "entityStore", itemField: null },
@@ -153,6 +170,8 @@ function createCollectionResponse(kind, options, lensOptions) {
     itemIdentity: options.itemId,
     items: options.items,
     replaceItems: options.replaceItems,
+    readItem: options.readItem,
+    replaceItem: options.replaceItem,
     aspects,
     summaries,
     [RESOURCE_COLLECTION_RESPONSE]: "resourceCollectionResponse",
@@ -196,6 +215,14 @@ function requireEntityStoreRecord(entities) {
     );
   }
   return entities;
+}
+
+function readEntityStoreItem(rawEntities, itemIdValue) {
+  const entities = requireEntityStoreRecord(rawEntities);
+  if (!Object.prototype.hasOwnProperty.call(entities, itemIdValue)) {
+    return Object.freeze({ found: false, item: null });
+  }
+  return Object.freeze({ found: true, item: entities[itemIdValue] });
 }
 
 function createEntityStoreRecord(itemId, nextItems) {
