@@ -249,6 +249,79 @@ test("JSON path aspect writes deny non JSON values before effects", async () => 
   }
 });
 
+test("JSON path aspects deny current value accessors without invoking them", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const { signals } = runtime;
+    let getterReadCount = 0;
+    const response = createJsonPathResponse(signals);
+    const accessorMetadata = {};
+    Object.defineProperty(accessorMetadata, "priority", {
+      enumerable: true,
+      get() {
+        getterReadCount += 1;
+        return 1;
+      },
+    });
+
+    assert.throws(
+      () =>
+        response.aspects.definitions.priority.write(
+          { id: "t1", metadata: accessorMetadata },
+          2,
+        ),
+      /rejects accessor JSON path segment "priority"/,
+    );
+    assert.equal(getterReadCount, 0);
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("JSON path aspect writes deny accessor values without invoking them", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const { signals } = runtime;
+    let getterReadCount = 0;
+    const response = createJsonPathResponse(signals);
+    const patchValue = {};
+    Object.defineProperty(patchValue, "hidden", {
+      enumerable: true,
+      get() {
+        getterReadCount += 1;
+        return "side effect";
+      },
+    });
+    const tasks = signals.api({
+      effects: signals.resource.effects.pessimistic(),
+    }).url("/accessor-json-value")
+      .response(response)
+      .list({
+        load: () => ({
+          tasks: [{ id: "t1", metadata: { priority: 1 } }],
+        }),
+      });
+    const line = tasks.line({});
+    const beforeValue = line.value();
+    const beforeEffect = line.diagnostics().lastEffect;
+
+    assert.throws(
+      () =>
+        line.patch(tasks.patch.itemAspect({
+          itemId: "t1",
+          aspect: "priority",
+          value: patchValue,
+        })),
+      /rejects accessor JSON property "hidden"/,
+    );
+    assert.equal(getterReadCount, 0);
+    assert.deepEqual(line.value(), beforeValue);
+    assert.equal(line.diagnostics().lastEffect, beforeEffect);
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
 test("JSON path aspect writes cannot change item identity", async () => {
   const runtime = await createRealRequestRuntime();
   try {

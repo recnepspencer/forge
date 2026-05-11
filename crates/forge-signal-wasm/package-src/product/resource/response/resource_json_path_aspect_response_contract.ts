@@ -115,8 +115,7 @@ function readRequiredJsonPath(root, segments, aspect) {
   let current = requireJsonPathContainer(root, aspect, segments[0]);
   for (let index = 0; index < segments.length; index += 1) {
     const segment = segments[index];
-    requireJsonPathSegmentExists(current, segment, aspect);
-    const nextValue = current[segment];
+    const nextValue = readJsonPathDataProperty(current, segment, aspect);
     if (index === segments.length - 1) {
       requireJsonCompatibleValue(nextValue, aspect, new WeakSet());
       return nextValue;
@@ -134,12 +133,16 @@ function writeRequiredJsonPath(root, segments, value, aspect) {
 function writeJsonPathSegment(current, segments, index, value, aspect) {
   const segment = segments[index];
   const currentContainer = requireJsonPathContainer(current, aspect, segment);
-  requireJsonPathSegmentExists(currentContainer, segment, aspect);
+  const currentSegmentValue = readJsonPathDataProperty(
+    currentContainer,
+    segment,
+    aspect,
+  );
   const nextSegmentValue =
     index === segments.length - 1
       ? value
       : writeJsonPathSegment(
-          currentContainer[segment],
+          currentSegmentValue,
           segments,
           index + 1,
           value,
@@ -175,17 +178,29 @@ function requireJsonPathContainer(value, aspect, segment) {
 }
 
 function requireJsonPathSegmentExists(container, segment, aspect) {
-  if (!Object.prototype.hasOwnProperty.call(container, segment)) {
+  const descriptor = Object.getOwnPropertyDescriptor(container, segment);
+  if (descriptor === undefined) {
     const segmentKind = typeof segment === "number" ? "array index" : "segment";
     throw new TypeError(
       `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" requires existing JSON path ${segmentKind} "${segment}"`,
     );
   }
-  if (!Object.prototype.propertyIsEnumerable.call(container, segment)) {
+  if (!descriptor.enumerable) {
     throw new TypeError(
       `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" requires enumerable JSON path segment "${segment}"`,
     );
   }
+  return descriptor;
+}
+
+function readJsonPathDataProperty(container, segment, aspect) {
+  const descriptor = requireJsonPathSegmentExists(container, segment, aspect);
+  if (!Object.prototype.hasOwnProperty.call(descriptor, "value")) {
+    throw new TypeError(
+      `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" rejects accessor JSON path segment "${segment}"`,
+    );
+  }
+  return descriptor.value;
 }
 
 function requireJsonCompatibleValue(value, aspect, seen) {
@@ -217,13 +232,23 @@ function requireJsonCompatibleValue(value, aspect, seen) {
   seen.add(value);
   if (Array.isArray(value)) {
     requireDenseJsonArray(value, aspect);
-    for (const nestedValue of value) {
+    for (let index = 0; index < value.length; index += 1) {
+      const nestedValue = readJsonPathDataProperty(value, index, aspect);
       requireJsonCompatibleValue(nestedValue, aspect, seen);
     }
     return;
   }
-  for (const [key, nestedValue] of Object.entries(value)) {
+  for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(value))) {
     requireJsonPathSegment(aspect, key);
+    if (!descriptor.enumerable) {
+      continue;
+    }
+    if (!Object.prototype.hasOwnProperty.call(descriptor, "value")) {
+      throw new TypeError(
+        `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" rejects accessor JSON property "${key}"`,
+      );
+    }
+    const nestedValue = descriptor.value;
     requireJsonCompatibleValue(nestedValue, aspect, seen);
   }
 }

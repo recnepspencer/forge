@@ -808,19 +808,21 @@ Current implementation evidence:
   writes through existing object containers and explicit array indexes, reject
   `__proto__`, `constructor`, and `prototype` path segments, require existing
   path segments/indexes, deny stale positional array writes, and reject
-  non-JSON-compatible or cyclic written values before line mutation.
+  non-JSON-compatible, accessor-backed, or cyclic written values before line
+  mutation.
 - item-aspect patch execution now verifies that aspect writers preserve item
   identity before replacement, so JSON path aspects cannot smuggle an identity
   change through nested writes.
 - focused runtime coverage proves local patch, delivered patch, exact rollback,
   diagnostics/history locus proof, unsafe-segment denial, missing-path denial,
   array-crossing patching, stale-index denial, non-JSON denial, and
-  identity-changing write denial for JSON path item aspects.
+  accessor-without-invocation denial, and identity-changing write denial for
+  JSON path item aspects.
 - JSON path parsing and immutable update mechanics now live in
   `resource_json_path_aspect_response_contract.ts`, keeping generic object
   field aspects separate from JSON path effect-locus mechanics. The remaining
-  Phase 5 lanes are optional/absent path policy, frozen/sealed and accessor
-  policy, explicit path-cost counters, and broader JSON write class closeout.
+  Phase 5 lanes are optional/absent path policy, frozen/sealed policy, explicit
+  path-cost counters, and broader JSON write class closeout.
 
 ### Phase 6: Advanced Response Topology Effect Families
 
