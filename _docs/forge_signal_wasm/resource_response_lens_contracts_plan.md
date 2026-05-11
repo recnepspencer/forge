@@ -810,6 +810,10 @@ Current implementation evidence:
   path segments/indexes, deny stale positional array writes, and reject
   non-JSON-compatible, accessor-backed, or cyclic written values before line
   mutation.
+- The public TypeScript facade now ties JSON path declarations to the selected
+  item field. Compile-fail smoke coverage rejects scalar-root traversal, missing
+  nested object fields, string array indexes, invalid presence policy, and
+  unknown root fields before authoring can compile.
 - item-aspect patch execution now verifies that aspect writers preserve item
   identity before replacement, so JSON path aspects cannot smuggle an identity
   change through nested writes.

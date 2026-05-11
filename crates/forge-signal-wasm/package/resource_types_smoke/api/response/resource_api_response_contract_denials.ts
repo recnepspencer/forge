@@ -6,6 +6,12 @@ type Task = {
   id: string;
   title: string;
   status: "open" | "done";
+  metadata: {
+    priority: number;
+    labels: readonly string[];
+    nested: { rank: number };
+    note?: string | null;
+  };
 };
 
 type TaskEnvelope = {
@@ -23,7 +29,7 @@ signals.resource.response.jsonPathAspects<Task>()({
   missingField: {
     // @ts-expect-error JSON path aspects must name real item fields
     field: "missing",
-    path: ["value"],
+    path: ["nested", "rank"],
   },
 });
 
@@ -32,6 +38,39 @@ signals.resource.response.jsonPathAspects<Task>()({
     field: "title",
     // @ts-expect-error JSON path arrays accept only string object keys and numeric array indexes
     path: [false],
+  },
+});
+
+signals.resource.response.jsonPathAspects<Task>()({
+  scalarRootPath: {
+    field: "title",
+    // @ts-expect-error JSON path declarations cannot traverse scalar root fields
+    path: ["length"],
+  },
+});
+
+signals.resource.response.jsonPathAspects<Task>()({
+  missingNestedField: {
+    field: "metadata",
+    // @ts-expect-error JSON path declarations must name real nested object fields
+    path: ["missing"],
+  },
+});
+
+signals.resource.response.jsonPathAspects<Task>()({
+  stringArrayIndex: {
+    field: "metadata",
+    // @ts-expect-error JSON path array crossings require numeric indexes
+    path: ["labels", "0"],
+  },
+});
+
+signals.resource.response.jsonPathAspects<Task>()({
+  invalidPresence: {
+    field: "metadata",
+    path: ["priority"],
+    // @ts-expect-error JSON path presence accepts only required or optional
+    presence: "maybe",
   },
 });
 
@@ -44,7 +83,12 @@ const taskResponse = signals.resource.response.array({
 });
 
 const tasks = signals.api({}).url("/tasks").response(taskResponse).list({
-  load: () => [{ id: "t1", title: "Task", status: "open" as const }],
+  load: () => [{
+    id: "t1",
+    title: "Task",
+    status: "open" as const,
+    metadata: { priority: 1, labels: ["first"], nested: { rank: 1 } },
+  }],
 });
 
 const taskEnvelopeResponse = signals.resource.response.objectItems<TaskEnvelope>()({
@@ -59,7 +103,12 @@ const taskEnvelope = signals.api({}).url("/task-page")
   .response(taskEnvelopeResponse)
   .list({
     load: () => ({
-      tasks: [{ id: "t1", title: "Task", status: "open" as const }],
+      tasks: [{
+        id: "t1",
+        title: "Task",
+        status: "open" as const,
+        metadata: { priority: 1, labels: ["first"], nested: { rank: 1 } },
+      }],
       nextCursor: null,
     }),
   });
@@ -108,7 +157,12 @@ signals.resource.response.collection<TaskEnvelope>()({
 signals.api({}).url("/tasks").response(taskResponse).list({
   // @ts-expect-error response(...) owns itemIdentity(...) in the route lane
   itemIdentity: (item: Task) => item.id,
-  load: () => [{ id: "t1", title: "Task", status: "open" as const }],
+  load: () => [{
+    id: "t1",
+    title: "Task",
+    status: "open" as const,
+    metadata: { priority: 1, labels: ["first"], nested: { rank: 1 } },
+  }],
 });
 
 signals.api({}).url("/tasks").response(taskResponse).list({
@@ -119,7 +173,12 @@ signals.api({}).url("/tasks").response(taskResponse).list({
       ...nextItems,
     ],
   }),
-  load: () => [{ id: "t1", title: "Task", status: "open" as const }],
+  load: () => [{
+    id: "t1",
+    title: "Task",
+    status: "open" as const,
+    metadata: { priority: 1, labels: ["first"], nested: { rank: 1 } },
+  }],
 });
 
 // @ts-expect-error response(...) owns aspect definitions through the contract
@@ -145,5 +204,10 @@ signals.api({}).url("/tasks").response(taskResponse).pageWindowSummary(
 
 // @ts-expect-error response(...) is a collection lane and must not expose detail finalizers
 signals.api({}).url("/tasks").response(taskResponse).detail({
-  load: () => ({ id: "t1", title: "Task", status: "open" as const }),
+  load: () => ({
+    id: "t1",
+    title: "Task",
+    status: "open" as const,
+    metadata: { priority: 1, labels: ["first"], nested: { rank: 1 } },
+  }),
 });

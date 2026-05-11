@@ -7,7 +7,12 @@ type Task = {
   title: string;
   status: "open" | "done";
   assigneeId: string | null;
-  metadata: { priority: number };
+  metadata: {
+    priority: number;
+    labels: readonly string[];
+    nested: { rank: number };
+    note?: string | null;
+  };
 };
 
 type TaskEnvelope = {
@@ -38,7 +43,11 @@ const tasks = signals.api({}).url("/workspaces/:workspaceId/tasks")
         title: "Task",
         status: "open" as const,
         assigneeId: null,
-        metadata: { priority: 1 },
+        metadata: {
+          priority: 1,
+          labels: ["first"],
+          nested: { rank: 1 },
+        },
       },
     ],
   });
@@ -69,7 +78,7 @@ const taskEnvelopeResponse = signals.resource.response.objectItems<TaskEnvelope>
     firstLabel: string;
     optionalNote: string | null;
   }>({
-    priority: { field: "metadata", path: ["priority"] },
+    priority: { field: "metadata", path: ["nested", "rank"] },
     firstLabel: { field: "metadata", path: ["labels", 0] },
     optionalNote: { field: "metadata", path: ["note"], presence: "optional" },
   }),
@@ -85,7 +94,7 @@ const taskEnvelope = signals.api({}).url("/task-page")
           title: "Task",
           status: "open" as const,
           assigneeId: null,
-          metadata: { priority: 1, labels: ["first"] },
+          metadata: { priority: 1, labels: ["first"], nested: { rank: 1 } },
         },
       ],
       nextCursor: null,
@@ -129,7 +138,11 @@ const taskConnection = signals.api({}).url("/task-connection")
             title: "Task",
             status: "open" as const,
             assigneeId: null,
-            metadata: { priority: 1 },
+            metadata: {
+              priority: 1,
+              labels: ["first"],
+              nested: { rank: 1 },
+            },
           },
         },
       ],
@@ -154,7 +167,11 @@ const taskDetail = signals.api({}).url("/tasks/:taskId")
       title: "Task",
       status: "open" as const,
       assigneeId: null,
-      metadata: { priority: 1 },
+      metadata: {
+        priority: 1,
+        labels: ["first"],
+        nested: { rank: 1 },
+      },
     }),
   });
 
@@ -196,7 +213,11 @@ const taskEntityStore = signals.api({}).url("/task-entity-store")
           title: "Task",
           status: "open" as const,
           assigneeId: null,
-          metadata: { priority: 1 },
+          metadata: {
+            priority: 1,
+            labels: ["first"],
+            nested: { rank: 1 },
+          },
         },
       },
     }),

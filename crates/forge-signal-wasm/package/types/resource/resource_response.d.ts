@@ -97,11 +97,24 @@ export type ResourceObjectAspectDefinitions<
   >;
 };
 
+export type ResourceJsonPathSegments<TValue> =
+  TValue extends readonly (infer TItem)[]
+    ? readonly [number] | readonly [number, ...ResourceJsonPathSegments<TItem>]
+    : TValue extends object
+      ? {
+          readonly [TField in keyof TValue & string]:
+            | readonly [TField]
+            | readonly [TField, ...ResourceJsonPathSegments<TValue[TField]>];
+        }[keyof TValue & string]
+      : never;
+
 export type ResourceJsonPathAspectDeclaration<TItem> = {
-  readonly field: keyof TItem & string;
-  readonly path: readonly (string | number)[];
-  readonly presence?: "required" | "optional";
-};
+  readonly [TField in keyof TItem & string]: {
+    readonly field: TField;
+    readonly path: ResourceJsonPathSegments<TItem[TField]>;
+    readonly presence?: "required" | "optional";
+  };
+}[keyof TItem & string];
 
 export type ResourceJsonPathAspectDeclarationMap<TItem> = Readonly<
   Record<string, ResourceJsonPathAspectDeclaration<TItem>>
