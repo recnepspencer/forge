@@ -27,6 +27,14 @@ signals.resource.response.jsonPathAspects<Task>()({
   },
 });
 
+signals.resource.response.jsonPathAspects<Task>()({
+  invalidPath: {
+    field: "title",
+    // @ts-expect-error JSON path arrays accept only string object keys and numeric array indexes
+    path: [false],
+  },
+});
+
 const taskResponse = signals.resource.response.array({
   itemId: (item: Task) => item.id,
   aspects: signals.resource.response.objectAspects<Task>()({

@@ -803,21 +803,24 @@ Phase 5 gate:
 
 Current implementation evidence:
 
-- `resource.response.jsonPathAspects<T>()(...)` declares required object-property
-  JSON paths as response-owned `jsonItemAspect` aspects. The first shipped lane
-  supports immutable writes through existing object containers, rejects
-  `__proto__`, `constructor`, and `prototype` path segments, requires existing
-  path segments, and rejects non-JSON-compatible or cyclic written values before
-  line mutation.
+- `resource.response.jsonPathAspects<T>()(...)` declares required JSON paths as
+  response-owned `jsonItemAspect` aspects. The shipped lanes support immutable
+  writes through existing object containers and explicit array indexes, reject
+  `__proto__`, `constructor`, and `prototype` path segments, require existing
+  path segments/indexes, deny stale positional array writes, and reject
+  non-JSON-compatible or cyclic written values before line mutation.
 - item-aspect patch execution now verifies that aspect writers preserve item
   identity before replacement, so JSON path aspects cannot smuggle an identity
   change through nested writes.
 - focused runtime coverage proves local patch, delivered patch, exact rollback,
   diagnostics/history locus proof, unsafe-segment denial, missing-path denial,
-  and identity-changing write denial for JSON path item aspects. The remaining
-  Phase 5 lanes are optional/absent path policy, array traversal, frozen/sealed
-  and accessor policy, explicit path-cost counters, and broader JSON write
-  class closeout.
+  array-crossing patching, stale-index denial, non-JSON denial, and
+  identity-changing write denial for JSON path item aspects.
+- JSON path parsing and immutable update mechanics now live in
+  `resource_json_path_aspect_response_contract.ts`, keeping generic object
+  field aspects separate from JSON path effect-locus mechanics. The remaining
+  Phase 5 lanes are optional/absent path policy, frozen/sealed and accessor
+  policy, explicit path-cost counters, and broader JSON write class closeout.
 
 ### Phase 6: Advanced Response Topology Effect Families
 

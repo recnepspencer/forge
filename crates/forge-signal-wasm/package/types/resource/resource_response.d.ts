@@ -99,7 +99,7 @@ export type ResourceObjectAspectDefinitions<
 
 export type ResourceJsonPathAspectDeclaration<TItem> = {
   readonly field: keyof TItem & string;
-  readonly path: readonly string[];
+  readonly path: readonly (string | number)[];
 };
 
 export type ResourceJsonPathAspectDeclarationMap<TItem> = Readonly<

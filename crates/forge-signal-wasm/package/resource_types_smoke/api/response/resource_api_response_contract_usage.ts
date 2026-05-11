@@ -66,8 +66,10 @@ const taskEnvelopeResponse = signals.resource.response.objectItems<TaskEnvelope>
   itemId: (item) => item.id,
   aspects: signals.resource.response.jsonPathAspects<Task>()<{
     priority: number;
+    firstLabel: string;
   }>({
     priority: { field: "metadata", path: ["priority"] },
+    firstLabel: { field: "metadata", path: ["labels", 0] },
   }),
 });
 
@@ -81,7 +83,7 @@ const taskEnvelope = signals.api({}).url("/task-page")
           title: "Task",
           status: "open" as const,
           assigneeId: null,
-          metadata: { priority: 1 },
+          metadata: { priority: 1, labels: ["first"] },
         },
       ],
       nextCursor: null,
@@ -93,8 +95,14 @@ const envelopePatch = taskEnvelope.patch.itemAspect({
   aspect: "priority",
   value: 2,
 });
+const envelopeArrayPatch = taskEnvelope.patch.itemAspect({
+  itemId: "t1",
+  aspect: "firstLabel",
+  value: "renamed",
+});
 
 void taskEnvelope.line({}).patch(envelopePatch);
+void taskEnvelope.line({}).patch(envelopeArrayPatch);
 
 const taskConnectionResponse = signals.resource.response.collection<TaskConnection>()({
   itemId: (item) => item.id,

@@ -125,6 +125,96 @@ test("JSON path aspect writes deny missing required paths before effects", async
   }
 });
 
+test("JSON path item aspects cross arrays with explicit indexes", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const { signals } = runtime;
+    const response = signals.resource.response.objectItems()({
+      field: "tasks",
+      itemId: (task) => task.id,
+      aspects: signals.resource.response.jsonPathAspects()({
+        firstTagLabel: { field: "metadata", path: ["tags", 0, "label"] },
+      }),
+    });
+    const tasks = signals.api({
+      effects: signals.resource.effects.pessimistic(),
+    }).url("/json-array-path")
+      .response(response)
+      .list({
+        load: () => ({
+          tasks: [{
+            id: "t1",
+            metadata: {
+              tags: [
+                { label: "old", color: "red" },
+                { label: "keep", color: "blue" },
+              ],
+            },
+          }],
+        }),
+      });
+    const line = tasks.line({});
+
+    line.patch(tasks.patch.itemAspect({
+      itemId: "t1",
+      aspect: "firstTagLabel",
+      value: "new",
+    }));
+
+    assert.deepEqual(line.value().tasks[0].metadata.tags, [
+      { label: "new", color: "red" },
+      { label: "keep", color: "blue" },
+    ]);
+    assert.equal(line.diagnostics().lastEffect.locus.kind, "jsonItemAspect");
+    assert.equal(line.diagnostics().lastEffect.locusProof.aspect, "firstTagLabel");
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("JSON path array indexes deny stale positional writes before effects", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const { signals } = runtime;
+    const response = signals.resource.response.objectItems()({
+      field: "tasks",
+      itemId: (task) => task.id,
+      aspects: signals.resource.response.jsonPathAspects()({
+        missingTagLabel: { field: "metadata", path: ["tags", 2, "label"] },
+      }),
+    });
+    const tasks = signals.api({
+      effects: signals.resource.effects.pessimistic(),
+    }).url("/json-stale-array-path")
+      .response(response)
+      .list({
+        load: () => ({
+          tasks: [{
+            id: "t1",
+            metadata: { tags: [{ label: "only" }] },
+          }],
+        }),
+      });
+    const line = tasks.line({});
+    const beforeValue = line.value();
+    const beforeEffect = line.diagnostics().lastEffect;
+
+    assert.throws(
+      () =>
+        line.patch(tasks.patch.itemAspect({
+          itemId: "t1",
+          aspect: "missingTagLabel",
+          value: "new",
+        })),
+      /requires existing JSON path array index "2"/,
+    );
+    assert.deepEqual(line.value(), beforeValue);
+    assert.equal(line.diagnostics().lastEffect, beforeEffect);
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
 test("JSON path aspect writes deny non JSON values before effects", async () => {
   const runtime = await createRealRequestRuntime();
   try {

@@ -9,9 +9,11 @@ import {
 } from "./resource_detail_response_contract.js";
 import {
   jsonObjectAspects,
-  jsonPathAspects,
   objectAspects,
 } from "./resource_object_aspect_response_contract.js";
+import {
+  jsonPathAspects,
+} from "./resource_json_path_aspect_response_contract.js";
 import {
   summary,
 } from "./resource_summary_response_contract.js";
