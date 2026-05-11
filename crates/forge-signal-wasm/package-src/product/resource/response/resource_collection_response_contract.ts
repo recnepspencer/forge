@@ -100,27 +100,57 @@ function entityStore() {
         ...options,
         items(value) {
           return Object.values(
-            requireEntityStoreRecord(options.entities(value)),
+            requireEntityStoreIdentityRecord(
+              options.entities(value),
+              options.itemId,
+              "entities(value)",
+            ),
           );
         },
         replaceItems(value, nextItems) {
-          requireEntityStoreRecord(options.entities(value));
+          requireEntityStoreIdentityRecord(
+            options.entities(value),
+            options.itemId,
+            "entities(value)",
+          );
           return options.replaceEntities(
             value,
             createEntityStoreRecord(options.itemId, nextItems),
           );
         },
         readItem(value, itemIdValue) {
-          return readEntityStoreItem(options.entities(value), itemIdValue);
+          return readEntityStoreItem(
+            options.entities(value),
+            options.itemId,
+            itemIdValue,
+            "entities(value)",
+          );
         },
         replaceItem(value, itemIdValue, nextItem) {
-          const entities = requireEntityStoreRecord(options.entities(value));
-          if (!Object.prototype.hasOwnProperty.call(entities, itemIdValue)) {
+          const currentEntity = readEntityStoreItem(
+            options.entities(value),
+            options.itemId,
+            itemIdValue,
+            "entities(value)",
+          );
+          if (!currentEntity.found) {
             throw new RangeError(
               `resource.response.entityStore<T>()(...) could not find entity id "${itemIdValue}"`,
             );
           }
-          return options.replaceEntity(value, itemIdValue, nextItem);
+          const nextValue = options.replaceEntity(value, itemIdValue, nextItem);
+          const replacedEntity = readEntityStoreItem(
+            options.entities(nextValue),
+            options.itemId,
+            itemIdValue,
+            "replaceEntity(value, itemId, nextItem)",
+          );
+          if (!replacedEntity.found) {
+            throw new TypeError(
+              `resource.response.entityStore<T>()(...) requires replaceEntity(value, itemId, nextItem) to preserve entity id "${itemIdValue}"`,
+            );
+          }
+          return nextValue;
         },
       },
       { topology: "entityStore", itemField: null },
@@ -217,12 +247,36 @@ function requireEntityStoreRecord(entities) {
   return entities;
 }
 
-function readEntityStoreItem(rawEntities, itemIdValue) {
+function requireEntityStoreIdentityRecord(rawEntities, itemId, source) {
+  const entities = requireEntityStoreRecord(rawEntities);
+  for (const [entityKey, entity] of Object.entries(entities)) {
+    requireEntityStoreItemIdentity(entityKey, entity, itemId, source);
+  }
+  return entities;
+}
+
+function readEntityStoreItem(rawEntities, itemId, itemIdValue, source) {
   const entities = requireEntityStoreRecord(rawEntities);
   if (!Object.prototype.hasOwnProperty.call(entities, itemIdValue)) {
     return Object.freeze({ found: false, item: null });
   }
-  return Object.freeze({ found: true, item: entities[itemIdValue] });
+  if (!Object.prototype.propertyIsEnumerable.call(entities, itemIdValue)) {
+    throw new TypeError(
+      `resource.response.entityStore<T>()(...) requires ${source} entity id "${itemIdValue}" to be enumerable`,
+    );
+  }
+  const item = entities[itemIdValue];
+  requireEntityStoreItemIdentity(itemIdValue, item, itemId, source);
+  return Object.freeze({ found: true, item });
+}
+
+function requireEntityStoreItemIdentity(entityKey, entity, itemId, source) {
+  const actualItemId = itemId(entity);
+  if (actualItemId !== entityKey) {
+    throw new TypeError(
+      `resource.response.entityStore<T>()(...) requires ${source} entity key "${entityKey}" to match itemId(item) "${actualItemId}"`,
+    );
+  }
 }
 
 function createEntityStoreRecord(itemId, nextItems) {

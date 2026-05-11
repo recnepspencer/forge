@@ -161,3 +161,80 @@ test("malformed entity-store responses deny before value diagnostics or effect p
     await runtime.cleanup();
   }
 });
+
+test("entity-store replaceEntity must preserve record key identity before effects", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const { signals } = runtime;
+    const response = signals.resource.response.entityStore()({
+      itemId: (task) => task.id,
+      entities: (value) => value.entities,
+      replaceEntities: (value, entities) => ({ ...value, entities }),
+      replaceEntity: (value, itemId, nextItem) => ({
+        ...value,
+        entities: {
+          ...value.entities,
+          [itemId]: { ...nextItem, id: "task:2" },
+        },
+      }),
+    });
+    const tasks = signals.api({
+      effects: signals.resource.effects.pessimistic(),
+    }).url("/corrupt-entity-store-replace")
+      .response(response)
+      .list({
+        load: () => ({
+          entities: { "task:1": { id: "task:1", title: "First" } },
+        }),
+      });
+    const line = tasks.line({});
+    const beforeValue = line.value();
+    const beforeEffect = line.diagnostics().lastEffect;
+
+    assert.throws(() => line.patch(tasks.patch.item({
+      itemId: "task:1",
+      nextItem: { id: "task:1", title: "Replaced" },
+    })), /replaceEntity\(value, itemId, nextItem\) entity key "task:1" to match itemId\(item\) "task:2"/);
+    assert.deepEqual(line.value(), beforeValue);
+    assert.equal(line.diagnostics().lastEffect, beforeEffect);
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("entity-store direct replacement must keep the patched key visible", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const { signals } = runtime;
+    const response = signals.resource.response.entityStore()({
+      itemId: (task) => task.id,
+      entities: (value) => value.entities,
+      replaceEntities: (value, entities) => ({ ...value, entities }),
+      replaceEntity: (value, itemId) => {
+        const { [itemId]: _removedEntity, ...entities } = value.entities;
+        return { ...value, entities };
+      },
+    });
+    const tasks = signals.api({
+      effects: signals.resource.effects.pessimistic(),
+    }).url("/missing-entity-store-replace")
+      .response(response)
+      .list({
+        load: () => ({
+          entities: { "task:1": { id: "task:1", title: "First" } },
+        }),
+      });
+    const line = tasks.line({});
+    const beforeValue = line.value();
+    const beforeEffect = line.diagnostics().lastEffect;
+
+    assert.throws(() => line.patch(tasks.patch.item({
+      itemId: "task:1",
+      nextItem: { id: "task:1", title: "Replaced" },
+    })), /replaceEntity\(value, itemId, nextItem\) to preserve entity id "task:1"/);
+    assert.deepEqual(line.value(), beforeValue);
+    assert.equal(line.diagnostics().lastEffect, beforeEffect);
+  } finally {
+    await runtime.cleanup();
+  }
+});
