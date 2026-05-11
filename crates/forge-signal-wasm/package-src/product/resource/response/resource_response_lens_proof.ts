@@ -63,6 +63,7 @@ function requireResponseLensTopology(topology) {
     && topology !== "objectItems"
     && topology !== "customCollection"
     && topology !== "entityStore"
+    && topology !== "mapCollection"
     && topology !== "detail"
     && topology !== "summary"
   ) {
@@ -86,7 +87,7 @@ function createCapabilityRows(options) {
   rows.push(
     createCapabilityRow("broadResponse", "line", true),
     createCapabilityRow(
-      options.topology === "entityStore" ? "entityStore" : "membership",
+      itemLocusForCollectionTopology(options.topology),
       "item",
       true,
     ),
@@ -121,6 +122,16 @@ function createCapabilityRow(locus, patchScope, admitted, summaryPatchScope = nu
     admitted,
     summaryPatchScope,
   });
+}
+
+function itemLocusForCollectionTopology(topology) {
+  if (topology === "entityStore") {
+    return "entityStore";
+  }
+  if (topology === "mapCollection") {
+    return "mapCollection";
+  }
+  return "membership";
 }
 
 function createResponseDeclarationDigest(options) {

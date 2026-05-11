@@ -190,9 +190,7 @@ function createResponseLensBackedEffectLocus(patch, responseLensProof) {
       });
     case "item":
       return Object.freeze({
-        kind: responseLensProof.topology === "entityStore"
-          ? "entityStore"
-          : "membership",
+        kind: createResponseLensItemLocus(responseLensProof.topology),
         itemId: patch.itemId,
       });
     case "aspect":
@@ -210,6 +208,16 @@ function createResponseLensBackedEffectLocus(patch, responseLensProof) {
         `resource effect envelope cannot classify patch scope "${patch.scope}"`,
       );
   }
+}
+
+function createResponseLensItemLocus(topology) {
+  if (topology === "entityStore") {
+    return "entityStore";
+  }
+  if (topology === "mapCollection") {
+    return "mapCollection";
+  }
+  return "membership";
 }
 
 function createResponseLensLineLocus(topology) {

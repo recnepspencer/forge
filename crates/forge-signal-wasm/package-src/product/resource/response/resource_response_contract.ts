@@ -5,6 +5,9 @@ import {
   objectItems,
 } from "./resource_collection_response_contract.js";
 import {
+  map,
+} from "./resource_map_collection_response_contract.js";
+import {
   detail,
 } from "./resource_detail_response_contract.js";
 import {
@@ -27,6 +30,7 @@ const resourceResponse = Object.freeze({
   objectItems,
   jsonObjectAspects,
   jsonPathAspects,
+  map,
   objectAspects,
 });
 

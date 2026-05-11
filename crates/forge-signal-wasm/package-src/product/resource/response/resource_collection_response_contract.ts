@@ -309,6 +309,7 @@ function requireResourceCollectionResponse(value, kind) {
 export {
   array,
   collection,
+  createCollectionResponse,
   entityStore,
   objectItems,
   requireResourceCollectionResponse,

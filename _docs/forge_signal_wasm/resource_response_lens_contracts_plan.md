@@ -895,6 +895,16 @@ Phase 6 gate:
   and summary responses. The parent phase may not close by proving only one
   representative topology.
 
+Current implementation evidence:
+
+- `resource.response.map<T>()(...)` starts the map-backed collection lane with
+  sealed `mapCollection` topology/effect-locus proof. Runtime coverage proves
+  local item replacement, delivered item replacement, direct aspect replacement
+  through `replaceEntry`, branch-native optimistic rollback proof, broad
+  replacement topology parity, map lookup/traversal/reconstruction cost
+  counters, malformed non-Map denial before effects, and key/itemId coherence
+  denial before value or diagnostics mutation.
+
 ### Phase 7: Branch Merge Rebase And Conflict Certification
 
 Purpose:

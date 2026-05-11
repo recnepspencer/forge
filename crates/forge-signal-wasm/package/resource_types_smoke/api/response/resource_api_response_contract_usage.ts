@@ -230,3 +230,22 @@ void taskEntityStore.line({}).patch(
     value: "Renamed",
   }),
 );
+
+type TaskMapEnvelope = {
+  taskMap: Map<string, Task>;
+};
+
+const taskMapResponse = signals.resource.response.map<TaskMapEnvelope>()({
+  itemId: (item: Task) => item.id,
+  entries: (value) => value.taskMap,
+  replaceEntries: (value, taskMap) => ({ ...value, taskMap: new Map(taskMap) }),
+  replaceEntry: (value, itemId, nextItem) => ({
+    ...value,
+    taskMap: new Map(value.taskMap).set(itemId, nextItem),
+  }),
+  aspects: signals.resource.response.objectAspects<Task>()({
+    title: "title",
+  }),
+});
+
+void taskMapResponse.lensProof.topology;

@@ -154,6 +154,14 @@ signals.resource.response.collection<TaskEnvelope>()({
   replaceItems: (_value, nextItems) => nextItems,
 });
 
+signals.resource.response.map<TaskEnvelope>()({
+  itemId: (item: Task) => item.id,
+  // @ts-expect-error map response contracts require entries(value) to return a ReadonlyMap
+  entries: (value) => value.tasks,
+  replaceEntries: (value, _nextEntries) => value,
+  replaceEntry: (value, _itemId, _nextItem) => value,
+});
+
 signals.api({}).url("/tasks").response(taskResponse).list({
   // @ts-expect-error response(...) owns itemIdentity(...) in the route lane
   itemIdentity: (item: Task) => item.id,

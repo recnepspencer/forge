@@ -42,7 +42,42 @@ function lowerResponseLensProofToEffectLocus(lensProof, locus) {
     summary: effectiveLocus.kind === "summary" ? effectiveLocus.summary : null,
     summaryPatchScope:
       effectiveLocus.kind === "summary" ? proof.summaryPatchScope : null,
+    cost: createEffectLocusCostCounters(proof, capability, effectiveLocus),
     proofBreadth: 1,
+  });
+}
+
+function createEffectLocusCostCounters(proof, capability, locus) {
+  if (
+    proof.topology === "mapCollection"
+    && (capability.locus === "mapCollection" || isAspectLocus(locus))
+  ) {
+    return Object.freeze({
+      lookup: "map-key",
+      lookupBreadth: 1,
+      traversal: "single-map-entry",
+      traversalBreadth: 1,
+      reconstruction: "replaceEntry",
+      reconstructionBreadth: 1,
+    });
+  }
+  if (proof.topology === "mapCollection" && capability.locus === "broadResponse") {
+    return Object.freeze({
+      lookup: "whole-map",
+      lookupBreadth: 0,
+      traversal: "whole-response",
+      traversalBreadth: 1,
+      reconstruction: "replaceEntries",
+      reconstructionBreadth: 1,
+    });
+  }
+  return Object.freeze({
+    lookup: `${capability.locus}-declaration`,
+    lookupBreadth: 1,
+    traversal: `${capability.patchScope}-scope`,
+    traversalBreadth: 1,
+    reconstruction: `${proof.topology}-lens`,
+    reconstructionBreadth: 1,
   });
 }
 
@@ -135,7 +170,7 @@ function createResponseLensPatchAdmissionLocus(proof, patch) {
       });
     case "item":
       return Object.freeze({
-        kind: proof.topology === "entityStore" ? "entityStore" : "membership",
+        kind: itemLocusForCollectionTopology(proof.topology),
         itemId: patch.itemId,
       });
     case "itemAspect":
@@ -220,6 +255,7 @@ function patchScopeForEffectLocus(locus) {
       return "line";
     case "membership":
     case "entityStore":
+    case "mapCollection":
     case "item":
       return "item";
     case "itemAspect":
@@ -244,6 +280,8 @@ function capabilityLocusForEffectLocus(locus) {
       return "membership";
     case "entityStore":
       return "entityStore";
+    case "mapCollection":
+      return "mapCollection";
     case "itemAspect":
       return "itemAspect";
     case "jsonItemAspect":
@@ -253,6 +291,16 @@ function capabilityLocusForEffectLocus(locus) {
     default:
       return null;
   }
+}
+
+function itemLocusForCollectionTopology(topology) {
+  if (topology === "entityStore") {
+    return "entityStore";
+  }
+  if (topology === "mapCollection") {
+    return "mapCollection";
+  }
+  return "membership";
 }
 
 function lineResponseLocusForTopology(topology) {

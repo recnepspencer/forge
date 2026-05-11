@@ -12,20 +12,10 @@ export type ResourceEffectEnvelopeProvenance =
 export interface ResourceEffectProfileDigest {
   readonly name: string;
   readonly optimism: "branchSpeculative" | "none";
-  readonly confirmation:
-    | "exact"
-    | "serverCanonical"
-    | "acceptedPendingDelivery";
-  readonly rollback:
-    | "branchRestore"
-    | "branchRestoreOrInverse"
-    | "unavailable";
+  readonly confirmation: "exact" | "serverCanonical" | "acceptedPendingDelivery";
+  readonly rollback: "branchRestore" | "branchRestoreOrInverse" | "unavailable";
   readonly rebase: "nativeMergePlan" | "unavailable";
-  readonly preimage:
-    | "none"
-    | "compactInverse"
-    | "digestOnly"
-    | "retainedFragment";
+  readonly preimage: "none" | "compactInverse" | "digestOnly" | "retainedFragment";
 }
 
 export type ResourceEffectLocus =
@@ -35,6 +25,7 @@ export type ResourceEffectLocus =
   | { readonly kind: "summaryResponse" }
   | { readonly kind: "membership"; readonly itemId: string | null }
   | { readonly kind: "entityStore"; readonly itemId: string | null }
+  | { readonly kind: "mapCollection"; readonly itemId: string | null }
   | { readonly kind: "item"; readonly itemId: string | null }
   | {
       readonly kind: "itemAspect";
@@ -66,6 +57,7 @@ export interface ResourceEffectLocusProof {
     | "objectItems"
     | "customCollection"
     | "entityStore"
+    | "mapCollection"
     | "detail"
     | "summary";
   readonly itemField: string | null;
@@ -75,6 +67,7 @@ export interface ResourceEffectLocusProof {
     | "summaryResponse"
     | "membership"
     | "entityStore"
+    | "mapCollection"
     | "itemAspect"
     | "jsonItemAspect"
     | "summary";
@@ -82,7 +75,17 @@ export interface ResourceEffectLocusProof {
   readonly aspect: string | null;
   readonly summary: string | null;
   readonly summaryPatchScope: "line" | "pageWindow" | null;
+  readonly cost: ResourceEffectLocusCostCounters;
   readonly proofBreadth: 1;
+}
+
+export interface ResourceEffectLocusCostCounters {
+  readonly lookup: string;
+  readonly lookupBreadth: number;
+  readonly traversal: string;
+  readonly traversalBreadth: number;
+  readonly reconstruction: string;
+  readonly reconstructionBreadth: number;
 }
 
 export type ResourceEffectCompactInverseDescriptor =

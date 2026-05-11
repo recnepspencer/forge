@@ -115,6 +115,10 @@ const entityStoreLocus: ResourceEffectEnvelope["locus"] = {
   kind: "entityStore",
   itemId: "task:1",
 };
+const mapCollectionLocus: ResourceEffectEnvelope["locus"] = {
+  kind: "mapCollection",
+  itemId: "task:1",
+};
 
 void latestEffect?.version;
 void latestEffect?.plan.admissionKind;
@@ -185,10 +189,12 @@ void summaryResponse.lensProof.topology;
 void detailResponseLocus.kind;
 void summaryResponseLocus.kind;
 void entityStoreLocus.itemId;
+void mapCollectionLocus.itemId;
 void jsonAspectLocus.aspect;
 void responseLensProof.summaryNames;
 void latestLocusProof?.declarationDigest;
 void latestLocusProof?.capabilityDigest;
+void latestLocusProof?.cost.lookupBreadth;
 void latestLocusProof?.compiledLensDigest;
 void latestLocusProof?.parityDigest;
 void latestLocusProof?.compileBoundaryDigest;

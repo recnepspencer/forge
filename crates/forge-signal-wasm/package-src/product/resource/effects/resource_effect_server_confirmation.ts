@@ -55,6 +55,7 @@ function areEffectLociEquivalent(previousLocus, currentLocus) {
     case "item":
     case "membership":
     case "entityStore":
+    case "mapCollection":
       return previousLocus.itemId === currentLocus.itemId;
     case "itemAspect":
     case "jsonItemAspect":
