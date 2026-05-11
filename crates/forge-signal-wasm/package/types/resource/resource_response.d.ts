@@ -5,6 +5,7 @@ import type {
   ResourceValueSummaries,
   ResourceValueSummaryMap,
 } from "./resource_reconciliation.js";
+import type { SignalValue } from "../model.js";
 
 declare const forgeSignalResourceCollectionResponseBrand: unique symbol;
 declare const forgeSignalResourceDetailResponseBrand: unique symbol;
@@ -93,6 +94,25 @@ export type ResourceObjectAspectDefinitions<
   readonly [TAspect in keyof TFields & string]: ResourceItemAspect<
     TItem,
     TItem[TFields[TAspect]]
+  >;
+};
+
+export type ResourceJsonPathAspectDeclaration<TItem> = {
+  readonly field: keyof TItem & string;
+  readonly path: readonly string[];
+};
+
+export type ResourceJsonPathAspectDeclarationMap<TItem> = Readonly<
+  Record<string, ResourceJsonPathAspectDeclaration<TItem>>
+>;
+
+export type ResourceJsonPathAspectDefinitions<
+  TItem,
+  TValueMap extends Readonly<Record<string, SignalValue>>,
+> = {
+  readonly [TAspect in keyof TValueMap & string]: ResourceItemAspect<
+    TItem,
+    TValueMap[TAspect]
   >;
 };
 
@@ -215,6 +235,19 @@ export interface ResourceResponseFactory {
   ) => ResourceItemAspects<
     TItem,
     ResourceObjectAspectDefinitions<TItem, TFields>
+  >;
+  jsonPathAspects<TItem>(): <
+    TValueMap extends Readonly<Record<string, SignalValue>> = Readonly<
+      Record<string, SignalValue>
+    >,
+    TDefinitions extends ResourceJsonPathAspectDeclarationMap<TItem> = {
+      readonly [TAspect in keyof TValueMap & string]: ResourceJsonPathAspectDeclaration<TItem>;
+    },
+  >(
+    definitions: TDefinitions,
+  ) => ResourceItemAspects<
+    TItem,
+    ResourceJsonPathAspectDefinitions<TItem, TValueMap>
   >;
   array<
     TItem,

@@ -64,8 +64,10 @@ void line.deliver(statusDelivery);
 const taskEnvelopeResponse = signals.resource.response.objectItems<TaskEnvelope>()({
   field: "tasks",
   itemId: (item) => item.id,
-  aspects: signals.resource.response.jsonObjectAspects<Task>()({
-    metadata: "metadata",
+  aspects: signals.resource.response.jsonPathAspects<Task>()<{
+    priority: number;
+  }>({
+    priority: { field: "metadata", path: ["priority"] },
   }),
 });
 
@@ -88,8 +90,8 @@ const taskEnvelope = signals.api({}).url("/task-page")
 
 const envelopePatch = taskEnvelope.patch.itemAspect({
   itemId: "t1",
-  aspect: "metadata",
-  value: { priority: 2 },
+  aspect: "priority",
+  value: 2,
 });
 
 void taskEnvelope.line({}).patch(envelopePatch);

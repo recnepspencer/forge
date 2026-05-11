@@ -46,12 +46,18 @@ function areEffectLociEquivalent(previousLocus, currentLocus) {
   }
   switch (currentLocus.kind) {
     case "line":
+    case "broadResponse":
+    case "detailResponse":
+    case "summaryResponse":
     case "basis":
     case "invalidation":
       return true;
     case "item":
+    case "membership":
+    case "entityStore":
       return previousLocus.itemId === currentLocus.itemId;
     case "itemAspect":
+    case "jsonItemAspect":
       return (
         previousLocus.itemId === currentLocus.itemId
         && previousLocus.aspect === currentLocus.aspect

@@ -19,6 +19,14 @@ signals.resource.response.objectAspects<Task>()({
   missing: "missing",
 });
 
+signals.resource.response.jsonPathAspects<Task>()({
+  missingField: {
+    // @ts-expect-error JSON path aspects must name real item fields
+    field: "missing",
+    path: ["value"],
+  },
+});
+
 const taskResponse = signals.resource.response.array({
   itemId: (item: Task) => item.id,
   aspects: signals.resource.response.objectAspects<Task>()({

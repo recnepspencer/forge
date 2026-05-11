@@ -234,10 +234,12 @@ function applyItemScopedPatch(materialization, patch, currentValue) {
       `${patchRecord.familyKind} resource lines do not admit itemAspect patch(...) for undeclared aspect "${patch.aspect}"`,
     );
   }
-  currentItems[itemIndex] = aspectDefinitions[patch.aspect].write(
+  const nextItem = aspectDefinitions[patch.aspect].write(
     currentItems[itemIndex],
     patch.value,
   );
+  assertAspectPatchPreservesItemIdentity(patchRecord, patch, nextItem);
+  currentItems[itemIndex] = nextItem;
   const nextValue = patchRecord.reconcile.replaceItems(
     currentValue,
     currentItems,
@@ -314,7 +316,18 @@ function applyDirectAspectPatch(patchRecord, patch, currentItem) {
       `${patchRecord.familyKind} resource lines do not admit itemAspect patch(...) for undeclared aspect "${patch.aspect}"`,
     );
   }
-  return aspectDefinitions[patch.aspect].write(currentItem, patch.value);
+  const nextItem = aspectDefinitions[patch.aspect].write(currentItem, patch.value);
+  assertAspectPatchPreservesItemIdentity(patchRecord, patch, nextItem);
+  return nextItem;
+}
+
+function assertAspectPatchPreservesItemIdentity(patchRecord, patch, nextItem) {
+  const nextItemId = patchRecord.itemIdentity(nextItem);
+  if (nextItemId !== patch.itemId) {
+    throw new TypeError(
+      `${patchRecord.familyKind} resource lines require resourcePatch.itemAspect(...) to preserve item identity "${patch.itemId}"; use resourcePatch.replace(...) when aspect "${patch.aspect}" changes identity to "${nextItemId}"`,
+    );
+  }
 }
 
 export { applyPatchValue, executeLinePatch };

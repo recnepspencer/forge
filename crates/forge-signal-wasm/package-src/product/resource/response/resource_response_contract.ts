@@ -9,6 +9,7 @@ import {
 } from "./resource_detail_response_contract.js";
 import {
   jsonObjectAspects,
+  jsonPathAspects,
   objectAspects,
 } from "./resource_object_aspect_response_contract.js";
 import {
@@ -23,6 +24,7 @@ const resourceResponse = Object.freeze({
   summary,
   objectItems,
   jsonObjectAspects,
+  jsonPathAspects,
   objectAspects,
 });
 
