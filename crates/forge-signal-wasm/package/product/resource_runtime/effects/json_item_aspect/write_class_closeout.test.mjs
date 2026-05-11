@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createRealRequestRuntime } from "../runtime_fixture/real_request_runtime.mjs";
-import { createBranchHead } from "../runtime_fixture/real_resource_signals.mjs";
+import { createRealRequestRuntime } from "../../runtime_fixture/real_request_runtime.mjs";
+import { createBranchHead } from "../../runtime_fixture/real_resource_signals.mjs";
 
 test("JSON path aspect writes deny non-plain object values before effects", async () => {
   const runtime = await createRealRequestRuntime();

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createDeferred } from "../runtime_fixture/async/deferred.mjs";
-import { createRealRequestRuntime } from "../runtime_fixture/real_request_runtime.mjs";
+import { createDeferred } from "../../runtime_fixture/async/deferred.mjs";
+import { createRealRequestRuntime } from "../../runtime_fixture/real_request_runtime.mjs";
 
 test("response summary scope denial precedes branch effect planning", async () => {
   let currentBranchReadCount = 0;

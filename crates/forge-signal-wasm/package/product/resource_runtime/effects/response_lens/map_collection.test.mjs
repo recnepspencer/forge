@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createRealRequestRuntime } from "../runtime_fixture/real_request_runtime.mjs";
-import { createBranchHead } from "../runtime_fixture/real_resource_signals.mjs";
+import { createRealRequestRuntime } from "../../runtime_fixture/real_request_runtime.mjs";
+import { createBranchHead } from "../../runtime_fixture/real_resource_signals.mjs";
 
 test("map-backed responses lower item replacement through map collection loci", async () => {
   const runtime = await createRealRequestRuntime();
@@ -73,6 +73,9 @@ test("map-backed responses lower item replacement through map collection loci", 
       target_branch_id: 0,
     });
     assert.equal(mergePlan.kind, "planned");
+    assert.equal(mergePlan.sourceBranchId, itemEffect.optimistic.branchId);
+    assert.equal(mergePlan.targetBranchId, 0);
+    assert.equal(Number.isInteger(mergePlan.breadth.nodePlanCount), true);
     assert.equal(typeof mergePlan.proof.planDigest, "string");
 
     line.deliver(signalsMod.resourceDelivery.patch({
@@ -147,8 +150,20 @@ test("map-backed responses admit structural ReadonlyMap entry views", async () =
   const runtime = await createRealRequestRuntime();
   try {
     const { signals } = runtime;
+    let structuralEntryReadCount = 0;
+    let singleEntryReplacementCount = 0;
     const response = createTaskMapResponse(signals, {
-      entries: (value) => createReadonlyMapEntryView(value.taskMapEntries),
+      entries(value) {
+        structuralEntryReadCount += 1;
+        return createReadonlyMapEntryView(value.taskMapEntries);
+      },
+      replaceEntry(value, itemId, nextItem) {
+        singleEntryReplacementCount += 1;
+        return {
+          ...value,
+          taskMapEntries: replaceMapEntry(value.taskMapEntries, itemId, nextItem),
+        };
+      },
     });
     const tasks = createTaskMapApi(signals, response, "/readonly-map-view");
     const line = tasks.line({});
@@ -160,6 +175,8 @@ test("map-backed responses admit structural ReadonlyMap entry views", async () =
 
     assert.equal(readTask(line.value(), "task:1").title, "Readonly View");
     assert.equal(line.diagnostics().lastEffect.locus.kind, "mapCollection");
+    assert.equal(singleEntryReplacementCount, 1);
+    assert.equal(structuralEntryReadCount > 0, true);
   } finally {
     await runtime.cleanup();
   }

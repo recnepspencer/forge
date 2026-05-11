@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createRealRequestRuntime } from "../runtime_fixture/real_request_runtime.mjs";
-import { createBranchHead } from "../runtime_fixture/real_resource_signals.mjs";
+import { createRealRequestRuntime } from "../../runtime_fixture/real_request_runtime.mjs";
+import { createBranchHead } from "../../runtime_fixture/real_resource_signals.mjs";
 
 test("JSON path item aspect effects expose path proof and traversal cost counters", async () => {
   const runtime = await createRealRequestRuntime();
