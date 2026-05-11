@@ -8,33 +8,56 @@ function resourceCollectionShape(options) {
   if (!options || typeof options !== "object" || Array.isArray(options)) {
     throw new TypeError("resourceCollectionShape(...) requires an options object");
   }
+  if (options.responseLensProof !== undefined) {
+    throw new TypeError(
+      "resourceCollectionShape(...) does not accept responseLensProof; use resource.response.* declarations to attach compiled response lens proof",
+    );
+  }
+  return createResourceCollectionShape(options, null, "resourceCollectionShape(...)");
+}
+
+function createResponseLensResourceCollectionShape(
+  options,
+  responseLensProof,
+  kind = "resource.response reconciliation",
+) {
+  return createResourceCollectionShape(
+    options,
+    requireResponseLensProof(
+      responseLensProof,
+      kind,
+    ),
+    kind,
+  );
+}
+
+function createResourceCollectionShape(options, responseLensProof, kind) {
   if (typeof options.items !== "function") {
-    throw new TypeError("resourceCollectionShape(...) requires items(...)");
+    throw new TypeError(`${kind} requires items(...)`);
   }
   if (typeof options.replaceItems !== "function") {
-    throw new TypeError("resourceCollectionShape(...) requires replaceItems(...)");
+    throw new TypeError(`${kind} requires replaceItems(...)`);
   }
   const aspects =
     options.aspects === undefined
       ? null
       : requireResourceItemAspects(
           options.aspects,
-          "resourceCollectionShape(...)",
+          kind,
         );
   const summaries =
     options.summaries === undefined
       ? null
       : requireResourceValueSummaries(
           options.summaries,
-          "resourceCollectionShape(...)",
+          kind,
         );
-  const responseLensProof =
-    options.responseLensProof === undefined
-      ? null
-      : requireResponseLensProof(
-          options.responseLensProof,
-          "resourceCollectionShape(...)",
-        );
+  assertResponseLensProofMatchesReconciliationShape(
+    responseLensProof,
+    aspects,
+    summaries,
+    kind,
+  );
   return Object.freeze({
     items: options.items,
     replaceItems: options.replaceItems,
@@ -58,6 +81,12 @@ function normalizeResourceCollectionShape(kind, shape) {
     shape.responseLensProof === null || shape.responseLensProof === undefined
       ? null
       : requireResponseLensProof(shape.responseLensProof, kind);
+  assertResponseLensProofMatchesReconciliationShape(
+    responseLensProof,
+    aspects,
+    summaries,
+    kind,
+  );
   return Object.freeze({
     items: shape.items,
     replaceItems: shape.replaceItems,
@@ -81,4 +110,59 @@ function requireResourceCollectionShape(value, kind) {
   return normalizeResourceCollectionShape(kind, value);
 }
 
-export { requireResourceCollectionShape, resourceCollectionShape };
+function assertResponseLensProofMatchesReconciliationShape(
+  responseLensProof,
+  aspects,
+  summaries,
+  kind,
+) {
+  if (responseLensProof === null) {
+    return;
+  }
+  assertDeclaredNamesMatchResponseLensProof(
+    responseLensProof.aspectNames,
+    aspects === null ? [] : Object.keys(aspects.definitions),
+    "aspect",
+    kind,
+  );
+  assertDeclaredNamesMatchResponseLensProof(
+    responseLensProof.summaryNames,
+    summaries === null ? [] : Object.keys(summaries.definitions),
+    "summary",
+    kind,
+  );
+  const summaryPatchScope = summaries?.patchScope ?? null;
+  if (responseLensProof.summaryPatchScope !== summaryPatchScope) {
+    throw new TypeError(
+      `${kind} response lens proof summary patch scope "${responseLensProof.summaryPatchScope}" does not match reconciliation summary patch scope "${summaryPatchScope}"`,
+    );
+  }
+}
+
+function assertDeclaredNamesMatchResponseLensProof(
+  proofNames,
+  declarationNames,
+  label,
+  kind,
+) {
+  const sortedProofNames = [...proofNames].sort();
+  const sortedDeclarationNames = [...declarationNames].sort();
+  if (sortedProofNames.length !== sortedDeclarationNames.length) {
+    throw new TypeError(
+      `${kind} response lens proof ${label} declarations do not match reconciliation ${label} declarations`,
+    );
+  }
+  for (let index = 0; index < sortedProofNames.length; index += 1) {
+    if (sortedProofNames[index] !== sortedDeclarationNames[index]) {
+      throw new TypeError(
+        `${kind} response lens proof ${label} "${sortedProofNames[index]}" does not match reconciliation ${label} "${sortedDeclarationNames[index]}"`,
+      );
+    }
+  }
+}
+
+export {
+  createResponseLensResourceCollectionShape,
+  requireResourceCollectionShape,
+  resourceCollectionShape,
+};

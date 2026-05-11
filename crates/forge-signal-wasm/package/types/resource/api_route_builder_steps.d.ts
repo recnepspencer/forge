@@ -17,6 +17,7 @@ import type { ApiRouteBuilder } from "./api_route_builder.js";
 import type { ApiRouteReconcileBuilder } from "./api_route_reconcile_builder.js";
 import type {
   ResourceCollectionResponse,
+  ResourceDetailResponse,
   ResourceResponseAspectMap,
   ResourceResponseItem,
   ResourceResponseSummaryMap,
@@ -278,21 +279,41 @@ export type ApiRouteBuilderItemsStep<
     THeadersOwned,
     TMethod
   >;
-  response<TResponse extends ResourceCollectionResponse<any, any, any, any>>(
+  response<
+    TResponse extends
+      | ResourceCollectionResponse<any, any, any, any>
+      | ResourceDetailResponse<any>,
+  >(
     response: TResponse,
-  ): Omit<ApiRouteReconcileBuilder<
-    TRoute,
-    TRequestParams,
-    ResourceResponseValue<TResponse>,
-    ResourceResponseItem<TResponse>,
-    ResourceResponseAspectMap<TResponse>,
-    ResourceResponseSummaryMap<TResponse>,
-    "none",
-    TProcessingKind,
-    TUploadKind,
-    TBody,
-    TDownloadsOwned,
-    THeadersOwned,
-    TMethod
-  >, "aspect" | "reconcile" | "summary" | "pageWindowSummary">;
+  ): TResponse extends ResourceDetailResponse<any>
+    ? Pick<
+        ApiRouteBuilder<
+          TRoute,
+          TRequestParams,
+          TProcessingKind,
+          TUploadKind,
+          TBody,
+          TDownloadValue,
+          TDownloadsOwned,
+          THeadersOwned,
+          TEffectsOwned,
+          TMethod
+        >,
+        "detail"
+      >
+    : Omit<ApiRouteReconcileBuilder<
+        TRoute,
+        TRequestParams,
+        ResourceResponseValue<TResponse>,
+        ResourceResponseItem<TResponse>,
+        ResourceResponseAspectMap<TResponse>,
+        ResourceResponseSummaryMap<TResponse>,
+        "none",
+        TProcessingKind,
+        TUploadKind,
+        TBody,
+        TDownloadsOwned,
+        THeadersOwned,
+        TMethod
+      >, "aspect" | "reconcile" | "summary" | "pageWindowSummary">;
 };

@@ -101,6 +101,10 @@ function createCollectionResponse(kind, options, lensOptions) {
         aspects === null
           ? []
           : Object.keys(aspects.definitions),
+      jsonAspectNames:
+        aspects === null
+          ? []
+          : readAspectNamesForLocus(aspects, "jsonItemAspect"),
       summaryNames:
         summaries === null
           ? []
@@ -114,6 +118,12 @@ function createCollectionResponse(kind, options, lensOptions) {
     summaries,
     [RESOURCE_COLLECTION_RESPONSE]: "resourceCollectionResponse",
   });
+}
+
+function readAspectNamesForLocus(aspects, locus) {
+  return Object.entries(aspects.definitions)
+    .filter(([_aspect, definition]) => definition.locus === locus)
+    .map(([aspect]) => aspect);
 }
 
 function requireObjectItemsField(field) {

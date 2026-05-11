@@ -3,7 +3,7 @@ import { attachApiFamilyPatchHelpers } from "../api_family_patch_helpers.js";
 import { createApiRouteDownloadsState, withApiRouteDownloads } from "./api_route_download_state.js";
 import { createApiRouteItemsState, extendApiRouteItemsAspect, extendApiRouteItemsSummary, requireApiRouteItemsReconcileState, requireApiRouteResponseItemsState, requireApiRouteItemsState } from "./api_route_items_reconcile.js";
 import { mergeApiDeclaration } from "../api_request_defaults.js";
-import { lowerDirectArrayRouteDeclaration, lowerReadRouteDeclaration, lowerRemoveRouteDeclaration, lowerWriteRouteDeclaration } from "./api_route_finalization.js";
+import { lowerDirectArrayRouteDeclaration, lowerReadRouteDeclaration, lowerRemoveRouteDeclaration, lowerResponseDetailRouteDeclaration, lowerWriteRouteDeclaration } from "./api_route_finalization.js";
 import { parseApiRoutePattern } from "./api_route_pattern.js";
 import { createApiRouteRequestParamsState, withDeclaredApiRouteRequestParams } from "./api_route_request_params.js";
 import { createApiRouteRequestShapeState, withApiRouteBody, withApiRouteEffects, withApiRouteHeaders, withApiRouteVerb } from "./api_route_request_shape_state.js";
@@ -249,14 +249,24 @@ function createConfiguredApiRouteBuilder(
       return signalNamespace.resource.detail(
         mergeApiDeclaration(
           layers,
-          lowerReadRouteDeclaration(
-            pattern,
-            requestParamsState,
-            declaration,
-            requestShapeState,
-            transferState,
-            downloadsState,
-          ),
+          directItemsState.reconcileMode === "responseDetail"
+            ? lowerResponseDetailRouteDeclaration(
+                pattern,
+                requestParamsState,
+                declaration,
+                requestShapeState,
+                directItemsState,
+                transferState,
+                downloadsState,
+              )
+            : lowerReadRouteDeclaration(
+                pattern,
+                requestParamsState,
+                declaration,
+                requestShapeState,
+                transferState,
+                downloadsState,
+              ),
         ),
       );
     },

@@ -8,10 +8,12 @@ declare const forgeSignalResourceValueSummariesBrand: unique symbol;
 declare const forgeSignalResourceDeliveryBrand: unique symbol;
 
 export type ResourceSummaryPatchScope = "line" | "pageWindow";
+export type ResourceItemAspectLocus = "itemAspect" | "jsonItemAspect";
 
 export interface ResourceItemAspect<TItem, TValue = SignalValue> {
   read(item: TItem): TValue;
   write(item: TItem, value: TValue): TItem;
+  readonly locus?: ResourceItemAspectLocus;
 }
 
 export type ResourceItemAspectMap<TItem> = Readonly<

@@ -26,9 +26,17 @@ export interface ResourceEffectProfileDigest {
 
 export type ResourceEffectLocus =
   | { readonly kind: "line" }
+  | { readonly kind: "broadResponse" }
+  | { readonly kind: "detailResponse" }
+  | { readonly kind: "membership"; readonly itemId: string | null }
   | { readonly kind: "item"; readonly itemId: string | null }
   | {
       readonly kind: "itemAspect";
+      readonly itemId: string | null;
+      readonly aspect: string | null;
+    }
+  | {
+      readonly kind: "jsonItemAspect";
       readonly itemId: string | null;
       readonly aspect: string | null;
     }
@@ -40,9 +48,22 @@ export interface ResourceEffectLocusProof {
   readonly version: "resource-effect-locus-proof-v1";
   readonly lensVersion: "resource-response-lens-proof-v1";
   readonly lensSource: string;
-  readonly topology: "directArray" | "objectItems" | "customCollection";
+  readonly declarationDigest: string;
+  readonly capabilityDigest: string;
+  readonly compiledLensDigest: string;
+  readonly parityDigest: string;
+  readonly compileBoundaryDigest: string;
+  readonly capabilityRowDigest: string;
+  readonly effectLocusDigest: string;
+  readonly topology: "directArray" | "objectItems" | "customCollection" | "detail";
   readonly itemField: string | null;
-  readonly locus: "broadResponse" | "membership" | "itemAspect" | "summary";
+  readonly locus:
+    | "broadResponse"
+    | "detailResponse"
+    | "membership"
+    | "itemAspect"
+    | "jsonItemAspect"
+    | "summary";
   readonly patchScope: "line" | "item" | "aspect" | "summary";
   readonly aspect: string | null;
   readonly summary: string | null;

@@ -15,9 +15,11 @@ function resourceItemAspects(definitions) {
     if (typeof definition.write !== "function") {
       throw new TypeError(`resourceItemAspects(...) aspect "${aspect}" requires write(...)`);
     }
+    const locus = requireAspectLocus(definition.locus, aspect);
     normalizedDefinitions[aspect] = Object.freeze({
       read: definition.read,
       write: definition.write,
+      locus,
     });
   }
   return Object.freeze({
@@ -40,6 +42,18 @@ function requireResourceItemAspects(value, kind) {
     );
   }
   return value;
+}
+
+function requireAspectLocus(locus, aspect) {
+  if (locus === undefined) {
+    return "itemAspect";
+  }
+  if (locus === "itemAspect" || locus === "jsonItemAspect") {
+    return locus;
+  }
+  throw new TypeError(
+    `resourceItemAspects(...) aspect "${aspect}" has unsupported effect locus "${locus}"`,
+  );
 }
 
 export { requireResourceItemAspects, resourceItemAspects };

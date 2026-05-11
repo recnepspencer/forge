@@ -187,7 +187,7 @@ function createMaterializedLine(
 
 function createMaterializedLineHandle(lineBacking) {
   const baseHandle = createLineHandle(lineBacking);
-  if (lineBacking.current().patch.familyKind === "detail") {
+  if (!lineBacking.current().patch.broadReplace) {
     return baseHandle;
   }
   return createPatchCapableLineHandle(baseHandle, lineBacking);
@@ -248,7 +248,7 @@ function createConcreteMaterialization(
   const patch = createLinePatchRecord(
     familyRecord.identity.kind,
     familyRecord.declaration.itemIdentity,
-    familyRecord.declaration.reconcile ?? null,
+    createLineReconciliationProofRecord(familyRecord.declaration),
   );
   return createLineMaterializationRecord(
     lineIdentity,
@@ -266,6 +266,18 @@ function createConcreteMaterialization(
       rematerialize,
       resourceLineEpoch,
     );
+}
+
+function createLineReconciliationProofRecord(declaration) {
+  if (declaration.reconcile !== undefined) {
+    return declaration.reconcile;
+  }
+  if (declaration.responseLensProof !== undefined) {
+    return Object.freeze({
+      responseLensProof: declaration.responseLensProof,
+    });
+  }
+  return null;
 }
 
 function createBinding(

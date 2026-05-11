@@ -7,6 +7,7 @@ type Task = {
   title: string;
   status: "open" | "done";
   assigneeId: string | null;
+  metadata: { priority: number };
 };
 
 type TaskEnvelope = {
@@ -37,6 +38,7 @@ const tasks = signals.api({}).url("/workspaces/:workspaceId/tasks")
         title: "Task",
         status: "open" as const,
         assigneeId: null,
+        metadata: { priority: 1 },
       },
     ],
   });
@@ -62,8 +64,8 @@ void line.deliver(statusDelivery);
 const taskEnvelopeResponse = signals.resource.response.objectItems<TaskEnvelope>()({
   field: "tasks",
   itemId: (item) => item.id,
-  aspects: signals.resource.response.objectAspects<Task>()({
-    title: "title",
+  aspects: signals.resource.response.jsonObjectAspects<Task>()({
+    metadata: "metadata",
   }),
 });
 
@@ -77,6 +79,7 @@ const taskEnvelope = signals.api({}).url("/task-page")
           title: "Task",
           status: "open" as const,
           assigneeId: null,
+          metadata: { priority: 1 },
         },
       ],
       nextCursor: null,
@@ -85,8 +88,8 @@ const taskEnvelope = signals.api({}).url("/task-page")
 
 const envelopePatch = taskEnvelope.patch.itemAspect({
   itemId: "t1",
-  aspect: "title",
-  value: "Envelope renamed",
+  aspect: "metadata",
+  value: { priority: 2 },
 });
 
 void taskEnvelope.line({}).patch(envelopePatch);
@@ -114,6 +117,7 @@ const taskConnection = signals.api({}).url("/task-connection")
             title: "Task",
             status: "open" as const,
             assigneeId: null,
+            metadata: { priority: 1 },
           },
         },
       ],
@@ -128,3 +132,18 @@ const connectionPatch = taskConnection.patch.itemAspect({
 });
 
 void taskConnection.line({}).patch(connectionPatch);
+
+const taskDetailResponse = signals.resource.response.detail<Task>();
+const taskDetail = signals.api({}).url("/tasks/:taskId")
+  .response(taskDetailResponse)
+  .detail({
+    load: ({ taskId }) => ({
+      id: taskId,
+      title: "Task",
+      status: "open" as const,
+      assigneeId: null,
+      metadata: { priority: 1 },
+    }),
+  });
+
+void taskDetail.line({ taskId: "t1" }).value();

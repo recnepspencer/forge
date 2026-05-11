@@ -1,6 +1,7 @@
 import "./resource_runtime/authoring/declaration_validation.test.mjs";
 import "./resource_runtime/authoring/api_family_patch_helpers.test.mjs";
 import "./resource_runtime/authoring/api_response_contract_builder.test.mjs";
+import "./resource_runtime/authoring/api_response_detail_contract_builder.test.mjs";
 import "./resource_runtime/authoring/api_route/api_url_semantic_finalizers.test.mjs";
 import "./resource_runtime/authoring/external_definition_compatibility.test.mjs";
 import "./resource_runtime/authoring/family_identity_equivalence.test.mjs";
@@ -38,7 +39,9 @@ import "./resource_runtime/effects/resource_effect_rollback_execution.test.mjs";
 import "./resource_runtime/effects/resource_effect_server_confirmation.test.mjs";
 import "./resource_runtime/effects/resource_effect_visible_selection.test.mjs";
 import "./resource_runtime/effects/resource_response_lens_admission_order.test.mjs";
+import "./resource_runtime/effects/resource_response_lens_broad_response.test.mjs";
 import "./resource_runtime/effects/resource_response_lens_effect_locus.test.mjs";
+import "./resource_runtime/effects/resource_response_lens_reconciliation_coherence.test.mjs";
 import "./resource_runtime/downloads/binary_download_surface.test.mjs";
 import "./resource_runtime/downloads/download_descriptor_boundary.test.mjs";
 import "./resource_runtime/delivery/delivery_basis_history_closeout.test.mjs";

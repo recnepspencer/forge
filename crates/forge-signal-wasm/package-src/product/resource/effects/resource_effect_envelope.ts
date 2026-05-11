@@ -1,7 +1,7 @@
 import { requireResourceEffectPlan } from "./resource_effect_plan.js";
 import { createResourceEffectBranchLifecycle } from "./resource_effect_branch_lifecycle.js";
 import { createResourceEffectOptimisticLifecycle } from "./resource_effect_optimistic_lifecycle.js";
-import { lowerResponseLensProofToEffectLocus } from "../response/resource_response_lens_proof.js";
+import { lowerResponseLensProofToEffectLocus } from "../response/resource_response_effect_locus_lowering.js";
 
 const RESOURCE_EFFECT_ENVELOPE_VERSION = "resource-effect-envelope-v1";
 
@@ -46,11 +46,12 @@ function createResourceEffectEnvelope(options) {
   const requestDescriptor = effectPlan.requestDescriptor;
   const lineIdentity = effectPlan.lineIdentity;
   const patch = options.patch;
-  const locus = createEffectLocus(patch, options.delivery);
+  const rawLocus = createEffectLocus(patch, options.delivery, effectPlan);
   const locusProof = lowerResponseLensProofToEffectLocus(
     effectPlan.responseLensProof,
-    locus,
+    rawLocus,
   );
+  const locus = alignLocusWithResponseLensProof(rawLocus, locusProof);
   return Object.freeze({
     version: RESOURCE_EFFECT_ENVELOPE_VERSION,
     effectId: createEffectId(effectPlan, options.delivery),
@@ -88,10 +89,32 @@ function createResourceEffectEnvelope(options) {
     delivery: options.delivery,
     locus,
     locusProof,
-    patch,
+    patch: createPatchDigest(patch),
     counters: Object.freeze({
       ...effectPlan.counters,
     }),
+  });
+}
+
+function createPatchDigest(patch) {
+  return Object.freeze({
+    kind: patch.kind,
+    scope: patch.scope,
+    itemId: patch.itemId,
+    aspect: patch.aspect,
+    summary: patch.summary,
+    valueChanged: patch.valueChanged,
+  });
+}
+
+function alignLocusWithResponseLensProof(locus, locusProof) {
+  if (locusProof?.locus !== "jsonItemAspect") {
+    return locus;
+  }
+  return Object.freeze({
+    kind: "jsonItemAspect",
+    itemId: locus.itemId,
+    aspect: locus.aspect,
   });
 }
 
@@ -109,13 +132,53 @@ function createProfileDigest(profile) {
   });
 }
 
-function createEffectLocus(patch, delivery) {
+function createEffectLocus(patch, delivery, effectPlan) {
   if (delivery !== null) {
     const deliveryLocus = createDeliveryOnlyEffectLocus(delivery.scope);
     if (deliveryLocus !== null) {
       return deliveryLocus;
     }
   }
+  if (effectPlan.responseLensProof !== null) {
+    return createResponseLensBackedEffectLocus(
+      patch,
+      effectPlan.responseLensProof,
+    );
+  }
+  return createGenericResourceEffectLocus(patch);
+}
+
+function createResponseLensBackedEffectLocus(patch, responseLensProof) {
+  switch (patch.scope) {
+    case "line":
+      return Object.freeze({
+        kind: responseLensProof.topology === "detail"
+          ? "detailResponse"
+          : "broadResponse",
+      });
+    case "item":
+      return Object.freeze({
+        kind: "membership",
+        itemId: patch.itemId,
+      });
+    case "aspect":
+      return Object.freeze({
+        kind: responseLensProof.jsonAspectNames.includes(patch.aspect)
+          ? "jsonItemAspect"
+          : "itemAspect",
+        itemId: patch.itemId,
+        aspect: patch.aspect,
+      });
+    case "summary":
+      return Object.freeze({ kind: "summary", summary: patch.summary });
+    default:
+      throw new TypeError(
+        `resource effect envelope cannot classify patch scope "${patch.scope}"`,
+      );
+  }
+}
+
+function createGenericResourceEffectLocus(patch) {
   switch (patch.scope) {
     case "line":
       return Object.freeze({ kind: "line" });

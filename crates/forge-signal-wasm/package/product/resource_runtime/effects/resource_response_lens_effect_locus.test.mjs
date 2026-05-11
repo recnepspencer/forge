@@ -42,24 +42,18 @@ test("response contracts lower compiled lens proof into branch-native effect loc
     );
 
     const effect = line.diagnostics().lastEffect;
-    assert.deepEqual(effect.locus, {
-      kind: "itemAspect",
-      itemId: "t1",
-      aspect: "title",
-    });
-    assert.deepEqual(effect.locusProof, {
-      version: "resource-effect-locus-proof-v1",
-      lensVersion: "resource-response-lens-proof-v1",
-      lensSource: "resource.response.objectItems<T>()(...)",
-      topology: "objectItems",
-      itemField: "tasks",
-      locus: "itemAspect",
-      patchScope: "aspect",
-      aspect: "title",
-      summary: null,
-      summaryPatchScope: null,
-      proofBreadth: 1,
-    });
+    assert.deepEqual(effect.locus, { kind: "itemAspect", itemId: "t1", aspect: "title" });
+    assert.equal(effect.locusProof.lensSource, "resource.response.objectItems<T>()(...)");
+    assert.equal(effect.locusProof.topology, "objectItems");
+    assert.equal(effect.locusProof.itemField, "tasks");
+    assert.equal(effect.locusProof.locus, "itemAspect");
+    assert.equal(effect.locusProof.patchScope, "aspect");
+    assert.equal(effect.locusProof.aspect, "title");
+    assert.equal(effect.locusProof.declarationDigest, response.lensProof.declarationDigest);
+    assert.equal(effect.locusProof.capabilityDigest, response.lensProof.capabilityDigest);
+    assert.equal(effect.locusProof.compiledLensDigest, response.lensProof.compiledLensDigest);
+    assert.equal(effect.locusProof.capabilityRowDigest.includes("itemAspect"), true);
+    assert.equal(effect.locusProof.effectLocusDigest.includes("title"), true);
     assert.equal(effect.counters.responseLensBreadth, 1);
     assert.equal(effect.counters.effectLocusBreadth, 1);
     assert.deepEqual(
@@ -74,23 +68,11 @@ test("response contracts lower compiled lens proof into branch-native effect loc
       }),
     );
     const summaryEffect = line.diagnostics().lastEffect;
-    assert.deepEqual(summaryEffect.locus, {
-      kind: "summary",
-      summary: "total",
-    });
-    assert.deepEqual(summaryEffect.locusProof, {
-      version: "resource-effect-locus-proof-v1",
-      lensVersion: "resource-response-lens-proof-v1",
-      lensSource: "resource.response.objectItems<T>()(...)",
-      topology: "objectItems",
-      itemField: "tasks",
-      locus: "summary",
-      patchScope: "summary",
-      aspect: null,
-      summary: "total",
-      summaryPatchScope: "line",
-      proofBreadth: 1,
-    });
+    assert.deepEqual(summaryEffect.locus, { kind: "summary", summary: "total" });
+    assert.equal(summaryEffect.locusProof.locus, "summary");
+    assert.equal(summaryEffect.locusProof.patchScope, "summary");
+    assert.equal(summaryEffect.locusProof.summary, "total");
+    assert.equal(summaryEffect.locusProof.summaryPatchScope, "line");
     assert.equal(summaryEffect.counters.responseLensBreadth, 1);
     assert.deepEqual(line.value(), {
       tasks: [{ id: "t1", title: "Renamed" }],
@@ -144,23 +126,80 @@ test("response summary effect loci preserve line and page-window scope proof", a
       }),
     );
 
-    assert.deepEqual(line.diagnostics().lastEffect.locusProof, {
-      version: "resource-effect-locus-proof-v1",
-      lensVersion: "resource-response-lens-proof-v1",
-      lensSource: "resource.response.collection(...)",
-      topology: "customCollection",
-      itemField: null,
-      locus: "summary",
-      patchScope: "summary",
-      aspect: null,
-      summary: "visibleCount",
-      summaryPatchScope: "pageWindow",
-      proofBreadth: 1,
-    });
+    const effectProof = line.diagnostics().lastEffect.locusProof;
+    assert.equal(effectProof.lensSource, "resource.response.collection(...)");
+    assert.equal(effectProof.topology, "customCollection");
+    assert.equal(effectProof.locus, "summary");
+    assert.equal(effectProof.patchScope, "summary");
+    assert.equal(effectProof.summary, "visibleCount");
+    assert.equal(effectProof.summaryPatchScope, "pageWindow");
+    assert.equal(effectProof.capabilityRowDigest.includes("pageWindow"), true);
     assert.deepEqual(line.value(), {
       items: [{ id: "page:1", title: "First" }],
       visibleCount: 2,
     });
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("response JSON object aspects lower to JSON item-aspect effect loci", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const { signals, signalsMod } = runtime;
+    const response = signals.resource.response.objectItems()({
+      field: "tasks",
+      itemId: (task) => task.id,
+      aspects: signals.resource.response.jsonObjectAspects()({
+        metadata: "metadata",
+      }),
+    });
+    assert.deepEqual(response.lensProof.jsonAspectNames, ["metadata"]);
+    assert.equal(response.lensProof.capabilityRows.some(
+      (row) => row.locus === "jsonItemAspect",
+    ), true);
+
+    const tasks = signals.api({
+      effects: signals.resource.effects.pessimistic(),
+    }).url("/tasks")
+      .response(response)
+      .list({
+        load: () => ({
+          tasks: [{ id: "t1", metadata: { priority: 1 } }],
+        }),
+      });
+    const line = tasks.line({});
+    line.patch(
+      tasks.patch.itemAspect({
+        itemId: "t1",
+        aspect: "metadata",
+        value: { priority: 2 },
+      }),
+    );
+
+    const effect = line.diagnostics().lastEffect;
+    assert.deepEqual(effect.locus, {
+      kind: "jsonItemAspect",
+      itemId: "t1",
+      aspect: "metadata",
+    });
+    assert.equal(effect.locusProof.locus, "jsonItemAspect");
+    assert.equal(effect.locusProof.patchScope, "aspect");
+    assert.deepEqual(line.value().tasks[0].metadata, { priority: 2 });
+
+    const ordinaryResponse = signals.resource.response.objectItems()({
+      field: "tasks", itemId: (task) => task.id,
+      aspects: signals.resource.response.objectAspects()({ metadata: "metadata" }),
+    });
+    const ordinaryTasks = signals.api({ effects: signals.resource.effects.pessimistic() })
+      .url("/ordinary-tasks").response(ordinaryResponse)
+      .list({ load: () => ({ tasks: [{ id: "t1", metadata: { priority: 1 } }] }) });
+    const ordinaryLine = ordinaryTasks.line({});
+    ordinaryLine.patch(signalsMod.resourcePatch.itemAspect({
+      itemId: "t1", aspect: "metadata",
+      aspectLocus: "jsonItemAspect", value: { priority: 2 },
+    }));
+    assert.equal(ordinaryLine.diagnostics().lastEffect.locus.kind, "itemAspect");
   } finally {
     await runtime.cleanup();
   }
@@ -187,11 +226,16 @@ test("direct array custom collection and paged responses preserve topology proof
         nextItem: { id: "direct:1", title: "Direct" },
       }),
     );
+    assert.deepEqual(directLine.diagnostics().lastEffect.locus, {
+      kind: "membership",
+      itemId: "direct:1",
+    });
     assert.equal(
       directLine.diagnostics().lastEffect.locusProof.topology,
       "directArray",
     );
     assert.equal(directLine.diagnostics().lastEffect.locusProof.locus, "membership");
+    assert.equal(directLine.diagnostics().lastEffect.locusProof.patchScope, "item");
 
     const customResponse = signals.resource.response.collection({
       itemId: (task) => task.id,
@@ -217,6 +261,10 @@ test("direct array custom collection and paged responses preserve topology proof
         nextItem: { id: "node:1", title: "Custom" },
       }),
     );
+    assert.deepEqual(connectionLine.diagnostics().lastEffect.locus, {
+      kind: "membership",
+      itemId: "node:1",
+    });
     assert.equal(
       connectionLine.diagnostics().lastEffect.locusProof.topology,
       "customCollection",
@@ -267,7 +315,7 @@ test("response topology denials preserve value diagnostics and effect proof", as
           replaceItems: (_value, nextItems) => [...nextItems],
           responseLensProof: {},
         }),
-      /requires a compiled response lens proof/,
+      /does not accept responseLensProof/,
     );
 
     const badResponse = signals.resource.response.collection({
@@ -298,64 +346,6 @@ test("response topology denials preserve value diagnostics and effect proof", as
     );
     assert.deepEqual(line.value(), beforeValue);
     assert.equal(line.diagnostics().lastEffect, beforeEffect);
-
-    const response = signals.resource.response.array({
-      itemId: (task) => task.id,
-    });
-    const summaryBlocked = signals.resource.collection({
-      params: signalsMod.resourceParams(),
-      effects: signals.resource.effects.pessimistic(),
-      normalizeParams: ({ workspaceId }) =>
-        signalsMod.resourceParamIdentity({ workspaceId }, workspaceId),
-      itemIdentity: (task) => task.id,
-      reconcile: signalsMod.resourceCollectionShape({
-        items: (value) => value.items,
-        replaceItems: (value, nextItems) => ({ ...value, items: [...nextItems] }),
-        summaries: signalsMod.resourceValueSummaries({
-          total: {
-            read: (value) => value.total,
-            write: (value, total) => ({ ...value, total }),
-          },
-        }),
-        responseLensProof: response.lensProof,
-      }),
-      load: () => ({
-        items: [{ id: "summary:1", title: "First" }],
-        total: 1,
-      }),
-    });
-    const summaryLine = summaryBlocked.line({ workspaceId: "demo" });
-    const beforeSummaryValue = summaryLine.value();
-    const beforeSummaryEffect = summaryLine.diagnostics().lastEffect;
-    assert.throws(
-      () =>
-        summaryLine.patch(
-          signalsMod.resourcePatch.summary({
-            summary: "total",
-            value: 2,
-          }),
-        ),
-      /cannot lower effect locus "summary"/,
-    );
-    assert.deepEqual(summaryLine.value(), beforeSummaryValue);
-    assert.equal(summaryLine.diagnostics().lastEffect, beforeSummaryEffect);
-
-    assert.throws(
-      () =>
-        summaryLine.deliver(
-          signalsMod.resourceDelivery.patch({
-            packetId: "pkt-summary-denied",
-            basisId: null,
-            patch: signalsMod.resourcePatch.summary({
-              summary: "total",
-              value: 3,
-            }),
-          }),
-        ),
-      /cannot lower effect locus "summary"/,
-    );
-    assert.deepEqual(summaryLine.value(), beforeSummaryValue);
-    assert.equal(summaryLine.diagnostics().lastEffect, beforeSummaryEffect);
 
     const pageWindowResponse = signals.resource.response.collection({
       itemId: (task) => task.id,

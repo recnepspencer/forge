@@ -7,10 +7,17 @@ import type {
 } from "./resource_reconciliation.js";
 
 declare const forgeSignalResourceCollectionResponseBrand: unique symbol;
+declare const forgeSignalResourceDetailResponseBrand: unique symbol;
 declare const forgeSignalResourceResponseLensProofBrand: unique symbol;
 
 export interface ResourceResponseLensCapabilityRow {
-  readonly locus: "broadResponse" | "membership" | "itemAspect" | "summary";
+  readonly locus:
+    | "broadResponse"
+    | "detailResponse"
+    | "membership"
+    | "itemAspect"
+    | "jsonItemAspect"
+    | "summary";
   readonly patchScope: "line" | "item" | "aspect" | "summary";
   readonly admitted: boolean;
   readonly summaryPatchScope: "line" | "pageWindow" | null;
@@ -19,13 +26,49 @@ export interface ResourceResponseLensCapabilityRow {
 export interface ResourceResponseLensProof {
   readonly version: "resource-response-lens-proof-v1";
   readonly source: string;
-  readonly topology: "directArray" | "objectItems" | "customCollection";
+  readonly topology: "directArray" | "objectItems" | "customCollection" | "detail";
   readonly itemField: string | null;
+  readonly declarationDigest: string;
+  readonly capabilityDigest: string;
+  readonly compiledLensDigest: string;
+  readonly parityDigest: string;
+  readonly compileBoundaryDigest: string;
   readonly capabilityRows: readonly ResourceResponseLensCapabilityRow[];
   readonly aspectNames: readonly string[];
+  readonly jsonAspectNames: readonly string[];
   readonly summaryNames: readonly string[];
   readonly summaryPatchScope: "line" | "pageWindow" | null;
   readonly [forgeSignalResourceResponseLensProofBrand]: "resourceResponseLensProof";
+}
+
+export interface ResourceResponseLensDenialProof {
+  readonly version: "resource-response-lens-denial-proof-v1";
+  readonly lensVersion: "resource-response-lens-proof-v1";
+  readonly lensSource: string;
+  readonly declarationDigest: string;
+  readonly capabilityDigest: string;
+  readonly compiledLensDigest: string;
+  readonly parityDigest: string;
+  readonly compileBoundaryDigest: string;
+  readonly requestedLocus:
+    | "broadResponse"
+    | "detailResponse"
+    | "membership"
+    | "itemAspect"
+    | "jsonItemAspect"
+    | "summary"
+    | string;
+  readonly requestedPatchScope: "line" | "item" | "aspect" | "summary" | null;
+  readonly aspect: string | null;
+  readonly summary: string | null;
+  readonly reason:
+    | "unsupportedCapability"
+    | "undeclaredAspect"
+    | "undeclaredJsonAspect"
+    | "undeclaredSummary"
+    | "pagedSummaryScopeMismatch"
+    | "listSummaryScopeMismatch";
+  readonly denialDigest: string;
 }
 
 export type ResourceObjectAspectFieldMap<TItem> = Readonly<
@@ -70,9 +113,21 @@ export interface ResourceCollectionResponse<
   readonly [forgeSignalResourceCollectionResponseBrand]: "resourceCollectionResponse";
 }
 
+export interface ResourceDetailResponse<TValue> {
+  readonly kind: "detail";
+  readonly lensProof: ResourceResponseLensProof;
+  readonly [forgeSignalResourceDetailResponseBrand]: "resourceDetailResponse";
+}
+
+export type ResourceAnyResponse =
+  | ResourceCollectionResponse<any, any, any, any>
+  | ResourceDetailResponse<any>;
+
 export type ResourceResponseValue<TResponse> =
   TResponse extends ResourceCollectionResponse<infer TValue, any, any>
     ? TValue
+    : TResponse extends ResourceDetailResponse<infer TValue>
+      ? TValue
     : never;
 
 export type ResourceResponseItem<TResponse> =
@@ -113,6 +168,14 @@ export type ResourceObjectArrayFieldItem<
 
 export interface ResourceResponseFactory {
   objectAspects<TItem>(): <
+    TFields extends ResourceObjectAspectFieldMap<TItem>,
+  >(
+    fields: TFields,
+  ) => ResourceItemAspects<
+    TItem,
+    ResourceObjectAspectDefinitions<TItem, TFields>
+  >;
+  jsonObjectAspects<TItem>(): <
     TFields extends ResourceObjectAspectFieldMap<TItem>,
   >(
     fields: TFields,
@@ -163,6 +226,7 @@ export interface ResourceResponseFactory {
     aspects?: ResourceItemAspects<TItem, TAspectMap>;
     summaries?: ResourceValueSummaries<TValue, TSummaryMap, any>;
   }) => ResourceCollectionResponse<TValue, TItem, TAspectMap, TSummaryMap>;
+  detail<TValue>(): ResourceDetailResponse<TValue>;
 }
 
 export const resourceResponse: ResourceResponseFactory;

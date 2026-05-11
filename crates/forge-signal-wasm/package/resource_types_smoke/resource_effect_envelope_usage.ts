@@ -13,6 +13,7 @@ import {
   type ResourceEffectEnvelope,
   type ResourceEffectLocusProof,
   type ResourceEffectRollback,
+  type ResourceResponseLensDenialProof,
   type ResourceResponseLensProof,
   type ResourceLineEffectRollbackResult,
   type ResourceLineVisibleSelection,
@@ -91,6 +92,21 @@ const response = resourceResponse.array<Task>({
   }),
 });
 const responseLensProof: ResourceResponseLensProof = response.lensProof;
+const jsonResponse = resourceResponse.array<Task>({
+  itemId: (task) => task.id,
+  aspects: resourceResponse.jsonObjectAspects<Task>()({
+    title: "title",
+  }),
+});
+const jsonAspectLocus: ResourceEffectEnvelope["locus"] = {
+  kind: "jsonItemAspect",
+  itemId: "task:1",
+  aspect: "title",
+};
+const detailResponse = resourceResponse.detail<Task>();
+const detailResponseLocus: ResourceEffectEnvelope["locus"] = {
+  kind: "detailResponse",
+};
 
 void latestEffect?.version;
 void latestEffect?.plan.admissionKind;
@@ -115,8 +131,50 @@ void latestEffect?.counters.rollbackReadinessBreadth;
 void latestEffect?.counters.responseLensBreadth;
 void latestEffect?.counters.effectLocusBreadth;
 void latestLocusProof?.topology;
+const responseBroadLocus: ResourceEffectEnvelope["locus"] = {
+  kind: "broadResponse",
+};
+void responseBroadLocus.kind;
+const responseMembershipLocus: ResourceEffectEnvelope["locus"] = {
+  kind: "membership",
+  itemId: "task:1",
+};
+void responseMembershipLocus.itemId;
 void responseLensProof.capabilityRows;
+void responseLensProof.declarationDigest;
+void responseLensProof.capabilityDigest;
+void responseLensProof.compiledLensDigest;
+void responseLensProof.parityDigest;
+void responseLensProof.compileBoundaryDigest;
+const denialProof: ResourceResponseLensDenialProof = {
+  version: "resource-response-lens-denial-proof-v1",
+  lensVersion: "resource-response-lens-proof-v1",
+  lensSource: responseLensProof.source,
+  declarationDigest: responseLensProof.declarationDigest,
+  capabilityDigest: responseLensProof.capabilityDigest,
+  compiledLensDigest: responseLensProof.compiledLensDigest,
+  parityDigest: responseLensProof.parityDigest,
+  compileBoundaryDigest: responseLensProof.compileBoundaryDigest,
+  requestedLocus: "summary",
+  requestedPatchScope: "summary",
+  aspect: null,
+  summary: "count",
+  reason: "listSummaryScopeMismatch",
+  denialDigest: "response-lens-denial",
+};
+void denialProof.denialDigest;
+void jsonResponse.lensProof.jsonAspectNames;
+void detailResponse.lensProof.topology;
+void detailResponseLocus.kind;
+void jsonAspectLocus.aspect;
 void responseLensProof.summaryNames;
+void latestLocusProof?.declarationDigest;
+void latestLocusProof?.capabilityDigest;
+void latestLocusProof?.compiledLensDigest;
+void latestLocusProof?.parityDigest;
+void latestLocusProof?.compileBoundaryDigest;
+void latestLocusProof?.capabilityRowDigest;
+void latestLocusProof?.effectLocusDigest;
 void taskLine.diagnosticsSummary().latest.effect?.locus.kind;
 void taskLine.history().verificationPackage().lifecycle.lastEffect?.effectId;
 void taskLine.history().verificationPackage()

@@ -21,17 +21,72 @@ test("response summary scope denial precedes branch effect planning", async () =
     const beforeValue = line.value();
     const beforeEffect = line.diagnostics().lastEffect;
 
-    assert.throws(
-      () =>
-        line.patch(
-          runtime.signalsMod.resourcePatch.summary({
-            summary: "visibleCount",
-            value: 2,
-          }),
-        ),
-      /do not admit resourceValueSummaries\.pageWindow/,
+    const error = catchThrown(() =>
+      line.patch(
+        runtime.signalsMod.resourcePatch.summary({
+          summary: "visibleCount",
+          value: 2,
+        }),
+      ),
     );
 
+    assertResponseLensDenial(error, {
+      message: /do not admit resourceValueSummaries\.pageWindow/,
+      reason: "listSummaryScopeMismatch",
+      summary: "visibleCount",
+    });
+    assert.equal(currentBranchReadCount, 0);
+    assert.deepEqual(line.value(), beforeValue);
+    assert.equal(line.diagnostics().lastEffect, beforeEffect);
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("response lens unsupported locus denial carries compile-boundary proof", async () => {
+  let currentBranchReadCount = 0;
+  const runtime = await createRealRequestRuntime({
+    current_branch(history) {
+      currentBranchReadCount += 1;
+      return history.current_branch();
+    },
+  });
+  try {
+    const { signals, signalsMod } = runtime;
+    const response = signals.resource.response.array({
+      itemId: (task) => task.id,
+    });
+    const tasks = signals.api({
+      effects: signals.resource.effects.branchNative(),
+    }).url("/unsupported-summary-locus")
+      .response(response)
+      .list({
+        load: () => [{ id: "t1", title: "First" }],
+      });
+    const line = tasks.line({});
+    const beforeValue = line.value();
+    const beforeEffect = line.diagnostics().lastEffect;
+
+    const error = catchThrown(() =>
+      line.patch(
+        signalsMod.resourcePatch.summary({
+          summary: "total",
+          value: 2,
+        }),
+      ),
+    );
+
+    assertResponseLensDenial(error, {
+      message: /cannot lower effect locus "summary"/,
+      reason: "unsupportedCapability",
+      summary: "total",
+    });
+    assert.equal(error.denialProof.compiledLensDigest, response.lensProof.compiledLensDigest);
+    assert.equal(error.denialProof.parityDigest, response.lensProof.parityDigest);
+    assert.equal(
+      error.denialProof.compileBoundaryDigest,
+      response.lensProof.compileBoundaryDigest,
+    );
     assert.equal(currentBranchReadCount, 0);
     assert.deepEqual(line.value(), beforeValue);
     assert.equal(line.diagnostics().lastEffect, beforeEffect);
@@ -63,21 +118,24 @@ test("response summary scope denial precedes delivery reload supersession", asyn
     const beforeDiagnostics = line.diagnostics();
     const beforeLifecycleLength = line.history().lifecycle.length;
 
-    assert.throws(
-      () =>
-        line.deliver(
-          runtime.signalsMod.resourceDelivery.patch({
-            packetId: "pkt-denied-page-window",
-            basisId: null,
-            patch: runtime.signalsMod.resourcePatch.summary({
-              summary: "visibleCount",
-              value: 2,
-            }),
+    const error = catchThrown(() =>
+      line.deliver(
+        runtime.signalsMod.resourceDelivery.patch({
+          packetId: "pkt-denied-page-window",
+          basisId: null,
+          patch: runtime.signalsMod.resourcePatch.summary({
+            summary: "visibleCount",
+            value: 2,
           }),
-        ),
-      /do not admit resourceValueSummaries\.pageWindow/,
+        }),
+      ),
     );
 
+    assertResponseLensDenial(error, {
+      message: /do not admit resourceValueSummaries\.pageWindow/,
+      reason: "listSummaryScopeMismatch",
+      summary: "visibleCount",
+    });
     assert.equal(line.diagnostics().pendingOperation, beforeDiagnostics.pendingOperation);
     assert.equal(line.history().lifecycle.length, beforeLifecycleLength);
 
@@ -91,6 +149,26 @@ test("response summary scope denial precedes delivery reload supersession", asyn
     await runtime.cleanup();
   }
 });
+
+function catchThrown(action) {
+  try {
+    action();
+  } catch (error) {
+    return error;
+  }
+  assert.fail("expected action to throw");
+}
+
+function assertResponseLensDenial(error, expected) {
+  assert.match(error.message, expected.message);
+  assert.equal(error.name, "ResourceResponseLensDenialError");
+  assert.equal(error.denialProof.version, "resource-response-lens-denial-proof-v1");
+  assert.equal(error.denialProof.reason, expected.reason);
+  assert.equal(error.denialProof.requestedLocus, "summary");
+  assert.equal(error.denialProof.requestedPatchScope, "summary");
+  assert.equal(error.denialProof.summary, expected.summary);
+  assert.equal(error.denialProof.denialDigest.includes("response-lens-denial"), true);
+}
 
 function createPageWindowListLine(runtime, overrides = {}) {
   const { signals, signalsMod } = runtime;

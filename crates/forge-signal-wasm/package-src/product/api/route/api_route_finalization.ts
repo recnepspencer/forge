@@ -147,6 +147,39 @@ function lowerDirectArrayRouteDeclaration(
   });
 }
 
+function lowerResponseDetailRouteDeclaration(
+  pattern,
+  requestParamsState,
+  declaration,
+  requestShapeState,
+  directItemsState,
+  transferState,
+  downloadsState,
+) {
+  const lowered = lowerReadRouteDeclaration(
+    pattern,
+    requestParamsState,
+    declaration,
+    requestShapeState,
+    transferState,
+    downloadsState,
+  );
+  if ("itemIdentity" in declaration) {
+    throw new TypeError(
+      `api.url("${pattern.route}").response(...) owns response detail identity in the detail response lane`,
+    );
+  }
+  if ("reconcile" in declaration) {
+    throw new TypeError(
+      `api.url("${pattern.route}").response(...) owns response detail reconciliation in the detail response lane`,
+    );
+  }
+  return Object.freeze({
+    ...lowered,
+    responseLensProof: directItemsState.response.lensProof,
+  });
+}
+
 function lowerRemoveRouteDeclaration(
   pattern,
   requestParamsState,
@@ -340,6 +373,7 @@ function requireOwnedApiRouteReadFields(route, declaration) {
 
 export {
   lowerDirectArrayRouteDeclaration,
+  lowerResponseDetailRouteDeclaration,
   lowerReadRouteDeclaration,
   lowerRemoveRouteDeclaration,
   lowerWriteRouteDeclaration,

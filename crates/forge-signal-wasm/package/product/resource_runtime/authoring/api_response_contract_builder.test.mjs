@@ -179,26 +179,28 @@ test("response contract lanes own identity and reconciliation boundaries", async
     const taskResponse = runtime.signals.resource.response.array({
       itemId: (task) => task.id,
     });
+    const responseLane = runtime.signals.api({}).url("/tasks").response(taskResponse);
 
-    assert.equal(
-      "items" in runtime.signals.api({}).url("/tasks").response(taskResponse),
-      false,
+    assert.equal("items" in responseLane, false);
+    assert.equal("reconcile" in responseLane, false);
+    assert.equal("aspect" in responseLane, false);
+    assert.equal("summary" in responseLane, false);
+    assert.equal("pageWindowSummary" in responseLane, false);
+    assert.throws(
+      () => responseLane.detail({ load: () => ({ id: "t1" }) }),
+      /response\(\.\.\.\) is a collection response lane/,
     );
-    assert.equal(
-      "reconcile" in runtime.signals.api({}).url("/tasks").response(taskResponse),
-      false,
+    assert.throws(
+      () => responseLane.create({ load: () => ({ id: "t1" }) }),
+      /response\(\.\.\.\) is a collection response lane/,
     );
-    assert.equal(
-      "aspect" in runtime.signals.api({}).url("/tasks").response(taskResponse),
-      false,
+    assert.throws(
+      () => responseLane.update({ load: () => ({ id: "t1" }) }),
+      /response\(\.\.\.\) is a collection response lane/,
     );
-    assert.equal(
-      "summary" in runtime.signals.api({}).url("/tasks").response(taskResponse),
-      false,
-    );
-    assert.equal(
-      "pageWindowSummary" in runtime.signals.api({}).url("/tasks").response(taskResponse),
-      false,
+    assert.throws(
+      () => responseLane.remove({ load: () => ({ id: "t1" }) }),
+      /response\(\.\.\.\) is a collection response lane/,
     );
     assert.throws(
       () =>

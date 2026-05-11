@@ -3,6 +3,10 @@ import { resourceItemAspects } from "../../resource/reconciliation/resource_item
 import { resourceValueSummaries } from "../../resource/reconciliation/resource_value_summaries.js";
 import { requireResourceCollectionResponse } from "../../resource/response/resource_collection_response_contract.js";
 import { createResourceCollectionResponseReconcile } from "../../resource/response/resource_collection_response_reconcile.js";
+import {
+  isResourceDetailResponse,
+  requireResourceDetailResponse,
+} from "../../resource/response/resource_detail_response_contract.js";
 
 function createApiRouteItemsState() {
   return Object.freeze({
@@ -70,6 +74,24 @@ function requireApiRouteItemsReconcileState(
 }
 
 function requireApiRouteResponseItemsState(response, route) {
+  if (isResourceDetailResponse(response)) {
+    const detailResponse = requireResourceDetailResponse(
+      response,
+      `api.url("${route}").response(...)`,
+    );
+    return Object.freeze({
+      declared: true,
+      source: "response",
+      itemIdentity: null,
+      response: detailResponse,
+      reconcileMode: "responseDetail",
+      items: null,
+      replaceItems: null,
+      aspects: Object.freeze({}),
+      summaries: Object.freeze({}),
+      summaryPatchScope: null,
+    });
+  }
   const collectionResponse = requireResourceCollectionResponse(
     response,
     `api.url("${route}").response(...)`,
