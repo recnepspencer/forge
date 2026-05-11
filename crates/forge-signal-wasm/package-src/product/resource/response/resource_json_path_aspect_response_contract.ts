@@ -1,8 +1,10 @@
 import { resourceItemAspects } from "../reconciliation/resource_item_aspects.js";
+import { writeJsonContainerSegment } from "./resource_json_path_container_clone.js";
 import { createResourceJsonPathAspectProof } from "./resource_json_path_aspect_proof.js";
 import {
   requireDenseJsonArray,
   requireJsonCompatibleValue,
+  requirePlainJsonObject,
 } from "./resource_json_path_value_compatibility.js";
 
 function jsonPathAspects() {
@@ -260,15 +262,12 @@ function writeJsonPathSegment(current, segments, index, value, aspect) {
           value,
           aspect,
         );
-  if (Array.isArray(currentContainer)) {
-    const nextArray = [...currentContainer];
-    nextArray[segment] = nextSegmentValue;
-    return nextArray;
-  }
-  return {
-    ...currentContainer,
-    [segment]: nextSegmentValue,
-  };
+  return writeJsonContainerSegment(
+    currentContainer,
+    segment,
+    nextSegmentValue,
+    aspect,
+  );
 }
 
 function writeOptionalJsonPathSegment(current, segments, index, value, aspect) {
@@ -284,15 +283,12 @@ function writeOptionalJsonPathSegment(current, segments, index, value, aspect) {
           value,
           aspect,
         );
-  if (Array.isArray(currentContainer)) {
-    const nextArray = [...currentContainer];
-    nextArray[segment] = nextSegmentValue;
-    return nextArray;
-  }
-  return {
-    ...currentContainer,
-    [segment]: nextSegmentValue,
-  };
+  return writeJsonContainerSegment(
+    currentContainer,
+    segment,
+    nextSegmentValue,
+    aspect,
+  );
 }
 
 function requireJsonPathContainer(value, aspect, segment) {
@@ -310,6 +306,7 @@ function requireJsonPathContainer(value, aspect, segment) {
       `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" requires object JSON containers before segment "${segment}"`,
     );
   }
+  requirePlainJsonObject(value, aspect);
   return value;
 }
 

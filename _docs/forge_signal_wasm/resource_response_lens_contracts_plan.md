@@ -838,11 +838,17 @@ Current implementation evidence:
 - JSON path item-field access is descriptor-backed. Root item field accessors
   and unrelated enumerable item accessors are denied without invocation before
   effects, and unsafe root fields are rejected at declaration.
+- JSON path object values and containers now require JSON-shaped plain objects
+  or null-prototype dictionaries. Runtime coverage proves `Date`, `Map`, and
+  custom class instances deny before effects, null-prototype dictionaries remain
+  admissible, nested object/array reconstruction denies unrelated accessors
+  without invoking them, and sealed/non-extensible JSON containers are updated
+  by immutable reconstruction rather than mutation.
 - JSON path parsing and immutable update mechanics now live in
   `resource_json_path_aspect_response_contract.ts`, keeping generic object
   field aspects separate from JSON path effect-locus mechanics. The remaining
-  Phase 5 lanes are sealed-container closeout and broader JSON write class
-  closeout.
+  Phase 5 lane is final closeout certification across the complete JSON write
+  class surface.
 
 ### Phase 6: Advanced Response Topology Effect Families
 

@@ -18,6 +18,8 @@ function createResourceJsonPathAspectProof(aspect, path) {
       presence: path.presence,
       absence: path.presence === "optional" ? "readAsNull" : "deny",
       containerWrite: "immutableCopy",
+      extensibility: "immutableCopy",
+      objectPrototype: "plainOrNull",
       arrayIndex: "explicitExistingIndex",
       accessor: "denyWithoutInvocation",
     }),

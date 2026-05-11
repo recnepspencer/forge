@@ -154,6 +154,8 @@ export interface ResourceEffectJsonPathPatchProof {
     readonly presence: "required" | "optional";
     readonly absence: "deny" | "readAsNull";
     readonly containerWrite: "immutableCopy";
+    readonly extensibility: "immutableCopy";
+    readonly objectPrototype: "plainOrNull";
     readonly arrayIndex: "explicitExistingIndex";
     readonly accessor: "denyWithoutInvocation";
   };

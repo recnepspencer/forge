@@ -33,17 +33,27 @@ function requireJsonCompatibleValue(value, aspect, seen) {
     }
     return;
   }
+  requirePlainJsonObject(value, aspect);
   for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(value))) {
     requireJsonObjectPropertyName(aspect, key);
-    if (!descriptor.enumerable) {
-      continue;
-    }
     if (!Object.prototype.hasOwnProperty.call(descriptor, "value")) {
       throw new TypeError(
         `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" rejects accessor JSON property "${key}"`,
       );
     }
+    if (!descriptor.enumerable) {
+      continue;
+    }
     requireJsonCompatibleValue(descriptor.value, aspect, seen);
+  }
+}
+
+function requirePlainJsonObject(value, aspect) {
+  const prototype = Object.getPrototypeOf(value);
+  if (prototype !== Object.prototype && prototype !== null) {
+    throw new TypeError(
+      `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" rejects non-plain JSON objects`,
+    );
   }
 }
 
@@ -88,4 +98,6 @@ function requireJsonObjectPropertyName(aspect, key) {
 export {
   requireDenseJsonArray,
   requireJsonCompatibleValue,
+  requireJsonObjectPropertyName,
+  requirePlainJsonObject,
 };

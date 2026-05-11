@@ -146,6 +146,8 @@ function assertJsonPathProof(effect, expected) {
   assert.equal(effect.patch.jsonPath.parsedPathDigest, expected.digest);
   assert.equal(effect.patch.jsonPath.policy.presence, "required");
   assert.equal(effect.patch.jsonPath.policy.absence, "deny");
+  assert.equal(effect.patch.jsonPath.policy.extensibility, "immutableCopy");
+  assert.equal(effect.patch.jsonPath.policy.objectPrototype, "plainOrNull");
   assert.equal(effect.patch.jsonPath.policy.arrayIndex, "explicitExistingIndex");
   assert.equal(effect.patch.jsonPath.policy.accessor, "denyWithoutInvocation");
   assert.equal(effect.patch.jsonPath.cost.traversalBreadth, expected.traversalBreadth);
