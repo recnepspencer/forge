@@ -842,8 +842,9 @@ Current implementation evidence:
   or null-prototype dictionaries. Runtime coverage proves `Date`, `Map`, and
   custom class instances deny before effects, null-prototype dictionaries remain
   admissible, nested object/array reconstruction denies unrelated accessors
-  without invoking them, and sealed/non-extensible JSON containers are updated
-  by immutable reconstruction rather than mutation.
+  without invoking them, null-prototype containers preserve that prototype
+  through nested immutable reconstruction, and sealed/non-extensible JSON
+  containers are updated by immutable reconstruction rather than mutation.
 - JSON path parsing and immutable update mechanics now live in
   `resource_json_path_aspect_response_contract.ts`, keeping generic object
   field aspects separate from JSON path effect-locus mechanics. The remaining

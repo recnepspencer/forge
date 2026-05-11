@@ -20,6 +20,7 @@ function createResourceJsonPathAspectProof(aspect, path) {
       containerWrite: "immutableCopy",
       extensibility: "immutableCopy",
       objectPrototype: "plainOrNull",
+      prototypeReconstruction: "preservePlainOrNull",
       arrayIndex: "explicitExistingIndex",
       accessor: "denyWithoutInvocation",
     }),

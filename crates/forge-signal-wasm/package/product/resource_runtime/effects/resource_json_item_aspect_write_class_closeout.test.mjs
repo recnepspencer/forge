@@ -82,6 +82,34 @@ test("JSON path aspect writes admit null-prototype JSON dictionaries", async () 
   }
 });
 
+test("JSON path aspect writes preserve null-prototype containers during reconstruction", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const { signals } = runtime;
+    const response = createMetadataPayloadResponse(signals);
+    const metadata = Object.create(null);
+    const payload = Object.create(null);
+    payload.label = "dictionary";
+    payload.keep = true;
+    metadata.payload = payload;
+
+    const nextItem = response.aspects.definitions.payloadLabel.write(
+      { id: "t1", metadata },
+      "copied",
+    );
+
+    assert.equal(Object.getPrototypeOf(nextItem.metadata), null);
+    assert.equal(Object.getPrototypeOf(nextItem.metadata.payload), null);
+    assert.equal(nextItem.metadata.payload.label, "copied");
+    assert.equal(nextItem.metadata.payload.keep, true);
+    assert.equal(payload.label, "dictionary");
+    assert.notEqual(nextItem.metadata, metadata);
+    assert.notEqual(nextItem.metadata.payload, payload);
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
 test("JSON path immutable-copy policy covers sealed and non-extensible containers", async () => {
   const runtime = await createRealRequestRuntime();
   try {

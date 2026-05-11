@@ -144,6 +144,7 @@ void latestEffect?.patch.jsonPath?.cost.cloneBreadth;
 void latestEffect?.patch.jsonPath?.policy.containerWrite;
 void latestEffect?.patch.jsonPath?.policy.objectPrototype;
 void latestEffect?.patch.jsonPath?.policy.extensibility;
+void latestEffect?.patch.jsonPath?.policy.prototypeReconstruction;
 void latestEffect?.patch.jsonPath?.policy.absence;
 void latestLocusProof?.topology;
 const responseBroadLocus: ResourceEffectEnvelope["locus"] = {

@@ -20,7 +20,7 @@ function cloneJsonArrayContainerWithSegment(container, segment, nextSegmentValue
 }
 
 function cloneJsonObjectContainerWithSegment(container, segment, nextSegmentValue, aspect) {
-  const nextObject = {};
+  const nextObject = createJsonObjectContainerCopy(container);
   for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(container))) {
     requireJsonObjectPropertyName(aspect, key);
     if (!Object.prototype.hasOwnProperty.call(descriptor, "value")) {
@@ -37,6 +37,12 @@ function cloneJsonObjectContainerWithSegment(container, segment, nextSegmentValu
     nextObject[segment] = nextSegmentValue;
   }
   return nextObject;
+}
+
+function createJsonObjectContainerCopy(container) {
+  return Object.getPrototypeOf(container) === null
+    ? Object.create(null)
+    : {};
 }
 
 function requireJsonContainerDataDescriptor(container, segment, aspect) {
