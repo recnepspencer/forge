@@ -72,6 +72,45 @@ function objectItems() {
   };
 }
 
+function entityStore() {
+  return function defineEntityStore(options) {
+    if (!options || typeof options !== "object" || Array.isArray(options)) {
+      throw new TypeError(
+        "resource.response.entityStore<T>()(...) requires an options object",
+      );
+    }
+    if (typeof options.entities !== "function") {
+      throw new TypeError(
+        "resource.response.entityStore<T>()(...) requires entities(value)",
+      );
+    }
+    if (typeof options.replaceEntities !== "function") {
+      throw new TypeError(
+        "resource.response.entityStore<T>()(...) requires replaceEntities(value, nextEntities)",
+      );
+    }
+    return createCollectionResponse(
+      "resource.response.entityStore<T>()(...)",
+      {
+        ...options,
+        items(value) {
+          return Object.values(
+            requireEntityStoreRecord(options.entities(value)),
+          );
+        },
+        replaceItems(value, nextItems) {
+          requireEntityStoreRecord(options.entities(value));
+          return options.replaceEntities(
+            value,
+            createEntityStoreRecord(options.itemId, nextItems),
+          );
+        },
+      },
+      { topology: "entityStore", itemField: null },
+    );
+  };
+}
+
 function createCollectionResponse(kind, options, lensOptions) {
   if (typeof options.itemId !== "function") {
     throw new TypeError(`${kind} requires itemId(item)`);
@@ -150,6 +189,29 @@ function requireObjectItemsArray(value, field) {
   return items;
 }
 
+function requireEntityStoreRecord(entities) {
+  if (!entities || typeof entities !== "object" || Array.isArray(entities)) {
+    throw new TypeError(
+      "resource.response.entityStore<T>()(...) requires entities(value) to return an object record",
+    );
+  }
+  return entities;
+}
+
+function createEntityStoreRecord(itemId, nextItems) {
+  const entities = {};
+  for (const item of nextItems) {
+    const key = itemId(item);
+    if (key in entities) {
+      throw new TypeError(
+        `resource.response.entityStore<T>()(...) cannot replace duplicated entity id "${key}"`,
+      );
+    }
+    entities[key] = item;
+  }
+  return entities;
+}
+
 function requireResourceCollectionResponse(value, kind) {
   if (
     !value ||
@@ -166,6 +228,7 @@ function requireResourceCollectionResponse(value, kind) {
 export {
   array,
   collection,
+  entityStore,
   objectItems,
   requireResourceCollectionResponse,
 };

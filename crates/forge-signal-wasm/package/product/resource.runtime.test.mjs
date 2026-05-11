@@ -40,6 +40,7 @@ import "./resource_runtime/effects/resource_effect_server_confirmation.test.mjs"
 import "./resource_runtime/effects/resource_effect_visible_selection.test.mjs";
 import "./resource_runtime/effects/resource_response_lens_admission_order.test.mjs";
 import "./resource_runtime/effects/resource_response_lens_broad_response.test.mjs";
+import "./resource_runtime/effects/resource_response_lens_entity_store.test.mjs";
 import "./resource_runtime/effects/resource_response_lens_effect_locus.test.mjs";
 import "./resource_runtime/effects/resource_response_lens_reconciliation_coherence.test.mjs";
 import "./resource_runtime/downloads/binary_download_surface.test.mjs";

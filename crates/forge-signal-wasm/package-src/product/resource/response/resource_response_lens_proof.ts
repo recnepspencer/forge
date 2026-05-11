@@ -62,6 +62,7 @@ function requireResponseLensTopology(topology) {
     topology !== "directArray"
     && topology !== "objectItems"
     && topology !== "customCollection"
+    && topology !== "entityStore"
     && topology !== "detail"
     && topology !== "summary"
   ) {
@@ -84,7 +85,11 @@ function createCapabilityRows(options) {
   }
   rows.push(
     createCapabilityRow("broadResponse", "line", true),
-    createCapabilityRow("membership", "item", true),
+    createCapabilityRow(
+      options.topology === "entityStore" ? "entityStore" : "membership",
+      "item",
+      true,
+    ),
   );
   const jsonAspectNames = options.jsonAspectNames ?? [];
   const ordinaryAspectNames = (options.aspectNames ?? []).filter(

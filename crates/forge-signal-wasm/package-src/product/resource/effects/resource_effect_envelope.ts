@@ -156,7 +156,9 @@ function createResponseLensBackedEffectLocus(patch, responseLensProof) {
       });
     case "item":
       return Object.freeze({
-        kind: "membership",
+        kind: responseLensProof.topology === "entityStore"
+          ? "entityStore"
+          : "membership",
         itemId: patch.itemId,
       });
     case "aspect":

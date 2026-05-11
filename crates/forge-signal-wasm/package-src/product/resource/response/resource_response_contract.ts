@@ -1,6 +1,7 @@
 import {
   array,
   collection,
+  entityStore,
   objectItems,
 } from "./resource_collection_response_contract.js";
 import {
@@ -18,6 +19,7 @@ const resourceResponse = Object.freeze({
   array,
   collection,
   detail,
+  entityStore,
   summary,
   objectItems,
   jsonObjectAspects,

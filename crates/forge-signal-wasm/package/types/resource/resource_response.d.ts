@@ -17,6 +17,7 @@ export interface ResourceResponseLensCapabilityRow {
     | "detailResponse"
     | "summaryResponse"
     | "membership"
+    | "entityStore"
     | "itemAspect"
     | "jsonItemAspect"
     | "summary";
@@ -32,6 +33,7 @@ export interface ResourceResponseLensProof {
     | "directArray"
     | "objectItems"
     | "customCollection"
+    | "entityStore"
     | "detail"
     | "summary";
   readonly itemField: string | null;
@@ -62,6 +64,7 @@ export interface ResourceResponseLensDenialProof {
     | "detailResponse"
     | "summaryResponse"
     | "membership"
+    | "entityStore"
     | "itemAspect"
     | "jsonItemAspect"
     | "summary"
@@ -99,6 +102,19 @@ export interface ResourceArrayResponse<
   TSummaryMap extends ResourceValueSummaryMap<readonly TItem[]> = {},
 > extends ResourceCollectionResponse<
   readonly TItem[],
+  TItem,
+  TAspectMap,
+  TSummaryMap
+> {
+}
+
+export interface ResourceEntityStoreResponse<
+  TValue,
+  TItem,
+  TAspectMap extends ResourceItemAspectMap<TItem> = {},
+  TSummaryMap extends ResourceValueSummaryMap<TValue> = {},
+> extends ResourceCollectionResponse<
+  TValue,
   TItem,
   TAspectMap,
   TSummaryMap
@@ -243,6 +259,17 @@ export interface ResourceResponseFactory {
     aspects?: ResourceItemAspects<TItem, TAspectMap>;
     summaries?: ResourceValueSummaries<TValue, TSummaryMap, any>;
   }) => ResourceCollectionResponse<TValue, TItem, TAspectMap, TSummaryMap>;
+  entityStore<TValue>(): <
+    TItem,
+    TAspectMap extends ResourceItemAspectMap<TItem> = {},
+    TSummaryMap extends ResourceValueSummaryMap<TValue> = {},
+  >(options: {
+    itemId(item: TItem): string;
+    entities(value: TValue): Readonly<Record<string, TItem>>;
+    replaceEntities(value: TValue, nextEntities: Readonly<Record<string, TItem>>): TValue;
+    aspects?: ResourceItemAspects<TItem, TAspectMap>;
+    summaries?: ResourceValueSummaries<TValue, TSummaryMap, any>;
+  }) => ResourceEntityStoreResponse<TValue, TItem, TAspectMap, TSummaryMap>;
   detail<TValue>(): ResourceDetailResponse<TValue>;
   summary<TValue>(): ResourceSummaryResponse<TValue>;
 }

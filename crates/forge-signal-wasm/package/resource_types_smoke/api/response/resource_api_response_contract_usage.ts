@@ -156,3 +156,40 @@ const taskSummary = signals.api({}).url("/task-summary")
   });
 
 void taskSummary.line({}).value();
+
+type TaskEntityStore = {
+  entities: Record<string, Task>;
+};
+
+const taskEntityStoreResponse = signals.resource.response.entityStore<TaskEntityStore>()({
+  itemId: (item) => item.id,
+  entities: (value) => value.entities,
+  replaceEntities: (value, entities) => ({ ...value, entities }),
+  aspects: signals.resource.response.objectAspects<Task>()({
+    title: "title",
+  }),
+});
+
+const taskEntityStore = signals.api({}).url("/task-entity-store")
+  .response(taskEntityStoreResponse)
+  .list({
+    load: () => ({
+      entities: {
+        t1: {
+          id: "t1",
+          title: "Task",
+          status: "open" as const,
+          assigneeId: null,
+          metadata: { priority: 1 },
+        },
+      },
+    }),
+  });
+
+void taskEntityStore.line({}).patch(
+  taskEntityStore.patch.itemAspect({
+    itemId: "t1",
+    aspect: "title",
+    value: "Renamed",
+  }),
+);

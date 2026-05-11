@@ -30,6 +30,7 @@ export type ResourceEffectLocus =
   | { readonly kind: "detailResponse" }
   | { readonly kind: "summaryResponse" }
   | { readonly kind: "membership"; readonly itemId: string | null }
+  | { readonly kind: "entityStore"; readonly itemId: string | null }
   | { readonly kind: "item"; readonly itemId: string | null }
   | {
       readonly kind: "itemAspect";
@@ -60,6 +61,7 @@ export interface ResourceEffectLocusProof {
     | "directArray"
     | "objectItems"
     | "customCollection"
+    | "entityStore"
     | "detail"
     | "summary";
   readonly itemField: string | null;
@@ -68,6 +70,7 @@ export interface ResourceEffectLocusProof {
     | "detailResponse"
     | "summaryResponse"
     | "membership"
+    | "entityStore"
     | "itemAspect"
     | "jsonItemAspect"
     | "summary";
@@ -141,36 +144,26 @@ export interface ResourceEffectPatchDigest {
 }
 
 export interface ResourceEffectDeliveryDigest {
-  readonly kind:
-    | "replace"
-    | "patch"
-    | "invalidate"
-    | "basisRefresh";
-  readonly scope:
-    | "line"
-    | "item"
-    | "aspect"
-    | "summary"
-    | "basis"
-    | "invalidate";
+  readonly kind: "replace" | "patch" | "invalidate" | "basisRefresh";
+  readonly scope: "line" | "item" | "aspect" | "summary" | "basis" | "invalidate";
   readonly packetId: string;
   readonly basisId: string | null;
   readonly nextBasisId: string | null;
 }
+
+export type ResourceEffectCommittedOnlyReason =
+  "deliveryAuthority" | "profileDisablesOptimism" | "unconfigured";
+
+export type ResourceEffectOptimismUnavailableReason =
+  "unsupportedByRuntime" | "runtimeRejected" | "branchHeadUnavailable" | "restoreUnavailable";
 
 export type ResourceEffectBranchPosture =
   | {
       readonly kind: "committedOnly";
       readonly profileName: string | null;
       readonly optimism: "branchSpeculative" | "none";
-      readonly rollback:
-        | "branchRestore"
-        | "branchRestoreOrInverse"
-        | "unavailable";
-      readonly reason:
-        | "deliveryAuthority"
-        | "profileDisablesOptimism"
-        | "unconfigured";
+      readonly rollback: "branchRestore" | "branchRestoreOrInverse" | "unavailable";
+      readonly reason: ResourceEffectCommittedOnlyReason;
       readonly detail: string;
       readonly proofBreadth: 0;
     }
@@ -191,11 +184,7 @@ export type ResourceEffectBranchPosture =
       readonly profileName: string;
       readonly optimism: "branchSpeculative";
       readonly rollback: "branchRestore" | "branchRestoreOrInverse";
-      readonly reason:
-        | "unsupportedByRuntime"
-        | "runtimeRejected"
-        | "branchHeadUnavailable"
-        | "restoreUnavailable";
+      readonly reason: ResourceEffectOptimismUnavailableReason;
       readonly detail: string;
       readonly branchId: number | null;
       readonly snapshotId: number | null;
@@ -255,11 +244,7 @@ export type ResourceEffectBranchLifecycle =
   | {
       readonly kind: "unavailable";
       readonly creation: "deniedBeforeBranchCreation";
-      readonly reason:
-        | "unsupportedByRuntime"
-        | "runtimeRejected"
-        | "branchHeadUnavailable"
-        | "restoreUnavailable";
+      readonly reason: ResourceEffectOptimismUnavailableReason;
       readonly detail: string;
       readonly branchId: number | null;
       readonly snapshotId: number | null;
@@ -275,10 +260,7 @@ export type ResourceEffectBranchLifecycle =
   | {
       readonly kind: "notApplicable";
       readonly creation: "notApplicable";
-      readonly reason:
-        | "deliveryAuthority"
-        | "profileDisablesOptimism"
-        | "unconfigured";
+      readonly reason: ResourceEffectCommittedOnlyReason;
       readonly detail: string;
       readonly disposal: {
         readonly kind: "notApplicable";
@@ -308,11 +290,7 @@ export type ResourceEffectRollback =
     }
   | {
       readonly kind: "unavailable";
-      readonly reason:
-        | "unsupportedByRuntime"
-        | "runtimeRejected"
-        | "branchHeadUnavailable"
-        | "restoreUnavailable";
+      readonly reason: ResourceEffectOptimismUnavailableReason;
       readonly detail: string;
       readonly branchId: number | null;
       readonly snapshotId: number | null;
@@ -320,10 +298,7 @@ export type ResourceEffectRollback =
     }
   | {
       readonly kind: "notApplicable";
-      readonly reason:
-        | "deliveryAuthority"
-        | "profileDisablesOptimism"
-        | "unconfigured";
+      readonly reason: ResourceEffectCommittedOnlyReason;
       readonly detail: string;
     };
 
@@ -343,11 +318,7 @@ export type ResourceEffectOptimisticLifecycle =
       readonly kind: "unavailable";
       readonly admissionKind: "localPatch" | "delivery";
       readonly branchPosture: "optimisticUnavailable";
-      readonly reason:
-        | "unsupportedByRuntime"
-        | "runtimeRejected"
-        | "branchHeadUnavailable"
-        | "restoreUnavailable";
+      readonly reason: ResourceEffectOptimismUnavailableReason;
       readonly detail: string;
       readonly branchId: number | null;
       readonly snapshotId: number | null;
@@ -358,10 +329,7 @@ export type ResourceEffectOptimisticLifecycle =
       readonly kind: "committed";
       readonly admissionKind: "localPatch" | "delivery";
       readonly branchPosture: "committedOnly";
-      readonly reason:
-        | "deliveryAuthority"
-        | "profileDisablesOptimism"
-        | "unconfigured";
+      readonly reason: ResourceEffectCommittedOnlyReason;
       readonly detail: string;
       readonly rollback: ResourceEffectRollback;
       readonly confirmation: ResourceEffectServerConfirmation;

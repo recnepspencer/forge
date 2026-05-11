@@ -111,6 +111,10 @@ const summaryResponse = resourceResponse.summary<{ total: number }>();
 const summaryResponseLocus: ResourceEffectEnvelope["locus"] = {
   kind: "summaryResponse",
 };
+const entityStoreLocus: ResourceEffectEnvelope["locus"] = {
+  kind: "entityStore",
+  itemId: "task:1",
+};
 
 void latestEffect?.version;
 void latestEffect?.plan.admissionKind;
@@ -172,6 +176,7 @@ void detailResponse.lensProof.topology;
 void summaryResponse.lensProof.topology;
 void detailResponseLocus.kind;
 void summaryResponseLocus.kind;
+void entityStoreLocus.itemId;
 void jsonAspectLocus.aspect;
 void responseLensProof.summaryNames;
 void latestLocusProof?.declarationDigest;

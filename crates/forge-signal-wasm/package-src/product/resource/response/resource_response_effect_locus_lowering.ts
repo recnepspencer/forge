@@ -134,7 +134,10 @@ function createResponseLensPatchAdmissionLocus(proof, patch) {
         kind: lineResponseLocusForTopology(proof.topology),
       });
     case "item":
-      return Object.freeze({ kind: "membership", itemId: patch.itemId });
+      return Object.freeze({
+        kind: proof.topology === "entityStore" ? "entityStore" : "membership",
+        itemId: patch.itemId,
+      });
     case "itemAspect":
       return Object.freeze({
         kind: proof.jsonAspectNames.includes(patch.aspect)
@@ -216,6 +219,7 @@ function patchScopeForEffectLocus(locus) {
     case "line":
       return "line";
     case "membership":
+    case "entityStore":
     case "item":
       return "item";
     case "itemAspect":
@@ -238,6 +242,8 @@ function capabilityLocusForEffectLocus(locus) {
       return "summaryResponse";
     case "membership":
       return "membership";
+    case "entityStore":
+      return "entityStore";
     case "itemAspect":
       return "itemAspect";
     case "jsonItemAspect":
