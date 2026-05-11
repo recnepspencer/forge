@@ -129,6 +129,69 @@ test("optional JSON path declarations reject unknown presence policies", async (
   }
 });
 
+test("optional absent JSON path writes do not claim lossy compact inverse rollback", async () => {
+  const runtime = await createRealRequestRuntime({
+    restore_branch_snapshot_by_id: undefined,
+  });
+  try {
+    const { mod, resource, signals } = runtime;
+    createBranchHead(signals, "json-optional-absent-inverse");
+    const tasks = createOptionalNoteCollection(mod, resource, {});
+    const line = tasks.line({});
+
+    line.patch(mod.resourcePatch.itemAspect({
+      itemId: "t1",
+      aspect: "note",
+      value: "written",
+    }));
+    const effect = line.diagnostics().lastEffect;
+
+    assert.equal(effect.optimistic.kind, "unavailable");
+    assert.equal(effect.optimistic.inverseAvailable, false);
+    assert.equal(effect.patch.jsonPath.policy.absence, "readAsNull");
+    assert.deepEqual(line.history().rollbackLastEffect(), {
+      kind: "unavailable",
+      reason: "restoreUnavailable",
+      detail:
+        "resource effect branch speculation is unavailable because the Signals runtime cannot restore a captured exact branch snapshot by id and the local patch does not carry an admissible safe compact inverse",
+      effectId: effect.effectId,
+      basisCurrentId: "basis-1",
+      basisAdvanceCount: 0,
+      rollback: effect.optimistic.rollback,
+    });
+    assert.deepEqual(line.value().items[0].metadata, { note: "written" });
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("optional present null JSON path writes keep compact inverse rollback exact", async () => {
+  const runtime = await createRealRequestRuntime({
+    restore_branch_snapshot_by_id: undefined,
+  });
+  try {
+    const { mod, resource, signals } = runtime;
+    createBranchHead(signals, "json-optional-null-inverse");
+    const tasks = createOptionalNoteCollection(mod, resource, { note: null });
+    const line = tasks.line({});
+
+    line.patch(mod.resourcePatch.itemAspect({
+      itemId: "t1",
+      aspect: "note",
+      value: "written",
+    }));
+    const effect = line.diagnostics().lastEffect;
+    const rollback = line.history().rollbackLastEffect();
+
+    assert.equal(effect.optimistic.rollback.kind, "compactInverseAvailable");
+    assert.equal(rollback.kind, "rolledBack");
+    assert.equal(rollback.mode, "CompactInversePatch");
+    assert.deepEqual(line.value().items[0].metadata, { note: null });
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
 function createOptionalNoteApi(signals, taskFields) {
   const response = createOptionalNoteResponse(signals);
   return signals.api({
@@ -143,6 +206,29 @@ function createOptionalNoteApi(signals, taskFields) {
         }],
       }),
     });
+}
+
+function createOptionalNoteCollection(mod, resource, metadata) {
+  return resource.collection({
+    params: mod.resourceParams(),
+    normalizeParams: () => mod.resourceParamIdentity({}, "json-optional-note"),
+    requestContext: mod.resourceRequestContext({ basisId: "basis-1" }),
+    effects: mod.resourceEffects.branchNative(),
+    itemIdentity: (task) => task.id,
+    reconcile: mod.resourceCollectionShape({
+      items: (value) => value.items,
+      replaceItems: (value, nextItems) => ({ ...value, items: [...nextItems] }),
+      aspects: mod.resourceResponse.jsonPathAspects()({
+        note: { field: "metadata", path: ["note"], presence: "optional" },
+      }),
+    }),
+    load: () => ({
+      items: [{
+        id: "t1",
+        metadata,
+      }],
+    }),
+  });
 }
 
 function createOptionalNoteResponse(signals) {

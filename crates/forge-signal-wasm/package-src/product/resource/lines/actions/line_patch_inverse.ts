@@ -97,8 +97,12 @@ function createItemScopedInverseDescriptor(materialization, patch, currentValue)
       `${patchRecord.familyKind} resource lines do not admit itemAspect patch(...) for undeclared aspect "${patch.aspect}"`,
     );
   }
+  const aspectDefinition = aspectDefinitions[patch.aspect];
+  if (optionalJsonPathTerminalWasAbsent(aspectDefinition, currentItem)) {
+    return null;
+  }
   const previousAspectValue = snapshotCompactInversePreimage(() =>
-    aspectDefinitions[patch.aspect].read(currentItem),
+    aspectDefinition.read(currentItem),
   );
   if (previousAspectValue.kind === "unavailable") {
     return null;
@@ -122,6 +126,62 @@ function createItemScopedInverseDescriptor(materialization, patch, currentValue)
       retainedResponsePreimage: false,
     }),
   });
+}
+
+function optionalJsonPathTerminalWasAbsent(aspectDefinition, currentItem) {
+  const jsonPathProof = aspectDefinition.jsonPathProof;
+  if (jsonPathProof?.policy.absence !== "readAsNull") {
+    return false;
+  }
+  const terminal = jsonPathProof.path.at(-1);
+  if (typeof terminal === "number") {
+    return false;
+  }
+  const parentContainer = readJsonPathTerminalParentForInverse(
+    currentItem,
+    jsonPathProof,
+  );
+  if (parentContainer === null) {
+    return false;
+  }
+  return Object.getOwnPropertyDescriptor(parentContainer, terminal) === undefined;
+}
+
+function readJsonPathTerminalParentForInverse(currentItem, jsonPathProof) {
+  const rootDescriptor = Object.getOwnPropertyDescriptor(
+    currentItem,
+    jsonPathProof.field,
+  );
+  if (!isJsonPathInverseDataDescriptor(rootDescriptor)) {
+    return null;
+  }
+  let current = rootDescriptor.value;
+  for (let index = 0; index < jsonPathProof.path.length - 1; index += 1) {
+    const segment = jsonPathProof.path[index];
+    if (!isJsonPathInverseContainer(current, segment)) {
+      return null;
+    }
+    const segmentDescriptor = Object.getOwnPropertyDescriptor(current, segment);
+    if (!isJsonPathInverseDataDescriptor(segmentDescriptor)) {
+      return null;
+    }
+    current = segmentDescriptor.value;
+  }
+  const terminal = jsonPathProof.path.at(-1);
+  return isJsonPathInverseContainer(current, terminal) ? current : null;
+}
+
+function isJsonPathInverseContainer(value, segment) {
+  if (typeof segment === "number") {
+    return Array.isArray(value);
+  }
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isJsonPathInverseDataDescriptor(descriptor) {
+  return descriptor !== undefined
+    && descriptor.enumerable
+    && Object.prototype.hasOwnProperty.call(descriptor, "value");
 }
 
 function readSingleMatchingItem(patchRecord, currentItems, patch) {

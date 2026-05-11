@@ -832,7 +832,12 @@ Current implementation evidence:
   materialize absent terminal properties on write, and preserve branch-native
   `jsonItemAspect` effect evidence. Runtime coverage proves absent, null, and
   present terminal reads, optional terminal writes, unknown policy denial,
-  missing-intermediate denial, and optional array-index denial before effects.
+  missing-intermediate denial, optional array-index denial before effects,
+  compact-inverse unavailability for lossy absent-preimage rollback, and exact
+  compact-inverse rollback for present `null` preimages.
+- JSON path item-field access is descriptor-backed. Root item field accessors
+  and unrelated enumerable item accessors are denied without invocation before
+  effects, and unsafe root fields are rejected at declaration.
 - JSON path parsing and immutable update mechanics now live in
   `resource_json_path_aspect_response_contract.ts`, keeping generic object
   field aspects separate from JSON path effect-locus mechanics. The remaining

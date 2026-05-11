@@ -1,5 +1,9 @@
 import { resourceItemAspects } from "../reconciliation/resource_item_aspects.js";
 import { createResourceJsonPathAspectProof } from "./resource_json_path_aspect_proof.js";
+import {
+  requireDenseJsonArray,
+  requireJsonCompatibleValue,
+} from "./resource_json_path_value_compatibility.js";
 
 function jsonPathAspects() {
   return function defineJsonPathAspects(definitions) {
@@ -20,7 +24,11 @@ function jsonPathAspects() {
 function createJsonPathAspect(aspect, path) {
   return Object.freeze({
     read(item) {
-      const root = requireJsonPathItem(item, aspect)[path.field];
+      const root = readJsonPathItemField(
+        requireJsonPathItem(item, aspect),
+        path.field,
+        aspect,
+      );
       return path.presence === "optional"
         ? readOptionalJsonPath(root, path.segments, aspect)
         : readRequiredJsonPath(root, path.segments, aspect);
@@ -28,14 +36,11 @@ function createJsonPathAspect(aspect, path) {
     write(item, value) {
       requireJsonCompatibleValue(value, aspect, new WeakSet());
       const objectItem = requireJsonPathItem(item, aspect);
-      const root = objectItem[path.field];
+      const root = readJsonPathItemField(objectItem, path.field, aspect);
       const nextRoot = path.presence === "optional"
         ? writeOptionalJsonPath(root, path.segments, value, aspect)
         : writeRequiredJsonPath(root, path.segments, value, aspect);
-      return {
-        ...objectItem,
-        [path.field]: nextRoot,
-      };
+      return writeJsonPathItemField(objectItem, path.field, nextRoot, aspect);
     },
     locus: "jsonItemAspect",
     jsonPathProof: createResourceJsonPathAspectProof(aspect, path),
@@ -89,6 +94,7 @@ function requireJsonPathField(aspect, field) {
       `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" requires a non-empty field name`,
     );
   }
+  requireJsonPathSegment(aspect, field);
   return field;
 }
 
@@ -129,6 +135,48 @@ function requireJsonPathItem(item, aspect) {
     );
   }
   return item;
+}
+
+function readJsonPathItemField(item, field, aspect) {
+  const descriptor = requireJsonPathItemFieldDescriptor(item, field, aspect);
+  return descriptor === null ? undefined : descriptor.value;
+}
+
+function writeJsonPathItemField(item, field, nextRoot, aspect) {
+  const nextItem = {};
+  for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(item))) {
+    if (!descriptor.enumerable) {
+      continue;
+    }
+    if (!Object.prototype.hasOwnProperty.call(descriptor, "value")) {
+      throw new TypeError(
+        `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" rejects accessor JSON item field "${key}"`,
+      );
+    }
+    nextItem[key] = key === field ? nextRoot : descriptor.value;
+  }
+  if (!Object.prototype.hasOwnProperty.call(nextItem, field)) {
+    nextItem[field] = nextRoot;
+  }
+  return nextItem;
+}
+
+function requireJsonPathItemFieldDescriptor(item, field, aspect) {
+  const descriptor = Object.getOwnPropertyDescriptor(item, field);
+  if (descriptor === undefined) {
+    return null;
+  }
+  if (!descriptor.enumerable) {
+    throw new TypeError(
+      `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" requires enumerable JSON item field "${field}"`,
+    );
+  }
+  if (!Object.prototype.hasOwnProperty.call(descriptor, "value")) {
+    throw new TypeError(
+      `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" rejects accessor JSON item field "${field}"`,
+    );
+  }
+  return descriptor;
 }
 
 function readRequiredJsonPath(root, segments, aspect) {
@@ -307,66 +355,6 @@ function readOptionalJsonPathDataProperty(container, segment, aspect) {
     );
   }
   return descriptor;
-}
-
-function requireJsonCompatibleValue(value, aspect, seen) {
-  if (
-    value === null ||
-    typeof value === "string" ||
-    typeof value === "boolean"
-  ) {
-    return;
-  }
-  if (typeof value === "number") {
-    if (!Number.isFinite(value)) {
-      throw new TypeError(
-        `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" rejects non-finite JSON numbers`,
-      );
-    }
-    return;
-  }
-  if (typeof value !== "object") {
-    throw new TypeError(
-      `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" requires JSON-compatible values`,
-    );
-  }
-  if (seen.has(value)) {
-    throw new TypeError(
-      `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" rejects cyclic JSON values`,
-    );
-  }
-  seen.add(value);
-  if (Array.isArray(value)) {
-    requireDenseJsonArray(value, aspect);
-    for (let index = 0; index < value.length; index += 1) {
-      const nestedValue = readJsonPathDataProperty(value, index, aspect);
-      requireJsonCompatibleValue(nestedValue, aspect, seen);
-    }
-    return;
-  }
-  for (const [key, descriptor] of Object.entries(Object.getOwnPropertyDescriptors(value))) {
-    requireJsonPathSegment(aspect, key);
-    if (!descriptor.enumerable) {
-      continue;
-    }
-    if (!Object.prototype.hasOwnProperty.call(descriptor, "value")) {
-      throw new TypeError(
-        `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" rejects accessor JSON property "${key}"`,
-      );
-    }
-    const nestedValue = descriptor.value;
-    requireJsonCompatibleValue(nestedValue, aspect, seen);
-  }
-}
-
-function requireDenseJsonArray(value, aspect) {
-  for (let index = 0; index < value.length; index += 1) {
-    if (!Object.prototype.hasOwnProperty.call(value, index)) {
-      throw new TypeError(
-        `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" rejects sparse JSON arrays`,
-      );
-    }
-  }
 }
 
 export { jsonPathAspects };
