@@ -10,11 +10,15 @@ import {
   jsonObjectAspects,
   objectAspects,
 } from "./resource_object_aspect_response_contract.js";
+import {
+  summary,
+} from "./resource_summary_response_contract.js";
 
 const resourceResponse = Object.freeze({
   array,
   collection,
   detail,
+  summary,
   objectItems,
   jsonObjectAspects,
   objectAspects,

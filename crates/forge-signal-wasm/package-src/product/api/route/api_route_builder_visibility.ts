@@ -20,8 +20,11 @@ function applyApiRouteBuilderVisibility(
     delete builder.items;
     delete builder.response;
     if (directItemsState.reconcileMode === "responseDetail") {
-      attachResponseDetailCollectionFinalizerDenials(builder);
-      attachResponseDetailWriteFinalizerDenials(builder);
+      attachSingleResponseCollectionFinalizerDenials(builder, "detail");
+      attachSingleResponseWriteFinalizerDenials(builder, "detail");
+    } else if (directItemsState.reconcileMode === "responseSummary") {
+      attachSingleResponseCollectionFinalizerDenials(builder, "summary");
+      attachSingleResponseWriteFinalizerDenials(builder, "summary");
     } else if (directItemsState.source === "response") {
       attachResponseDetailFinalizerDenials(builder);
     } else {
@@ -33,13 +36,15 @@ function applyApiRouteBuilderVisibility(
     if (
       directItemsState.reconcileMode === "custom" ||
       directItemsState.reconcileMode === "responseCollection" ||
-      directItemsState.reconcileMode === "responseDetail"
+      directItemsState.reconcileMode === "responseDetail" ||
+      directItemsState.reconcileMode === "responseSummary"
     ) {
       delete builder.reconcile;
     }
     if (
       directItemsState.reconcileMode === "responseCollection" ||
-      directItemsState.reconcileMode === "responseDetail"
+      directItemsState.reconcileMode === "responseDetail" ||
+      directItemsState.reconcileMode === "responseSummary"
     ) {
       delete builder.aspect;
       delete builder.summary;
@@ -71,15 +76,15 @@ function applyApiRouteBuilderVisibility(
   }
 }
 
-function attachResponseDetailCollectionFinalizerDenials(builder) {
-  builder.list = denyResponseDetailCollectionFinalizer;
-  builder.paged = denyResponseDetailCollectionFinalizer;
+function attachSingleResponseCollectionFinalizerDenials(builder, kind) {
+  builder.list = () => denySingleResponseCollectionFinalizer(kind);
+  builder.paged = () => denySingleResponseCollectionFinalizer(kind);
 }
 
-function attachResponseDetailWriteFinalizerDenials(builder) {
-  builder.create = denyResponseDetailWriteFinalizer;
-  builder.update = denyResponseDetailWriteFinalizer;
-  builder.remove = denyResponseDetailWriteFinalizer;
+function attachSingleResponseWriteFinalizerDenials(builder, kind) {
+  builder.create = () => denySingleResponseWriteFinalizer(kind);
+  builder.update = () => denySingleResponseWriteFinalizer(kind);
+  builder.remove = () => denySingleResponseWriteFinalizer(kind);
 }
 
 function attachResponseDetailFinalizerDenials(builder) {
@@ -95,15 +100,15 @@ function denyResponseDetailFinalizer() {
   );
 }
 
-function denyResponseDetailCollectionFinalizer() {
+function denySingleResponseCollectionFinalizer(kind) {
   throw new TypeError(
-    "api.url(...).response(resource.response.detail<T>()) is a detail response lane; use detail(...) instead of list(...) or paged(...)",
+    `api.url(...).response(resource.response.${kind}<T>()) is a ${kind} response lane; use detail(...) instead of list(...) or paged(...)`,
   );
 }
 
-function denyResponseDetailWriteFinalizer() {
+function denySingleResponseWriteFinalizer(kind) {
   throw new TypeError(
-    "api.url(...).response(resource.response.detail<T>()) supports detail(...) broad replacement only; create/update/remove await detail mutation response lenses",
+    `api.url(...).response(resource.response.${kind}<T>()) supports detail(...) broad replacement only; create/update/remove await ${kind} mutation response lenses`,
   );
 }
 

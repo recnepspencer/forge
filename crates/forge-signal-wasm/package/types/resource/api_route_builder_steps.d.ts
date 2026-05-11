@@ -18,6 +18,7 @@ import type { ApiRouteReconcileBuilder } from "./api_route_reconcile_builder.js"
 import type {
   ResourceCollectionResponse,
   ResourceDetailResponse,
+  ResourceSummaryResponse,
   ResourceResponseAspectMap,
   ResourceResponseItem,
   ResourceResponseSummaryMap,
@@ -282,10 +283,11 @@ export type ApiRouteBuilderItemsStep<
   response<
     TResponse extends
       | ResourceCollectionResponse<any, any, any, any>
-      | ResourceDetailResponse<any>,
+      | ResourceDetailResponse<any>
+      | ResourceSummaryResponse<any>,
   >(
     response: TResponse,
-  ): TResponse extends ResourceDetailResponse<any>
+  ): TResponse extends ResourceDetailResponse<any> | ResourceSummaryResponse<any>
     ? Pick<
         ApiRouteBuilder<
           TRoute,

@@ -107,6 +107,10 @@ const detailResponse = resourceResponse.detail<Task>();
 const detailResponseLocus: ResourceEffectEnvelope["locus"] = {
   kind: "detailResponse",
 };
+const summaryResponse = resourceResponse.summary<{ total: number }>();
+const summaryResponseLocus: ResourceEffectEnvelope["locus"] = {
+  kind: "summaryResponse",
+};
 
 void latestEffect?.version;
 void latestEffect?.plan.admissionKind;
@@ -165,7 +169,9 @@ const denialProof: ResourceResponseLensDenialProof = {
 void denialProof.denialDigest;
 void jsonResponse.lensProof.jsonAspectNames;
 void detailResponse.lensProof.topology;
+void summaryResponse.lensProof.topology;
 void detailResponseLocus.kind;
+void summaryResponseLocus.kind;
 void jsonAspectLocus.aspect;
 void responseLensProof.summaryNames;
 void latestLocusProof?.declarationDigest;

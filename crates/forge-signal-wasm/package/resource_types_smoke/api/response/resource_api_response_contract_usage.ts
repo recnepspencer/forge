@@ -147,3 +147,12 @@ const taskDetail = signals.api({}).url("/tasks/:taskId")
   });
 
 void taskDetail.line({ taskId: "t1" }).value();
+
+const taskSummaryResponse = signals.resource.response.summary<{ total: number }>();
+const taskSummary = signals.api({}).url("/task-summary")
+  .response(taskSummaryResponse)
+  .detail({
+    load: () => ({ total: 1 }),
+  });
+
+void taskSummary.line({}).value();

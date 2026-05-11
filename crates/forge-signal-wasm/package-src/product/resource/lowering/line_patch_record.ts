@@ -24,7 +24,8 @@ function createLinePatchRecord(familyKind, itemIdentity, reconcile) {
     responseLensProof: reconcile?.responseLensProof ?? null,
     broadReplace:
       familyKind !== "detail"
-      || reconcile?.responseLensProof?.topology === "detail",
+      || reconcile?.responseLensProof?.topology === "detail"
+      || reconcile?.responseLensProof?.topology === "summary",
     narrowItem:
       familyKind !== "detail"
       && typeof itemIdentity === "function"

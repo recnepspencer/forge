@@ -242,3 +242,53 @@ test("detail response broad replacements lower through compiled lens proof", asy
     await runtime.cleanup();
   }
 });
+
+test("summary response broad replacements lower through compiled lens proof", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const { signals, signalsMod } = runtime;
+    const response = signals.resource.response.summary()();
+    const totals = signals.api({
+      effects: signals.resource.effects.pessimistic(),
+    }).url("/task-summary")
+      .response(response)
+      .detail({
+        load: () => ({ open: 1, closed: 0 }),
+      });
+
+    const line = totals.line({});
+    line.patch(
+      signalsMod.resourcePatch.replace({ open: 2, closed: 1 }),
+    );
+
+    const localEffect = line.diagnostics().lastEffect;
+    assert.deepEqual(line.value(), { open: 2, closed: 1 });
+    assert.deepEqual(localEffect.locus, { kind: "summaryResponse" });
+    assert.equal(localEffect.locusProof.lensSource, "resource.response.summary<T>()");
+    assert.equal(localEffect.locusProof.topology, "summary");
+    assert.equal(localEffect.locusProof.locus, "summaryResponse");
+    assert.equal(localEffect.locusProof.patchScope, "line");
+    assert.equal(localEffect.locusProof.compiledLensDigest, response.lensProof.compiledLensDigest);
+    assert.equal(localEffect.counters.responseLensBreadth, 1);
+    assert.equal(localEffect.counters.effectLocusBreadth, 1);
+
+    line.deliver(
+      signalsMod.resourceDelivery.replace({
+        packetId: "pkt-summary-replace",
+        basisId: null,
+        nextValue: { open: 3, closed: 1 },
+      }),
+    );
+
+    const deliveryEffect = line.diagnostics().lastEffect;
+    assert.deepEqual(line.value(), { open: 3, closed: 1 });
+    assert.deepEqual(deliveryEffect.locus, { kind: "summaryResponse" });
+    assert.equal(deliveryEffect.locusProof.locus, "summaryResponse");
+    assert.deepEqual(
+      line.history().verificationPackage().lifecycle.lastEffect.locusProof,
+      deliveryEffect.locusProof,
+    );
+  } finally {
+    await runtime.cleanup();
+  }
+});

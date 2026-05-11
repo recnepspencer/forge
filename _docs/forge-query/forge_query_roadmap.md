@@ -186,11 +186,31 @@ cross-feature proof gates before final certification:
   path remains bridge-honest, diagnostically sufficient, and
   certification-ready rather than smuggling capabilities above the bridge or
   host runtime
+- `Milestone 9.3.1` must prove Query inspection can expose one bridge-owned
+  cross-runtime causal explanation envelope joining relational authority,
+  bridge routing/evaluation, signal invalidation/evaluation, lineage,
+  provenance, and replay posture without requiring domains to spelunk lower
+  runtimes
+- `Milestone 9.3.2` must prove Query basis is a capability lifecycle, not a
+  raw branch/snapshot identifier, so observation, mutation, replay, inspection,
+  and materialization all consume phase-typed basis proofs
+- `Milestone 9.3.3` must prove Query effects execute through one
+  authority-scoped effect pipeline that lowers intent once and prevents
+  executors from re-deciding authority, basis, strategy, or artifact policy
+- `Milestone 9.3.4` must prove materialized projections expose declared,
+  typed, receipt-backed fact consumption so consumers can use projection facts
+  without reopening source authority
+- `Milestone 9.3.5` must prove every Query-crossing intent resolves through a
+  structured admission decision lattice with success, advisory, and violation
+  traces before construction or lowering
+- `Milestone 9.3.6` must prove lower-runtime contact is capability-routed
+  through contractual boundary envelopes rather than scattered direct bridge,
+  relational, signal, or store access
 - the `Runtime API Public Stabilization Gate` must freeze the ordinary public
   workspace/handle/state/aspect/effect/intent/inspection contract after the
-  runtime API facade consumes 9.1 through 9.3, so domain runtimes can build now
-  and temporal/async milestones extend the same model later rather than adding
-  parallel APIs
+  runtime API facade consumes 9.1 through 9.3.6, so domain runtimes can build
+  now and temporal/async milestones extend the same model later rather than
+  adding parallel APIs
 - the `Runtime Authoritative Mutation Evidence Gate` must freeze the ordinary
   public mutation-evidence contract after aspect-native mutation and runtime
   facade stabilization are in place, so write-heavy downstream domains do not
@@ -228,7 +248,9 @@ Critical path:
   `Milestone 5` -> `Milestone 5.1` -> `Milestone 5.2` -> `Milestone 5.3` ->
   `Milestone 5.4` -> `Milestone 5.5` -> `Milestone 5.6` -> `Milestone 6` ->
   `Milestone 7` -> `Milestone 8` -> `Milestone 9` -> `Milestone 9.1` ->
-  `Milestone 9.2` -> `Milestone 9.3` ->
+  `Milestone 9.2` -> `Milestone 9.3` -> `Milestone 9.3.1` ->
+  `Milestone 9.3.2` -> `Milestone 9.3.3` -> `Milestone 9.3.4` ->
+  `Milestone 9.3.5` -> `Milestone 9.3.6` ->
   `Runtime API Public Stabilization Gate` ->
   `Runtime Authoritative Mutation Evidence Gate` -> `Milestone 9.4` ->
   `Milestone 9.5` -> `Milestone 9.6` -> `Milestone 9.7` ->
@@ -270,6 +292,28 @@ Store-gated completion tracks:
   parity, and certification first, but any claims about durable subscription
   replay or store-backed restart parity must remain explicit debt until
   `Milestone 10` and `Milestone 11` close
+- `Milestone 9.3.1` can ship runtime-backed cross-runtime causal diagnostics
+  and Query inspection first, but durable causal archives, store-backed replay
+  reconstruction, and restart-stable expanded explanation reload remain
+  explicit debt until `Milestone 10` and `Milestone 11` close
+- `Milestone 9.3.2` can ship runtime-backed basis capability lifecycles first,
+  but durable basis reload, store-restored snapshot plus tail reconstruction,
+  and restart-stable basis envelopes remain explicit debt until `Milestone 10`
+  and `Milestone 11` close
+- `Milestone 9.3.3` can ship runtime-backed authority-scoped effect execution
+  first, but store-backed effect replay, durable workflow continuation, and
+  restart-stable effect envelopes remain explicit debt until `Milestone 10` and
+  `Milestone 11` close
+- `Milestone 9.3.4` can ship runtime-backed projection consumption receipts
+  first, but persisted materialized fact receipts, durable projection
+  consumption reload, and store-backed reconstruction remain explicit debt
+  until `Milestone 10` and `Milestone 11` close
+- `Milestone 9.3.5` can ship runtime-backed admission decision lattices and
+  decision traces first, but durable decision-log archives and restart-stable
+  trace materialization remain explicit debt until `Milestone 11` closes
+- `Milestone 9.3.6` can ship runtime-backed lower-runtime capability routing
+  first, but store-backed route parity and durable route replay remain explicit
+  debt until `Milestone 10` and `Milestone 11` close
 - the `Runtime API Public Stabilization Gate` can freeze the stable
   runtime-backed public facade, golden DX transcripts, handle/state/aspect
   contracts, inspection contract, and temporal/async support gates without
@@ -2124,12 +2168,424 @@ This milestone is complete only when `forge-query` can prove:
 - diagnostics can distinguish declaration-family changes from ordinary
   lifecycle-instance changes
 
+## Milestone 9.3.1: Cross-Runtime Causal Diagnostics And Query Inspection
+
+### Goal
+
+Make Query inspection the ordinary public surface for explaining why a
+query-observed result changed, did not change, failed, was denied, or replayed
+differently across relational, runtime bridge, and signal boundaries.
+
+### Adversarial Constraint
+
+A downstream domain must be able to ask Query inspection for a causal
+explanation of a query observation and receive one typed, machine-checkable
+artifact anchored to the Query operational receipt that produced the
+observation. Its digests and evidence references must join relational
+authority, bridge routing/evaluation/source/structural/stream/preview/writeback
+records, signal invalidation/evaluation/forensic availability, lineage,
+provenance, and replay posture without direct imports from runtime-bridge
+diagnostics, relational internals, or signal graph internals.
+
+### Why This Milestone Exists
+
+Milestone 9.3 proves subscription-family diagnostics and bridge parity, but it
+does not yet close the general "why did this happen?" boundary. If domains have
+to assemble explanations by reaching into the runtime bridge, relational, and
+signal layers themselves, Query has failed to expose the explanation surface
+that its public inspection contract needs.
+
+This milestone gives that boundary a Query-owned roadmap home while preserving
+lower-runtime authority: the bridge owns the cross-runtime causal envelope,
+relational owns truth authority, signal owns invalidation/evaluation evidence,
+and Query owns inspection admission, redaction, and public materialization.
+
+### Specification
+
+The governing milestone spec is
+[milestone-9.3.1.md](./milestone-9.3.1.md).
+
+### Must Ship
+
+- Query inspection APIs and artifacts for cross-runtime causal explanations
+- causal observation anchors and evidence-reference contracts derived from
+  existing Query operational artifacts rather than post-hoc lower-runtime
+  searches
+- ordered implementation gates for anchor adapters, evidence-reference indexes,
+  Query admission, bridge envelope assembly, Query materialization, and
+  certification; each gate must close before the next production phase consumes
+  it
+- a bridge-owned causal explanation envelope carrying relational authority,
+  bridge route/evaluation/source/structural/stream/preview/writeback/replay,
+  signal invalidation/evaluation/forensic availability, lineage, provenance,
+  replay posture, and materialization-policy digests
+- success/advisory/violation admission artifacts so redacted or narrowed
+  explanations do not collapse into a binary admitted/denied wall
+- forge-proof-backed or equivalent proof-bearing progression for phase ordering,
+  sealed witness minting, fixed-shape evidence-reference collections, and
+  Query/bridge trust-boundary readmission
+- first-class performance contracts and slope counters for anchor derivation,
+  evidence-reference resolution, admission, bridge envelope assembly,
+  redaction, materialization, and public artifact serialization
+- typed denial artifacts for missing bridge route evidence, missing signal
+  evidence, incompatible relational authority, policy-redacted diagnostics, and
+  unsupported explanation families
+- cold-path richness controls so expanded explanation detail never widens
+  hot-path query execution or signal invalidation
+- support metadata and certification rows for runtime-backed causal
+  explanation families, with durable/store-backed replay called out as later
+  milestone debt
+
+### Must Preserve
+
+- relational remains the authority for truth, commits, snapshots, and
+  relational decision evidence
+- runtime bridge remains the authority for bridge protocol, route/evaluation,
+  writeback, preview, historical materialization, and cross-runtime envelope
+  assembly
+- signal remains the authority for observation, invalidation, scheduling,
+  lineage, and provenance evidence
+- Query remains the authority for canonical query intent, inspection admission,
+  redaction, result-shape context, and public artifacts
+- downstream domains consume explanations through Query inspection rather than
+  stitching lower-runtime diagnostics locally
+
+### Complexity / Proof Obligations
+
+- prove changed, suppressed, denied, branch/preview, and replayed observations
+  all produce typed causal inspection artifacts
+- prove bridge, relational, and signal digests agree with the lower-runtime
+  records they summarize
+- prove Query consumes existing lower-runtime diagnostic, forensic, causality,
+  provenance, and authority records rather than building a parallel diagnostics
+  authority
+- prove each phase emits exact performance counters and slope digests before the
+  next phase consumes its artifact
+- prove forge-proof shape digests or equivalent proof-shape artifacts prevent
+  phase skipping, raw collection substitution, stale proof reuse, and forged
+  lower-runtime authority witnesses
+- prove missing evidence fails as typed diagnostic denial and redacted or
+  narrowed evidence becomes typed advisory detail rather than best-effort
+  narrative output
+- prove diagnostic richness affects only cold-path materialization, not query
+  meaning, planning, subscription semantics, or signal invalidation
+- prove Worth-style consumers can delete direct explanation stitching across
+  runtime bridge, relational, and signal internals once this artifact exists
+
+### Allowed Debt
+
+- durable causal explanation archives, restart-stable expanded narratives, and
+  store-backed replay reconstruction may remain deferred to Milestones 10 and
+  11
+- domain-specific prose renderers may remain domain-owned if they consume the
+  Query causal inspection artifact instead of lower-runtime internals
+
+### Sequencing Notes
+
+This belongs after Milestone 9.3 because bridge-honest subscription diagnostics
+prove the narrow live-query explanation lane first. It belongs before the
+Runtime API Public Stabilization Gate because inspection is part of the public
+runtime API contract and should not be frozen while this boundary is still
+being handled as domain glue.
+
+### Store Dependency
+
+Runtime-backed causal diagnostics are not blocked on `forge-store`. Durable
+causal archives, persisted expanded inspection narratives, store-backed replay
+reconstruction, and restart-stable causal envelope reload remain Milestone 10
+and Milestone 11 scope.
+
+### Acceptance Evidence
+
+This milestone is complete only when `forge-query` can prove:
+
+- the `Cross-Runtime Causal Explanation Envelope Test` in
+  [test-requirements.md](./test-requirements.md)
+  passes with canonical machine-checkable artifacts
+- Query inspection can explain query-observed changed, suppressed, denied,
+  branch/preview, and replayed outcomes through one typed public artifact
+- bridge-owned causal envelopes carry digests for relational authority, bridge
+  route/evaluation/source/structural/stream/preview/writeback/replay, signal
+  invalidation/evaluation/forensic availability, lineage, provenance, replay
+  posture, and materialization policy
+- public Query artifacts preserve lower-runtime authority names instead of
+  flattening them into Query-owned narrative facts
+- downstream domains can consume causal explanations without direct imports
+  from runtime bridge diagnostics, relational runtime internals, or signal graph
+  internals
+
+## Milestone 9.3.2: Query Basis Capability Lifecycle
+
+### Goal
+
+Make every Query basis a phase-typed capability lifecycle rather than a raw
+branch, head, preview, snapshot, historical, tenant, or policy identifier.
+
+### Adversarial Constraint
+
+A consumer must not be able to observe, mutate, replay, inspect, or materialize
+against a basis unless Query has proven that the requested basis family is
+eligible for that operation and has emitted a self-describing basis envelope
+that names its authority, scope, visibility, lifecycle, and permitted next
+transitions.
+
+### Phase Contract
+
+```text
+RawBasisIntent
+  -> BasisEligibility
+  -> AdmittedBasisCapability
+  -> ScopedExecutionOrObservationBasis
+  -> BasisUseReceipt
+  -> SelfDescribingBasisEnvelope
+```
+
+### Must Ship
+
+- phase-typed basis capability families for current head, branch, preview,
+  snapshot, historical, tenant-scoped, and policy-scoped usage
+- basis eligibility decisions before read, mutation, replay, inspection, or
+  materialization surfaces can be constructed
+- basis use receipts that distinguish observation, mutation, replay,
+  inspection, and materialization permission
+- typed denials for stale, inaccessible, incompatible, or operation-ineligible
+  basis requests
+
+### Must Preserve
+
+- relational remains the authority for branch, commit, snapshot, and head truth
+- Query owns public basis capability admission and use receipts
+- raw lower-runtime basis identifiers do not become public capability tokens
+- temporal/resource basis extensions in Milestones 9.4 through 9.7 extend the
+  same lifecycle rather than inventing parallel basis APIs
+
+### Acceptance Evidence
+
+This milestone is complete only when Query can prove equivalent basis intents
+normalize to the same capability envelope, illegal transitions are
+unrepresentable or typed failures, and downstream domains can read, inspect,
+and prepare mutation surfaces without raw relational branch or snapshot IDs.
+
+## Milestone 9.3.3: Authority-Scoped Effect Execution Pipeline
+
+### Goal
+
+Make Query-authored effects execute through one authority-scoped pipeline that
+lowers semantic intent once and requires the executor to consume only lowered,
+proof-bearing plans.
+
+### Adversarial Constraint
+
+No executor may re-decide authority scope, basis posture, invariant scope,
+preview policy, route strategy, artifact policy, or diagnostic richness. If
+those decisions are needed, they must be proven before execution and carried in
+the lowered effect execution plan.
+
+### Phase Contract
+
+```text
+RawEffectIntent
+  -> AuthorityEligibility
+  -> AuthorityScopedEffectPlan
+  -> LoweredEffectExecutionPlan
+  -> EffectExecutionReceipt
+  -> SelfDescribingEffectEnvelope
+```
+
+### Must Ship
+
+- authority-scoped effect plans for current-head, branch, preview, workflow,
+  topology, and query-authored writeback families where admitted
+- lowered execution plans that carry basis, authority, invariant, artifact, and
+  diagnostic policy proofs
+- effect execution receipts that expose primary result, decision trace,
+  structural deltas, integrity markers, and performance counters
+- compile-fail or facade-boundary tests proving executors cannot accept raw
+  intents or weaker plan types
+
+### Must Preserve
+
+- domain handlers produce declarative effects rather than framework ceremony
+- runtime bridge and relational remain authorities for their execution
+  semantics
+- Query owns public effect admission, lowering, and receipt shaping
+- branch mutation and preview mutation are parameters of the shared lifecycle,
+  not separate `execute_on_branch`-style APIs
+
+### Acceptance Evidence
+
+This milestone is complete only when admitted effect families execute through
+the same proof-widening pipeline, rejected families fail before construction or
+lowering, and execution counters prove strategy decisions were resolved
+upstream instead of rediscovered in the executor.
+
+## Milestone 9.3.4: Declared Projection Consumption And Materialized Fact Receipts
+
+### Goal
+
+Make consumption of materialized Query projections a declared, typed,
+receipt-backed contract so consumers can use projection facts without reopening
+the source authority.
+
+### Adversarial Constraint
+
+A consumer that has received a materialized projection must not fish in
+relational truth, bridge internals, signal internals, or domain-specific caches
+to discover IDs, memberships, labels, topology facts, workflow facts, table
+facts, or geometry facts that should have been declared as consumed projection
+facts.
+
+### Phase Contract
+
+```text
+ProjectionConsumptionDeclaration
+  -> ProjectionConsumptionEligibility
+  -> MaterializedProjectionContract
+  -> ConsumedProjectionFactSet
+  -> ProjectionConsumptionReceipt
+  -> SelfDescribingProjectionConsumptionEnvelope
+```
+
+### Must Ship
+
+- projection consumption declarations for materialized query views
+- typed consumed fact sets for entity identities, relation identities,
+  memberships, labels, derived facts, shape facts, and view-local identities
+  where the projection admits them
+- materialized projection contracts that bind consumed facts to the query,
+  basis, policy, view shape, and materialization digest that produced them
+- topology/Worth certification as the first hostile lane, without making the
+  milestone topology-specific
+
+### Must Preserve
+
+- relational owns authoritative truth; materialized projections are derived
+- Query owns projection contracts, declared consumption, and receipts
+- domain consumers own how they use admitted projection facts, not how those
+  facts are rediscovered from authority
+- future geometry, workflow, table, and design projections reuse the same
+  lifecycle instead of adding local lookup helpers
+
+### Acceptance Evidence
+
+This milestone is complete only when a certification program can declare the
+projection facts it consumes, receive typed fact receipts bound to one
+materialization, and avoid direct source-authority reads for fact discovery.
+
+## Milestone 9.3.5: Intent Admission Decision Lattice And Decision Trace
+
+### Goal
+
+Make every Query-crossing intent resolve through a structured admission
+decision lattice before construction, command lowering, execution, or
+diagnostic materialization.
+
+### Adversarial Constraint
+
+No Query surface may collapse admission into a binary `Result` wall that loses
+actionable context. Success, advisory, and violation outcomes must all carry
+structured decision traces, machine-readable context, and enough phase proof
+for downstream code to proceed, adapt, or fail closed without reconstructing
+the decision.
+
+### Phase Contract
+
+```text
+RawIntent
+  -> IntentEligibility
+  -> AdmissionDecision
+  -> AdmittedIntentPlan | AdvisoryDecision | ViolationDecision
+  -> DecisionTraceEnvelope
+```
+
+### Must Ship
+
+- a shared admission decision lattice for reads, basis use, projection
+  consumption, effect execution, inspection, diagnostic materialization, and
+  lower-runtime capability routing
+- structured success, advisory, and violation decision variants with typed
+  context
+- decision traces that record policy, capability, invariant, basis, projection,
+  and lower-runtime routing decisions where applicable
+- compile-fail or construction-boundary tests proving rejected or advisory-only
+  intents cannot be lowered as admitted plans
+
+### Must Preserve
+
+- eligibility precedes expensive construction and domain object assembly
+- diagnostics can enrich admission traces without changing the operational
+  result
+- each authority keeps ownership of its decision evidence while Query owns the
+  public admission envelope
+- binary convenience results may exist only as derived summaries, not as the
+  canonical admission artifact
+
+### Acceptance Evidence
+
+This milestone is complete only when all admitted 9.3.x surfaces share the
+decision lattice, failure and advisory cases are as inspectable as successful
+cases, and lower phases consume proof-bearing admitted plans rather than
+revalidating raw intents.
+
+## Milestone 9.3.6: Lower-Runtime Capability Routing And Boundary Envelopes
+
+### Goal
+
+Make all Query contact with relational, runtime bridge, signal, and later store
+surfaces pass through capability-routed lower-runtime boundary envelopes rather
+than scattered direct imports or compatibility shortcuts.
+
+### Adversarial Constraint
+
+If direct bridge, relational, signal, and Query-runtime bridge paths coexist,
+they must share one lifecycle abstraction or be marked as explicit
+compatibility debt. A domain or certification program must not be able to
+choose a lower-runtime path by convenience and silently bypass Query's basis,
+admission, projection, effect, or inspection contracts.
+
+### Phase Contract
+
+```text
+LowerRuntimeCapabilityRequest
+  -> CapabilityEligibility
+  -> LowerRuntimeRoutePlan
+  -> BoundaryExecutionReceipt
+  -> LowerRuntimeBoundaryEnvelope
+```
+
+### Must Ship
+
+- lower-runtime capability routing for admitted relational, bridge, signal, and
+  store-adjacent contacts
+- boundary envelopes that name authority, route, capability, cost posture,
+  failure topology, and retained evidence
+- compatibility-debt records for any remaining direct lower-runtime paths,
+  including exit criteria and certification coverage
+- facade and compile-boundary tests proving ordinary consumers use Query's
+  routed capability lane rather than lower-runtime internals
+
+### Must Preserve
+
+- lower runtimes remain autonomous subsystems with contractual facades
+- Query routes capabilities; it does not absorb lower-runtime truth,
+  scheduling, storage, or bridge protocol authority
+- shared lifecycle is the abstraction; traversal, data topology, failure mode,
+  and cost posture remain explicit parameters
+- cost and failure boundaries are not flattened by a generic adapter bag
+
+### Acceptance Evidence
+
+This milestone is complete only when every 9.3.x public capability can name its
+lower-runtime route, receipt, and boundary envelope, and any remaining direct
+path is intentionally tracked compatibility debt rather than an accidental
+escape hatch.
+
 ## Runtime API Public Stabilization Gate
 
 ### Goal
 
 Freeze the ordinary public runtime API contract after the runtime facade has
-consumed Milestones 9.1 through 9.3, so downstream domain runtimes can build
+consumed Milestones 9.1 through 9.3.6, so downstream domain runtimes can build
 against named surfaces and typed handles now while Milestones 9.4 through 9.7
 later extend the same API model with temporal and async/resource semantics.
 
@@ -2275,10 +2731,11 @@ execution time remains explicit in the basis bundle.
 ### Why This Milestone Exists
 
 Milestone 6 gives Query historical truth basis semantics. Milestones 9.1
-through 9.3 give Query subscription declaration, lifecycle, and diagnostic
-honesty. Once Forge Signal and the Runtime Bridge can express temporal
-execution basis, Query needs a roadmap home for saying what time-aware live
-queries mean.
+through 9.3.6 give Query subscription declaration, lifecycle, diagnostic
+honesty, cross-runtime causal inspection, basis capability, effect execution,
+projection consumption, admission decisions, and lower-runtime routing. Once
+Forge Signal and the Runtime Bridge can express temporal execution basis, Query
+needs a roadmap home for saying what time-aware live queries mean.
 
 Without this milestone:
 
@@ -2342,8 +2799,10 @@ Without this milestone:
 
 ### Sequencing Notes
 
-This belongs after Milestone 9.3 because Query needs certified subscription
-family diagnostics before adding temporal basis as another admitted family
+This belongs after Milestone 9.3.6 because Query needs certified subscription
+family diagnostics, cross-runtime causal inspection, basis capability,
+authority-scoped effects, projection consumption, decision traces, and
+lower-runtime routing before adding temporal basis as another admitted family
 dimension.
 
 It belongs before Milestone 10 because store-backed execution parity should
@@ -2745,9 +3204,10 @@ runtime-backed path for the same admitted capability.
 
 ### Why This Milestone Exists
 
-Milestones 4 through 9.3 can build the semantic query surface against runtime
-truth first. This milestone exists to close the backend-parity boundary later,
-once `forge-store` can participate honestly in execution and basis restore.
+Milestones 4 through 9.3.6 can build the semantic query surface against
+runtime truth first. This milestone exists to close the backend-parity boundary
+later, once `forge-store` can participate honestly in execution and basis
+restore.
 
 ### Must Ship
 
@@ -3202,6 +3662,12 @@ answer is "store-gated" or "shared with another subsystem."
 | Live read-to-subscribe promotion | Milestone 5 | Live execution context, query-to-signal lowering metadata | One-shot and live execution preserve semantics | Milestone 13 live-promotion equivalence |
 | Incremental result maintenance | Milestone 5 | Query-shaped live patch artifacts, suppression metadata | Live patches preserve ordering/membership/projection | Milestone 13 live-promotion equivalence |
 | Query-to-signal bridging | Milestone 5, shared with runtime bridge | Query relevance metadata, bridge-facing invalidation descriptors | Truth changes map to query-shaped maintenance honestly | Milestone 13 live equivalence + bridge-adjacent suites |
+| Cross-runtime causal diagnostics | Milestone 9.3.1, shared with runtime bridge, relational, and signal | Bridge causal explanation envelopes, Query causal inspection artifacts, causal materialization receipts | Query inspection explains why an observation changed, was suppressed, was denied, or replayed without direct lower-runtime access | Milestone 9.3.1 causal explanation certification + Milestone 13 diagnostics suites |
+| Query basis capability lifecycle | Milestone 9.3.2, shared with relational and runtime bridge | Basis capability envelopes, basis eligibility records, basis use receipts | Observation, mutation, replay, inspection, and materialization consume phase-typed basis proofs instead of raw branch/snapshot identifiers | Milestone 9.3.2 basis lifecycle certification + Milestone 13 branch/history suites |
+| Authority-scoped effect execution | Milestone 9.3.3, shared with runtime bridge and relational | Authority-scoped effect plans, lowered effect execution plans, effect execution receipts | Query effects execute only from lowered proof-bearing plans; executors do not re-decide authority, basis, strategy, or artifact policy | Milestone 9.3.3 effect execution certification + Milestone 13 workflow/mutation suites |
+| Declared projection consumption | Milestone 9.3.4 | Projection consumption declarations, materialized projection contracts, consumed fact receipts | Consumers use typed facts from declared materializations without reopening source authority | Milestone 9.3.4 projection consumption certification + Milestone 13 projection/domain suites |
+| Intent admission decision lattice | Milestone 9.3.5 | Admission decisions, advisory/violation variants, decision trace envelopes | Query-crossing intents resolve before construction/lowering with structured success, advisory, and violation context | Milestone 9.3.5 admission lattice certification + Milestone 13 diagnostics suites |
+| Lower-runtime capability routing | Milestone 9.3.6, shared with runtime bridge, relational, signal, and store | Lower-runtime route plans, boundary execution receipts, lower-runtime boundary envelopes | Lower-runtime contact is capability-routed and receipt-backed; remaining direct paths are explicit compatibility debt | Milestone 9.3.6 boundary routing certification + Milestone 13 support-matrix suites |
 | Temporal query basis and time-aware subscriptions | Milestone 9.4, shared with runtime bridge and signal temporal execution | Temporal query context descriptors, temporal subscription declaration metadata, bridge temporal basis requests | Truth basis and temporal execution basis stay distinct; time-only deliveries remain query-shaped | Milestone 9.7 temporal/async certification + Milestone 13 live/history suites |
 | Time-only query result delivery | Milestone 9.4 | Temporal cause metadata, time-aware delivery batches, previous-value comparison basis | Clock wakes can change admitted query results without raw signal events or ambient timers | Milestone 9.7 temporal/async certification |
 | Async/resource query families | Milestone 9.5, shared with runtime bridge and signal async resources | Async resource query declarations, result-state descriptors, completion-causality artifacts | Stale, cancelled, retried, failed, and superseded completions remain query-shaped and basis-bound | Milestone 9.7 temporal/async certification |
@@ -3255,6 +3721,7 @@ must gain a row in the same patch or the roadmap is incomplete.
 
 - [forge_query_vision.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/forge_query_vision.md)
 - [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/test-requirements.md)
+- [milestone-9.3.1.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/milestone-9.3.1.md)
 - [runtime-api-public-stabilization-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-api-public-stabilization-plan.md)
 - [runtime-authoritative-mutation-evidence-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-authoritative-mutation-evidence-plan.md)
 - [forge_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_roadmap.md)

@@ -249,7 +249,7 @@ function createConfiguredApiRouteBuilder(
       return signalNamespace.resource.detail(
         mergeApiDeclaration(
           layers,
-          directItemsState.reconcileMode === "responseDetail"
+          directItemsState.response !== null
             ? lowerResponseDetailRouteDeclaration(
                 pattern,
                 requestParamsState,

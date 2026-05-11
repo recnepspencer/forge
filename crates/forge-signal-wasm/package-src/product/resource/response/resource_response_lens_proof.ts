@@ -63,6 +63,7 @@ function requireResponseLensTopology(topology) {
     && topology !== "objectItems"
     && topology !== "customCollection"
     && topology !== "detail"
+    && topology !== "summary"
   ) {
     throw new TypeError(
       `resource response lens proof cannot classify topology "${topology}"`,
@@ -75,6 +76,10 @@ function createCapabilityRows(options) {
   const rows = [];
   if (options.topology === "detail") {
     rows.push(createCapabilityRow("detailResponse", "line", true));
+    return Object.freeze(rows);
+  }
+  if (options.topology === "summary") {
+    rows.push(createCapabilityRow("summaryResponse", "line", true));
     return Object.freeze(rows);
   }
   rows.push(

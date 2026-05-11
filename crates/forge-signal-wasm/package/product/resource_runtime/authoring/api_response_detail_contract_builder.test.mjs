@@ -41,3 +41,39 @@ test("detail response contracts own the detail finalizer lane", async () => {
     await runtime.cleanup();
   }
 });
+
+test("summary response contracts own the single-response detail finalizer lane", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const response = runtime.signals.resource.response.summary()();
+    assert.equal(response.kind, "summary");
+    assert.equal(response.lensProof.topology, "summary");
+    assert.equal(
+      response.lensProof.capabilityRows.some(
+        (row) => row.locus === "summaryResponse" && row.patchScope === "line",
+      ),
+      true,
+    );
+
+    const route = runtime.signals.api({}).url("/task-count").response(response);
+    const count = route.detail({
+      load: () => ({ total: 1 }),
+    });
+    assert.deepEqual(count.line({}).value(), { total: 1 });
+
+    assert.throws(
+      () => route.list({ load: () => [] }),
+      /summary response lane; use detail/,
+    );
+    assert.throws(
+      () => route.paged({ accumulatePage: (_existing, next) => next, load: () => [] }),
+      /summary response lane; use detail/,
+    );
+    assert.throws(
+      () => route.create({ load: () => ({ total: 1 }) }),
+      /summary mutation response lenses/,
+    );
+  } finally {
+    await runtime.cleanup();
+  }
+});

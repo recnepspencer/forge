@@ -152,9 +152,7 @@ function createResponseLensBackedEffectLocus(patch, responseLensProof) {
   switch (patch.scope) {
     case "line":
       return Object.freeze({
-        kind: responseLensProof.topology === "detail"
-          ? "detailResponse"
-          : "broadResponse",
+        kind: createResponseLensLineLocus(responseLensProof.topology),
       });
     case "item":
       return Object.freeze({
@@ -176,6 +174,16 @@ function createResponseLensBackedEffectLocus(patch, responseLensProof) {
         `resource effect envelope cannot classify patch scope "${patch.scope}"`,
       );
   }
+}
+
+function createResponseLensLineLocus(topology) {
+  if (topology === "detail") {
+    return "detailResponse";
+  }
+  if (topology === "summary") {
+    return "summaryResponse";
+  }
+  return "broadResponse";
 }
 
 function createGenericResourceEffectLocus(patch) {

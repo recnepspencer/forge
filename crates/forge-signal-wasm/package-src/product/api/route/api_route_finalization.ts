@@ -166,12 +166,12 @@ function lowerResponseDetailRouteDeclaration(
   );
   if ("itemIdentity" in declaration) {
     throw new TypeError(
-      `api.url("${pattern.route}").response(...) owns response detail identity in the detail response lane`,
+      `api.url("${pattern.route}").response(...) owns response identity in the single response lane`,
     );
   }
   if ("reconcile" in declaration) {
     throw new TypeError(
-      `api.url("${pattern.route}").response(...) owns response detail reconciliation in the detail response lane`,
+      `api.url("${pattern.route}").response(...) owns response reconciliation in the single response lane`,
     );
   }
   return Object.freeze({

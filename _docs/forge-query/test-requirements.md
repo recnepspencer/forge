@@ -22,6 +22,12 @@ This document defines the certification-grade query test requirements for:
 - Milestone 9.1
 - Milestone 9.2
 - Milestone 9.3
+- Milestone 9.3.1
+- Milestone 9.3.2
+- Milestone 9.3.3
+- Milestone 9.3.4
+- Milestone 9.3.5
+- Milestone 9.3.6
 - Runtime API Public Stabilization Gate
 - Runtime Authoritative Mutation Evidence Gate
 - Milestone 9.4
@@ -61,6 +67,12 @@ The query layer makes claims about:
 - policy masking, tenant schema variation, and relationship-proof denial
 - query-owned subscription declaration, bridge lowering, and admission
 - subscription family diagnostics, bridge parity, and runtime certification
+- cross-runtime causal explanation across relational authority, bridge
+  routing/evaluation, signal invalidation/evaluation, lineage, provenance, and
+  Query inspection
+- basis capability lifecycles, authority-scoped effect pipelines, typed
+  projection fact materialization, structured admission decision lattices, and
+  lower-runtime capability routing before the public runtime API freezes
 - temporal query basis, time-aware subscription lowering, and time-only
   delivery
 - public runtime API stabilization, golden DX transcripts, async-safe state
@@ -192,7 +204,7 @@ The following do not count as certification:
 - [Milestones 5-5.6](./test-requirements-milestones-5-5_6.md)
 - [Milestones 6-8](./test-requirements-milestones-6-8.md)
 - [Milestones 9-9.2](./test-requirements-milestones-9-9_2.md)
-- [Milestone 9.3 And Runtime Gates](./test-requirements-milestone-9_3-and-runtime-gates.md)
+- [Milestones 9.3-9.3.1 And Runtime Gates](./test-requirements-milestone-9_3-and-runtime-gates.md)
 - [Milestones 9.4-9.7](./test-requirements-milestones-9_4-9_7.md)
 - [Milestones 10-13](./test-requirements-milestones-10-13.md)
 - [Cross-Milestone Support And Honesty Suites](./test-requirements-cross-milestone.md)
@@ -207,6 +219,8 @@ Together, these tests prove that `forge-query` is:
 - query-shaped across collection, live, diff, and delivery surfaces
 - bridge-honest across query-owned subscription declaration and admission
   surfaces
+- able to explain cross-runtime causality through Query inspection without
+  domain consumers spelunking runtime bridge, relational, or signal internals
 - explicit about temporal query basis, time-only delivery, async resource
   causality, and mixed truth/time/async cause ordering
 - incapable of accepting stale async completions, ambient clocks, raw timer

@@ -7,6 +7,10 @@ import {
   isResourceDetailResponse,
   requireResourceDetailResponse,
 } from "../../resource/response/resource_detail_response_contract.js";
+import {
+  isResourceSummaryResponse,
+  requireResourceSummaryResponse,
+} from "../../resource/response/resource_summary_response_contract.js";
 
 function createApiRouteItemsState() {
   return Object.freeze({
@@ -85,6 +89,24 @@ function requireApiRouteResponseItemsState(response, route) {
       itemIdentity: null,
       response: detailResponse,
       reconcileMode: "responseDetail",
+      items: null,
+      replaceItems: null,
+      aspects: Object.freeze({}),
+      summaries: Object.freeze({}),
+      summaryPatchScope: null,
+    });
+  }
+  if (isResourceSummaryResponse(response)) {
+    const summaryResponse = requireResourceSummaryResponse(
+      response,
+      `api.url("${route}").response(...)`,
+    );
+    return Object.freeze({
+      declared: true,
+      source: "response",
+      itemIdentity: null,
+      response: summaryResponse,
+      reconcileMode: "responseSummary",
       items: null,
       replaceItems: null,
       aspects: Object.freeze({}),

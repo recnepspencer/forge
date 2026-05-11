@@ -28,6 +28,7 @@ export type ResourceEffectLocus =
   | { readonly kind: "line" }
   | { readonly kind: "broadResponse" }
   | { readonly kind: "detailResponse" }
+  | { readonly kind: "summaryResponse" }
   | { readonly kind: "membership"; readonly itemId: string | null }
   | { readonly kind: "item"; readonly itemId: string | null }
   | {
@@ -55,11 +56,17 @@ export interface ResourceEffectLocusProof {
   readonly compileBoundaryDigest: string;
   readonly capabilityRowDigest: string;
   readonly effectLocusDigest: string;
-  readonly topology: "directArray" | "objectItems" | "customCollection" | "detail";
+  readonly topology:
+    | "directArray"
+    | "objectItems"
+    | "customCollection"
+    | "detail"
+    | "summary";
   readonly itemField: string | null;
   readonly locus:
     | "broadResponse"
     | "detailResponse"
+    | "summaryResponse"
     | "membership"
     | "itemAspect"
     | "jsonItemAspect"

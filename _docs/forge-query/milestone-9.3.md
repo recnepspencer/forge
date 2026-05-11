@@ -10,9 +10,9 @@
 >
 > **Prior closeout:** [milestone-9.2-closeout.md](./milestone-9.2-closeout.md)
 >
-> **Next milestone:** Milestone 10 will own store-backed execution parity,
-> pushdown, and historical read/subscription closure beyond runtime-backed
-> subscription certification.
+> **Next milestone:** [milestone-9.3.1.md](./milestone-9.3.1.md) will own
+> cross-runtime causal diagnostics and Query inspection before the public
+> runtime API stabilization gate.
 >
 > **Test requirements:** [test-requirements.md](./test-requirements.md)
 >

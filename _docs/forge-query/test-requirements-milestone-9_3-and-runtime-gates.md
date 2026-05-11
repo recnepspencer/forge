@@ -149,6 +149,169 @@ remain synchronized with certified runtime behavior, diagnostic bundles remain
 offline-sufficient, and unsupported or uncertified family claims fail-closed
 before store-backed or durable milestones build on top of them.
 
+## Milestone 9.3.1 Named Certification Suites
+
+### 9.3.1. Cross-Runtime Causal Explanation Envelope Test
+
+Purpose
+
+Prove that Query inspection can expose one bridge-owned cross-runtime causal
+explanation envelope for query-observed outcomes, anchored to the Query
+operational artifact that produced the observation, without requiring
+downstream domains to stitch runtime bridge diagnostics, relational runtime
+evidence, and signal graph internals directly.
+
+Scenario
+
+- use a concrete fixture with:
+  - a relational truth mutation that changes a query-observed result
+  - a relational truth mutation that is causally relevant but suppressed by
+    query shape, policy, tolerance, or result equivalence
+  - a branch or preview mutation whose basis must remain explicit
+  - a historical or replayed observation whose materialization path must remain
+    explicit
+- ask Query inspection for causal explanations of changed, suppressed, denied,
+  branch/preview, and replayed observations
+- derive a causal observation anchor and evidence-reference set from each Query
+  operational artifact before inspection admission
+- prove the ordered progression with proof-bearing phase artifacts so request,
+  reference, admission, bridge-envelope, and materialization phases cannot be
+  skipped
+- assemble one bridge-owned causal explanation envelope for each admitted
+  or advisory inspection request
+- materialize one Query-owned causal inspection artifact from each admitted or
+  advisory bridge envelope
+- exercise hostile missing-evidence lanes for missing bridge route evidence,
+  missing signal evidence, incompatible relational authority, policy-redacted
+  detail, and unsupported explanation families
+- include a Worth-style consumer lane that is allowed to consume only Query
+  inspection artifacts, not runtime bridge diagnostics facade handles,
+  relational runtime internals, or signal graph internals
+
+Required concrete lanes
+
+- changed-result lane where relational authority, bridge route/evaluation,
+  bridge source/structural/preview/writeback evidence where applicable, signal
+  invalidation/evaluation, signal forensic availability, lineage, provenance,
+  replay posture, and query observation digests all bind the same query
+  observation anchor
+- no-op/suppression lane where the causal chain remains referenceable even
+  though the query-shaped public result does not change
+- advisory-redaction lane where the causal explanation is valid but detail is
+  narrowed with a success/advisory/violation admission trace rather than
+  collapsed into a binary admitted/denied result
+- branch/preview lane where basis identity and preview closeout posture remain
+  visible in the causal envelope
+- replay lane where materialization path and replay posture are explicit and
+  distinguished from live invalidation
+- missing-signal-evidence denial lane where the bridge route exists but signal
+  invalidation or evaluation evidence cannot be admitted
+- missing-bridge-route denial lane where signal or relational evidence alone is
+  insufficient to mint a public causal explanation
+- policy-redaction lane where richer narrative detail is denied or narrowed
+  without changing causal digests or query meaning
+- public-boundary lane where domain code that tries to construct the ordinary
+  explanation through lower-runtime imports fails at the certified boundary
+
+Must verify
+
+- Query owns the public causal inspection request, admission record, redaction
+  posture, result-shape context, causal observation anchor, evidence-reference
+  set, and materialized inspection artifact
+- runtime bridge owns the cross-runtime causal explanation envelope and names
+  which lower runtime supplied each evidence family
+- relational remains the authority for truth, commits, snapshots, and
+  relational decision evidence
+- signal remains the authority for observation, invalidation, scheduling,
+  signal lineage, and signal provenance evidence
+- bridge, relational, and signal evidence digests agree with the lower-runtime
+  records they summarize
+- Query evidence references resolve through existing lower-runtime records,
+  Query inspection evidence, signal forensic availability, and relational
+  authority identities rather than a new Query-owned diagnostics store
+- changed, suppressed, denied, branch/preview, and replayed observations all
+  receive typed artifacts rather than optional holes in one loose structure
+- success, advisory, and violation outcomes are represented as typed admission
+  decisions with decision-trace indexes
+- forge-proof or an equivalent proof-bearing substrate enforces phase ordering,
+  authority witnesses, fixed-shape/canonical evidence-reference collections,
+  and trust-boundary readmission between Query and runtime bridge
+- missing evidence fails as typed diagnostic denial and redacted/narrowed
+  evidence becomes typed advisory detail rather than best-effort prose
+- diagnostic richness changes only cold-path materialization detail, not query
+  meaning, bridge route meaning, signal invalidation meaning, or relational
+  authority
+- hot-path query execution and signal invalidation emit only bounded evidence
+  references, counters, and digests needed for later cold-path explanation
+- ordinary downstream domains can explain query observations through Query
+  inspection without direct imports from runtime bridge diagnostics,
+  relational runtime internals, or signal graph internals
+- small/medium/larger fixture runs prove causal inspection cost slopes are
+  bounded by evidence-reference width, requested richness, and admitted
+  materialization width rather than unrelated runtime graph size or total
+  bridge diagnostics retention width
+- performance counters are reported separately for observation anchor
+  derivation, evidence-reference resolution, inspection admission, bridge
+  envelope assembly, redaction, materialization, and artifact serialization
+
+Required verification output
+
+- `query_digest`
+- `query_observation_receipt_digest`
+- `causal_observation_anchor_digest`
+- `inspection_target_digest`
+- `inspection_request_digest`
+- `admitted_inspection_digest`
+- `advisory_inspection_digest`
+- `denied_inspection_digest`
+- `causal_envelope_digest`
+- `causal_evidence_reference_digest`
+- `decision_trace_index_digest`
+- `relational_authority_digest`
+- `bridge_route_digest`
+- `bridge_evaluation_digest`
+- `bridge_source_materialization_digest`
+- `bridge_structural_digest`
+- `bridge_stream_digest`
+- `bridge_preview_digest`
+- `bridge_writeback_digest`
+- `signal_invalidation_digest`
+- `signal_evaluation_digest`
+- `signal_forensic_availability_digest`
+- `signal_lineage_digest`
+- `signal_provenance_digest`
+- `query_observation_digest`
+- `materialization_policy_digest`
+- `replay_posture_digest`
+- `redaction_policy_digest`
+- `admitted_causal_inspection_artifact_digest`
+- `advisory_causal_inspection_artifact_digest`
+- `denied_causal_inspection_artifact_digest`
+- `causal_materialization_receipt_digest`
+- `causal_inspection_proof_shape_digest`
+- `causal_inspection_phase_progression_digest`
+- `causal_inspection_witness_authority_digest`
+- `causal_evidence_reference_collection_proof_digest`
+- `causal_bridge_readmission_proof_digest`
+- `failure_digest`
+- `counter_snapshot`
+- `causal_inspection_scale_slope_digest`
+- `causal_anchor_derivation_slope_digest`
+- `causal_reference_resolution_slope_digest`
+- `causal_admission_slope_digest`
+- `causal_bridge_envelope_slope_digest`
+- `causal_materialization_slope_digest`
+- `causal_artifact_serialization_slope_digest`
+- `compile_fail_boundary_digest`
+
+Pass condition
+
+Query inspection exposes one authority-preserving cross-runtime causal
+explanation surface, changed and non-changed outcomes are equally explainable,
+missing evidence fails closed, redacted evidence is represented as typed
+advisory/narrowed detail, and domain consumers no longer need direct
+lower-runtime stitching to explain why query-observed outcomes happened.
+
 ## Runtime API Public Stabilization Gate Named Certification Suites
 
 ### Runtime API Golden DX And Async-Safe Facade Test

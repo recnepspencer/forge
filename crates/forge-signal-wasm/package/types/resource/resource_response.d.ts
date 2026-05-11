@@ -8,12 +8,14 @@ import type {
 
 declare const forgeSignalResourceCollectionResponseBrand: unique symbol;
 declare const forgeSignalResourceDetailResponseBrand: unique symbol;
+declare const forgeSignalResourceSummaryResponseBrand: unique symbol;
 declare const forgeSignalResourceResponseLensProofBrand: unique symbol;
 
 export interface ResourceResponseLensCapabilityRow {
   readonly locus:
     | "broadResponse"
     | "detailResponse"
+    | "summaryResponse"
     | "membership"
     | "itemAspect"
     | "jsonItemAspect"
@@ -26,7 +28,12 @@ export interface ResourceResponseLensCapabilityRow {
 export interface ResourceResponseLensProof {
   readonly version: "resource-response-lens-proof-v1";
   readonly source: string;
-  readonly topology: "directArray" | "objectItems" | "customCollection" | "detail";
+  readonly topology:
+    | "directArray"
+    | "objectItems"
+    | "customCollection"
+    | "detail"
+    | "summary";
   readonly itemField: string | null;
   readonly declarationDigest: string;
   readonly capabilityDigest: string;
@@ -53,6 +60,7 @@ export interface ResourceResponseLensDenialProof {
   readonly requestedLocus:
     | "broadResponse"
     | "detailResponse"
+    | "summaryResponse"
     | "membership"
     | "itemAspect"
     | "jsonItemAspect"
@@ -119,14 +127,23 @@ export interface ResourceDetailResponse<TValue> {
   readonly [forgeSignalResourceDetailResponseBrand]: "resourceDetailResponse";
 }
 
+export interface ResourceSummaryResponse<TValue> {
+  readonly kind: "summary";
+  readonly lensProof: ResourceResponseLensProof;
+  readonly [forgeSignalResourceSummaryResponseBrand]: "resourceSummaryResponse";
+}
+
 export type ResourceAnyResponse =
   | ResourceCollectionResponse<any, any, any, any>
-  | ResourceDetailResponse<any>;
+  | ResourceDetailResponse<any>
+  | ResourceSummaryResponse<any>;
 
 export type ResourceResponseValue<TResponse> =
   TResponse extends ResourceCollectionResponse<infer TValue, any, any>
     ? TValue
     : TResponse extends ResourceDetailResponse<infer TValue>
+      ? TValue
+    : TResponse extends ResourceSummaryResponse<infer TValue>
       ? TValue
     : never;
 
@@ -227,6 +244,7 @@ export interface ResourceResponseFactory {
     summaries?: ResourceValueSummaries<TValue, TSummaryMap, any>;
   }) => ResourceCollectionResponse<TValue, TItem, TAspectMap, TSummaryMap>;
   detail<TValue>(): ResourceDetailResponse<TValue>;
+  summary<TValue>(): ResourceSummaryResponse<TValue>;
 }
 
 export const resourceResponse: ResourceResponseFactory;

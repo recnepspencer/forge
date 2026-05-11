@@ -131,7 +131,7 @@ function createResponseLensPatchAdmissionLocus(proof, patch) {
   switch (patch.kind) {
     case "replace":
       return Object.freeze({
-        kind: proof.topology === "detail" ? "detailResponse" : "broadResponse",
+        kind: lineResponseLocusForTopology(proof.topology),
       });
     case "item":
       return Object.freeze({ kind: "membership", itemId: patch.itemId });
@@ -212,6 +212,7 @@ function patchScopeForEffectLocus(locus) {
   switch (locus.kind) {
     case "broadResponse":
     case "detailResponse":
+    case "summaryResponse":
     case "line":
       return "line";
     case "membership":
@@ -233,6 +234,8 @@ function capabilityLocusForEffectLocus(locus) {
       return "broadResponse";
     case "detailResponse":
       return "detailResponse";
+    case "summaryResponse":
+      return "summaryResponse";
     case "membership":
       return "membership";
     case "itemAspect":
@@ -244,6 +247,16 @@ function capabilityLocusForEffectLocus(locus) {
     default:
       return null;
   }
+}
+
+function lineResponseLocusForTopology(topology) {
+  if (topology === "detail") {
+    return "detailResponse";
+  }
+  if (topology === "summary") {
+    return "summaryResponse";
+  }
+  return "broadResponse";
 }
 
 export {
