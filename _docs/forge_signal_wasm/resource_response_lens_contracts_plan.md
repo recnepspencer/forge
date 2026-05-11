@@ -901,9 +901,10 @@ Current implementation evidence:
   sealed `mapCollection` topology/effect-locus proof. Runtime coverage proves
   local item replacement, delivered item replacement, direct aspect replacement
   through `replaceEntry`, branch-native optimistic rollback proof, broad
-  replacement topology parity, map lookup/traversal/reconstruction cost
-  counters, malformed non-Map denial before effects, and key/itemId coherence
-  denial before value or diagnostics mutation.
+  replacement topology parity in history, native merge-plan posture, map
+  lookup/traversal/reconstruction cost counters, structural `ReadonlyMap`
+  entry views, malformed non-map denial before effects, and key/itemId
+  coherence denial before value or diagnostics mutation.
 
 ### Phase 7: Branch Merge Rebase And Conflict Certification
 

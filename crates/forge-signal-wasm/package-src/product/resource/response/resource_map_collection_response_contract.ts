@@ -87,17 +87,28 @@ function map() {
 }
 
 function requireMapEntries(rawEntries, source) {
-  if (!(rawEntries instanceof Map)) {
+  if (!isReadonlyMapEntries(rawEntries)) {
     throw new TypeError(
-      `resource.response.map<T>()(...) requires ${source} to return a Map`,
+      `resource.response.map<T>()(...) requires ${source} to return a ReadonlyMap`,
     );
   }
   return rawEntries;
 }
 
+function isReadonlyMapEntries(rawEntries) {
+  return (
+    rawEntries !== null
+    && typeof rawEntries === "object"
+    && typeof rawEntries.get === "function"
+    && typeof rawEntries.has === "function"
+    && typeof rawEntries.values === "function"
+    && typeof rawEntries.entries === "function"
+  );
+}
+
 function requireMapIdentityEntries(rawEntries, itemId, source) {
   const entries = requireMapEntries(rawEntries, source);
-  for (const [entryKey, item] of entries) {
+  for (const [entryKey, item] of entries.entries()) {
     requireMapItemIdentity(entryKey, item, itemId, source);
   }
   return entries;

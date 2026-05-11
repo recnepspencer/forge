@@ -67,6 +67,13 @@ test("map-backed responses lower item replacement through map collection loci", 
       reconstructionBreadth: 1,
     });
     assert.equal(itemEffect.optimistic.rollback.kind, "exactBranchRestoreAvailable");
+    assert.equal(itemEffect.profile.rebase, "nativeMergePlan");
+    const mergePlan = signals.resource.branch.planMerge({
+      source_branch_id: itemEffect.optimistic.branchId,
+      target_branch_id: 0,
+    });
+    assert.equal(mergePlan.kind, "planned");
+    assert.equal(typeof mergePlan.proof.planDigest, "string");
 
     line.deliver(signalsMod.resourceDelivery.patch({
       packetId: "pkt-map-collection",
@@ -128,9 +135,31 @@ test("map-backed responses deny malformed maps before effects", async () => {
     assert.throws(() => line.patch(tasks.patch.item({
       itemId: "task:1",
       nextItem: { id: "task:1", title: "Replaced" },
-    })), /entries\(value\) to return a Map/);
+    })), /entries\(value\) to return a ReadonlyMap/);
     assert.deepEqual(line.value(), beforeValue);
     assert.equal(line.diagnostics().lastEffect, beforeEffect);
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("map-backed responses admit structural ReadonlyMap entry views", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const { signals } = runtime;
+    const response = createTaskMapResponse(signals, {
+      entries: (value) => createReadonlyMapEntryView(value.taskMapEntries),
+    });
+    const tasks = createTaskMapApi(signals, response, "/readonly-map-view");
+    const line = tasks.line({});
+
+    line.patch(tasks.patch.item({
+      itemId: "task:1",
+      nextItem: { id: "task:1", title: "Readonly View" },
+    }));
+
+    assert.equal(readTask(line.value(), "task:1").title, "Readonly View");
+    assert.equal(line.diagnostics().lastEffect.locus.kind, "mapCollection");
   } finally {
     await runtime.cleanup();
   }
@@ -180,6 +209,18 @@ test("map-backed broad replacements preserve map topology proof", async () => {
     assert.deepEqual(effect.locus, { kind: "broadResponse" });
     assert.equal(effect.locusProof.topology, "mapCollection");
     assert.equal(effect.locusProof.locus, "broadResponse");
+    assert.deepEqual(effect.locusProof.cost, {
+      lookup: "whole-map",
+      lookupBreadth: 0,
+      traversal: "whole-response",
+      traversalBreadth: 1,
+      reconstruction: "replaceEntries",
+      reconstructionBreadth: 1,
+    });
+    assert.deepEqual(
+      line.history().verificationPackage().lifecycle.lastEffect.locusProof,
+      effect.locusProof,
+    );
     assert.equal(readTask(line.value(), "task:1").title, "Broad");
   } finally {
     await runtime.cleanup();
@@ -226,4 +267,14 @@ function replaceMapEntry(taskMapEntries, itemId, nextItem) {
 
 function readTask(value, itemId) {
   return new Map(value.taskMapEntries).get(itemId);
+}
+
+function createReadonlyMapEntryView(taskMapEntries) {
+  const taskMap = new Map(taskMapEntries);
+  return Object.freeze({
+    get: (itemId) => taskMap.get(itemId),
+    has: (itemId) => taskMap.has(itemId),
+    values: () => taskMap.values(),
+    entries: () => taskMap.entries(),
+  });
 }
