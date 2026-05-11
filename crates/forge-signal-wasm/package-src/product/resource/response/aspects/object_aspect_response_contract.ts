@@ -1,4 +1,4 @@
-import { resourceItemAspects } from "../reconciliation/resource_item_aspects.js";
+import { resourceItemAspects } from "../../reconciliation/resource_item_aspects.js";
 
 function objectAspects() {
   return function defineObjectAspects(fields) {

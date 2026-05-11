@@ -1,6 +1,6 @@
 import {
   createCollectionResponse,
-} from "./resource_collection_response_contract.js";
+} from "./resource_collection_response_factory.js";
 
 function map() {
   return function defineMapResponse(options) {

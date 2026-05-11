@@ -1,4 +1,4 @@
-import { requireResourceJsonPathAspectProof } from "../response/resource_json_path_aspect_proof.js";
+import { requireResourceJsonPathAspectProof } from "../response/aspects/json_path_aspect_proof.js";
 
 const RESOURCE_ITEM_ASPECTS = Symbol("forgeSignal.resourceItemAspects");
 

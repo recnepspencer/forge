@@ -13,10 +13,10 @@ import {
 import {
   jsonObjectAspects,
   objectAspects,
-} from "./resource_object_aspect_response_contract.js";
+} from "./aspects/object_aspect_response_contract.js";
 import {
   jsonPathAspects,
-} from "./resource_json_path_aspect_response_contract.js";
+} from "./aspects/json_path_aspect_response_contract.js";
 import {
   summary,
 } from "./resource_summary_response_contract.js";

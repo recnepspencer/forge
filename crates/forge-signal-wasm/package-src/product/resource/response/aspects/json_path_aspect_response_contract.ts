@@ -1,11 +1,11 @@
-import { resourceItemAspects } from "../reconciliation/resource_item_aspects.js";
-import { writeJsonContainerSegment } from "./resource_json_path_container_clone.js";
-import { createResourceJsonPathAspectProof } from "./resource_json_path_aspect_proof.js";
+import { resourceItemAspects } from "../../reconciliation/resource_item_aspects.js";
+import { writeJsonContainerSegment } from "./json_path_container_clone.js";
+import { createResourceJsonPathAspectProof } from "./json_path_aspect_proof.js";
 import {
   requireDenseJsonArray,
   requireJsonCompatibleValue,
   requirePlainJsonObject,
-} from "./resource_json_path_value_compatibility.js";
+} from "./json_path_value_compatibility.js";
 
 function jsonPathAspects() {
   return function defineJsonPathAspects(definitions) {

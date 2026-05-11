@@ -1,7 +1,7 @@
 import {
   requireDenseJsonArray,
   requireJsonObjectPropertyName,
-} from "./resource_json_path_value_compatibility.js";
+} from "./json_path_value_compatibility.js";
 
 function writeJsonContainerSegment(container, segment, nextSegmentValue, aspect) {
   return Array.isArray(container)
