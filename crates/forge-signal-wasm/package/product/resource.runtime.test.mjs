@@ -40,6 +40,7 @@ import "./resource_runtime/effects/resource_effect_server_confirmation.test.mjs"
 import "./resource_runtime/effects/resource_effect_visible_selection.test.mjs";
 import "./resource_runtime/effects/resource_json_item_aspect_effects.test.mjs";
 import "./resource_runtime/effects/resource_json_item_aspect_cost_proof.test.mjs";
+import "./resource_runtime/effects/resource_json_item_aspect_optional_policy.test.mjs";
 import "./resource_runtime/effects/resource_response_lens_admission_order.test.mjs";
 import "./resource_runtime/effects/resource_response_lens_broad_response.test.mjs";
 import "./resource_runtime/effects/resource_response_lens_entity_store.test.mjs";

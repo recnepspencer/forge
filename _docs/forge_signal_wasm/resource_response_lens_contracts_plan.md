@@ -827,11 +827,17 @@ Current implementation evidence:
   local and delivered JSON path effects carry those counters, frozen JSON
   containers are updated by reconstruction instead of mutation, and forged JSON
   path proof metadata is rejected before admission.
+- JSON path declarations may opt into `presence: "optional"` for terminal
+  object properties. Optional terminal paths read absent values as `null`,
+  materialize absent terminal properties on write, and preserve branch-native
+  `jsonItemAspect` effect evidence. Runtime coverage proves absent, null, and
+  present terminal reads, optional terminal writes, unknown policy denial,
+  missing-intermediate denial, and optional array-index denial before effects.
 - JSON path parsing and immutable update mechanics now live in
   `resource_json_path_aspect_response_contract.ts`, keeping generic object
   field aspects separate from JSON path effect-locus mechanics. The remaining
-  Phase 5 lanes are optional/absent path policy, sealed-container closeout, and
-  broader JSON write class closeout.
+  Phase 5 lanes are sealed-container closeout and broader JSON write class
+  closeout.
 
 ### Phase 6: Advanced Response Topology Effect Families
 

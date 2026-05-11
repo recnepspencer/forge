@@ -21,13 +21,17 @@ function createJsonPathAspect(aspect, path) {
   return Object.freeze({
     read(item) {
       const root = requireJsonPathItem(item, aspect)[path.field];
-      return readRequiredJsonPath(root, path.segments, aspect);
+      return path.presence === "optional"
+        ? readOptionalJsonPath(root, path.segments, aspect)
+        : readRequiredJsonPath(root, path.segments, aspect);
     },
     write(item, value) {
       requireJsonCompatibleValue(value, aspect, new WeakSet());
       const objectItem = requireJsonPathItem(item, aspect);
       const root = objectItem[path.field];
-      const nextRoot = writeRequiredJsonPath(root, path.segments, value, aspect);
+      const nextRoot = path.presence === "optional"
+        ? writeOptionalJsonPath(root, path.segments, value, aspect)
+        : writeRequiredJsonPath(root, path.segments, value, aspect);
       return {
         ...objectItem,
         [path.field]: nextRoot,
@@ -50,6 +54,7 @@ function requireJsonPathAspectDefinition(aspect, definition) {
     );
   }
   const field = requireJsonPathField(aspect, definition.field);
+  const presence = requireJsonPathPresence(aspect, definition.presence);
   if (!Array.isArray(definition.path) || definition.path.length === 0) {
     throw new TypeError(
       `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" requires a non-empty path array`,
@@ -57,12 +62,25 @@ function requireJsonPathAspectDefinition(aspect, definition) {
   }
   return Object.freeze({
     field,
+    presence,
     segments: Object.freeze(
       definition.path.map((segment) =>
         requireJsonPathSegment(aspect, segment),
       ),
     ),
   });
+}
+
+function requireJsonPathPresence(aspect, presence) {
+  if (presence === undefined || presence === "required") {
+    return "required";
+  }
+  if (presence === "optional") {
+    return "optional";
+  }
+  throw new TypeError(
+    `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" has unsupported path presence policy "${presence}"`,
+  );
 }
 
 function requireJsonPathField(aspect, field) {
@@ -132,6 +150,50 @@ function writeRequiredJsonPath(root, segments, value, aspect) {
   return writeJsonPathSegment(root, segments, 0, value, aspect);
 }
 
+function readOptionalJsonPath(root, segments, aspect) {
+  const parent = readJsonPathParentContainer(root, segments, aspect);
+  const terminal = segments[segments.length - 1];
+  if (typeof terminal === "number") {
+    const value = readJsonPathDataProperty(parent, terminal, aspect);
+    requireJsonCompatibleValue(value, aspect, new WeakSet());
+    return value;
+  }
+  const descriptor = readOptionalJsonPathDataProperty(parent, terminal, aspect);
+  if (descriptor === null) {
+    return null;
+  }
+  requireJsonCompatibleValue(descriptor.value, aspect, new WeakSet());
+  return descriptor.value;
+}
+
+function writeOptionalJsonPath(root, segments, value, aspect) {
+  const parent = readJsonPathParentContainer(root, segments, aspect);
+  const terminal = segments[segments.length - 1];
+  if (typeof terminal === "number") {
+    readJsonPathDataProperty(parent, terminal, aspect);
+  } else {
+    readOptionalJsonPathDataProperty(parent, terminal, aspect);
+  }
+  return writeOptionalJsonPathSegment(root, segments, 0, value, aspect);
+}
+
+function readJsonPathParentContainer(root, segments, aspect) {
+  const firstSegment = segments[0];
+  if (segments.length === 1) {
+    return requireJsonPathContainer(root, aspect, firstSegment);
+  }
+  let current = requireJsonPathContainer(root, aspect, firstSegment);
+  for (let index = 0; index < segments.length - 1; index += 1) {
+    const segment = segments[index];
+    const nextValue = readJsonPathDataProperty(current, segment, aspect);
+    if (index === segments.length - 2) {
+      return requireJsonPathContainer(nextValue, aspect, segments[index + 1]);
+    }
+    current = requireJsonPathContainer(nextValue, aspect, segments[index + 1]);
+  }
+  return current;
+}
+
 function writeJsonPathSegment(current, segments, index, value, aspect) {
   const segment = segments[index];
   const currentContainer = requireJsonPathContainer(current, aspect, segment);
@@ -145,6 +207,30 @@ function writeJsonPathSegment(current, segments, index, value, aspect) {
       ? value
       : writeJsonPathSegment(
           currentSegmentValue,
+          segments,
+          index + 1,
+          value,
+          aspect,
+        );
+  if (Array.isArray(currentContainer)) {
+    const nextArray = [...currentContainer];
+    nextArray[segment] = nextSegmentValue;
+    return nextArray;
+  }
+  return {
+    ...currentContainer,
+    [segment]: nextSegmentValue,
+  };
+}
+
+function writeOptionalJsonPathSegment(current, segments, index, value, aspect) {
+  const segment = segments[index];
+  const currentContainer = requireJsonPathContainer(current, aspect, segment);
+  const nextSegmentValue =
+    index === segments.length - 1
+      ? value
+      : writeOptionalJsonPathSegment(
+          readJsonPathDataProperty(currentContainer, segment, aspect),
           segments,
           index + 1,
           value,
@@ -203,6 +289,24 @@ function readJsonPathDataProperty(container, segment, aspect) {
     );
   }
   return descriptor.value;
+}
+
+function readOptionalJsonPathDataProperty(container, segment, aspect) {
+  const descriptor = Object.getOwnPropertyDescriptor(container, segment);
+  if (descriptor === undefined) {
+    return null;
+  }
+  if (!descriptor.enumerable) {
+    throw new TypeError(
+      `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" requires enumerable JSON path segment "${segment}"`,
+    );
+  }
+  if (!Object.prototype.hasOwnProperty.call(descriptor, "value")) {
+    throw new TypeError(
+      `resource.response.jsonPathAspects<T>()(...) aspect "${aspect}" rejects accessor JSON path segment "${segment}"`,
+    );
+  }
+  return descriptor;
 }
 
 function requireJsonCompatibleValue(value, aspect, seen) {

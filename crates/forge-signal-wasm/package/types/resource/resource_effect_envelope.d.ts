@@ -151,7 +151,8 @@ export interface ResourceEffectJsonPathPatchProof {
   readonly path: readonly (string | number)[];
   readonly parsedPathDigest: string;
   readonly policy: {
-    readonly presence: "required";
+    readonly presence: "required" | "optional";
+    readonly absence: "deny" | "readAsNull";
     readonly containerWrite: "immutableCopy";
     readonly arrayIndex: "explicitExistingIndex";
     readonly accessor: "denyWithoutInvocation";

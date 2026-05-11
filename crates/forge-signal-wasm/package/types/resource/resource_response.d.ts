@@ -100,6 +100,7 @@ export type ResourceObjectAspectDefinitions<
 export type ResourceJsonPathAspectDeclaration<TItem> = {
   readonly field: keyof TItem & string;
   readonly path: readonly (string | number)[];
+  readonly presence?: "required" | "optional";
 };
 
 export type ResourceJsonPathAspectDeclarationMap<TItem> = Readonly<

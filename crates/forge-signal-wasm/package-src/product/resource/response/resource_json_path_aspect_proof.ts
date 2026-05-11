@@ -15,7 +15,8 @@ function createResourceJsonPathAspectProof(aspect, path) {
     path: pathSegments,
     parsedPathDigest,
     policy: Object.freeze({
-      presence: "required",
+      presence: path.presence,
+      absence: path.presence === "optional" ? "readAsNull" : "deny",
       containerWrite: "immutableCopy",
       arrayIndex: "explicitExistingIndex",
       accessor: "denyWithoutInvocation",
@@ -29,6 +30,7 @@ function createResourceJsonPathAspectProof(aspect, path) {
       "resource-json-path-aspect-proof",
       aspect,
       parsedPathDigest,
+      path.presence,
       `traverse:${traversalBreadth}`,
       `reconstruct:${reconstructionBreadth}`,
       "immutable-copy",

@@ -67,9 +67,11 @@ const taskEnvelopeResponse = signals.resource.response.objectItems<TaskEnvelope>
   aspects: signals.resource.response.jsonPathAspects<Task>()<{
     priority: number;
     firstLabel: string;
+    optionalNote: string | null;
   }>({
     priority: { field: "metadata", path: ["priority"] },
     firstLabel: { field: "metadata", path: ["labels", 0] },
+    optionalNote: { field: "metadata", path: ["note"], presence: "optional" },
   }),
 });
 
