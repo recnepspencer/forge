@@ -80,6 +80,7 @@ function applyReplacePatch(materialization, patch, currentValue) {
       aspect: null,
       summary: null,
       valueChanged,
+      jsonPathProof: null,
     }),
     valueChanged,
   });
@@ -130,6 +131,7 @@ function applySummaryPatch(materialization, patch, currentValue) {
       aspect: null,
       summary: patch.summary,
       valueChanged: !areLineValuesSemanticallyEqual(nextValue, currentValue),
+      jsonPathProof: null,
     }),
     valueChanged: !areLineValuesSemanticallyEqual(nextValue, currentValue),
   });
@@ -224,6 +226,7 @@ function applyItemScopedPatch(materialization, patch, currentValue) {
         aspect: null,
         summary: null,
         valueChanged,
+        jsonPathProof: null,
       }),
       valueChanged,
     });
@@ -234,7 +237,8 @@ function applyItemScopedPatch(materialization, patch, currentValue) {
       `${patchRecord.familyKind} resource lines do not admit itemAspect patch(...) for undeclared aspect "${patch.aspect}"`,
     );
   }
-  const nextItem = aspectDefinitions[patch.aspect].write(
+  const aspectDefinition = aspectDefinitions[patch.aspect];
+  const nextItem = aspectDefinition.write(
     currentItems[itemIndex],
     patch.value,
   );
@@ -259,6 +263,7 @@ function applyItemScopedPatch(materialization, patch, currentValue) {
       aspect: patch.aspect,
       summary: null,
       valueChanged,
+      jsonPathProof: aspectDefinition.jsonPathProof ?? null,
     }),
     valueChanged,
   });
@@ -271,9 +276,12 @@ function applyDirectItemScopedPatch(patchRecord, patch, currentValue, materializ
       `${patchRecord.familyKind} resource lines could not find itemId "${patch.itemId}" for patch(...)`,
     );
   }
+  const aspectPatch = patch.kind === "item"
+    ? null
+    : applyDirectAspectPatch(patchRecord, patch, locatedItem.item);
   const nextItem = patch.kind === "item"
     ? requireIdentityPreservingItemPatch(patchRecord, patch)
-    : applyDirectAspectPatch(patchRecord, patch, locatedItem.item);
+    : aspectPatch.nextItem;
   const nextValue = patchRecord.reconcile.replaceItem(
     currentValue,
     patch.itemId,
@@ -294,6 +302,7 @@ function applyDirectItemScopedPatch(patchRecord, patch, currentValue, materializ
       aspect: patch.kind === "item" ? null : patch.aspect,
       summary: null,
       valueChanged,
+      jsonPathProof: aspectPatch?.jsonPathProof ?? null,
     }),
     valueChanged,
   });
@@ -316,9 +325,13 @@ function applyDirectAspectPatch(patchRecord, patch, currentItem) {
       `${patchRecord.familyKind} resource lines do not admit itemAspect patch(...) for undeclared aspect "${patch.aspect}"`,
     );
   }
-  const nextItem = aspectDefinitions[patch.aspect].write(currentItem, patch.value);
+  const aspectDefinition = aspectDefinitions[patch.aspect];
+  const nextItem = aspectDefinition.write(currentItem, patch.value);
   assertAspectPatchPreservesItemIdentity(patchRecord, patch, nextItem);
-  return nextItem;
+  return Object.freeze({
+    nextItem,
+    jsonPathProof: aspectDefinition.jsonPathProof ?? null,
+  });
 }
 
 function assertAspectPatchPreservesItemIdentity(patchRecord, patch, nextItem) {

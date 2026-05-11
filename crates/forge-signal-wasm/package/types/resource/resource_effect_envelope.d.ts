@@ -141,6 +141,27 @@ export interface ResourceEffectPatchDigest {
   readonly aspect: string | null;
   readonly summary: string | null;
   readonly valueChanged: boolean;
+  readonly jsonPath: ResourceEffectJsonPathPatchProof | null;
+}
+
+export interface ResourceEffectJsonPathPatchProof {
+  readonly version: "resource-json-path-aspect-proof-v1";
+  readonly aspect: string;
+  readonly field: string;
+  readonly path: readonly (string | number)[];
+  readonly parsedPathDigest: string;
+  readonly policy: {
+    readonly presence: "required";
+    readonly containerWrite: "immutableCopy";
+    readonly arrayIndex: "explicitExistingIndex";
+    readonly accessor: "denyWithoutInvocation";
+  };
+  readonly cost: {
+    readonly traversalBreadth: number;
+    readonly reconstructionBreadth: number;
+    readonly cloneBreadth: number;
+  };
+  readonly proofDigest: string;
 }
 
 export interface ResourceEffectDeliveryDigest {
@@ -384,5 +405,7 @@ export interface ResourceEffectEnvelope {
     readonly rollbackReadinessBreadth: number;
     readonly responseLensBreadth: number;
     readonly effectLocusBreadth: number;
+    readonly jsonPathTraversalBreadth: number;
+    readonly jsonPathReconstructionBreadth: number;
   };
 }

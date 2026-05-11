@@ -1,3 +1,5 @@
+import { requireResourceJsonPathAspectProof } from "../response/resource_json_path_aspect_proof.js";
+
 const RESOURCE_ITEM_ASPECTS = Symbol("forgeSignal.resourceItemAspects");
 
 function resourceItemAspects(definitions) {
@@ -16,11 +18,19 @@ function resourceItemAspects(definitions) {
       throw new TypeError(`resourceItemAspects(...) aspect "${aspect}" requires write(...)`);
     }
     const locus = requireAspectLocus(definition.locus, aspect);
-    normalizedDefinitions[aspect] = Object.freeze({
+    const normalizedDefinition = {
       read: definition.read,
       write: definition.write,
       locus,
-    });
+    };
+    const jsonPathProof = requireResourceJsonPathAspectProof(
+      definition.jsonPathProof,
+      aspect,
+    );
+    if (jsonPathProof !== undefined) {
+      normalizedDefinition.jsonPathProof = jsonPathProof;
+    }
+    normalizedDefinitions[aspect] = Object.freeze(normalizedDefinition);
   }
   return Object.freeze({
     definitions: Object.freeze(normalizedDefinitions),

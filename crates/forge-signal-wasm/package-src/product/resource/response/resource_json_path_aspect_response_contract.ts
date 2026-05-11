@@ -1,4 +1,5 @@
 import { resourceItemAspects } from "../reconciliation/resource_item_aspects.js";
+import { createResourceJsonPathAspectProof } from "./resource_json_path_aspect_proof.js";
 
 function jsonPathAspects() {
   return function defineJsonPathAspects(definitions) {
@@ -33,6 +34,7 @@ function createJsonPathAspect(aspect, path) {
       };
     },
     locus: "jsonItemAspect",
+    jsonPathProof: createResourceJsonPathAspectProof(aspect, path),
   });
 }
 

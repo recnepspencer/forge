@@ -57,6 +57,7 @@ function createPatchDeliveryEffectSummary(
     patchedAspect: patchDiagnostics.aspect,
     patchedSummary: patchDiagnostics.summary,
     valueChanged: patchDiagnostics.valueChanged,
+    jsonPathProof: patchDiagnostics.jsonPathProof,
   });
 }
 
@@ -74,6 +75,7 @@ function createLineDeliveryEffectSummary(options) {
     patchedAspect: options.patchedAspect,
     patchedSummary: options.patchedSummary,
     valueChanged: options.valueChanged,
+    jsonPathProof: options.jsonPathProof ?? null,
   });
 }
 

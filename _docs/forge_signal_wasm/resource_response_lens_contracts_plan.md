@@ -818,11 +818,20 @@ Current implementation evidence:
   array-crossing patching, stale-index denial, non-JSON denial, and
   accessor-without-invocation denial, and identity-changing write denial for
   JSON path item aspects.
+- JSON path declarations now lower a branded
+  `resource-json-path-aspect-proof-v1` artifact through aspect normalization,
+  local patch diagnostics, delivery summaries, and final effect envelopes.
+  Effect patch digests expose the parsed-path digest, required-path policy,
+  immutable-copy container posture, accessor-denial posture, and explicit
+  traversal/reconstruction/clone breadth counters. Focused coverage proves
+  local and delivered JSON path effects carry those counters, frozen JSON
+  containers are updated by reconstruction instead of mutation, and forged JSON
+  path proof metadata is rejected before admission.
 - JSON path parsing and immutable update mechanics now live in
   `resource_json_path_aspect_response_contract.ts`, keeping generic object
   field aspects separate from JSON path effect-locus mechanics. The remaining
-  Phase 5 lanes are optional/absent path policy, frozen/sealed policy, explicit
-  path-cost counters, and broader JSON write class closeout.
+  Phase 5 lanes are optional/absent path policy, sealed-container closeout, and
+  broader JSON write class closeout.
 
 ### Phase 6: Advanced Response Topology Effect Families
 

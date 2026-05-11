@@ -109,6 +109,7 @@ test("local patches create a sealed branch-native effect envelope across diagnos
       aspect: "title",
       summary: null,
       valueChanged: true,
+      jsonPath: null,
     });
     assert.deepEqual(effect.counters, {
       patchCountBefore: 0,
@@ -123,6 +124,8 @@ test("local patches create a sealed branch-native effect envelope across diagnos
       rollbackReadinessBreadth: 1,
       responseLensBreadth: 0,
       effectLocusBreadth: 1,
+      jsonPathTraversalBreadth: 0,
+      jsonPathReconstructionBreadth: 0,
     });
     assert.deepEqual(line.diagnosticsSummary().latest.effect, effect);
     assert.deepEqual(line.history().lifecycle.at(-1).lastEffect, effect);

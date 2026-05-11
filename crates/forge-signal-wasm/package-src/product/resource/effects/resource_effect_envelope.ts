@@ -16,6 +16,7 @@ function createLocalPatchEffectEnvelope(effectPlan, patch, result) {
       aspect: result.aspect,
       summary: result.summary,
       valueChanged: result.valueChanged,
+      jsonPathProof: result.jsonPathProof,
     }),
   });
 }
@@ -37,6 +38,7 @@ function createDeliveryEffectEnvelope(effectPlan, delivery) {
       aspect: delivery.patchedAspect,
       summary: delivery.patchedSummary,
       valueChanged: delivery.valueChanged,
+      jsonPathProof: delivery.jsonPathProof,
     }),
   });
 }
@@ -47,6 +49,7 @@ function createResourceEffectEnvelope(options) {
   const lineIdentity = effectPlan.lineIdentity;
   const patch = options.patch;
   const rawLocus = createEffectLocus(patch, options.delivery, effectPlan);
+  const patchDigest = createPatchDigest(patch);
   const locusProof = lowerResponseLensProofToEffectLocus(
     effectPlan.responseLensProof,
     rawLocus,
@@ -89,9 +92,10 @@ function createResourceEffectEnvelope(options) {
     delivery: options.delivery,
     locus,
     locusProof,
-    patch: createPatchDigest(patch),
+    patch: patchDigest,
     counters: Object.freeze({
       ...effectPlan.counters,
+      ...createJsonPathCounters(patchDigest.jsonPath),
     }),
   });
 }
@@ -104,6 +108,36 @@ function createPatchDigest(patch) {
     aspect: patch.aspect,
     summary: patch.summary,
     valueChanged: patch.valueChanged,
+    jsonPath: createJsonPathPatchProof(patch.jsonPathProof),
+  });
+}
+
+function createJsonPathPatchProof(jsonPathProof) {
+  if (jsonPathProof === null || jsonPathProof === undefined) {
+    return null;
+  }
+  return Object.freeze({
+    version: jsonPathProof.version,
+    aspect: jsonPathProof.aspect,
+    field: jsonPathProof.field,
+    path: jsonPathProof.path,
+    parsedPathDigest: jsonPathProof.parsedPathDigest,
+    policy: jsonPathProof.policy,
+    cost: jsonPathProof.cost,
+    proofDigest: jsonPathProof.proofDigest,
+  });
+}
+
+function createJsonPathCounters(jsonPathProof) {
+  if (jsonPathProof === null) {
+    return Object.freeze({
+      jsonPathTraversalBreadth: 0,
+      jsonPathReconstructionBreadth: 0,
+    });
+  }
+  return Object.freeze({
+    jsonPathTraversalBreadth: jsonPathProof.cost.traversalBreadth,
+    jsonPathReconstructionBreadth: jsonPathProof.cost.reconstructionBreadth,
   });
 }
 

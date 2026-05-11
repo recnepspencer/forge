@@ -138,6 +138,10 @@ void latestEffect?.counters.serverConfirmationBreadth;
 void latestEffect?.counters.rollbackReadinessBreadth;
 void latestEffect?.counters.responseLensBreadth;
 void latestEffect?.counters.effectLocusBreadth;
+void latestEffect?.counters.jsonPathTraversalBreadth;
+void latestEffect?.counters.jsonPathReconstructionBreadth;
+void latestEffect?.patch.jsonPath?.cost.cloneBreadth;
+void latestEffect?.patch.jsonPath?.policy.containerWrite;
 void latestLocusProof?.topology;
 const responseBroadLocus: ResourceEffectEnvelope["locus"] = {
   kind: "broadResponse",
