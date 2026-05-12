@@ -625,6 +625,16 @@ impl BridgeDiagnosticsFacade {
             .historical_failure_for_declaration_identity(declaration_identity)
     }
 
+    pub fn historical_failure_for_identity(
+        &self,
+        failure_identity: &str,
+    ) -> Option<BridgeHistoricalEvaluationFailureRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .historical_failure_for_identity(failure_identity)
+    }
+
     pub fn source_materialization_record_for_identity(
         &self,
         record_identity: &str,
@@ -643,6 +653,16 @@ impl BridgeDiagnosticsFacade {
             .read()
             .expect("bridge diagnostics lock poisoned")
             .source_failure_for_declaration_identity(declaration_identity)
+    }
+
+    pub fn source_failure_record_for_identity(
+        &self,
+        failure_identity: &str,
+    ) -> Option<SourceFailureRecord> {
+        self.state
+            .read()
+            .expect("bridge diagnostics lock poisoned")
+            .source_failure_record_for_identity(failure_identity)
     }
 
     pub fn stream_checkpoint_for_identity(

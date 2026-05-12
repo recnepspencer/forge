@@ -67,9 +67,12 @@ pub(crate) struct BridgeDiagnosticsState {
         BTreeMap<String, Arc<BridgeCanonicalHistoricalEvaluationRecord>>,
     latest_historical_failure_by_declaration_identity:
         BTreeMap<String, Arc<BridgeHistoricalEvaluationFailureRecord>>,
+    latest_historical_failure_by_failure_identity:
+        BTreeMap<String, Arc<BridgeHistoricalEvaluationFailureRecord>>,
     latest_source_materialization_by_record_identity:
         BTreeMap<String, Arc<SourceMaterializationRecord>>,
     latest_source_failure_by_declaration_identity: BTreeMap<String, Arc<SourceFailureRecord>>,
+    latest_source_failure_by_failure_identity: BTreeMap<String, Arc<SourceFailureRecord>>,
     latest_structural_remap_by_record_identity:
         BTreeMap<String, Arc<BridgeCanonicalStructuralRemapRecord>>,
     latest_structural_branch_comparison_by_record_identity:

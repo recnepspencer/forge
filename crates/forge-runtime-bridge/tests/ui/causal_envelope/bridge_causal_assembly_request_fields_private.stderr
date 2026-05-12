@@ -1,0 +1,11 @@
+error[E0451]: fields `admission_summary`, `references` and `request_digest` of struct `BridgeCausalEnvelopeAssemblyRequest` are private
+  --> tests/ui/causal_envelope/bridge_causal_assembly_request_fields_private.rs:12:9
+   |
+11 |     let _ = BridgeCausalEnvelopeAssemblyRequest {
+   |             ----------------------------------- in this type
+12 |         admission_summary,
+   |         ^^^^^^^^^^^^^^^^^ private field
+13 |         references: references.into(),
+   |         ^^^^^^^^^^ private field
+14 |         request_digest: "request".into(),
+   |         ^^^^^^^^^^^^^^ private field

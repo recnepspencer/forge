@@ -1,0 +1,23 @@
+error[E0451]: fields `identity`, `admission_summary_kind`, `admission_summary_digest`, `request_digest`, `causal_observation_anchor_digest`, `bindings`, `counters`, `receipt` and `envelope_digest` of struct `BridgeCausalExplanationEnvelope` are private
+  --> tests/ui/causal_envelope/bridge_causal_envelope_constructor_private.rs:24:9
+   |
+23 |     let _ = BridgeCausalExplanationEnvelope {
+   |             ------------------------------- in this type
+24 |         identity: identity(),
+   |         ^^^^^^^^ private field
+25 |         admission_summary_kind: BridgeCausalInspectionAdmissionSummaryKind::Admitted,
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+26 |         admission_summary_digest: "summary".into(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+27 |         request_digest: "request".into(),
+   |         ^^^^^^^^^^^^^^ private field
+28 |         causal_observation_anchor_digest: "anchor".into(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+29 |         bindings: bindings.into(),
+   |         ^^^^^^^^ private field
+30 |         counters,
+   |         ^^^^^^^^ private field
+31 |         receipt: receipt(),
+   |         ^^^^^^^ private field
+32 |         envelope_digest: "envelope".into(),
+   |         ^^^^^^^^^^^^^^^ private field

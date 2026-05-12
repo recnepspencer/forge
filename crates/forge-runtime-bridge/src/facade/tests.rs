@@ -462,6 +462,7 @@ fn canonical_envelope(
         .expect("fixture envelopes should validate")
 }
 
+mod causal_envelope;
 mod merge;
 mod policy_and_materialization;
 mod policy_phase2;

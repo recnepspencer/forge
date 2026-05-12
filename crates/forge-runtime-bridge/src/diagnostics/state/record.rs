@@ -118,6 +118,10 @@ impl BridgeDiagnosticsState {
                 record.declaration_identity().as_str().to_string(),
                 Arc::clone(&record),
             );
+        self.latest_historical_failure_by_failure_identity.insert(
+            record.failure_identity().as_str().to_string(),
+            Arc::clone(&record),
+        );
         self.historical_failures.push_back(record);
         while self.historical_failures.len() > limit.max(1) {
             if let Some(evicted) = self.historical_failures.pop_front() {
@@ -149,6 +153,10 @@ impl BridgeDiagnosticsState {
         let record = Arc::new(record);
         self.latest_source_failure_by_declaration_identity.insert(
             record.declaration_identity().as_str().to_string(),
+            Arc::clone(&record),
+        );
+        self.latest_source_failure_by_failure_identity.insert(
+            record.failure_identity().as_str().to_string(),
             Arc::clone(&record),
         );
         self.source_failure_records.push_back(record);

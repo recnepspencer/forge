@@ -41,6 +41,7 @@ pub enum CausalEvidenceFamily {
     SignalForensicAvailability,
     SignalReplayCursor,
     SignalLineage,
+    SignalProvenance,
     Lineage,
     Provenance,
     Policy,
@@ -72,6 +73,7 @@ impl CausalEvidenceFamily {
             Self::SignalForensicAvailability => "signal_forensic_availability",
             Self::SignalReplayCursor => "signal_replay_cursor",
             Self::SignalLineage => "signal_lineage",
+            Self::SignalProvenance => "signal_provenance",
             Self::Lineage => "lineage",
             Self::Provenance => "provenance",
             Self::Policy => "policy",
@@ -256,6 +258,12 @@ pub fn causal_evidence_inventory_rows() -> Vec<CausalEvidenceInventoryRow> {
             Family::SignalLineage,
             "signal lineage artifact evidence",
             "signal_lineage_digest",
+        ),
+        CausalEvidenceInventoryRow::new(
+            Owner::Signal,
+            Family::SignalProvenance,
+            "signal provenance artifact evidence",
+            "signal_provenance_digest",
         ),
         CausalEvidenceInventoryRow::new(
             Owner::Signal,

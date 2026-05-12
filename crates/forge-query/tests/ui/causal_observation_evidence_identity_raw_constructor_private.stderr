@@ -4,7 +4,7 @@ error[E0624]: associated function `new` is private
 4 |       let _ = CausalObservationEvidenceIdentity::new(
   |                                                  ^^^ private associated function
   |
- ::: src/runtime/inspection/causal/receipt.rs
+ ::: src/runtime/inspection/causal/receipt_types.rs
   |
   | /     pub(in crate::runtime) fn new(
   | |         family: CausalEvidenceFamily,

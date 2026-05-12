@@ -1,0 +1,31 @@
+error[E0451]: fields `boundary_audit_digest`, `representative_matrix_digest`, `performance_certification`, `bridge_readmission_proof_digest`, `artifact_serialization_slope_digest`, `proof_shape_digest`, `phase_progression_digest`, `witness_authority_digest`, `certification_row_count`, `hostile_row_count`, `representative_row_count`, `scale_fixture_row_count` and `scope_digest` of struct `CausalInspectionCertificationScope` are private
+  --> tests/ui/causal_inspection_certification_scope_constructor_private.rs:7:9
+   |
+ 6 |     let _ = CausalInspectionCertificationScope {
+   |             ---------------------------------- in this type
+ 7 |         boundary_audit_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         representative_matrix_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         performance_certification,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         bridge_readmission_proof_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         artifact_serialization_slope_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         proof_shape_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+13 |         phase_progression_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         witness_authority_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         certification_row_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         hostile_row_count: 0,
+   |         ^^^^^^^^^^^^^^^^^ private field
+17 |         representative_row_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         scale_fixture_row_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |         scope_digest: String::new(),
+   |         ^^^^^^^^^^^^ private field

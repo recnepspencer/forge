@@ -198,6 +198,7 @@ fn evidence_inventory_names_existing_lower_runtime_reference_identities() {
         CausalEvidenceFamily::SignalForensicAvailability,
         CausalEvidenceFamily::SignalReplayCursor,
         CausalEvidenceFamily::SignalLineage,
+        CausalEvidenceFamily::SignalProvenance,
         CausalEvidenceFamily::Lineage,
         CausalEvidenceFamily::Provenance,
         CausalEvidenceFamily::Policy,

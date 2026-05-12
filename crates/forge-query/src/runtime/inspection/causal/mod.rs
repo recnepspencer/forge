@@ -2,7 +2,9 @@ mod admission;
 mod admission_decision;
 mod admission_trace;
 mod anchor;
+mod certification;
 mod inventory;
+mod materialization;
 mod receipt;
 mod receipt_types;
 mod reference;
@@ -27,9 +29,31 @@ pub use anchor::{
     CausalObservationAnchorDigest, CausalObservationAnchorError, CausalObservationAnchorErrorKind,
     CausalObservationMissingReferencePosture,
 };
+pub use certification::{
+    build_causal_inspection_certification_scope, certify_causal_inspection_runtime_path,
+    CausalInspectionBoundaryAudit, CausalInspectionCertificationBundle,
+    CausalInspectionCertificationError, CausalInspectionCertificationErrorKind,
+    CausalInspectionCertificationFailureEvidence, CausalInspectionCertificationFailureKind,
+    CausalInspectionCertificationFailureSource, CausalInspectionCertificationLane,
+    CausalInspectionCertificationScope, CausalInspectionPerformanceCertificationBundle,
+    CausalInspectionProofShapeCertification, CausalInspectionRepresentativeEvidence,
+    CausalInspectionRepresentativeKind, CausalInspectionRepresentativeMatrix,
+    CausalInspectionRepresentativeRowDigestSet, CausalInspectionScaleCounterSnapshot,
+    CausalInspectionScaleFixtureSize,
+};
 pub use inventory::{
     causal_evidence_inventory_rows, CausalEvidenceFamily, CausalEvidenceInventoryRow,
     CausalEvidenceOwner,
+};
+pub use materialization::{
+    materialize_admitted_causal_inspection, materialize_advisory_causal_inspection,
+    materialize_denied_causal_inspection, AdmittedQueryCausalInspectionArtifact,
+    AdvisoryQueryCausalInspectionArtifact, CausalInspectionArtifactKind,
+    CausalInspectionBoundaryEnvelopeCategory, CausalInspectionMaterializationError,
+    CausalInspectionMaterializationErrorKind, CausalInspectionMaterializationPolicy,
+    CausalInspectionPerformanceEnvelope, CausalInspectionRedactionPolicy,
+    CausalMaterializationReceipt, DeniedQueryCausalInspectionArtifact,
+    QueryCausalEvidenceReferenceArtifact, QueryCausalInspectionArtifact,
 };
 pub use receipt_types::{
     CausalInspectionReason, CausalObservationEvidenceIdentity, CausalObservationOutcome,

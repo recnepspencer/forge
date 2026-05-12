@@ -1,0 +1,150 @@
+use super::{runtime, BridgeRuntimePolicy};
+use crate::facade::{
+    BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEvidenceFamily, BridgeCausalEvidenceOwner,
+    BridgeCausalEvidenceReference,
+};
+
+fn bridge_reference(
+    family: BridgeCausalEvidenceFamily,
+    identity: &str,
+) -> BridgeCausalEvidenceReference {
+    BridgeCausalEvidenceReference::new(BridgeCausalEvidenceOwner::RuntimeBridge, family, identity)
+        .expect("bridge reference should be valid")
+}
+
+fn external_reference(
+    owner: BridgeCausalEvidenceOwner,
+    family: BridgeCausalEvidenceFamily,
+    identity: &str,
+) -> BridgeCausalEvidenceReference {
+    BridgeCausalEvidenceReference::new(owner, family, identity)
+        .expect("external reference should be valid")
+}
+
+#[test]
+fn causal_envelope_identity_and_receipt_bind_the_sealed_bridge_result() {
+    let runtime = runtime(BridgeRuntimePolicy::default());
+    let routed = runtime
+        .route("commit-causal-receipt")
+        .expect("route should succeed");
+    let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
+        crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
+            "query-admission:receipt",
+            "causal-anchor:receipt",
+        )
+        .expect("query admission summary should be valid"),
+        vec![
+            external_reference(
+                BridgeCausalEvidenceOwner::Query,
+                BridgeCausalEvidenceFamily::QueryObservation,
+                "query-observation:receipt",
+            ),
+            bridge_reference(
+                BridgeCausalEvidenceFamily::BridgeRoute,
+                routed.result().result_summary().route_identity().as_str(),
+            ),
+            external_reference(
+                BridgeCausalEvidenceOwner::Relational,
+                BridgeCausalEvidenceFamily::RelationalAuthority,
+                "relational-authority:receipt",
+            ),
+            external_reference(
+                BridgeCausalEvidenceOwner::Signal,
+                BridgeCausalEvidenceFamily::SignalInvalidation,
+                "signal-invalidation:receipt",
+            ),
+        ],
+    )
+    .expect("request should be valid");
+
+    let envelope = runtime
+        .diagnostics()
+        .assemble_causal_explanation_envelope(request)
+        .expect("envelope should assemble");
+
+    assert_eq!(
+        envelope.identity().request_digest(),
+        envelope.request_digest()
+    );
+    assert_eq!(
+        envelope.identity().causal_observation_anchor_digest(),
+        envelope.causal_observation_anchor_digest()
+    );
+    assert_eq!(
+        envelope.identity().counter_digest(),
+        envelope.counters().counter_digest()
+    );
+    assert_eq!(
+        envelope.receipt().envelope_identity_digest(),
+        envelope.identity().identity_digest()
+    );
+    assert_eq!(
+        envelope.receipt().envelope_digest(),
+        envelope.envelope_digest()
+    );
+    assert_eq!(
+        envelope.receipt().counter_digest(),
+        envelope.counters().counter_digest()
+    );
+    assert!(envelope
+        .identity()
+        .evidence_binding_digest()
+        .contains("sha256"));
+    assert!(envelope.receipt().receipt_digest().contains("sha256"));
+    assert_eq!(envelope.counters().lower_runtime_family_count(), 3);
+    assert_eq!(envelope.counters().materialized_detail_count(), 4);
+    assert_eq!(envelope.counters().bridge_record_scan_fallback_count(), 0);
+}
+
+#[test]
+fn causal_envelope_identity_is_stable_across_unrelated_retained_routes() {
+    let mut identities = Vec::new();
+    let mut receipts = Vec::new();
+
+    for unrelated_routes in [0, 5, 10] {
+        let runtime = runtime(BridgeRuntimePolicy::default());
+        for index in 0..unrelated_routes {
+            runtime
+                .route(format!("unrelated-causal-receipt-{index}"))
+                .expect("unrelated route should succeed");
+        }
+        let routed = runtime
+            .route("commit-causal-receipt-stable")
+            .expect("target route should succeed");
+        let request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
+            crate::facade::BridgeCausalInspectionAdmissionSummary::admitted(
+                "query-admission:receipt-stable",
+                "causal-anchor:receipt-stable",
+            )
+            .expect("query admission summary should be valid"),
+            vec![
+                external_reference(
+                    BridgeCausalEvidenceOwner::Query,
+                    BridgeCausalEvidenceFamily::QueryObservation,
+                    "query-observation:receipt-stable",
+                ),
+                bridge_reference(
+                    BridgeCausalEvidenceFamily::BridgeRoute,
+                    routed.result().result_summary().route_identity().as_str(),
+                ),
+            ],
+        )
+        .expect("request should be valid");
+
+        let envelope = runtime
+            .diagnostics()
+            .assemble_causal_explanation_envelope(request)
+            .expect("target route should bind");
+
+        assert_eq!(envelope.counters().bridge_retained_lookup_count(), 1);
+        assert_eq!(envelope.counters().lower_runtime_family_count(), 1);
+        assert_eq!(envelope.counters().materialized_detail_count(), 2);
+        identities.push(envelope.identity().identity_digest().to_string());
+        receipts.push(envelope.receipt().receipt_digest().to_string());
+    }
+
+    assert_eq!(identities[0], identities[1]);
+    assert_eq!(identities[1], identities[2]);
+    assert_eq!(receipts[0], receipts[1]);
+    assert_eq!(receipts[1], receipts[2]);
+}

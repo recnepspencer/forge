@@ -1,0 +1,18 @@
+error: cannot construct `CausalInspectionRepresentativeRowDigestSet` with struct literal syntax due to private fields
+ --> tests/ui/causal_inspection_representative_row_digest_set_constructor_private.rs:4:13
+  |
+4 |     let _ = CausalInspectionRepresentativeRowDigestSet {};
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: private fields that were not provided
+help: you might have meant to use an associated function to build this type
+  |
+4 -     let _ = CausalInspectionRepresentativeRowDigestSet {};
+4 +     let _ = CausalInspectionRepresentativeRowDigestSet::from_query_artifact(_, _);
+  |
+4 -     let _ = CausalInspectionRepresentativeRowDigestSet {};
+4 +     let _ = CausalInspectionRepresentativeRowDigestSet::from_missing_evidence(_, _, _);
+  |
+4 -     let _ = CausalInspectionRepresentativeRowDigestSet {};
+4 +     let _ = CausalInspectionRepresentativeRowDigestSet::from_failure(_, _, _);
+  |

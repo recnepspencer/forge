@@ -217,6 +217,7 @@ pub(super) fn owner_for_family(family: CausalEvidenceFamily) -> CausalEvidenceOw
         | CausalEvidenceFamily::SignalForensicAvailability
         | CausalEvidenceFamily::SignalReplayCursor
         | CausalEvidenceFamily::SignalLineage
+        | CausalEvidenceFamily::SignalProvenance
         | CausalEvidenceFamily::Lineage => CausalEvidenceOwner::Signal,
         CausalEvidenceFamily::BridgeRoute
         | CausalEvidenceFamily::BridgeEvaluation
