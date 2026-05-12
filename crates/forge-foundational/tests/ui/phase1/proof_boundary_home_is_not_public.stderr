@@ -1,0 +1,11 @@
+error[E0603]: module `proof_boundary` is private
+ --> tests/ui/phase1/proof_boundary_home_is_not_public.rs:1:25
+  |
+1 | use forge_foundational::proof_boundary;
+  |                         ^^^^^^^^^^^^^^ private module
+  |
+note: the module `proof_boundary` is defined here
+ --> src/lib.rs
+  |
+  | mod proof_boundary;
+  | ^^^^^^^^^^^^^^^^^^

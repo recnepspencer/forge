@@ -1379,6 +1379,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-foundational"
+version = "0.1.0"
+dependencies = [
+ "forge-proof",
+ "trybuild",
+]
+
+[[package]]
 name = "forge-harness"
 version = "0.1.0"
 dependencies = [
