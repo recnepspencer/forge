@@ -1,0 +1,5 @@
+error[E0599]: no variant or associated item named `Document` found for enum `AspectValue` in the current scope
+ --> tests/ui/phase2_phase3/generic_document_value_is_not_a_variant.rs:4:26
+  |
+4 |     let _ = AspectValue::Document(Vec::<AspectValue>::new());
+  |                          ^^^^^^^^ variant or associated item not found in `AspectValue`

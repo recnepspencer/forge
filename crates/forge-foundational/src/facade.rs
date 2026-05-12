@@ -1,6 +1,20 @@
+pub use crate::aspects::{
+    validate_aspect_value, AbsenceLaw, AspectContract, AspectContractRevision,
+    AspectEquivalenceBasis, AspectEvolutionKind, AspectEvolutionPolicy, AspectEvolutionVerdict,
+    AspectIdentity, AspectKey, AspectMask, AspectMaskContract, AspectShape, CanonicalFieldPath,
+    ContractValidatedAspectArtifact, ContractValidatedAspectValue, ContractValidationDenial,
+    ContractValidationInput, DiagnosticMask, FieldDeclaration, FieldKey, FieldRequirement,
+    MaskAdmissibilityDenial, MutationMask, OpaqueAspectType, ProjectionMask, ReferenceAspectType,
+    StructAspectShape, StructAspectValue,
+};
 pub use crate::proof_boundary::{
     declared_foundational_boundary, FoundationalBoundaryArtifact, FoundationalBoundaryDeclaration,
     FoundationalBoundaryDeclared,
+};
+pub use crate::values::{
+    AspectValue, CanonicalBigInt, CanonicalDate, CanonicalDecimal, CanonicalF32, CanonicalF64,
+    CanonicalRational, CanonicalString, CanonicalTime, CanonicalTimestamp, CanonicalTimestampTz,
+    ContentRefId, EntityId, ScalarAspectType,
 };
 
 /// A named implementation home that Milestone 1 expects to remain distinct.
