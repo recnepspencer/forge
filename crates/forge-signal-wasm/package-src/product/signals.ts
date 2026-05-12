@@ -16,6 +16,7 @@ import {
 } from "./host_capabilities.js";
 import { wrapDiagnostics } from "./diagnostics.js";
 import { createFormController } from "./forms/form_controller.js";
+import { createFormSourceFactory } from "./forms/sources/form_sources.js";
 import { createApiFactory } from "./api/api_namespace.js";
 import {
   createImportedSignalGraph,
@@ -364,6 +365,14 @@ export function wrapSignals(rawSignals, options) {
   const hostCapabilities = createHostCapabilities(rawSignals, options);
   let diagnostics = null;
   const explicitSpec = explicitSignalSpecNamespace(rawSignals);
+  const formSourceFactory = createFormSourceFactory();
+  function createForm(declaration) {
+    return createFormController(callableSignals, declaration);
+  }
+  Object.defineProperty(createForm, "source", {
+    enumerable: true,
+    value: formSourceFactory,
+  });
   const callableSignals = {
     host: hostCapabilities.host,
     resource: createResourceNamespace(null, rawSignals),
@@ -379,9 +388,7 @@ export function wrapSignals(rawSignals, options) {
     controller(definitionOrBuilder) {
       return buildControllerContract(callableSignals, definitionOrBuilder);
     },
-    form(declaration) {
-      return createFormController(callableSignals, declaration);
-    },
+    form: createForm,
     publicInput(handle, options) {
       return createPublicGraphInputEntry(handle, options);
     },

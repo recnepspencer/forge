@@ -22,7 +22,7 @@ import { materializeFieldDeclarations } from "./fields/declarations.js";
 import { createFieldHandle } from "./fields/handles.js";
 import { evaluateSteps } from "./steps/artifacts.js";
 import { materializeStepDeclarations } from "./steps/declarations.js";
-import { readSource } from "./sources/form_sources.js";
+import { materializeFormSourceAuthority } from "./sources/form_sources.js";
 import {
   buildPatchPlan,
   dirtyFieldRecords,
@@ -45,6 +45,8 @@ export function createFormController(signalNamespace, declaration) {
   if (!("source" in declaration)) {
     throw new FormDeclarationError("signals.form(...) requires a source value or signal");
   }
+  const sourceAuthority = materializeFormSourceAuthority(declaration.source);
+  const formDeclaration = materializeFormDeclarationRecord(declaration, sourceAuthority);
   let draft = {};
   const fieldDeclarations = materializeFieldDeclarations(declaration);
   const validationDeclarations = materializeValidationDeclarations(declaration, fieldDeclarations);
@@ -64,6 +66,18 @@ export function createFormController(signalNamespace, declaration) {
   const form = {
     source() {
       return cloneFormValue(authoritativeSource());
+    },
+    sourceAuthority() {
+      return sourceAuthority.diagnostics();
+    },
+    declaration() {
+      return formDeclarationDiagnostics(formDeclaration, sourceAuthority, fieldDeclarations);
+    },
+    fieldContract() {
+      return fieldContractDiagnostics(fieldDeclarations);
+    },
+    inputAdapters() {
+      return inputAdapterDiagnostics(fieldDeclarations);
     },
     draft() {
       return cloneFormValue(draft);
@@ -136,7 +150,7 @@ export function createFormController(signalNamespace, declaration) {
         settled,
         previousSource,
         previousDraft,
-        readSource(declaration.source),
+        sourceAuthority.read(),
       );
       if (canonicalization) {
         draft = {};
@@ -219,10 +233,13 @@ export function createFormController(signalNamespace, declaration) {
     diagnostics() {
       return Object.freeze({
         kind: "form",
+        declaration: form.declaration(),
         fieldCount: fieldDeclarations.length,
+        fieldContract: form.fieldContract(),
         dirty: form.dirty(),
         patchPlan: form.patchPlan(),
         validation: form.validation(),
+        sourceAuthority: form.sourceAuthority(),
         availability: form.availability(),
         admission: form.admission(),
         steps: form.steps(),
@@ -232,15 +249,7 @@ export function createFormController(signalNamespace, declaration) {
         asyncValidationHistory: form.asyncValidationHistory(),
         canonicalizationHistory: form.canonicalizationHistory(),
         verification: form.verification(),
-        inputAdapters: Object.freeze(
-          fieldDeclarations.map((field) => ({
-            field: field.id,
-            path: field.path,
-            tier: field.inputAdapter.tier,
-            capabilities: field.inputAdapter.capabilities,
-            unavailable: field.inputAdapter.unavailable,
-          })),
-        ),
+        inputAdapters: form.inputAdapters(),
       });
     },
     fields: fieldHandles,
@@ -272,6 +281,80 @@ export function createFormController(signalNamespace, declaration) {
   return Object.freeze(form);
 
   function authoritativeSource() {
-    return canonicalizations.sourceFor(readSource(declaration.source));
+    return canonicalizations.sourceFor(sourceAuthority.read());
   }
+}
+
+function materializeFormDeclarationRecord(declaration, sourceAuthority) {
+  if (declaration.id !== undefined && typeof declaration.id !== "string") {
+    throw new FormDeclarationError("form declaration id must be a string when provided");
+  }
+  if (declaration.contract !== undefined && typeof declaration.contract !== "string") {
+    throw new FormDeclarationError("form declaration contract must be a string when provided");
+  }
+  const formId = declaration.id ?? `form:${sourceAuthority.kind}:${sourceAuthority.sourceId}`;
+  return Object.freeze({
+    formId,
+    contract: declaration.contract ?? "phase1-form-declaration-v1",
+  });
+}
+
+function formDeclarationDiagnostics(formDeclaration, sourceAuthority, fieldDeclarations) {
+  const families = {
+    scalar: 0,
+    repeated: 0,
+    attachment: 0,
+  };
+  for (const field of fieldDeclarations) {
+    families[field.family] += 1;
+  }
+  return Object.freeze({
+    formId: formDeclaration.formId,
+    contract: formDeclaration.contract,
+    source: Object.freeze({
+      kind: sourceAuthority.kind,
+      sourceId: sourceAuthority.sourceId,
+    }),
+    fieldFamilies: Object.freeze(families),
+    fieldCount: fieldDeclarations.length,
+  });
+}
+
+function fieldContractDiagnostics(fieldDeclarations) {
+  return Object.freeze(
+    fieldDeclarations.map((field) => ({
+      id: field.id,
+      name: field.name,
+      family: field.family,
+      path: field.path,
+      collectionIdentity: field.collectionIdentity === null
+        ? null
+        : {
+            kind: field.collectionIdentity.kind,
+            field: field.collectionIdentity.field,
+            posture: field.collectionIdentity.posture,
+          },
+      attachment: field.attachment === null
+        ? null
+        : {
+            identityKind: field.attachment.identityKind,
+            identityField: field.attachment.identityField,
+            metadata: field.attachment.metadata,
+            posture: field.attachment.posture,
+          },
+    })),
+  );
+}
+
+function inputAdapterDiagnostics(fieldDeclarations) {
+  return Object.freeze(
+    fieldDeclarations.map((field) => ({
+      field: field.id,
+      path: field.path,
+      family: field.family,
+      tier: field.inputAdapter.tier,
+      capabilities: field.inputAdapter.capabilities,
+      unavailable: field.inputAdapter.unavailable,
+    })),
+  );
 }

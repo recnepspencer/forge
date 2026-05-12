@@ -4,6 +4,7 @@ export * from "./forms/availability.js";
 export * from "./forms/canonicalization.js";
 export * from "./forms/controller.js";
 export * from "./forms/core.js";
+export * from "./forms/sources.js";
 export * from "./forms/steps.js";
 export * from "./forms/validation.js";
 export * from "./forms/verification.js";

@@ -8,7 +8,11 @@ export function materializeFieldDeclarations(declaration) {
   const factory = createFieldDeclarationFactory();
   const declared =
     typeof declaration.fields === "function"
-      ? declaration.fields({ field: factory.field })
+      ? declaration.fields({
+          field: factory.field,
+          repeated: factory.repeated,
+          attachment: factory.attachment,
+        })
       : declaration.fields;
   if (!declared || typeof declared !== "object" || Array.isArray(declared)) {
     throw new FormDeclarationError("signals.form(...) requires a fields object");
@@ -29,8 +33,11 @@ export function materializeFieldDeclarations(declaration) {
       return Object.freeze({
         name,
         id,
+        family: field.family,
         path: field.path,
         segments: Object.freeze(field.segments),
+        collectionIdentity: field.collectionIdentity,
+        attachment: field.attachment,
         inputAdapter: normalizeInputAdapter(field.options),
         parse: typeof field.options.parse === "function" ? field.options.parse : null,
       });
@@ -41,13 +48,78 @@ export function materializeFieldDeclarations(declaration) {
 function createFieldDeclarationFactory() {
   return {
     field(path, options = {}) {
-      const segments = parseFieldPath(path);
-      return Object.freeze({
-        [FIELD_DECLARATION_BRAND]: true,
-        path: fieldPathKey(segments),
-        segments,
-        options,
+      return fieldDeclaration("scalar", path, options);
+    },
+    repeated(path, options = {}) {
+      return fieldDeclaration("repeated", path, options, {
+        collectionIdentity: normalizeCollectionIdentity(options),
+      });
+    },
+    attachment(path, options = {}) {
+      return fieldDeclaration("attachment", path, options, {
+        attachment: normalizeAttachmentDeclaration(options),
       });
     },
   };
+}
+
+function fieldDeclaration(family, path, options = {}, extras = {}) {
+  requireOptionsObject(options);
+  const segments = parseFieldPath(path);
+  return Object.freeze({
+    [FIELD_DECLARATION_BRAND]: true,
+    family,
+    path: fieldPathKey(segments),
+    segments,
+    options,
+    collectionIdentity: extras.collectionIdentity ?? null,
+    attachment: extras.attachment ?? null,
+  });
+}
+
+function normalizeCollectionIdentity(options) {
+  const identity = options.itemIdentity ?? options.key;
+  if (identity === undefined) {
+    throw new FormDeclarationError(
+      "repeated form fields require an explicit itemIdentity or key",
+    );
+  }
+  if (typeof identity !== "string" && typeof identity !== "function") {
+    throw new FormDeclarationError(
+      "repeated form fields require itemIdentity to be a string or function",
+    );
+  }
+  return Object.freeze({
+    kind: typeof identity === "function" ? "resolver" : "field",
+    field: typeof identity === "string" ? identity : null,
+    resolver: typeof identity === "function" ? identity : null,
+    posture: "stableItemIdentityRequired",
+  });
+}
+
+function normalizeAttachmentDeclaration(options) {
+  const identity = options.attachmentIdentity ?? options.digest;
+  if (identity === undefined) {
+    throw new FormDeclarationError(
+      "attachment form fields require an explicit attachmentIdentity or digest",
+    );
+  }
+  if (typeof identity !== "string" && typeof identity !== "function") {
+    throw new FormDeclarationError(
+      "attachment form fields require attachmentIdentity to be a string or function",
+    );
+  }
+  return Object.freeze({
+    identityKind: typeof identity === "function" ? "resolver" : "field",
+    identityField: typeof identity === "string" ? identity : null,
+    identityResolver: typeof identity === "function" ? identity : null,
+    metadata: Object.freeze({ ...(options.metadata ?? {}) }),
+    posture: "fileBlobIdentityAndMetadataDeclared",
+  });
+}
+
+function requireOptionsObject(options) {
+  if (!options || typeof options !== "object" || Array.isArray(options)) {
+    throw new FormDeclarationError("form field options must be an object");
+  }
 }

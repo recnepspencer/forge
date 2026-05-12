@@ -2,6 +2,8 @@ import { stableValueDigest } from "./values/value_paths.js";
 
 export function buildFormVerificationPackage(form) {
   const source = form.source();
+  const sourceAuthority = form.sourceAuthority();
+  const formDeclaration = form.declaration();
   const draft = form.draft();
   const effective = form.effective();
   const dirty = form.dirty();
@@ -12,12 +14,25 @@ export function buildFormVerificationPackage(form) {
   const admission = form.admission();
   const steps = form.steps();
   const actions = form.actions();
+  const fieldContract = form.fieldContract();
+  const inputAdapters = form.inputAdapters();
   const actionHistory = form.actionHistory();
   const actionExecutionHistory = form.actionExecutionHistory();
   const asyncValidationHistory = form.asyncValidationHistory();
   const canonicalizationHistory = form.canonicalizationHistory();
   const digests = Object.freeze({
-    sourceAuthorityDigest: stableValueDigest(source),
+    sourceAuthorityDigest: sourceAuthority.sourceAuthorityDigest,
+    sourceAuthorityContractDigest: stableValueDigest({
+      kind: sourceAuthority.kind,
+      sourceId: sourceAuthority.sourceId,
+      explicit: sourceAuthority.explicit,
+      contract: sourceAuthority.contract,
+      identity: sourceAuthority.identity,
+    }),
+    sourceValueDigest: stableValueDigest(source),
+    formDeclarationDigest: stableValueDigest(formDeclaration),
+    fieldContractDigest: stableValueDigest(fieldContract),
+    inputAdapterCapabilityDigest: stableValueDigest(inputAdapters),
     draftDigest: stableValueDigest(draft),
     effectiveValueDigest: stableValueDigest(effective),
     semanticEqualityDigest: stableValueDigest(dirty),
@@ -41,6 +56,10 @@ export function buildFormVerificationPackage(form) {
     actionLifecycleDigest: stableValueDigest(actionHistory),
     actionExecutionLifecycleDigest: stableValueDigest(actionExecutionHistory),
     diagnosticsHistoryDigest: stableValueDigest({
+      sourceAuthority,
+      formDeclaration,
+      fieldContract,
+      inputAdapters,
       dirty,
       patchPlan,
       readiness,
@@ -53,6 +72,7 @@ export function buildFormVerificationPackage(form) {
   });
   return Object.freeze({
     kind: "formVerification",
+    sourceAuthority,
     digests,
     actionHistory: Object.freeze({
       attempts: actionHistory.length,

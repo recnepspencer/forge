@@ -3,11 +3,17 @@ import type { FormAdmissionReport } from "./admission.js";
 import type { FormAvailabilityReport } from "./availability.js";
 import type { FormStepsReport } from "./steps.js";
 import type { FormValidationReport } from "./validation.js";
+import type { FormSourceAuthorityDiagnostics } from "./sources.js";
 
 export interface FormVerificationPackage {
   readonly kind: "formVerification";
   readonly digests: {
     readonly sourceAuthorityDigest: string;
+    readonly sourceAuthorityContractDigest: string;
+    readonly sourceValueDigest: string;
+    readonly formDeclarationDigest: string;
+    readonly fieldContractDigest: string;
+    readonly inputAdapterCapabilityDigest: string;
     readonly draftDigest: string;
     readonly effectiveValueDigest: string;
     readonly semanticEqualityDigest: string;
@@ -28,6 +34,7 @@ export interface FormVerificationPackage {
     readonly canonicalizationDigest: string;
     readonly diagnosticsHistoryDigest: string;
   };
+  readonly sourceAuthority: FormSourceAuthorityDiagnostics;
   readonly actionHistory: {
     readonly attempts: number;
     readonly digest: string;
