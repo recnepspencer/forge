@@ -6,9 +6,9 @@ import {
 } from "../../resource/downloads/resource_binary_value.js";
 import { isProcessingResult } from "../../resource/processing/processing_result.js";
 import { isUploadResult } from "../../resource/uploads/upload_result.js";
-import { createApiRouteBodyCanonicalSuffix } from "./api_route_body_identity.js";
 import { apiRouteDownloadsBuilder } from "./api_route_download_builder.js";
 import { createApiRouteItemsReconcile } from "./api_route_items_reconcile.js";
+import { createApiRouteMutationResponseDeclaration } from "./api_route_mutation_response.js";
 import { attachApiRouteTargetMetadata } from "./api_route_target_metadata.js";
 import {
   createRouteBoundParams,
@@ -84,6 +84,11 @@ function lowerWriteRouteDeclaration(
     transferState,
     downloadsState,
   );
+  if ("reconciles" in declaration) {
+    throw new TypeError(
+      `api.url("${pattern.route}").create/update(...) owns reconciles(...) only in the mutation response lane`,
+    );
+  }
   return attachApiRouteTargetMetadata(Object.freeze({
     ...lowered,
     method,
@@ -109,7 +114,7 @@ function lowerWriteRouteDeclaration(
         rawParams,
         "required",
       ),
-      true,
+      false,
     ));
 }
 
@@ -147,6 +152,82 @@ function lowerDirectArrayRouteDeclaration(
   });
 }
 
+function lowerResponseMutationRouteDeclaration(
+  pattern,
+  requestParamsState,
+  declaration,
+  method,
+  requestShapeState,
+  directItemsState,
+  transferState,
+  downloadsState,
+) {
+  const bodyRequired = method === "DELETE"
+    ? requestShapeState.bodyDeclared
+    : true;
+  const lowered = lowerRouteDeclarationBase(
+    pattern,
+    declaration,
+    requestShapeState,
+    transferState,
+    downloadsState,
+  );
+  const { reconciles, ...loweredWithoutReconciles } = lowered;
+  if ("itemIdentity" in declaration) {
+    throw new TypeError(
+      `api.url("${pattern.route}").response(...) owns response identity in the mutation response lane`,
+    );
+  }
+  if ("reconcile" in declaration) {
+    throw new TypeError(
+      `api.url("${pattern.route}").response(...) owns mutation response planning in the mutation response lane`,
+    );
+  }
+  return attachApiRouteTargetMetadata(Object.freeze({
+    ...loweredWithoutReconciles,
+    method,
+    ...(bodyRequired
+      ? { requestBody: (params) => params.body }
+      : {}),
+    responseLensProof: directItemsState.response.lensProof,
+    ...(directItemsState.response.kind === "detail"
+      ? {
+          detailFields: directItemsState.response.fields ?? undefined,
+          detailRegions: directItemsState.response.regions ?? undefined,
+          detailJsonPaths: directItemsState.response.jsonPaths ?? undefined,
+        }
+      : {}),
+    mutationResponse: createApiRouteMutationResponseDeclaration(
+      pattern.route,
+      method,
+      directItemsState.response,
+      reconciles,
+    ),
+    normalizeParams(rawParams) {
+      const params = createRouteBoundParams(
+        pattern,
+        requestParamsState,
+        rawParams,
+        bodyRequired ? "required" : "forbidden",
+      );
+      return resourceParamIdentity(
+        params,
+        createRouteCanonicalKey(pattern, params, bodyRequired),
+      );
+    },
+  }), (rawParams) =>
+    createRouteCanonicalKey(
+      pattern,
+      createRouteBoundParams(
+        pattern,
+        requestParamsState,
+        rawParams,
+        bodyRequired ? "required" : "forbidden",
+      ),
+      false,
+    ));
+}
+
 function lowerResponseDetailRouteDeclaration(
   pattern,
   requestParamsState,
@@ -164,6 +245,11 @@ function lowerResponseDetailRouteDeclaration(
     transferState,
     downloadsState,
   );
+  if ("reconciles" in declaration) {
+    throw new TypeError(
+      `api.url("${pattern.route}").response(...).detail(...) owns reconciles(...) only in the mutation response lane`,
+    );
+  }
   if ("itemIdentity" in declaration) {
     throw new TypeError(
       `api.url("${pattern.route}").response(...) owns response identity in the single response lane`,
@@ -177,6 +263,13 @@ function lowerResponseDetailRouteDeclaration(
   return Object.freeze({
     ...lowered,
     responseLensProof: directItemsState.response.lensProof,
+    ...(directItemsState.response.kind === "detail"
+      ? {
+          detailFields: directItemsState.response.fields ?? undefined,
+          detailRegions: directItemsState.response.regions ?? undefined,
+          detailJsonPaths: directItemsState.response.jsonPaths ?? undefined,
+        }
+      : {}),
   });
 }
 
@@ -196,6 +289,11 @@ function lowerRemoveRouteDeclaration(
     transferState,
     downloadsState,
   );
+  if ("reconciles" in declaration) {
+    throw new TypeError(
+      `api.url("${pattern.route}").remove(...) owns reconciles(...) only in the mutation response lane`,
+    );
+  }
   return attachApiRouteTargetMetadata(Object.freeze({
     ...lowered,
     method: "DELETE",
@@ -374,6 +472,7 @@ function requireOwnedApiRouteReadFields(route, declaration) {
 export {
   lowerDirectArrayRouteDeclaration,
   lowerResponseDetailRouteDeclaration,
+  lowerResponseMutationRouteDeclaration,
   lowerReadRouteDeclaration,
   lowerRemoveRouteDeclaration,
   lowerWriteRouteDeclaration,

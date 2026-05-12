@@ -1,4 +1,7 @@
 import { readLineHistoryAvailability } from "./line_history_availability_read.js";
+import {
+  readMutationResponseSummaryDigest,
+} from "../../mutation/resource_mutation_response_diagnostics_projection.js";
 
 function readLineDiagnosticsSummary(materialization) {
   const diagnostics = materialization.binding.diagnosticsSignal();
@@ -6,6 +9,8 @@ function readLineDiagnosticsSummary(materialization) {
   const freshness = materialization.binding.freshnessSignal();
   const visibleValue = materialization.binding.valueSignal();
   const history = readLineHistoryAvailability(materialization);
+  const mutationResponseSummaryDigest =
+    readMutationResponseSummaryDigest(diagnostics);
   const current = {
     status,
     freshness,
@@ -45,6 +50,9 @@ function readLineDiagnosticsSummary(materialization) {
       patchKind: diagnostics.lastPatchKind,
       patchScope: diagnostics.lastPatchScope,
       patchedItemId: diagnostics.lastPatchedItemId,
+      patchedField: diagnostics.lastPatchedField,
+      patchedRegion: diagnostics.lastPatchedRegion,
+      patchedPath: diagnostics.lastPatchedPath,
       patchedAspect: diagnostics.lastPatchedAspect,
       patchedSummary: diagnostics.lastPatchedSummary,
       deliveryKind: diagnostics.lastDeliveryKind,
@@ -60,6 +68,15 @@ function readLineDiagnosticsSummary(materialization) {
       errorMessage: diagnostics.lastErrorMessage,
       preservedVisibleValueOnLastRejection:
         diagnostics.preservedVisibleValueOnLastRejection,
+      ...(mutationResponseSummaryDigest === null
+        ? {}
+        : {
+            mutationResponsePlanId: mutationResponseSummaryDigest.planId,
+            mutationResponseTargetCount: mutationResponseSummaryDigest.targetCount,
+            mutationResponseExecutionDigest:
+              mutationResponseSummaryDigest.executionDigest,
+            mutationResponsePlanCount: mutationResponseSummaryDigest.planCount,
+          }),
     }),
     request: diagnostics.request,
     processing: diagnostics.processing,

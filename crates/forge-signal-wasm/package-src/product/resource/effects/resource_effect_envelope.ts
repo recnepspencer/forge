@@ -19,9 +19,13 @@ function createLocalPatchEffectEnvelope(effectPlan, patch, result) {
       kind: patch.kind,
       scope: result.scope,
       itemId: result.itemId,
+      field: result.field,
+      region: result.region,
+      path: result.path,
       aspect: result.aspect,
       summary: result.summary,
       valueChanged: result.valueChanged,
+      regionProof: result.regionProof,
       jsonPathProof: result.jsonPathProof,
     }),
   });
@@ -41,9 +45,13 @@ function createDeliveryEffectEnvelope(effectPlan, delivery) {
       kind: delivery.patchKind,
       scope: delivery.patchScope,
       itemId: delivery.patchedItemId,
+      field: delivery.patchedField,
+      region: delivery.patchedRegion,
+      path: delivery.patchedPath,
       aspect: delivery.patchedAspect,
       summary: delivery.patchedSummary,
       valueChanged: delivery.valueChanged,
+      regionProof: delivery.regionProof,
       jsonPathProof: delivery.jsonPathProof,
     }),
   });
@@ -101,6 +109,7 @@ function createResourceEffectEnvelope(options) {
     patch: patchDigest,
     counters: Object.freeze({
       ...effectPlan.counters,
+      ...createRegionCounters(patchDigest.region),
       ...createJsonPathCounters(patchDigest.jsonPath),
     }),
   };
@@ -198,10 +207,41 @@ function createPatchDigest(patch) {
     kind: patch.kind,
     scope: patch.scope,
     itemId: patch.itemId,
+    field: patch.field,
+    regionName: patch.region ?? null,
+    path: patch.path ?? null,
     aspect: patch.aspect,
     summary: patch.summary,
     valueChanged: patch.valueChanged,
+    region: createRegionPatchProof(patch.regionProof),
     jsonPath: createJsonPathPatchProof(patch.jsonPathProof),
+  });
+}
+
+function createRegionPatchProof(regionProof) {
+  if (regionProof === null || regionProof === undefined) {
+    return null;
+  }
+  return Object.freeze({
+    version: regionProof.version,
+    regionName: regionProof.regionName,
+    identityBoundary: regionProof.identityBoundary,
+    mergeGranularity: regionProof.mergeGranularity,
+    cost: regionProof.cost,
+    proofDigest: regionProof.proofDigest,
+  });
+}
+
+function createRegionCounters(regionProof) {
+  if (regionProof === null) {
+    return Object.freeze({
+      detailRegionTraversalBreadth: 0,
+      detailRegionReconstructionBreadth: 0,
+    });
+  }
+  return Object.freeze({
+    detailRegionTraversalBreadth: regionProof.cost.traversalBreadth,
+    detailRegionReconstructionBreadth: regionProof.cost.reconstructionBreadth,
   });
 }
 
@@ -211,8 +251,9 @@ function createJsonPathPatchProof(jsonPathProof) {
   }
   return Object.freeze({
     version: jsonPathProof.version,
-    aspect: jsonPathProof.aspect,
-    field: jsonPathProof.field,
+    aspect: "aspect" in jsonPathProof ? jsonPathProof.aspect : null,
+    field: "field" in jsonPathProof ? jsonPathProof.field : null,
+    pathName: "pathName" in jsonPathProof ? jsonPathProof.pathName : null,
     path: jsonPathProof.path,
     parsedPathDigest: jsonPathProof.parsedPathDigest,
     policy: jsonPathProof.policy,
@@ -281,6 +322,21 @@ function createResponseLensBackedEffectLocus(patch, responseLensProof) {
       return Object.freeze({
         kind: createResponseLensLineLocus(responseLensProof.topology),
       });
+    case "field":
+      return Object.freeze({
+        kind: "detailField",
+        field: patch.field,
+      });
+    case "region":
+      return Object.freeze({
+        kind: "detailRegion",
+        region: patch.region,
+      });
+    case "jsonPath":
+      return Object.freeze({
+        kind: "detailJsonPath",
+        path: patch.path,
+      });
     case "item":
       return Object.freeze({
         kind: createResponseLensItemLocus(responseLensProof.topology),
@@ -345,6 +401,12 @@ function createGenericResourceEffectLocus(patch) {
   switch (patch.scope) {
     case "line":
       return Object.freeze({ kind: "line" });
+    case "field":
+      return Object.freeze({ kind: "detailField", field: patch.field });
+    case "region":
+      return Object.freeze({ kind: "detailRegion", region: patch.region });
+    case "jsonPath":
+      return Object.freeze({ kind: "detailJsonPath", path: patch.path });
     case "item":
       return Object.freeze({ kind: "item", itemId: patch.itemId });
     case "aspect":
@@ -369,6 +431,9 @@ function createDeliveryOnlyEffectLocus(deliveryScope) {
     case "invalidate":
       return Object.freeze({ kind: "invalidation" });
     case "line":
+    case "field":
+    case "region":
+    case "jsonPath":
     case "item":
     case "aspect":
     case "summary":

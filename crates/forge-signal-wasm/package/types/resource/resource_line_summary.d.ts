@@ -53,9 +53,28 @@ export interface ResourceLineDiagnosticsLatestChangeSummary {
     | "manualFamilyInvalidateAll"
     | null;
   readonly invalidationScope: "line" | "familyMember" | "familyAll" | null;
-  readonly patchKind: "replace" | "item" | "itemAspect" | "summary" | null;
-  readonly patchScope: "line" | "item" | "aspect" | "summary" | null;
+  readonly patchKind:
+    | "replace"
+    | "field"
+    | "region"
+    | "jsonPath"
+    | "item"
+    | "itemAspect"
+    | "summary"
+    | null;
+  readonly patchScope:
+    | "line"
+    | "field"
+    | "region"
+    | "jsonPath"
+    | "item"
+    | "aspect"
+    | "summary"
+    | null;
   readonly patchedItemId: string | null;
+  readonly patchedField: string | null;
+  readonly patchedRegion: string | null;
+  readonly patchedPath: string | null;
   readonly patchedAspect: string | null;
   readonly patchedSummary: string | null;
   readonly deliveryKind:
@@ -66,6 +85,9 @@ export interface ResourceLineDiagnosticsLatestChangeSummary {
     | null;
   readonly deliveryScope:
     | "line"
+    | "field"
+    | "region"
+    | "jsonPath"
     | "item"
     | "aspect"
     | "summary"
@@ -82,6 +104,10 @@ export interface ResourceLineDiagnosticsLatestChangeSummary {
   readonly timeoutOperation: import("./resource_lifecycle.js").ResourceLineOperation | null;
   readonly errorMessage: string | null;
   readonly preservedVisibleValueOnLastRejection: boolean;
+  readonly mutationResponsePlanId?: string;
+  readonly mutationResponseTargetCount?: number;
+  readonly mutationResponseExecutionDigest?: string;
+  readonly mutationResponsePlanCount?: number;
 }
 
 export interface ResourceLineDiagnosticsSummary {

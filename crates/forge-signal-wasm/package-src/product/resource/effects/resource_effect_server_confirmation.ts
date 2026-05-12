@@ -52,6 +52,12 @@ function areEffectLociEquivalent(previousLocus, currentLocus) {
     case "basis":
     case "invalidation":
       return true;
+    case "detailField":
+      return previousLocus.field === currentLocus.field;
+    case "detailRegion":
+      return previousLocus.region === currentLocus.region;
+    case "detailJsonPath":
+      return previousLocus.path === currentLocus.path;
     case "item":
     case "membership":
     case "connection":

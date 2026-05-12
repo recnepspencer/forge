@@ -170,3 +170,29 @@ test("custom action routes can stay inside the write grammar without falling bac
     await runtime.cleanup();
   }
 });
+
+test("plain write routes deny reconciles(...) outside the mutation response lane", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const userRead = runtime.signals.api({}).url("/users/:userId").detail({
+      load: ({ userId }) => ({ id: userId }),
+    });
+
+    assert.throws(
+      () =>
+        runtime.signals.api({}).url("/users/:userId").update({
+          reconciles: [
+            {
+              family: userRead,
+              params: ({ userId }) => ({ userId }),
+              fallback: "refetchRequired",
+            },
+          ],
+          load: ({ userId, body }) => ({ id: userId, name: body.name }),
+        }),
+      /owns reconciles\(\.\.\.\) only in the mutation response lane/,
+    );
+  } finally {
+    await runtime.cleanup();
+  }
+});

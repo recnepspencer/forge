@@ -943,8 +943,10 @@ patch or delivery helpers for admitted effect families.
 Milestone 10 does not include network transport ownership, service-worker
 synchronization, UI toast/banner/modal execution, arbitrary identity inference,
 automatic topology inference without declaration, identity migration after
-patch, or core branch/merge semantics that belong in native `forge-signal`
-first.
+patch, mutation response lenses for create/update/remove, write-result-to-read
+family reconciliation, granular detail field/path/region lenses, placement or
+deletion topology for create/remove responses, or core branch/merge semantics
+that belong in native `forge-signal` first.
 
 ### Acceptance Evidence
 
@@ -1000,6 +1002,119 @@ Why it belongs here:
   not normalize weaker JS-side resource effect machinery while native signal
   branches already exist
 
+## Milestone 11: Resource Mutation Response Reconciliation And Detail Lenses
+
+Engineering spec:
+[resource_mutation_response_reconciliation_plan.md](./resource_mutation_response_reconciliation_plan.md)
+
+Predecessor milestone:
+[resource_response_lens_contracts_plan.md](./resource_response_lens_contracts_plan.md)
+
+### Goal
+
+Finish the resource response product surface so mutation responses, detail
+resources, canonical server confirmations, creates, updates, removes, identity
+migration, and multi-family reconciliation are as explicit and ergonomic as the
+collection response lane.
+
+This milestone exists because Milestone 10 correctly closed the branch-native
+effect substrate and advanced response topology lowering, but it left an
+important consumer-facing asymmetry: collections have strong ergonomic
+topology, while writes and detail resources still ask application code to
+compose lower-level primitives.
+
+### Must Ship
+
+- response-owned `.create(...)`, `.update(...)`, and `.remove(...)` lanes after
+  `.response(...)`
+- mutation response lenses distinct from read response lenses when write
+  payloads contain canonical values plus metadata, warnings, validation, or
+  delivery hints
+- one canonical mutation-response reconciliation plan before read-line mutation
+- explicit write-result-to-read-family reconciliation for detail, collection,
+  paged, summary, and auxiliary read families
+- detail field, detail JSON path, detail region, and whole-detail response
+  effect loci
+- save/update response reconciliation that can replace or patch canonical
+  detail truth without feature-local commit logic
+- create response placement for collection topologies or typed
+  placement-unavailable/refetch/delivery-awaited posture
+- remove response deletion, tombstone, detail invalidation, summary update, or
+  typed deletion-unavailable/refetch/delivery-awaited posture
+- temporary/client/draft/import id to canonical server id migration through
+  proof-bearing branch-native effects
+- partial mutation response mapping for server fragments such as version,
+  updated-at, warnings, validation, operation status, and delivery hints
+- multi-family mutation reconciliation with per-target exact, partial,
+  invalidated, refetch-required, delivery-awaited, or declined outcomes
+- rollback, replay, branch restore, diagnostics, history, and merge/rebase
+  proof derived from mutation-response plans
+- cost counters for response extraction, target fanout, detail traversal,
+  topology lookup, reconstruction, identity migration, placement, deletion,
+  and fallback breadth
+
+### Must Preserve
+
+- Milestone 10's canonical branch-native resource effect envelope
+- response lenses as topology lowering rather than resource truth authority
+- read family authority over line truth, lifecycle, freshness, diagnostics,
+  history, delivery basis, branch posture, and visible truth
+- the distinction between read response topology and mutation payload topology
+- whole-response detail replacement as a legal broad effect, while no longer
+  treating it as the full detail story
+- explicit declaration over automatic topology or identity inference
+- typed unavailability as honest fallback, not as ergonomic completion
+- UI policy separation and network transport separation
+
+### Explicit Boundary
+
+Milestone 11 includes mutation response reconciliation, granular detail lenses,
+create placement, remove deletion, identity migration, partial response
+mapping, multi-family target convergence, and explicit refetch/delivery
+fallback posture.
+
+Milestone 11 does not include network transport ownership, service-worker
+synchronization, UI toast/banner/modal execution, arbitrary topology
+inference, arbitrary item identity inference, framework-specific cache
+integration, or native branch/merge semantics that belong in core
+`forge-signal` first.
+
+### Acceptance Evidence
+
+This milestone is complete only when the wasm product surface can prove:
+
+- write response lenses exist for create, update, and remove routes
+- mutation responses lower into one canonical reconciliation plan
+- write responses can reconcile read-family truth without feature-local cache
+  or normalization glue
+- detail resources support field, JSON path, region, and whole-response loci
+- updates can reconcile detail, collection, paged, and summary truth
+- creates can insert into declared collection topologies or emit typed
+  placement fallback
+- removes can delete, tombstone, invalidate detail truth, or emit typed
+  deletion fallback
+- identity migration updates every declared target it claims to update or emits
+  typed partial/unavailable posture
+- partial mutation responses update only declared canonical fragments
+- multi-family mutations leave no declared target implicitly stale
+- rollback, replay, branch restore, diagnostics, history, and merge/rebase
+  explain every reconciled target from the mutation-response plan
+- docs and closeout matrices distinguish admitted ergonomic happy paths from
+  denial-only support and typed unavailable fallback
+
+Why it belongs here:
+
+- it comes immediately after Milestone 10 because it depends on branch-native
+  effects, response-lens proof, rollback, diagnostics/history, and merge/rebase
+  posture that Milestone 10 made real
+- it closes the product asymmetry exposed by workflow/editor writes: collection
+  topology is elegant, but details, creates, updates, removes, and canonical
+  write-result reconciliation still need first-class product treatment
+- it belongs before roadmap completion because serious forms, workflow
+  editors, router continuity, and external integration should consume this
+  write/detail reconciliation surface rather than hand-normalizing mutation
+  results in feature code
+
 ## Roadmap Done When
 
 This roadmap is complete only when:
@@ -1013,6 +1128,10 @@ This roadmap is complete only when:
 - branch-native resource effects let local patch, delivery, optimistic write,
   rollback, rebase, and advanced response topology consume signal branch truth
   without manual route patch plumbing or a second optimistic cache
+- mutation response reconciliation lets create, update, remove, canonical
+  server responses, granular detail effects, identity migration, placement,
+  deletion, partial responses, and multi-family target updates converge without
+  feature-local cache or normalization glue
 - route and navigation products consume URL, browser-history, branch, and
   resource continuity truth without creating a second state machine
 - worker-first deployment keeps most runtime work off the UI thread while

@@ -1,0 +1,411 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+
+import { createRealRequestRuntime } from "../../runtime_fixture/real_request_runtime.mjs";
+
+test("detail response contracts own the detail finalizer lane", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const response = runtime.signals.resource.response.detail()();
+    assert.equal(response.kind, "detail");
+    assert.equal(response.lensProof.topology, "detail");
+    assert.equal(
+      response.lensProof.capabilityRows.some(
+        (row) => row.locus === "detailResponse" && row.patchScope === "line",
+      ),
+      true,
+    );
+
+    const route = runtime.signals.api({}).url("/users/:userId").response(response);
+    const user = route.detail({
+      load: ({ userId }) => ({ id: userId, name: "First" }),
+    });
+    assert.deepEqual(user.line({ userId: "u1" }).value(), {
+      id: "u1",
+      name: "First",
+    });
+
+    assert.throws(
+      () => route.list({ load: () => [] }),
+      /detail response lane; use detail/,
+    );
+    assert.throws(
+      () => route.paged({ accumulatePage: (_existing, next) => next, load: () => [] }),
+      /detail response lane; use detail/,
+    );
+    const saveUser = route.update({
+      load: ({ userId, body }) => ({ id: userId, name: body.name }),
+    });
+    const saveLine = saveUser.line({
+      userId: "u1",
+      body: { name: "Updated" },
+    });
+    assert.deepEqual(saveLine.value(), {
+      id: "u1",
+      name: "Updated",
+    });
+    assert.deepEqual(saveLine.mutationResponse(), {
+      version: "resource-mutation-response-plan-v1",
+      source: 'api.url("/users/:userId").response(...).put(...)',
+      planId: `${saveLine.descriptor().family.familyId}:${saveLine.descriptor().canonicalParams.canonicalKey}:PUT:0:0:0:0:1`,
+      route: "/users/:userId",
+      method: "PUT",
+      line: {
+        familyId: saveLine.descriptor().family.familyId,
+        runtimeLineId: saveLine.descriptor().runtimeLineId,
+        canonicalKey: saveLine.descriptor().canonicalParams.canonicalKey,
+      },
+      request: {
+        correlationId: null,
+        branchId: null,
+        basisId: null,
+        requestPath: "/users/u1",
+        url: "/users/u1",
+      },
+      response: {
+        topology: "detail",
+        readResponseLensSource: "resource.response.detail<T>()",
+        readResponseLensDigest: response.lensProof.compiledLensDigest,
+        mutationResponseLensDigest:
+          saveLine.mutationResponse().response.mutationResponseLensDigest,
+        payloadDigest: 'mutation-response-payload|{"id":"u1","name":"Updated"}',
+      },
+      targets: [],
+      targetCount: 0,
+      atomicity: "zeroTargets",
+      targetDigest: "mutation-response-targets|none",
+      fallbackDigest: "mutation-response-fallbacks|none",
+      executionArtifacts: [],
+      executionDigest: "mutation-response-execution|none",
+      counters: {
+        planningBreadth: 1,
+        responseExtractionBreadth: 1,
+        targetLookupBreadth: 0,
+        targetFanoutBreadth: 0,
+        fallbackBreadth: 0,
+        executionBreadth: 0,
+      },
+    });
+    assert.deepEqual(
+      saveLine.history().lifecycle.slice(-2).map((entry) => entry.event),
+      ["materialized", "mutationResponsePlanned"],
+    );
+    assert.deepEqual(
+      saveLine.history().lifecycle.at(-1).mutationResponsePlan,
+      saveLine.mutationResponse(),
+    );
+    assert.equal(
+      saveLine.history().verificationPackage().mutationResponse.plan.targetCount,
+      0,
+    );
+    assert.equal(
+      saveLine.history().verificationPackage().mutationResponse.planCount,
+      1,
+    );
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("summary response contracts own the single-response detail finalizer lane", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const response = runtime.signals.resource.response.summary()();
+    assert.equal(response.kind, "summary");
+    assert.equal(response.lensProof.topology, "summary");
+    assert.equal(
+      response.lensProof.capabilityRows.some(
+        (row) => row.locus === "summaryResponse" && row.patchScope === "line",
+      ),
+      true,
+    );
+
+    const route = runtime.signals.api({}).url("/task-count").response(response);
+    const taskCountRead = runtime.signals.api({}).url("/task-count").detail({
+      load: () => ({ total: 1 }),
+    });
+    const count = route.detail({
+      load: () => ({ total: 1 }),
+    });
+    assert.deepEqual(count.line({}).value(), { total: 1 });
+
+    assert.throws(
+      () => route.list({ load: () => [] }),
+      /summary response lane; use detail/,
+    );
+    assert.throws(
+      () => route.paged({ accumulatePage: (_existing, next) => next, load: () => [] }),
+      /summary response lane; use detail/,
+    );
+    const publishCount = route.create({
+      reconciles: [
+        {
+          family: taskCountRead,
+          params: () => ({}),
+          fallback: "refetchRequired",
+        },
+      ],
+      load: ({ body }) => ({ total: body.total }),
+    });
+    const readLine = taskCountRead.line({});
+    const publishLine = publishCount.line({
+      body: { total: 2 },
+    });
+    assert.deepEqual(publishLine.value(), { total: 2 });
+    assert.equal(publishLine.mutationResponse().method, "POST");
+    assert.equal(publishLine.mutationResponse().atomicity, "singleTarget");
+    assert.deepEqual(publishLine.mutationResponse().targets, [{
+      targetId: "mutationTarget1",
+      family: {
+        kind: "detail",
+        familyId: readLine.descriptor().family.familyId,
+      },
+      line: {
+        familyKind: "detail",
+        familyId: readLine.descriptor().family.familyId,
+        canonicalKey: readLine.descriptor().canonicalParams.canonicalKey,
+        runtimeLineId: readLine.descriptor().runtimeLineId,
+        residency: "resident",
+      },
+      fallback: {
+        kind: "refetchRequired",
+        detail:
+          `detail ${readLine.descriptor().family.familyId} line ${readLine.descriptor().canonicalParams.canonicalKey} stays in refetchRequired posture until a later mutation-response phase admits exact reconciliation`,
+      },
+      reconciliation: null,
+      execution: {
+        artifactId: "mutationTarget1:fallback",
+        targetId: "mutationTarget1",
+        kind: "fallback",
+        fallback: "refetchRequired",
+        familyKind: "detail",
+        familyId: readLine.descriptor().family.familyId,
+        canonicalKey: readLine.descriptor().canonicalParams.canonicalKey,
+        runtimeLineId: readLine.descriptor().runtimeLineId,
+        residency: "resident",
+        detail:
+          `detail ${readLine.descriptor().family.familyId} line ${readLine.descriptor().canonicalParams.canonicalKey} stays in refetchRequired posture until a later mutation-response phase admits exact reconciliation`,
+      },
+      targetDigest:
+        `mutationTarget1|detail|${readLine.descriptor().family.familyId}|${readLine.descriptor().canonicalParams.canonicalKey}|refetchRequired`,
+    }]);
+    assert.deepEqual(publishLine.mutationResponse().executionArtifacts, [{
+      artifactId: "mutationTarget1:fallback",
+      targetId: "mutationTarget1",
+      kind: "fallback",
+      fallback: "refetchRequired",
+      familyKind: "detail",
+      familyId: readLine.descriptor().family.familyId,
+      canonicalKey: readLine.descriptor().canonicalParams.canonicalKey,
+      runtimeLineId: readLine.descriptor().runtimeLineId,
+      residency: "resident",
+      detail:
+        `detail ${readLine.descriptor().family.familyId} line ${readLine.descriptor().canonicalParams.canonicalKey} stays in refetchRequired posture until a later mutation-response phase admits exact reconciliation`,
+    }]);
+    assert.equal(
+      publishLine.history().verificationPackage().mutationResponse.plan.response.topology,
+      "summary",
+    );
+    assert.equal(
+      publishLine.history().verificationPackage().mutationResponse.plan.counters.executionBreadth,
+      1,
+    );
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("collection response lanes deny detail(...) but admit response-owned write planning", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const response = runtime.signals.resource.response.array({
+      itemId: (item) => item.id,
+    });
+    const route = runtime.signals.api({}).url("/tasks").response(response);
+
+    assert.throws(
+      () => route.detail({ load: () => [] }),
+      /collection response lane; use list/,
+    );
+
+    const saveTasks = route.update({
+      load: ({ body }) => body.tasks,
+    });
+    const saveLine = saveTasks.line({
+      body: {
+        tasks: [{ id: "t1", title: "First" }],
+      },
+    });
+
+    assert.deepEqual(saveLine.value(), [{ id: "t1", title: "First" }]);
+    assert.equal(saveLine.request().method, "PUT");
+    assert.equal(saveLine.mutationResponse().response.topology, "directArray");
+    assert.equal(
+      saveLine.history().verificationPackage().mutationResponse.plan.targetCount,
+      0,
+    );
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("response-owned write planning records multi-target fallback artifacts before any later reconciliation phase exists", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const response = runtime.signals.resource.response.detail()();
+    const route = runtime.signals.api({}).url("/users/:userId").response(response);
+    const userRead = runtime.signals.api({}).url("/users/:userId").detail({
+      load: ({ userId }) => ({ id: userId, name: "First" }),
+    });
+    const auditRead = runtime.signals.api({}).url("/user-audit/:userId").detail({
+      load: ({ userId }) => ({ id: userId, events: 0 }),
+    });
+
+    const saveUser = route.update({
+      reconciles: [
+        {
+          family: userRead,
+          params: ({ userId }) => ({ userId }),
+          fallback: "refetchRequired",
+        },
+        {
+          family: auditRead,
+          params: ({ userId }) => ({ userId }),
+          fallback: "deliveryAwaited",
+        },
+      ],
+      load: ({ userId, body }) => ({ id: userId, name: body.name }),
+    });
+
+    const residentUserLine = userRead.line({ userId: "u1" });
+    const saveLine = saveUser.line({
+      userId: "u1",
+      body: { name: "Updated" },
+    });
+    const plan = saveLine.mutationResponse();
+
+    assert.equal(plan.targetCount, 2);
+    assert.equal(plan.atomicity, "allOrNone");
+    assert.equal(
+      plan.targetDigest,
+      `mutation-response-targets|mutationTarget1:detail:${residentUserLine.descriptor().family.familyId}:${residentUserLine.descriptor().canonicalParams.canonicalKey}:refetchRequired,mutationTarget2:detail:${auditRead.line({ userId: "u1" }).descriptor().family.familyId}:${auditRead.line({ userId: "u1" }).descriptor().canonicalParams.canonicalKey}:deliveryAwaited`,
+    );
+    assert.equal(
+      plan.fallbackDigest,
+      `mutation-response-fallbacks|mutationTarget1:refetchRequired:${residentUserLine.descriptor().canonicalParams.canonicalKey},mutationTarget2:deliveryAwaited:${auditRead.line({ userId: "u1" }).descriptor().canonicalParams.canonicalKey}`,
+    );
+    assert.equal(plan.executionArtifacts.length, 2);
+    assert.equal(plan.executionArtifacts[0].kind, "fallback");
+    assert.equal(plan.executionArtifacts[1].fallback, "deliveryAwaited");
+    assert.equal(plan.targets[0].line.residency, "resident");
+    assert.equal(plan.targets[1].line.residency, "declared");
+    assert.equal(plan.counters.targetLookupBreadth, 2);
+    assert.equal(plan.counters.targetFanoutBreadth, 2);
+    assert.equal(plan.counters.fallbackBreadth, 2);
+    assert.equal(plan.counters.executionBreadth, 2);
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("mutation response target digests distinguish resolved target lines, not just declared families", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const response = runtime.signals.resource.response.detail()();
+    const route = runtime.signals.api({}).url("/users/:userId").response(response);
+    const userRead = runtime.signals.api({}).url("/users/:userId").detail({
+      load: ({ userId }) => ({ id: userId, name: "First" }),
+    });
+
+    const saveUser = route.update({
+      reconciles: [
+        {
+          family: userRead,
+          params: ({ userId }) => ({ userId }),
+          fallback: "refetchRequired",
+        },
+      ],
+      load: ({ userId, body }) => ({ id: userId, name: body.name }),
+    });
+
+    const planA = saveUser.line({
+      userId: "u1",
+      body: { name: "Updated A" },
+    }).mutationResponse();
+    const planB = saveUser.line({
+      userId: "u2",
+      body: { name: "Updated B" },
+    }).mutationResponse();
+
+    assert.notEqual(planA.targetDigest, planB.targetDigest);
+    assert.match(
+      planA.targetDigest,
+      /mutationTarget1:detail:__resourceFamily\.detail\.\d+:\/users\/u1:refetchRequired/,
+    );
+    assert.match(
+      planB.targetDigest,
+      /mutationTarget1:detail:__resourceFamily\.detail\.\d+:\/users\/u2:refetchRequired/,
+    );
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("mutation response planning denies accessor-backed payloads before visible line truth changes", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const response = runtime.signals.resource.response.detail()();
+    const route = runtime.signals.api({}).url("/users/:userId").response(response);
+    let getterCalls = 0;
+
+    const saveUser = route.update({
+      load: ({ userId, body }) => {
+        const payload = { id: userId };
+        Object.defineProperty(payload, "name", {
+          enumerable: true,
+          configurable: true,
+          get() {
+            getterCalls += 1;
+            return body.name;
+          },
+        });
+        return payload;
+      },
+    });
+
+    assert.throws(
+      () => saveUser.line({ userId: "u1", body: { name: "Unsafe" } }),
+      /accessor-backed property "name"/,
+    );
+    assert.equal(getterCalls, 0);
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("response-owned write planning denies malformed reconcile fallback declarations", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const response = runtime.signals.resource.response.detail()();
+    const userRead = runtime.signals.api({}).url("/users/:userId").detail({
+      load: ({ userId }) => ({ id: userId }),
+    });
+
+    assert.throws(
+      () =>
+        runtime.signals.api({}).url("/users/:userId").response(response).update({
+          reconciles: [
+            {
+              family: userRead,
+              params: ({ userId }) => ({ userId }),
+              fallback: "laterMaybe",
+            },
+          ],
+          load: ({ userId, body }) => ({ id: userId, name: body.name }),
+        }),
+      /fallback must be one of refetchRequired, deliveryAwaited, partialReconciliation, unsupportedTarget/,
+    );
+  } finally {
+    await runtime.cleanup();
+  }
+});

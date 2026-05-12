@@ -28,6 +28,7 @@ test("local patches create a sealed branch-native effect envelope across diagnos
       scope: "aspect",
       itemId: "demo:1",
       aspect: "title",
+      field: null,
     });
     const effect = line.diagnostics().lastEffect;
     assert.equal(effect.version, "resource-effect-envelope-v1");
@@ -106,9 +107,13 @@ test("local patches create a sealed branch-native effect envelope across diagnos
       kind: "itemAspect",
       scope: "aspect",
       itemId: "demo:1",
+      field: null,
+      regionName: null,
+      path: null,
       aspect: "title",
       summary: null,
       valueChanged: true,
+      region: null,
       jsonPath: null,
     });
     assert.deepEqual(effect.counters, {
@@ -124,6 +129,8 @@ test("local patches create a sealed branch-native effect envelope across diagnos
       rollbackReadinessBreadth: 1,
       responseLensBreadth: 0,
       effectLocusBreadth: 1,
+      detailRegionTraversalBreadth: 0,
+      detailRegionReconstructionBreadth: 0,
       jsonPathTraversalBreadth: 0,
       jsonPathReconstructionBreadth: 0,
     });

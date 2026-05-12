@@ -41,6 +41,7 @@ import type {
 } from "./resource_postures.js";
 import type {
   ResourceCollectionShape,
+  ResourceDetailReconcile,
   ResourceDeliveryFactory,
   ResourceItemAspectMap,
   ResourceItemAspects,
@@ -101,20 +102,23 @@ export interface ResourceCompatibilityNamespace {
 export interface ResourceNamespace {
   readonly branch: ResourceBranchNamespace;
   readonly compatibility: ResourceCompatibilityNamespace;
+  readonly detailFields: typeof resourceDetailFields;
+  readonly detailRegions: typeof resourceDetailRegions;
+  readonly detailJsonPaths: typeof resourceDetailJsonPaths;
   readonly effects: ResourceEffects;
   readonly response: ResourceResponseFactory;
-  detail<TParams, TValue>(
-    declaration: ProcessingUploadDetailResourceDeclaration<TParams, TValue>,
-  ): DetailResourceFamily<TParams, TValue | null>;
-  detail<TParams, TValue>(
-    declaration: ProcessingDetailResourceDeclaration<TParams, TValue>,
-  ): DetailResourceFamily<TParams, TValue | null>;
-  detail<TParams, TValue>(
-    declaration: UploadDetailResourceDeclaration<TParams, TValue>,
-  ): DetailResourceFamily<TParams, TValue | null>;
-  detail<TParams, TValue>(
-    declaration: DetailResourceDeclaration<TParams, TValue>,
-  ): DetailResourceFamily<TParams, TValue>;
+  detail<TParams, TValue, TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined>(
+    declaration: ProcessingUploadDetailResourceDeclaration<TParams, TValue, TReconcile>,
+  ): DetailResourceFamily<TParams, TValue | null, TReconcile>;
+  detail<TParams, TValue, TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined>(
+    declaration: ProcessingDetailResourceDeclaration<TParams, TValue, TReconcile>,
+  ): DetailResourceFamily<TParams, TValue | null, TReconcile>;
+  detail<TParams, TValue, TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined>(
+    declaration: UploadDetailResourceDeclaration<TParams, TValue, TReconcile>,
+  ): DetailResourceFamily<TParams, TValue | null, TReconcile>;
+  detail<TParams, TValue, TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined>(
+    declaration: DetailResourceDeclaration<TParams, TValue, TReconcile>,
+  ): DetailResourceFamily<TParams, TValue, TReconcile>;
   collection<
     TParams,
     TValue,
@@ -275,6 +279,9 @@ export const resourceBinaryDescriptor: ResourceBinaryDescriptorFactory;
 export const resourceDownload: ResourceDownload;
 export const resourceAuth: ResourceAuth;
 export const resourceContinuation: ResourceContinuation;
+export const resourceDetailFields: typeof import("./resource_reconciliation.js").resourceDetailFields;
+export const resourceDetailRegions: typeof import("./resource_reconciliation.js").resourceDetailRegions;
+export const resourceDetailJsonPaths: typeof import("./resource_reconciliation.js").resourceDetailJsonPaths;
 export const resourceDelivery: ResourceDeliveryFactory;
 export const resourceEffects: ResourceEffects;
 export const resourcePatch: ResourcePatchFactory;

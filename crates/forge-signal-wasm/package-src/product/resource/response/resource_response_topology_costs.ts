@@ -7,6 +7,10 @@ const RESOURCE_RESPONSE_TOPOLOGY_COSTS = Object.freeze({
   detail: Object.freeze({
     itemLocus: "detailResponse",
     item: ["detail-response", 0, "whole-response", "replaceDetailResponse"],
+    broad: ["detail-response", 0, "whole-response", "replaceDetailResponse"],
+    field: ["detail-field", 1, "single-top-level-field", "replaceDetailField"],
+    region: ["detail-region", 1, "declared-region", "replaceDetailRegion"],
+    jsonPath: ["detail-json-path", 1, "json-path-segments", "replaceDetailJsonPath"],
   }),
   discriminatedTuple: Object.freeze({
     itemLocus: "discriminatedTuple",

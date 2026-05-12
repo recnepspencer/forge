@@ -15,6 +15,7 @@ import type {
 } from "./resource_declarations.js";
 import type {
   ResourceCollectionShape,
+  ResourceDetailReconcile,
   ResourceItemAspectMap,
   ResourceValueSummaryMap,
 } from "./resource_reconciliation.js";
@@ -88,13 +89,14 @@ type ApiRouteDeclarationMemberParams<
 export type ApiRouteDetailDeclaration<
   TRoute extends string,
   TValue,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined,
   TRequestParams extends ApiRequestParamsShape | undefined = undefined,
   TBody = undefined,
   TProcessingOwned extends boolean = false,
   TUploadOwned extends boolean = false,
   TDownloadsOwned extends boolean = false,
 > = ApiRouteBoundDeclaration<
-  DetailResourceDeclaration<ApiRouteDeclarationMemberParams<TRoute, TRequestParams, TBody>, TValue>,
+  DetailResourceDeclaration<ApiRouteDeclarationMemberParams<TRoute, TRequestParams, TBody>, TValue, TReconcile>,
   ApiRouteDeclarationMemberParams<TRoute, TRequestParams, TBody>,
   TProcessingOwned,
   TUploadOwned
@@ -107,13 +109,14 @@ export type ApiRouteDetailDeclaration<
 export type ApiRouteProcessingDetailDeclaration<
   TRoute extends string,
   TValue,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined,
   TRequestParams extends ApiRequestParamsShape | undefined = undefined,
   TBody = undefined,
   TProcessingOwned extends boolean = false,
   TUploadOwned extends boolean = false,
   TDownloadsOwned extends boolean = false,
 > = ApiRouteBoundDeclaration<
-  ProcessingDetailResourceDeclaration<ApiRouteDeclarationMemberParams<TRoute, TRequestParams, TBody>, TValue>,
+  ProcessingDetailResourceDeclaration<ApiRouteDeclarationMemberParams<TRoute, TRequestParams, TBody>, TValue, TReconcile>,
   ApiRouteDeclarationMemberParams<TRoute, TRequestParams, TBody>,
   TProcessingOwned,
   TUploadOwned
@@ -126,13 +129,14 @@ export type ApiRouteProcessingDetailDeclaration<
 export type ApiRouteUploadDetailDeclaration<
   TRoute extends string,
   TValue,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined,
   TRequestParams extends ApiRequestParamsShape | undefined = undefined,
   TBody = undefined,
   TProcessingOwned extends boolean = false,
   TUploadOwned extends boolean = false,
   TDownloadsOwned extends boolean = false,
 > = ApiRouteBoundDeclaration<
-  UploadDetailResourceDeclaration<ApiRouteDeclarationMemberParams<TRoute, TRequestParams, TBody>, TValue>,
+  UploadDetailResourceDeclaration<ApiRouteDeclarationMemberParams<TRoute, TRequestParams, TBody>, TValue, TReconcile>,
   ApiRouteDeclarationMemberParams<TRoute, TRequestParams, TBody>,
   TProcessingOwned,
   TUploadOwned
@@ -145,13 +149,14 @@ export type ApiRouteUploadDetailDeclaration<
 export type ApiRouteProcessingUploadDetailDeclaration<
   TRoute extends string,
   TValue,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined,
   TRequestParams extends ApiRequestParamsShape | undefined = undefined,
   TBody = undefined,
   TProcessingOwned extends boolean = false,
   TUploadOwned extends boolean = false,
   TDownloadsOwned extends boolean = false,
 > = ApiRouteBoundDeclaration<
-  ProcessingUploadDetailResourceDeclaration<ApiRouteDeclarationMemberParams<TRoute, TRequestParams, TBody>, TValue>,
+  ProcessingUploadDetailResourceDeclaration<ApiRouteDeclarationMemberParams<TRoute, TRequestParams, TBody>, TValue, TReconcile>,
   ApiRouteDeclarationMemberParams<TRoute, TRequestParams, TBody>,
   TProcessingOwned,
   TUploadOwned
@@ -165,12 +170,13 @@ export type ApiRouteCreateDeclaration<
   TRoute extends string,
   TValue,
   TBody,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined,
   TRequestParams extends ApiRequestParamsShape | undefined = undefined,
   TProcessingOwned extends boolean = false,
   TUploadOwned extends boolean = false,
   TDownloadsOwned extends boolean = false,
 > = ApiRouteBoundDeclaration<
-  DetailResourceDeclaration<ApiRouteWriteDeclarationParams<TRoute, TRequestParams, TBody>, TValue>,
+  DetailResourceDeclaration<ApiRouteWriteDeclarationParams<TRoute, TRequestParams, TBody>, TValue, TReconcile>,
   ApiRouteWriteDeclarationParams<TRoute, TRequestParams, TBody>,
   TProcessingOwned,
   TUploadOwned
@@ -184,12 +190,13 @@ export type ApiRouteProcessingCreateDeclaration<
   TRoute extends string,
   TValue,
   TBody,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined,
   TRequestParams extends ApiRequestParamsShape | undefined = undefined,
   TProcessingOwned extends boolean = false,
   TUploadOwned extends boolean = false,
   TDownloadsOwned extends boolean = false,
 > = ApiRouteBoundDeclaration<
-  ProcessingDetailResourceDeclaration<ApiRouteWriteDeclarationParams<TRoute, TRequestParams, TBody>, TValue>,
+  ProcessingDetailResourceDeclaration<ApiRouteWriteDeclarationParams<TRoute, TRequestParams, TBody>, TValue, TReconcile>,
   ApiRouteWriteDeclarationParams<TRoute, TRequestParams, TBody>,
   TProcessingOwned,
   TUploadOwned
@@ -203,12 +210,13 @@ export type ApiRouteUploadCreateDeclaration<
   TRoute extends string,
   TValue,
   TBody,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined,
   TRequestParams extends ApiRequestParamsShape | undefined = undefined,
   TProcessingOwned extends boolean = false,
   TUploadOwned extends boolean = false,
   TDownloadsOwned extends boolean = false,
 > = ApiRouteBoundDeclaration<
-  UploadDetailResourceDeclaration<ApiRouteWriteDeclarationParams<TRoute, TRequestParams, TBody>, TValue>,
+  UploadDetailResourceDeclaration<ApiRouteWriteDeclarationParams<TRoute, TRequestParams, TBody>, TValue, TReconcile>,
   ApiRouteWriteDeclarationParams<TRoute, TRequestParams, TBody>,
   TProcessingOwned,
   TUploadOwned
@@ -222,12 +230,13 @@ export type ApiRouteProcessingUploadCreateDeclaration<
   TRoute extends string,
   TValue,
   TBody,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined,
   TRequestParams extends ApiRequestParamsShape | undefined = undefined,
   TProcessingOwned extends boolean = false,
   TUploadOwned extends boolean = false,
   TDownloadsOwned extends boolean = false,
 > = ApiRouteBoundDeclaration<
-  ProcessingUploadDetailResourceDeclaration<ApiRouteWriteDeclarationParams<TRoute, TRequestParams, TBody>, TValue>,
+  ProcessingUploadDetailResourceDeclaration<ApiRouteWriteDeclarationParams<TRoute, TRequestParams, TBody>, TValue, TReconcile>,
   ApiRouteWriteDeclarationParams<TRoute, TRequestParams, TBody>,
   TProcessingOwned,
   TUploadOwned

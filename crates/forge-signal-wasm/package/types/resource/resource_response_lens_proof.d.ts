@@ -18,6 +18,9 @@ export type ResourceResponseLensTopology =
 export type ResourceResponseLensLocus =
   | "broadResponse"
   | "detailResponse"
+  | "detailField"
+  | "detailRegion"
+  | "detailJsonPath"
   | "summaryResponse"
   | "membership"
   | "connection"
@@ -34,7 +37,7 @@ export type ResourceResponseLensLocus =
 
 export interface ResourceResponseLensCapabilityRow {
   readonly locus: ResourceResponseLensLocus;
-  readonly patchScope: "line" | "item" | "aspect" | "summary";
+  readonly patchScope: "line" | "field" | "region" | "jsonPath" | "item" | "aspect" | "summary";
   readonly admitted: boolean;
   readonly summaryPatchScope: "line" | "pageWindow" | null;
 }
@@ -50,6 +53,9 @@ export interface ResourceResponseLensProof {
   readonly parityDigest: string;
   readonly compileBoundaryDigest: string;
   readonly capabilityRows: readonly ResourceResponseLensCapabilityRow[];
+  readonly fieldNames: readonly string[];
+  readonly regionNames: readonly string[];
+  readonly jsonPathNames: readonly string[];
   readonly aspectNames: readonly string[];
   readonly jsonAspectNames: readonly string[];
   readonly summaryNames: readonly string[];
@@ -67,11 +73,17 @@ export interface ResourceResponseLensDenialProof {
   readonly parityDigest: string;
   readonly compileBoundaryDigest: string;
   readonly requestedLocus: ResourceResponseLensLocus | string;
-  readonly requestedPatchScope: "line" | "item" | "aspect" | "summary" | null;
+  readonly requestedPatchScope: "line" | "field" | "region" | "jsonPath" | "item" | "aspect" | "summary" | null;
+  readonly field: string | null;
+  readonly region?: string | null;
+  readonly path?: string | null;
   readonly aspect: string | null;
   readonly summary: string | null;
   readonly reason:
     | "unsupportedCapability"
+    | "undeclaredField"
+    | "undeclaredRegion"
+    | "undeclaredJsonPath"
     | "undeclaredAspect"
     | "undeclaredJsonAspect"
     | "undeclaredSummary"

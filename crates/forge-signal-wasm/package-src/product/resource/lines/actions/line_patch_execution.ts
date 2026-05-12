@@ -56,6 +56,12 @@ function executeLinePatch(materialization, patch) {
 function applyPatchValue(materialization, patchValue, currentValue) {
   return patchValue.kind === "replace"
     ? applyReplacePatch(materialization, patchValue, currentValue)
+    : patchValue.kind === "field"
+      ? applyDetailFieldPatch(materialization, patchValue, currentValue)
+    : patchValue.kind === "region"
+      ? applyDetailRegionPatch(materialization, patchValue, currentValue)
+    : patchValue.kind === "jsonPath"
+      ? applyDetailJsonPathPatch(materialization, patchValue, currentValue)
     : patchValue.kind === "summary"
       ? applySummaryPatch(materialization, patchValue, currentValue)
       : applyItemScopedPatch(materialization, patchValue, currentValue);
@@ -74,13 +80,17 @@ function applyReplacePatch(materialization, patch, currentValue) {
       scope: "line",
       itemId: null,
       aspect: null,
+      field: null,
     }),
     diagnostics: Object.freeze({
       scope: "line",
       itemId: null,
       aspect: null,
+      field: null,
+      region: null,
       summary: null,
       valueChanged,
+      regionProof: null,
       jsonPathProof: null,
     }),
     valueChanged,
@@ -95,6 +105,143 @@ function assertReplacePatchPreservesResponseTopology(patchRecord, patch) {
     return;
   }
   patchRecord.reconcile.items(patch.nextValue);
+}
+
+function applyDetailFieldPatch(materialization, patch, currentValue) {
+  const patchRecord = materialization.patch;
+  if (patchRecord.familyKind !== "detail") {
+    throw new TypeError(
+      `${patchRecord.familyKind} resource lines do not admit detail field patch(...)`,
+    );
+  }
+  const fieldDefinitions = patchRecord.reconcile?.definitions ?? null;
+  if (fieldDefinitions === null || !(patch.field in fieldDefinitions)) {
+    throw new TypeError(
+      `${patchRecord.familyKind} resource lines do not admit field patch(...) for undeclared field "${patch.field}"`,
+    );
+  }
+  if (fieldDefinitions[patch.field].jsonPathProof !== undefined) {
+    throw new TypeError(
+      `${patchRecord.familyKind} resource lines do not admit field patch(...) for detail JSON path "${patch.field}"; use resourcePatch.jsonPath(...) instead`,
+    );
+  }
+  const nextValue = fieldDefinitions[patch.field].write(currentValue, patch.value);
+  const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
+  materialization.binding.valueSignal.set(nextValue);
+  return Object.freeze({
+    result: Object.freeze({
+      kind: "narrowed",
+      scope: "field",
+      itemId: null,
+      aspect: null,
+      field: patch.field,
+    }),
+    diagnostics: Object.freeze({
+      scope: "field",
+      itemId: null,
+      aspect: null,
+      field: patch.field,
+      region: null,
+      summary: null,
+      valueChanged,
+      regionProof: null,
+      jsonPathProof: null,
+    }),
+    valueChanged,
+  });
+}
+
+function applyDetailRegionPatch(materialization, patch, currentValue) {
+  const patchRecord = materialization.patch;
+  if (patchRecord.familyKind !== "detail") {
+    throw new TypeError(
+      `${patchRecord.familyKind} resource lines do not admit detail region patch(...)`,
+    );
+  }
+  const regionDefinitions = patchRecord.reconcile?.definitions ?? null;
+  if (regionDefinitions === null || !(patch.region in regionDefinitions)) {
+    throw new TypeError(
+      `${patchRecord.familyKind} resource lines do not admit region patch(...) for undeclared region "${patch.region}"`,
+    );
+  }
+  const regionDefinition = regionDefinitions[patch.region];
+  if (regionDefinition.regionProof === undefined) {
+    throw new TypeError(
+      `${patchRecord.familyKind} resource lines do not admit region patch(...) for non-region detail field "${patch.region}"`,
+    );
+  }
+  const nextValue = regionDefinition.write(currentValue, patch.value);
+  const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
+  materialization.binding.valueSignal.set(nextValue);
+  return Object.freeze({
+    result: Object.freeze({
+      kind: "narrowed",
+      scope: "region",
+      itemId: null,
+      aspect: null,
+      field: null,
+      region: patch.region,
+    }),
+    diagnostics: Object.freeze({
+      scope: "region",
+      itemId: null,
+      aspect: null,
+      field: null,
+      region: patch.region,
+      summary: null,
+      valueChanged,
+      regionProof: regionDefinition.regionProof,
+      jsonPathProof: null,
+    }),
+    valueChanged,
+  });
+}
+
+function applyDetailJsonPathPatch(materialization, patch, currentValue) {
+  const patchRecord = materialization.patch;
+  if (patchRecord.familyKind !== "detail") {
+    throw new TypeError(
+      `${patchRecord.familyKind} resource lines do not admit detail JSON path patch(...)`,
+    );
+  }
+  const pathDefinitions = patchRecord.reconcile?.definitions ?? null;
+  if (pathDefinitions === null || !(patch.path in pathDefinitions)) {
+    throw new TypeError(
+      `${patchRecord.familyKind} resource lines do not admit jsonPath patch(...) for undeclared path "${patch.path}"`,
+    );
+  }
+  const pathDefinition = pathDefinitions[patch.path];
+  if (pathDefinition.jsonPathProof === undefined) {
+    throw new TypeError(
+      `${patchRecord.familyKind} resource lines do not admit jsonPath patch(...) for detail field "${patch.path}"; use resourcePatch.field(...) instead`,
+    );
+  }
+  const nextValue = pathDefinition.write(currentValue, patch.value);
+  const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
+  materialization.binding.valueSignal.set(nextValue);
+  return Object.freeze({
+    result: Object.freeze({
+      kind: "narrowed",
+      scope: "jsonPath",
+      itemId: null,
+      aspect: null,
+      field: null,
+      path: patch.path,
+    }),
+    diagnostics: Object.freeze({
+      scope: "jsonPath",
+      itemId: null,
+      aspect: null,
+      field: null,
+      region: null,
+      path: patch.path,
+      summary: null,
+      valueChanged,
+      regionProof: null,
+      jsonPathProof: pathDefinition.jsonPathProof,
+    }),
+    valueChanged,
+  });
 }
 
 function applySummaryPatch(materialization, patch, currentValue) {
@@ -134,14 +281,18 @@ function applySummaryPatch(materialization, patch, currentValue) {
       scope: "summary",
       itemId: null,
       aspect: null,
+      field: null,
       summary: patch.summary,
     }),
     diagnostics: Object.freeze({
       scope: "summary",
       itemId: null,
       aspect: null,
+      field: null,
+      region: null,
       summary: patch.summary,
       valueChanged: !areLineValuesSemanticallyEqual(nextValue, currentValue),
+      regionProof: null,
       jsonPathProof: null,
     }),
     valueChanged: !areLineValuesSemanticallyEqual(nextValue, currentValue),
@@ -230,13 +381,17 @@ function applyItemScopedPatch(materialization, patch, currentValue) {
         scope: "item",
         itemId: patch.itemId,
         aspect: null,
+        field: null,
       }),
       diagnostics: Object.freeze({
         scope: "item",
         itemId: patch.itemId,
         aspect: null,
+        field: null,
+        region: null,
         summary: null,
         valueChanged,
+        regionProof: null,
         jsonPathProof: null,
       }),
       valueChanged,
@@ -267,13 +422,17 @@ function applyItemScopedPatch(materialization, patch, currentValue) {
       scope: "aspect",
       itemId: patch.itemId,
       aspect: patch.aspect,
+      field: null,
     }),
     diagnostics: Object.freeze({
       scope: "aspect",
       itemId: patch.itemId,
       aspect: patch.aspect,
+      field: null,
+      region: null,
       summary: null,
       valueChanged,
+      regionProof: null,
       jsonPathProof: aspectDefinition.jsonPathProof ?? null,
     }),
     valueChanged,
@@ -306,13 +465,17 @@ function applyDirectItemScopedPatch(patchRecord, patch, currentValue, materializ
       scope: patch.kind === "item" ? "item" : "aspect",
       itemId: patch.itemId,
       aspect: patch.kind === "item" ? null : patch.aspect,
+      field: null,
     }),
     diagnostics: Object.freeze({
       scope: patch.kind === "item" ? "item" : "aspect",
       itemId: patch.itemId,
       aspect: patch.kind === "item" ? null : patch.aspect,
+      field: null,
+      region: null,
       summary: null,
       valueChanged,
+      regionProof: null,
       jsonPathProof: aspectPatch?.jsonPathProof ?? null,
     }),
     valueChanged,

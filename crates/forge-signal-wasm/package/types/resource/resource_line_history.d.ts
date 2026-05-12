@@ -11,9 +11,11 @@ import type {
   ResourceLineStatus,
 } from "./resource_lifecycle.js";
 import type { ResourceLineVisibleSelection } from "./resource_line_diagnostics.js";
+import type { ResourceMutationResponsePlan } from "./resource_mutation_response.js";
 
 export type ResourceLineHistoryEvent =
   | "materialized"
+  | "mutationResponsePlanned"
   | "pending"
   | "superseded"
   | "patched"
@@ -50,9 +52,28 @@ export interface ResourceLineHistoryEntry {
     | "manualFamilyInvalidateAll"
     | null;
   readonly lastInvalidationScope: "line" | "familyMember" | "familyAll" | null;
-  readonly lastPatchKind: "replace" | "item" | "itemAspect" | "summary" | null;
-  readonly lastPatchScope: "line" | "item" | "aspect" | "summary" | null;
+  readonly lastPatchKind:
+    | "replace"
+    | "field"
+    | "region"
+    | "jsonPath"
+    | "item"
+    | "itemAspect"
+    | "summary"
+    | null;
+  readonly lastPatchScope:
+    | "line"
+    | "field"
+    | "region"
+    | "jsonPath"
+    | "item"
+    | "aspect"
+    | "summary"
+    | null;
   readonly lastPatchedItemId: string | null;
+  readonly lastPatchedField: string | null;
+  readonly lastPatchedRegion: string | null;
+  readonly lastPatchedPath: string | null;
   readonly lastPatchedAspect: string | null;
   readonly lastPatchedSummary: string | null;
   readonly lastDeliveryKind:
@@ -63,6 +84,9 @@ export interface ResourceLineHistoryEntry {
     | null;
   readonly lastDeliveryScope:
     | "line"
+    | "field"
+    | "region"
+    | "jsonPath"
     | "item"
     | "aspect"
     | "summary"
@@ -85,6 +109,8 @@ export interface ResourceLineHistoryEntry {
   readonly lastTimeoutOperation: ResourceLineOperation | null;
   readonly lastErrorMessage: string | null;
   readonly visibleValueVersion: number;
+  readonly mutationResponsePlan?: ResourceMutationResponsePlan;
+  readonly mutationResponsePlanCount?: number;
 }
 
 export interface ResourceLineBranchSummary {
@@ -106,6 +132,9 @@ export interface ResourceLineBasisAdvance {
     | null;
   readonly deliveryScope:
     | "line"
+    | "field"
+    | "region"
+    | "jsonPath"
     | "item"
     | "aspect"
     | "summary"

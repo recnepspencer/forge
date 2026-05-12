@@ -15,6 +15,7 @@ import type {
 } from "./resource_line_summary.js";
 import type { ResourceEffectEnvelope } from "./resource_effect_envelope.js";
 import type { ResourceLineVisibleSelection } from "./resource_line_diagnostics.js";
+import type { ResourceMutationResponsePlan } from "./resource_mutation_response.js";
 
 export interface ResourceLineNativeCompatibilityDigest {
   readonly kind: "native";
@@ -99,12 +100,37 @@ export interface ResourceLineVerificationContinuityDigest {
 export interface ResourceLineVerificationReconciliationDigest {
   readonly broadReplace: boolean;
   readonly narrowItem: boolean;
+  readonly narrowField: boolean;
+  readonly narrowRegion: boolean;
+  readonly narrowJsonPath: boolean;
   readonly narrowSummary: boolean;
+  readonly fieldNames: readonly string[];
+  readonly regionNames: readonly string[];
+  readonly jsonPathNames: readonly string[];
   readonly aspectNames: readonly string[];
   readonly summaryNames: readonly string[];
-  readonly lastPatchKind: "replace" | "item" | "itemAspect" | "summary" | null;
-  readonly lastPatchScope: "line" | "item" | "aspect" | "summary" | null;
+  readonly lastPatchKind:
+    | "replace"
+    | "field"
+    | "region"
+    | "jsonPath"
+    | "item"
+    | "itemAspect"
+    | "summary"
+    | null;
+  readonly lastPatchScope:
+    | "line"
+    | "field"
+    | "region"
+    | "jsonPath"
+    | "item"
+    | "aspect"
+    | "summary"
+    | null;
   readonly lastPatchedItemId: string | null;
+  readonly lastPatchedField: string | null;
+  readonly lastPatchedRegion: string | null;
+  readonly lastPatchedPath: string | null;
   readonly lastPatchedAspect: string | null;
   readonly lastPatchedSummary: string | null;
 }
@@ -153,6 +179,9 @@ export interface ResourceLineVerificationDeliveryProvenanceDigest {
     | null;
   readonly lastDeliveryScope:
     | "line"
+    | "field"
+    | "region"
+    | "jsonPath"
     | "item"
     | "aspect"
     | "summary"
@@ -188,6 +217,9 @@ export interface ResourceLineVerificationCapabilityDigest {
   readonly reconciliationRead: boolean;
   readonly broadReplace: boolean;
   readonly narrowItem: boolean;
+  readonly narrowField: boolean;
+  readonly narrowRegion: boolean;
+  readonly narrowJsonPath: boolean;
   readonly narrowSummary: boolean;
 }
 
@@ -197,6 +229,11 @@ export interface ResourceLineVerificationTypedDenialsDigest {
   readonly lineage: ResourceLineHistoryAvailability["lineage"] | null;
   readonly branch: ResourceLineHistoryAvailability["branch"] | null;
   readonly restoreExact: ResourceLineHistoryAvailability["restoreExact"] | null;
+}
+
+export interface ResourceLineVerificationMutationResponseDigest {
+  readonly plan: ResourceMutationResponsePlan;
+  readonly planCount: number;
 }
 
 export interface ResourceLineVerificationPackage {
@@ -209,6 +246,7 @@ export interface ResourceLineVerificationPackage {
   readonly continuity: ResourceLineVerificationContinuityDigest;
   readonly reconciliation: ResourceLineVerificationReconciliationDigest;
   readonly diagnostics: ResourceLineVerificationDiagnosticsDigest;
+  readonly mutationResponse?: ResourceLineVerificationMutationResponseDigest;
   readonly historyReplayRestore: ResourceLineVerificationHistoryReplayRestoreDigest;
   readonly binaryDownload: ResourceLineVerificationBinaryDownloadDigest;
   readonly deliveryProvenance: ResourceLineVerificationDeliveryProvenanceDigest;

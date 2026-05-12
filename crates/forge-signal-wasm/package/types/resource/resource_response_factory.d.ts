@@ -26,6 +26,16 @@ import type {
   ResourceSummaryResponse,
   ResourceTreeResponse,
 } from "./resource_response.js";
+import type {
+  ResourceDetailObjectFieldDefinitions,
+  ResourceDetailObjectFieldMap,
+} from "./resource_detail_fields.js";
+import type { ResourceDetailRegionMap } from "./resource_detail_regions.js";
+import type {
+  ResourceDetailJsonPathDeclaration,
+  ResourceDetailJsonPathDeclarationMap,
+  ResourceDetailJsonPathDefinitions,
+} from "./resource_detail_json_paths.js";
 
 export interface ResourceResponseFactory {
   objectAspects<TItem>(): <TFields extends ResourceObjectAspectFieldMap<TItem>>(
@@ -208,6 +218,31 @@ export interface ResourceResponseFactory {
     aspects?: ResourceItemAspects<TItem, TAspectMap>;
     summaries?: ResourceValueSummaries<TValue, TSummaryMap, any>;
   }) => ResourceTreeResponse<TValue, TItem, TAspectMap, TSummaryMap>;
-  detail<TValue>(): ResourceDetailResponse<TValue>;
+  detail<TValue>(): <TFields extends ResourceDetailObjectFieldMap<TValue> = {}>(
+    fields?: TFields,
+  ) => ResourceDetailResponse<
+    TValue,
+    ResourceDetailObjectFieldDefinitions<TValue, TFields>,
+    {},
+    {}
+  >;
+  detailRegions<TValue>(): <
+    TRegionMap extends ResourceDetailRegionMap<TValue> = {},
+  >(
+    definitions: TRegionMap,
+  ) => ResourceDetailResponse<
+    TValue,
+    {},
+    TRegionMap,
+    {}
+  >;
+  detailJsonPaths<TValue>(): <
+    TValueMap extends Readonly<Record<string, SignalValue>> = Readonly<Record<string, SignalValue>>,
+    TDefinitions extends ResourceDetailJsonPathDeclarationMap<TValue> = {
+      readonly [TPath in keyof TValueMap & string]: ResourceDetailJsonPathDeclaration<TValue>;
+    },
+  >(
+    definitions: TDefinitions,
+  ) => ResourceDetailResponse<TValue, {}, {}, ResourceDetailJsonPathDefinitions<TValue, TValueMap>>;
   summary<TValue>(): ResourceSummaryResponse<TValue>;
 }

@@ -25,6 +25,8 @@ import { createLineBackingRef } from "../../lines/state/line_backing_ref.js";
 import { createLineRegistryEntry } from "../../lines/state/line_registry_entry.js";
 import { createLineDeliveryState } from "../../lines/state/line_delivery_state.js";
 import { createLineRequestState } from "../../requests/line_request_state.js";
+import { recordMutationResponsePlanIfPresent } from "../../mutation/resource_mutation_response_execution.js";
+import { attachResourceFamilyMetadata } from "../resource_family_metadata.js";
 
 function createMaterializedFamily(
   kind,
@@ -54,6 +56,11 @@ function createMaterializedFamily(
     createRequestTargetRecord(declaration),
     compatibility,
   );
+  const familyPatchRecord = createLinePatchRecord(
+    familyRecord.identity.kind,
+    familyRecord.declaration.itemIdentity,
+    createLineReconciliationProofRecord(familyRecord.declaration),
+  );
   const linesByCanonicalKey = new Map();
   let lineCounter = 0;
 
@@ -71,6 +78,7 @@ function createMaterializedFamily(
           linesByCanonicalKey,
           familyIdentity,
           familyRecord,
+          familyPatchRecord,
           familyScope,
           resourceLineEpoch,
           () => {
@@ -81,7 +89,7 @@ function createMaterializedFamily(
     );
   }
 
-  return Object.freeze({
+  const family = {
     invalidate(rawParams) {
       const canonicalParamIdentity = requireCanonicalParamIdentity(
         familyRecord.declaration.normalizeParams(rawParams),
@@ -96,7 +104,33 @@ function createMaterializedFamily(
       return invalidateAllFamilyLines(linesByCanonicalKey);
     },
     line: createLine,
-  });
+  };
+  return Object.freeze(
+    attachResourceFamilyMetadata(family, {
+      familyKind: kind,
+      familyId,
+      patchRecord: familyPatchRecord,
+      normalizeParams: familyRecord.declaration.normalizeParams,
+      lookupTargetLineIdentity(canonicalKey) {
+        const existing = linesByCanonicalKey.get(canonicalKey);
+        if (!existing) {
+          return Object.freeze({
+            canonicalKey,
+            runtimeLineId: null,
+            residency: "declared",
+          });
+        }
+        return Object.freeze({
+          canonicalKey,
+          runtimeLineId: existing.materialization.lineIdentity.runtimeLineId,
+          residency: "resident",
+        });
+      },
+      lookupResidentTargetMaterialization(canonicalKey) {
+        return linesByCanonicalKey.get(canonicalKey)?.materialization ?? null;
+      },
+    }),
+  );
 }
 
 function createMaterializedLine(
@@ -104,6 +138,7 @@ function createMaterializedLine(
   linesByCanonicalKey,
   familyIdentity,
   familyRecord,
+  familyPatchRecord,
   familyScope,
   resourceLineEpoch,
   nextLineCounter,
@@ -137,6 +172,7 @@ function createMaterializedLine(
       canonicalParamIdentity,
       familyIdentity,
       familyRecord,
+      familyPatchRecord,
       familyScope,
       resourceLineEpoch,
       nextLineCounter,
@@ -181,6 +217,14 @@ function createMaterializedLine(
     materialization.binding,
     "materialized",
   );
+  const diagnostics = materialization.binding.diagnosticsSignal();
+  recordMutationResponsePlanIfPresent(
+    materialization.lifecycleHistory,
+    materialization.binding,
+    "lastMutationResponsePlan" in diagnostics
+      ? diagnostics.lastMutationResponsePlan
+      : null,
+  );
   const handle = createMaterializedLineHandle(lineBacking);
   return createLineRegistryEntry(lineBacking, handle);
 }
@@ -197,6 +241,7 @@ function createConcreteMaterialization(
   canonicalParamIdentity,
   familyIdentity,
   familyRecord,
+  familyPatchRecord,
   familyScope,
   resourceLineEpoch,
   nextLineCounter,
@@ -233,6 +278,8 @@ function createConcreteMaterialization(
     familyRecord.declaration.load,
     familyRecord.policy,
     requestDescriptor,
+    lineIdentity,
+    familyRecord.declaration.mutationResponse ?? null,
     lifecycle,
     lifecycleHistory,
   );
@@ -242,15 +289,12 @@ function createConcreteMaterialization(
     familyRecord.declaration.load,
     familyRecord.policy,
     requestState,
+    familyRecord.declaration.mutationResponse ?? null,
   );
   const history = familyScope.history();
   const delivery = createLineDeliveryState();
-  const patch = createLinePatchRecord(
-    familyRecord.identity.kind,
-    familyRecord.declaration.itemIdentity,
-    createLineReconciliationProofRecord(familyRecord.declaration),
-  );
-  return createLineMaterializationRecord(
+  const patch = familyPatchRecord;
+  const materialization = createLineMaterializationRecord(
     lineIdentity,
     requestDescriptor,
     requestState,
@@ -266,11 +310,30 @@ function createConcreteMaterialization(
       rematerialize,
       resourceLineEpoch,
     );
+  return materialization;
 }
 
 function createLineReconciliationProofRecord(declaration) {
   if (declaration.reconcile !== undefined) {
     return declaration.reconcile;
+  }
+  if (declaration.responseLensProof !== undefined && declaration.detailFields !== undefined) {
+    return Object.freeze({
+      ...declaration.detailFields,
+      responseLensProof: declaration.responseLensProof,
+    });
+  }
+  if (declaration.responseLensProof !== undefined && declaration.detailRegions !== undefined) {
+    return Object.freeze({
+      ...declaration.detailRegions,
+      responseLensProof: declaration.responseLensProof,
+    });
+  }
+  if (declaration.responseLensProof !== undefined && declaration.detailJsonPaths !== undefined) {
+    return Object.freeze({
+      ...declaration.detailJsonPaths,
+      responseLensProof: declaration.responseLensProof,
+    });
   }
   if (declaration.responseLensProof !== undefined) {
     return Object.freeze({
@@ -287,6 +350,8 @@ function createBinding(
   load,
   policy,
   requestDescriptor,
+  lineIdentity,
+  mutationResponseDeclaration,
   lifecycle,
   lifecycleHistory,
 ) {
@@ -299,6 +364,13 @@ function createBinding(
     requestDescriptor,
     lifecycle,
     lifecycleHistory,
+    mutationResponseDeclaration === null
+      ? null
+      : Object.freeze({
+          lineIdentity,
+          requestDescriptor,
+          declaration: mutationResponseDeclaration,
+        }),
   );
 }
 

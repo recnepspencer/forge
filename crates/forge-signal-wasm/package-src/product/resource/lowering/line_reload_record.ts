@@ -4,6 +4,7 @@ function createLineReloadRecord(
   load,
   policy,
   requestState,
+  mutationResponseDeclaration = null,
 ) {
   return Object.freeze({
     params,
@@ -11,6 +12,7 @@ function createLineReloadRecord(
     load,
     policy,
     requestState,
+    mutationResponseDeclaration,
   });
 }
 

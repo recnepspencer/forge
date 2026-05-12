@@ -12,6 +12,8 @@ export {
   resourceAuth,
   resourceCollectionShape,
   resourceContinuation,
+  resourceDetailFields,
+  resourceDetailJsonPaths,
   resourceDelivery,
   resourceDownload,
   resourceItemAspects,

@@ -21,10 +21,8 @@ function applyApiRouteBuilderVisibility(
     delete builder.response;
     if (directItemsState.reconcileMode === "responseDetail") {
       attachSingleResponseCollectionFinalizerDenials(builder, "detail");
-      attachSingleResponseWriteFinalizerDenials(builder, "detail");
     } else if (directItemsState.reconcileMode === "responseSummary") {
       attachSingleResponseCollectionFinalizerDenials(builder, "summary");
-      attachSingleResponseWriteFinalizerDenials(builder, "summary");
     } else if (directItemsState.source === "response") {
       attachResponseDetailFinalizerDenials(builder);
     } else {
@@ -81,17 +79,8 @@ function attachSingleResponseCollectionFinalizerDenials(builder, kind) {
   builder.paged = () => denySingleResponseCollectionFinalizer(kind);
 }
 
-function attachSingleResponseWriteFinalizerDenials(builder, kind) {
-  builder.create = () => denySingleResponseWriteFinalizer(kind);
-  builder.update = () => denySingleResponseWriteFinalizer(kind);
-  builder.remove = () => denySingleResponseWriteFinalizer(kind);
-}
-
 function attachResponseDetailFinalizerDenials(builder) {
   builder.detail = denyResponseDetailFinalizer;
-  builder.create = denyResponseDetailFinalizer;
-  builder.update = denyResponseDetailFinalizer;
-  builder.remove = denyResponseDetailFinalizer;
 }
 
 function denyResponseDetailFinalizer() {
@@ -103,12 +92,6 @@ function denyResponseDetailFinalizer() {
 function denySingleResponseCollectionFinalizer(kind) {
   throw new TypeError(
     `api.url(...).response(resource.response.${kind}<T>()) is a ${kind} response lane; use detail(...) instead of list(...) or paged(...)`,
-  );
-}
-
-function denySingleResponseWriteFinalizer(kind) {
-  throw new TypeError(
-    `api.url(...).response(resource.response.${kind}<T>()) supports detail(...) broad replacement only; create/update/remove await ${kind} mutation response lenses`,
   );
 }
 

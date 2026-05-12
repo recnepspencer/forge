@@ -3,10 +3,17 @@ import { resourcePatch } from "../resource/reconciliation/resource_patch.js";
 import { readApiFamilyReconcileCapabilities } from "./api_family_reconcile_capabilities.js";
 
 function attachApiFamilyDeliveryHelpers(familyKind, family, declaration) {
-  return Object.freeze({
-    ...family,
-    delivery: createApiFamilyDeliveryHelpers(familyKind, declaration),
+  const wrappedFamily = Object.create(
+    Object.getPrototypeOf(family),
+    Object.getOwnPropertyDescriptors(family),
+  );
+  Object.defineProperty(wrappedFamily, "delivery", {
+    value: createApiFamilyDeliveryHelpers(familyKind, declaration),
+    enumerable: true,
+    configurable: false,
+    writable: false,
   });
+  return Object.freeze(wrappedFamily);
 }
 
 function createApiFamilyDeliveryHelpers(familyKind, declaration) {
@@ -27,6 +34,45 @@ function createApiFamilyDeliveryHelpers(familyKind, declaration) {
   );
   if (!capabilities.hasReconcile) {
     return Object.freeze(helpers);
+  }
+  if (capabilities.hasFields) {
+    helpers.field = function field(options) {
+      return resourceDelivery.patch(
+        withPatchDelivery(
+          options,
+          resourcePatch.field({
+            field: options.field,
+            value: options.value,
+          }),
+        ),
+      );
+    };
+  }
+  if (capabilities.hasRegions) {
+    helpers.region = function region(options) {
+      return resourceDelivery.patch(
+        withPatchDelivery(
+          options,
+          resourcePatch.region({
+            region: options.region,
+            value: options.value,
+          }),
+        ),
+      );
+    };
+  }
+  if (capabilities.hasJsonPaths) {
+    helpers.jsonPath = function jsonPath(options) {
+      return resourceDelivery.patch(
+        withPatchDelivery(
+          options,
+          resourcePatch.jsonPath({
+            path: options.path,
+            value: options.value,
+          }),
+        ),
+      );
+    };
   }
   helpers.item = function item(options) {
     return resourceDelivery.patch(

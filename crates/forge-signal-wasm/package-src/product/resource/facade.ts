@@ -16,6 +16,9 @@ import { resourceProcessingResult } from "./processing/processing_result.js";
 import { resourceResponse } from "./response/resource_response_contract.js";
 import { resourceEffects } from "./effects/resource_effect_profile.js";
 import { resourceCollectionShape } from "./reconciliation/resource_collection_shape.js";
+import { resourceDetailFields } from "./reconciliation/resource_detail_fields.js";
+import { resourceDetailRegions } from "./reconciliation/resource_detail_regions.js";
+import { resourceDetailJsonPaths } from "./reconciliation/resource_detail_json_paths.js";
 import { resourceItemAspects } from "./reconciliation/resource_item_aspects.js";
 import { resourcePatch } from "./reconciliation/resource_patch.js";
 import { resourceValueSummaries } from "./reconciliation/resource_value_summaries.js";
@@ -60,6 +63,9 @@ function createResourceNamespace(signalNamespace, rawSignals) {
       );
     },
     effects: resourceEffects,
+    detailFields: resourceDetailFields,
+    detailRegions: resourceDetailRegions,
+    detailJsonPaths: resourceDetailJsonPaths,
     response: resourceResponse,
   });
 }
@@ -70,6 +76,9 @@ export {
   resourceBinaryValue,
   resourceAuth,
   resourceCollectionShape,
+  resourceDetailFields,
+  resourceDetailRegions,
+  resourceDetailJsonPaths,
   resourceContinuation,
   resourceEffects,
   resourceDelivery,

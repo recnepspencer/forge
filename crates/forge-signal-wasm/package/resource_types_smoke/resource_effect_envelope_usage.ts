@@ -162,8 +162,17 @@ void latestEffect?.counters.serverConfirmationBreadth;
 void latestEffect?.counters.rollbackReadinessBreadth;
 void latestEffect?.counters.responseLensBreadth;
 void latestEffect?.counters.effectLocusBreadth;
+void latestEffect?.counters.detailRegionTraversalBreadth;
+void latestEffect?.counters.detailRegionReconstructionBreadth;
 void latestEffect?.counters.jsonPathTraversalBreadth;
 void latestEffect?.counters.jsonPathReconstructionBreadth;
+void latestEffect?.patch.field;
+void latestEffect?.patch.regionName;
+void latestEffect?.patch.path;
+void latestEffect?.patch.region?.regionName;
+void latestEffect?.patch.region?.identityBoundary;
+void latestEffect?.patch.region?.mergeGranularity;
+void latestEffect?.patch.region?.cost.cloneBreadth;
 void latestEffect?.patch.jsonPath?.cost.cloneBreadth;
 void latestEffect?.patch.jsonPath?.policy.containerWrite;
 void latestEffect?.patch.jsonPath?.policy.objectPrototype;
@@ -197,6 +206,7 @@ const denialProof: ResourceResponseLensDenialProof = {
   compileBoundaryDigest: responseLensProof.compileBoundaryDigest,
   requestedLocus: "summary",
   requestedPatchScope: "summary",
+  field: null,
   aspect: null,
   summary: "count",
   reason: "listSummaryScopeMismatch",
@@ -204,7 +214,7 @@ const denialProof: ResourceResponseLensDenialProof = {
 };
 void denialProof.denialDigest;
 void jsonResponse.lensProof.jsonAspectNames;
-void detailResponse.lensProof.topology;
+void detailResponse().lensProof.topology;
 void summaryResponse.lensProof.topology;
 void detailResponseLocus.kind;
 void summaryResponseLocus.kind;

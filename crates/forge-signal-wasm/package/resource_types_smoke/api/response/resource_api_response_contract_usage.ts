@@ -198,7 +198,7 @@ const taskTupleResponse = signals.resource.response.discriminated<TaskTupleEnvel
 
 void taskTupleResponse.lensProof.topology;
 
-const taskDetailResponse = signals.resource.response.detail<Task>();
+const taskDetailResponse = signals.resource.response.detail<Task>()();
 const taskDetail = signals.api({}).url("/tasks/:taskId")
   .response(taskDetailResponse)
   .detail({

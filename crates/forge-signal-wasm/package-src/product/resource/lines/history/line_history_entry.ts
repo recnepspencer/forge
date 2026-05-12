@@ -1,3 +1,7 @@
+import {
+  readMutationResponsePlanRecord,
+} from "../../mutation/resource_mutation_response_diagnostics_projection.js";
+
 function createLineHistoryEntry(
   event,
   status,
@@ -5,6 +9,7 @@ function createLineHistoryEntry(
   diagnostics,
   overrides = {},
 ) {
+  const mutationResponsePlanRecord = readMutationResponsePlanRecord(diagnostics);
   const entry = {
     sequence: 0,
     event,
@@ -28,6 +33,9 @@ function createLineHistoryEntry(
     lastPatchKind: diagnostics.lastPatchKind,
     lastPatchScope: diagnostics.lastPatchScope,
     lastPatchedItemId: diagnostics.lastPatchedItemId,
+    lastPatchedField: diagnostics.lastPatchedField,
+    lastPatchedRegion: diagnostics.lastPatchedRegion,
+    lastPatchedPath: diagnostics.lastPatchedPath,
     lastPatchedAspect: diagnostics.lastPatchedAspect,
     lastPatchedSummary: diagnostics.lastPatchedSummary,
     lastDeliveryKind: diagnostics.lastDeliveryKind,
@@ -48,6 +56,12 @@ function createLineHistoryEntry(
     lastTimeoutOperation: diagnostics.lastTimeoutOperation,
     lastErrorMessage: diagnostics.lastErrorMessage,
     visibleValueVersion: diagnostics.visibleValueVersion,
+    ...(mutationResponsePlanRecord === null
+      ? {}
+      : {
+          mutationResponsePlan: mutationResponsePlanRecord.plan,
+          mutationResponsePlanCount: mutationResponsePlanRecord.planCount,
+        }),
     supersededOperation: null,
     ...overrides,
   };

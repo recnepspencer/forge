@@ -39,6 +39,9 @@ function lowerResponseLensProofToEffectLocus(lensProof, locus) {
     itemField: proof.itemField,
     locus: capability.locus,
     patchScope: capability.patchScope,
+    field: effectiveLocus.kind === "detailField" ? effectiveLocus.field : null,
+    region: effectiveLocus.kind === "detailRegion" ? effectiveLocus.region : null,
+    path: effectiveLocus.kind === "detailJsonPath" ? effectiveLocus.path : null,
     aspect: isAspectLocus(effectiveLocus) ? effectiveLocus.aspect : null,
     summary: effectiveLocus.kind === "summary" ? effectiveLocus.summary : null,
     summaryPatchScope:
@@ -68,6 +71,15 @@ function readDeclaredEffectLocusCost(proof, capability, locus) {
   }
   if (capability.locus === "broadResponse" && cost.broad !== undefined) {
     return cost.broad;
+  }
+  if (capability.locus === "detailField" && cost.field !== undefined) {
+    return cost.field;
+  }
+  if (capability.locus === "detailRegion" && cost.region !== undefined) {
+    return cost.region;
+  }
+  if (capability.locus === "detailJsonPath" && cost.jsonPath !== undefined) {
+    return cost.jsonPath;
   }
   if (
     (capability.locus === cost.itemLocus || isAspectLocus(locus)) &&
@@ -110,7 +122,9 @@ function createEffectLocusDigest(proof, capability, locus) {
     proof.compiledLensDigest,
     createCapabilityRowDigest(capability),
     locus.kind,
+    locus.kind === "detailRegion" ? locus.region : "none",
     isAspectLocus(locus) ? locus.aspect : "none",
+    locus.kind === "detailJsonPath" ? locus.path : "none",
     locus.kind === "summary" ? locus.summary : "none",
   ].join("|");
 }
@@ -135,6 +149,9 @@ function createResponseLensDenialProof(proof, locus, reason) {
     compileBoundaryDigest: proof.compileBoundaryDigest,
     requestedLocus: capabilityLocusForEffectLocus(locus) ?? locus.kind,
     requestedPatchScope,
+    field: locus.kind === "detailField" ? locus.field : null,
+    region: locus.kind === "detailRegion" ? locus.region : null,
+    path: locus.kind === "detailJsonPath" ? locus.path : null,
     aspect: isAspectLocus(locus) ? locus.aspect : null,
     summary: locus.kind === "summary" ? locus.summary : null,
     reason,
@@ -155,6 +172,9 @@ function createResponseLensDenialDigest(proof, locus, reason, patchScope) {
     reason,
     capabilityLocusForEffectLocus(locus) ?? locus.kind,
     patchScope ?? "none",
+    locus.kind === "detailField" ? locus.field : "none",
+    locus.kind === "detailRegion" ? locus.region : "none",
+    locus.kind === "detailJsonPath" ? locus.path : "none",
     isAspectLocus(locus) ? locus.aspect : "none",
     locus.kind === "summary" ? locus.summary : "none",
   ].join("|");
@@ -180,6 +200,21 @@ function createResponseLensPatchAdmissionLocus(proof, patch) {
     case "replace":
       return Object.freeze({
         kind: lineResponseLocusForTopology(proof.topology),
+      });
+    case "field":
+      return Object.freeze({
+        kind: "detailField",
+        field: patch.field,
+      });
+    case "region":
+      return Object.freeze({
+        kind: "detailRegion",
+        region: patch.region,
+      });
+    case "jsonPath":
+      return Object.freeze({
+        kind: "detailJsonPath",
+        path: patch.path,
       });
     case "item":
       return Object.freeze({
@@ -231,6 +266,36 @@ function assertNamedLocusIsDeclared(proof, locus) {
       `${proof.source} cannot lower undeclared JSON aspect "${locus.aspect}" through its compiled response lens proof`,
     );
   }
+  if (locus.kind === "detailField" && !proof.fieldNames.includes(locus.field)) {
+    throw createResponseLensDenialError(
+      proof,
+      locus,
+      "undeclaredField",
+      `${proof.source} cannot lower undeclared detail field "${locus.field}" through its compiled response lens proof`,
+    );
+  }
+  if (
+    locus.kind === "detailRegion" &&
+    !proof.regionNames.includes(locus.region)
+  ) {
+    throw createResponseLensDenialError(
+      proof,
+      locus,
+      "undeclaredRegion",
+      `${proof.source} cannot lower undeclared detail region "${locus.region}" through its compiled response lens proof`,
+    );
+  }
+  if (
+    locus.kind === "detailJsonPath" &&
+    !proof.jsonPathNames.includes(locus.path)
+  ) {
+    throw createResponseLensDenialError(
+      proof,
+      locus,
+      "undeclaredJsonPath",
+      `${proof.source} cannot lower undeclared detail JSON path "${locus.path}" through its compiled response lens proof`,
+    );
+  }
   if (locus.kind === "summary" && !proof.summaryNames.includes(locus.summary)) {
     throw createResponseLensDenialError(
       proof,
@@ -266,6 +331,12 @@ function patchScopeForEffectLocus(locus) {
     case "summaryResponse":
     case "line":
       return "line";
+    case "detailField":
+      return "field";
+    case "detailRegion":
+      return "region";
+    case "detailJsonPath":
+      return "jsonPath";
     case "membership":
     case "connection":
     case "discriminatedTuple":
@@ -293,6 +364,12 @@ function capabilityLocusForEffectLocus(locus) {
       return "broadResponse";
     case "detailResponse":
       return "detailResponse";
+    case "detailField":
+      return "detailField";
+    case "detailRegion":
+      return "detailRegion";
+    case "detailJsonPath":
+      return "detailJsonPath";
     case "summaryResponse":
       return "summaryResponse";
     case "membership":

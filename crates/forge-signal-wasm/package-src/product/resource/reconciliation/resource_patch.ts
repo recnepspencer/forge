@@ -8,6 +8,42 @@ const resourcePatch = Object.freeze({
       [RESOURCE_PATCH]: "resourcePatch",
     });
   },
+  field(options) {
+    requirePatchObject(options, "resourcePatch.field(...)");
+    if (typeof options.field !== "string" || options.field.length === 0) {
+      throw new TypeError("resourcePatch.field(...) requires field");
+    }
+    return Object.freeze({
+      kind: "field",
+      field: options.field,
+      value: options.value,
+      [RESOURCE_PATCH]: "resourcePatch",
+    });
+  },
+  region(options) {
+    requirePatchObject(options, "resourcePatch.region(...)");
+    if (typeof options.region !== "string" || options.region.length === 0) {
+      throw new TypeError("resourcePatch.region(...) requires region");
+    }
+    return Object.freeze({
+      kind: "region",
+      region: options.region,
+      value: options.value,
+      [RESOURCE_PATCH]: "resourcePatch",
+    });
+  },
+  jsonPath(options) {
+    requirePatchObject(options, "resourcePatch.jsonPath(...)");
+    if (typeof options.path !== "string" || options.path.length === 0) {
+      throw new TypeError("resourcePatch.jsonPath(...) requires path");
+    }
+    return Object.freeze({
+      kind: "jsonPath",
+      path: options.path,
+      value: options.value,
+      [RESOURCE_PATCH]: "resourcePatch",
+    });
+  },
   item(options) {
     requirePatchObject(options, "resourcePatch.item(...)");
     if (typeof options.itemId !== "string" || options.itemId.length === 0) {

@@ -1,9 +1,11 @@
 import type { ResourceEffectJsonPathPatchProof } from "./resource_effect_json_path_patch_proof.js";
+import type { ResourceEffectRegionPatchProof } from "./resource_effect_region_patch_proof.js";
 import type {
   ResourceEffectLocus,
   ResourceEffectLocusProof,
 } from "./resource_effect_locus_proof.js";
 export type { ResourceEffectJsonPathPatchProof } from "./resource_effect_json_path_patch_proof.js";
+export type { ResourceEffectRegionPatchProof } from "./resource_effect_region_patch_proof.js";
 export type {
   ResourceEffectLocus,
   ResourceEffectLocusCostCounters,
@@ -61,6 +63,21 @@ export type ResourceEffectCompactInverseDescriptor =
   | {
       readonly kind: "compactPatchInverse";
       readonly mode: "CompactInversePatch";
+      readonly preimage: "detailRegionValue";
+      readonly scope: "region";
+      readonly itemId: null;
+      readonly aspect: null;
+      readonly summary: null;
+      readonly patch: {
+        readonly kind: "region";
+        readonly region: string;
+        readonly value: unknown;
+      };
+      readonly cost: ResourceEffectCompactInverseCost;
+    }
+  | {
+      readonly kind: "compactPatchInverse";
+      readonly mode: "CompactInversePatch";
       readonly preimage: "summaryValue";
       readonly scope: "summary";
       readonly itemId: null;
@@ -80,18 +97,47 @@ export interface ResourceEffectCompactInverseCost {
 }
 
 export interface ResourceEffectPatchDigest {
-  readonly kind: "replace" | "item" | "itemAspect" | "summary" | null;
-  readonly scope: "line" | "item" | "aspect" | "summary" | null;
+  readonly kind:
+    | "replace"
+    | "field"
+    | "region"
+    | "jsonPath"
+    | "item"
+    | "itemAspect"
+    | "summary"
+    | null;
+  readonly scope:
+    | "line"
+    | "field"
+    | "region"
+    | "jsonPath"
+    | "item"
+    | "aspect"
+    | "summary"
+    | null;
   readonly itemId: string | null;
+  readonly field: string | null;
+  readonly regionName: string | null;
+  readonly path: string | null;
   readonly aspect: string | null;
   readonly summary: string | null;
   readonly valueChanged: boolean;
+  readonly region: ResourceEffectRegionPatchProof | null;
   readonly jsonPath: ResourceEffectJsonPathPatchProof | null;
 }
 
 export interface ResourceEffectDeliveryDigest {
   readonly kind: "replace" | "patch" | "invalidate" | "basisRefresh";
-  readonly scope: "line" | "item" | "aspect" | "summary" | "basis" | "invalidate";
+  readonly scope:
+    | "line"
+    | "field"
+    | "region"
+    | "jsonPath"
+    | "item"
+    | "aspect"
+    | "summary"
+    | "basis"
+    | "invalidate";
   readonly packetId: string;
   readonly basisId: string | null;
   readonly nextBasisId: string | null;
@@ -337,6 +383,8 @@ export interface ResourceEffectEnvelope {
     readonly rollbackReadinessBreadth: number;
     readonly responseLensBreadth: number;
     readonly effectLocusBreadth: number;
+    readonly detailRegionTraversalBreadth: number;
+    readonly detailRegionReconstructionBreadth: number;
     readonly jsonPathTraversalBreadth: number;
     readonly jsonPathReconstructionBreadth: number;
   };

@@ -4,6 +4,9 @@ import { readLineDownload } from "../reads/line_download_read.js";
 import { readLineFreshness } from "../reads/line_freshness_read.js";
 import { readLineStatus } from "../reads/line_status_read.js";
 import { readLineValue } from "../reads/line_value_read.js";
+import {
+  readMutationResponsePlanRecord,
+} from "../../mutation/resource_mutation_response_diagnostics_projection.js";
 
 function freezeWithVisibleSelection(value, visibleSelection) {
   Object.defineProperty(value, "visibleSelection", {
@@ -24,7 +27,9 @@ function readLineVerificationPackage(materialization, historyRead) {
   const diagnostics = readLineDiagnostics(materialization);
   const summary = readLineDiagnosticsSummary(materialization);
   const download = readLineDownload(materialization);
-  const patchCapable = descriptor.family.kind !== "detail";
+  const patchCapable = materialization.patch.broadReplace;
+  const mutationResponsePlanRecord =
+    readMutationResponsePlanRecord(diagnostics);
   return Object.freeze({
     declaration: Object.freeze({
       familyKind: descriptor.family.kind,
@@ -89,12 +94,21 @@ function readLineVerificationPackage(materialization, historyRead) {
     reconciliation: Object.freeze({
       broadReplace: materialization.patch.broadReplace,
       narrowItem: materialization.patch.narrowItem,
+      narrowField: materialization.patch.narrowField,
+      narrowRegion: materialization.patch.narrowRegion,
+      narrowJsonPath: materialization.patch.narrowJsonPath,
       narrowSummary: materialization.patch.narrowSummary,
+      fieldNames: materialization.patch.fieldNames,
+      regionNames: materialization.patch.regionNames,
+      jsonPathNames: materialization.patch.jsonPathNames,
       aspectNames: materialization.patch.aspectNames,
       summaryNames: materialization.patch.summaryNames,
       lastPatchKind: diagnostics.lastPatchKind,
       lastPatchScope: diagnostics.lastPatchScope,
       lastPatchedItemId: diagnostics.lastPatchedItemId,
+      lastPatchedField: diagnostics.lastPatchedField,
+      lastPatchedRegion: diagnostics.lastPatchedRegion,
+      lastPatchedPath: diagnostics.lastPatchedPath,
       lastPatchedAspect: diagnostics.lastPatchedAspect,
       lastPatchedSummary: diagnostics.lastPatchedSummary,
     }),
@@ -110,6 +124,14 @@ function readLineVerificationPackage(materialization, historyRead) {
         latest: summary.latest,
       },
     }),
+    ...(mutationResponsePlanRecord === null
+      ? {}
+      : {
+          mutationResponse: Object.freeze({
+            plan: mutationResponsePlanRecord.plan,
+            planCount: mutationResponsePlanRecord.planCount,
+          }),
+        }),
     historyReplayRestore: Object.freeze({
       replay: historyRead.replay,
       lineage: historyRead.lineage,
@@ -166,6 +188,9 @@ function readLineVerificationPackage(materialization, historyRead) {
       reconciliationRead: patchCapable,
       broadReplace: materialization.patch.broadReplace,
       narrowItem: materialization.patch.narrowItem,
+      narrowField: materialization.patch.narrowField,
+      narrowRegion: materialization.patch.narrowRegion,
+      narrowJsonPath: materialization.patch.narrowJsonPath,
       narrowSummary: materialization.patch.narrowSummary,
     }),
       typedDenials: Object.freeze({

@@ -1,8 +1,22 @@
 import type { SignalValue } from "../model.js";
 import type {
+  ResourceDetailFieldMap,
+  ResourceDetailFieldValue,
+  ResourceDetailFields,
+} from "./resource_detail_fields.js";
+import type {
+  ResourceDetailRegionValue,
+  ResourceDetailRegions,
+} from "./resource_detail_regions.js";
+import type {
+  ResourceDetailJsonPathValue,
+  ResourceDetailJsonPaths,
+} from "./resource_detail_json_paths.js";
+import type {
   CollectionResourceFamily,
   DetailResourceFamily,
   PagedResourceFamily,
+  ResourceDetailPatchCapableLine,
   ResourcePatchCapableLine,
 } from "./resource_family_surfaces.js";
 import type { ResourceLine } from "./resource_lifecycle.js";
@@ -11,6 +25,7 @@ import type {
   PatchResourceDelivery,
   ReplaceResourceDelivery,
   ResourceCollectionShape,
+  ResourceDetailReconcile,
   ResourceSummaryPatchScope,
   ResourceItemAspectValue,
   ResourcePatchForReconcile,
@@ -256,9 +271,12 @@ export type ApiFamilyPatchHelpers<
   TValue,
   TItem,
   TReconcile,
-  TFamilyKind extends "collection" | "paged",
+  TFamilyKind extends "detail" | "collection" | "paged",
 > =
   & ApiFamilyPatchReplaceHelper<TValue>
+  & ApiFamilyPatchFieldHelper<TValue, TReconcile>
+  & ApiFamilyPatchRegionHelper<TValue, TReconcile>
+  & ApiFamilyPatchJsonPathHelper<TValue, TReconcile>
   & ApiFamilyPatchItemHelper<TValue, TItem, TReconcile>
   & ApiFamilyPatchAspectHelper<TValue, TItem, TReconcile>
   & ApiFamilyPatchSummaryHelper<TValue, TItem, TReconcile, TFamilyKind>;
@@ -267,7 +285,7 @@ type ApiFamilyDeliveryReplaceHelper<
   TValue,
   TItem,
   TReconcile,
-  TFamilyKind extends "collection" | "paged",
+  TFamilyKind extends "detail" | "collection" | "paged",
 > = {
   replace(
     options: ApiFamilyDeliveryBaseOptions & {
@@ -343,9 +361,12 @@ export type ApiFamilyDeliveryHelpers<
   TValue,
   TItem,
   TReconcile,
-  TFamilyKind extends "collection" | "paged",
+  TFamilyKind extends "detail" | "collection" | "paged",
 > =
   & ApiFamilyDeliveryReplaceHelper<TValue, TItem, TReconcile, TFamilyKind>
+  & ApiFamilyDeliveryFieldHelper<TValue, TReconcile, TFamilyKind>
+  & ApiFamilyDeliveryRegionHelper<TValue, TReconcile, TFamilyKind>
+  & ApiFamilyDeliveryJsonPathHelper<TValue, TReconcile, TFamilyKind>
   & ApiFamilyDeliveryItemHelper<TValue, TItem, TReconcile, TFamilyKind>
   & ApiFamilyDeliveryAspectHelper<TValue, TItem, TReconcile, TFamilyKind>
   & ApiFamilyDeliverySummaryHelper<TValue, TItem, TReconcile, TFamilyKind>;
@@ -355,14 +376,21 @@ export interface ApiDetailResourceFamily<
   TRequestParams extends ApiRequestParamsShape | undefined,
   TValue,
   TBody = undefined,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined,
 > {
+  readonly patch: ApiFamilyPatchHelpers<TValue, never, TReconcile, "detail">;
+  readonly delivery: ApiFamilyDeliveryHelpers<TValue, never, TReconcile, "detail">;
   invalidate<TActualParams extends ApiRouteLineParams<TRoute, TRequestParams, TBody>>(
     params: ExactApiRouteLineParams<TRoute, TRequestParams, TBody, TActualParams>,
   ): boolean;
   invalidateAll(): number;
   line<TActualParams extends ApiRouteLineParams<TRoute, TRequestParams, TBody>>(
     params: ExactApiRouteLineParams<TRoute, TRequestParams, TBody, TActualParams>,
-  ): ResourceLine<ApiRouteLineParams<TRoute, TRequestParams, TBody>, TValue | null>;
+  ): ResourceDetailPatchCapableLine<
+    ApiRouteLineParams<TRoute, TRequestParams, TBody>,
+    TValue,
+    TReconcile
+  >;
 }
 
 export interface ApiCollectionResourceFamily<
@@ -437,3 +465,110 @@ export type {
   DetailResourceFamily,
   PagedResourceFamily,
 };
+type ApiFamilyPatchFieldNames<TValue, TReconcile> =
+  [TReconcile] extends [ResourceDetailFields<TValue, infer TFieldMap>]
+    ? keyof TFieldMap & string
+    : never;
+
+type ApiFamilyPatchJsonPathNames<TValue, TReconcile> =
+  [TReconcile] extends [ResourceDetailJsonPaths<TValue, infer TPathMap>]
+    ? keyof TPathMap & string
+    : never;
+
+type ApiFamilyPatchRegionNames<TValue, TReconcile> =
+  [TReconcile] extends [ResourceDetailRegions<TValue, infer TRegionMap>]
+    ? keyof TRegionMap & string
+    : never;
+
+type ApiFamilyPatchFieldHelper<TValue, TReconcile> = [ApiFamilyPatchFieldNames<
+  TValue,
+  TReconcile
+>] extends [never]
+  ? {}
+  : {
+      field<TField extends ApiFamilyPatchFieldNames<TValue, TReconcile>>(options: {
+        field: TField;
+        value: ResourceDetailFieldValue<
+          Extract<TReconcile, ResourceDetailFields<TValue, any>>["definitions"][TField]
+        >;
+      }): ResourcePatchForReconcile<TValue, never, TReconcile, "detail">;
+    };
+
+type ApiFamilyPatchRegionHelper<TValue, TReconcile> = [ApiFamilyPatchRegionNames<
+  TValue,
+  TReconcile
+>] extends [never]
+  ? {}
+  : {
+      region<TRegion extends ApiFamilyPatchRegionNames<TValue, TReconcile>>(options: {
+        region: TRegion;
+        value: ResourceDetailRegionValue<
+          Extract<TReconcile, ResourceDetailRegions<TValue, any>>["definitions"][TRegion]
+        >;
+      }): ResourcePatchForReconcile<TValue, never, TReconcile, "detail">;
+    };
+
+type ApiFamilyPatchJsonPathHelper<TValue, TReconcile> = [ApiFamilyPatchJsonPathNames<
+  TValue,
+  TReconcile
+>] extends [never]
+  ? {}
+  : {
+      jsonPath<TPath extends ApiFamilyPatchJsonPathNames<TValue, TReconcile>>(options: {
+        path: TPath;
+        value: ResourceDetailJsonPathValue<
+          Extract<TReconcile, ResourceDetailJsonPaths<TValue, any>>["definitions"][TPath]
+        >;
+      }): ResourcePatchForReconcile<TValue, never, TReconcile, "detail">;
+    };
+
+type ApiFamilyDeliveryFieldHelper<
+  TValue,
+  TReconcile,
+  TFamilyKind extends "detail" | "collection" | "paged",
+> = [ApiFamilyPatchFieldNames<TValue, TReconcile>] extends [never]
+  ? {}
+  : {
+      field<TField extends ApiFamilyPatchFieldNames<TValue, TReconcile>>(
+        options: ApiFamilyDeliveryBaseOptions & {
+          field: TField;
+          value: ResourceDetailFieldValue<
+            Extract<TReconcile, ResourceDetailFields<TValue, any>>["definitions"][TField]
+          >;
+        },
+      ): PatchResourceDelivery<TValue, never, TReconcile, TFamilyKind>;
+    };
+
+type ApiFamilyDeliveryJsonPathHelper<
+  TValue,
+  TReconcile,
+  TFamilyKind extends "detail" | "collection" | "paged",
+> = [ApiFamilyPatchJsonPathNames<TValue, TReconcile>] extends [never]
+  ? {}
+  : {
+      jsonPath<TPath extends ApiFamilyPatchJsonPathNames<TValue, TReconcile>>(
+        options: ApiFamilyDeliveryBaseOptions & {
+          path: TPath;
+          value: ResourceDetailJsonPathValue<
+            Extract<TReconcile, ResourceDetailJsonPaths<TValue, any>>["definitions"][TPath]
+          >;
+        },
+      ): PatchResourceDelivery<TValue, never, TReconcile, TFamilyKind>;
+    };
+
+type ApiFamilyDeliveryRegionHelper<
+  TValue,
+  TReconcile,
+  TFamilyKind extends "detail" | "collection" | "paged",
+> = [ApiFamilyPatchRegionNames<TValue, TReconcile>] extends [never]
+  ? {}
+  : {
+      region<TRegion extends ApiFamilyPatchRegionNames<TValue, TReconcile>>(
+        options: ApiFamilyDeliveryBaseOptions & {
+          region: TRegion;
+          value: ResourceDetailRegionValue<
+            Extract<TReconcile, ResourceDetailRegions<TValue, any>>["definitions"][TRegion]
+          >;
+        },
+      ): PatchResourceDelivery<TValue, never, TReconcile, TFamilyKind>;
+    };

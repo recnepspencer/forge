@@ -71,6 +71,7 @@ test("api.url(...).response(array contract).list(...) lowers typed object aspect
       scope: "aspect",
       itemId: "demo:1",
       aspect: "title",
+      field: null,
     });
     assert.deepEqual(line.value(), [
       { id: "demo:1", title: "Renamed", status: "open" },
@@ -115,6 +116,7 @@ test("api.url(...).response(objectItems contract).list(...) patches typed envelo
       scope: "aspect",
       itemId: "t1",
       aspect: "title",
+      field: null,
     });
     assert.deepEqual(line.value(), {
       tasks: [{ id: "t1", title: "Renamed" }],
@@ -163,6 +165,7 @@ test("api.url(...).response(collection contract).list(...) patches arbitrary typ
       scope: "aspect",
       itemId: "t1",
       aspect: "status",
+      field: null,
     });
     assert.deepEqual(line.value(), {
       edges: [{ node: { id: "t1", status: "done" } }],
@@ -190,18 +193,18 @@ test("response contract lanes own identity and reconciliation boundaries", async
       () => responseLane.detail({ load: () => ({ id: "t1" }) }),
       /response\(\.\.\.\) is a collection response lane/,
     );
-    assert.throws(
-      () => responseLane.create({ load: () => ({ id: "t1" }) }),
-      /response\(\.\.\.\) is a collection response lane/,
-    );
-    assert.throws(
-      () => responseLane.update({ load: () => ({ id: "t1" }) }),
-      /response\(\.\.\.\) is a collection response lane/,
-    );
-    assert.throws(
-      () => responseLane.remove({ load: () => ({ id: "t1" }) }),
-      /response\(\.\.\.\) is a collection response lane/,
-    );
+    const createRoute = responseLane.create({
+      load: () => ({ id: "t1" }),
+    });
+    const updateRoute = responseLane.update({
+      load: () => ({ id: "t1" }),
+    });
+    const removeRoute = responseLane.remove({
+      load: () => ({ id: "t1" }),
+    });
+    assert.equal(typeof createRoute.line, "function");
+    assert.equal(typeof updateRoute.line, "function");
+    assert.equal(typeof removeRoute.line, "function");
     assert.throws(
       () =>
         runtime.signals.api({}).url("/tasks").response(taskResponse).list({

@@ -1,4 +1,19 @@
 import type { SignalValue } from "../model.js";
+import type {
+  ResourceDetailFieldMap,
+  ResourceDetailFieldValue,
+  ResourceDetailFields,
+} from "./resource_detail_fields.js";
+import type {
+  ResourceDetailRegionMap,
+  ResourceDetailRegionValue,
+  ResourceDetailRegions,
+} from "./resource_detail_regions.js";
+import type {
+  ResourceDetailJsonPathMap,
+  ResourceDetailJsonPathValue,
+  ResourceDetailJsonPaths,
+} from "./resource_detail_json_paths.js";
 import type { ResourceResponseLensProof } from "./resource_response.js";
 
 declare const forgeSignalResourceItemAspectsBrand: unique symbol;
@@ -9,6 +24,10 @@ declare const forgeSignalResourceDeliveryBrand: unique symbol;
 
 export type ResourceSummaryPatchScope = "line" | "pageWindow";
 export type ResourceItemAspectLocus = "itemAspect" | "jsonItemAspect";
+export type ResourceDetailReconcile<TValue> =
+  | ResourceDetailFields<TValue, any>
+  | ResourceDetailRegions<TValue, any>
+  | ResourceDetailJsonPaths<TValue, any>;
 
 export interface ResourceItemAspect<TItem, TValue = SignalValue> {
   read(item: TItem): TValue;
@@ -68,6 +87,36 @@ export interface ResourceCollectionShape<
   readonly [forgeSignalResourceCollectionShapeBrand]: "resourceCollectionShape";
 }
 
+export interface FieldResourcePatch<
+  TField extends string = string,
+  TValue = SignalValue,
+> {
+  readonly kind: "field";
+  readonly field: TField;
+  readonly value: TValue;
+  readonly [forgeSignalResourcePatchBrand]: "resourcePatch";
+}
+
+export interface JsonPathResourcePatch<
+  TPath extends string = string,
+  TValue = SignalValue,
+> {
+  readonly kind: "jsonPath";
+  readonly path: TPath;
+  readonly value: TValue;
+  readonly [forgeSignalResourcePatchBrand]: "resourcePatch";
+}
+
+export interface RegionResourcePatch<
+  TRegion extends string = string,
+  TValue = SignalValue,
+> {
+  readonly kind: "region";
+  readonly region: TRegion;
+  readonly value: TValue;
+  readonly [forgeSignalResourcePatchBrand]: "resourcePatch";
+}
+
 export interface ReplaceResourcePatch<TValue> {
   readonly kind: "replace";
   readonly nextValue: TValue;
@@ -122,6 +171,36 @@ export type SummaryResourcePatchUnion<
   >;
 }[keyof TSummaryMap & string];
 
+export type DetailFieldResourcePatchUnion<
+  TValue,
+  TFieldMap extends ResourceDetailFieldMap<TValue>,
+> = {
+  [TField in keyof TFieldMap & string]: FieldResourcePatch<
+    TField,
+    ResourceDetailFieldValue<TFieldMap[TField]>
+  >;
+}[keyof TFieldMap & string];
+
+export type DetailJsonPathResourcePatchUnion<
+  TValue,
+  TPathMap extends ResourceDetailJsonPathMap<TValue>,
+> = {
+  [TPath in keyof TPathMap & string]: JsonPathResourcePatch<
+    TPath,
+    ResourceDetailJsonPathValue<TPathMap[TPath]>
+  >;
+}[keyof TPathMap & string];
+
+export type DetailRegionResourcePatchUnion<
+  TValue,
+  TRegionMap extends ResourceDetailRegionMap<TValue>,
+> = {
+  [TRegion in keyof TRegionMap & string]: RegionResourcePatch<
+    TRegion,
+    ResourceDetailRegionValue<TRegionMap[TRegion]>
+  >;
+}[keyof TRegionMap & string];
+
 export type ResourcePatch<
   TValue,
   TItem,
@@ -129,6 +208,9 @@ export type ResourcePatch<
   TSummaryMap extends ResourceValueSummaryMap<TValue> = {},
 > =
   | ReplaceResourcePatch<TValue>
+  | DetailFieldResourcePatchUnion<TValue, {}>
+  | DetailRegionResourcePatchUnion<TValue, {}>
+  | DetailJsonPathResourcePatchUnion<TValue, {}>
   | ItemResourcePatch<TItem>
   | AspectResourcePatchUnion<TItem, TAspectMap>
   | SummaryResourcePatchUnion<TValue, TSummaryMap>;
@@ -164,8 +246,23 @@ export type ResourcePatchForReconcile<
   TValue,
   TItem,
   TReconcile,
-  TFamilyKind extends "collection" | "paged" = "collection",
+  TFamilyKind extends "detail" | "collection" | "paged" = "collection",
 > = ReplaceResourcePatch<TValue>
+  | ([TReconcile] extends [
+      ResourceDetailFields<TValue, infer TFieldMap>,
+    ]
+      ? DetailFieldResourcePatchUnion<TValue, TFieldMap>
+      : never)
+  | ([TReconcile] extends [
+      ResourceDetailRegions<TValue, infer TRegionMap>,
+    ]
+      ? DetailRegionResourcePatchUnion<TValue, TRegionMap>
+      : never)
+  | ([TReconcile] extends [
+      ResourceDetailJsonPaths<TValue, infer TPathMap>,
+    ]
+      ? DetailJsonPathResourcePatchUnion<TValue, TPathMap>
+      : never)
   | ([TReconcile] extends [
       ResourceCollectionShape<
         any,
@@ -198,6 +295,30 @@ export interface NarrowedItemPatchResult {
   readonly aspect: null;
 }
 
+export interface NarrowedDetailFieldPatchResult {
+  readonly kind: "narrowed";
+  readonly scope: "field";
+  readonly itemId: null;
+  readonly aspect: null;
+  readonly field: string;
+}
+
+export interface NarrowedDetailRegionPatchResult {
+  readonly kind: "narrowed";
+  readonly scope: "region";
+  readonly itemId: null;
+  readonly aspect: null;
+  readonly region: string;
+}
+
+export interface NarrowedDetailJsonPathPatchResult {
+  readonly kind: "narrowed";
+  readonly scope: "jsonPath";
+  readonly itemId: null;
+  readonly aspect: null;
+  readonly path: string;
+}
+
 export interface NarrowedItemAspectPatchResult {
   readonly kind: "narrowed";
   readonly scope: "aspect";
@@ -215,6 +336,9 @@ export interface NarrowedSummaryPatchResult {
 
 export type ResourcePatchResult =
   | ReplacedResourcePatchResult
+  | NarrowedDetailFieldPatchResult
+  | NarrowedDetailRegionPatchResult
+  | NarrowedDetailJsonPathPatchResult
   | NarrowedItemPatchResult
   | NarrowedItemAspectPatchResult
   | NarrowedSummaryPatchResult;
@@ -223,18 +347,42 @@ export interface ResourceLineReconciliation<
   TItem,
   TAspectMap extends ResourceItemAspectMap<TItem> = {},
   TSummaryMap extends ResourceValueSummaryMap<any> = {},
+  TFieldMap extends ResourceDetailFieldMap<any> = {},
+  TRegionMap extends ResourceDetailRegionMap<any> = {},
+  TJsonPathMap extends ResourceDetailJsonPathMap<any> = {},
   TNarrowItem extends boolean = boolean,
+  TNarrowField extends boolean = boolean,
+  TNarrowRegion extends boolean = boolean,
+  TNarrowJsonPath extends boolean = boolean,
   TNarrowSummary extends boolean = boolean,
 > {
   readonly broadReplace: true;
   readonly narrowItem: TNarrowItem;
+  readonly narrowField: TNarrowField;
+  readonly narrowRegion: TNarrowRegion;
+  readonly narrowJsonPath: TNarrowJsonPath;
   readonly narrowSummary: TNarrowSummary;
+  readonly fieldNames: readonly (keyof TFieldMap & string)[];
+  readonly regionNames: readonly (keyof TRegionMap & string)[];
+  readonly jsonPathNames: readonly (keyof TJsonPathMap & string)[];
   readonly aspectNames: readonly (keyof TAspectMap & string)[];
   readonly summaryNames: readonly (keyof TSummaryMap & string)[];
 }
 
 export interface ResourcePatchFactory {
   replace<TValue>(nextValue: TValue): ReplaceResourcePatch<TValue>;
+  field<TField extends string, TValue>(options: {
+    field: TField;
+    value: TValue;
+  }): FieldResourcePatch<TField, TValue>;
+  region<TRegion extends string, TValue>(options: {
+    region: TRegion;
+    value: TValue;
+  }): RegionResourcePatch<TRegion, TValue>;
+  jsonPath<TPath extends string, TValue>(options: {
+    path: TPath;
+    value: TValue;
+  }): JsonPathResourcePatch<TPath, TValue>;
   item<TItem>(options: {
     itemId: string;
     nextItem: TItem;
@@ -259,7 +407,7 @@ export interface ReplaceResourceDelivery<TValue> {
 
 export interface PatchResourceDelivery<
   TValue, TItem, TReconcile,
-  TFamilyKind extends "collection" | "paged" = "collection",
+  TFamilyKind extends "detail" | "collection" | "paged" = "collection",
 > {
   readonly kind: "patch"; readonly packetId: string;
   readonly basisId: string | null; readonly nextBasisId: string | null | undefined;
@@ -282,7 +430,7 @@ export interface ExternalReplaceResourceDelivery<TValue> {
 
 export interface ExternalPatchResourceDelivery<
   TValue, TItem, TReconcile,
-  TFamilyKind extends "collection" | "paged" = "collection",
+  TFamilyKind extends "detail" | "collection" | "paged" = "collection",
 > {
   readonly kind: "patch"; readonly packetId: string;
   readonly basisId: string | null; readonly nextBasisId: string | null | undefined;
@@ -307,7 +455,7 @@ export interface ExternalBasisRefreshResourceDelivery {
 
 export type ResourceDeliveryForReconcile<
   TValue, TItem, TReconcile,
-  TFamilyKind extends "collection" | "paged" = "collection",
+  TFamilyKind extends "detail" | "collection" | "paged" = "collection",
 > =
   | ReplaceResourceDelivery<TValue>
   | PatchResourceDelivery<TValue, TItem, TReconcile, TFamilyKind>
@@ -319,7 +467,8 @@ export type ResourceDeliveryForReconcile<
 
 export interface AppliedResourceDeliveryResult {
   readonly kind: "applied"; readonly deliveryKind: "replace" | "patch" | "invalidate";
-  readonly scope: "line" | "item" | "aspect" | "summary" | "invalidate";
+  readonly scope: "line" | "field" | "region" | "jsonPath" | "item" | "aspect" | "summary" | "invalidate";
+  readonly path?: string | null;
   readonly packetId: string; readonly basisId: string | null;
   readonly nextBasisId: string | null;
   readonly supersededOperation: "initialLoad" | "refresh" | "revalidate" | null;
@@ -358,7 +507,7 @@ export interface ResourceDeliveryFactory {
   }): ReplaceResourceDelivery<TValue>;
   patch<
     TValue, TItem, TReconcile,
-    TFamilyKind extends "collection" | "paged" = "collection",
+    TFamilyKind extends "detail" | "collection" | "paged" = "collection",
   >(options: {
     packetId: string; basisId?: string | null; nextBasisId?: string | null;
     patch: ResourcePatchForReconcile<TValue, TItem, TReconcile, TFamilyKind>;
@@ -375,7 +524,7 @@ export interface ResourceExternalDeliveryFactory {
   }): ExternalReplaceResourceDelivery<TValue>;
   patch<
     TValue, TItem, TReconcile,
-    TFamilyKind extends "collection" | "paged" = "collection",
+    TFamilyKind extends "detail" | "collection" | "paged" = "collection",
   >(options: {
     packetId: string; basisId?: string | null; nextBasisId?: string | null;
     patch: ResourcePatchForReconcile<TValue, TItem, TReconcile, TFamilyKind>;
@@ -417,6 +566,21 @@ export function resourceCollectionShape<
   aspects?: ResourceItemAspects<TItem, TAspectMap>;
   summaries?: ResourceValueSummaries<TValue, TSummaryMap, TSummaryPatchScope>;
 }): ResourceCollectionShape<TValue, TItem, TAspectMap, TSummaryMap, TSummaryPatchScope>;
+
+export function resourceDetailFields<
+  TValue,
+  TFieldMap extends ResourceDetailFieldMap<TValue>,
+>(definitions: TFieldMap): ResourceDetailFields<TValue, TFieldMap>;
+
+export function resourceDetailRegions<
+  TValue,
+  TRegionMap extends ResourceDetailRegionMap<TValue>,
+>(definitions: TRegionMap): ResourceDetailRegions<TValue, TRegionMap>;
+
+export function resourceDetailJsonPaths<
+  TValue,
+  TPathMap extends ResourceDetailJsonPathMap<TValue>,
+>(definitions: TPathMap): ResourceDetailJsonPaths<TValue, TPathMap>;
 
 export const resourcePatch: ResourcePatchFactory;
 export const resourceDelivery: ResourceDeliveryFactory;

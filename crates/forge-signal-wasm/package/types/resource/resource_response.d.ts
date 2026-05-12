@@ -1,5 +1,22 @@
 import type { SignalValue } from "../model.js";
 import type {
+  ResourceDetailFieldMap,
+  ResourceDetailFields,
+  ResourceDetailObjectFieldDefinitions,
+  ResourceDetailObjectFieldMap,
+} from "./resource_detail_fields.js";
+import type {
+  ResourceDetailRegionMap,
+  ResourceDetailRegions,
+} from "./resource_detail_regions.js";
+import type {
+  ResourceDetailJsonPathDeclaration,
+  ResourceDetailJsonPathDeclarationMap,
+  ResourceDetailJsonPathDefinitions,
+  ResourceDetailJsonPathMap,
+  ResourceDetailJsonPaths,
+} from "./resource_detail_json_paths.js";
+import type {
   ResourceItemAspect,
   ResourceItemAspectMap,
   ResourceItemAspects,
@@ -165,7 +182,15 @@ export interface ResourceCollectionResponse<
   readonly [forgeSignalResourceCollectionResponseBrand]: "resourceCollectionResponse";
 }
 
-export interface ResourceDetailResponse<TValue> {
+export interface ResourceDetailResponse<
+  TValue,
+  TFieldMap extends ResourceDetailFieldMap<TValue> = {},
+  TRegionMap extends ResourceDetailRegionMap<TValue> = {},
+  TJsonPathMap extends ResourceDetailJsonPathMap<TValue> = {},
+> {
+  readonly fields?: ResourceDetailFields<TValue, TFieldMap> | null;
+  readonly regions?: ResourceDetailRegions<TValue, TRegionMap> | null;
+  readonly jsonPaths?: ResourceDetailJsonPaths<TValue, TJsonPathMap> | null;
   readonly kind: "detail";
   readonly lensProof: ResourceResponseLensProof;
   readonly [forgeSignalResourceDetailResponseBrand]: "resourceDetailResponse";
@@ -179,13 +204,13 @@ export interface ResourceSummaryResponse<TValue> {
 
 export type ResourceAnyResponse =
   | ResourceCollectionResponse<any, any, any, any>
-  | ResourceDetailResponse<any>
+  | ResourceDetailResponse<any, any, any>
   | ResourceSummaryResponse<any>;
 
 export type ResourceResponseValue<TResponse> =
   TResponse extends ResourceCollectionResponse<infer TValue, any, any>
     ? TValue
-    : TResponse extends ResourceDetailResponse<infer TValue>
+    : TResponse extends ResourceDetailResponse<infer TValue, any, any>
       ? TValue
     : TResponse extends ResourceSummaryResponse<infer TValue>
       ? TValue
@@ -210,6 +235,21 @@ export type ResourceResponseSummaryMap<TResponse> =
       : {}
     : {};
 
+export type ResourceResponseDetailFieldMap<TResponse> =
+  TResponse extends ResourceDetailResponse<any, infer TFieldMap, any, any>
+    ? TFieldMap
+    : {};
+
+export type ResourceResponseDetailRegionMap<TResponse> =
+  TResponse extends ResourceDetailResponse<any, any, infer TRegionMap, any>
+    ? TRegionMap
+    : {};
+
+export type ResourceResponseDetailJsonPathMap<TResponse> =
+  TResponse extends ResourceDetailResponse<any, any, any, infer TJsonPathMap>
+    ? TJsonPathMap
+    : {};
+
 export type ResourceArrayResponseItem<TResponse> =
   ResourceResponseItem<TResponse>;
 
@@ -228,3 +268,17 @@ export type ResourceObjectArrayFieldItem<
 > = TValue[TField] extends readonly (infer TItem)[] ? TItem : never;
 
 export const resourceResponse: ResourceResponseFactory;
+
+export type {
+  ResourceDetailFieldMap,
+  ResourceDetailFields,
+  ResourceDetailRegionMap,
+  ResourceDetailRegions,
+  ResourceDetailJsonPathDeclaration,
+  ResourceDetailJsonPathDeclarationMap,
+  ResourceDetailJsonPathDefinitions,
+  ResourceDetailJsonPathMap,
+  ResourceDetailJsonPaths,
+  ResourceDetailObjectFieldDefinitions,
+  ResourceDetailObjectFieldMap,
+};

@@ -1,5 +1,6 @@
 import type {
   ResourceCollectionShape,
+  ResourceDetailReconcile,
   ResourceItemAspectMap,
   ResourceValueSummaryMap,
 } from "./resource_reconciliation.js";
@@ -23,6 +24,7 @@ import type {
   ApiRouteUploadDetailDeclaration,
   ApiRouteUploadPagedDeclaration,
 } from "./api_route_declarations.js";
+import type { ResourceMutationResponseAnyTargetDeclaration } from "./resource_mutation_response.js";
 
 export type ApiRouteTransferValue<
   TValue,
@@ -74,6 +76,7 @@ export type ApiRouteSettledTransferValue<
 export type ApiRouteDetailDeclarationForState<
   TRoute extends string,
   TValue,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined,
   TRequestParams extends ApiRequestParamsShape | undefined,
   TProcessingKind extends ApiRouteProcessingKind,
   TUploadKind extends ApiRouteUploadKind,
@@ -81,13 +84,30 @@ export type ApiRouteDetailDeclarationForState<
   TBody = undefined,
 > = TProcessingKind extends "none"
   ? TUploadKind extends "none"
-    ? ApiRouteDetailDeclaration<TRoute, TValue, TRequestParams, TBody, false, false, TDownloadsOwned>
-    : ApiRouteUploadDetailDeclaration<TRoute, TValue, TRequestParams, TBody, false, true, TDownloadsOwned>
+    ? ApiRouteDetailDeclaration<TRoute, TValue, TReconcile, TRequestParams, TBody, false, false, TDownloadsOwned>
+    : ApiRouteUploadDetailDeclaration<TRoute, TValue, TReconcile, TRequestParams, TBody, false, true, TDownloadsOwned>
   : TUploadKind extends "none"
-    ? ApiRouteProcessingDetailDeclaration<TRoute, TValue, TRequestParams, TBody, true, false, TDownloadsOwned>
-    : ApiRouteProcessingUploadDetailDeclaration<TRoute, TValue, TRequestParams, TBody, true, true, TDownloadsOwned>;
+    ? ApiRouteProcessingDetailDeclaration<TRoute, TValue, TReconcile, TRequestParams, TBody, true, false, TDownloadsOwned>
+    : ApiRouteProcessingUploadDetailDeclaration<TRoute, TValue, TReconcile, TRequestParams, TBody, true, true, TDownloadsOwned>;
 
 export type ApiRouteCreateDeclarationForState<
+  TRoute extends string,
+  TValue,
+  TBody,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined,
+  TRequestParams extends ApiRequestParamsShape | undefined,
+  TProcessingKind extends ApiRouteProcessingKind,
+  TUploadKind extends ApiRouteUploadKind,
+  TDownloadsOwned extends boolean,
+> = TProcessingKind extends "none"
+  ? TUploadKind extends "none"
+    ? ApiRouteCreateDeclaration<TRoute, TValue, TBody, TReconcile, TRequestParams, false, false, TDownloadsOwned>
+    : ApiRouteUploadCreateDeclaration<TRoute, TValue, TBody, TReconcile, TRequestParams, false, true, TDownloadsOwned>
+  : TUploadKind extends "none"
+    ? ApiRouteProcessingCreateDeclaration<TRoute, TValue, TBody, TReconcile, TRequestParams, true, false, TDownloadsOwned>
+    : ApiRouteProcessingUploadCreateDeclaration<TRoute, TValue, TBody, TReconcile, TRequestParams, true, true, TDownloadsOwned>;
+
+export type ApiRouteResponseMutationDeclarationForState<
   TRoute extends string,
   TValue,
   TBody,
@@ -95,13 +115,48 @@ export type ApiRouteCreateDeclarationForState<
   TProcessingKind extends ApiRouteProcessingKind,
   TUploadKind extends ApiRouteUploadKind,
   TDownloadsOwned extends boolean,
-> = TProcessingKind extends "none"
-  ? TUploadKind extends "none"
-    ? ApiRouteCreateDeclaration<TRoute, TValue, TBody, TRequestParams, false, false, TDownloadsOwned>
-    : ApiRouteUploadCreateDeclaration<TRoute, TValue, TBody, TRequestParams, false, true, TDownloadsOwned>
-  : TUploadKind extends "none"
-    ? ApiRouteProcessingCreateDeclaration<TRoute, TValue, TBody, TRequestParams, true, false, TDownloadsOwned>
-    : ApiRouteProcessingUploadCreateDeclaration<TRoute, TValue, TBody, TRequestParams, true, true, TDownloadsOwned>;
+> = ApiRouteCreateDeclarationForState<
+  TRoute,
+  TValue,
+  TBody,
+  undefined,
+  TRequestParams,
+  TProcessingKind,
+  TUploadKind,
+  TDownloadsOwned
+> & {
+  reconciles?: readonly ResourceMutationResponseAnyTargetDeclaration<
+    import("./api_request_params.js").ApiRouteWriteDeclarationParams<
+      TRoute,
+      TRequestParams,
+      TBody
+    >
+  >[];
+};
+
+export type ApiRouteResponseRemoveMutationDeclarationForState<
+  TRoute extends string,
+  TValue,
+  TRequestParams extends ApiRequestParamsShape | undefined,
+  TProcessingKind extends ApiRouteProcessingKind,
+  TUploadKind extends ApiRouteUploadKind,
+  TDownloadsOwned extends boolean,
+> = ApiRouteDetailDeclarationForState<
+  TRoute,
+  TValue,
+  undefined,
+  TRequestParams,
+  TProcessingKind,
+  TUploadKind,
+  TDownloadsOwned
+> & {
+  reconciles?: readonly ResourceMutationResponseAnyTargetDeclaration<
+    import("./api_request_params.js").ApiRouteDeclarationParams<
+      TRoute,
+      TRequestParams
+    >
+  >[];
+};
 
 export type ApiRouteCollectionDeclarationForState<
   TRoute extends string,

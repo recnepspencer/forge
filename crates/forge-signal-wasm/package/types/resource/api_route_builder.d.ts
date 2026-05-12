@@ -27,6 +27,7 @@ import type {
   ApiRouteResolvedDownloadValue,
   ApiRouteSettledTransferValue,
 } from "./api_route_builder_declarations.js";
+import type { ResourceDetailReconcile } from "./resource_reconciliation.js";
 
 interface ApiRouteBuilderBase<
   TRoute extends string,
@@ -41,11 +42,15 @@ interface ApiRouteBuilderBase<
 > {
   detail<
     TValue,
+    TReconcile extends ResourceDetailReconcile<
+      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>
+    > | undefined = undefined,
   >(
     declaration: ApiRouteOwnedEffectsDeclaration<ApiRouteOwnedHeadersDeclaration<
       ApiRouteDetailDeclarationForState<
         TRoute,
         ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
+        TReconcile,
         TRequestParams,
         TProcessingKind,
         TUploadKind,
@@ -62,7 +67,8 @@ interface ApiRouteBuilderBase<
       TProcessingKind,
       TUploadKind
     >,
-    TBody
+    TBody,
+    TReconcile
   >;
   list<
     TValue,
@@ -147,12 +153,16 @@ interface ApiRouteBuilderStandardFinalizers<
   create<
     TValue,
     TBody,
+    TReconcile extends ResourceDetailReconcile<
+      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>
+    > | undefined = undefined,
   >(
     declaration: ApiRouteOwnedEffectsDeclaration<ApiRouteOwnedHeadersDeclaration<
       ApiRouteCreateDeclarationForState<
         TRoute,
         ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
         TBody,
+        TReconcile,
         TRequestParams,
         TProcessingKind,
         TUploadKind,
@@ -168,17 +178,22 @@ interface ApiRouteBuilderStandardFinalizers<
       TProcessingKind,
       TUploadKind
     >,
-    TBody
+    TBody,
+    TReconcile
   >;
   update<
     TValue,
     TBody,
+    TReconcile extends ResourceDetailReconcile<
+      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>
+    > | undefined = undefined,
   >(
     declaration: ApiRouteOwnedEffectsDeclaration<ApiRouteOwnedHeadersDeclaration<
       ApiRouteCreateDeclarationForState<
         TRoute,
         ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
         TBody,
+        TReconcile,
         TRequestParams,
         TProcessingKind,
         TUploadKind,
@@ -194,15 +209,20 @@ interface ApiRouteBuilderStandardFinalizers<
       TProcessingKind,
       TUploadKind
     >,
-    TBody
+    TBody,
+    TReconcile
   >;
   remove<
     TValue,
+    TReconcile extends ResourceDetailReconcile<
+      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>
+    > | undefined = undefined,
   >(
     declaration: ApiRouteOwnedEffectsDeclaration<ApiRouteOwnedHeadersDeclaration<
       ApiRouteDetailDeclarationForState<
         TRoute,
         ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
+        TReconcile,
         TRequestParams,
         TProcessingKind,
         TUploadKind,
@@ -217,7 +237,9 @@ interface ApiRouteBuilderStandardFinalizers<
       ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
       TProcessingKind,
       TUploadKind
-    >
+    >,
+    undefined,
+    TReconcile
   >;
 }
 
