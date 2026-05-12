@@ -2,7 +2,7 @@ use super::references::{ContentRefId, EntityId};
 use super::scalar_kind::ScalarAspectType;
 use super::scalar_wrappers::{
     CanonicalBigInt, CanonicalDate, CanonicalDecimal, CanonicalF32, CanonicalF64,
-    CanonicalRational, CanonicalString, CanonicalTime, CanonicalTimestamp, CanonicalTimestampTz,
+    CanonicalRational, CanonicalTime, CanonicalTimestamp, CanonicalTimestampTz, InternedString,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -22,7 +22,7 @@ pub enum AspectValue {
     Decimal(CanonicalDecimal),
     BigInt(CanonicalBigInt),
     Rational(CanonicalRational),
-    String(CanonicalString),
+    String(InternedString),
     Bytes(ContentRefId),
     Uuid([u8; 16]),
     Date(CanonicalDate),

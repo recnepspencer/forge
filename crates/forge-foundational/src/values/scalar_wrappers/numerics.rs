@@ -32,7 +32,7 @@ pub struct CanonicalRational {
 
 impl CanonicalRational {
     pub fn new(numerator: CanonicalBigInt, denominator: CanonicalBigInt) -> Option<Self> {
-        if denominator.as_str() == "0" {
+        if canonical_big_int_string_is_zero(denominator.as_str()) {
             None
         } else {
             Some(Self {
@@ -41,4 +41,13 @@ impl CanonicalRational {
             })
         }
     }
+}
+
+fn canonical_big_int_string_is_zero(value: &str) -> bool {
+    let unsigned_digits = value
+        .strip_prefix('+')
+        .or_else(|| value.strip_prefix('-'))
+        .unwrap_or(value);
+
+    !unsigned_digits.is_empty() && unsigned_digits.chars().all(|digit| digit == '0')
 }

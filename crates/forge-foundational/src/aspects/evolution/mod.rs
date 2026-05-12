@@ -4,4 +4,8 @@ mod verdict;
 
 pub use scalar_evolution::{scalar_widens, AspectEvolutionPolicy};
 pub use struct_evolution::classify_struct_evolution;
-pub use verdict::{AspectEvolutionKind, AspectEvolutionVerdict};
+pub use verdict::{
+    classify_aspect_contract_evolution, AspectEvolutionClassified,
+    AspectEvolutionClassifiedContractArtifact, AspectEvolutionClassifiedContracts,
+    AspectEvolutionKind, AspectEvolutionVerdict,
+};

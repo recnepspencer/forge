@@ -1,24 +1,31 @@
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub struct Symbol(pub u32);
+
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct CanonicalString(String);
+pub enum InternedString {
+    Raw(String),
+    Symbol(Symbol),
+}
 
-impl CanonicalString {
-    pub fn new(value: impl Into<String>) -> Self {
-        Self(value.into())
-    }
-
-    pub fn as_str(&self) -> &str {
-        &self.0
+impl InternedString {
+    pub fn as_symbol(&self) -> Option<Symbol> {
+        match self {
+            Self::Raw(_) => None,
+            Self::Symbol(symbol) => Some(*symbol),
+        }
     }
 }
 
-impl From<&str> for CanonicalString {
+impl From<&str> for InternedString {
     fn from(value: &str) -> Self {
-        Self::new(value)
+        Self::Raw(value.to_string())
     }
 }
 
-impl From<String> for CanonicalString {
+impl From<String> for InternedString {
     fn from(value: String) -> Self {
-        Self::new(value)
+        Self::Raw(value)
     }
 }
+
+pub type CanonicalString = InternedString;

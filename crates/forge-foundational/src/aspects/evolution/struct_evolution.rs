@@ -1,7 +1,7 @@
 use std::collections::BTreeSet;
 
 use super::{scalar_widens, AspectEvolutionKind, AspectEvolutionVerdict};
-use crate::aspects::structs::{FieldDeclaration, StructAspectShape};
+use crate::aspects::structs::{FieldDeclaration, FieldRequirement, StructAspectShape};
 
 pub fn classify_struct_evolution(
     left: &StructAspectShape,
@@ -13,7 +13,7 @@ pub fn classify_struct_evolution(
     if left_keys == right_keys {
         classify_equal_field_set_evolution(left, right, left_keys)
     } else if left_keys.is_subset(&right_keys) {
-        AspectEvolutionVerdict::new(AspectEvolutionKind::Additive, "struct fields were added")
+        classify_added_field_evolution(right, &left_keys)
     } else {
         AspectEvolutionVerdict::new(
             AspectEvolutionKind::Incompatible,
@@ -33,8 +33,43 @@ fn classify_equal_field_set_evolution(
         if left_field.value_type() != right_field.value_type() {
             return classify_field_type_change(left_field, right_field);
         }
+        if left_field.requirement() != right_field.requirement()
+            || left_field.absence() != right_field.absence()
+        {
+            return AspectEvolutionVerdict::new(
+                AspectEvolutionKind::Incompatible,
+                "struct field requirement or absence law changed",
+            );
+        }
     }
     AspectEvolutionVerdict::new(AspectEvolutionKind::Unchanged, "struct shape unchanged")
+}
+
+fn classify_added_field_evolution(
+    right: &StructAspectShape,
+    previous_keys: &BTreeSet<&crate::aspects::structs::FieldKey>,
+) -> AspectEvolutionVerdict {
+    let added_fields_are_backwards_readable = right
+        .fields()
+        .iter()
+        .filter(|field| !previous_keys.contains(field.key()))
+        .all(field_addition_is_backwards_readable);
+
+    if added_fields_are_backwards_readable {
+        AspectEvolutionVerdict::new(
+            AspectEvolutionKind::Additive,
+            "optional or defaulted struct fields were added",
+        )
+    } else {
+        AspectEvolutionVerdict::new(
+            AspectEvolutionKind::Incompatible,
+            "required struct fields were added",
+        )
+    }
+}
+
+fn field_addition_is_backwards_readable(field: &FieldDeclaration) -> bool {
+    !matches!(field.requirement(), FieldRequirement::Required)
 }
 
 fn classify_field_type_change(

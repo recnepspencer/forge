@@ -17,6 +17,24 @@ fn contract_validation_requires_proof_bearing_outputs() {
 }
 
 #[test]
+fn aspect_evolution_requires_proof_bearing_classification() {
+    let tests = trybuild::TestCases::new();
+    tests.compile_fail("tests/ui/aspect_evolution/*.rs");
+}
+
+#[test]
+fn authoritative_state_requires_validated_admission() {
+    let tests = trybuild::TestCases::new();
+    tests.compile_fail("tests/ui/authoritative_state/*.rs");
+}
+
+#[test]
+fn authoritative_patches_do_not_satisfy_state_apis() {
+    let tests = trybuild::TestCases::new();
+    tests.compile_fail("tests/ui/authoritative_patches/*.rs");
+}
+
+#[test]
 fn mask_admissibility_preserves_mode_types() {
     let tests = trybuild::TestCases::new();
     tests.compile_fail("tests/ui/mask_admissibility/*.rs");
@@ -26,4 +44,22 @@ fn mask_admissibility_preserves_mode_types() {
 fn struct_aspect_values_keep_fields_sealed() {
     let tests = trybuild::TestCases::new();
     tests.compile_fail("tests/ui/struct_aspect_values/*.rs");
+}
+
+#[test]
+fn identity_categories_are_not_interchangeable() {
+    let tests = trybuild::TestCases::new();
+    tests.compile_fail("tests/ui/identity_categories/*.rs");
+}
+
+#[test]
+fn locator_mask_modes_are_not_interchangeable() {
+    let tests = trybuild::TestCases::new();
+    tests.compile_fail("tests/ui/locators/*.rs");
+}
+
+#[test]
+fn digest_preparation_requires_readiness_proof() {
+    let tests = trybuild::TestCases::new();
+    tests.compile_fail("tests/ui/digest_preparation/*.rs");
 }

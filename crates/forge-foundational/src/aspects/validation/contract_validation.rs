@@ -53,11 +53,11 @@ fn validate_struct_value(
         return TransitionOutcome::denied(denial);
     }
 
-    TransitionOutcome::success(Artifact::new(ContractValidatedAspectValue::Struct {
-        key: contract.key().clone(),
+    TransitionOutcome::success(Artifact::new(ContractValidatedAspectValue::struct_value(
+        contract.key().clone(),
         value,
-        contract_revision: contract.revision(),
-    }))
+        contract.revision(),
+    )))
 }
 
 fn first_missing_required_field(
@@ -101,11 +101,11 @@ fn validate_scalar_family(
 ) -> TransitionOutcome<ContractValidatedAspectArtifact, ContractValidationDenial> {
     let found = value.value_family();
     if found == expected {
-        TransitionOutcome::success(Artifact::new(ContractValidatedAspectValue::Scalar {
-            key: contract.key().clone(),
+        TransitionOutcome::success(Artifact::new(ContractValidatedAspectValue::scalar(
+            contract.key().clone(),
             value,
-            contract_revision: contract.revision(),
-        }))
+            contract.revision(),
+        )))
     } else {
         TransitionOutcome::denied(ContractValidationDenial::ScalarTypeMismatch { expected, found })
     }

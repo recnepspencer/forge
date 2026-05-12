@@ -14,6 +14,11 @@ is correct. It must certify its own boundary language before adoption begins.
 These test requirements define the proof suite required for
 `forge-foundational` to be trusted as a platform-grade substrate.
 
+They do not assume each milestone will be implemented directly into
+`forge-relational`, `forge-query`, `forge-signal`, `forge-store`, or any other
+real runtime as soon as the milestone lands. Runtime adoption is downstream
+evidence. It is not the first enforcement layer.
+
 ## Testing Thesis
 
 `forge-foundational` must prove that shared meaning is canonical without
@@ -28,6 +33,8 @@ The tests must answer:
   compose without category collapse?
 - can future crate migrations consume this vocabulary without discovering that
   a key assumption was left implicit?
+- can synthetic hostile producers and consumers use the vocabulary without
+  relying on hidden runtime state?
 - do proof-bearing Milestone 1 APIs use `forge-proof` progression primitives
   instead of reinventing local proof machinery?
 
@@ -38,9 +45,115 @@ goal is:
 > typed admissibility, hostile rejection cases, and digest-preparation parity
 > before any adopting crate depends on it.
 
+No milestone may close by saying "the real runtime will prove this later."
+Every milestone must include enough adversarial local proof that a later runtime
+migration is an adoption exercise, not a discovery phase.
+
 ## Test Strategy
 
 The test suite must be layered.
+
+### Runtime-Independence Rule
+
+`forge-foundational` tests must certify shared boundary semantics without
+depending on direct integration into an adopting runtime.
+
+For every milestone after Milestone 1, the tests must include at least two
+independent local construction paths that behave like different crates with
+different internal layouts. Those construction paths should be deliberately
+small, synthetic, and hostile:
+
+- one path should look like an authority-first producer with ordered internal
+  state
+- one path should look like a compatibility or projection producer with
+  different ordering, naming, or representation pressure
+- where the surface is mutation-like, one path should look like a staged
+  candidate and one like committed authority
+- where the surface is descriptive, one path should look like rich support
+  materialization and one like reduced-richness operational materialization
+
+The point is not to build fake versions of `forge-relational`,
+`forge-query`, `forge-signal`, or `forge-store`. The point is to prove the
+foundational surface survives hostile producer diversity before real runtimes
+adopt it.
+
+Required runtime-independent proof styles:
+
+- `producer diversity`: two or more synthetic producers with different local
+  layouts must produce the same canonical meaning
+- `consumer blindness`: a consumer must be able to interpret the foundational
+  artifact without producer-private state
+- `authority separation`: candidate, projected, descriptive, support-only, and
+  committed authority categories must not satisfy each other's APIs
+- `profile pressure`: reduced-richness construction must remove only optional
+  descriptive materialization and must not change authority-bearing outcomes
+- `ordering hostility`: insertion order, builder order, serializer order, and
+  local map layout must not affect canonical meaning
+- `category hostility`: semantically adjacent categories must have negative
+  tests proving they are not substitutable
+
+### Synthetic Adversarial Runtime Doubles
+
+Milestones that describe runtime-shaped concepts must use local doubles to
+attack the vocabulary without turning `forge-foundational` into a runtime.
+
+These doubles are allowed to model:
+
+- unordered producers
+- staged branch candidates
+- committed authority records
+- projected/read-model records
+- support-only materializers
+- reduced-richness materializers
+- compatibility-originated boundary inputs
+- replay/export consumers that know only the foundational artifact
+
+These doubles must not become generic execution engines, harness dialects,
+storage abstractions, schedulers, or mock versions of adopting crates. If a
+double begins owning workflow execution, persistence, scheduling, or domain
+truth mutation, it has crossed the boundary and should move to `forge-harness`
+or to an adopting-crate migration test.
+
+### Forge Harness Relationship
+
+`forge-harness` is the shared Forge substrate for run matrices, parity suites,
+replay records, diagnostics capture, workload budgets, and workflow
+certification.
+
+`forge-foundational` should not grow a second generic harness dialect for those
+concerns. Narrow constructor, facade, and compile-fail certification may remain
+local to `forge-foundational` while the proof surface is still a single type or
+single boundary rule. Cross-construction parity, compatibility lowering,
+digest-preparation sequences, scenario-style composition, golden artifact
+bundles, and later migration-readiness runs should either use `forge-harness`
+directly or keep their local adapters shaped so they can be lifted into
+`forge-harness` without changing the proof grammar.
+
+The boundary is:
+
+- local foundational tests own foundational meaning, fixtures, and exact
+  assertion semantics
+- `forge-harness` owns reusable execution grammar, run matrices, parity lanes,
+  replay/export records, diagnostics capture, and workflow certification
+  mechanics
+- no foundational test helper may become a generic run-matrix, parity, replay,
+  or workflow harness in disguise
+- no `forge-harness` adapter may smuggle foundational domain semantics into the
+  harness core
+
+`forge-harness` becomes mandatory once a proof requires reusable execution
+grammar rather than a local semantic fixture. The line is:
+
+- local doubles may construct, compare, lower, canonicalize, and inspect
+  foundational artifacts
+- `forge-harness` owns repeated scenario execution, run matrices, replay/export
+  records, workload budget accounting, and workflow certification loops
+- adopting crates own proof that their real runtime execution lowers into the
+  foundational vocabulary correctly
+
+No test should confuse those three layers. A foundational test that starts
+executing a domain workflow is too large. An adopting-crate test that discovers
+foundational category law for the first time is too late.
 
 ### Compile-Fail Tests
 
@@ -68,6 +181,11 @@ Required compile-fail families:
   progressed through the required `forge-proof` artifact phase
 - derived/report/receipt/support artifact categories cannot be passed where
   authoritative state is required
+- branch-local candidates, merge candidates, merge verdicts, and commit
+  receipts cannot be substituted for committed authoritative state or for each
+  other
+- reduced-richness descriptive artifacts cannot be passed where full forensic
+  evidence or committed authority evidence is required
 
 ### Property And Hostile Case Tests
 
@@ -87,6 +205,15 @@ Required property families:
 - overlapping patch operations either canonicalize deterministically or reject
   deterministically
 - digest-preparation basis is stable across independent construction paths
+- branch, merge, and commit evidence remains stable across staged, reordered,
+  and compatibility-originated construction paths
+- reduced-richness profile elision preserves authority-bearing outcomes across
+  arbitrary optional descriptive materialization choices
+
+Property tests must attack semantic invariants, not merely sample a few
+friendly permutations. Where exhaustive generation is not practical, the test
+must name the hostile dimensions it covers and capture representative seeds so
+future `forge-harness` runs can expand them.
 
 ### Golden Canonicalization Tests
 
@@ -108,6 +235,9 @@ Golden artifacts must exist for:
 - compatibility lowering examples
 - digest-preparation sequences, even before Milestone 2 adds final digest
   algorithms
+- branch, merge, and commit evidence examples once Milestone 5 exists
+- reduced-richness and full-richness materialization examples for every
+  surface whose semantics are profile-sensitive
 
 Golden tests must compare semantic canonical forms, not incidental debug output.
 
@@ -309,6 +439,31 @@ Must prove:
 - reduced-richness profiles suppress optional materialization at named seams
 - plan-shaped artifacts cannot be confused with execution receipts
 - support-only descriptions cannot be passed as authoritative truth
+- branch/merge/commit authority-transition evidence is not smuggled through a
+  generic `Artifact` or `Receipt` category
+
+### Branching, Merging, And Commits
+
+Must prove:
+
+- branch-local candidate state, staged state, committed authority, merge
+  candidates, merge verdicts, and commit receipts are mechanically distinct
+  categories
+- branch identity, branch lineage, commit parentage, merge basis, and
+  committed-delta loci canonicalize deterministically
+- two synthetic producers with different internal branch graph layouts can
+  materialize the same canonical branch/commit evidence
+- merge conflict, denial, advisory, accepted, superseded, and stale-basis
+  outcomes remain distinguishable
+- a commit receipt cannot be constructed from a merge candidate or planned
+  branch-local intent without the required authority-transition proof
+- reduced-richness branch/merge reporting removes only optional forensic detail
+  and cannot change committed authority outcome
+- branch/merge/commit digest bases are stable across reordered parents,
+  reordered deltas, compatibility-originated metadata, and independent
+  construction paths
+- replay/export consumers can interpret commit parentage, merge basis, conflict
+  loci, and committed deltas without producer-private state
 
 ### Diagnostics And Explanation
 
@@ -367,14 +522,101 @@ Required scenario families:
   state
 - report/artifact/receipt category separation over one simulated authority
   boundary
+- branch candidate plus merge verdict plus commit receipt plus digest basis
+  over one simulated authority transition
+- reduced-richness branch/merge materialization over the same committed
+  authority transition proving optional detail elision does not alter the
+  commit outcome
 - provenance plus receipt plus digest basis over one canonical boundary
   artifact
 - reduced-richness profile over lineage/provenance/diagnostic materialization
   proving authoritative truth remains unchanged
 
-These tests may use small synthetic fixtures. They must not depend on
-`forge-relational`, `forge-query`, `forge-signal`, or `forge-store` behavior.
-The point is to certify the shared language before migration pressure begins.
+These tests must use small synthetic fixtures or `forge-harness` adapters. They
+must not depend on `forge-relational`, `forge-query`, `forge-signal`, or
+`forge-store` behavior. The point is to certify the shared language before
+migration pressure begins.
+
+The synthetic fixtures must be intentionally adversarial. They should vary
+local ordering, internal ids, materialization richness, stale/candidate status,
+compatibility-origin metadata, and category adjacency so the test proves the
+foundational vocabulary survives realistic runtime pressure without importing a
+real runtime.
+
+## Production-Test Readiness Gates
+
+Every milestone must produce a production-test readiness artifact before it can
+be treated as ready for production-shaped runtime testing.
+
+This artifact is not a production-readiness claim. It is a bounded handoff
+contract that says the foundational surface is locally certified enough for
+adopting crates, `forge-harness`, or production-like replay fixtures to begin
+testing against it without discovering first-order category law.
+
+The readiness artifact must be concrete. It may be a public readiness report,
+golden fixture bundle, certification manifest, or closeout document, but it
+must be inspectable and versioned with the milestone.
+
+Required readiness fields:
+
+- `certified_surfaces`: the public foundational surfaces whose semantics are
+  locally certified
+- `synthetic_runtime_pressures`: the adversarial local producer/consumer shapes
+  used to simulate runtime pressure
+- `compile_fail_boundaries`: the category, phase, proof, visibility, and
+  substitution errors proven at compile time
+- `canonical_golden_artifacts`: the golden fixtures or canonical digest bases
+  that lock stable boundary meaning
+- `property_seed_inventory`: hostile ordering, category-adjacency,
+  profile-elision, compatibility, and mutation seeds captured for later
+  expansion
+- `forge_harness_expansion_points`: which local semantic tests should become
+  reusable `forge-harness` run matrices, replay suites, workload budgets, or
+  certification workflows later
+- `runtime_adoption_assumptions`: the exact assumptions a real adopting runtime
+  is allowed to make when testing against the milestone
+- `runtime_adoption_non_assumptions`: the claims the milestone does not make
+  until a real adopting crate proves them
+- `residual_debt`: any compatibility, profile, materialization, proof, or
+  migration debt that remains intentionally open
+
+A milestone is ready for production-shaped testing only if:
+
+- every certified surface has at least one hostile local producer and one blind
+  consumer test
+- every adjacent category has a negative substitution test
+- every runtime-shaped surface has explicit staged/candidate versus committed
+  authority separation where that distinction applies
+- every profile-sensitive surface proves reduced richness cannot change
+  authority-bearing outcomes
+- every golden artifact compares semantic canonical form rather than debug text
+- every expensive materialization path is named as a boundary and tested as a
+  boundary
+- every claim deferred to adopting-crate migration is named as non-assumption
+  rather than left implicit
+
+Production-shaped tests may assume:
+
+- foundational categories named in `certified_surfaces` have local semantic
+  proof
+- compile-time boundaries listed in `compile_fail_boundaries` are intentional
+  contracts
+- golden artifacts listed in `canonical_golden_artifacts` are stable enough to
+  build parity tests around
+- `runtime_adoption_assumptions` are the only allowed assumptions for adopting
+  runtimes
+
+Production-shaped tests may not assume:
+
+- the adopting runtime's lowering is correct until migration parity proves it
+- the foundational crate owns execution, scheduling, storage, or durability
+  mechanics
+- reduced-richness profile behavior is safe for a surface not listed in the
+  readiness artifact
+- a local synthetic double is evidence that a real runtime preserved its own
+  internal invariants
+- absence from `residual_debt` is implied proof; unlisted uncertainty is a test
+  requirements bug
 
 ## Migration Readiness Gates
 
@@ -385,15 +627,19 @@ Required readiness artifacts:
 
 - an API inventory of public foundational surfaces intended for adopting crates
 - a debt inventory naming any transitional compatibility surfaces
+- the production-test readiness artifact for every completed milestone
 - golden canonicalization fixtures for values, contracts, masks, patches,
-  locators, profiles, diagnostics, provenance, receipts, and digest bases
+  locators, profiles, branch/merge/commit evidence, diagnostics, provenance,
+  receipts, and digest bases
 - compile-fail suite results for category and phase-boundary violations
-- property-test seed capture for hostile ordering and patch cases
+- property-test seed capture for hostile ordering, patch, branch/merge/commit,
+  profile-elision, and materialization cases
 - a migration adapter checklist describing how crate-local dialects should
   lower into foundational meaning
 
-The adopting crate refactors should then add migration parity tests, but those
-tests are not allowed to be the first proof that foundational semantics work.
+The adopting crate refactors should then add migration parity tests. Those tests
+are required to prove real runtime lowering, but they are not allowed to be the
+first proof that foundational semantics work.
 
 ## Non-Negotiable Failure Cases
 
@@ -409,9 +655,18 @@ The test suite must fail if any of these become possible:
 - old/new contracts are compared without an evolution verdict
 - display names participate as canonical identity
 - derived/report/support/receipt artifacts are accepted as authoritative state
+- branch-local candidate state is accepted as committed authoritative state
+- a merge candidate is accepted as a commit receipt
+- a commit receipt can be constructed without authority-transition proof
+- merge conflict, denial, advisory, stale-basis, and accepted outcomes collapse
+  into a boolean
 - digest-preparation input can be built from an insertion-order-dependent path
 - reduced-richness profiles change authoritative outcomes
 - materialization cost is hidden behind cheap-looking accessors
+- a foundational test requires a real adopting runtime to discover whether a
+  boundary category is valid
+- a local test double grows into an unowned generic runtime, scheduler, storage
+  engine, or workflow harness
 
 ## Test Topology Requirements
 
@@ -431,6 +686,9 @@ crates/forge-foundational/tests/
   canonicalization/
   profiles/
   artifacts/
+  branches/
+  commits/
+  merges/
   diagnostics/
   lineage/
   performance/
@@ -453,8 +711,16 @@ history.
 - every compatibility bridge has both parity and fail-closed tests
 - every expensive materialization surface is visible in API shape and tested as
   a boundary
+- every runtime-shaped surface has local adversarial doubles proving it does not
+  rely on direct runtime integration for semantic correctness
+- every profile-sensitive surface has full-richness and reduced-richness tests
+  proving authority-bearing outcomes are unchanged
+- every completed milestone has a production-test readiness artifact that names
+  certified surfaces, runtime-shaped pressures, allowed runtime assumptions,
+  non-assumptions, harness expansion points, and residual debt
 - the migration readiness artifacts exist
 
 If these requirements feel heavy, that is the correct signal. The planned
 implementation strategy moves risk forward into the foundational crate. The
-test suite must move proof forward with it.
+test suite must move proof forward with it, while keeping real runtime adoption
+as later confirmation rather than the first line of defense.

@@ -4,11 +4,12 @@ mod scalar_kind;
 mod scalar_wrappers;
 
 pub use aspect_value::AspectValue;
-pub use references::{ContentRefId, EntityId};
+pub use references::{ContentRefId, EntityId, Generation, LocalSlot, PartitionId};
 pub use scalar_kind::ScalarAspectType;
 pub use scalar_wrappers::{
     CanonicalBigInt, CanonicalDate, CanonicalDecimal, CanonicalF32, CanonicalF64,
     CanonicalRational, CanonicalString, CanonicalTime, CanonicalTimestamp, CanonicalTimestampTz,
+    InternedString, Symbol,
 };
 
 use crate::facade::ResponsibilityArea;

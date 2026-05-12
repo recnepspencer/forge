@@ -42,6 +42,9 @@ That rule governs every milestone:
 11. same-family symbolic composition, lifecycle outcomes, and resolution maps
     should have one descriptive language across crates rather than local
     receipt folklore
+12. branching, merging, and commits must have one shared authority-transition
+    language rather than being hidden inside generic artifact materialization
+    or crate-local transaction folklore
 
 ## Adversarial Constraint
 
@@ -49,10 +52,11 @@ That rule governs every milestone:
 
 > Several Forge crates with different authority boundaries, proof-bearing
 > lifecycles, memory layouts, and support surfaces must exchange aspect-native
-> values, patches, diagnostics, lineage/provenance artifacts, profile-bearing
-> reports, and certified receipts such that the same semantic thing has one
-> canonical meaning everywhere, while each crate remains free to keep its own
-> cost-honest internal representation and materialization policy.
+> values, patches, diagnostics, lineage/provenance artifacts, branch/merge/commit
+> evidence, profile-bearing reports, and certified receipts such that the same
+> semantic thing has one canonical meaning everywhere, while each crate remains
+> free to keep its own cost-honest internal representation and materialization
+> policy.
 
 If any supported usage:
 
@@ -272,6 +276,15 @@ later foundational surface depends on.
 
 ## Milestone 2: Canonical Digest And Canonicalization Substrate
 
+Detailed spec: [`milestone-2.md`](milestone-2.md)
+
+The detailed spec is authoritative for Milestone 2 closure. In particular, it
+expands this roadmap summary by treating canonical basis entries, basis domains,
+rule versioning, equivalence basis, mismatch basis, export/golden fixtures,
+digest algorithm slots, and production-test readiness as distinct
+responsibilities. Milestone 2 makes canonical basis the semantic authority and
+keeps digest values as derived compression of that basis.
+
 ### Goal
 
 Define the shared digest-basis and canonicalization toolkit so boundary
@@ -413,6 +426,8 @@ crate-local optimized state into canonical boundary-facing forms.
   without implying one shared runtime execution representation
 - explicit room for same-family composition artifacts, resolution maps, and
   lifecycle outcomes where crates need one shared descriptive language
+- explicit non-ownership of branch, merge, and commit authority-transition law,
+  which is split into Milestone 5
 - typed materialization contracts that let crates expose canonical boundary
   forms without standardizing their internal storage
 - attachment points for profiles, digest bases, diagnostics, provenance, and
@@ -434,6 +449,8 @@ crate-local optimized state into canonical boundary-facing forms.
   authoritative truth or for receipts of completed work
 - same-family composition artifacts must describe symbolic resolution and
   lifecycle meaning without being confused for authority execution engines
+- branch, merge, and commit evidence must not be treated as just another
+  materialized artifact category
 - descriptive or support-facing categories must not silently masquerade as
   canonical authority surfaces
 - profile-driven descriptive elision must happen at materialization/retention
@@ -459,6 +476,8 @@ crate-local optimized state into canonical boundary-facing forms.
   touching hundreds of leaf call sites
 - no requirement that all crates store summaries, reports, artifacts, or
   receipts in the same topology
+- no smuggling of branch, merge, or commit authority transitions through generic
+  `Artifact` or `Receipt` shapes
 - no pressure toward a generic execution runtime just because several crates
   lower plans into runtime-applied work
 - no weakening of facade boundaries by exposing deep internal storage just to
@@ -476,7 +495,89 @@ crate-local optimized state into canonical boundary-facing forms.
 - compile-fail or trait-bound tests preventing obviously invalid category
   substitutions where the API can enforce them
 
-## Milestone 5: Diagnostics And Explanation Ontology
+## Milestone 5: Branching, Merging, And Commit Vocabulary
+
+### Goal
+
+Define the shared language for branch-local intent, merge resolution, and
+authority-bearing commit evidence so crates can describe state transitions
+without inventing incompatible transaction, version, or receipt folklore.
+
+### Must Ship
+
+- typed branch identity, branch lineage, and branch visibility vocabulary for
+  boundary-facing artifacts
+- typed commit identity, commit basis, parent-basis, and committed-delta
+  vocabulary
+- typed merge identity, merge input, merge basis, conflict, resolution, and
+  merged-output vocabulary
+- explicit distinction between:
+  - branch-local planned intent
+  - branch-local staged state
+  - merge candidates
+  - merge verdicts
+  - authority-bearing commits
+  - commit receipts
+- compatibility surfaces for crates that currently model transactions,
+  versions, branches, or commits through local dialects
+- digest-basis participation for branch, merge, and commit evidence
+- locator support for branch loci, merge-conflict loci, committed-delta loci,
+  and commit-receipt loci
+- profile attachment points for support, certification, forensic richness, and
+  reduced-richness commit reporting
+
+### Semantic Guarantees
+
+- branch-local state must not be confused with committed authoritative state
+- merge resolution must preserve conflict, denial, advisory, and accepted
+  outcomes as structured categories rather than booleans
+- commit receipts must attest to completed authority transitions, not merely a
+  plan or candidate merge
+- branch lineage, commit parentage, and merge basis must be self-describing
+  enough for consumers without producer-private state
+- digest and equivalence claims over commits must name their basis explicitly
+- reduced-richness profiles may remove optional forensic branch/merge detail
+  but must not change the authoritative commit outcome
+
+### Representation Boundaries
+
+- `forge-foundational` standardizes branch/merge/commit boundary meaning, not
+  one transaction engine, VCS model, storage journal, or concurrency-control
+  runtime
+- domain crates keep ownership of mutation execution, conflict policy,
+  storage layout, and commit durability mechanics
+- branch and merge evidence may be materialized from different internal
+  topologies so long as the boundary vocabulary remains canonical
+- commit vocabulary must compose with `forge-proof` artifacts without moving
+  proof progression law or execution authority into `forge-foundational`
+
+### Must Preserve
+
+- no collapse of branch-local candidate state into committed authoritative
+  truth
+- no collapse of merge verdicts into generic success/failure
+- no receipt claiming an authority transition happened before commit authority
+  has actually completed
+- no assumption that every crate uses the same branch graph, journal, or
+  storage topology
+- no hidden producer-private interpretation required to understand commit
+  parentage, merge basis, conflict loci, or committed deltas
+
+### Acceptance Evidence
+
+- branch/commit category-separation tests
+- merge-verdict topology tests proving conflict, denial, advisory, and accepted
+  outcomes remain distinct
+- digest-basis parity tests for semantically identical commit evidence produced
+  through independent construction paths
+- locator tests for branch loci, merge-conflict loci, committed-delta loci, and
+  commit-receipt loci
+- hostile tests proving branch-local candidate state cannot satisfy APIs that
+  require committed authority evidence
+- hostile profile tests proving reduced-richness branch/merge reporting does
+  not change authoritative commit outcomes
+
+## Milestone 6: Diagnostics And Explanation Ontology
 
 ### Goal
 
@@ -534,7 +635,7 @@ advisories, and support-bearing decision context.
 - materialization tests from multiple internal storage strategies into one
   canonical diagnostic boundary language
 
-## Milestone 6: Lineage, Provenance, And Receipt Vocabulary
+## Milestone 7: Lineage, Provenance, And Receipt Vocabulary
 
 ### Goal
 
@@ -605,7 +706,7 @@ happened.
 - self-description tests proving a consumer can interpret the boundary artifact
   without producer-private state
 
-## Milestone 7: Performance And Layout Vocabulary
+## Milestone 8: Performance And Layout Vocabulary
 
 ### Goal
 
@@ -663,7 +764,7 @@ crates.
   optional history, replay, lineage, provenance, or forensic surfaces out of
   the certified hot path without changing authoritative outputs
 
-## Milestone 8: Cross-Crate Migration And Closure
+## Milestone 9: Cross-Crate Migration And Closure
 
 ### Goal
 

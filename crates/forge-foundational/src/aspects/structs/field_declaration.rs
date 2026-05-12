@@ -43,14 +43,18 @@ impl FieldDeclaration {
         requirement: FieldRequirement,
         absence: AbsenceLaw,
         evolution: AspectEvolutionPolicy,
-    ) -> Self {
-        Self {
+    ) -> Option<Self> {
+        if !requirement_matches_absence_law(requirement, absence) {
+            return None;
+        }
+
+        Some(Self {
             key,
             value_type,
             requirement,
             absence,
             evolution,
-        }
+        })
     }
 
     pub fn key(&self) -> &FieldKey {
@@ -72,4 +76,13 @@ impl FieldDeclaration {
     pub fn evolution(&self) -> AspectEvolutionPolicy {
         self.evolution
     }
+}
+
+fn requirement_matches_absence_law(requirement: FieldRequirement, absence: AbsenceLaw) -> bool {
+    matches!(
+        (requirement, absence),
+        (FieldRequirement::Required, AbsenceLaw::Required)
+            | (FieldRequirement::Optional, AbsenceLaw::Optional)
+            | (FieldRequirement::Defaulted, AbsenceLaw::Defaulted)
+    )
 }

@@ -1,3 +1,9 @@
+mod category_ids;
+
+pub use category_ids::{
+    BoundaryArtifactId, BoundaryEpoch, BoundaryHandle, CanonicalDigestId, EquivalenceBasisId,
+};
+
 use crate::facade::ResponsibilityArea;
 
 pub fn responsibility() -> ResponsibilityArea {

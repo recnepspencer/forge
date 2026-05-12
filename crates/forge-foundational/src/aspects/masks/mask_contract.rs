@@ -35,6 +35,18 @@ impl AspectMaskContract {
         }
     }
 
+    pub const fn projection_allowed(&self) -> bool {
+        self.projection
+    }
+
+    pub const fn mutation_allowed(&self) -> bool {
+        self.mutation
+    }
+
+    pub const fn diagnostic_allowed(&self) -> bool {
+        self.diagnostic
+    }
+
     pub(crate) fn admit_paths_for_shape(
         &self,
         paths: &[CanonicalFieldPath],

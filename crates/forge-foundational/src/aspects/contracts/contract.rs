@@ -1,4 +1,6 @@
-use super::{AbsenceLaw, AspectEquivalenceBasis, AspectShape};
+use super::{
+    AbsenceLaw, AspectEquivalenceBasis, AspectShape, OpaqueAspectType, ReferenceAspectType,
+};
 use crate::aspects::evolution::{
     classify_struct_evolution, scalar_widens, AspectEvolutionKind, AspectEvolutionPolicy,
     AspectEvolutionVerdict,
@@ -26,7 +28,7 @@ pub struct AspectContract {
 
 impl AspectContract {
     #[allow(clippy::too_many_arguments)]
-    pub fn new(
+    pub(crate) fn new(
         key: AspectKey,
         identity: AspectIdentity,
         revision: AspectContractRevision,
@@ -84,8 +86,63 @@ impl AspectContract {
         )
     }
 
+    pub fn reference_entity(
+        key: AspectKey,
+        identity: AspectIdentity,
+        revision: AspectContractRevision,
+    ) -> Self {
+        Self::new(
+            key,
+            identity,
+            revision,
+            AspectShape::Reference(ReferenceAspectType::Entity),
+            AspectMaskContract::scalar(),
+            AbsenceLaw::Required,
+            AspectEquivalenceBasis::ReferenceIdentity,
+            AspectEvolutionPolicy::ExplicitBreakRequired,
+        )
+    }
+
+    pub fn content_ref(
+        key: AspectKey,
+        identity: AspectIdentity,
+        revision: AspectContractRevision,
+    ) -> Self {
+        Self::new(
+            key,
+            identity,
+            revision,
+            AspectShape::Content,
+            AspectMaskContract::scalar(),
+            AbsenceLaw::Required,
+            AspectEquivalenceBasis::ContentIdentity,
+            AspectEvolutionPolicy::ExplicitBreakRequired,
+        )
+    }
+
+    pub fn opaque_token(
+        key: AspectKey,
+        identity: AspectIdentity,
+        revision: AspectContractRevision,
+    ) -> Self {
+        Self::new(
+            key,
+            identity,
+            revision,
+            AspectShape::Opaque(OpaqueAspectType::Token),
+            AspectMaskContract::opaque_diagnostic_only(),
+            AbsenceLaw::Required,
+            AspectEquivalenceBasis::OpaqueIdentity,
+            AspectEvolutionPolicy::ExplicitBreakRequired,
+        )
+    }
+
     pub fn key(&self) -> &AspectKey {
         &self.key
+    }
+
+    pub fn identity(&self) -> AspectIdentity {
+        self.identity
     }
 
     pub fn revision(&self) -> AspectContractRevision {
@@ -96,8 +153,20 @@ impl AspectContract {
         &self.shape
     }
 
+    pub fn masks(&self) -> &AspectMaskContract {
+        &self.masks
+    }
+
+    pub fn absence(&self) -> AbsenceLaw {
+        self.absence
+    }
+
     pub fn equivalence(&self) -> AspectEquivalenceBasis {
         self.equivalence
+    }
+
+    pub fn evolution(&self) -> AspectEvolutionPolicy {
+        self.evolution
     }
 
     pub fn classify_evolution_to(&self, next: &Self) -> AspectEvolutionVerdict {

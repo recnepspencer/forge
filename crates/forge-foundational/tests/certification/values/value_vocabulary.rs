@@ -1,7 +1,7 @@
 use forge_foundational::{
     AspectValue, CanonicalBigInt, CanonicalDate, CanonicalDecimal, CanonicalF32, CanonicalF64,
     CanonicalRational, CanonicalString, CanonicalTime, CanonicalTimestamp, CanonicalTimestampTz,
-    ContentRefId, EntityId, ScalarAspectType,
+    ContentRefId, EntityId, InternedString, PartitionId, ScalarAspectType,
 };
 
 #[test]
@@ -38,7 +38,7 @@ fn canonical_value_families_preserve_width_precision_and_reference_kind() {
             utc_micros_since_unix_epoch: 42,
             offset_minutes: -420,
         }),
-        AspectValue::EntityRef(EntityId(9)),
+        AspectValue::EntityRef(EntityId::new(PartitionId::main(), 9, 0)),
         AspectValue::ContentRef(ContentRefId(9)),
     ];
 
@@ -53,6 +53,35 @@ fn canonical_value_families_preserve_width_precision_and_reference_kind() {
         AspectValue::Bytes(ContentRefId(9)),
         AspectValue::ContentRef(ContentRefId(9))
     );
+    assert_eq!(
+        families,
+        vec![
+            ScalarAspectType::Null,
+            ScalarAspectType::Bool,
+            ScalarAspectType::Int8,
+            ScalarAspectType::Int16,
+            ScalarAspectType::Int32,
+            ScalarAspectType::Int64,
+            ScalarAspectType::UInt8,
+            ScalarAspectType::UInt16,
+            ScalarAspectType::UInt32,
+            ScalarAspectType::UInt64,
+            ScalarAspectType::Float32,
+            ScalarAspectType::Float64,
+            ScalarAspectType::Decimal,
+            ScalarAspectType::BigInt,
+            ScalarAspectType::Rational,
+            ScalarAspectType::String,
+            ScalarAspectType::Bytes,
+            ScalarAspectType::Uuid,
+            ScalarAspectType::Date,
+            ScalarAspectType::Time,
+            ScalarAspectType::Timestamp,
+            ScalarAspectType::TimestampTz,
+            ScalarAspectType::EntityRef,
+            ScalarAspectType::ContentRef,
+        ]
+    );
 }
 
 #[test]
@@ -62,4 +91,13 @@ fn equality_distinguishes_storage_shape_from_semantic_variant() {
         AspectValue::Bytes(ContentRefId(1)),
         AspectValue::ContentRef(ContentRefId(1))
     );
+}
+
+#[test]
+fn string_values_preserve_relational_interning_surface() {
+    let raw = AspectValue::String(CanonicalString::from("name"));
+    let symbol = AspectValue::String(InternedString::Symbol(forge_foundational::Symbol(7)));
+
+    assert_ne!(raw, symbol);
+    assert_eq!(symbol.value_family(), ScalarAspectType::String);
 }

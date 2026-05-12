@@ -917,11 +917,14 @@ downstream:
 - Milestone 4 materialization contracts need authoritative versus derived
   aspect-state vocabulary before report/artifact/receipt categories can remain
   honest.
-- Milestone 5 diagnostics need locators and values before explanations can
+- Milestone 5 branch/merge/commit vocabulary needs aspect state, patches, ids,
+  locators, and digest-preparation bases before authority-transition evidence
+  can be self-describing.
+- Milestone 6 diagnostics need locators and values before explanations can
   point at concrete boundary meaning.
-- Milestone 6 lineage/provenance/receipts need identity and basis-id categories
+- Milestone 7 lineage/provenance/receipts need identity and basis-id categories
   before provenance can be self-describing.
-- Milestone 8 migrations need this substrate before crate-local dialects can
+- Milestone 9 migrations need this substrate before crate-local dialects can
   converge.
 
 ## Explicit Non-Goals

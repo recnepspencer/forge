@@ -5,6 +5,15 @@ use forge_foundational::{
 #[test]
 fn canonical_wrappers_reject_or_normalize_hostile_scalar_edges() {
     assert!(CanonicalRational::new(CanonicalBigInt::new("1"), CanonicalBigInt::new("0")).is_none());
+    assert!(
+        CanonicalRational::new(CanonicalBigInt::new("1"), CanonicalBigInt::new("00")).is_none()
+    );
+    assert!(
+        CanonicalRational::new(CanonicalBigInt::new("1"), CanonicalBigInt::new("+0")).is_none()
+    );
+    assert!(
+        CanonicalRational::new(CanonicalBigInt::new("1"), CanonicalBigInt::new("-0")).is_none()
+    );
     assert!(CanonicalTime::new(CanonicalTime::NANOS_PER_DAY).is_none());
 
     let nan_a = CanonicalF32::from_bits(0x7fc0_0001);

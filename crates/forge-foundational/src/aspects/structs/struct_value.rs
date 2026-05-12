@@ -38,10 +38,24 @@ pub struct StructAspectValue {
 }
 
 impl StructAspectValue {
-    pub fn new(fields: impl IntoIterator<Item = (FieldKey, AspectValue)>) -> Self {
-        Self {
-            fields: fields.into_iter().collect(),
+    pub fn new(
+        fields: impl IntoIterator<Item = (FieldKey, AspectValue)>,
+    ) -> Result<Self, StructAspectValueConstructionDenial> {
+        let mut canonical_fields = BTreeMap::new();
+        for (field_key, field_value) in fields {
+            if canonical_fields
+                .insert(field_key.clone(), field_value)
+                .is_some()
+            {
+                return Err(StructAspectValueConstructionDenial::DuplicateField(
+                    field_key,
+                ));
+            }
         }
+
+        Ok(Self {
+            fields: canonical_fields,
+        })
     }
 
     pub fn fields(&self) -> impl Iterator<Item = (&FieldKey, &AspectValue)> {
@@ -51,4 +65,9 @@ impl StructAspectValue {
     pub fn get(&self, key: &FieldKey) -> Option<&AspectValue> {
         self.fields.get(key)
     }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum StructAspectValueConstructionDenial {
+    DuplicateField(FieldKey),
 }

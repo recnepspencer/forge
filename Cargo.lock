@@ -1383,6 +1383,7 @@ name = "forge-foundational"
 version = "0.1.0"
 dependencies = [
  "forge-proof",
+ "serde_json",
  "trybuild",
 ]
 
