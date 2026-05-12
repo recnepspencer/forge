@@ -897,6 +897,24 @@ Phase 6 gate:
 
 Current implementation evidence:
 
+- `resource.response.connection<T>()(...)` closes the GraphQL-style connection
+  lane with sealed `connection` topology/effect-locus proof. Runtime coverage
+  proves local node replacement, delivered node replacement, direct aspect
+  replacement through `replaceNode`, branch-native optimistic rollback proof,
+  broad replacement topology parity in history, native merge-plan posture,
+  host-declared `edgeIndexForItem(value, itemId)` lookup, single-edge traversal,
+  replaceNode reconstruction counters, malformed edge denial before effects,
+  invalid edge lookup denial before effects, and node identity preservation
+  denial before value or diagnostics mutation.
+- `resource.response.discriminated<T>()(...)` closes the tuple/heterogeneous
+  envelope lane with sealed `discriminatedTuple` topology/effect-locus proof.
+  Runtime coverage proves active-variant local item replacement, delivered item
+  replacement, direct aspect replacement through variant `replaceItems`,
+  branch-native optimistic rollback proof, broad replacement topology parity in
+  history, native merge-plan posture, discriminator/item-id lookup,
+  active-variant traversal, replaceVariantItems reconstruction counters,
+  unknown-discriminator denial before effects, and discriminator preservation
+  denial before value or diagnostics mutation.
 - `resource.response.entityStore<T>()(...)` closes the normalized entity bag
   lane with sealed `entityStore` topology/effect-locus proof. Runtime coverage
   proves local item replacement, delivered item replacement, direct aspect
@@ -905,7 +923,7 @@ Current implementation evidence:
   entity-id lookup/traversal/reconstruction cost counters, malformed entity
   record denial before effects, key/itemId coherence denial, and missing-key
   replacement denial before value or diagnostics mutation.
-- `resource.response.map<T>()(...)` starts the map-backed collection lane with
+- `resource.response.map<T>()(...)` closes the map-backed collection lane with
   sealed `mapCollection` topology/effect-locus proof. Runtime coverage proves
   local item replacement, delivered item replacement, direct aspect replacement
   through `replaceEntry`, branch-native optimistic rollback proof, broad
@@ -913,6 +931,65 @@ Current implementation evidence:
   lookup/traversal/reconstruction cost counters, structural `ReadonlyMap`
   entry views, malformed non-map denial before effects, and key/itemId
   coherence denial before value or diagnostics mutation.
+- `resource.response.named<T>()(...)` and
+  `resource.response.multiple<T>()(...)` close the multiple named collections
+  lane with sealed `namedCollection` topology/effect-locus proof. Runtime
+  coverage proves named-collection local item replacement, delivered item
+  replacement, direct aspect replacement through `replaceCollectionItem`,
+  branch-native optimistic rollback proof, same-locus canonical server
+  confirmation, broad replacement topology parity in history, native merge-plan
+  posture, declared `collectionForItem(itemId)` collection-key lookup,
+  single-named-collection traversal, replaceCollectionItem reconstruction
+  counters, malformed collection denial before effects, invalid collection
+  lookup denial before effects, duplicate named-collection item denial, and
+  collection/item identity coherence denial before value or diagnostics
+  mutation. Runtime and type coverage also prove the explicit multiple
+  collection facade lowers through the same topology proof while preserving its
+  own response declaration source.
+- `resource.response.grouped<T>()(...)` closes the grouped collection lane with
+  sealed `groupedCollection` topology/effect-locus proof. Runtime coverage
+  proves local item replacement, delivered item replacement, direct aspect
+  replacement through `replaceGroupItem`, branch-native optimistic rollback
+  proof, broad replacement topology parity in history, native merge-plan
+  posture, declared `groupForItem(itemId)` group-key lookup, single-group
+  traversal, replaceGroupItem reconstruction counters, malformed group denial
+  before effects, invalid group lookup denial before effects, and
+  group/item identity coherence denial before value or diagnostics mutation.
+- `resource.response.sparse<T>()(...)` closes the sparse page chunk lane with
+  sealed `sparsePage` topology/effect-locus proof. Runtime coverage proves
+  loaded-page local item replacement, delivered item replacement, direct aspect
+  replacement through `replacePageItem`, branch-native optimistic rollback
+  proof, same-locus canonical server confirmation, broad replacement topology
+  parity in history, native merge-plan posture, declared `pageForItem(itemId)`
+  page-key lookup, loaded-page traversal, replacePageItem reconstruction
+  counters, malformed loaded-page denial before effects, unloaded-page item
+  denial before effects, duplicate loaded-page item denial, and page/item
+  identity coherence denial before value or diagnostics mutation.
+- `resource.response.tree<T>()(...)` closes the recursive tree lane with sealed
+  `recursiveTree` topology/effect-locus proof. Runtime coverage proves
+  descendant local item replacement, delivered item replacement, direct aspect
+  replacement through `replaceNode`, branch-native optimistic rollback proof,
+  same-locus canonical server confirmation, broad replacement topology parity
+  in history, native merge-plan posture, declared `nodeForItem(itemId)`
+  descendant-path lookup, single-descendant-path traversal, replaceNode
+  reconstruction counters, malformed child-boundary denial before effects,
+  invalid descendant lookup denial before effects, duplicate descendant-id
+  denial, and descendant identity preservation denial before value or
+  diagnostics mutation.
+- `resource.response.detail<T>()` closes the detail response lane with sealed
+  `detail` topology/effect-locus proof. Runtime coverage proves local broad
+  replacement, delivered replacement, branch-native optimistic rollback proof,
+  broad replacement topology parity in history, native merge-plan posture,
+  whole-response traversal with `replaceDetailResponse` reconstruction counters,
+  and unsupported membership/item patch denial before value or diagnostics
+  mutation.
+- `resource.response.summary<T>()` closes the summary response lane with sealed
+  `summary` topology/effect-locus proof. Runtime coverage proves local broad
+  replacement, delivered replacement, branch-native optimistic rollback proof,
+  broad replacement topology parity in history, native merge-plan posture,
+  whole-response traversal with `replaceSummaryResponse` reconstruction
+  counters, and unsupported membership/item patch denial before value or
+  diagnostics mutation.
 
 ### Phase 7: Branch Merge Rebase And Conflict Certification
 
@@ -940,6 +1017,71 @@ Phase 7 gate:
   merge proof or emit a typed conflict/unavailable artifact that names the
   resource locus and native branch evidence.
 
+Current implementation evidence:
+
+- `resource.branch.planEffectMerge({ merge, effect })` starts the resource
+  effect rebase-planning lane by binding a native merge preview proof to the
+  resource effect envelope that requested rebase posture. Runtime coverage
+  proves that planned summaries preserve native merge semantics, selected
+  conflict isolation, branch proof digests, resource line identity, semantic
+  effect locus, response topology/effect-locus proof digests where present,
+  runtime-issued envelope authority, source-branch/effect-branch binding, and
+  typed denial when callers provide forged or branch-mismatched resource effect
+  evidence. The same summary now emits typed rebase/conflict artifacts that
+  bind native conflict records to resource family, line, locus, topology, native
+  merge-plan digest, resource-locus digest, aspect-policy digest, and conflict-
+  isolation digest. Effect merge planning also derives native conflict policy
+  selectors from the resource effect locus, injects them into merge preview
+  requests, records a policy-binding digest that distinguishes resource
+  granularity from the current native per-node isolation selector, and denies
+  caller-supplied policy selectors that contradict the resource effect locus.
+- `resource.branch.mergeEffect({ merge, effect })` extends that binding into
+  native merge execution. It normalizes and policy-binds the merge request from
+  the resource effect locus, denies source-branch/effect-branch mismatches
+  before calling native merge execution, preserves native merge-result and
+  lineage proof digests, and emits a typed resource merge-execution artifact
+  that carries resource locus, aspect policy, policy-binding, conflict
+  isolation, and native result proof evidence. Runtime coverage proves happy
+  path proof projection, execution-side native policy selector injection, and
+  no native execution on branch-mismatched resource effect evidence.
+- Resource effect merge preview and execution now emit typed
+  `mappingUnavailable` artifacts when native conflict evidence exists but the
+  effect has no stable compiled response-locus proof to project that native
+  evidence onto. The artifact preserves resource family, line, semantic locus,
+  native source/target branch ids, native conflict records, branch proof
+  digests, aspect-policy digest, and conflict-isolation digest while refusing
+  to fabricate resource-local conflict records. Runtime coverage proves this
+  unavailable lane for both planning and execution using runtime-issued
+  non-response resource effects with `locusProof: null`.
+- Host-declared response regions now carry through the resource merge policy
+  binding and proof digests. Advanced topology effects whose compiled response
+  locus proof names a host-declared region such as `single-group`,
+  `loaded-page-chunk`, `single-descendant-path`, or `single-connection-edge`
+  expose `policyBinding.hostRegion`, classify resource granularity as
+  `hostRegion`, and record `hostRegionMappedToNativeNode` to make the current
+  native per-node isolation mapping explicit. Runtime coverage proves grouped
+  collection merge planning and execution preserve host-region lookup,
+  traversal, reconstruction, policy-binding digest, aspect-policy digest, and
+  native result proof evidence.
+
+Phase 7 closeout evidence:
+
+- Preview proof lane: `resource_branch_capability_summary.test.mjs` covers
+  native merge preview proof projection, resource effect binding, policy
+  selector injection, typed conflict artifacts, forged/tampered effect denial,
+  branch mismatch denial, and contradictory policy denial.
+- Execution proof lane: `resource_branch_effect_merge_execution.test.mjs`
+  covers native merge result/lineage proof projection, execution-side policy
+  selector injection, branch mismatch denial before native execution, and
+  execution-specific denial diagnostics.
+- Host-region isolation lane:
+  `resource_branch_host_region_isolation.test.mjs` covers response-locus
+  host-region evidence through preview and execution artifacts while honestly
+  naming the current native isolation as per-node.
+- Unavailable mapping lane: `resource_branch_mapping_unavailable.test.mjs`
+  covers typed unavailable artifacts for runtime-issued effects whose native
+  conflict evidence cannot map to a stable compiled response locus.
+
 ### Phase 8: Full Resource Effect Closeout
 
 Purpose:
@@ -963,6 +1105,50 @@ Phase 8 gate:
 
 - the milestone is not closed until equivalent committed and speculative
   histories converge across branch restore, replay, and merge proof surfaces.
+
+Current implementation evidence:
+
+- `resource_branch_merge_rebase_closeout.test.mjs` emits a canonical
+  merge/rebase closeout verification package that ties host-region rebase
+  availability, native merge execution proof, stable resource conflict
+  projection, and mapping-unavailable artifacts into one Phase 8 evidence
+  surface. The package proves that branch-native resource merge/rebase artifacts
+  are not isolated branch helpers: they preserve resource locus, native branch
+  proof, host-region policy binding, typed conflict evidence, and typed
+  unavailable evidence through the same product facade used by optimistic
+  resource effects.
+- Resource type smoke coverage now consumes the public
+  `ResourceEffectMergePlanResult` and `ResourceEffectMergeExecutionResult`
+  unions and includes a compile-denial proving `mappingUnavailable` artifacts
+  cannot be represented without native branch conflict evidence.
+- `resource.effects.closeoutMatrix(profile)` now exposes a frozen,
+  profile-aware closeout matrix through the product facade. Runtime coverage in
+  `resource_effect_closeout_matrix.test.mjs` proves branch-native and
+  pessimistic profiles carry the required local patch, delivery patch,
+  optimistic write, confirmation, rollback, branch restore, merge/rebase, broad
+  replacement, diagnostics/history, type-surface, branch/merge, and performance
+  proof rows, with each row naming the runtime tests, type-surface files,
+  diagnostics/history proof, branch/merge proof, and performance evidence that
+  certify the row, while denying forged profile objects. Resource type smoke
+  coverage consumes the public matrix and denies unbranded capability rows.
+- `feature_branch_native_resource_effects.md` now ships the Phase 8
+  documentation lane for branch-native optimistic effects, response-lens
+  topology declarations, JSON effects, advanced topology effects, and UI
+  lifecycle event consumption. It is wired through the docs inventory, README,
+  start-here page, feature index, overview, and recipes, and
+  `branch_native_resource_effects_happy_path.test.mjs` executes the documented
+  branch-native patch, JSON aspect, grouped topology, merge-plan, and lifecycle
+  read examples against the real product facade.
+
+Phase 8 closeout evidence:
+
+- Full closeout QA now covers the hostile convergence package, merge/rebase
+  package, closeout matrix, public type surface, branch/merge tests, docs
+  inventory, executable docs examples, file/directory line discipline, and
+  whole resource runtime aggregate. The closeout matrix names concrete evidence
+  files for every proof lane instead of relying on anonymous boolean claims, and
+  the docs recipes now prove branch-native effect posture through real
+  diagnostics rather than ambient API configuration.
 
 ## Certification Requirements
 

@@ -62,8 +62,14 @@ function requireResponseLensTopology(topology) {
     topology !== "directArray"
     && topology !== "objectItems"
     && topology !== "customCollection"
+    && topology !== "connection"
+    && topology !== "discriminatedTuple"
+    && topology !== "groupedCollection"
     && topology !== "entityStore"
     && topology !== "mapCollection"
+    && topology !== "namedCollection"
+    && topology !== "recursiveTree"
+    && topology !== "sparsePage"
     && topology !== "detail"
     && topology !== "summary"
   ) {
@@ -128,8 +134,26 @@ function itemLocusForCollectionTopology(topology) {
   if (topology === "entityStore") {
     return "entityStore";
   }
+  if (topology === "connection") {
+    return "connection";
+  }
+  if (topology === "discriminatedTuple") {
+    return "discriminatedTuple";
+  }
+  if (topology === "groupedCollection") {
+    return "groupedCollection";
+  }
   if (topology === "mapCollection") {
     return "mapCollection";
+  }
+  if (topology === "namedCollection") {
+    return "namedCollection";
+  }
+  if (topology === "recursiveTree") {
+    return "recursiveTree";
+  }
+  if (topology === "sparsePage") {
+    return "sparsePage";
   }
   return "membership";
 }

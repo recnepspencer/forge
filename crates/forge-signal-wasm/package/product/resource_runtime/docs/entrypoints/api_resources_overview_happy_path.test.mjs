@@ -32,6 +32,7 @@ test("API resources overview entrypoint points at the default lane and its featu
     assert.match(overview, /signals\.resource\.response\.collection<T>\(\)\(\.\.\.\)/);
     assert.match(overview, /feature_transfers\.md/);
     assert.match(overview, /feature_downloads\.md/);
+    assert.match(overview, /feature_branch_native_resource_effects\.md/);
     assert.match(overview, /feature_external_delivery_and_compatibility\.md/);
     assert.match(overview, /resource_recipes\.md/);
   } finally {

@@ -3,6 +3,8 @@ import {
   resourceEffects,
   resourceParamIdentity,
   resourceParams,
+  type ResourceEffectMergeExecutionArtifact,
+  type ResourceEffectRebaseArtifact,
 } from "../../../index.js";
 
 const signals = createSignals();
@@ -48,4 +50,76 @@ resourceEffects.custom({
   rollback: "branchRestore",
   rebase: "nativeMergePlan",
   preimage: "none",
+});
+
+const unavailableArtifactWithoutNativeEvidence: ResourceEffectRebaseArtifact = {
+  kind: "mappingUnavailable",
+  reason: "resourceTopologyMappingUnavailable",
+  conflictCount: 1,
+  conflicts: [],
+  resource: {
+    effectId: "effect",
+    family: { kind: "collection", familyId: "family" },
+    line: { runtimeLineId: "runtime-line", scopeId: "scope", canonicalKey: "line" },
+    locus: { kind: "line" },
+    topology: null,
+    effectLocus: "broadResponse",
+  },
+  detail: "missing native evidence must stay unrepresentable",
+  proof: {
+    nativeMergePlanDigest: "plan",
+    nativeMergeSemanticsDigest: "semantics",
+    resourceLocusDigest: "locus",
+    aspectPolicyDigest: "aspect",
+    policyBindingDigest: "policy",
+    conflictIsolationDigest: "isolation",
+  },
+  // @ts-expect-error mappingUnavailable artifacts must carry native branch evidence
+  native: undefined,
+};
+
+void unavailableArtifactWithoutNativeEvidence;
+
+const executionUnavailableArtifactWithoutNativeEvidence:
+  ResourceEffectMergeExecutionArtifact = {
+    kind: "mappingUnavailable",
+    reason: "resourceTopologyMappingUnavailable",
+    conflictCount: 1,
+    conflicts: [],
+    resource: {
+      effectId: "effect",
+      family: { kind: "collection", familyId: "family" },
+      line: {
+        runtimeLineId: "runtime-line",
+        scopeId: "scope",
+        canonicalKey: "line",
+      },
+      locus: { kind: "line" },
+      topology: null,
+      effectLocus: "broadResponse",
+    },
+    detail: "missing native evidence must stay unrepresentable",
+    proof: {
+      nativeMergeResultDigest: "result",
+      nativeMergeSemanticsDigest: "semantics",
+      nativeMergeLineageDigest: "lineage",
+      resourceLocusDigest: "locus",
+      aspectPolicyDigest: "aspect",
+      policyBindingDigest: "policy",
+      conflictIsolationDigest: "isolation",
+    },
+    // @ts-expect-error execution mappingUnavailable artifacts must carry native branch evidence
+    native: undefined,
+  };
+
+void executionUnavailableArtifactWithoutNativeEvidence;
+
+// @ts-expect-error closeout matrices require branded resource effect profiles
+resourceEffects.closeoutMatrix({
+  name: "fake",
+  optimism: "branchSpeculative",
+  confirmation: "serverCanonical",
+  rollback: "branchRestoreOrInverse",
+  rebase: "nativeMergePlan",
+  preimage: "compactInverse",
 });

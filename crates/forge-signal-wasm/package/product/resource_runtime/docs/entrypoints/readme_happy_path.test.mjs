@@ -16,6 +16,7 @@ test("README entrypoint points readers at the feature-first happy path", async (
   assert.match(readme, /feature_transfers\.md/);
   assert.match(readme, /feature_downloads\.md/);
   assert.match(readme, /feature_line_inspection\.md/);
+  assert.match(readme, /feature_branch_native_resource_effects\.md/);
   assert.match(readme, /feature_raw_escape_hatch\.md/);
   assert.match(readme, /the one feature page that matches your task/i);
 });

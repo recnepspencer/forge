@@ -157,6 +157,63 @@ function entityStore() {
   };
 }
 
+function connection() {
+  return function defineConnectionResponse(options) {
+    requireConnectionOptions(options);
+    return createCollectionResponse(
+      "resource.response.connection<T>()(...)",
+      createConnectionCollectionAdapter(options),
+      { topology: "connection", itemField: null },
+    );
+  };
+}
+
+const REQUIRED_CONNECTION_OPTION_FIELDS = Object.freeze(["edges", "node", "edgeIndexForItem", "replaceNodes", "replaceNode"]);
+
+function requireConnectionOptions(options) {
+  if (!options || typeof options !== "object" || Array.isArray(options)) {
+    throw new TypeError(
+      "resource.response.connection<T>()(...) requires an options object",
+    );
+  }
+  for (const field of REQUIRED_CONNECTION_OPTION_FIELDS) {
+    if (typeof options[field] !== "function") {
+      throw new TypeError(
+        `resource.response.connection<T>()(...) requires ${field}(...)`,
+      );
+    }
+  }
+}
+
+function createConnectionCollectionAdapter(options) {
+  return {
+    ...options,
+    items(value) {
+      return readConnectionNodes(
+        options.edges(value),
+        options.node,
+        options.itemId,
+        "edges(value)",
+      );
+    },
+    replaceItems(value, nextItems) {
+      requireConnectionIdentityEdges(
+        options.edges(value),
+        options.node,
+        options.itemId,
+        "edges(value)",
+      );
+      return options.replaceNodes(value, nextItems);
+    },
+    readItem(value, itemIdValue) {
+      return readConnectionItem(value, itemIdValue, options, "edgeIndexForItem");
+    },
+    replaceItem(value, itemIdValue, nextItem) {
+      return replaceConnectionItem(value, itemIdValue, nextItem, options);
+    },
+  };
+}
+
 function requireObjectItemsField(field) {
   if (typeof field !== "string" || field.length === 0) {
     throw new TypeError(
@@ -236,9 +293,104 @@ function createEntityStoreRecord(itemId, nextItems) {
   return entities;
 }
 
+function requireConnectionEdges(rawEdges, source) {
+  if (!Array.isArray(rawEdges)) {
+    throw new TypeError(
+      `resource.response.connection<T>()(...) requires ${source} to return an array of edges`,
+    );
+  }
+  return rawEdges;
+}
+
+function readConnectionNodes(rawEdges, node, itemId, source) {
+  return requireConnectionIdentityEdges(rawEdges, node, itemId, source).map((edge) => node(edge));
+}
+function requireConnectionIdentityEdges(rawEdges, node, itemId, source) {
+  const edges = requireConnectionEdges(rawEdges, source);
+  const seen = new Set();
+  for (const edge of edges) {
+    const edgeNode = node(edge);
+    const edgeNodeId = itemId(edgeNode);
+    if (typeof edgeNodeId !== "string" || edgeNodeId.length === 0) {
+      throw new TypeError(
+        "resource.response.connection<T>()(...) requires itemId(node(edge)) to return a non-empty string",
+      );
+    }
+    if (seen.has(edgeNodeId)) {
+      throw new TypeError(
+        `resource.response.connection<T>()(...) cannot expose duplicated connection node id "${edgeNodeId}"`,
+      );
+    }
+    seen.add(edgeNodeId);
+  }
+  return edges;
+}
+function readConnectionItem(value, itemIdValue, options, source) {
+  const edges = requireConnectionEdges(options.edges(value), "edges(value)");
+  const edgeIndex = options.edgeIndexForItem(value, itemIdValue);
+  if (edgeIndex === null || edgeIndex === undefined) {
+    return Object.freeze({ found: false, item: null });
+  }
+  requireConnectionEdgeIndex(edgeIndex, itemIdValue, source);
+  const edge = edges[edgeIndex];
+  if (edge === undefined) {
+    throw new TypeError(
+      `resource.response.connection<T>()(...) requires ${source}(value, itemId) index ${edgeIndex} to reference an existing edge for itemId "${itemIdValue}"`,
+    );
+  }
+  const edgeNode = options.node(edge);
+  const edgeNodeId = options.itemId(edgeNode);
+  if (edgeNodeId !== itemIdValue) {
+    throw new TypeError(
+      `resource.response.connection<T>()(...) requires ${source}(value, itemId) edge node "${edgeNodeId}" to match requested itemId "${itemIdValue}"`,
+    );
+  }
+  return Object.freeze({ found: true, item: edgeNode });
+}
+function requireConnectionEdgeIndex(edgeIndex, itemIdValue, source) {
+  if (!Number.isSafeInteger(edgeIndex) || edgeIndex < 0) {
+    throw new TypeError(
+      `resource.response.connection<T>()(...) requires ${source}(value, itemId) to return a non-negative integer edge index for itemId "${itemIdValue}"`,
+    );
+  }
+}
+function replaceConnectionItem(value, itemIdValue, nextItem, options) {
+  const currentItem = readConnectionItem(
+    value,
+    itemIdValue,
+    options,
+    "edgeIndexForItem",
+  );
+  if (!currentItem.found) {
+    throw new RangeError(
+      `resource.response.connection<T>()(...) could not find connection node id "${itemIdValue}"`,
+    );
+  }
+  const nextItemId = options.itemId(nextItem);
+  if (nextItemId !== itemIdValue) {
+    throw new TypeError(
+      `resource.response.connection<T>()(...) requires replaceNode(value, itemId, nextNode) to preserve node id "${itemIdValue}"`,
+    );
+  }
+  const nextValue = options.replaceNode(value, itemIdValue, nextItem);
+  const replacedItem = readConnectionItem(
+    nextValue,
+    itemIdValue,
+    options,
+    "replaceNode(value, itemId, nextNode)",
+  );
+  if (!replacedItem.found) {
+    throw new TypeError(
+      `resource.response.connection<T>()(...) requires replaceNode(value, itemId, nextNode) to preserve connection node "${itemIdValue}"`,
+    );
+  }
+  return nextValue;
+}
+
 export {
   array,
   collection,
+  connection,
   entityStore,
   objectItems,
   requireResourceCollectionResponse,

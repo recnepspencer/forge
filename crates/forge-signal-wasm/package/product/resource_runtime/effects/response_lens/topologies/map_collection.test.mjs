@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createRealRequestRuntime } from "../../runtime_fixture/real_request_runtime.mjs";
-import { createBranchHead } from "../../runtime_fixture/real_resource_signals.mjs";
+import { createRealRequestRuntime } from "../../../runtime_fixture/real_request_runtime.mjs";
+import { createBranchHead } from "../../../runtime_fixture/real_resource_signals.mjs";
 
 test("map-backed responses lower item replacement through map collection loci", async () => {
   const runtime = await createRealRequestRuntime();

@@ -65,8 +65,7 @@ function createItemScopedInverseDescriptor(materialization, patch, currentValue)
       `${patchRecord.familyKind} resource lines require reconcile: resourceCollectionShape(...) for narrow patch(...) admission`,
     );
   }
-  const currentItems = [...patchRecord.reconcile.items(currentValue)];
-  const currentItem = readSingleMatchingItem(patchRecord, currentItems, patch);
+  const currentItem = readCurrentItemForInverse(patchRecord, currentValue, patch);
   if (patch.kind === "item") {
     const previousItem = snapshotCompactInversePreimage(() => currentItem);
     if (previousItem.kind === "unavailable") {
@@ -126,6 +125,42 @@ function createItemScopedInverseDescriptor(materialization, patch, currentValue)
       retainedResponsePreimage: false,
     }),
   });
+}
+
+function readCurrentItemForInverse(patchRecord, currentValue, patch) {
+  if (typeof patchRecord.reconcile.readItem === "function") {
+    if (!inverseShouldUseDirectItemRead(patchRecord)) {
+      return readSingleMatchingItem(
+        patchRecord,
+        [...patchRecord.reconcile.items(currentValue)],
+        patch,
+      );
+    }
+    const locatedItem = patchRecord.reconcile.readItem(currentValue, patch.itemId);
+    if (locatedItem?.found !== true) {
+      throw new RangeError(
+        createDirectReadMissingItemMessage(patchRecord, patch.itemId),
+      );
+    }
+    return locatedItem.item;
+  }
+  return readSingleMatchingItem(
+    patchRecord,
+    [...patchRecord.reconcile.items(currentValue)],
+    patch,
+  );
+}
+
+function inverseShouldUseDirectItemRead(patchRecord) {
+  const topology = patchRecord.responseLensProof?.topology;
+  return topology === "sparsePage" || topology === "recursiveTree";
+}
+
+function createDirectReadMissingItemMessage(patchRecord, itemId) {
+  if (patchRecord.responseLensProof?.topology === "sparsePage") {
+    return `${patchRecord.familyKind} resource lines could not find loaded sparse page itemId "${itemId}" for patch(...)`;
+  }
+  return `${patchRecord.familyKind} resource lines could not find itemId "${itemId}" for patch(...)`;
 }
 
 function optionalJsonPathTerminalWasAbsent(aspectDefinition, currentItem) {

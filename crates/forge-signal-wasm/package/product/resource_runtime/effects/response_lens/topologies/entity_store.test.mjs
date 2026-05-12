@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createRealRequestRuntime } from "../../runtime_fixture/real_request_runtime.mjs";
-import { createBranchHead } from "../../runtime_fixture/real_resource_signals.mjs";
+import { createRealRequestRuntime } from "../../../runtime_fixture/real_request_runtime.mjs";
+import { createBranchHead } from "../../../runtime_fixture/real_resource_signals.mjs";
 
 test("entity-store responses lower item replacement through entity-store effect loci", async () => {
   const runtime = await createRealRequestRuntime();

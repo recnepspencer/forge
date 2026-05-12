@@ -50,6 +50,9 @@ console.log(line.value());
   [feature_line_inspection.md](./feature_line_inspection.md)
 - exact restore, replay availability, and verification packages:
   [feature_history_and_restore.md](./feature_history_and_restore.md)
+- branch-native optimistic effects, response topology proof, JSON effects, and
+  UI lifecycle events:
+  [feature_branch_native_resource_effects.md](./feature_branch_native_resource_effects.md)
 - external push packets and basis refresh:
   [feature_external_delivery_and_compatibility.md](./feature_external_delivery_and_compatibility.md)
 - raw family declarations:

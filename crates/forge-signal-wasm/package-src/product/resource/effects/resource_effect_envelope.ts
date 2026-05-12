@@ -4,6 +4,12 @@ import { createResourceEffectOptimisticLifecycle } from "./resource_effect_optim
 import { lowerResponseLensProofToEffectLocus } from "../response/resource_response_effect_locus_lowering.js";
 
 const RESOURCE_EFFECT_ENVELOPE_VERSION = "resource-effect-envelope-v1";
+const RESOURCE_EFFECT_AUTHORITY_VERSION = "resource-effect-authority-v1";
+const resourceEffectAuthorityGlobal = globalThis as typeof globalThis & { __forgeResourceEffectAuthorityRegistry?: Map<string, string>; };
+const RESOURCE_EFFECT_AUTHORITY_REGISTRY =
+  resourceEffectAuthorityGlobal.__forgeResourceEffectAuthorityRegistry ?? new Map();
+resourceEffectAuthorityGlobal.__forgeResourceEffectAuthorityRegistry = RESOURCE_EFFECT_AUTHORITY_REGISTRY;
+let nextResourceEffectAuthoritySequence = 1;
 
 function createLocalPatchEffectEnvelope(effectPlan, patch, result) {
   return createResourceEffectEnvelope({
@@ -55,7 +61,7 @@ function createResourceEffectEnvelope(options) {
     rawLocus,
   );
   const locus = alignLocusWithResponseLensProof(rawLocus, locusProof);
-  return Object.freeze({
+  const envelope = {
     version: RESOURCE_EFFECT_ENVELOPE_VERSION,
     effectId: createEffectId(effectPlan, options.delivery),
     provenance: effectPlan.provenance,
@@ -97,7 +103,94 @@ function createResourceEffectEnvelope(options) {
       ...effectPlan.counters,
       ...createJsonPathCounters(patchDigest.jsonPath),
     }),
+  };
+  const authority = createResourceEffectAuthority(envelope);
+  Object.defineProperty(envelope, "authority", { value: authority, enumerable: true });
+  registerResourceEffectEnvelopeAuthority(envelope);
+  return Object.freeze(envelope);
+}
+
+function createResourceEffectAuthority(envelope) {
+  const token = [
+    RESOURCE_EFFECT_AUTHORITY_VERSION,
+    envelope.effectId,
+    nextResourceEffectAuthoritySequence++,
+  ].join(":");
+  return Object.freeze({
+    version: RESOURCE_EFFECT_AUTHORITY_VERSION,
+    runtimeEffectToken: token,
+    envelopeDigest: createResourceEffectAuthorityDigest(envelope),
   });
+}
+
+function registerResourceEffectEnvelopeAuthority(envelope) {
+  RESOURCE_EFFECT_AUTHORITY_REGISTRY.set(
+    envelope.authority.runtimeEffectToken,
+    envelope.authority.envelopeDigest,
+  );
+}
+
+function requireRuntimeIssuedResourceEffectEnvelope(effect) {
+  if (!effect || typeof effect !== "object" || Array.isArray(effect)) {
+    return false;
+  }
+  const authority = effect.authority;
+  if (
+    !authority ||
+    authority.version !== RESOURCE_EFFECT_AUTHORITY_VERSION ||
+    typeof authority.runtimeEffectToken !== "string" ||
+    typeof authority.envelopeDigest !== "string"
+  ) {
+    return false;
+  }
+  const registeredDigest = RESOURCE_EFFECT_AUTHORITY_REGISTRY.get(
+    authority.runtimeEffectToken,
+  );
+  if (registeredDigest === undefined) {
+    return false;
+  }
+  return registeredDigest === authority.envelopeDigest &&
+    registeredDigest === createResourceEffectAuthorityDigest(effect);
+}
+
+function createResourceEffectAuthorityDigest(effect) {
+  return canonicalStringify({
+    version: effect.version,
+    effectId: effect.effectId,
+    provenance: effect.provenance,
+    idempotencyKey: effect.idempotencyKey,
+    serverCorrelationId: effect.serverCorrelationId,
+    plan: effect.plan,
+    family: effect.family,
+    line: effect.line,
+    profile: effect.profile,
+    branchLifecycle: effect.branchLifecycle,
+    optimistic: effect.optimistic,
+    request: effect.request,
+    delivery: effect.delivery,
+    locus: effect.locus,
+    locusProof: effect.locusProof,
+    patch: effect.patch,
+    counters: effect.counters,
+  });
+}
+
+function canonicalStringify(value) {
+  return JSON.stringify(canonicalizeAuthorityValue(value));
+}
+
+function canonicalizeAuthorityValue(value) {
+  if (Array.isArray(value)) {
+    return value.map(canonicalizeAuthorityValue);
+  }
+  if (!value || typeof value !== "object") {
+    return value;
+  }
+  const canonical = {};
+  for (const key of Object.keys(value).sort()) {
+    canonical[key] = canonicalizeAuthorityValue(value[key]);
+  }
+  return canonical;
 }
 
 function createPatchDigest(patch) {
@@ -214,8 +307,26 @@ function createResponseLensItemLocus(topology) {
   if (topology === "entityStore") {
     return "entityStore";
   }
+  if (topology === "connection") {
+    return "connection";
+  }
+  if (topology === "discriminatedTuple") {
+    return "discriminatedTuple";
+  }
+  if (topology === "groupedCollection") {
+    return "groupedCollection";
+  }
   if (topology === "mapCollection") {
     return "mapCollection";
+  }
+  if (topology === "namedCollection") {
+    return "namedCollection";
+  }
+  if (topology === "recursiveTree") {
+    return "recursiveTree";
+  }
+  if (topology === "sparsePage") {
+    return "sparsePage";
   }
   return "membership";
 }
@@ -284,4 +395,5 @@ function createEffectId(effectPlan, delivery) {
 export {
   createDeliveryEffectEnvelope,
   createLocalPatchEffectEnvelope,
+  requireRuntimeIssuedResourceEffectEnvelope,
 };

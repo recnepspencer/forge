@@ -38,6 +38,9 @@ category references.
 - [feature_history_and_restore.md](./feature_history_and_restore.md)
   History availability, exact restore, exact replay posture, and verification
   packages.
+- [feature_branch_native_resource_effects.md](./feature_branch_native_resource_effects.md)
+  Branch-native optimistic effects, response-lens topology declarations, JSON
+  effects, advanced topology effects, and UI lifecycle event consumption.
 - [feature_external_delivery_and_compatibility.md](./feature_external_delivery_and_compatibility.md)
   External definitions, pushed packets, basis refresh, and compatibility
   delivery.

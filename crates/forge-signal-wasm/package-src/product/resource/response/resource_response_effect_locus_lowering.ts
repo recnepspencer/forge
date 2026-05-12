@@ -1,4 +1,5 @@
 import { requireResponseLensProof } from "./resource_response_lens_proof.js";
+import { RESOURCE_RESPONSE_TOPOLOGY_COSTS } from "./resource_response_topology_costs.js";
 
 const RESOURCE_EFFECT_LOCUS_PROOF_VERSION = "resource-effect-locus-proof-v1";
 const RESOURCE_RESPONSE_LENS_DENIAL_PROOF_VERSION =
@@ -48,58 +49,47 @@ function lowerResponseLensProofToEffectLocus(lensProof, locus) {
 }
 
 function createEffectLocusCostCounters(proof, capability, locus) {
-  if (
-    proof.topology === "entityStore"
-    && (capability.locus === "entityStore" || isAspectLocus(locus))
-  ) {
-    return Object.freeze({
-      lookup: "entity-id",
-      lookupBreadth: 1,
-      traversal: "single-entity-record",
-      traversalBreadth: 1,
-      reconstruction: "replaceEntity",
-      reconstructionBreadth: 1,
-    });
+  const cost = readDeclaredEffectLocusCost(proof, capability, locus);
+  if (cost !== null) {
+    return createEffectLocusCostCounter(...cost);
   }
-  if (proof.topology === "entityStore" && capability.locus === "broadResponse") {
-    return Object.freeze({
-      lookup: "whole-entity-record",
-      lookupBreadth: 0,
-      traversal: "whole-response",
-      traversalBreadth: 1,
-      reconstruction: "replaceEntities",
-      reconstructionBreadth: 1,
-    });
+  return createEffectLocusCostCounter(
+    `${capability.locus}-declaration`,
+    1,
+    `${capability.patchScope}-scope`,
+    `${proof.topology}-lens`,
+  );
+}
+
+function readDeclaredEffectLocusCost(proof, capability, locus) {
+  const cost = RESOURCE_RESPONSE_TOPOLOGY_COSTS[proof.topology];
+  if (cost === undefined) {
+    return null;
+  }
+  if (capability.locus === "broadResponse" && cost.broad !== undefined) {
+    return cost.broad;
   }
   if (
-    proof.topology === "mapCollection"
-    && (capability.locus === "mapCollection" || isAspectLocus(locus))
+    (capability.locus === cost.itemLocus || isAspectLocus(locus)) &&
+    cost.item !== undefined
   ) {
-    return Object.freeze({
-      lookup: "map-key",
-      lookupBreadth: 1,
-      traversal: "single-map-entry",
-      traversalBreadth: 1,
-      reconstruction: "replaceEntry",
-      reconstructionBreadth: 1,
-    });
+    return cost.item;
   }
-  if (proof.topology === "mapCollection" && capability.locus === "broadResponse") {
-    return Object.freeze({
-      lookup: "whole-map",
-      lookupBreadth: 0,
-      traversal: "whole-response",
-      traversalBreadth: 1,
-      reconstruction: "replaceEntries",
-      reconstructionBreadth: 1,
-    });
-  }
+  return null;
+}
+
+function createEffectLocusCostCounter(
+  lookup,
+  lookupBreadth,
+  traversal,
+  reconstruction,
+) {
   return Object.freeze({
-    lookup: `${capability.locus}-declaration`,
-    lookupBreadth: 1,
-    traversal: `${capability.patchScope}-scope`,
+    lookup,
+    lookupBreadth,
+    traversal,
     traversalBreadth: 1,
-    reconstruction: `${proof.topology}-lens`,
+    reconstruction,
     reconstructionBreadth: 1,
   });
 }
@@ -277,8 +267,14 @@ function patchScopeForEffectLocus(locus) {
     case "line":
       return "line";
     case "membership":
+    case "connection":
+    case "discriminatedTuple":
     case "entityStore":
+    case "groupedCollection":
     case "mapCollection":
+    case "namedCollection":
+    case "recursiveTree":
+    case "sparsePage":
     case "item":
       return "item";
     case "itemAspect":
@@ -301,10 +297,22 @@ function capabilityLocusForEffectLocus(locus) {
       return "summaryResponse";
     case "membership":
       return "membership";
+    case "connection":
+      return "connection";
+    case "discriminatedTuple":
+      return "discriminatedTuple";
     case "entityStore":
       return "entityStore";
+    case "groupedCollection":
+      return "groupedCollection";
     case "mapCollection":
       return "mapCollection";
+    case "namedCollection":
+      return "namedCollection";
+    case "recursiveTree":
+      return "recursiveTree";
+    case "sparsePage":
+      return "sparsePage";
     case "itemAspect":
       return "itemAspect";
     case "jsonItemAspect":
@@ -320,8 +328,26 @@ function itemLocusForCollectionTopology(topology) {
   if (topology === "entityStore") {
     return "entityStore";
   }
+  if (topology === "connection") {
+    return "connection";
+  }
+  if (topology === "discriminatedTuple") {
+    return "discriminatedTuple";
+  }
+  if (topology === "groupedCollection") {
+    return "groupedCollection";
+  }
   if (topology === "mapCollection") {
     return "mapCollection";
+  }
+  if (topology === "namedCollection") {
+    return "namedCollection";
+  }
+  if (topology === "recursiveTree") {
+    return "recursiveTree";
+  }
+  if (topology === "sparsePage") {
+    return "sparsePage";
   }
   return "membership";
 }

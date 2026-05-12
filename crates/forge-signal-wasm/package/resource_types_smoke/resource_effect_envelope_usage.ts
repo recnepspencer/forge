@@ -119,6 +119,26 @@ const mapCollectionLocus: ResourceEffectEnvelope["locus"] = {
   kind: "mapCollection",
   itemId: "task:1",
 };
+const groupedCollectionLocus: ResourceEffectEnvelope["locus"] = {
+  kind: "groupedCollection",
+  itemId: "task:1",
+};
+const discriminatedTupleLocus: ResourceEffectEnvelope["locus"] = {
+  kind: "discriminatedTuple",
+  itemId: "task:1",
+};
+const sparsePageLocus: ResourceEffectEnvelope["locus"] = {
+  kind: "sparsePage",
+  itemId: "task:1",
+};
+const namedCollectionLocus: ResourceEffectEnvelope["locus"] = {
+  kind: "namedCollection",
+  itemId: "task:1",
+};
+const recursiveTreeLocus: ResourceEffectEnvelope["locus"] = {
+  kind: "recursiveTree",
+  itemId: "task:1",
+};
 
 void latestEffect?.version;
 void latestEffect?.plan.admissionKind;
@@ -190,6 +210,11 @@ void detailResponseLocus.kind;
 void summaryResponseLocus.kind;
 void entityStoreLocus.itemId;
 void mapCollectionLocus.itemId;
+void groupedCollectionLocus.itemId;
+void discriminatedTupleLocus.itemId;
+void namedCollectionLocus.itemId;
+void recursiveTreeLocus.itemId;
+void sparsePageLocus.itemId;
 void jsonAspectLocus.aspect;
 void responseLensProof.summaryNames;
 void latestLocusProof?.declarationDigest;

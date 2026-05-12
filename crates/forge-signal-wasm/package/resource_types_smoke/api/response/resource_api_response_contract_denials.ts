@@ -19,6 +19,24 @@ type TaskEnvelope = {
   nextCursor: string | null;
 };
 
+type TaskConnectionEdge = { node: Task };
+type TaskConnection = {
+  edges: readonly TaskConnectionEdge[];
+};
+type TaskTupleEnvelope =
+  | { kind: "primary"; primary: readonly Task[] }
+  | { kind: "secondary"; secondary: readonly Task[] };
+type TaskSparseEnvelope = {
+  pages: Record<string, readonly Task[]>;
+};
+type TaskNamedEnvelope = {
+  collections: Record<string, readonly Task[]>;
+};
+type TaskTreeNode = Task & { children: readonly TaskTreeNode[] };
+type TaskTreeEnvelope = {
+  roots: readonly TaskTreeNode[];
+};
+
 signals.resource.response.objectAspects<Task>()({
   title: "title",
   // @ts-expect-error object response aspects must name real item fields
@@ -160,6 +178,131 @@ signals.resource.response.map<TaskEnvelope>()({
   entries: (value) => value.tasks,
   replaceEntries: (value, _nextEntries) => value,
   replaceEntry: (value, _itemId, _nextItem) => value,
+});
+
+signals.resource.response.grouped<TaskEnvelope>()({
+  itemId: (item: Task) => item.id,
+  groupId: (item: Task) => item.status,
+  groupForItem: (_itemId: string) => "open",
+  // @ts-expect-error grouped response contracts require groups(value) to return an object record of item arrays
+  groups: (value) => value.tasks,
+  replaceGroups: (value, _nextGroups) => value,
+  replaceGroupItem: (value, _groupId, _itemId, _nextItem) => value,
+});
+
+signals.resource.response.sparse<TaskSparseEnvelope>()({
+  itemId: (item: Task) => item.id,
+  pageId: (item: Task) => item.status,
+  pageForItem: (_itemId: string) => "open",
+  // @ts-expect-error sparse response contracts require pages(value) to return an object record of item arrays
+  pages: (value) => value.pages.open,
+  replacePages: (value, _nextPages) => value,
+  replacePageItem: (value, _pageId, _itemId, _nextItem) => value,
+});
+
+signals.resource.response.named<TaskNamedEnvelope>()({
+  itemId: (item: Task) => item.id,
+  collectionId: (item: Task) => item.status,
+  collectionForItem: (_itemId: string) => "open",
+  // @ts-expect-error named response contracts require collections(value) to return an object record of item arrays
+  collections: (value) => value.collections.open,
+  replaceCollections: (value, _nextCollections) => value,
+  replaceCollectionItem: (value, _collectionId, _itemId, _nextItem) => value,
+});
+
+signals.resource.response.multiple<TaskNamedEnvelope>()({
+  itemId: (item: Task) => item.id,
+  collectionId: (item: Task) => item.status,
+  collectionForItem: (_itemId: string) => "open",
+  // @ts-expect-error multiple collection response contracts require collections(value) to return an object record of item arrays
+  collections: (value) => value.collections.open,
+  replaceCollections: (value, _nextCollections) => value,
+  replaceCollectionItem: (value, _collectionId, _itemId, _nextItem) => value,
+});
+
+signals.resource.response.tree<TaskTreeEnvelope>()({
+  itemId: (item: TaskTreeNode) => item.id,
+  // @ts-expect-error tree response contracts require roots(value) to return an array
+  roots: (value) => value.roots[0],
+  children: (item) => item.children,
+  replaceRoots: (value, _roots) => value,
+  nodeForItem: (itemId) => ["root", itemId],
+  replaceNode: (value, _path, _itemId, _nextItem) => value,
+});
+
+signals.resource.response.tree<TaskTreeEnvelope>()({
+  itemId: (item: TaskTreeNode) => item.id,
+  roots: (value) => value.roots,
+  // @ts-expect-error tree response contracts require children(node) to return an array
+  children: (item) => item.children[0],
+  replaceRoots: (value, _roots) => value,
+  nodeForItem: (itemId) => ["root", itemId],
+  replaceNode: (value, _path, _itemId, _nextItem) => value,
+});
+
+signals.resource.response.tree<TaskTreeEnvelope>()({
+  itemId: (item: TaskTreeNode) => item.id,
+  roots: (value) => value.roots,
+  children: (item) => item.children,
+  // @ts-expect-error tree response contracts require replaceRoots to preserve response shape
+  replaceRoots: (_value, roots) => roots,
+  nodeForItem: (itemId) => ["root", itemId],
+  replaceNode: (value, _path, _itemId, _nextItem) => value,
+});
+
+signals.resource.response.tree<TaskTreeEnvelope>()({
+  itemId: (item: TaskTreeNode) => item.id,
+  roots: (value) => value.roots,
+  children: (item) => item.children,
+  replaceRoots: (value, _roots) => value,
+  nodeForItem: (itemId) => ["root", itemId],
+  // @ts-expect-error tree response contracts require replaceNode to preserve response shape
+  replaceNode: (_value, _path, _itemId, nextItem) => nextItem,
+});
+
+signals.resource.response.named<TaskNamedEnvelope>()({
+  itemId: (item: Task) => item.id,
+  collectionId: (item: Task) => item.status,
+  collectionForItem: (_itemId: string) => "open",
+  collections: (value) => value.collections,
+  // @ts-expect-error named response contracts require replaceCollections to preserve response shape
+  replaceCollections: (_value, nextCollections) => nextCollections,
+  replaceCollectionItem: (value, _collectionId, _itemId, _nextItem) => value,
+});
+
+signals.resource.response.sparse<TaskSparseEnvelope>()({
+  itemId: (item: Task) => item.id,
+  pageId: (item: Task) => item.status,
+  pageForItem: (_itemId: string) => "open",
+  pages: (value) => value.pages,
+  // @ts-expect-error sparse response contracts require replacePages to preserve response shape
+  replacePages: (_value, nextPages) => nextPages,
+  replacePageItem: (value, _pageId, _itemId, _nextItem) => value,
+});
+
+signals.resource.response.connection<TaskConnection>()({
+  itemId: (item: Task) => item.id,
+  edges: (value) => value.edges,
+  node: (edge: TaskConnectionEdge) => edge.node,
+  edgeIndexForItem: (value, itemId) => {
+    const edgeIndex = value.edges.findIndex((edge) => edge.node.id === itemId);
+    return edgeIndex === -1 ? null : edgeIndex;
+  },
+  // @ts-expect-error connection response contracts require replaceNodes to preserve response shape
+  replaceNodes: (_value, nextNodes) => nextNodes,
+  replaceNode: (value, _itemId, _nextNode) => value,
+});
+
+signals.resource.response.discriminated<TaskTupleEnvelope>()({
+  itemId: (item: Task) => item.id,
+  discriminator: (value) => value.kind,
+  variants: {
+    primary: {
+      items: (value) => value.kind === "primary" ? value.primary : [],
+      // @ts-expect-error discriminated response variants must preserve envelope shape
+      replaceItems: (_value, nextItems) => nextItems,
+    },
+  },
 });
 
 signals.api({}).url("/tasks").response(taskResponse).list({

@@ -1,3 +1,5 @@
+import { createResourceEffectCloseoutMatrix } from "./resource_effect_closeout_matrix.js";
+
 const RESOURCE_EFFECT_PROFILE_BRAND = Symbol(
   "forgeSignal.resourceEffectProfile",
 );
@@ -83,6 +85,14 @@ const resourceEffects = Object.freeze({
   },
   custom(options) {
     return createResourceEffectProfile(requireCustomProfileOptions(options));
+  },
+  closeoutMatrix(profile) {
+    return createResourceEffectCloseoutMatrix(
+      requireResourceEffectProfile(
+        profile,
+        "resource.effects.closeoutMatrix(...)",
+      ),
+    );
   },
 });
 

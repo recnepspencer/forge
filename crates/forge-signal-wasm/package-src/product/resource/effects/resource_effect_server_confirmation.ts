@@ -54,8 +54,14 @@ function areEffectLociEquivalent(previousLocus, currentLocus) {
       return true;
     case "item":
     case "membership":
+    case "connection":
+    case "discriminatedTuple":
     case "entityStore":
+    case "groupedCollection":
     case "mapCollection":
+    case "namedCollection":
+    case "recursiveTree":
+    case "sparsePage":
       return previousLocus.itemId === currentLocus.itemId;
     case "itemAspect":
     case "jsonItemAspect":

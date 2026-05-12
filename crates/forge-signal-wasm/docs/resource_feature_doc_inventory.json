@@ -63,6 +63,11 @@
       "test": "features/history_and_restore_happy_path.test.mjs"
     },
     {
+      "id": "branch_native_resource_effects",
+      "doc": "feature_branch_native_resource_effects.md",
+      "test": "features/branch_native_resource_effects_happy_path.test.mjs"
+    },
+    {
       "id": "external_delivery_and_compatibility",
       "doc": "feature_external_delivery_and_compatibility.md",
       "test": "features/external_delivery_and_compatibility_happy_path.test.mjs"

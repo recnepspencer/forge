@@ -62,6 +62,9 @@ home.
   [feature_line_inspection.md](./feature_line_inspection.md)
 - retained history, exact restore, replay availability, and verification:
   [feature_history_and_restore.md](./feature_history_and_restore.md)
+- branch-native optimistic effects, response-lens topology declarations, JSON
+  effects, advanced topology effects, and UI lifecycle events:
+  [feature_branch_native_resource_effects.md](./feature_branch_native_resource_effects.md)
 
 ## External / Compatibility Features
 

@@ -62,6 +62,7 @@ function applyPatchValue(materialization, patchValue, currentValue) {
 }
 
 function applyReplacePatch(materialization, patch, currentValue) {
+  assertReplacePatchPreservesResponseTopology(materialization.patch, patch);
   const valueChanged = !areLineValuesSemanticallyEqual(
     patch.nextValue,
     currentValue,
@@ -84,6 +85,16 @@ function applyReplacePatch(materialization, patch, currentValue) {
     }),
     valueChanged,
   });
+}
+
+function assertReplacePatchPreservesResponseTopology(patchRecord, patch) {
+  if (
+    patchRecord.reconcile === null ||
+    typeof patchRecord.reconcile.items !== "function"
+  ) {
+    return;
+  }
+  patchRecord.reconcile.items(patch.nextValue);
 }
 
 function applySummaryPatch(materialization, patch, currentValue) {

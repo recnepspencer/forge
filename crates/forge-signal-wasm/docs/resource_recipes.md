@@ -25,6 +25,9 @@ here.
   [feature_line_inspection.md](./feature_line_inspection.md)
 - exact restore, replay availability, or verification packages:
   [feature_history_and_restore.md](./feature_history_and_restore.md)
+- branch-native optimistic effects, response topology proof, JSON effects, or UI
+  lifecycle event reads:
+  [feature_branch_native_resource_effects.md](./feature_branch_native_resource_effects.md)
 - external push packets or basis refresh:
   [feature_external_delivery_and_compatibility.md](./feature_external_delivery_and_compatibility.md)
 - raw family declarations:
@@ -75,6 +78,34 @@ line.patch(
     value: "Updated",
   }),
 );
+```
+
+## Recipe: Branch-Native Effect With Lifecycle Reads
+
+```ts
+const branchNativeApi = signals.api({
+  effects: signals.resource.effects.branchNative(),
+});
+
+const tasks = branchNativeApi.url("/branch-native-tasks")
+  .items((task: { id: string }) => task.id)
+  .aspect("title", (task) => task.title, (task, title: string) => ({
+    ...task,
+    title,
+  }))
+  .list({
+    load: () => [{ id: "task:1", title: "First" }],
+  });
+
+const line = tasks.line({});
+line.patch(tasks.patch.itemAspect({
+  itemId: "task:1",
+  aspect: "title",
+  value: "Draft",
+}));
+
+const effect = line.diagnostics().lastEffect;
+const events = line.history().lifecycle.map((entry) => entry.lastOutcome);
 ```
 
 ## Recipe: Signed Upload With Deferred Processing
