@@ -1,0 +1,8 @@
+error[E0432]: unresolved import `topology::facade::certify_milestone_two_read_view_traced`
+ --> src/certification/public_facade_contracts/compile_fail/public_milestone_two_read_view_cert_not_exported.rs:1:5
+  |
+1 | use topology::facade::certify_milestone_two_read_view_traced;
+  |     ^^^^^^^^^^^^^^^^^^--------------------------------------
+  |     |                 |
+  |     |                 help: a similar name exists in the module: `certify_milestone_two_read_basis_traced`
+  |     no `certify_milestone_two_read_view_traced` in `facade`

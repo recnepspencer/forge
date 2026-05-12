@@ -105,6 +105,25 @@ impl<K: RecordKind> RecordArena<K> {
         });
     }
 
+    pub(crate) fn apply_extra_update(
+        &mut self,
+        slot: usize,
+        extra: K::Extra,
+        version_id: VersionId,
+    ) {
+        self.extra[slot] = extra.clone();
+        if let Some(current) = self.metadata_history[slot].last_mut() {
+            K::retire_metadata(current, version_id);
+        }
+        let kind_id = self.kind_ids[slot].expect("record extra update requires retained kind id");
+        self.metadata_history[slot].push(K::metadata_for_create(
+            kind_id,
+            self.generations[slot],
+            version_id,
+            &extra,
+        ));
+    }
+
     pub(crate) fn retire(&mut self, slot: usize, version_id: VersionId) {
         self.retired_at[slot] = Some(version_id);
         self.lifecycle[slot] = RecordLifecycleState::DeletedRetained;

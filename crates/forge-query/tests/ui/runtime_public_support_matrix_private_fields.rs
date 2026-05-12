@@ -18,7 +18,7 @@ fn main() {
     };
 
     let _matrix = ForgeQueryRuntimePublicSupportMatrix {
-        backend_posture: ForgeQueryRuntimeBackendPosture::Compatibility,
+        backend_posture: ForgeQueryRuntimeBackendPosture::Scaffold,
         rows: Vec::new(),
         stable_row_count: 0,
         deferred_row_count: 0,

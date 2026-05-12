@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthGeometryAspect {
+pub enum GeometryAspect {
     Binding,
     Embedding,
     Provenance,
@@ -12,7 +12,7 @@ pub enum WorthGeometryAspect {
     Fallback,
 }
 
-impl WorthGeometryAspect {
+impl GeometryAspect {
     pub const ALL: [Self; 8] = [
         Self::Binding,
         Self::Embedding,

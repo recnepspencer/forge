@@ -303,6 +303,27 @@ pub fn resolve_snapshot_basis(
     ))
 }
 
+pub fn resolve_runtime_current_snapshot_basis(
+    snapshot_token: impl Into<String>,
+    schema_basis: SchemaBasisDigest,
+) -> Result<ResolvedSnapshotBasis, BasisResolutionError> {
+    resolve_snapshot_basis(
+        ExecutionBasisIntent::new(
+            BasisAuthorityFamily::Runtime,
+            SnapshotLineageClass::CurrentHead,
+            false,
+        ),
+        ResolvedSnapshotIdentity::new(
+            BasisAuthorityFamily::Runtime,
+            None,
+            snapshot_token,
+            schema_basis,
+            SnapshotLineageClass::CurrentHead,
+        ),
+        BasisResolutionMode::RuntimeDirect,
+    )
+}
+
 pub fn snapshot_resolution_report(basis: &ResolvedSnapshotBasis) -> SnapshotResolutionReport {
     SnapshotResolutionReport::from_resolved_basis(basis)
 }

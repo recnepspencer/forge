@@ -7,6 +7,45 @@ use forge_signal::facade::history::{
 };
 
 use crate::expression::model::SignalValue;
+use crate::runtime::compute_callbacks::CapturedHostCapabilityRead;
+
+const FRAMEWORK_HOST_BACKING_READ_PREFIX: &str = "__forgeSignal.host.";
+
+pub(crate) fn public_callback_read_ids(reads: &[String]) -> Vec<String> {
+    reads
+        .iter()
+        .filter(|read| !read.starts_with(FRAMEWORK_HOST_BACKING_READ_PREFIX))
+        .cloned()
+        .collect()
+}
+
+pub(crate) fn public_callback_dependency_patch_summary(
+    previous_reads: &[String],
+    current_reads: &[String],
+    runtime_read_breadth: u64,
+) -> CallbackDependencyPatchSummary {
+    let previous_reads = public_callback_read_ids(previous_reads);
+    let current_reads = public_callback_read_ids(current_reads);
+    let previous_set = previous_reads
+        .iter()
+        .cloned()
+        .collect::<std::collections::BTreeSet<_>>();
+    let current_set = current_reads
+        .iter()
+        .cloned()
+        .collect::<std::collections::BTreeSet<_>>();
+    let retained_count = previous_set.intersection(&current_set).count() as u64;
+    let added_count = current_set.difference(&previous_set).count() as u64;
+    let removed_count = previous_set.difference(&current_set).count() as u64;
+    CallbackDependencyPatchSummary {
+        previous_reads,
+        current_reads,
+        added_count,
+        removed_count,
+        retained_count,
+        runtime_read_breadth,
+    }
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -50,6 +89,7 @@ pub struct WhySummary {
 pub struct CallbackWhySummary {
     pub purity_posture: String,
     pub current_reads: Vec<String>,
+    pub host_capability_reads: Vec<CapturedHostCapabilityRead>,
     pub registered: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub unavailable_reason: Option<String>,
@@ -71,6 +111,7 @@ pub struct CallbackRuntimeNodeSummary {
     pub recipe_family: Option<String>,
     pub purity_posture: String,
     pub current_reads: Vec<String>,
+    pub host_capability_reads: Vec<CapturedHostCapabilityRead>,
     pub registered: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub unavailable_reason: Option<String>,
@@ -221,6 +262,18 @@ pub struct WebPerformanceSummary {
     pub compatibility_read_breadth: u64,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct RuntimeAsyncLifecycleCertification {
+    pub node_id: String,
+    pub payload_contract_id: u64,
+    pub payload_byte_len: u64,
+    pub request_admitted: bool,
+    pub completion_committed: bool,
+    pub resource_runtime_digest: String,
+    pub resource_replay_digest: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct RuntimeSnapshotEnvelope {
@@ -269,6 +322,8 @@ pub struct StoredCallbackRecipeSnapshot {
     pub token_slot: u64,
     pub token_generation: u64,
     pub reads: Vec<String>,
+    #[serde(default)]
+    pub host_capability_reads: Vec<CapturedHostCapabilityRead>,
 }
 
 impl From<GraphSummary> for HealthSummary {

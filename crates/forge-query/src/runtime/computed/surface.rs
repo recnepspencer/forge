@@ -1,6 +1,9 @@
 use super::*;
+use crate::runtime::mutation::ForgeQueryMutationMetadata;
 
 use crate::identity::hash_parts;
+use crate::memory_workspace::ForgeQueryEntity;
+use std::collections::BTreeMap;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryDerivedViewMaterialization {
@@ -10,6 +13,83 @@ pub struct ForgeQueryDerivedViewMaterialization {
 impl Default for ForgeQueryDerivedViewMaterialization {
     fn default() -> Self {
         Self { rows: Vec::new() }
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ForgeQueryRetainedUpstreamInputs {
+    live_rows: BTreeMap<String, Vec<ForgeQueryEntity>>,
+    computed_rows: BTreeMap<String, Vec<Value>>,
+}
+
+impl ForgeQueryRetainedUpstreamInputs {
+    pub fn new(
+        live_rows: impl IntoIterator<Item = (String, Vec<ForgeQueryEntity>)>,
+        computed_rows: impl IntoIterator<Item = (String, Vec<Value>)>,
+    ) -> Self {
+        Self {
+            live_rows: live_rows.into_iter().collect(),
+            computed_rows: computed_rows.into_iter().collect(),
+        }
+    }
+
+    pub fn live_rows(&self, view_name: &str) -> Option<&[ForgeQueryEntity]> {
+        self.live_rows.get(view_name).map(Vec::as_slice)
+    }
+
+    pub fn computed_rows(&self, view_name: &str) -> Option<&[Value]> {
+        self.computed_rows.get(view_name).map(Vec::as_slice)
+    }
+
+    pub fn live_view_names(&self) -> impl Iterator<Item = &str> {
+        self.live_rows.keys().map(String::as_str)
+    }
+
+    pub fn computed_view_names(&self) -> impl Iterator<Item = &str> {
+        self.computed_rows.keys().map(String::as_str)
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct ForgeQueryRetainedMutationContext {
+    commit_identity: String,
+    snapshot_token: String,
+    touched_aspect_paths: Vec<String>,
+    mutation_metadata: ForgeQueryMutationMetadata,
+}
+
+impl ForgeQueryRetainedMutationContext {
+    pub(in crate::runtime) fn new(
+        commit_identity: impl Into<String>,
+        snapshot_token: impl Into<String>,
+        touched_aspect_paths: impl IntoIterator<Item = String>,
+        mutation_metadata: ForgeQueryMutationMetadata,
+    ) -> Self {
+        let mut touched_aspect_paths = touched_aspect_paths.into_iter().collect::<Vec<_>>();
+        touched_aspect_paths.sort();
+        touched_aspect_paths.dedup();
+        Self {
+            commit_identity: commit_identity.into(),
+            snapshot_token: snapshot_token.into(),
+            touched_aspect_paths,
+            mutation_metadata,
+        }
+    }
+
+    pub fn commit_identity(&self) -> &str {
+        &self.commit_identity
+    }
+
+    pub fn snapshot_token(&self) -> &str {
+        &self.snapshot_token
+    }
+
+    pub fn touched_aspect_paths(&self) -> &[String] {
+        &self.touched_aspect_paths
+    }
+
+    pub fn mutation_metadata(&self) -> &ForgeQueryMutationMetadata {
+        &self.mutation_metadata
     }
 }
 
@@ -228,6 +308,16 @@ pub trait ForgeQueryDerivedViewMaintainer {
         delta: &ForgeQueryMutationDelta,
         materialization: &mut ForgeQueryDerivedViewMaterialization,
     ) -> ForgeQueryDerivedPatch;
+
+    fn refresh_from_upstreams(
+        &mut self,
+        _view: &ForgeQueryDerivedView,
+        _mutation: &ForgeQueryRetainedMutationContext,
+        _upstreams: &ForgeQueryRetainedUpstreamInputs,
+        _materialization: &mut ForgeQueryDerivedViewMaterialization,
+    ) -> Option<ForgeQueryDerivedPatch> {
+        None
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -281,6 +371,25 @@ impl ForgeQueryDerivedPatch {
             aspect_paths: Vec::new(),
             family: ForgeQueryDerivedPatchFamily::RefreshFallback,
             payload: Value::Null,
+            reason: Some(reason.into()),
+        }
+    }
+
+    pub fn whole_refresh_materialized(
+        view_name: impl Into<String>,
+        commit_identity: impl Into<String>,
+        aspect_paths: impl IntoIterator<Item = String>,
+        payload: Value,
+        reason: impl Into<String>,
+    ) -> Self {
+        Self {
+            view_name: view_name.into(),
+            commit_identity: commit_identity.into(),
+            authority_lane: ForgeQueryAuthorityLane::DerivedRuntimeState,
+            entity_identity: None,
+            aspect_paths: aspect_paths.into_iter().collect(),
+            family: ForgeQueryDerivedPatchFamily::RefreshFallback,
+            payload,
             reason: Some(reason.into()),
         }
     }

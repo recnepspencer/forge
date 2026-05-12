@@ -1,0 +1,11 @@
+error[E0603]: module `topology_authoring` is private
+ --> tests/compile_fail/public_topology_authoring_root_module_missing.rs:1:13
+  |
+1 | use schema::topology_authoring::seed_minimal_topology;
+  |             ^^^^^^^^^^^^^^^^^^ private module
+  |
+note: the module `topology_authoring` is defined here
+ --> src/lib.rs
+  |
+  | mod topology_authoring;
+  | ^^^^^^^^^^^^^^^^^^^^^^

@@ -8,6 +8,7 @@ use crate::recipe::model::TransactionOp;
 use crate::runtime::core::SharedCore;
 use crate::runtime::diagnostics_callbacks::DiagnosticsCallbackToken;
 use crate::runtime::web_callbacks::ObservationCallbackToken;
+use crate::runtime::worker_host::WorkerRuntimeShell;
 
 #[wasm_bindgen(js_name = Signals)]
 pub struct Signals {
@@ -74,4 +75,9 @@ pub struct SignalSpecialist {
 #[wasm_bindgen(js_name = SignalAdapters)]
 pub struct SignalAdapters {
     pub(crate) core: SharedCore,
+}
+
+#[wasm_bindgen(js_name = SignalWorkerRuntime)]
+pub struct SignalWorkerRuntime {
+    pub(crate) shell: RefCell<WorkerRuntimeShell>,
 }

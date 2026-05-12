@@ -120,6 +120,8 @@ then the store has not earned the database claim.
 
 ## S.0: Shipped Store Reconciliation And Capability Reclassification
 
+Engineering spec: [storage-foundation-s0.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/storage-foundation-s0.md)
+
 ### Goal
 
 Reconcile the Store work already completed or in progress against Roadmap 2
@@ -173,6 +175,8 @@ database substrate, and every earlier milestone has a clear semantic-vs-physical
 status.
 
 ## S.1: Physical Page, Segment, And Extent Substrate
+
+Engineering spec: [storage-foundation-s1.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-store/storage-foundation-s1.md)
 
 ### Goal
 

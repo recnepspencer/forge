@@ -330,7 +330,7 @@ fn bundle(
         deferred_temporal_async_gate_digest: deferred_gate_digest(&contract),
         failure_digest: "none".to_string(),
         counter_snapshot: format!(
-            "stable={};deferred={};unsupported={};support_rows={};support_deferred_rows={};support_fail_closed={};parallel_api_forbidden={};preferred_names={};compat_names={};assertions={meaningful_assertion_count};plumbing=0;denials={};residue={}",
+            "stable={};deferred={};unsupported={};support_rows={};support_deferred_rows={};support_fail_closed={};parallel_api_forbidden={};preferred_names={};alternate_names={};assertions={meaningful_assertion_count};plumbing=0;denials={};residue={}",
             contract.stable_family_count(),
             contract.deferred_family_count(),
             contract.unsupported_family_count(),
@@ -339,7 +339,7 @@ fn bundle(
             support_matrix.fail_closed_row_count(),
             support_matrix.parallel_api_forbidden_row_count(),
             naming_contract.preferred_entrypoint_count(),
-            naming_contract.compatibility_name_count(),
+            naming_contract.alternate_name_count(),
             transcript_evidence.unsupported_neighbor_denial_digests().len(),
             transcript_evidence.delivery_residue_count()
         ),
@@ -361,7 +361,7 @@ fn bundle(
 
 fn contract() -> ForgeQueryRuntimePublicApiContract {
     ForgeQueryRuntimePublicApiContract::from_support_profile(
-        &ForgeQueryRuntimeSupportProfile::compatibility_backend(),
+        &ForgeQueryRuntimeSupportProfile::scaffold_backend_profile(),
     )
 }
 

@@ -2,7 +2,7 @@ use super::support::*;
 
 #[test]
 fn compiled_typed_program_installs_runs_and_emits_trace() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let program =
         ForgeQueryProgram::compile(FakeDsl, &FakeSchemaAdapter).expect("fake DSL should compile");
     let installed = runtime
@@ -40,7 +40,7 @@ fn compiled_typed_program_installs_runs_and_emits_trace() {
 
 #[test]
 fn compiled_typed_program_rejects_type_mismatch_before_execution() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let program =
         ForgeQueryProgram::compile(FakeDsl, &FakeSchemaAdapter).expect("fake DSL should compile");
     let installed = runtime

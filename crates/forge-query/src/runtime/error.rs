@@ -13,6 +13,16 @@ pub enum ForgeQueryRuntimeError {
     MissingPreviewBasis,
     MissingInspectorEvidence,
     MissingIntentAuthority,
+    ExistingTruthAssertionDenied(ForgeQueryExistingTruthAssertionDenial),
+    ExistingTruthProbeDenied(ForgeQueryExistingTruthProbeDenial),
+    MutationBindingDenied(ForgeQueryExistingTruthBindingDenial),
+    MutationContinuityDenied(ForgeQueryContinuityMutationDenial),
+    GraphCompositionDenied(ForgeQueryGraphCompositionDenial),
+    GraphCompositionDomainInvariantDenied(ForgeQueryGraphCompositionDomainInvariantDenial),
+    MutationNamingDenied(ForgeQueryNamingMutationDenial),
+    MutationTargetReferenceDenied(ForgeQuerySymbolicTargetReferenceDenial),
+    ReadCompositionDenied(ForgeQueryReadDenial),
+    ReadCompositionDomainInvariantDenied(ForgeQueryReadDomainInvariantDenial),
     Workspace(ForgeQueryWorkspaceError),
     Program(ForgeQueryProgramError),
     UnknownProgram(String),
@@ -67,7 +77,7 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
             Self::MissingBackend => {
                 write!(
                     f,
-                    "forge query runtime builder requires a backend, for example compatibility_in_memory_collections(...) or backend(...)"
+                    "forge query runtime builder requires a backend; prefer runtime_bridge(...)+adapters+build_backend_from_parts() for ordinary bridge-backed runtimes, and use backend(...) only for explicit internal test or scaffold seams"
                 )
             }
             Self::MissingRuntimeBridge => write!(
@@ -106,6 +116,16 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
                 f,
                 "forge query runtime backend parts that claim intent support require an intent authority adapter"
             ),
+            Self::ExistingTruthAssertionDenied(denial) => write!(f, "{denial}"),
+            Self::ExistingTruthProbeDenied(denial) => write!(f, "{denial}"),
+            Self::MutationBindingDenied(denial) => write!(f, "{denial}"),
+            Self::MutationContinuityDenied(denial) => write!(f, "{denial}"),
+            Self::GraphCompositionDenied(denial) => write!(f, "{denial}"),
+            Self::GraphCompositionDomainInvariantDenied(denial) => write!(f, "{denial}"),
+            Self::MutationNamingDenied(denial) => write!(f, "{denial}"),
+            Self::MutationTargetReferenceDenied(denial) => write!(f, "{denial}"),
+            Self::ReadCompositionDenied(denial) => write!(f, "{denial}"),
+            Self::ReadCompositionDomainInvariantDenied(denial) => write!(f, "{denial}"),
             Self::Workspace(error) => write!(f, "{error}"),
             Self::Program(error) => write!(f, "{error}"),
             Self::UnknownProgram(program) => write!(f, "unknown query program `{program}`"),

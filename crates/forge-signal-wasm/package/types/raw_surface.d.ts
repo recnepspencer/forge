@@ -21,6 +21,7 @@ import type {
   FrontierExecutionSummary,
   GraphSummary,
   HealthSummary,
+  HostCapabilityDiagnosticsEvent,
   InvalidationTraceRecord,
   ObservationSurfaceSummary,
   RollbackDiagnostic,
@@ -133,6 +134,8 @@ export class SignalDiagnostics {
   historyNow(): ExecutionHistorySurfaceSummary;
   latestFlow(): FlowSurfaceSummary | null;
   latestObservation(): ObservationSurfaceSummary | null;
+  latestHostCapabilityEvent(): HostCapabilityDiagnosticsEvent | null;
+  recentHostCapabilityEvents(): ReadonlyArray<HostCapabilityDiagnosticsEvent>;
   performanceSummary(): WebPerformanceSummary;
   latestFailure(): FailureSummary | null;
   latestRollback(): RollbackDiagnostic | null;
@@ -149,8 +152,10 @@ export class SignalHistory {
   lineage_for(id: string): LineageSummary;
   snapshot(): RuntimeSnapshotEnvelope;
   snapshot_wire(): string;
+  snapshot_portable_wire(): string;
   restore_snapshot(snapshot: RuntimeSnapshotEnvelope): void;
   restore_snapshot_wire(snapshot: string): void;
+  restore_snapshot_portable_wire(snapshot: string): void;
   current_branch(): RuntimeBranchHandle;
   branches(): ReadonlyArray<RuntimeBranchHandle>;
   create_branch(name: string): RuntimeBranchHandle;
@@ -158,11 +163,14 @@ export class SignalHistory {
   replay_for_branch(branchId: bigint): ReplaySummary;
   branch_snapshot(branchId: bigint): RuntimeSnapshotArtifact;
   branch_snapshot_wire(branchId: bigint): string;
+  branch_snapshot_portable_wire(branchId: bigint): string;
   branch_snapshot_id(branchId: bigint): bigint;
   branch_snapshot_envelope(branchId: bigint): RuntimeSnapshotEnvelope;
   branch_snapshot_envelope_wire(branchId: bigint): string;
+  branch_snapshot_envelope_portable_wire(branchId: bigint): string;
   restore_branch_snapshot(branchId: bigint, snapshot: RuntimeSnapshotArtifact): void;
   restore_branch_snapshot_wire(branchId: bigint, snapshot: string): void;
+  restore_branch_snapshot_portable_wire(branchId: bigint, snapshot: string): void;
   restore_branch_snapshot_by_id(branchId: bigint, snapshotId: bigint): void;
   merge_branches(sourceBranchId: bigint, targetBranchId: bigint): MergeResultArtifact;
   merge_branches_with_proof(sourceBranchId: bigint, targetBranchId: bigint): MergeResultProofEnvelope;
@@ -193,8 +201,10 @@ export class SignalAdapters {
   export_definitions(): RuntimeDefinitionEnvelope;
   export_runtime_envelope(): RuntimeEnvelope;
   export_runtime_envelope_wire(): string;
+  export_runtime_envelope_portable_wire(): string;
   replace_runtime_envelope(envelope: RuntimeEnvelope): void;
   replace_runtime_envelope_wire(envelope: string): void;
+  replace_runtime_envelope_portable_wire(envelope: string): void;
   runtime_proof_report(): RuntimeProofReport;
 }
 

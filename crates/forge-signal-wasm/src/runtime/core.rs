@@ -19,6 +19,7 @@ use crate::runtime::web_callbacks;
 
 mod aspects;
 mod branches;
+pub(crate) mod certification_digest;
 mod debug;
 mod diagnostics;
 mod envelopes;
@@ -26,10 +27,16 @@ mod evaluation;
 mod keyed_families;
 mod keyed_runtime;
 mod merge;
+mod runtime_async_lifecycle_certification;
 mod signals;
 mod snapshots;
 mod state;
 mod transactions;
+mod worker_callback_definition_publication;
+mod worker_callback_reattachment_import;
+mod worker_definition_publication_plan;
+mod worker_main_thread_hosted_callbacks;
+mod worker_placement_declaration_candidates;
 
 use self::aspects::resolve_selected_aspects;
 pub(crate) use self::envelopes::ExactRuntimeRestoreArtifact;
@@ -41,6 +48,11 @@ use self::state::{
     WebRuntimeMetrics,
 };
 pub use self::state::{MergePolicyPreviewRequest, SharedCore, WebSignalKind};
+pub(crate) use self::worker_callback_definition_publication::DefinitionEnvelopeCallbackReattachment;
+pub(crate) use self::worker_callback_reattachment_import::RuntimeEnvelopeCallbackReattachment;
+pub(crate) use self::worker_main_thread_hosted_callbacks::{
+    MainThreadHostedCallbackAdmission, MainThreadHostedCallbackClosedInput,
+};
 use crate::runtime::web_callbacks::ObservationCallbackToken;
 
 const DEFAULT_ASPECT: forge_signal::facade::Aspect = forge_signal::facade::Aspect::new(0);
@@ -240,6 +252,7 @@ impl RuntimeCore {
                 .iter()
                 .map(|read| read.id().to_owned())
                 .collect();
+            state.host_capability_reads = callback.host_capability_reads.clone();
             state.last_runtime_read_breadth = 0;
             state.last_dependency_patch = None;
             state.last_failure = None;

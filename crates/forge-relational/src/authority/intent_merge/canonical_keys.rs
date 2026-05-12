@@ -23,14 +23,15 @@ pub(crate) enum CanonicalIntentKey {
         replacement_kind_id: crate::identity::data::KindId,
         replacement_client_key: crate::symbols::data::InternedString,
     },
-    DeleteEntity(EntityId),
     CreateRelation(RelationCreateKey),
     BulkCreateRelations {
         partition_id: crate::identity::data::PartitionId,
         kind_id: crate::identity::data::KindId,
         endpoints: Vec<(EntityReference, EntityReference)>,
     },
+    UpdateRelationEndpoints(RelationId),
     DeleteRelation(RelationId),
+    DeleteEntity(EntityId),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
@@ -88,6 +89,9 @@ pub(crate) fn canonical_intent_key(intent: &MutationIntent) -> CanonicalIntentKe
                 kind_id: spec.kind_id,
                 endpoints: spec.endpoints.clone(),
             }
+        }
+        MutationIntent::Relation(RelationMutationIntent::UpdateEndpoints(spec)) => {
+            CanonicalIntentKey::UpdateRelationEndpoints(spec.relation_id)
         }
         MutationIntent::Relation(RelationMutationIntent::Delete(spec)) => {
             CanonicalIntentKey::DeleteRelation(spec.relation_id)

@@ -1,0 +1,230 @@
+use std::collections::BTreeMap;
+use std::sync::{Arc, RwLock};
+
+use forge_query::facade::{ForgeQuerySymbolicAspectReference, ForgeQueryWorkspaceError};
+use forge_relational::facade::identity::PartitionId;
+use forge_relational::facade::payloads::RecordPayload;
+use forge_relational::facade::runtime::RelationalRuntime;
+use forge_relational::facade::symbols::InternedString;
+use forge_relational::facade::transactions::{
+    CreateIntent, EntityReference, EntitySpec, MutationIntent, RelationSpec,
+    UpdateRelationEndpointsIntent,
+};
+use schema::facade::{EntityKind, NamingEntityKind, NamingRelationKind, RelationKind};
+use serde_json::{json, Value};
+
+use super::super::write_support::{
+    ensure_live_entity_exists, live_entity_label_exists, optional_text, parse_entity_identity,
+    parse_relation_identity, required_text,
+};
+
+pub(super) fn lower_topology_entity_insert(
+    runtime: &Arc<RwLock<RelationalRuntime>>,
+    aspects: &BTreeMap<String, Value>,
+) -> Result<(Vec<MutationIntent>, EntityReference), ForgeQueryWorkspaceError> {
+    let kind_name = required_text(aspects, "topology.kind")?;
+    let kind = EntityKind::ALL
+        .into_iter()
+        .find(|kind| kind.is_topological() && kind.kind_name() == kind_name)
+        .ok_or_else(|| {
+            ForgeQueryWorkspaceError::new(format!(
+                "topology production runtime does not admit non-topology entity kind `{kind_name}`"
+            ))
+        })?;
+    let structure = required_text(aspects, "topology.structure")?;
+    if live_entity_label_exists(runtime, &structure) {
+        return Err(ForgeQueryWorkspaceError::new(format!(
+            "topology production runtime rejected duplicate live entity label `{structure}`"
+        )));
+    }
+    let persistent_name =
+        optional_text(aspects, "naming.persistent_name").unwrap_or(structure.clone());
+    let topology_ref = forge_relational::facade::transactions::CreatedEntityRef {
+        partition_id: PartitionId::main(),
+        kind_id: kind.kind_id(),
+        client_key: InternedString::Raw(structure.clone()),
+    };
+    let naming_key = format!("{persistent_name}.persistent_name");
+    let naming_ref = forge_relational::facade::transactions::CreatedEntityRef {
+        partition_id: PartitionId::main(),
+        kind_id: EntityKind::Naming(NamingEntityKind::PersistentName).kind_id(),
+        client_key: InternedString::Raw(naming_key.clone()),
+    };
+    Ok((
+        vec![
+            MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: kind.kind_id(),
+                client_key: InternedString::Raw(structure.clone()),
+                payload: RecordPayload::StructuredJson(json!({
+                    "label": structure,
+                    "structure": persistent_name,
+                    "topology": { "structure": persistent_name }
+                })),
+            })),
+            MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: EntityKind::Naming(NamingEntityKind::PersistentName).kind_id(),
+                client_key: InternedString::Raw(naming_key),
+                payload: RecordPayload::StructuredJson(json!({
+                    "label": persistent_name,
+                    "persistent_name": persistent_name,
+                    "naming": { "persistent_name": persistent_name }
+                })),
+            })),
+            MutationIntent::Create(CreateIntent::Relation(RelationSpec {
+                partition_id: PartitionId::main(),
+                kind_id: RelationKind::Naming(NamingRelationKind::PersistentNameTargetsEntity)
+                    .kind_id(),
+                client_key: InternedString::Raw(format!("{persistent_name}.targets")),
+                source: EntityReference::Created(naming_ref),
+                target: EntityReference::Created(topology_ref.clone()),
+                payload: None,
+            })),
+        ],
+        EntityReference::Created(topology_ref),
+    ))
+}
+
+pub(super) fn lower_topology_relation_insert(
+    runtime: &Arc<RwLock<RelationalRuntime>>,
+    aspects: &BTreeMap<String, Value>,
+    symbolic_aspect_references: &[ForgeQuerySymbolicAspectReference],
+    created_entities: &BTreeMap<String, EntityReference>,
+) -> Result<RelationSpec, ForgeQueryWorkspaceError> {
+    let kind_name = required_text(aspects, "topology.kind")?;
+    let kind = RelationKind::ALL
+        .into_iter()
+        .find(|kind| matches!(kind, RelationKind::Topology(_)) && kind.kind_name() == kind_name)
+        .ok_or_else(|| {
+            ForgeQueryWorkspaceError::new(format!(
+                "topology production runtime does not admit non-topology relation kind `{kind_name}`"
+            ))
+        })?;
+    let source = lower_relation_endpoint(
+        runtime,
+        aspects,
+        symbolic_aspect_references,
+        created_entities,
+        "topology.source_identity",
+        "source",
+    )?;
+    let target = lower_relation_endpoint(
+        runtime,
+        aspects,
+        symbolic_aspect_references,
+        created_entities,
+        "topology.target_identity",
+        "target",
+    )?;
+    let source_identity = relation_endpoint_identity(&source)?;
+    let target_identity = relation_endpoint_identity(&target)?;
+    let client_key = format!(
+        "{}:{}:{}",
+        kind.kind_name(),
+        source_identity,
+        target_identity
+    );
+    Ok(RelationSpec {
+        partition_id: PartitionId::main(),
+        kind_id: kind.kind_id(),
+        client_key: InternedString::Raw(client_key),
+        source,
+        target,
+        payload: None,
+    })
+}
+
+pub(super) fn lower_topology_relation_update(
+    runtime: &Arc<RwLock<RelationalRuntime>>,
+    aspects: &BTreeMap<String, Value>,
+    symbolic_aspect_references: &[ForgeQuerySymbolicAspectReference],
+    created_entities: &BTreeMap<String, EntityReference>,
+    resolved_target_identity: &str,
+) -> Result<UpdateRelationEndpointsIntent, ForgeQueryWorkspaceError> {
+    let kind_name = required_text(aspects, "topology.kind")?;
+    let kind = RelationKind::ALL
+        .into_iter()
+        .find(|kind| matches!(kind, RelationKind::Topology(_)) && kind.kind_name() == kind_name)
+        .ok_or_else(|| {
+            ForgeQueryWorkspaceError::new(format!(
+                "topology production runtime does not admit non-topology relation kind `{kind_name}`"
+            ))
+        })?;
+    let source = lower_relation_endpoint(
+        runtime,
+        aspects,
+        symbolic_aspect_references,
+        created_entities,
+        "topology.source_identity",
+        "source",
+    )?;
+    let target = lower_relation_endpoint(
+        runtime,
+        aspects,
+        symbolic_aspect_references,
+        created_entities,
+        "topology.target_identity",
+        "target",
+    )?;
+    Ok(UpdateRelationEndpointsIntent {
+        relation_id: parse_relation_identity(resolved_target_identity)?,
+        kind_id: kind.kind_id(),
+        source,
+        target,
+    })
+}
+
+fn lower_relation_endpoint(
+    runtime: &Arc<RwLock<RelationalRuntime>>,
+    aspects: &BTreeMap<String, Value>,
+    symbolic_aspect_references: &[ForgeQuerySymbolicAspectReference],
+    created_entities: &BTreeMap<String, EntityReference>,
+    aspect_path: &str,
+    label: &str,
+) -> Result<EntityReference, ForgeQueryWorkspaceError> {
+    if let Some(reference) = symbolic_aspect_references
+        .iter()
+        .find(|reference| reference.aspect_path() == aspect_path)
+    {
+        return created_entities
+            .get(reference.reference().symbol())
+            .cloned()
+            .ok_or_else(|| {
+                ForgeQueryWorkspaceError::new(format!(
+                    "topology production runtime could not resolve same-batch created entity `{}` for relation `{label}` endpoint",
+                    reference.reference().symbol()
+                ))
+            });
+    }
+
+    let identity = required_text(aspects, aspect_path)?;
+    let entity_id = parse_entity_identity(&identity)?;
+    ensure_live_entity_exists(runtime, entity_id, label)?;
+    Ok(EntityReference::Existing(entity_id))
+}
+
+pub(super) fn relation_endpoint_identity(
+    endpoint: &EntityReference,
+) -> Result<String, ForgeQueryWorkspaceError> {
+    match endpoint {
+        EntityReference::Existing(entity_id) => Ok(format!(
+            "entity:{}:{}:{}",
+            entity_id.partition_id.0, entity_id.local_slot.0, entity_id.generation.0
+        )),
+        EntityReference::Created(created) => match &created.client_key {
+            InternedString::Raw(label) => Ok(format!("created:{label}")),
+            other => Err(ForgeQueryWorkspaceError::new(format!(
+                "topology production runtime could not derive stable created endpoint identity from `{other:?}`"
+            ))),
+        },
+    }
+}
+
+pub(super) fn kind_name_for_relation_kind_id(
+    kind_id: forge_relational::facade::identity::KindId,
+) -> &'static str {
+    RelationKind::from_kind_id(kind_id)
+        .expect("topology runtime only lowers admitted relation kinds")
+        .kind_name()
+}

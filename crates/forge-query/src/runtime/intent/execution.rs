@@ -74,6 +74,7 @@ impl ForgeQueryIntentExecution {
                 commit_identity: commit_identity.into(),
                 snapshot_token: snapshot_token.into(),
                 deltas: Vec::new(),
+                bridge_authority: None,
             },
         }
     }
@@ -99,6 +100,7 @@ impl ForgeQueryIntentExecution {
                 commit_identity: String::new(),
                 snapshot_token: snapshot_token.into(),
                 deltas: Vec::new(),
+                bridge_authority: None,
             },
         }
     }

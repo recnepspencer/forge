@@ -29,7 +29,8 @@ Stable runtime-backed entry points:
 - `workspace.update(...)`
 - `workspace.delete(...)`
 - `workspace.batch(...)`
-- `workspace.write(...)` as the lower-level compatibility path
+- `workspace.write(...)` as the lower-level mutation path
+- `workspace.compose_read(...)`
 - `workspace.read(...)`
 - `workspace.observe(...)`
 - `workspace.materialize(...)`
@@ -38,23 +39,23 @@ Stable runtime-backed entry points:
 - `workspace.public_api_contract()`
 - `workspace.public_handle_contract()`
 - `workspace.public_support_matrix()`
-- `workspace.public_mutation_api_compatibility_report()`
+- `workspace.public_mutation_surface_report()`
 - `workspace.admit_public_api_family(...)`
 
-Compatibility entry points still exist, but new code should prefer the names
-above.
+Alternate names may still exist as adapters, but the public support and
+mutation-surface contracts define the surviving runtime story.
 
 Good to know:
 
 - `workspace.intent(...)` is public vocabulary, but it is not in the stable
-  compatibility support set yet.
+  public support set yet.
 - Method presence is not a support claim. Use the support matrix and admission
   gate when you are near deferred or unsupported families.
-- Use the mutation compatibility report when you need explicit preferred versus
-  compatibility posture for mutation surfaces.
-- `workspace.write(...)` stays available as an expert compatibility seam during
-  the lower-crate rewrite, but ordinary downstream runtime APIs should not need
-  it.
+- Use the mutation surface report when you need explicit preferred versus
+  lower-level posture for mutation surfaces.
+- `workspace.write(...)` stays available as an expert lower-level seam during
+  the lower-crate rewrite, but ordinary downstream runtime APIs should not
+  need it.
 
 ## Core Mental Model
 
@@ -70,6 +71,11 @@ Think of it this way:
 - handles returned by the workspace are retained runtime objects, not raw data
 - `read`, `observe`, `materialize`, `state`, and `inspect` let you ask
   different questions about those retained surfaces
+- `compose_read` lets you execute one bounded graph-shaped read without
+  installing a retained live view first
+- `compose_read` and `live_view` now share the same lower declarative request
+  substrate, so traversal, predicate, ordering, and hidden query-only
+  projection are not maintained in two separate stories
 
 If you are building ordinary runtime-backed product features, the workspace is
 the place you should start from.
@@ -86,8 +92,10 @@ The typical workspace lifecycle looks like this:
    `task.clear("description.value")`.
 4. Read current rows, drain patches, or materialize derived rows from retained
    handles.
-5. Inspect handles or snapshot state when you need explanations or readiness.
-6. Open preview or branch sessions when you need isolated experimentation.
+5. Use `workspace.compose_read(...)` when you need one bounded graph read with
+   an attached runtime receipt instead of a retained live view.
+6. Inspect handles or snapshot state when you need explanations or readiness.
+7. Open preview or branch sessions when you need isolated experimentation.
 
 The workspace keeps the durable handles and their retained evidence aligned with
 the same runtime. A handle from one runtime is not portable into another
@@ -123,6 +131,23 @@ let patches = workspace.observe(&tasks);
 
 This is the smallest honest example because it shows the full loop:
 declaration, authoritative write, snapshot read, and incremental observation.
+
+If the live surface needs bounded graph reach, declare that on the builder:
+
+```rust
+let topology = workspace
+    .live_view("topology.half-edge-detail", |q| {
+        q.from("WorthTopologyEntity")
+            .detail()
+            .select(["identity.id", "half_edge.kind"])
+            .allow_traversal_relation("HalfEdgeNext", 2)
+            .schema_basis("topology-half-edge-detail")
+    })
+    .unwrap();
+```
+
+That traversal declaration is part of the live-query request itself, not just a
+schema annotation for later tooling.
 
 ## Real Example
 
@@ -193,7 +218,7 @@ What is authoritative:
 
 - `workspace.insert(...)`, `workspace.update(...)`, `workspace.delete(...)`,
   and `workspace.batch(...)` are the preferred authoritative mutation paths
-- `workspace.write(...)` remains the lower-level expert compatibility path
+- `workspace.write(...)` remains the lower-level expert mutation path
 
 What is derived:
 
@@ -254,7 +279,7 @@ runtime.
 - Temporal basis, async/resource execution, mixed-cause delivery, store-backed
   execution, and durable artifact reload remain deferred.
 - `workspace.intent(...)` is public vocabulary but not yet part of the stable
-  compatibility support set.
+  public support set.
 
 ## Related Docs
 

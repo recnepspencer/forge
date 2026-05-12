@@ -223,6 +223,7 @@ pub(super) fn evaluate_node(
             if let Ok(mut diagnostics) = callback_diagnostics.lock() {
                 let state = diagnostics.entry(callback.id.clone()).or_default();
                 state.current_reads = next_reads.iter().map(|read| read.id().to_owned()).collect();
+                state.host_capability_reads = invocation.captured_host_capability_reads.clone();
                 state.last_runtime_read_breadth = invocation.runtime_read_breadth;
                 state.last_failure = None;
             }
@@ -249,6 +250,8 @@ pub(super) fn evaluate_node(
                 })?;
                 if let StoredRecipeDefinition::Callback(stored_callback) = &mut recipe.definition {
                     stored_callback.reads = next_reads.clone();
+                    stored_callback.host_capability_reads =
+                        invocation.captured_host_capability_reads.clone();
                 }
                 locked
                     .pending_callback_dependency_patches
@@ -257,10 +260,19 @@ pub(super) fn evaluate_node(
                         id: callback.id.clone(),
                         previous_reads,
                         reads: next_reads,
+                        host_capability_reads: invocation.captured_host_capability_reads.clone(),
                         dependencies: next_dependencies,
                         previous_dependency_count,
                         runtime_read_breadth: invocation.runtime_read_breadth as usize,
                     });
+            } else {
+                let recipe = locked.recipes.get_mut(id).ok_or_else(|| {
+                    SignalError::invalid_input(format!("unknown runtime recipe `{id}`"))
+                })?;
+                if let StoredRecipeDefinition::Callback(stored_callback) = &mut recipe.definition {
+                    stored_callback.host_capability_reads =
+                        invocation.captured_host_capability_reads.clone();
+                }
             }
             (
                 invocation.value,

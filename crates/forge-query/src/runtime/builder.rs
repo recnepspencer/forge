@@ -11,28 +11,6 @@ impl ForgeQueryRuntimeBuilder {
         Self::default()
     }
 
-    #[deprecated(
-        note = "memory-backed runtime assembly is a compatibility backend; use compatibility_in_memory_collections for explicit compatibility posture"
-    )]
-    pub fn in_memory_collections(
-        self,
-        collections: impl IntoIterator<Item = ForgeQueryCollection>,
-    ) -> Self {
-        self.compatibility_in_memory_collections(collections)
-    }
-
-    pub fn compatibility_in_memory_collections(
-        mut self,
-        collections: impl IntoIterator<Item = ForgeQueryCollection>,
-    ) -> Self {
-        self.backend = Some(
-            ForgeQueryMemoryApp::compatibility_backend(collections)
-                .map(|backend| Box::new(backend) as Box<dyn ForgeQueryRuntimeBackend>)
-                .map_err(ForgeQueryRuntimeError::Workspace),
-        );
-        self
-    }
-
     pub fn backend(mut self, backend: impl ForgeQueryRuntimeBackend + 'static) -> Self {
         self.backend = Some(Ok(Box::new(backend)));
         self
@@ -61,6 +39,14 @@ impl ForgeQueryRuntimeBuilder {
         adapter: impl ForgeQueryRuntimeSourceAdapter + 'static,
     ) -> Self {
         self.backend_parts = self.backend_parts.source_adapter(adapter);
+        self
+    }
+
+    pub fn existing_truth_verification(
+        mut self,
+        adapter: impl ForgeQueryRuntimeExistingTruthVerificationAdapter + 'static,
+    ) -> Self {
+        self.backend_parts = self.backend_parts.existing_truth_verification(adapter);
         self
     }
 
@@ -132,6 +118,7 @@ impl ForgeQueryRuntimeBuilder {
             evidence_authority: ForgeQueryRuntimeEvidenceAuthority::new(),
             active_subscriptions: ActiveSubscriptionRuntime::new(),
             live_subscriptions: BTreeMap::new(),
+            materialized_read_views: BTreeMap::new(),
             live_subscription_index: BTreeMap::new(),
             installed_programs: BTreeMap::new(),
             run_traces: BTreeMap::new(),

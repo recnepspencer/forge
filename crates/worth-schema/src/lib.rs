@@ -1,8 +1,8 @@
-//! # worth-schema
+//! # -schema
 //!
-//! Worth truth vocabulary built for the Forge runtime stack.
+//!  truth vocabulary built for the Forge runtime stack.
 //!
-//! This crate defines the domain names Worth uses at the truth boundary:
+//! This crate defines the domain names  uses at the truth boundary:
 //!
 //! - entity kinds
 //! - relation kinds
@@ -15,5 +15,6 @@
 #![forbid(unsafe_code)]
 
 mod data;
+mod topology_authoring;
 
 pub mod facade;

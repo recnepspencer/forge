@@ -1,14 +1,14 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthTopologyAspect {
+pub enum TopologyAspect {
     Structure,
     Ownership,
     Boundary,
     Radial,
 }
 
-impl WorthTopologyAspect {
+impl TopologyAspect {
     pub const ALL: [Self; 4] = [
         Self::Structure,
         Self::Ownership,

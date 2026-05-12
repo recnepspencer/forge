@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn write_intent_effect_lowers_to_pending_intent_with_phase_evidence() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("live should declare");
@@ -22,13 +22,13 @@ fn write_intent_effect_lowers_to_pending_intent_with_phase_evidence() {
         .expect("pending write-intent effect should declare");
 
     let write = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Intent task" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Intent task")),
+            ],
+        ))
         .expect("write should route pending intent effect");
     let evidence = runtime
         .inspect_effect(&effect)
@@ -100,7 +100,7 @@ fn write_intent_effect_lowers_to_pending_intent_with_phase_evidence() {
 
 #[test]
 fn write_intent_effect_rejects_authoritative_truth_target() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>("tasks.table", task_live_request(), task_schema())
         .expect("live should declare");

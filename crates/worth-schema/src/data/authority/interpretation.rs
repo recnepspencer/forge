@@ -2,7 +2,7 @@ use forge_relational::facade::identity::EntityId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthWireInterpretationClass {
+pub enum WireInterpretationClass {
     OpenChain,
     ClosedCycle,
     ConnectedBranch,
@@ -10,7 +10,7 @@ pub enum WorthWireInterpretationClass {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthShellInterpretationClass {
+pub enum ShellInterpretationClass {
     OpenSheet,
     ClosedSolid,
     OpenNonManifold,
@@ -18,18 +18,18 @@ pub enum WorthShellInterpretationClass {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthWireInterpretationRecord {
+pub struct WireInterpretationRecord {
     pub wire_id: EntityId,
-    pub class: WorthWireInterpretationClass,
+    pub class: WireInterpretationClass,
     pub connected_component_count: usize,
     pub terminal_vertex_ids: Vec<EntityId>,
     pub branch_vertex_ids: Vec<EntityId>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthShellInterpretationRecord {
+pub struct ShellInterpretationRecord {
     pub shell_id: EntityId,
-    pub class: WorthShellInterpretationClass,
+    pub class: ShellInterpretationClass,
     pub face_count: usize,
     pub boundary_component_count: usize,
     pub boundary_half_edge_count: usize,
@@ -37,7 +37,7 @@ pub struct WorthShellInterpretationRecord {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthTopologyInterpretationRecordSet {
-    pub wires: Vec<WorthWireInterpretationRecord>,
-    pub shells: Vec<WorthShellInterpretationRecord>,
+pub struct TopologyInterpretationRecordSet {
+    pub wires: Vec<WireInterpretationRecord>,
+    pub shells: Vec<ShellInterpretationRecord>,
 }

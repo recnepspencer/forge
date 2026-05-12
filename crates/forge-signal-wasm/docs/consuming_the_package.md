@@ -1,7 +1,56 @@
 # Consuming forge-signal-wasm
 
-This guide shows how to install the public npm package, how to consume the
-local prepared package, and how to use the main entrypoints in real app code.
+## What This Guide Is
+
+This guide covers how to install, build, verify, and consume the public
+`forge-signal-wasm` package.
+
+Use this when you need the package entrypoints, local package workflow, or the
+smallest useful examples for the shipped surface.
+
+The root package is intentionally mixed:
+
+- `import init from "forge-signal-wasm"` gives the raw wasm init entry
+- named imports like `createSignals` and `hostCapabilityPlan` give the modern
+  app-facing surface
+
+## Why You Use It
+
+- install the npm package cleanly
+- consume a locally prepared package during workspace development
+- understand the main callable surface before moving into the deeper reference
+  docs
+- verify that the tarball you are about to publish is internally consistent
+
+If you just want to start coding, you only need:
+
+1. `npm install forge-signal-wasm`
+2. `import { createSignals } from "forge-signal-wasm"`
+3. the small example below
+
+The rest of this guide is for local package work and publishing from this repo.
+
+Package contract note:
+
+- the published package is ESM-first
+- `import` and bundler resolution are the supported consumer paths
+- CommonJS callers should use dynamic `import(...)` instead of `require(...)`
+
+## Stable Entry Points
+
+- `createSignals(...)`
+- `createReactSignalsStore(...)`
+- `signals.spec.*`
+- `signals.graph(...)`
+- `signals.importGraph(...)`
+- `signals.resource.detail(...)`
+- `signals.resource.collection(...)`
+- `signals.resource.paged(...)`
+
+Package-preparation and proof entrypoints:
+
+- `scripts/wasm/publish-forge-signal-wasm.ps1 -SkipPublish`
+- `scripts/wasm/verify-forge-signal-wasm-package.mjs`
 
 ## Install Shapes
 
@@ -25,32 +74,16 @@ Build from the Forge workspace root:
 wasm-pack build crates/forge-signal-wasm --target bundler --out-dir pkg
 ```
 
-Then prepare the package. Public npm example:
+Prepare the package:
 
 ```powershell
 node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
 ```
 
-The prepare script now defaults to the public package lane:
-
-- package name: `forge-signal-wasm`
-- registry: `https://registry.npmjs.org`
-- access: `public`
-- notice mode: `none`
-
-Then run the release-proof verifier:
+Verify the package:
 
 ```powershell
 node scripts/wasm/verify-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
-```
-
-Private scoped example:
-
-```powershell
-$env:FORGE_SIGNAL_WASM_SCOPE='aust-group'
-$env:FORGE_SIGNAL_WASM_REGISTRY='https://npm.pkg.github.com'
-$env:FORGE_SIGNAL_WASM_NOTICE_MODE='proprietary'
-node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
 ```
 
 Then consume the local folder:
@@ -65,7 +98,7 @@ Then consume the local folder:
 
 ## Public Publish Flow
 
-Once the package is built and prepared, the honest publish lane is:
+If you are publishing from this workspace, use this flow:
 
 ```powershell
 wasm-pack build crates/forge-signal-wasm --target bundler --out-dir pkg
@@ -75,49 +108,45 @@ cd crates/forge-signal-wasm/pkg
 npm publish --access public
 ```
 
-The verifier is not optional ceremony. It is the mechanical proof that the
-prepared tarball contains the files the public entrypoints actually reference,
-and that a clean consumer can import and type-check the package.
-
-### One-command release gate
-
-Use the publish helper when you want one command that rebuilds, prepares, and
-verifies the public package without actually publishing yet:
+Or use the one-command release gate:
 
 ```powershell
 scripts/wasm/publish-forge-signal-wasm.ps1 -SkipPublish
 ```
 
-That command now defaults to the public package lane:
+Good to know:
 
-- package name: `forge-signal-wasm`
-- registry: `https://registry.npmjs.org`
-- access: `public`
-- notice mode: `none`
+- the verifier is not just a packaging nicety
+- it checks that the built tarball contains the files the public entrypoints
+  actually need
+- it also checks that a clean consumer can import and type-check the package
 
-If you need a private/scoped lane, pass explicit overrides such as `-Scope`,
-`-Registry`, `-Access`, and `-NoticeMode`.
+## Core Imports
 
-If you pass `-Scope` without `-PackageName`, the helper now intentionally falls
-back to the scoped naming pattern:
-
-```powershell
-scripts/wasm/publish-forge-signal-wasm.ps1 `
-  -Scope aust-group `
-  -Registry https://npm.pkg.github.com `
-  -NoticeMode proprietary `
-  -SkipPublish
-```
-
-That produces `@aust-group/forge-signal-wasm` instead of silently staying on
-the public unscoped package name.
-
-## Import Surface
-
-### Core runtime
+### Main callable surface
 
 ```ts
 import { createSignals } from "forge-signal-wasm";
+```
+
+### Host capability helpers
+
+```ts
+import {
+  createSignals,
+  hostCapabilityPlan,
+  visibilityCapability,
+} from "forge-signal-wasm";
+```
+
+### Resource helpers
+
+```ts
+import {
+  createSignals,
+  resourceParamIdentity,
+  resourceParams,
+} from "forge-signal-wasm";
 ```
 
 ### React adapter
@@ -131,15 +160,17 @@ import {
 } from "forge-signal-wasm/react";
 ```
 
-## Simple App Example
+## Small Example
+
+This is the simplest useful example for the current app lane:
 
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const count = signals.input(1, { id: "count" });
-const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+const count = signals.input(1);
+const doubled = signals.computed(() => count() * 2);
 
 signals.transaction((tx) => {
   tx.set(count, 2);
@@ -148,118 +179,182 @@ signals.transaction((tx) => {
 console.log(doubled());
 ```
 
-## More Complete App Example
+Why this is the best starting example:
+
+- it uses handle-based local authoring
+- it does not rely on explicit ids
+- it still shows the real runtime mutation path
+
+## Real Example
+
+This is a more realistic consumer shape that uses local state, linked state,
+controller composition, and graph publication:
 
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const enabled = signals.input(true, { id: "enabled" });
-const name = signals.input("Ada", { id: "name" });
-const count = signals.input(1, { id: "count" });
+const itemWorkspace = signals.graph("itemWorkspace", (graph) => {
+  const editor = graph.controller("editor", ({ input, computed, linked }) => {
+    const serverItem = input({
+      id: "task-7",
+      title: "Ship docs",
+      workflowTargetStateId: "ready",
+    });
 
-const label = signals.computed(() => {
-  return enabled() ? `${name()} x${count()}` : "disabled";
-}, { id: "label" });
+    const draft = input({});
 
-const panel = signals.output(() => ({
-  enabled: enabled(),
-  name: name(),
-  count: count(),
-  label: label(),
-}), { id: "panel" });
+    const effectiveItem = computed(() => ({
+      ...serverItem(),
+      ...draft(),
+    }));
 
-const watchHandle = signals.watch(panel, (notice) => {
-  console.log("panel changed", notice);
+    const selectedWorkflowTarget = linked({
+      source: () => [
+        { id: "draft", label: "Draft" },
+        { id: "ready", label: "Ready" },
+      ],
+      computation: (options, previous) => (
+        options.find((option) => option.id === previous?.value?.id) ?? options[0]
+      ),
+    });
+
+    const dirtyState = computed(() => Object.keys(draft()).length > 0);
+
+    return {
+      inputs: { serverItem, draft, selectedWorkflowTarget },
+      outputs: { effectiveItem, dirtyState },
+    };
+  });
+
+  return graph.expose({
+    inputs: {
+      serverItem: graph.input.required(editor.inputs.serverItem, {
+        authority: "readOnly",
+      }),
+      draft: graph.input.optional(editor.inputs.draft),
+      selectedWorkflowTarget: graph.input.optional(
+        editor.inputs.selectedWorkflowTarget,
+      ),
+    },
+    outputs: {
+      effectiveItem: editor.outputs.effectiveItem,
+      dirtyState: editor.outputs.dirtyState,
+    },
+  });
 });
 
-signals.transaction((tx) => {
-  tx.set(count, 3);
+itemWorkspace.patchInput("draft", {
+  title: "Ready to ship",
 });
 
-console.log(panel());
-signals.nuke(watchHandle);
+console.log(itemWorkspace.read());
 ```
 
-## Diagnostics Example
+## Main Lane vs Explicit Named Lane
 
-Simple:
+The normal app lane is:
+
+- `signals.input(value)`
+- `signals.computed(() => ...)`
+- `signals.output(() => ...)`
+
+The explicit named lane is:
+
+- `signals.spec.input("name", value)`
+- `signals.spec.computedCallback("name", () => ...)`
+- `signals.spec.outputCallback("name", () => ...)`
+
+Use the app lane for ordinary application code. Use `signals.spec` when you
+need structural names because names are part of the contract.
+
+Add `debugName` only when you want friendlier diagnostics or clearer inspection
+output. It is optional metadata, not part of local identity.
+
+If you are unsure which lane to use, use the normal app lane.
+
+## Graph Boundaries
+
+When you publish a graph, that is where explicit public names become real:
 
 ```ts
-const why = signals.diagnostics().why("label");
-console.log(why.callback?.currentReads);
-```
-
-Complex:
-
-```ts
-const diagnostics = signals.diagnostics();
-const perf = diagnostics.performanceSummary();
-const latestObservation = diagnostics.latestObservation();
-const latestFlow = diagnostics.latestFlow();
-
-console.log({
-  deliveries: latestObservation?.observation.delivered_event_count,
-  callbackCaptures: perf.computeCallbackCaptureCount,
-  dependencyPatches: perf.computeCallbackDependencyPatchCount,
-  callbackNodes: latestFlow?.callbackNodes.map((node) => node.id) ?? [],
+const graph = signals.graph("counter", {
+  inputs: {
+    count,
+  },
+  outputs: {
+    doubled,
+  },
 });
 ```
 
-## React Example
+Graph inputs can also carry public input posture:
 
-```tsx
-import { createSignals } from "forge-signal-wasm";
-import {
-  createReactSignalsStore,
-  useOutputValue,
-  useSignalValue,
-  useSignalsDiagnostics,
-} from "forge-signal-wasm/react";
-
-const signals = createSignals();
-const store = createReactSignalsStore(signals);
-
-const count = signals.input(1, { id: "count" });
-const doubled = signals.computed(() => count() * 2, { id: "doubled" });
-const panel = signals.output(() => ({
-  count: count(),
-  doubled: doubled(),
-}), { id: "panel" });
-
-function Counter() {
-  const countValue = useSignalValue<number>(count, store);
-  const doubledValue = useSignalValue<number>(doubled, store);
-  const panelValue = useOutputValue<{ count: number; doubled: number }>(panel, store);
-  const diagnostics = useSignalsDiagnostics(store);
-
-  return { countValue, doubledValue, panelValue, diagnostics };
-}
+```ts
+graph.expose({
+  inputs: {
+    serverItem: graph.input.required(editor.inputs.serverItem, {
+      authority: "readOnly",
+    }),
+    draft: graph.input.optional(editor.inputs.draft),
+  },
+  outputs: {
+    effectiveItem: editor.outputs.effectiveItem,
+  },
+});
 ```
 
-## Practical Notes
+That is where:
 
-- Prefer callback-first `computed(() => ...)` for ordinary app code.
-- Prefer callback-first `output(() => ...)` for ordinary public projections.
-- Callback tracking follows callable signal reads only. Ordinary closure
-  variables are not reactive dependencies.
-- Prefer `signals.input(value, { id })` when you want the family to read with
-  one coherent authoring grammar.
-- Keep `computedSpec(...)` and `outputSpec(...)` for explicit portable recipe
-  authoring.
-- Keep compatibility/runtime surfaces for expert or migration scenarios rather
-  than the default product lane.
-- Keep `adapters().exportRuntimeEnvelope()` /
-  `adapters().replaceRuntimeEnvelope(...)` as the expert rebuild/import lane
-  rather than part of the normal app happy path.
-- Runtime-envelope import denies callback-backed nodes that do not have live
-  callback registrations available in the receiving runtime.
-- The React adapter consumes runtime truth; it does not recalculate derived
-  values locally.
+- required vs optional becomes explicit
+- authority classes become explicit
+- public contract names become explicit
+
+## Mutation Helpers
+
+Local input helpers:
+
+```ts
+draft.patch({ done: true });
+draft.assign({ title: "Ready to ship" });
+draft.reset();
+```
+
+Graph boundary helpers:
+
+```ts
+graph.writeInput("draft", { title: "Queued" });
+graph.patchInput("draft", { reviewer: "Avery" });
+graph.resetInput("draft");
+```
+
+These helpers still lower through the same runtime mutation model as
+`transaction(...)`.
+
+## Import And Restore
+
+Published graphs can export exact same-runtime restore artifacts:
+
+```ts
+const definition = graph.exportDefinition();
+const snapshot = graph.exportSnapshot();
+const restoredGraph = signals.importGraph(definition, snapshot);
+```
+
+Good to know:
+
+- this is for exact graph restore
+- portable graph import is still denied on this surface
+- `importPosture()` tells you what kind of restore is actually admitted
 
 ## What To Read Next
 
-- [app_surface_reference.md](app_surface_reference.md)
-- [diagnostics_and_history_reference.md](diagnostics_and_history_reference.md)
-- [react_adapter_reference.md](react_adapter_reference.md)
+- [app_surface_reference.md](./app_surface_reference.md)
+- [api_resources_overview.md](./api_resources_overview.md)
+- [resource_family_authoring_reference.md](./resource_family_authoring_reference.md)
+- [resource_line_reference.md](./resource_line_reference.md)
+- [resource_recipes.md](./resource_recipes.md)
+- [host_capabilities.md](./host_capabilities.md)
+- [diagnostics_and_history_reference.md](./diagnostics_and_history_reference.md)
+- [react_adapter_reference.md](./react_adapter_reference.md)

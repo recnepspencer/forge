@@ -54,10 +54,25 @@ impl ForgeQueryValueExpr {
 }
 
 #[derive(Clone, Debug, PartialEq)]
+pub struct ForgeQueryAspectValueTemplate {
+    aspect_path: String,
+    value: ForgeQueryValueExpr,
+}
+
+impl ForgeQueryAspectValueTemplate {
+    pub fn new(aspect_path: impl Into<String>, value: ForgeQueryValueExpr) -> Self {
+        Self {
+            aspect_path: aspect_path.into(),
+            value,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum ForgeQueryWriteCommandTemplate {
-    Insert {
+    InsertAspects {
         collection: String,
-        payload: ForgeQueryValueExpr,
+        aspects: Vec<ForgeQueryAspectValueTemplate>,
     },
     UpdateAspect {
         entity_identity: ForgeQueryValueExpr,
@@ -70,18 +85,31 @@ pub enum ForgeQueryWriteCommandTemplate {
 }
 
 impl ForgeQueryWriteCommandTemplate {
-    #[allow(deprecated)]
     pub(crate) fn bind(
         &self,
         inputs: &BTreeMap<String, Value>,
     ) -> Result<crate::runtime::ForgeQueryWriteCommand, ForgeQueryProgramError> {
         match self {
-            Self::Insert {
+            Self::InsertAspects {
                 collection,
-                payload,
-            } => Ok(crate::runtime::ForgeQueryWriteCommand::Insert {
+                aspects,
+            } => Ok(crate::runtime::ForgeQueryWriteCommand::InsertAspects {
                 collection: collection.clone(),
-                payload: payload.evaluate(inputs)?,
+                aspects: aspects
+                    .iter()
+                    .map(|aspect| {
+                        crate::runtime::ForgeQueryAspectValue::new_set(
+                            aspect.aspect_path.clone(),
+                            aspect.value.evaluate(inputs)?,
+                        )
+                        .map_err(|error| ForgeQueryProgramError::new(error.to_string()))
+                    })
+                    .collect::<Result<Vec<_>, _>>()?,
+                symbolic_aspect_references: Vec::new(),
+                metadata: crate::runtime::ForgeQueryMutationMetadata::default(),
+                naming_intent: None,
+                continuity_intent: None,
+                symbolic_target_reference: None,
             }),
             Self::UpdateAspect {
                 entity_identity,

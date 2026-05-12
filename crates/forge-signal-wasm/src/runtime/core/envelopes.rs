@@ -14,9 +14,10 @@ use forge_signal::facade::history::RuntimeBranchId;
 use crate::boundary::errors::ForgeSignalJsError;
 use crate::recipe::model::SourceSpec;
 use crate::runtime::adapters::{
-    RuntimeDefinitionEnvelope, RuntimeEnvelope, UnavailableCallbackArtifact,
+    HostCapabilityTransportArtifact, RuntimeDefinitionEnvelope, RuntimeEnvelope,
+    UnavailableCallbackArtifact,
 };
-use crate::runtime::summaries::RuntimeSnapshotEnvelope;
+use crate::runtime::summaries::{public_callback_read_ids, RuntimeSnapshotEnvelope};
 
 use super::merge::build_branch_state_proof_basis;
 use super::state::{
@@ -46,6 +47,51 @@ const CALLBACK_UNAVAILABLE_FOR_PORTABLE_EXPORT: &str =
 #[cfg_attr(not(test), allow(dead_code))]
 const CALLBACK_UNAVAILABLE_FOR_RUNTIME_ENVELOPE_IMPORT: &str =
     "computeCallbackUnavailableForRuntimeEnvelopeImport";
+
+fn host_capability_transport_artifacts(
+    host_capability_reads: &[crate::runtime::compute_callbacks::CapturedHostCapabilityRead],
+) -> Vec<HostCapabilityTransportArtifact> {
+    host_capability_reads
+        .iter()
+        .map(|read| {
+            let (portable_import_outcome, portable_import_reason) =
+                portable_import_outcome_for_compatibility(&read.compatibility);
+            HostCapabilityTransportArtifact {
+                family: read.family.clone(),
+                registration_id: read.registration_id.clone(),
+                compatibility: read.compatibility.clone(),
+                exact_restore_outcome: "Live".to_owned(),
+                portable_import_outcome: portable_import_outcome.to_owned(),
+                portable_import_reason: portable_import_reason.to_owned(),
+            }
+        })
+        .collect()
+}
+
+fn portable_import_outcome_for_compatibility(compatibility: &str) -> (&'static str, &'static str) {
+    match compatibility {
+        "LiveOnly" => (
+            "Denied",
+            "live-only host capabilities require the exact originating runtime and cannot cross portable runtime-envelope import",
+        ),
+        "Reattachable" => (
+            "Unavailable",
+            "equivalent host capability reattachment is required before portable import can resume live reevaluation",
+        ),
+        "SnapshotPortable" => (
+            "Unavailable",
+            "committed snapshot truth can travel, but the live host capability itself is not transported by portable runtime-envelope import",
+        ),
+        "ImportDenied" => (
+            "Denied",
+            "this host capability family explicitly denies portable import outside the originating runtime",
+        ),
+        _ => (
+            "Incompatible",
+            "host capability compatibility posture was not recognized by the portable import boundary",
+        ),
+    }
+}
 
 impl RuntimeCore {
     pub fn export_definitions(&mut self) -> Result<RuntimeDefinitionEnvelope, ForgeSignalJsError> {
@@ -85,24 +131,31 @@ impl RuntimeCore {
             .iter()
             .filter_map(|(id, recipe)| match &recipe.definition {
                 StoredRecipeDefinition::Expr(_) => None,
-                StoredRecipeDefinition::Callback(callback) => Some(UnavailableCallbackArtifact {
-                    id: id.clone(),
-                    signal_kind: self
-                        .web_signals
-                        .get(id)
-                        .map(|kind| match kind {
-                            super::state::WebSignalKind::Input => "input".to_owned(),
-                            super::state::WebSignalKind::Computed => "computed".to_owned(),
-                            super::state::WebSignalKind::Output => "output".to_owned(),
-                        })
-                        .unwrap_or_else(|| "computed".to_owned()),
-                    reason: CALLBACK_UNAVAILABLE_FOR_PORTABLE_EXPORT.to_owned(),
-                    current_reads: callback
+                StoredRecipeDefinition::Callback(callback) => {
+                    let current_reads = callback
                         .reads
                         .iter()
                         .map(|read| read.id().to_owned())
-                        .collect(),
-                }),
+                        .collect::<Vec<_>>();
+                    Some(UnavailableCallbackArtifact {
+                        id: id.clone(),
+                        signal_kind: self
+                            .web_signals
+                            .get(id)
+                            .map(|kind| match kind {
+                                super::state::WebSignalKind::Input => "input".to_owned(),
+                                super::state::WebSignalKind::Computed => "computed".to_owned(),
+                                super::state::WebSignalKind::Output => "output".to_owned(),
+                            })
+                            .unwrap_or_else(|| "computed".to_owned()),
+                        reason: CALLBACK_UNAVAILABLE_FOR_PORTABLE_EXPORT.to_owned(),
+                        current_reads: public_callback_read_ids(&current_reads),
+                        host_capability_reads: callback.host_capability_reads.clone(),
+                        host_capability_transports: host_capability_transport_artifacts(
+                            &callback.host_capability_reads,
+                        ),
+                    })
+                }
             })
             .collect();
         drop(store);
@@ -111,12 +164,24 @@ impl RuntimeCore {
             .web_metrics
             .compute_callback_missing_unavailability_count
             .saturating_add(unavailable_callbacks.len() as u64);
+        let worker_public_output_ids = self
+            .web_signals
+            .iter()
+            .filter_map(|(id, kind)| {
+                if matches!(kind, super::state::WebSignalKind::Output) {
+                    Some(id.clone())
+                } else {
+                    None
+                }
+            })
+            .collect();
         Ok(RuntimeDefinitionEnvelope {
             policy: self.policy.clone(),
             sources,
             recipes,
             source_families,
             recipe_families,
+            worker_public_output_ids,
             unavailable_callbacks,
         })
     }
@@ -282,10 +347,12 @@ impl RuntimeCore {
         for source in envelope.definitions.sources {
             rebuilt.define_source(source)?;
         }
+        let worker_public_output_ids = envelope.definitions.worker_public_output_ids;
         for recipe in envelope.definitions.recipes {
             rebuilt.define_recipe(recipe)?;
         }
         rebuilt.restore_snapshot(envelope.snapshot)?;
+        rebuilt.mark_worker_public_outputs(worker_public_output_ids)?;
         *self = rebuilt;
         Ok(())
     }

@@ -9,15 +9,14 @@ mod runtime_invariants;
 mod schema_identity;
 mod tracing_plan;
 
-pub use builder::{WorthSchemaBuildError, WorthSchemaBuilder};
-pub use invariant_plan::{worth_bootstrap_invariant_plan, WorthBootstrapInvariantPlan};
-pub use registry::worth_bootstrap_schema_registry;
+pub use builder::{SchemaBuildError, SchemaBuilder};
+pub use invariant_plan::{bootstrap_invariant_plan, BootstrapInvariantPlan};
+pub use registry::bootstrap_schema_registry;
 pub use runtime_invariants::{
-    worth_bootstrap_runtime_invariant_plan, WorthBootstrapRuntimeInvariant,
-    WorthBootstrapRuntimeInvariantPlan,
+    bootstrap_runtime_invariant_plan, BootstrapRuntimeInvariant, BootstrapRuntimeInvariantPlan,
 };
-pub use schema_identity::{WORTH_SCHEMA_ID, WORTH_SCHEMA_VERSION_ID};
-pub use tracing_plan::{worth_bootstrap_tracing_plan, WorthBootstrapTracingPlan};
+pub use schema_identity::{SCHEMA_ID, SCHEMA_VERSION_ID};
+pub use tracing_plan::{bootstrap_tracing_plan, BootstrapTracingPlan};
 
 #[cfg(test)]
 mod tests;

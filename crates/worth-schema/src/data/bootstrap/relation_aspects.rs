@@ -5,15 +5,14 @@ use forge_relational::facade::schema::{
 use forge_relational::facade::symbols::InternedString;
 
 use crate::data::aspects::{
-    WorthAspect, WorthDiagnosticsAspect, WorthGeometryAspect, WorthNamingAspect,
-    WorthTopologyAspect,
+    Aspect, DiagnosticsAspect, GeometryAspect, NamingAspect, TopologyAspect,
 };
 use crate::data::relations::{
-    WorthDiagnosticsRelationKind, WorthGeometryRelationKind, WorthNamingRelationKind,
-    WorthRelationKind, WorthTopologyRelationKind,
+    DiagnosticsRelationKind, GeometryRelationKind, NamingRelationKind, RelationKind,
+    TopologyRelationKind,
 };
 
-pub fn relation_aspects(kind: WorthRelationKind) -> KindAspectDeclarations {
+pub fn relation_aspects(kind: RelationKind) -> KindAspectDeclarations {
     KindAspectDeclarations::new(vec![
         relation_domain_aspect(domain_aspect(kind)),
         lifecycle_aspect(),
@@ -22,50 +21,50 @@ pub fn relation_aspects(kind: WorthRelationKind) -> KindAspectDeclarations {
     ])
 }
 
-fn domain_aspect(kind: WorthRelationKind) -> WorthAspect {
+fn domain_aspect(kind: RelationKind) -> Aspect {
     match kind {
-        WorthRelationKind::Topology(WorthTopologyRelationKind::ModelOwnsBody)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::BodyOwnsLump)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::LumpOwnsRegion)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::RegionOwnsShell)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::ShellOwnsFace) => {
-            WorthAspect::Topology(WorthTopologyAspect::Ownership)
+        RelationKind::Topology(TopologyRelationKind::ModelOwnsBody)
+        | RelationKind::Topology(TopologyRelationKind::BodyOwnsLump)
+        | RelationKind::Topology(TopologyRelationKind::LumpOwnsRegion)
+        | RelationKind::Topology(TopologyRelationKind::RegionOwnsShell)
+        | RelationKind::Topology(TopologyRelationKind::ShellOwnsFace) => {
+            Aspect::Topology(TopologyAspect::Ownership)
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::FaceOuterLoop)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::FaceInnerLoop) => {
-            WorthAspect::Topology(WorthTopologyAspect::Boundary)
+        RelationKind::Topology(TopologyRelationKind::FaceOuterLoop)
+        | RelationKind::Topology(TopologyRelationKind::FaceInnerLoop) => {
+            Aspect::Topology(TopologyAspect::Boundary)
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::LoopOwnsHalfEdge)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeNext)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgePrev)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeUsesEdge)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeStartsAtVertex)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeEndsAtVertex) => {
-            WorthAspect::Topology(WorthTopologyAspect::Boundary)
+        RelationKind::Topology(TopologyRelationKind::LoopOwnsHalfEdge)
+        | RelationKind::Topology(TopologyRelationKind::HalfEdgeNext)
+        | RelationKind::Topology(TopologyRelationKind::HalfEdgePrev)
+        | RelationKind::Topology(TopologyRelationKind::HalfEdgeUsesEdge)
+        | RelationKind::Topology(TopologyRelationKind::HalfEdgeStartsAtVertex)
+        | RelationKind::Topology(TopologyRelationKind::HalfEdgeEndsAtVertex) => {
+            Aspect::Topology(TopologyAspect::Boundary)
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::WireOwnsHalfEdge) => {
-            WorthAspect::Topology(WorthTopologyAspect::Ownership)
+        RelationKind::Topology(TopologyRelationKind::WireOwnsHalfEdge) => {
+            Aspect::Topology(TopologyAspect::Ownership)
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeRadialNext) => {
-            WorthAspect::Topology(WorthTopologyAspect::Radial)
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeRadialNext) => {
+            Aspect::Topology(TopologyAspect::Radial)
         }
-        WorthRelationKind::Geometry(
-            WorthGeometryRelationKind::FaceUsesSurfaceBinding
-            | WorthGeometryRelationKind::EdgeUsesCurveBinding
-            | WorthGeometryRelationKind::HalfEdgeUsesCoedgeBinding
-            | WorthGeometryRelationKind::VertexUsesGeometryBinding,
-        ) => WorthAspect::Geometry(WorthGeometryAspect::Binding),
-        WorthRelationKind::Naming(WorthNamingRelationKind::PersistentNameTargetsEntity) => {
-            WorthAspect::Naming(WorthNamingAspect::PersistentName)
+        RelationKind::Geometry(
+            GeometryRelationKind::FaceUsesSurfaceBinding
+            | GeometryRelationKind::EdgeUsesCurveBinding
+            | GeometryRelationKind::HalfEdgeUsesCoedgeBinding
+            | GeometryRelationKind::VertexUsesGeometryBinding,
+        ) => Aspect::Geometry(GeometryAspect::Binding),
+        RelationKind::Naming(NamingRelationKind::PersistentNameTargetsEntity) => {
+            Aspect::Naming(NamingAspect::PersistentName)
         }
-        WorthRelationKind::Diagnostics(
-            WorthDiagnosticsRelationKind::WireHasInterpretation
-            | WorthDiagnosticsRelationKind::ShellHasInterpretation,
-        ) => WorthAspect::Diagnostics(WorthDiagnosticsAspect::Interpretations),
+        RelationKind::Diagnostics(
+            DiagnosticsRelationKind::WireHasInterpretation
+            | DiagnosticsRelationKind::ShellHasInterpretation,
+        ) => Aspect::Diagnostics(DiagnosticsAspect::Interpretations),
     }
 }
 
-fn relation_domain_aspect(aspect: WorthAspect) -> DeclaredAspect {
+fn relation_domain_aspect(aspect: Aspect) -> DeclaredAspect {
     DeclaredAspect {
         key: aspect.aspect_key(),
         binding: AspectBinding::RelationTargetEndpoint,

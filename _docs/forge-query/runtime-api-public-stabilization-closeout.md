@@ -14,7 +14,8 @@ inspectable handles:
 - `workspace.computed(...)`
 - `workspace.effect(...)`
 - `workspace.preview(...)` / `workspace.branch(...)`
-- `workspace.write(...)`
+- aspect-native `workspace.insert(...)`, `workspace.update(...)`,
+  `workspace.delete(...)`, and `workspace.batch(...)`
 - `workspace.read(...)`, `workspace.observe(...)`, and
   `workspace.materialize(...)`
 - `workspace.state(...)`
@@ -22,13 +23,22 @@ inspectable handles:
 - `workspace.public_api_contract()`
 - `workspace.public_handle_contract()`
 - `workspace.public_support_matrix()`
+- `workspace.public_mutation_surface_report()`
 - `workspace.admit_public_api_family(...)`
 
 The public support matrix is the source of truth for whether a family is stable,
 deferred, or unsupported. Method presence is not a support claim.
+Use `workspace.public_mutation_surface_report()` when you need the exact
+preferred-versus-lower-level mutation posture inside that stable facade.
+
+The runtime API stabilization closeout defines the workspace facade surface
+generally. The mutation-specific dependency contract is further narrowed by the
+aspect finalization closeout: ordinary downstream mutation authoring should use
+the aspect-native workspace mutation methods, while `workspace.write(...)`
+remains a lower-level or expert seam rather than the preferred public story.
 
 `workspace.intent(...)` remains part of the public vocabulary, but it is not in
-the stable compatibility support set yet. Downstream runtimes must gate it
+the stable support set yet. Downstream runtimes must gate it
 through `workspace.admit_public_api_family(...)` and backend support admission.
 
 ## Deferred Scope
@@ -46,10 +56,10 @@ Each future milestone must extend the stabilized handle, state, authority lane,
 aspect, support matrix, and inspection contracts. It must not introduce a
 parallel public API family.
 
-## Compatibility Names
+## Alternate Names
 
 Preferred names are the names downstream runtimes should use in new code.
-Compatibility names remain adapters for existing call sites and tests.
+Alternate names remain adapters for existing call sites and tests.
 
 - `live_view_request` and `declare_live_view` should migrate to `live_view`
   where closure-builder DX is appropriate.
@@ -64,7 +74,14 @@ Compatibility names remain adapters for existing call sites and tests.
 - `read_live`, `drain_patches`, and `read_derived` should migrate toward
   `read`, `observe`, and `materialize`.
 
-`computed_declaration` is intentionally not part of the compatibility surface.
+`computed_declaration` is intentionally not part of the alternate-name surface.
+
+For mutation naming specifically:
+
+- ordinary downstream runtime code should use `insert`, `update`, `delete`,
+  and `batch`
+- `workspace.write(...)` remains available as a lower-level seam
+  and should not be taught as the daily-driver API for new runtime work
 
 ## Safe To Build Now
 
@@ -73,6 +90,8 @@ Downstream runtimes may build domain-neutral public APIs that:
 - keep the `Workspace` as the public context
 - expose durable live, computed, effect, preview, branch, receipt, state, and
   inspection handles
+- expose aspect-native mutation entrypoints without teaching lower-level
+  command authoring as the runtime's public mutation model
 - use aspects to make reads, produces, triggers, and condition inputs auditable
 - use authority lanes to distinguish truth, branch-local truth, preview truth,
   derived runtime state, effect delivery, pending write intent, bridge external
@@ -85,6 +104,10 @@ Downstream runtimes may build domain-neutral public APIs that:
 
 Downstream runtimes must not assume:
 
+- `workspace.write(...)` is the preferred ordinary mutation story for new code
+- the current public mutation contract already closes full authoritative target
+  evidence, existing-truth identity binding, naming writeback evidence, or
+  continuity-sensitive mutation evidence beyond the admitted runtime facade
 - temporal basis execution is implemented
 - async/resource lifecycle execution is implemented
 - mixed truth/time/async delivery is implemented

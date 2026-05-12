@@ -42,4 +42,4 @@ error: cannot construct `ForgeQueryBatchWriteReceipt` with struct literal syntax
 23 |         refresh_fallback: false,
    |         ----------------------- private field
    |
-   = note: ...and other private field `basis_lane` that was not provided
+   = note: ...and other private fields `basis_lane`, `batch_mutation_evidence`, `graph_composition_breadth`, `graph_composition_program` and `graph_composition_resolution_map` that were not provided

@@ -74,6 +74,7 @@ fn estimated_mutation_effect_shape(
             | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_))
             | MutationIntent::Entity(EntityMutationIntent::Delete(_))
             | MutationIntent::Entity(EntityMutationIntent::Replace(_))
+            | MutationIntent::Relation(RelationMutationIntent::UpdateEndpoints(_))
             | MutationIntent::Relation(RelationMutationIntent::Delete(_)) => {
                 change_count += 1;
                 event_count += 1;

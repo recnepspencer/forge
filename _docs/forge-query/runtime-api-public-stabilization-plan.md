@@ -9,8 +9,8 @@
 >
 > **Predecessor:** [runtime-api-next-batch-closeout.md](./runtime-api-next-batch-closeout.md)
 >
-> **Next roadmap family:** Milestones 9.4 through 9.7 temporal/async query
-> semantics
+> **Next roadmap family:** Runtime Authoritative Mutation Evidence Gate,
+> followed by Milestones 9.4 through 9.7 temporal/async query semantics
 >
 > **Purpose:** freeze the ordinary public runtime API shape before temporal
 > and async query semantics land, so domain runtimes can build against a
@@ -241,7 +241,7 @@ Required properties:
   directly assembling lower-runtime internals in ordinary code
 - carries support metadata for read, live, computed, effect, branch, preview,
   write, intent, inspect, temporal, async, and mixed-cause families
-- can expose compatibility backend posture, but compatibility must remain
+- can expose memory-backed scaffold posture, but that posture must remain
   named and inspectable
 
 ### Durable Surface
@@ -441,7 +441,7 @@ Must ship:
   - state/snapshot/read access
   - intent declaration and commit
   - inspection
-- compatibility/deprecation plan for any existing runtime names that remain
+- alternate-name or deletion plan for any existing runtime names that remain
   useful internally but should not be the ordinary public story
 - facade exports that make the preferred path obvious
 - compile-fail or lint-style proof that new ordinary examples do not reach
@@ -451,14 +451,14 @@ Must preserve:
 
 - current proof-bearing runtime APIs remain available where needed for
   crate-internal certification and lower-runtime development
-- compatibility backends remain explicit compatibility posture
+- memory-backed scaffolds remain explicit scaffold posture
 - no rename may hide an orchestration boundary behind a cheap-looking method
 
 Acceptance evidence:
 
 - golden transcripts use only final public names
-- old ambiguous names are deprecated, internalized, or explicitly marked
-  compatibility/debt
+- old ambiguous names are deleted, internalized, or explicitly marked as
+  alternate/debt-only seams
 - public docs identify the preferred path without relying on prose alone; tests
   enforce shortcut rejection
 
@@ -662,7 +662,7 @@ Forbidden shortcuts:
   adversarial runtime surfaces
 - async-safe result-state vocabulary and support metadata gates
 - handle contract and inspection contract that 9.4 through 9.7 must extend
-- compatibility/deprecation plan for implementation-colored or ambiguous
+- alternate-name or deletion plan for implementation-colored or ambiguous
   existing names
 - support matrix rows distinguishing stable runtime-backed surfaces from
   deferred temporal/async/store/durable surfaces
@@ -683,7 +683,7 @@ Forbidden shortcuts:
 - support metadata and executable admission behavior remain synchronized
 - temporal/async/store/durable work remains explicit deferred scope until its
   owning milestones close
-- compatibility backends remain named compatibility posture
+- memory-backed scaffolds remain named scaffold posture
 
 ## Acceptance Evidence
 

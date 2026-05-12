@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn derive_only_preview_binds_handles_and_mutes_effects_without_residue() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>("tasks.preview-bind", task_live_request(), task_schema())
         .expect("live should declare");
@@ -166,7 +166,7 @@ fn derive_only_preview_binds_handles_and_mutes_effects_without_residue() {
 
 #[test]
 fn preview_write_routes_bound_live_computed_and_redirected_effect_without_authoritative_residue() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>(
             "tasks.preview-execution",
@@ -203,13 +203,13 @@ fn preview_write_routes_bound_live_computed_and_redirected_effect_without_author
             .use_effect(&delivery_effect)
             .expect("redirected preview should admit delivery effect");
         preview
-            .write(ForgeQueryWriteCommand::Insert {
-                collection: "Task".to_string(),
-                payload: json!({
-                    "identity": { "id": "preview-execution-task" },
-                    "title": { "value": "Preview execution task" },
-                }),
-            })
+            .write(insert_command(
+                "Task",
+                [
+                    ("identity.id", json!("preview-execution-task")),
+                    ("title.value", json!("Preview execution task")),
+                ],
+            ))
             .expect("preview write should stage and route");
         (
             preview.preview_execution_evidence().to_vec(),
@@ -258,7 +258,7 @@ fn preview_write_routes_bound_live_computed_and_redirected_effect_without_author
 
 #[test]
 fn preview_sandboxed_write_intent_execution_stays_separate_from_delivery_residue() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>(
             "tasks.preview-intent-exec",
@@ -286,13 +286,13 @@ fn preview_sandboxed_write_intent_execution_stays_separate_from_delivery_residue
             .use_effect(&intent_effect)
             .expect("sandboxed preview should admit write-intent effect");
         preview
-            .write(ForgeQueryWriteCommand::Insert {
-                collection: "Task".to_string(),
-                payload: json!({
-                    "identity": { "id": "preview-intent-task" },
-                    "title": { "value": "Preview intent task" },
-                }),
-            })
+            .write(insert_command(
+                "Task",
+                [
+                    ("identity.id", json!("preview-intent-task")),
+                    ("title.value", json!("Preview intent task")),
+                ],
+            ))
             .expect("preview write should route pending intent");
         (
             preview.preview_execution_evidence().to_vec(),

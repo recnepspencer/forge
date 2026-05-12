@@ -4,11 +4,11 @@ use serde::{Deserialize, Serialize};
 
 use crate::data::authority::{
     CertifiedTopologyInterpretation, DerivedTopologyReadBasis, PersistedTopologyTruthBatch,
-    WorthTopologyReadArtifact,
+    TopologyReadArtifact,
 };
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
-pub struct WorthMinimalTopologySeed {
+pub struct MinimalTopologySeed {
     pub snapshot: SnapshotHandle,
     pub model: EntityId,
     pub body: EntityId,
@@ -24,6 +24,6 @@ pub struct WorthMinimalTopologySeed {
     pub persistent_name_ids: Vec<EntityId>,
     pub persisted_truth: PersistedTopologyTruthBatch,
     pub read_basis: DerivedTopologyReadBasis,
-    pub read_artifact: WorthTopologyReadArtifact,
+    pub read_artifact: TopologyReadArtifact,
     pub certified_interpretation: CertifiedTopologyInterpretation,
 }

@@ -1,35 +1,33 @@
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntimeApi;
-use worth_math::predicates::orient2d;
+use math::predicates::orient2d;
 
-use crate::data::aspects::{
-    WorthAspect, WorthDiagnosticsAspect, WorthNamingAspect, WorthTopologyAspect,
-};
+use crate::data::aspects::{Aspect, DiagnosticsAspect, NamingAspect, TopologyAspect};
 use crate::data::authority::{
-    CertifiedTopologyInterpretation, DerivedTopologyReadBasis, PersistedTopologyTruthBatch,
-    RawWorthTopologyIntent, WorthMutationOrigin, WorthPrecisionFallbackRecord,
-    WorthTopologyMutationBatch,
+    CertifiedTopologyInterpretation, DerivedTopologyReadBasis, MutationOrigin,
+    PersistedTopologyTruthBatch, PrecisionFallbackRecord, RawTopologyIntent, TopologyMutationBatch,
 };
-use crate::data::bootstrap::worth_bootstrap_schema_registry;
+use crate::data::bootstrap::bootstrap_schema_registry;
 use crate::data::seed::{
     milestone_one_admitted_range_sweep_out_of_class_scenarios,
     milestone_one_admitted_range_sweep_scenarios, seed_minimal_topology,
+};
+use crate::facade::topology_authoring::{
+    MilestoneOnePrimitiveExpectedOutcome, MilestoneOnePrimitiveRole,
 };
 use std::collections::BTreeSet;
 
 #[test]
 fn seed_minimal_topology_commits_a_readable_bootstrap_snapshot() {
     let mut runtime = RelationalRuntimeApi::builder()
-        .schema_registry(
-            worth_bootstrap_schema_registry().expect("worth bootstrap schema registry"),
-        )
+        .schema_registry(bootstrap_schema_registry().expect(" bootstrap schema registry"))
         .build();
 
-    let seeded = seed_minimal_topology(&mut runtime, "test-seed").expect("seed worth topology");
+    let seeded = seed_minimal_topology(&mut runtime, "test-seed").expect("seed  topology");
     let read_view = runtime
         .read_truth()
         .read_snapshot(&seeded.snapshot)
-        .expect("seeded worth snapshot");
+        .expect("seeded  snapshot");
 
     assert_eq!(read_view.entities().len(), 22);
     assert_eq!(read_view.relations().len(), 25);
@@ -52,17 +50,17 @@ fn seed_minimal_topology_commits_a_readable_bootstrap_snapshot() {
 fn precision_fallback_record_threads_through_authority_flow() {
     let (_sign, escalation) =
         orient2d([0.0, 0.0], [1.0, 0.0], [0.5, 1e-30]).expect("predicate evaluation");
-    let fallback = WorthPrecisionFallbackRecord::from(&escalation);
+    let fallback = PrecisionFallbackRecord::from(&escalation);
 
     let touched_aspects = BTreeSet::from([
-        WorthAspect::Topology(WorthTopologyAspect::Structure),
-        WorthAspect::Naming(WorthNamingAspect::PersistentName),
-        WorthAspect::Diagnostics(WorthDiagnosticsAspect::Decisions),
+        Aspect::Topology(TopologyAspect::Structure),
+        Aspect::Naming(NamingAspect::PersistentName),
+        Aspect::Diagnostics(DiagnosticsAspect::Decisions),
     ]);
 
-    let raw = RawWorthTopologyIntent::new(Vec::new(), WorthMutationOrigin::Seed)
+    let raw = RawTopologyIntent::new(Vec::new(), MutationOrigin::Seed)
         .with_precision_fallback(fallback.clone());
-    let batch = WorthTopologyMutationBatch::from_raw_intent(raw, touched_aspects.clone());
+    let batch = TopologyMutationBatch::from_raw_intent(raw, touched_aspects.clone());
 
     assert_eq!(batch.precision_fallbacks, vec![fallback.clone()]);
     assert!(batch.precision_budget_fallbacks.is_empty());
@@ -71,7 +69,7 @@ fn precision_fallback_record_threads_through_authority_flow() {
         batch,
         snapshot: forge_relational::facade::snapshots::SnapshotHandle::new(1, 1),
         branch_id: BranchId("main".to_string()),
-        mutation_origin: WorthMutationOrigin::Seed,
+        mutation_origin: MutationOrigin::Seed,
     };
     let read_basis = DerivedTopologyReadBasis::from_persisted_truth(&persisted);
     let certified = CertifiedTopologyInterpretation::from_read_basis(read_basis.clone());
@@ -81,18 +79,15 @@ fn precision_fallback_record_threads_through_authority_flow() {
     assert_eq!(read_basis.touched_aspects(), &touched_aspects);
     assert_eq!(
         read_basis.authoritative_mutation_origin(),
-        WorthMutationOrigin::Seed
+        MutationOrigin::Seed
     );
-    assert_eq!(read_basis.derivation_origin(), WorthMutationOrigin::Seed);
+    assert_eq!(read_basis.derivation_origin(), MutationOrigin::Seed);
     let replay_basis = read_basis.replay_of();
     assert_eq!(
         replay_basis.authoritative_mutation_origin(),
-        WorthMutationOrigin::Seed
+        MutationOrigin::Seed
     );
-    assert_eq!(
-        replay_basis.derivation_origin(),
-        WorthMutationOrigin::Replay
-    );
+    assert_eq!(replay_basis.derivation_origin(), MutationOrigin::Replay);
     assert_eq!(
         read_basis
             .authority
@@ -170,10 +165,9 @@ fn admitted_range_sweep_generators_cover_the_declared_milestone_one_ranges() {
 
     assert_eq!(out_of_class.len(), 7);
     assert!(out_of_class.iter().all(|scenario| {
-        scenario.expected_outcome
-            == crate::facade::WorthMilestoneOnePrimitiveExpectedOutcome::Reject
+        scenario.expected_outcome == MilestoneOnePrimitiveExpectedOutcome::Reject
     }));
-    assert!(out_of_class.iter().all(|scenario| {
-        scenario.role == crate::facade::WorthMilestoneOnePrimitiveRole::OutOfClass
-    }));
+    assert!(out_of_class
+        .iter()
+        .all(|scenario| { scenario.role == MilestoneOnePrimitiveRole::OutOfClass }));
 }

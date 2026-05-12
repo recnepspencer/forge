@@ -4,19 +4,19 @@ use forge_signal::facade::{diagnostics_for_graph, SignalGraph};
 use serde::{Deserialize, Serialize};
 
 use crate::data::tracing::{
-    WorthAuthorityTraceAnchor, WorthAuthorityTraceEvidence, WorthBoundaryEnvelope,
-    WorthBoundaryFailure, WorthBridgeTraceAnchor, WorthBridgeTraceEvidence, WorthDecisionTrace,
-    WorthDerivedTraceAnchor, WorthDerivedTraceEvidence, WorthIntegrityMarkers,
-    WorthSignalTraceAnchor, WorthSignalTraceEvidence, WorthTraceAvailability,
+    AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure,
+    BridgeTraceAnchor, BridgeTraceEvidence, DecisionTrace, DerivedTraceAnchor,
+    DerivedTraceEvidence, IntegrityMarkers, SignalTraceAnchor, SignalTraceEvidence,
+    TraceAvailability,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthNarrativeLine {
+pub struct NarrativeLine {
     pub heading: String,
     pub body: String,
 }
 
-impl WorthNarrativeLine {
+impl NarrativeLine {
     pub fn new(heading: impl Into<String>, body: impl Into<String>) -> Self {
         Self {
             heading: heading.into(),
@@ -26,8 +26,8 @@ impl WorthNarrativeLine {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthAuthorityNarrative {
-    pub availability: WorthTraceAvailability,
+pub struct AuthorityNarrative {
+    pub availability: TraceAvailability,
     pub headline: String,
     pub branch_id: String,
     pub latest_commit_id: Option<u64>,
@@ -38,12 +38,12 @@ pub struct WorthAuthorityNarrative {
     pub changed_records: Vec<String>,
     pub changed_aspects: Vec<String>,
     pub lineage_event_count: usize,
-    pub story_lines: Vec<WorthNarrativeLine>,
+    pub story_lines: Vec<NarrativeLine>,
     pub query_hints: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthBridgeRouteNarrative {
+pub struct BridgeRouteNarrative {
     pub route_identity: String,
     pub invalidation_identity: String,
     pub snapshot_identity: String,
@@ -55,7 +55,7 @@ pub struct WorthBridgeRouteNarrative {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthBridgeHistoricalNarrative {
+pub struct BridgeHistoricalNarrative {
     pub record_identity: String,
     pub declaration_identity: String,
     pub branch_identity: String,
@@ -66,20 +66,20 @@ pub struct WorthBridgeHistoricalNarrative {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthBridgeNarrative {
-    pub availability: WorthTraceAvailability,
+pub struct BridgeNarrative {
+    pub availability: TraceAvailability,
     pub headline: String,
     pub route_count: usize,
     pub historical_record_count: usize,
-    pub routes: Vec<WorthBridgeRouteNarrative>,
-    pub historical_records: Vec<WorthBridgeHistoricalNarrative>,
-    pub story_lines: Vec<WorthNarrativeLine>,
+    pub routes: Vec<BridgeRouteNarrative>,
+    pub historical_records: Vec<BridgeHistoricalNarrative>,
+    pub story_lines: Vec<NarrativeLine>,
     pub query_hints: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthDerivedNarrative {
-    pub availability: WorthTraceAvailability,
+pub struct DerivedNarrative {
+    pub availability: TraceAvailability,
     pub headline: String,
     pub branch_id: String,
     pub snapshot_id: u64,
@@ -91,13 +91,13 @@ pub struct WorthDerivedNarrative {
     pub invalidation_target_count: usize,
     pub fallback_classes: Vec<String>,
     pub equivalence_digest: Option<String>,
-    pub story_lines: Vec<WorthNarrativeLine>,
+    pub story_lines: Vec<NarrativeLine>,
     pub query_hints: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthSignalNarrative {
-    pub availability: WorthTraceAvailability,
+pub struct SignalNarrative {
+    pub availability: TraceAvailability,
     pub headline: String,
     pub node_id: String,
     pub replay_cursor: Option<u64>,
@@ -107,30 +107,30 @@ pub struct WorthSignalNarrative {
     pub replay_event_count: usize,
     pub explanation_availability: Option<String>,
     pub provenance_availability: Option<String>,
-    pub story_lines: Vec<WorthNarrativeLine>,
+    pub story_lines: Vec<NarrativeLine>,
     pub query_hints: Vec<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct WorthNarratedTrace {
+pub struct NarratedTrace {
     pub headline: String,
     pub causal_story: Vec<String>,
     pub query_hints: Vec<String>,
-    pub authority: Option<WorthAuthorityNarrative>,
-    pub bridge: Option<WorthBridgeNarrative>,
-    pub derived: Option<WorthDerivedNarrative>,
-    pub signal: Option<WorthSignalNarrative>,
+    pub authority: Option<AuthorityNarrative>,
+    pub bridge: Option<BridgeNarrative>,
+    pub derived: Option<DerivedNarrative>,
+    pub signal: Option<SignalNarrative>,
 }
 
-fn availability_or_present(availability: Option<WorthTraceAvailability>) -> WorthTraceAvailability {
-    availability.unwrap_or(WorthTraceAvailability::Present)
+fn availability_or_present(availability: Option<TraceAvailability>) -> TraceAvailability {
+    availability.unwrap_or(TraceAvailability::Present)
 }
 
 pub fn explain_authority_trace(
     runtime: &RelationalRuntime,
-    anchor: &WorthAuthorityTraceAnchor,
-    evidence: Option<&WorthAuthorityTraceEvidence>,
-) -> WorthAuthorityNarrative {
+    anchor: &AuthorityTraceAnchor,
+    evidence: Option<&AuthorityTraceEvidence>,
+) -> AuthorityNarrative {
     let latest_commit_id = anchor.latest_commit_id();
     let latest_snapshot_id = anchor.latest_snapshot_id();
     let branch_head_commit_id = runtime
@@ -183,7 +183,7 @@ pub fn explain_authority_trace(
         }
     );
     let mut story_lines = vec![
-        WorthNarrativeLine::new(
+        NarrativeLine::new(
             "Commit",
             format!(
                 "Latest authoritative commit is `{}` and latest snapshot is `{}`.",
@@ -195,7 +195,7 @@ pub fn explain_authority_trace(
                     .unwrap_or_else(|| "unavailable".to_string())
             ),
         ),
-        WorthNarrativeLine::new(
+        NarrativeLine::new(
             "Change Footprint",
             format!(
                 "The latest inspected commit changed {} record(s), touched {} aspect tag(s), and emitted {} lineage event(s).",
@@ -206,7 +206,7 @@ pub fn explain_authority_trace(
         ),
     ];
     if let Some(evidence) = evidence {
-        story_lines.push(WorthNarrativeLine::new(
+        story_lines.push(NarrativeLine::new(
             "Commit Pipeline",
             format!(
                 "Authority retained {} published commit log(s) spanning {} pipeline phase(s) and {} invariant result(s).",
@@ -217,7 +217,7 @@ pub fn explain_authority_trace(
         ));
     }
     if !changed_aspects.is_empty() {
-        story_lines.push(WorthNarrativeLine::new(
+        story_lines.push(NarrativeLine::new(
             "Changed Aspects",
             format!(
                 "Observed relational aspect tags: {}.",
@@ -231,13 +231,13 @@ pub fn explain_authority_trace(
             latest_commit_id.map(|id| id.0).unwrap_or_default()
         ),
         format!(
-            "Use WorthAuthorityTraceAnchor::open_latest_snapshot(...) to reopen snapshot `{}` directly.",
+            "Use AuthorityTraceAnchor::open_latest_snapshot(...) to reopen snapshot `{}` directly.",
             latest_snapshot_id.map(|id| id.0).unwrap_or_default()
         ),
     ];
 
-    WorthAuthorityNarrative {
-        availability: WorthTraceAvailability::Present,
+    AuthorityNarrative {
+        availability: TraceAvailability::Present,
         headline,
         branch_id: anchor.branch_id.0.clone(),
         latest_commit_id: latest_commit_id.map(|id| id.0),
@@ -255,9 +255,9 @@ pub fn explain_authority_trace(
 
 pub fn explain_bridge_trace(
     diagnostics: &BridgeDiagnosticsFacade,
-    anchor: &WorthBridgeTraceAnchor,
-    evidence: Option<&WorthBridgeTraceEvidence>,
-) -> WorthBridgeNarrative {
+    anchor: &BridgeTraceAnchor,
+    evidence: Option<&BridgeTraceEvidence>,
+) -> BridgeNarrative {
     let routes = anchor
         .route_identities
         .iter()
@@ -272,7 +272,7 @@ pub fn explain_bridge_trace(
                 .iter()
                 .map(|target| format!("{target:?}"))
                 .collect::<Vec<_>>();
-            WorthBridgeRouteNarrative {
+            BridgeRouteNarrative {
                 route_identity: explanation.route_identity().as_str().to_string(),
                 invalidation_identity: explanation.invalidation_identity().as_str().to_string(),
                 snapshot_identity: explanation.snapshot_identity().as_str().to_string(),
@@ -300,7 +300,7 @@ pub fn explain_bridge_trace(
                 .historical_record_for_record_identity(record_identity)
                 .map(|record| diagnostics.explain_historical_evaluation_record(&record))
         })
-        .map(|explanation| WorthBridgeHistoricalNarrative {
+        .map(|explanation| BridgeHistoricalNarrative {
             record_identity: explanation.record_identity().as_str().to_string(),
             declaration_identity: explanation.declaration_identity().as_str().to_string(),
             branch_identity: explanation.branch_identity().as_str().to_string(),
@@ -324,16 +324,16 @@ pub fn explain_bridge_trace(
     );
     let mut story_lines = Vec::new();
     if let Some(first) = routes.first() {
-        story_lines.push(WorthNarrativeLine::new("Routing", first.summary.clone()));
+        story_lines.push(NarrativeLine::new("Routing", first.summary.clone()));
     }
     if let Some(first) = historical_records.first() {
-        story_lines.push(WorthNarrativeLine::new(
+        story_lines.push(NarrativeLine::new(
             "Historical Evaluation",
             first.summary.clone(),
         ));
     }
     if let Some(evidence) = evidence {
-        story_lines.push(WorthNarrativeLine::new(
+        story_lines.push(NarrativeLine::new(
             "Anchor Coverage",
             format!(
                 "Bridge preserved {} route identity anchor(s), {} invalidation identity anchor(s), and {} snapshot identity anchor(s).",
@@ -348,7 +348,7 @@ pub fn explain_bridge_trace(
         "Use BridgeDiagnosticsFacade::historical_record_for_record_identity(...) to recover the canonical historical evaluation record.".to_string(),
     ];
 
-    WorthBridgeNarrative {
+    BridgeNarrative {
         availability,
         headline,
         route_count: routes.len(),
@@ -362,10 +362,10 @@ pub fn explain_bridge_trace(
 
 pub fn explain_derived_trace(
     runtime: &RelationalRuntime,
-    anchor: &WorthDerivedTraceAnchor,
-    evidence: Option<&WorthDerivedTraceEvidence>,
-    integrity_markers: Option<&WorthIntegrityMarkers>,
-) -> WorthDerivedNarrative {
+    anchor: &DerivedTraceAnchor,
+    evidence: Option<&DerivedTraceEvidence>,
+    integrity_markers: Option<&IntegrityMarkers>,
+) -> DerivedNarrative {
     let reopened = anchor.open_snapshot(runtime);
     let entity_count = reopened
         .as_ref()
@@ -397,21 +397,21 @@ pub fn explain_derived_trace(
         anchor.snapshot_id.0, anchor.branch_id.0, entity_count, relation_count
     );
     let mut story_lines = vec![
-        WorthNarrativeLine::new(
+        NarrativeLine::new(
             "Truth Basis",
             format!(
                 "Derived work is anchored to truth digest `{}` at version `{}`.",
                 anchor.truth_basis_identity.mutation_batch_digest_hex, anchor.version_id.0
             ),
         ),
-        WorthNarrativeLine::new(
+        NarrativeLine::new(
             "Reopened Snapshot",
             format!(
                 "The runtime could reopen the authoritative snapshot and inspect {} entity record(s) plus {} relation record(s).",
                 entity_count, relation_count
             ),
         ),
-        WorthNarrativeLine::new(
+        NarrativeLine::new(
             "Invalidation Breadth",
             format!(
                 "Derived fallout currently advertises {} invalidation target(s).",
@@ -420,16 +420,16 @@ pub fn explain_derived_trace(
         ),
     ];
     if !touched_aspects.is_empty() {
-        story_lines.push(WorthNarrativeLine::new(
-            "Touched Worth Aspects",
+        story_lines.push(NarrativeLine::new(
+            "Touched  Aspects",
             format!(
-                "Worth marked these aspects as touched: {}.",
+                " marked these aspects as touched: {}.",
                 touched_aspects.join(", ")
             ),
         ));
     }
     if !fallback_classes.is_empty() {
-        story_lines.push(WorthNarrativeLine::new(
+        story_lines.push(NarrativeLine::new(
             "Fallbacks",
             format!(
                 "Derived execution reported fallback classes: {}.",
@@ -438,20 +438,20 @@ pub fn explain_derived_trace(
         ));
     }
     if let Some(digest) = &equivalence_digest {
-        story_lines.push(WorthNarrativeLine::new(
+        story_lines.push(NarrativeLine::new(
             "Parity Anchor",
             format!("Derived equivalence currently resolves to digest `{digest}`."),
         ));
     }
     let query_hints = vec![
         format!(
-            "Use WorthDerivedTraceAnchor::open_snapshot(...) to inspect truth snapshot `{}` directly.",
+            "Use DerivedTraceAnchor::open_snapshot(...) to inspect truth snapshot `{}` directly.",
             anchor.snapshot_id.0
         ),
-        "Use the derived trace anchor together with Worth read/certification surfaces to compare current fallout against parity and diagnostics artifacts.".to_string(),
+        "Use the derived trace anchor together with  read/certification surfaces to compare current fallout against parity and diagnostics artifacts.".to_string(),
     ];
 
-    WorthDerivedNarrative {
+    DerivedNarrative {
         availability,
         headline,
         branch_id: anchor.branch_id.0.clone(),
@@ -474,9 +474,9 @@ pub fn explain_derived_trace(
 
 pub fn explain_signal_trace(
     graph: &SignalGraph,
-    anchor: &WorthSignalTraceAnchor,
-    evidence: Option<&WorthSignalTraceEvidence>,
-) -> Result<WorthSignalNarrative, forge_signal::facade::SignalError> {
+    anchor: &SignalTraceAnchor,
+    evidence: Option<&SignalTraceEvidence>,
+) -> Result<SignalNarrative, forge_signal::facade::SignalError> {
     let observer = graph.observe();
     let explanation = observer.explain(anchor.node)?;
     let replay = if let Some(lineage_artifact_id) = anchor.lineage_artifact_id {
@@ -499,7 +499,7 @@ pub fn explain_signal_trace(
         anchor.semantic_segment_id
     );
     let mut story_lines = vec![
-        WorthNarrativeLine::new(
+        NarrativeLine::new(
             "Node Explanation",
             format!(
                 "Node `{:?}` is in state `{:?}` with {} upstream cause(s), {} changed region(s), and propagation_suppressed={}.",
@@ -510,7 +510,7 @@ pub fn explain_signal_trace(
                 explanation.propagation_suppressed
             ),
         ),
-        WorthNarrativeLine::new(
+        NarrativeLine::new(
             "Execution Lineage",
             format!(
                 "Signal attached execution record {:?}, semantic segment {:?}, and lineage artifact {:?} to this node.",
@@ -521,7 +521,7 @@ pub fn explain_signal_trace(
         ),
     ];
     if let Some(first) = replay.first() {
-        story_lines.push(WorthNarrativeLine::new(
+        story_lines.push(NarrativeLine::new(
             "Replay",
             format!(
                 "Replay starts at cursor {} on branch `{:?}` with event kind `{:?}`.",
@@ -531,7 +531,7 @@ pub fn explain_signal_trace(
     }
     if !explanation.causal_links.is_empty() {
         let first = &explanation.causal_links[0];
-        story_lines.push(WorthNarrativeLine::new(
+        story_lines.push(NarrativeLine::new(
             "Causal Link",
             format!(
                 "The first causal link is `{:?}` with disposition `{:?}` and scope provenance `{:?}`.",
@@ -556,7 +556,7 @@ pub fn explain_signal_trace(
             )
         },
     ];
-    Ok(WorthSignalNarrative {
+    Ok(SignalNarrative {
         availability: availability_or_present(evidence.map(|evidence| evidence.availability)),
         headline,
         node_id: format!("{:?}", anchor.node),
@@ -576,9 +576,9 @@ pub fn narrate_decision_trace(
     runtime: &RelationalRuntime,
     bridge_diagnostics: Option<&BridgeDiagnosticsFacade>,
     signal_graph: Option<&SignalGraph>,
-    decision_trace: &WorthDecisionTrace,
-    integrity_markers: &WorthIntegrityMarkers,
-) -> WorthNarratedTrace {
+    decision_trace: &DecisionTrace,
+    integrity_markers: &IntegrityMarkers,
+) -> NarratedTrace {
     let authority = decision_trace
         .authority_anchor()
         .map(|anchor| explain_authority_trace(runtime, anchor, decision_trace.authority.as_ref()));
@@ -661,7 +661,7 @@ pub fn narrate_decision_trace(
         "No narrated runtime trace is currently available.".to_string()
     };
 
-    WorthNarratedTrace {
+    NarratedTrace {
         headline,
         causal_story,
         query_hints,
@@ -676,8 +676,8 @@ pub fn narrate_boundary_envelope<T>(
     runtime: &RelationalRuntime,
     bridge_diagnostics: Option<&BridgeDiagnosticsFacade>,
     signal_graph: Option<&SignalGraph>,
-    envelope: &WorthBoundaryEnvelope<T>,
-) -> WorthNarratedTrace {
+    envelope: &BoundaryEnvelope<T>,
+) -> NarratedTrace {
     narrate_decision_trace(
         runtime,
         bridge_diagnostics,
@@ -691,8 +691,8 @@ pub fn narrate_boundary_failure<E>(
     runtime: &RelationalRuntime,
     bridge_diagnostics: Option<&BridgeDiagnosticsFacade>,
     signal_graph: Option<&SignalGraph>,
-    failure: &WorthBoundaryFailure<E>,
-) -> WorthNarratedTrace {
+    failure: &BoundaryFailure<E>,
+) -> NarratedTrace {
     narrate_decision_trace(
         runtime,
         bridge_diagnostics,

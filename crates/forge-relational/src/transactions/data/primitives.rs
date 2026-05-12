@@ -225,6 +225,11 @@ pub enum PlannedLineageTransition {
         target: EntityReference,
         client_key: InternedString,
     },
+    UpdateRelationEndpoints {
+        relation_id: RelationId,
+        source: EntityReference,
+        target: EntityReference,
+    },
     DeleteRelation {
         relation_id: RelationId,
     },

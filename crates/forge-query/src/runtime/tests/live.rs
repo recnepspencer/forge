@@ -2,25 +2,28 @@ use super::support::*;
 
 #[test]
 fn runtime_declares_live_view_and_routes_minimal_write_patches() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let view: ForgeQueryLiveView<Value> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
 
     let insert = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Buy milk" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Buy milk")),
+            ],
+        ))
         .expect("insert should execute through runtime facade");
     let task_id = insert.deltas()[0].entity_identity.clone();
     let insert_patches = runtime.drain_patches(&view);
 
     assert_eq!(insert.deltas().len(), 1);
-    assert!(insert.deltas()[0].aspect_paths.is_empty());
+    assert_eq!(
+        insert.deltas()[0].aspect_paths,
+        vec!["identity.id".to_string(), "title.value".to_string()]
+    );
     assert_eq!(
         insert.affected_live_view_ids(),
         &["tasks.table".to_string()]
@@ -65,7 +68,7 @@ fn runtime_declares_live_view_and_routes_minimal_write_patches() {
 
 #[test]
 fn runtime_grouped_live_view_uses_backend_baseline_and_delivers_grouped_membership_patch() {
-    let mut runtime = grouped_task_runtime();
+    let mut runtime = stateful_bridge_grouped_task_runtime();
     let table: ForgeQueryLiveView<Value> = runtime
         .declare_live_view(
             "tasks.seed-table",
@@ -74,14 +77,14 @@ fn runtime_grouped_live_view_uses_backend_baseline_and_delivers_grouped_membersh
         )
         .expect("table live view should declare before seed write");
     let seed = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Seed task" },
-                "status": { "value": "todo" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Seed task")),
+                ("status.value", json!("todo")),
+            ],
+        ))
         .expect("seed insert should write through table declaration");
     let task_id = seed.deltas()[0].entity_identity.clone();
     let _ = runtime.drain_patches(&table);
@@ -118,7 +121,7 @@ fn runtime_grouped_live_view_uses_backend_baseline_and_delivers_grouped_membersh
 
 #[test]
 fn unified_inspect_routes_live_effect_and_write_receipt_targets() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live: ForgeQueryLiveView<Value> = runtime
         .declare_live_view("tasks.inspect-target", task_live_request(), task_schema())
         .expect("live view should declare");
@@ -130,13 +133,13 @@ fn unified_inspect_routes_live_effect_and_write_receipt_targets() {
         ))
         .expect("effect should declare");
     let receipt = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Inspect target" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Inspect target")),
+            ],
+        ))
         .expect("write should execute");
 
     let live_inspection = runtime.inspect(&live).expect("live target should inspect");
@@ -183,7 +186,7 @@ fn unified_inspect_routes_live_effect_and_write_receipt_targets() {
 
 #[test]
 fn live_view_inspection_reconstructs_subscription_proof_chain() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let view: ForgeQueryLiveView<Value> = runtime
         .declare_live_view("tasks.table", task_live_request(), task_schema())
         .expect("live view should declare");
@@ -301,7 +304,7 @@ fn live_view_inspection_reconstructs_subscription_proof_chain() {
 
 #[test]
 fn grouped_live_view_inspection_preserves_grouped_family_and_baseline_support() {
-    let mut runtime = grouped_task_runtime();
+    let mut runtime = stateful_bridge_grouped_task_runtime();
     let table: ForgeQueryLiveView<Value> = runtime
         .declare_live_view(
             "tasks.seed-table",
@@ -310,14 +313,14 @@ fn grouped_live_view_inspection_preserves_grouped_family_and_baseline_support() 
         )
         .expect("table live view should declare before grouped view");
     let _ = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Seed task" },
-                "status": { "value": "todo" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Seed task")),
+                ("status.value", json!("todo")),
+            ],
+        ))
         .expect("seed insert should write through table declaration");
     let _ = runtime.drain_patches(&table);
     let grouped: ForgeQueryLiveView<Value> = runtime
@@ -374,13 +377,13 @@ fn redeclared_live_view_replaces_runtime_delivery_index_membership() {
         .declare_live_view("shared.surface", task_live_request(), task_schema())
         .expect("task live view should declare");
     let task_seed = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Task".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "title": { "value": "Task seed" },
-            }),
-        })
+        .write(insert_command(
+            "Task",
+            [
+                ("identity.id", json!("")),
+                ("title.value", json!("Task seed")),
+            ],
+        ))
         .expect("task seed should write");
     let _ = runtime.drain_patches(&task_view);
 
@@ -400,13 +403,13 @@ fn redeclared_live_view_replaces_runtime_delivery_index_membership() {
     assert!(stale_task_patches.query_delivery_batches.is_empty());
 
     let issue_write = runtime
-        .write(ForgeQueryWriteCommand::Insert {
-            collection: "Issue".to_string(),
-            payload: json!({
-                "identity": { "id": "" },
-                "summary": { "value": "Issue seed" },
-            }),
-        })
+        .write(insert_command(
+            "Issue",
+            [
+                ("identity.id", json!("")),
+                ("summary.value", json!("Issue seed")),
+            ],
+        ))
         .expect("issue insert should write");
     let issue_patches = runtime.drain_patches(&issue_view);
 

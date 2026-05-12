@@ -163,7 +163,7 @@ impl RuntimeCore {
         let reads = canonicalize_callback_reads(invocation.captured_read_ids);
         let current_reads = reads.iter().map(|read| read.id().to_owned()).collect();
         let value = invocation.value;
-        if reads.is_empty() {
+        if reads.is_empty() && invocation.captured_host_capability_reads.is_empty() {
             let disposed = compute_callbacks::dispose_compute(token);
             debug_assert!(
                 disposed,
@@ -220,6 +220,7 @@ impl RuntimeCore {
             id: id.clone(),
             token,
             reads: reads.clone(),
+            host_capability_reads: invocation.captured_host_capability_reads.clone(),
             produces_aspects: None,
         });
         self.insert_recipe_definition(
@@ -246,6 +247,7 @@ impl RuntimeCore {
             id.clone(),
             CallbackDiagnosticState {
                 current_reads,
+                host_capability_reads: invocation.captured_host_capability_reads,
                 purity_posture: Some("signalTracked".to_owned()),
                 last_runtime_read_breadth: invocation.runtime_read_breadth,
                 ..CallbackDiagnosticState::default()
@@ -307,6 +309,30 @@ impl RuntimeCore {
         self.define_recipe(spec)?;
         self.web_signals.insert(id, WebSignalKind::Output);
         Ok(())
+    }
+
+    pub(crate) fn mark_worker_public_outputs(
+        &mut self,
+        output_ids: Vec<String>,
+    ) -> Result<(), ForgeSignalJsError> {
+        for output_id in output_ids {
+            if !self.catalog.contains_key(&output_id) {
+                return Err(ForgeSignalJsError::invalid_input(format!(
+                    "worker public output `{output_id}` is not published"
+                )));
+            }
+            if !self.lock_store()?.recipes.contains_key(&output_id) {
+                return Err(ForgeSignalJsError::invalid_input(format!(
+                    "worker public output `{output_id}` must be a recipe"
+                )));
+            }
+            self.web_signals.insert(output_id, WebSignalKind::Output);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn is_web_output_signal(&self, id: &str) -> bool {
+        matches!(self.web_signals.get(id), Some(WebSignalKind::Output))
     }
 
     #[cfg(test)]

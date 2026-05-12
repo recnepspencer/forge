@@ -1,0 +1,31 @@
+error: cannot construct `ForgeQueryGraphCompositionDomainInvariantSummary` with struct literal syntax due to private fields
+  --> tests/ui/runtime_graph_composition_domain_invariant_summary_constructor_private.rs:4:13
+   |
+ 4 |     let _ = ForgeQueryGraphCompositionDomainInvariantSummary {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 5 |         target_combination_families: vec!["mixed_existing_and_symbolic_entity_identity_edges".into()],
+   |         --------------------------------------------------------------------------------------------- private field
+ 6 |         lifecycle_families: vec!["mixed_existing_target_verified_retarget".into()],
+   |         -------------------------------------------------------------------------- private field
+ 7 |         program_digest: "digest".to_string(),
+   |         ------------------------------------ private field
+ 8 |         breadth_digest: "breadth".to_string(),
+   |         ------------------------------------- private field
+ 9 |         counter_snapshot: "components=2".to_string(),
+   |         -------------------------------------------- private field
+10 |         summary_digest: "summary".to_string(),
+   |         ------------------------------------- private field
+   |
+   = note: ...and other private fields `declared_collections` and `declared_symbols` that were not provided
+help: you might have meant to use the `derive` associated function
+   |
+ 4 -     let _ = ForgeQueryGraphCompositionDomainInvariantSummary {
+ 5 -         target_combination_families: vec!["mixed_existing_and_symbolic_entity_identity_edges".into()],
+ 6 -         lifecycle_families: vec!["mixed_existing_target_verified_retarget".into()],
+ 7 -         program_digest: "digest".to_string(),
+ 8 -         breadth_digest: "breadth".to_string(),
+ 9 -         counter_snapshot: "components=2".to_string(),
+10 -         summary_digest: "summary".to_string(),
+11 -     };
+ 4 +     let _ = ForgeQueryGraphCompositionDomainInvariantSummary::derive(_, _, _);
+   |

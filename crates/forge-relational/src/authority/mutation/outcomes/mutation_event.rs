@@ -28,6 +28,9 @@ pub(crate) enum MutationEvent {
         target: EntityId,
         kind_id: KindId,
     },
+    RelationUpdated {
+        relation_id: RelationId,
+    },
     BulkRelationsCreated {
         partition_id: PartitionId,
         kind_id: KindId,

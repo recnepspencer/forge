@@ -20,6 +20,7 @@ use crate::facade::transactions::{
 use crate::tests::support::*;
 
 mod relation_integrity;
+mod relation_updates;
 
 #[test]
 fn runtime_defaults_to_serialized_authority() {

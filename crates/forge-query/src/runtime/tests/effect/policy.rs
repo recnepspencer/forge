@@ -2,7 +2,7 @@ use super::super::support::*;
 
 #[test]
 fn preview_effect_policy_bindings_distinguish_delivery_and_write_intent() {
-    let mut runtime = task_runtime();
+    let mut runtime = stateful_bridge_task_runtime();
     let live = runtime
         .declare_live_view::<Value>("tasks.preview-policy", task_live_request(), task_schema())
         .expect("live should declare");

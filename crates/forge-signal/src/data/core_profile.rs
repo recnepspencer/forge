@@ -17,14 +17,14 @@ pub const MAX_ASPECTS: usize = 8;
 #[cfg(feature = "profile-standard")]
 pub const MAX_ASPECTS: usize = 8;
 #[cfg(feature = "profile-extended")]
-pub const MAX_ASPECTS: usize = 16;
+pub const MAX_ASPECTS: usize = 32;
 
 #[cfg(feature = "profile-compact")]
 pub type AspectMaskBits = u8;
 #[cfg(feature = "profile-standard")]
 pub type AspectMaskBits = u8;
 #[cfg(feature = "profile-extended")]
-pub type AspectMaskBits = u16;
+pub type AspectMaskBits = u64;
 
 #[cfg(feature = "profile-compact")]
 pub const HOT_VEC_INLINE_CAPACITY: usize = 4;

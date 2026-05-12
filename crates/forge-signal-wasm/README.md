@@ -1,26 +1,31 @@
 # forge-signal-wasm
 
-Framework-agnostic browser bindings for Forge Signal, with a callback-first
-app surface and an optional React adapter.
+Framework-agnostic browser bindings for Forge Signal.
+
+`forge-signal-wasm` gives you one package for three jobs:
+
+- local reactive app state
+- API-backed resource state
+- browser and framework integration around that state
+
+You can use it for ordinary signal-style state, larger controller and graph
+composition, and resource lines that own loading, freshness, uploads,
+downloads, diagnostics, and history.
+
+The root package is a mixed umbrella entrypoint:
+
+- the default export initializes the raw wasm module
+- named exports expose the modern callable, graph, resource, and host-capability
+  surfaces
+
+The published npm package is ESM-first. `import` and bundler resolution are the
+supported consumer paths. CommonJS callers should use dynamic `import(...)`
+instead of `require(...)`.
 
 ## Install
 
-Public npm package:
-
 ```bash
 npm install forge-signal-wasm
-```
-
-Before publishing a new version from this repo, always run the package proof:
-
-```powershell
-node scripts/wasm/verify-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg
-```
-
-Or use the release-gate helper:
-
-```powershell
-scripts/wasm/publish-forge-signal-wasm.ps1 -SkipPublish
 ```
 
 React adapter:
@@ -29,172 +34,201 @@ React adapter:
 npm install forge-signal-wasm react
 ```
 
-## Quick Start
+Before publishing a new version from this repo, always run the package proof:
+
+```powershell
+scripts/wasm/publish-forge-signal-wasm.ps1 -SkipPublish
+```
+
+## What This Package Is Good At
+
+- local app state with derived values
+- controller-style composition for larger features
+- explicit graph contracts for published inputs and outputs
+- graph-scoped input mutation with write, patch, and reset helpers
+- linked writable state for "follow source until overridden" flows
+- aspect-aware invalidation and explicit aspect-filtered spec authoring
+- API resources with detail, collection, and paged family authoring
+- line-scoped request, freshness, retry, upload, download, and inspection
+  surfaces for resource-backed state
+- browser host facts such as visibility, viewport, online status, clock, and
+  persistence
+- runtime diagnostics, history, replay, branching, merge planning, and exact
+  graph restore
+- lower-level compatibility surfaces for advanced and migration-oriented use
+
+## Where To Start
+
+- If you want local app state, start with the examples below and then read
+  [App Surface Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/app_surface_reference.md).
+- If you want API-backed state, jump to
+  [API Resources Overview](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/api_resources_overview.md).
+- If you want package setup and local package workflow, start with
+  [Consuming forge-signal-wasm](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/consuming_the_package.md).
+
+## The Main Authoring Model
+
+The normal app lane is handle-based and id-less:
 
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
 const signals = createSignals();
 
-const count = signals.input(1, { id: "count" });
-const doubled = signals.computed(() => count() * 2, { id: "doubled" });
+const count = signals.input(1);
+const doubled = signals.computed(() => count() * 2);
 const panel = signals.output(() => ({
   count: count(),
   doubled: doubled(),
-}), { id: "panel" });
+}));
+
+count.set(2);
+
+console.log(panel());
+```
+
+This is the normal app lane: you author local state by handle, not by string
+id. If you want friendlier diagnostics later, you can add `debugName`, but it
+is only metadata for humans. It is not identity and it is never a stable lookup
+key.
+
+## Small Example
+
+This is the simplest useful example of the app lane:
+
+```ts
+import { createSignals } from "forge-signal-wasm";
+
+const signals = createSignals();
+
+const count = signals.input(1);
+const doubled = signals.computed(() => count() * 2);
 
 signals.transaction((tx) => {
   tx.set(count, 2);
 });
 
-console.log(panel());
+console.log(doubled());
 ```
 
-## Core Concepts
+## Real Example
 
-### `input`
-
-Use `input` for mutable source state.
-
-Simple:
+This example shows the surface we actually want for ordinary feature code:
 
 ```ts
-const count = signals.input(1, { id: "count" });
-signals.transaction((tx) => tx.set(count, 2));
-```
+import { createSignals } from "forge-signal-wasm";
 
-Complex:
+const signals = createSignals();
 
-```ts
-const part = signals.input({
-  id: "gear-7",
-  teeth: 24,
-  enabled: true,
-}, {
-  id: "part",
-  producesAspects: [1, 2],
+const itemWorkspace = signals.graph("itemWorkspace", (graph) => {
+  const editor = graph.controller("editor", ({ input, computed, linked }) => {
+    const serverItem = input({
+      id: "task-7",
+      title: "Ship docs",
+      workflowTargetStateId: "ready",
+    });
+
+    const draft = input({});
+
+    const effectiveItem = computed(() => ({
+      ...serverItem(),
+      ...draft(),
+    }));
+
+    const selectedWorkflowTarget = linked({
+      source: () => [
+        { id: "draft", label: "Draft" },
+        { id: "ready", label: "Ready" },
+      ],
+      computation: (options, previous) => (
+        options.find((option) => option.id === previous?.value?.id) ?? options[0]
+      ),
+    });
+
+    const dirtyState = computed(() => (
+      Object.keys(draft()).length > 0
+    ));
+
+    return {
+      inputs: { serverItem, draft, selectedWorkflowTarget },
+      outputs: { effectiveItem, dirtyState },
+    };
+  });
+
+  return graph.expose({
+    inputs: {
+      serverItem: graph.input.required(editor.inputs.serverItem, {
+        authority: "readOnly",
+      }),
+      draft: graph.input.optional(editor.inputs.draft),
+      selectedWorkflowTarget: graph.input.optional(
+        editor.inputs.selectedWorkflowTarget,
+      ),
+    },
+    outputs: {
+      effectiveItem: editor.outputs.effectiveItem,
+      dirtyState: editor.outputs.dirtyState,
+    },
+  });
 });
 
-signals.transaction((tx) => {
-  tx.setWithAspects(part, {
-    id: "gear-7",
-    teeth: 26,
-    enabled: true,
-  }, [1]);
+itemWorkspace.patchInput("draft", {
+  title: "Ready to ship",
 });
+
+console.log(itemWorkspace.read());
 ```
 
-### `computed`
+In this example:
 
-Use `computed` for runtime-owned derived state. Callback form is the normal
-authoring lane.
+- `serverItem` is the source data
+- `draft` is local editable state
+- `effectiveItem` is derived from both
+- graph publication is where public names and input rules become explicit
 
-Only callable signal reads are tracked. Ordinary closure variables are not
-reactive dependencies, and a callback that captures no signal reads can be
-lowered into a constantized node.
+## Explicit Named Lane
 
-Simple:
-
-```ts
-const doubled = signals.computed(() => count() * 2, { id: "doubled" });
-```
-
-Complex:
+If you need explicit structural names for spec or portability work, use
+`signals.spec`:
 
 ```ts
-const enabled = signals.input(true, { id: "enabled" });
-const name = signals.input("Ada", { id: "name" });
-
-const label = signals.computed(() => {
-  return enabled() ? `${name()} is enabled` : "disabled";
-}, { id: "label" });
-```
-
-Advanced recipe form still exists:
-
-```ts
-const doubled = signals.computedSpec("doubled", {
-  reads: ["count"],
-  expr: {
-    kind: "multiply",
-    args: [
-      { kind: "read", id: "count" },
-      { kind: "value", value: 2 },
-    ],
-  },
-});
-```
-
-### `output`
-
-Use `output` for public projections you hand to UI layers, tables, panels, or
-other consumers.
-
-Callback outputs follow the same capture rule as callback computed nodes:
-signal reads are tracked, ordinary closure variables are not, and richer
-aspect-targeted projection contracts belong on the explicit spec lane.
-
-Simple:
-
-```ts
-const panel = signals.output(() => ({
+const count = signals.spec.input("count", 1);
+const doubled = signals.spec.computedCallback("doubled", () => count() * 2);
+const panel = signals.spec.outputCallback("panel", () => ({
   count: count(),
   doubled: doubled(),
-}), { id: "panel" });
+}));
 ```
 
-Complex:
+Use the spec lane when names are the contract. Do not use it for ordinary app
+authoring just to recreate the older id-heavy style.
+
+## Mutation Helpers
+
+Local inputs support direct mutation helpers:
 
 ```ts
-const partSummary = signals.output(() => ({
-  part: part(),
-  label: label(),
-  status: part().enabled ? "active" : "inactive",
-}), { id: "partSummary" });
+const draft = signals.input({ title: "Ship docs", done: false });
+
+draft.patch({ done: true });
+draft.assign({ title: "Ready to ship" });
+draft.reset();
 ```
 
-Advanced recipe form still exists when you need explicit portable specs:
+Graphs expose the same ideas at the public boundary:
 
 ```ts
-const partSummary = signals.outputSpec("partSummary", {
-  reads: ["part", "label"],
-  expr: {
-    kind: "object",
-    fields: [
-      ["part", { kind: "read", id: "part" }],
-      ["label", { kind: "read", id: "label" }],
-    ],
-  },
-});
+graph.writeInput("draft", { title: "Queued" });
+graph.patchInput("draft", { reviewer: "Avery" });
+graph.resetInput("draft");
 ```
 
-### `watch` and `effect`
+Those helpers still lower through the same runtime mutation substrate as
+`transaction(...)` and `apply(...)`.
 
-Use `watch` when you want the notice payload. Use `effect` when you only need a
-committed side-effect trigger.
+## Transactions And Batch
 
-Simple:
-
-```ts
-const handle = signals.watch(panel, (notice) => {
-  console.log(notice.signalId, notice.meaningfulChange);
-});
-```
-
-Complex:
-
-```ts
-const saveHandle = signals.effect(partSummary, () => {
-  const payload = partSummary();
-  queueMicrotask(() => saveDraft(payload));
-});
-
-signals.nuke(saveHandle);
-```
-
-### `transaction`
-
-Use `transaction` or `batch` for all writes.
+Use `transaction(...)` or `batch(...)` for coordinated writes.
 
 Simple:
 
@@ -207,6 +241,14 @@ signals.transaction((tx) => {
 Complex:
 
 ```ts
+const part = signals.input({
+  id: "gear-7",
+  teeth: 24,
+  enabled: true,
+}, {
+  producesAspects: [1, 2],
+});
+
 signals.transaction((tx) => {
   tx.setWithRegionsAndAspects(
     part,
@@ -217,19 +259,177 @@ signals.transaction((tx) => {
 });
 ```
 
+Use the direct handle helpers when the change is small and local. Use
+`transaction(...)` or `batch(...)` when you want one coordinated commit,
+runtime-level staging, or aspect/region-aware writes.
+
+## Linked Writable State
+
+`signals.linked(...)` gives you dependent writable state that can be locally
+overridden and later re-anchored:
+
+```ts
+const shippingOptions = signals.input([
+  { id: "ground", label: "Ground" },
+  { id: "air", label: "Air" },
+]);
+
+const selectedShipping = signals.linked({
+  source: () => shippingOptions(),
+  computation: (options, previous) => (
+    options.find((option) => option.id === previous?.value?.id) ?? options[0]
+  ),
+});
+
+selectedShipping.set({ id: "air", label: "Air" });
+selectedShipping.relink();
+selectedShipping.reset();
+```
+
+Use this when state normally follows another reactive source but should still
+allow local user intent.
+
+## Aspects
+
+`forge-signal-wasm` supports real Forge Signal aspects on the web surface.
+
+That means one node can carry multiple semantic change lanes, and explicit
+named/spec reads can subscribe to only the lanes they actually care about.
+
+```ts
+const sensor = signals.spec.input("sensor", 10, {
+  producesAspects: [1, 2],
+});
+
+const summary = signals.spec.computed("summary", {
+  reads: [{ id: "sensor", aspect: 1 }],
+  expr: { kind: "read", id: "sensor" },
+  producesAspects: [7],
+});
+
+signals.transaction((tx) => {
+  tx.setWithAspects(sensor, 11, [2]);
+});
+```
+
+Use aspects when change kind matters inside the runtime, not just changed
+value.
+
+## Host Capabilities
+
+Host capability is the typed lane for browser facts that do not belong in
+ambient closure reads:
+
+```ts
+import {
+  createSignals,
+  hostCapabilityPlan,
+  visibilityCapability,
+} from "forge-signal-wasm";
+
+const signals = createSignals({
+  hostCapabilities: hostCapabilityPlan({
+    visibility: visibilityCapability({
+      source: {
+        current() {
+          return document.visibilityState;
+        },
+        subscribe(listener) {
+          document.addEventListener("visibilitychange", listener);
+          return () => document.removeEventListener("visibilitychange", listener);
+        },
+      },
+    }),
+  }),
+});
+
+const isVisible = signals.computed(() => (
+  signals.host.visibility?.isVisible() ?? false
+));
+```
+
+Available families today:
+
+- `visibility`
+- `viewport`
+- `online`
+- `clock`
+- `persistence`
+
+## API Resources
+
+The package also ships a first-class resource surface for request-shaped,
+resource-backed state:
+
+```ts
+import {
+  createSignals,
+  resourceParamIdentity,
+  resourceParams,
+} from "forge-signal-wasm";
+
+const signals = createSignals();
+
+const productDetail = signals.resource.detail({
+  params: resourceParams<{ productId: string }>(),
+  normalizeParams: ({ productId }) =>
+    resourceParamIdentity({ productId }, productId),
+  load: ({ productId }) => ({ id: productId, title: `Product ${productId}` }),
+});
+
+const line = productDetail.line({ productId: "p1" });
+
+console.log(line.value());
+console.log(line.status());
+console.log(line.request());
+```
+
+Use resources when the state is really a parameterized resource line with:
+
+- request posture
+- freshness and retry behavior
+- upload or processing posture
+- binary/download truth
+- line-scoped diagnostics, history, replay, and restore
+
+Start with the resource docs cluster when that is your main use case:
+
+- [API Resources Overview](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/api_resources_overview.md)
+- [Resource Family Authoring Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_family_authoring_reference.md)
+- [Resource Line Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_line_reference.md)
+- [Resource Recipes](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_recipes.md)
+
+Ignore the deeper resource pages at first if you do not need them yet. For most
+teams the right path is:
+
+1. overview
+2. family authoring
+3. line reference
+4. recipes
+
 ## Diagnostics
 
-Diagnostics are first-class. Start here:
+Start here:
 
 ```ts
 const diagnostics = signals.diagnostics();
 ```
+
+Use diagnostics when you need explanation, health, recent flow/observation
+evidence, or host-capability event summaries.
 
 Simple:
 
 ```ts
 const why = diagnostics.why("doubled");
 console.log(why.recipeFamily, why.callback?.currentReads);
+```
+
+Host-capability-specific inspection is also available:
+
+```ts
+const hostReport = diagnostics.hostCapabilityReport();
+const latestHostEvent = diagnostics.latestHostCapabilityEvent();
 ```
 
 Complex:
@@ -247,63 +447,232 @@ console.log({
 });
 ```
 
-## React Adapter
+If you already have a published graph, graph-scoped diagnostics are usually the
+better place to start because they project explanation back onto public names:
 
 ```ts
-import { createSignals } from "forge-signal-wasm";
-import {
-  createReactSignalsStore,
-  useSignalValue,
-  useOutputValue,
-  useSignalsDiagnostics,
-} from "forge-signal-wasm/react";
+const graphDiagnostics = itemWorkspace.inspectDiagnostics();
 
-const signals = createSignals();
+console.log(graphDiagnostics.output("effectiveItem").why);
+console.log(graphDiagnostics.dependenciesForOutput("effectiveItem"));
+console.log(graphDiagnostics.contractSummary());
+```
+
+## History, Branching, And Restore
+
+The package exposes both runtime-wide and graph-boundary history surfaces.
+
+Runtime-wide surfaces:
+
+- `signals.diagnostics()`
+  - use this when you want to explain current runtime behavior
+  - `why(id)` answers why one runtime node changed or did not change
+  - `health()` gives a broader runtime-health snapshot
+  - `latestFlow()` and `latestObservation()` expose the most recent committed
+    evaluation and delivery summaries
+  - host-capability event summaries and performance summaries live here too
+- `signals.history()`
+  - use this when the question is about replay, lineage, snapshots, or branch
+    state over time
+  - `replay_for(id)` gives the replay artifact for one raw runtime node
+  - `lineage_for(id)` gives the node's lineage summary
+  - `snapshot()` captures an exact same-runtime snapshot envelope
+  - `current_branch()`, `branches()`, `create_branch(name)`, and
+    `switch_branch(branchId)` expose the branch model directly
+  - branch snapshots, exact branch restore, merge planning, merge execution,
+    replay parity proof, and branch-state proof all live here
+
+## Branching
+
+Branching is part of the runtime history surface. A branch is a named runtime
+line with its own head snapshot and parent branch relationship:
+
+- `current_branch()` returns the active branch handle
+- `branches()` lists the known branches
+- `create_branch(name)` forks a new branch from the current runtime position
+- `switch_branch(branchId)` moves the active runtime onto another branch
+
+Simple:
+
+```ts
+const history = signals.history();
+
+const main = history.current_branch();
+const draft = history.create_branch("draft");
+
+history.switch_branch(draft.id);
+
+console.log({
+  current: history.current_branch().name,
+  branches: history.branches().map((branch) => branch.name),
+});
+```
+
+Use this when you want to explore or stage alternative runtime states without
+throwing away the current line.
+
+Simple:
+
+```ts
+const history = signals.history();
+
+const currentBranch = history.current_branch();
+const draftBranch = history.create_branch("draft");
+const snapshot = history.snapshot();
+
+console.log(currentBranch.name);
+console.log(draftBranch.id);
+console.log(snapshot.snapshotEnvelopeRestoreMode);
+```
+
+Complex:
+
+```ts
+const history = signals.history();
+const source = history.create_branch("incoming");
+const target = history.current_branch();
+
+const mergePlan = history.plan_merge_branches_with_proof(source.id, target.id);
+const mergeResult = history.merge_branches_with_proof(source.id, target.id);
+const targetProof = history.branch_state_proof(target.id);
+
+console.log({
+  mergePlanDigest: mergePlan.proof.planDigest,
+  mergeResultDigest: mergeResult.proof.resultDigest,
+  targetBranchStateDigest: targetProof.branchStateDigest,
+});
+```
+
+Graph-boundary surfaces:
+
+- `contract()`
+  - the current public graph contract with input/output names and descriptors
+- `operationalContract()`
+  - the graph contract plus operational posture such as public input authority
+- `inspectDiagnostics()`
+  - graph-scoped explanation with public names, dependency explanations, and
+    latest flow/observation projected onto the boundary
+- `inspectHistory()`
+  - replay and lineage projected onto graph inputs and outputs instead of raw
+    runtime ids
+- `contractHistory()`
+  - the accumulated contract-history view for the published graph
+- `contractDelta(...)`
+  - the explicit delta between two graph contracts
+- `exportDefinition()`
+  - the portable definition artifact for this published graph boundary
+- `exportSnapshot()`
+  - the exact same-runtime snapshot artifact paired with that definition
+- `importPosture()`
+  - the graph's admitted restore/import posture
+
+Graph-scoped history gives you replay and lineage already projected onto graph
+inputs and outputs:
+
+```ts
+const graphHistory = itemWorkspace.inspectHistory();
+
+console.log(graphHistory.inputs.draft.replay);
+console.log(graphHistory.outputs.effectiveItem.lineage);
+console.log(graphHistory.recentHistory);
+```
+
+Published graphs can also export exact restore artifacts directly:
+
+```ts
+const definition = itemWorkspace.exportDefinition();
+const snapshot = itemWorkspace.exportSnapshot();
+const restored = createSignals().importGraph(definition, snapshot);
+
+console.log(restored.contractHistory());
+```
+
+Use the runtime-wide lane when the question is about raw runtime causality,
+branch state, replay, or merge planning. Use the graph lane when the question
+is about a published contract with public names, requiredness, authorities,
+dependencies, replay, and lineage already projected onto the boundary.
+
+## React Adapter
+
+The optional React adapter is intentionally thin. React reads and writes the
+same signal state; it does not become a second state engine.
+
+```ts
+import { createReactSignalsStore } from "forge-signal-wasm/react";
+
 const store = createReactSignalsStore(signals);
 ```
 
 Simple:
 
 ```tsx
+import { useSignalValue } from "forge-signal-wasm/react";
+
 function Counter() {
   const countValue = useSignalValue(count, store);
-  return <button onClick={() => store.transaction((tx) => tx.set(count, countValue + 1))}>
-    {countValue}
-  </button>;
+
+  return (
+    <button onClick={() => store.transaction((tx) => tx.set(count, countValue + 1))}>
+      {countValue}
+    </button>
+  );
 }
 ```
 
 Complex:
 
 ```tsx
-function PartPanel() {
-  const summary = useOutputValue(partSummary, store);
+import {
+  useOutputValue,
+  useSignalsDiagnostics,
+} from "forge-signal-wasm/react";
+
+function ItemPanel() {
+  const effectiveItem = useOutputValue(itemWorkspace.output("effectiveItem"), store);
+  const dirtyState = useOutputValue(itemWorkspace.output("dirtyState"), store);
   const diagnostics = useSignalsDiagnostics(store);
 
   return (
     <>
-      <pre>{JSON.stringify(summary, null, 2)}</pre>
-      <small>{diagnostics.performanceSummary.computeCallbackDependencyPatchCount}</small>
+      <pre>{JSON.stringify(effectiveItem, null, 2)}</pre>
+      <small>
+        dirty: {String(dirtyState)}
+        {" | "}
+        callback patches: {diagnostics.performanceSummary.computeCallbackDependencyPatchCount}
+      </small>
     </>
   );
 }
 ```
 
-## Advanced Lanes
+## Compatibility Lane
 
-- Prefer callback-first `computed(() => ...)` and `output(() => ...)` for
-  ordinary app code.
-- Prefer `signals.input(value, { id })` when you want the family to read with
-  one coherent grammar.
-- Keep `computedSpec(...)` and `outputSpec(...)` for explicit portable recipe
-  authoring.
-- Keep `compatibilityApp()` and `compatibilityRuntime()` for expert or migration
-  scenarios, not for the default product lane.
+Lower-level compatibility surfaces still exist:
 
-## Documentation
+- `signals.compatibilityApp()`
+- `signals.compatibilityRuntime()`
+- `signals.adapters()`
 
-- [docs/README.md](docs/README.md)
-- [docs/consuming_the_package.md](docs/consuming_the_package.md)
-- [docs/app_surface_reference.md](docs/app_surface_reference.md)
-- [docs/diagnostics_and_history_reference.md](docs/diagnostics_and_history_reference.md)
-- [docs/react_adapter_reference.md](docs/react_adapter_reference.md)
+Use them when you need runtime-facing or export-facing detail. Most app code
+should stay on the callable surface.
+
+## Docs
+
+- [Documentation Index](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/README.md)
+- [Consuming forge-signal-wasm](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/consuming_the_package.md)
+- [App Surface Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/app_surface_reference.md)
+- [API Resources Overview](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/api_resources_overview.md)
+- [Resource Family Authoring Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_family_authoring_reference.md)
+- [Resource Line Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_line_reference.md)
+- [Resource Request And Policy Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_request_and_policy_reference.md)
+- [Resource Reconciliation Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_reconciliation_reference.md)
+- [Resource Transfers Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_transfers_reference.md)
+- [Resource Binary And Download Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_binary_and_download_reference.md)
+- [Resource Delivery And Compatibility Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_delivery_and_compatibility_reference.md)
+- [Resource Inspection And History Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_inspection_and_history_reference.md)
+- [Resource Recipes](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_recipes.md)
+- [Aspects Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/aspects_reference.md)
+- [Host Capabilities](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/host_capabilities.md)
+- [Diagnostics And History Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/diagnostics_and_history_reference.md)
+- [Compatibility Surface Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/compatibility_surface_reference.md)
+- [React Adapter Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/react_adapter_reference.md)

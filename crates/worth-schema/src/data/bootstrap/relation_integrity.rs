@@ -7,18 +7,17 @@ use forge_relational::facade::schema::{
 };
 
 use crate::data::entities::{
-    WorthDiagnosticsEntityKind, WorthEntityKind, WorthGeometryEntityKind, WorthNamingEntityKind,
-    WorthTopologyEntityKind,
+    DiagnosticsEntityKind, EntityKind, GeometryEntityKind, NamingEntityKind, TopologyEntityKind,
 };
 use crate::data::relations::{
-    WorthDiagnosticsRelationKind, WorthGeometryRelationKind, WorthNamingRelationKind,
-    WorthRelationKind, WorthTopologyRelationKind,
+    DiagnosticsRelationKind, GeometryRelationKind, NamingRelationKind, RelationKind,
+    TopologyRelationKind,
 };
 
-pub fn relation_integrity(kind: WorthRelationKind) -> RelationIntegrityDeclarations {
+pub fn relation_integrity(kind: RelationKind) -> RelationIntegrityDeclarations {
     let (allowed_source_kinds, allowed_target_kinds, self_edges_allowed) = endpoint_domain(kind);
     let (source_max, target_max, pair_max) = cardinality_limits(kind);
-    let contract_stem = kind.kind_name().replace("worth.", "");
+    let contract_stem = kind.kind_name().replace(".", "");
 
     RelationIntegrityDeclarations::new(
         vec![EndpointKindContractDeclaration {
@@ -48,153 +47,137 @@ pub fn relation_integrity(kind: WorthRelationKind) -> RelationIntegrityDeclarati
     )
 }
 
-fn endpoint_domain(kind: WorthRelationKind) -> (Vec<KindId>, Vec<KindId>, bool) {
+fn endpoint_domain(kind: RelationKind) -> (Vec<KindId>, Vec<KindId>, bool) {
     match kind {
-        WorthRelationKind::Topology(WorthTopologyRelationKind::ModelOwnsBody) => endpoint_pair(
-            WorthEntityKind::Topology(WorthTopologyEntityKind::Model),
-            WorthEntityKind::Topology(WorthTopologyEntityKind::Body),
+        RelationKind::Topology(TopologyRelationKind::ModelOwnsBody) => endpoint_pair(
+            EntityKind::Topology(TopologyEntityKind::Model),
+            EntityKind::Topology(TopologyEntityKind::Body),
             false,
         ),
-        WorthRelationKind::Topology(WorthTopologyRelationKind::BodyOwnsLump) => endpoint_pair(
-            WorthEntityKind::Topology(WorthTopologyEntityKind::Body),
-            WorthEntityKind::Topology(WorthTopologyEntityKind::Lump),
+        RelationKind::Topology(TopologyRelationKind::BodyOwnsLump) => endpoint_pair(
+            EntityKind::Topology(TopologyEntityKind::Body),
+            EntityKind::Topology(TopologyEntityKind::Lump),
             false,
         ),
-        WorthRelationKind::Topology(WorthTopologyRelationKind::LumpOwnsRegion) => endpoint_pair(
-            WorthEntityKind::Topology(WorthTopologyEntityKind::Lump),
-            WorthEntityKind::Topology(WorthTopologyEntityKind::Region),
+        RelationKind::Topology(TopologyRelationKind::LumpOwnsRegion) => endpoint_pair(
+            EntityKind::Topology(TopologyEntityKind::Lump),
+            EntityKind::Topology(TopologyEntityKind::Region),
             false,
         ),
-        WorthRelationKind::Topology(WorthTopologyRelationKind::RegionOwnsShell) => endpoint_pair(
-            WorthEntityKind::Topology(WorthTopologyEntityKind::Region),
-            WorthEntityKind::Topology(WorthTopologyEntityKind::Shell),
+        RelationKind::Topology(TopologyRelationKind::RegionOwnsShell) => endpoint_pair(
+            EntityKind::Topology(TopologyEntityKind::Region),
+            EntityKind::Topology(TopologyEntityKind::Shell),
             false,
         ),
-        WorthRelationKind::Topology(WorthTopologyRelationKind::ShellOwnsFace) => endpoint_pair(
-            WorthEntityKind::Topology(WorthTopologyEntityKind::Shell),
-            WorthEntityKind::Topology(WorthTopologyEntityKind::Face),
+        RelationKind::Topology(TopologyRelationKind::ShellOwnsFace) => endpoint_pair(
+            EntityKind::Topology(TopologyEntityKind::Shell),
+            EntityKind::Topology(TopologyEntityKind::Face),
             false,
         ),
-        WorthRelationKind::Topology(WorthTopologyRelationKind::FaceOuterLoop)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::FaceInnerLoop) => endpoint_pair(
-            WorthEntityKind::Topology(WorthTopologyEntityKind::Face),
-            WorthEntityKind::Topology(WorthTopologyEntityKind::Loop),
+        RelationKind::Topology(TopologyRelationKind::FaceOuterLoop)
+        | RelationKind::Topology(TopologyRelationKind::FaceInnerLoop) => endpoint_pair(
+            EntityKind::Topology(TopologyEntityKind::Face),
+            EntityKind::Topology(TopologyEntityKind::Loop),
             false,
         ),
-        WorthRelationKind::Topology(WorthTopologyRelationKind::LoopOwnsHalfEdge) => endpoint_pair(
-            WorthEntityKind::Topology(WorthTopologyEntityKind::Loop),
-            WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
+        RelationKind::Topology(TopologyRelationKind::LoopOwnsHalfEdge) => endpoint_pair(
+            EntityKind::Topology(TopologyEntityKind::Loop),
+            EntityKind::Topology(TopologyEntityKind::HalfEdge),
             false,
         ),
-        WorthRelationKind::Topology(WorthTopologyRelationKind::WireOwnsHalfEdge) => endpoint_pair(
-            WorthEntityKind::Topology(WorthTopologyEntityKind::Wire),
-            WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
+        RelationKind::Topology(TopologyRelationKind::WireOwnsHalfEdge) => endpoint_pair(
+            EntityKind::Topology(TopologyEntityKind::Wire),
+            EntityKind::Topology(TopologyEntityKind::HalfEdge),
             false,
         ),
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeNext)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgePrev)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeRadialNext) => (
-            vec![WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge).kind_id()],
-            vec![WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge).kind_id()],
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeNext)
+        | RelationKind::Topology(TopologyRelationKind::HalfEdgePrev)
+        | RelationKind::Topology(TopologyRelationKind::HalfEdgeRadialNext) => (
+            vec![EntityKind::Topology(TopologyEntityKind::HalfEdge).kind_id()],
+            vec![EntityKind::Topology(TopologyEntityKind::HalfEdge).kind_id()],
             true,
         ),
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeUsesEdge) => endpoint_pair(
-            WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
-            WorthEntityKind::Topology(WorthTopologyEntityKind::Edge),
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeUsesEdge) => endpoint_pair(
+            EntityKind::Topology(TopologyEntityKind::HalfEdge),
+            EntityKind::Topology(TopologyEntityKind::Edge),
             false,
         ),
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeStartsAtVertex) => {
-            endpoint_pair(
-                WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex),
-                false,
-            )
-        }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeEndsAtVertex) => {
-            endpoint_pair(
-                WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex),
-                false,
-            )
-        }
-        WorthRelationKind::Geometry(WorthGeometryRelationKind::FaceUsesSurfaceBinding) => {
-            endpoint_pair(
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Face),
-                WorthEntityKind::Geometry(WorthGeometryEntityKind::SurfaceBinding),
-                false,
-            )
-        }
-        WorthRelationKind::Geometry(WorthGeometryRelationKind::EdgeUsesCurveBinding) => {
-            endpoint_pair(
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Edge),
-                WorthEntityKind::Geometry(WorthGeometryEntityKind::CurveBinding),
-                false,
-            )
-        }
-        WorthRelationKind::Geometry(WorthGeometryRelationKind::HalfEdgeUsesCoedgeBinding) => {
-            endpoint_pair(
-                WorthEntityKind::Topology(WorthTopologyEntityKind::HalfEdge),
-                WorthEntityKind::Geometry(WorthGeometryEntityKind::CoedgeBinding),
-                false,
-            )
-        }
-        WorthRelationKind::Geometry(WorthGeometryRelationKind::VertexUsesGeometryBinding) => {
-            endpoint_pair(
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Vertex),
-                WorthEntityKind::Geometry(WorthGeometryEntityKind::VertexGeometryBinding),
-                false,
-            )
-        }
-        WorthRelationKind::Naming(WorthNamingRelationKind::PersistentNameTargetsEntity) => (
-            vec![WorthEntityKind::Naming(WorthNamingEntityKind::PersistentName).kind_id()],
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeStartsAtVertex) => endpoint_pair(
+            EntityKind::Topology(TopologyEntityKind::HalfEdge),
+            EntityKind::Topology(TopologyEntityKind::Vertex),
+            false,
+        ),
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeEndsAtVertex) => endpoint_pair(
+            EntityKind::Topology(TopologyEntityKind::HalfEdge),
+            EntityKind::Topology(TopologyEntityKind::Vertex),
+            false,
+        ),
+        RelationKind::Geometry(GeometryRelationKind::FaceUsesSurfaceBinding) => endpoint_pair(
+            EntityKind::Topology(TopologyEntityKind::Face),
+            EntityKind::Geometry(GeometryEntityKind::SurfaceBinding),
+            false,
+        ),
+        RelationKind::Geometry(GeometryRelationKind::EdgeUsesCurveBinding) => endpoint_pair(
+            EntityKind::Topology(TopologyEntityKind::Edge),
+            EntityKind::Geometry(GeometryEntityKind::CurveBinding),
+            false,
+        ),
+        RelationKind::Geometry(GeometryRelationKind::HalfEdgeUsesCoedgeBinding) => endpoint_pair(
+            EntityKind::Topology(TopologyEntityKind::HalfEdge),
+            EntityKind::Geometry(GeometryEntityKind::CoedgeBinding),
+            false,
+        ),
+        RelationKind::Geometry(GeometryRelationKind::VertexUsesGeometryBinding) => endpoint_pair(
+            EntityKind::Topology(TopologyEntityKind::Vertex),
+            EntityKind::Geometry(GeometryEntityKind::VertexGeometryBinding),
+            false,
+        ),
+        RelationKind::Naming(NamingRelationKind::PersistentNameTargetsEntity) => (
+            vec![EntityKind::Naming(NamingEntityKind::PersistentName).kind_id()],
             naming_target_kind_ids(),
             false,
         ),
-        WorthRelationKind::Diagnostics(WorthDiagnosticsRelationKind::WireHasInterpretation) => {
+        RelationKind::Diagnostics(DiagnosticsRelationKind::WireHasInterpretation) => endpoint_pair(
+            EntityKind::Topology(TopologyEntityKind::Wire),
+            EntityKind::Diagnostics(DiagnosticsEntityKind::WireInterpretation),
+            false,
+        ),
+        RelationKind::Diagnostics(DiagnosticsRelationKind::ShellHasInterpretation) => {
             endpoint_pair(
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Wire),
-                WorthEntityKind::Diagnostics(WorthDiagnosticsEntityKind::WireInterpretation),
-                false,
-            )
-        }
-        WorthRelationKind::Diagnostics(WorthDiagnosticsRelationKind::ShellHasInterpretation) => {
-            endpoint_pair(
-                WorthEntityKind::Topology(WorthTopologyEntityKind::Shell),
-                WorthEntityKind::Diagnostics(WorthDiagnosticsEntityKind::ShellInterpretation),
+                EntityKind::Topology(TopologyEntityKind::Shell),
+                EntityKind::Diagnostics(DiagnosticsEntityKind::ShellInterpretation),
                 false,
             )
         }
     }
 }
 
-fn cardinality_limits(kind: WorthRelationKind) -> (Option<u64>, Option<u64>, Option<u64>) {
+fn cardinality_limits(kind: RelationKind) -> (Option<u64>, Option<u64>, Option<u64>) {
     match kind {
-        WorthRelationKind::Topology(WorthTopologyRelationKind::ModelOwnsBody)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::BodyOwnsLump)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::LumpOwnsRegion)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::RegionOwnsShell)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::ShellOwnsFace)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::LoopOwnsHalfEdge)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::WireOwnsHalfEdge)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::FaceInnerLoop) => {
-            (None, Some(1), Some(1))
-        }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::FaceOuterLoop)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeNext)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgePrev)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeRadialNext)
-        | WorthRelationKind::Geometry(WorthGeometryRelationKind::FaceUsesSurfaceBinding)
-        | WorthRelationKind::Geometry(WorthGeometryRelationKind::EdgeUsesCurveBinding)
-        | WorthRelationKind::Geometry(WorthGeometryRelationKind::HalfEdgeUsesCoedgeBinding)
-        | WorthRelationKind::Geometry(WorthGeometryRelationKind::VertexUsesGeometryBinding)
-        | WorthRelationKind::Naming(WorthNamingRelationKind::PersistentNameTargetsEntity)
-        | WorthRelationKind::Diagnostics(WorthDiagnosticsRelationKind::WireHasInterpretation)
-        | WorthRelationKind::Diagnostics(WorthDiagnosticsRelationKind::ShellHasInterpretation) => {
+        RelationKind::Topology(TopologyRelationKind::ModelOwnsBody)
+        | RelationKind::Topology(TopologyRelationKind::BodyOwnsLump)
+        | RelationKind::Topology(TopologyRelationKind::LumpOwnsRegion)
+        | RelationKind::Topology(TopologyRelationKind::RegionOwnsShell)
+        | RelationKind::Topology(TopologyRelationKind::ShellOwnsFace)
+        | RelationKind::Topology(TopologyRelationKind::LoopOwnsHalfEdge)
+        | RelationKind::Topology(TopologyRelationKind::WireOwnsHalfEdge)
+        | RelationKind::Topology(TopologyRelationKind::FaceInnerLoop) => (None, Some(1), Some(1)),
+        RelationKind::Topology(TopologyRelationKind::FaceOuterLoop)
+        | RelationKind::Topology(TopologyRelationKind::HalfEdgeNext)
+        | RelationKind::Topology(TopologyRelationKind::HalfEdgePrev)
+        | RelationKind::Topology(TopologyRelationKind::HalfEdgeRadialNext)
+        | RelationKind::Geometry(GeometryRelationKind::FaceUsesSurfaceBinding)
+        | RelationKind::Geometry(GeometryRelationKind::EdgeUsesCurveBinding)
+        | RelationKind::Geometry(GeometryRelationKind::HalfEdgeUsesCoedgeBinding)
+        | RelationKind::Geometry(GeometryRelationKind::VertexUsesGeometryBinding)
+        | RelationKind::Naming(NamingRelationKind::PersistentNameTargetsEntity)
+        | RelationKind::Diagnostics(DiagnosticsRelationKind::WireHasInterpretation)
+        | RelationKind::Diagnostics(DiagnosticsRelationKind::ShellHasInterpretation) => {
             (Some(1), Some(1), Some(1))
         }
-        WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeUsesEdge)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeStartsAtVertex)
-        | WorthRelationKind::Topology(WorthTopologyRelationKind::HalfEdgeEndsAtVertex) => {
+        RelationKind::Topology(TopologyRelationKind::HalfEdgeUsesEdge)
+        | RelationKind::Topology(TopologyRelationKind::HalfEdgeStartsAtVertex)
+        | RelationKind::Topology(TopologyRelationKind::HalfEdgeEndsAtVertex) => {
             (Some(1), None, Some(1))
         }
     }
@@ -202,19 +185,19 @@ fn cardinality_limits(kind: WorthRelationKind) -> (Option<u64>, Option<u64>, Opt
 
 fn naming_target_kind_ids() -> Vec<KindId> {
     let mut kind_ids =
-        Vec::with_capacity(WorthTopologyEntityKind::ALL.len() + WorthGeometryEntityKind::ALL.len());
-    for kind in WorthTopologyEntityKind::ALL {
+        Vec::with_capacity(TopologyEntityKind::ALL.len() + GeometryEntityKind::ALL.len());
+    for kind in TopologyEntityKind::ALL {
         kind_ids.push(kind.kind_id());
     }
-    for kind in WorthGeometryEntityKind::ALL {
+    for kind in GeometryEntityKind::ALL {
         kind_ids.push(kind.kind_id());
     }
     kind_ids
 }
 
 fn endpoint_pair(
-    source_kind: WorthEntityKind,
-    target_kind: WorthEntityKind,
+    source_kind: EntityKind,
+    target_kind: EntityKind,
     self_edges_allowed: bool,
 ) -> (Vec<KindId>, Vec<KindId>, bool) {
     (

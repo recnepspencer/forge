@@ -1,84 +1,80 @@
 # forge-signal-wasm Documentation
 
-`forge-signal-wasm` is the framework-agnostic web runtime for Forge Signal.
-It exposes an app-first API for state, derivation, observation, diagnostics,
-history, and compatibility access, plus a React adapter through the package
-subpath.
+These docs are organized around shipped features and common developer tasks.
+
+If you are trying to answer "how do I do multipart upload?" or "where do I go
+for downloads?", start with the feature pages below instead of the older
+category references.
 
 ## Start Here
 
-- [README.md](../README.md)
-  Product overview and the shortest happy path.
-- [consuming_the_package.md](consuming_the_package.md)
-  Build, prepare, install, import, and package-shape guidance for other apps.
-- [app_surface_reference.md](app_surface_reference.md)
-  Reference for `createSignals()`, `input`, `computed`, `output`, `watch`,
-  `effect`, `transaction`, `batch`, and `nuke`.
-- [diagnostics_and_history_reference.md](diagnostics_and_history_reference.md)
-  Reference for diagnostics, latest observation, latest flow, history, branch,
-  snapshot, replay, and adapter/export surfaces.
-- [compatibility_surface_reference.md](compatibility_surface_reference.md)
-  Reference for the lower-level `SignalApp` and `SignalRuntime` compatibility
-  surfaces.
-- [aspects_reference.md](aspects_reference.md)
-  Reference for aspect-aware reads, produced aspects, aspect-targeted writes,
-  and why subscriptions remain node-scoped.
-- [react_adapter_reference.md](react_adapter_reference.md)
-  Reference for `forge-signal-wasm/react`.
+- [start_here.md](./start_here.md)
+  The shortest path to route-first resources, line usage, and the raw escape
+  hatch.
+- [feature_index.md](./feature_index.md)
+  One-line index of every first-class resource feature and its canonical doc.
+- [resource_recipes.md](./resource_recipes.md)
+  Task-first examples for the most common happy paths.
 
-## Design And Architecture
+## Feature Docs
 
-- [web_runtime_spec.md](web_runtime_spec.md)
-  Web runtime product and architecture spec.
-- [react_adapter_spec.md](react_adapter_spec.md)
-  React-domain adapter spec.
-- [host_callback_computed_spec.md](host_callback_computed_spec.md)
-  Callback-first computed-node spec for normal TypeScript authoring with
-  dynamic dependencies and diagnostics parity.
+- [feature_fetch_and_write_api_resources.md](./feature_fetch_and_write_api_resources.md)
+  Detail, list, paged, create, update, remove, params, and advanced
+  `verb/body/headers`.
+- [feature_request_posture_and_policy.md](./feature_request_posture_and_policy.md)
+  Auth, headers, request context, policy profiles, continuation, and request
+  posture inspection.
+- [feature_collections_and_delivery.md](./feature_collections_and_delivery.md)
+  `items(...)`, `reconcile(...)`, aspects, summaries, patch helpers, and
+  delivery helpers.
+- [feature_transfers.md](./feature_transfers.md)
+  Signed upload, multipart upload, finalize-required flows, and deferred
+  processing.
+- [feature_downloads.md](./feature_downloads.md)
+  Builder-owned downloads, binary descriptors, and multipart download handoff.
+- [feature_line_inspection.md](./feature_line_inspection.md)
+  `line.summary()`, request inspection, diagnostics, history, upload,
+  processing, and download reads.
+- [feature_history_and_restore.md](./feature_history_and_restore.md)
+  History availability, exact restore, exact replay posture, and verification
+  packages.
+- [feature_external_delivery_and_compatibility.md](./feature_external_delivery_and_compatibility.md)
+  External definitions, pushed packets, basis refresh, and compatibility
+  delivery.
+- [feature_raw_escape_hatch.md](./feature_raw_escape_hatch.md)
+  When to use `signals.resource.*(...)` directly and how it relates to the
+  pleasant lane.
 
-## Product Model
+## Reference Docs
 
-The primary web concepts are:
+Use these when you already know the feature and want the lower-level surface
+details.
 
-- `input`
-- `computed`
-- `output`
-- `watch`
-- `effect`
-- `transaction`
-- `nuke`
-- real aspect-aware derivation and invalidation
+- [api_route_authoring_reference.md](./api_route_authoring_reference.md)
+- [resource_family_authoring_reference.md](./resource_family_authoring_reference.md)
+- [resource_request_and_policy_reference.md](./resource_request_and_policy_reference.md)
+- [resource_reconciliation_reference.md](./resource_reconciliation_reference.md)
+- [resource_transfers_reference.md](./resource_transfers_reference.md)
+- [resource_binary_and_download_reference.md](./resource_binary_and_download_reference.md)
+- [resource_line_reference.md](./resource_line_reference.md)
+- [resource_inspection_and_history_reference.md](./resource_inspection_and_history_reference.md)
+- [resource_delivery_and_compatibility_reference.md](./resource_delivery_and_compatibility_reference.md)
 
-The package also exposes:
+## Non-Resource Docs
 
-- diagnostics and latest observation summaries
-- history, branching, replay, merge planning, and snapshots
-- adapter/export helpers
-- lower-level compatibility/runtime surfaces
-- a React adapter subpath
+- [app_surface_reference.md](./app_surface_reference.md)
+- [consuming_the_package.md](./consuming_the_package.md)
+- [react_adapter_reference.md](./react_adapter_reference.md)
+- [host_capabilities.md](./host_capabilities.md)
+- [diagnostics_and_history_reference.md](./diagnostics_and_history_reference.md)
+- [compatibility_surface_reference.md](./compatibility_surface_reference.md)
+- [api_resources_overview.md](./api_resources_overview.md)
+- [aspects_reference.md](./aspects_reference.md)
 
-## Semantic Summary
+## Reading Order
 
-- `input` is mutable source state.
-- `computed` is derived internal state.
-- `computed` is callback-first on the package surface.
-- `output` is a public projection intended for host and framework consumption.
-- `output` is callback-first on the product surface, while `outputSpec(...)`
-  remains available for explicit portable recipe authoring.
-- `watch` observes committed boundaries.
-- `effect` reacts to committed boundaries.
-- `transaction` is the committed write boundary.
-- `batch` is an exact alias of `transaction`.
-- `nuke` tears down future deliveries for an observation handle.
-- rollback suppresses normal watcher/effect delivery.
-- latest observation and latest flow remain inspectable through diagnostics.
-- aspects are first-class for node definitions, reads, invalidation, and
-  version reporting, while subscriptions remain node-scoped by default.
-
-## Why These Docs Exist
-
-This reference set is intentionally explicit.
-
-`forge-signal-wasm` is a young library with a broad surface area. The docs need
-to make that breadth obvious enough that humans and AI coding tools treat it
-like a real product rather than assuming it is a thin hacked-together wrapper.
+1. [start_here.md](./start_here.md)
+2. [feature_index.md](./feature_index.md)
+3. [resource_recipes.md](./resource_recipes.md)
+4. the one feature page that matches your task
+5. the matching reference page only if you need lower-level detail

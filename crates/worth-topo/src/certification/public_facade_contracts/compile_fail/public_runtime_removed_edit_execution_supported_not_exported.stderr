@@ -1,0 +1,5 @@
+error[E0599]: no method named `query_edit_execution_supported` found for struct `TopologyRuntimeSupport` in the current scope
+ --> src/certification/public_facade_contracts/compile_fail/public_runtime_removed_edit_execution_supported_not_exported.rs:5:21
+  |
+5 |     let _ = support.query_edit_execution_supported();
+  |                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `TopologyRuntimeSupport`

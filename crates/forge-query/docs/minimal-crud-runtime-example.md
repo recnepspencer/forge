@@ -36,7 +36,7 @@ derived UI state yourself.
 - `workspace.computed(...)`
 - `workspace.insert(...)`
 - `workspace.update(...)`
-- `workspace.write(...)` as the lower-level compatibility path
+- `workspace.write(...)` as the lower-level mutation path
 - `workspace.read(...)`
 - `workspace.observe(...)`
 - `workspace.materialize(...)`

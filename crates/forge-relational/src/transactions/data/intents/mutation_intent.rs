@@ -54,6 +54,14 @@ pub struct DeleteRelationIntent {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct UpdateRelationEndpointsIntent {
+    pub relation_id: RelationId,
+    pub kind_id: KindId,
+    pub source: EntityReference,
+    pub target: EntityReference,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum CreateIntent {
     Entity(EntitySpec),
     BulkEntities(BulkEntityCreateIntent),
@@ -71,6 +79,7 @@ pub enum EntityMutationIntent {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum RelationMutationIntent {
+    UpdateEndpoints(UpdateRelationEndpointsIntent),
     Delete(DeleteRelationIntent),
 }
 

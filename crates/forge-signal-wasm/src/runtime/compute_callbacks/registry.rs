@@ -173,6 +173,7 @@ pub fn register_native_compute(
             return_serialization_breadth: serialized_breadth(&value),
             value,
             captured_read_ids: Vec::new(),
+            captured_host_capability_reads: Vec::new(),
             runtime_read_breadth: 0,
         })
     }))

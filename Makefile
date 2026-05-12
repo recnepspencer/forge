@@ -63,7 +63,7 @@ kernel-check:
 test: kernel-test ui-test
 
 .PHONY: check
-check: kernel-check ui-check determinism-guards determinism-golden signal-runtime-guards
+check: kernel-check ui-check determinism-guards determinism-golden signal-runtime-guards line-caps
 
 # ── Trace tooling ─────────────────────────────────────────────────────────────
 
@@ -90,6 +90,10 @@ determinism-golden:
 .PHONY: signal-runtime-guards
 signal-runtime-guards:
 	bash scripts/ci/check_signal_runtime_guards.sh
+
+.PHONY: line-caps
+line-caps:
+	bash scripts/ci/check_workspace_rust_line_caps.sh
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 

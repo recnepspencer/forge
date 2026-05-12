@@ -49,6 +49,14 @@ From Milestone 6 onward, the bridge is making claims about:
 Those are all adversarial surfaces. They need certification tests, not just
 behavior checks.
 
+Cross-runtime note:
+
+- [../forge-query/runtime-authoritative-mutation-evidence-plan.md](../forge-query/runtime-authoritative-mutation-evidence-plan.md)
+  is the shared hardening gate for authority-mutation evidence, causality, and
+  provenance carry-forward. Where bridge tests cover writeback, causality,
+  continuity, or replay-safe provenance, they are part of that same end-to-end
+  contract, not a separate story.
+
 ## Global Adversarial Constraint
 
 The bridge test suite from Milestone 6 onward must prove the following:

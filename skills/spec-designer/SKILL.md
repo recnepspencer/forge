@@ -11,10 +11,11 @@ Use this skill when the task is specification design, not implementation.
 
 Read these in this order before designing anything:
 
-1. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\MENTALITY.md`
-2. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\arch_laws.md`
-3. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\perf_laws.md`
-4. `C:\Users\Esther\Documents\Programming\forge_workspace\forge\_docs\coding_guidelines\domain_laws.md`
+1. `_docs/coding_guidelines/MENTALITY.md`
+2. `_docs/coding_guidelines/arch_laws.md`
+3. `_docs/coding_guidelines/composition_laws.md` if it is populated
+4. `_docs/coding_guidelines/domain_structure_laws.md`
+5. `_docs/coding_guidelines/perf_laws.md`
 
 `MENTALITY.md` is first on purpose. It governs how the spec should be conceived, not just how it should be formatted.
 
@@ -52,8 +53,9 @@ The summary should answer:
 At minimum, this summary set must include one short summary each for:
 - `MENTALITY.md`
 - `arch_laws.md`
+- `composition_laws.md`, if it is populated
+- `domain_structure_laws.md`
 - `perf_laws.md`
-- `domain_laws.md`
 - the subsystem vision doc
 - the subsystem roadmap doc
 - the subsystem test requirements doc, if one exists

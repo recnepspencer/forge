@@ -4,7 +4,9 @@ use wasm_bindgen::prelude::*;
 use crate::boundary::restore_tokens::{
     load_snapshot, load_snapshot_envelope, store_snapshot, store_snapshot_envelope,
 };
-use crate::boundary::serde::{from_js, to_js, to_js_structured};
+use crate::boundary::serde::{
+    from_js, from_portable_wire, to_js, to_js_structured, to_portable_wire,
+};
 use crate::runtime::summaries::RuntimeSnapshotEnvelope;
 
 use super::types::SignalHistory;
@@ -39,6 +41,11 @@ impl SignalHistory {
         Ok(store_snapshot_envelope(snapshot))
     }
 
+    pub fn snapshot_portable_wire(&self) -> Result<String, JsValue> {
+        let snapshot = self.core.borrow_mut().snapshot().map_err(JsValue::from)?;
+        to_portable_wire(&snapshot).map_err(JsValue::from)
+    }
+
     pub fn restore_snapshot(&self, snapshot: JsValue) -> Result<(), JsValue> {
         let snapshot: RuntimeSnapshotEnvelope = from_js(snapshot)?;
         self.core
@@ -49,6 +56,15 @@ impl SignalHistory {
 
     pub fn restore_snapshot_wire(&self, snapshot: String) -> Result<(), JsValue> {
         let snapshot = load_snapshot_envelope(&snapshot).map_err(JsValue::from)?;
+        self.core
+            .borrow_mut()
+            .restore_snapshot(snapshot)
+            .map_err(JsValue::from)
+    }
+
+    pub fn restore_snapshot_portable_wire(&self, snapshot: String) -> Result<(), JsValue> {
+        let snapshot: RuntimeSnapshotEnvelope =
+            from_portable_wire(&snapshot).map_err(JsValue::from)?;
         self.core
             .borrow_mut()
             .restore_snapshot(snapshot)
@@ -108,6 +124,15 @@ impl SignalHistory {
         Ok(store_snapshot(snapshot))
     }
 
+    pub fn branch_snapshot_portable_wire(&self, branch_id: u64) -> Result<String, JsValue> {
+        let snapshot = self
+            .core
+            .borrow_mut()
+            .branch_snapshot(branch_id)
+            .map_err(JsValue::from)?;
+        to_portable_wire(&snapshot).map_err(JsValue::from)
+    }
+
     pub fn branch_snapshot_id(&self, branch_id: u64) -> Result<u64, JsValue> {
         self.core
             .borrow_mut()
@@ -133,6 +158,18 @@ impl SignalHistory {
         Ok(store_snapshot_envelope(snapshot))
     }
 
+    pub fn branch_snapshot_envelope_portable_wire(
+        &self,
+        branch_id: u64,
+    ) -> Result<String, JsValue> {
+        let snapshot = self
+            .core
+            .borrow_mut()
+            .branch_snapshot_envelope(branch_id)
+            .map_err(JsValue::from)?;
+        to_portable_wire(&snapshot).map_err(JsValue::from)
+    }
+
     pub fn restore_branch_snapshot(
         &self,
         branch_id: u64,
@@ -151,6 +188,18 @@ impl SignalHistory {
         snapshot: String,
     ) -> Result<(), JsValue> {
         let snapshot = load_snapshot(&snapshot).map_err(JsValue::from)?;
+        self.core
+            .borrow_mut()
+            .restore_branch_snapshot(branch_id, snapshot)
+            .map_err(JsValue::from)
+    }
+
+    pub fn restore_branch_snapshot_portable_wire(
+        &self,
+        branch_id: u64,
+        snapshot: String,
+    ) -> Result<(), JsValue> {
+        let snapshot: RuntimeSnapshot = from_portable_wire(&snapshot).map_err(JsValue::from)?;
         self.core
             .borrow_mut()
             .restore_branch_snapshot(branch_id, snapshot)

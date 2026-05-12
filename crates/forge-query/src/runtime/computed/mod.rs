@@ -15,7 +15,8 @@ mod state;
 mod surface;
 
 pub(in crate::runtime) use routing::{
-    admit_derived_view_declaration, insert_derived_runtime, route_derived_view_patches,
+    admit_derived_view_declaration, insert_derived_runtime,
+    retained_live_view_names_for_candidates, route_derived_view_patches,
 };
 pub(in crate::runtime) use state::{
     ForgeQueryComputedAdmissionError, ForgeQueryComputedDependencyIndex,
@@ -24,5 +25,6 @@ pub(in crate::runtime) use state::{
 pub use surface::{
     ForgeQueryComputedInspectionEvidence, ForgeQueryDerivedPatch, ForgeQueryDerivedPatchFamily,
     ForgeQueryDerivedViewHandle, ForgeQueryDerivedViewMaintainer,
-    ForgeQueryDerivedViewMaterialization,
+    ForgeQueryDerivedViewMaterialization, ForgeQueryRetainedMutationContext,
+    ForgeQueryRetainedUpstreamInputs,
 };

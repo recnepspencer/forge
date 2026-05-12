@@ -27,6 +27,11 @@ Preferred ordinary DX is `workspace.computed(...)`. Compatibility surfaces such
 as `computed_view(...)` and `computed_definition(...)` still exist for narrower
 cases.
 
+For downstream crates that need domain-owned declaration vocabularies before a
+workspace is assembled, `ForgeQueryComputedBuilder::surface(...)` is also
+public. That seam is for declaration reuse, while ordinary runtime code should
+still prefer the workspace surface.
+
 ## Core Mental Model
 
 Computed state is not authoritative truth. It lives in the derived runtime lane
@@ -45,6 +50,10 @@ What the runtime tracks automatically:
 - incremental versus refresh-fallback posture
 - materialized rows and pending derived patches
 
+When a computed surface cannot honestly derive from one mutation delta alone,
+whole-refresh fallback can rebuild from retained upstream rows instead of
+pretending a local incremental update was sufficient.
+
 ## How It Executes
 
 1. You declare the computed surface with a name, dependency contract, and
@@ -54,6 +63,17 @@ What the runtime tracks automatically:
 3. Relevant authoritative writes wake the computed surface through its declared
    upstreams.
 4. The maintainer updates derived materialization and pending derived patches.
+   Whole-refresh maintainers may rebuild from retained upstream live/computed
+   rows when delta-only maintenance would be dishonest. When a whole-refresh
+   computed declares more than one upstream live surface, the retained snapshot
+   includes rows from every declared upstream live view, not only the view that
+   happened to receive the triggering authoritative write. This also holds for
+   downstream whole-refresh computeds reached through other computed surfaces:
+   the runtime preserves the declared live siblings needed by the downstream
+   rebuild contract rather than forcing the maintainer to reconstruct them
+   manually. Whole-refresh maintainers also receive retained mutation context:
+   commit identity, snapshot token, touched aspect paths, and any authored
+   mutation metadata the write carried.
 5. `workspace.materialize(...)` returns current derived rows.
 6. `workspace.inspect(...)` explains dependencies, produced aspects, and patch
    posture.
@@ -170,6 +190,7 @@ What gets retained:
 - produced-aspect digests
 - materialized rows
 - pending incremental or refresh-fallback patch posture
+- retained mutation context for whole-refresh rebuilds
 
 What gets inspected:
 
@@ -210,6 +231,11 @@ This is the main way to verify whether a computed surface is wired correctly.
 - Assuming nested computeds are just callback chains instead of ordered retained
   runtime surfaces.
 - Ignoring refresh-fallback posture and pretending it is incremental.
+- Rebuilding from host-side shadow state instead of using retained upstream
+  runtime rows when refresh fallback is declared.
+- Reconstructing sibling upstream truth yourself because a write touched only
+  one live view. The runtime already hands whole-refresh maintainers the
+  retained rows for every declared upstream live surface.
 
 ## Current Limits
 

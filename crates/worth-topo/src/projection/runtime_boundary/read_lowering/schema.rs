@@ -1,0 +1,74 @@
+use forge_query::facade::{QuerySchemaView, RelationName};
+use schema::facade::{
+    QueryCollection, QueryDeclarationError, QueryLiveDeclarationBuilder, QueryLiveField,
+    QuerySchemaBasis, RelationKind, TopologyRelationKind,
+};
+
+pub(crate) const TOPOLOGY_DOMAIN_QUERY_MAX_CYCLE_DEPTH: u8 = 64;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
+pub(crate) enum TopologyDomainTraversalRelation {
+    HalfEdgeStartsAtVertex,
+    HalfEdgeEndsAtVertex,
+    HalfEdgeUsesEdge,
+    HalfEdgeRadialNext,
+    HalfEdgeNext,
+    HalfEdgePrev,
+}
+
+impl TopologyDomainTraversalRelation {
+    pub(crate) const ALL: [Self; 6] = [
+        Self::HalfEdgeStartsAtVertex,
+        Self::HalfEdgeEndsAtVertex,
+        Self::HalfEdgeUsesEdge,
+        Self::HalfEdgeRadialNext,
+        Self::HalfEdgeNext,
+        Self::HalfEdgePrev,
+    ];
+
+    pub(crate) const fn topology_relation_kind(self) -> TopologyRelationKind {
+        match self {
+            Self::HalfEdgeStartsAtVertex => TopologyRelationKind::HalfEdgeStartsAtVertex,
+            Self::HalfEdgeEndsAtVertex => TopologyRelationKind::HalfEdgeEndsAtVertex,
+            Self::HalfEdgeUsesEdge => TopologyRelationKind::HalfEdgeUsesEdge,
+            Self::HalfEdgeRadialNext => TopologyRelationKind::HalfEdgeRadialNext,
+            Self::HalfEdgeNext => TopologyRelationKind::HalfEdgeNext,
+            Self::HalfEdgePrev => TopologyRelationKind::HalfEdgePrev,
+        }
+    }
+
+    pub(crate) fn relation_name(self) -> RelationName {
+        RelationName::new(self.topology_relation_kind().kind_name())
+            .expect(" topology traversal relations must be valid relation names")
+    }
+
+    pub(crate) const fn max_depth(self) -> u8 {
+        match self {
+            Self::HalfEdgeStartsAtVertex
+            | Self::HalfEdgeEndsAtVertex
+            | Self::HalfEdgeUsesEdge
+            | Self::HalfEdgeRadialNext
+            | Self::HalfEdgePrev => 1,
+            Self::HalfEdgeNext => TOPOLOGY_DOMAIN_QUERY_MAX_CYCLE_DEPTH,
+        }
+    }
+}
+
+pub(crate) fn topology_domain_query_schema_view() -> Result<QuerySchemaView, QueryDeclarationError>
+{
+    let mut builder = QueryLiveDeclarationBuilder::new(
+        ".topology.domain_query.schema",
+        QueryCollection::TopologyEntity,
+        QuerySchemaBasis::TopologyDomainQuery,
+    )
+    .select_fields([QueryLiveField::IdentityId, QueryLiveField::TopologyKind]);
+    for relation in TopologyDomainTraversalRelation::ALL {
+        builder = builder.allow_traversal_relation(
+            RelationKind::Topology(relation.topology_relation_kind()),
+            relation.max_depth(),
+        );
+    }
+    builder
+        .build()
+        .map(|declaration| declaration.schema_view().clone())
+}

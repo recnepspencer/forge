@@ -37,6 +37,13 @@ fn why_summary_exposes_callback_dependency_patch_and_failure_details() {
                     Ok(compute_callbacks::ComputeCallbackInvocationResult {
                         value: SignalValue::String(name_for_callback.borrow().clone()),
                         captured_read_ids: vec!["name".to_owned(), "enabled".to_owned()],
+                        captured_host_capability_reads: vec![
+                            compute_callbacks::CapturedHostCapabilityRead {
+                                family: "visibility".to_owned(),
+                                registration_id: "visibility".to_owned(),
+                                compatibility: "LiveOnly".to_owned(),
+                            },
+                        ],
                         runtime_read_breadth: 2,
                         return_serialization_breadth: 1,
                     })
@@ -44,6 +51,13 @@ fn why_summary_exposes_callback_dependency_patch_and_failure_details() {
                     Ok(compute_callbacks::ComputeCallbackInvocationResult {
                         value: SignalValue::String("disabled".to_owned()),
                         captured_read_ids: vec!["enabled".to_owned()],
+                        captured_host_capability_reads: vec![
+                            compute_callbacks::CapturedHostCapabilityRead {
+                                family: "visibility".to_owned(),
+                                registration_id: "visibility".to_owned(),
+                                compatibility: "LiveOnly".to_owned(),
+                            },
+                        ],
                         runtime_read_breadth: 1,
                         return_serialization_breadth: 1,
                     })
@@ -68,6 +82,7 @@ fn why_summary_exposes_callback_dependency_patch_and_failure_details() {
                     Ok(compute_callbacks::ComputeCallbackInvocationResult {
                         value: SignalValue::Number(2.0),
                         captured_read_ids: vec!["count".to_owned()],
+                        captured_host_capability_reads: Vec::new(),
                         runtime_read_breadth: 1,
                         return_serialization_breadth: 1,
                     })
@@ -95,6 +110,9 @@ fn why_summary_exposes_callback_dependency_patch_and_failure_details() {
     assert_eq!(why.recipe_family.as_deref(), Some("callback"));
     let callback = why.callback.expect("callback details should exist");
     assert_eq!(callback.current_reads, vec!["enabled".to_owned()]);
+    assert_eq!(callback.host_capability_reads.len(), 1);
+    assert_eq!(callback.host_capability_reads[0].family, "visibility");
+    assert_eq!(callback.host_capability_reads[0].compatibility, "LiveOnly");
     let patch = callback
         .last_dependency_patch
         .expect("dependency patch details should exist");
@@ -153,6 +171,7 @@ fn callback_failure_surfaces_expose_typed_cycle_denial_classes_and_clear_collect
                     Ok(compute_callbacks::ComputeCallbackInvocationResult {
                         value: SignalValue::Number(1.0),
                         captured_read_ids: vec!["tick".to_owned()],
+                        captured_host_capability_reads: Vec::new(),
                         runtime_read_breadth: 1,
                         return_serialization_breadth: 1,
                     })
@@ -178,6 +197,7 @@ fn callback_failure_surfaces_expose_typed_cycle_denial_classes_and_clear_collect
                     Ok(compute_callbacks::ComputeCallbackInvocationResult {
                         value: SignalValue::Number(2.0),
                         captured_read_ids: vec!["tick".to_owned()],
+                        captured_host_capability_reads: Vec::new(),
                         runtime_read_breadth: 1,
                         return_serialization_breadth: 1,
                     })
@@ -268,6 +288,13 @@ fn callback_runtime_exports_expose_unavailability_artifacts_instead_of_silent_po
                 Ok(compute_callbacks::ComputeCallbackInvocationResult {
                     value: SignalValue::Number(2.0),
                     captured_read_ids: vec!["count".to_owned()],
+                    captured_host_capability_reads: vec![
+                        compute_callbacks::CapturedHostCapabilityRead {
+                            family: "visibility".to_owned(),
+                            registration_id: "visibility".to_owned(),
+                            compatibility: "LiveOnly".to_owned(),
+                        },
+                    ],
                     runtime_read_breadth: 1,
                     return_serialization_breadth: 1,
                 })
@@ -287,6 +314,31 @@ fn callback_runtime_exports_expose_unavailability_artifacts_instead_of_silent_po
     assert_eq!(
         definitions.unavailable_callbacks[0].current_reads,
         vec!["count".to_owned()]
+    );
+    assert_eq!(
+        definitions.unavailable_callbacks[0].host_capability_reads[0].family,
+        "visibility"
+    );
+    assert_eq!(
+        definitions.unavailable_callbacks[0].host_capability_reads[0].registration_id,
+        "visibility"
+    );
+    assert_eq!(
+        definitions.unavailable_callbacks[0].host_capability_transports[0].family,
+        "visibility"
+    );
+    assert_eq!(
+        definitions.unavailable_callbacks[0].host_capability_transports[0].exact_restore_outcome,
+        "Live"
+    );
+    assert_eq!(
+        definitions.unavailable_callbacks[0].host_capability_transports[0].portable_import_outcome,
+        "Denied"
+    );
+    assert!(
+        definitions.unavailable_callbacks[0].host_capability_transports[0]
+            .portable_import_reason
+            .contains("live-only")
     );
     let summary = runtime.web_performance_summary();
     assert_eq!(summary.compute_callback_missing_unavailability_count, 1);
@@ -309,6 +361,7 @@ fn callback_runtime_envelopes_reject_import_without_live_callback_registrations(
                 Ok(compute_callbacks::ComputeCallbackInvocationResult {
                     value: SignalValue::Number(2.0),
                     captured_read_ids: vec!["count".to_owned()],
+                    captured_host_capability_reads: Vec::new(),
                     runtime_read_breadth: 1,
                     return_serialization_breadth: 1,
                 })

@@ -1,0 +1,32 @@
+export { default } from "./raw_surface.js";
+export * from "./raw_surface.js";
+export {
+  clockCapability,
+  createCallableSignals,
+  createSignals,
+  hostCapabilityPlan,
+  onlineCapability,
+  persistenceCapability,
+  resourceBinaryDescriptor,
+  resourceBinaryValue,
+  resourceAuth,
+  resourceCollectionShape,
+  resourceContinuation,
+  resourceDelivery,
+  resourceDownload,
+  resourceItemAspects,
+  resourceParamIdentity,
+  resourcePatch,
+  resourceValueSummaries,
+  resourceParams,
+  resourcePolicyProfiles,
+  resourceProcessingJob,
+  resourceProcessingResult,
+  resourceUploadResult,
+  resourceUploadTransport,
+  resourceRequestContext,
+  viewportCapability,
+  visibilityCapability,
+  wrapSignals,
+} from "./product/signals.js";
+export { resourceEffects } from "./product/resource/facade.js";

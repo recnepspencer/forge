@@ -1,4 +1,4 @@
-pub struct WorthMinimalTopologyLabels {
+pub struct MinimalTopologyLabels {
     pub model: String,
     pub body: String,
     pub lump: String,
@@ -12,7 +12,7 @@ pub struct WorthMinimalTopologyLabels {
     pub vertex: String,
 }
 
-impl WorthMinimalTopologyLabels {
+impl MinimalTopologyLabels {
     pub fn new(stem: &str) -> Self {
         Self {
             model: format!("{stem}.model"),

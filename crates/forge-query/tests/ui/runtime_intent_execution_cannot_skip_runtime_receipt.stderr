@@ -1,7 +1,7 @@
 error[E0277]: the trait bound `ForgeQueryInspectionTarget<'_>: From<&ForgeQueryIntentExecution>` is not satisfied
-  --> tests/ui/runtime_intent_execution_cannot_skip_runtime_receipt.rs:21:29
+  --> tests/ui/runtime_intent_execution_cannot_skip_runtime_receipt.rs:18:29
    |
-21 |     let _ = runtime.inspect(&execution);
+18 |     let _ = runtime.inspect(&execution);
    |                     ------- ^^^^^^^^^^ the trait `From<&ForgeQueryIntentExecution>` is not implemented for `ForgeQueryInspectionTarget<'_>`
    |                     |
    |                     required by a bound introduced by this call
@@ -17,19 +17,19 @@ error[E0277]: the trait bound `ForgeQueryInspectionTarget<'_>: From<&ForgeQueryI
              `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryLiveView<T>>`
            and $N others
    = note: required for `&ForgeQueryIntentExecution` to implement `Into<ForgeQueryInspectionTarget<'_>>`
-note: required by a bound in `ForgeQueryRuntime::inspect`
-  --> src/runtime.rs
+note: required by a bound in `forge_query::runtime::runtime_inspection::<impl ForgeQueryRuntime>::inspect`
+  --> src/runtime/runtime_inspection.rs
    |
    |     pub fn inspect<'a, T>(
    |            ------- required by a bound in this associated function
 ...
    |         T: Into<ForgeQueryInspectionTarget<'a>>,
-   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `ForgeQueryRuntime::inspect`
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ required by this bound in `forge_query::runtime::runtime_inspection::<impl ForgeQueryRuntime>::inspect`
 
 error[E0308]: mismatched types
-  --> tests/ui/runtime_intent_execution_cannot_skip_runtime_receipt.rs:22:40
+  --> tests/ui/runtime_intent_execution_cannot_skip_runtime_receipt.rs:19:40
    |
-22 |     let _: ForgeQueryMutationReceipt = execution;
+19 |     let _: ForgeQueryMutationReceipt = execution;
    |            -------------------------   ^^^^^^^^^ expected `ForgeQueryMutationReceipt`, found `ForgeQueryIntentExecution`
    |            |
    |            expected due to this

@@ -1,0 +1,9 @@
+error[E0451]: fields `steps` and `program_digest` of struct `ForgeQueryGraphCompositionProgram` are private
+ --> tests/ui/runtime_graph_composition_program_constructor_private.rs:5:9
+  |
+4 |     let _ = ForgeQueryGraphCompositionProgram {
+  |             --------------------------------- in this type
+5 |         steps: Vec::new(),
+  |         ^^^^^ private field
+6 |         program_digest: String::new(),
+  |         ^^^^^^^^^^^^^^ private field

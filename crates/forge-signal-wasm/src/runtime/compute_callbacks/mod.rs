@@ -12,6 +12,6 @@ pub use registry::{
 pub use registry::{register_native_compute, register_native_compute_result};
 #[allow(unused_imports)]
 pub use types::{
-    ComputeCallbackFailure, ComputeCallbackFailureClass, ComputeCallbackInvocationResult,
-    ComputeCallbackToken,
+    CapturedHostCapabilityRead, ComputeCallbackFailure, ComputeCallbackFailureClass,
+    ComputeCallbackInvocationResult, ComputeCallbackToken,
 };

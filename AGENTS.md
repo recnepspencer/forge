@@ -52,6 +52,22 @@ Capture what matters. Decisions, context, things to remember. Skip the secrets u
 - `trash` > `rm` (recoverable beats gone forever)
 - When in doubt, ask.
 
+## File Size Discipline
+
+- Code files and test files must stay at **400 lines or fewer** by default.
+- This limit applies to production code, test code, support code, fixtures, and
+  helper modules.
+- Exceeding 400 lines is only allowed when the file is added to an explicit
+  exemptions list in the relevant spec, plan, or workspace rule.
+- The current CI-enforced Rust allowlist lives at
+  `scripts/ci/workspace_rust_line_cap_allowlist.txt`, and the guard script lives
+  at `scripts/ci/check_workspace_rust_line_caps.sh`.
+- Specs and roadmap documents are not automatically subject to this cap unless a
+  spec explicitly says they are.
+- If you touch a code or test file that is already over the limit, treat
+  splitting or restructuring it as part of the work unless an explicit
+  exemption already exists.
+
 ## External vs Internal
 
 **Safe to do freely:**

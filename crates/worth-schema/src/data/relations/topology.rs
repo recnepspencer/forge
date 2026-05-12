@@ -2,7 +2,7 @@ use forge_relational::facade::identity::KindId;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
-pub enum WorthTopologyRelationKind {
+pub enum TopologyRelationKind {
     ModelOwnsBody,
     BodyOwnsLump,
     LumpOwnsRegion,
@@ -20,23 +20,23 @@ pub enum WorthTopologyRelationKind {
     HalfEdgeEndsAtVertex,
 }
 
-impl WorthTopologyRelationKind {
-    pub const WRAPPED_ALL: [super::WorthRelationKind; 15] = [
-        super::WorthRelationKind::Topology(Self::ModelOwnsBody),
-        super::WorthRelationKind::Topology(Self::BodyOwnsLump),
-        super::WorthRelationKind::Topology(Self::LumpOwnsRegion),
-        super::WorthRelationKind::Topology(Self::RegionOwnsShell),
-        super::WorthRelationKind::Topology(Self::ShellOwnsFace),
-        super::WorthRelationKind::Topology(Self::FaceOuterLoop),
-        super::WorthRelationKind::Topology(Self::FaceInnerLoop),
-        super::WorthRelationKind::Topology(Self::LoopOwnsHalfEdge),
-        super::WorthRelationKind::Topology(Self::WireOwnsHalfEdge),
-        super::WorthRelationKind::Topology(Self::HalfEdgeNext),
-        super::WorthRelationKind::Topology(Self::HalfEdgePrev),
-        super::WorthRelationKind::Topology(Self::HalfEdgeRadialNext),
-        super::WorthRelationKind::Topology(Self::HalfEdgeUsesEdge),
-        super::WorthRelationKind::Topology(Self::HalfEdgeStartsAtVertex),
-        super::WorthRelationKind::Topology(Self::HalfEdgeEndsAtVertex),
+impl TopologyRelationKind {
+    pub const WRAPPED_ALL: [super::RelationKind; 15] = [
+        super::RelationKind::Topology(Self::ModelOwnsBody),
+        super::RelationKind::Topology(Self::BodyOwnsLump),
+        super::RelationKind::Topology(Self::LumpOwnsRegion),
+        super::RelationKind::Topology(Self::RegionOwnsShell),
+        super::RelationKind::Topology(Self::ShellOwnsFace),
+        super::RelationKind::Topology(Self::FaceOuterLoop),
+        super::RelationKind::Topology(Self::FaceInnerLoop),
+        super::RelationKind::Topology(Self::LoopOwnsHalfEdge),
+        super::RelationKind::Topology(Self::WireOwnsHalfEdge),
+        super::RelationKind::Topology(Self::HalfEdgeNext),
+        super::RelationKind::Topology(Self::HalfEdgePrev),
+        super::RelationKind::Topology(Self::HalfEdgeRadialNext),
+        super::RelationKind::Topology(Self::HalfEdgeUsesEdge),
+        super::RelationKind::Topology(Self::HalfEdgeStartsAtVertex),
+        super::RelationKind::Topology(Self::HalfEdgeEndsAtVertex),
     ];
 
     pub const ALL: [Self; 15] = [
@@ -79,21 +79,21 @@ impl WorthTopologyRelationKind {
 
     pub const fn kind_name(self) -> &'static str {
         match self {
-            Self::ModelOwnsBody => "worth.model_owns_body",
-            Self::BodyOwnsLump => "worth.body_owns_lump",
-            Self::LumpOwnsRegion => "worth.lump_owns_region",
-            Self::RegionOwnsShell => "worth.region_owns_shell",
-            Self::ShellOwnsFace => "worth.shell_owns_face",
-            Self::FaceOuterLoop => "worth.face_outer_loop",
-            Self::FaceInnerLoop => "worth.face_inner_loop",
-            Self::LoopOwnsHalfEdge => "worth.loop_owns_half_edge",
-            Self::WireOwnsHalfEdge => "worth.wire_owns_half_edge",
-            Self::HalfEdgeNext => "worth.half_edge_next",
-            Self::HalfEdgePrev => "worth.half_edge_prev",
-            Self::HalfEdgeRadialNext => "worth.half_edge_radial_next",
-            Self::HalfEdgeUsesEdge => "worth.half_edge_uses_edge",
-            Self::HalfEdgeStartsAtVertex => "worth.half_edge_starts_at_vertex",
-            Self::HalfEdgeEndsAtVertex => "worth.half_edge_ends_at_vertex",
+            Self::ModelOwnsBody => ".model_owns_body",
+            Self::BodyOwnsLump => ".body_owns_lump",
+            Self::LumpOwnsRegion => ".lump_owns_region",
+            Self::RegionOwnsShell => ".region_owns_shell",
+            Self::ShellOwnsFace => ".shell_owns_face",
+            Self::FaceOuterLoop => ".face_outer_loop",
+            Self::FaceInnerLoop => ".face_inner_loop",
+            Self::LoopOwnsHalfEdge => ".loop_owns_half_edge",
+            Self::WireOwnsHalfEdge => ".wire_owns_half_edge",
+            Self::HalfEdgeNext => ".half_edge_next",
+            Self::HalfEdgePrev => ".half_edge_prev",
+            Self::HalfEdgeRadialNext => ".half_edge_radial_next",
+            Self::HalfEdgeUsesEdge => ".half_edge_uses_edge",
+            Self::HalfEdgeStartsAtVertex => ".half_edge_starts_at_vertex",
+            Self::HalfEdgeEndsAtVertex => ".half_edge_ends_at_vertex",
         }
     }
 

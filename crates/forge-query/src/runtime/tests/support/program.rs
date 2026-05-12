@@ -14,24 +14,18 @@ pub(in crate::runtime::tests) fn preview_safe_program() -> ForgeQueryProgram {
             .requires(ForgeQueryAuthorityRequirement::Live)
             .requires(ForgeQueryAuthorityRequirement::Writeback)
             .with_effect(ForgeQueryProgramEffect::WriteTemplate(
-                ForgeQueryWriteCommandTemplate::Insert {
+                ForgeQueryWriteCommandTemplate::InsertAspects {
                     collection: "Task".to_string(),
-                    payload: ForgeQueryValueExpr::object([
-                        (
-                            "identity".to_string(),
-                            ForgeQueryValueExpr::object([(
-                                "id".to_string(),
-                                ForgeQueryValueExpr::literal(Value::String(String::new())),
-                            )]),
+                    aspects: vec![
+                        ForgeQueryAspectValueTemplate::new(
+                            "identity.id",
+                            ForgeQueryValueExpr::literal(Value::String(String::new())),
                         ),
-                        (
-                            "title".to_string(),
-                            ForgeQueryValueExpr::object([(
-                                "value".to_string(),
-                                ForgeQueryValueExpr::input("title"),
-                            )]),
+                        ForgeQueryAspectValueTemplate::new(
+                            "title.value",
+                            ForgeQueryValueExpr::input("title"),
                         ),
-                    ]),
+                    ],
                 },
             ))
             .with_effect(ForgeQueryProgramEffect::ReadLive {
@@ -46,6 +40,7 @@ pub(in crate::runtime::tests) fn preview_safe_program() -> ForgeQueryProgram {
 
 pub(in crate::runtime::tests) struct TitleListMaintainer;
 pub(in crate::runtime::tests) struct SummaryMaintainer;
+pub(in crate::runtime::tests) struct RefreshCountMaintainer;
 
 impl ForgeQueryDerivedViewMaintainer for TitleListMaintainer {
     fn maintain(
@@ -93,6 +88,55 @@ impl ForgeQueryDerivedViewMaintainer for SummaryMaintainer {
     }
 }
 
+impl ForgeQueryDerivedViewMaintainer for RefreshCountMaintainer {
+    fn maintain(
+        &mut self,
+        view: &ForgeQueryDerivedView,
+        delta: &crate::memory_workspace::ForgeQueryMutationDelta,
+        materialization: &mut ForgeQueryDerivedViewMaterialization,
+    ) -> ForgeQueryDerivedPatch {
+        let row = Value::String(format!("incremental:{}", delta.entity_identity));
+        materialization.replace_rows([row.clone()]);
+        ForgeQueryDerivedPatch::incremental(
+            view.name(),
+            "refresh-count-incremental",
+            delta.entity_identity.clone(),
+            if view.produced_aspects().is_empty() {
+                delta.aspect_paths.clone()
+            } else {
+                view.produced_aspects().to_vec()
+            },
+            row,
+        )
+    }
+
+    fn refresh_from_upstreams(
+        &mut self,
+        view: &ForgeQueryDerivedView,
+        _mutation: &ForgeQueryRetainedMutationContext,
+        upstreams: &ForgeQueryRetainedUpstreamInputs,
+        materialization: &mut ForgeQueryDerivedViewMaterialization,
+    ) -> Option<ForgeQueryDerivedPatch> {
+        let count = upstreams
+            .live_view_names()
+            .flat_map(|view_name| upstreams.live_rows(view_name).into_iter().flatten())
+            .count();
+        let row = Value::String(format!("count:{count}"));
+        materialization.replace_rows([row.clone()]);
+        Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
+            view.name(),
+            "refresh-count-rebuild",
+            if view.produced_aspects().is_empty() {
+                view.dependency_aspects().to_vec()
+            } else {
+                view.produced_aspects().to_vec()
+            },
+            row,
+            "retained-live-snapshot-rebuild",
+        ))
+    }
+}
+
 impl ForgeQuerySchemaAdapter for FakeSchemaAdapter {
     fn schema_view(&self, operation_id: &str) -> Option<QuerySchemaView> {
         (operation_id == "create_task").then(task_schema)
@@ -125,24 +169,18 @@ impl ForgeQueryProgramSource for FakeDsl {
                     schema_view,
                 })
                 .with_effect(ForgeQueryProgramEffect::WriteTemplate(
-                    ForgeQueryWriteCommandTemplate::Insert {
+                    ForgeQueryWriteCommandTemplate::InsertAspects {
                         collection: "Task".to_string(),
-                        payload: ForgeQueryValueExpr::object([
-                            (
-                                "identity".to_string(),
-                                ForgeQueryValueExpr::object([(
-                                    "id".to_string(),
-                                    ForgeQueryValueExpr::literal(Value::String(String::new())),
-                                )]),
+                        aspects: vec![
+                            ForgeQueryAspectValueTemplate::new(
+                                "identity.id",
+                                ForgeQueryValueExpr::literal(Value::String(String::new())),
                             ),
-                            (
-                                "title".to_string(),
-                                ForgeQueryValueExpr::object([(
-                                    "value".to_string(),
-                                    ForgeQueryValueExpr::input("title"),
-                                )]),
+                            ForgeQueryAspectValueTemplate::new(
+                                "title.value",
+                                ForgeQueryValueExpr::input("title"),
                             ),
-                        ]),
+                        ],
                     },
                 ))
                 .with_effect(ForgeQueryProgramEffect::ReadLive {

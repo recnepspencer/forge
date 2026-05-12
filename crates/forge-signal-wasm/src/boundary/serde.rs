@@ -1,3 +1,5 @@
+use base64::engine::general_purpose::STANDARD as BASE64_STANDARD;
+use base64::Engine as _;
 use serde::de::DeserializeOwned;
 use serde::Serialize;
 use wasm_bindgen::JsValue;
@@ -30,4 +32,25 @@ where
     value.serialize(&serializer).map_err(|err| {
         ForgeSignalJsError::internal(format!("failed to serialize wasm value: {err}"))
     })
+}
+
+pub fn to_portable_wire<T>(value: &T) -> Result<String, ForgeSignalJsError>
+where
+    T: Serialize,
+{
+    let bytes = rmp_serde::to_vec(value).map_err(|err| {
+        ForgeSignalJsError::internal(format!("failed to serialize wasm value: {err}"))
+    })?;
+    Ok(BASE64_STANDARD.encode(bytes))
+}
+
+pub fn from_portable_wire<T>(value: &str) -> Result<T, ForgeSignalJsError>
+where
+    T: DeserializeOwned,
+{
+    let bytes = BASE64_STANDARD
+        .decode(value)
+        .map_err(|err| ForgeSignalJsError::invalid_input(format!("invalid wasm payload: {err}")))?;
+    rmp_serde::from_slice(&bytes)
+        .map_err(|err| ForgeSignalJsError::invalid_input(format!("invalid wasm payload: {err}")))
 }

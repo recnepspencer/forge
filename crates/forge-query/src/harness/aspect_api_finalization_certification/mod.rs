@@ -9,7 +9,7 @@ pub const ASPECT_API_FINALIZATION_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
     "authoritative-insert-update-delete-surface",
     "typed-clear-narrows-by-touched-meaning",
     "preview-batch-lane-isolation",
-    "compatibility-closeout-contract-sync",
+    "mutation-surface-closeout-contract-sync",
 ];
 
 pub const ASPECT_API_FINALIZATION_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
@@ -22,7 +22,7 @@ pub enum AspectApiFinalizationPerturbationClass {
     AuthoritativeCrudSurface,
     TypedClearNarrowing,
     PreviewBatchIsolation,
-    CompatibilityCloseoutSync,
+    MutationSurfaceCloseoutSync,
     UnsupportedIntentFamilyDenied,
     DuplicateAspectAuthoringDenied,
 }
@@ -39,7 +39,7 @@ pub struct AspectApiFinalizationCertificationBundle {
     pub authority_lane_label: String,
     pub mutation_family_label: String,
     pub support_matrix_digest: String,
-    pub compatibility_report_digest: String,
+    pub mutation_surface_report_digest: String,
     pub closeout_digest: String,
     pub receipt_digest: String,
     pub state_digest: String,
@@ -58,7 +58,7 @@ impl AspectApiFinalizationCertificationBundle {
             && !self.authority_lane_label.is_empty()
             && !self.mutation_family_label.is_empty()
             && !self.support_matrix_digest.is_empty()
-            && !self.compatibility_report_digest.is_empty()
+            && !self.mutation_surface_report_digest.is_empty()
             && !self.closeout_digest.is_empty()
             && !self.receipt_digest.is_empty()
             && !self.state_digest.is_empty()
@@ -87,7 +87,7 @@ pub struct AspectApiFinalizationRejectionBundle {
     pub failure_kind: String,
     pub failure_digest: String,
     pub support_matrix_digest: String,
-    pub compatibility_report_digest: String,
+    pub mutation_surface_report_digest: String,
     pub closeout_digest: String,
 }
 

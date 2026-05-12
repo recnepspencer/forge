@@ -99,6 +99,29 @@ impl MutationOutcome {
         outcome
     }
 
+    pub(crate) fn relation_updated(
+        relation_id: RelationId,
+        kind_id: KindId,
+        old_source: EntityId,
+        old_target: EntityId,
+        new_source: EntityId,
+        new_target: EntityId,
+        payload: Option<RecordPayload>,
+    ) -> Self {
+        let mut outcome = Self::with_capacity(1, 1);
+        outcome.record_change(RecordMutation::RelationUpdated {
+            relation_id,
+            kind_id,
+            old_source,
+            old_target,
+            new_source,
+            new_target,
+            payload,
+        });
+        outcome.record_event(MutationEvent::RelationUpdated { relation_id });
+        outcome
+    }
+
     pub(crate) fn relation_deleted(relation_id: RelationId) -> Self {
         let mut outcome = Self::with_capacity(0, 1);
         outcome.record_event(MutationEvent::RelationDeleted { relation_id });

@@ -76,6 +76,7 @@ pub enum DiagnosticCode {
     EntityUpdated,
     EntityDeleted,
     RelationCreated,
+    RelationUpdated,
     RelationDeleted,
     RelationRetainedForAudit,
     ReplayRetentionPinned,
