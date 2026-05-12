@@ -15,6 +15,7 @@ import {
   visibilityCapability,
 } from "./host_capabilities.js";
 import { wrapDiagnostics } from "./diagnostics.js";
+import { createFormController } from "./forms/form_controller.js";
 import { createApiFactory } from "./api/api_namespace.js";
 import {
   createImportedSignalGraph,
@@ -377,6 +378,9 @@ export function wrapSignals(rawSignals, options) {
     },
     controller(definitionOrBuilder) {
       return buildControllerContract(callableSignals, definitionOrBuilder);
+    },
+    form(declaration) {
+      return createFormController(callableSignals, declaration);
     },
     publicInput(handle, options) {
       return createPublicGraphInputEntry(handle, options);

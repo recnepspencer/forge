@@ -51,6 +51,12 @@ import type {
   ControllerContractDefinition,
 } from "./controller_surface.js";
 import type {
+  FormController,
+  FormDeclaration,
+  FormFieldDeclaration,
+  FormFieldHandleFor,
+} from "./forms_surface.js";
+import type {
   ComputedSignal,
   DisposableHandle,
   InputSignal,
@@ -554,6 +560,13 @@ export interface ScopedSignalNamespace<TPersistence = SignalValue> {
     TOutputs extends GraphOutputDefinitions = Record<string, never>,
     TInternal extends Record<string, unknown> = Record<string, never>,
   >(builder: ControllerContractBuilder<TPersistence, TInputs, TOutputs, TInternal>): ControllerContract<TInputs, TOutputs, TInternal>;
+  form<
+    TSource = SignalValue,
+    TFields extends Record<string, FormFieldDeclaration> = Record<string, FormFieldDeclaration>,
+  >(declaration: FormDeclaration<TSource, TFields>): FormController<
+    TSource,
+    { [K in keyof TFields]: FormFieldHandleFor<TFields[K]> }
+  >;
   publicInput<THandle extends InputSignalHandle>(
     handle: THandle,
     options?: PublicGraphInputOptions,
@@ -622,6 +635,13 @@ export interface CallableSignals<TPersistence = SignalValue> {
     TOutputs extends GraphOutputDefinitions = Record<string, never>,
     TInternal extends Record<string, unknown> = Record<string, never>,
   >(builder: ControllerContractBuilder<TPersistence, TInputs, TOutputs, TInternal>): ControllerContract<TInputs, TOutputs, TInternal>;
+  form<
+    TSource = SignalValue,
+    TFields extends Record<string, FormFieldDeclaration> = Record<string, FormFieldDeclaration>,
+  >(declaration: FormDeclaration<TSource, TFields>): FormController<
+    TSource,
+    { [K in keyof TFields]: FormFieldHandleFor<TFields[K]> }
+  >;
   publicInput<THandle extends InputSignalHandle>(
     handle: THandle,
     options?: PublicGraphInputOptions,
