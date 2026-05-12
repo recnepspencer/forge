@@ -28,6 +28,8 @@ The tests must answer:
   compose without category collapse?
 - can future crate migrations consume this vocabulary without discovering that
   a key assumption was left implicit?
+- do proof-bearing Milestone 1 APIs use `forge-proof` progression primitives
+  instead of reinventing local proof machinery?
 
 The certification goal is not "the crate has unit tests." The certification
 goal is:
@@ -49,6 +51,8 @@ Required compile-fail families:
 
 - raw `AspectValue` cannot be inserted into authoritative state without
   contract validation
+- raw `AspectValue` cannot satisfy APIs requiring a `forge-proof` artifact
+  carrying contract-validation proof
 - projection masks, mutation masks, diagnostic masks, and support/report masks
   cannot be substituted for each other
 - scalar, opaque, reference-only, and content-only aspects cannot receive
@@ -60,6 +64,8 @@ Required compile-fail families:
   value construction is required
 - evolution-sensitive operations cannot compare, patch, or digest old/new
   contracts without an evolution verdict
+- evolution-sensitive operations reject old/new contracts that have not
+  progressed through the required `forge-proof` artifact phase
 - derived/report/receipt/support artifact categories cannot be passed where
   authoritative state is required
 
@@ -136,6 +142,8 @@ Must prove:
   rather than accidentally admitted
 - every contract has an equivalence basis before equality, reuse, suppression,
   parity, or digest-preparation claims are allowed
+- contract validation emits proof-bearing outputs using `forge-proof`
+  artifacts, witnesses, or transition outcomes where progression state matters
 
 ### Masks
 
@@ -155,6 +163,8 @@ Must prove:
 
 - authoritative state cannot be constructed from raw values without contract
   validation
+- authoritative state admission consumes proof-bearing contract-validated
+  entries, not raw values or local ad hoc wrappers
 - canonical aspect-state ordering is stable
 - state serialization does not depend on map insertion order or serializer
   object ordering
@@ -212,6 +222,9 @@ Must prove:
 Must prove:
 
 - compatibility lowering is visibly named and opt-in
+- compatibility lowering uses category-preserving `forge-proof`
+  `TransitionOutcome`-style results where success, denial, deferred, stale,
+  rebind-required, or failure can occur
 - compatibility-originated inputs lower through aspect contracts
 - ambiguous numeric width fails closed
 - unordered JSON object shape cannot affect canonical meaning
@@ -225,11 +238,28 @@ Must prove:
 Must prove:
 
 - every Milestone 1 surface has a stable canonical iteration order
+- digest-preparation readiness is represented as a proof-bearing progression
+  state, not a boolean flag
 - digest-preparation sequences are stable across independent construction paths
 - digest-preparation explicitly distinguishes semantic categories that share
   storage shape
 - final digest algorithms remain Milestone 2 work, but Milestone 2 does not
   need to revisit Milestone 1 ordering/equality law
+
+### Forge-Proof Integration
+
+Must prove:
+
+- `forge-foundational` depends on `forge-proof` for proof-bearing progression
+  surfaces instead of duplicating proof substrate concepts
+- plain values, keys, masks, locators, and identity wrappers remain usable as
+  lightweight foundational vocabulary without mandatory proof wrapping
+- contract validation, evolution classification, authoritative-state
+  admission, compatibility lowering, and digest-preparation readiness expose
+  proof-bearing APIs where progression state matters
+- negative tests prove raw/unproven values cannot satisfy proof-bearing APIs
+- negative tests prove proof-bearing artifacts cannot be substituted across
+  incompatible phases
 
 ## Whole-Crate Proof Requirements
 

@@ -29,6 +29,16 @@ shaping constraint is that `forge-foundational` must standardize boundary
 meaning without becoming a runtime or collapsing identities, handles, basis ids,
 authoritative values, derived artifacts, and locators into generic containers.
 
+### `forge-proof`
+
+Protects compile-time proof-bearing progression, witnesses, typed transition
+outcomes, fixed-shape proof collections, and phase markers. The shaping
+constraint is that Milestone 1 should depend on `forge-proof` for
+proof-bearing progression surfaces such as contract validation, evolution
+classification, compatibility lowering, authoritative-state admission, and
+digest-preparation readiness, while keeping raw foundational vocabulary plain
+and lightweight.
+
 ### `composition_laws.md`
 
 Protects files and functions as responsibility-shaped semantic units. The
@@ -255,6 +265,37 @@ Milestone 1 must therefore define the substrate for:
 - opaque/content-bearing contracts that keep large or recursive data behind
   handles rather than reintroducing document-shaped authority
 
+## Forge-Proof Dependency Boundary
+
+Milestone 1 should use `forge-proof` for proof-bearing progression, not for
+plain vocabulary.
+
+Use `forge-proof` for:
+
+- contract validation progression from raw `AspectValue` into an admitted
+  aspect value
+- aspect evolution classification before old/new contracts are compared,
+  patched, lowered, or prepared for digesting
+- compatibility lowering outcomes where JSON-originated input is admitted,
+  denied, deferred, stale, rebind-required, or failed
+- authoritative-state admission from contract-validated entries
+- digest-preparation readiness once ordering and equality have been proven
+- compile-fail tests that prove raw artifacts cannot satisfy validated APIs
+
+Do not use `forge-proof` for:
+
+- `AspectValue`
+- `AspectKey`
+- scalar wrappers
+- content/reference ids
+- locator data
+- plain mask data
+- identity newtypes
+
+Those remain plain `forge-foundational` boundary vocabulary. The proof layer
+wraps or progresses them only when an API needs to know what has already been
+proven.
+
 ## Practical Type Targets
 
 The implementation may rename these types if the local module design finds
@@ -304,6 +345,12 @@ pub struct ContractValidatedAspectValue {
     contract_revision: AspectContractRevision,
 }
 
+pub type ContractValidatedAspectArtifact =
+    forge_proof::Artifact<ContractValidated, ContractValidatedAspectValue, AspectContractProof>;
+
+pub type DigestPreparationReadyAspectState =
+    forge_proof::Artifact<DigestPreparationReady, AuthoritativeRecordAspectState, CanonicalOrderingProof>;
+
 pub struct AuthoritativeRecordAspectState {
     aspects: CanonicalAspectStateMap,
 }
@@ -317,6 +364,9 @@ pub struct AuthoritativeRecordAspectPatch {
 The important point is not that the code must copy this sketch exactly. The
 important point is that shape, masks, absence law, equivalence basis, evolution
 policy, and contract validation are first-class values, not comments.
+Proof-bearing variants of these values should use `forge-proof` artifacts,
+witnesses, and outcomes where those primitives directly fit the progression
+being modeled.
 
 ## Compile-Time Enforcement Targets
 
@@ -333,8 +383,9 @@ mechanical enforcement.
 | Absence, null, default, and clear cannot collapse accidentally. | Distinct enums/witnesses such as `AspectPresence`, `DefaultApplication`, and `ClearIntent`, with no boolean substitute. |
 | Aspect identity, handles, basis ids, content refs, and entity refs cannot be interchanged. | Phantom-tagged newtypes or distinct wrapper structs with no shared public constructor. |
 | Schema-declared structs cannot be authored as arbitrary JSON documents. | No `serde_json::Value` constructor on authoritative value/state APIs; compatibility lowering lives behind an explicitly named bridge. |
-| Evolution classification must happen before old/new contracts are compared, patched, or digested. | Old/new contract operations consume an `AspectEvolutionVerdict` or compatible proof-bearing wrapper. |
-| Digest-preparation input cannot be assembled from insertion-order-dependent maps. | Canonical iterators and private map serialization helpers only; hostile ordering tests lock behavior. |
+| Evolution classification must happen before old/new contracts are compared, patched, or digested. | Old/new contract operations consume an `AspectEvolutionVerdict` carried in a `forge-proof` artifact or equivalent proof-bearing wrapper. |
+| Digest-preparation input cannot be assembled from insertion-order-dependent maps. | Canonical iterators and private map serialization helpers produce a `DigestPreparationReady` proof-bearing artifact; hostile ordering tests lock behavior. |
+| Compatibility lowering cannot flatten denial/deferred/stale/rebind/failure into a boolean. | Lowering APIs return `forge_proof::TransitionOutcome` or an equivalent category-preserving proof outcome. |
 
 This table is intentionally part of the spec, not implementation advice. It is
 the anti-naive-trap checklist for Milestone 1.
@@ -370,6 +421,7 @@ semantics.
 Must ship:
 
 - workspace registration for `crates/forge-foundational`
+- workspace dependency on `forge-proof` for proof-bearing progression surfaces
 - a public facade that exports only milestone-owned vocabulary
 - internal module boundaries for:
   - canonical values
@@ -384,6 +436,8 @@ Must ship:
 Must preserve:
 
 - `forge-proof` remains the owner of progression law
+- `forge-foundational` does not duplicate `forge-proof` artifact, witness, or
+  transition-outcome machinery
 - domain crates remain owners of truth mutation, storage layout, and execution
   behavior
 - no module named as a generic helper bucket
@@ -391,6 +445,8 @@ Must preserve:
 Acceptance evidence:
 
 - the crate compiles as a workspace member
+- the crate compiles with `forge-proof` as the proof-bearing progression
+  dependency for Milestone 1 proof surfaces
 - public exports come through a facade rather than deep module paths
 - structure review can predict where each Milestone 1 concept belongs
 
@@ -452,6 +508,8 @@ without crate-local folklore.
 Must ship:
 
 - `AspectContract` or equivalent declaration type
+- proof-bearing contract-validation outputs built on `forge-proof` artifacts or
+  equivalent `forge-proof` progression primitives
 - stable aspect identity fields that distinguish canonical key, declaration
   authority, revision/basis, and display naming where those distinctions matter
 - value-shape declarations for scalar, schema-declared struct, collection-like
@@ -503,6 +561,8 @@ Acceptance evidence:
 - struct-value tests prove field ordering, missing-field semantics, nulls,
   defaults, and equality do not depend on construction order or serializer
   behavior
+- proof-progression tests prove raw contract inputs cannot satisfy
+  contract-validated APIs
 
 ### Phase 4: Define Aspect Keys, State Maps, And Authoritative Wrappers
 
@@ -518,6 +578,8 @@ Must ship:
 - `AuthoritativeRecordAspectState`
 - contract-aware state validation that proves each aspect value is admissible
   under its declared aspect contract
+- state admission APIs that consume proof-bearing contract-validated entries
+  rather than raw values
 - deterministic map serialization/materialization rules that do not depend on
   insertion order or transport object ordering
 - read-only accessors that preserve map ordering and do not expose alternate
@@ -542,6 +604,8 @@ Acceptance evidence:
   authoritative constructors where the API can enforce it
 - contract-validation tests reject values that do not match scalar, struct,
   opaque, reference, or content-bearing aspect declarations
+- compile-fail tests prove raw values and unvalidated contract outputs cannot
+  enter authoritative state
 
 ### Phase 5: Define Authoritative Aspect Patches
 
@@ -651,6 +715,9 @@ Must ship:
 
 - compatibility bridge types or functions for lowering admitted transitional
   JSON-originated inputs into canonical aspect values and aspect state
+- compatibility lowering APIs that preserve `forge-proof` transition categories
+  such as success, denied, deferred, stale, rebind-required, and failed where
+  those categories apply
 - compatibility bridge lowering through aspect contracts, including
   schema-declared struct contracts, masks, absence/null/default law, and
   rejection rules
@@ -678,6 +745,8 @@ Acceptance evidence:
   unsupported recursive document truth, missing required struct fields,
   ambiguous null/default/absence semantics, and incompatible reference shapes
 - public facade tests prove compatibility debt is opt-in and visibly named
+- transition-outcome tests prove compatibility lowering does not collapse
+  denial, deferred, stale, rebind-required, or failed cases into a boolean
 
 ### Phase 8: Certify Canonical Ordering, Equality, And Digest-Preparation Basis
 
@@ -694,6 +763,8 @@ Must ship:
   locators
 - digest-preparation basis builders or test-only fixtures that demonstrate
   stable semantic ordering without claiming to close the full digest milestone
+- proof-bearing digest-preparation readiness artifacts for surfaces whose
+  ordering/equality law has been certified
 - hostile construction-path tests across native, reordered, and compatibility
   inputs
 - named residual debt for digest functionality intentionally deferred to
@@ -718,6 +789,8 @@ Acceptance evidence:
 - struct and mask parity tests prove independent construction paths produce the
   same digest-preparation basis
 - a Milestone 2 readiness note identifies which digest APIs remain future work
+- compile-fail tests prove non-ready aspect state cannot be passed to
+  digest-preparation APIs that require readiness proof
 
 ## Must Ship
 
@@ -730,6 +803,8 @@ Acceptance evidence:
   ordering, absence/null/default law, and evolution posture
 - aspect contract declarations covering shape, admissible masks, patch law,
   equivalence basis, and evolution rules
+- `forge-proof` artifacts, witnesses, and transition outcomes for
+  proof-bearing Milestone 1 progression surfaces
 - `AspectKey`
 - `CanonicalAspectStateMap`
 - `AuthoritativeRecordAspectState`
@@ -751,6 +826,8 @@ Acceptance evidence:
 - domain-crate freedom to keep cost-honest local storage and materialize
   foundational values only at explicit boundaries
 - `forge-proof` ownership of proof progression law
+- plain foundational vocabulary remains plain; `forge-proof` wraps or
+  progresses it only at proof-bearing API boundaries
 - domain-crate ownership of mutation, storage, runtime behavior, and execution
   orchestration
 - aspect-native meaning as the canonical long-term truth vocabulary
@@ -773,6 +850,8 @@ Acceptance evidence:
   kind, and semantic variant distinctions
 - aspect-contract tests prove scalar, struct, opaque, reference-bearing, and
   content-bearing shapes expose the correct admissible masks and patch forms
+- `forge-proof` compile-fail tests prove raw values, unresolved evolution, and
+  non-ready state cannot satisfy proof-bearing APIs
 - struct-value tests prove field order, missing fields, nulls, defaults, and
   equality remain canonical across construction paths
 - aspect-state ordering tests prove construction and insertion order cannot
@@ -855,6 +934,8 @@ downstream:
 - performance and layout vocabulary beyond preserving representation freedom
 - cross-crate migration of relational, query, signal, or store surfaces
 - proof progression law or proof-kernel responsibilities
+- reimplementing `forge-proof` artifact, witness, transition-outcome, or
+  phase-progression machinery inside `forge-foundational`
 - a generic runtime value executor, storage engine, planner, or mutation
   language
 - a general recursive document database hidden behind `AspectValue`

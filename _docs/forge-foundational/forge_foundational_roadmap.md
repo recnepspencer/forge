@@ -186,7 +186,9 @@ expands this roadmap summary by treating aspect contracts, schema-declared
 struct aspect values, masks, absence/null/default/clear law, evolution posture,
 and equivalence basis as part of the substrate rather than later add-ons. It
 also defines linear phase gates and compile-time enforcement targets so the
-milestone cannot close as an abstract vocabulary exercise.
+milestone cannot close as an abstract vocabulary exercise. Milestone 1 should
+use `forge-proof` for proof-bearing progression surfaces while keeping raw
+foundational vocabulary lightweight.
 
 ### Goal
 
@@ -201,6 +203,8 @@ later foundational surface depends on.
   recursive JSON documents as ordinary authority
 - aspect contracts that declare value shape, admissible masks, patch law,
   absence/null/default semantics, equivalence basis, and evolution posture
+- proof-bearing validation, evolution, admission, compatibility-lowering, and
+  digest-preparation readiness surfaces built on `forge-proof`
 - typed identity/key/handle/basis-id vocabulary for shared boundary surfaces
 - canonical structural aspect vocabulary for:
   - `AspectKey`
@@ -226,6 +230,8 @@ later foundational surface depends on.
   relying on object-merge convention
 - compatibility bridges must lower into the same canonical meaning as native
   aspect construction
+- proof-bearing progression must use `forge-proof` rather than a local
+  duplicate proof substrate
 - masks must select, update, or explain truth without becoming truth values
 - absence, null, default, and clear must remain distinct unless an aspect
   contract explicitly collapses them
