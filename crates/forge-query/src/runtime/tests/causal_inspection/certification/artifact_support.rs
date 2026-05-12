@@ -1,0 +1,185 @@
+use forge_runtime_bridge::facade::{
+    BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEvidenceFamily,
+    BridgeCausalInspectionAdmissionSummary,
+};
+
+use super::super::super::super::*;
+use super::super::materialization::*;
+
+pub(super) fn admitted_artifact(commit_identity: &str) -> QueryCausalInspectionArtifact {
+    admitted_artifact_for(
+        commit_identity,
+        CausalObservationOutcome::Changed,
+        CausalInspectionReason::ChangedResult,
+    )
+}
+
+pub(super) fn admitted_artifact_for(
+    commit_identity: &str,
+    outcome: CausalObservationOutcome,
+    reason: CausalInspectionReason,
+) -> QueryCausalInspectionArtifact {
+    let runtime = bridge_runtime();
+    let routed = runtime.route(commit_identity).unwrap();
+    let reference_set = reference_set_for(routed.route_identity(), outcome, reason);
+    let flow = admit_causal_inspection(request_for(
+        reference_set,
+        CausalInspectionRichness::ReferenceOnly,
+    ));
+    let CausalInspectionProofFlow::Admitted(admitted) = flow else {
+        panic!("reference-only cross-runtime inspection should admit");
+    };
+    let summary = BridgeCausalInspectionAdmissionSummary::admitted(
+        admitted.admitted_inspection_digest(),
+        admitted.subject().anchor_digest(),
+    )
+    .expect("query admission summary should be valid");
+    let bridge_request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
+        summary,
+        vec![
+            query_reference(admitted.subject().query_observation_digest()),
+            bridge_reference(
+                BridgeCausalEvidenceFamily::BridgeRoute,
+                routed.route_identity().as_str(),
+            ),
+        ],
+    )
+    .expect("bridge request should be valid");
+    let envelope = runtime
+        .diagnostics()
+        .assemble_causal_explanation_envelope(bridge_request)
+        .expect("bridge envelope should assemble");
+
+    materialize_admitted_causal_inspection(
+        &admitted,
+        &envelope,
+        CausalInspectionRedactionPolicy::PreserveDetail,
+        CausalInspectionMaterializationPolicy::OfflineInterpretableArtifact,
+    )
+    .expect("admitted materialization should consume bridge envelope")
+}
+
+pub(super) fn advisory_artifacts(
+    commit_identity: &str,
+) -> (QueryCausalInspectionArtifact, QueryCausalInspectionArtifact) {
+    let runtime = bridge_runtime();
+    let routed = runtime.route(commit_identity).unwrap();
+    let reference_set = changed_reference_set(routed.route_identity());
+    let flow = admit_causal_inspection(request_for(
+        reference_set,
+        CausalInspectionRichness::MaterializedDetail,
+    ));
+    let CausalInspectionProofFlow::Advisory(advisory) = flow else {
+        panic!("materialized detail should narrow to advisory");
+    };
+    let summary = BridgeCausalInspectionAdmissionSummary::advisory(
+        advisory.advisory_inspection_digest(),
+        advisory.subject().anchor_digest(),
+    )
+    .expect("query advisory summary should be valid");
+    let bridge_request = BridgeCausalEnvelopeAssemblyRequest::from_query_admission(
+        summary,
+        vec![
+            query_reference(advisory.subject().query_observation_digest()),
+            bridge_reference(
+                BridgeCausalEvidenceFamily::BridgeRoute,
+                routed.route_identity().as_str(),
+            ),
+        ],
+    )
+    .expect("bridge request should be valid");
+    let envelope = runtime
+        .diagnostics()
+        .assemble_causal_explanation_envelope(bridge_request)
+        .expect("bridge envelope should assemble");
+    let full = materialize_advisory_causal_inspection(
+        &advisory,
+        &envelope,
+        CausalInspectionRedactionPolicy::PreserveDetail,
+        CausalInspectionMaterializationPolicy::OfflineInterpretableArtifact,
+    )
+    .expect("full advisory materialization should consume bridge envelope");
+    let redacted = materialize_advisory_causal_inspection(
+        &advisory,
+        &envelope,
+        CausalInspectionRedactionPolicy::DigestOnly,
+        CausalInspectionMaterializationPolicy::DigestReferenceOnly,
+    )
+    .expect("redacted advisory materialization should consume bridge envelope");
+    (full, redacted)
+}
+
+pub(super) fn denied_artifact_and_missing_evidence() -> (QueryCausalInspectionArtifact, String) {
+    let runtime = bridge_runtime();
+    let routed = runtime.route("commit-query-cert-denied").unwrap();
+    let reference_set = changed_reference_set(routed.route_identity());
+    let missing_resolution = resolve_causal_evidence_references(
+        reference_set.anchor().clone(),
+        &[CausalEvidenceFamily::SignalInvalidation],
+    );
+    let CausalEvidenceReferenceResolution::MissingRequiredEvidence { denial, .. } =
+        missing_resolution
+    else {
+        panic!("signal evidence should be missing from bridge-route-only anchor");
+    };
+    let receipt = reference_set.anchor().observation_receipt();
+    let target = causal_inspection_target(
+        receipt.observation_target_digest(),
+        receipt.result_shape_context_digest(),
+    )
+    .expect("target should match receipt");
+    let request = request_causal_inspection(
+        reference_set,
+        target,
+        CausalInspectionExplanationFamily::DurableCausalArchive,
+        CausalInspectionRichness::ReferenceOnly,
+        &[CausalEvidenceFamily::BridgeRoute],
+    )
+    .expect("causal inspection request should reach admission boundary");
+    let CausalInspectionProofFlow::Denied(denied) = admit_causal_inspection(request) else {
+        panic!("durable causal archive should deny for phase-6 certification");
+    };
+    let artifact = materialize_denied_causal_inspection(
+        &denied,
+        None,
+        CausalInspectionRedactionPolicy::PreserveDetail,
+        CausalInspectionMaterializationPolicy::OfflineInterpretableArtifact,
+    );
+    (artifact, denial.failure_digest().to_string())
+}
+
+fn reference_set_for(
+    route_identity: &forge_runtime_bridge::facade::BridgeRouteIdentity,
+    outcome: CausalObservationOutcome,
+    reason: CausalInspectionReason,
+) -> CausalEvidenceReferenceSet {
+    let anchor = anchor_causal_observation(
+        QueryObservationReceipt::fixture(
+            outcome,
+            vec![
+                CausalObservationEvidenceIdentity::new(
+                    CausalEvidenceFamily::QueryInspection,
+                    format!("query-inspection:{}", outcome.as_str()),
+                ),
+                CausalObservationEvidenceIdentity::new(
+                    CausalEvidenceFamily::BridgeRoute,
+                    route_identity.as_str(),
+                ),
+            ],
+        ),
+        reason,
+    )
+    .expect("fixture receipt should anchor");
+    let CausalEvidenceReferenceResolution::Resolved { reference_set, .. } =
+        resolve_causal_evidence_references(
+            anchor,
+            &[
+                CausalEvidenceFamily::QueryInspection,
+                CausalEvidenceFamily::BridgeRoute,
+            ],
+        )
+    else {
+        panic!("fixture references should resolve");
+    };
+    reference_set
+}

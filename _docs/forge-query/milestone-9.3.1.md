@@ -1,6 +1,11 @@
 # Milestone 9.3.1 Engineering Spec: Cross-Runtime Causal Diagnostics And Query Inspection
 
-> **Status:** Draft engineering spec
+> **Status:** Closed on 2026-05-12 for runtime-backed cross-runtime causal
+> diagnostics and Query inspection; durable causal archives, store-backed replay
+> reconstruction, and restart-stable expanded explanation reload remain later
+> milestone debt.
+>
+> **Closeout:** [milestone-9.3.1-closeout.md](./milestone-9.3.1-closeout.md)
 >
 > **Roadmap parent:** [forge_query_roadmap.md](./forge_query_roadmap.md)
 >
@@ -8,7 +13,7 @@
 >
 > **Prior milestone:** [milestone-9.3.md](./milestone-9.3.md)
 >
-> **Next milestone:** [milestone-9.3.2](./forge_query_roadmap.md#milestone-932-query-basis-capability-lifecycle)
+> **Next milestone:** [milestone-9.3.2](./milestone-9.3.2.md)
 > continues the runtime API stabilization path by making Query basis a
 > capability lifecycle. The Runtime API Public Stabilization Gate follows
 > Milestones 9.3.2 through 9.3.6.
@@ -106,6 +111,42 @@ the user-facing capability is not "call the bridge diagnostics facade from a
 domain." It is "inspect this query observation and receive the causal envelope
 that explains it."
 
+Crate ownership is load-bearing for this milestone:
+
+- `forge-query` owns the public inspection request, observation receipt/anchor,
+  evidence-reference request and resolution posture, admission/advisory/denial
+  lattice, redaction/materialization policy, and final Query-facing inspection
+  artifact.
+- `forge-runtime-bridge` owns bridge causal envelope authority: bridge causal
+  envelope identity, evidence binding, envelope receipt, envelope denial,
+  bridge-side retained indexes, bridge-side causal mapping from existing route,
+  evaluation, source, structural, stream, preview, writeback, continuity,
+  merge, mapper, replay, historical, and diagnostics records, and the
+  envelope assembly operation itself.
+- `forge-relational` owns truth authority, commit/snapshot authority,
+  relational decision evidence, relational causality/provenance, and any
+  relational digest that appears in the causal story.
+- `forge-signal` owns invalidation, evaluation, scheduling, signal lineage,
+  signal provenance, forensic availability, replay cursor, and signal-side
+  observation evidence.
+
+Forbidden in `forge-query`:
+
+- defining production `BridgeCausal*` envelope, binding, index, receipt,
+  counter, or denial types
+- assembling a bridge causal envelope from retained bridge diagnostics
+- indexing retained runtime-bridge records as though Query owned the bridge
+  diagnostics store
+- minting synthetic bridge route/evaluation/source/structural/stream/preview/
+  writeback/replay facts from Query observation receipts
+- exporting bridge-owned constructors or bridge-owned proof artifacts through
+  the Query facade
+
+Query may be bridge-aware, but it must not become bridge-authoritative. Its
+bridge-facing production code is limited to request/response adapters around
+the runtime bridge facade and materialization from a sealed bridge-owned
+envelope.
+
 ## Typed Phase Progression
 
 Milestone 9.3.1 must introduce or certify the following phase progression:
@@ -146,6 +187,11 @@ Rules:
   lower-runtime handles, ad hoc JSON, or optional-hole structs
 - Query may not mint bridge-owned causal envelope facts; it may only request,
   admit, redact, materialize, and certify them
+- production `BridgeCausalExplanationEnvelope` and sibling `BridgeCausal*`
+  proof types must live in `forge-runtime-bridge`, not in `forge-query`
+- Query may carry opaque bridge envelope identity, digest, denial, and receipt
+  references returned by the bridge facade, but those references are not bridge
+  authority and cannot be expanded without the bridge-owned API
 - bridge-owned envelopes must name which lower runtime supplied each evidence
   family
 - Query may retain observation anchors and evidence references, but it may not
@@ -184,14 +230,17 @@ Must ship:
 - `CausalEvidenceFamily`
 - `CausalObservationOutcome`
 - `CausalInspectionReason`
-- inventory table mapping each existing lower-runtime record class to the
-  reference identity Query can carry
+- inventory table mapping each evidence family to its authority surface
+  (`forge-query`, `forge-runtime-bridge`, `forge-relational`, or
+  `forge-signal`) and to the reference identity Query can carry
 
 Must preserve:
 
 - every causal explanation begins from one canonical observation anchor, not a
   post-hoc search across matching digests
 - lower runtimes remain authorities for their evidence records
+- inventory names authority surfaces and reference identities only; it must not
+  introduce Query-owned bridge record classes or retained bridge indexes
 - this phase adds anchor derivation only; it does not expose public causal
   explanation APIs
 
@@ -237,6 +286,9 @@ Must preserve:
   themselves an expanded narrative or a second authority store
 - reference resolution may read lower-runtime diagnostic indexes, but it may not
   scan unrelated retained records looking for plausible matches
+- bridge record lookup must happen through bridge-owned facade/index surfaces;
+  Query may not mirror, rebuild, or retain a Query-local bridge diagnostics
+  index
 - missing evidence has typed posture before any public artifact is materialized
 
 Exit criteria:
@@ -297,29 +349,37 @@ Exit criteria:
 - compile-fail tests prove a request cannot skip anchor/reference phases and
   cannot be treated as admitted/advisory/denied without the admission boundary
 
-### Phase 4: Bridge-Owned Causal Envelope Assembly
+### Phase 4: Runtime-Bridge Causal Envelope Authority
 
-Introduce the bridge-owned envelope that joins lower-runtime evidence without
-moving lower-runtime authority into Query. This phase consumes only an
-`AdmittedCausalInspection` or `AdvisoryCausalInspection` plus resolved evidence
-references.
+Implement the bridge-owned envelope in `crates/forge-runtime-bridge` and expose
+it only through a runtime-bridge facade surface that Query can call after Query
+admission succeeds. This phase joins lower-runtime evidence without moving
+bridge, relational, or signal authority into Query. It consumes only an
+`AdmittedCausalInspection` or `AdvisoryCausalInspection` summary from Query plus
+resolved evidence references; it returns either a sealed bridge-owned envelope
+or a bridge-owned typed denial.
 
 Must ship:
 
-- `BridgeCausalExplanationEnvelope`
-- `BridgeCausalEnvelopeIdentity`
-- `BridgeCausalEvidenceBinding`
-- `BridgeCausalEnvelopeReceipt`
-- `BridgeCausalEnvelopeDenial`
+- `BridgeCausalExplanationEnvelope` in `forge-runtime-bridge`
+- `BridgeCausalEnvelopeIdentity` in `forge-runtime-bridge`
+- `BridgeCausalEvidenceBinding` in `forge-runtime-bridge`
+- `BridgeCausalEnvelopeReceipt` in `forge-runtime-bridge`
+- `BridgeCausalEnvelopeDenial` in `forge-runtime-bridge`
 - mapping from existing bridge diagnostics, historical evaluation, writeback,
   preview, route, evaluation, source materialization, source failure,
   structural, stream, continuity, merge, mapper, and replay records into causal
   evidence bindings
+- one bridge facade operation that accepts a Query-admitted causal inspection
+  summary plus evidence references and returns the sealed bridge-owned causal
+  envelope or denial
 - bridge envelope performance counters for binding count, lower-runtime family
   count, index lookup count, materialized-detail count, and scan fallback count
 
 Must preserve:
 
+- this phase is production bridge work, not Query work; Query may add adapter
+  types only after the bridge facade shape exists
 - bridge route/evaluation semantics remain bridge-owned
 - relational evidence remains relational-owned and referenced through digests or
   authority records
@@ -330,21 +390,29 @@ Must preserve:
 - bridge envelope assembly consumes the causal observation anchor and evidence
   references; it may not scan unrelated diagnostics state looking for plausible
   matches
+- Query may not assemble a bridge envelope, fabricate bridge evidence bindings,
+  or translate bridge retained records into causal facts outside the
+  bridge-owned assembly path
 
 Exit criteria:
 
 - changed, suppressed, denied, branch/preview, and replay scenarios can all
   produce either an admitted bridge envelope or a typed bridge-envelope denial
 - bridge envelope digests agree with the lower-runtime records they summarize
-- no Query type can forge a bridge causal envelope without the bridge-owned
-  constructor path
+- no Query type defines, constructs, or exports production bridge causal
+  envelope types or bridge causal evidence bindings
+- compile-fail tests prove external callers cannot construct bridge-owned
+  causal envelopes directly and cannot obtain them through Query-local
+  constructors
 - scale rows prove envelope assembly follows anchor/reference width rather than
   total bridge diagnostics retention width
 
 ### Phase 5: Query Materialization, Redaction, And Public Artifact
 
-Materialize the admitted bridge envelope into a Query-owned public inspection
-artifact with policy-safe detail and stable consumer vocabulary.
+Materialize the sealed runtime-bridge-owned causal envelope into a Query-owned
+public inspection artifact with policy-safe detail and stable consumer
+vocabulary. Phase 5 must consume the Phase 4 bridge facade result; it must not
+construct bridge facts or operate on bridge internals directly.
 
 Must ship:
 
@@ -356,6 +424,8 @@ Must ship:
 - `CausalInspectionMaterializationPolicy`
 - `CausalMaterializationReceipt`
 - `CausalInspectionPerformanceEnvelope`
+- Query-side bridge envelope adapter/reference types only where needed to bind
+  the sealed bridge facade result to Query materialization
 - result-shape context and query observation digest binding
 - boundary-envelope categories required by `arch_laws.md`: primary result,
   structured warnings, decision trace, structural deltas, integrity markers,
@@ -364,6 +434,8 @@ Must ship:
 Must preserve:
 
 - public artifacts preserve lower-runtime authority names and evidence digests
+- public artifacts preserve the bridge envelope digest/receipt returned by
+  `forge-runtime-bridge`; they do not reassemble or reinterpret bridge bindings
 - redaction can hide detail without changing causal digests or outcome meaning
 - expanded narrative/prose renderers are derived from machine-checkable
   artifacts
@@ -436,11 +508,14 @@ Exit criteria:
 ## Must Ship
 
 - Query inspection APIs and artifacts for cross-runtime causal explanations.
-- A bridge-owned causal explanation envelope that can carry relational
-  authority digests, bridge route/evaluation/source/structural/stream/preview/
-  writeback/replay digests, signal invalidation and evaluation references,
-  signal forensic availability, lineage/provenance references, replay posture,
-  and materialization policy.
+- A `forge-runtime-bridge`-owned causal explanation envelope that can carry
+  relational authority digests, bridge route/evaluation/source/structural/
+  stream/preview/writeback/replay digests, signal invalidation and evaluation
+  references, signal forensic availability, lineage/provenance references,
+  replay posture, and materialization policy.
+- A Query-facing bridge adapter that calls the runtime-bridge facade and stores
+  only sealed envelope identity, digest, receipt, denial, availability, and
+  materialization posture in Query-owned artifacts.
 - A canonical causal observation anchor binding every explanation to the Query
   operational artifact that produced the observed result, denial, suppression,
   preview, branch result, or replay result.
@@ -615,6 +690,10 @@ Required performance gates:
   relational authority.
 - Hot-path query execution and signal invalidation may emit bounded references
   and counters, but expanded explanation materialization stays on the cold path.
+- Query may be the ordinary public door, but it is never the bridge causal
+  authority. Public convenience cannot collapse runtime-bridge facade calls,
+  bridge diagnostics indexing, and Query artifact materialization into one
+  Query-owned implementation.
 
 ## Compile-Time Enforcement Policy
 
@@ -647,11 +726,14 @@ Milestone 9.3.1 must classify its boundaries by enforcement strength.
 
 - external construction of `CausalObservationAnchor`,
   `CausalEvidenceReferenceSet`, `AdmittedCausalInspection`,
-  `AdvisoryCausalInspection`, `BridgeCausalExplanationEnvelope`,
+  `AdvisoryCausalInspection`, bridge-owned
+  `BridgeCausalExplanationEnvelope`,
   `AdmittedQueryCausalInspectionArtifact`,
   `AdvisoryQueryCausalInspectionArtifact`,
   `DeniedQueryCausalInspectionArtifact`, or
   `CausalInspectionCertificationBundle`
+- any `forge-query` public export that makes bridge-owned `BridgeCausal*`
+  envelope, binding, receipt, index, or constructor types look Query-owned
 - ordinary public domain lanes constructing causal explanations from
   `BridgeDiagnosticsFacade`, `RelationalRuntime`, or `SignalGraph` instead of
   Query inspection artifacts, wherever crate visibility, dependency topology,
@@ -727,13 +809,14 @@ Named contracts:
   - bounded by the semantic delta that produced the observation plus the
     lower-runtime evidence families admitted by policy
 - `BridgeCausalEnvelopeContract`
-  - bounded by one admitted or advisory inspection, one bridge evidence-family
-    set, one relational authority reference set, one signal evidence reference
-    set, one forensic availability posture, and one replay/materialization
-    posture
+  - owned by `forge-runtime-bridge` and bounded by one admitted or advisory
+    inspection summary, one bridge evidence-family set, one relational
+    authority reference set, one signal evidence reference set, one forensic
+    availability posture, and one replay/materialization posture
 - `QueryCausalMaterializationContract`
-  - bounded by one bridge envelope, one redaction policy, one materialization
-    policy, one result-shape context, and one materialization receipt
+  - bounded by one sealed runtime-bridge facade envelope result, one redaction
+    policy, one materialization policy, one result-shape context, and one
+    materialization receipt
 - `CausalInspectionCertificationContract`
   - bounded by one certification scope, one admitted explanation-family matrix,
     one hostile coverage set, and one scale-counter snapshot
@@ -818,6 +901,13 @@ Counter rules:
 
 - A public Query inspection artifact that omits which lower runtime owns each
   evidence family.
+- Production `BridgeCausal*`, bridge envelope index, bridge evidence binding,
+  bridge envelope receipt, bridge envelope denial, or bridge causal performance
+  counter definitions inside `forge-query`.
+- Query-owned retained indexes over runtime-bridge route/evaluation/source/
+  structural/stream/preview/writeback/replay/continuity/merge/mapper records.
+- Query materialization that reconstructs bridge causal facts from lower-runtime
+  records instead of consuming the sealed runtime-bridge envelope.
 - Direct Worth or domain imports of runtime-bridge diagnostics, relational
   runtimes, or signal graphs as the ordinary explanation path.
 - Diagnostic strings that cannot be traced back to machine-checkable causal
@@ -847,25 +937,34 @@ Expected Query-side subdomains:
     inspection proof types, decision trace indexes, and admission receipts
 - `runtime/inspection/causal/artifact.rs`
   - admitted, advisory, and denied Query causal inspection artifacts plus
-    redaction and materialization receipts
+    redaction and materialization receipts derived from sealed bridge envelope
+    results
 - `runtime/inspection/causal/certification.rs`
   - certification scope, hostile row coverage, and final certification bundle
 - `runtime/causal_evidence.rs`
   - evidence references, evidence-family vocabulary, counters, and evidence
     reference receipts
-- `runtime/causal_bridge.rs`
-  - Query-facing bridge causal envelope request/response adapters without
-    owning bridge semantics
+- `runtime/inspection/causal/bridge_adapter.rs` or `runtime/causal_bridge.rs`
+  - Query-facing runtime-bridge facade adapters that carry bridge envelope
+    identity, digest, receipt, denial, and availability posture without owning
+    bridge semantics or retained bridge indexes
 
 Expected runtime-bridge-side subdomains:
 
 - `diagnostics/causal_envelope.rs`
   - bridge-owned causal envelope, evidence bindings, and bridge envelope
-    receipts
+    receipts, denials, counters, sealed constructors, and facade result types
 - `diagnostics/causal_mapping.rs`
   - mapping from existing route, evaluation, historical, preview, writeback,
     source, structural, stream, mapper, replay, and continuity records into
     causal evidence bindings
+- `diagnostics/causal_index.rs` or the existing bridge diagnostics index
+  surface
+  - bridge-owned indexed lookup over retained bridge records used by causal
+    envelope assembly
+- `facade` extension for causal envelope assembly
+  - public bridge entrypoint Query calls after Query admission; not a Query
+    module and not a domain escape hatch
 
 Expected tests:
 
@@ -873,6 +972,8 @@ Expected tests:
 - `runtime/tests/inspection/causal_redaction.rs`
 - `runtime/tests/inspection/causal_boundary.rs`
 - `runtime/tests/inspection/causal_scale.rs`
+- runtime-bridge tests for bridge-owned causal envelope assembly, mapping,
+  denial, indexing, counters, and facade boundaries
 - compile-fail tests proving external callers cannot construct causal proof
   artifacts or ordinary explanations from lower-runtime internals
 
@@ -883,6 +984,11 @@ Topology rules:
 - admission logic must not live inside artifact formatting
 - bridge envelope assembly must not live inside Query public artifact
   materialization
+- bridge envelope assembly must live in `forge-runtime-bridge`; if the
+  implementation creates a Query file that can assemble bridge evidence
+  bindings, the implementation is out of spec
+- Query bridge adapters must depend on the runtime-bridge facade, never on
+  runtime-bridge internal diagnostics modules
 - redaction and richness policy must not live inside lower-runtime evidence
   collection
 - certification harness code must not become a second construction path for
@@ -1024,17 +1130,21 @@ non-production scaffolding that cannot be consumed until its prerequisite phase
 has passed.
 
 - During Phase 1, bridge-side causal envelope design may sketch fixture-only
-  evidence-family names, but production bridge envelope code must wait for Phase
-  2 evidence-reference resolution and performance indexes.
+  evidence-family names in the runtime-bridge work area, but Query production
+  code may not define bridge envelope or bridge binding types. Production bridge
+  envelope code must wait for Phase 2 evidence-reference resolution and
+  performance indexes.
 - During Phase 2, admission fixtures may be drafted against fake anchors, but
   production Phase 3 admission must consume the real Phase 1 anchor and Phase 2
   reference proof types.
 - During Phase 3, bridge envelope fixtures may be prepared, but production Phase
-  4 assembly must consume admitted/advisory proof types and resolved evidence
-  references.
+  4 assembly must be implemented in `forge-runtime-bridge` and must consume
+  admitted/advisory proof summaries plus resolved evidence references.
 - During Phase 4, Query artifact renderers may be prototyped against fixture
   envelopes, but production Phase 5 materialization must consume bridge-owned
-  causal envelopes and performance counters.
+  causal envelopes and performance counters returned through the runtime-bridge
+  facade. Fixture envelopes are not allowed to become Query-local production
+  bridge envelope types.
 - During Phase 5, certification rows may be scaffolded, but Phase 6 cannot close
   until every prior phase has production artifacts, exact counters,
   compile-fail/proof-shape tests, and scale rows.
@@ -1046,6 +1156,9 @@ This milestone is complete only when `forge-query` can prove:
 - the `Cross-Runtime Causal Explanation Envelope Test` in
   [test-requirements.md](./test-requirements.md) passes with canonical
   machine-checkable artifacts
+- the runtime-bridge causal envelope authority is implemented in
+  `forge-runtime-bridge`, exposed through the runtime-bridge facade, and
+  consumed by Query only as a sealed facade result
 - Query inspection can explain changed, suppressed, denied, branch/preview, and
   replayed observations through one typed public artifact
 - the bridge-owned causal envelope carries evidence digests for relational
@@ -1066,6 +1179,13 @@ This milestone is complete only when `forge-query` can prove:
   retained records, Query inspection evidence, signal forensic availability, or
   relational authority identities rather than through new Query-owned
   diagnostics authority
+- compile-fail or public-surface tests prove `forge-query` does not export
+  production `BridgeCausal*` envelope constructors, bridge evidence binding
+  constructors, bridge envelope indexes, or bridge causal receipt constructors
+- runtime-bridge boundary tests prove bridge causal envelope constructors are
+  sealed to the bridge-owned assembly path
+- Query materialization tests prove public causal artifacts consume a sealed
+  runtime-bridge facade envelope rather than Query-local bridge envelope types
 
 Required verification output must include:
 
@@ -1157,10 +1277,13 @@ Milestone 9.3.1 is closed only when:
 - the named 9.3.1 certification suite exists and passes
 - Query exposes public causal inspection artifacts for admitted, advisory, and
   denied explanations
-- bridge-owned causal envelopes bind route/evaluation, relational authority,
-  source/structural/stream/preview/writeback/replay records, signal
-  invalidation/evaluation, forensic availability, lineage, provenance, replay,
-  and materialization evidence
+- bridge-owned causal envelopes are implemented in `forge-runtime-bridge`,
+  returned through the runtime-bridge facade, and bind route/evaluation,
+  relational authority, source/structural/stream/preview/writeback/replay
+  records, signal invalidation/evaluation, forensic availability, lineage,
+  provenance, replay, and materialization evidence
+- Query materializes only sealed bridge facade envelope results and does not
+  define or export production `BridgeCausal*` envelope authority
 - redaction and richness policy are cold-path materialization concerns only
 - Worth-style consumers can explain ordinary query observations without direct
   lower-runtime stitching

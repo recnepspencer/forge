@@ -1,0 +1,13 @@
+error[E0451]: fields `owner`, `family`, `reference_digest` and `record_digest` of struct `CausalEvidenceReferenceIndexRecord` are private
+  --> tests/ui/causal_evidence_reference_index_record_constructor_private.rs:7:9
+   |
+ 6 |     let _ = CausalEvidenceReferenceIndexRecord {
+   |             ---------------------------------- in this type
+ 7 |         owner: CausalEvidenceOwner::RuntimeBridge,
+   |         ^^^^^ private field
+ 8 |         family: CausalEvidenceFamily::BridgeRoute,
+   |         ^^^^^^ private field
+ 9 |         reference_digest: "bridge-route-reference".to_string(),
+   |         ^^^^^^^^^^^^^^^^ private field
+10 |         record_digest: "record-digest".to_string(),
+   |         ^^^^^^^^^^^^^ private field

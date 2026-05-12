@@ -282,6 +282,26 @@ impl BridgeDiagnosticsState {
             .map(|record| (*record).clone())
     }
 
+    pub(crate) fn historical_failure_for_identity(
+        &self,
+        failure_identity: &str,
+    ) -> Option<BridgeHistoricalEvaluationFailureRecord> {
+        self.latest_historical_failure_by_failure_identity
+            .get(failure_identity)
+            .cloned()
+            .map(|record| (*record).clone())
+    }
+
+    pub(crate) fn source_failure_record_for_identity(
+        &self,
+        failure_identity: &str,
+    ) -> Option<SourceFailureRecord> {
+        self.latest_source_failure_by_failure_identity
+            .get(failure_identity)
+            .cloned()
+            .map(|record| (*record).clone())
+    }
+
     pub(crate) fn structural_remap_record_for_identity(
         &self,
         record_identity: &str,

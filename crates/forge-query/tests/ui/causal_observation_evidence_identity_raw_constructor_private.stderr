@@ -1,0 +1,13 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/causal_observation_evidence_identity_raw_constructor_private.rs:4:48
+  |
+4 |       let _ = CausalObservationEvidenceIdentity::new(
+  |                                                  ^^^ private associated function
+  |
+ ::: src/runtime/inspection/causal/receipt_types.rs
+  |
+  | /     pub(in crate::runtime) fn new(
+  | |         family: CausalEvidenceFamily,
+  | |         reference_digest: impl Into<String>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here
