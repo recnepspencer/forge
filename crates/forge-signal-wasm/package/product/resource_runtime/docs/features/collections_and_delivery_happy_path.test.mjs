@@ -6,7 +6,7 @@ import { createRealRequestRuntime } from "../../runtime_fixture/real_request_run
 
 test("collections and delivery doc happy path covers response contracts, direct patch helpers, and reconcile summaries", async () => {
   const doc = fs.readFileSync(
-    "crates/forge-signal-wasm/docs/feature_collections_and_delivery.md",
+    "crates/forge-signal-wasm/docs/resources/collections-and-delivery.md",
     "utf8",
   );
 

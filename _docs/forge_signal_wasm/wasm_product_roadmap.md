@@ -849,7 +849,7 @@ Why it belongs here:
   the UI thread is a product boundary for serious web apps, not an optional
   post-roadmap optimization
 
-## Milestone 10: Branch-Native Resource Effects And Response Lenses
+## Milestone 10: Branch-Native Resource Effects And Response Lenses (Completed)
 
 Engineering spec:
 [resource_response_lens_contracts_plan.md](./resource_response_lens_contracts_plan.md)
@@ -978,6 +978,15 @@ This milestone is complete only when the wasm product surface can prove:
 - diagnostics and history distinguish item-local, JSON aspect-local,
   membership-local, entity-store-local, summary-local, detail-local,
   optimistic, rollback, rebase, conflict, and broad replacement scopes
+
+### Closeout Status
+
+Milestone 10 is closed. The implementation now ships the canonical
+branch-native resource effect envelope, typed effect profiles, speculative
+branch lifecycle, response-lens effect-locus lowering, JSON path aspect effects,
+advanced response topology effect families, merge/rebase conflict
+certification, closeout matrix evidence, executable feature docs, and public
+type-surface proof.
 
 Why it belongs here:
 

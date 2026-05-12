@@ -1,5 +1,9 @@
 # Branch-Native Resource Effects And Response Lenses Plan
 
+Status: Complete. The branch-native resource effects and response-lens
+milestone is closed through Phase 8 closeout evidence. The remaining roadmap
+work in this area is expansion work, not completion work for this plan.
+
 > **Status:** Planned engineering spec, reset from the earlier response-lens
 > plan after reviewing the native `forge-signal` branch and merge substrate.
 >
@@ -851,9 +855,9 @@ Current implementation evidence:
   containers are updated by immutable reconstruction rather than mutation.
 - JSON path parsing and immutable update mechanics now live in
   `resource_json_path_aspect_response_contract.ts`, keeping generic object
-  field aspects separate from JSON path effect-locus mechanics. The remaining
-  Phase 5 lane is final closeout certification across the complete JSON write
-  class surface.
+  field aspects separate from JSON path effect-locus mechanics. The Phase 5
+  JSON write-class surface is closed through runtime, type-surface,
+  diagnostics/history, rollback, denial, and cost-proof evidence.
 
 ### Phase 6: Advanced Response Topology Effect Families
 

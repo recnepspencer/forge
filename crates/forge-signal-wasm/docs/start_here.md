@@ -37,26 +37,34 @@ console.log(line.value());
 ## If You Already Know Your Task
 
 - fetch or write ordinary resources:
-  [feature_fetch_and_write_api_resources.md](./feature_fetch_and_write_api_resources.md)
+  [Fetch And Write Resources](./resources/fetch-and-write.md)
 - auth, policy, continuation, and request posture:
-  [feature_request_posture_and_policy.md](./feature_request_posture_and_policy.md)
+  [Request Posture And Policy](./resources/request-posture-and-policy.md)
 - collection patching, summaries, or delivery:
-  [feature_collections_and_delivery.md](./feature_collections_and_delivery.md)
+  [Collections And Delivery](./resources/collections-and-delivery.md)
 - signed or multipart upload, or deferred processing:
-  [feature_transfers.md](./feature_transfers.md)
+  [Transfers](./resources/transfers.md)
 - downloads or multipart downloads:
-  [feature_downloads.md](./feature_downloads.md)
+  [Downloads](./resources/downloads.md)
 - line reads, diagnostics, and history:
-  [feature_line_inspection.md](./feature_line_inspection.md)
+  [Line Inspection](./resources/line-inspection.md)
 - exact restore, replay availability, and verification packages:
-  [feature_history_and_restore.md](./feature_history_and_restore.md)
+  [History And Restore](./resource-contracts/history-and-restore.md)
 - branch-native optimistic effects, response topology proof, JSON effects, and
   UI lifecycle events:
-  [feature_branch_native_resource_effects.md](./feature_branch_native_resource_effects.md)
+  [Branch-Native Resource Effects](./resources/branch-native-effects.md)
+- effect envelopes, merge/rebase, rollback proof, topology proof, JSON path
+  proof, or closeout matrices:
+  [Effect Envelope Contract](./resource-contracts/effect-envelope.md),
+  [Effect Merge And Rebase](./resources/merge-and-rebase.md),
+  [History And Restore](./resource-contracts/history-and-restore.md),
+  [Response Topology Proof](./resource-contracts/response-topology-proof.md),
+  [JSON Path Effects](./resources/json-effects.md), and
+  [Effect Closeout Matrix](./resource-contracts/closeout-matrix.md)
 - external push packets and basis refresh:
-  [feature_external_delivery_and_compatibility.md](./feature_external_delivery_and_compatibility.md)
+  [External Delivery And Compatibility](./resources/external-delivery-and-compatibility.md)
 - raw family declarations:
-  [feature_raw_escape_hatch.md](./feature_raw_escape_hatch.md)
+  [Raw Escape Hatch](./resources/raw-escape-hatch.md)
 
 ## What Not To Do First
 
@@ -68,5 +76,5 @@ ordinary app code.
 
 ## Next Reads
 
-- [feature_index.md](./feature_index.md)
-- [resource_recipes.md](./resource_recipes.md)
+- [Feature Index](./learn/feature-index.md)
+- [Resource Recipes](./learn/recipes.md)

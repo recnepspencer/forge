@@ -11,12 +11,12 @@ test("README entrypoint points readers at the feature-first happy path", async (
   const readme = fs.readFileSync(readmePath, "utf8");
 
   assert.match(readme, /start_here\.md/);
-  assert.match(readme, /feature_index\.md/);
-  assert.match(readme, /resource_recipes\.md/);
-  assert.match(readme, /feature_transfers\.md/);
-  assert.match(readme, /feature_downloads\.md/);
-  assert.match(readme, /feature_line_inspection\.md/);
-  assert.match(readme, /feature_branch_native_resource_effects\.md/);
-  assert.match(readme, /feature_raw_escape_hatch\.md/);
+  assert.match(readme, /learn\/feature-index\.md/);
+  assert.match(readme, /learn\/recipes\.md/);
+  assert.match(readme, /resources\/transfers\.md/);
+  assert.match(readme, /resources\/downloads\.md/);
+  assert.match(readme, /resources\/line-inspection\.md/);
+  assert.match(readme, /resources\/branch-native-effects\.md/);
+  assert.match(readme, /resources\/raw-escape-hatch\.md/);
   assert.match(readme, /the one feature page that matches your task/i);
 });

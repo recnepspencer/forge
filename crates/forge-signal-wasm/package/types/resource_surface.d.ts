@@ -51,5 +51,20 @@ export {
   resourceUploadResult,
   resourceUploadTransport,
 } from "./resource/resource_namespace.js";
-export * from "./resource/resource_effect_profiles.js";
+export {
+  type ResourceEffectCloseoutCapability,
+  type ResourceEffectCloseoutEvidence,
+  type ResourceEffectCloseoutFamily,
+  type ResourceEffectCloseoutMatrix,
+  type ResourceEffectCloseoutMatrixRow,
+  type ResourceEffectCloseoutProofLane,
+  type ResourceEffectConfirmation,
+  type ResourceEffectOptimism,
+  type ResourceEffectPreimage,
+  type ResourceEffectProfile,
+  type ResourceEffectProfileName,
+  type ResourceEffectProfileOptions,
+  type ResourceEffectRebase,
+  type ResourceEffects,
+} from "./resource/resource_effect_profiles.js";
 export * from "./resource/resource_branch.js";

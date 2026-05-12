@@ -1,3 +1,4 @@
+import type { SignalValue } from "../model.js";
 import type {
   ResourceItemAspect,
   ResourceItemAspectMap,
