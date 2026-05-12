@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/canonicalization/basis/raw_sequence_cannot_satisfy_ready_basis_api.rs:28:26
+   |
+28 |     requires_ready_basis(raw_sequence);
+   |     -------------------- ^^^^^^^^^^^^ expected `Artifact<..., ..., ..., ...>`, found `CanonicalBasisSequence`
+   |     |
+   |     arguments to this function are incorrect
+   |
+   = note: expected struct `Artifact<CanonicalBasisReady, CanonicalBasisSequence, ProofSetCons<Proof<CanonicalOrder, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>, ProofSetCons<Proof<Uniqueness, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>, ProofSetCons<Proof<CanonicalDomainCoherence, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>, ProofSetCons<Proof<CanonicalRuleVersionBound, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>, Proof<CanonicalizationCostObserved, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>>>>>, FreshnessScopedBasis<forge_proof::CurrentValidity, AssumptionBasis<CanonicalizationRuleVersion>>>`
+              found struct `CanonicalBasisSequence`
+note: function defined here
+  --> tests/ui/canonicalization/basis/raw_sequence_cannot_satisfy_ready_basis_api.rs:8:4
+   |
+ 8 | fn requires_ready_basis(_: CanonicalBasisReadyArtifact) {}
+   |    ^^^^^^^^^^^^^^^^^^^^ ------------------------------

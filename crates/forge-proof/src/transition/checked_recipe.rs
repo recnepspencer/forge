@@ -20,6 +20,15 @@ pub struct CheckedResolveRecipeTransition;
 pub type RecipeResolutionGate<B, Auth, D, De> =
     PreConstructionGate<RecipeResolutionContext<B, Auth>, D, De>;
 
+pub type CurrentResolvedRecipe<T, B> =
+    Recipe<Resolved, T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>;
+
+pub type CurrentLoweredRecipe<T, B> =
+    Recipe<crate::recipe::Lowered, T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>;
+
+pub type CurrentAdmittedRecipe<T, B> =
+    Recipe<Admitted, T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>;
+
 pub type RecipeLoweringReadiness<T, B, Cap, D, De, F> = TransitionReadiness<
     CapabilityWitness<Cap>,
     D,
@@ -35,6 +44,15 @@ pub type RecipeAdmissionReadiness<T, B, Auth, D, De, F> = TransitionReadiness<
     De,
     Recipe<crate::recipe::Lowered, T, StaleReadableBasis<B>>,
     Infallible,
+    F,
+>;
+
+pub type CheckedLowerAndAdmitRecipeOutcome<T, B, D, De, F> = TransitionOutcome<
+    CurrentAdmittedRecipe<T, B>,
+    D,
+    De,
+    Recipe<crate::recipe::Lowered, T, StaleReadableBasis<B>>,
+    Recipe<Resolved, T, RebindRequiredBasis<B>>,
     F,
 >;
 
@@ -56,6 +74,15 @@ where
     }
 }
 
+impl<C> Default for CheckedLowerRecipeTransition<C>
+where
+    C: CapabilityMarker,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub struct CheckedAdmitRecipeTransition<Auth>
 where
     Auth: AuthorityMarker,
@@ -74,17 +101,22 @@ where
     }
 }
 
+impl<Auth> Default for CheckedAdmitRecipeTransition<Auth>
+where
+    Auth: AuthorityMarker,
+{
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl<T, B, Auth, D, De>
     ContextualTransition<Recipe<Unresolved, T>, RecipeResolutionGate<B, Auth, D, De>>
     for CheckedResolveRecipeTransition
 where
     Auth: AuthorityMarker,
 {
-    type Output = DeferredTransitionOutcome<
-        Recipe<Resolved, T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>,
-        D,
-        De,
-    >;
+    type Output = DeferredTransitionOutcome<CurrentResolvedRecipe<T, B>, D, De>;
 
     fn transition(
         &self,
@@ -102,19 +134,13 @@ where
 }
 
 impl<T, B, C, D, De, F>
-    ContextualTransition<
-        Recipe<Resolved, T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>,
-        RecipeLoweringReadiness<T, B, C, D, De, F>,
-    > for CheckedLowerRecipeTransition<C>
+    ContextualTransition<CurrentResolvedRecipe<T, B>, RecipeLoweringReadiness<T, B, C, D, De, F>>
+    for CheckedLowerRecipeTransition<C>
 where
     C: CapabilityMarker,
 {
     type Output = TransitionOutcome<
-        Recipe<
-            crate::recipe::Lowered,
-            T,
-            FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>,
-        >,
+        CurrentLoweredRecipe<T, B>,
         D,
         De,
         Infallible,
@@ -124,7 +150,7 @@ where
 
     fn transition(
         &self,
-        input: Recipe<Resolved, T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>,
+        input: CurrentResolvedRecipe<T, B>,
         context: RecipeLoweringReadiness<T, B, C, D, De, F>,
     ) -> Self::Output {
         match context {
@@ -143,19 +169,13 @@ where
 }
 
 impl<T, B, Auth, D, De, F>
-    ContextualTransition<
-        Recipe<
-            crate::recipe::Lowered,
-            T,
-            FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>,
-        >,
-        RecipeAdmissionReadiness<T, B, Auth, D, De, F>,
-    > for CheckedAdmitRecipeTransition<Auth>
+    ContextualTransition<CurrentLoweredRecipe<T, B>, RecipeAdmissionReadiness<T, B, Auth, D, De, F>>
+    for CheckedAdmitRecipeTransition<Auth>
 where
     Auth: AuthorityMarker,
 {
     type Output = TransitionOutcome<
-        Recipe<Admitted, T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>,
+        CurrentAdmittedRecipe<T, B>,
         D,
         De,
         Recipe<crate::recipe::Lowered, T, StaleReadableBasis<B>>,
@@ -165,11 +185,7 @@ where
 
     fn transition(
         &self,
-        input: Recipe<
-            crate::recipe::Lowered,
-            T,
-            FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>,
-        >,
+        input: CurrentLoweredRecipe<T, B>,
         context: RecipeAdmissionReadiness<T, B, Auth, D, De, F>,
     ) -> Self::Output {
         match context {
@@ -190,11 +206,7 @@ pub fn resolve_lower_and_admit_recipe<T, B, ResolutionAuth, LoweringCap, Admissi
     resolution_gate: RecipeResolutionGate<B, ResolutionAuth, D, De>,
     lower_transition: &LowerRecipeTransition<LoweringCap>,
     admit_transition: &AdmitRecipeTransition<AdmissionAuth>,
-) -> DeferredTransitionOutcome<
-    Recipe<Admitted, T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>,
-    D,
-    De,
->
+) -> DeferredTransitionOutcome<CurrentAdmittedRecipe<T, B>, D, De>
 where
     ResolutionAuth: AuthorityMarker,
     LoweringCap: crate::proof::CapabilityMarker,
@@ -221,14 +233,7 @@ pub fn resolve_checked_lower_and_admit_recipe<
     resolution_gate: RecipeResolutionGate<B, ResolutionAuth, D, De>,
     lowering_readiness: RecipeLoweringReadiness<T, B, LoweringCap, D, De, F>,
     admission_readiness: RecipeAdmissionReadiness<T, B, AdmissionAuth, D, De, F>,
-) -> TransitionOutcome<
-    Recipe<Admitted, T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>,
-    D,
-    De,
-    Recipe<crate::recipe::Lowered, T, StaleReadableBasis<B>>,
-    Recipe<Resolved, T, RebindRequiredBasis<B>>,
-    F,
->
+) -> CheckedLowerAndAdmitRecipeOutcome<T, B, D, De, F>
 where
     ResolutionAuth: AuthorityMarker,
     LoweringCap: CapabilityMarker,

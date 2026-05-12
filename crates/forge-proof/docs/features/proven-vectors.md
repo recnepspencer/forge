@@ -56,10 +56,10 @@ Typical usage:
 ## Small Example
 
 ```rust
-use forge_proof::{CanonicalOrder, CanonicalVec, Proof};
+use forge_proof::{CanonicalOrder, CanonicalVec, Proof, StructuralProofAuthority};
 
 type OrderedItems = CanonicalVec<u64>;
-type OrderedProof = Proof<CanonicalOrder>;
+type OrderedProof = Proof<CanonicalOrder, StructuralProofAuthority>;
 
 let _ = std::any::type_name::<OrderedItems>();
 let _ = std::any::type_name::<OrderedProof>();

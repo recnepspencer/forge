@@ -37,6 +37,30 @@ pub type ExecutionReadyAdmissionReadiness<T, B, R, Auth, D, De, F> = TransitionR
     F,
 >;
 
+pub type CurrentExecutionReadyRecipe<T, B> =
+    ExecutionReadyRecipe<T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>;
+
+pub type CurrentExecutedRecipe<T, B> =
+    ExecutedRecipe<T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>;
+
+pub type CheckedExecutionReadyOutcome<T, B, D, De, F> = TransitionOutcome<
+    CurrentExecutionReadyRecipe<T, B>,
+    D,
+    De,
+    Recipe<Lowered, T, StaleReadableBasis<B>>,
+    Recipe<Resolved, T, RebindRequiredBasis<B>>,
+    F,
+>;
+
+pub type CheckedExecutedOutcome<T, B, D, De, F> = TransitionOutcome<
+    CurrentExecutedRecipe<T, B>,
+    D,
+    De,
+    Recipe<Lowered, T, StaleReadableBasis<B>>,
+    Recipe<Resolved, T, RebindRequiredBasis<B>>,
+    F,
+>;
+
 pub struct CheckedAdmitExecutionReadyRecipeTransition;
 
 impl<T, B, R, Auth>
@@ -47,9 +71,7 @@ impl<T, B, R, Auth>
 where
     Auth: AuthorityMarker,
 {
-    type Output = SuccessfulTransitionOutcome<
-        ExecutionReadyRecipe<T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>,
-    >;
+    type Output = SuccessfulTransitionOutcome<CurrentExecutionReadyRecipe<T, B>>;
 
     fn transition(
         &self,
@@ -72,14 +94,7 @@ impl<T, B, R, Auth, D, De, F>
 where
     Auth: AuthorityMarker,
 {
-    type Output = TransitionOutcome<
-        ExecutionReadyRecipe<T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>,
-        D,
-        De,
-        Recipe<Lowered, T, StaleReadableBasis<B>>,
-        Recipe<Resolved, T, RebindRequiredBasis<B>>,
-        F,
-    >;
+    type Output = CheckedExecutionReadyOutcome<T, B, D, De, F>;
 
     fn transition(
         &self,
@@ -114,9 +129,7 @@ impl<T, A> Transition<ExecutionReadyRecipe<T, A>> for ExecuteReadyRecipeTransiti
 pub fn admit_ready_and_execute_recipe<T, B, R, Auth>(
     lowered: Recipe<Lowered, T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>,
     readiness: ExecutionReadinessContext<R, Auth>,
-) -> SuccessfulTransitionOutcome<
-    ExecutedRecipe<T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>,
->
+) -> SuccessfulTransitionOutcome<CurrentExecutedRecipe<T, B>>
 where
     Auth: AuthorityMarker,
 {
@@ -130,14 +143,7 @@ where
 pub fn checked_admit_ready_and_execute_recipe<T, B, R, Auth, D, De, F>(
     lowered: Recipe<Lowered, T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>,
     readiness: ExecutionReadyAdmissionReadiness<T, B, R, Auth, D, De, F>,
-) -> TransitionOutcome<
-    ExecutedRecipe<T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>,
-    D,
-    De,
-    Recipe<Lowered, T, StaleReadableBasis<B>>,
-    Recipe<Resolved, T, RebindRequiredBasis<B>>,
-    F,
->
+) -> CheckedExecutedOutcome<T, B, D, De, F>
 where
     Auth: AuthorityMarker,
 {

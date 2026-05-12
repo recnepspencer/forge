@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/canonicalization/equivalence/raw_ready_basis_cannot_satisfy_comparison_api.rs:25:37
+   |
+25 |     let _ = compare_canonical_basis(&ready);
+   |             ----------------------- ^^^^^^ expected `CanonicalComparisonReady`, found `CanonicalBasisReady`
+   |             |
+   |             arguments to this function are incorrect
+   |
+   = note: expected reference `&Artifact<CanonicalComparisonReady, CanonicalComparisonInput, ProofSetCons<Proof<CanonicalEquivalenceBasisDeclared, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>, Proof<CanonicalMismatchLociBound, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>>, FreshnessScopedBasis<forge_proof::CurrentValidity, AssumptionBasis<CanonicalEquivalenceBasis>>>`
+              found reference `&Artifact<CanonicalBasisReady, CanonicalBasisSequence, ProofSetCons<Proof<CanonicalOrder, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>, ProofSetCons<Proof<Uniqueness, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>, ProofSetCons<Proof<CanonicalDomainCoherence, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>, ProofSetCons<Proof<CanonicalRuleVersionBound, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>, Proof<CanonicalizationCostObserved, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>>>>>, FreshnessScopedBasis<forge_proof::CurrentValidity, AssumptionBasis<CanonicalizationRuleVersion>>>`
+note: function defined here
+  --> src/canonicalization/equivalence/mod.rs
+   |
+   | pub fn compare_canonical_basis(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^

@@ -4,7 +4,7 @@ use std::any::type_name;
 
 use forge_proof::{
     Admitted, AssumptionBasis, AuthorityWitness, CanonicalOrder, CanonicalVec, CapabilityWitness,
-    DisjointPair, Lowered, Proof, Recipe, Resolved, UniqueVec,
+    DisjointPair, Lowered, Proof, Recipe, Resolved, StructuralProofAuthority, UniqueVec,
 };
 use support::compile_fail::run_compile_fail_bundle;
 use support::milestone2;
@@ -27,6 +27,7 @@ fn sealed_minting_and_witness_authority_certification() {
         compile_fail_bundle.families(),
         vec![
             "sealed_minting",
+            "proof_authority",
             "witness_minting",
             "witness_boundaries",
             "recipe_boundaries",
@@ -46,6 +47,18 @@ fn sealed_minting_and_witness_authority_certification() {
             (
                 "sealed_minting",
                 "tests/ui/milestone1/observed_proofs_cannot_be_duplicated.rs",
+            ),
+            (
+                "proof_authority",
+                "tests/ui/milestone1/proof_authority_scope_cannot_be_substituted.rs",
+            ),
+            (
+                "proof_authority",
+                "tests/ui/milestone1/authority_cannot_mint_unproven_proof_kind.rs",
+            ),
+            (
+                "proof_authority",
+                "tests/ui/milestone1/current_basis_rejects_mixed_authority_proof_set.rs",
             ),
             (
                 "witness_minting",
@@ -69,7 +82,7 @@ fn sealed_minting_and_witness_authority_certification() {
     assert_eq!(
         proof_shape_digest.entries(),
         [
-            type_name::<Proof<CanonicalOrder>>(),
+            type_name::<Proof<CanonicalOrder, StructuralProofAuthority>>(),
             type_name::<CanonicalVec<u64>>(),
             type_name::<UniqueVec<u64>>(),
             type_name::<DisjointPair<u64>>(),
@@ -90,6 +103,9 @@ fn sealed_minting_and_witness_authority_certification() {
         [
             "sealed_minting::tests/ui/milestone1/stronger_proof_bearing_constructors_are_not_public.rs",
             "sealed_minting::tests/ui/milestone1/observed_proofs_cannot_be_duplicated.rs",
+            "proof_authority::tests/ui/milestone1/proof_authority_scope_cannot_be_substituted.rs",
+            "proof_authority::tests/ui/milestone1/authority_cannot_mint_unproven_proof_kind.rs",
+            "proof_authority::tests/ui/milestone1/current_basis_rejects_mixed_authority_proof_set.rs",
             "witness_minting::tests/ui/milestone2/witnesses_are_not_publicly_mintable.rs",
             "witness_boundaries::tests/ui/milestone2/witness_required_apis_reject_callers_without_witness.rs",
             "recipe_boundaries::tests/ui/milestone2/recipe_stages_are_not_publicly_skippable.rs",

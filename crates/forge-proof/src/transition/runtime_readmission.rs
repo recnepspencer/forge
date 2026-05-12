@@ -63,6 +63,30 @@ pub type LoweredReadmissionReadiness<
     F,
 >;
 
+pub type ReadmittedExecutionReadyRecipe<T, NextB> =
+    ExecutionReadyRecipe<T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<NextB>>>;
+
+pub type ReadmittedExecutedRecipe<T, NextB> =
+    ExecutedRecipe<T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<NextB>>>;
+
+pub type CheckedReadmissionReadyOutcome<T, PrevB, NextB, D, De, F> = TransitionOutcome<
+    ReadmittedExecutionReadyRecipe<T, NextB>,
+    D,
+    De,
+    Recipe<Lowered, T, BoundaryBridgedStaleReadableBasis<PrevB>>,
+    Infallible,
+    F,
+>;
+
+pub type CheckedReadmissionExecutedOutcome<T, PrevB, NextB, D, De, F> = TransitionOutcome<
+    ReadmittedExecutedRecipe<T, NextB>,
+    D,
+    De,
+    Recipe<Lowered, T, BoundaryBridgedStaleReadableBasis<PrevB>>,
+    Infallible,
+    F,
+>;
+
 pub struct ReadmitLoweredForExecutionReadyTransition;
 
 pub struct CheckedReadmitLoweredForExecutionReadyTransition;
@@ -76,9 +100,7 @@ where
     ReadmitAuth: AuthorityMarker,
     ReadinessAuth: AuthorityMarker,
 {
-    type Output = SuccessfulTransitionOutcome<
-        ExecutionReadyRecipe<T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<NextB>>>,
-    >;
+    type Output = SuccessfulTransitionOutcome<ReadmittedExecutionReadyRecipe<T, NextB>>;
 
     fn transition(
         &self,
@@ -105,14 +127,7 @@ where
     ReadmitAuth: AuthorityMarker,
     ReadinessAuth: AuthorityMarker,
 {
-    type Output = TransitionOutcome<
-        ExecutionReadyRecipe<T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<NextB>>>,
-        D,
-        De,
-        Recipe<Lowered, T, BoundaryBridgedStaleReadableBasis<PrevB>>,
-        Infallible,
-        F,
-    >;
+    type Output = CheckedReadmissionReadyOutcome<T, PrevB, NextB, D, De, F>;
 
     fn transition(
         &self,
@@ -145,9 +160,7 @@ where
 pub fn readmit_ready_and_execute_recipe<T, PrevB, NextB, ReadmitAuth, Runtime, ReadinessAuth>(
     bridged: Recipe<Lowered, T, BoundaryBridgedStaleReadableBasis<PrevB>>,
     context: LoweredReadmissionContext<NextB, ReadmitAuth, Runtime, ReadinessAuth>,
-) -> SuccessfulTransitionOutcome<
-    ExecutedRecipe<T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<NextB>>>,
->
+) -> SuccessfulTransitionOutcome<ReadmittedExecutedRecipe<T, NextB>>
 where
     ReadmitAuth: AuthorityMarker,
     ReadinessAuth: AuthorityMarker,
@@ -182,14 +195,7 @@ pub fn checked_readmit_ready_and_execute_recipe<
         De,
         F,
     >,
-) -> TransitionOutcome<
-    ExecutedRecipe<T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<NextB>>>,
-    D,
-    De,
-    Recipe<Lowered, T, BoundaryBridgedStaleReadableBasis<PrevB>>,
-    Infallible,
-    F,
->
+) -> CheckedReadmissionExecutedOutcome<T, PrevB, NextB, D, De, F>
 where
     ReadmitAuth: AuthorityMarker,
     ReadinessAuth: AuthorityMarker,

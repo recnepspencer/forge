@@ -7,6 +7,9 @@ pub struct JoinInputs2<L, R> {
     right: R,
 }
 
+pub type ArtifactJoinInputs2<P, L, R, LS, RS, LA, RA> =
+    JoinInputs2<Artifact<P, L, LS, LA>, Artifact<P, R, RS, RA>>;
+
 impl<L, R> JoinInputs2<L, R> {
     pub fn new(left: L, right: R) -> Self {
         Self { left, right }
@@ -26,7 +29,7 @@ impl<L, R> JoinInputs2<L, R> {
 }
 
 pub fn join_artifact_pair<P, L, R, LS, RS, LA, RA, T, S, A>(
-    inputs: JoinInputs2<Artifact<P, L, LS, LA>, Artifact<P, R, RS, RA>>,
+    inputs: ArtifactJoinInputs2<P, L, R, LS, RS, LA, RA>,
     join: impl FnOnce((L, LS, LA), (R, RS, RA)) -> (T, S, A),
 ) -> Artifact<P, T, S, A> {
     let (left, right) = inputs.into_parts();
@@ -44,7 +47,9 @@ mod tests {
     use crate::artifact::Artifact;
     use crate::assumption::{AssumptionBasis, NoAssumptionBasis};
     use crate::phase::PhaseMarker;
-    use crate::proof::{mint_proof, NoProofs, Proof, ProofMarker};
+    use crate::proof::{
+        mint_proof, AuthorityMarker, AuthorityProves, NoProofs, Proof, ProofMarker,
+    };
 
     use super::{join_artifact_pair, JoinInputs2};
 
@@ -53,6 +58,10 @@ mod tests {
 
     struct JoinedProof;
     impl ProofMarker for JoinedProof {}
+
+    struct JoinAuthority;
+    impl AuthorityMarker for JoinAuthority {}
+    impl AuthorityProves<JoinedProof> for JoinAuthority {}
 
     #[test]
     fn join_inputs_preserve_explicit_positions() {
@@ -72,7 +81,7 @@ mod tests {
         );
         let right = Artifact::<LoweredPhase, _, _, _>::with_state(
             5_u8,
-            mint_proof::<JoinedProof>(),
+            mint_proof::<JoinedProof, JoinAuthority>(),
             NoAssumptionBasis,
         );
 
@@ -88,7 +97,7 @@ mod tests {
         });
 
         assert_eq!(joined.payload(), &12_u8);
-        let _: &Proof<JoinedProof> = joined.proofs();
+        let _: &Proof<JoinedProof, JoinAuthority> = joined.proofs();
     }
 
     #[test]

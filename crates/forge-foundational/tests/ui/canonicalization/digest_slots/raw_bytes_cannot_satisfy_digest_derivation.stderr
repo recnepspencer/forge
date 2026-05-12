@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+ --> tests/ui/canonicalization/digest_slots/raw_bytes_cannot_satisfy_digest_derivation.rs:4:37
+  |
+4 |     let _ = derive_canonical_digest([0_u8; 32]);
+  |             ----------------------- ^^^^^^^^^^ expected `Artifact<..., ..., ..., ...>`, found `[u8; 32]`
+  |             |
+  |             arguments to this function are incorrect
+  |
+  = note: expected struct `forge_proof::artifact::carrier::Artifact<CanonicalDigestDerivationReady, CanonicalDigestDerivationInput, forge_proof::proof::sets::ProofSetCons<forge_proof::proof::sets::Proof<CanonicalDigestInputShapeBound, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>, forge_proof::proof::sets::Proof<CanonicalRuleVersionBound, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>>, forge_proof::assumption::freshness::FreshnessScopedBasis<forge_proof::assumption::freshness::CurrentValidity, forge_proof::assumption::basis::AssumptionBasis<CanonicalDigestAlgorithmMetadata>>>`
+              found array `[u8; 32]`
+note: function defined here
+ --> src/canonicalization/digest_slots/derived.rs
+  |
+  | pub fn derive_canonical_digest(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^

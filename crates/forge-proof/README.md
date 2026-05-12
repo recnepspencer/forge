@@ -229,7 +229,7 @@ The main kinds of truth it represents are:
   - an `Artifact<P, ...>` is in phase `P`
   - a `Recipe<S, ...>` is in stage `S`
 - proof truth
-  - `Proof<P>` means some specific fact has been established
+  - `Proof<P, A>` means authority `A` has established fact `P`
   - proof sets let multiple facts travel together without collapsing into runtime lookup
 - basis truth
   - `AssumptionBasis<B>` says the current form depends on some explicit basis
@@ -286,16 +286,16 @@ These three things are easy to confuse at first.
 
 ### Proofs
 
-`Proof<P>` means a fact has been established.
+`Proof<P, A>` means a fact has been established by an authority allowed to prove that fact.
 
 Examples:
 
-- `Proof<CanonicalOrder>`
-- `Proof<Uniqueness>`
-- `Proof<Disjointness>`
-- `Proof<Normalization>`
+- `Proof<CanonicalOrder, StructuralProofAuthority>`
+- `Proof<Uniqueness, StructuralProofAuthority>`
+- `Proof<Disjointness, StructuralProofAuthority>`
+- `Proof<Normalization, StructuralProofAuthority>`
 
-Proof minting is sealed. Public callers can carry proofs and observe them, but they cannot forge stronger proof-bearing forms directly.
+Proof minting is sealed and proof-kind authorized. Public callers can carry proofs and observe them, but they cannot forge stronger proof-bearing forms directly or reuse an unrelated authority to mint a different proof kind.
 
 ### Witnesses
 
@@ -604,7 +604,7 @@ A sealed zero-sized carrier representing an established fact such as canonical o
 
 ### proof set
 
-A statically known grouping of proofs, such as `NoProofs`, `Proof<P>`, or `ProofSetCons<Head, Tail>`.
+A statically known grouping of proofs, such as `NoProofs`, `Proof<P, A>`, or `ProofSetCons<Head, Tail>`.
 
 ### rebind required
 

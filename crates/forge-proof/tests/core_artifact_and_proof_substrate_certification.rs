@@ -4,7 +4,7 @@ use std::any::type_name;
 
 use forge_proof::{
     Artifact, ArtifactParts, ArtifactView, AssumptionBasis, CanonicalOrder, CanonicalVec,
-    DisjointPair, NoAssumptionBasis, NoProofs, Proof, UniqueVec,
+    DisjointPair, NoAssumptionBasis, NoProofs, Proof, StructuralProofAuthority, UniqueVec,
 };
 use support::milestone1;
 use support::type_shapes::TypeShapeCheck;
@@ -48,7 +48,7 @@ fn milestone_1_evidence_bundle_is_machine_checkable() {
         compile_fail_bundle.suite(),
         "core_artifact_and_proof_substrate"
     );
-    assert_eq!(compile_fail_bundle.cases().len(), 5);
+    assert_eq!(compile_fail_bundle.cases().len(), 8);
     assert_eq!(
         compile_fail_bundle.families(),
         vec![
@@ -85,6 +85,18 @@ fn milestone_1_evidence_bundle_is_machine_checkable() {
                 "constructor_boundaries",
                 "tests/ui/milestone1/observed_proofs_cannot_be_duplicated.rs",
             ),
+            (
+                "constructor_boundaries",
+                "tests/ui/milestone1/proof_authority_scope_cannot_be_substituted.rs",
+            ),
+            (
+                "constructor_boundaries",
+                "tests/ui/milestone1/authority_cannot_mint_unproven_proof_kind.rs",
+            ),
+            (
+                "constructor_boundaries",
+                "tests/ui/milestone1/current_basis_rejects_mixed_authority_proof_set.rs",
+            ),
         ]
     );
 
@@ -97,18 +109,29 @@ fn milestone_1_evidence_bundle_is_machine_checkable() {
         [
             type_name::<Artifact<milestone1::RawPhase, u64, NoProofs, NoAssumptionBasis>>(),
             type_name::<
-                Artifact<milestone1::RawPhase, u64, Proof<CanonicalOrder>, AssumptionBasis<u32>>,
+                Artifact<
+                    milestone1::RawPhase,
+                    u64,
+                    Proof<CanonicalOrder, StructuralProofAuthority>,
+                    AssumptionBasis<u32>,
+                >,
             >(),
             type_name::<
                 ArtifactView<
                     'static,
                     milestone1::RawPhase,
                     u64,
-                    Proof<CanonicalOrder>,
+                    Proof<CanonicalOrder, StructuralProofAuthority>,
                     AssumptionBasis<u32>,
                 >,
             >(),
-            type_name::<ArtifactParts<u64, Proof<CanonicalOrder>, AssumptionBasis<u32>>>(),
+            type_name::<
+                ArtifactParts<
+                    u64,
+                    Proof<CanonicalOrder, StructuralProofAuthority>,
+                    AssumptionBasis<u32>,
+                >,
+            >(),
             type_name::<CanonicalVec<u64>>(),
             type_name::<UniqueVec<u64>>(),
             type_name::<DisjointPair<u64>>(),

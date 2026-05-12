@@ -5,9 +5,15 @@ use crate::transition::{
 
 use super::JoinInputs2;
 
+pub type JoinedExecutionReadyRecipe<L, R, LA, RA> =
+    ExecutionReadyRecipe<JoinInputs2<L, R>, JoinInputs2<LA, RA>>;
+
+pub type JoinedExecutionReadyOutcome<L, R, LA, RA, D, De, St, Rb, F> =
+    TransitionOutcome<JoinedExecutionReadyRecipe<L, R, LA, RA>, D, De, St, Rb, F>;
+
 pub fn join_ready_recipe_pair<L, R, LA, RA>(
     inputs: JoinInputs2<ExecutionReadyRecipe<L, LA>, ExecutionReadyRecipe<R, RA>>,
-) -> ExecutionReadyRecipe<JoinInputs2<L, R>, JoinInputs2<LA, RA>> {
+) -> JoinedExecutionReadyRecipe<L, R, LA, RA> {
     let (left, right) = inputs.into_parts();
     let (left_payload, left_basis) = left.into_parts();
     let (right_payload, right_basis) = right.into_parts();
@@ -21,8 +27,7 @@ pub fn join_ready_recipe_pair<L, R, LA, RA>(
 pub fn compose_join_ready_recipe_pair<L, R, LA, RA, D, De, St, Rb, F>(
     left: TransitionOutcome<ExecutionReadyRecipe<L, LA>, D, De, St, Rb, F>,
     right: impl FnOnce() -> TransitionOutcome<ExecutionReadyRecipe<R, RA>, D, De, St, Rb, F>,
-) -> TransitionOutcome<ExecutionReadyRecipe<JoinInputs2<L, R>, JoinInputs2<LA, RA>>, D, De, St, Rb, F>
-{
+) -> JoinedExecutionReadyOutcome<L, R, LA, RA, D, De, St, Rb, F> {
     compose_join_success_transition(left, right, |inputs| {
         SuccessfulTransitionOutcome::new(join_ready_recipe_pair(inputs))
     })

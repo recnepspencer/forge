@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/canonicalization/basis/digest_ready_artifact_cannot_satisfy_canonical_basis.rs:20:30
+   |
+20 |     requires_canonical_basis(ready);
+   |     ------------------------ ^^^^^ expected `Artifact<..., ..., ..., ...>`, found `Artifact<DigestPreparationReady, ...>`
+   |     |
+   |     arguments to this function are incorrect
+   |
+   = note: expected struct `Artifact<CanonicalBasisReady, CanonicalBasisSequence, ProofSetCons<Proof<CanonicalOrder, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>, ProofSetCons<Proof<Uniqueness, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>, ProofSetCons<Proof<CanonicalDomainCoherence, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>, ProofSetCons<Proof<CanonicalRuleVersionBound, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>, Proof<CanonicalizationCostObserved, forge_foundational::canonicalization::basis::proofs::CanonicalBasisConstructionAuthority>>>>>, FreshnessScopedBasis<forge_proof::CurrentValidity, AssumptionBasis<CanonicalizationRuleVersion>>>`
+              found struct `Artifact<DigestPreparationReady, DigestPreparationReadyAspectContract, NoProofs, NoAssumptionBasis>`
+note: function defined here
+  --> tests/ui/canonicalization/basis/digest_ready_artifact_cannot_satisfy_canonical_basis.rs:7:4
+   |
+ 7 | fn requires_canonical_basis(_: CanonicalBasisReadyArtifact) {}
+   |    ^^^^^^^^^^^^^^^^^^^^^^^^ ------------------------------

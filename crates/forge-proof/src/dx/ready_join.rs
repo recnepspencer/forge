@@ -2,18 +2,23 @@ use crate::composition::{compose_join_ready_recipe_pair, join_ready_recipe_pair,
 use crate::recipe::ExecutionReadyRecipe;
 use crate::transition::TransitionOutcome;
 
+pub type JoinedExecutionReadyRecipe<L, R, LA, RA> =
+    ExecutionReadyRecipe<JoinInputs2<L, R>, JoinInputs2<LA, RA>>;
+
+pub type JoinedExecutionReadyOutcome<L, R, LA, RA, D, De, St, Rb, F> =
+    TransitionOutcome<JoinedExecutionReadyRecipe<L, R, LA, RA>, D, De, St, Rb, F>;
+
 pub fn join_ready<L, R, LA, RA>(
     left: ExecutionReadyRecipe<L, LA>,
     right: ExecutionReadyRecipe<R, RA>,
-) -> ExecutionReadyRecipe<JoinInputs2<L, R>, JoinInputs2<LA, RA>> {
+) -> JoinedExecutionReadyRecipe<L, R, LA, RA> {
     join_ready_recipe_pair(JoinInputs2::new(left, right))
 }
 
 pub fn compose_ready<L, R, LA, RA, D, De, St, Rb, F>(
     left: TransitionOutcome<ExecutionReadyRecipe<L, LA>, D, De, St, Rb, F>,
     right: impl FnOnce() -> TransitionOutcome<ExecutionReadyRecipe<R, RA>, D, De, St, Rb, F>,
-) -> TransitionOutcome<ExecutionReadyRecipe<JoinInputs2<L, R>, JoinInputs2<LA, RA>>, D, De, St, Rb, F>
-{
+) -> JoinedExecutionReadyOutcome<L, R, LA, RA, D, De, St, Rb, F> {
     compose_join_ready_recipe_pair(left, right)
 }
 

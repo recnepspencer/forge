@@ -171,6 +171,122 @@ It does not own:
 The semantic authority is the canonical basis. A digest is a derived
 compression of that basis.
 
+## QA Tightening Notes
+
+This spec must not close as an abstract "make hashes stable" milestone.
+Milestone 2 is only useful if an implementer can point at concrete types,
+builder constraints, fixture files, hostile producer shapes, and compile-fail
+boundaries that prove canonical meaning is practical.
+
+The naive traps to avoid are:
+
+- treating a canonical basis entry as a loosely typed key/value pair
+- using `Debug`, display text, serde order, or transport JSON as a shortcut for
+  exportable canonical evidence
+- allowing a digest algorithm slot to accept raw bytes and thereby bypass basis
+  law
+- comparing basis sequences without naming the equivalence basis that makes
+  the comparison meaningful
+- building fixture snapshots that prove formatting stability instead of
+  semantic stability
+- letting local adversarial producers become an unowned mini-runtime or
+  harness dialect inside `forge-foundational`
+- hiding canonicalization work behind cheap-looking accessors with no visible
+  cost boundary
+
+Milestone 2 must therefore make the following implicit assumptions explicit:
+
+- canonicalization is a boundary operation, not a passive getter
+- every basis entry has a typed domain, typed locus, typed entry kind, and typed
+  value carrier
+- rule version participates in every sequence, bundle, export fixture, and
+  digest derivation
+- exact comparison, compatibility-lowered comparison, projection-equivalent
+  comparison, and digest-equivalent comparison are different claims
+- unsupported comparison is a first-class outcome, not a panic, boolean false,
+  or omitted report
+- algorithm identity is metadata over a basis-derived compression path, not
+  semantic authority
+
+## Forge-Proof Dependency Boundary
+
+Milestone 2 must use `forge-proof` for proof-bearing progression surfaces.
+This is not optional and should not be reopened during implementation.
+
+`forge-proof` is mandatory for:
+
+- carrying phase truth for canonical basis readiness, export readiness,
+  comparison readiness, digest derivation readiness, and production-test
+  readiness
+- carrying proof facts such as canonical order, uniqueness, normalization,
+  domain coherence, rule-version binding, and digest-derivation readiness
+- checked transitions where canonicalization, comparison, export, or digest
+  derivation can be denied, deferred, stale, rebind-required, or failed
+- readiness gates that decide whether a stronger canonicalization artifact may
+  be constructed
+- assumption-basis and freshness wrappers when a basis artifact crosses an
+  export, fixture, replay, transport, or runtime-adoption trust boundary
+- authority or capability witnesses for trusted progression lanes such as
+  canonical basis construction, export publication, digest derivation, boundary
+  readmission, and production-test readiness certification
+
+`forge-proof` is forbidden for:
+
+- plain `CanonicalBasisEntry`, `CanonicalBasisValue`, `CanonicalBasisLocus`,
+  `CanonicalBasisDomain`, `CanonicalBasisEntryKind`, and rule-version data
+- plain equivalence-basis and mismatch-basis vocabulary
+- algorithm id, digest metadata, fixture manifest, producer-shape metadata, and
+  canonicalization-cost vocabulary
+- replacing diagnostics, provenance, receipts, profiles, branch/merge/commit
+  evidence, or later milestone ontology
+- building a runtime engine, serializer, storage model, dynamic proof registry,
+  or workflow harness inside `forge-foundational`
+
+The operating rule is:
+
+`forge-foundational` defines the nouns; `forge-proof` proves which noun has
+progressed into which stronger state, under which proof set and basis.
+
+Concrete mandatory proof phases:
+
+- `RawCanonicalBasisInput`: local foundational data has not yet proven
+  canonical order or domain coherence.
+- `CanonicalBasisReady`: one domain sequence is ordered, versioned,
+  domain-coherent, and safe as digest-basis input.
+- `CanonicalBundleReady`: multiple ready sequences form a version-coherent
+  bundle.
+- `CanonicalComparisonReady`: two ready sequences or bundles have an explicit
+  equivalence basis and may be compared.
+- `CanonicalExportReady`: a bundle has a manifest, producer-shape metadata,
+  cost counters, and golden/export fixture metadata.
+- `CanonicalDigestDerivationReady`: a ready sequence or bundle has an admitted
+  digest algorithm slot and input-shape proof.
+- `CanonicalDigestDerived`: a digest value has been derived from canonical
+  basis evidence and carries algorithm/rule-version/input-shape metadata.
+- `CanonicalProductionTestReady`: Milestone 2 certified surfaces, hostile
+  producer evidence, blind-consumer evidence, compile-fail evidence, golden
+  fixtures, cost evidence, assumptions, non-assumptions, and residual debt have
+  been recorded.
+
+Concrete mandatory proof facts:
+
+- `CanonicalOrder`
+- `Uniqueness`
+- `Normalization`
+- `CanonicalDomainCoherence`
+- `CanonicalRuleVersionBound`
+- `CanonicalEquivalenceBasisDeclared`
+- `CanonicalMismatchLociBound`
+- `CanonicalExportManifestBound`
+- `CanonicalDigestInputShapeBound`
+- `CanonicalizationCostObserved`
+- `CanonicalProductionReadinessCertified`
+
+Use built-in `forge-proof` facts such as `CanonicalOrder`, `Uniqueness`, and
+`Normalization` where they fit exactly. Add Milestone 2 proof-marker types in
+`forge-foundational` for domain-specific facts such as rule-version binding,
+export-manifest binding, digest input-shape binding, and production readiness.
+
 ## Practical Type Targets
 
 The implementation may choose better names, but it must contain these
@@ -199,10 +315,30 @@ pub struct CanonicalBasisEntry {
     value: CanonicalBasisValue,
 }
 
+pub struct CanonicalBasisEntryId<D> {
+    domain: PhantomData<D>,
+    ordinal: u32,
+}
+
+pub enum CanonicalBasisValue {
+    Null,
+    Bool(bool),
+    SignedInteger { width: IntegerWidth, value: i64 },
+    UnsignedInteger { width: IntegerWidth, value: u64 },
+    FloatBits { width: FloatWidth, bits: u64 },
+    ExactText(CanonicalText),
+    BytesDigest(ContentDigestId),
+    UuidBytes([u8; 16]),
+    Temporal(CanonicalTemporalBasis),
+    Reference(CanonicalReferenceBasis),
+    NestedSequence(CanonicalBasisSequenceId),
+}
+
 pub struct CanonicalBasisSequence {
     version: CanonicalizationRuleVersion,
     domain: CanonicalBasisDomain,
     entries: CanonicalBasisEntries,
+    cost: CanonicalizationCost,
 }
 
 pub struct CanonicalBasisBundle {
@@ -241,18 +377,162 @@ pub struct CanonicalDigestAlgorithmSlot {
     id: CanonicalDigestAlgorithmId,
     input_domain: CanonicalBasisDomain,
     rule_version: CanonicalizationRuleVersion,
+    input_shape: CanonicalDigestInputShape,
 }
 
+pub struct CanonicalizationCost {
+    entry_count: u32,
+    ordering_comparisons: u32,
+    nested_sequence_count: u32,
+    compatibility_lowering_count: u32,
+}
+
+pub enum CanonicalDigestInputShape {
+    SingleSequence,
+    DomainBundle,
+    ExportBundle,
+}
+
+pub struct CanonicalDomainCoherence;
+pub struct CanonicalRuleVersionBound;
+pub struct CanonicalEquivalenceBasisDeclared;
+pub struct CanonicalMismatchLociBound;
+pub struct CanonicalExportManifestBound;
+pub struct CanonicalDigestInputShapeBound;
+pub struct CanonicalizationCostObserved;
+pub struct CanonicalProductionReadinessCertified;
+pub struct CanonicalizationProofAuthority;
+
 pub type CanonicalBasisReadyArtifact =
-    forge_proof::Artifact<CanonicalBasisReady, CanonicalBasisSequence>;
+    forge_proof::Artifact<
+        CanonicalBasisReady,
+        CanonicalBasisSequence,
+        forge_proof::ProofSetCons<
+            forge_proof::Proof<forge_proof::CanonicalOrder, CanonicalizationProofAuthority>,
+            forge_proof::ProofSetCons<
+                forge_proof::Proof<CanonicalDomainCoherence, CanonicalizationProofAuthority>,
+                forge_proof::ProofSetCons<
+                    forge_proof::Proof<CanonicalRuleVersionBound, CanonicalizationProofAuthority>,
+                    forge_proof::Proof<
+                        CanonicalizationCostObserved,
+                        CanonicalizationProofAuthority,
+                    >,
+                >,
+            >,
+        >,
+        forge_proof::FreshnessScopedBasis<
+            forge_proof::CurrentValidity,
+            forge_proof::AssumptionBasis<CanonicalizationRuleVersion>,
+        >,
+    >;
+
+pub type CanonicalBundleReadyArtifact =
+    forge_proof::Artifact<
+        CanonicalBundleReady,
+        CanonicalBasisBundle,
+        forge_proof::ProofSetCons<
+            forge_proof::Proof<CanonicalRuleVersionBound, CanonicalizationProofAuthority>,
+            forge_proof::Proof<CanonicalDomainCoherence, CanonicalizationProofAuthority>,
+        >,
+        forge_proof::FreshnessScopedBasis<
+            forge_proof::CurrentValidity,
+            forge_proof::AssumptionBasis<CanonicalizationRuleVersion>,
+        >,
+    >;
+
+pub type CanonicalComparisonReadyArtifact =
+    forge_proof::Artifact<
+        CanonicalComparisonReady,
+        CanonicalComparisonInput,
+        forge_proof::ProofSetCons<
+            forge_proof::Proof<CanonicalEquivalenceBasisDeclared, CanonicalizationProofAuthority>,
+            forge_proof::Proof<CanonicalMismatchLociBound, CanonicalizationProofAuthority>,
+        >,
+        forge_proof::NoAssumptionBasis,
+    >;
 
 pub type CanonicalExportReadyArtifact =
-    forge_proof::Artifact<CanonicalExportReady, CanonicalBasisBundle>;
+    forge_proof::Artifact<
+        CanonicalExportReady,
+        CanonicalExportBundle,
+        forge_proof::ProofSetCons<
+            forge_proof::Proof<CanonicalExportManifestBound, CanonicalizationProofAuthority>,
+            forge_proof::Proof<CanonicalizationCostObserved, CanonicalizationProofAuthority>,
+        >,
+        forge_proof::FreshnessScopedBasis<
+            forge_proof::CurrentValidity,
+            forge_proof::AssumptionBasis<CanonicalizationRuleVersion>,
+        >,
+    >;
+
+pub type CanonicalDigestDerivationReadyArtifact =
+    forge_proof::Artifact<
+        CanonicalDigestDerivationReady,
+        CanonicalDigestDerivationInput,
+        forge_proof::ProofSetCons<
+            forge_proof::Proof<CanonicalDigestInputShapeBound, CanonicalizationProofAuthority>,
+            forge_proof::Proof<CanonicalRuleVersionBound, CanonicalizationProofAuthority>,
+        >,
+        forge_proof::FreshnessScopedBasis<
+            forge_proof::CurrentValidity,
+            forge_proof::AssumptionBasis<CanonicalDigestAlgorithmSlot>,
+        >,
+    >;
+
+pub type CanonicalProductionTestReadyArtifact =
+    forge_proof::Artifact<
+        CanonicalProductionTestReady,
+        CanonicalProductionReadinessReport,
+        forge_proof::Proof<
+            CanonicalProductionReadinessCertified,
+            CanonicalizationProofAuthority,
+        >,
+        forge_proof::NoAssumptionBasis,
+    >;
 ```
 
 These sketches are intentionally basis-centered. No type should imply that the
 hash algorithm is the source of truth. No type should allow arbitrary byte blobs
 to claim digest equivalence without canonical basis evidence.
+
+`CanonicalizationProofAuthority` must be a sealed milestone-owned authority
+that implements `forge_proof::AuthorityProves<...>` only for the proof facts
+that its construction path can actually establish. Implementations must not use
+an unscoped/default proof authority, and mixed-authority proof sets must not be
+admitted into readiness artifacts.
+
+The sketches also imply concrete implementation obligations:
+
+- `CanonicalBasisEntryKind` must be a closed milestone-owned vocabulary for the
+  Milestone 1 surfaces, with future extension slots that cannot pretend to be
+  final later-milestone ontology.
+- `CanonicalBasisValue` must encode the value family that determines meaning;
+  it may not fall back to `String`, `serde_json::Value`, or arbitrary bytes for
+  ordinary semantic entries.
+- `CanonicalBasisEntryId<D>` or an equivalent domain-typed handle must exist
+  anywhere an API refers back to an entry from mismatch, export, or digest-slot
+  code.
+- `CanonicalizationCost` must be attached to sequence construction results so
+  hostile tests can prove canonicalization breadth and nested-sequence work are
+  visible at the boundary.
+- `CanonicalDigestInputShape` must distinguish single-sequence, domain-bundle,
+  and export-bundle digest inputs so broad export compression cannot masquerade
+  as a cheap single-surface digest.
+- every `Artifact<...>` alias in the sketch is mandatory in spirit: an
+  implementation may rename payload types, but it must preserve the same
+  `forge-proof` phase, proof-set, and assumption-basis roles.
+- sequence and bundle readiness must carry current-validity assumption bases
+  tied to `CanonicalizationRuleVersion`; crossing export/replay/transport
+  boundaries must explicitly downgrade through `forge-proof` boundary bridging
+  and require readmission before a caller treats the artifact as current again.
+- comparison readiness must consume ready basis artifacts and an explicit
+  equivalence basis before returning structured comparison outcomes.
+- digest derivation readiness must consume basis/export-ready artifacts and an
+  admitted `CanonicalDigestAlgorithmSlot`; it may not accept plain sequence
+  payloads or raw bytes.
+- production-test readiness must be a proof-bearing artifact, not only a
+  markdown closeout, so adopting crates can require it in APIs or harness
+  adapters without reading prose.
 
 ## Compile-Time Enforcement Targets
 
@@ -266,6 +546,17 @@ to claim digest equivalence without canonical basis evidence.
 | Canonicalization rule version cannot be omitted. | Basis sequence and bundle constructors require a `CanonicalizationRuleVersion`. |
 | Value, contract, state, patch, identity, locator, and compatibility bases cannot be substituted silently. | Domain-typed basis wrappers or phantom-typed domain markers where APIs need one domain. |
 | Final receipt/report/profile/diagnostic types cannot be smuggled into Milestone 2. | Milestone 2 exposes extension slots and future domains, not final later-milestone category constructors. |
+| Mismatch references cannot point at untyped integer positions. | Mismatch APIs use domain-typed entry ids or canonical loci, never raw indexes alone. |
+| Export-bundle digest slots cannot be used where a single-surface digest slot is required. | Digest slots carry `CanonicalDigestInputShape` or distinct phantom-typed input shapes. |
+| Canonicalization cost cannot be invisible. | Sequence construction returns or exposes `CanonicalizationCost`; tests assert entry counts, nested-sequence counts, and compatibility-lowering counts. |
+| Compatibility-origin basis cannot claim native construction provenance. | Compatibility basis builders carry an origin marker that canonicalizes to native meaning only after successful lowering, while export metadata preserves producer shape. |
+| Unsupported comparison cannot be represented as ordinary inequality. | Comparison APIs return a structured comparison outcome with an unsupported variant. |
+| Canonical basis readiness cannot be forged by constructing the payload shape. | APIs that require readiness consume `CanonicalBasisReadyArtifact`, not `CanonicalBasisSequence`. |
+| Export readiness cannot be forged by bundling ready sequences manually. | Export publication consumes `CanonicalExportReadyArtifact` carrying manifest and cost proofs. |
+| Digest derivation cannot skip algorithm-slot admission. | Digest derivation consumes `CanonicalDigestDerivationReadyArtifact`, not a digest slot plus bytes. |
+| Boundary-restored fixtures cannot be treated as current without readmission. | Export/replay restoration returns boundary-bridged or stale/rebind-required `forge-proof` basis states until readmitted by an authority witness. |
+| Production-test readiness cannot be claimed by a prose closeout alone. | Production-shaped adoption APIs and harness adapters consume `CanonicalProductionTestReadyArtifact` or an equivalent proof-bearing readiness artifact. |
+| A witness cannot substitute for a carried proof. | Authority/capability witnesses authorize transitions; resulting artifacts must carry the proof facts they establish. |
 
 ## Phases
 
@@ -277,12 +568,12 @@ Phase progression gates:
 
 | Phase | Gate before next phase |
 | --- | --- |
-| Phase 1 | Canonical basis domains, version identity, and basis entry grammar exist before any surface-specific basis builder lands. |
-| Phase 2 | Milestone 1 surfaces produce canonical basis sequences before equivalence or mismatch can compare them. |
-| Phase 3 | Equivalence basis and mismatch-basis primitives exist before export fixtures or digest slots can claim parity. |
-| Phase 4 | Canonical export bundles and golden fixture shapes exist before algorithm slots compress basis evidence. |
-| Phase 5 | Algorithm slots are explicitly downstream of basis evidence before production-test readiness can close. |
-| Phase 6 | Hostile producer parity, compile-fail boundaries, and readiness artifacts exist before Milestone 3 profile work begins. |
+| Phase 1 | Canonical basis domains, version identity, entry grammar, proof-marker facts, and `CanonicalBasisReadyArtifact` exist before any surface-specific basis builder lands. |
+| Phase 2 | Milestone 1 surfaces produce `CanonicalBasisReadyArtifact` values before equivalence or mismatch can compare them. |
+| Phase 3 | `CanonicalComparisonReadyArtifact`, equivalence basis, and mismatch-basis primitives exist before export fixtures or digest slots can claim parity. |
+| Phase 4 | `CanonicalExportReadyArtifact`, manifest proof, and boundary-bridged export/readmission posture exist before algorithm slots compress basis evidence. |
+| Phase 5 | `CanonicalDigestDerivationReadyArtifact` is explicitly downstream of basis/export readiness and algorithm-slot admission before production-test readiness can close. |
+| Phase 6 | `CanonicalProductionTestReadyArtifact`, hostile producer parity, compile-fail boundaries, and readiness evidence exist before Milestone 3 profile work begins. |
 
 ### Phase 1: Define Canonical Basis Grammar
 
@@ -304,6 +595,15 @@ Must ship:
 - deterministic entry ordering law
 - sealed constructors or builders that reject duplicate, unordered, or
   domain-incoherent basis input where the API can know it
+- `CanonicalBasisReadyArtifact` built on `forge-proof::Artifact`
+- domain-typed entry references for mismatch, export, and digest-slot code
+- concrete basis value carriers for booleans, integer widths, float bits,
+  exact text, content digests, UUID bytes, temporal values, references, and
+  nested sequences
+- canonicalization cost accounting for entry count, ordering work, nested
+  sequence count, and compatibility-lowering count
+- Milestone 2 proof markers for domain coherence, rule-version binding, and
+  observed canonicalization cost
 
 Must preserve:
 
@@ -312,6 +612,14 @@ Must preserve:
 - domains are visible and typed enough to prevent category-erased comparison
 - future domains can be reserved without implementing future milestone
   ontology early
+- basis entry values preserve semantic family instead of reducing ordinary
+  entries to strings or arbitrary bytes
+- cost accounting observes canonicalization work without changing canonical
+  meaning
+- raw `CanonicalBasisSequence` is not enough for downstream APIs that require
+  canonical basis readiness
+- witnesses authorize basis construction but do not themselves become the
+  canonical-order or domain-coherence proof
 
 Acceptance evidence:
 
@@ -319,6 +627,14 @@ Acceptance evidence:
 - duplicate and domain-incoherence rejection tests
 - compile-fail tests proving raw unordered maps or raw byte blobs cannot satisfy
   basis-ready APIs
+- compile-fail tests proving raw indexes cannot satisfy mismatch APIs requiring
+  domain-typed entry references
+- cost tests proving entry count and nested-sequence count are stable and
+  visible for the same semantic input across producer shapes
+- compile-fail tests proving raw `CanonicalBasisSequence` cannot satisfy APIs
+  requiring `CanonicalBasisReadyArtifact`
+- proof-carriage tests proving ready artifacts carry canonical-order,
+  domain-coherence, rule-version, and cost-observed proof facts
 - golden tests for the basis grammar itself
 
 ### Phase 2: Build Basis Sequences For Milestone 1 Surfaces
@@ -339,6 +655,17 @@ Must ship basis builders for:
 - identities and basis ids
 - locators
 - compatibility-lowered values and state
+- producer-shape metadata that distinguishes native ordered authority,
+  reordered local authority, compatibility-originated input, and
+  reduced/export-only materialization without letting producer shape alter
+  canonical meaning
+- blind-consumer inspection helpers that read only canonical basis sequences,
+  not source Milestone 1 objects
+- basis-builder APIs that return `forge-proof::TransitionOutcome` or a
+  narrower checked outcome whenever construction can be denied, deferred,
+  stale, rebind-required, or failed
+- authority/capability witnesses for trusted builder lanes where raw
+  compatibility or reordered producer input is being admitted into ready basis
 
 Must preserve:
 
@@ -348,6 +675,12 @@ Must preserve:
 - semantically distinct variants with equal storage shape remain distinct
 - basis builders consume readiness artifacts or canonical Milestone 1 types,
   not raw unvalidated values where validation was previously required
+- producer-shape metadata explains test provenance and export pressure; it is
+  not part of semantic equality unless the comparison basis explicitly asks for
+  construction-origin comparison
+- basis-builder non-success categories remain typed; ambiguous compatibility
+  lowering or unsupported Milestone 1 surface preparation may not collapse into
+  `Result<T, String>` or boolean failure
 
 Acceptance evidence:
 
@@ -356,6 +689,16 @@ Acceptance evidence:
 - hostile tests for storage-equal but meaning-distinct variants
 - compile-fail tests proving raw unvalidated Milestone 1 inputs cannot satisfy
   basis builders that require proof-bearing readiness
+- blind-consumer tests proving values, contracts, masks, patches, state,
+  identities, locators, and compatibility-lowered bases can be interpreted from
+  basis entries alone
+- producer-shape tests proving reordered authority and compatibility-originated
+  producers converge semantically while export metadata still records how the
+  fixture was produced
+- checked-outcome tests proving denied, deferred, stale, rebind-required, and
+  failed builder paths remain distinct where the builder exposes those lanes
+- compile-fail tests proving unvalidated Milestone 1 payloads cannot be wrapped
+  in a ready basis artifact by constructing the payload shape directly
 
 ### Phase 3: Define Equivalence Basis And Mismatch Basis
 
@@ -376,6 +719,14 @@ Must ship:
   producer-private paths
 - comparison APIs that return structured match/mismatch outcomes rather than
   booleans where explanation matters
+- a `CanonicalComparisonOutcome` or equivalent with distinct `Equivalent`,
+  `Mismatched`, and `Unsupported` outcomes
+- mismatch evidence that carries left/right rule versions, domains, loci, entry
+  kinds, and equivalence basis
+- `CanonicalComparisonReadyArtifact` that consumes ready basis artifacts plus
+  an explicit equivalence basis before comparison executes
+- checked comparison readiness gates that preserve denied, deferred,
+  stale/rebind-required, unsupported, and failed comparison posture
 
 Must preserve:
 
@@ -386,6 +737,10 @@ Must preserve:
 - equivalence claims do not erase meaningful variant distinctions
 - unsupported comparisons fail closed with a structured unsupported mismatch
   kind
+- comparison APIs never silently coerce rule versions, domains, or producer
+  shapes to make a comparison succeed
+- raw ready sequences cannot be compared by semantic APIs until comparison
+  readiness has bound the equivalence basis and mismatch loci
 
 Acceptance evidence:
 
@@ -398,6 +753,14 @@ Acceptance evidence:
   an explicit equivalence basis where the API can enforce it
 - blind-consumer tests proving mismatch output can be interpreted without
   producer-private state
+- unsupported-comparison tests proving cross-version, cross-domain, and
+  unsupported projection comparisons do not collapse into ordinary inequality
+- mismatch-locality tests proving each mismatch points at the smallest
+  canonical locus available rather than only reporting whole-bundle failure
+- compile-fail tests proving semantic comparison APIs reject raw ready sequences
+  that have not progressed through `CanonicalComparisonReadyArtifact`
+- proof-carriage tests proving comparison-ready artifacts carry equivalence
+  basis and mismatch-loci proof facts
 
 ### Phase 4: Define Canonical Export And Golden Fixture Bundles
 
@@ -417,6 +780,15 @@ Must ship:
 - rejection of debug-output, display-string, and transport-JSON fixture sources
   as canonical authority
 - fixture debt markers for surfaces intentionally deferred to later milestones
+- fixture manifests that list every sequence by domain, rule version, producer
+  shape, equivalence basis, expected entry count, and expected cost counters
+- semantic fixture comparison that can report the first canonical mismatch
+  locus instead of snapshot-only diff noise
+- `CanonicalExportReadyArtifact` carrying export-manifest and
+  cost-observed proof facts
+- boundary-bridged export restoration surfaces that downgrade basis freshness
+  after fixture/replay/transport crossing and require authority readmission
+  before current-validity claims resume
 
 Must preserve:
 
@@ -425,6 +797,10 @@ Must preserve:
 - transport encoding remains downstream from canonical basis
 - golden fixtures can be used by `forge-harness` later without changing their
   proof grammar
+- fixture files are stable evidence, but the manifest and basis entries are the
+  authority; pretty formatting is not
+- exported or restored fixture artifacts are not silently current after a trust
+  boundary crossing
 
 Acceptance evidence:
 
@@ -433,6 +809,14 @@ Acceptance evidence:
 - hostile formatting tests proving debug/display/JSON ordering cannot alter
   fixture comparison
 - forge-harness expansion seed inventory for parity and replay suites
+- manifest completeness tests proving every fixture names domain, rule version,
+  producer shape, equivalence basis, entry count, and cost counters
+- first-mismatch tests proving fixture comparisons return canonical mismatch
+  evidence rather than only a file diff
+- compile-fail tests proving a restored boundary-bridged export cannot satisfy
+  current-validity APIs before readmission
+- readmission tests proving an authority witness is required to restore current
+  export readiness after a trust boundary
 
 ### Phase 5: Define Digest Algorithm Slots And Derived Digest Values
 
@@ -453,6 +837,16 @@ Must ship:
 - explicit test-only deterministic digest support if needed for fixtures
 - debt markers for production cryptographic policy if the final algorithm
   policy remains later work
+- digest input-shape typing for single sequences, domain bundles, and export
+  bundles
+- digest metadata that records algorithm id, rule version, input domain,
+  input-shape, entry count, and basis bundle id or sequence id
+- negative APIs or compile-fail fixtures proving digest values cannot be used
+  as a replacement for equivalence basis evidence
+- `CanonicalDigestDerivationReadyArtifact` that consumes ready basis/export
+  artifacts plus an admitted algorithm slot before deriving digest values
+- algorithm-slot admission readiness that can deny unsupported domain/shape/
+  version combinations through `forge-proof` checked outcomes
 
 Must preserve:
 
@@ -462,6 +856,10 @@ Must preserve:
   semantic input
 - final receipt, provenance, branch/merge/commit, and diagnostic digest
   semantics remain later milestone work
+- digest equality alone does not authorize reuse, suppression, parity, or
+  certification claims without a declared equivalence basis
+- plain digest slots and plain basis payloads are not enough to derive a
+  semantic digest; derivation readiness is the proof-bearing gate
 
 Acceptance evidence:
 
@@ -472,6 +870,15 @@ Acceptance evidence:
   metadata
 - collision-shaped hostile tests proving equal display strings or storage bytes
   in different domains remain distinct digest inputs
+- input-shape tests proving export-bundle digest slots cannot be substituted
+  for single-sequence digest slots
+- digest-versus-equivalence tests proving matching digest values still require
+  explicit equivalence basis before semantic sameness is claimed
+- compile-fail tests proving digest derivation APIs reject plain basis payloads
+  and plain digest slots that have not progressed into
+  `CanonicalDigestDerivationReadyArtifact`
+- checked algorithm-admission tests proving unsupported rule version, domain,
+  or input-shape combinations deny without becoming generic failure
 
 ### Phase 6: Certify Production-Test Readiness
 
@@ -497,6 +904,16 @@ Must ship:
   suites
 - runtime adoption assumptions and non-assumptions
 - residual debt inventory
+- explicit readiness pass/fail checklist mapping every phase gate to concrete
+  evidence files
+- fixture manifest inventory mapping golden artifacts to their owning tests and
+  later `forge-harness` expansion point
+- named non-assumptions for final crypto policy, later profile/receipt/
+  diagnostic/branch domains, and real runtime lowering
+- `CanonicalProductionTestReadyArtifact` carrying
+  `CanonicalProductionReadinessCertified`
+- readiness certification authority witness controlled by the milestone
+  closeout/certification boundary
 
 Must preserve:
 
@@ -506,6 +923,11 @@ Must preserve:
   storage engine
 - Milestone 3 may consume profile-ready basis slots without reworking
   Milestone 2 canonicalization law
+- no readiness artifact may imply production runtime safety beyond local
+  foundational category law
+- a markdown closeout may describe readiness, but only the proof-bearing
+  readiness artifact can satisfy APIs that require certified Milestone 2
+  readiness
 
 Acceptance evidence:
 
@@ -516,19 +938,40 @@ Acceptance evidence:
   and readiness tests live in responsibility-owned homes
 - full crate tests and compile-fail tests pass with the Milestone 2 surfaces
   enabled
+- readiness checklist tests proving every certified surface has hostile
+  producer evidence, blind-consumer evidence, compile-fail boundaries, and
+  golden fixtures where required
+- residual-debt tests or manifest checks proving final cryptographic policy and
+  later milestone domains are named debt rather than implied completion
+- compile-fail tests proving production-shaped adoption or harness APIs reject
+  closeout prose, plain manifests, and uncertified reports where
+  `CanonicalProductionTestReadyArtifact` is required
+- authority-witness tests proving readiness certification cannot be minted from
+  ordinary caller code
 
 ## Must Ship
 
 - canonical basis entry grammar with versioned rule identity
 - typed basis domains and canonical basis loci
+- typed basis entry references for mismatch, export, and digest-slot APIs
+- concrete canonical basis value carriers that preserve value family rather
+  than reducing semantic entries to strings or bytes
 - canonical basis sequences and bundles
+- canonicalization cost accounting on sequence construction
 - proof-bearing canonical basis readiness and export readiness artifacts
+- proof-bearing comparison readiness, digest-derivation readiness, and
+  production-test readiness artifacts
+- Milestone 2 proof markers for domain coherence, rule-version binding,
+  equivalence-basis declaration, mismatch-loci binding, export-manifest binding,
+  digest input-shape binding, cost observation, and production readiness
 - basis builders for every completed Milestone 1 surface
 - equivalence-basis vocabulary and comparison APIs
 - mismatch-basis primitives with canonical loci and mismatch kinds
 - canonical export/golden fixture bundle shape
 - digest algorithm slots and derived digest value carriers that consume basis
   artifacts rather than raw blobs
+- digest input-shape metadata for single-sequence, domain-bundle, and
+  export-bundle compression
 - hostile producer/consumer test fixtures that simulate runtime diversity
 - production-test readiness artifact for Milestone 2
 
@@ -540,13 +983,19 @@ Acceptance evidence:
 - equivalence, reuse, suppression, parity, and certification claims require an
   explicit basis
 - mismatch explanation is self-describing enough for blind consumers
+- unsupported comparisons remain explicit structured outcomes
 - `forge-proof` owns proof progression law; `forge-foundational` owns the
   shared canonical evidence language
+- every stronger readiness state is represented as a `forge-proof` artifact
+  with explicit phase, proof set, and assumption basis
 - domain crates keep ownership of storage layout, runtime execution, durability,
   scheduling, and migration behavior
 - later milestone surfaces get extension points, not premature final ontology
 - local adversarial doubles stay small semantic fixtures, not fake adopting
   runtimes
+- canonicalization cost is visible at the boundary but cannot change canonical
+  meaning
+- digest equality cannot substitute for declared equivalence basis
 
 ## Acceptance Evidence
 
@@ -560,14 +1009,30 @@ Acceptance evidence:
 - compile-fail tests proving raw unordered maps, raw bytes, debug strings,
   category-erased blobs, and unvalidated values cannot satisfy proof-bearing
   canonicalization APIs
+- compile-fail tests proving raw indexes cannot satisfy domain-typed mismatch
+  references and export-bundle digest slots cannot satisfy single-sequence
+  digest APIs
+- compile-fail tests proving raw basis sequences, plain bundles, plain digest
+  slots, boundary-bridged fixtures, prose closeouts, and ordinary reports
+  cannot satisfy APIs requiring their corresponding proof-bearing readiness
+  artifacts
 - mismatch tests proving blind consumers can interpret differences without
   producer-private state
+- unsupported-comparison tests proving incompatible versions, domains, or
+  equivalence scopes fail closed with structured evidence
 - digest derivation tests proving digest values are derived from basis artifacts
   and carry algorithm/rule-version metadata
+- cost-accounting tests proving entry counts, nested-sequence counts, and
+  compatibility-lowering counts are stable and visible across producer shapes
+- fixture-manifest tests proving every golden fixture names rule version,
+  domain, producer shape, equivalence basis, entry count, cost counters, and
+  owning test
 - production-test readiness artifact naming certified surfaces, synthetic
   runtime pressures, compile-fail boundaries, golden artifacts, property seeds,
   forge-harness expansion points, runtime assumptions, non-assumptions, and
   residual debt
+- proof-carriage tests proving each readiness artifact carries the specific
+  proof facts named in the `Forge-Proof Dependency Boundary`
 - topology review showing canonical basis, equivalence, mismatch, export,
   digest-slot, and readiness tests are responsibility-shaped rather than a flat
   dump
@@ -601,6 +1066,10 @@ responsibilities separable:
 - export owns golden/support/replay fixture shape
 - digest slots own derived compression metadata and algorithm identity
 - production readiness owns handoff evidence, not semantic construction
+- cost accounting owns canonicalization boundary work counters, not
+  performance/layout vocabulary for the runtime
+- hostile producers own tiny local construction diversity only; reusable
+  run-matrix or replay grammar belongs in `forge-harness`
 
 Public exports should remain facade-controlled. Internal modules may reorganize,
 but external callers should depend on durable canonicalization capabilities, not
@@ -618,6 +1087,8 @@ crates/forge-foundational/tests/certification/canonicalization/
   mismatch/
   export/
   digest_slots/
+  cost_accounting/
+  hostile_producers/
   production_readiness/
 
 crates/forge-foundational/tests/ui/canonicalization/
@@ -625,6 +1096,7 @@ crates/forge-foundational/tests/ui/canonicalization/
   equivalence/
   digest_slots/
   export/
+  mismatch/
 ```
 
 Test support must stay narrow. A fixture that only constructs a value basis
@@ -650,6 +1122,10 @@ It must name:
 - non-assumptions adopting runtimes must prove for themselves
 - residual debt for final cryptographic policy, later milestone domains, or
   migration-specific parity
+- phase-gate evidence files proving Phases 1 through 6 closed in order
+- fixture manifest ownership, including which test owns each golden artifact
+  and which future `forge-harness` lane may reuse it
+- cost-counter evidence for every certified canonicalization boundary
 
 Production-shaped tests may assume:
 
@@ -657,6 +1133,10 @@ Production-shaped tests may assume:
   certified Milestone 2 APIs
 - canonical basis entries are ordered, versioned, and domain-typed
 - equality, mismatch, and digest-slot operations are basis-driven
+- listed canonicalization cost counters are visible and stable for the
+  certified surfaces
+- Milestone 2 readiness states named in this spec are carried as `forge-proof`
+  artifacts with explicit proof facts and basis posture
 
 Production-shaped tests may not assume:
 
@@ -666,6 +1146,14 @@ Production-shaped tests may not assume:
 - digest algorithm policy is final unless the readiness artifact explicitly
   says so
 - local synthetic producers prove real runtime invariants
+- a digest value alone is sufficient evidence for semantic equivalence,
+  suppression, reuse, parity, or certification
+- fixture formatting stability is proof of semantic stability unless the
+  manifest and basis-entry comparison also pass
+- a boundary-bridged or restored artifact is current until `forge-proof`
+  readmission or rebinding has happened
+- an authority/capability witness is itself proof that canonicalization,
+  comparison, export, digest derivation, or production readiness occurred
 
 ## Sequencing Notes
 
@@ -710,17 +1198,21 @@ digest parity, replay stability, support comparability, or migration readiness.
   shared surface needs for replay, comparison, certification, and migration.
 - Is the adversarial constraint precise and load-bearing? Yes. It attacks
   construction order, local layout, transport encoding, debug/display strings,
-  category collapse, and hash-as-authority shortcuts.
+  category collapse, unsupported-comparison collapse, hidden cost, and
+  hash-as-authority shortcuts.
 - Does the milestone preserve crate authority boundaries? Yes.
   `forge-foundational` owns canonical basis language only; domain crates keep
   runtime, storage, execution, durability, and migration authority.
 - Does the milestone define proof obligations, not just implementation tasks?
   Yes. Closure requires compile-fail boundaries, property/hostile tests,
-  golden fixtures, mismatch evidence, digest-slot derivation, and
-  production-test readiness.
+  golden fixtures, fixture manifests, mismatch evidence, unsupported
+  comparison outcomes, digest-slot derivation, cost-accounting evidence, and
+  `forge-proof` readiness artifacts for canonical basis, comparison, export,
+  digest derivation, and production-test readiness.
 - Could a competent engineer map this spec into honest types, modules, and
   tests? Yes. The phases map directly to basis grammar, domain builders,
-  equivalence, mismatch, export fixtures, digest slots, and readiness evidence.
+  equivalence, mismatch, export fixtures, digest slots, cost accounting,
+  hostile producers, and readiness evidence.
 - Does the milestone belong in this roadmap sequence, or is it out of order?
   Yes. It must come after Milestone 1's semantic substrate and before profiles,
   artifacts, branch/merge/commit evidence, diagnostics, provenance, performance

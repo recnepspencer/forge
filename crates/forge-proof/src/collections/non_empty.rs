@@ -27,6 +27,10 @@ impl<T> NonEmpty<T> {
         self.items.len()
     }
 
+    pub const fn is_empty(&self) -> bool {
+        false
+    }
+
     pub fn as_slice(&self) -> &[T] {
         &self.items
     }

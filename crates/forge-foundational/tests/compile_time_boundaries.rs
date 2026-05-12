@@ -63,3 +63,33 @@ fn digest_preparation_requires_readiness_proof() {
     let tests = trybuild::TestCases::new();
     tests.compile_fail("tests/ui/digest_preparation/*.rs");
 }
+
+#[test]
+fn canonical_basis_requires_readiness_proof() {
+    let tests = trybuild::TestCases::new();
+    tests.compile_fail("tests/ui/canonicalization/basis/*.rs");
+}
+
+#[test]
+fn canonical_comparison_requires_comparison_readiness_proof() {
+    let tests = trybuild::TestCases::new();
+    tests.compile_fail("tests/ui/canonicalization/equivalence/*.rs");
+}
+
+#[test]
+fn canonical_export_requires_readmission_after_trust_boundary() {
+    let tests = trybuild::TestCases::new();
+    tests.compile_fail("tests/ui/canonicalization/export/*.rs");
+}
+
+#[test]
+fn canonical_digest_derivation_requires_admitted_input_shape() {
+    let tests = trybuild::TestCases::new();
+    tests.compile_fail("tests/ui/canonicalization/digest_slots/*.rs");
+}
+
+#[test]
+fn canonical_production_readiness_requires_certified_artifact() {
+    let tests = trybuild::TestCases::new();
+    tests.compile_fail("tests/ui/canonicalization/production_readiness/*.rs");
+}
