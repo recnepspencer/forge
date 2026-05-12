@@ -7,7 +7,7 @@ pub use crate::aspects::{
     MaskAdmissibilityDenial, MutationMask, OpaqueAspectType, ProjectionMask, ReferenceAspectType,
     StructAspectShape, StructAspectValue,
 };
-pub use crate::proof_boundary::{
+pub use crate::boundary::{
     declared_foundational_boundary, FoundationalBoundaryArtifact, FoundationalBoundaryDeclaration,
     FoundationalBoundaryDeclared,
 };

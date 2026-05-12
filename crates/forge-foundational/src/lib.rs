@@ -14,12 +14,12 @@
 #![forbid(unsafe_code)]
 
 mod aspects;
+mod boundary;
 mod canonicalization;
 mod compatibility;
 pub mod facade;
 mod identities;
 mod locators;
-mod proof_boundary;
 mod values;
 
 pub use facade::*;
