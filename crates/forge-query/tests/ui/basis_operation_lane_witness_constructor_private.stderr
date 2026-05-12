@@ -1,0 +1,19 @@
+warning: unreachable expression
+ --> tests/ui/basis_operation_lane_witness_constructor_private.rs:4:13
+  |
+4 |       let _ = ObservationBasisCapability {
+  |  _____________^
+5 | |         admission: todo!(),
+  | |                    ------- any code following this expression is unreachable
+6 | |     };
+  | |_____^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: field `admission` of struct `ObservationBasisCapability` is private
+ --> tests/ui/basis_operation_lane_witness_constructor_private.rs:5:9
+  |
+4 |     let _ = ObservationBasisCapability {
+  |             -------------------------- in this type
+5 |         admission: todo!(),
+  |         ^^^^^^^^^ private field

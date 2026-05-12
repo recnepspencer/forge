@@ -1,0 +1,34 @@
+error: cannot construct `NormalizedBasisIntent` with struct literal syntax due to private fields
+  --> tests/ui/normalized_basis_intent_constructor_private.rs:7:13
+   |
+ 7 |       let _ = NormalizedBasisIntent {
+   |               ^^^^^^^^^^^^^^^^^^^^^
+ 8 |           raw_basis_intent_digest: String::new(),
+   |           -------------------------------------- private field
+ 9 |           canonical_digest: String::new(),
+   |           ------------------------------- private field
+10 |           family: NormalizedBasisFamily::CurrentHead,
+   |           ------------------------------------------ private field
+11 |           authority_posture: BasisAuthorityPosture::RuntimeBackedCurrentHead,
+   |           ------------------------------------------------------------------ private field
+12 |           operation_lane: BasisOperationLaneRequest::Observation,
+   |           ------------------------------------------------------ private field
+13 |           tenant_scope: None,
+   |           ------------------ private field
+14 |           policy_scope: None,
+   |           ------------------ private field
+15 |           tenant_schema_posture: BasisTenantSchemaPosture::Unscoped,
+   |           --------------------------------------------------------- private field
+16 |           source_path: RawBasisSourcePath::DirectLifecycleConstructor,
+   |           ----------------------------------------------------------- private field
+17 |           normalized_label: String::new(),
+   |           ------------------------------- private field
+18 | /         counters: BasisNormalizationCounters {
+19 | |             raw_intent_width: 1,
+20 | |             normalized_family_count: 1,
+21 | |             source_path_count: 1,
+22 | |             rejection_width: 0,
+23 | |         },
+   | |_________- private field
+   |
+   = note: ...and other private field `schema_scope` that was not provided

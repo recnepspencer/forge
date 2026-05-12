@@ -2339,17 +2339,22 @@ transitions.
 
 ```text
 RawBasisIntent
-  -> BasisEligibility
+  -> NormalizedBasisIntent
+  -> BasisEligibility | DeniedBasisCapability
   -> AdmittedBasisCapability
   -> ScopedExecutionOrObservationBasis
+  -> LowerRuntimeBoundBasis
   -> BasisUseReceipt
   -> SelfDescribingBasisEnvelope
+  -> BasisLifecycleCertificationBundle
 ```
 
 ### Must Ship
 
 - phase-typed basis capability families for current head, branch, preview,
   snapshot, historical, tenant-scoped, and policy-scoped usage
+- normalized basis intent, typed denied capability artifacts, lower-runtime
+  readmission, and lifecycle certification closure
 - basis eligibility decisions before read, mutation, replay, inspection, or
   materialization surfaces can be constructed
 - basis use receipts that distinguish observation, mutation, replay,

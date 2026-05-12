@@ -212,10 +212,16 @@ Already-owned bridge surfaces include:
   `ValidatedSubscriptionBasisBinding`, `BridgeSubscriptionBasisKind`,
   `BridgeSubscriptionBasisResolutionFailure`, and
   `RuntimeBridge::admit_subscription`
-- snapshot and historical truth-view authority through
-  `BridgeTruthViewSelector`, `BridgeTruthViewAuthorityBasis`,
+- standard-path truth-view evaluation through
+  `BridgeTruthViewEvaluationRequest`, `BridgeTruthViewEvaluation`,
+  `BridgeTruthViewSelector`, `SnapshotReadPacket`, `RuntimeBridge::evaluate`,
+  and `RuntimeBridge::evaluate_current`
+- advanced truth-view planning and source-backed materialization through
+  `HistoricalEvaluationDeclaration`, `BridgeTruthViewAuthorityBasis`,
   `PlannedTruthViewPacket`, `AdmittedSnapshotContext`,
-  `TruthSnapshotReader`, and `SnapshotReadPacket`
+  `TruthSnapshotReader`, `RuntimeBridge::plan_truth_view_packet`,
+  `RuntimeBridge::plan_source_packet_set`, and
+  `RuntimeBridge::materialize_source_packet`
 - continuity and historical lineage proof through
   `BridgeContinuityAuthorityBasis`, `BridgeLineageContext`,
   `BridgeEligibleContinuityRequestSet`, `BridgeHistoricalLineagePacket`,
@@ -231,6 +237,12 @@ Already-owned bridge surfaces include:
 - causal explanation evidence through `BridgeCausalExplanationEnvelope`,
   `BridgeCausalEvidenceBinding`, `BridgeCausalEvidenceReference`,
   `BridgeCausalEnvelopeReceipt`, and bridge causal counters
+
+Query should prefer the bridge standard path for ordinary truth-view basis
+authoring and readmission, and use the advanced planning/materialization APIs
+only when a Query lifecycle phase must make the boundary crossing explicit.
+Phase 1 should name which Query families map to standard-path evaluation,
+which map to advanced source planning, and which remain deferred.
 
 Query may carry bridge-owned basis identities, digests, receipts, and denial
 records as lower-runtime evidence. Query must not reconstruct, clone, or mint
@@ -745,6 +757,13 @@ Must ship:
 - bridge-facing adapters that consume existing bridge subscription,
   truth-view, continuity, preview, writeback, and causal-envelope authority
   artifacts through `forge_runtime_bridge::facade`
+- explicit bridge reuse rows for `RuntimeBridge::evaluate`,
+  `RuntimeBridge::evaluate_current`, `RuntimeBridge::plan_truth_view_packet`,
+  `RuntimeBridge::plan_source_packet_set`,
+  `RuntimeBridge::materialize_source_packet`,
+  `RuntimeBridge::admit_subscription`,
+  `RuntimeBridge::admit_subscription_preview_basis`, and
+  `RuntimeBridge::deliver_continuity` wherever Query claims basis meaning
 - relational-facing authority references for branch, commit, snapshot, head,
   lineage, and truth visibility evidence through `forge_relational::facade`
   and `RuntimeBridgeRelationalSource` where the flow is bridge-bound

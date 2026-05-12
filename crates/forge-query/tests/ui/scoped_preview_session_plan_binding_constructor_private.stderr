@@ -1,0 +1,19 @@
+warning: unreachable expression
+ --> tests/ui/scoped_preview_session_plan_binding_constructor_private.rs:6:26
+  |
+5 |         scoped_basis: panic!(),
+  |                       -------- any code following this expression is unreachable
+6 |         preview_binding: panic!(),
+  |                          ^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `scoped_basis` and `preview_binding` of struct `ScopedPreviewSessionPlanBinding` are private
+ --> tests/ui/scoped_preview_session_plan_binding_constructor_private.rs:5:9
+  |
+4 |     let _ = ScopedPreviewSessionPlanBinding {
+  |             ------------------------------- in this type
+5 |         scoped_basis: panic!(),
+  |         ^^^^^^^^^^^^ private field
+6 |         preview_binding: panic!(),
+  |         ^^^^^^^^^^^^^^^ private field

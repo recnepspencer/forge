@@ -13,12 +13,13 @@ use crate::harness::fixtures::{
     },
 };
 use crate::preview::{
-    admit_authoritative_preview_comparison_candidate, admit_preview_live_session_plan,
-    admit_preview_promotion_parity_comparison, admit_preview_workflow_foundation_request,
+    admit_authoritative_preview_comparison_candidate, admit_preview_promotion_parity_comparison,
+    admit_preview_workflow_foundation_request,
     admit_promotion_eligible_preview_session_plan_binding,
-    admit_read_only_preview_session_plan_binding, assess_preview_live_drift,
-    bind_preflight_to_preview_session, execute_preview_live_session_plan,
-    execute_promotion_eligible_preview_session_plan, execute_read_only_preview_session_plan,
+    admit_read_only_preview_session_plan_binding, admit_scoped_preview_live_session_plan,
+    admit_scoped_preview_session_plan_binding_from_preview_binding, assess_preview_live_drift,
+    bind_preflight_to_preview_session, execute_promotion_eligible_preview_session_plan,
+    execute_read_only_preview_session_plan, execute_scoped_preview_live_session_plan,
     PreviewBindingCounters, PreviewBindingError, PreviewBindingFailureClass,
     PreviewComparisonCounters, PreviewComparisonError, PreviewComparisonFailureClass,
     PreviewEvaluationClass, PreviewExecutionCounters, PreviewExecutionEnvelope,
@@ -444,22 +445,29 @@ impl MilestoneFivePointTwoPreviewCertificationAdapter {
             .expect("parity promotion-eligible binding should admit"),
         )
         .expect("parity promotion-eligible preview execution should succeed");
-        let preview_live_binding = admit_preview_live_session_plan(
-            promotable_binding.clone(),
+        let preview_live_binding = admit_scoped_preview_live_session_plan(
+            admit_scoped_preview_session_plan_binding_from_preview_binding(
+                promotable_binding.clone(),
+            )
+            .expect("preview-live should derive scoped preview binding"),
             crate::live::promote_preflight_bundle_to_live(&preflight)
                 .expect("preview-live should reuse admitted detail live proof"),
         )
         .expect("preview-live admission should succeed");
-        let preview_live = execute_preview_live_session_plan(&preview_live_binding)
+        let preview_live = execute_scoped_preview_live_session_plan(&preview_live_binding)
             .expect("preview-live execution should succeed");
-        let parity_preview_live_binding = admit_preview_live_session_plan(
-            parity_promotable_binding.clone(),
+        let parity_preview_live_binding = admit_scoped_preview_live_session_plan(
+            admit_scoped_preview_session_plan_binding_from_preview_binding(
+                parity_promotable_binding.clone(),
+            )
+            .expect("parity preview-live should derive scoped preview binding"),
             crate::live::promote_preflight_bundle_to_live(&parity_preflight)
                 .expect("parity preview-live should reuse admitted detail live proof"),
         )
         .expect("parity preview-live admission should succeed");
-        let parity_preview_live = execute_preview_live_session_plan(&parity_preview_live_binding)
-            .expect("parity preview-live execution should succeed");
+        let parity_preview_live =
+            execute_scoped_preview_live_session_plan(&parity_preview_live_binding)
+                .expect("parity preview-live execution should succeed");
         let promotion_candidate_execution = crate::execution::execute_preflight_bundle(&preflight)
             .expect("authoritative comparison candidate should execute");
         let promotion_candidate = admit_authoritative_preview_comparison_candidate(
@@ -506,7 +514,7 @@ impl MilestoneFivePointTwoPreviewCertificationAdapter {
         )
         .expect_err("discarded lifecycle should reject");
         let preview_live_drift_denied = match assess_preview_live_drift(
-            &preview_live_binding,
+            preview_live_binding.preview_live(),
             PreviewSessionQueryContext::discarded(
                 &discarded,
                 PreviewEvaluationClass::promotion_eligible(),
@@ -516,7 +524,7 @@ impl MilestoneFivePointTwoPreviewCertificationAdapter {
             other => panic!("discarded preview-live should deny drift, got {other:?}"),
         };
         let preview_live_broad_fallback_denied = match assess_preview_live_drift(
-            &preview_live_binding,
+            preview_live_binding.preview_live(),
             PreviewSessionQueryContext::active(
                 &active,
                 &foreign_execution_record,
@@ -600,8 +608,9 @@ impl MilestoneFivePointTwoPreviewCertificationAdapter {
             ),
         )
         .expect("rebind seed preview binding should admit");
-        let rebind_seed_preview_live = admit_preview_live_session_plan(
-            rebind_seed_binding,
+        let rebind_seed_preview_live = admit_scoped_preview_live_session_plan(
+            admit_scoped_preview_session_plan_binding_from_preview_binding(rebind_seed_binding)
+                .expect("rebind seed should derive scoped preview binding"),
             crate::live::promote_preflight_bundle_to_live(&preflight)
                 .expect("rebind seed should reuse live proof"),
         )
@@ -609,7 +618,7 @@ impl MilestoneFivePointTwoPreviewCertificationAdapter {
         let (_rebind_new_runtime, rebind_new_active, rebind_new_execution_record) =
             active_preview_artifacts("preview-certification-live-rebind-new");
         let preview_live_explicit_rebind = match assess_preview_live_drift(
-            &rebind_seed_preview_live,
+            rebind_seed_preview_live.preview_live(),
             PreviewSessionQueryContext::active(
                 &rebind_new_active,
                 &rebind_new_execution_record,
@@ -630,9 +639,23 @@ impl MilestoneFivePointTwoPreviewCertificationAdapter {
                 .expect("rebound preview binding should admit"),
             )
             .expect("rebound preview execution should succeed");
-        let preview_live_rebind_execution =
-            execute_preview_live_session_plan(preview_live_explicit_rebind.rebound_preview_live())
-                .expect("rebound preview-live execution should succeed");
+        let preview_live_rebind_execution = execute_scoped_preview_live_session_plan(
+            &admit_scoped_preview_live_session_plan(
+                admit_scoped_preview_session_plan_binding_from_preview_binding(
+                    preview_live_explicit_rebind
+                        .rebound_preview_live()
+                        .preview_binding()
+                        .clone(),
+                )
+                .expect("rebound preview-live should derive scoped preview binding"),
+                preview_live_explicit_rebind
+                    .rebound_preview_live()
+                    .live_plan()
+                    .clone(),
+            )
+            .expect("rebound preview-live should admit through scoped path"),
+        )
+        .expect("rebound preview-live execution should succeed");
 
         let active_lane =
             PreviewCertificationLane::from_execution(active_execution.as_preview_execution());
