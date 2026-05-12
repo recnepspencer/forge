@@ -3,7 +3,7 @@ use forge_foundational::{
     MaskAdmissibilityDenial, MutationMask, ProjectionMask, ScalarAspectType, StructAspectShape,
 };
 
-use super::support::{field, identity, key, revision};
+use crate::support::{field, identity, key, revision};
 
 #[test]
 fn masks_are_mode_typed_and_shape_admitted() {

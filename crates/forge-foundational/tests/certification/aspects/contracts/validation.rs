@@ -4,7 +4,7 @@ use forge_foundational::{
 };
 use forge_proof::TransitionOutcome;
 
-use super::support::{identity, key, revision};
+use crate::support::{identity, key, revision};
 
 #[test]
 fn scalar_contract_validation_returns_proof_bearing_artifact() {

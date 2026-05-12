@@ -5,7 +5,7 @@ use forge_foundational::{
 };
 use forge_proof::TransitionOutcome;
 
-use super::support::{field, identity, key, revision};
+use crate::support::{field, identity, key, revision};
 
 #[test]
 fn struct_contract_validation_is_canonical_and_hostile_to_unknown_fields() {

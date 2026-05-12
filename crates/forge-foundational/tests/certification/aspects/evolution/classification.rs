@@ -3,7 +3,7 @@ use forge_foundational::{
     FieldDeclaration, FieldRequirement, ScalarAspectType, StructAspectShape,
 };
 
-use super::support::{field, identity, key, revision};
+use crate::support::{field, identity, key, revision};
 
 #[test]
 fn absence_null_default_and_clear_are_distinct_surface_states() {
