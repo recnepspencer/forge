@@ -1,5 +1,7 @@
 use crate::identity::hash_parts;
 
+use forge_runtime_bridge::facade::BridgeCausalEnvelopeDenial;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CausalInspectionArtifactKind {
     Admitted,
@@ -120,6 +122,17 @@ impl CausalInspectionMaterializationError {
 
     pub fn failure_digest(&self) -> &str {
         &self.failure_digest
+    }
+
+    pub(crate) fn from_bridge_assembly_denial(denial: &BridgeCausalEnvelopeDenial) -> Self {
+        Self::new(
+            CausalInspectionMaterializationErrorKind::MaterializationPolicyOverclaim,
+            &[
+                format!("bridge-denial:{}", denial.failure_digest()),
+                format!("bridge-denial-kind:{}", denial.kind().as_str()),
+                format!("bridge-denial-family:{}", denial.family().as_str()),
+            ],
+        )
     }
 }
 

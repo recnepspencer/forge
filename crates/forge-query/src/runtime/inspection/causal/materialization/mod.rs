@@ -1,28 +1,32 @@
 mod artifact;
+mod bridge_denial;
 mod contract;
 mod denied_artifact;
+mod exploration;
 mod performance;
 mod policy;
 mod proof;
 mod receipt;
 
-use crate::identity::hash_parts;
-
-use forge_runtime_bridge::facade::{
-    BridgeCausalEnvelopeDenial, BridgeCausalExplanationEnvelope,
-    BridgeCausalInspectionAdmissionSummary, BridgeCausalInspectionAdmissionSummaryKind,
-};
-
 use super::admission::{
     AdmittedCausalInspection, AdvisoryCausalInspection, DeniedCausalInspection,
 };
-use contract::validate_materialization_contract;
-
+use crate::identity::hash_parts;
 pub use artifact::{
     AdmittedQueryCausalInspectionArtifact, AdvisoryQueryCausalInspectionArtifact,
     QueryCausalEvidenceReferenceArtifact, QueryCausalInspectionArtifact,
 };
+pub(crate) use bridge_denial::{
+    materialize_bridge_denied_admitted_causal_inspection,
+    materialize_bridge_denied_advisory_causal_inspection,
+};
+use contract::validate_materialization_contract;
 pub use denied_artifact::DeniedQueryCausalInspectionArtifact;
+pub use exploration::{CausalInspectionArtifactDecisionTrace, CausalInspectionArtifactIntegrity};
+use forge_runtime_bridge::facade::{
+    BridgeCausalEnvelopeDenial, BridgeCausalExplanationEnvelope,
+    BridgeCausalInspectionAdmissionSummary, BridgeCausalInspectionAdmissionSummaryKind,
+};
 pub use performance::CausalInspectionPerformanceEnvelope;
 pub use policy::{
     CausalInspectionArtifactKind, CausalInspectionBoundaryEnvelopeCategory,
@@ -31,7 +35,6 @@ pub use policy::{
 };
 pub use proof::CausalBridgeReadmissionProof;
 pub use receipt::CausalMaterializationReceipt;
-
 pub fn materialize_admitted_causal_inspection(
     inspection: &AdmittedCausalInspection,
     envelope: &BridgeCausalExplanationEnvelope,

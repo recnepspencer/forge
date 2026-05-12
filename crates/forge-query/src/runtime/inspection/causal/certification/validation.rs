@@ -16,6 +16,18 @@ pub fn certify_causal_inspection_runtime_path(
         format!("scope:{}", parts.certification_scope_digest),
         format!("performance:{}", parts.performance_certification_digest),
         format!("readmission:{}", parts.bridge_readmission_proof_digest),
+        format!("scale-slope:{}", parts.scale_slope_digest),
+        format!("anchor-slope:{}", parts.anchor_derivation_slope_digest),
+        format!(
+            "reference-slope:{}",
+            parts.reference_resolution_slope_digest
+        ),
+        format!("admission-slope:{}", parts.admission_slope_digest),
+        format!("bridge-slope:{}", parts.bridge_envelope_slope_digest),
+        format!(
+            "materialization-slope:{}",
+            parts.materialization_slope_digest
+        ),
         format!(
             "serialization:{}",
             parts.artifact_serialization_slope_digest
@@ -35,6 +47,12 @@ pub fn certify_causal_inspection_runtime_path(
         parts.certification_scope_digest,
         parts.performance_certification_digest,
         parts.bridge_readmission_proof_digest,
+        parts.scale_slope_digest,
+        parts.anchor_derivation_slope_digest,
+        parts.reference_resolution_slope_digest,
+        parts.admission_slope_digest,
+        parts.bridge_envelope_slope_digest,
+        parts.materialization_slope_digest,
         parts.artifact_serialization_slope_digest,
         parts.boundary_audit_digest,
         parts.representative_matrix_digest,
@@ -123,6 +141,7 @@ pub(super) fn validate_scale_slope(
         snapshot.anchor_derivation_slope_counter() == 1
             && snapshot.reference_resolution_slope_counter() == 1
             && snapshot.admission_slope_counter() == 1
+            && snapshot.bridge_envelope_slope_counter() == 1
             && snapshot.materialization_slope_counter() == 1
             && snapshot.artifact_serialization_slope_counter() == 1
             && snapshot.bridge_scan_fallback_count() == 0

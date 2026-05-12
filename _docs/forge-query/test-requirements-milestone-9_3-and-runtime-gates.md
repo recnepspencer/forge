@@ -312,6 +312,209 @@ missing evidence fails closed, redacted evidence is represented as typed
 advisory/narrowed detail, and domain consumers no longer need direct
 lower-runtime stitching to explain why query-observed outcomes happened.
 
+## Milestone 9.3.2 Named Certification Suites
+
+### 9.3.2. Query Basis Capability Lifecycle Test
+
+Purpose
+
+Prove that Query basis is a phase-typed capability lifecycle rather than a raw
+branch, preview, tenant, policy, snapshot, historical, or runtime identifier.
+Every observation, mutation-preparation, replay, inspection, materialization,
+subscription, and certification surface must consume admitted basis capability
+proof or fail typed before constructing operational artifacts.
+
+Scenario
+
+- use concrete runtime-backed fixtures with current-head, branch-head, explicit
+  branch snapshot, preview, preview-derived, runtime snapshot, historical,
+  tenant-scoped, and policy-scoped basis intents
+- construct equivalent basis intents through at least two public or
+  compatibility paths and prove they normalize to the same capability envelope
+- construct intentionally different basis meanings and prove their declared
+  digest fields diverge
+- consume admitted basis capabilities through observation, mutation
+  preparation, replay, inspection, materialization, subscription declaration,
+  subscription activation, preview closeout, and certification lanes where
+  those operation families are admitted
+- compile golden DX transcripts for current-head observation, branch-head
+  mutation preparation, inspection with lower-runtime evidence materialization,
+  support discovery, and typed denial handling
+- prove common-path callers can express basis intent, choose an operation lane,
+  execute the admitted operation, inspect support posture, and read the basis
+  envelope without manually constructing proof internals
+- exercise the lifecycle as a linear typestate chain where each transition
+  consumes the prior proof type and returns the next proof type or a typed
+  denial
+- prove operation lanes are unforgeable lane witnesses or operation-specific
+  wrappers rather than booleans, strings, or loose enum flags on one universal
+  token
+- bind basis capabilities to retained relational, runtime-bridge, and signal
+  evidence without letting Query mint lower-runtime authority records
+- prove the lower-runtime binding path reuses bridge subscription, truth-view,
+  continuity, preview, writeback, and causal-envelope facade artifacts;
+  relational branch/head/snapshot/history facade artifacts and
+  `RuntimeBridgeRelationalSource`; and signal snapshot, replay, lineage, and
+  diagnostic facade artifacts
+- emit an API reuse matrix with one row for each basis-adjacent lower-runtime
+  surface naming owning crate, owning facade type/function/trait, existing
+  authority artifact, Query wrapper type, allowed carried fields, forbidden
+  duplicate fields, consuming operation lanes, denial/deferred posture, and
+  the test or compile-fail proof that enforces the row
+- exercise hostile lanes for stale preview, inaccessible branch, policy mask,
+  tenant/schema mismatch, historical replay unsupported, lower-runtime binding
+  mismatch, missing signal observation basis, durable reload overclaim,
+  temporal deferred, and async/resource deferred requests
+
+Required concrete lanes
+
+- current-head observation lane where canonical current-head intent becomes an
+  admitted observation capability and emits a basis use receipt
+- branch-head mutation-preparation lane where mutation setup consumes scoped
+  basis capability proof rather than a raw branch identifier
+- preview closeout lane where stale preview basis drift denies before authority
+  execution or closeout artifacts exist
+- historical/replay lane where admitted historical posture is distinct from
+  durable replay or store-restored snapshot-plus-tail claims
+- tenant/policy lane where equivalent scoped intents normalize while policy or
+  tenant/schema mismatch denies typed and early
+- causal-inspection lane where the 9.3.1 causal observation anchor consumes
+  basis capability proof and preserves lower-runtime authority names
+- bridge-readmission mismatch lane where returned bridge or relational basis
+  evidence conflicts with the admitted Query capability and fails before a use
+  receipt exists
+- future-neighbor lane where temporal, async/resource, store-backed, and
+  durable basis requests report deferred or unsupported posture with zero
+  operational residue
+
+Must verify
+
+- raw basis identifiers are not capabilities and cannot reach read, mutation,
+  replay, inspection, materialization, or subscription entrypoints directly
+- target DX APIs expose ordinary basis authoring through narrow, memorable
+  facade methods while keeping expensive or boundary-crossing work visible
+  through explicit calls such as admission, execution, lower-runtime evidence
+  inclusion, materialization, and certification
+- golden DX transcripts remain synchronized with executable admission behavior,
+  support metadata, receipts, and self-describing envelopes
+- common-path inspection/envelope APIs expose lower-runtime authority bindings
+  without requiring caller-side bridge, signal, or relational stitching
+- equivalent basis intents normalize to the same `NormalizedBasisIntent` and
+  self-describing basis envelope
+- intentionally different basis authority, scope, visibility, lifecycle,
+  tenant/schema, policy, operation lane, or lower-runtime binding changes the
+  relevant digest
+- eligibility precedes operational artifact construction for every operation
+  lane
+- observation, mutation-preparation, replay, inspection, materialization,
+  subscription, preview closeout, and certification lanes are distinct
+  capability proofs rather than booleans on one raw token
+- advisory, success, and violation eligibility outcomes cannot be substituted
+  for one another in downstream phase signatures
+- plain digests cannot be passed to executable APIs where proof-bearing
+  lifecycle types are required
+- lifecycle typestate tests prove production APIs cannot skip directly from
+  `RawBasisIntent` or `NormalizedBasisIntent` to scoped use, lower-runtime
+  binding, receipt, envelope, or certification artifacts without consuming the
+  required proof-bearing transition types
+- compatibility debt is registered with owner, entrypoint, target lifecycle
+  phase, blocking reason, and denial/adapter posture; no unowned compatibility
+  bucket may satisfy certification
+- denied basis capability artifacts are different proof types from admitted
+  basis capabilities
+- lower-runtime relational, bridge, and signal evidence is readmitted by digest
+  and authority name rather than re-minted as Query-owned facts
+- Query does not create twins of bridge `ValidatedSubscriptionBasisBinding`,
+  bridge truth-view authority, bridge continuity authority, bridge writeback
+  bases, relational `BranchHead`/`SnapshotHandle`/`CanonicalCommitEnvelope`,
+  or signal `SignalSnapshotV1`/`SignalCheckpointImage`/`LineageRecord`/
+  `ReplayCursor`
+- bridge-bound relational truth flows use `RuntimeBridgeRelationalSource`
+  instead of Query-side commit/snapshot/history loaders
+- any lower-runtime API gap is reported as deferred or unsupported support
+  posture rather than patched with a private-module import or parallel Query
+  authority model
+- every lower-runtime adapter carries only facade-returned identity, digest,
+  receipt, denial, counter, support-posture, authority-label, and Query
+  lifecycle proof fields; no adapter carries reconstructive lower-runtime
+  fields sufficient to replay, restore, re-resolve, or reissue authority-owned
+  records
+- the API reuse matrix is executable evidence: if a row lists a forbidden
+  duplicate field, compile-fail or structural tests prove Query cannot expose
+  or construct that duplicate
+- support metadata, executable admission, and certification coverage agree for
+  admitted, advisory, denied, deferred, and unsupported basis families
+- support metadata is derived from executable admission facts or certification
+  fails when admission and support rows drift
+- temporal, async/resource, store-backed parity, durable reload, and
+  restart-stable basis envelopes remain typed deferred or unsupported until
+  their owning milestones close
+- compile-fail boundaries prove external callers cannot mint normalized basis
+  intents, admitted capabilities, scoped bases, receipts, envelopes, support
+  rows, certification bundles, or lower-runtime authority witnesses
+- small/medium/larger fixture runs prove normalization, eligibility,
+  lower-runtime binding, scoped-use construction, receipt emission, envelope
+  materialization, support lookup, and certification costs are bounded by basis
+  evidence width, operation-lane width, and lower-runtime binding width rather
+  than unrelated runtime graph size or retained diagnostics width
+
+Required verification output
+
+- `query_digest`
+- `raw_basis_intent_digest`
+- `normalized_basis_intent_digest`
+- `basis_family_digest`
+- `basis_authority_digest`
+- `basis_scope_digest`
+- `basis_visibility_digest`
+- `basis_lifecycle_digest`
+- `basis_policy_digest`
+- `basis_tenant_schema_digest`
+- `basis_operation_lane_digest`
+- `basis_eligibility_digest`
+- `admitted_basis_capability_digest`
+- `denied_basis_capability_digest`
+- `scoped_basis_digest`
+- `basis_use_receipt_digest`
+- `basis_envelope_digest`
+- `relational_basis_authority_digest`
+- `bridge_basis_authority_digest`
+- `signal_basis_authority_digest`
+- `lower_runtime_basis_binding_digest`
+- `basis_readmission_proof_digest`
+- `basis_target_dx_digest`
+- `basis_golden_transcript_digest`
+- `lower_runtime_api_reuse_matrix_digest`
+- `adapter_shape_contract_digest`
+- `typestate_transition_digest`
+- `lane_witness_digest`
+- `phase_artifact_manifest_digest`
+- `compatibility_debt_registry_digest`
+- `basis_transition_digest`
+- `basis_support_matrix_digest`
+- `basis_future_neighbor_denial_digest`
+- `basis_proof_shape_digest`
+- `basis_phase_progression_digest`
+- `failure_digest`
+- `counter_snapshot`
+- `basis_normalization_slope_digest`
+- `basis_eligibility_slope_digest`
+- `basis_lower_runtime_binding_slope_digest`
+- `basis_scoped_use_slope_digest`
+- `basis_receipt_slope_digest`
+- `basis_envelope_materialization_slope_digest`
+- `basis_support_lookup_slope_digest`
+- `compile_fail_boundary_digest`
+
+Pass condition
+
+Every runtime-backed Query basis consumed by ordinary public surfaces is
+admitted, denied, or deferred through one phase-typed capability lifecycle;
+raw lower-runtime identifiers cannot act as capability tokens; lower-runtime
+authority remains relational/bridge/signal-owned; and later temporal,
+async/resource, store-backed, and durable milestones inherit this lifecycle
+instead of adding parallel basis APIs.
+
 ## Runtime API Public Stabilization Gate Named Certification Suites
 
 ### Runtime API Golden DX And Async-Safe Facade Test

@@ -86,6 +86,22 @@ pub fn build_causal_inspection_certification_scope(
     let bridge_readmission_proof_digest = performance_certification
         .bridge_readmission_proof_digest()
         .to_string();
+    let scale_slope_digest = performance_certification.scale_slope_digest().to_string();
+    let anchor_derivation_slope_digest = performance_certification
+        .anchor_derivation_slope_digest()
+        .to_string();
+    let reference_resolution_slope_digest = performance_certification
+        .reference_resolution_slope_digest()
+        .to_string();
+    let admission_slope_digest = performance_certification
+        .admission_slope_digest()
+        .to_string();
+    let bridge_envelope_slope_digest = performance_certification
+        .bridge_envelope_slope_digest()
+        .to_string();
+    let materialization_slope_digest = performance_certification
+        .materialization_slope_digest()
+        .to_string();
     let artifact_serialization_slope_digest = performance_certification
         .artifact_serialization_slope_digest()
         .to_string();
@@ -103,6 +119,7 @@ pub fn build_causal_inspection_certification_scope(
     let scope_digest = build_certification_scope_digest(
         &hostile_rows,
         &representative_matrix,
+        &performance_certification,
         &proof_shape,
         &row_counts,
     );
@@ -111,6 +128,12 @@ pub fn build_causal_inspection_certification_scope(
         representative_matrix.matrix_digest(),
         performance_certification,
         &bridge_readmission_proof_digest,
+        &scale_slope_digest,
+        &anchor_derivation_slope_digest,
+        &reference_resolution_slope_digest,
+        &admission_slope_digest,
+        &bridge_envelope_slope_digest,
+        &materialization_slope_digest,
         &artifact_serialization_slope_digest,
         proof_shape.proof_shape_digest(),
         proof_shape.phase_progression_digest(),
@@ -223,6 +246,7 @@ fn certification_row_counts(
 fn build_certification_scope_digest(
     hostile_rows: &CausalInspectionCertificationHostileRows,
     representative_matrix: &CausalInspectionRepresentativeMatrix,
+    performance_certification: &CausalInspectionPerformanceCertificationBundle,
     proof_shape: &CausalInspectionProofShapeCertification,
     row_counts: &CausalInspectionCertificationRowCounts,
 ) -> String {
@@ -248,6 +272,34 @@ fn build_certification_scope_digest(
             hostile_rows.artifact_serialization_row.row_digest
         ),
         format!("matrix:{}", representative_matrix.matrix_digest()),
+        format!(
+            "scale-slope:{}",
+            performance_certification.scale_slope_digest()
+        ),
+        format!(
+            "anchor-slope:{}",
+            performance_certification.anchor_derivation_slope_digest()
+        ),
+        format!(
+            "reference-slope:{}",
+            performance_certification.reference_resolution_slope_digest()
+        ),
+        format!(
+            "admission-slope:{}",
+            performance_certification.admission_slope_digest()
+        ),
+        format!(
+            "bridge-envelope-slope:{}",
+            performance_certification.bridge_envelope_slope_digest()
+        ),
+        format!(
+            "materialization-slope:{}",
+            performance_certification.materialization_slope_digest()
+        ),
+        format!(
+            "serialization-slope:{}",
+            performance_certification.artifact_serialization_slope_digest()
+        ),
         format!("proof-shape-digest:{}", proof_shape.proof_shape_digest()),
         format!(
             "phase-progression:{}",

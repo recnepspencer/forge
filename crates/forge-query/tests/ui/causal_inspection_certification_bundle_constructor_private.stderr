@@ -1,4 +1,4 @@
-error[E0451]: fields `certification_bundle_digest`, `certification_scope_digest`, `performance_certification_digest`, `bridge_readmission_proof_digest`, `artifact_serialization_slope_digest`, `boundary_audit_digest`, `representative_matrix_digest`, `proof_shape_digest`, `phase_progression_digest`, `witness_authority_digest`, `certification_row_count`, `hostile_row_count`, `representative_row_count` and `scale_fixture_row_count` of struct `CausalInspectionCertificationBundle` are private
+error[E0451]: fields `certification_bundle_digest`, `certification_scope_digest`, `performance_certification_digest`, `bridge_readmission_proof_digest`, `scale_slope_digest`, `anchor_derivation_slope_digest`, `reference_resolution_slope_digest`, `admission_slope_digest`, `bridge_envelope_slope_digest`, `materialization_slope_digest`, `artifact_serialization_slope_digest`, `boundary_audit_digest`, `representative_matrix_digest`, `proof_shape_digest`, `phase_progression_digest`, `witness_authority_digest`, `certification_row_count`, `hostile_row_count`, `representative_row_count` and `scale_fixture_row_count` of struct `CausalInspectionCertificationBundle` are private
   --> tests/ui/causal_inspection_certification_bundle_constructor_private.rs:5:9
    |
  4 |     let _ = CausalInspectionCertificationBundle {
@@ -11,23 +11,35 @@ error[E0451]: fields `certification_bundle_digest`, `certification_scope_digest`
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
  8 |         bridge_readmission_proof_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
- 9 |         artifact_serialization_slope_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-10 |         boundary_audit_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^ private field
-11 |         representative_matrix_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
-12 |         proof_shape_digest: String::new(),
+ 9 |         scale_slope_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^^ private field
-13 |         phase_progression_digest: String::new(),
+10 |         anchor_derivation_slope_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         reference_resolution_slope_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         admission_slope_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         bridge_envelope_slope_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         materialization_slope_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+15 |         artifact_serialization_slope_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         boundary_audit_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         representative_matrix_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+18 |         proof_shape_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+19 |         phase_progression_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
-14 |         witness_authority_digest: String::new(),
+20 |         witness_authority_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
-15 |         certification_row_count: 0,
+21 |         certification_row_count: 0,
    |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
-16 |         hostile_row_count: 0,
+22 |         hostile_row_count: 0,
    |         ^^^^^^^^^^^^^^^^^ private field
-17 |         representative_row_count: 0,
+23 |         representative_row_count: 0,
    |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
-18 |         scale_fixture_row_count: 0,
+24 |         scale_fixture_row_count: 0,
    |         ^^^^^^^^^^^^^^^^^^^^^^^ private field

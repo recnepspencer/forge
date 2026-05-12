@@ -1,6 +1,11 @@
 # Milestone 9.3.1 Engineering Spec: Cross-Runtime Causal Diagnostics And Query Inspection
 
-> **Status:** Draft engineering spec
+> **Status:** Closed on 2026-05-12 for runtime-backed cross-runtime causal
+> diagnostics and Query inspection; durable causal archives, store-backed replay
+> reconstruction, and restart-stable expanded explanation reload remain later
+> milestone debt.
+>
+> **Closeout:** [milestone-9.3.1-closeout.md](./milestone-9.3.1-closeout.md)
 >
 > **Roadmap parent:** [forge_query_roadmap.md](./forge_query_roadmap.md)
 >
@@ -8,7 +13,7 @@
 >
 > **Prior milestone:** [milestone-9.3.md](./milestone-9.3.md)
 >
-> **Next milestone:** [milestone-9.3.2](./forge_query_roadmap.md#milestone-932-query-basis-capability-lifecycle)
+> **Next milestone:** [milestone-9.3.2](./milestone-9.3.2.md)
 > continues the runtime API stabilization path by making Query basis a
 > capability lifecycle. The Runtime API Public Stabilization Gate follows
 > Milestones 9.3.2 through 9.3.6.

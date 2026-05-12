@@ -2,6 +2,9 @@ mod admission;
 mod admission_decision;
 mod admission_trace;
 mod anchor;
+mod builder;
+mod builder_bridge;
+mod builder_support;
 mod certification;
 mod inventory;
 mod materialization;
@@ -29,6 +32,15 @@ pub use anchor::{
     CausalObservationAnchorDigest, CausalObservationAnchorError, CausalObservationAnchorErrorKind,
     CausalObservationMissingReferencePosture,
 };
+pub use builder::{
+    CausalInspection, CausalInspectionEstimatedCost, CausalInspectionPlan,
+    CausalInspectionPlanError, CausalInspectionPlanErrorKind, CausalInspectionPlanExplanation,
+    CausalInspectionSupportPosture,
+};
+pub use builder_support::{
+    CausalInspectionSupport, CausalInspectionSupportExplanation, CausalInspectionSupportRow,
+    CausalInspectionSupportRowPosture,
+};
 pub use certification::{
     build_causal_inspection_certification_scope, certify_causal_inspection_runtime_path,
     CausalInspectionBoundaryAudit, CausalInspectionCertificationBundle,
@@ -48,7 +60,8 @@ pub use inventory::{
 pub use materialization::{
     materialize_admitted_causal_inspection, materialize_advisory_causal_inspection,
     materialize_denied_causal_inspection, AdmittedQueryCausalInspectionArtifact,
-    AdvisoryQueryCausalInspectionArtifact, CausalInspectionArtifactKind,
+    AdvisoryQueryCausalInspectionArtifact, CausalInspectionArtifactDecisionTrace,
+    CausalInspectionArtifactIntegrity, CausalInspectionArtifactKind,
     CausalInspectionBoundaryEnvelopeCategory, CausalInspectionMaterializationError,
     CausalInspectionMaterializationErrorKind, CausalInspectionMaterializationPolicy,
     CausalInspectionPerformanceEnvelope, CausalInspectionRedactionPolicy,

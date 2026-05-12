@@ -6,6 +6,12 @@ pub struct CausalInspectionCertificationScope {
     representative_matrix_digest: String,
     performance_certification: CausalInspectionPerformanceCertificationBundle,
     bridge_readmission_proof_digest: String,
+    scale_slope_digest: String,
+    anchor_derivation_slope_digest: String,
+    reference_resolution_slope_digest: String,
+    admission_slope_digest: String,
+    bridge_envelope_slope_digest: String,
+    materialization_slope_digest: String,
     artifact_serialization_slope_digest: String,
     proof_shape_digest: String,
     phase_progression_digest: String,
@@ -24,6 +30,12 @@ impl CausalInspectionCertificationScope {
         representative_matrix_digest: &str,
         performance_certification: CausalInspectionPerformanceCertificationBundle,
         bridge_readmission_proof_digest: &str,
+        scale_slope_digest: &str,
+        anchor_derivation_slope_digest: &str,
+        reference_resolution_slope_digest: &str,
+        admission_slope_digest: &str,
+        bridge_envelope_slope_digest: &str,
+        materialization_slope_digest: &str,
         artifact_serialization_slope_digest: &str,
         proof_shape_digest: &str,
         phase_progression_digest: &str,
@@ -39,6 +51,12 @@ impl CausalInspectionCertificationScope {
             representative_matrix_digest: representative_matrix_digest.to_string(),
             performance_certification,
             bridge_readmission_proof_digest: bridge_readmission_proof_digest.to_string(),
+            scale_slope_digest: scale_slope_digest.to_string(),
+            anchor_derivation_slope_digest: anchor_derivation_slope_digest.to_string(),
+            reference_resolution_slope_digest: reference_resolution_slope_digest.to_string(),
+            admission_slope_digest: admission_slope_digest.to_string(),
+            bridge_envelope_slope_digest: bridge_envelope_slope_digest.to_string(),
+            materialization_slope_digest: materialization_slope_digest.to_string(),
             artifact_serialization_slope_digest: artifact_serialization_slope_digest.to_string(),
             proof_shape_digest: proof_shape_digest.to_string(),
             phase_progression_digest: phase_progression_digest.to_string(),
@@ -87,6 +105,30 @@ impl CausalInspectionCertificationScope {
         &self.bridge_readmission_proof_digest
     }
 
+    pub fn scale_slope_digest(&self) -> &str {
+        &self.scale_slope_digest
+    }
+
+    pub fn anchor_derivation_slope_digest(&self) -> &str {
+        &self.anchor_derivation_slope_digest
+    }
+
+    pub fn reference_resolution_slope_digest(&self) -> &str {
+        &self.reference_resolution_slope_digest
+    }
+
+    pub fn admission_slope_digest(&self) -> &str {
+        &self.admission_slope_digest
+    }
+
+    pub fn bridge_envelope_slope_digest(&self) -> &str {
+        &self.bridge_envelope_slope_digest
+    }
+
+    pub fn materialization_slope_digest(&self) -> &str {
+        &self.materialization_slope_digest
+    }
+
     pub fn artifact_serialization_slope_digest(&self) -> &str {
         &self.artifact_serialization_slope_digest
     }
@@ -113,6 +155,12 @@ impl CausalInspectionCertificationScope {
                 .performance_certification_digest()
                 .to_string(),
             bridge_readmission_proof_digest: self.bridge_readmission_proof_digest,
+            scale_slope_digest: self.scale_slope_digest,
+            anchor_derivation_slope_digest: self.anchor_derivation_slope_digest,
+            reference_resolution_slope_digest: self.reference_resolution_slope_digest,
+            admission_slope_digest: self.admission_slope_digest,
+            bridge_envelope_slope_digest: self.bridge_envelope_slope_digest,
+            materialization_slope_digest: self.materialization_slope_digest,
             artifact_serialization_slope_digest: self.artifact_serialization_slope_digest,
             boundary_audit_digest: self.boundary_audit_digest,
             representative_matrix_digest: self.representative_matrix_digest,
@@ -132,6 +180,12 @@ pub(in crate::runtime::inspection::causal::certification) struct CausalInspectio
     pub certification_scope_digest: String,
     pub performance_certification_digest: String,
     pub bridge_readmission_proof_digest: String,
+    pub scale_slope_digest: String,
+    pub anchor_derivation_slope_digest: String,
+    pub reference_resolution_slope_digest: String,
+    pub admission_slope_digest: String,
+    pub bridge_envelope_slope_digest: String,
+    pub materialization_slope_digest: String,
     pub artifact_serialization_slope_digest: String,
     pub boundary_audit_digest: String,
     pub representative_matrix_digest: String,
@@ -150,6 +204,12 @@ pub struct CausalInspectionCertificationBundle {
     certification_scope_digest: String,
     performance_certification_digest: String,
     bridge_readmission_proof_digest: String,
+    scale_slope_digest: String,
+    anchor_derivation_slope_digest: String,
+    reference_resolution_slope_digest: String,
+    admission_slope_digest: String,
+    bridge_envelope_slope_digest: String,
+    materialization_slope_digest: String,
     artifact_serialization_slope_digest: String,
     boundary_audit_digest: String,
     representative_matrix_digest: String,
@@ -169,6 +229,12 @@ impl CausalInspectionCertificationBundle {
         certification_scope_digest: String,
         performance_certification_digest: String,
         bridge_readmission_proof_digest: String,
+        scale_slope_digest: String,
+        anchor_derivation_slope_digest: String,
+        reference_resolution_slope_digest: String,
+        admission_slope_digest: String,
+        bridge_envelope_slope_digest: String,
+        materialization_slope_digest: String,
         artifact_serialization_slope_digest: String,
         boundary_audit_digest: String,
         representative_matrix_digest: String,
@@ -185,6 +251,12 @@ impl CausalInspectionCertificationBundle {
             certification_scope_digest,
             performance_certification_digest,
             bridge_readmission_proof_digest,
+            scale_slope_digest,
+            anchor_derivation_slope_digest,
+            reference_resolution_slope_digest,
+            admission_slope_digest,
+            bridge_envelope_slope_digest,
+            materialization_slope_digest,
             artifact_serialization_slope_digest,
             boundary_audit_digest,
             representative_matrix_digest,
@@ -212,6 +284,30 @@ impl CausalInspectionCertificationBundle {
 
     pub fn bridge_readmission_proof_digest(&self) -> &str {
         &self.bridge_readmission_proof_digest
+    }
+
+    pub fn scale_slope_digest(&self) -> &str {
+        &self.scale_slope_digest
+    }
+
+    pub fn anchor_derivation_slope_digest(&self) -> &str {
+        &self.anchor_derivation_slope_digest
+    }
+
+    pub fn reference_resolution_slope_digest(&self) -> &str {
+        &self.reference_resolution_slope_digest
+    }
+
+    pub fn admission_slope_digest(&self) -> &str {
+        &self.admission_slope_digest
+    }
+
+    pub fn bridge_envelope_slope_digest(&self) -> &str {
+        &self.bridge_envelope_slope_digest
+    }
+
+    pub fn materialization_slope_digest(&self) -> &str {
+        &self.materialization_slope_digest
     }
 
     pub fn artifact_serialization_slope_digest(&self) -> &str {

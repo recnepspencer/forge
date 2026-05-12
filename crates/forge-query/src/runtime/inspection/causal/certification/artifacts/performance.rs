@@ -39,23 +39,19 @@ impl CausalInspectionScaleCounterSnapshot {
         let bridge_readmission_proof_digest = artifact
             .bridge_readmission_proof_digest()
             .map(str::to_string);
-        let snapshot_digest = hash_parts(&[
-            "causal_inspection_scale_counter_snapshot_v1".to_string(),
-            format!("size:{}", fixture_size.as_str()),
-            format!("artifact:{artifact_digest}"),
-            format!("evidence-width:{evidence_reference_width}"),
-            format!("anchor-slope:{anchor_derivation_slope_counter}"),
-            format!("reference-slope:{reference_resolution_slope_counter}"),
-            format!("admission-slope:{admission_slope_counter}"),
-            format!("bridge-envelope-slope:{bridge_envelope_slope_counter}"),
-            format!("materialization-slope:{materialization_slope_counter}"),
-            format!("serialization-slope:{artifact_serialization_slope_counter}"),
-            format!("bridge-scan-fallback:{bridge_scan_fallback_count}"),
-            format!(
-                "readmission:{}",
-                bridge_readmission_proof_digest.as_deref().unwrap_or("none")
-            ),
-        ]);
+        let snapshot_digest = snapshot_digest(SnapshotDigestParts {
+            fixture_size,
+            artifact_digest: &artifact_digest,
+            evidence_reference_width,
+            anchor_derivation_slope_counter,
+            reference_resolution_slope_counter,
+            admission_slope_counter,
+            bridge_envelope_slope_counter,
+            materialization_slope_counter,
+            artifact_serialization_slope_counter,
+            bridge_scan_fallback_count,
+            bridge_readmission_proof_digest: bridge_readmission_proof_digest.as_deref(),
+        });
         Self {
             fixture_size,
             artifact_digest,
@@ -119,6 +115,28 @@ impl CausalInspectionScaleCounterSnapshot {
     pub fn snapshot_digest(&self) -> &str {
         &self.snapshot_digest
     }
+
+    #[cfg(test)]
+    pub(in crate::runtime) fn with_bridge_envelope_slope_for_tests(
+        mut self,
+        bridge_envelope_slope_counter: usize,
+    ) -> Self {
+        self.bridge_envelope_slope_counter = bridge_envelope_slope_counter;
+        self.snapshot_digest = snapshot_digest(SnapshotDigestParts {
+            fixture_size: self.fixture_size,
+            artifact_digest: &self.artifact_digest,
+            evidence_reference_width: self.evidence_reference_width,
+            anchor_derivation_slope_counter: self.anchor_derivation_slope_counter,
+            reference_resolution_slope_counter: self.reference_resolution_slope_counter,
+            admission_slope_counter: self.admission_slope_counter,
+            bridge_envelope_slope_counter,
+            materialization_slope_counter: self.materialization_slope_counter,
+            artifact_serialization_slope_counter: self.artifact_serialization_slope_counter,
+            bridge_scan_fallback_count: self.bridge_scan_fallback_count,
+            bridge_readmission_proof_digest: self.bridge_readmission_proof_digest.as_deref(),
+        });
+        self
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -127,6 +145,12 @@ pub struct CausalInspectionPerformanceCertificationBundle {
     medium_snapshot_digest: String,
     large_snapshot_digest: String,
     bridge_readmission_proof_digest: String,
+    scale_slope_digest: String,
+    anchor_derivation_slope_digest: String,
+    reference_resolution_slope_digest: String,
+    admission_slope_digest: String,
+    bridge_envelope_slope_digest: String,
+    materialization_slope_digest: String,
     artifact_serialization_slope_digest: String,
     scale_slope_digest_part_count: usize,
     performance_certification_digest: String,
@@ -143,11 +167,50 @@ impl CausalInspectionPerformanceCertificationBundle {
             .bridge_readmission_proof_digest()
             .expect("validated scale snapshots should carry readmission proof")
             .to_string();
+        let anchor_derivation_slope_digest = slope_digest(
+            "causal_anchor_derivation_slope_digest_v1",
+            small.anchor_derivation_slope_counter(),
+            medium.anchor_derivation_slope_counter(),
+            large.anchor_derivation_slope_counter(),
+        );
+        let reference_resolution_slope_digest = slope_digest(
+            "causal_reference_resolution_slope_digest_v1",
+            small.reference_resolution_slope_counter(),
+            medium.reference_resolution_slope_counter(),
+            large.reference_resolution_slope_counter(),
+        );
+        let admission_slope_digest = slope_digest(
+            "causal_admission_slope_digest_v1",
+            small.admission_slope_counter(),
+            medium.admission_slope_counter(),
+            large.admission_slope_counter(),
+        );
+        let bridge_envelope_slope_digest = slope_digest(
+            "causal_bridge_envelope_slope_digest_v1",
+            small.bridge_envelope_slope_counter(),
+            medium.bridge_envelope_slope_counter(),
+            large.bridge_envelope_slope_counter(),
+        );
+        let materialization_slope_digest = slope_digest(
+            "causal_materialization_slope_digest_v1",
+            small.materialization_slope_counter(),
+            medium.materialization_slope_counter(),
+            large.materialization_slope_counter(),
+        );
         let artifact_serialization_slope_digest = hash_parts(&[
             "causal_artifact_serialization_slope_digest_v1".to_string(),
             format!("small:{}", small.artifact_serialization_slope_counter()),
             format!("medium:{}", medium.artifact_serialization_slope_counter()),
             format!("large:{}", large.artifact_serialization_slope_counter()),
+        ]);
+        let scale_slope_digest = hash_parts(&[
+            "causal_inspection_scale_slope_digest_v1".to_string(),
+            format!("anchor:{anchor_derivation_slope_digest}"),
+            format!("reference:{reference_resolution_slope_digest}"),
+            format!("admission:{admission_slope_digest}"),
+            format!("bridge-envelope:{bridge_envelope_slope_digest}"),
+            format!("materialization:{materialization_slope_digest}"),
+            format!("serialization:{artifact_serialization_slope_digest}"),
         ]);
         let scale_slope_digest_part_count = 3;
         let performance_certification_digest = hash_parts(&[
@@ -156,6 +219,12 @@ impl CausalInspectionPerformanceCertificationBundle {
             format!("medium:{}", medium.snapshot_digest()),
             format!("large:{}", large.snapshot_digest()),
             format!("readmission:{bridge_readmission_proof_digest}"),
+            format!("scale-slope:{scale_slope_digest}"),
+            format!("anchor:{anchor_derivation_slope_digest}"),
+            format!("reference:{reference_resolution_slope_digest}"),
+            format!("admission:{admission_slope_digest}"),
+            format!("bridge-envelope:{bridge_envelope_slope_digest}"),
+            format!("materialization:{materialization_slope_digest}"),
             format!("serialization:{artifact_serialization_slope_digest}"),
             format!("parts:{scale_slope_digest_part_count}"),
         ]);
@@ -164,6 +233,12 @@ impl CausalInspectionPerformanceCertificationBundle {
             medium_snapshot_digest: medium.snapshot_digest().to_string(),
             large_snapshot_digest: large.snapshot_digest().to_string(),
             bridge_readmission_proof_digest,
+            scale_slope_digest,
+            anchor_derivation_slope_digest,
+            reference_resolution_slope_digest,
+            admission_slope_digest,
+            bridge_envelope_slope_digest,
+            materialization_slope_digest,
             artifact_serialization_slope_digest,
             scale_slope_digest_part_count,
             performance_certification_digest,
@@ -186,6 +261,30 @@ impl CausalInspectionPerformanceCertificationBundle {
         &self.bridge_readmission_proof_digest
     }
 
+    pub fn scale_slope_digest(&self) -> &str {
+        &self.scale_slope_digest
+    }
+
+    pub fn anchor_derivation_slope_digest(&self) -> &str {
+        &self.anchor_derivation_slope_digest
+    }
+
+    pub fn reference_resolution_slope_digest(&self) -> &str {
+        &self.reference_resolution_slope_digest
+    }
+
+    pub fn admission_slope_digest(&self) -> &str {
+        &self.admission_slope_digest
+    }
+
+    pub fn bridge_envelope_slope_digest(&self) -> &str {
+        &self.bridge_envelope_slope_digest
+    }
+
+    pub fn materialization_slope_digest(&self) -> &str {
+        &self.materialization_slope_digest
+    }
+
     pub fn artifact_serialization_slope_digest(&self) -> &str {
         &self.artifact_serialization_slope_digest
     }
@@ -197,4 +296,59 @@ impl CausalInspectionPerformanceCertificationBundle {
     pub fn performance_certification_digest(&self) -> &str {
         &self.performance_certification_digest
     }
+}
+
+struct SnapshotDigestParts<'a> {
+    fixture_size: CausalInspectionScaleFixtureSize,
+    artifact_digest: &'a str,
+    evidence_reference_width: usize,
+    anchor_derivation_slope_counter: usize,
+    reference_resolution_slope_counter: usize,
+    admission_slope_counter: usize,
+    bridge_envelope_slope_counter: usize,
+    materialization_slope_counter: usize,
+    artifact_serialization_slope_counter: usize,
+    bridge_scan_fallback_count: usize,
+    bridge_readmission_proof_digest: Option<&'a str>,
+}
+
+fn snapshot_digest(parts: SnapshotDigestParts<'_>) -> String {
+    hash_parts(&[
+        "causal_inspection_scale_counter_snapshot_v1".to_string(),
+        format!("size:{}", parts.fixture_size.as_str()),
+        format!("artifact:{}", parts.artifact_digest),
+        format!("evidence-width:{}", parts.evidence_reference_width),
+        format!("anchor-slope:{}", parts.anchor_derivation_slope_counter),
+        format!(
+            "reference-slope:{}",
+            parts.reference_resolution_slope_counter
+        ),
+        format!("admission-slope:{}", parts.admission_slope_counter),
+        format!(
+            "bridge-envelope-slope:{}",
+            parts.bridge_envelope_slope_counter
+        ),
+        format!(
+            "materialization-slope:{}",
+            parts.materialization_slope_counter
+        ),
+        format!(
+            "serialization-slope:{}",
+            parts.artifact_serialization_slope_counter
+        ),
+        format!("bridge-scan-fallback:{}", parts.bridge_scan_fallback_count),
+        format!(
+            "readmission:{}",
+            parts.bridge_readmission_proof_digest.unwrap_or("none")
+        ),
+    ])
+}
+
+fn slope_digest(label: &str, small: usize, medium: usize, large: usize) -> String {
+    hash_parts(&[
+        label.to_string(),
+        format!("small:{small}"),
+        format!("medium:{medium}"),
+        format!("large:{large}"),
+    ])
 }

@@ -2321,6 +2321,11 @@ This milestone is complete only when `forge-query` can prove:
 Make every Query basis a phase-typed capability lifecycle rather than a raw
 branch, head, preview, snapshot, historical, tenant, or policy identifier.
 
+### Specification
+
+The governing milestone spec is
+[milestone-9.3.2.md](./milestone-9.3.2.md).
+
 ### Adversarial Constraint
 
 A consumer must not be able to observe, mutate, replay, inspect, or materialize
@@ -3722,6 +3727,7 @@ must gain a row in the same patch or the roadmap is incomplete.
 - [forge_query_vision.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/forge_query_vision.md)
 - [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/test-requirements.md)
 - [milestone-9.3.1.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/milestone-9.3.1.md)
+- [milestone-9.3.2.md](./milestone-9.3.2.md)
 - [runtime-api-public-stabilization-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-api-public-stabilization-plan.md)
 - [runtime-authoritative-mutation-evidence-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-authoritative-mutation-evidence-plan.md)
 - [forge_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_roadmap.md)
