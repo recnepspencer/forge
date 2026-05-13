@@ -42,6 +42,7 @@ export interface ResourceEffectPatchDigest {
     | "region"
     | "jsonPath"
     | "item"
+    | "insert"
     | "itemAspect"
     | "summary"
     | null;

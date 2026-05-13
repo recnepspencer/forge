@@ -56,6 +56,35 @@ const resourcePatch = Object.freeze({
       [RESOURCE_PATCH]: "resourcePatch",
     });
   },
+  delete(options) {
+    requirePatchObject(options, "resourcePatch.delete(...)");
+    if (typeof options.itemId !== "string" || options.itemId.length === 0) {
+      throw new TypeError("resourcePatch.delete(...) requires itemId");
+    }
+    return Object.freeze({
+      kind: "delete",
+      itemId: options.itemId,
+      [RESOURCE_PATCH]: "resourcePatch",
+    });
+  },
+  insert(options) {
+    requirePatchObject(options, "resourcePatch.insert(...)");
+    if (typeof options.itemId !== "string" || options.itemId.length === 0) {
+      throw new TypeError("resourcePatch.insert(...) requires itemId");
+    }
+    if (options.placement !== "append" && options.placement !== "prepend") {
+      throw new TypeError(
+        "resourcePatch.insert(...) placement must be append or prepend",
+      );
+    }
+    return Object.freeze({
+      kind: "insert",
+      itemId: options.itemId,
+      placement: options.placement,
+      nextItem: options.nextItem,
+      [RESOURCE_PATCH]: "resourcePatch",
+    });
+  },
   itemAspect(options) {
     requirePatchObject(options, "resourcePatch.itemAspect(...)");
     if (typeof options.itemId !== "string" || options.itemId.length === 0) {

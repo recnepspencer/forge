@@ -1,9 +1,7 @@
 import { requireMutationResponseLensProof } from "./resource_mutation_response_lens_proof.js";
 import { createMutationResponsePayloadDigest } from "./resource_mutation_response_payload_digest.js";
 import {
-  createMutationResponseFallbackDetail,
   createMutationResponseTargetExecution,
-  isExactMutationResponseExecutionKind,
 } from "./resource_mutation_response_target_execution.js";
 import { createMutationResponseDiagnosticFacts } from "./resource_mutation_response_diagnostic_facts.js";
 import {
@@ -21,11 +19,15 @@ import {
   createMutationResponseFallbackDigest,
   createMutationResponseTargetDigest,
   createPlannedMutationResponseTargetDigest,
-  createPlannedMutationResponseTargetIdentityDigest,
   readAppliedTargetBreadthCounter,
   readFallbackTargetBreadth,
   readStaleTargetDenialBreadth,
 } from "./plan/resource_mutation_response_plan_digests.js";
+import {
+  applyMutationResponsePartialAdmission,
+  createPublicMutationResponseTarget,
+  readMutationResponsePartialAdmission,
+} from "./plan/resource_mutation_response_target_planning.js";
 
 const RESOURCE_MUTATION_RESPONSE_DECLARATION = Symbol(
   "forgeSignal.resourceMutationResponseDeclaration",
@@ -58,6 +60,7 @@ function createMutationResponseDeclaration(options) {
     targets,
     diagnostics,
     identityMigration: options.identityMigration ?? null,
+    reconciliationAtomicity: options.reconciliationAtomicity ?? "allOrNone",
     targetCount: targets.length,
     diagnosticCount: diagnostics.length,
     atomicity: readMutationResponseAtomicity(targets.length),
@@ -129,21 +132,27 @@ function createPreparedMutationResponsePlan(options) {
         options.submittedTargets?.[index] ?? null,
       )),
   );
-  const exactExecutionCount = plannedTargets.filter((target) =>
-    isExactMutationResponseExecutionKind(target.execution.kind)).length;
-  const identityExactTargetCount = identityMigration?.exactTargetCount ?? 0;
-  const totalExactExecutionCount =
-    exactExecutionCount + identityExactTargetCount;
-  if (totalExactExecutionCount > 1 && exactExecutionCount > 0) {
-    throw new TypeError(
-      "mutation response planning currently admits at most one exact target across reconciliation and identity migration before multi-target atomicity support lands",
-    );
-  }
+  const partialAdmission = readMutationResponsePartialAdmission(
+    plannedTargets,
+    readDeclaration.reconciliationAtomicity,
+  );
+  const admittedTargets = applyMutationResponsePartialAdmission(
+    plannedTargets,
+    readDeclaration.reconciliationAtomicity,
+    partialAdmission,
+  );
+  const publicTargets = Object.freeze(
+    admittedTargets.map((target) =>
+      createPublicMutationResponseTarget(
+        target,
+        createPublicMutationResponseReconciliationDigest,
+      )),
+  );
   const preparedExecutions = Object.freeze(
-    plannedTargets.map((target) => target.execution.preparedExecution),
+    admittedTargets.map((target) => target.execution.preparedExecution),
   );
   const executionArtifacts = Object.freeze(
-    plannedTargets.map((target) =>
+    admittedTargets.map((target) =>
       target.execution.artifact),
   );
   const confirmation = createMutationResponseConfirmationClassification(
@@ -186,15 +195,15 @@ function createPreparedMutationResponsePlan(options) {
     lifecycleProof,
     diagnostics: diagnosticFacts,
     identityMigration,
-    targets: plannedTargets.map((target) => target.publicTarget),
+    targets: publicTargets,
     targetCount: readDeclaration.targetCount,
     atomicity: readDeclaration.atomicity,
+    reconciliationAtomicity: readDeclaration.reconciliationAtomicity,
+    partialAdmission,
     targetDigest: createPlannedMutationResponseTargetDigest(
-      plannedTargets.map((target) => target.publicTarget),
+      publicTargets,
     ),
-    fallbackDigest: createMutationResponseFallbackDigest(
-      plannedTargets.map((target) => target.publicTarget),
-    ),
+    fallbackDigest: createMutationResponseFallbackDigest(publicTargets),
     executionArtifacts,
     executionDigest: createMutationResponseExecutionDigest(executionArtifacts),
     counters: Object.freeze({
@@ -208,6 +217,7 @@ function createPreparedMutationResponsePlan(options) {
       targetBasisSnapshotBreadth: (options.submittedTargets ?? []).length,
       staleTargetDenialBreadth:
         readStaleTargetDenialBreadth(executionArtifacts),
+      partialPolicyBreadth: partialAdmission === "notNeeded" ? 0 : 1,
       identityResponseExtractionBreadth:
         identityMigration?.counters.responseIdentityExtractionBreadth ?? 0,
       identityMigrationTargetFanoutBreadth:
@@ -287,44 +297,22 @@ function createPlannedMutationResponseTarget(
   planId,
   submittedTarget,
 ) {
+  const mutationParams = options.requestDescriptor.canonicalParams.params;
   const targetParams = target.params(options.requestDescriptor.canonicalParams.params);
   const lineIdentity = target.readTargetLineIdentity(targetParams);
   const execution = createMutationResponseTargetExecution(
     target,
     targetParams,
+    mutationParams,
     lineIdentity,
     responseValue,
     planId,
     submittedTarget,
   );
-  const publicTarget = Object.freeze({
-    targetId: target.targetId,
-    family: target.family,
-    line: Object.freeze({
-      familyKind: target.family.kind,
-      familyId: target.family.familyId,
-      canonicalKey: lineIdentity.canonicalKey,
-      runtimeLineId: lineIdentity.runtimeLineId,
-      residency: lineIdentity.residency,
-    }),
-    fallback: Object.freeze({
-      kind: target.fallback,
-      detail: createMutationResponseFallbackDetail(target, lineIdentity),
-    }),
-    submittedTarget,
-    reconciliation:
-      target.reconciliation === null
-        ? null
-        : createPublicMutationResponseReconciliationDigest(target.reconciliation),
-    execution: execution.artifact,
-    targetDigest: createPlannedMutationResponseTargetIdentityDigest(
-      target,
-      lineIdentity,
-      execution.artifact,
-    ),
-  });
   return Object.freeze({
-    publicTarget,
+    target,
+    lineIdentity,
+    submittedTarget,
     execution,
   });
 }
@@ -333,6 +321,7 @@ function createPublicMutationResponseReconciliationDigest(reconciliation) {
   return Object.freeze({
     kind: reconciliation.kind,
     itemId: null,
+    placement: "placement" in reconciliation ? reconciliation.placement : null,
     field: "field" in reconciliation ? reconciliation.field : null,
     region: "region" in reconciliation ? reconciliation.region : null,
     path: "path" in reconciliation ? reconciliation.path : null,

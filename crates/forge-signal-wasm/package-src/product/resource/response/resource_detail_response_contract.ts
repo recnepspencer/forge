@@ -128,6 +128,9 @@ function createObjectDetailFields(fields, source) {
       read(value) {
         return readObjectDetailValueField(source, value, fieldName, objectField);
       },
+      extract(value) {
+        return extractObjectDetailValueField(source, value, fieldName, objectField);
+      },
       write(value, fieldValue) {
         return writeObjectDetailValueField(
           source,
@@ -199,6 +202,25 @@ function readObjectDetailValueField(source, value, fieldName, objectField) {
     objectField,
   );
   return descriptor === null ? undefined : descriptor.value;
+}
+
+function extractObjectDetailValueField(source, value, fieldName, objectField) {
+  const descriptor = readObjectDetailValueFieldDescriptor(
+    source,
+    value,
+    fieldName,
+    objectField,
+  );
+  if (descriptor === null) {
+    return Object.freeze({
+      present: false,
+      value: undefined,
+    });
+  }
+  return Object.freeze({
+    present: true,
+    value: descriptor.value,
+  });
 }
 
 function writeObjectDetailValueField(source, value, fieldName, objectField, fieldValue) {

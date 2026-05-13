@@ -17,7 +17,7 @@ function applyIdentityMigrationSiblingConflictPolicy(plannedTargets) {
 
 function applyIdentityMigrationAtomicityPolicy(declaration, plannedTargets) {
   const exactTargetCount = plannedTargets.filter((target) =>
-    target.publicTarget.execution.kind === "exactResidentLine").length;
+    isExactIdentityMigrationExecutionKind(target.publicTarget.execution.kind)).length;
   const fallbackTargets = plannedTargets.filter((target) =>
     target.publicTarget.outcome === "fallback");
   if (
@@ -29,7 +29,7 @@ function applyIdentityMigrationAtomicityPolicy(declaration, plannedTargets) {
   }
   return Object.freeze(
     plannedTargets.map((target) =>
-      target.publicTarget.execution.kind === "exactResidentLine"
+      isExactIdentityMigrationExecutionKind(target.publicTarget.execution.kind)
         ? createAtomicityDeniedIdentityMigrationTarget(target, fallbackTargets)
         : target),
   );
@@ -37,7 +37,7 @@ function applyIdentityMigrationAtomicityPolicy(declaration, plannedTargets) {
 
 function readIdentityMigrationPartialAdmission(declaration, plannedTargets) {
   const exactTargetCount = plannedTargets.filter((target) =>
-    target.publicTarget.execution.kind === "exactResidentLine").length;
+    isExactIdentityMigrationExecutionKind(target.publicTarget.execution.kind)).length;
   const fallbackTargetCount = plannedTargets.filter((target) =>
     target.publicTarget.outcome === "fallback").length;
   if (exactTargetCount === 0 || fallbackTargetCount === 0) {
@@ -70,6 +70,10 @@ function readConflictingExactTargetIds(plannedTargets) {
     }
   }
   return targetIds;
+}
+
+function isExactIdentityMigrationExecutionKind(kind) {
+  return kind === "exactResidentLine" || kind === "exactDetailChildRegion";
 }
 
 function createSiblingConflictDeniedIdentityMigrationTarget(targetRecord, plannedTargets) {

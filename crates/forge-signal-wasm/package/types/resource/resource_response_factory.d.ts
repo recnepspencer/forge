@@ -212,6 +212,7 @@ export interface ResourceResponseFactory {
     itemId(item: TItem): string;
     roots(value: TValue): readonly TItem[];
     children(item: TItem): readonly TItem[];
+    replaceChildren(item: TItem, nextChildren: readonly TItem[]): TItem;
     replaceRoots(value: TValue, nextRoots: readonly TItem[]): TValue;
     nodeForItem(itemId: string): readonly string[];
     replaceNode(value: TValue, path: readonly string[], itemId: string, nextNode: TItem): TValue;

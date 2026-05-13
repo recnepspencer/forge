@@ -456,6 +456,7 @@ const taskTreeResponse = signals.resource.response.tree<TaskTreeEnvelope>()({
   itemId: (item: TaskTreeNode) => item.id,
   roots: (value) => value.roots,
   children: (item) => item.children,
+  replaceChildren: (item, children) => ({ ...item, children }),
   replaceRoots: (value, roots) => ({ ...value, roots }),
   nodeForItem: (itemId) => ["root", itemId],
   replaceNode: (value, _path, _itemId, _nextItem) => value,

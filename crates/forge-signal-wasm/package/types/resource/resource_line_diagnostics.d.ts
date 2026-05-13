@@ -112,6 +112,8 @@ export interface ResourceLineDiagnostics {
     | "region"
     | "jsonPath"
     | "item"
+    | "delete"
+    | "insert"
     | "itemAspect"
     | "summary"
     | null;

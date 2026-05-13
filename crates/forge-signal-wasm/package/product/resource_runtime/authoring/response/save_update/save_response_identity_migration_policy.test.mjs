@@ -218,7 +218,7 @@ test("response-owned write planning denies canonicalParams on detail-child ident
   }
 });
 
-test("response-owned write planning denies combining exact reconciliation with exact identity migration before multi-target atomicity support lands", async () => {
+test("response-owned write planning admits combining exact reconciliation with exact identity migration", async () => {
   const runtime = await createRealRequestRuntime();
   try {
     const taskRead = runtime.signals.api({}).url("/tasks/:taskId")
@@ -248,13 +248,17 @@ test("response-owned write planning denies combining exact reconciliation with e
         load: ({ taskId, body }) => ({ id: body.id, title: `${taskId}:${body.title}` }),
       });
 
-    assert.throws(
-      () => saveTask.line({
+    const plan = saveTask.line({
         taskId: "tmp-1",
         body: { id: "task:tmp-1", title: "Updated" },
-      }).mutationResponse(),
-      /at most one exact target across reconciliation and identity migration before multi-target atomicity support lands/,
-    );
+      }).mutationResponse();
+
+    assert.equal(plan.executionArtifacts[0].kind, "exactDetail");
+    assert.equal(plan.identityMigration.exactTargetCount, 1);
+    assert.equal(plan.confirmation.kind, "consumedCanonicalTruth");
+    assert.equal(plan.confirmation.exactTargetCount, 2);
+    assert.equal(plan.counters.executionBreadth, 1);
+    assert.equal(plan.counters.identityMigrationExecutionBreadth, 1);
   } finally {
     await runtime.cleanup();
   }

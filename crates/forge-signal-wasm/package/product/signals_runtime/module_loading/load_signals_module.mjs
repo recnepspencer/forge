@@ -1,3 +1,4 @@
+import { rmSync } from "node:fs";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { stripTypeScriptTypes } from "node:module";
 import { tmpdir } from "node:os";
@@ -9,9 +10,37 @@ const packageDir = path.join(moduleDir, "..", "..", "..");
 const packageSourceDir = path.join(packageDir, "..", "package-src");
 const apiSourceDir = path.join(packageSourceDir, "product", "api");
 const resourceSourceDir = path.join(packageSourceDir, "product", "resource");
+const signalsModuleGlobal = globalThis;
+const cachedSignalsModuleLoads =
+  signalsModuleGlobal.__forgeCachedSignalsModuleLoads ?? new Map();
+signalsModuleGlobal.__forgeCachedSignalsModuleLoads = cachedSignalsModuleLoads;
+const cachedSignalsModuleTempDirs =
+  signalsModuleGlobal.__forgeCachedSignalsModuleTempDirs ?? new Set();
+signalsModuleGlobal.__forgeCachedSignalsModuleTempDirs = cachedSignalsModuleTempDirs;
+
+if (!signalsModuleGlobal.__forgeCachedSignalsModuleCleanupInstalled) {
+  process.once("exit", () => {
+    for (const tempDir of cachedSignalsModuleTempDirs) {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+  signalsModuleGlobal.__forgeCachedSignalsModuleCleanupInstalled = true;
+}
 
 export async function loadSignalsModule(options = {}) {
+  const cacheKey = options.rawSurface === "real" ? "real" : "stub";
+  const cachedLoad = cachedSignalsModuleLoads.get(cacheKey);
+  if (cachedLoad !== undefined) {
+    return cachedLoad;
+  }
+  const loadPromise = loadSignalsModuleIntoCachedTempDir(options, cacheKey);
+  cachedSignalsModuleLoads.set(cacheKey, loadPromise);
+  return loadPromise;
+}
+
+async function loadSignalsModuleIntoCachedTempDir(options, cacheKey) {
   const tempDir = await mkdtemp(path.join(tmpdir(), "forge-signal-product-"));
+  cachedSignalsModuleTempDirs.add(tempDir);
   try {
     const filesToCopy = [
       [
@@ -101,9 +130,11 @@ export async function loadSignalsModule(options = {}) {
     const loaded = await import(moduleUrl.href);
     return {
       ...loaded,
-      cleanup: () => rm(tempDir, { recursive: true, force: true }),
+      cleanup: async () => {},
     };
   } catch (error) {
+    cachedSignalsModuleLoads.delete(cacheKey);
+    cachedSignalsModuleTempDirs.delete(tempDir);
     await rm(tempDir, { recursive: true, force: true });
     throw error;
   }

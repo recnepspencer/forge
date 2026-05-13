@@ -2,6 +2,24 @@ export type ResourceEffectCompactInverseDescriptor =
   | {
       readonly kind: "compactPatchInverse";
       readonly mode: "CompactInversePatch";
+      readonly preimage: "responseValue";
+      readonly scope: "line";
+      readonly itemId: null;
+      readonly field: null;
+      readonly aspect: null;
+      readonly summary: null;
+      readonly patch: {
+        readonly kind: "replace";
+        readonly nextValue: unknown;
+      };
+      readonly cost: {
+        readonly retainedValueCount: 1;
+        readonly retainedResponsePreimage: true;
+      };
+    }
+  | {
+      readonly kind: "compactPatchInverse";
+      readonly mode: "CompactInversePatch";
       readonly preimage: "aspectValue";
       readonly scope: "aspect";
       readonly itemId: string;

@@ -83,6 +83,7 @@ test("summary response contracts own the single-response detail finalizer lane",
         residency: "resident",
         submittedTarget,
         staleness: null,
+        partial: null,
         detail:
           `detail ${readLine.descriptor().family.familyId} line ${readLine.descriptor().canonicalParams.canonicalKey} stays in refetchRequired posture until a later mutation-response phase admits exact reconciliation`,
       },
@@ -101,6 +102,7 @@ test("summary response contracts own the single-response detail finalizer lane",
       residency: "resident",
       submittedTarget,
       staleness: null,
+      partial: null,
       detail:
         `detail ${readLine.descriptor().family.familyId} line ${readLine.descriptor().canonicalParams.canonicalKey} stays in refetchRequired posture until a later mutation-response phase admits exact reconciliation`,
     }]);

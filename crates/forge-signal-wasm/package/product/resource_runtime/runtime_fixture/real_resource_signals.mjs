@@ -22,6 +22,7 @@ export async function createRealResourceRuntime() {
     createRealResourceSignals(),
     loadResourceModule(),
   ]);
+  resourceMod.resetResourceEffectEnvelopeAuthorityForTesting?.();
   return {
     ...signalsRuntime,
     resourceMod,

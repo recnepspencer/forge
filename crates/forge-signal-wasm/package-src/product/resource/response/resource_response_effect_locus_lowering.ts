@@ -6,6 +6,14 @@ const RESOURCE_RESPONSE_LENS_DENIAL_PROOF_VERSION =
   "resource-response-lens-denial-proof-v1";
 
 function lowerResponseLensProofToEffectLocus(lensProof, locus) {
+  return lowerResponseLensProofToEffectLocusWithOptions(lensProof, locus, null);
+}
+
+function lowerResponseLensProofToEffectLocusWithOptions(
+  lensProof,
+  locus,
+  patchKind,
+) {
   if (lensProof === null) {
     return null;
   }
@@ -34,7 +42,12 @@ function lowerResponseLensProofToEffectLocus(lensProof, locus) {
     parityDigest: proof.parityDigest,
     compileBoundaryDigest: proof.compileBoundaryDigest,
     capabilityRowDigest: createCapabilityRowDigest(capability),
-    effectLocusDigest: createEffectLocusDigest(proof, capability, effectiveLocus),
+    effectLocusDigest: createEffectLocusDigest(
+      proof,
+      capability,
+      effectiveLocus,
+      patchKind,
+    ),
     topology: proof.topology,
     itemField: proof.itemField,
     locus: capability.locus,
@@ -46,13 +59,18 @@ function lowerResponseLensProofToEffectLocus(lensProof, locus) {
     summary: effectiveLocus.kind === "summary" ? effectiveLocus.summary : null,
     summaryPatchScope:
       effectiveLocus.kind === "summary" ? proof.summaryPatchScope : null,
-    cost: createEffectLocusCostCounters(proof, capability, effectiveLocus),
+    cost: createEffectLocusCostCounters(
+      proof,
+      capability,
+      effectiveLocus,
+      patchKind,
+    ),
     proofBreadth: 1,
   });
 }
 
-function createEffectLocusCostCounters(proof, capability, locus) {
-  const cost = readDeclaredEffectLocusCost(proof, capability, locus);
+function createEffectLocusCostCounters(proof, capability, locus, patchKind) {
+  const cost = readDeclaredEffectLocusCost(proof, capability, locus, patchKind);
   if (cost !== null) {
     return createEffectLocusCostCounter(...cost);
   }
@@ -64,7 +82,7 @@ function createEffectLocusCostCounters(proof, capability, locus) {
   );
 }
 
-function readDeclaredEffectLocusCost(proof, capability, locus) {
+function readDeclaredEffectLocusCost(proof, capability, locus, patchKind) {
   const cost = RESOURCE_RESPONSE_TOPOLOGY_COSTS[proof.topology];
   if (cost === undefined) {
     return null;
@@ -85,6 +103,12 @@ function readDeclaredEffectLocusCost(proof, capability, locus) {
     (capability.locus === cost.itemLocus || isAspectLocus(locus)) &&
     cost.item !== undefined
   ) {
+    if (patchKind === "delete" && cost.itemDelete !== undefined) {
+      return cost.itemDelete;
+    }
+    if (patchKind === "insert" && cost.itemInsert !== undefined) {
+      return cost.itemInsert;
+    }
     return cost.item;
   }
   return null;
@@ -116,17 +140,26 @@ function createCapabilityRowDigest(capability) {
   ].join("|");
 }
 
-function createEffectLocusDigest(proof, capability, locus) {
-  return [
+function createEffectLocusDigest(proof, capability, locus, patchKind) {
+  const digest = [
     "response-effect-locus",
     proof.compiledLensDigest,
     createCapabilityRowDigest(capability),
     locus.kind,
+  ];
+  if (patchKind === "insert") {
+    digest.push("insert");
+  }
+  if (patchKind === "delete") {
+    digest.push("delete");
+  }
+  digest.push(
     locus.kind === "detailRegion" ? locus.region : "none",
     isAspectLocus(locus) ? locus.aspect : "none",
     locus.kind === "detailJsonPath" ? locus.path : "none",
     locus.kind === "summary" ? locus.summary : "none",
-  ].join("|");
+  );
+  return digest.join("|");
 }
 
 function createResponseLensDenialError(proof, locus, reason, message) {
@@ -217,6 +250,8 @@ function createResponseLensPatchAdmissionLocus(proof, patch) {
         path: patch.path,
       });
     case "item":
+    case "insert":
+    case "delete":
       return Object.freeze({
         kind: itemLocusForCollectionTopology(proof.topology),
         itemId: patch.itemId,
@@ -443,4 +478,5 @@ export {
   assertResponseLensAdmitsPatch,
   createResponseLensDenialError,
   lowerResponseLensProofToEffectLocus,
+  lowerResponseLensProofToEffectLocusWithOptions,
 };

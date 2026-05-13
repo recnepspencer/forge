@@ -25,8 +25,10 @@ import type {
   ApiRouteUploadPagedDeclaration,
 } from "./api_route_declarations.js";
 import type {
+  ResourceMutationResponseAnyCreateTargetDeclaration,
   ResourceMutationResponseIdentityDeclaration,
   ResourceMutationResponseAnyTargetDeclaration,
+  ResourceMutationResponseAtomicity,
   ResourceMutationResponseDiagnosticDeclaration,
   ResourceMutationResponseFallbackTargetDeclaration,
 } from "./resource_mutation_response.js";
@@ -130,13 +132,14 @@ export type ApiRouteResponseCreateMutationDeclarationForState<
   TUploadKind,
   TDownloadsOwned
 > & {
-  reconciles?: readonly ResourceMutationResponseFallbackTargetDeclaration<
+  reconciles?: readonly ResourceMutationResponseAnyCreateTargetDeclaration<
     import("./api_request_params.js").ApiRouteWriteDeclarationParams<
       TRoute,
       TRequestParams,
       TBody
     >
   >[];
+  atomicity?: ResourceMutationResponseAtomicity;
   identity?: ResourceMutationResponseIdentityDeclaration<
     import("./api_request_params.js").ApiRouteWriteDeclarationParams<
       TRoute,
@@ -172,6 +175,7 @@ export type ApiRouteResponseUpdateMutationDeclarationForState<
       TBody
     >
   >[];
+  atomicity?: ResourceMutationResponseAtomicity;
   diagnostics?: readonly ResourceMutationResponseDiagnosticDeclaration[];
   identity?: ResourceMutationResponseIdentityDeclaration<
     import("./api_request_params.js").ApiRouteWriteDeclarationParams<
@@ -217,12 +221,13 @@ export type ApiRouteResponseRemoveMutationDeclarationForState<
   TUploadKind,
   TDownloadsOwned
 > & {
-  reconciles?: readonly ResourceMutationResponseFallbackTargetDeclaration<
+  reconciles?: readonly ResourceMutationResponseAnyTargetDeclaration<
     import("./api_request_params.js").ApiRouteDeclarationParams<
       TRoute,
       TRequestParams
     >
   >[];
+  atomicity?: ResourceMutationResponseAtomicity;
   identity?: never;
 };
 

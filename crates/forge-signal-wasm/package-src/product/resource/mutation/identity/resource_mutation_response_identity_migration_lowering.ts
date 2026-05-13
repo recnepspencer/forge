@@ -46,7 +46,7 @@ function lowerMutationResponseIdentityMigration(route, method, response, identit
       `api.url("${route}").response(...).create/update/remove(...) identity.atomicity must be one of ${MUTATION_RESPONSE_IDENTITY_ATOMICITY_KINDS.join(", ")}`,
     );
   }
-  const targets = lowerMutationResponseIdentityTargets(route, identity.targets);
+  const targets = lowerMutationResponseIdentityTargets(route, response, identity.targets);
   return Object.freeze({
     source: `api.url("${route}").response(...).${method.toLowerCase()}(...).identity`,
     route,
@@ -67,7 +67,7 @@ function lowerMutationResponseIdentityMigration(route, method, response, identit
   });
 }
 
-function lowerMutationResponseIdentityTargets(route, targets) {
+function lowerMutationResponseIdentityTargets(route, response, targets) {
   if (targets === undefined) {
     return Object.freeze([]);
   }
@@ -78,11 +78,11 @@ function lowerMutationResponseIdentityTargets(route, targets) {
   }
   return Object.freeze(
     targets.map((target, index) =>
-      lowerMutationResponseIdentityTarget(route, target, index)),
+      lowerMutationResponseIdentityTarget(route, response, target, index)),
   );
 }
 
-function lowerMutationResponseIdentityTarget(route, target, index) {
+function lowerMutationResponseIdentityTarget(route, response, target, index) {
   if (!target || typeof target !== "object" || Array.isArray(target)) {
     throw new TypeError(
       `api.url("${route}").response(...).create/update/remove(...) identity.targets[${index}] must be a target declaration object`,
@@ -112,9 +112,11 @@ function lowerMutationResponseIdentityTarget(route, target, index) {
   }
   const scope = lowerMutationResponseIdentityTargetScope(
     route,
+    response,
     target,
     index,
     familyMetadata.familyKind,
+    familyMetadata.patchRecord,
   );
   return Object.freeze({
     targetId: `migrationTarget${index + 1}`,
@@ -136,9 +138,11 @@ function lowerMutationResponseIdentityTarget(route, target, index) {
 
 function lowerMutationResponseIdentityTargetScope(
   route,
+  response,
   target,
   index,
   familyKind,
+  patchRecord,
 ) {
   const scopeDeclarations = [
     target.summary !== undefined ? "summary" : null,
@@ -194,11 +198,6 @@ function lowerMutationResponseIdentityTargetScope(
       `api.url("${route}").response(...).create/update/remove(...) identity.targets[${index}] detailChild targets require a detail family`,
     );
   }
-  if (target.canonicalParams !== undefined) {
-    throw new TypeError(
-      `api.url("${route}").response(...).create/update/remove(...) identity.targets[${index}] detailChild targets do not admit canonicalParams(...) until detail-child identity rewrite support lands`,
-    );
-  }
   if (
     !target.detailChild
     || typeof target.detailChild !== "object"
@@ -211,9 +210,28 @@ function lowerMutationResponseIdentityTargetScope(
       `api.url("${route}").response(...).create/update/remove(...) identity.targets[${index}] detailChild must be { kind: "detailChild", region: string }`,
     );
   }
+  if (target.canonicalParams !== undefined) {
+    throw new TypeError(
+      `api.url("${route}").response(...).create/update/remove(...) identity.targets[${index}] detailChild targets do not admit canonicalParams(...) because detail-child migration rewrites a resident region, not the parent line params`,
+    );
+  }
+  if (response.kind !== "detail") {
+    throw new TypeError(
+      `api.url("${route}").response(...).create/update/remove(...) identity.targets[${index}] detailChild exact migration requires a detail response lens`,
+    );
+  }
+  const regionDefinition = patchRecord.reconcile?.definitions?.[target.detailChild.region] ?? null;
+  if (regionDefinition === null || regionDefinition.regionProof === undefined) {
+    throw new TypeError(
+      `api.url("${route}").response(...).create/update/remove(...) identity.targets[${index}] detailChild region "${target.detailChild.region}" must be declared as a detail region on the target family`,
+    );
+  }
+  const responseRegionDefinition = response.regions?.definitions?.[target.detailChild.region] ?? null;
   return Object.freeze({
     kind: "detailChild",
     region: target.detailChild.region,
+    responseRegionDefinition,
+    targetRegionDefinition: regionDefinition,
   });
 }
 

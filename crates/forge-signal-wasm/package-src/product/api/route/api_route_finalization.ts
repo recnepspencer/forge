@@ -173,6 +173,7 @@ function lowerResponseMutationRouteDeclaration(
   );
   const {
     reconciles,
+    atomicity,
     diagnostics,
     identity,
     ...loweredWithoutMutationResponse
@@ -195,6 +196,7 @@ function lowerResponseMutationRouteDeclaration(
     bodyRequired,
     response: directItemsState.response,
     reconciles,
+    atomicity,
     diagnostics,
     identity,
   });

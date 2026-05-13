@@ -27,6 +27,8 @@ function resourceDetailFields(definitions) {
     normalized[field] = Object.freeze({
       read: definition.read,
       write: definition.write,
+      extract:
+        typeof definition.extract === "function" ? definition.extract : undefined,
       fieldProof: createResourceDetailFieldProof(field),
     });
   }
@@ -62,6 +64,8 @@ function requireResourceDetailFields(value, kind) {
     normalized[field] = Object.freeze({
       read: definition.read,
       write: definition.write,
+      extract:
+        typeof definition.extract === "function" ? definition.extract : undefined,
       fieldProof: requireResourceDetailFieldProof(definition.fieldProof, field),
     });
   }

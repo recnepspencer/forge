@@ -1,3 +1,7 @@
+import { resourceDelivery } from "../../delivery/resource_delivery.js";
+import { executeLineDelivery } from "../../lines/actions/line_delivery_execution.js";
+import { createMutationResponseTargetEffectProof } from "../resource_mutation_response_lifecycle_proof.js";
+import { resourcePatch } from "../../reconciliation/resource_patch.js";
 import {
   createIdentityMigrationFallbackDigest,
   createIdentityMigrationTargetDigest,
@@ -17,16 +21,22 @@ function executePreparedMutationResponseIdentityMigration(identityMigration) {
   const executedTargets = Object.freeze(
     identityMigration.targets.map((target, index) => {
       const preparedExecution = preparedExecutions[index];
+      if (preparedExecution.kind === "exactResidentLine") {
+        const result = preparedExecution.targetMaterialization.migrateIdentity(
+          preparedExecution.nextCanonicalParamIdentity,
+        );
+        if (result.kind !== "migrated") {
+          return createExecutedFallbackIdentityMigrationTarget(target, result);
+        }
+        return createExecutedExactIdentityMigrationTarget(target, result);
+      }
+      if (preparedExecution.kind === "exactDetailChildRegion") {
+        return executePreparedDetailChildRegionMigration(target, preparedExecution);
+      }
       if (preparedExecution.kind !== "exactResidentLine") {
         return target;
       }
-      const result = preparedExecution.targetMaterialization.migrateIdentity(
-        preparedExecution.nextCanonicalParamIdentity,
-      );
-      if (result.kind !== "migrated") {
-        return createExecutedFallbackIdentityMigrationTarget(target, result);
-      }
-      return createExecutedExactIdentityMigrationTarget(target, result);
+      return target;
     }),
   );
   return Object.freeze({
@@ -43,7 +53,8 @@ function executePreparedMutationResponseIdentityMigration(identityMigration) {
     counters: Object.freeze({
       ...identityMigration.counters,
       exactTargetCount: readExactTargetCount(executedTargets),
-      requestDescriptorRewriteBreadth: readExactTargetCount(executedTargets),
+      requestDescriptorRewriteBreadth:
+        readRequestDescriptorRewriteBreadth(executedTargets),
       lifecycleProofBreadth:
         identityMigration.migrationNeeded === true ? executedTargets.length : 0,
     }),
@@ -93,6 +104,85 @@ function createExecutedExactIdentityMigrationTarget(target, result) {
   });
 }
 
+function executePreparedDetailChildRegionMigration(target, preparedExecution) {
+  const diagnostics = preparedExecution.targetMaterialization.binding.diagnosticsSignal();
+  const delivery = resourceDelivery.patch({
+    packetId: preparedExecution.packetId,
+    basisId: null,
+    nextBasisId: preparedExecution.targetMaterialization.requestState.currentBasisId(),
+    patch: resourcePatch.region({
+      region: preparedExecution.region,
+      value: preparedExecution.nextRegionValue,
+    }),
+  });
+  const result = executeLineDelivery(preparedExecution.targetMaterialization, delivery);
+  if (
+    result.kind !== "applied"
+    && !(
+      result.kind === "duplicateIgnored"
+      && diagnostics.lastDeliveryPacketId === delivery.packetId
+    )
+  ) {
+    return createExecutedFallbackIdentityMigrationTarget(
+      target,
+      Object.freeze({
+        detail: [
+          readIdentityMigrationExecutionLabel(target),
+          "could not complete exact detail-child region migration",
+          `because delivery ${delivery.packetId} ended in ${result.kind}`,
+        ].join(" "),
+      }),
+    );
+  }
+  const nextDiagnostics = preparedExecution.targetMaterialization.binding.diagnosticsSignal();
+  const effect = nextDiagnostics.lastEffect ?? null;
+  const detail = [
+    readIdentityMigrationExecutionLabel(target),
+    `rewrote region "${preparedExecution.region}" from canonical response truth`,
+  ].join(" ");
+  return Object.freeze({
+    ...target,
+    outcome: "exactDetailChildRegion",
+    detail,
+    execution: Object.freeze({
+      ...target.execution,
+      effectId: effect?.effectId ?? null,
+      effectProof:
+        effect === null
+          ? null
+          : createMutationResponseTargetEffectProof(effect, {
+              targetId: target.targetId,
+              kind: "exactDetail",
+              scope: "region",
+              familyKind: target.family.kind,
+              familyId: target.family.familyId,
+              canonicalKey: target.line.canonicalKey,
+              runtimeLineId: target.line.runtimeLineId,
+              residency: target.line.residency,
+              packetId: preparedExecution.packetId,
+              submittedTarget: target.submittedTarget,
+              staleness: null,
+              itemId: null,
+              placement: null,
+              field: null,
+              region: preparedExecution.region,
+              path: null,
+              summary: null,
+              summaryScope: null,
+            }),
+      outcomeKind: "applied",
+      targetVisibleValueVersion: nextDiagnostics.visibleValueVersion,
+      detail,
+    }),
+    targetDigest: createIdentityMigrationTargetIdentityDigest(
+      target,
+      target.line,
+      "exactDetailChildRegion",
+      null,
+    ),
+  });
+}
+
 function createExecutedFallbackIdentityMigrationTarget(target, result) {
   const detail =
     result.detail
@@ -116,7 +206,9 @@ function createExecutedFallbackIdentityMigrationTarget(target, result) {
 }
 
 const readExactTargetCount = (targets) =>
-  targets.filter((target) => target.execution.kind === "exactResidentLine").length;
+  targets.filter((target) =>
+    target.execution.kind === "exactResidentLine"
+    || target.execution.kind === "exactDetailChildRegion").length;
 
 function readIdentityMigrationFallbackKinds(targets) {
   return Object.freeze(
@@ -124,6 +216,10 @@ function readIdentityMigrationFallbackKinds(targets) {
       .filter((target) => target.outcome === "fallback")
       .map((target) => target.fallback),
   );
+}
+
+function readRequestDescriptorRewriteBreadth(targets) {
+  return targets.filter((target) => target.execution.kind === "exactResidentLine").length;
 }
 
 function createIdentityMigrationExecutionDigest(targets) {
@@ -137,6 +233,14 @@ function createIdentityMigrationExecutionDigest(targets) {
         target.execution.kind,
         target.execution.previousCanonicalKey,
         target.execution.nextCanonicalKey,
+        target.execution.outcomeKind ?? "planned",
+      ].join(":");
+    }
+    if (target.execution.kind === "exactDetailChildRegion") {
+      return [
+        target.targetId,
+        target.execution.kind,
+        target.execution.region,
         target.execution.outcomeKind ?? "planned",
       ].join(":");
     }

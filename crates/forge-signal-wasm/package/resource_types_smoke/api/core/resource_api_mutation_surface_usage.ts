@@ -65,6 +65,16 @@ const reportStatus = api.url("/reports/:reportId")
 const exportUsers = api.url("/users/export").create({
   load: ({ body }: { body: { jobId: string } }) => ({ jobId: body.jobId }),
 });
+const responseOwnedPartialUpdate = api.url("/user-status/:userId")
+  .response(signals.resource.response.detail<{ status: string }>()({ status: "status" }))
+  .update({
+    atomicity: "partialAllowed",
+    reconciles: [],
+    load: ({ userId }: { userId: string; body: {} }) => ({
+      id: userId,
+      status: "active",
+    }),
+  });
 
 const createUserLine = createUser.line({
   body: {
@@ -104,6 +114,7 @@ void prepareReceiptUploadLine.upload();
 void prepareReceiptUploadLine.processing();
 void reportStatusLine.processing();
 void exportUsersLine.value();
+void responseOwnedPartialUpdate;
 void createUserRequestMethod;
 void createUserRequestBody;
 void prepareReceiptUploadTransportKind;

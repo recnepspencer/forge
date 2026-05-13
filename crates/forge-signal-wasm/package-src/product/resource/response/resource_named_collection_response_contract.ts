@@ -48,6 +48,12 @@ function requireNamedCollectionResponseOptions(options, source) {
 function createNamedCollectionAdapter(options, source) {
   return {
     ...options,
+    topologyHelpers: Object.freeze({
+      kind: "namedCollection",
+      collections: options.collections,
+      collectionId: options.collectionId,
+      replaceCollections: options.replaceCollections,
+    }),
     items(value) {
       return readNamedCollectionItems(
         options.collections(value),

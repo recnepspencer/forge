@@ -68,6 +68,8 @@ export interface ResourceLineHistoryEntry {
     | "region"
     | "jsonPath"
     | "item"
+    | "delete"
+    | "insert"
     | "itemAspect"
     | "summary"
     | null;

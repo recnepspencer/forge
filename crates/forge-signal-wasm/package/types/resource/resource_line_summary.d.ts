@@ -60,6 +60,8 @@ export interface ResourceLineDiagnosticsLatestChangeSummary {
     | "region"
     | "jsonPath"
     | "item"
+    | "delete"
+    | "insert"
     | "itemAspect"
     | "summary"
     | null;

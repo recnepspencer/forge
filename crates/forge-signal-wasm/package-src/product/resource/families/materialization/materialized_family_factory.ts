@@ -10,9 +10,9 @@ import { resolveResourcePolicyProfile } from "../../policies/policy_profile_reso
 import {
   createRequestTargetRecord,
 } from "./resolved_request_descriptor.js";
-import { lookupOrCreateLine } from "../../lines/line_lookup.js";
 import { attachResourceFamilyMetadata } from "../resource_family_metadata.js";
 import { createMaterializedLine } from "./materialized_line_entry.js";
+import { createSeededBinding } from "./materialized_family_binding.js";
 
 function createMaterializedFamily(
   kind,
@@ -50,29 +50,35 @@ function createMaterializedFamily(
   const linesByCanonicalKey = new Map();
   let lineCounter = 0;
 
+  function lookupOrCreateRegistryEntry(canonicalParamIdentity, options = null) {
+    const existing = linesByCanonicalKey.get(canonicalParamIdentity.canonicalKey);
+    if (existing) {
+      return existing;
+    }
+    const created = createMaterializedLine(
+      canonicalParamIdentity,
+      linesByCanonicalKey,
+      familyIdentity,
+      familyRecord,
+      familyPatchRecord,
+      familyScope,
+      resourceLineEpoch,
+      () => {
+        lineCounter += 1;
+        return lineCounter;
+      },
+      options?.initialBindingFactory ?? null,
+    );
+    linesByCanonicalKey.set(canonicalParamIdentity.canonicalKey, created);
+    return created;
+  }
+
   function createLine(rawParams) {
     const canonicalParamIdentity = requireCanonicalParamIdentity(
       familyRecord.declaration.normalizeParams(rawParams),
       kind,
     );
-    return lookupOrCreateLine(
-      linesByCanonicalKey,
-      canonicalParamIdentity.canonicalKey,
-      () =>
-        createMaterializedLine(
-          canonicalParamIdentity,
-          linesByCanonicalKey,
-          familyIdentity,
-          familyRecord,
-          familyPatchRecord,
-          familyScope,
-          resourceLineEpoch,
-          () => {
-            lineCounter += 1;
-            return lineCounter;
-          },
-        ),
-    );
+    return lookupOrCreateRegistryEntry(canonicalParamIdentity).handle;
   }
 
   const family = {
@@ -114,6 +120,42 @@ function createMaterializedFamily(
       },
       lookupResidentTargetMaterialization(canonicalKey) {
         return linesByCanonicalKey.get(canonicalKey)?.materialization ?? null;
+      },
+      materializeTargetMaterialization(rawParams, seedValue) {
+        const canonicalParamIdentity = requireCanonicalParamIdentity(
+          familyRecord.declaration.normalizeParams(rawParams),
+          kind,
+        );
+        return lookupOrCreateRegistryEntry(
+          canonicalParamIdentity,
+          seedValue === undefined
+            ? null
+            : {
+                initialBindingFactory(
+                  params,
+                  lineScope,
+                  familyKind,
+                  _load,
+                  policy,
+                  requestDescriptor,
+                  _lineIdentity,
+                  _mutationResponseDeclaration,
+                  lifecycle,
+                  lifecycleHistory,
+                ) {
+                  return createSeededBinding(
+                    params,
+                    lineScope,
+                    familyKind,
+                    seedValue,
+                    policy,
+                    requestDescriptor,
+                    lifecycle,
+                    lifecycleHistory,
+                  );
+                },
+              },
+        ).materialization;
       },
     }),
   );

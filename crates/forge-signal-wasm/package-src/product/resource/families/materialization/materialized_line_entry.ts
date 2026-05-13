@@ -24,6 +24,7 @@ function createMaterializedLine(
   familyScope,
   resourceLineEpoch,
   nextLineCounter,
+  initialBindingFactory = null,
 ) {
   let currentCanonicalParamIdentity = canonicalParamIdentity;
   let currentCanonicalKey = canonicalParamIdentity.canonicalKey;
@@ -136,6 +137,7 @@ function createMaterializedLine(
     );
     const previousCanonicalKey = currentCanonicalKey;
     const previousRuntimeLineId = currentMaterialization.lineIdentity.runtimeLineId;
+    const previousVisibleValue = currentMaterialization.binding.valueSignal();
     currentCanonicalParamIdentity = nextCanonicalParamIdentity;
     currentCanonicalKey = nextCanonicalKey;
     linesByCanonicalKey.delete(previousCanonicalKey);
@@ -144,6 +146,9 @@ function createMaterializedLine(
       requestDescriptorOverride: nextRequestDescriptor,
       requestStateOverride: null,
     });
+    if (previousVisibleValue !== null) {
+      migratedMaterialization.binding.valueSignal.set(previousVisibleValue);
+    }
     sharedRequestState = migratedMaterialization.requestState;
     const identityMigration = Object.freeze({
       previousCanonicalKey,
@@ -179,7 +184,23 @@ function createMaterializedLine(
     });
   }
 
-  const materialization = rematerializeLine();
+  const materialization = lineBacking.forceRematerialize(() =>
+    createConcreteMaterialization(
+      currentCanonicalParamIdentity,
+      familyIdentity,
+      familyRecord,
+      familyPatchRecord,
+      familyScope,
+      resourceLineEpoch,
+      nextLineCounter,
+      releaseCurrentLine,
+      rematerializeLine,
+      migrateLineIdentity,
+      sharedLifecycleHistory,
+      sharedRequestState,
+      null,
+      initialBindingFactory,
+    ));
   sharedRequestState = materialization.requestState;
   recordLineHistoryEntry(
     materialization.lifecycleHistory,
@@ -221,6 +242,7 @@ function createConcreteMaterialization(
   lifecycleHistory,
   requestStateOverride,
   requestDescriptorOverride = null,
+  bindingFactoryOverride = null,
 ) {
   const lineCounter = nextLineCounter();
   const lineScope = familyScope.scope(`line${lineCounter}`);
@@ -241,11 +263,12 @@ function createConcreteMaterialization(
   const lifecycle = createLineLifecycleState();
   const requestState =
     requestStateOverride ?? createLineRequestState(requestDescriptor);
+  const bindingFactory = bindingFactoryOverride ?? createBinding;
   return createLineMaterializationRecord(
     lineIdentity,
     requestDescriptor,
     requestState,
-    createBinding(
+    bindingFactory(
       canonicalParamIdentity.params,
       lineScope,
       familyRecord.identity.kind,

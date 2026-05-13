@@ -37,6 +37,12 @@ function requireSparsePageResponseOptions(options) {
 function createSparsePageAdapter(options) {
   return {
     ...options,
+    topologyHelpers: Object.freeze({
+      kind: "sparsePage",
+      pageId: options.pageId,
+      pages: options.pages,
+      replacePages: options.replacePages,
+    }),
     items(value) {
       return readSparsePageItems(
         options.pages(value),

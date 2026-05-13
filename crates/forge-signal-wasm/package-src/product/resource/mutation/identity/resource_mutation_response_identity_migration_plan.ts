@@ -10,7 +10,6 @@ import {
 } from "./resource_mutation_response_identity_migration_digests.js";
 import {
   createIdentityMigrationExecutionDigest,
-  readExactTargetCount,
   readIdentityMigrationFallbackKinds,
   RESOURCE_MUTATION_RESPONSE_PREPARED_IDENTITY_MIGRATIONS,
 } from "./resource_mutation_response_identity_migration_execution.js";
@@ -60,6 +59,7 @@ function createMutationResponseIdentityMigrationPlan(
   const plannedTargets = declaration.targets.map((target, index) =>
     createIdentityMigrationTargetPlan(
       target,
+      declaration.declarationDigest,
       requestParams,
       responseValue,
       submittedIdentityMigration.submittedTargets[index] ?? null,
@@ -107,7 +107,8 @@ function createMutationResponseIdentityMigrationPlan(
       staleTargetDenialBreadth: publicTargets.filter((target) =>
         target.staleness !== null).length,
       exactTargetCount: readExactTargetCount(publicTargets),
-      requestDescriptorRewriteBreadth: readExactTargetCount(publicTargets),
+      requestDescriptorRewriteBreadth:
+        readRequestDescriptorRewriteBreadth(publicTargets),
       lifecycleProofBreadth: migrationNeeded ? publicTargets.length : 0,
       partialPolicyBreadth: 1,
     }),
@@ -138,6 +139,7 @@ function createMutationResponseIdentityMigrationPlan(
 
 function createIdentityMigrationTargetPlan(
   target,
+  declarationDigest,
   requestParams,
   responseValue,
   submittedTarget,
@@ -188,12 +190,13 @@ function createIdentityMigrationTargetPlan(
     );
   }
   if (target.scope.kind === "detailChild") {
-    return createIdentityMigrationFallbackTarget(
+    return createIdentityMigrationDetailChildTarget(
       target,
+      declarationDigest,
       lineIdentity,
       submittedTarget,
-      null,
-      createIdentityMigrationFallbackDetail(target, lineIdentity),
+      targetMaterialization,
+      responseValue,
     );
   }
   if (target.canonicalParams === null) {
@@ -266,6 +269,57 @@ function createIdentityMigrationTargetPlan(
   );
 }
 
+function createIdentityMigrationDetailChildTarget(
+  target,
+  declarationDigest,
+  lineIdentity,
+  submittedTarget,
+  targetMaterialization,
+  responseValue,
+) {
+  if (target.scope.responseRegionDefinition === null) {
+    return createIdentityMigrationFallbackTarget(
+      target,
+      lineIdentity,
+      submittedTarget,
+      null,
+      [
+        readIdentityMigrationTargetLabel(target, lineIdentity),
+        `stays in ${target.fallback} posture until the route declares resource.response.detailRegions<T>() region "${target.scope.region}" for exact detail-child identity rewrite`,
+      ].join(" "),
+    );
+  }
+  const nextRegionValue = target.scope.responseRegionDefinition.read(responseValue);
+  const detail = [
+    readIdentityMigrationTargetLabel(target, lineIdentity),
+    `will rewrite child identity through region "${target.scope.region}" using canonical response truth`,
+  ].join(" ");
+  return createIdentityMigrationTargetRecord(
+    target,
+    lineIdentity,
+    submittedTarget,
+    null,
+    "exactDetailChildRegion",
+    detail,
+    Object.freeze({
+      kind: "exactDetailChildRegion",
+      region: target.scope.region,
+      packetId: `${declarationDigest}:${target.targetId}:detailChild`,
+      effectId: null,
+      outcomeKind: null,
+      targetVisibleValueVersion: null,
+      detail,
+    }),
+    Object.freeze({
+      kind: "exactDetailChildRegion",
+      targetMaterialization,
+      region: target.scope.region,
+      nextRegionValue,
+      packetId: `${declarationDigest}:${target.targetId}:detailChild`,
+    }),
+  );
+}
+
 function createIdentityMigrationFallbackTarget(
   target,
   lineIdentity,
@@ -303,7 +357,7 @@ function createIdentityMigrationTargetRecord(
     publicTarget: Object.freeze({
       targetId: target.targetId,
       family: target.family,
-      scope: target.scope,
+      scope: readPublicIdentityMigrationScope(target.scope),
       line: Object.freeze({
         familyKind: target.family.kind,
         familyId: target.family.familyId,
@@ -328,12 +382,22 @@ function createIdentityMigrationTargetRecord(
   });
 }
 
+function readPublicIdentityMigrationScope(scope) {
+  if (scope.kind !== "detailChild") {
+    return scope;
+  }
+  return Object.freeze({
+    kind: "detailChild",
+    region: scope.region,
+  });
+}
+
 function createIdentityMigrationFallbackDetail(target, lineIdentity) {
   const targetLabel = readIdentityMigrationTargetLabel(target, lineIdentity);
   if (target.scope.kind === "detailChild") {
     return [
       targetLabel,
-      `stays in ${target.fallback} posture until detail-child identity rewrite support lands`,
+      `stays in ${target.fallback} posture until the route declares exact detail-child identity rewrite support`,
     ].join(" ");
   }
   return [
@@ -369,6 +433,17 @@ function requireOptionalIdentityString(value, source) {
     return null;
   }
   return requireIdentityString(value, source);
+}
+
+function readExactTargetCount(targets) {
+  return targets.filter((target) =>
+    target.execution.kind === "exactResidentLine"
+    || target.execution.kind === "exactDetailChildRegion").length;
+}
+
+function readRequestDescriptorRewriteBreadth(targets) {
+  return targets.filter((target) =>
+    target.execution.kind === "exactResidentLine").length;
 }
 
 export {

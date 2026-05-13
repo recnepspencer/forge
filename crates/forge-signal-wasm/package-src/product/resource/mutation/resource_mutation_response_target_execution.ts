@@ -6,6 +6,7 @@ import {
 function createMutationResponseTargetExecution(
   target,
   targetParams,
+  mutationParams,
   lineIdentity,
   responseValue,
   planId,
@@ -15,11 +16,31 @@ function createMutationResponseTargetExecution(
     target.reconciliation === null
     || lineIdentity.residency !== "resident"
   ) {
-    return createFallbackMutationResponseExecutionArtifact(
+    const createdTargetMaterialization = tryCreateDeclaredTargetMaterialization(
       target,
+      targetParams,
       lineIdentity,
+      responseValue,
+    );
+    if (createdTargetMaterialization === null) {
+      return createFallbackMutationResponseExecutionArtifact(
+        target,
+        lineIdentity,
+        submittedTarget,
+        null,
+        null,
+      );
+    }
+    return createExactMutationResponseTargetExecution(
+      target,
+      targetParams,
+      mutationParams,
       submittedTarget,
-      null,
+      createdTargetMaterialization,
+      readResidentLineIdentity(createdTargetMaterialization),
+      responseValue,
+      planId,
+      true,
     );
   }
   const targetMaterialization = target.lookupResidentTargetMaterialization(targetParams);
@@ -29,12 +50,37 @@ function createMutationResponseTargetExecution(
       lineIdentity,
       submittedTarget,
       null,
+      null,
     );
   }
+  return createExactMutationResponseTargetExecution(
+    target,
+    targetParams,
+    mutationParams,
+    submittedTarget,
+    targetMaterialization,
+    lineIdentity,
+    responseValue,
+    planId,
+    false,
+  );
+}
+
+function createExactMutationResponseTargetExecution(
+  target,
+  targetParams,
+  mutationParams,
+  submittedTarget,
+  targetMaterialization,
+  lineIdentity,
+  responseValue,
+  planId,
+  ignoreSubmittedDeclaredStaleness,
+) {
   const staleness = readMutationResponseTargetStaleness(
     lineIdentity,
     targetMaterialization,
-    submittedTarget,
+    ignoreSubmittedDeclaredStaleness ? null : submittedTarget,
   );
   if (staleness !== null) {
     return createFallbackMutationResponseExecutionArtifact(
@@ -42,30 +88,39 @@ function createMutationResponseTargetExecution(
       lineIdentity,
       submittedTarget,
       staleness,
+      null,
+    );
+  }
+  const extractedPatchValue = extractMutationResponsePatchValue(
+    target.reconciliation,
+    responseValue,
+  );
+  if (extractedPatchValue.kind === "missing") {
+    return createFallbackMutationResponseExecutionArtifact(
+      target,
+      lineIdentity,
+      submittedTarget,
+      null,
+      createMissingResponseFieldPartialArtifact(extractedPatchValue.field),
     );
   }
   const packetId = `${planId}:${target.targetId}`;
   const currentBasisId = targetMaterialization.requestState.currentBasisId();
-  const delivery =
-    target.reconciliation.kind === "replace"
-      ? resourceDelivery.replace({
-          packetId,
-          basisId: null,
-          nextBasisId: currentBasisId,
-          nextValue: responseValue,
-        })
-      : resourceDelivery.patch({
-          packetId,
-          basisId: null,
-          nextBasisId: currentBasisId,
-          patch: target.reconciliation.createPatch(responseValue),
-        });
+  const delivery = createMutationResponseTargetDelivery(
+    target.reconciliation,
+    packetId,
+    currentBasisId,
+    responseValue,
+    mutationParams,
+    extractedPatchValue.kind === "present" ? extractedPatchValue.value : null,
+  );
   const artifact = createExactReconciliationExecutionArtifact(
     target,
     lineIdentity,
     target.reconciliation,
     packetId,
     responseValue,
+    mutationParams,
     submittedTarget,
   );
   return Object.freeze({
@@ -79,11 +134,28 @@ function createMutationResponseTargetExecution(
   });
 }
 
+function tryCreateDeclaredTargetMaterialization(
+  target,
+  targetParams,
+  lineIdentity,
+  responseValue,
+) {
+  if (
+    lineIdentity.residency !== "declared"
+    || target.reconciliation?.kind !== "replace"
+    || target.reconciliation.materializeDeclaredTarget !== true
+  ) {
+    return null;
+  }
+  return target.materializeTargetMaterialization(targetParams, responseValue);
+}
+
 function createFallbackMutationResponseExecutionArtifact(
   target,
   lineIdentity,
   submittedTarget,
   staleness,
+  partial,
 ) {
   return Object.freeze({
     preparedExecution: Object.freeze({
@@ -103,8 +175,12 @@ function createFallbackMutationResponseExecutionArtifact(
       residency: lineIdentity.residency,
       submittedTarget,
       staleness,
-      detail: staleness?.detail
-        ?? createMutationResponseFallbackDetail(target, lineIdentity),
+      partial,
+      detail:
+        staleness?.detail
+        ?? (partial?.kind === "missingResponseField"
+          ? createMissingResponseFieldDetail(target, partial.field)
+          : createMutationResponseFallbackDetail(target, lineIdentity)),
     }),
   });
 }
@@ -115,6 +191,7 @@ function createExactReconciliationExecutionArtifact(
   reconciliation,
   packetId,
   responseValue,
+  mutationParams,
   submittedTarget,
 ) {
   return Object.freeze({
@@ -130,7 +207,9 @@ function createExactReconciliationExecutionArtifact(
     packetId,
     submittedTarget,
     staleness: null,
-    itemId: readReconciliationItemId(reconciliation, responseValue),
+    itemId: readReconciliationItemId(reconciliation, responseValue, mutationParams),
+    placement:
+      reconciliation.kind === "insert" ? reconciliation.placement : null,
     field: "field" in reconciliation ? reconciliation.field : null,
     region: "region" in reconciliation ? reconciliation.region : null,
     path: "path" in reconciliation ? reconciliation.path : null,
@@ -141,17 +220,93 @@ function createExactReconciliationExecutionArtifact(
 }
 
 function readReconciliationScope(reconciliation) {
-  if (reconciliation.kind === "replace") {
+  if (reconciliation.kind === "replace" || reconciliation.kind === "invalidate") {
     return "line";
+  }
+  if (reconciliation.kind === "insert" || reconciliation.kind === "delete") {
+    return "item";
   }
   return reconciliation.kind;
 }
 
-function readReconciliationItemId(reconciliation, responseValue) {
-  if (reconciliation.kind !== "item") {
+function readResidentLineIdentity(targetMaterialization) {
+  return Object.freeze({
+    canonicalKey: targetMaterialization.lineIdentity.canonicalParams.canonicalKey,
+    runtimeLineId: targetMaterialization.lineIdentity.runtimeLineId,
+    residency: "resident",
+  });
+}
+
+function readReconciliationItemId(reconciliation, responseValue, mutationParams) {
+  if (
+    reconciliation.kind !== "item"
+    && reconciliation.kind !== "insert"
+    && reconciliation.kind !== "delete"
+  ) {
     return null;
   }
-  return reconciliation.readItemId(responseValue);
+  return reconciliation.readItemId(responseValue, mutationParams);
+}
+
+function createMutationResponseTargetDelivery(
+  reconciliation,
+  packetId,
+  currentBasisId,
+  responseValue,
+  mutationParams,
+  extractedPatchValue,
+) {
+  if (reconciliation.kind === "replace") {
+    return resourceDelivery.replace({
+      packetId,
+      basisId: null,
+      nextBasisId: currentBasisId,
+      nextValue: responseValue,
+    });
+  }
+  if (reconciliation.kind === "invalidate") {
+    return resourceDelivery.invalidate({
+      packetId,
+      basisId: null,
+      nextBasisId: currentBasisId,
+    });
+  }
+  return resourceDelivery.patch({
+    packetId,
+    basisId: null,
+    nextBasisId: currentBasisId,
+    patch: reconciliation.createPatch(
+      responseValue,
+      mutationParams,
+      extractedPatchValue,
+    ),
+  });
+}
+
+function extractMutationResponsePatchValue(reconciliation, responseValue) {
+  if (typeof reconciliation.extractPatchValue !== "function") {
+    return Object.freeze({
+      kind: "notNeeded",
+      value: null,
+    });
+  }
+  return reconciliation.extractPatchValue(responseValue);
+}
+
+function createMissingResponseFieldPartialArtifact(field) {
+  return Object.freeze({
+    kind: "missingResponseField",
+    field,
+    digest: `mutation-response-partial|missing-field:${field}`,
+  });
+}
+
+function createMissingResponseFieldDetail(target, field) {
+  return [
+    `${target.family.kind} ${target.family.familyId}`,
+    `target ${target.targetId}`,
+    `stays in partialReconciliation posture because mutation response field "${field}" was absent`,
+  ].join(" ");
 }
 
 function createMutationResponseFallbackDetail(target, lineIdentity) {
@@ -165,7 +320,11 @@ function createMutationResponseFallbackDetail(target, lineIdentity) {
 function isExactMutationResponseExecutionKind(kind) {
   return (
     kind === "exactDetail"
+    || kind === "exactDetailInvalidation"
     || kind === "exactCollectionItem"
+    || kind === "exactCollectionTombstone"
+    || kind === "exactCollectionInsert"
+    || kind === "exactCollectionDelete"
     || kind === "exactSummary"
   );
 }

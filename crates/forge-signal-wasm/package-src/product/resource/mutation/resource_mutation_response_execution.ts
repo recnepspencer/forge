@@ -70,17 +70,6 @@ function executePreparedMutationResponsePlan(plan) {
   if (plan === null) {
     return null;
   }
-  const preparedExactTargetCount =
-    plan.executionArtifacts.filter((artifact) =>
-      artifact.kind !== "fallback").length
-    + readPreparedIdentityExactTargetCount(plan.identityMigration);
-  const preparedReconciliationExactTargetCount =
-    plan.executionArtifacts.filter((artifact) => artifact.kind !== "fallback").length;
-  if (preparedExactTargetCount > 1 && preparedReconciliationExactTargetCount > 0) {
-    throw new TypeError(
-      "mutation response planning currently admits at most one exact target across reconciliation and identity migration before multi-target atomicity support lands",
-    );
-  }
   const preparedExecutions = plan[RESOURCE_MUTATION_RESPONSE_PREPARED_EXECUTIONS];
   const plannedArtifacts = plan.executionArtifacts;
   const executedArtifacts = [];
@@ -95,7 +84,14 @@ function executePreparedMutationResponsePlan(plan) {
       execution.targetMaterialization,
       execution.delivery,
     );
-    if (result.kind !== "applied") {
+    if (
+      result.kind !== "applied"
+      && !(
+        result.kind === "duplicateIgnored"
+        && execution.targetMaterialization.binding.diagnosticsSignal().lastDeliveryPacketId
+          === execution.delivery.packetId
+      )
+    ) {
       throw new TypeError(
         `mutation response exact reconciliation for ${execution.targetId} did not apply: ${result.kind}`,
       );
@@ -122,14 +118,6 @@ function executePreparedMutationResponsePlan(plan) {
     },
     executedArtifacts,
   );
-}
-
-function readPreparedIdentityExactTargetCount(identityMigration) {
-  if (identityMigration === null) {
-    return 0;
-  }
-  return identityMigration.targets.filter((target) =>
-    target.execution.kind === "exactResidentLine").length;
 }
 
 export {

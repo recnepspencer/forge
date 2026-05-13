@@ -99,6 +99,8 @@ test("detail response contracts own the detail finalizer lane", async () => {
       targets: [],
       targetCount: 0,
       atomicity: "zeroTargets",
+      reconciliationAtomicity: "allOrNone",
+      partialAdmission: "notNeeded",
       targetDigest: "mutation-response-targets|none",
       fallbackDigest: "mutation-response-fallbacks|none",
       executionArtifacts: [],
@@ -113,6 +115,7 @@ test("detail response contracts own the detail finalizer lane", async () => {
         diagnosticExtractionBreadth: 0,
         targetBasisSnapshotBreadth: 0,
         staleTargetDenialBreadth: 0,
+        partialPolicyBreadth: 0,
         identityResponseExtractionBreadth: 0,
         identityMigrationTargetFanoutBreadth: 0,
         identityMigrationStaleDenialBreadth: 0,
@@ -220,7 +223,7 @@ test("response-owned write planning records multi-target fallback artifacts befo
     );
     assert.equal(
       plan.fallbackDigest,
-      `mutation-response-fallbacks|mutationTarget1:refetchRequired:${residentUserLine.descriptor().canonicalParams.canonicalKey},mutationTarget2:deliveryAwaited:${auditRead.line({ userId: "u1" }).descriptor().canonicalParams.canonicalKey}`,
+      `mutation-response-fallbacks|mutationTarget1:refetchRequired:none:${residentUserLine.descriptor().canonicalParams.canonicalKey},mutationTarget2:deliveryAwaited:none:${auditRead.line({ userId: "u1" }).descriptor().canonicalParams.canonicalKey}`,
     );
     assert.equal(plan.executionArtifacts.length, 2);
     assert.equal(plan.executionArtifacts[0].kind, "fallback");
@@ -331,7 +334,7 @@ test("response-owned write planning denies malformed reconcile fallback declarat
           ],
           load: ({ userId, body }) => ({ id: userId, name: body.name }),
         }),
-      /fallback must be one of refetchRequired, deliveryAwaited, partialReconciliation, unsupportedTarget/,
+      /fallback must be one of deletionUnavailable, placementUnavailable, refetchRequired, deliveryAwaited, partialReconciliation, unsupportedTarget/,
     );
   } finally {
     await runtime.cleanup();

@@ -328,7 +328,7 @@ test("collection and summary mutation reconciliation deny malformed target decla
             ],
             load: ({ body }) => body,
           }),
-      /exact reconciliation targets are currently admitted only for update\/save responses/,
+      /collection item replacement is currently admitted only for update\/save and remove\/delete responses/,
     );
   } finally {
     await runtime.cleanup();

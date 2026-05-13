@@ -64,6 +64,7 @@ function createResourceCollectionShape(options, responseLensProof, kind) {
     readItem: typeof options.readItem === "function" ? options.readItem : null,
     replaceItem:
       typeof options.replaceItem === "function" ? options.replaceItem : null,
+    topologyHelpers: options.topologyHelpers ?? null,
     aspects,
     summaries,
     responseLensProof,
@@ -95,6 +96,7 @@ function normalizeResourceCollectionShape(kind, shape) {
     replaceItems: shape.replaceItems,
     readItem: typeof shape.readItem === "function" ? shape.readItem : null,
     replaceItem: typeof shape.replaceItem === "function" ? shape.replaceItem : null,
+    topologyHelpers: shape.topologyHelpers ?? null,
     aspects,
     summaries,
     responseLensProof,

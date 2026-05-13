@@ -231,10 +231,33 @@ test("identity migration certifies clone and import mapping through declared res
   }
 });
 
-test("identity migration emits typed refetch and delivery-awaited posture for unsupported detail-child targets", async () => {
+test("identity migration emits typed refetch and delivery-awaited posture when the route omits the exact detail-child region lens", async () => {
   const runtime = await createRealRequestRuntime();
   try {
+    const taskRegions = runtime.signals.resource.detailRegions({
+      children: {
+        read: (value) => value.children,
+        write: (value, children) => ({ ...value, children }),
+        identityBoundary: "inside",
+        mergeGranularity: "child-list",
+        cost: {
+          traversalBreadth: 1,
+          reconstructionBreadth: 1,
+        },
+      },
+      "children.assignees": {
+        read: (value) => value.children,
+        write: (value, children) => ({ ...value, children }),
+        identityBoundary: "inside",
+        mergeGranularity: "child-assignees",
+        cost: {
+          traversalBreadth: 1,
+          reconstructionBreadth: 1,
+        },
+      },
+    });
     const taskDetail = runtime.signals.api({}).url("/tasks/:taskId").detail({
+      reconcile: taskRegions,
       load: ({ taskId }) => ({
         id: taskId,
         title: "Draft",
@@ -295,13 +318,86 @@ test("identity migration emits typed refetch and delivery-awaited posture for un
     );
     assert.match(
       plan.identityMigration.targets[0].detail,
-      /detail-child identity rewrite support lands/,
+      /resource\.response\.detailRegions<T>\(\) region "children"/,
     );
     assert.match(
       plan.identityMigration.targets[1].detail,
-      /detail-child identity rewrite support lands/,
+      /resource\.response\.detailRegions<T>\(\) region "children\.assignees"/,
     );
     assert.equal(plan.confirmation.kind, "partialCanonicalTruth");
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("identity migration certifies exact detail-child region targets when the route declares a matching region lens", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const taskRegions = runtime.signals.resource.detailRegions({
+      children: {
+        read: (value) => value.children,
+        write: (value, children) => ({ ...value, children }),
+        identityBoundary: "inside",
+        mergeGranularity: "child-list",
+        cost: {
+          traversalBreadth: 1,
+          reconstructionBreadth: 1,
+        },
+      },
+    });
+    const taskDetail = runtime.signals.api({}).url("/tasks/:taskId").detail({
+        reconcile: taskRegions,
+        load: ({ taskId }) => ({
+          id: taskId,
+          title: "Task",
+          children: [{ id: "tmp-child-2", title: "Child" }],
+        }),
+      });
+    const taskLine = taskDetail.line({ taskId: "task-2" });
+    const createTask = runtime.signals.api({}).url("/tasks/:taskId/children")
+      .response(runtime.signals.resource.response.detailRegions()(taskRegions))
+      .create({
+        identity: {
+          submitted: ({ body }) => body.id,
+          response: (value) => value.children[0]?.id ?? value.id,
+          canonical: (value, responseIdentity) => responseIdentity ?? value.id,
+          targets: [{
+            family: taskDetail,
+            params: ({ taskId }) => ({ taskId }),
+            fallback: "identityMigrationUnavailable",
+            detailChild: {
+              kind: "detailChild",
+              region: "children",
+            },
+          }],
+        },
+        load: ({ taskId, body }) => ({
+          id: taskId,
+          title: "Task",
+          children: [{ id: `child:${body.id}`, title: body.title }],
+        }),
+      });
+
+    const plan = createTask.line({
+      taskId: "task-2",
+      body: { id: "tmp-child-2", title: "Child" },
+    }).mutationResponse();
+
+    assert.deepEqual(taskLine.value().children, [{
+      id: "child:tmp-child-2",
+      title: "Child",
+    }]);
+    assert.equal(plan.identityMigration.exactTargetCount, 1);
+    assert.deepEqual(plan.identityMigration.fallbackKinds, []);
+    assert.equal(plan.identityMigration.targets[0].scope.kind, "detailChild");
+    assert.equal(plan.identityMigration.targets[0].scope.region, "children");
+    assert.equal(plan.identityMigration.targets[0].outcome, "exactDetailChildRegion");
+    assert.equal(plan.identityMigration.targets[0].execution.kind, "exactDetailChildRegion");
+    assert.equal(plan.identityMigration.targets[0].execution.region, "children");
+    assert.equal(plan.identityMigration.targets[0].execution.outcomeKind, "applied");
+    assert.ok(plan.identityMigration.targets[0].execution.effectProof);
+    assert.equal(plan.identityMigration.counters.requestDescriptorRewriteBreadth, 0);
+    assert.equal(taskLine.diagnostics().lastPatchedRegion, "children");
   } finally {
     await runtime.cleanup();
   }

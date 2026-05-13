@@ -46,6 +46,12 @@ function createApiFamilyPatchHelpers(familyKind, declaration) {
   helpers.item = function item(options) {
     return resourcePatch.item(options);
   };
+  helpers.delete = function deletePatch(options) {
+    return resourcePatch.delete(options);
+  };
+  helpers.insert = function insert(options) {
+    return resourcePatch.insert(options);
+  };
   if (capabilities.hasAspects) {
     helpers.itemAspect = function itemAspect(options) {
       return resourcePatch.itemAspect(options);

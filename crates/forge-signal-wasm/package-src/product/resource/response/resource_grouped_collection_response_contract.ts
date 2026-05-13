@@ -37,6 +37,12 @@ function requireGroupedResponseOptions(options) {
 function createGroupedCollectionAdapter(options) {
   return {
     ...options,
+    topologyHelpers: Object.freeze({
+      kind: "groupedCollection",
+      groups: options.groups,
+      groupId: options.groupId,
+      replaceGroups: options.replaceGroups,
+    }),
     items(value) {
       return readGroupedItems(
         options.groups(value),

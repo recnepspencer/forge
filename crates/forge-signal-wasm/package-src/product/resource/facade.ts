@@ -27,6 +27,9 @@ import { resourceUploadTransport } from "./uploads/resource_upload_transport.js"
 import { resourceAuth } from "./requests/resource_auth.js";
 import { resourceContinuation } from "./requests/resource_continuation.js";
 import { resourceRequestContext } from "./requests/request_context.js";
+import {
+  resetResourceEffectEnvelopeAuthorityForTesting,
+} from "./effects/resource_effect_envelope.js";
 import { createResourceLineEpoch } from "./lines/state/resource_line_epoch.js";
 
 function createResourceNamespace(signalNamespace, rawSignals) {
@@ -95,4 +98,5 @@ export {
   resourceUploadTransport,
   resourceRequestContext,
   resourceResponse,
+  resetResourceEffectEnvelopeAuthorityForTesting,
 };

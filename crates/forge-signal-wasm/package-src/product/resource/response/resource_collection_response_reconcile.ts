@@ -23,6 +23,7 @@ function createResourceCollectionResponseReconcile(response) {
       },
       readItem: response.readItem,
       replaceItem: response.replaceItem,
+      topologyHelpers: readResponseCollectionTopologyHelpers(response),
       aspects: response.aspects ?? undefined,
       summaries: response.summaries ?? undefined,
     },
@@ -36,6 +37,22 @@ function requireResponseItems(response, items, label) {
     throw new TypeError(`${response.source} requires ${label} to produce an array`);
   }
   return items;
+}
+
+function readResponseCollectionTopologyHelpers(response) {
+  if (response.lensProof.topology === "groupedCollection") {
+    return response.topologyHelpers;
+  }
+  if (response.lensProof.topology === "namedCollection") {
+    return response.topologyHelpers;
+  }
+  if (response.lensProof.topology === "recursiveTree") {
+    return response.topologyHelpers;
+  }
+  if (response.lensProof.topology === "sparsePage") {
+    return response.topologyHelpers;
+  }
+  return null;
 }
 
 export { createResourceCollectionResponseReconcile };

@@ -3,7 +3,7 @@ import { createResourceEffectBranchLifecycle } from "./resource_effect_branch_li
 import { createResourceEffectOptimisticLifecycle } from "./resource_effect_optimistic_lifecycle.js";
 import { createResourceEffectPatchCounters } from "./resource_effect_patch_counters.js";
 import { createResourceEffectPatchDigest } from "./resource_effect_patch_digest.js";
-import { lowerResponseLensProofToEffectLocus } from "../response/resource_response_effect_locus_lowering.js";
+import { lowerResponseLensProofToEffectLocusWithOptions } from "../response/resource_response_effect_locus_lowering.js";
 
 const RESOURCE_EFFECT_ENVELOPE_VERSION = "resource-effect-envelope-v1";
 const RESOURCE_EFFECT_AUTHORITY_VERSION = "resource-effect-authority-v1";
@@ -12,6 +12,11 @@ const RESOURCE_EFFECT_AUTHORITY_REGISTRY =
   resourceEffectAuthorityGlobal.__forgeResourceEffectAuthorityRegistry ?? new Map();
 resourceEffectAuthorityGlobal.__forgeResourceEffectAuthorityRegistry = RESOURCE_EFFECT_AUTHORITY_REGISTRY;
 let nextResourceEffectAuthoritySequence = 1;
+
+function resetResourceEffectEnvelopeAuthorityForTesting() {
+  RESOURCE_EFFECT_AUTHORITY_REGISTRY.clear();
+  nextResourceEffectAuthoritySequence = 1;
+}
 
 function createLocalPatchEffectEnvelope(effectPlan, patch, result) {
   return createResourceEffectEnvelope({
@@ -68,9 +73,10 @@ function createResourceEffectEnvelope(options) {
   const patch = options.patch;
   const rawLocus = createEffectLocus(patch, options.delivery, effectPlan);
   const patchDigest = createResourceEffectPatchDigest(patch);
-  const locusProof = lowerResponseLensProofToEffectLocus(
+  const locusProof = lowerResponseLensProofToEffectLocusWithOptions(
     effectPlan.responseLensProof,
     rawLocus,
+    patch.kind,
   );
   const locus = alignLocusWithResponseLensProof(rawLocus, locusProof);
   const envelope = {
@@ -391,4 +397,5 @@ export {
   createDeliveryEffectEnvelope,
   createLocalPatchEffectEnvelope,
   requireRuntimeIssuedResourceEffectEnvelope,
+  resetResourceEffectEnvelopeAuthorityForTesting,
 };

@@ -85,6 +85,28 @@ function createApiFamilyDeliveryHelpers(familyKind, declaration) {
       ),
     );
   };
+  helpers.delete = function deletePatch(options) {
+    return resourceDelivery.patch(
+      withPatchDelivery(
+        options,
+        resourcePatch.delete({
+          itemId: options.itemId,
+        }),
+      ),
+    );
+  };
+  helpers.insert = function insert(options) {
+    return resourceDelivery.patch(
+      withPatchDelivery(
+        options,
+        resourcePatch.insert({
+          itemId: options.itemId,
+          placement: options.placement,
+          nextItem: options.nextItem,
+        }),
+      ),
+    );
+  };
   if (capabilities.hasAspects) {
     helpers.itemAspect = function itemAspect(options) {
       return resourceDelivery.patch(

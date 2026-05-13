@@ -1,6 +1,10 @@
 const MUTATION_RESPONSE_EXACT_EXECUTION_KINDS = Object.freeze([
   "exactDetail",
+  "exactDetailInvalidation",
   "exactCollectionItem",
+  "exactCollectionTombstone",
+  "exactCollectionInsert",
+  "exactCollectionDelete",
   "exactSummary",
 ]);
 
@@ -68,6 +72,7 @@ function hasPartialFallback(fallbackKinds) {
   return fallbackKinds.some((fallback) =>
     fallback === "partialReconciliation"
     || fallback === "unsupportedTarget"
+    || fallback === "placementUnavailable"
     || fallback === "identityMigrationUnavailable");
 }
 

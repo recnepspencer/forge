@@ -29,6 +29,9 @@ function attachResourceFamilyMetadata(family, options) {
         canonicalParams.canonicalKey,
       );
     },
+    materializeTargetMaterialization(rawParams, seedValue) {
+      return options.materializeTargetMaterialization(rawParams, seedValue);
+    },
   });
   Object.defineProperty(family, RESOURCE_FAMILY_METADATA, {
     value: metadata,

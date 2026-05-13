@@ -20,6 +20,7 @@ function createResponseMutationRouteDeclaration(options) {
       options.method,
       options.response,
       options.reconciles,
+      options.atomicity,
       options.diagnostics,
       options.identity,
     ),

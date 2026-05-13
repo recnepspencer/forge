@@ -48,4 +48,27 @@ function createBinding(
   );
 }
 
-export { createBinding };
+function createSeededBinding(
+  params,
+  lineScope,
+  kind,
+  seededValue,
+  policy,
+  requestDescriptor,
+  lifecycle,
+  lifecycleHistory,
+) {
+  return createInitialLineBinding(
+    () => seededValue,
+    params,
+    lineScope,
+    kind,
+    policy,
+    requestDescriptor,
+    lifecycle,
+    lifecycleHistory,
+    null,
+  );
+}
+
+export { createBinding, createSeededBinding };

@@ -150,6 +150,44 @@ function createIdentityMigrationLifecycleProofEntry(target, authorityDigest) {
       ].join(":"),
     });
   }
+  if (target.execution.kind === "exactDetailChildRegion") {
+    if (target.execution.effectProof === null || target.execution.effectProof === undefined) {
+      return Object.freeze({
+        entryKind: "identityMigration",
+        targetId: target.targetId,
+        effectId: null,
+        authorityDigest,
+        rollback: Object.freeze({
+          kind: "awaitingExecution",
+          mode: null,
+          branchId: null,
+          snapshotId: null,
+          inverseKind: null,
+          detail: "exact detail-child identity migration target has not executed yet",
+        }),
+        mergeRebase: Object.freeze({
+          kind: "awaitingExecution",
+          granularity: `region:${target.execution.region}`,
+          detail: "exact detail-child identity migration target has not executed yet",
+        }),
+        digest: createIdentityMigrationLifecycleDigest(
+          target,
+          authorityDigest,
+          "awaitingExecution",
+          "awaitingExecution",
+        ),
+      });
+    }
+    return Object.freeze({
+      entryKind: "identityMigration",
+      targetId: target.targetId,
+      effectId: target.execution.effectProof.effectId,
+      authorityDigest: target.execution.effectProof.authorityDigest,
+      rollback: target.execution.effectProof.rollback,
+      mergeRebase: target.execution.effectProof.mergeRebase,
+      digest: target.execution.effectProof.digest,
+    });
+  }
   if (target.execution.outcomeKind !== "applied") {
     return Object.freeze({
       entryKind: "identityMigration",
@@ -272,6 +310,9 @@ function readRegionMergeGranularity(effect) {
 }
 
 function readIdentityMigrationGranularity(target) {
+  if (target.execution.kind === "exactDetailChildRegion") {
+    return `detailChildRegion:${target.scope.region}`;
+  }
   return [
     "identityMigration",
     target.execution.previousCanonicalKey,

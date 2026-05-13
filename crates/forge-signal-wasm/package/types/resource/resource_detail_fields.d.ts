@@ -6,6 +6,10 @@ declare const forgeSignalResourceDetailFieldsBrand: unique symbol;
 export interface ResourceDetailField<TValue, TFieldValue = SignalValue> {
   read(value: TValue): TFieldValue;
   write(value: TValue, fieldValue: TFieldValue): TValue;
+  extract?(value: TValue): {
+    readonly present: boolean;
+    readonly value: TFieldValue | undefined;
+  };
   readonly fieldProof?: ResourceEffectFieldPatchProof;
 }
 

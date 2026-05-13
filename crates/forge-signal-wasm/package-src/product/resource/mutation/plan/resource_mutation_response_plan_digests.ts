@@ -41,7 +41,7 @@ function createMutationResponseFallbackDigest(targets) {
   }
   return `mutation-response-fallbacks|${targets.map((target) =>
     target.execution.kind === "fallback"
-      ? `${target.targetId}:${target.fallback.kind}:${target.line.canonicalKey}`
+      ? `${target.targetId}:${target.fallback.kind}:${target.execution.partial?.digest ?? "none"}:${target.line.canonicalKey}`
       : `${target.targetId}:none:${target.line.canonicalKey}`).join(",")}`;
 }
 
@@ -59,7 +59,7 @@ function createMutationResponseExecutionDigest(executionArtifacts) {
   }
   return `mutation-response-execution|${executionArtifacts.map((artifact) =>
     artifact.kind === "fallback"
-      ? `${artifact.targetId}:fallback:${artifact.fallback}:${artifact.canonicalKey}`
+      ? `${artifact.targetId}:fallback:${artifact.fallback}:${artifact.partial?.digest ?? "none"}:${artifact.canonicalKey}`
       : `${artifact.targetId}:${artifact.kind}:${artifact.scope}:${
         artifact.itemId
         ?? artifact.summary
@@ -76,7 +76,7 @@ function createExecutedMutationResponseExecutionDigest(executedArtifacts) {
   }
   return `mutation-response-execution|${executedArtifacts.map((artifact) =>
     artifact.kind === "fallback"
-      ? `${artifact.targetId}:fallback:${artifact.fallback}:${artifact.canonicalKey}`
+      ? `${artifact.targetId}:fallback:${artifact.fallback}:${artifact.partial?.digest ?? "none"}:${artifact.canonicalKey}`
       : `${artifact.targetId}:${artifact.kind}:${artifact.scope}:${
         artifact.itemId
         ?? artifact.summary
