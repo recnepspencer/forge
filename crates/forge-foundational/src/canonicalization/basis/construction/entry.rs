@@ -1,5 +1,6 @@
-use super::{CanonicalBasisDomain, CanonicalBasisEntryKind, CanonicalBasisLocus};
-use crate::canonicalization::basis::CanonicalBasisValue;
+use crate::canonicalization::basis::{
+    CanonicalBasisDomain, CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisValue,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct CanonicalBasisEntry {

@@ -7,7 +7,7 @@ error[E0308]: mismatched types
    |         ^^^^^^^^^^^^^^^^^^^^^^ expected `CanonicalEquivalenceBasis`, found `CanonicalDigestValue`
    |
 note: function defined here
-  --> src/canonicalization/equivalence/mod.rs
+  --> src/canonicalization/equivalence/readiness.rs
    |
    | pub fn prepare_canonical_comparison(
    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^

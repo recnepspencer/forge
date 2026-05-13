@@ -89,8 +89,9 @@ pub use production_readiness::{
     CanonicalGoldenArtifactEvidence, CanonicalHarnessExpansionPoint, CanonicalMilestone2PhaseGate,
     CanonicalPhaseGateEvidence, CanonicalProductionReadinessAuthority,
     CanonicalProductionReadinessReport, CanonicalProductionReadinessScope,
-    CanonicalProductionTestReadyArtifact, CanonicalPropertySeed, CanonicalResidualDebt,
-    CanonicalRuntimeAssumption, CanonicalRuntimeNonAssumption, CanonicalSyntheticRuntimePressure,
+    CanonicalProductionTestReadyArtifact, CanonicalPropertySeed, CanonicalPropertySeedEvidence,
+    CanonicalResidualDebt, CanonicalRuntimeAssumption, CanonicalRuntimeNonAssumption,
+    CanonicalSyntheticRuntimePressure,
 };
 pub use readiness::{
     DigestPreparationReady, DigestPreparationReadyAspectContract,

@@ -2,8 +2,9 @@ use super::vocabulary::{
     CanonicalCertifiedSurface, CanonicalCertifiedSurfaceEvidence, CanonicalCompileFailBoundary,
     CanonicalCostCounterEvidence, CanonicalFixtureManifestEvidence,
     CanonicalGoldenArtifactEvidence, CanonicalHarnessExpansionPoint, CanonicalMilestone2PhaseGate,
-    CanonicalPhaseGateEvidence, CanonicalPropertySeed, CanonicalResidualDebt,
-    CanonicalRuntimeAssumption, CanonicalRuntimeNonAssumption, CanonicalSyntheticRuntimePressure,
+    CanonicalPhaseGateEvidence, CanonicalPropertySeed, CanonicalPropertySeedEvidence,
+    CanonicalResidualDebt, CanonicalRuntimeAssumption, CanonicalRuntimeNonAssumption,
+    CanonicalSyntheticRuntimePressure,
 };
 
 pub(super) fn certified_surfaces() -> Vec<CanonicalCertifiedSurface> {
@@ -24,9 +25,9 @@ pub(super) fn certified_surface_evidence() -> Vec<CanonicalCertifiedSurfaceEvide
             CanonicalSyntheticRuntimePressure::OrderedAuthorityProducer,
             "tests/certification/canonicalization/basis/basis_grammar.rs",
             CanonicalCompileFailBoundary::RawBasisCannotSatisfyReadiness,
-            "tests/ui/canonicalization/basis/raw_sequence_cannot_satisfy_ready_basis_api.rs",
+            "tests/ui/canonicalization/basis/readiness/raw_sequence_cannot_satisfy_ready_basis_api.rs",
             CanonicalCostCounterEvidence::BasisSequenceConstruction,
-            Some(CanonicalGoldenArtifactEvidence::BoundaryDigestBases),
+            Some(CanonicalGoldenArtifactEvidence::AspectContractBasis),
         ),
         CanonicalCertifiedSurfaceEvidence::new(
             CanonicalCertifiedSurface::MilestoneOneBasisBuilders,
@@ -35,7 +36,7 @@ pub(super) fn certified_surface_evidence() -> Vec<CanonicalCertifiedSurfaceEvide
             CanonicalCompileFailBoundary::RawBasisCannotSatisfyReadiness,
             "tests/ui/digest_preparation/non_ready_state_cannot_satisfy_digest_basis_api.rs",
             CanonicalCostCounterEvidence::MilestoneOneSurfaceLowering,
-            Some(CanonicalGoldenArtifactEvidence::ValueFamilies),
+            Some(CanonicalGoldenArtifactEvidence::AuthoritativeStateBasis),
         ),
         CanonicalCertifiedSurfaceEvidence::new(
             CanonicalCertifiedSurface::EquivalenceBasis,
@@ -99,7 +100,11 @@ pub(super) fn compile_fail_boundaries() -> Vec<CanonicalCompileFailBoundary> {
 pub(super) fn golden_artifacts() -> Vec<CanonicalGoldenArtifactEvidence> {
     vec![
         CanonicalGoldenArtifactEvidence::ValueFamilies,
-        CanonicalGoldenArtifactEvidence::BoundaryDigestBases,
+        CanonicalGoldenArtifactEvidence::AspectContractBasis,
+        CanonicalGoldenArtifactEvidence::AspectMaskBasis,
+        CanonicalGoldenArtifactEvidence::AuthoritativeStateBasis,
+        CanonicalGoldenArtifactEvidence::AuthoritativePatchBasis,
+        CanonicalGoldenArtifactEvidence::CompatibilityLoweredStateBasis,
         CanonicalGoldenArtifactEvidence::IdentityAndLocator,
         CanonicalGoldenArtifactEvidence::EquivalenceBasis,
         CanonicalGoldenArtifactEvidence::MismatchBasis,
@@ -116,6 +121,47 @@ pub(super) fn property_seeds() -> Vec<CanonicalPropertySeed> {
         CanonicalPropertySeed::EquivalenceScope,
         CanonicalPropertySeed::MismatchLocus,
         CanonicalPropertySeed::DigestSlotHostility,
+    ]
+}
+
+pub(super) fn property_seed_evidence() -> Vec<CanonicalPropertySeedEvidence> {
+    vec![
+        CanonicalPropertySeedEvidence::new(
+            CanonicalPropertySeed::OrderingIndependence,
+            "basis entries canonicalize across insertion and builder order",
+            "basis/basis_grammar.rs",
+            CanonicalHarnessExpansionPoint::CanonicalBasisReplayLane,
+        ),
+        CanonicalPropertySeedEvidence::new(
+            CanonicalPropertySeed::CategoryAdjacency,
+            "storage-equal values in adjacent semantic categories remain distinct",
+            "digest_slots/digest_derivation.rs",
+            CanonicalHarnessExpansionPoint::DigestSlotHostilityLane,
+        ),
+        CanonicalPropertySeedEvidence::new(
+            CanonicalPropertySeed::CompatibilityLoweringParity,
+            "native state and compatibility-lowered state share canonical truth",
+            "digest_preparation/canonical_basis_builders.rs",
+            CanonicalHarnessExpansionPoint::RuntimeParityRunMatrix,
+        ),
+        CanonicalPropertySeedEvidence::new(
+            CanonicalPropertySeed::EquivalenceScope,
+            "exact and compatibility-lowered equivalence are declared before comparison",
+            "equivalence/comparison_readiness.rs",
+            CanonicalHarnessExpansionPoint::CanonicalBasisReplayLane,
+        ),
+        CanonicalPropertySeedEvidence::new(
+            CanonicalPropertySeed::MismatchLocus,
+            "blind consumers receive smallest canonical mismatch loci",
+            "equivalence/comparison_readiness.rs",
+            CanonicalHarnessExpansionPoint::CanonicalBasisReplayLane,
+        ),
+        CanonicalPropertySeedEvidence::new(
+            CanonicalPropertySeed::DigestSlotHostility,
+            "wrong domain, shape, version, and raw-byte digest inputs fail closed",
+            "digest_slots/digest_derivation.rs",
+            CanonicalHarnessExpansionPoint::DigestSlotHostilityLane,
+        ),
     ]
 }
 
@@ -200,9 +246,29 @@ pub(super) fn fixture_manifest() -> Vec<CanonicalFixtureManifestEvidence> {
             CanonicalHarnessExpansionPoint::CanonicalBasisReplayLane,
         ),
         CanonicalFixtureManifestEvidence::new(
-            CanonicalGoldenArtifactEvidence::BoundaryDigestBases,
+            CanonicalGoldenArtifactEvidence::AspectContractBasis,
             "golden_artifacts/boundary_digest_bases.rs",
             CanonicalHarnessExpansionPoint::CanonicalBasisReplayLane,
+        ),
+        CanonicalFixtureManifestEvidence::new(
+            CanonicalGoldenArtifactEvidence::AspectMaskBasis,
+            "golden_artifacts/boundary_digest_bases.rs",
+            CanonicalHarnessExpansionPoint::CanonicalBasisReplayLane,
+        ),
+        CanonicalFixtureManifestEvidence::new(
+            CanonicalGoldenArtifactEvidence::AuthoritativeStateBasis,
+            "golden_artifacts/boundary_digest_bases.rs",
+            CanonicalHarnessExpansionPoint::CanonicalBasisReplayLane,
+        ),
+        CanonicalFixtureManifestEvidence::new(
+            CanonicalGoldenArtifactEvidence::AuthoritativePatchBasis,
+            "golden_artifacts/boundary_digest_bases.rs",
+            CanonicalHarnessExpansionPoint::CanonicalBasisReplayLane,
+        ),
+        CanonicalFixtureManifestEvidence::new(
+            CanonicalGoldenArtifactEvidence::CompatibilityLoweredStateBasis,
+            "golden_artifacts/boundary_digest_bases.rs",
+            CanonicalHarnessExpansionPoint::RuntimeParityRunMatrix,
         ),
         CanonicalFixtureManifestEvidence::new(
             CanonicalGoldenArtifactEvidence::IdentityAndLocator,

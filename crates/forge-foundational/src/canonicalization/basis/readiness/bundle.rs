@@ -1,9 +1,9 @@
 use forge_proof::{Artifact, AuthorityWitness, TransitionOutcome};
 
-use super::proofs::{CanonicalBasisConstructionAuthority, CanonicalBundleReadinessProofs};
-use super::{
-    CanonicalBasisConstructionDenial, CanonicalBasisDomain, CanonicalBasisReadyArtifact,
-    CanonicalBundleReady, CanonicalizationRuleVersion,
+use crate::canonicalization::basis::{
+    CanonicalBasisConstructionAuthority, CanonicalBasisConstructionDenial, CanonicalBasisDomain,
+    CanonicalBasisReadyArtifact, CanonicalBundleReadinessProofs, CanonicalBundleReady,
+    CanonicalizationRuleVersion,
 };
 
 pub struct CanonicalBasisBundle {

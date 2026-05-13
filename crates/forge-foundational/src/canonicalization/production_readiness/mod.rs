@@ -16,8 +16,8 @@ pub use vocabulary::{
     CanonicalCostCounterEvidence, CanonicalFixtureManifestEvidence,
     CanonicalGoldenArtifactEvidence, CanonicalHarnessExpansionPoint, CanonicalMilestone2PhaseGate,
     CanonicalPhaseGateEvidence, CanonicalProductionReadinessScope, CanonicalPropertySeed,
-    CanonicalResidualDebt, CanonicalRuntimeAssumption, CanonicalRuntimeNonAssumption,
-    CanonicalSyntheticRuntimePressure,
+    CanonicalPropertySeedEvidence, CanonicalResidualDebt, CanonicalRuntimeAssumption,
+    CanonicalRuntimeNonAssumption, CanonicalSyntheticRuntimePressure,
 };
 
 #[cfg(test)]

@@ -1,7 +1,10 @@
 use forge_foundational::{
-    milestone1_compatibility_debt_inventory, milestone1_migration_readiness_report,
-    milestone1_proof_seed_inventory, milestone1_public_api_inventory,
+    certify_milestone1_production_test_readiness, milestone1_compatibility_debt_inventory,
+    milestone1_migration_readiness_report, milestone1_proof_seed_inventory,
+    milestone1_public_api_inventory, require_milestone1_production_test_readiness,
+    Milestone1ProductionReadinessCertified, Milestone1ProductionTestReadyArtifact,
 };
+use forge_proof::Proof;
 
 #[test]
 fn milestone_1_readiness_report_names_adoption_surfaces_and_debt() {
@@ -57,4 +60,26 @@ fn milestone_1_closeout_inventory_does_not_claim_later_milestone_surfaces() {
         .compatibility_debt()
         .iter()
         .all(|row| row.exit_condition().contains("native aspect-state")));
+}
+
+fn accepts_milestone1_readiness_proof(
+    _: &Proof<
+        Milestone1ProductionReadinessCertified,
+        forge_foundational::Milestone1ProductionReadinessAuthority,
+    >,
+) {
+}
+
+#[test]
+fn milestone_1_production_test_readiness_is_proof_bearing() {
+    let readiness: Milestone1ProductionTestReadyArtifact =
+        certify_milestone1_production_test_readiness();
+    let report = require_milestone1_production_test_readiness(&readiness);
+
+    accepts_milestone1_readiness_proof(readiness.proofs());
+    assert_eq!(report.public_api(), milestone1_public_api_inventory());
+    assert!(report
+        .proof_seeds()
+        .iter()
+        .any(|seed| seed.name() == "digest_preparation_readiness"));
 }

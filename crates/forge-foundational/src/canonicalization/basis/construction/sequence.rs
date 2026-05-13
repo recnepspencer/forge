@@ -1,9 +1,9 @@
 use forge_proof::{Artifact, AuthorityWitness, TransitionOutcome};
 
-use super::proofs::{CanonicalBasisConstructionAuthority, CanonicalBasisReadinessProofs};
-use super::{
-    CanonicalBasisConstructionDenial, CanonicalBasisDomain, CanonicalBasisEntry,
-    CanonicalBasisReady, CanonicalBasisValue, CanonicalizationCost, CanonicalizationRuleVersion,
+use crate::canonicalization::basis::{
+    CanonicalBasisConstructionAuthority, CanonicalBasisConstructionDenial, CanonicalBasisDomain,
+    CanonicalBasisEntry, CanonicalBasisReadinessProofs, CanonicalBasisReady, CanonicalBasisValue,
+    CanonicalizationCost, CanonicalizationRuleVersion,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]

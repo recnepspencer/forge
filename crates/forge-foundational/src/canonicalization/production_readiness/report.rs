@@ -1,14 +1,16 @@
 use super::inventory::{
     certified_surface_evidence, certified_surfaces, compile_fail_boundaries, cost_counter_evidence,
-    fixture_manifest, golden_artifacts, harness_expansion_points, phase_gates, property_seeds,
-    residual_debt, runtime_assumptions, runtime_non_assumptions, synthetic_pressures,
+    fixture_manifest, golden_artifacts, harness_expansion_points, phase_gates,
+    property_seed_evidence, property_seeds, residual_debt, runtime_assumptions,
+    runtime_non_assumptions, synthetic_pressures,
 };
 use super::vocabulary::{
     CanonicalCertifiedSurface, CanonicalCertifiedSurfaceEvidence, CanonicalCompileFailBoundary,
     CanonicalCostCounterEvidence, CanonicalFixtureManifestEvidence,
     CanonicalGoldenArtifactEvidence, CanonicalHarnessExpansionPoint, CanonicalMilestone2PhaseGate,
-    CanonicalPhaseGateEvidence, CanonicalPropertySeed, CanonicalResidualDebt,
-    CanonicalRuntimeAssumption, CanonicalRuntimeNonAssumption, CanonicalSyntheticRuntimePressure,
+    CanonicalPhaseGateEvidence, CanonicalPropertySeed, CanonicalPropertySeedEvidence,
+    CanonicalResidualDebt, CanonicalRuntimeAssumption, CanonicalRuntimeNonAssumption,
+    CanonicalSyntheticRuntimePressure,
 };
 use std::collections::BTreeSet;
 
@@ -20,6 +22,7 @@ pub struct CanonicalProductionReadinessReport {
     compile_fail_boundaries: Vec<CanonicalCompileFailBoundary>,
     golden_artifacts: Vec<CanonicalGoldenArtifactEvidence>,
     property_seeds: Vec<CanonicalPropertySeed>,
+    property_seed_evidence: Vec<CanonicalPropertySeedEvidence>,
     cost_counter_evidence: Vec<CanonicalCostCounterEvidence>,
     harness_expansion_points: Vec<CanonicalHarnessExpansionPoint>,
     assumptions: Vec<CanonicalRuntimeAssumption>,
@@ -38,6 +41,7 @@ impl CanonicalProductionReadinessReport {
             compile_fail_boundaries: compile_fail_boundaries(),
             golden_artifacts: golden_artifacts(),
             property_seeds: property_seeds(),
+            property_seed_evidence: property_seed_evidence(),
             cost_counter_evidence: cost_counter_evidence(),
             harness_expansion_points: harness_expansion_points(),
             assumptions: runtime_assumptions(),
@@ -70,6 +74,10 @@ impl CanonicalProductionReadinessReport {
 
     pub fn property_seeds(&self) -> &[CanonicalPropertySeed] {
         &self.property_seeds
+    }
+
+    pub fn property_seed_evidence(&self) -> &[CanonicalPropertySeedEvidence] {
+        &self.property_seed_evidence
     }
 
     pub fn cost_counter_evidence(&self) -> &[CanonicalCostCounterEvidence] {
@@ -108,6 +116,7 @@ impl CanonicalProductionReadinessReport {
             && self.has_compile_fail_evidence()
             && self.has_all_golden_artifacts()
             && self.has_all_property_seeds()
+            && self.has_property_seed_evidence()
             && self.has_all_cost_counter_evidence()
             && self.has_fixture_manifest_coverage()
             && self.has_named_residual_debt()
@@ -201,7 +210,11 @@ impl CanonicalProductionReadinessReport {
     fn has_all_golden_artifacts(&self) -> bool {
         [
             CanonicalGoldenArtifactEvidence::ValueFamilies,
-            CanonicalGoldenArtifactEvidence::BoundaryDigestBases,
+            CanonicalGoldenArtifactEvidence::AspectContractBasis,
+            CanonicalGoldenArtifactEvidence::AspectMaskBasis,
+            CanonicalGoldenArtifactEvidence::AuthoritativeStateBasis,
+            CanonicalGoldenArtifactEvidence::AuthoritativePatchBasis,
+            CanonicalGoldenArtifactEvidence::CompatibilityLoweredStateBasis,
             CanonicalGoldenArtifactEvidence::IdentityAndLocator,
             CanonicalGoldenArtifactEvidence::EquivalenceBasis,
             CanonicalGoldenArtifactEvidence::MismatchBasis,
@@ -223,6 +236,24 @@ impl CanonicalProductionReadinessReport {
         ]
         .iter()
         .all(|seed| self.property_seeds.contains(seed))
+    }
+
+    fn has_property_seed_evidence(&self) -> bool {
+        let seeds: BTreeSet<_> = self.property_seeds.iter().copied().collect();
+        let evidenced: BTreeSet<_> = self
+            .property_seed_evidence
+            .iter()
+            .map(|evidence| evidence.seed())
+            .collect();
+
+        seeds == evidenced
+            && self.property_seeds.len() == self.property_seed_evidence.len()
+            && self.property_seed_evidence.iter().all(|evidence| {
+                !evidence.hostile_dimension().trim().is_empty()
+                    && self
+                        .harness_expansion_points
+                        .contains(&evidence.harness_lane())
+            })
     }
 
     fn has_all_cost_counter_evidence(&self) -> bool {

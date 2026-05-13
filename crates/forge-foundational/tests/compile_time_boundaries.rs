@@ -65,9 +65,15 @@ fn digest_preparation_requires_readiness_proof() {
 }
 
 #[test]
+fn milestone1_production_readiness_requires_certified_artifact() {
+    let tests = trybuild::TestCases::new();
+    tests.compile_fail("tests/ui/milestone1_readiness/*.rs");
+}
+
+#[test]
 fn canonical_basis_requires_readiness_proof() {
     let tests = trybuild::TestCases::new();
-    tests.compile_fail("tests/ui/canonicalization/basis/*.rs");
+    tests.compile_fail("tests/ui/canonicalization/basis/*/*.rs");
 }
 
 #[test]

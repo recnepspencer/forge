@@ -46,7 +46,11 @@ pub enum CanonicalCompileFailBoundary {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub enum CanonicalGoldenArtifactEvidence {
     ValueFamilies,
-    BoundaryDigestBases,
+    AspectContractBasis,
+    AspectMaskBasis,
+    AuthoritativeStateBasis,
+    AuthoritativePatchBasis,
+    CompatibilityLoweredStateBasis,
     IdentityAndLocator,
     EquivalenceBasis,
     MismatchBasis,
@@ -222,6 +226,46 @@ impl CanonicalFixtureManifestEvidence {
 
     pub const fn artifact(&self) -> CanonicalGoldenArtifactEvidence {
         self.artifact
+    }
+
+    pub const fn owning_test(&self) -> &'static str {
+        self.owning_test
+    }
+
+    pub const fn harness_lane(&self) -> CanonicalHarnessExpansionPoint {
+        self.harness_lane
+    }
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CanonicalPropertySeedEvidence {
+    seed: CanonicalPropertySeed,
+    hostile_dimension: &'static str,
+    owning_test: &'static str,
+    harness_lane: CanonicalHarnessExpansionPoint,
+}
+
+impl CanonicalPropertySeedEvidence {
+    pub(super) const fn new(
+        seed: CanonicalPropertySeed,
+        hostile_dimension: &'static str,
+        owning_test: &'static str,
+        harness_lane: CanonicalHarnessExpansionPoint,
+    ) -> Self {
+        Self {
+            seed,
+            hostile_dimension,
+            owning_test,
+            harness_lane,
+        }
+    }
+
+    pub const fn seed(&self) -> CanonicalPropertySeed {
+        self.seed
+    }
+
+    pub const fn hostile_dimension(&self) -> &'static str {
+        self.hostile_dimension
     }
 
     pub const fn owning_test(&self) -> &'static str {

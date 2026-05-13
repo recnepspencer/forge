@@ -1,4 +1,6 @@
-use super::{CanonicalBasisDomain, CanonicalBasisEntryKind, CanonicalBasisLocus};
+use crate::canonicalization::basis::{
+    CanonicalBasisDomain, CanonicalBasisEntryKind, CanonicalBasisLocus,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum CanonicalBasisConstructionDenial {

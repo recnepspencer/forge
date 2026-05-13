@@ -169,32 +169,93 @@ fn production_readiness_report_names_hostile_pressures_and_property_seeds() {
     assert!(report
         .non_assumptions()
         .contains(&CanonicalRuntimeNonAssumption::DigestEqualityAuthorizesSemanticEquivalence));
+    let evidenced_seeds: Vec<_> = report
+        .property_seed_evidence()
+        .iter()
+        .map(|evidence| evidence.seed())
+        .collect();
+    assert_exact_inventory(
+        "property seed evidence",
+        &evidenced_seeds,
+        report.property_seeds(),
+    );
+    assert!(report.property_seed_evidence().iter().all(|evidence| {
+        !evidence.hostile_dimension().trim().is_empty()
+            && canonicalization_test_path(evidence.owning_test()).is_file()
+            && report
+                .harness_expansion_points()
+                .contains(&evidence.harness_lane())
+    }));
 }
 
 #[test]
-fn production_readiness_fixture_manifest_maps_golden_artifacts_to_harness_lanes() {
+fn production_readiness_fixture_manifest_maps_exact_golden_artifacts_to_harness_lanes() {
     let report = canonical_milestone2_production_readiness_report();
 
-    assert!(report.fixture_manifest().iter().any(|fixture| {
-        fixture.artifact() == CanonicalGoldenArtifactEvidence::ExportBundleManifest
-            && fixture.owning_test() == "export/export_ready_fixtures.rs"
-            && fixture.harness_lane() == CanonicalHarnessExpansionPoint::ExportFixtureReplayLane
-    }));
-    assert!(report.fixture_manifest().iter().any(|fixture| {
-        fixture.artifact() == CanonicalGoldenArtifactEvidence::EquivalenceBasis
-            && fixture.owning_test() == "golden_artifacts/equivalence_and_mismatch.rs"
-            && fixture.harness_lane() == CanonicalHarnessExpansionPoint::CanonicalBasisReplayLane
-    }));
-    assert!(report.fixture_manifest().iter().any(|fixture| {
-        fixture.artifact() == CanonicalGoldenArtifactEvidence::MismatchBasis
-            && fixture.owning_test() == "golden_artifacts/equivalence_and_mismatch.rs"
-            && fixture.harness_lane() == CanonicalHarnessExpansionPoint::CanonicalBasisReplayLane
-    }));
-    assert!(report.fixture_manifest().iter().any(|fixture| {
-        fixture.artifact() == CanonicalGoldenArtifactEvidence::DigestSlotDerivedValue
-            && fixture.owning_test() == "golden_artifacts/digest_slots.rs"
-            && fixture.harness_lane() == CanonicalHarnessExpansionPoint::DigestSlotHostilityLane
-    }));
+    let manifest_artifacts: Vec<_> = report
+        .fixture_manifest()
+        .iter()
+        .map(|fixture| fixture.artifact())
+        .collect();
+    assert_exact_inventory(
+        "fixture manifest artifacts",
+        &manifest_artifacts,
+        report.golden_artifacts(),
+    );
+    assert_fixture_manifest_row(
+        &report,
+        CanonicalGoldenArtifactEvidence::AspectContractBasis,
+        "golden_artifacts/boundary_digest_bases.rs",
+        CanonicalHarnessExpansionPoint::CanonicalBasisReplayLane,
+    );
+    assert_fixture_manifest_row(
+        &report,
+        CanonicalGoldenArtifactEvidence::AspectMaskBasis,
+        "golden_artifacts/boundary_digest_bases.rs",
+        CanonicalHarnessExpansionPoint::CanonicalBasisReplayLane,
+    );
+    assert_fixture_manifest_row(
+        &report,
+        CanonicalGoldenArtifactEvidence::AuthoritativeStateBasis,
+        "golden_artifacts/boundary_digest_bases.rs",
+        CanonicalHarnessExpansionPoint::CanonicalBasisReplayLane,
+    );
+    assert_fixture_manifest_row(
+        &report,
+        CanonicalGoldenArtifactEvidence::AuthoritativePatchBasis,
+        "golden_artifacts/boundary_digest_bases.rs",
+        CanonicalHarnessExpansionPoint::CanonicalBasisReplayLane,
+    );
+    assert_fixture_manifest_row(
+        &report,
+        CanonicalGoldenArtifactEvidence::CompatibilityLoweredStateBasis,
+        "golden_artifacts/boundary_digest_bases.rs",
+        CanonicalHarnessExpansionPoint::RuntimeParityRunMatrix,
+    );
+    assert_fixture_manifest_row(
+        &report,
+        CanonicalGoldenArtifactEvidence::ExportBundleManifest,
+        "export/export_ready_fixtures.rs",
+        CanonicalHarnessExpansionPoint::ExportFixtureReplayLane,
+    );
+    assert_fixture_manifest_row(
+        &report,
+        CanonicalGoldenArtifactEvidence::EquivalenceBasis,
+        "golden_artifacts/equivalence_and_mismatch.rs",
+        CanonicalHarnessExpansionPoint::CanonicalBasisReplayLane,
+    );
+    assert_fixture_manifest_row(
+        &report,
+        CanonicalGoldenArtifactEvidence::MismatchBasis,
+        "golden_artifacts/equivalence_and_mismatch.rs",
+        CanonicalHarnessExpansionPoint::CanonicalBasisReplayLane,
+    );
+    assert_fixture_manifest_row(
+        &report,
+        CanonicalGoldenArtifactEvidence::DigestSlotDerivedValue,
+        "golden_artifacts/digest_slots.rs",
+        CanonicalHarnessExpansionPoint::DigestSlotHostilityLane,
+    );
 }
 
 #[test]
@@ -259,6 +320,19 @@ fn crate_root_path(relative: &str) -> std::path::PathBuf {
 
 fn canonicalization_test_path(relative: &str) -> std::path::PathBuf {
     crate_root_path("tests/certification/canonicalization").join(relative)
+}
+
+fn assert_fixture_manifest_row(
+    report: &forge_foundational::CanonicalProductionReadinessReport,
+    artifact: CanonicalGoldenArtifactEvidence,
+    owning_test: &'static str,
+    harness_lane: CanonicalHarnessExpansionPoint,
+) {
+    assert!(report.fixture_manifest().iter().any(|fixture| {
+        fixture.artifact() == artifact
+            && fixture.owning_test() == owning_test
+            && fixture.harness_lane() == harness_lane
+    }));
 }
 
 fn assert_exact_inventory<T>(name: &str, actual: &[T], expected: &[T])
