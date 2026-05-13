@@ -12,6 +12,10 @@ import { readCurrentHistoryBranch } from "../history/line_history_branch.js";
 
 function readLineHistoryAvailability(materialization) {
   const history = materialization.history;
+  const identityMigrationAvailability =
+    readIdentityMigrationExactHistoryAvailability(
+      materialization.lifecycleHistory.entries(),
+    );
   const signalIdRead = readLineHistorySignalId(
     materialization,
     "resource line history is unavailable because readableValueSignal.id rejected explainability",
@@ -46,7 +50,8 @@ function readLineHistoryAvailability(materialization) {
     branch,
     availability: Object.freeze({
       replay: replayAvailable,
-      replayExact: replayExactAvailable,
+      replayExact:
+        identityMigrationAvailability?.replayExact ?? replayExactAvailable,
       lineage: lineageAvailable,
       branch: branch !== null
         ? createAvailableHistoryArtifact()
@@ -60,7 +65,8 @@ function readLineHistoryAvailability(materialization) {
             "resource line branch history is unavailable because the Signals runtime does not expose current_branch(...)",
           ),
       restoreExact:
-        branch === null
+        identityMigrationAvailability?.restoreExact
+        ?? (branch === null
           ? branchRead.errorDetail !== null
             ? createUnavailableRestoreAvailability(
                 "runtimeRejected",
@@ -93,9 +99,35 @@ function readLineHistoryAvailability(materialization) {
                   "SameRuntimeBranchExact",
                   branch.id,
                   restoreSnapshotRead.snapshotId,
-                ),
+                )),
     }),
   });
+}
+
+function readIdentityMigrationExactHistoryAvailability(lifecycleEntries) {
+  for (let index = lifecycleEntries.length - 1; index >= 0; index -= 1) {
+    const entry = lifecycleEntries[index];
+    if (entry.event !== "identityMigrated" || entry.identityMigration === undefined) {
+      continue;
+    }
+    const detail = [
+      "resource line exact replay and exact branch restore are unavailable",
+      `after identity migration rewrote ${entry.identityMigration.previousCanonicalKey}`,
+      `to ${entry.identityMigration.nextCanonicalKey}`,
+      "through resident rematerialization",
+    ].join(" ");
+    return Object.freeze({
+      replayExact: createUnavailableReplayAvailability(
+        "identityMigrationUnavailable",
+        detail,
+      ),
+      restoreExact: createUnavailableRestoreAvailability(
+        "identityMigrationUnavailable",
+        detail,
+      ),
+    });
+  }
+  return null;
 }
 
 function readRestoreSnapshotAvailability(history, branch) {

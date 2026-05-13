@@ -7,6 +7,12 @@ function attachResourceFamilyMetadata(family, options) {
     familyKind: options.familyKind,
     familyId: options.familyId,
     patchRecord: options.patchRecord,
+    canonicalizeTargetParams(rawParams) {
+      return requireCanonicalParamIdentity(
+        options.normalizeParams(rawParams),
+        options.familyKind,
+      );
+    },
     readTargetLineIdentity(rawParams) {
       const canonicalParams = requireCanonicalParamIdentity(
         options.normalizeParams(rawParams),

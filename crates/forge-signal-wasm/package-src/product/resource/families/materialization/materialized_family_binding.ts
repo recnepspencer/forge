@@ -2,6 +2,9 @@ import { createInitialLineBinding } from "../../lines/actions/initial_load_settl
 import {
   createMutationResponseTargetBasisSnapshots,
 } from "../../mutation/resource_mutation_response_target_basis.js";
+import {
+  createSubmittedMutationResponseIdentityMigration,
+} from "../../mutation/identity/resource_mutation_response_identity_migration.js";
 
 function createBinding(
   params,
@@ -34,6 +37,13 @@ function createBinding(
             mutationResponseDeclaration,
             params,
           ),
+          submittedIdentityMigration:
+            mutationResponseDeclaration.identityMigration === null
+              ? null
+              : createSubmittedMutationResponseIdentityMigration(
+                  mutationResponseDeclaration.identityMigration,
+                  params,
+                ),
         }),
   );
 }

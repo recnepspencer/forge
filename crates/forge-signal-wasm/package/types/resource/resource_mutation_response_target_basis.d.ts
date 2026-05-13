@@ -14,6 +14,7 @@ export interface ResourceMutationResponseTargetStaleness {
   readonly kind: "staleTarget";
   readonly reason:
     | "canonicalKeyChanged"
+    | "runtimeLineIdChanged"
     | "basisChanged"
     | "visibleValueVersionChanged";
   readonly submittedBasisId: string | null;

@@ -196,3 +196,22 @@ test("plain write routes deny reconciles(...) outside the mutation response lane
     await runtime.cleanup();
   }
 });
+
+test("plain write routes deny identity(...) outside the mutation response lane", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    assert.throws(
+      () =>
+        runtime.signals.api({}).url("/users").create({
+          identity: {
+            submitted: ({ body }) => body.id,
+            canonical: (value) => value.id,
+          },
+          load: ({ body }) => body,
+        }),
+      /owns identity\(\.\.\.\) only in the mutation response lane/,
+    );
+  } finally {
+    await runtime.cleanup();
+  }
+});

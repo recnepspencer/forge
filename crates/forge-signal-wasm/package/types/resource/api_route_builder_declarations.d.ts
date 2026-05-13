@@ -25,6 +25,7 @@ import type {
   ApiRouteUploadPagedDeclaration,
 } from "./api_route_declarations.js";
 import type {
+  ResourceMutationResponseIdentityDeclaration,
   ResourceMutationResponseAnyTargetDeclaration,
   ResourceMutationResponseDiagnosticDeclaration,
   ResourceMutationResponseFallbackTargetDeclaration,
@@ -136,6 +137,14 @@ export type ApiRouteResponseCreateMutationDeclarationForState<
       TBody
     >
   >[];
+  identity?: ResourceMutationResponseIdentityDeclaration<
+    import("./api_request_params.js").ApiRouteWriteDeclarationParams<
+      TRoute,
+      TRequestParams,
+      TBody
+    >,
+    TValue
+  >;
 };
 
 export type ApiRouteResponseUpdateMutationDeclarationForState<
@@ -164,6 +173,14 @@ export type ApiRouteResponseUpdateMutationDeclarationForState<
     >
   >[];
   diagnostics?: readonly ResourceMutationResponseDiagnosticDeclaration[];
+  identity?: ResourceMutationResponseIdentityDeclaration<
+    import("./api_request_params.js").ApiRouteWriteDeclarationParams<
+      TRoute,
+      TRequestParams,
+      TBody
+    >,
+    TValue
+  >;
 };
 
 export type ApiRouteResponseMutationDeclarationForState<
@@ -206,6 +223,7 @@ export type ApiRouteResponseRemoveMutationDeclarationForState<
       TRequestParams
     >
   >[];
+  identity?: never;
 };
 
 export type ApiRouteCollectionDeclarationForState<

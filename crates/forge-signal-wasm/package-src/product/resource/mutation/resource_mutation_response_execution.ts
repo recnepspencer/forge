@@ -12,6 +12,9 @@ import {
 import {
   createMutationResponseTargetEffectProof,
 } from "./resource_mutation_response_lifecycle_proof.js";
+import {
+  executePreparedMutationResponseIdentityMigration,
+} from "./identity/resource_mutation_response_identity_migration.js";
 
 function prepareMutationResponsePlanIfDeclared(
   lineIdentity,
@@ -20,6 +23,7 @@ function prepareMutationResponsePlanIfDeclared(
   declaration,
   responseValue,
   submittedTargets = null,
+  submittedIdentityMigration = null,
 ) {
   const readDeclaration = readMutationResponseDeclaration(declaration);
   if (readDeclaration === null) {
@@ -35,6 +39,7 @@ function prepareMutationResponsePlanIfDeclared(
     declaration: readDeclaration,
     responseValue,
     submittedTargets,
+    submittedIdentityMigration,
   });
   if (plan === null) {
     return Object.freeze({
@@ -64,6 +69,17 @@ function recordMutationResponsePlanIfPresent(lifecycleHistory, binding, plan) {
 function executePreparedMutationResponsePlan(plan) {
   if (plan === null) {
     return null;
+  }
+  const preparedExactTargetCount =
+    plan.executionArtifacts.filter((artifact) =>
+      artifact.kind !== "fallback").length
+    + readPreparedIdentityExactTargetCount(plan.identityMigration);
+  const preparedReconciliationExactTargetCount =
+    plan.executionArtifacts.filter((artifact) => artifact.kind !== "fallback").length;
+  if (preparedExactTargetCount > 1 && preparedReconciliationExactTargetCount > 0) {
+    throw new TypeError(
+      "mutation response planning currently admits at most one exact target across reconciliation and identity migration before multi-target atomicity support lands",
+    );
   }
   const preparedExecutions = plan[RESOURCE_MUTATION_RESPONSE_PREPARED_EXECUTIONS];
   const plannedArtifacts = plan.executionArtifacts;
@@ -96,7 +112,24 @@ function executePreparedMutationResponsePlan(plan) {
       targetVisibleValueVersion: diagnostics.visibleValueVersion,
     }));
   }
-  return createExecutedMutationResponsePlan(plan, executedArtifacts);
+  const executedIdentityMigration = executePreparedMutationResponseIdentityMigration(
+    plan.identityMigration,
+  );
+  return createExecutedMutationResponsePlan(
+    {
+      ...plan,
+      identityMigration: executedIdentityMigration,
+    },
+    executedArtifacts,
+  );
+}
+
+function readPreparedIdentityExactTargetCount(identityMigration) {
+  if (identityMigration === null) {
+    return 0;
+  }
+  return identityMigration.targets.filter((target) =>
+    target.execution.kind === "exactResidentLine").length;
 }
 
 export {

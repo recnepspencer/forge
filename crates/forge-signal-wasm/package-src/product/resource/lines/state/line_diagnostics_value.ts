@@ -334,6 +334,20 @@ function createMutationResponsePlannedDiagnostics(previous, mutationResponsePlan
   );
 }
 
+function createIdentityMigratedDiagnostics(previous, identityMigration) {
+  return freezeWithVisibleSelection(
+    {
+      ...previous,
+      identityMigrationCount:
+        ("identityMigrationCount" in previous
+          ? previous.identityMigrationCount
+          : 0) + 1,
+      lastIdentityMigration: identityMigration,
+    },
+    previous.visibleSelection,
+  );
+}
+
 function createInitialBasisDiagnostics(currentBasisId) {
   return Object.freeze({
     currentBasisId,
@@ -382,6 +396,7 @@ export {
   createInvalidatedDiagnostics,
   createDeliveredDiagnostics,
   createInitialLineDiagnostics,
+  createIdentityMigratedDiagnostics,
   createMutationResponsePlannedDiagnostics,
   createInverseRollbackDiagnostics,
   createPatchedDiagnostics,

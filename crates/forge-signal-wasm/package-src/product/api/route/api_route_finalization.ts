@@ -83,6 +83,11 @@ function lowerWriteRouteDeclaration(
       `api.url("${pattern.route}").create/update(...) owns reconciles(...) only in the mutation response lane`,
     );
   }
+  if ("identity" in declaration) {
+    throw new TypeError(
+      `api.url("${pattern.route}").create/update(...) owns identity(...) only in the mutation response lane`,
+    );
+  }
   return attachApiRouteTargetMetadata(Object.freeze({
     ...lowered,
     method,
@@ -166,7 +171,12 @@ function lowerResponseMutationRouteDeclaration(
     transferState,
     downloadsState,
   );
-  const { reconciles, diagnostics, ...loweredWithoutMutationResponse } = lowered;
+  const {
+    reconciles,
+    diagnostics,
+    identity,
+    ...loweredWithoutMutationResponse
+  } = lowered;
   if ("itemIdentity" in declaration) {
     throw new TypeError(
       `api.url("${pattern.route}").response(...) owns response identity in the mutation response lane`,
@@ -186,6 +196,7 @@ function lowerResponseMutationRouteDeclaration(
     response: directItemsState.response,
     reconciles,
     diagnostics,
+    identity,
   });
 }
 
@@ -209,6 +220,11 @@ function lowerResponseDetailRouteDeclaration(
   if ("reconciles" in declaration) {
     throw new TypeError(
       `api.url("${pattern.route}").response(...).detail(...) owns reconciles(...) only in the mutation response lane`,
+    );
+  }
+  if ("identity" in declaration) {
+    throw new TypeError(
+      `api.url("${pattern.route}").response(...).detail(...) owns identity(...) only in the mutation response lane`,
     );
   }
   if ("itemIdentity" in declaration) {
@@ -253,6 +269,11 @@ function lowerRemoveRouteDeclaration(
   if ("reconciles" in declaration) {
     throw new TypeError(
       `api.url("${pattern.route}").remove(...) owns reconciles(...) only in the mutation response lane`,
+    );
+  }
+  if ("identity" in declaration) {
+    throw new TypeError(
+      `api.url("${pattern.route}").remove(...) owns identity(...) only in the mutation response lane`,
     );
   }
   return attachApiRouteTargetMetadata(Object.freeze({

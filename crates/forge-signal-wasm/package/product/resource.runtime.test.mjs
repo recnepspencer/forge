@@ -9,6 +9,12 @@ import "./resource_runtime/authoring/response/api_response_detail_region_contrac
 import "./resource_runtime/authoring/response/save_update/save_response_collection_summary_reconciliation.test.mjs";
 import "./resource_runtime/authoring/response/save_update/save_response_diagnostics_mapping.test.mjs";
 import "./resource_runtime/authoring/response/save_update/save_response_confirmation_classification.test.mjs";
+import "./resource_runtime/authoring/response/save_update/save_response_identity_migration_foundation.test.mjs";
+import "./resource_runtime/authoring/response/save_update/save_response_identity_migration_resident_line_foundation.test.mjs";
+import "./resource_runtime/authoring/response/save_update/save_response_identity_migration_target_classes.test.mjs";
+import "./resource_runtime/authoring/response/save_update/save_response_identity_migration_history_proof.test.mjs";
+import "./resource_runtime/authoring/response/save_update/save_response_identity_migration_lifecycle_proof.test.mjs";
+import "./resource_runtime/authoring/response/save_update/save_response_identity_migration_policy.test.mjs";
 import "./resource_runtime/authoring/response/save_update/save_response_lifecycle_proof.test.mjs";
 import "./resource_runtime/authoring/response/save_update/save_response_stale_target_denial.test.mjs";
 import "./resource_runtime/authoring/response/save_update/save_response_detail_line_reconciliation.test.mjs";

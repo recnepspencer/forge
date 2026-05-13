@@ -6,6 +6,7 @@ import type {
   ResourceLineBasisHistory,
   ResourceLineBranchSummary,
   ResourceLineHistoryAvailability,
+  ResourceLineIdentityMigrationHistoryDigest,
 } from "./resource_line_history.js";
 import type {
   ResourceLineDiagnosticsActivitySummary,
@@ -156,6 +157,8 @@ export interface ResourceLineVerificationHistoryReplayRestoreDigest {
   readonly availability: ResourceLineHistoryAvailability;
   readonly lifecycleLength: number;
   readonly lastLifecycleEvent: string | null;
+  readonly identityMigrationCount: number;
+  readonly latestIdentityMigration: ResourceLineIdentityMigrationHistoryDigest | null;
 }
 
 export interface ResourceLineVerificationBinaryDownloadDigest {

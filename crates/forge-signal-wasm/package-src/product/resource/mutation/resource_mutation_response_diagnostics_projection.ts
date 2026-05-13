@@ -13,6 +13,7 @@ function readMutationResponseSummaryDigest(diagnostics) {
   if (mutationResponsePlanRecord === null) {
     return null;
   }
+  const identityMigration = mutationResponsePlanRecord.plan.identityMigration;
   return Object.freeze({
     planId: mutationResponsePlanRecord.plan.planId,
     targetCount: mutationResponsePlanRecord.plan.targetCount,
@@ -25,6 +26,17 @@ function readMutationResponseSummaryDigest(diagnostics) {
     diagnosticCount: mutationResponsePlanRecord.plan.diagnostics.count,
     diagnosticDigest: mutationResponsePlanRecord.plan.diagnostics.digest,
     planCount: mutationResponsePlanRecord.planCount,
+    ...(identityMigration === null
+      ? {}
+      : {
+          identityMigrationDigest: identityMigration.digest,
+          identityMigrationNeeded: identityMigration.migrationNeeded,
+          identityMigrationPartialAdmission: identityMigration.partialAdmission,
+          identityMigrationTargetCount: identityMigration.targetCount,
+          identityMigrationExactTargetCount: identityMigration.exactTargetCount,
+          identityMigrationExecutionDigest: identityMigration.executionDigest,
+          identityMigrationFallbackDigest: identityMigration.fallbackDigest,
+        }),
   });
 }
 

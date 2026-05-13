@@ -10,6 +10,7 @@ import type {
   ResourceRequestDiagnostics,
 } from "./resource_postures.js";
 import type { ResourceMutationResponsePlan } from "./resource_mutation_response.js";
+import type { ResourceLineIdentityMigrationHistoryDigest } from "./resource_line_history.js";
 
 export interface ResourceLineBasisDiagnostics {
   readonly currentBasisId: string | null;
@@ -155,4 +156,6 @@ export interface ResourceLineDiagnostics {
   readonly visibleValueVersion: number;
   readonly lastMutationResponsePlan?: ResourceMutationResponsePlan;
   readonly mutationResponsePlanCount?: number;
+  readonly identityMigrationCount?: number;
+  readonly lastIdentityMigration?: ResourceLineIdentityMigrationHistoryDigest;
 }

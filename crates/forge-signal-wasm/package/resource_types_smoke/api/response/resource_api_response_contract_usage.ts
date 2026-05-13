@@ -217,6 +217,75 @@ const taskDetail = signals.api({}).url("/tasks/:taskId")
 
 void taskDetail.line({ taskId: "t1" }).value();
 
+const createTask = signals.api({}).url("/tasks")
+  .response(taskDetailResponse)
+  .create({
+    identity: {
+      submitted: ({ body }: { body: Task }) => body.id,
+      response: (value: Task) => value.id,
+      canonical: (value: Task) => value.id,
+      atomicity: "partialAllowed",
+      targets: [{
+        family: taskDetail,
+        params: ({ body }: { body: Task }) => ({ taskId: body.id }),
+        canonicalParams: (
+          _params: { body: Task },
+          _value: Task,
+          canonicalIdentity: string,
+        ) => ({ taskId: canonicalIdentity }),
+        fallback: "identityMigrationUnavailable",
+      }, {
+        family: tasks,
+        params: () => ({ workspaceId: "draft-workspace" }),
+        canonicalParams: (
+          _params: { body: Task },
+          _value: Task,
+          canonicalIdentity: string,
+        ) => ({ workspaceId: canonicalIdentity }),
+        fallback: "identityMigrationUnavailable",
+        summary: {
+          kind: "summary",
+          summary: "total",
+        },
+      }, {
+        family: taskDetail,
+        params: ({ body }: { body: Task }) => ({ taskId: body.id }),
+        canonicalParams: (
+          _params: { body: Task },
+          _value: Task,
+          canonicalIdentity: string,
+        ) => ({ taskId: canonicalIdentity }),
+        fallback: "deliveryAwaited",
+        selection: {
+          kind: "visibleSelection",
+        },
+      }, {
+        family: taskDetail,
+        params: ({ body }: { body: Task }) => ({ taskId: body.id }),
+        fallback: "refetchRequired",
+        detailChild: {
+          kind: "detailChild",
+          region: "children",
+        },
+      }],
+    },
+    load: ({ body }: { body: Task }) => body,
+  });
+
+void createTask.line({
+  body: {
+    id: "tmp-1",
+    title: "Draft",
+    status: "open",
+    assigneeId: null,
+    metadata: {
+      priority: 1,
+      labels: [],
+      nested: { rank: 1 },
+    },
+  },
+}).mutationResponse()?.identityMigration?.canonicalIdentity;
+
 const taskSummaryResponse = signals.resource.response.summary<{ total: number }>();
 const taskSummary = signals.api({}).url("/task-summary")
   .response(taskSummaryResponse)

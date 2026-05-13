@@ -7,63 +7,68 @@ const MUTATION_RESPONSE_EXACT_EXECUTION_KINDS = Object.freeze([
 function createMutationResponseConfirmationClassification(
   executionArtifacts,
   diagnosticFacts,
+  additionalFallbackKinds = [],
+  additionalExactTargetCount = 0,
 ) {
   const exactTargetCount = executionArtifacts.filter((artifact) =>
-    MUTATION_RESPONSE_EXACT_EXECUTION_KINDS.includes(artifact.kind)).length;
+    MUTATION_RESPONSE_EXACT_EXECUTION_KINDS.includes(artifact.kind)).length
+    + additionalExactTargetCount;
   const fallbackArtifacts = executionArtifacts.filter((artifact) =>
     artifact.kind === "fallback");
+  const allFallbackKinds = Object.freeze([
+    ...fallbackArtifacts.map((artifact) => artifact.fallback),
+    ...additionalFallbackKinds,
+  ]);
   const kind = classifyMutationResponseConfirmation(
     exactTargetCount,
-    fallbackArtifacts,
-  );
-  const fallbackKinds = Object.freeze(
-    fallbackArtifacts.map((artifact) => artifact.fallback),
+    allFallbackKinds,
   );
   const detail = createMutationResponseConfirmationDetail(
     kind,
     exactTargetCount,
-    fallbackArtifacts.length,
+    allFallbackKinds.length,
     diagnosticFacts.count,
   );
   return Object.freeze({
     kind,
     detail,
     exactTargetCount,
-    fallbackTargetCount: fallbackArtifacts.length,
+    fallbackTargetCount: allFallbackKinds.length,
     diagnosticCount: diagnosticFacts.count,
-    fallbackKinds,
+    fallbackKinds: allFallbackKinds,
     digest: createMutationResponseConfirmationDigest(
       kind,
       exactTargetCount,
-      fallbackKinds,
+      allFallbackKinds,
       diagnosticFacts.digest,
     ),
   });
 }
 
-function classifyMutationResponseConfirmation(exactTargetCount, fallbackArtifacts) {
-  if (exactTargetCount > 0 && fallbackArtifacts.length === 0) {
+function classifyMutationResponseConfirmation(exactTargetCount, fallbackKinds) {
+  if (exactTargetCount > 0 && fallbackKinds.length === 0) {
     return "consumedCanonicalTruth";
   }
-  if (exactTargetCount > 0 || hasPartialFallback(fallbackArtifacts)) {
+  if (exactTargetCount > 0 || hasPartialFallback(fallbackKinds)) {
     return "partialCanonicalTruth";
   }
-  if (fallbackArtifacts.length === 0) {
+  if (fallbackKinds.length === 0) {
     return "preservedOptimisticTruth";
   }
-  if (fallbackArtifacts.every((artifact) => artifact.fallback === "deliveryAwaited")) {
+  if (fallbackKinds.every((fallback) => fallback === "deliveryAwaited")) {
     return "deliveryAwaited";
   }
-  if (fallbackArtifacts.every((artifact) => artifact.fallback === "refetchRequired")) {
+  if (fallbackKinds.every((fallback) => fallback === "refetchRequired")) {
     return "refetchRequired";
   }
   return "partialCanonicalTruth";
 }
 
-function hasPartialFallback(fallbackArtifacts) {
-  return fallbackArtifacts.some((artifact) =>
-    artifact.fallback === "partialReconciliation"
-    || artifact.fallback === "unsupportedTarget");
+function hasPartialFallback(fallbackKinds) {
+  return fallbackKinds.some((fallback) =>
+    fallback === "partialReconciliation"
+    || fallback === "unsupportedTarget"
+    || fallback === "identityMigrationUnavailable");
 }
 
 function createMutationResponseConfirmationDetail(

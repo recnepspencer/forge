@@ -66,6 +66,12 @@ function normalizeVerificationPackageForConvergence(pkg) {
           basisAdvanceToId: pkg.diagnostics.summary.latest.basisAdvanceToId,
           deliveryKind: pkg.diagnostics.summary.latest.deliveryKind,
           deliveryScope: pkg.diagnostics.summary.latest.deliveryScope,
+          ...readOptionalIdentityMigrationSummaryLatest(
+            pkg.diagnostics.summary.latest,
+          ),
+          ...readOptionalMutationResponseIdentityMigrationSummaryLatest(
+            pkg.diagnostics.summary.latest,
+          ),
         },
       },
     },
@@ -85,6 +91,10 @@ function normalizeVerificationPackageForConvergence(pkg) {
       },
       lifecycleLength: pkg.historyReplayRestore.lifecycleLength,
       lastLifecycleEvent: pkg.historyReplayRestore.lastLifecycleEvent,
+      identityMigrationCount: pkg.historyReplayRestore.identityMigrationCount,
+      latestIdentityMigration: normalizeForProof(
+        pkg.historyReplayRestore.latestIdentityMigration,
+      ),
     },
     binaryDownload: normalizeForProof(pkg.binaryDownload),
     deliveryProvenance: {
@@ -154,6 +164,12 @@ function projectAuthoringConvergenceDigest(pkg) {
           basisCurrentId: pkg.diagnostics.summary.latest.basisCurrentId,
           basisAdvanceFromId: pkg.diagnostics.summary.latest.basisAdvanceFromId,
           basisAdvanceToId: pkg.diagnostics.summary.latest.basisAdvanceToId,
+          ...readOptionalIdentityMigrationSummaryLatest(
+            pkg.diagnostics.summary.latest,
+          ),
+          ...readOptionalMutationResponseIdentityMigrationSummaryLatest(
+            pkg.diagnostics.summary.latest,
+          ),
         },
       },
     },
@@ -180,6 +196,10 @@ function projectAuthoringConvergenceDigest(pkg) {
       },
       lifecycleLength: pkg.historyReplayRestore.lifecycleLength,
       lastLifecycleEvent: pkg.historyReplayRestore.lastLifecycleEvent,
+      identityMigrationCount: pkg.historyReplayRestore.identityMigrationCount,
+      latestIdentityMigration: normalizeForProof(
+        pkg.historyReplayRestore.latestIdentityMigration,
+      ),
     },
     binaryDownload: normalizeForProof(pkg.binaryDownload),
   };
@@ -236,6 +256,43 @@ function projectReplayLineDigest(pkg) {
       replayExact: normalizeForProof(pkg.typedDenials.replayExact),
       restoreExact: normalizeForProof(pkg.typedDenials.restoreExact),
     },
+  };
+}
+
+function readOptionalIdentityMigrationSummaryLatest(latest) {
+  if (!("identityMigrationCount" in latest)) {
+    return {};
+  }
+  return {
+    identityMigrationCount: latest.identityMigrationCount,
+    lastIdentityMigration: normalizeForProof(latest.lastIdentityMigration),
+  };
+}
+
+function readOptionalMutationResponseIdentityMigrationSummaryLatest(latest) {
+  if (!("mutationResponseIdentityMigrationDigest" in latest)) {
+    return "mutationResponsePlanId" in latest
+      ? { mutationResponsePlanId: latest.mutationResponsePlanId }
+      : {};
+  }
+  return {
+    ...( "mutationResponsePlanId" in latest
+      ? { mutationResponsePlanId: latest.mutationResponsePlanId }
+      : {}),
+    mutationResponseIdentityMigrationDigest:
+      latest.mutationResponseIdentityMigrationDigest,
+    mutationResponseIdentityMigrationNeeded:
+      latest.mutationResponseIdentityMigrationNeeded,
+    mutationResponseIdentityMigrationPartialAdmission:
+      latest.mutationResponseIdentityMigrationPartialAdmission,
+    mutationResponseIdentityMigrationTargetCount:
+      latest.mutationResponseIdentityMigrationTargetCount,
+    mutationResponseIdentityMigrationExactTargetCount:
+      latest.mutationResponseIdentityMigrationExactTargetCount,
+    mutationResponseIdentityMigrationExecutionDigest:
+      latest.mutationResponseIdentityMigrationExecutionDigest,
+    mutationResponseIdentityMigrationFallbackDigest:
+      latest.mutationResponseIdentityMigrationFallbackDigest,
   };
 }
 

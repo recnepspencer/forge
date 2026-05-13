@@ -14,6 +14,7 @@ import type {
 } from "./resource_lifecycle.js";
 import type { ResourcePolicyProfileName } from "./resource_postures.js";
 import type { ResourceLineHistoryAvailability } from "./resource_line_history.js";
+import type { ResourceLineIdentityMigrationHistoryDigest } from "./resource_line_history.js";
 import type { ResourceLineVisibleSelection } from "./resource_line_diagnostics.js";
 
 export interface ResourceLineDiagnosticsCurrentSummary {
@@ -104,6 +105,8 @@ export interface ResourceLineDiagnosticsLatestChangeSummary {
   readonly timeoutOperation: import("./resource_lifecycle.js").ResourceLineOperation | null;
   readonly errorMessage: string | null;
   readonly preservedVisibleValueOnLastRejection: boolean;
+  readonly identityMigrationCount?: number;
+  readonly lastIdentityMigration?: ResourceLineIdentityMigrationHistoryDigest;
   readonly mutationResponsePlanId?: string;
   readonly mutationResponseTargetCount?: number;
   readonly mutationResponseConfirmationKind?: import("./resource_mutation_response.js").ResourceMutationResponseConfirmationKind;
@@ -114,6 +117,16 @@ export interface ResourceLineDiagnosticsLatestChangeSummary {
   readonly mutationResponseDiagnosticCount?: number;
   readonly mutationResponseDiagnosticDigest?: string;
   readonly mutationResponsePlanCount?: number;
+  readonly mutationResponseIdentityMigrationDigest?: string;
+  readonly mutationResponseIdentityMigrationNeeded?: boolean;
+  readonly mutationResponseIdentityMigrationPartialAdmission?:
+    | "notNeeded"
+    | "admitted"
+    | "denied";
+  readonly mutationResponseIdentityMigrationTargetCount?: number;
+  readonly mutationResponseIdentityMigrationExactTargetCount?: number;
+  readonly mutationResponseIdentityMigrationExecutionDigest?: string;
+  readonly mutationResponseIdentityMigrationFallbackDigest?: string;
 }
 
 export interface ResourceLineDiagnosticsSummary {

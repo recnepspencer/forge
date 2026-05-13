@@ -66,6 +66,24 @@ test("save responses can replace a resident detail line through canonical mutati
       plan.executionDigest,
     );
     assert.equal(
+      "mutationResponseIdentityMigrationDigest"
+        in saveLine.summary().diagnostics.latest,
+      false,
+    );
+    assert.equal(
+      "mutationResponseIdentityMigrationNeeded"
+        in saveLine.summary().diagnostics.latest,
+      false,
+    );
+    assert.equal(
+      "identityMigrationCount" in residentLine.summary().diagnostics.latest,
+      false,
+    );
+    assert.equal(
+      "lastIdentityMigration" in residentLine.summary().diagnostics.latest,
+      false,
+    );
+    assert.equal(
       "mutationResponsePlan" in saveLine.summary().diagnostics.latest,
       false,
     );

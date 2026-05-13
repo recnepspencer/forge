@@ -68,6 +68,12 @@ function readLineDiagnosticsSummary(materialization) {
       errorMessage: diagnostics.lastErrorMessage,
       preservedVisibleValueOnLastRejection:
         diagnostics.preservedVisibleValueOnLastRejection,
+      ...("identityMigrationCount" in diagnostics
+        ? {
+            identityMigrationCount: diagnostics.identityMigrationCount,
+            lastIdentityMigration: diagnostics.lastIdentityMigration,
+          }
+        : {}),
       ...(mutationResponseSummaryDigest === null
         ? {}
         : {
@@ -88,6 +94,24 @@ function readLineDiagnosticsSummary(materialization) {
             mutationResponseDiagnosticDigest:
               mutationResponseSummaryDigest.diagnosticDigest,
             mutationResponsePlanCount: mutationResponseSummaryDigest.planCount,
+            ...("identityMigrationDigest" in mutationResponseSummaryDigest
+              ? {
+                  mutationResponseIdentityMigrationDigest:
+                    mutationResponseSummaryDigest.identityMigrationDigest,
+                  mutationResponseIdentityMigrationNeeded:
+                    mutationResponseSummaryDigest.identityMigrationNeeded,
+                  mutationResponseIdentityMigrationPartialAdmission:
+                    mutationResponseSummaryDigest.identityMigrationPartialAdmission,
+                  mutationResponseIdentityMigrationTargetCount:
+                    mutationResponseSummaryDigest.identityMigrationTargetCount,
+                  mutationResponseIdentityMigrationExactTargetCount:
+                    mutationResponseSummaryDigest.identityMigrationExactTargetCount,
+                  mutationResponseIdentityMigrationExecutionDigest:
+                    mutationResponseSummaryDigest.identityMigrationExecutionDigest,
+                  mutationResponseIdentityMigrationFallbackDigest:
+                    mutationResponseSummaryDigest.identityMigrationFallbackDigest,
+                }
+              : {}),
           }),
     }),
     request: diagnostics.request,

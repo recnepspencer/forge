@@ -137,6 +137,77 @@ signals.api({}).url("/tasks/:taskId").params<{ taskId: string }>()
     }),
   });
 
+signals.api({}).url("/tasks").response(taskDetailResponse).create({
+  identity: {
+    submitted: ({ body }: { body: Task }) => body.id,
+    response: (value: Task) => value.id,
+    canonical: (value: Task) => value.id,
+    targets: [{
+      family: tasks,
+      params: (_params: { body: Task }) => ({}),
+      // @ts-expect-error identity migration targets only admit the dedicated fallback posture set
+      fallback: "unsupportedTarget",
+    }],
+  },
+  load: ({ body }: { body: Task }) => body,
+});
+
+signals.api({}).url("/tasks").response(taskDetailResponse).create({
+  identity: {
+    submitted: ({ body }: { body: Task }) => body.id,
+    canonical: (value: Task) => value.id,
+    // @ts-expect-error identity atomicity accepts only allOrNone or partialAllowed
+    atomicity: "sometimes",
+  },
+  load: ({ body }: { body: Task }) => body,
+});
+
+const taskIdentityDetail = signals.api({}).url("/tasks/:taskId")
+  .params<{ taskId: string }>()
+  .response(taskDetailResponse)
+  .detail({
+    load: ({ taskId }) => ({
+      id: taskId,
+      title: "Task",
+      status: "open" as const,
+      metadata: { priority: 1, labels: ["first"], nested: { rank: 1 } },
+    }),
+  });
+
+const invalidIdentityTarget:
+  import("../../../types/resource/resource_mutation_response.js").ResourceMutationResponseIdentityTargetDeclaration<
+    { body: Task },
+    Task,
+    typeof taskIdentityDetail
+  > = {
+    family: taskIdentityDetail,
+    params: ({ body }: { body: Task }) => ({
+      taskId: body.id,
+      params: { taskId: body.id },
+    }),
+    // @ts-expect-error identity canonicalParams must return the declared target family params
+    canonicalParams: (_params: { body: Task }, _value: Task, canonicalIdentity: string) => ({ taskKey: canonicalIdentity }),
+    fallback: "identityMigrationUnavailable",
+  };
+
+void invalidIdentityTarget;
+
+signals.api({}).url("/tasks/:taskId").params<{ taskId: string }>()
+  .response(taskDetailResponse)
+  .remove({
+    // @ts-expect-error remove responses do not admit identity migration declarations
+    identity: {
+      submitted: ({ taskId }: { taskId: string | number }) => String(taskId),
+      canonical: (value: Task) => value.id,
+    },
+    load: ({ taskId }: { taskId: string | number }) => ({
+      id: String(taskId),
+      title: "Task",
+      status: "open",
+      metadata: { priority: 1, labels: ["first"], nested: { rank: 1 } },
+    }),
+  });
+
 const taskEnvelopeResponse = signals.resource.response.objectItems<TaskEnvelope>()({
   field: "tasks",
   itemId: (item) => item.id,

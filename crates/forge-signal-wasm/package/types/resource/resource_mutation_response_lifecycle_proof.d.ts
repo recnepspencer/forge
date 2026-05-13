@@ -3,6 +3,7 @@ export interface ResourceMutationResponseRollbackProof {
     | "exactBranchRestoreAvailable"
     | "compactInverseAvailable"
     | "unavailable"
+    | "identityMigrationUnavailable"
     | "notApplicable"
     | "fallbackUnavailable"
     | "awaitingExecution";
@@ -17,6 +18,8 @@ export interface ResourceMutationResponseMergeRebaseProof {
   readonly kind:
     | "nativeMergePlan"
     | "unavailable"
+    | "identityMigrationUnavailable"
+    | "notApplicable"
     | "fallbackUnavailable"
     | "awaitingExecution";
   readonly granularity: string;
@@ -38,6 +41,7 @@ export interface ResourceMutationResponseTargetEffectProof {
 }
 
 export interface ResourceMutationResponseLifecycleProofEntry {
+  readonly entryKind: "reconciliation" | "identityMigration";
   readonly targetId: string;
   readonly effectId: string | null;
   readonly authorityDigest: string | null;

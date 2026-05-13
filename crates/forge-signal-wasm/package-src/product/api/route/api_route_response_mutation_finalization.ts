@@ -21,6 +21,7 @@ function createResponseMutationRouteDeclaration(options) {
       options.response,
       options.reconciles,
       options.diagnostics,
+      options.identity,
     ),
     normalizeParams(rawParams) {
       const params = createRouteBoundParams(

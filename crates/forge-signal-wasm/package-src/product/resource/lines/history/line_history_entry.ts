@@ -10,6 +10,8 @@ function createLineHistoryEntry(
   overrides = {},
 ) {
   const mutationResponsePlanRecord = readMutationResponsePlanRecord(diagnostics);
+  const identityMigrationHistoryDigest =
+    readIdentityMigrationHistoryDigest(overrides);
   const entry = {
     sequence: 0,
     event,
@@ -62,6 +64,11 @@ function createLineHistoryEntry(
           mutationResponsePlan: mutationResponsePlanRecord.plan,
           mutationResponsePlanCount: mutationResponsePlanRecord.planCount,
         }),
+    ...(identityMigrationHistoryDigest === null
+      ? {}
+      : {
+          identityMigration: identityMigrationHistoryDigest,
+        }),
     supersededOperation: null,
     ...overrides,
   };
@@ -72,6 +79,13 @@ function createLineHistoryEntry(
     writable: false,
   });
   return Object.freeze(entry);
+}
+
+function readIdentityMigrationHistoryDigest(overrides) {
+  if (!("identityMigration" in overrides)) {
+    return null;
+  }
+  return overrides.identityMigration ?? null;
 }
 
 export { createLineHistoryEntry };

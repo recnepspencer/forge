@@ -106,3 +106,55 @@ test("pending save response falls back when delivery advances target basis", asy
     await runtime.cleanup();
   }
 });
+
+test("pending save response falls back when the resident target rematerializes to a new line instance", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const deferred = createDeferred();
+    const readFamily = runtime.signals.api({}).url("/profiles/:profileId")
+      .response(runtime.signals.resource.response.detail()({ name: "name" }))
+      .detail({
+        load: ({ profileId }) => ({ id: profileId, name: "First" }),
+      });
+    const originalLine = readFamily.line({ profileId: "p1" });
+    const originalRuntimeLineId = originalLine.descriptor().runtimeLineId;
+    const saveProfile = runtime.signals.api({}).url("/profiles/:profileId")
+      .response(runtime.signals.resource.response.detail()({ name: "name" }))
+      .update({
+        reconciles: [
+          {
+            family: readFamily,
+            params: ({ profileId }) => ({ profileId }),
+            fallback: "refetchRequired",
+            detail: { kind: "field", field: "name" },
+          },
+        ],
+        load: () => deferred.promise,
+      });
+
+    const saveLine = saveProfile.line({
+      profileId: "p1",
+      body: { name: "Server" },
+    });
+    originalLine.free();
+    const rematerializedLine = readFamily.line({ profileId: "p1" });
+    const rematerializedRuntimeLineId = rematerializedLine.descriptor().runtimeLineId;
+
+    deferred.resolve({ name: "Server" });
+    await deferred.promise;
+    await Promise.resolve();
+    const plan = saveLine.mutationResponse();
+
+    assert.notEqual(rematerializedRuntimeLineId, originalRuntimeLineId);
+    assert.equal(rematerializedLine.value().name, "First");
+    assert.equal(plan.executionArtifacts[0].kind, "fallback");
+    assert.equal(plan.executionArtifacts[0].fallback, "refetchRequired");
+    assert.equal(plan.executionArtifacts[0].staleness.reason, "runtimeLineIdChanged");
+    assert.equal(plan.executionArtifacts[0].submittedTarget.runtimeLineId, originalRuntimeLineId);
+    assert.equal(plan.executionArtifacts[0].runtimeLineId, rematerializedRuntimeLineId);
+    assert.equal(plan.counters.staleTargetDenialBreadth, 1);
+    assert.equal(plan.confirmation.kind, "refetchRequired");
+  } finally {
+    await runtime.cleanup();
+  }
+});

@@ -12,6 +12,20 @@ import {
 import {
   createMutationResponseLifecycleProof,
 } from "./resource_mutation_response_lifecycle_proof.js";
+import {
+  createMutationResponseIdentityMigrationPlan,
+} from "./identity/resource_mutation_response_identity_migration.js";
+import {
+  createExecutedMutationResponseExecutionDigest,
+  createMutationResponseExecutionDigest,
+  createMutationResponseFallbackDigest,
+  createMutationResponseTargetDigest,
+  createPlannedMutationResponseTargetDigest,
+  createPlannedMutationResponseTargetIdentityDigest,
+  readAppliedTargetBreadthCounter,
+  readFallbackTargetBreadth,
+  readStaleTargetDenialBreadth,
+} from "./plan/resource_mutation_response_plan_digests.js";
 
 const RESOURCE_MUTATION_RESPONSE_DECLARATION = Symbol(
   "forgeSignal.resourceMutationResponseDeclaration",
@@ -43,6 +57,7 @@ function createMutationResponseDeclaration(options) {
     lensProof,
     targets,
     diagnostics,
+    identityMigration: options.identityMigration ?? null,
     targetCount: targets.length,
     diagnosticCount: diagnostics.length,
     atomicity: readMutationResponseAtomicity(targets.length),
@@ -70,6 +85,7 @@ function createMutationResponsePlan(materialization, declaration, responseValue)
     declaration,
     responseValue,
     submittedTargets: null,
+    submittedIdentityMigration: null,
   });
 }
 
@@ -97,6 +113,12 @@ function createPreparedMutationResponsePlan(options) {
     readDeclaration.diagnostics,
     options.responseValue,
   );
+  const identityMigration = createMutationResponseIdentityMigrationPlan(
+    readDeclaration.identityMigration,
+    options.requestDescriptor.canonicalParams.params,
+    options.responseValue,
+    options.submittedIdentityMigration ?? null,
+  );
   const plannedTargets = Object.freeze(
     readDeclaration.targets.map((target, index) =>
       createPlannedMutationResponseTarget(
@@ -109,9 +131,12 @@ function createPreparedMutationResponsePlan(options) {
   );
   const exactExecutionCount = plannedTargets.filter((target) =>
     isExactMutationResponseExecutionKind(target.execution.kind)).length;
-  if (exactExecutionCount > 1) {
+  const identityExactTargetCount = identityMigration?.exactTargetCount ?? 0;
+  const totalExactExecutionCount =
+    exactExecutionCount + identityExactTargetCount;
+  if (totalExactExecutionCount > 1 && exactExecutionCount > 0) {
     throw new TypeError(
-      "mutation response planning currently admits at most one exact reconciliation target before multi-target atomicity support lands",
+      "mutation response planning currently admits at most one exact target across reconciliation and identity migration before multi-target atomicity support lands",
     );
   }
   const preparedExecutions = Object.freeze(
@@ -124,8 +149,13 @@ function createPreparedMutationResponsePlan(options) {
   const confirmation = createMutationResponseConfirmationClassification(
     executionArtifacts,
     diagnosticFacts,
+    identityMigration?.fallbackKinds ?? [],
+    identityMigration?.exactTargetCount ?? 0,
   );
-  const lifecycleProof = createMutationResponseLifecycleProof(executionArtifacts);
+  const lifecycleProof = createMutationResponseLifecycleProof(
+    executionArtifacts,
+    identityMigration,
+  );
   const plan = {
     version: RESOURCE_MUTATION_RESPONSE_PLAN_VERSION,
     source: readDeclaration.source,
@@ -155,6 +185,7 @@ function createPreparedMutationResponsePlan(options) {
     confirmation,
     lifecycleProof,
     diagnostics: diagnosticFacts,
+    identityMigration,
     targets: plannedTargets.map((target) => target.publicTarget),
     targetCount: readDeclaration.targetCount,
     atomicity: readDeclaration.atomicity,
@@ -177,9 +208,22 @@ function createPreparedMutationResponsePlan(options) {
       targetBasisSnapshotBreadth: (options.submittedTargets ?? []).length,
       staleTargetDenialBreadth:
         readStaleTargetDenialBreadth(executionArtifacts),
+      identityResponseExtractionBreadth:
+        identityMigration?.counters.responseIdentityExtractionBreadth ?? 0,
+      identityMigrationTargetFanoutBreadth:
+        identityMigration?.counters.targetFanoutBreadth ?? 0,
+      identityMigrationStaleDenialBreadth:
+        identityMigration?.counters.staleTargetDenialBreadth ?? 0,
+      identityMigrationExecutionBreadth:
+        identityMigration?.exactTargetCount ?? 0,
+      identityMigrationLifecycleProofBreadth:
+        identityMigration?.counters.lifecycleProofBreadth ?? 0,
       confirmationClassificationBreadth:
-        executionArtifacts.length + diagnosticFacts.count,
-      lifecycleProofBreadth: executionArtifacts.length,
+        executionArtifacts.length
+        + diagnosticFacts.count
+        + (identityMigration?.fallbackKinds.length ?? 0)
+        + (identityMigration?.exactTargetCount ?? 0),
+      lifecycleProofBreadth: lifecycleProof.count,
     }),
     [RESOURCE_MUTATION_RESPONSE_PLAN]: "resourceMutationResponsePlan",
   };
@@ -191,11 +235,17 @@ function createPreparedMutationResponsePlan(options) {
 }
 
 function createExecutedMutationResponsePlan(plan, executedArtifacts) {
+  const identityMigration = plan.identityMigration;
   const confirmation = createMutationResponseConfirmationClassification(
     executedArtifacts,
     plan.diagnostics,
+    identityMigration?.fallbackKinds ?? [],
+    identityMigration?.exactTargetCount ?? 0,
   );
-  const lifecycleProof = createMutationResponseLifecycleProof(executedArtifacts);
+  const lifecycleProof = createMutationResponseLifecycleProof(
+    executedArtifacts,
+    identityMigration,
+  );
   const nextTargets = Object.freeze(
     plan.targets.map((target, index) =>
       Object.freeze({
@@ -207,6 +257,7 @@ function createExecutedMutationResponsePlan(plan, executedArtifacts) {
     ...plan,
     confirmation,
     lifecycleProof,
+    identityMigration,
     targets: nextTargets,
     executionArtifacts: Object.freeze(executedArtifacts),
     executionDigest: createExecutedMutationResponseExecutionDigest(executedArtifacts),
@@ -216,6 +267,15 @@ function createExecutedMutationResponsePlan(plan, executedArtifacts) {
       fallbackBreadth: readFallbackTargetBreadth(executedArtifacts),
       staleTargetDenialBreadth:
         readStaleTargetDenialBreadth(executedArtifacts),
+      identityMigrationExecutionBreadth:
+        identityMigration?.exactTargetCount ?? 0,
+      identityMigrationLifecycleProofBreadth:
+        identityMigration?.counters.lifecycleProofBreadth ?? 0,
+      confirmationClassificationBreadth:
+        executedArtifacts.length
+        + plan.diagnostics.count
+        + (identityMigration?.fallbackKinds.length ?? 0)
+        + (identityMigration?.exactTargetCount ?? 0),
     }),
   });
 }
@@ -280,33 +340,6 @@ function createPublicMutationResponseReconciliationDigest(reconciliation) {
     targetDigest: reconciliation.targetDigest,
   });
 }
-
-function createPlannedMutationResponseTargetIdentityDigest(
-  target,
-  lineIdentity,
-  executionArtifact,
-) {
-  return [
-    target.targetId,
-    target.family.kind,
-    target.family.familyId,
-    lineIdentity.canonicalKey,
-    executionArtifact.kind === "fallback"
-      ? target.fallback
-      : isExactMutationResponseExecutionKind(executionArtifact.kind)
-        ? `exact:${executionArtifact.scope}:${
-          executionArtifact.itemId
-          ?? executionArtifact.summary
-          ??
-          executionArtifact.field
-          ?? executionArtifact.region
-          ?? executionArtifact.path
-          ?? "line"
-        }`
-        : target.fallback,
-  ].join("|");
-}
-
 function readMutationResponseAtomicity(targetCount) {
   if (targetCount === 0) {
     return "zeroTargets";
@@ -316,79 +349,6 @@ function readMutationResponseAtomicity(targetCount) {
   }
   return "allOrNone";
 }
-
-function createMutationResponseTargetDigest(targets) {
-  if (targets.length === 0) {
-    return "mutation-response-targets|none";
-  }
-  return `mutation-response-targets|${targets.map((target) =>
-    `${target.targetId}:${target.family.kind}:${target.family.familyId}:${target.fallback}`).join(",")}`;
-}
-
-function createMutationResponseFallbackDigest(targets) {
-  if (targets.length === 0) {
-    return "mutation-response-fallbacks|none";
-  }
-  return `mutation-response-fallbacks|${targets.map((target) =>
-    target.execution.kind === "fallback"
-      ? `${target.targetId}:${target.fallback.kind}:${target.line.canonicalKey}`
-      : `${target.targetId}:none:${target.line.canonicalKey}`).join(",")}`;
-}
-
-function createPlannedMutationResponseTargetDigest(targets) {
-  if (targets.length === 0) {
-    return "mutation-response-targets|none";
-  }
-  return `mutation-response-targets|${targets.map((target) =>
-    `${target.targetId}:${target.family.kind}:${target.family.familyId}:${target.line.canonicalKey}:${target.fallback.kind}`).join(",")}`;
-}
-
-function createMutationResponseExecutionDigest(executionArtifacts) {
-  if (executionArtifacts.length === 0) {
-    return "mutation-response-execution|none";
-  }
-  return `mutation-response-execution|${executionArtifacts.map((artifact) =>
-    artifact.kind === "fallback"
-      ? `${artifact.targetId}:fallback:${artifact.fallback}:${artifact.canonicalKey}`
-      : `${artifact.targetId}:${artifact.kind}:${artifact.scope}:${
-        artifact.itemId
-        ?? artifact.summary
-        ??
-        artifact.field ?? artifact.region ?? artifact.path ?? "line"
-      }:${artifact.canonicalKey}`).join(",")}`;
-}
-
-function createExecutedMutationResponseExecutionDigest(executedArtifacts) {
-  if (executedArtifacts.length === 0) {
-    return "mutation-response-execution|none";
-  }
-  return `mutation-response-execution|${executedArtifacts.map((artifact) =>
-    artifact.kind === "fallback"
-      ? `${artifact.targetId}:fallback:${artifact.fallback}:${artifact.canonicalKey}`
-      : `${artifact.targetId}:${artifact.kind}:${artifact.scope}:${
-        artifact.itemId
-        ?? artifact.summary
-        ??
-        artifact.field ?? artifact.region ?? artifact.path ?? "line"
-      }:${artifact.effectId ?? "none"}:${artifact.canonicalKey}`).join(",")}`;
-}
-
-function readAppliedTargetBreadthCounter(executedArtifacts) {
-  const appliedTargetBreadth = executedArtifacts.filter(
-    (artifact) => isExactMutationResponseExecutionKind(artifact.kind),
-  ).length;
-  if (appliedTargetBreadth === 0) {
-    return Object.freeze({});
-  }
-  return Object.freeze({
-    appliedTargetBreadth,
-  });
-}
-
-const readFallbackTargetBreadth = (executionArtifacts) =>
-  executionArtifacts.filter((artifact) => artifact.kind === "fallback").length;
-const readStaleTargetDenialBreadth = (executionArtifacts) =>
-  executionArtifacts.filter((artifact) => artifact.staleness !== null).length;
 
 export {
   createExecutedMutationResponsePlan,

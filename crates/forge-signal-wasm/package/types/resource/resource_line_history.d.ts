@@ -15,6 +15,7 @@ import type { ResourceMutationResponsePlan } from "./resource_mutation_response.
 
 export type ResourceLineHistoryEvent =
   | "materialized"
+  | "identityMigrated"
   | "mutationResponsePlanned"
   | "pending"
   | "superseded"
@@ -26,6 +27,15 @@ export type ResourceLineHistoryEvent =
   | "rejected"
   | "timedOut"
   | "invalidated";
+
+export interface ResourceLineIdentityMigrationHistoryDigest {
+  readonly previousCanonicalKey: string;
+  readonly nextCanonicalKey: string;
+  readonly previousRuntimeLineId: string | null;
+  readonly nextRuntimeLineId: string | null;
+  readonly basisId: string | null;
+  readonly requestPath: string | null;
+}
 
 export interface ResourceLineHistoryEntry {
   readonly sequence: number;
@@ -111,6 +121,7 @@ export interface ResourceLineHistoryEntry {
   readonly visibleValueVersion: number;
   readonly mutationResponsePlan?: ResourceMutationResponsePlan;
   readonly mutationResponsePlanCount?: number;
+  readonly identityMigration?: ResourceLineIdentityMigrationHistoryDigest;
 }
 
 export interface ResourceLineBranchSummary {
@@ -177,7 +188,10 @@ export interface ResourceLineReplayAvailable {
 
 export interface ResourceLineReplayUnavailable {
   readonly kind: "unavailable";
-  readonly reason: "unsupportedByRuntime" | "runtimeRejected";
+  readonly reason:
+    | "unsupportedByRuntime"
+    | "runtimeRejected"
+    | "identityMigrationUnavailable";
   readonly detail: string;
 }
 
@@ -197,7 +211,8 @@ export interface ResourceLineRestoreUnavailable {
   readonly reason:
     | "unsupportedByRuntime"
     | "branchHeadUnavailable"
-    | "runtimeRejected";
+    | "runtimeRejected"
+    | "identityMigrationUnavailable";
   readonly detail: string;
 }
 
@@ -220,7 +235,8 @@ export interface ResourceLineExactRestoreResultUnavailable {
   readonly reason:
     | "unsupportedByRuntime"
     | "branchHeadUnavailable"
-    | "runtimeRejected";
+    | "runtimeRejected"
+    | "identityMigrationUnavailable";
   readonly detail: string;
   readonly basisCurrentId: string | null;
   readonly basisAdvanceCount: number;
@@ -274,7 +290,10 @@ export interface ResourceLineExactReplayResultReplayed {
 
 export interface ResourceLineExactReplayResultUnavailable {
   readonly kind: "unavailable";
-  readonly reason: "unsupportedByRuntime" | "runtimeRejected";
+  readonly reason:
+    | "unsupportedByRuntime"
+    | "runtimeRejected"
+    | "identityMigrationUnavailable";
   readonly detail: string;
   readonly basisCurrentId: string | null;
   readonly basisAdvanceCount: number;

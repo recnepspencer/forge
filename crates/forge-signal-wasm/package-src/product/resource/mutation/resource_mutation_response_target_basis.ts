@@ -1,6 +1,16 @@
 function createMutationResponseTargetBasisSnapshots(declaration, mutationParams) {
+  return createMutationResponseTargetBasisSnapshotsForTargets(
+    declaration.targets,
+    mutationParams,
+  );
+}
+
+function createMutationResponseTargetBasisSnapshotsForTargets(
+  targets,
+  mutationParams,
+) {
   return Object.freeze(
-    declaration.targets.map((target) =>
+    targets.map((target) =>
       createMutationResponseTargetBasisSnapshot(target, mutationParams)),
   );
 }
@@ -54,6 +64,15 @@ function readMutationResponseTargetStaleness(
       "canonicalKeyChanged",
     );
   }
+  if (submittedTarget.runtimeLineId !== lineIdentity.runtimeLineId) {
+    return createTargetStaleness(
+      submittedTarget,
+      lineIdentity,
+      null,
+      null,
+      "runtimeLineIdChanged",
+    );
+  }
   const diagnostics = targetMaterialization.binding.diagnosticsSignal();
   const currentBasisId = targetMaterialization.requestState.currentBasisId();
   if (submittedTarget.basisId !== currentBasisId) {
@@ -103,5 +122,6 @@ function createTargetStaleness(
 
 export {
   createMutationResponseTargetBasisSnapshots,
+  createMutationResponseTargetBasisSnapshotsForTargets,
   readMutationResponseTargetStaleness,
 };

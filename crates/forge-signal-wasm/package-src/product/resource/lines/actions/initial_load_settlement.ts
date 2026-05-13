@@ -207,6 +207,7 @@ function applyFulfilledInitialLoad(
           mutationResponsePlanning.declaration,
           loaded.value,
           mutationResponsePlanning.submittedTargets,
+          mutationResponsePlanning.submittedIdentityMigration ?? null,
         );
   binding.valueSignal.set(loaded.value);
   binding.processingSignal.set(loaded.processing);

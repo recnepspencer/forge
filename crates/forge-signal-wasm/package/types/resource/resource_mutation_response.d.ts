@@ -52,14 +52,44 @@ export interface ResourceMutationResponseCounters {
   readonly lifecycleProofBreadth: number;
   readonly targetBasisSnapshotBreadth: number;
   readonly staleTargetDenialBreadth: number;
+  readonly identityResponseExtractionBreadth?: number;
+  readonly identityMigrationTargetFanoutBreadth?: number;
+  readonly identityMigrationStaleDenialBreadth?: number;
+  readonly identityMigrationExecutionBreadth?: number;
+  readonly identityMigrationLifecycleProofBreadth?: number;
   readonly appliedTargetBreadth?: number;
 }
 
 export type ResourceMutationResponseFallbackKind =
+  | "identityMigrationUnavailable"
   | "refetchRequired"
   | "deliveryAwaited"
   | "partialReconciliation"
   | "unsupportedTarget";
+
+export type ResourceMutationResponseIdentityFallbackKind =
+  | "identityMigrationUnavailable"
+  | "refetchRequired"
+  | "deliveryAwaited"
+  | "partialReconciliation";
+
+export type ResourceMutationResponseIdentityAtomicity =
+  | "allOrNone"
+  | "partialAllowed";
+
+export interface ResourceMutationResponseIdentitySummaryTargetScope {
+  readonly kind: "summary";
+  readonly summary: string;
+}
+
+export interface ResourceMutationResponseIdentitySelectionTargetScope {
+  readonly kind: "visibleSelection";
+}
+
+export interface ResourceMutationResponseIdentityDetailChildTargetScope {
+  readonly kind: "detailChild";
+  readonly region: string;
+}
 
 export type ResourceMutationResponseDetailReconciliationDeclaration =
   | {
@@ -92,6 +122,23 @@ export interface ResourceMutationResponseDiagnosticDeclaration {
   readonly field: string;
 }
 
+export interface ResourceMutationResponseIdentityDeclaration<
+  TMutationParams,
+  TResponseValue,
+> {
+  readonly submitted: (mutationParams: TMutationParams) => string;
+  readonly response?: (responseValue: TResponseValue) => string;
+  readonly canonical: (
+    responseValue: TResponseValue,
+    responseIdentity: string | null,
+  ) => string;
+  readonly atomicity?: ResourceMutationResponseIdentityAtomicity;
+  readonly targets?: readonly ResourceMutationResponseAnyIdentityTargetDeclaration<
+    TMutationParams,
+    TResponseValue
+  >[];
+}
+
 export interface ResourceMutationResponseTargetFamily {
   invalidate(params: unknown): boolean;
   invalidateAll(): number;
@@ -109,6 +156,20 @@ export interface ResourceMutationResponseTargetFamily {
   };
 }
 
+export type ResourceMutationResponseTargetFamilyKind<
+  TFamily extends ResourceMutationResponseTargetFamily,
+> = TFamily extends {
+  line(params: unknown): {
+    descriptor(): {
+      readonly family: {
+        readonly kind: infer TKind;
+      };
+    };
+  };
+}
+  ? TKind
+  : never;
+
 export type ResourceMutationResponseTargetFamilyParams<
   TFamily extends ResourceMutationResponseTargetFamily,
 > = TFamily extends {
@@ -118,6 +179,153 @@ export type ResourceMutationResponseTargetFamilyParams<
 }
   ? TParams
   : never;
+
+interface ResourceMutationResponseBaseIdentityTargetDeclaration<
+  TMutationParams,
+  TResponseValue,
+  TFamily extends ResourceMutationResponseTargetFamily,
+> {
+  readonly family: TFamily;
+  readonly params: (
+    mutationParams: TMutationParams,
+  ) => ResourceMutationResponseTargetFamilyParams<TFamily>;
+  readonly canonicalParams?: (
+    mutationParams: TMutationParams,
+    responseValue: TResponseValue,
+    canonicalIdentity: string,
+    responseIdentity: string | null,
+  ) => ResourceMutationResponseTargetFamilyParams<TFamily>;
+  readonly fallback: ResourceMutationResponseIdentityFallbackKind;
+}
+
+export type ResourceMutationResponseResidentLineIdentityTargetDeclaration<
+  TMutationParams,
+  TResponseValue,
+  TFamily extends ResourceMutationResponseTargetFamily,
+> = ResourceMutationResponseBaseIdentityTargetDeclaration<
+  TMutationParams,
+  TResponseValue,
+  TFamily
+> & {
+  readonly summary?: never;
+  readonly selection?: never;
+  readonly detailChild?: never;
+};
+
+export type ResourceMutationResponseSummaryIdentityTargetDeclaration<
+  TMutationParams,
+  TResponseValue,
+  TFamily extends ResourceMutationResponseTargetFamily,
+> = ResourceMutationResponseTargetFamilyKind<TFamily> extends
+  | "collection"
+  | "paged"
+  ? ResourceMutationResponseBaseIdentityTargetDeclaration<
+      TMutationParams,
+      TResponseValue,
+      TFamily
+    > & {
+      readonly summary: ResourceMutationResponseIdentitySummaryTargetScope;
+      readonly selection?: never;
+      readonly detailChild?: never;
+    }
+  : never;
+
+export type ResourceMutationResponseSelectionIdentityTargetDeclaration<
+  TMutationParams,
+  TResponseValue,
+  TFamily extends ResourceMutationResponseTargetFamily,
+> = ResourceMutationResponseBaseIdentityTargetDeclaration<
+  TMutationParams,
+  TResponseValue,
+  TFamily
+> & {
+  readonly summary?: never;
+  readonly selection: ResourceMutationResponseIdentitySelectionTargetScope;
+  readonly detailChild?: never;
+};
+
+export type ResourceMutationResponseDetailChildIdentityTargetDeclaration<
+  TMutationParams,
+  TResponseValue,
+  TFamily extends ResourceMutationResponseTargetFamily,
+> = ResourceMutationResponseTargetFamilyKind<TFamily> extends "detail"
+  ? Omit<
+      ResourceMutationResponseBaseIdentityTargetDeclaration<
+        TMutationParams,
+        TResponseValue,
+        TFamily
+      >,
+      "canonicalParams"
+    > & {
+      readonly canonicalParams?: never;
+      readonly summary?: never;
+      readonly selection?: never;
+      readonly detailChild: ResourceMutationResponseIdentityDetailChildTargetScope;
+    }
+  : never;
+
+export type ResourceMutationResponseIdentityTargetDeclaration<
+  TMutationParams,
+  TResponseValue,
+  TFamily extends ResourceMutationResponseTargetFamily,
+> =
+  | ResourceMutationResponseResidentLineIdentityTargetDeclaration<
+      TMutationParams,
+      TResponseValue,
+      TFamily
+    >
+  | ResourceMutationResponseSummaryIdentityTargetDeclaration<
+      TMutationParams,
+      TResponseValue,
+      TFamily
+    >
+  | ResourceMutationResponseSelectionIdentityTargetDeclaration<
+      TMutationParams,
+      TResponseValue,
+      TFamily
+    >
+  | ResourceMutationResponseDetailChildIdentityTargetDeclaration<
+      TMutationParams,
+      TResponseValue,
+      TFamily
+    >;
+
+export type ResourceMutationResponseAnyIdentityTargetDeclaration<
+  TMutationParams,
+  TResponseValue,
+> =
+  | ResourceMutationResponseResidentLineIdentityTargetDeclaration<
+      TMutationParams,
+      TResponseValue,
+      ResourceMutationResponseTargetFamily
+    >
+  | (ResourceMutationResponseBaseIdentityTargetDeclaration<
+      TMutationParams,
+      TResponseValue,
+      ResourceMutationResponseTargetFamily
+    > & {
+      readonly summary: ResourceMutationResponseIdentitySummaryTargetScope;
+      readonly selection?: never;
+      readonly detailChild?: never;
+    })
+  | ResourceMutationResponseSelectionIdentityTargetDeclaration<
+      TMutationParams,
+      TResponseValue,
+      ResourceMutationResponseTargetFamily
+    >
+  | (Omit<
+      ResourceMutationResponseBaseIdentityTargetDeclaration<
+        TMutationParams,
+        TResponseValue,
+        ResourceMutationResponseTargetFamily
+      >,
+      "canonicalParams"
+    > & {
+      readonly canonicalParams?: never;
+      readonly summary?: never;
+      readonly selection?: never;
+      readonly detailChild: ResourceMutationResponseIdentityDetailChildTargetScope;
+    });
 
 export interface ResourceMutationResponseTargetDeclaration<
   TMutationParams,
@@ -325,6 +533,79 @@ export interface ResourceMutationResponseConfirmationClassification {
   readonly digest: string;
 }
 
+export interface ResourceMutationResponseIdentityNoopExecutionDigest {
+  readonly kind: "noMigrationRequired";
+  readonly detail: string;
+}
+export interface ResourceMutationResponseIdentityFallbackExecutionDigest {
+  readonly kind: "fallback";
+  readonly fallback: ResourceMutationResponseIdentityFallbackKind;
+  readonly detail: string;
+}
+export interface ResourceMutationResponseIdentityExactResidentLineExecutionDigest {
+  readonly kind: "exactResidentLine";
+  readonly previousCanonicalKey: string;
+  readonly nextCanonicalKey: string;
+  readonly previousRuntimeLineId: string | null;
+  readonly nextRuntimeLineId: string | null;
+  readonly basisId: string | null;
+  readonly requestPath: string | null;
+  readonly outcomeKind: "applied" | null;
+  readonly detail: string;
+}
+export interface ResourceMutationResponseIdentityMigrationTargetDigest {
+  readonly targetId: string;
+  readonly family: ResourceMutationResponseTargetDigest["family"];
+  readonly scope:
+    | { readonly kind: "residentLine" }
+    | ResourceMutationResponseIdentitySummaryTargetScope
+    | ResourceMutationResponseIdentitySelectionTargetScope
+    | ResourceMutationResponseIdentityDetailChildTargetScope;
+  readonly line: ResourceMutationResponseTargetLineDigest;
+  readonly fallback: ResourceMutationResponseIdentityFallbackKind;
+  readonly submittedTarget: ResourceMutationResponseSubmittedTargetBasis | null;
+  readonly staleness: ResourceMutationResponseTargetStaleness | null;
+  readonly outcome: "noMigrationRequired" | "fallback" | "exactResidentLine";
+  readonly detail: string;
+  readonly execution:
+    | ResourceMutationResponseIdentityNoopExecutionDigest
+    | ResourceMutationResponseIdentityFallbackExecutionDigest
+    | ResourceMutationResponseIdentityExactResidentLineExecutionDigest;
+  readonly targetDigest: string;
+}
+
+export interface ResourceMutationResponseIdentityMigrationDigest {
+  readonly declarationDigest: string;
+  readonly atomicity: ResourceMutationResponseIdentityAtomicity;
+  readonly partialAdmission: "notNeeded" | "admitted" | "denied";
+  readonly submittedIdentity: string;
+  readonly submittedIdentityDigest: string;
+  readonly responseIdentity: string | null;
+  readonly responseIdentityDigest: string;
+  readonly canonicalIdentity: string;
+  readonly canonicalIdentityDigest: string;
+  readonly migrationNeeded: boolean;
+  readonly exactTargetCount: number;
+  readonly targets: readonly ResourceMutationResponseIdentityMigrationTargetDigest[];
+  readonly targetCount: number;
+  readonly targetDigest: string;
+  readonly fallbackDigest: string;
+  readonly fallbackKinds: readonly ResourceMutationResponseIdentityFallbackKind[];
+  readonly executionDigest: string;
+  readonly counters: {
+    readonly responseIdentityExtractionBreadth: number;
+    readonly canonicalIdentityBreadth: number;
+    readonly targetFanoutBreadth: number;
+    readonly targetBasisSnapshotBreadth: number;
+    readonly staleTargetDenialBreadth: number;
+    readonly exactTargetCount: number;
+    readonly requestDescriptorRewriteBreadth: number;
+    readonly lifecycleProofBreadth: number;
+    readonly partialPolicyBreadth: number;
+  };
+  readonly digest: string;
+}
+
 export type ResourceMutationResponseExecutionArtifact =
   | ResourceMutationResponseFallbackExecutionArtifact
   | ResourceMutationResponseExactDetailExecutionArtifact
@@ -344,6 +625,7 @@ export interface ResourceMutationResponsePlan {
   readonly confirmation: ResourceMutationResponseConfirmationClassification;
   readonly lifecycleProof: ResourceMutationResponseLifecycleProof;
   readonly diagnostics: ResourceMutationResponseDiagnosticsDigest;
+  readonly identityMigration: ResourceMutationResponseIdentityMigrationDigest | null;
   readonly targets: readonly ResourceMutationResponseTargetDigest[];
   readonly targetCount: number;
   readonly atomicity: "zeroTargets" | "singleTarget" | "allOrNone";

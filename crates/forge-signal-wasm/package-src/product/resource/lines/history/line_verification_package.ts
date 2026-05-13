@@ -30,6 +30,9 @@ function readLineVerificationPackage(materialization, historyRead) {
   const patchCapable = materialization.patch.broadReplace;
   const mutationResponsePlanRecord =
     readMutationResponsePlanRecord(diagnostics);
+  const latestIdentityMigration = readLatestIdentityMigrationDigest(
+    historyRead.lifecycle,
+  );
   return Object.freeze({
     declaration: Object.freeze({
       familyKind: descriptor.family.kind,
@@ -141,6 +144,9 @@ function readLineVerificationPackage(materialization, historyRead) {
       lifecycleLength: historyRead.lifecycle.length,
       lastLifecycleEvent:
         historyRead.lifecycle.at(-1)?.event ?? null,
+      identityMigrationCount: historyRead.lifecycle.filter((entry) =>
+        entry.event === "identityMigrated").length,
+      latestIdentityMigration,
     }),
     binaryDownload: Object.freeze({
       count: download.count,
@@ -211,6 +217,16 @@ function readLineVerificationPackage(materialization, historyRead) {
         : null,
     }),
   });
+}
+
+function readLatestIdentityMigrationDigest(lifecycle) {
+  for (let index = lifecycle.length - 1; index >= 0; index -= 1) {
+    const entry = lifecycle[index];
+    if (entry.event === "identityMigrated" && entry.identityMigration) {
+      return entry.identityMigration;
+    }
+  }
+  return null;
 }
 
 export { readLineVerificationPackage };

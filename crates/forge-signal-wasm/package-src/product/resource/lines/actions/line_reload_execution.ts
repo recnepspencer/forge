@@ -26,6 +26,9 @@ import {
 import {
   createMutationResponseTargetBasisSnapshots,
 } from "../../mutation/resource_mutation_response_target_basis.js";
+import {
+  createSubmittedMutationResponseIdentityMigration,
+} from "../../mutation/identity/resource_mutation_response_identity_migration.js";
 
 function executeLineReload(materialization, operation, options = "fulfilled") {
   const normalizedOptions =
@@ -80,6 +83,14 @@ function executeLineReload(materialization, operation, options = "fulfilled") {
         ? null
         : createMutationResponseTargetBasisSnapshots(
             reload.mutationResponseDeclaration,
+            reload.params,
+          );
+    const submittedIdentityMigration =
+      reload.mutationResponseDeclaration?.identityMigration === undefined
+      || reload.mutationResponseDeclaration.identityMigration === null
+        ? null
+        : createSubmittedMutationResponseIdentityMigration(
+            reload.mutationResponseDeclaration.identityMigration,
             reload.params,
           );
     const bindingResult = bindReloadLineValue(
@@ -145,6 +156,7 @@ function executeLineReload(materialization, operation, options = "fulfilled") {
             normalizedOptions.finalizeFulfilledDiagnostics,
             normalizedOptions.onFulfilled,
             submittedTargets,
+            submittedIdentityMigration,
           );
         },
         (error) => {
@@ -171,6 +183,7 @@ function executeLineReload(materialization, operation, options = "fulfilled") {
       normalizedOptions.finalizeFulfilledDiagnostics,
       normalizedOptions.onFulfilled,
       submittedTargets,
+      submittedIdentityMigration,
     );
   } catch (error) {
     return applyRejectedReload(materialization, operation, error);
@@ -189,6 +202,7 @@ function applyFulfilledReload(
   finalizeFulfilledDiagnostics = null,
   onFulfilled = null,
   submittedTargets = null,
+  submittedIdentityMigration = null,
 ) {
   const visibleValueChanged =
     loaded.hasVisibleValue
@@ -215,6 +229,7 @@ function applyFulfilledReload(
     reload.mutationResponseDeclaration,
     loaded.value,
     submittedTargets,
+    submittedIdentityMigration,
   );
   materialization.binding.valueSignal.set(loaded.value);
   materialization.binding.processingSignal.set(loaded.processing);

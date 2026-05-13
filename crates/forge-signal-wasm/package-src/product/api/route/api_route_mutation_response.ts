@@ -3,6 +3,9 @@ import { createMutationResponseDeclaration } from "../../resource/mutation/resou
 import { requireResourceFamilyMetadata } from "../../resource/families/resource_family_metadata.js";
 import { resourcePatch } from "../../resource/reconciliation/resource_patch.js";
 import { lowerMutationResponseDiagnostics } from "./api_route_mutation_response_diagnostics.js";
+import {
+  lowerMutationResponseIdentityMigration,
+} from "../../resource/mutation/identity/resource_mutation_response_identity_migration.js";
 
 const MUTATION_RESPONSE_FALLBACK_KINDS = Object.freeze([
   "refetchRequired",
@@ -17,6 +20,7 @@ function createApiRouteMutationResponseDeclaration(
   response,
   reconciles,
   diagnostics,
+  identity,
 ) {
   return createMutationResponseDeclaration({
     source: `api.url("${route}").response(...).${method.toLowerCase()}(...)`,
@@ -28,6 +32,12 @@ function createApiRouteMutationResponseDeclaration(
     }),
     targets: lowerMutationResponseTargets(route, method, response, reconciles),
     diagnostics: lowerMutationResponseDiagnostics(route, method, response, diagnostics),
+    identityMigration: lowerMutationResponseIdentityMigration(
+      route,
+      method,
+      response,
+      identity,
+    ),
   });
 }
 
