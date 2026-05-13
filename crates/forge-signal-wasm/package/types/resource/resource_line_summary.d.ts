@@ -106,7 +106,13 @@ export interface ResourceLineDiagnosticsLatestChangeSummary {
   readonly preservedVisibleValueOnLastRejection: boolean;
   readonly mutationResponsePlanId?: string;
   readonly mutationResponseTargetCount?: number;
+  readonly mutationResponseConfirmationKind?: import("./resource_mutation_response.js").ResourceMutationResponseConfirmationKind;
+  readonly mutationResponseConfirmationDigest?: string;
+  readonly mutationResponseRollbackDigest?: string;
+  readonly mutationResponseMergeRebaseDigest?: string;
   readonly mutationResponseExecutionDigest?: string;
+  readonly mutationResponseDiagnosticCount?: number;
+  readonly mutationResponseDiagnosticDigest?: string;
   readonly mutationResponsePlanCount?: number;
 }
 

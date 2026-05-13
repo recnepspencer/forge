@@ -23,6 +23,9 @@ import {
   prepareMutationResponsePlanIfDeclared,
   recordMutationResponsePlanIfPresent,
 } from "../../mutation/resource_mutation_response_execution.js";
+import {
+  createMutationResponseTargetBasisSnapshots,
+} from "../../mutation/resource_mutation_response_target_basis.js";
 
 function executeLineReload(materialization, operation, options = "fulfilled") {
   const normalizedOptions =
@@ -72,6 +75,13 @@ function executeLineReload(materialization, operation, options = "fulfilled") {
     const requestDescriptor =
       normalizedOptions.requestDescriptorOverride
       ?? reload.requestState.readDescriptor();
+    const submittedTargets =
+      reload.mutationResponseDeclaration === null
+        ? null
+        : createMutationResponseTargetBasisSnapshots(
+            reload.mutationResponseDeclaration,
+            reload.params,
+          );
     const bindingResult = bindReloadLineValue(
       reload.load,
       reload.params,
@@ -134,6 +144,7 @@ function executeLineReload(materialization, operation, options = "fulfilled") {
             normalizedOptions.fulfilledEvent,
             normalizedOptions.finalizeFulfilledDiagnostics,
             normalizedOptions.onFulfilled,
+            submittedTargets,
           );
         },
         (error) => {
@@ -159,6 +170,7 @@ function executeLineReload(materialization, operation, options = "fulfilled") {
       normalizedOptions.fulfilledEvent,
       normalizedOptions.finalizeFulfilledDiagnostics,
       normalizedOptions.onFulfilled,
+      submittedTargets,
     );
   } catch (error) {
     return applyRejectedReload(materialization, operation, error);
@@ -176,6 +188,7 @@ function applyFulfilledReload(
   fulfilledEvent = "fulfilled",
   finalizeFulfilledDiagnostics = null,
   onFulfilled = null,
+  submittedTargets = null,
 ) {
   const visibleValueChanged =
     loaded.hasVisibleValue
@@ -201,6 +214,7 @@ function applyFulfilledReload(
     finalizedDiagnostics,
     reload.mutationResponseDeclaration,
     loaded.value,
+    submittedTargets,
   );
   materialization.binding.valueSignal.set(loaded.value);
   materialization.binding.processingSignal.set(loaded.processing);

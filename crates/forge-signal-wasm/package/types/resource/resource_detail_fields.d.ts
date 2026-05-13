@@ -1,10 +1,12 @@
 import type { SignalValue } from "../model.js";
+import type { ResourceEffectFieldPatchProof } from "./resource_effect_field_patch_proof.js";
 
 declare const forgeSignalResourceDetailFieldsBrand: unique symbol;
 
 export interface ResourceDetailField<TValue, TFieldValue = SignalValue> {
   read(value: TValue): TFieldValue;
   write(value: TValue, fieldValue: TFieldValue): TValue;
+  readonly fieldProof?: ResourceEffectFieldPatchProof;
 }
 
 export type ResourceDetailFieldMap<TValue> = Readonly<

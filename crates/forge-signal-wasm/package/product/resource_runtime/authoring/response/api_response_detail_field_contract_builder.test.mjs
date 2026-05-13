@@ -41,9 +41,89 @@ test("detail field response contracts expose detail family helpers and narrow re
 
     line.patch(fieldPatch);
     assert.deepEqual(line.value(), { id: "u1", name: "Updated" });
+    assert.equal(line.diagnostics().lastEffect.locus.kind, "detailField");
+    assert.equal(line.diagnostics().lastEffect.patch.fieldProof.fieldName, "name");
+    assert.equal(
+      line.diagnostics().lastEffect.patch.fieldProof.version,
+      "resource-detail-field-proof-v1",
+    );
+    assert.equal(line.diagnostics().lastEffect.counters.detailFieldTraversalBreadth, 1);
+    assert.equal(
+      line.diagnostics().lastEffect.counters.detailFieldReconstructionBreadth,
+      1,
+    );
+    assert.equal(line.diagnostics().lastEffect.counters.detailRegionTraversalBreadth, 0);
 
     line.deliver(fieldDelivery);
     assert.deepEqual(line.value(), { id: "u1", name: "Delivered" });
+    assert.equal(line.diagnostics().lastEffect.patch.fieldProof.fieldName, "name");
+    assert.equal(line.diagnostics().lastEffect.delivery.scope, "field");
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("resource detail field declarations deny accessor-backed maps without invoking them", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    let getterReadCount = 0;
+    const declaredFields = {};
+    Object.defineProperty(declaredFields, "name", {
+      enumerable: true,
+      get() {
+        getterReadCount += 1;
+        return {
+          read: (value) => value.name,
+          write: (value, name) => ({ ...value, name }),
+        };
+      },
+    });
+
+    assert.throws(
+      () => runtime.signals.resource.detailFields(declaredFields),
+      /rejects accessor detail field declaration "name"/,
+    );
+    assert.equal(getterReadCount, 0);
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("resource detail field declarations reject unsafe prototype field names", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const declaredFields = {};
+    Object.defineProperty(declaredFields, "__proto__", {
+      enumerable: true,
+      configurable: true,
+      value: {
+        read: (value) => value.polluted,
+        write: (value, polluted) => ({ ...value, polluted }),
+      },
+    });
+
+    assert.throws(
+      () => runtime.signals.resource.detailFields(declaredFields),
+      /rejects unsafe detail field "__proto__"/,
+    );
+    assert.throws(
+      () => runtime.signals.resource.detailFields({
+        constructor: {
+          read: (value) => value.constructor,
+          write: (value, constructor) => ({ ...value, constructor }),
+        },
+      }),
+      /rejects unsafe detail field "constructor"/,
+    );
+    assert.throws(
+      () => runtime.signals.resource.detailFields({
+        prototype: {
+          read: (value) => value.prototype,
+          write: (value, prototype) => ({ ...value, prototype }),
+        },
+      }),
+      /rejects unsafe detail field "prototype"/,
+    );
   } finally {
     await runtime.cleanup();
   }
@@ -67,6 +147,37 @@ test("detail field response declarations deny accessor-backed field maps without
       /rejects accessor detail field declaration "name"/,
     );
     assert.equal(getterReadCount, 0);
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("detail field response declarations reject unsafe field and backing names", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const declaredFields = {};
+    Object.defineProperty(declaredFields, "__proto__", {
+      enumerable: true,
+      configurable: true,
+      value: "name",
+    });
+
+    assert.throws(
+      () => runtime.signals.resource.response.detail()(declaredFields),
+      /rejects unsafe detail field "__proto__"/,
+    );
+    assert.throws(
+      () => runtime.signals.resource.response.detail()({
+        polluted: "__proto__",
+      }),
+      /field "polluted" rejects unsafe object field "__proto__"/,
+    );
+    assert.throws(
+      () => runtime.signals.resource.response.detail()({
+        polluted: "prototype",
+      }),
+      /field "polluted" rejects unsafe object field "prototype"/,
+    );
   } finally {
     await runtime.cleanup();
   }

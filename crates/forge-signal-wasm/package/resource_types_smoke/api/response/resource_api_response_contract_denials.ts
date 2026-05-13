@@ -109,6 +109,34 @@ const tasks = signals.api({}).url("/tasks").response(taskResponse).list({
   }],
 });
 
+const taskDetailResponse = signals.resource.response.detail<Task>()({
+  title: "title",
+});
+
+signals.api({}).url("/tasks").response(taskDetailResponse).create({
+  reconciles: [{
+    family: tasks,
+    params: () => ({}),
+    fallback: "refetchRequired",
+    // @ts-expect-error create responses must not overclaim Phase 3 exact reconciliation targets
+    collection: { kind: "item" },
+  }],
+  load: ({ body }) => body,
+});
+
+signals.api({}).url("/tasks/:taskId").params<{ taskId: string }>()
+  .response(taskDetailResponse)
+  .remove({
+    // @ts-expect-error remove responses must not overclaim Phase 3 diagnostics
+    diagnostics: [{ kind: "warnings", field: "title" }],
+    load: ({ taskId }) => ({
+      id: taskId,
+      title: "Task",
+      status: "open",
+      metadata: { priority: 1, labels: ["first"], nested: { rank: 1 } },
+    }),
+  });
+
 const taskEnvelopeResponse = signals.resource.response.objectItems<TaskEnvelope>()({
   field: "tasks",
   itemId: (item) => item.id,

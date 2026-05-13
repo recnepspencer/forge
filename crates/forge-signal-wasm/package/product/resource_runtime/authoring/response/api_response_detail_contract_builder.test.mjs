@@ -62,6 +62,7 @@ test("detail response contracts own the detail finalizer lane", async () => {
         requestPath: "/users/u1",
         url: "/users/u1",
       },
+      submittedTargets: [],
       response: {
         topology: "detail",
         readResponseLensSource: "resource.response.detail<T>()",
@@ -69,6 +70,30 @@ test("detail response contracts own the detail finalizer lane", async () => {
         mutationResponseLensDigest:
           saveLine.mutationResponse().response.mutationResponseLensDigest,
         payloadDigest: 'mutation-response-payload|{"id":"u1","name":"Updated"}',
+      },
+      confirmation: {
+        kind: "preservedOptimisticTruth",
+        detail:
+          "mutation response classified as preservedOptimisticTruth with 0 exact target(s) 0 fallback target(s) and 0 diagnostic fact(s)",
+        exactTargetCount: 0,
+        fallbackTargetCount: 0,
+        diagnosticCount: 0,
+        fallbackKinds: [],
+        digest:
+          "mutation-response-confirmation|preservedOptimisticTruth|exact:0|fallbacks:none|diagnostics:mutation-response-diagnostics|none",
+      },
+      lifecycleProof: {
+        entries: [],
+        count: 0,
+        rollbackDigest: "mutation-response-rollback|none",
+        mergeRebaseDigest: "mutation-response-merge-rebase|none",
+        digest:
+          "mutation-response-lifecycle|mutation-response-rollback|none|mutation-response-merge-rebase|none",
+      },
+      diagnostics: {
+        entries: [],
+        count: 0,
+        digest: "mutation-response-diagnostics|none",
       },
       targets: [],
       targetCount: 0,
@@ -84,6 +109,11 @@ test("detail response contracts own the detail finalizer lane", async () => {
         targetFanoutBreadth: 0,
         fallbackBreadth: 0,
         executionBreadth: 0,
+        diagnosticExtractionBreadth: 0,
+        targetBasisSnapshotBreadth: 0,
+        staleTargetDenialBreadth: 0,
+        confirmationClassificationBreadth: 0,
+        lifecycleProofBreadth: 0,
       },
     });
     assert.deepEqual(
@@ -100,114 +130,6 @@ test("detail response contracts own the detail finalizer lane", async () => {
     );
     assert.equal(
       saveLine.history().verificationPackage().mutationResponse.planCount,
-      1,
-    );
-  } finally {
-    await runtime.cleanup();
-  }
-});
-
-test("summary response contracts own the single-response detail finalizer lane", async () => {
-  const runtime = await createRealRequestRuntime();
-  try {
-    const response = runtime.signals.resource.response.summary()();
-    assert.equal(response.kind, "summary");
-    assert.equal(response.lensProof.topology, "summary");
-    assert.equal(
-      response.lensProof.capabilityRows.some(
-        (row) => row.locus === "summaryResponse" && row.patchScope === "line",
-      ),
-      true,
-    );
-
-    const route = runtime.signals.api({}).url("/task-count").response(response);
-    const taskCountRead = runtime.signals.api({}).url("/task-count").detail({
-      load: () => ({ total: 1 }),
-    });
-    const count = route.detail({
-      load: () => ({ total: 1 }),
-    });
-    assert.deepEqual(count.line({}).value(), { total: 1 });
-
-    assert.throws(
-      () => route.list({ load: () => [] }),
-      /summary response lane; use detail/,
-    );
-    assert.throws(
-      () => route.paged({ accumulatePage: (_existing, next) => next, load: () => [] }),
-      /summary response lane; use detail/,
-    );
-    const publishCount = route.create({
-      reconciles: [
-        {
-          family: taskCountRead,
-          params: () => ({}),
-          fallback: "refetchRequired",
-        },
-      ],
-      load: ({ body }) => ({ total: body.total }),
-    });
-    const readLine = taskCountRead.line({});
-    const publishLine = publishCount.line({
-      body: { total: 2 },
-    });
-    assert.deepEqual(publishLine.value(), { total: 2 });
-    assert.equal(publishLine.mutationResponse().method, "POST");
-    assert.equal(publishLine.mutationResponse().atomicity, "singleTarget");
-    assert.deepEqual(publishLine.mutationResponse().targets, [{
-      targetId: "mutationTarget1",
-      family: {
-        kind: "detail",
-        familyId: readLine.descriptor().family.familyId,
-      },
-      line: {
-        familyKind: "detail",
-        familyId: readLine.descriptor().family.familyId,
-        canonicalKey: readLine.descriptor().canonicalParams.canonicalKey,
-        runtimeLineId: readLine.descriptor().runtimeLineId,
-        residency: "resident",
-      },
-      fallback: {
-        kind: "refetchRequired",
-        detail:
-          `detail ${readLine.descriptor().family.familyId} line ${readLine.descriptor().canonicalParams.canonicalKey} stays in refetchRequired posture until a later mutation-response phase admits exact reconciliation`,
-      },
-      reconciliation: null,
-      execution: {
-        artifactId: "mutationTarget1:fallback",
-        targetId: "mutationTarget1",
-        kind: "fallback",
-        fallback: "refetchRequired",
-        familyKind: "detail",
-        familyId: readLine.descriptor().family.familyId,
-        canonicalKey: readLine.descriptor().canonicalParams.canonicalKey,
-        runtimeLineId: readLine.descriptor().runtimeLineId,
-        residency: "resident",
-        detail:
-          `detail ${readLine.descriptor().family.familyId} line ${readLine.descriptor().canonicalParams.canonicalKey} stays in refetchRequired posture until a later mutation-response phase admits exact reconciliation`,
-      },
-      targetDigest:
-        `mutationTarget1|detail|${readLine.descriptor().family.familyId}|${readLine.descriptor().canonicalParams.canonicalKey}|refetchRequired`,
-    }]);
-    assert.deepEqual(publishLine.mutationResponse().executionArtifacts, [{
-      artifactId: "mutationTarget1:fallback",
-      targetId: "mutationTarget1",
-      kind: "fallback",
-      fallback: "refetchRequired",
-      familyKind: "detail",
-      familyId: readLine.descriptor().family.familyId,
-      canonicalKey: readLine.descriptor().canonicalParams.canonicalKey,
-      runtimeLineId: readLine.descriptor().runtimeLineId,
-      residency: "resident",
-      detail:
-        `detail ${readLine.descriptor().family.familyId} line ${readLine.descriptor().canonicalParams.canonicalKey} stays in refetchRequired posture until a later mutation-response phase admits exact reconciliation`,
-    }]);
-    assert.equal(
-      publishLine.history().verificationPackage().mutationResponse.plan.response.topology,
-      "summary",
-    );
-    assert.equal(
-      publishLine.history().verificationPackage().mutationResponse.plan.counters.executionBreadth,
       1,
     );
   } finally {

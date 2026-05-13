@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createRealLifecycleRuntime } from "../runtime_fixture/real_lifecycle_runtime.mjs";
+import { createRealLifecycleRuntime } from "../../runtime_fixture/real_lifecycle_runtime.mjs";
 
 function normalizeForProof(value) {
   return JSON.parse(JSON.stringify(value));
@@ -140,6 +140,9 @@ test("resource lines refresh in place and record diagnostics", async () => {
       lastPatchKind: null,
       lastPatchScope: null,
       lastPatchedItemId: null,
+      lastPatchedField: null,
+      lastPatchedRegion: null,
+      lastPatchedPath: null,
       lastPatchedAspect: null,
       lastPatchedSummary: null,
       lastDeliveryKind: null,

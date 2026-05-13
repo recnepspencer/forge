@@ -2,6 +2,7 @@ import { createMutationResponseLensProof } from "../../resource/mutation/resourc
 import { createMutationResponseDeclaration } from "../../resource/mutation/resource_mutation_response_plan.js";
 import { requireResourceFamilyMetadata } from "../../resource/families/resource_family_metadata.js";
 import { resourcePatch } from "../../resource/reconciliation/resource_patch.js";
+import { lowerMutationResponseDiagnostics } from "./api_route_mutation_response_diagnostics.js";
 
 const MUTATION_RESPONSE_FALLBACK_KINDS = Object.freeze([
   "refetchRequired",
@@ -15,6 +16,7 @@ function createApiRouteMutationResponseDeclaration(
   method,
   response,
   reconciles,
+  diagnostics,
 ) {
   return createMutationResponseDeclaration({
     source: `api.url("${route}").response(...).${method.toLowerCase()}(...)`,
@@ -24,11 +26,12 @@ function createApiRouteMutationResponseDeclaration(
       source: `api.url("${route}").response(...)`,
       readLensProof: response.lensProof,
     }),
-    targets: lowerMutationResponseTargets(route, response, reconciles),
+    targets: lowerMutationResponseTargets(route, method, response, reconciles),
+    diagnostics: lowerMutationResponseDiagnostics(route, method, response, diagnostics),
   });
 }
 
-function lowerMutationResponseTargets(route, response, reconciles) {
+function lowerMutationResponseTargets(route, method, response, reconciles) {
   if (reconciles === undefined) {
     return Object.freeze([]);
   }
@@ -39,11 +42,11 @@ function lowerMutationResponseTargets(route, response, reconciles) {
   }
   return Object.freeze(
     reconciles.map((target, index) =>
-      lowerMutationResponseTarget(route, response, target, index)),
+      lowerMutationResponseTarget(route, method, response, target, index)),
   );
 }
 
-function lowerMutationResponseTarget(route, response, target, index) {
+function lowerMutationResponseTarget(route, method, response, target, index) {
   if (!target || typeof target !== "object" || Array.isArray(target)) {
     throw new TypeError(
       `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] must be a target declaration object`,
@@ -72,6 +75,7 @@ function lowerMutationResponseTarget(route, response, target, index) {
     params: target.params,
     reconciliation: lowerMutationResponseTargetReconciliation(
       route,
+      method,
       response,
       familyMetadata,
       target,
@@ -91,15 +95,51 @@ function requireMutationResponseFallback(route, fallback, index) {
 
 function lowerMutationResponseTargetReconciliation(
   route,
+  method,
   response,
   familyMetadata,
   target,
   index,
 ) {
-  if (target.detail === undefined) {
+  const declaredReconciliationCount =
+    Number(target.detail !== undefined)
+    + Number(target.collection !== undefined)
+    + Number(target.summary !== undefined);
+  if (declaredReconciliationCount === 0) {
     return null;
   }
-  if (!target.detail || typeof target.detail !== "object" || Array.isArray(target.detail)) {
+  if (declaredReconciliationCount > 1) {
+    throw new TypeError(
+      `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] declares more than one exact reconciliation target`,
+    );
+  }
+  if (method !== "PUT") {
+    throw new TypeError(
+      `api.url("${route}").response(...).create/update/remove(...) exact reconciliation targets are currently admitted only for update/save responses`,
+    );
+  }
+  if (target.collection !== undefined) {
+    return lowerCollectionItemReconciliation(
+      route,
+      familyMetadata,
+      target.collection,
+      index,
+    );
+  }
+  if (target.summary !== undefined) {
+    return lowerSummaryReconciliation(
+      route,
+      response,
+      familyMetadata,
+      target.summary,
+      index,
+    );
+  }
+  return lowerDetailReconciliation(route, response, familyMetadata, target.detail, index);
+}
+
+function lowerDetailReconciliation(route, response, familyMetadata, detail, index) {
+  if (!detail || typeof detail !== "object" || Array.isArray(detail)) {
     throw new TypeError(
       `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] detail must be a target declaration object`,
     );
@@ -115,11 +155,11 @@ function lowerMutationResponseTargetReconciliation(
     );
   }
   const patchRecord = familyMetadata.patchRecord;
-  const detail = target.detail;
   switch (detail.kind) {
     case "replace":
       return Object.freeze({
         kind: "replace",
+        executionKind: "exactDetail",
         targetDigest: "detail:replace",
         createPatch(responseValue) {
           return resourcePatch.replace(responseValue);
@@ -144,6 +184,108 @@ function lowerMutationResponseTargetReconciliation(
   }
 }
 
+function lowerCollectionItemReconciliation(route, familyMetadata, collection, index) {
+  if (!collection || typeof collection !== "object" || Array.isArray(collection)) {
+    throw new TypeError(
+      `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] collection must be a target declaration object`,
+    );
+  }
+  if (collection.kind !== "item") {
+    throw new TypeError(
+      `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] collection kind must be item`,
+    );
+  }
+  if (familyMetadata.familyKind === "detail") {
+    throw new TypeError(
+      `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] collection item reconciliation requires a collection or paged read family`,
+    );
+  }
+  const patchRecord = familyMetadata.patchRecord;
+  if (!patchRecord.narrowItem || typeof patchRecord.itemIdentity !== "function") {
+    throw new TypeError(
+      `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] collection item reconciliation requires a target family with item reconciliation`,
+    );
+  }
+  return Object.freeze({
+    kind: "item",
+    executionKind: "exactCollectionItem",
+    targetDigest: "collection:item",
+    readItemId(responseValue) {
+      return patchRecord.itemIdentity(responseValue);
+    },
+    createPatch(responseValue) {
+      const itemId = patchRecord.itemIdentity(responseValue);
+      return resourcePatch.item({
+        itemId,
+        nextItem: responseValue,
+      });
+    },
+  });
+}
+
+function lowerSummaryReconciliation(route, response, familyMetadata, summary, index) {
+  if (!summary || typeof summary !== "object" || Array.isArray(summary)) {
+    throw new TypeError(
+      `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] summary must be a target declaration object`,
+    );
+  }
+  if (summary.kind !== "summary") {
+    throw new TypeError(
+      `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] summary kind must be summary`,
+    );
+  }
+  if (typeof summary.summary !== "string" || summary.summary.length === 0) {
+    throw new TypeError(
+      `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] summary requires a non-empty summary name`,
+    );
+  }
+  const patchRecord = familyMetadata.patchRecord;
+  if (!patchRecord.summaryNames.includes(summary.summary)) {
+    throw new TypeError(
+      `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] summary "${summary.summary}" is not declared on the target family`,
+    );
+  }
+  const responseDefinition = requireSummaryResponseDefinition(
+    route,
+    response,
+    summary.summary,
+    index,
+  );
+  return Object.freeze({
+    kind: "summary",
+    executionKind: "exactSummary",
+    summary: summary.summary,
+    summaryScope: patchRecord.reconcile?.summaries?.patchScope ?? null,
+    targetDigest: `summary:${summary.summary}`,
+    createPatch(responseValue) {
+      return resourcePatch.summary({
+        summary: summary.summary,
+        value: responseDefinition === null
+          ? responseValue
+          : responseDefinition.read(responseValue),
+      });
+    },
+  });
+}
+
+function requireSummaryResponseDefinition(route, response, summaryName, index) {
+  if (response.kind === "summary") {
+    return null;
+  }
+  if (response.kind !== "detail") {
+    throw new TypeError(
+      `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] summary exact reconciliation requires a summary response lens or declared detail response field`,
+    );
+  }
+  const responseDefinition = response.fields?.definitions?.[summaryName];
+  if (responseDefinition === undefined) {
+    throw new TypeError(
+      `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] summary "${summaryName}" is not declared on the mutation response lens`,
+    );
+  }
+  return responseDefinition;
+}
+
 function lowerFieldReconciliation(route, response, patchRecord, detail, index) {
   if (typeof detail.field !== "string" || detail.field.length === 0) {
     throw new TypeError(
@@ -163,6 +305,7 @@ function lowerFieldReconciliation(route, response, patchRecord, detail, index) {
   }
   return Object.freeze({
     kind: "field",
+    executionKind: "exactDetail",
     field: detail.field,
     targetDigest: `detail:field:${detail.field}`,
     createPatch(responseValue) {
@@ -193,6 +336,7 @@ function lowerJsonPathReconciliation(route, response, patchRecord, detail, index
   }
   return Object.freeze({
     kind: "jsonPath",
+    executionKind: "exactDetail",
     path: detail.path,
     targetDigest: `detail:jsonPath:${detail.path}`,
     createPatch(responseValue) {
@@ -223,6 +367,7 @@ function lowerRegionReconciliation(route, response, patchRecord, detail, index) 
   }
   return Object.freeze({
     kind: "region",
+    executionKind: "exactDetail",
     region: detail.region,
     targetDigest: `detail:region:${detail.region}`,
     createPatch(responseValue) {

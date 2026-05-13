@@ -206,6 +206,7 @@ function applyFulfilledInitialLoad(
           nextDiagnostics,
           mutationResponsePlanning.declaration,
           loaded.value,
+          mutationResponsePlanning.submittedTargets,
         );
   binding.valueSignal.set(loaded.value);
   binding.processingSignal.set(loaded.processing);

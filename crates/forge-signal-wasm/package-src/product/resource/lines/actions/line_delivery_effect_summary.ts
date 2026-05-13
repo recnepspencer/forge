@@ -18,7 +18,9 @@ function createBasisRefreshDeliveryEffectSummary(
     patchedAspect: null,
     patchedSummary: null,
     valueChanged: false,
+    fieldProof: null,
     regionProof: null,
+    jsonPathProof: null,
   });
 }
 
@@ -42,7 +44,9 @@ function createInvalidateDeliveryEffectSummary(
     patchedAspect: null,
     patchedSummary: null,
     valueChanged: false,
+    fieldProof: null,
     regionProof: null,
+    jsonPathProof: null,
   });
 }
 
@@ -68,6 +72,7 @@ function createPatchDeliveryEffectSummary(
     patchedAspect: patchDiagnostics.aspect,
     patchedSummary: patchDiagnostics.summary,
     valueChanged: patchDiagnostics.valueChanged,
+    fieldProof: patchDiagnostics.fieldProof,
     regionProof: patchDiagnostics.regionProof,
     jsonPathProof: patchDiagnostics.jsonPathProof,
   });
@@ -90,6 +95,7 @@ function createLineDeliveryEffectSummary(options) {
     patchedAspect: options.patchedAspect,
     patchedSummary: options.patchedSummary,
     valueChanged: options.valueChanged,
+    fieldProof: options.fieldProof ?? null,
     regionProof: options.regionProof ?? null,
     jsonPathProof: options.jsonPathProof ?? null,
   });

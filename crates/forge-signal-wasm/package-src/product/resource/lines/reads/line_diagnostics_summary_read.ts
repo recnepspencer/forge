@@ -73,8 +73,20 @@ function readLineDiagnosticsSummary(materialization) {
         : {
             mutationResponsePlanId: mutationResponseSummaryDigest.planId,
             mutationResponseTargetCount: mutationResponseSummaryDigest.targetCount,
+            mutationResponseConfirmationKind:
+              mutationResponseSummaryDigest.confirmationKind,
+            mutationResponseConfirmationDigest:
+              mutationResponseSummaryDigest.confirmationDigest,
+            mutationResponseRollbackDigest:
+              mutationResponseSummaryDigest.rollbackDigest,
+            mutationResponseMergeRebaseDigest:
+              mutationResponseSummaryDigest.mergeRebaseDigest,
             mutationResponseExecutionDigest:
               mutationResponseSummaryDigest.executionDigest,
+            mutationResponseDiagnosticCount:
+              mutationResponseSummaryDigest.diagnosticCount,
+            mutationResponseDiagnosticDigest:
+              mutationResponseSummaryDigest.diagnosticDigest,
             mutationResponsePlanCount: mutationResponseSummaryDigest.planCount,
           }),
     }),

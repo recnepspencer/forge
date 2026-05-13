@@ -119,7 +119,9 @@ test("response-derived reconciliation keeps sealed proof attachment internal", a
         response.lensProof.compiledLensDigest,
         "response-capability-row|itemAspect|aspect|admitted|none",
         "itemAspect",
+        "none",
         "title",
+        "none",
         "none",
       ].join("|"),
     );

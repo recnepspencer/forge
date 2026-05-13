@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createRealRequestRuntime } from "../../runtime_fixture/real_request_runtime.mjs";
+import { createRealRequestRuntime } from "../../../runtime_fixture/real_request_runtime.mjs";
 
 test("save responses can replace a resident detail line through canonical mutation reconciliation", async () => {
   const runtime = await createRealRequestRuntime();
@@ -120,6 +120,15 @@ test("save responses can patch a resident detail field through canonical mutatio
     assert.equal(residentLine.diagnostics().lastDeliveryScope, "field");
     assert.equal(residentLine.diagnostics().lastPatchedField, "name");
     assert.equal(residentLine.diagnostics().lastEffect.provenance, "deliveredPatch");
+    assert.equal(residentLine.diagnostics().lastEffect.patch.fieldProof.fieldName, "name");
+    assert.equal(
+      residentLine.diagnostics().lastEffect.counters.detailFieldTraversalBreadth,
+      1,
+    );
+    assert.equal(
+      residentLine.diagnostics().lastEffect.counters.detailFieldReconstructionBreadth,
+      1,
+    );
   } finally {
     await runtime.cleanup();
   }
@@ -165,6 +174,19 @@ test("save responses can patch resident detail JSON paths through canonical muta
     assert.equal(jsonPathLine.value().document.title, "Renamed");
     assert.equal(jsonPathLine.diagnostics().lastDeliveryScope, "jsonPath");
     assert.equal(jsonPathLine.diagnostics().lastPatchedPath, "title");
+    assert.equal(jsonPathLine.diagnostics().lastEffect.patch.jsonPath.pathName, "title");
+    assert.deepEqual(jsonPathLine.diagnostics().lastEffect.patch.jsonPath.path, [
+      "document",
+      "title",
+    ]);
+    assert.equal(
+      jsonPathLine.diagnostics().lastEffect.counters.jsonPathTraversalBreadth,
+      3,
+    );
+    assert.equal(
+      jsonPathLine.diagnostics().lastEffect.counters.jsonPathReconstructionBreadth,
+      3,
+    );
   } finally {
     await runtime.cleanup();
   }
@@ -233,6 +255,19 @@ test("save responses can patch resident detail regions through canonical mutatio
     assert.equal(regionLine.diagnostics().lastDeliveryScope, "region");
     assert.equal(regionLine.diagnostics().lastPatchedRegion, "graph");
     assert.equal(regionLine.diagnostics().lastEffect.patch.region.regionName, "graph");
+    assert.deepEqual(regionLine.diagnostics().lastEffect.patch.region.cost, {
+      traversalBreadth: 2,
+      reconstructionBreadth: 2,
+      cloneBreadth: 2,
+    });
+    assert.equal(
+      regionLine.diagnostics().lastEffect.counters.detailRegionTraversalBreadth,
+      2,
+    );
+    assert.equal(
+      regionLine.diagnostics().lastEffect.counters.detailRegionReconstructionBreadth,
+      2,
+    );
   } finally {
     await runtime.cleanup();
   }

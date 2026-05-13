@@ -1,11 +1,18 @@
+import type { ResourceEffectFieldPatchProof } from "./resource_effect_field_patch_proof.js";
 import type { ResourceEffectJsonPathPatchProof } from "./resource_effect_json_path_patch_proof.js";
 import type { ResourceEffectRegionPatchProof } from "./resource_effect_region_patch_proof.js";
+import type { ResourceEffectCompactInverseDescriptor } from "./resource_effect_inverse.js";
 import type {
   ResourceEffectLocus,
   ResourceEffectLocusProof,
 } from "./resource_effect_locus_proof.js";
+export type { ResourceEffectFieldPatchProof } from "./resource_effect_field_patch_proof.js";
 export type { ResourceEffectJsonPathPatchProof } from "./resource_effect_json_path_patch_proof.js";
 export type { ResourceEffectRegionPatchProof } from "./resource_effect_region_patch_proof.js";
+export type {
+  ResourceEffectCompactInverseCost,
+  ResourceEffectCompactInverseDescriptor,
+} from "./resource_effect_inverse.js";
 export type {
   ResourceEffectLocus,
   ResourceEffectLocusCostCounters,
@@ -26,74 +33,6 @@ export interface ResourceEffectProfileDigest {
   readonly rollback: "branchRestore" | "branchRestoreOrInverse" | "unavailable";
   readonly rebase: "nativeMergePlan" | "unavailable";
   readonly preimage: "none" | "compactInverse" | "digestOnly" | "retainedFragment";
-}
-
-export type ResourceEffectCompactInverseDescriptor =
-  | {
-      readonly kind: "compactPatchInverse";
-      readonly mode: "CompactInversePatch";
-      readonly preimage: "aspectValue";
-      readonly scope: "aspect";
-      readonly itemId: string;
-      readonly aspect: string;
-      readonly summary: null;
-      readonly patch: {
-        readonly kind: "itemAspect";
-        readonly itemId: string;
-        readonly aspect: string;
-        readonly value: unknown;
-      };
-      readonly cost: ResourceEffectCompactInverseCost;
-    }
-  | {
-      readonly kind: "compactPatchInverse";
-      readonly mode: "CompactInversePatch";
-      readonly preimage: "itemFragment";
-      readonly scope: "item";
-      readonly itemId: string;
-      readonly aspect: null;
-      readonly summary: null;
-      readonly patch: {
-        readonly kind: "item";
-        readonly itemId: string;
-        readonly nextItem: unknown;
-      };
-      readonly cost: ResourceEffectCompactInverseCost;
-    }
-  | {
-      readonly kind: "compactPatchInverse";
-      readonly mode: "CompactInversePatch";
-      readonly preimage: "detailRegionValue";
-      readonly scope: "region";
-      readonly itemId: null;
-      readonly aspect: null;
-      readonly summary: null;
-      readonly patch: {
-        readonly kind: "region";
-        readonly region: string;
-        readonly value: unknown;
-      };
-      readonly cost: ResourceEffectCompactInverseCost;
-    }
-  | {
-      readonly kind: "compactPatchInverse";
-      readonly mode: "CompactInversePatch";
-      readonly preimage: "summaryValue";
-      readonly scope: "summary";
-      readonly itemId: null;
-      readonly aspect: null;
-      readonly summary: string;
-      readonly patch: {
-        readonly kind: "summary";
-        readonly summary: string;
-        readonly value: unknown;
-      };
-      readonly cost: ResourceEffectCompactInverseCost;
-    };
-
-export interface ResourceEffectCompactInverseCost {
-  readonly retainedValueCount: 1;
-  readonly retainedResponsePreimage: false;
 }
 
 export interface ResourceEffectPatchDigest {
@@ -122,6 +61,7 @@ export interface ResourceEffectPatchDigest {
   readonly aspect: string | null;
   readonly summary: string | null;
   readonly valueChanged: boolean;
+  readonly fieldProof: ResourceEffectFieldPatchProof | null;
   readonly region: ResourceEffectRegionPatchProof | null;
   readonly jsonPath: ResourceEffectJsonPathPatchProof | null;
 }
@@ -383,6 +323,8 @@ export interface ResourceEffectEnvelope {
     readonly rollbackReadinessBreadth: number;
     readonly responseLensBreadth: number;
     readonly effectLocusBreadth: number;
+    readonly detailFieldTraversalBreadth: number;
+    readonly detailFieldReconstructionBreadth: number;
     readonly detailRegionTraversalBreadth: number;
     readonly detailRegionReconstructionBreadth: number;
     readonly jsonPathTraversalBreadth: number;

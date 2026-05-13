@@ -16,7 +16,14 @@ function readMutationResponseSummaryDigest(diagnostics) {
   return Object.freeze({
     planId: mutationResponsePlanRecord.plan.planId,
     targetCount: mutationResponsePlanRecord.plan.targetCount,
+    confirmationKind: mutationResponsePlanRecord.plan.confirmation.kind,
+    confirmationDigest: mutationResponsePlanRecord.plan.confirmation.digest,
+    rollbackDigest: mutationResponsePlanRecord.plan.lifecycleProof.rollbackDigest,
+    mergeRebaseDigest:
+      mutationResponsePlanRecord.plan.lifecycleProof.mergeRebaseDigest,
     executionDigest: mutationResponsePlanRecord.plan.executionDigest,
+    diagnosticCount: mutationResponsePlanRecord.plan.diagnostics.count,
+    diagnosticDigest: mutationResponsePlanRecord.plan.diagnostics.digest,
     planCount: mutationResponsePlanRecord.planCount,
   });
 }

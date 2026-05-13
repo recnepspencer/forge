@@ -14,9 +14,9 @@ import {
   createRequestTargetRecord,
   createResolvedRequestDescriptor,
 } from "./resolved_request_descriptor.js";
+import { createBinding } from "./materialized_family_binding.js";
 import { createLineHandle } from "../../lines/line_handle.js";
 import { createPatchCapableLineHandle } from "../../lines/line_patch_capable_handle.js";
-import { createInitialLineBinding } from "../../lines/actions/initial_load_settlement.js";
 import { recordLineHistoryEntry } from "../../lines/history/record_line_history_entry.js";
 import { lookupOrCreateLine } from "../../lines/line_lookup.js";
 import { createLineHistoryState } from "../../lines/history/line_history_state.js";
@@ -341,37 +341,6 @@ function createLineReconciliationProofRecord(declaration) {
     });
   }
   return null;
-}
-
-function createBinding(
-  params,
-  lineScope,
-  kind,
-  load,
-  policy,
-  requestDescriptor,
-  lineIdentity,
-  mutationResponseDeclaration,
-  lifecycle,
-  lifecycleHistory,
-) {
-  return createInitialLineBinding(
-    load,
-    params,
-    lineScope,
-    kind,
-    policy,
-    requestDescriptor,
-    lifecycle,
-    lifecycleHistory,
-    mutationResponseDeclaration === null
-      ? null
-      : Object.freeze({
-          lineIdentity,
-          requestDescriptor,
-          declaration: mutationResponseDeclaration,
-        }),
-  );
 }
 
 function createCurrentLineRelease(

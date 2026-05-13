@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createDeferred } from "../runtime_fixture/async/deferred.mjs";
-import { createRealLifecycleRuntime } from "../runtime_fixture/real_lifecycle_runtime.mjs";
+import { createDeferred } from "../../runtime_fixture/async/deferred.mjs";
+import { createRealLifecycleRuntime } from "../../runtime_fixture/real_lifecycle_runtime.mjs";
 
 test("diagnostics summary and lifecycle history stay aligned across patch, invalidation, and rejected refresh", async () => {
   const runtime = await createRealLifecycleRuntime();
@@ -78,6 +78,9 @@ test("diagnostics summary and lifecycle history stay aligned across patch, inval
       patchKind: "itemAspect",
       patchScope: "aspect",
       patchedItemId: "demo:1",
+      patchedField: null,
+      patchedRegion: null,
+      patchedPath: null,
       patchedAspect: "title",
       patchedSummary: null,
       deliveryKind: null,
@@ -229,6 +232,9 @@ test("diagnostics summary and lifecycle history stay aligned across upload proce
       patchKind: null,
       patchScope: null,
       patchedItemId: null,
+      patchedField: null,
+      patchedRegion: null,
+      patchedPath: null,
       patchedAspect: null,
       patchedSummary: null,
       deliveryKind: null,

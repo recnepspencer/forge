@@ -9,6 +9,9 @@ import {
   createPreparedMutationResponsePlan,
   readMutationResponseDeclaration,
 } from "./resource_mutation_response_plan.js";
+import {
+  createMutationResponseTargetEffectProof,
+} from "./resource_mutation_response_lifecycle_proof.js";
 
 function prepareMutationResponsePlanIfDeclared(
   lineIdentity,
@@ -16,6 +19,7 @@ function prepareMutationResponsePlanIfDeclared(
   diagnostics,
   declaration,
   responseValue,
+  submittedTargets = null,
 ) {
   const readDeclaration = readMutationResponseDeclaration(declaration);
   if (readDeclaration === null) {
@@ -30,6 +34,7 @@ function prepareMutationResponsePlanIfDeclared(
     diagnostics,
     declaration: readDeclaration,
     responseValue,
+    submittedTargets,
   });
   if (plan === null) {
     return Object.freeze({
@@ -66,7 +71,7 @@ function executePreparedMutationResponsePlan(plan) {
   for (let index = 0; index < preparedExecutions.length; index += 1) {
     const execution = preparedExecutions[index];
     const plannedArtifact = plannedArtifacts[index];
-    if (execution.kind !== "exactDetail") {
+    if (execution.kind === "fallback") {
       executedArtifacts.push(plannedArtifact);
       continue;
     }
@@ -76,16 +81,18 @@ function executePreparedMutationResponsePlan(plan) {
     );
     if (result.kind !== "applied") {
       throw new TypeError(
-        `mutation response exact detail reconciliation for ${execution.targetId} did not apply: ${result.kind}`,
+        `mutation response exact reconciliation for ${execution.targetId} did not apply: ${result.kind}`,
       );
     }
     const diagnostics = execution.targetMaterialization.binding.diagnosticsSignal();
+    const effect = diagnostics.lastEffect ?? null;
     executedArtifacts.push(Object.freeze({
       ...plannedArtifact,
       outcomeKind: "applied",
       deliveryKind: diagnostics.lastDeliveryKind,
       deliveryScope: diagnostics.lastDeliveryScope,
-      effectId: diagnostics.lastEffect?.effectId ?? null,
+      effectId: effect?.effectId ?? null,
+      effectProof: createMutationResponseTargetEffectProof(effect, plannedArtifact),
       targetVisibleValueVersion: diagnostics.visibleValueVersion,
     }));
   }

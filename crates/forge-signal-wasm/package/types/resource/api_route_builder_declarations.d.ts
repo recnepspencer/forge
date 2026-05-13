@@ -24,7 +24,11 @@ import type {
   ApiRouteUploadDetailDeclaration,
   ApiRouteUploadPagedDeclaration,
 } from "./api_route_declarations.js";
-import type { ResourceMutationResponseAnyTargetDeclaration } from "./resource_mutation_response.js";
+import type {
+  ResourceMutationResponseAnyTargetDeclaration,
+  ResourceMutationResponseDiagnosticDeclaration,
+  ResourceMutationResponseFallbackTargetDeclaration,
+} from "./resource_mutation_response.js";
 
 export type ApiRouteTransferValue<
   TValue,
@@ -107,7 +111,34 @@ export type ApiRouteCreateDeclarationForState<
     ? ApiRouteProcessingCreateDeclaration<TRoute, TValue, TBody, TReconcile, TRequestParams, true, false, TDownloadsOwned>
     : ApiRouteProcessingUploadCreateDeclaration<TRoute, TValue, TBody, TReconcile, TRequestParams, true, true, TDownloadsOwned>;
 
-export type ApiRouteResponseMutationDeclarationForState<
+export type ApiRouteResponseCreateMutationDeclarationForState<
+  TRoute extends string,
+  TValue,
+  TBody,
+  TRequestParams extends ApiRequestParamsShape | undefined,
+  TProcessingKind extends ApiRouteProcessingKind,
+  TUploadKind extends ApiRouteUploadKind,
+  TDownloadsOwned extends boolean,
+> = ApiRouteCreateDeclarationForState<
+  TRoute,
+  TValue,
+  TBody,
+  undefined,
+  TRequestParams,
+  TProcessingKind,
+  TUploadKind,
+  TDownloadsOwned
+> & {
+  reconciles?: readonly ResourceMutationResponseFallbackTargetDeclaration<
+    import("./api_request_params.js").ApiRouteWriteDeclarationParams<
+      TRoute,
+      TRequestParams,
+      TBody
+    >
+  >[];
+};
+
+export type ApiRouteResponseUpdateMutationDeclarationForState<
   TRoute extends string,
   TValue,
   TBody,
@@ -132,7 +163,26 @@ export type ApiRouteResponseMutationDeclarationForState<
       TBody
     >
   >[];
+  diagnostics?: readonly ResourceMutationResponseDiagnosticDeclaration[];
 };
+
+export type ApiRouteResponseMutationDeclarationForState<
+  TRoute extends string,
+  TValue,
+  TBody,
+  TRequestParams extends ApiRequestParamsShape | undefined,
+  TProcessingKind extends ApiRouteProcessingKind,
+  TUploadKind extends ApiRouteUploadKind,
+  TDownloadsOwned extends boolean,
+> = ApiRouteResponseUpdateMutationDeclarationForState<
+  TRoute,
+  TValue,
+  TBody,
+  TRequestParams,
+  TProcessingKind,
+  TUploadKind,
+  TDownloadsOwned
+>;
 
 export type ApiRouteResponseRemoveMutationDeclarationForState<
   TRoute extends string,
@@ -150,7 +200,7 @@ export type ApiRouteResponseRemoveMutationDeclarationForState<
   TUploadKind,
   TDownloadsOwned
 > & {
-  reconciles?: readonly ResourceMutationResponseAnyTargetDeclaration<
+  reconciles?: readonly ResourceMutationResponseFallbackTargetDeclaration<
     import("./api_request_params.js").ApiRouteDeclarationParams<
       TRoute,
       TRequestParams

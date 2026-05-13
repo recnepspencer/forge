@@ -1,6 +1,8 @@
 import { requireResourceEffectPlan } from "./resource_effect_plan.js";
 import { createResourceEffectBranchLifecycle } from "./resource_effect_branch_lifecycle.js";
 import { createResourceEffectOptimisticLifecycle } from "./resource_effect_optimistic_lifecycle.js";
+import { createResourceEffectPatchCounters } from "./resource_effect_patch_counters.js";
+import { createResourceEffectPatchDigest } from "./resource_effect_patch_digest.js";
 import { lowerResponseLensProofToEffectLocus } from "../response/resource_response_effect_locus_lowering.js";
 
 const RESOURCE_EFFECT_ENVELOPE_VERSION = "resource-effect-envelope-v1";
@@ -25,6 +27,7 @@ function createLocalPatchEffectEnvelope(effectPlan, patch, result) {
       aspect: result.aspect,
       summary: result.summary,
       valueChanged: result.valueChanged,
+      fieldProof: result.fieldProof,
       regionProof: result.regionProof,
       jsonPathProof: result.jsonPathProof,
     }),
@@ -51,6 +54,7 @@ function createDeliveryEffectEnvelope(effectPlan, delivery) {
       aspect: delivery.patchedAspect,
       summary: delivery.patchedSummary,
       valueChanged: delivery.valueChanged,
+      fieldProof: delivery.fieldProof,
       regionProof: delivery.regionProof,
       jsonPathProof: delivery.jsonPathProof,
     }),
@@ -63,7 +67,7 @@ function createResourceEffectEnvelope(options) {
   const lineIdentity = effectPlan.lineIdentity;
   const patch = options.patch;
   const rawLocus = createEffectLocus(patch, options.delivery, effectPlan);
-  const patchDigest = createPatchDigest(patch);
+  const patchDigest = createResourceEffectPatchDigest(patch);
   const locusProof = lowerResponseLensProofToEffectLocus(
     effectPlan.responseLensProof,
     rawLocus,
@@ -109,8 +113,7 @@ function createResourceEffectEnvelope(options) {
     patch: patchDigest,
     counters: Object.freeze({
       ...effectPlan.counters,
-      ...createRegionCounters(patchDigest.region),
-      ...createJsonPathCounters(patchDigest.jsonPath),
+      ...createResourceEffectPatchCounters(patchDigest),
     }),
   };
   const authority = createResourceEffectAuthority(envelope);
@@ -200,79 +203,6 @@ function canonicalizeAuthorityValue(value) {
     canonical[key] = canonicalizeAuthorityValue(value[key]);
   }
   return canonical;
-}
-
-function createPatchDigest(patch) {
-  return Object.freeze({
-    kind: patch.kind,
-    scope: patch.scope,
-    itemId: patch.itemId,
-    field: patch.field,
-    regionName: patch.region ?? null,
-    path: patch.path ?? null,
-    aspect: patch.aspect,
-    summary: patch.summary,
-    valueChanged: patch.valueChanged,
-    region: createRegionPatchProof(patch.regionProof),
-    jsonPath: createJsonPathPatchProof(patch.jsonPathProof),
-  });
-}
-
-function createRegionPatchProof(regionProof) {
-  if (regionProof === null || regionProof === undefined) {
-    return null;
-  }
-  return Object.freeze({
-    version: regionProof.version,
-    regionName: regionProof.regionName,
-    identityBoundary: regionProof.identityBoundary,
-    mergeGranularity: regionProof.mergeGranularity,
-    cost: regionProof.cost,
-    proofDigest: regionProof.proofDigest,
-  });
-}
-
-function createRegionCounters(regionProof) {
-  if (regionProof === null) {
-    return Object.freeze({
-      detailRegionTraversalBreadth: 0,
-      detailRegionReconstructionBreadth: 0,
-    });
-  }
-  return Object.freeze({
-    detailRegionTraversalBreadth: regionProof.cost.traversalBreadth,
-    detailRegionReconstructionBreadth: regionProof.cost.reconstructionBreadth,
-  });
-}
-
-function createJsonPathPatchProof(jsonPathProof) {
-  if (jsonPathProof === null || jsonPathProof === undefined) {
-    return null;
-  }
-  return Object.freeze({
-    version: jsonPathProof.version,
-    aspect: "aspect" in jsonPathProof ? jsonPathProof.aspect : null,
-    field: "field" in jsonPathProof ? jsonPathProof.field : null,
-    pathName: "pathName" in jsonPathProof ? jsonPathProof.pathName : null,
-    path: jsonPathProof.path,
-    parsedPathDigest: jsonPathProof.parsedPathDigest,
-    policy: jsonPathProof.policy,
-    cost: jsonPathProof.cost,
-    proofDigest: jsonPathProof.proofDigest,
-  });
-}
-
-function createJsonPathCounters(jsonPathProof) {
-  if (jsonPathProof === null) {
-    return Object.freeze({
-      jsonPathTraversalBreadth: 0,
-      jsonPathReconstructionBreadth: 0,
-    });
-  }
-  return Object.freeze({
-    jsonPathTraversalBreadth: jsonPathProof.cost.traversalBreadth,
-    jsonPathReconstructionBreadth: jsonPathProof.cost.reconstructionBreadth,
-  });
 }
 
 function alignLocusWithResponseLensProof(locus, locusProof) {

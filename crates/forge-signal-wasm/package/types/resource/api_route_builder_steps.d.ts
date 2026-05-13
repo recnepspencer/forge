@@ -8,193 +8,22 @@ import type {
 import type { ResourceEffectProfile } from "./resource_effect_profiles.js";
 import type {
   ApiRequestParamsShape,
-  ApiDetailResourceFamily,
   ApiRouteLineParams,
   ApiRouteParamsConstraint,
 } from "./api_request_params.js";
 import type { ApiRouteDownloadsDeclaration } from "./api_route_downloads.js";
 import type { ApiRouteArrayItemsBuilder } from "./api_route_array_items_builder.js";
 import type { ApiRouteBuilder } from "./api_route_builder.js";
-import type { ApiRouteReconcileBuilder } from "./api_route_reconcile_builder.js";
 import type {
   ResourceCollectionResponse,
   ResourceDetailResponse,
   ResourceSummaryResponse,
-  ResourceResponseAspectMap,
-  ResourceResponseItem,
-  ResourceResponseSummaryMap,
-  ResourceResponseValue,
 } from "./resource_response.js";
 import type {
   ApiRouteProcessingKind,
   ApiRouteUploadKind,
 } from "./api_route_transfer_kinds.js";
-import type {
-  ApiRouteOwnedEffectsDeclaration,
-  ApiRouteOwnedHeadersDeclaration,
-  ApiRouteResolvedDownloadValue,
-  ApiRouteResponseMutationDeclarationForState,
-  ApiRouteResponseRemoveMutationDeclarationForState,
-  ApiRouteSettledTransferValue,
-} from "./api_route_builder_declarations.js";
-
-type ApiRouteResponseWriteKeys = "create" | "update" | "remove";
-
-type ApiRouteResponseWriteFinalizers<
-  TRoute extends string,
-  TRequestParams extends ApiRequestParamsShape | undefined,
-  TProcessingKind extends ApiRouteProcessingKind,
-  TUploadKind extends ApiRouteUploadKind,
-  TBody,
-  TDownloadValue,
-  TDownloadsOwned extends boolean,
-  THeadersOwned extends boolean,
-  TEffectsOwned extends boolean,
-> = {
-  create<TValue, TWriteBody>(
-    declaration: ApiRouteOwnedEffectsDeclaration<ApiRouteOwnedHeadersDeclaration<
-      ApiRouteResponseMutationDeclarationForState<
-        TRoute,
-        ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
-        TWriteBody,
-        TRequestParams,
-        TProcessingKind,
-        TUploadKind,
-        TDownloadsOwned
-      >,
-      THeadersOwned
-    >, TEffectsOwned>,
-  ): ApiDetailResourceFamily<
-    TRoute,
-    TRequestParams,
-    ApiRouteSettledTransferValue<
-      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
-      TProcessingKind,
-      TUploadKind
-    >,
-    TWriteBody
-  >;
-  update<TValue, TWriteBody>(
-    declaration: ApiRouteOwnedEffectsDeclaration<ApiRouteOwnedHeadersDeclaration<
-      ApiRouteResponseMutationDeclarationForState<
-        TRoute,
-        ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
-        TWriteBody,
-        TRequestParams,
-        TProcessingKind,
-        TUploadKind,
-        TDownloadsOwned
-      >,
-      THeadersOwned
-    >, TEffectsOwned>,
-  ): ApiDetailResourceFamily<
-    TRoute,
-    TRequestParams,
-    ApiRouteSettledTransferValue<
-      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
-      TProcessingKind,
-      TUploadKind
-    >,
-    TWriteBody
-  >;
-  remove<TValue>(
-    declaration: ApiRouteOwnedEffectsDeclaration<ApiRouteOwnedHeadersDeclaration<
-      ApiRouteResponseRemoveMutationDeclarationForState<
-        TRoute,
-        ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
-        TRequestParams,
-        TProcessingKind,
-        TUploadKind,
-        TDownloadsOwned
-      >,
-      THeadersOwned
-    >, TEffectsOwned>,
-  ): ApiDetailResourceFamily<
-    TRoute,
-    TRequestParams,
-    ApiRouteSettledTransferValue<
-      ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
-      TProcessingKind,
-      TUploadKind
-    >
-  >;
-};
-
-type ApiRouteResponseDetailBuilder<
-  TRoute extends string,
-  TRequestParams extends ApiRequestParamsShape | undefined,
-  TProcessingKind extends ApiRouteProcessingKind,
-  TUploadKind extends ApiRouteUploadKind,
-  TBody,
-  TDownloadValue,
-  TDownloadsOwned extends boolean,
-  THeadersOwned extends boolean,
-  TEffectsOwned extends boolean,
-  TMethod extends ResourceRequestMethod | undefined,
-> = Pick<
-  ApiRouteBuilder<
-    TRoute,
-    TRequestParams,
-    TProcessingKind,
-    TUploadKind,
-    TBody,
-    TDownloadValue,
-    TDownloadsOwned,
-    THeadersOwned,
-    TEffectsOwned,
-    TMethod
-  >,
-  "detail"
-> & ApiRouteResponseWriteFinalizers<
-  TRoute,
-  TRequestParams,
-  TProcessingKind,
-  TUploadKind,
-  TBody,
-  TDownloadValue,
-  TDownloadsOwned,
-  THeadersOwned,
-  TEffectsOwned
->;
-
-type ApiRouteResponseCollectionBuilder<
-  TRoute extends string,
-  TRequestParams extends ApiRequestParamsShape | undefined,
-  TResponse extends ResourceCollectionResponse<any, any, any, any>,
-  TProcessingKind extends ApiRouteProcessingKind,
-  TUploadKind extends ApiRouteUploadKind,
-  TBody,
-  TDownloadValue,
-  TDownloadsOwned extends boolean,
-  THeadersOwned extends boolean,
-  TEffectsOwned extends boolean,
-  TMethod extends ResourceRequestMethod | undefined,
-> = Omit<ApiRouteReconcileBuilder<
-  TRoute,
-  TRequestParams,
-  ResourceResponseValue<TResponse>,
-  ResourceResponseItem<TResponse>,
-  ResourceResponseAspectMap<TResponse>,
-  ResourceResponseSummaryMap<TResponse>,
-  "none",
-  TProcessingKind,
-  TUploadKind,
-  TBody,
-  TDownloadsOwned,
-  THeadersOwned,
-  TMethod
->, "aspect" | "reconcile" | "summary" | "pageWindowSummary">
-  & ApiRouteResponseWriteFinalizers<
-    TRoute,
-    TRequestParams,
-    TProcessingKind,
-    TUploadKind,
-    TBody,
-    TDownloadValue,
-    TDownloadsOwned,
-    THeadersOwned,
-    TEffectsOwned
-  >;
+import type { ApiRouteResponseBuilderForResponse } from "./api_route_response_builder_steps.js";
 
 export type ApiRouteBuilderParamsStep<
   TRoute extends string,
@@ -454,30 +283,17 @@ export type ApiRouteBuilderItemsStep<
       | ResourceSummaryResponse<any>,
   >(
     response: TResponse,
-  ): TResponse extends ResourceDetailResponse<any, any> | ResourceSummaryResponse<any>
-    ? ApiRouteResponseDetailBuilder<
-        TRoute,
-        TRequestParams,
-        TProcessingKind,
-        TUploadKind,
-        TBody,
-        TDownloadValue,
-        TDownloadsOwned,
-        THeadersOwned,
-        TEffectsOwned,
-        TMethod
-      >
-    : ApiRouteResponseCollectionBuilder<
-        TRoute,
-        TRequestParams,
-        Extract<TResponse, ResourceCollectionResponse<any, any, any, any>>,
-        TProcessingKind,
-        TUploadKind,
-        TBody,
-        TDownloadValue,
-        TDownloadsOwned,
-        THeadersOwned,
-        TEffectsOwned,
-        TMethod
-      >;
+  ): ApiRouteResponseBuilderForResponse<
+    TRoute,
+    TRequestParams,
+    TResponse,
+    TProcessingKind,
+    TUploadKind,
+    TBody,
+    TDownloadValue,
+    TDownloadsOwned,
+    THeadersOwned,
+    TEffectsOwned,
+    TMethod
+  >;
 };

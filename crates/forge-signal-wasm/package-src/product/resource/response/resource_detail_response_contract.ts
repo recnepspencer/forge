@@ -122,6 +122,8 @@ function createObjectDetailFields(fields, source) {
         `${source} field "${fieldName}" requires a non-empty object field name`,
       );
     }
+    requireSafeObjectDetailFieldName(source, fieldName);
+    requireSafeObjectDetailBackingField(source, fieldName, objectField);
     definitions[fieldName] = Object.freeze({
       read(value) {
         return readObjectDetailValueField(source, value, fieldName, objectField);
@@ -158,6 +160,28 @@ function readDetailFieldDeclarations(fields, source) {
     declarations.push(Object.freeze([key, descriptor.value]));
   }
   return declarations;
+}
+
+function requireSafeObjectDetailFieldName(source, fieldName) {
+  if (
+    fieldName === "__proto__" ||
+    fieldName === "constructor" ||
+    fieldName === "prototype"
+  ) {
+    throw new TypeError(`${source} rejects unsafe detail field "${fieldName}"`);
+  }
+}
+
+function requireSafeObjectDetailBackingField(source, fieldName, objectField) {
+  if (
+    objectField === "__proto__" ||
+    objectField === "constructor" ||
+    objectField === "prototype"
+  ) {
+    throw new TypeError(
+      `${source} field "${fieldName}" rejects unsafe object field "${objectField}"`,
+    );
+  }
 }
 
 function requireObjectDetailValue(source, value, fieldName) {

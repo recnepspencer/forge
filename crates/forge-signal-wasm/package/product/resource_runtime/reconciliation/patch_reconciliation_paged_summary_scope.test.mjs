@@ -45,7 +45,13 @@ test("paged lines do not overclaim summary patch admission for line-scoped summa
     assert.deepEqual(line.reconciliation(), {
       broadReplace: true,
       narrowItem: true,
+      narrowField: false,
+      narrowRegion: false,
+      narrowJsonPath: false,
       narrowSummary: false,
+      fieldNames: [],
+      regionNames: [],
+      jsonPathNames: [],
       aspectNames: [],
       summaryNames: [],
     });
@@ -101,7 +107,13 @@ test("paged lines admit summary patch when page-window summaries are declared ex
     assert.deepEqual(line.reconciliation(), {
       broadReplace: true,
       narrowItem: true,
+      narrowField: false,
+      narrowRegion: false,
+      narrowJsonPath: false,
       narrowSummary: true,
+      fieldNames: [],
+      regionNames: [],
+      jsonPathNames: [],
       aspectNames: [],
       summaryNames: ["visibleCount"],
     });
@@ -117,6 +129,7 @@ test("paged lines admit summary patch when page-window summaries are declared ex
       scope: "summary",
       itemId: null,
       aspect: null,
+      field: null,
       summary: "visibleCount",
     });
     assert.deepEqual(normalizeForProof(line.value()), {
