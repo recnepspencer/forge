@@ -337,6 +337,70 @@ impl<L: BasisOperationLane> AdvisoryBasisEligibility<L> {
     pub fn decision_trace(&self) -> &BasisEligibilityDecisionTrace {
         &self.decision_trace
     }
+
+    pub fn normalized(&self) -> &NormalizedBasisIntent {
+        &self.normalized
+    }
+
+    pub fn authoring_digest(&self) -> String {
+        hash_parts(&[
+            "advisory_basis_authoring_v1".to_string(),
+            format!("normalized:{}", self.normalized.normalized_digest()),
+            format!("lane:{}", L::lane_name()),
+        ])
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DeferredBasisEligibility<L: BasisOperationLane> {
+    normalized: NormalizedBasisIntent,
+    lane: L,
+    denial_kind: DeniedBasisCapabilityKind,
+    decision_trace: BasisEligibilityDecisionTrace,
+    counters: BasisEligibilityCounters,
+}
+
+impl<L: BasisOperationLane> DeferredBasisEligibility<L> {
+    pub(crate) fn new(
+        normalized: NormalizedBasisIntent,
+        lane: L,
+        denial_kind: DeniedBasisCapabilityKind,
+        message: &'static str,
+    ) -> Self {
+        let decision_trace = BasisEligibilityDecisionTrace::new(&normalized, "deferred", message);
+        Self {
+            normalized,
+            lane,
+            denial_kind,
+            decision_trace,
+            counters: BasisEligibilityCounters::eligibility(0, 0, 1, 0),
+        }
+    }
+
+    pub fn normalized(&self) -> &NormalizedBasisIntent {
+        &self.normalized
+    }
+
+    pub fn denial_kind(&self) -> DeniedBasisCapabilityKind {
+        self.denial_kind
+    }
+
+    pub fn decision_trace(&self) -> &BasisEligibilityDecisionTrace {
+        &self.decision_trace
+    }
+
+    pub fn counters(&self) -> &BasisEligibilityCounters {
+        &self.counters
+    }
+
+    pub fn authoring_digest(&self) -> String {
+        hash_parts(&[
+            "deferred_basis_authoring_v1".to_string(),
+            format!("normalized:{}", self.normalized.normalized_digest()),
+            format!("lane:{}", L::lane_name()),
+            format!("denial_kind:{}", self.denial_kind.as_str()),
+        ])
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

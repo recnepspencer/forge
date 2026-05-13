@@ -10,6 +10,10 @@ use crate::planning::{
 };
 
 pub fn direct_runtime_preflight() -> ExecutionPreflightBundle {
+    runtime_preflight_with_snapshot_token("snapshot-1")
+}
+
+pub fn runtime_preflight_with_snapshot_token(snapshot_token: &str) -> ExecutionPreflightBundle {
     let bundle = super::validated_bundles::runtime_detail_bundle();
     let plan = plan_validated_bundle(
         &bundle,
@@ -18,7 +22,7 @@ pub fn direct_runtime_preflight() -> ExecutionPreflightBundle {
     .unwrap();
     preflight_execution_basis(
         plan,
-        super::resolved_bases::runtime_basis(&bundle, "snapshot-1"),
+        super::resolved_bases::runtime_basis(&bundle, snapshot_token),
     )
     .unwrap()
 }

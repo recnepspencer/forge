@@ -35,3 +35,4 @@ lane_witness!(
 lane_witness!(SubscriptionActivationLaneWitness, "subscription_activation");
 lane_witness!(PreviewCloseoutLaneWitness, "preview_closeout");
 lane_witness!(CertificationLaneWitness, "certification");
+lane_witness!(EffectAuthoringLaneWitness, "effect_authoring");

@@ -40,8 +40,13 @@ pub enum EffectIntentDenialKind {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum DeniedEffectEligibilityKind {
     UnsupportedForBasisFamily,
+    BranchAuthorityRequired,
     PreviewRebindRequired,
-    DeferredToLaterMilestone,
+    PreviewReadOnlyExecutionForbidden,
+    AuthorityTargetMismatch,
+    WorkflowBroadeningForbidden,
+    StoreBackedExecutionDeferred,
+    DurableReplayDeferred,
     WorkflowAdmissionDenied,
 }
 
@@ -49,8 +54,13 @@ impl DeniedEffectEligibilityKind {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::UnsupportedForBasisFamily => "unsupported_for_basis_family",
+            Self::BranchAuthorityRequired => "branch_authority_required",
             Self::PreviewRebindRequired => "preview_rebind_required",
-            Self::DeferredToLaterMilestone => "deferred_to_later_milestone",
+            Self::PreviewReadOnlyExecutionForbidden => "preview_read_only_execution_forbidden",
+            Self::AuthorityTargetMismatch => "authority_target_mismatch",
+            Self::WorkflowBroadeningForbidden => "workflow_broadening_forbidden",
+            Self::StoreBackedExecutionDeferred => "store_backed_execution_deferred",
+            Self::DurableReplayDeferred => "durable_replay_deferred",
             Self::WorkflowAdmissionDenied => "workflow_admission_denied",
         }
     }

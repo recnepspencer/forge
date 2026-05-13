@@ -258,6 +258,7 @@ pub struct WorkflowContextBinding {
     query_identity_digest: String,
     basis_family: WorkflowBasisFamily,
     basis_digest: String,
+    runtime_snapshot_token: Option<String>,
     preview_evaluation_class: Option<WorkflowPreviewEvaluationClass>,
     preview_session_identity: Option<String>,
     counters: WorkflowCounters,
@@ -284,6 +285,10 @@ impl WorkflowContextBinding {
         &self.basis_digest
     }
 
+    pub fn runtime_snapshot_token(&self) -> Option<&str> {
+        self.runtime_snapshot_token.as_deref()
+    }
+
     pub fn preview_evaluation_class(&self) -> Option<&WorkflowPreviewEvaluationClass> {
         self.preview_evaluation_class.as_ref()
     }
@@ -294,6 +299,99 @@ impl WorkflowContextBinding {
 
     pub fn counters(&self) -> &WorkflowCounters {
         &self.counters
+    }
+}
+
+pub(crate) fn synthetic_runtime_workflow_binding(
+    source_label: &str,
+    runtime_snapshot_token: impl Into<String>,
+) -> WorkflowContextBinding {
+    let runtime_snapshot_token = runtime_snapshot_token.into();
+    let query_identity_digest = hash_parts(&[
+        format!("synthetic_query:{source_label}"),
+        "basis:runtime".to_string(),
+    ]);
+    let source_digest = hash_parts(&[
+        format!("synthetic_source:{source_label}"),
+        runtime_snapshot_token.clone(),
+    ]);
+    let basis_digest = hash_parts(&[
+        format!("synthetic_basis:{source_label}"),
+        runtime_snapshot_token.clone(),
+    ]);
+    let digest = hash_parts(&[
+        format!("source:{source_digest}"),
+        format!("query:{query_identity_digest}"),
+        format!(
+            "basis_family:{}",
+            WorkflowBasisFamily::RuntimePreflight.as_str()
+        ),
+        format!("basis:{basis_digest}"),
+        format!("runtime_snapshot:{runtime_snapshot_token}"),
+    ]);
+    WorkflowContextBinding {
+        digest,
+        source_digest,
+        query_identity_digest,
+        basis_family: WorkflowBasisFamily::RuntimePreflight,
+        basis_digest,
+        runtime_snapshot_token: Some(runtime_snapshot_token),
+        preview_evaluation_class: None,
+        preview_session_identity: None,
+        counters: WorkflowCounters {
+            workflow_basis_binding_count: 1,
+            workflow_basis_binding_width: 1,
+            workflow_executor_rediscovery_count: 0,
+            ..WorkflowCounters::default()
+        },
+    }
+}
+
+pub(crate) fn synthetic_preview_workflow_binding(
+    source_label: &str,
+    preview_session_identity: impl Into<String>,
+    evaluation_class: WorkflowPreviewEvaluationClass,
+) -> WorkflowContextBinding {
+    let preview_session_identity = preview_session_identity.into();
+    let query_identity_digest = hash_parts(&[
+        format!("synthetic_query:{source_label}"),
+        format!("preview_session:{preview_session_identity}"),
+    ]);
+    let source_digest = hash_parts(&[
+        format!("synthetic_source:{source_label}"),
+        format!("evaluation:{}", evaluation_class.as_str()),
+        format!("preview_session:{preview_session_identity}"),
+    ]);
+    let basis_digest = hash_parts(&[
+        format!("synthetic_basis:{source_label}"),
+        format!("preview_session:{preview_session_identity}"),
+    ]);
+    let digest = hash_parts(&[
+        format!("source:{source_digest}"),
+        format!("query:{query_identity_digest}"),
+        format!(
+            "basis_family:{}",
+            WorkflowBasisFamily::PreviewFoundation.as_str()
+        ),
+        format!("basis:{basis_digest}"),
+        format!("evaluation:{}", evaluation_class.as_str()),
+        format!("preview_session:{preview_session_identity}"),
+    ]);
+    WorkflowContextBinding {
+        digest,
+        source_digest,
+        query_identity_digest,
+        basis_family: WorkflowBasisFamily::PreviewFoundation,
+        basis_digest,
+        runtime_snapshot_token: None,
+        preview_evaluation_class: Some(evaluation_class),
+        preview_session_identity: Some(preview_session_identity),
+        counters: WorkflowCounters {
+            workflow_basis_binding_count: 1,
+            workflow_basis_binding_width: 1,
+            workflow_executor_rediscovery_count: 0,
+            ..WorkflowCounters::default()
+        },
     }
 }
 
@@ -482,6 +580,7 @@ fn bind_runtime_preflight(
 
     let query_identity_digest = preflight.plan().query().canonical_query_digest().as_str();
     let basis_digest = preflight.basis().proof().digest().as_str();
+    let runtime_snapshot_token = preflight.basis().identity().snapshot_token();
     let source_digest = preflight.plan().query().plan_digest().as_str();
     let digest = hash_parts(&[
         format!("source:{source_digest}"),
@@ -491,6 +590,7 @@ fn bind_runtime_preflight(
             WorkflowBasisFamily::RuntimePreflight.as_str()
         ),
         format!("basis:{basis_digest}"),
+        format!("runtime_snapshot:{runtime_snapshot_token}"),
     ]);
 
     Ok(WorkflowContextBinding {
@@ -499,6 +599,7 @@ fn bind_runtime_preflight(
         query_identity_digest: query_identity_digest.to_string(),
         basis_family: WorkflowBasisFamily::RuntimePreflight,
         basis_digest: basis_digest.to_string(),
+        runtime_snapshot_token: Some(runtime_snapshot_token.to_string()),
         preview_evaluation_class: None,
         preview_session_identity: None,
         counters: WorkflowCounters {
@@ -543,6 +644,7 @@ fn bind_preview_foundation(
         query_identity_digest: query_identity_digest.to_string(),
         basis_family: WorkflowBasisFamily::PreviewFoundation,
         basis_digest: basis_digest.to_string(),
+        runtime_snapshot_token: None,
         preview_evaluation_class: Some(evaluation_class),
         preview_session_identity: Some(foundation.preview_session_identity().as_str().to_string()),
         counters: WorkflowCounters {
@@ -576,6 +678,7 @@ fn bind_preview_promotion_comparison(
         query_identity_digest: query_identity_digest.to_string(),
         basis_family: WorkflowBasisFamily::PreviewPromotionComparison,
         basis_digest: basis_digest.to_string(),
+        runtime_snapshot_token: None,
         preview_evaluation_class: Some(WorkflowPreviewEvaluationClass::PromotionEligible),
         preview_session_identity: None,
         counters: WorkflowCounters {

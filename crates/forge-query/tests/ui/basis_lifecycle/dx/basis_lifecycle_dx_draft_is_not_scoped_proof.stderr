@@ -7,15 +7,15 @@ error[E0277]: the trait bound `BasisLifecycleIntentDraft: ScopedBasisProof` is n
   |         ^^^^^ the trait `ScopedBasisProof` is not implemented for `BasisLifecycleIntentDraft`
   |
   = help: the following other types implement trait `ScopedBasisProof`:
-            ScopedCertificationBasis
-            ScopedInspectionBasis
-            ScopedMaterializationBasis
-            ScopedMutationPreparationBasis
-            ScopedObservationBasis
-            ScopedPreviewCloseoutBasis
-            ScopedReplayBasis
-            ScopedSubscriptionActivationBasis
-            ScopedSubscriptionDeclarationBasis
+            forge_query::facade::ScopedCertificationBasis
+            forge_query::facade::ScopedInspectionBasis
+            forge_query::facade::ScopedMaterializationBasis
+            forge_query::facade::ScopedMutationPreparationBasis
+            forge_query::facade::ScopedObservationBasis
+            forge_query::facade::ScopedPreviewCloseoutBasis
+            forge_query::facade::ScopedReplayBasis
+            forge_query::facade::ScopedSubscriptionActivationBasis
+            forge_query::facade::ScopedSubscriptionDeclarationBasis
 note: required by a bound in `readmit_lower_runtime_evidence`
  --> src/basis_lifecycle/lower_runtime/mod.rs
   |
@@ -33,15 +33,15 @@ error[E0277]: the trait bound `BasisLifecycleIntentDraft: ScopedBasisProof` is n
   | |_____^ the trait `ScopedBasisProof` is not implemented for `BasisLifecycleIntentDraft`
   |
   = help: the following other types implement trait `ScopedBasisProof`:
-            ScopedCertificationBasis
-            ScopedInspectionBasis
-            ScopedMaterializationBasis
-            ScopedMutationPreparationBasis
-            ScopedObservationBasis
-            ScopedPreviewCloseoutBasis
-            ScopedReplayBasis
-            ScopedSubscriptionActivationBasis
-            ScopedSubscriptionDeclarationBasis
+            forge_query::facade::ScopedCertificationBasis
+            forge_query::facade::ScopedInspectionBasis
+            forge_query::facade::ScopedMaterializationBasis
+            forge_query::facade::ScopedMutationPreparationBasis
+            forge_query::facade::ScopedObservationBasis
+            forge_query::facade::ScopedPreviewCloseoutBasis
+            forge_query::facade::ScopedReplayBasis
+            forge_query::facade::ScopedSubscriptionActivationBasis
+            forge_query::facade::ScopedSubscriptionDeclarationBasis
 note: required by a bound in `LowerRuntimeBoundBasis`
  --> src/basis_lifecycle/lower_runtime/mod.rs
   |

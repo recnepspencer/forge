@@ -1,0 +1,5 @@
+error[E0599]: no method named `execute_with` found for struct `AdmittedEffectBatch` in the current scope
+  --> tests/ui/effect_lifecycle/execution/effect_lifecycle_batch_execution_rejects_admitted_batch.rs:10:30
+   |
+10 |     let _ = admitted_batch().execute_with(EffectExecutionAuthority::relational(&mut runtime));
+   |                              ^^^^^^^^^^^^ method not found in `AdmittedEffectBatch`

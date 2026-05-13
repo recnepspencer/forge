@@ -1,7 +1,8 @@
 use crate::basis_lifecycle::{
-    admit_basis_capability, evaluate_basis_mutation_preparation_eligibility,
-    evaluate_basis_preview_closeout_eligibility, normalize_raw_basis_intent,
-    scope_basis_for_mutation_preparation, scope_basis_for_preview_closeout, BasisOperationLane,
+    admit_basis_capability, evaluate_basis_inspection_advisory_eligibility,
+    evaluate_basis_mutation_preparation_eligibility, evaluate_basis_preview_closeout_eligibility,
+    normalize_raw_basis_intent, scope_basis_for_mutation_preparation,
+    scope_basis_for_preview_closeout, BasisOperationLane, InspectionLaneWitness,
     MutationPreparationLaneWitness, PreviewCloseoutLaneWitness, RawBasisIntent,
 };
 use crate::harness::fixtures::{execution_preflights, preview_bridge::active_preview_artifacts};
@@ -24,9 +25,20 @@ use crate::effect_lifecycle::{
 };
 
 pub(super) fn branch_mutation_basis() -> crate::basis_lifecycle::ScopedMutationPreparationBasis {
+    branch_mutation_basis_for("branch-a")
+}
+
+pub(super) fn alternate_branch_mutation_basis(
+) -> crate::basis_lifecycle::ScopedMutationPreparationBasis {
+    branch_mutation_basis_for("branch-b")
+}
+
+fn branch_mutation_basis_for(
+    branch_identity: &str,
+) -> crate::basis_lifecycle::ScopedMutationPreparationBasis {
     let normalized = normalize_raw_basis_intent(
         RawBasisIntent::BranchHead {
-            branch_identity: "branch-a".to_string(),
+            branch_identity: branch_identity.to_string(),
             accessible: true,
         },
         <MutationPreparationLaneWitness as BasisOperationLane>::lane_name(),
@@ -67,22 +79,52 @@ pub(super) fn preview_closeout_basis() -> crate::basis_lifecycle::ScopedPreviewC
     scope_basis_for_preview_closeout(admit_basis_capability(eligibility))
 }
 
+pub(super) fn preview_derived_inspection_advisory(
+) -> crate::basis_lifecycle::AdvisoryBasisEligibility<InspectionLaneWitness> {
+    let normalized = normalize_raw_basis_intent(
+        RawBasisIntent::PreviewDerived {
+            preview_identity: "preview-a".to_string(),
+            source_basis_identity: "branch-a".to_string(),
+        },
+        <InspectionLaneWitness as BasisOperationLane>::lane_name(),
+    )
+    .expect("preview-derived inspection basis should normalize");
+    evaluate_basis_inspection_advisory_eligibility(normalized)
+        .expect("preview-derived inspection basis should be advisory")
+}
+
+pub(super) fn store_backed_effect_basis() -> EffectAuthoringBasis {
+    EffectAuthoringBasis::store_backed("store-basis-a")
+}
+
+pub(super) fn durable_reload_effect_basis() -> EffectAuthoringBasis {
+    EffectAuthoringBasis::durable_reload("durable-reload-a")
+}
+
 pub(super) fn runtime_workflow_binding() -> WorkflowContextBinding {
-    let preflight = execution_preflights::direct_runtime_preflight();
+    runtime_workflow_binding_with_snapshot("snapshot-1")
+}
+
+pub(super) fn runtime_workflow_binding_with_snapshot(
+    snapshot_token: &str,
+) -> WorkflowContextBinding {
+    let preflight = execution_preflights::runtime_preflight_with_snapshot_token(snapshot_token);
     bind_workflow_context(WorkflowBindingSource::RuntimePreflight(&preflight))
         .expect("runtime preflight should bind")
 }
 
 pub(super) fn preview_workflow_binding() -> WorkflowContextBinding {
+    preview_workflow_binding_for(PreviewEvaluationClass::promotion_eligible())
+}
+
+fn preview_workflow_binding_for(
+    evaluation_class: PreviewEvaluationClass,
+) -> WorkflowContextBinding {
     let preflight = execution_preflights::direct_runtime_preflight();
     let (_runtime, active, execution_record) = active_preview_artifacts("effect-lifecycle-preview");
     let binding = bind_preflight_to_preview_session(
         preflight,
-        PreviewSessionQueryContext::active(
-            &active,
-            &execution_record,
-            PreviewEvaluationClass::promotion_eligible(),
-        ),
+        PreviewSessionQueryContext::active(&active, &execution_record, evaluation_class),
     )
     .expect("preview binding should succeed");
     let foundation =
@@ -118,22 +160,40 @@ pub(super) fn workflow_request(
 pub(super) fn admitted_mutation_effect() -> AdmittedEffectIntent {
     let normalized = normalize_raw_effect_intent(
         &EffectAuthoringBasis::from(branch_mutation_basis()),
-        RawEffectIntent::Mutation {
-            binding: runtime_workflow_binding(),
-            request: workflow_request(
-                WorkflowDeclarationFamily::MutationLoweringNarrow,
-                WorkflowAuthorityTargetFamily::RelationalMutation,
-                WorkflowFreshnessPolicy::ExactBasis,
-            ),
-            input: MutationLoweringInput::IntentReconciliation {
-                entity_id: EntityId::new(PartitionId(1), 8, 0),
-                desired_payload: serde_json::json!({ "name": "authority-plan" }),
-            },
-        },
+        raw_mutation_effect(
+            EntityId::new(PartitionId(1), 8, 0),
+            serde_json::json!({ "name": "authority-plan" }),
+        ),
     )
     .expect("mutation effect should normalize");
 
     admit_from_normalized(normalized)
+}
+
+pub(super) fn raw_mutation_effect(
+    entity_id: EntityId,
+    desired_payload: serde_json::Value,
+) -> RawEffectIntent {
+    raw_mutation_effect_with_binding(runtime_workflow_binding(), entity_id, desired_payload)
+}
+
+pub(super) fn raw_mutation_effect_with_binding(
+    binding: WorkflowContextBinding,
+    entity_id: EntityId,
+    desired_payload: serde_json::Value,
+) -> RawEffectIntent {
+    RawEffectIntent::Mutation {
+        binding,
+        request: workflow_request(
+            WorkflowDeclarationFamily::MutationLoweringNarrow,
+            WorkflowAuthorityTargetFamily::RelationalMutation,
+            WorkflowFreshnessPolicy::ExactBasis,
+        ),
+        input: MutationLoweringInput::IntentReconciliation {
+            entity_id,
+            desired_payload,
+        },
+    }
 }
 
 pub(super) fn admitted_branch_merge_effect() -> AdmittedEffectIntent {
@@ -153,6 +213,46 @@ pub(super) fn admitted_branch_merge_effect() -> AdmittedEffectIntent {
         },
     )
     .expect("merge effect should normalize");
+
+    admit_from_normalized(normalized)
+}
+
+pub(super) fn admitted_tenant_mutation_effect() -> AdmittedEffectIntent {
+    let normalized = normalize_raw_effect_intent(
+        &EffectAuthoringBasis::from(tenant_mutation_basis()),
+        raw_mutation_effect(
+            EntityId::new(PartitionId(1), 9, 0),
+            serde_json::json!({ "name": "tenant-authority-plan" }),
+        ),
+    )
+    .expect("tenant mutation effect should normalize");
+
+    admit_from_normalized(normalized)
+}
+
+pub(super) fn admitted_mutation_effect_for_entity_with_binding(
+    binding: WorkflowContextBinding,
+    entity_id: EntityId,
+    desired_payload: serde_json::Value,
+) -> AdmittedEffectIntent {
+    let normalized = normalize_raw_effect_intent(
+        &EffectAuthoringBasis::from(branch_mutation_basis()),
+        raw_mutation_effect_with_binding(binding, entity_id, desired_payload),
+    )
+    .expect("mutation effect should normalize");
+
+    admit_from_normalized(normalized)
+}
+
+pub(super) fn admitted_alternate_branch_mutation_effect() -> AdmittedEffectIntent {
+    let normalized = normalize_raw_effect_intent(
+        &EffectAuthoringBasis::from(alternate_branch_mutation_basis()),
+        raw_mutation_effect(
+            EntityId::new(PartitionId(1), 10, 0),
+            serde_json::json!({ "name": "alternate-branch-authority-plan" }),
+        ),
+    )
+    .expect("alternate branch mutation effect should normalize");
 
     admit_from_normalized(normalized)
 }
@@ -201,6 +301,9 @@ fn admit_from_normalized(
 ) -> AdmittedEffectIntent {
     match evaluate_effect_eligibility(normalized) {
         EffectEligibilityOutcome::Admitted(eligibility) => admit_effect_intent(eligibility),
+        EffectEligibilityOutcome::Advisory(advisory) => {
+            panic!("expected admitted effect, got advisory {advisory:?}")
+        }
         other => panic!("expected admitted effect, got {other:?}"),
     }
 }

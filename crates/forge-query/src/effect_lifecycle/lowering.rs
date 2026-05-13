@@ -8,10 +8,12 @@ use crate::workflow::{
 };
 
 use super::counters::EffectLifecycleCounters;
+use super::eligibility::AdmittedEffectIntent;
 use super::normalized::EffectOperationInput;
 use super::planning::{
-    AuthorityScopedEffectPlan, EffectArtifactPolicy, EffectAuthorityOwner, EffectConflictFootprint,
-    EffectInvariantScope, EffectPermittedLoweringFamily, EffectPolicyPosture, EffectPreviewPosture,
+    scope_admitted_effect_plan, AuthorityScopedEffectPlan, EffectArtifactPolicy,
+    EffectAuthorityOwner, EffectConflictFootprint, EffectInvariantScope,
+    EffectPermittedLoweringFamily, EffectPolicyPosture, EffectPreviewPosture,
     EffectStrategyIdentityTarget,
 };
 use super::taxonomy::{EffectAuthorityLane, EffectFamily};
@@ -57,10 +59,22 @@ pub struct EffectLoweringDenial {
 
 impl EffectLoweringDenial {
     fn from_workflow_error(plan: &AuthorityScopedEffectPlan, error: WorkflowLoweringError) -> Self {
+        Self::from_workflow_error_for_batch(
+            plan.plan_digest(),
+            plan.counters().effect_support_row_count(),
+            error,
+        )
+    }
+
+    pub(crate) fn from_workflow_error_for_batch(
+        execution_subject_digest: &str,
+        effect_support_row_count: usize,
+        error: WorkflowLoweringError,
+    ) -> Self {
         let denial_kind = lowering_denial_kind(error.failure_class());
         let denial_digest = hash_parts(&[
             "effect_lowering_denial_v1".to_string(),
-            format!("plan:{}", plan.plan_digest()),
+            format!("plan:{execution_subject_digest}"),
             format!("kind:{}", denial_kind.as_str()),
             format!("staleness:{}", error.staleness_class().as_str()),
             format!("message:{}", error.message()),
@@ -69,10 +83,10 @@ impl EffectLoweringDenial {
             denial_kind,
             message: error.message(),
             staleness_class: error.staleness_class().clone(),
-            authority_scoped_plan_digest: plan.plan_digest().to_string(),
+            authority_scoped_plan_digest: execution_subject_digest.to_string(),
             denial_digest,
             counters: EffectLifecycleCounters::lowering_denied(
-                plan.counters().effect_support_row_count(),
+                effect_support_row_count,
                 error.counters().workflow_lowering_width(),
             ),
         }
@@ -241,6 +255,11 @@ pub fn lower_authority_scoped_effect_plan(
     {
         EffectOperationInput::Mutation(input) => lower_mutation_intent_declaration(
             authority_scoped_plan.admitted().workflow_declaration(),
+            authority_scoped_plan
+                .admitted()
+                .normalized()
+                .expected_lower_runtime_binding_digest()
+                .expect("admitted mutation effects must preserve a lower-runtime binding digest"),
             input.clone(),
         )
         .map(LoweredEffectExecutionArtifact::Mutation),
@@ -261,6 +280,16 @@ pub fn lower_authority_scoped_effect_plan(
         authority_scoped_plan,
         artifact,
     ))
+}
+
+pub(crate) fn assemble_lowered_batch_mutation_component(
+    admitted: AdmittedEffectIntent,
+    declaration: LoweredMutationIntentDeclaration,
+) -> LoweredEffectExecutionPlan {
+    LoweredEffectExecutionPlan::new(
+        scope_admitted_effect_plan(admitted),
+        LoweredEffectExecutionArtifact::Mutation(declaration),
+    )
 }
 
 fn lowering_denial_kind(failure_class: &WorkflowLoweringFailureClass) -> EffectLoweringDenialKind {

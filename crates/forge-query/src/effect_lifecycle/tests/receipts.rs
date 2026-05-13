@@ -1,0 +1,184 @@
+use forge_relational::facade::history::BranchId;
+use forge_runtime_bridge::facade::BridgeWritebackOutcomeClass;
+use serde_json::json;
+
+use crate::effect_lifecycle::{
+    scope_admitted_effect_plan, EffectDiagnosticsRequest, EffectEnvelopePrimaryResult,
+    EffectExecutionAuthority, EffectFamily, EffectPublicSurfaceAvailability,
+    EffectPublicSurfaceKind, EffectReceiptArtifactKind, EffectReceiptTargetEvidence,
+};
+
+use super::execution_support::{
+    branch_snapshot_token, create_entity, relational_runtime_with_intent_strategy,
+    test_bridge_with_writeback_authority,
+};
+use super::support::{
+    admitted_mutation_effect_for_entity_with_binding, admitted_tenant_writeback_effect,
+    branch_mutation_basis, raw_mutation_effect_with_binding,
+    runtime_workflow_binding_with_snapshot,
+};
+
+#[test]
+fn mutation_execution_mints_receipt_first_envelope_and_diagnostics() {
+    let mut runtime = relational_runtime_with_intent_strategy();
+    let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
+    runtime
+        .history_authority()
+        .create_branch(
+            BranchId("branch-a".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .expect("branch-a should be created");
+    let receipt = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
+        runtime_workflow_binding_with_snapshot("snapshot-1"),
+        entity_id,
+        json!({ "name": "receipt-first" }),
+    ))
+    .lower()
+    .expect("mutation should lower")
+    .execute_receipt_with(EffectExecutionAuthority::relational(&mut runtime))
+    .expect("mutation should execute to receipt");
+
+    assert_eq!(
+        receipt.receipt_family(),
+        EffectReceiptArtifactKind::ForgeQueryIntentExecution
+    );
+    assert_eq!(receipt.declared_effect_family(), EffectFamily::Mutation);
+    assert_eq!(receipt.write_count(), 1);
+    assert!(matches!(
+        receipt.target_evidence(),
+        EffectReceiptTargetEvidence::MutationCommit { .. }
+    ));
+
+    let envelope = receipt.effect_envelope();
+    assert_eq!(
+        envelope.primary_result(),
+        EffectEnvelopePrimaryResult::MutationCommitted
+    );
+    assert_eq!(
+        envelope.trace_digest(),
+        receipt.decision_trace().decision_trace_digest()
+    );
+
+    let diagnostics = receipt.materialize_diagnostics(EffectDiagnosticsRequest::forensic());
+    assert_eq!(diagnostics.receipt_digest(), receipt.receipt_digest());
+    assert_eq!(diagnostics.envelope_digest(), envelope.envelope_digest());
+    assert!(diagnostics
+        .detail_sections()
+        .iter()
+        .any(|section| section.starts_with("lowered:")));
+}
+
+#[test]
+fn writeback_execution_mints_write_receipt_family() {
+    let bridge = test_bridge_with_writeback_authority();
+    let receipt = scope_admitted_effect_plan(admitted_tenant_writeback_effect())
+        .lower()
+        .expect("writeback should lower")
+        .execute_receipt_with(EffectExecutionAuthority::bridge(&bridge))
+        .expect("writeback should execute to receipt");
+
+    assert_eq!(
+        receipt.receipt_family(),
+        EffectReceiptArtifactKind::ForgeQueryWriteReceipt
+    );
+    assert_eq!(receipt.declared_effect_family(), EffectFamily::Writeback);
+    match receipt.target_evidence() {
+        EffectReceiptTargetEvidence::Writeback {
+            outcome_digest,
+            receipt_digest,
+        } => {
+            assert!(!outcome_digest.is_empty());
+            assert!(!receipt_digest.is_empty());
+        }
+        other => panic!("expected writeback target evidence, got {other:?}"),
+    }
+    assert_eq!(
+        receipt.effect_envelope().primary_result(),
+        EffectEnvelopePrimaryResult::WritebackCommitted
+    );
+    let executed = scope_admitted_effect_plan(admitted_tenant_writeback_effect())
+        .lower()
+        .expect("writeback should lower")
+        .execute_with(EffectExecutionAuthority::bridge(&bridge))
+        .expect("writeback should still execute");
+    let (_, truth_receipt) = executed
+        .as_writeback()
+        .expect("writeback artifact should exist");
+    assert_eq!(
+        truth_receipt.outcome_class(),
+        BridgeWritebackOutcomeClass::AuthoritativeCommit
+    );
+}
+
+#[test]
+fn batch_execution_mints_batch_write_receipt_family() {
+    let mut runtime = relational_runtime_with_intent_strategy();
+    let left = create_entity(&mut runtime, "left", BranchId("main".to_string()));
+    let right = create_entity(&mut runtime, "right", BranchId("main".to_string()));
+    runtime
+        .history_authority()
+        .create_branch(
+            BranchId("branch-a".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .expect("branch-a should be created");
+
+    let receipt = crate::effect_lifecycle::effect_batch()
+        .using_basis(crate::effect_lifecycle::EffectAuthoringBasis::from(
+            branch_mutation_basis(),
+        ))
+        .push(raw_mutation_effect_with_binding(
+            runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a")),
+            left,
+            json!({ "name": "left-batch-receipt" }),
+        ))
+        .push(raw_mutation_effect_with_binding(
+            runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a")),
+            right,
+            json!({ "name": "right-batch-receipt" }),
+        ))
+        .admit()
+        .expect("batch should admit")
+        .lower()
+        .expect("batch should lower")
+        .execute_receipt_with(EffectExecutionAuthority::relational(&mut runtime))
+        .expect("batch should execute to receipt");
+
+    assert_eq!(
+        receipt.receipt_family(),
+        EffectReceiptArtifactKind::ForgeQueryBatchWriteReceipt
+    );
+    assert_eq!(receipt.write_count(), 2);
+    match receipt.target_evidence() {
+        EffectReceiptTargetEvidence::BatchMutation {
+            component_count, ..
+        } => {
+            assert_eq!(component_count, 2);
+        }
+        other => panic!("expected batch target evidence, got {other:?}"),
+    }
+    assert_eq!(
+        receipt.effect_envelope().primary_result(),
+        EffectEnvelopePrimaryResult::BatchMutationCommitted
+    );
+}
+
+#[test]
+fn public_surface_inventory_now_marks_diagnostics_envelope_as_implemented() {
+    let inventory = crate::effect_lifecycle::effect_lifecycle_public_surface_inventory();
+    let diagnostics = inventory
+        .rows()
+        .iter()
+        .find(|row| row.surface_kind() == EffectPublicSurfaceKind::DiagnosticsEnvelope)
+        .expect("diagnostics row should exist");
+
+    assert_eq!(
+        diagnostics.availability(),
+        EffectPublicSurfaceAvailability::Implemented
+    );
+    assert!(diagnostics
+        .entrypoint()
+        .expect("diagnostics row should advertise entrypoint")
+        .contains("effect_envelope"));
+}

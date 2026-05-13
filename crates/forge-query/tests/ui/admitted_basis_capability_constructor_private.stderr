@@ -1,4 +1,4 @@
-error: cannot construct `BasisEligibilityCounters` with struct literal syntax due to private fields
+error: cannot construct `forge_query::facade::policy::BasisEligibilityCounters` with struct literal syntax due to private fields
   --> tests/ui/admitted_basis_capability_constructor_private.rs:13:19
    |
 13 |         counters: BasisEligibilityCounters {
@@ -27,7 +27,7 @@ help: you might have meant to use the `for_intent` associated function
 13 +         counters: BasisEligibilityCounters::for_intent(_, _),
    |
 
-error: cannot construct `AdmittedBasisCapability` with struct literal syntax due to private fields
+error: cannot construct `forge_query::facade::policy::AdmittedBasisCapability` with struct literal syntax due to private fields
   --> tests/ui/admitted_basis_capability_constructor_private.rs:7:13
    |
  7 |       let _ = AdmittedBasisCapability {

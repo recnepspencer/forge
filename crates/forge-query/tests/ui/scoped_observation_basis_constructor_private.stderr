@@ -1,21 +1,21 @@
 warning: unreachable expression
- --> tests/ui/scoped_observation_basis_constructor_private.rs:6:19
+ --> tests/ui/scoped_observation_basis_constructor_private.rs:8:19
   |
-5 |         admission: panic!() as BasisCapabilityAdmission,
+7 |         admission: panic!() as BasisCapabilityAdmission,
   |                    -------- any code following this expression is unreachable
-6 |         counters: panic!() as ScopedBasisConstructionCounters,
+8 |         counters: panic!() as ScopedBasisConstructionCounters,
   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
-error[E0451]: fields `admission`, `counters` and `scoped_digest` of struct `ScopedObservationBasis` are private
- --> tests/ui/scoped_observation_basis_constructor_private.rs:5:9
+error[E0451]: fields `admission`, `counters` and `scoped_digest` of struct `forge_query::facade::policy::ScopedObservationBasis` are private
+ --> tests/ui/scoped_observation_basis_constructor_private.rs:7:9
   |
-4 |     let _ = ScopedObservationBasis {
+6 |     let _ = ScopedObservationBasis {
   |             ---------------------- in this type
-5 |         admission: panic!() as BasisCapabilityAdmission,
+7 |         admission: panic!() as BasisCapabilityAdmission,
   |         ^^^^^^^^^ private field
-6 |         counters: panic!() as ScopedBasisConstructionCounters,
+8 |         counters: panic!() as ScopedBasisConstructionCounters,
   |         ^^^^^^^^ private field
-7 |         scoped_digest: String::new(),
+9 |         scoped_digest: String::new(),
   |         ^^^^^^^^^^^^^ private field

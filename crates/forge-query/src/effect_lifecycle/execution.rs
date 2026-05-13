@@ -3,22 +3,29 @@ use forge_relational::facade::commit_strategies::{
 };
 use forge_relational::facade::merge::{MergeExecutionError, MergeExecutionPreparationError};
 use forge_relational::facade::runtime::RelationalRuntime;
-use forge_relational::facade::transactions::{
-    CommitResult, MergeExecutionOutcome, TransactionOptions,
+use forge_relational::facade::transactions::{CommitResult, MergeExecutionOutcome};
+use forge_runtime_bridge::facade::{
+    BridgeWritebackAuthorityOutcome, RuntimeBridge, TruthWritebackReceipt,
 };
-use forge_runtime_bridge::facade::RuntimeBridge;
 
 use crate::identity::hash_parts;
 
 use super::counters::EffectLifecycleCounters;
+use super::execution_bridge::execute_lowered_writeback;
+use super::execution_relational_scalar::execute_lowered_mutation;
 use super::lowering::{LoweredEffectExecutionArtifact, LoweredEffectExecutionPlan};
 use super::planning::EffectAuthorityOwner;
+use super::receipt::EffectExecutionReceipt;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EffectExecutionDenialKind {
+    AuthorityOverrideRejected,
     MissingRelationalAuthority,
     MissingBridgeAuthority,
-    WritebackContractAssemblyRequired,
+    BridgePolicyAdmissionFailed,
+    BridgeWritebackExecutionFailed,
+    RelationalAuthorityBindingMalformed,
+    RelationalExactBasisStale,
     RelationalStrategyCanonicalizationFailed,
     RelationalStrategyExecutionFailed,
     RelationalStrategyAuthorityLoweringFailed,
@@ -31,9 +38,13 @@ pub enum EffectExecutionDenialKind {
 impl EffectExecutionDenialKind {
     pub fn as_str(&self) -> &'static str {
         match self {
+            Self::AuthorityOverrideRejected => "authority_override_rejected",
             Self::MissingRelationalAuthority => "missing_relational_authority",
             Self::MissingBridgeAuthority => "missing_bridge_authority",
-            Self::WritebackContractAssemblyRequired => "writeback_contract_assembly_required",
+            Self::BridgePolicyAdmissionFailed => "bridge_policy_admission_failed",
+            Self::BridgeWritebackExecutionFailed => "bridge_writeback_execution_failed",
+            Self::RelationalAuthorityBindingMalformed => "relational_authority_binding_malformed",
+            Self::RelationalExactBasisStale => "relational_exact_basis_stale",
             Self::RelationalStrategyCanonicalizationFailed => {
                 "relational_strategy_canonicalization_failed"
             }
@@ -54,33 +65,45 @@ impl EffectExecutionDenialKind {
 #[derive(Debug)]
 pub struct EffectExecutionAuthority<'a> {
     relational: Option<&'a mut RelationalRuntime>,
-    _bridge: Option<&'a RuntimeBridge>,
+    bridge: Option<&'a RuntimeBridge>,
 }
 
 impl<'a> EffectExecutionAuthority<'a> {
     pub fn relational(runtime: &'a mut RelationalRuntime) -> Self {
         Self {
             relational: Some(runtime),
-            _bridge: None,
+            bridge: None,
         }
     }
 
     pub fn bridge(runtime: &'a RuntimeBridge) -> Self {
         Self {
             relational: None,
-            _bridge: Some(runtime),
+            bridge: Some(runtime),
         }
     }
 
     pub fn combined(relational: &'a mut RelationalRuntime, bridge: &'a RuntimeBridge) -> Self {
         Self {
             relational: Some(relational),
-            _bridge: Some(bridge),
+            bridge: Some(bridge),
         }
     }
 
-    fn relational_runtime(&mut self) -> Option<&mut RelationalRuntime> {
+    pub(crate) fn relational_runtime(&mut self) -> Option<&mut RelationalRuntime> {
         self.relational.as_deref_mut()
+    }
+
+    pub(crate) fn has_relational_authority(&self) -> bool {
+        self.relational.is_some()
+    }
+
+    pub(crate) fn has_bridge_authority(&self) -> bool {
+        self.bridge.is_some()
+    }
+
+    fn bridge_runtime(&self) -> Option<&RuntimeBridge> {
+        self.bridge
     }
 }
 
@@ -146,6 +169,10 @@ impl EffectExecutionDenial {
 pub enum ExecutedEffectAuthorityArtifact {
     Mutation(CommitResult),
     Merge(MergeExecutionOutcome),
+    Writeback {
+        outcome: BridgeWritebackAuthorityOutcome,
+        receipt: TruthWritebackReceipt,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -157,7 +184,7 @@ pub struct ExecutedEffectPlan {
 }
 
 impl ExecutedEffectPlan {
-    fn new(
+    pub(crate) fn new(
         lowered: LoweredEffectExecutionPlan,
         artifact: ExecutedEffectAuthorityArtifact,
         effect_execution_width: usize,
@@ -197,6 +224,7 @@ impl ExecutedEffectPlan {
         match &self.artifact {
             ExecutedEffectAuthorityArtifact::Mutation(result) => Some(result),
             ExecutedEffectAuthorityArtifact::Merge(_) => None,
+            ExecutedEffectAuthorityArtifact::Writeback { .. } => None,
         }
     }
 
@@ -204,6 +232,18 @@ impl ExecutedEffectPlan {
         match &self.artifact {
             ExecutedEffectAuthorityArtifact::Mutation(_) => None,
             ExecutedEffectAuthorityArtifact::Merge(result) => Some(result),
+            ExecutedEffectAuthorityArtifact::Writeback { .. } => None,
+        }
+    }
+
+    pub fn as_writeback(
+        &self,
+    ) -> Option<(&BridgeWritebackAuthorityOutcome, &TruthWritebackReceipt)> {
+        match &self.artifact {
+            ExecutedEffectAuthorityArtifact::Writeback { outcome, receipt } => {
+                Some((outcome, receipt))
+            }
+            _ => None,
         }
     }
 
@@ -214,6 +254,10 @@ impl ExecutedEffectPlan {
     pub fn counters(&self) -> &EffectLifecycleCounters {
         &self.counters
     }
+
+    pub fn receipt(&self) -> EffectExecutionReceipt {
+        EffectExecutionReceipt::from_scalar(self.clone())
+    }
 }
 
 impl LoweredEffectExecutionPlan {
@@ -223,14 +267,36 @@ impl LoweredEffectExecutionPlan {
     ) -> Result<ExecutedEffectPlan, EffectExecutionDenial> {
         execute_lowered_effect_plan(self, authority)
     }
+
+    pub fn execute_receipt_with(
+        self,
+        authority: EffectExecutionAuthority<'_>,
+    ) -> Result<EffectExecutionReceipt, EffectExecutionDenial> {
+        self.execute_with(authority)
+            .map(|executed| executed.receipt())
+    }
 }
 
 pub fn execute_lowered_effect_plan(
     lowered: LoweredEffectExecutionPlan,
     mut authority: EffectExecutionAuthority<'_>,
 ) -> Result<ExecutedEffectPlan, EffectExecutionDenial> {
+    execute_lowered_effect_plan_with_authority(lowered, &mut authority)
+}
+
+pub(crate) fn execute_lowered_effect_plan_with_authority(
+    lowered: LoweredEffectExecutionPlan,
+    authority: &mut EffectExecutionAuthority<'_>,
+) -> Result<ExecutedEffectPlan, EffectExecutionDenial> {
     match lowered.artifact() {
         LoweredEffectExecutionArtifact::Mutation(declaration) => {
+            if authority.relational.is_none() && authority.bridge.is_some() {
+                return Err(EffectExecutionDenial::new(
+                    &lowered,
+                    EffectExecutionDenialKind::AuthorityOverrideRejected,
+                    "lowered relational mutation execution rejected bridge host override; the admitted lowered plan requires relational authority",
+                ));
+            }
             let runtime = authority.relational_runtime().ok_or_else(|| {
                 EffectExecutionDenial::new(
                     &lowered,
@@ -247,6 +313,13 @@ pub fn execute_lowered_effect_plan(
             ))
         }
         LoweredEffectExecutionArtifact::Merge(declaration) => {
+            if authority.relational.is_none() && authority.bridge.is_some() {
+                return Err(EffectExecutionDenial::new(
+                    &lowered,
+                    EffectExecutionDenialKind::AuthorityOverrideRejected,
+                    "lowered relational merge execution rejected bridge host override; the admitted lowered plan requires relational authority",
+                ));
+            }
             let runtime = authority.relational_runtime().ok_or_else(|| {
                 EffectExecutionDenial::new(
                     &lowered,
@@ -262,59 +335,30 @@ pub fn execute_lowered_effect_plan(
                 1,
             ))
         }
-        LoweredEffectExecutionArtifact::Writeback(_) => Err(EffectExecutionDenial::new(
-                &lowered,
-                EffectExecutionDenialKind::WritebackContractAssemblyRequired,
-                "lowered query writeback declarations are not yet executable in 9.3.3 without the bridge-owned admitted contract, derived effect, and idempotence chain",
-            )),
+        LoweredEffectExecutionArtifact::Writeback(declaration) => {
+            if authority.bridge.is_none() && authority.relational.is_some() {
+                return Err(EffectExecutionDenial::new(
+                    &lowered,
+                    EffectExecutionDenialKind::AuthorityOverrideRejected,
+                    "lowered query writeback execution rejected relational host override; the admitted lowered plan requires bridge authority",
+                ));
+            }
+            let runtime = authority.bridge_runtime().ok_or_else(|| {
+                EffectExecutionDenial::new(
+                    &lowered,
+                    EffectExecutionDenialKind::MissingBridgeAuthority,
+                    "lowered query writeback execution requires a runtime bridge authority",
+                )
+            })?;
+            let (outcome, receipt) = execute_lowered_writeback(runtime, declaration)
+                .map_err(|(kind, message)| EffectExecutionDenial::new(&lowered, kind, message))?;
+            Ok(ExecutedEffectPlan::new(
+                lowered,
+                ExecutedEffectAuthorityArtifact::Writeback { outcome, receipt },
+                1,
+            ))
+        }
     }
-}
-
-fn execute_lowered_mutation(
-    runtime: &mut RelationalRuntime,
-    declaration: &crate::workflow::LoweredMutationIntentDeclaration,
-) -> Result<CommitResult, (EffectExecutionDenialKind, String)> {
-    let canonical = runtime
-        .commit_strategies()
-        .canonicalize_request(declaration.strategy_request())
-        .map_err(|error| {
-            lower_runtime_error(
-                error,
-                EffectExecutionDenialKind::RelationalStrategyCanonicalizationFailed,
-            )
-        })?;
-    let snapshot = runtime.snapshots().snapshot();
-    let execution = runtime
-        .commit_strategies()
-        .execute(&canonical, &snapshot)
-        .map_err(|error| {
-            lower_runtime_error(
-                error,
-                EffectExecutionDenialKind::RelationalStrategyExecutionFailed,
-            )
-        })?;
-    let mut commit_authority = runtime.commit_strategies_authority();
-    let lowered = commit_authority
-        .lower_execution(&canonical, &execution, TransactionOptions::default())
-        .map_err(|error| {
-            lower_runtime_error(
-                error,
-                EffectExecutionDenialKind::RelationalStrategyAuthorityLoweringFailed,
-            )
-        })?;
-    let validated = commit_authority
-        .validate_lowered_plan(lowered)
-        .map_err(|error| {
-            lower_runtime_error(
-                error,
-                EffectExecutionDenialKind::RelationalStrategyAuthorityValidationFailed,
-            )
-        })?;
-    commit_authority
-        .execute_validated_commit(validated)
-        .map_err(|error| {
-            lower_runtime_error(error, EffectExecutionDenialKind::RelationalCommitFailed)
-        })
 }
 
 fn execute_lowered_merge(
@@ -331,7 +375,7 @@ fn execute_lowered_merge(
     })
 }
 
-fn lower_runtime_error(
+pub(super) fn lower_runtime_error(
     error: impl std::fmt::Debug,
     kind: EffectExecutionDenialKind,
 ) -> (EffectExecutionDenialKind, String) {
@@ -351,6 +395,9 @@ fn executed_artifact_digest(artifact: &ExecutedEffectAuthorityArtifact) -> Strin
                 "merge:{}:{}",
                 result.commit.outcome.commit.commit_id.0, result.commit.outcome.commit.version_id.0
             )
+        }
+        ExecutedEffectAuthorityArtifact::Writeback { outcome, receipt } => {
+            format!("writeback:{}:{}", outcome.digest(), receipt.digest())
         }
     }
 }

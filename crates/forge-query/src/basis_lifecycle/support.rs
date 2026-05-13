@@ -257,8 +257,10 @@ fn support_rows() -> &'static [(BasisFamily, &'static str, BasisSupportPosture)]
         (PolicyScoped, "observation", Admitted),
         (PolicyScoped, "mutation_preparation", Admitted),
         (PolicyScoped, "inspection", Admitted),
+        (StoreBacked, "effect_authoring", Deferred),
         (StoreBacked, "observation", Deferred),
         (StoreBacked, "replay", Deferred),
+        (DurableReload, "effect_authoring", Deferred),
         (DurableReload, "certification", Deferred),
     ]
 }

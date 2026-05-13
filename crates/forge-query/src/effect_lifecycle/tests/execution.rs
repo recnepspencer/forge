@@ -1,43 +1,41 @@
-use forge_relational::facade::commit_strategies::{
-    CommitStrategyId, CommitStrategyRegistration, IntentReconciliationStrategy,
-};
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::payloads::RecordPayload;
-use forge_relational::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
-use forge_relational::facade::schema::{
-    AspectBinding, AspectComparator, AspectKey, AspectPrecision, DeclaredAspect,
-    EntityKindRegistration, KindAspectDeclarations, RelationalSchemaRegistry, SchemaId,
-    SchemaVersionId,
-};
-use forge_relational::facade::transactions::{
-    CreateIntent, EntitySpec, MutationIntent, RecordRef, TransactionOptions, WorkerIntentBatch,
-};
-use forge_relational::facade::{identity::KindId, identity::PartitionId, symbols::InternedString};
+use forge_runtime_bridge::facade::BridgeWritebackOutcomeClass;
 use serde_json::json;
 
-use crate::effect_lifecycle::{
-    admit_effect_intent, evaluate_effect_eligibility, normalize_raw_effect_intent,
-    scope_admitted_effect_plan, EffectAuthoringBasis, EffectEligibilityOutcome,
-    EffectExecutionAuthority, EffectExecutionDenialKind, ExecutedEffectAuthorityArtifact,
-    RawEffectIntent,
+use super::execution_support::{
+    create_entity, relational_runtime_with_intent_strategy, test_bridge,
+    test_bridge_with_writeback_authority,
 };
-use crate::workflow::{
-    MutationLoweringInput, WorkflowAuthorityTargetFamily, WorkflowDeclarationFamily,
-    WorkflowFreshnessPolicy,
+use super::support::{
+    admitted_branch_merge_effect, admitted_mutation_effect_for_entity_with_binding,
+    admitted_tenant_writeback_effect, runtime_workflow_binding_with_snapshot,
+};
+use crate::effect_lifecycle::{
+    scope_admitted_effect_plan, EffectExecutionAuthority, EffectExecutionDenialKind,
+    ExecutedEffectAuthorityArtifact,
 };
 
-use super::support::{
-    admitted_branch_merge_effect, admitted_tenant_writeback_effect, branch_mutation_basis,
-    runtime_workflow_binding, workflow_request,
-};
+pub(super) use super::execution_support::{branch_snapshot_token, runtime_snapshot_token};
 
 #[test]
 fn lowered_mutation_execution_runs_through_relational_strategy_authority() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
-    let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for(entity_id))
-        .lower()
-        .expect("mutation should lower");
+    runtime
+        .history_authority()
+        .create_branch(
+            BranchId("branch-a".to_string()),
+            &BranchId("main".to_string()),
+        )
+        .expect("branch-a should be created");
+    let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
+        runtime_workflow_binding_with_snapshot(&runtime_snapshot_token(&runtime)),
+        entity_id,
+        json!({ "name": "authority-plan" }),
+    ))
+    .lower()
+    .expect("mutation should lower");
 
     let executed = lowered
         .execute_with(EffectExecutionAuthority::relational(&mut runtime))
@@ -109,7 +107,7 @@ fn lowered_merge_execution_runs_through_relational_merge_authority() {
 }
 
 #[test]
-fn lowered_writeback_execution_denies_until_bridge_contract_chain_exists() {
+fn lowered_writeback_execution_requires_bridge_authority() {
     let mut runtime = relational_runtime_with_intent_strategy();
     let lowered = scope_admitted_effect_plan(admitted_tenant_writeback_effect())
         .lower()
@@ -117,107 +115,113 @@ fn lowered_writeback_execution_denies_until_bridge_contract_chain_exists() {
 
     let denial = lowered
         .execute_with(EffectExecutionAuthority::relational(&mut runtime))
-        .expect_err("writeback execution should fail closed for now");
+        .expect_err("writeback execution should reject non-bridge authority");
 
     assert_eq!(
         denial.denial_kind(),
-        EffectExecutionDenialKind::WritebackContractAssemblyRequired
+        EffectExecutionDenialKind::AuthorityOverrideRejected
     );
     assert_eq!(denial.counters().execution_denied_count(), 1);
 }
 
-fn relational_runtime_with_intent_strategy() -> RelationalRuntime {
-    let descriptor = IntentReconciliationStrategy::descriptor(CommitStrategyId(211));
-    RelationalRuntimeApi::builder()
-        .schema_registry(test_schema_registry())
-        .commit_strategy(
-            CommitStrategyRegistration::new(descriptor.clone()).expect("strategy registration"),
+#[test]
+fn lowered_mutation_execution_rejects_bridge_host_override() {
+    let mut runtime = relational_runtime_with_intent_strategy();
+    let entity_id = create_entity(&mut runtime, "before", BranchId("main".to_string()));
+    runtime
+        .history_authority()
+        .create_branch(
+            BranchId("branch-a".to_string()),
+            &BranchId("main".to_string()),
         )
-        .commit_strategy_executor(IntentReconciliationStrategy::execution_registration(
-            &descriptor,
-        ))
-        .build()
-}
+        .expect("branch-a should be created");
+    let lowered = scope_admitted_effect_plan(admitted_mutation_effect_for_entity_with_binding(
+        runtime_workflow_binding_with_snapshot(&branch_snapshot_token(&runtime, "branch-a")),
+        entity_id,
+        json!({ "name": "authority-plan" }),
+    ))
+    .lower()
+    .expect("mutation should lower");
 
-fn create_entity(
-    runtime: &mut RelationalRuntime,
-    name: &str,
-    branch: BranchId,
-) -> forge_relational::facade::identity::EntityId {
-    let mut txn = runtime.begin_transaction(TransactionOptions {
-        target_branch: Some(branch),
-        ..TransactionOptions::default()
-    });
-    txn.push_batch(
-        WorkerIntentBatch::new(format!("create-{name}")).push(MutationIntent::Create(
-            CreateIntent::Entity(EntitySpec {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(1),
-                client_key: InternedString::Raw(name.to_string()),
-                payload: RecordPayload::StructuredJson(json!({ "name": name })),
-            }),
-        )),
+    let denial = lowered
+        .execute_with(EffectExecutionAuthority::bridge(&test_bridge()))
+        .expect_err("mutation execution should reject bridge host override");
+
+    assert_eq!(
+        denial.denial_kind(),
+        EffectExecutionDenialKind::AuthorityOverrideRejected
     );
-    let outcome = txn.commit().expect("seed commit should succeed");
-    outcome
-        .changed_records
-        .iter()
-        .find_map(|record| match record {
-            RecordRef::Entity(entity_id) => Some(*entity_id),
-            RecordRef::Relation(_) => None,
-        })
-        .expect("seed commit should touch one entity")
+    assert_eq!(denial.counters().execution_denied_count(), 1);
 }
 
-fn test_schema_registry() -> RelationalSchemaRegistry {
-    RelationalSchemaRegistry::new()
-        .register_entity_kind(EntityKindRegistration {
-            kind_id: KindId(1),
-            kind_name: "test.entity".to_string(),
-            schema_id: SchemaId("test".to_string()),
-            schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![
-                DeclaredAspect {
-                    key: AspectKey(InternedString::Raw("name".to_string())),
-                    binding: AspectBinding::EntityPayloadField {
-                        field: InternedString::Raw("name".to_string()),
-                    },
-                    comparator: AspectComparator::JsonScalarEquality,
-                    precision: AspectPrecision::Structured,
-                },
-                DeclaredAspect {
-                    key: AspectKey(InternedString::Raw("lifecycle".to_string())),
-                    binding: AspectBinding::LifecycleTransition,
-                    comparator: AspectComparator::LifecycleTransitionEquality,
-                    precision: AspectPrecision::Structured,
-                },
-            ]),
-        })
-        .expect("test entity kind should register")
+#[test]
+fn lowered_merge_execution_rejects_bridge_host_override() {
+    let lowered = scope_admitted_effect_plan(admitted_branch_merge_effect())
+        .lower()
+        .expect("merge should lower");
+
+    let denial = lowered
+        .execute_with(EffectExecutionAuthority::bridge(&test_bridge()))
+        .expect_err("merge execution should reject bridge host override");
+
+    assert_eq!(
+        denial.denial_kind(),
+        EffectExecutionDenialKind::AuthorityOverrideRejected
+    );
+    assert_eq!(denial.counters().execution_denied_count(), 1);
 }
 
-fn admitted_mutation_effect_for(
-    entity_id: forge_relational::facade::identity::EntityId,
-) -> crate::effect_lifecycle::AdmittedEffectIntent {
-    let normalized = normalize_raw_effect_intent(
-        &EffectAuthoringBasis::from(branch_mutation_basis()),
-        RawEffectIntent::Mutation {
-            binding: runtime_workflow_binding(),
-            request: workflow_request(
-                WorkflowDeclarationFamily::MutationLoweringNarrow,
-                WorkflowAuthorityTargetFamily::RelationalMutation,
-                WorkflowFreshnessPolicy::ExactBasis,
-            ),
-            input: MutationLoweringInput::IntentReconciliation {
-                entity_id,
-                desired_payload: serde_json::json!({ "name": "authority-plan" }),
-            },
-        },
-    )
-    .expect("mutation effect should normalize");
+#[test]
+fn lowered_writeback_execution_denies_without_bound_writeback_authority() {
+    let lowered = scope_admitted_effect_plan(admitted_tenant_writeback_effect())
+        .lower()
+        .expect("writeback should lower");
 
-    match evaluate_effect_eligibility(normalized) {
-        EffectEligibilityOutcome::Admitted(eligibility) => admit_effect_intent(eligibility),
-        other => panic!("expected admitted mutation effect, got {other:?}"),
-    }
+    let denial = lowered
+        .execute_with(EffectExecutionAuthority::bridge(&test_bridge()))
+        .expect_err("writeback execution should fail when no writeback authority is bound");
+
+    assert_eq!(
+        denial.denial_kind(),
+        EffectExecutionDenialKind::BridgeWritebackExecutionFailed
+    );
+    assert_eq!(denial.counters().execution_denied_count(), 1);
+}
+
+#[test]
+fn lowered_writeback_execution_runs_through_bridge_authority() {
+    let bridge = test_bridge_with_writeback_authority();
+    let lowered = scope_admitted_effect_plan(admitted_tenant_writeback_effect())
+        .lower()
+        .expect("writeback should lower");
+
+    let executed = lowered
+        .execute_with(EffectExecutionAuthority::bridge(&bridge))
+        .expect("lowered writeback should execute");
+
+    let (outcome, receipt) = executed
+        .as_writeback()
+        .expect("writeback artifact should be present");
+    assert_eq!(
+        executed.authority_owner(),
+        executed.lowered().authority_owner()
+    );
+    assert_eq!(executed.counters().executed_effect_count(), 1);
+    assert_eq!(executed.counters().effect_execution_width(), 1);
+    assert_eq!(
+        receipt.outcome_class(),
+        BridgeWritebackOutcomeClass::AuthoritativeCommit
+    );
+    assert_eq!(receipt.failure_class(), None);
+    assert_eq!(
+        outcome.authoritative_artifact_digest(),
+        receipt.authoritative_artifact_digest()
+    );
+    let record = bridge
+        .diagnostics()
+        .last_writeback_execution_record()
+        .expect("bridge should retain one writeback execution record");
+    assert_eq!(record.outcome_digest(), Some(outcome.digest()));
+    assert_eq!(record.receipt_digest(), Some(receipt.digest()));
+    assert_eq!(record.request_digest(), Some(receipt.request_digest()));
 }

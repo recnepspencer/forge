@@ -1,4 +1,6 @@
-use forge_query::facade::{AdmittedBasisCapability, ScopedBasisConstructionCounters, ScopedMutationPreparationBasis};
+use forge_query::facade::policy::{
+    AdmittedBasisCapability, ScopedBasisConstructionCounters, ScopedMutationPreparationBasis,
+};
 
 fn main() {
     let _ = ScopedMutationPreparationBasis {

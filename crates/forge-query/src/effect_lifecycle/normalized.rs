@@ -44,13 +44,14 @@ impl NormalizedEffectIntent {
         operation_input: EffectOperationInput,
         source_path: &'static str,
     ) -> Self {
+        let capability_digest = authoring_basis.capability_digest();
         let normalized_digest = hash_parts(&[
             format!("family:{}", family.as_str()),
             format!("authority_lane:{}", authority_lane.as_str()),
             format!("basis_family:{}", authoring_basis.family().as_str()),
             format!("basis_authority:{}", authoring_basis.authority().as_str()),
             format!("basis_lifecycle:{}", authoring_basis.lifecycle().as_str()),
-            format!("capability:{}", authoring_basis.capability_digest()),
+            format!("capability:{capability_digest}"),
             format!("scoped_basis:{}", authoring_basis.scoped_basis_digest()),
             format!(
                 "lower_runtime_binding:{}",
@@ -76,7 +77,7 @@ impl NormalizedEffectIntent {
             basis_family: authoring_basis.family(),
             basis_authority: authoring_basis.authority(),
             basis_lifecycle: authoring_basis.lifecycle(),
-            capability_digest: authoring_basis.capability_digest().to_string(),
+            capability_digest,
             scoped_basis_digest: authoring_basis.scoped_basis_digest().to_string(),
             expected_lower_runtime_binding_digest: authoring_basis
                 .expected_lower_runtime_binding_digest()

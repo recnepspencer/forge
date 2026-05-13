@@ -1,7 +1,6 @@
 use forge_query::facade::{
-    BasisAuthorityPosture, BasisFamily, BasisLifecyclePosture, EffectAuthorityLane, EffectFamily,
-    EffectLifecycleCounters, EffectOperationInput, NormalizedEffectIntent, WorkflowContextBinding,
-    WorkflowDeclarationRequest,
+    BasisFamily, EffectAuthorityLane, EffectFamily, EffectLifecycleCounters,
+    EffectOperationInput, NormalizedEffectIntent, WorkflowContextBinding, WorkflowDeclarationRequest,
 };
 
 fn binding() -> WorkflowContextBinding {
@@ -16,13 +15,17 @@ fn input() -> EffectOperationInput {
     unimplemented!()
 }
 
+fn placeholder<T>() -> T {
+    unimplemented!()
+}
+
 fn main() {
     let _ = NormalizedEffectIntent {
         family: EffectFamily::Mutation,
         authority_lane: EffectAuthorityLane::Relational,
         basis_family: BasisFamily::BranchHead,
-        basis_authority: BasisAuthorityPosture::Runtime,
-        basis_lifecycle: BasisLifecyclePosture::Current,
+        basis_authority: placeholder(),
+        basis_lifecycle: placeholder(),
         capability_digest: String::new(),
         scoped_basis_digest: String::new(),
         expected_lower_runtime_binding_digest: None,

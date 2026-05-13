@@ -13,12 +13,14 @@ pub struct EffectLifecycleCounters {
     admitted_effect_count: usize,
     authority_scoped_plan_count: usize,
     lowered_effect_count: usize,
+    batch_lowering_count: usize,
     lowering_denied_count: usize,
     effect_lowering_width: usize,
     effect_executor_rediscovery_count: usize,
     executed_effect_count: usize,
     execution_denied_count: usize,
     effect_execution_width: usize,
+    advisory_count: usize,
     rebind_required_count: usize,
     deferred_count: usize,
     denied_count: usize,
@@ -97,6 +99,7 @@ impl EffectLifecycleCounters {
             admitted_effect_count: 1,
             authority_scoped_plan_count: 1,
             lowered_effect_count: 1,
+            batch_lowering_count: 0,
             effect_lowering_width,
             effect_executor_rediscovery_count,
             effect_support_row_count,
@@ -115,6 +118,7 @@ impl EffectLifecycleCounters {
             admitted_effect_count: 1,
             authority_scoped_plan_count: 1,
             lowering_denied_count: 1,
+            batch_lowering_count: 0,
             effect_lowering_width,
             effect_support_row_count,
             ..Self::default()
@@ -145,6 +149,7 @@ impl EffectLifecycleCounters {
             admitted_effect_count: 1,
             authority_scoped_plan_count: 1,
             lowered_effect_count: 1,
+            batch_lowering_count: 0,
             effect_lowering_width,
             effect_executor_rediscovery_count,
             executed_effect_count: 1,
@@ -166,6 +171,7 @@ impl EffectLifecycleCounters {
             admitted_effect_count: 1,
             authority_scoped_plan_count: 1,
             lowered_effect_count: 1,
+            batch_lowering_count: 0,
             effect_lowering_width,
             effect_executor_rediscovery_count,
             execution_denied_count: 1,
@@ -181,6 +187,69 @@ impl EffectLifecycleCounters {
             basis_scope_check_count: 1,
             denied_count: 1,
             effect_support_row_count,
+            ..Self::default()
+        }
+    }
+
+    pub(crate) fn advisory(effect_support_row_count: usize) -> Self {
+        Self {
+            support_lookup_count: 1,
+            support_lookup_width: effect_support_row_count,
+            basis_scope_check_count: 1,
+            advisory_count: 1,
+            effect_support_row_count,
+            ..Self::default()
+        }
+    }
+
+    pub(crate) fn admitted_batch(component_count: usize) -> Self {
+        Self {
+            admitted_effect_count: component_count,
+            effect_support_row_count: component_count,
+            ..Self::default()
+        }
+    }
+
+    pub(crate) fn batch_admission_denied(component_count: usize) -> Self {
+        Self {
+            denied_count: 1,
+            raw_intent_width: component_count,
+            effect_support_row_count: component_count,
+            ..Self::default()
+        }
+    }
+
+    pub(crate) fn lowered_batch(
+        component_count: usize,
+        effect_lowering_width: usize,
+        effect_executor_rediscovery_count: usize,
+    ) -> Self {
+        Self {
+            admitted_effect_count: component_count,
+            lowered_effect_count: component_count,
+            batch_lowering_count: 1,
+            effect_lowering_width,
+            effect_executor_rediscovery_count,
+            effect_support_row_count: component_count,
+            ..Self::default()
+        }
+    }
+
+    pub(crate) fn executed_batch(
+        component_count: usize,
+        effect_lowering_width: usize,
+        effect_executor_rediscovery_count: usize,
+        effect_execution_width: usize,
+    ) -> Self {
+        Self {
+            admitted_effect_count: component_count,
+            lowered_effect_count: component_count,
+            batch_lowering_count: 1,
+            executed_effect_count: component_count,
+            effect_lowering_width,
+            effect_executor_rediscovery_count,
+            effect_execution_width,
+            effect_support_row_count: component_count,
             ..Self::default()
         }
     }
@@ -249,6 +318,10 @@ impl EffectLifecycleCounters {
         self.lowering_denied_count
     }
 
+    pub fn batch_lowering_count(&self) -> usize {
+        self.batch_lowering_count
+    }
+
     pub fn effect_lowering_width(&self) -> usize {
         self.effect_lowering_width
     }
@@ -267,6 +340,10 @@ impl EffectLifecycleCounters {
 
     pub fn effect_execution_width(&self) -> usize {
         self.effect_execution_width
+    }
+
+    pub fn advisory_count(&self) -> usize {
+        self.advisory_count
     }
 
     pub fn rebind_required_count(&self) -> usize {
@@ -307,6 +384,7 @@ impl EffectLifecycleCounters {
                 self.authority_scoped_plan_count
             ),
             format!("lowered_effects:{}", self.lowered_effect_count),
+            format!("batch_lowering:{}", self.batch_lowering_count),
             format!("lowering_denied:{}", self.lowering_denied_count),
             format!("effect_lowering_width:{}", self.effect_lowering_width),
             format!(
@@ -316,6 +394,7 @@ impl EffectLifecycleCounters {
             format!("executed_effects:{}", self.executed_effect_count),
             format!("execution_denied:{}", self.execution_denied_count),
             format!("effect_execution_width:{}", self.effect_execution_width),
+            format!("advisory:{}", self.advisory_count),
             format!("rebind_required:{}", self.rebind_required_count),
             format!("deferred:{}", self.deferred_count),
             format!("denied:{}", self.denied_count),

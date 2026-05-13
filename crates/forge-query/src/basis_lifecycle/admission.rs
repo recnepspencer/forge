@@ -1,13 +1,13 @@
 use super::counters::BasisEligibilityCounters;
 use super::lanes::{
-    BasisOperationLane, CertificationLaneWitness, InspectionLaneWitness,
-    MaterializationLaneWitness, MutationPreparationLaneWitness, ObservationLaneWitness,
-    PreviewCloseoutLaneWitness, ReplayLaneWitness, SubscriptionActivationLaneWitness,
-    SubscriptionDeclarationLaneWitness,
+    BasisOperationLane, CertificationLaneWitness, EffectAuthoringLaneWitness,
+    InspectionLaneWitness, MaterializationLaneWitness, MutationPreparationLaneWitness,
+    ObservationLaneWitness, PreviewCloseoutLaneWitness, ReplayLaneWitness,
+    SubscriptionActivationLaneWitness, SubscriptionDeclarationLaneWitness,
 };
 use super::proofs::{
-    AdmittedBasisCapability, AdvisoryBasisEligibility, BasisEligibility, DeniedBasisCapability,
-    NormalizedBasisIntent,
+    AdmittedBasisCapability, AdvisoryBasisEligibility, BasisEligibility, DeferredBasisEligibility,
+    DeniedBasisCapability, NormalizedBasisIntent,
 };
 use super::support::{support_posture_for, BasisSupportPosture};
 use super::taxonomy::{
@@ -74,12 +74,41 @@ pub fn evaluate_basis_certification_eligibility(
     evaluate_eligibility(normalized, CertificationLaneWitness::new())
 }
 
+pub fn evaluate_basis_effect_authoring_deferred_eligibility(
+    normalized: NormalizedBasisIntent,
+) -> Result<DeferredBasisEligibility<EffectAuthoringLaneWitness>, DeniedBasisCapability> {
+    evaluate_basis_deferred_eligibility(normalized, EffectAuthoringLaneWitness::new())
+}
+
 fn evaluate_basis_advisory_eligibility<L: BasisOperationLane>(
     normalized: NormalizedBasisIntent,
     lane: L,
 ) -> Result<AdvisoryBasisEligibility<L>, DeniedBasisCapability> {
     evaluate_denials(&normalized, L::lane_name())?;
     Ok(AdvisoryBasisEligibility::new(normalized, lane))
+}
+
+fn evaluate_basis_deferred_eligibility<L: BasisOperationLane>(
+    normalized: NormalizedBasisIntent,
+    lane: L,
+) -> Result<DeferredBasisEligibility<L>, DeniedBasisCapability> {
+    evaluate_denials(&normalized, L::lane_name())?;
+    match support_posture_for(normalized.family(), L::lane_name()) {
+        BasisSupportPosture::Deferred => Ok(DeferredBasisEligibility::new(
+            normalized.clone(),
+            lane,
+            deferred_denial_kind(&normalized),
+            "future-neighbor basis support is deferred and leaves zero operational residue",
+        )),
+        _ => Err(denial(
+            DeniedBasisCapabilityKind::OperationIneligible,
+            &normalized,
+            "basis family is not eligible for the requested operation lane",
+            0,
+            0,
+            0,
+        )),
+    }
 }
 
 fn evaluate_eligibility<L: BasisOperationLane>(
@@ -217,11 +246,7 @@ fn lower_runtime_binding_is_missing(normalized: &NormalizedBasisIntent) -> bool 
 }
 
 fn deferred_denial(normalized: &NormalizedBasisIntent) -> DeniedBasisCapability {
-    let kind = match normalized.family() {
-        BasisFamily::DurableReload => DeniedBasisCapabilityKind::DurableOverclaim,
-        BasisFamily::StoreBacked => DeniedBasisCapabilityKind::StoreBackedDeferred,
-        _ => DeniedBasisCapabilityKind::OperationIneligible,
-    };
+    let kind = deferred_denial_kind(normalized);
     denial(
         kind,
         normalized,
@@ -230,6 +255,14 @@ fn deferred_denial(normalized: &NormalizedBasisIntent) -> DeniedBasisCapability 
         0,
         1,
     )
+}
+
+fn deferred_denial_kind(normalized: &NormalizedBasisIntent) -> DeniedBasisCapabilityKind {
+    match normalized.family() {
+        BasisFamily::DurableReload => DeniedBasisCapabilityKind::DurableOverclaim,
+        BasisFamily::StoreBacked => DeniedBasisCapabilityKind::StoreBackedDeferred,
+        _ => DeniedBasisCapabilityKind::OperationIneligible,
+    }
 }
 
 fn denial(

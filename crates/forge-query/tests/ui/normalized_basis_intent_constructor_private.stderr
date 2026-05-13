@@ -1,4 +1,4 @@
-error: cannot construct `NormalizedBasisIntent` with struct literal syntax due to private fields
+error: cannot construct `forge_query::facade::policy::NormalizedBasisIntent` with struct literal syntax due to private fields
   --> tests/ui/normalized_basis_intent_constructor_private.rs:7:13
    |
  7 |       let _ = NormalizedBasisIntent {

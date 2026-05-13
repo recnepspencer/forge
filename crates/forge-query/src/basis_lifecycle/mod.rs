@@ -22,6 +22,7 @@ pub use adapters::{
 };
 pub use admission::{
     admit_basis_capability, evaluate_basis_certification_eligibility,
+    evaluate_basis_effect_authoring_deferred_eligibility,
     evaluate_basis_inspection_advisory_eligibility, evaluate_basis_inspection_eligibility,
     evaluate_basis_materialization_eligibility, evaluate_basis_mutation_preparation_eligibility,
     evaluate_basis_observation_eligibility, evaluate_basis_preview_closeout_eligibility,
@@ -52,10 +53,10 @@ pub use dx::{
 };
 pub use intent::{normalize_raw_basis_intent, RawBasisIntent};
 pub use lanes::{
-    BasisOperationLane, CertificationLaneWitness, InspectionLaneWitness,
-    MaterializationLaneWitness, MutationPreparationLaneWitness, ObservationLaneWitness,
-    PreviewCloseoutLaneWitness, ReplayLaneWitness, SubscriptionActivationLaneWitness,
-    SubscriptionDeclarationLaneWitness,
+    BasisOperationLane, CertificationLaneWitness, EffectAuthoringLaneWitness,
+    InspectionLaneWitness, MaterializationLaneWitness, MutationPreparationLaneWitness,
+    ObservationLaneWitness, PreviewCloseoutLaneWitness, ReplayLaneWitness,
+    SubscriptionActivationLaneWitness, SubscriptionDeclarationLaneWitness,
 };
 pub use lower_runtime::{
     readmit_lower_runtime_evidence, LowerRuntimeBasisEvidence, LowerRuntimeBoundBasis,
@@ -68,7 +69,8 @@ pub use migration::{
 };
 pub use proofs::{
     AdmittedBasisCapability, AdvisoryBasisEligibility, BasisEligibility,
-    BasisEligibilityDecisionTrace, BasisIntentDenial, DeniedBasisCapability, NormalizedBasisIntent,
+    BasisEligibilityDecisionTrace, BasisIntentDenial, DeferredBasisEligibility,
+    DeniedBasisCapability, NormalizedBasisIntent,
 };
 pub use receipts::{
     emit_certification_basis_receipt, emit_inspection_basis_receipt,

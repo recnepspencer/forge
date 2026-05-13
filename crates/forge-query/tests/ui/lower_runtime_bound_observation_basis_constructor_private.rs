@@ -1,4 +1,4 @@
-use forge_query::facade::{
+use forge_query::facade::policy::{
     BasisEligibilityCounters, BridgeLowerRuntimeEvidenceReference, LowerRuntimeBoundObservationBasis,
     ObservationBasisCapability,
 };

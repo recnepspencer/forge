@@ -9,7 +9,7 @@ warning: unreachable expression
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0451]: fields `declaration`, `merge_intent`, `authority_target`, `merge_request`, `freshness_binding`, `staleness_class`, `lowering_digest` and `counters` of struct `LoweredMergeWorkflowDeclaration` are private
+error[E0451]: fields `declaration`, `merge_intent`, `authority_target`, `merge_request`, `freshness_binding`, `staleness_class`, `lowering_digest` and `counters` of struct `forge_query::facade::LoweredMergeWorkflowDeclaration` are private
   --> tests/ui/lowered_merge_workflow_declaration_constructor_private.rs:5:9
    |
  4 |     let _ = LoweredMergeWorkflowDeclaration {

@@ -2,11 +2,11 @@ use super::{
     basis_lifecycle_support_matrix, discover_basis_lifecycle_support, BasisSupportPosture,
 };
 use crate::basis_lifecycle::{
-    evaluate_basis_certification_eligibility, evaluate_basis_inspection_advisory_eligibility,
-    evaluate_basis_inspection_eligibility, evaluate_basis_materialization_eligibility,
-    evaluate_basis_mutation_preparation_eligibility, evaluate_basis_observation_eligibility,
-    evaluate_basis_preview_closeout_eligibility, evaluate_basis_replay_eligibility,
-    evaluate_basis_subscription_activation_eligibility,
+    evaluate_basis_certification_eligibility, evaluate_basis_effect_authoring_deferred_eligibility,
+    evaluate_basis_inspection_advisory_eligibility, evaluate_basis_inspection_eligibility,
+    evaluate_basis_materialization_eligibility, evaluate_basis_mutation_preparation_eligibility,
+    evaluate_basis_observation_eligibility, evaluate_basis_preview_closeout_eligibility,
+    evaluate_basis_replay_eligibility, evaluate_basis_subscription_activation_eligibility,
     evaluate_basis_subscription_declaration_eligibility, normalize_raw_basis_intent, BasisFamily,
     DeniedBasisCapabilityKind, RawBasisIntent,
 };
@@ -97,8 +97,31 @@ fn executable_posture_for(family: BasisFamily, lane: &'static str) -> BasisSuppo
         "certification" => {
             posture_from_result(evaluate_basis_certification_eligibility(normalized))
         }
+        "effect_authoring" => evaluate_basis_effect_authoring_deferred_eligibility(normalized)
+            .map(|_| BasisSupportPosture::Deferred)
+            .unwrap_or(BasisSupportPosture::Denied),
         other => panic!("unsupported test lane {other}"),
     }
+}
+
+#[test]
+fn deferred_effect_authoring_lane_produces_real_deferred_basis_proof() {
+    let store_backed = normalize_raw_basis_intent(
+        RawBasisIntent::StoreBacked {
+            store_basis_identity: "store-effect-authoring".to_string(),
+        },
+        "effect_authoring",
+    )
+    .expect("store-backed effect authoring basis should normalize");
+    let deferred = evaluate_basis_effect_authoring_deferred_eligibility(store_backed)
+        .expect("store-backed effect authoring should return deferred proof");
+
+    assert_eq!(deferred.normalized().family(), BasisFamily::StoreBacked);
+    assert_eq!(
+        deferred.denial_kind(),
+        DeniedBasisCapabilityKind::StoreBackedDeferred
+    );
+    assert_eq!(deferred.counters().denied_residue_count(), 0);
 }
 
 fn posture_from_result<T>(

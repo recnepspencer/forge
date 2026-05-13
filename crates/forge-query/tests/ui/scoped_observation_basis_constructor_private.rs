@@ -1,4 +1,6 @@
-use forge_query::facade::{BasisCapabilityAdmission, ScopedBasisConstructionCounters, ScopedObservationBasis};
+use forge_query::facade::policy::{
+    BasisCapabilityAdmission, ScopedBasisConstructionCounters, ScopedObservationBasis,
+};
 
 fn main() {
     let _ = ScopedObservationBasis {
