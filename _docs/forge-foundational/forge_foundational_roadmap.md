@@ -342,6 +342,16 @@ artifacts can be reproduced, compared, certified, and replayed across crates.
 
 ## Milestone 3: Profile And Policy Vocabulary
 
+Detailed spec: [`milestone-3.md`](milestone-3.md)
+Closeout: [`milestone-3-closeout.md`](milestone-3-closeout.md)
+
+The detailed spec is authoritative for Milestone 3 closure. In particular, it
+expands this roadmap summary by treating profile families, profile composition,
+target-aware attachment, canonical profile identity, central materialization
+planning, certification posture, and production-test readiness as distinct
+responsibilities. Milestone 3 makes profile meaning canonical while preserving
+crate-local policy execution.
+
 ### Goal
 
 Define the shared profile system for richness, posture, support, compatibility,

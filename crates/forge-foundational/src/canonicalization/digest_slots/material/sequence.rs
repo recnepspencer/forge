@@ -91,6 +91,7 @@ fn entry_kind_token(kind: CanonicalBasisEntryKind) -> &'static str {
         CanonicalBasisEntryKind::PatchOperation => "patch-operation",
         CanonicalBasisEntryKind::Identity => "identity",
         CanonicalBasisEntryKind::Locator => "locator",
+        CanonicalBasisEntryKind::Profile => "profile",
         CanonicalBasisEntryKind::CompatibilityOrigin => "compatibility-origin",
         CanonicalBasisEntryKind::Cost => "cost",
         CanonicalBasisEntryKind::Future(value) => value,

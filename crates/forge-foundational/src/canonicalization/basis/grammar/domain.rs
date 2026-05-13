@@ -7,6 +7,7 @@ pub enum CanonicalBasisDomain {
     AuthoritativePatch,
     Identity,
     Locator,
+    Profile,
     CompatibilityLowering,
     Future(&'static str),
 }

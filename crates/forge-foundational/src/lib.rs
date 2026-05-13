@@ -20,6 +20,7 @@ mod compatibility;
 pub mod facade;
 mod identities;
 mod locators;
+mod profiles;
 mod values;
 
 pub use facade::*;

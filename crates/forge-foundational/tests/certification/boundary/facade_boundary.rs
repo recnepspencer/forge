@@ -16,6 +16,7 @@ fn facade_exposes_named_responsibility_topology() {
             "locators",
             "compatibility_bridges",
             "canonical_ordering_and_equality",
+            "profiles",
         ]
     );
 

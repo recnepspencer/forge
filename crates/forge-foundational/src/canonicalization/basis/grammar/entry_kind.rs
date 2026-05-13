@@ -9,6 +9,7 @@ pub enum CanonicalBasisEntryKind {
     PatchOperation,
     Identity,
     Locator,
+    Profile,
     CompatibilityOrigin,
     Cost,
     Future(&'static str),

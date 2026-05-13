@@ -91,6 +91,10 @@ Required runtime-independent proof styles:
   local map layout must not affect canonical meaning
 - `category hostility`: semantically adjacent categories must have negative
   tests proving they are not substitutable
+- `misuse pressure`: likely engineer mistakes such as unnamed defaults, partial
+  builders, stale cached identity reuse, wrong target wrappers, silent
+  category widening, or materialization-output reuse as semantic identity must
+  be attacked explicitly rather than assumed away
 
 ### Synthetic Adversarial Runtime Doubles
 
@@ -214,6 +218,33 @@ Property tests must attack semantic invariants, not merely sample a few
 friendly permutations. Where exhaustive generation is not practical, the test
 must name the hostile dimensions it covers and capture representative seeds so
 future `forge-harness` runs can expand them.
+
+### Misuse-Pressure Tests
+
+Misuse-pressure tests are mandatory for boundary surfaces that are likely to be
+used incorrectly by competent engineers under time pressure.
+
+These tests must attack mistakes that are semantically plausible, not only
+obviously invalid garbage input.
+
+Required misuse-pressure families:
+
+- unnamed default construction does not create silent semantic meaning unless a
+  milestone explicitly standardizes one named default and certifies it
+- partial builders cannot silently smuggle missing required semantic slots
+- duplicate assignment cannot degrade into "last write wins" meaning
+- stale canonical identity, digest basis, or profile identity cannot be reused
+  after meaning-changing mutation or narrowing
+- materialization outputs cannot be reused where canonical semantic identity or
+  admitted meaning is required
+- target-typed wrappers, profiled artifacts, and target-surface inventories
+  cannot be substituted across statically distinct target kinds
+- support-only, descriptive-only, or reduced-richness outputs cannot satisfy
+  APIs requiring stronger evidence, authority, or forensic breadth
+
+These tests may be compile-fail, runtime hostility, or both, but the suite
+must make the misuse class explicit rather than relying on incidental coverage
+from broader scenario tests.
 
 ### Golden Canonicalization Tests
 
@@ -425,6 +456,13 @@ Must prove:
   meaning
 - profile digest/preparation participates in support and certification
   artifacts without string-label drift
+- requested, admitted, and materialized profile meaning remain mechanically
+  distinct and cannot collapse into one mutable "effective profile" record
+- target-aware profile legality is enforced mechanically where the target is
+  statically known, not only documented or logged at runtime
+- unnamed default profile construction, partial profile composition, duplicate
+  family assignment, and illegal target-surface inventory construction fail
+  closed
 
 ### Boundary Artifact Taxonomy
 
@@ -577,8 +615,13 @@ Required readiness fields:
   is allowed to make when testing against the milestone
 - `runtime_adoption_non_assumptions`: the claims the milestone does not make
   until a real adopting crate proves them
+- `runtime_adoption_failure_pressures`: the exact bug classes that downstream
+  adoption must still try to discover even after local foundational proof
 - `residual_debt`: any compatibility, profile, materialization, proof, or
   migration debt that remains intentionally open
+- `adoption_shaped_followthrough`: the parity harness, replay suite, or
+  adopting-crate migration pressure that must later attack this milestone in a
+  less synthetic environment
 
 A milestone is ready for production-shaped testing only if:
 
@@ -594,6 +637,9 @@ A milestone is ready for production-shaped testing only if:
   boundary
 - every claim deferred to adopting-crate migration is named as non-assumption
   rather than left implicit
+- every likely misuse class that could silently weaken meaning is either proven
+  impossible, proven compile-rejected, or named in
+  `runtime_adoption_failure_pressures`
 
 Production-shaped tests may assume:
 
@@ -617,6 +663,8 @@ Production-shaped tests may not assume:
   internal invariants
 - absence from `residual_debt` is implied proof; unlisted uncertainty is a test
   requirements bug
+- absence from `runtime_adoption_failure_pressures` means "no meaningful known
+  downstream attack class remains," not "we forgot to think about it"
 
 ## Migration Readiness Gates
 
@@ -636,6 +684,9 @@ Required readiness artifacts:
   profile-elision, and materialization cases
 - a migration adapter checklist describing how crate-local dialects should
   lower into foundational meaning
+- an adoption-shaped parity plan describing which local foundational proofs
+  must later be attacked through `forge-harness`, replay/export suites, or
+  real adopting-crate migration tests
 
 The adopting crate refactors should then add migration parity tests. Those tests
 are required to prove real runtime lowering, but they are not allowed to be the
@@ -654,6 +705,8 @@ The test suite must fail if any of these become possible:
 - missing, null, default, and clear collapse silently
 - old/new contracts are compared without an evolution verdict
 - display names participate as canonical identity
+- unnamed defaults or partial builders silently create canonical profile,
+  artifact, or receipt meaning
 - derived/report/support/receipt artifacts are accepted as authoritative state
 - branch-local candidate state is accepted as committed authoritative state
 - a merge candidate is accepted as a commit receipt
@@ -662,6 +715,10 @@ The test suite must fail if any of these become possible:
   into a boolean
 - digest-preparation input can be built from an insertion-order-dependent path
 - reduced-richness profiles change authoritative outcomes
+- requested, admitted, and materialized profile meaning collapse into one
+  mutable "effective profile" surface
+- target-specific optional surfaces can be named or attached through ad hoc
+  strings, option fields, or wrong target wrappers
 - materialization cost is hidden behind cheap-looking accessors
 - a foundational test requires a real adopting runtime to discover whether a
   boundary category is valid
