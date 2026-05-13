@@ -515,6 +515,227 @@ authority remains relational/bridge/signal-owned; and later temporal,
 async/resource, store-backed, and durable milestones inherit this lifecycle
 instead of adding parallel basis APIs.
 
+## Milestone 9.3.3 Named Certification Suites
+
+### 9.3.3. Authority-Scoped Effect Execution Pipeline Test
+
+Purpose
+
+Prove that every admitted Query effect executes through one authority-scoped,
+proof-bearing pipeline rather than letting executors rediscover basis,
+authority family, strategy identity, invariant scope, preview posture, or
+artifact policy at execution time.
+
+Scenario
+
+- use concrete runtime-backed fixtures covering direct authoritative mutation,
+  ordered batch execution, branch-local preview mutation, merge execution,
+  query-triggered bridge writeback, and explicit typed denial families
+- require the concrete workflow lowering chain to stay visible:
+  - `WorkflowContextBinding`
+  - `QueryWorkflowDeclaration`
+  - `LoweredMutationIntentDeclaration`
+  - `LoweredMergeWorkflowDeclaration`
+  - `QueryWritebackDeclaration`
+- construct equivalent effect intents through at least two public or
+  compatibility authoring paths and prove they normalize to the same lowered
+  execution plan and receipt meaning
+- construct intentionally different effect families, basis postures, authority
+  lanes, or strategy identities and prove the declared digest fields diverge
+- require every effect family to consume an admitted 9.3.2 basis capability
+  rather than raw branch, preview, tenant, policy, or historical identifiers
+- compile golden DX transcripts for ordinary mutation execution, bridge-backed
+  writeback execution, typed denial handling, support discovery, inspectable
+  lowered-plan inspection, batch-native execution, and receipt/envelope
+  inspection
+- exercise the lifecycle as a linear typestate chain where each transition
+  consumes the prior proof type and returns the next proof type or a typed
+  denial
+- prove relational execution families lower only through relational facade
+  authority and bridge-backed execution families lower only through bridge
+  facade authority
+- prove the executor accepts only `LoweredEffectExecutionPlan` and cannot be
+  called with raw intent, normalized intent, eligibility, or merely
+  authority-scoped plans
+- exercise hostile lanes for stale basis, preview-read-only execution,
+  advisory-only promotion, authority-family mismatch, host strategy override,
+  unsupported effect family, lower-runtime lowering mismatch, durable replay
+  overclaim, and store-backed execution overclaim
+
+Required concrete lanes
+
+- branch mutation lane where an admitted branch basis lowers one mutation or
+  merge family into a relational execution plan and emits one effect receipt
+- relational mutation lane where Query lowering emits
+  `RawStrategyCommitRequest` through `LoweredMutationIntentDeclaration`
+  instead of reconstructing strategy identity inside the executor
+- relational merge lane where Query lowering emits `MergeExecutionRequest`
+  through `LoweredMergeWorkflowDeclaration` instead of letting merge authority
+  rediscover branch pairing or intent semantics
+- preview denial lane where preview-read-only or stale preview posture denies
+  before any executor, mutation batch, or receipt exists
+- bridge writeback lane where one admitted query-triggered writeback lowers
+  into `BridgeWritebackDeclaration`, then bridge contract/effect/idempotence/
+  request/receipt authority, without Query inventing writeback protocol meaning
+- batch lane where one ordered multi-component effect preserves aggregate
+  authority, component result posture, and execution counters through one
+  receipt family
+- batch-lane denial where mixed authority lanes or mixed basis lanes fail before
+  a batch execution artifact exists
+- relational oracle lane where the final Query mutation or merge receipt is
+  checked against independently inspected relational authority state and
+  authority artifacts rather than only against another Query-produced digest
+- bridge oracle lane where the final Query writeback receipt/envelope is
+  checked against independently inspected bridge authority outcome and
+  `TruthWritebackReceipt`
+- host-override denial lane where a hostile caller tries to replace the
+  admitted authority family or strategy after lowering and fails typed
+- preview-rebind lane where preview-derived writeback or mutation cannot
+  silently execute and instead returns typed denial or explicit rebind posture
+- stale-after-admission lane where basis admission succeeds, lower-runtime truth
+  changes, and subsequent lowering or execution denies or rebinds exactly where
+  the contract says it must
+- stale-after-lowering lane where a lowered artifact is retained across an
+  authority-changing perturbation and replay/execution proves the expected
+  denial, mismatch, or authoritative divergence artifact
+- replay/deferred lane where durable replay, store-backed execution, or
+  restart-stable effect envelopes remain typed deferred or unsupported with
+  zero operational residue
+- seeded-random lane where multiple effect authoring paths, family choices,
+  batch widths, preview/rebind perturbations, and denial/deferred neighbors are
+  generated from a fixed seed and replayed with identical canonical outputs
+
+Must verify
+
+- raw effect intents are not executable permission and cannot reach executors
+  directly
+- basis capability proof from Milestone 9.3.2 is mandatory input to effect
+  eligibility and lowering
+- equivalent effect authoring paths normalize to the same
+  `NormalizedEffectIntent`, authority-scoped plan, lowered execution plan, and
+  execution receipt meaning
+- equivalent Query-produced artifacts also match independently observed lower-
+  runtime truth outcomes for mutation, merge, and writeback lanes
+- intentionally different authority family, strategy identity, basis posture,
+  effect family, or artifact policy changes the relevant digest
+- effect eligibility precedes construction of lower-runtime execution packets
+- advisory, denied, deferred, and admitted effect postures are distinct proof
+  families that cannot be substituted for one another in downstream phase
+  signatures
+- `AuthorityScopedEffectPlan` is not an executor input; only
+  `LoweredEffectExecutionPlan` may cross the execution boundary
+- workflow lowering and runtime receipt shaping stay synchronized:
+  equivalent admitted work must not produce one story through
+  `forge-query::workflow` and another through `ForgeQueryWriteReceipt` or
+  `ForgeQueryIntentExecution`
+- batch execution does not degrade into scalar loop orchestration that
+  re-admits basis or re-discovers authority/strategy per component
+- executors do not re-decide authority family, basis scope, merge strategy,
+  preview posture, writeback family, or artifact policy
+- relational execution remains relational-authoritative and bridge-backed
+  execution remains bridge-authoritative
+- the certification suite can distinguish "same correct answer twice" from
+  "same wrong answer twice" by using independent oracle comparisons
+- `forge-signal` may contribute aftermath, invalidation, and explanation
+  evidence, but it never becomes the authority lane for mutation, merge, or
+  writeback execution
+- Query receipts and envelopes expose authority names, decision traces,
+  structural deltas, integrity markers, and counters without caller-side lower-
+  runtime stitching
+- support metadata, executable behavior, and certification coverage agree for
+  admitted, advisory, denied, deferred, and unsupported effect families
+- the golden DX transcripts prove all intended caller stories exist as first-
+  class public paths:
+  - common-path intent authoring
+  - inspectable advanced lowering
+  - support/discovery before execution
+  - denial/rebind handling
+  - batch-native execution
+  - receipt-first explanation/diagnostics
+- temporal, async/resource, store-backed execution, durable replay, and
+  restart-stable effect envelopes remain typed deferred or unsupported until
+  their owning milestones close
+- compile-fail boundaries prove external callers cannot mint normalized effect
+  intents, admitted authority scopes, lowered execution plans, execution
+  receipts, envelopes, or authority witnesses
+- compile-fail boundaries also prove external callers cannot:
+  - execute from raw or normalized effect intent
+  - execute from admitted-but-unlowered planning artifacts
+  - construct lowered declarations or envelopes directly
+- exact counter assertions prove:
+  - executor rediscovery count remains zero
+  - scalar execution lowering count is one per effect
+  - batch lowering count is one per batch
+  - batch execution does not re-admit basis per component
+  - support lookup width follows support matrix width rather than runtime graph
+    breadth
+  - envelope materialization does not reopen authority execution
+- small/medium/larger fixture runs prove normalization, eligibility, lowering,
+  execution, receipt materialization, envelope materialization, and support
+  lookup costs are bounded by effect width, authority width, and lowering width
+  rather than unrelated runtime graph size or diagnostics retention width
+- seeded randomized certification replays the same seed and proves identical
+  canonical bundles, while a meaningfully changed seed or perturbation changes
+  the expected declared digests or failure artifacts
+
+Required verification output
+
+- `query_digest`
+- `raw_effect_intent_digest`
+- `normalized_effect_intent_digest`
+- `effect_family_digest`
+- `effect_authority_digest`
+- `effect_basis_digest`
+- `effect_scope_digest`
+- `effect_policy_digest`
+- `effect_strategy_digest`
+- `effect_eligibility_digest`
+- `authority_scoped_effect_plan_digest`
+- `lowered_effect_execution_plan_digest`
+- `effect_execution_receipt_digest`
+- `effect_envelope_digest`
+- `relational_effect_authority_digest`
+- `bridge_effect_authority_digest`
+- `effect_decision_trace_digest`
+- `effect_structural_delta_digest`
+- `effect_integrity_marker_digest`
+- `effect_target_dx_digest`
+- `effect_golden_transcript_digest`
+- `effect_support_matrix_digest`
+- `effect_proof_shape_digest`
+- `effect_phase_progression_digest`
+- `effect_replay_parity_digest`
+- `relational_oracle_digest`
+- `bridge_oracle_digest`
+- `seeded_sequence_digest`
+- `seed_replay_digest`
+- `compile_fail_boundary_digest`
+- `failure_digest`
+- `counter_snapshot`
+- `executor_rediscovery_count`
+- `batch_lowering_count`
+- `batch_basis_reuse_count`
+- `authority_reopen_count`
+- `effect_normalization_slope_digest`
+- `effect_eligibility_slope_digest`
+- `effect_lowering_slope_digest`
+- `effect_execution_slope_digest`
+- `effect_receipt_materialization_slope_digest`
+- `effect_envelope_materialization_slope_digest`
+- `effect_support_lookup_slope_digest`
+
+Pass condition
+
+Every admitted runtime-backed Query effect executes only from one lowered,
+proof-bearing authority plan; executors do not rediscover authority, basis,
+strategy, or artifact policy locally; lower-runtime authority remains
+relational- or bridge-owned; the public effect API reads like a deliberate
+framework surface rather than an ad hoc wrapper over internals; independently
+observed lower-runtime truth agrees with Query-produced receipts and envelopes;
+and later projection-consumption, admission, lower-runtime-routing,
+store-backed, and durable milestones inherit this execution contract instead of
+bypassing it.
+
 ## Runtime API Public Stabilization Gate Named Certification Suites
 
 ### Runtime API Golden DX And Async-Safe Facade Test

@@ -1,0 +1,13 @@
+error[E0451]: fields `authority_scoped_plan`, `artifact`, `lowered_effect_execution_plan_digest` and `counters` of struct `LoweredEffectExecutionPlan` are private
+  --> tests/ui/effect_lifecycle/lowering/effect_lifecycle_lowered_execution_plan_constructor_private.rs:16:9
+   |
+15 |     let _ = LoweredEffectExecutionPlan {
+   |             -------------------------- in this type
+16 |         authority_scoped_plan: authority_scoped_plan(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         artifact: artifact(),
+   |         ^^^^^^^^ private field
+18 |         lowered_effect_execution_plan_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+19 |         counters: EffectLifecycleCounters::default(),
+   |         ^^^^^^^^ private field

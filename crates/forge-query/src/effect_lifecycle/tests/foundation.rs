@@ -1,0 +1,205 @@
+use crate::basis_lifecycle::BasisFamily;
+use crate::workflow::{
+    MergeLoweringInput, MutationLoweringInput, WorkflowAuthorityTargetFamily,
+    WorkflowDeclarationFamily, WorkflowFreshnessPolicy, WritebackLoweringInput,
+};
+use forge_relational::facade::history::BranchId;
+use forge_relational::facade::identity::{EntityId, PartitionId};
+
+use crate::effect_lifecycle::{
+    admit_effect_intent, discover_effect_lifecycle_support, effect_lifecycle_support_matrix,
+    evaluate_effect_eligibility, normalize_raw_effect_intent, DeniedEffectEligibilityKind,
+    EffectAuthoringBasis, EffectEligibilityOutcome, EffectFamily, EffectIntentDenialKind,
+    EffectSupportPosture, RawEffectIntent,
+};
+
+use super::support::{
+    branch_mutation_basis, preview_closeout_basis, preview_workflow_binding,
+    runtime_workflow_binding, tenant_mutation_basis, workflow_request,
+};
+
+#[test]
+fn mutation_effect_normalizes_and_admits_from_raw_workflow_request() {
+    let normalized = normalize_raw_effect_intent(
+        &EffectAuthoringBasis::from(branch_mutation_basis()),
+        RawEffectIntent::Mutation {
+            binding: runtime_workflow_binding(),
+            request: workflow_request(
+                WorkflowDeclarationFamily::MutationLoweringNarrow,
+                WorkflowAuthorityTargetFamily::RelationalMutation,
+                WorkflowFreshnessPolicy::ExactBasis,
+            ),
+            input: MutationLoweringInput::IntentReconciliation {
+                entity_id: EntityId::new(PartitionId(1), 7, 0),
+                desired_payload: serde_json::json!({ "name": "esther" }),
+            },
+        },
+    )
+    .expect("mutation effect should normalize");
+
+    let admitted = match evaluate_effect_eligibility(normalized) {
+        EffectEligibilityOutcome::Admitted(eligibility) => admit_effect_intent(eligibility),
+        other => panic!("expected admitted effect, got {other:?}"),
+    };
+
+    assert_eq!(admitted.normalized().family(), EffectFamily::Mutation);
+    assert_eq!(
+        admitted.normalized().basis_family(),
+        BasisFamily::BranchHead
+    );
+    assert_eq!(
+        admitted
+            .normalized()
+            .workflow_request()
+            .declaration_family(),
+        &WorkflowDeclarationFamily::MutationLoweringNarrow
+    );
+    assert_eq!(
+        admitted
+            .workflow_declaration()
+            .report()
+            .authority_target_family(),
+        &WorkflowAuthorityTargetFamily::RelationalMutation
+    );
+    assert!(!admitted.admitted_digest().is_empty());
+}
+
+#[test]
+fn preview_writeback_authoring_is_real_and_returns_typed_rebind() {
+    let normalized = normalize_raw_effect_intent(
+        &EffectAuthoringBasis::from(preview_closeout_basis()),
+        RawEffectIntent::Writeback {
+            binding: preview_workflow_binding(),
+            request: workflow_request(
+                WorkflowDeclarationFamily::WritebackLoweringNarrow,
+                WorkflowAuthorityTargetFamily::BridgeWriteback,
+                WorkflowFreshnessPolicy::AllowExplicitRebind,
+            ),
+            input: WritebackLoweringInput::projected_state_diff(),
+        },
+    )
+    .expect("preview writeback should normalize");
+
+    let discovery =
+        discover_effect_lifecycle_support(BasisFamily::Preview, EffectFamily::Writeback);
+    let rebind = match evaluate_effect_eligibility(normalized) {
+        EffectEligibilityOutcome::RebindRequired(rebind) => rebind,
+        other => panic!("expected rebind-required effect, got {other:?}"),
+    };
+
+    assert_eq!(
+        rebind.denial_kind(),
+        DeniedEffectEligibilityKind::PreviewRebindRequired
+    );
+    assert_eq!(
+        rebind.counters().support_lookup_width(),
+        discovery.counters().support_lookup_width()
+    );
+    assert_eq!(
+        rebind.counters().effect_support_row_count(),
+        discovery.counters().support_lookup_width()
+    );
+}
+
+#[test]
+fn tenant_scoped_merge_denies_with_same_support_width_as_discovery() {
+    let normalized = normalize_raw_effect_intent(
+        &EffectAuthoringBasis::from(tenant_mutation_basis()),
+        RawEffectIntent::Merge {
+            binding: runtime_workflow_binding(),
+            request: workflow_request(
+                WorkflowDeclarationFamily::MergeLoweringNarrow,
+                WorkflowAuthorityTargetFamily::RelationalMerge,
+                WorkflowFreshnessPolicy::ExactBasis,
+            ),
+            input: MergeLoweringInput::reconcile_into_target(
+                BranchId("main".to_string()),
+                BranchId("candidate".to_string()),
+            ),
+        },
+    )
+    .expect("merge effect should normalize");
+
+    let discovery =
+        discover_effect_lifecycle_support(BasisFamily::TenantScoped, EffectFamily::Merge);
+    let denial = match evaluate_effect_eligibility(normalized) {
+        EffectEligibilityOutcome::Denied(denial) => denial,
+        other => panic!("expected denied effect, got {other:?}"),
+    };
+
+    assert_eq!(
+        denial.denial_kind(),
+        DeniedEffectEligibilityKind::UnsupportedForBasisFamily
+    );
+    assert_eq!(denial.counters().denied_count(), 1);
+    assert_eq!(
+        denial.counters().support_lookup_width(),
+        discovery.counters().support_lookup_width()
+    );
+}
+
+#[test]
+fn normalization_rejects_workflow_target_mismatch() {
+    let denial = normalize_raw_effect_intent(
+        &EffectAuthoringBasis::from(branch_mutation_basis()),
+        RawEffectIntent::Writeback {
+            binding: runtime_workflow_binding(),
+            request: workflow_request(
+                WorkflowDeclarationFamily::WritebackLoweringNarrow,
+                WorkflowAuthorityTargetFamily::RelationalMutation,
+                WorkflowFreshnessPolicy::ExactBasis,
+            ),
+            input: WritebackLoweringInput::projected_state_diff(),
+        },
+    )
+    .expect_err("mismatched workflow target should deny normalization");
+
+    assert_eq!(
+        denial.denial_kind(),
+        EffectIntentDenialKind::WorkflowAuthorityTargetMismatch
+    );
+    assert_eq!(denial.counters().workflow_authority_target_check_count(), 1);
+}
+
+#[test]
+fn normalization_rejects_preview_basis_with_runtime_workflow_binding() {
+    let denial = normalize_raw_effect_intent(
+        &EffectAuthoringBasis::from(preview_closeout_basis()),
+        RawEffectIntent::Writeback {
+            binding: runtime_workflow_binding(),
+            request: workflow_request(
+                WorkflowDeclarationFamily::WritebackLoweringNarrow,
+                WorkflowAuthorityTargetFamily::BridgeWriteback,
+                WorkflowFreshnessPolicy::AllowExplicitRebind,
+            ),
+            input: WritebackLoweringInput::projected_state_diff(),
+        },
+    )
+    .expect_err("preview basis must reject runtime-only workflow binding");
+
+    assert_eq!(
+        denial.denial_kind(),
+        EffectIntentDenialKind::BasisWorkflowBindingMismatch
+    );
+}
+
+#[test]
+fn support_matrix_includes_admitted_rebind_and_deferred_rows() {
+    let matrix = effect_lifecycle_support_matrix();
+
+    assert!(matrix.rows().iter().any(|row| {
+        row.basis_family() == BasisFamily::CurrentHead
+            && row.effect_family() == EffectFamily::Mutation
+            && row.posture() == EffectSupportPosture::Admitted
+    }));
+    assert!(matrix.rows().iter().any(|row| {
+        row.basis_family() == BasisFamily::Preview
+            && row.effect_family() == EffectFamily::Writeback
+            && row.posture() == EffectSupportPosture::RebindRequired
+    }));
+    assert!(matrix.rows().iter().any(|row| {
+        row.basis_family() == BasisFamily::StoreBacked
+            && row.effect_family() == EffectFamily::Writeback
+            && row.posture() == EffectSupportPosture::Deferred
+    }));
+}

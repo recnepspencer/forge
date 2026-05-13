@@ -2324,7 +2324,8 @@ branch, head, preview, snapshot, historical, tenant, or policy identifier.
 ### Specification
 
 The governing milestone spec is
-[milestone-9.3.2.md](./milestone-9.3.2.md).
+[milestone-9.3.2.md](./milestone-9.3.2.md). The closeout record is
+[milestone-9.3.2-closeout.md](./milestone-9.3.2-closeout.md).
 
 ### Adversarial Constraint
 
@@ -2378,6 +2379,11 @@ and prepare mutation surfaces without raw relational branch or snapshot IDs.
 Make Query-authored effects execute through one authority-scoped pipeline that
 lowers semantic intent once and requires the executor to consume only lowered,
 proof-bearing plans.
+
+### Specification
+
+The governing milestone spec is
+[milestone-9.3.3.md](./milestone-9.3.3.md).
 
 ### Adversarial Constraint
 
@@ -3728,6 +3734,7 @@ must gain a row in the same patch or the roadmap is incomplete.
 - [test-requirements.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/test-requirements.md)
 - [milestone-9.3.1.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/milestone-9.3.1.md)
 - [milestone-9.3.2.md](./milestone-9.3.2.md)
+- [milestone-9.3.3.md](./milestone-9.3.3.md)
 - [runtime-api-public-stabilization-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-api-public-stabilization-plan.md)
 - [runtime-authoritative-mutation-evidence-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-authoritative-mutation-evidence-plan.md)
 - [forge_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_roadmap.md)

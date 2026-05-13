@@ -1,6 +1,7 @@
 # Milestone 9.3.2 Engineering Spec: Query Basis Capability Lifecycle
 
-> **Status:** Draft engineering spec
+> **Status:** Closed as of 2026-05-13; see
+> [milestone-9.3.2-closeout.md](./milestone-9.3.2-closeout.md)
 >
 > **Roadmap parent:** [forge_query_roadmap.md](./forge_query_roadmap.md)
 >

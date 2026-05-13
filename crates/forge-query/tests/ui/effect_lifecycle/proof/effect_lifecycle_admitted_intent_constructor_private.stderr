@@ -1,0 +1,11 @@
+error[E0451]: fields `normalized`, `workflow_declaration` and `admitted_digest` of struct `AdmittedEffectIntent` are private
+  --> tests/ui/effect_lifecycle/proof/effect_lifecycle_admitted_intent_constructor_private.rs:13:9
+   |
+12 |     let _ = AdmittedEffectIntent {
+   |             -------------------- in this type
+13 |         normalized: normalized(),
+   |         ^^^^^^^^^^ private field
+14 |         workflow_declaration: workflow_declaration(),
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+15 |         admitted_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
