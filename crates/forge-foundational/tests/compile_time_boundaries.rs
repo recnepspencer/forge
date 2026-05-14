@@ -9,6 +9,36 @@ fn facade_internal_homes_are_private() {
 }
 
 #[test]
+fn diagnostic_primitive_and_category_law_preserves_non_substitution() {
+    compile_fail("tests/ui/diagnostics/primitives/*.rs");
+}
+
+#[test]
+fn diagnostic_row_topology_preserves_family_and_locator_law() {
+    compile_fail("tests/ui/diagnostics/rows/*.rs");
+}
+
+#[test]
+fn diagnostic_materialization_and_support_boundaries_preserve_explicit_seams() {
+    compile_fail("tests/ui/diagnostics/materialization/*.rs");
+}
+
+#[test]
+fn diagnostic_basis_and_comparison_preserve_blind_consumer_canonical_law() {
+    compile_fail("tests/ui/diagnostics/basis/*.rs");
+}
+
+#[test]
+fn diagnostic_certified_bundle_and_attachment_boundaries_reuse_proof_lane() {
+    compile_fail("tests/ui/diagnostics/certified/*.rs");
+}
+
+#[test]
+fn diagnostic_production_readiness_requires_certified_artifact() {
+    compile_fail("tests/ui/diagnostics/readiness_boundaries/*.rs");
+}
+
+#[test]
 fn boundary_artifact_categories_preserve_non_substitution_law() {
     compile_fail("tests/ui/boundary_artifacts/categories/*.rs");
 }

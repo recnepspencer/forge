@@ -12,6 +12,10 @@ receipts, discard/closeout evidence, transition bundles, transition canonical
 basis and locator participation, profile reuse, current-basis readmission, and
 production-test readiness evidence.
 
+Crate-facing transition docs now also exist under
+[crates/forge-foundational/docs/branching-merging-and-commit-vocabulary](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/docs/branching-merging-and-commit-vocabulary),
+with one landing page and one feature doc per shipped transition seam.
+
 This milestone is ready for production-shaped testing through `forge-harness`
 or adopting-crate migration work. It does not claim that any adopting runtime
 has already lowered its real branch, merge, commit, receipt, or strategy
@@ -58,7 +62,7 @@ surfaces into the foundational transition language correctly.
 
 Shipped homes:
 
-- [branches.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/transitions/branches.rs)
+- [branches/mod.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/transitions/branches/mod.rs)
 - [branch_local.rs test](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/tests/certification/transitions/branch_local.rs)
 - [ui/branch_local](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/tests/ui/transitions/branch_local)
 
@@ -312,6 +316,9 @@ What is proved:
   convenience bypasses.
 - Topology checks show the touched transition production and test files remain
   under the 400-line cap through responsibility-shaped subdivision.
+- Crate-facing feature docs now exist for branch-local, merge, strategy/basis,
+  committed-authority, receipt/bundle, canonical/current-basis, and readiness
+  transition seams.
 
 ## Verification
 

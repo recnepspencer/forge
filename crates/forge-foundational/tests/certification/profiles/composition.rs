@@ -39,6 +39,7 @@ fn profile_responsibility_home_is_named_in_the_facade_topology() {
             "profiles",
             "boundary_artifacts",
             "transitions",
+            "diagnostics",
         ]
     );
 }

@@ -19,6 +19,7 @@ fn facade_exposes_named_responsibility_topology() {
             "profiles",
             "boundary_artifacts",
             "transitions",
+            "diagnostics",
         ]
     );
 
