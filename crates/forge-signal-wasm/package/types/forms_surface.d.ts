@@ -19,6 +19,7 @@ export * from "./forms/messages.js";
 export * from "./forms/media.js";
 export * from "./forms/presentation.js";
 export * from "./forms/reset.js";
+export * from "./forms/resource_merge.js";
 export * from "./forms/resource_source.js";
 export * from "./forms/sources.js";
 export * from "./forms/steps.js";

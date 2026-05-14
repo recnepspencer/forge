@@ -17,6 +17,7 @@ import type { FormLayoutReport } from "./layout.js";
 import type { FormLayoutMeasurementReport } from "./measurement.js";
 import type { FormPresentationReport } from "./presentation.js";
 import type { FormInputCapabilitiesReport } from "./input_capabilities.js";
+import type { FormResourceMergeReport } from "./resource_merge.js";
 import type { FormResourceSourceReport } from "./resource_source.js";
 import type { FormSourceAuthorityDiagnostics } from "./sources.js";
 
@@ -28,6 +29,7 @@ export interface FormVerificationPackage {
     readonly sourceAdmissionDigest: string;
     readonly draftRestoreDigest: string;
     readonly resourceSourceDigest: string | null;
+    readonly resourceMergeDigest: string;
     readonly resourceEffectProfileDigest: string;
     readonly resourceVisibleBranchSelectionDigest: string;
     readonly resourceVerificationPackageDigest: string | null;
@@ -79,6 +81,7 @@ export interface FormVerificationPackage {
     readonly canonicalizationDigest: string;
     readonly resetRollbackDigest: string;
     readonly resetHistoryDigest: string;
+    readonly resourceMergeHistoryDigest: string;
     readonly mutationResponseReconciliationDigest: string;
     readonly sourceCompatibilityHistoryDigest: string;
     readonly presentationHistoryDigest: string;
@@ -133,6 +136,7 @@ export interface FormVerificationPackage {
     readonly navigationOperations: number;
     readonly sourceCompatibilityOperations: number;
     readonly resourceSource: FormResourceSourceReport["counters"] | null;
+    readonly resourceMerge: FormResourceMergeReport["counters"];
     readonly hostFacts: FormHostReport["counters"];
     readonly inputCapabilities: FormInputCapabilitiesReport["counters"];
     readonly exit: FormExitReport["counters"];

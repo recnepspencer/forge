@@ -52,6 +52,15 @@ import { materializePresentationDeclaration } from "./presentation/declarations.
 import { createPresentationRuntimeBindings } from "./presentation/runtime_bindings.js";
 import { createDeclaredPresentationScopeRegistry } from "./presentation/scope_registry.js";
 import { createPresentationStore } from "./presentation/store.js";
+import {
+  createResourceMergeProjectionRegistry,
+  previewResourceMerge as materializeResourceMergePreview,
+} from "./resource_merge/projection.js";
+import {
+  readResourceMergeReport,
+  resourceMergeReadinessBlockers,
+} from "./resource_merge/report.js";
+import { createResourceMergeStore } from "./resource_merge/store.js";
 import { createFormResetStore } from "./reset/store.js";
 import { createFieldHandle } from "./fields/handles.js";
 import { evaluateSteps } from "./steps/artifacts.js";
@@ -103,6 +112,7 @@ export function createFormController(signalNamespace, declaration) {
   const layoutMeasurements = createLayoutMeasurementStore(measurementPolicy);
   const media = createMediaPresentationStore();
   const messages = createMessagePresentationStore();
+  const resourceMerges = createResourceMergeStore();
   const resets = createFormResetStore();
   const presentationPolicy = materializePresentationDeclaration(declaration);
   const presentationSettlements = createPresentationStore();
@@ -110,6 +120,11 @@ export function createFormController(signalNamespace, declaration) {
     fieldDeclarations,
     stepDeclarations,
     actionDeclarations,
+    availabilityDeclarations,
+  );
+  const resourceMergeRegistry = createResourceMergeProjectionRegistry(
+    fieldDeclarations,
+    stepDeclarations,
     availabilityDeclarations,
   );
   const interactionBindings = createInteractionBindings(interactions, fieldDeclarations);
@@ -192,6 +207,17 @@ export function createFormController(signalNamespace, declaration) {
     sourceAdmission() { return readSourceBootstrapArtifact(declaration.source, "sourceAdmission"); },
     draftRestore() { return readSourceBootstrapArtifact(declaration.source, "draftRestore"); },
     resourceSource() { return readResourceSourceReport(declaration.source); },
+    resourceMerge() { return readResourceMergeReport(resourceMerges, declaration.source); },
+    previewResourceMerge(request) {
+      return materializeResourceMergePreview(
+        signalNamespace,
+        declaration.source,
+        resourceMerges,
+        resourceMergeRegistry,
+        request,
+      );
+    },
+    clearResourceMerge(reason = undefined) { return resourceMerges.clear(reason); },
     host() { return readHostReport(hostBindings); },
     inputCapabilities() { return readInputCapabilitiesReport(fieldDeclarations); },
     exit() { return readExitPresentationReport(exits, deriveExitPresentationBasis(form)); },
@@ -268,6 +294,7 @@ export function createFormController(signalNamespace, declaration) {
       const blockers = rawInputBlockers(rawInputs);
       blockers.push(...sourceCompatibilityBlockers(form.sourceCompatibility()));
       blockers.push(...resourceSourceReadinessBlockers(form.resourceSource()));
+      blockers.push(...resourceMergeReadinessBlockers(form.resourceMerge()));
       blockers.push(...validationReadinessBlockers(form.validation()));
       blockers.push(...availabilityReadinessBlockers(form.availability()));
       blockers.push(...admissionReadinessBlockers(form.admission()));

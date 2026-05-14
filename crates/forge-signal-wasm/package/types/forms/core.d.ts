@@ -407,6 +407,8 @@ export interface FormReadinessBlocker {
     | "resource:rejected"
     | "resource:timedOut"
     | "resource:stale"
+    | "resource:mergeConflict"
+    | "resource:mergeMappingUnavailable"
     | "host:offline"
     | "host:unavailable"
     | "step:blocked"

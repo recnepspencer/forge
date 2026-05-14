@@ -84,6 +84,7 @@ const phaseOneSourceKind = phaseOneForm.sourceAuthority().kind;
 const phaseOneBootstrapSourceKind = phaseOneSourceBootstrapForm.sourceAuthority().kind;
 const phaseEightResourceSourceKind = phaseEightResourceForm.resourceSource()?.sourceKind;
 const phaseEightResourceSourceDigest = phaseEightResourceForm.verification().digests.resourceSourceDigest;
+const phaseEightResourceMergeDigest = phaseEightResourceForm.verification().digests.resourceMergeDigest;
 const phaseEightResourceEffectProfileName = phaseEightResourceForm.resourceSource()?.effectProfile.profile?.name;
 const phaseEightResourceVisibleSelectionKind = phaseEightResourceForm.resourceSource()?.visibleSelection.kind;
 const phaseEightResourceVerificationPackageDigest = phaseEightResourceForm.resourceSource()?.verification.packageDigest;
@@ -91,6 +92,12 @@ const phaseEightResourceEffectCloseoutDigest =
   phaseEightResourceForm.verification().digests.resourceEffectCloseoutMatrixDigest;
 const phaseEightResourceVisibleBranchDigest =
   phaseEightResourceForm.verification().digests.resourceVisibleBranchSelectionDigest;
+const phaseEightResourceMergePreview = phaseEightResourceForm.previewResourceMerge({
+  source_branch_id: 0,
+  target_branch_id: 0,
+});
+const phaseEightResourceMergeStatus = phaseEightResourceForm.resourceMerge().summary.status;
+const phaseEightResourceMergeCleared = phaseEightResourceForm.clearResourceMerge("clear smoke");
 const phaseEightResourceSubmitEffectProfileSource =
   phaseEightResourceActionForm.actionPlan("submit").resourceEffectProfile.source;
 const phaseEightResourceReset = phaseEightResourceForm.reset();

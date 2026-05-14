@@ -12,6 +12,7 @@ export function readFormDiagnostics(form, fieldDeclarations) {
     availability: form.availability(),
     admission: form.admission(),
     resourceSource: form.resourceSource(),
+    resourceMerge: form.resourceMerge(),
     host: form.host(),
     inputCapabilities: form.inputCapabilities(),
     exit: form.exit(),

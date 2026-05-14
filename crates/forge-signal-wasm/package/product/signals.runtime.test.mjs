@@ -46,6 +46,7 @@ import "./signals_runtime/forms/presentation/form_external_presentation_lanes.te
 import "./signals_runtime/forms/presentation/form_entry_bootstrap.test.mjs";
 import "./signals_runtime/forms/presentation/form_resource_drift_presentation.test.mjs";
 import "./signals_runtime/forms/resource_source/form_resource_effect_profile_inheritance.test.mjs";
+import "./signals_runtime/forms/resource_source/form_resource_merge_projection.test.mjs";
 import "./signals_runtime/forms/resource_source/form_resource_reset.test.mjs";
 import "./signals_runtime/forms/resource_source/form_resource_source_readback.test.mjs";
 import "./signals_runtime/forms/resource_source/form_resource_submit_execution.test.mjs";

@@ -17,6 +17,7 @@ import type { FormExitReport } from "./exit.js";
 import type { FormHandoffReport } from "./handoff.js";
 import type { FormInputCapabilitiesReport } from "./input_capabilities.js";
 import type { FormResourceSourceReport } from "./resource_source.js";
+import type { FormResourceMergeArtifact, FormResourceMergeReport } from "./resource_merge.js";
 import type { FormAttachmentsReport } from "./attachments.js";
 import type { FormMediaReport } from "./media.js";
 import type { FormMessagesReport } from "./messages.js";
@@ -61,6 +62,7 @@ import type {
 } from "./sources.js";
 import type { FormResetArtifact } from "./reset.js";
 import type { FormVerificationPackage } from "./verification.js";
+import type { MergePolicyPreviewRequest } from "../diagnostics.js";
 import type { FormControllerActionBindings } from "./controller_actions.js";
 import type { FormControllerPresentationBindings } from "./controller_presentation.js";
 
@@ -134,6 +136,9 @@ export interface FormController<
   sourceAdmission(): FormSourceBootstrapArtifact | null;
   draftRestore(): FormSourceBootstrapArtifact | null;
   resourceSource(): FormResourceSourceReport | null;
+  resourceMerge(): FormResourceMergeReport;
+  previewResourceMerge(request: MergePolicyPreviewRequest): FormResourceMergeArtifact;
+  clearResourceMerge(reason?: string): FormResourceMergeArtifact;
   host(): FormHostReport;
   inputCapabilities(): FormInputCapabilitiesReport;
   exit(): FormExitReport;
@@ -248,6 +253,7 @@ export interface FormController<
     readonly availability: FormAvailabilityReport;
     readonly admission: FormAdmissionReport;
     readonly resourceSource: FormResourceSourceReport | null;
+    readonly resourceMerge: FormResourceMergeReport;
     readonly host: FormHostReport;
     readonly inputCapabilities: FormInputCapabilitiesReport;
     readonly exit: FormExitReport;

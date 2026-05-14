@@ -6,6 +6,7 @@ export function buildFormVerificationPackage(form) {
   const sourceAdmission = form.sourceAdmission();
   const draftRestore = form.draftRestore();
   const resourceSource = form.resourceSource();
+  const resourceMerge = form.resourceMerge();
   const formDeclaration = form.declaration();
   const draft = form.draft();
   const effective = form.effective();
@@ -55,6 +56,7 @@ export function buildFormVerificationPackage(form) {
     sourceAdmissionDigest: stableValueDigest(sourceAdmission),
     draftRestoreDigest: stableValueDigest(draftRestore),
     resourceSourceDigest: resourceSource?.digest ?? null,
+    resourceMergeDigest: resourceMerge.digest,
     resourceEffectProfileDigest: stableValueDigest(resourceSource?.effectProfile.profile ?? null),
     resourceVisibleBranchSelectionDigest: stableValueDigest(resourceSource?.visibleSelection ?? null),
     resourceVerificationPackageDigest: resourceSource?.verification.packageDigest ?? null,
@@ -101,6 +103,7 @@ export function buildFormVerificationPackage(form) {
       canonicalizationHistory.map((artifact) => artifact.resourceBacked?.rollback ?? null),
     ),
     resetHistoryDigest: stableValueDigest(resetHistory),
+    resourceMergeHistoryDigest: stableValueDigest(resourceMerge.history),
     mutationResponseReconciliationDigest: stableValueDigest(
       canonicalizationHistory.map((artifact) => artifact.resourceBacked?.mutationResponse ?? null),
     ),
@@ -125,6 +128,7 @@ export function buildFormVerificationPackage(form) {
       sourceAdmission,
       draftRestore,
       resourceSource,
+      resourceMerge,
       formDeclaration,
       fieldContract,
       inputAdapters,
@@ -201,6 +205,7 @@ export function buildFormVerificationPackage(form) {
     performanceEnvelope: formPerformanceEnvelope({
       sourceCompatibility,
       resourceSource,
+      resourceMerge,
       host,
       inputCapabilities,
       exit,
@@ -246,6 +251,7 @@ function formPerformanceEnvelope(reports) {
     navigationOperations: reports.navigationHistory.length,
     sourceCompatibilityOperations: reports.sourceCompatibilityHistory.length,
     resourceSource: reports.resourceSource?.counters ?? null,
+    resourceMerge: reports.resourceMerge.counters,
     hostFacts: reports.host.counters,
     inputCapabilities: reports.inputCapabilities.counters,
     exit: reports.exit.counters,
