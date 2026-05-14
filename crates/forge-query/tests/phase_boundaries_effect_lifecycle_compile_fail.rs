@@ -3,6 +3,9 @@ fn query_effect_lifecycle_phase_boundaries_enforce_absent_internal_runtime_build
     let t = trybuild::TestCases::new();
     t.compile_fail("tests/ui/effect_lifecycle/execution/*.rs");
     t.compile_fail("tests/ui/effect_lifecycle/lowering/*.rs");
-    t.compile_fail("tests/ui/effect_lifecycle/proof/*.rs");
-    t.compile_fail("tests/ui/effect_lifecycle/support/*.rs");
+    t.compile_fail("tests/ui/effect_lifecycle/proof/construction/*.rs");
+    t.compile_fail("tests/ui/effect_lifecycle/proof/postures/*.rs");
+    t.compile_fail("tests/ui/effect_lifecycle/support/bundles/*.rs");
+    t.compile_fail("tests/ui/effect_lifecycle/support/inventory/*.rs");
+    t.compile_fail("tests/ui/effect_lifecycle/support/receipts/*.rs");
 }

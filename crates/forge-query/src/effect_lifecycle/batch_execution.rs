@@ -1,6 +1,7 @@
 use crate::basis_lifecycle::BasisFamily;
 use crate::identity::hash_parts;
 
+use super::batch::LoweredEffectBatchExecutionPlan;
 use super::counters::EffectLifecycleCounters;
 use super::execution::{
     EffectExecutionDenialKind, ExecutedEffectAuthorityArtifact, ExecutedEffectPlan,
@@ -46,6 +47,7 @@ impl EffectBatchExecutionDenial {
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct ExecutedEffectBatchPlan {
+    lowered: LoweredEffectBatchExecutionPlan,
     authority_lane: EffectAuthorityLane,
     basis_family: BasisFamily,
     authority_owner: EffectAuthorityOwner,
@@ -57,6 +59,7 @@ pub struct ExecutedEffectBatchPlan {
 
 impl ExecutedEffectBatchPlan {
     pub(crate) fn new(
+        lowered: LoweredEffectBatchExecutionPlan,
         authority_lane: EffectAuthorityLane,
         basis_family: BasisFamily,
         authority_owner: EffectAuthorityOwner,
@@ -97,6 +100,7 @@ impl ExecutedEffectBatchPlan {
             1,
         );
         Self {
+            lowered,
             authority_lane,
             basis_family,
             authority_owner,
@@ -109,6 +113,10 @@ impl ExecutedEffectBatchPlan {
 
     pub fn authority_lane(&self) -> EffectAuthorityLane {
         self.authority_lane
+    }
+
+    pub fn lowered(&self) -> &LoweredEffectBatchExecutionPlan {
+        &self.lowered
     }
 
     pub fn basis_family(&self) -> BasisFamily {

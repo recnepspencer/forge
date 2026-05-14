@@ -76,6 +76,15 @@ pub(super) fn effect_lifecycle_public_surface_rows() -> Vec<EffectLifecyclePubli
             true,
         ),
         EffectLifecyclePublicSurfaceRow::new(
+            EffectPublicSurfaceKind::WritebackCommonPath,
+            Some(
+                "normalize_raw_effect_intent(...) -> evaluate_effect_eligibility(...) -> admit_effect_intent(...) -> scope_admitted_effect_plan(...).lower().execute()",
+            ),
+            Some(EffectReceiptArtifactKind::ForgeQueryWriteReceipt),
+            EffectPublicSurfaceAvailability::Implemented,
+            true,
+        ),
+        EffectLifecyclePublicSurfaceRow::new(
             EffectPublicSurfaceKind::InspectableLoweredPlan,
             Some("scope_admitted_effect_plan(...).lower()"),
             Some(EffectReceiptArtifactKind::ForgeQueryIntentExecution),
@@ -105,8 +114,17 @@ pub(super) fn effect_lifecycle_public_surface_rows() -> Vec<EffectLifecyclePubli
         ),
         EffectLifecyclePublicSurfaceRow::new(
             EffectPublicSurfaceKind::DiagnosticsEnvelope,
-            Some("execute_receipt_with(...).effect_envelope() / receipt.materialize_diagnostics(...)"),
+            Some(
+                "execute_receipt_with(...).transition_rules() / receipt.effect_envelope() / receipt.materialize_diagnostics(...)",
+            ),
             Some(EffectReceiptArtifactKind::SelfDescribingEffectEnvelope),
+            EffectPublicSurfaceAvailability::Implemented,
+            true,
+        ),
+        EffectLifecyclePublicSurfaceRow::new(
+            EffectPublicSurfaceKind::ProductionCertification,
+            Some("certify_effect_execution_pipeline()"),
+            None,
             EffectPublicSurfaceAvailability::Implemented,
             true,
         ),

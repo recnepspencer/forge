@@ -178,11 +178,13 @@ impl EffectLifecycleFamilyInventory {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EffectPublicSurfaceKind {
     CommonPathIntentAuthoring,
+    WritebackCommonPath,
     InspectableLoweredPlan,
     SupportDiscovery,
     DenialOrRebind,
     BatchExecution,
     DiagnosticsEnvelope,
+    ProductionCertification,
     HiddenLowerRuntimeTypes,
 }
 
@@ -190,11 +192,13 @@ impl EffectPublicSurfaceKind {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::CommonPathIntentAuthoring => "common_path_intent_authoring",
+            Self::WritebackCommonPath => "writeback_common_path",
             Self::InspectableLoweredPlan => "inspectable_lowered_plan",
             Self::SupportDiscovery => "support_discovery",
             Self::DenialOrRebind => "denial_or_rebind",
             Self::BatchExecution => "batch_execution",
             Self::DiagnosticsEnvelope => "diagnostics_envelope",
+            Self::ProductionCertification => "production_certification",
             Self::HiddenLowerRuntimeTypes => "hidden_lower_runtime_types",
         }
     }

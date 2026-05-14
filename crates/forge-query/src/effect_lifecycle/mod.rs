@@ -4,11 +4,13 @@ mod batch;
 mod batch_admission;
 mod batch_execution;
 mod certification;
+mod counter_profiles;
 mod counters;
 mod diagnostics;
 mod eligibility;
 mod envelope;
 mod execution;
+mod execution_artifacts;
 mod execution_bridge;
 mod execution_relational_batch;
 mod execution_relational_scalar;
@@ -20,6 +22,7 @@ mod normalized;
 mod oracle;
 mod planning;
 mod receipt;
+mod receipt_transitions;
 mod support_contract;
 mod support_matrix;
 mod support_matrix_rows;
@@ -38,13 +41,10 @@ pub use batch_admission::{
 pub use batch_execution::{
     EffectBatchExecutionDenial, EffectBatchExecutionDenialKind, ExecutedEffectBatchPlan,
 };
-#[allow(unused_imports)]
 pub use certification::{
-    certify_effect_lifecycle_phase4, certify_effect_lifecycle_seeded,
-    EffectLifecyclePhase4CertificationBundle, EffectLifecyclePhase4CertificationRow,
-    EffectLifecyclePhase4LaneKind, EffectLifecyclePhase4LaneOutcome,
-    EffectLifecycleSeededCertificationBundle, EffectLifecycleSeededCertificationRow,
-    EffectLifecycleSeededOutcomeClass,
+    certify_effect_execution_pipeline, EffectExecutionCertificationBundle,
+    EffectExecutionCertificationLane, EffectExecutionCertificationOutputDigest,
+    EffectExecutionCertificationRow,
 };
 pub use counters::EffectLifecycleCounters;
 pub use diagnostics::{EffectDiagnosticsMaterialization, EffectDiagnosticsRequest};
@@ -53,7 +53,9 @@ pub use eligibility::{
     DeniedEffectEligibility, EffectEligibility, EffectEligibilityDecisionTrace,
     EffectEligibilityOutcome, RebindRequiredEffectEligibility,
 };
-pub use envelope::{EffectEnvelopePrimaryResult, SelfDescribingEffectEnvelope};
+pub use envelope::{
+    EffectEnvelopePrimaryResult, EffectEnvelopeSourceRefs, SelfDescribingEffectEnvelope,
+};
 pub use execution::{
     execute_lowered_effect_plan, EffectExecutionAuthority, EffectExecutionDenial,
     EffectExecutionDenialKind, ExecutedEffectAuthorityArtifact, ExecutedEffectPlan,
@@ -87,6 +89,10 @@ pub use planning::{
 pub use receipt::{
     EffectExecutionReceipt, EffectReceiptDecisionTrace, EffectReceiptIntegrityMarkers,
     EffectReceiptTargetEvidence,
+};
+pub use receipt_transitions::{
+    EffectReceiptTransitionKind, EffectReceiptTransitionPosture, EffectReceiptTransitionRule,
+    EffectReceiptTransitionRules,
 };
 pub use support_contract::{
     EffectDeferredNeighborFamily, EffectDeferredResiduePosture, EffectDeferredSupportContract,

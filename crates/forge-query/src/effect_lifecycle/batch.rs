@@ -101,6 +101,7 @@ pub struct LoweredEffectBatchExecutionPlan {
     authority_owner: EffectAuthorityOwner,
     artifact: LoweredEffectBatchExecutionArtifact,
     admitted_components: Vec<super::AdmittedEffectIntent>,
+    admitted_batch_digest: String,
     batch_digest: String,
     counters: EffectLifecycleCounters,
 }
@@ -113,6 +114,15 @@ impl LoweredEffectBatchExecutionPlan {
         artifact: LoweredEffectBatchExecutionArtifact,
         admitted_components: Vec<super::AdmittedEffectIntent>,
     ) -> Self {
+        let admitted_batch_digest = hash_parts(
+            &std::iter::once("admitted_effect_batch_v1".to_string())
+                .chain(
+                    admitted_components
+                        .iter()
+                        .map(|component| format!("admitted:{}", component.admitted_digest())),
+                )
+                .collect::<Vec<_>>(),
+        );
         let counters = EffectLifecycleCounters::lowered_batch(
             admitted_components.len(),
             lowered_batch_artifact_width(&artifact),
@@ -132,6 +142,7 @@ impl LoweredEffectBatchExecutionPlan {
             authority_owner,
             artifact,
             admitted_components,
+            admitted_batch_digest,
             batch_digest,
             counters,
         }
@@ -173,6 +184,10 @@ impl LoweredEffectBatchExecutionPlan {
         &self.batch_digest
     }
 
+    pub fn admitted_batch_digest(&self) -> &str {
+        &self.admitted_batch_digest
+    }
+
     pub fn counters(&self) -> &EffectLifecycleCounters {
         &self.counters
     }
@@ -181,6 +196,7 @@ impl LoweredEffectBatchExecutionPlan {
         self,
         mut authority: EffectExecutionAuthority<'_>,
     ) -> Result<ExecutedEffectBatchPlan, EffectBatchExecutionDenial> {
+        let lowered = self.clone();
         let Self {
             authority_lane,
             basis_family,
@@ -220,6 +236,7 @@ impl LoweredEffectBatchExecutionPlan {
                     })
                     .collect::<Vec<_>>();
                 Ok(ExecutedEffectBatchPlan::new(
+                    lowered,
                     authority_lane,
                     basis_family,
                     authority_owner,

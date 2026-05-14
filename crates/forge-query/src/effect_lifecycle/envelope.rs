@@ -1,7 +1,12 @@
 use crate::identity::hash_parts;
 
+use super::inventory::EffectReceiptArtifactKind;
+use super::planning::EffectAuthorityOwner;
 use super::receipt::{EffectExecutionReceipt, EffectReceiptTargetEvidence};
-use super::taxonomy::{EffectAuthorityLane, EffectFamily};
+use super::support_contract::EffectDeferredNeighborFamily;
+use super::taxonomy::EffectAuthorityLane;
+use super::taxonomy::EffectFamily;
+use crate::basis_lifecycle::BasisFamily;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EffectEnvelopePrimaryResult {
@@ -23,9 +28,70 @@ impl EffectEnvelopePrimaryResult {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct EffectEnvelopeSourceRefs {
+    receipt_digest: String,
+    lowered_digest: String,
+    authority_artifact_digest: String,
+    counter_snapshot_digest: String,
+    sources_digest: String,
+}
+
+impl EffectEnvelopeSourceRefs {
+    fn from_receipt(receipt: &EffectExecutionReceipt) -> Self {
+        let receipt_digest = receipt.receipt_digest().to_string();
+        let lowered_digest = receipt.lowered_digest().to_string();
+        let authority_artifact_digest = receipt
+            .integrity_markers()
+            .authority_artifact_digest()
+            .to_string();
+        let counter_snapshot_digest = receipt
+            .integrity_markers()
+            .counter_snapshot_digest()
+            .to_string();
+        let sources_digest = hash_parts(&[
+            "effect_envelope_source_refs_v1".to_string(),
+            format!("receipt:{receipt_digest}"),
+            format!("lowered:{lowered_digest}"),
+            format!("authority_artifact:{authority_artifact_digest}"),
+            format!("counters:{counter_snapshot_digest}"),
+        ]);
+        Self {
+            receipt_digest,
+            lowered_digest,
+            authority_artifact_digest,
+            counter_snapshot_digest,
+            sources_digest,
+        }
+    }
+
+    pub fn receipt_digest(&self) -> &str {
+        &self.receipt_digest
+    }
+
+    pub fn lowered_digest(&self) -> &str {
+        &self.lowered_digest
+    }
+
+    pub fn authority_artifact_digest(&self) -> &str {
+        &self.authority_artifact_digest
+    }
+
+    pub fn counter_snapshot_digest(&self) -> &str {
+        &self.counter_snapshot_digest
+    }
+
+    pub fn sources_digest(&self) -> &str {
+        &self.sources_digest
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SelfDescribingEffectEnvelope {
     declared_effect_family: EffectFamily,
     authority_lane: EffectAuthorityLane,
+    authority_owner: EffectAuthorityOwner,
+    basis_lane: BasisFamily,
+    receipt_family: EffectReceiptArtifactKind,
     primary_result: EffectEnvelopePrimaryResult,
     warnings: Vec<String>,
     trace_digest: String,
@@ -33,6 +99,9 @@ pub struct SelfDescribingEffectEnvelope {
     integrity_digest: String,
     performance_digest: String,
     boundary_digest: String,
+    transition_rules_digest: String,
+    deferred_neighbors: Vec<EffectDeferredNeighborFamily>,
+    sources: EffectEnvelopeSourceRefs,
     envelope_digest: String,
 }
 
@@ -54,6 +123,8 @@ impl SelfDescribingEffectEnvelope {
         };
         let structural_deltas = structural_deltas(receipt);
         let integrity_digest = receipt.integrity_markers().integrity_digest().to_string();
+        let sources = EffectEnvelopeSourceRefs::from_receipt(receipt);
+        let transition_rules = receipt.transition_rules();
         let performance_digest = hash_parts(&[
             "effect_envelope_performance_v1".to_string(),
             format!("receipt:{}", receipt.receipt_digest()),
@@ -65,6 +136,12 @@ impl SelfDescribingEffectEnvelope {
             format!("basis_lane:{}", receipt.basis_lane().as_str()),
             format!("family:{}", receipt.declared_effect_family().as_str()),
         ]);
+        let deferred_neighbors = transition_rules
+            .rules()
+            .iter()
+            .filter_map(|rule| rule.deferred_neighbor())
+            .collect::<Vec<_>>();
+        let transition_rules_digest = transition_rules.rules_digest().to_string();
         let envelope_digest = hash_parts(
             &std::iter::once("self_describing_effect_envelope_v1".to_string())
                 .chain(std::iter::once(format!(
@@ -83,11 +160,21 @@ impl SelfDescribingEffectEnvelope {
                 .chain(std::iter::once(format!("integrity:{integrity_digest}")))
                 .chain(std::iter::once(format!("performance:{performance_digest}")))
                 .chain(std::iter::once(format!("boundary:{boundary_digest}")))
+                .chain(std::iter::once(format!(
+                    "transitions:{transition_rules_digest}"
+                )))
+                .chain(std::iter::once(format!(
+                    "sources:{}",
+                    sources.sources_digest()
+                )))
                 .collect::<Vec<_>>(),
         );
         Self {
             declared_effect_family: receipt.declared_effect_family(),
             authority_lane: receipt.authority_lane(),
+            authority_owner: receipt.authority_owner(),
+            basis_lane: receipt.basis_lane(),
+            receipt_family: receipt.receipt_family(),
             primary_result,
             warnings: Vec::new(),
             trace_digest: receipt.decision_trace().decision_trace_digest().to_string(),
@@ -95,6 +182,9 @@ impl SelfDescribingEffectEnvelope {
             integrity_digest,
             performance_digest,
             boundary_digest,
+            transition_rules_digest,
+            deferred_neighbors,
+            sources,
             envelope_digest,
         }
     }
@@ -105,6 +195,18 @@ impl SelfDescribingEffectEnvelope {
 
     pub fn authority_lane(&self) -> EffectAuthorityLane {
         self.authority_lane
+    }
+
+    pub fn authority_owner(&self) -> EffectAuthorityOwner {
+        self.authority_owner
+    }
+
+    pub fn basis_lane(&self) -> BasisFamily {
+        self.basis_lane
+    }
+
+    pub fn receipt_family(&self) -> EffectReceiptArtifactKind {
+        self.receipt_family
     }
 
     pub fn primary_result(&self) -> EffectEnvelopePrimaryResult {
@@ -133,6 +235,18 @@ impl SelfDescribingEffectEnvelope {
 
     pub fn boundary_digest(&self) -> &str {
         &self.boundary_digest
+    }
+
+    pub fn transition_rules_digest(&self) -> &str {
+        &self.transition_rules_digest
+    }
+
+    pub fn deferred_neighbors(&self) -> &[EffectDeferredNeighborFamily] {
+        &self.deferred_neighbors
+    }
+
+    pub fn sources(&self) -> &EffectEnvelopeSourceRefs {
+        &self.sources
     }
 
     pub fn envelope_digest(&self) -> &str {

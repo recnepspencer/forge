@@ -1,6 +1,7 @@
 # Milestone 9.3.3 Engineering Spec: Authority-Scoped Effect Execution Pipeline
 
-> **Status:** Draft engineering spec
+> **Status:** Closed 2026-05-13 via
+> [milestone-9.3.3-closeout.md](./milestone-9.3.3-closeout.md)
 >
 > **Roadmap parent:** [forge_query_roadmap.md](./forge_query_roadmap.md)
 >
@@ -40,6 +41,7 @@
 > - [milestone-9.3.1.md](./milestone-9.3.1.md)
 > - [milestone-9.3.1-closeout.md](./milestone-9.3.1-closeout.md)
 > - [milestone-9.3.2.md](./milestone-9.3.2.md)
+> - [milestone-9.3.3-closeout.md](./milestone-9.3.3-closeout.md)
 > - [runtime-authoritative-mutation-evidence-plan.md](./runtime-authoritative-mutation-evidence-plan.md)
 
 ## Goal
@@ -418,6 +420,9 @@ DX rules:
 - ordinary caller code should author effect intent, choose basis, admit,
   lower, execute, and inspect a receipt without manually constructing proof
   internals
+- the ordinary caller surface must cover both relational mutation/merge and
+  bridge-backed writeback as first-class effect families in the same lifecycle,
+  not as one polished path plus one lower-runtime escape hatch
 - expensive or boundary-crossing work must stay visually explicit through
   `admit`, `lower`, `execute`, `inspect`, or `certify`
 - result envelopes should expose authority names, decision traces, structural
@@ -432,9 +437,10 @@ Milestone 9.3.3 should not merely expose "some way" to execute effects. It
 should intentionally produce a finished public surface that reads like a
 serious framework under `dx_laws.md`.
 
-The final code should be recognizable in five layers:
+The final code should be recognizable in six layers:
 
 - common-path authoring
+- family-complete common-path authoring
 - inspectable planning
 - explicit execution boundary
 - receipt/envelope inspection
@@ -477,6 +483,40 @@ What this code communicates:
   of authority execution itself
 
 The finished surface should make each of those transitions visually obvious.
+
+That obligation applies to bridge-backed writeback too. The finished common
+path is not complete if mutation reads like one intentional lifecycle while
+writeback still feels like dropping into bridge-specific vocabulary.
+
+Target sibling shape:
+
+```rust
+let basis = query
+    .basis()
+    .branch_head(branch)
+    .for_mutation_preparation()?
+    .admit()?;
+
+let writeback_receipt = query
+    .effect(projected_name_writeback)
+    .using_basis(basis)
+    .admit()?
+    .lower()?
+    .execute()?;
+
+let writeback_envelope = writeback_receipt.effect_envelope();
+```
+
+What this code must communicate:
+
+- writeback is still authored as Query effect intent, not bridge request
+  assembly
+- `using_basis(...)` is still the authority-binding seam
+- `admit()` is still where preview/rebind/deferred posture becomes explicit
+- `lower()` is still where Query resolves the bridge-owned declaration chain
+- `execute()` still crosses a visibly expensive authority boundary
+- `effect_envelope()` is still derived from a receipt rather than assembled
+  from ambient bridge aftermath
 
 ### 2. Advanced Path Should Expose The Plan Before Execution
 
@@ -597,6 +637,16 @@ denials at the right phase:
 - deferred/unsupported surfaced through support APIs before any real attempt
 
 No caller should need to discover preview-rebind rules by trial and error.
+
+The writeback family is the main place this matters. A production-honest DX
+surface must let a caller see:
+
+- authoritative-basis writeback as an admitted common path
+- preview-derived writeback as typed denial or explicit rebind
+- store-backed or durable writeback as typed deferred posture
+
+If the public surface only demonstrates mutation denial while expecting users
+to infer writeback denial folklore, the milestone has not finished the DX job.
 
 ### 5. Support Discovery Must Be A Real API, Not A Doc Habit
 
@@ -1258,7 +1308,8 @@ Phase 6 is complete only when
 - one code-owned family inventory/support matrix that fails closed for
   unsupported, deferred, or rebind-required neighbors
 - one finished public caller surface matching the Finished Surface Contract:
-  - common-path intent authoring
+  - common-path intent authoring for both relational mutation/merge and
+    bridge-backed writeback
   - inspectable advanced lowering path
   - explicit denial/rebind handling path
   - support/discovery path
@@ -1325,6 +1376,9 @@ This milestone is complete only when `forge-query` can prove:
   executor runs
 - ordinary public effect surfaces consume lowered plans rather than raw intent
   or scoped-but-unlowered plans
+- bridge-backed writeback has a first-class public caller transcript that reads
+  like Query intent authoring rather than lower-runtime bridge request
+  assembly
 - effect envelopes expose authority names, decision traces, structural deltas,
   integrity markers, and counters without caller-side lower-runtime stitching
 - performance certification proves executor strategy was resolved upstream and
@@ -1449,7 +1503,10 @@ This milestone may close only when:
   admitted, advisory, denied, deferred, and unsupported effect families
 - the final public API visibly supports all six caller stories from the
   Finished Surface Contract without forcing lower-runtime imports or ad hoc
-  helper folklore
+  helper folklore, and the common-path story is family-complete rather than
+  mutation-only:
+  - relational mutation/merge common path
+  - bridge-backed writeback common path
 - no in-scope runtime-backed surface is carried by compatibility debt, cleanup
   debt, or undocumented follow-on promises
 - roadmap and test-requirement references point at this spec and named suite

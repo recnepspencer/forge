@@ -646,7 +646,8 @@ Must verify
   admitted, advisory, denied, deferred, and unsupported effect families
 - the golden DX transcripts prove all intended caller stories exist as first-
   class public paths:
-  - common-path intent authoring
+  - common-path intent authoring for both relational mutation/merge and
+    bridge-backed writeback
   - inspectable advanced lowering
   - support/discovery before execution
   - denial/rebind handling

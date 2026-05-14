@@ -2388,7 +2388,8 @@ proof-bearing plans.
 ### Specification
 
 The governing milestone spec is
-[milestone-9.3.3.md](./milestone-9.3.3.md).
+[milestone-9.3.3.md](./milestone-9.3.3.md). The closeout record is
+[milestone-9.3.3-closeout.md](./milestone-9.3.3-closeout.md).
 
 ### Adversarial Constraint
 

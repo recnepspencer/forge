@@ -1,5 +1,26 @@
+#[path = "closeout/closeout.rs"]
+mod closeout;
+#[path = "closeout/closeout_artifacts.rs"]
+mod closeout_artifacts;
+#[path = "closeout/closeout_audits.rs"]
+mod closeout_audits;
+#[path = "closeout/closeout_dx.rs"]
+mod closeout_dx;
+#[path = "closeout/closeout_meta.rs"]
+mod closeout_meta;
+#[path = "closeout/closeout_oracles.rs"]
+mod closeout_oracles;
+#[path = "closeout/closeout_postures.rs"]
+mod closeout_postures;
+#[path = "closeout/closeout_receipts.rs"]
+mod closeout_receipts;
+#[path = "closeout/closeout_slopes.rs"]
+mod closeout_slopes;
+#[path = "phase4/phase4.rs"]
 mod phase4;
+#[path = "seeded/scenarios.rs"]
 mod scenarios;
+#[path = "seeded/support.rs"]
 mod support;
 
 use crate::basis_lifecycle::BasisFamily;
@@ -8,6 +29,12 @@ use crate::identity::hash_parts;
 
 use super::taxonomy::EffectFamily;
 
+pub use closeout::certify_effect_execution_pipeline;
+pub use closeout_artifacts::{
+    EffectExecutionCertificationBundle, EffectExecutionCertificationLane,
+    EffectExecutionCertificationOutputDigest, EffectExecutionCertificationRow,
+};
+#[allow(unused_imports)]
 pub use phase4::{
     certify_effect_lifecycle_phase4, EffectLifecyclePhase4CertificationBundle,
     EffectLifecyclePhase4CertificationRow, EffectLifecyclePhase4LaneKind,
@@ -58,6 +85,7 @@ pub struct EffectLifecycleSeededCertificationRow {
     row_digest: String,
 }
 
+#[allow(dead_code)]
 impl EffectLifecycleSeededCertificationRow {
     pub(super) fn new(parts: EffectLifecycleSeededRowParts) -> Self {
         let counter_snapshot_digest = parts.counters.digest();
@@ -194,6 +222,7 @@ pub struct EffectLifecycleSeededCertificationBundle {
     replay_is_deterministic: bool,
 }
 
+#[allow(dead_code)]
 impl EffectLifecycleSeededCertificationBundle {
     fn new(seed: u64, rows: Vec<EffectLifecycleSeededCertificationRow>) -> Self {
         let seeded_sequence_digest = rows_digest(&rows);

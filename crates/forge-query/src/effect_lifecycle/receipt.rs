@@ -8,6 +8,7 @@ use super::envelope::SelfDescribingEffectEnvelope;
 use super::execution::{ExecutedEffectAuthorityArtifact, ExecutedEffectPlan};
 use super::inventory::EffectReceiptArtifactKind;
 use super::planning::EffectAuthorityOwner;
+use super::receipt_transitions::EffectReceiptTransitionRules;
 use super::taxonomy::{EffectAuthorityLane, EffectFamily};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -67,12 +68,12 @@ impl EffectReceiptDecisionTrace {
     }
 
     fn batch(executed: &ExecutedEffectBatchPlan) -> Self {
-        let admitted_or_batch_digest = executed.batch_digest().to_string();
-        let lowered_digest = executed.batch_digest().to_string();
+        let admitted_or_batch_digest = executed.lowered().admitted_batch_digest().to_string();
+        let lowered_digest = executed.lowered().batch_digest().to_string();
         let authority_owner = executed.authority_owner();
         let decision_trace_digest = hash_parts(&[
             "effect_receipt_decision_trace_v1".to_string(),
-            format!("batch:{admitted_or_batch_digest}"),
+            format!("admitted_batch:{admitted_or_batch_digest}"),
             format!("lowered:{lowered_digest}"),
             format!("authority_owner:{}", authority_owner.as_str()),
         ]);
@@ -289,6 +290,10 @@ impl EffectExecutionReceipt {
         EffectDiagnosticsMaterialization::from_receipt(self, &envelope, request)
     }
 
+    pub fn transition_rules(&self) -> EffectReceiptTransitionRules {
+        EffectReceiptTransitionRules::for_receipt_family(self.receipt_family)
+    }
+
     pub fn target_evidence(&self) -> EffectReceiptTargetEvidence {
         match &self.artifact {
             EffectExecutionReceiptArtifact::Scalar(executed) => match executed.artifact() {
@@ -322,6 +327,10 @@ impl EffectExecutionReceipt {
                 }
             }
         }
+    }
+
+    pub fn lowered_digest(&self) -> &str {
+        self.decision_trace.lowered_digest()
     }
 }
 

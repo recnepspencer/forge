@@ -8,6 +8,8 @@ pub struct EffectDiagnosticsRequest {
     include_lowered_digest: bool,
     include_counter_snapshot: bool,
     include_integrity_markers: bool,
+    include_transition_rules: bool,
+    include_source_refs: bool,
 }
 
 impl EffectDiagnosticsRequest {
@@ -16,6 +18,8 @@ impl EffectDiagnosticsRequest {
             include_lowered_digest: true,
             include_counter_snapshot: true,
             include_integrity_markers: true,
+            include_transition_rules: true,
+            include_source_refs: true,
         }
     }
 }
@@ -54,6 +58,15 @@ impl EffectDiagnosticsMaterialization {
                 "integrity:{}",
                 receipt.integrity_markers().integrity_digest()
             ));
+        }
+        if request.include_transition_rules {
+            detail_sections.push(format!(
+                "transitions:{}",
+                receipt.transition_rules().rules_digest()
+            ));
+        }
+        if request.include_source_refs {
+            detail_sections.push(format!("sources:{}", envelope.sources().sources_digest()));
         }
         let diagnostics_digest = hash_parts(
             &std::iter::once("effect_diagnostics_materialization_v1".to_string())
