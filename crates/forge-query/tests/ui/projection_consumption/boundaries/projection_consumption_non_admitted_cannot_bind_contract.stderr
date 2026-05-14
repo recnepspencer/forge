@@ -1,0 +1,11 @@
+error[E0599]: no method named `bind_contract` found for enum `ProjectionConsumptionEligibility` in the current scope
+  --> tests/ui/projection_consumption/boundaries/projection_consumption_non_admitted_cannot_bind_contract.rs:13:25
+   |
+13 |     let _ = eligibility.bind_contract();
+   |                         ^^^^^^^^^^^^^ method not found in `ProjectionConsumptionEligibility`
+   |
+note: the method `bind_contract` exists on the type `AdmittedProjectionConsumption`
+  --> src/projection_consumption/eligibility.rs
+   |
+   |     pub fn bind_contract(&self) -> MaterializedProjectionContract {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

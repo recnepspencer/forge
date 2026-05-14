@@ -202,7 +202,7 @@ cross-feature proof gates before final certification:
   without reopening source authority
 - `Milestone 9.3.5` must prove every Query-crossing intent resolves through a
   structured admission decision lattice with success, advisory, and violation
-  traces before construction or lowering
+  traces before construction, lowering, or covered bridge-backed execution
 - `Milestone 9.3.6` must prove lower-runtime contact is capability-routed
   through contractual boundary envelopes rather than scattered direct bridge,
   relational, signal, or store access
@@ -2497,11 +2497,15 @@ materialization, and avoid direct source-authority reads for fact discovery.
 
 ## Milestone 9.3.5: Intent Admission Decision Lattice And Decision Trace
 
+The governing milestone spec is
+[milestone-9.3.5.md](./milestone-9.3.5.md).
+
 ### Goal
 
 Make every Query-crossing intent resolve through a structured admission
 decision lattice before construction, command lowering, execution, or
-diagnostic materialization.
+diagnostic materialization, and make covered admitted paths cross into real
+bridge-backed execution through one canonical typed handoff.
 
 ### Adversarial Constraint
 
@@ -2518,6 +2522,7 @@ RawIntent
   -> IntentEligibility
   -> AdmissionDecision
   -> AdmittedIntentPlan | AdvisoryDecision | ViolationDecision
+  -> AdmittedExecutionHandoff | AdvisoryStop | ViolationStop
   -> DecisionTraceEnvelope
 ```
 
@@ -2528,6 +2533,8 @@ RawIntent
   lower-runtime capability routing
 - structured success, advisory, and violation decision variants with typed
   context
+- typed execution handoffs for every covered family whose admitted form already
+  binds to a real bridge/runtime execution seam
 - decision traces that record policy, capability, invariant, basis, projection,
   and lower-runtime routing decisions where applicable
 - compile-fail or construction-boundary tests proving rejected or advisory-only
@@ -2547,8 +2554,9 @@ RawIntent
 
 This milestone is complete only when all admitted 9.3.x surfaces share the
 decision lattice, failure and advisory cases are as inspectable as successful
-cases, and lower phases consume proof-bearing admitted plans rather than
-revalidating raw intents.
+cases, lower phases consume proof-bearing admitted plans rather than
+revalidating raw intents, and covered execution paths consume typed admitted
+handoffs rather than rediscovering admission from raw requests.
 
 ## Milestone 9.3.6: Lower-Runtime Capability Routing And Boundary Envelopes
 
@@ -3689,7 +3697,7 @@ answer is "store-gated" or "shared with another subsystem."
 | Query basis capability lifecycle | Milestone 9.3.2, shared with relational and runtime bridge | Basis capability envelopes, basis eligibility records, basis use receipts | Observation, mutation, replay, inspection, and materialization consume phase-typed basis proofs instead of raw branch/snapshot identifiers | Milestone 9.3.2 basis lifecycle certification + Milestone 13 branch/history suites |
 | Authority-scoped effect execution | Milestone 9.3.3, shared with runtime bridge and relational | Authority-scoped effect plans, lowered effect execution plans, effect execution receipts | Query effects execute only from lowered proof-bearing plans; executors do not re-decide authority, basis, strategy, or artifact policy | Milestone 9.3.3 effect execution certification + Milestone 13 workflow/mutation suites |
 | Declared projection consumption | Milestone 9.3.4 | Projection consumption declarations, materialized projection contracts, consumed fact receipts | Consumers use typed facts from declared materializations without reopening source authority | Milestone 9.3.4 projection consumption certification + Milestone 13 projection/domain suites |
-| Intent admission decision lattice | Milestone 9.3.5 | Admission decisions, advisory/violation variants, decision trace envelopes | Query-crossing intents resolve before construction/lowering with structured success, advisory, and violation context | Milestone 9.3.5 admission lattice certification + Milestone 13 diagnostics suites |
+| Intent admission decision lattice | Milestone 9.3.5 | Admission decisions, advisory/violation variants, admitted execution handoffs, decision trace envelopes | Query-crossing intents resolve before construction/lowering, and covered runtime-backed paths cross into execution through typed admitted handoffs with structured success, advisory, and violation context | Milestone 9.3.5 admission lattice certification + Milestone 13 diagnostics suites |
 | Lower-runtime capability routing | Milestone 9.3.6, shared with runtime bridge, relational, signal, and store | Lower-runtime route plans, boundary execution receipts, lower-runtime boundary envelopes | Lower-runtime contact is capability-routed and receipt-backed; remaining direct paths are explicit compatibility debt | Milestone 9.3.6 boundary routing certification + Milestone 13 support-matrix suites |
 | Temporal query basis and time-aware subscriptions | Milestone 9.4, shared with runtime bridge and signal temporal execution | Temporal query context descriptors, temporal subscription declaration metadata, bridge temporal basis requests | Truth basis and temporal execution basis stay distinct; time-only deliveries remain query-shaped | Milestone 9.7 temporal/async certification + Milestone 13 live/history suites |
 | Time-only query result delivery | Milestone 9.4 | Temporal cause metadata, time-aware delivery batches, previous-value comparison basis | Clock wakes can change admitted query results without raw signal events or ambient timers | Milestone 9.7 temporal/async certification |
@@ -3748,6 +3756,7 @@ must gain a row in the same patch or the roadmap is incomplete.
 - [milestone-9.3.2.md](./milestone-9.3.2.md)
 - [milestone-9.3.3.md](./milestone-9.3.3.md)
 - [milestone-9.3.4.md](./milestone-9.3.4.md)
+- [milestone-9.3.5.md](./milestone-9.3.5.md)
 - [runtime-api-public-stabilization-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-api-public-stabilization-plan.md)
 - [runtime-authoritative-mutation-evidence-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-authoritative-mutation-evidence-plan.md)
 - [forge_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_roadmap.md)

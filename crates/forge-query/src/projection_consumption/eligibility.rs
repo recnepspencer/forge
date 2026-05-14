@@ -1,7 +1,9 @@
 use crate::identity::hash_parts;
 
-use super::declaration::{ProjectionConsumptionDeclaration, ProjectionSourceFamily};
+use super::contracts::MaterializedProjectionContract;
+use super::declaration::ProjectionConsumptionDeclaration;
 use super::facts::{ProjectionFactKind, ProjectionFactRequest};
+use super::source::ProjectionSourceFamily;
 use super::support::{support_for_kind, ProjectionConsumptionSupportPosture};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -12,6 +14,7 @@ pub enum ProjectionConsumptionDenialReason {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum DeferredProjectionConsumptionReason {
     WriteReceiptContractBindingPending,
+    SourceFamilySupportPending,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -99,19 +102,33 @@ impl ProjectionConsumptionEligibilityTrace {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AdmittedProjectionConsumption {
+    declaration: ProjectionConsumptionDeclaration,
     declaration_digest: String,
     query_digest: String,
     basis_digest: String,
     result_shape_digest: String,
     authorized_projection_identity: String,
+    warning_kinds: Vec<ProjectionConsumptionWarningKind>,
     counters: ProjectionConsumptionEligibilityCounters,
     trace: ProjectionConsumptionEligibilityTrace,
     eligibility_digest: String,
 }
 
 impl AdmittedProjectionConsumption {
+    pub(crate) fn declaration(&self) -> &ProjectionConsumptionDeclaration {
+        &self.declaration
+    }
+
     pub fn eligibility_digest(&self) -> &str {
         &self.eligibility_digest
+    }
+
+    pub(crate) fn warning_kinds(&self) -> &[ProjectionConsumptionWarningKind] {
+        &self.warning_kinds
+    }
+
+    pub fn bind_contract(&self) -> MaterializedProjectionContract {
+        super::contracts::bind_materialized_projection_contract(self)
     }
 }
 
@@ -131,6 +148,10 @@ impl DeniedProjectionConsumption {
 
     pub fn counters(&self) -> &ProjectionConsumptionEligibilityCounters {
         &self.counters
+    }
+
+    pub(crate) fn failure_digest(&self) -> &str {
+        &self.failure_digest
     }
 }
 
@@ -167,6 +188,10 @@ impl SourceMismatchedProjectionConsumption {
     pub fn source_family(&self) -> ProjectionSourceFamily {
         self.source_family
     }
+
+    pub(crate) fn failure_digest(&self) -> &str {
+        &self.failure_digest
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -189,7 +214,7 @@ pub fn evaluate_projection_consumption_eligibility(
 
     for request in declaration.requested().requested() {
         counters.evaluated_fact_count += 1;
-        match support_for_kind(declaration.source().family(), request.kind()) {
+        match support_for_kind(declaration.source(), request.kind()) {
             ProjectionConsumptionSupportPosture::Admitted => {}
             ProjectionConsumptionSupportPosture::AdmittedWithWarnings(kind) => {
                 counters.warning_count += 1;
@@ -256,6 +281,7 @@ pub fn evaluate_projection_consumption_eligibility(
     }
 
     let admitted = AdmittedProjectionConsumption {
+        declaration: declaration.clone(),
         declaration_digest: declaration.declaration_digest().to_string(),
         query_digest: declaration.source().query_digest().unwrap_or("").to_string(),
         basis_digest: declaration.source().basis_digest().unwrap_or("").to_string(),
@@ -264,6 +290,7 @@ pub fn evaluate_projection_consumption_eligibility(
             .binding()
             .authorized_projection_identity()
             .to_string(),
+        warning_kinds: warnings.clone(),
         counters: counters.clone(),
         trace: ProjectionConsumptionEligibilityTrace {
             rule_label: "all_requested_fact_families_admitted",

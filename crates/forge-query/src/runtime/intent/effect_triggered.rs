@@ -1,4 +1,5 @@
 use crate::identity::hash_parts;
+use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
 
 use super::super::{
     ForgeQueryAuthorityLane, ForgeQueryEffectDelivery, ForgeQueryEffectPhaseEvidence,
@@ -104,6 +105,42 @@ impl ForgeQueryEffectIntentReceipt {
 
     pub fn intent_receipt(&self) -> &ForgeQueryIntentReceipt {
         &self.intent_receipt
+    }
+
+    pub fn admission_family(&self) -> &str {
+        self.intent_receipt.admission_family()
+    }
+
+    pub fn covered_entrypoint_label(&self) -> &str {
+        self.intent_receipt.covered_entrypoint_label()
+    }
+
+    pub fn execution_seam_label(&self) -> &str {
+        self.intent_receipt.execution_seam_label()
+    }
+
+    pub fn admission_decision_digest(&self) -> &str {
+        self.intent_receipt.admission_decision_digest()
+    }
+
+    pub fn execution_handoff_digest(&self) -> &str {
+        self.intent_receipt.execution_handoff_digest()
+    }
+
+    pub fn execution_binding_digest(&self) -> &str {
+        self.intent_receipt.execution_binding_digest()
+    }
+
+    pub fn execution_provenance_chain_digest(&self) -> &str {
+        self.intent_receipt.execution_provenance_chain_digest()
+    }
+
+    pub fn execution_provenance(&self) -> &ForgeQueryIntentExecutionProvenance {
+        self.intent_receipt.execution_provenance()
+    }
+
+    pub fn decision_trace_envelope(&self) -> &ForgeQueryIntentDecisionTraceEnvelope {
+        self.intent_receipt.decision_trace_envelope()
     }
 
     pub fn receipt_digest(&self) -> &str {

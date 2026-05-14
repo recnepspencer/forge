@@ -1,0 +1,23 @@
+error: cannot construct `AdmittedProjectionConsumption` with struct literal syntax due to private fields
+  --> tests/ui/projection_consumption/construction/projection_consumption_eligibility_artifacts_constructor_private.rs:19:13
+   |
+19 |     let _ = AdmittedProjectionConsumption {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+20 |         declaration_digest: String::new(),
+   |         --------------------------------- private field
+21 |         query_digest: String::new(),
+   |         --------------------------- private field
+22 |         basis_digest: String::new(),
+   |         --------------------------- private field
+23 |         result_shape_digest: String::new(),
+   |         ---------------------------------- private field
+24 |         authorized_projection_identity: String::new(),
+   |         --------------------------------------------- private field
+25 |         counters: counters.clone(),
+   |         -------------------------- private field
+26 |         trace: trace.clone(),
+   |         -------------------- private field
+27 |         eligibility_digest: String::new(),
+   |         --------------------------------- private field
+   |
+   = note: ...and other private fields `declaration` and `warning_kinds` that were not provided

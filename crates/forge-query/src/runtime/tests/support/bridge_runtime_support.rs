@@ -3,6 +3,15 @@ use super::*;
 pub(in crate::runtime::tests) fn bridge_runtime_with_support(
     profile: ForgeQueryRuntimeSupportProfile,
 ) -> ForgeQueryRuntime {
+    bridge_runtime_with_support_and_intent_authority(profile, TestIntentAuthority)
+}
+
+pub(in crate::runtime::tests) fn bridge_runtime_with_support_and_intent_authority<
+    T: ForgeQueryIntentAuthorityAdapter + 'static,
+>(
+    profile: ForgeQueryRuntimeSupportProfile,
+    intent_authority: T,
+) -> ForgeQueryRuntime {
     ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
@@ -12,6 +21,7 @@ pub(in crate::runtime::tests) fn bridge_runtime_with_support(
         .subscription_activation(TestSubscriptionActivation)
         .preview_basis(TestPreviewBasis)
         .inspector_evidence(TestInspectorEvidence)
+        .intent_authority(intent_authority)
         .support_profile(profile)
         .build_backend_from_parts()
         .build()

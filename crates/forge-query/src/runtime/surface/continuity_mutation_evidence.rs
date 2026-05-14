@@ -221,6 +221,28 @@ impl ForgeQueryContinuityMutationEvidence {
         self.family = family;
         self
     }
+
+    #[cfg(test)]
+    pub(crate) fn test_only(
+        family: crate::runtime::ForgeQueryContinuityMutationFamily,
+        outcome_class: ForgeQueryContinuityOutcomeClass,
+        prior_authoritative_identity: impl Into<String>,
+        successor_authoritative_identities: Vec<String>,
+        resolved_target_entity_identity: Option<&str>,
+        target_collection: Option<&str>,
+    ) -> Self {
+        Self {
+            family,
+            outcome_class,
+            prior_authoritative_identity: prior_authoritative_identity.into(),
+            successor_authoritative_identities,
+            basis_binding_digest: Some("basis-binding:test".to_string()),
+            resolved_target_entity_identity: resolved_target_entity_identity.map(str::to_string),
+            target_collection: target_collection.map(str::to_string),
+            lineage_digest: "lineage:test".to_string(),
+            continuity_resolution_digest: "continuity-resolution:test".to_string(),
+        }
+    }
 }
 
 fn map_outcome_class(outcome: BridgeContinuityOutcomeClass) -> ForgeQueryContinuityOutcomeClass {

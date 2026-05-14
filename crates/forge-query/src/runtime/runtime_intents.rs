@@ -1,54 +1,40 @@
 use super::*;
+use crate::intent_admission::{
+    ForgeQueryAuthoritativeIntentExecutionHandoff, ForgeQueryEffectTriggeredIntentExecutionHandoff,
+    ForgeQueryIntentDecisionTraceEnvelope, ForgeQueryIntentViolationDecision,
+    ForgeQueryRawIntentAdmissionRequest, ForgeQueryRuntimeEffectWriteIntentAuthoring,
+    ForgeQueryRuntimeIntentAuthoring,
+};
 
 impl ForgeQueryRuntime {
+    pub fn intent(
+        &mut self,
+        declaration: ForgeQueryIntentDeclaration,
+    ) -> ForgeQueryRuntimeIntentAuthoring<'_> {
+        ForgeQueryRuntimeIntentAuthoring::new(self, declaration)
+    }
+
+    pub fn next_effect_write_intent<T>(
+        &mut self,
+        effect: &ForgeQueryEffectHandle<T>,
+        strategy_version: impl Into<String>,
+        input_contract: impl Into<String>,
+    ) -> ForgeQueryRuntimeEffectWriteIntentAuthoring<'_> {
+        ForgeQueryRuntimeEffectWriteIntentAuthoring::new(
+            self,
+            effect,
+            strategy_version.into(),
+            input_contract.into(),
+        )
+    }
+
     pub fn execute_intent(
         &mut self,
         declaration: ForgeQueryIntentDeclaration,
     ) -> Result<ForgeQueryIntentReceipt, ForgeQueryRuntimeError> {
-        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Intent)?;
-        intent::admit_authoritative_intent_declaration(&declaration).map_err(|denial| {
-            let evidence = ForgeQueryIntentDenialEvidence::new(&declaration, &denial, None);
-            ForgeQueryRuntimeError::IntentCommitDenied {
-                intent_name: declaration.name().to_string(),
-                stage: denial.stage(),
-                message: denial.message().to_string(),
-                evidence,
-            }
-        })?;
-        let execution = self.backend.execute_intent(&declaration)?;
-        intent::admit_authoritative_intent_execution(&declaration, &execution).map_err(
-            |denial| {
-                let evidence =
-                    ForgeQueryIntentDenialEvidence::new(&declaration, &denial, Some(&execution));
-                ForgeQueryRuntimeError::IntentCommitDenied {
-                    intent_name: declaration.name().to_string(),
-                    stage: denial.stage(),
-                    message: denial.message().to_string(),
-                    evidence,
-                }
-            },
-        )?;
-        let summary = classify_receipt_mutation_summary(execution.mutation_receipt());
-        let write_receipt = self.route_authoritative_mutation_receipt(
-            execution.mutation_receipt().clone(),
-            summary.0,
-            summary.1,
-            summary.2,
-            None,
-            None,
-            None,
-            Vec::new(),
-            None,
-            None,
-            Vec::new(),
-            None,
-            ForgeQueryMutationMetadata::default(),
-        )?;
-        Ok(ForgeQueryIntentReceipt::new(
-            &declaration,
-            execution,
-            &write_receipt,
-        ))
+        let handoff = self.admit_authoritative_intent_for_execution(declaration)?;
+        let binding = self.prepare_authoritative_intent_execution_binding(handoff);
+        self.execute_authoritative_intent_execution_binding(binding)
     }
 
     pub fn execute_next_effect_write_intent<T>(
@@ -57,79 +43,238 @@ impl ForgeQueryRuntime {
         strategy_version: impl Into<String>,
         input_contract: impl Into<String>,
     ) -> Result<ForgeQueryEffectIntentReceipt, ForgeQueryRuntimeError> {
+        let (pending_delivery, handoff) = self.admit_next_effect_write_intent_for_execution(
+            effect.name(),
+            strategy_version.into(),
+            input_contract.into(),
+        )?;
+        let binding = self.prepare_effect_intent_execution_binding(handoff, &pending_delivery);
+        self.execute_effect_intent_execution_binding(binding)
+    }
+
+    pub fn admit_authoritative_intent_for_execution(
+        &self,
+        declaration: ForgeQueryIntentDeclaration,
+    ) -> Result<ForgeQueryAuthoritativeIntentExecutionHandoff, ForgeQueryRuntimeError> {
+        let review = self.review_authoritative_runtime_intent(declaration)?;
+        self.resolve_reviewed_admitted_authoritative_intent_handoff(review)
+    }
+
+    pub fn admit_next_effect_write_intent_for_execution(
+        &self,
+        effect_name: &str,
+        strategy_version: impl Into<String>,
+        input_contract: impl Into<String>,
+    ) -> Result<
+        (
+            ForgeQueryEffectDelivery,
+            ForgeQueryEffectTriggeredIntentExecutionHandoff,
+        ),
+        ForgeQueryRuntimeError,
+    > {
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Effect)?;
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Intent)?;
-        let strategy_version = strategy_version.into();
-        let input_contract = input_contract.into();
-        let (pending_index, pending_delivery) = {
-            let runtime = self
-                .effects
-                .get(effect.name())
-                .ok_or_else(|| ForgeQueryRuntimeError::MissingEffect(effect.name().to_string()))?;
-            runtime
-                .deliveries
-                .iter()
-                .enumerate()
-                .find(|(_, delivery)| {
-                    delivery.family() == &ForgeQueryEffectDeliveryFamily::PendingWriteIntent
-                })
-                .map(|(index, delivery)| (index, delivery.clone()))
-                .ok_or_else(|| {
-                    ForgeQueryRuntimeError::MissingPendingWriteIntent(effect.name().to_string())
-                })?
-        };
+        let pending_delivery = self.pending_effect_write_delivery(effect_name)?.1;
+        let request = self.effect_runtime_intent_request(
+            &pending_delivery,
+            strategy_version.into(),
+            input_contract.into(),
+        )?;
+        let review =
+            crate::intent_admission::dx::ForgeQueryRuntimeIntentAdmissionReviewData::from_request(
+                request,
+            );
+        let handoff = self.resolve_reviewed_admitted_effect_intent_handoff(review)?;
+        Ok((pending_delivery, handoff))
+    }
+
+    pub(crate) fn review_authoritative_runtime_intent(
+        &self,
+        declaration: ForgeQueryIntentDeclaration,
+    ) -> Result<
+        crate::intent_admission::dx::ForgeQueryRuntimeIntentAdmissionReviewData,
+        ForgeQueryRuntimeError,
+    > {
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Intent)?;
+        let request = self.authoritative_runtime_intent_request(declaration)?;
+        Ok(
+            crate::intent_admission::dx::ForgeQueryRuntimeIntentAdmissionReviewData::from_request(
+                request,
+            ),
+        )
+    }
+
+    pub(crate) fn review_next_effect_write_runtime_intent(
+        &self,
+        effect_name: &str,
+        strategy_version: String,
+        input_contract: String,
+    ) -> Result<
+        (
+            ForgeQueryEffectDelivery,
+            crate::intent_admission::dx::ForgeQueryRuntimeIntentAdmissionReviewData,
+        ),
+        ForgeQueryRuntimeError,
+    > {
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Effect)?;
+        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Intent)?;
+        let (_, pending_delivery) = self.pending_effect_write_delivery(effect_name)?;
+        let request = self.effect_runtime_intent_request(
+            &pending_delivery,
+            strategy_version,
+            input_contract,
+        )?;
+        Ok((
+            pending_delivery,
+            crate::intent_admission::dx::ForgeQueryRuntimeIntentAdmissionReviewData::from_request(
+                request,
+            ),
+        ))
+    }
+
+    fn authoritative_runtime_intent_request(
+        &self,
+        declaration: ForgeQueryIntentDeclaration,
+    ) -> Result<ForgeQueryRawIntentAdmissionRequest, ForgeQueryRuntimeError> {
+        let declaration_for_error = declaration.clone();
+        ForgeQueryRawIntentAdmissionRequest::authoritative_runtime_entrypoint(declaration).map_err(
+            |violation| {
+                self.intent_violation_error(&declaration_for_error, violation, None, None, None)
+            },
+        )
+    }
+
+    fn effect_runtime_intent_request(
+        &self,
+        delivery: &ForgeQueryEffectDelivery,
+        strategy_version: String,
+        input_contract: String,
+    ) -> Result<ForgeQueryRawIntentAdmissionRequest, ForgeQueryRuntimeError> {
         let declaration = ForgeQueryIntentDeclaration::strategy_commit(
             format!(
                 "effect:{}:{}",
-                pending_delivery.effect_name(),
-                pending_delivery.commit_identity()
+                delivery.effect_name(),
+                delivery.commit_identity()
             ),
-            pending_delivery.target().to_string(),
+            delivery.target().to_string(),
             strategy_version,
             input_contract,
-            pending_delivery.payload().clone(),
+            delivery.payload().clone(),
         )
         .with_source_lane(ForgeQueryIntentSourceLane::EffectTriggered);
-        intent::admit_effect_triggered_intent_declaration(&declaration).map_err(|denial| {
-            let evidence = ForgeQueryIntentDenialEvidence::new(&declaration, &denial, None);
-            ForgeQueryRuntimeError::IntentCommitDenied {
-                intent_name: declaration.name().to_string(),
-                stage: denial.stage(),
-                message: denial.message().to_string(),
-                evidence,
-            }
-        })?;
-        let execution = self.backend.execute_intent(&declaration)?;
-        intent::admit_authoritative_intent_execution(&declaration, &execution).map_err(
-            |denial| {
-                let evidence =
-                    ForgeQueryIntentDenialEvidence::new(&declaration, &denial, Some(&execution));
-                ForgeQueryRuntimeError::IntentCommitDenied {
-                    intent_name: declaration.name().to_string(),
-                    stage: denial.stage(),
-                    message: denial.message().to_string(),
-                    evidence,
-                }
+        let declaration_for_error = declaration.clone();
+        ForgeQueryRawIntentAdmissionRequest::effect_runtime_entrypoint(declaration).map_err(
+            |violation| {
+                self.intent_violation_error(&declaration_for_error, violation, None, None, None)
             },
-        )?;
-        let summary = classify_receipt_mutation_summary(execution.mutation_receipt());
-        let write_receipt = self.route_authoritative_mutation_receipt(
-            execution.mutation_receipt().clone(),
-            summary.0,
-            summary.1,
-            summary.2,
+        )
+    }
+
+    pub(crate) fn intent_violation_error(
+        &self,
+        declaration: &ForgeQueryIntentDeclaration,
+        violation: ForgeQueryIntentViolationDecision,
+        execution: Option<&ForgeQueryIntentExecution>,
+        decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
+        execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
+    ) -> ForgeQueryRuntimeError {
+        let denial =
+            intent::ForgeQueryIntentAdmissionDenial::new(violation.stage(), violation.message());
+        let evidence = ForgeQueryIntentDenialEvidence::new_with_trace(
+            declaration,
+            &denial,
+            execution,
+            execution_provenance,
+            decision_trace_envelope,
+        );
+        ForgeQueryRuntimeError::IntentCommitDenied {
+            intent_name: declaration.name().to_string(),
+            stage: violation.stage(),
+            message: violation.message().to_string(),
+            evidence,
+        }
+    }
+
+    pub(crate) fn intent_execution_routing_error(
+        &self,
+        declaration: &ForgeQueryIntentDeclaration,
+        execution: &ForgeQueryIntentExecution,
+        execution_provenance: ForgeQueryIntentExecutionProvenance,
+        decision_trace_envelope: ForgeQueryIntentDecisionTraceEnvelope,
+        source: ForgeQueryRuntimeError,
+    ) -> ForgeQueryRuntimeError {
+        let stage = "post-execution-routing";
+        let message = source.to_string();
+        let evidence = intent::ForgeQueryIntentExecutionFailureEvidence::new(
+            declaration,
+            stage,
+            message.clone(),
+            execution,
+            execution_provenance,
+            decision_trace_envelope,
+        );
+        ForgeQueryRuntimeError::IntentExecutionRoutingFailed {
+            intent_name: declaration.name().to_string(),
+            stage,
+            message,
+            evidence,
+            source: Box::new(source),
+        }
+    }
+
+    pub(crate) fn admitted_handoff_violation_error(
+        &self,
+        handoff: &ForgeQueryAdmittedIntentExecutionHandoff,
+        stage: &'static str,
+        message: impl Into<String>,
+    ) -> ForgeQueryRuntimeError {
+        let violation = ForgeQueryIntentViolationDecision::new(
+            handoff.family(),
+            handoff.entrypoint(),
+            stage,
+            message,
+            handoff.request_digest(),
+            handoff.eligibility_digest(),
+        );
+        let decision_trace_envelope =
+            ForgeQueryIntentDecisionTraceEnvelope::for_handoff_violation(handoff, &violation);
+        self.intent_violation_error(
+            handoff.declaration(),
+            violation,
             None,
+            Some(decision_trace_envelope),
             None,
-            None,
-            Vec::new(),
-            None,
-            None,
-            Vec::new(),
-            None,
-            ForgeQueryMutationMetadata::default(),
-        )?;
-        let intent_receipt = ForgeQueryIntentReceipt::new(&declaration, execution, &write_receipt);
-        if let Some(runtime) = self.effects.get_mut(effect.name()) {
+        )
+    }
+
+    pub(crate) fn pending_effect_write_delivery(
+        &self,
+        effect_name: &str,
+    ) -> Result<(usize, ForgeQueryEffectDelivery), ForgeQueryRuntimeError> {
+        let runtime = self
+            .effects
+            .get(effect_name)
+            .ok_or_else(|| ForgeQueryRuntimeError::MissingEffect(effect_name.to_string()))?;
+        runtime
+            .deliveries
+            .iter()
+            .enumerate()
+            .find(|(_, delivery)| {
+                delivery.family() == &ForgeQueryEffectDeliveryFamily::PendingWriteIntent
+            })
+            .map(|(index, delivery)| (index, delivery.clone()))
+            .ok_or_else(|| {
+                ForgeQueryRuntimeError::MissingPendingWriteIntent(effect_name.to_string())
+            })
+    }
+
+    pub(crate) fn remove_pending_effect_delivery(
+        &mut self,
+        effect_name: &str,
+        pending_index: usize,
+        pending_delivery: &ForgeQueryEffectDelivery,
+    ) {
+        if let Some(runtime) = self.effects.get_mut(effect_name) {
             if runtime
                 .deliveries
                 .get(pending_index)
@@ -148,120 +293,5 @@ impl ForgeQueryRuntime {
                 runtime.deliveries.remove(index);
             }
         }
-        Ok(ForgeQueryEffectIntentReceipt::new(
-            &pending_delivery,
-            intent_receipt,
-        ))
-    }
-
-    pub(super) fn route_authoritative_mutation_receipt(
-        &mut self,
-        receipt: ForgeQueryMutationReceipt,
-        mutation_family: ForgeQueryMutationFamily,
-        declared_collection: Option<String>,
-        declared_entity_identity: Option<String>,
-        existing_truth_binding: Option<ForgeQueryExistingTruthTargetBinding>,
-        existing_truth_assertion: Option<ForgeQueryVerifiedExistingTruthAssertion>,
-        symbolic_target_reference: Option<ForgeQuerySymbolicTargetReference>,
-        symbolic_aspect_resolution_evidence: Vec<ForgeQuerySymbolicAspectResolutionEvidence>,
-        naming_intent: Option<ForgeQueryNamingMutationIntent>,
-        continuity_intent: Option<ForgeQueryContinuityMutationIntent>,
-        declared_aspect_operations: Vec<crate::runtime::ForgeQueryAspectMutationOperation>,
-        declared_aspect_value_digest: Option<String>,
-        mutation_metadata: ForgeQueryMutationMetadata,
-    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        let (_, mut target_collection, mut target_entity_identity) =
-            classify_receipt_mutation_summary(&receipt);
-        if let Some(binding) = existing_truth_binding.as_ref() {
-            target_collection = binding.target_collection().map(str::to_string);
-            target_entity_identity = Some(binding.resolved_target_identity().to_string());
-        }
-        let summary = self.route_authoritative_mutation_summary(&receipt, &mutation_metadata)?;
-        Ok(ForgeQueryWriteReceipt::from_mutation_receipt(
-            receipt,
-            mutation_family,
-            declared_collection,
-            declared_entity_identity,
-            existing_truth_binding,
-            existing_truth_assertion,
-            symbolic_target_reference,
-            symbolic_aspect_resolution_evidence,
-            naming_intent,
-            continuity_intent,
-            target_collection,
-            target_entity_identity,
-            declared_aspect_operations,
-            declared_aspect_value_digest,
-            mutation_metadata,
-            summary.affected_live_view_ids,
-            summary.affected_derived_view_ids,
-            summary.considered_computed_view_count,
-            summary.considered_effect_count,
-            summary.delivered_effect_count,
-            summary.pending_write_intent_count,
-            summary.suppressed_effect_count,
-            summary.meaningful_effect_suppression_count,
-            summary.effect_expression_failure_count,
-            summary.refresh_fallback,
-        ))
-    }
-
-    pub(super) fn route_authoritative_mutation_summary(
-        &mut self,
-        receipt: &ForgeQueryMutationReceipt,
-        mutation_metadata: &ForgeQueryMutationMetadata,
-    ) -> Result<ForgeQueryRoutedMutationSummary, ForgeQueryRuntimeError> {
-        let affected_live_view_ids = route_live_subscription_delivery(
-            &mut self.active_subscriptions,
-            &mut self.live_subscriptions,
-            &self.live_subscription_index,
-            receipt,
-        )?;
-        let computed_candidate_live_views = self.computed_candidate_live_views(receipt);
-        let retained_live_view_names = retained_live_view_names_for_candidates(
-            &self.derived_views,
-            &self.derived_dependency_index,
-            computed_candidate_live_views.iter().cloned(),
-        );
-        let retained_live_rows = retained_live_view_names
-            .into_iter()
-            .map(|view_name| {
-                let rows = self.backend.live_entities(&view_name);
-                (view_name, rows)
-            })
-            .collect::<BTreeMap<_, _>>();
-        let computed_result = route_derived_view_patches(
-            &mut self.derived_views,
-            &self.derived_dependency_index,
-            computed_candidate_live_views,
-            &retained_live_rows,
-            receipt,
-            mutation_metadata,
-        );
-        let refresh_fallback = computed_result.refresh_fallback();
-        let considered_computed_view_count = computed_result.considered_view_count();
-        let affected_derived_view_ids = computed_result.affected_view_ids();
-        let live_view_targets = self.live_view_targets();
-        let effect_result = route_effect_deliveries(
-            &mut self.effects,
-            &self.effect_index,
-            &self.derived_views,
-            &live_view_targets,
-            receipt,
-            &affected_live_view_ids,
-            &affected_derived_view_ids,
-        );
-        Ok(ForgeQueryRoutedMutationSummary {
-            affected_live_view_ids,
-            affected_derived_view_ids,
-            considered_computed_view_count,
-            considered_effect_count: effect_result.considered_effect_count(),
-            delivered_effect_count: effect_result.delivered_effect_count(),
-            pending_write_intent_count: effect_result.pending_write_intent_count(),
-            suppressed_effect_count: effect_result.suppressed_effect_count(),
-            meaningful_effect_suppression_count: effect_result.meaningful_suppression_count(),
-            effect_expression_failure_count: effect_result.expression_failure_count(),
-            refresh_fallback,
-        })
     }
 }

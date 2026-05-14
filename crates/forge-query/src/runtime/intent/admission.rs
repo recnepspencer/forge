@@ -1,29 +1,29 @@
 use super::*;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub(in crate::runtime) struct ForgeQueryIntentAdmissionDenial {
+pub(crate) struct ForgeQueryIntentAdmissionDenial {
     stage: &'static str,
     message: String,
 }
 
 impl ForgeQueryIntentAdmissionDenial {
-    fn new(stage: &'static str, message: impl Into<String>) -> Self {
+    pub(crate) fn new(stage: &'static str, message: impl Into<String>) -> Self {
         Self {
             stage,
             message: message.into(),
         }
     }
 
-    pub(in crate::runtime) fn stage(&self) -> &'static str {
+    pub(crate) fn stage(&self) -> &'static str {
         self.stage
     }
 
-    pub(in crate::runtime) fn message(&self) -> &str {
+    pub(crate) fn message(&self) -> &str {
         &self.message
     }
 }
 
-pub(in crate::runtime) fn admit_authoritative_intent_declaration(
+pub(crate) fn admit_authoritative_intent_declaration(
     declaration: &ForgeQueryIntentDeclaration,
 ) -> Result<(), ForgeQueryIntentAdmissionDenial> {
     if declaration.source_lane() != ForgeQueryIntentSourceLane::UserAuthored {
@@ -49,7 +49,7 @@ pub(in crate::runtime) fn admit_authoritative_intent_declaration(
     Ok(())
 }
 
-pub(in crate::runtime) fn admit_effect_triggered_intent_declaration(
+pub(crate) fn admit_effect_triggered_intent_declaration(
     declaration: &ForgeQueryIntentDeclaration,
 ) -> Result<(), ForgeQueryIntentAdmissionDenial> {
     if declaration.source_lane() != ForgeQueryIntentSourceLane::EffectTriggered {
@@ -169,7 +169,7 @@ pub(in crate::runtime) fn admit_branch_intent_declaration(
         })
 }
 
-pub(in crate::runtime) fn admit_authoritative_intent_execution(
+pub(crate) fn admit_authoritative_intent_execution(
     declaration: &ForgeQueryIntentDeclaration,
     execution: &ForgeQueryIntentExecution,
 ) -> Result<(), ForgeQueryIntentAdmissionDenial> {

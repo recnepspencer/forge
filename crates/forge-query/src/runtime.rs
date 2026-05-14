@@ -12,6 +12,39 @@ use crate::declarative_live::{
     declare_runtime_live_query_session_with_grouped_baseline, DeclarativeLiveQueryError,
     DeclarativeLiveQueryRequest, DeclarativeLiveViewShape,
 };
+pub use crate::intent_admission::{
+    admit_runtime_intent_request, forge_query_intent_admission_coverage_inventory,
+    forge_query_intent_admission_family_inventory, forge_query_intent_admission_support_matrix,
+    ForgeQueryAdmittedIntentExecutionHandoff, ForgeQueryAdmittedIntentPlan,
+    ForgeQueryAdmittedRuntimeEffectWriteIntent, ForgeQueryAdmittedRuntimeIntent,
+    ForgeQueryAuthoritativeIntentExecutionBinding, ForgeQueryAuthoritativeIntentExecutionHandoff,
+    ForgeQueryAuthoritativeIntentExecutionPlan, ForgeQueryEffectTriggeredIntentExecutionBinding,
+    ForgeQueryEffectTriggeredIntentExecutionHandoff, ForgeQueryEffectTriggeredIntentExecutionPlan,
+    ForgeQueryIntentAdmissionAuthorityLaneEligibility, ForgeQueryIntentAdmissionBasisEligibility,
+    ForgeQueryIntentAdmissionCapabilityEligibility, ForgeQueryIntentAdmissionCoverageInventory,
+    ForgeQueryIntentAdmissionCoverageRow, ForgeQueryIntentAdmissionCoverageStatus,
+    ForgeQueryIntentAdmissionCoveredEntrypoint, ForgeQueryIntentAdmissionDecision,
+    ForgeQueryIntentAdmissionDecisionClass, ForgeQueryIntentAdmissionEligibility,
+    ForgeQueryIntentAdmissionEligibilityAuthority, ForgeQueryIntentAdmissionExecutionBoundary,
+    ForgeQueryIntentAdmissionExecutionHandoffInventory, ForgeQueryIntentAdmissionExecutionSeam,
+    ForgeQueryIntentAdmissionFamily, ForgeQueryIntentAdmissionFamilyInventory,
+    ForgeQueryIntentAdmissionFamilyInventoryRow, ForgeQueryIntentAdmissionInvariantEligibility,
+    ForgeQueryIntentAdmissionPlanKind, ForgeQueryIntentAdmissionPolicyEligibility,
+    ForgeQueryIntentAdmissionPreDecisionPosture,
+    ForgeQueryIntentAdmissionProjectionSourceEligibility, ForgeQueryIntentAdmissionResultArtifact,
+    ForgeQueryIntentAdmissionRoutingSupportEligibility,
+    ForgeQueryIntentAdmissionSourceLaneEligibility, ForgeQueryIntentAdmissionSupportDetail,
+    ForgeQueryIntentAdmissionSupportEligibility, ForgeQueryIntentAdmissionSupportMatrix,
+    ForgeQueryIntentAdmissionSupportPosture, ForgeQueryIntentAdmissionSupportRow,
+    ForgeQueryIntentAdmissionSurfaceDescriptor, ForgeQueryIntentAdvisoryDecision,
+    ForgeQueryIntentAdvisoryStop, ForgeQueryIntentDecisionTraceEnvelope,
+    ForgeQueryIntentDecisionTraceEnvelopeKind, ForgeQueryIntentDecisionTraceRow,
+    ForgeQueryIntentDecisionTraceStage, ForgeQueryIntentNonAdmittedStop,
+    ForgeQueryIntentViolationDecision, ForgeQueryIntentViolationStop,
+    ForgeQueryRawIntentAdmissionRequest, ForgeQueryRuntimeEffectWriteIntentAdmissionReview,
+    ForgeQueryRuntimeEffectWriteIntentAuthoring, ForgeQueryRuntimeIntentAdmissionReview,
+    ForgeQueryRuntimeIntentAuthoring,
+};
 use crate::memory_workspace::{
     ForgeQueryEntity, ForgeQueryMutationKind, ForgeQueryMutationReceipt, ForgeQueryWorkspaceError,
 };
@@ -75,11 +108,14 @@ mod read_composition_successor;
 mod read_composition_support_report;
 mod read_composition_walks;
 mod runtime_api_contract;
+mod runtime_authoritative_mutation_routing;
 mod runtime_batch_writes;
 mod runtime_batching;
 mod runtime_declarations;
 mod runtime_helpers;
 mod runtime_inspection;
+mod runtime_intent_phase_four_execution;
+mod runtime_intent_phase_three_resolution;
 mod runtime_intents;
 mod runtime_reads_programs;
 mod runtime_sessions;
@@ -215,10 +251,15 @@ pub use inspection::{
     QueryCausalEvidenceReferenceArtifact, QueryCausalInspectionArtifact, QueryObservationReceipt,
     QueryObservationReceiptFamily,
 };
+pub(crate) use intent::{
+    admit_authoritative_intent_declaration, admit_authoritative_intent_execution,
+    admit_effect_triggered_intent_declaration, ForgeQueryIntentAdmissionDenial,
+};
 pub use intent::{
     ForgeQueryBranchIntentReceipt, ForgeQueryEffectIntentReceipt, ForgeQueryIntentAuthorityAdapter,
     ForgeQueryIntentDeclaration, ForgeQueryIntentDenialEvidence, ForgeQueryIntentExecution,
-    ForgeQueryIntentExecutionKind, ForgeQueryIntentReceipt, ForgeQueryIntentSourceLane,
+    ForgeQueryIntentExecutionFailureEvidence, ForgeQueryIntentExecutionKind,
+    ForgeQueryIntentExecutionProvenance, ForgeQueryIntentReceipt, ForgeQueryIntentSourceLane,
     ForgeQueryPreviewIntentReceipt,
 };
 pub use live_subscription::ForgeQueryRuntimeLiveSubscriptionInstallation;

@@ -83,6 +83,14 @@ What the runtime keeps track of automatically:
 
 Inspection is unified at the entry point, but specialized in the result.
 
+Good to know:
+
+- projection consumption does not currently arrive through `workspace.inspect(...)`
+- it uses receipt-first inspection on `CompletedProjectionFactConsumption`,
+  `ProjectionConsumptionReceipt`, and the projection-consumption envelope
+- use [Projection Consumption](./projection-consumption.md) when the feature
+  you need to inspect is “typed facts consumed from this materialization”
+
 ## Small Example
 
 ```rust
@@ -274,6 +282,9 @@ What gets inspected:
   write-intents, and feedback phases.
 - Pair it with [Branches And Previews](./branches-and-previews.md) to inspect
   policy, residue, and promotion closeout.
+- Pair it with [Projection Consumption](./projection-consumption.md) when a
+  read result, write receipt, or query-context execution needs receipt-first
+  typed fact inspection rather than `workspace.inspect(...)`.
 
 Inspection is the trust surface that keeps the rest of the runtime usable.
 
@@ -331,3 +342,4 @@ Some especially important things to look for:
 - [Computed](./computed.md)
 - [Effects](./effects.md)
 - [Branches And Previews](./branches-and-previews.md)
+- [Projection Consumption](./projection-consumption.md)

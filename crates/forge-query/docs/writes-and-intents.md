@@ -236,6 +236,13 @@ see [Writes and Intent Examples](./writes-and-intents-examples.md).
 Direct writes are the clean stable path. Intents are the extensible strategy
 boundary around that path.
 
+Good to know:
+
+- if a downstream caller needs typed target, provenance, membership, or
+  continuity facts from a write receipt, use
+  [Projection Consumption](./projection-consumption.md) instead of rebuilding
+  that meaning from receipt payloads or lower-runtime evidence
+
 For the support-row reading pattern around backend-verified lanes, see:
 
 - [Graph Composition Authoring](./graph-composition-authoring.md)
@@ -246,6 +253,9 @@ For the support-row reading pattern around backend-verified lanes, see:
 ## Inspection And Debugging
 
 - inspect write receipts when you need authoritative mutation routing details
+- use [Projection Consumption](./projection-consumption.md) when those write
+  receipts need to become typed consumed facts with their own receipt and
+  envelope
 - inspect effect handles when you need to see pending write-intent residue
 - inspect intent receipts or denials when you are working in an admitted intent
   runtime
@@ -275,3 +285,4 @@ silent fallback to direct mutation.
 - [Effects](./effects.md)
 - [Branches and Previews](./branches-and-previews.md)
 - [Workspace Overview](./workspace-overview.md)
+- [Projection Consumption](./projection-consumption.md)

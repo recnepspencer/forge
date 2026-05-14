@@ -1,0 +1,37 @@
+error[E0451]: fields `declaration_digest`, `contract_digest`, `source_family`, `source_identity`, `support_posture`, `counters`, `fact_set_digest`, `entity_identities`, `view_local_identities`, `memberships`, `display_fields`, `derived_scalar_fields`, `target_identities`, `source_references`, `effect_continuity_facts` and `relation_endpoints` of struct `ConsumedProjectionFactSet` are private
+  --> tests/ui/projection_consumption/construction/projection_consumption_fact_set_constructor_private.rs:8:9
+   |
+ 7 |     let _ = ConsumedProjectionFactSet {
+   |             ------------------------- in this type
+ 8 |         declaration_digest: "declaration:test".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+ 9 |         contract_digest: "contract:test".to_string(),
+   |         ^^^^^^^^^^^^^^^ private field
+10 |         source_family: ProjectionSourceFamily::QueryWriteReceipt,
+   |         ^^^^^^^^^^^^^ private field
+11 |         source_identity: "commit:test".to_string(),
+   |         ^^^^^^^^^^^^^^^ private field
+12 |         support_posture: ProjectionContractSupportPosture::Admitted,
+   |         ^^^^^^^^^^^^^^^ private field
+13 |         counters: ProjectionFactExtractionCounters::default(),
+   |         ^^^^^^^^ private field
+14 |         fact_set_digest: "fact-set:test".to_string(),
+   |         ^^^^^^^^^^^^^^^ private field
+15 |         entity_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+16 |         view_local_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         memberships: Vec::new(),
+   |         ^^^^^^^^^^^ private field
+18 |         display_fields: Vec::new(),
+   |         ^^^^^^^^^^^^^^ private field
+19 |         derived_scalar_fields: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+20 |         target_identities: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+21 |         source_references: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+22 |         effect_continuity_facts: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+23 |         relation_endpoints: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field

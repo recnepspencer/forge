@@ -47,6 +47,14 @@ Think in terms of retained handles:
 The runtime keeps the handle identity, patch sequencing, and materialization
 state. These methods only let you consume what is already retained.
 
+Good to know:
+
+- if you only need rows or patch batches, these APIs are the right surface
+- if you need typed identity, membership, provenance, or continuity facts from
+  a read result, write receipt, or query-context execution, use
+  [Projection Consumption](./projection-consumption.md) instead of rebuilding
+  those facts in caller code
+
 ## How It Executes
 
 1. Declare a live view or computed surface first.
@@ -155,6 +163,9 @@ What gets consumed:
 
 - Use [Live Views](./live-views.md) to declare the retained live surface.
 - Use [Computed](./computed.md) to declare the retained derived surface.
+- Use [Projection Consumption](./projection-consumption.md) when plain rows are
+  not the real contract and the caller needs typed consumed facts with a
+  receipt.
 - Use [State and Readiness Surfaces](./state.md) when you need typed posture
   rather than data rows.
 
@@ -191,4 +202,5 @@ If the data does not look right:
 
 - [Live Views](./live-views.md)
 - [Computed](./computed.md)
+- [Projection Consumption](./projection-consumption.md)
 - [State and Readiness Surfaces](./state.md)

@@ -73,6 +73,9 @@ Think of it this way:
   different questions about those retained surfaces
 - `compose_read` lets you execute one bounded graph-shaped read without
   installing a retained live view first
+- projection consumption lets you turn read results, write receipts, or
+  query-context execution artifacts into typed facts when rows or payload bags
+  are not a strong enough contract
 - `compose_read` and `live_view` now share the same lower declarative request
   substrate, so traversal, predicate, ordering, and hidden query-only
   projection are not maintained in two separate stories
@@ -244,6 +247,9 @@ What gets inspected:
   other computed surfaces.
 - Use [Effects](./effects.md) when a surface should deliver or stage something
   because another surface changed.
+- Use [Projection Consumption](./projection-consumption.md) when a read result,
+  write receipt, or query-context execution must become typed consumed facts
+  instead of staying a raw payload or receipt artifact.
 - Use preview or branch sessions when the work should remain isolated from
   current truth.
 
@@ -286,3 +292,4 @@ runtime.
 - [Live Views](./live-views.md)
 - [Computed](./computed.md)
 - [Effects](./effects.md)
+- [Projection Consumption](./projection-consumption.md)

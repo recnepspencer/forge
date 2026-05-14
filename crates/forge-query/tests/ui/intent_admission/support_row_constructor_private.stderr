@@ -1,0 +1,15 @@
+error[E0451]: fields `family`, `entrypoint`, `posture`, `execution_boundary` and `detail` of struct `ForgeQueryIntentAdmissionSupportRow` are private
+  --> tests/ui/intent_admission/support_row_constructor_private.rs:9:9
+   |
+ 8 |     let _ = ForgeQueryIntentAdmissionSupportRow {
+   |             ----------------------------------- in this type
+ 9 |         family: ForgeQueryIntentAdmissionFamily::AuthoritativeUserIntent,
+   |         ^^^^^^ private field
+10 |         entrypoint: ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteIntent,
+   |         ^^^^^^^^^^ private field
+11 |         posture: ForgeQueryIntentAdmissionSupportPosture::Admitted,
+   |         ^^^^^^^ private field
+12 |         execution_boundary: ForgeQueryIntentAdmissionExecutionBoundary::deferred_neighbor("forged"),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+13 |         detail: ForgeQueryIntentAdmissionSupportDetail::ImplementedRuntimeIntentFloor,
+   |         ^^^^^^ private field

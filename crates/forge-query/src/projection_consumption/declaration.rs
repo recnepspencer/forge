@@ -1,32 +1,19 @@
 use crate::authorized_projection::AuthorizedProjectionArtifact;
 use crate::canonicalization::CanonicalResultShapeArtifact;
 use crate::identity::hash_parts;
-use crate::query_context::QueryContextExecutionArtifact;
-use crate::runtime::{ForgeQueryReadReceipt, ForgeQueryWriteReceipt};
 
 use super::facts::ProjectMaterializedFacts;
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum ProjectionSourceFamily {
-    QueryReadReceipt,
-    QueryWriteReceipt,
-    QueryContextExecution,
-}
-
-impl ProjectionSourceFamily {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::QueryReadReceipt => "query_read_receipt",
-            Self::QueryWriteReceipt => "query_write_receipt",
-            Self::QueryContextExecution => "query_context_execution",
-        }
-    }
-}
+use super::source::ProjectionConsumptionSource;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ProjectionConsumptionBindingContext {
     result_shape_digest: String,
+    authorized_projection_query_digest: String,
+    authorized_projection_result_shape_digest: String,
     authorized_projection_identity: String,
+    narrowed_result_shape_digest: String,
+    policy_digest: String,
+    tenant_schema_basis_digest: String,
     authorized_visible_fields: Vec<String>,
 }
 
@@ -35,9 +22,27 @@ impl ProjectionConsumptionBindingContext {
         result_shape: &CanonicalResultShapeArtifact,
         authorized_projection: &AuthorizedProjectionArtifact,
     ) -> Self {
+        Self::from_result_shape_digest(result_shape.digest().as_str(), authorized_projection)
+    }
+
+    pub fn from_result_shape_digest(
+        result_shape_digest: &str,
+        authorized_projection: &AuthorizedProjectionArtifact,
+    ) -> Self {
         Self {
-            result_shape_digest: result_shape.digest().as_str().to_string(),
+            result_shape_digest: result_shape_digest.to_string(),
+            authorized_projection_query_digest: authorized_projection.query_digest().to_string(),
+            authorized_projection_result_shape_digest: authorized_projection
+                .result_shape_digest()
+                .to_string(),
             authorized_projection_identity: authorized_projection.identity().as_str().to_string(),
+            narrowed_result_shape_digest: authorized_projection
+                .narrowed_result_shape_digest()
+                .to_string(),
+            policy_digest: authorized_projection.policy_digest().to_string(),
+            tenant_schema_basis_digest: authorized_projection
+                .tenant_schema_basis_digest()
+                .to_string(),
             authorized_visible_fields: authorized_projection.visible_fields().to_vec(),
         }
     }
@@ -48,6 +53,26 @@ impl ProjectionConsumptionBindingContext {
 
     pub fn authorized_projection_identity(&self) -> &str {
         &self.authorized_projection_identity
+    }
+
+    pub fn authorized_projection_query_digest(&self) -> &str {
+        &self.authorized_projection_query_digest
+    }
+
+    pub fn authorized_projection_result_shape_digest(&self) -> &str {
+        &self.authorized_projection_result_shape_digest
+    }
+
+    pub fn narrowed_result_shape_digest(&self) -> &str {
+        &self.narrowed_result_shape_digest
+    }
+
+    pub fn policy_digest(&self) -> &str {
+        &self.policy_digest
+    }
+
+    pub fn tenant_schema_basis_digest(&self) -> &str {
+        &self.tenant_schema_basis_digest
     }
 
     pub fn authorized_visible_fields(&self) -> &[String] {
@@ -62,102 +87,38 @@ impl ProjectionConsumptionBindingContext {
     ) -> Self {
         Self {
             result_shape_digest: result_shape_digest.into(),
+            authorized_projection_query_digest: "query:test".to_string(),
+            authorized_projection_result_shape_digest: "result-shape:test".to_string(),
             authorized_projection_identity: authorized_projection_identity.into(),
+            narrowed_result_shape_digest: "narrowed-result-shape:test".to_string(),
+            policy_digest: "policy:test".to_string(),
+            tenant_schema_basis_digest: "tenant-schema:test".to_string(),
             authorized_visible_fields,
         }
     }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct ProjectionConsumptionSource {
-    family: ProjectionSourceFamily,
-    query_digest: Option<String>,
-    basis_digest: Option<String>,
-    result_digest: Option<String>,
-    result_shape_digest: Option<String>,
-    source_identity: String,
-}
-
-impl ProjectionConsumptionSource {
-    pub fn from_read_receipt(
-        receipt: &ForgeQueryReadReceipt,
-        result_shape: &CanonicalResultShapeArtifact,
-    ) -> Self {
-        Self {
-            family: ProjectionSourceFamily::QueryReadReceipt,
-            query_digest: Some(receipt.query_digest().to_string()),
-            basis_digest: Some(receipt.basis_digest().to_string()),
-            result_digest: Some(receipt.result_digest().to_string()),
-            result_shape_digest: Some(result_shape.digest().as_str().to_string()),
-            source_identity: receipt.read_graph_digest().to_string(),
-        }
-    }
-
-    pub fn from_write_receipt(receipt: &ForgeQueryWriteReceipt) -> Self {
-        Self {
-            family: ProjectionSourceFamily::QueryWriteReceipt,
-            query_digest: None,
-            basis_digest: Some(receipt.snapshot_token().to_string()),
-            result_digest: None,
-            result_shape_digest: None,
-            source_identity: receipt.commit_identity().to_string(),
-        }
-    }
-
-    pub fn from_query_context_execution(execution: &QueryContextExecutionArtifact) -> Self {
-        Self {
-            family: ProjectionSourceFamily::QueryContextExecution,
-            query_digest: Some(execution.query_digest().to_string()),
-            basis_digest: Some(execution.basis_digest().to_string()),
-            result_digest: Some(execution.result_digest().to_string()),
-            result_shape_digest: Some(execution.result_shape_digest().to_string()),
-            source_identity: execution
-                .materialization_path_identity()
-                .unwrap_or_else(|| execution.family().as_str())
-                .to_string(),
-        }
-    }
-
-    pub fn family(&self) -> ProjectionSourceFamily {
-        self.family
-    }
-
-    pub fn query_digest(&self) -> Option<&str> {
-        self.query_digest.as_deref()
-    }
-
-    pub fn basis_digest(&self) -> Option<&str> {
-        self.basis_digest.as_deref()
-    }
-
-    pub fn result_digest(&self) -> Option<&str> {
-        self.result_digest.as_deref()
-    }
-
-    pub fn result_shape_digest(&self) -> Option<&str> {
-        self.result_shape_digest.as_deref()
-    }
-
-    pub fn source_identity(&self) -> &str {
-        &self.source_identity
-    }
 
     #[cfg(test)]
-    pub(crate) fn test_only(
-        family: ProjectionSourceFamily,
-        query_digest: Option<&str>,
-        basis_digest: Option<&str>,
-        result_digest: Option<&str>,
-        result_shape_digest: Option<&str>,
-        source_identity: &str,
+    pub(crate) fn test_only_with_projection_metadata(
+        result_shape_digest: impl Into<String>,
+        authorized_projection_query_digest: impl Into<String>,
+        authorized_projection_result_shape_digest: impl Into<String>,
+        authorized_projection_identity: impl Into<String>,
+        narrowed_result_shape_digest: impl Into<String>,
+        policy_digest: impl Into<String>,
+        tenant_schema_basis_digest: impl Into<String>,
+        authorized_visible_fields: Vec<String>,
     ) -> Self {
+        let result_shape_digest = result_shape_digest.into();
         Self {
-            family,
-            query_digest: query_digest.map(str::to_string),
-            basis_digest: basis_digest.map(str::to_string),
-            result_digest: result_digest.map(str::to_string),
-            result_shape_digest: result_shape_digest.map(str::to_string),
-            source_identity: source_identity.to_string(),
+            result_shape_digest: result_shape_digest.clone(),
+            authorized_projection_query_digest: authorized_projection_query_digest.into(),
+            authorized_projection_result_shape_digest: authorized_projection_result_shape_digest
+                .into(),
+            authorized_projection_identity: authorized_projection_identity.into(),
+            narrowed_result_shape_digest: narrowed_result_shape_digest.into(),
+            policy_digest: policy_digest.into(),
+            tenant_schema_basis_digest: tenant_schema_basis_digest.into(),
+            authorized_visible_fields,
         }
     }
 }
@@ -191,6 +152,14 @@ impl ProjectionConsumptionDeclaration {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ProjectionConsumptionDeclarationError {
     NoRequestedFacts,
+    SourceAuthorizedProjectionQueryMismatch {
+        source_query_digest: String,
+        authorized_projection_query_digest: String,
+    },
+    BindingAuthorizedProjectionResultShapeMismatch {
+        binding_result_shape_digest: String,
+        authorized_projection_result_shape_digest: String,
+    },
     SourceBindingResultShapeMismatch {
         source_result_shape_digest: String,
         binding_result_shape_digest: String,
@@ -204,6 +173,28 @@ pub fn declare_projection_consumption(
 ) -> Result<ProjectionConsumptionDeclaration, ProjectionConsumptionDeclarationError> {
     if requested.requested_count() == 0 {
         return Err(ProjectionConsumptionDeclarationError::NoRequestedFacts);
+    }
+    if let Some(source_query_digest) = source.query_digest() {
+        if source_query_digest != binding.authorized_projection_query_digest() {
+            return Err(
+                ProjectionConsumptionDeclarationError::SourceAuthorizedProjectionQueryMismatch {
+                    source_query_digest: source_query_digest.to_string(),
+                    authorized_projection_query_digest: binding
+                        .authorized_projection_query_digest()
+                        .to_string(),
+                },
+            );
+        }
+    }
+    if binding.result_shape_digest() != binding.authorized_projection_result_shape_digest() {
+        return Err(
+            ProjectionConsumptionDeclarationError::BindingAuthorizedProjectionResultShapeMismatch {
+                binding_result_shape_digest: binding.result_shape_digest().to_string(),
+                authorized_projection_result_shape_digest: binding
+                    .authorized_projection_result_shape_digest()
+                    .to_string(),
+            },
+        );
     }
     if let Some(source_result_shape_digest) = source.result_shape_digest() {
         if source_result_shape_digest != binding.result_shape_digest() {

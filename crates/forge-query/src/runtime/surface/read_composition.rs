@@ -310,4 +310,43 @@ impl ForgeQueryReadReceipt {
     pub fn breadth(&self) -> &ForgeQueryReadBreadth {
         &self.breadth
     }
+
+    #[cfg(test)]
+    pub(crate) fn test_only(
+        read_graph_digest: impl Into<String>,
+        query_digest: impl Into<String>,
+        basis_digest: impl Into<String>,
+        result_digest: impl Into<String>,
+        execution_engine: ForgeQueryReadExecutionEngine,
+    ) -> Self {
+        Self {
+            read_graph_digest: read_graph_digest.into(),
+            graph_family: ForgeQueryReadGraphFamily::Collection,
+            query_digest: query_digest.into(),
+            basis_digest: basis_digest.into(),
+            result_digest: result_digest.into(),
+            snapshot_token: "snapshot:test".to_string(),
+            scope_class: ForgeQueryReadScopeClass::ExplicitBroadSearch,
+            execution_engine,
+            fallback_class: ForgeQueryReadFallbackClass::None,
+            fallback_count: 0,
+            operator_families: Vec::new(),
+            built_in_operator_coverage: Vec::new(),
+            relationship_proof_posture: ForgeQueryReadRelationshipProofPosture::NotRequired,
+            relationship_proof_admission: None,
+            relationship_proof_support_profile: None,
+            breadth: ForgeQueryReadBreadth {
+                planned_read_surface_count: 0,
+                planned_traversal_clause_count: 0,
+                planned_traversal_depth_limit: 0,
+                execution_read_operation_count: 0,
+                execution_records_examined_count: 0,
+                execution_records_emitted_count: 0,
+                execution_page_width: 0,
+                execution_page_truncation_count: 0,
+                execution_cursor_advance_count: 0,
+                execution_materialized_relation_count: 0,
+            },
+        }
+    }
 }

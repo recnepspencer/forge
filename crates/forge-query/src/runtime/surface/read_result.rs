@@ -27,4 +27,12 @@ impl ForgeQueryReadResult {
     ) -> Self {
         Self { payload, receipt }
     }
+
+    #[cfg(test)]
+    pub(crate) fn test_only(
+        payload: Vec<ForgeQueryEntity>,
+        receipt: ForgeQueryReadReceipt,
+    ) -> Self {
+        Self { payload, receipt }
+    }
 }

@@ -14,11 +14,11 @@ use crate::runtime::{
     ForgeQueryEffectPolicy, ForgeQueryExistingTruthAssertionDenial,
     ForgeQueryExistingTruthBindingDenial, ForgeQueryExistingTruthProbe,
     ForgeQueryExistingTruthProbeDenial, ForgeQueryExistingTruthTargetBinding,
-    ForgeQueryIntentAuthorityAdapter, ForgeQueryIntentDeclaration, ForgeQueryIntentDenialEvidence,
-    ForgeQueryIntentExecution, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeBackend,
-    ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
-    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportProfile,
-    ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    ForgeQueryIntentAuthorityAdapter, ForgeQueryIntentDeclaration, ForgeQueryIntentExecution,
+    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeBackend, ForgeQueryRuntimeError,
+    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
+    ForgeQueryRuntimeSupportProfile, ForgeQueryVerifiedExistingTruthAssertion,
+    ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
 };
 
 pub struct ForgeQueryBridgeBackedRuntimeBackend {
@@ -217,22 +217,6 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
                 declaration,
             )
             .map_err(ForgeQueryRuntimeError::Workspace)?;
-        super::super::intent::admit_authoritative_intent_execution(declaration, &execution)
-            .map_err(|denial| {
-                let evidence =
-                    ForgeQueryIntentDenialEvidence::new(declaration, &denial, Some(&execution));
-                ForgeQueryRuntimeError::IntentCommitDenied {
-                    intent_name: declaration.name().to_string(),
-                    stage: denial.stage(),
-                    message: denial.message().to_string(),
-                    evidence,
-                }
-            })?;
-        if execution.should_route_mutation_receipt() {
-            self.signal_sink
-                .route_write_receipt(execution.mutation_receipt())
-                .map_err(ForgeQueryRuntimeError::Workspace)?;
-        }
         Ok(execution)
     }
 

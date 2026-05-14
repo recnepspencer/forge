@@ -21,7 +21,7 @@ impl ForgeQueryIntentSourceLane {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryIntentDeclaration {
     name: String,
     strategy_name: String,

@@ -1,0 +1,19 @@
+warning: unreachable expression
+ --> tests/ui/intent_admission/violation_stop_constructor_private.rs:6:22
+  |
+5 |         violation: todo!(),
+  |                    ------- any code following this expression is unreachable
+6 |         stop_digest: String::new(),
+  |                      ^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `violation` and `stop_digest` of struct `ForgeQueryIntentViolationStop` are private
+ --> tests/ui/intent_admission/violation_stop_constructor_private.rs:5:9
+  |
+4 |     let _ = ForgeQueryIntentViolationStop {
+  |             ----------------------------- in this type
+5 |         violation: todo!(),
+  |         ^^^^^^^^^ private field
+6 |         stop_digest: String::new(),
+  |         ^^^^^^^^^^^ private field

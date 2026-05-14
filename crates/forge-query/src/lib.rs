@@ -32,6 +32,7 @@ mod frontier_signal_adapter;
 mod historical;
 mod identity;
 mod identity_evolution;
+mod intent_admission;
 mod live;
 mod live_performance;
 mod memory_workspace;

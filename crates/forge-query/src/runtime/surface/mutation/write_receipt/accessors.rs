@@ -186,4 +186,65 @@ impl ForgeQueryWriteReceipt {
         self.target_collection = resolved_collection;
         self
     }
+
+    #[cfg(test)]
+    pub(crate) fn test_only(
+        commit_identity: &str,
+        snapshot_token: &str,
+        target_class: crate::runtime::ForgeQueryMutationTargetClass,
+        target_collection: Option<&str>,
+        target_entity_identity: Option<&str>,
+        provenance_execution_record_digest: Option<&str>,
+        symbolic_target_symbol: Option<&str>,
+        continuity: Option<crate::runtime::ForgeQueryContinuityMutationEvidence>,
+    ) -> Self {
+        Self {
+            inner: ForgeQueryMutationReceipt {
+                commit_identity: commit_identity.to_string(),
+                snapshot_token: snapshot_token.to_string(),
+                deltas: Vec::new(),
+                bridge_authority: None,
+            },
+            mutation_family: ForgeQueryMutationFamily::Update,
+            authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+            basis_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+            target_evidence: ForgeQueryMutationTargetEvidence::test_only(
+                target_class,
+                target_collection,
+                target_entity_identity,
+            ),
+            causality_evidence: None,
+            existing_truth_assertion_evidence: None,
+            existing_truth_binding_evidence: None,
+            symbolic_target_reference_evidence: symbolic_target_symbol.map(|symbol| {
+                ForgeQuerySymbolicTargetReferenceEvidence::test_only(
+                    symbol,
+                    target_entity_identity.unwrap_or("resolved-target:test"),
+                    target_collection,
+                )
+            }),
+            symbolic_aspect_resolution_evidence: Vec::new(),
+            naming_mutation_evidence: None,
+            continuity_mutation_evidence: continuity,
+            provenance_evidence: provenance_execution_record_digest
+                .map(ForgeQueryMutationProvenanceEvidence::test_only),
+            declared_collection: target_collection.map(str::to_string),
+            declared_entity_identity: target_entity_identity.map(str::to_string),
+            target_collection: target_collection.map(str::to_string),
+            target_entity_identity: target_entity_identity.map(str::to_string),
+            declared_aspect_operations: Vec::new(),
+            declared_aspect_value_digest: None,
+            mutation_metadata: crate::runtime::ForgeQueryMutationMetadata::new(),
+            affected_live_view_ids: Vec::new(),
+            affected_derived_view_ids: Vec::new(),
+            considered_computed_view_count: 0,
+            considered_effect_count: 0,
+            delivered_effect_count: 0,
+            pending_write_intent_count: 0,
+            suppressed_effect_count: 0,
+            meaningful_effect_suppression_count: 0,
+            effect_expression_failure_count: 0,
+            refresh_fallback: false,
+        }
+    }
 }
