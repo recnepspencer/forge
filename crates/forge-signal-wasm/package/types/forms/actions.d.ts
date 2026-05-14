@@ -1,4 +1,7 @@
 import type { SignalValue } from "../model.js";
+import type { ResourceLineVisibleSelection } from "../resource/resource_line_diagnostics.js";
+import type { ResourceEffectProfileDigest } from "../resource/resource_effect_envelope.js";
+import type { ResourceEffectProfile } from "../resource/resource_effect_profiles.js";
 import type { FormAdmissionCapability, FormAdmissionReport } from "./admission.js";
 import type { FormAvailabilityReport } from "./availability.js";
 import type { FormPatchOperation, FormReadinessBlocker } from "./core.js";
@@ -7,6 +10,10 @@ import type {
   FormHostReport,
   FormHostRequiredCapability,
 } from "./host.js";
+import type {
+  FormResourceMutationResponseReport,
+  FormResourceRollbackDigest,
+} from "./resource_source.js";
 
 export type FormActionKind = "submit" | "custom" | "step";
 export type FormActionPatchPolicy = "requiresNonEmpty" | "allowEmpty" | "ignore";
@@ -33,6 +40,7 @@ export interface FormActionDeclarationOptions {
   readonly effectPolicy?: FormActionEffectPolicy;
   readonly hostEffect?: string;
   readonly hostRequirements?: ReadonlyArray<FormHostRequiredCapability>;
+  readonly resourceEffectProfile?: ResourceEffectProfile;
   readonly schema?: SignalValue;
 }
 
@@ -72,6 +80,18 @@ export interface FormActionCatalogEntry {
   readonly effectPolicy: FormActionEffectPolicy;
   readonly hostEffect: string | null;
   readonly hostRequirements: ReadonlyArray<FormHostRequiredCapability>;
+  readonly resourceEffectProfile: {
+    readonly declared: ResourceEffectProfileDigest | null;
+    readonly effective: ResourceEffectProfileDigest | null;
+    readonly source:
+      | "none"
+      | "inheritedFromResourceLine"
+      | "declaredMatchesResourceLine"
+      | "declaredWithoutResourceLine"
+      | "declaredWithoutLineEffectProfile"
+      | "declaredMismatchedResourceLine";
+    readonly closeoutMatrixDigest: string | null;
+  };
   readonly schema: SignalValue | null;
   readonly step: {
     readonly stepId: string;
@@ -228,6 +248,33 @@ export interface FormActionExecutionArtifact {
   readonly attempt?: FormActionResultArtifact;
   readonly serverMessages: ReadonlyArray<FormServerMessageArtifact>;
   readonly canonicalValue?: SignalValue;
+  readonly resourceSubmission?: {
+    readonly sourceKind: "resourceLine";
+    readonly patchCount: number;
+    readonly patches: ReadonlyArray<{
+      readonly field: string;
+      readonly path: string;
+      readonly locusKind: "field" | "jsonPath" | "region";
+      readonly locus: string;
+      readonly patchKind: "field" | "jsonPath" | "region";
+      readonly patchResultKind: "narrowed" | "replaced";
+      readonly patchScope: "line" | "field" | "region" | "jsonPath";
+      readonly effectDigest: string | null;
+      readonly basisId: string | null;
+    }>;
+    readonly effectProfile: {
+      readonly profile: ResourceEffectProfileDigest | null;
+      readonly closeoutMatrixDigest: string | null;
+    };
+    readonly rollback: FormResourceRollbackDigest | null;
+    readonly visibleSelection: ResourceLineVisibleSelection;
+    readonly mutationResponse: FormResourceMutationResponseReport | null;
+    readonly verification: {
+      readonly packageDigest: string;
+      readonly mutationResponseCloseoutMatrixDigest: string | null;
+    };
+    readonly digest: string;
+  } | null;
   readonly retryOfOperationId?: number;
   readonly supersededOperationId?: number;
   readonly supersededByOperationId?: number;

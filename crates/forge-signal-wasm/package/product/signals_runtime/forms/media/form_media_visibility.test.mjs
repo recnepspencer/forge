@@ -30,7 +30,9 @@ test("signals.form media visibility is first-class and carries modal session tru
     });
 
     assert.equal(artifact.mode, "crop");
+    assert.equal(artifact.scopeKind, "modal");
     assert.equal(form.media().summary.mode, "crop");
+    assert.equal(form.media().summary.scopeKind, "modal");
     assert.equal(form.media().summary.surfaceId, "cropper-modal");
     assert.equal(form.presentationLifecycle("media").status, "settling");
     assert.equal(form.presentationLifecycle("media").scope, "modal");
@@ -60,8 +62,17 @@ test("signals.form media visibility denies unsupported modes", async () => {
         status: "busy",
         reason: "bad mode",
         mode: "teleport",
+        surfaceId: "cropper-modal",
       }),
       /mode is not supported/,
+    );
+
+    assert.throws(
+      () => form.reportMedia({
+        status: "busy",
+        reason: "missing modal surface",
+      }),
+      /media presentation surfaceId must be a non-empty string/,
     );
   } finally {
     await cleanup();

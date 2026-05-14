@@ -2,6 +2,11 @@ import { FormDeclarationError } from "../form_errors.js";
 import { hostRequirementBlockers } from "../host/artifacts.js";
 import { controllerLocalNavigationBlockers } from "../navigation/semantics.js";
 import { stableValueDigest } from "../values/value_paths.js";
+import {
+  isResolvedResourceEffectProfile,
+  profileDigest,
+  resolveResourceEffectProfileBinding,
+} from "./resource_effect_profile_binding.js";
 import { recoveryActionsForBlockers } from "./recovery.js";
 
 export function planActions(actionDeclarations, form, fieldDeclarations) {
@@ -11,6 +16,7 @@ export function planActions(actionDeclarations, form, fieldDeclarations) {
   const admission = form.admission();
   const readiness = form.readiness();
   const host = form.host();
+  const resourceSource = form.resourceSource();
   const steps = form.steps();
   const navigation = form.navigation();
   const binding = currentActionBinding(form, fieldDeclarations, patchPlan);
@@ -22,18 +28,19 @@ export function planActions(actionDeclarations, form, fieldDeclarations) {
       admission,
       readiness,
       host,
+      resourceSource,
       steps,
       navigation,
       binding,
     }),
   );
   return Object.freeze({
-    catalog: Object.freeze(actionDeclarations.map(actionCatalogEntry)),
+    catalog: Object.freeze(plans.map(actionCatalogEntry)),
     plans: Object.freeze(plans),
     host,
     summary: actionSummary(plans),
     counters: actionCounters(actionDeclarations, plans),
-    digests: actionReportDigests(actionDeclarations, plans),
+    digests: actionReportDigests(plans),
   });
 }
 
@@ -48,12 +55,18 @@ export function findActionPlan(actionDeclarations, form, fieldDeclarations, acti
 }
 
 function actionPlan(declaration, context) {
-  const blockers = actionReadinessBlockers(declaration, context);
+  const resourceEffectProfile = resolveResourceEffectProfileBinding(
+    declaration,
+    context.resourceSource,
+    declaration.id,
+  );
+  const blockers = actionReadinessBlockers(declaration, context, resourceEffectProfile.blockers);
   const status = blockers.length === 0 ? "accepted" : "denied";
   const actionSchemaDigest = stableValueDigest(declaration.schema);
   const effectDigest = stableValueDigest({
     effectPolicy: declaration.effectPolicy,
     hostEffect: declaration.hostEffect,
+    resourceEffectProfile,
     step: declaration.step,
   });
   const proof = Object.freeze({
@@ -76,6 +89,7 @@ function actionPlan(declaration, context) {
     effectPolicy: declaration.effectPolicy,
     hostEffect: declaration.hostEffect,
     hostRequirements: declaration.hostRequirements,
+    resourceEffectProfile,
     actionSchemaDigest,
     effectDigest,
     step: declaration.step,
@@ -85,6 +99,7 @@ function actionPlan(declaration, context) {
   const planDigest = stableValueDigest(planSeed);
   return Object.freeze({
     ...actionCatalogEntry(declaration),
+    resourceEffectProfile,
     status,
     resultKind: status,
     readiness: Object.freeze({
@@ -92,7 +107,9 @@ function actionPlan(declaration, context) {
       canRun: blockers.length === 0,
       blockers: Object.freeze(blockers),
     }),
-    recoveryActions: recoveryActionsForBlockers(blockers),
+    recoveryActions: recoveryActionsForBlockers(blockers, {
+      canAcceptCanonicalValue: context.patchPlan.semanticDirty === true,
+    }),
     patch: actionPatchArtifact(declaration, context.patchPlan),
     validation: Object.freeze({
       summary: context.validation.summary,
@@ -123,21 +140,30 @@ function actionPlan(declaration, context) {
   });
 }
 
-function actionCatalogEntry(declaration) {
+function actionCatalogEntry(entry) {
+  const resourceEffectProfile = isResolvedResourceEffectProfile(entry.resourceEffectProfile)
+    ? entry.resourceEffectProfile
+    : Object.freeze({
+      declared: entry.resourceEffectProfile === null ? null : profileDigest(entry.resourceEffectProfile),
+      effective: null,
+      source: entry.resourceEffectProfile === null ? "none" : "declaredWithoutResourceLine",
+      closeoutMatrixDigest: null,
+    });
   return Object.freeze({
-    id: declaration.id,
-    name: declaration.name,
-    kind: declaration.kind,
-    label: declaration.label,
-    patchPolicy: declaration.patchPolicy,
-    admissionCapability: declaration.admissionCapability,
-    destructive: declaration.destructive,
-    idempotency: declaration.idempotency,
-    effectPolicy: declaration.effectPolicy,
-    hostEffect: declaration.hostEffect,
-    hostRequirements: declaration.hostRequirements,
-    schema: declaration.schema,
-    step: declaration.step,
+    id: entry.id,
+    name: entry.name,
+    kind: entry.kind,
+    label: entry.label,
+    patchPolicy: entry.patchPolicy,
+    admissionCapability: entry.admissionCapability,
+    destructive: entry.destructive,
+    idempotency: entry.idempotency,
+    effectPolicy: entry.effectPolicy,
+    hostEffect: entry.hostEffect,
+    hostRequirements: entry.hostRequirements,
+    resourceEffectProfile,
+    schema: entry.schema,
+    step: entry.step,
   });
 }
 
@@ -160,8 +186,11 @@ function actionPatchArtifact(declaration, patchPlan) {
   });
 }
 
-function actionReadinessBlockers(declaration, context) {
-  const blockers = [...hostRequirementBlockers(context.host, declaration.hostRequirements, declaration.id)];
+function actionReadinessBlockers(declaration, context, resourceEffectBlockers) {
+  const blockers = [
+    ...hostRequirementBlockers(context.host, declaration.hostRequirements, declaration.id),
+    ...resourceEffectBlockers,
+  ];
   if (declaration.step?.routeCoupled === true) {
     blockers.push(Object.freeze({
       kind: "action:deferred",
@@ -305,19 +334,20 @@ function actionCounters(declarations, plans) {
   });
 }
 
-function actionReportDigests(declarations, plans) {
-  const catalogDigest = stableValueDigest(declarations.map((declaration) => ({
-    id: declaration.id,
-    kind: declaration.kind,
-    patchPolicy: declaration.patchPolicy,
-    admissionCapability: declaration.admissionCapability,
-    destructive: declaration.destructive,
-    idempotency: declaration.idempotency,
-    effectPolicy: declaration.effectPolicy,
-    hostEffect: declaration.hostEffect,
-    hostRequirements: declaration.hostRequirements,
-    schema: declaration.schema,
-    step: declaration.step,
+function actionReportDigests(plans) {
+  const catalogDigest = stableValueDigest(plans.map((plan) => ({
+    id: plan.id,
+    kind: plan.kind,
+    patchPolicy: plan.patchPolicy,
+    admissionCapability: plan.admissionCapability,
+    destructive: plan.destructive,
+    idempotency: plan.idempotency,
+    effectPolicy: plan.effectPolicy,
+    hostEffect: plan.hostEffect,
+    hostRequirements: plan.hostRequirements,
+    resourceEffectProfile: plan.resourceEffectProfile,
+    schema: plan.schema,
+    step: plan.step,
   })));
   const readinessAdmissionDigest = stableValueDigest(plans.map((plan) => ({
     id: plan.id,

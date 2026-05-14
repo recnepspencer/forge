@@ -1,5 +1,6 @@
 import { FormDeclarationError } from "../form_errors.js";
 import { readPresentationReport } from "./artifacts.js";
+import { normalizeScopedPresentationUpdate } from "./scope_updates.js";
 
 export function createPresentationBindings(
   formRef,
@@ -12,6 +13,7 @@ export function createPresentationBindings(
   exits,
   attachments,
   media,
+  scopeRegistry,
 ) {
   function presentation() {
     ensureCurrent();
@@ -52,6 +54,14 @@ export function createPresentationBindings(
     return settlements.history();
   }
 
+  function trackPresentationLane(laneId, lane, scope, update) {
+    return settlements.reportExternalLane(laneId, lane, scope, update);
+  }
+
+  function clearTrackedPresentationLane(laneId, lane, scope, reason = null) {
+    return settlements.clearExternalLane(laneId, lane, scope, reason);
+  }
+
   function reportPresentationLane(laneId, update) {
     const lane = externalLaneDefinition(laneId);
     if (laneId === "handoff" && update.__alreadyTracked !== true) {
@@ -60,6 +70,8 @@ export function createPresentationBindings(
         target: update.target,
         reason: update.reason,
         token: update.token,
+        scopeKind: update.scopeKind,
+        surfaceId: update.surfaceId,
         operation: "generic",
       });
     }
@@ -69,6 +81,8 @@ export function createPresentationBindings(
         target: update.target,
         reason: update.reason,
         token: update.token,
+        scopeKind: update.scopeKind,
+        surfaceId: update.surfaceId,
         operation: "generic",
       });
     }
@@ -78,6 +92,7 @@ export function createPresentationBindings(
         target: update.target,
         reason: update.reason,
         token: update.token,
+        section: update.section,
         operation: "generic",
       });
     }
@@ -87,6 +102,8 @@ export function createPresentationBindings(
         target: update.target,
         reason: update.reason,
         token: update.token,
+        scopeKind: update.scopeKind,
+        surfaceId: update.surfaceId,
         operation: "generic",
       });
     }
@@ -94,7 +111,7 @@ export function createPresentationBindings(
       laneId,
       lane.id,
       lane.scope,
-      normalizeExternalUpdate(update, lane.policy),
+      normalizeExternalUpdate(update, lane.policy, laneId),
     );
   }
 
@@ -120,6 +137,8 @@ export function createPresentationBindings(
     presentationLifecycle,
     reportPresentationLane,
     clearPresentationLane,
+    trackPresentationLane,
+    clearTrackedPresentationLane,
     acknowledgePresentation,
     timeoutPresentation,
     presentationHistory,
@@ -146,29 +165,33 @@ export function createPresentationBindings(
     }
     return lane;
   }
-}
-
-function normalizeExternalUpdate(update, policy) {
-  if (!update || typeof update !== "object" || Array.isArray(update)) {
-    throw new FormDeclarationError("presentation lane update must be an object", { update });
-  }
-  if (
-    update.status !== "pending" &&
-    update.status !== "busy" &&
-    update.status !== "settling" &&
-    update.status !== "ready" &&
-    update.status !== "failed" &&
-    update.status !== "unavailable"
-  ) {
-    throw new FormDeclarationError("presentation lane status is not supported", {
+  
+  function normalizeExternalUpdate(update, policy, laneId) {
+    if (!update || typeof update !== "object" || Array.isArray(update)) {
+      throw new FormDeclarationError("presentation lane update must be an object", { update });
+    }
+    if (
+      update.status !== "pending" &&
+      update.status !== "busy" &&
+      update.status !== "settling" &&
+      update.status !== "ready" &&
+      update.status !== "failed" &&
+      update.status !== "unavailable"
+    ) {
+      throw new FormDeclarationError("presentation lane status is not supported", {
+        status: update.status,
+      });
+    }
+    const scoped = normalizeScopedPresentationUpdate(update, policy, laneId, scopeRegistry);
+    return Object.freeze({
       status: update.status,
+      target: update.target === undefined ? null : String(update.target),
+      reason: String(update.reason),
+      token: update.token === undefined || update.token === null ? null : String(update.token),
+      section: scoped.section,
+      scopeKind: scoped.scopeKind,
+      surfaceId: scoped.surfaceId,
+      supersessionHandoff: policy.supersessionHandoff,
     });
   }
-  return Object.freeze({
-    status: update.status,
-    target: update.target === undefined ? null : String(update.target),
-    reason: String(update.reason),
-    token: update.token === undefined || update.token === null ? null : String(update.token),
-    supersessionHandoff: policy.supersessionHandoff,
-  });
 }

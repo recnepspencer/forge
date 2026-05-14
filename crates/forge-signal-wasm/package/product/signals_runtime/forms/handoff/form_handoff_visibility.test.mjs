@@ -92,6 +92,7 @@ test("signals.form handoff visibility denies malformed scope and operation metad
           target: "review-route",
           reason: "bad scope",
           scopeKind: "teleport",
+          surfaceId: "review-route",
         }),
       /scope kind is not supported/,
     );
@@ -103,9 +104,21 @@ test("signals.form handoff visibility denies malformed scope and operation metad
           target: "review-route",
           reason: "bad operation",
           scopeKind: "route",
+          surfaceId: "review-route",
           operation: "warp",
         }),
       /operation is not supported/,
+    );
+
+    assert.throws(
+      () =>
+        form.reportHandoff({
+          status: "busy",
+          target: "review-route",
+          reason: "missing surface id",
+          scopeKind: "route",
+        }),
+      /handoff presentation surfaceId must be a non-empty string/,
     );
   } finally {
     await cleanup();

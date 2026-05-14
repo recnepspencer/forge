@@ -1,6 +1,7 @@
 import type { SignalValue } from "../model.js";
 import type { FormValidationArtifact } from "./validation.js";
 import type { FormInteractionInputSource } from "./interaction.js";
+import type { FormSourceDeclaration } from "./sources.js";
 
 export interface CallableFormSignal<TValue = SignalValue> {
   (): TValue;
@@ -32,13 +33,28 @@ export type FormSourceMigrationResult =
     readonly reason?: string;
   };
 
+export type FormSourceBootstrapStatus =
+  | "pending"
+  | "busy"
+  | "settling"
+  | "ready"
+  | "unavailable";
+
+export interface FormSourceBootstrapArtifact {
+  readonly status: FormSourceBootstrapStatus;
+  readonly reason: string;
+  readonly token?: string | number | null;
+}
+
 export interface FormSourceDescriptor<TValue = SignalValue> {
-  readonly value: FormSourceValue<TValue>;
+  readonly value: FormSourceValue<TValue> | FormSourceDeclaration<TValue>;
   readonly schemaVersion?: string | number | CallableFormSignal<string | number> | (() => string | number);
   readonly migrateDraft?: (
     draft: Partial<TValue>,
     context: FormSourceSchemaContext<TValue>,
   ) => FormSourceMigrationResult;
+  readonly sourceAdmission?: FormSourceValue<FormSourceBootstrapArtifact>;
+  readonly draftRestore?: FormSourceValue<FormSourceBootstrapArtifact>;
 }
 
 export type FormFieldPath = string | ReadonlyArray<string | number>;
@@ -385,6 +401,12 @@ export interface FormReadinessBlocker {
     | "availability:blocked"
     | "availability:unavailable"
     | "schema:drift"
+    | "resource:pending"
+    | "resource:profileMismatch"
+    | "resource:profileUnavailable"
+    | "resource:rejected"
+    | "resource:timedOut"
+    | "resource:stale"
     | "host:offline"
     | "host:unavailable"
     | "step:blocked"
@@ -415,6 +437,8 @@ export interface FormReadinessBlocker {
   readonly fields?: ReadonlyArray<string>;
   readonly capability?: string;
   readonly collaborator?: string;
+  readonly resourceOperation?: string;
+  readonly resourceFreshnessReason?: string;
   readonly schemaVersion?: string | null;
   readonly previousSchemaVersion?: string | null;
   readonly reason: string;

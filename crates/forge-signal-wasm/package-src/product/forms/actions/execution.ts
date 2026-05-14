@@ -16,6 +16,14 @@ export function createActionExecutionStore(actionAttempts) {
       history.push(execution);
       return execution;
     },
+    executeResolved(plan, payload) {
+      const attempt = actionAttempts.attempt(plan);
+      const superseded = supersedePendingOperation(plan);
+      const execution = resolvedExecutionForAttempt(nextOperationId, plan, attempt, superseded, payload);
+      nextOperationId += 1;
+      history.push(execution);
+      return execution;
+    },
     fulfill(operationId, payload = {}, currentPlanForAction = null) {
       return settlePendingOperation(operationId, "fulfilled", payload, currentPlanForAction);
     },
@@ -135,6 +143,22 @@ function executionForAttempt(operationId, plan, attempt, superseded) {
   });
 }
 
+function resolvedExecutionForAttempt(operationId, plan, attempt, superseded, payload) {
+  if (attempt.resultKind === "denied" || attempt.resultKind === "noOp") {
+    return executionArtifact(operationId, plan, attempt, attempt.resultKind, {
+      reason: "action execution did not start because action attempt was terminal",
+      effectStarted: false,
+    });
+  }
+  return executionArtifact(operationId, plan, attempt, payload.resultKind, {
+    reason: payload.reason,
+    effectStarted: payload.effectStarted,
+    canonicalValue: payload.canonicalValue,
+    resourceSubmission: payload.resourceSubmission,
+    supersededOperationId: superseded?.operationId,
+  });
+}
+
 function executionArtifact(operationId, plan, attempt, resultKind, options = {}) {
   const artifact = {
     kind: "actionExecution",
@@ -155,6 +179,7 @@ function executionArtifact(operationId, plan, attempt, resultKind, options = {})
     attempt,
     serverMessages: options.serverMessages ?? Object.freeze([]),
     canonicalValue: options.canonicalValue,
+    resourceSubmission: options.resourceSubmission,
     retryOfOperationId: options.retryOfOperationId,
     supersededOperationId: options.supersededOperationId,
     supersededByOperationId: options.supersededByOperationId,
@@ -185,6 +210,7 @@ function staleCompletionArtifact(operationId, targetOperationId, reason, targetO
     stale: true,
     reason,
     serverMessages: Object.freeze([]),
+    resourceSubmission: null,
   };
   return Object.freeze({
     ...artifact,

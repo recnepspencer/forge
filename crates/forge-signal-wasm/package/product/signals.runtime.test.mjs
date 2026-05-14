@@ -39,10 +39,16 @@ import "./signals_runtime/forms/navigation/form_controller_local_navigation.test
 import "./signals_runtime/forms/layout/form_layout_hints.test.mjs";
 import "./signals_runtime/forms/measurement/form_layout_measurement.test.mjs";
 import "./signals_runtime/forms/media/form_media_visibility.test.mjs";
+import "./signals_runtime/forms/messages/form_message_visibility.test.mjs";
 import "./signals_runtime/forms/presentation/form_presentation_lifecycle.test.mjs";
 import "./signals_runtime/forms/presentation/form_presentation_policy_timing.test.mjs";
 import "./signals_runtime/forms/presentation/form_external_presentation_lanes.test.mjs";
+import "./signals_runtime/forms/presentation/form_entry_bootstrap.test.mjs";
 import "./signals_runtime/forms/presentation/form_resource_drift_presentation.test.mjs";
+import "./signals_runtime/forms/resource_source/form_resource_effect_profile_inheritance.test.mjs";
+import "./signals_runtime/forms/resource_source/form_resource_reset.test.mjs";
+import "./signals_runtime/forms/resource_source/form_resource_source_readback.test.mjs";
+import "./signals_runtime/forms/resource_source/form_resource_submit_execution.test.mjs";
 import "./signals_runtime/lifecycle/graph_owned_lifecycle_boundary.test.mjs";
 import "./signals_runtime/lifecycle/forms_resources_dependency_readiness.test.mjs";
 import "./signals_runtime/inputs/controller_artifact_composition.test.mjs";

@@ -81,6 +81,8 @@ test("signals.form presentation settlement timeout and handoff policy are explic
       target: "share-modal",
       reason: "waiting for first handoff acknowledgement",
       token: "handoff-1",
+      scopeKind: "modal",
+      surfaceId: "share-modal",
     });
     nowMs = 5_010;
     form.reportPresentationLane("handoff", {
@@ -88,6 +90,8 @@ test("signals.form presentation settlement timeout and handoff policy are explic
       target: "share-modal",
       reason: "waiting for replacement handoff acknowledgement",
       token: "handoff-2",
+      scopeKind: "modal",
+      surfaceId: "share-modal",
     });
 
     const handoffArtifact = form.presentationHistory().find((entry) => (

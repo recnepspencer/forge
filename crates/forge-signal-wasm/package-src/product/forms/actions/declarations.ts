@@ -1,4 +1,5 @@
 import { FormDeclarationError } from "../form_errors.js";
+import { requireResourceEffectProfile } from "../../resource/effects/resource_effect_profile.js";
 
 const ACTION_DECLARATION_BRAND = Symbol("forge.form.actionDeclaration");
 const ACTION_KINDS = new Set(["submit", "custom", "step"]);
@@ -117,6 +118,12 @@ function actionDeclaration(actionId, options) {
     effectPolicy,
     hostEffect: options.hostEffect === undefined ? null : String(options.hostEffect),
     hostRequirements: normalizeHostRequirements(options.hostRequirements),
+    resourceEffectProfile: options.resourceEffectProfile === undefined
+      ? null
+      : requireResourceEffectProfile(
+        options.resourceEffectProfile,
+        `form action "${actionId}" resourceEffectProfile`,
+      ),
     schema: options.schema === undefined ? null : options.schema,
     step: options.step ?? null,
   });

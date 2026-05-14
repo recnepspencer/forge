@@ -13,6 +13,25 @@ const PRESENTATION_SCOPES = new Set([
 ]);
 const ACKNOWLEDGEMENT_POLICIES = new Set(["none", "required"]);
 const SUPERSESSION_POLICIES = new Set(["replace", "handoff"]);
+const ACTION_SETTLEMENT_DEPENDENCIES = new Set([
+  "canonicalization",
+  "messages",
+  "focusTarget",
+  "layout",
+  "navigation",
+  "handoff",
+]);
+const DEFAULT_ENTRY_BOOTSTRAP = Object.freeze({
+  sourceAdmission: false,
+  draftRestore: false,
+  sourceCompatibility: false,
+  validation: false,
+  readiness: false,
+  hostFacts: false,
+  inputCapabilities: false,
+  focusTarget: false,
+  layoutMeasurement: false,
+});
 
 export function materializePresentationDeclaration(declaration) {
   const declared = declaration.presentation ?? {};
@@ -22,12 +41,12 @@ export function materializePresentationDeclaration(declaration) {
     });
   }
   return Object.freeze({
-    entry: normalizeLanePolicy(declared.entry, "wholeForm", 0, 0, "none", 0, "replace", "none", "entry"),
+    entry: normalizeLanePolicy(declared.entry, "wholeForm", 0, 0, "none", 0, "replace", "none", "entry", true),
     interaction: normalizeLanePolicy(declared.interaction, "field", 0, 0, "none", 0, "replace", "none", "interaction"),
     availability: normalizeLanePolicy(declared.availability, "wholeForm", 0, 0, "none", 0, "replace", "none", "availability"),
     messages: normalizeLanePolicy(declared.messages, "field", 0, 0, "none", 0, "replace", "none", "messages"),
     layout: normalizeLanePolicy(declared.layout, "section", 0, 0, "none", 0, "replace", "required", "layout"),
-    action: normalizeLanePolicy(declared.action, "control", 150, 300, "required", 5000, "handoff", "none", "action"),
+    action: normalizeLanePolicy(declared.action, "control", 150, 300, "required", 5000, "handoff", "none", "action", false, true),
     canonicalization: normalizeLanePolicy(declared.canonicalization, "wholeForm", 0, 0, "required", 5000, "handoff", "none", "canonicalization"),
     resourceDrift: normalizeLanePolicy(declared.resourceDrift, "wholeForm", 0, 0, "none", 0, "replace", "none", "resourceDrift"),
     collaboration: normalizeLanePolicy(declared.collaboration, "wholeForm", 0, 0, "none", 0, "replace", "none", "collaboration"),
@@ -49,6 +68,8 @@ function normalizeLanePolicy(
   supersessionHandoff,
   unavailableAcknowledgement,
   lane,
+  allowBootstrap = false,
+  allowActionDependencies = false,
 ) {
   if (declared === undefined) {
     return Object.freeze({
@@ -59,12 +80,23 @@ function normalizeLanePolicy(
       settlementTimeoutMs,
       supersessionHandoff,
       unavailableAcknowledgement,
+      bootstrap: allowBootstrap ? DEFAULT_ENTRY_BOOTSTRAP : null,
     });
   }
   if (declared == null || typeof declared !== "object" || Array.isArray(declared)) {
     throw new FormDeclarationError("form presentation lane metadata must be an object", {
       lane,
       policy: declared,
+    });
+  }
+  if (!allowBootstrap && declared.bootstrap !== undefined) {
+    throw new FormDeclarationError("form presentation bootstrap policy is only supported for entry", {
+      lane,
+    });
+  }
+  if (!allowActionDependencies && declared.settleOn !== undefined) {
+    throw new FormDeclarationError("form presentation settlement dependencies are only supported for action", {
+      lane,
     });
   }
   return Object.freeze({
@@ -96,6 +128,46 @@ function normalizeLanePolicy(
       ACKNOWLEDGEMENT_POLICIES,
       `form presentation ${lane} unavailableAcknowledgement`,
     ),
+    settleOn: allowActionDependencies ? normalizeActionSettlementDependencies(declared.settleOn) : null,
+    bootstrap: allowBootstrap ? normalizeBootstrapPolicy(declared.bootstrap) : null,
+  });
+}
+
+function normalizeActionSettlementDependencies(declared) {
+  if (declared === undefined) {
+    return Object.freeze([]);
+  }
+  if (!Array.isArray(declared)) {
+    throw new FormDeclarationError("form presentation action settleOn must be an array", {
+      settleOn: declared,
+    });
+  }
+  return Object.freeze([...new Set(declared.map((dependency) => normalizeEnum(
+    dependency,
+    ACTION_SETTLEMENT_DEPENDENCIES,
+    "form presentation action settleOn dependency",
+  )))]);
+}
+
+function normalizeBootstrapPolicy(declared) {
+  if (declared === undefined) {
+    return DEFAULT_ENTRY_BOOTSTRAP;
+  }
+  if (declared == null || typeof declared !== "object" || Array.isArray(declared)) {
+    throw new FormDeclarationError("form presentation entry bootstrap metadata must be an object", {
+      bootstrap: declared,
+    });
+  }
+  return Object.freeze({
+    sourceAdmission: normalizeBoolean(declared.sourceAdmission, false, "sourceAdmission"),
+    draftRestore: normalizeBoolean(declared.draftRestore, false, "draftRestore"),
+    sourceCompatibility: normalizeBoolean(declared.sourceCompatibility, false, "sourceCompatibility"),
+    validation: normalizeBoolean(declared.validation, false, "validation"),
+    readiness: normalizeBoolean(declared.readiness, false, "readiness"),
+    hostFacts: normalizeBoolean(declared.hostFacts, false, "hostFacts"),
+    inputCapabilities: normalizeBoolean(declared.inputCapabilities, false, "inputCapabilities"),
+    focusTarget: normalizeBoolean(declared.focusTarget, false, "focusTarget"),
+    layoutMeasurement: normalizeBoolean(declared.layoutMeasurement, false, "layoutMeasurement"),
   });
 }
 
@@ -109,6 +181,18 @@ function normalizeEnum(value, allowed, label) {
 function nonNegativeInteger(value, label) {
   if (!Number.isInteger(value) || value < 0) {
     throw new FormDeclarationError(`${label} must be a non-negative integer`, { value });
+  }
+  return value;
+}
+
+function normalizeBoolean(value, fallback, label) {
+  if (value === undefined) {
+    return fallback;
+  }
+  if (typeof value !== "boolean") {
+    throw new FormDeclarationError(`form presentation entry bootstrap ${label} must be a boolean`, {
+      value,
+    });
   }
   return value;
 }

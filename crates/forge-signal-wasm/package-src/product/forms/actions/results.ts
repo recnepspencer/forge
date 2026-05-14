@@ -37,6 +37,7 @@ function nextActionResult(plan, duplicate, attemptId) {
       resultKind: "denied",
       reason: "action plan is not ready",
       blockers: plan.readiness.blockers,
+      recoveryActions: plan.recoveryActions,
     });
   }
   if (isInertEmptyPatchAction(plan)) {
@@ -124,6 +125,7 @@ function repeatedAttemptResult(plan, duplicate, attemptId) {
 
 function actionResultArtifact(options) {
   const blockers = options.blockers ?? Object.freeze([]);
+  const recoveryActions = options.recoveryActions ?? recoveryActionsForBlockers(blockers);
   const artifact = {
     kind: "actionResult",
     attemptId: options.attemptId,
@@ -136,7 +138,7 @@ function actionResultArtifact(options) {
     destructive: options.plan.destructive,
     reason: options.reason,
     blockers,
-    recoveryActions: recoveryActionsForBlockers(blockers),
+    recoveryActions,
     proof: options.plan.proof,
     patch: options.plan.patch,
     collapsedIntoAttemptId: options.collapsedIntoAttemptId,

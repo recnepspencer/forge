@@ -13,6 +13,9 @@ test("signals.form external presentation lanes stay outside semantic form truth"
       fields: ({ field }) => ({
         title: field("title"),
       }),
+      availability: ({ section }) => ({
+        evidenceSection: section("evidence", ["title"], ["title"], () => true),
+      }),
       actions: ({ submit }) => ({
         submit: submit(),
       }),
@@ -38,6 +41,7 @@ test("signals.form external presentation lanes stay outside semantic form truth"
       status: "failed",
       target: "spec.pdf",
       reason: "attachment preview generation failed",
+      section: "evidence",
     });
     const attachmentsReport = form.attachments();
     const handoff = form.reportPresentationLane("handoff", {
@@ -45,17 +49,23 @@ test("signals.form external presentation lanes stay outside semantic form truth"
       target: "share-modal",
       reason: "waiting for modal handoff acknowledgement",
       token: "handoff-1",
+      scopeKind: "modal",
+      surfaceId: "share-modal",
     });
     const handoffReport = form.handoff();
 
     assert.equal(collaboration.lane, "collaboration");
     assert.equal(attachments.lane, "attachments");
     assert.equal(handoff.lane, "handoff");
-    assert.equal(handoffReport.summary.scopeKind, null);
+    assert.equal(handoffReport.summary.scopeKind, "modal");
     assert.equal(handoffReport.summary.activeTarget, "share-modal");
     assert.equal(attachmentsReport.summary.status, "failed");
+    assert.equal(attachmentsReport.summary.activeSection, "evidence");
     assert.equal(attachmentsReport.summary.selectedCount, null);
     assert.equal(attachmentsReport.summary.stagedCount, null);
+    assert.equal(handoff.section, null);
+    assert.equal(handoff.scopeKind, "modal");
+    assert.equal(handoff.surfaceId, "share-modal");
     assert.equal(form.presentationLifecycle("collaboration").status, "busy");
     assert.equal(form.presentationLifecycle("attachments").status, "failed");
     assert.equal(form.presentationLifecycle("handoff").status, "settling");
@@ -72,6 +82,8 @@ test("signals.form external presentation lanes stay outside semantic form truth"
       target: "share-modal",
       reason: "modal handoff failed before clear",
       token: "handoff-2",
+      scopeKind: "modal",
+      surfaceId: "share-modal",
     });
     const genericHandoffClear = form.clearPresentationLane("handoff", {
       reason: "generic handoff lane cleared",
@@ -111,6 +123,9 @@ test("signals.form external presentation lane updates deny unsupported lane ids 
       fields: ({ field }) => ({
         title: field("title"),
       }),
+      availability: ({ section }) => ({
+        evidenceSection: section("evidence", ["title"], ["title"], () => true),
+      }),
     });
 
     assert.throws(
@@ -129,6 +144,35 @@ test("signals.form external presentation lane updates deny unsupported lane ids 
           reason: "bad status",
         }),
       /status is not supported/,
+    );
+
+    assert.throws(
+      () =>
+        form.reportPresentationLane("attachments", {
+          status: "busy",
+          reason: "missing section scope",
+        }),
+      /attachments presentation section must be a non-empty string/,
+    );
+
+    assert.throws(
+      () =>
+        form.reportPresentationLane("attachments", {
+          status: "busy",
+          reason: "unknown section scope",
+          section: "missing-section",
+        }),
+      /declared section/,
+    );
+
+    assert.throws(
+      () =>
+        form.reportPresentationLane("handoff", {
+          status: "busy",
+          reason: "missing handoff scope metadata",
+          scopeKind: "modal",
+        }),
+      /handoff presentation surfaceId must be a non-empty string/,
     );
   } finally {
     await cleanup();

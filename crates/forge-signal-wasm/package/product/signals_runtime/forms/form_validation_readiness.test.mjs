@@ -255,6 +255,31 @@ test("signals.form denies undeclared validator dependencies and malformed artifa
       () => undeclaredArtifactFieldForm.validation(),
       /undeclared form field/,
     );
+
+    const undeclaredMessageTargetForm = signals.form({
+      source: { title: "Ship docs" },
+      fields: ({ field }) => ({
+        title: field("title"),
+      }),
+      validation: ({ field }) => ({
+        malformedTarget: field("title", () => ({
+          kind: "invalid",
+          field: "title",
+          message: {
+            code: "missing.target",
+            severity: "error",
+            target: "missing",
+            audience: "user",
+            visibility: "visible",
+          },
+        })),
+      }),
+    });
+
+    assert.throws(
+      () => undeclaredMessageTargetForm.validation(),
+      /undeclared form field/,
+    );
   } finally {
     await cleanup();
   }

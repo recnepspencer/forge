@@ -13,6 +13,9 @@ test("signals.form attachment visibility is first-class and stays outside semant
       fields: ({ field }) => ({
         title: field("title"),
       }),
+      availability: ({ section }) => ({
+        evidenceSection: section("evidence", ["title"], ["title"], () => true),
+      }),
       presentation: {
         attachments: { scope: "section" },
       },
@@ -56,12 +59,16 @@ test("signals.form attachment visibility denies malformed counts and operations"
       fields: ({ field }) => ({
         title: field("title"),
       }),
+      availability: ({ section }) => ({
+        evidenceSection: section("evidence", ["title"], ["title"], () => true),
+      }),
     });
 
     assert.throws(
       () => form.reportAttachments({
         status: "busy",
         reason: "bad counts",
+        section: "evidence",
         selectedCount: -1,
       }),
       /selectedCount must be a non-negative integer/,
@@ -71,9 +78,18 @@ test("signals.form attachment visibility denies malformed counts and operations"
       () => form.reportAttachments({
         status: "busy",
         reason: "bad op",
+        section: "evidence",
         operation: "teleport",
       }),
       /operation is not supported/,
+    );
+
+    assert.throws(
+      () => form.reportAttachments({
+        status: "busy",
+        reason: "missing section",
+      }),
+      /attachments presentation section must be a non-empty string/,
     );
   } finally {
     await cleanup();

@@ -1,38 +1,81 @@
 import { stableValueDigest } from "../values/value_paths.js";
+import { actionLanes } from "./action_lanes.js";
 import { acknowledgedOrSettlingLane, baseLane, collaborationLane, exitLane, externalLane, navigationLanes } from "./auxiliary_lanes.js";
-import { busyVisibilityStatus, minimumBusyPending, settlementTimedOut } from "./policy_timing.js";
+import { entryLane } from "./entry_lane.js";
+import { busyVisibilityStatus } from "./policy_timing.js";
 
 export function readPresentationReport(policy, form, actionDeclarations, stepDeclarations, settlements) {
   const nowMs = Date.now();
   const sourceCompatibility = form.sourceCompatibility();
+  const sourceAdmission = form.sourceAdmission();
+  const draftRestore = form.draftRestore();
+  const host = form.host();
+  const inputCapabilities = form.inputCapabilities();
+  const accessibility = form.accessibility();
   const collaboration = form.collaboration();
   const exit = form.exit();
   const interaction = form.interaction();
   const navigation = form.navigation();
   const availability = form.availability();
   const validation = form.validation();
-  const layout = form.layout();
   const layoutMeasurement = form.layoutMeasurement();
-  const visibleMessages = form.visibleMessages();
+  const messageVisibility = form.messages();
   const actions = form.actions();
   const actionExecutions = form.actionExecutionHistory();
   const asyncValidationHistory = form.asyncValidationHistory();
   const canonicalizationHistory = form.canonicalizationHistory();
+  const messages = messagesLane(policy.messages, messageVisibility, validation, nowMs);
+  const layoutLaneArtifact = layoutLane(policy.layout, layoutMeasurement, form);
+  const canonicalization = canonicalizationLane(policy.canonicalization, canonicalizationHistory, settlements, nowMs);
+  const handoff = externalLane("handoff", policy.handoff, settlements, nowMs);
+  const navigationLanesList = navigationLanes(policy.navigation, navigation, actionDeclarations, stepDeclarations, settlements, nowMs);
+  const controllerLocalNavigation = navigationLanesList.find((lane) => lane.id === "navigation:local") ?? baseLane(
+    "navigation:local",
+    "navigation",
+    "step",
+    policy.navigation,
+    "ready",
+    {
+      target: null,
+      reason: "controller-local navigation has no active step",
+      token: navigation.digest,
+    },
+  );
   const lanes = [
-    entryLane(policy.entry, sourceCompatibility, validation, asyncValidationHistory, nowMs),
+    entryLane(
+      policy.entry,
+      sourceAdmission,
+      draftRestore,
+      sourceCompatibility,
+      validation,
+      asyncValidationHistory,
+      form.readiness(),
+      host,
+      inputCapabilities,
+      accessibility,
+      layoutMeasurement,
+      nowMs,
+    ),
     interactionLane(policy.interaction, interaction),
     availabilityLane(policy.availability, availability),
-    messagesLane(policy.messages, visibleMessages, validation, nowMs),
-    layoutLane(policy.layout, layout, layoutMeasurement, form),
-    ...actionLanes(policy.action, actions.catalog, actionExecutions, settlements, nowMs),
-    canonicalizationLane(policy.canonicalization, canonicalizationHistory, settlements, nowMs),
+    messages,
+    layoutLaneArtifact,
+    ...actionLanes(policy.action, actions.catalog, actionExecutions, settlements, nowMs, {
+      canonicalization,
+      messages,
+      layout: layoutLaneArtifact,
+      navigation: controllerLocalNavigation,
+      handoff,
+      focusTarget: accessibility.focusTarget,
+    }),
+    canonicalization,
     resourceDriftLane(policy.resourceDrift, form, canonicalizationHistory),
     collaborationLane(policy.collaboration, collaboration, settlements, nowMs),
     exitLane(policy.exit, exit, settlements, nowMs),
     externalLane("attachments", policy.attachments, settlements, nowMs),
     externalLane("media", policy.media, settlements, nowMs),
-    externalLane("handoff", policy.handoff, settlements, nowMs),
-    ...navigationLanes(policy.navigation, navigation, actionDeclarations, stepDeclarations, settlements, nowMs),
+    handoff,
+    ...navigationLanesList,
   ];
   const summary = Object.freeze({
     total: lanes.length,
@@ -93,35 +136,6 @@ function acknowledgementSummary(lanes, history) {
   });
 }
 
-function entryLane(policy, sourceCompatibility, validation, asyncValidationHistory, nowMs) {
-  if (sourceCompatibility.posture === "unavailable") {
-    return baseLane("entry", "entry", policy.scope, policy, "unavailable", {
-      reason: sourceCompatibility.reason ?? "entry presentation is unavailable because source compatibility drift is unresolved",
-      token: stableValueDigest(sourceCompatibility),
-      acknowledgementRequired: policy.unavailableAcknowledgement === "required",
-    });
-  }
-  if (validation.summary.pending > 0 || asyncValidationHistory.some((entry) => entry.resultKind === "pending")) {
-    const status = busyVisibilityStatus(
-      policy,
-      asyncValidationHistory.find((entry) => entry.resultKind === "pending")?.observedAtMs ?? nowMs,
-      nowMs,
-    );
-    return baseLane("entry", "entry", policy.scope, policy, status, {
-      reason: status === "pending"
-        ? "entry presentation is delaying busy reveal while validation bootstrap starts"
-        : "entry presentation is waiting for validation bootstrap to settle",
-      token: stableValueDigest({
-        pendingValidation: validation.summary.pending,
-        asyncValidationOperations: asyncValidationHistory.length,
-      }),
-    });
-  }
-  return baseLane("entry", "entry", policy.scope, policy, "ready", {
-    reason: "entry presentation is settled",
-  });
-}
-
 function interactionLane(policy, interaction) {
   const focusedField = interaction.summary.focusedField;
   const interactionTarget = focusedField ??
@@ -159,7 +173,7 @@ function availabilityLane(policy, availability) {
   });
 }
 
-function messagesLane(policy, visibleMessages, validation, nowMs) {
+function messagesLane(policy, messageVisibility, validation, nowMs) {
   if (validation.summary.pending > 0) {
     const pendingArtifact = validation.artifacts.find((artifact) => artifact.posture === "pending") ?? null;
     const status = busyVisibilityStatus(policy, pendingArtifact?.observedAtMs ?? nowMs, nowMs);
@@ -170,26 +184,36 @@ function messagesLane(policy, visibleMessages, validation, nowMs) {
       token: stableValueDigest(validation.summary),
     });
   }
+  if (messageVisibility.current && messageVisibility.current.status !== "ready") {
+    return baseLane("messages", "messages", policy.scope, policy, messageVisibility.current.status, {
+      reason: messageVisibility.current.reason,
+      target: messageVisibility.current.target,
+      token: messageVisibility.current.messageDigest,
+      acknowledgementRequired: messageVisibility.current.status === "unavailable"
+        && policy.unavailableAcknowledgement === "required",
+    });
+  }
   return baseLane("messages", "messages", policy.scope, policy, "ready", {
-    reason: visibleMessages.length === 0
+    reason: messageVisibility.summary.semanticVisibleCount === 0 && messageVisibility.summary.externalVisibleCount === 0
       ? "message presentation is settled with no visible messages"
       : "message presentation is settled with visible messages",
-    target: visibleMessages[0]?.target ?? null,
+    target: messageVisibility.current?.target ?? null,
   });
 }
 
-function layoutLane(policy, layout, layoutMeasurement, form) {
-  if (layout.summary.unavailableFields > 0) {
+function layoutLane(policy, layoutMeasurement, form) {
+  const layoutReport = form.layout();
+  if (layoutReport.summary.unavailableFields > 0) {
     return baseLane("layout", "layout", policy.scope, policy, "unavailable", {
       reason: "layout presentation is unavailable for one or more declared fields",
-      token: stableValueDigest(layout.summary),
+      token: stableValueDigest(layoutReport.summary),
       acknowledgementRequired: policy.unavailableAcknowledgement === "required",
     });
   }
   if (layoutMeasurement.latestSnapshot === null) {
     return baseLane("layout", "layout", policy.scope, policy, "pending", {
       reason: "layout presentation is waiting for the first measurement snapshot",
-      token: layout.digest,
+      token: layoutReport.digest,
     });
   }
   const currentSemanticDigest = stableValueDigest({
@@ -207,67 +231,6 @@ function layoutLane(policy, layout, layoutMeasurement, form) {
   return baseLane("layout", "layout", policy.scope, policy, "ready", {
     reason: "layout presentation is settled",
     token: layoutMeasurement.latestSnapshot.snapshotDigest,
-  });
-}
-
-function actionLanes(policy, catalog, executions, settlements, nowMs) {
-  return catalog.map((action) => {
-    const latest = [...executions].reverse().find((entry) => entry.action === action.id) ?? null;
-    if (!latest) {
-      return baseLane(`action:${action.id}`, "action", policy.scope, policy, "ready", {
-        target: action.id,
-        reason: `${action.id} presentation has no pending visible work`,
-      });
-    }
-    if (latest.resultKind === "pending") {
-      const status = busyVisibilityStatus(policy, latest.observedAtMs, nowMs);
-      return baseLane(`action:${action.id}`, "action", policy.scope, policy, status, {
-        target: action.id,
-        reason: status === "pending"
-          ? `${latest.reason}; busy reveal is intentionally delayed`
-          : latest.reason,
-        token: latest.executionDigest,
-      });
-    }
-    const priorPending = [...executions].reverse().find((entry) => (
-      entry.action === action.id &&
-      entry.operationId === latest.operationId &&
-      entry.resultKind === "pending"
-    )) ?? null;
-    if (priorPending && minimumBusyPending(policy, priorPending.observedAtMs, nowMs)) {
-      const status = busyVisibilityStatus(policy, priorPending.observedAtMs, nowMs);
-      return baseLane(`action:${action.id}`, "action", policy.scope, policy, status, {
-        target: action.id,
-        reason: status === "pending"
-          ? `${action.id} presentation is delaying busy reveal before minimum busy duration starts`
-          : `${action.id} presentation is preserving minimum busy duration`,
-        token: latest.executionDigest,
-      });
-    }
-    if (latest.resultKind === "fulfilled") {
-      return acknowledgedOrSettlingLane(
-        `action:${action.id}`,
-        "action",
-        policy,
-        action.id,
-        latest.executionDigest,
-        settlements,
-        nowMs,
-        latest.observedAtMs,
-      );
-    }
-    if (latest.resultKind === "rejected" || latest.resultKind === "timedOut" || latest.resultKind === "cancelled") {
-      return baseLane(`action:${action.id}`, "action", policy.scope, policy, "failed", {
-        target: action.id,
-        reason: latest.reason,
-        token: latest.executionDigest,
-      });
-    }
-    return baseLane(`action:${action.id}`, "action", policy.scope, policy, "ready", {
-      target: action.id,
-      reason: latest.reason,
-      token: latest.executionDigest,
-    });
   });
 }
 

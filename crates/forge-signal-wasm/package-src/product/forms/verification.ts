@@ -3,6 +3,9 @@ import { stableValueDigest } from "./values/value_paths.js";
 export function buildFormVerificationPackage(form) {
   const source = form.source();
   const sourceAuthority = form.sourceAuthority();
+  const sourceAdmission = form.sourceAdmission();
+  const draftRestore = form.draftRestore();
+  const resourceSource = form.resourceSource();
   const formDeclaration = form.declaration();
   const draft = form.draft();
   const effective = form.effective();
@@ -18,6 +21,7 @@ export function buildFormVerificationPackage(form) {
   const handoff = form.handoff();
   const attachments = form.attachments();
   const media = form.media();
+  const messages = form.messages();
   const collaboration = form.collaboration();
   const interaction = form.interaction();
   const interactionHistory = interaction.history;
@@ -37,6 +41,7 @@ export function buildFormVerificationPackage(form) {
   const actionExecutionHistory = form.actionExecutionHistory();
   const asyncValidationHistory = form.asyncValidationHistory();
   const canonicalizationHistory = form.canonicalizationHistory();
+  const resetHistory = form.resetHistory();
   const sourceCompatibilityHistory = form.sourceCompatibilityHistory();
   const digests = Object.freeze({
     sourceAuthorityDigest: sourceAuthority.sourceAuthorityDigest,
@@ -47,6 +52,20 @@ export function buildFormVerificationPackage(form) {
       contract: sourceAuthority.contract,
       identity: sourceAuthority.identity,
     }),
+    sourceAdmissionDigest: stableValueDigest(sourceAdmission),
+    draftRestoreDigest: stableValueDigest(draftRestore),
+    resourceSourceDigest: resourceSource?.digest ?? null,
+    resourceEffectProfileDigest: stableValueDigest(resourceSource?.effectProfile.profile ?? null),
+    resourceVisibleBranchSelectionDigest: stableValueDigest(resourceSource?.visibleSelection ?? null),
+    resourceVerificationPackageDigest: resourceSource?.verification.packageDigest ?? null,
+    resourceEffectCloseoutMatrixDigest: resourceSource?.effectProfile.closeoutMatrixDigest ?? null,
+    resourceMutationResponseDigest: resourceSource?.mutationResponse?.digest ?? null,
+    resourceMutationResponseConfirmationDigest:
+      resourceSource?.mutationResponse?.confirmationDigest ?? null,
+    resourceMutationResponseTargetOutcomeDigest:
+      resourceSource?.mutationResponse?.targetOutcomeDigest ?? null,
+    resourceMutationResponseCloseoutMatrixDigest:
+      resourceSource?.verification.mutationResponseCloseoutMatrixDigest ?? null,
     sourceValueDigest: stableValueDigest(source),
     formDeclarationDigest: stableValueDigest(formDeclaration),
     fieldContractDigest: stableValueDigest(fieldContract),
@@ -57,6 +76,7 @@ export function buildFormVerificationPackage(form) {
     handoffDigest: handoff.digest,
     attachmentDigest: attachments.digest,
     mediaDigest: media.digest,
+    messageDigest: messages.digest,
     collaborationDigest: collaboration.digest,
     interactionDigest: interaction.digest,
     interactionHistoryDigest: stableValueDigest(interactionHistory),
@@ -77,6 +97,13 @@ export function buildFormVerificationPackage(form) {
     validationDigest: stableValueDigest(validation),
     asyncValidationLifecycleDigest: stableValueDigest(asyncValidationHistory),
     canonicalizationDigest: stableValueDigest(canonicalizationHistory),
+    resetRollbackDigest: stableValueDigest(
+      canonicalizationHistory.map((artifact) => artifact.resourceBacked?.rollback ?? null),
+    ),
+    resetHistoryDigest: stableValueDigest(resetHistory),
+    mutationResponseReconciliationDigest: stableValueDigest(
+      canonicalizationHistory.map((artifact) => artifact.resourceBacked?.mutationResponse ?? null),
+    ),
     sourceCompatibilityHistoryDigest: stableValueDigest(sourceCompatibilityHistory),
     presentationHistoryDigest: stableValueDigest(presentationHistory),
     availabilityDependencyDigest: stableValueDigest(availability.dependencyBreadth),
@@ -95,6 +122,9 @@ export function buildFormVerificationPackage(form) {
     actionExecutionLifecycleDigest: stableValueDigest(actionExecutionHistory),
     diagnosticsHistoryDigest: stableValueDigest({
       sourceAuthority,
+      sourceAdmission,
+      draftRestore,
+      resourceSource,
       formDeclaration,
       fieldContract,
       inputAdapters,
@@ -105,12 +135,14 @@ export function buildFormVerificationPackage(form) {
       actionExecutionHistory,
       asyncValidationHistory,
       canonicalizationHistory,
+      resetHistory,
       host,
       inputCapabilities,
       exit,
       handoff,
       attachments,
       media,
+      messages,
       collaboration,
       interaction,
       interactionHistory,
@@ -146,6 +178,10 @@ export function buildFormVerificationPackage(form) {
       operations: canonicalizationHistory.length,
       digest: digests.canonicalizationDigest,
     }),
+    resetHistory: Object.freeze({
+      operations: resetHistory.length,
+      digest: digests.resetHistoryDigest,
+    }),
     interactionHistory: Object.freeze({
       operations: interactionHistory.length,
       digest: digests.interactionHistoryDigest,
@@ -164,12 +200,14 @@ export function buildFormVerificationPackage(form) {
     }),
     performanceEnvelope: formPerformanceEnvelope({
       sourceCompatibility,
+      resourceSource,
       host,
       inputCapabilities,
       exit,
       handoff,
       attachments,
       media,
+      messages,
       collaboration,
       interaction,
       navigation,
@@ -186,6 +224,7 @@ export function buildFormVerificationPackage(form) {
       actionExecutionHistory,
       asyncValidationHistory,
       canonicalizationHistory,
+      resetHistory,
       interactionHistory,
       navigationHistory,
       sourceCompatibilityHistory,
@@ -202,15 +241,18 @@ function formPerformanceEnvelope(reports) {
     actionExecutionOperations: reports.actionExecutionHistory.length,
     asyncValidationOperations: reports.asyncValidationHistory.length,
     canonicalizationOperations: reports.canonicalizationHistory.length,
+    resetOperations: reports.resetHistory.length,
     interactionOperations: reports.interactionHistory.length,
     navigationOperations: reports.navigationHistory.length,
     sourceCompatibilityOperations: reports.sourceCompatibilityHistory.length,
+    resourceSource: reports.resourceSource?.counters ?? null,
     hostFacts: reports.host.counters,
     inputCapabilities: reports.inputCapabilities.counters,
     exit: reports.exit.counters,
     handoff: reports.handoff.counters,
     attachments: reports.attachments.counters,
     media: reports.media.counters,
+    messages: reports.messages.counters,
     collaboration: reports.collaboration.counters,
     interaction: reports.interaction.counters,
     navigation: reports.navigation.counters,

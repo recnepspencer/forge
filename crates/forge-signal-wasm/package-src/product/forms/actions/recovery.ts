@@ -1,4 +1,4 @@
-export function recoveryActionsForBlockers(blockers) {
+export function recoveryActionsForBlockers(blockers, options = {}) {
   const actions = [];
   for (const blocker of blockers) {
     if (blocker.field !== undefined) {
@@ -11,6 +11,9 @@ export function recoveryActionsForBlockers(blockers) {
   }
   if (blockers.length > 0) {
     actions.push(recoveryAction("focusFirstActionableBlocker", blockers[0]));
+  }
+  if (options.canAcceptCanonicalValue === true && blockers.length > 0) {
+    actions.push(recoveryAction("acceptCanonicalValue", blockers[0]));
   }
   return Object.freeze(dedupeRecoveryActions(actions));
 }

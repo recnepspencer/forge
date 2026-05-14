@@ -7,6 +7,7 @@ export interface FormMediaPresentationArtifact {
   readonly target: string | null;
   readonly reason: string;
   readonly token: string | null;
+  readonly scopeKind: "modal" | null;
   readonly mode: "preview" | "capture" | "crop" | "annotate" | null;
   readonly surfaceId: string | null;
   readonly operation: "generic" | "open" | "replace" | "annotate" | "close";
@@ -18,6 +19,7 @@ export interface FormMediaReport {
   readonly history: ReadonlyArray<FormMediaPresentationArtifact>;
   readonly summary: {
     readonly status: "pending" | "busy" | "settling" | "ready" | "failed" | "unavailable";
+    readonly scopeKind: "modal" | null;
     readonly mode: "preview" | "capture" | "crop" | "annotate" | null;
     readonly surfaceId: string | null;
     readonly activeTarget: string | null;

@@ -90,6 +90,23 @@ export function readSourceDraftMigration(source) {
     : null;
 }
 
+export function readSourceBootstrapArtifact(source, dependency) {
+  if (!isSourceDescriptor(source) || source[dependency] === undefined) {
+    return null;
+  }
+  return normalizeSourceBootstrapArtifact(readSourceValue(source[dependency]), dependency);
+}
+
+export function readResourceLineHandle(source) {
+  const declaration = isFormSourceDeclaration(source)
+    ? source
+    : inferLegacySourceDeclaration(source);
+  if (declaration.kind !== "resourceLine") {
+    return null;
+  }
+  return sourceRuntimeTarget(declaration.target);
+}
+
 function sourceDeclaration(kind, target, options = {}) {
   requireSourceKind(kind);
   requireSourceOptions(options);
@@ -103,6 +120,21 @@ function sourceDeclaration(kind, target, options = {}) {
 }
 
 function inferLegacySourceDeclaration(source) {
+  if (isSourceDescriptor(source)) {
+    const descriptorValue = source.value;
+    if (isFormSourceDeclaration(descriptorValue)) {
+      return descriptorWrappedSourceDeclaration(descriptorValue, source);
+    }
+    if (isPublicGraphInputEntry(descriptorValue)) {
+      return descriptorWrappedLegacySourceDeclaration("graphPublicInput", source);
+    }
+    if (isSignalHandle(descriptorValue)) {
+      return descriptorWrappedLegacySourceDeclaration("signal", source);
+    }
+    if (isResourceLine(descriptorValue)) {
+      return descriptorWrappedLegacySourceDeclaration("resourceLine", source);
+    }
+  }
   if (isPublicGraphInputEntry(source)) {
     return legacySourceDeclaration("graphPublicInput", source);
   }
@@ -125,21 +157,45 @@ function legacySourceDeclaration(kind, target) {
   });
 }
 
+function descriptorWrappedSourceDeclaration(declaration, descriptor) {
+  return Object.freeze({
+    [FORM_SOURCE_BRAND]: true,
+    kind: declaration.kind,
+    target: descriptor,
+    options: declaration.options,
+    explicit: declaration.explicit,
+  });
+}
+
+function descriptorWrappedLegacySourceDeclaration(kind, descriptor) {
+  return Object.freeze({
+    [FORM_SOURCE_BRAND]: true,
+    kind,
+    target: descriptor,
+    options: Object.freeze({}),
+    explicit: false,
+  });
+}
+
 function isFormSourceDeclaration(value) {
   return !!value && value[FORM_SOURCE_BRAND] === true;
 }
 
 function sourceReader(kind, target) {
+  const normalizedTarget = sourceRuntimeTarget(target);
   if (kind === "graphPublicInput") {
-    return () => cloneFormValue(target.handle());
+    return () => cloneFormValue(normalizedTarget.handle());
   }
   if (kind === "resourceLine") {
-    return () => cloneFormValue(target.value());
+    return () => cloneFormValue(normalizedTarget.value());
   }
   if (kind === "signal") {
-    return () => cloneFormValue(target());
+    return () => cloneFormValue(normalizedTarget());
   }
-  return () => cloneFormValue(readSourceValue(target));
+  if (isSourceDescriptor(target)) {
+    return () => cloneFormValue(readSourceValue(normalizedTarget));
+  }
+  return () => cloneFormValue(readSourceValue(normalizedTarget));
 }
 
 function readSourceValue(source) {
@@ -153,42 +209,53 @@ function readSourceValue(source) {
 }
 
 function defaultSourceId(declaration) {
+  const normalizedTarget = sourceRuntimeTarget(declaration.target);
   if (declaration.kind === "graphPublicInput") {
-    return `graphPublicInput:${declaration.target.handle.id ?? "<anonymous>"}`;
+    return `graphPublicInput:${normalizedTarget.handle.id ?? "<anonymous>"}`;
   }
   if (declaration.kind === "signal") {
-    return `signal:${declaration.target.id ?? "<anonymous>"}`;
+    return `signal:${normalizedTarget.id ?? "<anonymous>"}`;
   }
   if (declaration.kind === "resourceLine") {
-    const descriptor = safeCall(() => declaration.target.descriptor());
+    const descriptor = safeCall(() => normalizedTarget.descriptor());
     return `resourceLine:${stableValueDigest(descriptor)}`;
   }
   return "externalBoundary:<anonymous>";
 }
 
 function sourceIdentity(kind, target) {
+  const normalizedTarget = sourceRuntimeTarget(target);
   if (kind === "graphPublicInput") {
     return Object.freeze({
-      handleId: target.handle.id ?? null,
-      authority: target.authority,
-      requiredness: target.requiredness,
+      handleId: normalizedTarget.handle.id ?? null,
+      authority: normalizedTarget.authority,
+      requiredness: normalizedTarget.requiredness,
     });
   }
   if (kind === "signal") {
     return Object.freeze({
-      signalId: target.id ?? null,
-      signalKind: target[PRODUCT_SIGNAL_KIND] ?? null,
+      signalId: normalizedTarget.id ?? null,
+      signalKind: normalizedTarget[PRODUCT_SIGNAL_KIND] ?? null,
     });
   }
   if (kind === "resourceLine") {
     return Object.freeze({
-      descriptorDigest: stableValueDigest(safeCall(() => target.descriptor())),
-      requestDigest: stableValueDigest(safeCall(() => target.request())),
+      descriptorDigest: stableValueDigest(safeCall(() => normalizedTarget.descriptor())),
+      requestDigest: stableValueDigest(safeCall(() => normalizedTarget.request())),
     });
   }
   return Object.freeze({
-    readable: typeof target === "function" ? "function" : typeof target,
+    readable: typeof normalizedTarget === "function" ? "function" : typeof normalizedTarget,
   });
+}
+
+function sourceRuntimeTarget(target) {
+  if (!isSourceDescriptor(target)) {
+    return target;
+  }
+  return isFormSourceDeclaration(target.value)
+    ? target.value.target
+    : target.value;
 }
 
 function safeCall(callback) {
@@ -249,7 +316,10 @@ function isResourceLine(line) {
 }
 
 function isSourceDescriptor(source) {
-  return source !== null && typeof source === "object" && "value" in source;
+  return source !== null
+    && typeof source === "object"
+    && "value" in source
+    && !isResourceLine(source);
 }
 
 function normalizeSchemaVersion(value) {
@@ -258,3 +328,44 @@ function normalizeSchemaVersion(value) {
   }
   return String(value);
 }
+
+function normalizeSourceBootstrapArtifact(value, dependency) {
+  if (value == null || typeof value !== "object" || Array.isArray(value)) {
+    throw new FormDeclarationError(`form source ${dependency} must be an object`, {
+      value,
+    });
+  }
+  if (!SOURCE_BOOTSTRAP_STATUSES.has(value.status)) {
+    throw new FormDeclarationError(`form source ${dependency} status is not supported`, {
+      status: value.status,
+    });
+  }
+  if (typeof value.reason !== "string" || value.reason.length === 0) {
+    throw new FormDeclarationError(`form source ${dependency} reason must be a non-empty string`, {
+      reason: value.reason,
+    });
+  }
+  if (
+    value.token !== undefined
+    && value.token !== null
+    && typeof value.token !== "string"
+    && typeof value.token !== "number"
+  ) {
+    throw new FormDeclarationError(`form source ${dependency} token must be a string, number, or null`, {
+      token: value.token,
+    });
+  }
+  return Object.freeze({
+    status: value.status,
+    reason: value.reason,
+    token: value.token ?? null,
+  });
+}
+
+const SOURCE_BOOTSTRAP_STATUSES = new Set([
+  "pending",
+  "busy",
+  "settling",
+  "ready",
+  "unavailable",
+]);

@@ -1,6 +1,8 @@
 import { FormDeclarationError } from "./form_errors.js";
 import { materializeActionDeclarations } from "./actions/declarations.js";
+import { createActionRuntimeBindings } from "./actions/runtime_bindings.js";
 import { findActionPlan, planActions } from "./actions/planning.js";
+import { resolveResourceEffectProfileBinding } from "./actions/resource_effect_profile_binding.js";
 import { createActionAttemptStore } from "./actions/results.js";
 import { createActionExecutionStore } from "./actions/execution.js";
 import { readAttachmentPresentationReport } from "./attachments/report.js";
@@ -29,26 +31,38 @@ import { createInteractionStore } from "./interaction/store.js";
 import { readNavigationReport } from "./navigation/report.js";
 import { createNavigationStore } from "./navigation/store.js";
 import { readAccessibilityReport } from "./accessibility/artifacts.js";
+import {
+  materializeFormDeclarationRecord,
+  readFieldContractDiagnostics,
+  readFormDeclarationDiagnostics,
+  readInputAdapterDiagnostics,
+} from "./controller_declaration_diagnostics.js";
 import { readFormDiagnostics } from "./form_diagnostics.js";
+import { createDerivedReportBindings } from "./derived_report_bindings.js";
 import { readLayoutReport } from "./layout/artifacts.js";
 import { materializeMeasurementDeclaration } from "./measurement/declarations.js";
 import { readMeasurementSemanticContext } from "./measurement/semantic_context.js";
 import { createLayoutMeasurementStore } from "./measurement/store.js";
 import { readMediaPresentationReport } from "./media/report.js";
 import { createMediaPresentationStore } from "./media/store.js";
+import { readMessagePresentationReport } from "./messages/report.js";
+import { createMessagePresentationStore } from "./messages/store.js";
 import { createPresentationBindings } from "./presentation/controller_bindings.js";
 import { materializePresentationDeclaration } from "./presentation/declarations.js";
+import { createPresentationRuntimeBindings } from "./presentation/runtime_bindings.js";
+import { createDeclaredPresentationScopeRegistry } from "./presentation/scope_registry.js";
 import { createPresentationStore } from "./presentation/store.js";
+import { createFormResetStore } from "./reset/store.js";
 import { createFieldHandle } from "./fields/handles.js";
 import { evaluateSteps } from "./steps/artifacts.js";
 import { materializeStepDeclarations } from "./steps/declarations.js";
-import { materializeFormSourceAuthority } from "./sources/form_sources.js";
+import { materializeFormSourceAuthority, readSourceBootstrapArtifact } from "./sources/form_sources.js";
+import { readResourceSourceReport, resourceSourceReadinessBlockers } from "./sources/resource_source_report.js";
 import { createSourceCompatibilityStore, sourceCompatibilityBlockers } from "./sources/source_compatibility.js";
-import { buildPatchPlan, dirtyFieldRecords, rawInputBlockers } from "./patching/patch_planning.js";
-import { validationReadinessBlockers, visibleMessages } from "./validation/artifacts.js";
+import { rawInputBlockers } from "./patching/patch_planning.js";
+import { validationReadinessBlockers } from "./validation/artifacts.js";
 import { createAsyncValidationStore } from "./validation/async_execution.js";
 import { materializeValidationDeclarations } from "./validation/declarations.js";
-import { validateForm } from "./validation/execution.js";
 import { cloneFormValue, mergeDraft, stableValueDigest } from "./values/value_paths.js";
 import { buildFormVerificationPackage } from "./verification.js";
 
@@ -88,11 +102,18 @@ export function createFormController(signalNamespace, declaration) {
   const measurementPolicy = materializeMeasurementDeclaration(declaration);
   const layoutMeasurements = createLayoutMeasurementStore(measurementPolicy);
   const media = createMediaPresentationStore();
+  const messages = createMessagePresentationStore();
+  const resets = createFormResetStore();
   const presentationPolicy = materializePresentationDeclaration(declaration);
   const presentationSettlements = createPresentationStore();
+  const presentationScopeRegistry = createDeclaredPresentationScopeRegistry(
+    fieldDeclarations,
+    stepDeclarations,
+    actionDeclarations,
+    availabilityDeclarations,
+  );
   const interactionBindings = createInteractionBindings(interactions, fieldDeclarations);
-  const measurementSemanticCache = { value: null };
-  let form;
+  const measurementSemanticCache = { value: null }; let form;
   const presentationBindings = createPresentationBindings(
     () => form,
     () => syncSourceCompatibility(authoritativeSource()),
@@ -104,7 +125,42 @@ export function createFormController(signalNamespace, declaration) {
     exits,
     attachments,
     media,
+    presentationScopeRegistry,
   );
+  const presentationRuntimeBindings = createPresentationRuntimeBindings({
+    presentationPolicy,
+    presentationBindings,
+    exits,
+    handoffs,
+    attachments,
+    media,
+    messages,
+    scopeRegistry: presentationScopeRegistry,
+    collaborationDeclaration,
+    collaborations,
+  });
+  const actionRuntimeBindings = createActionRuntimeBindings({
+    formRef: () => form,
+    actionAttempts,
+    actionExecutions,
+    asyncValidations,
+    canonicalizations,
+    sourceAuthority,
+    source: declaration.source,
+    fieldDeclarations,
+    setDraft: updateDraft,
+    applyControllerLocalNavigation,
+  });
+  const derivedReportBindings = createDerivedReportBindings({
+    formRef: () => form,
+    syncSourceCompatibility,
+    authoritativeSource,
+    fieldDeclarations,
+    rawInputs,
+    parseFailures,
+    asyncValidations,
+    validationDeclarations, availabilityDeclarations, admissionDeclarations, stepDeclarations, actionDeclarations,
+  });
 
   form = {
     source() {
@@ -116,13 +172,13 @@ export function createFormController(signalNamespace, declaration) {
       return sourceAuthority.diagnostics();
     },
     declaration() {
-      return formDeclarationDiagnostics(formDeclaration, sourceAuthority, fieldDeclarations);
+      return readFormDeclarationDiagnostics(formDeclaration, sourceAuthority, fieldDeclarations);
     },
     fieldContract() {
-      return fieldContractDiagnostics(fieldDeclarations);
+      return readFieldContractDiagnostics(fieldDeclarations);
     },
     inputAdapters() {
-      return inputAdapterDiagnostics(fieldDeclarations);
+      return readInputAdapterDiagnostics(fieldDeclarations);
     },
     draft() {
       syncSourceCompatibility(authoritativeSource());
@@ -133,12 +189,16 @@ export function createFormController(signalNamespace, declaration) {
       syncSourceCompatibility(currentSource);
       return mergeDraft(currentSource, draft);
     },
+    sourceAdmission() { return readSourceBootstrapArtifact(declaration.source, "sourceAdmission"); },
+    draftRestore() { return readSourceBootstrapArtifact(declaration.source, "draftRestore"); },
+    resourceSource() { return readResourceSourceReport(declaration.source); },
     host() { return readHostReport(hostBindings); },
     inputCapabilities() { return readInputCapabilitiesReport(fieldDeclarations); },
     exit() { return readExitPresentationReport(exits, deriveExitPresentationBasis(form)); },
     handoff() { return readHandoffReport(handoffs); },
     attachments() { return readAttachmentPresentationReport(attachments); },
     media() { return readMediaPresentationReport(media); },
+    messages() { return readMessagePresentationReport(messages, form.visibleMessages()); },
     collaboration() { return readCollaborationReport(collaborationDeclaration, collaborations); },
     interaction() { return readInteractionReport(fieldDeclarations, form.host(), interactions); },
     ...interactionBindings,
@@ -153,141 +213,29 @@ export function createFormController(signalNamespace, declaration) {
     acknowledgePresentation: presentationBindings.acknowledgePresentation,
     timeoutPresentation: presentationBindings.timeoutPresentation,
     presentationHistory: presentationBindings.presentationHistory,
-    reportExit(update) { const artifact = exits.report(update); presentationBindings.reportPresentationLane("exit", { ...update, __alreadyTracked: true }); return artifact; },
-    clearExit(options = {}) { const artifact = exits.clear(options.reason ?? null); presentationBindings.clearPresentationLane("exit", { ...options, __alreadyTracked: true }); return artifact; },
-    reportHandoff(update) { const artifact = handoffs.report(update); presentationBindings.reportPresentationLane("handoff", { ...update, __alreadyTracked: true }); return artifact; },
-    clearHandoff(options = {}) { const artifact = handoffs.clear(options.reason ?? null); presentationBindings.clearPresentationLane("handoff", { ...options, __alreadyTracked: true }); return artifact; },
-    reportAttachments(update) { const artifact = attachments.report(update); presentationBindings.reportPresentationLane("attachments", { ...update, __alreadyTracked: true }); return artifact; },
-    clearAttachments(options = {}) { const artifact = attachments.clear(options.reason ?? null); presentationBindings.clearPresentationLane("attachments", { ...options, __alreadyTracked: true }); return artifact; },
-    reportMedia(update) { const artifact = media.report(update); presentationBindings.reportPresentationLane("media", { ...update, __alreadyTracked: true }); return artifact; },
-    clearMedia(options = {}) { const artifact = media.clear(options.reason ?? null); presentationBindings.clearPresentationLane("media", { ...options, __alreadyTracked: true }); return artifact; },
-    reportCollaboration(update) { return collaborations.report(normalizeCollaborationUpdate(collaborationDeclaration, update)); },
-    clearCollaboration(options = {}) { return collaborations.clear(options.reason ?? undefined); },
+    ...presentationRuntimeBindings,
     recordLayoutMeasurement(rows, options = {}) { syncSourceCompatibility(authoritativeSource()); return layoutMeasurements.record(currentMeasurementSemanticContext(), rows, options); },
-    dirty() {
-      syncSourceCompatibility(authoritativeSource());
-      const availability = form.availability();
-      const dirtyFields = dirtyFieldRecords(fieldDeclarations, form, {
-        omittedFields: omittedFieldIds(availability),
-        clearedFields: clearedFieldIds(availability),
-      });
-      return Object.freeze({
-        isDirty: dirtyFields.fields.length > 0,
-        semanticDirty: dirtyFields.fields.length > 0,
-        fields: dirtyFields.fields,
-        equality: dirtyFields.equality,
-        breadth: dirtyFields.breadth,
-      });
-    },
-    patchPlan() {
-      syncSourceCompatibility(authoritativeSource());
-      const availability = form.availability();
-      return buildPatchPlan(fieldDeclarations, form, rawInputs, {
-        omittedFields: omittedFieldIds(availability),
-        clearedFields: clearedFieldIds(availability),
-      });
-    },
-    validation() {
-      syncSourceCompatibility(authoritativeSource());
-      return validateForm(
-        fieldDeclarations,
-        validationDeclarations,
-        form,
-        parseFailures,
-        asyncValidations.artifacts(),
-      );
-    },
-    availability() {
-      syncSourceCompatibility(authoritativeSource());
-      return evaluateAvailability(availabilityDeclarations, form);
-    },
-    admission() {
-      syncSourceCompatibility(authoritativeSource());
-      return evaluateAdmission(admissionDeclarations, form, fieldDeclarations);
-    },
-    visibleMessages() {
-      return visibleMessages(form.validation());
-    },
-    steps() {
-      syncSourceCompatibility(authoritativeSource());
-      return evaluateSteps(stepDeclarations, form);
-    },
-    actions() {
-      syncSourceCompatibility(authoritativeSource());
-      return planActions(actionDeclarations, form, fieldDeclarations);
-    },
+    ...derivedReportBindings,
     actionPlan(actionId) {
       return findActionPlan(actionDeclarations, form, fieldDeclarations, actionId);
     },
-    attemptAction(actionId) {
-      return actionAttempts.attempt(form.actionPlan(actionId));
-    },
-    actionHistory() {
-      return actionAttempts.history();
-    },
-    executeAction(actionId) {
-      const execution = actionExecutions.execute(form.actionPlan(actionId));
-      applyControllerLocalNavigation(execution);
-      return execution;
-    },
-    fulfillAction(operationId, payload = {}) {
-      const previousSource = form.source();
-      const previousDraft = form.draft();
-      const settled = actionExecutions.fulfill(operationId, payload, (actionId) => form.actionPlan(actionId));
-      const canonicalization = canonicalizations.applyFulfilledAction(
-        settled,
-        previousSource,
-        previousDraft,
-        sourceAuthority.read(),
-      );
-      if (canonicalization) {
-        draft = {};
-      }
-      applyControllerLocalNavigation(settled);
-      return settled;
-    },
-    rejectAction(operationId, payload = {}) {
-      return actionExecutions.reject(operationId, payload, (actionId) => form.actionPlan(actionId));
-    },
-    cancelAction(operationId, payload = {}) {
-      return actionExecutions.cancel(operationId, payload);
-    },
-    timeoutAction(operationId, payload = {}) {
-      return actionExecutions.timeout(operationId, payload);
-    },
-    retryAction(operationId) {
-      return actionExecutions.retry(operationId, (actionId) => form.actionPlan(actionId));
-    },
-    actionExecutionHistory() {
-      return actionExecutions.history();
-    },
-    startAsyncValidation(validationId) {
-      return asyncValidations.start(validationId, form);
-    },
-    fulfillAsyncValidation(operationId, payload = {}) {
-      return asyncValidations.fulfill(operationId, payload, form);
-    },
-    rejectAsyncValidation(operationId, payload = {}) {
-      return asyncValidations.reject(operationId, payload, form);
-    },
-    cancelAsyncValidation(operationId, payload = {}) {
-      return asyncValidations.cancel(operationId, payload);
-    },
-    timeoutAsyncValidation(operationId, payload = {}) {
-      return asyncValidations.timeout(operationId, payload);
-    },
-    asyncValidationHistory() {
-      return asyncValidations.history();
-    },
-    canonicalizationHistory() {
-      return canonicalizations.history();
-    },
-    sourceCompatibility() {
-      return syncSourceCompatibility(authoritativeSource());
-    },
+    ...actionRuntimeBindings,
+    sourceCompatibility() { return syncSourceCompatibility(authoritativeSource()); },
     sourceCompatibilityHistory() {
       syncSourceCompatibility(authoritativeSource());
       return sourceCompatibility.history();
+    },
+    reset(options = {}) {
+      return resets.acceptCanonicalValue({ form, writeDraft: updateDraft }, options);
+    },
+    rollbackLastResourceEffect(options = {}) {
+      return resets.rollbackLastResourceEffect(
+        { form, source: declaration.source, writeDraft: updateDraft },
+        options,
+      );
+    },
+    resetHistory() {
+      return resets.history();
     },
     actionReadiness(actionId) {
       return form.actionPlan(actionId).readiness;
@@ -319,6 +267,7 @@ export function createFormController(signalNamespace, declaration) {
       const patchPlan = form.patchPlan();
       const blockers = rawInputBlockers(rawInputs);
       blockers.push(...sourceCompatibilityBlockers(form.sourceCompatibility()));
+      blockers.push(...resourceSourceReadinessBlockers(form.resourceSource()));
       blockers.push(...validationReadinessBlockers(form.validation()));
       blockers.push(...availabilityReadinessBlockers(form.availability()));
       blockers.push(...admissionReadinessBlockers(form.admission()));
@@ -326,6 +275,13 @@ export function createFormController(signalNamespace, declaration) {
       const submitAction = actionDeclarations.find((entry) => entry.id === "submit");
       if (submitAction) {
         blockers.push(...hostRequirementBlockers(form.host(), submitAction.hostRequirements, "submit"));
+        blockers.push(
+          ...resolveResourceEffectProfileBinding(
+            submitAction,
+            form.resourceSource(),
+            "submit",
+          ).blockers,
+        );
       }
       if (patchPlan.empty) {
         blockers.push({
@@ -348,10 +304,7 @@ export function createFormController(signalNamespace, declaration) {
 
   for (const declaration of fieldDeclarations) {
     const handle = createFieldHandle(declaration, form, {
-      writeDraft(nextDraft) {
-        sourceCompatibility.noteDraft(nextDraft, authoritativeSource());
-        draft = nextDraft;
-      },
+      writeDraft: updateDraft,
       interactions,
       rawInputs,
       parseFailures,
@@ -374,6 +327,11 @@ export function createFormController(signalNamespace, declaration) {
 
   function authoritativeSource() {
     return canonicalizations.sourceFor(sourceAuthority.read());
+  }
+
+  function updateDraft(nextDraft) {
+    sourceCompatibility.noteDraft(nextDraft, authoritativeSource());
+    draft = nextDraft;
   }
 
   function syncSourceCompatibility(rawSource) {
@@ -408,78 +366,4 @@ export function createFormController(signalNamespace, declaration) {
     }
     navigation.applyStepAction(plan, form.steps().artifacts);
   }
-}
-
-function materializeFormDeclarationRecord(declaration, sourceAuthority) {
-  if (declaration.id !== undefined && typeof declaration.id !== "string") {
-    throw new FormDeclarationError("form declaration id must be a string when provided");
-  }
-  if (declaration.contract !== undefined && typeof declaration.contract !== "string") {
-    throw new FormDeclarationError("form declaration contract must be a string when provided");
-  }
-  const formId = declaration.id ?? `form:${sourceAuthority.kind}:${sourceAuthority.sourceId}`;
-  return Object.freeze({
-    formId,
-    contract: declaration.contract ?? "phase1-form-declaration-v1",
-  });
-}
-
-function formDeclarationDiagnostics(formDeclaration, sourceAuthority, fieldDeclarations) {
-  const families = {
-    scalar: 0,
-    repeated: 0,
-    attachment: 0,
-  };
-  for (const field of fieldDeclarations) {
-    families[field.family] += 1;
-  }
-  return Object.freeze({
-    formId: formDeclaration.formId,
-    contract: formDeclaration.contract,
-    source: Object.freeze({
-      kind: sourceAuthority.kind,
-      sourceId: sourceAuthority.sourceId,
-    }),
-    fieldFamilies: Object.freeze(families),
-    fieldCount: fieldDeclarations.length,
-  });
-}
-
-function fieldContractDiagnostics(fieldDeclarations) {
-  return Object.freeze(
-    fieldDeclarations.map((field) => ({
-      id: field.id,
-      name: field.name,
-      family: field.family,
-      path: field.path,
-      collectionIdentity: field.collectionIdentity === null
-        ? null
-        : {
-            kind: field.collectionIdentity.kind,
-            field: field.collectionIdentity.field,
-            posture: field.collectionIdentity.posture,
-          },
-      attachment: field.attachment === null
-        ? null
-        : {
-            identityKind: field.attachment.identityKind,
-            identityField: field.attachment.identityField,
-            metadata: field.attachment.metadata,
-            posture: field.attachment.posture,
-          },
-    })),
-  );
-}
-
-function inputAdapterDiagnostics(fieldDeclarations) {
-  return Object.freeze(
-    fieldDeclarations.map((field) => ({
-      field: field.id,
-      path: field.path,
-      family: field.family,
-      tier: field.inputAdapter.tier,
-      capabilities: field.inputAdapter.capabilities,
-      unavailable: field.inputAdapter.unavailable,
-    })),
-  );
 }

@@ -8,17 +8,19 @@ import type {
   FormFieldsBuilder,
   FormPatchPlan,
   FormReadinessBlocker,
+  FormSourceBootstrapArtifact,
   FormSource,
 } from "./core.js";
 import type { FormHostReport } from "./host.js";
 import type { FormHostBindings } from "./host.js";
-import type { FormExitPresentationArtifact, FormExitReport } from "./exit.js";
-import type { FormHandoffPresentationArtifact, FormHandoffReport } from "./handoff.js";
+import type { FormExitReport } from "./exit.js";
+import type { FormHandoffReport } from "./handoff.js";
 import type { FormInputCapabilitiesReport } from "./input_capabilities.js";
-import type { FormAttachmentsReport, FormAttachmentPresentationArtifact } from "./attachments.js";
-import type { FormMediaReport, FormMediaPresentationArtifact } from "./media.js";
+import type { FormResourceSourceReport } from "./resource_source.js";
+import type { FormAttachmentsReport } from "./attachments.js";
+import type { FormMediaReport } from "./media.js";
+import type { FormMessagesReport } from "./messages.js";
 import type {
-  FormCollaborationArtifact,
   FormCollaborationDeclaration,
   FormCollaborationReport,
 } from "./collaboration.js";
@@ -26,14 +28,7 @@ import type { FormInteractionReport } from "./interaction.js";
 import type { FormNavigationReport } from "./navigation.js";
 import type { FormAccessibilityReport } from "./accessibility.js";
 import type { FormLayoutReport } from "./layout.js";
-import type {
-  FormPresentationDeclaration,
-  FormPresentationHistoryArtifact,
-  FormPresentationLifecycleArtifact,
-  FormPresentationLaneUpdateArtifact,
-  FormPresentationReport,
-  FormPresentationSettlementArtifact,
-} from "./presentation.js";
+import type { FormPresentationDeclaration, FormPresentationReport } from "./presentation.js";
 import type {
   FormLayoutMeasurementDeclaration,
   FormLayoutMeasurementReport,
@@ -41,14 +36,7 @@ import type {
   FormLayoutMeasurementCause,
   FormLayoutSnapshotArtifact,
 } from "./measurement.js";
-import type {
-  FormActionsBuilder,
-  FormActionExecutionArtifact,
-  FormActionPlan,
-  FormActionResultArtifact,
-  FormActionsReport,
-} from "./actions.js";
-import type { FormCanonicalizationArtifact } from "./canonicalization.js";
+import type { FormActionsBuilder, FormActionsReport } from "./actions.js";
 import type {
   FormAdmissionBuilder,
   FormAdmissionReport,
@@ -59,8 +47,6 @@ import type {
 } from "./availability.js";
 import type {
   FormMessageArtifact,
-  FormAsyncValidationLifecycleArtifact,
-  FormValidationArtifact,
   FormValidationBuilder,
   FormValidationReport,
 } from "./validation.js";
@@ -73,7 +59,10 @@ import type {
   FormSourceDeclaration,
   FormSourceFactory,
 } from "./sources.js";
+import type { FormResetArtifact } from "./reset.js";
 import type { FormVerificationPackage } from "./verification.js";
+import type { FormControllerActionBindings } from "./controller_actions.js";
+import type { FormControllerPresentationBindings } from "./controller_presentation.js";
 
 export interface FormDeclaration<
   TSource = SignalValue,
@@ -97,7 +86,7 @@ export interface FormDeclaration<
 export interface FormController<
   TSource = SignalValue,
   TFieldHandles extends Record<string, FormFieldHandle> = Record<string, FormFieldHandle>,
-> {
+> extends FormControllerPresentationBindings, FormControllerActionBindings {
   readonly fields: TFieldHandles;
   declaration(): {
     readonly formId: string;
@@ -142,12 +131,16 @@ export interface FormController<
   }>;
   draft(): Partial<TSource>;
   effective(): TSource;
+  sourceAdmission(): FormSourceBootstrapArtifact | null;
+  draftRestore(): FormSourceBootstrapArtifact | null;
+  resourceSource(): FormResourceSourceReport | null;
   host(): FormHostReport;
   inputCapabilities(): FormInputCapabilitiesReport;
   exit(): FormExitReport;
   handoff(): FormHandoffReport;
   attachments(): FormAttachmentsReport;
   media(): FormMediaReport;
+  messages(): FormMessagesReport;
   collaboration(): FormCollaborationReport;
   interaction(): FormInteractionReport;
   reportFieldInteraction(
@@ -174,80 +167,6 @@ export interface FormController<
   accessibility(): FormAccessibilityReport;
   layout(): FormLayoutReport;
   layoutMeasurement(): FormLayoutMeasurementReport;
-  presentation(): FormPresentationReport;
-  presentationLifecycle(laneId?: string): FormPresentationReport | FormPresentationLifecycleArtifact | null;
-  reportPresentationLane(
-    laneId: "collaboration" | "exit" | "attachments" | "media" | "handoff",
-    update: {
-      readonly status: "pending" | "busy" | "settling" | "ready" | "failed" | "unavailable";
-      readonly target?: string | null;
-      readonly reason: string;
-      readonly token?: string | null;
-    },
-  ): FormPresentationLaneUpdateArtifact;
-  clearPresentationLane(
-    laneId: "collaboration" | "exit" | "attachments" | "media" | "handoff",
-    options?: { readonly reason?: string },
-  ): FormPresentationLaneUpdateArtifact;
-  reportExit(update: {
-    readonly status: "pending" | "busy" | "settling" | "ready" | "failed" | "unavailable";
-    readonly target?: string | null;
-    readonly reason: string;
-    readonly token?: string | null;
-    readonly scopeKind?: "route" | "modal" | "external" | null;
-    readonly surfaceId?: string | null;
-    readonly operation?: "generic" | "block" | "confirm" | "dismiss" | "leave" | "stay" | "close";
-    readonly unsupportedReason?: string | null;
-  }): FormExitPresentationArtifact;
-  clearExit(options?: { readonly reason?: string }): FormExitPresentationArtifact;
-  reportHandoff(update: {
-    readonly status: "pending" | "busy" | "settling" | "ready" | "failed" | "unavailable";
-    readonly target?: string | null;
-    readonly reason: string;
-    readonly token?: string | null;
-    readonly scopeKind?: "route" | "modal" | "external" | null;
-    readonly surfaceId?: string | null;
-    readonly operation?: "generic" | "open" | "handoff" | "dismiss" | "return" | "close";
-    readonly unsupportedReason?: string | null;
-  }): FormHandoffPresentationArtifact;
-  clearHandoff(options?: { readonly reason?: string }): FormHandoffPresentationArtifact;
-  reportAttachments(update: {
-    readonly status: "pending" | "busy" | "settling" | "ready" | "failed" | "unavailable";
-    readonly target?: string | null;
-    readonly reason: string;
-    readonly token?: string | null;
-    readonly section?: string | null;
-    readonly selectedCount?: number;
-    readonly stagedCount?: number;
-    readonly failedCount?: number;
-    readonly operation?: "generic" | "select" | "stage" | "preview" | "remove" | "clear";
-  }): FormAttachmentPresentationArtifact;
-  clearAttachments(options?: { readonly reason?: string }): FormAttachmentPresentationArtifact;
-  reportMedia(update: {
-    readonly status: "pending" | "busy" | "settling" | "ready" | "failed" | "unavailable";
-    readonly target?: string | null;
-    readonly reason: string;
-    readonly token?: string | null;
-    readonly mode?: "preview" | "capture" | "crop" | "annotate" | null;
-    readonly surfaceId?: string | null;
-    readonly operation?: "generic" | "open" | "replace" | "annotate" | "close";
-  }): FormMediaPresentationArtifact;
-  clearMedia(options?: { readonly reason?: string }): FormMediaPresentationArtifact;
-  reportCollaboration(update: {
-    readonly posture?: "active" | "blocked" | "settling" | "unavailable";
-    readonly reason?: string;
-    readonly lockOwnerId?: string | null;
-    readonly leasedFields?: ReadonlyArray<{ readonly field: string; readonly ownerId: string }>;
-    readonly branchId?: string | null;
-    readonly readOnly?: boolean;
-    readonly remoteUpdateDigest?: string | null;
-    readonly presence?: ReadonlyArray<{ readonly actorId: string; readonly status: "active" | "idle" | "viewing" }>;
-    readonly comments?: ReadonlyArray<{ readonly id: string; readonly authorId: string; readonly target?: string | null }>;
-  }): FormCollaborationArtifact;
-  clearCollaboration(options?: { readonly reason?: string }): FormCollaborationArtifact;
-  acknowledgePresentation(laneId: string): FormPresentationSettlementArtifact;
-  timeoutPresentation(laneId: string, options?: { readonly reason?: string }): FormPresentationSettlementArtifact;
-  presentationHistory(): ReadonlyArray<FormPresentationHistoryArtifact>;
   recordLayoutMeasurement(
     rows: ReadonlyArray<FormLayoutRowMeasurement>,
     options?: {
@@ -262,47 +181,6 @@ export interface FormController<
   admission(): FormAdmissionReport;
   steps(): FormStepsReport;
   actions(): FormActionsReport;
-  actionPlan(actionId: string): FormActionPlan;
-  attemptAction(actionId: string): FormActionResultArtifact;
-  actionHistory(): ReadonlyArray<FormActionResultArtifact>;
-  executeAction(actionId: string): FormActionExecutionArtifact;
-  fulfillAction(operationId: number, payload?: {
-    readonly reason?: string;
-    readonly messages?: ReadonlyArray<{
-      readonly code: string;
-      readonly target?: string;
-      readonly scope?: string;
-      readonly severity?: string;
-    }>;
-    readonly canonicalValue?: SignalValue;
-  }): FormActionExecutionArtifact;
-  rejectAction(operationId: number, payload?: {
-    readonly reason?: string;
-    readonly messages?: ReadonlyArray<{
-      readonly code: string;
-      readonly target?: string;
-      readonly scope?: string;
-      readonly severity?: string;
-    }>;
-  }): FormActionExecutionArtifact;
-  cancelAction(operationId: number, payload?: { readonly reason?: string }): FormActionExecutionArtifact;
-  timeoutAction(operationId: number, payload?: { readonly reason?: string }): FormActionExecutionArtifact;
-  retryAction(operationId: number): FormActionExecutionArtifact;
-  actionExecutionHistory(): ReadonlyArray<FormActionExecutionArtifact>;
-  startAsyncValidation(validationId: string): FormAsyncValidationLifecycleArtifact;
-  fulfillAsyncValidation(operationId: number, payload?: {
-    readonly reason?: string;
-    readonly artifact?: FormValidationArtifact;
-  }): FormAsyncValidationLifecycleArtifact;
-  rejectAsyncValidation(operationId: number, payload?: {
-    readonly reason?: string;
-    readonly code?: string;
-    readonly artifact?: FormValidationArtifact;
-  }): FormAsyncValidationLifecycleArtifact;
-  cancelAsyncValidation(operationId: number, payload?: { readonly reason?: string }): FormAsyncValidationLifecycleArtifact;
-  timeoutAsyncValidation(operationId: number, payload?: { readonly reason?: string }): FormAsyncValidationLifecycleArtifact;
-  asyncValidationHistory(): ReadonlyArray<FormAsyncValidationLifecycleArtifact>;
-  canonicalizationHistory(): ReadonlyArray<FormCanonicalizationArtifact>;
   sourceCompatibility(): {
     readonly posture: "notDeclared" | "current" | "compatible" | "migrated" | "unavailable";
     readonly currentSchemaVersion: string | null;
@@ -369,12 +247,14 @@ export interface FormController<
     readonly validation: FormValidationReport;
     readonly availability: FormAvailabilityReport;
     readonly admission: FormAdmissionReport;
+    readonly resourceSource: FormResourceSourceReport | null;
     readonly host: FormHostReport;
     readonly inputCapabilities: FormInputCapabilitiesReport;
     readonly exit: FormExitReport;
     readonly handoff: FormHandoffReport;
     readonly attachments: FormAttachmentsReport;
     readonly media: FormMediaReport;
+    readonly messages: FormMessagesReport;
     readonly collaboration: FormCollaborationReport;
     readonly interaction: FormInteractionReport;
     readonly navigation: FormNavigationReport;
@@ -392,6 +272,7 @@ export interface FormController<
     readonly presentationHistory: ReadonlyArray<FormPresentationHistoryArtifact>;
     readonly asyncValidationHistory: ReadonlyArray<FormAsyncValidationLifecycleArtifact>;
     readonly canonicalizationHistory: ReadonlyArray<FormCanonicalizationArtifact>;
+    readonly resetHistory: ReadonlyArray<FormResetArtifact>;
     readonly sourceCompatibilityHistory: ReturnType<FormController<TSource, TFieldHandles>["sourceCompatibilityHistory"]>;
     readonly verification: FormVerificationPackage;
   };

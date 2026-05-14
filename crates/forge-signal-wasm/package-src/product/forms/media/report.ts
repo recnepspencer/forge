@@ -5,6 +5,7 @@ export function readMediaPresentationReport(store) {
   const history = store.history();
   const summary = Object.freeze({
     status: current?.status ?? "ready",
+    scopeKind: current?.scopeKind ?? null,
     mode: current?.mode ?? null,
     surfaceId: current?.surfaceId ?? null,
     activeTarget: current?.target ?? null,

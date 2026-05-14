@@ -7,6 +7,7 @@ import type { FormHostReport } from "./host.js";
 import type { FormExitReport } from "./exit.js";
 import type { FormHandoffReport } from "./handoff.js";
 import type { FormAttachmentsReport } from "./attachments.js";
+import type { FormMessagesReport } from "./messages.js";
 import type { FormMediaReport } from "./media.js";
 import type { FormCollaborationReport } from "./collaboration.js";
 import type { FormInteractionReport } from "./interaction.js";
@@ -16,6 +17,7 @@ import type { FormLayoutReport } from "./layout.js";
 import type { FormLayoutMeasurementReport } from "./measurement.js";
 import type { FormPresentationReport } from "./presentation.js";
 import type { FormInputCapabilitiesReport } from "./input_capabilities.js";
+import type { FormResourceSourceReport } from "./resource_source.js";
 import type { FormSourceAuthorityDiagnostics } from "./sources.js";
 
 export interface FormVerificationPackage {
@@ -23,6 +25,17 @@ export interface FormVerificationPackage {
   readonly digests: {
     readonly sourceAuthorityDigest: string;
     readonly sourceAuthorityContractDigest: string;
+    readonly sourceAdmissionDigest: string;
+    readonly draftRestoreDigest: string;
+    readonly resourceSourceDigest: string | null;
+    readonly resourceEffectProfileDigest: string;
+    readonly resourceVisibleBranchSelectionDigest: string;
+    readonly resourceVerificationPackageDigest: string | null;
+    readonly resourceEffectCloseoutMatrixDigest: string | null;
+    readonly resourceMutationResponseDigest: string | null;
+    readonly resourceMutationResponseConfirmationDigest: string | null;
+    readonly resourceMutationResponseTargetOutcomeDigest: string | null;
+    readonly resourceMutationResponseCloseoutMatrixDigest: string | null;
     readonly sourceValueDigest: string;
     readonly formDeclarationDigest: string;
     readonly fieldContractDigest: string;
@@ -32,6 +45,7 @@ export interface FormVerificationPackage {
     readonly exitDigest: string;
     readonly handoffDigest: string;
     readonly attachmentDigest: string;
+    readonly messageDigest: string;
     readonly mediaDigest: string;
     readonly collaborationDigest: string;
     readonly interactionDigest: string;
@@ -63,6 +77,9 @@ export interface FormVerificationPackage {
     readonly actionExecutionLifecycleDigest: string;
     readonly asyncValidationLifecycleDigest: string;
     readonly canonicalizationDigest: string;
+    readonly resetRollbackDigest: string;
+    readonly resetHistoryDigest: string;
+    readonly mutationResponseReconciliationDigest: string;
     readonly sourceCompatibilityHistoryDigest: string;
     readonly presentationHistoryDigest: string;
     readonly diagnosticsHistoryDigest: string;
@@ -92,6 +109,10 @@ export interface FormVerificationPackage {
     readonly operations: number;
     readonly digest: string;
   };
+  readonly resetHistory: {
+    readonly operations: number;
+    readonly digest: string;
+  };
   readonly presentationHistory: {
     readonly operations: number;
     readonly digest: string;
@@ -107,14 +128,17 @@ export interface FormVerificationPackage {
     readonly actionExecutionOperations: number;
     readonly asyncValidationOperations: number;
     readonly canonicalizationOperations: number;
+    readonly resetOperations: number;
     readonly interactionOperations: number;
     readonly navigationOperations: number;
     readonly sourceCompatibilityOperations: number;
+    readonly resourceSource: FormResourceSourceReport["counters"] | null;
     readonly hostFacts: FormHostReport["counters"];
     readonly inputCapabilities: FormInputCapabilitiesReport["counters"];
     readonly exit: FormExitReport["counters"];
     readonly handoff: FormHandoffReport["counters"];
     readonly attachments: FormAttachmentsReport["counters"];
+    readonly messages: FormMessagesReport["counters"];
     readonly media: FormMediaReport["counters"];
     readonly collaboration: FormCollaborationReport["counters"];
     readonly interaction: FormInteractionReport["counters"];

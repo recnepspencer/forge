@@ -105,6 +105,9 @@ function externalLaneArtifact(artifactId, laneId, lane, scope, update, source) {
     target: update.target ?? null,
     reason: update.reason,
     token: update.token ?? null,
+    section: update.section ?? null,
+    scopeKind: update.scopeKind ?? null,
+    surfaceId: update.surfaceId ?? null,
     supersededByToken: update.supersededByToken ?? null,
     source,
   };

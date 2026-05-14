@@ -169,12 +169,13 @@ function controllerLocalNavigationLane(policy, navigation, settlements, nowMs) {
   );
 }
 
-export function acknowledgedOrSettlingLane(id, lane, policy, target, token, settlements, nowMs, settlingObservedAtMs) {
+export function acknowledgedOrSettlingLane(id, lane, policy, target, token, settlements, nowMs, settlingObservedAtMs, dependencies = null) {
   if (policy.settlementAcknowledgement !== "required") {
     return baseLane(id, lane, policy.scope, policy, "ready", {
       target,
       token,
       reason: `${target} presentation settled without acknowledgement`,
+      dependencies,
     });
   }
   const settlement = settlements.settlementFor(id, token);
@@ -193,6 +194,7 @@ export function acknowledgedOrSettlingLane(id, lane, policy, target, token, sett
       reason: `${target} presentation settlement timed out`,
       settlement: timedOutSettlement,
       acknowledgementRequired: true,
+      dependencies,
     });
   }
   if (settlement?.resultKind === "acknowledged") {
@@ -202,6 +204,7 @@ export function acknowledgedOrSettlingLane(id, lane, policy, target, token, sett
       reason: `${target} presentation settlement was acknowledged`,
       settlement,
       acknowledgementRequired: true,
+      dependencies,
     });
   }
   if (settlement?.resultKind === "timedOut") {
@@ -211,6 +214,7 @@ export function acknowledgedOrSettlingLane(id, lane, policy, target, token, sett
       reason: `${target} presentation settlement timed out`,
       settlement,
       acknowledgementRequired: true,
+      dependencies,
     });
   }
   return baseLane(id, lane, policy.scope, policy, "settling", {
@@ -218,6 +222,7 @@ export function acknowledgedOrSettlingLane(id, lane, policy, target, token, sett
     token,
     reason: `${target} semantic fulfillment is complete but visible settlement still needs acknowledgement`,
     acknowledgementRequired: true,
+    dependencies,
   });
 }
 
@@ -237,5 +242,7 @@ export function baseLane(id, lane, scope, policy, status, options) {
       status: settlement?.resultKind ?? "pending",
       settlementDigest: settlement?.settlementDigest ?? null,
     }),
+    bootstrap: options.bootstrap ?? null,
+    dependencies: options.dependencies ?? null,
   });
 }

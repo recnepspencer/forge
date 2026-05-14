@@ -87,6 +87,8 @@ test("signals.form exit visibility keeps pending action guard explicit and gener
       target: "route-exit",
       reason: "generic route exit guard is active",
       token: "exit-2",
+      scopeKind: "route",
+      surfaceId: "route-exit",
     });
     assert.equal(form.exit().summary.activeTarget, "route-exit");
 
@@ -123,6 +125,7 @@ test("signals.form exit visibility denies malformed scope and operation metadata
           status: "busy",
           reason: "bad scope",
           scopeKind: "teleport",
+          surfaceId: "route-exit",
         }),
       /scope kind is not supported/,
     );
@@ -132,9 +135,21 @@ test("signals.form exit visibility denies malformed scope and operation metadata
         form.reportExit({
           status: "busy",
           reason: "bad operation",
+          scopeKind: "route",
+          surfaceId: "route-exit",
           operation: "warp",
         }),
       /operation is not supported/,
+    );
+
+    assert.throws(
+      () =>
+        form.reportExit({
+          status: "busy",
+          reason: "missing surface id",
+          scopeKind: "route",
+        }),
+      /exit presentation surfaceId must be a non-empty string/,
     );
   } finally {
     await cleanup();

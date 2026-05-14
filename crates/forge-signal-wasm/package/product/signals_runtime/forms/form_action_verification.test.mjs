@@ -127,6 +127,44 @@ test("signals.form verification package carries source compatibility history and
   }
 });
 
+test("signals.form verification package carries source admission and draft restore digests", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const signals = wrapSignals(createGraphOperationalRuntime());
+    const form = signals.form({
+      source: {
+        value: { title: "Ship docs" },
+        sourceAdmission: {
+          status: "ready",
+          reason: "source admission is settled",
+        },
+        draftRestore: {
+          status: "pending",
+          reason: "draft restore is replaying local edits",
+          token: "draft-restore-1",
+        },
+      },
+      fields: ({ field }) => ({
+        title: field("title"),
+      }),
+      presentation: {
+        entry: {
+          bootstrap: {
+            sourceAdmission: true,
+            draftRestore: true,
+          },
+        },
+      },
+    });
+
+    const verification = form.verification();
+    assert.equal(typeof verification.digests.sourceAdmissionDigest, "string");
+    assert.equal(typeof verification.digests.draftRestoreDigest, "string");
+  } finally {
+    await cleanup();
+  }
+});
+
 test("signals.form verification package carries host fact digests and counters", async () => {
   const loaded = await loadSignalsModule();
   const {
@@ -224,6 +262,60 @@ test("signals.form verification package carries collaboration digests and counte
     assert.equal(verification.performanceEnvelope.collaboration.presenceActors, 1);
     assert.equal(verification.performanceEnvelope.collaboration.commentArtifacts, 1);
     assert.equal(form.diagnostics().collaboration.digest, form.collaboration().digest);
+  } finally {
+    await cleanup();
+  }
+});
+
+test("signals.form verification package carries reset and rollback digests for resource-backed canonicalization", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const signals = wrapSignals(createGraphOperationalRuntime());
+    const {
+      createDetailPatchLineFixture,
+      createMutationResponsePlanFixture,
+    } = await import("./resource_source/resource_line_fixture.mjs");
+    const source = createDetailPatchLineFixture({
+      effectProfile: signals.resource.effects.branchNative(),
+      initialValue: {
+        title: "Ship docs",
+        status: "draft",
+      },
+      mutationResponse: createMutationResponsePlanFixture({
+        confirmationKind: "partialCanonicalTruth",
+        fallbackKind: "partialReconciliation",
+      }),
+    });
+    const form = signals.form({
+      source: signals.form.source.resourceLine(source, { id: "verification-resource-submit" }),
+      fields: ({ field }) => ({
+        title: field("title"),
+        status: field("status"),
+      }),
+    });
+
+    form.fields.title.set("Published docs");
+    const execution = form.executeAction("submit");
+    const verification = form.verification();
+    assert.equal(execution.resultKind, "fulfilled");
+    assert.equal(typeof verification.digests.resetRollbackDigest, "string");
+    assert.equal(typeof verification.digests.resourceMutationResponseDigest, "string");
+    assert.equal(typeof verification.digests.resourceMutationResponseConfirmationDigest, "string");
+    assert.equal(typeof verification.digests.resourceMutationResponseTargetOutcomeDigest, "string");
+    assert.equal(typeof verification.digests.mutationResponseReconciliationDigest, "string");
+    assert.equal(
+      verification.digests.resetRollbackDigest,
+      form.verification().digests.resetRollbackDigest,
+    );
+    assert.equal(form.canonicalizationHistory()[0].resourceBacked.rollback.kind, "compactInverseAvailable");
+    assert.equal(
+      verification.digests.resourceMutationResponseDigest,
+      form.resourceSource().mutationResponse.digest,
+    );
+    assert.equal(
+      form.canonicalizationHistory()[0].resourceBacked.mutationResponse.confirmationKind,
+      "partialCanonicalTruth",
+    );
   } finally {
     await cleanup();
   }

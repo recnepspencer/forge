@@ -190,7 +190,7 @@ test("signals.form action result artifacts preserve blocker recovery hints", asy
   try {
     const signals = wrapSignals(createGraphOperationalRuntime());
     const form = signals.form({
-      source: { title: "" },
+      source: { title: "Ship docs" },
       fields: ({ field }) => ({
         title: field("title"),
       }),
@@ -212,7 +212,6 @@ test("signals.form action result artifacts preserve blocker recovery hints", asy
       }),
     });
 
-    form.fields.title.set("draft");
     form.fields.title.set("");
 
     const result = form.attemptAction("submit");
@@ -220,7 +219,7 @@ test("signals.form action result artifacts preserve blocker recovery hints", asy
     assert.equal(result.planDigest, form.actionPlan("submit").planDigest);
     assert.deepEqual(
       result.recoveryActions.map((action) => action.kind),
-      ["editField", "resetField", "focusFirstActionableBlocker"],
+      ["editField", "resetField", "focusFirstActionableBlocker", "acceptCanonicalValue"],
     );
     assert.equal(typeof result.resultDigest, "string");
     assert.ok(result.resultDigest.length > 0);

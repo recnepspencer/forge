@@ -1,5 +1,6 @@
 import { FormDeclarationError } from "../form_errors.js";
 import { cloneFormValue, stableValueDigest } from "../values/value_paths.js";
+import { requireDeclaredValidationMessageTarget } from "../messages/targets.js";
 import { requireDeclaredField } from "./declarations.js";
 
 const VALIDATION_KINDS = new Set([
@@ -66,7 +67,7 @@ export function normalizeValidationArtifact(artifact, declaration = null, declar
   return Object.freeze({
     kind: artifact.kind,
     field,
-    message: normalizeMessage(artifact.message, field),
+    message: normalizeMessage(artifact.message, field, declaredFieldIds),
     ...(artifact.rawDigest === undefined ? {} : { rawDigest: artifact.rawDigest }),
   });
 }
@@ -135,7 +136,7 @@ function validArtifact(field, value) {
   });
 }
 
-function normalizeMessage(message, target) {
+function normalizeMessage(message, target, declaredFieldIds) {
   if (!message || typeof message !== "object") {
     throw new FormDeclarationError("validation message artifacts require a message object");
   }
@@ -147,11 +148,13 @@ function normalizeMessage(message, target) {
       message,
     });
   }
+  const messageTarget = message.target ?? target;
+  requireDeclaredValidationMessageTarget(declaredFieldIds, messageTarget);
   return Object.freeze({
     code: requireNonEmptyString(message.code, "validation message code"),
     ...(message.message === undefined ? {} : { message: String(message.message) }),
     severity,
-    target: message.target ?? target,
+    target: messageTarget,
     audience,
     visibility,
     ...(message.accessibility === undefined ? {} : { accessibility: cloneFormValue(message.accessibility) }),

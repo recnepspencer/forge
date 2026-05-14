@@ -24,6 +24,9 @@ test("signals.form keeps semantic action fulfillment distinct from visible prese
     });
 
     form.fields.title.set("Ship docs now");
+    form.fields.title.set("Ship docs draft");
+    form.fields.title.set("Ship docs draft");
+    form.fields.title.set("Ship docs draft");
     const execution = form.executeAction("submit");
     assert.equal(execution.resultKind, "pending");
     assert.equal(form.presentationLifecycle("action:submit").status, "busy");
@@ -197,6 +200,7 @@ test("signals.form only emits a dedicated acknowledgement digest when settlement
     });
 
     form.fields.title.set("Ship docs now");
+    form.fields.title.set("Ship docs draft");
     const execution = form.executeAction("submit");
     form.fulfillAction(execution.operationId, {
       canonicalValue: { title: "Ship docs now" },
@@ -207,6 +211,179 @@ test("signals.form only emits a dedicated acknowledgement digest when settlement
     assert.equal(presentation.acknowledgements.digest, null);
     assert.equal(form.verification().digests.presentationSettlementAcknowledgementDigest, null);
     assert.equal(form.presentationLifecycle("action:submit").status, "ready");
+  } finally {
+    await cleanup();
+  }
+});
+
+test("signals.form action presentation can remain busy until declared visible settlement dependencies complete", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const signals = wrapSignals(createGraphOperationalRuntime());
+    const form = signals.form({
+      source: { title: "Ship docs" },
+      fields: ({ field }) => ({
+        title: field("title", { row: "main" }),
+      }),
+      actions: ({ submit }) => ({
+        submit: submit({
+          hostEffect: "workflow.save",
+        }),
+      }),
+      presentation: {
+        action: {
+          delayedBusyRevealMs: 0,
+          minimumBusyMs: 0,
+          settleOn: ["canonicalization", "layout", "messages", "focusTarget", "handoff"],
+        },
+        canonicalization: {
+          settlementAcknowledgement: "required",
+        },
+      },
+    });
+
+    form.fields.title.set("Ship docs draft");
+    const execution = form.executeAction("submit");
+    form.fulfillAction(execution.operationId, {
+      canonicalValue: { title: "" },
+    });
+
+    const waitingLane = form.presentationLifecycle("action:submit");
+    assert.equal(waitingLane.status, "busy");
+    assert.deepEqual(
+      waitingLane.dependencies.required.map((dependency) => dependency.dependency),
+      ["canonicalization", "layout", "messages", "focusTarget", "handoff"],
+    );
+    assert.deepEqual(
+      waitingLane.dependencies.blocking.map((dependency) => dependency.dependency).sort(),
+      ["canonicalization", "layout"],
+    );
+    assert.deepEqual(
+      waitingLane.dependencies.satisfied.map((dependency) => dependency.dependency).sort(),
+      ["focusTarget", "handoff", "messages"],
+    );
+
+    form.reportMessages({
+      status: "settling",
+      reason: "save toast is still visible",
+      channel: "toast",
+      visibleCount: 1,
+    });
+    const toastWaitingLane = form.presentationLifecycle("action:submit");
+    assert.equal(toastWaitingLane.status, "busy");
+    assert.deepEqual(
+      toastWaitingLane.dependencies.blocking.map((dependency) => dependency.dependency).sort(),
+      ["canonicalization", "layout", "messages"],
+    );
+
+    form.recordLayoutMeasurement([
+      {
+        row: "main",
+        labelHeight: 18,
+        controlHeight: 32,
+        messageHeight: 18,
+      },
+    ], {
+      cause: "animationFrame",
+      frameToken: "frame-1",
+    });
+    assert.equal(form.presentationLifecycle("action:submit").status, "busy");
+
+    form.acknowledgePresentation("canonicalization");
+    assert.equal(form.presentationLifecycle("action:submit").status, "busy");
+
+    form.clearMessages({ reason: "toast dismissed" });
+    const settlingLane = form.presentationLifecycle("action:submit");
+    assert.equal(settlingLane.status, "settling");
+    assert.equal(settlingLane.dependencies.blocking.length, 0);
+    assert.equal(typeof settlingLane.dependencies.digest, "string");
+
+    form.acknowledgePresentation("action:submit");
+    assert.equal(form.presentationLifecycle("action:submit").status, "ready");
+  } finally {
+    await cleanup();
+  }
+});
+
+test("signals.form action presentation reports unavailable when a declared focus-target dependency cannot be honored", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const signals = wrapSignals(createGraphOperationalRuntime());
+    const form = signals.form({
+      source: { title: "Ship docs" },
+      fields: ({ field }) => ({
+        title: field("title", {
+          inputAdapter: {
+            tier: "externalImperative",
+            reportsFocus: false,
+          },
+        }),
+      }),
+      validation: ({ field }) => ({
+        titleRequired: field("title", (value) => (
+          value.trim().length > 0
+            ? true
+            : {
+              kind: "invalid",
+              message: {
+                code: "title.required",
+                target: "title",
+                visibility: "visible",
+                severity: "error",
+              },
+            }
+        )),
+      }),
+      actions: ({ submit }) => ({
+        submit: submit({
+          hostEffect: "workflow.save",
+        }),
+      }),
+      presentation: {
+        action: {
+          delayedBusyRevealMs: 0,
+          minimumBusyMs: 0,
+          settleOn: ["focusTarget"],
+        },
+      },
+    });
+
+    form.fields.title.set("Ship docs draft");
+    const execution = form.executeAction("submit");
+    form.fulfillAction(execution.operationId, {
+      canonicalValue: { title: "" },
+    });
+
+    const lane = form.presentationLifecycle("action:submit");
+    assert.equal(lane.status, "unavailable");
+    assert.deepEqual(
+      lane.dependencies.unavailable.map((dependency) => dependency.dependency),
+      ["focusTarget"],
+    );
+    assert.match(lane.dependencies.unavailable[0].reason, /focus target is unavailable/);
+  } finally {
+    await cleanup();
+  }
+});
+
+test("signals.form only admits action settlement dependencies on the action presentation lane", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const signals = wrapSignals(createGraphOperationalRuntime());
+    assert.throws(
+      () => signals.form({
+        source: { title: "Ship docs" },
+        fields: ({ field }) => ({
+          title: field("title"),
+        }),
+        presentation: {
+          messages: {
+            settleOn: ["layout"],
+          },
+        },
+      }),
+      /settlement dependencies are only supported for action/,
+    );
   } finally {
     await cleanup();
   }
