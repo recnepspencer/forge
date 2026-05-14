@@ -8,6 +8,7 @@ pub enum CanonicalBasisDomain {
     Identity,
     Locator,
     Profile,
+    BoundaryArtifact,
     CompatibilityLowering,
     Future(&'static str),
 }

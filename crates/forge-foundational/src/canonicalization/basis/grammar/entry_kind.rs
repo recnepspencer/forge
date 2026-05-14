@@ -10,6 +10,8 @@ pub enum CanonicalBasisEntryKind {
     Identity,
     Locator,
     Profile,
+    BoundaryArtifact,
+    BoundaryAttachment,
     CompatibilityOrigin,
     Cost,
     Future(&'static str),

@@ -17,6 +17,7 @@ fn facade_exposes_named_responsibility_topology() {
             "compatibility_bridges",
             "canonical_ordering_and_equality",
             "profiles",
+            "boundary_artifacts",
         ]
     );
 

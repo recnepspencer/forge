@@ -418,6 +418,16 @@ local dialects.
 
 ## Milestone 4: Boundary Artifact Taxonomy And Materialization Contracts
 
+Detailed spec: [`milestone-4.md`](milestone-4.md)
+Closeout: [`milestone-4-closeout.md`](milestone-4-closeout.md)
+
+The detailed spec is authoritative for Milestone 4 closure. In particular, it
+expands this roadmap summary by treating category vocabulary, role/authority
+law, materialization seams, canonical basis participation, planned-work and
+same-family descriptive extension room, and production-test readiness as
+distinct responsibilities. Milestone 4 makes boundary artifact meaning
+canonical while preserving crate-local materialization mechanics.
+
 ### Goal
 
 Standardize the shared artifact categories and the contracts for materializing
@@ -506,6 +516,8 @@ crate-local optimized state into canonical boundary-facing forms.
   substitutions where the API can enforce them
 
 ## Milestone 5: Branching, Merging, And Commit Vocabulary
+
+Detailed spec: [`milestone-5.md`](milestone-5.md)
 
 ### Goal
 

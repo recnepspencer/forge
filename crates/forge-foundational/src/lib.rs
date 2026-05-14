@@ -15,6 +15,7 @@
 
 mod aspects;
 mod boundary;
+mod boundary_artifacts;
 mod canonicalization;
 mod compatibility;
 pub mod facade;

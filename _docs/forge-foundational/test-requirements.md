@@ -241,6 +241,25 @@ Required misuse-pressure families:
   cannot be substituted across statically distinct target kinds
 - support-only, descriptive-only, or reduced-richness outputs cannot satisfy
   APIs requiring stronger evidence, authority, or forensic breadth
+- friendly authoring APIs cannot silently bypass lower plan, proof, bundle, or
+  authority boundaries through convenience entrypoints that weaken the visible
+  seam
+- ambient basis choice cannot silently replace explicit observation,
+  comparison, merge-base, correspondence, remap, or strategy basis where that
+  basis materially shaped truth
+- thin receipts cannot be constructed by omitting required parentage, delta,
+  authority-class, basis, or strategy evidence that a blind consumer needs to
+  interpret the transition
+- hidden strategy influence cannot shape merge verdicts, committed authority,
+  or receipts without remaining structurally visible in the resulting artifact
+- generic transition result bags cannot replace typed branch-local, merge,
+  committed-authority, receipt, discard, or bundle surfaces
+- convenience helpers cannot silently perform planning, authority crossing,
+  receipt issuance, current-basis strengthening, or bundle materialization in a
+  single cheap-looking step that removes inspectable boundaries
+- candidate, merge-verdict, committed-authority, receipt, discard, and bundle
+  surfaces cannot collapse back into one shared body shape with marker-only
+  differentiation
 
 These tests may be compile-fail, runtime hostility, or both, but the suite
 must make the misuse class explicit rather than relying on incidental coverage
@@ -470,15 +489,26 @@ Must prove:
 
 - `Summary`, `Report`, `Artifact`, and `Receipt` categories are not
   interchangeable
+- `Summary`, `Report`, `Artifact`, and `Receipt` cannot collapse into one
+  generic payload wrapper with marker-only differentiation
 - authoritative, derived, projected, planned, descriptive, support-only, and
   receipt-bearing surfaces remain distinct where they matter
 - materialization boundaries are explicit and cannot masquerade as cheap
   getters
+- common-path authoring, advanced planning, and authority-shaped
+  materialization remain distinct API lanes rather than collapsing into one
+  convenience surface
 - reduced-richness profiles suppress optional materialization at named seams
+- delivery class, availability, and materialization-decision surfaces remain
+  explicit and interpretable before materialization
 - plan-shaped artifacts cannot be confused with execution receipts
 - support-only descriptions cannot be passed as authoritative truth
 - branch/merge/commit authority-transition evidence is not smuggled through a
   generic `Artifact` or `Receipt` category
+- coordinated multi-surface bundles preserve member legality, reject duplicate
+  or incoherent members, and do not become arbitrary collections
+- materialization decision rows remain structured, canonical, and sufficient
+  for blind-consumer explanation without producer-private prose
 
 ### Branching, Merging, And Commits
 
@@ -502,6 +532,19 @@ Must prove:
   construction paths
 - replay/export consumers can interpret commit parentage, merge basis, conflict
   loci, and committed deltas without producer-private state
+- observation/comparison/merge-base/correspondence/remap basis cannot be left
+  ambient when they materially shaped the merge verdict, committed authority,
+  or receipt
+- strategy-bearing merge or commit meaning cannot disappear between merge
+  planning, committed authority, and receipt issuance
+- no cheap convenience path can bypass inspectable merge planning, proof-bearing
+  authority crossing, or receipt issuance boundaries while still claiming the
+  same authority meaning
+- discard or non-authoritative closeout evidence cannot masquerade as committed
+  authority or commit receipt evidence
+- branch-local, merge, committed-authority, receipt, discard, and transition
+  bundle surfaces cannot collapse into one generic transition wrapper with
+  status-like tags
 
 ### Diagnostics And Explanation
 
@@ -560,6 +603,10 @@ Required scenario families:
   state
 - report/artifact/receipt category separation over one simulated authority
   boundary
+- common-path materialization plus advanced plan inspection plus
+  authority-shaped admission over one simulated authority boundary
+- multi-surface bundle materialization over one simulated authority boundary,
+  proving bundle legality and member-category preservation
 - branch candidate plus merge verdict plus commit receipt plus digest basis
   over one simulated authority transition
 - reduced-richness branch/merge materialization over the same committed
@@ -628,10 +675,17 @@ A milestone is ready for production-shaped testing only if:
 - every certified surface has at least one hostile local producer and one blind
   consumer test
 - every adjacent category has a negative substitution test
+- every boundary-authoring lane that looks cheap has a corresponding lower
+  plan/proof lane and tests proving the cheap lane cannot bypass the stronger
+  one
 - every runtime-shaped surface has explicit staged/candidate versus committed
   authority separation where that distinction applies
 - every profile-sensitive surface proves reduced richness cannot change
   authority-bearing outcomes
+- every bundle-shaped surface proves member legality, member-category
+  preservation, and duplicate-member rejection
+- every decision-row explanation surface proves blind-consumer interpretability
+  without producer-private context
 - every golden artifact compares semantic canonical form rather than debug text
 - every expensive materialization path is named as a boundary and tested as a
   boundary
@@ -640,6 +694,9 @@ A milestone is ready for production-shaped testing only if:
 - every likely misuse class that could silently weaken meaning is either proven
   impossible, proven compile-rejected, or named in
   `runtime_adoption_failure_pressures`
+- every Milestone 5 transition surface proves that basis choice, strategy
+  influence, authority crossing, receipt issuance, and discard/closeout remain
+  explicit seams rather than cheap-looking ambient behavior
 
 Production-shaped tests may assume:
 
@@ -713,6 +770,16 @@ The test suite must fail if any of these become possible:
 - a commit receipt can be constructed without authority-transition proof
 - merge conflict, denial, advisory, stale-basis, and accepted outcomes collapse
   into a boolean
+- observation/comparison/merge-base/correspondence/remap basis that materially
+  shaped a transition can disappear into ambient runtime state
+- strategy-bearing transition meaning can disappear between merge planning,
+  committed authority, and receipt issuance
+- thin receipts can omit parentage, delta, basis, authority-class, or strategy
+  evidence needed by a blind consumer
+- discard or non-authoritative closeout evidence can satisfy committed-authority
+  or receipt APIs
+- a generic transition result bag can stand in for typed branch-local, merge,
+  committed-authority, receipt, discard, or bundle surfaces
 - digest-preparation input can be built from an insertion-order-dependent path
 - reduced-richness profiles change authoritative outcomes
 - requested, admitted, and materialized profile meaning collapse into one

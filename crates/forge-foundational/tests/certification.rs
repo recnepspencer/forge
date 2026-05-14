@@ -7,6 +7,9 @@ mod aspects;
 #[path = "certification/boundary/mod.rs"]
 mod boundary;
 
+#[path = "certification/boundary_artifacts/mod.rs"]
+mod boundary_artifacts;
+
 #[path = "certification/canonicalization/mod.rs"]
 mod canonicalization;
 
