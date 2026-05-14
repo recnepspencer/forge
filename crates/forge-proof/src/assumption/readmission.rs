@@ -160,7 +160,10 @@ mod tests {
         FreshnessScopedBasis,
     };
     use crate::phase::PhaseMarker;
-    use crate::proof::{mint_authority_witness, mint_proof, AuthorityMarker, CanonicalOrder};
+    use crate::proof::{
+        mint_authority_witness, mint_proof, AuthorityMarker, CanonicalOrder,
+        StructuralProofAuthority,
+    };
     use crate::recipe::{Admitted, Lowered, Recipe, Resolved};
 
     struct ValidatedPhase;
@@ -181,7 +184,7 @@ mod tests {
     fn artifact_trust_boundary_bridge_and_readmission_preserve_payload_and_proofs() {
         let artifact = Artifact::<ValidatedPhase, _, _, _>::with_state(
             "payload",
-            mint_proof::<CanonicalOrder>(),
+            mint_proof::<CanonicalOrder, StructuralProofAuthority>(),
             FreshnessScopedBasis::<CurrentValidity, _>::new(AssumptionBasis::new(7_u8)),
         );
 

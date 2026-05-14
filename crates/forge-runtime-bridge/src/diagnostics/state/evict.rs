@@ -63,6 +63,11 @@ impl BridgeDiagnosticsState {
             evicted.declaration_identity().as_str(),
             evicted,
         );
+        evict_index_entry(
+            &mut self.latest_historical_failure_by_failure_identity,
+            evicted.failure_identity().as_str(),
+            evicted,
+        );
     }
 
     pub(crate) fn evict_source_materialization_indexes(
@@ -80,6 +85,11 @@ impl BridgeDiagnosticsState {
         evict_index_entry(
             &mut self.latest_source_failure_by_declaration_identity,
             evicted.declaration_identity().as_str(),
+            evicted,
+        );
+        evict_index_entry(
+            &mut self.latest_source_failure_by_failure_identity,
+            evicted.failure_identity().as_str(),
             evicted,
         );
     }

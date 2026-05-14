@@ -12,6 +12,7 @@ function createLineMaterializationRecord(
   reload,
   release,
   rematerialize,
+  migrateIdentity,
   resourceLineEpoch,
 ) {
   return Object.freeze({
@@ -28,6 +29,7 @@ function createLineMaterializationRecord(
     reload,
     release,
     rematerialize,
+    migrateIdentity,
     resourceLineEpoch,
   });
 }

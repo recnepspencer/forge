@@ -187,6 +187,16 @@ impl QueryBasisContextRequest {
         }
     }
 
+    #[cfg(test)]
+    pub(crate) fn diff_comparison_for_internal_denial_testing(
+        declared_basis_label: impl Into<String>,
+    ) -> Self {
+        Self {
+            family: QueryContextFamily::DiffComparison,
+            declared_basis_label: declared_basis_label.into(),
+        }
+    }
+
     pub fn family(&self) -> &QueryContextFamily {
         &self.family
     }

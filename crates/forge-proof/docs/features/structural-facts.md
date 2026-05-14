@@ -2,7 +2,7 @@
 
 ## What This Feature Is
 
-Structural facts are the built-in proof kinds that `forge-proof` uses to represent common zero-cost invariants. They are named proof markers that can travel in `Proof<P>` or larger proof-bearing forms.
+Structural facts are the built-in proof kinds that `forge-proof` uses to represent common zero-cost invariants. They are named proof markers that can travel in `Proof<P, StructuralProofAuthority>` or larger proof-bearing forms.
 
 ## Why You Use It
 
@@ -16,10 +16,11 @@ Structural facts are the built-in proof kinds that `forge-proof` uses to represe
 - `Uniqueness`
 - `Disjointness`
 - `Normalization`
+- `StructuralProofAuthority`
 
 These all implement `ProofMarker` and are carried through proof-bearing surfaces such as:
 
-- `Proof<CanonicalOrder>`
+- `Proof<CanonicalOrder, StructuralProofAuthority>`
 - `CanonicalVec<T>`
 - `UniqueVec<T>`
 - `DisjointPair<T>`
@@ -47,7 +48,7 @@ Use them when the fact is:
 
 A structural fact usually appears in one of two ways:
 
-1. directly, as a carried proof like `Proof<CanonicalOrder>`
+1. directly, as a carried proof like `Proof<CanonicalOrder, StructuralProofAuthority>`
 2. indirectly, embedded in a stronger container or lowered program that exposes a `proof()` accessor
 
 The public API is mostly about consuming or preserving these facts, not minting them directly.
@@ -55,9 +56,9 @@ The public API is mostly about consuming or preserving these facts, not minting 
 ## Small Example
 
 ```rust
-use forge_proof::{CanonicalOrder, Proof};
+use forge_proof::{CanonicalOrder, Proof, StructuralProofAuthority};
 
-type CanonicalOrderProof = Proof<CanonicalOrder>;
+type CanonicalOrderProof = Proof<CanonicalOrder, StructuralProofAuthority>;
 let _ = std::any::type_name::<CanonicalOrderProof>();
 ```
 

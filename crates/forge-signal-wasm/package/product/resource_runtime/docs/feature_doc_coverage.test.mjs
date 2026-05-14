@@ -2,14 +2,15 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
-const docsDir = path.resolve(
-  "crates/forge-signal-wasm/docs",
+const crateRootDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../../..",
 );
-const docTestsDir = path.resolve(
-  "crates/forge-signal-wasm/package/product/resource_runtime/docs",
-);
-const inventoryPath = path.join(docsDir, "resource_feature_doc_inventory.json");
+const docsDir = path.join(crateRootDir, "docs");
+const docTestsDir = path.join(crateRootDir, "package/product/resource_runtime/docs");
+const inventoryPath = path.join(docsDir, "metadata/resource-feature-doc-inventory.json");
 
 function readFile(name) {
   return fs.readFileSync(path.join(docsDir, name), "utf8");
@@ -19,9 +20,9 @@ test("feature doc inventory stays complete and wired into the main entrypoints",
   const inventory = JSON.parse(fs.readFileSync(inventoryPath, "utf8"));
   const readme = readFile("README.md");
   const startHere = readFile("start_here.md");
-  const featureIndex = readFile("feature_index.md");
-  const overview = readFile("api_resources_overview.md");
-  const recipes = readFile("resource_recipes.md");
+  const featureIndex = readFile("learn/feature-index.md");
+  const overview = readFile("resources/overview.md");
+  const recipes = readFile("learn/recipes.md");
 
   assert.ok(Array.isArray(inventory.entrypoints));
   assert.ok(Array.isArray(inventory.features));
@@ -38,12 +39,13 @@ test("feature doc inventory stays complete and wired into the main entrypoints",
     assert.equal(typeof feature.id, "string");
     assert.ok(fs.existsSync(path.join(docsDir, feature.doc)), feature.doc);
     assert.ok(fs.existsSync(path.join(docTestsDir, feature.test)), feature.test);
-    assert.match(featureIndex, new RegExp(feature.doc.replace(".", "\\.")));
+    const docName = path.basename(feature.doc);
+    assert.match(featureIndex, new RegExp(docName.replace(".", "\\.")));
     assert.match(readme, new RegExp(feature.doc.replace(".", "\\.")));
-    assert.match(startHere, new RegExp(feature.doc.replace(".", "\\.")));
-    assert.match(overview, new RegExp(feature.doc.replace(".", "\\.")));
-    if (feature.doc !== "feature_line_inspection.md") {
-      assert.match(recipes, new RegExp(feature.doc.replace(".", "\\.")));
+    assert.match(startHere, new RegExp(docName.replace(".", "\\.")));
+    assert.match(overview, new RegExp(docName.replace(".", "\\.")));
+    if (feature.doc !== "resources/line-inspection.md") {
+      assert.match(recipes, new RegExp(docName.replace(".", "\\.")));
     }
   }
 });

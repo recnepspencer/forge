@@ -1,14 +1,17 @@
-use crate::proof::{CanonicalOrder, Proof, Uniqueness};
+use crate::proof::{CanonicalOrder, Proof, StructuralProofAuthority, Uniqueness};
+
+pub type CanonicalOrderProof = Proof<CanonicalOrder, StructuralProofAuthority>;
+pub type UniquenessProof = Proof<Uniqueness, StructuralProofAuthority>;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct CanonicalVec<T> {
     items: Vec<T>,
-    proof: Proof<CanonicalOrder>,
+    proof: CanonicalOrderProof,
 }
 
 impl<T> CanonicalVec<T> {
     #[allow(dead_code)]
-    pub(crate) fn new(items: Vec<T>, proof: Proof<CanonicalOrder>) -> Self {
+    pub(crate) fn new(items: Vec<T>, proof: CanonicalOrderProof) -> Self {
         Self { items, proof }
     }
 
@@ -16,11 +19,11 @@ impl<T> CanonicalVec<T> {
         &self.items
     }
 
-    pub fn proof(&self) -> &Proof<CanonicalOrder> {
+    pub fn proof(&self) -> &CanonicalOrderProof {
         &self.proof
     }
 
-    pub fn into_parts(self) -> (Vec<T>, Proof<CanonicalOrder>) {
+    pub fn into_parts(self) -> (Vec<T>, CanonicalOrderProof) {
         (self.items, self.proof)
     }
 }
@@ -28,12 +31,12 @@ impl<T> CanonicalVec<T> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct UniqueVec<T> {
     items: Vec<T>,
-    proof: Proof<Uniqueness>,
+    proof: UniquenessProof,
 }
 
 impl<T> UniqueVec<T> {
     #[allow(dead_code)]
-    pub(crate) fn new(items: Vec<T>, proof: Proof<Uniqueness>) -> Self {
+    pub(crate) fn new(items: Vec<T>, proof: UniquenessProof) -> Self {
         Self { items, proof }
     }
 
@@ -41,11 +44,11 @@ impl<T> UniqueVec<T> {
         &self.items
     }
 
-    pub fn proof(&self) -> &Proof<Uniqueness> {
+    pub fn proof(&self) -> &UniquenessProof {
         &self.proof
     }
 
-    pub fn into_parts(self) -> (Vec<T>, Proof<Uniqueness>) {
+    pub fn into_parts(self) -> (Vec<T>, UniquenessProof) {
         (self.items, self.proof)
     }
 }
@@ -60,7 +63,10 @@ mod tests {
 
     #[test]
     fn canonical_vec_carries_items_and_explicit_order_proof() {
-        let items = CanonicalVec::new(vec![1, 2, 3], mint_proof::<CanonicalOrder>());
+        let items = CanonicalVec::new(
+            vec![1, 2, 3],
+            mint_proof::<CanonicalOrder, crate::proof::StructuralProofAuthority>(),
+        );
 
         assert_eq!(items.as_slice(), &[1, 2, 3]);
         let (items, _proof) = items.into_parts();
@@ -69,7 +75,10 @@ mod tests {
 
     #[test]
     fn unique_vec_carries_items_and_explicit_uniqueness_proof() {
-        let items = UniqueVec::new(vec![1, 2, 3], mint_proof::<Uniqueness>());
+        let items = UniqueVec::new(
+            vec![1, 2, 3],
+            mint_proof::<Uniqueness, crate::proof::StructuralProofAuthority>(),
+        );
 
         assert_eq!(items.as_slice(), &[1, 2, 3]);
         let (items, _proof) = items.into_parts();

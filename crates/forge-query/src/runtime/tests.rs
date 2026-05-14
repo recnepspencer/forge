@@ -3,6 +3,7 @@ pub(crate) mod support;
 #[allow(deprecated)]
 mod assembly;
 mod branch;
+mod causal_inspection;
 #[allow(deprecated)]
 mod computed;
 #[allow(deprecated)]

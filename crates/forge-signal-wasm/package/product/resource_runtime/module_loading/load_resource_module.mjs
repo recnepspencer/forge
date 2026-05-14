@@ -1,3 +1,4 @@
+import { rmSync } from "node:fs";
 import { mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import { stripTypeScriptTypes } from "node:module";
 import { tmpdir } from "node:os";
@@ -11,6 +12,22 @@ const packageDir = path.dirname(productDir);
 const packageSourceDir = path.join(packageDir, "..", "package-src");
 const apiSourceDir = path.join(packageSourceDir, "product", "api");
 const resourceSourceDir = path.join(packageSourceDir, "product", "resource");
+const resourceModuleGlobal = globalThis;
+const cachedResourceModuleLoad =
+  resourceModuleGlobal.__forgeCachedResourceModuleLoad ?? { promise: null };
+resourceModuleGlobal.__forgeCachedResourceModuleLoad = cachedResourceModuleLoad;
+const cachedResourceModuleTempDirs =
+  resourceModuleGlobal.__forgeCachedResourceModuleTempDirs ?? new Set();
+resourceModuleGlobal.__forgeCachedResourceModuleTempDirs = cachedResourceModuleTempDirs;
+
+if (!resourceModuleGlobal.__forgeCachedResourceModuleCleanupInstalled) {
+  process.once("exit", () => {
+    for (const tempDir of cachedResourceModuleTempDirs) {
+      rmSync(tempDir, { recursive: true, force: true });
+    }
+  });
+  resourceModuleGlobal.__forgeCachedResourceModuleCleanupInstalled = true;
+}
 
 async function writeConvertedResourceTree(tempDir, sourceDir, outputDir) {
   const entries = await readdir(sourceDir, { withFileTypes: true });
@@ -33,7 +50,16 @@ function replaceTsWithJs(name) {
 }
 
 async function loadResourceModule() {
+  if (cachedResourceModuleLoad.promise !== null) {
+    return cachedResourceModuleLoad.promise;
+  }
+  cachedResourceModuleLoad.promise = loadResourceModuleIntoCachedTempDir();
+  return cachedResourceModuleLoad.promise;
+}
+
+async function loadResourceModuleIntoCachedTempDir() {
   const tempDir = await mkdtemp(path.join(tmpdir(), "forge-signal-resource-"));
+  cachedResourceModuleTempDirs.add(tempDir);
   try {
     await writeConvertedResourceTree(
       tempDir,
@@ -52,9 +78,11 @@ async function loadResourceModule() {
     const loaded = await import(moduleUrl);
     return {
       ...loaded,
-      cleanup: () => rm(tempDir, { recursive: true, force: true }),
+      cleanup: async () => {},
     };
   } catch (error) {
+    cachedResourceModuleLoad.promise = null;
+    cachedResourceModuleTempDirs.delete(tempDir);
     await rm(tempDir, { recursive: true, force: true });
     throw error;
   }

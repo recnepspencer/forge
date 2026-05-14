@@ -48,6 +48,7 @@ function createCollectionResponse(kind, options, lensOptions) {
     replaceItems: options.replaceItems,
     readItem: options.readItem,
     replaceItem: options.replaceItem,
+    topologyHelpers: options.topologyHelpers ?? null,
     aspects,
     summaries,
     [RESOURCE_COLLECTION_RESPONSE]: "resourceCollectionResponse",

@@ -3,7 +3,7 @@ import { attachApiFamilyPatchHelpers } from "../api_family_patch_helpers.js";
 import { createApiRouteDownloadsState, withApiRouteDownloads } from "./api_route_download_state.js";
 import { createApiRouteItemsState, extendApiRouteItemsAspect, extendApiRouteItemsSummary, requireApiRouteItemsReconcileState, requireApiRouteResponseItemsState, requireApiRouteItemsState } from "./api_route_items_reconcile.js";
 import { mergeApiDeclaration } from "../api_request_defaults.js";
-import { lowerDirectArrayRouteDeclaration, lowerReadRouteDeclaration, lowerRemoveRouteDeclaration, lowerResponseDetailRouteDeclaration, lowerWriteRouteDeclaration } from "./api_route_finalization.js";
+import { lowerDirectArrayRouteDeclaration, lowerReadRouteDeclaration, lowerRemoveRouteDeclaration, lowerResponseDetailRouteDeclaration, lowerResponseMutationRouteDeclaration, lowerWriteRouteDeclaration } from "./api_route_finalization.js";
 import { parseApiRoutePattern } from "./api_route_pattern.js";
 import { createApiRouteRequestParamsState, withDeclaredApiRouteRequestParams } from "./api_route_request_params.js";
 import { createApiRouteRequestShapeState, withApiRouteBody, withApiRouteEffects, withApiRouteHeaders, withApiRouteVerb } from "./api_route_request_shape_state.js";
@@ -246,75 +246,136 @@ function createConfiguredApiRouteBuilder(
       );
     },
     detail(declaration) {
-      return signalNamespace.resource.detail(
-        mergeApiDeclaration(
-          layers,
-          directItemsState.response !== null
-            ? lowerResponseDetailRouteDeclaration(
-                pattern,
-                requestParamsState,
-                declaration,
-                requestShapeState,
-                directItemsState,
-                transferState,
-                downloadsState,
-              )
-            : lowerReadRouteDeclaration(
-                pattern,
-                requestParamsState,
-                declaration,
-                requestShapeState,
-                transferState,
-                downloadsState,
-              ),
+      const lowered = mergeApiDeclaration(
+        layers,
+        directItemsState.response !== null
+          ? lowerResponseDetailRouteDeclaration(
+              pattern,
+              requestParamsState,
+              declaration,
+              requestShapeState,
+              directItemsState,
+              transferState,
+              downloadsState,
+            )
+          : lowerReadRouteDeclaration(
+              pattern,
+              requestParamsState,
+              declaration,
+              requestShapeState,
+              transferState,
+              downloadsState,
+            ),
+      );
+      return attachApiFamilyDeliveryHelpers(
+        "detail",
+        attachApiFamilyPatchHelpers(
+          "detail",
+          signalNamespace.resource.detail(lowered),
+          lowered,
         ),
+        lowered,
       );
     },
     create(declaration) {
-      return signalNamespace.resource.detail(
-        mergeApiDeclaration(
-          layers,
-          lowerWriteRouteDeclaration(
-            pattern,
-            requestParamsState,
-            declaration,
-            "POST",
-            requestShapeState,
-            transferState,
-            downloadsState,
-          ),
+      const lowered = mergeApiDeclaration(
+        layers,
+        directItemsState.source === "response"
+          ? lowerResponseMutationRouteDeclaration(
+              pattern,
+              requestParamsState,
+              declaration,
+              "POST",
+              requestShapeState,
+              directItemsState,
+              transferState,
+              downloadsState,
+            )
+          : lowerWriteRouteDeclaration(
+              pattern,
+              requestParamsState,
+              declaration,
+              "POST",
+              requestShapeState,
+              transferState,
+              downloadsState,
+            ),
+      );
+      return attachApiFamilyDeliveryHelpers(
+        "detail",
+        attachApiFamilyPatchHelpers(
+          "detail",
+          signalNamespace.resource.detail(lowered),
+          lowered,
         ),
+        lowered,
       );
     },
     update(declaration) {
-      return signalNamespace.resource.detail(
-        mergeApiDeclaration(
-          layers,
-          lowerWriteRouteDeclaration(
-            pattern,
-            requestParamsState,
-            declaration,
-            "PUT",
-            requestShapeState,
-            transferState,
-            downloadsState,
-          ),
+      const lowered = mergeApiDeclaration(
+        layers,
+        directItemsState.source === "response"
+          ? lowerResponseMutationRouteDeclaration(
+              pattern,
+              requestParamsState,
+              declaration,
+              "PUT",
+              requestShapeState,
+              directItemsState,
+              transferState,
+              downloadsState,
+            )
+          : lowerWriteRouteDeclaration(
+              pattern,
+              requestParamsState,
+              declaration,
+              "PUT",
+              requestShapeState,
+              transferState,
+              downloadsState,
+            ),
+      );
+      return attachApiFamilyDeliveryHelpers(
+        "detail",
+        attachApiFamilyPatchHelpers(
+          "detail",
+          signalNamespace.resource.detail(lowered),
+          lowered,
         ),
+        lowered,
       );
     },
     remove(declaration) {
-      return signalNamespace.resource.detail(
-        mergeApiDeclaration(
-          layers,
-          lowerRemoveRouteDeclaration(
-            pattern,
-            requestParamsState,
-            declaration,
-            requestShapeState,
-            transferState,
-            downloadsState,
-          ),
+      const lowered = mergeApiDeclaration(
+        layers,
+        directItemsState.source === "response"
+          ? lowerResponseMutationRouteDeclaration(
+              pattern,
+              requestParamsState,
+              declaration,
+              "DELETE",
+              requestShapeState,
+              directItemsState,
+              transferState,
+              downloadsState,
+            )
+          : lowerRemoveRouteDeclaration(
+              pattern,
+              requestParamsState,
+              declaration,
+              requestShapeState,
+              transferState,
+              downloadsState,
+            ),
+      );
+      return attachApiFamilyDeliveryHelpers(
+        "detail",
+        attachApiFamilyPatchHelpers(
+          "detail",
+          signalNamespace.resource.detail(lowered),
+          lowered,
         ),
+        lowered,
       );
     },
     list(declaration) {

@@ -1379,6 +1379,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "forge-foundational"
+version = "0.1.0"
+dependencies = [
+ "forge-proof",
+ "serde_json",
+ "trybuild",
+]
+
+[[package]]
 name = "forge-harness"
 version = "0.1.0"
 dependencies = [
@@ -1498,7 +1507,7 @@ dependencies = [
 
 [[package]]
 name = "forge-signal-wasm"
-version = "0.1.16"
+version = "0.1.19"
 dependencies = [
  "base64 0.22.1",
  "console_error_panic_hook",

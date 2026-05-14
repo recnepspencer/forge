@@ -202,6 +202,39 @@ const scopedFeatureApi = signals.scope("catalog").api({
 const scopedDetail = scopedFeatureApi.url("/products/:productId").detail({
   load: ({ productId }) => ({ id: productId }),
 });
+const profileDetailFields = signals.resource.detailFields({
+  name: {
+    read: (value: { id: string; name: string }) => value.name,
+    write: (value: { id: string; name: string }, name: string) => ({ ...value, name }),
+  },
+});
+const workflowDetailJsonPaths = signals.resource.detailJsonPaths({
+  title: {
+    path: ["document", "title"] as const,
+  },
+});
+const workflowDetailRegions = signals.resource.detailRegions({
+  graph: {
+    read: (value: { id: string; graph: { nodes: readonly { id: string }[] } }) => value.graph,
+    write: (
+      value: { id: string; graph: { nodes: readonly { id: string }[] } },
+      graph: { nodes: readonly { id: string }[] },
+    ) => ({ ...value, graph }),
+    identityBoundary: "outside" as const,
+    mergeGranularity: "region-subtree",
+    cost: {
+      traversalBreadth: 2,
+      reconstructionBreadth: 2,
+    },
+  },
+});
+const profileDetail = api.url("/profiles/:profileId").detail<
+  { id: string; name: string },
+  typeof profileDetailFields
+>({
+  reconcile: profileDetailFields,
+  load: ({ profileId }) => ({ id: String(profileId), name: "Profile" }),
+});
 const homeDetail = api.url("/").detail({
   load: () => ({ ok: true }),
 });
@@ -255,6 +288,105 @@ const exportReport = api.url("/reports/export:csv").detail({
   load: () => ({ ok: true }),
 });
 const exportReportLine = exportReport.line({});
+const workflowResponse = signals.resource.response.detail<{ id: string; name: string }>()();
+const workflowJsonPathResponse = signals.resource.response.detailJsonPaths<{
+  id: string;
+  document: { title: string };
+}>()({
+  title: { path: ["document", "title"] as const },
+});
+const workflowRegionResponse = signals.resource.response.detailRegions<{
+  id: string;
+  graph: { nodes: readonly { id: string }[] };
+}>()({
+  graph: {
+    read: (value: {
+      id: string;
+      graph: { nodes: readonly { id: string }[] };
+    }) => value.graph,
+    write: (
+      value: {
+        id: string;
+        graph: { nodes: readonly { id: string }[] };
+      },
+      graph: { nodes: readonly { id: string }[] },
+    ) => ({ ...value, graph }),
+    identityBoundary: "outside",
+    mergeGranularity: "region-subtree",
+    cost: {
+      traversalBreadth: 2,
+      reconstructionBreadth: 2,
+    },
+  },
+});
+const saveWorkflow = api.url("/workflows/:workflowId").response(workflowResponse).update({
+  reconciles: [
+    {
+      family: userDetail,
+      params: ({ workflowId }) => ({ userId: workflowId }),
+      fallback: "refetchRequired",
+      detail: { kind: "replace" },
+    },
+  ],
+  load: ({ workflowId, body }: { workflowId: string | number; body: { name: string } }) => ({
+    id: workflowId,
+    name: body.name,
+  }),
+});
+const saveWorkflowLine = saveWorkflow.line({
+  workflowId: "wf-1",
+  body: { name: "Draft" },
+});
+const saveWorkflowMutationPlan = saveWorkflowLine.mutationResponse();
+const profileFieldPatch = profileDetail.patch.field({
+  field: "name",
+  value: "Renamed",
+});
+const profileFieldDelivery = profileDetail.delivery.field({
+  packetId: "pkt-profile-name",
+  basisId: null,
+  nextBasisId: "basis-1",
+  field: "name",
+  value: "Delivered",
+});
+const workflowRegionDetail = api.url("/workflow-regions/:workflowId").detail<
+  { id: string; graph: { nodes: readonly { id: string }[] } },
+  typeof workflowDetailRegions
+>({
+  reconcile: workflowDetailRegions,
+  load: ({ workflowId }) => ({
+    id: String(workflowId),
+    graph: { nodes: [{ id: "n1" }] },
+  }),
+});
+const workflowRegionPatch = workflowRegionDetail.patch.region({
+  region: "graph",
+  value: { nodes: [{ id: "n2" }] },
+});
+const workflowRegionDelivery = workflowRegionDetail.delivery.region({
+  packetId: "pkt-workflow-region",
+  basisId: null,
+  nextBasisId: "basis-1",
+  region: "graph",
+  value: { nodes: [{ id: "n3" }] },
+});
+const workflowRegionResponseSave = api.url("/workflow-regions/:workflowId")
+  .response(workflowRegionResponse)
+  .update({
+    reconciles: [
+      {
+        family: workflowRegionDetail,
+        params: ({ workflowId }) => ({ workflowId }),
+        fallback: "refetchRequired",
+        detail: { kind: "region", region: "graph" },
+      },
+    ],
+    load: ({ workflowId, body }: { workflowId: string | number; body: { ok: boolean } }) => ({
+      id: String(workflowId),
+      graph: { nodes: body.ok ? [{ id: "n4" }] : [{ id: "n5" }] },
+    }),
+  });
+const workflowRegionLine = workflowRegionDetail.line({ workflowId: "wf-1" });
 const taskCatalogLine = taskCatalog.line({ workspaceId: "demo" });
 const fluentTaskCatalogLine = fluentTaskCatalog.line({ workspaceId: "demo" });
 const directTaskListLine = directTaskList.line({ workspaceId: "demo" });
@@ -262,6 +394,7 @@ const directTaskPagesLine = directTaskPages.line({ workspaceId: "demo" });
 const directTaskCatalogLine = directTaskCatalog.line({ workspaceId: "demo" });
 const directTaskPageWindowLine = directTaskPageWindow.line({ workspaceId: "demo" });
 const asyncWorkspaceDetailLine = typedAsyncWorkspaceDetail.line({ workspaceId: "demo" });
+const profileDetailLine = profileDetail.line({ profileId: "p1" });
 const asyncWorkspaceVersionsLine = typedAsyncWorkspaceVersions.line({
   workspaceId: "demo",
   versionId: 7,
@@ -342,6 +475,29 @@ void taskPagesLine.value();
 void scopedLine.value();
 void homeLine.value();
 void exportReportLine.value();
+void saveWorkflowMutationPlan?.planId;
+void saveWorkflowMutationPlan?.response.mutationResponseLensDigest;
+void saveWorkflowMutationPlan?.targets[0]?.reconciliation?.kind;
+const saveWorkflowArtifact = saveWorkflowMutationPlan?.executionArtifacts[0];
+if (saveWorkflowArtifact?.kind === "fallback") {
+  void saveWorkflowArtifact.fallback;
+}
+const workflowRegionArtifact = workflowRegionResponseSave.line({
+  workflowId: "wf-1",
+  body: { ok: true },
+}).mutationResponse()?.executionArtifacts[0];
+if (workflowRegionArtifact?.kind === "exactDetail") {
+  void workflowRegionArtifact.kind;
+  void workflowRegionArtifact.region;
+  void workflowRegionArtifact.outcomeKind;
+  void workflowRegionArtifact.effectId;
+}
+void profileDetailLine.patch(profileFieldPatch);
+void profileDetailLine.deliver(profileFieldDelivery);
+void profileDetailLine.reconciliation().fieldNames;
+void workflowRegionLine.patch(workflowRegionPatch);
+void workflowRegionLine.deliver(workflowRegionDelivery);
+void workflowRegionLine.reconciliation().regionNames;
 void taskCatalogLine.patch(taskCatalogTitlePatch);
 void taskCatalogLine.deliver(taskCatalogSummaryDelivery);
 void fluentTaskCatalogLine.patch(fluentTaskCatalogAspectPatch);

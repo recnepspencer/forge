@@ -1,14 +1,8 @@
 import { resourceParamIdentity } from "../../resource/params/param_identity_factory.js";
 import { resourceParams } from "../../resource/params/declared_resource_params.js";
-import {
-  isResourceBinaryValue,
-  resourceBinaryValue,
-} from "../../resource/downloads/resource_binary_value.js";
-import { isProcessingResult } from "../../resource/processing/processing_result.js";
-import { isUploadResult } from "../../resource/uploads/upload_result.js";
-import { createApiRouteBodyCanonicalSuffix } from "./api_route_body_identity.js";
-import { apiRouteDownloadsBuilder } from "./api_route_download_builder.js";
+import { applyOwnedBinaryDownloads } from "./api_route_binary_download_finalization.js";
 import { createApiRouteItemsReconcile } from "./api_route_items_reconcile.js";
+import { createResponseMutationRouteDeclaration } from "./api_route_response_mutation_finalization.js";
 import { attachApiRouteTargetMetadata } from "./api_route_target_metadata.js";
 import {
   createRouteBoundParams,
@@ -84,6 +78,16 @@ function lowerWriteRouteDeclaration(
     transferState,
     downloadsState,
   );
+  if ("reconciles" in declaration) {
+    throw new TypeError(
+      `api.url("${pattern.route}").create/update(...) owns reconciles(...) only in the mutation response lane`,
+    );
+  }
+  if ("identity" in declaration) {
+    throw new TypeError(
+      `api.url("${pattern.route}").create/update(...) owns identity(...) only in the mutation response lane`,
+    );
+  }
   return attachApiRouteTargetMetadata(Object.freeze({
     ...lowered,
     method,
@@ -109,7 +113,7 @@ function lowerWriteRouteDeclaration(
         rawParams,
         "required",
       ),
-      true,
+      false,
     ));
 }
 
@@ -147,6 +151,57 @@ function lowerDirectArrayRouteDeclaration(
   });
 }
 
+function lowerResponseMutationRouteDeclaration(
+  pattern,
+  requestParamsState,
+  declaration,
+  method,
+  requestShapeState,
+  directItemsState,
+  transferState,
+  downloadsState,
+) {
+  const bodyRequired = method === "DELETE"
+    ? requestShapeState.bodyDeclared
+    : true;
+  const lowered = lowerRouteDeclarationBase(
+    pattern,
+    declaration,
+    requestShapeState,
+    transferState,
+    downloadsState,
+  );
+  const {
+    reconciles,
+    atomicity,
+    diagnostics,
+    identity,
+    ...loweredWithoutMutationResponse
+  } = lowered;
+  if ("itemIdentity" in declaration) {
+    throw new TypeError(
+      `api.url("${pattern.route}").response(...) owns response identity in the mutation response lane`,
+    );
+  }
+  if ("reconcile" in declaration) {
+    throw new TypeError(
+      `api.url("${pattern.route}").response(...) owns mutation response planning in the mutation response lane`,
+    );
+  }
+  return createResponseMutationRouteDeclaration({
+    pattern,
+    requestParamsState,
+    lowered: loweredWithoutMutationResponse,
+    method,
+    bodyRequired,
+    response: directItemsState.response,
+    reconciles,
+    atomicity,
+    diagnostics,
+    identity,
+  });
+}
+
 function lowerResponseDetailRouteDeclaration(
   pattern,
   requestParamsState,
@@ -164,6 +219,16 @@ function lowerResponseDetailRouteDeclaration(
     transferState,
     downloadsState,
   );
+  if ("reconciles" in declaration) {
+    throw new TypeError(
+      `api.url("${pattern.route}").response(...).detail(...) owns reconciles(...) only in the mutation response lane`,
+    );
+  }
+  if ("identity" in declaration) {
+    throw new TypeError(
+      `api.url("${pattern.route}").response(...).detail(...) owns identity(...) only in the mutation response lane`,
+    );
+  }
   if ("itemIdentity" in declaration) {
     throw new TypeError(
       `api.url("${pattern.route}").response(...) owns response identity in the single response lane`,
@@ -177,6 +242,13 @@ function lowerResponseDetailRouteDeclaration(
   return Object.freeze({
     ...lowered,
     responseLensProof: directItemsState.response.lensProof,
+    ...(directItemsState.response.kind === "detail"
+      ? {
+          detailFields: directItemsState.response.fields ?? undefined,
+          detailRegions: directItemsState.response.regions ?? undefined,
+          detailJsonPaths: directItemsState.response.jsonPaths ?? undefined,
+        }
+      : {}),
   });
 }
 
@@ -196,6 +268,16 @@ function lowerRemoveRouteDeclaration(
     transferState,
     downloadsState,
   );
+  if ("reconciles" in declaration) {
+    throw new TypeError(
+      `api.url("${pattern.route}").remove(...) owns reconciles(...) only in the mutation response lane`,
+    );
+  }
+  if ("identity" in declaration) {
+    throw new TypeError(
+      `api.url("${pattern.route}").remove(...) owns identity(...) only in the mutation response lane`,
+    );
+  }
   return attachApiRouteTargetMetadata(Object.freeze({
     ...lowered,
     method: "DELETE",
@@ -290,64 +372,6 @@ function applyOwnedRequestShape(route, declaration, requestShapeState) {
   return lowered;
 }
 
-function applyOwnedBinaryDownloads(route, declaration, downloadsState) {
-  const builderDownloads = downloadsState.declaration;
-  if (builderDownloads !== undefined) {
-    if ("downloads" in declaration && declaration.downloads !== undefined) {
-      throw new TypeError(
-        `api.url("${route}").downloads(...) owns downloads(...) in the pleasant lane`,
-      );
-    }
-    return lowerOwnedBinaryDownloads(route, declaration, builderDownloads);
-  }
-  if (!("downloads" in declaration) || declaration.downloads === undefined) {
-    return { ...declaration };
-  }
-  return lowerOwnedBinaryDownloads(route, declaration, declaration.downloads);
-}
-
-function lowerOwnedBinaryDownloads(route, declaration, downloads) {
-  if (typeof declaration.downloads !== "function") {
-    if (typeof downloads !== "function") {
-      throw new TypeError(
-        `api.url("${route}") downloads(...) must be declared as a function`,
-      );
-    }
-  }
-  const { load, ...rest } = declaration;
-  delete rest.downloads;
-  return {
-    ...rest,
-    load(params, request) {
-      const loaded = load(params, request);
-      if (
-        loaded
-        && typeof loaded === "object"
-        && typeof loaded.then === "function"
-      ) {
-        return loaded.then((value) =>
-          lowerOwnedBinaryDownloadValue(route, params, value, downloads));
-      }
-      return lowerOwnedBinaryDownloadValue(route, params, loaded, downloads);
-    },
-  };
-}
-
-function lowerOwnedBinaryDownloadValue(route, params, value, downloads) {
-  if (isProcessingResult(value) || isUploadResult(value)) {
-    return value;
-  }
-  if (isResourceBinaryValue(value)) {
-    throw new TypeError(
-      `api.url("${route}") downloads(...) owns resourceBinaryValue(...) in the pleasant lane`,
-    );
-  }
-  return resourceBinaryValue({
-    value,
-    descriptors: downloads(params, value, apiRouteDownloadsBuilder),
-  });
-}
-
 function requireOwnedApiRouteReadFields(route, declaration) {
   if ("params" in declaration) {
     throw new TypeError(
@@ -374,6 +398,7 @@ function requireOwnedApiRouteReadFields(route, declaration) {
 export {
   lowerDirectArrayRouteDeclaration,
   lowerResponseDetailRouteDeclaration,
+  lowerResponseMutationRouteDeclaration,
   lowerReadRouteDeclaration,
   lowerRemoveRouteDeclaration,
   lowerWriteRouteDeclaration,

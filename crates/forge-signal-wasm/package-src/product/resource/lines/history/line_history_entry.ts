@@ -1,3 +1,8 @@
+import {
+  readMutationResponsePlanRecord,
+  readMutationResponseSummaryDigest,
+} from "../../mutation/resource_mutation_response_diagnostics_projection.js";
+
 function createLineHistoryEntry(
   event,
   status,
@@ -5,6 +10,10 @@ function createLineHistoryEntry(
   diagnostics,
   overrides = {},
 ) {
+  const mutationResponsePlanRecord = readMutationResponsePlanRecord(diagnostics);
+  const mutationResponseSummaryDigest = readMutationResponseSummaryDigest(diagnostics);
+  const identityMigrationHistoryDigest =
+    readIdentityMigrationHistoryDigest(overrides);
   const entry = {
     sequence: 0,
     event,
@@ -28,6 +37,9 @@ function createLineHistoryEntry(
     lastPatchKind: diagnostics.lastPatchKind,
     lastPatchScope: diagnostics.lastPatchScope,
     lastPatchedItemId: diagnostics.lastPatchedItemId,
+    lastPatchedField: diagnostics.lastPatchedField,
+    lastPatchedRegion: diagnostics.lastPatchedRegion,
+    lastPatchedPath: diagnostics.lastPatchedPath,
     lastPatchedAspect: diagnostics.lastPatchedAspect,
     lastPatchedSummary: diagnostics.lastPatchedSummary,
     lastDeliveryKind: diagnostics.lastDeliveryKind,
@@ -48,6 +60,66 @@ function createLineHistoryEntry(
     lastTimeoutOperation: diagnostics.lastTimeoutOperation,
     lastErrorMessage: diagnostics.lastErrorMessage,
     visibleValueVersion: diagnostics.visibleValueVersion,
+    ...(mutationResponsePlanRecord === null
+      ? {}
+      : {
+          mutationResponsePlan: mutationResponsePlanRecord.plan,
+          mutationResponsePlanCount: mutationResponsePlanRecord.planCount,
+        }),
+    ...(mutationResponseSummaryDigest === null
+      ? {}
+      : {
+          mutationResponseTargetCount: mutationResponseSummaryDigest.targetCount,
+          mutationResponseExactTargetCount:
+            mutationResponseSummaryDigest.exactTargetCount,
+          mutationResponseFallbackTargetCount:
+            mutationResponseSummaryDigest.fallbackTargetCount,
+          mutationResponseTargetLookupBreadth:
+            mutationResponseSummaryDigest.targetLookupBreadth,
+          mutationResponseTargetFanoutBreadth:
+            mutationResponseSummaryDigest.targetFanoutBreadth,
+          mutationResponsePayloadFieldExtractionBreadth:
+            mutationResponseSummaryDigest.payloadFieldExtractionBreadth,
+          mutationResponseTopologyTraversalBreadth:
+            mutationResponseSummaryDigest.topologyTraversalBreadth,
+          mutationResponseReconstructionBreadth:
+            mutationResponseSummaryDigest.reconstructionBreadth,
+          mutationResponseFallbackBreadth:
+            mutationResponseSummaryDigest.fallbackBreadth,
+          mutationResponseFallbackReasonDigest:
+            mutationResponseSummaryDigest.fallbackReasonDigest,
+          mutationResponseFallbackAffectedTargetDigest:
+            mutationResponseSummaryDigest.fallbackAffectedTargetDigest,
+          mutationResponseStaleTargetReasonDigest:
+            mutationResponseSummaryDigest.staleTargetReasonDigest,
+          mutationResponseStaleTargetAffectedTargetDigest:
+            mutationResponseSummaryDigest.staleTargetAffectedTargetDigest,
+          mutationResponseFreshnessPostureDigest:
+            mutationResponseSummaryDigest.freshnessPostureDigest,
+          mutationResponseDeliveryAwaitedDigest:
+            mutationResponseSummaryDigest.deliveryAwaitedDigest,
+          mutationResponseRefetchRequiredDigest:
+            mutationResponseSummaryDigest.refetchRequiredDigest,
+          mutationResponsePartialReconciliationDigest:
+            mutationResponseSummaryDigest.partialReconciliationDigest,
+          mutationResponseUnsupportedTargetDigest:
+            mutationResponseSummaryDigest.unsupportedTargetDigest,
+          mutationResponseNoHiddenMutationDigest:
+            mutationResponseSummaryDigest.noHiddenMutationDigest,
+          mutationResponseTargetOutcomeDigest:
+            mutationResponseSummaryDigest.targetOutcomeDigest,
+          mutationResponseTargetOutcomes:
+            mutationResponseSummaryDigest.targetOutcomes,
+          mutationResponseReplayExactDigest:
+            mutationResponseSummaryDigest.replayExactDigest,
+          mutationResponseRestoreExactDigest:
+            mutationResponseSummaryDigest.restoreExactDigest,
+        }),
+    ...(identityMigrationHistoryDigest === null
+      ? {}
+      : {
+          identityMigration: identityMigrationHistoryDigest,
+        }),
     supersededOperation: null,
     ...overrides,
   };
@@ -58,6 +130,13 @@ function createLineHistoryEntry(
     writable: false,
   });
   return Object.freeze(entry);
+}
+
+function readIdentityMigrationHistoryDigest(overrides) {
+  if (!("identityMigration" in overrides)) {
+    return null;
+  }
+  return overrides.identityMigration ?? null;
 }
 
 export { createLineHistoryEntry };

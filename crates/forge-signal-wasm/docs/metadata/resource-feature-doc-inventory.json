@@ -1,0 +1,116 @@
+{
+  "entrypoints": [
+    {
+      "id": "readme",
+      "doc": "README.md",
+      "test": "entrypoints/readme_happy_path.test.mjs"
+    },
+    {
+      "id": "start_here",
+      "doc": "start_here.md",
+      "test": "entrypoints/start_here_happy_path.test.mjs"
+    },
+    {
+      "id": "feature_index",
+      "doc": "learn/feature-index.md",
+      "test": "entrypoints/feature_index_happy_path.test.mjs"
+    },
+    {
+      "id": "api_resources_overview",
+      "doc": "resources/overview.md",
+      "test": "entrypoints/api_resources_overview_happy_path.test.mjs"
+    },
+    {
+      "id": "resource_recipes",
+      "doc": "learn/recipes.md",
+      "test": "entrypoints/resource_recipes_happy_path.test.mjs"
+    }
+  ],
+  "features": [
+    {
+      "id": "fetch_and_write_api_resources",
+      "doc": "resources/fetch-and-write.md",
+      "test": "features/fetch_and_write_api_resources_happy_path.test.mjs"
+    },
+    {
+      "id": "request_posture_and_policy",
+      "doc": "resources/request-posture-and-policy.md",
+      "test": "features/request_posture_and_policy_happy_path.test.mjs"
+    },
+    {
+      "id": "collections_and_delivery",
+      "doc": "resources/collections-and-delivery.md",
+      "test": "features/collections_and_delivery_happy_path.test.mjs"
+    },
+    {
+      "id": "mutation_response_reconciliation",
+      "doc": "resources/mutation-response-reconciliation.md",
+      "test": "features/mutation_response_reconciliation_happy_path.test.mjs"
+    },
+    {
+      "id": "mutation_response_closeout_matrix",
+      "doc": "resource-contracts/mutation-response-closeout-matrix.md",
+      "test": "features/mutation_response_closeout_matrix_happy_path.test.mjs"
+    },
+    {
+      "id": "transfers",
+      "doc": "resources/transfers.md",
+      "test": "features/transfers_happy_path.test.mjs"
+    },
+    {
+      "id": "downloads",
+      "doc": "resources/downloads.md",
+      "test": "features/downloads_happy_path.test.mjs"
+    },
+    {
+      "id": "line_inspection",
+      "doc": "resources/line-inspection.md",
+      "test": "features/line_inspection_happy_path.test.mjs"
+    },
+    {
+      "id": "history_and_restore",
+      "doc": "resource-contracts/history-and-restore.md",
+      "test": "features/history_and_restore_happy_path.test.mjs"
+    },
+    {
+      "id": "branch_native_resource_effects",
+      "doc": "resources/branch-native-effects.md",
+      "test": "features/branch_native_resource_effects_happy_path.test.mjs"
+    },
+    {
+      "id": "effect_envelope",
+      "doc": "resource-contracts/effect-envelope.md",
+      "test": "features/effect_envelope_happy_path.test.mjs"
+    },
+    {
+      "id": "effect_merge_and_rebase",
+      "doc": "resources/merge-and-rebase.md",
+      "test": "features/effect_merge_and_rebase_happy_path.test.mjs"
+    },
+    {
+      "id": "response_topology_proof",
+      "doc": "resource-contracts/response-topology-proof.md",
+      "test": "features/response_topology_proof_happy_path.test.mjs"
+    },
+    {
+      "id": "json_path_effects",
+      "doc": "resources/json-effects.md",
+      "test": "features/json_path_effects_happy_path.test.mjs"
+    },
+    {
+      "id": "effect_closeout_matrix",
+      "doc": "resource-contracts/closeout-matrix.md",
+      "test": "features/effect_closeout_matrix_happy_path.test.mjs"
+    },
+    {
+      "id": "external_delivery_and_compatibility",
+      "doc": "resources/external-delivery-and-compatibility.md",
+      "test": "features/external_delivery_and_compatibility_happy_path.test.mjs"
+    },
+    {
+      "id": "raw_escape_hatch",
+      "doc": "resources/raw-escape-hatch.md",
+      "test": "features/raw_escape_hatch_happy_path.test.mjs"
+    }
+  ]
+}

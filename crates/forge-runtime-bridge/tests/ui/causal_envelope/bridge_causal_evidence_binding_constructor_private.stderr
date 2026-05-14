@@ -1,0 +1,17 @@
+error[E0451]: fields `owner`, `family`, `binding_class`, `reference_identity`, `retained_record_digest` and `binding_digest` of struct `BridgeCausalEvidenceBinding` are private
+  --> tests/ui/causal_envelope/bridge_causal_evidence_binding_constructor_private.rs:8:9
+   |
+ 7 |     let _ = BridgeCausalEvidenceBinding {
+   |             --------------------------- in this type
+ 8 |         owner: BridgeCausalEvidenceOwner::RuntimeBridge,
+   |         ^^^^^ private field
+ 9 |         family: BridgeCausalEvidenceFamily::BridgeRoute,
+   |         ^^^^^^ private field
+10 |         binding_class: BridgeCausalEvidenceBindingClass::RetainedBridgeRecord,
+   |         ^^^^^^^^^^^^^ private field
+11 |         reference_identity: "route".into(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+12 |         retained_record_digest: Some("record".into()),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         binding_digest: "binding".into(),
+   |         ^^^^^^^^^^^^^^ private field

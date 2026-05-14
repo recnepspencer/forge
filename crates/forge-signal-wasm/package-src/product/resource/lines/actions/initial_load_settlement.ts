@@ -22,6 +22,10 @@ import {
   createTimedOutLineStatus,
 } from "../state/line_status_value.js";
 import { recordLineHistoryEntry } from "../history/record_line_history_entry.js";
+import {
+  prepareMutationResponsePlanIfDeclared,
+  recordMutationResponsePlanIfPresent,
+} from "../../mutation/resource_mutation_response_execution.js";
 
 function createInitialLineBinding(
   load,
@@ -32,6 +36,7 @@ function createInitialLineBinding(
   requestDescriptor,
   lifecycle,
   lifecycleHistory,
+  mutationResponsePlanning = null,
 ) {
   const valueSignal = lineScope.input(null, {
     debugName: `${familyKind}ResourceValue`,
@@ -108,6 +113,7 @@ function createInitialLineBinding(
       lifecycleHistory,
       binding,
       policy,
+      mutationResponsePlanning,
       resolvedBindingResult.loaded,
       resolvedBindingResult.retryAttempts,
       false,
@@ -150,6 +156,7 @@ function createInitialLineBinding(
         lifecycleHistory,
         binding,
         policy,
+        mutationResponsePlanning,
         settled.loaded,
         settled.retryAttempts,
       );
@@ -171,29 +178,51 @@ function applyFulfilledInitialLoad(
   lifecycleHistory,
   binding,
   policy,
+  mutationResponsePlanning,
   loaded,
   retryAttempts,
   shouldRecordHistory = true,
 ) {
+  const status = createFulfilledLineStatus("initialLoad");
+  const freshness = createFreshnessFromPolicy(policy);
+  const nextDiagnostics = createReloadFulfilledDiagnostics(
+    binding.diagnosticsSignal(),
+    "initialLoad",
+    loaded.processing,
+    loaded.upload,
+    loaded.download,
+    loaded.hasVisibleValue,
+    retryAttempts,
+  );
+  const preparedMutationResponse =
+    mutationResponsePlanning === null
+      ? Object.freeze({
+          plan: null,
+          diagnostics: nextDiagnostics,
+        })
+      : prepareMutationResponsePlanIfDeclared(
+          mutationResponsePlanning.lineIdentity,
+          mutationResponsePlanning.requestDescriptor,
+          nextDiagnostics,
+          mutationResponsePlanning.declaration,
+          loaded.value,
+          mutationResponsePlanning.submittedTargets,
+          mutationResponsePlanning.submittedIdentityMigration ?? null,
+        );
   binding.valueSignal.set(loaded.value);
   binding.processingSignal.set(loaded.processing);
   binding.uploadSignal.set(loaded.upload);
   binding.downloadSignal.set(loaded.download);
-  binding.statusSignal.set(createFulfilledLineStatus("initialLoad"));
-  binding.freshnessSignal.set(createFreshnessFromPolicy(policy));
-  binding.diagnosticsSignal.set(
-    createReloadFulfilledDiagnostics(
-      binding.diagnosticsSignal(),
-      "initialLoad",
-      loaded.processing,
-      loaded.upload,
-      loaded.download,
-      loaded.hasVisibleValue,
-      retryAttempts,
-    ),
-  );
+  binding.statusSignal.set(status);
+  binding.freshnessSignal.set(freshness);
+  binding.diagnosticsSignal.set(preparedMutationResponse.diagnostics);
   if (shouldRecordHistory) {
     recordLineHistoryEntry(lifecycleHistory, binding, "fulfilled");
+    recordMutationResponsePlanIfPresent(
+      lifecycleHistory,
+      binding,
+      preparedMutationResponse.plan,
+    );
   }
 }
 

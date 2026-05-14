@@ -1,0 +1,5 @@
+error[E0063]: missing field `certification_posture` in initializer of `FoundationalProfileSetInput`
+ --> tests/ui/profiles/set_construction/missing_family_assignment_cannot_construct_profile_set.rs:8:41
+  |
+8 |     let _ = FoundationalProfileSet::new(FoundationalProfileSetInput {
+  |                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `certification_posture`

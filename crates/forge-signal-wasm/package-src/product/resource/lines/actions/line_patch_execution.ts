@@ -5,7 +5,12 @@ import { createLocalPatchEffectEnvelope } from "../../effects/resource_effect_en
 import { createLocalPatchEffectPlan } from "../../effects/resource_effect_plan.js";
 import { requireResourcePatch } from "../../reconciliation/resource_patch.js";
 import { assertLinePatchRecordAdmitsPatch } from "./line_patch_admission.js";
-
+import {
+  applyDetailFieldPatch,
+  applyDetailJsonPathPatch,
+  applyDetailRegionPatch,
+} from "./line_detail_patch_execution.js";
+import { applyItemScopedPatch } from "./line_collection_patch_execution.js";
 import { areLineValuesSemanticallyEqual } from "../state/line_value_semantic_equality.js";
 
 function executeLinePatch(materialization, patch) {
@@ -56,6 +61,12 @@ function executeLinePatch(materialization, patch) {
 function applyPatchValue(materialization, patchValue, currentValue) {
   return patchValue.kind === "replace"
     ? applyReplacePatch(materialization, patchValue, currentValue)
+    : patchValue.kind === "field"
+      ? applyDetailFieldPatch(materialization, patchValue, currentValue)
+    : patchValue.kind === "region"
+      ? applyDetailRegionPatch(materialization, patchValue, currentValue)
+    : patchValue.kind === "jsonPath"
+      ? applyDetailJsonPathPatch(materialization, patchValue, currentValue)
     : patchValue.kind === "summary"
       ? applySummaryPatch(materialization, patchValue, currentValue)
       : applyItemScopedPatch(materialization, patchValue, currentValue);
@@ -74,13 +85,18 @@ function applyReplacePatch(materialization, patch, currentValue) {
       scope: "line",
       itemId: null,
       aspect: null,
+      field: null,
     }),
     diagnostics: Object.freeze({
       scope: "line",
       itemId: null,
       aspect: null,
+      field: null,
+      region: null,
       summary: null,
       valueChanged,
+      fieldProof: null,
+      regionProof: null,
       jsonPathProof: null,
     }),
     valueChanged,
@@ -134,14 +150,19 @@ function applySummaryPatch(materialization, patch, currentValue) {
       scope: "summary",
       itemId: null,
       aspect: null,
+      field: null,
       summary: patch.summary,
     }),
     diagnostics: Object.freeze({
       scope: "summary",
       itemId: null,
       aspect: null,
+      field: null,
+      region: null,
       summary: patch.summary,
       valueChanged: !areLineValuesSemanticallyEqual(nextValue, currentValue),
+      fieldProof: null,
+      regionProof: null,
       jsonPathProof: null,
     }),
     valueChanged: !areLineValuesSemanticallyEqual(nextValue, currentValue),
@@ -171,186 +192,6 @@ function assertSummaryPatchPreservesItems(
         `${patchRecord.familyKind} resource lines require resourcePatch.summary(...) to preserve item objects; use resourcePatch.replace(...) when summary "${summary}" changes item contents`,
       );
     }
-  }
-}
-
-function applyItemScopedPatch(materialization, patch, currentValue) {
-  const patchRecord = materialization.patch;
-  if (typeof patchRecord.itemIdentity !== "function") {
-    throw new TypeError(
-      `${patchRecord.familyKind} resource lines do not admit item patch(...)`,
-    );
-  }
-  if (patchRecord.reconcile === null) {
-    throw new TypeError(
-      `${patchRecord.familyKind} resource lines require reconcile: resourceCollectionShape(...) for narrow patch(...) admission`,
-    );
-  }
-  if (
-    typeof patchRecord.reconcile.readItem === "function" &&
-    typeof patchRecord.reconcile.replaceItem === "function"
-  ) {
-    return applyDirectItemScopedPatch(patchRecord, patch, currentValue, materialization);
-  }
-  const currentItems = [...patchRecord.reconcile.items(currentValue)];
-  const matchingIndexes = [];
-  for (let index = 0; index < currentItems.length; index += 1) {
-    if (patchRecord.itemIdentity(currentItems[index]) === patch.itemId) {
-      matchingIndexes.push(index);
-    }
-  }
-  if (matchingIndexes.length === 0) {
-    throw new RangeError(
-      `${patchRecord.familyKind} resource lines could not find itemId "${patch.itemId}" for patch(...)`,
-    );
-  }
-  if (matchingIndexes.length > 1) {
-    throw new TypeError(
-      `${patchRecord.familyKind} resource lines cannot admit narrow patch(...) for duplicated visible itemId "${patch.itemId}"; use resourcePatch.replace(...) when item identity is ambiguous`,
-    );
-  }
-  const [itemIndex] = matchingIndexes;
-  if (patch.kind === "item") {
-    const nextItemId = patchRecord.itemIdentity(patch.nextItem);
-    if (nextItemId !== patch.itemId) {
-      throw new TypeError(
-        `${patchRecord.familyKind} resource lines require resourcePatch.item(...) to preserve item identity "${patch.itemId}"; use resourcePatch.replace(...) when the patch changes identity to "${nextItemId}"`,
-      );
-    }
-    currentItems[itemIndex] = patch.nextItem;
-    const nextValue = patchRecord.reconcile.replaceItems(
-      currentValue,
-      currentItems,
-    );
-    const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
-    materialization.binding.valueSignal.set(nextValue);
-    return Object.freeze({
-      result: Object.freeze({
-        kind: "narrowed",
-        scope: "item",
-        itemId: patch.itemId,
-        aspect: null,
-      }),
-      diagnostics: Object.freeze({
-        scope: "item",
-        itemId: patch.itemId,
-        aspect: null,
-        summary: null,
-        valueChanged,
-        jsonPathProof: null,
-      }),
-      valueChanged,
-    });
-  }
-  const aspectDefinitions = patchRecord.reconcile.aspects?.definitions ?? null;
-  if (aspectDefinitions === null || !(patch.aspect in aspectDefinitions)) {
-    throw new TypeError(
-      `${patchRecord.familyKind} resource lines do not admit itemAspect patch(...) for undeclared aspect "${patch.aspect}"`,
-    );
-  }
-  const aspectDefinition = aspectDefinitions[patch.aspect];
-  const nextItem = aspectDefinition.write(
-    currentItems[itemIndex],
-    patch.value,
-  );
-  assertAspectPatchPreservesItemIdentity(patchRecord, patch, nextItem);
-  currentItems[itemIndex] = nextItem;
-  const nextValue = patchRecord.reconcile.replaceItems(
-    currentValue,
-    currentItems,
-  );
-  const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
-  materialization.binding.valueSignal.set(nextValue);
-  return Object.freeze({
-    result: Object.freeze({
-      kind: "narrowed",
-      scope: "aspect",
-      itemId: patch.itemId,
-      aspect: patch.aspect,
-    }),
-    diagnostics: Object.freeze({
-      scope: "aspect",
-      itemId: patch.itemId,
-      aspect: patch.aspect,
-      summary: null,
-      valueChanged,
-      jsonPathProof: aspectDefinition.jsonPathProof ?? null,
-    }),
-    valueChanged,
-  });
-}
-
-function applyDirectItemScopedPatch(patchRecord, patch, currentValue, materialization) {
-  const locatedItem = patchRecord.reconcile.readItem(currentValue, patch.itemId);
-  if (locatedItem?.found !== true) {
-    throw new RangeError(
-      `${patchRecord.familyKind} resource lines could not find itemId "${patch.itemId}" for patch(...)`,
-    );
-  }
-  const aspectPatch = patch.kind === "item"
-    ? null
-    : applyDirectAspectPatch(patchRecord, patch, locatedItem.item);
-  const nextItem = patch.kind === "item"
-    ? requireIdentityPreservingItemPatch(patchRecord, patch)
-    : aspectPatch.nextItem;
-  const nextValue = patchRecord.reconcile.replaceItem(
-    currentValue,
-    patch.itemId,
-    nextItem,
-  );
-  const valueChanged = !areLineValuesSemanticallyEqual(nextValue, currentValue);
-  materialization.binding.valueSignal.set(nextValue);
-  return Object.freeze({
-    result: Object.freeze({
-      kind: "narrowed",
-      scope: patch.kind === "item" ? "item" : "aspect",
-      itemId: patch.itemId,
-      aspect: patch.kind === "item" ? null : patch.aspect,
-    }),
-    diagnostics: Object.freeze({
-      scope: patch.kind === "item" ? "item" : "aspect",
-      itemId: patch.itemId,
-      aspect: patch.kind === "item" ? null : patch.aspect,
-      summary: null,
-      valueChanged,
-      jsonPathProof: aspectPatch?.jsonPathProof ?? null,
-    }),
-    valueChanged,
-  });
-}
-
-function requireIdentityPreservingItemPatch(patchRecord, patch) {
-  const nextItemId = patchRecord.itemIdentity(patch.nextItem);
-  if (nextItemId !== patch.itemId) {
-    throw new TypeError(
-      `${patchRecord.familyKind} resource lines require resourcePatch.item(...) to preserve item identity "${patch.itemId}"; use resourcePatch.replace(...) when the patch changes identity to "${nextItemId}"`,
-    );
-  }
-  return patch.nextItem;
-}
-
-function applyDirectAspectPatch(patchRecord, patch, currentItem) {
-  const aspectDefinitions = patchRecord.reconcile.aspects?.definitions ?? null;
-  if (aspectDefinitions === null || !(patch.aspect in aspectDefinitions)) {
-    throw new TypeError(
-      `${patchRecord.familyKind} resource lines do not admit itemAspect patch(...) for undeclared aspect "${patch.aspect}"`,
-    );
-  }
-  const aspectDefinition = aspectDefinitions[patch.aspect];
-  const nextItem = aspectDefinition.write(currentItem, patch.value);
-  assertAspectPatchPreservesItemIdentity(patchRecord, patch, nextItem);
-  return Object.freeze({
-    nextItem,
-    jsonPathProof: aspectDefinition.jsonPathProof ?? null,
-  });
-}
-
-function assertAspectPatchPreservesItemIdentity(patchRecord, patch, nextItem) {
-  const nextItemId = patchRecord.itemIdentity(nextItem);
-  if (nextItemId !== patch.itemId) {
-    throw new TypeError(
-      `${patchRecord.familyKind} resource lines require resourcePatch.itemAspect(...) to preserve item identity "${patch.itemId}"; use resourcePatch.replace(...) when aspect "${patch.aspect}" changes identity to "${nextItemId}"`,
-    );
   }
 }
 

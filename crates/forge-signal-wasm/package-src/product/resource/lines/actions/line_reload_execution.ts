@@ -19,6 +19,16 @@ import {
 } from "../state/line_status_value.js";
 import { areLineValuesSemanticallyEqual } from "../state/line_value_semantic_equality.js";
 import { recordLineHistoryEntry } from "../history/record_line_history_entry.js";
+import {
+  prepareMutationResponsePlanIfDeclared,
+  recordMutationResponsePlanIfPresent,
+} from "../../mutation/resource_mutation_response_execution.js";
+import {
+  createMutationResponseTargetBasisSnapshots,
+} from "../../mutation/resource_mutation_response_target_basis.js";
+import {
+  createSubmittedMutationResponseIdentityMigration,
+} from "../../mutation/identity/resource_mutation_response_identity_migration.js";
 
 function executeLineReload(materialization, operation, options = "fulfilled") {
   const normalizedOptions =
@@ -68,6 +78,21 @@ function executeLineReload(materialization, operation, options = "fulfilled") {
     const requestDescriptor =
       normalizedOptions.requestDescriptorOverride
       ?? reload.requestState.readDescriptor();
+    const submittedTargets =
+      reload.mutationResponseDeclaration === null
+        ? null
+        : createMutationResponseTargetBasisSnapshots(
+            reload.mutationResponseDeclaration,
+            reload.params,
+          );
+    const submittedIdentityMigration =
+      reload.mutationResponseDeclaration?.identityMigration === undefined
+      || reload.mutationResponseDeclaration.identityMigration === null
+        ? null
+        : createSubmittedMutationResponseIdentityMigration(
+            reload.mutationResponseDeclaration.identityMigration,
+            reload.params,
+          );
     const bindingResult = bindReloadLineValue(
       reload.load,
       reload.params,
@@ -122,6 +147,7 @@ function executeLineReload(materialization, operation, options = "fulfilled") {
           applyFulfilledReload(
             materialization,
             reload,
+            requestDescriptor,
             operation,
             previousValue,
             loaded.loaded,
@@ -129,6 +155,8 @@ function executeLineReload(materialization, operation, options = "fulfilled") {
             normalizedOptions.fulfilledEvent,
             normalizedOptions.finalizeFulfilledDiagnostics,
             normalizedOptions.onFulfilled,
+            submittedTargets,
+            submittedIdentityMigration,
           );
         },
         (error) => {
@@ -146,6 +174,7 @@ function executeLineReload(materialization, operation, options = "fulfilled") {
     return applyFulfilledReload(
       materialization,
       reload,
+      requestDescriptor,
       operation,
       previousValue,
       bindingResult.loaded,
@@ -153,6 +182,8 @@ function executeLineReload(materialization, operation, options = "fulfilled") {
       normalizedOptions.fulfilledEvent,
       normalizedOptions.finalizeFulfilledDiagnostics,
       normalizedOptions.onFulfilled,
+      submittedTargets,
+      submittedIdentityMigration,
     );
   } catch (error) {
     return applyRejectedReload(materialization, operation, error);
@@ -162,6 +193,7 @@ function executeLineReload(materialization, operation, options = "fulfilled") {
 function applyFulfilledReload(
   materialization,
   reload,
+  requestDescriptor,
   operation,
   previousValue,
   loaded,
@@ -169,14 +201,12 @@ function applyFulfilledReload(
   fulfilledEvent = "fulfilled",
   finalizeFulfilledDiagnostics = null,
   onFulfilled = null,
+  submittedTargets = null,
+  submittedIdentityMigration = null,
 ) {
   const visibleValueChanged =
     loaded.hasVisibleValue
     && !areLineValuesSemanticallyEqual(loaded.value, previousValue);
-  materialization.binding.valueSignal.set(loaded.value);
-  materialization.binding.processingSignal.set(loaded.processing);
-  materialization.binding.uploadSignal.set(loaded.upload);
-  materialization.binding.downloadSignal.set(loaded.download);
   const status = createFulfilledLineStatus(operation);
   const freshness = createFreshnessFromPolicy(reload.policy);
   const nextDiagnostics = createReloadFulfilledDiagnostics(
@@ -188,17 +218,37 @@ function applyFulfilledReload(
     visibleValueChanged,
     retryAttempts,
   );
-  const diagnostics =
+  const finalizedDiagnostics =
     finalizeFulfilledDiagnostics === null
       ? nextDiagnostics
       : finalizeFulfilledDiagnostics(nextDiagnostics);
+  const preparedMutationResponse = prepareMutationResponsePlanIfDeclared(
+    materialization.lineIdentity,
+    requestDescriptor,
+    finalizedDiagnostics,
+    reload.mutationResponseDeclaration,
+    loaded.value,
+    submittedTargets,
+    submittedIdentityMigration,
+  );
+  materialization.binding.valueSignal.set(loaded.value);
+  materialization.binding.processingSignal.set(loaded.processing);
+  materialization.binding.uploadSignal.set(loaded.upload);
+  materialization.binding.downloadSignal.set(loaded.download);
   materialization.binding.statusSignal.set(status);
   materialization.binding.freshnessSignal.set(freshness);
-  materialization.binding.diagnosticsSignal.set(diagnostics);
+  materialization.binding.diagnosticsSignal.set(
+    preparedMutationResponse.diagnostics,
+  );
   recordLineHistoryEntry(
     materialization.lifecycleHistory,
     materialization.binding,
     fulfilledEvent,
+  );
+  recordMutationResponsePlanIfPresent(
+    materialization.lifecycleHistory,
+    materialization.binding,
+    preparedMutationResponse.plan,
   );
   if (onFulfilled !== null) {
     onFulfilled();

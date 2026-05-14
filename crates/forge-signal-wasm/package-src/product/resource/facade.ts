@@ -15,7 +15,11 @@ import { resourceProcessingJob } from "./processing/resource_processing_job.js";
 import { resourceProcessingResult } from "./processing/processing_result.js";
 import { resourceResponse } from "./response/resource_response_contract.js";
 import { resourceEffects } from "./effects/resource_effect_profile.js";
+import { resourceMutationResponses } from "./mutation/resource_mutation_response_closeout_matrix.js";
 import { resourceCollectionShape } from "./reconciliation/resource_collection_shape.js";
+import { resourceDetailFields } from "./reconciliation/resource_detail_fields.js";
+import { resourceDetailRegions } from "./reconciliation/resource_detail_regions.js";
+import { resourceDetailJsonPaths } from "./reconciliation/resource_detail_json_paths.js";
 import { resourceItemAspects } from "./reconciliation/resource_item_aspects.js";
 import { resourcePatch } from "./reconciliation/resource_patch.js";
 import { resourceValueSummaries } from "./reconciliation/resource_value_summaries.js";
@@ -24,6 +28,9 @@ import { resourceUploadTransport } from "./uploads/resource_upload_transport.js"
 import { resourceAuth } from "./requests/resource_auth.js";
 import { resourceContinuation } from "./requests/resource_continuation.js";
 import { resourceRequestContext } from "./requests/request_context.js";
+import {
+  resetResourceEffectEnvelopeAuthorityForTesting,
+} from "./effects/resource_effect_envelope.js";
 import { createResourceLineEpoch } from "./lines/state/resource_line_epoch.js";
 
 function createResourceNamespace(signalNamespace, rawSignals) {
@@ -60,6 +67,10 @@ function createResourceNamespace(signalNamespace, rawSignals) {
       );
     },
     effects: resourceEffects,
+    mutationResponses: resourceMutationResponses,
+    detailFields: resourceDetailFields,
+    detailRegions: resourceDetailRegions,
+    detailJsonPaths: resourceDetailJsonPaths,
     response: resourceResponse,
   });
 }
@@ -70,8 +81,12 @@ export {
   resourceBinaryValue,
   resourceAuth,
   resourceCollectionShape,
+  resourceDetailFields,
+  resourceDetailRegions,
+  resourceDetailJsonPaths,
   resourceContinuation,
   resourceEffects,
+  resourceMutationResponses,
   resourceDelivery,
   resourceDownload,
   resourceItemAspects,
@@ -86,4 +101,5 @@ export {
   resourceUploadTransport,
   resourceRequestContext,
   resourceResponse,
+  resetResourceEffectEnvelopeAuthorityForTesting,
 };

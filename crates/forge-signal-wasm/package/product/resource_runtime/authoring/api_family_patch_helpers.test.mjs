@@ -62,6 +62,7 @@ test("api.url(...).list(...) families own typed patch helpers without changing p
       scope: "aspect",
       itemId: "demo:1",
       aspect: "title",
+      field: null,
     });
     assert.deepEqual(line.value(), {
       items: [{ id: "demo:1", title: "Updated" }],
@@ -151,6 +152,7 @@ test("api.url(...).paged(...) patch helpers admit page-window summaries when dec
       scope: "summary",
       itemId: null,
       aspect: null,
+      field: null,
       summary: "visibleCount",
     });
     assert.equal(line.value().visibleCount, 2);

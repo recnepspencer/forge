@@ -204,7 +204,7 @@ The following do not count as certification:
 - [Milestones 5-5.6](./test-requirements-milestones-5-5_6.md)
 - [Milestones 6-8](./test-requirements-milestones-6-8.md)
 - [Milestones 9-9.2](./test-requirements-milestones-9-9_2.md)
-- [Milestones 9.3-9.3.1 And Runtime Gates](./test-requirements-milestone-9_3-and-runtime-gates.md)
+- [Milestones 9.3-9.3.3 And Runtime Gates](./test-requirements-milestone-9_3-and-runtime-gates.md)
 - [Milestones 9.4-9.7](./test-requirements-milestones-9_4-9_7.md)
 - [Milestones 10-13](./test-requirements-milestones-10-13.md)
 - [Cross-Milestone Support And Honesty Suites](./test-requirements-cross-milestone.md)

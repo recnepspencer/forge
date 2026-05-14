@@ -1,7 +1,8 @@
 export interface ResourceEffectJsonPathPatchProof {
-  readonly version: "resource-json-path-aspect-proof-v1";
-  readonly aspect: string;
-  readonly field: string;
+  readonly version: "resource-json-path-aspect-proof-v1" | "resource-detail-json-path-proof-v1";
+  readonly aspect: string | null;
+  readonly field: string | null;
+  readonly pathName: string | null;
   readonly path: readonly (string | number)[];
   readonly parsedPathDigest: string;
   readonly policy: {

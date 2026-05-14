@@ -1,5 +1,53 @@
 import type { SignalValue } from "../model.js";
+import type {
+  ResourceDetailFieldMap,
+  ResourceDetailFieldValue,
+  ResourceDetailFields,
+} from "./resource_detail_fields.js";
+import type {
+  ResourceDetailRegionMap,
+  ResourceDetailRegionValue,
+  ResourceDetailRegions,
+} from "./resource_detail_regions.js";
+import type {
+  ResourceDetailJsonPathMap,
+  ResourceDetailJsonPathValue,
+  ResourceDetailJsonPaths,
+} from "./resource_detail_json_paths.js";
 import type { ResourceResponseLensProof } from "./resource_response.js";
+import type {
+  ResourceDeliveryFactory,
+  ResourceDeliveryForReconcile,
+  ResourceDeliveryResult,
+  ResourceExternalDeliveryFactory,
+  ResourceLineReconciliation,
+  ResourcePatchFactory,
+  ResourcePatchResult,
+} from "./resource_patch_delivery_surface.js";
+export type {
+  AppliedResourceDeliveryResult,
+  BasisRefreshedResourceDeliveryResult,
+  BasisRejectedResourceDeliveryResult,
+  DuplicateIgnoredResourceDeliveryResult,
+  ExternalBasisRefreshResourceDelivery,
+  ExternalInvalidateResourceDelivery,
+  ExternalPatchResourceDelivery,
+  ExternalReplaceResourceDelivery,
+  NarrowedDetailFieldPatchResult,
+  NarrowedDetailJsonPathPatchResult,
+  NarrowedDetailRegionPatchResult,
+  NarrowedItemAspectPatchResult,
+  NarrowedItemPatchResult,
+  NarrowedSummaryPatchResult,
+  ReplacedResourcePatchResult,
+  ResourceDeliveryFactory,
+  ResourceDeliveryForReconcile,
+  ResourceDeliveryResult,
+  ResourceExternalDeliveryFactory,
+  ResourceLineReconciliation,
+  ResourcePatchFactory,
+  ResourcePatchResult,
+} from "./resource_patch_delivery_surface.js";
 
 declare const forgeSignalResourceItemAspectsBrand: unique symbol;
 declare const forgeSignalResourceCollectionShapeBrand: unique symbol;
@@ -9,6 +57,10 @@ declare const forgeSignalResourceDeliveryBrand: unique symbol;
 
 export type ResourceSummaryPatchScope = "line" | "pageWindow";
 export type ResourceItemAspectLocus = "itemAspect" | "jsonItemAspect";
+export type ResourceDetailReconcile<TValue> =
+  | ResourceDetailFields<TValue, any>
+  | ResourceDetailRegions<TValue, any>
+  | ResourceDetailJsonPaths<TValue, any>;
 
 export interface ResourceItemAspect<TItem, TValue = SignalValue> {
   read(item: TItem): TValue;
@@ -68,6 +120,36 @@ export interface ResourceCollectionShape<
   readonly [forgeSignalResourceCollectionShapeBrand]: "resourceCollectionShape";
 }
 
+export interface FieldResourcePatch<
+  TField extends string = string,
+  TValue = SignalValue,
+> {
+  readonly kind: "field";
+  readonly field: TField;
+  readonly value: TValue;
+  readonly [forgeSignalResourcePatchBrand]: "resourcePatch";
+}
+
+export interface JsonPathResourcePatch<
+  TPath extends string = string,
+  TValue = SignalValue,
+> {
+  readonly kind: "jsonPath";
+  readonly path: TPath;
+  readonly value: TValue;
+  readonly [forgeSignalResourcePatchBrand]: "resourcePatch";
+}
+
+export interface RegionResourcePatch<
+  TRegion extends string = string,
+  TValue = SignalValue,
+> {
+  readonly kind: "region";
+  readonly region: TRegion;
+  readonly value: TValue;
+  readonly [forgeSignalResourcePatchBrand]: "resourcePatch";
+}
+
 export interface ReplaceResourcePatch<TValue> {
   readonly kind: "replace";
   readonly nextValue: TValue;
@@ -77,6 +159,20 @@ export interface ReplaceResourcePatch<TValue> {
 export interface ItemResourcePatch<TItem> {
   readonly kind: "item";
   readonly itemId: string;
+  readonly nextItem: TItem;
+  readonly [forgeSignalResourcePatchBrand]: "resourcePatch";
+}
+
+export interface DeleteResourcePatch {
+  readonly kind: "delete";
+  readonly itemId: string;
+  readonly [forgeSignalResourcePatchBrand]: "resourcePatch";
+}
+
+export interface InsertResourcePatch<TItem> {
+  readonly kind: "insert";
+  readonly itemId: string;
+  readonly placement: "append" | "prepend";
   readonly nextItem: TItem;
   readonly [forgeSignalResourcePatchBrand]: "resourcePatch";
 }
@@ -122,6 +218,36 @@ export type SummaryResourcePatchUnion<
   >;
 }[keyof TSummaryMap & string];
 
+export type DetailFieldResourcePatchUnion<
+  TValue,
+  TFieldMap extends ResourceDetailFieldMap<TValue>,
+> = {
+  [TField in keyof TFieldMap & string]: FieldResourcePatch<
+    TField,
+    ResourceDetailFieldValue<TFieldMap[TField]>
+  >;
+}[keyof TFieldMap & string];
+
+export type DetailJsonPathResourcePatchUnion<
+  TValue,
+  TPathMap extends ResourceDetailJsonPathMap<TValue>,
+> = {
+  [TPath in keyof TPathMap & string]: JsonPathResourcePatch<
+    TPath,
+    ResourceDetailJsonPathValue<TPathMap[TPath]>
+  >;
+}[keyof TPathMap & string];
+
+export type DetailRegionResourcePatchUnion<
+  TValue,
+  TRegionMap extends ResourceDetailRegionMap<TValue>,
+> = {
+  [TRegion in keyof TRegionMap & string]: RegionResourcePatch<
+    TRegion,
+    ResourceDetailRegionValue<TRegionMap[TRegion]>
+  >;
+}[keyof TRegionMap & string];
+
 export type ResourcePatch<
   TValue,
   TItem,
@@ -129,7 +255,12 @@ export type ResourcePatch<
   TSummaryMap extends ResourceValueSummaryMap<TValue> = {},
 > =
   | ReplaceResourcePatch<TValue>
+  | DetailFieldResourcePatchUnion<TValue, {}>
+  | DetailRegionResourcePatchUnion<TValue, {}>
+  | DetailJsonPathResourcePatchUnion<TValue, {}>
   | ItemResourcePatch<TItem>
+  | DeleteResourcePatch
+  | InsertResourcePatch<TItem>
   | AspectResourcePatchUnion<TItem, TAspectMap>
   | SummaryResourcePatchUnion<TValue, TSummaryMap>;
 
@@ -164,8 +295,23 @@ export type ResourcePatchForReconcile<
   TValue,
   TItem,
   TReconcile,
-  TFamilyKind extends "collection" | "paged" = "collection",
+  TFamilyKind extends "detail" | "collection" | "paged" = "collection",
 > = ReplaceResourcePatch<TValue>
+  | ([TReconcile] extends [
+      ResourceDetailFields<TValue, infer TFieldMap>,
+    ]
+      ? DetailFieldResourcePatchUnion<TValue, TFieldMap>
+      : never)
+  | ([TReconcile] extends [
+      ResourceDetailRegions<TValue, infer TRegionMap>,
+    ]
+      ? DetailRegionResourcePatchUnion<TValue, TRegionMap>
+      : never)
+  | ([TReconcile] extends [
+      ResourceDetailJsonPaths<TValue, infer TPathMap>,
+    ]
+      ? DetailJsonPathResourcePatchUnion<TValue, TPathMap>
+      : never)
   | ([TReconcile] extends [
       ResourceCollectionShape<
         any,
@@ -176,6 +322,8 @@ export type ResourcePatchForReconcile<
       >,
     ]
       ? | ItemResourcePatch<TItem>
+        | DeleteResourcePatch
+        | InsertResourcePatch<TItem>
         | AspectResourcePatchUnion<TItem, TAspectMap>
         | (TFamilyKind extends "paged"
             ? TSummaryPatchScope extends "pageWindow"
@@ -183,72 +331,6 @@ export type ResourcePatchForReconcile<
               : never
             : SummaryResourcePatchUnion<TValue, TSummaryMap>)
       : never);
-
-export interface ReplacedResourcePatchResult {
-  readonly kind: "replaced";
-  readonly scope: "line";
-  readonly itemId: null;
-  readonly aspect: null;
-}
-
-export interface NarrowedItemPatchResult {
-  readonly kind: "narrowed";
-  readonly scope: "item";
-  readonly itemId: string;
-  readonly aspect: null;
-}
-
-export interface NarrowedItemAspectPatchResult {
-  readonly kind: "narrowed";
-  readonly scope: "aspect";
-  readonly itemId: string;
-  readonly aspect: string;
-}
-
-export interface NarrowedSummaryPatchResult {
-  readonly kind: "narrowed";
-  readonly scope: "summary";
-  readonly itemId: null;
-  readonly aspect: null;
-  readonly summary: string;
-}
-
-export type ResourcePatchResult =
-  | ReplacedResourcePatchResult
-  | NarrowedItemPatchResult
-  | NarrowedItemAspectPatchResult
-  | NarrowedSummaryPatchResult;
-
-export interface ResourceLineReconciliation<
-  TItem,
-  TAspectMap extends ResourceItemAspectMap<TItem> = {},
-  TSummaryMap extends ResourceValueSummaryMap<any> = {},
-  TNarrowItem extends boolean = boolean,
-  TNarrowSummary extends boolean = boolean,
-> {
-  readonly broadReplace: true;
-  readonly narrowItem: TNarrowItem;
-  readonly narrowSummary: TNarrowSummary;
-  readonly aspectNames: readonly (keyof TAspectMap & string)[];
-  readonly summaryNames: readonly (keyof TSummaryMap & string)[];
-}
-
-export interface ResourcePatchFactory {
-  replace<TValue>(nextValue: TValue): ReplaceResourcePatch<TValue>;
-  item<TItem>(options: {
-    itemId: string;
-    nextItem: TItem;
-  }): ItemResourcePatch<TItem>;
-  itemAspect<TAspect extends string, TValue>(options: {
-    itemId: string;
-    aspect: TAspect;
-    value: TValue;
-  }): ItemAspectResourcePatch<TAspect, TValue>;
-  summary<TSummary extends string, TValue>(options: {
-    summary: TSummary;
-    value: TValue;
-  }): SummaryResourcePatch<TSummary, TValue>;
-}
 
 export interface ReplaceResourceDelivery<TValue> {
   readonly kind: "replace"; readonly packetId: string;
@@ -259,7 +341,7 @@ export interface ReplaceResourceDelivery<TValue> {
 
 export interface PatchResourceDelivery<
   TValue, TItem, TReconcile,
-  TFamilyKind extends "collection" | "paged" = "collection",
+  TFamilyKind extends "detail" | "collection" | "paged" = "collection",
 > {
   readonly kind: "patch"; readonly packetId: string;
   readonly basisId: string | null; readonly nextBasisId: string | null | undefined;
@@ -271,121 +353,6 @@ export interface InvalidateResourceDelivery {
   readonly kind: "invalidate"; readonly packetId: string;
   readonly basisId: string | null; readonly nextBasisId: string | null | undefined;
   readonly [forgeSignalResourceDeliveryBrand]: "resourceDelivery";
-}
-
-export interface ExternalReplaceResourceDelivery<TValue> {
-  readonly kind: "replace"; readonly packetId: string;
-  readonly basisId: string | null; readonly nextBasisId: string | null | undefined;
-  readonly nextValue: TValue; readonly version: "forge-resource-external-delivery-v1";
-  readonly contract: "basis-compat-v1";
-}
-
-export interface ExternalPatchResourceDelivery<
-  TValue, TItem, TReconcile,
-  TFamilyKind extends "collection" | "paged" = "collection",
-> {
-  readonly kind: "patch"; readonly packetId: string;
-  readonly basisId: string | null; readonly nextBasisId: string | null | undefined;
-  readonly patch: ResourcePatchForReconcile<TValue, TItem, TReconcile, TFamilyKind>;
-  readonly version: "forge-resource-external-delivery-v1";
-  readonly contract: "basis-compat-v1";
-}
-
-export interface ExternalInvalidateResourceDelivery {
-  readonly kind: "invalidate"; readonly packetId: string;
-  readonly basisId: string | null; readonly nextBasisId: string | null | undefined;
-  readonly version: "forge-resource-external-delivery-v1";
-  readonly contract: "basis-compat-v1";
-}
-
-export interface ExternalBasisRefreshResourceDelivery {
-  readonly kind: "basisRefresh"; readonly packetId: string;
-  readonly basisId: string | null; readonly nextBasisId: string;
-  readonly version: "forge-resource-external-delivery-v1";
-  readonly contract: "basis-compat-v1";
-}
-
-export type ResourceDeliveryForReconcile<
-  TValue, TItem, TReconcile,
-  TFamilyKind extends "collection" | "paged" = "collection",
-> =
-  | ReplaceResourceDelivery<TValue>
-  | PatchResourceDelivery<TValue, TItem, TReconcile, TFamilyKind>
-  | InvalidateResourceDelivery
-  | ExternalReplaceResourceDelivery<TValue>
-  | ExternalPatchResourceDelivery<TValue, TItem, TReconcile, TFamilyKind>
-  | ExternalInvalidateResourceDelivery
-  | ExternalBasisRefreshResourceDelivery;
-
-export interface AppliedResourceDeliveryResult {
-  readonly kind: "applied"; readonly deliveryKind: "replace" | "patch" | "invalidate";
-  readonly scope: "line" | "item" | "aspect" | "summary" | "invalidate";
-  readonly packetId: string; readonly basisId: string | null;
-  readonly nextBasisId: string | null;
-  readonly supersededOperation: "initialLoad" | "refresh" | "revalidate" | null;
-}
-
-export interface DuplicateIgnoredResourceDeliveryResult {
-  readonly kind: "duplicateIgnored"; readonly packetId: string;
-  readonly deliveryKind: "replace" | "patch" | "invalidate" | "basisRefresh";
-}
-
-export interface BasisRejectedResourceDeliveryResult {
-  readonly kind: "basisRejected"; readonly packetId: string;
-  readonly expectedBasisId: string | null; readonly actualBasisId: string;
-}
-
-export interface BasisRefreshedResourceDeliveryResult {
-  readonly kind: "basisRefreshed"; readonly packetId: string;
-  readonly basisId: string | null; readonly nextBasisId: string | null;
-  readonly reloadStatus:
-    | import("./resource_lifecycle.js").ResourceLinePendingStatus
-    | import("./resource_lifecycle.js").ResourceLineFulfilledStatus
-    | import("./resource_lifecycle.js").ResourceLineTimedOutStatus
-    | import("./resource_lifecycle.js").ResourceLineRejectedStatus;
-}
-
-export type ResourceDeliveryResult =
-  | AppliedResourceDeliveryResult
-  | DuplicateIgnoredResourceDeliveryResult
-  | BasisRejectedResourceDeliveryResult
-  | BasisRefreshedResourceDeliveryResult;
-
-export interface ResourceDeliveryFactory {
-  replace<TValue>(options: {
-    packetId: string; basisId?: string | null;
-    nextBasisId?: string | null; nextValue: TValue;
-  }): ReplaceResourceDelivery<TValue>;
-  patch<
-    TValue, TItem, TReconcile,
-    TFamilyKind extends "collection" | "paged" = "collection",
-  >(options: {
-    packetId: string; basisId?: string | null; nextBasisId?: string | null;
-    patch: ResourcePatchForReconcile<TValue, TItem, TReconcile, TFamilyKind>;
-  }): PatchResourceDelivery<TValue, TItem, TReconcile, TFamilyKind>;
-  invalidate(options: {
-    packetId: string; basisId?: string | null; nextBasisId?: string | null;
-  }): InvalidateResourceDelivery;
-}
-
-export interface ResourceExternalDeliveryFactory {
-  replace<TValue>(options: {
-    packetId: string; basisId?: string | null;
-    nextBasisId?: string | null; nextValue: TValue;
-  }): ExternalReplaceResourceDelivery<TValue>;
-  patch<
-    TValue, TItem, TReconcile,
-    TFamilyKind extends "collection" | "paged" = "collection",
-  >(options: {
-    packetId: string; basisId?: string | null; nextBasisId?: string | null;
-    patch: ResourcePatchForReconcile<TValue, TItem, TReconcile, TFamilyKind>;
-  }): ExternalPatchResourceDelivery<TValue, TItem, TReconcile, TFamilyKind>;
-  invalidate(options: {
-    packetId: string; basisId?: string | null; nextBasisId?: string | null;
-  }): ExternalInvalidateResourceDelivery;
-  basisRefresh(options: {
-    packetId: string; basisId?: string | null; nextBasisId: string;
-  }): ExternalBasisRefreshResourceDelivery;
 }
 
 export function resourceItemAspects<
@@ -417,6 +384,21 @@ export function resourceCollectionShape<
   aspects?: ResourceItemAspects<TItem, TAspectMap>;
   summaries?: ResourceValueSummaries<TValue, TSummaryMap, TSummaryPatchScope>;
 }): ResourceCollectionShape<TValue, TItem, TAspectMap, TSummaryMap, TSummaryPatchScope>;
+
+export function resourceDetailFields<
+  TValue,
+  TFieldMap extends ResourceDetailFieldMap<TValue>,
+>(definitions: TFieldMap): ResourceDetailFields<TValue, TFieldMap>;
+
+export function resourceDetailRegions<
+  TValue,
+  TRegionMap extends ResourceDetailRegionMap<TValue>,
+>(definitions: TRegionMap): ResourceDetailRegions<TValue, TRegionMap>;
+
+export function resourceDetailJsonPaths<
+  TValue,
+  TPathMap extends ResourceDetailJsonPathMap<TValue>,
+>(definitions: TPathMap): ResourceDetailJsonPaths<TValue, TPathMap>;
 
 export const resourcePatch: ResourcePatchFactory;
 export const resourceDelivery: ResourceDeliveryFactory;

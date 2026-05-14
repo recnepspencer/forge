@@ -6,12 +6,18 @@ const RESOURCE_RESPONSE_LENS_PROOF_VERSION = "resource-response-lens-proof-v1";
 
 function createResponseLensProof(options) {
   const topology = requireResponseLensTopology(options.topology);
+  const fieldNames = Object.freeze([...(options.fieldNames ?? [])].sort());
+  const regionNames = Object.freeze([...(options.regionNames ?? [])].sort());
+  const jsonPathNames = Object.freeze([...(options.jsonPathNames ?? [])].sort());
   const aspectNames = Object.freeze([...(options.aspectNames ?? [])].sort());
   const jsonAspectNames = Object.freeze([...(options.jsonAspectNames ?? [])].sort());
   const summaryNames = Object.freeze([...(options.summaryNames ?? [])].sort());
   const summaryPatchScope = options.summaryPatchScope ?? null;
   const capabilityRows = createCapabilityRows({
     ...options,
+    fieldNames,
+    regionNames,
+    jsonPathNames,
     aspectNames,
     jsonAspectNames,
     summaryNames,
@@ -20,6 +26,9 @@ function createResponseLensProof(options) {
   const declarationDigest = createResponseDeclarationDigest({
     source: options.source,
     topology,
+    fieldNames,
+    regionNames,
+    jsonPathNames,
     itemField: options.itemField ?? null,
     aspectNames,
     jsonAspectNames,
@@ -39,6 +48,9 @@ function createResponseLensProof(options) {
     parityDigest: createResponseLensParityDigest({
       source: options.source,
       topology,
+      fieldNames,
+      regionNames,
+      jsonPathNames,
       itemField: options.itemField ?? null,
       capabilityRows,
       summaryPatchScope,
@@ -49,6 +61,9 @@ function createResponseLensProof(options) {
       compiledLensDigest,
     }),
     capabilityRows,
+    fieldNames,
+    regionNames,
+    jsonPathNames,
     aspectNames,
     jsonAspectNames,
     summaryNames,
@@ -84,6 +99,15 @@ function createCapabilityRows(options) {
   const rows = [];
   if (options.topology === "detail") {
     rows.push(createCapabilityRow("detailResponse", "line", true));
+    if ((options.fieldNames ?? []).length > 0) {
+      rows.push(createCapabilityRow("detailField", "field", true));
+    }
+    if ((options.regionNames ?? []).length > 0) {
+      rows.push(createCapabilityRow("detailRegion", "region", true));
+    }
+    if ((options.jsonPathNames ?? []).length > 0) {
+      rows.push(createCapabilityRow("detailJsonPath", "jsonPath", true));
+    }
     return Object.freeze(rows);
   }
   if (options.topology === "summary") {
@@ -163,6 +187,9 @@ function createResponseDeclarationDigest(options) {
     "response-declaration",
     options.source,
     options.topology,
+    `fields:${options.fieldNames.join(",")}`,
+    `regions:${options.regionNames.join(",")}`,
+    `jsonPaths:${options.jsonPathNames.join(",")}`,
     options.itemField ?? "none",
     `aspects:${options.aspectNames.join(",")}`,
     `json:${options.jsonAspectNames.join(",")}`,
@@ -189,6 +216,9 @@ function createResponseLensParityDigest(options) {
     options.source,
     options.topology,
     options.itemField ?? "none",
+    `fields:${options.fieldNames.join(",")}`,
+    `regions:${options.regionNames.join(",")}`,
+    `jsonPaths:${options.jsonPathNames.join(",")}`,
     `summaryScope:${options.summaryPatchScope ?? "none"}`,
     ...options.capabilityRows.map((row) => [
       row.locus,

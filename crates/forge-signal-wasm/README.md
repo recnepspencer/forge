@@ -60,11 +60,11 @@ scripts/wasm/publish-forge-signal-wasm.ps1 -SkipPublish
 ## Where To Start
 
 - If you want local app state, start with the examples below and then read
-  [App Surface Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/app_surface_reference.md).
+  [App Surface Reference](./docs/app-surface/overview.md).
 - If you want API-backed state, jump to
-  [API Resources Overview](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/api_resources_overview.md).
+  [API Resources Overview](./docs/resources/overview.md).
 - If you want package setup and local package workflow, start with
-  [Consuming forge-signal-wasm](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/consuming_the_package.md).
+  [Consuming forge-signal-wasm](./docs/package/install-and-publish.md).
 
 ## The Main Authoring Model
 
@@ -394,10 +394,11 @@ Use resources when the state is really a parameterized resource line with:
 
 Start with the resource docs cluster when that is your main use case:
 
-- [API Resources Overview](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/api_resources_overview.md)
-- [Resource Family Authoring Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_family_authoring_reference.md)
-- [Resource Line Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_line_reference.md)
-- [Resource Recipes](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_recipes.md)
+- [API Resources Overview](./docs/resources/overview.md)
+- [Branch-Native Resource Effects](./docs/resources/branch-native-effects.md)
+- [Resource Family Authoring Reference](./docs/api-reference/resource-family-authoring.md)
+- [Resource Line Reference](./docs/api-reference/resource-line.md)
+- [Resource Recipes](./docs/learn/recipes.md)
 
 Ignore the deeper resource pages at first if you do not need them yet. For most
 teams the right path is:
@@ -658,21 +659,21 @@ should stay on the callable surface.
 
 ## Docs
 
-- [Documentation Index](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/README.md)
-- [Consuming forge-signal-wasm](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/consuming_the_package.md)
-- [App Surface Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/app_surface_reference.md)
-- [API Resources Overview](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/api_resources_overview.md)
-- [Resource Family Authoring Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_family_authoring_reference.md)
-- [Resource Line Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_line_reference.md)
-- [Resource Request And Policy Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_request_and_policy_reference.md)
-- [Resource Reconciliation Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_reconciliation_reference.md)
-- [Resource Transfers Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_transfers_reference.md)
-- [Resource Binary And Download Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_binary_and_download_reference.md)
-- [Resource Delivery And Compatibility Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_delivery_and_compatibility_reference.md)
-- [Resource Inspection And History Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_inspection_and_history_reference.md)
-- [Resource Recipes](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/resource_recipes.md)
-- [Aspects Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/aspects_reference.md)
-- [Host Capabilities](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/host_capabilities.md)
-- [Diagnostics And History Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/diagnostics_and_history_reference.md)
-- [Compatibility Surface Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/compatibility_surface_reference.md)
-- [React Adapter Reference](https://github.com/recnepspencer/forge/blob/master/crates/forge-signal-wasm/docs/react_adapter_reference.md)
+- [Documentation Index](./docs/README.md)
+- [Consuming forge-signal-wasm](./docs/package/install-and-publish.md)
+- [App Surface Reference](./docs/app-surface/overview.md)
+- [API Resources Overview](./docs/resources/overview.md)
+- [Resource Family Authoring Reference](./docs/api-reference/resource-family-authoring.md)
+- [Resource Line Reference](./docs/api-reference/resource-line.md)
+- [Resource Request And Policy Reference](./docs/api-reference/resource-request-and-policy.md)
+- [Resource Reconciliation Reference](./docs/resource-contracts/reconciliation.md)
+- [Resource Transfers Reference](./docs/api-reference/resource-transfers.md)
+- [Resource Binary And Download Reference](./docs/api-reference/resource-binary-and-download.md)
+- [Resource Delivery And Compatibility Reference](./docs/resource-contracts/delivery-and-compatibility.md)
+- [Resource Inspection And History Reference](./docs/resource-contracts/inspection-and-history.md)
+- [Resource Recipes](./docs/learn/recipes.md)
+- [Aspects Reference](./docs/app-surface/aspects.md)
+- [Host Capabilities](./docs/app-surface/host-capabilities.md)
+- [Diagnostics And History Reference](./docs/app-surface/diagnostics-and-history.md)
+- [Compatibility Surface Reference](./docs/api-reference/compatibility-surface.md)
+- [React Adapter Reference](./docs/app-surface/react-adapter.md)

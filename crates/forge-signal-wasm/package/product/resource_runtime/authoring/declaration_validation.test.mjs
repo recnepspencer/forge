@@ -55,7 +55,7 @@ test("family declaration validation keeps detail, collection, and paged shapes d
             mod.resourceParamIdentity({ productId }, productId),
           load: ({ productId }) => ({ id: productId }),
         }),
-      /must not declare reconcile/,
+      /requires detail fields created with resourceDetailFields|requires detail JSON paths created with resourceDetailJsonPaths|requires detail regions created with resourceDetailRegions/,
     );
 
     assert.throws(

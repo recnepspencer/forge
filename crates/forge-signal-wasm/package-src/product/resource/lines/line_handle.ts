@@ -75,6 +75,14 @@ function createLineHandle(lineBacking) {
       requireActiveLine(materialization, "diagnosticsSummary");
       return readLineDiagnosticsSummary(materialization);
     },
+    mutationResponse() {
+      const materialization = requireCurrentMaterialization(lineBacking);
+      requireActiveLine(materialization, "mutationResponse");
+      const diagnostics = materialization.binding.diagnosticsSignal();
+      return "lastMutationResponsePlan" in diagnostics
+        ? diagnostics.lastMutationResponsePlan
+        : null;
+    },
     free() {
       releaseLine(requireCurrentMaterialization(lineBacking));
     },

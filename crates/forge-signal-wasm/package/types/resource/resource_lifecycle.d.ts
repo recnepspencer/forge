@@ -30,6 +30,7 @@ import type {
   ResourceLineSummary,
 } from "./resource_line_summary.js";
 import type { ResourceLineDiagnostics } from "./resource_line_diagnostics.js";
+import type { ResourceMutationResponsePlan } from "./resource_mutation_response.js";
 
 export type ResourceLineOperation =
   | "initialLoad"
@@ -340,6 +341,7 @@ export interface ResourceLine<TParams = unknown, TValue = SignalValue> {
   upload(): ResourceLineUpload;
   diagnostics(): ResourceLineDiagnostics;
   diagnosticsSummary(): ResourceLineDiagnosticsSummary;
+  mutationResponse(): ResourceMutationResponsePlan | null;
   free(): void;
   invalidate(): ResourceLineFreshness;
   refresh(): ResourceLineStatus;

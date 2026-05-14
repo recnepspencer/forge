@@ -1,0 +1,35 @@
+error[E0277]: the trait bound `LocalGenericWrapper<T>: forge_foundational::boundary_artifacts::categories::sealed::Sealed` is not satisfied
+ --> tests/ui/boundary_artifacts/categories/local_generic_wrapper_cannot_satisfy_category_surface_trait.rs:7:49
+  |
+7 | impl<T> FoundationalBoundaryCategorySurface for LocalGenericWrapper<T> {
+  |                                                 ^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
+  |
+help: the trait `forge_foundational::boundary_artifacts::categories::sealed::Sealed` is not implemented for `LocalGenericWrapper<T>`
+ --> tests/ui/boundary_artifacts/categories/local_generic_wrapper_cannot_satisfy_category_surface_trait.rs:3:1
+  |
+3 | struct LocalGenericWrapper<T> {
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = help: the following other types implement trait `forge_foundational::boundary_artifacts::categories::sealed::Sealed`:
+            ArtifactCategory
+            FoundationalBoundaryArtifactSurface<T>
+            FoundationalBoundaryReceiptSurface
+            FoundationalBoundaryReportSurface<Row>
+            FoundationalBoundarySummarySurface
+            ReceiptCategory
+            ReportCategory
+            SummaryCategory
+note: required by a bound in `FoundationalBoundaryCategorySurface`
+ --> src/boundary_artifacts/categories.rs
+  |
+  | pub trait FoundationalBoundaryCategorySurface: sealed::Sealed {
+  |                                                ^^^^^^^^^^^^^^ required by this bound in `FoundationalBoundaryCategorySurface`
+  = note: `FoundationalBoundaryCategorySurface` is a "sealed trait", because to implement it you also need to implement `forge_foundational::boundary_artifacts::categories::sealed::Sealed`, which is not accessible; this is usually done to force you to use one of the provided types that already implement it
+  = help: the following types implement the trait:
+            forge_foundational::SummaryCategory
+            forge_foundational::ReportCategory
+            forge_foundational::ArtifactCategory
+            forge_foundational::ReceiptCategory
+            forge_foundational::FoundationalBoundarySummarySurface
+            forge_foundational::FoundationalBoundaryReportSurface<Row>
+            forge_foundational::FoundationalBoundaryArtifactSurface<T>
+            forge_foundational::FoundationalBoundaryReceiptSurface

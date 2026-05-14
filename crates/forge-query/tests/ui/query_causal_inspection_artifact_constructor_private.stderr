@@ -1,0 +1,19 @@
+error[E0451]: fields `owner`, `family`, `reference_identity`, `binding_digest`, `retained_record_digest`, `detail_redacted` and `reference_digest` of struct `QueryCausalEvidenceReferenceArtifact` are private
+  --> tests/ui/query_causal_inspection_artifact_constructor_private.rs:5:9
+   |
+ 4 |     let _ = QueryCausalEvidenceReferenceArtifact {
+   |             ------------------------------------ in this type
+ 5 |         owner: "runtime_bridge".to_string(),
+   |         ^^^^^ private field
+ 6 |         family: "bridge_route".to_string(),
+   |         ^^^^^^ private field
+ 7 |         reference_identity: "route:forged".to_string(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+ 8 |         binding_digest: "binding:forged".to_string(),
+   |         ^^^^^^^^^^^^^^ private field
+ 9 |         retained_record_digest: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         detail_redacted: false,
+   |         ^^^^^^^^^^^^^^^ private field
+11 |         reference_digest: "reference:forged".to_string(),
+   |         ^^^^^^^^^^^^^^^^ private field

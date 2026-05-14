@@ -20,6 +20,7 @@ import type {
   ResourceLineReconciliation,
   ResourceCollectionShape,
   ResourcePatchForReconcile,
+  ResourceDetailReconcile,
   ResourceReconcileAspectMap,
   ResourcePatchResult,
   ResourceValueSummaryMap,
@@ -54,7 +55,11 @@ type ResourceEffectProfileInput<TParams> =
   | ResourceEffectProfile
   | ((params: TParams) => ResourceEffectProfile);
 
-export interface DetailResourceDeclaration<TParams, TValue> {
+export interface DetailResourceDeclaration<
+  TParams,
+  TValue,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined,
+> {
   params: DeclaredResourceParams<TParams>;
   baseUrl?: string | ((params: TParams) => string);
   method?: ResourceRequestMethod;
@@ -68,6 +73,7 @@ export interface DetailResourceDeclaration<TParams, TValue> {
     | ((params: TParams) => ResourceContinuationPosture);
   requestBody?: (params: TParams) => unknown;
   effects?: ResourceEffectProfileInput<TParams>;
+  reconcile?: TReconcile;
   uploadTransport?:
     | ResourceUploadTransportPosture
     | ((params: TParams) => ResourceUploadTransportPosture);
@@ -78,7 +84,11 @@ export interface DetailResourceDeclaration<TParams, TValue> {
   ): ResourceMaybePromise<ResourceBinaryCompatibleValue<Awaited<TValue>>>;
 }
 
-export interface ProcessingDetailResourceDeclaration<TParams, TValue> {
+export interface ProcessingDetailResourceDeclaration<
+  TParams,
+  TValue,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined,
+> {
   params: DeclaredResourceParams<TParams>;
   baseUrl?: string | ((params: TParams) => string);
   method?: ResourceRequestMethod;
@@ -92,6 +102,7 @@ export interface ProcessingDetailResourceDeclaration<TParams, TValue> {
     | ((params: TParams) => ResourceContinuationPosture);
   requestBody?: (params: TParams) => unknown;
   effects?: ResourceEffectProfileInput<TParams>;
+  reconcile?: TReconcile;
   processingJob:
     | ResourceProcessingJobPosture
     | ((params: TParams) => ResourceProcessingJobPosture);
@@ -108,7 +119,11 @@ export interface ProcessingDetailResourceDeclaration<TParams, TValue> {
   >;
 }
 
-export interface UploadDetailResourceDeclaration<TParams, TValue> {
+export interface UploadDetailResourceDeclaration<
+  TParams,
+  TValue,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined,
+> {
   params: DeclaredResourceParams<TParams>;
   baseUrl?: string | ((params: TParams) => string);
   method?: ResourceRequestMethod;
@@ -122,6 +137,7 @@ export interface UploadDetailResourceDeclaration<TParams, TValue> {
     | ((params: TParams) => ResourceContinuationPosture);
   requestBody?: (params: TParams) => unknown;
   effects?: ResourceEffectProfileInput<TParams>;
+  reconcile?: TReconcile;
   processingJob?:
     | ResourceProcessingJobPosture
     | ((params: TParams) => ResourceProcessingJobPosture);
@@ -138,7 +154,11 @@ export interface UploadDetailResourceDeclaration<TParams, TValue> {
   >;
 }
 
-export interface ProcessingUploadDetailResourceDeclaration<TParams, TValue> {
+export interface ProcessingUploadDetailResourceDeclaration<
+  TParams,
+  TValue,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined,
+> {
   params: DeclaredResourceParams<TParams>;
   baseUrl?: string | ((params: TParams) => string);
   method?: ResourceRequestMethod;
@@ -152,6 +172,7 @@ export interface ProcessingUploadDetailResourceDeclaration<TParams, TValue> {
     | ((params: TParams) => ResourceContinuationPosture);
   requestBody?: (params: TParams) => unknown;
   effects?: ResourceEffectProfileInput<TParams>;
+  reconcile?: TReconcile;
   processingJob:
     | ResourceProcessingJobPosture
     | ((params: TParams) => ResourceProcessingJobPosture);
@@ -354,13 +375,17 @@ export type ResourceExternalReconciliationContract =
   | "collection-v1"
   | "paged-v1";
 
-export interface ExternalDetailResourceDefinition<TParams, TValue> {
+export interface ExternalDetailResourceDefinition<
+  TParams,
+  TValue,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined,
+> {
   readonly version: ResourceExternalDefinitionVersion;
   readonly family: "detail";
   readonly definitionId: string;
   readonly requestContract: ResourceExternalRequestContract;
   readonly reconciliationContract: "none";
-  readonly declaration: DetailResourceDeclaration<TParams, TValue>;
+  readonly declaration: DetailResourceDeclaration<TParams, TValue, TReconcile>;
 }
 
 export interface ExternalCollectionResourceDefinition<

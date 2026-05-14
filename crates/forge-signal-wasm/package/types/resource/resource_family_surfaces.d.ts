@@ -1,9 +1,22 @@
 import type { SignalValue } from "../model.js";
 import type { ResourceLine } from "./resource_lifecycle.js";
 import type {
+  ResourceDetailFieldMap,
+  ResourceDetailFields,
+} from "./resource_detail_fields.js";
+import type {
+  ResourceDetailRegionMap,
+  ResourceDetailRegions,
+} from "./resource_detail_regions.js";
+import type {
+  ResourceDetailJsonPathMap,
+  ResourceDetailJsonPaths,
+} from "./resource_detail_json_paths.js";
+import type {
   ResourceCollectionShape,
   ResourceDeliveryForReconcile,
   ResourceDeliveryResult,
+  ResourceDetailReconcile,
   ResourceItemAspectMap,
   ResourceLineReconciliation,
   ResourcePatchForReconcile,
@@ -29,14 +42,39 @@ type ResourceLineSummaryMapFor<TReconcile> =
     ? ResourceReconcileSummaryMap<TReconcile>
     : {};
 
-export interface DetailResourceFamily<TParams, TValue> {
+type ResourceLineFieldMapFor<TValue, TReconcile> =
+  [TReconcile] extends [ResourceDetailFields<TValue, infer TFieldMap>]
+    ? TFieldMap extends ResourceDetailFieldMap<TValue>
+      ? TFieldMap
+      : {}
+    : {};
+
+type ResourceLineJsonPathMapFor<TValue, TReconcile> =
+  [TReconcile] extends [ResourceDetailJsonPaths<TValue, infer TPathMap>]
+    ? TPathMap extends ResourceDetailJsonPathMap<TValue>
+      ? TPathMap
+      : {}
+    : {};
+
+type ResourceLineRegionMapFor<TValue, TReconcile> =
+  [TReconcile] extends [ResourceDetailRegions<TValue, infer TRegionMap>]
+    ? TRegionMap extends ResourceDetailRegionMap<TValue>
+      ? TRegionMap
+      : {}
+    : {};
+
+export interface DetailResourceFamily<
+  TParams,
+  TValue,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined,
+> {
   invalidate<TActualParams extends TParams>(
     params: ExactResourceParams<TParams, TActualParams>,
   ): boolean;
   invalidateAll(): number;
   line<TActualParams extends TParams>(
     params: ExactResourceParams<TParams, TActualParams>,
-  ): ResourceLine<TParams, TValue | null>;
+  ): ResourceDetailPatchCapableLine<TParams, TValue, TReconcile>;
 }
 
 export interface CollectionResourceFamily<
@@ -104,11 +142,39 @@ export interface ResourcePatchCapableLine<
     TItem,
     ResourceLineAspectMapFor<TItem, TReconcile>,
     ResourceLineSummaryMapFor<TReconcile>,
+    {},
     [TReconcile] extends [ResourceCollectionShape<any, any, any, any>] ? true : false,
+    false,
     TFamilyKind extends "paged"
       ? ResourceReconcileSummaryPatchScope<TReconcile> extends "pageWindow"
         ? [TReconcile] extends [ResourceCollectionShape<any, any, any, any, any>] ? true : false
         : false
       : [TReconcile] extends [ResourceCollectionShape<any, any, any, any, any>] ? true : false
+  >;
+}
+
+export interface ResourceDetailPatchCapableLine<
+  TParams,
+  TValue,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined,
+> extends ResourceLine<TParams, TValue | null> {
+  patch(
+    patch: ResourcePatchForReconcile<TValue, never, TReconcile, "detail">,
+  ): ResourcePatchResult;
+  deliver(
+    packet: ResourceDeliveryForReconcile<TValue, never, TReconcile, "detail">,
+  ): ResourceDeliveryResult;
+  reconciliation(): ResourceLineReconciliation<
+    never,
+    {},
+    {},
+    ResourceLineFieldMapFor<TValue, TReconcile>,
+    ResourceLineRegionMapFor<TValue, TReconcile>,
+    ResourceLineJsonPathMapFor<TValue, TReconcile>,
+    false,
+    [TReconcile] extends [ResourceDetailFields<TValue, any>] ? true : false,
+    [TReconcile] extends [ResourceDetailRegions<TValue, any>] ? true : false,
+    [TReconcile] extends [ResourceDetailJsonPaths<TValue, any>] ? true : false,
+    false
   >;
 }

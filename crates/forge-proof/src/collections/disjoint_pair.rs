@@ -1,16 +1,20 @@
-use crate::proof::{Disjointness, Proof};
+use crate::proof::{Disjointness, Proof, StructuralProofAuthority};
 
 use super::Pair;
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct DisjointPair<T> {
     pair: Pair<T>,
-    proof: Proof<Disjointness>,
+    proof: Proof<Disjointness, StructuralProofAuthority>,
 }
 
 impl<T> DisjointPair<T> {
     #[allow(dead_code)]
-    pub(crate) fn new(left: T, right: T, proof: Proof<Disjointness>) -> Self {
+    pub(crate) fn new(
+        left: T,
+        right: T,
+        proof: Proof<Disjointness, StructuralProofAuthority>,
+    ) -> Self {
         Self {
             pair: Pair::new(left, right),
             proof,
@@ -29,11 +33,11 @@ impl<T> DisjointPair<T> {
         &self.pair
     }
 
-    pub fn proof(&self) -> &Proof<Disjointness> {
+    pub fn proof(&self) -> &Proof<Disjointness, StructuralProofAuthority> {
         &self.proof
     }
 
-    pub fn into_parts(self) -> (Pair<T>, Proof<Disjointness>) {
+    pub fn into_parts(self) -> (Pair<T>, Proof<Disjointness, StructuralProofAuthority>) {
         (self.pair, self.proof)
     }
 }
@@ -49,7 +53,11 @@ mod tests {
 
     #[test]
     fn disjoint_pair_carries_pair_and_explicit_proof() {
-        let pair = DisjointPair::new("left", "right", mint_proof::<Disjointness>());
+        let pair = DisjointPair::new(
+            "left",
+            "right",
+            mint_proof::<Disjointness, crate::proof::StructuralProofAuthority>(),
+        );
 
         assert_eq!(pair.left(), &"left");
         assert_eq!(pair.right(), &"right");

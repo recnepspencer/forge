@@ -14,7 +14,9 @@ import type {
 } from "./resource_lifecycle.js";
 import type { ResourcePolicyProfileName } from "./resource_postures.js";
 import type { ResourceLineHistoryAvailability } from "./resource_line_history.js";
+import type { ResourceLineIdentityMigrationHistoryDigest } from "./resource_line_history.js";
 import type { ResourceLineVisibleSelection } from "./resource_line_diagnostics.js";
+import type { ResourceMutationResponseTargetOutcomeSummary } from "./resource_mutation_response.js";
 
 export interface ResourceLineDiagnosticsCurrentSummary {
   readonly status: ResourceLineStatus;
@@ -53,9 +55,30 @@ export interface ResourceLineDiagnosticsLatestChangeSummary {
     | "manualFamilyInvalidateAll"
     | null;
   readonly invalidationScope: "line" | "familyMember" | "familyAll" | null;
-  readonly patchKind: "replace" | "item" | "itemAspect" | "summary" | null;
-  readonly patchScope: "line" | "item" | "aspect" | "summary" | null;
+  readonly patchKind:
+    | "replace"
+    | "field"
+    | "region"
+    | "jsonPath"
+    | "item"
+    | "delete"
+    | "insert"
+    | "itemAspect"
+    | "summary"
+    | null;
+  readonly patchScope:
+    | "line"
+    | "field"
+    | "region"
+    | "jsonPath"
+    | "item"
+    | "aspect"
+    | "summary"
+    | null;
   readonly patchedItemId: string | null;
+  readonly patchedField: string | null;
+  readonly patchedRegion: string | null;
+  readonly patchedPath: string | null;
   readonly patchedAspect: string | null;
   readonly patchedSummary: string | null;
   readonly deliveryKind:
@@ -66,6 +89,9 @@ export interface ResourceLineDiagnosticsLatestChangeSummary {
     | null;
   readonly deliveryScope:
     | "line"
+    | "field"
+    | "region"
+    | "jsonPath"
     | "item"
     | "aspect"
     | "summary"
@@ -82,6 +108,50 @@ export interface ResourceLineDiagnosticsLatestChangeSummary {
   readonly timeoutOperation: import("./resource_lifecycle.js").ResourceLineOperation | null;
   readonly errorMessage: string | null;
   readonly preservedVisibleValueOnLastRejection: boolean;
+  readonly identityMigrationCount?: number;
+  readonly lastIdentityMigration?: ResourceLineIdentityMigrationHistoryDigest;
+  readonly mutationResponsePlanId?: string;
+  readonly mutationResponseTargetCount?: number;
+  readonly mutationResponseExactTargetCount?: number;
+  readonly mutationResponseFallbackTargetCount?: number;
+  readonly mutationResponseTargetLookupBreadth?: number;
+  readonly mutationResponseTargetFanoutBreadth?: number;
+  readonly mutationResponsePayloadFieldExtractionBreadth?: number;
+  readonly mutationResponseTopologyTraversalBreadth?: number;
+  readonly mutationResponseReconstructionBreadth?: number;
+  readonly mutationResponseFallbackBreadth?: number;
+  readonly mutationResponseFallbackReasonDigest?: string;
+  readonly mutationResponseFallbackAffectedTargetDigest?: string;
+  readonly mutationResponseStaleTargetReasonDigest?: string;
+  readonly mutationResponseStaleTargetAffectedTargetDigest?: string;
+  readonly mutationResponseFreshnessPostureDigest?: string;
+  readonly mutationResponseDeliveryAwaitedDigest?: string;
+  readonly mutationResponseRefetchRequiredDigest?: string;
+  readonly mutationResponsePartialReconciliationDigest?: string;
+  readonly mutationResponseUnsupportedTargetDigest?: string;
+  readonly mutationResponseNoHiddenMutationDigest?: string;
+  readonly mutationResponseTargetOutcomeDigest?: string;
+  readonly mutationResponseTargetOutcomes?: readonly ResourceMutationResponseTargetOutcomeSummary[];
+  readonly mutationResponseConfirmationKind?: import("./resource_mutation_response.js").ResourceMutationResponseConfirmationKind;
+  readonly mutationResponseConfirmationDigest?: string;
+  readonly mutationResponseReplayExactDigest?: string;
+  readonly mutationResponseRestoreExactDigest?: string;
+  readonly mutationResponseRollbackDigest?: string;
+  readonly mutationResponseMergeRebaseDigest?: string;
+  readonly mutationResponseExecutionDigest?: string;
+  readonly mutationResponseDiagnosticCount?: number;
+  readonly mutationResponseDiagnosticDigest?: string;
+  readonly mutationResponsePlanCount?: number;
+  readonly mutationResponseIdentityMigrationDigest?: string;
+  readonly mutationResponseIdentityMigrationNeeded?: boolean;
+  readonly mutationResponseIdentityMigrationPartialAdmission?:
+    | "notNeeded"
+    | "admitted"
+    | "denied";
+  readonly mutationResponseIdentityMigrationTargetCount?: number;
+  readonly mutationResponseIdentityMigrationExactTargetCount?: number;
+  readonly mutationResponseIdentityMigrationExecutionDigest?: string;
+  readonly mutationResponseIdentityMigrationFallbackDigest?: string;
 }
 
 export interface ResourceLineDiagnosticsSummary {

@@ -16,6 +16,9 @@ test("tree responses lower item replacement through recursive tree loci", async 
         rootReplacementCount += 1;
         return { ...value, roots };
       },
+      replaceChildren(node, nextChildren) {
+        return { ...node, children: nextChildren };
+      },
       replaceNode(value, path, itemId, nextNode) {
         singleNodeReplacementCount += 1;
         return {
@@ -315,6 +318,10 @@ function createTaskTreeResponse(signals, overrides = {}) {
     itemId: (node) => node.id,
     roots: overrides.roots ?? ((value) => value.roots),
     children: overrides.children ?? ((node) => node.children),
+    replaceChildren: overrides.replaceChildren ?? ((node, nextChildren) => ({
+      ...node,
+      children: nextChildren,
+    })),
     replaceRoots: overrides.replaceRoots ?? ((value, roots) => ({ ...value, roots })),
     nodeForItem: overrides.nodeForItem ?? (
       (itemId) => itemId === "root" ? ["root"] : ["root", itemId]

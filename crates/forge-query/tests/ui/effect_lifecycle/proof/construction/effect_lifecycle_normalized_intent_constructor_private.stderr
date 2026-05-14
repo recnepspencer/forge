@@ -1,0 +1,33 @@
+error[E0451]: fields `family`, `authority_lane`, `basis_family`, `basis_authority`, `basis_lifecycle`, `capability_digest`, `scoped_basis_digest`, `expected_lower_runtime_binding_digest`, `workflow_binding`, `workflow_request`, `operation_input`, `source_path`, `normalized_digest` and `counters` of struct `NormalizedEffectIntent` are private
+  --> tests/ui/effect_lifecycle/proof/construction/effect_lifecycle_normalized_intent_constructor_private.rs:24:9
+   |
+23 |     let _ = NormalizedEffectIntent {
+   |             ---------------------- in this type
+24 |         family: EffectFamily::Mutation,
+   |         ^^^^^^ private field
+25 |         authority_lane: EffectAuthorityLane::Relational,
+   |         ^^^^^^^^^^^^^^ private field
+26 |         basis_family: BasisFamily::BranchHead,
+   |         ^^^^^^^^^^^^ private field
+27 |         basis_authority: placeholder(),
+   |         ^^^^^^^^^^^^^^^ private field
+28 |         basis_lifecycle: placeholder(),
+   |         ^^^^^^^^^^^^^^^ private field
+29 |         capability_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+30 |         scoped_basis_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^ private field
+31 |         expected_lower_runtime_binding_digest: None,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+32 |         workflow_binding: binding(),
+   |         ^^^^^^^^^^^^^^^^ private field
+33 |         workflow_request: request(),
+   |         ^^^^^^^^^^^^^^^^ private field
+34 |         operation_input: input(),
+   |         ^^^^^^^^^^^^^^^ private field
+35 |         source_path: "raw_effect.mutation",
+   |         ^^^^^^^^^^^ private field
+36 |         normalized_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+37 |         counters: EffectLifecycleCounters::default(),
+   |         ^^^^^^^^ private field

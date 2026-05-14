@@ -11,5 +11,6 @@ fn bridge_phase_boundaries_are_compile_time_private() {
     std::env::set_var("CARGO_TARGET_DIR", workspace_temp.join("cargo-target"));
 
     let t = trybuild::TestCases::new();
+    t.compile_fail("tests/ui/causal_envelope/*.rs");
     t.compile_fail("tests/ui/*.rs");
 }

@@ -1,0 +1,21 @@
+error[E0451]: fields `basis_family`, `effect_family`, `authority_owner`, `lowered_artifact_kind`, `receipt_artifact_kind`, `posture`, `cause` and `row_digest` of struct `EffectLifecycleSupportRow` are private
+  --> tests/ui/effect_lifecycle/support/inventory/effect_lifecycle_support_row_constructor_private.rs:8:9
+   |
+ 7 |     let _ = EffectLifecycleSupportRow {
+   |             ------------------------- in this type
+ 8 |         basis_family: BasisFamily::CurrentHead,
+   |         ^^^^^^^^^^^^ private field
+ 9 |         effect_family: EffectFamily::Mutation,
+   |         ^^^^^^^^^^^^^ private field
+10 |         authority_owner: EffectAuthorityOwner::ForgeRelational,
+   |         ^^^^^^^^^^^^^^^ private field
+11 |         lowered_artifact_kind: EffectLoweredArtifactKind::LoweredMutationIntentDeclaration,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         receipt_artifact_kind: EffectReceiptArtifactKind::ForgeQueryIntentExecution,
+   |         ^^^^^^^^^^^^^^^^^^^^^ private field
+13 |         posture: EffectSupportPosture::Admitted,
+   |         ^^^^^^^ private field
+14 |         cause: EffectSupportCause::Supported,
+   |         ^^^^^ private field
+15 |         row_digest: String::new(),
+   |         ^^^^^^^^^^ private field

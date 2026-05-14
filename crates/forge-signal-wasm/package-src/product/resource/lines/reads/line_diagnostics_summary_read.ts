@@ -1,4 +1,7 @@
 import { readLineHistoryAvailability } from "./line_history_availability_read.js";
+import {
+  readMutationResponseSummaryDigest,
+} from "../../mutation/resource_mutation_response_diagnostics_projection.js";
 
 function readLineDiagnosticsSummary(materialization) {
   const diagnostics = materialization.binding.diagnosticsSignal();
@@ -6,6 +9,8 @@ function readLineDiagnosticsSummary(materialization) {
   const freshness = materialization.binding.freshnessSignal();
   const visibleValue = materialization.binding.valueSignal();
   const history = readLineHistoryAvailability(materialization);
+  const mutationResponseSummaryDigest =
+    readMutationResponseSummaryDigest(diagnostics);
   const current = {
     status,
     freshness,
@@ -45,6 +50,9 @@ function readLineDiagnosticsSummary(materialization) {
       patchKind: diagnostics.lastPatchKind,
       patchScope: diagnostics.lastPatchScope,
       patchedItemId: diagnostics.lastPatchedItemId,
+      patchedField: diagnostics.lastPatchedField,
+      patchedRegion: diagnostics.lastPatchedRegion,
+      patchedPath: diagnostics.lastPatchedPath,
       patchedAspect: diagnostics.lastPatchedAspect,
       patchedSummary: diagnostics.lastPatchedSummary,
       deliveryKind: diagnostics.lastDeliveryKind,
@@ -60,6 +68,95 @@ function readLineDiagnosticsSummary(materialization) {
       errorMessage: diagnostics.lastErrorMessage,
       preservedVisibleValueOnLastRejection:
         diagnostics.preservedVisibleValueOnLastRejection,
+      ...("identityMigrationCount" in diagnostics
+        ? {
+            identityMigrationCount: diagnostics.identityMigrationCount,
+            lastIdentityMigration: diagnostics.lastIdentityMigration,
+          }
+        : {}),
+      ...(mutationResponseSummaryDigest === null
+        ? {}
+        : {
+            mutationResponsePlanId: mutationResponseSummaryDigest.planId,
+            mutationResponseTargetCount: mutationResponseSummaryDigest.targetCount,
+            mutationResponseExactTargetCount:
+              mutationResponseSummaryDigest.exactTargetCount,
+            mutationResponseFallbackTargetCount:
+              mutationResponseSummaryDigest.fallbackTargetCount,
+            mutationResponseTargetLookupBreadth:
+              mutationResponseSummaryDigest.targetLookupBreadth,
+            mutationResponseTargetFanoutBreadth:
+              mutationResponseSummaryDigest.targetFanoutBreadth,
+            mutationResponsePayloadFieldExtractionBreadth:
+              mutationResponseSummaryDigest.payloadFieldExtractionBreadth,
+            mutationResponseTopologyTraversalBreadth:
+              mutationResponseSummaryDigest.topologyTraversalBreadth,
+            mutationResponseReconstructionBreadth:
+              mutationResponseSummaryDigest.reconstructionBreadth,
+            mutationResponseFallbackBreadth:
+              mutationResponseSummaryDigest.fallbackBreadth,
+            mutationResponseFallbackReasonDigest:
+              mutationResponseSummaryDigest.fallbackReasonDigest,
+            mutationResponseFallbackAffectedTargetDigest:
+              mutationResponseSummaryDigest.fallbackAffectedTargetDigest,
+            mutationResponseStaleTargetReasonDigest:
+              mutationResponseSummaryDigest.staleTargetReasonDigest,
+            mutationResponseStaleTargetAffectedTargetDigest:
+              mutationResponseSummaryDigest.staleTargetAffectedTargetDigest,
+            mutationResponseFreshnessPostureDigest:
+              mutationResponseSummaryDigest.freshnessPostureDigest,
+            mutationResponseDeliveryAwaitedDigest:
+              mutationResponseSummaryDigest.deliveryAwaitedDigest,
+            mutationResponseRefetchRequiredDigest:
+              mutationResponseSummaryDigest.refetchRequiredDigest,
+            mutationResponsePartialReconciliationDigest:
+              mutationResponseSummaryDigest.partialReconciliationDigest,
+            mutationResponseUnsupportedTargetDigest:
+              mutationResponseSummaryDigest.unsupportedTargetDigest,
+            mutationResponseNoHiddenMutationDigest:
+              mutationResponseSummaryDigest.noHiddenMutationDigest,
+            mutationResponseTargetOutcomeDigest:
+              mutationResponseSummaryDigest.targetOutcomeDigest,
+            mutationResponseTargetOutcomes:
+              mutationResponseSummaryDigest.targetOutcomes,
+            mutationResponseConfirmationKind:
+              mutationResponseSummaryDigest.confirmationKind,
+            mutationResponseConfirmationDigest:
+              mutationResponseSummaryDigest.confirmationDigest,
+            mutationResponseReplayExactDigest:
+              mutationResponseSummaryDigest.replayExactDigest,
+            mutationResponseRestoreExactDigest:
+              mutationResponseSummaryDigest.restoreExactDigest,
+            mutationResponseRollbackDigest:
+              mutationResponseSummaryDigest.rollbackDigest,
+            mutationResponseMergeRebaseDigest:
+              mutationResponseSummaryDigest.mergeRebaseDigest,
+            mutationResponseExecutionDigest:
+              mutationResponseSummaryDigest.executionDigest,
+            mutationResponseDiagnosticCount:
+              mutationResponseSummaryDigest.diagnosticCount,
+            mutationResponseDiagnosticDigest:
+              mutationResponseSummaryDigest.diagnosticDigest,
+            mutationResponsePlanCount: mutationResponseSummaryDigest.planCount,
+            ...("identityMigrationDigest" in mutationResponseSummaryDigest
+              ? {
+                  mutationResponseIdentityMigrationDigest:
+                    mutationResponseSummaryDigest.identityMigrationDigest,
+                  mutationResponseIdentityMigrationNeeded:
+                    mutationResponseSummaryDigest.identityMigrationNeeded,
+                  mutationResponseIdentityMigrationPartialAdmission:
+                    mutationResponseSummaryDigest.identityMigrationPartialAdmission,
+                  mutationResponseIdentityMigrationTargetCount:
+                    mutationResponseSummaryDigest.identityMigrationTargetCount,
+                  mutationResponseIdentityMigrationExactTargetCount:
+                    mutationResponseSummaryDigest.identityMigrationExactTargetCount,
+                  mutationResponseIdentityMigrationExecutionDigest:
+                    mutationResponseSummaryDigest.identityMigrationExecutionDigest,
+                  mutationResponseIdentityMigrationFallbackDigest:
+                    mutationResponseSummaryDigest.identityMigrationFallbackDigest,
+                }
+              : {}),
+          }),
     }),
     request: diagnostics.request,
     processing: diagnostics.processing,

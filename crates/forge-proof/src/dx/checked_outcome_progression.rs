@@ -1,46 +1,39 @@
 use core::convert::Infallible;
 
-use crate::assumption::{
-    AssumptionBasis, CurrentValidity, FreshnessScopedBasis, RebindRequiredBasis, StaleReadableBasis,
-};
+use crate::assumption::{RebindRequiredBasis, StaleReadableBasis};
 use crate::proof::{AuthorityMarker, AuthorityWitness, CapabilityMarker, CapabilityWitness};
 use crate::recipe::{ExecutedRecipe, ExecutionReadyRecipe, Lowered, Recipe, Resolved};
 use crate::transition::{
-    ExecutionReadyAdmissionReadiness, RecipeAdmissionReadiness, RecipeLoweringReadiness,
-    Transition, TransitionOutcome,
+    CurrentAdmittedRecipe, CurrentExecutionReadyRecipe, ExecutionReadyAdmissionReadiness,
+    RecipeAdmissionReadiness, RecipeLoweringReadiness, Transition, TransitionOutcome,
 };
 
 use super::checked_outcome::ProofOutcome;
 use super::checked_recipe_progression::{
-    CheckedLoweredRecipeDxExt, CheckedResolvedRecipeDxExt, LoweredRecipe, ResolvedRecipe,
+    CheckedLoweredRecipeDxExt, CheckedResolvedRecipeDxExt, ExecutionReadyOutcome, LoweringOutcome,
+    ResolvedRecipe,
 };
+
+type ResolvedRebind<T, B> = Recipe<Resolved, T, RebindRequiredBasis<B>>;
+type LoweredStale<T, B> = Recipe<Lowered, T, StaleReadableBasis<B>>;
+type GenericAdmissionOutcome<T, B, D, De, R, F> =
+    ProofOutcome<CurrentAdmittedRecipe<T, B>, D, De, LoweredStale<T, B>, R, F>;
+type GenericExecutionReadyOutcome<T, B, D, De, R, F> =
+    ProofOutcome<CurrentExecutionReadyRecipe<T, B>, D, De, LoweredStale<T, B>, R, F>;
+type ExecuteOutcome<T, A, D, De, St, R, F> = ProofOutcome<ExecutedRecipe<T, A>, D, De, St, R, F>;
 
 pub trait CheckedProofOutcomeLowerExt<T, B, D, De> {
     fn try_lower<C, F>(
         self,
         readiness: RecipeLoweringReadiness<T, B, C, D, De, F>,
-    ) -> ProofOutcome<
-        LoweredRecipe<T, B>,
-        D,
-        De,
-        Infallible,
-        Recipe<Resolved, T, RebindRequiredBasis<B>>,
-        F,
-    >
+    ) -> LoweringOutcome<T, B, D, De, F>
     where
         C: CapabilityMarker;
 
     fn try_lower_ready<C>(
         self,
         capability: CapabilityWitness<C>,
-    ) -> ProofOutcome<
-        LoweredRecipe<T, B>,
-        D,
-        De,
-        Infallible,
-        Recipe<Resolved, T, RebindRequiredBasis<B>>,
-        Infallible,
-    >
+    ) -> LoweringOutcome<T, B, D, De, Infallible>
     where
         C: CapabilityMarker;
 }
@@ -51,14 +44,7 @@ impl<T, B, D, De> CheckedProofOutcomeLowerExt<T, B, D, De>
     fn try_lower<C, F>(
         self,
         readiness: RecipeLoweringReadiness<T, B, C, D, De, F>,
-    ) -> ProofOutcome<
-        LoweredRecipe<T, B>,
-        D,
-        De,
-        Infallible,
-        Recipe<Resolved, T, RebindRequiredBasis<B>>,
-        F,
-    >
+    ) -> LoweringOutcome<T, B, D, De, F>
     where
         C: CapabilityMarker,
     {
@@ -75,14 +61,7 @@ impl<T, B, D, De> CheckedProofOutcomeLowerExt<T, B, D, De>
     fn try_lower_ready<C>(
         self,
         capability: CapabilityWitness<C>,
-    ) -> ProofOutcome<
-        LoweredRecipe<T, B>,
-        D,
-        De,
-        Infallible,
-        Recipe<Resolved, T, RebindRequiredBasis<B>>,
-        Infallible,
-    >
+    ) -> LoweringOutcome<T, B, D, De, Infallible>
     where
         C: CapabilityMarker,
     {
@@ -113,66 +92,25 @@ pub trait CheckedProofOutcomeToAdmitExt<T, B, D, De, R, F> {
     fn try_admit<Auth>(
         self,
         readiness: RecipeAdmissionReadiness<T, B, Auth, D, De, F>,
-    ) -> ProofOutcome<
-        Recipe<
-            crate::recipe::Admitted,
-            T,
-            FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>,
-        >,
-        D,
-        De,
-        Recipe<Lowered, T, StaleReadableBasis<B>>,
-        R,
-        F,
-    >
+    ) -> GenericAdmissionOutcome<T, B, D, De, R, F>
     where
         Auth: AuthorityMarker;
 
     fn try_admit_ready<Auth>(
         self,
         authority: AuthorityWitness<Auth>,
-    ) -> ProofOutcome<
-        Recipe<
-            crate::recipe::Admitted,
-            T,
-            FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>,
-        >,
-        D,
-        De,
-        Recipe<Lowered, T, StaleReadableBasis<B>>,
-        R,
-        F,
-    >
+    ) -> GenericAdmissionOutcome<T, B, D, De, R, F>
     where
         Auth: AuthorityMarker;
 }
 
-impl<T, B, D, De, F>
-    CheckedProofOutcomeToAdmitExt<T, B, D, De, Recipe<Resolved, T, RebindRequiredBasis<B>>, F>
-    for ProofOutcome<
-        LoweredRecipe<T, B>,
-        D,
-        De,
-        Infallible,
-        Recipe<Resolved, T, RebindRequiredBasis<B>>,
-        F,
-    >
+impl<T, B, D, De, F> CheckedProofOutcomeToAdmitExt<T, B, D, De, ResolvedRebind<T, B>, F>
+    for LoweringOutcome<T, B, D, De, F>
 {
     fn try_admit<Auth>(
         self,
         readiness: RecipeAdmissionReadiness<T, B, Auth, D, De, F>,
-    ) -> ProofOutcome<
-        Recipe<
-            crate::recipe::Admitted,
-            T,
-            FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>,
-        >,
-        D,
-        De,
-        Recipe<Lowered, T, StaleReadableBasis<B>>,
-        Recipe<Resolved, T, RebindRequiredBasis<B>>,
-        F,
-    >
+    ) -> GenericAdmissionOutcome<T, B, D, De, ResolvedRebind<T, B>, F>
     where
         Auth: AuthorityMarker,
     {
@@ -198,18 +136,7 @@ impl<T, B, D, De, F>
     fn try_admit_ready<Auth>(
         self,
         authority: AuthorityWitness<Auth>,
-    ) -> ProofOutcome<
-        Recipe<
-            crate::recipe::Admitted,
-            T,
-            FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>,
-        >,
-        D,
-        De,
-        Recipe<Lowered, T, StaleReadableBasis<B>>,
-        Recipe<Resolved, T, RebindRequiredBasis<B>>,
-        F,
-    >
+    ) -> GenericAdmissionOutcome<T, B, D, De, ResolvedRebind<T, B>, F>
     where
         Auth: AuthorityMarker,
     {
@@ -240,14 +167,7 @@ pub trait CheckedProofOutcomeReadyExt<T, B, D, De, R, F> {
     fn try_ready<Rt, Auth>(
         self,
         readiness: ExecutionReadyAdmissionReadiness<T, B, Rt, Auth, D, De, F>,
-    ) -> ProofOutcome<
-        ExecutionReadyRecipe<T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>,
-        D,
-        De,
-        Recipe<Lowered, T, StaleReadableBasis<B>>,
-        R,
-        F,
-    >
+    ) -> GenericExecutionReadyOutcome<T, B, D, De, R, F>
     where
         Auth: AuthorityMarker;
 
@@ -255,40 +175,18 @@ pub trait CheckedProofOutcomeReadyExt<T, B, D, De, R, F> {
         self,
         runtime: Rt,
         authority: AuthorityWitness<Auth>,
-    ) -> ProofOutcome<
-        ExecutionReadyRecipe<T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>,
-        D,
-        De,
-        Recipe<Lowered, T, StaleReadableBasis<B>>,
-        R,
-        F,
-    >
+    ) -> GenericExecutionReadyOutcome<T, B, D, De, R, F>
     where
         Auth: AuthorityMarker;
 }
 
-impl<T, B, D, De, F>
-    CheckedProofOutcomeReadyExt<T, B, D, De, Recipe<Resolved, T, RebindRequiredBasis<B>>, F>
-    for ProofOutcome<
-        LoweredRecipe<T, B>,
-        D,
-        De,
-        Infallible,
-        Recipe<Resolved, T, RebindRequiredBasis<B>>,
-        F,
-    >
+impl<T, B, D, De, F> CheckedProofOutcomeReadyExt<T, B, D, De, ResolvedRebind<T, B>, F>
+    for LoweringOutcome<T, B, D, De, F>
 {
     fn try_ready<Rt, Auth>(
         self,
         readiness: ExecutionReadyAdmissionReadiness<T, B, Rt, Auth, D, De, F>,
-    ) -> ProofOutcome<
-        ExecutionReadyRecipe<T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>,
-        D,
-        De,
-        Recipe<Lowered, T, StaleReadableBasis<B>>,
-        Recipe<Resolved, T, RebindRequiredBasis<B>>,
-        F,
-    >
+    ) -> ExecutionReadyOutcome<T, B, D, De, F>
     where
         Auth: AuthorityMarker,
     {
@@ -308,14 +206,7 @@ impl<T, B, D, De, F>
         self,
         runtime: Rt,
         authority: AuthorityWitness<Auth>,
-    ) -> ProofOutcome<
-        ExecutionReadyRecipe<T, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>,
-        D,
-        De,
-        Recipe<Lowered, T, StaleReadableBasis<B>>,
-        Recipe<Resolved, T, RebindRequiredBasis<B>>,
-        F,
-    >
+    ) -> ExecutionReadyOutcome<T, B, D, De, F>
     where
         Auth: AuthorityMarker,
     {
@@ -344,13 +235,13 @@ impl<T, B, D, De, F>
 }
 
 pub trait CheckedProofOutcomeExecuteExt<T, A, D, De, St, R, F> {
-    fn try_execute(self) -> ProofOutcome<ExecutedRecipe<T, A>, D, De, St, R, F>;
+    fn try_execute(self) -> ExecuteOutcome<T, A, D, De, St, R, F>;
 }
 
 impl<T, A, D, De, St, R, F> CheckedProofOutcomeExecuteExt<T, A, D, De, St, R, F>
     for ProofOutcome<ExecutionReadyRecipe<T, A>, D, De, St, R, F>
 {
-    fn try_execute(self) -> ProofOutcome<ExecutedRecipe<T, A>, D, De, St, R, F> {
+    fn try_execute(self) -> ExecuteOutcome<T, A, D, De, St, R, F> {
         self.map_success(|ready| {
             crate::transition::ExecuteReadyRecipeTransition
                 .transition(ready)

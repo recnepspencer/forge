@@ -37,9 +37,7 @@ aspect finalization closeout: ordinary downstream mutation authoring should use
 the aspect-native workspace mutation methods, while `workspace.write(...)`
 remains a lower-level or expert seam rather than the preferred public story.
 
-`workspace.intent(...)` remains part of the public vocabulary, but it is not in
-the stable support set yet. Downstream runtimes must gate it
-through `workspace.admit_public_api_family(...)` and backend support admission.
+`workspace.intent(...)` remains part of the public vocabulary, but it is not in the stable support set yet. Downstream runtimes must gate it through `workspace.admit_public_api_family(...)` and backend support admission.
 
 ## Deferred Scope
 

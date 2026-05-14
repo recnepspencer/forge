@@ -101,6 +101,7 @@ test("branch-speculative patches record compact inverse posture when exact resto
         preimage: "aspectValue",
         scope: "aspect",
         itemId: "demo:1",
+        field: null,
         aspect: "title",
         summary: null,
         patch: {

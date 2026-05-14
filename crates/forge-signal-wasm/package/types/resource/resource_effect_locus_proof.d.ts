@@ -2,6 +2,9 @@ export type ResourceEffectLocus =
   | { readonly kind: "line" }
   | { readonly kind: "broadResponse" }
   | { readonly kind: "detailResponse" }
+  | { readonly kind: "detailField"; readonly field: string | null }
+  | { readonly kind: "detailRegion"; readonly region: string | null }
+  | { readonly kind: "detailJsonPath"; readonly path: string | null }
   | { readonly kind: "summaryResponse" }
   | { readonly kind: "membership"; readonly itemId: string | null }
   | { readonly kind: "connection"; readonly itemId: string | null }
@@ -56,6 +59,9 @@ export interface ResourceEffectLocusProof {
   readonly locus:
     | "broadResponse"
     | "detailResponse"
+    | "detailField"
+    | "detailRegion"
+    | "detailJsonPath"
     | "summaryResponse"
     | "membership"
     | "connection"
@@ -69,7 +75,10 @@ export interface ResourceEffectLocusProof {
     | "itemAspect"
     | "jsonItemAspect"
     | "summary";
-  readonly patchScope: "line" | "item" | "aspect" | "summary";
+  readonly patchScope: "line" | "field" | "region" | "jsonPath" | "item" | "aspect" | "summary";
+  readonly field: string | null;
+  readonly region?: string | null;
+  readonly path?: string | null;
   readonly aspect: string | null;
   readonly summary: string | null;
   readonly summaryPatchScope: "line" | "pageWindow" | null;

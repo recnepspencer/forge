@@ -9,6 +9,8 @@ import type {
   ResourcePolicyProfileName,
   ResourceRequestDiagnostics,
 } from "./resource_postures.js";
+import type { ResourceMutationResponsePlan } from "./resource_mutation_response.js";
+import type { ResourceLineIdentityMigrationHistoryDigest } from "./resource_line_history.js";
 
 export interface ResourceLineBasisDiagnostics {
   readonly currentBasisId: string | null;
@@ -104,9 +106,30 @@ export interface ResourceLineDiagnostics {
     | "manualFamilyInvalidateAll"
     | null;
   readonly lastInvalidationScope: "line" | "familyMember" | "familyAll" | null;
-  readonly lastPatchKind: "replace" | "item" | "itemAspect" | "summary" | null;
-  readonly lastPatchScope: "line" | "item" | "aspect" | "summary" | null;
+  readonly lastPatchKind:
+    | "replace"
+    | "field"
+    | "region"
+    | "jsonPath"
+    | "item"
+    | "delete"
+    | "insert"
+    | "itemAspect"
+    | "summary"
+    | null;
+  readonly lastPatchScope:
+    | "line"
+    | "field"
+    | "region"
+    | "jsonPath"
+    | "item"
+    | "aspect"
+    | "summary"
+    | null;
   readonly lastPatchedItemId: string | null;
+  readonly lastPatchedField: string | null;
+  readonly lastPatchedRegion: string | null;
+  readonly lastPatchedPath: string | null;
   readonly lastPatchedAspect: string | null;
   readonly lastPatchedSummary: string | null;
   readonly lastDeliveryKind:
@@ -117,6 +140,9 @@ export interface ResourceLineDiagnostics {
     | null;
   readonly lastDeliveryScope:
     | "line"
+    | "field"
+    | "region"
+    | "jsonPath"
     | "item"
     | "aspect"
     | "summary"
@@ -130,4 +156,8 @@ export interface ResourceLineDiagnostics {
   readonly lastTimeoutOperation: ResourceLineOperation | null;
   readonly lastErrorMessage: string | null;
   readonly visibleValueVersion: number;
+  readonly lastMutationResponsePlan?: ResourceMutationResponsePlan;
+  readonly mutationResponsePlanCount?: number;
+  readonly identityMigrationCount?: number;
+  readonly lastIdentityMigration?: ResourceLineIdentityMigrationHistoryDigest;
 }

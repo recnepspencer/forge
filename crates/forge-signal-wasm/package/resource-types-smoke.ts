@@ -10,6 +10,8 @@ import "./resource_types_smoke/api/request/resource_api_advanced_request_shape_u
 import "./resource_types_smoke/api/request/resource_api_advanced_request_shape_denials.ts";
 import "./resource_types_smoke/api/response/resource_api_response_contract_usage.ts";
 import "./resource_types_smoke/api/response/resource_api_response_contract_denials.ts";
+import "./resource_types_smoke/api/response/resource_api_response_mutation_contract_usage.ts";
+import "./resource_types_smoke/api/response/resource_api_response_mutation_contract_denials.ts";
 import "./resource_types_smoke/api/download/resource_api_download_surface_usage.ts";
 import "./resource_types_smoke/api/download/resource_api_download_authoring_denials.ts";
 import "./resource_types_smoke/api/transfer/resource_api_transfer_surface_usage.ts";

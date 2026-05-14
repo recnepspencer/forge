@@ -9,7 +9,7 @@ warning: unreachable expression
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
 
-error[E0451]: fields `envelope_identity`, `contract_digest`, `family_kind`, `effect_class`, `strategy_class`, `strategy_descriptor_digest`, `causality_digest`, `domain_payload_digest`, `domain_evidence_digest`, `canonical_basis` and `digest` of struct `BridgeWritebackMapperEnvelope` are private
+error[E0451]: fields `envelope_identity`, `contract_digest`, `family_kind`, `effect_class`, `strategy_class`, `strategy_descriptor_digest`, `causality_digest`, `domain_payload_digest`, `domain_evidence_digest`, `canonical_basis` and `digest` of struct `forge_runtime_bridge::facade::BridgeWritebackMapperEnvelope` are private
   --> tests/ui/writeback_mapper_envelope_literal_private.rs:5:9
    |
  4 |     let _ = BridgeWritebackMapperEnvelope {

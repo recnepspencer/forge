@@ -1,8 +1,8 @@
-error[E0277]: the trait bound `Proof<CanonicalOrder>: Clone` is not satisfied
+error[E0277]: the trait bound `Proof<CanonicalOrder, StructuralProofAuthority>: Clone` is not satisfied
  --> tests/ui/milestone1/observed_proofs_cannot_be_duplicated.rs:7:20
   |
 7 |     requires_clone(proof);
-  |     -------------- ^^^^^ the trait `Clone` is not implemented for `Proof<CanonicalOrder>`
+  |     -------------- ^^^^^ the trait `Clone` is not implemented for `Proof<CanonicalOrder, StructuralProofAuthority>`
   |     |
   |     required by a bound introduced by this call
   |

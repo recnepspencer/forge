@@ -6,7 +6,7 @@ import test from "node:test";
 import { createRealRequestRuntime } from "../../runtime_fixture/real_request_runtime.mjs";
 
 const overviewPath = path.resolve(
-  "crates/forge-signal-wasm/docs/api_resources_overview.md",
+  "crates/forge-signal-wasm/docs/resources/overview.md",
 );
 
 test("API resources overview entrypoint points at the default lane and its feature homes", async () => {
@@ -30,11 +30,11 @@ test("API resources overview entrypoint points at the default lane and its featu
     assert.match(overview, /signals\.resource\.response\.array\(\.\.\.\)/);
     assert.match(overview, /signals\.resource\.response\.objectItems<T>\(\)\(\.\.\.\)/);
     assert.match(overview, /signals\.resource\.response\.collection<T>\(\)\(\.\.\.\)/);
-    assert.match(overview, /feature_transfers\.md/);
-    assert.match(overview, /feature_downloads\.md/);
-    assert.match(overview, /feature_branch_native_resource_effects\.md/);
-    assert.match(overview, /feature_external_delivery_and_compatibility\.md/);
-    assert.match(overview, /resource_recipes\.md/);
+    assert.match(overview, /\.\/transfers\.md/);
+    assert.match(overview, /\.\/downloads\.md/);
+    assert.match(overview, /\.\/branch-native-effects\.md/);
+    assert.match(overview, /\.\/external-delivery-and-compatibility\.md/);
+    assert.match(overview, /\.\.\/learn\/recipes\.md/);
   } finally {
     await runtime.cleanup();
   }

@@ -4,9 +4,10 @@ use crate::assumption::{
 use crate::proof::{
     mint_authority_witness, mint_capability_witness, AuthorityMarker, CapabilityMarker,
 };
-use crate::recipe::{Admitted, Lowered, Recipe, Resolved, Unresolved};
+use crate::recipe::{Lowered, Recipe, Resolved, Unresolved};
 use crate::transition::AdmitRecipeTransition;
 
+use super::checked_recipe::CheckedLowerAndAdmitRecipeOutcome;
 use super::{
     resolve_checked_lower_and_admit_recipe, resolve_lower_and_admit_recipe,
     CheckedAdmitRecipeTransition, CheckedLowerRecipeTransition, CheckedResolveRecipeTransition,
@@ -23,6 +24,9 @@ impl CapabilityMarker for LoweringCapability {}
 
 struct AdmissionAuthority;
 impl AuthorityMarker for AdmissionAuthority {}
+
+type TestCheckedAdmissionOutcome =
+    CheckedLowerAndAdmitRecipeOutcome<&'static str, u8, &'static str, &'static str, &'static str>;
 
 #[test]
 fn checked_resolution_can_deny_before_progression() {
@@ -252,14 +256,7 @@ fn transition_outcome_algebra_certification_equivalence_lane() {
 
 #[test]
 fn transition_outcome_algebra_certification_divergence_lanes() {
-    let denial: TransitionOutcome<
-        Recipe<Admitted, &str, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<u8>>>,
-        &'static str,
-        &'static str,
-        Recipe<Lowered, &str, StaleReadableBasis<u8>>,
-        Recipe<Resolved, &str, RebindRequiredBasis<u8>>,
-        &'static str,
-    > = resolve_checked_lower_and_admit_recipe(
+    let denial: TestCheckedAdmissionOutcome = resolve_checked_lower_and_admit_recipe(
         Recipe::<Unresolved, _>::new("payload"),
         PreConstructionGate::<
             RecipeResolutionContext<u8, ResolutionAuthority>,
@@ -269,14 +266,7 @@ fn transition_outcome_algebra_certification_divergence_lanes() {
         TransitionReadiness::ready(mint_capability_witness::<LoweringCapability>()),
         TransitionReadiness::ready(mint_authority_witness::<AdmissionAuthority>()),
     );
-    let defer: TransitionOutcome<
-        Recipe<Admitted, &str, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<u8>>>,
-        &'static str,
-        &'static str,
-        Recipe<Lowered, &str, StaleReadableBasis<u8>>,
-        Recipe<Resolved, &str, RebindRequiredBasis<u8>>,
-        &'static str,
-    > = resolve_checked_lower_and_admit_recipe(
+    let defer: TestCheckedAdmissionOutcome = resolve_checked_lower_and_admit_recipe(
         Recipe::<Unresolved, _>::new("payload"),
         PreConstructionGate::<
             RecipeResolutionContext<u8, ResolutionAuthority>,
@@ -286,14 +276,7 @@ fn transition_outcome_algebra_certification_divergence_lanes() {
         TransitionReadiness::ready(mint_capability_witness::<LoweringCapability>()),
         TransitionReadiness::ready(mint_authority_witness::<AdmissionAuthority>()),
     );
-    let stale: TransitionOutcome<
-        Recipe<Admitted, &str, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<u8>>>,
-        &'static str,
-        &'static str,
-        Recipe<Lowered, &str, StaleReadableBasis<u8>>,
-        Recipe<Resolved, &str, RebindRequiredBasis<u8>>,
-        &'static str,
-    > = resolve_checked_lower_and_admit_recipe::<
+    let stale: TestCheckedAdmissionOutcome = resolve_checked_lower_and_admit_recipe::<
         &str,
         u8,
         ResolutionAuthority,
@@ -314,14 +297,7 @@ fn transition_outcome_algebra_certification_divergence_lanes() {
             StaleReadableBasis::new(AssumptionBasis::new(7_u8)),
         )),
     );
-    let rebind: TransitionOutcome<
-        Recipe<Admitted, &str, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<u8>>>,
-        &'static str,
-        &'static str,
-        Recipe<Lowered, &str, StaleReadableBasis<u8>>,
-        Recipe<Resolved, &str, RebindRequiredBasis<u8>>,
-        &'static str,
-    > = resolve_checked_lower_and_admit_recipe::<
+    let rebind: TestCheckedAdmissionOutcome = resolve_checked_lower_and_admit_recipe::<
         &str,
         u8,
         ResolutionAuthority,
@@ -344,14 +320,7 @@ fn transition_outcome_algebra_certification_divergence_lanes() {
         ),
         TransitionReadiness::ready(mint_authority_witness::<AdmissionAuthority>()),
     );
-    let failed: TransitionOutcome<
-        Recipe<Admitted, &str, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<u8>>>,
-        &'static str,
-        &'static str,
-        Recipe<Lowered, &str, StaleReadableBasis<u8>>,
-        Recipe<Resolved, &str, RebindRequiredBasis<u8>>,
-        &'static str,
-    > = resolve_checked_lower_and_admit_recipe::<
+    let failed: TestCheckedAdmissionOutcome = resolve_checked_lower_and_admit_recipe::<
         &str,
         u8,
         ResolutionAuthority,

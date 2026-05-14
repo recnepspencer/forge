@@ -45,7 +45,13 @@ test("collection lines narrow item-aspect patches without broad reload", async (
     assert.deepEqual(line.reconciliation(), {
       broadReplace: true,
       narrowItem: true,
+      narrowField: false,
+      narrowRegion: false,
+      narrowJsonPath: false,
       narrowSummary: true,
+      fieldNames: [],
+      regionNames: [],
+      jsonPathNames: [],
       aspectNames: ["title"],
       summaryNames: ["total"],
     });
@@ -62,6 +68,7 @@ test("collection lines narrow item-aspect patches without broad reload", async (
       scope: "aspect",
       itemId: "demo:2",
       aspect: "title",
+      field: null,
     });
     assert.equal(loadCount, 1);
     assert.deepEqual(line.value(), {
@@ -103,7 +110,13 @@ test("collection lines admit broad replace patch without declared reconcile", as
     assert.deepEqual(line.reconciliation(), {
       broadReplace: true,
       narrowItem: false,
+      narrowField: false,
+      narrowRegion: false,
+      narrowJsonPath: false,
       narrowSummary: false,
+      fieldNames: [],
+      regionNames: [],
+      jsonPathNames: [],
       aspectNames: [],
       summaryNames: [],
     });
@@ -116,6 +129,7 @@ test("collection lines admit broad replace patch without declared reconcile", as
       scope: "line",
       itemId: null,
       aspect: null,
+      field: null,
     });
     assert.equal(loadCount, 1);
     assert.deepEqual(line.value(), [{ id: "demo:1", title: "Replaced" }]);
@@ -170,7 +184,13 @@ test("paged lines admit narrow item patch when reconciliation is declared", asyn
     assert.deepEqual(line.reconciliation(), {
       broadReplace: true,
       narrowItem: true,
+      narrowField: false,
+      narrowRegion: false,
+      narrowJsonPath: false,
       narrowSummary: false,
+      fieldNames: [],
+      regionNames: [],
+      jsonPathNames: [],
       aspectNames: [],
       summaryNames: [],
     });
@@ -186,6 +206,7 @@ test("paged lines admit narrow item patch when reconciliation is declared", asyn
       scope: "item",
       itemId: "demo:1",
       aspect: null,
+      field: null,
     });
     assert.deepEqual(line.value(), {
       items: [{ id: "demo:1", title: "Paged Updated" }],
@@ -239,6 +260,7 @@ test("collection lines admit summary patch when summaries are declared", async (
       scope: "summary",
       itemId: null,
       aspect: null,
+      field: null,
       summary: "total",
     });
     assert.equal(loadCount, 1);
@@ -306,7 +328,7 @@ test("summary patch is denied when summary write mutates reconciled items", asyn
   }
 });
 
-test("detail lines remain non-patchable while collection lines deny undeclared aspects", async () => {
+test("detail lines admit broad replacement while collection lines deny undeclared aspects", async () => {
   const runtime = await createRealResourceTestRuntime();
   try {
     const { mod, resource } = runtime;
@@ -333,7 +355,20 @@ test("detail lines remain non-patchable while collection lines deny undeclared a
     const detailLine = detail.line({ productId: "p1" });
     const collectionLine = collection.line({ workspaceId: "demo" });
 
-    assert.equal("patch" in detailLine, false);
+    assert.equal("patch" in detailLine, true);
+    assert.deepEqual(detailLine.reconciliation(), {
+      broadReplace: true,
+      narrowItem: false,
+      narrowField: false,
+      narrowRegion: false,
+      narrowJsonPath: false,
+      narrowSummary: false,
+      fieldNames: [],
+      regionNames: [],
+      jsonPathNames: [],
+      aspectNames: [],
+      summaryNames: [],
+    });
     assert.throws(
       () =>
         collectionLine.patch(

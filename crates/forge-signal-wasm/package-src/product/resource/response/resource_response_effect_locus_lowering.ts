@@ -6,6 +6,14 @@ const RESOURCE_RESPONSE_LENS_DENIAL_PROOF_VERSION =
   "resource-response-lens-denial-proof-v1";
 
 function lowerResponseLensProofToEffectLocus(lensProof, locus) {
+  return lowerResponseLensProofToEffectLocusWithOptions(lensProof, locus, null);
+}
+
+function lowerResponseLensProofToEffectLocusWithOptions(
+  lensProof,
+  locus,
+  patchKind,
+) {
   if (lensProof === null) {
     return null;
   }
@@ -34,22 +42,35 @@ function lowerResponseLensProofToEffectLocus(lensProof, locus) {
     parityDigest: proof.parityDigest,
     compileBoundaryDigest: proof.compileBoundaryDigest,
     capabilityRowDigest: createCapabilityRowDigest(capability),
-    effectLocusDigest: createEffectLocusDigest(proof, capability, effectiveLocus),
+    effectLocusDigest: createEffectLocusDigest(
+      proof,
+      capability,
+      effectiveLocus,
+      patchKind,
+    ),
     topology: proof.topology,
     itemField: proof.itemField,
     locus: capability.locus,
     patchScope: capability.patchScope,
+    field: effectiveLocus.kind === "detailField" ? effectiveLocus.field : null,
+    region: effectiveLocus.kind === "detailRegion" ? effectiveLocus.region : null,
+    path: effectiveLocus.kind === "detailJsonPath" ? effectiveLocus.path : null,
     aspect: isAspectLocus(effectiveLocus) ? effectiveLocus.aspect : null,
     summary: effectiveLocus.kind === "summary" ? effectiveLocus.summary : null,
     summaryPatchScope:
       effectiveLocus.kind === "summary" ? proof.summaryPatchScope : null,
-    cost: createEffectLocusCostCounters(proof, capability, effectiveLocus),
+    cost: createEffectLocusCostCounters(
+      proof,
+      capability,
+      effectiveLocus,
+      patchKind,
+    ),
     proofBreadth: 1,
   });
 }
 
-function createEffectLocusCostCounters(proof, capability, locus) {
-  const cost = readDeclaredEffectLocusCost(proof, capability, locus);
+function createEffectLocusCostCounters(proof, capability, locus, patchKind) {
+  const cost = readDeclaredEffectLocusCost(proof, capability, locus, patchKind);
   if (cost !== null) {
     return createEffectLocusCostCounter(...cost);
   }
@@ -61,7 +82,7 @@ function createEffectLocusCostCounters(proof, capability, locus) {
   );
 }
 
-function readDeclaredEffectLocusCost(proof, capability, locus) {
+function readDeclaredEffectLocusCost(proof, capability, locus, patchKind) {
   const cost = RESOURCE_RESPONSE_TOPOLOGY_COSTS[proof.topology];
   if (cost === undefined) {
     return null;
@@ -69,10 +90,25 @@ function readDeclaredEffectLocusCost(proof, capability, locus) {
   if (capability.locus === "broadResponse" && cost.broad !== undefined) {
     return cost.broad;
   }
+  if (capability.locus === "detailField" && cost.field !== undefined) {
+    return cost.field;
+  }
+  if (capability.locus === "detailRegion" && cost.region !== undefined) {
+    return cost.region;
+  }
+  if (capability.locus === "detailJsonPath" && cost.jsonPath !== undefined) {
+    return cost.jsonPath;
+  }
   if (
     (capability.locus === cost.itemLocus || isAspectLocus(locus)) &&
     cost.item !== undefined
   ) {
+    if (patchKind === "delete" && cost.itemDelete !== undefined) {
+      return cost.itemDelete;
+    }
+    if (patchKind === "insert" && cost.itemInsert !== undefined) {
+      return cost.itemInsert;
+    }
     return cost.item;
   }
   return null;
@@ -104,15 +140,26 @@ function createCapabilityRowDigest(capability) {
   ].join("|");
 }
 
-function createEffectLocusDigest(proof, capability, locus) {
-  return [
+function createEffectLocusDigest(proof, capability, locus, patchKind) {
+  const digest = [
     "response-effect-locus",
     proof.compiledLensDigest,
     createCapabilityRowDigest(capability),
     locus.kind,
+  ];
+  if (patchKind === "insert") {
+    digest.push("insert");
+  }
+  if (patchKind === "delete") {
+    digest.push("delete");
+  }
+  digest.push(
+    locus.kind === "detailRegion" ? locus.region : "none",
     isAspectLocus(locus) ? locus.aspect : "none",
+    locus.kind === "detailJsonPath" ? locus.path : "none",
     locus.kind === "summary" ? locus.summary : "none",
-  ].join("|");
+  );
+  return digest.join("|");
 }
 
 function createResponseLensDenialError(proof, locus, reason, message) {
@@ -135,6 +182,9 @@ function createResponseLensDenialProof(proof, locus, reason) {
     compileBoundaryDigest: proof.compileBoundaryDigest,
     requestedLocus: capabilityLocusForEffectLocus(locus) ?? locus.kind,
     requestedPatchScope,
+    field: locus.kind === "detailField" ? locus.field : null,
+    region: locus.kind === "detailRegion" ? locus.region : null,
+    path: locus.kind === "detailJsonPath" ? locus.path : null,
     aspect: isAspectLocus(locus) ? locus.aspect : null,
     summary: locus.kind === "summary" ? locus.summary : null,
     reason,
@@ -155,6 +205,9 @@ function createResponseLensDenialDigest(proof, locus, reason, patchScope) {
     reason,
     capabilityLocusForEffectLocus(locus) ?? locus.kind,
     patchScope ?? "none",
+    locus.kind === "detailField" ? locus.field : "none",
+    locus.kind === "detailRegion" ? locus.region : "none",
+    locus.kind === "detailJsonPath" ? locus.path : "none",
     isAspectLocus(locus) ? locus.aspect : "none",
     locus.kind === "summary" ? locus.summary : "none",
   ].join("|");
@@ -181,7 +234,24 @@ function createResponseLensPatchAdmissionLocus(proof, patch) {
       return Object.freeze({
         kind: lineResponseLocusForTopology(proof.topology),
       });
+    case "field":
+      return Object.freeze({
+        kind: "detailField",
+        field: patch.field,
+      });
+    case "region":
+      return Object.freeze({
+        kind: "detailRegion",
+        region: patch.region,
+      });
+    case "jsonPath":
+      return Object.freeze({
+        kind: "detailJsonPath",
+        path: patch.path,
+      });
     case "item":
+    case "insert":
+    case "delete":
       return Object.freeze({
         kind: itemLocusForCollectionTopology(proof.topology),
         itemId: patch.itemId,
@@ -231,6 +301,36 @@ function assertNamedLocusIsDeclared(proof, locus) {
       `${proof.source} cannot lower undeclared JSON aspect "${locus.aspect}" through its compiled response lens proof`,
     );
   }
+  if (locus.kind === "detailField" && !proof.fieldNames.includes(locus.field)) {
+    throw createResponseLensDenialError(
+      proof,
+      locus,
+      "undeclaredField",
+      `${proof.source} cannot lower undeclared detail field "${locus.field}" through its compiled response lens proof`,
+    );
+  }
+  if (
+    locus.kind === "detailRegion" &&
+    !proof.regionNames.includes(locus.region)
+  ) {
+    throw createResponseLensDenialError(
+      proof,
+      locus,
+      "undeclaredRegion",
+      `${proof.source} cannot lower undeclared detail region "${locus.region}" through its compiled response lens proof`,
+    );
+  }
+  if (
+    locus.kind === "detailJsonPath" &&
+    !proof.jsonPathNames.includes(locus.path)
+  ) {
+    throw createResponseLensDenialError(
+      proof,
+      locus,
+      "undeclaredJsonPath",
+      `${proof.source} cannot lower undeclared detail JSON path "${locus.path}" through its compiled response lens proof`,
+    );
+  }
   if (locus.kind === "summary" && !proof.summaryNames.includes(locus.summary)) {
     throw createResponseLensDenialError(
       proof,
@@ -266,6 +366,12 @@ function patchScopeForEffectLocus(locus) {
     case "summaryResponse":
     case "line":
       return "line";
+    case "detailField":
+      return "field";
+    case "detailRegion":
+      return "region";
+    case "detailJsonPath":
+      return "jsonPath";
     case "membership":
     case "connection":
     case "discriminatedTuple":
@@ -293,6 +399,12 @@ function capabilityLocusForEffectLocus(locus) {
       return "broadResponse";
     case "detailResponse":
       return "detailResponse";
+    case "detailField":
+      return "detailField";
+    case "detailRegion":
+      return "detailRegion";
+    case "detailJsonPath":
+      return "detailJsonPath";
     case "summaryResponse":
       return "summaryResponse";
     case "membership":
@@ -366,4 +478,5 @@ export {
   assertResponseLensAdmitsPatch,
   createResponseLensDenialError,
   lowerResponseLensProofToEffectLocus,
+  lowerResponseLensProofToEffectLocusWithOptions,
 };

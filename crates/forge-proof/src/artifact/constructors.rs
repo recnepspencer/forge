@@ -4,7 +4,7 @@ use super::carrier::Artifact;
 use crate::assumption::{
     AssumptionBasis, CurrentValidity, FreshnessScopedBasis, NoAssumptionBasis,
 };
-use crate::proof::{AuthorityMarker, AuthorityWitness, NoProofs};
+use crate::proof::{AuthorityMarker, AuthorityWitness, NoProofs, ProofSetAuthorizedBy};
 
 impl<P, T> Artifact<P, T, NoProofs, NoAssumptionBasis> {
     pub fn new(payload: T) -> Self {
@@ -35,6 +35,29 @@ impl<P, T, B> Artifact<P, T, NoProofs, FreshnessScopedBasis<CurrentValidity, Ass
     }
 }
 
+impl<P, T, S, B> Artifact<P, T, S, FreshnessScopedBasis<CurrentValidity, AssumptionBasis<B>>>
+where
+    S: crate::proof::ProofSet,
+{
+    pub fn with_proofs_and_current_basis<Auth>(
+        payload: T,
+        proofs: S,
+        basis: B,
+        _authority: AuthorityWitness<Auth>,
+    ) -> Self
+    where
+        Auth: AuthorityMarker,
+        S: ProofSetAuthorizedBy<Auth>,
+    {
+        Self {
+            payload,
+            proofs,
+            basis: FreshnessScopedBasis::new(AssumptionBasis::new(basis)),
+            phase: PhantomData,
+        }
+    }
+}
+
 impl<P, T, S, A> Artifact<P, T, S, A> {
     #[allow(dead_code)]
     pub(crate) fn with_state(payload: T, proofs: S, basis: A) -> Self {
@@ -55,7 +78,7 @@ mod tests {
     use crate::assumption::{AssumptionBasis, NoAssumptionBasis};
     use crate::phase::PhaseMarker;
     use crate::proof::{
-        mint_authority_witness, mint_proof, AuthorityMarker, NoProofs, ProofMarker,
+        mint_authority_witness, mint_proof, AuthorityMarker, AuthorityProves, NoProofs, ProofMarker,
     };
 
     struct RawPhase;
@@ -66,6 +89,7 @@ mod tests {
 
     struct CurrentBasisAuthority;
     impl AuthorityMarker for CurrentBasisAuthority {}
+    impl AuthorityProves<ValidatedProof> for CurrentBasisAuthority {}
 
     #[test]
     fn artifact_new_uses_empty_proof_and_basis_defaults() {
@@ -80,7 +104,7 @@ mod tests {
     fn artifact_with_state_preserves_explicit_proof_and_basis() {
         let artifact = Artifact::<RawPhase, _, _, _>::with_state(
             "payload",
-            mint_proof::<ValidatedProof>(),
+            mint_proof::<ValidatedProof, CurrentBasisAuthority>(),
             AssumptionBasis::new(7_u8),
         );
 
@@ -112,7 +136,7 @@ mod tests {
     fn artifact_into_parts_preserves_owned_state_without_clone_pressure() {
         let artifact = Artifact::<RawPhase, _, _, _>::with_state(
             String::from("payload"),
-            mint_proof::<ValidatedProof>(),
+            mint_proof::<ValidatedProof, CurrentBasisAuthority>(),
             AssumptionBasis::new(11_u8),
         );
 

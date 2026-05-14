@@ -7,7 +7,7 @@ import { createRealRequestRuntime } from "../../runtime_fixture/real_request_run
 import { createBranchHead } from "../../runtime_fixture/real_resource_signals.mjs";
 
 const docPath = path.resolve(
-  "crates/forge-signal-wasm/docs/feature_branch_native_resource_effects.md",
+  "crates/forge-signal-wasm/docs/resources/branch-native-effects.md",
 );
 
 test("branch-native resource effects doc happy path covers topology, JSON, merge, and lifecycle examples", async () => {

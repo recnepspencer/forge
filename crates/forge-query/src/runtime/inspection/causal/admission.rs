@@ -1,0 +1,248 @@
+use crate::identity::hash_parts;
+
+use super::admission_decision::{
+    CausalInspectionAdmissionDecision, CausalInspectionAdmissionDecisionKind,
+    CausalInspectionAdmissionSubject, CausalInspectionAdvisoryKind, CausalInspectionViolationKind,
+};
+use super::admission_trace::{
+    CausalDecisionTraceIndex, CausalDecisionTraceRow, CausalInspectionAdmissionCounters,
+    CausalInspectionAdmissionReceipt,
+};
+use super::request::{
+    CausalInspectionExplanationFamily, CausalInspectionRequest, CausalInspectionRichness,
+};
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AdmittedCausalInspection {
+    subject: CausalInspectionAdmissionSubject,
+    decision: CausalInspectionAdmissionDecision,
+    decision_trace: CausalDecisionTraceIndex,
+    receipt: CausalInspectionAdmissionReceipt,
+    counters: CausalInspectionAdmissionCounters,
+    admitted_inspection_digest: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct AdvisoryCausalInspection {
+    subject: CausalInspectionAdmissionSubject,
+    decision: CausalInspectionAdmissionDecision,
+    decision_trace: CausalDecisionTraceIndex,
+    receipt: CausalInspectionAdmissionReceipt,
+    counters: CausalInspectionAdmissionCounters,
+    advisory_inspection_digest: String,
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct DeniedCausalInspection {
+    subject: CausalInspectionAdmissionSubject,
+    decision: CausalInspectionAdmissionDecision,
+    decision_trace: CausalDecisionTraceIndex,
+    receipt: CausalInspectionAdmissionReceipt,
+    counters: CausalInspectionAdmissionCounters,
+    denied_inspection_digest: String,
+}
+
+macro_rules! inspection_accessors {
+    ($ty:ty, $digest_name:ident) => {
+        impl $ty {
+            pub fn subject(&self) -> &CausalInspectionAdmissionSubject {
+                &self.subject
+            }
+
+            pub fn decision(&self) -> &CausalInspectionAdmissionDecision {
+                &self.decision
+            }
+
+            pub fn decision_trace(&self) -> &CausalDecisionTraceIndex {
+                &self.decision_trace
+            }
+
+            pub fn receipt(&self) -> &CausalInspectionAdmissionReceipt {
+                &self.receipt
+            }
+
+            pub fn counters(&self) -> &CausalInspectionAdmissionCounters {
+                &self.counters
+            }
+
+            pub fn $digest_name(&self) -> &str {
+                &self.$digest_name
+            }
+        }
+    };
+}
+
+inspection_accessors!(AdmittedCausalInspection, admitted_inspection_digest);
+inspection_accessors!(AdvisoryCausalInspection, advisory_inspection_digest);
+inspection_accessors!(DeniedCausalInspection, denied_inspection_digest);
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum CausalInspectionProofFlow {
+    Admitted(AdmittedCausalInspection),
+    Advisory(AdvisoryCausalInspection),
+    Denied(DeniedCausalInspection),
+}
+
+impl CausalInspectionProofFlow {
+    pub fn counters(&self) -> &CausalInspectionAdmissionCounters {
+        match self {
+            Self::Admitted(inspection) => inspection.counters(),
+            Self::Advisory(inspection) => inspection.counters(),
+            Self::Denied(inspection) => inspection.counters(),
+        }
+    }
+
+    pub fn decision_trace(&self) -> &CausalDecisionTraceIndex {
+        match self {
+            Self::Admitted(inspection) => inspection.decision_trace(),
+            Self::Advisory(inspection) => inspection.decision_trace(),
+            Self::Denied(inspection) => inspection.decision_trace(),
+        }
+    }
+}
+
+pub fn admit_causal_inspection(request: CausalInspectionRequest) -> CausalInspectionProofFlow {
+    let subject = CausalInspectionAdmissionSubject::from_request(&request);
+    let decision = admission_decision(&request);
+    let trace = decision_trace(&request, &decision);
+    let counters = CausalInspectionAdmissionCounters::new(decision.kind(), &trace);
+    let receipt = CausalInspectionAdmissionReceipt::new(&subject, &decision, &trace, &counters);
+    match decision.kind() {
+        CausalInspectionAdmissionDecisionKind::Success => {
+            CausalInspectionProofFlow::Admitted(AdmittedCausalInspection {
+                admitted_inspection_digest: inspection_digest(
+                    "admitted_causal_inspection_v1",
+                    &subject,
+                    &decision,
+                    &trace,
+                    &receipt,
+                ),
+                subject,
+                decision,
+                decision_trace: trace,
+                receipt,
+                counters,
+            })
+        }
+        CausalInspectionAdmissionDecisionKind::Advisory => {
+            CausalInspectionProofFlow::Advisory(AdvisoryCausalInspection {
+                advisory_inspection_digest: inspection_digest(
+                    "advisory_causal_inspection_v1",
+                    &subject,
+                    &decision,
+                    &trace,
+                    &receipt,
+                ),
+                subject,
+                decision,
+                decision_trace: trace,
+                receipt,
+                counters,
+            })
+        }
+        CausalInspectionAdmissionDecisionKind::Violation => {
+            CausalInspectionProofFlow::Denied(DeniedCausalInspection {
+                denied_inspection_digest: inspection_digest(
+                    "denied_causal_inspection_v1",
+                    &subject,
+                    &decision,
+                    &trace,
+                    &receipt,
+                ),
+                subject,
+                decision,
+                decision_trace: trace,
+                receipt,
+                counters,
+            })
+        }
+    }
+}
+
+fn admission_decision(request: &CausalInspectionRequest) -> CausalInspectionAdmissionDecision {
+    match request.explanation_family() {
+        CausalInspectionExplanationFamily::CrossRuntimeCausalExplanation => {
+            if request.requested_richness() == CausalInspectionRichness::MaterializedDetail {
+                CausalInspectionAdmissionDecision::advisory(
+                    request,
+                    CausalInspectionAdvisoryKind::MaterializedDetailDeferredUntilBridgeEnvelope,
+                )
+            } else {
+                CausalInspectionAdmissionDecision::success(request)
+            }
+        }
+        CausalInspectionExplanationFamily::DurableCausalArchive
+        | CausalInspectionExplanationFamily::StoreBackedReplayReconstruction => {
+            CausalInspectionAdmissionDecision::violation(
+                request,
+                CausalInspectionViolationKind::UnsupportedExplanationFamily,
+            )
+        }
+    }
+}
+
+fn decision_trace(
+    request: &CausalInspectionRequest,
+    decision: &CausalInspectionAdmissionDecision,
+) -> CausalDecisionTraceIndex {
+    let explanation_decision = if decision.violation_kind().is_some() {
+        CausalInspectionAdmissionDecisionKind::Violation
+    } else {
+        CausalInspectionAdmissionDecisionKind::Success
+    };
+    let richness_decision = if decision.advisory_kind().is_some() {
+        CausalInspectionAdmissionDecisionKind::Advisory
+    } else {
+        explanation_decision
+    };
+    let family_reason = if decision.violation_kind().is_some() {
+        "unsupported explanation family remains later-milestone debt"
+    } else {
+        "cross-runtime causal explanation is the supported Query inspection family"
+    };
+    let richness_reason =
+        if request.requested_richness() == CausalInspectionRichness::MaterializedDetail {
+            "materialized detail is narrowed until bridge envelope admission"
+        } else {
+            "reference-only inspection does not require bridge envelope materialization"
+        };
+    CausalDecisionTraceIndex::new(vec![
+        CausalDecisionTraceRow::new(
+            "explanation_family",
+            request.explanation_family().as_str(),
+            explanation_decision,
+            "query_inspection_admission",
+            family_reason,
+        ),
+        CausalDecisionTraceRow::new(
+            "richness_policy",
+            request.requested_richness().as_str(),
+            richness_decision,
+            "query_redaction_posture",
+            richness_reason,
+        ),
+        CausalDecisionTraceRow::new(
+            "evidence_family_scope",
+            "resolved_reference_set",
+            decision.kind(),
+            "query_evidence_reference_set",
+            "requested evidence families are bounded by Phase 2 reference proof",
+        ),
+    ])
+}
+
+fn inspection_digest(
+    label: &'static str,
+    subject: &CausalInspectionAdmissionSubject,
+    decision: &CausalInspectionAdmissionDecision,
+    trace: &CausalDecisionTraceIndex,
+    receipt: &CausalInspectionAdmissionReceipt,
+) -> String {
+    hash_parts(&[
+        label.to_string(),
+        format!("subject:{}", subject.subject_digest()),
+        format!("decision:{}", decision.decision_digest()),
+        format!("trace:{}", trace.trace_digest()),
+        format!("receipt:{}", receipt.receipt_digest()),
+    ])
+}

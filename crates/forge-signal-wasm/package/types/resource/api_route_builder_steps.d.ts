@@ -14,20 +14,16 @@ import type {
 import type { ApiRouteDownloadsDeclaration } from "./api_route_downloads.js";
 import type { ApiRouteArrayItemsBuilder } from "./api_route_array_items_builder.js";
 import type { ApiRouteBuilder } from "./api_route_builder.js";
-import type { ApiRouteReconcileBuilder } from "./api_route_reconcile_builder.js";
 import type {
   ResourceCollectionResponse,
   ResourceDetailResponse,
   ResourceSummaryResponse,
-  ResourceResponseAspectMap,
-  ResourceResponseItem,
-  ResourceResponseSummaryMap,
-  ResourceResponseValue,
 } from "./resource_response.js";
 import type {
   ApiRouteProcessingKind,
   ApiRouteUploadKind,
 } from "./api_route_transfer_kinds.js";
+import type { ApiRouteResponseBuilderForResponse } from "./api_route_response_builder_steps.js";
 
 export type ApiRouteBuilderParamsStep<
   TRoute extends string,
@@ -283,39 +279,21 @@ export type ApiRouteBuilderItemsStep<
   response<
     TResponse extends
       | ResourceCollectionResponse<any, any, any, any>
-      | ResourceDetailResponse<any>
+      | ResourceDetailResponse<any, any>
       | ResourceSummaryResponse<any>,
   >(
     response: TResponse,
-  ): TResponse extends ResourceDetailResponse<any> | ResourceSummaryResponse<any>
-    ? Pick<
-        ApiRouteBuilder<
-          TRoute,
-          TRequestParams,
-          TProcessingKind,
-          TUploadKind,
-          TBody,
-          TDownloadValue,
-          TDownloadsOwned,
-          THeadersOwned,
-          TEffectsOwned,
-          TMethod
-        >,
-        "detail"
-      >
-    : Omit<ApiRouteReconcileBuilder<
-        TRoute,
-        TRequestParams,
-        ResourceResponseValue<TResponse>,
-        ResourceResponseItem<TResponse>,
-        ResourceResponseAspectMap<TResponse>,
-        ResourceResponseSummaryMap<TResponse>,
-        "none",
-        TProcessingKind,
-        TUploadKind,
-        TBody,
-        TDownloadsOwned,
-        THeadersOwned,
-        TMethod
-      >, "aspect" | "reconcile" | "summary" | "pageWindowSummary">;
+  ): ApiRouteResponseBuilderForResponse<
+    TRoute,
+    TRequestParams,
+    TResponse,
+    TProcessingKind,
+    TUploadKind,
+    TBody,
+    TDownloadValue,
+    TDownloadsOwned,
+    THeadersOwned,
+    TEffectsOwned,
+    TMethod
+  >;
 };

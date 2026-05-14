@@ -1,9 +1,10 @@
-use super::{markers::ProofMarker, sets::Proof};
+use super::{markers::ProofMarker, sets::AuthorityProves, sets::Proof};
 
 #[allow(dead_code)]
-pub(crate) fn mint_proof<P>() -> Proof<P>
+pub(crate) fn mint_proof<P, Auth>() -> Proof<P, Auth>
 where
     P: ProofMarker,
+    Auth: AuthorityProves<P>,
 {
     Proof::mint()
 }
@@ -12,15 +13,23 @@ where
 mod tests {
     use std::mem::size_of;
 
-    use crate::proof::{mint_proof, CanonicalOrder, Disjointness, Proof};
+    use crate::proof::{
+        mint_proof, AuthorityMarker, AuthorityProves, CanonicalOrder, Disjointness, Proof,
+    };
+
+    #[derive(Debug, PartialEq, Eq)]
+    struct TestAuthority;
+    impl AuthorityMarker for TestAuthority {}
+    impl AuthorityProves<CanonicalOrder> for TestAuthority {}
+    impl AuthorityProves<Disjointness> for TestAuthority {}
 
     #[test]
     fn crate_internal_minting_produces_zero_sized_proofs() {
-        let canonical = mint_proof::<CanonicalOrder>();
-        let disjoint = mint_proof::<Disjointness>();
+        let canonical = mint_proof::<CanonicalOrder, TestAuthority>();
+        let disjoint = mint_proof::<Disjointness, TestAuthority>();
 
-        assert_eq!(canonical, Proof::<CanonicalOrder>::mint());
-        assert_eq!(disjoint, Proof::<Disjointness>::mint());
-        assert_eq!(size_of::<Proof<CanonicalOrder>>(), 0);
+        assert_eq!(canonical, Proof::<CanonicalOrder, TestAuthority>::mint());
+        assert_eq!(disjoint, Proof::<Disjointness, TestAuthority>::mint());
+        assert_eq!(size_of::<Proof<CanonicalOrder, TestAuthority>>(), 0);
     }
 }

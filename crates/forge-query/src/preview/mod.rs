@@ -19,6 +19,17 @@ use forge_runtime_bridge::facade::{
     PreviewDiscarded, PreviewExecutionRecordIdentity, PreviewPromoted,
 };
 
+mod scoped;
+#[cfg(test)]
+mod scoped_tests;
+
+pub use scoped::{
+    admit_scoped_preview_live_session_plan, admit_scoped_preview_session_plan_binding,
+    admit_scoped_preview_session_plan_binding_from_preview_binding,
+    execute_scoped_preview_live_session_plan, scoped_observation_basis_for_preview_binding,
+    ScopedPreviewLiveSessionPlanBinding, ScopedPreviewSessionPlanBinding,
+};
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ReadOnlyPreviewEvaluation(());
 
@@ -619,6 +630,7 @@ pub enum PreviewLiveFailureClass {
     PreviewLivePlanDigestMismatch,
     PreviewLiveCollectionDigestMismatch,
     PreviewLiveBasisMismatch,
+    PreviewLiveScopedBasisMismatch,
     PreviewLiveLifecycleDrifted,
     PreviewLiveRebindBindingRejected,
     PreviewLiveBroadFallbackForbidden,

@@ -3,7 +3,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "typecheck:package-surface": "tsc -p ./tsconfig.package-types.json --pretty false"
+    "typecheck:package-surface": "tsc -p ./tsconfig.package-types.json --pretty false",
+    "test:resource-runtime": "node --test package/product/resource.runtime.test.mjs",
+    "test:resource-runtime:authoring": "node --test package/product/resource.runtime.authoring.test.mjs",
+    "test:resource-runtime:operations": "node --test package/product/resource.runtime.operations.test.mjs",
+    "test:resource-runtime:io": "node --test package/product/resource.runtime.io.test.mjs",
+    "test:resource-runtime:closeout": "node --test package/product/resource.runtime.closeout.test.mjs"
   },
   "devDependencies": {
     "@types/react": "^19.2.2",

@@ -19,7 +19,14 @@ function requireTreeResponseOptions(options) {
       "resource.response.tree<T>()(...) requires an options object",
     );
   }
-  for (const field of ["roots", "children", "replaceRoots", "nodeForItem", "replaceNode"]) {
+  for (const field of [
+    "roots",
+    "children",
+    "replaceChildren",
+    "replaceRoots",
+    "nodeForItem",
+    "replaceNode",
+  ]) {
     if (typeof options[field] !== "function") {
       throw new TypeError(
         `resource.response.tree<T>()(...) requires ${field}(...)`,
@@ -31,6 +38,14 @@ function requireTreeResponseOptions(options) {
 function createTreeAdapter(options) {
   return {
     ...options,
+    topologyHelpers: Object.freeze({
+      kind: "recursiveTree",
+      roots: options.roots,
+      children: options.children,
+      replaceChildren: options.replaceChildren,
+      replaceRoots: options.replaceRoots,
+      nodeForItem: options.nodeForItem,
+    }),
     items(value) {
       return readTreeItems(
         options.roots(value),

@@ -1,0 +1,35 @@
+warning: unreachable statement
+ --> tests/ui/causal_inspection_request_constructor_private.rs:8:5
+  |
+7 |     let reference_set: CausalEvidenceReferenceSet = todo!();
+  |                                                     ------- any code following this expression is unreachable
+8 |     let target: CausalInspectionTarget = todo!();
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: unused variable: `reference_set`
+ --> tests/ui/causal_inspection_request_constructor_private.rs:7:9
+  |
+7 |     let reference_set: CausalEvidenceReferenceSet = todo!();
+  |         ^^^^^^^^^^^^^ help: if this is intentional, prefix it with an underscore: `_reference_set`
+  |
+  = note: `#[warn(unused_variables)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `reference_set`, `target`, `explanation_family`, `requested_richness`, `requested_evidence_families` and `request_digest` of struct `CausalInspectionRequest` are private
+  --> tests/ui/causal_inspection_request_constructor_private.rs:11:9
+   |
+10 |     let _ = CausalInspectionRequest {
+   |             ----------------------- in this type
+11 |         reference_set,
+   |         ^^^^^^^^^^^^^ private field
+12 |         target,
+   |         ^^^^^^ private field
+13 |         explanation_family: CausalInspectionExplanationFamily::CrossRuntimeCausalExplanation,
+   |         ^^^^^^^^^^^^^^^^^^ private field
+14 |         requested_richness: CausalInspectionRichness::ReferenceOnly,
+   |         ^^^^^^^^^^^^^^^^^^ private field
+15 |         requested_evidence_families: vec![CausalEvidenceFamily::BridgeRoute],
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         request_digest: "forged-request".to_string(),
+   |         ^^^^^^^^^^^^^^ private field

@@ -12,9 +12,15 @@ function createBasisRefreshDeliveryEffectSummary(
     patchKind: null,
     patchScope: null,
     patchedItemId: null,
+    patchedField: null,
+    patchedRegion: null,
+    patchedPath: null,
     patchedAspect: null,
     patchedSummary: null,
     valueChanged: false,
+    fieldProof: null,
+    regionProof: null,
+    jsonPathProof: null,
   });
 }
 
@@ -32,9 +38,15 @@ function createInvalidateDeliveryEffectSummary(
     patchKind: null,
     patchScope: null,
     patchedItemId: null,
+    patchedField: null,
+    patchedRegion: null,
+    patchedPath: null,
     patchedAspect: null,
     patchedSummary: null,
     valueChanged: false,
+    fieldProof: null,
+    regionProof: null,
+    jsonPathProof: null,
   });
 }
 
@@ -54,9 +66,14 @@ function createPatchDeliveryEffectSummary(
     patchKind: patchValue.kind,
     patchScope: patchDiagnostics.scope,
     patchedItemId: patchDiagnostics.itemId,
+    patchedField: patchDiagnostics.field,
+    patchedRegion: patchDiagnostics.region,
+    patchedPath: patchDiagnostics.path,
     patchedAspect: patchDiagnostics.aspect,
     patchedSummary: patchDiagnostics.summary,
     valueChanged: patchDiagnostics.valueChanged,
+    fieldProof: patchDiagnostics.fieldProof,
+    regionProof: patchDiagnostics.regionProof,
     jsonPathProof: patchDiagnostics.jsonPathProof,
   });
 }
@@ -72,9 +89,14 @@ function createLineDeliveryEffectSummary(options) {
     patchKind: options.patchKind,
     patchScope: options.patchScope,
     patchedItemId: options.patchedItemId,
+    patchedField: options.patchedField,
+    patchedRegion: options.patchedRegion,
+    patchedPath: options.patchedPath,
     patchedAspect: options.patchedAspect,
     patchedSummary: options.patchedSummary,
     valueChanged: options.valueChanged,
+    fieldProof: options.fieldProof ?? null,
+    regionProof: options.regionProof ?? null,
     jsonPathProof: options.jsonPathProof ?? null,
   });
 }

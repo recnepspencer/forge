@@ -77,6 +77,9 @@ function createInitialDiagnosticsShape(
     lastPatchKind: null,
     lastPatchScope: null,
     lastPatchedItemId: null,
+    lastPatchedField: null,
+    lastPatchedRegion: null,
+    lastPatchedPath: null,
     lastPatchedAspect: null,
     lastPatchedSummary: null,
     lastDeliveryKind: null,
@@ -217,6 +220,9 @@ function createPatchedDiagnostics(previous, patch, result, effectEnvelope) {
       lastPatchKind: patch.kind,
       lastPatchScope: result.scope,
       lastPatchedItemId: result.itemId,
+      lastPatchedField: result.field,
+      lastPatchedRegion: result.region,
+      lastPatchedPath: result.path,
       lastPatchedAspect: result.aspect,
       lastPatchedSummary: result.summary,
       lastEffect: effectEnvelope,
@@ -240,6 +246,9 @@ function createInverseRollbackDiagnostics(previous, rollback, result) {
       lastPatchKind: rollback.inverse.patch.kind,
       lastPatchScope: result.scope,
       lastPatchedItemId: result.itemId,
+      lastPatchedField: result.field,
+      lastPatchedRegion: result.region,
+      lastPatchedPath: result.path,
       lastPatchedAspect: result.aspect,
       lastPatchedSummary: result.summary,
       preservedVisibleValueOnLastRejection: false,
@@ -291,6 +300,9 @@ function createDeliveredDiagnostics(previous, delivery) {
       lastPatchKind: delivery.patchKind,
       lastPatchScope: delivery.patchScope,
       lastPatchedItemId: delivery.patchedItemId,
+      lastPatchedField: delivery.patchedField,
+      lastPatchedRegion: delivery.patchedRegion,
+      lastPatchedPath: delivery.patchedPath,
       lastPatchedAspect: delivery.patchedAspect,
       lastPatchedSummary: delivery.patchedSummary,
       lastDeliveryKind: delivery.deliveryKind,
@@ -305,6 +317,34 @@ function createDeliveredDiagnostics(previous, delivery) {
         previous.visibleValueVersion + (delivery.valueChanged ? 1 : 0),
     },
     createDeliveredVisibleSelection(delivery.effectEnvelope),
+  );
+}
+
+function createMutationResponsePlannedDiagnostics(previous, mutationResponsePlan) {
+  return freezeWithVisibleSelection(
+    {
+      ...previous,
+      lastMutationResponsePlan: mutationResponsePlan,
+      mutationResponsePlanCount:
+        ("mutationResponsePlanCount" in previous
+          ? previous.mutationResponsePlanCount
+          : 0) + 1,
+    },
+    previous.visibleSelection,
+  );
+}
+
+function createIdentityMigratedDiagnostics(previous, identityMigration) {
+  return freezeWithVisibleSelection(
+    {
+      ...previous,
+      identityMigrationCount:
+        ("identityMigrationCount" in previous
+          ? previous.identityMigrationCount
+          : 0) + 1,
+      lastIdentityMigration: identityMigration,
+    },
+    previous.visibleSelection,
   );
 }
 
@@ -356,6 +396,8 @@ export {
   createInvalidatedDiagnostics,
   createDeliveredDiagnostics,
   createInitialLineDiagnostics,
+  createIdentityMigratedDiagnostics,
+  createMutationResponsePlannedDiagnostics,
   createInverseRollbackDiagnostics,
   createPatchedDiagnostics,
   createPendingReloadDiagnostics,

@@ -1,0 +1,21 @@
+warning: unreachable expression
+ --> tests/ui/scoped_mutation_preparation_basis_constructor_private.rs:8:19
+  |
+7 |         capability: panic!() as AdmittedBasisCapability,
+  |                     -------- any code following this expression is unreachable
+8 |         counters: panic!() as ScopedBasisConstructionCounters,
+  |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `capability`, `counters` and `scoped_digest` of struct `forge_query::facade::policy::ScopedMutationPreparationBasis` are private
+ --> tests/ui/scoped_mutation_preparation_basis_constructor_private.rs:7:9
+  |
+6 |     let _ = ScopedMutationPreparationBasis {
+  |             ------------------------------ in this type
+7 |         capability: panic!() as AdmittedBasisCapability,
+  |         ^^^^^^^^^^ private field
+8 |         counters: panic!() as ScopedBasisConstructionCounters,
+  |         ^^^^^^^^ private field
+9 |         scoped_digest: String::new(),
+  |         ^^^^^^^^^^^^^ private field

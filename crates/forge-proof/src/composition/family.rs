@@ -1,5 +1,5 @@
 use crate::collections::Pair;
-use crate::proof::{CanonicalOrder, Proof};
+use crate::proof::{CanonicalOrder, Proof, StructuralProofAuthority};
 
 #[repr(transparent)]
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -90,19 +90,24 @@ pub enum FamilyLifecycleAction<S, A, P> {
 #[derive(Debug, PartialEq, Eq)]
 pub struct LoweredFamilyProgram2<S, A, P> {
     actions: Pair<FamilyLifecycleAction<S, A, P>>,
-    proof: Proof<CanonicalOrder>,
+    proof: Proof<CanonicalOrder, StructuralProofAuthority>,
 }
+
+pub type LoweredFamilyProgramParts<S, A, P> = (
+    Pair<FamilyLifecycleAction<S, A, P>>,
+    Proof<CanonicalOrder, StructuralProofAuthority>,
+);
 
 impl<S, A, P> LoweredFamilyProgram2<S, A, P> {
     pub fn actions(&self) -> &Pair<FamilyLifecycleAction<S, A, P>> {
         &self.actions
     }
 
-    pub fn proof(&self) -> &Proof<CanonicalOrder> {
+    pub fn proof(&self) -> &Proof<CanonicalOrder, StructuralProofAuthority> {
         &self.proof
     }
 
-    pub fn into_parts(self) -> (Pair<FamilyLifecycleAction<S, A, P>>, Proof<CanonicalOrder>) {
+    pub fn into_parts(self) -> LoweredFamilyProgramParts<S, A, P> {
         (self.actions, self.proof)
     }
 }
@@ -139,7 +144,7 @@ mod tests {
         CompositionFamilySymbol, FamilyLifecycleAction, LoweredFamilyProgram2,
     };
     use crate::collections::Pair;
-    use crate::proof::Proof;
+    use crate::proof::{Proof, StructuralProofAuthority};
 
     #[test]
     fn symbolic_and_authoritative_family_references_remain_distinct() {
@@ -186,7 +191,10 @@ mod tests {
             }
             other => panic!("expected create action on right, got {other:?}"),
         }
-        assert_eq!(lowered.proof(), &Proof::mint());
+        assert_eq!(
+            lowered.proof(),
+            &Proof::<_, StructuralProofAuthority>::mint()
+        );
     }
 
     #[test]

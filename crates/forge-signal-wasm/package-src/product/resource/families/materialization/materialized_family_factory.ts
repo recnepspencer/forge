@@ -3,28 +3,16 @@ import {
   invalidateFamilyLine,
 } from "./family_invalidation.js";
 import { createFamilyIdentity } from "../../identity/family_identity.js";
-import { createRuntimeLineIdentity } from "../../identity/runtime_line_identity.js";
 import { createFamilyDefinitionRecord } from "../../lowering/family_definition_record.js";
-import { createLineMaterializationRecord } from "../../lowering/line_materialization_record.js";
 import { createLinePatchRecord } from "../../lowering/line_patch_record.js";
-import { createLineReloadRecord } from "../../lowering/line_reload_record.js";
 import { requireCanonicalParamIdentity } from "../../params/param_identity_factory.js";
 import { resolveResourcePolicyProfile } from "../../policies/policy_profile_resolution.js";
 import {
   createRequestTargetRecord,
-  createResolvedRequestDescriptor,
 } from "./resolved_request_descriptor.js";
-import { createLineHandle } from "../../lines/line_handle.js";
-import { createPatchCapableLineHandle } from "../../lines/line_patch_capable_handle.js";
-import { createInitialLineBinding } from "../../lines/actions/initial_load_settlement.js";
-import { recordLineHistoryEntry } from "../../lines/history/record_line_history_entry.js";
-import { lookupOrCreateLine } from "../../lines/line_lookup.js";
-import { createLineHistoryState } from "../../lines/history/line_history_state.js";
-import { createLineLifecycleState } from "../../lines/state/line_lifecycle_state.js";
-import { createLineBackingRef } from "../../lines/state/line_backing_ref.js";
-import { createLineRegistryEntry } from "../../lines/state/line_registry_entry.js";
-import { createLineDeliveryState } from "../../lines/state/line_delivery_state.js";
-import { createLineRequestState } from "../../requests/line_request_state.js";
+import { attachResourceFamilyMetadata } from "../resource_family_metadata.js";
+import { createMaterializedLine } from "./materialized_line_entry.js";
+import { createSeededBinding } from "./materialized_family_binding.js";
 
 function createMaterializedFamily(
   kind,
@@ -54,34 +42,46 @@ function createMaterializedFamily(
     createRequestTargetRecord(declaration),
     compatibility,
   );
+  const familyPatchRecord = createLinePatchRecord(
+    familyRecord.identity.kind,
+    familyRecord.declaration.itemIdentity,
+    createLineReconciliationProofRecord(familyRecord.declaration),
+  );
   const linesByCanonicalKey = new Map();
   let lineCounter = 0;
+
+  function lookupOrCreateRegistryEntry(canonicalParamIdentity, options = null) {
+    const existing = linesByCanonicalKey.get(canonicalParamIdentity.canonicalKey);
+    if (existing) {
+      return existing;
+    }
+    const created = createMaterializedLine(
+      canonicalParamIdentity,
+      linesByCanonicalKey,
+      familyIdentity,
+      familyRecord,
+      familyPatchRecord,
+      familyScope,
+      resourceLineEpoch,
+      () => {
+        lineCounter += 1;
+        return lineCounter;
+      },
+      options?.initialBindingFactory ?? null,
+    );
+    linesByCanonicalKey.set(canonicalParamIdentity.canonicalKey, created);
+    return created;
+  }
 
   function createLine(rawParams) {
     const canonicalParamIdentity = requireCanonicalParamIdentity(
       familyRecord.declaration.normalizeParams(rawParams),
       kind,
     );
-    return lookupOrCreateLine(
-      linesByCanonicalKey,
-      canonicalParamIdentity.canonicalKey,
-      () =>
-        createMaterializedLine(
-          canonicalParamIdentity,
-          linesByCanonicalKey,
-          familyIdentity,
-          familyRecord,
-          familyScope,
-          resourceLineEpoch,
-          () => {
-            lineCounter += 1;
-            return lineCounter;
-          },
-        ),
-    );
+    return lookupOrCreateRegistryEntry(canonicalParamIdentity).handle;
   }
 
-  return Object.freeze({
+  const family = {
     invalidate(rawParams) {
       const canonicalParamIdentity = requireCanonicalParamIdentity(
         familyRecord.declaration.normalizeParams(rawParams),
@@ -96,181 +96,92 @@ function createMaterializedFamily(
       return invalidateAllFamilyLines(linesByCanonicalKey);
     },
     line: createLine,
-  });
-}
-
-function createMaterializedLine(
-  canonicalParamIdentity,
-  linesByCanonicalKey,
-  familyIdentity,
-  familyRecord,
-  familyScope,
-  resourceLineEpoch,
-  nextLineCounter,
-) {
-  let sharedRequestState = null;
-  const sharedLifecycleHistory = createLineHistoryState();
-
-  function snapshotContinuity(materialization) {
-    try {
-      return Object.freeze({
-        status: materialization.binding.statusSignal(),
-        freshness: materialization.binding.freshnessSignal(),
-        diagnostics: materialization.binding.diagnosticsSignal(),
-      });
-    } catch {
-      return null;
-    }
-  }
-
-  function restoreContinuity(materialization, continuitySnapshot) {
-    if (continuitySnapshot === null) {
-      return;
-    }
-    materialization.binding.statusSignal.set(continuitySnapshot.status);
-    materialization.binding.freshnessSignal.set(continuitySnapshot.freshness);
-    materialization.binding.diagnosticsSignal.set(continuitySnapshot.diagnostics);
-  }
-
-  function createReplacementMaterialization(requestDescriptorOverride = null) {
-    return createConcreteMaterialization(
-      canonicalParamIdentity,
-      familyIdentity,
-      familyRecord,
-      familyScope,
-      resourceLineEpoch,
-      nextLineCounter,
-      releaseCurrentLine,
-      rematerializeLine,
-      sharedLifecycleHistory,
-      sharedRequestState,
-      requestDescriptorOverride,
-    );
-  }
-
-  const lineBacking = createLineBackingRef(
-    resourceLineEpoch,
-    () => createReplacementMaterialization(),
-    snapshotContinuity,
-    restoreContinuity,
+  };
+  return Object.freeze(
+    attachResourceFamilyMetadata(family, {
+      familyKind: kind,
+      familyId,
+      patchRecord: familyPatchRecord,
+      normalizeParams: familyRecord.declaration.normalizeParams,
+      lookupTargetLineIdentity(canonicalKey) {
+        const existing = linesByCanonicalKey.get(canonicalKey);
+        if (!existing) {
+          return Object.freeze({
+            canonicalKey,
+            runtimeLineId: null,
+            residency: "declared",
+          });
+        }
+        return Object.freeze({
+          canonicalKey,
+          runtimeLineId: existing.materialization.lineIdentity.runtimeLineId,
+          residency: "resident",
+        });
+      },
+      lookupResidentTargetMaterialization(canonicalKey) {
+        return linesByCanonicalKey.get(canonicalKey)?.materialization ?? null;
+      },
+      materializeTargetMaterialization(rawParams, seedValue) {
+        const canonicalParamIdentity = requireCanonicalParamIdentity(
+          familyRecord.declaration.normalizeParams(rawParams),
+          kind,
+        );
+        return lookupOrCreateRegistryEntry(
+          canonicalParamIdentity,
+          seedValue === undefined
+            ? null
+            : {
+                initialBindingFactory(
+                  params,
+                  lineScope,
+                  familyKind,
+                  _load,
+                  policy,
+                  requestDescriptor,
+                  _lineIdentity,
+                  _mutationResponseDeclaration,
+                  lifecycle,
+                  lifecycleHistory,
+                ) {
+                  return createSeededBinding(
+                    params,
+                    lineScope,
+                    familyKind,
+                    seedValue,
+                    policy,
+                    requestDescriptor,
+                    lifecycle,
+                    lifecycleHistory,
+                  );
+                },
+              },
+        ).materialization;
+      },
+    }),
   );
-  resourceLineEpoch.register(lineBacking);
-  const releaseCurrentLine = createCurrentLineRelease(
-    lineBacking,
-    resourceLineEpoch,
-    linesByCanonicalKey,
-    canonicalParamIdentity.canonicalKey,
-  );
-
-  function rematerializeLine({
-    requestDescriptorOverride = null,
-    invalidateNamespace = false,
-  } = {}) {
-    if (invalidateNamespace) {
-      resourceLineEpoch.invalidateAll();
-    }
-    return lineBacking.forceRematerialize(
-      () => createReplacementMaterialization(requestDescriptorOverride),
-    );
-  }
-
-  const materialization = rematerializeLine();
-  sharedRequestState = materialization.requestState;
-  recordLineHistoryEntry(
-    materialization.lifecycleHistory,
-    materialization.binding,
-    "materialized",
-  );
-  const handle = createMaterializedLineHandle(lineBacking);
-  return createLineRegistryEntry(lineBacking, handle);
-}
-
-function createMaterializedLineHandle(lineBacking) {
-  const baseHandle = createLineHandle(lineBacking);
-  if (!lineBacking.current().patch.broadReplace) {
-    return baseHandle;
-  }
-  return createPatchCapableLineHandle(baseHandle, lineBacking);
-}
-
-function createConcreteMaterialization(
-  canonicalParamIdentity,
-  familyIdentity,
-  familyRecord,
-  familyScope,
-  resourceLineEpoch,
-  nextLineCounter,
-  release,
-  rematerialize,
-  lifecycleHistory,
-  requestStateOverride,
-  requestDescriptorOverride = null,
-) {
-  const lineCounter = nextLineCounter();
-  const lineScope = familyScope.scope(`line${lineCounter}`);
-  const runtimeLineId = `${familyIdentity.familyId}.line${lineCounter}`;
-  const lineIdentity = createRuntimeLineIdentity(
-    familyIdentity,
-    canonicalParamIdentity,
-    runtimeLineId,
-    lineScope.scopeId,
-    familyRecord.compatibility ?? null,
-  );
-  const requestDescriptor =
-    requestDescriptorOverride
-    ?? createResolvedRequestDescriptor(
-      lineIdentity,
-      familyRecord,
-      canonicalParamIdentity.params,
-    );
-  const lifecycle = createLineLifecycleState();
-  const requestState =
-    requestStateOverride ?? createLineRequestState(requestDescriptor);
-  const binding = createBinding(
-    canonicalParamIdentity.params,
-    lineScope,
-    familyRecord.identity.kind,
-    familyRecord.declaration.load,
-    familyRecord.policy,
-    requestDescriptor,
-    lifecycle,
-    lifecycleHistory,
-  );
-  const reload = createLineReloadRecord(
-    canonicalParamIdentity.params,
-    familyRecord.identity.kind,
-    familyRecord.declaration.load,
-    familyRecord.policy,
-    requestState,
-  );
-  const history = familyScope.history();
-  const delivery = createLineDeliveryState();
-  const patch = createLinePatchRecord(
-    familyRecord.identity.kind,
-    familyRecord.declaration.itemIdentity,
-    createLineReconciliationProofRecord(familyRecord.declaration),
-  );
-  return createLineMaterializationRecord(
-    lineIdentity,
-    requestDescriptor,
-    requestState,
-    binding,
-    history,
-    lifecycleHistory,
-    delivery,
-    patch,
-    lineScope,
-      lifecycle,
-      reload,
-      release,
-      rematerialize,
-      resourceLineEpoch,
-    );
 }
 
 function createLineReconciliationProofRecord(declaration) {
   if (declaration.reconcile !== undefined) {
     return declaration.reconcile;
+  }
+  if (declaration.responseLensProof !== undefined && declaration.detailFields !== undefined) {
+    return Object.freeze({
+      ...declaration.detailFields,
+      responseLensProof: declaration.responseLensProof,
+    });
+  }
+  if (declaration.responseLensProof !== undefined && declaration.detailRegions !== undefined) {
+    return Object.freeze({
+      ...declaration.detailRegions,
+      responseLensProof: declaration.responseLensProof,
+    });
+  }
+  if (declaration.responseLensProof !== undefined && declaration.detailJsonPaths !== undefined) {
+    return Object.freeze({
+      ...declaration.detailJsonPaths,
+      responseLensProof: declaration.responseLensProof,
+    });
   }
   if (declaration.responseLensProof !== undefined) {
     return Object.freeze({
@@ -278,65 +189,6 @@ function createLineReconciliationProofRecord(declaration) {
     });
   }
   return null;
-}
-
-function createBinding(
-  params,
-  lineScope,
-  kind,
-  load,
-  policy,
-  requestDescriptor,
-  lifecycle,
-  lifecycleHistory,
-) {
-  return createInitialLineBinding(
-    load,
-    params,
-    lineScope,
-    kind,
-    policy,
-    requestDescriptor,
-    lifecycle,
-    lifecycleHistory,
-  );
-}
-
-function createCurrentLineRelease(
-  lineBacking,
-  resourceLineEpoch,
-  linesByCanonicalKey,
-  canonicalKey,
-) {
-  let released = false;
-  return () => {
-    if (released) {
-      return;
-    }
-    released = true;
-    linesByCanonicalKey.delete(canonicalKey);
-    resourceLineEpoch.unregister(lineBacking);
-    const materialization = lineBacking.current();
-    if (materialization !== null) {
-      disposeLineMaterialization(materialization);
-    }
-    for (const retiredMaterialization of lineBacking.retired()) {
-      disposeLineMaterialization(retiredMaterialization);
-    }
-  };
-}
-
-function disposeLineMaterialization(materialization) {
-  materialization.lifecycle.markReleased();
-  materialization.lifecycle.releaseOwnedViews();
-  materialization.binding.valueSignal.free();
-  materialization.binding.readableValueSignal.free();
-  materialization.binding.processingSignal.free();
-  materialization.binding.uploadSignal.free();
-  materialization.binding.downloadSignal.free();
-  materialization.binding.statusSignal.free();
-  materialization.binding.freshnessSignal.free();
-  materialization.binding.diagnosticsSignal.free();
 }
 
 export { createMaterializedFamily };

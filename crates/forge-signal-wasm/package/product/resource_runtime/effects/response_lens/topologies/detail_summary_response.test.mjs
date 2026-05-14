@@ -195,7 +195,7 @@ function assertWholeResponsePatchDeniedWithoutSideEffects(
   assert.throws(patchAction, (error) => {
     assert.match(error.message, expectedDenial.message);
     assert.equal(error.denialProof.requestedLocus, expectedDenial.requestedLocus);
-    assert.equal(error.denialProof.reason, "unsupportedCapability");
+    assert.equal(error.denialProof.reason, expectedDenial.reason ?? "unsupportedCapability");
     return true;
   });
   assert.deepEqual(line.value(), beforeValue);

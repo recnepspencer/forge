@@ -12,7 +12,7 @@ mod runtime_readmission;
 pub use checked_recipe::{
     resolve_checked_lower_and_admit_recipe, resolve_lower_and_admit_recipe,
     CheckedAdmitRecipeTransition, CheckedLowerRecipeTransition, CheckedResolveRecipeTransition,
-    RecipeAdmissionReadiness, RecipeLoweringReadiness, RecipeResolutionGate,
+    CurrentAdmittedRecipe, RecipeAdmissionReadiness, RecipeLoweringReadiness, RecipeResolutionGate,
 };
 pub use composition::{
     compose_join_success_transition, compose_join_transition_outcome, compose_success_transition,
@@ -28,7 +28,8 @@ pub use outcomes::{
 pub use readiness::{
     admit_ready_and_execute_recipe, checked_admit_ready_and_execute_recipe,
     AdmitExecutionReadyRecipeTransition, CheckedAdmitExecutionReadyRecipeTransition,
-    ExecuteReadyRecipeTransition, ExecutionReadinessContext, ExecutionReadyAdmissionReadiness,
+    CurrentExecutionReadyRecipe, ExecuteReadyRecipeTransition, ExecutionReadinessContext,
+    ExecutionReadyAdmissionReadiness,
 };
 pub use recipe::{
     AdmitRecipeTransition, LowerRecipeTransition, RecipeResolutionContext, ResolveRecipeTransition,

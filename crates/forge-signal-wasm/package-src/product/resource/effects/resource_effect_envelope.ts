@@ -1,7 +1,9 @@
 import { requireResourceEffectPlan } from "./resource_effect_plan.js";
 import { createResourceEffectBranchLifecycle } from "./resource_effect_branch_lifecycle.js";
 import { createResourceEffectOptimisticLifecycle } from "./resource_effect_optimistic_lifecycle.js";
-import { lowerResponseLensProofToEffectLocus } from "../response/resource_response_effect_locus_lowering.js";
+import { createResourceEffectPatchCounters } from "./resource_effect_patch_counters.js";
+import { createResourceEffectPatchDigest } from "./resource_effect_patch_digest.js";
+import { lowerResponseLensProofToEffectLocusWithOptions } from "../response/resource_response_effect_locus_lowering.js";
 
 const RESOURCE_EFFECT_ENVELOPE_VERSION = "resource-effect-envelope-v1";
 const RESOURCE_EFFECT_AUTHORITY_VERSION = "resource-effect-authority-v1";
@@ -11,6 +13,11 @@ const RESOURCE_EFFECT_AUTHORITY_REGISTRY =
 resourceEffectAuthorityGlobal.__forgeResourceEffectAuthorityRegistry = RESOURCE_EFFECT_AUTHORITY_REGISTRY;
 let nextResourceEffectAuthoritySequence = 1;
 
+function resetResourceEffectEnvelopeAuthorityForTesting() {
+  RESOURCE_EFFECT_AUTHORITY_REGISTRY.clear();
+  nextResourceEffectAuthoritySequence = 1;
+}
+
 function createLocalPatchEffectEnvelope(effectPlan, patch, result) {
   return createResourceEffectEnvelope({
     effectPlan,
@@ -19,9 +26,14 @@ function createLocalPatchEffectEnvelope(effectPlan, patch, result) {
       kind: patch.kind,
       scope: result.scope,
       itemId: result.itemId,
+      field: result.field,
+      region: result.region,
+      path: result.path,
       aspect: result.aspect,
       summary: result.summary,
       valueChanged: result.valueChanged,
+      fieldProof: result.fieldProof,
+      regionProof: result.regionProof,
       jsonPathProof: result.jsonPathProof,
     }),
   });
@@ -41,9 +53,14 @@ function createDeliveryEffectEnvelope(effectPlan, delivery) {
       kind: delivery.patchKind,
       scope: delivery.patchScope,
       itemId: delivery.patchedItemId,
+      field: delivery.patchedField,
+      region: delivery.patchedRegion,
+      path: delivery.patchedPath,
       aspect: delivery.patchedAspect,
       summary: delivery.patchedSummary,
       valueChanged: delivery.valueChanged,
+      fieldProof: delivery.fieldProof,
+      regionProof: delivery.regionProof,
       jsonPathProof: delivery.jsonPathProof,
     }),
   });
@@ -55,10 +72,11 @@ function createResourceEffectEnvelope(options) {
   const lineIdentity = effectPlan.lineIdentity;
   const patch = options.patch;
   const rawLocus = createEffectLocus(patch, options.delivery, effectPlan);
-  const patchDigest = createPatchDigest(patch);
-  const locusProof = lowerResponseLensProofToEffectLocus(
+  const patchDigest = createResourceEffectPatchDigest(patch);
+  const locusProof = lowerResponseLensProofToEffectLocusWithOptions(
     effectPlan.responseLensProof,
     rawLocus,
+    patch.kind,
   );
   const locus = alignLocusWithResponseLensProof(rawLocus, locusProof);
   const envelope = {
@@ -101,7 +119,7 @@ function createResourceEffectEnvelope(options) {
     patch: patchDigest,
     counters: Object.freeze({
       ...effectPlan.counters,
-      ...createJsonPathCounters(patchDigest.jsonPath),
+      ...createResourceEffectPatchCounters(patchDigest),
     }),
   };
   const authority = createResourceEffectAuthority(envelope);
@@ -193,47 +211,6 @@ function canonicalizeAuthorityValue(value) {
   return canonical;
 }
 
-function createPatchDigest(patch) {
-  return Object.freeze({
-    kind: patch.kind,
-    scope: patch.scope,
-    itemId: patch.itemId,
-    aspect: patch.aspect,
-    summary: patch.summary,
-    valueChanged: patch.valueChanged,
-    jsonPath: createJsonPathPatchProof(patch.jsonPathProof),
-  });
-}
-
-function createJsonPathPatchProof(jsonPathProof) {
-  if (jsonPathProof === null || jsonPathProof === undefined) {
-    return null;
-  }
-  return Object.freeze({
-    version: jsonPathProof.version,
-    aspect: jsonPathProof.aspect,
-    field: jsonPathProof.field,
-    path: jsonPathProof.path,
-    parsedPathDigest: jsonPathProof.parsedPathDigest,
-    policy: jsonPathProof.policy,
-    cost: jsonPathProof.cost,
-    proofDigest: jsonPathProof.proofDigest,
-  });
-}
-
-function createJsonPathCounters(jsonPathProof) {
-  if (jsonPathProof === null) {
-    return Object.freeze({
-      jsonPathTraversalBreadth: 0,
-      jsonPathReconstructionBreadth: 0,
-    });
-  }
-  return Object.freeze({
-    jsonPathTraversalBreadth: jsonPathProof.cost.traversalBreadth,
-    jsonPathReconstructionBreadth: jsonPathProof.cost.reconstructionBreadth,
-  });
-}
-
 function alignLocusWithResponseLensProof(locus, locusProof) {
   if (locusProof?.locus !== "jsonItemAspect") {
     return locus;
@@ -280,6 +257,21 @@ function createResponseLensBackedEffectLocus(patch, responseLensProof) {
     case "line":
       return Object.freeze({
         kind: createResponseLensLineLocus(responseLensProof.topology),
+      });
+    case "field":
+      return Object.freeze({
+        kind: "detailField",
+        field: patch.field,
+      });
+    case "region":
+      return Object.freeze({
+        kind: "detailRegion",
+        region: patch.region,
+      });
+    case "jsonPath":
+      return Object.freeze({
+        kind: "detailJsonPath",
+        path: patch.path,
       });
     case "item":
       return Object.freeze({
@@ -345,6 +337,12 @@ function createGenericResourceEffectLocus(patch) {
   switch (patch.scope) {
     case "line":
       return Object.freeze({ kind: "line" });
+    case "field":
+      return Object.freeze({ kind: "detailField", field: patch.field });
+    case "region":
+      return Object.freeze({ kind: "detailRegion", region: patch.region });
+    case "jsonPath":
+      return Object.freeze({ kind: "detailJsonPath", path: patch.path });
     case "item":
       return Object.freeze({ kind: "item", itemId: patch.itemId });
     case "aspect":
@@ -369,6 +367,9 @@ function createDeliveryOnlyEffectLocus(deliveryScope) {
     case "invalidate":
       return Object.freeze({ kind: "invalidation" });
     case "line":
+    case "field":
+    case "region":
+    case "jsonPath":
     case "item":
     case "aspect":
     case "summary":
@@ -396,4 +397,5 @@ export {
   createDeliveryEffectEnvelope,
   createLocalPatchEffectEnvelope,
   requireRuntimeIssuedResourceEffectEnvelope,
+  resetResourceEffectEnvelopeAuthorityForTesting,
 };

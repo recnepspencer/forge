@@ -826,6 +826,7 @@ fn rejection_row(
             .expect("mutation declaration should admit");
             let lowered = lower_mutation_intent_declaration(
                 &declaration,
+                binding.basis_digest(),
                 MutationLoweringInput::IntentReconciliation {
                     entity_id: EntityId::new(PartitionId(1), 41, 0),
                     desired_payload: json!({"name":"after"}),

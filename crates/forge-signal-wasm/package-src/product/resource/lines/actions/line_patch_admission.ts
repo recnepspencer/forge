@@ -4,7 +4,16 @@ import {
 } from "../../response/resource_response_effect_locus_lowering.js";
 
 function assertLinePatchRecordAdmitsPatch(patchRecord, patch) {
-  assertResponseLensAdmitsPatch(patchRecord.responseLensProof, patch);
+  assertResponseLensAdmitsPatch(
+    patchRecord.responseLensProof,
+    patch.kind === "insert" || patch.kind === "delete"
+      ? Object.freeze({
+          kind: "item",
+          itemId: patch.itemId,
+          nextItem: patch.kind === "insert" ? patch.nextItem : null,
+        })
+      : patch,
+  );
   if (patch.kind === "summary") {
     assertLineSummaryPatchScopeAdmitted(patchRecord, patch);
   }

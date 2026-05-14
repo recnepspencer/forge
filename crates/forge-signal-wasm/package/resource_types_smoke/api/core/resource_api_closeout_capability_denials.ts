@@ -6,12 +6,24 @@ const detailLine = signals.api({}).url("/reports/:reportId").detail({
   load: ({ reportId }) => ({ id: reportId }),
 }).line({ reportId: "r1" });
 
-// @ts-expect-error detail DX lines must not overclaim patch(...)
 detailLine.patch;
-// @ts-expect-error detail DX lines must not overclaim deliver(...)
 detailLine.deliver;
-// @ts-expect-error detail DX lines must not overclaim reconciliation()
 detailLine.reconciliation;
+
+const detailFamily = signals.api({}).url("/notes/:noteId").detail({
+  load: ({ noteId }) => ({ id: noteId, title: "Note" }),
+});
+
+// @ts-expect-error plain detail families without declared fields must not overclaim field patch helpers
+detailFamily.patch.field({
+  field: "title",
+  value: "Updated",
+});
+// @ts-expect-error plain detail families without declared regions must not overclaim region patch helpers
+detailFamily.patch.region({
+  region: "graph",
+  value: { nodes: [] },
+});
 
 const plainTaskFamily = signals.api({}).url("/tasks").list({
   itemIdentity: (item: { id: string }) => item.id,

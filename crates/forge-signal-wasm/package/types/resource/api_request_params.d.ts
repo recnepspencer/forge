@@ -1,25 +1,36 @@
 import type { SignalValue } from "../model.js";
 import type {
+  ResourceDetailFieldMap,
+  ResourceDetailFieldValue,
+  ResourceDetailFields,
+} from "./resource_detail_fields.js";
+import type {
+  ResourceDetailRegionValue,
+  ResourceDetailRegions,
+} from "./resource_detail_regions.js";
+import type {
+  ResourceDetailJsonPathValue,
+  ResourceDetailJsonPaths,
+} from "./resource_detail_json_paths.js";
+import type {
   CollectionResourceFamily,
   DetailResourceFamily,
   PagedResourceFamily,
+  ResourceDetailPatchCapableLine,
   ResourcePatchCapableLine,
 } from "./resource_family_surfaces.js";
 import type { ResourceLine } from "./resource_lifecycle.js";
 import type {
+  ApiFamilyDeliveryHelpers,
+  ApiFamilyPatchHelpers,
+} from "./api_family_helper_types.js";
+import type {
   InvalidateResourceDelivery,
-  PatchResourceDelivery,
-  ReplaceResourceDelivery,
   ResourceCollectionShape,
+  ResourceDetailReconcile,
   ResourceSummaryPatchScope,
-  ResourceItemAspectValue,
-  ResourcePatchForReconcile,
-  ResourceReconcileAspectMap,
-  ResourceReconcileSummaryMap,
-  ResourceReconcileSummaryPatchScope,
   ResourceItemAspectMap,
   ResourceValueSummaryMap,
-  ResourceValueSummaryValue,
 } from "./resource_reconciliation.js";
 import type {
   RouteParamNames,
@@ -186,183 +197,26 @@ export type ApiInlineReconcile<
   TSummaryPatchScope
 >;
 
-type ApiFamilyPatchReplaceHelper<TValue> = {
-  replace(nextValue: TValue): ResourcePatchForReconcile<TValue, never, undefined>;
-};
-
-type ApiFamilyDeliveryBaseOptions = {
-  packetId: string;
-  basisId?: string | null;
-  nextBasisId?: string | null;
-};
-
-type ApiFamilyPatchItemHelper<TValue, TItem, TReconcile> = [TReconcile] extends [
-  ResourceCollectionShape<any, TItem, any, any>,
-]
-  ? {
-      item(options: {
-        itemId: string;
-        nextItem: TItem;
-      }): ResourcePatchForReconcile<TValue, TItem, TReconcile>;
-    }
-  : {};
-
-type ApiFamilyPatchAspectNames<TItem, TReconcile> =
-  keyof ResourceReconcileAspectMap<TReconcile> & string;
-
-type ApiFamilyPatchAspectHelper<TValue, TItem, TReconcile> = [ApiFamilyPatchAspectNames<
-  TItem,
-  TReconcile
->] extends [never]
-  ? {}
-  : {
-      itemAspect<TAspect extends ApiFamilyPatchAspectNames<TItem, TReconcile>>(
-        options: {
-          itemId: string;
-          aspect: TAspect;
-          value: ResourceItemAspectValue<
-            ResourceReconcileAspectMap<TReconcile>[TAspect]
-          >;
-        },
-      ): ResourcePatchForReconcile<TValue, TItem, TReconcile>;
-    };
-
-type ApiFamilyPatchSummaryNames<TValue, TReconcile, TFamilyKind> =
-  TFamilyKind extends "paged"
-    ? ResourceReconcileSummaryPatchScope<TReconcile> extends "pageWindow"
-      ? keyof ResourceReconcileSummaryMap<TReconcile> & string
-      : never
-    : keyof ResourceReconcileSummaryMap<TReconcile> & string;
-
-type ApiFamilyPatchSummaryHelper<
-  TValue,
-  TItem,
-  TReconcile,
-  TFamilyKind extends "collection" | "paged",
-> = [ApiFamilyPatchSummaryNames<TValue, TReconcile, TFamilyKind>] extends [never]
-  ? {}
-  : {
-      summary<
-        TSummary extends ApiFamilyPatchSummaryNames<TValue, TReconcile, TFamilyKind>,
-      >(options: {
-        summary: TSummary;
-        value: ResourceValueSummaryValue<
-          ResourceReconcileSummaryMap<TReconcile>[TSummary]
-        >;
-      }): ResourcePatchForReconcile<TValue, TItem, TReconcile, TFamilyKind>;
-    };
-
-export type ApiFamilyPatchHelpers<
-  TValue,
-  TItem,
-  TReconcile,
-  TFamilyKind extends "collection" | "paged",
-> =
-  & ApiFamilyPatchReplaceHelper<TValue>
-  & ApiFamilyPatchItemHelper<TValue, TItem, TReconcile>
-  & ApiFamilyPatchAspectHelper<TValue, TItem, TReconcile>
-  & ApiFamilyPatchSummaryHelper<TValue, TItem, TReconcile, TFamilyKind>;
-
-type ApiFamilyDeliveryReplaceHelper<
-  TValue,
-  TItem,
-  TReconcile,
-  TFamilyKind extends "collection" | "paged",
-> = {
-  replace(
-    options: ApiFamilyDeliveryBaseOptions & {
-      nextValue: TValue;
-    },
-  ): ReplaceResourceDelivery<TValue>;
-  patch(
-    options: ApiFamilyDeliveryBaseOptions & {
-      patch: ResourcePatchForReconcile<TValue, TItem, TReconcile, TFamilyKind>;
-    },
-  ): PatchResourceDelivery<TValue, TItem, TReconcile, TFamilyKind>;
-  invalidate(options: ApiFamilyDeliveryBaseOptions): InvalidateResourceDelivery;
-};
-
-type ApiFamilyDeliveryItemHelper<
-  TValue,
-  TItem,
-  TReconcile,
-  TFamilyKind extends "collection" | "paged",
-> = [TReconcile] extends [
-  ResourceCollectionShape<any, TItem, any, any>,
-]
-  ? {
-      item(
-        options: ApiFamilyDeliveryBaseOptions & {
-          itemId: string;
-          nextItem: TItem;
-        },
-      ): PatchResourceDelivery<TValue, TItem, TReconcile, TFamilyKind>;
-    }
-  : {};
-
-type ApiFamilyDeliveryAspectHelper<
-  TValue,
-  TItem,
-  TReconcile,
-  TFamilyKind extends "collection" | "paged",
-> = [ApiFamilyPatchAspectNames<TItem, TReconcile>] extends [never]
-  ? {}
-  : {
-      itemAspect<TAspect extends ApiFamilyPatchAspectNames<TItem, TReconcile>>(
-        options: ApiFamilyDeliveryBaseOptions & {
-          itemId: string;
-          aspect: TAspect;
-          value: ResourceItemAspectValue<
-            ResourceReconcileAspectMap<TReconcile>[TAspect]
-          >;
-        },
-      ): PatchResourceDelivery<TValue, TItem, TReconcile, TFamilyKind>;
-    };
-
-type ApiFamilyDeliverySummaryHelper<
-  TValue,
-  TItem,
-  TReconcile,
-  TFamilyKind extends "collection" | "paged",
-> = [ApiFamilyPatchSummaryNames<TValue, TReconcile, TFamilyKind>] extends [never]
-  ? {}
-  : {
-      summary<
-        TSummary extends ApiFamilyPatchSummaryNames<TValue, TReconcile, TFamilyKind>,
-      >(
-        options: ApiFamilyDeliveryBaseOptions & {
-          summary: TSummary;
-          value: ResourceValueSummaryValue<
-            ResourceReconcileSummaryMap<TReconcile>[TSummary]
-          >;
-        },
-      ): PatchResourceDelivery<TValue, TItem, TReconcile, TFamilyKind>;
-    };
-
-export type ApiFamilyDeliveryHelpers<
-  TValue,
-  TItem,
-  TReconcile,
-  TFamilyKind extends "collection" | "paged",
-> =
-  & ApiFamilyDeliveryReplaceHelper<TValue, TItem, TReconcile, TFamilyKind>
-  & ApiFamilyDeliveryItemHelper<TValue, TItem, TReconcile, TFamilyKind>
-  & ApiFamilyDeliveryAspectHelper<TValue, TItem, TReconcile, TFamilyKind>
-  & ApiFamilyDeliverySummaryHelper<TValue, TItem, TReconcile, TFamilyKind>;
-
 export interface ApiDetailResourceFamily<
   TRoute extends string,
   TRequestParams extends ApiRequestParamsShape | undefined,
   TValue,
   TBody = undefined,
+  TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined,
 > {
+  readonly patch: ApiFamilyPatchHelpers<TValue, never, TReconcile, "detail">;
+  readonly delivery: ApiFamilyDeliveryHelpers<TValue, never, TReconcile, "detail">;
   invalidate<TActualParams extends ApiRouteLineParams<TRoute, TRequestParams, TBody>>(
     params: ExactApiRouteLineParams<TRoute, TRequestParams, TBody, TActualParams>,
   ): boolean;
   invalidateAll(): number;
   line<TActualParams extends ApiRouteLineParams<TRoute, TRequestParams, TBody>>(
     params: ExactApiRouteLineParams<TRoute, TRequestParams, TBody, TActualParams>,
-  ): ResourceLine<ApiRouteLineParams<TRoute, TRequestParams, TBody>, TValue | null>;
+  ): ResourceDetailPatchCapableLine<
+    ApiRouteLineParams<TRoute, TRequestParams, TBody>,
+    TValue,
+    TReconcile
+  >;
 }
 
 export interface ApiCollectionResourceFamily<

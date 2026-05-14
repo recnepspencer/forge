@@ -23,6 +23,8 @@ import {
 } from "./resource_discriminated_tuple_response_contract.js";
 import {
   detail,
+  detailRegions,
+  detailJsonPaths,
 } from "./resource_detail_response_contract.js";
 import {
   jsonObjectAspects,
@@ -43,6 +45,8 @@ const resourceResponse = Object.freeze({
   collection,
   connection,
   detail,
+  detailRegions,
+  detailJsonPaths,
   discriminated,
   entityStore,
   summary,

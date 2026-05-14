@@ -7,6 +7,9 @@ pub struct ForkOutputs2<L, R> {
     right: R,
 }
 
+pub type ArtifactForkOutputs2<P, L, R, LS, RS, LA, RA> =
+    ForkOutputs2<Artifact<P, L, LS, LA>, Artifact<P, R, RS, RA>>;
+
 impl<L, R> ForkOutputs2<L, R> {
     pub fn new(left: L, right: R) -> Self {
         Self { left, right }
@@ -28,7 +31,7 @@ impl<L, R> ForkOutputs2<L, R> {
 pub fn fork_artifact_pair<P, T, S, A, L, R, LS, RS, LA, RA>(
     artifact: Artifact<P, T, S, A>,
     split: impl FnOnce(T, S, A) -> ForkOutputs2<(L, LS, LA), (R, RS, RA)>,
-) -> ForkOutputs2<Artifact<P, L, LS, LA>, Artifact<P, R, RS, RA>> {
+) -> ArtifactForkOutputs2<P, L, R, LS, RS, LA, RA> {
     let (payload, proofs, basis) = artifact.into_parts().into_parts();
     let outputs = split(payload, proofs, basis);
     let (left, right) = outputs.into_parts();
@@ -48,7 +51,7 @@ mod tests {
     use crate::artifact::Artifact;
     use crate::assumption::{AssumptionBasis, NoAssumptionBasis};
     use crate::phase::PhaseMarker;
-    use crate::proof::{mint_proof, NoProofs, ProofMarker};
+    use crate::proof::{mint_proof, AuthorityMarker, AuthorityProves, NoProofs, ProofMarker};
 
     use super::{fork_artifact_pair, ForkOutputs2};
 
@@ -60,6 +63,11 @@ mod tests {
 
     struct RightProof;
     impl ProofMarker for RightProof {}
+
+    struct ForkAuthority;
+    impl AuthorityMarker for ForkAuthority {}
+    impl AuthorityProves<LeftProof> for ForkAuthority {}
+    impl AuthorityProves<RightProof> for ForkAuthority {}
 
     #[test]
     fn fork_outputs_preserve_explicit_positions() {
@@ -80,10 +88,14 @@ mod tests {
 
         let outputs = fork_artifact_pair(artifact, |payload, _proofs, basis| {
             ForkOutputs2::new(
-                (payload.len(), mint_proof::<LeftProof>(), NoAssumptionBasis),
+                (
+                    payload.len(),
+                    mint_proof::<LeftProof, ForkAuthority>(),
+                    NoAssumptionBasis,
+                ),
                 (
                     basis.value().to_owned(),
-                    mint_proof::<RightProof>(),
+                    mint_proof::<RightProof, ForkAuthority>(),
                     NoAssumptionBasis,
                 ),
             )

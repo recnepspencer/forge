@@ -198,7 +198,7 @@ const taskTupleResponse = signals.resource.response.discriminated<TaskTupleEnvel
 
 void taskTupleResponse.lensProof.topology;
 
-const taskDetailResponse = signals.resource.response.detail<Task>();
+const taskDetailResponse = signals.resource.response.detail<Task>()();
 const taskDetail = signals.api({}).url("/tasks/:taskId")
   .response(taskDetailResponse)
   .detail({
@@ -216,15 +216,6 @@ const taskDetail = signals.api({}).url("/tasks/:taskId")
   });
 
 void taskDetail.line({ taskId: "t1" }).value();
-
-const taskSummaryResponse = signals.resource.response.summary<{ total: number }>();
-const taskSummary = signals.api({}).url("/task-summary")
-  .response(taskSummaryResponse)
-  .detail({
-    load: () => ({ total: 1 }),
-  });
-
-void taskSummary.line({}).value();
 
 type TaskEntityStore = {
   entities: Record<string, Task>;
@@ -387,6 +378,7 @@ const taskTreeResponse = signals.resource.response.tree<TaskTreeEnvelope>()({
   itemId: (item: TaskTreeNode) => item.id,
   roots: (value) => value.roots,
   children: (item) => item.children,
+  replaceChildren: (item, children) => ({ ...item, children }),
   replaceRoots: (value, roots) => ({ ...value, roots }),
   nodeForItem: (itemId) => ["root", itemId],
   replaceNode: (value, _path, _itemId, _nextItem) => value,

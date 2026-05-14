@@ -1,9 +1,11 @@
 mod bulk;
+mod causal_envelope;
 mod continuity;
 mod explanation;
 mod facade;
 mod failure_source;
 mod handle;
+mod handle_history;
 mod history;
 mod merge;
 mod policy;
@@ -18,6 +20,13 @@ mod structural;
 mod writeback;
 
 pub use bulk::BridgeBulkPlanExplanation;
+pub use causal_envelope::{
+    BridgeCausalEnvelopeAssemblyRequest, BridgeCausalEnvelopeCounters, BridgeCausalEnvelopeDenial,
+    BridgeCausalEnvelopeDenialKind, BridgeCausalEnvelopeIdentity, BridgeCausalEnvelopeReceipt,
+    BridgeCausalEvidenceBinding, BridgeCausalEvidenceBindingClass, BridgeCausalEvidenceFamily,
+    BridgeCausalEvidenceOwner, BridgeCausalEvidenceReference, BridgeCausalExplanationEnvelope,
+    BridgeCausalInspectionAdmissionSummary, BridgeCausalInspectionAdmissionSummaryKind,
+};
 pub use continuity::{
     BridgeCanonicalContinuityRecord, BridgeContinuityExplanation, BridgeContinuityReplaySummary,
     BridgeDeliveredContinuityResult, BRIDGE_CANONICAL_CONTINUITY_RECORD_SCHEMA_V1,

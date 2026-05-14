@@ -12,6 +12,8 @@ export {
   resourceAuth,
   resourceCollectionShape,
   resourceContinuation,
+  resourceDetailFields,
+  resourceDetailJsonPaths,
   resourceDelivery,
   resourceDownload,
   resourceItemAspects,
@@ -25,8 +27,9 @@ export {
   resourceUploadResult,
   resourceUploadTransport,
   resourceRequestContext,
+  resourceMutationResponses,
   viewportCapability,
   visibilityCapability,
   wrapSignals,
 } from "./product/signals.js";
-export { resourceEffects } from "./product/resource/facade.js";
+export { resourceEffects, resourceMutationResponses } from "./product/resource/facade.js";
