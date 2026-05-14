@@ -40,6 +40,10 @@ test("save response plans carry rollback posture and merge proof for exact detai
     const proof = plan.lifecycleProof.entries[0];
 
     assert.equal(proof.effectId, plan.executionArtifacts[0].effectId);
+    assert.equal(proof.replayExact.kind, "available");
+    assert.equal(proof.replayExact.mode, "SameRuntimeSignalExact");
+    assert.equal(proof.restoreExact.kind, "available");
+    assert.equal(proof.restoreExact.mode, "SameRuntimeBranchExact");
     assert.equal(proof.rollback.kind, "notApplicable");
     assert.equal(proof.rollback.mode, null);
     assert.equal(proof.rollback.branchId, null);
@@ -47,6 +51,8 @@ test("save response plans carry rollback posture and merge proof for exact detai
     assert.equal(proof.mergeRebase.granularity, "line");
     assert.equal(proof.mergeRebase.locusKind, "line");
     assert.match(plan.lifecycleProof.rollbackDigest, /notApplicable/);
+    assert.match(plan.lifecycleProof.replayExactDigest, /reconciliation:mutationTarget1:.*:available:SameRuntimeSignalExact/);
+    assert.match(plan.lifecycleProof.restoreExactDigest, /reconciliation:mutationTarget1:.*:available:SameRuntimeBranchExact/);
     assert.ok(plan.lifecycleProof.rollbackDigest.includes(proof.effectId));
     assert.match(plan.lifecycleProof.mergeRebaseDigest, /nativeMergePlan:line/);
     assert.ok(plan.lifecycleProof.mergeRebaseDigest.includes(proof.effectId));
@@ -153,6 +159,14 @@ test("save response plans name granular field and summary merge proof", async ()
     assert.equal(
       summaryPlan.lifecycleProof.entries[0].mergeRebase.granularity,
       "summary:total",
+    );
+    assert.equal(
+      summaryLine.summary().diagnostics.latest.mutationResponseReplayExactDigest,
+      summaryPlan.lifecycleProof.replayExactDigest,
+    );
+    assert.equal(
+      summaryLine.summary().diagnostics.latest.mutationResponseRestoreExactDigest,
+      summaryPlan.lifecycleProof.restoreExactDigest,
     );
     assert.equal(
       summaryLine.summary().diagnostics.latest.mutationResponseRollbackDigest,
@@ -339,6 +353,8 @@ test("save response plans name collection item merge proof", async () => {
     }).mutationResponse();
 
     assert.equal(plan.executionArtifacts[0].kind, "exactCollectionItem");
+    assert.equal(plan.lifecycleProof.entries[0].replayExact.kind, "available");
+    assert.equal(plan.lifecycleProof.entries[0].restoreExact.kind, "available");
     assert.equal(plan.lifecycleProof.entries[0].mergeRebase.granularity, "item:t1");
     assert.equal(plan.lifecycleProof.entries[0].mergeRebase.locusKind, "membership");
     assert.match(plan.lifecycleProof.mergeRebaseDigest, /nativeMergePlan:item:t1/);
@@ -373,6 +389,8 @@ test("fallback-only save response plans carry typed lifecycle unavailability", a
     }).mutationResponse();
 
     assert.equal(plan.lifecycleProof.entries[0].rollback.kind, "fallbackUnavailable");
+    assert.equal(plan.lifecycleProof.entries[0].replayExact.kind, "fallbackUnavailable");
+    assert.equal(plan.lifecycleProof.entries[0].restoreExact.kind, "fallbackUnavailable");
     assert.equal(plan.lifecycleProof.entries[0].mergeRebase.kind, "fallbackUnavailable");
     assert.equal(plan.lifecycleProof.entries[0].mergeRebase.granularity, "deliveryAwaited");
     assert.equal(plan.counters.lifecycleProofBreadth, 1);

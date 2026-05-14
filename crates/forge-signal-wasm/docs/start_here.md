@@ -38,6 +38,8 @@ console.log(line.value());
 
 - fetch or write ordinary resources:
   [Fetch And Write Resources](./resources/fetch-and-write.md)
+- response-owned write reconciliation, identity migration, and fallback proof:
+  [Mutation Response Reconciliation](./resources/mutation-response-reconciliation.md)
 - auth, policy, continuation, and request posture:
   [Request Posture And Policy](./resources/request-posture-and-policy.md)
 - collection patching, summaries, or delivery:
@@ -60,7 +62,8 @@ console.log(line.value());
   [History And Restore](./resource-contracts/history-and-restore.md),
   [Response Topology Proof](./resource-contracts/response-topology-proof.md),
   [JSON Path Effects](./resources/json-effects.md), and
-  [Effect Closeout Matrix](./resource-contracts/closeout-matrix.md)
+  [Effect Closeout Matrix](./resource-contracts/closeout-matrix.md),
+  [Mutation Response Closeout Matrix](./resource-contracts/mutation-response-closeout-matrix.md)
 - external push packets and basis refresh:
   [External Delivery And Compatibility](./resources/external-delivery-and-compatibility.md)
 - raw family declarations:

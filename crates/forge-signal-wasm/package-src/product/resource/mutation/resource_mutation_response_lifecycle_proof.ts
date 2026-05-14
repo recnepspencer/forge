@@ -1,3 +1,21 @@
+import {
+  createAppliedEffectHistoryProof,
+  createAwaitingExecutionHistoryProof,
+  createFallbackHistoryProof,
+  createIdentityMigrationUnavailableHistoryProof,
+  createReplayExactDigest,
+  createRestoreExactDigest,
+} from "./resource_mutation_response_lifecycle_history_proof.js";
+import {
+  createIdentityMigrationLifecycleDigest,
+  createMergeRebaseDigest,
+  createRollbackDigest,
+  createTargetEffectProofDigest,
+  readIdentityMigrationGranularity,
+  readMutationResponseMergeRebaseProof,
+  readMutationResponseRollbackProof,
+} from "./resource_mutation_response_lifecycle_proof_core.js";
+
 function createMutationResponseTargetEffectProof(effect, artifact) {
   if (effect === null) {
     return null;
@@ -30,15 +48,21 @@ function createMutationResponseLifecycleProof(
   );
   const rollbackDigest = createRollbackDigest(entries);
   const mergeRebaseDigest = createMergeRebaseDigest(entries);
+  const replayExactDigest = createReplayExactDigest(entries);
+  const restoreExactDigest = createRestoreExactDigest(entries);
   return Object.freeze({
     entries,
     count: entries.length,
     rollbackDigest,
     mergeRebaseDigest,
+    replayExactDigest,
+    restoreExactDigest,
     digest: [
       "mutation-response-lifecycle",
       rollbackDigest,
       mergeRebaseDigest,
+      replayExactDigest,
+      restoreExactDigest,
     ].join("|"),
   });
 }
@@ -50,6 +74,7 @@ function createMutationResponseLifecycleProofEntry(artifact) {
       targetId: artifact.targetId,
       effectId: null,
       authorityDigest: null,
+      ...createFallbackHistoryProof(artifact.detail),
       rollback: Object.freeze({
         kind: "fallbackUnavailable",
         mode: null,
@@ -77,6 +102,9 @@ function createMutationResponseLifecycleProofEntry(artifact) {
       targetId: artifact.targetId,
       effectId: null,
       authorityDigest: null,
+      ...createAwaitingExecutionHistoryProof(
+        "exact mutation response target has not executed yet",
+      ),
       rollback: Object.freeze({
         kind: "awaitingExecution",
         mode: null,
@@ -104,6 +132,7 @@ function createMutationResponseLifecycleProofEntry(artifact) {
     targetId: artifact.targetId,
     effectId: artifact.effectProof.effectId,
     authorityDigest: artifact.effectProof.authorityDigest,
+    ...createAppliedEffectHistoryProof(),
     rollback: artifact.effectProof.rollback,
     mergeRebase: artifact.effectProof.mergeRebase,
     digest: artifact.effectProof.digest,
@@ -128,6 +157,7 @@ function createIdentityMigrationLifecycleProofEntry(target, authorityDigest) {
       targetId: target.targetId,
       effectId: null,
       authorityDigest: null,
+      ...createFallbackHistoryProof(target.execution.detail),
       rollback: Object.freeze({
         kind: "fallbackUnavailable",
         mode: null,
@@ -157,6 +187,9 @@ function createIdentityMigrationLifecycleProofEntry(target, authorityDigest) {
         targetId: target.targetId,
         effectId: null,
         authorityDigest,
+        ...createAwaitingExecutionHistoryProof(
+          "exact detail-child identity migration target has not executed yet",
+        ),
         rollback: Object.freeze({
           kind: "awaitingExecution",
           mode: null,
@@ -183,6 +216,7 @@ function createIdentityMigrationLifecycleProofEntry(target, authorityDigest) {
       targetId: target.targetId,
       effectId: target.execution.effectProof.effectId,
       authorityDigest: target.execution.effectProof.authorityDigest,
+      ...createAppliedEffectHistoryProof(),
       rollback: target.execution.effectProof.rollback,
       mergeRebase: target.execution.effectProof.mergeRebase,
       digest: target.execution.effectProof.digest,
@@ -194,6 +228,9 @@ function createIdentityMigrationLifecycleProofEntry(target, authorityDigest) {
       targetId: target.targetId,
       effectId: null,
       authorityDigest,
+      ...createAwaitingExecutionHistoryProof(
+        "exact identity migration target has not executed yet",
+      ),
       rollback: Object.freeze({
         kind: "awaitingExecution",
         mode: null,
@@ -220,6 +257,9 @@ function createIdentityMigrationLifecycleProofEntry(target, authorityDigest) {
     targetId: target.targetId,
     effectId: null,
     authorityDigest,
+    ...createIdentityMigrationUnavailableHistoryProof(
+      "identity migration preserved lifecycle continuity through resident line rematerialization, so exact replay and exact branch restore stay unavailable on the migrated resident line",
+    ),
     rollback: Object.freeze({
       kind: "identityMigrationUnavailable",
       mode: null,
@@ -242,143 +282,6 @@ function createIdentityMigrationLifecycleProofEntry(target, authorityDigest) {
       "identityMigrationUnavailable",
     ),
   });
-}
-
-function readMutationResponseRollbackProof(effect) {
-  const rollback = effect.optimistic.rollback;
-  return Object.freeze({
-    kind: rollback.kind,
-    mode: "mode" in rollback ? rollback.mode : null,
-    branchId: "branchId" in rollback ? rollback.branchId : null,
-    snapshotId: "snapshotId" in rollback ? rollback.snapshotId : null,
-    inverseKind:
-      "inverse" in rollback && rollback.inverse !== null
-        ? rollback.inverse.kind
-        : null,
-    detail: rollback.detail,
-  });
-}
-
-function readMutationResponseMergeRebaseProof(effect) {
-  const profileRebase = effect.profile?.rebase ?? "unavailable";
-  return Object.freeze({
-    kind: profileRebase === "nativeMergePlan"
-      ? "nativeMergePlan"
-      : "unavailable",
-    granularity: readMergeRebaseGranularity(effect),
-    locusKind: effect.locus.kind,
-    locusProofDigest: effect.locusProof?.effectLocusDigest ?? null,
-    detail: profileRebase === "nativeMergePlan"
-      ? "mutation response target inherits native merge/rebase planning from the resource effect locus"
-      : "mutation response target has no native merge/rebase profile",
-  });
-}
-
-function readMergeRebaseGranularity(effect) {
-  switch (effect.locus.kind) {
-    case "detailField":
-      return `field:${effect.locus.field}`;
-    case "detailRegion":
-      return `region:${effect.locus.region}:${readRegionMergeGranularity(effect)}`;
-    case "detailJsonPath":
-      return `jsonPath:${effect.locus.path}`;
-    case "membership":
-    case "entityStore":
-    case "connection":
-    case "discriminatedTuple":
-    case "groupedCollection":
-    case "mapCollection":
-    case "namedCollection":
-    case "recursiveTree":
-    case "sparsePage":
-      return `item:${effect.locus.itemId}`;
-    case "summary":
-      return `summary:${effect.locus.summary}`;
-    default:
-      return effect.locus.kind;
-  }
-}
-
-function readRegionMergeGranularity(effect) {
-  const mergeGranularity = effect.patch.region?.mergeGranularity;
-  if (typeof mergeGranularity !== "string" || mergeGranularity.length === 0) {
-    throw new TypeError(
-      "mutation response lifecycle proof requires detail region mergeGranularity",
-    );
-  }
-  return mergeGranularity;
-}
-
-function readIdentityMigrationGranularity(target) {
-  if (target.execution.kind === "exactDetailChildRegion") {
-    return `detailChildRegion:${target.scope.region}`;
-  }
-  return [
-    "identityMigration",
-    target.execution.previousCanonicalKey,
-    target.execution.nextCanonicalKey,
-  ].join(":");
-}
-
-function createTargetEffectProofDigest(effect, artifact, rollback, mergeRebase) {
-  return [
-    artifact.targetId,
-    effect.effectId,
-    rollback.kind,
-    rollback.mode ?? "none",
-    mergeRebase.kind,
-    mergeRebase.granularity,
-    effect.authority.envelopeDigest,
-  ].join("|");
-}
-
-function createIdentityMigrationLifecycleDigest(
-  target,
-  authorityDigest,
-  rollbackKind,
-  mergeKind,
-) {
-  return [
-    "identityMigration",
-    target.targetId,
-    rollbackKind,
-    mergeKind,
-    readIdentityMigrationGranularity(target),
-    authorityDigest,
-  ].join("|");
-}
-
-function createRollbackDigest(entries) {
-  if (entries.length === 0) {
-    return "mutation-response-rollback|none";
-  }
-  return `mutation-response-rollback|${entries.map((entry) =>
-    [
-      entry.entryKind,
-      entry.targetId,
-      entry.effectId ?? "none",
-      entry.rollback.kind,
-      entry.rollback.mode ?? "none",
-      entry.rollback.branchId ?? "none",
-      entry.rollback.snapshotId ?? "none",
-      entry.rollback.inverseKind ?? "none",
-    ].join(":")).join(",")}`;
-}
-
-function createMergeRebaseDigest(entries) {
-  if (entries.length === 0) {
-    return "mutation-response-merge-rebase|none";
-  }
-  return `mutation-response-merge-rebase|${entries.map((entry) =>
-    [
-      entry.entryKind,
-      entry.targetId,
-      entry.effectId ?? "none",
-      entry.mergeRebase.kind,
-      entry.mergeRebase.granularity,
-      entry.mergeRebase.locusKind ?? "none",
-      entry.mergeRebase.locusProofDigest ?? "none",
-    ].join(":")).join(",")}`;
 }
 
 export {

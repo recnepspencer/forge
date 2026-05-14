@@ -12,6 +12,7 @@ import type {
 } from "./resource_lifecycle.js";
 import type { ResourceLineVisibleSelection } from "./resource_line_diagnostics.js";
 import type { ResourceMutationResponsePlan } from "./resource_mutation_response.js";
+import type { ResourceMutationResponseTargetOutcomeSummary } from "./resource_mutation_response.js";
 
 export type ResourceLineHistoryEvent =
   | "materialized"
@@ -123,6 +124,29 @@ export interface ResourceLineHistoryEntry {
   readonly visibleValueVersion: number;
   readonly mutationResponsePlan?: ResourceMutationResponsePlan;
   readonly mutationResponsePlanCount?: number;
+  readonly mutationResponseTargetCount?: number;
+  readonly mutationResponseExactTargetCount?: number;
+  readonly mutationResponseFallbackTargetCount?: number;
+  readonly mutationResponseTargetLookupBreadth?: number;
+  readonly mutationResponseTargetFanoutBreadth?: number;
+  readonly mutationResponsePayloadFieldExtractionBreadth?: number;
+  readonly mutationResponseTopologyTraversalBreadth?: number;
+  readonly mutationResponseReconstructionBreadth?: number;
+  readonly mutationResponseFallbackBreadth?: number;
+  readonly mutationResponseFallbackReasonDigest?: string;
+  readonly mutationResponseFallbackAffectedTargetDigest?: string;
+  readonly mutationResponseStaleTargetReasonDigest?: string;
+  readonly mutationResponseStaleTargetAffectedTargetDigest?: string;
+  readonly mutationResponseFreshnessPostureDigest?: string;
+  readonly mutationResponseDeliveryAwaitedDigest?: string;
+  readonly mutationResponseRefetchRequiredDigest?: string;
+  readonly mutationResponsePartialReconciliationDigest?: string;
+  readonly mutationResponseUnsupportedTargetDigest?: string;
+  readonly mutationResponseNoHiddenMutationDigest?: string;
+  readonly mutationResponseTargetOutcomeDigest?: string;
+  readonly mutationResponseTargetOutcomes?: readonly ResourceMutationResponseTargetOutcomeSummary[];
+  readonly mutationResponseReplayExactDigest?: string;
+  readonly mutationResponseRestoreExactDigest?: string;
   readonly identityMigration?: ResourceLineIdentityMigrationHistoryDigest;
 }
 

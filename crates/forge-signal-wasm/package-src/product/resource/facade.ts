@@ -15,6 +15,7 @@ import { resourceProcessingJob } from "./processing/resource_processing_job.js";
 import { resourceProcessingResult } from "./processing/processing_result.js";
 import { resourceResponse } from "./response/resource_response_contract.js";
 import { resourceEffects } from "./effects/resource_effect_profile.js";
+import { resourceMutationResponses } from "./mutation/resource_mutation_response_closeout_matrix.js";
 import { resourceCollectionShape } from "./reconciliation/resource_collection_shape.js";
 import { resourceDetailFields } from "./reconciliation/resource_detail_fields.js";
 import { resourceDetailRegions } from "./reconciliation/resource_detail_regions.js";
@@ -66,6 +67,7 @@ function createResourceNamespace(signalNamespace, rawSignals) {
       );
     },
     effects: resourceEffects,
+    mutationResponses: resourceMutationResponses,
     detailFields: resourceDetailFields,
     detailRegions: resourceDetailRegions,
     detailJsonPaths: resourceDetailJsonPaths,
@@ -84,6 +86,7 @@ export {
   resourceDetailJsonPaths,
   resourceContinuation,
   resourceEffects,
+  resourceMutationResponses,
   resourceDelivery,
   resourceDownload,
   resourceItemAspects,

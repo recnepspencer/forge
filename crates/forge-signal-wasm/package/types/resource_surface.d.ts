@@ -44,6 +44,7 @@ export {
   resourceDetailJsonPaths,
   resourceEffects,
   resourceDownload,
+  resourceMutationResponses,
   resourceParamIdentity,
   resourceParams,
   resourcePolicyProfiles,
@@ -70,4 +71,14 @@ export {
   type ResourceEffectRebase,
   type ResourceEffects,
 } from "./resource/resource_effect_profiles.js";
+export {
+  type ResourceMutationResponseCloseoutCategory,
+  type ResourceMutationResponseDeferredErgonomic,
+  type ResourceMutationResponseCloseoutEvidence,
+  type ResourceMutationResponseCloseoutLane,
+  type ResourceMutationResponseCloseoutMatrix,
+  type ResourceMutationResponseCloseoutMatrixRow,
+  type ResourceMutationResponseCloseoutProofLane,
+  type ResourceMutationResponses,
+} from "./resource/resource_mutation_response_closeout_matrix.js";
 export * from "./resource/resource_branch.js";

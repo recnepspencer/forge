@@ -1,6 +1,10 @@
 import { requireMutationResponseLensProof } from "./resource_mutation_response_lens_proof.js";
 import { createMutationResponsePayloadDigest } from "./resource_mutation_response_payload_digest.js";
 import {
+  createMutationResponseDeclaredFieldDigest,
+  createMutationResponseUnknownFieldPosture,
+} from "./resource_mutation_response_response_mapping.js";
+import {
   createMutationResponseTargetExecution,
 } from "./resource_mutation_response_target_execution.js";
 import { createMutationResponseDiagnosticFacts } from "./resource_mutation_response_diagnostic_facts.js";
@@ -28,6 +32,11 @@ import {
   createPublicMutationResponseTarget,
   readMutationResponsePartialAdmission,
 } from "./plan/resource_mutation_response_target_planning.js";
+import {
+  readPayloadFieldExtractionBreadth,
+  readReconstructionBreadth,
+  readTopologyTraversalBreadth,
+} from "./plan/resource_mutation_response_cost_counters.js";
 
 const RESOURCE_MUTATION_RESPONSE_DECLARATION = Symbol(
   "forgeSignal.resourceMutationResponseDeclaration",
@@ -60,6 +69,7 @@ function createMutationResponseDeclaration(options) {
     targets,
     diagnostics,
     identityMigration: options.identityMigration ?? null,
+    responseMappedFieldNames: options.responseMappedFieldNames ?? null,
     reconciliationAtomicity: options.reconciliationAtomicity ?? "allOrNone",
     targetCount: targets.length,
     diagnosticCount: diagnostics.length,
@@ -189,6 +199,13 @@ function createPreparedMutationResponsePlan(options) {
       readResponseLensSource: readDeclaration.lensProof.readResponseLensSource,
       readResponseLensDigest: readDeclaration.lensProof.readResponseLensDigest,
       mutationResponseLensDigest: readDeclaration.lensProof.compiledDigest,
+      declaredFieldDigest: createMutationResponseDeclaredFieldDigest(
+        readDeclaration.responseMappedFieldNames,
+      ),
+      unknownFieldPosture: createMutationResponseUnknownFieldPosture(
+        readDeclaration.responseMappedFieldNames,
+        options.responseValue,
+      ),
       payloadDigest: responsePayloadDigest,
     }),
     confirmation,
@@ -209,8 +226,13 @@ function createPreparedMutationResponsePlan(options) {
     counters: Object.freeze({
       planningBreadth: 1,
       responseExtractionBreadth: 1,
+      payloadFieldExtractionBreadth: readPayloadFieldExtractionBreadth(
+        readDeclaration.responseMappedFieldNames,
+      ),
       targetLookupBreadth: plannedTargets.length,
       targetFanoutBreadth: plannedTargets.length,
+      topologyTraversalBreadth: readTopologyTraversalBreadth(admittedTargets),
+      reconstructionBreadth: readReconstructionBreadth(admittedTargets),
       fallbackBreadth: readFallbackTargetBreadth(executionArtifacts),
       executionBreadth: executionArtifacts.length,
       diagnosticExtractionBreadth: diagnosticFacts.count,

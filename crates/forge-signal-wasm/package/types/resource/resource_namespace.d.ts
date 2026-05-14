@@ -53,6 +53,7 @@ import type {
 import type { ResourceResponseFactory } from "./resource_response.js";
 import type { ResourceBranchNamespace } from "./resource_branch.js";
 import type { ResourceEffects } from "./resource_effect_profiles.js";
+import type { ResourceMutationResponses } from "./resource_mutation_response_closeout_matrix.js";
 
 export interface ResourceCompatibilityNamespace {
   readonly delivery: ResourceExternalDeliveryFactory;
@@ -106,6 +107,7 @@ export interface ResourceNamespace {
   readonly detailRegions: typeof resourceDetailRegions;
   readonly detailJsonPaths: typeof resourceDetailJsonPaths;
   readonly effects: ResourceEffects;
+  readonly mutationResponses: ResourceMutationResponses;
   readonly response: ResourceResponseFactory;
   detail<TParams, TValue, TReconcile extends ResourceDetailReconcile<TValue> | undefined = undefined>(
     declaration: ProcessingUploadDetailResourceDeclaration<TParams, TValue, TReconcile>,
@@ -284,6 +286,7 @@ export const resourceDetailRegions: typeof import("./resource_reconciliation.js"
 export const resourceDetailJsonPaths: typeof import("./resource_reconciliation.js").resourceDetailJsonPaths;
 export const resourceDelivery: ResourceDeliveryFactory;
 export const resourceEffects: ResourceEffects;
+export const resourceMutationResponses: ResourceMutationResponses;
 export const resourcePatch: ResourcePatchFactory;
 export const resourcePolicyProfiles: ResourcePolicyProfiles;
 export const resourceProcessingJob: ResourceProcessingJob;

@@ -24,6 +24,10 @@ home.
   [Collections And Delivery](../resources/collections-and-delivery.md)
 - reconcile collections:
   [Collections And Delivery](../resources/collections-and-delivery.md)
+- mutation response reconciliation, identity migration, and fallback posture:
+  [Mutation Response Reconciliation](../resources/mutation-response-reconciliation.md)
+- mutation response support categories and closeout honesty:
+  [Mutation Response Closeout Matrix](../resource-contracts/mutation-response-closeout-matrix.md)
 
 ## Patch / Delivery Features
 
@@ -77,6 +81,8 @@ home.
   [JSON Path Effects](../resources/json-effects.md)
 - effect profile closeout matrices:
   [Effect Closeout Matrix](../resource-contracts/closeout-matrix.md)
+- mutation-response closeout matrix:
+  [Mutation Response Closeout Matrix](../resource-contracts/mutation-response-closeout-matrix.md)
 
 ## External / Compatibility Features
 

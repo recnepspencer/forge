@@ -3,6 +3,56 @@ import test from "node:test";
 
 import { createRealRequestRuntime } from "../../../runtime_fixture/real_request_runtime.mjs";
 
+test("remove responses can replace resident detail truth with the canonical deleted item payload", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const taskDetail = runtime.signals.api({}).url("/tasks/:taskId")
+      .response(runtime.signals.resource.response.detail()())
+      .detail({
+        load: ({ taskId }) => ({ id: taskId, title: "First", status: "active" }),
+      });
+    const detailLine = taskDetail.line({ taskId: "t1" });
+
+    const plan = runtime.signals.api({}).url("/tasks/:taskId")
+      .response(runtime.signals.resource.response.detail()())
+      .remove({
+        reconciles: [{
+          family: taskDetail,
+          params: ({ taskId }) => ({ taskId }),
+          fallback: "refetchRequired",
+          detail: { kind: "replace" },
+        }],
+        load: ({ taskId }) => ({
+          id: taskId,
+          title: "First",
+          status: "deleted",
+          deletedAt: "2026-05-13T00:00:00Z",
+        }),
+      })
+      .line({ taskId: "t1" })
+      .mutationResponse();
+
+    assert.deepEqual(detailLine.value(), {
+      id: "t1",
+      title: "First",
+      status: "deleted",
+      deletedAt: "2026-05-13T00:00:00Z",
+    });
+    assert.equal(plan.targets[0].reconciliation.kind, "replace");
+    assert.equal(plan.targets[0].reconciliation.targetDigest, "detail:replace");
+    assert.equal(plan.executionArtifacts[0].kind, "exactDetail");
+    assert.equal(plan.executionArtifacts[0].scope, "line");
+    assert.equal(plan.executionArtifacts[0].deliveryKind, "replace");
+    assert.equal(plan.executionArtifacts[0].deliveryScope, "line");
+    assert.equal(detailLine.diagnostics().lastDeliveryKind, "replace");
+    assert.equal(detailLine.diagnostics().lastDeliveryScope, "line");
+    assert.equal(plan.confirmation.kind, "consumedCanonicalTruth");
+    assert.equal(plan.confirmation.exactTargetCount, 1);
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
 test("remove responses can invalidate resident detail truth while patching summaries from metadata-only responses", async () => {
   const runtime = await createRealRequestRuntime();
   try {
@@ -98,6 +148,45 @@ test("remove responses preserve typed fallback when a detail invalidation target
     assert.equal(plan.executionArtifacts[0].kind, "fallback");
     assert.equal(plan.executionArtifacts[0].fallback, "refetchRequired");
     assert.equal(plan.confirmation.kind, "refetchRequired");
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("remove responses preserve typed deliveryAwaited fallback when exact detail reconciliation cannot apply yet", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const taskDetail = runtime.signals.api({}).url("/tasks/:taskId")
+      .response(runtime.signals.resource.response.detail()())
+      .detail({
+        load: ({ taskId }) => ({ id: taskId, title: "First", status: "active" }),
+      });
+
+    const removeLine = runtime.signals.api({}).url("/tasks/:taskId")
+      .response(runtime.signals.resource.response.detail()())
+      .remove({
+        reconciles: [{
+          family: taskDetail,
+          params: ({ taskId }) => ({ taskId }),
+          fallback: "deliveryAwaited",
+          detail: { kind: "replace" },
+        }],
+        load: ({ taskId }) => ({ id: taskId, status: "deleted" }),
+      })
+      .line({ taskId: "t9" });
+    const plan = removeLine.mutationResponse();
+
+    assert.equal(plan.executionArtifacts[0].kind, "fallback");
+    assert.equal(plan.executionArtifacts[0].fallback, "deliveryAwaited");
+    assert.equal(plan.confirmation.kind, "deliveryAwaited");
+    assert.match(
+      removeLine.summary().diagnostics.latest.mutationResponseFallbackReasonDigest,
+      /deliveryAwaited:1/,
+    );
+    assert.match(
+      removeLine.summary().diagnostics.latest.mutationResponseDeliveryAwaitedDigest,
+      /deliveryAwaited/,
+    );
   } finally {
     await runtime.cleanup();
   }

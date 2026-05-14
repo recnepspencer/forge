@@ -69,6 +69,12 @@ test("detail response contracts own the detail finalizer lane", async () => {
         readResponseLensDigest: response.lensProof.compiledLensDigest,
         mutationResponseLensDigest:
           saveLine.mutationResponse().response.mutationResponseLensDigest,
+        declaredFieldDigest: "mutation-response-declared-fields|not-applicable",
+        unknownFieldPosture: {
+          kind: "notApplicable",
+          fields: [],
+          digest: "mutation-response-unknown-fields|not-applicable",
+        },
         payloadDigest: 'mutation-response-payload|{"id":"u1","name":"Updated"}',
       },
       confirmation: {
@@ -85,10 +91,12 @@ test("detail response contracts own the detail finalizer lane", async () => {
       lifecycleProof: {
         entries: [],
         count: 0,
+        replayExactDigest: "mutation-response-replay-exact|none",
+        restoreExactDigest: "mutation-response-restore-exact|none",
         rollbackDigest: "mutation-response-rollback|none",
         mergeRebaseDigest: "mutation-response-merge-rebase|none",
         digest:
-          "mutation-response-lifecycle|mutation-response-rollback|none|mutation-response-merge-rebase|none",
+          "mutation-response-lifecycle|mutation-response-rollback|none|mutation-response-merge-rebase|none|mutation-response-replay-exact|none|mutation-response-restore-exact|none",
       },
       diagnostics: {
         entries: [],
@@ -108,8 +116,11 @@ test("detail response contracts own the detail finalizer lane", async () => {
       counters: {
         planningBreadth: 1,
         responseExtractionBreadth: 1,
+        payloadFieldExtractionBreadth: 0,
         targetLookupBreadth: 0,
         targetFanoutBreadth: 0,
+        topologyTraversalBreadth: 0,
+        reconstructionBreadth: 0,
         fallbackBreadth: 0,
         executionBreadth: 0,
         diagnosticExtractionBreadth: 0,

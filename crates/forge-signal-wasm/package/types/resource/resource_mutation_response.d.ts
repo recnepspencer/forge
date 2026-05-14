@@ -107,14 +107,23 @@ export interface ResourceMutationResponsePayloadDigest {
   readonly readResponseLensSource: string;
   readonly readResponseLensDigest: string;
   readonly mutationResponseLensDigest: string;
+  readonly declaredFieldDigest: string;
+  readonly unknownFieldPosture: {
+    readonly kind: "notApplicable" | "none" | "present";
+    readonly fields: readonly string[];
+    readonly digest: string;
+  };
   readonly payloadDigest: string;
 }
 
 export interface ResourceMutationResponseCounters {
   readonly planningBreadth: number;
   readonly responseExtractionBreadth: number;
+  readonly payloadFieldExtractionBreadth: number;
   readonly targetLookupBreadth: number;
   readonly targetFanoutBreadth: number;
+  readonly topologyTraversalBreadth: number;
+  readonly reconstructionBreadth: number;
   readonly fallbackBreadth: number;
   readonly executionBreadth: number;
   readonly diagnosticExtractionBreadth: number;
@@ -191,6 +200,31 @@ export interface ResourceMutationResponseTargetDigest {
   readonly submittedTarget: ResourceMutationResponseSubmittedTargetBasis | null;
   readonly execution:
     | ResourceMutationResponseExecutionArtifact;
+  readonly targetDigest: string;
+}
+
+export interface ResourceMutationResponseTargetOutcomeSummary {
+  readonly targetId: string;
+  readonly familyKind: "detail" | "collection" | "paged";
+  readonly familyId: string;
+  readonly canonicalKey: string;
+  readonly residency: "declared" | "resident";
+  readonly outcomeKind: "exact" | "fallback";
+  readonly executionKind: ResourceMutationResponseExecutionArtifact["kind"];
+  readonly scope:
+    | "line"
+    | "field"
+    | "region"
+    | "jsonPath"
+    | "item"
+    | "summary"
+    | "invalidate"
+    | null;
+  readonly fallbackKind: ResourceMutationResponseFallbackKind | null;
+  readonly partialKind: "missingResponseField" | null;
+  readonly partialField: string | null;
+  readonly staleReason: ResourceMutationResponseTargetStaleness["reason"] | null;
+  readonly locus: string | null;
   readonly targetDigest: string;
 }
 

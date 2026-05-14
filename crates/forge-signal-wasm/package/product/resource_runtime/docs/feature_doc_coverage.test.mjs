@@ -2,13 +2,14 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
-const docsDir = path.resolve(
-  "crates/forge-signal-wasm/docs",
+const crateRootDir = path.resolve(
+  path.dirname(fileURLToPath(import.meta.url)),
+  "../../../..",
 );
-const docTestsDir = path.resolve(
-  "crates/forge-signal-wasm/package/product/resource_runtime/docs",
-);
+const docsDir = path.join(crateRootDir, "docs");
+const docTestsDir = path.join(crateRootDir, "package/product/resource_runtime/docs");
 const inventoryPath = path.join(docsDir, "metadata/resource-feature-doc-inventory.json");
 
 function readFile(name) {

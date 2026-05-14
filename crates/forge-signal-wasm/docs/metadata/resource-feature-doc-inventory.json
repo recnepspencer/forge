@@ -43,6 +43,16 @@
       "test": "features/collections_and_delivery_happy_path.test.mjs"
     },
     {
+      "id": "mutation_response_reconciliation",
+      "doc": "resources/mutation-response-reconciliation.md",
+      "test": "features/mutation_response_reconciliation_happy_path.test.mjs"
+    },
+    {
+      "id": "mutation_response_closeout_matrix",
+      "doc": "resource-contracts/mutation-response-closeout-matrix.md",
+      "test": "features/mutation_response_closeout_matrix_happy_path.test.mjs"
+    },
+    {
       "id": "transfers",
       "doc": "resources/transfers.md",
       "test": "features/transfers_happy_path.test.mjs"

@@ -214,6 +214,60 @@ test("remove detail invalidation remains exact-restorable and keeps lifecycle pr
   }
 });
 
+test("remove detail replacement keeps exact restore and line-level merge proof aligned with the canonical deleted payload", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    createBranchHead(runtime.signals, "remove-lifecycle-detail-replace");
+    const taskDetail = runtime.signals.api({
+      effects: runtime.signals.resource.effects.branchNative(),
+    }).url("/tasks/:taskId")
+      .response(runtime.signals.resource.response.detail()())
+      .detail({
+        load: ({ taskId }) => ({ id: taskId, title: "First", status: "active" }),
+      });
+    const detailLine = taskDetail.line({ taskId: "t1" });
+    const plan = runtime.signals.api({
+      effects: runtime.signals.resource.effects.branchNative(),
+    }).url("/tasks/:taskId")
+      .response(runtime.signals.resource.response.detail()())
+      .remove({
+        reconciles: [{
+          family: taskDetail,
+          params: ({ taskId }) => ({ taskId }),
+          fallback: "refetchRequired",
+          detail: { kind: "replace" },
+        }],
+        load: ({ taskId }) => ({
+          id: taskId,
+          title: "First",
+          status: "deleted",
+          deletedAt: "2026-05-13T00:00:00Z",
+        }),
+      })
+      .line({ taskId: "t1" })
+      .mutationResponse();
+
+    const restoreAvailability = detailLine.history().availability.restoreExact;
+    const restoreResult = detailLine.history().restoreExact();
+    const verification = detailLine.history().verificationPackage();
+
+    assert.equal(plan.executionArtifacts[0].kind, "exactDetail");
+    assert.equal(plan.lifecycleProof.count, 1);
+    assert.equal(plan.lifecycleProof.entries[0].rollback.kind, "notApplicable");
+    assert.equal(plan.lifecycleProof.entries[0].mergeRebase.kind, "nativeMergePlan");
+    assert.equal(plan.lifecycleProof.entries[0].mergeRebase.granularity, "detailResponse");
+    assert.equal(plan.lifecycleProof.entries[0].mergeRebase.locusKind, "detailResponse");
+    assert.equal(restoreAvailability.kind, "available");
+    assert.equal(restoreAvailability.mode, "SameRuntimeBranchExact");
+    assert.equal(restoreResult.kind, "restored");
+    assert.deepEqual(detailLine.value(), { id: "t1", title: "First", status: "active" });
+    assert.equal(detailLine.history().lifecycle.at(-1)?.event, "restored");
+    assert.equal(verification.typedDenials.restoreExact, null);
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
 test("fallback-only remove response plans keep typed lifecycle unavailability", async () => {
   const runtime = await createRealRequestRuntime();
   try {

@@ -30,6 +30,9 @@ rules underneath resource behavior, `api-reference/` for exact surfaces, and
 - [Collections And Delivery](./resources/collections-and-delivery.md)
   `items(...)`, `reconcile(...)`, aspects, summaries, patch helpers, and
   delivery helpers.
+- [Mutation Response Reconciliation](./resources/mutation-response-reconciliation.md)
+  response-owned create/update/remove reconciliation, identity migration,
+  partial mapping, fallback posture, and compact mutation-response evidence.
 - [Transfers](./resources/transfers.md)
   Signed upload, multipart upload, finalize-required flows, and deferred
   processing.
@@ -68,6 +71,9 @@ rules underneath resource behavior, `api-reference/` for exact surfaces, and
 - [Effect Closeout Matrix](./resource-contracts/closeout-matrix.md)
   `resource.effects.closeoutMatrix(profile)` and the proof lanes behind profile
   capability claims.
+- [Mutation Response Closeout Matrix](./resource-contracts/mutation-response-closeout-matrix.md)
+  The product support matrix for exact mutation-response ergonomics, precise
+  denials, typed unavailable fallback lanes, and intentional out-of-scope work.
 - [Reconciliation Contract](./resource-contracts/reconciliation.md)
 - [Delivery And Compatibility Contract](./resource-contracts/delivery-and-compatibility.md)
 - [Inspection And History Contract](./resource-contracts/inspection-and-history.md)

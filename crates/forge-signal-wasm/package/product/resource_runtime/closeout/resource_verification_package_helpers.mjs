@@ -66,7 +66,18 @@ function normalizeVerificationPackageForConvergence(pkg) {
           basisAdvanceToId: pkg.diagnostics.summary.latest.basisAdvanceToId,
           deliveryKind: pkg.diagnostics.summary.latest.deliveryKind,
           deliveryScope: pkg.diagnostics.summary.latest.deliveryScope,
+          mutationResponseReplayExactDigest:
+            pkg.diagnostics.summary.latest.mutationResponseReplayExactDigest,
+          mutationResponseRestoreExactDigest:
+            pkg.diagnostics.summary.latest.mutationResponseRestoreExactDigest,
+          mutationResponseStaleTargetReasonDigest:
+            pkg.diagnostics.summary.latest.mutationResponseStaleTargetReasonDigest,
+          mutationResponseStaleTargetAffectedTargetDigest:
+            pkg.diagnostics.summary.latest.mutationResponseStaleTargetAffectedTargetDigest,
           ...readOptionalIdentityMigrationSummaryLatest(
+            pkg.diagnostics.summary.latest,
+          ),
+          ...readOptionalMutationResponseTargetOutcomeSummaryLatest(
             pkg.diagnostics.summary.latest,
           ),
           ...readOptionalMutationResponseIdentityMigrationSummaryLatest(
@@ -164,6 +175,17 @@ function projectAuthoringConvergenceDigest(pkg) {
           basisCurrentId: pkg.diagnostics.summary.latest.basisCurrentId,
           basisAdvanceFromId: pkg.diagnostics.summary.latest.basisAdvanceFromId,
           basisAdvanceToId: pkg.diagnostics.summary.latest.basisAdvanceToId,
+          mutationResponseReplayExactDigest:
+            pkg.diagnostics.summary.latest.mutationResponseReplayExactDigest,
+          mutationResponseRestoreExactDigest:
+            pkg.diagnostics.summary.latest.mutationResponseRestoreExactDigest,
+          mutationResponseStaleTargetReasonDigest:
+            pkg.diagnostics.summary.latest.mutationResponseStaleTargetReasonDigest,
+          mutationResponseStaleTargetAffectedTargetDigest:
+            pkg.diagnostics.summary.latest.mutationResponseStaleTargetAffectedTargetDigest,
+          ...readOptionalMutationResponseTargetOutcomeSummaryLatest(
+            pkg.diagnostics.summary.latest,
+          ),
           ...readOptionalIdentityMigrationSummaryLatest(
             pkg.diagnostics.summary.latest,
           ),
@@ -293,6 +315,54 @@ function readOptionalMutationResponseIdentityMigrationSummaryLatest(latest) {
       latest.mutationResponseIdentityMigrationExecutionDigest,
     mutationResponseIdentityMigrationFallbackDigest:
       latest.mutationResponseIdentityMigrationFallbackDigest,
+  };
+}
+
+function readOptionalMutationResponseTargetOutcomeSummaryLatest(latest) {
+  if (!("mutationResponseTargetOutcomeDigest" in latest)) {
+    return {};
+  }
+  return {
+    mutationResponseTargetCount: latest.mutationResponseTargetCount,
+    mutationResponseExactTargetCount: latest.mutationResponseExactTargetCount,
+    mutationResponseFallbackTargetCount:
+      latest.mutationResponseFallbackTargetCount,
+    mutationResponseTargetLookupBreadth:
+      latest.mutationResponseTargetLookupBreadth,
+    mutationResponseTargetFanoutBreadth:
+      latest.mutationResponseTargetFanoutBreadth,
+    mutationResponsePayloadFieldExtractionBreadth:
+      latest.mutationResponsePayloadFieldExtractionBreadth,
+    mutationResponseTopologyTraversalBreadth:
+      latest.mutationResponseTopologyTraversalBreadth,
+    mutationResponseReconstructionBreadth:
+      latest.mutationResponseReconstructionBreadth,
+    mutationResponseFallbackBreadth: latest.mutationResponseFallbackBreadth,
+    mutationResponseFallbackReasonDigest:
+      latest.mutationResponseFallbackReasonDigest,
+    mutationResponseFallbackAffectedTargetDigest:
+      latest.mutationResponseFallbackAffectedTargetDigest,
+    mutationResponseStaleTargetReasonDigest:
+      latest.mutationResponseStaleTargetReasonDigest,
+    mutationResponseStaleTargetAffectedTargetDigest:
+      latest.mutationResponseStaleTargetAffectedTargetDigest,
+    mutationResponseFreshnessPostureDigest:
+      latest.mutationResponseFreshnessPostureDigest,
+    mutationResponseDeliveryAwaitedDigest:
+      latest.mutationResponseDeliveryAwaitedDigest,
+    mutationResponseRefetchRequiredDigest:
+      latest.mutationResponseRefetchRequiredDigest,
+    mutationResponsePartialReconciliationDigest:
+      latest.mutationResponsePartialReconciliationDigest,
+    mutationResponseUnsupportedTargetDigest:
+      latest.mutationResponseUnsupportedTargetDigest,
+    mutationResponseNoHiddenMutationDigest:
+      latest.mutationResponseNoHiddenMutationDigest,
+    mutationResponseTargetOutcomeDigest:
+      latest.mutationResponseTargetOutcomeDigest,
+    mutationResponseTargetOutcomes: normalizeForProof(
+      latest.mutationResponseTargetOutcomes,
+    ),
   };
 }
 

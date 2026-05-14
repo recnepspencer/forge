@@ -11,6 +11,12 @@ here.
   [Fetch And Write Resources](../resources/fetch-and-write.md)
 - create, update, or remove:
   [Fetch And Write Resources](../resources/fetch-and-write.md)
+- canonical write-result reconciliation, partial mapping, or identity
+  migration:
+  [Mutation Response Reconciliation](../resources/mutation-response-reconciliation.md)
+- mutation-response support matrix and "is this a happy path or just an honest
+  denial?" questions:
+  [Mutation Response Closeout Matrix](../resource-contracts/mutation-response-closeout-matrix.md)
 - auth, retry policy, request context, or continuation:
   [Request Posture And Policy](../resources/request-posture-and-policy.md)
 - list or paged collections:
@@ -38,6 +44,8 @@ here.
   [Response Topology Proof](../resource-contracts/response-topology-proof.md)
 - closeout matrix reads:
   [Effect Closeout Matrix](../resource-contracts/closeout-matrix.md)
+- mutation-response closeout matrix:
+  [Mutation Response Closeout Matrix](../resource-contracts/mutation-response-closeout-matrix.md)
 - external push packets or basis refresh:
   [External Delivery And Compatibility](../resources/external-delivery-and-compatibility.md)
 - raw family declarations:

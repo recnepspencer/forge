@@ -79,10 +79,54 @@ function readLineDiagnosticsSummary(materialization) {
         : {
             mutationResponsePlanId: mutationResponseSummaryDigest.planId,
             mutationResponseTargetCount: mutationResponseSummaryDigest.targetCount,
+            mutationResponseExactTargetCount:
+              mutationResponseSummaryDigest.exactTargetCount,
+            mutationResponseFallbackTargetCount:
+              mutationResponseSummaryDigest.fallbackTargetCount,
+            mutationResponseTargetLookupBreadth:
+              mutationResponseSummaryDigest.targetLookupBreadth,
+            mutationResponseTargetFanoutBreadth:
+              mutationResponseSummaryDigest.targetFanoutBreadth,
+            mutationResponsePayloadFieldExtractionBreadth:
+              mutationResponseSummaryDigest.payloadFieldExtractionBreadth,
+            mutationResponseTopologyTraversalBreadth:
+              mutationResponseSummaryDigest.topologyTraversalBreadth,
+            mutationResponseReconstructionBreadth:
+              mutationResponseSummaryDigest.reconstructionBreadth,
+            mutationResponseFallbackBreadth:
+              mutationResponseSummaryDigest.fallbackBreadth,
+            mutationResponseFallbackReasonDigest:
+              mutationResponseSummaryDigest.fallbackReasonDigest,
+            mutationResponseFallbackAffectedTargetDigest:
+              mutationResponseSummaryDigest.fallbackAffectedTargetDigest,
+            mutationResponseStaleTargetReasonDigest:
+              mutationResponseSummaryDigest.staleTargetReasonDigest,
+            mutationResponseStaleTargetAffectedTargetDigest:
+              mutationResponseSummaryDigest.staleTargetAffectedTargetDigest,
+            mutationResponseFreshnessPostureDigest:
+              mutationResponseSummaryDigest.freshnessPostureDigest,
+            mutationResponseDeliveryAwaitedDigest:
+              mutationResponseSummaryDigest.deliveryAwaitedDigest,
+            mutationResponseRefetchRequiredDigest:
+              mutationResponseSummaryDigest.refetchRequiredDigest,
+            mutationResponsePartialReconciliationDigest:
+              mutationResponseSummaryDigest.partialReconciliationDigest,
+            mutationResponseUnsupportedTargetDigest:
+              mutationResponseSummaryDigest.unsupportedTargetDigest,
+            mutationResponseNoHiddenMutationDigest:
+              mutationResponseSummaryDigest.noHiddenMutationDigest,
+            mutationResponseTargetOutcomeDigest:
+              mutationResponseSummaryDigest.targetOutcomeDigest,
+            mutationResponseTargetOutcomes:
+              mutationResponseSummaryDigest.targetOutcomes,
             mutationResponseConfirmationKind:
               mutationResponseSummaryDigest.confirmationKind,
             mutationResponseConfirmationDigest:
               mutationResponseSummaryDigest.confirmationDigest,
+            mutationResponseReplayExactDigest:
+              mutationResponseSummaryDigest.replayExactDigest,
+            mutationResponseRestoreExactDigest:
+              mutationResponseSummaryDigest.restoreExactDigest,
             mutationResponseRollbackDigest:
               mutationResponseSummaryDigest.rollbackDigest,
             mutationResponseMergeRebaseDigest:

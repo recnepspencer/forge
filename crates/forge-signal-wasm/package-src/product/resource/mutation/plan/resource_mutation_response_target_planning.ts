@@ -39,10 +39,11 @@ function createPublicMutationResponseTarget(plannedTarget, createPublicReconcili
 }
 
 function readMutationResponsePartialAdmission(plannedTargets, reconciliationAtomicity) {
-  const hasPartialFallback = plannedTargets.some((target) =>
-    target.execution.artifact.kind === "fallback"
-    && target.execution.artifact.partial !== null);
-  if (!hasPartialFallback) {
+  const exactTargetCount = plannedTargets.filter((target) =>
+    isExactMutationResponseExecutionKind(target.execution.artifact.kind)).length;
+  const fallbackTargetCount = plannedTargets.filter((target) =>
+    target.execution.artifact.kind === "fallback").length;
+  if (exactTargetCount === 0 || fallbackTargetCount === 0) {
     return "notNeeded";
   }
   return reconciliationAtomicity === "partialAllowed" ? "admitted" : "denied";
@@ -60,8 +61,7 @@ function applyMutationResponsePartialAdmission(
     return plannedTargets;
   }
   const blockingTarget = plannedTargets.find((target) =>
-    target.execution.artifact.kind === "fallback"
-    && target.execution.artifact.partial !== null);
+    target.execution.artifact.kind === "fallback");
   return Object.freeze(
     plannedTargets.map((target) =>
       target.execution.artifact.kind === "fallback"
@@ -91,7 +91,7 @@ function applyMutationResponsePartialAdmission(
               detail: [
                 `${target.target.family.kind} ${target.target.family.familyId}`,
                 `target ${target.target.targetId}`,
-                `stays in partialReconciliation posture because mutation.atomicity=allOrNone does not admit sibling partial target ${blockingTarget?.target.targetId ?? "unknown"}`,
+                `stays in partialReconciliation posture because mutation.atomicity=allOrNone does not admit sibling fallback target ${blockingTarget?.target.targetId ?? "unknown"}`,
               ].join(" "),
             }),
           }),

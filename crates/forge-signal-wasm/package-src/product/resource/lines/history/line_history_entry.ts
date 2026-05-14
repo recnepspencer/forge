@@ -1,5 +1,6 @@
 import {
   readMutationResponsePlanRecord,
+  readMutationResponseSummaryDigest,
 } from "../../mutation/resource_mutation_response_diagnostics_projection.js";
 
 function createLineHistoryEntry(
@@ -10,6 +11,7 @@ function createLineHistoryEntry(
   overrides = {},
 ) {
   const mutationResponsePlanRecord = readMutationResponsePlanRecord(diagnostics);
+  const mutationResponseSummaryDigest = readMutationResponseSummaryDigest(diagnostics);
   const identityMigrationHistoryDigest =
     readIdentityMigrationHistoryDigest(overrides);
   const entry = {
@@ -63,6 +65,55 @@ function createLineHistoryEntry(
       : {
           mutationResponsePlan: mutationResponsePlanRecord.plan,
           mutationResponsePlanCount: mutationResponsePlanRecord.planCount,
+        }),
+    ...(mutationResponseSummaryDigest === null
+      ? {}
+      : {
+          mutationResponseTargetCount: mutationResponseSummaryDigest.targetCount,
+          mutationResponseExactTargetCount:
+            mutationResponseSummaryDigest.exactTargetCount,
+          mutationResponseFallbackTargetCount:
+            mutationResponseSummaryDigest.fallbackTargetCount,
+          mutationResponseTargetLookupBreadth:
+            mutationResponseSummaryDigest.targetLookupBreadth,
+          mutationResponseTargetFanoutBreadth:
+            mutationResponseSummaryDigest.targetFanoutBreadth,
+          mutationResponsePayloadFieldExtractionBreadth:
+            mutationResponseSummaryDigest.payloadFieldExtractionBreadth,
+          mutationResponseTopologyTraversalBreadth:
+            mutationResponseSummaryDigest.topologyTraversalBreadth,
+          mutationResponseReconstructionBreadth:
+            mutationResponseSummaryDigest.reconstructionBreadth,
+          mutationResponseFallbackBreadth:
+            mutationResponseSummaryDigest.fallbackBreadth,
+          mutationResponseFallbackReasonDigest:
+            mutationResponseSummaryDigest.fallbackReasonDigest,
+          mutationResponseFallbackAffectedTargetDigest:
+            mutationResponseSummaryDigest.fallbackAffectedTargetDigest,
+          mutationResponseStaleTargetReasonDigest:
+            mutationResponseSummaryDigest.staleTargetReasonDigest,
+          mutationResponseStaleTargetAffectedTargetDigest:
+            mutationResponseSummaryDigest.staleTargetAffectedTargetDigest,
+          mutationResponseFreshnessPostureDigest:
+            mutationResponseSummaryDigest.freshnessPostureDigest,
+          mutationResponseDeliveryAwaitedDigest:
+            mutationResponseSummaryDigest.deliveryAwaitedDigest,
+          mutationResponseRefetchRequiredDigest:
+            mutationResponseSummaryDigest.refetchRequiredDigest,
+          mutationResponsePartialReconciliationDigest:
+            mutationResponseSummaryDigest.partialReconciliationDigest,
+          mutationResponseUnsupportedTargetDigest:
+            mutationResponseSummaryDigest.unsupportedTargetDigest,
+          mutationResponseNoHiddenMutationDigest:
+            mutationResponseSummaryDigest.noHiddenMutationDigest,
+          mutationResponseTargetOutcomeDigest:
+            mutationResponseSummaryDigest.targetOutcomeDigest,
+          mutationResponseTargetOutcomes:
+            mutationResponseSummaryDigest.targetOutcomes,
+          mutationResponseReplayExactDigest:
+            mutationResponseSummaryDigest.replayExactDigest,
+          mutationResponseRestoreExactDigest:
+            mutationResponseSummaryDigest.restoreExactDigest,
         }),
     ...(identityMigrationHistoryDigest === null
       ? {}

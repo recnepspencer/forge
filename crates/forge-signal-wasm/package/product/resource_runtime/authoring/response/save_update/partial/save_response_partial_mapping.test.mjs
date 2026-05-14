@@ -66,7 +66,9 @@ test("save responses can partially reconcile declared field and summary targets 
         }),
       });
 
-    const plan = saveWorkflow.line({ workflowId: "wf-1", body: {} }).mutationResponse();
+    const saveLine = saveWorkflow.line({ workflowId: "wf-1", body: {} });
+    const plan = saveLine.mutationResponse();
+    const latestMutationResponse = saveLine.summary().diagnostics.latest;
 
     assert.equal(workflowLine.value().status, "published");
     assert.equal(summariesLine.value().version, 1);
@@ -85,9 +87,78 @@ test("save responses can partially reconcile declared field and summary targets 
     assert.equal(plan.diagnostics.count, 1);
     assert.deepEqual(plan.diagnostics.entries[0].value, ["normalized"]);
     assert.equal(plan.counters.partialPolicyBreadth, 1);
+    assert.equal(plan.counters.payloadFieldExtractionBreadth, 3);
+    assert.equal(plan.counters.topologyTraversalBreadth, 1);
+    assert.equal(plan.counters.reconstructionBreadth, 1);
     assert.match(plan.fallbackDigest, /missing-field:version/);
+    assert.equal(latestMutationResponse.mutationResponseTargetCount, 2);
+    assert.equal(latestMutationResponse.mutationResponseExactTargetCount, 1);
+    assert.equal(latestMutationResponse.mutationResponseFallbackTargetCount, 1);
+    assert.equal(latestMutationResponse.mutationResponseTargetLookupBreadth, 2);
+    assert.equal(latestMutationResponse.mutationResponseTargetFanoutBreadth, 2);
+    assert.equal(
+      latestMutationResponse.mutationResponsePayloadFieldExtractionBreadth,
+      3,
+    );
+    assert.equal(
+      latestMutationResponse.mutationResponseTopologyTraversalBreadth,
+      1,
+    );
+    assert.equal(
+      latestMutationResponse.mutationResponseReconstructionBreadth,
+      1,
+    );
+    assert.equal(latestMutationResponse.mutationResponseFallbackBreadth, 1);
+    assert.equal(
+      latestMutationResponse.mutationResponseTargetOutcomeDigest,
+      "mutation-response-target-outcomes|mutationTarget1:detail:"
+      + workflowLine.descriptor().family.familyId
+      + ":/workflows/wf-1:resident:exact:exactDetail:field:none:none:none:none:status,"
+      + "mutationTarget2:collection:"
+      + workflowSummaries.line({}).descriptor().family.familyId
+      + ":/workflow-search:resident:fallback:fallback:none:partialReconciliation:missingResponseField:version:none:none",
+    );
+    assert.deepEqual(latestMutationResponse.mutationResponseTargetOutcomes, [
+      {
+        targetId: "mutationTarget1",
+        familyKind: "detail",
+        familyId: workflowLine.descriptor().family.familyId,
+        canonicalKey: "/workflows/wf-1",
+        residency: "resident",
+        outcomeKind: "exact",
+        executionKind: "exactDetail",
+        scope: "field",
+        fallbackKind: null,
+        partialKind: null,
+        partialField: null,
+        staleReason: null,
+        locus: "status",
+        targetDigest: plan.targets[0].targetDigest,
+      },
+      {
+        targetId: "mutationTarget2",
+        familyKind: "collection",
+        familyId: workflowSummaries.line({}).descriptor().family.familyId,
+        canonicalKey: "/workflow-search",
+        residency: "resident",
+        outcomeKind: "fallback",
+        executionKind: "fallback",
+        scope: null,
+        fallbackKind: "partialReconciliation",
+        partialKind: "missingResponseField",
+        partialField: "version",
+        staleReason: null,
+        locus: null,
+        targetDigest: plan.targets[1].targetDigest,
+      },
+    ]);
     assert.equal(workflowLine.diagnostics().lastDeliveryScope, "field");
     assert.equal(workflowLine.history().lifecycle.at(-1)?.event, "delivered");
+    assert.equal(
+      saveLine.history().verificationPackage().diagnostics.summary.latest
+        .mutationResponsePayloadFieldExtractionBreadth,
+      3,
+    );
   } finally {
     await runtime.cleanup();
   }
@@ -163,6 +234,9 @@ test("save responses deny sibling exact reconciliation under all-or-none partial
     assert.equal(plan.executionArtifacts[0].partial, null);
     assert.equal(plan.executionArtifacts[1].kind, "fallback");
     assert.equal(plan.executionArtifacts[1].partial?.field, "version");
+    assert.equal(plan.counters.payloadFieldExtractionBreadth, 2);
+    assert.equal(plan.counters.topologyTraversalBreadth, 0);
+    assert.equal(plan.counters.reconstructionBreadth, 0);
     assert.equal(plan.counters.fallbackBreadth, 2);
     assert.equal(plan.counters.appliedTargetBreadth ?? 0, 0);
     assert.equal(
@@ -213,6 +287,9 @@ test("save partial mapping treats explicit null as present and denies malformed 
     assert.equal(workflowLine.value().archivedAt, null);
     assert.equal(plan.partialAdmission, "notNeeded");
     assert.equal(plan.executionArtifacts[0].kind, "exactDetail");
+    assert.equal(plan.counters.payloadFieldExtractionBreadth, 1);
+    assert.equal(plan.counters.topologyTraversalBreadth, 1);
+    assert.equal(plan.counters.reconstructionBreadth, 1);
 
     assert.throws(
       () =>

@@ -9,6 +9,7 @@ import {
   lowerDetailReconciliation,
   lowerSummaryReconciliation,
 } from "./api_route_mutation_response_detail.js";
+import { RESOURCE_RESPONSE_TOPOLOGY_COSTS } from "../../resource/response/resource_response_topology_costs.js";
 
 const MUTATION_RESPONSE_FALLBACK_KINDS = Object.freeze([
   "deletionUnavailable",
@@ -28,6 +29,13 @@ function createApiRouteMutationResponseDeclaration(
   diagnostics,
   identity,
 ) {
+  const loweredTargets = lowerMutationResponseTargets(route, method, response, reconciles);
+  const loweredDiagnostics = lowerMutationResponseDiagnostics(
+    route,
+    method,
+    response,
+    diagnostics,
+  );
   return createMutationResponseDeclaration({
     source: `api.url("${route}").response(...).${method.toLowerCase()}(...)`,
     lensProof: createMutationResponseLensProof({
@@ -36,9 +44,14 @@ function createApiRouteMutationResponseDeclaration(
       source: `api.url("${route}").response(...)`,
       readLensProof: response.lensProof,
     }),
+    responseMappedFieldNames: readMutationResponseMappedFieldNames(
+      response,
+      loweredTargets,
+      loweredDiagnostics,
+    ),
     reconciliationAtomicity: lowerMutationResponseAtomicity(route, atomicity),
-    targets: lowerMutationResponseTargets(route, method, response, reconciles),
-    diagnostics: lowerMutationResponseDiagnostics(route, method, response, diagnostics),
+    targets: loweredTargets,
+    diagnostics: loweredDiagnostics,
     identityMigration: lowerMutationResponseIdentityMigration(
       route,
       method,
@@ -78,6 +91,14 @@ function lowerMutationResponseTarget(route, method, response, target, index) {
     target.family,
     `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}].family`,
   );
+  const reconciliation = lowerMutationResponseTargetReconciliation(
+    route,
+    method,
+    response,
+    familyMetadata,
+    target,
+    index,
+  );
   return Object.freeze({
     targetId: `mutationTarget${index + 1}`,
     fallback: requireMutationResponseFallback(route, target.fallback, index),
@@ -91,14 +112,8 @@ function lowerMutationResponseTarget(route, method, response, target, index) {
       familyId: familyMetadata.familyId,
     }),
     params: target.params,
-    reconciliation: lowerMutationResponseTargetReconciliation(
-      route,
-      method,
-      response,
-      familyMetadata,
-      target,
-      index,
-    ),
+    cost: readMutationResponseTargetCost(familyMetadata.patchRecord, reconciliation),
+    reconciliation,
   });
 }
 
@@ -158,6 +173,92 @@ function lowerMutationResponseTargetReconciliation(
     target.detail,
     index,
   );
+}
+
+function readMutationResponseMappedFieldNames(response, targets, diagnostics) {
+  if (response.kind !== "detail" || response.fields === null) {
+    return null;
+  }
+  const mappedFieldNames = new Set();
+  for (const target of targets) {
+    const reconciliation = target.reconciliation;
+    if (reconciliation === null) {
+      continue;
+    }
+    if (reconciliation.kind === "field") {
+      mappedFieldNames.add(reconciliation.field);
+      continue;
+    }
+    if (reconciliation.kind === "summary") {
+      mappedFieldNames.add(reconciliation.summary);
+    }
+  }
+  for (const diagnostic of diagnostics) {
+    mappedFieldNames.add(diagnostic.field);
+  }
+  return Object.freeze([...mappedFieldNames].sort());
+}
+
+function readMutationResponseTargetCost(patchRecord, reconciliation) {
+  if (reconciliation === null) {
+    return Object.freeze({
+      topologyTraversalBreadth: 0,
+      reconstructionBreadth: 0,
+    });
+  }
+  if (reconciliation.kind === "field") {
+    return readDetailDefinitionCost(
+      patchRecord.reconcile?.definitions?.[reconciliation.field]?.fieldProof?.cost ?? null,
+    );
+  }
+  if (reconciliation.kind === "region") {
+    return readDetailDefinitionCost(
+      patchRecord.reconcile?.definitions?.[reconciliation.region]?.regionProof?.cost ?? null,
+    );
+  }
+  if (reconciliation.kind === "jsonPath") {
+    return readDetailDefinitionCost(
+      patchRecord.reconcile?.definitions?.[reconciliation.path]?.jsonPathProof?.cost ?? null,
+    );
+  }
+  if (reconciliation.kind === "summary") {
+    return Object.freeze({
+      topologyTraversalBreadth: reconciliation.summaryScope === "pageWindow" ? 1 : 0,
+      reconstructionBreadth: 1,
+    });
+  }
+  if (reconciliation.kind === "replace" || reconciliation.kind === "invalidate") {
+    return Object.freeze({
+      topologyTraversalBreadth: 0,
+      reconstructionBreadth: 1,
+    });
+  }
+  const topology = patchRecord.responseLensProof?.topology ?? null;
+  const topologyCosts =
+    topology === null ? null : RESOURCE_RESPONSE_TOPOLOGY_COSTS[topology] ?? null;
+  const declaredCost =
+    reconciliation.kind === "delete"
+      ? topologyCosts?.itemDelete ?? topologyCosts?.item ?? null
+      : reconciliation.kind === "insert"
+        ? topologyCosts?.itemInsert ?? topologyCosts?.item ?? null
+        : topologyCosts?.item ?? null;
+  return Object.freeze({
+    topologyTraversalBreadth: declaredCost?.[1] ?? 1,
+    reconstructionBreadth: 1,
+  });
+}
+
+function readDetailDefinitionCost(cost) {
+  if (cost === null) {
+    return Object.freeze({
+      topologyTraversalBreadth: 1,
+      reconstructionBreadth: 1,
+    });
+  }
+  return Object.freeze({
+    topologyTraversalBreadth: cost.traversalBreadth,
+    reconstructionBreadth: cost.reconstructionBreadth,
+  });
 }
 
 export { createApiRouteMutationResponseDeclaration };

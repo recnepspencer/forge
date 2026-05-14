@@ -16,6 +16,7 @@ import type { ResourcePolicyProfileName } from "./resource_postures.js";
 import type { ResourceLineHistoryAvailability } from "./resource_line_history.js";
 import type { ResourceLineIdentityMigrationHistoryDigest } from "./resource_line_history.js";
 import type { ResourceLineVisibleSelection } from "./resource_line_diagnostics.js";
+import type { ResourceMutationResponseTargetOutcomeSummary } from "./resource_mutation_response.js";
 
 export interface ResourceLineDiagnosticsCurrentSummary {
   readonly status: ResourceLineStatus;
@@ -111,8 +112,30 @@ export interface ResourceLineDiagnosticsLatestChangeSummary {
   readonly lastIdentityMigration?: ResourceLineIdentityMigrationHistoryDigest;
   readonly mutationResponsePlanId?: string;
   readonly mutationResponseTargetCount?: number;
+  readonly mutationResponseExactTargetCount?: number;
+  readonly mutationResponseFallbackTargetCount?: number;
+  readonly mutationResponseTargetLookupBreadth?: number;
+  readonly mutationResponseTargetFanoutBreadth?: number;
+  readonly mutationResponsePayloadFieldExtractionBreadth?: number;
+  readonly mutationResponseTopologyTraversalBreadth?: number;
+  readonly mutationResponseReconstructionBreadth?: number;
+  readonly mutationResponseFallbackBreadth?: number;
+  readonly mutationResponseFallbackReasonDigest?: string;
+  readonly mutationResponseFallbackAffectedTargetDigest?: string;
+  readonly mutationResponseStaleTargetReasonDigest?: string;
+  readonly mutationResponseStaleTargetAffectedTargetDigest?: string;
+  readonly mutationResponseFreshnessPostureDigest?: string;
+  readonly mutationResponseDeliveryAwaitedDigest?: string;
+  readonly mutationResponseRefetchRequiredDigest?: string;
+  readonly mutationResponsePartialReconciliationDigest?: string;
+  readonly mutationResponseUnsupportedTargetDigest?: string;
+  readonly mutationResponseNoHiddenMutationDigest?: string;
+  readonly mutationResponseTargetOutcomeDigest?: string;
+  readonly mutationResponseTargetOutcomes?: readonly ResourceMutationResponseTargetOutcomeSummary[];
   readonly mutationResponseConfirmationKind?: import("./resource_mutation_response.js").ResourceMutationResponseConfirmationKind;
   readonly mutationResponseConfirmationDigest?: string;
+  readonly mutationResponseReplayExactDigest?: string;
+  readonly mutationResponseRestoreExactDigest?: string;
   readonly mutationResponseRollbackDigest?: string;
   readonly mutationResponseMergeRebaseDigest?: string;
   readonly mutationResponseExecutionDigest?: string;

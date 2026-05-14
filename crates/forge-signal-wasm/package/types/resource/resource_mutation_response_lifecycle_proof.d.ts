@@ -28,6 +28,26 @@ export interface ResourceMutationResponseMergeRebaseProof {
   readonly detail: string;
 }
 
+export interface ResourceMutationResponseReplayExactProof {
+  readonly kind:
+    | "available"
+    | "identityMigrationUnavailable"
+    | "fallbackUnavailable"
+    | "awaitingExecution";
+  readonly mode: "SameRuntimeSignalExact" | null;
+  readonly detail: string;
+}
+
+export interface ResourceMutationResponseRestoreExactProof {
+  readonly kind:
+    | "available"
+    | "identityMigrationUnavailable"
+    | "fallbackUnavailable"
+    | "awaitingExecution";
+  readonly mode: "SameRuntimeBranchExact" | null;
+  readonly detail: string;
+}
+
 export interface ResourceMutationResponseTargetEffectProof {
   readonly effectId: string;
   readonly authorityDigest: string;
@@ -45,6 +65,8 @@ export interface ResourceMutationResponseLifecycleProofEntry {
   readonly targetId: string;
   readonly effectId: string | null;
   readonly authorityDigest: string | null;
+  readonly replayExact: ResourceMutationResponseReplayExactProof;
+  readonly restoreExact: ResourceMutationResponseRestoreExactProof;
   readonly rollback: ResourceMutationResponseRollbackProof;
   readonly mergeRebase: ResourceMutationResponseMergeRebaseProof;
   readonly digest: string;
@@ -53,6 +75,8 @@ export interface ResourceMutationResponseLifecycleProofEntry {
 export interface ResourceMutationResponseLifecycleProof {
   readonly entries: readonly ResourceMutationResponseLifecycleProofEntry[];
   readonly count: number;
+  readonly replayExactDigest: string;
+  readonly restoreExactDigest: string;
   readonly rollbackDigest: string;
   readonly mergeRebaseDigest: string;
   readonly digest: string;

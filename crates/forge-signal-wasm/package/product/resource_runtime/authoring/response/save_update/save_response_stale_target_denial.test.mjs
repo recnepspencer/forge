@@ -49,6 +49,14 @@ test("pending save response falls back when local target drift changes visible t
     assert.equal(plan.submittedTargets[0].visibleValueVersion, 1);
     assert.equal(plan.counters.staleTargetDenialBreadth, 1);
     assert.equal(plan.confirmation.kind, "refetchRequired");
+    assert.equal(
+      saveLine.summary().diagnostics.latest.mutationResponseStaleTargetReasonDigest,
+      "mutation-response-stale-target-reasons|visibleValueVersionChanged:1",
+    );
+    assert.match(
+      saveLine.summary().diagnostics.latest.mutationResponseStaleTargetAffectedTargetDigest,
+      /mutation-response-stale-targets\|mutationTarget1:detail:.*:\/profiles\/p1:visibleValueVersionChanged/,
+    );
   } finally {
     await runtime.cleanup();
   }
@@ -102,6 +110,10 @@ test("pending save response falls back when delivery advances target basis", asy
     assert.equal(plan.counters.targetBasisSnapshotBreadth, 1);
     assert.equal(plan.counters.staleTargetDenialBreadth, 1);
     assert.equal(plan.confirmation.kind, "refetchRequired");
+    assert.equal(
+      saveLine.summary().diagnostics.latest.mutationResponseStaleTargetReasonDigest,
+      "mutation-response-stale-target-reasons|basisChanged:1",
+    );
   } finally {
     await runtime.cleanup();
   }
@@ -154,6 +166,15 @@ test("pending save response falls back when the resident target rematerializes t
     assert.equal(plan.executionArtifacts[0].runtimeLineId, rematerializedRuntimeLineId);
     assert.equal(plan.counters.staleTargetDenialBreadth, 1);
     assert.equal(plan.confirmation.kind, "refetchRequired");
+    assert.equal(
+      saveLine.summary().diagnostics.latest.mutationResponseStaleTargetReasonDigest,
+      "mutation-response-stale-target-reasons|runtimeLineIdChanged:1",
+    );
+    assert.match(
+      saveLine.history().verificationPackage().diagnostics.summary.latest
+        .mutationResponseStaleTargetAffectedTargetDigest,
+      /mutation-response-stale-targets\|mutationTarget1:detail:.*:\/profiles\/p1:runtimeLineIdChanged/,
+    );
   } finally {
     await runtime.cleanup();
   }

@@ -20,6 +20,12 @@ For ordinary app code, the default lane is:
 
 - fetch, list, paged, create, update, remove, and advanced request shaping:
   [Fetch And Write Resources](./fetch-and-write.md)
+- response-owned write reconciliation, identity migration, partial mapping, and
+  fallback posture:
+  [Mutation Response Reconciliation](./mutation-response-reconciliation.md)
+- mutation-response support categories, denial-only lanes, typed unavailable
+  fallback lanes, and intentional out-of-scope posture:
+  [Mutation Response Closeout Matrix](../resource-contracts/mutation-response-closeout-matrix.md)
 - auth, request context, retry policy, continuation, and request posture:
   [Request Posture And Policy](./request-posture-and-policy.md)
 - collection identity, reconcile, patch helpers, and delivery helpers:
@@ -65,6 +71,9 @@ For ordinary app code, the default lane is:
 
 - "How do I fetch one thing or write one thing?"
   [Fetch And Write Resources](./fetch-and-write.md)
+- "How do I make a write response update detail, collection, summary, or draft
+  identity truth?"
+  [Mutation Response Reconciliation](./mutation-response-reconciliation.md)
 - "How do I declare retry, headers, or continuation?"
   [Request Posture And Policy](./request-posture-and-policy.md)
 - "How do I patch or deliver into a collection?"
@@ -81,7 +90,8 @@ For ordinary app code, the default lane is:
   [Effect Merge And Rebase](./merge-and-rebase.md),
   [Response Topology Proof](../resource-contracts/response-topology-proof.md),
   [JSON Path Effects](./json-effects.md), and
-  [Effect Closeout Matrix](../resource-contracts/closeout-matrix.md)
+  [Effect Closeout Matrix](../resource-contracts/closeout-matrix.md),
+  [Mutation Response Closeout Matrix](../resource-contracts/mutation-response-closeout-matrix.md)
 - "How do I apply external basis refresh?"
   [External Delivery And Compatibility](./external-delivery-and-compatibility.md)
 

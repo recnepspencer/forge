@@ -6,6 +6,7 @@ import "./resource_runtime/authoring/response/api_response_summary_contract_buil
 import "./resource_runtime/authoring/response/api_response_detail_field_contract_builder.test.mjs";
 import "./resource_runtime/authoring/response/api_response_detail_json_path_contract_builder.test.mjs";
 import "./resource_runtime/authoring/response/api_response_detail_region_contract_builder.test.mjs";
+import "./resource_runtime/authoring/response/fallback/mutation_response_fallback_honesty.test.mjs";
 import "./resource_runtime/authoring/response/create/create_response_collection_placement.test.mjs";
 import "./resource_runtime/authoring/response/create/create_response_connection_tuple_placement.test.mjs";
 import "./resource_runtime/authoring/response/create/create_response_detail_materialization.test.mjs";
@@ -16,10 +17,13 @@ import "./resource_runtime/authoring/response/create/create_response_keyed_colle
 import "./resource_runtime/authoring/response/create/create_response_lifecycle_proof.test.mjs";
 import "./resource_runtime/authoring/response/create/create_response_tree_placement.test.mjs";
 import "./resource_runtime/authoring/response/remove/remove_response_collection_deletion_reconciliation.test.mjs";
+import "./resource_runtime/authoring/response/remove/remove_response_additional_topology_deletion_reconciliation.test.mjs";
 import "./resource_runtime/authoring/response/remove/remove_response_bodyless_deletion_reconciliation.test.mjs";
 import "./resource_runtime/authoring/response/remove/remove_response_detail_invalidation_reconciliation.test.mjs";
 import "./resource_runtime/authoring/response/remove/remove_response_lifecycle_history_proof.test.mjs";
 import "./resource_runtime/authoring/response/remove/remove_response_sparse_tree_deletion_reconciliation.test.mjs";
+import "./resource_runtime/authoring/response/remove/remove_response_stale_duplicate_confirmation.test.mjs";
+import "./resource_runtime/authoring/response/remove/remove_response_summary_metadata_reconciliation.test.mjs";
 import "./resource_runtime/authoring/response/remove/remove_response_tombstone_reconciliation.test.mjs";
 import "./resource_runtime/authoring/response/save_update/save_response_collection_summary_reconciliation.test.mjs";
 import "./resource_runtime/authoring/response/save_update/save_response_diagnostics_mapping.test.mjs";
@@ -32,6 +36,10 @@ import "./resource_runtime/authoring/response/save_update/save_response_identity
 import "./resource_runtime/authoring/response/save_update/save_response_identity_migration_policy.test.mjs";
 import "./resource_runtime/authoring/response/save_update/save_response_lifecycle_proof.test.mjs";
 import "./resource_runtime/authoring/response/save_update/partial/save_response_partial_mapping.test.mjs";
+import "./resource_runtime/authoring/response/save_update/partial/save_response_partial_mapping_unknown_fields.test.mjs";
+import "./resource_runtime/authoring/response/save_update/save_response_multi_family_convergence.test.mjs";
+import "./resource_runtime/authoring/response/save_update/save_response_multi_family_partial_allowed.test.mjs";
+import "./resource_runtime/authoring/response/save_update/save_response_multi_family_target_outcome_classes.test.mjs";
 import "./resource_runtime/authoring/response/save_update/save_response_stale_target_denial.test.mjs";
 import "./resource_runtime/authoring/response/save_update/save_response_detail_line_reconciliation.test.mjs";
 import "./resource_runtime/authoring/api_route/api_url_semantic_finalizers.test.mjs";
