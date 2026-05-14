@@ -1,5 +1,6 @@
 import type { SignalValue } from "../model.js";
 import type { FormValidationReadView } from "./validation.js";
+import type { FormHostReport } from "./host.js";
 
 export type FormAvailabilityState =
   | "enabled"
@@ -98,6 +99,7 @@ export type FormAvailabilityBuilder =
 
 export interface FormAvailabilityReport {
   readonly artifacts: ReadonlyArray<FormAvailabilityArtifact>;
+  readonly host: FormHostReport;
   readonly summary: Record<FormAvailabilityState, number> & {
     readonly byScope: Record<FormAvailabilityScope, number>;
   };

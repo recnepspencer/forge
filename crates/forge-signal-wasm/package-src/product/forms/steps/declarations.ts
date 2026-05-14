@@ -36,13 +36,19 @@ function createStepFactory(declaredFieldIds) {
       if (options.resolve !== undefined && typeof options.resolve !== "function") {
         throw new FormDeclarationError("step posture resolver must be a function", { stepId });
       }
+      if (options.routeCoupled !== undefined && typeof options.routeCoupled !== "boolean") {
+        throw new FormDeclarationError("step routeCoupled posture must be a boolean", { stepId });
+      }
       return Object.freeze({
         [STEP_DECLARATION_BRAND]: true,
         id: stepId,
         fields: stepFields,
         dependencies,
+        routeCoupled: options.routeCoupled === true,
         group: options.group === undefined ? null : requireNonEmptyString(options.group, "step group"),
         order: normalizeStepOrder(options.order),
+        orderDeclared: options.order !== undefined,
+        layout: normalizeStepLayout(options),
         defaultPosture: options.optional === true ? "optional" : "active",
         resolve: options.resolve ?? null,
       });
@@ -114,4 +120,28 @@ function normalizeStepOrder(order) {
     throw new FormDeclarationError("step order must be an integer", { order });
   }
   return order;
+}
+
+function normalizeStepLayout(options) {
+  const responsive = options.responsive ?? [];
+  if (!Array.isArray(responsive) || responsive.some((entry) => typeof entry !== "string" || entry.length === 0)) {
+    throw new FormDeclarationError("step layout responsive entries must be non-empty strings", {
+      responsive,
+    });
+  }
+  return Object.freeze({
+    density: normalizeEnum(options.density, ["compact", "comfortable", "spacious"], "comfortable", "step layout density"),
+    alignment: normalizeEnum(options.alignment, ["start", "center", "stretch"], "stretch", "step layout alignment"),
+    responsive: Object.freeze([...responsive]),
+  });
+}
+
+function normalizeEnum(value, allowed, fallback, label) {
+  if (value === undefined) {
+    return fallback;
+  }
+  if (!allowed.includes(value)) {
+    throw new FormDeclarationError(`${label} is not supported`, { value });
+  }
+  return value;
 }

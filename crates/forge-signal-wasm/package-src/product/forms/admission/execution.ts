@@ -3,7 +3,8 @@ import { stableValueDigest } from "../values/value_paths.js";
 import { normalizeAdmissionArtifact } from "./artifacts.js";
 
 export function evaluateAdmission(admissionDeclarations, form, fieldDeclarations) {
-  const readView = createFormReadView(form);
+  const host = form.host();
+  const readView = createFormReadView(form, { host });
   const binding = currentAdmissionBinding(form, fieldDeclarations);
   const artifacts = admissionDeclarations.map((declaration) =>
     normalizeAdmissionArtifact(runAdmissionResolver(declaration, readView, binding), declaration, binding),

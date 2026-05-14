@@ -29,6 +29,10 @@ export interface FormStepDeclarationOptions {
   readonly group?: string;
   readonly order?: number;
   readonly optional?: boolean;
+  readonly routeCoupled?: boolean;
+  readonly density?: "compact" | "comfortable" | "spacious";
+  readonly alignment?: "start" | "center" | "stretch";
+  readonly responsive?: ReadonlyArray<string>;
   readonly dependencies?: ReadonlyArray<string>;
   readonly resolve?: (
     values: Record<string, SignalValue>,
@@ -70,6 +74,12 @@ export interface FormStepArtifact {
   readonly group: string | null;
   readonly order: number;
   readonly fields: ReadonlyArray<string>;
+  readonly routeCoupled: boolean;
+  readonly layout: {
+    readonly density: "compact" | "comfortable" | "spacious";
+    readonly alignment: "start" | "center" | "stretch";
+    readonly responsive: ReadonlyArray<string>;
+  };
   readonly posture: FormStepPosture;
   readonly reason?: string;
   readonly readiness: {
@@ -110,6 +120,7 @@ export interface FormStepsReport {
     readonly costBasis: "derivedFullReportScan";
     readonly incrementalStatus: "notIncremental";
     readonly declarations: number;
+    readonly routeCoupledDeclarations: number;
     readonly stepFieldMemberships: number;
     readonly dependencyReads: number;
     readonly readinessBlockers: number;
@@ -123,5 +134,7 @@ export interface FormStepsReport {
     readonly id: string;
     readonly fields: ReadonlyArray<string>;
     readonly dependencies: ReadonlyArray<string>;
+    readonly routeCoupled: boolean;
+    readonly layout: FormStepArtifact["layout"];
   }>;
 }

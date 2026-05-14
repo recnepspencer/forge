@@ -115,6 +115,7 @@ test("signals.form derives controller-local step artifacts from form truth", asy
       costBasis: "derivedFullReportScan",
       incrementalStatus: "notIncremental",
       declarations: 3,
+      routeCoupledDeclarations: 0,
       stepFieldMemberships: 3,
       dependencyReads: 3,
       readinessBlockers: 2,
@@ -166,6 +167,12 @@ test("signals.form derives controller-local step artifacts from form truth", asy
         id: "assignment",
         fields: ["assignee"],
         dependencies: ["mode"],
+        routeCoupled: false,
+        layout: {
+          density: "comfortable",
+          alignment: "stretch",
+          responsive: [],
+        },
       },
     );
     assert.equal(form.diagnostics().steps.summary.removed, 1);
@@ -208,6 +215,22 @@ test("signals.form denies invalid step topology and posture artifacts", async ()
       /step declaration fields must be unique/,
     );
 
+    assert.throws(
+      () =>
+        signals.form({
+          source: { title: "Ship docs" },
+          fields: ({ field }) => ({
+            title: field("title"),
+          }),
+          steps: ({ step }) => ({
+            malformedRoute: step("malformedRoute", ["title"], {
+              routeCoupled: "yes",
+            }),
+          }),
+        }),
+      /step routeCoupled posture must be a boolean/,
+    );
+
     const malformed = signals.form({
       source: { title: "Ship docs" },
       fields: ({ field }) => ({
@@ -222,6 +245,50 @@ test("signals.form denies invalid step topology and posture artifacts", async ()
     assert.throws(
       () => malformed.steps(),
       /step posture is not supported/,
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("signals.form exposes route-coupled steps as typed deferred posture until router integration exists", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const rawSignals = createGraphOperationalRuntime();
+    const signals = wrapSignals(rawSignals);
+
+    const form = signals.form({
+      source: { title: "Ship docs" },
+      fields: ({ field }) => ({
+        title: field("title"),
+      }),
+      steps: ({ step }) => ({
+        reviewRoute: step("reviewRoute", ["title"], {
+          routeCoupled: true,
+        }),
+      }),
+    });
+
+    assert.deepEqual(form.steps().summary, {
+      total: 1,
+      active: 0,
+      optional: 0,
+      skipped: 0,
+      blocked: 0,
+      removed: 0,
+      unavailable: 1,
+      complete: 0,
+      changed: 0,
+    });
+    assert.equal(form.steps().artifacts[0].routeCoupled, true);
+    assert.equal(form.steps().artifacts[0].posture, "unavailable");
+    assert.equal(
+      form.steps().artifacts[0].readiness.blockers[0].kind,
+      "step:deferred",
+    );
+    assert.match(
+      form.steps().artifacts[0].readiness.blockers[0].reason,
+      /router integration/i,
     );
   } finally {
     await cleanup();

@@ -139,6 +139,7 @@ function executionArtifact(operationId, plan, attempt, resultKind, options = {})
   const artifact = {
     kind: "actionExecution",
     operationId: options.operationId ?? operationId,
+    observedAtMs: Date.now(),
     action: plan.id,
     actionKind: plan.kind,
     attemptId: attempt.attemptId,
@@ -168,6 +169,7 @@ function staleCompletionArtifact(operationId, targetOperationId, reason, targetO
   const artifact = {
     kind: "actionExecution",
     operationId,
+    observedAtMs: Date.now(),
     targetOperationId,
     targetAction: targetOperation?.action ?? null,
     targetPlanDigest: targetOperation?.planDigest ?? null,

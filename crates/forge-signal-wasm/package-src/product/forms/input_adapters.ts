@@ -16,6 +16,11 @@ export function normalizeInputAdapter(options = {}) {
     reportsCommitBoundary: adapter.reportsCommitBoundary !== false,
     reportsComposition: adapter.reportsComposition !== false,
     reportsFocus: adapter.reportsFocus !== false,
+    supportsLabelTrack: adapter.supportsLabelTrack !== false,
+    supportsHelpTrack: adapter.supportsHelpTrack !== false,
+    supportsMessageTrack: adapter.supportsMessageTrack !== false,
+    supportsMinHeightSync: adapter.supportsMinHeightSync !== false,
+    supportsResponsiveTokens: adapter.supportsResponsiveTokens !== false,
   };
   const unavailable = Object.entries(capabilities)
     .filter(([, available]) => !available)

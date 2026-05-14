@@ -262,6 +262,22 @@ test("signals.form rejects unsafe declarations and reports non-native input adap
         },
       ],
     );
+    const inputCapabilities = form.inputCapabilities();
+    assert.equal(inputCapabilities.summary.unavailableFields, 1);
+    assert.equal(inputCapabilities.fields[0].posture, "unavailable");
+    assert.deepEqual(
+      inputCapabilities.fields[0].unavailableCapabilities,
+      [
+        {
+          capability: "reportsComposition",
+          reason: "externalImperative adapter did not declare reportsComposition",
+        },
+        {
+          capability: "reportsFocus",
+          reason: "externalImperative adapter did not declare reportsFocus",
+        },
+      ],
+    );
   } finally {
     await cleanup();
   }

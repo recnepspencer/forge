@@ -3,11 +3,12 @@ import { createFormReadView } from "../read_views.js";
 import { normalizeValidationArtifact } from "./artifacts.js";
 
 export function validateForm(fieldDeclarations, validationDeclarations, form, parseFailures, asyncValidationArtifacts = []) {
+  const host = form.host();
   const declaredFieldIds = new Set(fieldDeclarations.map((field) => field.id));
   const artifacts = [...parseFailures.values()].map((artifact) => normalizeValidationArtifact(artifact));
   artifacts.push(...asyncValidationArtifacts);
   const counters = validationCounterSeed();
-  const validationReadView = createFormReadView(form);
+  const validationReadView = createFormReadView(form, { host });
   for (const declaration of syncValidationDeclarations(validationDeclarations)) {
     pushValidatorArtifacts(artifacts, declaration, validationReadView, declaredFieldIds);
     incrementValidationCounter(counters, declaration, fieldDeclarations);
@@ -15,6 +16,7 @@ export function validateForm(fieldDeclarations, validationDeclarations, form, pa
   pushImplicitValidArtifacts(artifacts, fieldDeclarations, validationDeclarations, form);
   return Object.freeze({
     artifacts: Object.freeze(artifacts),
+    host,
     summary: validationSummary(artifacts),
     counters: Object.freeze(counters),
     dependencyBreadth: validationDependencyBreadth(validationDeclarations),

@@ -186,6 +186,87 @@ test("signals.form canonical source projection yields to newer authoritative sou
     assert.deepEqual(form.source(), { title: "Remote source drift" });
     assert.deepEqual(form.effective(), { title: "Remote source drift" });
     assert.equal(form.canonicalizationHistory()[0].sourceProjection, "serverCanonicalUntilAuthoritativeSourceDrift");
+    assert.equal(form.presentationLifecycle("resourceDrift").status, "busy");
+  });
+});
+
+test("signals.form migrates long-lived drafts across source schema drift with explicit evidence", async () => {
+  await withSignals((signals) => {
+    const source = signals.input({ title: "Ship docs" });
+    const schemaVersion = signals.input("v1");
+    const form = signals.form({
+      source: {
+        value: source,
+        schemaVersion,
+        migrateDraft(draft, context) {
+          assert.equal(context.previousSchemaVersion, "v1");
+          assert.equal(context.currentSchemaVersion, "v2");
+          return {
+            kind: "migrated",
+            draft: { title: `${draft.title} (migrated)` },
+            reason: "normalized draft to v2",
+          };
+        },
+      },
+      fields: ({ field }) => ({
+        title: field("title"),
+      }),
+    });
+
+    form.fields.title.set("Client title");
+    source.set({ title: "Server title" });
+    schemaVersion.set("v2");
+
+    const compatibility = form.sourceCompatibility();
+    assert.equal(compatibility.posture, "migrated");
+    assert.equal(compatibility.reason, "normalized draft to v2");
+    assert.deepEqual(form.draft(), { title: "Client title (migrated)" });
+    assert.deepEqual(form.effective(), { title: "Client title (migrated)" });
+    assert.equal(form.sourceCompatibilityHistory().length, 1);
+    assert.equal(form.sourceCompatibilityHistory()[0].posture, "migrated");
+    assert.equal(form.sourceCompatibilityHistory()[0].reason, "normalized draft to v2");
+  });
+});
+
+test("signals.form blocks stale long-lived drafts when source schema drift has no migration policy", async () => {
+  await withSignals((signals) => {
+    const source = signals.input({ title: "Ship docs" });
+    const schemaVersion = signals.input("v1");
+    const form = signals.form({
+      source: {
+        value: source,
+        schemaVersion,
+      },
+      fields: ({ field }) => ({
+        title: field("title"),
+      }),
+      actions: ({ action }) => ({
+        saveDraft: action("saveDraft", {
+          patchPolicy: "allowEmpty",
+          hostEffect: "draft.save",
+        }),
+      }),
+    });
+
+    form.fields.title.set("Client title");
+    source.set({ title: "Server title" });
+    schemaVersion.set("v2");
+
+    const compatibility = form.sourceCompatibility();
+    assert.equal(compatibility.posture, "unavailable");
+    assert.equal(form.readiness().canSubmit, false);
+    assert.deepEqual(
+      form.readiness().blockers.map((blocker) => blocker.kind),
+      ["schema:drift"],
+    );
+    assert.equal(form.actionPlan("saveDraft").status, "denied");
+    assert.equal(form.executeAction("saveDraft").resultKind, "denied");
+    assert.throws(
+      () => form.fields.title.set("Blocked by drift"),
+      /source schema changed and no draft migration policy is declared/,
+    );
+    assert.equal(form.sourceCompatibilityHistory().length, 1);
+    assert.equal(form.sourceCompatibilityHistory()[0].posture, "unavailable");
   });
 });
 

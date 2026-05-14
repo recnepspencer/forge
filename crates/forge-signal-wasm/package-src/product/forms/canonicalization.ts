@@ -52,6 +52,7 @@ function canonicalizationArtifact(options) {
   const artifact = {
     kind: "canonicalization",
     canonicalizationId: options.canonicalizationId,
+    observedAtMs: Date.now(),
     operationId: options.operationId,
     action: options.action,
     planDigest: options.planDigest,

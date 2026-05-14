@@ -40,6 +40,8 @@ export function evaluateSteps(stepDeclarations, form) {
         id: declaration.id,
         fields: declaration.fields,
         dependencies: declaration.dependencies,
+        routeCoupled: declaration.routeCoupled,
+        layout: declaration.layout,
       })),
     ),
   });
@@ -50,6 +52,7 @@ function stepCounters(declarations, artifacts) {
     costBasis: "derivedFullReportScan",
     incrementalStatus: "notIncremental",
     declarations: declarations.length,
+    routeCoupledDeclarations: declarations.filter((declaration) => declaration.routeCoupled).length,
     stepFieldMemberships: declarations.reduce((total, declaration) => (
       total + declaration.fields.length
     ), 0),
@@ -105,7 +108,9 @@ function messageProjectionKey(message) {
 }
 
 function stepArtifact(declaration, readView, formArtifacts) {
-  const posture = normalizeStepPosture(runStepResolver(declaration, readView), declaration);
+  const posture = declaration.routeCoupled
+    ? routeCoupledStepPosture()
+    : normalizeStepPosture(runStepResolver(declaration, readView), declaration);
   const fieldSet = new Set(declaration.fields);
   const dirtyFields = formArtifacts.dirty.fields.filter((field) => fieldSet.has(field.field));
   const patchOperations = formArtifacts.patchPlan.operations.filter((operation) =>
@@ -125,7 +130,10 @@ function stepArtifact(declaration, readView, formArtifacts) {
     id: declaration.id,
     group: declaration.group,
     order: declaration.order,
+    orderDeclared: declaration.orderDeclared,
     fields: declaration.fields,
+    routeCoupled: declaration.routeCoupled,
+    layout: declaration.layout,
     posture: posture.posture,
     ...(posture.reason === undefined ? {} : { reason: posture.reason }),
     readiness: Object.freeze({
@@ -202,7 +210,7 @@ function stepReadinessBlockers(fieldSet, posture, formArtifacts) {
   const blockers = [];
   if (posture.posture === "blocked" || posture.posture === "unavailable") {
     blockers.push({
-      kind: `step:${posture.posture}`,
+      kind: posture.routeCoupled === true ? "step:deferred" : `step:${posture.posture}`,
       reason: posture.reason ?? `step is ${posture.posture}`,
     });
   }
@@ -245,6 +253,14 @@ function stepProgress(posture, blockers, dirtyFields) {
     return "changed";
   }
   return "complete";
+}
+
+function routeCoupledStepPosture() {
+  return Object.freeze({
+    posture: "unavailable",
+    reason: "route-coupled step behavior is deferred until router integration exists",
+    routeCoupled: true,
+  });
 }
 
 function stepSummary(artifacts) {

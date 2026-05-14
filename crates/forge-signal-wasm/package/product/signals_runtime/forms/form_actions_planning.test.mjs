@@ -178,7 +178,7 @@ test("signals.form does not collapse effectful empty-patch actions into no-op", 
     });
 
     assert.equal(form.attemptAction("approve").resultKind, "accepted");
-    assert.equal(form.attemptAction("noopStep").resultKind, "accepted");
+    assert.equal(form.attemptAction("noopStep").resultKind, "denied");
     assert.equal(form.attemptAction("inert").resultKind, "noOp");
   } finally {
     await cleanup();
@@ -275,6 +275,41 @@ test("signals.form declares controller-local step actions without route semantic
   }
 });
 
+test("signals.form keeps route-coupled step actions on typed deferred posture until router integration exists", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const signals = wrapSignals(createGraphOperationalRuntime());
+    const form = signals.form({
+      source: {
+        title: "Ship docs",
+      },
+      fields: ({ field }) => ({
+        title: field("title"),
+      }),
+      steps: ({ step }) => ({
+        review: step("review", ["title"], { routeCoupled: true }),
+      }),
+      actions: ({ step }) => ({
+        reviewRoute: step("reviewRoute", "review", "jump", {
+          routeCoupled: true,
+        }),
+      }),
+    });
+
+    const reviewRoute = form.actionPlan("reviewRoute");
+    assert.equal(reviewRoute.status, "denied");
+    assert.equal(reviewRoute.step.routeCoupled, true);
+    assert.equal(reviewRoute.diagnostics.routeSemantics, "routeCoupledDeferred");
+    assert.deepEqual(
+      reviewRoute.readiness.blockers.map((blocker) => blocker.kind),
+      ["action:deferred"],
+    );
+    assert.equal(form.executeAction("reviewRoute").resultKind, "denied");
+  } finally {
+    await cleanup();
+  }
+});
+
 test("signals.form denies malformed action declarations before planning", async () => {
   const { wrapSignals, cleanup } = await loadSignalsModule();
   try {
@@ -338,6 +373,39 @@ test("signals.form denies malformed action declarations before planning", async 
           }),
         }),
       /step action references an undeclared step/,
+    );
+
+    assert.throws(
+      () =>
+        signals.form({
+          source: { title: "Ship docs" },
+          fields: ({ field }) => ({
+            title: field("title"),
+          }),
+          actions: ({ action }) => ({
+            malformedRoute: action("malformedRoute", { routeCoupled: true }),
+          }),
+        }),
+      /only step actions may declare route-coupled posture/,
+    );
+
+    assert.throws(
+      () =>
+        signals.form({
+          source: { title: "Ship docs" },
+          fields: ({ field }) => ({
+            title: field("title"),
+          }),
+          steps: ({ step }) => ({
+            details: step("details", ["title"]),
+          }),
+          actions: ({ step }) => ({
+            malformedRoute: step("malformedRoute", "details", "next", {
+              routeCoupled: "yes",
+            }),
+          }),
+        }),
+      /action routeCoupled posture must be a boolean/,
     );
 
     const form = signals.form({

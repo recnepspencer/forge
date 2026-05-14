@@ -127,6 +127,7 @@ function actionResultArtifact(options) {
   const artifact = {
     kind: "actionResult",
     attemptId: options.attemptId,
+    observedAtMs: Date.now(),
     action: options.plan.id,
     actionKind: options.plan.kind,
     resultKind: options.resultKind,

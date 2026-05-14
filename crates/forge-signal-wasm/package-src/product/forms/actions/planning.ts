@@ -1,4 +1,6 @@
 import { FormDeclarationError } from "../form_errors.js";
+import { hostRequirementBlockers } from "../host/artifacts.js";
+import { controllerLocalNavigationBlockers } from "../navigation/semantics.js";
 import { stableValueDigest } from "../values/value_paths.js";
 import { recoveryActionsForBlockers } from "./recovery.js";
 
@@ -8,6 +10,9 @@ export function planActions(actionDeclarations, form, fieldDeclarations) {
   const availability = form.availability();
   const admission = form.admission();
   const readiness = form.readiness();
+  const host = form.host();
+  const steps = form.steps();
+  const navigation = form.navigation();
   const binding = currentActionBinding(form, fieldDeclarations, patchPlan);
   const plans = actionDeclarations.map((declaration) =>
     actionPlan(declaration, {
@@ -16,12 +21,16 @@ export function planActions(actionDeclarations, form, fieldDeclarations) {
       availability,
       admission,
       readiness,
+      host,
+      steps,
+      navigation,
       binding,
     }),
   );
   return Object.freeze({
     catalog: Object.freeze(actionDeclarations.map(actionCatalogEntry)),
     plans: Object.freeze(plans),
+    host,
     summary: actionSummary(plans),
     counters: actionCounters(actionDeclarations, plans),
     digests: actionReportDigests(actionDeclarations, plans),
@@ -39,7 +48,7 @@ export function findActionPlan(actionDeclarations, form, fieldDeclarations, acti
 }
 
 function actionPlan(declaration, context) {
-  const blockers = actionReadinessBlockers(declaration, context.readiness.blockers);
+  const blockers = actionReadinessBlockers(declaration, context);
   const status = blockers.length === 0 ? "accepted" : "denied";
   const actionSchemaDigest = stableValueDigest(declaration.schema);
   const effectDigest = stableValueDigest({
@@ -66,6 +75,7 @@ function actionPlan(declaration, context) {
     idempotency: declaration.idempotency,
     effectPolicy: declaration.effectPolicy,
     hostEffect: declaration.hostEffect,
+    hostRequirements: declaration.hostRequirements,
     actionSchemaDigest,
     effectDigest,
     step: declaration.step,
@@ -96,13 +106,18 @@ function actionPlan(declaration, context) {
       summary: context.admission.summary,
       artifactCount: context.admission.artifacts.length,
     }),
+    host: Object.freeze({
+      requirements: declaration.hostRequirements,
+      blockers: hostRequirementBlockers(context.host, declaration.hostRequirements, declaration.id),
+      digest: context.host.digest,
+    }),
     proof,
     planDigest,
     regulatedActionBindings: regulatedActionBindings(declaration, context.admission, planDigest),
     diagnostics: Object.freeze({
       deniedBeforeEffects: blockers.length > 0,
       consumesLoweredPlan: true,
-      routeSemantics: declaration.kind === "step" ? "controllerLocalOnly" : "notStepNavigation",
+      routeSemantics: routeSemantics(declaration),
       repeatedAttemptPolicy: declaration.idempotency,
     }),
   });
@@ -120,6 +135,7 @@ function actionCatalogEntry(declaration) {
     idempotency: declaration.idempotency,
     effectPolicy: declaration.effectPolicy,
     hostEffect: declaration.hostEffect,
+    hostRequirements: declaration.hostRequirements,
     schema: declaration.schema,
     step: declaration.step,
   });
@@ -144,15 +160,42 @@ function actionPatchArtifact(declaration, patchPlan) {
   });
 }
 
-function actionReadinessBlockers(declaration, readinessBlockers) {
-  return Object.freeze(
-    readinessBlockers.filter((blocker) => {
+function actionReadinessBlockers(declaration, context) {
+  const blockers = [...hostRequirementBlockers(context.host, declaration.hostRequirements, declaration.id)];
+  if (declaration.step?.routeCoupled === true) {
+    blockers.push(Object.freeze({
+      kind: "action:deferred",
+      action: declaration.id,
+      reason: "route-coupled step action is deferred until router integration exists",
+    }));
+  }
+  if (declaration.step?.routeCoupled !== true && declaration.kind === "step") {
+    blockers.push(
+      ...controllerLocalNavigationBlockers(
+        declaration.step,
+        {
+          currentStepId: context.navigation.summary.currentStepId,
+          localStepIds: context.navigation.summary.localStepIds,
+          visitedStepIds: context.navigation.summary.visitedStepIds,
+          skippedStepIds: context.navigation.summary.skippedStepIds,
+          localSteps: context.steps.artifacts.filter((step) => step.routeCoupled !== true),
+        },
+        declaration.id,
+      ),
+    );
+  }
+  blockers.push(
+    ...context.readiness.blockers.filter((blocker) => {
+      if (blocker.kind === "host:offline" || blocker.kind === "host:unavailable") {
+        return false;
+      }
       if (blocker.kind === "unchanged" && declaration.patchPolicy !== "requiresNonEmpty") {
         return false;
       }
       return blocker.action === declaration.id || blocker.action === undefined;
     }),
   );
+  return Object.freeze(blockers);
 }
 
 function currentActionBinding(form, fieldDeclarations, patchPlan) {
@@ -209,6 +252,15 @@ function regulatedActionBindings(declaration, admission, planDigest) {
   );
 }
 
+function routeSemantics(declaration) {
+  if (declaration.kind !== "step") {
+    return "notStepNavigation";
+  }
+  return declaration.step?.routeCoupled === true
+    ? "routeCoupledDeferred"
+    : "controllerLocalOnly";
+}
+
 function actionSummary(plans) {
   const summary = {
     total: plans.length,
@@ -247,6 +299,8 @@ function actionCounters(declarations, plans) {
     deniedPlans: plans.filter((plan) => plan.status === "denied").length,
     destructivePlans: plans.filter((plan) => plan.destructive).length,
     stepPlans: plans.filter((plan) => plan.kind === "step").length,
+    routeCoupledDeferredPlans: plans.filter((plan) => plan.diagnostics.routeSemantics === "routeCoupledDeferred").length,
+    hostRequiredPlans: plans.filter((plan) => plan.host.requirements.length > 0).length,
     nonEmptyPatchPlans: plans.filter((plan) => !plan.patch.empty).length,
   });
 }
@@ -261,6 +315,7 @@ function actionReportDigests(declarations, plans) {
     idempotency: declaration.idempotency,
     effectPolicy: declaration.effectPolicy,
     hostEffect: declaration.hostEffect,
+    hostRequirements: declaration.hostRequirements,
     schema: declaration.schema,
     step: declaration.step,
   })));
@@ -268,6 +323,7 @@ function actionReportDigests(declarations, plans) {
     id: plan.id,
     status: plan.status,
     blockers: plan.readiness.blockers,
+    host: plan.host,
     admission: plan.admission,
     regulatedActionBindings: plan.regulatedActionBindings,
   })));

@@ -2,12 +2,14 @@ import { createFormReadView } from "../read_views.js";
 import { normalizeAvailabilityArtifact } from "./artifacts.js";
 
 export function evaluateAvailability(availabilityDeclarations, form) {
-  const readView = createFormReadView(form);
+  const host = form.host();
+  const readView = createFormReadView(form, { host });
   const artifacts = availabilityDeclarations.map((declaration) =>
     normalizeAvailabilityArtifact(runAvailabilityResolver(declaration, readView), declaration),
   );
   return Object.freeze({
     artifacts: Object.freeze(artifacts),
+    host,
     summary: summarizeAvailability(artifacts),
     counters: availabilityCounters(availabilityDeclarations, artifacts),
     dependencyBreadth: Object.freeze(

@@ -3,6 +3,7 @@ import type { SignalValue } from "../model.js";
 export interface FormCanonicalizationArtifact {
   readonly kind: "canonicalization";
   readonly canonicalizationId: number;
+  readonly observedAtMs: number;
   readonly operationId: number;
   readonly action: string | null;
   readonly planDigest: string | null;

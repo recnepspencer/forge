@@ -1,8 +1,9 @@
-export function createFormReadView(form) {
+export function createFormReadView(form, snapshots = {}) {
   return Object.freeze({
-    source: form.source,
-    draft: form.draft,
-    effective: form.effective,
+    source: snapshots.source === undefined ? form.source : () => snapshots.source,
+    draft: snapshots.draft === undefined ? form.draft : () => snapshots.draft,
+    effective: snapshots.effective === undefined ? form.effective : () => snapshots.effective,
+    host: snapshots.host === undefined ? form.host : () => snapshots.host,
     field(fieldId) {
       return createFieldReadView(form.field(fieldId));
     },

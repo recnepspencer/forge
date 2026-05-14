@@ -3,6 +3,10 @@ import type { FormAdmissionCapability, FormAdmissionReport } from "./admission.j
 import type { FormAvailabilityReport } from "./availability.js";
 import type { FormPatchOperation, FormReadinessBlocker } from "./core.js";
 import type { FormValidationReport } from "./validation.js";
+import type {
+  FormHostReport,
+  FormHostRequiredCapability,
+} from "./host.js";
 
 export type FormActionKind = "submit" | "custom" | "step";
 export type FormActionPatchPolicy = "requiresNonEmpty" | "allowEmpty" | "ignore";
@@ -28,11 +32,13 @@ export interface FormActionDeclarationOptions {
   readonly idempotency?: FormActionIdempotency;
   readonly effectPolicy?: FormActionEffectPolicy;
   readonly hostEffect?: string;
+  readonly hostRequirements?: ReadonlyArray<FormHostRequiredCapability>;
   readonly schema?: SignalValue;
 }
 
 export interface FormStepActionDeclarationOptions extends FormActionDeclarationOptions {
   readonly kind?: "step";
+  readonly routeCoupled?: boolean;
 }
 
 export interface FormActionDeclaration {
@@ -65,11 +71,12 @@ export interface FormActionCatalogEntry {
   readonly idempotency: FormActionIdempotency;
   readonly effectPolicy: FormActionEffectPolicy;
   readonly hostEffect: string | null;
+  readonly hostRequirements: ReadonlyArray<FormHostRequiredCapability>;
   readonly schema: SignalValue | null;
   readonly step: {
     readonly stepId: string;
     readonly command: FormStepActionCommand;
-    readonly routeCoupled: false;
+    readonly routeCoupled: boolean;
   } | null;
 }
 
@@ -121,6 +128,11 @@ export interface FormActionPlan extends FormActionCatalogEntry {
     readonly summary: FormAdmissionReport["summary"];
     readonly artifactCount: number;
   };
+  readonly host: {
+    readonly requirements: ReadonlyArray<FormHostRequiredCapability>;
+    readonly blockers: ReadonlyArray<FormReadinessBlocker>;
+    readonly digest: string;
+  };
   readonly proof: {
     readonly sourceDigest: string;
     readonly draftDigest: string;
@@ -145,7 +157,7 @@ export interface FormActionPlan extends FormActionCatalogEntry {
   readonly diagnostics: {
     readonly deniedBeforeEffects: boolean;
     readonly consumesLoweredPlan: true;
-    readonly routeSemantics: "controllerLocalOnly" | "notStepNavigation";
+    readonly routeSemantics: "controllerLocalOnly" | "routeCoupledDeferred" | "notStepNavigation";
     readonly repeatedAttemptPolicy: FormActionIdempotency;
   };
 }
@@ -153,6 +165,7 @@ export interface FormActionPlan extends FormActionCatalogEntry {
 export interface FormActionResultArtifact {
   readonly kind: "actionResult";
   readonly attemptId: number;
+  readonly observedAtMs: number;
   readonly action: string;
   readonly actionKind: FormActionKind;
   readonly resultKind: FormActionResultKind;
@@ -195,6 +208,7 @@ export interface FormServerMessageArtifact {
 export interface FormActionExecutionArtifact {
   readonly kind: "actionExecution";
   readonly operationId: number;
+  readonly observedAtMs: number;
   readonly targetOperationId?: number;
   readonly targetAction?: string | null;
   readonly targetPlanDigest?: string | null;
@@ -223,6 +237,7 @@ export interface FormActionExecutionArtifact {
 export interface FormActionsReport {
   readonly catalog: ReadonlyArray<FormActionCatalogEntry>;
   readonly plans: ReadonlyArray<FormActionPlan>;
+  readonly host: FormHostReport;
   readonly summary: {
     readonly total: number;
     readonly accepted: number;
@@ -244,6 +259,8 @@ export interface FormActionsReport {
     readonly deniedPlans: number;
     readonly destructivePlans: number;
     readonly stepPlans: number;
+    readonly routeCoupledDeferredPlans: number;
+    readonly hostRequiredPlans: number;
     readonly nonEmptyPatchPlans: number;
   };
   readonly digests: {

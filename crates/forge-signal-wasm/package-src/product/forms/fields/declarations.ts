@@ -26,11 +26,14 @@ export function materializeFieldDeclarations(declaration) {
         throw new FormDeclarationError("form field ids must be unique", { id });
       }
       seenIds.add(id);
+      const accessibility = normalizeFieldAccessibility(field.options, name, id, field.path);
       return Object.freeze({
         name,
         id,
         path: field.path,
         segments: Object.freeze(field.segments),
+        accessibility,
+        layout: normalizeFieldLayout(field.options, id),
         inputAdapter: normalizeInputAdapter(field.options),
         parse: typeof field.options.parse === "function" ? field.options.parse : null,
       });
@@ -50,4 +53,131 @@ function createFieldDeclarationFactory() {
       });
     },
   };
+}
+
+function normalizeFieldAccessibility(options, fieldName, fieldId, fieldPath) {
+  const declared = options.accessibility ?? {};
+  if (declared == null || typeof declared !== "object" || Array.isArray(declared)) {
+    throw new FormDeclarationError("form field accessibility metadata must be an object", {
+      field: fieldId,
+      accessibility: declared,
+    });
+  }
+  const describedBy = options.describedBy ?? declared.describedBy ?? [];
+  if (!Array.isArray(describedBy) || describedBy.some((entry) => typeof entry !== "string" || entry.length === 0)) {
+    throw new FormDeclarationError("form field accessibility describedBy entries must be non-empty strings", {
+      field: fieldId,
+      describedBy,
+    });
+  }
+  return Object.freeze({
+    label: stringOrFallback(options.label ?? declared.label, humanizeFieldLabel(fieldName, fieldPath)),
+    description: stringOrNull(options.description ?? declared.description),
+    summaryLabel: stringOrFallback(options.summaryLabel ?? declared.summaryLabel, humanizeFieldLabel(fieldName, fieldPath)),
+    describedBy: Object.freeze([...describedBy]),
+    readingOrder: finiteOrder(options.readingOrder ?? declared.readingOrder, "readingOrder"),
+    focusOrder: finiteOrder(options.focusOrder ?? declared.focusOrder, "focusOrder"),
+    summaryOrder: finiteOrder(options.summaryOrder ?? declared.summaryOrder, "summaryOrder"),
+  });
+}
+
+function humanizeFieldLabel(fieldName, fieldPath) {
+  const source = typeof fieldName === "string" && fieldName.length > 0
+    ? fieldName
+    : String(fieldPath).split(".").at(-1) ?? String(fieldPath);
+  return source
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .replace(/^./, (value) => value.toUpperCase());
+}
+
+function stringOrFallback(value, fallback) {
+  if (value === undefined || value === null || value === "") {
+    return fallback;
+  }
+  return String(value);
+}
+
+function stringOrNull(value) {
+  if (value === undefined || value === null || value === "") {
+    return null;
+  }
+  return String(value);
+}
+
+function finiteOrder(value, label) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new FormDeclarationError(`form field accessibility ${label} must be a finite number`, {
+      value,
+    });
+  }
+  return value;
+}
+
+function normalizeFieldLayout(options, fieldId) {
+  const declared = options.layout ?? {};
+  if (declared == null || typeof declared !== "object" || Array.isArray(declared)) {
+    throw new FormDeclarationError("form field layout metadata must be an object", {
+      field: fieldId,
+      layout: declared,
+    });
+  }
+  const responsive = options.responsive ?? declared.responsive ?? [];
+  if (!Array.isArray(responsive) || responsive.some((entry) => typeof entry !== "string" || entry.length === 0)) {
+    throw new FormDeclarationError("form field layout responsive entries must be non-empty strings", {
+      field: fieldId,
+      responsive,
+    });
+  }
+  return Object.freeze({
+    row: stringOrFallback(options.row ?? declared.row, fieldId),
+    column: stringOrFallback(options.column ?? declared.column, fieldId),
+    density: enumValue(options.density ?? declared.density, ["compact", "comfortable", "spacious"], "comfortable", "density"),
+    alignment: enumValue(options.alignment ?? declared.alignment, ["start", "center", "stretch"], "stretch", "alignment"),
+    minHeight: nonNegativeNumber(options.minHeight ?? declared.minHeight, "minHeight"),
+    grow: booleanValue(options.grow ?? declared.grow, false),
+    wrap: booleanValue(options.wrap ?? declared.wrap, false),
+    responsive: Object.freeze([...responsive]),
+  });
+}
+
+function enumValue(value, allowed, fallback, label) {
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+  if (!allowed.includes(value)) {
+    throw new FormDeclarationError(`form field layout ${label} is not supported`, {
+      value,
+    });
+  }
+  return value;
+}
+
+function nonNegativeNumber(value, label) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+    throw new FormDeclarationError(`form field layout ${label} must be a non-negative finite number`, {
+      value,
+    });
+  }
+  return value;
+}
+
+function booleanValue(value, fallback) {
+  if (value === undefined || value === null) {
+    return fallback;
+  }
+  if (typeof value !== "boolean") {
+    throw new FormDeclarationError("form field layout boolean posture must be a boolean", {
+      value,
+    });
+  }
+  return value;
 }

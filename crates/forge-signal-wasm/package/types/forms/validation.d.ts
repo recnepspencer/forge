@@ -3,6 +3,7 @@ import type {
   FormFieldDirtyState,
   FormFieldLocus,
 } from "./core.js";
+import type { FormHostReport } from "./host.js";
 
 export interface FormMessageArtifact {
   readonly code: string;
@@ -90,6 +91,7 @@ export interface FormValidationReadView<TSource = SignalValue> {
   source(): TSource;
   draft(): Partial<TSource>;
   effective(): TSource;
+  host(): FormHostReport;
   field<TValue = SignalValue>(fieldId: string): FormValidationFieldReadView<TValue>;
 }
 
@@ -132,6 +134,7 @@ export type FormValidationBuilder =
 
 export interface FormValidationReport {
   readonly artifacts: ReadonlyArray<FormValidationArtifact>;
+  readonly host: FormHostReport;
   readonly summary: {
     readonly valid: number;
     readonly warning: number;

@@ -1,4 +1,5 @@
 import { parseFailureArtifact } from "../validation/artifacts.js";
+import { applyFieldInteraction, normalizeInteractionInputSource } from "../interaction/controller_bindings.js";
 import {
   cloneFormValue,
   deletePath,
@@ -47,14 +48,34 @@ export function createFieldHandle(field, form, state) {
     input(rawValue, options = {}) {
       denyFieldWriteIfBlocked(field, form, "edit");
       state.parseFailures.delete(field.id);
+      const source = normalizeInteractionInputSource(options.source);
       state.rawInputs.set(field.id, {
         field: field.id,
         rawValue: cloneFormValue(rawValue),
         committed: false,
       });
+      applyFieldInteraction(state.interactions, field, {
+        kind: "input",
+        source,
+        rawValue,
+      });
       if (options.commit === true) {
         return handle.commitInput();
       }
+      return handle;
+    },
+    compose(rawValue) {
+      denyFieldWriteIfBlocked(field, form, "edit");
+      state.parseFailures.delete(field.id);
+      state.rawInputs.set(field.id, {
+        field: field.id,
+        rawValue: cloneFormValue(rawValue),
+        committed: false,
+      });
+      applyFieldInteraction(state.interactions, field, {
+        kind: "compositionStart",
+        rawValue,
+      });
       return handle;
     },
     commitInput(parser) {
@@ -70,11 +91,45 @@ export function createFieldHandle(field, form, state) {
       } catch (error) {
         state.parseFailures.set(field.id, parseFailureArtifact(field, error, pending.rawValue));
         state.rawInputs.delete(field.id);
+        applyFieldInteraction(state.interactions, field, {
+          kind: "compositionCancel",
+        });
         return handle;
       }
       state.parseFailures.delete(field.id);
       state.rawInputs.delete(field.id);
+      applyFieldInteraction(state.interactions, field, {
+        kind: "compositionCommit",
+      });
       state.writeDraft(writePath(form.draft(), field.segments, parsedValue));
+      return handle;
+    },
+    touch() {
+      applyFieldInteraction(state.interactions, field, {
+        kind: "touch",
+        source: "imperative",
+      });
+      return handle;
+    },
+    visit() {
+      applyFieldInteraction(state.interactions, field, {
+        kind: "visit",
+        source: "imperative",
+      });
+      return handle;
+    },
+    focus() {
+      applyFieldInteraction(state.interactions, field, {
+        kind: "focus",
+        source: "imperative",
+      });
+      return handle;
+    },
+    blur() {
+      applyFieldInteraction(state.interactions, field, {
+        kind: "blur",
+        source: "imperative",
+      });
       return handle;
     },
     dirty() {
@@ -95,6 +150,7 @@ export function createFieldHandle(field, form, state) {
         dirty: handle.dirty(),
         pendingRawInput: state.rawInputs.has(field.id),
         parseFailure: state.parseFailures.get(field.id) ?? null,
+        interaction: form.interaction().fields.find((entry) => entry.field === field.id) ?? null,
         writePosture: form.fieldWritePosture(field.id),
         inputAdapter: field.inputAdapter,
       });

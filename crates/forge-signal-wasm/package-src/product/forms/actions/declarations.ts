@@ -6,6 +6,7 @@ const PATCH_POLICIES = new Set(["requiresNonEmpty", "allowEmpty", "ignore"]);
 const IDEMPOTENCY_POLICIES = new Set(["none", "collapse", "supersede", "queue", "deny"]);
 const EFFECT_POLICIES = new Set(["deferred", "none", "controllerLocal"]);
 const STEP_COMMANDS = new Set(["next", "back", "jump", "skip", "revisit", "custom"]);
+const HOST_REQUIREMENTS = new Set(["online", "persistence", "credentials", "autofill"]);
 
 export function materializeActionDeclarations(declaration, stepDeclarations) {
   const declaredStepIds = new Set(stepDeclarations.map((step) => step.id));
@@ -45,10 +46,16 @@ function createActionFactory(declaredStepIds) {
     },
     action(actionId, options = {}) {
       requireActionId(actionId);
+      requireRouteCoupledOption(actionId, options.routeCoupled);
       if (options.kind === "submit" || options.kind === "step") {
         throw new FormDeclarationError("custom actions cannot impersonate built-in action kinds", {
           actionId,
           kind: options.kind,
+        });
+      }
+      if (options.routeCoupled === true) {
+        throw new FormDeclarationError("only step actions may declare route-coupled posture", {
+          actionId,
         });
       }
       return actionDeclaration(actionId, {
@@ -63,6 +70,7 @@ function createActionFactory(declaredStepIds) {
       requireActionId(actionId);
       requireStepId(declaredStepIds, stepId);
       requireStepCommand(command);
+      requireRouteCoupledOption(actionId, options.routeCoupled);
       return actionDeclaration(actionId, {
         ...options,
         kind: "step",
@@ -72,7 +80,7 @@ function createActionFactory(declaredStepIds) {
         step: Object.freeze({
           stepId,
           command,
-          routeCoupled: false,
+          routeCoupled: options.routeCoupled === true,
         }),
       });
     },
@@ -108,6 +116,7 @@ function actionDeclaration(actionId, options) {
     idempotency,
     effectPolicy,
     hostEffect: options.hostEffect === undefined ? null : String(options.hostEffect),
+    hostRequirements: normalizeHostRequirements(options.hostRequirements),
     schema: options.schema === undefined ? null : options.schema,
     step: options.step ?? null,
   });
@@ -151,6 +160,41 @@ function requireStepId(declaredStepIds, stepId) {
 
 function requireStepCommand(command) {
   normalizeEnum(command, STEP_COMMANDS, "step action command");
+}
+
+function requireRouteCoupledOption(actionId, routeCoupled) {
+  if (routeCoupled !== undefined && typeof routeCoupled !== "boolean") {
+    throw new FormDeclarationError("action routeCoupled posture must be a boolean", {
+      actionId,
+      routeCoupled,
+    });
+  }
+}
+
+function normalizeHostRequirements(requirements) {
+  if (requirements === undefined) {
+    return Object.freeze([]);
+  }
+  if (!Array.isArray(requirements)) {
+    throw new FormDeclarationError("action host requirements must be an array", {
+      hostRequirements: requirements,
+    });
+  }
+  const seen = new Set();
+  for (const requirement of requirements) {
+    if (typeof requirement !== "string" || !HOST_REQUIREMENTS.has(requirement)) {
+      throw new FormDeclarationError("action host requirement is not supported", {
+        requirement,
+      });
+    }
+    if (seen.has(requirement)) {
+      throw new FormDeclarationError("action host requirements must be unique", {
+        requirement,
+      });
+    }
+    seen.add(requirement);
+  }
+  return Object.freeze([...requirements]);
 }
 
 function normalizeEnum(value, allowed, label) {

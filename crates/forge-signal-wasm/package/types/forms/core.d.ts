@@ -1,10 +1,44 @@
 import type { SignalValue } from "../model.js";
 import type { FormValidationArtifact } from "./validation.js";
+import type { FormInteractionInputSource } from "./interaction.js";
 
 export interface CallableFormSignal<TValue = SignalValue> {
   (): TValue;
   get(): TValue;
   value(): TValue;
+}
+
+export interface FormSourceSchemaContext<TSource = SignalValue> {
+  readonly previousSchemaVersion: string | null;
+  readonly currentSchemaVersion: string | null;
+  readonly source: TSource;
+}
+
+export type FormSourceMigrationResult =
+  | true
+  | null
+  | undefined
+  | {
+    readonly kind: "compatible";
+    readonly reason?: string;
+  }
+  | {
+    readonly kind: "migrated";
+    readonly draft: SignalValue;
+    readonly reason?: string;
+  }
+  | {
+    readonly kind: "unavailable";
+    readonly reason?: string;
+  };
+
+export interface FormSourceDescriptor<TValue = SignalValue> {
+  readonly value: FormSourceValue<TValue>;
+  readonly schemaVersion?: string | number | CallableFormSignal<string | number> | (() => string | number);
+  readonly migrateDraft?: (
+    draft: Partial<TValue>,
+    context: FormSourceSchemaContext<TValue>,
+  ) => FormSourceMigrationResult;
 }
 
 export type FormFieldPath = string | ReadonlyArray<string | number>;
@@ -20,6 +54,44 @@ export interface FormInputAdapterOptions {
   reportsCommitBoundary?: boolean;
   reportsComposition?: boolean;
   reportsFocus?: boolean;
+  supportsLabelTrack?: boolean;
+  supportsHelpTrack?: boolean;
+  supportsMessageTrack?: boolean;
+  supportsMinHeightSync?: boolean;
+  supportsResponsiveTokens?: boolean;
+}
+
+export interface FormInputAdapterCapabilitySet {
+  readonly reportsRawInput: boolean;
+  readonly reportsCommitBoundary: boolean;
+  readonly reportsComposition: boolean;
+  readonly reportsFocus: boolean;
+  readonly supportsLabelTrack: boolean;
+  readonly supportsHelpTrack: boolean;
+  readonly supportsMessageTrack: boolean;
+  readonly supportsMinHeightSync: boolean;
+  readonly supportsResponsiveTokens: boolean;
+}
+
+export interface FormFieldAccessibilityOptions {
+  readonly label?: string;
+  readonly description?: string;
+  readonly summaryLabel?: string;
+  readonly describedBy?: ReadonlyArray<string>;
+  readonly readingOrder?: number;
+  readonly focusOrder?: number;
+  readonly summaryOrder?: number;
+}
+
+export interface FormFieldLayoutOptions {
+  readonly row?: string;
+  readonly column?: string;
+  readonly density?: "compact" | "comfortable" | "spacious";
+  readonly alignment?: "start" | "center" | "stretch";
+  readonly minHeight?: number;
+  readonly grow?: boolean;
+  readonly wrap?: boolean;
+  readonly responsive?: ReadonlyArray<string>;
 }
 
 export interface FormFieldOptions<TValue = SignalValue, TRaw = TValue> {
@@ -27,6 +99,23 @@ export interface FormFieldOptions<TValue = SignalValue, TRaw = TValue> {
   adapter?: FormInputAdapterOptions;
   inputAdapter?: FormInputAdapterOptions;
   parse?: (rawValue: TRaw) => TValue;
+  label?: string;
+  description?: string;
+  summaryLabel?: string;
+  describedBy?: ReadonlyArray<string>;
+  readingOrder?: number;
+  focusOrder?: number;
+  summaryOrder?: number;
+  accessibility?: FormFieldAccessibilityOptions;
+  row?: string;
+  column?: string;
+  density?: "compact" | "comfortable" | "spacious";
+  alignment?: "start" | "center" | "stretch";
+  minHeight?: number;
+  grow?: boolean;
+  wrap?: boolean;
+  responsive?: ReadonlyArray<string>;
+  layout?: FormFieldLayoutOptions;
 }
 
 export interface FormFieldDeclaration<TValue = SignalValue, TRaw = TValue> {
@@ -45,10 +134,14 @@ export interface FormFieldFactory {
 export type FormFieldsBuilder<TFields extends Record<string, FormFieldDeclaration>> =
   (factory: FormFieldFactory) => TFields;
 
-export type FormSource<TValue = SignalValue> =
+export type FormSourceValue<TValue = SignalValue> =
   | TValue
   | (() => TValue)
   | CallableFormSignal<TValue>;
+
+export type FormSource<TValue = SignalValue> =
+  | FormSourceValue<TValue>
+  | FormSourceDescriptor<TValue>;
 
 export interface FormFieldLocus {
   readonly field: string;
@@ -77,7 +170,7 @@ export interface FormSemanticEqualityCounters {
 
 export interface FormInputAdapterDiagnostics {
   readonly tier: FormInputAdapterTier;
-  readonly capabilities: Readonly<Record<string, boolean>>;
+  readonly capabilities: FormInputAdapterCapabilitySet;
   readonly unavailable: ReadonlyArray<{
     readonly capability: string;
     readonly reason: string;
@@ -89,6 +182,21 @@ export interface FormFieldDiagnostics {
   readonly dirty: FormFieldDirtyState;
   readonly pendingRawInput: boolean;
   readonly parseFailure: FormValidationArtifact | null;
+  readonly interaction: {
+    readonly field: string;
+    readonly path: string;
+    readonly touched: boolean;
+    readonly visited: boolean;
+    readonly focused: boolean;
+    readonly focusIntent: boolean;
+    readonly blurred: boolean;
+    readonly lastInputSource: FormInteractionInputSource | null;
+    readonly composing: boolean;
+    readonly compositionDigest: string | null;
+    readonly focusPosture: "supported" | "unavailable";
+    readonly focusReason: string | null;
+    readonly interactionDigest: string;
+  } | null;
   readonly writePosture: FormFieldWritePosture;
   readonly inputAdapter: FormInputAdapterDiagnostics;
 }
@@ -111,8 +219,16 @@ export interface FormFieldHandle<TValue = SignalValue, TRaw = TValue> {
   value(): TValue;
   set(value: TValue): FormFieldHandle<TValue, TRaw>;
   clearDraft(): FormFieldHandle<TValue, TRaw>;
-  input(rawValue: TRaw, options?: { commit?: boolean }): FormFieldHandle<TValue, TRaw>;
+  input(rawValue: TRaw, options?: {
+    commit?: boolean;
+    source?: FormInteractionInputSource;
+  }): FormFieldHandle<TValue, TRaw>;
+  compose(rawValue: TRaw): FormFieldHandle<TValue, TRaw>;
   commitInput(parser?: (rawValue: TRaw) => TValue): FormFieldHandle<TValue, TRaw>;
+  touch(): FormFieldHandle<TValue, TRaw>;
+  visit(): FormFieldHandle<TValue, TRaw>;
+  focus(): FormFieldHandle<TValue, TRaw>;
+  blur(): FormFieldHandle<TValue, TRaw>;
   dirty(): FormFieldDirtyState;
   diagnostics(): FormFieldDiagnostics;
 }
@@ -179,8 +295,21 @@ export interface FormReadinessBlocker {
     | "validation:parseFailure"
     | "availability:blocked"
     | "availability:unavailable"
+    | "schema:drift"
+    | "host:offline"
+    | "host:unavailable"
     | "step:blocked"
     | "step:unavailable"
+    | "step:deferred"
+    | "action:deferred"
+    | "navigation:notCurrentStep"
+    | "navigation:noNextStep"
+    | "navigation:noBackStep"
+    | "navigation:removedTarget"
+    | "navigation:unavailableTarget"
+    | "collaboration:locked"
+    | "collaboration:leased"
+    | "collaboration:readOnly"
     | "idempotency:duplicate"
     | "admission:denied"
     | "admission:blocked"
@@ -196,5 +325,8 @@ export interface FormReadinessBlocker {
   readonly section?: string;
   readonly fields?: ReadonlyArray<string>;
   readonly capability?: string;
+  readonly collaborator?: string;
+  readonly schemaVersion?: string | null;
+  readonly previousSchemaVersion?: string | null;
   readonly reason: string;
 }
