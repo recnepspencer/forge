@@ -9,6 +9,7 @@ const moduleDir = path.dirname(fileURLToPath(import.meta.url));
 const packageDir = path.join(moduleDir, "..", "..", "..");
 const packageSourceDir = path.join(packageDir, "..", "package-src");
 const apiSourceDir = path.join(packageSourceDir, "product", "api");
+const formsSourceDir = path.join(packageSourceDir, "product", "forms");
 const resourceSourceDir = path.join(packageSourceDir, "product", "resource");
 const signalsModuleGlobal = globalThis;
 const cachedSignalsModuleLoads =
@@ -100,6 +101,10 @@ async function loadSignalsModuleIntoCachedTempDir(options, cacheKey) {
     await writeConvertedTree(
       apiSourceDir,
       path.join(tempDir, "product", "api"),
+    );
+    await writeConvertedTree(
+      formsSourceDir,
+      path.join(tempDir, "product", "forms"),
     );
     await writeConvertedTree(
       resourceSourceDir,

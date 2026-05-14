@@ -51,6 +51,9 @@ import type {
   ControllerContractDefinition,
 } from "./controller_surface.js";
 import type {
+  FormFactory,
+} from "./forms_surface.js";
+import type {
   ComputedSignal,
   DisposableHandle,
   InputSignal,
@@ -554,6 +557,7 @@ export interface ScopedSignalNamespace<TPersistence = SignalValue> {
     TOutputs extends GraphOutputDefinitions = Record<string, never>,
     TInternal extends Record<string, unknown> = Record<string, never>,
   >(builder: ControllerContractBuilder<TPersistence, TInputs, TOutputs, TInternal>): ControllerContract<TInputs, TOutputs, TInternal>;
+  readonly form: FormFactory;
   publicInput<THandle extends InputSignalHandle>(
     handle: THandle,
     options?: PublicGraphInputOptions,
@@ -622,6 +626,7 @@ export interface CallableSignals<TPersistence = SignalValue> {
     TOutputs extends GraphOutputDefinitions = Record<string, never>,
     TInternal extends Record<string, unknown> = Record<string, never>,
   >(builder: ControllerContractBuilder<TPersistence, TInputs, TOutputs, TInternal>): ControllerContract<TInputs, TOutputs, TInternal>;
+  readonly form: FormFactory;
   publicInput<THandle extends InputSignalHandle>(
     handle: THandle,
     options?: PublicGraphInputOptions,

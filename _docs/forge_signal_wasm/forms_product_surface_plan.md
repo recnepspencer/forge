@@ -13,6 +13,9 @@
 > **Resource effects closeout:**
 > [resource_response_lens_contracts_plan.md](./resource_response_lens_contracts_plan.md)
 >
+> **Resource mutation-response closeout:**
+> [resource_mutation_response_reconciliation_plan.md](./resource_mutation_response_reconciliation_plan.md)
+>
 > **Certification parent:** [test-requirements.md](./test-requirements.md)
 
 ## Goal
@@ -234,6 +237,10 @@ then this milestone has failed.
   lifecycle. The two views must not be backed by separate completion records.
 - Resource-backed submit uses resource patch/effect semantics. It must not call
   resource mutation helpers as an opaque side effect after form validation.
+- Resource-backed submit and resource-backed action confirmation may consume
+  mutation-response reconciliation, but forms still declare the intended write
+  at the form boundary. The form surface must not hide resource mutation
+  response planning behind feature-local commit callbacks.
 - Resource-backed forms must preserve the completed resource/API surface:
   family identity, member identity, line identity, detail/collection/paged
   shape, request posture, lifecycle/freshness/status posture, history,
@@ -917,7 +924,8 @@ Must ship:
 - server rejection mapping into form-level, section-level, field-level, action,
   and resource-locus messages
 - canonicalization hooks for server-returned transformed values
-- schema-version and draft-migration posture for long-lived drafts
+- schema-version and draft-migration posture for long-lived drafts once forms
+  can bind a long-lived draft to explicit source-schema compatibility proof
 - source drift handling before async action execution
 - typed deferred/unavailable posture for route-coupled step behavior before the
   router milestone
@@ -931,8 +939,11 @@ Must preserve:
 - server field errors are messages over declared loci, not opaque submit errors
 - stale async completions cannot rewrite newer source, draft, validation,
   readiness, action, or admission truth
-- schema drift cannot silently rewrite or discard a long-lived draft
+- schema drift cannot silently rewrite or discard a long-lived draft once
+  schema-version posture is admitted
 - route-coupled multi-step behavior cannot be faked with form-local route state
+  once router integration begins; until then the form lane must stay on typed
+  deferred/unavailable posture rather than pretending route semantics exist
 
 Proof obligations:
 
@@ -950,6 +961,14 @@ Proof obligations:
 - URL-addressed step transitions, route guards, browser back/forward behavior,
   deep links, resume links, route remount preservation, and route-local step
   resources deny with typed deferred posture until router integration exists
+
+Current implementation note:
+
+- the current forms branch already covers async validation, action execution,
+  stale completion handling, retry/timeout/cancellation/supersession posture,
+  server rejection mapping, and canonicalization
+- schema-version/draft-migration posture and route-coupled step deferred
+  posture remain explicit Phase 6 obligations rather than closed work
 
 ### Phase 7: Host Facts And Input/Renderer Capabilities
 
@@ -1052,6 +1071,12 @@ Must ship:
 - lowering from form patch plans into resource effect operations
 - lowering from resource-backed form actions into resource effect, delivery,
   branch, or external action artifacts where declared
+- resource mutation-response reconciliation as a consumable form-facing
+  substrate for resource-backed submit/action completion:
+  exact reconciliation, partial reconciliation, stale-target denial,
+  refetch-required, delivery-awaited, identity migration, create placement,
+  delete/tombstone posture, and multi-family target outcomes where the backing
+  resource declaration admits them
 - typed resource effect profile inheritance/selection for resource-backed
   submit/actions, including branch-native optimistic, server-canonical,
   pessimistic/no-optimism, delivery-authoritative, non-reversible, and
@@ -1075,6 +1100,9 @@ Must preserve:
 - resource freshness, lifecycle, download, upload, processing, delivery,
   history, restore, replay, and external compatibility truth remain
   resource-owned artifacts
+- mutation-response plans, fallback posture, lifecycle proof, history proof,
+  verification packages, and closeout matrices remain resource-owned artifacts
+  when the form submit/action is resource-backed
 - form draft remains separate until submit/confirmation policy admits it
 - resource effect envelopes remain the canonical artifact for resource-backed
   writes and actions
@@ -1107,8 +1135,13 @@ Proof obligations:
 - form field to resource locus mapping denies when no declared resource locus
   exists
 - resource-backed form certification consumes the underlying resource line
-  verification package and `resource.effects.closeoutMatrix(profile)` evidence
-  where available
+  verification package, `resource.effects.closeoutMatrix(profile)` evidence,
+  and resource mutation-response closeout evidence such as
+  `signals.resource.mutationResponses.closeoutMatrix()` where available
+- resource-backed submit/action completion that relies on canonical server
+  responses consumes the same mutation-response confirmation, fallback,
+  replay/restore, and stale-denial posture the resource lane already ships; the
+  form layer must not restate those outcomes as a second local submit cache
 - simultaneous actor edits isolate by branch/lease, merge through native
   branch/resource proof, or block with typed conflict/unavailable artifacts
 - remote source changes rebase, conflict, block, or preserve local draft truth
@@ -1423,7 +1456,9 @@ closeout verification packages.
   speculative, confirmed, restored, merged, or unavailable branch selection
   proof where the line exposes branch visibility
 - resource-backed form closeout embeds or links resource line verification
-  packages and `resource.effects.closeoutMatrix(profile)` evidence
+  packages, `resource.effects.closeoutMatrix(profile)` evidence, and resource
+  mutation-response closeout evidence such as
+  `signals.resource.mutationResponses.closeoutMatrix()`
 - branch restore, exact replay, retained-history unavailability, and merge proof
   preserve form diagnostics/history truth
 - resource drift and collaboration presentation lanes can show settling or

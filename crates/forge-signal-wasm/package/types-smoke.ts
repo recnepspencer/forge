@@ -2,6 +2,9 @@ import {
   clockCapability,
   type ControllerContract,
   createSignals,
+  type FormActionPlan,
+  type FormController,
+  type FormValidationArtifact,
   type GraphMutationRequest,
   type GraphPublicationRequest,
   hostCapabilityPlan,
@@ -171,6 +174,168 @@ const objectPatchCommit = objectState.patch({
 const objectAssignCommit = objectState.assign({
   title: "Write release notes",
 });
+const taskForm = signals.form({
+  source: objectState,
+  fields: ({ field }) => ({
+    title: field<string>("title"),
+    done: field<boolean, string>("done", {
+      parse: (rawValue) => rawValue === "true",
+    }),
+  }),
+  validation: ({ field, form }) => ({
+    titleRequired: field<string>("title", (value, context): FormValidationArtifact => {
+      // @ts-expect-error validators receive read views and cannot mutate fields
+      context.field?.set("mutated");
+      return value.length > 0
+        ? { kind: "valid", field: "title", digest: value }
+        : {
+          kind: "invalid",
+          field: "title",
+          message: {
+            code: "task.title.required",
+            severity: "error",
+            target: "title",
+            audience: "user",
+            visibility: "visible",
+          },
+        };
+    }),
+    titleAndDone: form("titleAndDone", ["title", "done"], () => ({
+      kind: "pending",
+      asyncValidationId: "task-title-done-check",
+    })),
+  }),
+  availability: ({ field, action, control, group, section }) => ({
+    titleAvailability: field("title", ["done"], (values, context) => {
+      // @ts-expect-error availability contexts are read-only
+      context.form.field("title").set("mutated");
+      return values.done
+        ? { state: "readonly", draftPolicy: "freeze" }
+        : "enabled";
+    }),
+    submitAvailability: action("submit", ["done"], (values) => (
+      values.done ? "enabled" : { state: "blocked", reason: "task must be done" }
+    )),
+    saveControlAvailability: control("save", ["done"], (values) => (
+      values.done ? "enabled" : "disabled"
+    )),
+    detailsGroupAvailability: group("details", ["title"], ["done"], (values) => (
+      values.done ? "enabled" : "blocked"
+    )),
+    completionSectionAvailability: section("completion", ["done"], ["done"], () => "enabled"),
+  }),
+  admission: ({ field, action }) => ({
+    titleEdit: field("title", "edit", ["done"], (values, context) => {
+      // @ts-expect-error admission contexts are read-only
+      context.form.field("title").input("mutated");
+      return values.done ? "admitted" : { posture: "denied", reason: "not done" };
+    }),
+    submitAdmission: action("submit", "submit", ["done"], (values) => (
+      values.done
+        ? "admitted"
+        : {
+          posture: "requiresApproval",
+          actorDigest: "actor:reviewer",
+          policyDigest: "policy:done",
+        }
+    )),
+    signatureAdmission: action("submit", "signature", ["done"], (_values, context) => ({
+      posture: "requiresSignature",
+      actorDigest: "actor:signer",
+      policyDigest: "policy:signature",
+      sourceDigest: context.binding.sourceDigest,
+      patchDigest: context.binding.patchDigest,
+      schemaDigest: context.binding.schemaDigest,
+    })),
+  }),
+  steps: ({ step }) => ({
+    details: step("details", ["title"], {
+      order: 1,
+      group: "main",
+    }),
+    completion: step("completion", ["done"], {
+      order: 2,
+      dependencies: ["done"],
+      resolve: (values, context) => {
+        // @ts-expect-error step contexts expose read views, not mutable handles
+        context.form.field("done").set(true);
+        return values.done ? "active" : { posture: "blocked", reason: "task is not done" };
+      },
+    }),
+  }),
+  actions: ({ action, step }) => ({
+    saveDraft: action("saveDraft", {
+      patchPolicy: "allowEmpty",
+      idempotency: "collapse",
+      hostEffect: "draft.store",
+    }),
+    nextDetails: step("nextDetails", "details", "next"),
+  }),
+});
+const taskFormController: FormController = taskForm;
+const taskFormTitleValue: string = taskForm.fields.title.effectiveValue();
+taskForm.fields.done.input("true").commitInput();
+const taskFormDirty = taskForm.dirty().isDirty;
+const taskFormDirtyComparedFields: number = taskForm.dirty().breadth.comparedFields;
+const taskFormDirtyOmittedFields: number = taskForm.dirty().breadth.omittedFields;
+const taskFormDirtyClearedFields: number = taskForm.dirty().breadth.clearedFields;
+const taskFormDirtyEqualityCostBasis: string = taskForm.dirty().equality.costBasis;
+const taskFormPatch = taskForm.patchPlan().operations[0]?.field ?? null;
+const taskFormPatchComparedFields: number = taskForm.patchPlan().breadth.comparedFields;
+const taskFormPatchSkippedRawInputFields: number = taskForm.patchPlan().breadth.skippedRawInputFields;
+const taskFormPatchOmittedFields: number = taskForm.patchPlan().breadth.omittedFields;
+const taskFormPatchClearedFields: number = taskForm.patchPlan().breadth.clearedFields;
+const taskFormPatchEqualityCostBasis: string = taskForm.patchPlan().equality.costBasis;
+const taskFormReady = taskForm.readiness().canSubmit;
+const taskFormValidation = taskForm.validation().summary.pending;
+const taskFormAvailability = taskForm.availability().summary.readonly;
+const taskFormAvailabilityGroupCount = taskForm.availability().summary.byScope.group;
+const taskFormAvailabilityDependencyReads = taskForm.availability().counters.dependencyReads;
+const taskFormAvailabilityCostBasis = taskForm.availability().counters.costBasis;
+const taskFormAvailabilityGroupField = taskForm.availability().artifacts[2]?.fields[0] ?? null;
+const taskFormAdmission = taskForm.admission().summary.requiresApproval;
+const taskFormAdmissionRegulatedCount = taskForm.admission().counters.regulatedArtifacts;
+const taskFormAdmissionIncrementalStatus = taskForm.admission().counters.incrementalStatus;
+const taskFormAdmissionBinding = taskForm.admission().artifacts[0]?.binding?.bindingDigest ?? null;
+const taskFormAdmissionStale = taskForm.admission().artifacts[0]?.stale?.isStale ?? false;
+const taskFormStepCount = taskForm.steps().summary.total;
+const taskFormStepFieldMemberships = taskForm.steps().counters.stepFieldMemberships;
+const taskFormStepUniqueMessages = taskForm.steps().counters.uniqueProjectedMessages;
+const taskFormStepProgress = taskForm.steps().artifacts[0]?.progress ?? "blocked";
+const taskFormActionPlan: FormActionPlan = taskForm.actionPlan("saveDraft");
+const taskFormActionPlanDigest: string = taskFormActionPlan.planDigest;
+const taskFormActionEffectDigest: string = taskFormActionPlan.proof.effectDigest;
+const taskFormActionRecovery = taskFormActionPlan.recoveryActions[0]?.kind ?? null;
+const taskFormActionRegulatedBinding =
+  taskForm.actionPlan("submit").regulatedActionBindings[0]?.actionPlanDigest ?? null;
+const taskFormActionDeniedCount = taskForm.actions().summary.denied;
+const taskFormActionStepCount = taskForm.actions().counters.stepPlans;
+const taskFormActionAttempt = taskForm.attemptAction("saveDraft");
+const taskFormActionAttemptDigest: string = taskFormActionAttempt.resultDigest;
+const taskFormActionHistoryCount: number = taskForm.actionHistory().length;
+const taskFormActionExecution = taskForm.executeAction("saveDraft");
+const taskFormActionExecutionDigest: string = taskFormActionExecution.executionDigest;
+const taskFormActionExecutionSettlement = taskFormActionExecution.resultKind === "pending"
+  ? taskForm.fulfillAction(taskFormActionExecution.operationId, {
+      reason: "type smoke settled",
+      messages: [{
+        code: "task.settled",
+        scope: "action",
+      }],
+    })
+  : taskFormActionExecution;
+const taskFormActionExecutionHistoryCount: number =
+  taskForm.actionExecutionHistory().length;
+const taskFormVerificationDigest: string = taskForm.verification().packageDigest;
+const taskFormVerificationActionDigest: string =
+  taskForm.verification().digests.actionCatalogDigest;
+const taskFormVerificationPerformancePlans: number =
+  taskForm.verification().performanceEnvelope.actions.plans;
+const taskFormTitleWritePosture = taskForm.fieldWritePosture("title").canWrite;
+const taskFormTitleDiagnosticsWritePosture =
+  taskForm.fields.title.diagnostics().writePosture.canWrite;
+const taskFormSubmitReady = taskForm.actionReadiness("submit").canRun;
+const taskFormVisibleMessageCount = taskForm.visibleMessages().length;
 const optionList = signals.input([
   { id: "draft", label: "Draft" },
   { id: "review", label: "Review" },
@@ -1008,6 +1173,57 @@ void restoredItemDetailGraphReadInputs;
 void restoredItemDetailGraphDependency;
 void taskEditorOperationalContract;
 void taskEditorPatchId;
+void taskForm;
+void taskFormController;
+void taskFormTitleValue;
+void taskFormDirty;
+void taskFormDirtyComparedFields;
+void taskFormDirtyOmittedFields;
+void taskFormDirtyClearedFields;
+void taskFormDirtyEqualityCostBasis;
+void taskFormPatch;
+void taskFormPatchComparedFields;
+void taskFormPatchSkippedRawInputFields;
+void taskFormPatchOmittedFields;
+void taskFormPatchClearedFields;
+void taskFormPatchEqualityCostBasis;
+void taskFormReady;
+void taskFormValidation;
+void taskFormAvailability;
+void taskFormAvailabilityGroupCount;
+void taskFormAvailabilityDependencyReads;
+void taskFormAvailabilityCostBasis;
+void taskFormAvailabilityGroupField;
+void taskFormAdmission;
+void taskFormAdmissionRegulatedCount;
+void taskFormAdmissionIncrementalStatus;
+void taskFormAdmissionBinding;
+void taskFormAdmissionStale;
+void taskFormStepCount;
+void taskFormStepFieldMemberships;
+void taskFormStepUniqueMessages;
+void taskFormStepProgress;
+void taskFormActionPlan;
+void taskFormActionPlanDigest;
+void taskFormActionEffectDigest;
+void taskFormActionRecovery;
+void taskFormActionRegulatedBinding;
+void taskFormActionDeniedCount;
+void taskFormActionStepCount;
+void taskFormActionAttempt;
+void taskFormActionAttemptDigest;
+void taskFormActionHistoryCount;
+void taskFormActionExecution;
+void taskFormActionExecutionDigest;
+void taskFormActionExecutionSettlement;
+void taskFormActionExecutionHistoryCount;
+void taskFormVerificationDigest;
+void taskFormVerificationActionDigest;
+void taskFormVerificationPerformancePlans;
+void taskFormTitleWritePosture;
+void taskFormTitleDiagnosticsWritePosture;
+void taskFormSubmitReady;
+void taskFormVisibleMessageCount;
 void taskEditorGraphExportDefinition;
 void taskEditorGraphExportSnapshot;
 void taskEditorGraphImportPosture;
