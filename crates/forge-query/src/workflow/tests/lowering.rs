@@ -40,6 +40,7 @@ fn runtime_mutation_lowering_emits_explicit_strategy_request() {
 
     let lowered = lower_mutation_intent_declaration(
         &declaration,
+        binding.basis_digest(),
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
             desired_payload: json!({"name":"after"}),

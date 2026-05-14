@@ -1,0 +1,5 @@
+error[E0451]: field `rows` of struct `QueryBasisLifecycleSupportReport` is private
+ --> tests/ui/query_basis_lifecycle_support_report_constructor_private.rs:4:48
+  |
+4 |     let _ = QueryBasisLifecycleSupportReport { rows: Vec::new() };
+  |                                                ^^^^ private field

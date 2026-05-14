@@ -1,0 +1,5 @@
+error[E0599]: no method named `lower` found for struct `EffectBatchIntentDraft` in the current scope
+ --> tests/ui/effect_lifecycle/lowering/effect_lifecycle_batch_lowering_rejects_draft.rs:4:28
+  |
+4 |     let _ = effect_batch().lower();
+  |                            ^^^^^ method not found in `EffectBatchIntentDraft`

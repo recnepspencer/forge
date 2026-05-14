@@ -1,13 +1,12 @@
-error[E0277]: the trait bound `ForgeQueryInspectionTarget<'_>: From<&ForgeQueryIntentExecution>` is not satisfied
+error[E0277]: the trait bound `ForgeQueryInspectionTarget<'_>: From<&forge_query::facade::ForgeQueryIntentExecution>` is not satisfied
   --> tests/ui/runtime_intent_execution_cannot_skip_runtime_receipt.rs:18:29
    |
 18 |     let _ = runtime.inspect(&execution);
-   |                     ------- ^^^^^^^^^^ the trait `From<&ForgeQueryIntentExecution>` is not implemented for `ForgeQueryInspectionTarget<'_>`
+   |                     ------- ^^^^^^^^^^ the trait `From<&forge_query::facade::ForgeQueryIntentExecution>` is not implemented for `ForgeQueryInspectionTarget<'_>`
    |                     |
    |                     required by a bound introduced by this call
    |
    = help: the following other types implement trait `From<T>`:
-             `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryBatchWriteReceipt>`
              `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryBranchIntentReceipt>`
              `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryDerivedViewHandle<T>>`
              `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryEffectHandle<T>>`
@@ -15,8 +14,9 @@ error[E0277]: the trait bound `ForgeQueryInspectionTarget<'_>: From<&ForgeQueryI
              `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryIntentDenialEvidence>`
              `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryIntentReceipt>`
              `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryLiveView<T>>`
+             `ForgeQueryInspectionTarget<'_>` implements `From<&ForgeQueryPreviewHandleBindingEvidence>`
            and $N others
-   = note: required for `&ForgeQueryIntentExecution` to implement `Into<ForgeQueryInspectionTarget<'_>>`
+   = note: required for `&forge_query::facade::ForgeQueryIntentExecution` to implement `Into<ForgeQueryInspectionTarget<'_>>`
 note: required by a bound in `forge_query::runtime::runtime_inspection::<impl ForgeQueryRuntime>::inspect`
   --> src/runtime/runtime_inspection.rs
    |

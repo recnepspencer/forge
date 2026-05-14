@@ -115,7 +115,7 @@ opt-level = 2
 opt-level = 2
 
 [profile.test]
-opt-level = 2
+opt-level = 1
 
 [profile.test.package."*"]
-opt-level = 2
+opt-level = 1

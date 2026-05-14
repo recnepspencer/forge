@@ -267,6 +267,7 @@ pub struct LoweredMutationIntentDeclaration {
     declaration: QueryWorkflowDeclaration,
     mutation_family: MutationIntentFamily,
     strategy_target: RelationalStrategyTarget,
+    authority_binding: MutationAuthorityBinding,
     strategy_request: RawStrategyCommitRequest,
     freshness_binding: WorkflowFreshnessBinding,
     staleness_class: WorkflowStalenessClass,
@@ -287,6 +288,10 @@ impl LoweredMutationIntentDeclaration {
         &self.strategy_target
     }
 
+    pub fn authority_binding(&self) -> &MutationAuthorityBinding {
+        &self.authority_binding
+    }
+
     pub fn strategy_request(&self) -> &RawStrategyCommitRequest {
         &self.strategy_request
     }
@@ -305,6 +310,29 @@ impl LoweredMutationIntentDeclaration {
 
     pub fn counters(&self) -> &WorkflowLoweringCounters {
         &self.counters
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct MutationAuthorityBinding {
+    binding_digest: String,
+    runtime_snapshot_token: Option<String>,
+}
+
+impl MutationAuthorityBinding {
+    fn new(binding_digest: impl Into<String>, runtime_snapshot_token: Option<String>) -> Self {
+        Self {
+            binding_digest: binding_digest.into(),
+            runtime_snapshot_token,
+        }
+    }
+
+    pub fn binding_digest(&self) -> &str {
+        &self.binding_digest
+    }
+
+    pub fn runtime_snapshot_token(&self) -> Option<&str> {
+        self.runtime_snapshot_token.as_deref()
     }
 }
 
@@ -402,6 +430,7 @@ impl QueryWritebackDeclaration {
 
 pub fn lower_mutation_intent_declaration(
     declaration: &QueryWorkflowDeclaration,
+    authority_binding_digest: &str,
     input: MutationLoweringInput,
 ) -> Result<LoweredMutationIntentDeclaration, WorkflowLoweringError> {
     ensure_workflow_family(
@@ -452,6 +481,14 @@ pub fn lower_mutation_intent_declaration(
         format!("declaration:{}", declaration.report().declaration_digest()),
         format!("mutation_family:{}", mutation_family.as_str()),
         format!("strategy_target:{}", strategy_target.as_str()),
+        format!("authority_binding:{authority_binding_digest}"),
+        format!(
+            "runtime_snapshot:{}",
+            declaration
+                .binding()
+                .runtime_snapshot_token()
+                .unwrap_or("none")
+        ),
         format!("freshness:{}", freshness_binding.as_str()),
         format!(
             "request_origin:{:?}",
@@ -463,6 +500,13 @@ pub fn lower_mutation_intent_declaration(
         declaration: declaration.clone(),
         mutation_family,
         strategy_target,
+        authority_binding: MutationAuthorityBinding::new(
+            authority_binding_digest,
+            declaration
+                .binding()
+                .runtime_snapshot_token()
+                .map(str::to_string),
+        ),
         strategy_request: request,
         freshness_binding,
         staleness_class: WorkflowStalenessClass::ExactBasisPreserved,

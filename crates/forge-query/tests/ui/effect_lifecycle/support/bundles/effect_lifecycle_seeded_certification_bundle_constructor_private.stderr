@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `forge_query::facade::certify_effect_lifecycle_seeded`
+ --> tests/ui/effect_lifecycle/support/bundles/effect_lifecycle_seeded_certification_bundle_constructor_private.rs:1:5
+  |
+1 | use forge_query::facade::certify_effect_lifecycle_seeded;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `certify_effect_lifecycle_seeded` in `facade`

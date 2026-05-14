@@ -1,0 +1,11 @@
+error[E0451]: fields `receipt_family`, `rules` and `rules_digest` of struct `EffectReceiptTransitionRules` are private
+  --> tests/ui/effect_lifecycle/support/receipts/effect_receipt_transition_rules_constructor_private.rs:9:9
+   |
+ 8 |     let _ = EffectReceiptTransitionRules {
+   |             ---------------------------- in this type
+ 9 |         receipt_family: EffectReceiptArtifactKind::ForgeQueryIntentExecution,
+   |         ^^^^^^^^^^^^^^ private field
+10 |         rules: vec![todo!() as EffectReceiptTransitionRule],
+   |         ^^^^^ private field
+11 |         rules_digest: String::new(),
+   |         ^^^^^^^^^^^^ private field

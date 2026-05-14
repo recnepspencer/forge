@@ -515,6 +515,475 @@ authority remains relational/bridge/signal-owned; and later temporal,
 async/resource, store-backed, and durable milestones inherit this lifecycle
 instead of adding parallel basis APIs.
 
+## Milestone 9.3.3 Named Certification Suites
+
+### 9.3.3. Authority-Scoped Effect Execution Pipeline Test
+
+Purpose
+
+Prove that every admitted Query effect executes through one authority-scoped,
+proof-bearing pipeline rather than letting executors rediscover basis,
+authority family, strategy identity, invariant scope, preview posture, or
+artifact policy at execution time.
+
+Scenario
+
+- use concrete runtime-backed fixtures covering direct authoritative mutation,
+  ordered batch execution, branch-local preview mutation, merge execution,
+  query-triggered bridge writeback, and explicit typed denial families
+- require the concrete workflow lowering chain to stay visible:
+  - `WorkflowContextBinding`
+  - `QueryWorkflowDeclaration`
+  - `LoweredMutationIntentDeclaration`
+  - `LoweredMergeWorkflowDeclaration`
+  - `QueryWritebackDeclaration`
+- construct equivalent effect intents through at least two public or
+  compatibility authoring paths and prove they normalize to the same lowered
+  execution plan and receipt meaning
+- construct intentionally different effect families, basis postures, authority
+  lanes, or strategy identities and prove the declared digest fields diverge
+- require every effect family to consume an admitted 9.3.2 basis capability
+  rather than raw branch, preview, tenant, policy, or historical identifiers
+- compile golden DX transcripts for ordinary mutation execution, bridge-backed
+  writeback execution, typed denial handling, support discovery, inspectable
+  lowered-plan inspection, batch-native execution, and receipt/envelope
+  inspection
+- exercise the lifecycle as a linear typestate chain where each transition
+  consumes the prior proof type and returns the next proof type or a typed
+  denial
+- prove relational execution families lower only through relational facade
+  authority and bridge-backed execution families lower only through bridge
+  facade authority
+- prove the executor accepts only `LoweredEffectExecutionPlan` and cannot be
+  called with raw intent, normalized intent, eligibility, or merely
+  authority-scoped plans
+- exercise hostile lanes for stale basis, preview-read-only execution,
+  advisory-only promotion, authority-family mismatch, host strategy override,
+  unsupported effect family, lower-runtime lowering mismatch, durable replay
+  overclaim, and store-backed execution overclaim
+
+Required concrete lanes
+
+- branch mutation lane where an admitted branch basis lowers one mutation or
+  merge family into a relational execution plan and emits one effect receipt
+- relational mutation lane where Query lowering emits
+  `RawStrategyCommitRequest` through `LoweredMutationIntentDeclaration`
+  instead of reconstructing strategy identity inside the executor
+- relational merge lane where Query lowering emits `MergeExecutionRequest`
+  through `LoweredMergeWorkflowDeclaration` instead of letting merge authority
+  rediscover branch pairing or intent semantics
+- preview denial lane where preview-read-only or stale preview posture denies
+  before any executor, mutation batch, or receipt exists
+- bridge writeback lane where one admitted query-triggered writeback lowers
+  into `BridgeWritebackDeclaration`, then bridge contract/effect/idempotence/
+  request/receipt authority, without Query inventing writeback protocol meaning
+- batch lane where one ordered multi-component effect preserves aggregate
+  authority, component result posture, and execution counters through one
+  receipt family
+- batch-lane denial where mixed authority lanes or mixed basis lanes fail before
+  a batch execution artifact exists
+- relational oracle lane where the final Query mutation or merge receipt is
+  checked against independently inspected relational authority state and
+  authority artifacts rather than only against another Query-produced digest
+- bridge oracle lane where the final Query writeback receipt/envelope is
+  checked against independently inspected bridge authority outcome and
+  `TruthWritebackReceipt`
+- host-override denial lane where a hostile caller tries to replace the
+  admitted authority family or strategy after lowering and fails typed
+- preview-rebind lane where preview-derived writeback or mutation cannot
+  silently execute and instead returns typed denial or explicit rebind posture
+- stale-after-admission lane where basis admission succeeds, lower-runtime truth
+  changes, and subsequent lowering or execution denies or rebinds exactly where
+  the contract says it must
+- stale-after-lowering lane where a lowered artifact is retained across an
+  authority-changing perturbation and replay/execution proves the expected
+  denial, mismatch, or authoritative divergence artifact
+- replay/deferred lane where durable replay, store-backed execution, or
+  restart-stable effect envelopes remain typed deferred or unsupported with
+  zero operational residue
+- seeded-random lane where multiple effect authoring paths, family choices,
+  batch widths, preview/rebind perturbations, and denial/deferred neighbors are
+  generated from a fixed seed and replayed with identical canonical outputs
+
+Must verify
+
+- raw effect intents are not executable permission and cannot reach executors
+  directly
+- basis capability proof from Milestone 9.3.2 is mandatory input to effect
+  eligibility and lowering
+- equivalent effect authoring paths normalize to the same
+  `NormalizedEffectIntent`, authority-scoped plan, lowered execution plan, and
+  execution receipt meaning
+- equivalent Query-produced artifacts also match independently observed lower-
+  runtime truth outcomes for mutation, merge, and writeback lanes
+- intentionally different authority family, strategy identity, basis posture,
+  effect family, or artifact policy changes the relevant digest
+- effect eligibility precedes construction of lower-runtime execution packets
+- advisory, denied, deferred, and admitted effect postures are distinct proof
+  families that cannot be substituted for one another in downstream phase
+  signatures
+- `AuthorityScopedEffectPlan` is not an executor input; only
+  `LoweredEffectExecutionPlan` may cross the execution boundary
+- workflow lowering and runtime receipt shaping stay synchronized:
+  equivalent admitted work must not produce one story through
+  `forge-query::workflow` and another through `ForgeQueryWriteReceipt` or
+  `ForgeQueryIntentExecution`
+- batch execution does not degrade into scalar loop orchestration that
+  re-admits basis or re-discovers authority/strategy per component
+- executors do not re-decide authority family, basis scope, merge strategy,
+  preview posture, writeback family, or artifact policy
+- relational execution remains relational-authoritative and bridge-backed
+  execution remains bridge-authoritative
+- the certification suite can distinguish "same correct answer twice" from
+  "same wrong answer twice" by using independent oracle comparisons
+- `forge-signal` may contribute aftermath, invalidation, and explanation
+  evidence, but it never becomes the authority lane for mutation, merge, or
+  writeback execution
+- Query receipts and envelopes expose authority names, decision traces,
+  structural deltas, integrity markers, and counters without caller-side lower-
+  runtime stitching
+- support metadata, executable behavior, and certification coverage agree for
+  admitted, advisory, denied, deferred, and unsupported effect families
+- the golden DX transcripts prove all intended caller stories exist as first-
+  class public paths:
+  - common-path intent authoring for both relational mutation/merge and
+    bridge-backed writeback
+  - inspectable advanced lowering
+  - support/discovery before execution
+  - denial/rebind handling
+  - batch-native execution
+  - receipt-first explanation/diagnostics
+- temporal, async/resource, store-backed execution, durable replay, and
+  restart-stable effect envelopes remain typed deferred or unsupported until
+  their owning milestones close
+- compile-fail boundaries prove external callers cannot mint normalized effect
+  intents, admitted authority scopes, lowered execution plans, execution
+  receipts, envelopes, or authority witnesses
+- compile-fail boundaries also prove external callers cannot:
+  - execute from raw or normalized effect intent
+  - execute from admitted-but-unlowered planning artifacts
+  - construct lowered declarations or envelopes directly
+- exact counter assertions prove:
+  - executor rediscovery count remains zero
+  - scalar execution lowering count is one per effect
+  - batch lowering count is one per batch
+  - batch execution does not re-admit basis per component
+  - support lookup width follows support matrix width rather than runtime graph
+    breadth
+  - envelope materialization does not reopen authority execution
+- small/medium/larger fixture runs prove normalization, eligibility, lowering,
+  execution, receipt materialization, envelope materialization, and support
+  lookup costs are bounded by effect width, authority width, and lowering width
+  rather than unrelated runtime graph size or diagnostics retention width
+- seeded randomized certification replays the same seed and proves identical
+  canonical bundles, while a meaningfully changed seed or perturbation changes
+  the expected declared digests or failure artifacts
+
+Required verification output
+
+- `query_digest`
+- `raw_effect_intent_digest`
+- `normalized_effect_intent_digest`
+- `effect_family_digest`
+- `effect_authority_digest`
+- `effect_basis_digest`
+- `effect_scope_digest`
+- `effect_policy_digest`
+- `effect_strategy_digest`
+- `effect_eligibility_digest`
+- `authority_scoped_effect_plan_digest`
+- `lowered_effect_execution_plan_digest`
+- `effect_execution_receipt_digest`
+- `effect_envelope_digest`
+- `relational_effect_authority_digest`
+- `bridge_effect_authority_digest`
+- `effect_decision_trace_digest`
+- `effect_structural_delta_digest`
+- `effect_integrity_marker_digest`
+- `effect_target_dx_digest`
+- `effect_golden_transcript_digest`
+- `effect_support_matrix_digest`
+- `effect_proof_shape_digest`
+- `effect_phase_progression_digest`
+- `effect_replay_parity_digest`
+- `relational_oracle_digest`
+- `bridge_oracle_digest`
+- `seeded_sequence_digest`
+- `seed_replay_digest`
+- `compile_fail_boundary_digest`
+- `failure_digest`
+- `counter_snapshot`
+- `executor_rediscovery_count`
+- `batch_lowering_count`
+- `batch_basis_reuse_count`
+- `authority_reopen_count`
+- `effect_normalization_slope_digest`
+- `effect_eligibility_slope_digest`
+- `effect_lowering_slope_digest`
+- `effect_execution_slope_digest`
+- `effect_receipt_materialization_slope_digest`
+- `effect_envelope_materialization_slope_digest`
+- `effect_support_lookup_slope_digest`
+
+Pass condition
+
+Every admitted runtime-backed Query effect executes only from one lowered,
+proof-bearing authority plan; executors do not rediscover authority, basis,
+strategy, or artifact policy locally; lower-runtime authority remains
+relational- or bridge-owned; the public effect API reads like a deliberate
+framework surface rather than an ad hoc wrapper over internals; independently
+observed lower-runtime truth agrees with Query-produced receipts and envelopes;
+and later projection-consumption, admission, lower-runtime-routing,
+store-backed, and durable milestones inherit this execution contract instead of
+bypassing it.
+
+## Milestone 9.3.4 Named Certification Suites
+
+### 9.3.4. Declared Projection Consumption And Materialized Fact Receipt Test
+
+Purpose
+
+Prove that every admitted consumed projection fact flows through one declared,
+typed, receipt-backed lifecycle rather than letting consumers rediscover fact
+meaning from relational truth, preview internals, signal aftermath, or
+host-local caches after materialization.
+
+Scenario
+
+- use concrete runtime-backed fixtures covering detail materialization,
+  collection membership materialization, grouped or topology-style
+  materialization, query-context payload materialization, effect-produced
+  materialization aftermath, and explicit typed denial/deferred families
+- require the concrete source chain to stay visible:
+  - `AuthorizedProjectionArtifact`
+  - materialization basis receipt from Milestone 9.3.2
+  - one admitted materialization source family
+  - one consumed projection contract
+  - one consumed projection fact set
+  - one projection-consumption receipt/envelope
+- construct equivalent consumed-fact declarations through at least two public
+  or compatibility authoring paths and prove they normalize to the same
+  contract, fact-set, and receipt meaning
+- construct intentionally different fact families, source families,
+  authorized-projection postures, or result-shape meanings and prove the
+  declared digest fields diverge
+- require every admitted consumed-fact lane to consume an admitted 9.3.2
+  materialization basis capability rather than raw branch, preview, snapshot,
+  history, tenant, or policy identifiers
+- compile golden DX transcripts for ordinary read-backed fact consumption,
+  effect-backed fact consumption, support/discovery before consumption, typed
+  denial/deferred handling, and receipt/envelope inspection
+- compile negative DX and boundary transcripts proving forbidden raw-row,
+  raw-json, weak-source, and lower-runtime-direct consumption paths do not
+  compile or are not publicly reachable
+- exercise the lifecycle as a linear typestate chain where each transition
+  consumes the prior proof type and returns the next proof type or a typed
+  denial
+- prove source-family adapters consume only declared materialization artifacts
+  and do not reopen lower-runtime authority locally
+- exercise hostile lanes for masked fact requests, source-family overclaim,
+  stale or policy-drifted materialization, basis/source mismatch, deferred
+  durable reload, and host-side raw row parsing attempts
+
+Required concrete lanes
+
+- detail lane where one admitted authorized projection and materialization basis
+  yield identity and label/display facts through one consumed-fact receipt
+- collection-membership lane where one admitted materialized collection yields
+  membership and view-local identity facts without reopening authority
+- topology/Worth-style lane where one bounded materialization yields relation
+  endpoint or shared-membership facts through the shared lifecycle rather than
+  a topology-only helper surface
+- effect-aftermath lane where one admitted 9.3.3 effect receipt provides the
+  materialization source for consumed projection facts without replaying
+  execution or re-reading authority
+- query-context lane where an admitted query-context materialization exposes
+  only the fact families that the source family actually proves
+- masked-fact denial lane where a hidden or masked field/influence is requested
+  as a consumed fact and fails typed before a fact set exists
+- source-mismatch lane where a caller requests a fact family from a
+  materialization source that does not prove it and receives a typed
+  source-mismatch or denial artifact
+- stale-after-materialization lane where materialization succeeds, source truth
+  or policy drifts, and subsequent fact consumption denies or defers exactly
+  where the contract says it must
+- deferred lane where persisted fact receipts, durable reload, store-backed
+  reconstruction, or portable export remain typed deferred with zero
+  operational residue
+- seeded-random lane where declaration shapes, fact-family mixes, source
+  families, policy masks, and denial/deferred neighbors are generated from a
+  fixed seed and replayed with identical canonical outputs
+
+Required oracle posture
+
+Every admitted lane must name and preserve one independent oracle strategy.
+The certification harness may share fixtures with production code, but it may
+not reuse the same Query consumption path as its oracle.
+
+- detail lane oracle:
+  independently compute expected visible identity/label facts from the
+  admitted authorized projection and admitted materialization source evidence
+  without calling the consumed-fact extractor under test
+- collection-membership lane oracle:
+  independently compute expected membership and view-local identity facts from
+  the admitted collection/grouped source evidence without using Query's public
+  membership extraction helpers
+- topology/Worth-style lane oracle:
+  independently compute the expected relation-endpoint or shared-membership
+  facts from the admitted grouped/topology authority artifact rather than from
+  any topology-specific Query convenience helper
+- effect-aftermath lane oracle:
+  independently verify expected target/source-reference/continuity facts from
+  the admitted 9.3.3 receipt and its carried authoritative evidence without
+  re-running effect execution or invoking the consumed-fact extractor under
+  test
+- query-context lane oracle:
+  independently verify only the narrow context-proven fact families using the
+  admitted query-context source artifact and declaration support posture, not a
+  generic "all payload fields are facts" assumption
+
+The harness must emit an oracle-manifest row for each admitted lane naming:
+
+- lane name
+- oracle owner module
+- source artifacts consulted
+- explicitly forbidden reused production helpers
+- comparison digest fields
+
+Must verify
+
+- consumed projection facts are not ambient permission and cannot be recovered
+  from raw materialized rows alone
+- authorized projection from Milestone 9 is mandatory visibility input to fact
+  eligibility and extraction
+- basis capability proof from Milestone 9.3.2 is mandatory input to consumed
+  fact admission
+- equivalent consumed-fact authoring paths normalize to the same declaration,
+  contract, fact set, and receipt meaning
+- intentionally different fact families, source families, basis postures,
+  policy postures, or result-shape meanings change the relevant digest
+- consumed-fact eligibility precedes any fact-set construction
+- admitted, admitted-with-warnings, denied, deferred, and source-mismatch
+  outcomes are
+  distinct proof families that cannot be substituted for one another in later
+  phase signatures
+- source adapters do not reopen relational truth, bridge preview internals,
+  signal state, or host caches to fill in missing facts
+- effect-produced materialization facts remain bound to 9.3.3 receipts and do
+  not recreate executor-side authority decisions locally
+- the certification suite can distinguish "same wrong answer twice" from "same
+  correct answer twice" by using independent oracle comparisons against the
+  admitted materialization/source evidence
+- support metadata, executable behavior, and certification coverage agree for
+  admitted, admitted-with-warnings, denied, deferred, and source-mismatch fact
+  families
+- support-matrix rows are traceable rather than narrative:
+  every admitted or denied source-family/fact-family cell must identify
+  exactly one admission rule, one hostile neighbor or denial lane, one
+  certification lane, and one compile-fail or public-boundary proof when the
+  cell's restriction is enforced structurally
+- the golden DX transcripts prove all intended caller stories exist as
+  first-class public paths:
+  - common-path read-backed fact consumption
+  - common-path effect-backed fact consumption
+  - support/discovery before consumption
+  - typed denial/deferred handling
+  - receipt-first inspection/envelope derivation
+- the negative DX transcripts prove the public surface does not admit the wrong
+  ergonomics:
+  - raw rows do not expose Query consumed-fact accessors
+  - raw JSON/value bags are not the public consumed-fact API
+  - lower-runtime source artifacts cannot skip declaration/eligibility/contract
+    progression
+  - denied/deferred artifacts do not expose admitted-only methods
+- temporal, async/resource, store-backed reconstruction, durable reload, and
+  portable receipt export remain typed deferred or unsupported until their
+  owning milestones close
+- compile-fail boundaries prove external callers cannot mint admitted
+  declarations, contracts, fact sets, receipts, envelopes, inventories, or
+  certification artifacts directly
+- compile-fail boundaries also prove external callers cannot:
+  - consume facts from raw materialized rows without an admitted contract
+  - treat weaker source artifacts as admitted fact sets
+  - construct source-family adapters or envelopes directly
+- exact counter assertions prove:
+  - authority reopen count remains zero
+  - fact extraction width follows declared fact width rather than unrelated
+    runtime graph breadth
+  - support lookup width follows support-matrix width rather than host cache
+    breadth
+  - envelope materialization does not reopen source authority
+- small/medium/larger fixture runs prove declaration, eligibility, contract
+  binding, fact extraction, receipt materialization, envelope materialization,
+  and support lookup costs are bounded by declared fact width, source evidence
+  width, and materialized row width rather than unrelated runtime graph size or
+  host cache size
+- seeded randomized certification replays the same seed and proves identical
+  canonical bundles, while a meaningfully changed seed or perturbation changes
+  the expected declared digests or failure artifacts
+- seeded randomized certification uses only declared generator classes whose
+  semantics are visible in the output bundle:
+  - declaration-shape generator
+  - fact-family mix generator
+  - source-family selection generator
+  - policy-mask generator
+  - denial/deferred neighbor generator
+  - basis/source mismatch generator
+- randomized lanes must emit enough metadata to replay the exact generator
+  class choices, not just the raw seed
+
+Required verification output
+
+- `query_digest`
+- `result_shape_digest`
+- `authorized_projection_digest`
+- `materialization_basis_digest`
+- `projection_consumption_declaration_digest`
+- `projection_consumption_eligibility_digest`
+- `materialized_projection_contract_digest`
+- `consumed_projection_fact_set_digest`
+- `projection_consumption_receipt_digest`
+- `projection_consumption_envelope_digest`
+- `projection_source_digest`
+- `projection_source_receipt_digest`
+- `projection_fact_family_inventory_digest`
+- `projection_support_matrix_digest`
+- `projection_public_surface_digest`
+- `projection_target_dx_digest`
+- `projection_golden_transcript_digest`
+- `projection_proof_shape_digest`
+- `projection_phase_progression_digest`
+- `projection_transition_rules_digest`
+- `projection_oracle_digest`
+- `projection_oracle_manifest_digest`
+- `projection_support_traceability_digest`
+- `seeded_sequence_digest`
+- `seed_replay_digest`
+- `seed_generator_class_digest`
+- `compile_fail_boundary_digest`
+- `negative_dx_boundary_digest`
+- `failure_digest`
+- `counter_snapshot`
+- `authority_reopen_count`
+- `fact_extraction_width`
+- `projection_declaration_slope_digest`
+- `projection_eligibility_slope_digest`
+- `projection_contract_binding_slope_digest`
+- `projection_fact_extraction_slope_digest`
+- `projection_receipt_materialization_slope_digest`
+- `projection_envelope_materialization_slope_digest`
+- `projection_support_lookup_slope_digest`
+
+Pass condition
+
+Every admitted consumed projection fact comes from one declared materialization
+contract and one receipt-backed fact set; consumers do not reopen source
+authority to rediscover facts; authorized projection and materialization basis
+remain explicit prerequisites; effect-backed and read-backed materializations
+tell the same public consumed-fact story; and later admission, routing,
+store-backed, and durable milestones inherit this contract instead of bypassing
+it.
+
 ## Runtime API Public Stabilization Gate Named Certification Suites
 
 ### Runtime API Golden DX And Async-Safe Facade Test
