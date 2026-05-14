@@ -2444,6 +2444,11 @@ Make consumption of materialized Query projections a declared, typed,
 receipt-backed contract so consumers can use projection facts without reopening
 the source authority.
 
+### Specification
+
+The governing milestone spec is
+[milestone-9.3.4.md](./milestone-9.3.4.md).
+
 ### Adversarial Constraint
 
 A consumer that has received a materialized projection must not fish in
@@ -2456,11 +2461,12 @@ facts.
 
 ```text
 ProjectionConsumptionDeclaration
-  -> ProjectionConsumptionEligibility
+  -> ProjectionConsumptionEligibility | DeniedProjectionConsumption
   -> MaterializedProjectionContract
   -> ConsumedProjectionFactSet
   -> ProjectionConsumptionReceipt
   -> SelfDescribingProjectionConsumptionEnvelope
+  -> ProjectionConsumptionCertificationBundle
 ```
 
 ### Must Ship
@@ -3741,6 +3747,7 @@ must gain a row in the same patch or the roadmap is incomplete.
 - [milestone-9.3.1.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/milestone-9.3.1.md)
 - [milestone-9.3.2.md](./milestone-9.3.2.md)
 - [milestone-9.3.3.md](./milestone-9.3.3.md)
+- [milestone-9.3.4.md](./milestone-9.3.4.md)
 - [runtime-api-public-stabilization-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-api-public-stabilization-plan.md)
 - [runtime-authoritative-mutation-evidence-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-authoritative-mutation-evidence-plan.md)
 - [forge_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_roadmap.md)

@@ -45,6 +45,7 @@ mod policy_narrowing;
 mod policy_plan;
 mod preview;
 mod program;
+mod projection_consumption;
 mod query_basis_lifecycle;
 mod query_context;
 mod result_shape;

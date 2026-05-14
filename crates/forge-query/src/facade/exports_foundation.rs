@@ -318,3 +318,16 @@ pub use crate::memory_workspace::{
     ForgeQueryMemoryWorkspace, ForgeQueryMutationDelta, ForgeQueryMutationKind,
     ForgeQueryMutationReceipt, ForgeQueryWorkspaceError,
 };
+pub use crate::projection_consumption::{
+    declare_projection_consumption, discover_projection_consumption_support,
+    evaluate_projection_consumption_eligibility, AdmittedProjectionConsumption,
+    DeferredProjectionConsumption, DeferredProjectionConsumptionReason,
+    DeniedProjectionConsumption, ProjectMaterializedFacts, ProjectionConsumptionBindingContext,
+    ProjectionConsumptionDeclaration, ProjectionConsumptionDeclarationError,
+    ProjectionConsumptionDenialReason, ProjectionConsumptionEligibility,
+    ProjectionConsumptionEligibilityCounters, ProjectionConsumptionEligibilityTrace,
+    ProjectionConsumptionSource, ProjectionConsumptionSupportPosture,
+    ProjectionConsumptionSupportReport, ProjectionConsumptionSupportRow,
+    ProjectionConsumptionWarningKind, ProjectionConsumptionWarnings, ProjectionFactKind,
+    ProjectionFactRequest, ProjectionSourceFamily, SourceMismatchedProjectionConsumption,
+};
