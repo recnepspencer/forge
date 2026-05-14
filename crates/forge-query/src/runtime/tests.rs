@@ -10,6 +10,7 @@ mod computed;
 mod effect;
 #[allow(deprecated)]
 mod intent;
+mod intent_admission;
 #[allow(deprecated)]
 mod live;
 mod mutation;

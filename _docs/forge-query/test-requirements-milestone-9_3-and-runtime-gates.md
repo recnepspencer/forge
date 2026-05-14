@@ -984,6 +984,223 @@ tell the same public consumed-fact story; and later admission, routing,
 store-backed, and durable milestones inherit this contract instead of bypassing
 it.
 
+## Milestone 9.3.5 Named Certification Suites
+
+### 9.3.5. Intent Admission Decision Lattice And Decision Trace Test
+
+Purpose
+
+Prove that every covered Query-crossing intent resolves through one structured
+admission lattice with typed admitted, advisory, and violation outcomes before
+construction, lowering, execution, or diagnostic materialization, and that the
+resulting decision trace is offline-readable without reconstructing family
+semantics from raw inputs or hidden lower-runtime state.
+
+This suite must also prove that 9.3.5-covered public entrypoints delegate into
+one canonical admission and execution-handoff path, that covered execution
+cannot bypass typed handoffs, that execution receipts preserve provenance back
+to the handoff and decision chain, and that the target DX and crate
+documentation remain synchronized with executable behavior.
+
+Scenario
+
+- use concrete runtime-backed fixtures spanning at least:
+  - basis-use intent
+  - effect-execution intent
+  - projection-consumption intent
+  - inspection or diagnostic-materialization intent
+  - lower-runtime capability-routing request authoring as admitted/deferred/
+    denied pre-routing posture
+- materialize the compile-visible covered-entrypoint and execution-seam
+  inventory for the 9.3.5 implementation under test
+- construct equivalent raw intents through at least two public paths for each
+  admitted family and prove they normalize to the same decision meaning
+- construct intentionally different policy, basis, support, projection/source,
+  invariant, and routing-support posture variants and prove the relevant digest
+  fields diverge
+- derive family inventory, eligibility, admission decision, downstream plan or
+  advisory/violation artifact, admitted execution handoff where applicable,
+  execution receipt or result artifact where applicable, and decision-trace
+  envelope for each lane
+- exercise advisory lanes such as warning-bearing projection consumption,
+  redacted inspection, rebind-required effect work, or deferred future-neighbor
+  posture where the family honestly supports advisory meaning
+- exercise violation lanes such as stale basis, masked or unsupported request,
+  source mismatch, invariant denial, and unsupported routing-capability
+  posture
+- exercise supported legacy public entrypoints and canonical lattice entrypoints
+  for the same covered path and prove they converge observationally because the
+  legacy path delegates rather than emulates
+- compile crate-facing documentation examples and golden DX transcripts for the
+  common path and advanced path promised by the 9.3.5 milestone spec
+- include a Worth-style consumer lane allowed to inspect only the shared
+  admission lattice and decision-trace envelope rather than family-specific
+  internals
+
+Required concrete lanes
+
+- basis parity lane where equivalent basis-use intents normalize to the same
+  eligibility, decision, and trace meaning
+- effect admitted lane where the shared lattice yields one admitted plan that
+  the effect pipeline can lower without revalidating raw intent
+- projection advisory lane where warning-bearing or deferred-neighbor
+  projection-consumption posture is preserved as advisory rather than flattened
+  to success or violation
+- inspection advisory-redaction lane where detail narrowing remains explicitly
+  advisory and still emits one canonical decision trace envelope
+- violation lane where stale, masked, mismatched, or unsupported posture fails
+  before downstream construction or lowering
+- routing future-neighbor lane where lower-runtime capability-routing intent is
+  classified as deferred or denied ahead of 9.3.6 execution semantics
+- covered-entrypoint inventory lane where every covered public method and
+  covered execution seam is enumerated, classified, and bound to one canonical
+  authoring path
+- legacy delegation parity lane where a supported legacy public entrypoint and
+  the canonical lattice path produce the same decision, handoff, execution
+  provenance chain, and observable result
+- execution provenance lane where the admitted decision, admitted handoff, and
+  resulting route/evaluation/write receipt all bind one retrievable provenance
+  chain
+- non-bypass boundary lane where direct execution with raw intent, weak tags,
+  generic payloads, or loose target selectors fails at compile time or
+  certified boundary enforcement
+- trace parity lane where richer diagnostic materialization changes only the
+  envelope detail and not the underlying admission decision
+- common-path DX lane where the ordinary public path reads like intent ->
+  admit -> execute -> inspect receipt
+- advanced-path DX lane where the caller can inspect eligibility, decision,
+  plan, handoff, and provenance as distinct phases
+- crate-doc parity lane where crate documentation examples compile or otherwise
+  execute under the crate-doc policy and stay synchronized with the final
+  public names and target DX
+- public-boundary lane where external code trying to mint admitted plans or
+  decision traces directly fails at compile time
+
+Must verify
+
+- all covered intent families resolve through one shared public admission
+  lattice rather than family-local binary-only surfaces
+- the compile-visible covered-entrypoint inventory, support metadata, and named
+  certification coverage stay synchronized; family-wide closure cannot be
+  claimed while omitting concrete covered methods
+- admitted, advisory, and violation outcomes are distinct proof families rather
+  than one loose struct with optional holes
+- family-specific correctness distinctions survive inside the shared lattice:
+  advisory redaction, rebind-required, deferred support, source mismatch, and
+  policy denial remain mechanically distinct where downstream behavior differs
+- lower phases consume admitted plans or family-specific admitted wrappers
+  derived from them instead of revalidating raw intent
+- covered execution seams consume only family-specific typed admitted handoffs;
+  raw intent, weak plans, string tags, or generic execution bags are not valid
+  substitutes
+- supported legacy public entrypoints delegate into the canonical lattice path
+  rather than keeping observationally similar parallel implementations
+- admitted decisions, admitted handoffs, and covered execution receipts retain
+  one canonical execution provenance chain that later inspection and
+  certification can recover
+- decision traces carry structured policy, capability, invariant, basis,
+  projection/source, and routing-support evidence where applicable
+- decision traces are assembled from authority-owned evidence digests rather
+  than reminting bridge, relational, signal, basis, or projection authority as
+  Query-owned truth
+- diagnostic richness changes only envelope detail, not the canonical
+  admission decision
+- offline consumers can localize which stage decided the outcome using the
+  canonical envelope alone
+- support metadata, executable admission behavior, and certification coverage
+  agree for admitted, advisory-capable, deferred, and unsupported families
+- unsupported temporal, async/resource, durable, and store-backed neighbors
+  remain typed deferred or denied rather than partial support
+- compile-fail boundaries prove external callers cannot mint admitted plans,
+  advisory/violation artifacts, handoffs, trace rows, trace envelopes, or
+  certification bundles directly
+- compile-fail or certified negative-DX boundaries prove covered execution
+  cannot be reached through raw runtime/bridge calls that bypass the admitted
+  handoff model
+- common-path and advanced-path golden DX transcripts remain synchronized with
+  executable behavior, support metadata, receipt shape, and phase progression
+- crate-facing documentation examples remain synchronized with the final public
+  API and do not depend on internal module topology or milestone vocabulary
+- exact counter assertions prove family lookup, eligibility resolution, and
+  trace assembly widths follow declared family and decision width rather than
+  unrelated runtime size
+- exact counter assertions prove covered-entrypoint inventory lookup and
+  execution provenance assembly widths follow declared coverage width rather
+  than unrelated runtime size
+- small/medium/larger fixture runs prove admission classification and trace
+  assembly costs scale with declared family coverage width and decision width
+  rather than unrelated row count
+- small/medium/larger fixture runs also prove covered-entrypoint coverage,
+  delegation parity, and execution provenance costs scale with coverage width
+  rather than unrelated row count
+- seeded randomized certification replays the same seed into the same
+  canonical decision bundle, while changed generator choices or meaningfully
+  different seeds change the expected digests or failure artifacts
+
+Required verification output
+
+- `query_digest`
+- `intent_family_digest`
+- `raw_intent_digest`
+- `intent_eligibility_digest`
+- `admission_decision_digest`
+- `admitted_intent_plan_digest`
+- `admitted_execution_handoff_digest`
+- `advisory_decision_digest`
+- `violation_decision_digest`
+- `decision_trace_digest`
+- `decision_trace_envelope_digest`
+- `policy_decision_digest`
+- `capability_decision_digest`
+- `invariant_decision_digest`
+- `basis_decision_digest`
+- `projection_decision_digest`
+- `routing_posture_digest`
+- `intent_family_inventory_digest`
+- `covered_entrypoint_inventory_digest`
+- `execution_seam_inventory_digest`
+- `intent_support_matrix_digest`
+- `intent_public_surface_digest`
+- `intent_target_dx_digest`
+- `intent_golden_transcript_digest`
+- `negative_dx_boundary_digest`
+- `crate_doc_example_digest`
+- `decision_proof_shape_digest`
+- `decision_phase_progression_digest`
+- `execution_provenance_chain_digest`
+- `legacy_delegation_parity_digest`
+- `decision_oracle_digest`
+- `decision_support_traceability_digest`
+- `seeded_sequence_digest`
+- `seed_replay_digest`
+- `seed_generator_class_digest`
+- `compile_fail_boundary_digest`
+- `failure_digest`
+- `counter_snapshot`
+- `intent_family_lookup_width`
+- `covered_entrypoint_lookup_width`
+- `decision_trace_width`
+- `execution_provenance_width`
+- `admission_classification_slope_digest`
+- `decision_trace_assembly_slope_digest`
+- `decision_support_lookup_slope_digest`
+- `covered_entrypoint_inventory_slope_digest`
+- `execution_provenance_assembly_slope_digest`
+- `legacy_delegation_parity_slope_digest`
+- `decision_certification_coverage_slope_digest`
+
+Pass condition
+
+Every covered Query-crossing intent resolves through one typed admission
+lattice before expensive work starts; admitted, advisory, and violation cases
+are equally inspectable; covered public entrypoints delegate into one canonical
+handoff-driven execution path; execution provenance survives into covered
+receipts; target DX and crate documentation stay synchronized with executable
+behavior; downstream phases consume admitted plans and typed handoffs rather
+than raw intents; and later routing, public runtime stabilization, and
+temporal/async milestones inherit one canonical public admission model instead
+of several drifting family-local ones.
+
 ## Runtime API Public Stabilization Gate Named Certification Suites
 
 ### Runtime API Golden DX And Async-Safe Facade Test

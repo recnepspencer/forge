@@ -1,4 +1,8 @@
 use super::*;
+use crate::intent_admission::{
+    ForgeQueryAdmittedIntentExecutionHandoff, ForgeQueryAuthoritativeIntentExecutionBinding,
+    ForgeQueryEffectTriggeredIntentExecutionBinding, ForgeQueryIntentDecisionTraceEnvelope,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryIntentReceipt {
@@ -24,14 +28,64 @@ pub struct ForgeQueryIntentReceipt {
     meaningful_effect_suppression_count: usize,
     effect_expression_failure_count: usize,
     refresh_fallback: bool,
+    execution_provenance: ForgeQueryIntentExecutionProvenance,
+    decision_trace_envelope: ForgeQueryIntentDecisionTraceEnvelope,
     receipt_digest: String,
 }
 
 impl ForgeQueryIntentReceipt {
-    pub(in crate::runtime) fn new(
+    pub(in crate::runtime) fn from_authoritative_binding(
+        binding: &ForgeQueryAuthoritativeIntentExecutionBinding,
         declaration: &ForgeQueryIntentDeclaration,
         execution: ForgeQueryIntentExecution,
         write_receipt: &ForgeQueryWriteReceipt,
+    ) -> Self {
+        let execution_provenance = ForgeQueryIntentExecutionProvenance::for_authoritative_binding(
+            binding,
+            execution.outcome_digest(),
+            write_receipt.snapshot_token(),
+        );
+        let handoff = ForgeQueryAdmittedIntentExecutionHandoff::from(binding.handoff().clone());
+        let decision_trace_envelope =
+            ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution(&handoff, &execution);
+        Self::new(
+            declaration,
+            execution,
+            write_receipt,
+            execution_provenance,
+            decision_trace_envelope,
+        )
+    }
+
+    pub(in crate::runtime) fn from_effect_binding(
+        binding: &ForgeQueryEffectTriggeredIntentExecutionBinding,
+        declaration: &ForgeQueryIntentDeclaration,
+        execution: ForgeQueryIntentExecution,
+        write_receipt: &ForgeQueryWriteReceipt,
+    ) -> Self {
+        let execution_provenance = ForgeQueryIntentExecutionProvenance::for_effect_binding(
+            binding,
+            execution.outcome_digest(),
+            write_receipt.snapshot_token(),
+        );
+        let handoff = ForgeQueryAdmittedIntentExecutionHandoff::from(binding.handoff().clone());
+        let decision_trace_envelope =
+            ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution(&handoff, &execution);
+        Self::new(
+            declaration,
+            execution,
+            write_receipt,
+            execution_provenance,
+            decision_trace_envelope,
+        )
+    }
+
+    fn new(
+        declaration: &ForgeQueryIntentDeclaration,
+        execution: ForgeQueryIntentExecution,
+        write_receipt: &ForgeQueryWriteReceipt,
+        execution_provenance: ForgeQueryIntentExecutionProvenance,
+        decision_trace_envelope: ForgeQueryIntentDecisionTraceEnvelope,
     ) -> Self {
         let affected_live_view_ids = write_receipt.affected_live_view_ids().to_vec();
         let affected_derived_view_ids = write_receipt.affected_derived_view_ids().to_vec();
@@ -71,6 +125,35 @@ impl ForgeQueryIntentReceipt {
             format!("meaningful-suppressions:{meaningful_effect_suppression_count}"),
             format!("effect-expression-failures:{effect_expression_failure_count}"),
             format!("refresh-fallback:{refresh_fallback}"),
+            format!(
+                "admission-family:{}",
+                execution_provenance.family().as_str()
+            ),
+            format!(
+                "covered-entrypoint:{}",
+                execution_provenance.entrypoint().as_str()
+            ),
+            format!(
+                "execution-seam:{}",
+                execution_provenance.execution_seam().as_str()
+            ),
+            format!(
+                "admission-decision:{}",
+                execution_provenance.admission_decision_digest()
+            ),
+            format!(
+                "execution-handoff:{}",
+                execution_provenance.execution_handoff_digest()
+            ),
+            format!(
+                "execution-binding:{}",
+                execution_provenance.execution_binding_digest()
+            ),
+            format!(
+                "execution-provenance:{}",
+                execution_provenance.execution_provenance_chain_digest()
+            ),
+            format!("decision-trace:{}", decision_trace_envelope.trace_digest()),
         ]);
         Self {
             intent_name: declaration.name().to_string(),
@@ -95,6 +178,8 @@ impl ForgeQueryIntentReceipt {
             meaningful_effect_suppression_count,
             effect_expression_failure_count,
             refresh_fallback,
+            execution_provenance,
+            decision_trace_envelope,
             receipt_digest,
         }
     }
@@ -194,6 +279,43 @@ impl ForgeQueryIntentReceipt {
 
     pub fn refresh_fallback(&self) -> bool {
         self.refresh_fallback
+    }
+
+    pub fn admission_family(&self) -> &str {
+        self.execution_provenance.family().as_str()
+    }
+
+    pub fn covered_entrypoint_label(&self) -> &str {
+        self.execution_provenance.entrypoint().as_str()
+    }
+
+    pub fn execution_seam_label(&self) -> &str {
+        self.execution_provenance.execution_seam().as_str()
+    }
+
+    pub fn admission_decision_digest(&self) -> &str {
+        self.execution_provenance.admission_decision_digest()
+    }
+
+    pub fn execution_handoff_digest(&self) -> &str {
+        self.execution_provenance.execution_handoff_digest()
+    }
+
+    pub fn execution_binding_digest(&self) -> &str {
+        self.execution_provenance.execution_binding_digest()
+    }
+
+    pub fn execution_provenance_chain_digest(&self) -> &str {
+        self.execution_provenance
+            .execution_provenance_chain_digest()
+    }
+
+    pub fn execution_provenance(&self) -> &ForgeQueryIntentExecutionProvenance {
+        &self.execution_provenance
+    }
+
+    pub fn decision_trace_envelope(&self) -> &ForgeQueryIntentDecisionTraceEnvelope {
+        &self.decision_trace_envelope
     }
 
     pub fn receipt_digest(&self) -> &str {

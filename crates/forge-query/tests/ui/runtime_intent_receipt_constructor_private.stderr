@@ -1,51 +1,136 @@
-error[E0451]: fields `intent_name`, `execution_kind`, `strategy_identity`, `strategy_version`, `strategy_descriptor_digest`, `canonical_input_digest`, `outcome_digest`, `invariant_evidence`, `source_lane`, `target_lane`, `commit_identity`, `snapshot_token`, `affected_live_view_ids`, `affected_derived_view_ids`, `considered_computed_view_count`, `considered_effect_count`, `delivered_effect_count`, `pending_write_intent_count`, `suppressed_effect_count`, `meaningful_effect_suppression_count`, `effect_expression_failure_count`, `refresh_fallback` and `receipt_digest` of struct `ForgeQueryIntentReceipt` are private
-  --> tests/ui/runtime_intent_receipt_constructor_private.rs:8:9
+error: cannot construct `forge_query::facade::ForgeQueryIntentReceipt` with struct literal syntax due to private fields
+  --> tests/ui/runtime_intent_receipt_constructor_private.rs:7:19
    |
  7 |     let _forged = ForgeQueryIntentReceipt {
-   |                   ----------------------- in this type
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^
  8 |         intent_name: "intent".to_string(),
-   |         ^^^^^^^^^^^ private field
+   |         --------------------------------- private field
  9 |         execution_kind: ForgeQueryIntentExecutionKind::Mutating,
-   |         ^^^^^^^^^^^^^^ private field
+   |         ------------------------------------------------------- private field
 10 |         strategy_identity: "strategy".to_string(),
-   |         ^^^^^^^^^^^^^^^^^ private field
+   |         ----------------------------------------- private field
 11 |         strategy_version: "1.0".to_string(),
-   |         ^^^^^^^^^^^^^^^^ private field
+   |         ----------------------------------- private field
 12 |         strategy_descriptor_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ----------------------------------------- private field
 13 |         canonical_input_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------------- private field
 14 |         outcome_digest: String::new(),
-   |         ^^^^^^^^^^^^^^ private field
+   |         ----------------------------- private field
 15 |         invariant_evidence: Vec::new(),
-   |         ^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------ private field
 16 |         source_lane: ForgeQueryIntentSourceLane::UserAuthored,
-   |         ^^^^^^^^^^^ private field
+   |         ----------------------------------------------------- private field
 17 |         target_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
-   |         ^^^^^^^^^^^ private field
+   |         -------------------------------------------------------- private field
 18 |         commit_identity: String::new(),
-   |         ^^^^^^^^^^^^^^^ private field
+   |         ------------------------------ private field
 19 |         snapshot_token: String::new(),
-   |         ^^^^^^^^^^^^^^ private field
+   |         ----------------------------- private field
 20 |         affected_live_view_ids: Vec::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ---------------------------------- private field
 21 |         affected_derived_view_ids: Vec::new(),
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------------------- private field
 22 |         considered_computed_view_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         --------------------------------- private field
 23 |         considered_effect_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------- private field
 24 |         delivered_effect_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ------------------------- private field
 25 |         pending_write_intent_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ----------------------------- private field
 26 |         suppressed_effect_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------- private field
 27 |         meaningful_effect_suppression_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         -------------------------------------- private field
 28 |         effect_expression_failure_count: 0,
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+   |         ---------------------------------- private field
 29 |         refresh_fallback: false,
-   |         ^^^^^^^^^^^^^^^^ private field
+   |         ----------------------- private field
 30 |         receipt_digest: String::new(),
-   |         ^^^^^^^^^^^^^^ private field
+   |         ----------------------------- private field
+   |
+   = note: ...and other private fields `execution_provenance` and `decision_trace_envelope` that were not provided
+help: you might have meant to use an associated function to build this type
+   |
+ 7 -     let _forged = ForgeQueryIntentReceipt {
+ 8 -         intent_name: "intent".to_string(),
+ 9 -         execution_kind: ForgeQueryIntentExecutionKind::Mutating,
+10 -         strategy_identity: "strategy".to_string(),
+11 -         strategy_version: "1.0".to_string(),
+12 -         strategy_descriptor_digest: String::new(),
+13 -         canonical_input_digest: String::new(),
+14 -         outcome_digest: String::new(),
+15 -         invariant_evidence: Vec::new(),
+16 -         source_lane: ForgeQueryIntentSourceLane::UserAuthored,
+17 -         target_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+18 -         commit_identity: String::new(),
+19 -         snapshot_token: String::new(),
+20 -         affected_live_view_ids: Vec::new(),
+21 -         affected_derived_view_ids: Vec::new(),
+22 -         considered_computed_view_count: 0,
+23 -         considered_effect_count: 0,
+24 -         delivered_effect_count: 0,
+25 -         pending_write_intent_count: 0,
+26 -         suppressed_effect_count: 0,
+27 -         meaningful_effect_suppression_count: 0,
+28 -         effect_expression_failure_count: 0,
+29 -         refresh_fallback: false,
+30 -         receipt_digest: String::new(),
+31 -     };
+ 7 +     let _forged = ForgeQueryIntentReceipt::new(_, _, _, _, _);
+   |
+ 7 -     let _forged = ForgeQueryIntentReceipt {
+ 8 -         intent_name: "intent".to_string(),
+ 9 -         execution_kind: ForgeQueryIntentExecutionKind::Mutating,
+10 -         strategy_identity: "strategy".to_string(),
+11 -         strategy_version: "1.0".to_string(),
+12 -         strategy_descriptor_digest: String::new(),
+13 -         canonical_input_digest: String::new(),
+14 -         outcome_digest: String::new(),
+15 -         invariant_evidence: Vec::new(),
+16 -         source_lane: ForgeQueryIntentSourceLane::UserAuthored,
+17 -         target_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+18 -         commit_identity: String::new(),
+19 -         snapshot_token: String::new(),
+20 -         affected_live_view_ids: Vec::new(),
+21 -         affected_derived_view_ids: Vec::new(),
+22 -         considered_computed_view_count: 0,
+23 -         considered_effect_count: 0,
+24 -         delivered_effect_count: 0,
+25 -         pending_write_intent_count: 0,
+26 -         suppressed_effect_count: 0,
+27 -         meaningful_effect_suppression_count: 0,
+28 -         effect_expression_failure_count: 0,
+29 -         refresh_fallback: false,
+30 -         receipt_digest: String::new(),
+31 -     };
+ 7 +     let _forged = ForgeQueryIntentReceipt::from_authoritative_binding(_, _, _, _);
+   |
+ 7 -     let _forged = ForgeQueryIntentReceipt {
+ 8 -         intent_name: "intent".to_string(),
+ 9 -         execution_kind: ForgeQueryIntentExecutionKind::Mutating,
+10 -         strategy_identity: "strategy".to_string(),
+11 -         strategy_version: "1.0".to_string(),
+12 -         strategy_descriptor_digest: String::new(),
+13 -         canonical_input_digest: String::new(),
+14 -         outcome_digest: String::new(),
+15 -         invariant_evidence: Vec::new(),
+16 -         source_lane: ForgeQueryIntentSourceLane::UserAuthored,
+17 -         target_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+18 -         commit_identity: String::new(),
+19 -         snapshot_token: String::new(),
+20 -         affected_live_view_ids: Vec::new(),
+21 -         affected_derived_view_ids: Vec::new(),
+22 -         considered_computed_view_count: 0,
+23 -         considered_effect_count: 0,
+24 -         delivered_effect_count: 0,
+25 -         pending_write_intent_count: 0,
+26 -         suppressed_effect_count: 0,
+27 -         meaningful_effect_suppression_count: 0,
+28 -         effect_expression_failure_count: 0,
+29 -         refresh_fallback: false,
+30 -         receipt_digest: String::new(),
+31 -     };
+ 7 +     let _forged = ForgeQueryIntentReceipt::from_effect_binding(_, _, _, _);
+   |

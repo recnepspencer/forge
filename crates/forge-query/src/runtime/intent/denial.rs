@@ -1,5 +1,6 @@
 use super::admission::ForgeQueryIntentAdmissionDenial;
 use super::*;
+use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryIntentDenialEvidence {
@@ -18,6 +19,8 @@ pub struct ForgeQueryIntentDenialEvidence {
     attempt_digest: Option<String>,
     invariant_evidence: Vec<String>,
     snapshot_token: Option<String>,
+    execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
+    decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
     denial_digest: String,
 }
 
@@ -26,6 +29,16 @@ impl ForgeQueryIntentDenialEvidence {
         declaration: &ForgeQueryIntentDeclaration,
         denial: &ForgeQueryIntentAdmissionDenial,
         execution: Option<&ForgeQueryIntentExecution>,
+    ) -> Self {
+        Self::new_with_trace(declaration, denial, execution, None, None)
+    }
+
+    pub(in crate::runtime) fn new_with_trace(
+        declaration: &ForgeQueryIntentDeclaration,
+        denial: &ForgeQueryIntentAdmissionDenial,
+        execution: Option<&ForgeQueryIntentExecution>,
+        execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
+        decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
     ) -> Self {
         let execution_kind = execution.map(ForgeQueryIntentExecution::execution_kind);
         let returned_strategy_identity =
@@ -80,6 +93,20 @@ impl ForgeQueryIntentDenialEvidence {
             format!("attempt:{}", attempt_digest.as_deref().unwrap_or("none")),
             format!("invariants:{invariant_evidence_digest_part}"),
             format!("snapshot:{}", snapshot_token.as_deref().unwrap_or("none")),
+            format!(
+                "execution-provenance:{}",
+                execution_provenance
+                    .as_ref()
+                    .map(ForgeQueryIntentExecutionProvenance::execution_provenance_chain_digest)
+                    .unwrap_or("none")
+            ),
+            format!(
+                "decision-trace:{}",
+                decision_trace_envelope
+                    .as_ref()
+                    .map(ForgeQueryIntentDecisionTraceEnvelope::trace_digest)
+                    .unwrap_or("none")
+            ),
         ]);
         Self {
             intent_name: declaration.name().to_string(),
@@ -97,6 +124,8 @@ impl ForgeQueryIntentDenialEvidence {
             attempt_digest,
             invariant_evidence,
             snapshot_token,
+            execution_provenance,
+            decision_trace_envelope,
             denial_digest,
         }
     }
@@ -159,6 +188,14 @@ impl ForgeQueryIntentDenialEvidence {
 
     pub fn snapshot_token(&self) -> Option<&str> {
         self.snapshot_token.as_deref()
+    }
+
+    pub fn execution_provenance(&self) -> Option<&ForgeQueryIntentExecutionProvenance> {
+        self.execution_provenance.as_ref()
+    }
+
+    pub fn decision_trace_envelope(&self) -> Option<&ForgeQueryIntentDecisionTraceEnvelope> {
+        self.decision_trace_envelope.as_ref()
     }
 
     pub fn denial_digest(&self) -> &str {

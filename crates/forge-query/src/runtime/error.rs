@@ -57,6 +57,13 @@ pub enum ForgeQueryRuntimeError {
         message: String,
         evidence: ForgeQueryIntentDenialEvidence,
     },
+    IntentExecutionRoutingFailed {
+        intent_name: String,
+        stage: &'static str,
+        message: String,
+        evidence: ForgeQueryIntentExecutionFailureEvidence,
+        source: Box<ForgeQueryRuntimeError>,
+    },
     EffectPolicyDenied(ForgeQueryEffectPolicyDenial),
     PreviewPromotionStaleBasis(ForgeQueryPreviewPromotionDenialEvidence),
     PreviewPromotionAtomicBatchUnsupported(ForgeQueryPreviewPromotionDenialEvidence),
@@ -187,6 +194,16 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
                 f,
                 "intent `{intent_name}` commit failed during {stage}: {message}"
             ),
+            Self::IntentExecutionRoutingFailed {
+                intent_name,
+                stage,
+                message,
+                evidence: _,
+                source: _,
+            } => write!(
+                f,
+                "intent `{intent_name}` execution failed during {stage}: {message}"
+            ),
             Self::EffectPolicyDenied(denial) => write!(f, "{denial}"),
             Self::PreviewPromotionStaleBasis(evidence) => write!(
                 f,
@@ -222,7 +239,14 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
     }
 }
 
-impl std::error::Error for ForgeQueryRuntimeError {}
+impl std::error::Error for ForgeQueryRuntimeError {
+    fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+        match self {
+            Self::IntentExecutionRoutingFailed { source, .. } => Some(source.as_ref()),
+            _ => None,
+        }
+    }
+}
 
 impl From<ForgeQueryWorkspaceError> for ForgeQueryRuntimeError {
     fn from(value: ForgeQueryWorkspaceError) -> Self {

@@ -109,10 +109,6 @@ impl ForgeQueryIntentExecution {
         self.execution_kind
     }
 
-    pub(in crate::runtime) fn should_route_mutation_receipt(&self) -> bool {
-        self.execution_kind == ForgeQueryIntentExecutionKind::Mutating
-    }
-
     pub fn strategy_identity(&self) -> &str {
         &self.strategy_identity
     }
