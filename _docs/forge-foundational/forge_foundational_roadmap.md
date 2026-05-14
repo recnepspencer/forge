@@ -518,6 +518,7 @@ crate-local optimized state into canonical boundary-facing forms.
 ## Milestone 5: Branching, Merging, And Commit Vocabulary
 
 Detailed spec: [`milestone-5.md`](milestone-5.md)
+Closeout: [`milestone-5-closeout.md`](milestone-5-closeout.md)
 
 ### Goal
 
@@ -600,6 +601,17 @@ without inventing incompatible transaction, version, or receipt folklore.
   not change authoritative commit outcomes
 
 ## Milestone 6: Diagnostics And Explanation Ontology
+
+Detailed spec: [`milestone-6.md`](milestone-6.md)
+Closeout: [`milestone-6-closeout.md`](milestone-6-closeout.md)
+
+The detailed spec is authoritative for Milestone 6 closure. In particular, it
+expands this roadmap summary by treating diagnostic primitives, outcome and
+absence topology, materialization and support-report law, canonical
+basis/comparison participation, certified bundle law, and production-test
+readiness as distinct responsibilities. Milestone 6 makes diagnostics and
+explanation meaning canonical while preserving crate-local capture, storage,
+and replay mechanics.
 
 ### Goal
 

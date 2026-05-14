@@ -18,10 +18,12 @@ mod boundary;
 mod boundary_artifacts;
 mod canonicalization;
 mod compatibility;
+mod diagnostics;
 pub mod facade;
 mod identities;
 mod locators;
 mod profiles;
+mod transitions;
 mod values;
 
 pub use facade::*;

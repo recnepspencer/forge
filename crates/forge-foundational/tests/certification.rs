@@ -16,6 +16,9 @@ mod canonicalization;
 #[path = "certification/compatibility/mod.rs"]
 mod compatibility;
 
+#[path = "certification/diagnostics/mod.rs"]
+mod diagnostics;
+
 #[path = "certification/identities/mod.rs"]
 mod identities;
 
@@ -24,6 +27,9 @@ mod locators;
 
 #[path = "certification/profiles/mod.rs"]
 mod profiles;
+
+#[path = "certification/transitions/mod.rs"]
+mod transitions;
 
 #[path = "certification/values/mod.rs"]
 mod values;

@@ -190,6 +190,13 @@ Required compile-fail families:
   other
 - reduced-richness descriptive artifacts cannot be passed where full forensic
   evidence or committed authority evidence is required
+- diagnostic code ids, diagnostic scope ids, severities, artifact kinds,
+  delivery classes, and availability postures cannot be interchanged just
+  because their storage is identical
+- public generic diagnostic rows cannot be substituted for family-distinct
+  decision, failure, comparison, support, or provenance-ready rows
+- certified diagnostic coverage cannot be constructed from partial or
+  gap-bearing surfaces when required row families are statically known
 
 ### Property And Hostile Case Tests
 
@@ -260,6 +267,17 @@ Required misuse-pressure families:
 - candidate, merge-verdict, committed-authority, receipt, discard, and bundle
   surfaces cannot collapse back into one shared body shape with marker-only
   differentiation
+- omission of a required diagnostic row family cannot silently degrade into an
+  implicit denial, empty bundle, or comment-only partial coverage claim
+- diagnostic support, explanation, comparison, failure, and certified-coverage
+  surfaces cannot collapse into one generic row or bundle body with family tags
+- named-gap surfaces cannot degrade into free-form strings when typed gap
+  class, subject, and closure posture are required
+- construction/integrity breach, domain denial, policy denial, and evidence
+  absence cannot collapse into one generic diagnostic failure status
+- widened fallout, locality mismatch, repeated rediscovery, and broad fallback
+  cannot remain hidden in counters when they materially shaped the reported
+  diagnostic meaning
 
 These tests may be compile-fail, runtime hostility, or both, but the suite
 must make the misuse class explicit rather than relying on incidental coverage
@@ -559,6 +577,32 @@ Must prove:
 - richness profiles change diagnostic breadth without changing truth
 - proof-bearing artifacts can attach diagnostics without importing diagnostic
   storage into `forge-proof`
+- denial class, breach class, evidence posture, delivery class, and
+  availability posture remain distinct and canonically ordered where those
+  families carry distinct meaning
+- public authoring surfaces for decision, failure, comparison, support, and
+  provenance-ready rows remain family-distinct and cannot collapse into one
+  generic `DiagnosticRow { family, ... }` wrapper
+- omission of a required diagnostic row family is treated as a construction
+  bug or illegal coverage posture rather than silently reading as domain denial
+  or absence
+- support, explanation, comparison, failure, and certified-coverage bundles
+  remain distinct categories and cannot collapse into one generic diagnostics
+  bag with status-like tags
+- retained-hot, deferred-cold, reconstructable, redacted, and unavailable
+  evidence remain structurally distinguishable to blind consumers
+- evidence-reference posture remains explicit enough for later provenance work
+  to distinguish retained, reconstructed, summarized, redacted, and
+  absent-but-expected evidence
+- named-gap coverage is typed, canonical, and blind-consumer interpretable;
+  partial-with-named-gaps cannot degrade into free-form notes or comments
+- certified-versus-partial-versus-denied diagnostic coverage is enforced
+  mechanically where required row families are statically knowable
+- explanation rows and provenance-ready evidence-origin rows remain distinct so
+  future provenance work does not have to recover that boundary after release
+- locality mismatch, widened fallout, repeated rediscovery, row-scan fallback,
+  and whole-view fallback become explicit diagnostic meaning when they shaped
+  the result rather than hidden implementation detail
 
 ### Lineage, Provenance, And Receipts
 
@@ -616,6 +660,12 @@ Required scenario families:
   artifact
 - reduced-richness profile over lineage/provenance/diagnostic materialization
   proving authoritative truth remains unchanged
+- diagnostics explanation plus support-report plus partial-with-named-gaps
+  coverage over one simulated transition or artifact subject, proving omission,
+  absence, denial, and breach do not collapse
+- diagnostics canonical-basis parity plus blind-consumer interpretation over
+  independently produced row and bundle shapes, including locality mismatch,
+  widened fallout, and evidence-posture pressure
 
 These tests must use small synthetic fixtures or `forge-harness` adapters. They
 must not depend on `forge-relational`, `forge-query`, `forge-signal`, or
@@ -697,6 +747,9 @@ A milestone is ready for production-shaped testing only if:
 - every Milestone 5 transition surface proves that basis choice, strategy
   influence, authority crossing, receipt issuance, and discard/closeout remain
   explicit seams rather than cheap-looking ambient behavior
+- every Milestone 6 diagnostics surface proves that denial, breach, absence,
+  evidence posture, named gaps, and certified coverage remain explicit seams
+  rather than comments, booleans, or generic-row wrappers
 
 Production-shaped tests may assume:
 
@@ -780,6 +833,9 @@ The test suite must fail if any of these become possible:
   or receipt APIs
 - a generic transition result bag can stand in for typed branch-local, merge,
   committed-authority, receipt, discard, or bundle surfaces
+- a generic diagnostic row or bundle can stand in for family-distinct decision,
+  failure, comparison, support, explanation, provenance-ready, or
+  certified-coverage surfaces
 - digest-preparation input can be built from an insertion-order-dependent path
 - reduced-richness profiles change authoritative outcomes
 - requested, admitted, and materialized profile meaning collapse into one
@@ -787,6 +843,15 @@ The test suite must fail if any of these become possible:
 - target-specific optional surfaces can be named or attached through ad hoc
   strings, option fields, or wrong target wrappers
 - materialization cost is hidden behind cheap-looking accessors
+- missing diagnostic evidence, redacted evidence, unsupported evidence,
+  reconstructed evidence, and construction bugs collapse into one generic
+  `None`, status flag, or prose explanation
+- partial diagnostic coverage can be claimed without typed named gaps and
+  closure posture
+- certified diagnostic coverage can omit required hostile rows or required row
+  families while still presenting itself as complete
+- locality mismatch, widened fallout, repeated rediscovery, or broad fallback
+  can shape diagnostic meaning without becoming explicit row or bundle evidence
 - a foundational test requires a real adopting runtime to discover whether a
   boundary category is valid
 - a local test double grows into an unowned generic runtime, scheduler, storage

@@ -12,6 +12,10 @@ participation, proof-bearing current-basis strengthening, planned-work and
 same-family descriptive extension room, reserved authority-transition
 fail-closed law, and production-test readiness evidence.
 
+Crate-facing boundary-artifact docs now also exist under
+[crates/forge-foundational/docs/boundary-artifact-taxonomy-and-materialization-contracts](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/docs/boundary-artifact-taxonomy-and-materialization-contracts),
+with one landing page and one feature doc per shipped boundary-artifact seam.
+
 This milestone is ready for production-shaped testing through `forge-harness`
 or adopting-crate migration work. It does not claim that any adopting crate
 has already lowered its real runtime envelopes, receipts, or support surfaces
@@ -355,6 +359,9 @@ What is proved:
   remain under the 400-line cap, and all boundary-artifact proof directories
   remain under the 10-direct-file cap through responsibility-shaped
   subdivision.
+- Crate-facing feature docs now exist for categories, roles/authority,
+  materialization/bundles, canonical/current-basis, descriptive extensions,
+  and readiness.
 
 ## Verification
 
