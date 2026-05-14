@@ -518,6 +518,7 @@ crate-local optimized state into canonical boundary-facing forms.
 ## Milestone 5: Branching, Merging, And Commit Vocabulary
 
 Detailed spec: [`milestone-5.md`](milestone-5.md)
+Closeout: [`milestone-5-closeout.md`](milestone-5-closeout.md)
 
 ### Goal
 

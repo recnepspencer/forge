@@ -18,6 +18,7 @@ fn facade_exposes_named_responsibility_topology() {
             "canonical_ordering_and_equality",
             "profiles",
             "boundary_artifacts",
+            "transitions",
         ]
     );
 

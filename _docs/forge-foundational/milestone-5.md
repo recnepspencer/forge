@@ -298,8 +298,31 @@ Use Milestone 4 for:
 Milestone 5 uses `forge-proof` for stronger authority-transition and receipt
 claims, but not for plain branch/merge/commit nouns.
 
+The mandatory Milestone 5 proof lane is:
+
+- use `forge-proof::TransitionOutcome` for merge-plan admission and merge-
+  verdict non-success topology
+- use `forge-proof::Artifact` as the proof-bearing carrier for committed-
+  authority, receipt-bearing, current-basis, and readiness surfaces
+- use `AuthorityWitness::from_authority_marker(...)` and
+  `Proof::from_authority_witness(...)` for authority-scoped strengthening
+- use `Artifact::with_proofs_and_current_basis(...)` as the default stronger
+  constructor when a transition surface claims both proof-bearing authority and
+  current-basis meaning
+- use `Artifact::with_current_basis(...)` only for stronger current-basis
+  surfaces that intentionally do not carry an additional proof set
+- use `.bridge_trust_boundary()`, `.readmit_with_authority(...)`, and
+  `.rebind_with_authority(...)` for trust-boundary weakening and
+  re-strengthening where Milestone 5 exposes those lanes
+
+Milestone 5 does not standardize `forge-proof::Recipe` as its default proof
+carrier. `Recipe` remains out of scope here unless a later milestone
+explicitly chooses staged recipe progression for a specific transition family.
+
 `forge-proof` is mandatory for:
 
+- merge admission and merge verdict non-success topology through
+  `TransitionOutcome`
 - committed-authority transition artifacts that claim a real authority crossing
 - commit receipts that attest a completed authority transition
 - trust-boundary bridge/readmission for committed-authority or receipt-bearing
@@ -320,6 +343,15 @@ The operating rule is:
 `forge-foundational` defines what branch/merge/commit boundary meaning is.
 `forge-proof` proves when a transition crossed authority or still carries a
 strong current-basis claim.
+
+The implementation is not allowed to choose its own proof lane here. The spec
+choice is already made:
+
+- `TransitionOutcome` is the mandatory merge-admission outcome carrier
+- `Artifact` is the mandatory proof-bearing authority/receipt/current-basis
+  carrier
+- `Recipe` is not the Milestone 5 default and must not be introduced ad hoc as
+  an alternate transition substrate
 
 ## Practical Type Targets
 
@@ -664,8 +696,12 @@ Practical implementation order:
 
 1. Create the merge home and define merge intent plus merge candidate shape.
 2. Add merge structural summary and typed conflict/basis loci.
-3. Define the verdict kinds and admitted verdict record.
-4. Encode verdict legality and impossible-shape denials.
+3. Define the verdict kinds and make merge admission return
+   `forge-proof::TransitionOutcome` rather than a local `Result` or boolean
+   verdict gate.
+4. Encode verdict legality and impossible-shape denials inside that typed
+   `TransitionOutcome` lane so denied, deferred, stale, rebind-required, and
+   failed outcomes remain structurally visible if the merge flow needs them.
 5. Prove that merge candidates and merge verdicts remain distinct.
 
 What should exist at the end of the phase:
@@ -686,6 +722,7 @@ Must ship:
 
 - typed merge intent vocabulary
 - typed merge candidate artifact
+- merge admission carried by `forge-proof::TransitionOutcome`
 - typed transition strategy identity, family, semantic-name, version, and
   ownership vocabulary
 - typed transition strategy descriptor digest and contract-basis vocabulary
@@ -702,6 +739,8 @@ Must preserve:
 
 - merge candidates remain descriptive/planning surfaces
 - merge verdicts remain distinct from committed authority and receipts
+- merge admission must not collapse back to `Result<T, E>` where stale,
+  deferred, denied, or rebind-required topology still matters
 - verdict kinds preserve real correctness differences rather than collapsing
   into booleans
 - stale-basis meaning remains structurally analyzable rather than one vague
@@ -726,6 +765,8 @@ Acceptance evidence:
 - hostile tests proving complex basis-bearing merge verdicts preserve basis
   identity/family/version plus correspondence/remap basis instead of collapsing
   to plain merge conflict labels
+- proof-lane tests proving merge admission uses `TransitionOutcome` rather than
+  local `Result` or status-flag wrappers
 - misuse-pressure tests proving merge planning cannot hide ambient basis choice
   or hidden strategy influence behind cheap convenience entrypoints
 - compile-fail or typed-boundary tests proving merge candidates cannot satisfy
@@ -756,7 +797,10 @@ Practical implementation order:
 3. Add authority-transition outcome kinds including explicit `NoOp` versus
    `Committed`.
 4. Reuse `forge-proof` plus Milestone 4 current-basis law for stronger
-   committed-authority admission.
+   committed-authority admission, specifically through
+   `AuthorityWitness::from_authority_marker(...)`,
+   `Proof::from_authority_witness(...)`, and
+   `Artifact::with_proofs_and_current_basis(...)`.
 5. Prove that branch-local and merge-verdict surfaces still cannot satisfy the
    stronger lane.
 
@@ -784,7 +828,12 @@ Must ship:
 - typed strategy-bearing committed-authority evidence where a strategy shaped
   the transition
 - explicit authority-transition outcome kinds
-- proof-bearing committed-authority admission using `forge-proof`
+- proof-bearing committed-authority admission using `forge-proof::Artifact`
+- authority-scoped strengthening through
+  `AuthorityWitness::from_authority_marker(...)` and
+  `Proof::from_authority_witness(...)`
+- stronger committed-authority construction through
+  `Artifact::with_proofs_and_current_basis(...)`
 
 Must preserve:
 
@@ -816,8 +865,11 @@ Acceptance evidence:
 - misuse-pressure tests proving committed-authority helpers cannot silently
   bypass proof-bearing authority crossing or hide strategy/basis evidence that
   materially shaped the transition
-- proof-lane tests proving committed-authority admission uses `forge-proof`
-  rather than local pseudo-proof wrappers
+- proof-lane tests proving committed-authority admission uses
+  `AuthorityWitness::from_authority_marker(...)`,
+  `Proof::from_authority_witness(...)`, and
+  `Artifact::with_proofs_and_current_basis(...)` rather than local pseudo-
+  proof wrappers
 - blind-consumer tests proving parent basis and committed deltas are
   interpretable without producer-private state
 
@@ -847,7 +899,9 @@ Practical implementation order:
 3. Encode the minimum self-describing receipt payload: branch id, commit id,
    parent basis, committed deltas, and authority-transition outcome.
 4. Reuse Milestone 4 receipt/artifact categories and bundle law rather than
-   inventing new envelope shapes.
+   inventing new envelope shapes, and keep receipt-bearing stronger claims on
+   the `forge-proof::Artifact` lane rather than flattening them into plain
+   boundary records.
 5. Prove that candidates and merge verdicts still cannot mint receipts.
 
 What should exist at the end of the phase:
@@ -873,6 +927,7 @@ Must ship:
   verdict reports, and summaries
 - typed receipt carriage for strategy-bearing transition evidence where present
 - receipt issuance path from committed-authority artifacts
+- receipt-bearing stronger claims carried by `forge-proof::Artifact`
 - typed denial vocabulary for impossible receipt issuance
 - transition-boundary artifact surfaces that compose with Milestone 4 category
   and bundle law
@@ -906,6 +961,9 @@ Acceptance evidence:
   ownership through receipt issuance where present
 - receipt tests proving material strategy/basis/correspondence evidence cannot
   be silently absent when it shaped the attested transition
+- proof-lane tests proving receipt issuance stays on the committed-authority
+  `forge-proof::Artifact` lane rather than minting plain boundary records that
+  merely look authoritative
 - misuse-pressure tests proving thin receipts, generic transition result bags,
   and discard/closeout evidence cannot masquerade as real receipt-bearing
   authority evidence
@@ -943,7 +1001,9 @@ Practical implementation order:
 3. Add profile attachment and reduced-richness behavior to the new transition
    artifacts through the Milestone 3 lane.
 4. Reuse Milestone 4 current-basis/readmission surfaces where stronger
-   current-basis transition artifacts are exposed.
+   current-basis transition artifacts are exposed, specifically
+   `Artifact::with_current_basis(...)`, `.bridge_trust_boundary()`,
+   `.readmit_with_authority(...)`, and `.rebind_with_authority(...)`.
 5. Prove parity across independent producers and honest reduced-richness
    elision.
 
@@ -972,6 +1032,9 @@ Must ship:
 - typed transition locator vocabulary
 - profile attachment points and reduced-richness law for transition artifacts
 - stronger current-basis/readmission reuse where transition surfaces expose it
+- explicit reuse of `Artifact::with_current_basis(...)`,
+  `.bridge_trust_boundary()`, `.readmit_with_authority(...)`, and
+  `.rebind_with_authority(...)` where stronger transition validity is exposed
 - explicit receipt evidence floor:
   commit id, branch id, parent basis, authority transition class, committed
   delta evidence or explicit no-op evidence, and current-basis/readmission
@@ -1009,8 +1072,10 @@ Acceptance evidence:
 - misuse-pressure tests proving profile-aware canonical transition surfaces
   cannot hide basis choice, strategy influence, or evidence-floor weakening
   behind materialization or lowering shortcuts
-- proof-lane tests proving current-basis/readmission reuse Milestone 4 rather
-  than rebuilding it locally
+- proof-lane tests proving current-basis/readmission reuse
+  `Artifact::with_current_basis(...)`, `.bridge_trust_boundary()`,
+  `.readmit_with_authority(...)`, and `.rebind_with_authority(...)` from the
+  Milestone 4 lane rather than rebuilding them locally
 
 ### Phase 6: Certify Production-Test Readiness
 
@@ -1055,6 +1120,15 @@ Must ship:
 - hostile-pressure inventory for authority separation, merge-topology honesty,
   no-op-versus-commit classification, receipt issuance, replay interpretation,
   and reduced-richness preservation
+- exact `forge-proof` appendix naming the mandatory Milestone 5 APIs:
+  `TransitionOutcome`,
+  `AuthorityWitness::from_authority_marker(...)`,
+  `Proof::from_authority_witness(...)`,
+  `Artifact::with_proofs_and_current_basis(...)`,
+  `Artifact::with_current_basis(...)`,
+  `.bridge_trust_boundary()`,
+  `.readmit_with_authority(...)`, and
+  `.rebind_with_authority(...)`
 - compile-fail boundary inventory
 - runtime assumptions, non-assumptions, and residual debt
 
@@ -1093,6 +1167,7 @@ Acceptance evidence:
 - typed transition basis identity, family, and version vocabulary
 - typed merge verdict vocabulary with accepted, advisory, conflict, denied,
   superseded, and stale-basis distinctions
+- merge admission carried by `forge-proof::TransitionOutcome`
 - typed merge-base selection basis plus typed correspondence/remap basis
 - typed committed-authority transition artifact, parent basis, and committed-
   delta summary vocabulary
@@ -1101,7 +1176,12 @@ Acceptance evidence:
 - typed no-op cause vocabulary
 - typed strategy-bearing committed-authority evidence
 - explicit `NoOp` versus `Committed` authority-transition outcome kinds
-- proof-bearing committed-authority admission using `forge-proof`
+- proof-bearing committed-authority admission using `forge-proof::Artifact`
+- authority-scoped strengthening through
+  `AuthorityWitness::from_authority_marker(...)` and
+  `Proof::from_authority_witness(...)`
+- stronger committed-authority construction through
+  `Artifact::with_proofs_and_current_basis(...)`
 - typed commit receipt artifact and receipt identity
 - typed branch-discard or non-authoritative closeout receipt vocabulary
 - typed transition provenance-row surface
@@ -1118,6 +1198,9 @@ Acceptance evidence:
   using the Milestone 3 lane
 - current-basis/readmission reuse for stronger transition artifacts using the
   Milestone 4 lane where exposed
+- explicit reuse of `Artifact::with_current_basis(...)`,
+  `.bridge_trust_boundary()`, `.readmit_with_authority(...)`, and
+  `.rebind_with_authority(...)` where stronger transition validity is exposed
 - explicit receipt evidence floor for blind-consumer authority interpretation
 - production-test readiness artifact for Milestone 5
 
@@ -1171,11 +1254,12 @@ Acceptance evidence:
   identity is stronger than a friendly strategy name
 - basis-bearing tests proving observation/comparison/merge-base/correspondence/
   remap basis remain visible and canonical where they shaped the transition
+- proof-lane tests proving merge admission uses `TransitionOutcome` and
+  committed-authority / receipt / current-basis lanes use the named
+  `forge-proof::Artifact` APIs rather than local pseudo-proof wrappers
 - compile-fail tests proving branch-local candidate, staged branch state, merge
   candidate, and merge verdict cannot satisfy committed-authority or receipt
   APIs
-- proof-lane tests proving committed-authority and receipt surfaces use
-  `forge-proof` rather than local pseudo-proof wrappers
 - transition-class tests proving metadata-only, promotion, no-op, and ordinary
   commit outcomes remain distinguishable
 - bundle-legality tests proving coordinated transition emission rejects

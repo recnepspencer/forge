@@ -22,6 +22,7 @@ pub mod facade;
 mod identities;
 mod locators;
 mod profiles;
+mod transitions;
 mod values;
 
 pub use facade::*;

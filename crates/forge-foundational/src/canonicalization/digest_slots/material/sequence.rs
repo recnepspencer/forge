@@ -94,6 +94,8 @@ fn entry_kind_token(kind: CanonicalBasisEntryKind) -> &'static str {
         CanonicalBasisEntryKind::Profile => "profile",
         CanonicalBasisEntryKind::BoundaryArtifact => "boundary-artifact",
         CanonicalBasisEntryKind::BoundaryAttachment => "boundary-attachment",
+        CanonicalBasisEntryKind::TransitionArtifact => "transition-artifact",
+        CanonicalBasisEntryKind::TransitionLocator => "transition-locator",
         CanonicalBasisEntryKind::CompatibilityOrigin => "compatibility-origin",
         CanonicalBasisEntryKind::Cost => "cost",
         CanonicalBasisEntryKind::Future(value) => value,

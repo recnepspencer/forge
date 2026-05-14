@@ -38,6 +38,7 @@ fn profile_responsibility_home_is_named_in_the_facade_topology() {
             "canonical_ordering_and_equality",
             "profiles",
             "boundary_artifacts",
+            "transitions",
         ]
     );
 }
