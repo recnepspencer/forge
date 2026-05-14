@@ -3,6 +3,7 @@ import type {
   FormDirtyState,
   FormFieldDeclaration,
   FormFieldHandle,
+  FormInputAdapterDiagnostics,
   FormFieldWritePosture,
   FormFieldsBuilder,
   FormPatchPlan,
@@ -67,13 +68,20 @@ import type {
   FormStepsBuilder,
   FormStepsReport,
 } from "./steps.js";
+import type {
+  FormSourceAuthorityDiagnostics,
+  FormSourceDeclaration,
+  FormSourceFactory,
+} from "./sources.js";
 import type { FormVerificationPackage } from "./verification.js";
 
 export interface FormDeclaration<
   TSource = SignalValue,
   TFields extends Record<string, FormFieldDeclaration> = Record<string, FormFieldDeclaration>,
 > {
-  source: FormSource<TSource>;
+  id?: string;
+  contract?: string;
+  source: FormSource<TSource> | FormSourceDeclaration<TSource>;
   fields: TFields | FormFieldsBuilder<TFields>;
   validation?: Record<string, unknown> | FormValidationBuilder;
   availability?: Record<string, unknown> | FormAvailabilityBuilder;
@@ -91,7 +99,47 @@ export interface FormController<
   TFieldHandles extends Record<string, FormFieldHandle> = Record<string, FormFieldHandle>,
 > {
   readonly fields: TFieldHandles;
+  declaration(): {
+    readonly formId: string;
+    readonly contract: string;
+    readonly source: {
+      readonly kind: string;
+      readonly sourceId: string;
+    };
+    readonly fieldFamilies: {
+      readonly scalar: number;
+      readonly repeated: number;
+      readonly attachment: number;
+    };
+    readonly fieldCount: number;
+  };
   source(): TSource;
+  sourceAuthority(): FormSourceAuthorityDiagnostics;
+  fieldContract(): ReadonlyArray<{
+    readonly id: string;
+    readonly name: string;
+    readonly family: "scalar" | "repeated" | "attachment";
+    readonly path: string;
+    readonly collectionIdentity: null | {
+      readonly kind: "field" | "resolver";
+      readonly field: string | null;
+      readonly posture: string;
+    };
+    readonly attachment: null | {
+      readonly identityKind: "field" | "resolver";
+      readonly identityField: string | null;
+      readonly metadata: Readonly<Record<string, SignalValue>>;
+      readonly posture: string;
+    };
+  }>;
+  inputAdapters(): ReadonlyArray<{
+    readonly field: string;
+    readonly path: string;
+    readonly family: "scalar" | "repeated" | "attachment";
+    readonly tier: FormInputAdapterDiagnostics["tier"];
+    readonly capabilities: FormInputAdapterDiagnostics["capabilities"];
+    readonly unavailable: FormInputAdapterDiagnostics["unavailable"];
+  }>;
   draft(): Partial<TSource>;
   effective(): TSource;
   host(): FormHostReport;
@@ -311,7 +359,11 @@ export interface FormController<
   };
   diagnostics(): {
     readonly kind: "form";
+    readonly declaration: ReturnType<FormController["declaration"]>;
     readonly fieldCount: number;
+    readonly sourceAuthority: FormSourceAuthorityDiagnostics;
+    readonly fieldContract: ReturnType<FormController["fieldContract"]>;
+    readonly inputAdapters: ReturnType<FormController["inputAdapters"]>;
     readonly dirty: FormDirtyState;
     readonly patchPlan: FormPatchPlan;
     readonly validation: FormValidationReport;
@@ -347,6 +399,17 @@ export interface FormController<
 }
 
 export type FormFieldHandleFor<TDeclaration> =
-  TDeclaration extends FormFieldDeclaration<infer TValue, infer TRaw>
-    ? FormFieldHandle<TValue, TRaw>
+  TDeclaration extends FormFieldDeclaration<infer TValue, infer TRaw, infer TFamily>
+    ? FormFieldHandle<TValue, TRaw, TFamily>
     : FormFieldHandle;
+
+export interface FormFactory {
+  <
+    TSource = SignalValue,
+    TFields extends Record<string, FormFieldDeclaration> = Record<string, FormFieldDeclaration>,
+  >(declaration: FormDeclaration<TSource, TFields>): FormController<
+    TSource,
+    { [K in keyof TFields]: FormFieldHandleFor<TFields[K]> }
+  >;
+  readonly source: FormSourceFactory;
+}

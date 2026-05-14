@@ -17,6 +17,7 @@ export * from "./forms/measurement.js";
 export * from "./forms/attachments.js";
 export * from "./forms/media.js";
 export * from "./forms/presentation.js";
+export * from "./forms/sources.js";
 export * from "./forms/steps.js";
 export * from "./forms/validation.js";
 export * from "./forms/verification.js";

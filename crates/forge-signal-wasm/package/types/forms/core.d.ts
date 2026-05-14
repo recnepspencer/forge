@@ -118,20 +118,55 @@ export interface FormFieldOptions<TValue = SignalValue, TRaw = TValue> {
   layout?: FormFieldLayoutOptions;
 }
 
-export interface FormFieldDeclaration<TValue = SignalValue, TRaw = TValue> {
+export type FormFieldFamily = "scalar" | "repeated" | "attachment";
+
+export interface FormFieldDeclaration<
+  TValue = SignalValue,
+  TRaw = TValue,
+  TFamily extends FormFieldFamily = FormFieldFamily,
+> {
   readonly path: string;
+  readonly family?: TFamily;
   readonly __formFieldValue?: TValue;
   readonly __formFieldRaw?: TRaw;
+  readonly __formFieldFamily?: TFamily;
 }
 
 export interface FormFieldFactory {
   field<TValue = SignalValue, TRaw = TValue>(
     path: FormFieldPath,
     options?: FormFieldOptions<TValue, TRaw>,
-  ): FormFieldDeclaration<TValue, TRaw>;
+  ): FormFieldDeclaration<TValue, TRaw, "scalar">;
+  repeated<TValue = SignalValue, TRaw = TValue>(
+    path: FormFieldPath,
+    options: FormFieldOptions<TValue, TRaw> & FormRepeatedIdentityOptions<TValue>,
+  ): FormFieldDeclaration<TValue, TRaw, "repeated">;
+  attachment<TValue = SignalValue, TRaw = TValue>(
+    path: FormFieldPath,
+    options: FormFieldOptions<TValue, TRaw> & FormAttachmentIdentityOptions<TValue>,
+  ): FormFieldDeclaration<TValue, TRaw, "attachment">;
 }
 
-export type FormFieldsBuilder<TFields extends Record<string, FormFieldDeclaration>> =
+export type FormRepeatedIdentityOptions<TValue = SignalValue> =
+  | { readonly itemIdentity: string | ((item: FormRepeatedItem<TValue>) => string); readonly key?: never }
+  | { readonly key: string | ((item: FormRepeatedItem<TValue>) => string); readonly itemIdentity?: never };
+
+export type FormRepeatedItem<TValue> =
+  TValue extends ReadonlyArray<infer TItem> ? TItem : SignalValue;
+
+export type FormAttachmentIdentityOptions<TValue = SignalValue> =
+  | {
+      readonly attachmentIdentity: string | ((attachment: TValue) => string);
+      readonly digest?: never;
+      readonly metadata?: Readonly<Record<string, SignalValue>>;
+    }
+  | {
+      readonly digest: string | ((attachment: TValue) => string);
+      readonly attachmentIdentity?: never;
+      readonly metadata?: Readonly<Record<string, SignalValue>>;
+    };
+
+export type FormFieldsBuilder<TFields extends Record<string, FormFieldDeclaration<SignalValue, SignalValue, FormFieldFamily>>> =
   (factory: FormFieldFactory) => TFields;
 
 export type FormSourceValue<TValue = SignalValue> =
@@ -199,6 +234,8 @@ export interface FormFieldDiagnostics {
   } | null;
   readonly writePosture: FormFieldWritePosture;
   readonly inputAdapter: FormInputAdapterDiagnostics;
+  readonly collectionIdentity?: FormRepeatedCollectionIdentity;
+  readonly attachment?: FormAttachmentIdentity;
 }
 
 export interface FormFieldWritePosture {
@@ -209,7 +246,11 @@ export interface FormFieldWritePosture {
   readonly reason: string;
 }
 
-export interface FormFieldHandle<TValue = SignalValue, TRaw = TValue> {
+export interface FormBaseFieldHandle<
+  TValue = SignalValue,
+  TRaw = TValue,
+  TFamily extends FormFieldFamily = FormFieldFamily,
+> {
   readonly id: string;
   readonly path: string;
   locus(): FormFieldLocus;
@@ -217,20 +258,68 @@ export interface FormFieldHandle<TValue = SignalValue, TRaw = TValue> {
   draftValue(): TValue | undefined;
   effectiveValue(): TValue;
   value(): TValue;
-  set(value: TValue): FormFieldHandle<TValue, TRaw>;
-  clearDraft(): FormFieldHandle<TValue, TRaw>;
+  set(value: TValue): FormFieldHandle<TValue, TRaw, TFamily>;
+  clearDraft(): FormFieldHandle<TValue, TRaw, TFamily>;
   input(rawValue: TRaw, options?: {
     commit?: boolean;
     source?: FormInteractionInputSource;
-  }): FormFieldHandle<TValue, TRaw>;
-  compose(rawValue: TRaw): FormFieldHandle<TValue, TRaw>;
-  commitInput(parser?: (rawValue: TRaw) => TValue): FormFieldHandle<TValue, TRaw>;
-  touch(): FormFieldHandle<TValue, TRaw>;
-  visit(): FormFieldHandle<TValue, TRaw>;
-  focus(): FormFieldHandle<TValue, TRaw>;
-  blur(): FormFieldHandle<TValue, TRaw>;
+  }): FormFieldHandle<TValue, TRaw, TFamily>;
+  compose(rawValue: TRaw): FormFieldHandle<TValue, TRaw, TFamily>;
+  commitInput(parser?: (rawValue: TRaw) => TValue): FormFieldHandle<TValue, TRaw, TFamily>;
+  touch(): FormFieldHandle<TValue, TRaw, TFamily>;
+  visit(): FormFieldHandle<TValue, TRaw, TFamily>;
+  focus(): FormFieldHandle<TValue, TRaw, TFamily>;
+  blur(): FormFieldHandle<TValue, TRaw, TFamily>;
   dirty(): FormFieldDirtyState;
   diagnostics(): FormFieldDiagnostics;
+}
+
+export interface FormScalarFieldHandle<TValue = SignalValue, TRaw = TValue>
+  extends FormBaseFieldHandle<TValue, TRaw, "scalar"> {}
+
+export interface FormRepeatedFieldHandle<TValue = SignalValue, TRaw = TValue>
+  extends FormBaseFieldHandle<TValue, TRaw, "repeated"> {
+  addItem(item: TValue extends ReadonlyArray<infer TItem> ? TItem : SignalValue): FormRepeatedFieldHandle<TValue, TRaw>;
+  removeItem(itemId: string): FormRepeatedFieldHandle<TValue, TRaw>;
+  replaceItem(
+    itemId: string,
+    nextItem: TValue extends ReadonlyArray<infer TItem> ? TItem : SignalValue,
+  ): FormRepeatedFieldHandle<TValue, TRaw>;
+  moveItem(itemId: string, beforeItemId?: string | null): FormRepeatedFieldHandle<TValue, TRaw>;
+  collectionIdentity(): FormRepeatedCollectionIdentity;
+}
+
+export interface FormAttachmentFieldHandle<TValue = SignalValue, TRaw = TValue>
+  extends FormBaseFieldHandle<TValue, TRaw, "attachment"> {
+  attachmentIdentity(value?: TValue): FormAttachmentIdentity;
+}
+
+export type FormFieldHandle<
+  TValue = SignalValue,
+  TRaw = TValue,
+  TFamily extends FormFieldFamily = FormFieldFamily,
+> =
+  TFamily extends "repeated"
+    ? FormRepeatedFieldHandle<TValue, TRaw>
+    : TFamily extends "attachment"
+      ? FormAttachmentFieldHandle<TValue, TRaw>
+      : FormScalarFieldHandle<TValue, TRaw>;
+
+export interface FormRepeatedCollectionIdentity {
+  readonly field: string;
+  readonly posture: "stableItemIdentityRequired" | string;
+  readonly items: ReadonlyArray<{
+    readonly itemId: string;
+    readonly digest: string;
+  }>;
+}
+
+export interface FormAttachmentIdentity {
+  readonly field: string;
+  readonly attachmentDigest: string;
+  readonly metadata: Readonly<Record<string, SignalValue>>;
+  readonly posture: "fileBlobIdentityAndMetadataDeclared" | string;
+  readonly valueDigest: string;
 }
 
 export interface FormDirtyState {

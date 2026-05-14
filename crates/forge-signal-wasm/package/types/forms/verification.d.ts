@@ -16,11 +16,17 @@ import type { FormLayoutReport } from "./layout.js";
 import type { FormLayoutMeasurementReport } from "./measurement.js";
 import type { FormPresentationReport } from "./presentation.js";
 import type { FormInputCapabilitiesReport } from "./input_capabilities.js";
+import type { FormSourceAuthorityDiagnostics } from "./sources.js";
 
 export interface FormVerificationPackage {
   readonly kind: "formVerification";
   readonly digests: {
     readonly sourceAuthorityDigest: string;
+    readonly sourceAuthorityContractDigest: string;
+    readonly sourceValueDigest: string;
+    readonly formDeclarationDigest: string;
+    readonly fieldContractDigest: string;
+    readonly inputAdapterCapabilityDigest: string;
     readonly hostFactDigest: string;
     readonly inputCapabilityDigest: string;
     readonly exitDigest: string;
@@ -61,6 +67,7 @@ export interface FormVerificationPackage {
     readonly presentationHistoryDigest: string;
     readonly diagnosticsHistoryDigest: string;
   };
+  readonly sourceAuthority: FormSourceAuthorityDiagnostics;
   readonly actionHistory: {
     readonly attempts: number;
     readonly digest: string;
