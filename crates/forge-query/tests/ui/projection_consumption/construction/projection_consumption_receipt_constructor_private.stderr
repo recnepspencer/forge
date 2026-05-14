@@ -1,0 +1,31 @@
+error[E0451]: fields `declaration_digest`, `contract_digest`, `fact_set_digest`, `source_family`, `source_identity`, `support_posture`, `admitted_fact_family_count`, `extracted_fact_count`, `authority_reopen_count`, `deferred_neighbors`, `counter_snapshot_digest`, `integrity_digest` and `receipt_digest` of struct `ProjectionConsumptionReceipt` are private
+  --> tests/ui/projection_consumption/construction/projection_consumption_receipt_constructor_private.rs:5:9
+   |
+ 4 |     let _ = ProjectionConsumptionReceipt {
+   |             ---------------------------- in this type
+ 5 |         declaration_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+ 6 |         contract_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+ 7 |         fact_set_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+ 8 |         source_family: forge_query::facade::ProjectionSourceFamily::RelationalRowSet,
+   |         ^^^^^^^^^^^^^ private field
+ 9 |         source_identity: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+10 |         support_posture: ProjectionContractSupportPosture::Admitted,
+   |         ^^^^^^^^^^^^^^^ private field
+11 |         admitted_fact_family_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |         extracted_fact_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+13 |         authority_reopen_count: 0,
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+14 |         deferred_neighbors: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+15 |         counter_snapshot_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         integrity_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^ private field
+17 |         receipt_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ private field

@@ -1,16 +1,37 @@
-use super::{
+use super::super::{
     declare_projection_consumption, discover_projection_consumption_support,
     evaluate_projection_consumption_eligibility, ProjectMaterializedFacts,
     ProjectionConsumptionBindingContext, ProjectionConsumptionDeclarationError,
-    ProjectionConsumptionDenialReason, ProjectionConsumptionEligibility, ProjectionConsumptionSource,
-    ProjectionConsumptionSupportPosture, ProjectionConsumptionWarnings,
-    ProjectionConsumptionWarningKind, ProjectionFactKind, ProjectionSourceFamily,
+    ProjectionConsumptionDenialReason, ProjectionConsumptionEligibility,
+    ProjectionConsumptionSource, ProjectionConsumptionSupportPosture,
+    ProjectionConsumptionWarningKind, ProjectionConsumptionWarnings, ProjectionFactKind,
+    ProjectionSourceFamily,
 };
 
 fn test_binding(visible_fields: &[&str]) -> ProjectionConsumptionBindingContext {
     ProjectionConsumptionBindingContext::test_only(
         "result-shape:test",
         "authorized-projection:test",
+        visible_fields
+            .iter()
+            .map(|field| field.to_string())
+            .collect(),
+    )
+}
+
+fn test_binding_with_projection_metadata(
+    result_shape_digest: &str,
+    query_digest: &str,
+    visible_fields: &[&str],
+) -> ProjectionConsumptionBindingContext {
+    ProjectionConsumptionBindingContext::test_only_with_projection_metadata(
+        result_shape_digest,
+        query_digest,
+        result_shape_digest,
+        "authorized-projection:test",
+        "narrowed-result-shape:test",
+        "policy:test",
+        "tenant-schema:test",
         visible_fields
             .iter()
             .map(|field| field.to_string())
@@ -44,6 +65,40 @@ fn test_source(family: ProjectionSourceFamily) -> ProjectionConsumptionSource {
             Some("result-shape:test"),
             "query-context:test",
         ),
+        ProjectionSourceFamily::RelationalRowSet => ProjectionConsumptionSource::test_only(
+            family,
+            None,
+            Some("snapshot:test"),
+            None,
+            None,
+            "relational-row-set:test",
+        ),
+        ProjectionSourceFamily::RelationalGroupedProjection => {
+            ProjectionConsumptionSource::test_only(
+                family,
+                None,
+                Some("snapshot:test"),
+                None,
+                None,
+                "relational-grouped-projection:test",
+            )
+        }
+        ProjectionSourceFamily::BridgeTruthViewRowSet => ProjectionConsumptionSource::test_only(
+            family,
+            None,
+            Some("snapshot:test"),
+            None,
+            None,
+            "bridge-row-set:test",
+        ),
+        ProjectionSourceFamily::BridgeGroupedTruthView => ProjectionConsumptionSource::test_only(
+            family,
+            None,
+            Some("snapshot:test"),
+            None,
+            None,
+            "bridge-grouped-truth-view:test",
+        ),
     }
 }
 
@@ -57,7 +112,9 @@ fn all_source_families() -> [ProjectionSourceFamily; 3] {
 
 fn request_for_kind(kind: ProjectionFactKind) -> ProjectMaterializedFacts {
     match kind {
-        ProjectionFactKind::EntityIdentity => ProjectMaterializedFacts::declare().entity_identities(),
+        ProjectionFactKind::EntityIdentity => {
+            ProjectMaterializedFacts::declare().entity_identities()
+        }
         ProjectionFactKind::ViewLocalIdentity => {
             ProjectMaterializedFacts::declare().view_local_identities()
         }
@@ -269,9 +326,56 @@ fn source_and_binding_result_shapes_must_match() {
     assert_eq!(
         declaration,
         Err(
-            ProjectionConsumptionDeclarationError::SourceBindingResultShapeMismatch {
-                source_result_shape_digest: "result-shape:test".to_string(),
+            ProjectionConsumptionDeclarationError::BindingAuthorizedProjectionResultShapeMismatch {
                 binding_result_shape_digest: "result-shape:other".to_string(),
+                authorized_projection_result_shape_digest: "result-shape:test".to_string(),
+            }
+        )
+    );
+}
+
+#[test]
+fn source_and_authorized_projection_queries_must_match() {
+    let declaration = declare_projection_consumption(
+        test_source(ProjectionSourceFamily::QueryReadReceipt),
+        test_binding_with_projection_metadata("result-shape:test", "query:other", &["identity.id"]),
+        ProjectMaterializedFacts::declare().entity_identities(),
+    );
+
+    assert_eq!(
+        declaration,
+        Err(
+            ProjectionConsumptionDeclarationError::SourceAuthorizedProjectionQueryMismatch {
+                source_query_digest: "query:test".to_string(),
+                authorized_projection_query_digest: "query:other".to_string(),
+            }
+        )
+    );
+}
+
+#[test]
+fn binding_result_shape_must_match_authorized_projection_result_shape() {
+    let declaration = declare_projection_consumption(
+        test_source(ProjectionSourceFamily::RelationalRowSet),
+        ProjectionConsumptionBindingContext::test_only_with_projection_metadata(
+            "result-shape:other",
+            "query:test",
+            "result-shape:test",
+            "authorized-projection:test",
+            "narrowed-result-shape:test",
+            "policy:test",
+            "tenant-schema:test",
+            vec!["identity.id".to_string()],
+        ),
+        ProjectMaterializedFacts::declare().entity_identities(),
+    );
+
+    assert_eq!(
+        declaration,
+        Err(
+            ProjectionConsumptionDeclarationError::BindingAuthorizedProjectionResultShapeMismatch {
+                binding_result_shape_digest: "result-shape:other".to_string(),
+                authorized_projection_result_shape_digest: "result-shape:test".to_string(),
             }
         )
     );

@@ -86,4 +86,22 @@ impl ForgeQueryMutationProvenanceEvidence {
     pub fn failure_class(&self) -> Option<BridgeWritebackFailureClass> {
         self.failure_class
     }
+
+    #[cfg(test)]
+    pub(crate) fn test_only(execution_record_digest: impl Into<String>) -> Self {
+        Self {
+            contract_digest: "contract:test".to_string(),
+            derived_effect_digest: "derived:test".to_string(),
+            proposed_effect_digest: "proposed:test".to_string(),
+            feedback_provenance_digest: "feedback:test".to_string(),
+            causality_digest: "causality:test".to_string(),
+            strategy_descriptor_digest: "strategy:test".to_string(),
+            execution_record_digest: execution_record_digest.into(),
+            outcome_class: None,
+            authoritative_artifact_digest: None,
+            request_digest: None,
+            receipt_digest: None,
+            failure_class: None,
+        }
+    }
 }

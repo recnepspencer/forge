@@ -68,4 +68,20 @@ impl ForgeQuerySymbolicTargetReferenceEvidence {
     pub fn target_collection(&self) -> Option<&str> {
         self.target_collection.as_deref()
     }
+
+    #[cfg(test)]
+    pub(crate) fn test_only(
+        symbol: impl Into<String>,
+        resolved_entity_identity: impl Into<String>,
+        target_collection: Option<&str>,
+    ) -> Self {
+        Self {
+            family:
+                crate::runtime::ForgeQuerySymbolicTargetReferenceFamily::SameBatchDeclaredTarget,
+            outcome: ForgeQuerySymbolicTargetReferenceOutcome::SameBatchSymbolicTarget,
+            symbol: symbol.into(),
+            resolved_entity_identity: resolved_entity_identity.into(),
+            target_collection: target_collection.map(str::to_string),
+        }
+    }
 }

@@ -85,6 +85,7 @@ pretending the feature is already usable.
 | P0 | required | Inspection | `reference/inspection.md` |
 | P0 | required | Aspects and authority lanes | `reference/aspects-and-authority-lanes.md` |
 | P0 | required | Public support matrix, admission, and compatibility posture | `reference/support-matrix-and-admission.md` |
+| P1 | required | Projection consumption from read results, write receipts, and query-context execution | `reference/projection-consumption.md` |
 | P1 | required | Typed query expressions and result shapes | `reference/query-expressions-and-result-shapes.md` |
 | P1 | required | Schema validation and legality | `reference/schema-validation.md` |
 | P1 | required | Historical basis, diff, and comparison queries | `reference/historical-diff-and-basis.md` |

@@ -1,0 +1,21 @@
+error[E0308]: mismatched types
+ --> tests/ui/projection_consumption/boundaries/projection_consumption_raw_source_has_no_consumed_fact_accessors.rs:7:21
+  |
+7 |     expect_fact_set(&row_set);
+  |     --------------- ^^^^^^^^ expected `&ConsumedProjectionFactSet`, found `&RelationalAuthoritativeRowSetArtifact`
+  |     |
+  |     arguments to this function are incorrect
+  |
+  = note: expected reference `&ConsumedProjectionFactSet`
+             found reference `&RelationalAuthoritativeRowSetArtifact`
+note: function defined here
+ --> tests/ui/projection_consumption/boundaries/projection_consumption_raw_source_has_no_consumed_fact_accessors.rs:4:4
+  |
+4 | fn expect_fact_set(_: &ConsumedProjectionFactSet) {}
+  |    ^^^^^^^^^^^^^^^ -----------------------------
+
+error[E0599]: no method named `issue_receipt` found for struct `RelationalAuthoritativeRowSetArtifact` in the current scope
+ --> tests/ui/projection_consumption/boundaries/projection_consumption_raw_source_has_no_consumed_fact_accessors.rs:8:28
+  |
+8 |     let _receipt = row_set.issue_receipt();
+  |                            ^^^^^^^^^^^^^ method not found in `RelationalAuthoritativeRowSetArtifact`

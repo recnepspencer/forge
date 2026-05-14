@@ -1,0 +1,46 @@
+error: cannot construct `ProjectionConsumptionSupportMatrix` with struct literal syntax due to private fields
+  --> tests/ui/projection_consumption/construction/projection_consumption_certification_bundle_constructor_private.rs:13:25
+   |
+13 |         support_matrix: ProjectionConsumptionSupportMatrix {
+   |                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+14 |             rows: Vec::new(),
+   |             ---------------- private field
+15 |             matrix_digest: String::new(),
+   |             ---------------------------- private field
+   |
+   = note: ...and other private field `support_traceability_digest` that was not provided
+
+error: cannot construct `ProjectionConsumptionCertificationBundle` with struct literal syntax due to private fields
+  --> tests/ui/projection_consumption/construction/projection_consumption_certification_bundle_constructor_private.rs:8:13
+   |
+ 8 |       let _ = ProjectionConsumptionCertificationBundle {
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 9 | /         family_inventory: ProjectionConsumptionFamilyInventory {
+10 | |             rows: Vec::new(),
+11 | |             inventory_digest: String::new(),
+12 | |         },
+   | |_________- private field
+13 | /         support_matrix: ProjectionConsumptionSupportMatrix {
+14 | |             rows: Vec::new(),
+15 | |             matrix_digest: String::new(),
+16 | |         },
+   | |_________- private field
+17 | /         public_boundary_audit: ProjectionConsumptionPublicBoundaryAudit {
+18 | |             rows: Vec::new(),
+19 | |             audit_digest: String::new(),
+20 | |         },
+   | |_________- private field
+21 | /         proof_shape_audit: ProjectionConsumptionProofShapeAudit {
+22 | |             rows: Vec::new(),
+23 | |             proof_shape_digest: String::new(),
+24 | |             phase_progression_digest: String::new(),
+25 | |         },
+   | |_________- private field
+26 |           rows: Vec::new(),
+   |           ---------------- private field
+27 |           outputs: Vec::new(),
+   |           ------------------- private field
+28 |           certification_bundle_digest: String::new(),
+   |           ------------------------------------------ private field
+   |
+   = note: ...and other private fields `oracle_report`, `seeded_report` and `slope_report` that were not provided

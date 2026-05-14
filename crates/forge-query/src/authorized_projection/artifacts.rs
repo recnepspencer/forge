@@ -83,6 +83,10 @@ impl MaskedProjectionArtifact {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct AuthorizedProjectionArtifact {
     identity: AuthorizedProjectionIdentity,
+    query_digest: String,
+    result_shape_digest: String,
+    policy_digest: String,
+    tenant_schema_basis_digest: String,
     visible_fields: Vec<String>,
     masked_projection: MaskedProjectionArtifact,
     narrowed_result_shape_digest: String,
@@ -114,6 +118,10 @@ impl AuthorizedProjectionArtifact {
         ]));
         Self {
             identity,
+            query_digest: query_digest.to_string(),
+            result_shape_digest: result_shape_digest.to_string(),
+            policy_digest: policy_digest.to_string(),
+            tenant_schema_basis_digest: tenant_schema_basis_digest.to_string(),
             visible_fields,
             masked_projection,
             narrowed_result_shape_digest,
@@ -126,8 +134,24 @@ impl AuthorizedProjectionArtifact {
         &self.identity
     }
 
+    pub fn query_digest(&self) -> &str {
+        &self.query_digest
+    }
+
+    pub fn result_shape_digest(&self) -> &str {
+        &self.result_shape_digest
+    }
+
     pub fn visible_fields(&self) -> &[String] {
         &self.visible_fields
+    }
+
+    pub fn policy_digest(&self) -> &str {
+        &self.policy_digest
+    }
+
+    pub fn tenant_schema_basis_digest(&self) -> &str {
+        &self.tenant_schema_basis_digest
     }
 
     pub fn masked_projection(&self) -> &MaskedProjectionArtifact {

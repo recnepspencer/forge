@@ -115,6 +115,13 @@ That artifact is important because it freezes:
 
 The result is not just data. It is data plus an execution explanation.
 
+Good to know:
+
+- if the attached `ForgeQueryReadResult` payload is not a strong enough
+  boundary for the caller, feed that result into
+  [Projection Consumption](./projection-consumption.md) to extract typed facts
+  with their own receipt and envelope
+
 Some entrypoints now own traversal mechanically instead of asking the caller to
 declare it by convention:
 
@@ -684,6 +691,9 @@ assert_eq!(
   need its current entities.
 - Use `compose_read(...)` when you need one bounded graph read without
   materializing a named retained live view first.
+- Use [Projection Consumption](./projection-consumption.md) when the returned
+  `ForgeQueryReadResult` must become typed consumed facts instead of staying a
+  payload-plus-receipt artifact.
 - Use graph composition when you are authoring writes or mutation intent, not
   reads.
 
@@ -842,3 +852,4 @@ Query roadmap.
 
 - [Workspace Overview](./workspace-overview.md)
 - [Read Composition Phase 1 Closeout](../../../_docs/forge-query/read-composition-phase1-closeout.md)
+- [Projection Consumption](./projection-consumption.md)

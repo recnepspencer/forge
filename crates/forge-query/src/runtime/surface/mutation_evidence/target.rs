@@ -73,4 +73,21 @@ impl ForgeQueryMutationTargetEvidence {
     pub fn resolved(&self) -> &ForgeQueryMutationTargetDescriptor {
         &self.resolved
     }
+
+    #[cfg(test)]
+    pub(crate) fn test_only(
+        target_class: ForgeQueryMutationTargetClass,
+        collection: Option<&str>,
+        entity_identity: Option<&str>,
+    ) -> Self {
+        let descriptor = ForgeQueryMutationTargetDescriptor {
+            target_class,
+            collection: collection.map(str::to_string),
+            entity_identity: entity_identity.map(str::to_string),
+        };
+        Self {
+            declared: descriptor.clone(),
+            resolved: descriptor,
+        }
+    }
 }

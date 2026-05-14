@@ -1,8 +1,11 @@
 use crate::identity::hash_parts;
 
-use super::declaration::{ProjectionConsumptionSource, ProjectionSourceFamily};
 use super::eligibility::{DeferredProjectionConsumptionReason, ProjectionConsumptionWarningKind};
 use super::facts::ProjectionFactKind;
+use super::source::{
+    ProjectionConsumptionSource, ProjectionSourceCapabilityProfile,
+    ProjectionSourceExecutionPosture, ProjectionSourceFamily,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ProjectionConsumptionSupportPosture {
@@ -30,6 +33,9 @@ impl ProjectionConsumptionSupportPosture {
                 DeferredProjectionConsumptionReason::WriteReceiptContractBindingPending => {
                     "write_receipt_contract_binding_pending"
                 }
+                DeferredProjectionConsumptionReason::SourceFamilySupportPending => {
+                    "source_family_support_pending"
+                }
             },
             Self::SourceMismatch => "source_mismatch",
         }
@@ -56,6 +62,10 @@ impl ProjectionConsumptionSupportRow {
     pub fn posture(&self) -> &ProjectionConsumptionSupportPosture {
         &self.posture
     }
+
+    pub fn support_digest(&self) -> &str {
+        &self.support_digest
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -64,6 +74,13 @@ pub struct ProjectionConsumptionSupportReport {
 }
 
 impl ProjectionConsumptionSupportReport {
+    pub fn source_family(&self) -> ProjectionSourceFamily {
+        self.rows
+            .first()
+            .map(ProjectionConsumptionSupportRow::source_family)
+            .expect("support report always contains one row per fact kind")
+    }
+
     pub fn rows(&self) -> &[ProjectionConsumptionSupportRow] {
         &self.rows
     }
@@ -72,12 +89,11 @@ impl ProjectionConsumptionSupportReport {
 pub fn discover_projection_consumption_support(
     source: &ProjectionConsumptionSource,
 ) -> ProjectionConsumptionSupportReport {
-    let evaluator = evaluator_for(source.family());
     let rows = ProjectionFactKind::all()
         .iter()
         .copied()
         .map(|fact_kind| {
-            let posture = evaluator.evaluate_fact_kind(fact_kind);
+            let posture = support_for_kind(source, fact_kind);
             ProjectionConsumptionSupportRow {
                 source_family: source.family(),
                 fact_kind,
@@ -95,99 +111,222 @@ pub fn discover_projection_consumption_support(
 }
 
 pub(crate) fn support_for_kind(
-    source_family: ProjectionSourceFamily,
+    source: &ProjectionConsumptionSource,
     fact_kind: ProjectionFactKind,
 ) -> ProjectionConsumptionSupportPosture {
-    evaluator_for(source_family).evaluate_fact_kind(fact_kind)
-}
-
-trait ProjectionConsumptionSourceEvaluator {
-    fn evaluate_fact_kind(
-        &self,
-        fact_kind: ProjectionFactKind,
-    ) -> ProjectionConsumptionSupportPosture;
-}
-
-struct QueryReadReceiptEvaluator;
-struct QueryWriteReceiptEvaluator;
-struct QueryContextExecutionEvaluator;
-
-impl ProjectionConsumptionSourceEvaluator for QueryReadReceiptEvaluator {
-    fn evaluate_fact_kind(
-        &self,
-        fact_kind: ProjectionFactKind,
-    ) -> ProjectionConsumptionSupportPosture {
-        match fact_kind {
-            ProjectionFactKind::EntityIdentity
-            | ProjectionFactKind::ViewLocalIdentity
-            | ProjectionFactKind::DisplayField
-            | ProjectionFactKind::DerivedScalarField => {
-                ProjectionConsumptionSupportPosture::Admitted
-            }
-            ProjectionFactKind::TargetIdentity
-            | ProjectionFactKind::SourceReference
-            | ProjectionFactKind::EffectContinuity
-            | ProjectionFactKind::Membership
-            | ProjectionFactKind::RelationEndpoint => {
-                ProjectionConsumptionSupportPosture::SourceMismatch
-            }
+    match source.capability_profile() {
+        ProjectionSourceCapabilityProfile::QueryReadReceipt { execution_posture } => {
+            query_read_support(*execution_posture, fact_kind)
+        }
+        ProjectionSourceCapabilityProfile::QueryWriteReceipt { capabilities } => {
+            query_write_support(capabilities, fact_kind)
+        }
+        ProjectionSourceCapabilityProfile::QueryContextExecution { execution_posture } => {
+            query_context_support(
+                *execution_posture,
+                !source.source_reference_identities().is_empty(),
+                fact_kind,
+            )
+        }
+        ProjectionSourceCapabilityProfile::RelationalRowSet => {
+            relational_row_set_support(fact_kind)
+        }
+        ProjectionSourceCapabilityProfile::RelationalGroupedProjection => {
+            relational_grouped_projection_support(fact_kind)
+        }
+        ProjectionSourceCapabilityProfile::BridgeTruthViewRowSet => {
+            bridge_truth_view_row_set_support(fact_kind)
+        }
+        ProjectionSourceCapabilityProfile::BridgeGroupedTruthView => {
+            bridge_grouped_truth_view_support(fact_kind)
         }
     }
 }
 
-impl ProjectionConsumptionSourceEvaluator for QueryWriteReceiptEvaluator {
-    fn evaluate_fact_kind(
-        &self,
-        fact_kind: ProjectionFactKind,
-    ) -> ProjectionConsumptionSupportPosture {
-        match fact_kind {
-            ProjectionFactKind::TargetIdentity
-            | ProjectionFactKind::SourceReference
-            | ProjectionFactKind::EffectContinuity => {
-                ProjectionConsumptionSupportPosture::Deferred(
-                    DeferredProjectionConsumptionReason::WriteReceiptContractBindingPending,
-                )
+fn query_read_support(
+    execution_posture: ProjectionSourceExecutionPosture,
+    fact_kind: ProjectionFactKind,
+) -> ProjectionConsumptionSupportPosture {
+    match fact_kind {
+        ProjectionFactKind::EntityIdentity | ProjectionFactKind::ViewLocalIdentity => {
+            ProjectionConsumptionSupportPosture::Admitted
+        }
+        ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
+            match execution_posture {
+                ProjectionSourceExecutionPosture::Current
+                | ProjectionSourceExecutionPosture::Branch => {
+                    ProjectionConsumptionSupportPosture::Admitted
+                }
+                ProjectionSourceExecutionPosture::Historical
+                | ProjectionSourceExecutionPosture::PreviewDerived => {
+                    ProjectionConsumptionSupportPosture::SourceMismatch
+                }
             }
-            _ => ProjectionConsumptionSupportPosture::SourceMismatch,
+        }
+        ProjectionFactKind::TargetIdentity
+        | ProjectionFactKind::SourceReference
+        | ProjectionFactKind::EffectContinuity
+        | ProjectionFactKind::Membership
+        | ProjectionFactKind::RelationEndpoint => {
+            ProjectionConsumptionSupportPosture::SourceMismatch
         }
     }
 }
 
-impl ProjectionConsumptionSourceEvaluator for QueryContextExecutionEvaluator {
-    fn evaluate_fact_kind(
-        &self,
-        fact_kind: ProjectionFactKind,
-    ) -> ProjectionConsumptionSupportPosture {
-        match fact_kind {
-            ProjectionFactKind::SourceReference | ProjectionFactKind::DerivedScalarField => {
-                ProjectionConsumptionSupportPosture::AdmittedWithWarnings(
-                    ProjectionConsumptionWarningKind::QueryContextPayloadBound,
-                )
-            }
-            ProjectionFactKind::DisplayField => {
-                ProjectionConsumptionSupportPosture::AdmittedWithWarnings(
-                    ProjectionConsumptionWarningKind::PreviewDerivedContext,
-                )
-            }
-            ProjectionFactKind::EntityIdentity | ProjectionFactKind::ViewLocalIdentity => {
-                ProjectionConsumptionSupportPosture::Admitted
-            }
-            ProjectionFactKind::TargetIdentity
-            | ProjectionFactKind::EffectContinuity
-            | ProjectionFactKind::Membership
-            | ProjectionFactKind::RelationEndpoint => {
-                ProjectionConsumptionSupportPosture::SourceMismatch
-            }
+fn query_write_support(
+    capabilities: &super::source::ProjectionWriteReceiptCapabilities,
+    fact_kind: ProjectionFactKind,
+) -> ProjectionConsumptionSupportPosture {
+    match fact_kind {
+        ProjectionFactKind::TargetIdentity if capabilities.has_target_identity() => {
+            ProjectionConsumptionSupportPosture::Admitted
+        }
+        ProjectionFactKind::SourceReference if capabilities.has_source_reference() => {
+            ProjectionConsumptionSupportPosture::Admitted
+        }
+        ProjectionFactKind::EffectContinuity if capabilities.has_effect_continuity() => {
+            ProjectionConsumptionSupportPosture::Admitted
+        }
+        ProjectionFactKind::RelationEndpoint if capabilities.has_relation_endpoint() => {
+            ProjectionConsumptionSupportPosture::Admitted
+        }
+        ProjectionFactKind::TargetIdentity
+        | ProjectionFactKind::SourceReference
+        | ProjectionFactKind::EffectContinuity
+        | ProjectionFactKind::RelationEndpoint => ProjectionConsumptionSupportPosture::Deferred(
+            DeferredProjectionConsumptionReason::WriteReceiptContractBindingPending,
+        ),
+        ProjectionFactKind::EntityIdentity
+        | ProjectionFactKind::ViewLocalIdentity
+        | ProjectionFactKind::Membership
+        | ProjectionFactKind::DisplayField
+        | ProjectionFactKind::DerivedScalarField => {
+            ProjectionConsumptionSupportPosture::SourceMismatch
         }
     }
 }
 
-fn evaluator_for(
-    source_family: ProjectionSourceFamily,
-) -> &'static dyn ProjectionConsumptionSourceEvaluator {
-    match source_family {
-        ProjectionSourceFamily::QueryReadReceipt => &QueryReadReceiptEvaluator,
-        ProjectionSourceFamily::QueryWriteReceipt => &QueryWriteReceiptEvaluator,
-        ProjectionSourceFamily::QueryContextExecution => &QueryContextExecutionEvaluator,
+fn query_context_support(
+    execution_posture: ProjectionSourceExecutionPosture,
+    has_source_reference: bool,
+    fact_kind: ProjectionFactKind,
+) -> ProjectionConsumptionSupportPosture {
+    match fact_kind {
+        ProjectionFactKind::SourceReference if has_source_reference => {
+            ProjectionConsumptionSupportPosture::AdmittedWithWarnings(
+                query_context_payload_warning(execution_posture),
+            )
+        }
+        ProjectionFactKind::DisplayField | ProjectionFactKind::DerivedScalarField => {
+            ProjectionConsumptionSupportPosture::AdmittedWithWarnings(
+                query_context_payload_warning(execution_posture),
+            )
+        }
+        ProjectionFactKind::EntityIdentity | ProjectionFactKind::ViewLocalIdentity => {
+            match execution_posture {
+                ProjectionSourceExecutionPosture::Current
+                | ProjectionSourceExecutionPosture::Branch => {
+                    ProjectionConsumptionSupportPosture::Admitted
+                }
+                ProjectionSourceExecutionPosture::Historical
+                | ProjectionSourceExecutionPosture::PreviewDerived => {
+                    ProjectionConsumptionSupportPosture::SourceMismatch
+                }
+            }
+        }
+        ProjectionFactKind::TargetIdentity
+        | ProjectionFactKind::SourceReference
+        | ProjectionFactKind::EffectContinuity
+        | ProjectionFactKind::Membership
+        | ProjectionFactKind::RelationEndpoint => {
+            ProjectionConsumptionSupportPosture::SourceMismatch
+        }
+    }
+}
+
+fn query_context_payload_warning(
+    execution_posture: ProjectionSourceExecutionPosture,
+) -> ProjectionConsumptionWarningKind {
+    match execution_posture {
+        ProjectionSourceExecutionPosture::PreviewDerived => {
+            ProjectionConsumptionWarningKind::PreviewDerivedContext
+        }
+        ProjectionSourceExecutionPosture::Current
+        | ProjectionSourceExecutionPosture::Branch
+        | ProjectionSourceExecutionPosture::Historical => {
+            ProjectionConsumptionWarningKind::QueryContextPayloadBound
+        }
+    }
+}
+
+fn relational_row_set_support(
+    fact_kind: ProjectionFactKind,
+) -> ProjectionConsumptionSupportPosture {
+    match fact_kind {
+        ProjectionFactKind::EntityIdentity
+        | ProjectionFactKind::ViewLocalIdentity
+        | ProjectionFactKind::DisplayField
+        | ProjectionFactKind::DerivedScalarField => ProjectionConsumptionSupportPosture::Admitted,
+        ProjectionFactKind::TargetIdentity
+        | ProjectionFactKind::SourceReference
+        | ProjectionFactKind::EffectContinuity
+        | ProjectionFactKind::Membership
+        | ProjectionFactKind::RelationEndpoint => {
+            ProjectionConsumptionSupportPosture::SourceMismatch
+        }
+    }
+}
+
+fn relational_grouped_projection_support(
+    fact_kind: ProjectionFactKind,
+) -> ProjectionConsumptionSupportPosture {
+    match fact_kind {
+        ProjectionFactKind::ViewLocalIdentity
+        | ProjectionFactKind::Membership
+        | ProjectionFactKind::RelationEndpoint => ProjectionConsumptionSupportPosture::Admitted,
+        ProjectionFactKind::EntityIdentity
+        | ProjectionFactKind::TargetIdentity
+        | ProjectionFactKind::SourceReference
+        | ProjectionFactKind::EffectContinuity
+        | ProjectionFactKind::DisplayField
+        | ProjectionFactKind::DerivedScalarField => {
+            ProjectionConsumptionSupportPosture::SourceMismatch
+        }
+    }
+}
+
+fn bridge_truth_view_row_set_support(
+    fact_kind: ProjectionFactKind,
+) -> ProjectionConsumptionSupportPosture {
+    match fact_kind {
+        ProjectionFactKind::EntityIdentity
+        | ProjectionFactKind::ViewLocalIdentity
+        | ProjectionFactKind::DisplayField
+        | ProjectionFactKind::DerivedScalarField => ProjectionConsumptionSupportPosture::Admitted,
+        ProjectionFactKind::TargetIdentity
+        | ProjectionFactKind::SourceReference
+        | ProjectionFactKind::EffectContinuity
+        | ProjectionFactKind::Membership
+        | ProjectionFactKind::RelationEndpoint => {
+            ProjectionConsumptionSupportPosture::SourceMismatch
+        }
+    }
+}
+
+fn bridge_grouped_truth_view_support(
+    fact_kind: ProjectionFactKind,
+) -> ProjectionConsumptionSupportPosture {
+    match fact_kind {
+        ProjectionFactKind::ViewLocalIdentity
+        | ProjectionFactKind::Membership
+        | ProjectionFactKind::RelationEndpoint => ProjectionConsumptionSupportPosture::Admitted,
+        ProjectionFactKind::EntityIdentity
+        | ProjectionFactKind::TargetIdentity
+        | ProjectionFactKind::SourceReference
+        | ProjectionFactKind::EffectContinuity
+        | ProjectionFactKind::DisplayField
+        | ProjectionFactKind::DerivedScalarField => {
+            ProjectionConsumptionSupportPosture::SourceMismatch
+        }
     }
 }
