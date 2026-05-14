@@ -3,7 +3,8 @@ use std::mem::{align_of, needs_drop};
 
 use forge_proof::{
     Admitted, AssumptionBasis, AuthorityMarker, AuthorityWitness, CanonicalOrder, CanonicalVec,
-    CapabilityMarker, CapabilityWitness, DisjointPair, Lowered, Proof, Recipe, Resolved, UniqueVec,
+    CapabilityMarker, CapabilityWitness, DisjointPair, Lowered, Proof, Recipe, Resolved,
+    StructuralProofAuthority, UniqueVec,
 };
 
 use super::compile_fail::{CompileFailBundle, CompileFailCase};
@@ -29,6 +30,18 @@ pub fn compile_fail_bundle() -> CompileFailBundle {
                 "tests/ui/milestone1/observed_proofs_cannot_be_duplicated.rs",
             ),
             CompileFailCase::new(
+                "proof_authority",
+                "tests/ui/milestone1/proof_authority_scope_cannot_be_substituted.rs",
+            ),
+            CompileFailCase::new(
+                "proof_authority",
+                "tests/ui/milestone1/authority_cannot_mint_unproven_proof_kind.rs",
+            ),
+            CompileFailCase::new(
+                "proof_authority",
+                "tests/ui/milestone1/current_basis_rejects_mixed_authority_proof_set.rs",
+            ),
+            CompileFailCase::new(
                 "witness_minting",
                 "tests/ui/milestone2/witnesses_are_not_publicly_mintable.rs",
             ),
@@ -48,7 +61,7 @@ pub fn proof_shape_digest() -> ProofShapeDigest {
     ProofShapeDigest::new(
         "sealed_minting_and_witness_authority",
         vec![
-            type_name::<Proof<CanonicalOrder>>(),
+            type_name::<Proof<CanonicalOrder, StructuralProofAuthority>>(),
             type_name::<CanonicalVec<u64>>(),
             type_name::<UniqueVec<u64>>(),
             type_name::<DisjointPair<u64>>(),
@@ -67,6 +80,9 @@ pub fn failure_digest() -> FailureDigest {
         vec![
             "sealed_minting::tests/ui/milestone1/stronger_proof_bearing_constructors_are_not_public.rs",
             "sealed_minting::tests/ui/milestone1/observed_proofs_cannot_be_duplicated.rs",
+            "proof_authority::tests/ui/milestone1/proof_authority_scope_cannot_be_substituted.rs",
+            "proof_authority::tests/ui/milestone1/authority_cannot_mint_unproven_proof_kind.rs",
+            "proof_authority::tests/ui/milestone1/current_basis_rejects_mixed_authority_proof_set.rs",
             "witness_minting::tests/ui/milestone2/witnesses_are_not_publicly_mintable.rs",
             "witness_boundaries::tests/ui/milestone2/witness_required_apis_reject_callers_without_witness.rs",
             "recipe_boundaries::tests/ui/milestone2/recipe_stages_are_not_publicly_skippable.rs",
@@ -80,9 +96,9 @@ pub fn codegen_honesty_report() -> CodegenHonestyReport {
         vec![
             CodegenShapeCheck::new(
                 "proof",
-                align_of::<Proof<CanonicalOrder>>(),
+                align_of::<Proof<CanonicalOrder, StructuralProofAuthority>>(),
                 align_of::<()>(),
-                needs_drop::<Proof<CanonicalOrder>>(),
+                needs_drop::<Proof<CanonicalOrder, StructuralProofAuthority>>(),
                 needs_drop::<()>(),
             ),
             CodegenShapeCheck::new(

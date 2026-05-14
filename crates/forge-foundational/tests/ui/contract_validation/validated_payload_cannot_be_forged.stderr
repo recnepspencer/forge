@@ -1,0 +1,14 @@
+error[E0624]: associated function `scalar` is private
+ --> tests/ui/contract_validation/validated_payload_cannot_be_forged.rs:6:49
+  |
+6 |       let _forged = ContractValidatedAspectValue::scalar(
+  |                                                   ^^^^^^ private associated function
+  |
+ ::: src/aspects/validation/validated_value.rs
+  |
+  | /     pub(crate) fn scalar(
+  | |         key: AspectKey,
+  | |         value: AspectValue,
+  | |         contract_revision: AspectContractRevision,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

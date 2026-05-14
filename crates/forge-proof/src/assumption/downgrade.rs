@@ -99,7 +99,7 @@ mod tests {
         RebindRequiredBasis, StaleReadableBasis,
     };
     use crate::phase::PhaseMarker;
-    use crate::proof::{mint_proof, CanonicalOrder};
+    use crate::proof::{mint_proof, CanonicalOrder, StructuralProofAuthority};
     use crate::recipe::{Admitted, Lowered, Recipe, Resolved};
 
     struct ValidatedPhase;
@@ -109,7 +109,7 @@ mod tests {
     fn artifact_downgrade_preserves_payload_proofs_and_basis() {
         let artifact = Artifact::<ValidatedPhase, _, _, _>::with_state(
             "payload",
-            mint_proof::<CanonicalOrder>(),
+            mint_proof::<CanonicalOrder, StructuralProofAuthority>(),
             FreshnessScopedBasis::<CurrentValidity, _>::new(AssumptionBasis::new(7_u8)),
         );
 

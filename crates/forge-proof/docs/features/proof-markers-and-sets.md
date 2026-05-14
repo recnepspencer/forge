@@ -2,7 +2,7 @@
 
 ## What This Feature Is
 
-Proof markers and proof sets are how `forge-proof` represents established facts without hiding them in comments or dynamic registries. A proof-bearing form can carry one fact with `Proof<P>` or a statically known group of facts with `ProofSetCons<Head, Tail>`.
+Proof markers and proof sets are how `forge-proof` represents established facts without hiding them in comments or dynamic registries. A proof-bearing form can carry one fact with `Proof<P, A>` or a statically known group of facts with `ProofSetCons<Head, Tail>`, where `A` is the authority that is allowed to prove `P`.
 
 ## Why You Use It
 
@@ -13,17 +13,20 @@ Proof markers and proof sets are how `forge-proof` represents established facts 
 ## Stable Entry Points
 
 - `ProofMarker`
+- `AuthorityProves<P>`
 - `NoProofs`
-- `Proof<P>`
+- `Proof<P, A>`
 - `ProofSet`
+- `ProofSetAuthorizedBy<Auth>`
 - `ProofSetCons<Head, Tail>::new(head, tail)`
 - `ProofSetCons::head()`
 - `ProofSetCons::tail()`
 
 Important boundary:
 
-- public code can observe and carry `Proof<P>`
+- public code can observe and carry `Proof<P, A>`
 - public code cannot mint stronger proof-bearing forms directly
+- proof minting requires an authority that implements `AuthorityProves<P>`
 
 ## DX Posture
 
@@ -55,7 +58,7 @@ Proof sets let you compose those facts statically. The crate deliberately avoids
 The usual flow is:
 
 1. a crate-managed progression surface establishes a fact
-2. the resulting form carries `Proof<P>` or a proof set
+2. the resulting form carries `Proof<P, A>` or a proof set
 3. later code inspects or preserves that proof-bearing state
 4. owned extraction keeps proof carriage explicit instead of silently dropping it
 

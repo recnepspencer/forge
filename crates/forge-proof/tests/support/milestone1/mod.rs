@@ -11,7 +11,8 @@ use std::mem::{align_of, needs_drop, size_of};
 
 use forge_proof::{
     Artifact, ArtifactParts, ArtifactView, AssumptionBasis, CanonicalOrder, CanonicalVec,
-    DisjointPair, ExactlyOne, NoAssumptionBasis, NoProofs, NonEmpty, Pair, Proof, UniqueVec,
+    DisjointPair, ExactlyOne, NoAssumptionBasis, NoProofs, NonEmpty, Pair, Proof,
+    StructuralProofAuthority, UniqueVec,
 };
 pub use representatives::RawPhase;
 
@@ -39,6 +40,18 @@ pub fn compile_fail_bundle() -> CompileFailBundle {
                 "constructor_boundaries",
                 "tests/ui/milestone1/observed_proofs_cannot_be_duplicated.rs",
             ),
+            CompileFailCase::new(
+                "constructor_boundaries",
+                "tests/ui/milestone1/proof_authority_scope_cannot_be_substituted.rs",
+            ),
+            CompileFailCase::new(
+                "constructor_boundaries",
+                "tests/ui/milestone1/authority_cannot_mint_unproven_proof_kind.rs",
+            ),
+            CompileFailCase::new(
+                "constructor_boundaries",
+                "tests/ui/milestone1/current_basis_rejects_mixed_authority_proof_set.rs",
+            ),
         ],
     )
 }
@@ -56,29 +69,59 @@ pub fn derive_type_shape_report() -> TypeShapeReport {
         ),
         TypeShapeCheck::new(
             "zero_sized_proof_artifact",
-            size_of::<Artifact<RawPhase, u64, Proof<CanonicalOrder>, NoAssumptionBasis>>(),
+            size_of::<
+                Artifact<
+                    RawPhase,
+                    u64,
+                    Proof<CanonicalOrder, StructuralProofAuthority>,
+                    NoAssumptionBasis,
+                >,
+            >(),
             size_of::<u64>(),
         ),
         TypeShapeCheck::new(
             "assumption_bearing_artifact",
-            size_of::<Artifact<RawPhase, u64, Proof<CanonicalOrder>, AssumptionBasis<u32>>>(),
+            size_of::<
+                Artifact<
+                    RawPhase,
+                    u64,
+                    Proof<CanonicalOrder, StructuralProofAuthority>,
+                    AssumptionBasis<u32>,
+                >,
+            >(),
             size_of::<(u64, AssumptionBasis<u32>)>(),
         ),
         TypeShapeCheck::new(
             "artifact_view",
             size_of::<
-                ArtifactView<'static, RawPhase, u64, Proof<CanonicalOrder>, AssumptionBasis<u32>>,
+                ArtifactView<
+                    'static,
+                    RawPhase,
+                    u64,
+                    Proof<CanonicalOrder, StructuralProofAuthority>,
+                    AssumptionBasis<u32>,
+                >,
             >(),
             size_of::<(
                 &'static u64,
-                &'static Proof<CanonicalOrder>,
+                &'static Proof<CanonicalOrder, StructuralProofAuthority>,
                 &'static AssumptionBasis<u32>,
             )>(),
         ),
         TypeShapeCheck::new(
             "artifact_parts",
-            size_of::<ArtifactParts<u64, Proof<CanonicalOrder>, AssumptionBasis<u32>>>(),
-            size_of::<(u64, Proof<CanonicalOrder>, AssumptionBasis<u32>)>(),
+            size_of::<
+                ArtifactParts<
+                    u64,
+                    Proof<CanonicalOrder, StructuralProofAuthority>,
+                    AssumptionBasis<u32>,
+                >,
+            >(),
+            size_of::<(
+                u64,
+                Proof<CanonicalOrder, StructuralProofAuthority>,
+                AssumptionBasis<u32>,
+            )>(),
         ),
         TypeShapeCheck::new(
             "canonical_vec",
@@ -103,11 +146,30 @@ pub fn proof_shape_digest() -> ProofShapeDigest {
         "core_artifact_and_proof_substrate",
         vec![
             type_name::<Artifact<RawPhase, u64, NoProofs, NoAssumptionBasis>>(),
-            type_name::<Artifact<RawPhase, u64, Proof<CanonicalOrder>, AssumptionBasis<u32>>>(),
             type_name::<
-                ArtifactView<'static, RawPhase, u64, Proof<CanonicalOrder>, AssumptionBasis<u32>>,
+                Artifact<
+                    RawPhase,
+                    u64,
+                    Proof<CanonicalOrder, StructuralProofAuthority>,
+                    AssumptionBasis<u32>,
+                >,
             >(),
-            type_name::<ArtifactParts<u64, Proof<CanonicalOrder>, AssumptionBasis<u32>>>(),
+            type_name::<
+                ArtifactView<
+                    'static,
+                    RawPhase,
+                    u64,
+                    Proof<CanonicalOrder, StructuralProofAuthority>,
+                    AssumptionBasis<u32>,
+                >,
+            >(),
+            type_name::<
+                ArtifactParts<
+                    u64,
+                    Proof<CanonicalOrder, StructuralProofAuthority>,
+                    AssumptionBasis<u32>,
+                >,
+            >(),
             type_name::<CanonicalVec<u64>>(),
             type_name::<UniqueVec<u64>>(),
             type_name::<DisjointPair<u64>>(),
@@ -138,38 +200,38 @@ pub fn codegen_honesty_report() -> CodegenHonestyReport {
             ),
             CodegenShapeCheck::new(
                 "artifact_with_basis",
-                align_of::<Artifact<RawPhase, u64, Proof<CanonicalOrder>, AssumptionBasis<u32>>>(),
+                align_of::<Artifact<RawPhase, u64, Proof<CanonicalOrder, StructuralProofAuthority>, AssumptionBasis<u32>>>(),
                 align_of::<(u64, AssumptionBasis<u32>)>(),
                 needs_drop::<
-                    Artifact<RawPhase, u64, Proof<CanonicalOrder>, AssumptionBasis<u32>>,
+                    Artifact<RawPhase, u64, Proof<CanonicalOrder, StructuralProofAuthority>, AssumptionBasis<u32>>,
                 >(),
                 needs_drop::<(u64, AssumptionBasis<u32>)>(),
             ),
             CodegenShapeCheck::new(
                 "artifact_view",
                 align_of::<
-                    ArtifactView<'static, RawPhase, u64, Proof<CanonicalOrder>, AssumptionBasis<u32>>,
+                    ArtifactView<'static, RawPhase, u64, Proof<CanonicalOrder, StructuralProofAuthority>, AssumptionBasis<u32>>,
                 >(),
                 align_of::<(
                     &'static u64,
-                    &'static Proof<CanonicalOrder>,
+                    &'static Proof<CanonicalOrder, StructuralProofAuthority>,
                     &'static AssumptionBasis<u32>,
                 )>(),
                 needs_drop::<
-                    ArtifactView<'static, RawPhase, u64, Proof<CanonicalOrder>, AssumptionBasis<u32>>,
+                    ArtifactView<'static, RawPhase, u64, Proof<CanonicalOrder, StructuralProofAuthority>, AssumptionBasis<u32>>,
                 >(),
                 needs_drop::<(
                     &'static u64,
-                    &'static Proof<CanonicalOrder>,
+                    &'static Proof<CanonicalOrder, StructuralProofAuthority>,
                     &'static AssumptionBasis<u32>,
                 )>(),
             ),
             CodegenShapeCheck::new(
                 "artifact_parts",
-                align_of::<ArtifactParts<u64, Proof<CanonicalOrder>, AssumptionBasis<u32>>>(),
-                align_of::<(u64, Proof<CanonicalOrder>, AssumptionBasis<u32>)>(),
-                needs_drop::<ArtifactParts<u64, Proof<CanonicalOrder>, AssumptionBasis<u32>>>(),
-                needs_drop::<(u64, Proof<CanonicalOrder>, AssumptionBasis<u32>)>(),
+                align_of::<ArtifactParts<u64, Proof<CanonicalOrder, StructuralProofAuthority>, AssumptionBasis<u32>>>(),
+                align_of::<(u64, Proof<CanonicalOrder, StructuralProofAuthority>, AssumptionBasis<u32>)>(),
+                needs_drop::<ArtifactParts<u64, Proof<CanonicalOrder, StructuralProofAuthority>, AssumptionBasis<u32>>>(),
+                needs_drop::<(u64, Proof<CanonicalOrder, StructuralProofAuthority>, AssumptionBasis<u32>)>(),
             ),
             CodegenShapeCheck::new(
                 "canonical_vec",

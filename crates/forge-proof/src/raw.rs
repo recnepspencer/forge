@@ -15,8 +15,9 @@ pub use crate::composition::{
 };
 pub use crate::phase::PhaseMarker;
 pub use crate::proof::{
-    AuthorityMarker, AuthorityWitness, CanonicalOrder, CapabilityMarker, CapabilityWitness,
-    Disjointness, NoProofs, Normalization, Proof, ProofMarker, ProofSet, ProofSetCons, Uniqueness,
+    AuthorityMarker, AuthorityProves, AuthorityWitness, CanonicalOrder, CapabilityMarker,
+    CapabilityWitness, Disjointness, NoProofs, Normalization, Proof, ProofMarker, ProofSet,
+    ProofSetAuthorizedBy, ProofSetCons, StructuralProofAuthority, Uniqueness,
 };
 pub use crate::recipe::{
     Admitted, ExecutedRecipe, ExecutionReadyRecipe, Lowered, Recipe, RecipeStageMarker, Resolved,

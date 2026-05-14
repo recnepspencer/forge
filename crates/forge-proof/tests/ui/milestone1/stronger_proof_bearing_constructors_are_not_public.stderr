@@ -1,8 +1,8 @@
 error[E0624]: associated function `mint` is private
-  --> tests/ui/milestone1/stronger_proof_bearing_constructors_are_not_public.rs:10:42
+  --> tests/ui/milestone1/stronger_proof_bearing_constructors_are_not_public.rs:10:68
    |
-10 |     let proof = Proof::<CanonicalOrder>::mint();
-   |                                          ^^^^ private associated function
+10 |     let proof = Proof::<CanonicalOrder, StructuralProofAuthority>::mint();
+   |                                                                    ^^^^ private associated function
    |
   ::: src/proof/sets.rs
    |
@@ -23,19 +23,19 @@ error[E0624]: associated function `with_state` is private
 error[E0624]: associated function `new` is private
   --> tests/ui/milestone1/stronger_proof_bearing_constructors_are_not_public.rs:18:36
    |
-18 |     let _canonical = CanonicalVec::new(vec![1_u8, 2, 3], Proof::<CanonicalOrder>::mint());
+18 |     let _canonical = CanonicalVec::new(
    |                                    ^^^ private associated function
    |
   ::: src/collections/proven_vec.rs
    |
-   |     pub(crate) fn new(items: Vec<T>, proof: Proof<CanonicalOrder>) -> Self {
-   |     ---------------------------------------------------------------------- private associated function defined here
+   |     pub(crate) fn new(items: Vec<T>, proof: CanonicalOrderProof) -> Self {
+   |     -------------------------------------------------------------------- private associated function defined here
 
 error[E0624]: associated function `mint` is private
-  --> tests/ui/milestone1/stronger_proof_bearing_constructors_are_not_public.rs:18:83
+  --> tests/ui/milestone1/stronger_proof_bearing_constructors_are_not_public.rs:20:60
    |
-18 |     let _canonical = CanonicalVec::new(vec![1_u8, 2, 3], Proof::<CanonicalOrder>::mint());
-   |                                                                                   ^^^^ private associated function
+20 |         Proof::<CanonicalOrder, StructuralProofAuthority>::mint(),
+   |                                                            ^^^^ private associated function
    |
   ::: src/proof/sets.rs
    |
@@ -43,21 +43,21 @@ error[E0624]: associated function `mint` is private
    |     ---------------------------- private associated function defined here
 
 error[E0624]: associated function `new` is private
-  --> tests/ui/milestone1/stronger_proof_bearing_constructors_are_not_public.rs:19:30
+  --> tests/ui/milestone1/stronger_proof_bearing_constructors_are_not_public.rs:22:30
    |
-19 |     let _unique = UniqueVec::new(vec![1_u8, 2, 3], Proof::<Uniqueness>::mint());
+22 |     let _unique = UniqueVec::new(
    |                              ^^^ private associated function
    |
   ::: src/collections/proven_vec.rs
    |
-   |     pub(crate) fn new(items: Vec<T>, proof: Proof<Uniqueness>) -> Self {
-   |     ------------------------------------------------------------------ private associated function defined here
+   |     pub(crate) fn new(items: Vec<T>, proof: UniquenessProof) -> Self {
+   |     ---------------------------------------------------------------- private associated function defined here
 
 error[E0624]: associated function `mint` is private
-  --> tests/ui/milestone1/stronger_proof_bearing_constructors_are_not_public.rs:19:73
+  --> tests/ui/milestone1/stronger_proof_bearing_constructors_are_not_public.rs:24:56
    |
-19 |     let _unique = UniqueVec::new(vec![1_u8, 2, 3], Proof::<Uniqueness>::mint());
-   |                                                                         ^^^^ private associated function
+24 |         Proof::<Uniqueness, StructuralProofAuthority>::mint(),
+   |                                                        ^^^^ private associated function
    |
   ::: src/proof/sets.rs
    |
@@ -65,21 +65,25 @@ error[E0624]: associated function `mint` is private
    |     ---------------------------- private associated function defined here
 
 error[E0624]: associated function `new` is private
-  --> tests/ui/milestone1/stronger_proof_bearing_constructors_are_not_public.rs:20:35
+  --> tests/ui/milestone1/stronger_proof_bearing_constructors_are_not_public.rs:26:35
    |
-20 |     let _disjoint = DisjointPair::new(1_u8, 2_u8, Proof::<Disjointness>::mint());
-   |                                   ^^^ private associated function
+26 |       let _disjoint = DisjointPair::new(
+   |                                     ^^^ private associated function
    |
   ::: src/collections/disjoint_pair.rs
    |
-   |     pub(crate) fn new(left: T, right: T, proof: Proof<Disjointness>) -> Self {
-   |     ------------------------------------------------------------------------ private associated function defined here
+   | /     pub(crate) fn new(
+   | |         left: T,
+   | |         right: T,
+   | |         proof: Proof<Disjointness, StructuralProofAuthority>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
 
 error[E0624]: associated function `mint` is private
-  --> tests/ui/milestone1/stronger_proof_bearing_constructors_are_not_public.rs:20:74
+  --> tests/ui/milestone1/stronger_proof_bearing_constructors_are_not_public.rs:29:58
    |
-20 |     let _disjoint = DisjointPair::new(1_u8, 2_u8, Proof::<Disjointness>::mint());
-   |                                                                          ^^^^ private associated function
+29 |         Proof::<Disjointness, StructuralProofAuthority>::mint(),
+   |                                                          ^^^^ private associated function
    |
   ::: src/proof/sets.rs
    |

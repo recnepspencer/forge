@@ -104,6 +104,11 @@ mod tests {
         SuccessfulTransitionOutcome, TransitionOutcome,
     };
 
+    type TestLoweredStale = Recipe<Lowered, &'static str, StaleReadableBasis<u8>>;
+    type TestResolvedRebind = Recipe<Resolved, &'static str, RebindRequiredBasis<u8>>;
+    type TestFreshnessOutcome =
+        FreshnessTransitionOutcome<u64, TestLoweredStale, TestResolvedRebind, &'static str>;
+
     #[test]
     fn narrower_aliases_preserve_outcome_category_distinctions() {
         let success = SuccessfulTransitionOutcome::new(7);
@@ -128,18 +133,8 @@ mod tests {
             RebindRequiredBasis::new(crate::assumption::AssumptionBasis::new(11_u8)),
         );
 
-        let stale: FreshnessTransitionOutcome<
-            u64,
-            Recipe<Lowered, &str, StaleReadableBasis<u8>>,
-            Recipe<Resolved, &str, RebindRequiredBasis<u8>>,
-            &'static str,
-        > = TransitionOutcome::stale(stale_recipe);
-        let rebind: FreshnessTransitionOutcome<
-            u64,
-            Recipe<Lowered, &str, StaleReadableBasis<u8>>,
-            Recipe<Resolved, &str, RebindRequiredBasis<u8>>,
-            &'static str,
-        > = TransitionOutcome::rebind_required(rebind_recipe);
+        let stale: TestFreshnessOutcome = TransitionOutcome::stale(stale_recipe);
+        let rebind: TestFreshnessOutcome = TransitionOutcome::rebind_required(rebind_recipe);
 
         assert!(matches!(stale, TransitionOutcome::Stale(_)));
         assert!(matches!(rebind, TransitionOutcome::RebindRequired(_)));
