@@ -1,6 +1,7 @@
 use super::admission::ForgeQueryIntentAdmissionDenial;
 use super::*;
 use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
+use crate::runtime::ForgeQueryIntentConsumerInspection;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryIntentDenialEvidence {
@@ -196,6 +197,10 @@ impl ForgeQueryIntentDenialEvidence {
 
     pub fn decision_trace_envelope(&self) -> Option<&ForgeQueryIntentDecisionTraceEnvelope> {
         self.decision_trace_envelope.as_ref()
+    }
+
+    pub fn consumer_inspection(&self) -> ForgeQueryIntentConsumerInspection<'_> {
+        ForgeQueryIntentConsumerInspection::from_denial(self)
     }
 
     pub fn denial_digest(&self) -> &str {

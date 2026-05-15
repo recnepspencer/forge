@@ -75,6 +75,8 @@ impl ForgeQueryIntentAdmissionPolicyEligibility {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryIntentAdmissionBasisEligibility {
     NotApplicableForRuntimeIntentFloor,
+    ObservationLifecycleAdmitted,
+    ObservationLifecycleViolation(&'static str),
     DeferredNeighbor(&'static str),
 }
 
@@ -82,6 +84,8 @@ impl ForgeQueryIntentAdmissionBasisEligibility {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::NotApplicableForRuntimeIntentFloor => "not-applicable-runtime-intent-floor",
+            Self::ObservationLifecycleAdmitted => "basis-observation-lifecycle-admitted",
+            Self::ObservationLifecycleViolation(_) => "basis-observation-lifecycle-violation",
             Self::DeferredNeighbor(_) => "deferred-neighbor",
         }
     }
@@ -89,6 +93,8 @@ impl ForgeQueryIntentAdmissionBasisEligibility {
     pub fn detail(self) -> Option<&'static str> {
         match self {
             Self::NotApplicableForRuntimeIntentFloor => None,
+            Self::ObservationLifecycleAdmitted => None,
+            Self::ObservationLifecycleViolation(detail) => Some(detail),
             Self::DeferredNeighbor(detail) => Some(detail),
         }
     }
@@ -119,6 +125,9 @@ impl ForgeQueryIntentAdmissionInvariantEligibility {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryIntentAdmissionProjectionSourceEligibility {
     NotApplicableForRuntimeIntentFloor,
+    ProjectionConsumptionAdmitted,
+    ProjectionConsumptionAdmittedWithWarnings(&'static str),
+    ProjectionConsumptionViolation(&'static str),
     DeferredNeighbor(&'static str),
 }
 
@@ -126,6 +135,11 @@ impl ForgeQueryIntentAdmissionProjectionSourceEligibility {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::NotApplicableForRuntimeIntentFloor => "not-applicable-runtime-intent-floor",
+            Self::ProjectionConsumptionAdmitted => "projection-consumption-admitted",
+            Self::ProjectionConsumptionAdmittedWithWarnings(_) => {
+                "projection-consumption-admitted-with-warnings"
+            }
+            Self::ProjectionConsumptionViolation(_) => "projection-consumption-violation",
             Self::DeferredNeighbor(_) => "deferred-neighbor",
         }
     }
@@ -133,6 +147,9 @@ impl ForgeQueryIntentAdmissionProjectionSourceEligibility {
     pub fn detail(self) -> Option<&'static str> {
         match self {
             Self::NotApplicableForRuntimeIntentFloor => None,
+            Self::ProjectionConsumptionAdmitted => None,
+            Self::ProjectionConsumptionAdmittedWithWarnings(detail)
+            | Self::ProjectionConsumptionViolation(detail) => Some(detail),
             Self::DeferredNeighbor(detail) => Some(detail),
         }
     }
@@ -141,6 +158,7 @@ impl ForgeQueryIntentAdmissionProjectionSourceEligibility {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryIntentAdmissionRoutingSupportEligibility {
     CoveredExecutionSeam(ForgeQueryIntentAdmissionExecutionSeam),
+    NoExecutionHandoff(&'static str),
     DeferredNeighbor(&'static str),
     Unsupported(&'static str),
 }
@@ -149,21 +167,25 @@ impl ForgeQueryIntentAdmissionRoutingSupportEligibility {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::CoveredExecutionSeam(seam) => seam.as_str(),
-            Self::DeferredNeighbor(reason) | Self::Unsupported(reason) => reason,
+            Self::NoExecutionHandoff(reason)
+            | Self::DeferredNeighbor(reason)
+            | Self::Unsupported(reason) => reason,
         }
     }
 
     pub fn detail(self) -> Option<&'static str> {
         match self {
             Self::CoveredExecutionSeam(_) => None,
-            Self::DeferredNeighbor(reason) | Self::Unsupported(reason) => Some(reason),
+            Self::NoExecutionHandoff(reason)
+            | Self::DeferredNeighbor(reason)
+            | Self::Unsupported(reason) => Some(reason),
         }
     }
 
     pub fn covered_execution_seam(self) -> Option<ForgeQueryIntentAdmissionExecutionSeam> {
         match self {
             Self::CoveredExecutionSeam(seam) => Some(seam),
-            Self::DeferredNeighbor(_) | Self::Unsupported(_) => None,
+            Self::NoExecutionHandoff(_) | Self::DeferredNeighbor(_) | Self::Unsupported(_) => None,
         }
     }
 }
@@ -175,6 +197,7 @@ pub enum ForgeQueryIntentAdmissionSourceLaneEligibility {
         expected: ForgeQueryIntentSourceLane,
         actual: ForgeQueryIntentSourceLane,
     },
+    NotApplicableNonRuntimeFamily,
     DeferredNeighbor(&'static str),
 }
 
@@ -183,6 +206,7 @@ impl ForgeQueryIntentAdmissionSourceLaneEligibility {
         match self {
             Self::MatchesExpected(expected) => expected.as_str(),
             Self::Mismatch { actual, .. } => actual.as_str(),
+            Self::NotApplicableNonRuntimeFamily => "not-applicable-non-runtime-family",
             Self::DeferredNeighbor(reason) => reason,
         }
     }
@@ -195,6 +219,7 @@ impl ForgeQueryIntentAdmissionSourceLaneEligibility {
                 expected.as_str(),
                 actual.as_str()
             )),
+            Self::NotApplicableNonRuntimeFamily => None,
             Self::DeferredNeighbor(reason) => Some(reason.to_string()),
         }
     }
@@ -207,6 +232,7 @@ pub enum ForgeQueryIntentAdmissionAuthorityLaneEligibility {
         expected: ForgeQueryAuthorityLane,
         actual: ForgeQueryAuthorityLane,
     },
+    NotApplicableNonRuntimeFamily,
     DeferredNeighbor(&'static str),
 }
 
@@ -215,6 +241,7 @@ impl ForgeQueryIntentAdmissionAuthorityLaneEligibility {
         match self {
             Self::MatchesExpected(expected) => expected.as_str(),
             Self::Mismatch { actual, .. } => actual.as_str(),
+            Self::NotApplicableNonRuntimeFamily => "not-applicable-non-runtime-family",
             Self::DeferredNeighbor(reason) => reason,
         }
     }
@@ -227,6 +254,7 @@ impl ForgeQueryIntentAdmissionAuthorityLaneEligibility {
                 expected.as_str(),
                 actual.as_str()
             )),
+            Self::NotApplicableNonRuntimeFamily => None,
             Self::DeferredNeighbor(reason) => Some(reason.to_string()),
         }
     }

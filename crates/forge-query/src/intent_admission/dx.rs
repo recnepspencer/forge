@@ -1,5 +1,7 @@
 #[path = "dx_authoritative.rs"]
 mod dx_authoritative;
+#[path = "dx_basis_projection.rs"]
+mod dx_basis_projection;
 #[path = "dx_effect.rs"]
 mod dx_effect;
 
@@ -13,6 +15,12 @@ use super::{
 pub use dx_authoritative::{
     ForgeQueryAdmittedRuntimeIntent, ForgeQueryRuntimeIntentAdmissionReview,
     ForgeQueryRuntimeIntentAuthoring,
+};
+pub use dx_basis_projection::{
+    forge_query_basis_observation_intent, forge_query_projection_consumption_intent,
+    ForgeQueryBasisObservationAdmittedIntent, ForgeQueryBasisObservationIntentAuthoring,
+    ForgeQueryBasisObservationIntentReview, ForgeQueryProjectionConsumptionAdmittedIntent,
+    ForgeQueryProjectionConsumptionIntentAuthoring, ForgeQueryProjectionConsumptionIntentReview,
 };
 pub use dx_effect::{
     ForgeQueryAdmittedRuntimeEffectWriteIntent, ForgeQueryRuntimeEffectWriteIntentAdmissionReview,
@@ -43,14 +51,14 @@ impl ForgeQueryRuntimeIntentAdmissionReviewData {
             ForgeQueryIntentAdmissionDecision::Advisory(advisory) => {
                 Some(ForgeQueryIntentDecisionTraceEnvelope::for_request_advisory(
                     &request,
-                    eligibility.eligibility_digest(),
+                    &eligibility.trace_evidence(),
                     advisory,
                 ))
             }
             ForgeQueryIntentAdmissionDecision::Violation(violation) => Some(
                 ForgeQueryIntentDecisionTraceEnvelope::for_request_violation(
                     &request,
-                    eligibility.eligibility_digest(),
+                    &eligibility.trace_evidence(),
                     violation,
                 ),
             ),

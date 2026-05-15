@@ -1,6 +1,7 @@
 mod causal;
 mod feedback;
 mod intent;
+mod intent_consumer;
 mod live;
 mod preview;
 mod unified;
@@ -61,6 +62,9 @@ pub use intent::{
     ForgeQueryBranchIntentReceiptInspection, ForgeQueryEffectIntentReceiptInspection,
     ForgeQueryIntentDenialInspection, ForgeQueryIntentInspectionDeliveryCounters,
     ForgeQueryIntentReceiptInspection,
+};
+pub use intent_consumer::{
+    ForgeQueryIntentConsumerInspection, ForgeQueryIntentConsumerOutcomeClass,
 };
 pub use live::{ForgeQueryLiveSubscriptionInspectionCounters, ForgeQueryLiveViewInspection};
 pub use preview::{

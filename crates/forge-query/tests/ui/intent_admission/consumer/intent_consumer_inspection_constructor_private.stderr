@@ -1,0 +1,67 @@
+error: cannot construct `ForgeQueryIntentConsumerInspection<'_>` with struct literal syntax due to private fields
+  --> tests/ui/intent_admission/consumer/intent_consumer_inspection_constructor_private.rs:6:19
+   |
+ 6 |     let _forged = ForgeQueryIntentConsumerInspection {
+   |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ 7 |         intent_name: "",
+   |         --------------- private field
+ 8 |         outcome_class: ForgeQueryIntentConsumerOutcomeClass::Admitted,
+   |         ------------------------------------------------------------- private field
+ 9 |         decision_trace_envelope: None,
+   |         ----------------------------- private field
+10 |         execution_provenance: None,
+   |         -------------------------- private field
+11 |         fallback_stage: "admitted-decision",
+   |         ----------------------------------- private field
+12 |         fallback_cause: "admitted_for_execution",
+   |         ---------------------------------------- private field
+13 |         fallback_detail: "",
+   |         ------------------- private field
+   |
+   = note: ...and other private fields `admission_family` and `covered_entrypoint` that were not provided
+help: you might have meant to use an associated function to build this type
+   |
+ 6 -     let _forged = ForgeQueryIntentConsumerInspection {
+ 7 -         intent_name: "",
+ 8 -         outcome_class: ForgeQueryIntentConsumerOutcomeClass::Admitted,
+ 9 -         decision_trace_envelope: None,
+10 -         execution_provenance: None,
+11 -         fallback_stage: "admitted-decision",
+12 -         fallback_cause: "admitted_for_execution",
+13 -         fallback_detail: "",
+14 -     };
+ 6 +     let _forged = ForgeQueryIntentConsumerInspection::from_review(_, _, _, _, _);
+   |
+ 6 -     let _forged = ForgeQueryIntentConsumerInspection {
+ 7 -         intent_name: "",
+ 8 -         outcome_class: ForgeQueryIntentConsumerOutcomeClass::Admitted,
+ 9 -         decision_trace_envelope: None,
+10 -         execution_provenance: None,
+11 -         fallback_stage: "admitted-decision",
+12 -         fallback_cause: "admitted_for_execution",
+13 -         fallback_detail: "",
+14 -     };
+ 6 +     let _forged = ForgeQueryIntentConsumerInspection::from_receipt(_);
+   |
+ 6 -     let _forged = ForgeQueryIntentConsumerInspection {
+ 7 -         intent_name: "",
+ 8 -         outcome_class: ForgeQueryIntentConsumerOutcomeClass::Admitted,
+ 9 -         decision_trace_envelope: None,
+10 -         execution_provenance: None,
+11 -         fallback_stage: "admitted-decision",
+12 -         fallback_cause: "admitted_for_execution",
+13 -         fallback_detail: "",
+14 -     };
+ 6 +     let _forged = ForgeQueryIntentConsumerInspection::from_denial(_);
+   |
+ 6 -     let _forged = ForgeQueryIntentConsumerInspection {
+ 7 -         intent_name: "",
+ 8 -         outcome_class: ForgeQueryIntentConsumerOutcomeClass::Admitted,
+ 9 -         decision_trace_envelope: None,
+10 -         execution_provenance: None,
+11 -         fallback_stage: "admitted-decision",
+12 -         fallback_cause: "admitted_for_execution",
+13 -         fallback_detail: "",
+14 -     };
+ 6 +     let _forged = ForgeQueryIntentConsumerInspection::from_failure(_);
+   |

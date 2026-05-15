@@ -108,3 +108,68 @@ fn violation_decision_materializes_explicit_stop_artifact() {
     assert_eq!(stop.stage(), "authority-admission");
     assert!(!stop.stop_digest().is_empty());
 }
+
+#[test]
+fn basis_observation_admitted_decision_materializes_scoped_plan_without_handoff() {
+    let request =
+        crate::intent_admission::ForgeQueryRawIntentAdmissionRequest::basis_observation_lane(
+            crate::basis_lifecycle::RawBasisIntent::CurrentHead,
+        )
+        .expect("basis request should build");
+
+    match admit_runtime_intent_request(request.clone()) {
+        ForgeQueryIntentAdmissionDecision::Admitted(
+            crate::intent_admission::ForgeQueryAdmittedIntentPlan::BasisObservation(plan),
+        ) => {
+            assert_eq!(plan.family(), request.family());
+            assert_eq!(plan.request_digest(), request.request_digest());
+            assert_eq!(plan.execution_seam(), None);
+            let _scoped = plan.scope();
+        }
+        other => panic!("expected basis admitted plan, got {other:?}"),
+    }
+}
+
+#[test]
+fn projection_consumption_admitted_decision_materializes_contract_plan_without_handoff() {
+    let declaration = crate::projection_consumption::declare_projection_consumption(
+        crate::projection_consumption::ProjectionConsumptionSource::test_only(
+            crate::projection_consumption::ProjectionSourceFamily::QueryReadReceipt,
+            Some("query-digest"),
+            Some("basis-digest"),
+            Some("result-digest"),
+            Some("shape-digest"),
+            "query-read:test",
+        ),
+        crate::projection_consumption::ProjectionConsumptionBindingContext::test_only_with_projection_metadata(
+            "shape-digest",
+            "query-digest",
+            "shape-digest",
+            "projection.identity",
+            "narrowed-shape-digest",
+            "policy-digest",
+            "tenant-schema-digest",
+            vec!["field.visible".to_string()],
+        ),
+        crate::projection_consumption::ProjectMaterializedFacts::declare()
+            .display_field("field.visible"),
+    )
+    .expect("projection declaration should build");
+    let request =
+        crate::intent_admission::ForgeQueryRawIntentAdmissionRequest::projection_consumption(
+            declaration,
+        )
+        .expect("projection request should build");
+
+    match admit_runtime_intent_request(request.clone()) {
+        ForgeQueryIntentAdmissionDecision::Admitted(
+            crate::intent_admission::ForgeQueryAdmittedIntentPlan::ProjectionConsumption(plan),
+        ) => {
+            assert_eq!(plan.family(), request.family());
+            assert_eq!(plan.request_digest(), request.request_digest());
+            assert_eq!(plan.execution_seam(), None);
+            let _contract = plan.bind_contract();
+        }
+        other => panic!("expected projection admitted plan, got {other:?}"),
+    }
+}

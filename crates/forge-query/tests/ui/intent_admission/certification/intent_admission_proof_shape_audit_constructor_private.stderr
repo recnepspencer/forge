@@ -1,0 +1,15 @@
+error[E0451]: fields `admitted_phase_progression`, `advisory_phase_progression`, `violation_phase_progression`, `decision_phase_progression_digest` and `decision_proof_shape_digest` of struct `ForgeQueryIntentAdmissionProofShapeAudit` are private
+  --> tests/ui/intent_admission/certification/intent_admission_proof_shape_audit_constructor_private.rs:7:9
+   |
+ 6 |     let _ = ForgeQueryIntentAdmissionProofShapeAudit {
+   |             ---------------------------------------- in this type
+ 7 |         admitted_phase_progression: vec![ForgeQueryIntentDecisionTraceStage::RawIntent],
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 8 |         advisory_phase_progression: vec![ForgeQueryIntentDecisionTraceStage::RawIntent],
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+ 9 |         violation_phase_progression: vec![ForgeQueryIntentDecisionTraceStage::RawIntent],
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+10 |         decision_phase_progression_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+11 |         decision_proof_shape_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field

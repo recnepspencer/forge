@@ -1,7 +1,9 @@
 use super::support::*;
 use crate::facade::runtime::{
-    admit_runtime_intent_request, forge_query_intent_admission_coverage_inventory,
-    forge_query_intent_admission_family_inventory, forge_query_intent_admission_support_matrix,
+    admit_runtime_intent_request, certify_intent_admission_runtime_floor,
+    forge_query_intent_admission_compile_fail_targets,
+    forge_query_intent_admission_coverage_inventory, forge_query_intent_admission_family_inventory,
+    forge_query_intent_admission_golden_transcripts, forge_query_intent_admission_support_matrix,
     ForgeQueryAdmittedIntentExecutionHandoff, ForgeQueryAuthoritativeIntentExecutionHandoff,
     ForgeQueryAuthorityLane, ForgeQueryEffectTriggeredIntentExecutionHandoff,
     ForgeQueryIntentAdmissionAuthorityLaneEligibility, ForgeQueryIntentAdmissionBasisEligibility,
@@ -16,13 +18,16 @@ use crate::facade::runtime::{
     ForgeQueryIntentAdmissionRoutingSupportEligibility,
     ForgeQueryIntentAdmissionSourceLaneEligibility, ForgeQueryIntentAdmissionSupportDetail,
     ForgeQueryIntentAdmissionSupportEligibility, ForgeQueryIntentAdmissionSupportPosture,
-    ForgeQueryIntentAdmissionSurfaceDescriptor, ForgeQueryIntentDecisionTraceEnvelope,
-    ForgeQueryIntentDecisionTraceEnvelopeKind, ForgeQueryIntentDecisionTraceStage,
-    ForgeQueryIntentDeclaration, ForgeQueryIntentNonAdmittedStop, ForgeQueryIntentSourceLane,
+    ForgeQueryIntentAdmissionSurfaceDescriptor, ForgeQueryIntentConsumerOutcomeClass,
+    ForgeQueryIntentDecisionTraceEnvelope, ForgeQueryIntentDecisionTraceEnvelopeKind,
+    ForgeQueryIntentDecisionTraceEvidence, ForgeQueryIntentDecisionTraceEvidenceOwner,
+    ForgeQueryIntentDecisionTraceStage, ForgeQueryIntentDeclaration,
+    ForgeQueryIntentNonAdmittedStop, ForgeQueryIntentSourceLane,
 };
 use std::cell::Cell;
 use std::rc::Rc;
 
+mod certification;
 mod dx;
 mod execution;
 mod inventory;

@@ -33,6 +33,8 @@ impl ForgeQueryIntentAdmissionSurfaceDescriptor {
 pub enum ForgeQueryIntentAdmissionCoveredEntrypoint {
     ExecuteIntent,
     ExecuteNextEffectWriteIntent,
+    BasisObservation,
+    ProjectionConsumption,
     ExecuteReadNeighborDeferred,
     ExecuteInspectionNeighborDeferred,
 }
@@ -43,6 +45,12 @@ impl ForgeQueryIntentAdmissionCoveredEntrypoint {
             Self::ExecuteIntent => "ForgeQueryRuntime::execute_intent",
             Self::ExecuteNextEffectWriteIntent => {
                 "ForgeQueryRuntime::execute_next_effect_write_intent"
+            }
+            Self::BasisObservation => {
+                "basis_lifecycle::basis_lifecycle().current_head().for_observation()"
+            }
+            Self::ProjectionConsumption => {
+                "projection_consumption::declare_projection_consumption(...)"
             }
             Self::ExecuteReadNeighborDeferred => "ForgeQueryRuntime::read neighbor deferred",
             Self::ExecuteInspectionNeighborDeferred => {
@@ -55,6 +63,8 @@ impl ForgeQueryIntentAdmissionCoveredEntrypoint {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryIntentAdmissionEligibilityAuthority {
     RuntimeIntentAuthorityAdapter,
+    BasisLifecycleObservationAuthority,
+    ProjectionConsumptionEligibilityAuthority,
     DeferredReadExecutionAuthority,
     DeferredInspectionMaterializationAuthority,
 }
@@ -63,6 +73,10 @@ impl ForgeQueryIntentAdmissionEligibilityAuthority {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::RuntimeIntentAuthorityAdapter => "runtime-intent-authority-adapter",
+            Self::BasisLifecycleObservationAuthority => "basis-lifecycle-observation-authority",
+            Self::ProjectionConsumptionEligibilityAuthority => {
+                "projection-consumption-eligibility-authority"
+            }
             Self::DeferredReadExecutionAuthority => "deferred-read-execution-authority",
             Self::DeferredInspectionMaterializationAuthority => {
                 "deferred-inspection-materialization-authority"
@@ -75,6 +89,8 @@ impl ForgeQueryIntentAdmissionEligibilityAuthority {
 pub enum ForgeQueryIntentAdmissionPlanKind {
     AuthoritativeIntentExecutionPlan,
     EffectTriggeredIntentExecutionPlan,
+    BasisObservationPlan,
+    ProjectionConsumptionPlan,
     DeferredReadExecutionPlan,
     DeferredInspectionMaterializationPlan,
 }
@@ -84,6 +100,8 @@ impl ForgeQueryIntentAdmissionPlanKind {
         match self {
             Self::AuthoritativeIntentExecutionPlan => "authoritative-intent-execution-plan",
             Self::EffectTriggeredIntentExecutionPlan => "effect-triggered-intent-execution-plan",
+            Self::BasisObservationPlan => "basis-observation-plan",
+            Self::ProjectionConsumptionPlan => "projection-consumption-plan",
             Self::DeferredReadExecutionPlan => "deferred-read-execution-plan",
             Self::DeferredInspectionMaterializationPlan => {
                 "deferred-inspection-materialization-plan"
@@ -146,6 +164,8 @@ impl ForgeQueryIntentAdmissionDecisionClass {
 pub enum ForgeQueryIntentAdmissionResultArtifact {
     ForgeQueryIntentReceipt,
     ForgeQueryEffectIntentReceipt,
+    ScopedObservationBasis,
+    MaterializedProjectionContract,
     DeferredReadExecutionArtifact,
     DeferredInspectionMaterializationArtifact,
 }
@@ -155,6 +175,8 @@ impl ForgeQueryIntentAdmissionResultArtifact {
         match self {
             Self::ForgeQueryIntentReceipt => "ForgeQueryIntentReceipt",
             Self::ForgeQueryEffectIntentReceipt => "ForgeQueryEffectIntentReceipt",
+            Self::ScopedObservationBasis => "ScopedObservationBasis",
+            Self::MaterializedProjectionContract => "MaterializedProjectionContract",
             Self::DeferredReadExecutionArtifact => "deferred-read-execution-artifact",
             Self::DeferredInspectionMaterializationArtifact => {
                 "deferred-inspection-materialization-artifact"
@@ -343,7 +365,7 @@ impl ForgeQueryIntentAdmissionCoverageInventory {
     }
 }
 
-const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 4] = [
+const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 6] = [
     ForgeQueryIntentAdmissionCoverageRow::new(
         ForgeQueryIntentAdmissionFamily::AuthoritativeUserIntent,
         ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteIntent,
@@ -388,6 +410,56 @@ const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 4] = [
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
             "runtime.next_effect_write_intent(&effect, version, contract).review()?.admit()?.execute()",
+        ),
+    ),
+    ForgeQueryIntentAdmissionCoverageRow::new(
+        ForgeQueryIntentAdmissionFamily::BasisUseIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::BasisObservation,
+        ForgeQueryIntentAdmissionExecutionBoundary::deferred_neighbor(
+            "no-execution-handoff-basis-observation-scope",
+        ),
+        ForgeQueryIntentAdmissionCoverageStatus::Implemented,
+        ForgeQueryIntentAdmissionEligibilityAuthority::BasisLifecycleObservationAuthority,
+        ForgeQueryIntentAdmissionPlanKind::BasisObservationPlan,
+        ForgeQueryIntentAdmissionExecutionHandoffInventory::no_execution_handoff(
+            "basis-observation-admitted-plan-scopes-to-lower-runtime-evidence-without-query-execution-handoff",
+        ),
+        ForgeQueryIntentAdmissionDecisionClass::AdvisoryNotYetExercisedOnCoveredEntrypoint,
+        ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation,
+        ForgeQueryIntentAdmissionResultArtifact::ScopedObservationBasis,
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "ForgeQueryRawIntentAdmissionRequest::basis_observation_lane(...)",
+        ),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "forge_query_basis_observation_intent(raw).admit()",
+        ),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "forge_query_basis_observation_intent(raw).review()?.admit()",
+        ),
+    ),
+    ForgeQueryIntentAdmissionCoverageRow::new(
+        ForgeQueryIntentAdmissionFamily::ProjectionConsumptionIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ProjectionConsumption,
+        ForgeQueryIntentAdmissionExecutionBoundary::deferred_neighbor(
+            "no-execution-handoff-projection-consumption-contract",
+        ),
+        ForgeQueryIntentAdmissionCoverageStatus::Implemented,
+        ForgeQueryIntentAdmissionEligibilityAuthority::ProjectionConsumptionEligibilityAuthority,
+        ForgeQueryIntentAdmissionPlanKind::ProjectionConsumptionPlan,
+        ForgeQueryIntentAdmissionExecutionHandoffInventory::no_execution_handoff(
+            "projection-consumption-admitted-plan-binds-contract-without-query-execution-handoff",
+        ),
+        ForgeQueryIntentAdmissionDecisionClass::AdvisoryNotYetExercisedOnCoveredEntrypoint,
+        ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation,
+        ForgeQueryIntentAdmissionResultArtifact::MaterializedProjectionContract,
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "ForgeQueryRawIntentAdmissionRequest::projection_consumption(declaration)",
+        ),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "forge_query_projection_consumption_intent(declaration).admit()",
+        ),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "forge_query_projection_consumption_intent(declaration).review()?.admit()",
         ),
     ),
     ForgeQueryIntentAdmissionCoverageRow::new(

@@ -4,7 +4,7 @@ use crate::intent_admission::{
 };
 use crate::runtime::{
     ForgeQueryEffectDelivery, ForgeQueryEffectHandle, ForgeQueryEffectIntentReceipt,
-    ForgeQueryRuntime, ForgeQueryRuntimeError,
+    ForgeQueryIntentConsumerInspection, ForgeQueryRuntime, ForgeQueryRuntimeError,
 };
 
 use super::{
@@ -94,6 +94,16 @@ impl<'a> ForgeQueryRuntimeEffectWriteIntentAdmissionReview<'a> {
         self.review.decision_trace_envelope()
     }
 
+    pub fn consumer_inspection(&self) -> ForgeQueryIntentConsumerInspection<'_> {
+        ForgeQueryIntentConsumerInspection::from_review(
+            self.review.request().intent_name(),
+            self.review.decision(),
+            self.review.request().family(),
+            self.review.request().entrypoint(),
+            self.review.decision_trace_envelope(),
+        )
+    }
+
     pub fn pending_delivery(&self) -> &ForgeQueryEffectDelivery {
         &self.pending_delivery
     }
@@ -107,7 +117,10 @@ impl<'a> ForgeQueryRuntimeEffectWriteIntentAdmissionReview<'a> {
             .map_err(|_| {
                 let violation = non_admitted_runtime_violation(&self.review);
                 self.runtime.intent_violation_error(
-                    self.review.request().declaration(),
+                    self.review
+                        .request()
+                        .runtime_declaration()
+                        .expect("effect runtime review must preserve declaration"),
                     violation,
                     None,
                     self.review.decision_trace_envelope().cloned(),

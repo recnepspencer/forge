@@ -250,6 +250,8 @@ What gets inspected:
 - Use [Projection Consumption](./projection-consumption.md) when a read result,
   write receipt, or query-context execution must become typed consumed facts
   instead of staying a raw payload or receipt artifact.
+- Use [Intent Admission](./intent-admission.md) when you need the proof-bearing
+  review/admit/execute path for covered runtime intent work.
 - Use preview or branch sessions when the work should remain isolated from
   current truth.
 
@@ -293,3 +295,4 @@ runtime.
 - [Computed](./computed.md)
 - [Effects](./effects.md)
 - [Projection Consumption](./projection-consumption.md)
+- [Intent Admission](./intent-admission.md)

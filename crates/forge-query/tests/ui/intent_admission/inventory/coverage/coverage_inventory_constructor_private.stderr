@@ -1,0 +1,10 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/intent_admission/inventory/coverage/coverage_inventory_constructor_private.rs:4:57
+  |
+4 |     let _ = ForgeQueryIntentAdmissionCoverageInventory::new(&[]);
+  |                                                         ^^^ private associated function
+  |
+ ::: src/intent_admission/inventory.rs
+  |
+  |     pub(crate) const fn new(rows: &'static [ForgeQueryIntentAdmissionCoverageRow]) -> Self {
+  |     -------------------------------------------------------------------------------------- private associated function defined here

@@ -2,7 +2,8 @@ use crate::intent_admission::{
     ForgeQueryAuthoritativeIntentExecutionBinding, ForgeQueryAuthoritativeIntentExecutionHandoff,
 };
 use crate::runtime::{
-    ForgeQueryIntentDeclaration, ForgeQueryIntentReceipt, ForgeQueryRuntime, ForgeQueryRuntimeError,
+    ForgeQueryIntentConsumerInspection, ForgeQueryIntentDeclaration, ForgeQueryIntentReceipt,
+    ForgeQueryRuntime, ForgeQueryRuntimeError,
 };
 
 use super::{
@@ -80,6 +81,16 @@ impl<'a> ForgeQueryRuntimeIntentAdmissionReview<'a> {
         self.review.decision_trace_envelope()
     }
 
+    pub fn consumer_inspection(&self) -> ForgeQueryIntentConsumerInspection<'_> {
+        ForgeQueryIntentConsumerInspection::from_review(
+            self.review.request().intent_name(),
+            self.review.decision(),
+            self.review.request().family(),
+            self.review.request().entrypoint(),
+            self.review.decision_trace_envelope(),
+        )
+    }
+
     pub fn admit(self) -> Result<ForgeQueryAdmittedRuntimeIntent<'a>, ForgeQueryRuntimeError> {
         let handoff = self
             .runtime
@@ -87,7 +98,10 @@ impl<'a> ForgeQueryRuntimeIntentAdmissionReview<'a> {
             .map_err(|_| {
                 let violation = non_admitted_runtime_violation(&self.review);
                 self.runtime.intent_violation_error(
-                    self.review.request().declaration(),
+                    self.review
+                        .request()
+                        .runtime_declaration()
+                        .expect("authoritative runtime review must preserve declaration"),
                     violation,
                     None,
                     self.review.decision_trace_envelope().cloned(),

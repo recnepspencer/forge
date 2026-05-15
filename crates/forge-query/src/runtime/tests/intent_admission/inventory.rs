@@ -29,6 +29,8 @@ fn intent_admission_family_inventory_freezes_the_phase_one_family_map() {
         vec![
             ForgeQueryIntentAdmissionFamily::AuthoritativeUserIntent,
             ForgeQueryIntentAdmissionFamily::EffectTriggeredWriteIntent,
+            ForgeQueryIntentAdmissionFamily::BasisUseIntent,
+            ForgeQueryIntentAdmissionFamily::ProjectionConsumptionIntent,
             ForgeQueryIntentAdmissionFamily::ReadExecutionIntent,
             ForgeQueryIntentAdmissionFamily::InspectionMaterializationIntent,
         ]
@@ -44,7 +46,11 @@ fn intent_admission_family_inventory_freezes_the_phase_one_family_map() {
         "runtime.next_effect_write_intent(&effect, version, contract).review()?.admit()?.execute()"
     );
     assert_eq!(
-        family_inventory.rows()[2]
+        family_inventory.rows()[2].common_path_front_door().label(),
+        "forge_query_basis_observation_intent(raw).admit()"
+    );
+    assert_eq!(
+        family_inventory.rows()[4]
             .common_path_front_door()
             .deferred_reason(),
         Some("read-execution-neighbor-deferred-until-covered")
@@ -100,10 +106,12 @@ fn support_matrix_matches_phase_one_inventory_and_freezes_deferred_neighbors() {
                     coverage.advanced_path_front_door().deferred_reason(),
                     Some("deferred-until-covered")
                 );
-                assert_eq!(
+                assert!(matches!(
                     support.detail(),
                     ForgeQueryIntentAdmissionSupportDetail::ImplementedRuntimeIntentFloor
-                );
+                        | ForgeQueryIntentAdmissionSupportDetail::ImplementedBasisObservationScope
+                        | ForgeQueryIntentAdmissionSupportDetail::ImplementedProjectionConsumptionContract
+                ));
             }
             ForgeQueryIntentAdmissionCoverageStatus::PlannedNeighbor => {
                 assert_eq!(
@@ -185,6 +193,21 @@ fn coverage_inventory_carries_phase_one_required_metadata_as_typed_fields() {
             "ForgeQueryAdmittedIntentExecutionHandoff"
         )
     );
+
+    let basis_observation = inventory
+        .rows()
+        .iter()
+        .find(|row| {
+            row.entrypoint() == ForgeQueryIntentAdmissionCoveredEntrypoint::BasisObservation
+        })
+        .expect("basis observation row should exist");
+    let projection = inventory
+        .rows()
+        .iter()
+        .find(|row| {
+            row.entrypoint() == ForgeQueryIntentAdmissionCoveredEntrypoint::ProjectionConsumption
+        })
+        .expect("projection row should exist");
     assert_eq!(
         execute_intent.result_artifact(),
         ForgeQueryIntentAdmissionResultArtifact::ForgeQueryIntentReceipt
@@ -233,5 +256,45 @@ fn coverage_inventory_carries_phase_one_required_metadata_as_typed_fields() {
     assert_eq!(
         deferred_read.raw_authoring_constructor().deferred_reason(),
         Some("read-execution-neighbor-deferred-until-covered")
+    );
+
+    assert_eq!(
+        basis_observation.eligibility_authority(),
+        ForgeQueryIntentAdmissionEligibilityAuthority::BasisLifecycleObservationAuthority
+    );
+    assert_eq!(
+        basis_observation.admitted_plan_kind(),
+        ForgeQueryIntentAdmissionPlanKind::BasisObservationPlan
+    );
+    assert_eq!(
+        basis_observation.result_artifact(),
+        ForgeQueryIntentAdmissionResultArtifact::ScopedObservationBasis
+    );
+    assert_eq!(
+        basis_observation
+            .admitted_execution_handoff()
+            .no_execution_handoff_reason(),
+        Some(
+            "basis-observation-admitted-plan-scopes-to-lower-runtime-evidence-without-query-execution-handoff"
+        )
+    );
+
+    assert_eq!(
+        projection.eligibility_authority(),
+        ForgeQueryIntentAdmissionEligibilityAuthority::ProjectionConsumptionEligibilityAuthority
+    );
+    assert_eq!(
+        projection.admitted_plan_kind(),
+        ForgeQueryIntentAdmissionPlanKind::ProjectionConsumptionPlan
+    );
+    assert_eq!(
+        projection.result_artifact(),
+        ForgeQueryIntentAdmissionResultArtifact::MaterializedProjectionContract
+    );
+    assert_eq!(
+        projection
+            .admitted_execution_handoff()
+            .no_execution_handoff_reason(),
+        Some("projection-consumption-admitted-plan-binds-contract-without-query-execution-handoff")
     );
 }

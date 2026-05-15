@@ -821,6 +821,82 @@ Completion gate:
 - common-path usage matches the target DX section
 - advanced-path usage can inspect every proof-bearing phase directly
 
+### Phase 5.5: Close The Remaining Covered Family Adoptions
+
+Phase 5 finishes the shared lattice and caller story for the initially wired
+surfaces. Before certification can honestly claim milestone-wide closure,
+9.3.5 must also finish the broader covered-family adoption this spec names.
+This phase exists to prevent "runtime-floor complete" from being mistaken for
+"milestone complete."
+
+Work to complete in order:
+
+1. Adopt concrete read-execution entrypoints into the shared lattice on named
+   public methods rather than leaving reads represented only as deferred
+   neighbors.
+2. Audit every existing direct write-, update-, and delete-shaped public Query
+   operation and rewrite any remaining bypass so each one delegates through the
+   authoritative-intent lattice path before 9.3.5 can close.
+3. Adopt concrete inspection and diagnostic-materialization entrypoints into
+   the shared lattice on named public methods rather than certifying only
+   representative advisory-redaction posture.
+4. Adopt the pre-9.3.6 lower-runtime capability-routing request family on the
+   concrete supported authoring surfaces that already have real bridge-backed
+   execution semantics, while leaving truly future work explicitly deferred.
+5. Promote basis-use and projection-consumption from "implemented in family
+   inventory, support, and DX" to fully closed adopted families by extending
+   their public advanced-path examples, trace expectations, and bundle-facing
+   certification inputs until they no longer depend on neighboring milestone
+   certification to explain their meaning.
+6. Update the compile-visible covered-entrypoint inventory, support matrix,
+   target DX, and crate documentation so every newly adopted family is named
+   through the same public path, support posture, and proof vocabulary.
+
+Artifacts that must exist before leaving this phase:
+
+- covered read-execution authoring and review/admit surfaces on named public
+  methods
+- a checked mutation-entrypoint audit covering existing write/update/delete
+  public surfaces and proving they now delegate through authoritative intent
+- covered inspection or diagnostic-materialization authoring and
+  review/admit/materialize surfaces on named public methods
+- covered lower-runtime capability-routing authoring and deferred/admitted
+  posture surfaces for the pre-9.3.6 boundary
+- basis-use and projection-consumption DX and certification rows that are
+  first-class members of the intent-admission bundle rather than only
+  neighboring representative-family evidence
+- updated coverage inventory rows, support rows, and documentation examples
+  for every adopted family
+
+This phase is incomplete if:
+
+- read execution is still only a deferred neighbor rather than a named adopted
+  covered entrypoint
+- any existing public write/update/delete operation can still reach execution
+  without delegating through authoritative intent
+- inspection advisory-redaction exists only as representative certification
+  evidence without a concrete lattice-owned public entrypoint
+- lower-runtime capability-routing remains described only as future-neighbor
+  posture for cases that already have real bridge-backed semantics available
+- basis-use or projection-consumption can be executed through the lattice in
+  code but are still absent from the public advanced-path story or from the
+  intent-admission bundle's direct certification evidence
+- the inventory, support matrix, DX examples, and docs disagree about which
+  families are truly adopted
+
+Completion gate:
+
+- every family named in the Product Decision Lock has either a concrete adopted
+  covered entrypoint in the inventory or an explicit deferred owner that is
+  still outside 9.3.5 scope
+- every existing mutation-shaped public entrypoint has been audited and proven
+  to delegate through authoritative intent
+- basis-use, projection-consumption, read execution, inspection or diagnostic
+  materialization, effect execution, and the pre-9.3.6 routing boundary all
+  resolve through one shared lattice vocabulary on concrete public surfaces
+- Phase 6 can certify milestone-wide closure without relying on representative
+  stand-ins for families that 9.3.5 claims to have adopted
+
 ### Phase 6: Certify Closure, Cost, And Non-Bypass Guarantees
 
 Certification comes last. This phase exists to prove the earlier phases were

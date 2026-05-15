@@ -13,11 +13,8 @@ pub fn admit_runtime_intent_request(
     let eligibility = ForgeQueryIntentAdmissionEligibility::from_request(request);
     match eligibility.pre_decision_posture() {
         ForgeQueryIntentAdmissionPreDecisionPosture::Admitted => {
-            let execution_seam = eligibility
-                .admitted_execution_seam()
-                .expect("admitted eligibility must carry a covered execution seam");
             ForgeQueryIntentAdmissionDecision::Admitted(
-                ForgeQueryAdmittedIntentPlan::from_eligibility(eligibility, execution_seam),
+                ForgeQueryAdmittedIntentPlan::from_eligibility(eligibility),
             )
         }
         ForgeQueryIntentAdmissionPreDecisionPosture::Deferred { stage, message } => {

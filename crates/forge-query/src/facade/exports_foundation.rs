@@ -272,6 +272,12 @@ pub use crate::identity_evolution::{
     InspectorIdentityDigest, LineageTraversalDescriptor, LineageTraversalFamily,
     PluralIdentitySuccessorSet, PromotionOrMergeAuthorityState, SingularIdentityContinuityResult,
 };
+pub use crate::intent_admission::{
+    forge_query_basis_observation_intent, forge_query_projection_consumption_intent,
+    ForgeQueryBasisObservationAdmittedIntent, ForgeQueryBasisObservationIntentAuthoring,
+    ForgeQueryBasisObservationIntentReview, ForgeQueryProjectionConsumptionAdmittedIntent,
+    ForgeQueryProjectionConsumptionIntentAuthoring, ForgeQueryProjectionConsumptionIntentReview,
+};
 pub use crate::live::{
     admit_region_scoped_live_plan, build_milestone_five_live_artifact, execute_live_change,
     execute_region_scoped_live_change, lower_region_scoped_execution_to_stream_contract,

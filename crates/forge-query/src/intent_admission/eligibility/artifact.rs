@@ -10,6 +10,7 @@ use super::facts::{
 };
 use super::{request::ForgeQueryRawIntentAdmissionRequest, resolution::resolve_eligibility_facts};
 use crate::intent_admission::ForgeQueryIntentAdmissionExecutionSeam;
+use crate::intent_admission::ForgeQueryIntentEligibilityTraceEvidence;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryIntentAdmissionPreDecisionPosture {
@@ -191,5 +192,20 @@ impl ForgeQueryIntentAdmissionEligibility {
 
     pub fn eligibility_digest(&self) -> &str {
         &self.eligibility_digest
+    }
+
+    pub fn trace_evidence(&self) -> ForgeQueryIntentEligibilityTraceEvidence {
+        ForgeQueryIntentEligibilityTraceEvidence::new(
+            self.support_posture,
+            self.capability_posture,
+            self.policy_posture,
+            self.basis_posture,
+            self.invariant_posture,
+            self.projection_source_posture,
+            self.routing_support_posture,
+            self.source_lane_posture,
+            self.authority_lane_posture,
+            self.eligibility_digest.clone(),
+        )
     }
 }

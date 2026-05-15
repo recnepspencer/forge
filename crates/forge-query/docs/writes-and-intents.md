@@ -225,6 +225,10 @@ For concrete examples, including:
 
 see [Writes and Intent Examples](./writes-and-intents-examples.md).
 
+For the shared admitted handoff model and proof-chain story behind
+`workspace.intent(...)` and `workspace.next_effect_intent(...)`, see
+[Intent Admission](./intent-admission.md).
+
 ## How It Relates To Other Features
 
 - Use [Effects](./effects.md) when pending write-intent residue should be staged
@@ -286,3 +290,4 @@ silent fallback to direct mutation.
 - [Branches and Previews](./branches-and-previews.md)
 - [Workspace Overview](./workspace-overview.md)
 - [Projection Consumption](./projection-consumption.md)
+- [Intent Admission](./intent-admission.md)

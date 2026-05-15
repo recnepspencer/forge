@@ -3,6 +3,7 @@ use crate::intent_admission::{
     ForgeQueryAdmittedIntentExecutionHandoff, ForgeQueryAuthoritativeIntentExecutionBinding,
     ForgeQueryEffectTriggeredIntentExecutionBinding, ForgeQueryIntentDecisionTraceEnvelope,
 };
+use crate::runtime::ForgeQueryIntentConsumerInspection;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryIntentReceipt {
@@ -316,6 +317,10 @@ impl ForgeQueryIntentReceipt {
 
     pub fn decision_trace_envelope(&self) -> &ForgeQueryIntentDecisionTraceEnvelope {
         &self.decision_trace_envelope
+    }
+
+    pub fn consumer_inspection(&self) -> ForgeQueryIntentConsumerInspection<'_> {
+        ForgeQueryIntentConsumerInspection::from_receipt(self)
     }
 
     pub fn receipt_digest(&self) -> &str {

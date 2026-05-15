@@ -1,5 +1,6 @@
 use crate::identity::hash_parts;
 use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
+use crate::runtime::ForgeQueryIntentConsumerInspection;
 
 use super::super::{
     ForgeQueryAuthorityLane, ForgeQueryEffectDelivery, ForgeQueryEffectPhaseEvidence,
@@ -141,6 +142,10 @@ impl ForgeQueryEffectIntentReceipt {
 
     pub fn decision_trace_envelope(&self) -> &ForgeQueryIntentDecisionTraceEnvelope {
         self.intent_receipt.decision_trace_envelope()
+    }
+
+    pub fn consumer_inspection(&self) -> ForgeQueryIntentConsumerInspection<'_> {
+        self.intent_receipt.consumer_inspection()
     }
 
     pub fn receipt_digest(&self) -> &str {

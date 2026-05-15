@@ -23,6 +23,8 @@ impl ForgeQueryIntentAdmissionSupportPosture {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryIntentAdmissionSupportDetail {
     ImplementedRuntimeIntentFloor,
+    ImplementedBasisObservationScope,
+    ImplementedProjectionConsumptionContract,
     ReadExecutionNeighborDeferredUntilCovered,
     InspectionMaterializationNeighborDeferredUntilCovered,
 }
@@ -31,6 +33,10 @@ impl ForgeQueryIntentAdmissionSupportDetail {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::ImplementedRuntimeIntentFloor => "implemented-runtime-intent-floor",
+            Self::ImplementedBasisObservationScope => "implemented-basis-observation-scope",
+            Self::ImplementedProjectionConsumptionContract => {
+                "implemented-projection-consumption-contract"
+            }
             Self::ReadExecutionNeighborDeferredUntilCovered => {
                 "read-execution-neighbor-deferred-until-covered"
             }
@@ -103,7 +109,7 @@ impl ForgeQueryIntentAdmissionSupportMatrix {
     }
 }
 
-const SUPPORT_ROWS: [ForgeQueryIntentAdmissionSupportRow; 4] = [
+const SUPPORT_ROWS: [ForgeQueryIntentAdmissionSupportRow; 6] = [
     ForgeQueryIntentAdmissionSupportRow::new(
         ForgeQueryIntentAdmissionFamily::AuthoritativeUserIntent,
         ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteIntent,
@@ -117,6 +123,24 @@ const SUPPORT_ROWS: [ForgeQueryIntentAdmissionSupportRow; 4] = [
         ForgeQueryIntentAdmissionSupportPosture::Admitted,
         ForgeQueryIntentAdmissionExecutionBoundary::covered_backend_intent_authority_route(),
         ForgeQueryIntentAdmissionSupportDetail::ImplementedRuntimeIntentFloor,
+    ),
+    ForgeQueryIntentAdmissionSupportRow::new(
+        ForgeQueryIntentAdmissionFamily::BasisUseIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::BasisObservation,
+        ForgeQueryIntentAdmissionSupportPosture::Admitted,
+        ForgeQueryIntentAdmissionExecutionBoundary::deferred_neighbor(
+            "no-execution-handoff-basis-observation-scope",
+        ),
+        ForgeQueryIntentAdmissionSupportDetail::ImplementedBasisObservationScope,
+    ),
+    ForgeQueryIntentAdmissionSupportRow::new(
+        ForgeQueryIntentAdmissionFamily::ProjectionConsumptionIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ProjectionConsumption,
+        ForgeQueryIntentAdmissionSupportPosture::Admitted,
+        ForgeQueryIntentAdmissionExecutionBoundary::deferred_neighbor(
+            "no-execution-handoff-projection-consumption-contract",
+        ),
+        ForgeQueryIntentAdmissionSupportDetail::ImplementedProjectionConsumptionContract,
     ),
     ForgeQueryIntentAdmissionSupportRow::new(
         ForgeQueryIntentAdmissionFamily::ReadExecutionIntent,

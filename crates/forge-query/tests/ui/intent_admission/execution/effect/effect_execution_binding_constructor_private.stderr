@@ -1,0 +1,25 @@
+warning: unreachable expression
+ --> tests/ui/intent_admission/execution/effect/effect_execution_binding_constructor_private.rs:6:22
+  |
+5 |         handoff: todo!(),
+  |                  ------- any code following this expression is unreachable
+6 |         effect_name: String::new(),
+  |                      ^^^^^^^^^^^^^ unreachable expression
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0451]: fields `handoff`, `effect_name`, `trigger_commit_identity`, `pending_delivery_digest` and `binding_digest` of struct `ForgeQueryEffectTriggeredIntentExecutionBinding` are private
+ --> tests/ui/intent_admission/execution/effect/effect_execution_binding_constructor_private.rs:5:9
+  |
+4 |     let _ = ForgeQueryEffectTriggeredIntentExecutionBinding {
+  |             ----------------------------------------------- in this type
+5 |         handoff: todo!(),
+  |         ^^^^^^^ private field
+6 |         effect_name: String::new(),
+  |         ^^^^^^^^^^^ private field
+7 |         trigger_commit_identity: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+8 |         pending_delivery_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^ private field
+9 |         binding_digest: String::new(),
+  |         ^^^^^^^^^^^^^^ private field

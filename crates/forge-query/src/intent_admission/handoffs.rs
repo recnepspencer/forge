@@ -8,7 +8,7 @@ use super::{
     ForgeQueryAdmittedIntentPlan, ForgeQueryAuthoritativeIntentExecutionPlan,
     ForgeQueryEffectTriggeredIntentExecutionPlan, ForgeQueryIntentAdmissionCoveredEntrypoint,
     ForgeQueryIntentAdmissionExecutionSeam, ForgeQueryIntentAdmissionFamily,
-    ForgeQueryIntentViolationDecision,
+    ForgeQueryIntentEligibilityTraceEvidence, ForgeQueryIntentViolationDecision,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -16,6 +16,7 @@ pub struct ForgeQueryAuthoritativeIntentExecutionHandoff {
     declaration: ForgeQueryIntentDeclaration,
     request_digest: String,
     eligibility_digest: String,
+    eligibility_trace: ForgeQueryIntentEligibilityTraceEvidence,
     decision_digest: String,
     handoff_digest: String,
 }
@@ -25,6 +26,7 @@ pub struct ForgeQueryEffectTriggeredIntentExecutionHandoff {
     declaration: ForgeQueryIntentDeclaration,
     request_digest: String,
     eligibility_digest: String,
+    eligibility_trace: ForgeQueryIntentEligibilityTraceEvidence,
     decision_digest: String,
     handoff_digest: String,
 }
@@ -41,11 +43,13 @@ impl ForgeQueryAuthoritativeIntentExecutionHandoff {
             declaration: plan.declaration().clone(),
             request_digest: plan.request_digest().to_string(),
             eligibility_digest: plan.eligibility_digest().to_string(),
+            eligibility_trace: plan.eligibility_trace().clone(),
             decision_digest: plan.decision_digest().to_string(),
             handoff_digest: handoff_digest(
                 plan.family(),
                 plan.entrypoint(),
-                plan.execution_seam(),
+                plan.execution_seam()
+                    .expect("authoritative runtime handoff requires execution seam"),
                 plan.decision_digest(),
                 plan.declaration(),
             ),
@@ -76,6 +80,10 @@ impl ForgeQueryAuthoritativeIntentExecutionHandoff {
         &self.eligibility_digest
     }
 
+    pub fn eligibility_trace(&self) -> &ForgeQueryIntentEligibilityTraceEvidence {
+        &self.eligibility_trace
+    }
+
     pub fn decision_digest(&self) -> &str {
         &self.decision_digest
     }
@@ -91,11 +99,13 @@ impl ForgeQueryEffectTriggeredIntentExecutionHandoff {
             declaration: plan.declaration().clone(),
             request_digest: plan.request_digest().to_string(),
             eligibility_digest: plan.eligibility_digest().to_string(),
+            eligibility_trace: plan.eligibility_trace().clone(),
             decision_digest: plan.decision_digest().to_string(),
             handoff_digest: handoff_digest(
                 plan.family(),
                 plan.entrypoint(),
-                plan.execution_seam(),
+                plan.execution_seam()
+                    .expect("effect runtime handoff requires execution seam"),
                 plan.decision_digest(),
                 plan.declaration(),
             ),
@@ -124,6 +134,10 @@ impl ForgeQueryEffectTriggeredIntentExecutionHandoff {
 
     pub fn eligibility_digest(&self) -> &str {
         &self.eligibility_digest
+    }
+
+    pub fn eligibility_trace(&self) -> &ForgeQueryIntentEligibilityTraceEvidence {
+        &self.eligibility_trace
     }
 
     pub fn decision_digest(&self) -> &str {
@@ -178,6 +192,13 @@ impl ForgeQueryAdmittedIntentExecutionHandoff {
         }
     }
 
+    pub fn eligibility_trace(&self) -> &ForgeQueryIntentEligibilityTraceEvidence {
+        match self {
+            Self::Authoritative(handoff) => handoff.eligibility_trace(),
+            Self::EffectTriggered(handoff) => handoff.eligibility_trace(),
+        }
+    }
+
     pub fn decision_digest(&self) -> &str {
         match self {
             Self::Authoritative(handoff) => handoff.decision_digest(),
@@ -210,18 +231,20 @@ impl From<ForgeQueryEffectTriggeredIntentExecutionHandoff>
 }
 
 impl ForgeQueryAdmittedIntentPlan {
-    pub fn into_execution_handoff(self) -> ForgeQueryAdmittedIntentExecutionHandoff {
+    pub fn into_execution_handoff(self) -> Option<ForgeQueryAdmittedIntentExecutionHandoff> {
         match self {
             ForgeQueryAdmittedIntentPlan::Authoritative(plan) => {
-                ForgeQueryAdmittedIntentExecutionHandoff::Authoritative(
+                Some(ForgeQueryAdmittedIntentExecutionHandoff::Authoritative(
                     ForgeQueryAuthoritativeIntentExecutionHandoff::from_plan(plan),
-                )
+                ))
             }
             ForgeQueryAdmittedIntentPlan::EffectTriggered(plan) => {
-                ForgeQueryAdmittedIntentExecutionHandoff::EffectTriggered(
+                Some(ForgeQueryAdmittedIntentExecutionHandoff::EffectTriggered(
                     ForgeQueryEffectTriggeredIntentExecutionHandoff::from_plan(plan),
-                )
+                ))
             }
+            ForgeQueryAdmittedIntentPlan::BasisObservation(_)
+            | ForgeQueryAdmittedIntentPlan::ProjectionConsumption(_) => None,
         }
     }
 }

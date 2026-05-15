@@ -4,6 +4,8 @@ use super::ForgeQueryIntentAdmissionSurfaceDescriptor;
 pub enum ForgeQueryIntentAdmissionFamily {
     AuthoritativeUserIntent,
     EffectTriggeredWriteIntent,
+    BasisUseIntent,
+    ProjectionConsumptionIntent,
     ReadExecutionIntent,
     InspectionMaterializationIntent,
 }
@@ -13,6 +15,8 @@ impl ForgeQueryIntentAdmissionFamily {
         match self {
             Self::AuthoritativeUserIntent => "authoritative-user-intent",
             Self::EffectTriggeredWriteIntent => "effect-triggered-write-intent",
+            Self::BasisUseIntent => "basis-use-intent",
+            Self::ProjectionConsumptionIntent => "projection-consumption-intent",
             Self::ReadExecutionIntent => "read-execution-intent",
             Self::InspectionMaterializationIntent => "inspection-materialization-intent",
         }
@@ -74,7 +78,7 @@ impl ForgeQueryIntentAdmissionFamilyInventory {
     }
 }
 
-const FAMILY_ROWS: [ForgeQueryIntentAdmissionFamilyInventoryRow; 4] = [
+const FAMILY_ROWS: [ForgeQueryIntentAdmissionFamilyInventoryRow; 6] = [
     ForgeQueryIntentAdmissionFamilyInventoryRow::new(
         ForgeQueryIntentAdmissionFamily::AuthoritativeUserIntent,
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
@@ -97,6 +101,30 @@ const FAMILY_ROWS: [ForgeQueryIntentAdmissionFamilyInventoryRow; 4] = [
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
             "runtime.next_effect_write_intent(&effect, version, contract).review()?.admit()?.execute()",
+        ),
+    ),
+    ForgeQueryIntentAdmissionFamilyInventoryRow::new(
+        ForgeQueryIntentAdmissionFamily::BasisUseIntent,
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "ForgeQueryRawIntentAdmissionRequest::basis_observation_lane(...)",
+        ),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "forge_query_basis_observation_intent(raw).admit()",
+        ),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "forge_query_basis_observation_intent(raw).review()?.admit()",
+        ),
+    ),
+    ForgeQueryIntentAdmissionFamilyInventoryRow::new(
+        ForgeQueryIntentAdmissionFamily::ProjectionConsumptionIntent,
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "ForgeQueryRawIntentAdmissionRequest::projection_consumption(declaration)",
+        ),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "forge_query_projection_consumption_intent(declaration).admit()",
+        ),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "forge_query_projection_consumption_intent(declaration).review()?.admit()",
         ),
     ),
     ForgeQueryIntentAdmissionFamilyInventoryRow::new(

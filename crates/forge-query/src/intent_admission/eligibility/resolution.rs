@@ -1,3 +1,7 @@
+use crate::basis_lifecycle::{evaluate_basis_observation_eligibility, DeniedBasisCapabilityKind};
+use crate::projection_consumption::{
+    evaluate_projection_consumption_eligibility, ProjectionConsumptionEligibility,
+};
 use crate::runtime::{
     admit_authoritative_intent_declaration, admit_effect_triggered_intent_declaration,
     ForgeQueryAuthorityLane, ForgeQueryIntentAdmissionDenial, ForgeQueryIntentSourceLane,
@@ -37,7 +41,11 @@ pub(super) fn resolve_eligibility_facts(
                 request,
                 ForgeQueryIntentSourceLane::UserAuthored,
                 ForgeQueryAuthorityLane::AuthoritativeTruth,
-                admit_authoritative_intent_declaration(request.declaration()),
+                admit_authoritative_intent_declaration(
+                    request
+                        .runtime_declaration()
+                        .expect("runtime floor request must preserve declaration"),
+                ),
             )
         }
         ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteNextEffectWriteIntent => {
@@ -45,8 +53,18 @@ pub(super) fn resolve_eligibility_facts(
                 request,
                 ForgeQueryIntentSourceLane::EffectTriggered,
                 ForgeQueryAuthorityLane::AuthoritativeTruth,
-                admit_effect_triggered_intent_declaration(request.declaration()),
+                admit_effect_triggered_intent_declaration(
+                    request
+                        .runtime_declaration()
+                        .expect("effect floor request must preserve declaration"),
+                ),
             )
+        }
+        ForgeQueryIntentAdmissionCoveredEntrypoint::BasisObservation => {
+            resolve_basis_observation_eligibility(request)
+        }
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ProjectionConsumption => {
+            resolve_projection_consumption_eligibility(request)
         }
         ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteReadNeighborDeferred => {
             resolve_deferred_neighbor_eligibility("read-execution-neighbor-deferred-until-covered")
@@ -56,6 +74,186 @@ pub(super) fn resolve_eligibility_facts(
                 "inspection-materialization-neighbor-deferred-until-covered",
             )
         }
+    }
+}
+
+fn resolve_basis_observation_eligibility(
+    request: &ForgeQueryRawIntentAdmissionRequest,
+) -> (
+    ForgeQueryIntentAdmissionSupportEligibility,
+    ForgeQueryIntentAdmissionCapabilityEligibility,
+    ForgeQueryIntentAdmissionPolicyEligibility,
+    ForgeQueryIntentAdmissionBasisEligibility,
+    ForgeQueryIntentAdmissionInvariantEligibility,
+    ForgeQueryIntentAdmissionProjectionSourceEligibility,
+    ForgeQueryIntentAdmissionRoutingSupportEligibility,
+    ForgeQueryIntentAdmissionSourceLaneEligibility,
+    ForgeQueryIntentAdmissionAuthorityLaneEligibility,
+    ForgeQueryIntentAdmissionPreDecisionPosture,
+) {
+    let normalized = request
+        .basis_observation()
+        .expect("basis observation request must preserve normalized basis intent")
+        .clone();
+    match evaluate_basis_observation_eligibility(normalized) {
+        Ok(_) => (
+            ForgeQueryIntentAdmissionSupportEligibility::Admitted,
+            ForgeQueryIntentAdmissionCapabilityEligibility::Admitted,
+            ForgeQueryIntentAdmissionPolicyEligibility::NotApplicableForRuntimeIntentFloor,
+            ForgeQueryIntentAdmissionBasisEligibility::ObservationLifecycleAdmitted,
+            ForgeQueryIntentAdmissionInvariantEligibility::PreExecutionAuthorityRequired,
+            ForgeQueryIntentAdmissionProjectionSourceEligibility::NotApplicableForRuntimeIntentFloor,
+            ForgeQueryIntentAdmissionRoutingSupportEligibility::NoExecutionHandoff(
+                "basis-observation-admitted-plan-scopes-to-lower-runtime-evidence-without-query-execution-handoff",
+            ),
+            ForgeQueryIntentAdmissionSourceLaneEligibility::NotApplicableNonRuntimeFamily,
+            ForgeQueryIntentAdmissionAuthorityLaneEligibility::NotApplicableNonRuntimeFamily,
+            ForgeQueryIntentAdmissionPreDecisionPosture::Admitted,
+        ),
+        Err(denial) => {
+            let detail = match denial.denial_kind() {
+                DeniedBasisCapabilityKind::PolicyMasked => "basis-policy-masked",
+                DeniedBasisCapabilityKind::PreviewDrifted => "basis-preview-drifted",
+                DeniedBasisCapabilityKind::TenantMismatched => "basis-tenant-schema-mismatch",
+                DeniedBasisCapabilityKind::LowerRuntimeBindingMissing => {
+                    "basis-lower-runtime-binding-required"
+                }
+                DeniedBasisCapabilityKind::LowerRuntimeCapabilityUnsupported => {
+                    "basis-unsupported-lane"
+                }
+                DeniedBasisCapabilityKind::Inaccessible => "basis-visibility-denied",
+                DeniedBasisCapabilityKind::SchemaIncompatible => "basis-schema-incompatible",
+                DeniedBasisCapabilityKind::OperationIneligible => "basis-operation-ineligible",
+                DeniedBasisCapabilityKind::HistoricalReplayUnsupported => {
+                    "basis-historical-replay-unsupported"
+                }
+                DeniedBasisCapabilityKind::BridgeAuthorityMismatch => {
+                    "basis-bridge-authority-mismatch"
+                }
+                DeniedBasisCapabilityKind::RelationalAuthorityMismatch => {
+                    "basis-relational-authority-mismatch"
+                }
+                DeniedBasisCapabilityKind::SignalObservationMissing => {
+                    "basis-signal-observation-missing"
+                }
+                DeniedBasisCapabilityKind::RuntimeSnapshotStale => "basis-runtime-snapshot-stale",
+                DeniedBasisCapabilityKind::DurableOverclaim => "basis-durable-overclaim",
+                DeniedBasisCapabilityKind::StoreBackedDeferred => "basis-store-backed-deferred",
+            };
+            (
+                ForgeQueryIntentAdmissionSupportEligibility::Admitted,
+                ForgeQueryIntentAdmissionCapabilityEligibility::Violation {
+                    stage: "basis-observation-eligibility",
+                    detail,
+                },
+                ForgeQueryIntentAdmissionPolicyEligibility::NotApplicableForRuntimeIntentFloor,
+                ForgeQueryIntentAdmissionBasisEligibility::ObservationLifecycleViolation(detail),
+                ForgeQueryIntentAdmissionInvariantEligibility::PreExecutionAuthorityRequired,
+                ForgeQueryIntentAdmissionProjectionSourceEligibility::NotApplicableForRuntimeIntentFloor,
+                ForgeQueryIntentAdmissionRoutingSupportEligibility::NoExecutionHandoff(
+                    "basis-observation-admitted-plan-scopes-to-lower-runtime-evidence-without-query-execution-handoff",
+                ),
+                ForgeQueryIntentAdmissionSourceLaneEligibility::NotApplicableNonRuntimeFamily,
+                ForgeQueryIntentAdmissionAuthorityLaneEligibility::NotApplicableNonRuntimeFamily,
+                ForgeQueryIntentAdmissionPreDecisionPosture::Violation {
+                    stage: "basis-observation-eligibility",
+                    message: detail,
+                },
+            )
+        }
+    }
+}
+
+fn resolve_projection_consumption_eligibility(
+    request: &ForgeQueryRawIntentAdmissionRequest,
+) -> (
+    ForgeQueryIntentAdmissionSupportEligibility,
+    ForgeQueryIntentAdmissionCapabilityEligibility,
+    ForgeQueryIntentAdmissionPolicyEligibility,
+    ForgeQueryIntentAdmissionBasisEligibility,
+    ForgeQueryIntentAdmissionInvariantEligibility,
+    ForgeQueryIntentAdmissionProjectionSourceEligibility,
+    ForgeQueryIntentAdmissionRoutingSupportEligibility,
+    ForgeQueryIntentAdmissionSourceLaneEligibility,
+    ForgeQueryIntentAdmissionAuthorityLaneEligibility,
+    ForgeQueryIntentAdmissionPreDecisionPosture,
+) {
+    let declaration = request
+        .projection_consumption_declaration()
+        .expect("projection request must preserve declaration");
+    match evaluate_projection_consumption_eligibility(declaration) {
+        ProjectionConsumptionEligibility::Admitted(_) => (
+            ForgeQueryIntentAdmissionSupportEligibility::Admitted,
+            ForgeQueryIntentAdmissionCapabilityEligibility::Admitted,
+            ForgeQueryIntentAdmissionPolicyEligibility::NotApplicableForRuntimeIntentFloor,
+            ForgeQueryIntentAdmissionBasisEligibility::NotApplicableForRuntimeIntentFloor,
+            ForgeQueryIntentAdmissionInvariantEligibility::PreExecutionAuthorityRequired,
+            ForgeQueryIntentAdmissionProjectionSourceEligibility::ProjectionConsumptionAdmitted,
+            ForgeQueryIntentAdmissionRoutingSupportEligibility::NoExecutionHandoff(
+                "projection-consumption-admitted-plan-binds-contract-without-query-execution-handoff",
+            ),
+            ForgeQueryIntentAdmissionSourceLaneEligibility::NotApplicableNonRuntimeFamily,
+            ForgeQueryIntentAdmissionAuthorityLaneEligibility::NotApplicableNonRuntimeFamily,
+            ForgeQueryIntentAdmissionPreDecisionPosture::Admitted,
+        ),
+        ProjectionConsumptionEligibility::AdmittedWithWarnings(_, _) => (
+            ForgeQueryIntentAdmissionSupportEligibility::Admitted,
+            ForgeQueryIntentAdmissionCapabilityEligibility::Admitted,
+            ForgeQueryIntentAdmissionPolicyEligibility::NotApplicableForRuntimeIntentFloor,
+            ForgeQueryIntentAdmissionBasisEligibility::NotApplicableForRuntimeIntentFloor,
+            ForgeQueryIntentAdmissionInvariantEligibility::PreExecutionAuthorityRequired,
+            ForgeQueryIntentAdmissionProjectionSourceEligibility::ProjectionConsumptionAdmittedWithWarnings(
+                "projection-consumption-warning-bearing-admission",
+            ),
+            ForgeQueryIntentAdmissionRoutingSupportEligibility::NoExecutionHandoff(
+                "projection-consumption-admitted-plan-binds-contract-without-query-execution-handoff",
+            ),
+            ForgeQueryIntentAdmissionSourceLaneEligibility::NotApplicableNonRuntimeFamily,
+            ForgeQueryIntentAdmissionAuthorityLaneEligibility::NotApplicableNonRuntimeFamily,
+            ForgeQueryIntentAdmissionPreDecisionPosture::Admitted,
+        ),
+        ProjectionConsumptionEligibility::Deferred(_) => (
+            ForgeQueryIntentAdmissionSupportEligibility::Deferred("projection-consumption-deferred"),
+            ForgeQueryIntentAdmissionCapabilityEligibility::Admitted,
+            ForgeQueryIntentAdmissionPolicyEligibility::DeferredNeighbor("projection-consumption-deferred"),
+            ForgeQueryIntentAdmissionBasisEligibility::DeferredNeighbor("projection-consumption-deferred"),
+            ForgeQueryIntentAdmissionInvariantEligibility::DeferredNeighbor("projection-consumption-deferred"),
+            ForgeQueryIntentAdmissionProjectionSourceEligibility::DeferredNeighbor(
+                "projection-consumption-deferred",
+            ),
+            ForgeQueryIntentAdmissionRoutingSupportEligibility::NoExecutionHandoff(
+                "projection-consumption-admitted-plan-binds-contract-without-query-execution-handoff",
+            ),
+            ForgeQueryIntentAdmissionSourceLaneEligibility::NotApplicableNonRuntimeFamily,
+            ForgeQueryIntentAdmissionAuthorityLaneEligibility::NotApplicableNonRuntimeFamily,
+            ForgeQueryIntentAdmissionPreDecisionPosture::Deferred {
+                stage: "support-deferred",
+                message: "projection-consumption-deferred",
+            },
+        ),
+        ProjectionConsumptionEligibility::Denied(_)
+        | ProjectionConsumptionEligibility::SourceMismatch(_) => (
+            ForgeQueryIntentAdmissionSupportEligibility::Admitted,
+            ForgeQueryIntentAdmissionCapabilityEligibility::Violation {
+                stage: "projection-consumption-eligibility",
+                detail: "projection-consumption-violation",
+            },
+            ForgeQueryIntentAdmissionPolicyEligibility::NotApplicableForRuntimeIntentFloor,
+            ForgeQueryIntentAdmissionBasisEligibility::NotApplicableForRuntimeIntentFloor,
+            ForgeQueryIntentAdmissionInvariantEligibility::PreExecutionAuthorityRequired,
+            ForgeQueryIntentAdmissionProjectionSourceEligibility::ProjectionConsumptionViolation(
+                "projection-consumption-violation",
+            ),
+            ForgeQueryIntentAdmissionRoutingSupportEligibility::NoExecutionHandoff(
+                "projection-consumption-admitted-plan-binds-contract-without-query-execution-handoff",
+            ),
+            ForgeQueryIntentAdmissionSourceLaneEligibility::NotApplicableNonRuntimeFamily,
+            ForgeQueryIntentAdmissionAuthorityLaneEligibility::NotApplicableNonRuntimeFamily,
+            ForgeQueryIntentAdmissionPreDecisionPosture::Violation {
+                stage: "projection-consumption-eligibility",
+                message: "projection-consumption-violation",
+            },
+        ),
     }
 }
 
@@ -145,7 +343,10 @@ fn lane_source_posture(
     request: &ForgeQueryRawIntentAdmissionRequest,
     expected: ForgeQueryIntentSourceLane,
 ) -> ForgeQueryIntentAdmissionSourceLaneEligibility {
-    let actual = request.declaration().source_lane();
+    let actual = request
+        .runtime_declaration()
+        .expect("lane source posture is runtime-only")
+        .source_lane();
     if actual == expected {
         ForgeQueryIntentAdmissionSourceLaneEligibility::MatchesExpected(expected)
     } else {
@@ -157,7 +358,10 @@ fn lane_authority_posture(
     request: &ForgeQueryRawIntentAdmissionRequest,
     expected: ForgeQueryAuthorityLane,
 ) -> ForgeQueryIntentAdmissionAuthorityLaneEligibility {
-    let actual = request.declaration().target_lane();
+    let actual = request
+        .runtime_declaration()
+        .expect("lane authority posture is runtime-only")
+        .target_lane();
     if actual == expected {
         ForgeQueryIntentAdmissionAuthorityLaneEligibility::MatchesExpected(expected)
     } else {
@@ -170,7 +374,11 @@ fn capability_violation_for_denial(
     stage: &'static str,
 ) -> ForgeQueryIntentAdmissionCapabilityEligibility {
     let detail = match stage {
-        "source-lane-admission" => match request.declaration().source_lane() {
+        "source-lane-admission" => match request
+            .runtime_declaration()
+            .expect("capability violation source lane is runtime-only")
+            .source_lane()
+        {
             ForgeQueryIntentSourceLane::EffectTriggered => {
                 "covered-runtime-entrypoint-rejects-effect-triggered-source-lane"
             }
@@ -187,7 +395,11 @@ fn capability_violation_for_denial(
                 "declared-source-lane-is-not-admitted-for-this-covered-entrypoint"
             }
         },
-        "authority-admission" => match request.declaration().target_lane() {
+        "authority-admission" => match request
+            .runtime_declaration()
+            .expect("capability violation authority lane is runtime-only")
+            .target_lane()
+        {
             ForgeQueryAuthorityLane::BranchLocalTruth => {
                 "covered-runtime-entrypoint-rejects-branch-local-truth-target"
             }

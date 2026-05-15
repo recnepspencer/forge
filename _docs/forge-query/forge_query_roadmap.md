@@ -2566,6 +2566,11 @@ Make all Query contact with relational, runtime bridge, signal, and later store
 surfaces pass through capability-routed lower-runtime boundary envelopes rather
 than scattered direct imports or compatibility shortcuts.
 
+### Specification
+
+The governing milestone spec is
+[milestone-9.3.6.md](./milestone-9.3.6.md).
+
 ### Adversarial Constraint
 
 If direct bridge, relational, signal, and Query-runtime bridge paths coexist,
@@ -3757,6 +3762,7 @@ must gain a row in the same patch or the roadmap is incomplete.
 - [milestone-9.3.3.md](./milestone-9.3.3.md)
 - [milestone-9.3.4.md](./milestone-9.3.4.md)
 - [milestone-9.3.5.md](./milestone-9.3.5.md)
+- [milestone-9.3.6.md](./milestone-9.3.6.md)
 - [runtime-api-public-stabilization-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-api-public-stabilization-plan.md)
 - [runtime-authoritative-mutation-evidence-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-authoritative-mutation-evidence-plan.md)
 - [forge_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_roadmap.md)

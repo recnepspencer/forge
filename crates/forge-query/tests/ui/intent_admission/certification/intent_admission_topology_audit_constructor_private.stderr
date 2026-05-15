@@ -1,0 +1,9 @@
+error[E0451]: fields `rows` and `topology_digest` of struct `ForgeQueryIntentAdmissionTopologyAudit` are private
+ --> tests/ui/intent_admission/certification/intent_admission_topology_audit_constructor_private.rs:5:9
+  |
+4 |     let _ = ForgeQueryIntentAdmissionTopologyAudit {
+  |             -------------------------------------- in this type
+5 |         rows: Vec::new(),
+  |         ^^^^ private field
+6 |         topology_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^ private field
