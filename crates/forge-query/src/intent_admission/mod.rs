@@ -111,11 +111,13 @@ pub use handoffs::{
     ForgeQueryUnifiedInspectionExecutionHandoff,
 };
 pub use inventory::{
-    forge_query_intent_admission_coverage_inventory, ForgeQueryIntentAdmissionCoverageInventory,
+    forge_query_intent_admission_coverage_inventory,
+    forge_query_intent_admission_mutation_audit, ForgeQueryIntentAdmissionCoverageInventory,
     ForgeQueryIntentAdmissionCoverageRow, ForgeQueryIntentAdmissionCoverageStatus,
     ForgeQueryIntentAdmissionCoveredEntrypoint, ForgeQueryIntentAdmissionDecisionClass,
     ForgeQueryIntentAdmissionEligibilityAuthority, ForgeQueryIntentAdmissionExecutionBoundary,
     ForgeQueryIntentAdmissionExecutionHandoffInventory, ForgeQueryIntentAdmissionExecutionSeam,
+    ForgeQueryIntentAdmissionMutationAudit, ForgeQueryIntentAdmissionMutationAuditRow,
     ForgeQueryIntentAdmissionPlanKind, ForgeQueryIntentAdmissionResultArtifact,
     ForgeQueryIntentAdmissionSurfaceDescriptor,
 };

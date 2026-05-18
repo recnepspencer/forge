@@ -184,6 +184,8 @@ impl ForgeQueryIntentAdmissionExecutionHandoffInventory {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryIntentAdmissionDecisionClass {
     AdvisoryNotYetExercisedOnCoveredEntrypoint,
+    ProjectionWarningBearingAdmission,
+    InspectionDetailRedactionAdvisory,
     DeferredNeighborSupport,
     AdmissionOrExecutionViolation,
     NeighborUnsupportedUntilCoverage,
@@ -195,6 +197,8 @@ impl ForgeQueryIntentAdmissionDecisionClass {
             Self::AdvisoryNotYetExercisedOnCoveredEntrypoint => {
                 "advisory-not-yet-exercised-on-covered-entrypoint"
             }
+            Self::ProjectionWarningBearingAdmission => "projection-warning-bearing-admission",
+            Self::InspectionDetailRedactionAdvisory => "inspection-detail-redaction-advisory",
             Self::DeferredNeighborSupport => "deferred-neighbor-support",
             Self::AdmissionOrExecutionViolation => "admission-or-execution-violation",
             Self::NeighborUnsupportedUntilCoverage => "neighbor-unsupported-until-coverage",

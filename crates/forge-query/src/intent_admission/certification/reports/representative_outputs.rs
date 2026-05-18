@@ -8,7 +8,9 @@ use crate::intent_admission::{
 
 use super::super::fixtures::{
     certified_admitted_intent_fixture, certified_advisory_intent_fixture,
-    certified_failure_intent_fixture, certified_read_intent_fixture,
+    certified_basis_observation_intent_fixture, certified_failure_intent_fixture,
+    certified_projection_consumption_admitted_fixture,
+    certified_projection_consumption_warning_fixture, certified_read_intent_fixture,
     certified_violation_intent_fixture, CertifiedAdmittedIntentFixture,
     CertifiedAdvisoryIntentFixture, CertifiedFailureIntentFixture, CertifiedReadIntentFixture,
     CertifiedViolationIntentFixture,
@@ -164,7 +166,45 @@ fn representative_outputs(
         ),
         execution_provenance_chain_digest_output(fixtures),
         output("failure_digest", fixtures.failure.failure_digest.clone()),
+        basis_observation_fixture_digest_output(),
+        projection_consumption_fixture_digest_output(),
     ]
+}
+
+fn basis_observation_fixture_digest_output() -> OutputRow {
+    let basis = certified_basis_observation_intent_fixture();
+    output(
+        "basis_observation_fixture_digest",
+        hash_parts(&[
+            basis.request.request_digest().to_string(),
+            basis.eligibility.eligibility_digest().to_string(),
+            basis.plan.request_digest().to_string(),
+            basis.scoped_basis_digest.clone(),
+        ]),
+    )
+}
+
+fn projection_consumption_fixture_digest_output() -> OutputRow {
+    let admitted = certified_projection_consumption_admitted_fixture();
+    let warning = certified_projection_consumption_warning_fixture();
+    output(
+        "projection_consumption_fixture_digest",
+        hash_parts(&[
+            admitted.request.request_digest().to_string(),
+            admitted.eligibility.eligibility_digest().to_string(),
+            admitted.plan.request_digest().to_string(),
+            admitted.contract_digest.clone(),
+            warning.request.request_digest().to_string(),
+            warning.eligibility.eligibility_digest().to_string(),
+            warning.plan.request_digest().to_string(),
+            warning.contract_digest.clone(),
+            warning
+                .plan
+                .warning_kinds()
+                .map(|warnings| warnings.warning_digest().to_string())
+                .unwrap_or_else(|| "no-warnings".to_string()),
+        ]),
+    )
 }
 
 fn query_digest_output(fixtures: &RepresentativeOutputFixtures) -> OutputRow {

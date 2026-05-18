@@ -22,13 +22,15 @@ fn runtime_floor_certification_reports_representative_seeded_and_doc_example_out
         "routing_posture_digest",
         "execution_provenance_chain_digest",
         "failure_digest",
+        "basis_observation_fixture_digest",
+        "projection_consumption_fixture_digest",
     ] {
         assert_eq!(
             bundle.output_digest(name),
             bundle.representative_output_report().digest_for(name)
         );
     }
-    assert_eq!(bundle.doc_example_report().rows().len(), 8);
+    assert_eq!(bundle.doc_example_report().rows().len(), 18);
     assert_eq!(bundle.seeded_report().rows().len(), 4);
     assert!(bundle
         .doc_example_report()

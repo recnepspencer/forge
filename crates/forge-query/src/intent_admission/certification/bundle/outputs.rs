@@ -73,6 +73,8 @@ pub(crate) fn assemble_certification_outputs(
         "routing_posture_digest",
         "execution_provenance_chain_digest",
         "failure_digest",
+        "basis_observation_fixture_digest",
+        "projection_consumption_fixture_digest",
     ];
     let mut outputs = vec![
         ForgeQueryIntentAdmissionCertificationOutputSpec::new(

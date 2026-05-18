@@ -138,7 +138,7 @@ const COMPILE_FAIL_TARGETS: [ForgeQueryIntentAdmissionCompileFailTarget; 35] = [
     ),
 ];
 
-const GOLDEN_TRANSCRIPTS: [ForgeQueryIntentAdmissionGoldenTranscript; 3] = [
+const GOLDEN_TRANSCRIPTS: [ForgeQueryIntentAdmissionGoldenTranscript; 5] = [
     ForgeQueryIntentAdmissionGoldenTranscript::new(
         "tests/ui/intent_admission/golden/intent_admission_common_path_golden_transcript_compiles.rs",
     ),
@@ -147,6 +147,12 @@ const GOLDEN_TRANSCRIPTS: [ForgeQueryIntentAdmissionGoldenTranscript; 3] = [
     ),
     ForgeQueryIntentAdmissionGoldenTranscript::new(
         "tests/ui/intent_admission/golden/intent_admission_consumer_lane_golden_transcript_compiles.rs",
+    ),
+    ForgeQueryIntentAdmissionGoldenTranscript::new(
+        "tests/ui/intent_admission/golden/intent_admission_basis_projection_golden_transcript_compiles.rs",
+    ),
+    ForgeQueryIntentAdmissionGoldenTranscript::new(
+        "tests/ui/intent_admission/golden/intent_admission_read_mutation_inspection_routing_golden_transcript_compiles.rs",
     ),
 ];
 

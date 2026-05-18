@@ -242,6 +242,47 @@ The advanced path is the honest way to inspect:
 - sealed execution handoff for the covered seam
 - final receipt provenance and trace once execution completes
 
+Family-specific advanced paths follow the same review, admit, and execute
+rhythm:
+
+```rust
+let write_review = runtime.write_intent(command).review()?;
+let write_handoff = write_review.admitted_handoff();
+let write_receipt = write_review.admit()?.execute()?;
+```
+
+```rust
+let live_review = workspace.read_live_intent(&view).review()?;
+let live_handoff = live_review.admitted_handoff();
+let live_result = live_review.admit()?.execute()?;
+```
+
+```rust
+let inspection_review = workspace.inspect_intent(&view).review()?;
+let inspection_handoff = inspection_review.admitted_handoff();
+let inspection_result = inspection_review.admit()?.execute()?;
+```
+
+```rust
+let probe_review = runtime.probe_existing_intent(request).review()?;
+let probe_handoff = probe_review.admitted_handoff();
+let probe_result = probe_review.admit()?.execute()?;
+```
+
+```rust
+let basis_review = forge_query_basis_observation_intent(RawBasisIntent::CurrentHead)?
+    .review()?;
+let basis_plan = basis_review.admitted_plan();
+let scoped_basis = basis_review.admit()?.scope();
+```
+
+```rust
+let projection_review =
+    forge_query_projection_consumption_intent(declaration)?.review()?;
+let projection_plan = projection_review.admitted_plan();
+let contract = projection_review.admit()?.bind_contract();
+```
+
 ## Consumer Lane
 
 Use the consumer lane when downstream code wants only the shared admission

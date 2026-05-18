@@ -29,6 +29,9 @@ pub use proof_shape::{
     ProjectionConsumptionProofShapeEnforcement, ProjectionConsumptionProofShapeViolation,
 };
 pub use slopes::ProjectionConsumptionCertificationCounterSnapshot;
+pub(crate) use fixtures::{
+    intent_admission_admitted_projection_declaration, intent_admission_warning_projection_declaration,
+};
 pub use support_matrix::{
     projection_consumption_family_inventory, projection_consumption_support_matrix,
     ProjectionConsumptionFamilyInventory, ProjectionConsumptionFamilyInventoryRow,

@@ -138,7 +138,7 @@ const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 14] = [
         ForgeQueryIntentAdmissionExecutionHandoffInventory::no_execution_handoff(
             "projection-consumption-admitted-plan-binds-contract-without-query-execution-handoff",
         ),
-        ForgeQueryIntentAdmissionDecisionClass::AdvisoryNotYetExercisedOnCoveredEntrypoint,
+        ForgeQueryIntentAdmissionDecisionClass::ProjectionWarningBearingAdmission,
         ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation,
         ForgeQueryIntentAdmissionResultArtifact::MaterializedProjectionContract,
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
@@ -230,7 +230,7 @@ const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 14] = [
         ForgeQueryIntentAdmissionExecutionHandoffInventory::available(
             "ForgeQueryUnifiedInspectionExecutionHandoff",
         ),
-        ForgeQueryIntentAdmissionDecisionClass::AdvisoryNotYetExercisedOnCoveredEntrypoint,
+        ForgeQueryIntentAdmissionDecisionClass::InspectionDetailRedactionAdvisory,
         ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation,
         ForgeQueryIntentAdmissionResultArtifact::ForgeQueryUnifiedInspectionResult,
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(

@@ -384,3 +384,88 @@ fn support_matrix_marks_existing_truth_probe_routing_as_implemented_floor() {
         ForgeQueryIntentAdmissionSupportDetail::ImplementedExistingTruthProbeRoutingFloor
     );
 }
+
+#[test]
+fn mutation_audit_covers_closed_write_update_delete_surface_set() {
+    let audit = forge_query_intent_admission_mutation_audit();
+
+    assert_eq!(audit.rows().len(), 7);
+    assert!(audit
+        .rows()
+        .iter()
+        .any(|row| row.public_surface().contains("runtime.write_intent")));
+    assert!(audit
+        .rows()
+        .iter()
+        .any(|row| row.public_surface().contains("workspace.write_intent")));
+    assert!(audit
+        .rows()
+        .iter()
+        .any(|row| row.public_surface().contains("runtime.write_batch_intent")));
+    assert!(audit
+        .rows()
+        .iter()
+        .any(|row| row.public_surface().contains("workspace.write_batch_intent")));
+    assert!(audit
+        .rows()
+        .iter()
+        .any(|row| row.public_surface().contains("workspace.verify_existing")));
+    assert!(audit
+        .rows()
+        .iter()
+        .any(|row| row.public_surface().contains("workspace.update_existing_verified")));
+    assert!(audit
+        .rows()
+        .iter()
+        .any(|row| row.public_surface().contains("workspace.delete_existing_verified")));
+}
+
+#[test]
+fn mutation_audit_rows_map_to_implemented_coverage_inventory_entrypoints() {
+    let audit = forge_query_intent_admission_mutation_audit();
+    let inventory = forge_query_intent_admission_coverage_inventory();
+    let implemented = inventory
+        .rows()
+        .iter()
+        .filter(|row| row.status() == ForgeQueryIntentAdmissionCoverageStatus::Implemented)
+        .collect::<Vec<_>>();
+
+    for row in audit.rows() {
+        assert_eq!(
+            row.family(),
+            ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent
+        );
+        assert!(implemented.iter().any(|coverage| {
+            coverage.entrypoint() == row.entrypoint() && coverage.family() == row.family()
+        }));
+        assert!(!row.delegation_evidence().is_empty());
+    }
+}
+
+#[test]
+fn coverage_inventory_marks_projection_and_inspection_advisory_classes_as_exercised() {
+    let inventory = forge_query_intent_admission_coverage_inventory();
+    let projection = inventory
+        .rows()
+        .iter()
+        .find(|row| {
+            row.entrypoint() == ForgeQueryIntentAdmissionCoveredEntrypoint::ProjectionConsumption
+        })
+        .expect("projection row should exist");
+    let inspection = inventory
+        .rows()
+        .iter()
+        .find(|row| {
+            row.entrypoint() == ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteUnifiedInspection
+        })
+        .expect("unified inspection row should exist");
+
+    assert_eq!(
+        projection.advisory_decision_class(),
+        ForgeQueryIntentAdmissionDecisionClass::ProjectionWarningBearingAdmission
+    );
+    assert_eq!(
+        inspection.advisory_decision_class(),
+        ForgeQueryIntentAdmissionDecisionClass::InspectionDetailRedactionAdvisory
+    );
+}

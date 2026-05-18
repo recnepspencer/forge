@@ -1,14 +1,23 @@
+mod basis_projection;
 mod bridge;
+mod inspection;
 mod neighbors;
 mod read;
 mod runtime;
 
 use serde_json::json;
 
+pub(in crate::intent_admission::certification) use basis_projection::{
+    certified_basis_observation_intent_fixture, certified_projection_consumption_admitted_fixture,
+    certified_projection_consumption_warning_fixture, CertifiedBasisObservationIntentFixture,
+    CertifiedProjectionConsumptionAdmittedFixture, CertifiedProjectionConsumptionWarningFixture,
+};
+pub(in crate::intent_admission::certification) use inspection::{
+    certified_inspection_advisory_redaction_fixture, CertifiedInspectionAdvisoryRedactionFixture,
+};
 pub(in crate::intent_admission::certification) use neighbors::{
-    certified_deferred_intent_fixture, certified_inspection_advisory_redaction_fixture,
-    certified_unsupported_intent_fixture, CertifiedDeferredIntentFixture,
-    CertifiedUnsupportedIntentFixture,
+    certified_deferred_intent_fixture, certified_unsupported_intent_fixture,
+    CertifiedDeferredIntentFixture, CertifiedUnsupportedIntentFixture,
 };
 pub(in crate::intent_admission::certification) use read::{
     certified_read_intent_fixture, read_delegation_parity_fixture, CertifiedReadIntentFixture,

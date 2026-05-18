@@ -26,6 +26,9 @@ pub use certification::{
     ProjectionConsumptionPublicBoundaryAuditRow, ProjectionConsumptionPublicBoundarySurface,
     ProjectionConsumptionSupportMatrix, ProjectionConsumptionSupportMatrixRow,
 };
+pub(crate) use certification::{
+    intent_admission_admitted_projection_declaration, intent_admission_warning_projection_declaration,
+};
 pub use consumed::{
     ConsumedEffectContinuityFact, ConsumedEntityIdentityFact, ConsumedFieldValueFact,
     ConsumedMembershipFact, ConsumedProjectionFactSet, ConsumedRelationEndpointFact,

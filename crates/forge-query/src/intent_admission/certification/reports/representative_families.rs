@@ -1,10 +1,9 @@
-use crate::basis_lifecycle::certify_basis_lifecycle;
 use crate::identity::hash_parts;
-use crate::projection_consumption::certify_projection_consumption_closeout_core;
 
 use super::super::fixtures::{
-    certified_deferred_intent_fixture, certified_inspection_advisory_redaction_fixture,
-    certified_unsupported_intent_fixture,
+    certified_basis_observation_intent_fixture, certified_deferred_intent_fixture,
+    certified_inspection_advisory_redaction_fixture, certified_projection_consumption_admitted_fixture,
+    certified_projection_consumption_warning_fixture, certified_unsupported_intent_fixture,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -49,7 +48,7 @@ impl ForgeQueryIntentAdmissionRepresentativeFamilyRow {
     }
 
     pub fn posture_detail(&self) -> &'static str {
-        self.posture_detail
+        &self.posture_detail
     }
 
     pub fn row_digest(&self) -> &str {
@@ -75,8 +74,9 @@ impl ForgeQueryIntentAdmissionRepresentativeFamilyReport {
 
 pub fn forge_query_intent_admission_representative_family_report(
 ) -> ForgeQueryIntentAdmissionRepresentativeFamilyReport {
-    let basis = certify_basis_lifecycle();
-    let projection = certify_projection_consumption_closeout_core();
+    let basis = certified_basis_observation_intent_fixture();
+    let projection_admitted = certified_projection_consumption_admitted_fixture();
+    let projection_warning = certified_projection_consumption_warning_fixture();
     let deferred = certified_deferred_intent_fixture();
     let unsupported = certified_unsupported_intent_fixture();
     let inspection = certified_inspection_advisory_redaction_fixture();
@@ -84,54 +84,48 @@ pub fn forge_query_intent_admission_representative_family_report(
     let rows = vec![
         representative_row(
             ForgeQueryIntentAdmissionRepresentativeFamilyLane::BasisParity,
-            "basis_lifecycle::certify_basis_lifecycle",
+            "intent_admission::forge_query_basis_observation_intent",
             hash_parts(&[
-                basis.certification_bundle_digest().to_string(),
-                basis
-                    .output_digest("query_digest")
-                    .unwrap_or("missing-query")
-                    .to_string(),
-                basis
-                    .output_digest("basis_proof_shape_digest")
-                    .unwrap_or("missing-proof-shape")
-                    .to_string(),
-                basis
-                    .output_digest("basis_phase_progression_digest")
-                    .unwrap_or("missing-phase-progression")
-                    .to_string(),
+                basis.request.request_digest().to_string(),
+                basis.eligibility.eligibility_digest().to_string(),
+                basis.plan.request_digest().to_string(),
+                basis.scoped_basis_digest.clone(),
             ]),
-            "equivalent basis-use intents normalize through one certified parity-bearing authority",
+            "equivalent basis-use intents normalize through one intent-admission lattice path before scoping to lower-runtime evidence",
         ),
         representative_row(
             ForgeQueryIntentAdmissionRepresentativeFamilyLane::ProjectionAdvisory,
-            "projection_consumption::certify_projection_consumption_closeout_core",
+            "intent_admission::forge_query_projection_consumption_intent",
             hash_parts(&[
-                projection.certification_bundle_digest().to_string(),
-                projection
-                    .output_digest("query_digest")
-                    .unwrap_or("missing-query")
-                    .to_string(),
-                projection
-                    .output_digest("failure_digest")
-                    .unwrap_or("missing-failure")
-                    .to_string(),
-                projection
-                    .output_digest("projection_phase_progression_digest")
-                    .unwrap_or("missing-phase-progression")
-                    .to_string(),
+                projection_admitted.request.request_digest().to_string(),
+                projection_admitted.eligibility.eligibility_digest().to_string(),
+                projection_admitted.plan.request_digest().to_string(),
+                projection_admitted.contract_digest.clone(),
+                projection_warning.request.request_digest().to_string(),
+                projection_warning.eligibility.eligibility_digest().to_string(),
+                projection_warning.contract_digest.clone(),
+                projection_warning
+                    .plan
+                    .warning_kinds()
+                    .map(|warnings| warnings.warning_digest().to_string())
+                    .unwrap_or_else(|| "no-warnings".to_string()),
             ]),
-            "warning-bearing and deferred-neighbor projection posture stays advisory-capable",
+            "warning-bearing and admitted projection consumption both resolve through one intent-admission lattice path before contract binding",
         ),
         representative_row(
             ForgeQueryIntentAdmissionRepresentativeFamilyLane::InspectionAdvisoryRedaction,
-            "runtime::inspection::causal::{CausalInspection, certify_causal_inspection_runtime_path}",
+            "runtime.inspect_intent(target).review()?.admit()?.execute()",
             hash_parts(&[
-                inspection.full_artifact_digest,
-                inspection.redacted_artifact_digest,
-                inspection.causal_identity_digest,
-                inspection.boundary_audit_digest,
+                inspection.request_digest.clone(),
+                inspection.eligibility_digest.clone(),
+                inspection.decision_trace_digest.clone(),
+                inspection.execution_provenance_chain_digest.clone(),
+                inspection.full_artifact_digest.clone(),
+                inspection.redacted_artifact_digest.clone(),
+                inspection.causal_identity_digest.clone(),
+                inspection.boundary_audit_digest.clone(),
             ]),
-            "inspection detail narrowing changes materialized detail while preserving one causal identity and public-boundary-certified advisory surface",
+            "inspection detail narrowing changes materialized detail while preserving one causal identity on the lattice-owned unified inspection path",
         ),
         representative_row(
             ForgeQueryIntentAdmissionRepresentativeFamilyLane::RoutingFutureNeighbor,
