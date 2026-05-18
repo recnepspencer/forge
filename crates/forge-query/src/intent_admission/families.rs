@@ -4,10 +4,12 @@ use super::ForgeQueryIntentAdmissionSurfaceDescriptor;
 pub enum ForgeQueryIntentAdmissionFamily {
     AuthoritativeUserIntent,
     EffectTriggeredWriteIntent,
+    AuthoritativeMutationIntent,
     BasisUseIntent,
     ProjectionConsumptionIntent,
     ReadExecutionIntent,
     InspectionMaterializationIntent,
+    LowerRuntimeCapabilityRoutingIntent,
 }
 
 impl ForgeQueryIntentAdmissionFamily {
@@ -15,10 +17,12 @@ impl ForgeQueryIntentAdmissionFamily {
         match self {
             Self::AuthoritativeUserIntent => "authoritative-user-intent",
             Self::EffectTriggeredWriteIntent => "effect-triggered-write-intent",
+            Self::AuthoritativeMutationIntent => "authoritative-mutation-intent",
             Self::BasisUseIntent => "basis-use-intent",
             Self::ProjectionConsumptionIntent => "projection-consumption-intent",
             Self::ReadExecutionIntent => "read-execution-intent",
             Self::InspectionMaterializationIntent => "inspection-materialization-intent",
+            Self::LowerRuntimeCapabilityRoutingIntent => "lower-runtime-capability-routing-intent",
         }
     }
 }
@@ -78,7 +82,7 @@ impl ForgeQueryIntentAdmissionFamilyInventory {
     }
 }
 
-const FAMILY_ROWS: [ForgeQueryIntentAdmissionFamilyInventoryRow; 6] = [
+const FAMILY_ROWS: [ForgeQueryIntentAdmissionFamilyInventoryRow; 8] = [
     ForgeQueryIntentAdmissionFamilyInventoryRow::new(
         ForgeQueryIntentAdmissionFamily::AuthoritativeUserIntent,
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
@@ -101,6 +105,18 @@ const FAMILY_ROWS: [ForgeQueryIntentAdmissionFamilyInventoryRow; 6] = [
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
             "runtime.next_effect_write_intent(&effect, version, contract).review()?.admit()?.execute()",
+        ),
+    ),
+    ForgeQueryIntentAdmissionFamilyInventoryRow::new(
+        ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "ForgeQueryRawIntentAdmissionRequest::authoritative_write_entrypoint(...)",
+        ),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "runtime.write_intent(command).execute(); workspace.write_intent(command).execute()",
+        ),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "runtime.write_intent(command).review()?.admit()?.execute(); workspace.write_intent(command).review()?.admit()?.execute()",
         ),
     ),
     ForgeQueryIntentAdmissionFamilyInventoryRow::new(
@@ -129,26 +145,38 @@ const FAMILY_ROWS: [ForgeQueryIntentAdmissionFamilyInventoryRow; 6] = [
     ),
     ForgeQueryIntentAdmissionFamilyInventoryRow::new(
         ForgeQueryIntentAdmissionFamily::ReadExecutionIntent,
-        ForgeQueryIntentAdmissionSurfaceDescriptor::deferred(
-            "read-execution-neighbor-deferred-until-covered",
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "ForgeQueryRawIntentAdmissionRequest::read_family_entrypoint(...); ForgeQueryRawIntentAdmissionRequest::live_read_entrypoint(...)",
         ),
-        ForgeQueryIntentAdmissionSurfaceDescriptor::deferred(
-            "read-execution-neighbor-deferred-until-covered",
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "workspace.read_family_intent(&family).execute(); workspace.read_live_intent(&view).execute()",
         ),
-        ForgeQueryIntentAdmissionSurfaceDescriptor::deferred(
-            "read-execution-neighbor-deferred-until-covered",
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "workspace.read_family_intent(&family).review()?.admit()?.execute(); workspace.read_live_intent(&view).review()?.admit()?.execute()",
         ),
     ),
     ForgeQueryIntentAdmissionFamilyInventoryRow::new(
         ForgeQueryIntentAdmissionFamily::InspectionMaterializationIntent,
-        ForgeQueryIntentAdmissionSurfaceDescriptor::deferred(
-            "inspection-materialization-neighbor-deferred-until-covered",
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "ForgeQueryRawIntentAdmissionRequest::generic_inspection_entrypoint(...); ForgeQueryRawIntentAdmissionRequest::derived_materialization_entrypoint(...); ForgeQueryRawIntentAdmissionRequest::derived_inspection_entrypoint(...)",
         ),
-        ForgeQueryIntentAdmissionSurfaceDescriptor::deferred(
-            "inspection-materialization-neighbor-deferred-until-covered",
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "workspace.inspect_intent(target).execute(); workspace.materialize_intent(&view).execute(); workspace.inspect_derived_intent(&view).execute()",
         ),
-        ForgeQueryIntentAdmissionSurfaceDescriptor::deferred(
-            "inspection-materialization-neighbor-deferred-until-covered",
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "workspace.inspect_intent(target).review()?.admit()?.execute(); workspace.materialize_intent(&view).review()?.admit()?.execute(); workspace.inspect_derived_intent(&view).review()?.admit()?.execute()",
+        ),
+    ),
+    ForgeQueryIntentAdmissionFamilyInventoryRow::new(
+        ForgeQueryIntentAdmissionFamily::LowerRuntimeCapabilityRoutingIntent,
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "ForgeQueryRawIntentAdmissionRequest::existing_truth_probe_entrypoint(...)",
+        ),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "runtime.probe_existing_intent(request).execute(); workspace.probe_existing_intent(request).execute()",
+        ),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::available(
+            "runtime.probe_existing_intent(request).review()?.admit()?.execute(); workspace.probe_existing_intent(request).review()?.admit()?.execute()",
         ),
     ),
 ];

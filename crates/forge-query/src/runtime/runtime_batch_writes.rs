@@ -1,5 +1,6 @@
 use super::runtime_batching::{should_use_backend_atomic_batch, BatchCommandSummary};
 use super::*;
+use crate::runtime::runtime_writes::ForgeQueryWriteAdmissionExecutionRecord;
 
 #[path = "runtime_batch_write_symbolics.rs"]
 mod runtime_batch_write_symbolics;
@@ -11,35 +12,12 @@ use runtime_batch_write_symbolics::{
 };
 
 impl ForgeQueryRuntime {
-    pub fn write_batch(
-        &mut self,
-        commands: Vec<ForgeQueryWriteCommand>,
-    ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
-        self.write_batch_with_graph_artifacts(
-            commands,
-            ForgeQueryGraphCompositionBreadth::empty(),
-            ForgeQueryGraphCompositionProgram::empty(),
-        )
-    }
-
-    pub(crate) fn write_graph_batch(
+    pub(crate) fn execute_authoritative_write_batch_direct(
         &mut self,
         commands: Vec<ForgeQueryWriteCommand>,
         graph_composition_breadth: ForgeQueryGraphCompositionBreadth,
         graph_composition_program: ForgeQueryGraphCompositionProgram,
-    ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
-        self.write_batch_with_graph_artifacts(
-            commands,
-            graph_composition_breadth,
-            graph_composition_program,
-        )
-    }
-
-    fn write_batch_with_graph_artifacts(
-        &mut self,
-        commands: Vec<ForgeQueryWriteCommand>,
-        graph_composition_breadth: ForgeQueryGraphCompositionBreadth,
-        graph_composition_program: ForgeQueryGraphCompositionProgram,
+        shared_admission: Option<ForgeQueryWriteAdmissionExecutionRecord>,
     ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
         self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Write)?;
         if commands.is_empty() {
@@ -370,6 +348,34 @@ impl ForgeQueryRuntime {
             .collect::<Vec<_>>();
         touched_aspect_paths.sort();
         touched_aspect_paths.dedup();
+        let batch_request_detail = format!("batch-write:{}", write_receipts.len());
+        let execution_provenance = shared_admission.as_ref().map(|record| {
+            ForgeQueryIntentExecutionProvenance::for_shared_execution_parts(
+                record.family,
+                record.entrypoint,
+                record.execution_seam,
+                &record.decision_digest,
+                &record.handoff_digest,
+                &record.binding_digest,
+                &combined_receipt.commit_identity,
+                &combined_receipt.snapshot_token,
+            )
+        });
+        let decision_trace_envelope = shared_admission.as_ref().map(|record| {
+            ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
+                record.family,
+                record.entrypoint,
+                &record.request_detail,
+                &record.request_digest,
+                record.eligibility_trace.clone(),
+                &record.decision_digest,
+                &record.handoff_digest,
+                record.execution_seam,
+                &batch_request_detail,
+                &combined_receipt.commit_identity,
+                "mutation-batch-write",
+            )
+        });
         ForgeQueryBatchWriteReceipt::new(
             write_receipts,
             ForgeQueryAuthorityLane::AuthoritativeTruth,
@@ -387,6 +393,8 @@ impl ForgeQueryRuntime {
             summary.meaningful_effect_suppression_count,
             summary.effect_expression_failure_count,
             summary.refresh_fallback,
+            decision_trace_envelope,
+            execution_provenance,
         )
     }
 }

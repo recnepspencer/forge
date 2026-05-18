@@ -1,4 +1,7 @@
 use crate::memory_workspace::ForgeQueryEntity;
+use crate::runtime::ForgeQueryIntentExecutionProvenance;
+
+use super::super::ForgeQueryIntentDecisionTraceEnvelope;
 
 use super::ForgeQueryReadReceipt;
 
@@ -34,5 +37,14 @@ impl ForgeQueryReadResult {
         receipt: ForgeQueryReadReceipt,
     ) -> Self {
         Self { payload, receipt }
+    }
+
+    pub(in crate::runtime) fn attach_intent_admission_evidence(
+        &mut self,
+        decision_trace_envelope: ForgeQueryIntentDecisionTraceEnvelope,
+        execution_provenance: ForgeQueryIntentExecutionProvenance,
+    ) {
+        self.receipt.decision_trace_envelope = Some(decision_trace_envelope);
+        self.receipt.execution_provenance = Some(execution_provenance);
     }
 }

@@ -20,12 +20,36 @@ The current covered entrypoints are:
 - `runtime.intent(declaration).review()?.admit()?.execute()`
 - `runtime.next_effect_write_intent(&effect, version, contract).execute()`
 - `runtime.next_effect_write_intent(&effect, version, contract).review()?.admit()?.execute()`
+- `runtime.write_intent(command).execute()`
+- `runtime.write_intent(command).review()?.admit()?.execute()`
+- `workspace.write_intent(command).execute()`
+- `workspace.write_intent(command).review()?.admit()?.execute()`
+- `runtime.write_batch_intent(commands).execute()`
+- `runtime.write_batch_intent(commands).review()?.admit()?.execute()`
+- `workspace.write_batch_intent(commands).execute()`
+- `workspace.write_batch_intent(commands).review()?.admit()?.execute()`
+- `workspace.read_family_intent(&family).execute()`
+- `workspace.read_family_intent(&family).review()?.admit()?.execute()`
+- `workspace.read_family_in_basis_context_intent(&family, &context).execute()`
+- `workspace.read_family_in_basis_context_intent(&family, &context).review()?.admit()?.execute()`
+- `workspace.read_live_intent(&view).execute()`
+- `workspace.read_live_intent(&view).review()?.admit()?.execute()`
+- `workspace.materialize_intent(&view).execute()`
+- `workspace.materialize_intent(&view).review()?.admit()?.execute()`
+- `workspace.inspect_intent(target).execute()`
+- `workspace.inspect_intent(target).review()?.admit()?.execute()`
+- `workspace.inspect_derived_intent(&view).execute()`
+- `workspace.inspect_derived_intent(&view).review()?.admit()?.execute()`
+- `runtime.probe_existing_intent(request).execute()`
+- `runtime.probe_existing_intent(request).review()?.admit()?.execute()`
+- `workspace.probe_existing_intent(request).execute()`
+- `workspace.probe_existing_intent(request).review()?.admit()?.execute()`
 - `forge_query_basis_observation_intent(RawBasisIntent::CurrentHead)?.admit()?.scope()`
 - `forge_query_projection_consumption_intent(declaration)?.admit()?.bind_contract()`
 
-Read execution, inspection-materialization, and other future-neighbor intent
-families remain explicitly deferred in the support matrix rather than being
-quietly treated as partial support.
+Generic materialization neighbors and other future-neighbor intent families
+remain explicitly deferred in the support matrix rather than being quietly
+treated as partial support.
 
 ## Why You Use It
 
@@ -92,6 +116,96 @@ let contract = forge_query_projection_consumption_intent(declaration)?
     .bind_contract();
 
 let contract_digest = contract.contract_digest();
+```
+
+Authoritative mutation now uses the same lattice for both scalar and batch
+surfaces:
+
+```rust
+let write_receipt = runtime.write_intent(command).execute()?;
+let batch_receipt = runtime.write_batch_intent(commands).execute()?;
+
+let workspace_write_receipt = workspace.write_intent(command).execute()?;
+let workspace_batch_receipt = workspace.write_batch_intent(commands).execute()?;
+
+let write_trace = write_receipt.decision_trace_envelope();
+let batch_trace = batch_receipt.decision_trace_envelope();
+```
+
+That includes verified-existing convenience surfaces too. `workspace.verify_existing(...)`,
+`workspace.update_existing_verified(...)`, and `workspace.delete_existing_verified(...)`
+remain thin convenience wrappers over authoritative mutation intent execution rather
+than parallel bridge-backed routing families.
+
+Read-family execution now uses the same lattice for both runtime-current and
+admitted basis-context execution. In other words, read-family execution now uses the same lattice
+as the covered mutation and effect paths:
+
+```rust
+let read_result = workspace.read_family_intent(&family).execute()?;
+let basis_result = workspace
+    .read_family_in_basis_context_intent(&family, &context)
+    .execute()?;
+
+let read_trace = read_result.receipt().decision_trace_envelope();
+let basis_trace = basis_result.receipt().decision_trace_envelope();
+```
+
+Retained live-view reads now use the same lattice too. `workspace.read(&view)` is
+a thin wrapper over the explicit live-read intent path:
+
+```rust
+let live_rows = workspace.read(&view);
+let live_result = workspace.read_live_intent(&view).execute()?;
+
+let live_trace = live_result.receipt().decision_trace_envelope();
+let live_provenance = live_result.receipt().execution_provenance();
+```
+
+Derived-view materialization and inspection now use the same lattice as well.
+`workspace.materialize(&view)` and `workspace.inspect(&view)` are thin wrappers
+over the explicit intent paths for derived views:
+
+```rust
+let materialized_rows = workspace.materialize(&view);
+let materialization = workspace.materialize_intent(&view).execute()?;
+let inspection = workspace.inspect_derived_intent(&view).execute()?;
+
+let materialization_trace = materialization.receipt().decision_trace_envelope();
+let inspection_trace = inspection.receipt().decision_trace_envelope();
+```
+
+Non-derived inspection now uses the same lattice too. `workspace.inspect(&target)`
+and `runtime.inspect(&target)` are thin wrappers over the explicit generic
+inspection path for covered live, effect, receipt, denial, preview, and branch
+inspection subjects:
+
+```rust
+let inspection = workspace.inspect(&view)?;
+let inspection_result = workspace.inspect_intent(&view).execute()?;
+
+let inspection_trace = inspection_result.receipt().decision_trace_envelope();
+let inspection_provenance = inspection_result.receipt().execution_provenance();
+```
+
+Bridge-backed existing-truth probes now use the same lattice too.
+`runtime.probe_existing(request)` and `workspace.probe_existing(binding, paths)`
+are thin wrappers over the explicit routing intent path:
+
+```rust
+let probe = runtime.probe_existing(request.clone())?;
+let probe_result = runtime.probe_existing_intent(request).execute()?;
+
+let workspace_probe = workspace.probe_existing(binding.clone(), ["identity.id"])?;
+let workspace_probe_result = workspace
+    .probe_existing_intent(ForgeQueryExistingTruthProbeRequest::new(
+        binding,
+        ["identity.id"],
+    )?)
+    .execute()?;
+
+let probe_trace = probe_result.receipt().decision_trace_envelope();
+let probe_provenance = probe_result.receipt().execution_provenance();
 ```
 
 ## Advanced Path
@@ -201,11 +315,13 @@ Deferred:
 ## Current Limits
 
 - intent admission is public and executable for the covered authoritative,
-  effect-triggered, basis-observation, and projection-consumption families
+  effect-triggered, authoritative-mutation, read-execution, derived
+  inspection-materialization, lower-runtime capability-routing,
+  basis-observation, and projection-consumption families
 - it is still support-gated vocabulary rather than part of the stable everyday
   mutation surface
-- read execution, inspection-materialization, temporal, async/resource,
-  store-backed, and durable restart neighbors remain deferred work
+- generic materialization, temporal, async/resource, store-backed, and durable
+  restart neighbors remain deferred work
 
 ## Related Docs
 

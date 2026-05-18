@@ -46,27 +46,55 @@ pub use decisions::{
     admit_runtime_intent_request, ForgeQueryIntentAdmissionDecision,
     ForgeQueryIntentAdvisoryDecision, ForgeQueryIntentViolationDecision,
 };
+#[allow(unused_imports)]
 pub use dx::{
     forge_query_basis_observation_intent, forge_query_projection_consumption_intent,
-    ForgeQueryAdmittedRuntimeEffectWriteIntent, ForgeQueryAdmittedRuntimeIntent,
+    ForgeQueryAdmittedRuntimeEffectWriteIntent, ForgeQueryAdmittedRuntimeExistingTruthProbeIntent,
+    ForgeQueryAdmittedRuntimeInspectionIntent, ForgeQueryAdmittedRuntimeIntent,
+    ForgeQueryAdmittedRuntimeWriteBatchIntent, ForgeQueryAdmittedRuntimeWriteIntent,
+    ForgeQueryAdmittedWorkspaceDerivedInspectionIntent,
+    ForgeQueryAdmittedWorkspaceDerivedMaterializationIntent,
+    ForgeQueryAdmittedWorkspaceLiveReadIntent, ForgeQueryAdmittedWorkspaceReadIntent,
     ForgeQueryBasisObservationAdmittedIntent, ForgeQueryBasisObservationIntentAuthoring,
     ForgeQueryBasisObservationIntentReview, ForgeQueryProjectionConsumptionAdmittedIntent,
     ForgeQueryProjectionConsumptionIntentAuthoring, ForgeQueryProjectionConsumptionIntentReview,
     ForgeQueryRuntimeEffectWriteIntentAdmissionReview, ForgeQueryRuntimeEffectWriteIntentAuthoring,
+    ForgeQueryRuntimeExistingTruthProbeIntentAdmissionReview,
+    ForgeQueryRuntimeExistingTruthProbeIntentAuthoring,
+    ForgeQueryRuntimeInspectionIntentAdmissionReview, ForgeQueryRuntimeInspectionIntentAuthoring,
     ForgeQueryRuntimeIntentAdmissionReview, ForgeQueryRuntimeIntentAuthoring,
+    ForgeQueryRuntimeWriteBatchIntentAdmissionReview, ForgeQueryRuntimeWriteBatchIntentAuthoring,
+    ForgeQueryRuntimeWriteIntentAdmissionReview, ForgeQueryRuntimeWriteIntentAuthoring,
+    ForgeQueryWorkspaceDerivedInspectionIntentAdmissionReview,
+    ForgeQueryWorkspaceDerivedInspectionIntentAuthoring,
+    ForgeQueryWorkspaceDerivedMaterializationIntentAdmissionReview,
+    ForgeQueryWorkspaceDerivedMaterializationIntentAuthoring,
+    ForgeQueryWorkspaceLiveReadIntentAdmissionReview, ForgeQueryWorkspaceLiveReadIntentAuthoring,
+    ForgeQueryWorkspaceReadIntentAdmissionReview, ForgeQueryWorkspaceReadIntentAuthoring,
 };
 pub use eligibility::{
-    ForgeQueryIntentAdmissionAuthorityLaneEligibility, ForgeQueryIntentAdmissionBasisEligibility,
-    ForgeQueryIntentAdmissionCapabilityEligibility, ForgeQueryIntentAdmissionEligibility,
-    ForgeQueryIntentAdmissionInvariantEligibility, ForgeQueryIntentAdmissionPolicyEligibility,
-    ForgeQueryIntentAdmissionPreDecisionPosture,
+    ForgeQueryAuthoritativeMutationBatchIntentSeed, ForgeQueryAuthoritativeMutationIntentSeed,
+    ForgeQueryAuthoritativeMutationPreflight, ForgeQueryDerivedViewIntentSeed,
+    ForgeQueryExistingTruthProbeIntentSeed, ForgeQueryExistingTruthProbeRoutingPreflight,
+    ForgeQueryGenericInspectionIntentSeed, ForgeQueryGenericInspectionIntentTarget,
+    ForgeQueryGenericInspectionIntentTargetSeed, ForgeQueryIntentAdmissionAuthorityLaneEligibility,
+    ForgeQueryIntentAdmissionBasisEligibility, ForgeQueryIntentAdmissionCapabilityEligibility,
+    ForgeQueryIntentAdmissionEligibility, ForgeQueryIntentAdmissionInvariantEligibility,
+    ForgeQueryIntentAdmissionPolicyEligibility, ForgeQueryIntentAdmissionPreDecisionPosture,
     ForgeQueryIntentAdmissionProjectionSourceEligibility,
     ForgeQueryIntentAdmissionRoutingSupportEligibility,
     ForgeQueryIntentAdmissionSourceLaneEligibility, ForgeQueryIntentAdmissionSupportEligibility,
-    ForgeQueryRawIntentAdmissionRequest,
+    ForgeQueryLiveReadIntentSeed, ForgeQueryRawIntentAdmissionRequest,
+    ForgeQueryReadExecutionIntentSeed,
 };
 pub use execution_bindings::{
-    ForgeQueryAuthoritativeIntentExecutionBinding, ForgeQueryEffectTriggeredIntentExecutionBinding,
+    ForgeQueryAuthoritativeIntentExecutionBinding,
+    ForgeQueryAuthoritativeMutationBatchExecutionBinding,
+    ForgeQueryAuthoritativeMutationExecutionBinding, ForgeQueryDerivedInspectionExecutionBinding,
+    ForgeQueryDerivedMaterializationExecutionBinding,
+    ForgeQueryEffectTriggeredIntentExecutionBinding, ForgeQueryExistingTruthProbeExecutionBinding,
+    ForgeQueryLiveReadExecutionBinding, ForgeQueryReadExecutionBinding,
+    ForgeQueryUnifiedInspectionExecutionBinding,
 };
 pub use families::{
     forge_query_intent_admission_family_inventory, ForgeQueryIntentAdmissionFamily,
@@ -75,7 +103,12 @@ pub use families::{
 pub(crate) use handoffs::{admit_authoritative_execution, admit_effect_execution};
 pub use handoffs::{
     ForgeQueryAdmittedIntentExecutionHandoff, ForgeQueryAuthoritativeIntentExecutionHandoff,
-    ForgeQueryEffectTriggeredIntentExecutionHandoff,
+    ForgeQueryAuthoritativeMutationBatchExecutionHandoff,
+    ForgeQueryAuthoritativeMutationExecutionHandoff, ForgeQueryDerivedInspectionExecutionHandoff,
+    ForgeQueryDerivedMaterializationExecutionHandoff,
+    ForgeQueryEffectTriggeredIntentExecutionHandoff, ForgeQueryExistingTruthProbeExecutionHandoff,
+    ForgeQueryLiveReadExecutionHandoff, ForgeQueryReadExecutionHandoff,
+    ForgeQueryUnifiedInspectionExecutionHandoff,
 };
 pub use inventory::{
     forge_query_intent_admission_coverage_inventory, ForgeQueryIntentAdmissionCoverageInventory,
@@ -88,8 +121,12 @@ pub use inventory::{
 };
 pub use plans::{
     ForgeQueryAdmittedIntentPlan, ForgeQueryAuthoritativeIntentExecutionPlan,
-    ForgeQueryBasisObservationPlan, ForgeQueryEffectTriggeredIntentExecutionPlan,
-    ForgeQueryProjectionConsumptionPlan,
+    ForgeQueryAuthoritativeMutationBatchExecutionPlan,
+    ForgeQueryAuthoritativeMutationExecutionPlan, ForgeQueryBasisObservationPlan,
+    ForgeQueryDerivedInspectionExecutionPlan, ForgeQueryDerivedMaterializationExecutionPlan,
+    ForgeQueryEffectTriggeredIntentExecutionPlan, ForgeQueryExistingTruthProbeExecutionPlan,
+    ForgeQueryLiveReadExecutionPlan, ForgeQueryProjectionConsumptionPlan,
+    ForgeQueryReadExecutionPlan, ForgeQueryUnifiedInspectionExecutionPlan,
 };
 pub use stops::{
     ForgeQueryIntentAdvisoryStop, ForgeQueryIntentNonAdmittedStop, ForgeQueryIntentViolationStop,
@@ -128,17 +165,31 @@ pub(crate) fn intent_family_for_entrypoint(
         ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteNextEffectWriteIntent => {
             ForgeQueryIntentAdmissionFamily::EffectTriggeredWriteIntent
         }
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite => {
+            ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent
+        }
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteBatchWrite => {
+            ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent
+        }
         ForgeQueryIntentAdmissionCoveredEntrypoint::BasisObservation => {
             ForgeQueryIntentAdmissionFamily::BasisUseIntent
         }
         ForgeQueryIntentAdmissionCoveredEntrypoint::ProjectionConsumption => {
             ForgeQueryIntentAdmissionFamily::ProjectionConsumptionIntent
         }
-        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteReadNeighborDeferred => {
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteReadFamily
+        | ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteReadFamilyInBasisContext
+        | ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteLiveRead => {
             ForgeQueryIntentAdmissionFamily::ReadExecutionIntent
         }
-        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteInspectionNeighborDeferred => {
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteDerivedMaterialization
+        | ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteDerivedInspection
+        | ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteUnifiedInspection
+        | ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteInspectionNeighborDeferred => {
             ForgeQueryIntentAdmissionFamily::InspectionMaterializationIntent
+        }
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteExistingTruthProbeRouting => {
+            ForgeQueryIntentAdmissionFamily::LowerRuntimeCapabilityRoutingIntent
         }
     }
 }

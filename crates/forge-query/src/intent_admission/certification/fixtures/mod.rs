@@ -1,5 +1,6 @@
 mod bridge;
 mod neighbors;
+mod read;
 mod runtime;
 
 use serde_json::json;
@@ -8,6 +9,9 @@ pub(in crate::intent_admission::certification) use neighbors::{
     certified_deferred_intent_fixture, certified_inspection_advisory_redaction_fixture,
     certified_unsupported_intent_fixture, CertifiedDeferredIntentFixture,
     CertifiedUnsupportedIntentFixture,
+};
+pub(in crate::intent_admission::certification) use read::{
+    certified_read_intent_fixture, read_delegation_parity_fixture, CertifiedReadIntentFixture,
 };
 pub(in crate::intent_admission::certification) use runtime::{
     certification_runtime, certification_runtime_with_invariant_violation_authority,
@@ -59,6 +63,10 @@ pub(super) struct LegacyDelegationParityFixture {
     pub(super) authoritative_canonical: crate::runtime::ForgeQueryIntentReceipt,
     pub(super) effect_legacy: crate::runtime::ForgeQueryEffectIntentReceipt,
     pub(super) effect_canonical: crate::runtime::ForgeQueryEffectIntentReceipt,
+    pub(super) read_current_legacy: crate::runtime::ForgeQueryReadResult,
+    pub(super) read_current_canonical: crate::runtime::ForgeQueryReadResult,
+    pub(super) read_basis_legacy: crate::runtime::ForgeQueryReadResult,
+    pub(super) read_basis_canonical: crate::runtime::ForgeQueryReadResult,
 }
 
 pub(super) fn certified_admitted_intent_fixture() -> CertifiedAdmittedIntentFixture {
@@ -187,6 +195,7 @@ pub(super) fn certified_failure_intent_fixture() -> CertifiedFailureIntentFixtur
 }
 
 pub(super) fn legacy_delegation_parity_fixture() -> LegacyDelegationParityFixture {
+    let read_fixture = read_delegation_parity_fixture();
     let declaration = authoritative_declaration("certification-authoritative-parity-intent");
     let mut delegated_runtime = certification_runtime();
     let authoritative_legacy = delegated_runtime
@@ -269,6 +278,10 @@ pub(super) fn legacy_delegation_parity_fixture() -> LegacyDelegationParityFixtur
         authoritative_canonical,
         effect_legacy,
         effect_canonical,
+        read_current_legacy: read_fixture.current_legacy,
+        read_current_canonical: read_fixture.current_canonical,
+        read_basis_legacy: read_fixture.basis_legacy,
+        read_basis_canonical: read_fixture.basis_canonical,
     }
 }
 

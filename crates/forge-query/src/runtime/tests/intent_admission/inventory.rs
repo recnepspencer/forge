@@ -13,71 +13,157 @@ fn intent_admission_inventory_lists_current_runtime_floor() {
     assert!(implemented.contains(&ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteIntent));
     assert!(implemented
         .contains(&ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteNextEffectWriteIntent));
+    assert!(implemented.contains(&ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite));
+    assert!(implemented.contains(&ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteBatchWrite));
+    assert!(implemented.contains(&ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteReadFamily));
+    assert!(implemented
+        .contains(&ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteReadFamilyInBasisContext));
+    assert!(implemented.contains(&ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteLiveRead));
+    assert!(implemented
+        .contains(&ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteDerivedMaterialization));
+    assert!(
+        implemented.contains(&ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteDerivedInspection)
+    );
+    assert!(
+        implemented.contains(&ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteUnifiedInspection)
+    );
+    assert!(implemented
+        .contains(&ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteExistingTruthProbeRouting));
 }
 
 #[test]
-fn intent_admission_family_inventory_freezes_the_phase_one_family_map() {
+fn family_inventory_freezes_current_read_common_path() {
     let family_inventory = forge_query_intent_admission_family_inventory();
-    let families = family_inventory
+    let read_row = family_inventory
         .rows()
         .iter()
-        .map(|row| row.family())
-        .collect::<Vec<_>>();
+        .find(|row| row.family() == ForgeQueryIntentAdmissionFamily::ReadExecutionIntent)
+        .expect("read family row should exist");
 
     assert_eq!(
-        families,
-        vec![
-            ForgeQueryIntentAdmissionFamily::AuthoritativeUserIntent,
-            ForgeQueryIntentAdmissionFamily::EffectTriggeredWriteIntent,
-            ForgeQueryIntentAdmissionFamily::BasisUseIntent,
-            ForgeQueryIntentAdmissionFamily::ProjectionConsumptionIntent,
-            ForgeQueryIntentAdmissionFamily::ReadExecutionIntent,
-            ForgeQueryIntentAdmissionFamily::InspectionMaterializationIntent,
-        ]
+        read_row.raw_authoring_constructor(),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
+            "ForgeQueryRawIntentAdmissionRequest::read_family_entrypoint(...); ForgeQueryRawIntentAdmissionRequest::live_read_entrypoint(...)"
+        )
     );
     assert_eq!(
-        family_inventory.rows()[0].common_path_front_door().label(),
-        "runtime.intent(declaration).execute()"
+        read_row.common_path_front_door(),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
+            "workspace.read_family_intent(&family).execute(); workspace.read_live_intent(&view).execute()"
+        )
     );
     assert_eq!(
-        family_inventory.rows()[1]
-            .advanced_path_front_door()
-            .label(),
-        "runtime.next_effect_write_intent(&effect, version, contract).review()?.admit()?.execute()"
-    );
-    assert_eq!(
-        family_inventory.rows()[2].common_path_front_door().label(),
-        "forge_query_basis_observation_intent(raw).admit()"
-    );
-    assert_eq!(
-        family_inventory.rows()[4]
-            .common_path_front_door()
-            .deferred_reason(),
-        Some("read-execution-neighbor-deferred-until-covered")
+        read_row.advanced_path_front_door(),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
+            "workspace.read_family_intent(&family).review()?.admit()?.execute(); workspace.read_live_intent(&view).review()?.admit()?.execute()"
+        )
     );
 }
 
 #[test]
-fn planned_neighbors_do_not_claim_a_real_execution_seam() {
+fn only_inspection_neighbor_remains_planned() {
     let inventory = forge_query_intent_admission_coverage_inventory();
-
-    for row in inventory
+    let planned = inventory
         .rows()
         .iter()
         .filter(|row| row.status() == ForgeQueryIntentAdmissionCoverageStatus::PlannedNeighbor)
-    {
-        assert_eq!(row.execution_seam(), None);
-        assert_eq!(
-            row.execution_boundary(),
-            ForgeQueryIntentAdmissionExecutionBoundary::DeferredNeighbor(
-                "neighbor-deferred-until-covered"
-            )
-        );
-    }
+        .collect::<Vec<_>>();
+
+    assert_eq!(planned.len(), 1);
+    assert_eq!(
+        planned[0].entrypoint(),
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteInspectionNeighborDeferred
+    );
+    assert_eq!(planned[0].execution_seam(), None);
 }
 
 #[test]
-fn support_matrix_matches_phase_one_inventory_and_freezes_deferred_neighbors() {
+fn family_inventory_freezes_inspection_materialization_common_path() {
+    let family_inventory = forge_query_intent_admission_family_inventory();
+    let row = family_inventory
+        .rows()
+        .iter()
+        .find(|row| {
+            row.family() == ForgeQueryIntentAdmissionFamily::InspectionMaterializationIntent
+        })
+        .expect("inspection-materialization family row should exist");
+
+    assert_eq!(
+        row.raw_authoring_constructor(),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
+            "ForgeQueryRawIntentAdmissionRequest::generic_inspection_entrypoint(...); ForgeQueryRawIntentAdmissionRequest::derived_materialization_entrypoint(...); ForgeQueryRawIntentAdmissionRequest::derived_inspection_entrypoint(...)"
+        )
+    );
+    assert_eq!(
+        row.common_path_front_door(),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
+            "workspace.inspect_intent(target).execute(); workspace.materialize_intent(&view).execute(); workspace.inspect_derived_intent(&view).execute()"
+        )
+    );
+    assert_eq!(
+        row.advanced_path_front_door(),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
+            "workspace.inspect_intent(target).review()?.admit()?.execute(); workspace.materialize_intent(&view).review()?.admit()?.execute(); workspace.inspect_derived_intent(&view).review()?.admit()?.execute()"
+        )
+    );
+}
+
+#[test]
+fn family_inventory_freezes_authoritative_mutation_common_path() {
+    let family_inventory = forge_query_intent_admission_family_inventory();
+    let row = family_inventory
+        .rows()
+        .iter()
+        .find(|row| row.family() == ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent)
+        .expect("authoritative mutation family row should exist");
+
+    assert_eq!(
+        row.common_path_front_door(),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
+            "runtime.write_intent(command).execute(); workspace.write_intent(command).execute()"
+        )
+    );
+    assert_eq!(
+        row.advanced_path_front_door(),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
+            "runtime.write_intent(command).review()?.admit()?.execute(); workspace.write_intent(command).review()?.admit()?.execute()"
+        )
+    );
+}
+
+#[test]
+fn family_inventory_freezes_lower_runtime_routing_common_path() {
+    let family_inventory = forge_query_intent_admission_family_inventory();
+    let row = family_inventory
+        .rows()
+        .iter()
+        .find(|row| {
+            row.family() == ForgeQueryIntentAdmissionFamily::LowerRuntimeCapabilityRoutingIntent
+        })
+        .expect("routing family row should exist");
+
+    assert_eq!(
+        row.raw_authoring_constructor(),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
+            "ForgeQueryRawIntentAdmissionRequest::existing_truth_probe_entrypoint(...)"
+        )
+    );
+    assert_eq!(
+        row.common_path_front_door(),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
+            "runtime.probe_existing_intent(request).execute(); workspace.probe_existing_intent(request).execute()"
+        )
+    );
+    assert_eq!(
+        row.advanced_path_front_door(),
+        ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
+            "runtime.probe_existing_intent(request).review()?.admit()?.execute(); workspace.probe_existing_intent(request).review()?.admit()?.execute()"
+        )
+    );
+}
+
+#[test]
+fn support_matrix_matches_inventory_for_implemented_rows() {
     let inventory = forge_query_intent_admission_coverage_inventory();
     let support_matrix = forge_query_intent_admission_support_matrix();
 
@@ -94,41 +180,11 @@ fn support_matrix_matches_phase_one_inventory_and_freezes_deferred_neighbors() {
                     support.posture(),
                     ForgeQueryIntentAdmissionSupportPosture::Admitted
                 );
-                assert_ne!(
-                    coverage.raw_authoring_constructor().deferred_reason(),
-                    Some("deferred-until-covered")
-                );
-                assert_ne!(
-                    coverage.common_path_front_door().deferred_reason(),
-                    Some("deferred-until-covered")
-                );
-                assert_ne!(
-                    coverage.advanced_path_front_door().deferred_reason(),
-                    Some("deferred-until-covered")
-                );
-                assert!(matches!(
-                    support.detail(),
-                    ForgeQueryIntentAdmissionSupportDetail::ImplementedRuntimeIntentFloor
-                        | ForgeQueryIntentAdmissionSupportDetail::ImplementedBasisObservationScope
-                        | ForgeQueryIntentAdmissionSupportDetail::ImplementedProjectionConsumptionContract
-                ));
             }
             ForgeQueryIntentAdmissionCoverageStatus::PlannedNeighbor => {
                 assert_eq!(
                     support.posture(),
                     ForgeQueryIntentAdmissionSupportPosture::Deferred
-                );
-                assert_eq!(
-                    coverage.raw_authoring_constructor().deferred_reason(),
-                    Some(coverage.raw_authoring_constructor().label())
-                );
-                assert_eq!(
-                    coverage.common_path_front_door().deferred_reason(),
-                    Some(coverage.common_path_front_door().label())
-                );
-                assert_eq!(
-                    coverage.advanced_path_front_door().deferred_reason(),
-                    Some(coverage.advanced_path_front_door().label())
                 );
             }
         }
@@ -136,165 +192,195 @@ fn support_matrix_matches_phase_one_inventory_and_freezes_deferred_neighbors() {
 }
 
 #[test]
-fn family_inventory_stays_in_sync_with_coverage_inventory_by_family() {
-    let family_inventory = forge_query_intent_admission_family_inventory();
-    let coverage_inventory = forge_query_intent_admission_coverage_inventory();
-
-    for family_row in family_inventory.rows() {
-        let matching_coverage = coverage_inventory
-            .rows()
-            .iter()
-            .find(|coverage| coverage.family() == family_row.family())
-            .expect("every family row should have a matching coverage row");
-
-        assert_eq!(
-            family_row.raw_authoring_constructor(),
-            matching_coverage.raw_authoring_constructor()
-        );
-        assert_eq!(
-            family_row.common_path_front_door(),
-            matching_coverage.common_path_front_door()
-        );
-        assert_eq!(
-            family_row.advanced_path_front_door(),
-            matching_coverage.advanced_path_front_door()
-        );
-    }
-}
-
-#[test]
-fn coverage_inventory_carries_phase_one_required_metadata_as_typed_fields() {
+fn coverage_inventory_carries_read_execution_metadata_as_typed_fields() {
     let inventory = forge_query_intent_admission_coverage_inventory();
-    let execute_intent = inventory
+    let read_current = inventory
         .rows()
         .iter()
-        .find(|row| row.entrypoint() == ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteIntent)
-        .expect("execute_intent row should exist");
-    let deferred_read = inventory
+        .find(|row| {
+            row.entrypoint() == ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteReadFamily
+        })
+        .expect("read family row should exist");
+    let read_basis = inventory
         .rows()
         .iter()
         .find(|row| {
             row.entrypoint()
-                == ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteReadNeighborDeferred
+                == ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteReadFamilyInBasisContext
         })
-        .expect("deferred read row should exist");
+        .expect("basis-context read row should exist");
+    let live_read = inventory
+        .rows()
+        .iter()
+        .find(|row| row.entrypoint() == ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteLiveRead)
+        .expect("live read row should exist");
+
+    for row in [read_current, read_basis] {
+        assert_eq!(
+            row.eligibility_authority(),
+            ForgeQueryIntentAdmissionEligibilityAuthority::ReadCompositionExecutionAuthority
+        );
+        assert_eq!(
+            row.admitted_plan_kind(),
+            ForgeQueryIntentAdmissionPlanKind::ReadExecutionPlan
+        );
+        assert_eq!(
+            row.admitted_execution_handoff(),
+            ForgeQueryIntentAdmissionExecutionHandoffInventory::Available(
+                "ForgeQueryReadExecutionHandoff"
+            )
+        );
+        assert_eq!(
+            row.result_artifact(),
+            ForgeQueryIntentAdmissionResultArtifact::ForgeQueryReadResult
+        );
+        assert_eq!(
+            row.execution_boundary(),
+            ForgeQueryIntentAdmissionExecutionBoundary::CoveredSeam(
+                crate::facade::runtime::ForgeQueryIntentAdmissionExecutionSeam::QueryRuntimeReadExecutionRoute
+            )
+        );
+        assert_eq!(
+            row.advisory_decision_class(),
+            ForgeQueryIntentAdmissionDecisionClass::AdvisoryNotYetExercisedOnCoveredEntrypoint
+        );
+        assert_eq!(
+            row.violation_decision_class(),
+            ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation
+        );
+    }
 
     assert_eq!(
-        execute_intent.eligibility_authority(),
-        ForgeQueryIntentAdmissionEligibilityAuthority::RuntimeIntentAuthorityAdapter
+        live_read.eligibility_authority(),
+        ForgeQueryIntentAdmissionEligibilityAuthority::ReadCompositionExecutionAuthority
     );
     assert_eq!(
-        execute_intent.admitted_plan_kind(),
-        ForgeQueryIntentAdmissionPlanKind::AuthoritativeIntentExecutionPlan
+        live_read.admitted_plan_kind(),
+        ForgeQueryIntentAdmissionPlanKind::ReadExecutionPlan
     );
     assert_eq!(
-        execute_intent.admitted_execution_handoff(),
+        live_read.admitted_execution_handoff(),
         ForgeQueryIntentAdmissionExecutionHandoffInventory::Available(
-            "ForgeQueryAdmittedIntentExecutionHandoff"
+            "ForgeQueryLiveReadExecutionHandoff"
         )
     );
+    assert_eq!(
+        live_read.result_artifact(),
+        ForgeQueryIntentAdmissionResultArtifact::ForgeQueryLiveReadResult
+    );
+    assert_eq!(
+        live_read.execution_boundary(),
+        ForgeQueryIntentAdmissionExecutionBoundary::CoveredSeam(
+            crate::facade::runtime::ForgeQueryIntentAdmissionExecutionSeam::QueryRuntimeReadExecutionRoute
+        )
+    );
+}
 
-    let basis_observation = inventory
+#[test]
+fn support_matrix_marks_read_rows_as_implemented_floor() {
+    let support = forge_query_intent_admission_support_matrix();
+    let read_rows = support
+        .rows()
+        .iter()
+        .filter(|row| row.family() == ForgeQueryIntentAdmissionFamily::ReadExecutionIntent)
+        .collect::<Vec<_>>();
+
+    assert_eq!(read_rows.len(), 3);
+    for row in read_rows.iter().copied().filter(|row| {
+        row.entrypoint() != ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteLiveRead
+    }) {
+        assert_eq!(
+            row.posture(),
+            ForgeQueryIntentAdmissionSupportPosture::Admitted
+        );
+        assert_eq!(
+            row.detail(),
+            ForgeQueryIntentAdmissionSupportDetail::ImplementedReadExecutionFloor
+        );
+    }
+    let live_row = read_rows
+        .iter()
+        .find(|row| row.entrypoint() == ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteLiveRead)
+        .expect("live read support row should exist");
+    assert_eq!(
+        live_row.posture(),
+        ForgeQueryIntentAdmissionSupportPosture::Admitted
+    );
+    assert_eq!(
+        live_row.detail(),
+        ForgeQueryIntentAdmissionSupportDetail::ImplementedLiveReadExecutionFloor
+    );
+}
+
+#[test]
+fn support_matrix_marks_inspection_materialization_rows_as_implemented_floor() {
+    let support = forge_query_intent_admission_support_matrix();
+    let implemented_rows = support
+        .rows()
+        .iter()
+        .filter(|row| {
+            row.family() == ForgeQueryIntentAdmissionFamily::InspectionMaterializationIntent
+                && row.posture() == ForgeQueryIntentAdmissionSupportPosture::Admitted
+        })
+        .collect::<Vec<_>>();
+
+    assert_eq!(implemented_rows.len(), 3);
+    let materialize = implemented_rows
+        .iter()
+        .find(|row| {
+            row.entrypoint()
+                == ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteDerivedMaterialization
+        })
+        .expect("derived materialization row should exist");
+    let inspect = implemented_rows
+        .iter()
+        .find(|row| {
+            row.entrypoint() == ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteDerivedInspection
+        })
+        .expect("derived inspection row should exist");
+    let unified = implemented_rows
+        .iter()
+        .find(|row| {
+            row.entrypoint() == ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteUnifiedInspection
+        })
+        .expect("unified inspection row should exist");
+
+    assert_eq!(
+        materialize.detail(),
+        ForgeQueryIntentAdmissionSupportDetail::ImplementedDerivedMaterializationFloor
+    );
+    assert_eq!(
+        inspect.detail(),
+        ForgeQueryIntentAdmissionSupportDetail::ImplementedDerivedInspectionFloor
+    );
+    assert_eq!(
+        unified.detail(),
+        ForgeQueryIntentAdmissionSupportDetail::ImplementedUnifiedInspectionFloor
+    );
+}
+
+#[test]
+fn support_matrix_marks_existing_truth_probe_routing_as_implemented_floor() {
+    let support = forge_query_intent_admission_support_matrix();
+    let row = support
         .rows()
         .iter()
         .find(|row| {
-            row.entrypoint() == ForgeQueryIntentAdmissionCoveredEntrypoint::BasisObservation
+            row.entrypoint()
+                == ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteExistingTruthProbeRouting
         })
-        .expect("basis observation row should exist");
-    let projection = inventory
-        .rows()
-        .iter()
-        .find(|row| {
-            row.entrypoint() == ForgeQueryIntentAdmissionCoveredEntrypoint::ProjectionConsumption
-        })
-        .expect("projection row should exist");
-    assert_eq!(
-        execute_intent.result_artifact(),
-        ForgeQueryIntentAdmissionResultArtifact::ForgeQueryIntentReceipt
-    );
-    assert_eq!(
-        execute_intent.advisory_decision_class(),
-        ForgeQueryIntentAdmissionDecisionClass::AdvisoryNotYetExercisedOnCoveredEntrypoint
-    );
-    assert_eq!(
-        execute_intent.violation_decision_class(),
-        ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation
-    );
-    assert_eq!(
-        execute_intent.common_path_front_door(),
-        ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
-            "runtime.intent(declaration).execute()"
-        )
-    );
+        .expect("probe routing support row should exist");
 
     assert_eq!(
-        deferred_read.eligibility_authority(),
-        ForgeQueryIntentAdmissionEligibilityAuthority::DeferredReadExecutionAuthority
+        row.family(),
+        ForgeQueryIntentAdmissionFamily::LowerRuntimeCapabilityRoutingIntent
     );
     assert_eq!(
-        deferred_read.admitted_plan_kind(),
-        ForgeQueryIntentAdmissionPlanKind::DeferredReadExecutionPlan
+        row.posture(),
+        ForgeQueryIntentAdmissionSupportPosture::Admitted
     );
     assert_eq!(
-        deferred_read
-            .admitted_execution_handoff()
-            .no_execution_handoff_reason(),
-        Some("read-execution-neighbor-deferred-until-covered")
-    );
-    assert_eq!(
-        deferred_read.result_artifact(),
-        ForgeQueryIntentAdmissionResultArtifact::DeferredReadExecutionArtifact
-    );
-    assert_eq!(
-        deferred_read.advisory_decision_class(),
-        ForgeQueryIntentAdmissionDecisionClass::DeferredNeighborSupport
-    );
-    assert_eq!(
-        deferred_read.violation_decision_class(),
-        ForgeQueryIntentAdmissionDecisionClass::NeighborUnsupportedUntilCoverage
-    );
-    assert_eq!(
-        deferred_read.raw_authoring_constructor().deferred_reason(),
-        Some("read-execution-neighbor-deferred-until-covered")
-    );
-
-    assert_eq!(
-        basis_observation.eligibility_authority(),
-        ForgeQueryIntentAdmissionEligibilityAuthority::BasisLifecycleObservationAuthority
-    );
-    assert_eq!(
-        basis_observation.admitted_plan_kind(),
-        ForgeQueryIntentAdmissionPlanKind::BasisObservationPlan
-    );
-    assert_eq!(
-        basis_observation.result_artifact(),
-        ForgeQueryIntentAdmissionResultArtifact::ScopedObservationBasis
-    );
-    assert_eq!(
-        basis_observation
-            .admitted_execution_handoff()
-            .no_execution_handoff_reason(),
-        Some(
-            "basis-observation-admitted-plan-scopes-to-lower-runtime-evidence-without-query-execution-handoff"
-        )
-    );
-
-    assert_eq!(
-        projection.eligibility_authority(),
-        ForgeQueryIntentAdmissionEligibilityAuthority::ProjectionConsumptionEligibilityAuthority
-    );
-    assert_eq!(
-        projection.admitted_plan_kind(),
-        ForgeQueryIntentAdmissionPlanKind::ProjectionConsumptionPlan
-    );
-    assert_eq!(
-        projection.result_artifact(),
-        ForgeQueryIntentAdmissionResultArtifact::MaterializedProjectionContract
-    );
-    assert_eq!(
-        projection
-            .admitted_execution_handoff()
-            .no_execution_handoff_reason(),
-        Some("projection-consumption-admitted-plan-binds-contract-without-query-execution-handoff")
+        row.detail(),
+        ForgeQueryIntentAdmissionSupportDetail::ImplementedExistingTruthProbeRoutingFloor
     );
 }

@@ -57,42 +57,42 @@ fn intent_admission_dx_boundaries_hold() {
         "tests/ui/intent_admission/consumer/intent_consumer_inspection_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/intent_admission/certification/intent_admission_certification_bundle_constructor_private.rs",
+        "tests/ui/intent_admission/certification/bundle/intent_admission_certification_bundle_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/intent_admission/certification/intent_admission_public_boundary_audit_constructor_private.rs",
+        "tests/ui/intent_admission/certification/audits/intent_admission_public_boundary_audit_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/intent_admission/certification/intent_admission_proof_shape_audit_constructor_private.rs",
+        "tests/ui/intent_admission/certification/audits/intent_admission_proof_shape_audit_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/intent_admission/certification/intent_admission_topology_audit_constructor_private.rs",
+        "tests/ui/intent_admission/certification/audits/intent_admission_topology_audit_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/intent_admission/certification/intent_admission_certification_output_constructor_private.rs",
+        "tests/ui/intent_admission/certification/bundle/intent_admission_certification_output_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/intent_admission/certification/intent_admission_oracle_report_constructor_private.rs",
+        "tests/ui/intent_admission/certification/reports/parity/intent_admission_oracle_report_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/intent_admission/certification/intent_admission_legacy_parity_report_constructor_private.rs",
+        "tests/ui/intent_admission/certification/reports/parity/intent_admission_legacy_parity_report_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/intent_admission/certification/intent_admission_support_traceability_report_constructor_private.rs",
+        "tests/ui/intent_admission/certification/reports/parity/intent_admission_support_traceability_report_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/intent_admission/certification/intent_admission_slope_report_constructor_private.rs",
+        "tests/ui/intent_admission/certification/reports/parity/intent_admission_slope_report_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/intent_admission/certification/intent_admission_representative_output_report_constructor_private.rs",
+        "tests/ui/intent_admission/certification/reports/artifacts/intent_admission_representative_output_report_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/intent_admission/certification/intent_admission_representative_family_report_constructor_private.rs",
+        "tests/ui/intent_admission/certification/reports/artifacts/intent_admission_representative_family_report_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/intent_admission/certification/intent_admission_doc_example_report_constructor_private.rs",
+        "tests/ui/intent_admission/certification/reports/artifacts/intent_admission_doc_example_report_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/intent_admission/certification/intent_admission_seeded_certification_report_constructor_private.rs",
+        "tests/ui/intent_admission/certification/reports/artifacts/intent_admission_seeded_certification_report_constructor_private.rs",
     );
 }

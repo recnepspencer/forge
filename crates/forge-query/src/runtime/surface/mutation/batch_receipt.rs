@@ -4,7 +4,8 @@ use crate::runtime::{
     ForgeQueryGraphCompositionAssumptionSummary, ForgeQueryGraphCompositionBreadth,
     ForgeQueryGraphCompositionEvidence, ForgeQueryGraphCompositionLifecycleOutcomes,
     ForgeQueryGraphCompositionLineageSummary, ForgeQueryGraphCompositionProgram,
-    ForgeQueryGraphCompositionResolutionMap, ForgeQueryRuntimeError,
+    ForgeQueryGraphCompositionResolutionMap, ForgeQueryIntentDecisionTraceEnvelope,
+    ForgeQueryIntentExecutionProvenance, ForgeQueryRuntimeError,
 };
 
 use super::batch_receipt_aggregates::{
@@ -33,6 +34,8 @@ pub struct ForgeQueryBatchWriteReceipt {
     meaningful_effect_suppression_count: usize,
     effect_expression_failure_count: usize,
     refresh_fallback: bool,
+    decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
+    execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
 }
 
 impl ForgeQueryBatchWriteReceipt {
@@ -53,6 +56,8 @@ impl ForgeQueryBatchWriteReceipt {
         meaningful_effect_suppression_count: usize,
         effect_expression_failure_count: usize,
         refresh_fallback: bool,
+        decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
+        execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
     ) -> Result<Self, ForgeQueryRuntimeError> {
         if write_receipts.is_empty() {
             return Err(ForgeQueryRuntimeError::Workspace(
@@ -181,6 +186,8 @@ impl ForgeQueryBatchWriteReceipt {
             meaningful_effect_suppression_count,
             effect_expression_failure_count,
             refresh_fallback,
+            decision_trace_envelope,
+            execution_provenance,
         })
     }
 
@@ -236,6 +243,8 @@ impl ForgeQueryBatchWriteReceipt {
             aggregates.meaningful_effect_suppression_count,
             aggregates.effect_expression_failure_count,
             aggregates.refresh_fallback,
+            None,
+            None,
         )
     }
 
@@ -355,5 +364,13 @@ impl ForgeQueryBatchWriteReceipt {
 
     pub fn refresh_fallback(&self) -> bool {
         self.refresh_fallback
+    }
+
+    pub fn decision_trace_envelope(&self) -> Option<&ForgeQueryIntentDecisionTraceEnvelope> {
+        self.decision_trace_envelope.as_ref()
+    }
+
+    pub fn execution_provenance(&self) -> Option<&ForgeQueryIntentExecutionProvenance> {
+        self.execution_provenance.as_ref()
     }
 }

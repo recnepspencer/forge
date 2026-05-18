@@ -1,18 +1,43 @@
+use crate::facade::runtime::ForgeQueryIntentAdmissionDecision;
 use crate::identity::hash_parts;
 use crate::intent_admission::{
-    ForgeQueryIntentDecisionTraceEnvelope, ForgeQueryIntentDecisionTraceEvidence,
-    ForgeQueryIntentDecisionTraceRow, ForgeQueryIntentEligibilityTraceEvidence,
+    ForgeQueryAdmittedIntentPlan, ForgeQueryIntentDecisionTraceEnvelope,
+    ForgeQueryIntentDecisionTraceEvidence, ForgeQueryIntentDecisionTraceRow,
+    ForgeQueryIntentEligibilityTraceEvidence,
 };
 
 use super::super::fixtures::{
     certified_admitted_intent_fixture, certified_advisory_intent_fixture,
-    certified_failure_intent_fixture, certified_violation_intent_fixture,
+    certified_failure_intent_fixture, certified_read_intent_fixture,
+    certified_violation_intent_fixture, CertifiedAdmittedIntentFixture,
+    CertifiedAdvisoryIntentFixture, CertifiedFailureIntentFixture, CertifiedReadIntentFixture,
+    CertifiedViolationIntentFixture,
 };
+
+type OutputRow = (&'static str, String);
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryIntentAdmissionRepresentativeOutputReport {
-    outputs: Vec<(&'static str, String)>,
+    outputs: Vec<OutputRow>,
     report_digest: String,
+}
+
+#[derive(Clone)]
+struct RepresentativeOutputFixtures {
+    admitted: CertifiedAdmittedIntentFixture,
+    advisory: CertifiedAdvisoryIntentFixture,
+    violation: CertifiedViolationIntentFixture,
+    failure: CertifiedFailureIntentFixture,
+    read: CertifiedReadIntentFixture,
+}
+
+#[derive(Clone)]
+struct RepresentativeEligibilityDigests {
+    admitted: ForgeQueryIntentEligibilityTraceEvidence,
+    advisory: ForgeQueryIntentEligibilityTraceEvidence,
+    violation: ForgeQueryIntentEligibilityTraceEvidence,
+    failure: ForgeQueryIntentEligibilityTraceEvidence,
+    read: ForgeQueryIntentEligibilityTraceEvidence,
 }
 
 impl ForgeQueryIntentAdmissionRepresentativeOutputReport {
@@ -30,178 +55,284 @@ impl ForgeQueryIntentAdmissionRepresentativeOutputReport {
 
 pub fn forge_query_intent_admission_representative_output_report(
 ) -> ForgeQueryIntentAdmissionRepresentativeOutputReport {
-    let admitted = certified_admitted_intent_fixture();
-    let advisory = certified_advisory_intent_fixture();
-    let violation = certified_violation_intent_fixture();
-    let failure = certified_failure_intent_fixture();
-    let admitted_eligibility = eligibility_evidence(&admitted.trace);
-    let advisory_eligibility = eligibility_evidence(&advisory.trace);
-    let violation_eligibility = eligibility_evidence(&violation.trace);
-    let failure_eligibility = eligibility_evidence(&failure.trace);
-    let outputs = vec![
-        output(
-            "query_digest",
-            hash_parts(&[
-                admitted.receipt.receipt_digest().to_string(),
-                advisory.trace.trace_digest().to_string(),
-                violation.trace.trace_digest().to_string(),
-                failure.failure_digest.clone(),
-            ]),
-        ),
-        output(
-            "raw_intent_digest",
-            hash_parts(&[
-                admitted.request.request_digest().to_string(),
-                advisory.request.request_digest().to_string(),
-                violation.request.request_digest().to_string(),
-                failure.request.request_digest().to_string(),
-            ]),
-        ),
-        output(
-            "intent_eligibility_digest",
-            hash_parts(&[
-                admitted_eligibility.eligibility_digest().to_string(),
-                advisory_eligibility.eligibility_digest().to_string(),
-                violation_eligibility.eligibility_digest().to_string(),
-                failure_eligibility.eligibility_digest().to_string(),
-            ]),
-        ),
-        output(
-            "admission_decision_digest",
-            admitted.plan.decision_digest().to_string(),
-        ),
-        output(
-            "admitted_intent_plan_digest",
-            admitted_plan_digest(&admitted.plan),
-        ),
-        output(
-            "admitted_execution_handoff_digest",
-            admitted.handoff.handoff_digest().to_string(),
-        ),
-        output(
-            "advisory_decision_digest",
-            decision_digest(&advisory.decision),
-        ),
-        output(
-            "violation_decision_digest",
-            decision_digest(&violation.decision),
-        ),
-        output(
-            "decision_trace_digest",
-            trace_row_digest(&[
-                &admitted.trace,
-                &advisory.trace,
-                &violation.trace,
-                &failure.trace,
-            ]),
-        ),
-        output(
-            "decision_trace_envelope_digest",
-            hash_parts(&[
-                admitted.trace.trace_digest().to_string(),
-                advisory.trace.trace_digest().to_string(),
-                violation.trace.trace_digest().to_string(),
-                failure.trace.trace_digest().to_string(),
-            ]),
-        ),
-        output(
-            "policy_decision_digest",
-            posture_digest(
-                admitted_eligibility.policy_posture(),
-                advisory_eligibility.policy_posture(),
-                violation_eligibility.policy_posture(),
-                failure_eligibility.policy_posture(),
-            ),
-        ),
-        output(
-            "capability_decision_digest",
-            posture_digest(
-                admitted_eligibility.capability_posture(),
-                advisory_eligibility.capability_posture(),
-                violation_eligibility.capability_posture(),
-                failure_eligibility.capability_posture(),
-            ),
-        ),
-        output(
-            "invariant_decision_digest",
-            posture_digest(
-                admitted_eligibility.invariant_posture(),
-                advisory_eligibility.invariant_posture(),
-                violation_eligibility.invariant_posture(),
-                failure_eligibility.invariant_posture(),
-            ),
-        ),
-        output(
-            "basis_decision_digest",
-            posture_digest(
-                admitted_eligibility.basis_posture(),
-                advisory_eligibility.basis_posture(),
-                violation_eligibility.basis_posture(),
-                failure_eligibility.basis_posture(),
-            ),
-        ),
-        output(
-            "projection_decision_digest",
-            posture_digest(
-                admitted_eligibility.projection_source_posture(),
-                advisory_eligibility.projection_source_posture(),
-                violation_eligibility.projection_source_posture(),
-                failure_eligibility.projection_source_posture(),
-            ),
-        ),
-        output(
-            "routing_posture_digest",
-            posture_digest(
-                admitted_eligibility.routing_support_posture(),
-                advisory_eligibility.routing_support_posture(),
-                violation_eligibility.routing_support_posture(),
-                failure_eligibility.routing_support_posture(),
-            ),
-        ),
-        output(
-            "execution_provenance_chain_digest",
-            hash_parts(&[
-                admitted
-                    .receipt
-                    .execution_provenance_chain_digest()
-                    .to_string(),
-                failure.execution_provenance_chain_digest.clone(),
-                admitted.binding.binding_digest().to_string(),
-            ]),
-        ),
-        output("failure_digest", failure.failure_digest.clone()),
-    ];
-    let report_digest = hash_parts(
-        &outputs
-            .iter()
-            .map(|(name, digest)| format!("{name}:{digest}"))
-            .collect::<Vec<_>>(),
-    );
+    let fixtures = RepresentativeOutputFixtures::load();
+    let eligibility = fixtures.eligibility();
+    let outputs = representative_outputs(&fixtures, &eligibility);
+    let report_digest = digest_output_rows(&outputs);
     ForgeQueryIntentAdmissionRepresentativeOutputReport {
         outputs,
         report_digest,
     }
 }
 
-fn output(name: &'static str, digest: String) -> (&'static str, String) {
+impl RepresentativeOutputFixtures {
+    fn load() -> Self {
+        Self {
+            admitted: certified_admitted_intent_fixture(),
+            advisory: certified_advisory_intent_fixture(),
+            violation: certified_violation_intent_fixture(),
+            failure: certified_failure_intent_fixture(),
+            read: certified_read_intent_fixture(),
+        }
+    }
+
+    fn eligibility(&self) -> RepresentativeEligibilityDigests {
+        RepresentativeEligibilityDigests {
+            admitted: eligibility_evidence(&self.admitted.trace).clone(),
+            advisory: eligibility_evidence(&self.advisory.trace).clone(),
+            violation: eligibility_evidence(&self.violation.trace).clone(),
+            failure: eligibility_evidence(&self.failure.trace).clone(),
+            read: eligibility_evidence(&self.read.trace).clone(),
+        }
+    }
+}
+
+fn representative_outputs(
+    fixtures: &RepresentativeOutputFixtures,
+    eligibility: &RepresentativeEligibilityDigests,
+) -> Vec<OutputRow> {
+    vec![
+        query_digest_output(fixtures),
+        raw_intent_digest_output(fixtures),
+        intent_eligibility_digest_output(eligibility),
+        admission_decision_digest_output(fixtures),
+        admitted_intent_plan_digest_output(fixtures),
+        admitted_execution_handoff_digest_output(fixtures),
+        advisory_decision_digest_output(fixtures),
+        violation_decision_digest_output(fixtures),
+        decision_trace_digest_output(fixtures),
+        decision_trace_envelope_digest_output(fixtures),
+        posture_output(
+            "policy_decision_digest",
+            [
+                eligibility.admitted.policy_posture(),
+                eligibility.advisory.policy_posture(),
+                eligibility.violation.policy_posture(),
+                eligibility.failure.policy_posture(),
+                eligibility.read.policy_posture(),
+            ],
+        ),
+        posture_output(
+            "capability_decision_digest",
+            [
+                eligibility.admitted.capability_posture(),
+                eligibility.advisory.capability_posture(),
+                eligibility.violation.capability_posture(),
+                eligibility.failure.capability_posture(),
+                eligibility.read.capability_posture(),
+            ],
+        ),
+        posture_output(
+            "invariant_decision_digest",
+            [
+                eligibility.admitted.invariant_posture(),
+                eligibility.advisory.invariant_posture(),
+                eligibility.violation.invariant_posture(),
+                eligibility.failure.invariant_posture(),
+                eligibility.read.invariant_posture(),
+            ],
+        ),
+        posture_output(
+            "basis_decision_digest",
+            [
+                eligibility.admitted.basis_posture(),
+                eligibility.advisory.basis_posture(),
+                eligibility.violation.basis_posture(),
+                eligibility.failure.basis_posture(),
+                eligibility.read.basis_posture(),
+            ],
+        ),
+        posture_output(
+            "projection_decision_digest",
+            [
+                eligibility.admitted.projection_source_posture(),
+                eligibility.advisory.projection_source_posture(),
+                eligibility.violation.projection_source_posture(),
+                eligibility.failure.projection_source_posture(),
+                eligibility.read.projection_source_posture(),
+            ],
+        ),
+        posture_output(
+            "routing_posture_digest",
+            [
+                eligibility.admitted.routing_support_posture(),
+                eligibility.advisory.routing_support_posture(),
+                eligibility.violation.routing_support_posture(),
+                eligibility.failure.routing_support_posture(),
+                eligibility.read.routing_support_posture(),
+            ],
+        ),
+        execution_provenance_chain_digest_output(fixtures),
+        output("failure_digest", fixtures.failure.failure_digest.clone()),
+    ]
+}
+
+fn query_digest_output(fixtures: &RepresentativeOutputFixtures) -> OutputRow {
+    output(
+        "query_digest",
+        hash_parts(&[
+            fixtures.admitted.receipt.receipt_digest().to_string(),
+            fixtures.advisory.trace.trace_digest().to_string(),
+            fixtures.violation.trace.trace_digest().to_string(),
+            fixtures.failure.failure_digest.clone(),
+            fixtures.read.result.receipt().result_digest().to_string(),
+        ]),
+    )
+}
+
+fn raw_intent_digest_output(fixtures: &RepresentativeOutputFixtures) -> OutputRow {
+    output(
+        "raw_intent_digest",
+        hash_parts(&[
+            fixtures.admitted.request.request_digest().to_string(),
+            fixtures.advisory.request.request_digest().to_string(),
+            fixtures.violation.request.request_digest().to_string(),
+            fixtures.failure.request.request_digest().to_string(),
+            fixtures.read.request.request_digest().to_string(),
+        ]),
+    )
+}
+
+fn intent_eligibility_digest_output(eligibility: &RepresentativeEligibilityDigests) -> OutputRow {
+    output(
+        "intent_eligibility_digest",
+        hash_parts(&[
+            eligibility.admitted.eligibility_digest().to_string(),
+            eligibility.advisory.eligibility_digest().to_string(),
+            eligibility.violation.eligibility_digest().to_string(),
+            eligibility.failure.eligibility_digest().to_string(),
+            eligibility.read.eligibility_digest().to_string(),
+        ]),
+    )
+}
+
+fn admission_decision_digest_output(fixtures: &RepresentativeOutputFixtures) -> OutputRow {
+    output(
+        "admission_decision_digest",
+        hash_parts(&[
+            fixtures.admitted.plan.decision_digest().to_string(),
+            fixtures.read.plan.decision_digest().to_string(),
+        ]),
+    )
+}
+
+fn admitted_intent_plan_digest_output(fixtures: &RepresentativeOutputFixtures) -> OutputRow {
+    output(
+        "admitted_intent_plan_digest",
+        hash_parts(&[
+            admitted_plan_digest(&fixtures.admitted.plan),
+            admitted_plan_digest(&ForgeQueryAdmittedIntentPlan::ReadExecution(
+                fixtures.read.plan.clone(),
+            )),
+        ]),
+    )
+}
+
+fn admitted_execution_handoff_digest_output(fixtures: &RepresentativeOutputFixtures) -> OutputRow {
+    output(
+        "admitted_execution_handoff_digest",
+        hash_parts(&[
+            fixtures.admitted.handoff.handoff_digest().to_string(),
+            fixtures.read.handoff.handoff_digest().to_string(),
+        ]),
+    )
+}
+
+fn advisory_decision_digest_output(fixtures: &RepresentativeOutputFixtures) -> OutputRow {
+    output(
+        "advisory_decision_digest",
+        decision_digest(&fixtures.advisory.decision),
+    )
+}
+
+fn violation_decision_digest_output(fixtures: &RepresentativeOutputFixtures) -> OutputRow {
+    output(
+        "violation_decision_digest",
+        decision_digest(&fixtures.violation.decision),
+    )
+}
+
+fn decision_trace_digest_output(fixtures: &RepresentativeOutputFixtures) -> OutputRow {
+    output(
+        "decision_trace_digest",
+        trace_row_digest(&[
+            &fixtures.admitted.trace,
+            &fixtures.advisory.trace,
+            &fixtures.violation.trace,
+            &fixtures.failure.trace,
+        ]),
+    )
+}
+
+fn decision_trace_envelope_digest_output(fixtures: &RepresentativeOutputFixtures) -> OutputRow {
+    output(
+        "decision_trace_envelope_digest",
+        hash_parts(&[
+            fixtures.admitted.trace.trace_digest().to_string(),
+            fixtures.advisory.trace.trace_digest().to_string(),
+            fixtures.violation.trace.trace_digest().to_string(),
+            fixtures.failure.trace.trace_digest().to_string(),
+            fixtures.read.trace.trace_digest().to_string(),
+        ]),
+    )
+}
+
+fn execution_provenance_chain_digest_output(fixtures: &RepresentativeOutputFixtures) -> OutputRow {
+    output(
+        "execution_provenance_chain_digest",
+        hash_parts(&[
+            fixtures
+                .admitted
+                .receipt
+                .execution_provenance_chain_digest()
+                .to_string(),
+            fixtures.failure.execution_provenance_chain_digest.clone(),
+            fixtures.admitted.binding.binding_digest().to_string(),
+            fixtures
+                .read
+                .result
+                .receipt()
+                .execution_provenance_chain_digest()
+                .unwrap_or("no-read-provenance")
+                .to_string(),
+            fixtures.read.binding.binding_digest().to_string(),
+        ]),
+    )
+}
+
+fn posture_output<T: std::fmt::Debug, const N: usize>(
+    name: &'static str,
+    values: [T; N],
+) -> OutputRow {
+    output(name, posture_digest(values))
+}
+
+fn output(name: &'static str, digest: String) -> OutputRow {
     (name, digest)
 }
 
-fn decision_digest(decision: &crate::facade::runtime::ForgeQueryIntentAdmissionDecision) -> String {
+fn digest_output_rows(outputs: &[OutputRow]) -> String {
+    hash_parts(
+        &outputs
+            .iter()
+            .map(|(name, digest)| format!("{name}:{digest}"))
+            .collect::<Vec<_>>(),
+    )
+}
+
+fn decision_digest(decision: &ForgeQueryIntentAdmissionDecision) -> String {
     match decision {
-        crate::facade::runtime::ForgeQueryIntentAdmissionDecision::Admitted(plan) => {
-            plan.decision_digest().to_string()
-        }
-        crate::facade::runtime::ForgeQueryIntentAdmissionDecision::Advisory(advisory) => {
+        ForgeQueryIntentAdmissionDecision::Admitted(plan) => plan.decision_digest().to_string(),
+        ForgeQueryIntentAdmissionDecision::Advisory(advisory) => {
             advisory.decision_digest().to_string()
         }
-        crate::facade::runtime::ForgeQueryIntentAdmissionDecision::Violation(violation) => {
+        ForgeQueryIntentAdmissionDecision::Violation(violation) => {
             violation.decision_digest().to_string()
         }
     }
 }
 
-fn admitted_plan_digest(plan: &crate::intent_admission::ForgeQueryAdmittedIntentPlan) -> String {
+fn admitted_plan_digest(plan: &ForgeQueryAdmittedIntentPlan) -> String {
     hash_parts(&[
         "forge_query_intent_admission_representative_plan_v1".to_string(),
         format!("family:{}", plan.family().as_str()),
@@ -246,11 +377,6 @@ fn eligibility_evidence(
         .expect("representative trace should preserve eligibility evidence")
 }
 
-fn posture_digest<T: std::fmt::Debug>(a: T, b: T, c: T, d: T) -> String {
-    hash_parts(&[
-        format!("{a:?}"),
-        format!("{b:?}"),
-        format!("{c:?}"),
-        format!("{d:?}"),
-    ])
+fn posture_digest<T: std::fmt::Debug, const N: usize>(values: [T; N]) -> String {
+    hash_parts(&values.map(|value| format!("{value:?}")))
 }

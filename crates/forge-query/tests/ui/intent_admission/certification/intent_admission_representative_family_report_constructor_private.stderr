@@ -1,9 +1,0 @@
-error[E0451]: fields `rows` and `representative_family_coverage_digest` of struct `ForgeQueryIntentAdmissionRepresentativeFamilyReport` are private
- --> tests/ui/intent_admission/certification/intent_admission_representative_family_report_constructor_private.rs:5:9
-  |
-4 |     let _ = ForgeQueryIntentAdmissionRepresentativeFamilyReport {
-  |             --------------------------------------------------- in this type
-5 |         rows: Vec::new(),
-  |         ^^^^ private field
-6 |         representative_family_coverage_digest: String::new(),
-  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field

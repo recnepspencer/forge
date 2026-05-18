@@ -23,9 +23,16 @@ impl ForgeQueryIntentAdmissionSupportPosture {
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryIntentAdmissionSupportDetail {
     ImplementedRuntimeIntentFloor,
+    ImplementedAuthoritativeMutationFloor,
+    ImplementedAuthoritativeMutationBatchFloor,
+    ImplementedReadExecutionFloor,
+    ImplementedLiveReadExecutionFloor,
+    ImplementedUnifiedInspectionFloor,
+    ImplementedDerivedMaterializationFloor,
+    ImplementedDerivedInspectionFloor,
+    ImplementedExistingTruthProbeRoutingFloor,
     ImplementedBasisObservationScope,
     ImplementedProjectionConsumptionContract,
-    ReadExecutionNeighborDeferredUntilCovered,
     InspectionMaterializationNeighborDeferredUntilCovered,
 }
 
@@ -33,12 +40,25 @@ impl ForgeQueryIntentAdmissionSupportDetail {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::ImplementedRuntimeIntentFloor => "implemented-runtime-intent-floor",
+            Self::ImplementedAuthoritativeMutationFloor => {
+                "implemented-authoritative-mutation-floor"
+            }
+            Self::ImplementedAuthoritativeMutationBatchFloor => {
+                "implemented-authoritative-mutation-batch-floor"
+            }
+            Self::ImplementedReadExecutionFloor => "implemented-read-execution-floor",
+            Self::ImplementedLiveReadExecutionFloor => "implemented-live-read-execution-floor",
+            Self::ImplementedUnifiedInspectionFloor => "implemented-unified-inspection-floor",
+            Self::ImplementedDerivedMaterializationFloor => {
+                "implemented-derived-materialization-floor"
+            }
+            Self::ImplementedDerivedInspectionFloor => "implemented-derived-inspection-floor",
+            Self::ImplementedExistingTruthProbeRoutingFloor => {
+                "implemented-existing-truth-probe-routing-floor"
+            }
             Self::ImplementedBasisObservationScope => "implemented-basis-observation-scope",
             Self::ImplementedProjectionConsumptionContract => {
                 "implemented-projection-consumption-contract"
-            }
-            Self::ReadExecutionNeighborDeferredUntilCovered => {
-                "read-execution-neighbor-deferred-until-covered"
             }
             Self::InspectionMaterializationNeighborDeferredUntilCovered => {
                 "inspection-materialization-neighbor-deferred-until-covered"
@@ -109,7 +129,7 @@ impl ForgeQueryIntentAdmissionSupportMatrix {
     }
 }
 
-const SUPPORT_ROWS: [ForgeQueryIntentAdmissionSupportRow; 6] = [
+const SUPPORT_ROWS: [ForgeQueryIntentAdmissionSupportRow; 14] = [
     ForgeQueryIntentAdmissionSupportRow::new(
         ForgeQueryIntentAdmissionFamily::AuthoritativeUserIntent,
         ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteIntent,
@@ -123,6 +143,20 @@ const SUPPORT_ROWS: [ForgeQueryIntentAdmissionSupportRow; 6] = [
         ForgeQueryIntentAdmissionSupportPosture::Admitted,
         ForgeQueryIntentAdmissionExecutionBoundary::covered_backend_intent_authority_route(),
         ForgeQueryIntentAdmissionSupportDetail::ImplementedRuntimeIntentFloor,
+    ),
+    ForgeQueryIntentAdmissionSupportRow::new(
+        ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite,
+        ForgeQueryIntentAdmissionSupportPosture::Admitted,
+        ForgeQueryIntentAdmissionExecutionBoundary::covered_backend_write_authority_route(),
+        ForgeQueryIntentAdmissionSupportDetail::ImplementedAuthoritativeMutationFloor,
+    ),
+    ForgeQueryIntentAdmissionSupportRow::new(
+        ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteBatchWrite,
+        ForgeQueryIntentAdmissionSupportPosture::Admitted,
+        ForgeQueryIntentAdmissionExecutionBoundary::covered_backend_write_authority_route(),
+        ForgeQueryIntentAdmissionSupportDetail::ImplementedAuthoritativeMutationBatchFloor,
     ),
     ForgeQueryIntentAdmissionSupportRow::new(
         ForgeQueryIntentAdmissionFamily::BasisUseIntent,
@@ -144,21 +178,61 @@ const SUPPORT_ROWS: [ForgeQueryIntentAdmissionSupportRow; 6] = [
     ),
     ForgeQueryIntentAdmissionSupportRow::new(
         ForgeQueryIntentAdmissionFamily::ReadExecutionIntent,
-        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteReadNeighborDeferred,
-        ForgeQueryIntentAdmissionSupportPosture::Deferred,
-        ForgeQueryIntentAdmissionExecutionBoundary::deferred_neighbor(
-            "neighbor-deferred-until-covered",
-        ),
-        ForgeQueryIntentAdmissionSupportDetail::ReadExecutionNeighborDeferredUntilCovered,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteReadFamily,
+        ForgeQueryIntentAdmissionSupportPosture::Admitted,
+        ForgeQueryIntentAdmissionExecutionBoundary::covered_query_runtime_read_execution_route(),
+        ForgeQueryIntentAdmissionSupportDetail::ImplementedReadExecutionFloor,
+    ),
+    ForgeQueryIntentAdmissionSupportRow::new(
+        ForgeQueryIntentAdmissionFamily::ReadExecutionIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteReadFamilyInBasisContext,
+        ForgeQueryIntentAdmissionSupportPosture::Admitted,
+        ForgeQueryIntentAdmissionExecutionBoundary::covered_query_runtime_read_execution_route(),
+        ForgeQueryIntentAdmissionSupportDetail::ImplementedReadExecutionFloor,
+    ),
+    ForgeQueryIntentAdmissionSupportRow::new(
+        ForgeQueryIntentAdmissionFamily::ReadExecutionIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteLiveRead,
+        ForgeQueryIntentAdmissionSupportPosture::Admitted,
+        ForgeQueryIntentAdmissionExecutionBoundary::covered_query_runtime_read_execution_route(),
+        ForgeQueryIntentAdmissionSupportDetail::ImplementedLiveReadExecutionFloor,
+    ),
+    ForgeQueryIntentAdmissionSupportRow::new(
+        ForgeQueryIntentAdmissionFamily::InspectionMaterializationIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteUnifiedInspection,
+        ForgeQueryIntentAdmissionSupportPosture::Admitted,
+        ForgeQueryIntentAdmissionExecutionBoundary::covered_query_runtime_inspection_materialization_route(),
+        ForgeQueryIntentAdmissionSupportDetail::ImplementedUnifiedInspectionFloor,
+    ),
+    ForgeQueryIntentAdmissionSupportRow::new(
+        ForgeQueryIntentAdmissionFamily::InspectionMaterializationIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteDerivedMaterialization,
+        ForgeQueryIntentAdmissionSupportPosture::Admitted,
+        ForgeQueryIntentAdmissionExecutionBoundary::covered_query_runtime_inspection_materialization_route(),
+        ForgeQueryIntentAdmissionSupportDetail::ImplementedDerivedMaterializationFloor,
+    ),
+    ForgeQueryIntentAdmissionSupportRow::new(
+        ForgeQueryIntentAdmissionFamily::InspectionMaterializationIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteDerivedInspection,
+        ForgeQueryIntentAdmissionSupportPosture::Admitted,
+        ForgeQueryIntentAdmissionExecutionBoundary::covered_query_runtime_inspection_materialization_route(),
+        ForgeQueryIntentAdmissionSupportDetail::ImplementedDerivedInspectionFloor,
     ),
     ForgeQueryIntentAdmissionSupportRow::new(
         ForgeQueryIntentAdmissionFamily::InspectionMaterializationIntent,
         ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteInspectionNeighborDeferred,
         ForgeQueryIntentAdmissionSupportPosture::Deferred,
         ForgeQueryIntentAdmissionExecutionBoundary::deferred_neighbor(
-            "neighbor-deferred-until-covered",
+            "inspection-materialization-neighbor-deferred-until-covered",
         ),
         ForgeQueryIntentAdmissionSupportDetail::InspectionMaterializationNeighborDeferredUntilCovered,
+    ),
+    ForgeQueryIntentAdmissionSupportRow::new(
+        ForgeQueryIntentAdmissionFamily::LowerRuntimeCapabilityRoutingIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteExistingTruthProbeRouting,
+        ForgeQueryIntentAdmissionSupportPosture::Admitted,
+        ForgeQueryIntentAdmissionExecutionBoundary::covered_backend_existing_truth_probe_route(),
+        ForgeQueryIntentAdmissionSupportDetail::ImplementedExistingTruthProbeRoutingFloor,
     ),
 ];
 

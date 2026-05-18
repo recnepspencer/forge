@@ -41,7 +41,7 @@ impl ForgeQueryIntentAdmissionPreDecisionPosture {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryIntentAdmissionEligibility {
     request: ForgeQueryRawIntentAdmissionRequest,
     support_posture: ForgeQueryIntentAdmissionSupportEligibility,

@@ -4,7 +4,7 @@ error[E0624]: associated function `from_eligibility` is private
 21 |     let _plan = ForgeQueryAdmittedIntentPlan::from_eligibility(
    |                                               ^^^^^^^^^^^^^^^^ private associated function
    |
-  ::: src/intent_admission/plans.rs
+  ::: src/intent_admission/plans/mod.rs
    |
    |     pub(crate) fn from_eligibility(eligibility: ForgeQueryIntentAdmissionEligibility) -> Self {
    |     ----------------------------------------------------------------------------------------- private associated function defined here
@@ -19,7 +19,7 @@ error[E0061]: this function takes 1 argument but 2 arguments were supplied
    |         ------------------------------------------------------------------- unexpected argument #2 of type `ForgeQueryIntentAdmissionExecutionSeam`
    |
 note: associated function defined here
-  --> src/intent_admission/plans.rs
+  --> src/intent_admission/plans/mod.rs
    |
    |     pub(crate) fn from_eligibility(eligibility: ForgeQueryIntentAdmissionEligibility) -> Self {
    |                   ^^^^^^^^^^^^^^^^

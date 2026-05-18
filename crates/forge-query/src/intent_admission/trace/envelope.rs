@@ -26,35 +26,58 @@ impl ForgeQueryIntentDecisionTraceEnvelope {
         handoff: &ForgeQueryAdmittedIntentExecutionHandoff,
         execution: &ForgeQueryIntentExecution,
     ) -> Self {
+        Self::for_admitted_execution_parts(
+            handoff.family(),
+            handoff.entrypoint(),
+            handoff.declaration().name(),
+            handoff.request_digest(),
+            handoff.eligibility_trace().clone(),
+            handoff.decision_digest(),
+            handoff.handoff_digest(),
+            handoff.execution_seam(),
+            execution.execution_kind().as_str(),
+            execution.outcome_digest(),
+            execution.execution_kind().as_str(),
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn for_admitted_execution_parts(
+        family: ForgeQueryIntentAdmissionFamily,
+        entrypoint: ForgeQueryIntentAdmissionCoveredEntrypoint,
+        request_detail: &str,
+        request_digest: &str,
+        eligibility_trace: ForgeQueryIntentEligibilityTraceEvidence,
+        decision_digest: &str,
+        handoff_digest: &str,
+        execution_seam: super::super::ForgeQueryIntentAdmissionExecutionSeam,
+        execution_detail: &str,
+        outcome_digest: &str,
+        execution_kind: &str,
+    ) -> Self {
         let rows = vec![
-            request_row(
-                handoff.declaration().name(),
-                handoff.request_digest().to_string(),
-            ),
-            eligibility_row(
-                handoff.entrypoint().as_str(),
-                handoff.eligibility_trace().clone(),
-            ),
+            request_row(request_detail, request_digest.to_string()),
+            eligibility_row(entrypoint.as_str(), eligibility_trace),
             admitted_decision_row(
-                handoff.execution_seam().as_str(),
-                handoff.decision_digest().to_string(),
-                handoff.execution_seam(),
+                execution_seam.as_str(),
+                decision_digest.to_string(),
+                execution_seam,
             ),
             execution_handoff_row(
-                handoff.execution_seam().as_str(),
-                handoff.handoff_digest().to_string(),
-                handoff.execution_seam(),
+                execution_seam.as_str(),
+                handoff_digest.to_string(),
+                execution_seam,
             ),
             execution_outcome_row(
-                execution.execution_kind().as_str(),
-                execution.outcome_digest().to_string(),
-                execution.execution_kind().as_str().to_string(),
+                execution_detail,
+                outcome_digest.to_string(),
+                execution_kind.to_string(),
             ),
         ];
         Self::new(
             ForgeQueryIntentDecisionTraceEnvelopeKind::AdmittedExecution,
-            handoff.family(),
-            handoff.entrypoint(),
+            family,
+            entrypoint,
             rows,
         )
     }

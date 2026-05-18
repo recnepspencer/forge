@@ -51,6 +51,28 @@ impl ForgeQueryIntentExecutionProvenance {
         )
     }
 
+    pub(in crate::runtime) fn for_shared_execution_parts(
+        family: ForgeQueryIntentAdmissionFamily,
+        entrypoint: ForgeQueryIntentAdmissionCoveredEntrypoint,
+        execution_seam: ForgeQueryIntentAdmissionExecutionSeam,
+        admission_decision_digest: &str,
+        execution_handoff_digest: &str,
+        execution_binding_digest: &str,
+        execution_outcome_digest: &str,
+        snapshot_token: &str,
+    ) -> Self {
+        Self::new(
+            family,
+            entrypoint,
+            execution_seam,
+            admission_decision_digest,
+            execution_handoff_digest,
+            execution_binding_digest,
+            execution_outcome_digest,
+            snapshot_token,
+        )
+    }
+
     fn new(
         family: ForgeQueryIntentAdmissionFamily,
         entrypoint: ForgeQueryIntentAdmissionCoveredEntrypoint,

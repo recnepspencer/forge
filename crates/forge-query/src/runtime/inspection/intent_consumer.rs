@@ -5,8 +5,10 @@ use crate::intent_admission::{
 };
 
 use super::super::{
-    ForgeQueryIntentDenialEvidence, ForgeQueryIntentExecutionFailureEvidence,
-    ForgeQueryIntentExecutionProvenance, ForgeQueryIntentReceipt,
+    ForgeQueryDerivedInspectionReceipt, ForgeQueryDerivedMaterializationReceipt,
+    ForgeQueryExistingTruthProbeReceipt, ForgeQueryIntentDenialEvidence,
+    ForgeQueryIntentExecutionFailureEvidence, ForgeQueryIntentExecutionProvenance,
+    ForgeQueryIntentReceipt, ForgeQueryLiveReadReceipt, ForgeQueryUnifiedInspectionReceipt,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -115,6 +117,102 @@ impl<'a> ForgeQueryIntentConsumerInspection<'a> {
             fallback_stage: "violation-stop",
             fallback_cause: evidence.stage(),
             fallback_detail: evidence.message(),
+        }
+    }
+
+    pub(crate) fn from_mutation_receipt(
+        intent_name: &'a str,
+        execution_provenance: &'a ForgeQueryIntentExecutionProvenance,
+        decision_trace_envelope: &'a ForgeQueryIntentDecisionTraceEnvelope,
+    ) -> Self {
+        Self {
+            intent_name,
+            outcome_class: ForgeQueryIntentConsumerOutcomeClass::Admitted,
+            admission_family: Some(execution_provenance.family()),
+            covered_entrypoint: Some(execution_provenance.entrypoint()),
+            decision_trace_envelope: Some(decision_trace_envelope),
+            execution_provenance: Some(execution_provenance),
+            fallback_stage: "execution-outcome",
+            fallback_cause: "execution_outcome_recorded",
+            fallback_detail: "mutation-write",
+        }
+    }
+
+    pub(crate) fn from_live_read_receipt(receipt: &'a ForgeQueryLiveReadReceipt) -> Self {
+        Self {
+            intent_name: receipt.view_name(),
+            outcome_class: ForgeQueryIntentConsumerOutcomeClass::Admitted,
+            admission_family: receipt.execution_provenance().map(|p| p.family()),
+            covered_entrypoint: receipt.execution_provenance().map(|p| p.entrypoint()),
+            decision_trace_envelope: receipt.decision_trace_envelope(),
+            execution_provenance: receipt.execution_provenance(),
+            fallback_stage: "execution-outcome",
+            fallback_cause: "execution_outcome_recorded",
+            fallback_detail: "live-view-read",
+        }
+    }
+
+    pub(crate) fn from_derived_materialization_receipt(
+        receipt: &'a ForgeQueryDerivedMaterializationReceipt,
+    ) -> Self {
+        Self {
+            intent_name: receipt.view_name(),
+            outcome_class: ForgeQueryIntentConsumerOutcomeClass::Admitted,
+            admission_family: receipt.execution_provenance().map(|p| p.family()),
+            covered_entrypoint: receipt.execution_provenance().map(|p| p.entrypoint()),
+            decision_trace_envelope: receipt.decision_trace_envelope(),
+            execution_provenance: receipt.execution_provenance(),
+            fallback_stage: "execution-outcome",
+            fallback_cause: "execution_outcome_recorded",
+            fallback_detail: "derived-view-materialization",
+        }
+    }
+
+    pub(crate) fn from_derived_inspection_receipt(
+        receipt: &'a ForgeQueryDerivedInspectionReceipt,
+    ) -> Self {
+        Self {
+            intent_name: receipt.view_name(),
+            outcome_class: ForgeQueryIntentConsumerOutcomeClass::Admitted,
+            admission_family: receipt.execution_provenance().map(|p| p.family()),
+            covered_entrypoint: receipt.execution_provenance().map(|p| p.entrypoint()),
+            decision_trace_envelope: receipt.decision_trace_envelope(),
+            execution_provenance: receipt.execution_provenance(),
+            fallback_stage: "execution-outcome",
+            fallback_cause: "execution_outcome_recorded",
+            fallback_detail: "derived-view-inspection",
+        }
+    }
+
+    pub(crate) fn from_existing_truth_probe_receipt(
+        receipt: &'a ForgeQueryExistingTruthProbeReceipt,
+    ) -> Self {
+        Self {
+            intent_name: receipt.authoritative_identity(),
+            outcome_class: ForgeQueryIntentConsumerOutcomeClass::Admitted,
+            admission_family: receipt.execution_provenance().map(|p| p.family()),
+            covered_entrypoint: receipt.execution_provenance().map(|p| p.entrypoint()),
+            decision_trace_envelope: receipt.decision_trace_envelope(),
+            execution_provenance: receipt.execution_provenance(),
+            fallback_stage: "execution-outcome",
+            fallback_cause: "execution_outcome_recorded",
+            fallback_detail: "existing-truth-probe",
+        }
+    }
+
+    pub(crate) fn from_unified_inspection_receipt(
+        receipt: &'a ForgeQueryUnifiedInspectionReceipt,
+    ) -> Self {
+        Self {
+            intent_name: receipt.target_label(),
+            outcome_class: ForgeQueryIntentConsumerOutcomeClass::Admitted,
+            admission_family: receipt.execution_provenance().map(|p| p.family()),
+            covered_entrypoint: receipt.execution_provenance().map(|p| p.entrypoint()),
+            decision_trace_envelope: receipt.decision_trace_envelope(),
+            execution_provenance: receipt.execution_provenance(),
+            fallback_stage: "execution-outcome",
+            fallback_cause: "execution_outcome_recorded",
+            fallback_detail: "unified-inspection",
         }
     }
 

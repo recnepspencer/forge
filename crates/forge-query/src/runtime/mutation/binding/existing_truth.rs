@@ -14,6 +14,13 @@ impl ForgeQueryExistingTruthBindingFamily {
             Self::DirectRelationIdentity => "direct-relation-identity",
         }
     }
+
+    pub fn bridge_backed_support_family(self) -> &'static str {
+        match self {
+            Self::DirectEntityIdentity => "direct_entity_identity",
+            Self::DirectRelationIdentity => "direct_relation_identity",
+        }
+    }
 }
 
 impl std::fmt::Display for ForgeQueryExistingTruthBindingFamily {

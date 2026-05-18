@@ -247,10 +247,10 @@ pub(super) fn actual_deferred_detail(
 fn expected_deferred_parts() -> Vec<String> {
     vec![
         "deferred".to_string(),
-        ForgeQueryIntentAdmissionFamily::ReadExecutionIntent
+        ForgeQueryIntentAdmissionFamily::InspectionMaterializationIntent
             .as_str()
             .to_string(),
-        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteReadNeighborDeferred
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteInspectionNeighborDeferred
             .as_str()
             .to_string(),
         ForgeQueryIntentSourceLane::UserAuthored
@@ -258,7 +258,7 @@ fn expected_deferred_parts() -> Vec<String> {
             .to_string(),
         "deferred".to_string(),
         "deferred".to_string(),
-        "read-execution-neighbor-deferred-until-covered".to_string(),
+        "inspection-materialization-neighbor-deferred-until-covered".to_string(),
         "advisory-stop".to_string(),
     ]
 }

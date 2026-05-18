@@ -1,9 +1,0 @@
-error[E0451]: fields `rows` and `decision_support_traceability_digest` of struct `ForgeQueryIntentAdmissionSupportTraceabilityReport` are private
- --> tests/ui/intent_admission/certification/intent_admission_support_traceability_report_constructor_private.rs:5:9
-  |
-4 |     let _ = ForgeQueryIntentAdmissionSupportTraceabilityReport {
-  |             -------------------------------------------------- in this type
-5 |         rows: Vec::new(),
-  |         ^^^^ private field
-6 |         decision_support_traceability_digest: String::new(),
-  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field

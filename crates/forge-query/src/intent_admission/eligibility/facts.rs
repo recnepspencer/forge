@@ -77,6 +77,9 @@ pub enum ForgeQueryIntentAdmissionBasisEligibility {
     NotApplicableForRuntimeIntentFloor,
     ObservationLifecycleAdmitted,
     ObservationLifecycleViolation(&'static str),
+    ReadExecutionCurrentRuntimeAdmitted,
+    ReadExecutionBasisContextAdmitted,
+    ReadExecutionBasisContextViolation(&'static str),
     DeferredNeighbor(&'static str),
 }
 
@@ -86,6 +89,9 @@ impl ForgeQueryIntentAdmissionBasisEligibility {
             Self::NotApplicableForRuntimeIntentFloor => "not-applicable-runtime-intent-floor",
             Self::ObservationLifecycleAdmitted => "basis-observation-lifecycle-admitted",
             Self::ObservationLifecycleViolation(_) => "basis-observation-lifecycle-violation",
+            Self::ReadExecutionCurrentRuntimeAdmitted => "read-execution-current-runtime-admitted",
+            Self::ReadExecutionBasisContextAdmitted => "read-execution-basis-context-admitted",
+            Self::ReadExecutionBasisContextViolation(_) => "read-execution-basis-context-violation",
             Self::DeferredNeighbor(_) => "deferred-neighbor",
         }
     }
@@ -95,6 +101,9 @@ impl ForgeQueryIntentAdmissionBasisEligibility {
             Self::NotApplicableForRuntimeIntentFloor => None,
             Self::ObservationLifecycleAdmitted => None,
             Self::ObservationLifecycleViolation(detail) => Some(detail),
+            Self::ReadExecutionCurrentRuntimeAdmitted => None,
+            Self::ReadExecutionBasisContextAdmitted => None,
+            Self::ReadExecutionBasisContextViolation(detail) => Some(detail),
             Self::DeferredNeighbor(detail) => Some(detail),
         }
     }

@@ -25,6 +25,16 @@ impl ForgeQueryRuntime {
             ),
             ForgeQueryIntentAdmissionDecision::Admitted(
                 crate::intent_admission::ForgeQueryAdmittedIntentPlan::EffectTriggered(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::AuthoritativeMutation(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::AuthoritativeMutationBatch(
+                    _,
+                )
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::ReadExecution(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::LiveReadExecution(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::DerivedMaterialization(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::DerivedInspection(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::UnifiedInspection(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::ExistingTruthProbeRouting(_)
                 | crate::intent_admission::ForgeQueryAdmittedIntentPlan::BasisObservation(_)
                 | crate::intent_admission::ForgeQueryAdmittedIntentPlan::ProjectionConsumption(_),
             ) => Err(self.intent_violation_error(
@@ -70,6 +80,16 @@ impl ForgeQueryRuntime {
             ),
             ForgeQueryIntentAdmissionDecision::Admitted(
                 crate::intent_admission::ForgeQueryAdmittedIntentPlan::Authoritative(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::AuthoritativeMutation(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::AuthoritativeMutationBatch(
+                    _,
+                )
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::ReadExecution(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::LiveReadExecution(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::DerivedMaterialization(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::DerivedInspection(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::UnifiedInspection(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::ExistingTruthProbeRouting(_)
                 | crate::intent_admission::ForgeQueryAdmittedIntentPlan::BasisObservation(_)
                 | crate::intent_admission::ForgeQueryAdmittedIntentPlan::ProjectionConsumption(_),
             ) => Err(self.intent_violation_error(

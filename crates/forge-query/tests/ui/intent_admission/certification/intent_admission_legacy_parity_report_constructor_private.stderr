@@ -1,9 +1,0 @@
-error[E0451]: fields `rows` and `legacy_delegation_parity_digest` of struct `ForgeQueryIntentAdmissionLegacyParityReport` are private
- --> tests/ui/intent_admission/certification/intent_admission_legacy_parity_report_constructor_private.rs:5:9
-  |
-4 |     let _ = ForgeQueryIntentAdmissionLegacyParityReport {
-  |             ------------------------------------------- in this type
-5 |         rows: Vec::new(),
-  |         ^^^^ private field
-6 |         legacy_delegation_parity_digest: String::new(),
-  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field

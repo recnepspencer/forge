@@ -139,6 +139,8 @@ impl ForgeQueryReadReceipt {
             relationship_proof_admission,
             relationship_proof_support_profile,
             breadth,
+            decision_trace_envelope: None,
+            execution_provenance: None,
         }
     }
 }

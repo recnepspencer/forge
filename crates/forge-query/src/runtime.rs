@@ -12,6 +12,7 @@ use crate::declarative_live::{
     declare_runtime_live_query_session_with_grouped_baseline, DeclarativeLiveQueryError,
     DeclarativeLiveQueryRequest, DeclarativeLiveViewShape,
 };
+#[allow(unused_imports)]
 pub use crate::intent_admission::{
     admit_runtime_intent_request, certify_intent_admission_runtime_floor,
     forge_query_intent_admission_compile_fail_targets,
@@ -25,10 +26,25 @@ pub use crate::intent_admission::{
     forge_query_intent_admission_slope_report, forge_query_intent_admission_support_matrix,
     forge_query_intent_admission_support_traceability_report,
     ForgeQueryAdmittedIntentExecutionHandoff, ForgeQueryAdmittedIntentPlan,
-    ForgeQueryAdmittedRuntimeEffectWriteIntent, ForgeQueryAdmittedRuntimeIntent,
+    ForgeQueryAdmittedRuntimeEffectWriteIntent, ForgeQueryAdmittedRuntimeExistingTruthProbeIntent,
+    ForgeQueryAdmittedRuntimeInspectionIntent, ForgeQueryAdmittedRuntimeIntent,
+    ForgeQueryAdmittedRuntimeWriteBatchIntent, ForgeQueryAdmittedRuntimeWriteIntent,
+    ForgeQueryAdmittedWorkspaceLiveReadIntent, ForgeQueryAdmittedWorkspaceReadIntent,
     ForgeQueryAuthoritativeIntentExecutionBinding, ForgeQueryAuthoritativeIntentExecutionHandoff,
-    ForgeQueryAuthoritativeIntentExecutionPlan, ForgeQueryEffectTriggeredIntentExecutionBinding,
+    ForgeQueryAuthoritativeIntentExecutionPlan,
+    ForgeQueryAuthoritativeMutationBatchExecutionBinding,
+    ForgeQueryAuthoritativeMutationBatchExecutionHandoff,
+    ForgeQueryAuthoritativeMutationBatchExecutionPlan,
+    ForgeQueryAuthoritativeMutationBatchIntentSeed,
+    ForgeQueryAuthoritativeMutationExecutionBinding,
+    ForgeQueryAuthoritativeMutationExecutionHandoff, ForgeQueryAuthoritativeMutationExecutionPlan,
+    ForgeQueryAuthoritativeMutationIntentSeed, ForgeQueryAuthoritativeMutationPreflight,
+    ForgeQueryEffectTriggeredIntentExecutionBinding,
     ForgeQueryEffectTriggeredIntentExecutionHandoff, ForgeQueryEffectTriggeredIntentExecutionPlan,
+    ForgeQueryExistingTruthProbeExecutionBinding, ForgeQueryExistingTruthProbeExecutionHandoff,
+    ForgeQueryExistingTruthProbeExecutionPlan, ForgeQueryExistingTruthProbeIntentSeed,
+    ForgeQueryExistingTruthProbeRoutingPreflight, ForgeQueryGenericInspectionIntentSeed,
+    ForgeQueryGenericInspectionIntentTarget, ForgeQueryGenericInspectionIntentTargetSeed,
     ForgeQueryIntentAdmissionAuthorityLaneEligibility, ForgeQueryIntentAdmissionBasisEligibility,
     ForgeQueryIntentAdmissionCapabilityEligibility, ForgeQueryIntentAdmissionCertificationBundle,
     ForgeQueryIntentAdmissionCertificationCounterSnapshot,
@@ -67,9 +83,25 @@ pub use crate::intent_admission::{
     ForgeQueryIntentDecisionTraceEnvelopeKind, ForgeQueryIntentDecisionTraceRow,
     ForgeQueryIntentDecisionTraceStage, ForgeQueryIntentNonAdmittedStop,
     ForgeQueryIntentViolationDecision, ForgeQueryIntentViolationStop,
-    ForgeQueryRawIntentAdmissionRequest, ForgeQueryRuntimeEffectWriteIntentAdmissionReview,
-    ForgeQueryRuntimeEffectWriteIntentAuthoring, ForgeQueryRuntimeIntentAdmissionReview,
-    ForgeQueryRuntimeIntentAuthoring,
+    ForgeQueryLiveReadExecutionBinding, ForgeQueryLiveReadExecutionHandoff,
+    ForgeQueryLiveReadExecutionPlan, ForgeQueryLiveReadIntentSeed,
+    ForgeQueryRawIntentAdmissionRequest, ForgeQueryReadExecutionBinding,
+    ForgeQueryReadExecutionHandoff, ForgeQueryReadExecutionIntentSeed, ForgeQueryReadExecutionPlan,
+    ForgeQueryRuntimeEffectWriteIntentAdmissionReview, ForgeQueryRuntimeEffectWriteIntentAuthoring,
+    ForgeQueryRuntimeExistingTruthProbeIntentAdmissionReview,
+    ForgeQueryRuntimeExistingTruthProbeIntentAuthoring,
+    ForgeQueryRuntimeInspectionIntentAdmissionReview, ForgeQueryRuntimeInspectionIntentAuthoring,
+    ForgeQueryRuntimeIntentAdmissionReview, ForgeQueryRuntimeIntentAuthoring,
+    ForgeQueryRuntimeWriteBatchIntentAdmissionReview, ForgeQueryRuntimeWriteBatchIntentAuthoring,
+    ForgeQueryRuntimeWriteIntentAdmissionReview, ForgeQueryRuntimeWriteIntentAuthoring,
+    ForgeQueryUnifiedInspectionExecutionBinding, ForgeQueryUnifiedInspectionExecutionHandoff,
+    ForgeQueryUnifiedInspectionExecutionPlan,
+    ForgeQueryWorkspaceDerivedInspectionIntentAdmissionReview,
+    ForgeQueryWorkspaceDerivedInspectionIntentAuthoring,
+    ForgeQueryWorkspaceDerivedMaterializationIntentAdmissionReview,
+    ForgeQueryWorkspaceDerivedMaterializationIntentAuthoring,
+    ForgeQueryWorkspaceLiveReadIntentAdmissionReview, ForgeQueryWorkspaceLiveReadIntentAuthoring,
+    ForgeQueryWorkspaceReadIntentAdmissionReview, ForgeQueryWorkspaceReadIntentAuthoring,
 };
 use crate::memory_workspace::{
     ForgeQueryEntity, ForgeQueryMutationKind, ForgeQueryMutationReceipt, ForgeQueryWorkspaceError,
@@ -135,16 +167,23 @@ mod read_composition_support_report;
 mod read_composition_walks;
 mod runtime_api_contract;
 mod runtime_authoritative_mutation_routing;
+mod runtime_batch_write_entrypoints;
+mod runtime_batch_write_intents;
 mod runtime_batch_writes;
 mod runtime_batching;
 mod runtime_declarations;
 mod runtime_helpers;
 mod runtime_inspection;
+mod runtime_inspection_materialization_intents;
 mod runtime_intent_phase_four_execution;
 mod runtime_intent_phase_three_resolution;
 mod runtime_intents;
+mod runtime_probe_routing_intents;
+mod runtime_read_intents;
 mod runtime_reads_programs;
 mod runtime_sessions;
+mod runtime_unified_inspection_intents;
+mod runtime_write_intents;
 mod runtime_writes;
 mod state;
 mod support;
@@ -385,8 +424,11 @@ pub use surface::{
     ForgeQueryArtifactInspector, ForgeQueryBatchMutationEvidence, ForgeQueryBatchWriteReceipt,
     ForgeQueryContinuityClass, ForgeQueryContinuityMutationEvidence,
     ForgeQueryContinuityOutcomeClass, ForgeQueryContinuityRejectionClass,
+    ForgeQueryDerivedInspectionReceipt, ForgeQueryDerivedInspectionResult,
+    ForgeQueryDerivedMaterializationReceipt, ForgeQueryDerivedMaterializationResult,
     ForgeQueryExistingTruthAssertionEvidence, ForgeQueryExistingTruthBindingEvidence,
-    ForgeQueryExistingTruthBindingOutcome, ForgeQueryGraphCompositionAdmissionTrace,
+    ForgeQueryExistingTruthBindingOutcome, ForgeQueryExistingTruthProbeReceipt,
+    ForgeQueryExistingTruthProbeResult, ForgeQueryGraphCompositionAdmissionTrace,
     ForgeQueryGraphCompositionAdmissionTraceStage, ForgeQueryGraphCompositionAssumptionSummary,
     ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionDomainInvariantSummary,
     ForgeQueryGraphCompositionEvidence, ForgeQueryGraphCompositionLifecycleOutcomeEntry,
@@ -395,9 +437,9 @@ pub use surface::{
     ForgeQueryGraphCompositionProgram, ForgeQueryGraphCompositionProgramStep,
     ForgeQueryGraphCompositionProgramStepKind, ForgeQueryGraphCompositionResolutionEntry,
     ForgeQueryGraphCompositionResolutionMap, ForgeQueryInspectedArtifact,
-    ForgeQueryInstalledOperation, ForgeQueryInstalledProgram, ForgeQueryLiveView,
-    ForgeQueryMutationCausalityEvidence, ForgeQueryMutationFamily,
-    ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetClass,
+    ForgeQueryInstalledOperation, ForgeQueryInstalledProgram, ForgeQueryLiveReadReceipt,
+    ForgeQueryLiveReadResult, ForgeQueryLiveView, ForgeQueryMutationCausalityEvidence,
+    ForgeQueryMutationFamily, ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetClass,
     ForgeQueryMutationTargetDescriptor, ForgeQueryMutationTargetEvidence,
     ForgeQueryNamingMutationEvidence, ForgeQueryNamingMutationOutcome, ForgeQueryPatchBatch,
     ForgeQueryReadBreadth, ForgeQueryReadBuiltInOperator, ForgeQueryReadBuiltInOperatorDenial,
@@ -412,6 +454,7 @@ pub use surface::{
     ForgeQueryReadResult, ForgeQueryReadScopeClass, ForgeQueryReadScopeShapeMismatch,
     ForgeQueryRunReceipt, ForgeQuerySymbolicAspectResolutionEvidence,
     ForgeQuerySymbolicTargetReferenceEvidence, ForgeQuerySymbolicTargetReferenceOutcome,
+    ForgeQueryUnifiedInspectionReceipt, ForgeQueryUnifiedInspectionResult,
     ForgeQueryVerificationReadSetBreadth, ForgeQueryVerifiedAssumptionSet, ForgeQueryWriteCommand,
     ForgeQueryWriteReceipt,
 };

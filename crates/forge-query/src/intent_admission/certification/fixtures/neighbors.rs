@@ -39,7 +39,7 @@ pub(in crate::intent_admission::certification) fn certified_deferred_intent_fixt
 ) -> CertifiedDeferredIntentFixture {
     let declaration = authoritative_declaration("certification-deferred-intent");
     let request = ForgeQueryRawIntentAdmissionRequest::deferred_neighbor(
-        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteReadNeighborDeferred,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteInspectionNeighborDeferred,
         declaration,
     )
     .expect("deferred certification request should build");

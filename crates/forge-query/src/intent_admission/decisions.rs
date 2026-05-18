@@ -39,7 +39,7 @@ pub fn admit_runtime_intent_request(
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum ForgeQueryIntentAdmissionDecision {
     Admitted(ForgeQueryAdmittedIntentPlan),
     Advisory(ForgeQueryIntentAdvisoryDecision),

@@ -44,6 +44,32 @@ fn intent_admission_doc_teaches_the_runtime_floor_with_final_public_names() {
         "`runtime.intent(declaration).review()?.admit()?.execute()`",
         "`runtime.next_effect_write_intent(&effect, version, contract).execute()`",
         "`runtime.next_effect_write_intent(&effect, version, contract).review()?.admit()?.execute()`",
+        "`runtime.write_intent(command).execute()`",
+        "`runtime.write_intent(command).review()?.admit()?.execute()`",
+        "`workspace.write_intent(command).execute()`",
+        "`workspace.write_intent(command).review()?.admit()?.execute()`",
+        "`runtime.write_batch_intent(commands).execute()`",
+        "`runtime.write_batch_intent(commands).review()?.admit()?.execute()`",
+        "`workspace.write_batch_intent(commands).execute()`",
+        "`workspace.write_batch_intent(commands).review()?.admit()?.execute()`",
+        "`workspace.read_family_intent(&family).execute()`",
+        "`workspace.read_family_intent(&family).review()?.admit()?.execute()`",
+        "`workspace.read_family_in_basis_context_intent(&family, &context).execute()`",
+        "`workspace.read_family_in_basis_context_intent(&family, &context).review()?.admit()?.execute()`",
+        "`workspace.read_live_intent(&view).execute()`",
+        "`workspace.read_live_intent(&view).review()?.admit()?.execute()`",
+        "`workspace.read(&view)`",
+        "`workspace.materialize_intent(&view).execute()`",
+        "`workspace.materialize_intent(&view).review()?.admit()?.execute()`",
+        "`workspace.inspect_intent(target).execute()`",
+        "`workspace.inspect_intent(target).review()?.admit()?.execute()`",
+        "`workspace.inspect_derived_intent(&view).execute()`",
+        "`workspace.inspect_derived_intent(&view).review()?.admit()?.execute()`",
+        "`runtime.probe_existing_intent(request).execute()`",
+        "`runtime.probe_existing_intent(request).review()?.admit()?.execute()`",
+        "`workspace.probe_existing_intent(request).execute()`",
+        "`workspace.probe_existing_intent(request).review()?.admit()?.execute()`",
+        "`workspace.materialize(&view)`",
         "`forge_query_basis_observation_intent(RawBasisIntent::CurrentHead)?.admit()?.scope()`",
         "`forge_query_projection_consumption_intent(declaration)?.admit()?.bind_contract()`",
         "`ForgeQueryIntentDecisionTraceEnvelope`",
@@ -73,5 +99,31 @@ fn intent_admission_doc_names_deferred_neighbors_honestly() {
     assert!(
         INTENT_ADMISSION_DOC.contains("projection-consumption"),
         "intent admission doc must name projection consumption as a covered family"
+    );
+    assert!(
+        INTENT_ADMISSION_DOC.contains("read-family execution now uses the same lattice"),
+        "intent admission doc must teach read execution as a covered family"
+    );
+    assert!(
+        INTENT_ADMISSION_DOC
+            .contains("Derived-view materialization and inspection now use the same lattice"),
+        "intent admission doc must teach derived inspection-materialization as a covered family"
+    );
+    assert!(
+        INTENT_ADMISSION_DOC
+            .contains("Bridge-backed existing-truth probes now use the same lattice"),
+        "intent admission doc must teach lower-runtime capability routing as a covered family"
+    );
+    assert!(
+        INTENT_ADMISSION_DOC.contains("verified-existing convenience surfaces too"),
+        "intent admission doc must teach verified-existing mutation wrappers as authoritative-intent delegates"
+    );
+    assert!(
+        INTENT_ADMISSION_DOC.contains("Non-derived inspection now uses the same lattice too"),
+        "intent admission doc must teach generic inspection as a covered family"
+    );
+    assert!(
+        INTENT_ADMISSION_DOC.contains("Generic materialization neighbors"),
+        "intent admission doc must keep the generic materialization neighbors deferred explicitly"
     );
 }

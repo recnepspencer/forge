@@ -2,9 +2,14 @@
 
 use forge_query::facade::{
     forge_query_basis_observation_intent, forge_query_projection_consumption_intent,
-    ForgeQueryEffectHandle, ForgeQueryEffectIntentReceipt, ForgeQueryIntentAdmissionDecision,
-    ForgeQueryIntentConsumerOutcomeClass, ForgeQueryIntentDeclaration, ForgeQueryIntentReceipt,
-    ForgeQueryRuntime, ForgeQueryRuntimeError, ProjectionConsumptionDeclaration, RawBasisIntent,
+    AdmittedQueryBasisContext, ForgeQueryBatchWriteReceipt, ForgeQueryEffectHandle,
+    ForgeQueryEffectIntentReceipt, ForgeQueryExistingTruthProbeRequest,
+    ForgeQueryExistingTruthProbeResult, ForgeQueryExistingTruthTargetBinding,
+    ForgeQueryIntentAdmissionDecision, ForgeQueryIntentConsumerOutcomeClass,
+    ForgeQueryIntentDeclaration, ForgeQueryIntentReceipt, ForgeQueryReadFamily,
+    ForgeQueryReadResult, ForgeQueryRuntime, ForgeQueryRuntimeError, ForgeQueryWorkspace,
+    ForgeQueryWriteCommand, ForgeQueryWriteReceipt, ProjectionConsumptionDeclaration,
+    RawBasisIntent,
 };
 
 fn authoritative_common_path_compiles(
@@ -84,6 +89,88 @@ fn effect_advanced_path_compiles<T>(
     admitted.execute()
 }
 
+fn write_common_path_compiles(
+    runtime: &mut ForgeQueryRuntime,
+    command: ForgeQueryWriteCommand,
+) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+    let receipt = runtime.write_intent(command).execute()?;
+    let _ = receipt.covered_entrypoint_label();
+    let _ = receipt.execution_provenance_chain_digest();
+    let _ = receipt
+        .decision_trace_envelope()
+        .map(|trace| trace.trace_digest());
+    let _ = receipt
+        .consumer_inspection()
+        .map(|consumer| consumer.outcome_class());
+    Ok(receipt)
+}
+
+fn workspace_write_common_path_compiles(
+    workspace: &mut ForgeQueryWorkspace,
+    command: ForgeQueryWriteCommand,
+) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+    let receipt = workspace.write_intent(command).execute()?;
+    let _ = receipt.covered_entrypoint_label();
+    let _ = receipt.execution_provenance_chain_digest();
+    Ok(receipt)
+}
+
+fn write_advanced_path_compiles(
+    runtime: &mut ForgeQueryRuntime,
+    command: ForgeQueryWriteCommand,
+) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+    let review = runtime.write_intent(command).review()?;
+    let _ = review.request().request_digest();
+    let _ = review.eligibility().eligibility_digest();
+    let _ = review.decision();
+    let _ = review.consumer_inspection().decision_trace_digest();
+    let admitted = review.admit()?;
+    let _ = admitted.handoff().handoff_digest();
+    let _ = admitted.execution_binding().binding_digest();
+    admitted.execute()
+}
+
+fn write_batch_common_path_compiles(
+    runtime: &mut ForgeQueryRuntime,
+    commands: Vec<ForgeQueryWriteCommand>,
+) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
+    let receipt = runtime.write_batch_intent(commands).execute()?;
+    let _ = receipt
+        .decision_trace_envelope()
+        .map(|trace| trace.trace_digest());
+    let _ = receipt
+        .execution_provenance()
+        .map(|provenance| provenance.execution_provenance_chain_digest());
+    Ok(receipt)
+}
+
+fn workspace_write_batch_common_path_compiles(
+    workspace: &mut ForgeQueryWorkspace,
+    commands: Vec<ForgeQueryWriteCommand>,
+) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
+    let receipt = workspace.write_batch_intent(commands).execute()?;
+    let _ = receipt
+        .decision_trace_envelope()
+        .map(|trace| trace.trace_digest());
+    let _ = receipt
+        .execution_provenance()
+        .map(|provenance| provenance.execution_provenance_chain_digest());
+    Ok(receipt)
+}
+
+fn write_batch_advanced_path_compiles(
+    runtime: &mut ForgeQueryRuntime,
+    commands: Vec<ForgeQueryWriteCommand>,
+) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
+    let review = runtime.write_batch_intent(commands).review()?;
+    let _ = review.request().request_digest();
+    let _ = review.eligibility().eligibility_digest();
+    let _ = review.decision();
+    let admitted = review.admit()?;
+    let _ = admitted.handoff().handoff_digest();
+    admitted.execute()
+}
+
 fn consumer_lane_typecheck(
     receipt: &ForgeQueryIntentReceipt,
 ) -> ForgeQueryIntentConsumerOutcomeClass {
@@ -106,4 +193,237 @@ fn projection_consumption_common_path_compiles(declaration: ProjectionConsumptio
         .unwrap();
     let _ = admitted.plan().execution_seam();
     let _ = admitted.bind_contract();
+}
+
+fn read_family_common_path_compiles(
+    workspace: &mut ForgeQueryWorkspace,
+    family: &ForgeQueryReadFamily,
+) -> Result<ForgeQueryReadResult, ForgeQueryRuntimeError> {
+    let result = workspace.read_family_intent(family).execute()?;
+    let _ = result
+        .receipt()
+        .decision_trace_envelope()
+        .map(|trace| trace.trace_digest());
+    let _ = result.receipt().execution_provenance_chain_digest();
+    Ok(result)
+}
+
+fn read_family_advanced_path_compiles(
+    workspace: &mut ForgeQueryWorkspace,
+    family: &ForgeQueryReadFamily,
+) -> Result<ForgeQueryReadResult, ForgeQueryRuntimeError> {
+    let review = workspace.read_family_intent(family).review()?;
+    let _ = review.request().request_digest();
+    let _ = review.eligibility().eligibility_digest();
+    let _ = review.decision();
+    let _ = review
+        .admitted_handoff()
+        .map(|handoff| handoff.handoff_digest().to_string());
+    let admitted = review.admit()?;
+    let _ = admitted.execution_binding().binding_digest();
+    admitted.execute()
+}
+
+fn read_family_in_basis_context_common_path_compiles(
+    workspace: &mut ForgeQueryWorkspace,
+    family: &ForgeQueryReadFamily,
+    context: &AdmittedQueryBasisContext,
+) -> Result<ForgeQueryReadResult, ForgeQueryRuntimeError> {
+    let result = workspace
+        .read_family_in_basis_context_intent(family, context)
+        .execute()?;
+    let _ = result
+        .receipt()
+        .decision_trace_envelope()
+        .map(|trace| trace.trace_digest());
+    let _ = result.receipt().execution_provenance_chain_digest();
+    Ok(result)
+}
+
+fn read_family_in_basis_context_advanced_path_compiles(
+    workspace: &mut ForgeQueryWorkspace,
+    family: &ForgeQueryReadFamily,
+    context: &AdmittedQueryBasisContext,
+) -> Result<ForgeQueryReadResult, ForgeQueryRuntimeError> {
+    let review = workspace
+        .read_family_in_basis_context_intent(family, context)
+        .review()?;
+    let _ = review.request().request_digest();
+    let _ = review.eligibility().eligibility_digest();
+    let _ = review.decision();
+    let _ = review
+        .admitted_handoff()
+        .map(|handoff| handoff.handoff_digest().to_string());
+    let admitted = review.admit()?;
+    let _ = admitted.execution_binding().binding_digest();
+    admitted.execute()
+}
+
+fn live_read_common_path_compiles<T>(
+    workspace: &mut ForgeQueryWorkspace,
+    live_view: &forge_query::facade::ForgeQueryLiveView<T>,
+) -> Result<forge_query::facade::ForgeQueryLiveReadResult, ForgeQueryRuntimeError> {
+    let result = workspace.read_live_intent(live_view).execute()?;
+    let _ = result
+        .receipt()
+        .decision_trace_envelope()
+        .map(|trace| trace.trace_digest());
+    let _ = result.receipt().execution_provenance();
+    let _ = result.receipt().consumer_inspection();
+    Ok(result)
+}
+
+fn live_read_advanced_path_compiles<T>(
+    workspace: &mut ForgeQueryWorkspace,
+    live_view: &forge_query::facade::ForgeQueryLiveView<T>,
+) -> Result<forge_query::facade::ForgeQueryLiveReadResult, ForgeQueryRuntimeError> {
+    let review = workspace.read_live_intent(live_view).review()?;
+    let _ = review.request().request_digest();
+    let _ = review.eligibility().eligibility_digest();
+    let _ = review.decision();
+    let _ = review
+        .admitted_handoff()
+        .map(|handoff| handoff.handoff_digest().to_string());
+    let admitted = review.admit()?;
+    let _ = admitted.execution_binding().binding_digest();
+    admitted.execute()
+}
+
+fn derived_materialization_common_path_compiles<T>(
+    workspace: &mut ForgeQueryWorkspace,
+    derived_view: &forge_query::facade::ForgeQueryDerivedViewHandle<T>,
+) -> Result<forge_query::facade::ForgeQueryDerivedMaterializationResult, ForgeQueryRuntimeError> {
+    let result = workspace.materialize_intent(derived_view).execute()?;
+    let _ = result
+        .receipt()
+        .decision_trace_envelope()
+        .map(|trace| trace.trace_digest());
+    let _ = result.receipt().execution_provenance();
+    let _ = result.receipt().consumer_inspection();
+    Ok(result)
+}
+
+fn derived_materialization_advanced_path_compiles<T>(
+    workspace: &mut ForgeQueryWorkspace,
+    derived_view: &forge_query::facade::ForgeQueryDerivedViewHandle<T>,
+) -> Result<forge_query::facade::ForgeQueryDerivedMaterializationResult, ForgeQueryRuntimeError> {
+    let review = workspace.materialize_intent(derived_view).review()?;
+    let _ = review.request().request_digest();
+    let _ = review.eligibility().eligibility_digest();
+    let _ = review.decision();
+    let _ = review
+        .admitted_handoff()
+        .map(|handoff| handoff.handoff_digest().to_string());
+    let admitted = review.admit()?;
+    let _ = admitted.execution_binding().binding_digest();
+    admitted.execute()
+}
+
+fn derived_inspection_common_path_compiles<T>(
+    workspace: &mut ForgeQueryWorkspace,
+    derived_view: &forge_query::facade::ForgeQueryDerivedViewHandle<T>,
+) -> Result<forge_query::facade::ForgeQueryDerivedInspectionResult, ForgeQueryRuntimeError> {
+    let result = workspace.inspect_derived_intent(derived_view).execute()?;
+    let _ = result
+        .receipt()
+        .decision_trace_envelope()
+        .map(|trace| trace.trace_digest());
+    let _ = result.receipt().execution_provenance();
+    let _ = result.receipt().consumer_inspection();
+    Ok(result)
+}
+
+fn derived_inspection_advanced_path_compiles<T>(
+    workspace: &mut ForgeQueryWorkspace,
+    derived_view: &forge_query::facade::ForgeQueryDerivedViewHandle<T>,
+) -> Result<forge_query::facade::ForgeQueryDerivedInspectionResult, ForgeQueryRuntimeError> {
+    let review = workspace.inspect_derived_intent(derived_view).review()?;
+    let _ = review.request().request_digest();
+    let _ = review.eligibility().eligibility_digest();
+    let _ = review.decision();
+    let _ = review
+        .admitted_handoff()
+        .map(|handoff| handoff.handoff_digest().to_string());
+    let admitted = review.admit()?;
+    let _ = admitted.execution_binding().binding_digest();
+    admitted.execute()
+}
+
+fn generic_inspection_common_path_compiles<T>(
+    workspace: &ForgeQueryWorkspace,
+    live_view: &forge_query::facade::ForgeQueryLiveView<T>,
+) -> Result<forge_query::facade::ForgeQueryUnifiedInspectionResult, ForgeQueryRuntimeError> {
+    let result = workspace.inspect_intent(live_view).execute()?;
+    let _ = result
+        .receipt()
+        .decision_trace_envelope()
+        .map(|trace| trace.trace_digest());
+    let _ = result.receipt().execution_provenance();
+    let _ = result.receipt().consumer_inspection();
+    Ok(result)
+}
+
+fn generic_inspection_advanced_path_compiles<T>(
+    workspace: &ForgeQueryWorkspace,
+    live_view: &forge_query::facade::ForgeQueryLiveView<T>,
+) -> Result<forge_query::facade::ForgeQueryUnifiedInspectionResult, ForgeQueryRuntimeError> {
+    let review = workspace.inspect_intent(live_view).review()?;
+    let _ = review.request().request_digest();
+    let _ = review.eligibility().eligibility_digest();
+    let _ = review.decision();
+    let _ = review
+        .admitted_handoff()
+        .map(|handoff| handoff.handoff_digest().to_string());
+    let admitted = review.admit()?;
+    let _ = admitted.execution_binding().binding_digest();
+    admitted.execute()
+}
+
+fn existing_truth_probe_common_path_compiles(
+    runtime: &ForgeQueryRuntime,
+    request: ForgeQueryExistingTruthProbeRequest,
+) -> Result<ForgeQueryExistingTruthProbeResult, ForgeQueryRuntimeError> {
+    let result = runtime.probe_existing_intent(request).execute()?;
+    let _ = result
+        .receipt()
+        .decision_trace_envelope()
+        .map(|trace| trace.trace_digest());
+    let _ = result.receipt().execution_provenance();
+    let _ = result.receipt().consumer_inspection();
+    Ok(result)
+}
+
+fn workspace_existing_truth_probe_common_path_compiles(
+    workspace: &ForgeQueryWorkspace,
+    request: ForgeQueryExistingTruthProbeRequest,
+) -> Result<ForgeQueryExistingTruthProbeResult, ForgeQueryRuntimeError> {
+    let result = workspace.probe_existing_intent(request).execute()?;
+    let _ = result
+        .receipt()
+        .decision_trace_envelope()
+        .map(|trace| trace.trace_digest());
+    let _ = result.receipt().execution_provenance();
+    Ok(result)
+}
+
+fn existing_truth_probe_advanced_path_compiles(
+    runtime: &ForgeQueryRuntime,
+    request: ForgeQueryExistingTruthProbeRequest,
+) -> Result<ForgeQueryExistingTruthProbeResult, ForgeQueryRuntimeError> {
+    let review = runtime.probe_existing_intent(request).review()?;
+    let _ = review.request().request_digest();
+    let _ = review.eligibility().eligibility_digest();
+    let _ = review.decision();
+    let _ = review
+        .admitted_handoff()
+        .map(|handoff| handoff.handoff_digest().to_string());
+    let admitted = review.admit()?;
+    let _ = admitted.execution_binding().binding_digest();
+    admitted.execute()
+}
+
+fn existing_truth_probe_request_typecheck(
+    binding: ForgeQueryExistingTruthTargetBinding,
+) -> Result<ForgeQueryExistingTruthProbeRequest, forge_query::facade::ForgeQueryWorkspaceError> {
+    ForgeQueryExistingTruthProbeRequest::new(binding, ["identity.id"])
 }

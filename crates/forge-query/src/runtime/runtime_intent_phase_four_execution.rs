@@ -79,6 +79,8 @@ impl ForgeQueryRuntime {
                 Vec::new(),
                 None,
                 ForgeQueryMutationMetadata::default(),
+                Some(decision_trace_envelope.clone()),
+                Some(execution_provenance.clone()),
             )
             .map_err(|error| {
                 self.intent_execution_routing_error(
@@ -158,6 +160,8 @@ impl ForgeQueryRuntime {
                 Vec::new(),
                 None,
                 ForgeQueryMutationMetadata::default(),
+                Some(decision_trace_envelope.clone()),
+                Some(execution_provenance.clone()),
             )
             .map_err(|error| {
                 self.intent_execution_routing_error(

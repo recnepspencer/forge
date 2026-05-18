@@ -65,3 +65,4 @@ help: you might have meant to use an associated function to build this type
 14 -     };
  6 +     let _forged = ForgeQueryIntentConsumerInspection::from_failure(_);
    |
+   = and 6 other candidates

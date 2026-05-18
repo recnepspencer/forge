@@ -1,9 +1,0 @@
-error[E0451]: fields `name` and `digest` of struct `ForgeQueryIntentAdmissionCertificationOutput` are private
- --> tests/ui/intent_admission/certification/intent_admission_certification_output_constructor_private.rs:5:9
-  |
-4 |     let _ = ForgeQueryIntentAdmissionCertificationOutput {
-  |             -------------------------------------------- in this type
-5 |         name: "forged",
-  |         ^^^^ private field
-6 |         digest: String::new(),
-  |         ^^^^^^ private field

@@ -1,9 +1,11 @@
 use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::identity::{hash_parts, SchemaBasisDigest};
+use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
 use crate::planning::ExecutionPlanBundle;
 use crate::relationship_proof::{
     RelationshipProofAdmission, RelationshipProofSupportProfile, RelationshipProofSupportStatus,
 };
+use crate::runtime::ForgeQueryIntentExecutionProvenance;
 use crate::schema_view::QuerySchemaView;
 
 use super::read_receipt_support::relationship_proof_support_surface_count;
@@ -208,6 +210,8 @@ pub struct ForgeQueryReadReceipt {
     pub(super) relationship_proof_admission: Option<RelationshipProofAdmission>,
     pub(super) relationship_proof_support_profile: Option<RelationshipProofSupportProfile>,
     pub(super) breadth: ForgeQueryReadBreadth,
+    pub(super) decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
+    pub(super) execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
 }
 
 impl ForgeQueryReadReceipt {
@@ -311,6 +315,20 @@ impl ForgeQueryReadReceipt {
         &self.breadth
     }
 
+    pub fn decision_trace_envelope(&self) -> Option<&ForgeQueryIntentDecisionTraceEnvelope> {
+        self.decision_trace_envelope.as_ref()
+    }
+
+    pub fn execution_provenance(&self) -> Option<&ForgeQueryIntentExecutionProvenance> {
+        self.execution_provenance.as_ref()
+    }
+
+    pub fn execution_provenance_chain_digest(&self) -> Option<&str> {
+        self.execution_provenance
+            .as_ref()
+            .map(|provenance| provenance.execution_provenance_chain_digest())
+    }
+
     #[cfg(test)]
     pub(crate) fn test_only(
         read_graph_digest: impl Into<String>,
@@ -347,6 +365,8 @@ impl ForgeQueryReadReceipt {
                 execution_cursor_advance_count: 0,
                 execution_materialized_relation_count: 0,
             },
+            decision_trace_envelope: None,
+            execution_provenance: None,
         }
     }
 }
