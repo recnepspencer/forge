@@ -8,7 +8,7 @@ use forge_runtime_bridge::facade::{
     TruthSnapshotReader,
 };
 
-pub(in crate::intent_admission::certification) fn certification_bridge() -> RuntimeBridge {
+pub(crate) fn certification_bridge() -> RuntimeBridge {
     RuntimeBridgeBuilder::new()
         .with_relational_source(CertificationBridgeSource)
         .with_signal_sink(CertificationBridgeSink)

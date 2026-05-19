@@ -9,6 +9,7 @@ use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeSeamKey, ForgeQueryLowerRuntimeSupportPosture,
 };
 
+use super::evidence::ForgeQueryLowerRuntimeRepresentativeEvidenceSource;
 use super::evidence::ForgeQueryLowerRuntimeRepresentativeSurface;
 
 pub(super) fn control_digest(surface: &ForgeQueryLowerRuntimeRepresentativeSurface) -> String {
@@ -18,6 +19,7 @@ pub(super) fn control_digest(surface: &ForgeQueryLowerRuntimeRepresentativeSurfa
         surviving_specialist_justification_digest(),
         admitted_crossing_cardinality_digest(surface),
         support_behavior_agreement_digest(surface),
+        required_concrete_seam_coverage_digest(surface),
     ])
 }
 
@@ -27,8 +29,45 @@ pub(super) fn hostile_digest(surface: &ForgeQueryLowerRuntimeRepresentativeSurfa
         "specialist-gap-survival-is-forbidden".to_string(),
         "crossing-cardinality-drift-is-forbidden".to_string(),
         "support-behavior-drift-is-forbidden".to_string(),
+        "required-phase-six-seams-must-not-fall-back-to-synthetic".to_string(),
         surface.route_parity_digest().to_string(),
     ])
+}
+
+pub(crate) fn required_phase_six_concrete_seams() -> &'static [ForgeQueryLowerRuntimeSeamKey] {
+    &[
+        ForgeQueryLowerRuntimeSeamKey::LiveViewSchemaAdmission,
+        ForgeQueryLowerRuntimeSeamKey::LiveViewSourceDeclaration,
+        ForgeQueryLowerRuntimeSeamKey::SubscriptionActivation,
+        ForgeQueryLowerRuntimeSeamKey::PreviewBasisAdmission,
+        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
+        ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting,
+        ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromQueryReceipts,
+        ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromRelationalArtifacts,
+        ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromBridgeArtifacts,
+        ForgeQueryLowerRuntimeSeamKey::CausalBridgeMaterialization,
+        ForgeQueryLowerRuntimeSeamKey::FrontierEvidenceIntake,
+    ]
+}
+
+fn required_concrete_seam_coverage_digest(
+    surface: &ForgeQueryLowerRuntimeRepresentativeSurface,
+) -> String {
+    for seam_key in required_phase_six_concrete_seams() {
+        assert_eq!(
+            surface.evidence_source_for(*seam_key),
+            Some(ForgeQueryLowerRuntimeRepresentativeEvidenceSource::RuntimeBackedFixture),
+            "required phase six seam {} must remain runtime-backed",
+            seam_key.as_str()
+        );
+    }
+
+    hash_parts(
+        &required_phase_six_concrete_seams()
+            .iter()
+            .map(|seam_key| seam_key.as_str().to_string())
+            .collect::<Vec<_>>(),
+    )
 }
 
 fn classification_exactness_digest() -> String {
@@ -387,4 +426,38 @@ fn receipt_kind_by_seam(
         kinds.insert(*seam_key, receipt.kind());
     }
     kinds
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::lower_runtime_routing::certification::surface::{
+        forge_query_lower_runtime_representative_surface,
+        ForgeQueryLowerRuntimeRepresentativeEvidenceSource,
+    };
+
+    #[test]
+    fn required_phase_six_concrete_seams_are_enforced_hostilely() {
+        let surface = forge_query_lower_runtime_representative_surface()
+            .with_evidence_source_override(
+                ForgeQueryLowerRuntimeSeamKey::SubscriptionActivation,
+                ForgeQueryLowerRuntimeRepresentativeEvidenceSource::InventorySynthesized,
+            );
+
+        let panic = std::panic::catch_unwind(|| required_concrete_seam_coverage_digest(&surface))
+            .expect_err("required concrete seam fallback must fail acceptance");
+        let message = panic_message(panic);
+
+        assert!(message.contains("subscription-activation"));
+    }
+
+    fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
+        if let Some(message) = payload.downcast_ref::<String>() {
+            return message.clone();
+        }
+        if let Some(message) = payload.downcast_ref::<&str>() {
+            return (*message).to_string();
+        }
+        "non-string panic payload".to_string()
+    }
 }

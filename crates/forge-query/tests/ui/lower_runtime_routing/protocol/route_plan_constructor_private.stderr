@@ -14,7 +14,7 @@ error[E0624]: associated function `new` is private
 7 |       let _ = ForgeQueryLowerRuntimeRoutePlan::new(eligibility, "forged-route");
   |                                                ^^^ private associated function
   |
- ::: src/lower_runtime_routing/protocol.rs
+ ::: src/lower_runtime_routing/plans/mod.rs
   |
   | /     pub(crate) fn new(
   | |         eligibility: ForgeQueryLowerRuntimeCapabilityEligibility,

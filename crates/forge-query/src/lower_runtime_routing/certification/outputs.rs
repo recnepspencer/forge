@@ -4,12 +4,12 @@ use crate::lower_runtime_routing::{
     forge_query_lower_runtime_gap_registry, forge_query_lower_runtime_support_matrix,
 };
 
-use super::acceptance::{
-    ForgeQueryLowerRuntimeAcceptanceLane, ForgeQueryLowerRuntimeAcceptanceSuite,
-};
-use super::evidence::ForgeQueryLowerRuntimeRepresentativeSurface;
 use super::model::ForgeQueryLowerRuntimeCertificationOutputDigest;
 use super::performance::ForgeQueryLowerRuntimePerformanceSlopeReport;
+use super::surface::{
+    ForgeQueryLowerRuntimeAcceptanceLane, ForgeQueryLowerRuntimeAcceptanceSuite,
+    ForgeQueryLowerRuntimeRepresentativeSurface,
+};
 use super::{
     forge_query_lower_runtime_phase_progression_digest,
     forge_query_lower_runtime_proof_shape_digest, ForgeQueryLowerRuntimeNonBypassAudit,
@@ -86,6 +86,14 @@ pub(super) fn certification_output_digests(
             surface.golden_transcript_digest().to_string(),
         ),
         output(
+            "route_concrete_surface_digest",
+            surface.concrete_surface_digest(),
+        ),
+        output(
+            "route_synthetic_surface_digest",
+            surface.synthetic_surface_digest(),
+        ),
+        output(
             "route_proof_shape_digest",
             forge_query_lower_runtime_proof_shape_digest(),
         ),
@@ -138,6 +146,14 @@ pub(super) fn certification_output_digests(
         output(
             "boundary_evidence_width",
             surface.envelopes().len().to_string(),
+        ),
+        output(
+            "route_concrete_surface_width",
+            surface.concrete_surface_width().to_string(),
+        ),
+        output(
+            "route_synthetic_surface_width",
+            surface.synthetic_surface_width().to_string(),
         ),
         output(
             "capability_eligibility_slope_digest",

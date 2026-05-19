@@ -1,9 +1,12 @@
+use std::collections::BTreeSet;
 use std::fs;
 use std::path::{Path, PathBuf};
 
 use crate::identity::hash_parts;
 
-use super::public_surface::forge_query_lower_runtime_public_surface_inventory;
+use super::public_surface::{
+    forge_query_lower_runtime_public_surface_inventory, ForgeQueryLowerRuntimePublicSurfaceKind,
+};
 use crate::lower_runtime_routing::forge_query_lower_runtime_direct_import_audit;
 
 const LOWER_RUNTIME_IMPORT_MARKERS: &[&str] = &[
@@ -77,11 +80,7 @@ pub fn certify_lower_runtime_non_bypass() -> Result<ForgeQueryLowerRuntimeNonByp
     let mut violations = Vec::new();
     let mut checked_files = 0usize;
 
-    for relative in [
-        "crates/forge-query/src/runtime/workspace_queries.rs",
-        "crates/forge-query/src/runtime/runtime_declarations.rs",
-        "crates/forge-query/src/runtime/runtime_sessions.rs",
-    ] {
+    for relative in routed_surface_paths() {
         checked_files += scan_surface_file(&workspace_root, relative, false, &mut violations)?;
     }
 
@@ -127,6 +126,18 @@ pub fn forge_query_lower_runtime_compile_fail_boundary_digest() -> String {
 
 pub fn forge_query_lower_runtime_compile_fail_boundary_target_count() -> usize {
     COMPILE_FAIL_TARGETS.len()
+}
+
+fn routed_surface_paths() -> Vec<&'static str> {
+    let mut seen = BTreeSet::new();
+    for row in forge_query_lower_runtime_public_surface_inventory().rows() {
+        if row.surface_kind() == ForgeQueryLowerRuntimePublicSurfaceKind::DownstreamRuntimeBoundary
+        {
+            continue;
+        }
+        seen.insert(row.implementation_path());
+    }
+    seen.into_iter().collect()
 }
 
 fn workspace_root() -> Result<PathBuf, String> {
@@ -264,6 +275,20 @@ mod tests {
     }
 
     #[test]
+    fn routed_surface_paths_cover_mutation_and_batch_boundary_files() {
+        let paths = routed_surface_paths();
+
+        for path in [
+            "crates/forge-query/src/runtime/workspace.rs",
+            "crates/forge-query/src/runtime/runtime_writes.rs",
+            "crates/forge-query/src/runtime/runtime_batch_write_entrypoints.rs",
+            "crates/forge-query/src/runtime/runtime_batch_writes.rs",
+        ] {
+            assert!(paths.contains(&path), "missing routed surface path {path}");
+        }
+    }
+
+    #[test]
     fn hostile_projection_file_outside_runtime_boundary_is_rejected() {
         let workspace_root = workspace_root().expect("workspace root should resolve");
         let mut hostile = Vec::new();
@@ -278,6 +303,47 @@ mod tests {
         )
         .expect("hostile fixture should scan");
         fs::remove_file(&temp).expect("hostile fixture should clean up");
+        assert_eq!(hostile.len(), 1);
+        assert!(hostile[0].contains("outside the declared routed boundary"));
+    }
+
+    #[test]
+    fn hostile_workspace_mutation_surface_outside_routed_lane_is_rejected() {
+        let workspace_root = workspace_root().expect("workspace root should resolve");
+        let mut hostile = Vec::new();
+        let temp = workspace_root.join("target/lower_runtime_hostile_workspace_write.rs");
+        fs::write(&temp, "use forge_runtime_bridge::facade::RuntimeBridge;\n")
+            .expect("hostile mutation fixture should write");
+        scan_file_contents(
+            &temp,
+            "crates/forge-query/src/runtime/workspace.rs",
+            false,
+            &mut hostile,
+        )
+        .expect("hostile mutation fixture should scan");
+        fs::remove_file(&temp).expect("hostile mutation fixture should clean up");
+        assert_eq!(hostile.len(), 1);
+        assert!(hostile[0].contains("outside the declared routed boundary"));
+    }
+
+    #[test]
+    fn hostile_runtime_batch_surface_outside_routed_lane_is_rejected() {
+        let workspace_root = workspace_root().expect("workspace root should resolve");
+        let mut hostile = Vec::new();
+        let temp = workspace_root.join("target/lower_runtime_hostile_runtime_batch.rs");
+        fs::write(
+            &temp,
+            "use forge_signal::facade::SignalInvalidationScope;\n",
+        )
+        .expect("hostile runtime batch fixture should write");
+        scan_file_contents(
+            &temp,
+            "crates/forge-query/src/runtime/runtime_batch_writes.rs",
+            false,
+            &mut hostile,
+        )
+        .expect("hostile runtime batch fixture should scan");
+        fs::remove_file(&temp).expect("hostile runtime batch fixture should clean up");
         assert_eq!(hostile.len(), 1);
         assert!(hostile[0].contains("outside the declared routed boundary"));
     }

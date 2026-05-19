@@ -14,7 +14,7 @@ error[E0624]: associated function `from_route_plan` is private
 7 |       let _ = ForgeQueryLowerRuntimeBoundaryExecutionReceipt::from_route_plan(&plan, "forged");
   |                                                               ^^^^^^^^^^^^^^^ private associated function
   |
- ::: src/lower_runtime_routing/protocol.rs
+ ::: src/lower_runtime_routing/receipts/mod.rs
   |
   | /     pub(crate) fn from_route_plan(
   | |         plan: &ForgeQueryLowerRuntimeRoutePlan,

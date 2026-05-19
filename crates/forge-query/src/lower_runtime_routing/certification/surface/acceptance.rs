@@ -1,9 +1,8 @@
 use crate::identity::hash_parts;
 use crate::lower_runtime_routing::forge_query_lower_runtime_crossing_inventory;
 
-use super::evidence::{
-    forge_query_lower_runtime_representative_surface, ForgeQueryLowerRuntimeRepresentativeSurface,
-};
+use super::acceptance_checks::{control_digest, hostile_digest, required_phase_six_concrete_seams};
+use super::evidence::forge_query_lower_runtime_representative_surface;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryLowerRuntimeAcceptanceLane {
@@ -98,12 +97,15 @@ pub fn forge_query_lower_runtime_acceptance_suite() -> ForgeQueryLowerRuntimeAcc
             ForgeQueryLowerRuntimeAcceptanceLane::Control,
             control_digest(&surface),
             format!(
-                "crossings={} requests={} route_plans={} receipts={} envelopes={}",
+                "crossings={} requests={} route_plans={} receipts={} envelopes={} concrete={} synthetic={} required_concrete_seams={}",
                 forge_query_lower_runtime_crossing_inventory().rows().len(),
                 surface.requests().len(),
                 surface.route_plans().len(),
                 surface.boundary_receipts().len(),
-                surface.envelopes().len()
+                surface.envelopes().len(),
+                surface.concrete_surface_width(),
+                surface.synthetic_surface_width(),
+                required_phase_six_concrete_seams().len(),
             ),
         ),
         ForgeQueryLowerRuntimeAcceptanceRow::new(
@@ -117,14 +119,6 @@ pub fn forge_query_lower_runtime_acceptance_suite() -> ForgeQueryLowerRuntimeAcc
             "equivalent admitted crossings normalize to shared lower-runtime route meaning while intentionally different families diverge".to_string(),
         ),
     ])
-}
-
-fn control_digest(surface: &ForgeQueryLowerRuntimeRepresentativeSurface) -> String {
-    super::acceptance_checks::control_digest(surface)
-}
-
-fn hostile_digest(surface: &ForgeQueryLowerRuntimeRepresentativeSurface) -> String {
-    super::acceptance_checks::hostile_digest(surface)
 }
 
 #[cfg(test)]
@@ -159,6 +153,8 @@ mod tests {
         assert!(control.detail().contains("crossings="));
         assert!(control.detail().contains("receipts="));
         assert!(control.detail().contains("envelopes="));
+        assert!(control.detail().contains("concrete="));
+        assert!(control.detail().contains("synthetic="));
     }
 
     #[test]

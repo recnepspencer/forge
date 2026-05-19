@@ -76,6 +76,7 @@ pub use bundle::{
     certify_intent_admission, ForgeQueryIntentAdmissionCertificationBundle,
     ForgeQueryIntentAdmissionCertificationOutput,
 };
+pub(crate) use fixtures::{certification_bridge, certification_runtime};
 pub use manifests::{
     forge_query_intent_admission_compile_fail_targets,
     forge_query_intent_admission_crate_doc_example_targets,

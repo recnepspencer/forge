@@ -6,10 +6,6 @@ use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeSeamKey,
 };
 
-use super::acceptance::{
-    forge_query_lower_runtime_acceptance_suite, ForgeQueryLowerRuntimeAcceptanceLane,
-};
-use super::evidence::forge_query_lower_runtime_representative_surface;
 use super::forge_query_lower_runtime_compile_fail_boundary_target_count;
 use super::model::{
     ForgeQueryLowerRuntimeCertificationBundle, ForgeQueryLowerRuntimeCertificationLane,
@@ -18,6 +14,10 @@ use super::model::{
 use super::outputs::certification_output_digests;
 use super::performance::certify_lower_runtime_performance_slopes;
 use super::proof_shape::forge_query_lower_runtime_proof_shape_audit;
+use super::surface::{
+    forge_query_lower_runtime_acceptance_suite, forge_query_lower_runtime_representative_surface,
+    ForgeQueryLowerRuntimeAcceptanceLane,
+};
 
 pub fn certify_lower_runtime_routing() -> ForgeQueryLowerRuntimeCertificationBundle {
     let surface = forge_query_lower_runtime_representative_surface();

@@ -25,7 +25,7 @@ use forge_runtime_bridge::facade::RuntimeBridge;
 use serde_json::Value;
 use std::collections::BTreeMap;
 
-pub(in crate::intent_admission::certification) fn certification_runtime() -> ForgeQueryRuntime {
+pub(crate) fn certification_runtime() -> ForgeQueryRuntime {
     ForgeQueryRuntime::builder()
         .runtime_bridge(certification_bridge())
         .schema_adapter(CertificationSchemaAdapter)
@@ -43,8 +43,7 @@ pub(in crate::intent_admission::certification) fn certification_runtime() -> For
         .expect("certification runtime backend parts should build")
 }
 
-pub(in crate::intent_admission::certification) fn certification_runtime_with_invariant_violation_authority(
-) -> ForgeQueryRuntime {
+pub(crate) fn certification_runtime_with_invariant_violation_authority() -> ForgeQueryRuntime {
     ForgeQueryRuntime::builder()
         .runtime_bridge(certification_bridge())
         .schema_adapter(CertificationSchemaAdapter)
@@ -87,15 +86,14 @@ pub(super) fn certification_support_profile() -> ForgeQueryRuntimeSupportProfile
     )
 }
 
-pub(in crate::intent_admission::certification) fn certification_task_live_request(
-) -> DeclarativeLiveQueryRequest {
+pub(crate) fn certification_task_live_request() -> DeclarativeLiveQueryRequest {
     DeclarativeLiveQueryRequest::new("Task", DeclarativeLiveViewShape::table())
         .project(DeclarativeProjectionField::new("identity", "id").delivered_as("identity.id"))
         .project(DeclarativeProjectionField::new("title", "value").delivered_as("title"))
         .order_by(DeclarativeProjectionField::new("title", "value"))
 }
 
-pub(in crate::intent_admission::certification) fn certification_task_schema() -> QuerySchemaView {
+pub(crate) fn certification_task_schema() -> QuerySchemaView {
     QuerySchemaView::new(
         "certification-task",
         [

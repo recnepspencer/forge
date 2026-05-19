@@ -1,9 +1,12 @@
 mod adapters;
 mod certification;
 mod dx;
+mod eligibility;
 mod envelopes;
 mod inventory;
+mod plans;
 mod protocol;
+mod receipts;
 mod support;
 
 pub use adapters::{
@@ -30,6 +33,9 @@ pub use dx::{
     summarize_lower_runtime_boundary, ForgeQueryLowerRuntimeBoundarySummary,
     ForgeQueryLowerRuntimeRoutingInspection,
 };
+pub use eligibility::{
+    ForgeQueryLowerRuntimeCapabilityEligibility, ForgeQueryLowerRuntimeCapabilityPosture,
+};
 pub use envelopes::{
     ForgeQueryLowerRuntimeBoundaryEnvelope, ForgeQueryLowerRuntimeCostPosture,
     ForgeQueryLowerRuntimeFailureTopology,
@@ -46,11 +52,11 @@ pub use inventory::{
     ForgeQueryLowerRuntimeGapRegistryRow, ForgeQueryLowerRuntimeRouteKind,
     ForgeQueryLowerRuntimeSeamKey,
 };
-pub use protocol::{
+pub use plans::ForgeQueryLowerRuntimeRoutePlan;
+pub use protocol::ForgeQueryLowerRuntimeCapabilityRequest;
+pub use receipts::{
     ForgeQueryLowerRuntimeBoundaryExecutionKind, ForgeQueryLowerRuntimeBoundaryExecutionReceipt,
-    ForgeQueryLowerRuntimeCapabilityEligibility, ForgeQueryLowerRuntimeCapabilityPosture,
-    ForgeQueryLowerRuntimeCapabilityRequest, ForgeQueryLowerRuntimeReadmissionReceipt,
-    ForgeQueryLowerRuntimeRoutePlan,
+    ForgeQueryLowerRuntimeReadmissionReceipt,
 };
 pub use support::{
     forge_query_lower_runtime_support_matrix, ForgeQueryLowerRuntimeSupportDetail,

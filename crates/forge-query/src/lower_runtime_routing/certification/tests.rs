@@ -1,5 +1,6 @@
-use super::acceptance::{
-    forge_query_lower_runtime_acceptance_suite, ForgeQueryLowerRuntimeAcceptanceLane,
+use super::surface::{
+    forge_query_lower_runtime_acceptance_suite, required_phase_six_concrete_seams,
+    ForgeQueryLowerRuntimeAcceptanceLane,
 };
 use super::{
     certify_lower_runtime_performance_slopes, certify_lower_runtime_routing,
@@ -35,6 +36,8 @@ const REQUIRED_OUTPUTS: &[&str] = &[
     "route_public_surface_digest",
     "route_target_dx_digest",
     "route_golden_transcript_digest",
+    "route_concrete_surface_digest",
+    "route_synthetic_surface_digest",
     "route_proof_shape_digest",
     "route_phase_progression_digest",
     "route_parity_digest",
@@ -47,6 +50,8 @@ const REQUIRED_OUTPUTS: &[&str] = &[
     "compatibility_debt_width",
     "route_plan_width",
     "boundary_evidence_width",
+    "route_concrete_surface_width",
+    "route_synthetic_surface_width",
     "capability_eligibility_slope_digest",
     "route_plan_assembly_slope_digest",
     "boundary_receipt_assembly_slope_digest",
@@ -117,6 +122,30 @@ fn certification_bundle_emits_required_outputs() {
         bundle.output_digest("query_digest"),
         bundle.output_digest("capability_request_digest"),
         "query identity must not collapse into request identity"
+    );
+    let concrete_width = bundle
+        .output_digest("route_concrete_surface_width")
+        .expect("concrete width output should exist")
+        .parse::<usize>()
+        .expect("concrete width should parse as usize");
+    let synthetic_width = bundle
+        .output_digest("route_synthetic_surface_width")
+        .expect("synthetic width output should exist")
+        .parse::<usize>()
+        .expect("synthetic width should parse as usize");
+    assert_eq!(
+        concrete_width + synthetic_width,
+        crossings.rows().len(),
+        "concrete and synthetic surface widths should partition crossing inventory"
+    );
+    assert!(
+        concrete_width >= required_phase_six_concrete_seams().len(),
+        "phase six certification should expose every required concrete seam"
+    );
+    assert_ne!(
+        bundle.output_digest("route_concrete_surface_digest"),
+        bundle.output_digest("route_synthetic_surface_digest"),
+        "concrete and synthetic surfaces must remain distinguishable in the bundle"
     );
 }
 
@@ -208,4 +237,20 @@ fn compatibility_debt_registry_digest_tracks_closed_gap_registry() {
         bundle.output_digest("compatibility_debt_registry_digest"),
         Some(gaps.registry_digest().as_str())
     );
+}
+
+#[test]
+fn certification_bundle_phase_six_required_seams_are_concrete() {
+    let surface = super::surface::forge_query_lower_runtime_representative_surface();
+
+    for seam_key in required_phase_six_concrete_seams() {
+        assert_eq!(
+            surface.evidence_source_for(*seam_key),
+            Some(
+                super::surface::ForgeQueryLowerRuntimeRepresentativeEvidenceSource::RuntimeBackedFixture
+            ),
+            "required phase six seam {} must remain runtime-backed",
+            seam_key.as_str()
+        );
+    }
 }

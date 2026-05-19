@@ -13,6 +13,7 @@ mod support;
 mod surface_catalog;
 mod trace;
 
+pub(crate) use certification::{certification_bridge, certification_runtime};
 pub use certification::{
     certify_intent_admission, forge_query_intent_admission_certification_output_manifest,
     forge_query_intent_admission_closeout_extension_outputs,

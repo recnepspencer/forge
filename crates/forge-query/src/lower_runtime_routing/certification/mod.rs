@@ -1,13 +1,11 @@
-mod acceptance;
-mod acceptance_checks;
 mod closeout;
-mod evidence;
 mod model;
 mod non_bypass;
 mod outputs;
 mod performance;
 mod proof_shape;
 mod public_surface;
+mod surface;
 #[cfg(test)]
 mod tests;
 

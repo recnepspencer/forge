@@ -131,10 +131,143 @@ const PUBLIC_SURFACE_ROWS: &[ForgeQueryLowerRuntimePublicSurfaceRow] = &[
     ),
     ForgeQueryLowerRuntimePublicSurfaceRow::new(
         ForgeQueryLowerRuntimeSeamKey::PublicLiveViewDeclaration,
+        "ForgeQueryWorkspace::live_view(...)",
+        "crates/forge-query/src/runtime/workspace.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
+        "workspace live declaration routed through runtime declaration and installation",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::PublicLiveViewDeclaration,
+        "ForgeQueryWorkspace::live_view_request(...)",
+        "crates/forge-query/src/runtime/workspace.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
+        "workspace live declaration routed through runtime declaration and installation",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::PublicLiveViewDeclaration,
         "ForgeQueryRuntime::declare_live_view(...)",
         "crates/forge-query/src/runtime/runtime_declarations.rs",
         ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
         "live declaration receipt plus installation route",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
+        "ForgeQueryWorkspace::write(...)",
+        "crates/forge-query/src/runtime/workspace.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
+        "authoritative mutation intent execution through write-authority routing",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
+        "ForgeQueryWorkspace::insert(...)",
+        "crates/forge-query/src/runtime/workspace.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
+        "authoritative mutation intent execution through write-authority routing",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
+        "ForgeQueryWorkspace::update(...)",
+        "crates/forge-query/src/runtime/workspace.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
+        "authoritative mutation intent execution through write-authority routing",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
+        "ForgeQueryWorkspace::update_existing(...)",
+        "crates/forge-query/src/runtime/workspace.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
+        "authoritative mutation intent execution after existing-truth binding admission",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
+        "ForgeQueryWorkspace::assert_existing(...)",
+        "crates/forge-query/src/runtime/workspace.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
+        "authoritative mutation intent execution after existing-truth binding admission",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
+        "ForgeQueryWorkspace::verify_existing(...)",
+        "crates/forge-query/src/runtime/workspace.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
+        "authoritative mutation intent execution after existing-truth binding admission",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
+        "ForgeQueryWorkspace::update_existing_verified(...)",
+        "crates/forge-query/src/runtime/workspace.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
+        "authoritative mutation intent execution after backend-verified existing-truth admission",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
+        "ForgeQueryWorkspace::delete(...)",
+        "crates/forge-query/src/runtime/workspace.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
+        "authoritative mutation intent execution through write-authority routing",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
+        "ForgeQueryWorkspace::delete_with(...)",
+        "crates/forge-query/src/runtime/workspace.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
+        "authoritative mutation intent execution through write-authority routing",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
+        "ForgeQueryWorkspace::delete_existing(...)",
+        "crates/forge-query/src/runtime/workspace.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
+        "authoritative mutation intent execution after existing-truth binding admission",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
+        "ForgeQueryWorkspace::delete_existing_with(...)",
+        "crates/forge-query/src/runtime/workspace.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
+        "authoritative mutation intent execution after existing-truth binding admission",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
+        "ForgeQueryWorkspace::delete_existing_verified(...)",
+        "crates/forge-query/src/runtime/workspace.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
+        "authoritative mutation intent execution after backend-verified existing-truth admission",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
+        "ForgeQueryRuntime::write(...)",
+        "crates/forge-query/src/runtime/runtime_writes.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
+        "authoritative mutation intent execution through write-authority routing",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
+        "ForgeQueryRuntime::write_batch(...)",
+        "crates/forge-query/src/runtime/runtime_batch_write_entrypoints.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
+        "authoritative batch mutation intent execution through write-authority routing",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
+        "ForgeQueryWorkspace::batch(...)",
+        "crates/forge-query/src/runtime/workspace.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
+        "authoritative batch mutation intent execution through write-authority routing",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting,
+        "ForgeQueryRuntime::execute_authoritative_write_command_direct(...)",
+        "crates/forge-query/src/runtime/runtime_writes.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::InternalRouteComposer,
+        "mutation receipt routing through signal invalidation boundary receipts",
+    ),
+    ForgeQueryLowerRuntimePublicSurfaceRow::new(
+        ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting,
+        "ForgeQueryRuntime::execute_authoritative_write_batch_direct(...)",
+        "crates/forge-query/src/runtime/runtime_batch_writes.rs",
+        ForgeQueryLowerRuntimePublicSurfaceKind::InternalRouteComposer,
+        "batch mutation receipt routing through signal invalidation boundary receipts",
     ),
     ForgeQueryLowerRuntimePublicSurfaceRow::new(
         ForgeQueryLowerRuntimeSeamKey::RuntimeLiveInstallationOrchestration,
@@ -201,5 +334,30 @@ mod tests {
                 .collect::<Vec<_>>(),
         );
         assert_eq!(inventory.public_surface_digest(), expected);
+    }
+
+    #[test]
+    fn public_surface_inventory_covers_mutation_facades_and_internal_routing_composers() {
+        let inventory = forge_query_lower_runtime_public_surface_inventory();
+
+        for label in [
+            "ForgeQueryWorkspace::live_view(...)",
+            "ForgeQueryWorkspace::live_view_request(...)",
+            "ForgeQueryWorkspace::write(...)",
+            "ForgeQueryWorkspace::assert_existing(...)",
+            "ForgeQueryWorkspace::verify_existing(...)",
+            "ForgeQueryWorkspace::update_existing_verified(...)",
+            "ForgeQueryWorkspace::batch(...)",
+            "ForgeQueryWorkspace::delete_existing_verified(...)",
+            "ForgeQueryRuntime::write(...)",
+            "ForgeQueryRuntime::write_batch(...)",
+            "ForgeQueryRuntime::execute_authoritative_write_command_direct(...)",
+            "ForgeQueryRuntime::execute_authoritative_write_batch_direct(...)",
+        ] {
+            assert!(inventory
+                .rows()
+                .iter()
+                .any(|row| row.surface_label() == label));
+        }
     }
 }
