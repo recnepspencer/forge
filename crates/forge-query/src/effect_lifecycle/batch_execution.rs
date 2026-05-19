@@ -171,8 +171,8 @@ fn aggregate_artifact_digest(artifact: &ExecutedEffectAuthorityArtifact) -> Stri
                 result.commit.outcome.commit.commit_id.0, result.commit.outcome.commit.version_id.0
             )
         }
-        ExecutedEffectAuthorityArtifact::Writeback { outcome, receipt } => {
-            format!("writeback:{}:{}", outcome.digest(), receipt.digest())
+        ExecutedEffectAuthorityArtifact::Writeback { execution } => {
+            format!("writeback:{}", execution.digest())
         }
     }
 }

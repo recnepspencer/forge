@@ -1,7 +1,8 @@
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::{CommitResult, MergeExecutionOutcome};
 use forge_runtime_bridge::facade::{
-    BridgeWritebackAuthorityOutcome, RuntimeBridge, TruthWritebackReceipt,
+    BridgeAdmittedWritebackExecution, BridgeWritebackAuthorityOutcome, RuntimeBridge,
+    TruthWritebackReceipt,
 };
 
 use crate::identity::hash_parts;
@@ -164,8 +165,7 @@ pub enum ExecutedEffectAuthorityArtifact {
     Mutation(CommitResult),
     Merge(MergeExecutionOutcome),
     Writeback {
-        outcome: BridgeWritebackAuthorityOutcome,
-        receipt: TruthWritebackReceipt,
+        execution: BridgeAdmittedWritebackExecution,
     },
 }
 
@@ -234,9 +234,16 @@ impl ExecutedEffectPlan {
         &self,
     ) -> Option<(&BridgeWritebackAuthorityOutcome, &TruthWritebackReceipt)> {
         match &self.artifact {
-            ExecutedEffectAuthorityArtifact::Writeback { outcome, receipt } => {
-                Some((outcome, receipt))
+            ExecutedEffectAuthorityArtifact::Writeback { execution } => {
+                Some((execution.outcome(), execution.authority_receipt()))
             }
+            _ => None,
+        }
+    }
+
+    pub fn writeback_execution(&self) -> Option<&BridgeAdmittedWritebackExecution> {
+        match &self.artifact {
+            ExecutedEffectAuthorityArtifact::Writeback { execution } => Some(execution),
             _ => None,
         }
     }
@@ -268,8 +275,8 @@ fn executed_artifact_digest(artifact: &ExecutedEffectAuthorityArtifact) -> Strin
                 result.commit.outcome.commit.commit_id.0, result.commit.outcome.commit.version_id.0
             )
         }
-        ExecutedEffectAuthorityArtifact::Writeback { outcome, receipt } => {
-            format!("writeback:{}:{}", outcome.digest(), receipt.digest())
+        ExecutedEffectAuthorityArtifact::Writeback { execution } => {
+            format!("writeback:{}", execution.digest())
         }
     }
 }

@@ -42,7 +42,7 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
         name: &str,
         request: &DeclarativeLiveQueryRequest,
         schema_view: &QuerySchemaView,
-    ) -> Result<(), ForgeQueryWorkspaceError> {
+    ) -> Result<LiveViewDeclarationAdmissionBoundaryReceipt, ForgeQueryWorkspaceError> {
         TestSchemaAdapter.admit_live_view(name, request, schema_view)
     }
 
@@ -259,8 +259,9 @@ impl ForgeQueryRuntimeBackend for StatefulBridgeRuntimeBackend {
         &mut self,
         view_name: &str,
         activation: &SubscriptionActivationInput,
-    ) -> Result<String, ForgeQueryWorkspaceError> {
-        TestSubscriptionActivation.admit_activation(view_name, activation)
+    ) -> Result<SubscriptionActivationReceipt, ForgeQueryWorkspaceError> {
+        let receipt = TestSubscriptionActivation.admit_activation(view_name, activation)?;
+        Ok(receipt.activation_receipt().clone())
     }
 
     fn admit_preview_basis(

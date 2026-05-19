@@ -2,6 +2,12 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use forge_runtime_bridge::facade::RuntimeBridge;
 use serde_json::Value;
 
+use super::{
+    LiveViewDeclarationAdmissionBoundaryReceipt, LiveViewDeclarationAdmissionReceipt,
+    SignalInvalidationBoundaryReceipt, SignalInvalidationRoutingReceipt,
+    SubscriptionActivationBoundaryReceipt, SubscriptionActivationReceipt,
+    WriteAuthorityExecutionReceipt,
+};
 use crate::declarative_live::DeclarativeLiveQueryRequest;
 use crate::memory_workspace::{
     ForgeQueryEntity, ForgeQueryLivePatch, ForgeQueryLiveViewHandle, ForgeQueryMutationReceipt,
@@ -28,7 +34,7 @@ pub trait ForgeQueryRuntimeBackend {
         name: &str,
         request: &DeclarativeLiveQueryRequest,
         schema_view: &QuerySchemaView,
-    ) -> Result<(), ForgeQueryWorkspaceError>;
+    ) -> Result<LiveViewDeclarationAdmissionBoundaryReceipt, ForgeQueryWorkspaceError>;
 
     fn declare_live_view(
         &mut self,
@@ -99,7 +105,7 @@ pub trait ForgeQueryRuntimeBackend {
         &mut self,
         view_name: &str,
         activation: &SubscriptionActivationInput,
-    ) -> Result<String, ForgeQueryWorkspaceError>;
+    ) -> Result<SubscriptionActivationReceipt, ForgeQueryWorkspaceError>;
 
     fn admit_preview_basis(
         &self,
@@ -123,12 +129,29 @@ pub trait ForgeQueryRuntimeBackend {
 }
 
 pub trait ForgeQueryRuntimeSchemaAdapter {
+    fn build_live_view_declaration_admission_receipt(
+        &self,
+        name: &str,
+        request: &DeclarativeLiveQueryRequest,
+    ) -> LiveViewDeclarationAdmissionReceipt {
+        LiveViewDeclarationAdmissionReceipt::from_request(name, request)
+    }
+
+    fn build_live_view_declaration_boundary_receipt(
+        &self,
+        name: &str,
+        request: &DeclarativeLiveQueryRequest,
+        admission_receipt: LiveViewDeclarationAdmissionReceipt,
+    ) -> LiveViewDeclarationAdmissionBoundaryReceipt {
+        LiveViewDeclarationAdmissionBoundaryReceipt::from_request(name, request, admission_receipt)
+    }
+
     fn admit_live_view(
         &self,
         name: &str,
         request: &DeclarativeLiveQueryRequest,
         schema_view: &QuerySchemaView,
-    ) -> Result<(), ForgeQueryWorkspaceError>;
+    ) -> Result<LiveViewDeclarationAdmissionBoundaryReceipt, ForgeQueryWorkspaceError>;
 }
 
 pub trait ForgeQueryRuntimeSourceAdapter {
@@ -162,19 +185,27 @@ pub trait ForgeQueryRuntimeExistingTruthVerificationAdapter {
 }
 
 pub trait ForgeQueryRuntimeWriteAuthorityAdapter {
+    fn build_write_authority_execution_receipt(
+        &self,
+        command: &ForgeQueryWriteCommand,
+        receipt: ForgeQueryMutationReceipt,
+    ) -> WriteAuthorityExecutionReceipt {
+        WriteAuthorityExecutionReceipt::from_command(command, receipt)
+    }
+
     fn write(
         &mut self,
         bridge: &RuntimeBridge,
         relational_runtime: Option<&mut RelationalRuntime>,
         command: ForgeQueryWriteCommand,
-    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError>;
+    ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError>;
 
     fn write_batch(
         &mut self,
         bridge: &RuntimeBridge,
         mut relational_runtime: Option<&mut RelationalRuntime>,
         commands: Vec<ForgeQueryWriteCommand>,
-    ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError> {
+    ) -> Result<Vec<WriteAuthorityExecutionReceipt>, ForgeQueryWorkspaceError> {
         let mut receipts = Vec::with_capacity(commands.len());
         for command in commands {
             receipts.push(self.write(bridge, relational_runtime.as_deref_mut(), command)?);
@@ -184,30 +215,71 @@ pub trait ForgeQueryRuntimeWriteAuthorityAdapter {
 }
 
 pub trait ForgeQueryRuntimeSignalSinkAdapter {
+    fn build_signal_invalidation_routing_receipt(
+        &self,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> SignalInvalidationRoutingReceipt {
+        SignalInvalidationRoutingReceipt::from_mutation_receipt(receipt)
+    }
+
+    fn build_signal_invalidation_boundary_receipt(
+        &self,
+        receipt: &ForgeQueryMutationReceipt,
+        routing_receipt: SignalInvalidationRoutingReceipt,
+    ) -> SignalInvalidationBoundaryReceipt {
+        SignalInvalidationBoundaryReceipt::from_mutation_receipt(receipt, routing_receipt)
+    }
+
     fn route_write_receipt(
         &mut self,
         receipt: &ForgeQueryMutationReceipt,
-    ) -> Result<(), ForgeQueryWorkspaceError>;
+    ) -> Result<SignalInvalidationBoundaryReceipt, ForgeQueryWorkspaceError>;
 
     fn route_write_batch(
         &mut self,
         receipts: &[ForgeQueryMutationReceipt],
-    ) -> Result<(), ForgeQueryWorkspaceError> {
+    ) -> Result<Vec<SignalInvalidationBoundaryReceipt>, ForgeQueryWorkspaceError> {
+        let mut routed = Vec::with_capacity(receipts.len());
         for receipt in receipts {
-            self.route_write_receipt(receipt)?;
+            routed.push(self.route_write_receipt(receipt)?);
         }
-        Ok(())
+        Ok(routed)
     }
 }
 
 pub trait ForgeQueryRuntimeSubscriptionActivationAdapter {
     fn support_evidence(&self) -> String;
 
+    fn build_subscription_activation_receipt(
+        &self,
+        view_name: &str,
+        activation: &SubscriptionActivationInput,
+    ) -> SubscriptionActivationReceipt {
+        SubscriptionActivationReceipt::from_activation(
+            view_name,
+            activation,
+            self.support_evidence(),
+        )
+    }
+
+    fn build_subscription_activation_boundary_receipt(
+        &self,
+        view_name: &str,
+        activation: &SubscriptionActivationInput,
+        activation_receipt: SubscriptionActivationReceipt,
+    ) -> SubscriptionActivationBoundaryReceipt {
+        SubscriptionActivationBoundaryReceipt::from_activation(
+            view_name,
+            activation,
+            activation_receipt,
+        )
+    }
+
     fn admit_activation(
         &mut self,
         view_name: &str,
         activation: &SubscriptionActivationInput,
-    ) -> Result<String, ForgeQueryWorkspaceError>;
+    ) -> Result<SubscriptionActivationBoundaryReceipt, ForgeQueryWorkspaceError>;
 }
 
 pub trait ForgeQueryRuntimePreviewBasisAdapter {

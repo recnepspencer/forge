@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/lower_runtime_routing/certification/public_surface_row_constructor_private.rs:7:53
+  |
+7 |       let _ = ForgeQueryLowerRuntimePublicSurfaceRow::new(
+  |                                                       ^^^ private associated function
+  |
+ ::: src/lower_runtime_routing/certification/public_surface.rs
+  |
+  | /     pub(crate) const fn new(
+  | |         seam_key: ForgeQueryLowerRuntimeSeamKey,
+  | |         surface_label: &'static str,
+  | |         implementation_path: &'static str,
+  | |         surface_kind: ForgeQueryLowerRuntimePublicSurfaceKind,
+  | |         delegated_lane: &'static str,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

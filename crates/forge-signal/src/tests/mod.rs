@@ -37,6 +37,7 @@ mod diagnostics;
 mod domains;
 mod evaluation_context;
 mod event_epochs;
+mod frontier_route_receipts;
 mod graph_core;
 mod harness_bridge;
 mod harness_platform;

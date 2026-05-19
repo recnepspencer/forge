@@ -99,11 +99,11 @@ pub(crate) fn execute_lowered_effect_plan_with_authority(
                     "lowered query writeback execution requires a runtime bridge authority",
                 )
             })?;
-            let (outcome, receipt) = execute_lowered_writeback(runtime, declaration)
+            let execution = execute_lowered_writeback(runtime, declaration)
                 .map_err(|(kind, message)| EffectExecutionDenial::new(&lowered, kind, message))?;
             Ok(ExecutedEffectPlan::new(
                 lowered,
-                ExecutedEffectAuthorityArtifact::Writeback { outcome, receipt },
+                ExecutedEffectAuthorityArtifact::Writeback { execution },
                 1,
             ))
         }

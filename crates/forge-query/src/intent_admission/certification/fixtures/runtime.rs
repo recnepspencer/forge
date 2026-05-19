@@ -13,8 +13,10 @@ use crate::facade::{
     ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
     ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
     ForgeQueryRuntimeSupportProfile, ForgeQueryRuntimeWriteAuthorityAdapter,
-    ForgeQueryWorkspaceError, ForgeQueryWriteCommand, ForgeQueryWriteReceipt, QuerySchemaView,
-    SchemaFieldKind, SchemaFieldView, SubscriptionActivationInput,
+    ForgeQueryWorkspaceError, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    LiveViewDeclarationAdmissionBoundaryReceipt, QuerySchemaView, SchemaFieldKind, SchemaFieldView,
+    SignalInvalidationBoundaryReceipt, SubscriptionActivationBoundaryReceipt,
+    SubscriptionActivationInput, WriteAuthorityExecutionReceipt,
 };
 use crate::identity::hash_parts;
 use crate::memory_workspace::{ForgeQueryEntity, ForgeQueryLivePatch};
@@ -109,11 +111,12 @@ struct CertificationSchemaAdapter;
 impl ForgeQueryRuntimeSchemaAdapter for CertificationSchemaAdapter {
     fn admit_live_view(
         &self,
-        _name: &str,
-        _request: &DeclarativeLiveQueryRequest,
+        name: &str,
+        request: &DeclarativeLiveQueryRequest,
         _schema_view: &QuerySchemaView,
-    ) -> Result<(), ForgeQueryWorkspaceError> {
-        Ok(())
+    ) -> Result<LiveViewDeclarationAdmissionBoundaryReceipt, ForgeQueryWorkspaceError> {
+        let receipt = self.build_live_view_declaration_admission_receipt(name, request);
+        Ok(self.build_live_view_declaration_boundary_receipt(name, request, receipt))
     }
 }
 
@@ -205,10 +208,10 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for CertificationWriteAuthority {
         _bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
         command: ForgeQueryWriteCommand,
-    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
-        let (collection, aspect_paths) = match command {
+    ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
+        let (collection, aspect_paths) = match &command {
             ForgeQueryWriteCommand::UpdateAspect { aspect_path, .. } => {
-                ("Task".to_string(), vec![aspect_path])
+                ("Task".to_string(), vec![aspect_path.clone()])
             }
             ForgeQueryWriteCommand::UpdateAspects { aspects, .. } => (
                 "Task".to_string(),
@@ -222,7 +225,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for CertificationWriteAuthority {
                 aspects,
                 ..
             } => (
-                collection,
+                collection.clone(),
                 aspects
                     .iter()
                     .map(|aspect| aspect.aspect_path().to_string())
@@ -257,7 +260,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for CertificationWriteAuthority {
                 ..
             } => (
                 binding.target_collection().unwrap_or("Task").to_string(),
-                touched_aspect_paths,
+                touched_aspect_paths.clone(),
             ),
             ForgeQueryWriteCommand::UpdateSymbolicAspects {
                 aspects, reference, ..
@@ -275,10 +278,10 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for CertificationWriteAuthority {
             | ForgeQueryWriteCommand::DeleteSymbolicAspects {
                 touched_aspect_paths,
                 ..
-            } => ("Task".to_string(), touched_aspect_paths),
+            } => ("Task".to_string(), touched_aspect_paths.clone()),
             ForgeQueryWriteCommand::Delete { .. } => ("Task".to_string(), Vec::new()),
         };
-        Ok(ForgeQueryMutationReceipt {
+        let receipt = ForgeQueryMutationReceipt {
             commit_identity: format!("certification-commit:{collection}"),
             snapshot_token: format!("certification-snapshot:{collection}"),
             deltas: vec![ForgeQueryMutationDelta {
@@ -288,7 +291,8 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for CertificationWriteAuthority {
                 aspect_paths,
             }],
             bridge_authority: None,
-        })
+        };
+        Ok(self.build_write_authority_execution_receipt(&command, receipt))
     }
 }
 
@@ -342,9 +346,10 @@ struct CertificationSignalSink;
 impl ForgeQueryRuntimeSignalSinkAdapter for CertificationSignalSink {
     fn route_write_receipt(
         &mut self,
-        _receipt: &ForgeQueryMutationReceipt,
-    ) -> Result<(), ForgeQueryWorkspaceError> {
-        Ok(())
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Result<SignalInvalidationBoundaryReceipt, ForgeQueryWorkspaceError> {
+        let routed = self.build_signal_invalidation_routing_receipt(receipt);
+        Ok(self.build_signal_invalidation_boundary_receipt(receipt, routed))
     }
 }
 
@@ -359,11 +364,9 @@ impl ForgeQueryRuntimeSubscriptionActivationAdapter for CertificationSubscriptio
         &mut self,
         view_name: &str,
         activation: &SubscriptionActivationInput,
-    ) -> Result<String, ForgeQueryWorkspaceError> {
-        Ok(format!(
-            "certification-subscription-activation:{view_name}:{}",
-            activation.activation_digest()
-        ))
+    ) -> Result<SubscriptionActivationBoundaryReceipt, ForgeQueryWorkspaceError> {
+        let receipt = self.build_subscription_activation_receipt(view_name, activation);
+        Ok(self.build_subscription_activation_boundary_receipt(view_name, activation, receipt))
     }
 }
 

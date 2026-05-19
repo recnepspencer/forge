@@ -2,10 +2,11 @@ use super::super::support::*;
 
 #[test]
 fn runtime_live_declaration_denies_backend_admission_before_subscription_install() {
+    let source_declarations = std::rc::Rc::new(std::cell::Cell::new(0));
     let mut runtime = ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())
         .schema_adapter(DenyingSchemaAdapter)
-        .source_adapter(TestSourceAdapter::default())
+        .source_adapter(CountingSourceAdapter::new(source_declarations.clone()))
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(TestSubscriptionActivation)
@@ -19,18 +20,14 @@ fn runtime_live_declaration_denies_backend_admission_before_subscription_install
         .declare_live_view::<Value>("external.schema-denied", task_live_request(), task_schema())
         .expect_err("backend admission denial must block subscription installation");
 
-    match error {
-        ForgeQueryRuntimeError::LiveSubscriptionInstallation {
-            view_name,
-            stage,
-            message,
-        } => {
-            assert_eq!(view_name, "external.schema-denied");
-            assert_eq!(stage, "backend-live-admission");
-            assert!(message.contains("schema admission denied by test adapter"));
-        }
-        other => panic!("expected backend admission denial, got {other:?}"),
-    }
+    assert_live_subscription_installation_error(
+        error,
+        "external.schema-denied",
+        "backend-live-admission",
+        "schema admission denied by test adapter",
+    );
+    assert_eq!(source_declarations.get(), 0);
+    assert_no_live_subscription_residue(&runtime);
 }
 
 #[test]
@@ -136,10 +133,11 @@ fn runtime_equivalent_live_declarations_share_active_lane_with_distinct_consumer
 
 #[test]
 fn runtime_live_declaration_denies_before_source_when_subscription_activation_rejects() {
+    let source_declarations = std::rc::Rc::new(std::cell::Cell::new(0));
     let mut runtime = ForgeQueryRuntime::builder()
         .runtime_bridge(test_bridge())
         .schema_adapter(TestSchemaAdapter)
-        .source_adapter(TestSourceAdapter::default())
+        .source_adapter(CountingSourceAdapter::new(source_declarations.clone()))
         .write_authority(TestWriteAuthority)
         .signal_sink(TestSignalSink)
         .subscription_activation(DenyingSubscriptionActivation)
@@ -153,16 +151,101 @@ fn runtime_live_declaration_denies_before_source_when_subscription_activation_re
         .declare_live_view::<Value>("external.denied", task_live_request(), task_schema())
         .expect_err("activation denial must block source declaration");
 
+    assert_live_subscription_installation_error(
+        error,
+        "external.denied",
+        "activation-admission",
+        "activation denied by test adapter",
+    );
+    assert_eq!(source_declarations.get(), 0);
+    assert_no_live_subscription_residue(&runtime);
+}
+
+#[test]
+fn runtime_live_declaration_denies_when_admission_receipt_drifts_from_request() {
+    let source_declarations = std::rc::Rc::new(std::cell::Cell::new(0));
+    let mut runtime = ForgeQueryRuntime::builder()
+        .runtime_bridge(test_bridge())
+        .schema_adapter(DriftingSchemaReceiptAdapter)
+        .source_adapter(CountingSourceAdapter::new(source_declarations.clone()))
+        .write_authority(TestWriteAuthority)
+        .signal_sink(TestSignalSink)
+        .subscription_activation(TestSubscriptionActivation)
+        .preview_basis(TestPreviewBasis)
+        .inspector_evidence(TestInspectorEvidence)
+        .build_backend_from_parts()
+        .build()
+        .expect("backend with drifting schema receipt should still build");
+
+    let error = runtime
+        .declare_live_view::<Value>("external.receipt-drift", task_live_request(), task_schema())
+        .expect_err("admission receipt drift must deny live declaration");
+
+    assert_live_subscription_installation_error(
+        error,
+        "external.receipt-drift",
+        "backend-live-admission-receipt",
+        "drifted",
+    );
+    assert_eq!(source_declarations.get(), 0);
+    assert_no_live_subscription_residue(&runtime);
+}
+
+#[test]
+fn runtime_live_declaration_denies_when_activation_receipt_drifts_from_request() {
+    let source_declarations = std::rc::Rc::new(std::cell::Cell::new(0));
+    let mut runtime = ForgeQueryRuntime::builder()
+        .runtime_bridge(test_bridge())
+        .schema_adapter(TestSchemaAdapter)
+        .source_adapter(CountingSourceAdapter::new(source_declarations.clone()))
+        .write_authority(TestWriteAuthority)
+        .signal_sink(TestSignalSink)
+        .subscription_activation(DriftingSubscriptionActivation)
+        .preview_basis(TestPreviewBasis)
+        .inspector_evidence(TestInspectorEvidence)
+        .build_backend_from_parts()
+        .build()
+        .expect("backend with drifting activation receipt should still build");
+
+    let error = runtime
+        .declare_live_view::<Value>(
+            "external.activation-receipt-drift",
+            task_live_request(),
+            task_schema(),
+        )
+        .expect_err("activation receipt drift must deny live declaration");
+
+    assert_live_subscription_installation_error(
+        error,
+        "external.activation-receipt-drift",
+        "activation-admission",
+        "drifted",
+    );
+    assert_eq!(source_declarations.get(), 0);
+    assert_no_live_subscription_residue(&runtime);
+}
+
+fn assert_live_subscription_installation_error(
+    error: ForgeQueryRuntimeError,
+    expected_view_name: &str,
+    expected_stage: &'static str,
+    expected_message_fragment: &str,
+) {
     match error {
         ForgeQueryRuntimeError::LiveSubscriptionInstallation {
             view_name,
             stage,
             message,
         } => {
-            assert_eq!(view_name, "external.denied");
-            assert_eq!(stage, "activation-admission");
-            assert!(message.contains("activation denied by test adapter"));
+            assert_eq!(view_name, expected_view_name);
+            assert_eq!(stage, expected_stage);
+            assert!(message.contains(expected_message_fragment));
         }
         other => panic!("expected live subscription installation denial, got {other:?}"),
     }
+}
+
+fn assert_no_live_subscription_residue(runtime: &ForgeQueryRuntime) {
+    assert_eq!(runtime.active_subscriptions.lane_count(), 0);
+    assert!(runtime.live_subscriptions.is_empty());
 }

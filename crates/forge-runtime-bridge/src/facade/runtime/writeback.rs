@@ -447,6 +447,59 @@ impl RuntimeBridge {
         Ok(())
     }
 
+    /// Executes the full admitted writeback workflow from one bridge-owned request.
+    ///
+    /// Ordinary hosts should prefer this contract over manually choreographing
+    /// policy admission, writeback admission, effect lowering, idempotence
+    /// classification, and authority execution across separate calls.
+    pub fn execute_admitted_writeback(
+        &self,
+        request: BridgeAdmittedWritebackExecutionRequest,
+    ) -> Result<BridgeAdmittedWritebackExecution, BridgeAdmittedWritebackExecutionError> {
+        let policy_contract = self
+            .admit_policy_declaration(request.policy_declaration().clone())
+            .map_err(BridgeAdmittedWritebackExecutionError::policy_admission)?;
+        let lowered_policy = self.lower_admitted_policy(&policy_contract);
+        let contract = self
+            .admit_writeback_declaration(request.writeback_declaration().clone(), &lowered_policy)
+            .map_err(BridgeAdmittedWritebackExecutionError::writeback)?;
+        let effect = self.lower_writeback_effect(
+            &contract,
+            request.causality(),
+            request.effect_identity().clone(),
+            request.effect_digest().to_string(),
+        );
+        let idempotence = self.classify_writeback_idempotence(
+            &effect,
+            &lowered_policy,
+            request.authoritative_state_digest().to_string(),
+            request.idempotence_identity().clone(),
+            request.idempotence_class(),
+        );
+        let (outcome, authority_receipt) = self
+            .execute_writeback_authority(&contract, &effect, &idempotence)
+            .map_err(BridgeAdmittedWritebackExecutionError::writeback)?;
+        let replay_bundle =
+            self.replay_writeback_bundle(&contract, &effect, &idempotence, &outcome);
+        let execution_receipt = BridgeAdmittedWritebackExecutionReceipt::new(
+            &request,
+            &contract,
+            &effect,
+            &idempotence,
+            &outcome,
+            &authority_receipt,
+            &replay_bundle,
+        );
+        self.diagnostics
+            .annotate_last_writeback_execution_record(execution_receipt.digest().to_owned());
+
+        Ok(BridgeAdmittedWritebackExecution::new(
+            outcome,
+            authority_receipt,
+            execution_receipt,
+        ))
+    }
+
     /// Executes writeback authority without supplying upstream feedback context.
     pub fn execute_writeback_authority(
         &self,
@@ -511,6 +564,7 @@ impl RuntimeBridge {
                     Some(&replay_bundle),
                     None,
                     None,
+                    None::<std::sync::Arc<str>>,
                     None,
                     None::<std::sync::Arc<str>>,
                     writeback_execution_counters(
@@ -550,6 +604,7 @@ impl RuntimeBridge {
                     None,
                     None,
                     None,
+                    None::<std::sync::Arc<str>>,
                     Some(map_writeback_error_kind_to_failure_class(error.kind())),
                     Some(writeback_failure_digest(
                         &error,
@@ -598,6 +653,7 @@ impl RuntimeBridge {
                     None,
                     None,
                     None,
+                    None::<std::sync::Arc<str>>,
                     Some(map_writeback_error_kind_to_failure_class(error.kind())),
                     Some(writeback_failure_digest(
                         &error,
@@ -645,6 +701,7 @@ impl RuntimeBridge {
                     None,
                     None,
                     None,
+                    None::<std::sync::Arc<str>>,
                     Some(map_writeback_error_kind_to_failure_class(error.kind())),
                     Some(writeback_failure_digest(
                         &error,
@@ -713,6 +770,7 @@ impl RuntimeBridge {
                     None,
                     Some(&request_for_validation),
                     None,
+                    None::<std::sync::Arc<str>>,
                     Some(map_writeback_error_kind_to_failure_class(error.kind())),
                     Some(writeback_failure_digest(
                         &error,
@@ -755,6 +813,7 @@ impl RuntimeBridge {
                     None,
                     Some(&request_for_validation),
                     None,
+                    None::<std::sync::Arc<str>>,
                     Some(map_writeback_error_kind_to_failure_class(error.kind())),
                     Some(writeback_failure_digest(
                         &error,
@@ -791,6 +850,7 @@ impl RuntimeBridge {
                 None,
                 Some(&request_for_validation),
                 Some(&receipt),
+                None::<std::sync::Arc<str>>,
                 Some(map_writeback_error_kind_to_failure_class(error.kind())),
                 Some(writeback_failure_digest(
                     &error,
@@ -836,6 +896,7 @@ impl RuntimeBridge {
                 None,
                 Some(&request_for_validation),
                 Some(&receipt),
+                None::<std::sync::Arc<str>>,
                 Some(failure_class),
                 Some(writeback_failure_digest(
                     &error,
@@ -885,6 +946,7 @@ impl RuntimeBridge {
             Some(&replay_bundle),
             Some(&request_for_validation),
             Some(&receipt),
+            None::<std::sync::Arc<str>>,
             None,
             None::<std::sync::Arc<str>>,
             writeback_execution_counters(

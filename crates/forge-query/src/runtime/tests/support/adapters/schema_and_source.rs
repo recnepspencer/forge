@@ -4,11 +4,12 @@ use crate::memory_workspace::{ForgeQueryLivePatch, ForgeQueryLiveViewHandle};
 impl ForgeQueryRuntimeSchemaAdapter for TestSchemaAdapter {
     fn admit_live_view(
         &self,
-        _name: &str,
-        _request: &DeclarativeLiveQueryRequest,
+        name: &str,
+        request: &DeclarativeLiveQueryRequest,
         _schema_view: &QuerySchemaView,
-    ) -> Result<(), ForgeQueryWorkspaceError> {
-        Ok(())
+    ) -> Result<LiveViewDeclarationAdmissionBoundaryReceipt, ForgeQueryWorkspaceError> {
+        let receipt = self.build_live_view_declaration_admission_receipt(name, request);
+        Ok(self.build_live_view_declaration_boundary_receipt(name, request, receipt))
     }
 }
 
@@ -22,10 +23,24 @@ impl ForgeQueryRuntimeSchemaAdapter for DenyingSchemaAdapter {
         _name: &str,
         _request: &DeclarativeLiveQueryRequest,
         _schema_view: &QuerySchemaView,
-    ) -> Result<(), ForgeQueryWorkspaceError> {
+    ) -> Result<LiveViewDeclarationAdmissionBoundaryReceipt, ForgeQueryWorkspaceError> {
         Err(ForgeQueryWorkspaceError::new(
             "schema admission denied by test adapter",
         ))
+    }
+}
+
+pub(in crate::runtime::tests) struct DriftingSchemaReceiptAdapter;
+
+impl ForgeQueryRuntimeSchemaAdapter for DriftingSchemaReceiptAdapter {
+    fn admit_live_view(
+        &self,
+        _name: &str,
+        request: &DeclarativeLiveQueryRequest,
+        _schema_view: &QuerySchemaView,
+    ) -> Result<LiveViewDeclarationAdmissionBoundaryReceipt, ForgeQueryWorkspaceError> {
+        let receipt = self.build_live_view_declaration_admission_receipt("drifted.view", request);
+        Ok(self.build_live_view_declaration_boundary_receipt("drifted.view", request, receipt))
     }
 }
 
@@ -87,6 +102,51 @@ impl ForgeQueryRuntimeSourceAdapter for TestSourceAdapter {
 
     fn snapshot_token(&self) -> String {
         "external-snapshot".to_string()
+    }
+}
+
+pub(in crate::runtime::tests) struct CountingSourceAdapter {
+    pub(in crate::runtime::tests) declared_live_views: std::rc::Rc<std::cell::Cell<usize>>,
+    inner: TestSourceAdapter,
+}
+
+impl CountingSourceAdapter {
+    pub(in crate::runtime::tests) fn new(
+        declared_live_views: std::rc::Rc<std::cell::Cell<usize>>,
+    ) -> Self {
+        Self {
+            declared_live_views,
+            inner: TestSourceAdapter::default(),
+        }
+    }
+}
+
+impl ForgeQueryRuntimeSourceAdapter for CountingSourceAdapter {
+    fn declare_live_view(
+        &mut self,
+        name: String,
+        request: DeclarativeLiveQueryRequest,
+        schema_view: QuerySchemaView,
+    ) -> Result<ForgeQueryLiveViewHandle, ForgeQueryWorkspaceError> {
+        self.declared_live_views
+            .set(self.declared_live_views.get().saturating_add(1));
+        self.inner.declare_live_view(name, request, schema_view)
+    }
+
+    fn live_entities(&self, view_name: &str) -> Vec<ForgeQueryEntity> {
+        self.inner.live_entities(view_name)
+    }
+
+    fn drain_live_patches(&mut self, view_name: &str) -> Vec<ForgeQueryLivePatch> {
+        self.inner.drain_live_patches(view_name)
+    }
+
+    fn affected_live_view_ids(&self, receipt: &ForgeQueryMutationReceipt) -> Vec<String> {
+        self.inner.affected_live_view_ids(receipt)
+    }
+
+    fn snapshot_token(&self) -> String {
+        self.inner.snapshot_token()
     }
 }
 

@@ -1,0 +1,10 @@
+error[E0624]: associated function `from_mutation_receipt` is private
+  --> tests/ui/runtime_receipts/runtime_signal_invalidation_routing_receipt_constructor_private.rs:18:47
+   |
+18 |     let _ = SignalInvalidationRoutingReceipt::from_mutation_receipt(&receipt);
+   |                                               ^^^^^^^^^^^^^^^^^^^^^ private associated function
+   |
+  ::: src/runtime/backend/receipts.rs
+   |
+   |     pub(crate) fn from_mutation_receipt(receipt: &ForgeQueryMutationReceipt) -> Self {
+   |     -------------------------------------------------------------------------------- private associated function defined here

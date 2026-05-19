@@ -110,6 +110,42 @@ pub use crate::intent_admission::{
     ForgeQueryWorkspaceLiveReadIntentAdmissionReview, ForgeQueryWorkspaceLiveReadIntentAuthoring,
     ForgeQueryWorkspaceReadIntentAdmissionReview, ForgeQueryWorkspaceReadIntentAuthoring,
 };
+#[allow(unused_imports)]
+pub use crate::lower_runtime_routing::{
+    certify_lower_runtime_non_bypass, certify_lower_runtime_performance_slopes,
+    certify_lower_runtime_routing, forge_query_lower_runtime_closeout_registry,
+    forge_query_lower_runtime_compile_fail_boundary_digest,
+    forge_query_lower_runtime_compile_fail_boundary_target_count,
+    forge_query_lower_runtime_crossing_inventory, forge_query_lower_runtime_direct_import_audit,
+    forge_query_lower_runtime_gap_registry, forge_query_lower_runtime_phase_progression_digest,
+    forge_query_lower_runtime_proof_shape_audit, forge_query_lower_runtime_proof_shape_digest,
+    forge_query_lower_runtime_public_surface_inventory, forge_query_lower_runtime_support_matrix,
+    inspect_lower_runtime_boundary, inspect_lower_runtime_closeout,
+    summarize_lower_runtime_boundary, ForgeQueryLowerRuntimeArtifactStrength,
+    ForgeQueryLowerRuntimeAuthorityOwner, ForgeQueryLowerRuntimeBoundaryEnvelope,
+    ForgeQueryLowerRuntimeBoundaryExecutionKind, ForgeQueryLowerRuntimeBoundaryExecutionReceipt,
+    ForgeQueryLowerRuntimeBoundarySummary, ForgeQueryLowerRuntimeCapabilityEligibility,
+    ForgeQueryLowerRuntimeCapabilityPosture, ForgeQueryLowerRuntimeCapabilityRequest,
+    ForgeQueryLowerRuntimeCertificationBundle, ForgeQueryLowerRuntimeCertificationLane,
+    ForgeQueryLowerRuntimeCertificationOutputDigest, ForgeQueryLowerRuntimeCertificationRow,
+    ForgeQueryLowerRuntimeCloseoutPosture, ForgeQueryLowerRuntimeCloseoutRegistry,
+    ForgeQueryLowerRuntimeCloseoutRow, ForgeQueryLowerRuntimeCostPosture,
+    ForgeQueryLowerRuntimeCrossingClassification, ForgeQueryLowerRuntimeCrossingInventory,
+    ForgeQueryLowerRuntimeCrossingRow, ForgeQueryLowerRuntimeDirectImportAudit,
+    ForgeQueryLowerRuntimeDirectImportAuditRow, ForgeQueryLowerRuntimeDirectImportPosture,
+    ForgeQueryLowerRuntimeFailureTopology, ForgeQueryLowerRuntimeGapRegistry,
+    ForgeQueryLowerRuntimeGapRegistryRow, ForgeQueryLowerRuntimeNonBypassAudit,
+    ForgeQueryLowerRuntimePerformanceFamily, ForgeQueryLowerRuntimePerformanceSlopeReport,
+    ForgeQueryLowerRuntimePerformanceSlopeRow, ForgeQueryLowerRuntimeProofShapeAudit,
+    ForgeQueryLowerRuntimeProofShapeAuditRow, ForgeQueryLowerRuntimeProofShapeEnforcement,
+    ForgeQueryLowerRuntimeProofShapeViolation, ForgeQueryLowerRuntimePublicSurfaceInventory,
+    ForgeQueryLowerRuntimePublicSurfaceKind, ForgeQueryLowerRuntimePublicSurfaceRow,
+    ForgeQueryLowerRuntimeReadmissionReceipt, ForgeQueryLowerRuntimeRouteKind,
+    ForgeQueryLowerRuntimeRoutePlan, ForgeQueryLowerRuntimeRoutingInspection,
+    ForgeQueryLowerRuntimeSeamKey, ForgeQueryLowerRuntimeSupportDetail,
+    ForgeQueryLowerRuntimeSupportMatrix, ForgeQueryLowerRuntimeSupportPosture,
+    ForgeQueryLowerRuntimeSupportRow,
+};
 use crate::memory_workspace::{
     ForgeQueryEntity, ForgeQueryMutationKind, ForgeQueryMutationReceipt, ForgeQueryWorkspaceError,
 };
@@ -228,12 +264,16 @@ pub use authority::{
     ForgeQueryPreviewOptions,
 };
 pub use backend::{
-    ForgeQueryBridgeBackedRuntimeBackend, ForgeQueryRuntimeBackend, ForgeQueryRuntimeBackendParts,
+    ForgeQueryBridgeBackedRuntimeBackend, ForgeQueryIntentAuthorityAdapter,
+    ForgeQueryRuntimeBackend, ForgeQueryRuntimeBackendParts,
     ForgeQueryRuntimeExistingTruthVerificationAdapter, ForgeQueryRuntimeInspectorEvidenceAdapter,
     ForgeQueryRuntimeIntentAuthorityAdapter, ForgeQueryRuntimePreviewBasisAdapter,
     ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
     ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
-    ForgeQueryRuntimeWriteAuthorityAdapter,
+    ForgeQueryRuntimeWriteAuthorityAdapter, LiveViewDeclarationAdmissionBoundaryReceipt,
+    LiveViewDeclarationAdmissionReceipt, SignalInvalidationBoundaryReceipt,
+    SignalInvalidationRoutingReceipt, SubscriptionActivationBoundaryReceipt,
+    SubscriptionActivationReceipt, WriteAuthorityExecutionReceipt,
 };
 pub use branch::ForgeQueryBranchSession;
 use bridge_mutation_lowering::{bridge_continuity_mutation_bundle, bridge_naming_mutation_bundle};
@@ -329,8 +369,8 @@ pub(crate) use intent::{
     admit_effect_triggered_intent_declaration, ForgeQueryIntentAdmissionDenial,
 };
 pub use intent::{
-    ForgeQueryBranchIntentReceipt, ForgeQueryEffectIntentReceipt, ForgeQueryIntentAuthorityAdapter,
-    ForgeQueryIntentDeclaration, ForgeQueryIntentDenialEvidence, ForgeQueryIntentExecution,
+    ForgeQueryBranchIntentReceipt, ForgeQueryEffectIntentReceipt, ForgeQueryIntentDeclaration,
+    ForgeQueryIntentDenialEvidence, ForgeQueryIntentExecution,
     ForgeQueryIntentExecutionFailureEvidence, ForgeQueryIntentExecutionKind,
     ForgeQueryIntentExecutionProvenance, ForgeQueryIntentReceipt, ForgeQueryIntentSourceLane,
     ForgeQueryPreviewIntentReceipt,

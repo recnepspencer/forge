@@ -14,11 +14,10 @@ use crate::runtime::{
     ForgeQueryEffectPolicy, ForgeQueryExistingTruthAssertionDenial,
     ForgeQueryExistingTruthBindingDenial, ForgeQueryExistingTruthProbe,
     ForgeQueryExistingTruthProbeDenial, ForgeQueryExistingTruthTargetBinding,
-    ForgeQueryIntentAuthorityAdapter, ForgeQueryIntentDeclaration, ForgeQueryIntentExecution,
-    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntimeBackend, ForgeQueryRuntimeError,
-    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeInspectionEvidence,
-    ForgeQueryRuntimeSupportProfile, ForgeQueryVerifiedExistingTruthAssertion,
-    ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
+    ForgeQueryIntentDeclaration, ForgeQueryIntentExecution, ForgeQueryPreviewBasisAdmission,
+    ForgeQueryRuntimeBackend, ForgeQueryRuntimeError, ForgeQueryRuntimeEvidenceAuthority,
+    ForgeQueryRuntimeInspectionEvidence, ForgeQueryRuntimeSupportProfile,
+    ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryWriteCommand, ForgeQueryWriteReceipt,
 };
 
 pub struct ForgeQueryBridgeBackedRuntimeBackend {
@@ -33,7 +32,7 @@ pub struct ForgeQueryBridgeBackedRuntimeBackend {
     subscription_activation: Box<dyn super::ForgeQueryRuntimeSubscriptionActivationAdapter>,
     preview_basis: Box<dyn super::ForgeQueryRuntimePreviewBasisAdapter>,
     inspector_evidence: Box<dyn super::ForgeQueryRuntimeInspectorEvidenceAdapter>,
-    intent_authority: Option<Box<dyn ForgeQueryIntentAuthorityAdapter>>,
+    intent_authority: Option<Box<dyn super::ForgeQueryIntentAuthorityAdapter>>,
     support_profile: ForgeQueryRuntimeSupportProfile,
 }
 
@@ -117,7 +116,7 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
         name: &str,
         request: &DeclarativeLiveQueryRequest,
         schema_view: &QuerySchemaView,
-    ) -> Result<(), ForgeQueryWorkspaceError> {
+    ) -> Result<super::LiveViewDeclarationAdmissionBoundaryReceipt, ForgeQueryWorkspaceError> {
         self.schema_adapter
             .admit_live_view(name, request, schema_view)
     }
@@ -126,12 +125,19 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
         &mut self,
         command: ForgeQueryWriteCommand,
     ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
-        let receipt = self.write_authority.write(
+        let write_execution = self.write_authority.write(
             &self.runtime_bridge,
             self.relational_runtime.as_mut(),
-            command,
+            command.clone(),
         )?;
-        self.signal_sink.route_write_receipt(&receipt)?;
+        if let Some(message) = write_execution.drift_from_command(&command) {
+            return Err(ForgeQueryWorkspaceError::new(message));
+        }
+        let receipt = write_execution.mutation_receipt().clone();
+        let routed = self.signal_sink.route_write_receipt(&receipt)?;
+        if let Some(message) = routed.drift_from_mutation_receipt(&receipt) {
+            return Err(ForgeQueryWorkspaceError::new(message));
+        }
         Ok(receipt)
     }
 
@@ -139,12 +145,33 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
         &mut self,
         commands: Vec<ForgeQueryWriteCommand>,
     ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError> {
-        let receipts = self.write_authority.write_batch(
+        let write_executions = self.write_authority.write_batch(
             &self.runtime_bridge,
             self.relational_runtime.as_mut(),
-            commands,
+            commands.clone(),
         )?;
-        self.signal_sink.route_write_batch(&receipts)?;
+        for (command, execution) in commands.iter().zip(write_executions.iter()) {
+            if let Some(message) = execution.drift_from_command(command) {
+                return Err(ForgeQueryWorkspaceError::new(message));
+            }
+        }
+        let receipts = write_executions
+            .iter()
+            .map(|execution| execution.mutation_receipt().clone())
+            .collect::<Vec<_>>();
+        let routed = self.signal_sink.route_write_batch(&receipts)?;
+        if routed.len() != receipts.len() {
+            return Err(ForgeQueryWorkspaceError::new(format!(
+                "signal invalidation routing batch width drifted from write batch: expected `{}`, found `{}`",
+                receipts.len(),
+                routed.len()
+            )));
+        }
+        for (receipt, routed_receipt) in receipts.iter().zip(routed.iter()) {
+            if let Some(message) = routed_receipt.drift_from_mutation_receipt(receipt) {
+                return Err(ForgeQueryWorkspaceError::new(message));
+            }
+        }
         Ok(receipts)
     }
 
@@ -240,9 +267,14 @@ impl ForgeQueryRuntimeBackend for ForgeQueryBridgeBackedRuntimeBackend {
         &mut self,
         view_name: &str,
         activation: &SubscriptionActivationInput,
-    ) -> Result<String, ForgeQueryWorkspaceError> {
-        self.subscription_activation
-            .admit_activation(view_name, activation)
+    ) -> Result<super::SubscriptionActivationReceipt, ForgeQueryWorkspaceError> {
+        let activation_receipt = self
+            .subscription_activation
+            .admit_activation(view_name, activation)?;
+        if let Some(message) = activation_receipt.drift_from_activation(view_name, activation) {
+            return Err(ForgeQueryWorkspaceError::new(message));
+        }
+        Ok(activation_receipt.activation_receipt().clone())
     }
 
     fn admit_preview_basis(

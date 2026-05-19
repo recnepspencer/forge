@@ -1,0 +1,23 @@
+warning: unreachable statement
+ --> tests/ui/lower_runtime_routing/protocol/route_plan_constructor_private.rs:7:5
+  |
+6 |     let eligibility: ForgeQueryLowerRuntimeCapabilityEligibility = todo!();
+  |                                                                    ------- any code following this expression is unreachable
+7 |     let _ = ForgeQueryLowerRuntimeRoutePlan::new(eligibility, "forged-route");
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unreachable statement
+  |
+  = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
+
+error[E0624]: associated function `new` is private
+ --> tests/ui/lower_runtime_routing/protocol/route_plan_constructor_private.rs:7:46
+  |
+7 |       let _ = ForgeQueryLowerRuntimeRoutePlan::new(eligibility, "forged-route");
+  |                                                ^^^ private associated function
+  |
+ ::: src/lower_runtime_routing/protocol.rs
+  |
+  | /     pub(crate) fn new(
+  | |         eligibility: ForgeQueryLowerRuntimeCapabilityEligibility,
+  | |         route_subject: impl Into<String>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

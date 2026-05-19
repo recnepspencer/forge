@@ -19,10 +19,10 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TestWriteAuthority {
         _bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
         command: ForgeQueryWriteCommand,
-    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
+    ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
         let aspect_paths = command.declared_aspect_paths();
         let collection = command_collection(&command);
-        Ok(ForgeQueryMutationReceipt {
+        let receipt = ForgeQueryMutationReceipt {
             commit_identity: "external-commit-1".to_string(),
             snapshot_token: "external-snapshot-1".to_string(),
             deltas: vec![crate::memory_workspace::ForgeQueryMutationDelta {
@@ -32,7 +32,8 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TestWriteAuthority {
                 aspect_paths,
             }],
             bridge_authority: None,
-        })
+        };
+        Ok(self.build_write_authority_execution_receipt(&command, receipt))
     }
 }
 
@@ -44,7 +45,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for DenyingWriteAuthority {
         _bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
         _command: ForgeQueryWriteCommand,
-    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
+    ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
         Err(ForgeQueryWorkspaceError::new(
             "write authority denied by test",
         ))
@@ -61,7 +62,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for CountingWriteAuthority {
         _bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
         command: ForgeQueryWriteCommand,
-    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
+    ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
         self.attempted_writes
             .set(self.attempted_writes.get().saturating_add(1));
         let mut authority = TestWriteAuthority;
@@ -80,7 +81,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for AtomicBatchCountingWriteAuthorit
         _bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
         command: ForgeQueryWriteCommand,
-    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
+    ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
         self.attempted_writes
             .set(self.attempted_writes.get().saturating_add(1));
         let mut authority = TestWriteAuthority;
@@ -92,14 +93,14 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for AtomicBatchCountingWriteAuthorit
         _bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
         commands: Vec<ForgeQueryWriteCommand>,
-    ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError> {
+    ) -> Result<Vec<WriteAuthorityExecutionReceipt>, ForgeQueryWorkspaceError> {
         self.attempted_batches
             .set(self.attempted_batches.get().saturating_add(1));
         let mut receipts = Vec::with_capacity(commands.len());
         for (index, command) in commands.into_iter().enumerate() {
             let aspect_paths = command.declared_aspect_paths();
             let collection = command_collection(&command);
-            receipts.push(ForgeQueryMutationReceipt {
+            let receipt = ForgeQueryMutationReceipt {
                 commit_identity: "external-batch-commit-1".to_string(),
                 snapshot_token: "external-batch-snapshot-1".to_string(),
                 deltas: vec![crate::memory_workspace::ForgeQueryMutationDelta {
@@ -109,7 +110,8 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for AtomicBatchCountingWriteAuthorit
                     aspect_paths,
                 }],
                 bridge_authority: None,
-            });
+            };
+            receipts.push(self.build_write_authority_execution_receipt(&command, receipt));
         }
         Ok(receipts)
     }
@@ -120,9 +122,10 @@ pub(in crate::runtime::tests) struct TestSignalSink;
 impl ForgeQueryRuntimeSignalSinkAdapter for TestSignalSink {
     fn route_write_receipt(
         &mut self,
-        _receipt: &ForgeQueryMutationReceipt,
-    ) -> Result<(), ForgeQueryWorkspaceError> {
-        Ok(())
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Result<SignalInvalidationBoundaryReceipt, ForgeQueryWorkspaceError> {
+        let routed = self.build_signal_invalidation_routing_receipt(receipt);
+        Ok(self.build_signal_invalidation_boundary_receipt(receipt, routed))
     }
 }
 
@@ -133,9 +136,50 @@ pub(in crate::runtime::tests) struct CountingSignalSink {
 impl ForgeQueryRuntimeSignalSinkAdapter for CountingSignalSink {
     fn route_write_receipt(
         &mut self,
-        _receipt: &ForgeQueryMutationReceipt,
-    ) -> Result<(), ForgeQueryWorkspaceError> {
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Result<SignalInvalidationBoundaryReceipt, ForgeQueryWorkspaceError> {
         self.routed.set(self.routed.get().saturating_add(1));
-        Ok(())
+        let routed = self.build_signal_invalidation_routing_receipt(receipt);
+        Ok(self.build_signal_invalidation_boundary_receipt(receipt, routed))
+    }
+}
+
+pub(in crate::runtime::tests) struct DriftingSignalSink;
+
+impl ForgeQueryRuntimeSignalSinkAdapter for DriftingSignalSink {
+    fn route_write_receipt(
+        &mut self,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Result<SignalInvalidationBoundaryReceipt, ForgeQueryWorkspaceError> {
+        let mut drifted = receipt.clone();
+        drifted.snapshot_token = "drifted-snapshot-token".to_string();
+        let routed = self.build_signal_invalidation_routing_receipt(&drifted);
+        Ok(self.build_signal_invalidation_boundary_receipt(&drifted, routed))
+    }
+}
+
+pub(in crate::runtime::tests) struct TruncatingBatchSignalSink;
+
+impl ForgeQueryRuntimeSignalSinkAdapter for TruncatingBatchSignalSink {
+    fn route_write_receipt(
+        &mut self,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Result<SignalInvalidationBoundaryReceipt, ForgeQueryWorkspaceError> {
+        let routed = self.build_signal_invalidation_routing_receipt(receipt);
+        Ok(self.build_signal_invalidation_boundary_receipt(receipt, routed))
+    }
+
+    fn route_write_batch(
+        &mut self,
+        receipts: &[ForgeQueryMutationReceipt],
+    ) -> Result<Vec<SignalInvalidationBoundaryReceipt>, ForgeQueryWorkspaceError> {
+        Ok(receipts
+            .iter()
+            .take(receipts.len().saturating_sub(1))
+            .map(|receipt| {
+                let routed = self.build_signal_invalidation_routing_receipt(receipt);
+                self.build_signal_invalidation_boundary_receipt(receipt, routed)
+            })
+            .collect())
     }
 }

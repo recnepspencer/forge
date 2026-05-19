@@ -24,6 +24,7 @@ pub enum EffectReceiptTargetEvidence {
     Writeback {
         outcome_digest: String,
         receipt_digest: String,
+        execution_receipt_digest: String,
     },
     BatchMutation {
         commit_id: u64,
@@ -309,10 +310,14 @@ impl EffectExecutionReceipt {
                         version_id: result.commit.outcome.commit.version_id.0,
                     }
                 }
-                ExecutedEffectAuthorityArtifact::Writeback { outcome, receipt } => {
+                ExecutedEffectAuthorityArtifact::Writeback { execution } => {
                     EffectReceiptTargetEvidence::Writeback {
-                        outcome_digest: outcome.digest().to_string(),
-                        receipt_digest: receipt.digest().to_string(),
+                        outcome_digest: execution.outcome().digest().to_string(),
+                        receipt_digest: execution.authority_receipt().digest().to_string(),
+                        execution_receipt_digest: execution
+                            .execution_receipt()
+                            .digest()
+                            .to_string(),
                     }
                 }
             },
@@ -348,8 +353,8 @@ fn authority_artifact_digest(artifact: &ExecutedEffectAuthorityArtifact) -> Stri
                 result.commit.outcome.commit.commit_id.0, result.commit.outcome.commit.version_id.0
             )
         }
-        ExecutedEffectAuthorityArtifact::Writeback { outcome, receipt } => {
-            format!("writeback:{}:{}", outcome.digest(), receipt.digest())
+        ExecutedEffectAuthorityArtifact::Writeback { execution } => {
+            format!("writeback:{}", execution.digest())
         }
     }
 }

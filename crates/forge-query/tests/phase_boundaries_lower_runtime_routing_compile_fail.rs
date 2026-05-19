@@ -1,0 +1,42 @@
+#[test]
+fn lower_runtime_routing_boundaries_hold() {
+    let t = trybuild::TestCases::new();
+    t.compile_fail("tests/ui/lower_runtime_routing/inventory/crossing_row_constructor_private.rs");
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/inventory/crossing_inventory_constructor_private.rs",
+    );
+    t.compile_fail("tests/ui/lower_runtime_routing/gaps/gap_registry_row_constructor_private.rs");
+    t.compile_fail("tests/ui/lower_runtime_routing/audit/audit_row_constructor_private.rs");
+    t.compile_fail("tests/ui/lower_runtime_routing/closeout/closeout_row_constructor_private.rs");
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/closeout/closeout_registry_constructor_private.rs",
+    );
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/envelopes/boundary_envelope_constructor_private.rs",
+    );
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/protocol/capability_request_constructor_private.rs",
+    );
+    t.compile_fail("tests/ui/lower_runtime_routing/protocol/route_plan_constructor_private.rs");
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/protocol/boundary_execution_receipt_constructor_private.rs",
+    );
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/certification/public_surface_row_constructor_private.rs",
+    );
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/certification/public_surface_inventory_constructor_private.rs",
+    );
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/certification/non_bypass_audit_constructor_private.rs",
+    );
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/certification/certification_row_constructor_private.rs",
+    );
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/certification/certification_bundle_constructor_private.rs",
+    );
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/certification/proof_shape_audit_constructor_private.rs",
+    );
+}

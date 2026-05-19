@@ -797,6 +797,21 @@ Required signal facade contract:
 - one facade-level route evidence artifact for serial-fallback versus
   parallel-admitted posture
 
+Ownership decision:
+
+- the default owner of frontier/planning receipts is `forge-signal`, not
+  `forge-runtime-bridge`
+- frontier posture, parallel-admission reasoning, stage execution evidence,
+  and invalidation/planning topology are signal authority and must therefore
+  be exposed from a signal facade contract first
+- Query owns the public lower-runtime routing/request/receipt/envelope
+  lifecycle that consumes those signal-owned receipts
+- `forge-runtime-bridge` may aggregate signal frontier evidence only when a
+  later artifact is genuinely cross-runtime and combines signal-owned posture
+  with bridge-owned routing or evaluation authority
+- bridge is not the default home for orphan frontier semantics just because
+  Query needs a public boundary envelope
+
 Required semantic shape:
 
 ```text
@@ -828,6 +843,8 @@ Concrete Query-side consequence:
 
 - Query may continue translating signal evidence into Query planning/support
   vocabulary
+- Query must consume signal-owned canonical frontier posture rather than
+  re-authoring it locally or relocating it into bridge by default
 - Query may not depend on specialist-only signal types once the 9.3.6 contract
   lands
 
@@ -945,9 +962,12 @@ removal before closeout, not to normalize lingering debt:
 
 - `frontier_signal_adapter.rs`
   - current shape: Query imports signal specialist types
-  - missing contract: facade-level frontier route evidence receipts
+  - missing contract: signal facade-level frontier route evidence receipts
   - required closeout: Query consumes only signal facade route evidence and the
     specialist imports are deleted
+  - ownership decision: the canonical frontier planning/route evidence receipt
+    is signal-owned unless and until a later artifact is genuinely
+    cross-runtime and therefore bridge-owned
 - `effect_lifecycle/execution_bridge.rs`
   - current shape: Query performs bridge writeback choreography
   - missing contract: one bridge admitted-writeback execution contract with
@@ -1252,6 +1272,11 @@ Required signal boundary for this milestone:
 - if Query still has a specialist signal seam because the signal facade does
   not expose the needed frontier/evidence/receipt contract, 9.3.6 should
   prefer adding that signal contract over normalizing the Query seam
+- frontier planning receipts, parallel-admission posture, serial-fallback
+  posture, and stage-execution evidence are signal-owned by default; Query
+  wraps them into the public lower-runtime routing model, and bridge may own
+  only later cross-runtime aggregation artifacts that combine signal evidence
+  with bridge-owned routing or evaluation meaning
 
 Allowed signal changes:
 
@@ -1465,6 +1490,14 @@ Required code moves:
   there rather than compensating in Query
 - reduce former specialist seams to either a thin allowed adapter or complete
   deletion
+
+Ownership lock for this phase:
+
+- the frontier/planning receipt family is not an open ownership question during
+  implementation; for `frontier_signal_adapter.rs`, the missing contract
+  belongs in `forge-signal`
+- Phase 3 may still decide bridge versus relational versus signal ownership for
+  other in-scope seams whose authority is not already locked by this spec
 
 This phase does not close if:
 
