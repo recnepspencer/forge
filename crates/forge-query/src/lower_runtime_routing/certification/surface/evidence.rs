@@ -12,12 +12,25 @@ use crate::lower_runtime_routing::{
 
 use super::fixtures::{
     hostile_parity_divergence_digest, normalized_parity_digest,
-    representative_causal_bridge_materialization_row, representative_frontier_evidence_row,
+    representative_basis_subscription_readmission_row,
+    representative_basis_truth_view_readmission_row,
+    representative_causal_bridge_materialization_row, representative_compose_read_row,
+    representative_compose_read_with_invariant_pack_row,
+    representative_effect_bridge_writeback_row, representative_effect_relational_merge_row,
+    representative_effect_relational_mutation_row,
+    representative_execute_read_family_in_basis_context_row,
+    representative_execute_read_family_row, representative_frontier_evidence_row,
+    representative_historical_bridge_lowering_row, representative_intent_runtime_execution_row,
     representative_live_view_schema_row, representative_live_view_source_row,
     representative_preview_basis_row, representative_projection_bridge_row,
     representative_projection_query_receipts_row, representative_projection_relational_row,
+    representative_public_live_view_declaration_row,
+    representative_runtime_basis_context_read_graph_row,
+    representative_runtime_current_read_graph_row, representative_runtime_intent_authority_row,
+    representative_runtime_live_installation_orchestration_row,
     representative_signal_invalidation_row, representative_subscription_activation_row,
-    representative_write_authority_row, synthetic_inventory_row, RepresentativeArtifacts,
+    representative_subscription_continuity_row, representative_write_authority_row,
+    synthetic_inventory_row, RepresentativeArtifacts,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -105,6 +118,17 @@ impl ForgeQueryLowerRuntimeRepresentativeSurface {
         )
     }
 
+    pub(crate) fn synthetic_surface_seams(&self) -> Vec<&'static str> {
+        self.evidence_sources
+            .iter()
+            .filter_map(|(seam_key, source)| {
+                (*source
+                    == ForgeQueryLowerRuntimeRepresentativeEvidenceSource::InventorySynthesized)
+                    .then_some(*seam_key)
+            })
+            .collect()
+    }
+
     fn evidence_source_digest(
         &self,
         source: ForgeQueryLowerRuntimeRepresentativeEvidenceSource,
@@ -148,7 +172,7 @@ impl ForgeQueryLowerRuntimeRepresentativeSurface {
     }
 
     #[cfg(test)]
-    fn request_for(
+    pub(super) fn request_for(
         &self,
         seam_key: ForgeQueryLowerRuntimeSeamKey,
     ) -> Option<&ForgeQueryLowerRuntimeCapabilityRequest> {
@@ -156,7 +180,7 @@ impl ForgeQueryLowerRuntimeRepresentativeSurface {
     }
 
     #[cfg(test)]
-    fn route_plan_for(
+    pub(super) fn route_plan_for(
         &self,
         seam_key: ForgeQueryLowerRuntimeSeamKey,
     ) -> Option<&ForgeQueryLowerRuntimeRoutePlan> {
@@ -164,7 +188,7 @@ impl ForgeQueryLowerRuntimeRepresentativeSurface {
     }
 
     #[cfg(test)]
-    fn boundary_receipt_for(
+    pub(super) fn boundary_receipt_for(
         &self,
         seam_key: ForgeQueryLowerRuntimeSeamKey,
     ) -> Option<&ForgeQueryLowerRuntimeBoundaryExecutionReceipt> {
@@ -172,7 +196,7 @@ impl ForgeQueryLowerRuntimeRepresentativeSurface {
     }
 
     #[cfg(test)]
-    fn envelope_for(
+    pub(super) fn envelope_for(
         &self,
         seam_key: ForgeQueryLowerRuntimeSeamKey,
     ) -> Option<&ForgeQueryLowerRuntimeBoundaryEnvelope> {
@@ -183,12 +207,29 @@ impl ForgeQueryLowerRuntimeRepresentativeSurface {
 pub fn forge_query_lower_runtime_representative_surface(
 ) -> ForgeQueryLowerRuntimeRepresentativeSurface {
     let concrete_rows = vec![
+        representative_compose_read_row(),
+        representative_compose_read_with_invariant_pack_row(),
+        representative_execute_read_family_row(),
+        representative_execute_read_family_in_basis_context_row(),
+        representative_runtime_current_read_graph_row(),
+        representative_runtime_basis_context_read_graph_row(),
         representative_live_view_schema_row(),
         representative_live_view_source_row(),
+        representative_public_live_view_declaration_row(),
+        representative_runtime_live_installation_orchestration_row(),
         representative_subscription_activation_row(),
+        representative_subscription_continuity_row(),
         representative_preview_basis_row(),
+        representative_basis_truth_view_readmission_row(),
+        representative_basis_subscription_readmission_row(),
+        representative_historical_bridge_lowering_row(),
+        representative_effect_relational_mutation_row(),
+        representative_effect_relational_merge_row(),
+        representative_effect_bridge_writeback_row(),
         representative_write_authority_row(),
         representative_signal_invalidation_row(),
+        representative_runtime_intent_authority_row(),
+        representative_intent_runtime_execution_row(),
         representative_projection_query_receipts_row(),
         representative_projection_relational_row(),
         representative_projection_bridge_row(),
@@ -311,238 +352,4 @@ fn collect_surface_map<T: Clone>(
     rows.iter()
         .map(|row| (row.seam_key.as_str(), project(row)))
         .collect()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn representative_surface_covers_every_crossing_row_once() {
-        let surface = forge_query_lower_runtime_representative_surface();
-        let crossing_count = forge_query_lower_runtime_crossing_inventory().rows().len();
-
-        assert_eq!(surface.requests().len(), crossing_count);
-        assert_eq!(surface.eligibilities().len(), crossing_count);
-        assert_eq!(surface.boundary_receipts().len(), crossing_count);
-        assert_eq!(surface.envelopes().len(), crossing_count);
-        assert!(!surface.route_parity_digest().is_empty());
-    }
-
-    #[test]
-    fn representative_surface_uses_runtime_backed_fixtures_for_named_phase_six_seams() {
-        let surface = forge_query_lower_runtime_representative_surface();
-
-        assert_eq!(
-            surface.evidence_source_for(ForgeQueryLowerRuntimeSeamKey::LiveViewSchemaAdmission),
-            Some(ForgeQueryLowerRuntimeRepresentativeEvidenceSource::RuntimeBackedFixture)
-        );
-        assert_eq!(
-            surface.evidence_source_for(ForgeQueryLowerRuntimeSeamKey::LiveViewSourceDeclaration),
-            Some(ForgeQueryLowerRuntimeRepresentativeEvidenceSource::RuntimeBackedFixture)
-        );
-        assert_eq!(
-            surface.evidence_source_for(ForgeQueryLowerRuntimeSeamKey::PreviewBasisAdmission),
-            Some(ForgeQueryLowerRuntimeRepresentativeEvidenceSource::RuntimeBackedFixture)
-        );
-        assert_eq!(
-            surface.evidence_source_for(ForgeQueryLowerRuntimeSeamKey::SubscriptionActivation),
-            Some(ForgeQueryLowerRuntimeRepresentativeEvidenceSource::RuntimeBackedFixture)
-        );
-        assert_eq!(
-            surface
-                .evidence_source_for(ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution),
-            Some(ForgeQueryLowerRuntimeRepresentativeEvidenceSource::RuntimeBackedFixture)
-        );
-        assert_eq!(
-            surface.evidence_source_for(ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting),
-            Some(ForgeQueryLowerRuntimeRepresentativeEvidenceSource::RuntimeBackedFixture)
-        );
-        assert_eq!(
-            surface.evidence_source_for(
-                ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromQueryReceipts
-            ),
-            Some(ForgeQueryLowerRuntimeRepresentativeEvidenceSource::RuntimeBackedFixture)
-        );
-        assert_eq!(
-            surface.evidence_source_for(
-                ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromRelationalArtifacts
-            ),
-            Some(ForgeQueryLowerRuntimeRepresentativeEvidenceSource::RuntimeBackedFixture)
-        );
-        assert_eq!(
-            surface.evidence_source_for(
-                ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromBridgeArtifacts
-            ),
-            Some(ForgeQueryLowerRuntimeRepresentativeEvidenceSource::RuntimeBackedFixture)
-        );
-        assert_eq!(
-            surface.evidence_source_for(ForgeQueryLowerRuntimeSeamKey::CausalBridgeMaterialization),
-            Some(ForgeQueryLowerRuntimeRepresentativeEvidenceSource::RuntimeBackedFixture)
-        );
-        assert_eq!(
-            surface.evidence_source_for(ForgeQueryLowerRuntimeSeamKey::FrontierEvidenceIntake),
-            Some(ForgeQueryLowerRuntimeRepresentativeEvidenceSource::RuntimeBackedFixture)
-        );
-    }
-
-    #[test]
-    fn representative_surface_runtime_backed_seams_match_real_boundary_artifact_constructors() {
-        let surface = forge_query_lower_runtime_representative_surface();
-        let live_row = representative_live_view_schema_row();
-        let source_row = representative_live_view_source_row();
-        let activation_row = representative_subscription_activation_row();
-        let preview_row = representative_preview_basis_row();
-        let write_row = representative_write_authority_row();
-        let signal_row = representative_signal_invalidation_row();
-        let query_receipt_row = representative_projection_query_receipts_row();
-        let relational_row = representative_projection_relational_row();
-        let bridge_row = representative_projection_bridge_row();
-        let causal_row = representative_causal_bridge_materialization_row();
-        let frontier_row = representative_frontier_evidence_row();
-
-        assert_eq!(
-            surface
-                .request_for(ForgeQueryLowerRuntimeSeamKey::LiveViewSchemaAdmission)
-                .expect("live schema request should exist")
-                .request_digest(),
-            live_row.request.request_digest()
-        );
-        assert_eq!(
-            surface
-                .boundary_receipt_for(ForgeQueryLowerRuntimeSeamKey::LiveViewSchemaAdmission)
-                .expect("live schema receipt should exist")
-                .boundary_execution_digest(),
-            live_row.boundary_receipt.boundary_execution_digest()
-        );
-        assert_eq!(
-            surface
-                .route_plan_for(ForgeQueryLowerRuntimeSeamKey::LiveViewSourceDeclaration)
-                .expect("live source plan should exist")
-                .route_digest(),
-            source_row
-                .route_plan
-                .as_ref()
-                .expect("live source route plan")
-                .route_digest()
-        );
-        assert_eq!(
-            surface
-                .route_plan_for(ForgeQueryLowerRuntimeSeamKey::SubscriptionActivation)
-                .expect("subscription route plan should exist")
-                .route_digest(),
-            activation_row
-                .route_plan
-                .as_ref()
-                .expect("subscription route plan")
-                .route_digest()
-        );
-        assert_eq!(
-            surface
-                .boundary_receipt_for(ForgeQueryLowerRuntimeSeamKey::PreviewBasisAdmission)
-                .expect("preview basis receipt should exist")
-                .boundary_execution_digest(),
-            preview_row.boundary_receipt.boundary_execution_digest()
-        );
-        assert_eq!(
-            surface
-                .route_plan_for(ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution)
-                .expect("write route plan should exist")
-                .route_digest(),
-            write_row
-                .route_plan
-                .as_ref()
-                .expect("write route plan")
-                .route_digest()
-        );
-        assert_eq!(
-            surface
-                .boundary_receipt_for(ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution)
-                .expect("write receipt should exist")
-                .boundary_execution_digest(),
-            write_row.boundary_receipt.boundary_execution_digest()
-        );
-        assert_eq!(
-            surface
-                .route_plan_for(ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting)
-                .expect("signal route plan should exist")
-                .route_digest(),
-            signal_row
-                .route_plan
-                .as_ref()
-                .expect("signal route plan")
-                .route_digest()
-        );
-        assert_eq!(
-            surface
-                .boundary_receipt_for(
-                    ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromQueryReceipts
-                )
-                .expect("query receipt source boundary should exist")
-                .boundary_execution_digest(),
-            query_receipt_row
-                .boundary_receipt
-                .boundary_execution_digest()
-        );
-        assert_eq!(
-            surface
-                .boundary_receipt_for(
-                    ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromRelationalArtifacts
-                )
-                .expect("relational source boundary should exist")
-                .boundary_execution_digest(),
-            relational_row.boundary_receipt.boundary_execution_digest()
-        );
-        assert_eq!(
-            surface
-                .boundary_receipt_for(
-                    ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromBridgeArtifacts
-                )
-                .expect("bridge source boundary should exist")
-                .boundary_execution_digest(),
-            bridge_row.boundary_receipt.boundary_execution_digest()
-        );
-        assert_eq!(
-            surface
-                .route_plan_for(ForgeQueryLowerRuntimeSeamKey::CausalBridgeMaterialization)
-                .expect("causal route plan should exist")
-                .route_digest(),
-            causal_row
-                .route_plan
-                .as_ref()
-                .expect("causal route plan")
-                .route_digest()
-        );
-        assert_eq!(
-            surface
-                .route_plan_for(ForgeQueryLowerRuntimeSeamKey::FrontierEvidenceIntake)
-                .expect("frontier route plan should exist")
-                .route_digest(),
-            frontier_row
-                .route_plan
-                .as_ref()
-                .expect("frontier route plan")
-                .route_digest()
-        );
-        assert_eq!(
-            surface
-                .envelope_for(ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting)
-                .expect("signal envelope should exist")
-                .envelope_digest(),
-            signal_row.envelope.envelope_digest()
-        );
-    }
-
-    #[test]
-    fn representative_surface_reports_concrete_and_synthetic_coverage_widths() {
-        let surface = forge_query_lower_runtime_representative_surface();
-
-        assert_eq!(
-            surface.concrete_surface_width() + surface.synthetic_surface_width(),
-            surface.envelopes().len()
-        );
-        assert!(surface.concrete_surface_width() >= 11);
-        assert!(!surface.concrete_surface_digest().is_empty());
-        assert!(!surface.synthetic_surface_digest().is_empty());
-    }
 }

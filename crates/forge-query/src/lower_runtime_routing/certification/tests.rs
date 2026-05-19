@@ -1,9 +1,12 @@
+use super::surface::forge_query_lower_runtime_synthetic_tail_report;
 use super::surface::{
-    forge_query_lower_runtime_acceptance_suite, required_phase_six_concrete_seams,
+    allowed_phase_six_synthetic_seams, forge_query_lower_runtime_acceptance_suite,
+    forge_query_lower_runtime_representative_surface, required_phase_six_concrete_seams,
     ForgeQueryLowerRuntimeAcceptanceLane,
 };
 use super::{
     certify_lower_runtime_performance_slopes, certify_lower_runtime_routing,
+    forge_query_lower_runtime_boundary_reconciliation_report,
     forge_query_lower_runtime_compile_fail_boundary_digest,
     forge_query_lower_runtime_phase_progression_digest,
     forge_query_lower_runtime_proof_shape_audit, forge_query_lower_runtime_proof_shape_digest,
@@ -11,9 +14,8 @@ use super::{
 };
 use crate::identity::hash_parts;
 use crate::lower_runtime_routing::{
-    certify_lower_runtime_non_bypass, forge_query_lower_runtime_closeout_registry,
-    forge_query_lower_runtime_crossing_inventory, forge_query_lower_runtime_gap_registry,
-    forge_query_lower_runtime_support_matrix,
+    certify_lower_runtime_non_bypass, forge_query_lower_runtime_crossing_inventory,
+    forge_query_lower_runtime_gap_registry, forge_query_lower_runtime_support_matrix,
 };
 
 const REQUIRED_OUTPUTS: &[&str] = &[
@@ -34,10 +36,14 @@ const REQUIRED_OUTPUTS: &[&str] = &[
     "route_failure_topology_digest",
     "route_support_matrix_digest",
     "route_public_surface_digest",
+    "route_boundary_reconciliation_digest",
     "route_target_dx_digest",
     "route_golden_transcript_digest",
     "route_concrete_surface_digest",
     "route_synthetic_surface_digest",
+    "route_synthetic_tail_policy_digest",
+    "route_synthetic_tail_report_digest",
+    "route_synthetic_tail_justification_digest",
     "route_proof_shape_digest",
     "route_phase_progression_digest",
     "route_parity_digest",
@@ -52,6 +58,8 @@ const REQUIRED_OUTPUTS: &[&str] = &[
     "boundary_evidence_width",
     "route_concrete_surface_width",
     "route_synthetic_surface_width",
+    "route_boundary_reconciliation_width",
+    "route_synthetic_tail_width",
     "capability_eligibility_slope_digest",
     "route_plan_assembly_slope_digest",
     "boundary_receipt_assembly_slope_digest",
@@ -66,7 +74,9 @@ fn certification_bundle_contains_phase_seven_lanes() {
 
     for lane in [
         ForgeQueryLowerRuntimeCertificationLane::CrossingsSurface,
+        ForgeQueryLowerRuntimeCertificationLane::BoundaryClosureSurface,
         ForgeQueryLowerRuntimeCertificationLane::AcceptanceEvidence,
+        ForgeQueryLowerRuntimeCertificationLane::SyntheticTailPolicy,
         ForgeQueryLowerRuntimeCertificationLane::RouteParity,
         ForgeQueryLowerRuntimeCertificationLane::FormerSpecialistSeamClosure,
         ForgeQueryLowerRuntimeCertificationLane::DeferredNeighborDenial,
@@ -86,6 +96,27 @@ fn certification_bundle_emits_required_outputs() {
     let crossings = forge_query_lower_runtime_crossing_inventory();
     let support = forge_query_lower_runtime_support_matrix();
     let non_bypass = certify_lower_runtime_non_bypass().expect("non-bypass should pass");
+    let reconciliation = forge_query_lower_runtime_boundary_reconciliation_report();
+    let synthetic_tail = forge_query_lower_runtime_synthetic_tail_report();
+    let surface = forge_query_lower_runtime_representative_surface();
+    let slopes = certify_lower_runtime_performance_slopes(&surface);
+    let reconciliation_width = reconciliation.rows().len().to_string();
+    let synthetic_tail_width = synthetic_tail.rows().len().to_string();
+    let full_crossing_width = slopes
+        .full_profile()
+        .counters()
+        .crossing_inventory_width()
+        .to_string();
+    let full_route_width = slopes
+        .full_profile()
+        .counters()
+        .route_plan_width()
+        .to_string();
+    let full_evidence_width = slopes
+        .full_profile()
+        .counters()
+        .boundary_evidence_width()
+        .to_string();
 
     for output in REQUIRED_OUTPUTS {
         assert!(
@@ -105,6 +136,10 @@ fn certification_bundle_emits_required_outputs() {
     assert_eq!(
         bundle.output_digest("route_non_bypass_digest"),
         Some(non_bypass.route_non_bypass_digest())
+    );
+    assert_eq!(
+        bundle.output_digest("route_boundary_reconciliation_digest"),
+        Some(reconciliation.report_digest())
     );
     assert_eq!(
         bundle.output_digest("compile_fail_boundary_digest"),
@@ -146,6 +181,43 @@ fn certification_bundle_emits_required_outputs() {
         bundle.output_digest("route_concrete_surface_digest"),
         bundle.output_digest("route_synthetic_surface_digest"),
         "concrete and synthetic surfaces must remain distinguishable in the bundle"
+    );
+    assert_eq!(
+        synthetic_width,
+        allowed_phase_six_synthetic_seams().len(),
+        "synthetic width must match the explicit phase six allowlist"
+    );
+    assert_eq!(
+        bundle.output_digest("route_synthetic_tail_report_digest"),
+        Some(synthetic_tail.report_digest())
+    );
+    assert_eq!(
+        bundle.output_digest("route_synthetic_tail_justification_digest"),
+        Some(synthetic_tail.justification_digest())
+    );
+    assert_eq!(
+        bundle.output_digest("route_boundary_reconciliation_width"),
+        Some(reconciliation_width.as_str())
+    );
+    assert_eq!(
+        bundle.output_digest("route_synthetic_tail_width"),
+        Some(synthetic_tail_width.as_str())
+    );
+    assert_eq!(
+        bundle.output_digest("counter_snapshot"),
+        Some(slopes.full_profile().counters().counter_snapshot_digest())
+    );
+    assert_eq!(
+        bundle.output_digest("crossing_inventory_width"),
+        Some(full_crossing_width.as_str())
+    );
+    assert_eq!(
+        bundle.output_digest("route_plan_width"),
+        Some(full_route_width.as_str())
+    );
+    assert_eq!(
+        bundle.output_digest("boundary_evidence_width"),
+        Some(full_evidence_width.as_str())
     );
 }
 
@@ -209,22 +281,15 @@ fn parity_digest_changes_when_intentionally_different_route_families_are_compare
 #[test]
 fn proof_shape_and_slope_surfaces_stay_exported() {
     let proof = forge_query_lower_runtime_proof_shape_audit();
-    let support = forge_query_lower_runtime_support_matrix();
-    let closeout = forge_query_lower_runtime_closeout_registry();
-    let crossings = forge_query_lower_runtime_crossing_inventory();
-    let slopes = certify_lower_runtime_performance_slopes(
-        crossings.rows().len(),
-        18,
-        crossings.rows().len(),
-        support.rows().len(),
-        closeout.rows().len(),
-    );
+    let surface = forge_query_lower_runtime_representative_surface();
+    let slopes = certify_lower_runtime_performance_slopes(&surface);
 
     assert_eq!(proof.rows().len(), 5);
     assert_eq!(slopes.rows().len(), 6);
     assert!(slopes
         .digest_for_output("debt_registry_lookup_slope_digest")
         .is_some());
+    assert_eq!(slopes.profiles().len(), 3);
 }
 
 #[test]

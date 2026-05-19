@@ -1,3 +1,4 @@
+mod boundary_reconciliation;
 mod closeout;
 mod model;
 mod non_bypass;
@@ -9,6 +10,12 @@ mod surface;
 #[cfg(test)]
 mod tests;
 
+#[allow(unused_imports)]
+pub use boundary_reconciliation::{
+    forge_query_lower_runtime_boundary_reconciliation_report,
+    ForgeQueryLowerRuntimeBoundaryReconciliationReport,
+    ForgeQueryLowerRuntimeBoundaryReconciliationRow,
+};
 pub use closeout::certify_lower_runtime_routing;
 pub use model::{
     ForgeQueryLowerRuntimeCertificationBundle, ForgeQueryLowerRuntimeCertificationLane,

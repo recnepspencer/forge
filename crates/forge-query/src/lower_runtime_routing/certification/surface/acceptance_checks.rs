@@ -4,11 +4,14 @@ use crate::identity::hash_parts;
 use crate::lower_runtime_routing::{
     forge_query_lower_runtime_closeout_registry, forge_query_lower_runtime_crossing_inventory,
     forge_query_lower_runtime_gap_registry, forge_query_lower_runtime_support_matrix,
-    ForgeQueryLowerRuntimeBoundaryExecutionKind, ForgeQueryLowerRuntimeCloseoutPosture,
-    ForgeQueryLowerRuntimeCrossingClassification, ForgeQueryLowerRuntimeRouteKind,
+    ForgeQueryLowerRuntimeCloseoutPosture, ForgeQueryLowerRuntimeCrossingClassification,
     ForgeQueryLowerRuntimeSeamKey, ForgeQueryLowerRuntimeSupportPosture,
 };
 
+use super::acceptance_cardinality::admitted_crossing_cardinality_digest;
+use super::acceptance_policy::{
+    allowed_phase_six_synthetic_seams, required_phase_six_concrete_seams,
+};
 use super::evidence::ForgeQueryLowerRuntimeRepresentativeEvidenceSource;
 use super::evidence::ForgeQueryLowerRuntimeRepresentativeSurface;
 
@@ -20,6 +23,7 @@ pub(super) fn control_digest(surface: &ForgeQueryLowerRuntimeRepresentativeSurfa
         admitted_crossing_cardinality_digest(surface),
         support_behavior_agreement_digest(surface),
         required_concrete_seam_coverage_digest(surface),
+        synthetic_tail_exactness_digest(surface),
     ])
 }
 
@@ -30,27 +34,12 @@ pub(super) fn hostile_digest(surface: &ForgeQueryLowerRuntimeRepresentativeSurfa
         "crossing-cardinality-drift-is-forbidden".to_string(),
         "support-behavior-drift-is-forbidden".to_string(),
         "required-phase-six-seams-must-not-fall-back-to-synthetic".to_string(),
+        "synthetic-tail-overclaim-is-forbidden".to_string(),
         surface.route_parity_digest().to_string(),
     ])
 }
 
-pub(crate) fn required_phase_six_concrete_seams() -> &'static [ForgeQueryLowerRuntimeSeamKey] {
-    &[
-        ForgeQueryLowerRuntimeSeamKey::LiveViewSchemaAdmission,
-        ForgeQueryLowerRuntimeSeamKey::LiveViewSourceDeclaration,
-        ForgeQueryLowerRuntimeSeamKey::SubscriptionActivation,
-        ForgeQueryLowerRuntimeSeamKey::PreviewBasisAdmission,
-        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
-        ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting,
-        ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromQueryReceipts,
-        ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromRelationalArtifacts,
-        ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromBridgeArtifacts,
-        ForgeQueryLowerRuntimeSeamKey::CausalBridgeMaterialization,
-        ForgeQueryLowerRuntimeSeamKey::FrontierEvidenceIntake,
-    ]
-}
-
-fn required_concrete_seam_coverage_digest(
+pub(super) fn required_concrete_seam_coverage_digest(
     surface: &ForgeQueryLowerRuntimeRepresentativeSurface,
 ) -> String {
     for seam_key in required_phase_six_concrete_seams() {
@@ -66,6 +55,40 @@ fn required_concrete_seam_coverage_digest(
         &required_phase_six_concrete_seams()
             .iter()
             .map(|seam_key| seam_key.as_str().to_string())
+            .collect::<Vec<_>>(),
+    )
+}
+
+pub(super) fn synthetic_tail_exactness_digest(
+    surface: &ForgeQueryLowerRuntimeRepresentativeSurface,
+) -> String {
+    let expected = allowed_phase_six_synthetic_seams();
+    let actual = surface.synthetic_surface_seams();
+
+    assert_eq!(
+        actual.len(),
+        expected.len(),
+        "synthetic surface width drifted from the explicit phase six allowlist"
+    );
+
+    for row in expected {
+        assert!(
+            actual.contains(&row.seam_key().as_str()),
+            "allowed synthetic seam {} disappeared from the certified synthetic tail",
+            row.seam_key().as_str()
+        );
+        assert_eq!(
+            surface.evidence_source_for(row.seam_key()),
+            Some(ForgeQueryLowerRuntimeRepresentativeEvidenceSource::InventorySynthesized),
+            "allowed synthetic seam {} must remain inventory-synthesized until Phase 6 closeout converts it",
+            row.seam_key().as_str()
+        );
+    }
+
+    hash_parts(
+        &expected
+            .iter()
+            .map(|row| format!("{}|{}", row.seam_key().as_str(), row.justification()))
             .collect::<Vec<_>>(),
     )
 }
@@ -202,102 +225,6 @@ fn surviving_specialist_justification_digest() -> String {
     )
 }
 
-fn admitted_crossing_cardinality_digest(
-    surface: &ForgeQueryLowerRuntimeRepresentativeSurface,
-) -> String {
-    let crossings = forge_query_lower_runtime_crossing_inventory();
-    let request_counts = count_by_seam(
-        surface
-            .requests()
-            .iter()
-            .map(|request| request.seam_key().as_str()),
-    );
-    let route_plan_counts = count_by_seam(
-        surface
-            .route_plans()
-            .iter()
-            .map(|plan| plan.eligibility().request().seam_key().as_str()),
-    );
-    let envelope_counts = count_by_seam(
-        surface
-            .envelopes()
-            .iter()
-            .map(|envelope| envelope.seam_key().as_str()),
-    );
-    let receipt_counts = count_receipts_by_seam(surface);
-    let receipt_kinds = receipt_kind_by_seam(surface);
-
-    for row in crossings.rows() {
-        assert_eq!(
-            request_counts.get(row.seam_key().as_str()).copied(),
-            Some(1)
-        );
-        assert_eq!(
-            receipt_counts.get(row.seam_key().as_str()).copied(),
-            Some(1)
-        );
-        assert_eq!(
-            envelope_counts.get(row.seam_key().as_str()).copied(),
-            Some(1)
-        );
-        match row.route_kind() {
-            ForgeQueryLowerRuntimeRouteKind::RoutePlanning => {
-                assert_eq!(
-                    route_plan_counts.get(row.seam_key().as_str()).copied(),
-                    Some(1)
-                );
-                assert_eq!(
-                    receipt_kinds.get(row.seam_key().as_str()),
-                    Some(&ForgeQueryLowerRuntimeBoundaryExecutionKind::RoutePlan)
-                );
-            }
-            ForgeQueryLowerRuntimeRouteKind::ReadmissionHandoff => {
-                assert_eq!(
-                    route_plan_counts
-                        .get(row.seam_key().as_str())
-                        .copied()
-                        .unwrap_or(0),
-                    0
-                );
-                assert_eq!(
-                    receipt_kinds.get(row.seam_key().as_str()),
-                    Some(&ForgeQueryLowerRuntimeBoundaryExecutionKind::ReadmissionHandoff)
-                );
-            }
-        }
-    }
-
-    hash_parts(
-        &crossings
-            .rows()
-            .iter()
-            .map(|row| {
-                format!(
-                    "{}|{}|req:{}|plan:{}|receipt:{}|envelope:{}",
-                    row.seam_key().as_str(),
-                    row.route_kind().as_str(),
-                    request_counts
-                        .get(row.seam_key().as_str())
-                        .copied()
-                        .unwrap_or(0),
-                    route_plan_counts
-                        .get(row.seam_key().as_str())
-                        .copied()
-                        .unwrap_or(0),
-                    receipt_counts
-                        .get(row.seam_key().as_str())
-                        .copied()
-                        .unwrap_or(0),
-                    envelope_counts
-                        .get(row.seam_key().as_str())
-                        .copied()
-                        .unwrap_or(0)
-                )
-            })
-            .collect::<Vec<_>>(),
-    )
-}
-
 fn support_behavior_agreement_digest(
     surface: &ForgeQueryLowerRuntimeRepresentativeSurface,
 ) -> String {
@@ -372,92 +299,4 @@ fn support_behavior_agreement_digest(
                 .collect::<Vec<_>>(),
         ),
     ])
-}
-
-fn count_by_seam(seams: impl Iterator<Item = &'static str>) -> BTreeMap<&'static str, usize> {
-    let mut counts = BTreeMap::new();
-    for seam_key in seams {
-        *counts.entry(seam_key).or_insert(0usize) += 1;
-    }
-    counts
-}
-
-fn count_receipts_by_seam(
-    surface: &ForgeQueryLowerRuntimeRepresentativeSurface,
-) -> BTreeMap<&'static str, usize> {
-    let request_by_digest: BTreeMap<_, _> = surface
-        .requests()
-        .iter()
-        .map(|request| {
-            (
-                request.request_digest().to_string(),
-                request.seam_key().as_str(),
-            )
-        })
-        .collect();
-    let mut counts = BTreeMap::new();
-    for receipt in surface.boundary_receipts() {
-        let seam_key = request_by_digest
-            .get(receipt.request_digest())
-            .unwrap_or_else(|| panic!("receipt request {} must exist", receipt.request_digest()));
-        *counts.entry(*seam_key).or_insert(0usize) += 1;
-    }
-    counts
-}
-
-fn receipt_kind_by_seam(
-    surface: &ForgeQueryLowerRuntimeRepresentativeSurface,
-) -> BTreeMap<&'static str, ForgeQueryLowerRuntimeBoundaryExecutionKind> {
-    let request_by_digest: BTreeMap<_, _> = surface
-        .requests()
-        .iter()
-        .map(|request| {
-            (
-                request.request_digest().to_string(),
-                request.seam_key().as_str(),
-            )
-        })
-        .collect();
-    let mut kinds = BTreeMap::new();
-    for receipt in surface.boundary_receipts() {
-        let seam_key = request_by_digest
-            .get(receipt.request_digest())
-            .unwrap_or_else(|| panic!("receipt request {} must exist", receipt.request_digest()));
-        kinds.insert(*seam_key, receipt.kind());
-    }
-    kinds
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::lower_runtime_routing::certification::surface::{
-        forge_query_lower_runtime_representative_surface,
-        ForgeQueryLowerRuntimeRepresentativeEvidenceSource,
-    };
-
-    #[test]
-    fn required_phase_six_concrete_seams_are_enforced_hostilely() {
-        let surface = forge_query_lower_runtime_representative_surface()
-            .with_evidence_source_override(
-                ForgeQueryLowerRuntimeSeamKey::SubscriptionActivation,
-                ForgeQueryLowerRuntimeRepresentativeEvidenceSource::InventorySynthesized,
-            );
-
-        let panic = std::panic::catch_unwind(|| required_concrete_seam_coverage_digest(&surface))
-            .expect_err("required concrete seam fallback must fail acceptance");
-        let message = panic_message(panic);
-
-        assert!(message.contains("subscription-activation"));
-    }
-
-    fn panic_message(payload: Box<dyn std::any::Any + Send>) -> String {
-        if let Some(message) = payload.downcast_ref::<String>() {
-            return message.clone();
-        }
-        if let Some(message) = payload.downcast_ref::<&str>() {
-            return (*message).to_string();
-        }
-        "non-string panic payload".to_string()
-    }
 }

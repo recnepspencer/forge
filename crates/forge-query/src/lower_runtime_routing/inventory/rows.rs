@@ -20,6 +20,18 @@ const DIRECT_IMPORT_AUDIT_ROWS: &[ForgeQueryLowerRuntimeDirectImportAuditRow] = 
         "historical policy lowering remains an allowed Query boundary adapter",
     ),
     ForgeQueryLowerRuntimeDirectImportAuditRow::new(
+        ForgeQueryLowerRuntimeSeamKey::EffectBackedRelationalMutation,
+        "crates/forge-query/src/effect_lifecycle/execution.rs",
+        ForgeQueryLowerRuntimeDirectImportPosture::AllowedAdapter,
+        "effect-backed relational mutation execution remains an allowed Query boundary adapter over admitted relational authority",
+    ),
+    ForgeQueryLowerRuntimeDirectImportAuditRow::new(
+        ForgeQueryLowerRuntimeSeamKey::EffectBackedRelationalMerge,
+        "crates/forge-query/src/effect_lifecycle/execution.rs",
+        ForgeQueryLowerRuntimeDirectImportPosture::AllowedAdapter,
+        "effect-backed relational merge execution remains an allowed Query boundary adapter over admitted relational authority",
+    ),
+    ForgeQueryLowerRuntimeDirectImportAuditRow::new(
         ForgeQueryLowerRuntimeSeamKey::ProjectionConsumptionSourceModule,
         "crates/forge-query/src/projection_consumption/source.rs",
         ForgeQueryLowerRuntimeDirectImportPosture::AllowedAdapter,
@@ -42,6 +54,12 @@ const DIRECT_IMPORT_AUDIT_ROWS: &[ForgeQueryLowerRuntimeDirectImportAuditRow] = 
         "crates/forge-query/src/effect_lifecycle/execution_bridge.rs",
         ForgeQueryLowerRuntimeDirectImportPosture::AllowedAdapter,
         "bridge writeback execution remains an allowed Query boundary adapter over the bridge admitted execution contract",
+    ),
+    ForgeQueryLowerRuntimeDirectImportAuditRow::new(
+        ForgeQueryLowerRuntimeSeamKey::IntentRuntimeExecution,
+        "crates/forge-query/src/runtime/backend/intent_authority.rs",
+        ForgeQueryLowerRuntimeDirectImportPosture::AllowedAdapter,
+        "installed intent authority remains an allowed backend-boundary adapter over runtime bridge and relational authority contracts",
     ),
     ForgeQueryLowerRuntimeDirectImportAuditRow::new(
         ForgeQueryLowerRuntimeSeamKey::DownstreamQueryRuntimeBoundarySubtree,

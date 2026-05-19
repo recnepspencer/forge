@@ -3,7 +3,9 @@ use crate::identity::hash_parts;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryLowerRuntimeCertificationLane {
     CrossingsSurface,
+    BoundaryClosureSurface,
     AcceptanceEvidence,
+    SyntheticTailPolicy,
     RouteParity,
     FormerSpecialistSeamClosure,
     DeferredNeighborDenial,
@@ -17,7 +19,9 @@ impl ForgeQueryLowerRuntimeCertificationLane {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::CrossingsSurface => "crossings-surface",
+            Self::BoundaryClosureSurface => "boundary-closure-surface",
             Self::AcceptanceEvidence => "acceptance-evidence",
+            Self::SyntheticTailPolicy => "synthetic-tail-policy",
             Self::RouteParity => "route-parity",
             Self::FormerSpecialistSeamClosure => "former-specialist-seam-closure",
             Self::DeferredNeighborDenial => "deferred-neighbor-denial",

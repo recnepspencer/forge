@@ -1,4 +1,4 @@
-use std::collections::BTreeSet;
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::{Path, PathBuf};
 
@@ -80,8 +80,9 @@ pub fn certify_lower_runtime_non_bypass() -> Result<ForgeQueryLowerRuntimeNonByp
     let mut violations = Vec::new();
     let mut checked_files = 0usize;
 
-    for relative in routed_surface_paths() {
-        checked_files += scan_surface_file(&workspace_root, relative, false, &mut violations)?;
+    for (relative, allow_imports) in routed_surface_scan_targets() {
+        checked_files +=
+            scan_surface_target(&workspace_root, relative, allow_imports, &mut violations)?;
     }
 
     checked_files += scan_tree(
@@ -128,14 +129,18 @@ pub fn forge_query_lower_runtime_compile_fail_boundary_target_count() -> usize {
     COMPILE_FAIL_TARGETS.len()
 }
 
-fn routed_surface_paths() -> Vec<&'static str> {
-    let mut seen = BTreeSet::new();
+fn routed_surface_scan_targets() -> Vec<(&'static str, bool)> {
+    let mut seen = BTreeMap::new();
     for row in forge_query_lower_runtime_public_surface_inventory().rows() {
         if row.surface_kind() == ForgeQueryLowerRuntimePublicSurfaceKind::DownstreamRuntimeBoundary
         {
             continue;
         }
-        seen.insert(row.implementation_path());
+        let allow_imports =
+            row.surface_kind() == ForgeQueryLowerRuntimePublicSurfaceKind::AllowedBoundaryAdapter;
+        seen.entry(row.implementation_path())
+            .and_modify(|existing| *existing |= allow_imports)
+            .or_insert(allow_imports);
     }
     seen.into_iter().collect()
 }
@@ -207,6 +212,23 @@ fn scan_surface_file(
     Ok(1)
 }
 
+fn scan_surface_target(
+    workspace_root: &Path,
+    relative: &str,
+    allow_imports: bool,
+    violations: &mut Vec<String>,
+) -> Result<usize, String> {
+    if relative.ends_with("/*") {
+        return scan_tree(
+            workspace_root,
+            relative.trim_end_matches("/*"),
+            None,
+            violations,
+        );
+    }
+    scan_surface_file(workspace_root, relative, allow_imports, violations)
+}
+
 fn scan_file_contents(
     path: &Path,
     relative: &str,
@@ -276,15 +298,63 @@ mod tests {
 
     #[test]
     fn routed_surface_paths_cover_mutation_and_batch_boundary_files() {
-        let paths = routed_surface_paths();
+        let paths = routed_surface_scan_targets();
 
         for path in [
+            "crates/forge-query/src/runtime/read_composition_runtime.rs",
             "crates/forge-query/src/runtime/workspace.rs",
             "crates/forge-query/src/runtime/runtime_writes.rs",
             "crates/forge-query/src/runtime/runtime_batch_write_entrypoints.rs",
             "crates/forge-query/src/runtime/runtime_batch_writes.rs",
+            "crates/forge-query/src/runtime/backend/*",
         ] {
-            assert!(paths.contains(&path), "missing routed surface path {path}");
+            assert!(
+                paths.iter().any(|(candidate, _)| *candidate == path),
+                "missing routed surface path {path}"
+            );
+        }
+    }
+
+    #[test]
+    fn routed_surface_scan_targets_reconcile_remaining_phase_six_seam_files() {
+        let targets = routed_surface_scan_targets();
+
+        for (path, allow_imports) in [
+            ("crates/forge-query/src/runtime/backend/*", true),
+            (
+                "crates/forge-query/src/runtime/read_composition_runtime.rs",
+                false,
+            ),
+            (
+                "crates/forge-query/src/basis_lifecycle/lower_runtime/mod.rs",
+                false,
+            ),
+            ("crates/forge-query/src/historical/bridge_lowering.rs", true),
+            (
+                "crates/forge-query/src/projection_consumption/source.rs",
+                true,
+            ),
+            (
+                "crates/forge-query/src/runtime/inspection/causal/builder_bridge.rs",
+                true,
+            ),
+            ("crates/forge-query/src/frontier_signal_adapter.rs", true),
+            ("crates/forge-query/src/effect_lifecycle/execution.rs", true),
+            (
+                "crates/forge-query/src/effect_lifecycle/execution_bridge.rs",
+                true,
+            ),
+            (
+                "crates/forge-query/src/runtime/backend/intent_authority.rs",
+                true,
+            ),
+        ] {
+            assert!(
+                targets
+                    .iter()
+                    .any(|(candidate, allow)| *candidate == path && *allow == allow_imports),
+                "missing routed scan target {path} with allow_imports={allow_imports}"
+            );
         }
     }
 

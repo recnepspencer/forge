@@ -217,7 +217,6 @@ impl HistoricalCapabilityDescriptor {
         self.historical_lookup_available
     }
 
-    #[cfg(test)]
     pub(crate) fn new(
         basis_identity: impl Into<String>,
         admitted_path_class: Option<AdmittedHistoricalPathClass>,
@@ -301,7 +300,6 @@ impl HistoricalMaterializationDescriptor {
         self
     }
 
-    #[cfg(test)]
     pub(crate) fn new(
         basis_identity: impl Into<String>,
         resolved_path_class: ResolvedHistoricalPathClass,
@@ -332,7 +330,6 @@ pub(crate) fn validate_basis_match(
     }
 }
 
-#[cfg(test)]
 fn default_realized_work(resolved_path_class: &ResolvedHistoricalPathClass) -> (usize, usize) {
     match resolved_path_class {
         ResolvedHistoricalPathClass::ResolvedRetainedSnapshotPath => (0, 0),

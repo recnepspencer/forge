@@ -7,10 +7,12 @@ use crate::lower_runtime_routing::{
 use super::model::ForgeQueryLowerRuntimeCertificationOutputDigest;
 use super::performance::ForgeQueryLowerRuntimePerformanceSlopeReport;
 use super::surface::{
+    allowed_phase_six_synthetic_seams, forge_query_lower_runtime_synthetic_tail_report,
     ForgeQueryLowerRuntimeAcceptanceLane, ForgeQueryLowerRuntimeAcceptanceSuite,
     ForgeQueryLowerRuntimeRepresentativeSurface,
 };
 use super::{
+    forge_query_lower_runtime_boundary_reconciliation_report,
     forge_query_lower_runtime_phase_progression_digest,
     forge_query_lower_runtime_proof_shape_digest, ForgeQueryLowerRuntimeNonBypassAudit,
 };
@@ -80,6 +82,12 @@ pub(super) fn certification_output_digests(
             "route_public_surface_digest",
             non_bypass.route_public_surface_digest().to_string(),
         ),
+        output(
+            "route_boundary_reconciliation_digest",
+            forge_query_lower_runtime_boundary_reconciliation_report()
+                .report_digest()
+                .to_string(),
+        ),
         output("route_target_dx_digest", surface.dx_digest().to_string()),
         output(
             "route_golden_transcript_digest",
@@ -92,6 +100,22 @@ pub(super) fn certification_output_digests(
         output(
             "route_synthetic_surface_digest",
             surface.synthetic_surface_digest(),
+        ),
+        output(
+            "route_synthetic_tail_policy_digest",
+            digest_synthetic_tail_policy(),
+        ),
+        output(
+            "route_synthetic_tail_report_digest",
+            forge_query_lower_runtime_synthetic_tail_report()
+                .report_digest()
+                .to_string(),
+        ),
+        output(
+            "route_synthetic_tail_justification_digest",
+            forge_query_lower_runtime_synthetic_tail_report()
+                .justification_digest()
+                .to_string(),
         ),
         output(
             "route_proof_shape_digest",
@@ -127,25 +151,43 @@ pub(super) fn certification_output_digests(
         ),
         output(
             "counter_snapshot",
-            hash_parts(&[
-                format!("crossings:{}", crossings.rows().len()),
-                format!("gaps:{}", gaps.rows().len()),
-                format!("closeout:{}", closeout.rows().len()),
-                format!("support:{}", support.rows().len()),
-                format!("routes:{}", surface.route_plans().len()),
-                format!("evidence:{}", surface.envelopes().len()),
-                format!("checked_files:{}", non_bypass.checked_file_count()),
-            ]),
+            slopes
+                .full_profile()
+                .counters()
+                .counter_snapshot_digest()
+                .to_string(),
         ),
         output(
             "crossing_inventory_width",
-            crossings.rows().len().to_string(),
+            slopes
+                .full_profile()
+                .counters()
+                .crossing_inventory_width()
+                .to_string(),
         ),
-        output("compatibility_debt_width", gaps.rows().len().to_string()),
-        output("route_plan_width", surface.route_plans().len().to_string()),
+        output(
+            "compatibility_debt_width",
+            slopes
+                .full_profile()
+                .counters()
+                .compatibility_debt_width()
+                .to_string(),
+        ),
+        output(
+            "route_plan_width",
+            slopes
+                .full_profile()
+                .counters()
+                .route_plan_width()
+                .to_string(),
+        ),
         output(
             "boundary_evidence_width",
-            surface.envelopes().len().to_string(),
+            slopes
+                .full_profile()
+                .counters()
+                .boundary_evidence_width()
+                .to_string(),
         ),
         output(
             "route_concrete_surface_width",
@@ -154,6 +196,20 @@ pub(super) fn certification_output_digests(
         output(
             "route_synthetic_surface_width",
             surface.synthetic_surface_width().to_string(),
+        ),
+        output(
+            "route_boundary_reconciliation_width",
+            forge_query_lower_runtime_boundary_reconciliation_report()
+                .rows()
+                .len()
+                .to_string(),
+        ),
+        output(
+            "route_synthetic_tail_width",
+            forge_query_lower_runtime_synthetic_tail_report()
+                .rows()
+                .len()
+                .to_string(),
         ),
         output(
             "capability_eligibility_slope_digest",
@@ -242,6 +298,15 @@ fn digest_capability_families() -> String {
             .rows()
             .iter()
             .map(|row| row.capability_label().to_string())
+            .collect::<Vec<_>>(),
+    )
+}
+
+fn digest_synthetic_tail_policy() -> String {
+    hash_parts(
+        &allowed_phase_six_synthetic_seams()
+            .iter()
+            .map(|row| format!("{}|{}", row.seam_key().as_str(), row.justification()))
             .collect::<Vec<_>>(),
     )
 }

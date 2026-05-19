@@ -1,8 +1,9 @@
 use crate::identity::hash_parts;
 use crate::lower_runtime_routing::forge_query_lower_runtime_crossing_inventory;
 
-use super::acceptance_checks::{control_digest, hostile_digest, required_phase_six_concrete_seams};
+use super::acceptance_checks::{control_digest, hostile_digest, synthetic_tail_exactness_digest};
 use super::evidence::forge_query_lower_runtime_representative_surface;
+use super::{allowed_phase_six_synthetic_seams, required_phase_six_concrete_seams};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryLowerRuntimeAcceptanceLane {
@@ -97,7 +98,7 @@ pub fn forge_query_lower_runtime_acceptance_suite() -> ForgeQueryLowerRuntimeAcc
             ForgeQueryLowerRuntimeAcceptanceLane::Control,
             control_digest(&surface),
             format!(
-                "crossings={} requests={} route_plans={} receipts={} envelopes={} concrete={} synthetic={} required_concrete_seams={}",
+                "crossings={} requests={} route_plans={} receipts={} envelopes={} concrete={} synthetic={} required_concrete_seams={} synthetic_tail_digest={} synthetic_tail={}",
                 forge_query_lower_runtime_crossing_inventory().rows().len(),
                 surface.requests().len(),
                 surface.route_plans().len(),
@@ -106,6 +107,12 @@ pub fn forge_query_lower_runtime_acceptance_suite() -> ForgeQueryLowerRuntimeAcc
                 surface.concrete_surface_width(),
                 surface.synthetic_surface_width(),
                 required_phase_six_concrete_seams().len(),
+                synthetic_tail_exactness_digest(&surface),
+                allowed_phase_six_synthetic_seams()
+                    .iter()
+                    .map(|row| row.seam_key().as_str())
+                    .collect::<Vec<_>>()
+                    .join(","),
             ),
         ),
         ForgeQueryLowerRuntimeAcceptanceRow::new(
@@ -155,6 +162,8 @@ mod tests {
         assert!(control.detail().contains("envelopes="));
         assert!(control.detail().contains("concrete="));
         assert!(control.detail().contains("synthetic="));
+        assert!(control.detail().contains("synthetic_tail_digest="));
+        assert!(control.detail().contains("synthetic_tail="));
     }
 
     #[test]

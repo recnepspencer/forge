@@ -1,10 +1,13 @@
 use crate::identity::hash_parts;
 use crate::lower_runtime_routing::ForgeQueryLowerRuntimeSeamKey;
 
+mod rows;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryLowerRuntimePublicSurfaceKind {
     PublicFacade,
     InternalRouteComposer,
+    AllowedBoundaryAdapter,
     DownstreamRuntimeBoundary,
 }
 
@@ -13,6 +16,7 @@ impl ForgeQueryLowerRuntimePublicSurfaceKind {
         match self {
             Self::PublicFacade => "public-facade",
             Self::InternalRouteComposer => "internal-route-composer",
+            Self::AllowedBoundaryAdapter => "allowed-boundary-adapter",
             Self::DownstreamRuntimeBoundary => "downstream-runtime-boundary",
         }
     }
@@ -100,207 +104,24 @@ impl ForgeQueryLowerRuntimePublicSurfaceInventory {
     }
 }
 
-const PUBLIC_SURFACE_ROWS: &[ForgeQueryLowerRuntimePublicSurfaceRow] = &[
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::ComposeRead,
-        "ForgeQueryWorkspace::compose_read(...)",
-        "crates/forge-query/src/runtime/workspace_queries.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "read-family intent execution",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::ComposeReadWithInvariantPack,
-        "ForgeQueryWorkspace::compose_read_with_invariant_pack(...)",
-        "crates/forge-query/src/runtime/workspace_queries.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "read-family intent execution after invariant admission",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::ExecuteReadFamily,
-        "ForgeQueryWorkspace::execute_read_family(...)",
-        "crates/forge-query/src/runtime/workspace_queries.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "read-family intent execution",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::ExecuteReadFamilyInBasisContext,
-        "ForgeQueryWorkspace::execute_read_family_in_basis_context(...)",
-        "crates/forge-query/src/runtime/workspace_queries.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "basis-context read-family intent execution",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::PublicLiveViewDeclaration,
-        "ForgeQueryWorkspace::live_view(...)",
-        "crates/forge-query/src/runtime/workspace.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "workspace live declaration routed through runtime declaration and installation",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::PublicLiveViewDeclaration,
-        "ForgeQueryWorkspace::live_view_request(...)",
-        "crates/forge-query/src/runtime/workspace.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "workspace live declaration routed through runtime declaration and installation",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::PublicLiveViewDeclaration,
-        "ForgeQueryRuntime::declare_live_view(...)",
-        "crates/forge-query/src/runtime/runtime_declarations.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "live declaration receipt plus installation route",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
-        "ForgeQueryWorkspace::write(...)",
-        "crates/forge-query/src/runtime/workspace.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "authoritative mutation intent execution through write-authority routing",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
-        "ForgeQueryWorkspace::insert(...)",
-        "crates/forge-query/src/runtime/workspace.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "authoritative mutation intent execution through write-authority routing",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
-        "ForgeQueryWorkspace::update(...)",
-        "crates/forge-query/src/runtime/workspace.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "authoritative mutation intent execution through write-authority routing",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
-        "ForgeQueryWorkspace::update_existing(...)",
-        "crates/forge-query/src/runtime/workspace.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "authoritative mutation intent execution after existing-truth binding admission",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
-        "ForgeQueryWorkspace::assert_existing(...)",
-        "crates/forge-query/src/runtime/workspace.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "authoritative mutation intent execution after existing-truth binding admission",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
-        "ForgeQueryWorkspace::verify_existing(...)",
-        "crates/forge-query/src/runtime/workspace.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "authoritative mutation intent execution after existing-truth binding admission",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
-        "ForgeQueryWorkspace::update_existing_verified(...)",
-        "crates/forge-query/src/runtime/workspace.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "authoritative mutation intent execution after backend-verified existing-truth admission",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
-        "ForgeQueryWorkspace::delete(...)",
-        "crates/forge-query/src/runtime/workspace.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "authoritative mutation intent execution through write-authority routing",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
-        "ForgeQueryWorkspace::delete_with(...)",
-        "crates/forge-query/src/runtime/workspace.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "authoritative mutation intent execution through write-authority routing",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
-        "ForgeQueryWorkspace::delete_existing(...)",
-        "crates/forge-query/src/runtime/workspace.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "authoritative mutation intent execution after existing-truth binding admission",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
-        "ForgeQueryWorkspace::delete_existing_with(...)",
-        "crates/forge-query/src/runtime/workspace.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "authoritative mutation intent execution after existing-truth binding admission",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
-        "ForgeQueryWorkspace::delete_existing_verified(...)",
-        "crates/forge-query/src/runtime/workspace.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "authoritative mutation intent execution after backend-verified existing-truth admission",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
-        "ForgeQueryRuntime::write(...)",
-        "crates/forge-query/src/runtime/runtime_writes.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "authoritative mutation intent execution through write-authority routing",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
-        "ForgeQueryRuntime::write_batch(...)",
-        "crates/forge-query/src/runtime/runtime_batch_write_entrypoints.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "authoritative batch mutation intent execution through write-authority routing",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::WriteAuthorityBackendExecution,
-        "ForgeQueryWorkspace::batch(...)",
-        "crates/forge-query/src/runtime/workspace.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::PublicFacade,
-        "authoritative batch mutation intent execution through write-authority routing",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting,
-        "ForgeQueryRuntime::execute_authoritative_write_command_direct(...)",
-        "crates/forge-query/src/runtime/runtime_writes.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::InternalRouteComposer,
-        "mutation receipt routing through signal invalidation boundary receipts",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::SignalInvalidationRouting,
-        "ForgeQueryRuntime::execute_authoritative_write_batch_direct(...)",
-        "crates/forge-query/src/runtime/runtime_batch_writes.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::InternalRouteComposer,
-        "batch mutation receipt routing through signal invalidation boundary receipts",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::RuntimeLiveInstallationOrchestration,
-        "ForgeQueryRuntime::install_live_subscription_for_request(...)",
-        "crates/forge-query/src/runtime/runtime_sessions.rs",
-        ForgeQueryLowerRuntimePublicSurfaceKind::InternalRouteComposer,
-        "subscription declaration, lowering, admission, and activation route",
-    ),
-    ForgeQueryLowerRuntimePublicSurfaceRow::new(
-        ForgeQueryLowerRuntimeSeamKey::DownstreamQueryRuntimeBoundarySubtree,
-        "worth-topo projection runtime boundary",
-        "crates/worth-topo/src/projection/runtime_boundary",
-        ForgeQueryLowerRuntimePublicSurfaceKind::DownstreamRuntimeBoundary,
-        "declared downstream runtime-boundary subtree",
-    ),
-];
-
 pub fn forge_query_lower_runtime_public_surface_inventory(
 ) -> ForgeQueryLowerRuntimePublicSurfaceInventory {
-    ForgeQueryLowerRuntimePublicSurfaceInventory::new(PUBLIC_SURFACE_ROWS)
+    ForgeQueryLowerRuntimePublicSurfaceInventory::new(rows::PUBLIC_SURFACE_ROWS)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use crate::lower_runtime_routing::{
-        forge_query_lower_runtime_crossing_inventory, forge_query_lower_runtime_support_matrix,
-        ForgeQueryLowerRuntimeSupportPosture,
+        forge_query_lower_runtime_crossing_inventory,
+        forge_query_lower_runtime_direct_import_audit, forge_query_lower_runtime_support_matrix,
+        ForgeQueryLowerRuntimeDirectImportPosture, ForgeQueryLowerRuntimeSupportPosture,
     };
 
     #[test]
     fn public_surface_rows_reference_known_routed_or_audited_seams() {
         let crossing_inventory = forge_query_lower_runtime_crossing_inventory();
+        let direct_import_audit = forge_query_lower_runtime_direct_import_audit();
         let support = forge_query_lower_runtime_support_matrix();
 
         for row in forge_query_lower_runtime_public_surface_inventory().rows() {
@@ -309,17 +130,28 @@ mod tests {
             {
                 continue;
             }
-            assert!(crossing_inventory
+            let crossing_backed = crossing_inventory
                 .rows()
                 .iter()
-                .any(|crossing| crossing.seam_key() == row.seam_key()));
-            assert_eq!(
-                support
-                    .support_for(row.seam_key())
-                    .expect("public surface rows must resolve through support")
-                    .posture(),
-                ForgeQueryLowerRuntimeSupportPosture::Admitted
+                .any(|crossing| crossing.seam_key() == row.seam_key());
+            let audit_backed = direct_import_audit
+                .rows()
+                .iter()
+                .any(|audit_row| audit_row.seam_key() == row.seam_key());
+            assert!(
+                crossing_backed || audit_backed,
+                "public surface row {} must map to the crossing inventory or direct-import audit",
+                row.surface_label()
             );
+            if crossing_backed {
+                assert_eq!(
+                    support
+                        .support_for(row.seam_key())
+                        .expect("crossing-backed public surface rows must resolve through support")
+                        .posture(),
+                    ForgeQueryLowerRuntimeSupportPosture::Admitted
+                );
+            }
         }
     }
 
@@ -341,6 +173,8 @@ mod tests {
         let inventory = forge_query_lower_runtime_public_surface_inventory();
 
         for label in [
+            "execute_runtime_current_read_graph(...)",
+            "execute_runtime_basis_context_read_graph(...)",
             "ForgeQueryWorkspace::live_view(...)",
             "ForgeQueryWorkspace::live_view_request(...)",
             "ForgeQueryWorkspace::write(...)",
@@ -353,11 +187,105 @@ mod tests {
             "ForgeQueryRuntime::write_batch(...)",
             "ForgeQueryRuntime::execute_authoritative_write_command_direct(...)",
             "ForgeQueryRuntime::execute_authoritative_write_batch_direct(...)",
+            "projection source intake from Query receipts",
+            "projection source intake from relational artifacts",
+            "projection source intake from bridge artifacts",
+            "causal bridge materialization adapter",
+            "frontier signal evidence adapter",
         ] {
             assert!(inventory
                 .rows()
                 .iter()
                 .any(|row| row.surface_label() == label));
+        }
+    }
+
+    #[test]
+    fn public_surface_inventory_reconciles_remaining_phase_six_boundary_seams() {
+        let inventory = forge_query_lower_runtime_public_surface_inventory();
+
+        for seam_key in [
+            ForgeQueryLowerRuntimeSeamKey::ExecuteRuntimeCurrentReadGraph,
+            ForgeQueryLowerRuntimeSeamKey::ExecuteRuntimeBasisContextReadGraph,
+            ForgeQueryLowerRuntimeSeamKey::SubscriptionContinuity,
+            ForgeQueryLowerRuntimeSeamKey::BasisReadmissionFromTruthViewEvidence,
+            ForgeQueryLowerRuntimeSeamKey::BasisReadmissionFromSubscriptionEvidence,
+            ForgeQueryLowerRuntimeSeamKey::HistoricalBridgeLowering,
+            ForgeQueryLowerRuntimeSeamKey::EffectBackedRelationalMutation,
+            ForgeQueryLowerRuntimeSeamKey::EffectBackedRelationalMerge,
+            ForgeQueryLowerRuntimeSeamKey::EffectBackedBridgeWriteback,
+            ForgeQueryLowerRuntimeSeamKey::RuntimeIntentAuthorityAdapter,
+            ForgeQueryLowerRuntimeSeamKey::IntentRuntimeExecution,
+            ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromQueryReceipts,
+            ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromRelationalArtifacts,
+            ForgeQueryLowerRuntimeSeamKey::ProjectionSourceIntakeFromBridgeArtifacts,
+            ForgeQueryLowerRuntimeSeamKey::CausalBridgeMaterialization,
+            ForgeQueryLowerRuntimeSeamKey::FrontierEvidenceIntake,
+        ] {
+            assert!(
+                inventory
+                    .rows()
+                    .iter()
+                    .any(|row| row.seam_key() == seam_key),
+                "missing boundary reconciliation row for {}",
+                seam_key.as_str()
+            );
+        }
+    }
+
+    #[test]
+    fn allowed_boundary_adapter_rows_stay_synchronized_with_direct_import_audit() {
+        let audit = forge_query_lower_runtime_direct_import_audit();
+
+        for row in forge_query_lower_runtime_public_surface_inventory()
+            .rows()
+            .iter()
+            .filter(|row| {
+                row.surface_kind()
+                    == ForgeQueryLowerRuntimePublicSurfaceKind::AllowedBoundaryAdapter
+            })
+        {
+            assert!(
+                audit.rows().iter().any(|audit_row| {
+                    audit_row.module_path() == row.implementation_path()
+                        && audit_row.posture()
+                            == ForgeQueryLowerRuntimeDirectImportPosture::AllowedAdapter
+                }),
+                "allowed boundary adapter row {} must stay mirrored in direct-import audit",
+                row.surface_label()
+            );
+        }
+    }
+
+    #[test]
+    fn direct_import_audit_boundary_rows_stay_synchronized_with_public_surface_inventory() {
+        let inventory = forge_query_lower_runtime_public_surface_inventory();
+
+        for audit_row in forge_query_lower_runtime_direct_import_audit().rows() {
+            let expected_kind = match audit_row.posture() {
+                ForgeQueryLowerRuntimeDirectImportPosture::RuntimeBackendBoundary => {
+                    Some(ForgeQueryLowerRuntimePublicSurfaceKind::AllowedBoundaryAdapter)
+                }
+                ForgeQueryLowerRuntimeDirectImportPosture::AllowedAdapter => {
+                    Some(ForgeQueryLowerRuntimePublicSurfaceKind::AllowedBoundaryAdapter)
+                }
+                ForgeQueryLowerRuntimeDirectImportPosture::DownstreamRuntimeBoundarySubtree => {
+                    Some(ForgeQueryLowerRuntimePublicSurfaceKind::DownstreamRuntimeBoundary)
+                }
+                ForgeQueryLowerRuntimeDirectImportPosture::TransitionOnlyElimination => None,
+            };
+            let Some(expected_kind) = expected_kind else {
+                continue;
+            };
+            let expected_path = audit_row.module_path().trim_end_matches("/*");
+            assert!(
+                inventory.rows().iter().any(|row| {
+                    row.implementation_path().trim_end_matches("/*") == expected_path
+                        && row.surface_kind() == expected_kind
+                }),
+                "direct-import audit row {} must stay mirrored in the certified public surface inventory",
+                audit_row.module_path()
+            );
         }
     }
 }

@@ -6,6 +6,7 @@ use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeSeamKey,
 };
 
+use super::forge_query_lower_runtime_boundary_reconciliation_report;
 use super::forge_query_lower_runtime_compile_fail_boundary_target_count;
 use super::model::{
     ForgeQueryLowerRuntimeCertificationBundle, ForgeQueryLowerRuntimeCertificationLane,
@@ -16,7 +17,7 @@ use super::performance::certify_lower_runtime_performance_slopes;
 use super::proof_shape::forge_query_lower_runtime_proof_shape_audit;
 use super::surface::{
     forge_query_lower_runtime_acceptance_suite, forge_query_lower_runtime_representative_surface,
-    ForgeQueryLowerRuntimeAcceptanceLane,
+    forge_query_lower_runtime_synthetic_tail_report, ForgeQueryLowerRuntimeAcceptanceLane,
 };
 
 pub fn certify_lower_runtime_routing() -> ForgeQueryLowerRuntimeCertificationBundle {
@@ -27,14 +28,10 @@ pub fn certify_lower_runtime_routing() -> ForgeQueryLowerRuntimeCertificationBun
     let crossings = forge_query_lower_runtime_crossing_inventory();
     let closeout = forge_query_lower_runtime_closeout_registry();
     let support = forge_query_lower_runtime_support_matrix();
-    let slopes = certify_lower_runtime_performance_slopes(
-        crossings.rows().len(),
-        surface.route_plans().len(),
-        surface.envelopes().len(),
-        support.rows().len(),
-        closeout.rows().len(),
-    );
+    let slopes = certify_lower_runtime_performance_slopes(&surface);
     let proof_shape = forge_query_lower_runtime_proof_shape_audit();
+    let boundary_reconciliation = forge_query_lower_runtime_boundary_reconciliation_report();
+    let synthetic_tail = forge_query_lower_runtime_synthetic_tail_report();
     let rows = vec![
         certification_row(
             ForgeQueryLowerRuntimeCertificationLane::CrossingsSurface,
@@ -55,6 +52,21 @@ pub fn certify_lower_runtime_routing() -> ForgeQueryLowerRuntimeCertificationBun
             None,
         ),
         certification_row(
+            ForgeQueryLowerRuntimeCertificationLane::BoundaryClosureSurface,
+            boundary_reconciliation.report_digest().to_string(),
+            format!(
+                "boundary_rows={} public_surface={} checked_files={}",
+                boundary_reconciliation.rows().len(),
+                non_bypass.route_public_surface_digest(),
+                non_bypass.checked_file_count()
+            ),
+            counter_digest(&[
+                format!("boundary_rows:{}", boundary_reconciliation.rows().len()),
+                format!("checked_files:{}", non_bypass.checked_file_count()),
+            ]),
+            Some(non_bypass.route_non_bypass_digest().to_string()),
+        ),
+        certification_row(
             ForgeQueryLowerRuntimeCertificationLane::AcceptanceEvidence,
             acceptance.suite_digest().to_string(),
             acceptance
@@ -69,6 +81,25 @@ pub fn certify_lower_runtime_routing() -> ForgeQueryLowerRuntimeCertificationBun
             Some(
                 acceptance
                     .lane(ForgeQueryLowerRuntimeAcceptanceLane::Hostile)
+                    .digest()
+                    .to_string(),
+            ),
+        ),
+        certification_row(
+            ForgeQueryLowerRuntimeCertificationLane::SyntheticTailPolicy,
+            synthetic_tail.report_digest().to_string(),
+            format!(
+                "synthetic_tail_rows={} justification_digest={}",
+                synthetic_tail.rows().len(),
+                synthetic_tail.justification_digest()
+            ),
+            counter_digest(&[format!(
+                "synthetic_tail_rows:{}",
+                synthetic_tail.rows().len()
+            )]),
+            Some(
+                acceptance
+                    .lane(ForgeQueryLowerRuntimeAcceptanceLane::Control)
                     .digest()
                     .to_string(),
             ),
@@ -137,11 +168,19 @@ pub fn certify_lower_runtime_routing() -> ForgeQueryLowerRuntimeCertificationBun
                     .map(|row| row.slope_digest().to_string())
                     .collect::<Vec<_>>(),
             ),
-            "slope digests bind eligibility, route, receipt, envelope, support, and debt lookup cost to route width and deferred width".to_string(),
-            counter_digest(&[
-                format!("slope_rows:{}", slopes.rows().len()),
-                format!("boundary_evidence:{}", surface.envelopes().len()),
-            ]),
+            format!(
+                "profiles={} full_counter_snapshot={} route_width={} evidence_width={} deferred_width={}",
+                slopes.profiles().len(),
+                slopes.full_profile().counters().counter_snapshot_digest(),
+                slopes.full_profile().counters().route_plan_width(),
+                slopes.full_profile().counters().boundary_evidence_width(),
+                slopes.full_profile().counters().deferred_width(),
+            ),
+            slopes
+                .full_profile()
+                .counters()
+                .counter_snapshot_digest()
+                .to_string(),
             None,
         ),
     ];
