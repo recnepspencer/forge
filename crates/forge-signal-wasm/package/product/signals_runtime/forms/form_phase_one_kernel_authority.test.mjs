@@ -28,10 +28,10 @@ test("signals.form certifies phase one source authority and field loci", async (
     const signalForm = signals.form({
       id: "phase-one-task-form",
       source: signals.form.source.signal(signalSource, { id: "task-signal" }),
-      fields: ({ field, repeated, attachment }) => ({
+      fields: ({ field, repeated, evidence }) => ({
         title: field("title"),
         items: repeated("items", { itemIdentity: "id" }),
-        evidence: attachment("evidence", {
+        evidence: evidence("evidence", {
           attachmentIdentity: "digest",
           metadata: { required: true },
         }),
@@ -45,12 +45,13 @@ test("signals.form certifies phase one source authority and field loci", async (
     assert.deepEqual(signalForm.declaration().fieldFamilies, {
       scalar: 1,
       repeated: 1,
-      attachment: 1,
+      attachment: 0,
+      evidence: 1,
     });
     assert.deepEqual(fieldContractSummary(signalForm), [
       { id: "title", family: "scalar", path: "title" },
       { id: "items", family: "repeated", path: "items" },
-      { id: "evidence", family: "attachment", path: "evidence" },
+      { id: "evidence", family: "evidence", path: "evidence" },
     ]);
     assert.equal(
       signalForm.diagnostics().fieldContract[1].collectionIdentity.posture,
@@ -97,7 +98,7 @@ test("signals.form certifies phase one source authority and field loci", async (
     assert.deepEqual(inputAdapterSummary(signalForm), [
       { field: "title", family: "scalar", tier: "signalNative" },
       { field: "items", family: "repeated", tier: "signalNative" },
-      { field: "evidence", family: "attachment", tier: "signalNative" },
+      { field: "evidence", family: "evidence", tier: "signalNative" },
     ]);
     assert.ok(signalForm.verification().digests.inputAdapterCapabilityDigest.length > 0);
 
@@ -140,15 +141,15 @@ test("signals.form certifies phase one source authority and field loci", async (
     assert.throws(
       () => signals.form({
         source: {},
-        fields: ({ attachment }) => ({ evidence: attachment("evidence") }),
+        fields: ({ evidence }) => ({ evidence: evidence("evidence") }),
       }),
       /explicit attachmentIdentity or digest/,
     );
     assert.throws(
       () => signals.form({
         source: {},
-        fields: ({ attachment }) => ({
-          evidence: attachment("evidence", { attachmentIdentity: 7 }),
+        fields: ({ evidence }) => ({
+          evidence: evidence("evidence", { attachmentIdentity: 7 }),
         }),
       }),
       /attachmentIdentity/,

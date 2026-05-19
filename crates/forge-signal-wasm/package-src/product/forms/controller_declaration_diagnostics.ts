@@ -19,6 +19,7 @@ export function readFormDeclarationDiagnostics(formDeclaration, sourceAuthority,
     scalar: 0,
     repeated: 0,
     attachment: 0,
+    evidence: 0,
   };
   for (const field of fieldDeclarations) {
     families[field.family] += 1;
@@ -49,6 +50,44 @@ export function readFieldContractDiagnostics(fieldDeclarations) {
             field: field.collectionIdentity.field,
             posture: field.collectionIdentity.posture,
           },
+      resourceLocus: field.resourceLocus === null
+        ? null
+        : field.resourceLocus.kind === "collectionItems"
+          ? {
+              kind: field.resourceLocus.kind,
+              placement: field.resourceLocus.placement,
+              posture: field.resourceLocus.posture,
+            }
+          : field.resourceLocus.kind === "field"
+            ? {
+                kind: field.resourceLocus.kind,
+                field: field.resourceLocus.field,
+                posture: field.resourceLocus.posture,
+              }
+            : field.resourceLocus.kind === "jsonPath"
+              ? {
+                  kind: field.resourceLocus.kind,
+                  path: field.resourceLocus.path,
+                  posture: field.resourceLocus.posture,
+                }
+              : field.resourceLocus.kind === "region"
+                ? {
+                  kind: field.resourceLocus.kind,
+                  region: field.resourceLocus.region,
+                  posture: field.resourceLocus.posture,
+                }
+                : field.resourceLocus.kind === "itemAspect"
+                  ? {
+                      kind: field.resourceLocus.kind,
+                      itemId: field.resourceLocus.itemId,
+                      aspect: field.resourceLocus.aspect,
+                      posture: field.resourceLocus.posture,
+                    }
+                  : {
+                      kind: field.resourceLocus.kind,
+                      summary: field.resourceLocus.summary,
+                      posture: field.resourceLocus.posture,
+                    },
       attachment: field.attachment === null
         ? null
         : {

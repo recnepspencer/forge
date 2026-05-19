@@ -25,7 +25,7 @@ export function createHandoffStore() {
           scopeKind: current.scopeKind,
           surfaceId: current.surfaceId,
           operation: current.operation,
-          unsupportedReason: current.unsupportedReason,
+          unavailableReason: current.unavailableReason,
           supersededByToken: normalized.token,
         }, "handoff"));
       }
@@ -43,7 +43,7 @@ export function createHandoffStore() {
         scopeKind: null,
         surfaceId: null,
         operation: "close",
-        unsupportedReason: null,
+        unavailableReason: null,
         supersededByToken: null,
       }, "clear");
       history.push(artifact);
@@ -94,9 +94,9 @@ function normalizeHandoffUpdate(update) {
     scopeKind,
     surfaceId: update.surfaceId === undefined || update.surfaceId === null ? null : String(update.surfaceId),
     operation,
-    unsupportedReason: update.unsupportedReason === undefined || update.unsupportedReason === null
+    unavailableReason: update.unavailableReason === undefined || update.unavailableReason === null
       ? null
-      : String(update.unsupportedReason),
+      : String(update.unavailableReason),
     supersededByToken: update.supersededByToken === undefined || update.supersededByToken === null
       ? null
       : String(update.supersededByToken),
@@ -116,7 +116,7 @@ function handoffArtifact(artifactId, update, source) {
     scopeKind: update.scopeKind,
     surfaceId: update.surfaceId,
     operation: update.operation,
-    unsupportedReason: update.unsupportedReason,
+    unavailableReason: update.unavailableReason,
     supersededByToken: update.supersededByToken,
   };
   return Object.freeze({

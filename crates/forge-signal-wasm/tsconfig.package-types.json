@@ -19,6 +19,7 @@
   "include": [
     "./package/types-smoke.ts",
     "./package/forms-phase-one-types-smoke.ts",
+    "./package/forms-phase-eight-resource-types-smoke.ts",
     "./package/resource-types-smoke.ts"
   ]
 }

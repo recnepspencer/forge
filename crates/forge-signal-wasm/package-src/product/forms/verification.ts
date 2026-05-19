@@ -7,6 +7,8 @@ export function buildFormVerificationPackage(form) {
   const draftRestore = form.draftRestore();
   const resourceSource = form.resourceSource();
   const resourceMerge = form.resourceMerge();
+  const resourceDrift = form.resourceDrift();
+  const attachmentTransfers = form.attachmentTransfers();
   const formDeclaration = form.declaration();
   const draft = form.draft();
   const effective = form.effective();
@@ -43,6 +45,7 @@ export function buildFormVerificationPackage(form) {
   const asyncValidationHistory = form.asyncValidationHistory();
   const canonicalizationHistory = form.canonicalizationHistory();
   const resetHistory = form.resetHistory();
+  const replayRestoreHistory = form.replayRestoreHistory();
   const sourceCompatibilityHistory = form.sourceCompatibilityHistory();
   const digests = Object.freeze({
     sourceAuthorityDigest: sourceAuthority.sourceAuthorityDigest,
@@ -57,13 +60,23 @@ export function buildFormVerificationPackage(form) {
     draftRestoreDigest: stableValueDigest(draftRestore),
     resourceSourceDigest: resourceSource?.digest ?? null,
     resourceMergeDigest: resourceMerge.digest,
+    resourceDriftDigest: resourceDrift.digest,
+    resourceShapeDigest: resourceSource?.shape.digest ?? null,
+    resourceLifecycleDigest: resourceSource?.lifecycle.digest ?? null,
+    resourceSettlementDigest: resourceSource?.settlement.digest ?? null,
     resourceEffectProfileDigest: stableValueDigest(resourceSource?.effectProfile.profile ?? null),
-    resourceVisibleBranchSelectionDigest: stableValueDigest(resourceSource?.visibleSelection ?? null),
+    resourceExternalCompatibilityDigest: resourceSource?.externalCompatibility.digest ?? null,
+    resourceTransferDigest: resourceSource?.transfer.digest ?? null,
+    resourceVisibleBranchSelectionDigest: resourceSource?.visibleSelection.digest ?? stableValueDigest(null),
     resourceVerificationPackageDigest: resourceSource?.verification.packageDigest ?? null,
     resourceEffectCloseoutMatrixDigest: resourceSource?.effectProfile.closeoutMatrixDigest ?? null,
     resourceMutationResponseDigest: resourceSource?.mutationResponse?.digest ?? null,
     resourceMutationResponseConfirmationDigest:
       resourceSource?.mutationResponse?.confirmationDigest ?? null,
+    resourceMutationResponseContractDigest:
+      resourceSource?.mutationResponse?.contract.digest ?? null,
+    resourceMutationResponseCompletionDigest:
+      resourceSource?.mutationResponse?.completion.digest ?? null,
     resourceMutationResponseTargetOutcomeDigest:
       resourceSource?.mutationResponse?.targetOutcomeDigest ?? null,
     resourceMutationResponseCloseoutMatrixDigest:
@@ -77,9 +90,11 @@ export function buildFormVerificationPackage(form) {
     exitDigest: exit.digest,
     handoffDigest: handoff.digest,
     attachmentDigest: attachments.digest,
+    attachmentTransferDigest: attachmentTransfers.digest,
     mediaDigest: media.digest,
     messageDigest: messages.digest,
     collaborationDigest: collaboration.digest,
+    collaborationEventDigest: collaboration.eventsDigest,
     interactionDigest: interaction.digest,
     interactionHistoryDigest: stableValueDigest(interactionHistory),
     navigationDigest: navigation.digest,
@@ -99,13 +114,16 @@ export function buildFormVerificationPackage(form) {
     validationDigest: stableValueDigest(validation),
     asyncValidationLifecycleDigest: stableValueDigest(asyncValidationHistory),
     canonicalizationDigest: stableValueDigest(canonicalizationHistory),
+    replayRestoreDigest: stableValueDigest(replayRestoreHistory.at(-1) ?? null),
     resetRollbackDigest: stableValueDigest(
-      canonicalizationHistory.map((artifact) => artifact.resourceBacked?.rollback ?? null),
+      canonicalizationHistory.map((artifact) => artifact.resourceLine?.rollback ?? null),
     ),
     resetHistoryDigest: stableValueDigest(resetHistory),
+    replayRestoreHistoryDigest: stableValueDigest(replayRestoreHistory),
     resourceMergeHistoryDigest: stableValueDigest(resourceMerge.history),
+    resourceDriftHistoryDigest: stableValueDigest(resourceDrift.history),
     mutationResponseReconciliationDigest: stableValueDigest(
-      canonicalizationHistory.map((artifact) => artifact.resourceBacked?.mutationResponse ?? null),
+      canonicalizationHistory.map((artifact) => artifact.resourceLine?.mutationResponse ?? null),
     ),
     sourceCompatibilityHistoryDigest: stableValueDigest(sourceCompatibilityHistory),
     presentationHistoryDigest: stableValueDigest(presentationHistory),
@@ -129,6 +147,8 @@ export function buildFormVerificationPackage(form) {
       draftRestore,
       resourceSource,
       resourceMerge,
+      resourceDrift,
+      attachmentTransfers,
       formDeclaration,
       fieldContract,
       inputAdapters,
@@ -140,11 +160,13 @@ export function buildFormVerificationPackage(form) {
       asyncValidationHistory,
       canonicalizationHistory,
       resetHistory,
+      replayRestoreHistory,
       host,
       inputCapabilities,
       exit,
       handoff,
       attachments,
+      attachmentTransfers,
       media,
       messages,
       collaboration,
@@ -186,6 +208,10 @@ export function buildFormVerificationPackage(form) {
       operations: resetHistory.length,
       digest: digests.resetHistoryDigest,
     }),
+    replayRestoreHistory: Object.freeze({
+      operations: replayRestoreHistory.length,
+      digest: digests.replayRestoreHistoryDigest,
+    }),
     interactionHistory: Object.freeze({
       operations: interactionHistory.length,
       digest: digests.interactionHistoryDigest,
@@ -206,6 +232,8 @@ export function buildFormVerificationPackage(form) {
       sourceCompatibility,
       resourceSource,
       resourceMerge,
+      resourceDrift,
+      attachmentTransfers,
       host,
       inputCapabilities,
       exit,
@@ -230,6 +258,7 @@ export function buildFormVerificationPackage(form) {
       asyncValidationHistory,
       canonicalizationHistory,
       resetHistory,
+      replayRestoreHistory,
       interactionHistory,
       navigationHistory,
       sourceCompatibilityHistory,
@@ -247,16 +276,19 @@ function formPerformanceEnvelope(reports) {
     asyncValidationOperations: reports.asyncValidationHistory.length,
     canonicalizationOperations: reports.canonicalizationHistory.length,
     resetOperations: reports.resetHistory.length,
+    replayRestoreOperations: reports.replayRestoreHistory.length,
     interactionOperations: reports.interactionHistory.length,
     navigationOperations: reports.navigationHistory.length,
     sourceCompatibilityOperations: reports.sourceCompatibilityHistory.length,
     resourceSource: reports.resourceSource?.counters ?? null,
     resourceMerge: reports.resourceMerge.counters,
+    resourceDrift: reports.resourceDrift.counters,
     hostFacts: reports.host.counters,
     inputCapabilities: reports.inputCapabilities.counters,
     exit: reports.exit.counters,
     handoff: reports.handoff.counters,
     attachments: reports.attachments.counters,
+    attachmentTransfers: reports.attachmentTransfers.counters,
     media: reports.media.counters,
     messages: reports.messages.counters,
     collaboration: reports.collaboration.counters,

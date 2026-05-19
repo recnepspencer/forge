@@ -30,6 +30,15 @@ export function materializeCollaborationDeclaration(declaration, fieldDeclaratio
   });
 }
 
+export function collaborationDeclarationDefaults(mode) {
+  return Object.freeze({
+    posture: mode === "unavailable" ? "unavailable" : "active",
+    reason: mode === "unavailable"
+      ? "collaboration is explicitly unavailable for this form"
+      : "collaboration posture is settled",
+  });
+}
+
 function normalizeMode(mode) {
   if (typeof mode !== "string" || !COLLABORATION_MODES.has(mode)) {
     throw new FormDeclarationError("form collaboration mode is not supported", { mode });

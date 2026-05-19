@@ -8,7 +8,7 @@ export function readHandoffReport(store) {
     scopeKind: current?.scopeKind ?? null,
     surfaceId: current?.surfaceId ?? null,
     activeTarget: current?.target ?? null,
-    unsupportedReason: current?.unsupportedReason ?? null,
+    unavailableReason: current?.unavailableReason ?? null,
   });
   const counters = Object.freeze({
     costBasis: "handoffPresentationHistoryScan",

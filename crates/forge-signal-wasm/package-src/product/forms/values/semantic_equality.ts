@@ -1,4 +1,4 @@
-import { isPlainObject } from "./value_paths.js";
+import { isPlainObject } from "./value_semantics.js";
 
 export function compareSemanticValues(left, right) {
   const counters = semanticEqualityCounterSeed();

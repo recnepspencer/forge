@@ -51,10 +51,10 @@ test("signals.form handoff visibility is first-class across route modal and exte
       scopeKind: "external",
       surfaceId: "native-share",
       operation: "handoff",
-      unsupportedReason: "native share capability is unavailable",
+      unavailableReason: "native share capability is unavailable",
     });
     assert.equal(externalArtifact.scopeKind, "external");
-    assert.equal(form.handoff().summary.unsupportedReason, "native share capability is unavailable");
+    assert.equal(form.handoff().summary.unavailableReason, "native share capability is unavailable");
     assert.equal(form.handoff().counters.externalScopeUpdates, 1);
     assert.ok(form.handoff().history.some((entry) => (
       entry.source === "handoff" &&

@@ -6,22 +6,20 @@ const objectState = signals.input({
   auditItems: [] as Array<{ id: string; label: string }>,
   evidence: { digest: "file-1", name: "audit.pdf" },
 });
-const typedResourceLine = null as unknown as import("./types/resource/resource_lifecycle.js").ResourceLine<
-  { id: string },
-  { title: string }
->;
 const publicTaskInput = signals.publicInput(objectState, { authority: "readOnly" });
 const phaseOneForm = signals.form({
   id: "phase-one-type-smoke",
   source: signals.form.source.graphPublicInput(publicTaskInput, { id: "task-public-input" }),
-  fields: ({ field, repeated, attachment }) => ({
+  fields: ({ field, repeated, evidence }) => ({
     title: field<string>("title"),
     auditItems: repeated<Array<{ id: string; label: string }>>("auditItems", {
       itemIdentity: "id",
+      resourceLocus: { kind: "collectionItems", placement: "append" },
     }),
-    evidence: attachment<{ digest: string; name: string }>("evidence", {
+    evidence: evidence<{ digest: string; name: string }>("evidence", {
       attachmentIdentity: "digest",
       metadata: { required: true },
+      resourceLocus: { kind: "region", region: "evidenceRegion" },
     }),
   }),
   presentation: {
@@ -62,51 +60,14 @@ const phaseOneSourceBootstrapForm = signals.form({
     },
   },
 });
-const phaseEightResourceForm = signals.form({
-  source: signals.form.source.resourceLine(typedResourceLine, { id: "task-resource" }),
-  fields: ({ field }) => ({
-    title: field("title"),
-  }),
-});
-const phaseEightResourceActionForm = signals.form({
-  source: signals.form.source.resourceLine(typedResourceLine, { id: "task-resource-action" }),
-  fields: ({ field }) => ({
-    title: field("title"),
-  }),
-  actions: ({ submit }) => ({
-    submit: submit({
-      resourceEffectProfile: signals.resource.effects.branchNative(),
-    }),
-  }),
-});
-
 const phaseOneSourceKind = phaseOneForm.sourceAuthority().kind;
 const phaseOneBootstrapSourceKind = phaseOneSourceBootstrapForm.sourceAuthority().kind;
-const phaseEightResourceSourceKind = phaseEightResourceForm.resourceSource()?.sourceKind;
-const phaseEightResourceSourceDigest = phaseEightResourceForm.verification().digests.resourceSourceDigest;
-const phaseEightResourceMergeDigest = phaseEightResourceForm.verification().digests.resourceMergeDigest;
-const phaseEightResourceEffectProfileName = phaseEightResourceForm.resourceSource()?.effectProfile.profile?.name;
-const phaseEightResourceVisibleSelectionKind = phaseEightResourceForm.resourceSource()?.visibleSelection.kind;
-const phaseEightResourceVerificationPackageDigest = phaseEightResourceForm.resourceSource()?.verification.packageDigest;
-const phaseEightResourceEffectCloseoutDigest =
-  phaseEightResourceForm.verification().digests.resourceEffectCloseoutMatrixDigest;
-const phaseEightResourceVisibleBranchDigest =
-  phaseEightResourceForm.verification().digests.resourceVisibleBranchSelectionDigest;
-const phaseEightResourceMergePreview = phaseEightResourceForm.previewResourceMerge({
-  source_branch_id: 0,
-  target_branch_id: 0,
-});
-const phaseEightResourceMergeStatus = phaseEightResourceForm.resourceMerge().summary.status;
-const phaseEightResourceMergeCleared = phaseEightResourceForm.clearResourceMerge("clear smoke");
-const phaseEightResourceSubmitEffectProfileSource =
-  phaseEightResourceActionForm.actionPlan("submit").resourceEffectProfile.source;
-const phaseEightResourceReset = phaseEightResourceForm.reset();
-const phaseEightResourceRollback = phaseEightResourceForm.rollbackLastResourceEffect();
-const phaseEightResourceResetHistory = phaseEightResourceForm.resetHistory();
 const phaseOneSourceAdmission = phaseOneSourceBootstrapForm.sourceAdmission()?.status;
 const phaseOneDraftRestore = phaseOneSourceBootstrapForm.draftRestore()?.status;
 const phaseOneDeclarationId = phaseOneForm.declaration().formId;
 const phaseOneFieldFamily = phaseOneForm.fieldContract()[1]?.family;
+const phaseOneFieldResourceLocus = phaseOneForm.fieldContract()[1]?.resourceLocus?.kind;
+const phaseOneAttachmentResourceLocus = phaseOneForm.fieldContract()[2]?.resourceLocus?.kind;
 const phaseOneAdapterTier = phaseOneForm.inputAdapters()[0]?.tier;
 const phaseOneSourceDigest = phaseOneForm.verification().digests.sourceAuthorityDigest;
 const phaseOneFieldContractDigest = phaseOneForm.verification().digests.fieldContractDigest;
@@ -167,6 +128,12 @@ const phaseOneExitLane = phaseOneForm.reportPresentationLane("exit", {
   scopeKind: "route",
   surfaceId: "browser-history",
 });
+const phaseOneCollaborationNumericBranch = phaseOneForm.reportCollaboration({
+  branchId: 7,
+  reason: "numeric branch ids stay admitted at the public collaboration boundary",
+});
+// @ts-expect-error collaboration branch ids must remain string-or-number identity, not booleans
+phaseOneForm.reportCollaboration({ branchId: true });
 // @ts-expect-error attachment scope requires an explicit section
 phaseOneForm.reportAttachments({ status: "busy", reason: "uploading evidence" });
 // @ts-expect-error media scope requires an explicit surface id
@@ -253,67 +220,43 @@ phaseOneForm.fields.title.addItem({ id: "bad" });
 phaseOneForm.fields.auditItems.attachmentIdentity();
 phaseOneForm.fields.auditItems.addItem({ id: "audit-1", label: "Audit" });
 const phaseOneCollectionIdentity = phaseOneForm.fields.auditItems.collectionIdentity().items[0]?.itemId;
-const phaseOneAttachmentDigest =
-  phaseOneForm.fields.evidence.attachmentIdentity({ digest: "file-1", name: "audit.pdf" }).attachmentDigest;
-// @ts-expect-error attachment field handles cannot perform repeated-field operations
+const phaseOneAttachmentIdentity =
+  phaseOneForm.fields.evidence.attachmentIdentity({ digest: "file-1", name: "audit.pdf" });
+if (phaseOneAttachmentIdentity === null) {
+  throw new Error("attachment identity should be present for explicit attachment values");
+}
+const phaseOneAttachmentDigest = phaseOneAttachmentIdentity.attachmentDigest;
+// @ts-expect-error evidence field handles cannot perform repeated-field operations
 phaseOneForm.fields.evidence.addItem({ id: "bad" });
 // @ts-expect-error graph public input source requires signals.publicInput(...) output
 signals.form.source.graphPublicInput(objectState);
 // @ts-expect-error signal source authority requires a product signal handle
 signals.form.source.signal(() => ({ title: "not a signal handle" }));
-signals.form({
-  source: signals.form.source.resourceLine(typedResourceLine, { id: "typed-resource-profile" }),
-  fields: ({ field }) => ({
-    title: field("title"),
-  }),
-  actions: ({ submit }) => ({
-    submit: submit({
-      resourceEffectProfile: signals.resource.effects.branchNative(),
-    }),
-  }),
-});
-signals.form({
-  source: { title: "Plain source" },
-  fields: ({ field }) => ({
-    title: field("title"),
-  }),
-  actions: ({ submit }) => ({
-    submit: submit({
-      // @ts-expect-error resourceEffectProfile must be a validated resource effect profile
-      resourceEffectProfile: { name: "forged-profile" },
-    }),
-  }),
-});
 // @ts-expect-error repeated fields require explicit stable item identity
 signals.form({ source: {}, fields: ({ repeated }) => ({ items: repeated("items") }) });
 // @ts-expect-error repeated item identity must be a field name or resolver
 signals.form({ source: {}, fields: ({ repeated }) => ({ items: repeated("items", { itemIdentity: 1 }) }) });
-// @ts-expect-error attachment fields require explicit attachment identity
-signals.form({ source: {}, fields: ({ attachment }) => ({ evidence: attachment("evidence") }) });
-// @ts-expect-error attachment identity must be a field name or resolver
-signals.form({ source: {}, fields: ({ attachment }) => ({ evidence: attachment("evidence", { attachmentIdentity: 1 }) }) });
+// @ts-expect-error repeated resource locus kind must be supported
+signals.form({ source: {}, fields: ({ repeated }) => ({ items: repeated("items", { itemIdentity: "id", resourceLocus: { kind: "rows" } }) }) });
+// @ts-expect-error scalar resource locus field must be a non-empty string
+signals.form({ source: {}, fields: ({ field }) => ({ title: field("title", { resourceLocus: { kind: "field", field: 1 } }) }) });
+// @ts-expect-error evidence fields require explicit attachment identity
+signals.form({ source: {}, fields: ({ evidence }) => ({ evidence: evidence("evidence") }) });
+// @ts-expect-error evidence identity must be a field name or resolver
+signals.form({ source: {}, fields: ({ evidence }) => ({ evidence: evidence("evidence", { attachmentIdentity: 1 }) }) });
+// @ts-expect-error evidence resource locus region must be a string
+signals.form({ source: {}, fields: ({ evidence }) => ({ evidence: evidence("evidence", { attachmentIdentity: "digest", resourceLocus: { kind: "region", region: 1 } }) }) });
 
 void phaseOneForm;
 void phaseOneSourceBootstrapForm;
-void phaseEightResourceForm;
-void phaseEightResourceActionForm;
 void phaseOneSourceKind;
 void phaseOneBootstrapSourceKind;
-void phaseEightResourceSourceKind;
-void phaseEightResourceSourceDigest;
-void phaseEightResourceEffectProfileName;
-void phaseEightResourceVisibleSelectionKind;
-void phaseEightResourceVerificationPackageDigest;
-void phaseEightResourceEffectCloseoutDigest;
-void phaseEightResourceVisibleBranchDigest;
-void phaseEightResourceSubmitEffectProfileSource;
-void phaseEightResourceReset;
-void phaseEightResourceRollback;
-void phaseEightResourceResetHistory;
 void phaseOneSourceAdmission;
 void phaseOneDraftRestore;
 void phaseOneDeclarationId;
 void phaseOneFieldFamily;
+void phaseOneFieldResourceLocus;
+void phaseOneAttachmentResourceLocus;
 void phaseOneAdapterTier;
 void phaseOneSourceDigest;
 void phaseOneFieldContractDigest;

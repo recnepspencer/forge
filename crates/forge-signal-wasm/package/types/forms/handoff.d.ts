@@ -11,7 +11,7 @@ export interface FormHandoffPresentationArtifact {
   readonly scopeKind: "route" | "modal" | "external" | null;
   readonly surfaceId: string | null;
   readonly operation: "generic" | "open" | "handoff" | "dismiss" | "return" | "close";
-  readonly unsupportedReason: string | null;
+  readonly unavailableReason: string | null;
   readonly handoffDigest: string;
 }
 
@@ -23,7 +23,7 @@ export interface FormHandoffReport {
     readonly scopeKind: "route" | "modal" | "external" | null;
     readonly surfaceId: string | null;
     readonly activeTarget: string | null;
-    readonly unsupportedReason: string | null;
+    readonly unavailableReason: string | null;
   };
   readonly counters: {
     readonly costBasis: "handoffPresentationHistoryScan";

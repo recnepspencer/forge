@@ -2,6 +2,42 @@ import type { SignalValue } from "../model.js";
 import type { FormValidationArtifact } from "./validation.js";
 import type { FormInteractionInputSource } from "./interaction.js";
 import type { FormSourceDeclaration } from "./sources.js";
+import type {
+  FormAttachmentIdentityOptions,
+  FormFieldDeclaration,
+  FormFieldFamily,
+  FormFieldsBuilder,
+  FormInputAdapterCapabilitySet,
+  FormInputAdapterOptions,
+  FormInputAdapterTier,
+  FormRepeatedIdentityOptions,
+  FormRepeatedItem,
+  FormRepeatedResourceLocus,
+  FormValueResourceLocus,
+} from "./field_authoring.js";
+
+export type {
+  FormAttachmentIdentityOptions,
+  FormFieldAccessibilityOptions,
+  FormFieldDeclaration,
+  FormFieldFactory,
+  FormFieldFamily,
+  FormFieldLayoutOptions,
+  FormFieldOptions,
+  FormFieldPath,
+  FormFieldsBuilder,
+  FormInputAdapterCapabilitySet,
+  FormInputAdapterOptions,
+  FormInputAdapterTier,
+  FormRepeatedFieldOptions,
+  FormRepeatedIdentityOptions,
+  FormRepeatedItem,
+  FormRepeatedResourceLocus,
+  FormValueResourceLocus,
+  FormValueResourceLocusField,
+  FormValueResourceLocusJsonPath,
+  FormValueResourceLocusRegion,
+} from "./field_authoring.js";
 
 export interface CallableFormSignal<TValue = SignalValue> {
   (): TValue;
@@ -56,134 +92,6 @@ export interface FormSourceDescriptor<TValue = SignalValue> {
   readonly sourceAdmission?: FormSourceValue<FormSourceBootstrapArtifact>;
   readonly draftRestore?: FormSourceValue<FormSourceBootstrapArtifact>;
 }
-
-export type FormFieldPath = string | ReadonlyArray<string | number>;
-
-export type FormInputAdapterTier =
-  | "signalNative"
-  | "signalBridge"
-  | "externalImperative";
-
-export interface FormInputAdapterOptions {
-  tier?: FormInputAdapterTier;
-  reportsRawInput?: boolean;
-  reportsCommitBoundary?: boolean;
-  reportsComposition?: boolean;
-  reportsFocus?: boolean;
-  supportsLabelTrack?: boolean;
-  supportsHelpTrack?: boolean;
-  supportsMessageTrack?: boolean;
-  supportsMinHeightSync?: boolean;
-  supportsResponsiveTokens?: boolean;
-}
-
-export interface FormInputAdapterCapabilitySet {
-  readonly reportsRawInput: boolean;
-  readonly reportsCommitBoundary: boolean;
-  readonly reportsComposition: boolean;
-  readonly reportsFocus: boolean;
-  readonly supportsLabelTrack: boolean;
-  readonly supportsHelpTrack: boolean;
-  readonly supportsMessageTrack: boolean;
-  readonly supportsMinHeightSync: boolean;
-  readonly supportsResponsiveTokens: boolean;
-}
-
-export interface FormFieldAccessibilityOptions {
-  readonly label?: string;
-  readonly description?: string;
-  readonly summaryLabel?: string;
-  readonly describedBy?: ReadonlyArray<string>;
-  readonly readingOrder?: number;
-  readonly focusOrder?: number;
-  readonly summaryOrder?: number;
-}
-
-export interface FormFieldLayoutOptions {
-  readonly row?: string;
-  readonly column?: string;
-  readonly density?: "compact" | "comfortable" | "spacious";
-  readonly alignment?: "start" | "center" | "stretch";
-  readonly minHeight?: number;
-  readonly grow?: boolean;
-  readonly wrap?: boolean;
-  readonly responsive?: ReadonlyArray<string>;
-}
-
-export interface FormFieldOptions<TValue = SignalValue, TRaw = TValue> {
-  id?: string;
-  adapter?: FormInputAdapterOptions;
-  inputAdapter?: FormInputAdapterOptions;
-  parse?: (rawValue: TRaw) => TValue;
-  label?: string;
-  description?: string;
-  summaryLabel?: string;
-  describedBy?: ReadonlyArray<string>;
-  readingOrder?: number;
-  focusOrder?: number;
-  summaryOrder?: number;
-  accessibility?: FormFieldAccessibilityOptions;
-  row?: string;
-  column?: string;
-  density?: "compact" | "comfortable" | "spacious";
-  alignment?: "start" | "center" | "stretch";
-  minHeight?: number;
-  grow?: boolean;
-  wrap?: boolean;
-  responsive?: ReadonlyArray<string>;
-  layout?: FormFieldLayoutOptions;
-}
-
-export type FormFieldFamily = "scalar" | "repeated" | "attachment";
-
-export interface FormFieldDeclaration<
-  TValue = SignalValue,
-  TRaw = TValue,
-  TFamily extends FormFieldFamily = FormFieldFamily,
-> {
-  readonly path: string;
-  readonly family?: TFamily;
-  readonly __formFieldValue?: TValue;
-  readonly __formFieldRaw?: TRaw;
-  readonly __formFieldFamily?: TFamily;
-}
-
-export interface FormFieldFactory {
-  field<TValue = SignalValue, TRaw = TValue>(
-    path: FormFieldPath,
-    options?: FormFieldOptions<TValue, TRaw>,
-  ): FormFieldDeclaration<TValue, TRaw, "scalar">;
-  repeated<TValue = SignalValue, TRaw = TValue>(
-    path: FormFieldPath,
-    options: FormFieldOptions<TValue, TRaw> & FormRepeatedIdentityOptions<TValue>,
-  ): FormFieldDeclaration<TValue, TRaw, "repeated">;
-  attachment<TValue = SignalValue, TRaw = TValue>(
-    path: FormFieldPath,
-    options: FormFieldOptions<TValue, TRaw> & FormAttachmentIdentityOptions<TValue>,
-  ): FormFieldDeclaration<TValue, TRaw, "attachment">;
-}
-
-export type FormRepeatedIdentityOptions<TValue = SignalValue> =
-  | { readonly itemIdentity: string | ((item: FormRepeatedItem<TValue>) => string); readonly key?: never }
-  | { readonly key: string | ((item: FormRepeatedItem<TValue>) => string); readonly itemIdentity?: never };
-
-export type FormRepeatedItem<TValue> =
-  TValue extends ReadonlyArray<infer TItem> ? TItem : SignalValue;
-
-export type FormAttachmentIdentityOptions<TValue = SignalValue> =
-  | {
-      readonly attachmentIdentity: string | ((attachment: TValue) => string);
-      readonly digest?: never;
-      readonly metadata?: Readonly<Record<string, SignalValue>>;
-    }
-  | {
-      readonly digest: string | ((attachment: TValue) => string);
-      readonly attachmentIdentity?: never;
-      readonly metadata?: Readonly<Record<string, SignalValue>>;
-    };
-
-export type FormFieldsBuilder<TFields extends Record<string, FormFieldDeclaration<SignalValue, SignalValue, FormFieldFamily>>> =
-  (factory: FormFieldFactory) => TFields;
 
 export type FormSourceValue<TValue = SignalValue> =
   | TValue
@@ -251,7 +159,8 @@ export interface FormFieldDiagnostics {
   readonly writePosture: FormFieldWritePosture;
   readonly inputAdapter: FormInputAdapterDiagnostics;
   readonly collectionIdentity?: FormRepeatedCollectionIdentity;
-  readonly attachment?: FormAttachmentIdentity;
+  readonly resourceLocus?: FormValueResourceLocus | FormRepeatedResourceLocus;
+  readonly attachment?: FormAttachmentIdentity | null;
 }
 
 export interface FormFieldWritePosture {
@@ -307,7 +216,12 @@ export interface FormRepeatedFieldHandle<TValue = SignalValue, TRaw = TValue>
 
 export interface FormAttachmentFieldHandle<TValue = SignalValue, TRaw = TValue>
   extends FormBaseFieldHandle<TValue, TRaw, "attachment"> {
-  attachmentIdentity(value?: TValue): FormAttachmentIdentity;
+  attachmentIdentity(value?: TValue): FormAttachmentIdentity | null;
+}
+
+export interface FormEvidenceFieldHandle<TValue = SignalValue, TRaw = TValue>
+  extends FormBaseFieldHandle<TValue, TRaw, "evidence"> {
+  attachmentIdentity(value?: TValue): FormAttachmentIdentity | null;
 }
 
 export type FormFieldHandle<
@@ -317,8 +231,10 @@ export type FormFieldHandle<
 > =
   TFamily extends "repeated"
     ? FormRepeatedFieldHandle<TValue, TRaw>
-    : TFamily extends "attachment"
-      ? FormAttachmentFieldHandle<TValue, TRaw>
+    : TFamily extends "attachment" | "evidence"
+      ? TFamily extends "attachment"
+        ? FormAttachmentFieldHandle<TValue, TRaw>
+        : FormEvidenceFieldHandle<TValue, TRaw>
       : FormScalarFieldHandle<TValue, TRaw>;
 
 export interface FormRepeatedCollectionIdentity {
@@ -361,12 +277,24 @@ export interface FormDirtyState {
 }
 
 export interface FormPatchOperation<TValue = SignalValue> {
-  readonly kind: "set";
+  readonly kind: "set" | "attach" | "detach" | "replaceItem" | "insertItem" | "removeItem";
   readonly field: string;
   readonly locus: FormFieldLocus;
+  readonly value?: TValue;
+  readonly valueDigest?: string;
+  readonly itemId?: string;
+  readonly placement?: "append" | "prepend";
+  readonly equality: FormSemanticEqualityCounters;
+}
+
+export interface FormPatchReplacement<TValue = SignalValue> {
+  readonly scope: "wholeForm";
+  readonly fields: ReadonlyArray<string>;
+  readonly reason:
+    | "repeatedReorderRequiresWholeReplace"
+    | "repeatedMixedPlacementRequiresWholeReplace";
   readonly value: TValue;
   readonly valueDigest: string;
-  readonly equality: FormSemanticEqualityCounters;
 }
 
 export interface FormPatchPlan {
@@ -374,7 +302,8 @@ export interface FormPatchPlan {
   readonly empty: boolean;
   readonly operations: ReadonlyArray<FormPatchOperation>;
   readonly blocked: ReadonlyArray<FormReadinessBlocker>;
-  readonly broadReplacement: false;
+  readonly broadReplacement: boolean;
+  readonly replacement: FormPatchReplacement | null;
   readonly equality: FormSemanticEqualityCounters;
   readonly breadth: {
     readonly declaredFields: number;
@@ -402,11 +331,16 @@ export interface FormReadinessBlocker {
     | "availability:unavailable"
     | "schema:drift"
     | "resource:pending"
+    | "resource:actionUnavailable"
     | "resource:profileMismatch"
     | "resource:profileUnavailable"
     | "resource:rejected"
     | "resource:timedOut"
+    | "resource:deliveryBasisDrift"
     | "resource:stale"
+    | "resource:uploadPending"
+    | "resource:processingPending"
+    | "resource:transferMappingUnavailable"
     | "resource:mergeConflict"
     | "resource:mergeMappingUnavailable"
     | "host:offline"
@@ -420,6 +354,7 @@ export interface FormReadinessBlocker {
     | "navigation:noBackStep"
     | "navigation:removedTarget"
     | "navigation:unavailableTarget"
+    | "collaboration:resourceProofUnavailable"
     | "collaboration:locked"
     | "collaboration:leased"
     | "collaboration:readOnly"

@@ -13,6 +13,8 @@ export function readFormDiagnostics(form, fieldDeclarations) {
     admission: form.admission(),
     resourceSource: form.resourceSource(),
     resourceMerge: form.resourceMerge(),
+    resourceDrift: form.resourceDrift(),
+    attachmentTransfers: form.attachmentTransfers(),
     host: form.host(),
     inputCapabilities: form.inputCapabilities(),
     exit: form.exit(),
@@ -36,6 +38,7 @@ export function readFormDiagnostics(form, fieldDeclarations) {
     asyncValidationHistory: form.asyncValidationHistory(),
     canonicalizationHistory: form.canonicalizationHistory(),
     resetHistory: form.resetHistory(),
+    replayRestoreHistory: form.replayRestoreHistory(),
     sourceCompatibilityHistory: form.sourceCompatibilityHistory(),
     verification: form.verification(),
   });

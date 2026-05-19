@@ -1,4 +1,5 @@
-import { readPath, stableValueDigest } from "../values/value_paths.js";
+import { readPath } from "../values/value_paths.js";
+import { stableValueDigest } from "../values/value_semantics.js";
 import { createFormReadView } from "../read_views.js";
 import { normalizeValidationArtifact } from "./artifacts.js";
 

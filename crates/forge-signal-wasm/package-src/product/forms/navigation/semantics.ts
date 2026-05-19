@@ -28,7 +28,7 @@ export function controllerLocalNavigationBlockers(stepAction, context, actionId)
     return Object.freeze([]);
   }
   if (stepAction.command === "custom") {
-    return Object.freeze([navigationBlocker("action:deferred", actionId, "custom controller-local step actions remain deferred until custom navigation integration exists")]);
+    return Object.freeze([navigationBlocker("action:deferred", actionId, "custom controller-local step actions require explicit navigation authority outside the built-in controller-local commands")]);
   }
   if (stepAction.command === "next" || stepAction.command === "back" || stepAction.command === "skip") {
     if (context.currentStepId !== stepAction.stepId) {

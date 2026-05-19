@@ -177,6 +177,10 @@ test("signals.form host requirements deny submit and action plans before effects
     assert.deepEqual(submitPlan.host.requirements, ["online", "credentials"]);
     assert.equal(saveDraftPlan.status, "denied");
     assert.equal(saveDraftPlan.readiness.blockers.some((blocker) => blocker.capability === "autofill"), true);
+    assert.equal(
+      saveDraftPlan.readiness.blockers.find((blocker) => blocker.capability === "autofill")?.reason,
+      "autofill host capability is unavailable at the declared host boundary",
+    );
 
     state.online = true;
     state.credentialsAvailable = true;

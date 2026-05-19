@@ -17,8 +17,10 @@ import type { FormExitReport } from "./exit.js";
 import type { FormHandoffReport } from "./handoff.js";
 import type { FormInputCapabilitiesReport } from "./input_capabilities.js";
 import type { FormResourceSourceReport } from "./resource_source.js";
+import type { FormResourceDriftReport } from "./resource_drift.js";
 import type { FormResourceMergeArtifact, FormResourceMergeReport } from "./resource_merge.js";
 import type { FormAttachmentsReport } from "./attachments.js";
+import type { FormAttachmentTransfersReport } from "./attachment_transfers.js";
 import type { FormMediaReport } from "./media.js";
 import type { FormMessagesReport } from "./messages.js";
 import type {
@@ -60,6 +62,7 @@ import type {
   FormSourceDeclaration,
   FormSourceFactory,
 } from "./sources.js";
+import type { FormReplayRestoreArtifact } from "./replay_restore.js";
 import type { FormResetArtifact } from "./reset.js";
 import type { FormVerificationPackage } from "./verification.js";
 import type { MergePolicyPreviewRequest } from "../diagnostics.js";
@@ -101,6 +104,7 @@ export interface FormController<
       readonly scalar: number;
       readonly repeated: number;
       readonly attachment: number;
+      readonly evidence: number;
     };
     readonly fieldCount: number;
   };
@@ -109,11 +113,28 @@ export interface FormController<
   fieldContract(): ReadonlyArray<{
     readonly id: string;
     readonly name: string;
-    readonly family: "scalar" | "repeated" | "attachment";
+    readonly family: "scalar" | "repeated" | "attachment" | "evidence";
     readonly path: string;
     readonly collectionIdentity: null | {
       readonly kind: "field" | "resolver";
       readonly field: string | null;
+      readonly posture: string;
+    };
+    readonly resourceLocus: null | {
+      readonly kind: "collectionItems";
+      readonly placement: "append" | "prepend";
+      readonly posture: string;
+    } | {
+      readonly kind: "field";
+      readonly field: string;
+      readonly posture: string;
+    } | {
+      readonly kind: "jsonPath";
+      readonly path: string;
+      readonly posture: string;
+    } | {
+      readonly kind: "region";
+      readonly region: string;
       readonly posture: string;
     };
     readonly attachment: null | {
@@ -126,7 +147,7 @@ export interface FormController<
   inputAdapters(): ReadonlyArray<{
     readonly field: string;
     readonly path: string;
-    readonly family: "scalar" | "repeated" | "attachment";
+    readonly family: "scalar" | "repeated" | "attachment" | "evidence";
     readonly tier: FormInputAdapterDiagnostics["tier"];
     readonly capabilities: FormInputAdapterDiagnostics["capabilities"];
     readonly unavailable: FormInputAdapterDiagnostics["unavailable"];
@@ -137,6 +158,7 @@ export interface FormController<
   draftRestore(): FormSourceBootstrapArtifact | null;
   resourceSource(): FormResourceSourceReport | null;
   resourceMerge(): FormResourceMergeReport;
+  resourceDrift(): FormResourceDriftReport;
   previewResourceMerge(request: MergePolicyPreviewRequest): FormResourceMergeArtifact;
   clearResourceMerge(reason?: string): FormResourceMergeArtifact;
   host(): FormHostReport;
@@ -144,6 +166,7 @@ export interface FormController<
   exit(): FormExitReport;
   handoff(): FormHandoffReport;
   attachments(): FormAttachmentsReport;
+  attachmentTransfers(): FormAttachmentTransfersReport;
   media(): FormMediaReport;
   messages(): FormMessagesReport;
   collaboration(): FormCollaborationReport;
@@ -254,6 +277,7 @@ export interface FormController<
     readonly admission: FormAdmissionReport;
     readonly resourceSource: FormResourceSourceReport | null;
     readonly resourceMerge: FormResourceMergeReport;
+    readonly resourceDrift: FormResourceDriftReport;
     readonly host: FormHostReport;
     readonly inputCapabilities: FormInputCapabilitiesReport;
     readonly exit: FormExitReport;
@@ -279,6 +303,7 @@ export interface FormController<
     readonly asyncValidationHistory: ReadonlyArray<FormAsyncValidationLifecycleArtifact>;
     readonly canonicalizationHistory: ReadonlyArray<FormCanonicalizationArtifact>;
     readonly resetHistory: ReadonlyArray<FormResetArtifact>;
+    readonly replayRestoreHistory: ReadonlyArray<FormReplayRestoreArtifact>;
     readonly sourceCompatibilityHistory: ReturnType<FormController<TSource, TFieldHandles>["sourceCompatibilityHistory"]>;
     readonly verification: FormVerificationPackage;
   };

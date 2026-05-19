@@ -2,12 +2,11 @@ import { parseFailureArtifact } from "../validation/artifacts.js";
 import { applyFieldInteraction, normalizeInteractionInputSource } from "../interaction/controller_bindings.js";
 import { FormDeclarationError } from "../form_errors.js";
 import {
-  cloneFormValue,
   deletePath,
   readPath,
-  stableValueDigest,
   writePath,
 } from "../values/value_paths.js";
+import { cloneFormValue, stableValueDigest } from "../values/value_semantics.js";
 import { compareSemanticValues } from "../values/semantic_equality.js";
 
 export function createFieldHandle(field, form, state) {
@@ -262,10 +261,13 @@ export function createFieldHandle(field, form, state) {
     });
     return handle;
   }
-  if (field.family === "attachment") {
+  if (field.family === "attachment" || field.family === "evidence") {
     handle = Object.freeze({
       ...baseHandle,
     attachmentIdentity(value = handle.effectiveValue()) {
+      if (value === undefined || value === null) {
+        return null;
+      }
       const attachmentDigest = attachmentId(field, value);
       return Object.freeze({
         field: field.id,
@@ -292,7 +294,10 @@ function fieldDiagnostics(field, form, state, handle) {
     writePosture: form.fieldWritePosture(field.id),
     inputAdapter: field.inputAdapter,
     ...(field.family === "repeated" ? { collectionIdentity: handle.collectionIdentity() } : {}),
-    ...(field.family === "attachment" ? { attachment: handle.attachmentIdentity() } : {}),
+    ...(field.family === "repeated" && field.resourceLocus !== null ? { resourceLocus: field.resourceLocus } : {}),
+    ...(field.family === "attachment" || field.family === "evidence"
+      ? { attachment: handle.attachmentIdentity() }
+      : {}),
   });
 }
 

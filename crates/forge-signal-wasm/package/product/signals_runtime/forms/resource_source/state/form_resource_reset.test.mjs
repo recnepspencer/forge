@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { withSignals } from "../action_execution_test_helpers.mjs";
-import { createDetailPatchLineFixture } from "./resource_line_fixture.mjs";
+import { withSignals } from "../../action_execution_test_helpers.mjs";
+import { createDetailPatchLineFixture } from "../fixtures/resource_line_fixture.mjs";
 
-test("signals.form rollbackLastResourceEffect restores resource-backed source truth and records reset history", async () => {
+test("signals.form rollbackLastResourceEffect restores resource line source truth and records reset history", async () => {
   await withSignals((signals) => {
     const source = createDetailPatchLineFixture({
       effectProfile: signals.resource.effects.branchNative(),
@@ -58,7 +58,7 @@ test("signals.form rollbackLastResourceEffect restores resource-backed source tr
   });
 });
 
-test("signals.form reset clears local draft truth and rollbackLastResourceEffect stays explicit when unavailable", async () => {
+test("signals.form reset clears local draft truth and rollbackLastResourceEffect names missing resource authority explicitly", async () => {
   await withSignals((signals) => {
     const form = signals.form({
       source: { title: "Ship docs" },
@@ -79,6 +79,7 @@ test("signals.form reset clears local draft truth and rollbackLastResourceEffect
     assert.equal(rollback.mode, "resourceRollback");
     assert.equal(rollback.resultKind, "unavailable");
     assert.equal(rollback.resourceRollback.kind, "unavailable");
+    assert.equal(rollback.resourceRollback.reason, "resourceSourceUnavailable");
     assert.equal(form.resetHistory().length, 2);
 
     const noOp = form.reset();

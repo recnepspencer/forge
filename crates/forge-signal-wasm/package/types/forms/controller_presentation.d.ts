@@ -92,7 +92,7 @@ export interface FormControllerPresentationBindings {
     readonly scopeKind: "route" | "modal" | "external";
     readonly surfaceId: string;
     readonly operation?: "generic" | "block" | "confirm" | "dismiss" | "leave" | "stay" | "close";
-    readonly unsupportedReason?: string | null;
+    readonly unavailableReason?: string | null;
   }): FormExitPresentationArtifact;
   clearExit(options?: { readonly reason?: string }): FormExitPresentationArtifact;
   reportHandoff(update: {
@@ -103,7 +103,7 @@ export interface FormControllerPresentationBindings {
     readonly scopeKind: "route" | "modal" | "external";
     readonly surfaceId: string;
     readonly operation?: "generic" | "open" | "handoff" | "dismiss" | "return" | "close";
-    readonly unsupportedReason?: string | null;
+    readonly unavailableReason?: string | null;
   }): FormHandoffPresentationArtifact;
   clearHandoff(options?: { readonly reason?: string }): FormHandoffPresentationArtifact;
   reportAttachments(update: {
@@ -136,7 +136,7 @@ export interface FormControllerPresentationBindings {
     readonly reason?: string;
     readonly lockOwnerId?: string | null;
     readonly leasedFields?: ReadonlyArray<{ readonly field: string; readonly ownerId: string }>;
-    readonly branchId?: string | null;
+    readonly branchId?: string | number | null;
     readonly readOnly?: boolean;
     readonly remoteUpdateDigest?: string | null;
     readonly presence?: ReadonlyArray<{ readonly actorId: string; readonly status: "active" | "idle" | "viewing" }>;

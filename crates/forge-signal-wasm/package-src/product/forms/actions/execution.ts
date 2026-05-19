@@ -5,10 +5,10 @@ export function createActionExecutionStore(actionAttempts) {
   const history = [];
   const pending = new Map();
   return Object.freeze({
-    execute(plan) {
+    execute(plan, options = {}) {
       const attempt = actionAttempts.attempt(plan);
       const superseded = supersedePendingOperation(plan);
-      const execution = executionForAttempt(nextOperationId, plan, attempt, superseded);
+      const execution = executionForAttempt(nextOperationId, plan, attempt, superseded, options);
       nextOperationId += 1;
       if (execution.resultKind === "pending") {
         pending.set(execution.operationId, execution);
@@ -30,18 +30,19 @@ export function createActionExecutionStore(actionAttempts) {
     reject(operationId, payload = {}, currentPlanForAction = null) {
       return settlePendingOperation(operationId, "rejected", payload, currentPlanForAction);
     },
-    cancel(operationId, payload = {}) {
-      return settlePendingOperation(operationId, "cancelled", payload);
+    cancel(operationId, payload = {}, currentPlanForAction = null) {
+      return settlePendingOperation(operationId, "cancelled", payload, currentPlanForAction);
     },
-    timeout(operationId, payload = {}) {
-      return settlePendingOperation(operationId, "timedOut", payload);
+    timeout(operationId, payload = {}, currentPlanForAction = null) {
+      return settlePendingOperation(operationId, "timedOut", payload, currentPlanForAction);
     },
     retry(operationId, currentPlanForAction = null) {
       const previous = latestExecutionForOperation(operationId);
       if (!isRetryableExecution(previous)) {
         return recordStaleCompletion(nextOperationId++, operationId, "retry target is not retryable", previous);
       }
-      const staleReason = staleOperationReason(previous, currentPlanForAction);
+      const currentPlan = currentPlanSnapshot(previous, currentPlanForAction);
+      const staleReason = staleOperationReason(previous, currentPlan);
       if (staleReason !== null) {
         return recordStaleCompletion(nextOperationId++, operationId, staleReason, previous);
       }
@@ -69,7 +70,8 @@ export function createActionExecutionStore(actionAttempts) {
         latestExecutionForOperation(operationId),
       );
     }
-    const staleReason = staleOperationReason(operation, currentPlanForAction);
+    const currentPlan = currentPlanSnapshot(operation, currentPlanForAction);
+    const staleReason = staleOperationReason(operation, currentPlan);
     if (staleReason !== null) {
       pending.delete(operationId);
       return recordStaleCompletion(nextOperationId++, operationId, staleReason, operation);
@@ -79,6 +81,7 @@ export function createActionExecutionStore(actionAttempts) {
       reason: payload.reason ?? `action execution ${resultKind}`,
       serverMessages: normalizeServerMessages(payload.messages),
       canonicalValue: cloneCanonicalValue(payload.canonicalValue),
+      recoveryActions: recoveryActionsForExecution(resultKind, operation, currentPlan),
       operationId,
     });
     history.push(settled);
@@ -122,11 +125,13 @@ export function createActionExecutionStore(actionAttempts) {
   }
 }
 
-function executionForAttempt(operationId, plan, attempt, superseded) {
+function executionForAttempt(operationId, plan, attempt, superseded, options = {}) {
   if (attempt.resultKind === "denied" || attempt.resultKind === "noOp") {
     return executionArtifact(operationId, plan, attempt, attempt.resultKind, {
       reason: "action execution did not start because action attempt was terminal",
       effectStarted: false,
+      resourceSettlement: options.resourceSettlement,
+      recoveryActions: plan.recoveryActions,
     });
   }
   if (!requiresPendingExecution(plan)) {
@@ -148,6 +153,7 @@ function resolvedExecutionForAttempt(operationId, plan, attempt, superseded, pay
     return executionArtifact(operationId, plan, attempt, attempt.resultKind, {
       reason: "action execution did not start because action attempt was terminal",
       effectStarted: false,
+      recoveryActions: plan.recoveryActions,
     });
   }
   return executionArtifact(operationId, plan, attempt, payload.resultKind, {
@@ -155,6 +161,10 @@ function resolvedExecutionForAttempt(operationId, plan, attempt, superseded, pay
     effectStarted: payload.effectStarted,
     canonicalValue: payload.canonicalValue,
     resourceSubmission: payload.resourceSubmission,
+    resourceSettlement: payload.resourceSettlement,
+    resourceLifecycle: payload.resourceLifecycle,
+    resourceRecovery: payload.resourceRecovery,
+    recoveryActions: payload.resultKind === "denied" ? plan.recoveryActions : Object.freeze([]),
     supersededOperationId: superseded?.operationId,
   });
 }
@@ -180,6 +190,10 @@ function executionArtifact(operationId, plan, attempt, resultKind, options = {})
     serverMessages: options.serverMessages ?? Object.freeze([]),
     canonicalValue: options.canonicalValue,
     resourceSubmission: options.resourceSubmission,
+    resourceSettlement: options.resourceSettlement,
+    resourceLifecycle: options.resourceLifecycle,
+    resourceRecovery: options.resourceRecovery,
+    recoveryActions: options.recoveryActions ?? Object.freeze([]),
     retryOfOperationId: options.retryOfOperationId,
     supersededOperationId: options.supersededOperationId,
     supersededByOperationId: options.supersededByOperationId,
@@ -211,6 +225,9 @@ function staleCompletionArtifact(operationId, targetOperationId, reason, targetO
     reason,
     serverMessages: Object.freeze([]),
     resourceSubmission: null,
+    resourceSettlement: null,
+    resourceRecovery: null,
+    recoveryActions: Object.freeze([]),
   };
   return Object.freeze({
     ...artifact,
@@ -218,11 +235,17 @@ function staleCompletionArtifact(operationId, targetOperationId, reason, targetO
   });
 }
 
-function staleOperationReason(operation, currentPlanForAction) {
+function currentPlanSnapshot(operation, currentPlanForAction) {
   if (typeof currentPlanForAction !== "function") {
     return null;
   }
-  const currentPlan = currentPlanForAction(operation.action);
+  return currentPlanForAction(operation.action);
+}
+
+function staleOperationReason(operation, currentPlan) {
+  if (currentPlan === null) {
+    return null;
+  }
   if (currentPlan.planDigest === operation.planDigest) {
     return null;
   }
@@ -241,6 +264,16 @@ function isRetryableExecution(operation) {
 
 function requiresPendingExecution(plan) {
   return plan.effectPolicy === "deferred" || plan.hostEffect !== null;
+}
+
+function recoveryActionsForExecution(resultKind, operation, currentPlan) {
+  if (resultKind === "fulfilled") {
+    return Object.freeze([]);
+  }
+  if (currentPlan !== null && currentPlan.planDigest === operation.planDigest) {
+    return currentPlan.recoveryActions;
+  }
+  return operation.planSnapshot?.recoveryActions ?? Object.freeze([]);
 }
 
 function cloneCanonicalValue(canonicalValue) {

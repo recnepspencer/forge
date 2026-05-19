@@ -200,6 +200,84 @@ test("signals.form compares non-record field values semantically instead of trea
   }
 });
 
+test("signals.form emits attachment attach detach posture and preserves declared resource loci in field diagnostics", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const signals = wrapSignals(createGraphOperationalRuntime());
+    const form = signals.form({
+      source: {
+        profile: {
+          displayName: "Ship docs",
+        },
+        evidence: { digest: "file-0", name: "draft.pdf" },
+      },
+      fields: ({ field, evidence }) => ({
+        displayName: field("profile.displayName", {
+          resourceLocus: { kind: "jsonPath", path: "$.profile.displayName" },
+        }),
+        evidence: evidence("evidence", {
+          attachmentIdentity: "digest",
+          resourceLocus: { kind: "region", region: "evidenceRegion" },
+        }),
+      }),
+    });
+
+    form.fields.displayName.set("Published docs");
+    form.fields.evidence.set({ digest: "file-1", name: "audit.pdf" });
+    assert.deepEqual(stripPatchEquality(form.patchPlan().operations), [
+      {
+        kind: "set",
+        field: "displayName",
+        locus: {
+          path: "profile.displayName",
+          segments: ["profile", "displayName"],
+        },
+        value: "Published docs",
+        valueDigest: JSON.stringify("Published docs"),
+      },
+      {
+        kind: "attach",
+        field: "evidence",
+        locus: {
+          path: "evidence",
+          segments: ["evidence"],
+        },
+        value: { digest: "file-1", name: "audit.pdf" },
+        valueDigest: JSON.stringify({ digest: "file-1", name: "audit.pdf" }),
+      },
+    ]);
+    assert.equal(form.fieldContract()[0]?.resourceLocus?.kind, "jsonPath");
+    assert.equal(form.fieldContract()[1]?.family, "evidence");
+    assert.equal(form.fieldContract()[1]?.resourceLocus?.kind, "region");
+
+    form.fields.evidence.set(null);
+    assert.deepEqual(stripPatchEquality(form.patchPlan().operations), [
+      {
+        kind: "set",
+        field: "displayName",
+        locus: {
+          path: "profile.displayName",
+          segments: ["profile", "displayName"],
+        },
+        value: "Published docs",
+        valueDigest: JSON.stringify("Published docs"),
+      },
+      {
+        kind: "detach",
+        field: "evidence",
+        locus: {
+          path: "evidence",
+          segments: ["evidence"],
+        },
+      },
+    ]);
+    assert.equal(form.fields.evidence.attachmentIdentity(), null);
+    assert.equal(form.fields.evidence.diagnostics().attachment, null);
+  } finally {
+    await cleanup();
+  }
+});
+
 test("signals.form rejects unsafe declarations and reports non-native input adapters", async () => {
   const { wrapSignals, cleanup } = await loadSignalsModule();
   try {

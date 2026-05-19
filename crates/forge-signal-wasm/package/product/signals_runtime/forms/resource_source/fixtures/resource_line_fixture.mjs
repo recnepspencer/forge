@@ -1,155 +1,13 @@
-function createRequest(effectProfile) {
-  return Object.freeze({
-    family: { kind: "detail", familyId: "task" },
-    canonicalParams: { params: { id: "t1" }, canonicalKey: "id=t1" },
-    target: { baseUrl: null, requestPath: "/tasks/t1", url: "/tasks/t1" },
-    baseUrl: null,
-    method: "GET",
-    body: null,
-    auth: { kind: "anonymous" },
-    context: { headers: {}, correlationId: null, branchId: null, basisId: null },
-    continuation: { kind: "none" },
-    processingJob: { kind: "none" },
-    uploadTransport: { kind: "none" },
-    effects: effectProfile,
-  });
-}
+import {
+  createBranchAvailability,
+  createCommittedVisibleSelection,
+  createHistory,
+  createMutationResponsePlanFixture,
+  createRequest,
+  createVerificationPackage,
+} from "./resource_line_fixture_shared.mjs";
 
-function createCommittedVisibleSelection(detail) {
-  return Object.freeze({
-    kind: "committed",
-    source: "initialLoad",
-    effectId: null,
-    branchId: null,
-    snapshotId: null,
-    basisId: "basis-1",
-    detail,
-  });
-}
-
-function createBranchAvailability() {
-  return Object.freeze({
-    replay: { kind: "available" },
-    replayExact: { kind: "available", mode: "SameRuntimeSignalExact", signalId: "task:t1" },
-    lineage: { kind: "available" },
-    branch: { kind: "available" },
-    restoreExact: { kind: "available", mode: "SameRuntimeBranchExact", branchId: 7, snapshotId: 11 },
-  });
-}
-
-function createBranchSummary() {
-  return Object.freeze({
-    id: 7,
-    name: "task-speculative",
-    parentBranchId: null,
-    headSnapshotId: 11,
-  });
-}
-
-function createVerificationPackage({
-  request,
-  status,
-  freshness,
-  visibleSelection,
-  patchCount,
-  lastEffect,
-  mutationResponse,
-}) {
-  return Object.freeze({
-    requestPosture: {
-      method: request.method,
-      effects: request.effects,
-    },
-    lifecycle: {
-      status,
-      freshness,
-      patchCount,
-      lastEffect,
-      visibleSelection,
-    },
-    historyReplayRestore: {
-      branch: createBranchSummary(),
-      availability: createBranchAvailability(),
-    },
-    mutationResponse: mutationResponse === null
-      ? undefined
-      : { plan: mutationResponse, planCount: mutationResponse.planCount ?? 1 },
-  });
-}
-
-function createHistory(verificationPackage) {
-  return Object.freeze({
-    replay: null,
-    lineage: null,
-    branch: createBranchSummary(),
-    basis: { currentId: "basis-1", advances: [] },
-    availability: createBranchAvailability(),
-    lifecycle: [],
-    verificationPackage() {
-      return verificationPackage;
-    },
-    rollbackLastEffect() {
-      return Object.freeze({
-        kind: "unavailable",
-        reason: "noEffect",
-        detail: "resource effect rollback is unavailable because the line has no recorded resource effect",
-        effectId: null,
-        basisCurrentId: "basis-1",
-        basisAdvanceCount: 0,
-        rollback: null,
-      });
-    },
-  });
-}
-
-export function createMutationResponsePlanFixture({
-  confirmationKind = "consumedCanonicalTruth",
-  fallbackKind = null,
-  staleReason = null,
-  planCount = 1,
-} = {}) {
-  const execution = fallbackKind === null
-    ? Object.freeze({ kind: "exactDetail", scope: "field", field: "title" })
-    : Object.freeze({
-      kind: "fallback",
-      fallback: fallbackKind,
-      partial: fallbackKind === "partialReconciliation"
-        ? { kind: "missingResponseField", field: "title" }
-        : null,
-      staleness: staleReason === null ? null : { reason: staleReason },
-    });
-  return Object.freeze({
-    planId: "mutation-plan-1",
-    planCount,
-    targetCount: 1,
-    confirmation: Object.freeze({ kind: confirmationKind, digest: `confirmation:${confirmationKind}` }),
-    lifecycleProof: Object.freeze({
-      replayExactDigest: "replay:exact",
-      restoreExactDigest: "restore:exact",
-      rollbackDigest: "rollback:available",
-      mergeRebaseDigest: "merge:rebase",
-      count: 1,
-    }),
-    diagnostics: Object.freeze({ count: 0, digest: "diagnostics:none" }),
-    counters: Object.freeze({
-      targetLookupBreadth: 1,
-      targetFanoutBreadth: 1,
-      payloadFieldExtractionBreadth: 1,
-      topologyTraversalBreadth: 1,
-      reconstructionBreadth: fallbackKind === null ? 1 : 0,
-      fallbackBreadth: fallbackKind === null ? 0 : 1,
-    }),
-    executionDigest: `execution:${confirmationKind}:${fallbackKind ?? "exact"}`,
-    identityMigration: null,
-    targets: Object.freeze([Object.freeze({
-      targetId: "target-1",
-      family: Object.freeze({ kind: "detail", familyId: "task" }),
-      line: Object.freeze({ canonicalKey: "id=t1", residency: "resident" }),
-      execution,
-      targetDigest: "target:digest:1",
-    })]),
-  });
-}
+export { createMutationResponsePlanFixture };
 
 export function createReadOnlyResourceLineFixture({
   effectProfile = null,
@@ -157,33 +15,34 @@ export function createReadOnlyResourceLineFixture({
   freshness,
   visibleSelection = createCommittedVisibleSelection("resource line is showing committed server truth"),
   mutationResponse = null,
+  compatibility = null,
+  familyKind = "detail",
+  familyId = "task",
+  runtimeLineId = "task:t1",
+  canonicalKey = "id=t1",
 }) {
-  const request = createRequest(effectProfile);
-  const verificationPackage = createVerificationPackage({
-    request,
-    status,
-    freshness,
-    visibleSelection,
-    patchCount: 0,
-    lastEffect: null,
-    mutationResponse,
-  });
+  let currentStatus = status;
+  let currentVisibleSelection = visibleSelection;
+  let refreshCount = 0;
+  let revalidateCount = 0;
+  const request = createRequest(effectProfile, { familyKind, familyId, canonicalKey });
   return Object.freeze({
     value: () => ({ title: "Resource task" }),
     descriptor: () => ({
-      family: { kind: "detail", familyId: "task" },
-      canonicalParams: { params: { id: "t1" }, canonicalKey: "id=t1" },
-      runtimeLineId: "task:t1",
+      family: { kind: familyKind, familyId },
+      canonicalParams: { params: { id: "t1" }, canonicalKey },
+      runtimeLineId,
       scopeId: "workspace",
+      ...(compatibility === null ? {} : { compatibility }),
     }),
     request: () => request,
     summary: () => ({
       current: {
-        status,
+        status: currentStatus,
         freshness,
         hasVisibleValue: true,
         visibleValueVersion: 1,
-        visibleSelection,
+        visibleSelection: currentVisibleSelection,
       },
       request,
       processing: { kind: "ready", completionKind: "none", jobId: null, message: null },
@@ -199,25 +58,25 @@ export function createReadOnlyResourceLineFixture({
       download: { count: 0, readyCount: 0, unavailableCount: 0, incompatibleCount: 0, descriptors: [] },
       diagnostics: {
         current: {
-          status,
+          status: currentStatus,
           freshness,
           hasVisibleValue: true,
           visibleValueVersion: 1,
-          visibleSelection,
+          visibleSelection: currentVisibleSelection,
         },
         activity: {
-          lastOperation: status.operation,
-          lastOutcome: status.kind === "rejected" ? "rejected" : status.kind,
-          pendingOperation: status.kind === "pending" ? status.operation : null,
+          lastOperation: currentStatus.operation,
+          lastOutcome: currentStatus.kind === "rejected" ? "rejected" : currentStatus.kind,
+          pendingOperation: currentStatus.kind === "pending" ? currentStatus.operation : null,
           continuity: "preserveVisibleValue",
           freshnessPolicy: "stable",
         },
         counts: {
-          refreshCount: 0,
-          revalidateCount: 0,
+          refreshCount,
+          revalidateCount,
           retryAttemptCount: 0,
-          rejectionCount: status.kind === "rejected" ? 1 : 0,
-          timeoutCount: status.kind === "timedOut" ? 1 : 0,
+          rejectionCount: currentStatus.kind === "rejected" ? 1 : 0,
+          timeoutCount: currentStatus.kind === "timedOut" ? 1 : 0,
           supersessionCount: 0,
           invalidationCount: 0,
           patchCount: 0,
@@ -227,7 +86,7 @@ export function createReadOnlyResourceLineFixture({
         latest: {
           basisCurrentId: "basis-1",
           effect: null,
-          errorMessage: status.kind === "rejected" ? status.message : null,
+          errorMessage: currentStatus.kind === "rejected" ? currentStatus.message : null,
         },
         request: {
           method: request.method,
@@ -240,10 +99,66 @@ export function createReadOnlyResourceLineFixture({
       },
       explainability: { available: false, reason: "not requested" },
     }),
-    status: () => status,
+    status: () => currentStatus,
     freshness: () => freshness,
     mutationResponse: () => mutationResponse,
-    history: () => createHistory(verificationPackage),
+    refresh() {
+      refreshCount += 1;
+      currentStatus = Object.freeze({ kind: "pending", operation: "refresh", continuity: "preserveVisibleValue" });
+      return currentStatus;
+    },
+    revalidate() {
+      revalidateCount += 1;
+      currentStatus = Object.freeze({ kind: "pending", operation: "revalidate", continuity: "preserveVisibleValue" });
+      return currentStatus;
+    },
+    history() {
+      return Object.freeze({
+        ...createHistory(createVerificationPackage({
+          request,
+          status: currentStatus,
+          freshness,
+          visibleSelection: currentVisibleSelection,
+          patchCount: 0,
+          lastEffect: null,
+          mutationResponse,
+          externalCompatibility: compatibility ?? Object.freeze({ kind: "native" }),
+        })),
+        replayExact() {
+          currentStatus = Object.freeze({ kind: "fulfilled", operation: "replay" });
+          return Object.freeze({
+            kind: "replayed",
+            mode: "SameRuntimeSignalExact",
+            signalId: "task:t1",
+            basisCurrentId: "basis-1",
+            basisAdvanceCount: 0,
+            reloadStatus: currentStatus,
+          });
+        },
+        restoreExact() {
+          currentStatus = Object.freeze({ kind: "fulfilled", operation: "restore" });
+          currentVisibleSelection = Object.freeze({
+            kind: "restored",
+            source: "exactBranchRestore",
+            effectId: null,
+            branchId: 7,
+            snapshotId: 11,
+            basisId: "basis-1",
+            rollbackKind: null,
+            detail: "resource line visible truth was restored through exact line history restore",
+          });
+          return Object.freeze({
+            kind: "restored",
+            mode: "SameRuntimeBranchExact",
+            branchId: 7,
+            snapshotId: 11,
+            basisCurrentId: "basis-1",
+            basisAdvanceCount: 0,
+            reloadStatus: currentStatus,
+          });
+        },
+      });
+    },
   });
 }
 
@@ -256,12 +171,24 @@ export function createDetailPatchLineFixture({
   const baselineValue = { ...initialValue };
   let version = 1;
   let latestEffect = null;
+  let currentStatus = Object.freeze({ kind: "fulfilled", operation: "initialLoad" });
+  let restored = false;
   const patchHistory = [];
   const request = createRequest(effectProfile);
-  const status = Object.freeze({ kind: "fulfilled", operation: "initialLoad" });
   const freshness = Object.freeze({ kind: "fresh" });
   const visibleSelection = () => latestEffect === null
-    ? createCommittedVisibleSelection("resource line is showing committed server truth")
+    ? restored
+      ? Object.freeze({
+        kind: "restored",
+        source: "exactBranchRestore",
+        effectId: null,
+        branchId: 7,
+        snapshotId: 11,
+        basisId: "basis-1",
+        rollbackKind: null,
+        detail: "resource line visible truth was restored through exact line history restore",
+      })
+      : createCommittedVisibleSelection("resource line is showing committed server truth")
     : Object.freeze({
       kind: "speculative",
       source: "localPatch",
@@ -283,7 +210,7 @@ export function createDetailPatchLineFixture({
     request: () => request,
     summary: () => ({
       current: {
-        status,
+        status: currentStatus,
         freshness,
         hasVisibleValue: true,
         visibleValueVersion: version,
@@ -295,16 +222,16 @@ export function createDetailPatchLineFixture({
       download: { count: 0, readyCount: 0, unavailableCount: 0, incompatibleCount: 0, descriptors: [] },
       diagnostics: {
         current: {
-          status,
+          status: currentStatus,
           freshness,
           hasVisibleValue: true,
           visibleValueVersion: version,
           visibleSelection: visibleSelection(),
         },
         activity: {
-          lastOperation: "delivery",
-          lastOutcome: "fulfilled",
-          pendingOperation: null,
+          lastOperation: currentStatus.operation,
+          lastOutcome: currentStatus.kind === "rejected" ? "rejected" : currentStatus.kind,
+          pendingOperation: currentStatus.kind === "pending" ? currentStatus.operation : null,
           continuity: "preserveVisibleValue",
           freshnessPolicy: "stable",
         },
@@ -312,8 +239,8 @@ export function createDetailPatchLineFixture({
           refreshCount: 0,
           revalidateCount: 0,
           retryAttemptCount: 0,
-          rejectionCount: 0,
-          timeoutCount: 0,
+          rejectionCount: currentStatus.kind === "rejected" ? 1 : 0,
+          timeoutCount: currentStatus.kind === "timedOut" ? 1 : 0,
           supersessionCount: 0,
           invalidationCount: 0,
           patchCount: patchHistory.length,
@@ -328,7 +255,7 @@ export function createDetailPatchLineFixture({
           patchedPath: latestEffect?.patch?.path ?? null,
           basisCurrentId: "basis-1",
           effect: latestEffect,
-          errorMessage: null,
+          errorMessage: currentStatus.kind === "rejected" ? currentStatus.message : null,
         },
         request: {
           method: request.method,
@@ -344,13 +271,13 @@ export function createDetailPatchLineFixture({
     diagnosticsSummary() {
       return this.summary().diagnostics;
     },
-    status: () => status,
+    status: () => currentStatus,
     freshness: () => freshness,
     mutationResponse: () => mutationResponse,
     history() {
       const verificationPackage = createVerificationPackage({
         request,
-        status,
+        status: currentStatus,
         freshness,
         visibleSelection: visibleSelection(),
         patchCount: patchHistory.length,
@@ -359,6 +286,33 @@ export function createDetailPatchLineFixture({
       });
       return Object.freeze({
         ...createHistory(verificationPackage),
+        replayExact() {
+          currentStatus = Object.freeze({ kind: "fulfilled", operation: "replay" });
+          return Object.freeze({
+            kind: "replayed",
+            mode: "SameRuntimeSignalExact",
+            signalId: "task:t1",
+            basisCurrentId: "basis-1",
+            basisAdvanceCount: 0,
+            reloadStatus: currentStatus,
+          });
+        },
+        restoreExact() {
+          value = { ...baselineValue };
+          version += 1;
+          latestEffect = null;
+          restored = true;
+          currentStatus = Object.freeze({ kind: "fulfilled", operation: "restore" });
+          return Object.freeze({
+            kind: "restored",
+            mode: "SameRuntimeBranchExact",
+            branchId: 7,
+            snapshotId: 11,
+            basisCurrentId: "basis-1",
+            basisAdvanceCount: 0,
+            reloadStatus: currentStatus,
+          });
+        },
         rollbackLastEffect() {
           if (latestEffect === null) {
             return Object.freeze({
@@ -375,6 +329,7 @@ export function createDetailPatchLineFixture({
           version += 1;
           const rollback = latestEffect.optimistic.rollback;
           latestEffect = null;
+          currentStatus = Object.freeze({ kind: "fulfilled", operation: "restore" });
           return Object.freeze({
             kind: "rolledBack",
             mode: rollback.mode,
@@ -384,7 +339,7 @@ export function createDetailPatchLineFixture({
             basisCurrentId: "basis-1",
             basisAdvanceCount: 0,
             rollback,
-            reloadStatus: status,
+            reloadStatus: currentStatus,
           });
         },
       });
@@ -430,6 +385,8 @@ export function createDetailPatchLineFixture({
           },
         },
       };
+      restored = false;
+      currentStatus = Object.freeze({ kind: "fulfilled", operation: "patch" });
       return Object.freeze({
         kind: "narrowed",
         scope: "field",

@@ -12,6 +12,7 @@ export function materializeFieldDeclarations(declaration) {
           field: factory.field,
           repeated: factory.repeated,
           attachment: factory.attachment,
+          evidence: factory.evidence,
         })
       : declaration.fields;
   if (!declared || typeof declared !== "object" || Array.isArray(declared)) {
@@ -40,6 +41,7 @@ export function materializeFieldDeclarations(declaration) {
         accessibility,
         layout: normalizeFieldLayout(field.options, id),
         collectionIdentity: field.collectionIdentity,
+        resourceLocus: field.resourceLocus,
         attachment: field.attachment,
         inputAdapter: normalizeInputAdapter(field.options),
         parse: typeof field.options.parse === "function" ? field.options.parse : null,
@@ -51,15 +53,25 @@ export function materializeFieldDeclarations(declaration) {
 function createFieldDeclarationFactory() {
   return {
     field(path, options = {}) {
-      return fieldDeclaration("scalar", path, options);
+      return fieldDeclaration("scalar", path, options, {
+        resourceLocus: normalizeValueResourceLocus(options),
+      });
     },
     repeated(path, options = {}) {
       return fieldDeclaration("repeated", path, options, {
         collectionIdentity: normalizeCollectionIdentity(options),
+        resourceLocus: normalizeRepeatedResourceLocus(options),
       });
     },
     attachment(path, options = {}) {
       return fieldDeclaration("attachment", path, options, {
+        resourceLocus: normalizeValueResourceLocus(options),
+        attachment: normalizeAttachmentDeclaration(options),
+      });
+    },
+    evidence(path, options = {}) {
+      return fieldDeclaration("evidence", path, options, {
+        resourceLocus: normalizeValueResourceLocus(options),
         attachment: normalizeAttachmentDeclaration(options),
       });
     },
@@ -203,6 +215,7 @@ function fieldDeclaration(family, path, options = {}, extras = {}) {
     segments,
     options,
     collectionIdentity: extras.collectionIdentity ?? null,
+    resourceLocus: extras.resourceLocus ?? null,
     attachment: extras.attachment ?? null,
   });
 }
@@ -252,4 +265,111 @@ function requireOptionsObject(options) {
   if (!options || typeof options !== "object" || Array.isArray(options)) {
     throw new FormDeclarationError("form field options must be an object");
   }
+}
+
+function normalizeValueResourceLocus(options) {
+  if (options.resourceLocus === undefined) {
+    return null;
+  }
+  if (!options.resourceLocus || typeof options.resourceLocus !== "object" || Array.isArray(options.resourceLocus)) {
+    throw new FormDeclarationError("form field resourceLocus must be an object", {
+      resourceLocus: options.resourceLocus,
+    });
+  }
+  if (options.resourceLocus.kind === "field") {
+    if (typeof options.resourceLocus.field !== "string" || options.resourceLocus.field.length === 0) {
+      throw new FormDeclarationError("form field resourceLocus.field must be a non-empty string", {
+        resourceLocus: options.resourceLocus,
+      });
+    }
+    return Object.freeze({
+      kind: "field",
+      field: options.resourceLocus.field,
+      posture: "declaredFieldLocus",
+    });
+  }
+  if (options.resourceLocus.kind === "jsonPath") {
+    if (typeof options.resourceLocus.path !== "string" || options.resourceLocus.path.length === 0) {
+      throw new FormDeclarationError("form field resourceLocus.path must be a non-empty string", {
+        resourceLocus: options.resourceLocus,
+      });
+    }
+    return Object.freeze({
+      kind: "jsonPath",
+      path: options.resourceLocus.path,
+      posture: "declaredJsonPathLocus",
+    });
+  }
+  if (options.resourceLocus.kind === "region") {
+    if (typeof options.resourceLocus.region !== "string" || options.resourceLocus.region.length === 0) {
+      throw new FormDeclarationError("form field resourceLocus.region must be a non-empty string", {
+        resourceLocus: options.resourceLocus,
+      });
+    }
+    return Object.freeze({
+      kind: "region",
+      region: options.resourceLocus.region,
+      posture: "declaredRegionLocus",
+    });
+  }
+  if (options.resourceLocus.kind === "itemAspect") {
+    if (typeof options.resourceLocus.itemId !== "string" || options.resourceLocus.itemId.length === 0) {
+      throw new FormDeclarationError("form field resourceLocus.itemId must be a non-empty string", {
+        resourceLocus: options.resourceLocus,
+      });
+    }
+    if (typeof options.resourceLocus.aspect !== "string" || options.resourceLocus.aspect.length === 0) {
+      throw new FormDeclarationError("form field resourceLocus.aspect must be a non-empty string", {
+        resourceLocus: options.resourceLocus,
+      });
+    }
+    return Object.freeze({
+      kind: "itemAspect",
+      itemId: options.resourceLocus.itemId,
+      aspect: options.resourceLocus.aspect,
+      posture: "declaredItemAspectLocus",
+    });
+  }
+  if (options.resourceLocus.kind === "summary") {
+    if (typeof options.resourceLocus.summary !== "string" || options.resourceLocus.summary.length === 0) {
+      throw new FormDeclarationError("form field resourceLocus.summary must be a non-empty string", {
+        resourceLocus: options.resourceLocus,
+      });
+    }
+    return Object.freeze({
+      kind: "summary",
+      summary: options.resourceLocus.summary,
+      posture: "declaredSummaryLocus",
+    });
+  }
+  throw new FormDeclarationError("form field resourceLocus kind is not supported", {
+    resourceLocus: options.resourceLocus,
+  });
+}
+
+function normalizeRepeatedResourceLocus(options) {
+  if (options.resourceLocus === undefined) {
+    return null;
+  }
+  if (!options.resourceLocus || typeof options.resourceLocus !== "object" || Array.isArray(options.resourceLocus)) {
+    throw new FormDeclarationError("repeated form field resourceLocus must be an object", {
+      resourceLocus: options.resourceLocus,
+    });
+  }
+  if (options.resourceLocus.kind !== "collectionItems") {
+    throw new FormDeclarationError("repeated form field resourceLocus kind is not supported", {
+      resourceLocus: options.resourceLocus,
+    });
+  }
+  const placement = options.resourceLocus.placement ?? "append";
+  if (placement !== "append" && placement !== "prepend") {
+    throw new FormDeclarationError("repeated form field resourceLocus placement must be append or prepend", {
+      resourceLocus: options.resourceLocus,
+    });
+  }
+  return Object.freeze({
+    kind: "collectionItems",
+    placement,
+    posture: "collectionItemsDeclared",
+  });
 }

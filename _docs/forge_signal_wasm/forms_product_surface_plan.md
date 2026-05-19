@@ -233,11 +233,11 @@ then this milestone has failed.
   policy, admission policy, async policy, resource/external effect binding, and
   history artifact.
 - Submit execution is one runtime async node whose terminal artifact projects
-  into form submit lifecycle and, for resource-backed submits, resource effect
+  into form submit lifecycle and, for resource-line submits, resource effect
   lifecycle. The two views must not be backed by separate completion records.
-- Resource-backed submit uses resource patch/effect semantics. It must not call
+- Resource-line submit uses resource patch/effect semantics. It must not call
   resource mutation helpers as an opaque side effect after form validation.
-- Resource-backed submit and resource-backed action confirmation may consume
+- Resource-line submit and resource-line action confirmation may consume
   mutation-response reconciliation, but forms still declare the intended write
   at the form boundary. The form surface must not hide resource mutation
   response planning behind feature-local commit callbacks.
@@ -370,15 +370,15 @@ then this milestone has failed.
   host-capability denials
 - sync validation, cross-field validation, and async validation
 - host-capability integration for browser-local readiness facts
-- resource-backed source and resource-backed submit integration
-- resource-backed source support for detail, collection, and paged line shapes
+- resource-line source and resource-line submit integration
+- resource-line source support for detail, collection, and paged line shapes
   while preserving family/member/line identity and request posture
 - resource freshness, status, reload, revalidate, retry, timeout,
   supersession, delivery basis, and visible-branch selection posture as
   readiness/action inputs where declared
 - resource binary/download, upload, processing, and transfer posture for
   attachment/evidence fields where declared
-- typed resource effect profile inheritance/selection for resource-backed form
+- typed resource effect profile inheritance/selection for resource-line
   submit/actions
 - reset, rollback, server canonicalization, supersession, and failed-submit
   semantics
@@ -646,7 +646,7 @@ Submit declarations must lower to a plan:
 - readiness digest
 - submit input digest
 - async policy digest
-- resource effect binding when resource-backed
+- resource effect binding when resource-line authority is present
 - host fact digest when host facts affect submission
 - schema/version digest
 - rollback and canonicalization posture
@@ -960,7 +960,7 @@ Proof obligations:
 - async denial happens before external/resource side effects
 - URL-addressed step transitions, route guards, browser back/forward behavior,
   deep links, resume links, route remount preservation, and route-local step
-  resources deny with typed deferred posture until router integration exists
+  resources deny with typed deferred posture that requires route authority
 
 Current implementation note:
 
@@ -1059,34 +1059,34 @@ Must ship:
 
 - resource line source adapters
 - resource family/member/line identity preservation for detail, collection, and
-  paged resource-backed forms
+  paged resource-line forms
 - request posture, lifecycle/freshness/status posture, reload/revalidate/retry/
   timeout/supersession posture, delivery basis posture, and external delivery
   compatibility as form-readable artifacts
 - binary/download/upload/processing posture for attachment and evidence fields
   that bind to resource transfer surfaces
 - visible branch selection proof for committed, speculative, confirmed,
-  restored, merged, or unavailable resource-backed visible truth
-- resource response-lens/locus proof reuse for resource-backed field loci
+  restored, merged, or unavailable resource-line visible truth
+- resource response-lens/locus proof reuse for resource-line field loci
 - lowering from form patch plans into resource effect operations
-- lowering from resource-backed form actions into resource effect, delivery,
+- lowering from resource-line form actions into resource effect, delivery,
   branch, or external action artifacts where declared
 - resource mutation-response reconciliation as a consumable form-facing
-  substrate for resource-backed submit/action completion:
+  substrate for resource-line submit/action completion:
   exact reconciliation, partial reconciliation, stale-target denial,
   refetch-required, delivery-awaited, identity migration, create placement,
   delete/tombstone posture, and multi-family target outcomes where the backing
   resource declaration admits them
-- typed resource effect profile inheritance/selection for resource-backed
+- typed resource effect profile inheritance/selection for resource-line
   submit/actions, including branch-native optimistic, server-canonical,
   pessimistic/no-optimism, delivery-authoritative, non-reversible, and
   sensitive-data profiles where supported
-- server confirmation and failure posture for resource-backed submit/actions
+- server confirmation and failure posture for resource-line submit/actions
 - rollback through resource branch restore or inverse effect where available
 - mapping from form field loci to resource effect loci
 - projection from resource merge/rebase conflicts back to declared form fields,
   sections, messages, readiness, and diagnostics regions
-- collaboration posture for resource-backed forms: single-writer lock,
+- collaboration posture for resource-line forms: single-writer lock,
   field-lease, branch-per-actor, optimistic merge, reviewer-comment-only, or
   typed unavailable
 - remote source drift, collaborator events, reviewer comments, lock/lease
@@ -1102,9 +1102,9 @@ Must preserve:
   resource-owned artifacts
 - mutation-response plans, fallback posture, lifecycle proof, history proof,
   verification packages, and closeout matrices remain resource-owned artifacts
-  when the form submit/action is resource-backed
+  when the form submit/action is governed by a resource line
 - form draft remains separate until submit/confirmation policy admits it
-- resource effect envelopes remain the canonical artifact for resource-backed
+- resource effect envelopes remain the canonical artifact for resource-line
   writes and actions
 - branch/merge/rebase proof remains resource-owned, not form-owned
 - branch-local speculative form posture remains attributable to native signal
@@ -1114,16 +1114,16 @@ Must preserve:
 
 Proof obligations:
 
-- resource-backed submit emits the same resource effect posture as equivalent
+- resource-line submit emits the same resource effect posture as equivalent
   direct resource patch
-- resource-backed form source materialization preserves detail, collection, and
+- resource-line form source materialization preserves detail, collection, and
   paged identity rather than collapsing into anonymous objects
 - stale freshness, retry/timeout, supersession, delivery basis drift, and
   resource status changes can block or advise form readiness/action posture
   through typed artifacts
 - attachment/evidence fields backed by binary/download/upload/processing
   resource posture do not invent a parallel transfer lifecycle
-- resource-backed visible source/effective truth exposes committed,
+- resource-line visible source/effective truth exposes committed,
   speculative, confirmed, restored, merged, or unavailable branch selection
   proof where the line carries it
 - complex patch plans over nested JSON, collections, and attachments lower into
@@ -1134,11 +1134,11 @@ Proof obligations:
 - branch restore and replay preserve form diagnostics/history truth
 - form field to resource locus mapping denies when no declared resource locus
   exists
-- resource-backed form certification consumes the underlying resource line
+- resource-line form certification consumes the underlying resource line
   verification package, `resource.effects.closeoutMatrix(profile)` evidence,
   and resource mutation-response closeout evidence such as
   `signals.resource.mutationResponses.closeoutMatrix()` where available
-- resource-backed submit/action completion that relies on canonical server
+- resource-line submit/action completion that relies on canonical server
   responses consumes the same mutation-response confirmation, fallback,
   replay/restore, and stale-denial posture the resource lane already ships; the
   form layer must not restate those outcomes as a second local submit cache
@@ -1146,6 +1146,64 @@ Proof obligations:
   branch/resource proof, or block with typed conflict/unavailable artifacts
 - remote source changes rebase, conflict, block, or preserve local draft truth
   through declared branch/resource/admission evidence
+
+### Phase 8.5: Public Contract And Vocabulary Closure
+
+Purpose:
+
+- close Phase 8 by removing public-surface contract language that normalizes
+  partial implementation as durable product truth
+
+Must ship:
+
+- public forms/resource-facing vocabulary that names declared capability,
+  admitted posture, lowering contract, compatibility boundary, or unavailable
+  runtime proof directly rather than encoding unfinished implementation as
+  stable product nouns
+- cleanup of facade, diagnostics, verification, and certification language
+  where `unsupported`, `currently`, or roadmap-leaking `until integration
+  exists` wording would otherwise teach the wrong product contract
+- explicit separation between:
+  - product capability unavailable by declared/native/runtime proof
+  - current lowering contract admission/denial
+  - typed deferred posture where an external authority boundary is intentionally
+    outside the current milestone
+- hostile certification proving that renamed or reclassified posture did not
+  weaken authority, readiness, execution, or replay truth
+
+Must preserve:
+
+- typed unavailable and typed deferred posture where the spec intentionally
+  requires them
+- declaration/runtime denial honesty; this phase is contract correction, not
+  euphemism
+- resource-owned, host-owned, route-owned, and history-owned authority
+  boundaries
+- replay, restore, diagnostics, verification, and performance evidence parity
+  after vocabulary correction
+
+Proof obligations:
+
+- no form-facing resource shape or recovery surface encodes "not built yet" as
+  a stable capability noun when the real contract is "different declared
+  capability" or "outside the current lowering path"
+- unavailable posture means capability or proof is genuinely absent at the
+  declared/runtime boundary, not merely that implementation work remains
+- deferred posture means responsibility belongs to an external authority
+  boundary, not that local implementation was postponed casually
+- equivalent runtime behavior before and after vocabulary cleanup preserves the
+  same authority, readiness, lifecycle, replay, and verification truth
+- docs, public types, diagnostics, and tests all teach the same corrected
+  contract language
+
+Terminology note:
+
+- broad product-category wording such as `resource-backed forms` may remain in
+  roadmap or product-family descriptions
+- public contract, proof, diagnostics, verification, and certification lanes
+  should name the actual authority boundary directly, such as `resource line`,
+  `resource-line submit`, `resource-line action`, `resource proof`, or
+  `route authority`
 
 ### Phase 9: Diagnostics, History, Replay, And Verification Packages
 
@@ -1265,12 +1323,12 @@ Proof obligations:
   step actions, step progress summaries, skipped/optional/blocked steps,
   dynamic step insertion/removal, and route-coupled deferred posture
 - async validation and submit lifecycle through runtime async truth
-- resource-backed submit integration through resource effect envelopes
-- resource-backed actions consume resource/branch/effect truth where applicable
-- resource-backed forms preserve completed resource/API identity, lifecycle,
+- resource-line submit integration through resource effect envelopes
+- resource-line actions consume resource/branch/effect truth where applicable
+- resource-line forms preserve completed resource/API identity, lifecycle,
   freshness, transfer, delivery, external compatibility, history, restore,
   replay, and verification truth
-- resource-backed submit/actions inherit or select typed resource effect
+- resource-line submit/actions inherit or select typed resource effect
   profiles rather than declaring form-local resource effect options
 - host-capability integration for browser-local facts
 - reset, rollback, canonicalization, cancellation, timeout, retry, and
@@ -1311,8 +1369,8 @@ Proof obligations:
 - presentation lifecycle does not masquerade as semantic action, readiness, or
   resource truth
 - async lifecycle remains runtime-owned
-- resource-backed submit consumes resource effect truth
-- resource-backed forms do not flatten detail/collection/paged resource lines,
+- resource-line submit consumes resource effect truth
+- resource-line forms do not flatten detail/collection/paged resource lines,
   freshness/status, delivery, binary/download/upload/processing, or external
   compatibility into generic form state
 - resource effect profiles, visible branch selection, branch restore,
@@ -1436,9 +1494,9 @@ closeout verification packages.
 
 ### Resource, Branch, And Collaboration Evidence
 
-- resource-backed submit lowers to the same resource effect evidence as an
+- resource-line submit lowers to the same resource effect evidence as an
   equivalent direct resource patch
-- detail, collection, and paged resource-backed forms preserve
+- detail, collection, and paged resource-line forms preserve
   family/member/line identity, request posture, lifecycle/freshness/status, and
   verification package identity
 - resource freshness/reload/revalidate/retry/timeout/supersession/delivery
@@ -1446,16 +1504,16 @@ closeout verification packages.
   resource lifecycle truth
 - attachment/evidence fields backed by binary/download/upload/processing
   resource surfaces preserve resource transfer posture
-- resource-backed submit/actions inherit or select typed resource effect
+- resource-line submit/actions inherit or select typed resource effect
   profiles and deny form-local forged profile posture
 - failed resource submit can roll back through branch restore or inverse effect
   where available
 - resource locus mapping is explicit and can deny with a typed unavailable
   artifact
-- visible resource-backed form truth is attributable to committed,
+- visible resource-line form truth is attributable to committed,
   speculative, confirmed, restored, merged, or unavailable branch selection
   proof where the line exposes branch visibility
-- resource-backed form closeout embeds or links resource line verification
+- resource-line form closeout embeds or links resource line verification
   packages, `resource.effects.closeoutMatrix(profile)` evidence, and resource
   mutation-response closeout evidence such as
   `signals.resource.mutationResponses.closeoutMatrix()`
@@ -1464,7 +1522,7 @@ closeout verification packages.
 - resource drift and collaboration presentation lanes can show settling or
   conflict UI without mutating another actor's draft truth
 - route-coupled multi-step features emit typed deferred/unavailable posture
-  until router integration exists
+  that requires route authority
 - multi-actor edits use explicit lock, lease, branch-per-actor, optimistic
   merge, reviewer-comment, or typed unavailable posture
 - remote source changes rebase, conflict, block, or preserve local draft truth
@@ -1526,7 +1584,7 @@ closeout verification packages.
 32. The Submit Async Lifecycle Test
 33. The Stale Submit Completion Denial Test
 34. The Server Rejection Message Mapping Test
-35. The Resource-Backed Submit Effect Test
+35. The Resource-Line Submit Effect Test
 36. The Resource Family Line And Freshness Preservation Test
 37. The Resource Transfer And Attachment Posture Test
 38. The Resource Effect Profile Inheritance Test
@@ -1595,17 +1653,22 @@ Every broad form certification package must include:
 - host fact digest
 - submit plan digest
 - submit lifecycle digest
-- resource effect digest where resource-backed
-- resource family/member/line identity digest where resource-backed
-- resource request/lifecycle/freshness/status digest where resource-backed
-- resource delivery basis digest where resource-backed
-- resource transfer/download/upload/processing digest where resource-backed
-- resource effect profile digest where resource-backed
+- resource effect digest where resource-line authority is present
+- resource family/member/line identity digest where resource-line authority is
+  present
+- resource request/lifecycle/freshness/status digest where resource-line
+  authority is present
+- resource delivery basis digest where resource-line authority is present
+- resource transfer/download/upload/processing digest where resource-line
+  authority is present
+- resource effect profile digest where resource-line authority is present
 - resource visible branch selection digest where branch-backed
-- resource locus/lens proof digest where resource-backed
+- resource locus/lens proof digest where resource-line authority is present
 - branch/snapshot basis digest where branch-bound
-- resource verification package link or embedded digest where resource-backed
-- resource effect closeout-matrix row digest where resource-backed
+- resource verification package link or embedded digest where resource-line
+  authority is present
+- resource effect closeout-matrix row digest where resource-line authority is
+  present
 - reset/rollback digest
 - diagnostics/history digest
 - replay/restore digest
@@ -1656,7 +1719,7 @@ The forms surface must name and test these cost boundaries:
 - action planning breadth: proportional to the declared action input,
   validation proof, readiness proof, admission proof, schema proof, patch proof,
   idempotency proof, and effect binding
-- resource-backed form breadth: proportional to declared resource family/member/
+- resource-line form breadth: proportional to declared resource family/member/
   line identity, request posture, freshness/status reads, delivery basis,
   transfer posture, effect profile, visible branch selection, response-lens
   proof, and effect-locus proof

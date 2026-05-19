@@ -15,7 +15,7 @@ export function resolveResourceEffectProfileBinding(declaration, resourceSource,
       declared,
       null,
       null,
-      blocker("resource:profileUnavailable", actionId, "action declares a resource effect profile without a resource-backed source"),
+      blocker("resource:profileUnavailable", actionId, "action declares a resource effect profile without a resource line source"),
     );
   }
   if (effective === null) {
@@ -24,7 +24,7 @@ export function resolveResourceEffectProfileBinding(declaration, resourceSource,
       declared,
       null,
       null,
-      blocker("resource:profileUnavailable", actionId, "resource-backed source request has no inherited resource effect profile"),
+      blocker("resource:profileUnavailable", actionId, "resource line request has no inherited resource effect profile"),
     );
   }
   if (!sameProfileDigest(declared, effective)) {

@@ -1,8 +1,11 @@
 import { FormDeclarationError } from "../form_errors.js";
 import { stableValueDigest } from "../values/value_paths.js";
+import { collaborationDeclarationDefaults } from "./declarations.js";
+import { deriveCollaborationEvents } from "./events.js";
 
-export function readCollaborationReport(declaration, store) {
+export function readCollaborationReport(declaration, store, resourceSource = null) {
   if (!declaration) {
+    const events = Object.freeze([]);
     return Object.freeze({
       declared: false,
       mode: "notDeclared",
@@ -16,36 +19,47 @@ export function readCollaborationReport(declaration, store) {
       remoteUpdateDigest: null,
       presence: Object.freeze([]),
       comments: Object.freeze([]),
+      resourceProof: noResourceProof(),
       history: store.history(),
-      counters: counters("notDeclared", [], [], [], 0),
+      events,
+      eventsDigest: stableValueDigest(events),
+      counters: counters("notDeclared", noResourceProof(), [], [], [], 0, events),
       digest: stableValueDigest({ declared: false, posture: "notDeclared" }),
     });
   }
+  const resourceProof = deriveCollaborationResourceProof(declaration, resourceSource);
   const current = store.current();
-  const posture = current?.posture ?? defaultPosture(declaration.mode);
+  const posture = effectivePosture(current?.posture, declaration.mode, resourceProof);
+  const history = store.history();
+  const events = deriveCollaborationEvents(history);
   const report = {
     declared: true,
     mode: declaration.mode,
     actorId: declaration.actorId,
     posture,
-    reason: current?.reason ?? defaultReason(declaration.mode),
+    reason: effectiveReason(current?.reason, declaration.mode, resourceProof),
     lockOwnerId: current?.lockOwnerId ?? null,
     leasedFields: Object.freeze(current?.leasedFields ?? []),
-    branchId: current?.branchId ?? null,
+    branchId: resourceProof.admitted ? (current?.branchId ?? resourceProof.branchId) : resourceProof.branchId,
     readOnly: current?.readOnly ?? declaration.mode === "reviewerCommentOnly",
     remoteUpdateDigest: current?.remoteUpdateDigest ?? null,
     presence: Object.freeze(current?.presence ?? []),
     comments: Object.freeze(current?.comments ?? []),
-    history: store.history(),
+    resourceProof,
+    history,
+    events,
+    eventsDigest: stableValueDigest(events),
   };
   return Object.freeze({
     ...report,
     counters: counters(
       posture,
+      resourceProof,
       report.leasedFields,
       report.presence,
       report.comments,
       report.history.length,
+      report.events,
     ),
     digest: stableValueDigest(report),
   });
@@ -54,6 +68,13 @@ export function readCollaborationReport(declaration, store) {
 export function collaborationFieldWriteBlocker(report, fieldId, capability) {
   if (!report.declared || report.posture === "notDeclared" || report.mode === "unavailable") {
     return null;
+  }
+  if (report.resourceProof.required && !report.resourceProof.admitted) {
+    return blocker("collaboration:resourceProofUnavailable", {
+      field: fieldId,
+      capability,
+      reason: report.reason,
+    });
   }
   if (report.readOnly) {
     return blocker("collaboration:readOnly", {
@@ -87,6 +108,13 @@ export function collaborationFieldWriteBlocker(report, fieldId, capability) {
 export function collaborationReadinessBlockers(report, patchPlan) {
   if (!report.declared || report.posture === "notDeclared" || report.mode === "unavailable") {
     return Object.freeze([]);
+  }
+  if (report.resourceProof.required && !report.resourceProof.admitted) {
+    return Object.freeze([
+      blocker("collaboration:resourceProofUnavailable", {
+        reason: report.reason,
+      }),
+    ]);
   }
   if (report.readOnly) {
     return Object.freeze([
@@ -129,17 +157,18 @@ export function normalizeCollaborationUpdate(declaration, update) {
     throw new FormDeclarationError("collaboration update must be an object", { update });
   }
   const leasedFields = normalizeLeasedFields(update.leasedFields ?? [], declaration.declaredFieldIds);
-  const presence = normalizePresence(update.presence ?? []);
-  const comments = normalizeComments(update.comments ?? []);
-  const posture = normalizePosture(update.posture ?? defaultPosture(declaration.mode));
+  const presence = normalizePresence(update.presence ?? [], declaration.supportsPresence === true);
+  const comments = normalizeComments(update.comments ?? [], declaration.supportsComments === true);
+  const declaredDefaults = collaborationDeclarationDefaults(declaration.mode);
+  const posture = normalizePosture(update.posture ?? declaredDefaults.posture);
   return Object.freeze({
     posture,
-    reason: String(update.reason ?? defaultReason(declaration.mode)),
+    reason: String(update.reason ?? declaredDefaults.reason),
     mode: declaration.mode,
     actorId: declaration.actorId,
     lockOwnerId: optionalString(update.lockOwnerId),
     leasedFields,
-    branchId: optionalString(update.branchId),
+    branchId: optionalBranchId(update.branchId),
     readOnly: update.readOnly === true,
     remoteUpdateDigest: optionalString(update.remoteUpdateDigest),
     presence,
@@ -147,7 +176,7 @@ export function normalizeCollaborationUpdate(declaration, update) {
   });
 }
 
-function counters(posture, leasedFields, presence, comments, historyArtifacts) {
+function counters(posture, resourceProof, leasedFields, presence, comments, historyArtifacts, events) {
   return Object.freeze({
     costBasis: "derivedCollaborationPostureScan",
     incrementalStatus: "notIncremental",
@@ -155,9 +184,18 @@ function counters(posture, leasedFields, presence, comments, historyArtifacts) {
     presenceActors: presence.length,
     commentArtifacts: comments.length,
     historyArtifacts,
+    eventArtifacts: events.length,
+    postureChanges: events.filter((event) => event.kind === "postureChange").length,
+    lockChanges: events.filter((event) => event.kind === "lockChange").length,
+    leaseChanges: events.filter((event) => event.kind === "leaseChange").length,
+    branchChanges: events.filter((event) => event.kind === "branchChange").length,
+    presenceChanges: events.filter((event) => event.kind === "presenceChange").length,
+    commentChanges: events.filter((event) => event.kind === "commentChange").length,
     blocked: posture === "blocked" ? 1 : 0,
     settling: posture === "settling" ? 1 : 0,
     unavailable: posture === "unavailable" ? 1 : 0,
+    resourceProofRequired: resourceProof.required ? 1 : 0,
+    resourceProofUnavailable: resourceProof.required && !resourceProof.admitted ? 1 : 0,
   });
 }
 
@@ -180,7 +218,10 @@ function normalizeLeasedFields(leasedFields, declaredFieldIds) {
   }));
 }
 
-function normalizePresence(presence) {
+function normalizePresence(presence, supported) {
+  if (supported !== true && Array.isArray(presence) && presence.length > 0) {
+    throw new FormDeclarationError("collaboration presence artifacts require supportsPresence: true");
+  }
   if (!Array.isArray(presence)) {
     throw new FormDeclarationError("collaboration presence must be an array", { presence });
   }
@@ -199,7 +240,10 @@ function normalizePresence(presence) {
   }));
 }
 
-function normalizeComments(comments) {
+function normalizeComments(comments, supported) {
+  if (supported !== true && Array.isArray(comments) && comments.length > 0) {
+    throw new FormDeclarationError("collaboration comments require supportsComments: true");
+  }
   if (!Array.isArray(comments)) {
     throw new FormDeclarationError("collaboration comments must be an array", { comments });
   }
@@ -238,18 +282,50 @@ function blocker(kind, entry) {
   });
 }
 
-function defaultPosture(mode) {
-  return mode === "unavailable" ? "unavailable" : "active";
+function defaultPosture(mode, resourceProof) {
+  if (mode === "unavailable") {
+    return "unavailable";
+  }
+  if (resourceProof.required && !resourceProof.admitted) {
+    return "unavailable";
+  }
+  return "active";
 }
 
-function defaultReason(mode) {
+function defaultReason(mode, resourceProof) {
   return mode === "unavailable"
     ? "collaboration is explicitly unavailable for this form"
-    : "collaboration posture is settled";
+    : resourceProof.required && !resourceProof.admitted
+      ? resourceProof.reason
+      : "collaboration posture is settled";
+}
+
+function effectivePosture(currentPosture, mode, resourceProof) {
+  if (resourceProof.required && !resourceProof.admitted) {
+    return "unavailable";
+  }
+  return currentPosture ?? defaultPosture(mode, resourceProof);
+}
+
+function effectiveReason(currentReason, mode, resourceProof) {
+  if (resourceProof.required && !resourceProof.admitted) {
+    return resourceProof.reason;
+  }
+  return currentReason ?? defaultReason(mode, resourceProof);
 }
 
 function optionalString(value) {
   return value === undefined || value === null ? null : String(value);
+}
+
+function optionalBranchId(value) {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  if (typeof value !== "string" && typeof value !== "number") {
+    throw new FormDeclarationError("collaboration branchId must be a string or number", { value });
+  }
+  return value;
 }
 
 function requireNonEmptyString(value, label) {
@@ -257,4 +333,58 @@ function requireNonEmptyString(value, label) {
     throw new FormDeclarationError(`${label} must be a non-empty string`, { value });
   }
   return value;
+}
+
+function deriveCollaborationResourceProof(declaration, resourceSource) {
+  if (declaration.mode !== "branchPerActor" && declaration.mode !== "optimisticMerge") {
+    return noResourceProof();
+  }
+  if (resourceSource === null) {
+    return collaborationResourceProof({
+      required: true,
+      admitted: false,
+      sourceKind: null,
+      visibleSelectionKind: null,
+      branchId: null,
+      reason: `declared collaboration mode "${declaration.mode}" requires a resource line form source`,
+    });
+  }
+  const visibleSelectionKind = resourceSource.visibleSelection.kind;
+  const branchId = resourceSource.visibleSelection.branchId ?? null;
+  if (resourceSource.visibleSelection.branchProof.admitted !== true || branchId === null) {
+    return collaborationResourceProof({
+      required: true,
+      admitted: false,
+      sourceKind: resourceSource.sourceKind,
+      visibleSelectionKind,
+      branchId,
+      reason: `declared collaboration mode "${declaration.mode}" requires admitted native branch-visible resource proof`,
+    });
+  }
+  return collaborationResourceProof({
+    required: true,
+    admitted: true,
+    sourceKind: resourceSource.sourceKind,
+    visibleSelectionKind,
+    branchId,
+    reason: null,
+  });
+}
+
+function noResourceProof() {
+  return collaborationResourceProof({
+    required: false,
+    admitted: true,
+    sourceKind: null,
+    visibleSelectionKind: null,
+    branchId: null,
+    reason: null,
+  });
+}
+
+function collaborationResourceProof(proof) {
+  return Object.freeze({
+    ...proof,
+    digest: stableValueDigest(proof),
+  });
 }

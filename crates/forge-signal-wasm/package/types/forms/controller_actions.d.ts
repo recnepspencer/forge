@@ -6,6 +6,7 @@ import type {
 } from "./actions.js";
 import type { FormAsyncValidationLifecycleArtifact, FormValidationArtifact } from "./validation.js";
 import type { FormCanonicalizationArtifact } from "./canonicalization.js";
+import type { FormReplayRestoreArtifact } from "./replay_restore.js";
 import type { FormResetArtifact } from "./reset.js";
 
 export interface FormControllerActionBindings {
@@ -53,4 +54,7 @@ export interface FormControllerActionBindings {
   reset(options?: { readonly reason?: string }): FormResetArtifact;
   rollbackLastResourceEffect(options?: { readonly reason?: string }): FormResetArtifact;
   resetHistory(): ReadonlyArray<FormResetArtifact>;
+  replayExactResourceSource(options?: { readonly reason?: string }): FormReplayRestoreArtifact;
+  restoreExactResourceSource(options?: { readonly reason?: string }): FormReplayRestoreArtifact;
+  replayRestoreHistory(): ReadonlyArray<FormReplayRestoreArtifact>;
 }

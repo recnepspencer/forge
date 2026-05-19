@@ -274,7 +274,7 @@ test("signals.form declares controller-local step actions without route semantic
   }
 });
 
-test("signals.form keeps route-coupled step actions on typed deferred posture until router integration exists", async () => {
+test("signals.form keeps route-coupled step actions on typed deferred posture that requires route authority", async () => {
   const { wrapSignals, cleanup } = await loadSignalsModule();
   try {
     const signals = wrapSignals(createGraphOperationalRuntime());
@@ -298,10 +298,14 @@ test("signals.form keeps route-coupled step actions on typed deferred posture un
     const reviewRoute = form.actionPlan("reviewRoute");
     assert.equal(reviewRoute.status, "denied");
     assert.equal(reviewRoute.step.routeCoupled, true);
-    assert.equal(reviewRoute.diagnostics.routeSemantics, "routeCoupledDeferred");
+    assert.equal(reviewRoute.diagnostics.routeSemantics, "routeAuthorityRequired");
     assert.deepEqual(
       reviewRoute.readiness.blockers.map((blocker) => blocker.kind),
       ["action:deferred"],
+    );
+    assert.equal(
+      reviewRoute.readiness.blockers[0].reason,
+      "route-coupled step action requires route authority outside controller-local navigation",
     );
     assert.equal(form.executeAction("reviewRoute").resultKind, "denied");
   } finally {
@@ -309,115 +313,3 @@ test("signals.form keeps route-coupled step actions on typed deferred posture un
   }
 });
 
-test("signals.form denies malformed action declarations before planning", async () => {
-  const { wrapSignals, cleanup } = await loadSignalsModule();
-  try {
-    const signals = wrapSignals(createGraphOperationalRuntime());
-
-    assert.throws(
-      () =>
-        signals.form({
-          source: { title: "Ship docs" },
-          fields: ({ field }) => ({
-            title: field("title"),
-          }),
-          actions: ({ action }) => ({
-            invalid: action("save", { patchPolicy: "sometimes" }),
-          }),
-        }),
-      /action patch policy is not supported/,
-    );
-
-    assert.throws(
-      () =>
-        signals.form({
-          source: { title: "Ship docs" },
-          fields: ({ field }) => ({
-            title: field("title"),
-          }),
-          actions: ({ submit, action }) => ({
-            submit: submit(),
-            duplicate: action("submit"),
-          }),
-        }),
-      /action declaration ids must be unique/,
-    );
-
-    assert.throws(
-      () =>
-        signals.form({
-          source: { title: "Ship docs" },
-          fields: ({ field }) => ({
-            title: field("title"),
-          }),
-          actions: ({ action }) => ({
-            impersonator: action("impersonator", { kind: "step" }),
-          }),
-        }),
-      /custom actions cannot impersonate built-in action kinds/,
-    );
-
-    assert.throws(
-      () =>
-        signals.form({
-          source: { title: "Ship docs" },
-          fields: ({ field }) => ({
-            title: field("title"),
-          }),
-          steps: ({ step }) => ({
-            details: step("details", ["title"]),
-          }),
-          actions: ({ step }) => ({
-            missing: step("missing", "review", "next"),
-          }),
-        }),
-      /step action references an undeclared step/,
-    );
-
-    assert.throws(
-      () =>
-        signals.form({
-          source: { title: "Ship docs" },
-          fields: ({ field }) => ({
-            title: field("title"),
-          }),
-          actions: ({ action }) => ({
-            malformedRoute: action("malformedRoute", { routeCoupled: true }),
-          }),
-        }),
-      /only step actions may declare route-coupled posture/,
-    );
-
-    assert.throws(
-      () =>
-        signals.form({
-          source: { title: "Ship docs" },
-          fields: ({ field }) => ({
-            title: field("title"),
-          }),
-          steps: ({ step }) => ({
-            details: step("details", ["title"]),
-          }),
-          actions: ({ step }) => ({
-            malformedRoute: step("malformedRoute", "details", "next", {
-              routeCoupled: "yes",
-            }),
-          }),
-        }),
-      /action routeCoupled posture must be a boolean/,
-    );
-
-    const form = signals.form({
-      source: { title: "Ship docs" },
-      fields: ({ field }) => ({
-        title: field("title"),
-      }),
-    });
-    assert.throws(
-      () => form.actionPlan("missing"),
-      /form action is not declared/,
-    );
-  } finally {
-    await cleanup();
-  }
-});

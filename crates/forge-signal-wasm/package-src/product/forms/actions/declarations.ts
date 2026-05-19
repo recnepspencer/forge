@@ -9,9 +9,10 @@ const EFFECT_POLICIES = new Set(["deferred", "none", "controllerLocal"]);
 const STEP_COMMANDS = new Set(["next", "back", "jump", "skip", "revisit", "custom"]);
 const HOST_REQUIREMENTS = new Set(["online", "persistence", "credentials", "autofill"]);
 
-export function materializeActionDeclarations(declaration, stepDeclarations) {
+export function materializeActionDeclarations(declaration, stepDeclarations, fieldDeclarations) {
   const declaredStepIds = new Set(stepDeclarations.map((step) => step.id));
-  const factory = createActionFactory(declaredStepIds);
+  const declaredFieldIds = new Set(fieldDeclarations.map((field) => field.id));
+  const factory = createActionFactory(declaredStepIds, declaredFieldIds);
   const declared = declaration.actions === undefined
     ? {}
     : typeof declaration.actions === "function"
@@ -34,7 +35,7 @@ export function materializeActionDeclarations(declaration, stepDeclarations) {
   return Object.freeze(declarations);
 }
 
-function createActionFactory(declaredStepIds) {
+function createActionFactory(declaredStepIds, declaredFieldIds) {
   return {
     submit(options = {}) {
       return actionDeclaration("submit", {
@@ -43,7 +44,7 @@ function createActionFactory(declaredStepIds) {
         patchPolicy: options.patchPolicy ?? "requiresNonEmpty",
         admissionCapability: options.admissionCapability ?? "submit",
         effectPolicy: options.effectPolicy ?? "deferred",
-      });
+      }, declaredFieldIds);
     },
     action(actionId, options = {}) {
       requireActionId(actionId);
@@ -62,10 +63,10 @@ function createActionFactory(declaredStepIds) {
       return actionDeclaration(actionId, {
         ...options,
         kind: options.kind ?? "custom",
-        patchPolicy: options.patchPolicy ?? "allowEmpty",
+        patchPolicy: options.patchPolicy ?? defaultPatchPolicyForAction(options.resourceAction),
         admissionCapability: options.admissionCapability ?? "action",
         effectPolicy: options.effectPolicy ?? "deferred",
-      });
+      }, declaredFieldIds);
     },
     step(actionId, stepId, command, options = {}) {
       requireActionId(actionId);
@@ -83,12 +84,12 @@ function createActionFactory(declaredStepIds) {
           command,
           routeCoupled: options.routeCoupled === true,
         }),
-      });
+      }, declaredFieldIds);
     },
   };
 }
 
-function actionDeclaration(actionId, options) {
+function actionDeclaration(actionId, options, declaredFieldIds = new Set()) {
   const kind = normalizeEnum(options.kind, ACTION_KINDS, "action kind");
   const patchPolicy = normalizeEnum(options.patchPolicy, PATCH_POLICIES, "action patch policy");
   const idempotency = normalizeEnum(
@@ -101,6 +102,7 @@ function actionDeclaration(actionId, options) {
     EFFECT_POLICIES,
     "action effect policy",
   );
+  const resourceAction = normalizeResourceAction(actionId, kind, options, effectPolicy, declaredFieldIds);
   if (kind !== "step" && options.step !== undefined) {
     throw new FormDeclarationError("only step actions may declare step navigation metadata", {
       actionId,
@@ -118,6 +120,7 @@ function actionDeclaration(actionId, options) {
     effectPolicy,
     hostEffect: options.hostEffect === undefined ? null : String(options.hostEffect),
     hostRequirements: normalizeHostRequirements(options.hostRequirements),
+    resourceAction,
     resourceEffectProfile: options.resourceEffectProfile === undefined
       ? null
       : requireResourceEffectProfile(
@@ -204,9 +207,133 @@ function normalizeHostRequirements(requirements) {
   return Object.freeze([...requirements]);
 }
 
+function normalizeResourceAction(actionId, kind, options, effectPolicy, declaredFieldIds) {
+  if (options.resourceAction === undefined) {
+    return null;
+  }
+  if (!options.resourceAction || typeof options.resourceAction !== "object" || Array.isArray(options.resourceAction)) {
+    throw new FormDeclarationError("resource-line action declaration must be an object", {
+      actionId,
+      resourceAction: options.resourceAction,
+    });
+  }
+  if (kind === "step") {
+    throw new FormDeclarationError("step actions cannot declare resource-line execution", {
+      actionId,
+    });
+  }
+  if (options.hostEffect !== undefined) {
+    throw new FormDeclarationError("resource-line actions cannot also declare hostEffect", {
+      actionId,
+    });
+  }
+  if (effectPolicy !== "deferred") {
+    throw new FormDeclarationError("resource-line actions require deferred effect policy", {
+      actionId,
+      effectPolicy,
+    });
+  }
+  if (options.resourceAction.kind === "patchPlan") {
+    if (options.patchPolicy !== undefined && options.patchPolicy !== "requiresNonEmpty") {
+      throw new FormDeclarationError("resource-line patch actions require requiresNonEmpty patch policy", {
+        actionId,
+        patchPolicy: options.patchPolicy,
+      });
+    }
+    return Object.freeze({
+      kind: "patchPlan",
+      fields: normalizeScopedPatchFields(actionId, options.resourceAction.fields, declaredFieldIds),
+    });
+  }
+  if (options.resourceAction.kind === "refresh" || options.resourceAction.kind === "revalidate") {
+    if (options.patchPolicy !== undefined && options.patchPolicy !== "ignore") {
+      throw new FormDeclarationError("resource-line lifecycle actions require ignore patch policy", {
+        actionId,
+        patchPolicy: options.patchPolicy,
+      });
+    }
+    if (options.resourceEffectProfile !== undefined) {
+      throw new FormDeclarationError("resource-line lifecycle actions cannot declare resourceEffectProfile", {
+        actionId,
+      });
+    }
+    return Object.freeze({
+      kind: options.resourceAction.kind,
+    });
+  }
+  if (
+    options.resourceAction.kind === "replayExact"
+    || options.resourceAction.kind === "restoreExact"
+    || options.resourceAction.kind === "rollbackLastEffect"
+  ) {
+    if (options.patchPolicy !== undefined && options.patchPolicy !== "ignore") {
+      throw new FormDeclarationError("resource-line recovery actions require ignore patch policy", {
+        actionId,
+        patchPolicy: options.patchPolicy,
+      });
+    }
+    if (options.resourceEffectProfile !== undefined) {
+      throw new FormDeclarationError("resource-line recovery actions cannot declare resourceEffectProfile", {
+        actionId,
+      });
+    }
+    return Object.freeze({
+      kind: options.resourceAction.kind,
+    });
+  }
+  {
+    throw new FormDeclarationError("resource-line action kind is not supported", {
+      actionId,
+      kind: options.resourceAction.kind,
+    });
+  }
+}
+
 function normalizeEnum(value, allowed, label) {
   if (typeof value !== "string" || !allowed.has(value)) {
     throw new FormDeclarationError(`${label} is not supported`, { value });
   }
   return value;
+}
+
+function normalizeScopedPatchFields(actionId, fields, declaredFieldIds) {
+  if (fields === undefined) {
+    return null;
+  }
+  if (!Array.isArray(fields) || fields.length === 0) {
+    throw new FormDeclarationError("resource-line scoped patch actions require a non-empty fields array", {
+      actionId,
+      fields,
+    });
+  }
+  const seen = new Set();
+  for (const fieldId of fields) {
+    if (typeof fieldId !== "string" || fieldId.length === 0) {
+      throw new FormDeclarationError("resource-line scoped patch field ids must be non-empty strings", {
+        actionId,
+        fieldId,
+      });
+    }
+    if (seen.has(fieldId)) {
+      throw new FormDeclarationError("resource-line scoped patch field ids must be unique", {
+        actionId,
+        fieldId,
+      });
+    }
+    if (!declaredFieldIds.has(fieldId)) {
+      throw new FormDeclarationError("resource-line scoped patch actions cannot reference undeclared fields", {
+        actionId,
+        fieldId,
+      });
+    }
+    seen.add(fieldId);
+  }
+  return Object.freeze([...fields]);
+}
+
+function defaultPatchPolicyForAction(resourceAction) {
+  if (resourceAction === undefined) {
+    return "allowEmpty";
+  }
+  return resourceAction.kind === "patchPlan" ? "requiresNonEmpty" : "ignore";
 }

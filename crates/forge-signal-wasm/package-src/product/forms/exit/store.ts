@@ -25,7 +25,7 @@ export function createExitPresentationStore() {
         scopeKind: null,
         surfaceId: null,
         operation: "close",
-        unsupportedReason: null,
+        unavailableReason: null,
       }, "clear");
       history.push(artifact);
       return artifact;
@@ -71,9 +71,9 @@ function normalizeExitUpdate(update) {
     scopeKind,
     surfaceId: update.surfaceId === undefined || update.surfaceId === null ? null : String(update.surfaceId),
     operation,
-    unsupportedReason: update.unsupportedReason === undefined || update.unsupportedReason === null
+    unavailableReason: update.unavailableReason === undefined || update.unavailableReason === null
       ? null
-      : String(update.unsupportedReason),
+      : String(update.unavailableReason),
   });
 }
 
@@ -90,7 +90,7 @@ function exitArtifact(artifactId, update, source) {
     scopeKind: update.scopeKind,
     surfaceId: update.surfaceId,
     operation: update.operation,
-    unsupportedReason: update.unsupportedReason,
+    unavailableReason: update.unavailableReason,
   };
   return Object.freeze({
     ...artifact,

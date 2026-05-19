@@ -267,14 +267,14 @@ test("signals.form verification package carries collaboration digests and counte
   }
 });
 
-test("signals.form verification package carries reset and rollback digests for resource-backed canonicalization", async () => {
+test("signals.form verification package carries reset and rollback digests for resource canonicalization proof", async () => {
   const { wrapSignals, cleanup } = await loadSignalsModule();
   try {
     const signals = wrapSignals(createGraphOperationalRuntime());
     const {
       createDetailPatchLineFixture,
       createMutationResponsePlanFixture,
-    } = await import("./resource_source/resource_line_fixture.mjs");
+    } = await import("./resource_source/fixtures/resource_line_fixture.mjs");
     const source = createDetailPatchLineFixture({
       effectProfile: signals.resource.effects.branchNative(),
       initialValue: {
@@ -301,19 +301,24 @@ test("signals.form verification package carries reset and rollback digests for r
     assert.equal(typeof verification.digests.resetRollbackDigest, "string");
     assert.equal(typeof verification.digests.resourceMutationResponseDigest, "string");
     assert.equal(typeof verification.digests.resourceMutationResponseConfirmationDigest, "string");
+    assert.equal(typeof verification.digests.resourceMutationResponseContractDigest, "string");
     assert.equal(typeof verification.digests.resourceMutationResponseTargetOutcomeDigest, "string");
     assert.equal(typeof verification.digests.mutationResponseReconciliationDigest, "string");
     assert.equal(
       verification.digests.resetRollbackDigest,
       form.verification().digests.resetRollbackDigest,
     );
-    assert.equal(form.canonicalizationHistory()[0].resourceBacked.rollback.kind, "compactInverseAvailable");
+    assert.equal(form.canonicalizationHistory()[0].resourceLine.rollback.kind, "compactInverseAvailable");
+    assert.equal(
+      verification.digests.resourceMutationResponseContractDigest,
+      form.resourceSource().mutationResponse.contract.digest,
+    );
     assert.equal(
       verification.digests.resourceMutationResponseDigest,
       form.resourceSource().mutationResponse.digest,
     );
     assert.equal(
-      form.canonicalizationHistory()[0].resourceBacked.mutationResponse.confirmationKind,
+      form.canonicalizationHistory()[0].resourceLine.mutationResponse.confirmationKind,
       "partialCanonicalTruth",
     );
   } finally {

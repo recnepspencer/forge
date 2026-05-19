@@ -2,6 +2,7 @@ import type { SignalValue } from "../model.js";
 import type {
   FormDirtyState,
   FormPatchOperation,
+  FormPatchReplacement,
   FormReadinessBlocker,
 } from "./core.js";
 import type {
@@ -94,6 +95,7 @@ export interface FormStepArtifact {
   readonly patch: {
     readonly empty: boolean;
     readonly operations: ReadonlyArray<FormPatchOperation>;
+    readonly replacement: FormPatchReplacement | null;
   };
   readonly validation: {
     readonly artifacts: ReadonlyArray<FormValidationArtifact>;

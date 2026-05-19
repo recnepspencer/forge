@@ -1,72 +1,53 @@
 import type { SignalValue } from "../model.js";
-import type { ResourceLineVisibleSelection } from "../resource/resource_line_diagnostics.js";
 import type { ResourceEffectProfileDigest } from "../resource/resource_effect_envelope.js";
-import type { ResourceEffectProfile } from "../resource/resource_effect_profiles.js";
 import type { FormAdmissionCapability, FormAdmissionReport } from "./admission.js";
 import type { FormAvailabilityReport } from "./availability.js";
-import type { FormPatchOperation, FormReadinessBlocker } from "./core.js";
+import type { FormPatchOperation, FormPatchReplacement, FormReadinessBlocker } from "./core.js";
 import type { FormValidationReport } from "./validation.js";
 import type {
   FormHostReport,
   FormHostRequiredCapability,
 } from "./host.js";
+import type { FormReplayRestoreArtifact } from "./replay_restore.js";
 import type {
   FormResourceMutationResponseReport,
   FormResourceRollbackDigest,
+  FormResourceSettlementReport,
+  FormResourceVisibleSelectionReport,
 } from "./resource_source.js";
-
-export type FormActionKind = "submit" | "custom" | "step";
-export type FormActionPatchPolicy = "requiresNonEmpty" | "allowEmpty" | "ignore";
-export type FormActionIdempotency = "none" | "collapse" | "supersede" | "queue" | "deny";
-export type FormActionEffectPolicy = "deferred" | "none" | "controllerLocal";
-export type FormStepActionCommand = "next" | "back" | "jump" | "skip" | "revisit" | "custom";
-export type FormActionResultKind =
-  | "accepted"
-  | "denied"
-  | "unavailable"
-  | "cancelled"
-  | "superseded"
-  | "rejected"
-  | "fulfilled"
-  | "noOp";
-
-export interface FormActionDeclarationOptions {
-  readonly label?: string;
-  readonly kind?: FormActionKind;
-  readonly patchPolicy?: FormActionPatchPolicy;
-  readonly admissionCapability?: FormAdmissionCapability;
-  readonly destructive?: boolean;
-  readonly idempotency?: FormActionIdempotency;
-  readonly effectPolicy?: FormActionEffectPolicy;
-  readonly hostEffect?: string;
-  readonly hostRequirements?: ReadonlyArray<FormHostRequiredCapability>;
-  readonly resourceEffectProfile?: ResourceEffectProfile;
-  readonly schema?: SignalValue;
-}
-
-export interface FormStepActionDeclarationOptions extends FormActionDeclarationOptions {
-  readonly kind?: "step";
-  readonly routeCoupled?: boolean;
-}
-
-export interface FormActionDeclaration {
-  readonly id: string;
-  readonly kind: FormActionKind;
-}
-
-export interface FormActionsFactory {
-  submit(options?: FormActionDeclarationOptions): FormActionDeclaration;
-  action(actionId: string, options?: FormActionDeclarationOptions): FormActionDeclaration;
-  step(
-    actionId: string,
-    stepId: string,
-    command: FormStepActionCommand,
-    options?: FormStepActionDeclarationOptions,
-  ): FormActionDeclaration;
-}
-
-export type FormActionsBuilder =
-  (factory: FormActionsFactory) => Record<string, unknown>;
+import type { FormResetArtifact } from "./reset.js";
+export type {
+  FormActionDeclaration,
+  FormActionDeclarationOptions,
+  FormActionEffectPolicy,
+  FormActionIdempotency,
+  FormActionKind,
+  FormActionPatchPolicy,
+  FormActionResultKind,
+  FormActionsBuilder,
+  FormActionsFactory,
+  FormResourceActionDeclaration,
+  FormResourceBackedLifecycleActionDeclarationOptions,
+  FormResourceBackedPatchActionDeclarationOptions,
+  FormResourceBackedRecoveryActionDeclarationOptions,
+  FormResourcePatchActionDeclaration,
+  FormResourceRefreshActionDeclaration,
+  FormResourceRevalidateActionDeclaration,
+  FormResourceReplayExactActionDeclaration,
+  FormResourceRestoreExactActionDeclaration,
+  FormResourceRollbackLastEffectActionDeclaration,
+  FormStepActionCommand,
+  FormStepActionDeclarationOptions,
+} from "./action_authoring.js";
+import type {
+  FormActionEffectPolicy,
+  FormActionIdempotency,
+  FormActionKind,
+  FormActionPatchPolicy,
+  FormActionResultKind,
+  FormResourceActionDeclaration,
+  FormStepActionCommand,
+} from "./action_authoring.js";
 
 export interface FormActionCatalogEntry {
   readonly id: string;
@@ -80,6 +61,27 @@ export interface FormActionCatalogEntry {
   readonly effectPolicy: FormActionEffectPolicy;
   readonly hostEffect: string | null;
   readonly hostRequirements: ReadonlyArray<FormHostRequiredCapability>;
+  readonly resourceAction: {
+    readonly declared: boolean;
+    readonly action: FormResourceActionDeclaration | null;
+    readonly source:
+      | "none"
+      | "submitPatchPlan"
+      | "submitWithoutPatchCapability"
+      | "submitWithoutResourcePatchAdmission"
+      | "declaredPatchPlan"
+      | "declaredRefresh"
+      | "declaredRevalidate"
+      | "declaredReplayExact"
+      | "declaredRestoreExact"
+      | "declaredRollbackLastEffect"
+      | "declaredWithoutResourceLine"
+      | "declaredWithoutPatchCapability"
+      | "declaredWithoutReplayCapability"
+      | "declaredWithoutRestoreCapability"
+      | "declaredWithoutRollbackCapability"
+      | "declaredWithoutResourcePatchAdmission";
+  };
   readonly resourceEffectProfile: {
     readonly declared: ResourceEffectProfileDigest | null;
     readonly effective: ResourceEffectProfileDigest | null;
@@ -105,6 +107,11 @@ export type FormActionRecoveryKind =
   | "editField"
   | "resetField"
   | "acceptCanonicalValue"
+  | "refreshResourceSource"
+  | "revalidateResourceSource"
+  | "replayExactResourceSource"
+  | "restoreExactResourceSource"
+  | "rollbackLastResourceEffect"
   | "revealSection"
   | "focusFirstActionableBlocker";
 
@@ -134,6 +141,8 @@ export interface FormActionPlan extends FormActionCatalogEntry {
     readonly semanticDirty?: boolean;
     readonly operations: ReadonlyArray<FormPatchOperation>;
     readonly blocked?: ReadonlyArray<FormReadinessBlocker>;
+    readonly broadReplacement?: boolean;
+    readonly replacement?: FormPatchReplacement | null;
     readonly equivalenceDigest: string;
   };
   readonly validation: {
@@ -177,7 +186,7 @@ export interface FormActionPlan extends FormActionCatalogEntry {
   readonly diagnostics: {
     readonly deniedBeforeEffects: boolean;
     readonly consumesLoweredPlan: true;
-    readonly routeSemantics: "controllerLocalOnly" | "routeCoupledDeferred" | "notStepNavigation";
+    readonly routeSemantics: "controllerLocalOnly" | "routeAuthorityRequired" | "notStepNavigation";
     readonly repeatedAttemptPolicy: FormActionIdempotency;
   };
 }
@@ -247,18 +256,20 @@ export interface FormActionExecutionArtifact {
   readonly planSnapshot?: FormActionPlan;
   readonly attempt?: FormActionResultArtifact;
   readonly serverMessages: ReadonlyArray<FormServerMessageArtifact>;
+  readonly recoveryActions: ReadonlyArray<FormActionRecovery>;
   readonly canonicalValue?: SignalValue;
   readonly resourceSubmission?: {
     readonly sourceKind: "resourceLine";
     readonly patchCount: number;
     readonly patches: ReadonlyArray<{
-      readonly field: string;
-      readonly path: string;
-      readonly locusKind: "field" | "jsonPath" | "region";
+      readonly field: string | null;
+      readonly path: string | null;
+      readonly locusKind: "wholeForm" | "field" | "jsonPath" | "region" | "collectionItem" | "aspect" | "summary";
       readonly locus: string;
-      readonly patchKind: "field" | "jsonPath" | "region";
+      readonly operationKind: "set" | "attach" | "detach" | "replaceItem" | "insertItem" | "removeItem";
+      readonly patchKind: "replace" | "field" | "jsonPath" | "region" | "item" | "insert" | "delete" | "itemAspect" | "summary";
       readonly patchResultKind: "narrowed" | "replaced";
-      readonly patchScope: "line" | "field" | "region" | "jsonPath";
+      readonly patchScope: "line" | "field" | "region" | "jsonPath" | "item" | "aspect" | "summary";
       readonly effectDigest: string | null;
       readonly basisId: string | null;
     }>;
@@ -267,7 +278,7 @@ export interface FormActionExecutionArtifact {
       readonly closeoutMatrixDigest: string | null;
     };
     readonly rollback: FormResourceRollbackDigest | null;
-    readonly visibleSelection: ResourceLineVisibleSelection;
+    readonly visibleSelection: FormResourceVisibleSelectionReport;
     readonly mutationResponse: FormResourceMutationResponseReport | null;
     readonly verification: {
       readonly packageDigest: string;
@@ -275,6 +286,15 @@ export interface FormActionExecutionArtifact {
     };
     readonly digest: string;
   } | null;
+  readonly resourceSettlement?: FormResourceSettlementReport | null;
+  readonly resourceLifecycle?: {
+    readonly sourceKind: "resourceLine";
+    readonly operation: "refresh" | "revalidate";
+    readonly status: ResourceLineStatus;
+    readonly freshness: ResourceLineFreshness;
+    readonly digest: string;
+  } | null;
+  readonly resourceRecovery?: FormResetArtifact | FormReplayRestoreArtifact | null;
   readonly retryOfOperationId?: number;
   readonly supersededOperationId?: number;
   readonly supersededByOperationId?: number;
@@ -306,7 +326,7 @@ export interface FormActionsReport {
     readonly deniedPlans: number;
     readonly destructivePlans: number;
     readonly stepPlans: number;
-    readonly routeCoupledDeferredPlans: number;
+    readonly routeAuthorityRequiredPlans: number;
     readonly hostRequiredPlans: number;
     readonly nonEmptyPatchPlans: number;
   };

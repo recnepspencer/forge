@@ -65,7 +65,7 @@ export function hostRequirementBlockers(report, requirements, actionId = undefin
         kind: "host:unavailable",
         ...(actionId === undefined ? {} : { action: actionId }),
         capability,
-        reason: `${capability} host capability is currently unavailable`,
+        reason: `${capability} host capability is unavailable at the declared host boundary`,
       }));
     }
   }

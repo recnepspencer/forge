@@ -2,9 +2,11 @@ import { FormDeclarationError } from "./form_errors.js";
 import { materializeActionDeclarations } from "./actions/declarations.js";
 import { createActionRuntimeBindings } from "./actions/runtime_bindings.js";
 import { findActionPlan, planActions } from "./actions/planning.js";
+import { resolveResourceActionBinding } from "./actions/resource_action_binding.js";
 import { resolveResourceEffectProfileBinding } from "./actions/resource_effect_profile_binding.js";
 import { createActionAttemptStore } from "./actions/results.js";
 import { createActionExecutionStore } from "./actions/execution.js";
+import { attachmentTransferReadinessBlockers } from "./attachment_transfers/report.js";
 import { readAttachmentPresentationReport } from "./attachments/report.js";
 import { createAttachmentPresentationStore } from "./attachments/store.js";
 import { createCanonicalizationStore } from "./canonicalization.js";
@@ -47,20 +49,18 @@ import { readMediaPresentationReport } from "./media/report.js";
 import { createMediaPresentationStore } from "./media/store.js";
 import { readMessagePresentationReport } from "./messages/report.js";
 import { createMessagePresentationStore } from "./messages/store.js";
+import { createResourceDriftStore } from "./resource_drift/store.js";
 import { createPresentationBindings } from "./presentation/controller_bindings.js";
 import { materializePresentationDeclaration } from "./presentation/declarations.js";
 import { createPresentationRuntimeBindings } from "./presentation/runtime_bindings.js";
 import { createDeclaredPresentationScopeRegistry } from "./presentation/scope_registry.js";
 import { createPresentationStore } from "./presentation/store.js";
-import {
-  createResourceMergeProjectionRegistry,
-  previewResourceMerge as materializeResourceMergePreview,
-} from "./resource_merge/projection.js";
-import {
-  readResourceMergeReport,
-  resourceMergeReadinessBlockers,
-} from "./resource_merge/report.js";
+import { createResourceMergeProjectionRegistry } from "./resource_merge/projection.js";
+import { resourceMergeReadinessBlockers } from "./resource_merge/report.js";
 import { createResourceMergeStore } from "./resource_merge/store.js";
+import { createRecoveryBindings } from "./recovery/controller_bindings.js";
+import { createFormReplayRestoreStore } from "./replay_restore/store.js";
+import { createResourceSurfaceBindings } from "./resource_surface_bindings.js";
 import { createFormResetStore } from "./reset/store.js";
 import { createFieldHandle } from "./fields/handles.js";
 import { evaluateSteps } from "./steps/artifacts.js";
@@ -91,7 +91,7 @@ export function createFormController(signalNamespace, declaration) {
   const availabilityDeclarations = materializeAvailabilityDeclarations(declaration, fieldDeclarations);
   const admissionDeclarations = materializeAdmissionDeclarations(declaration, fieldDeclarations);
   const stepDeclarations = materializeStepDeclarations(declaration, fieldDeclarations);
-  const actionDeclarations = materializeActionDeclarations(declaration, stepDeclarations);
+  const actionDeclarations = materializeActionDeclarations(declaration, stepDeclarations, fieldDeclarations);
   const fieldHandles = {};
   const fieldsById = new Map();
   const rawInputs = new Map();
@@ -113,7 +113,9 @@ export function createFormController(signalNamespace, declaration) {
   const media = createMediaPresentationStore();
   const messages = createMessagePresentationStore();
   const resourceMerges = createResourceMergeStore();
+  const resourceDrifts = createResourceDriftStore();
   const resets = createFormResetStore();
+  const replayRestores = createFormReplayRestoreStore();
   const presentationPolicy = materializePresentationDeclaration(declaration);
   const presentationSettlements = createPresentationStore();
   const presentationScopeRegistry = createDeclaredPresentationScopeRegistry(
@@ -165,9 +167,19 @@ export function createFormController(signalNamespace, declaration) {
     fieldDeclarations,
     setDraft: updateDraft,
     applyControllerLocalNavigation,
+    resets,
+    replayRestores,
+  });
+  const recoveryBindings = createRecoveryBindings({
+    formRef: () => form,
+    source: declaration.source,
+    writeDraft: updateDraft,
+    resets,
+    replayRestores,
   });
   const derivedReportBindings = createDerivedReportBindings({
     formRef: () => form,
+    sourceDeclaration: declaration.source,
     syncSourceCompatibility,
     authoritativeSource,
     fieldDeclarations,
@@ -175,6 +187,20 @@ export function createFormController(signalNamespace, declaration) {
     parseFailures,
     asyncValidations,
     validationDeclarations, availabilityDeclarations, admissionDeclarations, stepDeclarations, actionDeclarations,
+  });
+  const resourceSurfaceBindings = createResourceSurfaceBindings({
+    formRef: () => form,
+    fieldDeclarations,
+    signalNamespace,
+    source: declaration.source,
+    authoritativeSource,
+    syncSourceCompatibility,
+    latestCanonicalSourceDigest: () => canonicalizations.history().at(-1)?.sourceBasisDigest ?? null,
+    draft: () => cloneFormValue(draft),
+    effective: () => mergeDraft(authoritativeSource(), draft),
+    resourceMerges,
+    resourceMergeRegistry,
+    resourceDrifts,
   });
 
   form = {
@@ -206,18 +232,7 @@ export function createFormController(signalNamespace, declaration) {
     },
     sourceAdmission() { return readSourceBootstrapArtifact(declaration.source, "sourceAdmission"); },
     draftRestore() { return readSourceBootstrapArtifact(declaration.source, "draftRestore"); },
-    resourceSource() { return readResourceSourceReport(declaration.source); },
-    resourceMerge() { return readResourceMergeReport(resourceMerges, declaration.source); },
-    previewResourceMerge(request) {
-      return materializeResourceMergePreview(
-        signalNamespace,
-        declaration.source,
-        resourceMerges,
-        resourceMergeRegistry,
-        request,
-      );
-    },
-    clearResourceMerge(reason = undefined) { return resourceMerges.clear(reason); },
+    ...resourceSurfaceBindings,
     host() { return readHostReport(hostBindings); },
     inputCapabilities() { return readInputCapabilitiesReport(fieldDeclarations); },
     exit() { return readExitPresentationReport(exits, deriveExitPresentationBasis(form)); },
@@ -225,7 +240,7 @@ export function createFormController(signalNamespace, declaration) {
     attachments() { return readAttachmentPresentationReport(attachments); },
     media() { return readMediaPresentationReport(media); },
     messages() { return readMessagePresentationReport(messages, form.visibleMessages()); },
-    collaboration() { return readCollaborationReport(collaborationDeclaration, collaborations); },
+    collaboration() { return readCollaborationReport(collaborationDeclaration, collaborations, form.resourceSource()); },
     interaction() { return readInteractionReport(fieldDeclarations, form.host(), interactions); },
     ...interactionBindings,
     navigation() { syncSourceCompatibility(authoritativeSource()); return readNavigationReport(navigation, form.steps().artifacts); },
@@ -243,25 +258,14 @@ export function createFormController(signalNamespace, declaration) {
     recordLayoutMeasurement(rows, options = {}) { syncSourceCompatibility(authoritativeSource()); return layoutMeasurements.record(currentMeasurementSemanticContext(), rows, options); },
     ...derivedReportBindings,
     actionPlan(actionId) {
-      return findActionPlan(actionDeclarations, form, fieldDeclarations, actionId);
+      return findActionPlan(actionDeclarations, form, fieldDeclarations, actionId, declaration.source);
     },
     ...actionRuntimeBindings,
+    ...recoveryBindings,
     sourceCompatibility() { return syncSourceCompatibility(authoritativeSource()); },
     sourceCompatibilityHistory() {
       syncSourceCompatibility(authoritativeSource());
       return sourceCompatibility.history();
-    },
-    reset(options = {}) {
-      return resets.acceptCanonicalValue({ form, writeDraft: updateDraft }, options);
-    },
-    rollbackLastResourceEffect(options = {}) {
-      return resets.rollbackLastResourceEffect(
-        { form, source: declaration.source, writeDraft: updateDraft },
-        options,
-      );
-    },
-    resetHistory() {
-      return resets.history();
     },
     actionReadiness(actionId) {
       return form.actionPlan(actionId).readiness;
@@ -295,6 +299,7 @@ export function createFormController(signalNamespace, declaration) {
       blockers.push(...sourceCompatibilityBlockers(form.sourceCompatibility()));
       blockers.push(...resourceSourceReadinessBlockers(form.resourceSource()));
       blockers.push(...resourceMergeReadinessBlockers(form.resourceMerge()));
+      blockers.push(...attachmentTransferReadinessBlockers(form.attachmentTransfers()));
       blockers.push(...validationReadinessBlockers(form.validation()));
       blockers.push(...availabilityReadinessBlockers(form.availability()));
       blockers.push(...admissionReadinessBlockers(form.admission()));
@@ -302,6 +307,15 @@ export function createFormController(signalNamespace, declaration) {
       const submitAction = actionDeclarations.find((entry) => entry.id === "submit");
       if (submitAction) {
         blockers.push(...hostRequirementBlockers(form.host(), submitAction.hostRequirements, "submit"));
+        blockers.push(
+          ...resolveResourceActionBinding(
+            submitAction,
+            declaration.source,
+            "submit",
+            fieldDeclarations,
+            patchPlan,
+          ).blockers,
+        );
         blockers.push(
           ...resolveResourceEffectProfileBinding(
             submitAction,
@@ -316,9 +330,10 @@ export function createFormController(signalNamespace, declaration) {
           reason: "form has no semantic changes to submit",
         });
       }
+      const dedupedBlockers = dedupeReadinessBlockers(blockers);
       return Object.freeze({
-        canSubmit: blockers.length === 0,
-        blockers: Object.freeze(blockers),
+        canSubmit: dedupedBlockers.length === 0,
+        blockers: dedupedBlockers,
         patchPlan,
       });
     },
@@ -393,4 +408,18 @@ export function createFormController(signalNamespace, declaration) {
     }
     navigation.applyStepAction(plan, form.steps().artifacts);
   }
+}
+
+function dedupeReadinessBlockers(blockers) {
+  const seen = new Set();
+  const deduped = [];
+  for (const blocker of blockers) {
+    const digest = stableValueDigest(blocker);
+    if (seen.has(digest)) {
+      continue;
+    }
+    seen.add(digest);
+    deduped.push(blocker);
+  }
+  return Object.freeze(deduped);
 }

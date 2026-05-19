@@ -251,7 +251,7 @@ test("signals.form denies invalid step topology and posture artifacts", async ()
   }
 });
 
-test("signals.form exposes route-coupled steps as typed deferred posture until router integration exists", async () => {
+test("signals.form exposes route-coupled steps as typed deferred posture that requires route authority", async () => {
   const { wrapSignals, cleanup } = await loadSignalsModule();
   try {
     const rawSignals = createGraphOperationalRuntime();
@@ -286,9 +286,9 @@ test("signals.form exposes route-coupled steps as typed deferred posture until r
       form.steps().artifacts[0].readiness.blockers[0].kind,
       "step:deferred",
     );
-    assert.match(
+    assert.equal(
       form.steps().artifacts[0].readiness.blockers[0].reason,
-      /router integration/i,
+      "route-coupled step behavior requires route authority outside controller-local navigation",
     );
   } finally {
     await cleanup();

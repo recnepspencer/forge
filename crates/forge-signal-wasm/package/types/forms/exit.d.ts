@@ -10,7 +10,7 @@ export interface FormExitPresentationArtifact {
   readonly scopeKind: "route" | "modal" | "external" | null;
   readonly surfaceId: string | null;
   readonly operation: "generic" | "block" | "confirm" | "dismiss" | "leave" | "stay" | "close";
-  readonly unsupportedReason: string | null;
+  readonly unavailableReason: string | null;
   readonly exitDigest: string;
 }
 
@@ -22,7 +22,7 @@ export interface FormExitReport {
     readonly scopeKind: "route" | "modal" | "external" | null;
     readonly surfaceId: string | null;
     readonly activeTarget: string | null;
-    readonly unsupportedReason: string | null;
+    readonly unavailableReason: string | null;
     readonly guardKind: "clean" | "dirty" | "pendingAction" | "sourceUnavailable";
     readonly pendingActions: number;
     readonly requiresConfirmation: boolean;

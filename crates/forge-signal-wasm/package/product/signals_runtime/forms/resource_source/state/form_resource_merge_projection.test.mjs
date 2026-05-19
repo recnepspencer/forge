@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { createRealRequestRuntime } from "../../../resource_runtime/runtime_fixture/real_request_runtime.mjs";
-import { createRealResourceTestRuntime } from "../../../resource_runtime/runtime_fixture/real_resource_runtime.mjs";
-import { createBranchHead } from "../../../resource_runtime/runtime_fixture/real_resource_signals.mjs";
+import { createRealRequestRuntime } from "../../../../resource_runtime/runtime_fixture/real_request_runtime.mjs";
+import { createRealResourceTestRuntime } from "../../../../resource_runtime/runtime_fixture/real_resource_runtime.mjs";
+import { createBranchHead } from "../../../../resource_runtime/runtime_fixture/real_resource_signals.mjs";
 
 test("signals.form projects resource merge conflicts into fields sections messages readiness and verification", async () => {
   const runtime = await createRealRequestRuntime();
@@ -65,6 +65,23 @@ test("signals.form projects resource merge conflicts into fields sections messag
     assert.equal(form.visibleMessages().at(-1).code, "resource.merge.conflict");
     assert.equal(
       form.readiness().blockers.some((blocker) => blocker.kind === "resource:mergeConflict"),
+      true,
+    );
+    assert.equal(
+      form.actionPlan("submit").recoveryActions.some((action) => action.kind === "rollbackLastResourceEffect"),
+      true,
+    );
+    assert.equal(
+      form.actionPlan("submit").recoveryActions.some((action) => action.kind === "restoreExactResourceSource"),
+      true,
+    );
+    const submitAttempt = form.attemptAction("submit");
+    assert.equal(
+      submitAttempt.recoveryActions.some((action) => action.kind === "rollbackLastResourceEffect"),
+      true,
+    );
+    assert.equal(
+      submitAttempt.recoveryActions.some((action) => action.kind === "restoreExactResourceSource"),
       true,
     );
     assert.equal(form.steps().artifacts.length, 0);
@@ -191,12 +208,37 @@ test("signals.form reports unavailable merge preview posture when no resource ef
     });
 
     assert.equal(preview.status, "unavailable");
-    assert.match(preview.reason, /requires a current resource-backed effect/);
+    assert.match(preview.reason, /requires a current resource line effect/);
     assert.equal(form.readiness().canSubmit, false);
     assert.equal(
       form.readiness().blockers.some((blocker) => blocker.kind === "resource:mergeConflict"),
       false,
     );
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("signals.form reports unavailable merge preview posture when the form source is not a resource line", async () => {
+  const runtime = await createRealRequestRuntime();
+  try {
+    const { signals } = runtime;
+    const form = signals.form({
+      source: { title: "Local only" },
+      fields: ({ field }) => ({
+        title: field("title"),
+      }),
+    });
+
+    const preview = form.previewResourceMerge({
+      source_branch_id: 0,
+      target_branch_id: 0,
+    });
+
+    assert.equal(preview.status, "unavailable");
+    assert.equal(preview.reason, "form source is not a resource line");
+    assert.equal(preview.sourceKind, "form");
+    assert.equal(form.resourceMerge().current.reason, "form source is not a resource line");
   } finally {
     await runtime.cleanup();
   }

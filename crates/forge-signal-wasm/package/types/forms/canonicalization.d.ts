@@ -1,9 +1,9 @@
 import type { SignalValue } from "../model.js";
-import type { ResourceLineVisibleSelection } from "../resource/resource_line_diagnostics.js";
 import type { ResourceEffectProfileDigest } from "../resource/resource_effect_envelope.js";
 import type {
   FormResourceMutationResponseReport,
   FormResourceRollbackDigest,
+  FormResourceVisibleSelectionReport,
 } from "./resource_source.js";
 
 export interface FormCanonicalizationArtifact {
@@ -16,17 +16,19 @@ export interface FormCanonicalizationArtifact {
   readonly previousSourceDigest: string;
   readonly previousDraftDigest: string;
   readonly previousDraftValue: SignalValue;
+  readonly nextDraftDigest: string;
+  readonly nextDraftValue: SignalValue;
   readonly sourceBasisDigest: string;
   readonly canonicalSourceDigest: string;
   readonly canonicalValue: SignalValue;
-  readonly resourceBacked: {
+  readonly resourceLine: {
     readonly sourceKind: "resourceLine";
     readonly effectProfile: {
       readonly profile: ResourceEffectProfileDigest | null;
       readonly closeoutMatrixDigest: string | null;
     };
     readonly rollback: FormResourceRollbackDigest | null;
-    readonly visibleSelection: ResourceLineVisibleSelection;
+    readonly visibleSelection: FormResourceVisibleSelectionReport;
     readonly mutationResponse: FormResourceMutationResponseReport | null;
     readonly verification: {
       readonly packageDigest: string;
@@ -34,7 +36,8 @@ export interface FormCanonicalizationArtifact {
     };
     readonly resourceSubmissionDigest: string;
   } | null;
-  readonly draftReset: true;
+  readonly draftReset: boolean;
+  readonly draftClearedFields: ReadonlyArray<string>;
   readonly sourceProjection:
     | "serverCanonicalUntilAuthoritativeSourceDrift"
     | "resourceMutationResponsePreservedOptimisticTruth"

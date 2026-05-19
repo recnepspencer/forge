@@ -10,6 +10,7 @@ import { resourceMergeVisibleMessages } from "./resource_merge/report.js";
 
 export function createDerivedReportBindings({
   formRef,
+  sourceDeclaration,
   syncSourceCompatibility,
   authoritativeSource,
   fieldDeclarations,
@@ -76,7 +77,7 @@ export function createDerivedReportBindings({
     },
     actions() {
       syncSourceCompatibility(authoritativeSource());
-      return planActions(actionDeclarations, formRef(), fieldDeclarations);
+      return planActions(actionDeclarations, formRef(), fieldDeclarations, sourceDeclaration);
     },
   });
 }

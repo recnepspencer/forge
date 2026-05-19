@@ -7,7 +7,6 @@ import {
   createTitleActionForm,
   withSignals,
 } from "./action_execution_test_helpers.mjs";
-
 test("signals.form executes effect-backed actions through pending lifecycle artifacts", async () => {
   await withSignals((signals) => {
     const form = createTitleActionForm(signals, "publish", {
@@ -33,11 +32,11 @@ test("signals.form executes effect-backed actions through pending lifecycle arti
       stale: false,
     });
     assert.deepEqual(fulfilled.canonicalValue, { title: "Ship docs", status: "published" });
+    assert.deepEqual(fulfilled.recoveryActions, []);
     assertHistoryKinds(form, ["pending", "fulfilled"]);
     assert.equal(form.verification().actionExecutionHistory.operations, 2);
   });
 });
-
 test("signals.form denies action execution before effects when plan is blocked", async () => {
   await withSignals((signals) => {
     const form = signals.form({
@@ -87,7 +86,6 @@ test("signals.form records stale completion attempts after terminal settlement",
     assert.equal(form.actionExecutionHistory().at(-1).executionDigest, stale.executionDigest);
   });
 });
-
 test("signals.form rejects completions whose plan digest was invalidated by newer form truth", async () => {
   await withSignals((signals) => {
     const form = createTitleActionForm(signals, "publish", {
@@ -108,6 +106,32 @@ test("signals.form rejects completions whose plan digest was invalidated by newe
       reason: "action execution completion targeted a superseded form truth snapshot",
     });
     assertHistoryKinds(form, ["pending", "staleCompletion"]);
+  });
+});
+
+test("signals.form stale completions do not leak recovery hints from newer blocked form truth", async () => {
+  await withSignals((signals) => {
+    const source = signals.input({ title: "Ship docs" });
+    const schemaVersion = signals.input("v1");
+    const form = signals.form({
+      source: { value: source, schemaVersion },
+      fields: ({ field }) => ({ title: field("title") }),
+      actions: ({ action }) => ({
+        saveDraft: action("saveDraft", { patchPolicy: "allowEmpty", hostEffect: "draft.save" }),
+      }),
+    });
+
+    form.fields.title.set("Client title");
+    const pending = form.executeAction("saveDraft");
+    source.set({ title: "Server title" });
+    schemaVersion.set("v2");
+    assert.deepEqual(
+      form.actionPlan("saveDraft").recoveryActions.map((action) => action.kind),
+      ["focusFirstActionableBlocker", "acceptCanonicalValue"],
+    );
+    const stale = form.fulfillAction(pending.operationId);
+    assertActionExecution(stale, { resultKind: "staleCompletion" });
+    assert.deepEqual(stale.recoveryActions, []);
   });
 });
 
@@ -193,8 +217,6 @@ test("signals.form canonical source projection yields to newer authoritative sou
     assert.equal(form.presentationLifecycle("resourceDrift").status, "busy");
   });
 });
-
-
 test("signals.form migrates long-lived drafts across source schema drift with explicit evidence", async () => {
   await withSignals((signals) => {
     const source = signals.input({ title: "Ship docs" });

@@ -2,14 +2,21 @@ import { FormDeclarationError } from "../form_errors.js";
 import { hostRequirementBlockers } from "../host/artifacts.js";
 import { controllerLocalNavigationBlockers } from "../navigation/semantics.js";
 import { stableValueDigest } from "../values/value_paths.js";
+import { resolveActionPatchArtifact } from "./action_patch_scope.js";
+import { resolveResourceEffectProfileBinding } from "./resource_effect_profile_binding.js";
 import {
-  isResolvedResourceEffectProfile,
-  profileDigest,
-  resolveResourceEffectProfileBinding,
-} from "./resource_effect_profile_binding.js";
+  resolveResourceActionBinding,
+} from "./resource_action_binding.js";
+import {
+  actionCatalogEntry,
+  actionCounters,
+  actionReportDigests,
+  actionSummary,
+  createActionProofBinding,
+} from "./planning_artifacts.js";
 import { recoveryActionsForBlockers } from "./recovery.js";
 
-export function planActions(actionDeclarations, form, fieldDeclarations) {
+export function planActions(actionDeclarations, form, fieldDeclarations, sourceDeclaration) {
   const patchPlan = form.patchPlan();
   const validation = form.validation();
   const availability = form.availability();
@@ -17,10 +24,12 @@ export function planActions(actionDeclarations, form, fieldDeclarations) {
   const readiness = form.readiness();
   const host = form.host();
   const resourceSource = form.resourceSource();
+  const resourceMerge = form.resourceMerge();
+  const canonicalizationHistory = form.canonicalizationHistory();
   const steps = form.steps();
   const navigation = form.navigation();
-  const binding = currentActionBinding(form, fieldDeclarations, patchPlan);
-  const plans = actionDeclarations.map((declaration) =>
+  const binding = createActionProofBinding(form, fieldDeclarations);
+  const basePlans = actionDeclarations.map((declaration) =>
     actionPlan(declaration, {
       patchPlan,
       validation,
@@ -29,11 +38,21 @@ export function planActions(actionDeclarations, form, fieldDeclarations) {
       readiness,
       host,
       resourceSource,
+      resourceMerge,
+      canonicalizationHistory,
+      sourceDeclaration,
+      fieldDeclarations,
       steps,
       navigation,
       binding,
     }),
   );
+  const plans = Object.freeze(basePlans.map((plan) =>
+    withRecoveryActions(plan, basePlans, {
+      patchPlan,
+      resourceSource,
+    }),
+  ));
   return Object.freeze({
     catalog: Object.freeze(plans.map(actionCatalogEntry)),
     plans: Object.freeze(plans),
@@ -44,8 +63,8 @@ export function planActions(actionDeclarations, form, fieldDeclarations) {
   });
 }
 
-export function findActionPlan(actionDeclarations, form, fieldDeclarations, actionId) {
-  const plan = planActions(actionDeclarations, form, fieldDeclarations)
+export function findActionPlan(actionDeclarations, form, fieldDeclarations, actionId, sourceDeclaration) {
+  const plan = planActions(actionDeclarations, form, fieldDeclarations, sourceDeclaration)
     .plans
     .find((entry) => entry.id === actionId);
   if (!plan) {
@@ -55,17 +74,41 @@ export function findActionPlan(actionDeclarations, form, fieldDeclarations, acti
 }
 
 function actionPlan(declaration, context) {
+  const resolvedPatch = resolveActionPatchArtifact(
+    declaration,
+    context.fieldDeclarations,
+    context.patchPlan,
+  );
   const resourceEffectProfile = resolveResourceEffectProfileBinding(
     declaration,
     context.resourceSource,
     declaration.id,
   );
-  const blockers = actionReadinessBlockers(declaration, context, resourceEffectProfile.blockers);
+  const resourceAction = resolveResourceActionBinding(
+    declaration,
+    context.sourceDeclaration,
+    declaration.id,
+    context.fieldDeclarations,
+    resolvedPatch.patch,
+  );
+  const resourceRecoveryBlockers = resourceRecoveryActionBlockers(
+    declaration,
+    context.resourceSource,
+    context.canonicalizationHistory,
+  );
+  const blockers = actionReadinessBlockers(
+    declaration,
+    context,
+    resolvedPatch.patch,
+    [...resourceAction.blockers, ...resourceRecoveryBlockers],
+    resourceEffectProfile.blockers,
+  );
   const status = blockers.length === 0 ? "accepted" : "denied";
   const actionSchemaDigest = stableValueDigest(declaration.schema);
   const effectDigest = stableValueDigest({
     effectPolicy: declaration.effectPolicy,
     hostEffect: declaration.hostEffect,
+    resourceAction,
     resourceEffectProfile,
     step: declaration.step,
   });
@@ -73,7 +116,9 @@ function actionPlan(declaration, context) {
     sourceDigest: context.binding.sourceDigest,
     draftDigest: context.binding.draftDigest,
     effectiveDigest: context.binding.effectiveDigest,
-    patchDigest: context.binding.patchDigest,
+    patchDigest: declaration.patchPolicy === "ignore"
+      ? context.patchPlan.equivalenceDigest
+      : resolvedPatch.patch.equivalenceDigest,
     schemaDigest: context.binding.schemaDigest,
     actionSchemaDigest,
     effectDigest,
@@ -89,6 +134,7 @@ function actionPlan(declaration, context) {
     effectPolicy: declaration.effectPolicy,
     hostEffect: declaration.hostEffect,
     hostRequirements: declaration.hostRequirements,
+    resourceAction,
     resourceEffectProfile,
     actionSchemaDigest,
     effectDigest,
@@ -99,6 +145,7 @@ function actionPlan(declaration, context) {
   const planDigest = stableValueDigest(planSeed);
   return Object.freeze({
     ...actionCatalogEntry(declaration),
+    resourceAction,
     resourceEffectProfile,
     status,
     resultKind: status,
@@ -107,10 +154,8 @@ function actionPlan(declaration, context) {
       canRun: blockers.length === 0,
       blockers: Object.freeze(blockers),
     }),
-    recoveryActions: recoveryActionsForBlockers(blockers, {
-      canAcceptCanonicalValue: context.patchPlan.semanticDirty === true,
-    }),
-    patch: actionPatchArtifact(declaration, context.patchPlan),
+    recoveryActions: Object.freeze([]),
+    patch: resolvedPatch.patch,
     validation: Object.freeze({
       summary: context.validation.summary,
       artifactCount: context.validation.artifacts.length,
@@ -140,62 +185,29 @@ function actionPlan(declaration, context) {
   });
 }
 
-function actionCatalogEntry(entry) {
-  const resourceEffectProfile = isResolvedResourceEffectProfile(entry.resourceEffectProfile)
-    ? entry.resourceEffectProfile
-    : Object.freeze({
-      declared: entry.resourceEffectProfile === null ? null : profileDigest(entry.resourceEffectProfile),
-      effective: null,
-      source: entry.resourceEffectProfile === null ? "none" : "declaredWithoutResourceLine",
-      closeoutMatrixDigest: null,
-    });
+function withRecoveryActions(plan, allPlans, context) {
   return Object.freeze({
-    id: entry.id,
-    name: entry.name,
-    kind: entry.kind,
-    label: entry.label,
-    patchPolicy: entry.patchPolicy,
-    admissionCapability: entry.admissionCapability,
-    destructive: entry.destructive,
-    idempotency: entry.idempotency,
-    effectPolicy: entry.effectPolicy,
-    hostEffect: entry.hostEffect,
-    hostRequirements: entry.hostRequirements,
-    resourceEffectProfile,
-    schema: entry.schema,
-    step: entry.step,
+    ...plan,
+    recoveryActions: recoveryActionsForBlockers(plan.readiness.blockers, {
+      canAcceptCanonicalValue: context.patchPlan.semanticDirty === true,
+      resourceSource: context.resourceSource,
+      availableActions: allPlans,
+    }),
   });
 }
 
-function actionPatchArtifact(declaration, patchPlan) {
-  if (declaration.patchPolicy === "ignore") {
-    return Object.freeze({
-      policy: "ignore",
-      empty: true,
-      operations: Object.freeze([]),
-      equivalenceDigest: stableValueDigest({ ignoredPatchDigest: patchPlan.equivalenceDigest }),
-    });
-  }
-  return Object.freeze({
-    policy: declaration.patchPolicy,
-    empty: patchPlan.empty,
-    semanticDirty: patchPlan.semanticDirty,
-    operations: patchPlan.operations,
-    blocked: patchPlan.blocked,
-    equivalenceDigest: patchPlan.equivalenceDigest,
-  });
-}
-
-function actionReadinessBlockers(declaration, context, resourceEffectBlockers) {
+function actionReadinessBlockers(declaration, context, patch, resourceActionBlockers, resourceEffectBlockers) {
+  const scopedFieldSet = scopedActionFieldSet(declaration);
   const blockers = [
     ...hostRequirementBlockers(context.host, declaration.hostRequirements, declaration.id),
+    ...resourceActionBlockers,
     ...resourceEffectBlockers,
   ];
   if (declaration.step?.routeCoupled === true) {
     blockers.push(Object.freeze({
       kind: "action:deferred",
       action: declaration.id,
-      reason: "route-coupled step action is deferred until router integration exists",
+      reason: "route-coupled step action requires route authority outside controller-local navigation",
     }));
   }
   if (declaration.step?.routeCoupled !== true && declaration.kind === "step") {
@@ -218,41 +230,106 @@ function actionReadinessBlockers(declaration, context, resourceEffectBlockers) {
       if (blocker.kind === "host:offline" || blocker.kind === "host:unavailable") {
         return false;
       }
+      if (resourceLifecycleActionRecoversBlocker(declaration.resourceAction, blocker)) {
+        return false;
+      }
       if (blocker.kind === "unchanged" && declaration.patchPolicy !== "requiresNonEmpty") {
+        return false;
+      }
+      if (!blockerAppliesToScopedFields(blocker, scopedFieldSet)) {
         return false;
       }
       return blocker.action === declaration.id || blocker.action === undefined;
     }),
   );
-  return Object.freeze(blockers);
+  if (
+    declaration.patchPolicy === "requiresNonEmpty"
+    && patch.empty
+    && !context.readiness.blockers.some((blocker) => blocker.kind === "unchanged")
+  ) {
+    blockers.push(Object.freeze({
+      kind: "unchanged",
+      action: declaration.id,
+      reason: `action "${declaration.id}" has no semantic changes within its declared patch scope`,
+    }));
+  }
+  return dedupeReadinessBlockers(blockers);
 }
 
-function currentActionBinding(form, fieldDeclarations, patchPlan) {
-  const sourceDigest = stableValueDigest(form.source());
-  const draftDigest = stableValueDigest(form.draft());
-  const effectiveDigest = stableValueDigest(form.effective());
-  const patchDigest = patchPlan.equivalenceDigest;
-  const schemaDigest = stableValueDigest(
-    fieldDeclarations.map((field) => ({
-      id: field.id,
-      path: field.path,
-      inputAdapterTier: field.inputAdapter.tier,
-    })),
-  );
-  return Object.freeze({
-    sourceDigest,
-    draftDigest,
-    effectiveDigest,
-    patchDigest,
-    schemaDigest,
-    bindingDigest: stableValueDigest({
-      sourceDigest,
-      draftDigest,
-      effectiveDigest,
-      patchDigest,
-      schemaDigest,
-    }),
-  });
+function resourceLifecycleActionRecoversBlocker(resourceAction, blocker) {
+  if (resourceAction?.kind === "refresh" || resourceAction?.kind === "revalidate") {
+    return blocker.kind === "resource:stale"
+      || blocker.kind === "resource:deliveryBasisDrift"
+      || blocker.kind === "resource:rejected"
+      || blocker.kind === "resource:timedOut";
+  }
+  if (resourceAction?.kind === "replayExact" || resourceAction?.kind === "restoreExact") {
+    return blocker.kind === "resource:stale";
+  }
+  if (resourceAction?.kind === "rollbackLastEffect") {
+    return blocker.kind === "resource:mergeConflict";
+  }
+  return false;
+}
+
+function resourceRecoveryActionBlockers(declaration, resourceSource, canonicalizationHistory) {
+  if (declaration.resourceAction?.kind !== "rollbackLastEffect") {
+    return Object.freeze([]);
+  }
+  if (resourceSource?.rollback?.kind === "compactInverseAvailable") {
+    return Object.freeze([]);
+  }
+  const latest = canonicalizationHistory.at(-1);
+  if (latest?.resourceLine !== null && latest?.resourceLine !== undefined) {
+    return Object.freeze([Object.freeze({
+      kind: "resource:actionUnavailable",
+      action: declaration.id,
+      reason: "declared rollbackLastEffect action requires a rollback-capable resource line at the current resource basis",
+    })]);
+  }
+  return Object.freeze([Object.freeze({
+    kind: "resource:actionUnavailable",
+    action: declaration.id,
+    reason: "declared rollbackLastEffect action requires recorded resource canonicalization proof",
+  })]);
+}
+
+function dedupeReadinessBlockers(blockers) {
+  const seen = new Set();
+  const deduped = [];
+  for (const blocker of blockers) {
+    const digest = stableValueDigest(blocker);
+    if (seen.has(digest)) {
+      continue;
+    }
+    seen.add(digest);
+    deduped.push(blocker);
+  }
+  return Object.freeze(deduped);
+}
+
+function scopedActionFieldSet(declaration) {
+  if (
+    declaration.resourceAction?.kind === "patchPlan"
+    && Array.isArray(declaration.resourceAction.fields)
+    && declaration.resourceAction.fields.length > 0
+  ) {
+    return new Set(declaration.resourceAction.fields);
+  }
+  return null;
+}
+
+function blockerAppliesToScopedFields(blocker, scopedFieldSet) {
+  if (scopedFieldSet === null) {
+    return true;
+  }
+  if (typeof blocker.field === "string") {
+    return scopedFieldSet.has(blocker.field);
+  }
+  if (Array.isArray(blocker.fields)) {
+    return blocker.fields.some((fieldId) => scopedFieldSet.has(fieldId));
+  }
+  return true;
 }
 
 function regulatedActionBindings(declaration, admission, planDigest) {
@@ -286,85 +363,7 @@ function routeSemantics(declaration) {
     return "notStepNavigation";
   }
   return declaration.step?.routeCoupled === true
-    ? "routeCoupledDeferred"
+    ? "routeAuthorityRequired"
     : "controllerLocalOnly";
 }
 
-function actionSummary(plans) {
-  const summary = {
-    total: plans.length,
-    accepted: 0,
-    denied: 0,
-    unavailable: 0,
-    cancelled: 0,
-    superseded: 0,
-    rejected: 0,
-    fulfilled: 0,
-    noOp: 0,
-    destructive: 0,
-    step: 0,
-  };
-  for (const plan of plans) {
-    summary[plan.status] += 1;
-    if (plan.patch.empty) {
-      summary.noOp += 1;
-    }
-    if (plan.destructive) {
-      summary.destructive += 1;
-    }
-    if (plan.kind === "step") {
-      summary.step += 1;
-    }
-  }
-  return Object.freeze(summary);
-}
-
-function actionCounters(declarations, plans) {
-  return Object.freeze({
-    costBasis: "derivedFullReportScan",
-    incrementalStatus: "notIncremental",
-    declarations: declarations.length,
-    plans: plans.length,
-    deniedPlans: plans.filter((plan) => plan.status === "denied").length,
-    destructivePlans: plans.filter((plan) => plan.destructive).length,
-    stepPlans: plans.filter((plan) => plan.kind === "step").length,
-    routeCoupledDeferredPlans: plans.filter((plan) => plan.diagnostics.routeSemantics === "routeCoupledDeferred").length,
-    hostRequiredPlans: plans.filter((plan) => plan.host.requirements.length > 0).length,
-    nonEmptyPatchPlans: plans.filter((plan) => !plan.patch.empty).length,
-  });
-}
-
-function actionReportDigests(plans) {
-  const catalogDigest = stableValueDigest(plans.map((plan) => ({
-    id: plan.id,
-    kind: plan.kind,
-    patchPolicy: plan.patchPolicy,
-    admissionCapability: plan.admissionCapability,
-    destructive: plan.destructive,
-    idempotency: plan.idempotency,
-    effectPolicy: plan.effectPolicy,
-    hostEffect: plan.hostEffect,
-    hostRequirements: plan.hostRequirements,
-    resourceEffectProfile: plan.resourceEffectProfile,
-    schema: plan.schema,
-    step: plan.step,
-  })));
-  const readinessAdmissionDigest = stableValueDigest(plans.map((plan) => ({
-    id: plan.id,
-    status: plan.status,
-    blockers: plan.readiness.blockers,
-    host: plan.host,
-    admission: plan.admission,
-    regulatedActionBindings: plan.regulatedActionBindings,
-  })));
-  const planDigests = Object.freeze(
-    Object.fromEntries(plans.map((plan) => [plan.id, plan.planDigest])),
-  );
-  return Object.freeze({
-    catalogDigest,
-    readinessAdmissionDigest,
-    planDigestSetDigest: stableValueDigest(planDigests),
-    submitPlanDigest: planDigests.submit ?? null,
-    planDigests,
-  });
-}

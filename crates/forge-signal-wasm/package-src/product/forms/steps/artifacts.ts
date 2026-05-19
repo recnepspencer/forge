@@ -63,7 +63,7 @@ function stepCounters(declarations, artifacts) {
       total + artifact.readiness.blockers.length
     ), 0),
     projectedPatchOperations: artifacts.reduce((total, artifact) => (
-      total + artifact.patch.operations.length
+      total + artifact.patch.operations.length + (artifact.patch.replacement === null ? 0 : 1)
     ), 0),
     projectedValidationArtifacts: artifacts.reduce((total, artifact) => (
       total + artifact.validation.artifacts.length
@@ -116,6 +116,10 @@ function stepArtifact(declaration, readView, formArtifacts) {
   const patchOperations = formArtifacts.patchPlan.operations.filter((operation) =>
     fieldSet.has(operation.field),
   );
+  const patchReplacement = formArtifacts.patchPlan.replacement !== null
+    && formArtifacts.patchPlan.replacement.fields.some((field) => fieldSet.has(field))
+    ? formArtifacts.patchPlan.replacement
+    : null;
   const validationArtifacts = formArtifacts.validation.artifacts.filter((artifact) =>
     artifact.field === undefined || fieldSet.has(artifact.field),
   );
@@ -146,8 +150,9 @@ function stepArtifact(declaration, readView, formArtifacts) {
       fields: Object.freeze(dirtyFields),
     }),
     patch: Object.freeze({
-      empty: patchOperations.length === 0,
+      empty: patchOperations.length === 0 && patchReplacement === null,
       operations: Object.freeze(patchOperations),
+      replacement: patchReplacement,
     }),
     validation: Object.freeze({
       artifacts: Object.freeze(validationArtifacts),
@@ -258,7 +263,7 @@ function stepProgress(posture, blockers, dirtyFields) {
 function routeCoupledStepPosture() {
   return Object.freeze({
     posture: "unavailable",
-    reason: "route-coupled step behavior is deferred until router integration exists",
+    reason: "route-coupled step behavior requires route authority outside controller-local navigation",
     routeCoupled: true,
   });
 }

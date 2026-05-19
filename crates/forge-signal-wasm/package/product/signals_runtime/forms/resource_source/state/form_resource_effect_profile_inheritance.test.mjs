@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { withSignals } from "../action_execution_test_helpers.mjs";
-import { createDetailPatchLineFixture } from "./resource_line_fixture.mjs";
+import { withSignals } from "../../action_execution_test_helpers.mjs";
+import { createDetailPatchLineFixture } from "../fixtures/resource_line_fixture.mjs";
 
 test("signals.form submit inherits the backing resource line effect profile when no action profile is declared", async () => {
   await withSignals((signals) => {
@@ -97,7 +97,7 @@ test("signals.form denies a declared resource effect profile that mismatches the
   });
 });
 
-test("signals.form denies declared resource effect profiles on non-resource-backed forms", async () => {
+test("signals.form denies declared resource effect profiles on non-resource-line forms", async () => {
   await withSignals((signals) => {
     const form = signals.form({
       source: { title: "Ship docs" },

@@ -11,7 +11,7 @@ export function createCanonicalizationStore() {
       }
       return cloneFormValue(canonicalSource.value);
     },
-    applyFulfilledAction(execution, previousSource, previousDraft, rawSource) {
+    applyFulfilledAction(execution, previousSource, previousDraft, nextDraft, draftClearedFields, rawSource) {
       if (execution.resultKind !== "fulfilled" || execution.canonicalValue === undefined) {
         return null;
       }
@@ -22,6 +22,8 @@ export function createCanonicalizationStore() {
         planDigest: execution.planDigest,
         previousSource,
         previousDraft,
+        nextDraft,
+        draftClearedFields,
         rawSource,
         canonicalValue: execution.canonicalValue,
         resourceSubmission: execution.resourceSubmission,
@@ -60,10 +62,12 @@ function canonicalizationArtifact(options) {
     previousSourceDigest: stableValueDigest(options.previousSource),
     previousDraftDigest: stableValueDigest(options.previousDraft),
     previousDraftValue: cloneCanonicalValue(options.previousDraft),
+    nextDraftDigest: stableValueDigest(options.nextDraft),
+    nextDraftValue: cloneCanonicalValue(options.nextDraft),
     sourceBasisDigest,
     canonicalSourceDigest: stableValueDigest(canonicalValue),
     canonicalValue,
-    resourceBacked: options.resourceSubmission === null || options.resourceSubmission === undefined
+    resourceLine: options.resourceSubmission === null || options.resourceSubmission === undefined
       ? null
       : Object.freeze({
         sourceKind: options.resourceSubmission.sourceKind,
@@ -74,7 +78,8 @@ function canonicalizationArtifact(options) {
         verification: options.resourceSubmission.verification,
         resourceSubmissionDigest: options.resourceSubmission.digest,
       }),
-    draftReset: true,
+    draftReset: Object.keys(options.nextDraft).length === 0,
+    draftClearedFields: Object.freeze([...(options.draftClearedFields ?? [])]),
     sourceProjection: resolveSourceProjection(options.resourceSubmission),
     reason: options.reason,
   };

@@ -1,12 +1,13 @@
 import { readResourceLineHandle } from "../sources/form_sources.js";
 import { stableValueDigest } from "../values/value_paths.js";
+import { readFormStateSnapshot } from "../recovery/form_state_snapshot.js";
 
 export function createFormResetStore() {
   let nextResetId = 1;
   const history = [];
   return Object.freeze({
     acceptCanonicalValue(context, options = {}) {
-      const before = readResetSnapshot(context.form);
+      const before = readFormStateSnapshot(context.form);
       if (before.draftDigest === "{}") {
         return recordArtifact({
           mode: "acceptCanonicalValue",
@@ -18,7 +19,7 @@ export function createFormResetStore() {
         });
       }
       context.writeDraft({});
-      const after = readResetSnapshot(context.form);
+      const after = readFormStateSnapshot(context.form);
       return recordArtifact({
         mode: "acceptCanonicalValue",
         resultKind: "reset",
@@ -30,7 +31,7 @@ export function createFormResetStore() {
     },
     rollbackLastResourceEffect(context, options = {}) {
       const line = readResourceLineHandle(context.source);
-      const before = readResetSnapshot(context.form);
+      const before = readFormStateSnapshot(context.form);
       if (line === null || typeof line.history !== "function") {
         return recordArtifact({
           mode: "resourceRollback",
@@ -38,7 +39,7 @@ export function createFormResetStore() {
           reason: options.reason ?? "resource rollback is unavailable because the form source is not a resource line",
           before,
           after: before,
-          resourceRollback: unavailableRollback("unsupportedByRuntime", "form source is not a resource line"),
+          resourceRollback: unavailableRollback("resourceSourceUnavailable", "form source is not a resource line"),
         });
       }
       const historyRead = line.history();
@@ -49,7 +50,7 @@ export function createFormResetStore() {
           reason: options.reason ?? "resource rollback is unavailable because the resource line does not expose rollback history",
           before,
           after: before,
-          resourceRollback: unavailableRollback("unsupportedByRuntime", "resource line history does not expose rollbackLastEffect()"),
+          resourceRollback: unavailableRollback("rollbackHistoryUnavailable", "resource line history does not expose rollbackLastEffect()"),
         });
       }
       const canonicalization = latestResourceCanonicalization(context.form);
@@ -57,12 +58,12 @@ export function createFormResetStore() {
         return recordArtifact({
           mode: "resourceRollback",
           resultKind: "unavailable",
-          reason: options.reason ?? "resource rollback is unavailable because the form has no recorded resource-backed canonicalization proof",
+          reason: options.reason ?? "resource rollback is unavailable because the form has no recorded resource canonicalization proof",
           before,
           after: before,
           resourceRollback: unavailableRollback(
             "runtimeRejected",
-            "form rollback requires recorded resource-backed canonicalization proof for exact draft restoration",
+            "form rollback requires recorded resource canonicalization proof for exact draft restoration",
           ),
         });
       }
@@ -78,7 +79,7 @@ export function createFormResetStore() {
         });
       }
       context.writeDraft(canonicalization.previousDraftValue);
-      const after = readResetSnapshot(context.form);
+      const after = readFormStateSnapshot(context.form);
       return recordArtifact({
         mode: "resourceRollback",
         resultKind: "rolledBack",
@@ -121,15 +122,7 @@ export function createFormResetStore() {
 function latestResourceCanonicalization(form) {
   return [...form.canonicalizationHistory()]
     .reverse()
-    .find((artifact) => artifact.resourceBacked !== null) ?? null;
-}
-
-function readResetSnapshot(form) {
-  return Object.freeze({
-    sourceDigest: stableValueDigest(form.source()),
-    draftDigest: stableValueDigest(form.draft()),
-    effectiveDigest: stableValueDigest(form.effective()),
-  });
+    .find((artifact) => artifact.resourceLine !== null) ?? null;
 }
 
 function normalizeRollbackResult(rollback) {

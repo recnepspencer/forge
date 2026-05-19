@@ -8,7 +8,7 @@ export function readExitPresentationReport(store, basis) {
     scopeKind: current?.scopeKind ?? null,
     surfaceId: current?.surfaceId ?? null,
     activeTarget: current?.target ?? basis.activeTarget,
-    unsupportedReason: current?.unsupportedReason ?? basis.unsupportedReason,
+    unavailableReason: current?.unavailableReason ?? basis.unavailableReason,
     guardKind: basis.guardKind,
     pendingActions: basis.pendingActions,
     requiresConfirmation: basis.requiresConfirmation,
@@ -43,7 +43,7 @@ export function deriveExitPresentationBasis(form) {
       status: "unavailable",
       guardKind: "sourceUnavailable",
       activeTarget: null,
-      unsupportedReason: sourceCompatibility.reason ?? "exit presentation is unavailable because form truth is unresolved",
+      unavailableReason: sourceCompatibility.reason ?? "exit presentation is unavailable because form truth is unresolved",
       pendingActions: 0,
       requiresConfirmation: false,
     });
@@ -54,7 +54,7 @@ export function deriveExitPresentationBasis(form) {
       status: "busy",
       guardKind: "pendingAction",
       activeTarget: "pending-actions",
-      unsupportedReason: null,
+      unavailableReason: null,
       pendingActions,
       requiresConfirmation: false,
     });
@@ -65,7 +65,7 @@ export function deriveExitPresentationBasis(form) {
       status: "busy",
       guardKind: "dirty",
       activeTarget: dirty.fields[0]?.field ?? "dirty-draft",
-      unsupportedReason: null,
+      unavailableReason: null,
       pendingActions: 0,
       requiresConfirmation: true,
     });
@@ -74,7 +74,7 @@ export function deriveExitPresentationBasis(form) {
     status: "ready",
     guardKind: "clean",
     activeTarget: null,
-    unsupportedReason: null,
+    unavailableReason: null,
     pendingActions: 0,
     requiresConfirmation: false,
   });

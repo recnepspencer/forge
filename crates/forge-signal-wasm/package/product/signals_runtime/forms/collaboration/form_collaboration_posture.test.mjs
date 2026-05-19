@@ -226,3 +226,97 @@ test("signals.form collaboration updates deny undeclared leased fields and unsup
     await cleanup();
   }
 });
+
+test("signals.form branch-per-actor collaboration consumes admitted resource branch proof", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const signals = wrapSignals(createGraphOperationalRuntime());
+    const { createReadOnlyResourceLineFixture } = await import("../resource_source/fixtures/resource_line_fixture.mjs");
+    const form = signals.form({
+      source: signals.form.source.resourceLine(createReadOnlyResourceLineFixture({
+        status: Object.freeze({ kind: "fulfilled", operation: "initialLoad" }),
+        freshness: Object.freeze({ kind: "fresh" }),
+        visibleSelection: Object.freeze({
+          kind: "speculative",
+          source: "localPatch",
+          effectId: "effect-1",
+          branchId: 7,
+          snapshotId: 11,
+          basisId: "basis-1",
+          rollbackKind: "compactInverseAvailable",
+          detail: "resource line is showing speculative branch truth",
+        }),
+      }), { id: "branch-collaboration" }),
+      collaboration: {
+        mode: "branchPerActor",
+        actorId: "me",
+      },
+      fields: ({ field }) => ({
+        title: field("title"),
+      }),
+    });
+
+    const report = form.collaboration();
+    assert.equal(report.posture, "active");
+    assert.equal(report.branchId, 7);
+    assert.equal(report.resourceProof.required, true);
+    assert.equal(report.resourceProof.admitted, true);
+    assert.equal(report.resourceProof.visibleSelectionKind, "speculative");
+    assert.equal(report.counters.resourceProofRequired, 1);
+    assert.equal(report.counters.resourceProofUnavailable, 0);
+    assert.equal(form.fieldWritePosture("title").canWrite, true);
+  } finally {
+    await cleanup();
+  }
+});
+
+test("signals.form branch-backed collaboration stays typed unavailable when no resource branch proof exists", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const signals = wrapSignals(createGraphOperationalRuntime());
+    const form = signals.form({
+      source: { title: "Ship docs" },
+      collaboration: {
+        mode: "optimisticMerge",
+        actorId: "me",
+      },
+      fields: ({ field }) => ({
+        title: field("title"),
+      }),
+      actions: ({ submit }) => ({
+        submit: submit(),
+      }),
+    });
+
+    const report = form.collaboration();
+    assert.equal(report.posture, "unavailable");
+    assert.equal(report.resourceProof.required, true);
+    assert.equal(report.resourceProof.admitted, false);
+    assert.match(report.reason, /requires a resource line form source/);
+
+    form.reportCollaboration({
+      posture: "active",
+      branchId: "peer-branch",
+      reason: "should not override missing resource proof",
+    });
+    const afterReport = form.collaboration();
+    assert.equal(afterReport.posture, "unavailable");
+    assert.equal(afterReport.branchId, null);
+    assert.match(afterReport.reason, /requires a resource line form source/);
+
+    assert.equal(form.fieldWritePosture("title").canWrite, false);
+    assert.equal(
+      form.fieldWritePosture("title").blockers[0]?.kind,
+      "collaboration:resourceProofUnavailable",
+    );
+    assert.equal(form.readiness().canSubmit, false);
+    assert.equal(
+      form.readiness().blockers[0]?.kind,
+      "collaboration:resourceProofUnavailable",
+    );
+    assert.equal(form.actionPlan("submit").status, "denied");
+    assert.throws(() => form.fields.title.set("Blocked"), /requires a resource line form source/);
+  } finally {
+    await cleanup();
+  }
+});

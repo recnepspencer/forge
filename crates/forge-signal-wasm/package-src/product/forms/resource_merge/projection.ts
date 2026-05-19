@@ -32,7 +32,7 @@ export function createResourceMergeProjectionRegistry(fieldDeclarations, stepDec
 export function previewResourceMerge(signalNamespace, source, store, registry, request) {
   const line = readResourceLineHandle(source);
   if (line === null) {
-    return store.report(unavailablePreview("form source is not resource-backed", request));
+    return store.report(unavailablePreview("form source is not a resource line", request));
   }
   if (!isMergePreviewRequest(request)) {
     throw new FormDeclarationError("resource merge preview requires source_branch_id and target_branch_id", {
@@ -42,7 +42,7 @@ export function previewResourceMerge(signalNamespace, source, store, registry, r
   const latestEffect = line.diagnosticsSummary().latest.effect;
   if (latestEffect === null) {
     return store.report(unavailablePreview(
-      "resource merge preview requires a current resource-backed effect",
+      "resource merge preview requires a current resource line effect",
       request,
     ));
   }

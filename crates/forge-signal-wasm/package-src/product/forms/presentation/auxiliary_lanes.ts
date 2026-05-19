@@ -76,7 +76,7 @@ export function navigationLanes(policy, navigation, actionDeclarations, stepDecl
       .map((step) =>
         baseLane(`navigation:step:${step.id}`, "navigation", "step", policy, "unavailable", {
           target: step.id,
-          reason: "route-coupled step presentation is deferred until router integration exists",
+          reason: "route-coupled step presentation requires route authority outside controller-local navigation",
           token: stableValueDigest({ step: step.id, routeCoupled: true }),
           acknowledgementRequired: policy.unavailableAcknowledgement === "required",
         })),
@@ -85,7 +85,7 @@ export function navigationLanes(policy, navigation, actionDeclarations, stepDecl
       .map((action) =>
         baseLane(`navigation:action:${action.id}`, "navigation", policy.scope, policy, "unavailable", {
           target: action.id,
-          reason: "route-coupled step action presentation is deferred until router integration exists",
+          reason: "route-coupled step action presentation requires route authority outside controller-local navigation",
           token: stableValueDigest({ action: action.id, routeCoupled: true }),
           acknowledgementRequired: policy.unavailableAcknowledgement === "required",
         })),
@@ -119,7 +119,7 @@ export function exitLane(policy, exit, settlements, nowMs) {
   if (exit.summary.status === "unavailable") {
     return baseLane("exit", "exit", policy.scope, policy, "unavailable", {
       target: exit.summary.activeTarget,
-      reason: exit.summary.unsupportedReason ?? "exit presentation is unavailable because form truth is unresolved",
+      reason: exit.summary.unavailableReason ?? "exit presentation is unavailable because form truth is unresolved",
       token: exit.digest,
       acknowledgementRequired: policy.unavailableAcknowledgement === "required",
     });
