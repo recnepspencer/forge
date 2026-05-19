@@ -1,0 +1,15 @@
+pub use crate::canonicalization::{
+    admit_canonical_bundle_digest_derivation, admit_canonical_export_digest_derivation,
+    admit_canonical_sequence_digest_derivation, derive_canonical_digest, CanonicalDerivedDigest,
+    CanonicalDigestAlgorithmId, CanonicalDigestAlgorithmMetadata, CanonicalDigestAlgorithmSlot,
+    CanonicalDigestBasisBundle, CanonicalDigestBasisSequence, CanonicalDigestDebt,
+    CanonicalDigestDerivationDenial, CanonicalDigestDerivationInput,
+    CanonicalDigestDerivationReadinessProofs, CanonicalDigestDerivationReady,
+    CanonicalDigestDerivationReadyArtifact, CanonicalDigestInputDomain,
+    CanonicalDigestInputEvidence, CanonicalDigestInputId, CanonicalDigestInputShape,
+    CanonicalDigestInputShapeBound, CanonicalDigestMetadata, CanonicalDigestOutputShape,
+    CanonicalDigestValue, CanonicalDomainBundleDigestAlgorithmSlot,
+    CanonicalDomainBundleDigestInput, CanonicalExportBundleDigestAlgorithmSlot,
+    CanonicalExportBundleDigestInput, CanonicalSingleSequenceDigestAlgorithmSlot,
+    CanonicalSingleSequenceDigestInput,
+};

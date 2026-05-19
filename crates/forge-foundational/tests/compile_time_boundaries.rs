@@ -165,8 +165,28 @@ fn milestone1_production_readiness_requires_certified_artifact() {
 }
 
 #[test]
+fn aspect_front_doors_preserve_validated_and_patch_boundaries() {
+    compile_fail("tests/ui/aspect_front_doors/*.rs");
+}
+
+#[test]
+fn compatibility_front_doors_keep_json_lowering_explicit() {
+    compile_fail("tests/ui/compatibility_front_doors/*.rs");
+}
+
+#[test]
 fn canonical_basis_requires_readiness_proof() {
     compile_fail("tests/ui/canonicalization/basis/*/*.rs");
+}
+
+#[test]
+fn canonical_front_doors_preserve_admitted_lane_boundaries() {
+    compile_fail("tests/ui/canonicalization/front_doors/*.rs");
+}
+
+#[test]
+fn canonical_grouped_public_surface_preserves_lane_boundaries() {
+    compile_fail("tests/ui/canonicalization/grouped_surface/*.rs");
 }
 
 #[test]
@@ -218,4 +238,14 @@ fn profile_materialization_boundaries_reject_ad_hoc_surface_or_inventory_constru
 fn profile_certification_and_readiness_boundaries_require_stronger_artifacts() {
     compile_fail("tests/ui/profiles/certification_boundaries/*.rs");
     compile_fail("tests/ui/profiles/readiness_boundaries/*.rs");
+}
+
+#[test]
+fn profile_front_doors_preserve_requested_and_materialized_boundaries() {
+    compile_fail("tests/ui/profiles/front_doors/*.rs");
+}
+
+#[test]
+fn profile_grouped_public_surface_preserves_lane_boundaries() {
+    compile_fail("tests/ui/profiles/grouped_surface/*.rs");
 }

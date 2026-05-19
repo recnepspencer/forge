@@ -130,7 +130,7 @@ pub const fn milestone1_proof_seed_inventory() -> &'static [Milestone1ProofSeed]
     &MILESTONE1_PROOF_SEEDS
 }
 
-const MILESTONE1_PUBLIC_API: [Milestone1PublicApiSurface; 8] = [
+const MILESTONE1_PUBLIC_API: [Milestone1PublicApiSurface; 10] = [
     Milestone1PublicApiSurface::new(
         "values",
         "canonical Aspec-native scalar and reference value vocabulary",
@@ -152,6 +152,11 @@ const MILESTONE1_PUBLIC_API: [Milestone1PublicApiSurface; 8] = [
         "exchange aspect-state changes without JSON merge folklore",
     ),
     Milestone1PublicApiSurface::new(
+        "aspect_common_path",
+        "named front doors for contract, struct field, mask, validation, state admission, patch, and supporting vocabulary progression",
+        "discover the scalar, struct, and field-level patch journey from one public Milestone 1 surface",
+    ),
+    Milestone1PublicApiSurface::new(
         "identity_categories",
         "typed boundary ids, handles, basis ids, epochs, and digest ids",
         "prevent representation-equal ids from becoming semantically interchangeable",
@@ -167,6 +172,11 @@ const MILESTONE1_PUBLIC_API: [Milestone1PublicApiSurface; 8] = [
         "migrate legacy payload boundaries without making JSON authoritative",
     ),
     Milestone1PublicApiSurface::new(
+        "compatibility_common_path",
+        "named JSON lowering front door that keeps transitional payload lowering visibly separate from native aspect authoring",
+        "enter compatibility lowering through an explicit bridge instead of treating JSON as another native authoring path",
+    ),
+    Milestone1PublicApiSurface::new(
         "digest_preparation",
         "proof-bearing canonical ordering and equality basis",
         "feed Milestone 2 digest algorithms without revisiting Milestone 1 semantics",
@@ -180,7 +190,7 @@ const MILESTONE1_COMPATIBILITY_DEBT: [Milestone1CompatibilityDebt; 1] =
         "adopting crates replace legacy JSON payload authority with native aspect-state construction",
     )];
 
-const MILESTONE1_PROOF_SEEDS: [Milestone1ProofSeed; 8] = [
+const MILESTONE1_PROOF_SEEDS: [Milestone1ProofSeed; 10] = [
     Milestone1ProofSeed::new(
         "contract_validation",
         "raw values cannot become admitted values without aspect-contract law",
@@ -215,6 +225,16 @@ const MILESTONE1_PROOF_SEEDS: [Milestone1ProofSeed; 8] = [
         "compatibility_lowering",
         "JSON-originated input lowers or fails without becoming authority",
         "certification/compatibility",
+    ),
+    Milestone1ProofSeed::new(
+        "aspect_common_path_front_doors",
+        "scalar, struct, mask, state, and patch authoring stay visible through one named common lane without weakening validated-artifact boundaries",
+        "certification/aspects/front_doors and ui/aspect_front_doors",
+    ),
+    Milestone1ProofSeed::new(
+        "compatibility_common_path_front_doors",
+        "JSON lowering remains an explicit bridge and front-door state lowering accepts only compatibility inputs",
+        "certification/compatibility/front_doors and ui/compatibility_front_doors",
     ),
     Milestone1ProofSeed::new(
         "digest_preparation_readiness",

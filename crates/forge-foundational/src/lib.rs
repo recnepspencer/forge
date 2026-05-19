@@ -17,12 +17,14 @@ mod aspects;
 mod boundary;
 mod boundary_artifacts;
 mod canonicalization;
+pub mod canonicalization_api;
 mod compatibility;
 mod diagnostics;
 pub mod facade;
 mod identities;
 mod locators;
 mod profiles;
+pub mod profiles_api;
 mod transitions;
 mod values;
 
