@@ -677,6 +677,18 @@ Define the shared language for where artifacts came from, under what basis they
 were produced, and what effectful or authority-bearing boundary actually
 happened.
 
+Detailed implementation plan: `milestone-7.md`.
+Closeout: [`milestone-7-closeout.md`](milestone-7-closeout.md)
+
+The detailed spec and closeout record are authoritative for Milestone 7
+closure. In particular, they expand this roadmap summary by treating category
+and locality primitives, provenance layering, receipt-family strength,
+continuity/divergence families, support-truth and degraded recovery,
+mixed-family attachment materialization, proof-bearing readiness, and
+crate-facing docs closure as distinct responsibilities. Milestone 7 makes
+boundary evidence canonical while preserving crate-local storage, replay,
+history, and support execution mechanics.
+
 ### Must Ship
 
 - shared lineage vocabulary for boundary-facing lineage artifacts and lineage

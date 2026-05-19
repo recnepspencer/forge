@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+ --> tests/ui/boundary_evidence/readiness/plain_report_cannot_satisfy_boundary_evidence_production_readiness.rs:9:89
+  |
+9 |     let _ = require_foundational_boundary_evidence_milestone7_production_test_readiness(&report);
+  |             --------------------------------------------------------------------------- ^^^^^^^ expected `&Artifact<..., ..., ..., ...>`, found `&...`
+  |             |
+  |             arguments to this function are incorrect
+  |
+  = note: expected reference `&forge_proof::artifact::carrier::Artifact<FoundationalBoundaryEvidenceProductionTestReady, FoundationalBoundaryEvidenceProductionReadinessReport, forge_proof::proof::sets::Proof<FoundationalBoundaryEvidenceProductionReadinessCertified, FoundationalBoundaryEvidenceProductionReadinessAuthority>, forge_proof::assumption::freshness::FreshnessScopedBasis<forge_proof::assumption::freshness::CurrentValidity, forge_proof::assumption::basis::AssumptionBasis<FoundationalBoundaryEvidenceProductionReadinessScope>>>`
+             found reference `&FoundationalBoundaryEvidenceProductionReadinessReport`
+note: function defined here
+ --> src/boundary_evidence/readiness/certification.rs
+  |
+  | pub fn require_foundational_boundary_evidence_milestone7_production_test_readiness(
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
