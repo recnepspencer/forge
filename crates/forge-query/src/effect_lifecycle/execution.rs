@@ -1,7 +1,3 @@
-use forge_relational::facade::commit_strategies::{
-    StrategyCommitRequestError, StrategyExecutionError, StrategyLoweringError,
-};
-use forge_relational::facade::merge::{MergeExecutionError, MergeExecutionPreparationError};
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::MergeExecutionOutcome;
 
@@ -133,14 +129,4 @@ pub(super) fn lower_runtime_error(
     kind: EffectExecutionDenialKind,
 ) -> (EffectExecutionDenialKind, String) {
     (kind, format!("{error:?}"))
-}
-
-#[allow(dead_code)]
-fn _type_anchor(
-    _: StrategyCommitRequestError,
-    _: StrategyExecutionError,
-    _: StrategyLoweringError,
-    _: MergeExecutionPreparationError,
-    _: MergeExecutionError,
-) {
 }

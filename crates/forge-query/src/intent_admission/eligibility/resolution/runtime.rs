@@ -26,7 +26,7 @@ pub(super) fn resolve_authoritative_runtime_floor_eligibility(
         admit_authoritative_intent_declaration(
             request
                 .runtime_declaration()
-                .expect("runtime floor request must preserve declaration"),
+                .expect("covered runtime request must preserve declaration"),
         ),
     )
 }

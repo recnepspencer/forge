@@ -1,5 +1,5 @@
-use super::types::ForgeQueryIntentAdmissionCoveredEntrypoint;
 use super::super::ForgeQueryIntentAdmissionFamily;
+use super::types::ForgeQueryIntentAdmissionCoveredEntrypoint;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ForgeQueryIntentAdmissionMutationAuditRow {
@@ -56,48 +56,120 @@ impl ForgeQueryIntentAdmissionMutationAudit {
     }
 }
 
-const MUTATION_AUDIT_ROWS: [ForgeQueryIntentAdmissionMutationAuditRow; 7] = [
+const MUTATION_AUDIT_ROWS: [ForgeQueryIntentAdmissionMutationAuditRow; 19] = [
+    ForgeQueryIntentAdmissionMutationAuditRow::new(
+        "runtime.write(command)",
+        ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite,
+        "runtime_write_calls_runtime_write_intent_execute",
+    ),
     ForgeQueryIntentAdmissionMutationAuditRow::new(
         "runtime.write_intent(command).execute()",
         ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
         ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite,
-        "scalar_write_delegates_to_canonical_admission_and_execution_handoff",
+        "runtime_write_intent_is_canonical_scalar_authoritative_mutation_authoring",
     ),
     ForgeQueryIntentAdmissionMutationAuditRow::new(
-        "workspace.write_intent(command).execute()",
+        "runtime.write_batch(commands)",
         ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
-        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite,
-        "scalar_write_delegates_to_canonical_admission_and_execution_handoff",
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteBatchWrite,
+        "runtime_write_batch_calls_runtime_write_batch_intent_execute",
     ),
     ForgeQueryIntentAdmissionMutationAuditRow::new(
         "runtime.write_batch_intent(commands).execute()",
         ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
         ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteBatchWrite,
-        "batch_write_delegates_to_canonical_admission_and_execution_handoff",
+        "runtime_write_batch_intent_is_canonical_batch_authoritative_mutation_authoring",
+    ),
+    ForgeQueryIntentAdmissionMutationAuditRow::new(
+        "workspace.write(command)",
+        ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite,
+        "workspace_write_calls_workspace_write_intent_execute",
+    ),
+    ForgeQueryIntentAdmissionMutationAuditRow::new(
+        "workspace.write_intent(command).execute()",
+        ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite,
+        "workspace_write_intent_is_canonical_scalar_authoritative_mutation_authoring",
     ),
     ForgeQueryIntentAdmissionMutationAuditRow::new(
         "workspace.write_batch_intent(commands).execute()",
         ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
         ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteBatchWrite,
-        "batch_write_delegates_to_canonical_admission_and_execution_handoff",
+        "workspace_write_batch_intent_is_canonical_batch_authoritative_mutation_authoring",
     ),
     ForgeQueryIntentAdmissionMutationAuditRow::new(
-        "workspace.verify_existing(binding, paths)",
+        "workspace.insert(collection, declaration)",
         ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
         ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite,
-        "workspace_verify_existing_delegates_to_authoritative_mutation_intent_execution",
+        "workspace_insert_builds_insert_command_then_calls_workspace_write",
     ),
     ForgeQueryIntentAdmissionMutationAuditRow::new(
-        "workspace.update_existing_verified(binding, paths, update)",
+        "workspace.update(entity_identity, declaration)",
         ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
         ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite,
-        "workspace_update_existing_verified_delegates_to_authoritative_mutation_intent_execution",
+        "workspace_update_builds_update_command_then_calls_workspace_write",
     ),
     ForgeQueryIntentAdmissionMutationAuditRow::new(
-        "workspace.delete_existing_verified(binding, paths)",
+        "workspace.update_existing(binding, declaration)",
         ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
         ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite,
-        "workspace_delete_existing_verified_delegates_to_authoritative_mutation_intent_execution",
+        "workspace_update_existing_builds_command_then_calls_workspace_write",
+    ),
+    ForgeQueryIntentAdmissionMutationAuditRow::new(
+        "workspace.assert_existing(binding, declaration)",
+        ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite,
+        "workspace_assert_existing_builds_command_then_calls_workspace_write",
+    ),
+    ForgeQueryIntentAdmissionMutationAuditRow::new(
+        "workspace.verify_existing(binding, declaration)",
+        ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite,
+        "workspace_verify_existing_builds_command_then_calls_workspace_write",
+    ),
+    ForgeQueryIntentAdmissionMutationAuditRow::new(
+        "workspace.update_existing_verified(binding, verify, update)",
+        ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite,
+        "workspace_update_existing_verified_builds_command_then_calls_workspace_write",
+    ),
+    ForgeQueryIntentAdmissionMutationAuditRow::new(
+        "workspace.delete(entity_identity)",
+        ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite,
+        "workspace_delete_builds_delete_command_then_calls_workspace_write",
+    ),
+    ForgeQueryIntentAdmissionMutationAuditRow::new(
+        "workspace.delete_with(entity_identity, declaration)",
+        ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite,
+        "workspace_delete_with_builds_delete_command_then_calls_workspace_write",
+    ),
+    ForgeQueryIntentAdmissionMutationAuditRow::new(
+        "workspace.delete_existing(binding)",
+        ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite,
+        "workspace_delete_existing_builds_delete_command_then_calls_workspace_write",
+    ),
+    ForgeQueryIntentAdmissionMutationAuditRow::new(
+        "workspace.delete_existing_with(binding, declaration)",
+        ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite,
+        "workspace_delete_existing_with_builds_delete_command_then_calls_workspace_write",
+    ),
+    ForgeQueryIntentAdmissionMutationAuditRow::new(
+        "workspace.delete_existing_verified(binding, verify, delete)",
+        ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteScalarWrite,
+        "workspace_delete_existing_verified_builds_delete_command_then_calls_workspace_write",
+    ),
+    ForgeQueryIntentAdmissionMutationAuditRow::new(
+        "workspace.batch(declaration)",
+        ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent,
+        ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteBatchWrite,
+        "workspace_batch_builds_commands_then_calls_workspace_write_batch_intent_execute",
     ),
 ];
 

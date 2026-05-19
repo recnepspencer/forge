@@ -6,6 +6,7 @@ use super::types::{
     ForgeQueryIntentAdmissionPlanKind, ForgeQueryIntentAdmissionResultArtifact,
     ForgeQueryIntentAdmissionSurfaceDescriptor,
 };
+use crate::intent_admission::surface_catalog::*;
 use crate::intent_admission::ForgeQueryIntentAdmissionFamily;
 
 const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 14] = [
@@ -23,13 +24,13 @@ const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 14] = [
         ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation,
         ForgeQueryIntentAdmissionResultArtifact::ForgeQueryIntentReceipt,
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "ForgeQueryRawIntentAdmissionRequest::authoritative_runtime_entrypoint(...)",
+            AUTHORITATIVE_RUNTIME_RAW_ENTRYPOINT,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "runtime.intent(declaration).execute()",
+            AUTHORITATIVE_RUNTIME_COMMON_PATH,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "runtime.intent(declaration).review()?.admit()?.execute()",
+            AUTHORITATIVE_RUNTIME_ADVANCED_PATH,
         ),
     ),
     ForgeQueryIntentAdmissionCoverageRow::new(
@@ -46,13 +47,13 @@ const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 14] = [
         ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation,
         ForgeQueryIntentAdmissionResultArtifact::ForgeQueryEffectIntentReceipt,
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "ForgeQueryRawIntentAdmissionRequest::effect_runtime_entrypoint(...)",
+            EFFECT_RUNTIME_RAW_ENTRYPOINT,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "runtime.next_effect_write_intent(&effect, version, contract).execute()",
+            EFFECT_RUNTIME_COMMON_PATH,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "runtime.next_effect_write_intent(&effect, version, contract).review()?.admit()?.execute()",
+            EFFECT_RUNTIME_ADVANCED_PATH,
         ),
     ),
     ForgeQueryIntentAdmissionCoverageRow::new(
@@ -69,13 +70,13 @@ const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 14] = [
         ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation,
         ForgeQueryIntentAdmissionResultArtifact::ForgeQueryWriteReceipt,
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "ForgeQueryRawIntentAdmissionRequest::authoritative_write_entrypoint(...)",
+            AUTHORITATIVE_MUTATION_RAW_ENTRYPOINT,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "runtime.write_intent(command).execute(); workspace.write_intent(command).execute()",
+            AUTHORITATIVE_MUTATION_COMMON_PATHS,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "runtime.write_intent(command).review()?.admit()?.execute(); workspace.write_intent(command).review()?.admit()?.execute()",
+            AUTHORITATIVE_MUTATION_ADVANCED_PATHS,
         ),
     ),
     ForgeQueryIntentAdmissionCoverageRow::new(
@@ -92,13 +93,13 @@ const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 14] = [
         ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation,
         ForgeQueryIntentAdmissionResultArtifact::ForgeQueryBatchWriteReceipt,
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "ForgeQueryRawIntentAdmissionRequest::authoritative_write_batch_entrypoint(...)",
+            AUTHORITATIVE_MUTATION_BATCH_RAW_ENTRYPOINT,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "runtime.write_batch_intent(commands).execute(); workspace.write_batch_intent(commands).execute()",
+            AUTHORITATIVE_MUTATION_BATCH_COMMON_PATHS,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "runtime.write_batch_intent(commands).review()?.admit()?.execute(); workspace.write_batch_intent(commands).review()?.admit()?.execute()",
+            AUTHORITATIVE_MUTATION_BATCH_ADVANCED_PATHS,
         ),
     ),
     ForgeQueryIntentAdmissionCoverageRow::new(
@@ -117,13 +118,13 @@ const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 14] = [
         ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation,
         ForgeQueryIntentAdmissionResultArtifact::ScopedObservationBasis,
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "ForgeQueryRawIntentAdmissionRequest::basis_observation_lane(...)",
+            BASIS_OBSERVATION_RAW_ENTRYPOINT,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "forge_query_basis_observation_intent(raw).admit()",
+            BASIS_OBSERVATION_COMMON_PATH,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "forge_query_basis_observation_intent(raw).review()?.admit()",
+            BASIS_OBSERVATION_ADVANCED_PATH,
         ),
     ),
     ForgeQueryIntentAdmissionCoverageRow::new(
@@ -142,13 +143,13 @@ const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 14] = [
         ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation,
         ForgeQueryIntentAdmissionResultArtifact::MaterializedProjectionContract,
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "ForgeQueryRawIntentAdmissionRequest::projection_consumption(declaration)",
+            PROJECTION_CONSUMPTION_RAW_ENTRYPOINT,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "forge_query_projection_consumption_intent(declaration).admit()",
+            PROJECTION_CONSUMPTION_COMMON_PATH,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "forge_query_projection_consumption_intent(declaration).review()?.admit()",
+            PROJECTION_CONSUMPTION_ADVANCED_PATH,
         ),
     ),
     ForgeQueryIntentAdmissionCoverageRow::new(
@@ -165,13 +166,13 @@ const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 14] = [
         ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation,
         ForgeQueryIntentAdmissionResultArtifact::ForgeQueryReadResult,
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "ForgeQueryRawIntentAdmissionRequest::read_family_entrypoint(...)",
+            READ_EXECUTION_RAW_ENTRYPOINT,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "workspace.read_family_intent(&family).execute()",
+            READ_EXECUTION_COMMON_PATHS,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "workspace.read_family_intent(&family).review()?.admit()?.execute()",
+            READ_EXECUTION_ADVANCED_PATH,
         ),
     ),
     ForgeQueryIntentAdmissionCoverageRow::new(
@@ -188,13 +189,13 @@ const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 14] = [
         ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation,
         ForgeQueryIntentAdmissionResultArtifact::ForgeQueryReadResult,
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "ForgeQueryRawIntentAdmissionRequest::read_family_in_basis_context_entrypoint(...)",
+            READ_EXECUTION_BASIS_RAW_ENTRYPOINT,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "workspace.read_family_in_basis_context_intent(&family, &context).execute()",
+            READ_EXECUTION_BASIS_COMMON_PATHS,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "workspace.read_family_in_basis_context_intent(&family, &context).review()?.admit()?.execute()",
+            READ_EXECUTION_BASIS_ADVANCED_PATH,
         ),
     ),
     ForgeQueryIntentAdmissionCoverageRow::new(
@@ -211,13 +212,13 @@ const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 14] = [
         ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation,
         ForgeQueryIntentAdmissionResultArtifact::ForgeQueryLiveReadResult,
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "ForgeQueryRawIntentAdmissionRequest::live_read_entrypoint(...)",
+            LIVE_READ_RAW_ENTRYPOINT,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "workspace.read_live_intent(&view).execute()",
+            LIVE_READ_COMMON_PATHS,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "workspace.read_live_intent(&view).review()?.admit()?.execute()",
+            LIVE_READ_ADVANCED_PATH,
         ),
     ),
     ForgeQueryIntentAdmissionCoverageRow::new(
@@ -234,13 +235,13 @@ const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 14] = [
         ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation,
         ForgeQueryIntentAdmissionResultArtifact::ForgeQueryUnifiedInspectionResult,
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "ForgeQueryRawIntentAdmissionRequest::generic_inspection_entrypoint(...)",
+            UNIFIED_INSPECTION_RAW_ENTRYPOINT,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "workspace.inspect_intent(target).execute()",
+            UNIFIED_INSPECTION_COMMON_PATHS,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "workspace.inspect_intent(target).review()?.admit()?.execute()",
+            UNIFIED_INSPECTION_ADVANCED_PATH,
         ),
     ),
     ForgeQueryIntentAdmissionCoverageRow::new(
@@ -257,13 +258,13 @@ const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 14] = [
         ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation,
         ForgeQueryIntentAdmissionResultArtifact::ForgeQueryDerivedMaterializationResult,
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "ForgeQueryRawIntentAdmissionRequest::derived_materialization_entrypoint(...)",
+            DERIVED_MATERIALIZATION_RAW_ENTRYPOINT,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "workspace.materialize_intent(&view).execute()",
+            DERIVED_MATERIALIZATION_COMMON_PATHS,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "workspace.materialize_intent(&view).review()?.admit()?.execute()",
+            DERIVED_MATERIALIZATION_ADVANCED_PATH,
         ),
     ),
     ForgeQueryIntentAdmissionCoverageRow::new(
@@ -280,13 +281,13 @@ const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 14] = [
         ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation,
         ForgeQueryIntentAdmissionResultArtifact::ForgeQueryDerivedInspectionResult,
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "ForgeQueryRawIntentAdmissionRequest::derived_inspection_entrypoint(...)",
+            DERIVED_INSPECTION_RAW_ENTRYPOINT,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "workspace.inspect_derived_intent(&view).execute()",
+            DERIVED_INSPECTION_COMMON_PATHS,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "workspace.inspect_derived_intent(&view).review()?.admit()?.execute()",
+            DERIVED_INSPECTION_ADVANCED_PATH,
         ),
     ),
     ForgeQueryIntentAdmissionCoverageRow::new(
@@ -328,13 +329,13 @@ const INTENT_ADMISSION_ROWS: [ForgeQueryIntentAdmissionCoverageRow; 14] = [
         ForgeQueryIntentAdmissionDecisionClass::AdmissionOrExecutionViolation,
         ForgeQueryIntentAdmissionResultArtifact::ForgeQueryExistingTruthProbeResult,
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "ForgeQueryRawIntentAdmissionRequest::existing_truth_probe_entrypoint(...)",
+            EXISTING_TRUTH_PROBE_RAW_ENTRYPOINT,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "runtime.probe_existing_intent(request).execute(); workspace.probe_existing_intent(request).execute()",
+            EXISTING_TRUTH_PROBE_FAMILY_COMMON_PATHS,
         ),
         ForgeQueryIntentAdmissionSurfaceDescriptor::available(
-            "runtime.probe_existing_intent(request).review()?.admit()?.execute(); workspace.probe_existing_intent(request).review()?.admit()?.execute()",
+            EXISTING_TRUTH_PROBE_ADVANCED_PATHS,
         ),
     ),
 ];

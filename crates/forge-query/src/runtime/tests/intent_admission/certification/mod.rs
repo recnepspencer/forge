@@ -5,3 +5,5 @@ mod oracles;
 mod outputs;
 mod proof_shape;
 mod representative;
+mod slopes;
+mod topology;

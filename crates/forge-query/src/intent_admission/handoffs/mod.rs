@@ -1,8 +1,42 @@
+mod bindings;
 mod inspection;
 mod mutation;
 mod read;
 mod routing;
 mod unified_inspection;
+
+pub(crate) const INTENT_ADMISSION_HANDOFFS_MODULE_ROOT: &str = "intent_admission/handoffs/mod.rs";
+pub(crate) const INTENT_ADMISSION_HANDOFFS_CHILD_MODULES: &[&str] = &[
+    "bindings",
+    "inspection",
+    "mutation",
+    "read",
+    "routing",
+    "unified_inspection",
+];
+pub(crate) const INTENT_ADMISSION_HANDOFFS_EXPORTED_SURFACE: &[&str] = &[
+    "ForgeQueryAuthoritativeIntentExecutionBinding",
+    "ForgeQueryAuthoritativeMutationBatchExecutionBinding",
+    "ForgeQueryAuthoritativeMutationExecutionBinding",
+    "ForgeQueryDerivedInspectionExecutionBinding",
+    "ForgeQueryDerivedMaterializationExecutionBinding",
+    "ForgeQueryEffectTriggeredIntentExecutionBinding",
+    "ForgeQueryExistingTruthProbeExecutionBinding",
+    "ForgeQueryLiveReadExecutionBinding",
+    "ForgeQueryReadExecutionBinding",
+    "ForgeQueryUnifiedInspectionExecutionBinding",
+    "ForgeQueryDerivedInspectionExecutionHandoff",
+    "ForgeQueryDerivedMaterializationExecutionHandoff",
+    "ForgeQueryAuthoritativeMutationBatchExecutionHandoff",
+    "ForgeQueryAuthoritativeMutationExecutionHandoff",
+    "ForgeQueryLiveReadExecutionHandoff",
+    "ForgeQueryReadExecutionHandoff",
+    "ForgeQueryExistingTruthProbeExecutionHandoff",
+    "ForgeQueryUnifiedInspectionExecutionHandoff",
+    "ForgeQueryAuthoritativeIntentExecutionHandoff",
+    "ForgeQueryEffectTriggeredIntentExecutionHandoff",
+    "ForgeQueryAdmittedIntentExecutionHandoff",
+];
 
 use crate::identity::hash_parts;
 use crate::runtime::{
@@ -15,6 +49,15 @@ use super::{
     ForgeQueryEffectTriggeredIntentExecutionPlan, ForgeQueryIntentAdmissionCoveredEntrypoint,
     ForgeQueryIntentAdmissionExecutionSeam, ForgeQueryIntentAdmissionFamily,
     ForgeQueryIntentEligibilityTraceEvidence, ForgeQueryIntentViolationDecision,
+};
+pub use bindings::{
+    ForgeQueryAuthoritativeIntentExecutionBinding,
+    ForgeQueryAuthoritativeMutationBatchExecutionBinding,
+    ForgeQueryAuthoritativeMutationExecutionBinding, ForgeQueryDerivedInspectionExecutionBinding,
+    ForgeQueryDerivedMaterializationExecutionBinding,
+    ForgeQueryEffectTriggeredIntentExecutionBinding, ForgeQueryExistingTruthProbeExecutionBinding,
+    ForgeQueryLiveReadExecutionBinding, ForgeQueryReadExecutionBinding,
+    ForgeQueryUnifiedInspectionExecutionBinding,
 };
 pub use inspection::{
     ForgeQueryDerivedInspectionExecutionHandoff, ForgeQueryDerivedMaterializationExecutionHandoff,

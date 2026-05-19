@@ -37,18 +37,6 @@ impl WorkflowCounters {
     pub fn workflow_executor_rediscovery_count(&self) -> usize {
         self.workflow_executor_rediscovery_count
     }
-
-    #[cfg(test)]
-    #[allow(dead_code)]
-    pub(crate) fn absorb(&mut self, other: &Self) {
-        self.workflow_declaration_count += other.workflow_declaration_count;
-        self.workflow_basis_binding_count += other.workflow_basis_binding_count;
-        self.workflow_basis_binding_width += other.workflow_basis_binding_width;
-        self.workflow_authority_target_check_count += other.workflow_authority_target_check_count;
-        self.workflow_denial_count += other.workflow_denial_count;
-        self.workflow_broadening_denial_count += other.workflow_broadening_denial_count;
-        self.workflow_executor_rediscovery_count += other.workflow_executor_rediscovery_count;
-    }
 }
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]

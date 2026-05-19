@@ -56,7 +56,7 @@ fn actual_admitted_parts(
         fixture
             .request
             .runtime_declaration()
-            .expect("runtime floor oracle rows still use runtime declarations")
+            .expect("intent-admission oracle rows still use runtime declarations")
             .source_lane()
             .as_str()
             .to_string(),
@@ -130,7 +130,7 @@ fn actual_advisory_parts(
         fixture
             .request
             .runtime_declaration()
-            .expect("runtime floor oracle rows still use runtime declarations")
+            .expect("intent-admission oracle rows still use runtime declarations")
             .source_lane()
             .as_str()
             .to_string(),
@@ -203,7 +203,7 @@ fn actual_violation_parts(
         fixture
             .request
             .runtime_declaration()
-            .expect("runtime floor oracle rows still use runtime declarations")
+            .expect("intent-admission oracle rows still use runtime declarations")
             .source_lane()
             .as_str()
             .to_string(),
@@ -276,7 +276,7 @@ fn actual_deferred_parts(
         fixture
             .request
             .runtime_declaration()
-            .expect("runtime floor oracle rows still use runtime declarations")
+            .expect("intent-admission oracle rows still use runtime declarations")
             .source_lane()
             .as_str()
             .to_string(),
@@ -349,7 +349,7 @@ fn actual_unsupported_parts(
         fixture
             .request
             .runtime_declaration()
-            .expect("runtime floor oracle rows still use runtime declarations")
+            .expect("intent-admission oracle rows still use runtime declarations")
             .source_lane()
             .as_str()
             .to_string(),

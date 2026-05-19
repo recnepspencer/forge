@@ -1,8 +1,8 @@
 use super::*;
 
 #[test]
-fn runtime_floor_certification_proof_shape_audit_freezes_shared_phase_progressions() {
-    let bundle = certify_intent_admission_runtime_floor();
+fn intent_admission_certification_proof_shape_audit_freezes_shared_phase_progressions() {
+    let bundle = certify_intent_admission();
     let audit = bundle.proof_shape_audit();
 
     assert_eq!(

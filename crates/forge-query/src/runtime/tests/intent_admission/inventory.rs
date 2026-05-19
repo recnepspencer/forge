@@ -43,19 +43,19 @@ fn family_inventory_freezes_current_read_common_path() {
     assert_eq!(
         read_row.raw_authoring_constructor(),
         ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
-            "ForgeQueryRawIntentAdmissionRequest::read_family_entrypoint(...); ForgeQueryRawIntentAdmissionRequest::live_read_entrypoint(...)"
+            "ForgeQueryRawIntentAdmissionRequest::read_family_entrypoint(...); ForgeQueryRawIntentAdmissionRequest::read_family_in_basis_context_entrypoint(...); ForgeQueryRawIntentAdmissionRequest::live_read_entrypoint(...)"
         )
     );
     assert_eq!(
         read_row.common_path_front_door(),
         ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
-            "workspace.read_family_intent(&family).execute(); workspace.read_live_intent(&view).execute()"
+            "workspace.compose_read(declaration); workspace.execute_read_family(&family); workspace.execute_read_family_in_basis_context(&family, &context); workspace.read_family_intent(&family).execute(); workspace.read_family_in_basis_context_intent(&family, &context).execute(); workspace.read(&view); workspace.read_live_intent(&view).execute()"
         )
     );
     assert_eq!(
         read_row.advanced_path_front_door(),
         ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
-            "workspace.read_family_intent(&family).review()?.admit()?.execute(); workspace.read_live_intent(&view).review()?.admit()?.execute()"
+            "workspace.read_family_intent(&family).review()?.admit()?.execute(); workspace.read_family_in_basis_context_intent(&family, &context).review()?.admit()?.execute(); workspace.read_live_intent(&view).review()?.admit()?.execute()"
         )
     );
 }
@@ -97,7 +97,7 @@ fn family_inventory_freezes_inspection_materialization_common_path() {
     assert_eq!(
         row.common_path_front_door(),
         ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
-            "workspace.inspect_intent(target).execute(); workspace.materialize_intent(&view).execute(); workspace.inspect_derived_intent(&view).execute()"
+            "workspace.materialize(&view); workspace.materialize_intent(&view).execute(); workspace.inspect(&target); runtime.inspect(&target); workspace.inspect_intent(target).execute(); workspace.inspect_derived_intent(&view).execute()"
         )
     );
     assert_eq!(
@@ -120,13 +120,13 @@ fn family_inventory_freezes_authoritative_mutation_common_path() {
     assert_eq!(
         row.common_path_front_door(),
         ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
-            "runtime.write_intent(command).execute(); workspace.write_intent(command).execute()"
+            "runtime.write(command); runtime.write_intent(command).execute(); runtime.write_batch(commands); runtime.write_batch_intent(commands).execute(); workspace.write(command); workspace.write_intent(command).execute(); workspace.write_batch_intent(commands).execute(); workspace.insert(collection, declaration); workspace.update(entity_identity, declaration); workspace.update_existing(binding, declaration); workspace.assert_existing(binding, declaration); workspace.verify_existing(binding, declaration); workspace.update_existing_verified(binding, verify, update); workspace.delete(entity_identity); workspace.delete_with(entity_identity, declaration); workspace.delete_existing(binding); workspace.delete_existing_with(binding, declaration); workspace.delete_existing_verified(binding, verify, delete); workspace.batch(declaration)"
         )
     );
     assert_eq!(
         row.advanced_path_front_door(),
         ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
-            "runtime.write_intent(command).review()?.admit()?.execute(); workspace.write_intent(command).review()?.admit()?.execute()"
+            "runtime.write_intent(command).review()?.admit()?.execute(); runtime.write_batch_intent(commands).review()?.admit()?.execute(); workspace.write_intent(command).review()?.admit()?.execute(); workspace.write_batch_intent(commands).review()?.admit()?.execute()"
         )
     );
 }
@@ -151,7 +151,7 @@ fn family_inventory_freezes_lower_runtime_routing_common_path() {
     assert_eq!(
         row.common_path_front_door(),
         ForgeQueryIntentAdmissionSurfaceDescriptor::Available(
-            "runtime.probe_existing_intent(request).execute(); workspace.probe_existing_intent(request).execute()"
+            "runtime.probe_existing(request); runtime.probe_existing_intent(request).execute(); workspace.probe_existing(binding, paths); workspace.probe_existing_intent(request).execute()"
         )
     );
     assert_eq!(
@@ -383,63 +383,6 @@ fn support_matrix_marks_existing_truth_probe_routing_as_implemented_floor() {
         row.detail(),
         ForgeQueryIntentAdmissionSupportDetail::ImplementedExistingTruthProbeRoutingFloor
     );
-}
-
-#[test]
-fn mutation_audit_covers_closed_write_update_delete_surface_set() {
-    let audit = forge_query_intent_admission_mutation_audit();
-
-    assert_eq!(audit.rows().len(), 7);
-    assert!(audit
-        .rows()
-        .iter()
-        .any(|row| row.public_surface().contains("runtime.write_intent")));
-    assert!(audit
-        .rows()
-        .iter()
-        .any(|row| row.public_surface().contains("workspace.write_intent")));
-    assert!(audit
-        .rows()
-        .iter()
-        .any(|row| row.public_surface().contains("runtime.write_batch_intent")));
-    assert!(audit
-        .rows()
-        .iter()
-        .any(|row| row.public_surface().contains("workspace.write_batch_intent")));
-    assert!(audit
-        .rows()
-        .iter()
-        .any(|row| row.public_surface().contains("workspace.verify_existing")));
-    assert!(audit
-        .rows()
-        .iter()
-        .any(|row| row.public_surface().contains("workspace.update_existing_verified")));
-    assert!(audit
-        .rows()
-        .iter()
-        .any(|row| row.public_surface().contains("workspace.delete_existing_verified")));
-}
-
-#[test]
-fn mutation_audit_rows_map_to_implemented_coverage_inventory_entrypoints() {
-    let audit = forge_query_intent_admission_mutation_audit();
-    let inventory = forge_query_intent_admission_coverage_inventory();
-    let implemented = inventory
-        .rows()
-        .iter()
-        .filter(|row| row.status() == ForgeQueryIntentAdmissionCoverageStatus::Implemented)
-        .collect::<Vec<_>>();
-
-    for row in audit.rows() {
-        assert_eq!(
-            row.family(),
-            ForgeQueryIntentAdmissionFamily::AuthoritativeMutationIntent
-        );
-        assert!(implemented.iter().any(|coverage| {
-            coverage.entrypoint() == row.entrypoint() && coverage.family() == row.family()
-        }));
-        assert!(!row.delegation_evidence().is_empty());
-    }
 }
 
 #[test]

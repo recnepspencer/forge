@@ -1,9 +1,9 @@
-#![allow(dead_code)]
 
 use forge_query::facade::{
-    ForgeQueryExistingTruthProbeRequest, ForgeQueryRuntime, ForgeQueryRuntimeError,
-    ForgeQueryWorkspace,
+    ForgeQueryExistingTruthProbeRequest, ForgeQueryLiveView, ForgeQueryRuntime,
+    ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
+use serde_json::Value;
 
 fn mutation_common_path(
     runtime: &mut ForgeQueryRuntime,
@@ -23,13 +23,10 @@ fn live_read_common_path<T>(
     Ok(())
 }
 
-fn inspection_common_path<T>(
-    workspace: &mut ForgeQueryWorkspace,
-    target: &T,
-) -> Result<(), ForgeQueryRuntimeError>
-where
-    T: forge_query::facade::ForgeQueryInspectionTarget + ?Sized,
-{
+fn inspection_common_path(
+    workspace: &ForgeQueryWorkspace,
+    target: &ForgeQueryLiveView<Value>,
+) -> Result<(), ForgeQueryRuntimeError> {
     let inspection_result = workspace.inspect_intent(target).execute()?;
     let _ = inspection_result.receipt().decision_trace_envelope();
     Ok(())

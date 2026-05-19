@@ -1,26 +1,30 @@
 mod basis_projection;
 mod bridge;
+mod effect;
 mod inspection;
 mod neighbors;
 mod read;
+mod routing;
 mod runtime;
 
 use serde_json::json;
 
 pub(in crate::intent_admission::certification) use basis_projection::{
     certified_basis_observation_intent_fixture, certified_projection_consumption_admitted_fixture,
-    certified_projection_consumption_warning_fixture, CertifiedBasisObservationIntentFixture,
-    CertifiedProjectionConsumptionAdmittedFixture, CertifiedProjectionConsumptionWarningFixture,
+    certified_projection_consumption_warning_fixture,
 };
-pub(in crate::intent_admission::certification) use inspection::{
-    certified_inspection_advisory_redaction_fixture, CertifiedInspectionAdvisoryRedactionFixture,
-};
+pub(in crate::intent_admission::certification) use effect::certified_effect_intent_fixture;
+pub(in crate::intent_admission::certification) use inspection::certified_inspection_advisory_redaction_fixture;
 pub(in crate::intent_admission::certification) use neighbors::{
     certified_deferred_intent_fixture, certified_unsupported_intent_fixture,
     CertifiedDeferredIntentFixture, CertifiedUnsupportedIntentFixture,
 };
 pub(in crate::intent_admission::certification) use read::{
     certified_read_intent_fixture, read_delegation_parity_fixture, CertifiedReadIntentFixture,
+};
+pub(in crate::intent_admission::certification) use routing::{
+    certified_routing_intent_fixture, routing_delegation_parity_fixture,
+    CertifiedRoutingIntentFixture, RoutingDelegationParityFixture,
 };
 pub(in crate::intent_admission::certification) use runtime::{
     certification_runtime, certification_runtime_with_invariant_violation_authority,

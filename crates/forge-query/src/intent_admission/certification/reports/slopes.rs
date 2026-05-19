@@ -2,9 +2,15 @@ use crate::identity::hash_parts;
 
 use super::super::fixtures::{
     certified_admitted_intent_fixture, certified_advisory_intent_fixture,
-    certified_violation_intent_fixture,
+    certified_failure_intent_fixture, certified_read_intent_fixture,
+    certified_violation_intent_fixture, legacy_delegation_parity_fixture,
 };
 use super::forge_query_intent_admission_legacy_parity_report;
+use super::forge_query_intent_admission_representative_family_report;
+use super::slope_runs::{
+    lane_width_runs, slope_digest, ForgeQueryIntentAdmissionSlopeLane,
+    ForgeQueryIntentAdmissionWidthRunRow,
+};
 use crate::intent_admission::{
     forge_query_intent_admission_coverage_inventory, forge_query_intent_admission_family_inventory,
     forge_query_intent_admission_support_matrix,
@@ -44,6 +50,7 @@ impl ForgeQueryIntentAdmissionCertificationCounterSnapshot {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryIntentAdmissionSlopeReport {
     counter_snapshot: ForgeQueryIntentAdmissionCertificationCounterSnapshot,
+    width_runs: Vec<ForgeQueryIntentAdmissionWidthRunRow>,
     admission_classification_slope_digest: String,
     decision_trace_assembly_slope_digest: String,
     decision_support_lookup_slope_digest: String,
@@ -56,6 +63,10 @@ pub struct ForgeQueryIntentAdmissionSlopeReport {
 impl ForgeQueryIntentAdmissionSlopeReport {
     pub fn counter_snapshot(&self) -> &ForgeQueryIntentAdmissionCertificationCounterSnapshot {
         &self.counter_snapshot
+    }
+
+    pub fn width_runs(&self) -> &[ForgeQueryIntentAdmissionWidthRunRow] {
+        &self.width_runs
     }
 
     pub fn admission_classification_slope_digest(&self) -> &str {
@@ -91,26 +102,42 @@ pub fn forge_query_intent_admission_slope_report() -> ForgeQueryIntentAdmissionS
     let admitted = certified_admitted_intent_fixture();
     let advisory = certified_advisory_intent_fixture();
     let violation = certified_violation_intent_fixture();
+    let failure = certified_failure_intent_fixture();
+    let read = certified_read_intent_fixture();
     let family_inventory = forge_query_intent_admission_family_inventory();
     let coverage_inventory = forge_query_intent_admission_coverage_inventory();
     let support_matrix = forge_query_intent_admission_support_matrix();
     let parity_report = forge_query_intent_admission_legacy_parity_report();
+    let representative_family_report = forge_query_intent_admission_representative_family_report();
+    let parity_fixture = legacy_delegation_parity_fixture();
+
     let decision_trace_width = [
         admitted.trace.rows().len(),
         advisory.trace.rows().len(),
         violation.trace.rows().len(),
+        failure.trace.rows().len(),
+        read.trace.rows().len(),
     ]
     .into_iter()
     .max()
     .expect("certified traces should exist");
-    let execution_provenance_width = 6;
+    let execution_provenance_components = execution_provenance_components(
+        admitted.receipt.execution_provenance_chain_digest(),
+        &failure.execution_provenance_chain_digest,
+        read.result
+            .receipt()
+            .execution_provenance_chain_digest()
+            .unwrap_or("missing-read-provenance"),
+        admitted.binding.binding_digest(),
+        read.binding.binding_digest(),
+    );
     let counter_snapshot = ForgeQueryIntentAdmissionCertificationCounterSnapshot {
         intent_family_lookup_width: family_inventory.rows().len(),
         covered_entrypoint_lookup_width: coverage_inventory.rows().len(),
         decision_trace_width,
-        execution_provenance_width,
+        execution_provenance_width: execution_provenance_components.len(),
         digest: hash_parts(&[
-            "forge_query_intent_admission_counter_snapshot_v1".to_string(),
+            "forge_query_intent_admission_counter_snapshot_v2".to_string(),
             format!(
                 "intent_family_lookup_width:{}",
                 family_inventory.rows().len()
@@ -120,49 +147,181 @@ pub fn forge_query_intent_admission_slope_report() -> ForgeQueryIntentAdmissionS
                 coverage_inventory.rows().len()
             ),
             format!("decision_trace_width:{decision_trace_width}"),
-            format!("execution_provenance_width:{execution_provenance_width}"),
+            format!(
+                "execution_provenance_width:{}",
+                execution_provenance_components.len()
+            ),
         ]),
     };
+
+    let width_runs = [
+        lane_width_runs(
+            ForgeQueryIntentAdmissionSlopeLane::AdmissionClassification,
+            family_inventory
+                .rows()
+                .iter()
+                .map(|row| row.family().as_str().to_string())
+                .collect(),
+        ),
+        lane_width_runs(
+            ForgeQueryIntentAdmissionSlopeLane::DecisionTraceAssembly,
+            admitted
+                .trace
+                .rows()
+                .iter()
+                .chain(advisory.trace.rows().iter())
+                .chain(violation.trace.rows().iter())
+                .chain(failure.trace.rows().iter())
+                .chain(read.trace.rows().iter())
+                .map(|row| row.row_digest().to_string())
+                .collect(),
+        ),
+        lane_width_runs(
+            ForgeQueryIntentAdmissionSlopeLane::DecisionSupportLookup,
+            support_matrix
+                .rows()
+                .iter()
+                .map(|row| {
+                    format!(
+                        "{}:{}:{}",
+                        row.family().as_str(),
+                        row.entrypoint().as_str(),
+                        row.detail().as_str()
+                    )
+                })
+                .collect(),
+        ),
+        lane_width_runs(
+            ForgeQueryIntentAdmissionSlopeLane::CoveredEntrypointInventory,
+            coverage_inventory
+                .rows()
+                .iter()
+                .map(|row| {
+                    format!(
+                        "{}:{}:{}",
+                        row.family().as_str(),
+                        row.entrypoint().as_str(),
+                        row.execution_boundary().as_str()
+                    )
+                })
+                .collect(),
+        ),
+        lane_width_runs(
+            ForgeQueryIntentAdmissionSlopeLane::ExecutionProvenanceAssembly,
+            execution_provenance_components,
+        ),
+        lane_width_runs(
+            ForgeQueryIntentAdmissionSlopeLane::LegacyDelegationParity,
+            parity_report
+                .rows()
+                .iter()
+                .zip([
+                    parity_fixture
+                        .authoritative_legacy
+                        .receipt_digest()
+                        .to_string(),
+                    parity_fixture
+                        .effect_legacy
+                        .intent_receipt()
+                        .receipt_digest()
+                        .to_string(),
+                    parity_fixture
+                        .read_current_legacy
+                        .receipt()
+                        .result_digest()
+                        .to_string(),
+                    parity_fixture
+                        .read_basis_legacy
+                        .receipt()
+                        .result_digest()
+                        .to_string(),
+                ])
+                .map(|(row, result_digest)| format!("{}:{result_digest}", row.row_digest()))
+                .collect(),
+        ),
+        lane_width_runs(
+            ForgeQueryIntentAdmissionSlopeLane::DecisionCertificationCoverage,
+            family_inventory
+                .rows()
+                .iter()
+                .map(|row| format!("family:{}", row.family().as_str()))
+                .chain(
+                    coverage_inventory
+                        .rows()
+                        .iter()
+                        .map(|row| format!("coverage:{}", row.entrypoint().as_str())),
+                )
+                .chain(
+                    support_matrix
+                        .rows()
+                        .iter()
+                        .map(|row| format!("support:{}", row.entrypoint().as_str())),
+                )
+                .chain(
+                    parity_report
+                        .rows()
+                        .iter()
+                        .map(|row| format!("parity:{}", row.row_digest())),
+                )
+                .chain(
+                    representative_family_report
+                        .rows()
+                        .iter()
+                        .map(|row| format!("representative:{}", row.row_digest())),
+                )
+                .collect(),
+        ),
+    ]
+    .into_iter()
+    .flatten()
+    .collect::<Vec<_>>();
+
     ForgeQueryIntentAdmissionSlopeReport {
         counter_snapshot,
-        admission_classification_slope_digest: width_slope_digest(
-            "admission_classification",
-            family_inventory.rows().len(),
+        admission_classification_slope_digest: slope_digest(
+            &width_runs,
+            ForgeQueryIntentAdmissionSlopeLane::AdmissionClassification,
         ),
-        decision_trace_assembly_slope_digest: width_slope_digest(
-            "decision_trace_assembly",
-            decision_trace_width,
+        decision_trace_assembly_slope_digest: slope_digest(
+            &width_runs,
+            ForgeQueryIntentAdmissionSlopeLane::DecisionTraceAssembly,
         ),
-        decision_support_lookup_slope_digest: width_slope_digest(
-            "decision_support_lookup",
-            support_matrix.rows().len(),
+        decision_support_lookup_slope_digest: slope_digest(
+            &width_runs,
+            ForgeQueryIntentAdmissionSlopeLane::DecisionSupportLookup,
         ),
-        covered_entrypoint_inventory_slope_digest: width_slope_digest(
-            "covered_entrypoint_inventory",
-            coverage_inventory.rows().len(),
+        covered_entrypoint_inventory_slope_digest: slope_digest(
+            &width_runs,
+            ForgeQueryIntentAdmissionSlopeLane::CoveredEntrypointInventory,
         ),
-        execution_provenance_assembly_slope_digest: width_slope_digest(
-            "execution_provenance_assembly",
-            execution_provenance_width,
+        execution_provenance_assembly_slope_digest: slope_digest(
+            &width_runs,
+            ForgeQueryIntentAdmissionSlopeLane::ExecutionProvenanceAssembly,
         ),
-        legacy_delegation_parity_slope_digest: width_slope_digest(
-            "legacy_delegation_parity",
-            parity_report.rows().len(),
+        legacy_delegation_parity_slope_digest: slope_digest(
+            &width_runs,
+            ForgeQueryIntentAdmissionSlopeLane::LegacyDelegationParity,
         ),
-        decision_certification_coverage_slope_digest: width_slope_digest(
-            "decision_certification_coverage",
-            family_inventory.rows().len()
-                + coverage_inventory.rows().len()
-                + support_matrix.rows().len()
-                + parity_report.rows().len(),
+        decision_certification_coverage_slope_digest: slope_digest(
+            &width_runs,
+            ForgeQueryIntentAdmissionSlopeLane::DecisionCertificationCoverage,
         ),
+        width_runs,
     }
 }
 
-fn width_slope_digest(label: &'static str, width: usize) -> String {
-    hash_parts(
-        &(1..=width)
-            .map(|current| format!("label:{label}:width:{current}"))
-            .collect::<Vec<_>>(),
-    )
+fn execution_provenance_components(
+    admitted_receipt_digest: &str,
+    failure_digest: &str,
+    read_digest: &str,
+    admitted_binding_digest: &str,
+    read_binding_digest: &str,
+) -> Vec<String> {
+    vec![
+        admitted_receipt_digest.to_string(),
+        failure_digest.to_string(),
+        read_digest.to_string(),
+        admitted_binding_digest.to_string(),
+        read_binding_digest.to_string(),
+    ]
 }

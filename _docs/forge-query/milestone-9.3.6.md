@@ -76,6 +76,28 @@ Milestones 9.3.1 through 9.3.5 already established real Query-owned lifecycles:
 
 What remains open is the lower-runtime contact story after admission.
 
+The baseline for this milestone is the post-Phase-5.5 form of 9.3.5, not the
+earlier "runtime floor" interpretation of that milestone.
+
+That baseline matters because 9.3.5 no longer stops at representative family
+closure. It is expected to close concrete adoption for:
+
+- named read-execution entrypoints rather than deferred read neighbors
+- named inspection and diagnostic-materialization entrypoints rather than
+  representative advisory-only posture
+- a checked mutation-entrypoint audit proving public write/update/delete
+  surfaces delegate through authoritative intent
+- basis-use and projection-consumption as first-class adopted families in DX,
+  inventory, and certification
+- the pre-9.3.6 lower-runtime capability-routing family on concrete supported
+  authoring surfaces where real bridge-backed execution semantics already
+  exist
+
+9.3.6 therefore does not get to rediscover whether those families are adopted.
+It inherits them as concrete covered surfaces and is responsible only for the
+lower-runtime crossing story that remains after their admission and handoff
+model is already canonical.
+
 Today Query still contains several specialist seams where code reaches directly
 into runtime bridge, relational, or signal facades for real work. Some of those
 seams are honest adapters. Some are migration residue. Some exist because a
@@ -135,6 +157,9 @@ This milestone exists to make that impossible.
   row bags.
 - `milestone-9.3.5.md`: lower-runtime execution must consume admitted plans and
   typed handoffs, not rediscover admission from raw requests.
+- `milestone-9.3.5.md` Phase 5.5: 9.3.6 inherits a concrete covered-entrypoint
+  inventory, mutation delegation audit, and adopted read/inspection/routing
+  families rather than an earlier runtime-floor-only baseline.
 - `runtime-api-public-stabilization-plan.md`: the public runtime API may freeze
   only after lower-runtime contact stops depending on implementation-colored
   convenience seams.
@@ -193,6 +218,23 @@ In particular, 9.3.6 fails if it:
 - `forge-store` remains deferred for store-backed route parity, durable route
   replay, and persisted boundary artifacts.
 
+- 9.3.6 inherits these predecessor facts from 9.3.5 and must treat them as
+  settled input rather than open design questions:
+  - covered read execution is already adopted on named public entrypoints
+  - covered inspection and diagnostic-materialization is already adopted on
+    named public entrypoints
+  - covered mutation-shaped public entrypoints have already been audited for
+    authoritative-intent delegation
+  - basis-use and projection-consumption are already first-class adopted
+    families in the public admission lattice
+  - the pre-9.3.6 lower-runtime capability-routing family already exists as an
+    admitted/deferred family vocabulary on concrete public surfaces
+- because those predecessor facts are settled, 9.3.6 may not reopen whether a
+  covered family belongs in the shared lattice. It may only decide how the
+  already-adopted family crosses into lower-runtime authority, whether an
+  existing lower-runtime facade is sufficient, and which seams are true missing
+  contracts versus forbidden duplicates.
+
 9.3.6 introduces one default rule for specialist seams:
 
 - if Query reaches through to a lower-runtime specialist surface, the burden is
@@ -225,6 +267,22 @@ No in-scope seam may remain `CompatibilityDebtLane` at closeout.
 
 9.3.6 is not "inventory every API in four crates." Its implementation scope is
 the concrete Query-to-lower-runtime crossings that already exist today.
+
+Its inventory source is also locked now:
+
+- the primary source of covered ordinary surfaces is the concrete
+  covered-entrypoint inventory finalized by 9.3.5, especially the rows added
+  or strengthened by Phase 5.5
+- 9.3.6 may extend that inventory only to classify the remaining
+  lower-runtime-specialist seams required to execute, materialize, activate,
+  or route those already-covered families
+- 9.3.6 must not create a second drifting notion of "covered family" that
+  disagrees with the 9.3.5 inventory, support matrix, DX examples, or crate
+  documentation
+- if 9.3.6 finds a mismatch between its seam inventory and the inherited 9.3.5
+  covered-entrypoint inventory, the mismatch must be resolved explicitly in the
+  spec or by updating the predecessor inventory first; silent reinterpretation
+  is forbidden
 
 In scope for this milestone:
 
@@ -1270,6 +1328,11 @@ Purpose:
 identify every current Query-to-lower-runtime crossing before any cleanup work
 can hide it.
 
+This phase starts from inherited 9.3.5 truth. It does not re-prove which
+families are adopted or re-audit whether mutation-shaped public entrypoints
+delegate through authoritative intent. It imports those predecessor facts and
+classifies only the lower-runtime crossing seams that remain.
+
 Phase owns these rows:
 
 - all rows in the locked covered crossing table
@@ -1280,12 +1343,15 @@ Phase owns these rows:
 
 Work to complete in order:
 
-1. enumerate all covered crossing families and concrete covered seams
-2. classify each row as reuse, adapter, debt, deferred neighbor, or forbidden
+1. import the inherited 9.3.5 covered-entrypoint inventory and mutation
+   delegation audit results as predecessor inputs
+2. enumerate all covered crossing families and concrete covered seams that
+   remain relevant at the lower-runtime boundary
+3. classify each row as reuse, adapter, debt, deferred neighbor, or forbidden
    duplicate
-3. mark each row as route-planning or readmission/handoff
-4. record current returned artifact strength and missing contract fields
-5. add executable coverage so no row can disappear socially
+4. mark each row as route-planning or readmission/handoff
+5. record current returned artifact strength and missing contract fields
+6. add executable coverage so no row can disappear socially
 
 Required code moves:
 
@@ -1316,6 +1382,12 @@ Completion gate:
 Purpose:
 remove seams that exist only because Query historically reached through for
 convenience.
+
+This phase also has a hard non-goal: it must not reopen the 9.3.5 question of
+whether write/update/delete public entrypoints delegate through authoritative
+intent. That delegation audit is inherited. Phase 2 only verifies that the
+already-adopted routed lanes do not fan back out into stray lower-runtime
+execution paths after admission.
 
 Phase owns these rows:
 

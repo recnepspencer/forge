@@ -25,15 +25,4 @@ impl MilestoneFiveLiveCertificationAdapter {
             rejection_rows: rejection_rows::rejection_rows(),
         }
     }
-
-    #[allow(dead_code)]
-    pub fn live_query_patch_policy_certification_artifact() -> MilestoneFiveLiveCertificationArtifact
-    {
-        Self::live_promotion_convergence_and_suppression_certification_artifact()
-    }
-
-    #[allow(dead_code)]
-    pub fn live_query_patch_policy_test() -> LiveCertificationMatrix {
-        Self::live_promotion_convergence_and_suppression_test()
-    }
 }

@@ -33,7 +33,7 @@ crates/forge-query/src/collection/mod.rs
 crates/forge-query/src/correspondence/resolution.rs
 crates/forge-query/src/correspondence/tests.rs
 crates/forge-query/src/declarative_live.rs
-crates/forge-query/src/frontier_planning/mod.rs
+crates/forge-query/src/frontier_planning/testing.rs
 crates/forge-query/src/frontier_signal_adapter.rs
 crates/forge-query/src/harness/aspect_api_finalization_certification/rows.rs
 crates/forge-query/src/harness/fixtures/canonical_bundles.rs

@@ -18,6 +18,10 @@ pub use bundle::{
     certify_projection_consumption_closeout_core, ProjectionConsumptionCertificationBundle,
     ProjectionConsumptionCertificationLane, ProjectionConsumptionCertificationRow,
 };
+pub(crate) use fixtures::{
+    intent_admission_admitted_projection_declaration,
+    intent_admission_warning_projection_declaration,
+};
 #[cfg(test)]
 pub(crate) use proof_artifacts::{
     compile_fail_boundary_bundle_digest, golden_transcript_bundle_digest,
@@ -29,9 +33,6 @@ pub use proof_shape::{
     ProjectionConsumptionProofShapeEnforcement, ProjectionConsumptionProofShapeViolation,
 };
 pub use slopes::ProjectionConsumptionCertificationCounterSnapshot;
-pub(crate) use fixtures::{
-    intent_admission_admitted_projection_declaration, intent_admission_warning_projection_declaration,
-};
 pub use support_matrix::{
     projection_consumption_family_inventory, projection_consumption_support_matrix,
     ProjectionConsumptionFamilyInventory, ProjectionConsumptionFamilyInventoryRow,

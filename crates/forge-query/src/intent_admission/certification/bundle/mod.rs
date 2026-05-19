@@ -8,6 +8,7 @@ use super::audits::{
 use super::oracles::{
     forge_query_intent_admission_oracle_report, ForgeQueryIntentAdmissionOracleReport,
 };
+use super::output_manifest::forge_query_intent_admission_certification_output_manifest;
 use super::reports::{
     forge_query_intent_admission_doc_example_report,
     forge_query_intent_admission_legacy_parity_report,
@@ -51,6 +52,7 @@ impl ForgeQueryIntentAdmissionCertificationOutput {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryIntentAdmissionCertificationBundle {
+    output_manifest: Vec<&'static str>,
     family_inventory: ForgeQueryIntentAdmissionFamilyInventory,
     coverage_inventory: ForgeQueryIntentAdmissionCoverageInventory,
     support_matrix: ForgeQueryIntentAdmissionSupportMatrix,
@@ -86,6 +88,7 @@ impl ForgeQueryIntentAdmissionCertificationBundle {
         seeded_report: ForgeQueryIntentAdmissionSeededCertificationReport,
         slope_report: ForgeQueryIntentAdmissionSlopeReport,
     ) -> Self {
+        let output_manifest = forge_query_intent_admission_certification_output_manifest().to_vec();
         let output_specs = assemble_certification_outputs(
             &family_inventory,
             &coverage_inventory,
@@ -102,6 +105,7 @@ impl ForgeQueryIntentAdmissionCertificationBundle {
             &seeded_report,
             &slope_report,
         );
+        validate_output_manifest(&output_manifest, &output_specs);
         let certification_bundle_digest = certification_bundle_digest(&output_specs);
         let outputs = output_specs
             .iter()
@@ -113,6 +117,7 @@ impl ForgeQueryIntentAdmissionCertificationBundle {
             })
             .collect::<Vec<_>>();
         Self {
+            output_manifest,
             family_inventory,
             coverage_inventory,
             support_matrix,
@@ -130,6 +135,10 @@ impl ForgeQueryIntentAdmissionCertificationBundle {
             outputs,
             certification_bundle_digest,
         }
+    }
+
+    pub fn output_manifest(&self) -> &[&'static str] {
+        &self.output_manifest
     }
 
     pub fn family_inventory(&self) -> &ForgeQueryIntentAdmissionFamilyInventory {
@@ -194,6 +203,10 @@ impl ForgeQueryIntentAdmissionCertificationBundle {
         self.slope_report.counter_snapshot()
     }
 
+    pub fn slope_report(&self) -> &ForgeQueryIntentAdmissionSlopeReport {
+        &self.slope_report
+    }
+
     pub fn outputs(&self) -> &[ForgeQueryIntentAdmissionCertificationOutput] {
         &self.outputs
     }
@@ -210,7 +223,7 @@ impl ForgeQueryIntentAdmissionCertificationBundle {
     }
 }
 
-pub fn certify_intent_admission_runtime_floor() -> ForgeQueryIntentAdmissionCertificationBundle {
+pub fn certify_intent_admission() -> ForgeQueryIntentAdmissionCertificationBundle {
     ForgeQueryIntentAdmissionCertificationBundle::new(
         forge_query_intent_admission_family_inventory(),
         forge_query_intent_admission_coverage_inventory(),
@@ -227,4 +240,27 @@ pub fn certify_intent_admission_runtime_floor() -> ForgeQueryIntentAdmissionCert
         forge_query_intent_admission_seeded_certification_report(),
         forge_query_intent_admission_slope_report(),
     )
+}
+
+fn validate_output_manifest(
+    output_manifest: &[&'static str],
+    outputs: &[self::outputs::ForgeQueryIntentAdmissionCertificationOutputSpec],
+) {
+    let actual_names = outputs
+        .iter()
+        .map(|output| output.name())
+        .collect::<Vec<_>>();
+    assert_eq!(
+        actual_names.len(),
+        actual_names
+            .iter()
+            .copied()
+            .collect::<std::collections::BTreeSet<_>>()
+            .len(),
+        "intent-admission certification outputs must be duplicate-free"
+    );
+    assert_eq!(
+        actual_names, output_manifest,
+        "intent-admission certification outputs must match the compile-visible manifest exactly"
+    );
 }

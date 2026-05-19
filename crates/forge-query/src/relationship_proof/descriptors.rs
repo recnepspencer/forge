@@ -176,7 +176,7 @@ impl RelationshipProofDescriptor {
         }
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn host_callback_for_test(callback_label: impl Into<String>) -> Self {
         Self::HostCallbackForbidden {
             callback_label: callback_label.into(),

@@ -1,16 +1,13 @@
-use std::collections::BTreeMap;
-
-use forge_relational::facade::runtime::RelationalRuntime;
-use forge_runtime_bridge::facade::RuntimeBridge;
-use serde_json::Value;
-
+use super::bridge::certification_bridge;
 use crate::declarative_live::{DeclarativeLiveQueryRequest, DeclarativeLiveViewShape};
 use crate::facade::{
     DeclarativeProjectionField, ForgeQueryAuthorityLane, ForgeQueryEffectPolicy,
-    ForgeQueryIntentAuthorityAdapter, ForgeQueryIntentDeclaration, ForgeQueryIntentExecution,
-    ForgeQueryLiveViewHandle, ForgeQueryMutationDelta, ForgeQueryMutationKind,
-    ForgeQueryMutationReceipt, ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime,
-    ForgeQueryRuntimeEvidenceAuthority, ForgeQueryRuntimeFacadeFamily,
+    ForgeQueryExistingTruthAssertionDenial, ForgeQueryExistingTruthProbeDenial,
+    ForgeQueryExistingTruthProbeDenialKind, ForgeQueryIntentAuthorityAdapter,
+    ForgeQueryIntentDeclaration, ForgeQueryIntentExecution, ForgeQueryLiveViewHandle,
+    ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
+    ForgeQueryPreviewBasisAdmission, ForgeQueryRuntime, ForgeQueryRuntimeEvidenceAuthority,
+    ForgeQueryRuntimeExistingTruthVerificationAdapter, ForgeQueryRuntimeFacadeFamily,
     ForgeQueryRuntimeFamilySupport, ForgeQueryRuntimeInspectionEvidence,
     ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
     ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
@@ -21,14 +18,17 @@ use crate::facade::{
 };
 use crate::identity::hash_parts;
 use crate::memory_workspace::{ForgeQueryEntity, ForgeQueryLivePatch};
-
-use super::bridge::certification_bridge;
+use forge_relational::facade::runtime::RelationalRuntime;
+use forge_runtime_bridge::facade::RuntimeBridge;
+use serde_json::Value;
+use std::collections::BTreeMap;
 
 pub(in crate::intent_admission::certification) fn certification_runtime() -> ForgeQueryRuntime {
     ForgeQueryRuntime::builder()
         .runtime_bridge(certification_bridge())
         .schema_adapter(CertificationSchemaAdapter)
         .source_adapter(CertificationSourceAdapter::default())
+        .existing_truth_verification(CertificationExistingTruthVerification)
         .write_authority(CertificationWriteAuthority)
         .signal_sink(CertificationSignalSink)
         .subscription_activation(CertificationSubscriptionActivation)
@@ -47,6 +47,7 @@ pub(in crate::intent_admission::certification) fn certification_runtime_with_inv
         .runtime_bridge(certification_bridge())
         .schema_adapter(CertificationSchemaAdapter)
         .source_adapter(CertificationSourceAdapter::default())
+        .existing_truth_verification(CertificationExistingTruthVerification)
         .write_authority(CertificationWriteAuthority)
         .signal_sink(CertificationSignalSink)
         .subscription_activation(CertificationSubscriptionActivation)
@@ -75,6 +76,13 @@ pub(super) fn certification_support_profile() -> ForgeQueryRuntimeSupportProfile
         [],
         ["certification-intent-authority"],
     ))
+    .with_bridge_backed_verification_support(
+        "probe_existing",
+        "direct_entity_identity",
+        true,
+        true,
+        None,
+    )
 }
 
 pub(in crate::intent_admission::certification) fn certification_task_live_request(
@@ -157,6 +165,40 @@ impl ForgeQueryRuntimeSourceAdapter for CertificationSourceAdapter {
 
 struct CertificationWriteAuthority;
 
+struct CertificationExistingTruthVerification;
+
+impl ForgeQueryRuntimeExistingTruthVerificationAdapter for CertificationExistingTruthVerification {
+    fn verify_existing_truth_assertion(
+        &self,
+        _binding: &crate::runtime::ForgeQueryExistingTruthTargetBinding,
+        _aspects: &[crate::runtime::ForgeQueryAspectValue],
+    ) -> Result<(), ForgeQueryExistingTruthAssertionDenial> {
+        Ok(())
+    }
+
+    fn probe_existing_truth(
+        &self,
+        request: &crate::runtime::ForgeQueryExistingTruthProbeRequest,
+    ) -> Result<Vec<(String, Value)>, ForgeQueryExistingTruthProbeDenial> {
+        let mut values = Vec::with_capacity(request.aspect_paths().len());
+        for aspect_path in request.aspect_paths() {
+            let value = match aspect_path.as_str() {
+                "identity.id" => Value::String("task-1".to_string()),
+                "title.value" => Value::String("Seed title".to_string()),
+                other => {
+                    return Err(ForgeQueryExistingTruthProbeDenial::new(
+                        request.binding(),
+                        ForgeQueryExistingTruthProbeDenialKind::MissingProbedAspect,
+                        Some(other.to_string()),
+                        "certification verification adapter does not expose that aspect",
+                    ));
+                }
+            };
+            values.push((aspect_path.clone(), value));
+        }
+        Ok(values)
+    }
+}
 impl ForgeQueryRuntimeWriteAuthorityAdapter for CertificationWriteAuthority {
     fn write(
         &mut self,

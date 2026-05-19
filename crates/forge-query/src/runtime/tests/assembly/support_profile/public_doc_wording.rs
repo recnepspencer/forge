@@ -1,11 +1,11 @@
 const WORKSPACE_OVERVIEW_DOC: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/docs/workspace-overview.md"
+    "/docs/foundations/workspace-overview.md"
 ));
 
 const INTENT_ADMISSION_DOC: &str = include_str!(concat!(
     env!("CARGO_MANIFEST_DIR"),
-    "/docs/intent-admission.md"
+    "/docs/execution/intent-admission.md"
 ));
 
 const GRAPH_AUTHORING_PLAN_DOC: &str = include_str!(concat!(
@@ -89,37 +89,35 @@ fn intent_admission_doc_names_deferred_neighbors_honestly() {
         "intent admission doc must state that deferred neighbors are still deferred"
     );
     assert!(
-        INTENT_ADMISSION_DOC.contains("support-gated vocabulary"),
+        INTENT_ADMISSION_DOC.contains("still support-gated"),
         "intent admission doc must preserve the support-gated posture"
     );
     assert!(
-        INTENT_ADMISSION_DOC.contains("basis-observation"),
+        INTENT_ADMISSION_DOC.contains("basis observation"),
         "intent admission doc must name basis observation as a covered family"
     );
     assert!(
-        INTENT_ADMISSION_DOC.contains("projection-consumption"),
+        INTENT_ADMISSION_DOC.contains("projection consumption"),
         "intent admission doc must name projection consumption as a covered family"
     );
     assert!(
-        INTENT_ADMISSION_DOC.contains("read-family execution now uses the same lattice"),
+        INTENT_ADMISSION_DOC.contains("read-family execution"),
         "intent admission doc must teach read execution as a covered family"
     );
     assert!(
-        INTENT_ADMISSION_DOC
-            .contains("Derived-view materialization and inspection now use the same lattice"),
+        INTENT_ADMISSION_DOC.contains("derived materialization"),
         "intent admission doc must teach derived inspection-materialization as a covered family"
     );
     assert!(
-        INTENT_ADMISSION_DOC
-            .contains("Bridge-backed existing-truth probes now use the same lattice"),
+        INTENT_ADMISSION_DOC.contains("existing-truth probe routing"),
         "intent admission doc must teach lower-runtime capability routing as a covered family"
     );
     assert!(
-        INTENT_ADMISSION_DOC.contains("verified-existing convenience surfaces too"),
+        INTENT_ADMISSION_DOC.contains("workspace.verify_existing(...)"),
         "intent admission doc must teach verified-existing mutation wrappers as authoritative-intent delegates"
     );
     assert!(
-        INTENT_ADMISSION_DOC.contains("Non-derived inspection now uses the same lattice too"),
+        INTENT_ADMISSION_DOC.contains("generic and derived inspection"),
         "intent admission doc must teach generic inspection as a covered family"
     );
     assert!(

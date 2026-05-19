@@ -1,8 +1,10 @@
-error[E0432]: unresolved import `forge_query::facade::FrontierRouteEvidence`
- --> tests/ui/frontier_route_evidence_constructor_not_public.rs:2:32
+error[E0432]: unresolved imports `forge_query::facade::FrontierDisjointnessClass`, `forge_query::facade::FrontierRouteEvidence`
+ --> tests/ui/frontier_route_evidence_constructor_not_public.rs:2:5
   |
 2 |     FrontierDisjointnessClass, FrontierRouteEvidence, FrontierSurfaceDigest,
-  |                                ^^^^^^^^^^^^^^^^^^^^^ no `FrontierRouteEvidence` in `facade`
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^ no `FrontierRouteEvidence` in `facade`
+  |     |
+  |     no `FrontierDisjointnessClass` in `facade`
 
 error[E0624]: associated function `from_label` is private
  --> tests/ui/frontier_route_evidence_constructor_not_public.rs:6:41

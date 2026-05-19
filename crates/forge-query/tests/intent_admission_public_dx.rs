@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use forge_query::facade::{
     forge_query_basis_observation_intent, forge_query_projection_consumption_intent,
     AdmittedQueryBasisContext, ForgeQueryBatchWriteReceipt, ForgeQueryEffectHandle,
@@ -426,4 +424,166 @@ fn existing_truth_probe_request_typecheck(
     binding: ForgeQueryExistingTruthTargetBinding,
 ) -> Result<ForgeQueryExistingTruthProbeRequest, forge_query::facade::ForgeQueryWorkspaceError> {
     ForgeQueryExistingTruthProbeRequest::new(binding, ["identity.id"])
+}
+
+#[test]
+fn public_dx_signatures_are_referenced() {
+    let _ = authoritative_common_path_compiles
+        as fn(
+            &mut ForgeQueryRuntime,
+            ForgeQueryIntentDeclaration,
+        ) -> Result<ForgeQueryIntentReceipt, ForgeQueryRuntimeError>;
+    let _ = authoritative_advanced_path_compiles
+        as fn(
+            &mut ForgeQueryRuntime,
+            ForgeQueryIntentDeclaration,
+        ) -> Result<ForgeQueryIntentReceipt, ForgeQueryRuntimeError>;
+    let _ = effect_common_path_compiles::<()>
+        as fn(
+            &mut ForgeQueryRuntime,
+            &ForgeQueryEffectHandle<()>,
+        ) -> Result<ForgeQueryEffectIntentReceipt, ForgeQueryRuntimeError>;
+    let _ = effect_advanced_path_compiles::<()>
+        as fn(
+            &mut ForgeQueryRuntime,
+            &ForgeQueryEffectHandle<()>,
+        ) -> Result<ForgeQueryEffectIntentReceipt, ForgeQueryRuntimeError>;
+    let _ = write_common_path_compiles
+        as fn(
+            &mut ForgeQueryRuntime,
+            ForgeQueryWriteCommand,
+        ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError>;
+    let _ = workspace_write_common_path_compiles
+        as fn(
+            &mut ForgeQueryWorkspace,
+            ForgeQueryWriteCommand,
+        ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError>;
+    let _ = write_advanced_path_compiles
+        as fn(
+            &mut ForgeQueryRuntime,
+            ForgeQueryWriteCommand,
+        ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError>;
+    let _ = write_batch_common_path_compiles
+        as fn(
+            &mut ForgeQueryRuntime,
+            Vec<ForgeQueryWriteCommand>,
+        ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError>;
+    let _ = workspace_write_batch_common_path_compiles
+        as fn(
+            &mut ForgeQueryWorkspace,
+            Vec<ForgeQueryWriteCommand>,
+        ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError>;
+    let _ = write_batch_advanced_path_compiles
+        as fn(
+            &mut ForgeQueryRuntime,
+            Vec<ForgeQueryWriteCommand>,
+        ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError>;
+    let _ = consumer_lane_typecheck
+        as fn(&ForgeQueryIntentReceipt) -> ForgeQueryIntentConsumerOutcomeClass;
+    let _ = basis_observation_common_path_compiles as fn();
+    let _ = projection_consumption_common_path_compiles as fn(ProjectionConsumptionDeclaration);
+    let _ = read_family_common_path_compiles
+        as fn(
+            &mut ForgeQueryWorkspace,
+            &ForgeQueryReadFamily,
+        ) -> Result<ForgeQueryReadResult, ForgeQueryRuntimeError>;
+    let _ = read_family_advanced_path_compiles
+        as fn(
+            &mut ForgeQueryWorkspace,
+            &ForgeQueryReadFamily,
+        ) -> Result<ForgeQueryReadResult, ForgeQueryRuntimeError>;
+    let _ = read_family_in_basis_context_common_path_compiles
+        as fn(
+            &mut ForgeQueryWorkspace,
+            &ForgeQueryReadFamily,
+            &AdmittedQueryBasisContext,
+        ) -> Result<ForgeQueryReadResult, ForgeQueryRuntimeError>;
+    let _ = read_family_in_basis_context_advanced_path_compiles
+        as fn(
+            &mut ForgeQueryWorkspace,
+            &ForgeQueryReadFamily,
+            &AdmittedQueryBasisContext,
+        ) -> Result<ForgeQueryReadResult, ForgeQueryRuntimeError>;
+    let _ = live_read_common_path_compiles::<serde_json::Value>
+        as fn(
+            &mut ForgeQueryWorkspace,
+            &forge_query::facade::ForgeQueryLiveView<serde_json::Value>,
+        )
+            -> Result<forge_query::facade::ForgeQueryLiveReadResult, ForgeQueryRuntimeError>;
+    let _ = live_read_advanced_path_compiles::<serde_json::Value>
+        as fn(
+            &mut ForgeQueryWorkspace,
+            &forge_query::facade::ForgeQueryLiveView<serde_json::Value>,
+        )
+            -> Result<forge_query::facade::ForgeQueryLiveReadResult, ForgeQueryRuntimeError>;
+    let _ = derived_materialization_common_path_compiles::<serde_json::Value>
+        as fn(
+            &mut ForgeQueryWorkspace,
+            &forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
+        ) -> Result<
+            forge_query::facade::ForgeQueryDerivedMaterializationResult,
+            ForgeQueryRuntimeError,
+        >;
+    let _ = derived_materialization_advanced_path_compiles::<serde_json::Value>
+        as fn(
+            &mut ForgeQueryWorkspace,
+            &forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
+        ) -> Result<
+            forge_query::facade::ForgeQueryDerivedMaterializationResult,
+            ForgeQueryRuntimeError,
+        >;
+    let _ = derived_inspection_common_path_compiles::<serde_json::Value>
+        as fn(
+            &mut ForgeQueryWorkspace,
+            &forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
+        ) -> Result<
+            forge_query::facade::ForgeQueryDerivedInspectionResult,
+            ForgeQueryRuntimeError,
+        >;
+    let _ = derived_inspection_advanced_path_compiles::<serde_json::Value>
+        as fn(
+            &mut ForgeQueryWorkspace,
+            &forge_query::facade::ForgeQueryDerivedViewHandle<serde_json::Value>,
+        ) -> Result<
+            forge_query::facade::ForgeQueryDerivedInspectionResult,
+            ForgeQueryRuntimeError,
+        >;
+    let _ = generic_inspection_common_path_compiles::<serde_json::Value>
+        as fn(
+            &ForgeQueryWorkspace,
+            &forge_query::facade::ForgeQueryLiveView<serde_json::Value>,
+        ) -> Result<
+            forge_query::facade::ForgeQueryUnifiedInspectionResult,
+            ForgeQueryRuntimeError,
+        >;
+    let _ = generic_inspection_advanced_path_compiles::<serde_json::Value>
+        as fn(
+            &ForgeQueryWorkspace,
+            &forge_query::facade::ForgeQueryLiveView<serde_json::Value>,
+        ) -> Result<
+            forge_query::facade::ForgeQueryUnifiedInspectionResult,
+            ForgeQueryRuntimeError,
+        >;
+    let _ = existing_truth_probe_common_path_compiles
+        as fn(
+            &ForgeQueryRuntime,
+            ForgeQueryExistingTruthProbeRequest,
+        ) -> Result<ForgeQueryExistingTruthProbeResult, ForgeQueryRuntimeError>;
+    let _ = workspace_existing_truth_probe_common_path_compiles
+        as fn(
+            &ForgeQueryWorkspace,
+            ForgeQueryExistingTruthProbeRequest,
+        ) -> Result<ForgeQueryExistingTruthProbeResult, ForgeQueryRuntimeError>;
+    let _ = existing_truth_probe_advanced_path_compiles
+        as fn(
+            &ForgeQueryRuntime,
+            ForgeQueryExistingTruthProbeRequest,
+        ) -> Result<ForgeQueryExistingTruthProbeResult, ForgeQueryRuntimeError>;
+    let _ = existing_truth_probe_request_typecheck
+        as fn(
+            ForgeQueryExistingTruthTargetBinding,
+        ) -> Result<
+            ForgeQueryExistingTruthProbeRequest,
+            forge_query::facade::ForgeQueryWorkspaceError,
+        >;
 }

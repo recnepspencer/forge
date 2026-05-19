@@ -1,13 +1,16 @@
 use super::support::*;
 use crate::authoring::{AspectFieldSelector, AuthoredResultShapeField};
 use crate::facade::runtime::{
-    admit_runtime_intent_request, certify_intent_admission_runtime_floor,
+    admit_runtime_intent_request, certify_intent_admission,
+    forge_query_intent_admission_certification_output_manifest,
+    forge_query_intent_admission_closeout_extension_outputs,
     forge_query_intent_admission_compile_fail_targets,
     forge_query_intent_admission_coverage_inventory, forge_query_intent_admission_family_inventory,
     forge_query_intent_admission_golden_transcripts, forge_query_intent_admission_mutation_audit,
-    forge_query_intent_admission_support_matrix,
-    ForgeQueryAdmittedIntentExecutionHandoff, ForgeQueryAuthoritativeIntentExecutionHandoff,
-    ForgeQueryAuthorityLane, ForgeQueryEffectTriggeredIntentExecutionHandoff,
+    forge_query_intent_admission_required_certification_outputs,
+    forge_query_intent_admission_support_matrix, ForgeQueryAdmittedIntentExecutionHandoff,
+    ForgeQueryAuthoritativeIntentExecutionHandoff, ForgeQueryAuthorityLane,
+    ForgeQueryEffectTriggeredIntentExecutionHandoff,
     ForgeQueryIntentAdmissionAuthorityLaneEligibility, ForgeQueryIntentAdmissionBasisEligibility,
     ForgeQueryIntentAdmissionCapabilityEligibility, ForgeQueryIntentAdmissionCoverageStatus,
     ForgeQueryIntentAdmissionCoveredEntrypoint, ForgeQueryIntentAdmissionDecision,
@@ -17,14 +20,15 @@ use crate::facade::runtime::{
     ForgeQueryIntentAdmissionPlanKind, ForgeQueryIntentAdmissionPolicyEligibility,
     ForgeQueryIntentAdmissionPreDecisionPosture,
     ForgeQueryIntentAdmissionProjectionSourceEligibility, ForgeQueryIntentAdmissionResultArtifact,
-    ForgeQueryIntentAdmissionRoutingSupportEligibility,
+    ForgeQueryIntentAdmissionRoutingSupportEligibility, ForgeQueryIntentAdmissionSlopeLane,
     ForgeQueryIntentAdmissionSourceLaneEligibility, ForgeQueryIntentAdmissionSupportDetail,
     ForgeQueryIntentAdmissionSupportEligibility, ForgeQueryIntentAdmissionSupportPosture,
-    ForgeQueryIntentAdmissionSurfaceDescriptor, ForgeQueryIntentConsumerOutcomeClass,
-    ForgeQueryIntentDecisionTraceEnvelope, ForgeQueryIntentDecisionTraceEnvelopeKind,
-    ForgeQueryIntentDecisionTraceEvidence, ForgeQueryIntentDecisionTraceEvidenceOwner,
-    ForgeQueryIntentDecisionTraceStage, ForgeQueryIntentDeclaration,
-    ForgeQueryIntentNonAdmittedStop, ForgeQueryIntentSourceLane, ForgeQueryWorkspace,
+    ForgeQueryIntentAdmissionSurfaceDescriptor, ForgeQueryIntentAdmissionWidthRunScale,
+    ForgeQueryIntentConsumerOutcomeClass, ForgeQueryIntentDecisionTraceEnvelope,
+    ForgeQueryIntentDecisionTraceEnvelopeKind, ForgeQueryIntentDecisionTraceEvidence,
+    ForgeQueryIntentDecisionTraceEvidenceOwner, ForgeQueryIntentDecisionTraceStage,
+    ForgeQueryIntentDeclaration, ForgeQueryIntentNonAdmittedStop, ForgeQueryIntentSourceLane,
+    ForgeQueryWorkspace,
 };
 use crate::facade::{
     admit_query_basis_context, bind_query_basis_context, preflight_execution_basis,
@@ -40,6 +44,7 @@ mod certification;
 mod dx;
 mod execution;
 mod inventory;
+mod inventory_mutation;
 mod phases;
 
 fn intent_runtime_with_authority<T: ForgeQueryIntentAuthorityAdapter + 'static>(

@@ -99,8 +99,8 @@ impl ForgeQueryRuntime {
         };
         self.execute_authoritative_write_batch_direct(
             handoff.commands().to_vec(),
-            ForgeQueryGraphCompositionBreadth::empty(),
-            ForgeQueryGraphCompositionProgram::empty(),
+            handoff.graph_composition_breadth().clone(),
+            handoff.graph_composition_program().clone(),
             Some(shared_admission),
         )
     }

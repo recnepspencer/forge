@@ -89,6 +89,14 @@ impl ForgeQueryAuthoritativeMutationBatchIntentSeed {
         &self.commands
     }
 
+    pub fn graph_composition_breadth(&self) -> &ForgeQueryGraphCompositionBreadth {
+        &self.graph_composition_breadth
+    }
+
+    pub fn graph_composition_program(&self) -> &ForgeQueryGraphCompositionProgram {
+        &self.graph_composition_program
+    }
+
     pub fn into_parts(
         self,
     ) -> (

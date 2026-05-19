@@ -3,6 +3,7 @@ mod parity;
 mod representative_families;
 mod representative_outputs;
 mod seeded;
+mod slope_runs;
 mod slopes;
 mod support_traceability;
 
@@ -11,8 +12,9 @@ pub use doc_examples::{
     ForgeQueryIntentAdmissionDocExampleRow,
 };
 pub use parity::{
-    forge_query_intent_admission_legacy_parity_report, ForgeQueryIntentAdmissionLegacyParityLane,
-    ForgeQueryIntentAdmissionLegacyParityReport, ForgeQueryIntentAdmissionLegacyParityRow,
+    forge_query_intent_admission_legacy_parity_report, ForgeQueryIntentAdmissionLegacyParityCheck,
+    ForgeQueryIntentAdmissionLegacyParityLane, ForgeQueryIntentAdmissionLegacyParityReport,
+    ForgeQueryIntentAdmissionLegacyParityRow,
 };
 pub use representative_families::{
     forge_query_intent_admission_representative_family_report,
@@ -28,6 +30,10 @@ pub use seeded::{
     forge_query_intent_admission_seeded_certification_report,
     ForgeQueryIntentAdmissionSeedGeneratorClass, ForgeQueryIntentAdmissionSeedReplayRow,
     ForgeQueryIntentAdmissionSeededCertificationReport,
+};
+pub use slope_runs::{
+    ForgeQueryIntentAdmissionSlopeLane, ForgeQueryIntentAdmissionWidthRunRow,
+    ForgeQueryIntentAdmissionWidthRunScale,
 };
 pub use slopes::{
     forge_query_intent_admission_slope_report,

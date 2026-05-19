@@ -2,7 +2,10 @@ use crate::identity::hash_parts;
 use crate::intent_admission::{
     ForgeQueryAuthoritativeMutationBatchExecutionPlan, ForgeQueryAuthoritativeMutationExecutionPlan,
 };
-use crate::runtime::{ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryWriteCommand};
+use crate::runtime::{
+    ForgeQueryGraphCompositionBreadth, ForgeQueryGraphCompositionProgram,
+    ForgeQueryVerifiedExistingTruthAssertion, ForgeQueryWriteCommand,
+};
 
 use super::{
     ForgeQueryIntentAdmissionCoveredEntrypoint, ForgeQueryIntentAdmissionExecutionSeam,
@@ -23,6 +26,8 @@ pub struct ForgeQueryAuthoritativeMutationExecutionHandoff {
 #[derive(Clone, Debug, PartialEq)]
 pub struct ForgeQueryAuthoritativeMutationBatchExecutionHandoff {
     commands: Vec<ForgeQueryWriteCommand>,
+    graph_composition_breadth: ForgeQueryGraphCompositionBreadth,
+    graph_composition_program: ForgeQueryGraphCompositionProgram,
     request_digest: String,
     eligibility_digest: String,
     eligibility_trace: ForgeQueryIntentEligibilityTraceEvidence,
@@ -98,6 +103,8 @@ impl ForgeQueryAuthoritativeMutationBatchExecutionHandoff {
         let commands = plan.batch_seed().commands().to_vec();
         Self {
             commands: commands.clone(),
+            graph_composition_breadth: plan.batch_seed().graph_composition_breadth().clone(),
+            graph_composition_program: plan.batch_seed().graph_composition_program().clone(),
             request_digest: plan.request_digest().to_string(),
             eligibility_digest: plan.eligibility_digest().to_string(),
             eligibility_trace: plan.eligibility_trace().clone(),
@@ -127,6 +134,14 @@ impl ForgeQueryAuthoritativeMutationBatchExecutionHandoff {
 
     pub fn commands(&self) -> &[ForgeQueryWriteCommand] {
         &self.commands
+    }
+
+    pub fn graph_composition_breadth(&self) -> &ForgeQueryGraphCompositionBreadth {
+        &self.graph_composition_breadth
+    }
+
+    pub fn graph_composition_program(&self) -> &ForgeQueryGraphCompositionProgram {
+        &self.graph_composition_program
     }
 
     pub fn request_digest(&self) -> &str {

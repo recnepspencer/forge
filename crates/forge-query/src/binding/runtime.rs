@@ -132,7 +132,7 @@ pub struct BoundBindings {
 }
 
 impl BoundBindings {
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn new(bindings: Vec<BoundBinding>) -> Self {
         Self { bindings }
     }

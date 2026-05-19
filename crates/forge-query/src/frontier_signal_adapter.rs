@@ -1,12 +1,15 @@
+use crate::frontier_planning::FrontierSurfaceDigest;
+#[cfg(test)]
 use crate::frontier_planning::{
-    FrontierDisjointnessClass, FrontierPredictionDriftOutcome, FrontierSurfaceDigest,
-    ParallelAdmissionEvidence, SerialFallbackBundleEvidence, SerialFallbackBundleEvidenceError,
-    SerialFallbackEvidence, SerialFallbackReason,
+    FrontierDisjointnessClass, FrontierPredictionDriftOutcome, ParallelAdmissionEvidence,
+    SerialFallbackBundleEvidence, SerialFallbackBundleEvidenceError, SerialFallbackEvidence,
+    SerialFallbackReason,
 };
 use forge_signal::facade::adapters::{
     FrontierExecutionSummary, FrontierPlan, FrontierWaveEntryPlan, FrontierWaveEntrySummary,
     FrontierWavePlan, FrontierWaveSummary, TouchedScopeSummary, TransitiveFrontierRoot,
 };
+#[cfg(test)]
 use forge_signal::facade::specialist::{ParallelAdmissionReason, StageExecutionRecord};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -109,8 +112,7 @@ impl SignalFrontierSurfaceEvidence {
         self.realized_breadth
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn to_parallel_admission_evidence(
         &self,
         basis_digest: &str,
@@ -123,7 +125,7 @@ impl SignalFrontierSurfaceEvidence {
         )
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn to_serial_fallback_evidence(
         &self,
         basis_digest: &str,
@@ -138,7 +140,7 @@ impl SignalFrontierSurfaceEvidence {
         )
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn to_route_evidence_from_stage_record(
         &self,
         basis_digest: &str,
@@ -160,14 +162,16 @@ impl SignalFrontierSurfaceEvidence {
     }
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct SignalFrontierBundleEvidence {
     bundle_surface_digest: FrontierSurfaceDigest,
     route_evidences: Vec<SerialFallbackEvidence>,
 }
 
+#[cfg(test)]
 impl SignalFrontierBundleEvidence {
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn from_route_evidences(route_evidences: Vec<SerialFallbackEvidence>) -> Self {
         let mut parts = vec![format!("route_count:{}", route_evidences.len())];
         for (index, route) in route_evidences.iter().enumerate() {
@@ -192,7 +196,7 @@ impl SignalFrontierBundleEvidence {
         }
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn from_stage_records(
         basis_digest: &str,
         route_surfaces: &[SignalFrontierSurfaceEvidence],
@@ -223,12 +227,12 @@ impl SignalFrontierBundleEvidence {
         Ok(Self::from_route_evidences(route_evidences))
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn bundle_surface_digest(&self) -> &FrontierSurfaceDigest {
         &self.bundle_surface_digest
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn bind_to_basis(
         &self,
         basis_digest: &str,
@@ -426,7 +430,7 @@ fn transitive_root_digest_parts(index: usize, root: &TransitiveFrontierRoot) -> 
     parts
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
+#[cfg(test)]
 fn is_parallel_admitted(reason: ParallelAdmissionReason) -> bool {
     matches!(
         reason,
@@ -437,7 +441,7 @@ fn is_parallel_admitted(reason: ParallelAdmissionReason) -> bool {
     )
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
+#[cfg(test)]
 fn serial_fallback_reason_from_signal(reason: ParallelAdmissionReason) -> SerialFallbackReason {
     match reason {
         ParallelAdmissionReason::SerialExecutor => SerialFallbackReason::SerialExecutor,

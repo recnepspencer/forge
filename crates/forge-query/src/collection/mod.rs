@@ -2,12 +2,13 @@ use crate::authoring::QueryFamily;
 use crate::identity::CollectionPlanDigest;
 use crate::validation::ValidatedQueryBundle;
 
-#[allow(dead_code)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) enum CollectionPlanningMode {
     Ordinary,
     Cdc,
+    #[cfg(test)]
     AggregateRollupCount,
+    #[cfg(test)]
     DerivedDisplayLabel,
 }
 
@@ -168,7 +169,7 @@ impl CursorBoundaryDigest {
         &self.0
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn new(value: impl Into<String>) -> Self {
         Self(value.into())
     }
@@ -197,13 +198,13 @@ impl OpaquePageCursor {
         &self.boundary
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn new(boundary: CursorBoundaryDigest) -> Self {
         Self { boundary }
     }
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub(crate) fn page_cursor_for_collection(
     collection: &CollectionPlanBundle,
     plan_digest: &str,
@@ -369,6 +370,7 @@ impl AggregateShapeArtifact {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn count_rows(input_breadth: AggregateInputBreadth) -> Self {
         Self {
             function_family: AggregateFunctionFamily::CountRows,
@@ -400,6 +402,7 @@ impl RollupShapeArtifact {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn root_collection() -> Self {
         Self {
             edge_class: RollupEdgeClass::RootCollection,
@@ -435,6 +438,7 @@ impl DerivedFieldPlanArtifact {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn display_label() -> Self {
         Self {
             computation_class: DerivedFieldComputationClass::DisplayLabelFromIdentityAndProfile,
@@ -536,12 +540,14 @@ impl PostReadShapingPlan {
                 derived_field_plan: DerivedFieldPlanArtifact::none_admitted_yet(),
                 result_family: CollectionResultFamily::CdcCollection,
             },
+            #[cfg(test)]
             CollectionPlanningMode::AggregateRollupCount => Self {
                 aggregate_shape: AggregateShapeArtifact::count_rows(aggregate_input_breadth),
                 rollup_shape: RollupShapeArtifact::root_collection(),
                 derived_field_plan: DerivedFieldPlanArtifact::none_admitted_yet(),
                 result_family: CollectionResultFamily::OrdinaryCollection,
             },
+            #[cfg(test)]
             CollectionPlanningMode::DerivedDisplayLabel => Self {
                 aggregate_shape: AggregateShapeArtifact::new(aggregate_input_breadth),
                 rollup_shape: RollupShapeArtifact::none_admitted_yet(),
@@ -615,23 +621,6 @@ impl CollectionPlanBundle {
         &self.post_read_shaping
     }
 
-    #[allow(dead_code)]
-    pub(crate) fn from_validated_bundle(bundle: &ValidatedQueryBundle) -> Option<Self> {
-        Self::from_validated_bundle_for_mode(bundle, CollectionPlanningMode::Ordinary)
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn from_validated_bundle_for_result_family(
-        bundle: &ValidatedQueryBundle,
-        result_family: CollectionResultFamily,
-    ) -> Option<Self> {
-        let mode = match result_family {
-            CollectionResultFamily::OrdinaryCollection => CollectionPlanningMode::Ordinary,
-            CollectionResultFamily::CdcCollection => CollectionPlanningMode::Cdc,
-        };
-        Self::from_validated_bundle_for_mode(bundle, mode)
-    }
-
     pub(crate) fn from_validated_bundle_for_mode(
         bundle: &ValidatedQueryBundle,
         mode: CollectionPlanningMode,
@@ -688,9 +677,13 @@ impl CollectionPlanBundle {
 
         let planning_context = CollectionPlanningContext::new(match mode {
             CollectionPlanningMode::Cdc => CollectionResultFamily::CdcCollection,
-            CollectionPlanningMode::Ordinary
-            | CollectionPlanningMode::AggregateRollupCount
-            | CollectionPlanningMode::DerivedDisplayLabel => {
+            CollectionPlanningMode::Ordinary => CollectionResultFamily::OrdinaryCollection,
+            #[cfg(test)]
+            CollectionPlanningMode::AggregateRollupCount => {
+                CollectionResultFamily::OrdinaryCollection
+            }
+            #[cfg(test)]
+            CollectionPlanningMode::DerivedDisplayLabel => {
                 CollectionResultFamily::OrdinaryCollection
             }
         });

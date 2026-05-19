@@ -1,5 +1,5 @@
-error[E0599]: no method named `extract` found for struct `MaterializedProjectionContract` in the current scope
+error[E0599]: no method named `extract` found for struct `forge_query::facade::MaterializedProjectionContract` in the current scope
  --> tests/ui/projection_consumption/boundaries/projection_consumption_contract_has_no_generic_extract.rs:8:22
   |
 8 |     let _ = contract.extract();
-  |                      ^^^^^^^ method not found in `MaterializedProjectionContract`
+  |                      ^^^^^^^ method not found in `forge_query::facade::MaterializedProjectionContract`

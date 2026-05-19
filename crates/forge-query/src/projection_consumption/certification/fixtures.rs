@@ -326,8 +326,8 @@ pub fn certification_row_set(row_count: usize) -> RelationalAuthoritativeRowSetA
     .expect("row set certification fixture")
 }
 
-pub(crate) fn intent_admission_admitted_projection_declaration(
-) -> ProjectionConsumptionDeclaration {
+pub(crate) fn intent_admission_admitted_projection_declaration() -> ProjectionConsumptionDeclaration
+{
     declare_projection_consumption(
         ProjectionConsumptionSource::intent_admission_certification(
             ProjectionSourceFamily::QueryReadReceipt,
@@ -347,8 +347,8 @@ pub(crate) fn intent_admission_admitted_projection_declaration(
     .expect("intent-admission admitted projection declaration should build")
 }
 
-pub(crate) fn intent_admission_warning_projection_declaration(
-) -> ProjectionConsumptionDeclaration {
+pub(crate) fn intent_admission_warning_projection_declaration() -> ProjectionConsumptionDeclaration
+{
     declare_projection_consumption(
         ProjectionConsumptionSource::intent_admission_certification(
             ProjectionSourceFamily::QueryContextExecution,

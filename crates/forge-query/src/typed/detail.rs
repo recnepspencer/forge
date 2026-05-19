@@ -22,7 +22,6 @@ pub type TypedDetailQueryBuilder<S> = TypedQueryBuilder<S, TypedDetailFamily>;
 pub type TypedDetailResultShape<S> = TypedAuthoredResultShape<S, TypedDetailFamily>;
 pub type TypedDetailResultShapeBuilder<S> = TypedResultShapeBuilder<S, TypedDetailFamily>;
 
-#[allow(dead_code)]
 fn _type_check_detail_aliases<S: TypedSchemaRoot>(
     query: TypedDetailQuery<S>,
     result_shape: TypedDetailResultShape<S>,

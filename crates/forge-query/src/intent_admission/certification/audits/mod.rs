@@ -3,9 +3,12 @@ mod topology;
 use crate::identity::hash_parts;
 
 use super::manifests::{
-    compile_fail_boundary_digest, forge_query_intent_admission_compile_fail_targets,
+    compile_fail_boundary_digest, crate_doc_example_target_digest,
+    forge_query_intent_admission_compile_fail_targets,
+    forge_query_intent_admission_crate_doc_example_targets,
     forge_query_intent_admission_golden_transcripts, golden_transcript_digest,
-    ForgeQueryIntentAdmissionCompileFailTarget, ForgeQueryIntentAdmissionGoldenTranscript,
+    ForgeQueryIntentAdmissionCompileFailTarget, ForgeQueryIntentAdmissionCrateDocExampleTarget,
+    ForgeQueryIntentAdmissionGoldenTranscript,
 };
 use crate::intent_admission::{
     forge_query_intent_admission_coverage_inventory, forge_query_intent_admission_family_inventory,
@@ -16,9 +19,11 @@ use crate::intent_admission::{
 pub struct ForgeQueryIntentAdmissionPublicBoundaryAudit {
     compile_fail_targets: &'static [ForgeQueryIntentAdmissionCompileFailTarget],
     golden_transcripts: &'static [ForgeQueryIntentAdmissionGoldenTranscript],
+    crate_doc_example_targets: &'static [ForgeQueryIntentAdmissionCrateDocExampleTarget],
     compile_fail_boundary_digest: String,
     negative_dx_boundary_digest: String,
     golden_transcript_digest: String,
+    crate_doc_example_target_digest: String,
     public_surface_digest: String,
     target_dx_digest: String,
 }
@@ -27,8 +32,10 @@ impl ForgeQueryIntentAdmissionPublicBoundaryAudit {
     pub(crate) fn new() -> Self {
         let compile_fail_targets = forge_query_intent_admission_compile_fail_targets();
         let golden_transcripts = forge_query_intent_admission_golden_transcripts();
+        let crate_doc_example_targets = forge_query_intent_admission_crate_doc_example_targets();
         let compile_fail_boundary_digest = compile_fail_boundary_digest();
         let golden_transcript_digest = golden_transcript_digest();
+        let crate_doc_example_target_digest = crate_doc_example_target_digest();
         let public_surface_digest = hash_parts(
             &forge_query_intent_admission_family_inventory()
                 .rows()
@@ -62,9 +69,11 @@ impl ForgeQueryIntentAdmissionPublicBoundaryAudit {
         Self {
             compile_fail_targets,
             golden_transcripts,
+            crate_doc_example_targets,
             compile_fail_boundary_digest,
             negative_dx_boundary_digest,
             golden_transcript_digest,
+            crate_doc_example_target_digest,
             public_surface_digest,
             target_dx_digest,
         }
@@ -78,6 +87,10 @@ impl ForgeQueryIntentAdmissionPublicBoundaryAudit {
         self.golden_transcripts
     }
 
+    pub fn crate_doc_example_targets(&self) -> &[ForgeQueryIntentAdmissionCrateDocExampleTarget] {
+        self.crate_doc_example_targets
+    }
+
     pub fn compile_fail_boundary_digest(&self) -> &str {
         &self.compile_fail_boundary_digest
     }
@@ -88,6 +101,10 @@ impl ForgeQueryIntentAdmissionPublicBoundaryAudit {
 
     pub fn golden_transcript_digest(&self) -> &str {
         &self.golden_transcript_digest
+    }
+
+    pub fn crate_doc_example_target_digest(&self) -> &str {
+        &self.crate_doc_example_target_digest
     }
 
     pub fn public_surface_digest(&self) -> &str {

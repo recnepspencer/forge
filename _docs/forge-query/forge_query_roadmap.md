@@ -2500,6 +2500,11 @@ materialization, and avoid direct source-authority reads for fact discovery.
 The governing milestone spec is
 [milestone-9.3.5.md](./milestone-9.3.5.md).
 
+Status:
+
+- Closed on 2026-05-18 via
+  [milestone-9.3.5-closeout.md](./milestone-9.3.5-closeout.md)
+
 ### Goal
 
 Make every Query-crossing intent resolve through a structured admission

@@ -54,27 +54,25 @@ impl ForgeQueryRuntime {
             .request()
             .existing_truth_probe_seed()
             .expect("probe routing review must preserve probe routing seed");
-        let denial = match seed.preflight() {
+        match seed.preflight() {
             ForgeQueryExistingTruthProbeRoutingPreflight::BindingDenied(denial) => {
-                ForgeQueryExistingTruthProbeDenial::new(
-                    denial.binding(),
-                    ForgeQueryExistingTruthProbeDenialKind::ResolvedTargetUnavailable,
-                    None,
-                    denial.message(),
-                )
+                ForgeQueryRuntimeError::MutationBindingDenied(denial.clone())
             }
-            ForgeQueryExistingTruthProbeRoutingPreflight::ProbeDenied(denial) => denial.clone(),
+            ForgeQueryExistingTruthProbeRoutingPreflight::ProbeDenied(denial) => {
+                ForgeQueryRuntimeError::ExistingTruthProbeDenied(denial.clone())
+            }
             ForgeQueryExistingTruthProbeRoutingPreflight::Admitted => {
                 let violation = non_admitted_runtime_violation(review);
-                ForgeQueryExistingTruthProbeDenial::new(
-                    seed.request().binding(),
-                    ForgeQueryExistingTruthProbeDenialKind::BackendProbeUnsupported,
-                    None,
-                    violation.message(),
+                ForgeQueryRuntimeError::ExistingTruthProbeDenied(
+                    ForgeQueryExistingTruthProbeDenial::new(
+                        seed.request().binding(),
+                        ForgeQueryExistingTruthProbeDenialKind::BackendProbeUnsupported,
+                        None,
+                        violation.message(),
+                    ),
                 )
             }
-        };
-        ForgeQueryRuntimeError::ExistingTruthProbeDenied(denial)
+        }
     }
 
     pub(crate) fn prepare_existing_truth_probe_execution_binding(

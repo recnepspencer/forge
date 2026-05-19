@@ -1,5 +1,3 @@
-#![cfg_attr(not(test), allow(dead_code))]
-
 use crate::identity::{BasisDigest, FailureDigest, LineageDigest, ResultDigest};
 
 use super::{

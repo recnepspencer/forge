@@ -1,5 +1,6 @@
 use crate::basis::ExecutionPreflightBundle;
 use crate::identity::ResultDigest;
+#[cfg(test)]
 use crate::planning::{ParallelAdmissionRoute, SerialFallbackRoute};
 
 use super::{ExecutionCounters, ExecutionError, ExecutionReport, ExecutionResultEnvelope};
@@ -120,12 +121,14 @@ pub fn execute_preflight_bundle(
     ExecutionResultEnvelope::new(payload, report, counters)
 }
 
+#[cfg(test)]
 pub fn execute_parallel_admission_route(
     route: &ParallelAdmissionRoute,
 ) -> Result<ExecutionResultEnvelope, ExecutionError> {
     execute_preflight_bundle(route.preflight())
 }
 
+#[cfg(test)]
 pub fn execute_serial_fallback_route(
     route: &SerialFallbackRoute,
 ) -> Result<ExecutionResultEnvelope, ExecutionError> {

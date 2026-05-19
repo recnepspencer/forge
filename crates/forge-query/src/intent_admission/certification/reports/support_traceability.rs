@@ -2,7 +2,7 @@ use crate::identity::hash_parts;
 
 use super::super::fixtures::{
     certified_admitted_intent_fixture, certified_advisory_intent_fixture,
-    certified_violation_intent_fixture,
+    certified_routing_intent_fixture, certified_violation_intent_fixture,
 };
 use super::super::fixtures::{
     certified_deferred_intent_fixture, certified_unsupported_intent_fixture,
@@ -63,6 +63,7 @@ pub fn forge_query_intent_admission_support_traceability_report(
     let admitted = certified_admitted_intent_fixture();
     let advisory = certified_advisory_intent_fixture();
     let violation = certified_violation_intent_fixture();
+    let routing = certified_routing_intent_fixture();
     let deferred = certified_deferred_intent_fixture();
     let unsupported = certified_unsupported_intent_fixture();
     let rows = vec![
@@ -94,6 +95,16 @@ pub fn forge_query_intent_admission_support_traceability_report(
                 &support,
                 violation.request.family(),
                 violation.request.entrypoint(),
+            ),
+        ),
+        traceability_row(
+            "routing_admitted",
+            routing.request.family().as_str(),
+            routing.request.entrypoint().as_str(),
+            support_row_detail(
+                &support,
+                routing.request.family(),
+                routing.request.entrypoint(),
             ),
         ),
         traceability_row(

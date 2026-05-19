@@ -30,7 +30,27 @@ impl ForgeQueryIntentAdmissionGoldenTranscript {
     }
 }
 
-const COMPILE_FAIL_TARGETS: [ForgeQueryIntentAdmissionCompileFailTarget; 35] = [
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub struct ForgeQueryIntentAdmissionCrateDocExampleTarget {
+    label: &'static str,
+    path: &'static str,
+}
+
+impl ForgeQueryIntentAdmissionCrateDocExampleTarget {
+    pub(crate) const fn new(label: &'static str, path: &'static str) -> Self {
+        Self { label, path }
+    }
+
+    pub fn label(&self) -> &'static str {
+        self.label
+    }
+
+    pub fn path(&self) -> &'static str {
+        self.path
+    }
+}
+
+const COMPILE_FAIL_TARGETS: [ForgeQueryIntentAdmissionCompileFailTarget; 36] = [
     ForgeQueryIntentAdmissionCompileFailTarget::new(
         "tests/ui/intent_admission/authoring/runtime_intent_admission_review_constructor_private.rs",
     ),
@@ -98,43 +118,46 @@ const COMPILE_FAIL_TARGETS: [ForgeQueryIntentAdmissionCompileFailTarget; 35] = [
         "tests/ui/intent_admission/consumer/intent_consumer_inspection_constructor_private.rs",
     ),
     ForgeQueryIntentAdmissionCompileFailTarget::new(
-        "tests/ui/intent_admission/certification/intent_admission_certification_bundle_constructor_private.rs",
+        "tests/ui/intent_admission/certification/bundle/intent_admission_certification_bundle_constructor_private.rs",
     ),
     ForgeQueryIntentAdmissionCompileFailTarget::new(
-        "tests/ui/intent_admission/certification/intent_admission_public_boundary_audit_constructor_private.rs",
+        "tests/ui/intent_admission/certification/audits/intent_admission_public_boundary_audit_constructor_private.rs",
     ),
     ForgeQueryIntentAdmissionCompileFailTarget::new(
-        "tests/ui/intent_admission/certification/intent_admission_proof_shape_audit_constructor_private.rs",
+        "tests/ui/intent_admission/certification/audits/intent_admission_proof_shape_audit_constructor_private.rs",
     ),
     ForgeQueryIntentAdmissionCompileFailTarget::new(
-        "tests/ui/intent_admission/certification/intent_admission_topology_audit_constructor_private.rs",
+        "tests/ui/intent_admission/certification/audits/intent_admission_topology_audit_constructor_private.rs",
     ),
     ForgeQueryIntentAdmissionCompileFailTarget::new(
-        "tests/ui/intent_admission/certification/intent_admission_certification_output_constructor_private.rs",
+        "tests/ui/intent_admission/certification/bundle/intent_admission_certification_output_constructor_private.rs",
     ),
     ForgeQueryIntentAdmissionCompileFailTarget::new(
-        "tests/ui/intent_admission/certification/intent_admission_oracle_report_constructor_private.rs",
+        "tests/ui/intent_admission/certification/reports/parity/intent_admission_oracle_report_constructor_private.rs",
     ),
     ForgeQueryIntentAdmissionCompileFailTarget::new(
-        "tests/ui/intent_admission/certification/intent_admission_legacy_parity_report_constructor_private.rs",
+        "tests/ui/intent_admission/certification/reports/parity/intent_admission_legacy_parity_report_constructor_private.rs",
     ),
     ForgeQueryIntentAdmissionCompileFailTarget::new(
-        "tests/ui/intent_admission/certification/intent_admission_support_traceability_report_constructor_private.rs",
+        "tests/ui/intent_admission/certification/reports/parity/intent_admission_support_traceability_report_constructor_private.rs",
     ),
     ForgeQueryIntentAdmissionCompileFailTarget::new(
-        "tests/ui/intent_admission/certification/intent_admission_slope_report_constructor_private.rs",
+        "tests/ui/intent_admission/certification/reports/parity/intent_admission_slope_report_constructor_private.rs",
     ),
     ForgeQueryIntentAdmissionCompileFailTarget::new(
-        "tests/ui/intent_admission/certification/intent_admission_representative_output_report_constructor_private.rs",
+        "tests/ui/intent_admission/certification/reports/parity/intent_admission_width_run_row_constructor_private.rs",
     ),
     ForgeQueryIntentAdmissionCompileFailTarget::new(
-        "tests/ui/intent_admission/certification/intent_admission_representative_family_report_constructor_private.rs",
+        "tests/ui/intent_admission/certification/reports/artifacts/intent_admission_representative_output_report_constructor_private.rs",
     ),
     ForgeQueryIntentAdmissionCompileFailTarget::new(
-        "tests/ui/intent_admission/certification/intent_admission_doc_example_report_constructor_private.rs",
+        "tests/ui/intent_admission/certification/reports/artifacts/intent_admission_representative_family_report_constructor_private.rs",
     ),
     ForgeQueryIntentAdmissionCompileFailTarget::new(
-        "tests/ui/intent_admission/certification/intent_admission_seeded_certification_report_constructor_private.rs",
+        "tests/ui/intent_admission/certification/reports/artifacts/intent_admission_doc_example_report_constructor_private.rs",
+    ),
+    ForgeQueryIntentAdmissionCompileFailTarget::new(
+        "tests/ui/intent_admission/certification/reports/artifacts/intent_admission_seeded_certification_report_constructor_private.rs",
     ),
 ];
 
@@ -156,6 +179,29 @@ const GOLDEN_TRANSCRIPTS: [ForgeQueryIntentAdmissionGoldenTranscript; 5] = [
     ),
 ];
 
+const CRATE_DOC_EXAMPLE_TARGETS: [ForgeQueryIntentAdmissionCrateDocExampleTarget; 5] = [
+    ForgeQueryIntentAdmissionCrateDocExampleTarget::new(
+        "common_path",
+        "tests/ui/intent_admission/docs/intent_admission_doc_common_path_compiles.rs",
+    ),
+    ForgeQueryIntentAdmissionCrateDocExampleTarget::new(
+        "advanced_path",
+        "tests/ui/intent_admission/docs/intent_admission_doc_advanced_path_compiles.rs",
+    ),
+    ForgeQueryIntentAdmissionCrateDocExampleTarget::new(
+        "consumer_lane",
+        "tests/ui/intent_admission/docs/intent_admission_doc_consumer_lane_compiles.rs",
+    ),
+    ForgeQueryIntentAdmissionCrateDocExampleTarget::new(
+        "basis_projection",
+        "tests/ui/intent_admission/docs/intent_admission_doc_basis_projection_compiles.rs",
+    ),
+    ForgeQueryIntentAdmissionCrateDocExampleTarget::new(
+        "read_mutation_inspection_routing",
+        "tests/ui/intent_admission/docs/intent_admission_doc_read_mutation_inspection_routing_compiles.rs",
+    ),
+];
+
 pub fn forge_query_intent_admission_compile_fail_targets(
 ) -> &'static [ForgeQueryIntentAdmissionCompileFailTarget] {
     &COMPILE_FAIL_TARGETS
@@ -164,6 +210,11 @@ pub fn forge_query_intent_admission_compile_fail_targets(
 pub fn forge_query_intent_admission_golden_transcripts(
 ) -> &'static [ForgeQueryIntentAdmissionGoldenTranscript] {
     &GOLDEN_TRANSCRIPTS
+}
+
+pub fn forge_query_intent_admission_crate_doc_example_targets(
+) -> &'static [ForgeQueryIntentAdmissionCrateDocExampleTarget] {
+    &CRATE_DOC_EXAMPLE_TARGETS
 }
 
 pub(super) fn compile_fail_boundary_digest() -> String {
@@ -180,6 +231,15 @@ pub(super) fn golden_transcript_digest() -> String {
         &GOLDEN_TRANSCRIPTS
             .iter()
             .map(|target| format!("golden:{}", target.path()))
+            .collect::<Vec<_>>(),
+    )
+}
+
+pub(super) fn crate_doc_example_target_digest() -> String {
+    hash_parts(
+        &CRATE_DOC_EXAMPLE_TARGETS
+            .iter()
+            .map(|target| format!("{}:{}", target.label(), target.path()))
             .collect::<Vec<_>>(),
     )
 }

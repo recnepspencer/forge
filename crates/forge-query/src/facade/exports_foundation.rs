@@ -208,11 +208,16 @@ pub use crate::effect_lifecycle::{
     LoweredRelationalMutationBatchExecutionArtifact, NormalizedEffectIntent, RawEffectIntent,
     RebindRequiredEffectEligibility, RelationalExecutionOracle, SelfDescribingEffectEnvelope,
 };
+#[cfg(test)]
+pub use crate::execution::{execute_parallel_admission_route, execute_serial_fallback_route};
 pub use crate::execution::{
-    execute_parallel_admission_route, execute_preflight_bundle, execute_serial_fallback_route,
-    ExecutionCounters, ExecutionError, ExecutionFailureClass, ExecutionReport,
-    ExecutionResultEnvelope,
+    execute_preflight_bundle, ExecutionCounters, ExecutionError, ExecutionFailureClass,
+    ExecutionReport, ExecutionResultEnvelope,
 };
+#[cfg(not(test))]
+pub use crate::frontier_planning::FrontierSurfaceDigest;
+#[cfg(test)]
+#[allow(unused_imports)]
 pub use crate::frontier_planning::{
     BoundedMaterializationFrontierPreflight, FrontierAwarePlan, FrontierBreadthPrediction,
     FrontierBundleRoutePlanningError, FrontierComplexityContract, FrontierCounterSnapshot,

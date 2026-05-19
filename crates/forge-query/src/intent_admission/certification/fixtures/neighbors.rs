@@ -1,8 +1,8 @@
 use super::authoritative_declaration;
 use crate::facade::runtime::{
-    admit_runtime_intent_request, ForgeQueryIntentAdmissionDecision,
-    ForgeQueryIntentViolationDecision, ForgeQueryRawIntentAdmissionRequest,
-    ForgeQueryIntentAdmissionCoveredEntrypoint,
+    admit_runtime_intent_request, ForgeQueryIntentAdmissionCoveredEntrypoint,
+    ForgeQueryIntentAdmissionDecision, ForgeQueryIntentViolationDecision,
+    ForgeQueryRawIntentAdmissionRequest,
 };
 use crate::intent_admission::dx::ForgeQueryRuntimeIntentAdmissionReviewData;
 use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;

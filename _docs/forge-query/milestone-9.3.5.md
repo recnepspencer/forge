@@ -1,6 +1,7 @@
 # Milestone 9.3.5 Engineering Spec: Intent Admission Decision Lattice And Decision Trace
 
-> **Status:** Draft
+> **Status:** Closed on 2026-05-18 via
+> [milestone-9.3.5-closeout.md](./milestone-9.3.5-closeout.md)
 >
 > **Roadmap parent:** [forge_query_roadmap.md](./forge_query_roadmap.md)
 >
@@ -943,26 +944,65 @@ The milestone is not complete when the code and certification exist only for
 engineers who already know the internals. The public crate documentation must
 teach the finished admission and handoff model as a real framework surface.
 
+Phase 7 inherits the post-Phase-5.5 surface, not the earlier runtime-floor
+interpretation of 9.3.5. The documentation phase is therefore not allowed to
+retell only the original runtime-intent floor and call that milestone closure.
+It must document the concrete adopted covered-entrypoint inventory and support
+posture finalized by Phase 5.5.
+
 This phase should be executed with the standards embodied by the
 `feature-doc-writer` skill: product-facing, implementation-grounded,
 developer-teaching documentation rather than milestone prose or internal notes.
 
 Work to complete in order:
 
-1. Identify the public `forge-query` surfaces introduced or materially changed
-   by 9.3.5.
-2. Write crate-facing documentation that explains:
+1. Import the finalized 9.3.5 covered-entrypoint inventory, support matrix,
+   target DX transcripts, and mutation-entrypoint audit as predecessor inputs
+   for the documentation pass.
+2. Identify the public `forge-query` surfaces introduced or materially changed
+   by 9.3.5, including the concrete post-5.5 adopted families rather than only
+   the original runtime-intent floor:
+   - authoritative mutation intent execution
+   - batch mutation intent execution
+   - read-family execution
+   - basis-context read-family execution
+   - live read execution
+   - derived materialization
+   - generic and derived inspection
+   - existing-truth probe routing
+   - basis observation as a `no-execution-handoff` admitted family
+   - projection consumption as a `no-execution-handoff` admitted family
+3. Identify the public convenience wrappers that Phase 5.5 requires to remain
+   thin delegates over the shared lattice, and make their relationship to the
+   canonical intent path explicit in the docs. This includes at minimum:
+   - `workspace.verify_existing(...)`
+   - `workspace.update_existing_verified(...)`
+   - `workspace.delete_existing_verified(...)`
+   - `workspace.read(...)`
+   - `workspace.materialize(...)`
+   - `workspace.inspect(...)`
+   - `runtime.probe_existing(...)`
+   - `workspace.probe_existing(...)`
+4. Write crate-facing documentation that explains:
    - what intent admission is for
    - the common-path authoring and execution flow
    - the advanced proof-chain flow
    - admitted, advisory, deferred, and violation outcomes
    - execution handoffs and why covered execution requires them
-   - how traces, provenance, and inspection fit into normal usage
-3. Add practical examples that match the target DX promised by this spec.
-4. Install that documentation into the crate documentation surface so it ships
+   - how traces, provenance, inspection, and routing fit into normal usage
+   - which covered families execute through a runtime handoff versus which
+     admitted families terminate in scoped basis or bound-contract artifacts
+5. Add practical examples that match the target DX promised by this spec and
+   collectively cover the post-5.5 family set rather than only representative
+   runtime-intent examples.
+6. Install that documentation into the crate documentation surface so it ships
    with `forge-query`, rather than living only in milestone docs.
-5. Verify that the crate documentation uses the final public names and does not
+7. Verify that the crate documentation uses the final public names and does not
    rely on internal module topology or milestone vocabulary.
+8. Verify that the crate documentation agrees with the finalized
+   covered-entrypoint inventory, support matrix, DX/golden transcript set, and
+   mutation-entrypoint audit instead of telling a separate "close enough"
+   public-surface story.
 
 Artifacts that must exist before leaving this phase:
 
@@ -971,6 +1011,8 @@ Artifacts that must exist before leaving this phase:
   expects them
 - cross-links from the crate documentation to the relevant public types and
   entrypoints
+- explicit documentation coverage for the post-5.5 adopted family set and the
+  thin convenience wrappers that delegate into it
 
 This phase is incomplete if:
 
@@ -978,12 +1020,20 @@ This phase is incomplete if:
 - the crate documentation describes the internal implementation but not the
   caller experience
 - examples drift from the target DX or use obsolete public naming
+- the crate documentation still teaches only the original runtime-intent floor
+  and omits concrete adopted read, inspection, routing, basis, or projection
+  surfaces finalized by Phase 5.5
+- convenience wrappers are documented as independent feature surfaces rather
+  than thin delegates over the canonical intent lattice where that is the real
+  implementation contract
 
 Completion gate:
 
 - `forge-query` crate documentation teaches the 9.3.5 surface directly
 - the docs are concrete enough that a new engineer can use the common path and
   discover the advanced path without spelunking implementation modules
+- the docs match the finalized covered-entrypoint inventory, support matrix,
+  DX transcripts, and mutation-entrypoint audit from Phase 5.5
 - the milestone cannot close until this documentation is present in the crate
   documentation surface
 

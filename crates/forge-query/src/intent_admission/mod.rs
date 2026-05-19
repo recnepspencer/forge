@@ -4,30 +4,35 @@ mod certification;
 mod decisions;
 pub(crate) mod dx;
 mod eligibility;
-mod execution_bindings;
 mod families;
 mod handoffs;
 mod inventory;
 mod plans;
 mod stops;
 mod support;
+mod surface_catalog;
 mod trace;
 
 pub use certification::{
-    certify_intent_admission_runtime_floor, forge_query_intent_admission_compile_fail_targets,
+    certify_intent_admission, forge_query_intent_admission_certification_output_manifest,
+    forge_query_intent_admission_closeout_extension_outputs,
+    forge_query_intent_admission_compile_fail_targets,
+    forge_query_intent_admission_crate_doc_example_targets,
     forge_query_intent_admission_doc_example_report,
     forge_query_intent_admission_golden_transcripts,
     forge_query_intent_admission_legacy_parity_report, forge_query_intent_admission_oracle_report,
     forge_query_intent_admission_representative_family_report,
     forge_query_intent_admission_representative_output_report,
+    forge_query_intent_admission_required_certification_outputs,
     forge_query_intent_admission_seeded_certification_report,
     forge_query_intent_admission_slope_report,
     forge_query_intent_admission_support_traceability_report,
     ForgeQueryIntentAdmissionCertificationBundle,
     ForgeQueryIntentAdmissionCertificationCounterSnapshot,
     ForgeQueryIntentAdmissionCertificationOutput, ForgeQueryIntentAdmissionCompileFailTarget,
-    ForgeQueryIntentAdmissionDocExampleReport, ForgeQueryIntentAdmissionDocExampleRow,
-    ForgeQueryIntentAdmissionGoldenTranscript, ForgeQueryIntentAdmissionLegacyParityLane,
+    ForgeQueryIntentAdmissionCrateDocExampleTarget, ForgeQueryIntentAdmissionDocExampleReport,
+    ForgeQueryIntentAdmissionDocExampleRow, ForgeQueryIntentAdmissionGoldenTranscript,
+    ForgeQueryIntentAdmissionLegacyParityCheck, ForgeQueryIntentAdmissionLegacyParityLane,
     ForgeQueryIntentAdmissionLegacyParityReport, ForgeQueryIntentAdmissionLegacyParityRow,
     ForgeQueryIntentAdmissionOracleComparisonRow, ForgeQueryIntentAdmissionOracleLane,
     ForgeQueryIntentAdmissionOracleManifestRow, ForgeQueryIntentAdmissionOracleReport,
@@ -37,14 +42,23 @@ pub use certification::{
     ForgeQueryIntentAdmissionRepresentativeFamilyRow,
     ForgeQueryIntentAdmissionRepresentativeOutputReport,
     ForgeQueryIntentAdmissionSeedGeneratorClass, ForgeQueryIntentAdmissionSeedReplayRow,
-    ForgeQueryIntentAdmissionSeededCertificationReport, ForgeQueryIntentAdmissionSlopeReport,
-    ForgeQueryIntentAdmissionSupportTraceabilityReport,
+    ForgeQueryIntentAdmissionSeededCertificationReport, ForgeQueryIntentAdmissionSlopeLane,
+    ForgeQueryIntentAdmissionSlopeReport, ForgeQueryIntentAdmissionSupportTraceabilityReport,
     ForgeQueryIntentAdmissionSupportTraceabilityRow, ForgeQueryIntentAdmissionTopologyAudit,
     ForgeQueryIntentAdmissionTopologyAuditRow, ForgeQueryIntentAdmissionTopologyDomain,
+    ForgeQueryIntentAdmissionWidthRunRow, ForgeQueryIntentAdmissionWidthRunScale,
+};
+pub(crate) use certification::{
+    INTENT_ADMISSION_CERTIFICATION_CHILD_MODULES, INTENT_ADMISSION_CERTIFICATION_EXPORTED_SURFACE,
+    INTENT_ADMISSION_CERTIFICATION_MODULE_ROOT,
 };
 pub use decisions::{
     admit_runtime_intent_request, ForgeQueryIntentAdmissionDecision,
     ForgeQueryIntentAdvisoryDecision, ForgeQueryIntentViolationDecision,
+};
+pub(crate) use decisions::{
+    INTENT_ADMISSION_DECISIONS_CHILD_MODULES, INTENT_ADMISSION_DECISIONS_EXPORTED_SURFACE,
+    INTENT_ADMISSION_DECISIONS_MODULE_ROOT,
 };
 #[allow(unused_imports)]
 pub use dx::{
@@ -72,6 +86,10 @@ pub use dx::{
     ForgeQueryWorkspaceLiveReadIntentAdmissionReview, ForgeQueryWorkspaceLiveReadIntentAuthoring,
     ForgeQueryWorkspaceReadIntentAdmissionReview, ForgeQueryWorkspaceReadIntentAuthoring,
 };
+pub(crate) use dx::{
+    INTENT_ADMISSION_DX_CHILD_MODULES, INTENT_ADMISSION_DX_EXPORTED_SURFACE,
+    INTENT_ADMISSION_DX_MODULE_ROOT,
+};
 pub use eligibility::{
     ForgeQueryAuthoritativeMutationBatchIntentSeed, ForgeQueryAuthoritativeMutationIntentSeed,
     ForgeQueryAuthoritativeMutationPreflight, ForgeQueryDerivedViewIntentSeed,
@@ -87,39 +105,48 @@ pub use eligibility::{
     ForgeQueryLiveReadIntentSeed, ForgeQueryRawIntentAdmissionRequest,
     ForgeQueryReadExecutionIntentSeed,
 };
-pub use execution_bindings::{
-    ForgeQueryAuthoritativeIntentExecutionBinding,
-    ForgeQueryAuthoritativeMutationBatchExecutionBinding,
-    ForgeQueryAuthoritativeMutationExecutionBinding, ForgeQueryDerivedInspectionExecutionBinding,
-    ForgeQueryDerivedMaterializationExecutionBinding,
-    ForgeQueryEffectTriggeredIntentExecutionBinding, ForgeQueryExistingTruthProbeExecutionBinding,
-    ForgeQueryLiveReadExecutionBinding, ForgeQueryReadExecutionBinding,
-    ForgeQueryUnifiedInspectionExecutionBinding,
+pub(crate) use eligibility::{
+    INTENT_ADMISSION_ELIGIBILITY_CHILD_MODULES, INTENT_ADMISSION_ELIGIBILITY_EXPORTED_SURFACE,
+    INTENT_ADMISSION_ELIGIBILITY_MODULE_ROOT,
 };
 pub use families::{
     forge_query_intent_admission_family_inventory, ForgeQueryIntentAdmissionFamily,
     ForgeQueryIntentAdmissionFamilyInventory, ForgeQueryIntentAdmissionFamilyInventoryRow,
 };
+pub(crate) use families::{
+    INTENT_ADMISSION_FAMILIES_CHILD_MODULES, INTENT_ADMISSION_FAMILIES_EXPORTED_SURFACE,
+    INTENT_ADMISSION_FAMILIES_MODULE_ROOT,
+};
 pub(crate) use handoffs::{admit_authoritative_execution, admit_effect_execution};
 pub use handoffs::{
-    ForgeQueryAdmittedIntentExecutionHandoff, ForgeQueryAuthoritativeIntentExecutionHandoff,
+    ForgeQueryAdmittedIntentExecutionHandoff, ForgeQueryAuthoritativeIntentExecutionBinding,
+    ForgeQueryAuthoritativeIntentExecutionHandoff,
+    ForgeQueryAuthoritativeMutationBatchExecutionBinding,
     ForgeQueryAuthoritativeMutationBatchExecutionHandoff,
-    ForgeQueryAuthoritativeMutationExecutionHandoff, ForgeQueryDerivedInspectionExecutionHandoff,
+    ForgeQueryAuthoritativeMutationExecutionBinding,
+    ForgeQueryAuthoritativeMutationExecutionHandoff, ForgeQueryDerivedInspectionExecutionBinding,
+    ForgeQueryDerivedInspectionExecutionHandoff, ForgeQueryDerivedMaterializationExecutionBinding,
     ForgeQueryDerivedMaterializationExecutionHandoff,
-    ForgeQueryEffectTriggeredIntentExecutionHandoff, ForgeQueryExistingTruthProbeExecutionHandoff,
-    ForgeQueryLiveReadExecutionHandoff, ForgeQueryReadExecutionHandoff,
+    ForgeQueryEffectTriggeredIntentExecutionBinding,
+    ForgeQueryEffectTriggeredIntentExecutionHandoff, ForgeQueryExistingTruthProbeExecutionBinding,
+    ForgeQueryExistingTruthProbeExecutionHandoff, ForgeQueryLiveReadExecutionBinding,
+    ForgeQueryLiveReadExecutionHandoff, ForgeQueryReadExecutionBinding,
+    ForgeQueryReadExecutionHandoff, ForgeQueryUnifiedInspectionExecutionBinding,
     ForgeQueryUnifiedInspectionExecutionHandoff,
 };
+pub(crate) use handoffs::{
+    INTENT_ADMISSION_HANDOFFS_CHILD_MODULES, INTENT_ADMISSION_HANDOFFS_EXPORTED_SURFACE,
+    INTENT_ADMISSION_HANDOFFS_MODULE_ROOT,
+};
 pub use inventory::{
-    forge_query_intent_admission_coverage_inventory,
-    forge_query_intent_admission_mutation_audit, ForgeQueryIntentAdmissionCoverageInventory,
-    ForgeQueryIntentAdmissionCoverageRow, ForgeQueryIntentAdmissionCoverageStatus,
-    ForgeQueryIntentAdmissionCoveredEntrypoint, ForgeQueryIntentAdmissionDecisionClass,
-    ForgeQueryIntentAdmissionEligibilityAuthority, ForgeQueryIntentAdmissionExecutionBoundary,
-    ForgeQueryIntentAdmissionExecutionHandoffInventory, ForgeQueryIntentAdmissionExecutionSeam,
-    ForgeQueryIntentAdmissionMutationAudit, ForgeQueryIntentAdmissionMutationAuditRow,
-    ForgeQueryIntentAdmissionPlanKind, ForgeQueryIntentAdmissionResultArtifact,
-    ForgeQueryIntentAdmissionSurfaceDescriptor,
+    forge_query_intent_admission_coverage_inventory, forge_query_intent_admission_mutation_audit,
+    ForgeQueryIntentAdmissionCoverageInventory, ForgeQueryIntentAdmissionCoverageRow,
+    ForgeQueryIntentAdmissionCoverageStatus, ForgeQueryIntentAdmissionCoveredEntrypoint,
+    ForgeQueryIntentAdmissionDecisionClass, ForgeQueryIntentAdmissionEligibilityAuthority,
+    ForgeQueryIntentAdmissionExecutionBoundary, ForgeQueryIntentAdmissionExecutionHandoffInventory,
+    ForgeQueryIntentAdmissionExecutionSeam, ForgeQueryIntentAdmissionMutationAudit,
+    ForgeQueryIntentAdmissionMutationAuditRow, ForgeQueryIntentAdmissionPlanKind,
+    ForgeQueryIntentAdmissionResultArtifact, ForgeQueryIntentAdmissionSurfaceDescriptor,
 };
 pub use plans::{
     ForgeQueryAdmittedIntentPlan, ForgeQueryAuthoritativeIntentExecutionPlan,
@@ -138,11 +165,19 @@ pub use support::{
     ForgeQueryIntentAdmissionSupportMatrix, ForgeQueryIntentAdmissionSupportPosture,
     ForgeQueryIntentAdmissionSupportRow,
 };
+pub(crate) use support::{
+    INTENT_ADMISSION_SUPPORT_CHILD_MODULES, INTENT_ADMISSION_SUPPORT_EXPORTED_SURFACE,
+    INTENT_ADMISSION_SUPPORT_MODULE_ROOT,
+};
 pub use trace::{
     ForgeQueryIntentDecisionTraceEnvelope, ForgeQueryIntentDecisionTraceEnvelopeKind,
     ForgeQueryIntentDecisionTraceEvidence, ForgeQueryIntentDecisionTraceEvidenceOwner,
     ForgeQueryIntentDecisionTraceRow, ForgeQueryIntentDecisionTraceStage,
     ForgeQueryIntentEligibilityTraceEvidence,
+};
+pub(crate) use trace::{
+    INTENT_ADMISSION_TRACE_CHILD_MODULES, INTENT_ADMISSION_TRACE_EXPORTED_SURFACE,
+    INTENT_ADMISSION_TRACE_MODULE_ROOT,
 };
 
 pub(crate) fn intent_runtime_facade_family(

@@ -8,9 +8,19 @@ use serde_json::{json, Value};
 
 mod support;
 
-use support::public_bridge_runtime::{
-    public_graph_support_profile, public_verified_relation_profile, PublicBridgeRuntimeHarness,
-};
+use support::public_bridge_runtime::{public_graph_support_profile, PublicBridgeRuntimeHarness};
+
+fn public_verified_relation_profile(
+    operation_family: &str,
+) -> forge_query::facade::ForgeQueryRuntimeSupportProfile {
+    public_graph_support_profile().with_bridge_backed_verification_support(
+        operation_family,
+        "direct_relation_identity",
+        true,
+        true,
+        None,
+    )
+}
 
 #[test]
 fn graph_composition_public_bridge_executes_symbolic_followup_and_relation_retirement() {
