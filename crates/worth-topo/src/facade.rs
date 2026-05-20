@@ -81,6 +81,17 @@ pub use crate::certification::{
     TopologyQueryBoundaryCleanupRow, TopologyQueryBoundaryCleanupStatus,
     TracedMilestoneOneCertificationReport, TracedMilestoneTwoDerivedReadReport,
 };
+pub use crate::construction::{
+    build_topology_construction_fact_report, lower_primitive_construction_birth_plan,
+    prepare_primitive_construction_certification, prepare_primitive_construction_execution,
+    topology_construction_authority, TopologyConstructionAuthority,
+    TopologyConstructionCertificationPlan, TopologyConstructionCertificationReadSurface,
+    TopologyConstructionExecutionError, TopologyConstructionExecutionPlan,
+    TopologyConstructionFactKind, TopologyConstructionFactProvenance,
+    TopologyConstructionFactReport, TopologyConstructionFactRow,
+    TopologyConstructionInspectionSurface, TopologyConstructionLoweringError,
+    TopologyConstructionLoweringPlan, TopologyConstructionMutationSurface,
+};
 pub use crate::derived_topology::materialized_graph::{
     MaterializationBreadthReport, MaterializationFallbackClass, MaterializationReport,
     MaterializedTopologyView, TopologyMaterializationError, TopologyMaterializer,

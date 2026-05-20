@@ -1,0 +1,10 @@
+error[E0624]: associated function `new` is private
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_intent_arbitration_hostility_suite_constructor_not_exported.rs:4:73
+  |
+4 |     let _ = PrimitiveConstructionIntentArbitrationHostilitySuiteReport::new;
+  |                                                                         ^^^ private associated function
+  |
+ ::: src/construction/certification/arbitration/suite.rs
+  |
+  |     fn new(bundles: Vec<PrimitiveConstructionIntentArbitrationReportBundle>) -> Self {
+  |     -------------------------------------------------------------------------------- private associated function defined here

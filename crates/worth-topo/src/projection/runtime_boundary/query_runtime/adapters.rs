@@ -183,24 +183,37 @@ impl ForgeQueryRuntimeSubscriptionActivationAdapter for TopologySubscriptionActi
     }
 }
 
-pub(super) struct TopologyPreviewBasis {
-    denial_reason: &'static str,
+pub(super) enum TopologyPreviewBasis {
+    Supported { support_evidence: &'static str },
+    Denied { denial_reason: &'static str },
 }
 
 impl TopologyPreviewBasis {
-    pub(super) fn new(denial_reason: &'static str) -> Self {
-        Self { denial_reason }
+    pub(super) fn supported(support_evidence: &'static str) -> Self {
+        Self::Supported { support_evidence }
+    }
+
+    pub(super) fn denied(denial_reason: &'static str) -> Self {
+        Self::Denied { denial_reason }
     }
 }
 
 impl ForgeQueryRuntimePreviewBasisAdapter for TopologyPreviewBasis {
     fn admit_preview_basis(
         &self,
-        _label: &str,
-        _effect_policy: ForgeQueryEffectPolicy,
-        _authority: &ForgeQueryRuntimeEvidenceAuthority,
+        label: &str,
+        effect_policy: ForgeQueryEffectPolicy,
+        authority: &ForgeQueryRuntimeEvidenceAuthority,
     ) -> Result<ForgeQueryPreviewBasisAdmission, ForgeQueryWorkspaceError> {
-        Err(ForgeQueryWorkspaceError::new(self.denial_reason))
+        match self {
+            Self::Supported { support_evidence } => Ok(ForgeQueryPreviewBasisAdmission::new(
+                authority,
+                label,
+                effect_policy,
+                [*support_evidence],
+            )),
+            Self::Denied { denial_reason } => Err(ForgeQueryWorkspaceError::new(*denial_reason)),
+        }
     }
 }
 

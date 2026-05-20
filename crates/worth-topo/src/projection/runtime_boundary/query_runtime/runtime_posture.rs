@@ -6,15 +6,17 @@ pub enum TopologyRuntimePostureCapability {
     CurrentHeadMaterialization,
     PostWriteMaterialization,
     HistoricalBasis,
+    BranchPreviewBasis,
     AuthoritativeWrites,
 }
 
 impl TopologyRuntimePostureCapability {
-    pub const ALL: [Self; 5] = [
+    pub const ALL: [Self; 6] = [
         Self::CurrentHeadLiveReads,
         Self::CurrentHeadMaterialization,
         Self::PostWriteMaterialization,
         Self::HistoricalBasis,
+        Self::BranchPreviewBasis,
         Self::AuthoritativeWrites,
     ];
 }
@@ -138,6 +140,12 @@ pub(super) fn current_head_runtime_posture_rows() -> Vec<TopologyRuntimePostureR
                     "current-head runtime posture does not admit historical snapshot basis selection",
                 )
             }
+            TopologyRuntimePostureCapability::BranchPreviewBasis => {
+                TopologyRuntimePostureRow::admitted(
+                    capability,
+                    "current-head runtime admits preview and branch-local basis selection over retained topology truth",
+                )
+            }
             TopologyRuntimePostureCapability::AuthoritativeWrites => {
                 TopologyRuntimePostureRow::admitted(
                     capability,
@@ -174,6 +182,12 @@ pub(super) fn snapshot_runtime_posture_rows() -> Vec<TopologyRuntimePostureRow> 
                 TopologyRuntimePostureRow::admitted(
                     capability,
                     "snapshot read-only runtime admits historical snapshot basis reads",
+                )
+            }
+            TopologyRuntimePostureCapability::BranchPreviewBasis => {
+                TopologyRuntimePostureRow::denied(
+                    capability,
+                    "snapshot read-only runtime is already fixed to one historical basis and does not admit preview or branch-local basis selection",
                 )
             }
             TopologyRuntimePostureCapability::AuthoritativeWrites => {

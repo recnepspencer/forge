@@ -4,5 +4,6 @@ pub mod plane;
 pub mod point;
 pub mod polygon;
 pub mod ray;
+pub mod shape_realization;
 pub mod shapes;
 pub mod vertex_geom;

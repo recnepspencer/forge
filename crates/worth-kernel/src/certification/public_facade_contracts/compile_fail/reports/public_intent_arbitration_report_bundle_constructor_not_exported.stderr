@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_intent_arbitration_report_bundle_constructor_not_exported.rs:4:65
+  |
+4 |       let _ = PrimitiveConstructionIntentArbitrationReportBundle::new;
+  |                                                                   ^^^ private associated function
+  |
+ ::: src/construction/certification/arbitration/bundle.rs
+  |
+  | /     fn new(
+  | |         case: PrimitiveConstructionIntentArbitrationBundleCase,
+  | |         policy_row: PrimitiveConstructionIntentArbitrationPolicyRow,
+  | |         chosen_row: Option<PrimitiveConstructionChosenIntentResolutionRow>,
+... |
+  | |         query_projection_receipt_report: PrimitiveConstructionQueryIntentArbitrationParityReport,
+  | |     ) -> Result<Self, PrimitiveConstructionIntentArbitrationReportBundleError> {
+  | |______________________________________________________________________________- private associated function defined here

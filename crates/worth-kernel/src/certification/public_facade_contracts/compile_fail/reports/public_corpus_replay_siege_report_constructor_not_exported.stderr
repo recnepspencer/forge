@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_corpus_replay_siege_report_constructor_not_exported.rs:7:59
+  |
+7 |       let _ = PrimitiveConstructionCorpusReplaySiegeReport::new(
+  |                                                             ^^^ private associated function
+  |
+ ::: src/construction/certification/corpus/replay_siege_report.rs
+  |
+  | /     pub(super) fn new(
+  | |         rows: Vec<PrimitiveConstructionCorpusReplaySiegeRow>,
+  | |         accepted_count: usize,
+  | |         rejected_count: usize,
+  | |         authoring_order_rows: Vec<PrimitiveConstructionCorpusAuthoringOrderRow>,
+  | |         rejection_witness_rows: Vec<PrimitiveConstructionCorpusRejectionWitnessRow>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

@@ -1,0 +1,10 @@
+error[E0624]: associated function `new` is private
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_query_basis_preview_parity_report_constructor_not_exported.rs:4:65
+  |
+4 |     let _ = PrimitiveConstructionQueryBasisPreviewParityReport::new;
+  |                                                                 ^^^ private associated function
+  |
+ ::: src/construction/runtime_proof/query/basis_preview_parity.rs
+  |
+  |     fn new(runtime_report: &PrimitiveConstructionBranchPreviewRuntimeReport) -> Self {
+  |     -------------------------------------------------------------------------------- private associated function defined here

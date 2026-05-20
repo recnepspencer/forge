@@ -9,6 +9,7 @@
 
 mod brep;
 mod certification;
+mod construction;
 mod derived_topology;
 mod projection;
 mod test_support;

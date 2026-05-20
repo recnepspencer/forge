@@ -1,0 +1,26 @@
+[package]
+name = "worth-kernel"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Primitive construction orchestration for the Worth stack"
+
+[[test]]
+name = "public_api_contract"
+path = "src/certification/public_facade_contracts/contracts/public_api.rs"
+
+[[test]]
+name = "ui"
+path = "src/certification/public_facade_contracts/compile_fail_contracts.rs"
+
+[dependencies]
+forge-query.workspace = true
+worth-geom.workspace = true
+worth-spatial.workspace = true
+worth-topo.workspace = true
+
+[dev-dependencies]
+trybuild.workspace = true
+
+[lints]
+workspace = true

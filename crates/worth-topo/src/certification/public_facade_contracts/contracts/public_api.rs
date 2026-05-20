@@ -6,27 +6,34 @@ use schema::facade::{
     VerifiedTopologyCommit,
 };
 use topology::facade::{
-    certify_milestone_one_read_basis_traced, certify_milestone_two_read_basis_traced,
-    certify_milestone_two_verified_topology_commit_traced,
+    build_topology_construction_fact_report, certify_milestone_one_read_basis_traced,
+    certify_milestone_two_read_basis_traced, certify_milestone_two_verified_topology_commit_traced,
     certify_topology_query_boundary_cleanup_closeout, certify_verified_topology_commit_traced,
     declare_persistent_name_live_view, declare_topology_diagnostics_surface,
     declare_topology_entity_live_view, declare_topology_equivalence_contract_surface,
     declare_topology_interpreted_surface, declare_topology_materialized_surface,
     declare_topology_relation_live_view, declare_topology_validation_surface,
-    naming_attachment_report_from_query_input, persistent_name_live_view_declaration,
-    topology_runtime, MilestoneOneCertificationError, TopologyDomainQuery,
-    TopologyDomainQueryAggregateReport, TopologyDomainQueryCloseoutReport,
-    TopologyDomainQueryCloseoutRow, TopologyDomainQueryCloseoutStatus,
-    TopologyDomainQueryExecutionEngine, TopologyDomainQueryParityAggregateReport,
-    TopologyDomainQueryPhaseThreeBlocker, TopologyDomainQueryPhaseThreeBlockerRow,
-    TopologyDomainQueryPhaseThreeBlockerStatus, TopologyDomainQueryProofReport,
-    TopologyDomainQueryRequestFamily, TopologyDomainQueryRequestReport,
-    TopologyEditApplicationMode, TopologyEditBatch, TopologyHalfEdgeRadialNeighborhoodView,
-    TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyLocalRewireNeighborhoodView,
-    TopologyLoopCycleView, TopologyNamingAttachmentInput, TopologyNoNPlusOneContract,
-    TopologyNoNPlusOneContractRow, TopologyNoNPlusOneContractStatus, TopologyOperatorExecution,
-    TopologyOperatorExecutionError, TopologyQueryAppliedIntent, TopologyQueryApplyError,
-    TopologyQueryAssembly, TopologyQueryBoundaryCleanupArea,
+    lower_primitive_construction_birth_plan, naming_attachment_report_from_query_input,
+    persistent_name_live_view_declaration, prepare_primitive_construction_certification,
+    prepare_primitive_construction_execution, topology_construction_authority, topology_runtime,
+    MilestoneOneCertificationError, TopologyConstructionAuthority,
+    TopologyConstructionCertificationPlan, TopologyConstructionCertificationReadSurface,
+    TopologyConstructionExecutionError, TopologyConstructionExecutionPlan,
+    TopologyConstructionFactKind, TopologyConstructionFactProvenance,
+    TopologyConstructionFactReport, TopologyConstructionInspectionSurface,
+    TopologyConstructionLoweringError, TopologyConstructionLoweringPlan,
+    TopologyConstructionMutationSurface, TopologyDomainQuery, TopologyDomainQueryAggregateReport,
+    TopologyDomainQueryCloseoutReport, TopologyDomainQueryCloseoutRow,
+    TopologyDomainQueryCloseoutStatus, TopologyDomainQueryExecutionEngine,
+    TopologyDomainQueryParityAggregateReport, TopologyDomainQueryPhaseThreeBlocker,
+    TopologyDomainQueryPhaseThreeBlockerRow, TopologyDomainQueryPhaseThreeBlockerStatus,
+    TopologyDomainQueryProofReport, TopologyDomainQueryRequestFamily,
+    TopologyDomainQueryRequestReport, TopologyEditApplicationMode, TopologyEditBatch,
+    TopologyHalfEdgeRadialNeighborhoodView, TopologyHalfEdgeSharedVertexNeighborhoodView,
+    TopologyLocalRewireNeighborhoodView, TopologyLoopCycleView, TopologyNamingAttachmentInput,
+    TopologyNoNPlusOneContract, TopologyNoNPlusOneContractRow, TopologyNoNPlusOneContractStatus,
+    TopologyOperatorExecution, TopologyOperatorExecutionError, TopologyQueryAppliedIntent,
+    TopologyQueryApplyError, TopologyQueryAssembly, TopologyQueryBoundaryCleanupArea,
     TopologyQueryBoundaryCleanupCloseoutReport, TopologyQueryBoundaryCleanupRow,
     TopologyQueryBoundaryCleanupStatus, TopologyQueryEditFamilySupportStatus,
     TopologyQueryEditLane, TopologyQueryEditLaneExecutionShape, TopologyQueryEditLaneSupportStatus,
@@ -38,6 +45,7 @@ use topology::facade::{
     TopologyRuntimeSupport, TracedMilestoneOneCertificationReport,
     TracedMilestoneTwoDerivedReadReport,
 };
+use worth_spatial::facade::SpatialConstructionBirthPlan;
 
 fn _m1_read_cert_contract(
     runtime: &mut RelationalRuntime,
@@ -325,6 +333,31 @@ fn _topology_operator_surface_contracts() {
         &schema::facade::DerivedTopologyReadBasis,
     ) -> topology::facade::TopologyQueryMutationEvidence =
         TopologyQueryMutationEvidence::from_read_basis;
+    let _: fn() -> TopologyConstructionAuthority = topology_construction_authority;
+    let _: fn(
+        &SpatialConstructionBirthPlan,
+    ) -> Result<TopologyConstructionLoweringPlan, TopologyConstructionLoweringError> =
+        lower_primitive_construction_birth_plan;
+    let _: fn(
+        &TopologyConstructionLoweringPlan,
+    )
+        -> Result<TopologyConstructionExecutionPlan, TopologyConstructionExecutionError> =
+        prepare_primitive_construction_execution;
+    let _: fn(&TopologyConstructionExecutionPlan) -> TopologyConstructionCertificationPlan =
+        prepare_primitive_construction_certification;
+    let _: fn(
+        &TopologyConstructionLoweringPlan,
+        &TopologyConstructionCertificationPlan,
+    ) -> TopologyConstructionFactReport = build_topology_construction_fact_report;
+    let _: fn(TopologyConstructionMutationSurface) -> &'static str =
+        TopologyConstructionMutationSurface::as_str;
+    let _: fn(TopologyConstructionCertificationReadSurface) -> &'static str =
+        TopologyConstructionCertificationReadSurface::as_str;
+    let _: fn(TopologyConstructionInspectionSurface) -> &'static str =
+        TopologyConstructionInspectionSurface::as_str;
+    let _: fn(TopologyConstructionFactKind) -> &'static str = TopologyConstructionFactKind::as_str;
+    let _: fn(TopologyConstructionFactProvenance) -> &'static str =
+        TopologyConstructionFactProvenance::as_str;
     let _: fn() -> Result<
         TopologyQueryBoundaryCleanupCloseoutReport,
         topology::facade::TopologyCertificationError,

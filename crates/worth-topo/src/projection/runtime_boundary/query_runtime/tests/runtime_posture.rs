@@ -22,6 +22,7 @@ fn current_head_runtime_posture_rows_freeze_admitted_and_denied_capabilities() {
         let expected_status = match capability {
             TopologyRuntimePostureCapability::CurrentHeadLiveReads
             | TopologyRuntimePostureCapability::PostWriteMaterialization
+            | TopologyRuntimePostureCapability::BranchPreviewBasis
             | TopologyRuntimePostureCapability::AuthoritativeWrites => {
                 TopologyRuntimePostureStatus::Admitted
             }
@@ -51,6 +52,7 @@ fn snapshot_runtime_posture_rows_freeze_historical_read_only_capabilities() {
             TopologyRuntimePostureCapability::CurrentHeadLiveReads
             | TopologyRuntimePostureCapability::CurrentHeadMaterialization
             | TopologyRuntimePostureCapability::PostWriteMaterialization
+            | TopologyRuntimePostureCapability::BranchPreviewBasis
             | TopologyRuntimePostureCapability::AuthoritativeWrites => {
                 TopologyRuntimePostureStatus::Denied
             }
@@ -82,4 +84,20 @@ fn workspace_historical_basis_detection_tracks_topology_runtime_support_contract
     assert!(workspace_requires_historical_basis_context(
         &snapshot_workspace
     ));
+}
+
+#[test]
+fn current_head_runtime_admits_preview_and_branch_sessions() {
+    let runtime = build_milestone_one_runtime().expect("runtime");
+    let adapters = TopologyRuntimeAdapters::current_head(runtime);
+    let mut workspace =
+        topology_runtime(adapters, ".runtime-posture.branch-preview").expect("workspace");
+
+    let preview = workspace
+        .preview("topology-preview")
+        .expect("preview session");
+    assert_eq!(preview.basis_admission().label(), "topology-preview");
+
+    let branch = workspace.branch("topology-branch").expect("branch session");
+    assert_eq!(branch.basis_admission().label(), "topology-branch");
 }

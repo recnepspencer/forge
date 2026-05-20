@@ -17,6 +17,16 @@ pub use super::primitives::ray::{
     compute_ray_plane_intersection, dominant_projection_axes, resolve_zero_edge,
     scanline_edge_crossing, EdgeTieBreaker,
 };
+pub use super::primitives::shape_realization::{
+    build_direct_realization_report, primitive_realization_exhaustion_witness_rows,
+    realize_block_support, realize_prism_support, realize_pyramid_support,
+    realize_tetrahedron_support, PrimitiveConditioningWitness, PrimitiveFeatureConditioningClass,
+    PrimitiveNormalizationDisposition, PrimitiveRealizationError,
+    PrimitiveRealizationExhaustionReason, PrimitiveRealizationExhaustionReport,
+    PrimitiveRealizationExhaustionWitnessKind, PrimitiveRealizationExhaustionWitnessRow,
+    PrimitiveRealizationReport, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
+    PrimitiveSupportNormalClass, PrimitiveSupportRealization,
+};
 pub use super::primitives::vertex_geom::{VertexGeom, VertexProvenance};
 
 // ── Shape generators ────────────────────────────────────────────────────

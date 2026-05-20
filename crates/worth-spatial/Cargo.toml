@@ -1,0 +1,23 @@
+[package]
+name = "worth-spatial"
+edition.workspace = true
+version.workspace = true
+license.workspace = true
+description = "Topology/geometry interaction authority for the Worth stack"
+
+[[test]]
+name = "public_api_contract"
+path = "src/certification/public_facade_contracts/contracts/public_api.rs"
+
+[[test]]
+name = "ui"
+path = "src/certification/public_facade_contracts/compile_fail_contracts.rs"
+
+[dependencies]
+worth-geom.workspace = true
+
+[dev-dependencies]
+trybuild.workspace = true
+
+[lints]
+workspace = true

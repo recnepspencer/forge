@@ -1,0 +1,5 @@
+error[E0599]: no method named `lower_to_topology` found for struct `PrimitiveConstructionScaffold` in the current scope
+ --> src/certification/public_facade_contracts/compile_fail/phases/public_scaffold_cannot_skip_spatial_birth.rs:8:22
+  |
+8 |     let _ = scaffold.lower_to_topology();
+  |                      ^^^^^^^^^^^^^^^^^ method not found in `PrimitiveConstructionScaffold`

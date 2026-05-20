@@ -34,8 +34,8 @@ pub use runtime_posture::{
 use self::adapters::write_authority::TopologyRuntimeWriteAuthority;
 use self::adapters::{
     build_runtime_bridge, TopologyExistingTruthVerificationAdapter, TopologyInspectorEvidence,
-    TopologyPreviewBasis, TopologyRuntimeSchemaAdapter, TopologyRuntimeSourceAdapter,
-    TopologyStaticSignalSink, TopologySubscriptionActivation,
+    TopologyRuntimeSchemaAdapter, TopologyRuntimeSourceAdapter, TopologyStaticSignalSink,
+    TopologySubscriptionActivation,
 };
 
 pub fn topology_runtime(
@@ -54,9 +54,7 @@ pub fn topology_runtime(
         .subscription_activation(TopologySubscriptionActivation::new(
             adapters.support().subscription_activation_evidence(),
         ))
-        .preview_basis(TopologyPreviewBasis::new(
-            adapters.support().preview_basis_denial_reason(),
-        ))
+        .preview_basis(adapters.support().preview_basis_adapter())
         .inspector_evidence(TopologyInspectorEvidence::new(
             adapters.support().write_receipt_evidence_label(),
             adapters.support().inspector_evidence_label(),

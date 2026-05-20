@@ -1399,7 +1399,14 @@ The implementation rule is:
 - finish `Phase 2` before starting `Phase 3`
 - finish `Phase 3` before starting `Phase 4`
 - finish `Phase 4` before starting `Phase 5`
-- finish `Phase 5` before starting `Phase 6`
+- finish `Phase 5` before starting `Phase 5.5`
+- finish `Phase 5.5` before starting `Phase 5.5.1`
+- finish `Phase 5.5.1` before starting `Phase 5.5.2`
+- finish `Phase 5.5.2` before starting `Phase 5.5.3`
+- finish `Phase 5.5.3` before starting `Phase 5.5.4`
+- finish `Phase 5.5.4` before starting `Phase 5.5.5`
+- finish `Phase 5.5.5` before starting `Phase 5.6`
+- finish `Phase 5.6` before starting `Phase 6`
 - finish `Phase 6` before starting `Phase 7`
 
 Each phase must leave the system in a coherent, enforceable state for the next
@@ -1460,6 +1467,9 @@ This phase must make the following things impossible:
 - there is no unresolved ambiguity about which crate owns construction intent,
   construction-time geometry meaning, or topology legality
 - the Query runtime front door for Milestone 4 is named explicitly
+- any required-later Query runtime family that is not yet admitted is recorded
+  as an explicit gap artifact rather than being quietly treated as already
+  supported
 - the crate boundaries for primitive birth are explicit, named, and
   mechanically teachable
 
@@ -1746,14 +1756,44 @@ It should also expose explicit breadth evidence for:
 If any of those widen unexpectedly, the suite should emit explicit widening or
 fallback evidence rather than silently passing on timing alone.
 
+The remaining Query proof/reporting surfaces for this phase are concrete and
+must not be treated as optional polish. Before Phase 5 can close, it must
+directly ship:
+
+- `query_graph_composition_parity_report`
+- `query_existing_truth_binding_report`
+- `query_projection_consumption_receipt_report`
+- `query_boundary_gap_register`
+- `query_no_local_runtime_workaround_audit`
+- `PrimitiveConstructionCorpusReplaySiege`
+
+These are not all the same kind of unfinished work:
+
+- `BranchPreview` runtime admission is already required and must already be
+  real in the implemented Worth construction path by the time this phase is
+  closing
+- the Query items above are the remaining proof/reporting closeout surfaces
+  that certify how Worth uses Query, not a license to re-open runtime
+  authority design late
+- broader later-domain capabilities such as full spatial rebinding, mature
+  continuity closure, curved-carrier closure, and broad boolean pipelines
+  remain intentionally deferred beyond Milestone 4
+
 #### Do this in this phase
 
 - build the hostile corpus and parity suites on top of the canonical artifact
   family
 - prove accepted and rejected parity across current-head, branch-local, and
   replayed execution
-- prove Query surface parity for authoring, basis, preview, inspection, and
-  projection-consumption use
+- freeze `BranchPreview` as an already-admitted Worth-to-Query runtime boundary
+  requirement for the branch-local construction flows Milestone 4 teaches
+- build and certify `query_graph_composition_parity_report`
+- build and certify `query_existing_truth_binding_report`
+- build and certify `query_projection_consumption_receipt_report`
+- build and certify `query_boundary_gap_register`
+- build and certify `query_no_local_runtime_workaround_audit`
+- prove Query surface parity for authoring, basis, preview, inspection,
+  graph-composition, existing-truth reuse, and projection-consumption use
 - emit the final machine-checkable closeout reports
 - emit the Query gap register and anti-workaround audit as first-class closeout
   artifacts
@@ -1763,9 +1803,3098 @@ fallback evidence rather than silently passing on timing alone.
 - admitted primitive construction is certified as a workflow class across
   authority, spatial birth, topology legality, replay, and branch pressure
 - the showpiece corpus suite is green
+- `BranchPreview` is already really admitted in the Worth runtime paths that
+  claim branch-local construction support, not merely visible in the support
+  contract
 - the phase-typed chain, canonical artifact, and Query anti-bypass surfaces are
   all proven in closeout artifacts
+- the remaining Query closeout surfaces are shipped as named artifacts:
+  - `query_graph_composition_parity_report`
+  - `query_existing_truth_binding_report`
+  - `query_projection_consumption_receipt_report`
+  - `query_boundary_gap_register`
+  - `query_no_local_runtime_workaround_audit`
 - no remaining required runtime gap is being hidden by a Worth-local workaround
+
+### Phase 5.5: Freeze Primitive Realization Stability And Conditioning Truth
+
+Turn primitive realization from hidden geometry rescue logic into explicit,
+certified kernel truth.
+
+#### Why this phase comes now
+
+Phase 5 proves that the current primitive construction path is real, hostile,
+and Query-honest. That does not automatically mean the primitive realization
+substrate is principled enough for the later kernel.
+
+The siege already taught the milestone an important lesson: even when the
+authority chain, replay parity, branch parity, and Query proof surfaces are
+real, the underlying primitive realization path can still be too
+implementation-shaped. If one family only survives near-threshold inputs
+because its geometry helper happened to normalize a better vector, while
+another family fails because its helper happened to normalize a worse one, then
+the milestone has built a working path without yet building a granite
+foundation.
+
+This phase exists to correct that before documentation freezes the wrong story.
+
+Milestone 4 must stop treating primitive realization like:
+
+- semantic primitive family
+- one hidden implementation path
+- maybe a quiet numerical fallback if the helper gets nervous
+
+and instead promote the following to first-class truth:
+
+- semantic primitive family
+- sanctioned realization strategy
+- conditioning witness
+- admitted stability class
+- typed exhaustion and rejection after sanctioned strategies are exhausted
+
+That is the shape later booleans, blends, offsets, sweeps, healing, and curved
+carrier work can actually inherit.
+
+This phase is intentionally later than Phase 5, not because it is optional, but
+because the hostile corpus, parity lanes, and Query surfaces from Phase 5 are
+what expose where the primitive substrate is still too implicit. Phase 5 shows
+us the hard cases. Phase 5.5 turns those hard cases into architecture.
+
+#### What this phase must establish
+
+Milestone 4 primitive construction must grow a permanent realization model that
+is broader than any one family such as prisms or pyramids.
+
+At minimum, the model must separate:
+
+- `PrimitiveSemanticIntent`
+  - the primitive family and semantic parameters
+  - not the realization algorithm
+- `PrimitiveRealizationStrategy`
+  - sanctioned realization modes such as:
+    - `DirectWorld`
+    - `LocalNormalized`
+    - `ExactSupport`
+    - `RejectedIllConditioned`
+  - the exact names may differ, but the concept must be explicit
+- `PrimitiveConditioningWitness`
+  - the measurable evidence that explains why one strategy was sufficient or
+    insufficient
+  - for example:
+    - scale and span summaries
+    - aspect or skinniness indicators
+    - cross-product or support-normal magnitude classes
+    - transform normalization scale
+    - exactness or escalation usage markers
+- `PrimitiveStabilityClass`
+  - such as:
+    - `StableDirect`
+    - `StableAfterEscalation`
+    - `RejectedBelowConditioningFloor`
+- `PrimitiveRealizationReport`
+  - one certified report that binds:
+    - semantic family
+    - strategy selected
+    - strategies attempted
+    - conditioning witness summary
+    - stability class
+    - typed exhaustion or rejection reason when blocked
+
+The key rule is:
+
+No primitive family may hide numerical rescue inside a geometry helper.
+
+If primitive birth requires local normalization, exact-support reconstruction,
+or any other sanctioned escalation, that must survive as artifact truth and
+certification truth all the way out of the stack.
+
+#### Crate ownership in this phase
+
+- `worth-geom`
+  - owns primitive realization strategies
+  - owns conditioning witnesses
+  - owns the decision logic for when direct realization is sufficient, when
+    sanctioned escalation is required, and when the input is honestly
+    ill-conditioned
+- `worth-spatial`
+  - owns preservation of realization provenance into construction-born spatial
+    truth
+  - owns the birth-facing explanation of whether admitted construction-time
+    geometry meaning was born directly or only after sanctioned escalation
+- `worth-kernel`
+  - owns the canonical artifact and result surfaces that expose realization
+    strategy, conditioning witness summary, stability class, and exhaustion
+    truth
+  - owns the upgraded siege and closeout reports that prove this information is
+    real, not debug-only
+- `worth-topo`
+  - remains topology-authoritative and geometry-free
+  - must not become the owner of primitive conditioning or realization
+    semantics
+  - may consume the results of realized birth truth, but may not reinterpret
+    geometric stability locally
+
+#### Query posture in this phase
+
+This phase must not invent a second runtime story for realization stability.
+`forge-query` should make the phase easier, not incidental.
+
+The realization and conditioning truth from this phase must travel through the
+same canonical Query-backed construction artifact and inspection path that
+Phase 5 already hardened.
+
+At minimum, this phase must preserve:
+
+- one canonical runtime-backed artifact boundary for realization truth
+- one inspection-backed path for reading realization and stability facts back
+- one branch / preview / replay parity story over realization truth
+- one anti-workaround audit posture that forbids hiding realization rescue in
+  private Worth-local runtime state
+
+This phase should therefore use Query to make these questions machine-checkable:
+
+- did the same primitive request choose the same sanctioned realization
+  strategy across current-head, replay, and branch-local lanes?
+- did a case that required escalation advertise that fact in its artifact and
+  certification surfaces?
+- did a rejected ill-conditioned case reject only after sanctioned strategies
+  were exhausted?
+
+Query helps because it already provides:
+
+- one canonical artifact boundary
+- one public inspection surface
+- one replay and branch/preview runtime posture
+- one public anti-bypass language
+
+This phase must reuse those strengths rather than inventing a second
+"conditioning runtime" under the table.
+
+#### Do this in this phase
+
+- define the primitive realization strategy model in `worth-geom`
+- define the primitive conditioning witness model in `worth-geom`
+- define the primitive stability classification model
+- make primitive family realization select among sanctioned strategies rather
+  than one hidden implementation path
+- define typed exhaustion and rejection after sanctioned strategies are
+  exhausted
+- preserve realization provenance into the spatial birth truth chain
+- widen the canonical construction artifact so realization strategy,
+  conditioning witness summary, stability class, and exhaustion truth are part
+  of the sanctioned result surface
+- widen the hostile siege so it proves all three classes of result:
+  - direct-stable
+  - escalation-stable
+  - exhausted-and-rejected
+- add threshold-near admitted/rejected pairs that certify exact class
+  boundaries rather than only obvious invalid inputs
+- add family-local cases that force different rejection localities under the
+  same primitive family where that distinction is real
+- make any sanctioned precision fallback mechanically observable and certified
+  instead of helper-local
+- ensure no primitive family can silently widen its own numerical floor without
+  updating the realization and conditioning reports
+
+#### This phase must replace, not supplement
+
+Phase 5.5 is not allowed to layer a principled realization model on top of the
+old implicit one and leave both alive.
+
+This phase must explicitly replace:
+
+- primitive-family-specific hidden realization logic that decides success or
+  failure without emitting realization strategy, conditioning witness, and
+  stability truth
+- helper-local numerical rescue paths that can succeed or fail without leaving
+  artifact-visible provenance
+- family-specific threshold fixtures that merely encode today's accidental
+  implementation floor instead of a principled conditioning and exhaustion
+  policy
+- artifact surfaces that collapse primitive realization into only
+  admitted-versus-rejected outcome without exposing how the result was realized
+- siege assertions that compare only outcome digests while ignoring the
+  realization and stability class that produced them
+- duplicate or drifting stability judgments across crates
+
+This phase must cut, not merely de-emphasize:
+
+- silent `normalize-and-hope` behavior in geometry helpers
+- hidden local-frame or precision-escalation rescue that does not survive into
+  the canonical artifact
+- any family-local rule that silently hardens or softens a conditioning floor
+  without updating the sanctioned realization-policy layer
+- any test whose real meaning is only "this particular threshold currently
+  passes"
+
+After this phase, the new source of truth must be:
+
+- one realization-policy layer in `worth-geom`
+- one conditioning witness model
+- one stability classification model
+- one canonical artifact path carrying realization truth through
+  geom -> spatial -> kernel certification surfaces
+- one siege story that proves direct-stable, escalation-stable, and
+  exhausted-and-rejected behavior across runtime lanes
+
+#### Do not start the next phase until
+
+- every admitted primitive artifact carries explicit realization strategy and
+  stability truth
+- every sanctioned fallback or escalation path is visible in artifact and
+  certification surfaces
+- primitive rejection after ill-conditioning is typed and certified as
+  exhaustion of sanctioned strategies, not as vague geometry failure
+- the siege proves:
+  - direct-stable cases
+  - escalation-stable cases
+  - exhausted-and-rejected cases
+- at least one near-threshold family pair demonstrates that the system
+  distinguishes:
+  - direct success
+  - escalated success
+  - exhausted rejection
+- no primitive family still relies on hidden helper-local numerical rescue
+- the Query-backed artifact, inspection, replay, branch, and anti-bypass
+  surfaces all preserve realization and stability truth without introducing a
+  second runtime story
+- later docs would describe a principled realization substrate rather than a
+  pile of implementation luck
+
+### Phase 5.5.1: Freeze The Primitive Authoring DX Surface Before The Compound Siege
+
+Turn primitive construction authoring into a scalable spec -> intent -> phase
+progression surface before the compound adversarial suite depends on it.
+
+#### Why this phase comes now
+
+Phase 5.5 made realization strategy, conditioning, stability, and exhaustion
+explicit kernel truth. That is necessary, but it is not sufficient.
+
+If primitive authoring still teaches callers to memorize positional
+constructors, then the kernel will carry principled lower layers under a weak
+human-facing surface. That is exactly the wrong substrate for:
+
+- compound adversarial suite authoring
+- future primitive family growth
+- later boolean, blend, sweep, and curved-carrier intent definition
+- public docs that are supposed to teach architecture instead of folklore
+
+`dx_laws.md` is decisive here:
+
+- object specs encode shape
+- builders encode progression
+- semantic intent must be first-class
+- the common path should read like intent
+- the advanced path should expose the next lower layer
+- friendly APIs must lower into inspectable plans instead of hiding the proof
+  chain
+
+Primitive construction therefore needs a real authoring model, not just nicer
+constructors.
+
+This phase belongs before Phase 5.6 because the compound primitive suite should
+be authored on top of the same scalable primitive surface that the rest of the
+kernel will inherit. If Phase 5.6 has to invent its own fixture DSL to stay
+readable, then the public primitive DX is not good enough yet.
+
+#### What this phase must establish
+
+Primitive authoring must become a three-layer model:
+
+1. family-local object spec
+2. semantic primitive intent
+3. explicit advanced path for phase progression and execution boundaries
+
+The long-term shape must be:
+
+- object specs show the whole family definition at once
+- semantic intent is the portable unit of meaning
+- admission, scaffold generation, lowering, and execution remain later phases
+  instead of being hidden inside a cute constructor
+
+At the call site, the common path should trend toward:
+
+```rust
+let pyramid = RegularPyramidSpec {
+    center: [0.0, 0.0, 0.0],
+    sides: 3,
+    radius: 1.0e-200,
+    height: 1.0e-200,
+};
+
+let intent = PrimitiveConstructionIntent::regular_pyramid(pyramid);
+let result = prepare_primitive_construction_result(intent)?;
+```
+
+while the advanced path should still be able to read like:
+
+```rust
+let intent = PrimitiveConstructionIntent::regular_pyramid(pyramid);
+let admitted = intent.admit()?;
+let scaffold = admitted.scaffold()?;
+let prepared = scaffold.prepare_result(&mut workspace)?;
+let artifact = prepared.artifact();
+```
+
+The exact type names may differ, but the semantic split must survive.
+
+#### Required family-local object specs
+
+At minimum, this phase must define explicit family-local object specs for the
+admitted primitive ladder:
+
+- `SimplexSolidSpec`
+- `OrthotopeSpec`
+- `RegularPrismSpec`
+- `RegularPyramidSpec`
+- `WireBodySpec`
+- `ShellWithHoleSpec`
+
+These specs must:
+
+- use named fields rather than positional meaning
+- preserve genuine family-local semantics instead of flattening them
+- remain readable in hostile suites and family-boundary drift cases
+- support future family-local widening without exploding unrelated call sites
+
+This phase must not replace family-local specs with one flattened generic bag
+such as:
+
+- `PrimitiveSpec { family, center, scale, sides, radius, height, loops, ... }`
+
+That is not scalable DX. It is an implementation leak.
+
+#### Required semantic intent surface
+
+This phase must introduce one first-class primitive intent layer above raw
+request plumbing.
+
+The key distinction is:
+
+- family-local specs describe the authored shape
+- semantic intent describes what the caller means
+- lowered request, admission, scaffold generation, and execution remain
+  downstream phase transitions
+
+That intent layer must be usable across:
+
+- direct result preparation
+- replay and branch-local parity setup
+- inspection-backed certification setup
+- corpus-row and hostile-suite authorship
+- future simulation, queueing, or serialized replay if the kernel grows there
+
+The portable unit should therefore be the primitive intent object, not the
+positional constructor invocation.
+
+#### Common path versus advanced path
+
+The public DX must explicitly distinguish:
+
+- common path:
+  - reads like semantic intent
+  - does not force the caller to think in terms of digests, geometry bits, or
+    scaffold plumbing
+- advanced path:
+  - exposes the next lower boundary where caller responsibility changes
+  - keeps admission, scaffold generation, artifact preparation, and runtime
+    execution reachable and inspectable
+
+This is the DX-law split the primitive layer must teach from here forward.
+
+#### Builders versus object specs
+
+This phase must follow the object-spec versus builder rule rigorously:
+
+- family specs should be ordinary structs or equivalent object-spec surfaces by
+  default
+- fluent builders are allowed only where they encode real progression or staged
+  hostile-fixture assembly
+- a builder chain must not replace a clearer object spec when the caller is
+  defining the whole primitive at once
+
+So the primary taught surface should be:
+
+- family-local spec object
+- semantic intent from that spec
+
+not:
+
+- a mega-chain that happens to set fields one by one
+
+#### Test-authoring DX requirements
+
+This phase is not complete unless it makes the hostile suite world easier to
+author honestly.
+
+At minimum, the new authoring model must support:
+
+- readable one-row hostile fixture setup without constructor archaeology
+- stable named-field diffs when a primitive case changes
+- family-local fixture presets for threshold, drift, collapse, escalation, and
+  exhaustion rows where those presets are useful
+- reuse of the same authored primitive across:
+  - direct
+  - replay
+  - branch / preview
+  - inspection
+  - certification
+
+The intended result is that Phase 5.6 compound rows can be expressed as obvious
+authored specs rather than opaque positional tuples.
+
+#### Required implementation posture
+
+This phase may keep existing positional constructors as thin convenience
+wrappers or migration seams where useful, but they must stop being the main
+taught primitive language.
+
+The primary truthful surface must become:
+
+- family-local specs
+- semantic intent created from those specs
+
+Positional constructors may remain temporarily, but they must not remain:
+
+- the main hostile-suite authoring surface
+- the main public-doc teaching surface
+- the main expansion seam for future primitive families
+
+#### This phase must replace, not supplement
+
+Phase 5.5.1 must replace, not merely supplement:
+
+- positional primitive constructors as the main authoring language
+- family meaning hidden in argument order
+- test fixtures that encode primitive semantics through constructor memorization
+- per-suite authoring helpers that bypass the canonical primitive language
+- family growth that widens constructor signatures instead of widening
+  family-local specs
+
+#### Do not do these things
+
+- do not build one mega `PrimitiveBuilder` that mixes every family into one
+  option bag
+- do not flatten family-local semantics into anonymous generic fields
+- do not hide lower execution boundaries behind friendly helpers that secretly
+  lower, admit, and execute everything at once
+- do not make hostile suites depend on memorizing argument position
+- do not introduce fluent builders where a plain object spec is clearer
+
+#### Required deliverables
+
+At minimum, this phase must produce:
+
+- one explicit family-local spec layer for the admitted primitive ladder
+- one semantic primitive intent surface above raw request plumbing
+- one common-path primitive construction surface that accepts semantic intent
+  cleanly
+- one advanced-path surface that still exposes phase progression honestly
+- one compatibility or migration story for existing positional constructors
+- one hostile-suite authoring surface good enough that Phase 5.6 can use specs
+  and intent instead of positional constructor archaeology
+
+#### Do not start the next phase until
+
+- the primary public primitive authoring language is no longer positional-first
+- a future engineer or AI agent can read a hostile primitive case and
+  understand its shape without memorizing constructor argument order
+- family-local primitive growth can happen by widening family-local specs
+  instead of widening one flattened constructor surface
+- the common path reads like semantic intent
+- the advanced path still exposes lower execution boundaries honestly
+- Phase 5.6 can be authored on top of this surface without inventing a
+  parallel fixture DSL
+- future docs for primitive construction can teach:
+  - object spec
+  - semantic intent
+  - common path
+  - advanced path
+  instead of teaching a pile of positional constructors
+
+### Phase 5.5.2: Freeze Spatial Intent, Placement, Motion, And Anchor Semantics Before The Compound Siege
+
+Turn primitive placement, movement, rotation, reorientation, and prepositional
+spatial language into one planned semantic system before compound adversarial
+suites and later persistent-naming work depend on it.
+
+#### Why this phase comes now
+
+Phase 5.5.1 fixes the primitive authoring DX around intrinsic family meaning:
+
+- family-local specs
+- semantic primitive intent
+- common path versus advanced path
+
+That is necessary, but it still leaves one dangerous blind spot if it stops
+there:
+
+- primitive creation can still smuggle world placement into creation fields
+- movement and rotation can still be deferred into future ad hoc transform APIs
+- persistent naming can still get forced to attach to unstable world-born
+  topology instead of semantic anchors
+- compound hostile tests can still quietly inherit canonical-world assumptions
+  instead of proving a real spatial intent substrate
+
+`MENTALITY.md` is decisive here:
+
+- this is a foundation problem, not a later polish problem
+- later booleans, blends, sweeps, import healing, and branch-local edits will
+  inherit whatever spatial intent substrate we freeze now
+- later analytic-curved carriers, freeform / NURBS carriers, chamfers, fillets,
+  and blend-junction feature families will also inherit it
+- if creation, placement, and movement are not separated before those later
+  features exist, the codebase will grow around the wrong semantic center and
+  force painful retrofits
+
+This phase therefore belongs before Phase 5.6 because the compound primitive
+suite should pressure the same spatial-intent language that future product code
+will use. If Phase 5.6 has to invent per-suite placement helpers, ad hoc axis
+fields, or transform folklore just to author hostile workloads, then the public
+spatial-intent surface is not ready yet.
+
+#### Adversarial constraint for this phase
+
+Worth must be able to express all of these as different semantic acts without
+collapsing them into the same raw transform story:
+
+- create a primitive with intrinsic shape meaning only
+- place a newly created primitive into world or reference-frame context
+- move an already-existing shape without pretending its intrinsic identity
+  changed
+- rotate or reorient an already-existing shape without losing semantic anchor
+  identity
+- attach later relational or prepositional properties without widening family
+  creation specs into transform bags
+- preserve anchor identity and replay parity across direct, replay,
+  branch-local, inspection, and certification surfaces
+- preserve the same spatial-intent meaning whether the target is:
+  - a primitive body
+  - an analytic curved carrier
+  - a freeform / NURBS carrier
+  - a later chamfer, fillet, or blend-owned feature result
+
+The naive implementation that this phase must rule out is:
+
+- primitive specs that mix shape fields and world-placement fields
+- one generic transform object pushed through every call site as the public DX
+- movement and rotation added later as unrelated helper APIs
+- persistent naming attached to incidental generated topology ids instead of
+  semantic anchors
+- motion semantics that only work for rigid primitive examples and silently fork
+  once surfaces, fillets, or freeform features arrive
+- anchor semantics that only know about face / edge / vertex ordinals and have
+  no path to parameter-space, workplane, tangent, normal, or feature-owned
+  anchors later
+
+#### What this phase must establish
+
+Spatial intent must be planned as one layered semantic system:
+
+1. intrinsic shape truth
+2. embedding or placement truth
+3. edit intent for already-existing shapes
+4. relational or prepositional truth
+5. semantic anchor truth for persistent naming
+6. geometry-carrier anchor truth for curved and freeform future work
+7. history-bearing motion truth for replay, merge, and intent inspection later
+
+The long-term shape must be:
+
+- intrinsic shape answers:
+  - what shape is this?
+- placement answers:
+  - where is this shape embedded?
+  - what canonical frame has been mapped into world or reference context?
+- edit intent answers:
+  - is this creating a new shape, moving an old one, rotating it, or
+    reorienting it?
+- prepositional truth answers:
+  - what is this on, toward, inside, aligned with, relative to, or offset from?
+- anchor truth answers:
+  - what stable semantic parts survive placement and later edits?
+- carrier-anchor truth answers:
+  - what point, tangent, normal, frame, or parameter-space anchor survives when
+    topology-local names are not enough?
+- history-bearing motion truth answers:
+  - what authored operation happened, on what anchor basis, with what preserved
+    or ambiguous continuity story?
+
+This phase must explicitly freeze these intent families as distinct semantic
+surfaces rather than one flattened transform vocabulary:
+
+- `Create`
+- `Move`
+- `Rotate`
+- `Reorient`
+- `Offset`
+- later planned but not necessarily implemented here:
+  - `Mirror`
+  - `Pattern`
+  - `Project`
+  - `Align`
+  - `Attach`
+
+These must be treated as authored intent families, not as convenience wrappers
+over one shared "apply transform" primitive. The plan must preserve the idea
+that:
+
+- `Create` publishes new intrinsic shape truth plus embedding intent
+- `Move` changes embedding of existing truth
+- `Rotate` changes orientation relative to an anchor basis
+- `Reorient` changes frame interpretation or directional alignment
+- `Offset` changes relative displacement or stand-off semantics
+
+That distinction is required so later history, merge, replay, and interaction
+surfaces can inspect what was meant rather than infer it from a final matrix.
+
+#### Common-path DX the milestone should be aiming toward
+
+The public language should read like authored spatial meaning, not transform
+algebra.
+
+Representative creation shape:
+
+```rust
+let intent = Primitive::pyramid(
+    RegularPyramid {
+        sides: 5,
+        radius: 2.0,
+        height: 4.0,
+    },
+)
+.at([10.0, 0.0, 3.0])
+.facing([0.0, 1.0, 1.0]);
+```
+
+Representative edit shapes:
+
+```rust
+let move_it = Move::shape(shape_id).to([12.0, 0.0, 3.0]);
+```
+
+```rust
+let rotate_it = Rotate::shape(shape_id)
+    .about(shape_id.anchor("apex"))
+    .toward([0.0, 0.0, 1.0]);
+```
+
+```rust
+let orient_it = Reorient::shape(shape_id)
+    .aligned_with(workplane_id);
+```
+
+Representative prepositional or relational shape:
+
+```rust
+let placement = Move::shape(shape_id)
+    .so(shape_id.anchor("base_face"))
+    .lies_on(workplane_id);
+```
+
+```rust
+let pointing = Reorient::shape(shape_id)
+    .so(shape_id.anchor("apex"))
+    .points_toward(target_point);
+```
+
+The milestone does not need to freeze every final method name here, but it must
+freeze the public language class:
+
+- prepositional verbs on top
+- canonical placement or frame substrate underneath
+- no matrix-first or transform-first public teaching surface
+- no primitive-only vocabulary trap that leaves surfaces, blends, or feature
+  results needing a second spatial language later
+
+#### Required semantic vocabulary
+
+This phase must explicitly plan a reusable spatial vocabulary broad enough for
+primitives now and later shapes beyond primitives.
+
+At minimum the public design must account for:
+
+- location:
+  - `at(...)`
+  - `to(...)`
+  - `from(...)`
+  - `between(...)`
+- direction and orientation:
+  - `facing(...)`
+  - `toward(...)`
+  - `aligned_with(...)`
+  - `parallel_to(...)`
+  - `perpendicular_to(...)`
+- relational placement:
+  - `on(...)`
+  - `in(...)`
+  - `inside(...)`
+  - `relative_to(...)`
+- displacement:
+  - `offset_by(...)`
+  - `translated_by(...)`
+  - `rotated_about(...)`
+- constraint-shaped phrasing:
+  - `so(anchor).lies_on(...)`
+  - `so(anchor).points_toward(...)`
+  - `so(anchor_a).matches(anchor_b)`
+
+The point of this vocabulary is not API theater. It is to preserve one common
+semantic language across:
+
+- primitive creation
+- later edit intents
+- persistent naming
+- hostile test authoring
+- future sketch, surface, sweep, import, and boolean work
+- future NURBS, chamfer, fillet, and blend-junction work
+
+#### Canonical local frames and semantic anchors
+
+This phase must plan primitive placement on top of canonical local shape truth,
+not on top of already-world-embedded geometry.
+
+Every admitted primitive family must therefore grow a canonical local frame and
+semantic anchor model.
+
+Examples that the plan must account for:
+
+- `RegularPyramid`
+  - `apex`
+  - `base`
+  - `base_face`
+  - `base_edge(i)`
+  - `base_vertex(i)`
+  - `side_face(i)`
+- `RegularPrism`
+  - `top_face`
+  - `bottom_face`
+  - `side_face(i)`
+  - `top_vertex(i)`
+  - `bottom_vertex(i)`
+- `Orthotope`
+  - `min_x_face`
+  - `max_x_face`
+  - `min_y_face`
+  - `max_y_face`
+  - `min_z_face`
+  - `max_z_face`
+  - canonical corners and edges
+- `SimplexSolid`
+  - `vertex(i)`
+  - `face(i)`
+  - canonical local vertex ordering
+
+The plan must be explicit that:
+
+- the primitive is born in canonical local space
+- semantic anchors are assigned in canonical local space
+- placement embeds that anchored local truth into world or reference context
+- movement or reorientation later must preserve anchor identity rather than
+  recreating topology folklore from scratch
+
+That is the foundation that later persistent naming must inherit.
+
+This phase must also say explicitly that primitive anchors are only the first
+anchor class, not the whole future anchor story.
+
+The longer-lived shared anchor model must have room for:
+
+- semantic part anchors:
+  - `apex`
+  - `base_face`
+  - `side_face(i)`
+- topological anchors:
+  - `vertex(i)`
+  - `edge(i)`
+  - `face(i)`
+- frame anchors:
+  - local frame origin
+  - local primary axis
+  - workplane basis
+- geometric anchors:
+  - point-on-curve
+  - tangent
+  - normal
+  - centerline
+- parameter-space anchors:
+  - `u`
+  - `v`
+  - trim endpoint
+  - seam anchor
+- feature-owned anchors:
+  - fillet spine
+  - chamfer support edge
+  - blend junction anchor
+
+The point is not to fully solve those later domains here. The point is to make
+it impossible for this phase to accidentally freeze a primitive-only anchor
+model that later curved and blend milestones would have to replace.
+
+#### Required internal substrate
+
+The public DX should be prepositional and semantic, but this phase must also
+freeze the internal substrate that those surfaces lower into.
+
+At minimum the internal design must account for:
+
+- one reusable placement or frame substrate
+- one reusable orientation substrate
+- one reusable anchor-reference substrate
+- one reusable edit-intent substrate for existing shapes
+- one clear lowering point from semantic prepositional language into canonical
+  placement / motion plans
+- one explicit reference-frame substrate that can name:
+  - world frame
+  - workplane frame
+  - shape-local frame
+  - feature-local frame
+  - carrier-derived tangent / normal frame
+- one explicit motion-plan substrate that can survive replay and later history
+  inspection as authored meaning instead of final transform residue
+
+This phase may plan types like:
+
+- `Placement`
+- `Orientation`
+- `CanonicalFrame`
+- `AnchorRef`
+- `SpatialIntent`
+- `PlacementConstraint`
+
+or better names if implementation earns them.
+
+What matters is not the exact nouns. What matters is that:
+
+- raw transforms are not the primary public semantic unit
+- prepositional language lowers into one inspectable substrate
+- the same substrate can be reused beyond primitive creation later
+- curved carriers and blend features do not need to invent a second spatial
+  anchoring language
+
+#### Required ownership split
+
+This phase must not leave ownership implied. The spatial-intent system is not a
+primitive helper layer and not a construction-local staging area. It is a
+permanent cross-domain substrate with an explicit crate split.
+
+The required ownership posture is:
+
+- `worth-kernel`
+  - owns authored public intent verbs and orchestration-facing façades
+  - examples:
+    - `Create`
+    - `Move`
+    - `Rotate`
+    - `Reorient`
+    - `Offset`
+  - owns the public common path, advanced path, artifact path, and report path
+    that consume spatial intent
+- `worth-spatial`
+  - owns spatial meaning, not just primitive implementation details
+  - examples:
+    - placement semantics
+    - anchor semantics
+    - reference-frame semantics
+    - motion-plan semantics
+    - lowering from authored spatial intent into construction- and
+      certification-consumable spatial plans
+  - this is the permanent home of the shared spatial-intent substrate
+- `worth-geom`
+  - owns only the math and coordinate machinery needed by the spatial layer
+  - examples:
+    - vector math
+    - frame math
+    - transform math
+    - local / world coordinate conversion
+  - it must not own authored spatial-intent semantics
+- `worth-topo`
+  - consumes anchored and spatially-lowered truth where needed
+  - it must not own placement, anchor, or motion language
+
+The architectural shorthand is:
+
+- kernel owns the verbs
+- spatial owns the meaning
+- geom owns the math
+- topo consumes the results
+
+That split is required so later curves, freeform carriers, fillets, and
+history-bearing motion can reuse the same system without importing the wrong
+crate authority.
+
+#### Required directory topology
+
+This phase must also freeze the intended physical topology so future
+implementation does not create a structurally dishonest home for the subsystem.
+
+The shared substrate must not be organized under:
+
+- `primitives/`
+- `construction/`
+- `tests/`
+- any milestone-, prompt-, or provenance-shaped folder
+
+except for family-specific adapters that consume the shared substrate.
+
+The intended permanent topology is:
+
+- in `worth-spatial`
+  - one dedicated spatial-intent subtree that owns the reusable substrate
+  - recommended structural axes include:
+    - placement
+    - motion
+    - anchors
+    - frames
+    - lowering
+- in `worth-kernel`
+  - one façade-facing subtree for authored spatial verbs and higher-level
+    orchestration entry points
+  - this may sit beside construction rather than inside it if that better
+    preserves the ownership boundary
+- in `worth-geom`
+  - math subtrees only, with no authored semantic verbs
+
+The exact final names may evolve if implementation earns a better classification,
+but the structural law may not:
+
+- the shared spatial-intent substrate must have a permanent domain home
+- primitive construction may be one client of that domain
+- primitive construction may not become the owner of that domain
+- no "temporary for now" construction-local or primitive-local staging tree is
+  allowed
+
+#### This phase must replace, not supplement
+
+Phase 5.5.2 must replace, not merely supplement:
+
+- creation specs that carry world placement as if placement were intrinsic shape
+- movement APIs that pretend moving an existing shape is the same as creating a
+  new one somewhere else
+- any future temptation to widen primitive family specs with one-off direction
+  or axis fields instead of a shared spatial-intent layer
+- public teaching surfaces that expose raw transform math before semantic
+  spatial meaning
+- anchor naming schemes that attach to incidental topology enumeration instead
+  of canonical semantic parts
+- any primitive-only spatial semantics that would force NURBS, sweep, chamfer,
+  fillet, or blend work to fork the language later
+- any motion model that stores only final placement state and throws away the
+  authored operation meaning needed for replay, merge, interaction, and audit
+
+#### Do not do these things
+
+- do not couple placement to primitive creation so tightly that later movement
+  or rotation has no independent semantic identity
+- do not add one-off fields like `direction`, `axis`, or `rotation` to each
+  family spec as a substitute for a shared spatial-intent layer
+- do not make the main public DX look like matrices, quaternions, basis
+  constructors, or raw transform structs
+- do not postpone anchor semantics until "persistent naming later"
+- do not let hostile suites invent their own placement DSL outside the canonical
+  spatial-intent surface
+- do not flatten create, move, rotate, and reorient into one vague transform
+  helper
+- do not assume every future spatial edit is adequately described by one point
+  plus one direction vector
+- do not let the shared spatial language stop at rigid primitives if the later
+  roadmap already knows it must carry surfaces, freeform carriers, and fillet
+  feature results
+
+#### Required planning deliverables
+
+At minimum, this phase must produce a frozen plan for:
+
+- one intrinsic-shape versus placement split for primitive authoring
+- one semantic create / move / rotate / reorient / offset family of surfaces
+- one prepositional public vocabulary broad enough for later relational edits
+- one canonical local frame and semantic-anchor model per admitted primitive
+  family
+- one lowering story from prepositional language into inspectable placement and
+  motion plans
+- one persistent-naming compatibility story proving anchors are assigned before
+  world embedding
+- one reuse story showing how this substrate can serve later non-primitive
+  shapes
+- one generic anchor taxonomy broad enough for:
+  - primitive semantic anchors
+  - topology-local anchors
+  - frame anchors
+  - geometric and parameter-space anchors
+  - feature-owned anchors for chamfer / fillet / blend families later
+- one authored-motion history story proving that create, move, rotate,
+  reorient, and offset can become inspectable authoritative operations instead
+  of transient UI sugar
+
+#### Required acceptance evidence from the planning phase
+
+This planning phase is not done when the document says "we should support
+placement someday." It is done only when the milestone text makes these things
+unambiguous:
+
+- creation and movement are different semantic operations
+- intrinsic shape and placement are different semantic truths
+- prepositional spatial language is the intended public DX
+- canonical local anchors are the intended persistent-naming substrate
+- raw transforms are a lower-layer implementation tool, not the public semantic
+  story
+- Phase 5.6 can author compound hostile cases on top of this model without
+  inventing suite-local placement folklore
+- later NURBS, freeform, chamfer, fillet, and blend milestones have a clearly
+  reusable spatial and anchor substrate instead of an implied fork point
+
+#### Do not start the next phase until
+
+- the plan clearly distinguishes:
+  - intrinsic shape
+  - placement
+  - movement
+  - rotation or reorientation
+  - relational or prepositional constraints
+  - semantic anchors
+- later persistent naming has a believable semantic substrate to inherit
+- compound hostile cases can be described in terms of spatial meaning rather
+  than transform archaeology
+- future implementation can scale to primitives, then later sketches, surfaces,
+  sweeps, imported bodies, and boolean operands without replacing the language
+  again
+- the plan is explicit enough that later motion, interaction, and history
+  milestones will inherit one spatial-intent story instead of inventing
+  separate transform, anchor, and continuity semantics
+
+### Phase 5.5.3: Freeze Motion Reference, Resolution, And Failure Semantics Before The Compound Siege
+
+Turn movement, rotation, reorientation, and spatial relation targeting into a
+first-class certified resolution system before the compound siege and before
+later curve, surface, NURBS, fillet, and blend work inherit a vague or
+carrier-ambiguous motion model.
+
+#### Why this phase comes now
+
+Phase 5.5.2 freezes the shared spatial-intent substrate:
+
+- authored verbs
+- placement and frame semantics
+- anchor semantics
+- constraint-style phrasing
+- the ownership split between kernel, spatial, geom, and topo
+
+That is necessary, but it is not yet the full principled motion foundation.
+Without one more correction phase, Worth is still in danger of freezing the
+wrong motion semantics:
+
+- `parallel_to(...)` and `perpendicular_to(...)` can still be interpreted too
+  loosely
+- carrier-level references like "curve" or "surface" can still be treated as
+  if they implied one stable direction automatically
+- ambiguous and degenerate motion targets can still get handled as ad hoc
+  helper failures instead of typed semantic outcomes
+- fallback-derived tangent, normal, or frame truth can still disappear into
+  anonymous geometry folklore
+- later replay, merge, persistent naming, fillet, and freeform work can still
+  inherit "final transform state" instead of authored motion meaning
+
+`MENTALITY.md` points the way here just as strongly as it did for primitive
+realization:
+
+- this is a foundation correction, not future polish
+- later curve, surface, NURBS, fillet, blend, and interaction work will
+  inherit whatever motion-reference policy is frozen now
+- the compound suite in Phase 5.6 should pressure a principled motion
+  resolution substrate, not invent its own target-resolution folklore
+
+This phase therefore belongs before Phase 5.6 because the compound suite must
+exercise the same motion-resolution semantics that later product code and later
+MetaBoss-tier hostile suites will rely on.
+
+#### The core semantic rule this phase must freeze
+
+No motion or placement operation may target a geometric carrier when the actual
+directional, positional, or frame witness is under-specified.
+
+That means:
+
+- `parallel_to(curve)` is not a valid final semantic form
+- `perpendicular_to(surface)` is not a valid final semantic form
+- `aligned_with(feature)` is not a valid final semantic form when the feature
+  exposes more than one meaningful axis or frame
+
+Instead, the system must require or derive an explicit witness such as:
+
+- a world direction
+- a frame axis
+- a curve tangent at a parameter-space anchor
+- a surface normal at a parameter-space anchor
+- a feature-owned axis, rail, spine, or junction frame
+
+If the witness cannot be named uniquely and honestly, the system must reject or
+exhaust with typed truth rather than guessing.
+
+#### What this phase must establish
+
+Motion must be frozen as one layered semantic system:
+
+1. subject truth
+2. anchor truth
+3. reference-frame truth
+4. directional or positional witness truth
+5. resolution strategy truth
+6. ambiguity / degeneracy / exhaustion failure truth
+7. history-bearing authored-motion truth
+
+The long-term shape must be:
+
+- subject answers:
+  - what existing or newly-created thing is being moved or reoriented?
+- anchor answers:
+  - what semantic or geometric anchor is the operation attached to?
+- reference answers:
+  - what world, workplane, local, feature, or carrier-derived frame is the
+    operation expressed against?
+- witness answers:
+  - what point, axis, tangent, normal, or derived frame is actually being used?
+- resolution answers:
+  - was the witness direct, frame-derived, carrier-derived, fallback-derived,
+    or exhausted?
+- failure answers:
+  - was the request ambiguous, undefined, unsupported, degenerate, or
+    exhausted?
+- history answers:
+  - what authored motion act happened, and what semantic identity was preserved
+    across replay and certification?
+
+#### Required motion-reference model
+
+This phase must freeze a reusable motion-reference vocabulary broad enough for
+primitives now and later non-primitive carriers.
+
+At minimum the design must account for:
+
+- world references:
+  - explicit world point
+  - explicit world direction
+- frame references:
+  - frame origin
+  - frame axis
+  - full frame witness
+- carrier-derived references:
+  - curve tangent at parameter anchor
+  - surface normal at parameter anchor
+  - surface tangent-u at parameter anchor
+  - surface tangent-v at parameter anchor
+  - later carrier-derived frame witnesses where the domain can supply them
+- feature-owned references:
+  - fillet spine
+  - chamfer support direction
+  - blend rail
+  - blend junction frame
+
+This does not require full curved-carrier implementation in Milestone 4, but it
+does require the semantic shape to be frozen now so those later domains do not
+fork the language.
+
+#### Required reusable ownership and directory topology
+
+This phase must not organize reusable semantic concerns under the first verb
+that happens to consume them.
+
+The structural law is:
+
+- if a concern will apply to more than one future verb, it must not live under
+  a verb-specific subtree
+- if a concern defines reusable spatial meaning, it belongs in
+  `worth-spatial`
+- if a concern defines public authored verbs or orchestration-facing surfaces,
+  it belongs in `worth-kernel`
+- if a concern is pure math, it belongs in `worth-geom`
+
+That means the permanent home for reusable motion-reference and witness
+semantics must be a shared subtree in `worth-spatial`, not:
+
+- under `move/`
+- under `rotate/`
+- under `construction/`
+- under `primitives/`
+- under any suite-local or provenance-local folder
+
+The intended permanent skeleton for the shared reusable substrate is:
+
+```text
+crates/worth-spatial/src/spatial_intent/
+  refs/
+  resolution/
+  constraints/
+  lowering/
+```
+
+Where:
+
+- `refs/`
+  - owns anchors, frames, witnesses, carrier references, and feature-owned
+    references
+- `resolution/`
+  - owns tolerance, resolution classes, failure classes, fallback posture, and
+    policy profiles that affect witness resolution
+- `constraints/`
+  - owns reusable relation semantics such as lies-on, points-toward, matches,
+    and future relational carriers
+- `lowering/`
+  - owns lowering from semantic motion references into executable or
+    certification-consumable plans
+
+The intended permanent skeleton for the verb-facing kernel layer is:
+
+```text
+crates/worth-kernel/src/spatial_intent/
+  create/
+  motion/
+  relations/
+  lowering/
+```
+
+Where:
+
+- kernel owns the common path and advanced path authoring surfaces
+- spatial owns the reusable meaning they consume
+
+This phase must not leave later developers guessing where tolerance, witness
+resolution, or motion-resolution policy belongs.
+
+#### Required failure and policy model
+
+This phase must explicitly freeze typed motion-resolution failure classes.
+
+At minimum the shared substrate must have room for exact distinctions such as:
+
+- `AmbiguousReference`
+- `UndefinedReference`
+- `UnsupportedReferenceRole`
+- `DegenerateCarrier`
+- `CoincidentTarget`
+- `InvalidAxisOrDirection`
+- `ExhaustedResolutionStrategies`
+
+The exact final names may evolve, but these semantic distinctions may not be
+collapsed into one generic "bad motion input" bucket.
+
+This phase must also make it explicit that tolerance and policy profiles belong
+to reusable resolution semantics, not to one specific verb.
+
+That means:
+
+- tolerance must not be coupled only to moving things
+- witness-resolution policy profiles must not be coupled only to
+  `parallel_to(...)` or `perpendicular_to(...)`
+- the same tolerance and policy substrate must be reusable later by:
+  - snapping
+  - grazing
+  - contact classification
+  - boolean candidate detection
+  - host placement
+  - fillet and continuity checks
+  - NURBS and curved-carrier witness resolution
+
+#### Required sanctioned resolution posture
+
+Just as Phase 5.5 made primitive realization strategies explicit, this phase
+must make motion witness resolution explicit.
+
+At minimum the motion system must distinguish:
+
+- direct witness resolution
+  - explicit point, explicit vector, explicit frame axis
+- frame-derived witness resolution
+  - workplane normal, frame axis, feature-local basis
+- carrier-derived witness resolution
+  - tangent, normal, or parameter-space-derived witness
+- sanctioned fallback-derived witness resolution
+  - only when the motion substrate explicitly authorizes a fallback
+- exhausted witness resolution
+  - no sanctioned strategy produced a usable witness
+
+If fallback or approximation is used, that must survive as inspectable motion
+truth instead of disappearing into final placement residue.
+
+#### Required Query posture
+
+This phase must make Forge Query feel native to motion semantics, not bolted on
+later.
+
+The plan must explicitly require that authored motion truth be preserved across:
+
+- direct preparation
+- replay
+- branch / preview
+- inspection
+- projection-consumption
+- anti-bypass audit
+
+And that the Query-backed reports can certify:
+
+- what subject was moved
+- what anchor basis was used
+- what witness was requested
+- what witness was actually resolved
+- what resolution class was used
+- whether failure happened at ambiguity, undefined-reference, unsupported-role,
+  degeneracy, or exhaustion boundaries
+
+Motion truth must therefore become part of the same canonical artifact and
+proof posture that primitive realization already uses, rather than becoming a
+side-channel or UI-only interpretation.
+
+#### Required DX targets
+
+This phase must also satisfy the DX laws explicitly. The goal is not cute
+syntax; it is organized truth with complexity placed at the exact level where
+the caller must make a responsible decision.
+
+The public DX for motion resolution must therefore distinguish:
+
+- common path:
+  - reads like authored spatial intent
+  - examples:
+    - `shape.parallel_to(frame_axis(...))`
+    - `shape.toward(world_point(...))`
+    - `shape.aligned_with(frame(...))`
+- advanced path:
+  - exposes the next lower semantic boundary explicitly
+  - examples:
+    - build motion intent
+    - inspect or compile witness plan
+    - inspect resolution class and failure topology
+    - lower into a Query-backed authoritative artifact
+- unsafe or degraded path:
+  - must make weakened guarantees explicit rather than pretending to be normal
+    intent authoring
+
+The phase must not leave developers with only:
+
+- raw vectors
+- raw frames
+- generic bags of options
+- final-placement-only objects
+
+At minimum the built surface must aim for:
+
+- semantic nouns for witnesses and targets rather than naked tuples wherever
+  responsibility is nontrivial
+- inspectable plans or reports before execution when witness resolution,
+  fallback, or exhaustion is at issue
+- explanation surfaces that let a developer answer:
+  - what witness was requested?
+  - what witness was resolved?
+  - why did it fail or fall back?
+- API shapes where expensive or ambiguous work looks expensive or ambiguous
+  rather than masquerading as a cheap property setter
+
+This phase must be explicit that later carrier-derived motion should lower
+through inspectable witness plans, not helper calls that immediately discard
+the semantic steps.
+
+#### Required adversarial cases this phase must plan for
+
+This phase must explicitly plan for at least these motion edge cases so they do
+not become ad hoc later:
+
+- zero-length or non-finite move, offset, rotation-axis, or facing vectors
+- `toward(...)` where the target point is coincident with the anchor origin
+- `between(...)` where both endpoints are identical
+- near-parallel and near-perpendicular frame targets
+- frame-alignment requests under huge world translation and tiny local scale
+- ambiguous carrier requests such as:
+  - whole curve with no parameter
+  - whole surface with no tangent-family or normal witness choice
+  - feature with multiple plausible axes
+- degenerate carrier-derived requests such as:
+  - cusp or zero tangent
+  - singular or collapsed surface frame
+  - unstable local frame near a seam or pole
+- periodic or multi-solution carrier references where more than one witness is
+  plausible
+- open-shell and wire-direction cases where anchor continuity matters but
+  topology class differs from closed solids
+- motion requests whose semantic meaning should remain stable even if the final
+  world transform would look similar to another authored act
+
+#### This phase must replace, not supplement
+
+Phase 5.5.3 must replace, not merely supplement:
+
+- the idea that motion semantics can be reconstructed from final placement
+  state alone
+- vague carrier-level target verbs that quietly guess one witness
+- anonymous vector derivation inside helper code
+- transform-first APIs that erase whether the user meant move, rotate,
+  reorient, offset, align, or match
+- soft error handling that collapses ambiguity, undefined reference, and
+  exhaustion into one generic rejection
+- motion proof surfaces that certify only final coordinates and not the motion
+  resolution story that produced them
+
+#### Do this in this phase
+
+- implement one generic motion-reference model in `worth-spatial` rather than
+  collapsing every request directly into raw vectors
+- implement one generic direction / target / frame witness model broad enough
+  to represent:
+  - explicit world directions and points
+  - frame axes and frame origins
+  - parameter-space and feature-owned future witnesses without forking the
+    type system later
+- implement one typed motion-resolution-class model that preserves whether a
+  witness was:
+  - direct
+  - frame-derived
+  - carrier-derived
+  - fallback-derived
+  - exhausted
+- implement one typed motion-failure-class model that preserves distinctions
+  such as:
+  - ambiguous
+  - undefined
+  - unsupported
+  - degenerate
+  - coincident
+  - exhausted
+- replace raw-vector-first `parallel_to(...)`, `perpendicular_to(...)`,
+  `aligned_with(...)`, and related lowering with witness-bearing lowering
+  surfaces
+- preserve authored motion truth in one canonical artifact/report family that
+  Query-backed proof surfaces can carry through:
+  - direct preparation
+  - replay
+  - branch / preview
+  - inspection
+  - projection-consumption
+  - anti-bypass audit
+- add hostile proof lanes that certify:
+  - ambiguous carrier-style requests are rejected honestly
+  - degenerate and undefined witnesses are not confused with bad numeric input
+  - fallback-derived witnesses stay visible as truth instead of disappearing
+    into final placement
+- add compile-fail or sealed-construction privacy proof where motion resolution
+  internals must not leak past the facade
+
+#### Required implementation deliverables
+
+At minimum, this phase must ship:
+
+- one implemented generic motion-reference model
+- one implemented direction / target / frame witness model
+- one implemented typed motion-resolution-class model
+- one implemented typed motion-failure-class model
+- one implemented sanctioned fallback / exhaustion policy for witness
+  resolution
+- one implemented Query-backed artifact and report story for authored motion
+  truth
+- one hostile suite of motion-resolution cases that later Phase 5.6 rows can
+  reuse directly
+- one implemented policy for when a request is:
+  - admissible
+  - ambiguous
+  - undefined
+  - unsupported
+  - degenerate
+  - exhausted
+
+#### Required acceptance evidence from implementation
+
+This phase is not done when the document merely says "later curves will need
+tangents." It is done only when the built system makes these things
+machine-checkably true:
+
+- motion targets a witness, not a vague carrier
+- ambiguous carrier-level requests are rejected or require a more specific ref
+- direct, frame-derived, carrier-derived, fallback-derived, and exhausted
+  witness resolution are distinct semantic outcomes in code and proof surfaces
+- Query proof surfaces preserve authored motion truth, not just final
+  placement
+- the common path reads like motion intent while the advanced path exposes the
+  next lower semantic and proof boundary explicitly
+- later curves, surfaces, NURBS, fillets, and blends can reuse one motion
+  reference substrate instead of inventing their own
+
+#### Do not start the next phase until
+
+- the motion-reference and failure model is explicit enough that
+  `parallel_to(curve)` has a principled answer
+- the plan clearly distinguishes witness ambiguity from witness degeneracy
+- Query-backed motion truth has a believable permanent home in the same proof
+  posture as primitive realization truth
+- Phase 5.6 can author grazing, relocation, and reorientation hostility on top
+  of this model without inventing suite-local direction folklore
+- later curve, surface, freeform, fillet, and blend milestones have a clearly
+  reusable motion-resolution substrate to inherit
+
+### Phase 5.5.4: Freeze Intent Conflict, Candidate Arbitration, And Escalation Semantics Before The Compound Siege
+
+Turn overlap, contact, alignment, containment, and host-style interaction
+ambiguity into a first-class semantic system before Phase 5.6 and before later
+boolean, BIM, fillet, and interaction work force the stack to guess user intent
+silently.
+
+#### Why this phase comes now
+
+Phase 5.5.2 freezes spatial-intent verbs and anchor semantics. Phase 5.5.3
+freezes motion witnesses, motion resolution, and typed motion failure. That
+still leaves one major source of future pain if it is not addressed now:
+
+- one user act can imply several plausible semantic outcomes
+- overlap is not itself the user intent
+- contact is not itself the user intent
+- entering a volume is not itself the user intent
+- alignment pressure is not itself the user intent
+
+If Worth stops at motion and witness resolution, later interaction surfaces will
+still be tempted to guess:
+
+- move only
+- snap flush
+- align frames
+- attach relationally
+- nest inside
+- merge booleanly
+- subtract or cut
+- join host and opening
+
+That is where many of the worst CAD and BIM bugs come from:
+
+- silent semantic boundary crossing
+- one hidden default standing in for many plausible intents
+- "fixes" buried in obscure settings after the wrong operation already
+  happened
+
+This phase exists to freeze the opposite posture:
+
+- detect plausible candidate intents explicitly
+- classify when one candidate is clearly dominant versus when several are
+  plausible
+- surface blocked future candidates honestly when downstream capability does
+  not exist yet
+- let the application ask rather than guess when the semantic boundary would be
+  crossed silently
+
+This phase belongs before Phase 5.6 because the compound suite should not only
+pressure motion truth. It should also pressure interaction ambiguity,
+pre-contact hostility, and blocked future-operation candidates on top of a real
+arbitration substrate instead of ad hoc suite logic.
+
+#### The core semantic rule this phase must freeze
+
+When one authored act plausibly implies more than one semantic outcome, Worth
+must not silently cross semantic boundaries.
+
+That means:
+
+- physical overlap is not enough to imply merge
+- entering another shape is not enough to imply nesting or cutting
+- grazing a face is not enough to imply snap or attach
+- touching a host-like surface is not enough to imply hosting
+- aligned placement is not enough to imply frame adoption
+
+The system may auto-resolve only when one candidate intent is clearly dominant
+and safe. Otherwise it must:
+
+- preserve a typed conflict or candidate set
+- rank or classify plausible outcomes
+- expose whether a candidate is blocked by missing downstream capability
+- allow the app layer to ask what the user intended
+
+#### What this phase must establish
+
+Intent conflict must be frozen as one layered semantic system:
+
+1. authored act truth
+2. observed spatial relation truth
+3. candidate intent truth
+4. conflict classification truth
+5. arbitration or escalation policy truth
+6. blocked-by-missing-capability truth
+7. preserved chosen-intent truth for replay and certification later
+
+The long-term shape must be:
+
+- authored act answers:
+  - what did the user explicitly do?
+  - move, rotate, reorient, offset, place, align, or constrain
+- observed relation answers:
+  - what contact, overlap, containment, grazing, alignment, or host-like facts
+    became true?
+- candidate intent answers:
+  - what plausible semantic outcomes are consistent with those facts?
+- conflict answers:
+  - is one outcome clearly dominant, or are multiple plausible?
+- arbitration answers:
+  - should the system auto-resolve, preserve multiple candidates, or ask?
+- capability answers:
+  - is one plausible candidate blocked because merge, cut, join, or hosting
+    does not exist yet?
+- preserved choice answers:
+  - if the user or policy selects one candidate, how does that choice survive
+    replay, inspection, and later audit?
+
+#### Required candidate-intent model
+
+This phase must freeze a reusable candidate-intent taxonomy broad enough for
+primitive hostility now and later BIM / CAD interaction semantics.
+
+At minimum the design must account for candidates such as:
+
+- `MoveOnly`
+- `SnapFlush`
+- `AlignFrames`
+- `AttachRelationally`
+- `NestInside`
+- `MergeCandidate`
+- `SubtractCandidate`
+- `CutOpeningCandidate`
+- `JoinCandidate`
+
+The exact final names may evolve, but the milestone must make it explicit that:
+
+- motion intent
+- relational intent
+- topological intent
+- host-style intent
+
+are not the same thing and may all be plausible from one interaction.
+
+#### Required reusable ownership and directory topology
+
+This phase must not bury conflict, arbitration, blocked-capability, or ranking
+semantics under one interaction verb such as `move/` or `snap/`.
+
+The structural law is:
+
+- if a concern will apply to more than one interaction family, it must not
+  live under a single interaction family
+- reusable conflict and arbitration meaning belongs in `worth-spatial`
+- public authoring verbs and app-facing orchestration hooks belong in
+  `worth-kernel`
+
+That means the permanent home for reusable candidate/conflict/arbitration
+semantics must be a shared subtree in `worth-spatial`, not:
+
+- under `move/`
+- under `snap/`
+- under `merge/`
+- under app-only UI code
+- under suite-local or provenance-local directories
+
+The intended permanent skeleton for the shared reusable substrate is:
+
+```text
+crates/worth-spatial/src/spatial_intent/
+  arbitration/
+```
+
+Where:
+
+- `candidates.rs`
+  - owns typed candidate intents
+- `conflicts.rs`
+  - owns conflict classes and relation facts
+- `ranking.rs`
+  - owns candidate ranking and explanation posture
+- `blocked.rs`
+  - owns blocked-capability truth
+- `escalation.rs`
+  - owns arbitration and clarification posture
+
+The intended permanent kernel-facing skeleton is:
+
+```text
+crates/worth-kernel/src/spatial_intent/
+  arbitration/
+```
+
+Where:
+
+- kernel owns the common path and advanced path authoring surfaces that expose
+  candidate/conflict truth
+- kernel does not become the owner of reusable arbitration semantics
+
+This phase must leave later booleans, joins, host cuts, and BIM-style
+interaction flows with one obvious semantic home instead of forcing them to
+invent parallel conflict systems.
+
+#### Required conflict families
+
+This phase must explicitly plan at minimum these conflict classes:
+
+- contact conflicts:
+  - move-only versus snap versus attach
+- alignment conflicts:
+  - directional alignment versus frame adoption versus host alignment
+- containment conflicts:
+  - move-inside versus nest-inside versus embed/cut-host semantics
+- topology-boundary conflicts:
+  - remain separate versus merge versus subtract versus join
+- host-relationship conflicts:
+  - touch host versus attach to host versus cut opening in host
+- capability-availability conflicts:
+  - one candidate is plausible but blocked because the required downstream
+    feature does not exist yet
+
+#### Required arbitration and escalation posture
+
+This phase must freeze one explicit arbitration posture.
+
+At minimum the design must distinguish:
+
+- `SingleClearIntent`
+  - one candidate is dominant and safe to apply automatically
+- `MultiplePlausibleIntents`
+  - more than one candidate is plausible and the system should preserve the
+    ambiguity instead of guessing
+- `UnsafeToAssume`
+  - auto-resolution would cross a semantic boundary without enough authority
+- `BlockedCandidateSet`
+  - one or more strong candidates exist, but the best one is blocked by
+    missing downstream capability
+
+The app layer may present these through:
+
+- dropdown choice
+- command palette
+- inline affordance
+- preview-time clarification
+
+But the core crates must expose the semantic conflict and candidate truth, not
+the widget.
+
+#### Required blocked-capability semantics
+
+This phase must explicitly plan how the system preserves plausible future
+intent even when the required downstream capability does not exist yet.
+
+Examples that must be covered in the plan:
+
+- overlap suggests `MergeCandidate`, but booleans do not exist yet
+- host penetration suggests `CutOpeningCandidate`, but host-opening semantics
+  do not exist yet
+- contact suggests `JoinCandidate`, but join semantics do not exist yet
+
+The system must be able to say:
+
+- this candidate is plausible
+- this candidate is blocked
+- these other lower-scope candidates are still available now
+
+That is the foundation for user-friendly "Did you mean...?" flows that do not
+force silent fallback to the wrong meaning.
+
+#### Required Query posture
+
+This phase must also make Forge Query feel native to interaction ambiguity.
+
+The plan must explicitly require that the core artifact and proof surfaces can
+preserve:
+
+- authored act truth
+- observed relation truth
+- candidate intent set truth
+- arbitration classification truth
+- blocked-capability truth
+- chosen-intent truth when a policy or user resolves the ambiguity
+
+And that Query-backed reports can certify:
+
+- when a conflict was absent
+- when a single clear intent existed
+- when multiple plausible intents existed
+- when the system preserved ambiguity instead of guessing
+- when a candidate was blocked by missing capability rather than being absent
+
+#### Required DX targets
+
+This phase must also satisfy the DX laws explicitly. The user-friendly target
+is not "the kernel shows a dropdown." The user-friendly target is that the core
+system exposes structured ambiguity truth so the app can ask the right question
+at the right time instead of forcing the developer to reverse-engineer intent
+from overlap after the fact.
+
+The public DX for conflict and arbitration must therefore distinguish:
+
+- common path:
+  - reads like ordinary authored intent when no conflict exists
+- advanced path:
+  - exposes candidate intents, conflict class, blocked-capability state,
+    ranking, and explanation before commitment
+- human-escalation path:
+  - looks like a real human boundary
+  - does not masquerade as an ordinary local method call
+  - gives the app layer enough structured information to ask:
+    - "Did you mean move only, snap flush, nest inside, or merge?"
+
+The phase must not leave developers with only:
+
+- a hidden default policy
+- a single boolean like `auto_snap`
+- a generic conflict string
+- app-local heuristics that must rediscover kernel intent after the fact
+
+At minimum the built surface must aim for:
+
+- typed candidate sets rather than loose labels
+- typed blocked-candidate reasons rather than TODO comments
+- inspectable arbitration reports before commitment when the ambiguity crosses
+  semantic boundaries
+- explanation surfaces that let a developer answer:
+  - what user act was observed?
+  - what relation facts were observed?
+  - why were these candidate intents produced?
+  - why was one candidate blocked?
+  - why did the system auto-resolve or refuse to assume?
+- a clear separation between core semantic truth and app-specific presentation
+  so UI teams can build dropdowns, previews, or command palettes without
+  inventing a second arbitration model
+
+#### Required adversarial cases this phase must plan for
+
+This phase must explicitly plan for at least these conflict-heavy edge cases:
+
+- moving one closed solid into another without boolean semantics
+- dragging one face into flush contact with another face
+- rotating an open shell into near-host alignment where host semantics could be
+  implied but should not be guessed
+- moving a wire endpoint into near-coincidence with another anchor where snap,
+  attach, or move-only are all plausible
+- pushing a shape inside another where:
+  - `MoveOnly`
+  - `NestInside`
+  - `MergeCandidate`
+  are all plausible, but some may be blocked
+- interactions where the best future candidate is blocked and the app must be
+  able to ask whether the user wants one of the currently available
+  alternatives instead
+
+#### This phase must replace, not supplement
+
+Phase 5.5.4 must replace, not merely supplement:
+
+- hidden default policies that silently cross semantic boundaries
+- interaction code that guesses merge, cut, snap, attach, or host semantics
+  from contact alone
+- app-only folklore about what the user "probably meant"
+- conflict handling that loses blocked future-intent candidates instead of
+  preserving them explicitly
+- proof surfaces that only certify final placement and not the conflict or
+  arbitration story that led there
+
+#### Do this in this phase
+
+- implement one generic candidate-intent model in the permanent shared
+  substrate rather than leaving conflict handling to UI folklore
+- implement one generic intent-conflict classification model that can preserve:
+  - single-clear intent
+  - multiple plausible intents
+  - unsafe-to-assume situations
+  - blocked candidate sets
+- implement one generic arbitration / escalation policy model that preserves
+  when the core system:
+  - auto-resolves
+  - preserves multiple candidates
+  - requires clarification
+  - marks a candidate blocked by missing capability
+- implement one blocked-capability candidate model so future merge, cut, join,
+  and hosting semantics can be surfaced honestly before those capabilities
+  exist
+- implement one Query-backed artifact and report story for:
+  - observed relation truth
+  - candidate-intent truth
+  - conflict classification truth
+  - blocked-candidate truth
+  - chosen-intent truth when ambiguity is resolved
+- add hostile proof lanes for:
+  - overlap without silent merge
+  - contact without silent snap
+  - containment without silent nest or cut
+  - blocked-but-plausible future candidates
+- keep UI out of the core crates:
+  - core crates emit candidate/conflict truth
+  - app layers choose dropdowns, palettes, or other clarification widgets
+
+#### Required implementation deliverables
+
+At minimum, this phase must ship:
+
+- one implemented generic candidate-intent model
+- one implemented intent-conflict classification model
+- one implemented arbitration / escalation policy model
+- one implemented blocked-capability candidate model
+- one implemented Query-backed artifact and report story for conflict and
+  candidate truth
+- one implemented policy for when the system:
+  - auto-resolves
+  - preserves multiple candidates
+  - asks for clarification
+  - marks a candidate blocked
+- one hostile suite of contact, containment, and grazing ambiguity cases that
+  Phase 5.6 can reuse directly
+
+#### Required acceptance evidence from implementation
+
+This phase is not done when the document merely says "the UI can ask." It is
+done only when the built system makes these things machine-checkably true:
+
+- overlap and contact do not imply one semantic outcome automatically
+- multiple plausible intents can be preserved as first-class truth
+- blocked future candidates are first-class truth, not just TODO comments
+- the app layer has a principled place to ask what the user meant instead of
+  guessing
+- the common path stays simple when no conflict exists, while the advanced path
+  exposes candidate, conflict, and blocked-capability truth before commitment
+- later booleans, joins, host cuts, fillets, and BIM-style interaction flows
+  can reuse one conflict/arbitration substrate instead of inventing their own
+
+#### Do not start the next phase until
+
+- the plan is explicit enough that "move this shape inside that shape" has a
+  principled answer
+- the plan distinguishes motion truth from candidate-intent truth
+- the plan distinguishes blocked future candidates from absent candidates
+- Query-backed proof posture has a believable permanent home for conflict and
+  arbitration truth
+- Phase 5.6 can pressure contact, grazing, and mixed-topology ambiguity on top
+  of this model without inventing suite-local arbitration folklore
+
+### Phase 5.5.5: Freeze Preview, Identity Continuity, And Policy Profile Semantics Before The Compound Siege
+
+Turn preview, simulation, identity continuity, and reusable policy profiles
+into first-class shared semantics before Phase 5.6 and before later snapping,
+host placement, booleans, fillets, and NURBS work force these concerns to be
+rediscovered piecemeal.
+
+#### Why this phase comes now
+
+Phases 5.5.2 through 5.5.4 establish:
+
+- authored spatial verbs
+- motion witnesses and motion-resolution truth
+- candidate intents, conflict classes, and blocked-capability truth
+
+That still leaves three big foundation concerns if we stop there:
+
+- preview remains an app-local ghosting trick instead of a certified semantic
+  surface
+- identity continuity remains implied instead of typed
+- tolerance and arbitration profiles remain scattered concerns instead of one
+  reusable authority
+
+Those concerns are broader than motion:
+
+- preview will be needed for movement, snapping, conflict clarification,
+  booleans, cuts, joins, and host placement
+- identity continuity will be needed for movement, attach/detach, merge/split,
+  persistent naming, fillets, blends, and host relationships
+- tolerance and policy profiles will be needed across motion, snapping,
+  grazing, contact classification, boolean candidate detection, and curved
+  carrier witness resolution
+
+This phase belongs before Phase 5.6 because the compound suite should not only
+exercise motion and conflict. It should exercise previews, continuity truth,
+and policy-profile behavior on top of one explicit shared substrate.
+
+#### What this phase must establish
+
+This phase must freeze three shared semantic systems:
+
+1. preview and simulation truth
+2. identity continuity truth
+3. reusable policy profile truth
+
+The long-term shape must be:
+
+- preview answers:
+  - what would happen if this authored act were committed?
+  - what witness, conflict, candidate, blocked, and relation facts would be
+    observed?
+  - what warnings or ambiguities would be surfaced before commitment?
+- identity continuity answers:
+  - what semantic identity is preserved?
+  - what anchor identity is preserved?
+  - what identity is reinterpreted?
+  - what identity is split, merged, or blocked pending explicit choice?
+- policy profile answers:
+  - what tolerance, grazing, snapping, arbitration, and auto-resolve posture is
+    in effect?
+  - what profile applies in conservative CAD mode, BIM-host mode, exact-model
+    mode, or ask-first mode?
+
+#### Required reusable ownership and directory topology
+
+These concerns are shared semantic authorities and must not be buried under one
+verb or one UI surface.
+
+The intended permanent shared skeleton in `worth-spatial` is:
+
+```text
+crates/worth-spatial/src/spatial_intent/
+  preview/
+  continuity/
+  resolution/
+```
+
+Where:
+
+- `preview/`
+  - owns simulation, preview artifacts, and explanation posture
+- `continuity/`
+  - owns identity continuity, anchor continuity, and continuity outcome types
+- `resolution/`
+  - owns reusable tolerance and policy profile semantics
+
+The intended permanent kernel-facing skeleton is:
+
+```text
+crates/worth-kernel/src/spatial_intent/
+  preview/
+  arbitration/
+```
+
+Where:
+
+- kernel owns the public DX and orchestration-facing preview or clarification
+  surfaces
+- spatial owns the reusable meaning they consume
+
+#### Required preview and simulation model
+
+This phase must freeze one reusable preview substrate that can carry:
+
+- motion previews
+- witness-resolution previews
+- candidate-intent previews
+- blocked-candidate previews
+- grazing and proximity previews
+- later boolean, host, and join previews
+
+The preview system must not be treated as UI-only sugar. It must be a semantic
+layer that can be:
+
+- inspected
+- tested
+- replayed
+- explained
+- certified for parity later
+
+#### Required identity continuity model
+
+This phase must freeze one reusable identity continuity model broad enough for
+later persistent naming and topology-changing operations.
+
+At minimum it must distinguish:
+
+- `IdentityPreserved`
+- `AnchorContinuityPreserved`
+- `IdentityReinterpreted`
+- `IdentitySplit`
+- `IdentityMerged`
+- `IdentityBlockedPendingChoice`
+
+The exact final names may evolve, but the phase must make it explicit that:
+
+- move-only
+- snap/attach
+- merge/subtract later
+- host cut/opening later
+
+do not all preserve identity in the same way.
+
+#### Required reusable policy profile model
+
+This phase must freeze one reusable profile substrate rather than burying
+thresholds and defaults inside individual verbs.
+
+At minimum the shared system must have room for profiles such as:
+
+- conservative exact-modeling profile
+- BIM host-friendly profile
+- ask-first arbitration profile
+- aggressive snap profile
+- high-fidelity preview profile
+
+And those profiles must be able to control reusable concerns such as:
+
+- tolerance and proximity policy
+- grazing thresholds
+- alignment thresholds
+- arbitration / auto-resolve posture
+- preview richness and artifact policy
+
+The exact profile inventory may grow later, but the substrate must exist now.
+
+#### Required DX targets
+
+This phase must also satisfy the DX laws explicitly.
+
+The public DX must distinguish:
+
+- common path:
+  - ordinary authored intent when no preview or conflict inspection is needed
+- advanced path:
+  - explicit preview, simulation, continuity, and policy inspection surfaces
+- human-escalation path:
+  - explicit clarification surfaces when preview reveals ambiguity or blocked
+    future candidates
+
+Developers must be able to ask questions like:
+
+- what would happen if I committed this?
+- what candidate intents would appear?
+- what would be blocked?
+- what identity would be preserved or split?
+- what profile or tolerance policy caused this classification?
+
+without dropping into logs or app-local heuristics.
+
+#### Required Query posture
+
+This phase must make Forge Query feel native to preview, continuity, and
+profile semantics too.
+
+The plan must explicitly require that the core artifact and proof surfaces can
+preserve:
+
+- preview truth
+- candidate-preview truth
+- blocked-preview truth
+- identity continuity truth
+- profile and tolerance posture truth
+
+And that Query-backed reports can certify parity of those surfaces across:
+
+- direct preparation
+- replay
+- branch / preview
+- inspection
+- projection-consumption
+
+#### Do this in this phase
+
+- implement one reusable preview and simulation substrate in `worth-spatial`
+- implement one reusable identity continuity model
+- implement one reusable tolerance and policy profile model
+- implement one Query-backed artifact and report story for:
+  - preview truth
+  - continuity truth
+  - profile truth
+- add hostile proof lanes for:
+  - preview of blocked future candidates
+  - preview of multiple plausible intents
+  - identity continuity differences between move-only and relational or
+    topology-changing future candidates
+  - profile-dependent classification differences that remain explicit rather
+    than hidden
+
+#### Required implementation deliverables
+
+At minimum, this phase must ship:
+
+- one implemented preview and simulation substrate
+- one implemented identity continuity model
+- one implemented reusable tolerance and policy profile model
+- one implemented Query-backed artifact and report story for preview,
+  continuity, and profile truth
+- one hostile suite of preview and continuity cases that Phase 5.6 can reuse
+  directly
+
+#### Required acceptance evidence from implementation
+
+This phase is not done when the document merely says "the app can preview it"
+or "we can add profiles later." It is done only when the built system makes
+these things machine-checkably true:
+
+- preview is a semantic surface, not only a UI effect
+- identity continuity is typed truth, not convention
+- reusable policy profiles exist outside individual verbs
+- developers can inspect why a preview, conflict, or continuity classification
+  happened
+- later snapping, host placement, booleans, joins, fillets, and curved
+  carriers can reuse one preview/continuity/profile substrate instead of
+  inventing their own
+
+#### Do not start the next phase until
+
+- preview, continuity, and profile semantics have a permanent shared home
+- tolerance and policy profiles are not coupled only to motion
+- identity continuity has a believable substrate for later persistent naming
+  and topology-changing operations
+- Phase 5.6 can pressure motion, conflict, preview, continuity, and profile
+  behavior on top of one coherent foundation
+
+### Phase 5.6: Freeze The Compound Primitive Adversarial Suite Before Docs
+
+Turn the new realization-policy substrate into the next serious pre-METABOSS
+proof suite: a compound primitive adversarial family that stacks multiple
+failure modes at once and proves either exact success or exact structured
+failure across the whole runtime and certification chain.
+
+#### Why this phase comes now
+
+Phase 5.5 makes primitive realization principled. Phase 5.6 proves that the
+new substrate can survive compound pressure instead of only isolated threshold
+or family-local hard cases.
+
+This phase exists because the next failure mode after "hidden primitive rescue"
+is "the primitive model is only robust one stressor at a time." The MetaBoss
+document explicitly rejects that bar. The next suite Worth must survive is not
+"one tiny pyramid" or "one huge simplex." It is a chained, multi-stressor,
+proof-bearing primitive workload that teaches the kernel how to survive stacked
+degeneracy before booleans magnify the blast radius.
+
+Phase 5.6 therefore belongs before docs:
+
+- the docs should describe the compound primitive proof substrate we actually
+  trust
+- later MetaBoss-tier planar, curved, and fillet suites will inherit the
+  primitive proof and artifact posture frozen here
+- if the primitive layer still has hidden escape hatches under stacked stress,
+  documentation would only fossilize the wrong story
+
+#### Adversarial suite target in this phase
+
+This phase must define and pass the next named suite after the current siege:
+
+- `PrimitiveConstructionCompoundAdversarialSiege`
+
+The suite is not a Boolean final boss. It is the pre-Boolean primitive
+compound-pressure gate that proves Worth can stack several hard conditions at
+once and still either:
+
+- realize the primitive honestly with explicit strategy / conditioning /
+  stability truth, or
+- fail cleanly with exact structured rejection or exhaustion truth
+
+This suite must not be closed-solid-only. It must explicitly pressure the
+admitted NMT and topology-class surfaces that later motion, naming, and
+interaction work will inherit:
+
+- closed solid families
+- open shell families
+- wire families
+- mixed topology-class workloads containing more than one admitted family in one
+  authored batch
+
+The suite is still pre-Boolean. That means it is allowed to pressure
+near-contact, frame alignment, anchor continuity, and grazing motion, but it is
+not allowed to quietly smuggle in boolean-resolution requirements. Grazing in
+this phase means structured pre-contact spatial pressure, not topology merging.
+
+At minimum, the suite must include chained workload families that combine:
+
+- large world-coordinate translation
+- tiny local feature scale
+- near-threshold admitted geometry
+- threshold-neighbor rejected geometry
+- hostile aspect ratios or altitude collapse
+- near-coplanar or near-degenerate support derivation pressure
+- branch / preview parity pressure
+- replay parity pressure
+- inspection / projection-consumption parity pressure
+- family-boundary drift pressure
+- authored placement pressure
+- authored movement / rotation / reorientation / offset pressure from the
+  `Phase 5.5.2` spatial-intent surface
+- pre-Boolean grazing pressure against reference anchors, workplanes, and
+  other admitted shapes without requesting topology combination
+
+The suite must not be a single showcase part. It must be a family-driven matrix
+with multiple primitive families and multiple stacked stress roles per family.
+
+#### What the next suite should look like
+
+The minimum honest target is a compound primitive corpus with rows such as:
+
+- `DirectStable`
+  - ordinary but nontrivial admitted cases that prove the direct path still
+    stays stable under translation, scale, and replay pressure
+- `EscalatedStableLocalNormalized`
+  - cases that require local-coordinate normalization but still succeed
+    honestly
+- `EscalatedStableExactSupport`
+  - cases that require exact-support style salvage but still succeed honestly
+- `StructuredAdmissionRejection`
+  - cases rejected before realization because the semantic primitive request is
+    invalid
+- `StructuredExhaustionRejection`
+  - semantically meaningful cases that survive admission but exhaust all
+    sanctioned realization strategies and fail with exact exhaustion truth
+- `OrderingParityCase`
+  - cases whose normalized truth must remain invariant under multiple authoring
+    orders
+- `BoundaryDriftGuardCase`
+  - threshold-neighbor admitted/rejected pairs whose classification must remain
+    stable unless the realization-policy layer changes intentionally
+- `MotionStableRelocation`
+  - admitted rows whose intrinsic truth stays stable while authored movement
+    changes world embedding
+- `MotionHostileReorientation`
+  - admitted rows whose anchor/frame semantics are pressured by authored
+    rotation or reorientation
+- `PreBooleanGrazingCase`
+  - admitted or clean-failing rows that approach near-contact or near-alignment
+    thresholds without requesting boolean merge / split / trim semantics
+
+The suite should prioritize hostile simplex / tetrahedron and pyramid cases,
+because those families exercise face-derived support truth most honestly, but
+it must also keep direct-stable comparison rows from orthotope and prism so the
+proof surface still distinguishes families that genuinely need escalation from
+families that do not.
+
+It must also widen beyond closed solids so the same proof language is exercised
+by:
+
+- at least one open shell family workload
+- at least one wire family workload
+- at least one mixed-topology-class workload combining solid, shell, or wire
+  rows under one authored order matrix
+
+#### Required suite matrix
+
+Phase 5.6 must not leave the compound suite implicit. The minimum required
+matrix is:
+
+- `Orthotope`
+  - `DirectStable`
+  - `BoundaryDriftGuardCase`
+- `RegularPrism`
+  - `DirectStable`
+  - `BoundaryDriftGuardCase`
+- `RegularPyramid`
+  - `EscalatedStableLocalNormalized`
+  - `EscalatedStableExactSupport`
+  - `StructuredAdmissionRejection`
+  - `StructuredExhaustionRejection`
+  - `BoundaryDriftGuardCase`
+- `SimplexSolid`
+  - `DirectStable`
+  - `EscalatedStableLocalNormalized`
+  - `EscalatedStableExactSupport`
+  - `StructuredAdmissionRejection`
+  - `StructuredExhaustionRejection`
+  - `BoundaryDriftGuardCase`
+- `SheetPatch`
+  - `DirectStable`
+  - `MotionHostileReorientation`
+  - `PreBooleanGrazingCase`
+  - `BoundaryDriftGuardCase`
+- `WireOpen`
+  - `DirectStable`
+  - `MotionStableRelocation`
+  - `PreBooleanGrazingCase`
+  - `BoundaryDriftGuardCase`
+- `MixedTopologyClassBatch`
+  - `OrderingParityCase`
+  - `MotionStableRelocation`
+  - `MotionHostileReorientation`
+  - `PreBooleanGrazingCase`
+
+The matrix may widen beyond this minimum, but it must not shrink below it.
+
+#### Required stacked stressors by row class
+
+Each named row class must certify a specific compound condition set rather than
+just "a hard number."
+
+- `DirectStable`
+  - must combine:
+    - nontrivial world translation
+    - replay parity pressure
+    - branch / preview parity pressure
+    - inspection / projection-consumption parity pressure
+  - must prove the family remains honestly direct-stable under that stacked
+    workload
+- `EscalatedStableLocalNormalized`
+  - must combine:
+    - large world-coordinate translation
+    - small local feature scale
+    - support derivation that is valid semantically but unstable in raw
+      world-space realization
+    - replay / branch / inspection parity pressure
+  - must prove `LocalNormalized` was required and preserved through the full
+    runtime and certification chain
+- `EscalatedStableExactSupport`
+  - must combine:
+    - world collapse or near-world collapse
+    - semantically valid primitive intent
+    - direct-support derivation failure
+    - exact-support salvage success
+    - replay / branch / inspection parity pressure
+  - must prove `ExactSupport` was required and preserved through the full
+    runtime and certification chain
+- `StructuredAdmissionRejection`
+  - must combine:
+    - an out-of-class primitive request
+    - parity across direct / replay / branch-local lanes
+  - must prove no realization strategies were attempted and the failure stayed
+    at the admission boundary
+- `StructuredExhaustionRejection`
+  - must combine:
+    - semantically meaningful primitive intent
+    - admitted family semantics
+    - exhaustion of every sanctioned realization strategy
+    - parity across all runtime proof lanes
+  - must prove the failure is not an admission rejection and not a vague
+    geometry failure, but a typed exhaustion with preserved attempted-strategy
+    history and conditioning witness truth
+- `BoundaryDriftGuardCase`
+  - must come in admitted / rejected neighbor pairs for the same family
+  - must prove that tiny floor drift changes:
+    - realization strategy
+    - stability class
+    - exhaustion truth
+    - family-boundary artifact digest
+    only when the actual realization-policy boundary changes intentionally
+- `MotionStableRelocation`
+  - must combine:
+    - admitted intrinsic family semantics
+    - authored movement through the `Phase 5.5.2` motion surface
+    - nontrivial translation or offset magnitude
+    - replay / branch / inspection parity pressure
+  - must prove movement changes embedding truth without inventing intrinsic
+    realization drift
+- `MotionHostileReorientation`
+  - must combine:
+    - admitted intrinsic family semantics
+    - authored rotate or reorient intent
+    - anchor-basis dependence
+    - frame-alignment or near-alignment pressure
+    - replay / branch / inspection parity pressure
+  - must prove anchor continuity and directional semantics survive without
+    collapsing into anonymous transform residue
+- `PreBooleanGrazingCase`
+  - must combine:
+    - admitted placement or motion intent
+    - near-contact or near-alignment against a reference anchor, workplane, or
+      other admitted shape
+    - no request for boolean resolution, topological merge, or trimming
+  - must prove one of exactly two outcomes:
+    - stable non-contact success with preserved proximity / anchor truth
+    - clean structured failure with exact blocking boundary and reason
+  - crash, silent reinterpretation into contact, or topology combination are
+    never acceptable outcomes for this row class
+
+#### Required explicit flagship cases
+
+At minimum, the suite must contain these flagship compound cases:
+
+- one `RegularPyramid` case where:
+  - huge translation
+  - tiny local scale
+  - near-degenerate support normals
+  - `ExactSupport`
+  - replay / branch / inspection parity
+  all stack together in one admitted row
+- one `RegularPyramid` case where:
+  - semantically valid intent
+  - sanctioned strategies are all attempted
+  - exhaustion is reached honestly
+  - lower-layer witness and kernel artifact both certify the same exhaustion
+    story
+- one `SimplexSolid` case where:
+  - huge translation
+  - tiny local scale
+  - near-coplanar face geometry
+  - `LocalNormalized` or `ExactSupport` is required
+  - the ordered attempted-strategy history survives through the full chain
+- one `SimplexSolid` case where:
+  - semantically meaningful admitted-family intent
+  - all sanctioned simplex strategies exhaust honestly
+  - the resulting failure is typed as realization exhaustion rather than
+    semantic invalidity
+- one `SheetPatch` case where:
+  - the shell is admitted and open
+  - authored reorientation aligns its local normal to within a near-threshold
+    angle of a reference workplane normal
+  - no shell-closing or boolean semantics are requested
+  - anchor and frame truth survive through replay / branch / inspection parity
+- one `WireOpen` case where:
+  - an endpoint-bearing wire is admitted
+  - authored relocation or offset moves one endpoint into a grazing
+    near-coincidence with a reference anchor or shell edge anchor
+  - no merge, trim, snap, or boolean semantics are requested
+  - the result stays a clean non-contact success or a typed structured
+    pre-contact failure
+- one mixed-topology-class batch where:
+  - at least one solid, one open shell, and one wire are authored together
+  - at least one row uses motion or reorientation
+  - at least one row uses grazing pre-contact pressure
+  - authoring-order parity must stay stable across the normalized matrix truth
+
+These flagship cases are required because they prove the suite is actually
+stacking multiple failure modes instead of only widening threshold tables.
+
+#### Required assertions per row
+
+Every compound-suite row must expose and prove at minimum:
+
+- `scenario_id`
+- `family`
+- `row_class`
+- `outcome_disposition`
+- `direct_digest`
+- `replay_digest`
+- `branch_local_digest`
+- `inspection_digest` or equivalent certified inspection parity artifact
+- `projection_consumption_digest` or equivalent certified projection-consumption
+  parity artifact
+- `selected_realization_strategy`
+- ordered `attempted_realization_strategies`
+- `stability_class`
+- `feature_conditioning_class`
+- `support_normal_class`
+- `normalization_disposition`
+- `exhaustion_reason`, when exhausted
+- `rejection_class`, when rejected
+- `rejection_locality`, when rejected
+- `blocking_boundary`, when rejected
+- `construction_breadth`
+- `birth_attachment_breadth`
+- `certification_breadth`
+- `row_digest`
+
+For admitted rows, the suite must also prove:
+
+- the same selected realization strategy across direct / replay / branch-local
+  / inspection-backed certification lanes
+- the same ordered attempted-strategy history across those lanes
+- the same stability class across those lanes
+
+For rejected rows, the suite must also prove:
+
+- whether rejection happened:
+  - before realization
+  - during realization exhaustion
+  - later in the chain
+- that zero-breadth rows are only allowed for pre-realization rejection
+- that post-admission exhaustion rows still preserve attempted-strategy and
+  conditioning witness truth
+
+#### Required suite-level assertions
+
+The suite itself must prove:
+
+- multiple authoring-order lanes over the same compound matrix
+- normalized matrix parity across those lanes
+- distinct lane digests across those lanes
+- family-boundary drift reports for the threshold-neighbor cases
+- lower-layer exhaustion witness parity for every family that claims structured
+  exhaustion
+- motion-intent parity for every row class that uses authored move / rotate /
+  reorient / offset semantics
+- grazing parity for every row class that claims stable pre-contact success or
+  structured pre-contact failure
+- no compound row loses realization truth when lifted from:
+  - geom
+  - spatial
+  - kernel result
+  - runtime proof
+  - certification artifact
+
+#### Required outputs from this phase
+
+Phase 5.6 must emit these direct closeout artifacts:
+
+- `primitive_construction_compound_adversarial_siege_report`
+- `primitive_construction_compound_parity_report`
+- `primitive_construction_family_boundary_drift_report`
+- `primitive_compound_ordering_parity_report`
+- `primitive_compound_exhaustion_witness_parity_report`
+- `primitive_compound_motion_parity_report`
+- `primitive_compound_grazing_boundary_report`
+- `simplex_realization_strategy_ladder_report`
+- `simplex_realization_exhaustion_witness_report`
+
+These outputs are required milestone evidence, not optional helper reports.
+
+#### MetaBoss-style scenario definitions
+
+Phase 5.6 must not stop at matrices and row labels. It must define explicit
+compound scenarios in the same spirit that `METABOSS.md` uses for later
+final-boss suites.
+
+The minimum required named scenarios are:
+
+Numeric convention for this phase:
+
+- any value written as `2^N` means the literal floating-point magnitude
+  produced by `2f64.powi(N)` in the authored test case
+- any value written as `1.0e-N` means the literal floating-point scientific
+  notation value in the authored test case
+- these numeric rows are required test magnitudes, not illustrative examples
+- if a family needs an additional hostile row beyond the required minima, that
+  row may widen the matrix, but it may not silently replace the required
+  numeric row
+- if implementation reality proves a required numeric row is semantically
+  invalid rather than hostile-but-admitted, the spec must be updated
+  explicitly before the test is changed
+
+##### PCAS-1 - The World-Collapsed Simplex Storm
+
+**Test:**
+A `SimplexSolid` family with these exact rows:
+
+- `simplex_world_collapsed_admitted_local_or_exact`
+  - center:
+    - `[2^548, -2^548, 2^548]`
+  - semantic edge scale:
+    - `1.0e-200`
+  - auxiliary altitude squeeze:
+    - one realized altitude component must be constructed at `1.0e-220`
+- `simplex_world_collapsed_threshold_rejected`
+  - center:
+    - `[2^548, -2^548, 2^548]`
+  - semantic edge scale:
+    - `0.0`
+- `simplex_world_collapsed_explicit_exhaustion`
+  - center:
+    - `[2^548, -2^548, 2^548]`
+  - semantic edge scale:
+    - `1.0e-240`
+  - auxiliary altitude squeeze:
+    - one realized altitude component must be constructed at `1.0e-280`
+
+The admitted variant must stay semantically valid while becoming hostile to raw
+world-space support derivation. The exhaustion variant must remain an
+admitted-family simplex intent, not an out-of-class semantic rejection.
+
+Evaluate each row through:
+
+- direct result preparation
+- replay parity
+- branch-local / preview parity
+- inspection parity
+- projection-consumption parity
+- corpus certification
+
+with at least two authoring orders and one threshold-neighbor admitted /
+rejected pair.
+
+**Failure modes triggered:**
+
+- raw world-space support derivation collapse
+- support-normal degeneracy under `1.0e-200` to `1.0e-280` local feature and
+  altitude pressure
+- scale-separation pressure between `2^548` world translation magnitude and
+  `1.0e-200`-class local feature scale
+- order-sensitive drift if attempted-strategy history is not preserved
+- branch / replay / inspection divergence if realization truth is not carried
+  canonically
+
+**Required infrastructure:**
+
+- a real simplex realization ladder in `worth-geom`
+- simplex conditioning witnesses that capture near-coplanarity and scale
+  separation honestly
+- simplex support derivation that can escalate through sanctioned strategies
+  rather than direct-only luck
+- runtime-proof and certification surfaces that preserve ordered attempted
+  strategies
+- family-boundary drift reporting for simplex threshold neighbors
+
+**Acceptance rule:**
+The case must either:
+
+- succeed with explicit `LocalNormalized` or `ExactSupport` truth preserved
+  across every runtime and certification surface, or
+- fail with typed realization exhaustion that preserves ordered attempted
+  strategies, conditioning witness truth, and exact rejection locality
+
+Admission rejection is not an acceptable answer for the admitted-world-
+collapsed variant.
+
+##### PCAS-2 - The Pyramid Floor Drift Chain
+
+**Test:**
+Construct a `RegularPyramid` scenario family with:
+
+- `pyramid_direct_stable_comparison`
+  - center:
+    - `[128.0, -64.0, 32.0]`
+  - sides:
+    - `5`
+  - radius:
+    - `2.0`
+  - height:
+    - `4.0`
+- `pyramid_threshold_admitted_exact_support`
+  - center:
+    - `[0.0, 0.0, 0.0]`
+  - sides:
+    - `3`
+  - radius:
+    - `1.0e-200`
+  - height:
+    - `1.0e-200`
+- `pyramid_threshold_rejected_neighbor`
+  - center:
+    - `[0.0, 0.0, 0.0]`
+  - sides:
+    - `3`
+  - radius:
+    - `1.0`
+  - height:
+    - `0.0`
+- `pyramid_semantic_exhaustion`
+  - center:
+    - `[0.0, 0.0, 0.0]`
+  - sides:
+    - `3`
+  - radius:
+    - `0.0`
+  - height:
+    - `1.0`
+
+Run the same family through:
+
+- direct preparation
+- replay
+- branch-local / preview
+- inspection and projection-consumption parity
+- family-boundary certification
+- lower-layer exhaustion witness certification
+
+and verify the same family under multiple authoring orders.
+
+**Failure modes triggered:**
+
+- world-space face-normal degeneration
+- tiny-scale threshold drift around the `1.0e-200` admitted floor
+- accidental floor movement hidden behind fixture changes
+- mismatch between lower-layer exhaustion truth and kernel artifact truth
+- mixed admitted / exhausted / rejected classification drift inside one family
+
+**Required infrastructure:**
+
+- full pyramid realization ladder already frozen in Phase 5.5
+- exact-support salvage that is artifact-visible
+- lower-layer exhaustion witnesses bound into family-boundary certification
+- compound ordering parity artifacts
+- boundary-drift artifacts whose digests change only when the true floor moves
+
+**Acceptance rule:**
+The family must prove:
+
+- direct-stable rows stay direct-stable
+- escalated rows preserve exact strategy and ordered attempts across all lanes
+- exhausted rows are typed as realization exhaustion rather than vague geometry
+  failure
+- threshold-neighbor pairs produce stable family-boundary classifications and
+  digest drift only where the realization-policy boundary actually changes
+
+##### PCAS-3 - The Mixed Primitive Ordering Avalanche
+
+**Test:**
+Build one compound corpus containing admitted and rejected rows from:
+
+- `Orthotope`
+- `RegularPrism`
+- `RegularPyramid`
+- `SimplexSolid`
+- `SheetPatch`
+- `WireOpen`
+
+The minimum required numeric rows inside that mixed corpus are:
+
+- `orthotope_direct_stable`
+  - center:
+    - `[2^120, -2^120, 2^120]`
+  - extents:
+    - `[1.0e-120, 2.0e-120, 3.0e-120]`
+- `orthotope_boundary_neighbor_rejected`
+  - center:
+    - `[0.0, 0.0, 0.0]`
+  - extents:
+    - `[1.0, 0.0, 2.0]`
+- `regular_prism_direct_stable`
+  - center:
+    - `[2^200, 2^200, -2^200]`
+  - sides:
+    - `3`
+  - radius:
+    - `1.0e-150`
+  - height:
+    - `1.0e-150`
+- `regular_prism_boundary_neighbor_rejected`
+  - center:
+    - `[0.0, 0.0, 0.0]`
+  - sides:
+    - `3`
+  - radius:
+    - `0.0`
+  - height:
+    - `2.0`
+- `sheet_patch_reorient_grazing_workplane`
+  - origin:
+    - `[2^180, 0.0, -2^180]`
+  - face count:
+    - `5`
+  - local edge scale:
+    - `1.0e-80`
+  - grazing angle:
+    - the final authored orientation must land within `1.0e-12` radians of the
+      reference workplane normal without crossing into contact reinterpretation
+- `wire_open_endpoint_graze`
+  - origin:
+    - `[-2^140, 2^140, 0.0]`
+  - segment count:
+    - `6`
+  - endpoint proximity:
+    - one authored move or offset must leave the terminal endpoint within
+      `1.0e-14` of the reference anchor without merge, snap, or trim semantics
+- the required `RegularPyramid` rows from `PCAS-2`
+- the required `SimplexSolid` rows from `PCAS-1`
+
+and evaluate it under at least these authoring orders:
+
+- canonical
+- reversed
+- rejected-first
+- family-clustered
+- escalation-clustered
+
+The corpus must include both direct-stable and escalated-stable rows, plus
+structured admission rejection and structured realization exhaustion rows.
+
+**Failure modes triggered:**
+
+- ordering-sensitive normalization or digest drift
+- silent collapse of ordered attempted-strategy history into counts
+- family interaction drift where one family's hard case hides another's
+  regression
+- parity artifacts that stay green while normalized matrix truth diverges
+- mixed topology-class drift inside one authored matrix
+- shell-frame grazing drift hidden by order clustering
+- wire endpoint grazing drift hidden by family clustering
+- motion-intent truth loss when placement or movement is flattened into final
+  coordinates only
+
+**Required infrastructure:**
+
+- normalized matrix digests for the full compound corpus
+- distinct lane digests for each authoring order
+- row-level scenario identity strong enough to survive reordering
+- mixed-workload certification that keeps admitted, rejected, and exhausted
+  rows distinct
+- motion and placement truth preserved through the compound artifact, not
+  collapsed into anonymous transform residue
+- report shapes that can carry solid, shell, and wire rows together without
+  forcing shell or wire semantics into a closed-solid-only envelope
+
+**Acceptance rule:**
+All authoring orders must produce:
+
+- the same normalized matrix truth
+- distinct lane digests
+- stable row identities
+- stable realization and rejection classifications per scenario
+- stable topology-class identity for shell and wire rows
+- stable authored motion and grazing semantics per scenario
+
+Any divergence must surface as a structured parity failure, not as a silently
+different corpus artifact.
+
+##### PCAS-4 - The Primitive Compound Gate
+
+**Test:**
+Run the full Phase 5.6 compound suite as one milestone-closeout gate, combining
+the simplex storm, the pyramid floor-drift chain, and the mixed primitive
+ordering avalanche into one machine-checkable certification bundle.
+
+The closeout gate must therefore include at minimum all of these exact numeric
+rows:
+
+- `simplex_world_collapsed_admitted_local_or_exact`
+- `simplex_world_collapsed_threshold_rejected`
+- `simplex_world_collapsed_explicit_exhaustion`
+- `pyramid_direct_stable_comparison`
+- `pyramid_threshold_admitted_exact_support`
+- `pyramid_threshold_rejected_neighbor`
+- `pyramid_semantic_exhaustion`
+- `orthotope_direct_stable`
+- `orthotope_boundary_neighbor_rejected`
+- `regular_prism_direct_stable`
+- `regular_prism_boundary_neighbor_rejected`
+- `sheet_patch_reorient_grazing_workplane`
+- `wire_open_endpoint_graze`
+
+**Failure modes triggered:**
+
+- every compound primitive failure mode admitted by this milestone:
+  - scale separation
+  - world collapse
+  - near-degenerate support derivation
+  - threshold drift
+  - authoring-order drift
+  - branch / replay / inspection parity drift
+  - lower-layer versus kernel artifact disagreement
+  - mixed topology-class batching
+  - motion-intent drift
+  - pre-Boolean grazing misclassification
+
+**Required infrastructure:**
+
+- full realization-policy ladder for the primitive families covered in the
+  suite
+- full runtime-proof parity chain
+- family-boundary drift certification
+- lower-layer exhaustion witness parity
+- motion-intent parity artifacts
+- grazing-boundary artifacts for pre-contact shell and wire pressure
+- canonical artifact and certification surfaces strong enough to explain exact
+  success or exact structured failure
+
+**Acceptance rule:**
+The suite closes only when every named compound scenario either:
+
+- produces a correct certified result with stable realization truth across all
+  runtime and certification surfaces, or
+- fails cleanly with structured admission or realization-exhaustion artifacts
+  that identify the exact trigger, affected family, ordered attempted
+  strategies, conditioning witness class, and blocking boundary
+
+Crashing, hanging, vague geometry failure, silent floor drift, or parity drift
+without exact artifact localization are all unacceptable.
+
+#### Infrastructure that must exist before this suite can close
+
+This phase must not just add harder tests on top of missing substrate. It must
+build the missing infrastructure required to make those tests principled.
+
+At minimum, this phase must close these infrastructure seams:
+
+- a real simplex / tetrahedron realization ladder in `worth-geom`
+  - `DirectWorld`
+  - `LocalNormalized` when justified
+  - `ExactSupport` when justified
+  - typed exhaustion when sanctioned strategies run out
+- simplex / tetrahedron conditioning witnesses rich enough to explain:
+  - translation scale pressure
+  - feature scale pressure
+  - aspect-ratio or altitude collapse pressure
+  - support-normal degeneracy pressure
+  - normalization disposition
+- lower-layer exhaustion witnesses for any primitive family whose sanctioned
+  ladder can truly exhaust under semantically meaningful pressure
+- explicit distinction between:
+  - semantically invalid request rejection
+  - realization exhaustion after admitted semantics
+  - topology or artifact failure later in the chain
+- runtime-proof and certification surfaces that preserve full ordered attempted
+  strategy history, not just selected strategy or count
+- compound-case scenario identity and digesting rules strong enough that
+  multiple stacked failure modes cannot collapse into the same report row by
+  accident
+- motion-intent and placement artifacts strong enough that compound shell,
+  wire, and mixed-topology rows do not flatten authored movement,
+  reorientation, or grazing semantics into final-coordinate residue
+- topology-class-aware report and parity shapes strong enough to carry closed
+  solid, open shell, wire, and mixed-batch rows without silently narrowing the
+  suite back to closed-solid semantics
+
+#### Query posture in this phase
+
+The compound suite must reuse the Query-backed runtime proof surfaces from
+Phase 5, not bypass them.
+
+At minimum, this phase must prove that compound primitive truth preserves:
+
+- direct outcome parity
+- replay parity
+- branch-local / preview parity
+- inspection parity
+- projection-consumption receipt parity
+- Query authority-lane and support-posture parity
+
+This phase must not accept a compound suite that is only a lower-layer geometry
+test. The suite must prove that the same stacked primitive truth survives the
+whole Worth runtime and certification chain.
+
+#### Do this in this phase
+
+- define the `PrimitiveConstructionCompoundAdversarialSiege` artifact family
+- add the next hostile primitive corpus roles that explicitly stack multiple
+  failure modes instead of isolating them one at a time
+- widen the suite beyond closed solids so `SheetPatch`, `WireOpen`, and
+  mixed-topology-class batches are first-class hostile rows rather than later
+  add-ons
+- widen simplex / tetrahedron realization infrastructure until it can
+  participate honestly in the realization-policy ladder rather than coasting on
+  a trivial direct-only path
+- add any additional lower-layer exhaustion witness suites required by the new
+  compound primitive families
+- preserve compound-case realization truth through:
+  - `worth-geom`
+  - `worth-spatial`
+  - `worth-kernel`
+  - runtime proof
+  - corpus certification
+  - family-boundary certification
+- add chained compound-case assertions that explicitly prove:
+  - direct-stable versus escalated-stable distinctions
+  - semantic admission rejection versus post-admission exhaustion
+  - stable ordered attempted-strategy history
+  - stable conditioning and normalization truth
+  - stable family-boundary classifications under threshold-neighbor pressure
+- add multiple authoring-order lanes for the compound cases rather than a
+  single canonical ordering
+- add at least one compound case where huge translation, tiny local scale, and
+  near-degenerate support geometry are all present simultaneously
+- add at least one shell reorientation grazing case and at least one wire
+  endpoint grazing case that use the `Phase 5.5.2` motion surface directly
+- ensure every compound case either:
+  - succeeds with exact certified realization truth, or
+  - fails with exact structured exhaustion or rejection truth
+
+#### This phase must replace, not supplement
+
+Phase 5.6 is not allowed to bolt a "harder test suite" on top of soft
+primitive classifications.
+
+This phase must replace:
+
+- any remaining direct-only primitive family story that exists only because the
+  family has not yet been pushed through compound-pressure realization
+- any test whose meaning is merely "this threshold currently passes" without
+  stating which compound failure modes are present
+- any compound-case reporting that compresses stacked failure modes into one
+  vague admitted / rejected result without strategy, conditioning, stability,
+  and exhaustion truth
+- any lower-layer witness that is used as a stand-in for a real compound
+  primitive family until the corresponding primitive family has been evaluated
+  honestly
+
+#### Do not start the next phase until
+
+- the next compound primitive suite exists as a first-class certification
+  artifact family rather than only as scattered tests
+- simplex / tetrahedron no longer coast on a trivial direct-only story when a
+  sanctioned realization ladder is structurally required
+- at least one compound primitive family proves:
+  - direct-stable
+  - escalated-stable via `LocalNormalized`
+  - escalated-stable via `ExactSupport`
+  - structured exhaustion after sanctioned strategies are exhausted
+- compound-case parity is proven across:
+  - direct
+  - replay
+  - branch-local / preview
+  - inspection
+  - projection-consumption receipt
+- family-boundary certification can guard compound floor drift, not only
+  single-threshold drift
+- every compound primitive failure still lands in one exact structural bucket:
+  - admission rejection
+  - realization exhaustion
+  - later-chain rejection
+- the suite demonstrates stacked failure modes explicitly enough that it is a
+  believable pre-METABOSS gate rather than a renamed threshold corpus
+- the docs phase would describe a compound primitive proof substrate we would
+  actually trust under future MetaBoss pressure
 
 ### Phase 6: Freeze Milestone 4 Crate Documentation And Reader Onboarding Surfaces
 
@@ -1942,6 +5071,23 @@ build on.
 - direct spatial birth certification of constructed results
 - accepted and rejected replay parity over admitted primitive workflows
 - accepted and rejected branch-local parity over admitted primitive workflows
+- one compound primitive adversarial certification suite that stacks multiple
+  realization stressors in one workload family before docs begin
+- one frozen spatial-intent and motion planning model for create / move /
+  rotate / reorient / offset semantics before compound primitive adversarial
+  suites become the default authoring pressure
+- one frozen motion-reference, witness-resolution, and motion-failure planning
+  model before compound primitive adversarial suites and later curved-carrier
+  motion semantics become the default authoring pressure
+- one frozen intent-conflict, candidate-arbitration, and blocked-capability
+  planning model before contact-heavy hostile suites and later boolean or BIM
+  interaction semantics become the default authoring pressure
+- one explicit DX target for motion witness authoring and one explicit DX target
+  for intent-conflict arbitration so the common path, advanced path, and
+  human-escalation path stay usable as the system scales
+- one frozen preview, identity-continuity, and reusable policy-profile model
+  before compound hostile suites and later snapping, host, boolean, and fillet
+  interaction semantics become the default authoring pressure
 - direct rejection-locality artifacts for construction failure
 - direct breadth and proof artifacts for construction, assembly, birth
   attachment, and certification work
@@ -2010,6 +5156,24 @@ At minimum, Milestone 4 closeout must include:
 - `query_inspection_parity_report`
 - `query_boundary_gap_register`
 - `query_no_local_runtime_workaround_audit`
+- `primitive_realization_strategy_report`
+- `primitive_conditioning_witness_report`
+- `primitive_stability_class_report`
+- `primitive_realization_exhaustion_report`
+- `primitive_spatial_intent_plan`
+- `primitive_motion_reference_plan`
+- `primitive_motion_resolution_policy_report`
+- `primitive_motion_dx_surface_report`
+- `primitive_intent_conflict_plan`
+- `primitive_intent_arbitration_policy_report`
+- `primitive_intent_conflict_dx_surface_report`
+- `primitive_preview_surface_report`
+- `primitive_identity_continuity_report`
+- `primitive_policy_profile_report`
+- `primitive_construction_compound_adversarial_siege_report`
+- `primitive_construction_compound_parity_report`
+- `primitive_construction_family_boundary_drift_report`
+- `primitive_realization_exhaustion_witness_report`
 - `crate_docs_surface_report`
 - `feature_doc_coverage_matrix`
 - `boundary_doc_coverage_matrix`
@@ -2022,6 +5186,10 @@ Milestone 4 closeout should also expose direct aggregate surfaces for:
 - family-attributed spatial birth breadth
 - topology certification breadth
 - accepted versus rejected construction outcome distribution
+- primitive realization strategy distribution across admitted and rejected
+  cases
+- primitive stability-class distribution across direct, escalated, and
+  exhausted cases
 - topology validator locality for constructed bodies
 - construction-time fallback or widening where any breadth claim could not stay
   narrow
@@ -2040,7 +5208,10 @@ machine-checkable parity matrix at minimum containing:
 - branch-local digest
 - replay digest
 - construction birth digest
+- realization strategy
+- stability class
 - rejection class when blocked
+- rejection locality and blocking boundary when blocked
 - construction breadth
 - birth attachment breadth
 - certification breadth
@@ -2077,6 +5248,11 @@ Must verify:
   contract
 - same-batch graph-shaped construction uses Query graph-composition evidence
   instead of caller-owned batch choreography
+- primitive realization truth is explicit:
+  - semantic primitive family is distinct from realization strategy
+  - realization strategy is distinct from stability class
+  - sanctioned fallback and exhaustion are explicit artifact truth rather than
+    hidden helper behavior
 - the final inspectable construction result is one canonical artifact family,
   not a caller-reconstructed braid of unrelated receipts
 - typed identity, membership, source, target, and continuity facts used by

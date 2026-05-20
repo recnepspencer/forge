@@ -1,0 +1,10 @@
+error[E0624]: associated function `new` is private
+ --> src/certification/public_facade_contracts/compile_fail/public_topology_construction_authority_constructor_not_exported.rs:4:44
+  |
+4 |     let _ = TopologyConstructionAuthority::new();
+  |                                            ^^^ private associated function
+  |
+ ::: src/construction/authority.rs
+  |
+  |     pub(crate) fn new() -> Self {
+  |     --------------------------- private associated function defined here
