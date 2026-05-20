@@ -1,7 +1,9 @@
 use super::inventory::{
     certified_surface_evidence, certified_surfaces, compile_fail_boundaries,
     forge_proof_api_appendix, forge_proof_forbidden_surfaces, forge_proof_required_surfaces,
-    phase_gates, residual_debt, runtime_assumptions, runtime_non_assumptions, synthetic_pressures,
+    phase_gates, public_surface_compile_fail_path, public_surface_evidence_path,
+    public_surface_inventory, residual_debt, runtime_assumptions, runtime_non_assumptions,
+    synthetic_pressures,
 };
 use super::vocabulary::{
     FoundationalProfileCertifiedSurface, FoundationalProfileCertifiedSurfaceEvidence,
@@ -11,6 +13,8 @@ use super::vocabulary::{
     FoundationalProfileResidualDebt, FoundationalProfileRuntimeAssumption,
     FoundationalProfileRuntimeNonAssumption, FoundationalProfileSyntheticRuntimePressure,
 };
+use crate::profiles_api::{FoundationalProfilePublicLane, FoundationalProfilePublicSurfaceEntry};
+use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct FoundationalProfileProductionReadinessReport {
@@ -25,6 +29,9 @@ pub struct FoundationalProfileProductionReadinessReport {
     non_assumptions: Vec<FoundationalProfileRuntimeNonAssumption>,
     residual_debt: Vec<FoundationalProfileResidualDebt>,
     phase_gates: Vec<FoundationalProfilePhaseGateEvidence>,
+    public_surface_inventory: Vec<FoundationalProfilePublicSurfaceEntry>,
+    public_surface_evidence_path: &'static str,
+    public_surface_compile_fail_path: &'static str,
 }
 
 impl FoundationalProfileProductionReadinessReport {
@@ -41,6 +48,9 @@ impl FoundationalProfileProductionReadinessReport {
             non_assumptions: runtime_non_assumptions(),
             residual_debt: residual_debt(),
             phase_gates: phase_gates(),
+            public_surface_inventory: public_surface_inventory(),
+            public_surface_evidence_path: public_surface_evidence_path(),
+            public_surface_compile_fail_path: public_surface_compile_fail_path(),
         }
     }
 
@@ -90,6 +100,18 @@ impl FoundationalProfileProductionReadinessReport {
         &self.phase_gates
     }
 
+    pub fn public_surface_inventory(&self) -> &[FoundationalProfilePublicSurfaceEntry] {
+        &self.public_surface_inventory
+    }
+
+    pub fn public_surface_evidence_path(&self) -> &'static str {
+        self.public_surface_evidence_path
+    }
+
+    pub fn public_surface_compile_fail_path(&self) -> &'static str {
+        self.public_surface_compile_fail_path
+    }
+
     pub fn passes_readiness_checklist(&self) -> bool {
         self.has_all_certified_surfaces()
             && self.has_evidence_for_each_certified_surface()
@@ -101,6 +123,7 @@ impl FoundationalProfileProductionReadinessReport {
             && self.has_runtime_assumption_boundary()
             && self.has_named_residual_debt()
             && self.has_linear_phase_gates()
+            && self.has_exact_public_surface_inventory()
     }
 
     fn has_all_certified_surfaces(&self) -> bool {
@@ -222,5 +245,42 @@ impl FoundationalProfileProductionReadinessReport {
             FoundationalProfileMilestone3PhaseGate::CertificationStrengthening,
             FoundationalProfileMilestone3PhaseGate::ProductionReadiness,
         ])
+    }
+
+    fn has_exact_public_surface_inventory(&self) -> bool {
+        let paths: BTreeSet<_> = self
+            .public_surface_inventory
+            .iter()
+            .map(|entry| entry.path())
+            .collect();
+        let common_path_count = self
+            .public_surface_inventory
+            .iter()
+            .filter(|entry| entry.lane() == FoundationalProfilePublicLane::CommonPath)
+            .count();
+        let stronger_lane_count = self
+            .public_surface_inventory
+            .iter()
+            .filter(|entry| entry.lane() == FoundationalProfilePublicLane::StrongerLane)
+            .count();
+
+        paths
+            == BTreeSet::from([
+                "forge_foundational::profiles_api::common_path",
+                "forge_foundational::profiles_api::lower_lane::composition",
+                "forge_foundational::profiles_api::lower_lane::progression",
+                "forge_foundational::profiles_api::lower_lane::attachment",
+                "forge_foundational::profiles_api::lower_lane::materialization",
+                "forge_foundational::profiles_api::lower_lane::identity",
+                "forge_foundational::profiles_api::lower_lane::certification",
+                "forge_foundational::profiles_api::stronger_lane",
+                "forge_foundational::profiles_api::stronger_lane::readiness",
+            ])
+            && self.public_surface_inventory.len() == paths.len()
+            && common_path_count == 1
+            && stronger_lane_count == 2
+            && self.public_surface_inventory.iter().all(|entry| {
+                !entry.teaches().trim().is_empty() && !entry.does_not_hide().trim().is_empty()
+            })
     }
 }

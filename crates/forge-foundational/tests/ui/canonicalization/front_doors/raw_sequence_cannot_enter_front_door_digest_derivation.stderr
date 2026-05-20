@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/canonicalization/front_doors/raw_sequence_cannot_enter_front_door_digest_derivation.rs:14:23
+   |
+14 |         .for_sequence(sequence, CanonicalDigestAlgorithmId::test_stable_fixture());
+   |          ------------ ^^^^^^^^ expected `Artifact<..., ..., ..., ...>`, found `CanonicalBasisSequence`
+   |          |
+   |          arguments to this method are incorrect
+   |
+   = note: expected struct `forge_proof::artifact::carrier::Artifact<CanonicalBasisReady, CanonicalBasisSequence, forge_proof::proof::sets::ProofSetCons<forge_proof::proof::sets::Proof<forge_proof::proof::structural_facts::CanonicalOrder, forge_foundational::canonicalization::basis::readiness::proofs::CanonicalBasisConstructionAuthority>, forge_proof::proof::sets::ProofSetCons<forge_proof::proof::sets::Proof<forge_proof::proof::structural_facts::Uniqueness, forge_foundational::canonicalization::basis::readiness::proofs::CanonicalBasisConstructionAuthority>, forge_proof::proof::sets::ProofSetCons<forge_proof::proof::sets::Proof<CanonicalDomainCoherence, forge_foundational::canonicalization::basis::readiness::proofs::CanonicalBasisConstructionAuthority>, forge_proof::proof::sets::ProofSetCons<forge_proof::proof::sets::Proof<CanonicalRuleVersionBound, forge_foundational::canonicalization::basis::readiness::proofs::CanonicalBasisConstructionAuthority>, forge_proof::proof::sets::Proof<CanonicalizationCostObserved, forge_foundational::canonicalization::basis::readiness::proofs::CanonicalBasisConstructionAuthority>>>>>, forge_proof::assumption::freshness::FreshnessScopedBasis<forge_proof::assumption::freshness::CurrentValidity, forge_proof::assumption::basis::AssumptionBasis<CanonicalizationRuleVersion>>>`
+              found struct `CanonicalBasisSequence`
+note: method defined here
+  --> src/canonicalization/front_doors/digest.rs
+   |
+   |     pub fn for_sequence(
+   |            ^^^^^^^^^^^^

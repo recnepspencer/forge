@@ -44,6 +44,48 @@ fn boundary_artifact_categories_preserve_non_substitution_law() {
 }
 
 #[test]
+fn boundary_evidence_primitives_preserve_non_substitution_law() {
+    compile_fail("tests/ui/boundary_evidence/primitives/*.rs");
+}
+
+#[test]
+fn boundary_evidence_provenance_preserves_mandatory_freshness_and_artifact_boundaries() {
+    compile_fail("tests/ui/boundary_evidence/provenance/*.rs");
+}
+
+#[test]
+fn boundary_evidence_receipts_preserve_planning_and_completed_boundaries() {
+    compile_fail("tests/ui/boundary_evidence/receipts/*.rs");
+}
+
+#[test]
+fn boundary_evidence_lineage_preserves_continuity_strength_boundaries() {
+    compile_fail("tests/ui/boundary_evidence/lineage/*.rs");
+}
+
+#[test]
+fn boundary_evidence_support_preserves_support_grade_and_basis_disclosure_boundaries() {
+    compile_fail("tests/ui/boundary_evidence/support/*.rs");
+}
+
+#[test]
+fn boundary_evidence_attachments_preserve_scope_and_readmission_boundaries() {
+    compile_fail("tests/ui/boundary_evidence/attachments/scope/*.rs");
+    compile_fail("tests/ui/boundary_evidence/attachments/materialization/*.rs");
+    compile_fail("tests/ui/boundary_evidence/attachments/readmission/*.rs");
+}
+
+#[test]
+fn boundary_evidence_grouped_public_surface_preserves_lane_boundaries() {
+    compile_fail("tests/ui/boundary_evidence/grouped_surface/*.rs");
+}
+
+#[test]
+fn boundary_evidence_production_readiness_requires_certified_artifact() {
+    compile_fail("tests/ui/boundary_evidence/readiness/*.rs");
+}
+
+#[test]
 fn boundary_artifact_roles_and_authority_preserve_claim_legality() {
     compile_fail("tests/ui/boundary_artifacts/authority_admission/*.rs");
     compile_fail("tests/ui/boundary_artifacts/role_legality/*.rs");
@@ -165,8 +207,28 @@ fn milestone1_production_readiness_requires_certified_artifact() {
 }
 
 #[test]
+fn aspect_front_doors_preserve_validated_and_patch_boundaries() {
+    compile_fail("tests/ui/aspect_front_doors/*.rs");
+}
+
+#[test]
+fn compatibility_front_doors_keep_json_lowering_explicit() {
+    compile_fail("tests/ui/compatibility_front_doors/*.rs");
+}
+
+#[test]
 fn canonical_basis_requires_readiness_proof() {
     compile_fail("tests/ui/canonicalization/basis/*/*.rs");
+}
+
+#[test]
+fn canonical_front_doors_preserve_admitted_lane_boundaries() {
+    compile_fail("tests/ui/canonicalization/front_doors/*.rs");
+}
+
+#[test]
+fn canonical_grouped_public_surface_preserves_lane_boundaries() {
+    compile_fail("tests/ui/canonicalization/grouped_surface/*.rs");
 }
 
 #[test]
@@ -218,4 +280,14 @@ fn profile_materialization_boundaries_reject_ad_hoc_surface_or_inventory_constru
 fn profile_certification_and_readiness_boundaries_require_stronger_artifacts() {
     compile_fail("tests/ui/profiles/certification_boundaries/*.rs");
     compile_fail("tests/ui/profiles/readiness_boundaries/*.rs");
+}
+
+#[test]
+fn profile_front_doors_preserve_requested_and_materialized_boundaries() {
+    compile_fail("tests/ui/profiles/front_doors/*.rs");
+}
+
+#[test]
+fn profile_grouped_public_surface_preserves_lane_boundaries() {
+    compile_fail("tests/ui/profiles/grouped_surface/*.rs");
 }

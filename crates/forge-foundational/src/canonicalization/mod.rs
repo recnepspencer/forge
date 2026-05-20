@@ -4,6 +4,7 @@ mod digest_entry;
 mod digest_slots;
 mod equivalence;
 mod export;
+mod front_doors;
 mod identity_preparation;
 mod locator_preparation;
 mod mask_preparation;
@@ -63,6 +64,13 @@ pub use export::{
     CanonicalExportManifestMismatch, CanonicalExportManifestMismatchKind,
     CanonicalExportManifestRow, CanonicalExportReadmissionAuthority, CanonicalExportReadyArtifact,
     CanonicalProducerShape,
+};
+pub use front_doors::{
+    canonicalization, CanonicalBasisFrontDoor, CanonicalBasisVersionStep,
+    CanonicalComparisonBasisStep, CanonicalComparisonFrontDoor, CanonicalComparisonRightStep,
+    CanonicalDigestFrontDoor, CanonicalExportBasisStep, CanonicalExportFrontDoor,
+    CanonicalExportNameStep, CanonicalExportShapeStep, CanonicalReadinessFrontDoor,
+    CanonicalizationFrontDoor,
 };
 pub use identity_preparation::{
     identity_canonical_basis_entries, prepare_identity_for_canonical_basis, CanonicalIdentityInput,
