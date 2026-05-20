@@ -26,13 +26,15 @@ impl ForgeQueryLowerRuntimeSyntheticTailRow {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn seam_key(&self) -> ForgeQueryLowerRuntimeSeamKey {
+    pub fn seam_key(&self) -> ForgeQueryLowerRuntimeSeamKey {
         self.seam_key
     }
 
-    #[cfg(test)]
-    pub(crate) fn evidence_source(&self) -> ForgeQueryLowerRuntimeRepresentativeEvidenceSource {
+    pub fn justification(&self) -> &'static str {
+        self.justification
+    }
+
+    pub fn evidence_source(&self) -> ForgeQueryLowerRuntimeRepresentativeEvidenceSource {
         self.evidence_source
     }
 

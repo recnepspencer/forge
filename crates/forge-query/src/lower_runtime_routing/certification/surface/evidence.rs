@@ -3,9 +3,7 @@ use std::collections::BTreeMap;
 use crate::identity::hash_parts;
 use crate::lower_runtime_routing::ForgeQueryLowerRuntimeSeamKey;
 use crate::lower_runtime_routing::{
-    forge_query_lower_runtime_closeout_registry, forge_query_lower_runtime_crossing_inventory,
-    inspect_lower_runtime_boundary, inspect_lower_runtime_closeout,
-    summarize_lower_runtime_boundary, ForgeQueryLowerRuntimeBoundaryEnvelope,
+    forge_query_lower_runtime_crossing_inventory, ForgeQueryLowerRuntimeBoundaryEnvelope,
     ForgeQueryLowerRuntimeBoundaryExecutionReceipt, ForgeQueryLowerRuntimeCapabilityEligibility,
     ForgeQueryLowerRuntimeCapabilityRequest, ForgeQueryLowerRuntimeRoutePlan,
 };
@@ -34,7 +32,7 @@ use super::fixtures::{
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(crate) enum ForgeQueryLowerRuntimeRepresentativeEvidenceSource {
+pub enum ForgeQueryLowerRuntimeRepresentativeEvidenceSource {
     RuntimeBackedFixture,
     InventorySynthesized,
 }
@@ -46,8 +44,6 @@ pub struct ForgeQueryLowerRuntimeRepresentativeSurface {
     route_plans: Vec<ForgeQueryLowerRuntimeRoutePlan>,
     boundary_receipts: Vec<ForgeQueryLowerRuntimeBoundaryExecutionReceipt>,
     envelopes: Vec<ForgeQueryLowerRuntimeBoundaryEnvelope>,
-    dx_digest: String,
-    golden_transcript_digest: String,
     query_digest: String,
     route_parity_digest: String,
     evidence_sources: BTreeMap<&'static str, ForgeQueryLowerRuntimeRepresentativeEvidenceSource>,
@@ -76,14 +72,6 @@ impl ForgeQueryLowerRuntimeRepresentativeSurface {
 
     pub fn envelopes(&self) -> &[ForgeQueryLowerRuntimeBoundaryEnvelope] {
         &self.envelopes
-    }
-
-    pub fn dx_digest(&self) -> &str {
-        &self.dx_digest
-    }
-
-    pub fn golden_transcript_digest(&self) -> &str {
-        &self.golden_transcript_digest
     }
 
     pub fn query_digest(&self) -> &str {
@@ -269,8 +257,6 @@ pub fn forge_query_lower_runtime_representative_surface(
         .iter()
         .map(|row| row.envelope.clone())
         .collect::<Vec<_>>();
-    let dx_digest = digest_surface_summaries(&envelopes);
-    let golden_transcript_digest = digest_surface_transcripts(&envelopes);
     let query_digest = digest_query_subjects(&requests);
     let route_parity_digest = hash_parts(&[
         normalized_parity_digest("compose-read", &envelopes),
@@ -284,8 +270,6 @@ pub fn forge_query_lower_runtime_representative_surface(
         route_plans,
         boundary_receipts,
         envelopes,
-        dx_digest,
-        golden_transcript_digest,
         query_digest,
         route_parity_digest,
         evidence_sources: collect_surface_map(&rows, |row| row.evidence_source),
@@ -301,39 +285,6 @@ pub fn forge_query_lower_runtime_representative_surface(
         receipts_by_seam: collect_surface_map(&rows, |row| row.boundary_receipt.clone()),
         envelopes_by_seam: collect_surface_map(&rows, |row| row.envelope.clone()),
     }
-}
-
-fn digest_surface_summaries(envelopes: &[ForgeQueryLowerRuntimeBoundaryEnvelope]) -> String {
-    hash_parts(
-        &envelopes
-            .iter()
-            .map(|envelope| {
-                summarize_lower_runtime_boundary(envelope)
-                    .summary_digest()
-                    .to_string()
-            })
-            .collect::<Vec<_>>(),
-    )
-}
-
-fn digest_surface_transcripts(envelopes: &[ForgeQueryLowerRuntimeBoundaryEnvelope]) -> String {
-    let mut transcripts = envelopes
-        .iter()
-        .map(|envelope| {
-            let inspection = inspect_lower_runtime_boundary(envelope);
-            format!("{}|{}", inspection.headline(), inspection.detail())
-        })
-        .collect::<Vec<_>>();
-    transcripts.extend(
-        forge_query_lower_runtime_closeout_registry()
-            .rows()
-            .iter()
-            .map(|row| {
-                let inspection = inspect_lower_runtime_closeout(row);
-                format!("{}|{}", inspection.headline(), inspection.detail())
-            }),
-    );
-    hash_parts(&transcripts)
 }
 
 fn digest_query_subjects(requests: &[ForgeQueryLowerRuntimeCapabilityRequest]) -> String {

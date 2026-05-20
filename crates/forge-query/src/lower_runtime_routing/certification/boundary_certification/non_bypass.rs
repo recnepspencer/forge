@@ -26,12 +26,19 @@ const COMPILE_FAIL_TARGETS: &[&str] = &[
     "tests/ui/lower_runtime_routing/protocol/capability_request_constructor_private.rs",
     "tests/ui/lower_runtime_routing/protocol/route_plan_constructor_private.rs",
     "tests/ui/lower_runtime_routing/protocol/boundary_execution_receipt_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/public_surface_row_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/public_surface_inventory_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/non_bypass_audit_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/certification_row_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/certification_bundle_constructor_private.rs",
-    "tests/ui/lower_runtime_routing/certification/proof_shape_audit_constructor_private.rs",
+    "tests/ui/lower_runtime_routing/certification/public_surface/public_surface_row_constructor_private.rs",
+    "tests/ui/lower_runtime_routing/certification/public_surface/public_surface_inventory_constructor_private.rs",
+    "tests/ui/lower_runtime_routing/certification/non_bypass/non_bypass_audit_constructor_private.rs",
+    "tests/ui/lower_runtime_routing/certification/phase_manifest/phase_manifest_row_constructor_private.rs",
+    "tests/ui/lower_runtime_routing/certification/phase_manifest/phase_manifest_constructor_private.rs",
+    "tests/ui/lower_runtime_routing/certification/bundle/certification_row_constructor_private.rs",
+    "tests/ui/lower_runtime_routing/certification/bundle/certification_bundle_constructor_private.rs",
+    "tests/ui/lower_runtime_routing/certification/acceptance/acceptance_suite_constructor_private.rs",
+    "tests/ui/lower_runtime_routing/certification/reconciliation/boundary_reconciliation_report_constructor_private.rs",
+    "tests/ui/lower_runtime_routing/certification/closeout/closeout_report_constructor_private.rs",
+    "tests/ui/lower_runtime_routing/certification/closeout/closure_test_constructor_private.rs",
+    "tests/ui/lower_runtime_routing/certification/proof_shape/proof_shape_audit_constructor_private.rs",
+    "tests/ui/lower_runtime_routing/certification/synthetic_tail/synthetic_tail_report_constructor_private.rs",
 ];
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -136,8 +143,11 @@ fn routed_surface_scan_targets() -> Vec<(&'static str, bool)> {
         {
             continue;
         }
-        let allow_imports =
-            row.surface_kind() == ForgeQueryLowerRuntimePublicSurfaceKind::AllowedBoundaryAdapter;
+        let allow_imports = matches!(
+            row.surface_kind(),
+            ForgeQueryLowerRuntimePublicSurfaceKind::AllowedBoundaryAdapter
+                | ForgeQueryLowerRuntimePublicSurfaceKind::RuntimeBackendBoundary
+        );
         seen.entry(row.implementation_path())
             .and_modify(|existing| *existing |= allow_imports)
             .or_insert(allow_imports);
@@ -274,147 +284,4 @@ fn slash_path(path: &Path) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn compile_fail_boundary_digest_tracks_phase_six_targets() {
-        assert_eq!(
-            forge_query_lower_runtime_compile_fail_boundary_digest(),
-            compile_fail_boundary_digest()
-        );
-    }
-
-    #[test]
-    fn certify_lower_runtime_non_bypass_passes_for_current_query_and_worth_topo_topology() {
-        let audit = certify_lower_runtime_non_bypass()
-            .expect("current workspace should satisfy the lower-runtime non-bypass audit");
-        assert_eq!(
-            audit.route_public_surface_digest(),
-            forge_query_lower_runtime_public_surface_inventory().public_surface_digest()
-        );
-        assert!(audit.checked_file_count() >= 4);
-    }
-
-    #[test]
-    fn routed_surface_paths_cover_mutation_and_batch_boundary_files() {
-        let paths = routed_surface_scan_targets();
-
-        for path in [
-            "crates/forge-query/src/runtime/read_composition_runtime.rs",
-            "crates/forge-query/src/runtime/workspace.rs",
-            "crates/forge-query/src/runtime/runtime_writes.rs",
-            "crates/forge-query/src/runtime/runtime_batch_write_entrypoints.rs",
-            "crates/forge-query/src/runtime/runtime_batch_writes.rs",
-            "crates/forge-query/src/runtime/backend/*",
-        ] {
-            assert!(
-                paths.iter().any(|(candidate, _)| *candidate == path),
-                "missing routed surface path {path}"
-            );
-        }
-    }
-
-    #[test]
-    fn routed_surface_scan_targets_reconcile_remaining_phase_six_seam_files() {
-        let targets = routed_surface_scan_targets();
-
-        for (path, allow_imports) in [
-            ("crates/forge-query/src/runtime/backend/*", true),
-            (
-                "crates/forge-query/src/runtime/read_composition_runtime.rs",
-                false,
-            ),
-            (
-                "crates/forge-query/src/basis_lifecycle/lower_runtime/mod.rs",
-                false,
-            ),
-            ("crates/forge-query/src/historical/bridge_lowering.rs", true),
-            (
-                "crates/forge-query/src/projection_consumption/source.rs",
-                true,
-            ),
-            (
-                "crates/forge-query/src/runtime/inspection/causal/builder_bridge.rs",
-                true,
-            ),
-            ("crates/forge-query/src/frontier_signal_adapter.rs", true),
-            ("crates/forge-query/src/effect_lifecycle/execution.rs", true),
-            (
-                "crates/forge-query/src/effect_lifecycle/execution_bridge.rs",
-                true,
-            ),
-            (
-                "crates/forge-query/src/runtime/backend/intent_authority.rs",
-                true,
-            ),
-        ] {
-            assert!(
-                targets
-                    .iter()
-                    .any(|(candidate, allow)| *candidate == path && *allow == allow_imports),
-                "missing routed scan target {path} with allow_imports={allow_imports}"
-            );
-        }
-    }
-
-    #[test]
-    fn hostile_projection_file_outside_runtime_boundary_is_rejected() {
-        let workspace_root = workspace_root().expect("workspace root should resolve");
-        let mut hostile = Vec::new();
-        let temp = workspace_root.join("target/lower_runtime_hostile_projection.rs");
-        fs::write(&temp, "use forge_runtime_bridge::facade::RuntimeBridge;\n")
-            .expect("hostile fixture should write");
-        scan_file_contents(
-            &temp,
-            "crates/worth-topo/src/projection/hostile.rs",
-            false,
-            &mut hostile,
-        )
-        .expect("hostile fixture should scan");
-        fs::remove_file(&temp).expect("hostile fixture should clean up");
-        assert_eq!(hostile.len(), 1);
-        assert!(hostile[0].contains("outside the declared routed boundary"));
-    }
-
-    #[test]
-    fn hostile_workspace_mutation_surface_outside_routed_lane_is_rejected() {
-        let workspace_root = workspace_root().expect("workspace root should resolve");
-        let mut hostile = Vec::new();
-        let temp = workspace_root.join("target/lower_runtime_hostile_workspace_write.rs");
-        fs::write(&temp, "use forge_runtime_bridge::facade::RuntimeBridge;\n")
-            .expect("hostile mutation fixture should write");
-        scan_file_contents(
-            &temp,
-            "crates/forge-query/src/runtime/workspace.rs",
-            false,
-            &mut hostile,
-        )
-        .expect("hostile mutation fixture should scan");
-        fs::remove_file(&temp).expect("hostile mutation fixture should clean up");
-        assert_eq!(hostile.len(), 1);
-        assert!(hostile[0].contains("outside the declared routed boundary"));
-    }
-
-    #[test]
-    fn hostile_runtime_batch_surface_outside_routed_lane_is_rejected() {
-        let workspace_root = workspace_root().expect("workspace root should resolve");
-        let mut hostile = Vec::new();
-        let temp = workspace_root.join("target/lower_runtime_hostile_runtime_batch.rs");
-        fs::write(
-            &temp,
-            "use forge_signal::facade::SignalInvalidationScope;\n",
-        )
-        .expect("hostile runtime batch fixture should write");
-        scan_file_contents(
-            &temp,
-            "crates/forge-query/src/runtime/runtime_batch_writes.rs",
-            false,
-            &mut hostile,
-        )
-        .expect("hostile runtime batch fixture should scan");
-        fs::remove_file(&temp).expect("hostile runtime batch fixture should clean up");
-        assert_eq!(hostile.len(), 1);
-        assert!(hostile[0].contains("outside the declared routed boundary"));
-    }
-}
+mod non_bypass_tests;

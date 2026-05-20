@@ -10,8 +10,12 @@ fn representative_surface_reports_concrete_and_synthetic_coverage_widths() {
     );
     assert!(surface.concrete_surface_width() >= 22);
     assert!(!surface.concrete_surface_digest().is_empty());
-    assert!(!surface.synthetic_surface_digest().is_empty());
-    assert!(surface.synthetic_surface_seams().contains(&"compose-read"));
+    assert_eq!(surface.synthetic_surface_width(), 0);
+    assert!(surface.synthetic_surface_seams().is_empty());
+    assert_eq!(
+        surface.synthetic_surface_digest(),
+        crate::identity::hash_parts(&Vec::<String>::new())
+    );
     assert!(!surface
         .synthetic_surface_seams()
         .contains(&"public-live-view-declaration"));

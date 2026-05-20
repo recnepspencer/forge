@@ -6,7 +6,7 @@ pub(super) const PUBLIC_SURFACE_ROWS: &[ForgeQueryLowerRuntimePublicSurfaceRow] 
         ForgeQueryLowerRuntimeSeamKey::RuntimeBackendBoundaryModules,
         "ForgeQueryRuntime backend boundary modules",
         "crates/forge-query/src/runtime/backend/*",
-        ForgeQueryLowerRuntimePublicSurfaceKind::AllowedBoundaryAdapter,
+        ForgeQueryLowerRuntimePublicSurfaceKind::RuntimeBackendBoundary,
         "canonical backend boundary hub for live declaration, source, preview, write, signal, activation, and intent adapter contracts",
     ),
     ForgeQueryLowerRuntimePublicSurfaceRow::new(

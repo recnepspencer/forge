@@ -13,10 +13,11 @@ mod evidence_tests;
 mod evidence_width_tests;
 mod fixtures;
 mod synthetic_tail_report;
+mod transcripts;
 
-pub(super) use acceptance::{
+pub use acceptance::{
     forge_query_lower_runtime_acceptance_suite, ForgeQueryLowerRuntimeAcceptanceLane,
-    ForgeQueryLowerRuntimeAcceptanceSuite,
+    ForgeQueryLowerRuntimeAcceptanceRow, ForgeQueryLowerRuntimeAcceptanceSuite,
 };
 #[allow(unused_imports)]
 pub(super) use acceptance_policy::{
@@ -29,6 +30,12 @@ pub(super) use evidence::{
     ForgeQueryLowerRuntimeRepresentativeSurface,
 };
 #[allow(unused_imports)]
-pub(super) use synthetic_tail_report::{
+pub use synthetic_tail_report::{
     forge_query_lower_runtime_synthetic_tail_report, ForgeQueryLowerRuntimeSyntheticTailReport,
+    ForgeQueryLowerRuntimeSyntheticTailRow,
+};
+pub(crate) use transcripts::forge_query_lower_runtime_golden_transcript_digest;
+pub use transcripts::{
+    forge_query_lower_runtime_golden_transcripts, forge_query_lower_runtime_target_dx_digest,
+    ForgeQueryLowerRuntimeGoldenTranscript,
 };

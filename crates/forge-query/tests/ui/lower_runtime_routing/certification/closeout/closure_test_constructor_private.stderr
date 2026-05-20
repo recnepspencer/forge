@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/lower_runtime_routing/certification/closeout/closure_test_constructor_private.rs:24:48
+   |
+24 |       let _ = ForgeQueryLowerRuntimeClosureTest::new(
+   |                                                  ^^^ private associated function
+   |
+  ::: src/lower_runtime_routing/certification/closeout_artifacts/closure_test.rs
+   |
+   | /     pub(crate) fn new(
+   | |         certification_bundle: ForgeQueryLowerRuntimeCertificationBundle,
+   | |         acceptance_suite: ForgeQueryLowerRuntimeAcceptanceSuite,
+   | |         boundary_reconciliation: ForgeQueryLowerRuntimeBoundaryReconciliationReport,
+   | |         proof_shape_audit: ForgeQueryLowerRuntimeProofShapeAudit,
+   | |         rows: Vec<ForgeQueryLowerRuntimeClosureTestRow>,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

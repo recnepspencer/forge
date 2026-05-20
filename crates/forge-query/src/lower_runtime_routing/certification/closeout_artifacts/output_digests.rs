@@ -4,24 +4,28 @@ use crate::lower_runtime_routing::{
     forge_query_lower_runtime_gap_registry, forge_query_lower_runtime_support_matrix,
 };
 
-use super::model::ForgeQueryLowerRuntimeCertificationOutputDigest;
-use super::performance::ForgeQueryLowerRuntimePerformanceSlopeReport;
-use super::surface::{
-    allowed_phase_six_synthetic_seams, forge_query_lower_runtime_synthetic_tail_report,
-    ForgeQueryLowerRuntimeAcceptanceLane, ForgeQueryLowerRuntimeAcceptanceSuite,
-    ForgeQueryLowerRuntimeRepresentativeSurface,
+use super::bundle_types::ForgeQueryLowerRuntimeCertificationOutputDigest;
+use crate::lower_runtime_routing::certification::performance::ForgeQueryLowerRuntimePerformanceSlopeReport;
+use crate::lower_runtime_routing::certification::surface::{
+    allowed_phase_six_synthetic_seams, forge_query_lower_runtime_golden_transcript_digest,
+    forge_query_lower_runtime_synthetic_tail_report, forge_query_lower_runtime_target_dx_digest,
+    ForgeQueryLowerRuntimeAcceptanceSuite, ForgeQueryLowerRuntimeRepresentativeSurface,
 };
-use super::{
+use crate::lower_runtime_routing::certification::{
     forge_query_lower_runtime_boundary_reconciliation_report,
+    forge_query_lower_runtime_phase_artifact_manifest_digest,
     forge_query_lower_runtime_phase_progression_digest,
-    forge_query_lower_runtime_proof_shape_digest, ForgeQueryLowerRuntimeNonBypassAudit,
+    forge_query_lower_runtime_proof_shape_digest,
+    forge_query_lower_runtime_typestate_transition_digest, ForgeQueryLowerRuntimeCertificationRow,
+    ForgeQueryLowerRuntimeNonBypassAudit,
 };
 
 pub(super) fn certification_output_digests(
     surface: &ForgeQueryLowerRuntimeRepresentativeSurface,
-    acceptance: &ForgeQueryLowerRuntimeAcceptanceSuite,
+    _acceptance: &ForgeQueryLowerRuntimeAcceptanceSuite,
     non_bypass: &ForgeQueryLowerRuntimeNonBypassAudit,
     slopes: &ForgeQueryLowerRuntimePerformanceSlopeReport,
+    certification_rows: &[ForgeQueryLowerRuntimeCertificationRow],
 ) -> Vec<ForgeQueryLowerRuntimeCertificationOutputDigest> {
     let crossings = forge_query_lower_runtime_crossing_inventory();
     let gaps = forge_query_lower_runtime_gap_registry();
@@ -88,14 +92,21 @@ pub(super) fn certification_output_digests(
                 .report_digest()
                 .to_string(),
         ),
-        output("route_target_dx_digest", surface.dx_digest().to_string()),
+        output(
+            "route_target_dx_digest",
+            forge_query_lower_runtime_target_dx_digest(),
+        ),
         output(
             "route_golden_transcript_digest",
-            surface.golden_transcript_digest().to_string(),
+            forge_query_lower_runtime_golden_transcript_digest(),
         ),
         output(
             "route_concrete_surface_digest",
             surface.concrete_surface_digest(),
+        ),
+        output(
+            "route_phase_artifact_manifest_digest",
+            forge_query_lower_runtime_phase_artifact_manifest_digest(),
         ),
         output(
             "route_synthetic_surface_digest",
@@ -126,6 +137,10 @@ pub(super) fn certification_output_digests(
             forge_query_lower_runtime_phase_progression_digest(),
         ),
         output(
+            "route_typestate_transition_digest",
+            forge_query_lower_runtime_typestate_transition_digest(),
+        ),
+        output(
             "route_parity_digest",
             surface.route_parity_digest().to_string(),
         ),
@@ -140,14 +155,12 @@ pub(super) fn certification_output_digests(
         ),
         output(
             "failure_digest",
-            hash_parts(&[
-                acceptance
-                    .lane(ForgeQueryLowerRuntimeAcceptanceLane::Hostile)
-                    .digest()
-                    .to_string(),
-                deferred_neighbor_failure_digest(),
-                downstream_boundary_failure_digest(non_bypass),
-            ]),
+            hash_parts(
+                &certification_rows
+                    .iter()
+                    .filter_map(|row| row.failure_digest().map(str::to_string))
+                    .collect::<Vec<_>>(),
+            ),
         ),
         output(
             "counter_snapshot",
@@ -337,30 +350,4 @@ fn slope_digest(
         .digest_for_output(output_name)
         .unwrap_or_else(|| panic!("missing slope digest {output_name}"))
         .to_string()
-}
-
-fn deferred_neighbor_failure_digest() -> String {
-    hash_parts(
-        &forge_query_lower_runtime_closeout_registry()
-            .rows()
-            .iter()
-            .filter(|row| row.posture().as_str() == "deferred-neighbor")
-            .map(|row| {
-                format!(
-                    "{}|{}|{}",
-                    row.seam_key().as_str(),
-                    row.closeout_target(),
-                    row.required_closeout()
-                )
-            })
-            .collect::<Vec<_>>(),
-    )
-}
-
-fn downstream_boundary_failure_digest(non_bypass: &ForgeQueryLowerRuntimeNonBypassAudit) -> String {
-    hash_parts(&[
-        "hostile_projection_file_outside_runtime_boundary_is_rejected".to_string(),
-        non_bypass.route_public_surface_digest().to_string(),
-        non_bypass.compile_fail_boundary_digest().to_string(),
-    ])
 }

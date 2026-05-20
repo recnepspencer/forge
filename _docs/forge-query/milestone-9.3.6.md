@@ -1667,20 +1667,34 @@ Phase owns these rows:
 Work to complete in order:
 
 1. add the named 9.3.6 certification suite
+   `9.3.6. Lower-Runtime Capability Routing And Boundary Envelope Closure Test`
 2. prove route parity and seam-elimination honesty across hostile lanes
 3. prove compile-boundary and non-bypass guarantees
 4. prove exact counter and slope honesty
 5. bind the final inventory, support matrix, and elimination/deferred registry
    into one
    certification bundle
+6. expose a proof-bearing phase artifact manifest that the runtime
+   stabilization gate can consume directly instead of re-deriving the 9.3.6
+   lifecycle from internal modules
+7. expose one public closeout report that binds the final bundle, phase
+   manifest, acceptance suite, boundary reconciliation report, and synthetic
+   tail report into the exact stabilization-facing artifact
 
 Required code moves:
 
 - add the named 9.3.6 hostile certification suite
+  `9.3.6. Lower-Runtime Capability Routing And Boundary Envelope Closure Test`
+- expose that named suite as one public certification artifact rather than
+  leaving it implied by generic acceptance and bundle surfaces
 - add hostile lanes for former specialist seams, deferred neighbors, and
   downstream runtime-boundary enforcement
 - bind inventory, support metadata, envelope behavior, and boundary audits into
   one final certification bundle
+- add a public phase artifact manifest naming the 9.3.6 lifecycle artifacts,
+  their producers, required inputs, next consumers, and enforcement proof
+- add a public stabilization closeout report so callers do not reassemble
+  Phase 7 from separate certification pieces
 
 This phase does not close if:
 

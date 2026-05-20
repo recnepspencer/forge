@@ -1,72 +1,29 @@
 use super::surface::forge_query_lower_runtime_synthetic_tail_report;
 use super::surface::{
     allowed_phase_six_synthetic_seams, forge_query_lower_runtime_acceptance_suite,
-    forge_query_lower_runtime_representative_surface, required_phase_six_concrete_seams,
-    ForgeQueryLowerRuntimeAcceptanceLane,
+    forge_query_lower_runtime_golden_transcripts, forge_query_lower_runtime_representative_surface,
+    required_phase_six_concrete_seams, ForgeQueryLowerRuntimeAcceptanceLane,
 };
 use super::{
     certify_lower_runtime_performance_slopes, certify_lower_runtime_routing,
     forge_query_lower_runtime_boundary_reconciliation_report,
+    forge_query_lower_runtime_certification_output_manifest,
+    forge_query_lower_runtime_closeout_extension_outputs,
+    forge_query_lower_runtime_closeout_report, forge_query_lower_runtime_closure_test,
     forge_query_lower_runtime_compile_fail_boundary_digest,
-    forge_query_lower_runtime_phase_progression_digest,
+    forge_query_lower_runtime_phase_artifact_manifest_digest,
+    forge_query_lower_runtime_phase_manifest, forge_query_lower_runtime_phase_progression_digest,
     forge_query_lower_runtime_proof_shape_audit, forge_query_lower_runtime_proof_shape_digest,
-    ForgeQueryLowerRuntimeCertificationLane,
+    forge_query_lower_runtime_required_certification_outputs,
+    forge_query_lower_runtime_target_dx_digest,
+    forge_query_lower_runtime_typestate_transition_digest, ForgeQueryLowerRuntimeCertificationLane,
+    ForgeQueryLowerRuntimePhaseArtifact,
 };
 use crate::identity::hash_parts;
 use crate::lower_runtime_routing::{
     certify_lower_runtime_non_bypass, forge_query_lower_runtime_crossing_inventory,
     forge_query_lower_runtime_gap_registry, forge_query_lower_runtime_support_matrix,
 };
-
-const REQUIRED_OUTPUTS: &[&str] = &[
-    "query_digest",
-    "capability_request_digest",
-    "capability_family_digest",
-    "capability_eligibility_digest",
-    "lower_runtime_route_plan_digest",
-    "boundary_execution_receipt_digest",
-    "lower_runtime_boundary_envelope_digest",
-    "crossing_inventory_digest",
-    "crossing_classification_digest",
-    "compatibility_debt_registry_digest",
-    "debt_exit_criteria_digest",
-    "route_authority_digest",
-    "route_evidence_digest",
-    "route_cost_posture_digest",
-    "route_failure_topology_digest",
-    "route_support_matrix_digest",
-    "route_public_surface_digest",
-    "route_boundary_reconciliation_digest",
-    "route_target_dx_digest",
-    "route_golden_transcript_digest",
-    "route_concrete_surface_digest",
-    "route_synthetic_surface_digest",
-    "route_synthetic_tail_policy_digest",
-    "route_synthetic_tail_report_digest",
-    "route_synthetic_tail_justification_digest",
-    "route_proof_shape_digest",
-    "route_phase_progression_digest",
-    "route_parity_digest",
-    "route_non_bypass_digest",
-    "lower_runtime_gap_registry_digest",
-    "compile_fail_boundary_digest",
-    "failure_digest",
-    "counter_snapshot",
-    "crossing_inventory_width",
-    "compatibility_debt_width",
-    "route_plan_width",
-    "boundary_evidence_width",
-    "route_concrete_surface_width",
-    "route_synthetic_surface_width",
-    "route_boundary_reconciliation_width",
-    "route_synthetic_tail_width",
-    "capability_eligibility_slope_digest",
-    "route_plan_assembly_slope_digest",
-    "boundary_receipt_assembly_slope_digest",
-    "boundary_envelope_assembly_slope_digest",
-    "support_lookup_slope_digest",
-    "debt_registry_lookup_slope_digest",
-];
 
 #[test]
 fn certification_bundle_contains_phase_seven_lanes() {
@@ -118,13 +75,16 @@ fn certification_bundle_emits_required_outputs() {
         .boundary_evidence_width()
         .to_string();
 
-    for output in REQUIRED_OUTPUTS {
+    for output in forge_query_lower_runtime_certification_output_manifest() {
         assert!(
             bundle.output_digest(output).is_some(),
             "missing required output {output}"
         );
     }
-    assert_eq!(bundle.output_digests().len(), REQUIRED_OUTPUTS.len());
+    assert_eq!(
+        bundle.output_digests().len(),
+        forge_query_lower_runtime_certification_output_manifest().len()
+    );
     assert_eq!(
         bundle.output_digest("crossing_inventory_digest"),
         Some(crossings.inventory_digest().as_str())
@@ -133,6 +93,13 @@ fn certification_bundle_emits_required_outputs() {
         bundle.output_digest("route_support_matrix_digest"),
         Some(support.matrix_digest().as_str())
     );
+    let golden_transcripts = forge_query_lower_runtime_golden_transcripts();
+    let expected_golden_digest = hash_parts(
+        &golden_transcripts
+            .iter()
+            .map(|row| format!("{}|{}", row.label(), row.path()))
+            .collect::<Vec<_>>(),
+    );
     assert_eq!(
         bundle.output_digest("route_non_bypass_digest"),
         Some(non_bypass.route_non_bypass_digest())
@@ -140,6 +107,10 @@ fn certification_bundle_emits_required_outputs() {
     assert_eq!(
         bundle.output_digest("route_boundary_reconciliation_digest"),
         Some(reconciliation.report_digest())
+    );
+    assert_eq!(
+        bundle.output_digest("route_phase_artifact_manifest_digest"),
+        Some(forge_query_lower_runtime_phase_artifact_manifest_digest().as_str())
     );
     assert_eq!(
         bundle.output_digest("compile_fail_boundary_digest"),
@@ -152,6 +123,18 @@ fn certification_bundle_emits_required_outputs() {
     assert_eq!(
         bundle.output_digest("route_phase_progression_digest"),
         Some(forge_query_lower_runtime_phase_progression_digest().as_str())
+    );
+    assert_eq!(
+        bundle.output_digest("route_target_dx_digest"),
+        Some(forge_query_lower_runtime_target_dx_digest().as_str())
+    );
+    assert_eq!(
+        bundle.output_digest("route_golden_transcript_digest"),
+        Some(expected_golden_digest.as_str())
+    );
+    assert_eq!(
+        bundle.output_digest("route_typestate_transition_digest"),
+        Some(forge_query_lower_runtime_typestate_transition_digest().as_str())
     );
     assert_ne!(
         bundle.output_digest("query_digest"),
@@ -218,6 +201,131 @@ fn certification_bundle_emits_required_outputs() {
     assert_eq!(
         bundle.output_digest("boundary_evidence_width"),
         Some(full_evidence_width.as_str())
+    );
+}
+
+#[test]
+fn certification_output_manifest_extends_required_outputs_exactly() {
+    assert_eq!(
+        forge_query_lower_runtime_required_certification_outputs().len()
+            + forge_query_lower_runtime_closeout_extension_outputs().len(),
+        forge_query_lower_runtime_certification_output_manifest().len()
+    );
+}
+
+#[test]
+fn phase_manifest_is_public_and_consumable_by_closeout_bundle() {
+    let manifest = forge_query_lower_runtime_phase_manifest();
+
+    assert_eq!(
+        manifest.manifest_digest(),
+        forge_query_lower_runtime_phase_artifact_manifest_digest()
+    );
+    assert_eq!(
+        manifest.typestate_transition_digest(),
+        forge_query_lower_runtime_typestate_transition_digest()
+    );
+    assert_eq!(
+        manifest
+            .rows()
+            .last()
+            .expect("manifest rows")
+            .next_consumer(),
+        "runtime-api-public-stabilization gate"
+    );
+}
+
+#[test]
+fn lower_runtime_golden_transcript_manifest_is_exported_and_duplicate_free() {
+    let transcripts = forge_query_lower_runtime_golden_transcripts();
+    let paths = transcripts.iter().map(|row| row.path()).collect::<Vec<_>>();
+    let labels = transcripts
+        .iter()
+        .map(|row| row.label())
+        .collect::<Vec<_>>();
+
+    assert_eq!(transcripts.len(), 3);
+    assert_eq!(
+        paths.len(),
+        paths
+            .iter()
+            .copied()
+            .collect::<std::collections::BTreeSet<_>>()
+            .len()
+    );
+    assert_eq!(
+        labels.len(),
+        labels
+            .iter()
+            .copied()
+            .collect::<std::collections::BTreeSet<_>>()
+            .len()
+    );
+}
+
+#[test]
+fn stabilization_closeout_report_is_public_and_consumes_final_phase_artifacts() {
+    let report = forge_query_lower_runtime_closeout_report();
+
+    assert_eq!(
+        report
+            .phase_manifest()
+            .rows()
+            .get(15)
+            .expect("named closure test row")
+            .artifact(),
+        ForgeQueryLowerRuntimePhaseArtifact::NamedClosureTest
+    );
+    assert_eq!(
+        report
+            .phase_manifest()
+            .rows()
+            .last()
+            .expect("manifest rows")
+            .artifact(),
+        ForgeQueryLowerRuntimePhaseArtifact::StabilizationCloseoutReport
+    );
+    assert_eq!(
+        report
+            .phase_manifest()
+            .rows()
+            .last()
+            .expect("manifest rows")
+            .next_consumer(),
+        "runtime-api-public-stabilization gate"
+    );
+    assert_eq!(
+        report.closure_test().suite_digest(),
+        forge_query_lower_runtime_closure_test().suite_digest()
+    );
+    assert_eq!(
+        report
+            .closure_test()
+            .certification_bundle()
+            .certification_bundle_digest(),
+        report.certification_bundle().certification_bundle_digest()
+    );
+    assert_eq!(
+        report.closure_test().acceptance_suite().suite_digest(),
+        report.acceptance_suite().suite_digest()
+    );
+    assert_eq!(
+        report
+            .certification_bundle()
+            .output_digest("route_phase_artifact_manifest_digest"),
+        Some(report.phase_manifest().manifest_digest())
+    );
+    assert_eq!(
+        report
+            .certification_bundle()
+            .output_digest("route_boundary_reconciliation_digest"),
+        Some(report.boundary_reconciliation().report_digest())
+    );
+    assert_eq!(
+        report
+            .certification_bundle()
+            .output_digest("route_synthetic_tail_report_digest"),
+        Some(report.synthetic_tail_report().report_digest())
     );
 }
 

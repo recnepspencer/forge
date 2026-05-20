@@ -6,16 +6,18 @@ use crate::lower_runtime_routing::{
     ForgeQueryLowerRuntimeSeamKey,
 };
 
-use super::forge_query_lower_runtime_boundary_reconciliation_report;
-use super::forge_query_lower_runtime_compile_fail_boundary_target_count;
-use super::model::{
+use super::bundle_types::{
     ForgeQueryLowerRuntimeCertificationBundle, ForgeQueryLowerRuntimeCertificationLane,
     ForgeQueryLowerRuntimeCertificationRow,
 };
-use super::outputs::certification_output_digests;
-use super::performance::certify_lower_runtime_performance_slopes;
-use super::proof_shape::forge_query_lower_runtime_proof_shape_audit;
-use super::surface::{
+use super::output_digests::certification_output_digests;
+use crate::lower_runtime_routing::certification::boundary_certification::{
+    forge_query_lower_runtime_boundary_reconciliation_report,
+    forge_query_lower_runtime_compile_fail_boundary_target_count,
+    forge_query_lower_runtime_proof_shape_audit,
+};
+use crate::lower_runtime_routing::certification::performance::certify_lower_runtime_performance_slopes;
+use crate::lower_runtime_routing::certification::surface::{
     forge_query_lower_runtime_acceptance_suite, forge_query_lower_runtime_representative_surface,
     forge_query_lower_runtime_synthetic_tail_report, ForgeQueryLowerRuntimeAcceptanceLane,
 };
@@ -184,7 +186,8 @@ pub fn certify_lower_runtime_routing() -> ForgeQueryLowerRuntimeCertificationBun
             None,
         ),
     ];
-    let output_digests = certification_output_digests(&surface, &acceptance, &non_bypass, &slopes);
+    let output_digests =
+        certification_output_digests(&surface, &acceptance, &non_bypass, &slopes, &rows);
 
     ForgeQueryLowerRuntimeCertificationBundle::new(rows, output_digests)
 }

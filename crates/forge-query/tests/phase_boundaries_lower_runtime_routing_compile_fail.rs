@@ -1,6 +1,15 @@
 #[test]
 fn lower_runtime_routing_boundaries_hold() {
     let t = trybuild::TestCases::new();
+    t.pass(
+        "tests/ui/lower_runtime_routing/golden/lower_runtime_routing_common_path_closeout_golden_transcript_compiles.rs",
+    );
+    t.pass(
+        "tests/ui/lower_runtime_routing/golden/lower_runtime_routing_support_and_closeout_inspection_golden_transcript_compiles.rs",
+    );
+    t.pass(
+        "tests/ui/lower_runtime_routing/golden/lower_runtime_routing_certification_surface_readout_golden_transcript_compiles.rs",
+    );
     t.compile_fail("tests/ui/lower_runtime_routing/inventory/crossing_row_constructor_private.rs");
     t.compile_fail(
         "tests/ui/lower_runtime_routing/inventory/crossing_inventory_constructor_private.rs",
@@ -22,21 +31,42 @@ fn lower_runtime_routing_boundaries_hold() {
         "tests/ui/lower_runtime_routing/protocol/boundary_execution_receipt_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/lower_runtime_routing/certification/public_surface_row_constructor_private.rs",
+        "tests/ui/lower_runtime_routing/certification/public_surface/public_surface_row_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/lower_runtime_routing/certification/public_surface_inventory_constructor_private.rs",
+        "tests/ui/lower_runtime_routing/certification/public_surface/public_surface_inventory_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/lower_runtime_routing/certification/non_bypass_audit_constructor_private.rs",
+        "tests/ui/lower_runtime_routing/certification/non_bypass/non_bypass_audit_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/lower_runtime_routing/certification/certification_row_constructor_private.rs",
+        "tests/ui/lower_runtime_routing/certification/phase_manifest/phase_manifest_row_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/lower_runtime_routing/certification/certification_bundle_constructor_private.rs",
+        "tests/ui/lower_runtime_routing/certification/phase_manifest/phase_manifest_constructor_private.rs",
     );
     t.compile_fail(
-        "tests/ui/lower_runtime_routing/certification/proof_shape_audit_constructor_private.rs",
+        "tests/ui/lower_runtime_routing/certification/bundle/certification_row_constructor_private.rs",
+    );
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/certification/bundle/certification_bundle_constructor_private.rs",
+    );
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/certification/acceptance/acceptance_suite_constructor_private.rs",
+    );
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/certification/reconciliation/boundary_reconciliation_report_constructor_private.rs",
+    );
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/certification/closeout/closeout_report_constructor_private.rs",
+    );
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/certification/closeout/closure_test_constructor_private.rs",
+    );
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/certification/proof_shape/proof_shape_audit_constructor_private.rs",
+    );
+    t.compile_fail(
+        "tests/ui/lower_runtime_routing/certification/synthetic_tail/synthetic_tail_report_constructor_private.rs",
     );
 }

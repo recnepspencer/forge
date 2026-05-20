@@ -54,20 +54,23 @@ impl ForgeQueryLowerRuntimeBoundaryReconciliationRow {
         }
     }
 
-    #[cfg(test)]
-    pub(crate) fn seam_key(&self) -> ForgeQueryLowerRuntimeSeamKey {
+    pub fn seam_key(&self) -> ForgeQueryLowerRuntimeSeamKey {
         self.seam_key
     }
 
-    #[cfg(test)]
-    pub(crate) fn surface_kind(&self) -> ForgeQueryLowerRuntimePublicSurfaceKind {
+    pub fn surface_label(&self) -> &'static str {
+        self.surface_label
+    }
+
+    pub fn implementation_path(&self) -> &'static str {
+        self.implementation_path
+    }
+
+    pub fn surface_kind(&self) -> ForgeQueryLowerRuntimePublicSurfaceKind {
         self.surface_kind
     }
 
-    #[cfg(test)]
-    pub(crate) fn direct_import_posture(
-        &self,
-    ) -> Option<ForgeQueryLowerRuntimeDirectImportPosture> {
+    pub fn direct_import_posture(&self) -> Option<ForgeQueryLowerRuntimeDirectImportPosture> {
         self.direct_import_posture
     }
 
@@ -163,13 +166,22 @@ mod tests {
     fn allowed_boundary_adapters_stay_audit_backed_inside_reconciliation_report() {
         let report = forge_query_lower_runtime_boundary_reconciliation_report();
 
-        for row in report.rows().iter().filter(|row| {
-            row.surface_kind() == ForgeQueryLowerRuntimePublicSurfaceKind::AllowedBoundaryAdapter
-        }) {
-            assert_eq!(
-                row.direct_import_posture(),
-                Some(ForgeQueryLowerRuntimeDirectImportPosture::AllowedAdapter)
-            );
+        for row in report.rows() {
+            match row.surface_kind() {
+                ForgeQueryLowerRuntimePublicSurfaceKind::AllowedBoundaryAdapter => {
+                    assert_eq!(
+                        row.direct_import_posture(),
+                        Some(ForgeQueryLowerRuntimeDirectImportPosture::AllowedAdapter)
+                    );
+                }
+                ForgeQueryLowerRuntimePublicSurfaceKind::RuntimeBackendBoundary => {
+                    assert_eq!(
+                        row.direct_import_posture(),
+                        Some(ForgeQueryLowerRuntimeDirectImportPosture::RuntimeBackendBoundary)
+                    );
+                }
+                _ => {}
+            }
         }
     }
 }

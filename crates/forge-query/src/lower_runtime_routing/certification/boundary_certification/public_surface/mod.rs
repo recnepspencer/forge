@@ -7,6 +7,7 @@ mod rows;
 pub enum ForgeQueryLowerRuntimePublicSurfaceKind {
     PublicFacade,
     InternalRouteComposer,
+    RuntimeBackendBoundary,
     AllowedBoundaryAdapter,
     DownstreamRuntimeBoundary,
 }
@@ -16,6 +17,7 @@ impl ForgeQueryLowerRuntimePublicSurfaceKind {
         match self {
             Self::PublicFacade => "public-facade",
             Self::InternalRouteComposer => "internal-route-composer",
+            Self::RuntimeBackendBoundary => "runtime-backend-boundary",
             Self::AllowedBoundaryAdapter => "allowed-boundary-adapter",
             Self::DownstreamRuntimeBoundary => "downstream-runtime-boundary",
         }
@@ -264,7 +266,7 @@ mod tests {
         for audit_row in forge_query_lower_runtime_direct_import_audit().rows() {
             let expected_kind = match audit_row.posture() {
                 ForgeQueryLowerRuntimeDirectImportPosture::RuntimeBackendBoundary => {
-                    Some(ForgeQueryLowerRuntimePublicSurfaceKind::AllowedBoundaryAdapter)
+                    Some(ForgeQueryLowerRuntimePublicSurfaceKind::RuntimeBackendBoundary)
                 }
                 ForgeQueryLowerRuntimeDirectImportPosture::AllowedAdapter => {
                     Some(ForgeQueryLowerRuntimePublicSurfaceKind::AllowedBoundaryAdapter)
