@@ -114,4 +114,35 @@ impl ForgeQueryLowerRuntimePerformanceCounters {
     pub fn counter_snapshot_digest(&self) -> &str {
         &self.counter_snapshot_digest
     }
+
+    #[cfg(test)]
+    pub(crate) fn new_for_tests(
+        crossing_inventory_width: usize,
+        compatibility_debt_width: usize,
+        route_plan_width: usize,
+        boundary_evidence_width: usize,
+        support_width: usize,
+        deferred_width: usize,
+        capability_eligibility_operations: usize,
+        route_plan_assembly_operations: usize,
+        boundary_receipt_assembly_operations: usize,
+        boundary_envelope_assembly_operations: usize,
+        support_lookup_operations: usize,
+        debt_registry_lookup_operations: usize,
+    ) -> Self {
+        Self::new(
+            crossing_inventory_width,
+            compatibility_debt_width,
+            route_plan_width,
+            boundary_evidence_width,
+            support_width,
+            deferred_width,
+            capability_eligibility_operations,
+            route_plan_assembly_operations,
+            boundary_receipt_assembly_operations,
+            boundary_envelope_assembly_operations,
+            support_lookup_operations,
+            debt_registry_lookup_operations,
+        )
+    }
 }

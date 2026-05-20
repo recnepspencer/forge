@@ -3,7 +3,7 @@
 ## Purpose
 
 This document captures the post-`forge-query 9.3.x` cleanup work that should
-happen in `worth-topo` once `9.3.6` lands. `worth-topo` was built before the
+happen in `worth-topo` now that `9.3.6` has landed. `worth-topo` was built before the
 current Query capability and runtime-boundary model stabilized, so a meaningful
 slice of its production path still treats raw Query rows, payload maps,
 historical-basis internals, and local runtime inference as public contracts.
@@ -17,6 +17,15 @@ This audit separates:
 - designated runtime-boundary survivors that may remain, but should be trimmed
 - lower-priority certification and legacy seams
 - a recommended migration order
+
+It also now distinguishes between two very different states that existed at
+different points in the Query rewrite:
+
+- older pre-`9.3.x` boundary debt, where topology really did bypass or
+  reconstruct Query/runtime behavior locally
+- current post-`9.3.6` boundary debt, where topology often does execute through
+  Query-owned lowering, admission, and runtime support, but still decodes or
+  republishes row-shaped results too low in the stack
 
 ## Query Capability Baseline
 
@@ -37,6 +46,38 @@ For `worth-topo`, the most important consequence is simple:
 > raw Query rows are no longer the right ordinary product contract when topo
 > actually wants typed facts, admission posture, basis capability, or receipt
 > inspection.
+
+## Already Closed By Current Query Integration
+
+Before listing the remaining cleanup work, it is important to say what has
+already changed in `worth-topo`.
+
+The crate no longer lives in the purely pre-`9.3.x` world. It now has a real
+Query-owned domain-read and runtime-support story:
+
+- `TopologyDomainQuery` is the public executed-read boundary for topology reads
+- topology read requests now lower through canonical Query lowering rather than
+  ad hoc row joins
+- the bridge-backed runtime now exposes typed runtime posture, read support,
+  edit support, and closeout through `TopologyRuntimeSupport`
+- the public read families now share a typed family universe with runtime
+  support instead of maintaining separate naming layers
+
+Primary references:
+
+- `crates/worth-topo/docs/domain-reads.md`
+- `crates/worth-topo/docs/runtime-support.md`
+- `crates/worth-topo/src/projection/runtime_boundary/read_lowering/mod.rs`
+- `crates/worth-topo/src/projection/runtime_boundary/read_execution/family_execution.rs`
+- `crates/worth-topo/src/projection/runtime_boundary/query_runtime/mod.rs`
+
+That means this audit should not be read as "worth-topo still has no Query-owned
+boundary." It should be read as:
+
+- the Query-owned boundary now exists
+- some production paths still live on the wrong side of it
+- some domain helpers still decode or republish row-shaped results too directly
+- some adapter seams are still too hand-wired for the post-`9.3.6` standard
 
 ## Findings
 
@@ -128,7 +169,7 @@ Expected cleanup direction:
 - move provenance decoding and row interpretation behind Query-owned or
   topology-boundary-owned fact adapters
 
-### 3. Public topology read views still decode neighborhoods from raw row payloads
+### 3. Public topology read views still decode retained Query result payloads too low in the stack
 
 Severity: High
 
@@ -141,11 +182,14 @@ Files:
 
 Evidence:
 
-- Shared-vertex, radial, local-rewire, and loop-cycle views all use
+- Shared-vertex, radial, local-rewire, and loop-cycle views all execute through
+  `TopologyDomainQuery` and Query-owned lowering/execution first.
+- But after the Query-backed read returns, the final domain views still use
   `row_payload`, `relation_identity`, `relation_record_identity`, and
   `relation_identities`.
-- The resulting domain views are reconstructed by traversing `relations` and
-  `relation_identities` payload maps instead of consuming typed read results.
+- The resulting domain views are reconstructed by traversing retained
+  `relations` and `relation_identities` payload maps instead of consuming a
+  narrower typed read-result contract.
 
 Concrete references:
 
@@ -163,17 +207,22 @@ Concrete references:
 
 Why this is now a boundary violation:
 
-- These are public domain read surfaces. They should consume typed Query-backed
-  topology facts, not retell the payload schema.
-- This is the strongest `9.3.4` migration cluster in the crate.
+- These are public domain read surfaces, and they now do have a real Query
+  boundary beneath them.
+- The remaining problem is not "no Query integration"; it is that the final
+  decode still retells retained payload structure at the domain-view layer.
+- This is still a meaningful `9.3.4` cleanup cluster, but it is now narrower
+  than the fully pre-`9.3.x` version of the problem.
 
 Expected cleanup direction:
 
-- define typed consumed facts for neighborhood-style reads
-- have read views depend on those consumed facts instead of `ForgeQueryEntity`
-  payload walking
+- define typed consumed facts or typed retained-result adapters for
+  neighborhood-style reads
+- move payload interpretation down into a smaller boundary-owned decode layer
+- have the public read views depend on typed fact inputs rather than direct
+  `ForgeQueryEntity` payload walking
 
-### 4. Historical-basis execution still hand-builds Query basis contexts
+### 4. Historical-basis execution is now concentrated in an adapter seam, but still hand-builds Query basis contexts
 
 Severity: Medium-High
 
@@ -211,11 +260,16 @@ Concrete references:
 
 Why this is now a boundary violation:
 
-- `9.3.2` turns basis into a first-class capability lifecycle. Topo should not
-  need to infer basis posture from support evidence and hand-wire context
-  binding unless it is acting as the designated boundary adapter.
-- This code may remain in a thinner adapter form, but its current shape still
-  exposes too much prefreeze basis machinery.
+- `9.3.2` turns basis into a first-class capability lifecycle.
+- The good news is that this logic now lives in a designated
+  `projection/runtime_boundary/read_execution` seam rather than being spread
+  across public product code.
+- The remaining problem is that the adapter still infers historical posture
+  from `public_api_contract()` evidence and manually performs historical
+  admission, materialization-path resolution, basis binding, and basis
+  admission itself.
+- So this is no longer "basis leakage everywhere." It is "the designated basis
+  adapter is still too hand-wired for the stabilized Query model."
 
 Expected cleanup direction:
 
@@ -266,6 +320,10 @@ Why this is now a cleanup target:
   post-`9.3.x` Query consumer should.
 - This is less urgent than the production edit/read paths, but it should be
   narrowed after the first migration wave.
+- This cluster has become more important now that the public read domain has a
+  stronger Query-owned story; the historical/snapshot assembly path stands out
+  more clearly as the remaining place where topology still rebuilds too much
+  locally.
 
 Expected cleanup direction:
 
@@ -296,8 +354,9 @@ Why this is now a cleanup target:
 
 - The materializer is valid domain logic, but the Query-row entry point keeps
   the raw row schema alive as a domain-facing API.
-- Over time, topo should consume typed materialization facts rather than
-  normalize raw rows itself.
+- Over time, topo should consume typed materialization facts or a smaller
+  topology-owned boundary adapter contract rather than normalize raw rows
+  itself.
 
 Expected cleanup direction:
 
@@ -357,6 +416,12 @@ Why this is now a cleanup target:
 
 - Even after internals improve, the public API can keep teaching downstream code
   to depend on the old seam if these exports remain broad and row-shaped.
+- This is not hypothetical. The current facade still publicly re-exports
+  helpers like `derived_read_diagnostics_from_query_rows`,
+  `equivalence_contract_from_diagnostics_rows`,
+  `interpreted_topology_from_materialized_rows`,
+  `naming_attachment_report_from_query_rows`, and
+  `validation_report_from_query_rows`.
 
 Expected cleanup direction:
 
@@ -412,36 +477,12 @@ production-path cleanup above because:
 
 ## Migration Strategy
 
-### Phase 1: Read-view fact migration
-
-Goal:
-
-- stop public topology read views from decoding raw payload maps
-
-Primary targets:
-
-- `projection/runtime_boundary/read_execution/row_decode.rs`
-- `projection/read_views/domain/views/adjacency.rs`
-- `projection/read_views/domain/views/local_rewire.rs`
-- `projection/read_views/domain/views/loop_cycle.rs`
-
-Deliverables:
-
-- typed consumed Query facts for neighborhood and loop-cycle surfaces
-- read views rewritten to depend on typed fact inputs, not `ForgeQueryEntity`
-  payload traversal
-
-Why first:
-
-- this removes the broadest row-coupling cluster with the clearest `9.3.4`
-  mismatch
-
-### Phase 2: Operator-path admission and binding cleanup
+### Phase 1: Operator-path admission and binding cleanup
 
 Goal:
 
 - stop using raw rows for support inference, binding lookup, and post-write
-  materialized decode
+  materialized decode on the production edit path
 
 Primary targets:
 
@@ -455,49 +496,87 @@ Deliverables:
 - typed binding-resolution contract
 - unified post-write topology projection consumption surface
 
+Why first:
+
+- this is still the highest-value remaining production-path cleanup
+- it is the strongest example of topology still treating row shape and row
+  provenance as the operational contract
+- this is the precedent we least want the geometry kernel to copy
+
+### Phase 2: Query assembly and historical snapshot hardening
+
+Goal:
+
+- stop reconstructing current-head and historical topology snapshots too
+  aggressively inside topology-owned boundary code
+
+Primary targets:
+
+- `projection/runtime_boundary/query_assembly/mod.rs`
+- `projection/runtime_boundary/query_assembly/historical_rows.rs`
+- `projection/truth_surfaces/persistent_naming.rs`
+- `derived_topology/materialized_graph/mod.rs`
+
+Deliverables:
+
+- smaller row-interpreting snapshot assembly surface
+- narrower historical fallback path
+- clearer topology-owned boundary contracts for naming, materialization,
+  interpreted, validation, and diagnostics surfaces
+
 Why second:
 
-- this is the highest-value production-path cleanup after read views
+- once the edit path is cleaner, this becomes the next strongest place where
+  topology still behaves like a Query sub-runtime
+- it is especially important because geometry-kernel snapshot and replay work
+  is likely to copy this pattern if we leave it vague
 
-### Phase 3: Basis and historical execution hardening
+### Phase 3: Read-view retained-result decode tightening
+
+Goal:
+
+- stop public topology read views from decoding retained Query payload maps at
+  the domain-view layer
+
+Primary targets:
+
+- `projection/runtime_boundary/read_execution/row_decode.rs`
+- `projection/read_views/domain/views/adjacency.rs`
+- `projection/read_views/domain/views/local_rewire.rs`
+- `projection/read_views/domain/views/loop_cycle.rs`
+
+Deliverables:
+
+- typed consumed facts or typed retained-result adapters for neighborhood and
+  loop-cycle surfaces
+- read views rewritten to depend on typed fact inputs, not direct
+  `ForgeQueryEntity` payload traversal
+
+Why third:
+
+- the crate now already has real Query-owned lowering and execution for public
+  domain reads
+- that means this is no longer the very first migration to do; it is now the
+  cleanup pass that shrinks the remaining decode seam after the bigger product
+  boundary problems are fixed
+
+### Phase 4: Basis adapter hardening and facade/export tightening
 
 Goal:
 
 - collapse custom historical-basis logic onto the stabilized Query basis model
+- shrink the remaining row-oriented helpers and public exports
 
 Primary targets:
 
 - `projection/runtime_boundary/read_execution/basis_context.rs`
 - `projection/runtime_boundary/read_execution/family_execution.rs`
-- `projection/runtime_boundary/query_assembly/historical_rows.rs`
+- `facade.rs`
 
 Deliverables:
 
 - thinner basis adapter surface
 - less evidence-token and support-matrix inference in topo code
-- clearer split between allowed boundary code and ordinary product code
-
-Why third:
-
-- this is important, but it is easier to do cleanly once row-based domain reads
-  have already been collapsed
-
-### Phase 4: Assembly and facade tightening
-
-Goal:
-
-- shrink the remaining row-oriented helpers and public exports
-
-Primary targets:
-
-- `projection/runtime_boundary/query_assembly/mod.rs`
-- `projection/truth_surfaces/persistent_naming.rs`
-- `derived_topology/materialized_graph/mod.rs`
-- `facade.rs`
-
-Deliverables:
-
-- smaller row-interpreting boundary layer
 - cleaner public surface that does not normalize old seam shapes
 
 ## Expected End State
@@ -507,11 +586,13 @@ After this cleanup, `worth-topo` should look different in a few important ways:
 - public topology read and edit flows consume typed Query facts and typed
   support/admission surfaces
 - historical-basis execution uses a narrow Query basis capability surface
-  instead of custom evidence-driven branching
+  inside a small documented adapter, instead of custom evidence-driven
+  branching leaking outward
 - the designated runtime-boundary subtree remains, but ordinary topo code no
   longer acts like it is part of Query runtime internals
 - raw row and payload interpretation is concentrated in a small number of
-  boundary adapters, not spread across domain views and operator flows
+  boundary adapters, not spread across domain views, operator flows, assembly
+  paths, and public exports
 
 That is the real payoff of `forge-query 9.3.x` for `worth-topo`: less glue,
 less folklore, fewer boundary leaks, and a much cleaner architectural split
@@ -523,7 +604,8 @@ Once `9.3.6` finishes, the next useful document should be a concrete migration
 spec that turns this audit into implementation slices. A good breakdown would
 be:
 
-- read-view fact migration spec
 - operator-path admission/binding cleanup spec
+- query-assembly and historical snapshot hardening spec
+- read-view retained-result decode tightening spec
 - historical-basis boundary hardening spec
 - facade/export tightening pass

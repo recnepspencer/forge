@@ -59,6 +59,14 @@ impl ForgeQueryLowerRuntimePerformanceProfile {
     pub fn profile_digest(&self) -> &str {
         &self.profile_digest
     }
+
+    #[cfg(test)]
+    pub(crate) fn new_for_tests(
+        label: ForgeQueryLowerRuntimePerformanceProfileLabel,
+        counters: ForgeQueryLowerRuntimePerformanceCounters,
+    ) -> Self {
+        Self::new(label, counters)
+    }
 }
 
 pub(crate) fn forge_query_lower_runtime_performance_profiles(
@@ -127,7 +135,7 @@ pub(crate) fn forge_query_lower_runtime_performance_profiles(
                     deferred_width,
                     observe_capability_eligibility(requests, eligibilities),
                     observe_route_plan_assembly(route_plans),
-                    observe_boundary_receipt_assembly(route_plans, receipts),
+                    observe_boundary_receipt_assembly(eligibilities, receipts),
                     observe_boundary_envelope_assembly(receipts, envelopes),
                     observe_support_lookup(envelopes, support_rows),
                     observe_debt_registry_lookup(deferred_rows),
@@ -150,69 +158,59 @@ fn observe_capability_eligibility(
     requests: &[crate::lower_runtime_routing::ForgeQueryLowerRuntimeCapabilityRequest],
     eligibilities: &[crate::lower_runtime_routing::ForgeQueryLowerRuntimeCapabilityEligibility],
 ) -> usize {
+    assert_eq!(
+        requests.len(),
+        eligibilities.len(),
+        "capability eligibility profiles must keep request and eligibility widths aligned"
+    );
     requests
         .iter()
         .zip(eligibilities.iter())
-        .map(|(request, eligibility)| {
-            usize::from(eligibility.request().request_digest() == request.request_digest()) + 2
-        })
-        .sum()
+        .for_each(|(request, eligibility)| {
+            assert_eq!(
+                eligibility.request().request_digest(),
+                request.request_digest(),
+                "eligibility profile must reuse the emitted request digest exactly"
+            );
+        });
+    eligibilities.len()
 }
 
 fn observe_route_plan_assembly(
     route_plans: &[crate::lower_runtime_routing::ForgeQueryLowerRuntimeRoutePlan],
 ) -> usize {
-    route_plans
-        .iter()
-        .map(|plan| {
-            let _ = plan.eligibility().eligibility_digest();
-            let _ = plan.route_subject();
-            let _ = plan.route_digest();
-            3
-        })
-        .sum()
+    route_plans.len()
 }
 
 fn observe_boundary_receipt_assembly(
-    route_plans: &[crate::lower_runtime_routing::ForgeQueryLowerRuntimeRoutePlan],
+    eligibilities: &[crate::lower_runtime_routing::ForgeQueryLowerRuntimeCapabilityEligibility],
     receipts: &[crate::lower_runtime_routing::ForgeQueryLowerRuntimeBoundaryExecutionReceipt],
 ) -> usize {
-    receipts
-        .iter()
-        .map(|receipt| {
-            let mut comparisons = 0usize;
-            for plan in route_plans {
-                comparisons += 1;
-                if receipt.request_digest() == plan.eligibility().request().request_digest()
-                    && receipt.eligibility_digest() == plan.eligibility().eligibility_digest()
-                {
-                    let _ = receipt.boundary_execution_digest();
-                    break;
-                }
-            }
-            comparisons + 1
-        })
-        .sum()
+    receipts.iter().for_each(|receipt| {
+        assert!(
+            eligibilities.iter().any(|eligibility| {
+                receipt.request_digest() == eligibility.request().request_digest()
+                    && receipt.eligibility_digest() == eligibility.eligibility_digest()
+            }),
+            "boundary receipt profile must be backed by an emitted eligibility/request pair"
+        );
+    });
+    receipts.len()
 }
 
 fn observe_boundary_envelope_assembly(
     receipts: &[crate::lower_runtime_routing::ForgeQueryLowerRuntimeBoundaryExecutionReceipt],
     envelopes: &[crate::lower_runtime_routing::ForgeQueryLowerRuntimeBoundaryEnvelope],
 ) -> usize {
-    envelopes
-        .iter()
-        .map(|envelope| {
-            let mut comparisons = 0usize;
-            for receipt in receipts {
-                comparisons += 1;
-                if receipt.boundary_execution_digest() == envelope.boundary_execution_digest() {
-                    let _ = envelope.envelope_digest();
-                    break;
-                }
-            }
-            comparisons + 1
-        })
-        .sum()
+    envelopes.iter().for_each(|envelope| {
+        assert!(
+            receipts.iter().any(|receipt| {
+                receipt.boundary_execution_digest() == envelope.boundary_execution_digest()
+            }),
+            "boundary envelope profile must be backed by an emitted execution receipt"
+        );
+    });
+    envelopes.len()
 }
 
 fn observe_support_lookup(
@@ -238,13 +236,5 @@ fn observe_support_lookup(
 fn observe_debt_registry_lookup(
     deferred_rows: &[&crate::lower_runtime_routing::ForgeQueryLowerRuntimeCloseoutRow],
 ) -> usize {
-    deferred_rows
-        .iter()
-        .map(|row| {
-            let _ = row.seam_key();
-            let _ = row.closeout_target();
-            let _ = row.required_closeout();
-            3
-        })
-        .sum()
+    deferred_rows.len()
 }

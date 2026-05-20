@@ -50,21 +50,7 @@ impl ForgeQueryLowerRuntimePerformanceSlopeRow {
         family: ForgeQueryLowerRuntimePerformanceFamily,
         profiles: &[ForgeQueryLowerRuntimePerformanceProfile],
     ) -> Self {
-        let slope_digest = hash_parts(
-            &profiles
-                .iter()
-                .map(|profile| {
-                    format!(
-                        "{}|{}|{}|{}|{}",
-                        family.as_str(),
-                        profile.label().as_str(),
-                        profile.counters().crossing_inventory_width(),
-                        profile.counters().boundary_evidence_width(),
-                        family_operations(family, profile)
-                    )
-                })
-                .collect::<Vec<_>>(),
-        );
+        let slope_digest = slope_digest_for_profiles(family, profiles);
         Self {
             family,
             slope_digest,
@@ -132,6 +118,14 @@ pub fn certify_lower_runtime_performance_slopes(
     )
 }
 
+#[cfg(test)]
+pub(super) fn test_slope_digest_for_profiles(
+    family: ForgeQueryLowerRuntimePerformanceFamily,
+    profiles: &[ForgeQueryLowerRuntimePerformanceProfile],
+) -> String {
+    slope_digest_for_profiles(family, profiles)
+}
+
 fn family_operations(
     family: ForgeQueryLowerRuntimePerformanceFamily,
     profile: &ForgeQueryLowerRuntimePerformanceProfile,
@@ -157,4 +151,43 @@ fn family_operations(
             counters.debt_registry_lookup_operations()
         }
     }
+}
+
+fn slope_digest_for_profiles(
+    family: ForgeQueryLowerRuntimePerformanceFamily,
+    profiles: &[ForgeQueryLowerRuntimePerformanceProfile],
+) -> String {
+    hash_parts(
+        &profiles
+            .iter()
+            .map(|profile| {
+                let counters = profile.counters();
+                let mut parts = vec![
+                    format!("family:{}", family.as_str()),
+                    format!("profile:{}", profile.label().as_str()),
+                    format!("ops:{}", family_operations(family, profile)),
+                ];
+                match family {
+                    ForgeQueryLowerRuntimePerformanceFamily::CapabilityEligibility => {
+                        parts.push(format!("crossings:{}", counters.crossing_inventory_width()));
+                    }
+                    ForgeQueryLowerRuntimePerformanceFamily::RoutePlanAssembly => {
+                        parts.push(format!("routes:{}", counters.route_plan_width()));
+                    }
+                    ForgeQueryLowerRuntimePerformanceFamily::BoundaryReceiptAssembly
+                    | ForgeQueryLowerRuntimePerformanceFamily::BoundaryEnvelopeAssembly => {
+                        parts.push(format!("evidence:{}", counters.boundary_evidence_width()));
+                    }
+                    ForgeQueryLowerRuntimePerformanceFamily::SupportLookup => {
+                        parts.push(format!("support:{}", counters.support_width()));
+                        parts.push(format!("evidence:{}", counters.boundary_evidence_width()));
+                    }
+                    ForgeQueryLowerRuntimePerformanceFamily::DebtRegistryLookup => {
+                        parts.push(format!("deferred:{}", counters.deferred_width()));
+                    }
+                }
+                parts.join("|")
+            })
+            .collect::<Vec<_>>(),
+    )
 }
