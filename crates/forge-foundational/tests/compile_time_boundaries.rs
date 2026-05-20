@@ -291,3 +291,45 @@ fn profile_front_doors_preserve_requested_and_materialized_boundaries() {
 fn profile_grouped_public_surface_preserves_lane_boundaries() {
     compile_fail("tests/ui/profiles/grouped_surface/*.rs");
 }
+
+#[test]
+fn performance_primitives_and_common_path_preserve_family_boundaries() {
+    compile_fail("tests/ui/performance/family_boundaries/*.rs");
+    compile_fail("tests/ui/performance/grouped_surface/*.rs");
+}
+
+#[test]
+fn performance_claims_preserve_family_and_lane_boundaries() {
+    compile_fail("tests/ui/performance/claims/*.rs");
+}
+
+#[test]
+fn performance_layout_disclosure_surfaces_preserve_claim_and_attachment_boundaries() {
+    compile_fail("tests/ui/performance/layouts/*.rs");
+}
+
+#[test]
+fn performance_policy_receipts_preserve_pre_execution_boundaries() {
+    compile_fail("tests/ui/performance/policy/*.rs");
+}
+
+#[test]
+fn performance_basis_bundles_and_counter_receipts_preserve_lower_lane_boundaries() {
+    compile_fail("tests/ui/performance/basis/*.rs");
+}
+
+#[test]
+fn performance_report_attachment_and_materialization_preserve_explicit_boundaries() {
+    compile_fail("tests/ui/performance/reports/*.rs");
+}
+
+#[test]
+fn performance_certified_bundle_and_readmission_reuse_proof_lane() {
+    compile_fail("tests/ui/performance/certified/*.rs");
+}
+
+#[test]
+fn performance_readiness_and_grouped_surface_preserve_stronger_lane_boundaries() {
+    compile_fail("tests/ui/performance/readiness_boundaries/*.rs");
+    compile_fail("tests/ui/performance/grouped_surface_stronger_lane/*.rs");
+}

@@ -326,6 +326,16 @@ The standardized distinction for this milestone is:
   - carries stronger certified performance evidence across a trust or
     current-basis boundary through the existing proof bridge
 
+Additional boundary law:
+
+- evidence strength is part of descriptive performance meaning
+- certified and readmitted are stronger proof-bearing transport and trust
+  categories layered over that meaning
+- no semantic category may exist only in the proof lane without also having a
+  descriptive meaning in foundational vocabulary first
+- `forge-proof` may strengthen a claim; it must not become a second owner of
+  performance ontology
+
 ## Forge-Proof Standardized Lane
 
 Milestone 8 must follow the same pattern Milestone 6 closed with: stronger
@@ -446,6 +456,77 @@ Milestone 8 should be designed around the following shared families.
   - support/report assembly work
   - forensic/parity work
 
+## Canonical Noun Inventory
+
+Milestone 8 should freeze one small, reusable set of first-class nouns near the
+center of the public surface. These are the primary shared toolbelt shapes the
+later crate rewrites should be able to depend on directly instead of
+re-inventing local performance dialects.
+
+Minimum canonical nouns:
+
+- `LayoutIntentClaim`
+- `PerformanceClaim`
+- `PolicyAdmissionReceipt`
+- `CounterBackedPerformanceReceipt`
+- `PerformanceBundle`
+- `PerformanceComparison`
+- `PerformanceReportPlan`
+- `MaterializedPerformanceReport`
+- `CertifiedPerformanceBundle`
+- `ReadmittedPerformanceBundle`
+
+These nouns are not the entire milestone surface. They are the smallest set of
+named artifacts that should let an adopter express:
+
+- what structural family a path was designed around
+- what exact boundary a claim is naming
+- what pre-execution policy or fallback posture was admitted
+- what structurally counted work actually happened
+- how independently produced claims compare
+- what expensive report materialization will assemble before it happens
+- what stronger proof-bearing or readmitted claim exists beyond plain
+  descriptive or counter-backed evidence
+
+If later implementation work starts inventing several parallel names for one of
+those jobs, the burden is on the implementation to prove a genuinely new
+responsibility exists rather than allowing terminology drift.
+
+## What Makes Performance Easy
+
+Milestone 8 should make honest performance the path of least resistance for
+adopters.
+
+That means an engineer should not need to invent local nouns for:
+
+- lane
+- claim boundary
+- evidence strength
+- breadth or locality posture
+- allocation posture
+- freshness or replay posture
+- fallback or debt posture
+- included-work and excluded-work disclosure
+- canonical comparison
+- stronger proof-bearing certification
+
+The intended adoption experience is:
+
+- common path:
+  - declare honest descriptive meaning
+  - disclose what the claim is about
+  - disclose what work is counted and what is intentionally excluded
+- lower lane:
+  - attach canonical basis, counter evidence, comparison law, and explicit
+    materialization planning
+- stronger lane:
+  - strengthen only when stronger certification or readmission is actually
+    real
+
+If an adopting crate still has to invent its own words for lane, basis,
+fallback, width, allocation, or evidence strength after Milestone 8 lands, the
+milestone did not actually make performance easy.
+
 The minimal tangible artifact surface should be rich enough to express:
 
 - a layout-intent artifact without claiming cost equivalence
@@ -549,6 +630,16 @@ least these scenario families:
   stronger proof lane
 - one builder that lets callers pick contradictory combinations and only fails
   later in ad hoc runtime branches
+
+The included-work and excluded-work rule is especially strict for high-strength
+operational claims:
+
+- no verified hot-path claim may exist without explicit included-work and
+  excluded-work disclosure
+- no certified hot-path bundle may exist without carrying through that
+  disclosure intact
+- omission is only allowed for weaker surfaces where the weakness itself is
+  explicit, such as debt, deferred, rejected, or support-derived claims
 
 ## Phases
 
@@ -785,69 +876,17 @@ Phase 7 is complete only when:
 - adoption assumptions, non-assumptions, and residual debt are explicit
 - migration can begin without reopening the public design
 
-### Phase 8: Feature Docs And Crate-Doc Integration
+### Phase 8: Feature Docs, Crate-Doc Integration, And Publication Closure
 
-This phase writes the human-facing explanation of the frozen implementation.
-Because readiness is already closed, these docs should describe the shipped
-surface exactly rather than speculating about idealized future naming.
-
-Write the docs in the same sequence an adopter would learn the system. Start
-with one landing page that explains the three lanes plus readiness. Then write
-one capability document per real seam: common-path claims, policy-admission
-receipts, counter-backed receipts, canonical bundles and comparison, explicit
-report planning and materialization, stronger certified/readmitted bundles, and
-readiness closure. Each document should show the ordinary path, the next lower
-accountability path, and the stronger proof-bearing path when applicable.
-
-The output from this phase should be crate-facing documentation that lets an
-adopter use the right lane without reading implementation modules. Edge cases
-that are easy to lose to history must be documented on purpose: support-derived
-claims, replay-derived and restored/readmitted posture, transient cost
-carriers, widened fallback, debt, and representation-freedom guarantees.
-
-Phase 8 is complete only when:
-
-- the docs match the frozen implementation and proof boundaries exactly
-- every real capability seam has one obvious documentation home
-- later adopters can learn the surface without code archaeology
-- the docs preserve the non-obvious edge cases that would otherwise drift away
-
-### Phase 9: `feature-doc-writer` Closeout And Crate-Docs Registration
-
-This phase is the final publication and history-safety pass. Phase 8 writes the
-docs; Phase 9 makes them durable, organized, and integrated into the crate’s
-public documentation surface so they do not decay into orphan files.
-
-Complete this phase by creating the milestone documentation folder under
-`crates/forge-foundational/docs/`, ensuring the landing page and seam-specific
-feature docs live there, linking that folder into the crate-facing docs
-entrypoints, and running the explicit `feature-doc-writer` closeout pass
-against the shipped Milestone 8 surface. This is also the last hostile omissions
-pass for doc structure: each seam should have one primary home, and the docs
-should feel like an intentional documentation system rather than a scattered
-pile.
-
-The output from this phase should be a stable documentation home that future
-milestones and migrating crates can cite directly.
-
-Phase 9 is complete only when:
-
-- the `feature-doc-writer` closeout has been run against the shipped surface
-- the docs live in one category folder with one landing page
-- each real feature seam has exactly one primary documentation home
-- the docs are linked into the crate-facing documentation surface
-
-### Phase 10: Feature Documentation Delivery Through `feature-doc-writer`
-
-This is the terminal phase of the milestone. The implementation is not complete
-until the shipped surface has been turned into real crate documentation through
-the `feature-doc-writer` skill and added to the crate’s documentation tree in
-the final published shape.
+This is the terminal implementation-delivery phase. The implementation is not
+complete until the shipped surface has been turned into real crate-facing docs
+through the `feature-doc-writer` skill and integrated into the crate’s
+documentation tree in the final published shape.
 
 This phase exists to prevent the common failure mode where the milestone closes
-with good internals and scattered notes, but without a polished, durable
-feature-doc system that future adopters can actually use. The engineer should
-treat this as a product-surface delivery phase, not as optional cleanup.
+with strong internals and readiness artifacts but without a durable
+documentation system that future adopters can actually use. The engineer should
+treat this as product-surface delivery, not optional cleanup.
 
 Work this phase in strict order. First, run the `feature-doc-writer` skill
 against the final shipped Milestone 8 surface rather than against the spec.
@@ -877,7 +916,7 @@ documentation system. For example:
 The exact filenames may evolve, but the governing law does not: docs live in
 folders by category, and each real feature gets one primary document.
 
-Phase 10 is complete only when:
+Phase 8 is complete only when:
 
 - the `feature-doc-writer` skill has been used for the final feature-doc pass
 - the docs live under crate-doc category folders rather than a flat directory
@@ -987,6 +1026,33 @@ proof-bearing wrappers can enforce them:
   one instrumentation engine
 - proof-bearing artifacts may attach Milestone 8 surfaces without moving
   descriptive ownership into `forge-proof`
+
+## Cross-Crate Comparison Non-Goals
+
+Shared vocabulary does not imply shared performance quality.
+
+Milestone 8 comparison law exists to standardize claim meaning and mismatch
+explanation, not to prove that two crates have the same:
+
+- slope
+- constant factors
+- allocation profile
+- planner quality
+- scheduler quality
+- runtime throughput
+- budget envelope
+- operational temperature under one workload
+
+What the milestone may standardize is:
+
+- that two claims mean the same kind of thing
+- that the same work classes are included or excluded
+- that the same evidence strength is or is not present
+- that the same freshness, fallback, and locality posture is or is not present
+
+If two crates share the same canonical performance meaning and still have very
+different cost curves, Milestone 8 is working correctly. Shared vocabulary is
+not a hidden claim of equal speed.
 
 ## Must Preserve
 

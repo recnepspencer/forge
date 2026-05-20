@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/performance/basis/plain_bundle_cannot_satisfy_digest_derivation_api.rs:32:23
+   |
+32 |         .for_sequence(bundle, CanonicalDigestAlgorithmId::test_stable_fixture());
+   |          ------------ ^^^^^^ expected `Artifact<..., ..., ..., ...>`, found `FoundationalPerformanceBundle<...>`
+   |          |
+   |          arguments to this method are incorrect
+   |
+   = note: expected struct `forge_proof::artifact::carrier::Artifact<CanonicalBasisReady, CanonicalBasisSequence, forge_proof::proof::sets::ProofSetCons<forge_proof::proof::sets::Proof<forge_proof::proof::structural_facts::CanonicalOrder, forge_foundational::canonicalization::basis::readiness::proofs::CanonicalBasisConstructionAuthority>, forge_proof::proof::sets::ProofSetCons<forge_proof::proof::sets::Proof<forge_proof::proof::structural_facts::Uniqueness, forge_foundational::canonicalization::basis::readiness::proofs::CanonicalBasisConstructionAuthority>, forge_proof::proof::sets::ProofSetCons<forge_proof::proof::sets::Proof<CanonicalDomainCoherence, forge_foundational::canonicalization::basis::readiness::proofs::CanonicalBasisConstructionAuthority>, forge_proof::proof::sets::ProofSetCons<forge_proof::proof::sets::Proof<CanonicalRuleVersionBound, forge_foundational::canonicalization::basis::readiness::proofs::CanonicalBasisConstructionAuthority>, forge_proof::proof::sets::Proof<CanonicalizationCostObserved, forge_foundational::canonicalization::basis::readiness::proofs::CanonicalBasisConstructionAuthority>>>>>, forge_proof::assumption::freshness::FreshnessScopedBasis<forge_proof::assumption::freshness::CurrentValidity, forge_proof::assumption::basis::AssumptionBasis<CanonicalizationRuleVersion>>>`
+              found struct `FoundationalPerformanceBundle<FoundationalAuthoritativePerformanceClaim>`
+note: method defined here
+  --> src/canonicalization/front_doors/digest.rs
+   |
+   |     pub fn for_sequence(
+   |            ^^^^^^^^^^^^

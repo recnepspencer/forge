@@ -389,6 +389,7 @@ crates/worth-schema/src/data/authority/gateway.rs
 crates/worth-schema/src/data/explanation/mod.rs
 crates/worth-schema/src/data/seed/primitive_corpus.rs
 crates/worth-schema/src/data/tracing/mod.rs
+crates/forge-foundational/src/facade.rs
 crates/worth-topo/src/certification/milestone_two.rs
 crates/worth-topo/src/certification/read_view.rs
 crates/worth-topo/src/certification/report.rs
