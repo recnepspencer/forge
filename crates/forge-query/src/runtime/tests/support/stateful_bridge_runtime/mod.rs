@@ -79,4 +79,18 @@ fn graph_test_support_profile() -> ForgeQueryRuntimeSupportProfile {
         [],
         ["test-write-authority"],
     ))
+    .with_bridge_backed_verification_support(
+        "probe_existing",
+        "direct_entity_identity",
+        true,
+        true,
+        None,
+    )
+    .with_bridge_backed_verification_support(
+        "probe_existing",
+        "direct_relation_identity",
+        true,
+        true,
+        None,
+    )
 }

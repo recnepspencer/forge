@@ -1,3 +1,10 @@
+mod frontier_route_receipt;
+
+pub use self::frontier_route_receipt::{
+    FrontierRouteEvidenceReason, FrontierRouteEvidenceReceipt, FrontierRouteEvidenceReceiptError,
+    FrontierRouteSerialFallbackReason,
+};
+
 use std::collections::BTreeMap;
 use std::fmt;
 #[cfg(feature = "parallel")]

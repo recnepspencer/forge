@@ -1,16 +1,15 @@
-#![cfg_attr(not(test), allow(dead_code))]
-
 use crate::identity::{
     BasisDigest, CanonicalQueryDigest, CounterSnapshotDigest, FailureDigest, LineageDigest,
     ResultDigest,
 };
 
+#[cfg(test)]
+use super::admission::IdentityEvolutionAdmissionError;
+#[cfg(test)]
+use super::execution::IdentityEvolutionExecutionArtifact;
 use super::{
-    admission::IdentityEvolutionAdmissionError,
-    contracts::IdentityEvolutionComplexityStatus,
-    execution::IdentityEvolutionExecutionArtifact,
-    families::IdentityEvolutionOutcomeFamily,
-    metadata::{BranchLocalityClass, IdentityEvolutionMetadata},
+    contracts::IdentityEvolutionComplexityStatus, families::IdentityEvolutionOutcomeFamily,
+    metadata::BranchLocalityClass,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -28,6 +27,7 @@ impl IdentityEvolutionCounterSnapshot {
         &self.counter_snapshot_digest
     }
 
+    #[cfg(test)]
     pub(crate) fn from_execution_artifact(artifact: &IdentityEvolutionExecutionArtifact) -> Self {
         let counters = artifact.counters();
         let exact_counter_values = vec![
@@ -133,6 +133,7 @@ impl IdentityEvolutionCounterSnapshot {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn from_admission_error(error: &IdentityEvolutionAdmissionError) -> Self {
         let exact_counter_values = vec![format!(
             "admission_failure_class:{}",
@@ -145,6 +146,7 @@ impl IdentityEvolutionCounterSnapshot {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn compile_fail(row_name: &'static str) -> Self {
         let exact_counter_values = vec![format!("compile_fail_row:{row_name}")];
         let counter_snapshot_digest = CounterSnapshotDigest::from_parts(&exact_counter_values);
@@ -215,6 +217,7 @@ impl IdentityEvolutionCertificationResultEvidence {
         &self.counter_snapshot
     }
 
+    #[cfg(test)]
     pub(crate) fn from_execution_artifact(artifact: &IdentityEvolutionExecutionArtifact) -> Self {
         let metadata = artifact.result_bundle().metadata();
         let failure_digest = if let Some(result) = artifact.result_bundle().as_ambiguity() {
@@ -227,20 +230,6 @@ impl IdentityEvolutionCertificationResultEvidence {
         } else {
             FailureDigest::from_parts(&[format!("result_digest:{}", artifact.result_digest())])
         };
-        Self::from_parts(
-            metadata,
-            artifact.result_digest().to_string(),
-            failure_digest,
-            IdentityEvolutionCounterSnapshot::from_execution_artifact(artifact),
-        )
-    }
-
-    fn from_parts(
-        metadata: &IdentityEvolutionMetadata,
-        result_digest: String,
-        failure_digest: FailureDigest,
-        counter_snapshot: IdentityEvolutionCounterSnapshot,
-    ) -> Self {
         Self {
             query_digest: metadata.query_digest().clone(),
             basis_digest: metadata.basis_digest().clone(),
@@ -250,12 +239,12 @@ impl IdentityEvolutionCertificationResultEvidence {
                 .complexity_report()
                 .complexity_contract_digest()
                 .clone(),
-            result_digest,
+            result_digest: artifact.result_digest().to_string(),
             failure_digest,
             outcome_family: metadata.outcome_family(),
             branch_locality_class: metadata.branch_locality_class(),
             complexity_status: metadata.complexity_report().status(),
-            counter_snapshot,
+            counter_snapshot: IdentityEvolutionCounterSnapshot::from_execution_artifact(artifact),
         }
     }
 }
@@ -305,6 +294,7 @@ impl IdentityEvolutionCertificationDenialEvidence {
         &self.counter_snapshot
     }
 
+    #[cfg(test)]
     pub(crate) fn from_execution_artifact(artifact: &IdentityEvolutionExecutionArtifact) -> Self {
         let metadata = artifact.result_bundle().metadata();
         let failure_digest = if let Some(result) = artifact.result_bundle().as_denied() {
@@ -329,6 +319,7 @@ impl IdentityEvolutionCertificationDenialEvidence {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn from_admission_error(
         error: &IdentityEvolutionAdmissionError,
         query_digest: &CanonicalQueryDigest,
@@ -361,6 +352,7 @@ impl IdentityEvolutionCertificationDenialEvidence {
         }
     }
 
+    #[cfg(test)]
     pub(crate) fn compile_fail(
         row_name: &'static str,
         query_digest: &CanonicalQueryDigest,

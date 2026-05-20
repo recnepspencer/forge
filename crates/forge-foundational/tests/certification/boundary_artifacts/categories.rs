@@ -27,6 +27,7 @@ fn boundary_artifact_responsibility_home_is_named_in_the_facade_topology() {
             "boundary_artifacts",
             "transitions",
             "diagnostics",
+            "boundary_evidence",
         ]
     );
 }

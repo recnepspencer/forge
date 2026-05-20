@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/lower_runtime_routing/certification/bundle/certification_row_constructor_private.rs:6:53
+  |
+6 |       let _ = ForgeQueryLowerRuntimeCertificationRow::new(
+  |                                                       ^^^ private associated function
+  |
+ ::: src/lower_runtime_routing/certification/closeout_artifacts/bundle_types.rs
+  |
+  | /     pub(crate) fn new(
+  | |         lane: ForgeQueryLowerRuntimeCertificationLane,
+  | |         artifact_digest: impl Into<String>,
+  | |         detail: impl Into<String>,
+  | |         counter_snapshot_digest: impl Into<String>,
+  | |         failure_digest: Option<String>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

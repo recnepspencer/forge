@@ -1,7 +1,8 @@
 use super::inventory::{
     certified_surface_evidence, certified_surfaces, compile_fail_boundaries, cost_counter_evidence,
     fixture_manifest, golden_artifacts, harness_expansion_points, phase_gates,
-    property_seed_evidence, property_seeds, residual_debt, runtime_assumptions,
+    property_seed_evidence, property_seeds, public_surface_compile_fail_path,
+    public_surface_evidence_path, public_surface_inventory, residual_debt, runtime_assumptions,
     runtime_non_assumptions, synthetic_pressures,
 };
 use super::vocabulary::{
@@ -12,6 +13,7 @@ use super::vocabulary::{
     CanonicalResidualDebt, CanonicalRuntimeAssumption, CanonicalRuntimeNonAssumption,
     CanonicalSyntheticRuntimePressure,
 };
+use crate::canonicalization_api::{CanonicalPublicLane, CanonicalPublicSurfaceEntry};
 use std::collections::BTreeSet;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -30,6 +32,9 @@ pub struct CanonicalProductionReadinessReport {
     residual_debt: Vec<CanonicalResidualDebt>,
     phase_gates: Vec<CanonicalPhaseGateEvidence>,
     fixture_manifest: Vec<CanonicalFixtureManifestEvidence>,
+    public_surface_inventory: Vec<CanonicalPublicSurfaceEntry>,
+    public_surface_evidence_path: &'static str,
+    public_surface_compile_fail_path: &'static str,
 }
 
 impl CanonicalProductionReadinessReport {
@@ -49,6 +54,9 @@ impl CanonicalProductionReadinessReport {
             residual_debt: residual_debt(),
             phase_gates: phase_gates(),
             fixture_manifest: fixture_manifest(),
+            public_surface_inventory: public_surface_inventory(),
+            public_surface_evidence_path: public_surface_evidence_path(),
+            public_surface_compile_fail_path: public_surface_compile_fail_path(),
         }
     }
 
@@ -108,6 +116,18 @@ impl CanonicalProductionReadinessReport {
         &self.fixture_manifest
     }
 
+    pub fn public_surface_inventory(&self) -> &[CanonicalPublicSurfaceEntry] {
+        &self.public_surface_inventory
+    }
+
+    pub fn public_surface_evidence_path(&self) -> &'static str {
+        self.public_surface_evidence_path
+    }
+
+    pub fn public_surface_compile_fail_path(&self) -> &'static str {
+        self.public_surface_compile_fail_path
+    }
+
     pub fn passes_readiness_checklist(&self) -> bool {
         self.has_all_certified_surfaces()
             && self.has_certified_surface_evidence()
@@ -122,6 +142,7 @@ impl CanonicalProductionReadinessReport {
             && self.has_named_residual_debt()
             && self.has_harness_expansion_points()
             && self.has_runtime_assumption_boundary()
+            && self.has_exact_public_surface_inventory()
     }
 
     fn has_all_certified_surfaces(&self) -> bool {
@@ -291,6 +312,7 @@ impl CanonicalProductionReadinessReport {
             CanonicalHarnessExpansionPoint::ExportFixtureReplayLane,
             CanonicalHarnessExpansionPoint::DigestSlotHostilityLane,
             CanonicalHarnessExpansionPoint::RuntimeParityRunMatrix,
+            CanonicalHarnessExpansionPoint::GroupedPublicSurfaceLane,
         ]
         .iter()
         .all(|point| self.harness_expansion_points.contains(point))
@@ -308,5 +330,40 @@ impl CanonicalProductionReadinessReport {
             && self.non_assumptions.contains(
                 &CanonicalRuntimeNonAssumption::DigestEqualityAuthorizesSemanticEquivalence,
             )
+    }
+
+    fn has_exact_public_surface_inventory(&self) -> bool {
+        let paths: BTreeSet<_> = self
+            .public_surface_inventory
+            .iter()
+            .map(|entry| entry.path())
+            .collect();
+        let common_path_count = self
+            .public_surface_inventory
+            .iter()
+            .filter(|entry| entry.lane() == CanonicalPublicLane::CommonPath)
+            .count();
+        let stronger_lane_count = self
+            .public_surface_inventory
+            .iter()
+            .filter(|entry| entry.lane() == CanonicalPublicLane::StrongerLane)
+            .count();
+
+        paths
+            == BTreeSet::from([
+                "forge_foundational::canonicalization_api::common_path",
+                "forge_foundational::canonicalization_api::lower_lane::basis",
+                "forge_foundational::canonicalization_api::lower_lane::comparison",
+                "forge_foundational::canonicalization_api::lower_lane::export",
+                "forge_foundational::canonicalization_api::lower_lane::digest",
+                "forge_foundational::canonicalization_api::stronger_lane",
+                "forge_foundational::canonicalization_api::stronger_lane::readiness",
+            ])
+            && self.public_surface_inventory.len() == paths.len()
+            && common_path_count == 1
+            && stronger_lane_count == 2
+            && self.public_surface_inventory.iter().all(|entry| {
+                !entry.teaches().trim().is_empty() && !entry.does_not_hide().trim().is_empty()
+            })
     }
 }

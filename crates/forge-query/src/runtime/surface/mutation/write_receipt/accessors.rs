@@ -2,11 +2,11 @@ use super::ForgeQueryWriteReceipt;
 use crate::memory_workspace::{ForgeQueryMutationDelta, ForgeQueryMutationReceipt};
 use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryAuthorityLane,
-    ForgeQueryContinuityMutationEvidence, ForgeQueryMutationCausalityEvidence,
-    ForgeQueryMutationFamily, ForgeQueryMutationProvenanceEvidence,
-    ForgeQueryMutationTargetEvidence, ForgeQueryNamingMutationEvidence,
-    ForgeQuerySymbolicAspectResolutionEvidence, ForgeQuerySymbolicTargetReference,
-    ForgeQuerySymbolicTargetReferenceEvidence,
+    ForgeQueryContinuityMutationEvidence, ForgeQueryIntentConsumerInspection,
+    ForgeQueryMutationCausalityEvidence, ForgeQueryMutationFamily,
+    ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetEvidence,
+    ForgeQueryNamingMutationEvidence, ForgeQuerySymbolicAspectResolutionEvidence,
+    ForgeQuerySymbolicTargetReference, ForgeQuerySymbolicTargetReferenceEvidence,
 };
 
 impl ForgeQueryWriteReceipt {
@@ -166,6 +166,49 @@ impl ForgeQueryWriteReceipt {
         self.refresh_fallback
     }
 
+    pub fn admission_family(&self) -> Option<&str> {
+        self.execution_provenance
+            .as_ref()
+            .map(|provenance| provenance.family().as_str())
+    }
+
+    pub fn covered_entrypoint_label(&self) -> Option<&str> {
+        self.execution_provenance
+            .as_ref()
+            .map(|provenance| provenance.entrypoint().as_str())
+    }
+
+    pub fn decision_trace_envelope(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryIntentDecisionTraceEnvelope> {
+        self.decision_trace_envelope.as_ref()
+    }
+
+    pub fn execution_provenance(
+        &self,
+    ) -> Option<&crate::runtime::ForgeQueryIntentExecutionProvenance> {
+        self.execution_provenance.as_ref()
+    }
+
+    pub fn execution_provenance_chain_digest(&self) -> Option<&str> {
+        self.execution_provenance.as_ref().map(
+            crate::runtime::ForgeQueryIntentExecutionProvenance::execution_provenance_chain_digest,
+        )
+    }
+
+    pub fn consumer_inspection(&self) -> Option<ForgeQueryIntentConsumerInspection<'_>> {
+        self.decision_trace_envelope
+            .as_ref()
+            .zip(self.execution_provenance.as_ref())
+            .map(|(decision_trace_envelope, execution_provenance)| {
+                ForgeQueryIntentConsumerInspection::from_mutation_receipt(
+                    self.commit_identity(),
+                    execution_provenance,
+                    decision_trace_envelope,
+                )
+            })
+    }
+
     pub fn into_inner(self) -> ForgeQueryMutationReceipt {
         self.inner
     }
@@ -245,6 +288,8 @@ impl ForgeQueryWriteReceipt {
             meaningful_effect_suppression_count: 0,
             effect_expression_failure_count: 0,
             refresh_fallback: false,
+            decision_trace_envelope: None,
+            execution_provenance: None,
         }
     }
 }

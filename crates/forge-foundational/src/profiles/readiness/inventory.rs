@@ -6,6 +6,9 @@ use super::vocabulary::{
     FoundationalProfileResidualDebt, FoundationalProfileRuntimeAssumption,
     FoundationalProfileRuntimeNonAssumption, FoundationalProfileSyntheticRuntimePressure,
 };
+use crate::profiles_api::{
+    profile_public_surface_inventory, FoundationalProfilePublicSurfaceEntry,
+};
 
 pub(super) fn certified_surfaces() -> Vec<FoundationalProfileCertifiedSurface> {
     vec![
@@ -177,4 +180,16 @@ pub(super) fn phase_gates() -> Vec<FoundationalProfilePhaseGateEvidence> {
             "tests/certification/profiles/readiness.rs",
         ),
     ]
+}
+
+pub(super) fn public_surface_inventory() -> Vec<FoundationalProfilePublicSurfaceEntry> {
+    profile_public_surface_inventory().to_vec()
+}
+
+pub(super) const fn public_surface_evidence_path() -> &'static str {
+    "tests/certification/profiles/grouped_surface.rs"
+}
+
+pub(super) const fn public_surface_compile_fail_path() -> &'static str {
+    "tests/ui/profiles/grouped_surface/raw_profile_set_cannot_enter_grouped_common_path_progression.rs"
 }

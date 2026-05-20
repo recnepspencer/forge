@@ -1,6 +1,4 @@
-use super::super::certification::{
-    digest_parts, CanonicalCertificationRow, CertificationMatrix, RejectionCertificationRow,
-};
+use super::super::certification::{digest_parts, CertificationMatrix};
 use crate::planning::{FrontierCounterSnapshot, FrontierParityBundle, PlannedRouteFamily};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd)]
@@ -123,15 +121,6 @@ impl FrontierCertificationRejection {
     }
 }
 
-#[allow(dead_code)]
-pub type FrontierCertificationRow =
-    CanonicalCertificationRow<FrontierPerturbationClass, FrontierCertificationLane>;
-#[allow(dead_code)]
-pub type FrontierRejectionRow = RejectionCertificationRow<
-    FrontierPerturbationClass,
-    FrontierCertificationLane,
-    FrontierCertificationRejection,
->;
 pub type FrontierCertificationMatrix = CertificationMatrix<
     FrontierPerturbationClass,
     FrontierCertificationLane,
@@ -147,18 +136,15 @@ pub struct MilestoneFivePointThreeFrontierCertificationArtifact {
     pub matrix: FrontierCertificationMatrix,
 }
 
-#[allow(dead_code)]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum FrontierCloseoutStatus {
     Satisfied,
-    ExplicitDebt,
 }
 
 impl FrontierCloseoutStatus {
     pub fn as_str(&self) -> &'static str {
         match self {
             Self::Satisfied => "satisfied",
-            Self::ExplicitDebt => "explicit_debt",
         }
     }
 }

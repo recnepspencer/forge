@@ -1,5 +1,3 @@
-#![allow(dead_code)]
-
 use forge_query::facade::{
     CausalInspection, CausalInspectionExplanationFamily, CausalInspectionMaterializationPolicy,
     CausalInspectionRedactionPolicy, CausalInspectionRichness, CausalInspectionSupportRowPosture,
@@ -86,4 +84,20 @@ fn advanced_vocabulary_remains_available() {
     let _ = CausalInspectionExplanationFamily::CrossRuntimeCausalExplanation;
     let _ = CausalInspectionRichness::ReferenceOnly;
     let _ = CausalInspectionSupportRowPosture::Supported;
+}
+
+#[test]
+fn causal_inspection_public_dx_signatures_are_referenced() {
+    let _ = common_path_compiles
+        as fn(
+            QueryObservationReceipt,
+            &RuntimeBridge,
+        ) -> Result<
+            QueryCausalInspectionArtifact,
+            forge_query::facade::CausalInspectionMaterializationError,
+        >;
+    let _ = plan_inspection_compiles as fn(QueryObservationReceipt);
+    let _ = support_discovery_compiles as fn();
+    let _ = artifact_exploration_compiles as fn(QueryCausalInspectionArtifact);
+    let _ = advanced_vocabulary_remains_available as fn();
 }

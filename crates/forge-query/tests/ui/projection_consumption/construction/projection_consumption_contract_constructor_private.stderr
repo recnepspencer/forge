@@ -1,4 +1,4 @@
-error[E0451]: fields `declaration_digest`, `eligibility_digest`, `query_digest`, `basis_digest`, `result_digest`, `canonical_result_shape_digest`, `narrowed_result_shape_digest`, `authorized_projection_identity`, `policy_digest`, `tenant_schema_basis_digest`, `source_family`, `source_posture`, `source_identity`, `source_reference_identities`, `fact_families`, `support_posture` and `contract_digest` of struct `MaterializedProjectionContract` are private
+error[E0451]: fields `declaration_digest`, `eligibility_digest`, `query_digest`, `basis_digest`, `result_digest`, `canonical_result_shape_digest`, `narrowed_result_shape_digest`, `authorized_projection_identity`, `policy_digest`, `tenant_schema_basis_digest`, `source_family`, `source_posture`, `source_identity`, `source_reference_identities`, `fact_families`, `support_posture` and `contract_digest` of struct `forge_query::facade::MaterializedProjectionContract` are private
   --> tests/ui/projection_consumption/construction/projection_consumption_contract_constructor_private.rs:12:9
    |
 11 |     let _ = MaterializedProjectionContract {

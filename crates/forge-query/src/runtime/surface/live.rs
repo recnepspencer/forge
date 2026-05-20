@@ -17,12 +17,23 @@ pub struct ForgeQueryPatchBatch {
     pub derived_patches: Vec<ForgeQueryDerivedPatch>,
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct ForgeQueryLiveView<T = Value> {
     pub(super) handle: ForgeQueryLiveViewHandle,
     pub(super) authority_lane: ForgeQueryAuthorityLane,
     pub(super) subscription_installation: ForgeQueryRuntimeLiveSubscriptionInstallation,
     pub(super) marker: PhantomData<T>,
+}
+
+impl<T> Clone for ForgeQueryLiveView<T> {
+    fn clone(&self) -> Self {
+        Self {
+            handle: self.handle.clone(),
+            authority_lane: self.authority_lane,
+            subscription_installation: self.subscription_installation.clone(),
+            marker: PhantomData,
+        }
+    }
 }
 
 impl<T> ForgeQueryLiveView<T> {

@@ -202,6 +202,9 @@ fn lowered_writeback_execution_runs_through_bridge_authority() {
     let (outcome, receipt) = executed
         .as_writeback()
         .expect("writeback artifact should be present");
+    let execution = executed
+        .writeback_execution()
+        .expect("writeback execution proof should be retained");
     assert_eq!(
         executed.authority_owner(),
         executed.lowered().authority_owner()
@@ -216,6 +219,11 @@ fn lowered_writeback_execution_runs_through_bridge_authority() {
     assert_eq!(
         outcome.authoritative_artifact_digest(),
         receipt.authoritative_artifact_digest()
+    );
+    assert_eq!(execution.outcome().digest(), outcome.digest());
+    assert_eq!(
+        execution.execution_receipt().authority_receipt_digest(),
+        receipt.digest()
     );
     let record = bridge
         .diagnostics()

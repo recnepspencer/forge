@@ -13,11 +13,13 @@ use crate::identity::{
 use crate::identity::{CollectionPlanDigest, ResultDigest};
 use crate::live::LiveQueryPlan;
 use forge_runtime_bridge::facade::{
-    BridgePreviewExecutionRecord, BridgePreviewLifecycleStateKind, BridgePreviewPromotionRecord,
-    BridgePreviewReplayBundle, BridgePreviewSession, BridgePreviewSessionDeclarationIdentity,
-    BridgePreviewSessionIdentity, PreviewActive, PreviewAdmitted, PreviewDeclared,
-    PreviewDiscarded, PreviewExecutionRecordIdentity, PreviewPromoted,
+    BridgePreviewExecutionRecord, BridgePreviewLifecycleStateKind, BridgePreviewSession,
+    BridgePreviewSessionDeclarationIdentity, BridgePreviewSessionIdentity, PreviewActive,
+    PreviewAdmitted, PreviewDeclared, PreviewDiscarded, PreviewExecutionRecordIdentity,
+    PreviewPromoted,
 };
+#[cfg(test)]
+use forge_runtime_bridge::facade::{BridgePreviewPromotionRecord, BridgePreviewReplayBundle};
 
 mod scoped;
 #[cfg(test)]
@@ -612,7 +614,6 @@ impl PreviewLiveCounters {
     }
 
     #[cfg(test)]
-    #[allow(dead_code)]
     pub(crate) fn absorb(&mut self, other: &Self) {
         self.preview_live_admission_count += other.preview_live_admission_count;
         self.preview_live_execution_count += other.preview_live_execution_count;
@@ -1202,42 +1203,42 @@ pub struct ReadOnlyPreviewExecutionEnvelope {
 }
 
 impl ReadOnlyPreviewExecutionEnvelope {
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub fn execution(&self) -> &ExecutionResultEnvelope {
         self.inner.execution()
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub fn basis(&self) -> &PreviewSessionBasis {
         self.inner.binding().basis()
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub fn lifecycle_metadata(&self) -> &PreviewLifecycleMetadata {
         self.inner.binding().lifecycle_metadata()
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub fn comparison_eligibility(&self) -> &PreviewComparisonEligibilityArtifact {
         self.inner.comparison_eligibility()
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub fn workflow_foundation(&self) -> &PreviewWorkflowFoundationArtifact {
         self.inner.workflow_foundation()
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub fn report(&self) -> &PreviewExecutionReport {
         self.inner.report()
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub fn counters(&self) -> &PreviewExecutionCounters {
         self.inner.counters()
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn as_preview_execution(&self) -> &PreviewExecutionEnvelope {
         &self.inner
     }
@@ -1277,7 +1278,6 @@ impl PromotionEligiblePreviewExecutionEnvelope {
         self.inner.counters()
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn as_preview_execution(&self) -> &PreviewExecutionEnvelope {
         &self.inner
     }
@@ -1366,13 +1366,13 @@ impl PreviewSessionQueryContext {
         }
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn with_replay_bundle(mut self, replay_bundle: &BridgePreviewReplayBundle) -> Self {
         self.replay_bundle = Some(PreviewReplaySnapshot::from_bundle(replay_bundle));
         self
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn with_promotion_record(
         mut self,
         promotion_record: &BridgePreviewPromotionRecord,
@@ -1559,6 +1559,7 @@ struct PreviewReplaySnapshot {
 }
 
 impl PreviewReplaySnapshot {
+    #[cfg(test)]
     fn from_bundle(bundle: &BridgePreviewReplayBundle) -> Self {
         Self {
             digest: bundle.digest().to_string(),
@@ -1573,6 +1574,7 @@ struct PreviewPromotionSnapshot {
 }
 
 impl PreviewPromotionSnapshot {
+    #[cfg(test)]
     fn from_record(record: &BridgePreviewPromotionRecord) -> Self {
         Self {
             record_identity: record.record_identity().as_str().to_string(),
@@ -2135,7 +2137,7 @@ impl PromotionParityPreviewComparisonAdmission {
         self.inner.counters()
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn as_preview_comparison(&self) -> &PreviewExecutionComparisonAdmission {
         &self.inner
     }

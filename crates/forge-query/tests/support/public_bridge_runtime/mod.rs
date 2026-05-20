@@ -21,11 +21,7 @@ use self::state::PublicBridgeRuntimeState;
 
 type SharedRuntimeState = Rc<RefCell<PublicBridgeRuntimeState>>;
 
-#[allow(unused_imports)]
-pub use self::profiles::{
-    public_graph_support_profile, public_multi_verified_relation_profile,
-    public_verified_relation_profile,
-};
+pub use self::profiles::public_graph_support_profile;
 
 pub struct PublicBridgeRuntimeHarness {
     state: SharedRuntimeState,

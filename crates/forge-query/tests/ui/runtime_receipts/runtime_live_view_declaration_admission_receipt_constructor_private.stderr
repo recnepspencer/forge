@@ -1,0 +1,13 @@
+error[E0624]: associated function `from_request` is private
+ --> tests/ui/runtime_receipts/runtime_live_view_declaration_admission_receipt_constructor_private.rs:6:50
+  |
+6 |       let _ = LiveViewDeclarationAdmissionReceipt::from_request("tasks.table", &request);
+  |                                                    ^^^^^^^^^^^^ private associated function
+  |
+ ::: src/runtime/backend/receipts.rs
+  |
+  | /     pub(crate) fn from_request(
+  | |         view_name: impl Into<String>,
+  | |         request: &DeclarativeLiveQueryRequest,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

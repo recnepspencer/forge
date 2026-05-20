@@ -8,13 +8,16 @@ warning: unreachable statement
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
 
-error[E0624]: method `with_replay_bundle` is private
+error[E0599]: no method named `with_replay_bundle` found for struct `PreviewSessionQueryContext` in the current scope
   --> tests/ui/preview_diagnostics_rescan_forbidden.rs:16:6
    |
-16 |     .with_replay_bundle(&replay_bundle);
-   |      ^^^^^^^^^^^^^^^^^^ private method
+11 |       let _ = PreviewSessionQueryContext::active(
+   |  _____________-
+12 | |         &session,
+13 | |         &execution_record,
+14 | |         PreviewEvaluationClass::read_only(),
+15 | |     )
+16 | |     .with_replay_bundle(&replay_bundle);
+   | |     -^^^^^^^^^^^^^^^^^^ method not found in `PreviewSessionQueryContext`
+   | |_____|
    |
-  ::: src/preview/mod.rs
-   |
-   |     pub(crate) fn with_replay_bundle(mut self, replay_bundle: &BridgePreviewReplayBundle) -> Self {
-   |     --------------------------------------------------------------------------------------------- private method defined here

@@ -35,6 +35,7 @@ pub struct BridgeWritebackExecutionRecord {
     replay_bundle_digest: Option<Arc<str>>,
     request_digest: Option<Arc<str>>,
     receipt_digest: Option<Arc<str>>,
+    execution_receipt_digest: Option<Arc<str>>,
     failure_class: Option<BridgeWritebackFailureClass>,
     failure_digest: Option<Arc<str>>,
     counters: BridgeWritebackCounters,
@@ -56,13 +57,15 @@ impl BridgeWritebackExecutionRecord {
         replay_bundle: Option<&BridgeWritebackReplayBundle>,
         request: Option<&TruthWritebackRequest>,
         receipt: Option<&TruthWritebackReceipt>,
+        execution_receipt_digest: Option<impl Into<Arc<str>>>,
         failure_class: Option<BridgeWritebackFailureClass>,
         failure_digest: Option<impl Into<Arc<str>>>,
         counters: BridgeWritebackCounters,
     ) -> Self {
+        let execution_receipt_digest = execution_receipt_digest.map(Into::into);
         let failure_digest = failure_digest.map(Into::into);
         let canonical_basis = Arc::<str>::from(format!(
-            "bridge-writeback-execution-record|contract={}|derived-effect={}|proposed-effect={}|family:{:?}|strategy-class:{:?}|causality={}|idempotence={}|loop-prevention={}|strategy-compatibility={}|mapper-record={}|candidate={}|outcome={}|outcome-class={}|replay-bundle={}|request={}|receipt={}|failure-class={}|failure-digest={}|counter-digest={}",
+            "bridge-writeback-execution-record|contract={}|derived-effect={}|proposed-effect={}|family:{:?}|strategy-class:{:?}|causality={}|idempotence={}|loop-prevention={}|strategy-compatibility={}|mapper-record={}|candidate={}|outcome={}|outcome-class={}|replay-bundle={}|request={}|receipt={}|execution-receipt={}|failure-class={}|failure-digest={}|counter-digest={}",
             contract.digest(),
             effect.digest(),
             effect.effect_digest(),
@@ -81,6 +84,7 @@ impl BridgeWritebackExecutionRecord {
             replay_bundle.map_or("none", BridgeWritebackReplayBundle::digest),
             request.map_or("none", TruthWritebackRequest::digest),
             receipt.map_or("none", TruthWritebackReceipt::digest),
+            execution_receipt_digest.as_deref().unwrap_or("none"),
             failure_class
                 .map(|value| format!("{value:?}"))
                 .unwrap_or_else(|| "none".to_string()),
@@ -109,6 +113,7 @@ impl BridgeWritebackExecutionRecord {
             replay_bundle_digest: replay_bundle.map(|value| Arc::from(value.digest().to_owned())),
             request_digest: request.map(|value| Arc::from(value.digest().to_owned())),
             receipt_digest: receipt.map(|value| Arc::from(value.digest().to_owned())),
+            execution_receipt_digest,
             failure_class,
             failure_digest,
             counters,
@@ -187,6 +192,10 @@ impl BridgeWritebackExecutionRecord {
         self.receipt_digest.as_deref()
     }
 
+    pub fn execution_receipt_digest(&self) -> Option<&str> {
+        self.execution_receipt_digest.as_deref()
+    }
+
     pub fn failure_class(&self) -> Option<BridgeWritebackFailureClass> {
         self.failure_class
     }
@@ -205,5 +214,70 @@ impl BridgeWritebackExecutionRecord {
 
     pub fn digest(&self) -> &str {
         self.digest.as_ref()
+    }
+
+    pub fn with_execution_receipt_digest(
+        &self,
+        execution_receipt_digest: impl Into<Arc<str>>,
+    ) -> Self {
+        let execution_receipt_digest = execution_receipt_digest.into();
+        let canonical_basis = Arc::<str>::from(format!(
+            "bridge-writeback-execution-record|contract={}|derived-effect={}|proposed-effect={}|family:{:?}|strategy-class:{:?}|causality={}|idempotence={}|loop-prevention={}|strategy-compatibility={}|mapper-record={}|candidate={}|outcome={}|outcome-class={}|replay-bundle={}|request={}|receipt={}|execution-receipt={}|failure-class={}|failure-digest={}|counter-digest={}",
+            self.contract_digest.as_ref(),
+            self.derived_effect_digest.as_ref(),
+            self.proposed_effect_digest.as_ref(),
+            self.family_kind,
+            self.strategy_class,
+            self.causality_digest.as_ref(),
+            self.idempotence_digest.as_ref(),
+            self.loop_prevention_digest.as_ref(),
+            self.strategy_compatibility_digest.as_ref(),
+            self.mapper_record_digest.as_deref().unwrap_or("none"),
+            self.candidate_digest.as_deref().unwrap_or("none"),
+            self.outcome_digest.as_deref().unwrap_or("none"),
+            self.outcome_class
+                .map(|value| format!("{value:?}"))
+                .unwrap_or_else(|| "none".to_string()),
+            self.replay_bundle_digest.as_deref().unwrap_or("none"),
+            self.request_digest.as_deref().unwrap_or("none"),
+            self.receipt_digest.as_deref().unwrap_or("none"),
+            execution_receipt_digest.as_ref(),
+            self.failure_class
+                .map(|value| format!("{value:?}"))
+                .unwrap_or_else(|| "none".to_string()),
+            self.failure_digest.as_deref().unwrap_or("none"),
+            self.counters.digest(),
+        ));
+        let digest = Sha256::digest(canonical_basis.as_bytes());
+
+        Self {
+            record_identity: BridgeWritebackExecutionRecordIdentity::new(format!(
+                "bridge-writeback-execution-record:sha256:{digest:x}"
+            )),
+            contract_digest: Arc::clone(&self.contract_digest),
+            derived_effect_digest: Arc::clone(&self.derived_effect_digest),
+            proposed_effect_digest: Arc::clone(&self.proposed_effect_digest),
+            family_kind: self.family_kind,
+            strategy_class: self.strategy_class,
+            causality_digest: Arc::clone(&self.causality_digest),
+            idempotence_digest: Arc::clone(&self.idempotence_digest),
+            loop_prevention_digest: Arc::clone(&self.loop_prevention_digest),
+            strategy_compatibility_digest: Arc::clone(&self.strategy_compatibility_digest),
+            mapper_record_digest: self.mapper_record_digest.clone(),
+            candidate_digest: self.candidate_digest.clone(),
+            outcome_digest: self.outcome_digest.clone(),
+            outcome_class: self.outcome_class,
+            replay_bundle_digest: self.replay_bundle_digest.clone(),
+            request_digest: self.request_digest.clone(),
+            receipt_digest: self.receipt_digest.clone(),
+            execution_receipt_digest: Some(execution_receipt_digest),
+            failure_class: self.failure_class,
+            failure_digest: self.failure_digest.clone(),
+            counters: self.counters.clone(),
+            canonical_basis,
+            digest: Arc::from(format!(
+                "bridge-writeback-execution-record:sha256:{digest:x}"
+            )),
+        }
     }
 }

@@ -1,4 +1,6 @@
-use forge_query::facade::{ForgeQueryBatchWriteReceipt, ForgeQueryMutationBatchBuilder};
+use forge_query::facade::{
+    ForgeQueryAuthorityLane, ForgeQueryBatchWriteReceipt, ForgeQueryMutationBatchBuilder,
+};
 
 fn main() {
     let _ = ForgeQueryMutationBatchBuilder {
@@ -8,7 +10,7 @@ fn main() {
 
     let _ = ForgeQueryBatchWriteReceipt {
         write_receipts: Vec::new(),
-        authority_lane: panic!("not constructible"),
+        authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
         batch_digest: String::new(),
         touched_aspect_paths: Vec::new(),
         affected_live_view_ids: Vec::new(),

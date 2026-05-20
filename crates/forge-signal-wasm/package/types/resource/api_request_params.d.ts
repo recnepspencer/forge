@@ -24,6 +24,10 @@ import type {
   ApiFamilyDeliveryHelpers,
   ApiFamilyPatchHelpers,
 } from "./api_family_helper_types.js";
+export type {
+  ApiFamilyDeliveryHelpers,
+  ApiFamilyPatchHelpers,
+} from "./api_family_helper_types.js";
 import type {
   InvalidateResourceDelivery,
   ResourceCollectionShape,

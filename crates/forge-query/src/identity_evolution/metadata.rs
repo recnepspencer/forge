@@ -69,7 +69,6 @@ impl IdentityEvolutionComplexityReport {
         &self.complexity_contract_digest
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn from_contract(contract: IdentityEvolutionComplexityContract) -> Self {
         let status = contract.verified_or_debt_status();
         let measured_work_basis = contract.measured_work_basis();
@@ -151,7 +150,6 @@ impl IdentityEvolutionMetadata {
     }
 
     #[allow(clippy::too_many_arguments)]
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn from_parts(
         query_digest: CanonicalQueryDigest,
         basis_digest: BasisDigest,

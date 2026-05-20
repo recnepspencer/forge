@@ -80,17 +80,33 @@ pub fn require_milestone1_production_test_readiness(
 fn milestone1_report_passes_production_test_readiness(
     report: &Milestone1MigrationReadinessReport,
 ) -> bool {
-    report.public_api().len() == 8
-        && report.proof_seeds().len() == 8
+    report.public_api().len() == 10
+        && report.proof_seeds().len() == 10
         && report.compatibility_debt().len() == 1
         && report
             .public_api()
             .iter()
             .any(|surface| surface.name() == "compatibility_bridges")
         && report
+            .public_api()
+            .iter()
+            .any(|surface| surface.name() == "aspect_common_path")
+        && report
+            .public_api()
+            .iter()
+            .any(|surface| surface.name() == "compatibility_common_path")
+        && report
             .proof_seeds()
             .iter()
             .any(|seed| seed.name() == "digest_preparation_readiness")
+        && report
+            .proof_seeds()
+            .iter()
+            .any(|seed| seed.name() == "aspect_common_path_front_doors")
+        && report
+            .proof_seeds()
+            .iter()
+            .any(|seed| seed.name() == "compatibility_common_path_front_doors")
         && report.proof_seeds().iter().all(|seed| {
             seed.evidence().contains("certification/") || seed.evidence().contains("ui/")
         })

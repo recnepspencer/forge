@@ -9,7 +9,11 @@ impl ForgeQueryRuntime {
         &self,
         review: crate::intent_admission::dx::ForgeQueryRuntimeIntentAdmissionReviewData,
     ) -> Result<ForgeQueryAuthoritativeIntentExecutionHandoff, ForgeQueryRuntimeError> {
-        let declaration = review.request().declaration().clone();
+        let declaration = review
+            .request()
+            .runtime_declaration()
+            .expect("authoritative runtime phase-three review must preserve declaration")
+            .clone();
         let non_admitted_trace = review.decision_trace_envelope().cloned();
         match review.decision().clone() {
             ForgeQueryIntentAdmissionDecision::Admitted(
@@ -20,7 +24,19 @@ impl ForgeQueryRuntime {
                 ),
             ),
             ForgeQueryIntentAdmissionDecision::Admitted(
-                crate::intent_admission::ForgeQueryAdmittedIntentPlan::EffectTriggered(_),
+                crate::intent_admission::ForgeQueryAdmittedIntentPlan::EffectTriggered(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::AuthoritativeMutation(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::AuthoritativeMutationBatch(
+                    _,
+                )
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::ReadExecution(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::LiveReadExecution(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::DerivedMaterialization(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::DerivedInspection(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::UnifiedInspection(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::ExistingTruthProbeRouting(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::BasisObservation(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::ProjectionConsumption(_),
             ) => Err(self.intent_violation_error(
                 &declaration,
                 phase_three_family_violation(
@@ -48,7 +64,11 @@ impl ForgeQueryRuntime {
         &self,
         review: crate::intent_admission::dx::ForgeQueryRuntimeIntentAdmissionReviewData,
     ) -> Result<ForgeQueryEffectTriggeredIntentExecutionHandoff, ForgeQueryRuntimeError> {
-        let declaration = review.request().declaration().clone();
+        let declaration = review
+            .request()
+            .runtime_declaration()
+            .expect("effect runtime phase-three review must preserve declaration")
+            .clone();
         let non_admitted_trace = review.decision_trace_envelope().cloned();
         match review.decision().clone() {
             ForgeQueryIntentAdmissionDecision::Admitted(
@@ -59,7 +79,19 @@ impl ForgeQueryRuntime {
                 ),
             ),
             ForgeQueryIntentAdmissionDecision::Admitted(
-                crate::intent_admission::ForgeQueryAdmittedIntentPlan::Authoritative(_),
+                crate::intent_admission::ForgeQueryAdmittedIntentPlan::Authoritative(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::AuthoritativeMutation(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::AuthoritativeMutationBatch(
+                    _,
+                )
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::ReadExecution(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::LiveReadExecution(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::DerivedMaterialization(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::DerivedInspection(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::UnifiedInspection(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::ExistingTruthProbeRouting(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::BasisObservation(_)
+                | crate::intent_admission::ForgeQueryAdmittedIntentPlan::ProjectionConsumption(_),
             ) => Err(self.intent_violation_error(
                 &declaration,
                 phase_three_family_violation(

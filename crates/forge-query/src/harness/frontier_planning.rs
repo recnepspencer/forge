@@ -17,13 +17,12 @@ use crate::planning::{
 };
 use forge_signal::facade::adapters::{
     FrontierEntryClassification, FrontierExecutionCounters, FrontierExecutionSummary,
-    FrontierInclusionBasis, FrontierPlan, FrontierPredictedCounters, FrontierSeedCause,
-    FrontierWaveEntryPlan, FrontierWaveEntrySummary, FrontierWavePlan, FrontierWaveSummary,
-    InvalidationSeed, InvalidationSeedBatch, PartitionScopeSet, TouchedScopeSummary,
+    FrontierInclusionBasis, FrontierPlan, FrontierPredictedCounters, FrontierRouteEvidenceReason,
+    FrontierRouteEvidenceReceipt, FrontierSeedCause, FrontierWaveEntryPlan,
+    FrontierWaveEntrySummary, FrontierWavePlan, FrontierWaveSummary, InvalidationSeed,
+    InvalidationSeedBatch, PartitionScopeSet, TouchedScopeSummary,
 };
-use forge_signal::facade::specialist::{
-    EvaluationOutput, ParallelAdmissionReason, RunMode, StageExecutionOutcome, StageExecutionRecord,
-};
+use forge_signal::facade::specialist::{EvaluationOutput, RunMode};
 use forge_signal::facade::{
     Aspect, AspectVersion, NodeId, PartitionSubscription, SignalError, SignalGraph,
 };
@@ -569,13 +568,14 @@ fn signal_stage_record_admitted_reason_maps_to_parallel_route_evidence() {
     let signal_surface = SignalFrontierSurfaceEvidence::from_frontier_execution_summary(
         &sample_signal_frontier_summary(),
     );
-    let stage =
-        sample_stage_execution_record(ParallelAdmissionReason::AdmittedProofSafeGroupedConcurrent);
+    let stage = sample_stage_execution_record(
+        FrontierRouteEvidenceReason::AdmittedProofSafeGroupedConcurrent,
+    );
     let evidence = signal_surface.to_parallel_admission_evidence(
         preflight.basis().proof().digest().as_str(),
         FrontierDisjointnessClass::CollectionWindowSurface,
     );
-    assert!(stage.parallel_admission_reason.is_some());
+    assert!(stage.is_parallel_admitted());
 
     let route = lower_preflight_to_parallel_admission_route(&admitted, &evidence)
         .expect("admitted stage evidence should admit the query route");
@@ -621,23 +621,23 @@ fn signal_stage_record_preserves_specific_serial_admission_reasons() {
 
     let cases = [
         (
-            ParallelAdmissionReason::BelowMinStageWidth,
+            FrontierRouteEvidenceReason::BelowMinStageWidth,
             SerialFallbackReason::BelowMinStageWidth,
         ),
         (
-            ParallelAdmissionReason::BelowPolicyWorkThreshold,
+            FrontierRouteEvidenceReason::BelowPolicyWorkThreshold,
             SerialFallbackReason::BelowPolicyWorkThreshold,
         ),
         (
-            ParallelAdmissionReason::ValidationHeavyStage,
+            FrontierRouteEvidenceReason::ValidationHeavyStage,
             SerialFallbackReason::ValidationHeavyStage,
         ),
         (
-            ParallelAdmissionReason::BelowFullParallelThreshold,
+            FrontierRouteEvidenceReason::BelowFullParallelThreshold,
             SerialFallbackReason::BelowFullParallelThreshold,
         ),
         (
-            ParallelAdmissionReason::FullParallelUnsupportedByMutableEngine,
+            FrontierRouteEvidenceReason::FullParallelUnsupportedByMutableEngine,
             SerialFallbackReason::FullParallelUnsupportedByMutableEngine,
         ),
     ];
@@ -941,24 +941,13 @@ fn sample_signal_frontier_summary() -> FrontierExecutionSummary {
     )
 }
 
-fn sample_stage_execution_record(reason: ParallelAdmissionReason) -> StageExecutionRecord {
-    StageExecutionRecord {
-        stage_index: 0,
-        outcome: StageExecutionOutcome::CompletedSerial,
-        authority_policy: None,
-        parallel_admission_reason: Some(reason),
-        snapshot_duration_nanos: 0,
-        precompute_duration_nanos: 0,
-        apply_duration_nanos: 0,
-        semantic_finalize_duration_nanos: 0,
-        duration_nanos: 0,
-        semantic_task_range: None,
-        semantic_segment_count: 0,
-        task_records: Vec::new(),
-    }
+fn sample_stage_execution_record(
+    reason: FrontierRouteEvidenceReason,
+) -> FrontierRouteEvidenceReceipt {
+    FrontierRouteEvidenceReceipt::from_reason(reason)
 }
 
-fn runtime_signal_stage_execution_record() -> StageExecutionRecord {
+fn runtime_signal_stage_execution_record() -> FrontierRouteEvidenceReceipt {
     let mut graph = SignalGraph::new();
     let node = graph.node().build();
     let bootstrap = graph
@@ -981,11 +970,13 @@ fn runtime_signal_stage_execution_record() -> StageExecutionRecord {
         })
         .expect("runtime plan should execute");
 
-    report
-        .stages
-        .into_iter()
-        .next()
-        .expect("runtime execution report should record one stage")
+    FrontierRouteEvidenceReceipt::from_stage_execution_record(
+        report
+            .stages
+            .first()
+            .expect("runtime execution report should record one stage"),
+    )
+    .expect("runtime stage record should lower into a signal facade route receipt")
 }
 
 fn signal_version(revision: u64) -> AspectVersion {

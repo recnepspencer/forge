@@ -20,6 +20,7 @@ fn facade_exposes_named_responsibility_topology() {
             "boundary_artifacts",
             "transitions",
             "diagnostics",
+            "boundary_evidence",
         ]
     );
 

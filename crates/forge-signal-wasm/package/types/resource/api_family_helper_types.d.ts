@@ -85,7 +85,7 @@ type ApiFamilyPatchSummaryHelper<
   TValue,
   TItem,
   TReconcile,
-  TFamilyKind extends "collection" | "paged",
+  TFamilyKind extends "detail" | "collection" | "paged",
 > = [ApiFamilyPatchSummaryNames<TValue, TReconcile, TFamilyKind>] extends [never]
   ? {}
   : {
@@ -193,7 +193,7 @@ type ApiFamilyDeliveryItemHelper<
   TValue,
   TItem,
   TReconcile,
-  TFamilyKind extends "collection" | "paged",
+  TFamilyKind extends "detail" | "collection" | "paged",
 > = [TReconcile] extends [
   ResourceCollectionShape<any, TItem, any, any>,
 ]
@@ -223,7 +223,7 @@ type ApiFamilyDeliveryAspectHelper<
   TValue,
   TItem,
   TReconcile,
-  TFamilyKind extends "collection" | "paged",
+  TFamilyKind extends "detail" | "collection" | "paged",
 > = [ApiFamilyPatchAspectNames<TItem, TReconcile>] extends [never]
   ? {}
   : {
@@ -242,7 +242,7 @@ type ApiFamilyDeliverySummaryHelper<
   TValue,
   TItem,
   TReconcile,
-  TFamilyKind extends "collection" | "paged",
+  TFamilyKind extends "detail" | "collection" | "paged",
 > = [ApiFamilyPatchSummaryNames<TValue, TReconcile, TFamilyKind>] extends [never]
   ? {}
   : {

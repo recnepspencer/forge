@@ -208,11 +208,16 @@ pub use crate::effect_lifecycle::{
     LoweredRelationalMutationBatchExecutionArtifact, NormalizedEffectIntent, RawEffectIntent,
     RebindRequiredEffectEligibility, RelationalExecutionOracle, SelfDescribingEffectEnvelope,
 };
+#[cfg(test)]
+pub use crate::execution::{execute_parallel_admission_route, execute_serial_fallback_route};
 pub use crate::execution::{
-    execute_parallel_admission_route, execute_preflight_bundle, execute_serial_fallback_route,
-    ExecutionCounters, ExecutionError, ExecutionFailureClass, ExecutionReport,
-    ExecutionResultEnvelope,
+    execute_preflight_bundle, ExecutionCounters, ExecutionError, ExecutionFailureClass,
+    ExecutionReport, ExecutionResultEnvelope,
 };
+#[cfg(not(test))]
+pub use crate::frontier_planning::FrontierSurfaceDigest;
+#[cfg(test)]
+#[allow(unused_imports)]
 pub use crate::frontier_planning::{
     BoundedMaterializationFrontierPreflight, FrontierAwarePlan, FrontierBreadthPrediction,
     FrontierBundleRoutePlanningError, FrontierComplexityContract, FrontierCounterSnapshot,
@@ -271,6 +276,12 @@ pub use crate::identity_evolution::{
     IdentityEvolutionSupportProfile, InspectorIdentityArtifact, InspectorIdentityClassification,
     InspectorIdentityDigest, LineageTraversalDescriptor, LineageTraversalFamily,
     PluralIdentitySuccessorSet, PromotionOrMergeAuthorityState, SingularIdentityContinuityResult,
+};
+pub use crate::intent_admission::{
+    forge_query_basis_observation_intent, forge_query_projection_consumption_intent,
+    ForgeQueryBasisObservationAdmittedIntent, ForgeQueryBasisObservationIntentAuthoring,
+    ForgeQueryBasisObservationIntentReview, ForgeQueryProjectionConsumptionAdmittedIntent,
+    ForgeQueryProjectionConsumptionIntentAuthoring, ForgeQueryProjectionConsumptionIntentReview,
 };
 pub use crate::live::{
     admit_region_scoped_live_plan, build_milestone_five_live_artifact, execute_live_change,

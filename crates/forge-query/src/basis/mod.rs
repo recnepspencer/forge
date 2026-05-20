@@ -39,16 +39,6 @@ pub enum BasisResolutionMode {
     StoreDirect,
 }
 
-impl BasisResolutionMode {
-    #[allow(dead_code)]
-    pub(crate) fn as_str(&self) -> &'static str {
-        match self {
-            Self::RuntimeDirect => "runtime_direct",
-            Self::StoreDirect => "store_direct",
-        }
-    }
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ExecutionBasisIntent {
     authority_family: BasisAuthorityFamily,
@@ -92,7 +82,6 @@ pub struct ResolvedSnapshotIdentity {
 }
 
 impl ResolvedSnapshotIdentity {
-    #[allow(dead_code)]
     pub(crate) fn new(
         authority_family: BasisAuthorityFamily,
         workspace_scope: Option<String>,

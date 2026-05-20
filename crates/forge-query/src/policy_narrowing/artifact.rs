@@ -231,7 +231,7 @@ pub struct SavedPolicyNarrowingReuseDescriptor {
 
 impl SavedPolicyNarrowingReuseDescriptor {
     #[allow(clippy::too_many_arguments)]
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn new(
         saved_query_digest: impl Into<String>,
         prior_narrowed_artifact_digest: impl Into<String>,

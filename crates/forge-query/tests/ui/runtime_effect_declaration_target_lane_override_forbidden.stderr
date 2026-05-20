@@ -1,13 +1,11 @@
-error[E0624]: method `with_target_lane` is private
+error[E0599]: no method named `with_target_lane` found for struct `ForgeQueryEffectDeclaration` in the current scope
   --> tests/ui/runtime_effect_declaration_target_lane_override_forbidden.rs:15:25
    |
-15 |       let _ = declaration.with_target_lane(ForgeQueryAuthorityLane::AuthoritativeTruth);
-   |                           ^^^^^^^^^^^^^^^^ private method
+15 |     let _ = declaration.with_target_lane(ForgeQueryAuthorityLane::AuthoritativeTruth);
+   |                         ^^^^^^^^^^^^^^^^
    |
-  ::: src/runtime/effect/declaration.rs
+help: there is a method `target_lane` with a similar name, but with different arguments
+  --> src/runtime/effect/declaration.rs
    |
-   | /     pub(in crate::runtime) fn with_target_lane(
-   | |         mut self,
-   | |         target_lane: ForgeQueryAuthorityLane,
-   | |     ) -> Self {
-   | |_____________- private method defined here
+   |     pub fn target_lane(&self) -> ForgeQueryAuthorityLane {
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

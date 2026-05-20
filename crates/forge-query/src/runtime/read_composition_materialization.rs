@@ -8,6 +8,7 @@ use crate::runtime::{
     ForgeQueryReadBuiltInOperator, ForgeQueryReadDenial, ForgeQueryReadDenialKind,
     ForgeQueryReadGraph, ForgeQueryRuntime,
 };
+use crate::schema_view::QuerySchemaView;
 
 pub(in crate::runtime) fn materialize_read_rows(
     runtime: &mut ForgeQueryRuntime,
@@ -55,35 +56,73 @@ fn ensure_materialized_read_view(
     read_graph: &ForgeQueryReadGraph,
 ) -> Result<(), ForgeQueryReadDenial> {
     let request = read_graph.declarative_request();
-    if let Some(existing) = runtime.materialized_read_views.get(view_name) {
+    ensure_materialized_read_view_name_available(
+        &runtime.materialized_read_views,
+        view_name,
+        request,
+    )?;
+    admit_materialized_read_view(runtime, view_name, request, read_graph.schema_view())?;
+    declare_materialized_read_view(runtime, view_name, request, read_graph.schema_view())
+}
+
+fn ensure_materialized_read_view_name_available(
+    materialized_read_views: &BTreeMap<String, DeclarativeLiveQueryRequest>,
+    view_name: &str,
+    request: &DeclarativeLiveQueryRequest,
+) -> Result<(), ForgeQueryReadDenial> {
+    if let Some(existing) = materialized_read_views.get(view_name) {
         if existing != request {
             return Err(ForgeQueryReadDenial::new(
                 ForgeQueryReadDenialKind::ExecutionDenied,
                 "materialized read view name collision with mismatched declarative request",
             ));
         }
+    }
+    Ok(())
+}
+
+fn admit_materialized_read_view(
+    runtime: &ForgeQueryRuntime,
+    view_name: &str,
+    request: &DeclarativeLiveQueryRequest,
+    schema_view: &QuerySchemaView,
+) -> Result<(), ForgeQueryReadDenial> {
+    let admission_receipt = runtime
+        .backend
+        .admit_live_view_declaration(view_name, request, schema_view)
+        .map_err(execution_denial_from_workspace_error)?;
+    if let Some(message) = admission_receipt.drift_from_request(view_name, request) {
+        return Err(ForgeQueryReadDenial::new(
+            ForgeQueryReadDenialKind::ExecutionDenied,
+            message,
+        ));
+    }
+    Ok(())
+}
+
+fn declare_materialized_read_view(
+    runtime: &mut ForgeQueryRuntime,
+    view_name: &str,
+    request: &DeclarativeLiveQueryRequest,
+    schema_view: &QuerySchemaView,
+) -> Result<(), ForgeQueryReadDenial> {
+    if runtime.materialized_read_views.contains_key(view_name) {
         return Ok(());
     }
     runtime
         .backend
-        .admit_live_view_declaration(view_name, request, read_graph.schema_view())
-        .map_err(|error| {
-            ForgeQueryReadDenial::new(ForgeQueryReadDenialKind::ExecutionDenied, error.to_string())
-        })?;
-    runtime
-        .backend
-        .declare_live_view(
-            view_name.to_string(),
-            request.clone(),
-            read_graph.schema_view().clone(),
-        )
-        .map_err(|error| {
-            ForgeQueryReadDenial::new(ForgeQueryReadDenialKind::ExecutionDenied, error.to_string())
-        })?;
+        .declare_live_view(view_name.to_string(), request.clone(), schema_view.clone())
+        .map_err(execution_denial_from_workspace_error)?;
     runtime
         .materialized_read_views
         .insert(view_name.to_string(), request.clone());
     Ok(())
+}
+
+fn execution_denial_from_workspace_error(
+    error: crate::memory_workspace::ForgeQueryWorkspaceError,
+) -> ForgeQueryReadDenial {
+    ForgeQueryReadDenial::new(ForgeQueryReadDenialKind::ExecutionDenied, error.to_string())
 }
 
 fn materialize_rows_from_request(

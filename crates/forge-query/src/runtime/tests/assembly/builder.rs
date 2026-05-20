@@ -175,10 +175,7 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
             .activation_input_count(),
         1
     );
-    assert!(view
-        .subscription_installation()
-        .support_evidence()
-        .starts_with("test-subscription-activation:external.tasks:"));
+    assert!(view.subscription_installation().support_evidence() == "test-subscription-activation");
     assert!(!view
         .subscription_installation()
         .active_lane_digest()

@@ -1,5 +1,7 @@
 mod certification_posture;
 mod composition;
+mod front_doors;
+mod grouped_surface;
 mod identity_and_difference;
 mod materialization;
 mod progression_and_attachment;

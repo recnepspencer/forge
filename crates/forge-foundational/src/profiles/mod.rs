@@ -3,6 +3,7 @@ mod certification;
 mod composition;
 mod difference;
 mod families;
+mod front_doors;
 mod identity;
 mod materialization;
 mod progression;
@@ -50,6 +51,13 @@ pub use difference::{
 pub use families::{
     AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
     DiagnosticRichnessProfile, RetentionDeliveryProfile, SupportPostureProfile,
+};
+pub use front_doors::{
+    profiles, FoundationalProfileAttachmentFrontDoor, FoundationalProfileCertificationFrontDoor,
+    FoundationalProfileFrontDoorConstructionDenial, FoundationalProfileFrontDoorFamily,
+    FoundationalProfileMaterializationFrontDoor, FoundationalProfileProgressionFrontDoor,
+    FoundationalProfileSetFrontDoor, MaterializedBoundaryArtifactStep,
+    MaterializedProofBearingArtifactStep, MaterializedSupportArtifactStep, ProfilesFrontDoor,
 };
 pub use identity::{
     classify_foundational_profile_compatibility, compare_foundational_profile_identities,

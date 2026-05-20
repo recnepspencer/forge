@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/lower_runtime_routing/certification/phase_manifest/phase_manifest_row_constructor_private.rs:6:53
+  |
+6 |       let _ = ForgeQueryLowerRuntimePhaseManifestRow::new(
+  |                                                       ^^^ private associated function
+  |
+ ::: src/lower_runtime_routing/certification/phase_manifest/mod.rs
+  |
+  | /     fn new(
+  | |         artifact: ForgeQueryLowerRuntimePhaseArtifact,
+  | |         producer: &'static str,
+  | |         required_input: &'static str,
+  | |         next_consumer: &'static str,
+  | |         enforcement_proof: &'static str,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

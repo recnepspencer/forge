@@ -355,7 +355,6 @@ fn json_value_digest(value: &Value) -> String {
     value.to_string()
 }
 
-#[allow(dead_code)]
 fn _keep_target_class_used(
     target_class: ForgeQueryMutationTargetClass,
 ) -> ForgeQueryMutationTargetClass {

@@ -22,7 +22,6 @@ pub type TypedCollectionQueryBuilder<S> = TypedQueryBuilder<S, TypedCollectionFa
 pub type TypedCollectionResultShape<S> = TypedAuthoredResultShape<S, TypedCollectionFamily>;
 pub type TypedCollectionResultShapeBuilder<S> = TypedResultShapeBuilder<S, TypedCollectionFamily>;
 
-#[allow(dead_code)]
 fn _type_check_collection_aliases<S: TypedSchemaRoot>(
     query: TypedCollectionQuery<S>,
     result_shape: TypedCollectionResultShape<S>,

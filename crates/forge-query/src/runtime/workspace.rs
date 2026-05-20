@@ -227,7 +227,21 @@ impl ForgeQueryWorkspace {
         &mut self,
         command: ForgeQueryWriteCommand,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        self.runtime.write(command)
+        self.write_intent(command).execute()
+    }
+
+    pub fn write_intent(
+        &mut self,
+        command: ForgeQueryWriteCommand,
+    ) -> crate::intent_admission::ForgeQueryRuntimeWriteIntentAuthoring<'_> {
+        self.runtime.write_intent(command)
+    }
+
+    pub fn write_batch_intent(
+        &mut self,
+        commands: Vec<ForgeQueryWriteCommand>,
+    ) -> crate::intent_admission::ForgeQueryRuntimeWriteBatchIntentAuthoring<'_> {
+        self.runtime.write_batch_intent(commands)
     }
 
     pub fn insert(
@@ -237,7 +251,7 @@ impl ForgeQueryWorkspace {
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         let command =
             declaration(ForgeQueryAspectMutationBuilder::new()).build_insert(collection)?;
-        self.runtime.write(command)
+        self.write(command)
     }
 
     pub fn update(
@@ -247,7 +261,7 @@ impl ForgeQueryWorkspace {
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         let command =
             declaration(ForgeQueryAspectMutationBuilder::new()).build_update(entity_identity)?;
-        self.runtime.write(command)
+        self.write(command)
     }
 
     pub fn bind_existing_entity(
@@ -277,11 +291,22 @@ impl ForgeQueryWorkspace {
         I: IntoIterator<Item = S>,
         S: Into<String>,
     {
-        self.runtime
-            .probe_existing(super::ForgeQueryExistingTruthProbeRequest::new(
+        Ok(self
+            .runtime
+            .probe_existing_intent(super::ForgeQueryExistingTruthProbeRequest::new(
                 binding,
                 aspect_paths,
             )?)
+            .execute()?
+            .probe()
+            .clone())
+    }
+
+    pub fn probe_existing_intent(
+        &self,
+        request: super::ForgeQueryExistingTruthProbeRequest,
+    ) -> crate::intent_admission::ForgeQueryRuntimeExistingTruthProbeIntentAuthoring<'_> {
+        self.runtime.probe_existing_intent(request)
     }
 
     pub fn update_existing(
@@ -291,7 +316,7 @@ impl ForgeQueryWorkspace {
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         let command =
             declaration(ForgeQueryAspectMutationBuilder::new()).build_update_existing(binding)?;
-        self.runtime.write(command)
+        self.write(command)
     }
 
     pub fn assert_existing(
@@ -301,7 +326,7 @@ impl ForgeQueryWorkspace {
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         let command =
             declaration(ForgeQueryAspectMutationBuilder::new()).build_assert_existing(binding)?;
-        self.runtime.write(command)
+        self.write(command)
     }
 
     pub fn verify_existing(
@@ -311,7 +336,7 @@ impl ForgeQueryWorkspace {
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         let command =
             declaration(ForgeQueryAspectMutationBuilder::new()).build_verify_existing(binding)?;
-        self.runtime.write(command)
+        self.write(command)
     }
 
     pub fn update_existing_verified(
@@ -324,14 +349,14 @@ impl ForgeQueryWorkspace {
             .finish_existing_truth_verification_aspects("backend-verified existing-truth update")?;
         let command = update(ForgeQueryAspectMutationBuilder::new())
             .build_update_existing_verified(binding, asserted_aspects)?;
-        self.runtime.write(command)
+        self.write(command)
     }
 
     pub fn delete(
         &mut self,
         entity_identity: impl Into<String>,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        self.runtime.write(ForgeQueryWriteCommand::Delete {
+        self.write(ForgeQueryWriteCommand::Delete {
             entity_identity: entity_identity.into(),
         })
     }
@@ -343,20 +368,19 @@ impl ForgeQueryWorkspace {
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         let command =
             declaration(ForgeQueryDeleteMutationBuilder::new()).build_delete(entity_identity)?;
-        self.runtime.write(command)
+        self.write(command)
     }
 
     pub fn delete_existing(
         &mut self,
         binding: ForgeQueryExistingTruthTargetBinding,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        self.runtime
-            .write(ForgeQueryWriteCommand::DeleteExistingAspects {
-                binding,
-                touched_aspect_paths: Vec::new(),
-                metadata: ForgeQueryMutationMetadata::default(),
-                naming_intent: None,
-            })
+        self.write(ForgeQueryWriteCommand::DeleteExistingAspects {
+            binding,
+            touched_aspect_paths: Vec::new(),
+            metadata: ForgeQueryMutationMetadata::default(),
+            naming_intent: None,
+        })
     }
 
     pub fn delete_existing_with(
@@ -366,7 +390,7 @@ impl ForgeQueryWorkspace {
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         let command =
             declaration(ForgeQueryDeleteMutationBuilder::new()).build_delete_existing(binding)?;
-        self.runtime.write(command)
+        self.write(command)
     }
 
     pub fn delete_existing_verified(
@@ -379,7 +403,7 @@ impl ForgeQueryWorkspace {
             .finish_existing_truth_verification_aspects("backend-verified existing-truth delete")?;
         let command = delete(ForgeQueryDeleteMutationBuilder::new())
             .build_delete_existing_verified(binding, asserted_aspects)?;
-        self.runtime.write(command)
+        self.write(command)
     }
 
     pub fn batch(
@@ -387,6 +411,6 @@ impl ForgeQueryWorkspace {
         declaration: impl FnOnce(ForgeQueryMutationBatchBuilder) -> ForgeQueryMutationBatchBuilder,
     ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
         let commands = declaration(ForgeQueryMutationBatchBuilder::new()).finish()?;
-        self.runtime.write_batch(commands)
+        self.write_batch_intent(commands).execute()
     }
 }

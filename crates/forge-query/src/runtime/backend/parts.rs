@@ -2,12 +2,13 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use forge_runtime_bridge::facade::RuntimeBridge;
 
 use super::{
-    ForgeQueryRuntimeExistingTruthVerificationAdapter, ForgeQueryRuntimeInspectorEvidenceAdapter,
-    ForgeQueryRuntimePreviewBasisAdapter, ForgeQueryRuntimeSchemaAdapter,
-    ForgeQueryRuntimeSignalSinkAdapter, ForgeQueryRuntimeSourceAdapter,
-    ForgeQueryRuntimeSubscriptionActivationAdapter, ForgeQueryRuntimeWriteAuthorityAdapter,
+    ForgeQueryIntentAuthorityAdapter, ForgeQueryRuntimeExistingTruthVerificationAdapter,
+    ForgeQueryRuntimeInspectorEvidenceAdapter, ForgeQueryRuntimePreviewBasisAdapter,
+    ForgeQueryRuntimeSchemaAdapter, ForgeQueryRuntimeSignalSinkAdapter,
+    ForgeQueryRuntimeSourceAdapter, ForgeQueryRuntimeSubscriptionActivationAdapter,
+    ForgeQueryRuntimeWriteAuthorityAdapter,
 };
-use crate::runtime::{ForgeQueryIntentAuthorityAdapter, ForgeQueryRuntimeSupportProfile};
+use crate::runtime::ForgeQueryRuntimeSupportProfile;
 
 #[derive(Default)]
 pub struct ForgeQueryRuntimeBackendParts {

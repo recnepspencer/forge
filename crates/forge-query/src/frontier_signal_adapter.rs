@@ -1,13 +1,18 @@
+use crate::frontier_planning::FrontierSurfaceDigest;
+#[cfg(test)]
 use crate::frontier_planning::{
-    FrontierDisjointnessClass, FrontierPredictionDriftOutcome, FrontierSurfaceDigest,
-    ParallelAdmissionEvidence, SerialFallbackBundleEvidence, SerialFallbackBundleEvidenceError,
-    SerialFallbackEvidence, SerialFallbackReason,
+    FrontierDisjointnessClass, FrontierPredictionDriftOutcome, ParallelAdmissionEvidence,
+    SerialFallbackBundleEvidence, SerialFallbackBundleEvidenceError, SerialFallbackEvidence,
+    SerialFallbackReason,
 };
 use forge_signal::facade::adapters::{
     FrontierExecutionSummary, FrontierPlan, FrontierWaveEntryPlan, FrontierWaveEntrySummary,
     FrontierWavePlan, FrontierWaveSummary, TouchedScopeSummary, TransitiveFrontierRoot,
 };
-use forge_signal::facade::specialist::{ParallelAdmissionReason, StageExecutionRecord};
+#[cfg(test)]
+use forge_signal::facade::adapters::{
+    FrontierRouteEvidenceReceipt, FrontierRouteSerialFallbackReason,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct SignalFrontierSurfaceEvidence {
@@ -109,8 +114,7 @@ impl SignalFrontierSurfaceEvidence {
         self.realized_breadth
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn to_parallel_admission_evidence(
         &self,
         basis_digest: &str,
@@ -123,7 +127,7 @@ impl SignalFrontierSurfaceEvidence {
         )
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn to_serial_fallback_evidence(
         &self,
         basis_digest: &str,
@@ -138,19 +142,19 @@ impl SignalFrontierSurfaceEvidence {
         )
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn to_route_evidence_from_stage_record(
         &self,
         basis_digest: &str,
-        stage: &StageExecutionRecord,
+        route_receipt: &FrontierRouteEvidenceReceipt,
         _disjointness_class: FrontierDisjointnessClass,
     ) -> Result<SerialFallbackEvidence, SignalAdmissionEvidenceError> {
-        let reason = stage
-            .parallel_admission_reason
-            .ok_or(SignalAdmissionEvidenceError::MissingParallelAdmissionReason)?;
-        if is_parallel_admitted(reason) {
+        if route_receipt.is_parallel_admitted() {
             return Err(SignalAdmissionEvidenceError::ParallelAdmissionRouteUnsupported);
         }
+        let reason = route_receipt
+            .serial_fallback_reason()
+            .ok_or(SignalAdmissionEvidenceError::MissingSerialFallbackReason)?;
 
         Ok(self.to_serial_fallback_evidence(
             basis_digest,
@@ -160,14 +164,16 @@ impl SignalFrontierSurfaceEvidence {
     }
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct SignalFrontierBundleEvidence {
     bundle_surface_digest: FrontierSurfaceDigest,
     route_evidences: Vec<SerialFallbackEvidence>,
 }
 
+#[cfg(test)]
 impl SignalFrontierBundleEvidence {
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn from_route_evidences(route_evidences: Vec<SerialFallbackEvidence>) -> Self {
         let mut parts = vec![format!("route_count:{}", route_evidences.len())];
         for (index, route) in route_evidences.iter().enumerate() {
@@ -192,30 +198,32 @@ impl SignalFrontierBundleEvidence {
         }
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn from_stage_records(
         basis_digest: &str,
         route_surfaces: &[SignalFrontierSurfaceEvidence],
-        stages: &[StageExecutionRecord],
+        route_receipts: &[FrontierRouteEvidenceReceipt],
         disjointness_classes: &[FrontierDisjointnessClass],
     ) -> Result<Self, SignalAdmissionEvidenceError> {
-        if route_surfaces.len() != stages.len() || stages.len() != disjointness_classes.len() {
+        if route_surfaces.len() != route_receipts.len()
+            || route_receipts.len() != disjointness_classes.len()
+        {
             return Err(SignalAdmissionEvidenceError::RouteCountMismatch {
                 surfaces: route_surfaces.len(),
-                stages: stages.len(),
+                route_receipts: route_receipts.len(),
                 disjointness_classes: disjointness_classes.len(),
             });
         }
 
-        let mut route_evidences = Vec::with_capacity(stages.len());
-        for ((surface, stage), class) in route_surfaces
+        let mut route_evidences = Vec::with_capacity(route_receipts.len());
+        for ((surface, route_receipt), class) in route_surfaces
             .iter()
-            .zip(stages.iter())
+            .zip(route_receipts.iter())
             .zip(disjointness_classes.iter())
         {
             route_evidences.push(surface.to_route_evidence_from_stage_record(
                 basis_digest,
-                stage,
+                route_receipt,
                 class.clone(),
             )?);
         }
@@ -223,12 +231,12 @@ impl SignalFrontierBundleEvidence {
         Ok(Self::from_route_evidences(route_evidences))
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn bundle_surface_digest(&self) -> &FrontierSurfaceDigest {
         &self.bundle_surface_digest
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn bind_to_basis(
         &self,
         basis_digest: &str,
@@ -254,11 +262,11 @@ impl SignalFrontierBundleEvidence {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum SignalAdmissionEvidenceError {
-    MissingParallelAdmissionReason,
+    MissingSerialFallbackReason,
     ParallelAdmissionRouteUnsupported,
     RouteCountMismatch {
         surfaces: usize,
-        stages: usize,
+        route_receipts: usize,
         disjointness_classes: usize,
     },
 }
@@ -426,37 +434,26 @@ fn transitive_root_digest_parts(index: usize, root: &TransitiveFrontierRoot) -> 
     parts
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
-fn is_parallel_admitted(reason: ParallelAdmissionReason) -> bool {
-    matches!(
-        reason,
-        ParallelAdmissionReason::AdmittedOperational
-            | ParallelAdmissionReason::AdmittedDevelopment
-            | ParallelAdmissionReason::AdmittedForensic
-            | ParallelAdmissionReason::AdmittedProofSafeGroupedConcurrent
-    )
-}
-
-#[cfg_attr(not(test), allow(dead_code))]
-fn serial_fallback_reason_from_signal(reason: ParallelAdmissionReason) -> SerialFallbackReason {
+#[cfg(test)]
+fn serial_fallback_reason_from_signal(
+    reason: FrontierRouteSerialFallbackReason,
+) -> SerialFallbackReason {
     match reason {
-        ParallelAdmissionReason::SerialExecutor => SerialFallbackReason::SerialExecutor,
-        ParallelAdmissionReason::BelowMinStageWidth => SerialFallbackReason::BelowMinStageWidth,
-        ParallelAdmissionReason::BelowPolicyWorkThreshold => {
+        FrontierRouteSerialFallbackReason::SerialExecutor => SerialFallbackReason::SerialExecutor,
+        FrontierRouteSerialFallbackReason::BelowMinStageWidth => {
+            SerialFallbackReason::BelowMinStageWidth
+        }
+        FrontierRouteSerialFallbackReason::BelowPolicyWorkThreshold => {
             SerialFallbackReason::BelowPolicyWorkThreshold
         }
-        ParallelAdmissionReason::ValidationHeavyStage => SerialFallbackReason::ValidationHeavyStage,
-        ParallelAdmissionReason::BelowFullParallelThreshold => {
+        FrontierRouteSerialFallbackReason::ValidationHeavyStage => {
+            SerialFallbackReason::ValidationHeavyStage
+        }
+        FrontierRouteSerialFallbackReason::BelowFullParallelThreshold => {
             SerialFallbackReason::BelowFullParallelThreshold
         }
-        ParallelAdmissionReason::FullParallelUnsupportedByMutableEngine => {
+        FrontierRouteSerialFallbackReason::FullParallelUnsupportedByMutableEngine => {
             SerialFallbackReason::FullParallelUnsupportedByMutableEngine
-        }
-        ParallelAdmissionReason::AdmittedOperational
-        | ParallelAdmissionReason::AdmittedDevelopment
-        | ParallelAdmissionReason::AdmittedForensic
-        | ParallelAdmissionReason::AdmittedProofSafeGroupedConcurrent => {
-            SerialFallbackReason::DeterministicAdmissionDenied
         }
     }
 }

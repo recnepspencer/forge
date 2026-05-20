@@ -121,6 +121,30 @@ impl ProjectionConsumptionBindingContext {
             authorized_visible_fields,
         }
     }
+
+    pub(crate) fn intent_admission_certification_binding(
+        result_shape_digest: impl Into<String>,
+        authorized_projection_query_digest: impl Into<String>,
+        authorized_projection_result_shape_digest: impl Into<String>,
+        authorized_projection_identity: impl Into<String>,
+        narrowed_result_shape_digest: impl Into<String>,
+        policy_digest: impl Into<String>,
+        tenant_schema_basis_digest: impl Into<String>,
+        authorized_visible_fields: Vec<String>,
+    ) -> Self {
+        let result_shape_digest = result_shape_digest.into();
+        Self {
+            result_shape_digest: result_shape_digest.clone(),
+            authorized_projection_query_digest: authorized_projection_query_digest.into(),
+            authorized_projection_result_shape_digest: authorized_projection_result_shape_digest
+                .into(),
+            authorized_projection_identity: authorized_projection_identity.into(),
+            narrowed_result_shape_digest: narrowed_result_shape_digest.into(),
+            policy_digest: policy_digest.into(),
+            tenant_schema_basis_digest: tenant_schema_basis_digest.into(),
+            authorized_visible_fields,
+        }
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

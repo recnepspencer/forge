@@ -6,6 +6,9 @@ use super::vocabulary::{
     CanonicalResidualDebt, CanonicalRuntimeAssumption, CanonicalRuntimeNonAssumption,
     CanonicalSyntheticRuntimePressure,
 };
+use crate::canonicalization_api::{
+    canonical_public_surface_inventory, CanonicalPublicSurfaceEntry,
+};
 
 pub(super) fn certified_surfaces() -> Vec<CanonicalCertifiedSurface> {
     vec![
@@ -180,6 +183,7 @@ pub(super) fn harness_expansion_points() -> Vec<CanonicalHarnessExpansionPoint> 
         CanonicalHarnessExpansionPoint::ExportFixtureReplayLane,
         CanonicalHarnessExpansionPoint::DigestSlotHostilityLane,
         CanonicalHarnessExpansionPoint::RuntimeParityRunMatrix,
+        CanonicalHarnessExpansionPoint::GroupedPublicSurfaceLane,
     ]
 }
 
@@ -296,4 +300,16 @@ pub(super) fn fixture_manifest() -> Vec<CanonicalFixtureManifestEvidence> {
             CanonicalHarnessExpansionPoint::DigestSlotHostilityLane,
         ),
     ]
+}
+
+pub(super) fn public_surface_inventory() -> Vec<CanonicalPublicSurfaceEntry> {
+    canonical_public_surface_inventory().to_vec()
+}
+
+pub(super) const fn public_surface_evidence_path() -> &'static str {
+    "tests/certification/canonicalization/grouped_surface.rs"
+}
+
+pub(super) const fn public_surface_compile_fail_path() -> &'static str {
+    "tests/ui/canonicalization/grouped_surface/raw_sequence_cannot_enter_grouped_common_path_comparison.rs"
 }

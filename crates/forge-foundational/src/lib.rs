@@ -10,19 +10,33 @@
 //! curated through the facade, while responsibility-shaped internal homes are
 //! named before semantic value, aspect, identity, locator, compatibility, and
 //! canonicalization types land.
+//!
+//! Crate documentation entrypoints live under `docs/README.md`.
+//! Capability-specific docs currently include:
+//! - `docs/aspect-contracts-values-and-authoritative-state/README.md`
+//! - `docs/canonical-basis-and-reproducible-identity/README.md`
+//! - `docs/profiles-and-policy-vocabulary/README.md`
+//! - `docs/boundary-artifact-taxonomy-and-materialization-contracts/README.md`
+//! - `docs/branching-merging-and-commit-vocabulary/README.md`
+//! - `docs/diagnostics-and-explanation-ontology/README.md`
+//! - `docs/lineage-provenance-receipts-and-support-truth/README.md`
 
 #![forbid(unsafe_code)]
 
 mod aspects;
 mod boundary;
 mod boundary_artifacts;
+mod boundary_evidence;
+pub mod boundary_evidence_api;
 mod canonicalization;
+pub mod canonicalization_api;
 mod compatibility;
 mod diagnostics;
 pub mod facade;
 mod identities;
 mod locators;
 mod profiles;
+pub mod profiles_api;
 mod transitions;
 mod values;
 

@@ -91,7 +91,6 @@ pub struct EffectLifecyclePhase4CertificationRow {
     row_digest: String,
 }
 
-#[allow(dead_code)]
 impl EffectLifecyclePhase4CertificationRow {
     pub(super) fn new(
         lane_kind: EffectLifecyclePhase4LaneKind,
@@ -132,20 +131,8 @@ impl EffectLifecyclePhase4CertificationRow {
         self.outcome
     }
 
-    pub fn basis_family(&self) -> BasisFamily {
-        self.basis_family
-    }
-
-    pub fn effect_family(&self) -> EffectFamily {
-        self.effect_family
-    }
-
     pub fn evidence_digest(&self) -> &str {
         &self.evidence_digest
-    }
-
-    pub fn evidence_detail(&self) -> &str {
-        &self.evidence_detail
     }
 
     pub fn counters(&self) -> &EffectLifecycleCounters {
@@ -164,7 +151,6 @@ pub struct EffectLifecyclePhase4CertificationBundle {
     phase4_bundle_digest: String,
 }
 
-#[allow(dead_code)]
 impl EffectLifecyclePhase4CertificationBundle {
     fn new(
         rows: Vec<EffectLifecyclePhase4CertificationRow>,
@@ -188,6 +174,7 @@ impl EffectLifecyclePhase4CertificationBundle {
         &self.rows
     }
 
+    #[cfg(test)]
     pub fn seeded_bundle_digest(&self) -> &str {
         &self.seeded_bundle_digest
     }

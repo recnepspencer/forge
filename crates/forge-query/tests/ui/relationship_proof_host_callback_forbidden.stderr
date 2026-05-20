@@ -1,10 +1,36 @@
-error[E0624]: associated function `host_callback_for_test` is private
+error[E0599]: no variant or associated item named `host_callback_for_test` found for enum `RelationshipProofDescriptor` in the current scope
  --> tests/ui/relationship_proof_host_callback_forbidden.rs:4:52
   |
 4 |     let _descriptor = RelationshipProofDescriptor::host_callback_for_test("authz");
-  |                                                    ^^^^^^^^^^^^^^^^^^^^^^ private associated function
+  |                                                    ^^^^^^^^^^^^^^^^^^^^^^ variant or associated item not found in `RelationshipProofDescriptor`
   |
- ::: src/relationship_proof/descriptors.rs
+note: if you're trying to build a new `RelationshipProofDescriptor` consider using one of the following associated functions:
+      RelationshipProofDescriptor::direct_edge
+      RelationshipProofDescriptor::direct_edge_relation_name
+      RelationshipProofDescriptor::bounded_ancestor
+      RelationshipProofDescriptor::bounded_ancestor_relation_name
+      and $N others
+ --> src/relationship_proof/descriptors.rs
   |
-  |     pub(crate) fn host_callback_for_test(callback_label: impl Into<String>) -> Self {
-  |     ------------------------------------------------------------------------------- private associated function defined here
+  |       pub fn direct_edge(relation: impl Into<String>, policy_digest: impl Into<String>) -> Self {
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+...
+  | /     pub fn direct_edge_relation_name(
+  | |         relation: RelationName,
+  | |         policy_digest: impl Into<String>,
+  | |     ) -> Self {
+  | |_____________^
+...
+  | /     pub fn bounded_ancestor(
+  | |         relation: impl Into<String>,
+  | |         max_depth: u8,
+  | |         policy_digest: impl Into<String>,
+  | |     ) -> Result<Self, AuthoringError> {
+  | |_____________________________________^
+...
+  | /     pub fn bounded_ancestor_relation_name(
+  | |         relation: RelationName,
+  | |         max_depth: u8,
+  | |         policy_digest: impl Into<String>,
+  | |     ) -> Result<Self, AuthoringError> {
+  | |_____________________________________^

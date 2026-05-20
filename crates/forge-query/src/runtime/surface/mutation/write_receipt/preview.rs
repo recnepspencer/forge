@@ -89,6 +89,8 @@ impl ForgeQueryWriteReceipt {
             meaningful_effect_suppression_count: 0,
             effect_expression_failure_count: 0,
             refresh_fallback: false,
+            decision_trace_envelope: None,
+            execution_provenance: None,
         }
     }
 }

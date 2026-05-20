@@ -1,5 +1,6 @@
 use super::*;
 use crate::intent_admission::ForgeQueryIntentDecisionTraceEnvelope;
+use crate::runtime::ForgeQueryIntentConsumerInspection;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryIntentExecutionFailureEvidence {
@@ -149,6 +150,10 @@ impl ForgeQueryIntentExecutionFailureEvidence {
 
     pub fn decision_trace_envelope(&self) -> &ForgeQueryIntentDecisionTraceEnvelope {
         &self.decision_trace_envelope
+    }
+
+    pub fn consumer_inspection(&self) -> ForgeQueryIntentConsumerInspection<'_> {
+        ForgeQueryIntentConsumerInspection::from_failure(self)
     }
 
     pub fn failure_digest(&self) -> &str {

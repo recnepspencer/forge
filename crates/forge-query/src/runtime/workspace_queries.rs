@@ -3,15 +3,12 @@ use serde_json::Value;
 use super::read_composition_hooks::{
     ForgeQueryReadInvariantPackContext, ForgeQueryReadInvariantPackViolation,
 };
-use super::read_composition_runtime::{
-    execute_runtime_basis_context_read_graph, execute_runtime_current_read_graph,
-};
 use super::{
-    ForgeQueryDerivedViewHandle, ForgeQueryInspection, ForgeQueryInspectionTarget,
-    ForgeQueryInstalledProgram, ForgeQueryPatchBatch, ForgeQueryProgram, ForgeQueryReadBuilder,
-    ForgeQueryReadDomainInvariantDenial, ForgeQueryReadFamily,
-    ForgeQueryReadFamilyInvariantEvidence, ForgeQueryReadGraph, ForgeQueryReadResult,
-    ForgeQueryRuntimeError, ForgeQueryWorkspace,
+    ForgeQueryDerivedViewHandle, ForgeQueryGenericInspectionIntentTarget, ForgeQueryInspection,
+    ForgeQueryInspectionTarget, ForgeQueryInstalledProgram, ForgeQueryPatchBatch,
+    ForgeQueryProgram, ForgeQueryReadBuilder, ForgeQueryReadDomainInvariantDenial,
+    ForgeQueryReadFamily, ForgeQueryReadFamilyInvariantEvidence, ForgeQueryReadGraph,
+    ForgeQueryReadResult, ForgeQueryRuntimeError, ForgeQueryWorkspace,
 };
 
 impl ForgeQueryWorkspace {
@@ -43,8 +40,8 @@ impl ForgeQueryWorkspace {
                 ForgeQueryReadDomainInvariantDenial::from_violation(violation, &invariant_context),
             )
         })?;
-        execute_runtime_current_read_graph(&mut self.runtime, &read_graph)
-            .map_err(ForgeQueryRuntimeError::ReadCompositionDenied)
+        let family = ForgeQueryReadFamily::new_kernel_only("composed_read", read_graph);
+        self.read_family_intent(&family).execute()
     }
 
     pub fn define_read_family(
@@ -102,8 +99,7 @@ impl ForgeQueryWorkspace {
     ) -> Result<ForgeQueryReadResult, ForgeQueryRuntimeError> {
         self.runtime
             .admit_facade_family(super::ForgeQueryRuntimeFacadeFamily::Read)?;
-        execute_runtime_current_read_graph(&mut self.runtime, family.read_graph())
-            .map_err(ForgeQueryRuntimeError::ReadCompositionDenied)
+        self.read_family_intent(family).execute()
     }
 
     pub fn execute_read_family_in_basis_context(
@@ -113,15 +109,19 @@ impl ForgeQueryWorkspace {
     ) -> Result<ForgeQueryReadResult, ForgeQueryRuntimeError> {
         self.runtime
             .admit_facade_family(super::ForgeQueryRuntimeFacadeFamily::Read)?;
-        execute_runtime_basis_context_read_graph(&mut self.runtime, family.read_graph(), context)
-            .map_err(ForgeQueryRuntimeError::ReadCompositionDenied)
+        self.read_family_in_basis_context_intent(family, context)
+            .execute()
     }
 
     pub fn read<T>(
-        &self,
+        &mut self,
         view: &super::ForgeQueryLiveView<T>,
     ) -> Vec<crate::memory_workspace::ForgeQueryEntity> {
-        self.runtime.read_live(view)
+        self.read_live_intent(view)
+            .execute()
+            .expect("live view declaration admitted before workspace.read execution")
+            .rows()
+            .to_vec()
     }
 
     pub fn observe<T>(&mut self, view: &super::ForgeQueryLiveView<T>) -> ForgeQueryPatchBatch {
@@ -130,6 +130,16 @@ impl ForgeQueryWorkspace {
 
     pub fn materialize<T>(&self, view: &ForgeQueryDerivedViewHandle<T>) -> Vec<Value> {
         self.runtime.read_derived(view)
+    }
+
+    pub fn inspect_intent<'a, T>(
+        &'a self,
+        target: T,
+    ) -> crate::intent_admission::ForgeQueryRuntimeInspectionIntentAuthoring<'a>
+    where
+        T: ForgeQueryGenericInspectionIntentTarget<'a>,
+    {
+        self.runtime.inspect_intent(target)
     }
 
     pub fn observe_computed(&mut self, view_name: &str) -> ForgeQueryPatchBatch {

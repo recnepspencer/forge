@@ -1,5 +1,11 @@
 mod assertion_evidence;
 mod continuity_mutation_evidence;
+mod derived_inspection_receipt;
+mod derived_inspection_result;
+mod derived_materialization_receipt;
+mod derived_materialization_result;
+mod existing_truth_probe_receipt;
+mod existing_truth_probe_result;
 mod graph_composition_admission_trace;
 mod graph_composition_assumption_summary;
 mod graph_composition_breadth;
@@ -11,6 +17,8 @@ mod graph_composition_program;
 mod graph_composition_resolution_map;
 mod inspection_artifact;
 mod live;
+mod live_read_receipt;
+mod live_read_result;
 mod mutation;
 mod mutation_evidence;
 mod naming_mutation_evidence;
@@ -30,6 +38,8 @@ mod read_relationship_proof_denial;
 mod read_result;
 mod symbolic_aspect_resolution_evidence;
 mod symbolic_target_reference_evidence;
+mod unified_inspection_receipt;
+mod unified_inspection_result;
 mod verified_assumption_set;
 
 pub use assertion_evidence::ForgeQueryExistingTruthAssertionEvidence;
@@ -37,6 +47,12 @@ pub use continuity_mutation_evidence::{
     ForgeQueryContinuityClass, ForgeQueryContinuityMutationEvidence,
     ForgeQueryContinuityOutcomeClass, ForgeQueryContinuityRejectionClass,
 };
+pub use derived_inspection_receipt::ForgeQueryDerivedInspectionReceipt;
+pub use derived_inspection_result::ForgeQueryDerivedInspectionResult;
+pub use derived_materialization_receipt::ForgeQueryDerivedMaterializationReceipt;
+pub use derived_materialization_result::ForgeQueryDerivedMaterializationResult;
+pub use existing_truth_probe_receipt::ForgeQueryExistingTruthProbeReceipt;
+pub use existing_truth_probe_result::ForgeQueryExistingTruthProbeResult;
 pub use graph_composition_admission_trace::{
     ForgeQueryGraphCompositionAdmissionTrace, ForgeQueryGraphCompositionAdmissionTraceStage,
 };
@@ -60,6 +76,8 @@ pub use graph_composition_resolution_map::{
 };
 pub use inspection_artifact::{ForgeQueryArtifactInspector, ForgeQueryInspectedArtifact};
 pub use live::{ForgeQueryLiveView, ForgeQueryPatchBatch};
+pub use live_read_receipt::ForgeQueryLiveReadReceipt;
+pub use live_read_result::ForgeQueryLiveReadResult;
 pub use mutation::{
     ForgeQueryBatchWriteReceipt, ForgeQueryMutationFamily, ForgeQueryWriteCommand,
     ForgeQueryWriteReceipt,
@@ -104,6 +122,8 @@ pub use symbolic_aspect_resolution_evidence::ForgeQuerySymbolicAspectResolutionE
 pub use symbolic_target_reference_evidence::{
     ForgeQuerySymbolicTargetReferenceEvidence, ForgeQuerySymbolicTargetReferenceOutcome,
 };
+pub use unified_inspection_receipt::ForgeQueryUnifiedInspectionReceipt;
+pub use unified_inspection_result::ForgeQueryUnifiedInspectionResult;
 pub use verified_assumption_set::{
     ForgeQueryVerificationReadSetBreadth, ForgeQueryVerifiedAssumptionSet,
 };

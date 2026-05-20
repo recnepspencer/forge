@@ -1,0 +1,9 @@
+error[E0451]: fields `rows` and `crate_doc_example_digest` of struct `ForgeQueryIntentAdmissionDocExampleReport` are private
+ --> tests/ui/intent_admission/certification/reports/artifacts/intent_admission_doc_example_report_constructor_private.rs:5:9
+  |
+4 |     let _ = ForgeQueryIntentAdmissionDocExampleReport {
+  |             ----------------------------------------- in this type
+5 |         rows: Vec::new(),
+  |         ^^^^ private field
+6 |         crate_doc_example_digest: String::new(),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
