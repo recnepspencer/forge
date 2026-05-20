@@ -1,4 +1,4 @@
-import type { ResourceEffectRollbackDigest } from "../resource/resource_effect_envelope.js";
+import type { ResourceEffectRollback } from "../resource/resource_effect_envelope.js";
 import type { ResourceLineStatus } from "../resource/resource_lifecycle.js";
 
 export type FormResetMode = "acceptCanonicalValue" | "resourceRollback";
@@ -19,7 +19,7 @@ export interface FormResetRollbackApplied {
   readonly snapshotId: number;
   readonly basisCurrentId: string | null;
   readonly basisAdvanceCount: number;
-  readonly rollback: ResourceEffectRollbackDigest;
+  readonly rollback: ResourceEffectRollback;
   readonly reloadStatus: ResourceLineStatus;
   readonly digest: string;
 }

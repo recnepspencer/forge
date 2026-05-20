@@ -1,6 +1,6 @@
 use forge_foundational::{
     certify_foundational_profile_milestone3_production_test_readiness,
-    foundational_profile_milestone3_readiness_report,
+    foundational_profile_milestone3_readiness_report, profiles_api::FoundationalProfilePublicLane,
     require_foundational_profile_milestone3_production_test_readiness,
     FoundationalProfileCertifiedSurface, FoundationalProfileCompileFailBoundary,
     FoundationalProfileForgeProofApi, FoundationalProfileForgeProofForbiddenSurface,
@@ -123,6 +123,8 @@ fn production_readiness_report_names_forge_proof_dependency_boundary_and_runtime
     assert!(report
         .residual_debt()
         .contains(&FoundationalProfileResidualDebt::AdoptingCrateParityDeferred));
+    assert!(crate_root_path(report.public_surface_evidence_path()).is_file());
+    assert!(crate_root_path(report.public_surface_compile_fail_path()).is_file());
 }
 
 #[test]
@@ -190,6 +192,36 @@ fn production_readiness_hostile_pressure_inventory_stays_exact() {
             FoundationalProfileSyntheticRuntimePressure::ProofBearingCertificationBoundary,
         ],
     );
+}
+
+#[test]
+fn production_readiness_public_surface_inventory_stays_exact() {
+    let report = foundational_profile_milestone3_readiness_report();
+
+    assert_eq!(report.public_surface_inventory().len(), 9);
+    assert_eq!(
+        report
+            .public_surface_inventory()
+            .iter()
+            .filter(|entry| entry.lane() == FoundationalProfilePublicLane::CommonPath)
+            .count(),
+        1
+    );
+    assert_eq!(
+        report
+            .public_surface_inventory()
+            .iter()
+            .filter(|entry| entry.lane() == FoundationalProfilePublicLane::StrongerLane)
+            .count(),
+        2
+    );
+    assert!(report
+        .public_surface_inventory()
+        .iter()
+        .any(|entry| { entry.path() == "forge_foundational::profiles_api::common_path" }));
+    assert!(report.public_surface_inventory().iter().all(|entry| {
+        !entry.teaches().trim().is_empty() && !entry.does_not_hide().trim().is_empty()
+    }));
 }
 
 fn crate_root_path(relative: &str) -> std::path::PathBuf {

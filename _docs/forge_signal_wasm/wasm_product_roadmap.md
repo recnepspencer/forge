@@ -849,6 +849,72 @@ Why it belongs here:
   the UI thread is a product boundary for serious web apps, not an optional
   post-roadmap optimization
 
+### Worker Placement Follow-On: Product Entrypoint Correction
+
+Engineering spec:
+[worker_runtime_product_entrypoint_correction_plan.md](./worker_runtime_product_entrypoint_correction_plan.md)
+
+### Goal
+
+Correct the remaining product-entrypoint mismatch after Milestone 9 closeout so
+the shipped package entry lane actually matches the certified worker-first
+default posture.
+
+### Why This Follow-On Exists
+
+Milestone 9 closed the worker substrate, bridge taxonomy, compatibility proof,
+and product-guidance certification. But the shipped package entry lane still
+constructs the main-thread runtime by default and still teaches synchronous
+`createSignals()` as the normal browser path.
+
+That means the substrate is ahead of the product surface.
+
+This follow-on closes that gap by making:
+
+- `createSignals()` async and worker-first by contract
+- `createSignals({ deployment: "mainThreadCompatibility" })` the explicit
+  secondary construction lane
+- worker unavailability a typed construction artifact instead of hidden fallback
+
+### Must Ship
+
+- async worker-first `createSignals()` package contract
+- explicit main-thread compatibility deployment option
+- typed worker-unavailable construction artifacts
+- construction planning that lowers deployment posture before runtime authority
+  is instantiated
+- docs, README, examples, and package types that all teach the corrected
+  entrypoint truth
+- package-level certification proving that ordinary browser construction no
+  longer defaults to main-thread runtime authority
+
+### Must Preserve
+
+- `createSignals()` remains the normal app-facing entrypoint name
+- worker substrate and compatibility proofs from Milestone 9 remain the
+  authority source rather than being reimplemented in package glue
+- main-thread compatibility remains supported, but explicit and secondary
+- no hidden fallback from worker-first construction into main-thread runtime
+
+### Acceptance Evidence
+
+This follow-on is complete only when:
+
+- `await createSignals()` constructs worker-first runtime authority by default
+- `createSignals()` emits typed worker-unavailable failure instead of silently
+  constructing compatibility mode
+- `createSignals({ deployment: "mainThreadCompatibility" })` remains available
+  and semantically equivalent for supported compatibility workloads
+- docs and README teach the corrected entrypoint story instead of the old
+  main-thread default
+
+Why it belongs here:
+
+- it comes immediately after Milestone 9 because it consumes the already-built
+  worker substrate instead of introducing a new worker capability family
+- it belongs before additional worker-facing or DX-facing product work because
+  otherwise later features would inherit a dishonest default construction lane
+
 ## Milestone 10: Branch-Native Resource Effects And Response Lenses (Completed)
 
 Engineering spec:
