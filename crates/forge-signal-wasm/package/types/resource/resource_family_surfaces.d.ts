@@ -143,6 +143,8 @@ export interface ResourcePatchCapableLine<
     ResourceLineAspectMapFor<TItem, TReconcile>,
     ResourceLineSummaryMapFor<TReconcile>,
     {},
+    {},
+    {},
     [TReconcile] extends [ResourceCollectionShape<any, any, any, any>] ? true : false,
     false,
     TFamilyKind extends "paged"

@@ -10,6 +10,8 @@ import type {
   ResourceDetailRegions,
 } from "./resource_detail_regions.js";
 import type {
+  ResourceDetailJsonPathDefinitionMap,
+  ResourceDetailJsonPathDefinitions,
   ResourceDetailJsonPathMap,
   ResourceDetailJsonPathValue,
   ResourceDetailJsonPaths,
@@ -397,8 +399,11 @@ export function resourceDetailRegions<
 
 export function resourceDetailJsonPaths<
   TValue,
-  TPathMap extends ResourceDetailJsonPathMap<TValue>,
->(definitions: TPathMap): ResourceDetailJsonPaths<TValue, TPathMap>;
+  TPathMap extends ResourceDetailJsonPathDefinitionMap<TValue>,
+>(definitions: TPathMap): ResourceDetailJsonPaths<
+  TValue,
+  ResourceDetailJsonPathDefinitions<TValue, TPathMap>
+>;
 
 export const resourcePatch: ResourcePatchFactory;
 export const resourceDelivery: ResourceDeliveryFactory;

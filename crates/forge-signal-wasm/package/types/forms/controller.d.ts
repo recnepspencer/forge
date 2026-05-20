@@ -39,6 +39,10 @@ import type {
 } from "./measurement.js";
 import type { FormActionsBuilder, FormActionsReport } from "./actions.js";
 import type {
+  FormActionExecutionArtifact,
+  FormActionResultArtifact,
+} from "./actions.js";
+import type {
   FormAdmissionBuilder,
   FormAdmissionReport,
 } from "./admission.js";
@@ -48,6 +52,7 @@ import type {
 } from "./availability.js";
 import type {
   FormMessageArtifact,
+  FormAsyncValidationLifecycleArtifact,
   FormValidationBuilder,
   FormValidationReport,
 } from "./validation.js";
@@ -55,12 +60,14 @@ import type {
   FormStepsBuilder,
   FormStepsReport,
 } from "./steps.js";
+import type { FormCanonicalizationArtifact } from "./canonicalization.js";
 import type {
   FormSourceAuthorityDiagnostics,
   FormSourceDeclaration,
   FormSourceFactory,
 } from "./sources.js";
 import type { FormResetArtifact } from "./reset.js";
+import type { FormPresentationHistoryArtifact } from "./presentation.js";
 import type { FormVerificationPackage } from "./verification.js";
 import type { MergePolicyPreviewRequest } from "../diagnostics.js";
 import type { FormControllerActionBindings } from "./controller_actions.js";
