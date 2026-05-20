@@ -95,12 +95,15 @@ export interface FormVerificationPackage {
     readonly resetRollbackDigest: string;
     readonly resetHistoryDigest: string;
     readonly replayRestoreHistoryDigest: string;
+    readonly stateHistoryDigest: string;
     readonly resourceMergeHistoryDigest: string;
     readonly resourceDriftHistoryDigest: string;
     readonly mutationResponseReconciliationDigest: string;
     readonly sourceCompatibilityHistoryDigest: string;
     readonly presentationHistoryDigest: string;
     readonly diagnosticsHistoryDigest: string;
+    readonly diagnosticsSummaryDigest: string;
+    readonly diagnosticsDigest: string;
   };
   readonly sourceAuthority: FormSourceAuthorityDiagnostics;
   readonly actionHistory: {
@@ -135,7 +138,15 @@ export interface FormVerificationPackage {
     readonly operations: number;
     readonly digest: string;
   };
+  readonly stateHistory: {
+    readonly operations: number;
+    readonly digest: string;
+  };
   readonly presentationHistory: {
+    readonly operations: number;
+    readonly digest: string;
+  };
+  readonly diagnosticsHistory: {
     readonly operations: number;
     readonly digest: string;
   };
@@ -146,6 +157,9 @@ export interface FormVerificationPackage {
   readonly performanceEnvelope: {
     readonly costBasis: "derivedFullReportScan";
     readonly diagnosticsSummaryBreadth: "summaryShapedNotFullHistoryMaterialization";
+    readonly diagnosticsHistoryOperations: number;
+    readonly fieldWriteOperations: number;
+    readonly rawInputOperations: number;
     readonly actionHistoryAttempts: number;
     readonly actionExecutionOperations: number;
     readonly asyncValidationOperations: number;

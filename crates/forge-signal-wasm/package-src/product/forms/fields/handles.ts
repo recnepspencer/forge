@@ -35,16 +35,20 @@ export function createFieldHandle(field, form, state) {
     },
     set(value) {
       denyFieldWriteIfBlocked(field, form, "edit");
-      state.rawInputs.delete(field.id);
+      const previousDraft = form.draft();
+      clearPendingRawInput(state, field.id, "clearedBySet");
       state.parseFailures.delete(field.id);
       state.writeDraft(writePath(form.draft(), field.segments, value));
+      state.recordDraftWrite(field.id, "setValue", previousDraft, value);
       return handle;
     },
     clearDraft() {
       denyFieldWriteIfBlocked(field, form, "patch");
-      state.rawInputs.delete(field.id);
+      const previousDraft = form.draft();
+      clearPendingRawInput(state, field.id, "clearedByDraftReset");
       state.parseFailures.delete(field.id);
       state.writeDraft(deletePath(form.draft(), field.segments));
+      state.recordDraftWrite(field.id, "clearDraft", previousDraft, null);
       return handle;
     },
     input(rawValue, options = {}) {
@@ -54,8 +58,10 @@ export function createFieldHandle(field, form, state) {
       state.rawInputs.set(field.id, {
         field: field.id,
         rawValue: cloneFormValue(rawValue),
+        source,
         committed: false,
       });
+      state.recordRawInput(field.id, "reported", rawValue, source);
       applyFieldInteraction(state.interactions, field, {
         kind: "input",
         source,
@@ -72,8 +78,10 @@ export function createFieldHandle(field, form, state) {
       state.rawInputs.set(field.id, {
         field: field.id,
         rawValue: cloneFormValue(rawValue),
+        source: "composition",
         committed: false,
       });
+      state.recordRawInput(field.id, "compositionReported", rawValue, "composition");
       applyFieldInteraction(state.interactions, field, {
         kind: "compositionStart",
         rawValue,
@@ -92,18 +100,20 @@ export function createFieldHandle(field, form, state) {
         parsedValue = parse ? parse(pending.rawValue) : pending.rawValue;
       } catch (error) {
         state.parseFailures.set(field.id, parseFailureArtifact(field, error, pending.rawValue));
-        state.rawInputs.delete(field.id);
+        clearPendingRawInput(state, field.id, "parseFailed", String(error?.message ?? error));
         applyFieldInteraction(state.interactions, field, {
           kind: "compositionCancel",
         });
         return handle;
       }
       state.parseFailures.delete(field.id);
-      state.rawInputs.delete(field.id);
+      clearPendingRawInput(state, field.id, "committed");
       applyFieldInteraction(state.interactions, field, {
         kind: "compositionCommit",
       });
+      const previousDraft = form.draft();
       state.writeDraft(writePath(form.draft(), field.segments, parsedValue));
+      state.recordDraftWrite(field.id, "commitInput", previousDraft, parsedValue);
       return handle;
     },
     touch() {
@@ -163,7 +173,9 @@ export function createFieldHandle(field, form, state) {
           itemId: nextItemId,
         });
       }
+      const previousDraft = form.draft();
       state.writeDraft(writePath(form.draft(), field.segments, [...current, cloneFormValue(item)]));
+      state.recordDraftWrite(field.id, "addItem", previousDraft, item);
       return handle;
     },
     removeItem(itemId) {
@@ -178,11 +190,13 @@ export function createFieldHandle(field, form, state) {
           itemId: removedItemId,
         });
       }
+      const previousDraft = form.draft();
       state.writeDraft(writePath(
         form.draft(),
         field.segments,
         current.filter((entry) => collectionItemId(field, entry) !== removedItemId),
       ));
+      state.recordDraftWrite(field.id, "removeItem", previousDraft, null, removedItemId);
       return handle;
     },
     replaceItem(itemId, nextItem) {
@@ -205,6 +219,7 @@ export function createFieldHandle(field, form, state) {
           itemId: expectedItemId,
         });
       }
+      const previousDraft = form.draft();
       state.writeDraft(writePath(
         form.draft(),
         field.segments,
@@ -212,6 +227,7 @@ export function createFieldHandle(field, form, state) {
           collectionItemId(field, entry) === expectedItemId ? cloneFormValue(nextItem) : entry
         )),
       ));
+      state.recordDraftWrite(field.id, "replaceItem", previousDraft, nextItem, expectedItemId);
       return handle;
     },
     moveItem(itemId, beforeItemId = null) {
@@ -244,7 +260,9 @@ export function createFieldHandle(field, form, state) {
       }
       const next = withoutMoving.slice();
       next.splice(insertionIndex, 0, moving);
+      const previousDraft = form.draft();
       state.writeDraft(writePath(form.draft(), field.segments, next));
+      state.recordDraftWrite(field.id, "moveItem", previousDraft, moving, beforeItemId ?? null);
       return handle;
     },
     collectionIdentity() {
@@ -366,4 +384,13 @@ function denyFieldWriteIfBlocked(field, form, capability) {
   error.name = "FormFieldWriteDenied";
   error.details = posture;
   throw error;
+}
+
+function clearPendingRawInput(state, fieldId, operation, reason = null) {
+  const pending = state.rawInputs.get(fieldId);
+  if (!pending) {
+    return;
+  }
+  state.rawInputs.delete(fieldId);
+  state.recordRawInput(fieldId, operation, pending.rawValue, pending.source ?? null, reason);
 }

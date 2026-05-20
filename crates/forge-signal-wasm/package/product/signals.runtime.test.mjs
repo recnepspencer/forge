@@ -28,6 +28,8 @@ import "./signals_runtime/forms/form_actions_declaration_denials.test.mjs";
 import "./signals_runtime/forms/form_action_verification.test.mjs";
 import "./signals_runtime/forms/form_action_execution.test.mjs";
 import "./signals_runtime/forms/form_async_validation.test.mjs";
+import "./signals_runtime/forms/form_diagnostics_summary.test.mjs";
+import "./signals_runtime/forms/form_state_history.test.mjs";
 import "./signals_runtime/forms/accessibility/form_accessibility_artifacts.test.mjs";
 import "./signals_runtime/forms/attachments/form_attachment_visibility.test.mjs";
 import "./signals_runtime/forms/resource_source/state/form_attachment_transfer_projection.test.mjs";

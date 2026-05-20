@@ -1,52 +1,64 @@
+import { digestFormDiagnosticsProof } from "./diagnostics/digests.js";
 import { stableValueDigest } from "./values/value_paths.js";
+import { digestFormDiagnosticsHistory } from "./diagnostics/history.js";
+import { digestFormStateHistory } from "./state_history.js";
 
-export function buildFormVerificationPackage(form) {
+export function buildFormVerificationPackage(form, diagnosticsSnapshot) {
+  const state = diagnosticsSnapshot.state;
   const source = form.source();
-  const sourceAuthority = form.sourceAuthority();
+  const sourceAuthority = state.sourceAuthority;
   const sourceAdmission = form.sourceAdmission();
   const draftRestore = form.draftRestore();
-  const resourceSource = form.resourceSource();
-  const resourceMerge = form.resourceMerge();
-  const resourceDrift = form.resourceDrift();
-  const attachmentTransfers = form.attachmentTransfers();
-  const formDeclaration = form.declaration();
+  const resourceSource = state.resourceSource;
+  const resourceMerge = state.resourceMerge;
+  const resourceDrift = state.resourceDrift;
+  const attachmentTransfers = state.attachmentTransfers;
+  const formDeclaration = state.declaration;
   const draft = form.draft();
   const effective = form.effective();
-  const dirty = form.dirty();
-  const patchPlan = form.patchPlan();
-  const readiness = form.readiness();
-  const validation = form.validation();
-  const availability = form.availability();
-  const admission = form.admission();
-  const host = form.host();
-  const inputCapabilities = form.inputCapabilities();
-  const exit = form.exit();
-  const handoff = form.handoff();
-  const attachments = form.attachments();
-  const media = form.media();
-  const messages = form.messages();
-  const collaboration = form.collaboration();
-  const interaction = form.interaction();
+  const dirty = state.dirty;
+  const patchPlan = state.patchPlan;
+  const readiness = state.readiness;
+  const validation = state.validation;
+  const availability = state.availability;
+  const admission = state.admission;
+  const host = state.host;
+  const inputCapabilities = state.inputCapabilities;
+  const exit = state.exit;
+  const handoff = state.handoff;
+  const attachments = state.attachments;
+  const media = state.media;
+  const messages = state.messages;
+  const collaboration = state.collaboration;
+  const interaction = state.interaction;
   const interactionHistory = interaction.history;
-  const navigation = form.navigation();
+  const navigation = state.navigation;
   const navigationHistory = navigation.history;
-  const accessibility = form.accessibility();
-  const layout = form.layout();
-  const layoutMeasurement = form.layoutMeasurement();
-  const presentation = form.presentation();
-  const presentationHistory = form.presentationHistory();
-  const sourceCompatibility = form.sourceCompatibility();
-  const steps = form.steps();
-  const actions = form.actions();
-  const fieldContract = form.fieldContract();
-  const inputAdapters = form.inputAdapters();
-  const actionHistory = form.actionHistory();
-  const actionExecutionHistory = form.actionExecutionHistory();
-  const asyncValidationHistory = form.asyncValidationHistory();
-  const canonicalizationHistory = form.canonicalizationHistory();
-  const resetHistory = form.resetHistory();
-  const replayRestoreHistory = form.replayRestoreHistory();
-  const sourceCompatibilityHistory = form.sourceCompatibilityHistory();
+  const accessibility = state.accessibility;
+  const layout = state.layout;
+  const layoutMeasurement = state.layoutMeasurement;
+  const presentation = state.presentation;
+  const presentationHistory = state.presentationHistory;
+  const sourceCompatibility = state.sourceCompatibility;
+  const steps = state.steps;
+  const actions = state.actions;
+  const fieldContract = state.fieldContract;
+  const inputAdapters = state.inputAdapters;
+  const actionHistory = state.actionHistory;
+  const actionExecutionHistory = state.actionExecutionHistory;
+  const asyncValidationHistory = state.asyncValidationHistory;
+  const canonicalizationHistory = state.canonicalizationHistory;
+  const resetHistory = state.resetHistory;
+  const stateHistory = state.stateHistory;
+  const replayRestoreHistory = state.replayRestoreHistory;
+  const sourceCompatibilityHistory = state.sourceCompatibilityHistory;
+  const diagnosticsSummary = diagnosticsSnapshot.summary;
+  const diagnosticsHistory = diagnosticsSnapshot.history;
+  const diagnosticsDigest = digestFormDiagnosticsProof(
+    diagnosticsSummary,
+    diagnosticsSnapshot.diagnosticsStateDigest,
+    diagnosticsHistory,
+  );
   const digests = Object.freeze({
     sourceAuthorityDigest: sourceAuthority.sourceAuthorityDigest,
     sourceAuthorityContractDigest: stableValueDigest({
@@ -120,6 +132,7 @@ export function buildFormVerificationPackage(form) {
     ),
     resetHistoryDigest: stableValueDigest(resetHistory),
     replayRestoreHistoryDigest: stableValueDigest(replayRestoreHistory),
+    stateHistoryDigest: digestFormStateHistory(stateHistory),
     resourceMergeHistoryDigest: stableValueDigest(resourceMerge.history),
     resourceDriftHistoryDigest: stableValueDigest(resourceDrift.history),
     mutationResponseReconciliationDigest: stableValueDigest(
@@ -141,48 +154,9 @@ export function buildFormVerificationPackage(form) {
     submitPlanDigest: actions.digests.submitPlanDigest,
     actionLifecycleDigest: stableValueDigest(actionHistory),
     actionExecutionLifecycleDigest: stableValueDigest(actionExecutionHistory),
-    diagnosticsHistoryDigest: stableValueDigest({
-      sourceAuthority,
-      sourceAdmission,
-      draftRestore,
-      resourceSource,
-      resourceMerge,
-      resourceDrift,
-      attachmentTransfers,
-      formDeclaration,
-      fieldContract,
-      inputAdapters,
-      dirty,
-      patchPlan,
-      readiness,
-      actionHistory,
-      actionExecutionHistory,
-      asyncValidationHistory,
-      canonicalizationHistory,
-      resetHistory,
-      replayRestoreHistory,
-      host,
-      inputCapabilities,
-      exit,
-      handoff,
-      attachments,
-      attachmentTransfers,
-      media,
-      messages,
-      collaboration,
-      interaction,
-      interactionHistory,
-      navigation,
-      navigationHistory,
-      accessibility,
-      layout,
-      layoutMeasurement,
-      presentation,
-      presentationHistory,
-      sourceCompatibility,
-      sourceCompatibilityHistory,
-      actionPlanDigests: actions.digests.planDigests,
-    }),
+    diagnosticsHistoryDigest: digestFormDiagnosticsHistory(diagnosticsHistory),
+    diagnosticsSummaryDigest: diagnosticsSummary.digest,
+    diagnosticsDigest,
   });
   return Object.freeze({
     kind: "formVerification",
@@ -212,6 +186,10 @@ export function buildFormVerificationPackage(form) {
       operations: replayRestoreHistory.length,
       digest: digests.replayRestoreHistoryDigest,
     }),
+    stateHistory: Object.freeze({
+      operations: stateHistory.length,
+      digest: digests.stateHistoryDigest,
+    }),
     interactionHistory: Object.freeze({
       operations: interactionHistory.length,
       digest: digests.interactionHistoryDigest,
@@ -223,6 +201,10 @@ export function buildFormVerificationPackage(form) {
     presentationHistory: Object.freeze({
       operations: presentationHistory.length,
       digest: digests.presentationHistoryDigest,
+    }),
+    diagnosticsHistory: Object.freeze({
+      operations: diagnosticsHistory.length,
+      digest: digests.diagnosticsHistoryDigest,
     }),
     sourceCompatibilityHistory: Object.freeze({
       operations: sourceCompatibilityHistory.length,
@@ -259,6 +241,8 @@ export function buildFormVerificationPackage(form) {
       canonicalizationHistory,
       resetHistory,
       replayRestoreHistory,
+      stateHistory,
+      diagnosticsHistory,
       interactionHistory,
       navigationHistory,
       sourceCompatibilityHistory,
@@ -271,12 +255,15 @@ function formPerformanceEnvelope(reports) {
   return Object.freeze({
     costBasis: "derivedFullReportScan",
     diagnosticsSummaryBreadth: "summaryShapedNotFullHistoryMaterialization",
+    diagnosticsHistoryOperations: reports.diagnosticsHistory.length,
     actionHistoryAttempts: reports.actionHistory.length,
     actionExecutionOperations: reports.actionExecutionHistory.length,
     asyncValidationOperations: reports.asyncValidationHistory.length,
     canonicalizationOperations: reports.canonicalizationHistory.length,
     resetOperations: reports.resetHistory.length,
     replayRestoreOperations: reports.replayRestoreHistory.length,
+    fieldWriteOperations: reports.stateHistory.filter((entry) => entry.entryKind === "draftWrite").length,
+    rawInputOperations: reports.stateHistory.filter((entry) => entry.entryKind === "rawInput").length,
     interactionOperations: reports.interactionHistory.length,
     navigationOperations: reports.navigationHistory.length,
     sourceCompatibilityOperations: reports.sourceCompatibilityHistory.length,

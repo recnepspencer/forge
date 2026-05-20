@@ -30,6 +30,7 @@ import { readInputCapabilitiesReport } from "./input_capabilities/report.js";
 import { createInteractionBindings } from "./interaction/controller_bindings.js";
 import { readInteractionReport } from "./interaction/report.js";
 import { createInteractionStore } from "./interaction/store.js";
+import { applyControllerLocalNavigation as applyLocalStepNavigation } from "./navigation/controller_local_navigation.js";
 import { readNavigationReport } from "./navigation/report.js";
 import { createNavigationStore } from "./navigation/store.js";
 import { readAccessibilityReport } from "./accessibility/artifacts.js";
@@ -39,7 +40,8 @@ import {
   readFormDeclarationDiagnostics,
   readInputAdapterDiagnostics,
 } from "./controller_declaration_diagnostics.js";
-import { readFormDiagnostics } from "./form_diagnostics.js";
+import { createFormDiagnosticsHistoryStore } from "./diagnostics/history.js";
+import { createDiagnosticsControllerBindings } from "./diagnostics/controller_bindings.js";
 import { createDerivedReportBindings } from "./derived_report_bindings.js";
 import { readLayoutReport } from "./layout/artifacts.js";
 import { materializeMeasurementDeclaration } from "./measurement/declarations.js";
@@ -60,8 +62,11 @@ import { resourceMergeReadinessBlockers } from "./resource_merge/report.js";
 import { createResourceMergeStore } from "./resource_merge/store.js";
 import { createRecoveryBindings } from "./recovery/controller_bindings.js";
 import { createFormReplayRestoreStore } from "./replay_restore/store.js";
+import { dedupeReadinessBlockers } from "./readiness_artifacts.js";
 import { createResourceSurfaceBindings } from "./resource_surface_bindings.js";
 import { createFormResetStore } from "./reset/store.js";
+import { createFormStateHistoryStore } from "./state_history.js";
+import { createStateHistoryControllerBindings } from "./state_history/controller_bindings.js";
 import { createFieldHandle } from "./fields/handles.js";
 import { evaluateSteps } from "./steps/artifacts.js";
 import { materializeStepDeclarations } from "./steps/declarations.js";
@@ -72,8 +77,7 @@ import { rawInputBlockers } from "./patching/patch_planning.js";
 import { validationReadinessBlockers } from "./validation/artifacts.js";
 import { createAsyncValidationStore } from "./validation/async_execution.js";
 import { materializeValidationDeclarations } from "./validation/declarations.js";
-import { cloneFormValue, mergeDraft, stableValueDigest } from "./values/value_paths.js";
-import { buildFormVerificationPackage } from "./verification.js";
+import { cloneFormValue, mergeDraft } from "./values/value_paths.js";
 
 export function createFormController(signalNamespace, declaration) {
   if (!declaration || typeof declaration !== "object") {
@@ -112,6 +116,14 @@ export function createFormController(signalNamespace, declaration) {
   const layoutMeasurements = createLayoutMeasurementStore(measurementPolicy);
   const media = createMediaPresentationStore();
   const messages = createMessagePresentationStore();
+  const diagnosticsHistory = createFormDiagnosticsHistoryStore();
+  const stateHistory = createFormStateHistoryStore();
+  const diagnosticsBindings = createDiagnosticsControllerBindings({
+    formRef: () => form,
+    fieldDeclarations,
+    diagnosticsHistory,
+    currentMeasurementSemanticContext,
+  });
   const resourceMerges = createResourceMergeStore();
   const resourceDrifts = createResourceDriftStore();
   const resets = createFormResetStore();
@@ -166,7 +178,9 @@ export function createFormController(signalNamespace, declaration) {
     source: declaration.source,
     fieldDeclarations,
     setDraft: updateDraft,
-    applyControllerLocalNavigation,
+    applyControllerLocalNavigation(execution) {
+      applyLocalStepNavigation(navigation, form, execution);
+    },
     resets,
     replayRestores,
   });
@@ -201,6 +215,10 @@ export function createFormController(signalNamespace, declaration) {
     resourceMerges,
     resourceMergeRegistry,
     resourceDrifts,
+  });
+  const stateHistoryBindings = createStateHistoryControllerBindings({
+    formRef: () => form,
+    stateHistory,
   });
 
   form = {
@@ -263,17 +281,10 @@ export function createFormController(signalNamespace, declaration) {
     ...actionRuntimeBindings,
     ...recoveryBindings,
     sourceCompatibility() { return syncSourceCompatibility(authoritativeSource()); },
-    sourceCompatibilityHistory() {
-      syncSourceCompatibility(authoritativeSource());
-      return sourceCompatibility.history();
-    },
-    actionReadiness(actionId) {
-      return form.actionPlan(actionId).readiness;
-    },
-    verification() {
-      currentMeasurementSemanticContext();
-      return buildFormVerificationPackage(form);
-    },
+    sourceCompatibilityHistory() { syncSourceCompatibility(authoritativeSource()); return sourceCompatibility.history(); },
+    stateHistory() { return stateHistory.history(); },
+    actionReadiness(actionId) { return form.actionPlan(actionId).readiness; },
+    ...diagnosticsBindings,
     fieldWritePosture(fieldId, capability = "edit") {
       form.field(fieldId);
       const availabilityBlocker = availabilityEditBlocker(form.availability(), fieldId);
@@ -337,9 +348,6 @@ export function createFormController(signalNamespace, declaration) {
         patchPlan,
       });
     },
-    diagnostics() {
-      return readFormDiagnostics(form, fieldDeclarations);
-    },
     fields: fieldHandles,
     namespace: signalNamespace,
   };
@@ -347,6 +355,8 @@ export function createFormController(signalNamespace, declaration) {
   for (const declaration of fieldDeclarations) {
     const handle = createFieldHandle(declaration, form, {
       writeDraft: updateDraft,
+      recordRawInput: stateHistoryBindings.recordRawInput,
+      recordDraftWrite: stateHistoryBindings.recordDraftWrite,
       interactions,
       rawInputs,
       parseFailures,
@@ -367,9 +377,7 @@ export function createFormController(signalNamespace, declaration) {
   });
   return Object.freeze(form);
 
-  function authoritativeSource() {
-    return canonicalizations.sourceFor(sourceAuthority.read());
-  }
+  function authoritativeSource() { return canonicalizations.sourceFor(sourceAuthority.read()); }
 
   function updateDraft(nextDraft) {
     sourceCompatibility.noteDraft(nextDraft, authoritativeSource());
@@ -396,30 +404,4 @@ export function createFormController(signalNamespace, declaration) {
       form,
     });
   }
-
-  function applyControllerLocalNavigation(execution) {
-    const plan = execution.planSnapshot;
-    if (
-      execution.resultKind !== "fulfilled" ||
-      plan?.kind !== "step" ||
-      plan.step?.routeCoupled === true
-    ) {
-      return;
-    }
-    navigation.applyStepAction(plan, form.steps().artifacts);
-  }
-}
-
-function dedupeReadinessBlockers(blockers) {
-  const seen = new Set();
-  const deduped = [];
-  for (const blocker of blockers) {
-    const digest = stableValueDigest(blocker);
-    if (seen.has(digest)) {
-      continue;
-    }
-    seen.add(digest);
-    deduped.push(blocker);
-  }
-  return Object.freeze(deduped);
 }

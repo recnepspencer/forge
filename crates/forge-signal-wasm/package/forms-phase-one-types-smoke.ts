@@ -70,6 +70,9 @@ const phaseOneFieldResourceLocus = phaseOneForm.fieldContract()[1]?.resourceLocu
 const phaseOneAttachmentResourceLocus = phaseOneForm.fieldContract()[2]?.resourceLocus?.kind;
 const phaseOneAdapterTier = phaseOneForm.inputAdapters()[0]?.tier;
 const phaseOneSourceDigest = phaseOneForm.verification().digests.sourceAuthorityDigest;
+const phaseOneDiagnosticsSummaryDigest = phaseOneForm.diagnosticsSummary().digest;
+const phaseOneDiagnosticsHistoryLength = phaseOneForm.diagnosticsHistory().length;
+const phaseOneStateHistoryLength = phaseOneForm.stateHistory().length;
 const phaseOneFieldContractDigest = phaseOneForm.verification().digests.fieldContractDigest;
 const phaseOneAdapterDigest = phaseOneForm.verification().digests.inputAdapterCapabilityDigest;
 const phaseOneAttachmentReport = phaseOneForm.reportAttachments({
@@ -259,6 +262,9 @@ void phaseOneFieldResourceLocus;
 void phaseOneAttachmentResourceLocus;
 void phaseOneAdapterTier;
 void phaseOneSourceDigest;
+void phaseOneDiagnosticsSummaryDigest;
+void phaseOneDiagnosticsHistoryLength;
+void phaseOneStateHistoryLength;
 void phaseOneFieldContractDigest;
 void phaseOneAdapterDigest;
 void phaseOneAttachmentReport;

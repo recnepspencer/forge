@@ -64,6 +64,11 @@ import type {
 } from "./sources.js";
 import type { FormReplayRestoreArtifact } from "./replay_restore.js";
 import type { FormResetArtifact } from "./reset.js";
+import type {
+  FormDiagnosticsHistoryArtifact,
+  FormDiagnosticsSummaryReport,
+} from "./diagnostics.js";
+import type { FormStateHistoryArtifact } from "./state_history.js";
 import type { FormVerificationPackage } from "./verification.js";
 import type { MergePolicyPreviewRequest } from "../diagnostics.js";
 import type { FormControllerActionBindings } from "./controller_actions.js";
@@ -263,15 +268,20 @@ export interface FormController<
     readonly blockers: ReadonlyArray<FormReadinessBlocker>;
     readonly patchPlan: FormPatchPlan;
   };
+  diagnosticsSummary(): FormDiagnosticsSummaryReport;
+  diagnosticsHistory(): ReadonlyArray<FormDiagnosticsHistoryArtifact>;
+  stateHistory(): ReadonlyArray<FormStateHistoryArtifact>;
   diagnostics(): {
     readonly kind: "form";
     readonly declaration: ReturnType<FormController["declaration"]>;
     readonly fieldCount: number;
     readonly sourceAuthority: FormSourceAuthorityDiagnostics;
+    readonly summary: FormDiagnosticsSummaryReport;
     readonly fieldContract: ReturnType<FormController["fieldContract"]>;
     readonly inputAdapters: ReturnType<FormController["inputAdapters"]>;
     readonly dirty: FormDirtyState;
     readonly patchPlan: FormPatchPlan;
+    readonly readiness: ReturnType<FormController["readiness"]>;
     readonly validation: FormValidationReport;
     readonly availability: FormAvailabilityReport;
     readonly admission: FormAdmissionReport;
@@ -303,9 +313,12 @@ export interface FormController<
     readonly asyncValidationHistory: ReadonlyArray<FormAsyncValidationLifecycleArtifact>;
     readonly canonicalizationHistory: ReadonlyArray<FormCanonicalizationArtifact>;
     readonly resetHistory: ReadonlyArray<FormResetArtifact>;
+    readonly stateHistory: ReadonlyArray<FormStateHistoryArtifact>;
     readonly replayRestoreHistory: ReadonlyArray<FormReplayRestoreArtifact>;
     readonly sourceCompatibilityHistory: ReturnType<FormController<TSource, TFieldHandles>["sourceCompatibilityHistory"]>;
+    readonly diagnosticsHistory: ReadonlyArray<FormDiagnosticsHistoryArtifact>;
     readonly verification: FormVerificationPackage;
+    readonly digest: string;
   };
   field(fieldId: string): FormFieldHandle;
 }

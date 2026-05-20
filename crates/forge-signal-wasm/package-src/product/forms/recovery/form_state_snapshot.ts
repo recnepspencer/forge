@@ -5,5 +5,8 @@ export function readFormStateSnapshot(form) {
     sourceDigest: stableValueDigest(form.source()),
     draftDigest: stableValueDigest(form.draft()),
     effectiveDigest: stableValueDigest(form.effective()),
+    dirtyDigest: stableValueDigest(form.dirty()),
+    patchPlanDigest: form.patchPlan().equivalenceDigest,
+    readinessDigest: stableValueDigest(form.readiness()),
   });
 }

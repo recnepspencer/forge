@@ -1,10 +1,18 @@
-export function readFormDiagnostics(state, summary, diagnosticsHistory, verification, digest) {
+import { stableValueDigest } from "../values/value_paths.js";
+import { digestFormDiagnosticsHistory } from "./history.js";
+
+export function digestFormDiagnosticsProof(summary, diagnosticsStateDigest, history) {
+  return stableValueDigest({
+    diagnosticsStateDigest,
+    summary,
+    diagnosticsHistoryDigest: digestFormDiagnosticsHistory(history),
+  });
+}
+
+export function readFormDiagnosticsStateDigestInput(state) {
   return Object.freeze({
-    kind: "form",
     declaration: state.declaration,
     sourceAuthority: state.sourceAuthority,
-    fieldCount: state.fieldCount,
-    summary,
     fieldContract: state.fieldContract,
     inputAdapters: state.inputAdapters,
     dirty: state.dirty,
@@ -40,11 +48,8 @@ export function readFormDiagnostics(state, summary, diagnosticsHistory, verifica
     asyncValidationHistory: state.asyncValidationHistory,
     canonicalizationHistory: state.canonicalizationHistory,
     resetHistory: state.resetHistory,
-    stateHistory: state.stateHistory,
+    stateHistory: state.stateHistory.map((entry) => entry.stateHistoryDigest),
     replayRestoreHistory: state.replayRestoreHistory,
     sourceCompatibilityHistory: state.sourceCompatibilityHistory,
-    diagnosticsHistory,
-    verification,
-    digest,
   });
 }
