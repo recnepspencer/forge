@@ -677,7 +677,7 @@ Define the shared language for where artifacts came from, under what basis they
 were produced, and what effectful or authority-bearing boundary actually
 happened.
 
-Detailed implementation plan: `milestone-7.md`.
+Detailed spec: [`milestone-7.md`](milestone-7.md)
 Closeout: [`milestone-7-closeout.md`](milestone-7-closeout.md)
 
 The detailed spec and closeout record are authoritative for Milestone 7

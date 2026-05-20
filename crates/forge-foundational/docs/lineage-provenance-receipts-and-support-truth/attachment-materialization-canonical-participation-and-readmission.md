@@ -28,6 +28,15 @@ Important artifact families:
 - `CurrentBasisBoundaryEvidenceAttachmentBundle`
 - `SupportBasisBoundaryEvidenceAttachmentBundle`
 
+Important stronger-lane readmission functions:
+
+- `admit_current_basis_boundary_evidence_attachment_bundle(...)`
+- `bridge_current_basis_boundary_evidence_attachment_bundle_trust_boundary(...)`
+- `readmit_current_basis_boundary_evidence_attachment_bundle_after_boundary(...)`
+- `admit_support_basis_boundary_evidence_attachment_bundle(...)`
+- `bridge_support_basis_boundary_evidence_attachment_bundle_trust_boundary(...)`
+- `readmit_support_basis_boundary_evidence_attachment_bundle_after_boundary(...)`
+
 ## Core Mental Model
 
 Attachment is where the descriptive families finally travel together.
@@ -91,6 +100,14 @@ bridge. What is derived is the materialized descriptive bundle.
 When support truth is the stronger reason for reentry, the stronger lane has a
 separate support-basis path. That keeps "this bundle carries support" distinct
 from "this bundle is current-basis admissible right now."
+
+```rust
+let support_admitted =
+    stronger_lane::readmission::admit_support_basis_boundary_evidence_attachment_bundle(
+        materialized,
+        stronger_lane::readmission::foundational_boundary_evidence_attachment_readmission_authority(),
+    );
+```
 
 ## How It Relates To Other Features
 

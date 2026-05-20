@@ -12,6 +12,8 @@ Use these docs when you need to answer questions like:
   quarantined?
 - How do these descriptive surfaces attach to boundary artifacts and
   participate in canonical and digest identity?
+- Which public lane is the supported first-contact API, and which stronger
+  seams are reserved for readmission and readiness?
 
 Read the docs in this order if you are new to the surface:
 
@@ -40,3 +42,10 @@ Capability order matters.
 
 These docs are feature-first on purpose. They are not milestone notes or
 closeout notes. If a capability shipped, it has a home here.
+
+The crate-facing API surface these docs describe lives under:
+
+- `forge_foundational::boundary_evidence_api::common_path`
+- `forge_foundational::boundary_evidence_api::lower_lane`
+- `forge_foundational::boundary_evidence_api::stronger_lane`
+- `forge_foundational::boundary_evidence_api::boundary_evidence_public_surface_inventory()`

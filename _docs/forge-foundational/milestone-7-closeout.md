@@ -56,7 +56,7 @@ for the shipped Milestone 7 surface.
 Shipped homes:
 
 - [primitives.rs](C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/boundary_evidence/primitives.rs)
-- [front_doors.rs](C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/boundary_evidence/front_doors.rs)
+- [front_doors/mod.rs](C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/boundary_evidence/front_doors/mod.rs)
 - [common_path.rs](C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/boundary_evidence_api/common_path.rs)
 - [lower_lane/primitives.rs](C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/boundary_evidence_api/lower_lane/primitives.rs)
 - [primitives.rs test](C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/tests/certification/boundary_evidence/primitives.rs)

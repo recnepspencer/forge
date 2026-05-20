@@ -35,6 +35,8 @@ Important types:
 - `FoundationalBoundaryEvidenceGoldenArtifact`
 - `FoundationalBoundaryEvidencePropertySeed`
 - `FoundationalBoundaryEvidenceHarnessExpansionPoint`
+- `BoundaryEvidencePublicSurfaceEntry`
+- `BoundaryEvidenceDocumentationSurfaceEntry`
 
 ## Core Mental Model
 
@@ -99,6 +101,11 @@ let _ = (
 
 What is authoritative here is the exact report inventory plus the stronger
 readiness artifact, not a milestone closeout paragraph.
+
+The Phase 8-9 documentation inventory includes the crate-doc entrypoint at
+`crates/forge-foundational/docs/README.md` and the Milestone 7 feature folder
+under
+`crates/forge-foundational/docs/lineage-provenance-receipts-and-support-truth/`.
 
 ## How It Relates To Other Features
 

@@ -17,6 +17,7 @@ files first.
 
 ## Stable Entry Points
 
+- `forge_foundational::boundary_evidence_api`
 - `forge_foundational::boundary_evidence_api::common_path`
 - `forge_foundational::boundary_evidence_api::lower_lane::primitives`
 - `forge_foundational::boundary_evidence_api::lower_lane::provenance`
@@ -24,8 +25,10 @@ files first.
 - `forge_foundational::boundary_evidence_api::lower_lane::lineage`
 - `forge_foundational::boundary_evidence_api::lower_lane::support`
 - `forge_foundational::boundary_evidence_api::lower_lane::attachments`
+- `forge_foundational::boundary_evidence_api::stronger_lane`
 - `forge_foundational::boundary_evidence_api::stronger_lane::readmission`
 - `forge_foundational::boundary_evidence_api::stronger_lane::readiness`
+- `forge_foundational::boundary_evidence_api::boundary_evidence_public_surface_inventory()`
 
 ## Core Mental Model
 
@@ -34,6 +37,10 @@ The grouped public surface teaches three lanes:
 - common path: the recommended descriptive entry path
 - lower lane: direct vocabulary and exact lower-level surfaces
 - stronger lane: trust-boundary readmission and proof-bearing readiness
+
+The root `boundary_evidence_api` module also ships the exact public-surface
+inventory. Use that when you need the machine-checkable list of lanes rather
+than relying on folder browsing or doc memory.
 
 The grouped surface exists so the public API itself teaches the difference.
 
