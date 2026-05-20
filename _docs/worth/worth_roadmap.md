@@ -833,6 +833,9 @@ rebuilding neighborhood logic as caller-owned row joins.
 
 ## Milestone 4: Topology-Certified Primitive Construction
 
+Engineering spec:
+- [milestone-4.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-4.md)
+
 ### Goal
 
 Prove that Worth can construct the primitive and body classes enabled by the

@@ -28,6 +28,7 @@ parallel example-only siblings.
 ## Current Layout
 
 - `foundations/workspace-overview.md`
+- `foundations/downstream-runtime-integration.md`
 - `foundations/support-matrix-and-admission.md`
 - `foundations/state.md`
 - `foundations/branches-and-previews.md`

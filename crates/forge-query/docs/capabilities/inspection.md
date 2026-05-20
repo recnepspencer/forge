@@ -7,7 +7,7 @@ why a live view, computed view, effect, write receipt, batch write receipt,
 intent artifact, preview artifact, or branch artifact looks the way it does
 without reaching through private runtime plumbing.
 
-Post-5.5, this includes both:
+This includes both:
 
 - ordinary `workspace.inspect(...)` convenience inspection
 - covered inspection intent families that pass through the shared intent

@@ -8,7 +8,7 @@ This is the authority boundary for changing truth or staging future change.
 and `workspace.batch(...)` are the preferred
 direct mutation paths.
 `workspace.write(...)` remains a stable lower-level seam. Intent surfaces now
-include real post-5.5 covered families, but callers still need to distinguish
+include real covered families, but callers still need to distinguish
 between:
 
 - stable direct mutation surfaces
@@ -320,7 +320,7 @@ silent fallback to direct mutation.
 ## Current Limits
 
 - Direct authoritative writes are stable in the runtime-backed facade.
-- Covered intent execution is real for the named post-5.5 mutation and effect
+- Covered intent execution is real for the named mutation and effect
   families, but broader future intent families remain deferred.
 - Temporal, async/resource, and mixed-cause intent semantics remain future
   work, not current guarantees.
@@ -332,5 +332,6 @@ silent fallback to direct mutation.
 - [Workspace Overview](../foundations/workspace-overview.md)
 - [Projection Consumption](../capabilities/projection-consumption.md)
 - [Intent Admission](intent-admission.md)
+
 
 

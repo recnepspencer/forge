@@ -2,7 +2,7 @@
 
 ## What This Feature Is
 
-Intent admission is the shared front door for the covered post-5.5 Query
+Intent admission is the shared front door for the covered Query
 families that need more than "just call the runtime and hope."
 
 It gives those families one visible progression:
@@ -87,8 +87,8 @@ Good to know:
 
 - coverage is concrete, not blanket. These named families are covered now.
 - Generic materialization neighbors, temporal families, async/resource
-  families, store-backed restart work, and other later neighbors are still
-  remain explicitly deferred.
+  families, store-backed restart work, and other later neighbors remain
+  explicitly deferred.
 
 ## Core Mental Model
 

@@ -45,7 +45,7 @@ Each row tells you:
 
 - the surface or facade family
 - whether it is `Supported`, `DeferredDebt`, or `Unsupported`
-- the owning milestone
+- the owning roadmap closure or runtime gate
 - whether it must fail closed
 - whether future work is forbidden from creating a sibling API instead
 
@@ -55,8 +55,8 @@ Good to know:
 - `Intent` in the public facade means the shared intent vocabulary exists and
   covered intent families can be admitted when the runtime profile supports
   them
-- it does not mean every intent-shaped operation is stable everyday DX in
-  every runtime profile
+- it does not mean every intent-shaped operation is admitted as an ordinary
+  production-facing runtime path in every runtime profile
 
 ## How It Executes
 
@@ -79,7 +79,7 @@ let matrix = workspace.public_support_matrix();
 let live = matrix.row_for_family(ForgeQueryRuntimeFacadeFamily::Live).unwrap();
 
 assert_eq!(live.status().as_str(), "supported");
-assert_eq!(live.owner_milestone(), "Milestone 9.3");
+assert!(!live.support_contract_digest().is_empty());
 
 workspace
     .admit_public_api_family(ForgeQueryRuntimeFacadeFamily::Live)
@@ -104,11 +104,9 @@ let intent = matrix
     .unwrap();
 
 assert_eq!(temporal.status().as_str(), "deferred-debt");
-assert_eq!(temporal.owner_milestone(), "Milestone 9.4");
 assert!(temporal.admission_fail_closed());
 
 assert_eq!(async_resource.status().as_str(), "deferred-debt");
-assert_eq!(async_resource.owner_milestone(), "Milestone 9.5");
 assert!(async_resource.parallel_api_forbidden());
 
 assert_eq!(intent.status().as_str(), "unsupported");
@@ -134,7 +132,7 @@ for family in [
 ```
 
 Read that `Intent` row carefully. It means "do not teach blanket facade-family
-intent support here." It does not erase the concrete post-5.5 covered intent
+intent support here." It does not erase the concrete covered intent
 families described in [Intent Admission](../execution/intent-admission.md).
 
 What is supported now:
@@ -149,12 +147,12 @@ What is supported now:
 
 What is visible but deferred:
 
-- `Temporal` -> Milestone 9.4
-- `AsyncResource` -> Milestone 9.5
-- `MixedCauseDelivery` -> Milestone 9.6
-- `temporal-async-certification` -> Milestone 9.7
-- `StoreBackedExecution` -> Milestone 10
-- `DurableArtifacts` -> Milestone 11
+- `Temporal` -> temporal basis and time-aware subscription closure
+- `AsyncResource` -> async/resource query closure
+- `MixedCauseDelivery` -> mixed truth/time/async delivery closure
+- `temporal-async-certification` -> temporal/async certification closure
+- `StoreBackedExecution` -> store-backed execution parity
+- `DurableArtifacts` -> durable artifact reload and continuation
 
 What is public vocabulary but not blanket facade-family support:
 
@@ -184,6 +182,10 @@ Look for:
 - `parallel_api_forbidden()`
 - `admission_fail_closed()`
 - `support_contract_digest()`
+
+`owner_milestone()` is roadmap provenance. Product code should usually branch
+on support status, fail-closed posture, extension rule, and the support
+contract digest rather than hard-coding milestone names.
 
 For deeper checks:
 
