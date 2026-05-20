@@ -2,9 +2,9 @@
 
 ## Goal
 
-Define the DX hardening work required before crate-facing documentation for
-Milestones 1, 2, and 3 can honestly meet the standard now set by Milestones 4,
-5, and 6.
+Define the DX hardening work that was required before crate-facing
+documentation for Milestones 1, 2, and 3 could honestly meet the standard now
+set by Milestones 4, 5, and 6.
 
 This document is not a substitute for the milestone specs. Those specs already
 close semantic law. This document answers a different question:
@@ -14,13 +14,24 @@ close semantic law. This document answers a different question:
 > document those surfaces without making the docs compensate for weak API
 > shape?
 
+## Current Status
+
+- Milestone 1 DX hardening is now materially implemented and QA-hardened.
+- Milestone 2 DX hardening is now materially implemented and QA-hardened.
+- Milestone 3 DX hardening is now materially implemented and QA-hardened.
+- The remaining work in this document is no longer milestone DX design or
+  implementation. It is:
+  - preserve the completion record for Milestones 1, 2, and 3
+  - use that completion record as the gating artifact for the later docs
+    backfill
+
 ## Why This Exists
 
 Milestones 1, 2, and 3 are semantically strong and structurally honest. They
 already preserve the foundational boundary laws the crate roadmap required.
 
-What they do not consistently do yet is teach their common path through the API
-surface itself.
+What they did not consistently do at the start of this work was teach their
+common path through the API surface itself.
 
 Right now:
 
@@ -155,7 +166,7 @@ This plan covers:
 - public DX hardening for Milestones 1, 2, and 3
 - facade and front-door shape
 - common-lane versus lower-lane guidance
-- required pre-doc changes
+- the required pre-doc changes that governed the completed work
 - explicit coverage requirements so docs do not accidentally erase important
   capabilities
 
@@ -184,6 +195,10 @@ This plan does not cover:
   shaped clearly enough.
 - Milestones 1-3 are still easier to understand from the specs than from the
   call sites.
+
+This section is now historically true for the starting point of the work, not
+the current state. It no longer describes Milestones 1, 2, or 3 accurately
+after the completed DX batches below.
 
 ### Global DX Rules
 
@@ -214,6 +229,10 @@ When this alignment work is finished, each early milestone should have:
 
 ## Milestone 1: Aspects And Authoritative State
 
+### Status
+
+Implemented and hostile-QA'd.
+
 ### Current Strengths
 
 - The internal `aspects/` tree is already responsibility-shaped.
@@ -221,7 +240,7 @@ When this alignment work is finished, each early milestone should have:
   compatibility lowering already exist as real semantic surfaces.
 - The milestone already has strong compile-fail and canonicalization proof.
 
-### Current DX Weaknesses
+### Historical DX Weaknesses
 
 - The common authoring journey is too implicit.
 - The surface is noun-rich but workflow-light.
@@ -328,6 +347,48 @@ requirement.
 - Keep ids and locators grouped as supporting vocabulary rather than letting
   them clutter the primary authoring progression.
 
+### Implemented Surface
+
+Milestone 1 now has a real common lane through:
+
+- [crates/forge-foundational/src/aspects/front_doors/mod.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/aspects/front_doors/mod.rs)
+- [crates/forge-foundational/src/aspects/front_doors/contract.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/aspects/front_doors/contract.rs)
+- [crates/forge-foundational/src/aspects/front_doors/masks.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/aspects/front_doors/masks.rs)
+- [crates/forge-foundational/src/aspects/front_doors/validation.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/aspects/front_doors/validation.rs)
+- [crates/forge-foundational/src/aspects/front_doors/state.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/aspects/front_doors/state.rs)
+- [crates/forge-foundational/src/aspects/front_doors/patches.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/aspects/front_doors/patches.rs)
+- [crates/forge-foundational/src/aspects/front_doors/values.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/aspects/front_doors/values.rs)
+- [crates/forge-foundational/src/compatibility/front_doors.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/compatibility/front_doors.rs)
+
+The common lane now honestly covers:
+
+- scalar contract authoring
+- struct contract authoring
+- explicit scalar and struct contract law when masks/equivalence/evolution must be named
+- field declaration authoring
+- field-path authoring and interpretation
+- projection, mutation, and diagnostic mask authoring
+- scalar validation
+- struct-valued authoring and validation
+- authoritative state admission
+- whole-aspect patch authoring
+- field-level patch authoring
+- patch application back into authoritative state
+- explicit compatibility lowering through `compatibility().json()`
+- locator and identity usage through the supporting vocabulary lane
+
+The surface is mechanically frozen into the Milestone 1 readiness contract in:
+
+- [crates/forge-foundational/src/boundary/milestone1_readiness.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/boundary/milestone1_readiness.rs)
+- [crates/forge-foundational/src/boundary/milestone1_readiness_certification.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/boundary/milestone1_readiness_certification.rs)
+
+And it is externally proven by:
+
+- [crates/forge-foundational/tests/certification/aspects/front_doors.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/tests/certification/aspects/front_doors.rs)
+- [crates/forge-foundational/tests/certification/compatibility/front_doors.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/tests/certification/compatibility/front_doors.rs)
+- [crates/forge-foundational/tests/ui/aspect_front_doors](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/tests/ui/aspect_front_doors)
+- [crates/forge-foundational/tests/ui/compatibility_front_doors](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/tests/ui/compatibility_front_doors)
+
 ### Non-Goals
 
 - Flattening contract, validation, state, and patch law into one convenience
@@ -345,7 +406,14 @@ requirement.
 - Compile-fail boundaries remain at least as strong as they are now.
 - Compatibility lowering remains visibly separate from native validation.
 
+This acceptance bar is now satisfied by the current implementation and proof
+surface.
+
 ## Milestone 2: Canonicalization And Digest Basis
+
+### Status
+
+Implemented and hostile-QA'd.
 
 ### Current Strengths
 
@@ -354,7 +422,7 @@ requirement.
   are all real distinct surfaces.
 - The milestone is semantically rigorous and already closes the hard problem.
 
-### Current DX Weaknesses
+### Historical DX Weaknesses
 
 - The public surface is the least approachable of the three milestones.
 - The facade exposes many correct nouns without clearly teaching the main
@@ -414,6 +482,34 @@ these lanes clearly.
 - Keep mismatch and unsupported comparison visible rather than quietly
   secondary to equality-style flows.
 
+### Implemented Surface
+
+Milestone 2 now has a real grouped public surface through:
+
+- [crates/forge-foundational/src/canonicalization/front_doors](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/canonicalization/front_doors)
+- [crates/forge-foundational/src/canonicalization_api/mod.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/canonicalization_api/mod.rs)
+- [crates/forge-foundational/src/canonicalization_api/common_path.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/canonicalization_api/common_path.rs)
+- [crates/forge-foundational/src/canonicalization_api/lower_lane](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/canonicalization_api/lower_lane)
+- [crates/forge-foundational/src/canonicalization_api/stronger_lane](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/canonicalization_api/stronger_lane)
+- [crates/forge-foundational/src/canonicalization_api/inventory.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/canonicalization_api/inventory.rs)
+
+The implemented public grammar now provides:
+
+- one obvious staged common path
+- one grouped lower lane by real semantic sublane
+- one explicitly stronger readiness-owned lane
+- direct mismatch and readiness inspection on the common path
+- digest derivation that stays downstream of admitted basis/export readiness
+- machine-checkable public-surface inventory in the canonical readiness artifact
+
+The grouped surface is externally proven by:
+
+- [crates/forge-foundational/tests/certification/canonicalization/front_doors.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/tests/certification/canonicalization/front_doors.rs)
+- [crates/forge-foundational/tests/certification/canonicalization/grouped_surface.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/tests/certification/canonicalization/grouped_surface.rs)
+- [crates/forge-foundational/tests/certification/canonicalization/production_readiness/public_surface_inventory.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/tests/certification/canonicalization/production_readiness/public_surface_inventory.rs)
+- [crates/forge-foundational/tests/ui/canonicalization/front_doors](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/tests/ui/canonicalization/front_doors)
+- [crates/forge-foundational/tests/ui/canonicalization/grouped_surface](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/tests/ui/canonicalization/grouped_surface)
+
 ### Non-Goals
 
 - Hiding canonical basis behind direct digest conveniences.
@@ -428,7 +524,14 @@ these lanes clearly.
   without inventing a better structure than the code already teaches.
 - Compile-fail and readiness proof lanes remain intact and visible.
 
+This acceptance bar is now satisfied by the current implementation and proof
+surface.
+
 ## Milestone 3: Profiles And Policy Vocabulary
+
+### Status
+
+Implemented and hostile-QA'd.
 
 ### Current Strengths
 
@@ -437,7 +540,7 @@ these lanes clearly.
 - Composition, attachment, identity, materialization, certification, and
   readiness all already exist as named capabilities.
 
-### Current DX Weaknesses
+### Historical DX Weaknesses
 
 - The common journey is still more obvious in the spec than in the code.
 - Attachment and materialization remain a little more inferential than they
@@ -493,6 +596,50 @@ let plan = profiles::materialization()
 - Make evidence-backed and production-certified strengthening read like a
   clearly stronger lane rather than just one more adjacent export family.
 
+### Implemented Surface
+
+Milestone 3 now has a real common lane through:
+
+- [crates/forge-foundational/src/profiles/front_doors/mod.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/profiles/front_doors/mod.rs)
+- [crates/forge-foundational/src/profiles/front_doors/set.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/profiles/front_doors/set.rs)
+- [crates/forge-foundational/src/profiles/front_doors/progression.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/profiles/front_doors/progression.rs)
+- [crates/forge-foundational/src/profiles/front_doors/attachment.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/profiles/front_doors/attachment.rs)
+- [crates/forge-foundational/src/profiles/front_doors/materialization.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/profiles/front_doors/materialization.rs)
+- [crates/forge-foundational/src/profiles/front_doors/certification.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/profiles/front_doors/certification.rs)
+
+Milestone 3 now also has a grouped public surface through:
+
+- [crates/forge-foundational/src/profiles_api/mod.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/profiles_api/mod.rs)
+- [crates/forge-foundational/src/profiles_api/common_path.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/profiles_api/common_path.rs)
+- [crates/forge-foundational/src/profiles_api/lower_lane](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/profiles_api/lower_lane)
+- [crates/forge-foundational/src/profiles_api/stronger_lane](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/profiles_api/stronger_lane)
+- [crates/forge-foundational/src/profiles_api/inventory.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/profiles_api/inventory.rs)
+
+The implemented public grammar now provides:
+
+- one obvious common path for composed profile request, admitted progression,
+  target-aware attachment, target-scoped materialization, and explicit
+  strengthening
+- one grouped lower lane for composition, progression, attachment,
+  materialization, identity/difference, and certification inspection
+- one explicitly stronger readiness-owned lane
+- machine-checkable public-surface inventory in the Milestone 3 readiness
+  artifact
+
+The shaped surface is mechanically frozen into the Milestone 3 readiness
+contract in:
+
+- [crates/forge-foundational/src/profiles/readiness/inventory.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/profiles/readiness/inventory.rs)
+- [crates/forge-foundational/src/profiles/readiness/report.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/src/profiles/readiness/report.rs)
+
+And it is externally proven by:
+
+- [crates/forge-foundational/tests/certification/profiles/front_doors.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/tests/certification/profiles/front_doors.rs)
+- [crates/forge-foundational/tests/certification/profiles/grouped_surface.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/tests/certification/profiles/grouped_surface.rs)
+- [crates/forge-foundational/tests/certification/profiles/readiness.rs](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/tests/certification/profiles/readiness.rs)
+- [crates/forge-foundational/tests/ui/profiles/front_doors](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/tests/ui/profiles/front_doors)
+- [crates/forge-foundational/tests/ui/profiles/grouped_surface](/C:/Users/Esther/Documents/Programming/forge_workspace/worktree_3/crates/forge-foundational/tests/ui/profiles/grouped_surface)
+
 ### Non-Goals
 
 - Collapsing requested, admitted, and materialized meaning into one mutable
@@ -507,6 +654,9 @@ let plan = profiles::materialization()
 - Attachment legality, materialization planning, and stronger certification
   remain explicit seams.
 
+This acceptance bar is now satisfied by the current implementation and proof
+surface.
+
 ## Implementation Order
 
 The DX work should be done in this order:
@@ -518,6 +668,13 @@ The DX work should be done in this order:
 5. Milestone 1 docs
 6. Milestone 2 docs
 7. Milestone 3 docs
+
+Progress update:
+
+- Step 1 is complete.
+- Step 2 is complete.
+- Step 3 is complete.
+- Steps 4 through 7 are now complete.
 
 The reason for this order:
 
@@ -546,6 +703,14 @@ The reason for this order:
   paths, field-level patching, and compatibility lowering
 - docs for Milestones 1-3 are deferred until the public surface can honestly
   teach the intended journey
+
+Current read:
+
+- Milestone 1 satisfies this bar.
+- Milestone 2 satisfies this bar.
+- Milestone 3 satisfies this bar.
+- The DX alignment phase for Milestones 1-3 is complete, and the docs backfill
+  phase can now honestly begin.
 
 ## Self-Check
 

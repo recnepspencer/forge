@@ -3,6 +3,8 @@ mod digest_preparation;
 mod digest_slots;
 mod equivalence;
 mod export;
+mod front_doors;
 mod golden_artifacts;
+mod grouped_surface;
 mod production_readiness;
 mod proof_carriage;

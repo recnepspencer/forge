@@ -25,9 +25,11 @@ fn milestone_1_readiness_report_names_adoption_surfaces_and_debt() {
             "aspect_contracts",
             "authoritative_state",
             "authoritative_patches",
+            "aspect_common_path",
             "identity_categories",
             "locators",
             "compatibility_bridges",
+            "compatibility_common_path",
             "digest_preparation",
         ]
     );
@@ -44,6 +46,14 @@ fn milestone_1_readiness_report_names_adoption_surfaces_and_debt() {
         .proof_seeds()
         .iter()
         .any(|row| row.evidence().contains("ui/digest_preparation")));
+    assert!(report
+        .proof_seeds()
+        .iter()
+        .any(|seed| seed.name() == "aspect_common_path_front_doors"));
+    assert!(report
+        .proof_seeds()
+        .iter()
+        .any(|seed| seed.name() == "compatibility_common_path_front_doors"));
 }
 
 #[test]
@@ -82,4 +92,8 @@ fn milestone_1_production_test_readiness_is_proof_bearing() {
         .proof_seeds()
         .iter()
         .any(|seed| seed.name() == "digest_preparation_readiness"));
+    assert!(report
+        .proof_seeds()
+        .iter()
+        .any(|seed| seed.name() == "aspect_common_path_front_doors"));
 }

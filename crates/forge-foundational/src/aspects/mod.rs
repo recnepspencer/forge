@@ -1,5 +1,6 @@
 mod contracts;
 mod evolution;
+mod front_doors;
 mod identity;
 mod keys;
 mod masks;
@@ -16,6 +17,15 @@ pub use evolution::{
     classify_aspect_contract_evolution, AspectEvolutionClassified,
     AspectEvolutionClassifiedContractArtifact, AspectEvolutionClassifiedContracts,
     AspectEvolutionKind, AspectEvolutionPolicy, AspectEvolutionVerdict,
+};
+pub use front_doors::{
+    aspects, AspectContractFrontDoor, AspectContractIdentityStep, AspectContractRevisionStep,
+    AspectContractShapeStep, AspectFrontDoorConstructionDenial, AspectMaskContractFrontDoor,
+    AspectPatchFrontDoor, AspectValidationFrontDoor, AspectValidationInputStep,
+    AspectVocabularyFrontDoor, AspectsFrontDoor, AuthoritativeStateFrontDoor,
+    DiagnosticMaskFrontDoor, FieldLevelPatchBuilder, MutationMaskFrontDoor,
+    ProjectionMaskFrontDoor, StructFieldBuilder, StructFieldsFrontDoor, StructValueBuilder,
+    WholeAspectPatchBuilder,
 };
 pub use identity::{AspectContractRevision, AspectIdentity};
 pub use keys::AspectKey;

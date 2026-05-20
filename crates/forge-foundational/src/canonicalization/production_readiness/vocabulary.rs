@@ -82,6 +82,7 @@ pub enum CanonicalHarnessExpansionPoint {
     ExportFixtureReplayLane,
     DigestSlotHostilityLane,
     RuntimeParityRunMatrix,
+    GroupedPublicSurfaceLane,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
