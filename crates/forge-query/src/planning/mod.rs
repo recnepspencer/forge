@@ -11,6 +11,7 @@ use crate::identity::{
 use crate::live::LivePromotionDescriptor;
 use crate::validation::ValidatedQueryBundle;
 
+#[cfg(test)]
 #[allow(unused_imports)]
 pub(crate) use crate::frontier_planning::{
     BoundedMaterializationFrontierPreflight, BundleResolvedBasisDigest, FrontierAwarePlan,
@@ -81,11 +82,6 @@ pub struct ExecutionMechanics {
 }
 
 impl ExecutionMechanics {
-    #[allow(dead_code)]
-    pub(crate) fn new(cost_markers: Vec<ExecutionCostMarker>) -> Self {
-        Self { cost_markers }
-    }
-
     pub fn cost_markers(&self) -> &[ExecutionCostMarker] {
         &self.cost_markers
     }
@@ -98,7 +94,6 @@ pub struct PlanningSemanticInputs {
 }
 
 impl PlanningSemanticInputs {
-    #[allow(dead_code)]
     pub(crate) fn new(
         binding_resolution: Option<BindingResolution>,
         basis_intent: ExecutionBasisIntent,
@@ -124,7 +119,6 @@ pub struct PlanningAmbientContext {
 }
 
 impl PlanningAmbientContext {
-    #[allow(dead_code)]
     pub(crate) fn new(metadata: Vec<NonIdentityBindingMetadata>) -> Self {
         Self { metadata }
     }
@@ -141,7 +135,6 @@ pub struct PlanningRequestContext {
 }
 
 impl PlanningRequestContext {
-    #[allow(dead_code)]
     pub(crate) fn new(semantic: PlanningSemanticInputs, ambient: PlanningAmbientContext) -> Self {
         Self { semantic, ambient }
     }
@@ -475,21 +468,21 @@ impl PlanningError {
     }
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[allow(dead_code)]
 pub(crate) enum RequestedTraversalBound {
     UnboundedExpansion,
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[allow(dead_code)]
 pub(crate) enum RequestedAggregateFamily {
     CountRows,
     GroupedIntegerSum,
 }
 
+#[cfg(test)]
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[allow(dead_code)]
 pub(crate) enum RequestedDerivedFieldFamily {
     DisplayLabel,
 }
@@ -849,28 +842,28 @@ pub fn plan_validated_bundle_for_collection_family(
     )
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
+#[cfg(test)]
 pub(crate) fn lower_execution_preflight_to_frontier_plan(
     preflight: &crate::basis::ExecutionPreflightBundle,
 ) -> Result<FrontierAwarePlan, FrontierPlanningError> {
     crate::frontier_planning::lower_preflight_to_frontier_plan(preflight)
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
+#[cfg(test)]
 pub(crate) fn lower_live_plan_to_frontier_plan(
     live: &crate::live::LiveQueryPlan,
 ) -> Result<FrontierAwarePlan, FrontierPlanningError> {
     crate::frontier_planning::lower_live_plan_to_frontier_plan(live)
 }
 
-#[cfg_attr(not(test), allow(dead_code))]
+#[cfg(test)]
 pub(crate) fn lower_frontier_planning_bundle(
     inputs: &[FrontierPlanningInput],
 ) -> Result<FrontierBundlePlan, FrontierPlanningError> {
     crate::frontier_planning::lower_frontier_bundle(inputs)
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn lower_preflight_to_parallel_admission_route(
     preflight: &OrderedCollectionFrontierPreflight,
     evidence: &ParallelAdmissionEvidence,
@@ -878,7 +871,7 @@ pub fn lower_preflight_to_parallel_admission_route(
     crate::frontier_planning::lower_preflight_to_parallel_admission_route(preflight, evidence)
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn lower_preflight_to_serial_fallback_route(
     preflight: &BoundedMaterializationFrontierPreflight,
     evidence: &SerialFallbackEvidence,
@@ -886,7 +879,7 @@ pub fn lower_preflight_to_serial_fallback_route(
     crate::frontier_planning::lower_preflight_to_serial_fallback_route(preflight, evidence)
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn lower_preflight_bundle_to_parallel_admission_routes(
     preflights: &[OrderedCollectionFrontierPreflight],
     evidences: &crate::frontier_planning::ParallelAdmissionBundleEvidence,
@@ -896,7 +889,7 @@ pub fn lower_preflight_bundle_to_parallel_admission_routes(
     )
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn lower_preflight_bundle_to_serial_fallback_routes(
     preflights: &[BoundedMaterializationFrontierPreflight],
     evidences: &crate::frontier_planning::SerialFallbackBundleEvidence,
@@ -906,21 +899,21 @@ pub fn lower_preflight_bundle_to_serial_fallback_routes(
     )
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn admit_ordered_collection_frontier_preflight(
     preflight: crate::basis::ExecutionPreflightBundle,
 ) -> Result<OrderedCollectionFrontierPreflight, FrontierPreflightAdmissionError> {
     crate::frontier_planning::admit_ordered_collection_frontier_preflight(preflight)
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub fn admit_bounded_materialization_frontier_preflight(
     preflight: crate::basis::ExecutionPreflightBundle,
 ) -> Result<BoundedMaterializationFrontierPreflight, FrontierPreflightAdmissionError> {
     crate::frontier_planning::admit_bounded_materialization_frontier_preflight(preflight)
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub(crate) fn plan_validated_bundle_for_requested_traversal_bound(
     _bundle: &ValidatedQueryBundle,
     _request_context: PlanningRequestContext,
@@ -929,7 +922,7 @@ pub(crate) fn plan_validated_bundle_for_requested_traversal_bound(
     Err(PlanningError::UnsupportedTraversalBound)
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub(crate) fn plan_validated_bundle_for_requested_aggregate_family(
     bundle: &ValidatedQueryBundle,
     request_context: PlanningRequestContext,
@@ -961,7 +954,7 @@ pub(crate) fn plan_validated_bundle_for_requested_aggregate_family(
     }
 }
 
-#[allow(dead_code)]
+#[cfg(test)]
 pub(crate) fn plan_validated_bundle_for_requested_derived_field_family(
     bundle: &ValidatedQueryBundle,
     request_context: PlanningRequestContext,

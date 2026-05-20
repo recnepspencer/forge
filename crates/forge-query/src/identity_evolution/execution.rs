@@ -282,6 +282,7 @@ fn execute_lineage(
 
     let scenario = admitted_query.synthetic_scenario();
     let (result_bundle, prediction_drift_outcome) = match (descriptor.family(), scenario) {
+        #[cfg(test)]
         (
             LineageTraversalFamily::DirectPredecessor,
             IdentityEvolutionSyntheticScenario::BroadLineageScanDenied,
@@ -312,6 +313,7 @@ fn execute_lineage(
                 IdentityEvolutionPredictionDriftOutcome::WithinBudget,
             )
         }
+        #[cfg(test)]
         (
             LineageTraversalFamily::DirectPredecessor,
             IdentityEvolutionSyntheticScenario::LineageToCorrespondenceFallbackDenied,
@@ -748,6 +750,7 @@ fn outcome_family_for_lineage(
     scenario: IdentityEvolutionSyntheticScenario,
 ) -> IdentityEvolutionOutcomeFamily {
     match family {
+        #[cfg(test)]
         LineageTraversalFamily::DirectPredecessor
             if matches!(
                 scenario,
@@ -808,6 +811,7 @@ fn branch_locality_class_for_comparison(
     scenario: IdentityEvolutionSyntheticScenario,
 ) -> BranchLocalityClass {
     match scenario {
+        #[cfg(test)]
         IdentityEvolutionSyntheticScenario::BranchLocalComparison => {
             BranchLocalityClass::BranchLocalOnly
         }

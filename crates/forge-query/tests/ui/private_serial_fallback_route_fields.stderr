@@ -1,3 +1,9 @@
+error[E0432]: unresolved import `forge_query::facade::SerialFallbackRoute`
+ --> tests/ui/private_serial_fallback_route_fields.rs:1:5
+  |
+1 | use forge_query::facade::SerialFallbackRoute;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `SerialFallbackRoute` in `facade`
+
 warning: unreachable expression
  --> tests/ui/private_serial_fallback_route_fields.rs:6:24
   |
@@ -8,26 +14,3 @@ warning: unreachable expression
   |
   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
   = note: this warning originates in the macro `todo` (in Nightly builds, run with -Z macro-backtrace for more info)
-
-error: cannot construct `SerialFallbackRoute` with struct literal syntax due to private fields
- --> tests/ui/private_serial_fallback_route_fields.rs:4:13
-  |
-4 |     let _ = SerialFallbackRoute {
-  |             ^^^^^^^^^^^^^^^^^^^
-5 |         preflight: todo!(),
-  |         ------------------ private field
-6 |         frontier_plan: todo!(),
-  |         ---------------------- private field
-7 |         reason: todo!(),
-  |         --------------- private field
-  |
-  = note: ...and other private fields `report`, `planning_counters`, `counters` and `route_posture_digest` that were not provided
-help: you might have meant to use the `new` associated function
-  |
-4 -     let _ = SerialFallbackRoute {
-5 -         preflight: todo!(),
-6 -         frontier_plan: todo!(),
-7 -         reason: todo!(),
-8 -     };
-4 +     let _ = SerialFallbackRoute::new(_, _, _, _);
-  |

@@ -355,6 +355,28 @@ impl ProjectionConsumptionSource {
             source_reference_identities,
         }
     }
+
+    pub(crate) fn intent_admission_certification(
+        family: ProjectionSourceFamily,
+        capability_profile: ProjectionSourceCapabilityProfile,
+        query_digest: Option<String>,
+        basis_digest: Option<String>,
+        result_digest: Option<String>,
+        result_shape_digest: Option<String>,
+        source_identity: impl Into<String>,
+        source_reference_identities: Vec<ProjectionSourceReferenceIdentity>,
+    ) -> Self {
+        Self {
+            family,
+            capability_profile,
+            query_digest,
+            basis_digest,
+            result_digest,
+            result_shape_digest,
+            source_identity: source_identity.into(),
+            source_reference_identities,
+        }
+    }
 }
 
 fn execution_posture_from_read_engine(

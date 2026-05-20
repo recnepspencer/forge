@@ -11,6 +11,7 @@ pub struct BridgeExecutionOracle {
     outcome_class: forge_runtime_bridge::facade::BridgeWritebackOutcomeClass,
     request_digest: String,
     receipt_digest: String,
+    execution_receipt_digest: Option<String>,
     bridge_oracle_digest: String,
 }
 
@@ -33,6 +34,7 @@ impl BridgeExecutionOracle {
             format!("outcome_class:{outcome_class:?}"),
             format!("request:{request_digest}"),
             format!("receipt:{receipt_digest}"),
+            format!("execution_receipt:{}", optional_digest_basis(None)),
         ]);
         Self {
             execution_record_digest,
@@ -40,8 +42,30 @@ impl BridgeExecutionOracle {
             outcome_class,
             request_digest,
             receipt_digest,
+            execution_receipt_digest: None,
             bridge_oracle_digest,
         }
+    }
+
+    pub fn with_execution_receipt_digest(
+        mut self,
+        execution_receipt_digest: impl Into<String>,
+    ) -> Self {
+        let execution_receipt_digest = execution_receipt_digest.into();
+        self.bridge_oracle_digest = hash_parts(&[
+            "bridge_execution_oracle_v1".to_string(),
+            format!("record:{}", self.execution_record_digest),
+            format!("outcome:{}", self.outcome_digest),
+            format!("outcome_class:{:?}", self.outcome_class),
+            format!("request:{}", self.request_digest),
+            format!("receipt:{}", self.receipt_digest),
+            format!(
+                "execution_receipt:{}",
+                optional_digest_basis(Some(execution_receipt_digest.as_str()))
+            ),
+        ]);
+        self.execution_receipt_digest = Some(execution_receipt_digest);
+        self
     }
 
     pub fn observe_last_writeback(
@@ -67,7 +91,7 @@ impl BridgeExecutionOracle {
         let receipt_digest = record
             .receipt_digest()
             .ok_or_else(|| incomplete_bridge_record_error("receipt", record.digest()))?;
-        Ok(Self::new(
+        let oracle = Self::new(
             record.digest(),
             outcome_digest,
             record
@@ -75,7 +99,13 @@ impl BridgeExecutionOracle {
                 .ok_or_else(|| incomplete_bridge_record_error("outcome_class", record.digest()))?,
             request_digest,
             receipt_digest,
-        ))
+        );
+        Ok(match record.execution_receipt_digest() {
+            Some(execution_receipt_digest) => {
+                oracle.with_execution_receipt_digest(execution_receipt_digest)
+            }
+            None => oracle,
+        })
     }
 
     pub fn execution_record_digest(&self) -> &str {
@@ -98,9 +128,17 @@ impl BridgeExecutionOracle {
         &self.receipt_digest
     }
 
+    pub fn execution_receipt_digest(&self) -> Option<&str> {
+        self.execution_receipt_digest.as_deref()
+    }
+
     pub fn bridge_oracle_digest(&self) -> &str {
         &self.bridge_oracle_digest
     }
+}
+
+fn optional_digest_basis(value: Option<&str>) -> &str {
+    value.unwrap_or("none")
 }
 
 fn incomplete_bridge_record_error(

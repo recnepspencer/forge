@@ -13,6 +13,10 @@ mod intent;
 mod intent_admission;
 #[allow(deprecated)]
 mod live;
+#[allow(deprecated)]
+mod live_receipts;
+#[allow(deprecated)]
+mod lower_runtime_routes;
 mod mutation;
 #[allow(deprecated)]
 mod preview;

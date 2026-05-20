@@ -325,7 +325,6 @@ impl std::fmt::Display for ForgeQueryRuntimeSupportDenial {
     }
 }
 
-#[allow(dead_code)]
 fn _keep_types_visible(
     _authority: &ForgeQueryRuntimeEvidenceAuthority,
     _preview: &ForgeQueryPreviewBasisAdmission,

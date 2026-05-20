@@ -100,6 +100,16 @@ fn writeback_execution_verifies_against_independent_bridge_authority_record() {
     let verification = executed
         .verify_against_bridge_runtime(&bridge)
         .expect("bridge oracle verification should succeed");
+    let retained_record = bridge
+        .diagnostics()
+        .last_writeback_execution_record()
+        .expect("bridge should retain the matching writeback execution record");
+    assert_eq!(
+        retained_record.execution_receipt_digest(),
+        executed
+            .writeback_execution()
+            .map(|execution| execution.execution_receipt().digest())
+    );
 
     let (outcome, receipt) = executed
         .as_writeback()
@@ -227,6 +237,24 @@ fn bridge_oracle_rejects_independent_receipt_mismatch() {
 
     assert_eq!(
         denial.kind(),
+        EffectExecutionOracleErrorKind::BridgeOracleReceiptMismatch
+    );
+
+    let execution_receipt_denial = executed
+        .verify_against_bridge_oracle(
+            &BridgeExecutionOracle::new(
+                "bridge-record:qa",
+                outcome.digest(),
+                outcome.outcome_class(),
+                receipt.request_digest(),
+                receipt.digest(),
+            )
+            .with_execution_receipt_digest("bridge-execution-receipt-mismatch"),
+        )
+        .expect_err("mismatched bridge execution receipt should deny");
+
+    assert_eq!(
+        execution_receipt_denial.kind(),
         EffectExecutionOracleErrorKind::BridgeOracleReceiptMismatch
     );
 }

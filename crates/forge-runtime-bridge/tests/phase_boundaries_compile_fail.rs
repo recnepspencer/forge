@@ -12,5 +12,6 @@ fn bridge_phase_boundaries_are_compile_time_private() {
 
     let t = trybuild::TestCases::new();
     t.compile_fail("tests/ui/causal_envelope/*.rs");
+    t.compile_fail("tests/ui/writeback_contract/*.rs");
     t.compile_fail("tests/ui/*.rs");
 }

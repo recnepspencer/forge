@@ -1,45 +1,35 @@
-warning: unreachable expression
-  --> tests/ui/runtime_batch_mutation_privates_forbidden.rs:12:23
-   |
-11 |         authority_lane: panic!("not constructible"),
-   |                         --------------------------- any code following this expression is unreachable
-12 |         batch_digest: String::new(),
-   |                       ^^^^^^^^^^^^^ unreachable expression
-   |
-   = note: `#[warn(unreachable_code)]` (part of `#[warn(unused)]`) on by default
-
 error: cannot construct `forge_query::facade::ForgeQueryBatchWriteReceipt` with struct literal syntax due to private fields
-  --> tests/ui/runtime_batch_mutation_privates_forbidden.rs:9:13
+  --> tests/ui/runtime_batch_mutation_privates_forbidden.rs:11:13
    |
- 9 |     let _ = ForgeQueryBatchWriteReceipt {
+11 |     let _ = ForgeQueryBatchWriteReceipt {
    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^
-10 |         write_receipts: Vec::new(),
+12 |         write_receipts: Vec::new(),
    |         -------------------------- private field
-11 |         authority_lane: panic!("not constructible"),
-   |         ------------------------------------------- private field
-12 |         batch_digest: String::new(),
+13 |         authority_lane: ForgeQueryAuthorityLane::AuthoritativeTruth,
+   |         ----------------------------------------------------------- private field
+14 |         batch_digest: String::new(),
    |         --------------------------- private field
-13 |         touched_aspect_paths: Vec::new(),
+15 |         touched_aspect_paths: Vec::new(),
    |         -------------------------------- private field
-14 |         affected_live_view_ids: Vec::new(),
+16 |         affected_live_view_ids: Vec::new(),
    |         ---------------------------------- private field
-15 |         affected_derived_view_ids: Vec::new(),
+17 |         affected_derived_view_ids: Vec::new(),
    |         ------------------------------------- private field
-16 |         considered_computed_view_count: 0,
+18 |         considered_computed_view_count: 0,
    |         --------------------------------- private field
-17 |         considered_effect_count: 0,
+19 |         considered_effect_count: 0,
    |         -------------------------- private field
-18 |         delivered_effect_count: 0,
+20 |         delivered_effect_count: 0,
    |         ------------------------- private field
-19 |         pending_write_intent_count: 0,
+21 |         pending_write_intent_count: 0,
    |         ----------------------------- private field
-20 |         suppressed_effect_count: 0,
+22 |         suppressed_effect_count: 0,
    |         -------------------------- private field
-21 |         meaningful_effect_suppression_count: 0,
+23 |         meaningful_effect_suppression_count: 0,
    |         -------------------------------------- private field
-22 |         effect_expression_failure_count: 0,
+24 |         effect_expression_failure_count: 0,
    |         ---------------------------------- private field
-23 |         refresh_fallback: false,
+25 |         refresh_fallback: false,
    |         ----------------------- private field
    |
-   = note: ...and other private fields `basis_lane`, `batch_mutation_evidence`, `graph_composition_breadth`, `graph_composition_program` and `graph_composition_resolution_map` that were not provided
+   = note: ...and other private fields that were not provided

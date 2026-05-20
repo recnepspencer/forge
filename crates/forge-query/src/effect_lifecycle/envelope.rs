@@ -267,7 +267,10 @@ fn structural_deltas(receipt: &EffectExecutionReceipt) -> Vec<String> {
         EffectReceiptTargetEvidence::Writeback {
             outcome_digest,
             receipt_digest,
-        } => vec![format!("writeback:{outcome_digest}:{receipt_digest}")],
+            execution_receipt_digest,
+        } => vec![format!(
+            "writeback:{outcome_digest}:{receipt_digest}:{execution_receipt_digest}"
+        )],
         EffectReceiptTargetEvidence::BatchMutation {
             commit_id,
             version_id,

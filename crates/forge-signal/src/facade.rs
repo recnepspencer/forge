@@ -478,6 +478,8 @@ pub mod specialist {
     pub use crate::logic::planner::{
         build_evaluation_plan, execute_prepared_plan, CandidateTask, EligibleTask, EvaluationPlan,
         ExecutedTask, ExecutionPruneReason, ExecutionRecordId, ExecutionReport, ExecutionStage,
+        FrontierRouteEvidenceReason, FrontierRouteEvidenceReceipt,
+        FrontierRouteEvidenceReceiptError, FrontierRouteSerialFallbackReason,
         ParallelAdmissionReason, PlanSummary, ResolvedExecutionStrategy,
         ResolvedMaintenanceStrategy, SemanticSegmentId, SemanticTaskRange, StageBarrier,
         StageExecutionOutcome, StageExecutionRecord, StageExecutor, TaskExecutionOutcome,
@@ -545,6 +547,10 @@ pub mod adapters {
     pub use crate::data::subscriber_context::{SubscriberContext, SubscriberContextError};
     pub use crate::data::telemetry::{HostComputedTelemetry, ResourceTelemetry, RuntimeTelemetry};
     pub use crate::data::tier_policy_table::TierPolicyTable;
+    pub use crate::logic::planner::{
+        FrontierRouteEvidenceReason, FrontierRouteEvidenceReceipt,
+        FrontierRouteEvidenceReceiptError, FrontierRouteSerialFallbackReason,
+    };
     pub use crate::logic::transaction::{
         branch_state_proof_report, canonical_digest, lowered_strategy_bundle_digest,
         merge_lineage_digest, merge_plan_proof_report, merge_result_proof_report,

@@ -11,11 +11,9 @@ impl ForgeQueryRuntimeSubscriptionActivationAdapter for TestSubscriptionActivati
         &mut self,
         view_name: &str,
         activation: &crate::subscription::SubscriptionActivationInput,
-    ) -> Result<String, ForgeQueryWorkspaceError> {
-        Ok(format!(
-            "test-subscription-activation:{view_name}:{}",
-            activation.activation_digest()
-        ))
+    ) -> Result<SubscriptionActivationBoundaryReceipt, ForgeQueryWorkspaceError> {
+        let receipt = self.build_subscription_activation_receipt(view_name, activation);
+        Ok(self.build_subscription_activation_boundary_receipt(view_name, activation, receipt))
     }
 }
 
@@ -30,10 +28,33 @@ impl ForgeQueryRuntimeSubscriptionActivationAdapter for DenyingSubscriptionActiv
         &mut self,
         _view_name: &str,
         _activation: &crate::subscription::SubscriptionActivationInput,
-    ) -> Result<String, ForgeQueryWorkspaceError> {
+    ) -> Result<SubscriptionActivationBoundaryReceipt, ForgeQueryWorkspaceError> {
         Err(ForgeQueryWorkspaceError::new(
             "activation denied by test adapter",
         ))
+    }
+}
+
+pub(in crate::runtime::tests) struct DriftingSubscriptionActivation;
+
+impl ForgeQueryRuntimeSubscriptionActivationAdapter for DriftingSubscriptionActivation {
+    fn support_evidence(&self) -> String {
+        "drifting-subscription-activation".to_string()
+    }
+
+    fn admit_activation(
+        &mut self,
+        _view_name: &str,
+        activation: &crate::subscription::SubscriptionActivationInput,
+    ) -> Result<SubscriptionActivationBoundaryReceipt, ForgeQueryWorkspaceError> {
+        let receipt = self.build_subscription_activation_receipt("drifted.view", activation);
+        Ok(
+            self.build_subscription_activation_boundary_receipt(
+                "drifted.view",
+                activation,
+                receipt,
+            ),
+        )
     }
 }
 

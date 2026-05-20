@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/lower_runtime_routing/protocol/capability_request_constructor_private.rs:7:54
+  |
+7 |       let _ = ForgeQueryLowerRuntimeCapabilityRequest::new(
+  |                                                        ^^^ private associated function
+  |
+ ::: src/lower_runtime_routing/protocol.rs
+  |
+  | /     pub(crate) fn new(
+  | |         seam_key: ForgeQueryLowerRuntimeSeamKey,
+  | |         route_kind: ForgeQueryLowerRuntimeRouteKind,
+  | |         authority_owner: ForgeQueryLowerRuntimeAuthorityOwner,
+  | |         capability_label: impl Into<String>,
+  | |         subject_digest: impl Into<String>,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

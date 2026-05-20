@@ -141,7 +141,9 @@ pub use crate::subscription::{
     NormalizedSubscriptionSliceIntentErrorKind, ValidatedSubscriptionBasisBinding,
 };
 pub use crate::writeback::{
-    AdmittedBridgeWritebackContract, BridgeAuthoritativeMutationEvidenceCloseout,
+    AdmittedBridgeWritebackContract, BridgeAdmittedWritebackExecution,
+    BridgeAdmittedWritebackExecutionError, BridgeAdmittedWritebackExecutionReceipt,
+    BridgeAdmittedWritebackExecutionRequest, BridgeAuthoritativeMutationEvidenceCloseout,
     BridgeAuthoritativeMutationEvidenceSupport, BridgeBatchMutationAuthorityBundle,
     BridgeContinuityMutationBundle, BridgeContinuityMutationFamily, BridgeDerivedWritebackEffect,
     BridgeExistingTruthBindingBundle, BridgeExistingTruthBindingFamily,

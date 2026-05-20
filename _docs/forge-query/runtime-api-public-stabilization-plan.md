@@ -92,6 +92,13 @@ callers.
   lower it once, execute it against canonical truth`. This stabilization gate
   belongs after 9.1-9.3 runtime-backed subscription closure and before 9.4-9.7
   temporal/async semantics.
+- `milestone-9.3.6.md` and
+  `test-requirements-milestone-9_3-and-runtime-gates.md`: protect the named
+  `9.3.6. Lower-Runtime Capability Routing And Boundary Envelope Closure Test`
+  and the exported lower-runtime named closure-test artifact, phase artifact
+  manifest, and public closeout report that the stabilization gate must
+  consume rather than re-deriving lower-runtime routing closure from internal
+  details.
 - `test-requirements.md`: protects certification-grade proof and explicitly
   rejects trivial tests. Stabilization must add golden DX transcript tests plus
   adversarial cross-feature proof, not just examples that compile.

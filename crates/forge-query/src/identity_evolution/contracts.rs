@@ -71,7 +71,6 @@ impl IdentityEvolutionComplexityContract {
         }
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn correspondence_identity_comparison(
         family: IdentityEvolutionComparisonBasisFamily,
     ) -> Self {
@@ -99,7 +98,7 @@ impl IdentityEvolutionComplexityContract {
         }
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
+    #[cfg(test)]
     pub(crate) fn denied_or_deferred(reason: &'static str) -> Self {
         Self {
             contract_name: reason,

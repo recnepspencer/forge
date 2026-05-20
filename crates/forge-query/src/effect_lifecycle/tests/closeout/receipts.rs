@@ -126,9 +126,11 @@ fn writeback_execution_mints_write_receipt_family() {
         EffectReceiptTargetEvidence::Writeback {
             outcome_digest,
             receipt_digest,
+            execution_receipt_digest,
         } => {
             assert!(!outcome_digest.is_empty());
             assert!(!receipt_digest.is_empty());
+            assert!(!execution_receipt_digest.is_empty());
         }
         other => panic!("expected writeback target evidence, got {other:?}"),
     }

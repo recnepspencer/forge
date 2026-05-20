@@ -37,7 +37,6 @@ impl LineageTraversalFamily {
         }
     }
 
-    #[allow(dead_code)]
     pub(crate) fn digest(&self) -> LineageDigest {
         LineageDigest::from_parts(&[format!("identity-evolution-traversal:{}", self.as_str())])
     }

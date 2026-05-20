@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/lower_runtime_routing/envelopes/boundary_envelope_constructor_private.rs:7:53
+  |
+7 |       let _ = ForgeQueryLowerRuntimeBoundaryEnvelope::new(
+  |                                                       ^^^ private associated function
+  |
+ ::: src/lower_runtime_routing/envelopes.rs
+  |
+  | /     fn new(
+  | |         row: crate::lower_runtime_routing::ForgeQueryLowerRuntimeCrossingRow,
+  | |         request_digest: &str,
+  | |         eligibility_digest: &str,
+... |
+  | |         retained_evidence_digest: &str,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

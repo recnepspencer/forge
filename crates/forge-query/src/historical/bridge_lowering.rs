@@ -119,6 +119,7 @@ pub(crate) fn lower_materialization_from_decision_log(
     )
 }
 
+#[cfg_attr(not(test), allow(dead_code))]
 pub(crate) fn lower_materialization_from_artifact(
     artifact: &LoweredHistoricalEvaluationArtifact,
     requested_path_class: &RequestedHistoricalPathClass,

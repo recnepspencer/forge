@@ -1,7 +1,3 @@
-use forge_relational::facade::commit_strategies::{
-    StrategyCommitRequestError, StrategyExecutionError, StrategyLoweringError,
-};
-use forge_relational::facade::merge::{MergeExecutionError, MergeExecutionPreparationError};
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::MergeExecutionOutcome;
 
@@ -103,11 +99,11 @@ pub(crate) fn execute_lowered_effect_plan_with_authority(
                     "lowered query writeback execution requires a runtime bridge authority",
                 )
             })?;
-            let (outcome, receipt) = execute_lowered_writeback(runtime, declaration)
+            let execution = execute_lowered_writeback(runtime, declaration)
                 .map_err(|(kind, message)| EffectExecutionDenial::new(&lowered, kind, message))?;
             Ok(ExecutedEffectPlan::new(
                 lowered,
-                ExecutedEffectAuthorityArtifact::Writeback { outcome, receipt },
+                ExecutedEffectAuthorityArtifact::Writeback { execution },
                 1,
             ))
         }
@@ -133,14 +129,4 @@ pub(super) fn lower_runtime_error(
     kind: EffectExecutionDenialKind,
 ) -> (EffectExecutionDenialKind, String) {
     (kind, format!("{error:?}"))
-}
-
-#[allow(dead_code)]
-fn _type_anchor(
-    _: StrategyCommitRequestError,
-    _: StrategyExecutionError,
-    _: StrategyLoweringError,
-    _: MergeExecutionPreparationError,
-    _: MergeExecutionError,
-) {
 }

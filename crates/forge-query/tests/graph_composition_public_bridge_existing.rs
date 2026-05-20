@@ -8,10 +8,25 @@ use serde_json::{json, Value};
 
 mod support;
 
-use support::public_bridge_runtime::{
-    public_graph_support_profile, public_multi_verified_relation_profile,
-    PublicBridgeRuntimeHarness,
-};
+use support::public_bridge_runtime::{public_graph_support_profile, PublicBridgeRuntimeHarness};
+
+fn public_multi_verified_relation_profile() -> forge_query::facade::ForgeQueryRuntimeSupportProfile
+{
+    ["update_existing_verified", "delete_existing_verified"]
+        .into_iter()
+        .fold(
+            public_graph_support_profile(),
+            |profile, operation_family| {
+                profile.with_bridge_backed_verification_support(
+                    operation_family,
+                    "direct_relation_identity",
+                    true,
+                    true,
+                    None,
+                )
+            },
+        )
+}
 
 #[test]
 fn graph_composition_public_bridge_supports_existing_target_retarget_lifecycle() {

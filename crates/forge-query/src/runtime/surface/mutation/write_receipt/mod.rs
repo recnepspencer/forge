@@ -6,7 +6,8 @@ use crate::runtime::{
     ForgeQueryAspectMutationOperation, ForgeQueryAuthorityLane,
     ForgeQueryContinuityMutationEvidence, ForgeQueryContinuityMutationIntent,
     ForgeQueryExistingTruthAssertionEvidence, ForgeQueryExistingTruthBindingEvidence,
-    ForgeQueryExistingTruthTargetBinding, ForgeQueryMutationCausalityEvidence,
+    ForgeQueryExistingTruthTargetBinding, ForgeQueryIntentDecisionTraceEnvelope,
+    ForgeQueryIntentExecutionProvenance, ForgeQueryMutationCausalityEvidence,
     ForgeQueryMutationProvenanceEvidence, ForgeQueryMutationTargetEvidence,
     ForgeQueryNamingMutationEvidence, ForgeQueryNamingMutationIntent,
     ForgeQuerySymbolicAspectResolutionEvidence, ForgeQuerySymbolicTargetReference,
@@ -55,6 +56,8 @@ pub struct ForgeQueryWriteReceipt {
     pub(super) meaningful_effect_suppression_count: usize,
     pub(super) effect_expression_failure_count: usize,
     pub(super) refresh_fallback: bool,
+    pub(super) decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
+    pub(super) execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
 }
 
 impl ForgeQueryWriteReceipt {
@@ -84,6 +87,8 @@ impl ForgeQueryWriteReceipt {
         meaningful_effect_suppression_count: usize,
         effect_expression_failure_count: usize,
         refresh_fallback: bool,
+        decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
+        execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
     ) -> Self {
         let target_evidence = target_evidence_from_receipt(
             mutation_family,
@@ -177,6 +182,8 @@ impl ForgeQueryWriteReceipt {
             meaningful_effect_suppression_count,
             effect_expression_failure_count,
             refresh_fallback,
+            decision_trace_envelope,
+            execution_provenance,
         }
     }
 
@@ -292,6 +299,8 @@ impl ForgeQueryWriteReceipt {
             meaningful_effect_suppression_count: 0,
             effect_expression_failure_count: 0,
             refresh_fallback: false,
+            decision_trace_envelope: None,
+            execution_provenance: None,
         }
     }
 }

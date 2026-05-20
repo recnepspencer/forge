@@ -4,6 +4,7 @@ use forge_runtime_bridge::facade::RuntimeBridge;
 use crate::facade::{
     ForgeQueryMutationDelta, ForgeQueryMutationKind, ForgeQueryMutationReceipt,
     ForgeQueryRuntimeWriteAuthorityAdapter, ForgeQueryWorkspaceError, ForgeQueryWriteCommand,
+    WriteAuthorityExecutionReceipt,
 };
 
 pub(super) struct TranscriptWriteAuthority;
@@ -14,21 +15,21 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
         _bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
         command: ForgeQueryWriteCommand,
-    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
-        let (collection, aspect_paths) = match command {
+    ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
+        let (collection, aspect_paths) = match &command {
             ForgeQueryWriteCommand::InsertAspects {
                 collection,
                 aspects,
                 ..
             } => (
-                collection,
+                collection.clone(),
                 aspects
                     .iter()
                     .map(|aspect| aspect.aspect_path().to_string())
                     .collect(),
             ),
             ForgeQueryWriteCommand::UpdateAspect { aspect_path, .. } => {
-                ("TranscriptEntity".to_string(), vec![aspect_path])
+                ("TranscriptEntity".to_string(), vec![aspect_path.clone()])
             }
             ForgeQueryWriteCommand::UpdateAspects { aspects, .. } => (
                 "TranscriptEntity".to_string(),
@@ -67,7 +68,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
                     .target_collection()
                     .unwrap_or("TranscriptEntity")
                     .to_string(),
-                touched_aspect_paths,
+                touched_aspect_paths.clone(),
             ),
             ForgeQueryWriteCommand::UpdateSymbolicAspects {
                 aspects, reference, ..
@@ -84,7 +85,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
             ForgeQueryWriteCommand::DeleteAspects {
                 touched_aspect_paths,
                 ..
-            } => ("TranscriptEntity".to_string(), touched_aspect_paths),
+            } => ("TranscriptEntity".to_string(), touched_aspect_paths.clone()),
             ForgeQueryWriteCommand::DeleteExistingAspects {
                 binding,
                 touched_aspect_paths,
@@ -94,7 +95,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
                     .target_collection()
                     .unwrap_or("TranscriptEntity")
                     .to_string(),
-                touched_aspect_paths,
+                touched_aspect_paths.clone(),
             ),
             ForgeQueryWriteCommand::DeleteSymbolicAspects {
                 reference,
@@ -105,11 +106,11 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
                     .target_collection()
                     .unwrap_or("TranscriptEntity")
                     .to_string(),
-                touched_aspect_paths,
+                touched_aspect_paths.clone(),
             ),
             ForgeQueryWriteCommand::Delete { .. } => ("TranscriptEntity".to_string(), Vec::new()),
         };
-        Ok(ForgeQueryMutationReceipt {
+        let receipt = ForgeQueryMutationReceipt {
             commit_identity: format!("transcript-commit:{collection}"),
             snapshot_token: format!("transcript-snapshot:{collection}"),
             deltas: vec![ForgeQueryMutationDelta {
@@ -119,6 +120,7 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TranscriptWriteAuthority {
                 aspect_paths,
             }],
             bridge_authority: None,
-        })
+        };
+        Ok(self.build_write_authority_execution_receipt(&command, receipt))
     }
 }

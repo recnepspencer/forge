@@ -1,0 +1,10 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/lower_runtime_routing/certification/proof_shape/proof_shape_audit_constructor_private.rs:4:52
+  |
+4 |     let _ = ForgeQueryLowerRuntimeProofShapeAudit::new(Vec::new());
+  |                                                    ^^^ private associated function
+  |
+ ::: src/lower_runtime_routing/certification/boundary_certification/proof_shape.rs
+  |
+  |     fn new(rows: Vec<ForgeQueryLowerRuntimeProofShapeAuditRow>) -> Self {
+  |     ------------------------------------------------------------------- private associated function defined here

@@ -7,6 +7,7 @@ mod counters;
 mod declaration;
 mod effect;
 mod execution;
+mod execution_contract;
 mod family;
 mod idempotence;
 mod loop_prevention;
@@ -42,6 +43,10 @@ pub use effect::{
     BridgeWritebackEffectIdentity, BridgeWritebackFeedbackProvenance,
 };
 pub use execution::{BridgeWritebackExecutionRecord, BridgeWritebackExecutionRecordIdentity};
+pub use execution_contract::{
+    BridgeAdmittedWritebackExecution, BridgeAdmittedWritebackExecutionError,
+    BridgeAdmittedWritebackExecutionReceipt, BridgeAdmittedWritebackExecutionRequest,
+};
 pub use family::{BridgeWritebackFamilyBasis, BridgeWritebackFamilyIdentity};
 pub use idempotence::{BridgeWritebackIdempotenceBasis, BridgeWritebackIdempotenceIdentity};
 pub use loop_prevention::{

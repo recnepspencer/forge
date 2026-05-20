@@ -33,11 +33,12 @@ pub use model::{
     ApplyFootprint, CandidateTask, ConcurrentApplyPlan, ConcurrentApplyReductionPlan,
     DisjointApplyGroup, DisjointApplyProof, EligibleTask, EligibleTaskAdmission, EvaluationPlan,
     ExecutedTask, ExecutionPruneReason, ExecutionRecordId, ExecutionReport, ExecutionStage,
-    LoweredApplyPlan, LoweredStagePlan, LoweredTask, MaybeStaleAdmission, MutationDomain,
-    ParallelAdmissionReason, PlanSummary, ReductionOrderingContract, ReductionWorkClass,
-    SemanticSegmentId, SemanticTaskRange, SerialApplyPlan, SharedSurfacePolicy, StageBarrier,
-    StageExecutionOutcome, StageExecutionRecord, StageExecutor, TaskExecutionOutcome,
-    TaskExecutionRecord, TaskReason,
+    FrontierRouteEvidenceReason, FrontierRouteEvidenceReceipt, FrontierRouteEvidenceReceiptError,
+    FrontierRouteSerialFallbackReason, LoweredApplyPlan, LoweredStagePlan, LoweredTask,
+    MaybeStaleAdmission, MutationDomain, ParallelAdmissionReason, PlanSummary,
+    ReductionOrderingContract, ReductionWorkClass, SemanticSegmentId, SemanticTaskRange,
+    SerialApplyPlan, SharedSurfacePolicy, StageBarrier, StageExecutionOutcome,
+    StageExecutionRecord, StageExecutor, TaskExecutionOutcome, TaskExecutionRecord, TaskReason,
 };
 #[cfg(feature = "parallel")]
 #[allow(unused_imports)]

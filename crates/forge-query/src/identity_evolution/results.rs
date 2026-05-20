@@ -28,7 +28,6 @@ impl SingularIdentityContinuityResult {
         &self.continuity_digest
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn new(
         metadata: IdentityEvolutionMetadata,
         authoritative_identity: impl Into<String>,
@@ -66,7 +65,6 @@ impl PluralIdentitySuccessorSet {
         &self.successor_set_digest
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn new(
         metadata: IdentityEvolutionMetadata,
         successor_identities: Vec<String>,
@@ -109,7 +107,6 @@ impl AdvisoryIdentityCandidateSet {
         &self.advisory_digest
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn new(
         metadata: IdentityEvolutionMetadata,
         advisory_candidate_identities: Vec<String>,
@@ -152,7 +149,6 @@ impl IdentityEvolutionAmbiguityBundle {
         &self.ambiguity_digest
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn new(
         metadata: IdentityEvolutionMetadata,
         ambiguity_reason: IdentityEvolutionAmbiguityReason,
@@ -189,7 +185,6 @@ impl IdentityEvolutionIdentityBreakBundle {
         &self.identity_break_digest
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn new(
         metadata: IdentityEvolutionMetadata,
         identity_break_reason: IdentityEvolutionIdentityBreakReason,
@@ -226,7 +221,6 @@ impl IdentityEvolutionDeniedBundle {
         &self.denial_digest
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn new(
         metadata: IdentityEvolutionMetadata,
         denial_reason: IdentityEvolutionDenialReason,
@@ -244,7 +238,6 @@ impl IdentityEvolutionDeniedBundle {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-#[cfg_attr(not(test), allow(dead_code))]
 enum IdentityEvolutionResultEnvelope {
     SingularIdentityContinuity(SingularIdentityContinuityResult),
     PluralIdentitySuccessorSet(PluralIdentitySuccessorSet),
@@ -364,42 +357,36 @@ impl IdentityEvolutionResultBundle {
         }
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn singular_identity_continuity(result: SingularIdentityContinuityResult) -> Self {
         Self {
             envelope: IdentityEvolutionResultEnvelope::SingularIdentityContinuity(result),
         }
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn plural_identity_successor_set(result: PluralIdentitySuccessorSet) -> Self {
         Self {
             envelope: IdentityEvolutionResultEnvelope::PluralIdentitySuccessorSet(result),
         }
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn advisory_identity_candidate_set(result: AdvisoryIdentityCandidateSet) -> Self {
         Self {
             envelope: IdentityEvolutionResultEnvelope::AdvisoryIdentityCandidateSet(result),
         }
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn ambiguity(result: IdentityEvolutionAmbiguityBundle) -> Self {
         Self {
             envelope: IdentityEvolutionResultEnvelope::Ambiguity(result),
         }
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn identity_break(result: IdentityEvolutionIdentityBreakBundle) -> Self {
         Self {
             envelope: IdentityEvolutionResultEnvelope::IdentityBreak(result),
         }
     }
 
-    #[cfg_attr(not(test), allow(dead_code))]
     pub(crate) fn denied(result: IdentityEvolutionDeniedBundle) -> Self {
         Self {
             envelope: IdentityEvolutionResultEnvelope::Denied(result),

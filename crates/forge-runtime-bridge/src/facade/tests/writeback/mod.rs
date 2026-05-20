@@ -1,4 +1,5 @@
 mod admission;
+mod authority_contract;
 mod authority_evidence_closeout;
 mod authority_execution;
 mod authority_feedback;

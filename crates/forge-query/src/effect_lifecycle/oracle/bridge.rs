@@ -19,7 +19,7 @@ impl ExecutedEffectPlan {
         &self,
         oracle: &BridgeExecutionOracle,
     ) -> Result<EffectExecutionOracleVerification, EffectExecutionOracleError> {
-        let Some((outcome, receipt)) = self.as_writeback() else {
+        let Some(execution) = self.writeback_execution() else {
             return Err(EffectExecutionOracleError::new(
                 EffectExecutionOracleErrorKind::BridgeOracleUnsupportedEffect,
                 "bridge oracle verification requires an executed writeback artifact",
@@ -27,56 +27,76 @@ impl ExecutedEffectPlan {
                 Some(oracle.bridge_oracle_digest()),
             ));
         };
-        if outcome.digest() != oracle.outcome_digest() {
+        if execution.outcome().digest() != oracle.outcome_digest()
+            || execution.execution_receipt().authority_outcome_digest() != oracle.outcome_digest()
+        {
             return Err(EffectExecutionOracleError::new(
                 EffectExecutionOracleErrorKind::BridgeOracleOutcomeMismatch,
                 format!(
-                    "bridge oracle observed outcome `{}` but executed writeback produced `{}`",
+                    "bridge oracle observed outcome `{}` but executed writeback produced `{}` / `{}`",
                     oracle.outcome_digest(),
-                    outcome.digest()
+                    execution.outcome().digest(),
+                    execution.execution_receipt().authority_outcome_digest()
                 ),
                 self.effect_execution_digest(),
                 Some(oracle.bridge_oracle_digest()),
             ));
         }
-        if outcome.outcome_class() != oracle.outcome_class()
-            || receipt.outcome_class() != oracle.outcome_class()
+        if execution.outcome().outcome_class() != oracle.outcome_class()
+            || execution.authority_receipt().outcome_class() != oracle.outcome_class()
         {
             return Err(EffectExecutionOracleError::new(
                 EffectExecutionOracleErrorKind::BridgeOracleOutcomeMismatch,
                 format!(
                     "bridge oracle observed outcome class `{:?}` but executed writeback produced `{:?}` / `{:?}`",
                     oracle.outcome_class(),
-                    outcome.outcome_class(),
-                    receipt.outcome_class()
+                    execution.outcome().outcome_class(),
+                    execution.authority_receipt().outcome_class()
                 ),
                 self.effect_execution_digest(),
                 Some(oracle.bridge_oracle_digest()),
             ));
         }
-        if receipt.digest() != oracle.receipt_digest() {
+        if execution.authority_receipt().digest() != oracle.receipt_digest()
+            || execution.execution_receipt().authority_receipt_digest() != oracle.receipt_digest()
+        {
             return Err(EffectExecutionOracleError::new(
                 EffectExecutionOracleErrorKind::BridgeOracleReceiptMismatch,
                 format!(
-                    "bridge oracle observed receipt `{}` but executed writeback produced `{}`",
+                    "bridge oracle observed receipt `{}` but executed writeback produced `{}` / `{}`",
                     oracle.receipt_digest(),
-                    receipt.digest()
+                    execution.authority_receipt().digest(),
+                    execution.execution_receipt().authority_receipt_digest()
                 ),
                 self.effect_execution_digest(),
                 Some(oracle.bridge_oracle_digest()),
             ));
         }
-        if receipt.request_digest() != oracle.request_digest() {
+        if execution.authority_receipt().request_digest() != oracle.request_digest() {
             return Err(EffectExecutionOracleError::new(
                 EffectExecutionOracleErrorKind::BridgeOracleRequestMismatch,
                 format!(
                     "bridge oracle observed request `{}` but executed writeback produced `{}`",
                     oracle.request_digest(),
-                    receipt.request_digest()
+                    execution.authority_receipt().request_digest()
                 ),
                 self.effect_execution_digest(),
                 Some(oracle.bridge_oracle_digest()),
             ));
+        }
+        if let Some(execution_receipt_digest) = oracle.execution_receipt_digest() {
+            if execution.execution_receipt().digest() != execution_receipt_digest {
+                return Err(EffectExecutionOracleError::new(
+                    EffectExecutionOracleErrorKind::BridgeOracleReceiptMismatch,
+                    format!(
+                        "bridge oracle observed execution receipt `{}` but executed writeback produced `{}`",
+                        execution_receipt_digest,
+                        execution.execution_receipt().digest()
+                    ),
+                    self.effect_execution_digest(),
+                    Some(oracle.bridge_oracle_digest()),
+                ));
+            }
         }
         Ok(EffectExecutionOracleVerification::bridge(
             self.effect_execution_digest(),
@@ -89,7 +109,7 @@ fn matching_bridge_oracle_for_plan(
     runtime: &RuntimeBridge,
     executed: &ExecutedEffectPlan,
 ) -> Result<BridgeExecutionOracle, EffectExecutionOracleError> {
-    let Some((outcome, receipt)) = executed.as_writeback() else {
+    let Some(execution) = executed.writeback_execution() else {
         return Err(EffectExecutionOracleError::new(
             EffectExecutionOracleErrorKind::BridgeOracleUnsupportedEffect,
             "bridge oracle verification requires an executed writeback artifact",
@@ -102,9 +122,9 @@ fn matching_bridge_oracle_for_plan(
         .writeback_execution_records()
         .into_iter()
         .find(|record| {
-            record.outcome_digest() == Some(outcome.digest())
-                && record.request_digest() == Some(receipt.request_digest())
-                && record.receipt_digest() == Some(receipt.digest())
+            record.outcome_digest() == Some(execution.outcome().digest())
+                && record.request_digest() == Some(execution.authority_receipt().request_digest())
+                && record.receipt_digest() == Some(execution.authority_receipt().digest())
         })
         .ok_or_else(|| {
             EffectExecutionOracleError::new(
@@ -158,11 +178,17 @@ fn matching_bridge_oracle_for_plan(
             Some(record.digest()),
         )
     })?;
-    Ok(BridgeExecutionOracle::new(
+    let oracle = BridgeExecutionOracle::new(
         record.digest(),
         outcome_digest,
         outcome_class,
         request_digest,
         receipt_digest,
-    ))
+    );
+    Ok(match record.execution_receipt_digest() {
+        Some(execution_receipt_digest) => {
+            oracle.with_execution_receipt_digest(execution_receipt_digest)
+        }
+        None => oracle,
+    })
 }

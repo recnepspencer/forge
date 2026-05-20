@@ -1201,6 +1201,160 @@ than raw intents; and later routing, public runtime stabilization, and
 temporal/async milestones inherit one canonical public admission model instead
 of several drifting family-local ones.
 
+## Milestone 9.3.6 Named Certification Suites
+
+### 9.3.6. Lower-Runtime Capability Routing And Boundary Envelope Closure Test
+
+Purpose
+
+Prove that every covered Query-to-lower-runtime crossing is either deleted in
+favor of an authoritative lower-runtime contract, routed through one typed
+capability/receipt/envelope lifecycle, or explicitly deferred to a named later
+milestone with owner, exit criteria, and certification coverage.
+
+Scenario
+
+- use concrete runtime-backed fixtures covering:
+  - current read evaluation
+  - historical or replay-aware materialization
+  - preview basis readmission
+  - subscription activation/continuity
+  - writeback and signal invalidation routing
+  - effect-backed lower-runtime execution
+  - projection-consumption source intake
+  - causal inspection bridge materialization
+  - frontier-aware or signal-backed planning intake
+- derive the executable crossing inventory for all covered families and seams
+- classify every row as:
+  - canonical lower-runtime reuse
+  - Query boundary adapter
+  - compatibility debt lane
+  - deferred neighbor
+  - forbidden duplicate
+- exercise rows where:
+  - the existing lower-runtime contract is sufficient and the direct seam must
+    be deleted
+  - Query still needs a narrower lower-runtime receipt or envelope and the
+    route must bind that gap explicitly
+  - the missing contract is added and the former direct seam disappears before
+    closeout
+  - a future-neighbor request must fail deferred or unsupported
+  - a convenience bypass path attempts to reach a covered lower-runtime seam
+- include one hostile internal seam lane where a covered Query module tries to
+  use a direct lower-runtime import outside the routed lane and the
+  compile-boundary or certification audit rejects it
+- include one downstream domain-runtime fixture lane where a declared
+  runtime-boundary subtree is allowed to implement Query runtime extension
+  seams, while ordinary downstream modules fail the same direct-import audit
+
+Required concrete lanes
+
+- canonical-reuse lane where one covered read or subscription seam routes
+  through an already-authoritative lower-runtime contract and emits the same
+  route and evidence digests regardless of authoring path
+- seam-deletion lane where a formerly direct specialist path is removed once
+  the existing lower-runtime facade is used honestly
+- missing-contract lane where Query can localize one exact missing bridge,
+  relational, or signal contract instead of normalizing the direct seam as
+  permanent architecture
+- seam-elimination lane where a former direct seam survives only long enough
+  to prove the missing lower-runtime contract was added and the direct seam was
+  then deleted or reduced to a thin allowed adapter
+- route-planning lane where the crossing emits one `LowerRuntimeRoutePlan`,
+  one `BoundaryExecutionReceipt`, and one `LowerRuntimeBoundaryEnvelope`
+- readmission-only lane where the crossing honestly skips route planning but
+  still emits typed receipt and boundary envelope artifacts
+- forbidden-duplicate lane where an alternate direct path that would duplicate
+  or bypass an admitted lower-runtime route fails typed or compile-time
+- deferred-neighbor lane where temporal, async/resource, mixed-cause,
+  store-backed, or durable route claims remain explicit deferred or unsupported
+- public-boundary lane where ordinary callers attempting to reach lower-runtime
+  internals through the public Query surface fail at the certified boundary
+
+Must verify
+
+- every covered Query-to-lower-runtime crossing appears in one executable
+  inventory with one classification and one authority owner
+- no direct seam remains socially accepted or invisible to certification
+- deletable seams are actually deleted rather than merely renamed or wrapped
+- surviving specialist seams are treated as defects-to-delete by default and
+  remain only when they correspond to one named missing lower-runtime contract
+  during the implementation transition or one explicit deferred-neighbor row
+- transition elimination rows bind:
+  - the direct seam identity
+  - the owning lower-runtime crate
+  - the missing lower-runtime capability/receipt/envelope
+  - required closeout
+  - certification coverage
+- route-planning seams emit one route plan naming authority, route family,
+  capability, cost posture, failure topology, and retained evidence posture
+- readmission/handoff-only seams remain mechanically distinct from real route
+  planning where downstream behavior differs
+- covered operational seams do not return only `()`, raw `String`, or weak
+  incidental handles when a receipt or envelope is required
+- boundary envelopes are assembled from lower-runtime authority artifacts and
+  Query-owned routing meaning rather than reminting bridge, relational, or
+  signal truth inside Query
+- support metadata, executable routing behavior, and deferred/forbidden
+  posture agree for admitted, deferred, unsupported, and forbidden rows
+- compile-fail or certified negative-boundary fixtures prove ordinary callers
+  cannot reach covered lower-runtime seams through the public surface
+- compile-fail or certified internal-boundary fixtures prove covered Query
+  modules cannot silently bypass the routed capability lane by convenience
+  once the seam is declared covered
+- small/medium/larger fixture runs prove inventory lookup, route-plan assembly,
+  receipt shaping, envelope shaping, and deferred-neighbor lookup scale with
+  crossing width, evidence width, and deferred-neighbor width rather than
+  unrelated runtime graph size
+
+Required verification output
+
+- `query_digest`
+- `capability_request_digest`
+- `capability_family_digest`
+- `capability_eligibility_digest`
+- `lower_runtime_route_plan_digest`
+- `boundary_execution_receipt_digest`
+- `lower_runtime_boundary_envelope_digest`
+- `crossing_inventory_digest`
+- `crossing_classification_digest`
+- `compatibility_debt_registry_digest`
+- `debt_exit_criteria_digest`
+- `route_authority_digest`
+- `route_evidence_digest`
+- `route_cost_posture_digest`
+- `route_failure_topology_digest`
+- `route_support_matrix_digest`
+- `route_public_surface_digest`
+- `route_target_dx_digest`
+- `route_golden_transcript_digest`
+- `route_proof_shape_digest`
+- `route_phase_progression_digest`
+- `route_parity_digest`
+- `route_non_bypass_digest`
+- `lower_runtime_gap_registry_digest`
+- `compile_fail_boundary_digest`
+- `failure_digest`
+- `counter_snapshot`
+- `crossing_inventory_width`
+- `compatibility_debt_width`
+- `route_plan_width`
+- `boundary_evidence_width`
+- `capability_eligibility_slope_digest`
+- `route_plan_assembly_slope_digest`
+- `boundary_receipt_assembly_slope_digest`
+- `boundary_envelope_assembly_slope_digest`
+- `support_lookup_slope_digest`
+- `debt_registry_lookup_slope_digest`
+
+Pass condition
+
+Every covered Query-to-lower-runtime crossing is explicitly inventoried and
+classified, every admitted crossing is capability-routed and receipt-backed,
+every remaining direct seam is intentional compatibility debt with an exit
+story, and the runtime API stabilization gate can rely on one closed
+lower-runtime boundary model rather than scattered convenience contact.
+
 ## Runtime API Public Stabilization Gate Named Certification Suites
 
 ### Runtime API Golden DX And Async-Safe Facade Test

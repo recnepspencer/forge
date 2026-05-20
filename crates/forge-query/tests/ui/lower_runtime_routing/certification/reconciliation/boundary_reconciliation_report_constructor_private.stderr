@@ -1,0 +1,10 @@
+error[E0624]: associated function `new` is private
+ --> tests/ui/lower_runtime_routing/certification/reconciliation/boundary_reconciliation_report_constructor_private.rs:6:65
+  |
+6 |     let _ = ForgeQueryLowerRuntimeBoundaryReconciliationReport::new(rows);
+  |                                                                 ^^^ private associated function
+  |
+ ::: src/lower_runtime_routing/certification/boundary_certification/boundary_reconciliation.rs
+  |
+  |     fn new(rows: Vec<ForgeQueryLowerRuntimeBoundaryReconciliationRow>) -> Self {
+  |     -------------------------------------------------------------------------- private associated function defined here

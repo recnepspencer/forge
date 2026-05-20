@@ -85,7 +85,6 @@ pub struct EffectLifecycleSeededCertificationRow {
     row_digest: String,
 }
 
-#[allow(dead_code)]
 impl EffectLifecycleSeededCertificationRow {
     pub(super) fn new(parts: EffectLifecycleSeededRowParts) -> Self {
         let counter_snapshot_digest = parts.counters.digest();
@@ -159,46 +158,20 @@ impl EffectLifecycleSeededCertificationRow {
         self.outcome_class
     }
 
-    pub fn basis_family(&self) -> BasisFamily {
-        self.basis_family
-    }
-
     pub fn effect_family(&self) -> EffectFamily {
         self.effect_family
     }
 
+    #[cfg(test)]
     pub fn batch_width(&self) -> usize {
         self.batch_width
-    }
-
-    pub fn support_discovery_digest(&self) -> &str {
-        &self.support_discovery_digest
-    }
-
-    pub fn normalized_effect_intent_digest(&self) -> Option<&str> {
-        self.normalized_effect_intent_digest.as_deref()
-    }
-
-    pub fn effect_eligibility_digest(&self) -> &str {
-        &self.effect_eligibility_digest
-    }
-
-    pub fn authority_scoped_effect_plan_digest(&self) -> Option<&str> {
-        self.authority_scoped_effect_plan_digest.as_deref()
-    }
-
-    pub fn lowered_effect_execution_plan_digest(&self) -> Option<&str> {
-        self.lowered_effect_execution_plan_digest.as_deref()
-    }
-
-    pub fn effect_execution_receipt_digest(&self) -> Option<&str> {
-        self.effect_execution_receipt_digest.as_deref()
     }
 
     pub fn failure_digest(&self) -> Option<&str> {
         self.failure_digest.as_deref()
     }
 
+    #[cfg(test)]
     pub fn counter_snapshot_digest(&self) -> &str {
         &self.counter_snapshot_digest
     }
@@ -222,7 +195,6 @@ pub struct EffectLifecycleSeededCertificationBundle {
     replay_is_deterministic: bool,
 }
 
-#[allow(dead_code)]
 impl EffectLifecycleSeededCertificationBundle {
     fn new(seed: u64, rows: Vec<EffectLifecycleSeededCertificationRow>) -> Self {
         let seeded_sequence_digest = rows_digest(&rows);
@@ -252,10 +224,6 @@ impl EffectLifecycleSeededCertificationBundle {
         }
     }
 
-    pub fn seed(&self) -> u64 {
-        self.seed
-    }
-
     pub fn rows(&self) -> &[EffectLifecycleSeededCertificationRow] {
         &self.rows
     }
@@ -272,6 +240,7 @@ impl EffectLifecycleSeededCertificationBundle {
         &self.certification_bundle_digest
     }
 
+    #[cfg(test)]
     pub fn replay_is_deterministic(&self) -> bool {
         self.replay_is_deterministic
     }

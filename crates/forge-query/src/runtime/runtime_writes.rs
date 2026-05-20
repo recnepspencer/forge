@@ -1,6 +1,72 @@
 use super::*;
+use crate::intent_admission::ForgeQueryIntentEligibilityTraceEvidence;
+
+pub(crate) struct ForgeQueryWriteAdmissionExecutionRecord {
+    pub family: ForgeQueryIntentAdmissionFamily,
+    pub entrypoint: ForgeQueryIntentAdmissionCoveredEntrypoint,
+    pub execution_seam: ForgeQueryIntentAdmissionExecutionSeam,
+    pub request_detail: String,
+    pub request_digest: String,
+    pub eligibility_trace: ForgeQueryIntentEligibilityTraceEvidence,
+    pub decision_digest: String,
+    pub handoff_digest: String,
+    pub binding_digest: String,
+}
 
 impl ForgeQueryRuntime {
+    pub(crate) fn build_authoritative_mutation_intent_seed(
+        &self,
+        command: ForgeQueryWriteCommand,
+    ) -> crate::intent_admission::ForgeQueryAuthoritativeMutationIntentSeed {
+        use crate::intent_admission::ForgeQueryAuthoritativeMutationPreflight as Preflight;
+
+        let preflight = if let Some(reference) = command.symbolic_target_reference() {
+            Preflight::TargetReferenceDenied(ForgeQuerySymbolicTargetReferenceDenial::new(
+                reference,
+                ForgeQuerySymbolicTargetReferenceDenialKind::RequiresBatchContext,
+                "same-batch symbolic target references require batch execution",
+            ))
+        } else if let Some(reference) = command.symbolic_aspect_references().first() {
+            Preflight::TargetReferenceDenied(ForgeQuerySymbolicTargetReferenceDenial::new(
+                reference.reference(),
+                ForgeQuerySymbolicTargetReferenceDenialKind::RequiresBatchContext,
+                "same-batch symbolic aspect references require batch execution",
+            ))
+        } else if let Some(binding) = command.existing_truth_binding() {
+            match self.backend.admit_existing_truth_binding(binding) {
+                Err(denial) => Preflight::BindingDenied(denial),
+                Ok(()) => self.scalar_mutation_post_binding_preflight(&command),
+            }
+        } else {
+            self.scalar_mutation_post_binding_preflight(&command)
+        };
+
+        crate::intent_admission::ForgeQueryAuthoritativeMutationIntentSeed::new(command, preflight)
+    }
+
+    fn scalar_mutation_post_binding_preflight(
+        &self,
+        command: &ForgeQueryWriteCommand,
+    ) -> crate::intent_admission::ForgeQueryAuthoritativeMutationPreflight {
+        use crate::intent_admission::ForgeQueryAuthoritativeMutationPreflight as Preflight;
+
+        match admit_continuity_intent(command) {
+            Err(denial) => Preflight::ContinuityDenied(denial),
+            Ok(()) => match admit_naming_intent(command) {
+                Err(denial) => Preflight::NamingDenied(denial),
+                Ok(()) => match self.verified_existing_assertion_for_command(command) {
+                    Ok(verified_existing_truth_assertion) => Preflight::Admitted {
+                        verified_existing_truth_assertion,
+                    },
+                    Err(ForgeQueryRuntimeError::ExistingTruthAssertionDenied(denial)) => {
+                        Preflight::AssertionDenied(denial)
+                    }
+                    Err(other) => panic!("unexpected scalar mutation preflight error: {other}"),
+                },
+            },
+        }
+    }
+
     pub(super) fn verified_existing_assertion_for_command(
         &self,
         command: &ForgeQueryWriteCommand,
@@ -65,51 +131,23 @@ impl ForgeQueryRuntime {
         &self,
         request: ForgeQueryExistingTruthProbeRequest,
     ) -> Result<ForgeQueryExistingTruthProbe, ForgeQueryRuntimeError> {
-        self.backend
-            .admit_existing_truth_binding(request.binding())
-            .map_err(ForgeQueryRuntimeError::MutationBindingDenied)?;
-        self.backend
-            .probe_existing_truth(&request)
-            .map_err(ForgeQueryRuntimeError::ExistingTruthProbeDenied)
+        Ok(self
+            .probe_existing_intent(request)
+            .execute()?
+            .probe()
+            .clone())
     }
 
-    pub fn write(
+    pub(crate) fn execute_authoritative_write_command_direct(
         &mut self,
         command: ForgeQueryWriteCommand,
+        verified_existing_truth_assertion: Option<ForgeQueryVerifiedExistingTruthAssertion>,
+        shared_admission: Option<ForgeQueryWriteAdmissionExecutionRecord>,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
-        self.admit_facade_family(ForgeQueryRuntimeFacadeFamily::Write)?;
-        if let Some(reference) = command.symbolic_target_reference() {
-            return Err(ForgeQueryRuntimeError::MutationTargetReferenceDenied(
-                ForgeQuerySymbolicTargetReferenceDenial::new(
-                    reference,
-                    ForgeQuerySymbolicTargetReferenceDenialKind::RequiresBatchContext,
-                    "same-batch symbolic target references require batch execution",
-                ),
-            ));
-        }
-        if let Some(reference) = command.symbolic_aspect_references().first() {
-            return Err(ForgeQueryRuntimeError::MutationTargetReferenceDenied(
-                ForgeQuerySymbolicTargetReferenceDenial::new(
-                    reference.reference(),
-                    ForgeQuerySymbolicTargetReferenceDenialKind::RequiresBatchContext,
-                    "same-batch symbolic aspect references require batch execution",
-                ),
-            ));
-        }
-        if let Some(binding) = command.existing_truth_binding() {
-            self.backend
-                .admit_existing_truth_binding(binding)
-                .map_err(ForgeQueryRuntimeError::MutationBindingDenied)?;
-        }
-        admit_continuity_intent(&command)
-            .map_err(ForgeQueryRuntimeError::MutationContinuityDenied)?;
-        admit_naming_intent(&command).map_err(ForgeQueryRuntimeError::MutationNamingDenied)?;
         let mutation_family = command.mutation_family();
         let declared_collection = command.declared_collection();
         let declared_entity_identity = command.declared_entity_identity();
         let existing_truth_binding = command.existing_truth_binding().cloned();
-        let verified_existing_truth_assertion =
-            self.verified_existing_assertion_for_command(&command)?;
         let symbolic_target_reference = None;
         let symbolic_aspect_resolution_evidence = Vec::new();
         let naming_intent = command.naming_intent().cloned();
@@ -117,51 +155,21 @@ impl ForgeQueryRuntime {
         let declared_aspect_operations = command.declared_aspect_operations();
         let declared_aspect_value_digest = command_declared_aspect_value_digest(&command);
         let mutation_metadata = command.mutation_metadata();
-        let mut receipt = match &command {
-            ForgeQueryWriteCommand::AssertExistingAspects { binding, .. } => {
-                synthetic_existing_assertion_receipt(
-                    binding,
-                    &self.backend.snapshot_token(),
-                    declared_aspect_value_digest.as_deref(),
-                )
-            }
-            ForgeQueryWriteCommand::VerifyExistingAspects { binding, .. } => {
-                synthetic_existing_assertion_receipt(
-                    binding,
-                    &self.backend.snapshot_token(),
-                    declared_aspect_value_digest.as_deref(),
-                )
-            }
-            _ => self
-                .backend
-                .write(Self::lower_backend_write_command(command))?,
-        };
-        if let Some(intent) = continuity_intent.as_ref() {
-            let (_, target_collection, target_entity_identity) =
-                classify_receipt_mutation_summary(&receipt);
-            let basis_binding_digest = existing_truth_binding
-                .as_ref()
-                .map(|binding| binding.binding_digest());
-            if let Some(bundle) = bridge_continuity_mutation_bundle(
-                intent,
-                basis_binding_digest.as_deref(),
-                target_entity_identity.as_deref(),
-                target_collection.as_deref(),
-            ) {
-                receipt = attach_continuity_mutation_to_receipt(receipt, bundle);
-            }
-        }
-        if let Some(intent) = naming_intent.as_ref() {
-            let (_, target_collection, target_entity_identity) =
-                classify_receipt_mutation_summary(&receipt);
-            if let Some(bundle) = bridge_naming_mutation_bundle(
-                intent,
-                target_entity_identity.as_deref(),
-                target_collection.as_deref(),
-            ) {
-                receipt = attach_naming_mutation_to_receipt(receipt, bundle);
-            }
-        }
+        let receipt = self
+            .execute_backend_or_synthetic_write(command, declared_aspect_value_digest.as_deref())?;
+        let receipt = self.attach_optional_mutation_bundles(
+            receipt,
+            existing_truth_binding.as_ref(),
+            continuity_intent.as_ref(),
+            naming_intent.as_ref(),
+        );
+        let execution_provenance =
+            self.shared_write_execution_provenance(shared_admission.as_ref(), &receipt);
+        let decision_trace_envelope = self.shared_write_decision_trace_envelope(
+            shared_admission.as_ref(),
+            mutation_family,
+            &receipt,
+        );
         self.route_authoritative_mutation_receipt(
             receipt,
             mutation_family,
@@ -176,6 +184,136 @@ impl ForgeQueryRuntime {
             declared_aspect_operations,
             declared_aspect_value_digest,
             mutation_metadata,
+            decision_trace_envelope,
+            execution_provenance,
         )
+    }
+
+    fn execute_backend_or_synthetic_write(
+        &mut self,
+        command: ForgeQueryWriteCommand,
+        declared_aspect_value_digest: Option<&str>,
+    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryRuntimeError> {
+        match &command {
+            ForgeQueryWriteCommand::AssertExistingAspects { binding, .. }
+            | ForgeQueryWriteCommand::VerifyExistingAspects { binding, .. } => {
+                Ok(synthetic_existing_assertion_receipt(
+                    binding,
+                    &self.backend.snapshot_token(),
+                    declared_aspect_value_digest,
+                ))
+            }
+            _ => self
+                .backend
+                .write(Self::lower_backend_write_command(command))
+                .map_err(Into::into),
+        }
+    }
+
+    fn attach_optional_mutation_bundles(
+        &self,
+        mut receipt: ForgeQueryMutationReceipt,
+        existing_truth_binding: Option<&ForgeQueryExistingTruthTargetBinding>,
+        continuity_intent: Option<&ForgeQueryContinuityMutationIntent>,
+        naming_intent: Option<&ForgeQueryNamingMutationIntent>,
+    ) -> ForgeQueryMutationReceipt {
+        receipt = self.attach_optional_continuity_bundle(
+            receipt,
+            existing_truth_binding,
+            continuity_intent,
+        );
+        self.attach_optional_naming_bundle(receipt, naming_intent)
+    }
+
+    fn attach_optional_continuity_bundle(
+        &self,
+        receipt: ForgeQueryMutationReceipt,
+        existing_truth_binding: Option<&ForgeQueryExistingTruthTargetBinding>,
+        continuity_intent: Option<&ForgeQueryContinuityMutationIntent>,
+    ) -> ForgeQueryMutationReceipt {
+        let Some(intent) = continuity_intent else {
+            return receipt;
+        };
+        let (_, target_collection, target_entity_identity) =
+            classify_receipt_mutation_summary(&receipt);
+        let basis_binding_digest = existing_truth_binding.map(|binding| binding.binding_digest());
+        match bridge_continuity_mutation_bundle(
+            intent,
+            basis_binding_digest.as_deref(),
+            target_entity_identity.as_deref(),
+            target_collection.as_deref(),
+        ) {
+            Some(bundle) => attach_continuity_mutation_to_receipt(receipt, bundle),
+            None => receipt,
+        }
+    }
+
+    fn attach_optional_naming_bundle(
+        &self,
+        receipt: ForgeQueryMutationReceipt,
+        naming_intent: Option<&ForgeQueryNamingMutationIntent>,
+    ) -> ForgeQueryMutationReceipt {
+        let Some(intent) = naming_intent else {
+            return receipt;
+        };
+        let (_, target_collection, target_entity_identity) =
+            classify_receipt_mutation_summary(&receipt);
+        match bridge_naming_mutation_bundle(
+            intent,
+            target_entity_identity.as_deref(),
+            target_collection.as_deref(),
+        ) {
+            Some(bundle) => attach_naming_mutation_to_receipt(receipt, bundle),
+            None => receipt,
+        }
+    }
+
+    fn shared_write_execution_provenance(
+        &self,
+        shared_admission: Option<&ForgeQueryWriteAdmissionExecutionRecord>,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Option<ForgeQueryIntentExecutionProvenance> {
+        shared_admission.map(|record| {
+            ForgeQueryIntentExecutionProvenance::for_shared_execution_parts(
+                record.family,
+                record.entrypoint,
+                record.execution_seam,
+                &record.decision_digest,
+                &record.handoff_digest,
+                &record.binding_digest,
+                &receipt.commit_identity,
+                &receipt.snapshot_token,
+            )
+        })
+    }
+
+    fn shared_write_decision_trace_envelope(
+        &self,
+        shared_admission: Option<&ForgeQueryWriteAdmissionExecutionRecord>,
+        mutation_family: ForgeQueryMutationFamily,
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Option<ForgeQueryIntentDecisionTraceEnvelope> {
+        shared_admission.map(|record| {
+            ForgeQueryIntentDecisionTraceEnvelope::for_admitted_execution_parts(
+                record.family,
+                record.entrypoint,
+                &record.request_detail,
+                &record.request_digest,
+                record.eligibility_trace.clone(),
+                &record.decision_digest,
+                &record.handoff_digest,
+                record.execution_seam,
+                mutation_family.as_str(),
+                &receipt.commit_identity,
+                "mutation-write",
+            )
+        })
+    }
+
+    pub fn write(
+        &mut self,
+        command: ForgeQueryWriteCommand,
+    ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
+        self.write_intent(command).execute()
     }
 }

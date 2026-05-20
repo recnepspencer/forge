@@ -220,7 +220,7 @@ impl ForgeQueryPreviewOptions {
         }
     }
 
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(in crate::runtime) fn with_effect_policy(
         mut self,
         effect_policy: ForgeQueryEffectPolicy,
@@ -260,15 +260,6 @@ impl ForgeQueryBranchOptions {
         Self {
             effect_policy: ForgeQueryEffectPolicy::SandboxedWriteIntent,
         }
-    }
-
-    #[allow(dead_code)]
-    pub(in crate::runtime) fn with_effect_policy(
-        mut self,
-        effect_policy: ForgeQueryEffectPolicy,
-    ) -> Self {
-        self.effect_policy = effect_policy;
-        self
     }
 
     pub fn effect_policy(&self) -> ForgeQueryEffectPolicy {

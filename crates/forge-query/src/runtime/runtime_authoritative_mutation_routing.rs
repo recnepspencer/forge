@@ -16,6 +16,8 @@ impl ForgeQueryRuntime {
         declared_aspect_operations: Vec<crate::runtime::ForgeQueryAspectMutationOperation>,
         declared_aspect_value_digest: Option<String>,
         mutation_metadata: ForgeQueryMutationMetadata,
+        decision_trace_envelope: Option<ForgeQueryIntentDecisionTraceEnvelope>,
+        execution_provenance: Option<ForgeQueryIntentExecutionProvenance>,
     ) -> Result<ForgeQueryWriteReceipt, ForgeQueryRuntimeError> {
         let (_, mut target_collection, mut target_entity_identity) =
             classify_receipt_mutation_summary(&receipt);
@@ -50,6 +52,8 @@ impl ForgeQueryRuntime {
             summary.meaningful_effect_suppression_count,
             summary.effect_expression_failure_count,
             summary.refresh_fallback,
+            decision_trace_envelope,
+            execution_provenance,
         ))
     }
 

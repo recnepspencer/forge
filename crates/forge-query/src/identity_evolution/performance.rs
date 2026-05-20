@@ -78,7 +78,6 @@ impl IdentityEvolutionPredictionReport {
         &self.digest
     }
 
-    #[allow(dead_code)]
     pub(crate) fn zero_work(
         cost_class: IdentityEvolutionCostClass,
         budget_class: IdentityEvolutionBudgetClass,

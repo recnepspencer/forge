@@ -466,7 +466,7 @@ pub struct ForgeQueryRuntimePublicApiTranscriptEvidence {
 }
 
 impl ForgeQueryRuntimePublicApiTranscriptEvidence {
-    #[allow(dead_code)]
+    #[cfg(test)]
     pub(crate) fn new(
         transcript_family: impl Into<String>,
         support_contract_digest: impl Into<String>,
