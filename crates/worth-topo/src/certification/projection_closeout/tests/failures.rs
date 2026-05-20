@@ -1,4 +1,5 @@
 use super::*;
+use crate::derived_topology::materialized_graph::TopologyQueryMaterializationInput;
 
 #[test]
 fn query_materializer_rejects_malformed_relation_endpoints() {
@@ -22,10 +23,10 @@ fn query_materializer_rejects_malformed_relation_endpoints() {
         }),
     }];
 
-    let error = TopologyMaterializer::materialize_from_query_rows(&entity_rows, &relation_rows)
+    let input = TopologyQueryMaterializationInput::decode(&entity_rows, &relation_rows)
         .expect_err("malformed query rows must fail closed");
 
-    assert!(error
+    assert!(input
         .to_string()
         .contains("expected forge-query entity identity"));
 }

@@ -53,7 +53,7 @@ fn snapshot_read_only_assembly_synthesizes_complete_query_shaped_derived_rows() 
         .is_empty());
 
     let rows =
-        historical_rows::historical_derived_rows(&assembly, &mut workspace, &verified.read_basis)
+        historical_rows::historical_snapshot_rows(&assembly, &mut workspace, &verified.read_basis)
             .expect("historical rows should synthesize from query-native surfaces");
     let snapshot = assembly
         .snapshot_for_read_basis(&mut workspace, &verified.read_basis)
@@ -116,12 +116,14 @@ fn current_head_snapshot_decoder_rejects_malformed_retained_validation_rows() {
     let equivalence_rows = workspace.materialize(assembly.equivalence_contract());
 
     let error = snapshot_decode::snapshot_from_query_rows(
-        snapshot.naming_attachments,
-        &materialized_rows,
-        &interpreted_rows,
-        &[json!({ "not": "a retained validation row" })],
-        &diagnostics_rows,
-        &equivalence_rows,
+        super::snapshot_rows::TopologyQuerySnapshotRows {
+            naming_attachments: snapshot.naming_attachments,
+            materialized_rows,
+            interpreted_rows,
+            validation_rows: vec![json!({ "not": "a retained validation row" })],
+            diagnostics_rows,
+            equivalence_rows,
+        },
     )
     .expect_err("snapshot decoding must fail closed on malformed retained validation rows");
 

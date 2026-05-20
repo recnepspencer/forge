@@ -1,4 +1,6 @@
 mod adjacency;
+#[cfg(test)]
+mod boundary_tests;
 mod local_rewire;
 mod loop_cycle;
 

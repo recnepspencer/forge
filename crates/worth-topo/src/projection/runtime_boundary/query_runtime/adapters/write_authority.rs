@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use forge_query::facade::{
     ForgeQueryAspectValue, ForgeQueryMutationReceipt, ForgeQueryRuntimeWriteAuthorityAdapter,
-    ForgeQueryWorkspaceError, ForgeQueryWriteCommand,
+    ForgeQueryWorkspaceError, ForgeQueryWriteCommand, WriteAuthorityExecutionReceipt,
 };
 use forge_relational::facade::bridge::bridge_snapshot_identity_for_commit;
 use forge_relational::facade::runtime::RelationalRuntime;
@@ -40,26 +40,27 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TopologyRuntimeWriteAuthority {
         _bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
         command: ForgeQueryWriteCommand,
-    ) -> Result<ForgeQueryMutationReceipt, ForgeQueryWorkspaceError> {
-        match command {
+    ) -> Result<WriteAuthorityExecutionReceipt, ForgeQueryWorkspaceError> {
+        let mutation_receipt = match &command {
             ForgeQueryWriteCommand::InsertAspects {
                 collection,
                 aspects,
                 ..
-            } => self.write_insert(collection, aspects),
+            } => self.write_insert(collection.clone(), aspects.clone()),
             ForgeQueryWriteCommand::UpdateExistingAspects {
                 binding, aspects, ..
-            } => self.write_update_existing(binding, aspects),
+            } => self.write_update_existing(binding.clone(), aspects.clone()),
             ForgeQueryWriteCommand::DeleteExistingAspects {
                 binding,
                 touched_aspect_paths,
                 ..
-            } => self.write_delete_existing(binding, touched_aspect_paths),
+            } => self.write_delete_existing(binding.clone(), touched_aspect_paths.clone()),
             other => Err(ForgeQueryWorkspaceError::new(format!(
                 "topology production runtime current-head slice does not admit `{}` write command yet",
-                write_command_label(&other)
+                write_command_label(other)
             ))),
-        }
+        }?;
+        Ok(self.build_write_authority_execution_receipt(&command, mutation_receipt))
     }
 
     fn write_batch(
@@ -67,16 +68,18 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TopologyRuntimeWriteAuthority {
         _bridge: &RuntimeBridge,
         _relational_runtime: Option<&mut RelationalRuntime>,
         commands: Vec<ForgeQueryWriteCommand>,
-    ) -> Result<Vec<ForgeQueryMutationReceipt>, ForgeQueryWorkspaceError> {
+    ) -> Result<Vec<WriteAuthorityExecutionReceipt>, ForgeQueryWorkspaceError> {
         let runtime = self.runtime()?;
         let mut lowered = Vec::with_capacity(commands.len());
+        let mut authored_commands = Vec::with_capacity(commands.len());
         let mut created_entities = BTreeMap::<String, EntityReference>::new();
         for command in commands {
             lowered.push(lower_write_command(
                 &runtime,
                 &mut created_entities,
-                command,
+                command.clone(),
             )?);
+            authored_commands.push(command);
         }
 
         let commit = {
@@ -110,7 +113,8 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TopologyRuntimeWriteAuthority {
         let mut used_patch_indexes = std::collections::BTreeSet::new();
         lowered
             .into_iter()
-            .map(|command| {
+            .zip(authored_commands)
+            .map(|(command, authored_command)| {
                 let matched_indexes = command.patch_match.matching_patch_indexes(
                     &runtime,
                     commit.envelope().commit.version_id,
@@ -145,12 +149,16 @@ impl ForgeQueryRuntimeWriteAuthorityAdapter for TopologyRuntimeWriteAuthority {
                         command.batch_label, error
                     ))
                 })?;
-                Ok(ForgeQueryMutationReceipt {
+                let mutation_receipt = ForgeQueryMutationReceipt {
                     commit_identity: format!("commit-{}", commit.envelope().commit.commit_id.0),
                     snapshot_token: snapshot_token.clone(),
                     deltas,
                     bridge_authority: None,
-                })
+                };
+                Ok(self.build_write_authority_execution_receipt(
+                    &authored_command,
+                    mutation_receipt,
+                ))
             })
             .collect()
     }

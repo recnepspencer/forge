@@ -1,9 +1,8 @@
-use forge_query::facade::{
-    ForgeQueryEntity, ForgeQueryExistingRelationTarget, ForgeQueryMutationBatchBuilder,
-};
+use forge_query::facade::{ForgeQueryExistingRelationTarget, ForgeQueryMutationBatchBuilder};
 use forge_relational::facade::identity::{EntityId, RelationId};
 use schema::facade::{TopologyEntityKind, TopologyRelationKind};
 
+use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::bindings::{
     query_entity_binding, query_relation_binding,
 };
@@ -17,14 +16,13 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
     pub(crate) fn lower_splice_radial_adjacency(
         &self,
         builder: ForgeQueryMutationBatchBuilder,
-        entity_rows: &[ForgeQueryEntity],
-        relation_rows: &[ForgeQueryEntity],
+        bindings: &TopologyQueryBindingIndex,
         relation_id: RelationId,
         half_edge_id: EntityId,
         radial_next_half_edge_id: EntityId,
     ) -> Result<ForgeQueryMutationBatchBuilder, TopologyOperatorExecutionError> {
         let relation_kind = TopologyRelationKind::HalfEdgeRadialNext;
-        let relation_binding = query_relation_binding(relation_rows, relation_id)?
+        let relation_binding = query_relation_binding(bindings, relation_id)?
             .ok_or(TopologyOperatorExecutionError::MissingExistingRelationBinding(relation_id))?;
         if relation_binding.kind != relation_kind {
             return Err(
@@ -35,7 +33,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 },
             );
         }
-        let source_half_edge_binding = query_entity_binding(entity_rows, half_edge_id)?
+        let source_half_edge_binding = query_entity_binding(bindings, half_edge_id)?
             .ok_or(TopologyOperatorExecutionError::MissingExistingEntityBinding(half_edge_id))?;
         if source_half_edge_binding.kind != TopologyEntityKind::HalfEdge {
             return Err(TopologyOperatorExecutionError::ExistingEntityKindMismatch {
@@ -53,7 +51,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 },
             );
         }
-        let target_half_edge_binding = query_entity_binding(entity_rows, radial_next_half_edge_id)?
+        let target_half_edge_binding = query_entity_binding(bindings, radial_next_half_edge_id)?
             .ok_or(
                 TopologyOperatorExecutionError::MissingExistingEntityBinding(
                     radial_next_half_edge_id,
@@ -67,13 +65,13 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             });
         }
         let source_edge_identity = single_outgoing_relation_target_identity(
-            relation_rows,
+            bindings,
             half_edge_id,
             &source_half_edge_binding.query_identity,
             TopologyRelationKind::HalfEdgeUsesEdge,
         )?;
         let target_edge_identity = single_outgoing_relation_target_identity(
-            relation_rows,
+            bindings,
             radial_next_half_edge_id,
             &target_half_edge_binding.query_identity,
             TopologyRelationKind::HalfEdgeUsesEdge,

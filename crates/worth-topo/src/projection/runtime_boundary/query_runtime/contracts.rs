@@ -1,6 +1,6 @@
 use forge_query::facade::{
     ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport,
-    ForgeQueryRuntimeSupportProfile,
+    ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeSupportProfile, ForgeQueryWorkspace,
 };
 use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
 use forge_relational::facade::snapshots::SnapshotHandle;
@@ -213,6 +213,23 @@ impl TopologyRuntimeSupport {
             )
         }
     }
+}
+
+pub(crate) fn workspace_requires_historical_basis_context(workspace: &ForgeQueryWorkspace) -> bool {
+    // `workspace.admit_public_api_family(...)` currently reports both ordinary
+    // preview denial and snapshot historical-basis denial as the same
+    // unsupported-family error. The public family contract is the narrowest
+    // workspace-owned surface that still preserves the distinguishing evidence.
+    workspace
+        .public_api_contract()
+        .family(ForgeQueryRuntimeFacadeFamily::BranchPreview)
+        .is_some_and(|contract| {
+            contract.status() == ForgeQueryRuntimeFamilySupportStatus::Unsupported
+                && contract
+                    .evidence()
+                    .iter()
+                    .any(|evidence| evidence == TOPOLOGY_SNAPSHOT_HISTORICAL_BASIS_EVIDENCE)
+        })
 }
 
 #[derive(Debug)]

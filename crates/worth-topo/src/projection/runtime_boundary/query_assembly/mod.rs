@@ -21,7 +21,7 @@ use crate::projection::{
     declare_topology_entity_live_view, declare_topology_equivalence_contract_surface,
     declare_topology_interpreted_surface, declare_topology_materialized_surface,
     declare_topology_relation_live_view, declare_topology_validation_surface,
-    naming_attachment_report_from_query_rows, TopologyQuerySurfaceError,
+    TopologyQuerySurfaceError,
 };
 use crate::topology_operators::{
     TopologyEditApplicationMode, TopologyEditBatch, TopologyOperatorExecution,
@@ -32,6 +32,7 @@ mod authority;
 mod authority_support;
 mod historical_rows;
 mod snapshot_decode;
+mod snapshot_rows;
 pub use self::authority::{TopologyQueryAppliedIntent, TopologyQueryApplyError};
 
 const ENTITY_SURFACE: &str = ".topology.entities";
@@ -169,23 +170,8 @@ impl TopologyQueryAssembly {
         workspace
             .state(&self.equivalence_contract)
             .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
-        let entity_rows = workspace.read(&self.entities);
-        let persistent_name_rows = workspace.read(&self.persistent_names);
-        let naming_attachments =
-            naming_attachment_report_from_query_rows(&entity_rows, &persistent_name_rows)?;
-        let materialized_rows = workspace.materialize(&self.materialized);
-        let interpreted_rows = workspace.materialize(&self.interpreted);
-        let validation_rows = workspace.materialize(&self.validation);
-        let diagnostics_rows = workspace.materialize(&self.diagnostics);
-        let equivalence_rows = workspace.materialize(&self.equivalence_contract);
-        snapshot_decode::snapshot_from_query_rows(
-            naming_attachments,
-            &materialized_rows,
-            &interpreted_rows,
-            &validation_rows,
-            &diagnostics_rows,
-            &equivalence_rows,
-        )
+        let rows = snapshot_rows::TopologyQuerySnapshotRows::current_head(self, workspace)?;
+        snapshot_decode::snapshot_from_query_rows(rows)
     }
 
     pub fn snapshot_for_read_basis(
@@ -193,15 +179,9 @@ impl TopologyQueryAssembly {
         workspace: &mut ForgeQueryWorkspace,
         read_basis: &DerivedTopologyReadBasis,
     ) -> Result<TopologyQuerySnapshot, TopologyQuerySurfaceError> {
-        let rows = historical_rows::historical_derived_rows(self, workspace, read_basis)?;
-        let snapshot = snapshot_decode::snapshot_from_query_rows(
-            rows.naming_attachments,
-            &rows.materialized_rows,
-            &rows.interpreted_rows,
-            &rows.validation_rows,
-            &rows.diagnostics_rows,
-            &rows.equivalence_rows,
-        )?;
+        let rows =
+            snapshot_rows::TopologyQuerySnapshotRows::historical(self, workspace, read_basis)?;
+        let snapshot = snapshot_decode::snapshot_from_query_rows(rows)?;
         ensure_snapshot_matches_read_basis(&snapshot, read_basis)?;
         Ok(snapshot)
     }
@@ -256,6 +236,8 @@ fn ensure_snapshot_matches_read_basis(
     Ok(())
 }
 
+#[cfg(test)]
+mod boundary_tests;
 #[cfg(test)]
 mod snapshot_tests;
 #[cfg(test)]

@@ -226,7 +226,7 @@ fn query_native_assembly_applies_changed_topology_relation_endpoint_upserts_thro
 
 #[test]
 fn query_native_assembly_retains_both_live_and_desired_relation_aspect_families_for_kind_updates() {
-    let (workspace, assembly, verified) =
+    let (mut workspace, assembly, verified) =
         seeded_current_head_workspace("query-native-assembly-upsert-relation-evidence");
     let entities =
         super::authority_support::index_imported_entities(workspace.read(assembly.entities()))

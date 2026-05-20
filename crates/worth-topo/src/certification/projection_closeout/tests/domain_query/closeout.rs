@@ -64,7 +64,7 @@ fn domain_query_closeout_requires_no_n_plus_one_contracts_before_phase_three_rea
     let (mut workspace, assembly, _read_basis) =
         seeded_sheet_disk_workspace("query.domain-query-closeout.contract-gate");
     let query = TopologyDomainQuery::load();
-    let lookup_rows = current_lookup_rows(&workspace, &assembly);
+    let lookup_rows = current_lookup_rows(&mut workspace, &assembly);
     let moved_identity = lookup_rows
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)
@@ -122,7 +122,7 @@ fn domain_query_proof_report_aggregates_request_and_parity_evidence_on_the_bound
     );
     let left_query = TopologyDomainQuery::load();
     let right_query = TopologyDomainQuery::load();
-    let left_lookup_rows = current_lookup_rows(&left_workspace, &left_assembly);
+    let left_lookup_rows = current_lookup_rows(&mut left_workspace, &left_assembly);
     let moved_identity = left_lookup_rows
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)

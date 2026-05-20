@@ -1,10 +1,11 @@
 use forge_query::facade::{
-    ForgeQueryEntity, ForgeQueryExistingRelationTarget, ForgeQueryMutationBatchBuilder,
+    ForgeQueryExistingRelationTarget, ForgeQueryMutationBatchBuilder,
     ForgeQuerySymbolicTargetReference,
 };
 use schema::facade::TopologyEntityKind;
 
 use super::shell_face_rehome_support::resolve_single_face_two_face_shell_split_program;
+use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::bindings::{
     query_entity_binding, query_incoming_relation_ids,
 };
@@ -17,12 +18,10 @@ use crate::topology_operators::TopologyEditContract;
 impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
     pub(super) fn lower_split_single_face_from_two_face_shell_to_new_shell_program(
         &self,
-        entity_rows: &[ForgeQueryEntity],
-        relation_rows: &[ForgeQueryEntity],
+        bindings: &TopologyQueryBindingIndex,
         contracts: &[TopologyEditContract],
     ) -> Result<ForgeQueryMutationBatchBuilder, TopologyOperatorExecutionError> {
-        let Some(program) =
-            resolve_single_face_two_face_shell_split_program(entity_rows, relation_rows, contracts)
+        let Some(program) = resolve_single_face_two_face_shell_split_program(bindings, contracts)
         else {
             return Err(TopologyOperatorExecutionError::UnsupportedFamilies(vec![
                 crate::topology_operators::TopologyEditFamily::AttachShellOrWireMembership,
@@ -31,10 +30,10 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         let retained_shell_id = program
             .retained_shell_id
             .expect("resolved shell split program always sets retained shell id");
-        let region_entity_binding = query_entity_binding(entity_rows, program.region_id)?.ok_or(
+        let region_entity_binding = query_entity_binding(bindings, program.region_id)?.ok_or(
             TopologyOperatorExecutionError::MissingExistingEntityBinding(program.region_id),
         )?;
-        let face_entity_binding = query_entity_binding(entity_rows, program.face_id)?
+        let face_entity_binding = query_entity_binding(bindings, program.face_id)?
             .ok_or(TopologyOperatorExecutionError::MissingExistingEntityBinding(program.face_id))?;
         if region_entity_binding.kind != TopologyEntityKind::Region {
             return Err(TopologyOperatorExecutionError::ExistingEntityKindMismatch {
@@ -50,11 +49,11 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 actual: face_entity_binding.kind,
             });
         }
-        let retained_shell_binding = query_entity_binding(entity_rows, retained_shell_id)?.ok_or(
+        let retained_shell_binding = query_entity_binding(bindings, retained_shell_id)?.ok_or(
             TopologyOperatorExecutionError::MissingExistingEntityBinding(retained_shell_id),
         )?;
         let incoming_region_relation_ids = query_incoming_relation_ids(
-            relation_rows,
+            bindings,
             &retained_shell_binding.query_identity,
             schema::facade::TopologyRelationKind::RegionOwnsShell,
         )?;
@@ -69,7 +68,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             );
         };
         let incoming_shell_face_relation_ids = query_incoming_relation_ids(
-            relation_rows,
+            bindings,
             &face_entity_binding.query_identity,
             schema::facade::TopologyRelationKind::ShellOwnsFace,
         )?;
@@ -85,7 +84,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         };
         let region_relation_binding =
             crate::topology_operators::application::bindings::query_relation_binding(
-                relation_rows,
+                bindings,
                 *region_owns_shell_relation_id,
             )?
             .ok_or(
@@ -95,7 +94,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             )?;
         let face_relation_binding =
             crate::topology_operators::application::bindings::query_relation_binding(
-                relation_rows,
+                bindings,
                 *shell_owns_face_relation_id,
             )?
             .ok_or(

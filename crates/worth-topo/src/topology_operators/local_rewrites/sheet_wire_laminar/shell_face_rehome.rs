@@ -1,12 +1,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use forge_query::facade::{
-    ForgeQueryEntity, ForgeQueryExistingRelationTarget, ForgeQueryMutationBatchBuilder,
+    ForgeQueryExistingRelationTarget, ForgeQueryMutationBatchBuilder,
     ForgeQuerySymbolicTargetReference,
 };
 use schema::facade::TopologyEntityKind;
 
 use super::shell_face_rehome_support::parse_shell_face_rehome_program;
+use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::bindings::{
     query_entity_binding, query_incoming_relation_ids, query_outgoing_relation_ids,
 };
@@ -19,8 +20,7 @@ use crate::topology_operators::TopologyEditContract;
 impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
     pub(super) fn lower_rehome_owned_face_set_to_new_shell_program(
         &self,
-        entity_rows: &[ForgeQueryEntity],
-        relation_rows: &[ForgeQueryEntity],
+        bindings: &TopologyQueryBindingIndex,
         contracts: &[TopologyEditContract],
     ) -> Result<ForgeQueryMutationBatchBuilder, TopologyOperatorExecutionError> {
         let Some(program) = parse_shell_face_rehome_program(contracts) else {
@@ -28,13 +28,13 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 crate::topology_operators::TopologyEditFamily::AttachShellOrWireMembership,
             ]));
         };
-        let retired_shell_binding = query_entity_binding(entity_rows, program.retired_shell_id)?
+        let retired_shell_binding = query_entity_binding(bindings, program.retired_shell_id)?
             .ok_or(
                 TopologyOperatorExecutionError::MissingExistingEntityBinding(
                     program.retired_shell_id,
                 ),
             )?;
-        let region_entity_binding = query_entity_binding(entity_rows, program.region_id)?.ok_or(
+        let region_entity_binding = query_entity_binding(bindings, program.region_id)?.ok_or(
             TopologyOperatorExecutionError::MissingExistingEntityBinding(program.region_id),
         )?;
         if region_entity_binding.kind != TopologyEntityKind::Region {
@@ -47,7 +47,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         let mut face_entity_bindings = Vec::with_capacity(program.face_ids.len());
         let mut expected_face_identities = BTreeSet::new();
         for face_id in &program.face_ids {
-            let face_entity_binding = query_entity_binding(entity_rows, *face_id)?
+            let face_entity_binding = query_entity_binding(bindings, *face_id)?
                 .ok_or(TopologyOperatorExecutionError::MissingExistingEntityBinding(*face_id))?;
             if face_entity_binding.kind != TopologyEntityKind::Face {
                 return Err(TopologyOperatorExecutionError::ExistingEntityKindMismatch {
@@ -60,7 +60,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             face_entity_bindings.push((*face_id, face_entity_binding));
         }
         let incoming_region_relation_ids = query_incoming_relation_ids(
-            relation_rows,
+            bindings,
             &retired_shell_binding.query_identity,
             schema::facade::TopologyRelationKind::RegionOwnsShell,
         )?;
@@ -75,7 +75,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             );
         };
         let outgoing_face_relation_ids = query_outgoing_relation_ids(
-            relation_rows,
+            bindings,
             &retired_shell_binding.query_identity,
             schema::facade::TopologyRelationKind::ShellOwnsFace,
         )?;
@@ -91,7 +91,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         }
         let region_relation_binding =
             crate::topology_operators::application::bindings::query_relation_binding(
-                relation_rows,
+                bindings,
                 *region_owns_shell_relation_id,
             )?
             .ok_or(
@@ -112,7 +112,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         for relation_id in outgoing_face_relation_ids {
             let relation_binding =
                 crate::topology_operators::application::bindings::query_relation_binding(
-                    relation_rows,
+                    bindings,
                     relation_id,
                 )?
                 .ok_or(
@@ -284,7 +284,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         }
         self.lower_retire_topology_entity(
             builder,
-            entity_rows,
+            bindings,
             program.retired_shell_id,
             TopologyEntityKind::Shell,
             contracts

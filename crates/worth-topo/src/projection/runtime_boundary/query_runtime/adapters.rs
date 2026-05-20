@@ -59,12 +59,18 @@ pub(super) struct TopologyRuntimeSchemaAdapter;
 impl ForgeQueryRuntimeSchemaAdapter for TopologyRuntimeSchemaAdapter {
     fn admit_live_view(
         &self,
-        _name: &str,
+        name: &str,
         request: &DeclarativeLiveQueryRequest,
         _schema_view: &QuerySchemaView,
-    ) -> Result<(), ForgeQueryWorkspaceError> {
+    ) -> Result<
+        forge_query::facade::LiveViewDeclarationAdmissionBoundaryReceipt,
+        ForgeQueryWorkspaceError,
+    > {
         match request.target() {
-            "TopologyEntity" | "TopologyRelation" | "PersistentName" => Ok(()),
+            "TopologyEntity" | "TopologyRelation" | "PersistentName" => {
+                let admission = self.build_live_view_declaration_admission_receipt(name, request);
+                Ok(self.build_live_view_declaration_boundary_receipt(name, request, admission))
+            }
             other => Err(ForgeQueryWorkspaceError::new(format!(
                 "topology production runtime does not admit live view target `{other}` yet"
             ))),
@@ -140,9 +146,11 @@ pub(super) struct TopologyStaticSignalSink;
 impl ForgeQueryRuntimeSignalSinkAdapter for TopologyStaticSignalSink {
     fn route_write_receipt(
         &mut self,
-        _receipt: &ForgeQueryMutationReceipt,
-    ) -> Result<(), ForgeQueryWorkspaceError> {
-        Ok(())
+        receipt: &ForgeQueryMutationReceipt,
+    ) -> Result<forge_query::facade::SignalInvalidationBoundaryReceipt, ForgeQueryWorkspaceError>
+    {
+        let routing_receipt = self.build_signal_invalidation_routing_receipt(receipt);
+        Ok(self.build_signal_invalidation_boundary_receipt(receipt, routing_receipt))
     }
 }
 
@@ -164,10 +172,13 @@ impl ForgeQueryRuntimeSubscriptionActivationAdapter for TopologySubscriptionActi
         &mut self,
         view_name: &str,
         activation: &SubscriptionActivationInput,
-    ) -> Result<String, ForgeQueryWorkspaceError> {
-        Ok(format!(
-            "topology-subscription:{view_name}:{}",
-            activation.activation_digest()
+    ) -> Result<forge_query::facade::SubscriptionActivationBoundaryReceipt, ForgeQueryWorkspaceError>
+    {
+        let activation_receipt = self.build_subscription_activation_receipt(view_name, activation);
+        Ok(self.build_subscription_activation_boundary_receipt(
+            view_name,
+            activation,
+            activation_receipt,
         ))
     }
 }

@@ -29,7 +29,7 @@ fn current_head_runtime_executes_half_edge_relocation_successor_program() {
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit-rewire-successor").expect("workspace");
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&workspace, &assembly);
+    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let moved_identity = support.first_source_identity_for_relation_kind(
         schema::facade::TopologyRelationKind::HalfEdgeNext,
     );
@@ -191,7 +191,7 @@ fn current_head_runtime_denies_cross_loop_successor_relocation_program() {
     )
     .expect("workspace");
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&workspace, &assembly);
+    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let (moved_identity, new_successor_identity) =
         support.half_edge_identities_for_different_loops();
     let batch = successor_relocation_batch(

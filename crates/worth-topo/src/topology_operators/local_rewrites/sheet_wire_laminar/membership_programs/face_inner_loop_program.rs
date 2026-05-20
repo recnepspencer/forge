@@ -1,6 +1,7 @@
-use forge_query::facade::{ForgeQueryBatchWriteReceipt, ForgeQueryEntity};
+use forge_query::facade::ForgeQueryBatchWriteReceipt;
 use schema::facade::{EntityReference, TopologyEntityKind, TopologyRelationKind};
 
+use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::{
     TopologyOperatorExecutionError, TopologyOperatorRunner,
 };
@@ -13,7 +14,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
     pub(super) fn compose_face_inner_loop_program(
         &mut self,
         contracts: &[TopologyEditContract],
-        entity_rows: &[ForgeQueryEntity],
+        bindings: &TopologyQueryBindingIndex,
     ) -> Result<ForgeQueryBatchWriteReceipt, TopologyOperatorExecutionError> {
         let [create, attach] = contracts else {
             return Err(TopologyOperatorExecutionError::UnsupportedFamilies(vec![
@@ -44,8 +45,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             ]));
         }
         let face_binding = crate::topology_operators::application::bindings::query_entity_binding(
-            entity_rows,
-            *face_id,
+            bindings, *face_id,
         )?
         .ok_or(TopologyOperatorExecutionError::MissingExistingEntityBinding(*face_id))?;
         if face_binding.kind != TopologyEntityKind::Face {

@@ -2,6 +2,8 @@ mod adapters;
 mod contracts;
 mod edit_support;
 mod edit_support_rows;
+mod operator_bindings;
+mod operator_post_write;
 mod read_support;
 mod runtime_closeout;
 mod runtime_posture;
@@ -11,13 +13,15 @@ mod tests;
 
 use forge_query::facade::{ForgeQueryRuntime, ForgeQueryWorkspace};
 
-pub(crate) use contracts::TOPOLOGY_SNAPSHOT_HISTORICAL_BASIS_EVIDENCE;
+pub(crate) use contracts::workspace_requires_historical_basis_context;
 pub use contracts::{TopologyRuntimeAdapters, TopologyRuntimeFailure, TopologyRuntimeSupport};
 pub use edit_support::{
     TopologyQueryEditFamilySupportStatus, TopologyQueryEditLane,
     TopologyQueryEditLaneExecutionShape, TopologyQueryEditLaneSupportStatus,
     TopologyRuntimeEditFamilySupportRow, TopologyRuntimeEditLaneSupportRow,
 };
+pub(crate) use operator_bindings::TopologyQueryBindingIndex;
+pub(crate) use operator_post_write::load_post_write_materialized_topology;
 pub use read_support::{TopologyQueryReadFamilySupportStatus, TopologyRuntimeReadFamilySupportRow};
 pub use runtime_closeout::{
     TopologyRuntimeCloseout, TopologyRuntimeCloseoutFamily, TopologyRuntimeCloseoutRow,

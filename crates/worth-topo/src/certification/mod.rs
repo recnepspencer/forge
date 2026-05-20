@@ -7,6 +7,7 @@ mod facade;
 mod primitive_corpus;
 #[cfg(test)]
 mod projection_closeout;
+mod query_boundary_cleanup_closeout;
 mod rejections;
 mod requirements;
 mod shared;
@@ -40,7 +41,11 @@ pub use facade::{
     certify_milestone_three_hostile_suite, certify_milestone_three_split_collapse_churn,
     certify_milestone_two_closeout, certify_milestone_two_default_derived_corpus,
     certify_milestone_two_read_basis_traced, certify_milestone_two_verified_topology_commit_traced,
-    certify_verified_topology_commit_traced,
+    certify_topology_query_boundary_cleanup_closeout, certify_verified_topology_commit_traced,
+};
+pub use query_boundary_cleanup_closeout::{
+    TopologyQueryBoundaryCleanupArea, TopologyQueryBoundaryCleanupCloseoutReport,
+    TopologyQueryBoundaryCleanupRow, TopologyQueryBoundaryCleanupStatus,
 };
 pub use requirements::{
     milestone_one_closeout_requirements, milestone_one_closeout_suite_definition,

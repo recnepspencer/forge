@@ -1,6 +1,5 @@
 use std::collections::{BTreeMap, BTreeSet};
 
-use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::identity::EntityId;
 use schema::facade::TopologyRelationKind::*;
 
@@ -8,11 +7,11 @@ use super::successor_support::{
     live_relation_for_source, matches_expected_rewire, same_loop, ContiguousSpanCandidate,
     DesiredLoopSuccessorProgram, DesiredLoopSuccessorRewire,
 };
+use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::{LoopSuccessorKind, TopologyEditAction, TopologyEditContract};
 
 pub(crate) fn supports_admitted_loop_successor_program(
-    entity_rows: &[ForgeQueryEntity],
-    relation_rows: &[ForgeQueryEntity],
+    bindings: &TopologyQueryBindingIndex,
     contracts: &[TopologyEditContract],
 ) -> bool {
     let Some(program) = desired_successor_program(contracts) else {
@@ -22,21 +21,15 @@ pub(crate) fn supports_admitted_loop_successor_program(
         .into_iter()
         .any(|moved_half_edge_id| {
             matches_admitted_single_half_edge_relocation_program(
-                entity_rows,
-                relation_rows,
+                bindings,
                 &program,
                 moved_half_edge_id,
             )
         })
-        || contiguous_span_candidates(entity_rows, relation_rows, &program)
+        || contiguous_span_candidates(bindings, &program)
             .into_iter()
             .any(|candidate| {
-                matches_admitted_contiguous_span_relocation_program(
-                    entity_rows,
-                    relation_rows,
-                    &program,
-                    candidate,
-                )
+                matches_admitted_contiguous_span_relocation_program(bindings, &program, candidate)
             })
 }
 
@@ -84,8 +77,7 @@ fn single_half_edge_candidates(program: &DesiredLoopSuccessorProgram) -> Vec<Ent
 }
 
 fn matches_admitted_single_half_edge_relocation_program(
-    entity_rows: &[ForgeQueryEntity],
-    relation_rows: &[ForgeQueryEntity],
+    bindings: &TopologyQueryBindingIndex,
     program: &DesiredLoopSuccessorProgram,
     moved_half_edge_id: EntityId,
 ) -> bool {
@@ -95,13 +87,11 @@ fn matches_admitted_single_half_edge_relocation_program(
     let Some(moved_prev) = program.prev.get(&moved_half_edge_id) else {
         return false;
     };
-    let Some(live_next) =
-        live_relation_for_source(entity_rows, relation_rows, moved_half_edge_id, HalfEdgeNext)
+    let Some(live_next) = live_relation_for_source(bindings, moved_half_edge_id, HalfEdgeNext)
     else {
         return false;
     };
-    let Some(live_prev) =
-        live_relation_for_source(entity_rows, relation_rows, moved_half_edge_id, HalfEdgePrev)
+    let Some(live_prev) = live_relation_for_source(bindings, moved_half_edge_id, HalfEdgePrev)
     else {
         return false;
     };
@@ -110,44 +100,32 @@ fn matches_admitted_single_half_edge_relocation_program(
     {
         return false;
     }
-    if !same_loop(
-        entity_rows,
-        relation_rows,
-        moved_half_edge_id,
-        moved_next.target_half_edge_id,
-    ) || !same_loop(
-        entity_rows,
-        relation_rows,
-        moved_half_edge_id,
-        moved_prev.target_half_edge_id,
-    ) {
+    if !same_loop(bindings, moved_half_edge_id, moved_next.target_half_edge_id)
+        || !same_loop(bindings, moved_half_edge_id, moved_prev.target_half_edge_id)
+    {
         return false;
     }
 
     matches_expected_rewire(
-        entity_rows,
-        relation_rows,
+        bindings,
         program.next.get(&live_prev.target_half_edge_id),
         live_prev.target_half_edge_id,
         HalfEdgeNext,
         live_next.target_half_edge_id,
     ) && matches_expected_rewire(
-        entity_rows,
-        relation_rows,
+        bindings,
         program.prev.get(&live_next.target_half_edge_id),
         live_next.target_half_edge_id,
         HalfEdgePrev,
         live_prev.target_half_edge_id,
     ) && matches_expected_rewire(
-        entity_rows,
-        relation_rows,
+        bindings,
         program.next.get(&moved_prev.target_half_edge_id),
         moved_prev.target_half_edge_id,
         HalfEdgeNext,
         moved_half_edge_id,
     ) && matches_expected_rewire(
-        entity_rows,
-        relation_rows,
+        bindings,
         program.prev.get(&moved_next.target_half_edge_id),
         moved_next.target_half_edge_id,
         HalfEdgePrev,
@@ -156,8 +134,7 @@ fn matches_admitted_single_half_edge_relocation_program(
 }
 
 fn contiguous_span_candidates(
-    entity_rows: &[ForgeQueryEntity],
-    relation_rows: &[ForgeQueryEntity],
+    bindings: &TopologyQueryBindingIndex,
     program: &DesiredLoopSuccessorProgram,
 ) -> Vec<ContiguousSpanCandidate> {
     program
@@ -170,18 +147,13 @@ fn contiguous_span_candidates(
             let mut seen = BTreeSet::from([start_half_edge_id]);
             let mut current_half_edge_id = start_half_edge_id;
             loop {
-                let live_next = live_relation_for_source(
-                    entity_rows,
-                    relation_rows,
-                    current_half_edge_id,
-                    HalfEdgeNext,
-                )?;
+                let live_next =
+                    live_relation_for_source(bindings, current_half_edge_id, HalfEdgeNext)?;
                 if program.prev.contains_key(&live_next.target_half_edge_id) {
                     return None;
                 }
                 let live_prev = live_relation_for_source(
-                    entity_rows,
-                    relation_rows,
+                    bindings,
                     live_next.target_half_edge_id,
                     HalfEdgePrev,
                 )?;
@@ -206,8 +178,7 @@ fn contiguous_span_candidates(
 }
 
 fn matches_admitted_contiguous_span_relocation_program(
-    entity_rows: &[ForgeQueryEntity],
-    relation_rows: &[ForgeQueryEntity],
+    bindings: &TopologyQueryBindingIndex,
     program: &DesiredLoopSuccessorProgram,
     candidate: ContiguousSpanCandidate,
 ) -> bool {
@@ -217,20 +188,14 @@ fn matches_admitted_contiguous_span_relocation_program(
     let Some(end_next) = program.next.get(&candidate.end_half_edge_id) else {
         return false;
     };
-    let Some(live_start_prev) = live_relation_for_source(
-        entity_rows,
-        relation_rows,
-        candidate.start_half_edge_id,
-        HalfEdgePrev,
-    ) else {
+    let Some(live_start_prev) =
+        live_relation_for_source(bindings, candidate.start_half_edge_id, HalfEdgePrev)
+    else {
         return false;
     };
-    let Some(live_end_next) = live_relation_for_source(
-        entity_rows,
-        relation_rows,
-        candidate.end_half_edge_id,
-        HalfEdgeNext,
-    ) else {
+    let Some(live_end_next) =
+        live_relation_for_source(bindings, candidate.end_half_edge_id, HalfEdgeNext)
+    else {
         return false;
     };
     if start_prev.relation_id != live_start_prev.relation_id
@@ -257,18 +222,15 @@ fn matches_admitted_contiguous_span_relocation_program(
         return false;
     }
     if !same_loop(
-        entity_rows,
-        relation_rows,
+        bindings,
         candidate.start_half_edge_id,
         candidate.end_half_edge_id,
     ) || !same_loop(
-        entity_rows,
-        relation_rows,
+        bindings,
         candidate.start_half_edge_id,
         new_predecessor_half_edge_id,
     ) || !same_loop(
-        entity_rows,
-        relation_rows,
+        bindings,
         candidate.start_half_edge_id,
         new_successor_half_edge_id,
     ) {
@@ -276,29 +238,25 @@ fn matches_admitted_contiguous_span_relocation_program(
     }
 
     matches_expected_rewire(
-        entity_rows,
-        relation_rows,
+        bindings,
         program.next.get(&old_predecessor_half_edge_id),
         old_predecessor_half_edge_id,
         HalfEdgeNext,
         old_successor_half_edge_id,
     ) && matches_expected_rewire(
-        entity_rows,
-        relation_rows,
+        bindings,
         program.prev.get(&old_successor_half_edge_id),
         old_successor_half_edge_id,
         HalfEdgePrev,
         old_predecessor_half_edge_id,
     ) && matches_expected_rewire(
-        entity_rows,
-        relation_rows,
+        bindings,
         program.next.get(&new_predecessor_half_edge_id),
         new_predecessor_half_edge_id,
         HalfEdgeNext,
         candidate.start_half_edge_id,
     ) && matches_expected_rewire(
-        entity_rows,
-        relation_rows,
+        bindings,
         program.prev.get(&new_successor_half_edge_id),
         new_successor_half_edge_id,
         HalfEdgePrev,

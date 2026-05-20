@@ -1,8 +1,9 @@
 use std::collections::BTreeMap;
 
-use forge_query::facade::{ForgeQueryEntity, ForgeQueryMutationBatchBuilder};
+use forge_query::facade::ForgeQueryMutationBatchBuilder;
 use schema::facade::{EntityReference, TopologyEntityKind};
 
+use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::{
     TopologyOperatorExecutionError, TopologyOperatorRunner,
 };
@@ -37,7 +38,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
     pub(crate) fn lower_attach_boundary_membership(
         &self,
         builder: ForgeQueryMutationBatchBuilder,
-        entity_rows: &[ForgeQueryEntity],
+        bindings: &TopologyQueryBindingIndex,
         created_entity_kinds: &BTreeMap<String, TopologyEntityKind>,
         kind: BoundaryMembershipKind,
         owner: &EntityReference,
@@ -53,7 +54,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         };
         self.lower_relation_create(
             builder,
-            entity_rows,
+            bindings,
             created_entity_kinds,
             kind.relation_kind(),
             owner,

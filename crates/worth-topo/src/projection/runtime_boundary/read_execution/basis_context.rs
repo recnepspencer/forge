@@ -2,14 +2,14 @@ use forge_query::facade::{
     admit_historical_evaluation_path, admit_query_basis_context, bind_query_basis_context,
     materialization_metadata_from_resolved, preflight_execution_basis,
     resolve_historical_materialization_path, resolve_runtime_current_snapshot_basis,
-    AdmittedQueryBasisContext, ForgeQueryReadFamily, ForgeQueryRuntimeFacadeFamily,
-    ForgeQueryRuntimeFamilySupportStatus, ForgeQueryWorkspace, HistoricalCapabilityDescriptor,
-    HistoricalEvaluationRequest, HistoricalMaterializationDescriptor,
-    HistoricalPathReuseDescriptor, QueryBasisContextRequest, QueryContextBindingSource,
+    AdmittedQueryBasisContext, ForgeQueryReadFamily, ForgeQueryWorkspace,
+    HistoricalCapabilityDescriptor, HistoricalEvaluationRequest,
+    HistoricalMaterializationDescriptor, HistoricalPathReuseDescriptor, QueryBasisContextRequest,
+    QueryContextBindingSource,
 };
 
 use crate::projection::read_views::domain::error::TopologyDomainQueryError;
-use crate::projection::runtime_boundary::query_runtime::TOPOLOGY_SNAPSHOT_HISTORICAL_BASIS_EVIDENCE;
+use crate::projection::runtime_boundary::query_runtime::workspace_requires_historical_basis_context;
 
 pub(super) enum TopologyReadBasisExecutionMode {
     CurrentHead,
@@ -21,26 +21,13 @@ impl TopologyReadBasisExecutionMode {
         workspace: &ForgeQueryWorkspace,
         family: &ForgeQueryReadFamily,
     ) -> Result<Self, TopologyDomainQueryError> {
-        if !workspace_uses_snapshot_historical_basis(workspace) {
+        if !workspace_requires_historical_basis_context(workspace) {
             return Ok(Self::CurrentHead);
         }
         Ok(Self::HistoricalSnapshot {
             context: historical_context_for_family(family, workspace.snapshot_token().as_str())?,
         })
     }
-}
-
-fn workspace_uses_snapshot_historical_basis(workspace: &ForgeQueryWorkspace) -> bool {
-    workspace
-        .public_api_contract()
-        .family(ForgeQueryRuntimeFacadeFamily::BranchPreview)
-        .is_some_and(|contract| {
-            contract.status() == ForgeQueryRuntimeFamilySupportStatus::Unsupported
-                && contract
-                    .evidence()
-                    .iter()
-                    .any(|evidence| evidence == TOPOLOGY_SNAPSHOT_HISTORICAL_BASIS_EVIDENCE)
-        })
 }
 
 fn historical_context_for_family(

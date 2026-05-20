@@ -20,6 +20,10 @@ use crate::certification::primitive_corpus::{
     certify_milestone_one_default_primitive_corpus_impl,
     certify_milestone_one_primitive_corpus_impl, certify_milestone_one_primitive_scenarios_impl,
 };
+use crate::certification::query_boundary_cleanup_closeout::{
+    certify_topology_query_boundary_cleanup_closeout as certify_topology_query_boundary_cleanup_closeout_impl,
+    TopologyQueryBoundaryCleanupCloseoutReport,
+};
 use crate::certification::support::reporting::{
     MilestoneOneCloseoutReport, MilestoneTwoCloseoutReport, MilestoneTwoDerivedCorpusReport,
     PrimitiveCorpusReport,
@@ -185,6 +189,11 @@ where
     F: FnMut() -> RelationalRuntime,
 {
     certify_milestone_one_closeout_impl(runtime_factory, stem)
+}
+
+pub fn certify_topology_query_boundary_cleanup_closeout(
+) -> Result<TopologyQueryBoundaryCleanupCloseoutReport, TopologyCertificationError> {
+    certify_topology_query_boundary_cleanup_closeout_impl()
 }
 
 pub fn certify_milestone_one_primitive_scenarios<F>(

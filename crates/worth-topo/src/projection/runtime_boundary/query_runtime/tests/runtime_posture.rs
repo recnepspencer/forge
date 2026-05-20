@@ -1,6 +1,9 @@
 use crate::projection::runtime_boundary::query_runtime::{
+    topology_runtime, workspace_requires_historical_basis_context, TopologyRuntimeAdapters,
     TopologyRuntimePostureCapability, TopologyRuntimePostureStatus, TopologyRuntimeSupport,
 };
+use crate::validation::reference_integrity::build_milestone_one_runtime;
+use schema::facade::topology_authoring::seed_minimal_topology;
 
 #[test]
 fn current_head_runtime_posture_rows_freeze_admitted_and_denied_capabilities() {
@@ -54,4 +57,29 @@ fn snapshot_runtime_posture_rows_freeze_historical_read_only_capabilities() {
         };
         assert_eq!(support.runtime_posture_status(capability), expected_status);
     }
+}
+
+#[test]
+fn workspace_historical_basis_detection_tracks_topology_runtime_support_contract() {
+    let current_runtime = build_milestone_one_runtime().expect("runtime");
+    let current_adapters = TopologyRuntimeAdapters::current_head(current_runtime);
+    let current_workspace =
+        topology_runtime(current_adapters, ".runtime-posture.current-head").expect("workspace");
+    assert!(!workspace_requires_historical_basis_context(
+        &current_workspace
+    ));
+
+    let mut snapshot_runtime = build_milestone_one_runtime().expect("runtime");
+    let seeded = seed_minimal_topology(&mut snapshot_runtime, "runtime-posture-snapshot")
+        .expect("seed topology");
+    let read_view = snapshot_runtime
+        .read_truth()
+        .read_snapshot(&seeded.snapshot)
+        .expect("seeded snapshot");
+    let snapshot_adapters = TopologyRuntimeAdapters::snapshot_read_only(read_view, seeded.snapshot);
+    let snapshot_workspace =
+        topology_runtime(snapshot_adapters, ".runtime-posture.snapshot").expect("workspace");
+    assert!(workspace_requires_historical_basis_context(
+        &snapshot_workspace
+    ));
 }

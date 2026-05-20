@@ -7,27 +7,29 @@ use schema::facade::{
 };
 use topology::facade::{
     certify_milestone_one_read_basis_traced, certify_milestone_two_read_basis_traced,
-    certify_milestone_two_verified_topology_commit_traced, certify_verified_topology_commit_traced,
+    certify_milestone_two_verified_topology_commit_traced,
+    certify_topology_query_boundary_cleanup_closeout, certify_verified_topology_commit_traced,
     declare_persistent_name_live_view, declare_topology_diagnostics_surface,
     declare_topology_entity_live_view, declare_topology_equivalence_contract_surface,
     declare_topology_interpreted_surface, declare_topology_materialized_surface,
     declare_topology_relation_live_view, declare_topology_validation_surface,
-    derived_read_diagnostics_from_query_rows, equivalence_contract_from_diagnostics_rows,
-    interpreted_topology_from_materialized_rows, naming_attachment_report_from_query_rows,
-    persistent_name_live_view_declaration, topology_runtime, validation_report_from_query_rows,
-    MilestoneOneCertificationError, TopologyDomainQuery, TopologyDomainQueryAggregateReport,
-    TopologyDomainQueryCloseoutReport, TopologyDomainQueryCloseoutRow,
-    TopologyDomainQueryCloseoutStatus, TopologyDomainQueryExecutionEngine,
-    TopologyDomainQueryParityAggregateReport, TopologyDomainQueryPhaseThreeBlocker,
-    TopologyDomainQueryPhaseThreeBlockerRow, TopologyDomainQueryPhaseThreeBlockerStatus,
-    TopologyDomainQueryProofReport, TopologyDomainQueryRequestFamily,
-    TopologyDomainQueryRequestReport, TopologyEditApplicationMode, TopologyEditBatch,
-    TopologyHalfEdgeRadialNeighborhoodView, TopologyHalfEdgeSharedVertexNeighborhoodView,
-    TopologyLocalRewireNeighborhoodView, TopologyLoopCycleView, TopologyNoNPlusOneContract,
+    naming_attachment_report_from_query_input, persistent_name_live_view_declaration,
+    topology_runtime, MilestoneOneCertificationError, TopologyDomainQuery,
+    TopologyDomainQueryAggregateReport, TopologyDomainQueryCloseoutReport,
+    TopologyDomainQueryCloseoutRow, TopologyDomainQueryCloseoutStatus,
+    TopologyDomainQueryExecutionEngine, TopologyDomainQueryParityAggregateReport,
+    TopologyDomainQueryPhaseThreeBlocker, TopologyDomainQueryPhaseThreeBlockerRow,
+    TopologyDomainQueryPhaseThreeBlockerStatus, TopologyDomainQueryProofReport,
+    TopologyDomainQueryRequestFamily, TopologyDomainQueryRequestReport,
+    TopologyEditApplicationMode, TopologyEditBatch, TopologyHalfEdgeRadialNeighborhoodView,
+    TopologyHalfEdgeSharedVertexNeighborhoodView, TopologyLocalRewireNeighborhoodView,
+    TopologyLoopCycleView, TopologyNamingAttachmentInput, TopologyNoNPlusOneContract,
     TopologyNoNPlusOneContractRow, TopologyNoNPlusOneContractStatus, TopologyOperatorExecution,
     TopologyOperatorExecutionError, TopologyQueryAppliedIntent, TopologyQueryApplyError,
-    TopologyQueryAssembly, TopologyQueryEditFamilySupportStatus, TopologyQueryEditLane,
-    TopologyQueryEditLaneExecutionShape, TopologyQueryEditLaneSupportStatus,
+    TopologyQueryAssembly, TopologyQueryBoundaryCleanupArea,
+    TopologyQueryBoundaryCleanupCloseoutReport, TopologyQueryBoundaryCleanupRow,
+    TopologyQueryBoundaryCleanupStatus, TopologyQueryEditFamilySupportStatus,
+    TopologyQueryEditLane, TopologyQueryEditLaneExecutionShape, TopologyQueryEditLaneSupportStatus,
     TopologyQueryMutationEvidence, TopologyQueryReadFamilySupportStatus, TopologyQuerySnapshot,
     TopologyRuntimeAdapters, TopologyRuntimeCloseout, TopologyRuntimeCloseoutFamily,
     TopologyRuntimeCloseoutStatus, TopologyRuntimeEditFamilySupportRow,
@@ -314,44 +316,36 @@ fn _topology_operator_surface_contracts() {
         forge_query::facade::ForgeQueryRuntimeError,
     > = declare_topology_equivalence_contract_surface::<serde_json::Value, serde_json::Value>;
     let _: fn(
-        &[serde_json::Value],
-    ) -> Result<
-        topology::facade::InterpretedTopologyView,
-        topology::facade::TopologyQuerySurfaceError,
-    > = interpreted_topology_from_materialized_rows;
-    let _: fn(
-        &[serde_json::Value],
-        &[serde_json::Value],
-    ) -> Result<
-        topology::facade::DerivedTopologyValidationReport,
-        topology::facade::TopologyQuerySurfaceError,
-    > = validation_report_from_query_rows;
-    let _: fn(
-        &forge_query::facade::ForgeQueryRetainedMutationContext,
-        &[serde_json::Value],
-        &[serde_json::Value],
-        &[serde_json::Value],
-    ) -> Result<
-        topology::facade::DerivedReadDiagnostics,
-        topology::facade::TopologyQuerySurfaceError,
-    > = derived_read_diagnostics_from_query_rows;
-    let _: fn(
-        &[serde_json::Value],
-    ) -> Result<
-        topology::facade::DerivedEquivalenceContractReport,
-        topology::facade::TopologyQuerySurfaceError,
-    > = equivalence_contract_from_diagnostics_rows;
-    let _: fn(
-        &[forge_query::facade::ForgeQueryEntity],
-        &[forge_query::facade::ForgeQueryEntity],
+        TopologyNamingAttachmentInput<'_>,
     ) -> Result<
         topology::facade::NamingAttachmentReport,
         topology::facade::TopologyQuerySurfaceError,
-    > = naming_attachment_report_from_query_rows;
+    > = naming_attachment_report_from_query_input;
     let _: fn(
         &schema::facade::DerivedTopologyReadBasis,
     ) -> topology::facade::TopologyQueryMutationEvidence =
         TopologyQueryMutationEvidence::from_read_basis;
+    let _: fn() -> Result<
+        TopologyQueryBoundaryCleanupCloseoutReport,
+        topology::facade::TopologyCertificationError,
+    > = certify_topology_query_boundary_cleanup_closeout;
+    let _: fn(TopologyQueryBoundaryCleanupArea) -> &'static str =
+        TopologyQueryBoundaryCleanupArea::as_str;
+    let _: fn(TopologyQueryBoundaryCleanupStatus) -> &'static str =
+        TopologyQueryBoundaryCleanupStatus::as_str;
+    let _: fn(&TopologyQueryBoundaryCleanupCloseoutReport) -> &[TopologyQueryBoundaryCleanupRow] =
+        TopologyQueryBoundaryCleanupCloseoutReport::rows;
+    let _: fn(&TopologyQueryBoundaryCleanupCloseoutReport) -> bool =
+        TopologyQueryBoundaryCleanupCloseoutReport::cleanup_complete;
+    let _: fn(
+        &TopologyQueryBoundaryCleanupCloseoutReport,
+        TopologyQueryBoundaryCleanupArea,
+    ) -> TopologyQueryBoundaryCleanupStatus = TopologyQueryBoundaryCleanupCloseoutReport::status;
+    let _: fn(&TopologyQueryBoundaryCleanupRow) -> TopologyQueryBoundaryCleanupArea =
+        TopologyQueryBoundaryCleanupRow::area;
+    let _: fn(&TopologyQueryBoundaryCleanupRow) -> TopologyQueryBoundaryCleanupStatus =
+        TopologyQueryBoundaryCleanupRow::status;
+    let _: fn(&TopologyQueryBoundaryCleanupRow) -> &str = TopologyQueryBoundaryCleanupRow::reason;
 }
 
 #[test]

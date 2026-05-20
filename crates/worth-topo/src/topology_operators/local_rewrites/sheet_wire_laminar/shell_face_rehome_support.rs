@@ -1,8 +1,8 @@
 use std::collections::BTreeSet;
 
-use forge_query::facade::ForgeQueryEntity;
 use schema::facade::{EntityReference, TopologyEntityKind};
 
+use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::bindings::{
     query_entity_binding, query_entity_id_by_identity, query_incoming_relation_ids,
     query_outgoing_relation_target_identities,
@@ -118,28 +118,27 @@ pub(super) fn parse_shell_face_split_program(
 }
 
 pub(super) fn supports_owned_face_set_shell_rehome_program(
-    entity_rows: &[ForgeQueryEntity],
-    relation_rows: &[ForgeQueryEntity],
+    bindings: &TopologyQueryBindingIndex,
     contracts: &[TopologyEditContract],
 ) -> bool {
     let Some(program) = parse_shell_face_rehome_program(contracts) else {
         return false;
     };
-    let Some(retired_shell_binding) = query_entity_binding(entity_rows, program.retired_shell_id)
+    let Some(retired_shell_binding) = query_entity_binding(bindings, program.retired_shell_id)
         .ok()
         .flatten()
     else {
         return false;
     };
     let Ok(incoming_region_ids) = query_incoming_relation_ids(
-        relation_rows,
+        bindings,
         &retired_shell_binding.query_identity,
         schema::facade::TopologyRelationKind::RegionOwnsShell,
     ) else {
         return false;
     };
     let Ok(outgoing_face_targets) = query_outgoing_relation_target_identities(
-        relation_rows,
+        bindings,
         &retired_shell_binding.query_identity,
         schema::facade::TopologyRelationKind::ShellOwnsFace,
     ) else {
@@ -150,7 +149,7 @@ pub(super) fn supports_owned_face_set_shell_rehome_program(
     };
     let Some(incoming_region_relation) =
         crate::topology_operators::application::bindings::query_relation_binding(
-            relation_rows,
+            bindings,
             *incoming_region_relation_id,
         )
         .ok()
@@ -162,12 +161,12 @@ pub(super) fn supports_owned_face_set_shell_rehome_program(
     let outgoing_face_ids = outgoing_face_targets
         .iter()
         .map(|identity| {
-            query_entity_id_by_identity(entity_rows, identity)
+            query_entity_id_by_identity(bindings, identity)
                 .ok()
                 .flatten()
         })
         .collect::<Option<Vec<_>>>();
-    query_entity_id_by_identity(entity_rows, &incoming_region_relation.source_query_identity)
+    query_entity_id_by_identity(bindings, &incoming_region_relation.source_query_identity)
         .ok()
         .flatten()
         .is_some_and(|owned_region_id| owned_region_id == program.region_id)
@@ -177,16 +176,15 @@ pub(super) fn supports_owned_face_set_shell_rehome_program(
 }
 
 pub(super) fn resolve_single_face_two_face_shell_split_program(
-    entity_rows: &[ForgeQueryEntity],
-    relation_rows: &[ForgeQueryEntity],
+    bindings: &TopologyQueryBindingIndex,
     contracts: &[TopologyEditContract],
 ) -> Option<ShellFaceSplitProgram> {
     let mut program = parse_shell_face_split_program(contracts)?;
-    let face_binding = query_entity_binding(entity_rows, program.face_id)
+    let face_binding = query_entity_binding(bindings, program.face_id)
         .ok()
         .flatten()?;
     let incoming_shell_ids = query_incoming_relation_ids(
-        relation_rows,
+        bindings,
         &face_binding.query_identity,
         schema::facade::TopologyRelationKind::ShellOwnsFace,
     )
@@ -196,20 +194,20 @@ pub(super) fn resolve_single_face_two_face_shell_split_program(
     };
     let shell_owns_face_relation =
         crate::topology_operators::application::bindings::query_relation_binding(
-            relation_rows,
+            bindings,
             *shell_owns_face_relation_id,
         )
         .ok()
         .flatten()?;
     let retained_shell_id =
-        query_entity_id_by_identity(entity_rows, &shell_owns_face_relation.source_query_identity)
+        query_entity_id_by_identity(bindings, &shell_owns_face_relation.source_query_identity)
             .ok()
             .flatten()?;
-    let retained_shell_binding = query_entity_binding(entity_rows, retained_shell_id)
+    let retained_shell_binding = query_entity_binding(bindings, retained_shell_id)
         .ok()
         .flatten()?;
     let incoming_region_ids = query_incoming_relation_ids(
-        relation_rows,
+        bindings,
         &retained_shell_binding.query_identity,
         schema::facade::TopologyRelationKind::RegionOwnsShell,
     )
@@ -219,22 +217,20 @@ pub(super) fn resolve_single_face_two_face_shell_split_program(
     };
     let region_owns_shell_relation =
         crate::topology_operators::application::bindings::query_relation_binding(
-            relation_rows,
+            bindings,
             *region_owns_shell_relation_id,
         )
         .ok()
         .flatten()?;
-    let owned_region_id = query_entity_id_by_identity(
-        entity_rows,
-        &region_owns_shell_relation.source_query_identity,
-    )
-    .ok()
-    .flatten()?;
+    let owned_region_id =
+        query_entity_id_by_identity(bindings, &region_owns_shell_relation.source_query_identity)
+            .ok()
+            .flatten()?;
     if owned_region_id != program.region_id {
         return None;
     }
     let outgoing_face_targets = query_outgoing_relation_target_identities(
-        relation_rows,
+        bindings,
         &retained_shell_binding.query_identity,
         schema::facade::TopologyRelationKind::ShellOwnsFace,
     )
@@ -245,7 +241,7 @@ pub(super) fn resolve_single_face_two_face_shell_split_program(
     let outgoing_face_ids = outgoing_face_targets
         .iter()
         .map(|identity| {
-            query_entity_id_by_identity(entity_rows, identity)
+            query_entity_id_by_identity(bindings, identity)
                 .ok()
                 .flatten()
         })

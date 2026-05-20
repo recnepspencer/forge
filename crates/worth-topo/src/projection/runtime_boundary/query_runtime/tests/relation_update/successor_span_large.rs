@@ -26,7 +26,7 @@ fn current_head_runtime_executes_four_half_edge_span_relocation_on_larger_loop()
     )
     .expect("workspace");
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&workspace, &assembly);
+    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let moved_start_identity = support.first_source_identity_for_relation_kind(
         schema::facade::TopologyRelationKind::HalfEdgeNext,
     );

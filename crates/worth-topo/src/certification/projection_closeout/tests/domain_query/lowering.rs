@@ -131,7 +131,7 @@ fn topology_domain_views_expose_canonical_lowering_and_explicit_debt_rows() {
         .expect(" topology runtime");
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
     let domain_query = crate::projection::read_views::domain::TopologyDomainQuery::load();
-    let lookup_rows = current_lookup_rows(&workspace, &assembly);
+    let lookup_rows = current_lookup_rows(&mut workspace, &assembly);
     let source_identity = lookup_rows
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeRadialNext)

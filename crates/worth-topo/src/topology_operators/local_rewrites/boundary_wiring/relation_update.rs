@@ -1,10 +1,11 @@
 use forge_query::facade::{
-    ForgeQueryEntity, ForgeQueryExistingRelationTarget, ForgeQueryExistingTruthTargetBinding,
+    ForgeQueryExistingRelationTarget, ForgeQueryExistingTruthTargetBinding,
     ForgeQueryMutationBatchBuilder,
 };
 use forge_relational::facade::identity::{EntityId, RelationId};
 use schema::facade::{TopologyEntityKind, TopologyRelationKind};
 
+use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::bindings::{
     query_entity_binding, query_relation_binding,
 };
@@ -30,15 +31,14 @@ pub(crate) struct ResolvedLoopSuccessorRewire {
 impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
     pub(crate) fn resolve_loop_successor_rewire(
         &self,
-        entity_rows: &[ForgeQueryEntity],
-        relation_rows: &[ForgeQueryEntity],
+        bindings: &TopologyQueryBindingIndex,
         relation_id: RelationId,
         kind: LoopSuccessorKind,
         half_edge_id: EntityId,
         successor_half_edge_id: EntityId,
     ) -> Result<ResolvedLoopSuccessorRewire, TopologyOperatorExecutionError> {
         let relation_kind = kind.relation_kind();
-        let relation_binding = query_relation_binding(relation_rows, relation_id)?
+        let relation_binding = query_relation_binding(bindings, relation_id)?
             .ok_or(TopologyOperatorExecutionError::MissingExistingRelationBinding(relation_id))?;
         if relation_binding.kind != relation_kind {
             return Err(
@@ -49,7 +49,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 },
             );
         }
-        let source_half_edge_binding = query_entity_binding(entity_rows, half_edge_id)?
+        let source_half_edge_binding = query_entity_binding(bindings, half_edge_id)?
             .ok_or(TopologyOperatorExecutionError::MissingExistingEntityBinding(half_edge_id))?;
         if source_half_edge_binding.kind != TopologyEntityKind::HalfEdge {
             return Err(TopologyOperatorExecutionError::ExistingEntityKindMismatch {
@@ -67,10 +67,12 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 },
             );
         }
-        let target_half_edge_binding = query_entity_binding(entity_rows, successor_half_edge_id)?
+        let target_half_edge_binding = query_entity_binding(bindings, successor_half_edge_id)?
             .ok_or(
-            TopologyOperatorExecutionError::MissingExistingEntityBinding(successor_half_edge_id),
-        )?;
+                TopologyOperatorExecutionError::MissingExistingEntityBinding(
+                    successor_half_edge_id,
+                ),
+            )?;
         if target_half_edge_binding.kind != TopologyEntityKind::HalfEdge {
             return Err(TopologyOperatorExecutionError::ExistingEntityKindMismatch {
                 entity_id: successor_half_edge_id,
@@ -79,13 +81,13 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             });
         }
         let source_loop_identity = single_incoming_relation_source_identity(
-            relation_rows,
+            bindings,
             half_edge_id,
             &source_half_edge_binding.query_identity,
             TopologyRelationKind::LoopOwnsHalfEdge,
         )?;
         let target_loop_identity = single_incoming_relation_source_identity(
-            relation_rows,
+            bindings,
             successor_half_edge_id,
             &target_half_edge_binding.query_identity,
             TopologyRelationKind::LoopOwnsHalfEdge,
@@ -126,16 +128,14 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
     pub(crate) fn lower_rewire_loop_successor(
         &self,
         builder: ForgeQueryMutationBatchBuilder,
-        entity_rows: &[ForgeQueryEntity],
-        relation_rows: &[ForgeQueryEntity],
+        bindings: &TopologyQueryBindingIndex,
         relation_id: RelationId,
         kind: LoopSuccessorKind,
         half_edge_id: EntityId,
         successor_half_edge_id: EntityId,
     ) -> Result<ForgeQueryMutationBatchBuilder, TopologyOperatorExecutionError> {
         let resolved = self.resolve_loop_successor_rewire(
-            entity_rows,
-            relation_rows,
+            bindings,
             relation_id,
             kind,
             half_edge_id,
@@ -177,14 +177,13 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
     pub(crate) fn lower_rewire_loop_endpoint(
         &self,
         builder: ForgeQueryMutationBatchBuilder,
-        entity_rows: &[ForgeQueryEntity],
-        relation_rows: &[ForgeQueryEntity],
+        bindings: &TopologyQueryBindingIndex,
         relation_id: RelationId,
         endpoint: LoopEndpointKind,
         half_edge_id: EntityId,
         vertex_id: EntityId,
     ) -> Result<ForgeQueryMutationBatchBuilder, TopologyOperatorExecutionError> {
-        let relation_binding = query_relation_binding(relation_rows, relation_id)?
+        let relation_binding = query_relation_binding(bindings, relation_id)?
             .ok_or(TopologyOperatorExecutionError::MissingExistingRelationBinding(relation_id))?;
         if relation_binding.kind != endpoint.relation_kind() {
             return Err(
@@ -195,7 +194,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 },
             );
         }
-        let half_edge_binding = query_entity_binding(entity_rows, half_edge_id)?
+        let half_edge_binding = query_entity_binding(bindings, half_edge_id)?
             .ok_or(TopologyOperatorExecutionError::MissingExistingEntityBinding(half_edge_id))?;
         if half_edge_binding.kind != TopologyEntityKind::HalfEdge {
             return Err(TopologyOperatorExecutionError::ExistingEntityKindMismatch {
@@ -213,7 +212,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 },
             );
         }
-        let vertex_binding = query_entity_binding(entity_rows, vertex_id)?
+        let vertex_binding = query_entity_binding(bindings, vertex_id)?
             .ok_or(TopologyOperatorExecutionError::MissingExistingEntityBinding(vertex_id))?;
         if vertex_binding.kind != TopologyEntityKind::Vertex {
             return Err(TopologyOperatorExecutionError::ExistingEntityKindMismatch {

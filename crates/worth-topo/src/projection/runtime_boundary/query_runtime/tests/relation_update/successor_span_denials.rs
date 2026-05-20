@@ -27,7 +27,7 @@ fn current_head_runtime_denies_cross_loop_two_half_edge_span_relocation_program(
     )
     .expect("workspace");
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&workspace, &assembly);
+    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let (moved_start_identity, new_successor_identity) =
         support.half_edge_identities_for_different_loops();
     let batch = two_half_edge_span_relocation_batch(
@@ -64,7 +64,7 @@ fn current_head_runtime_denies_degenerate_two_half_edge_span_relocation_before_c
     )
     .expect("workspace");
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&workspace, &assembly);
+    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let moved_start_identity = support.first_source_identity_for_relation_kind(
         schema::facade::TopologyRelationKind::HalfEdgeNext,
     );
@@ -104,7 +104,7 @@ fn current_head_runtime_denies_three_half_edge_span_relocation_before_internal_m
     )
     .expect("workspace");
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&workspace, &assembly);
+    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let moved_start_identity = support.first_source_identity_for_relation_kind(
         schema::facade::TopologyRelationKind::HalfEdgeNext,
     );
