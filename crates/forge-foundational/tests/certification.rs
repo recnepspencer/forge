@@ -28,6 +28,9 @@ mod identities;
 #[path = "certification/locators/mod.rs"]
 mod locators;
 
+#[path = "certification/performance/mod.rs"]
+mod performance;
+
 #[path = "certification/profiles/mod.rs"]
 mod profiles;
 

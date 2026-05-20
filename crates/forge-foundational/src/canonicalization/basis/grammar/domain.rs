@@ -8,6 +8,7 @@ pub enum CanonicalBasisDomain {
     Identity,
     Locator,
     Profile,
+    Performance,
     BoundaryArtifact,
     Transition,
     Diagnostic,
