@@ -3,9 +3,10 @@
 These docs are organized by product layer, not by filename history.
 
 Start with the short learning path when you are new. Use `resources/` for
-ordinary app work, `resource-contracts/` when you need the proof and delivery
-rules underneath resource behavior, `api-reference/` for exact surfaces, and
-`app-surface/` for the broader signal app model.
+ordinary route-first API work, `forms/` for the shipped forms surface,
+`resource-contracts/` when you need the proof and delivery rules underneath
+resource behavior, `api-reference/` for exact surfaces, and `app-surface/` for
+the broader signal app model.
 
 ## Start Here
 
@@ -14,8 +15,41 @@ rules underneath resource behavior, `api-reference/` for exact surfaces, and
   hatch.
 - [Feature Index](./learn/feature-index.md)
   One-line index of every first-class resource feature and its canonical doc.
-- [Resource Recipes](./learn/recipes.md)
-  Task-first examples for the most common happy paths.
+- [Recipes](./learn/recipes.md)
+  Task-first examples for the most common resource and forms happy paths.
+
+## Forms
+
+- [Forms Overview](./forms/overview.md)
+  The feature router for `signals.form(...)`.
+- [Form Kernel And Fields](./forms/form-kernel-and-fields.md)
+  Source authority, draft truth, effective projection, field loci, repeated
+  items, and evidence fields.
+- [Dirty, Patch, And Readiness](./forms/dirty-patch-and-readiness.md)
+  Semantic dirty truth, patch planning, and default submit readiness.
+- [Validation And Messages](./forms/validation-and-messages.md)
+  Validation artifacts, parse failures, visible messages, and readiness
+  blockers.
+- [Availability, Admission, And Steps](./forms/availability-admission-and-steps.md)
+  Dynamic field/control posture, capability gates, and controller-local steps.
+- [Actions And Submit](./forms/actions-and-submit.md)
+  Action planning, submit planning, recovery, and execution posture.
+- [Async Lifecycle And Canonicalization](./forms/async-lifecycle-and-canonicalization.md)
+  Async validation, server result mapping, schema compatibility, and
+  canonicalization.
+- [Host, Interaction, Accessibility, And Layout](./forms/host-interaction-accessibility-and-layout.md)
+  Host facts, interaction posture, accessibility artifacts, layout hints, and
+  measurement.
+- [Presentation And External Lanes](./forms/presentation-and-external-lanes.md)
+  Attachment/media/handoff/exit and visible settlement posture.
+- [Resource-Line Forms](./forms/resource-line-forms.md)
+  Resource-backed forms, effect lowering, merge/drift posture, replay, and
+  rollback.
+- [Collaboration](./forms/collaboration.md)
+  Locks, leases, branch-per-actor posture, comments, and advisory presence.
+- [Diagnostics, History, And Verification](./forms/diagnostics-history-and-verification.md)
+  Summary diagnostics, full diagnostics, retained histories, and verification
+  packages.
 
 ## Resources
 
@@ -104,6 +138,6 @@ details.
 
 1. [start_here.md](./start_here.md)
 2. [Feature Index](./learn/feature-index.md)
-3. [Resource Recipes](./learn/recipes.md)
+3. [Forms Overview](./forms/overview.md) or [Recipes](./learn/recipes.md), depending on which product lane you need
 4. the one feature page that matches your task
 5. the matching reference page only if you need lower-level detail

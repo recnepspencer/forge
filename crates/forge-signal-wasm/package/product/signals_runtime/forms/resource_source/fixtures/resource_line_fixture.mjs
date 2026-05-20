@@ -14,6 +14,8 @@ export function createReadOnlyResourceLineFixture({
   status,
   freshness,
   visibleSelection = createCommittedVisibleSelection("resource line is showing committed server truth"),
+  replayExactResult = null,
+  restoreExactResult = null,
   mutationResponse = null,
   compatibility = null,
   familyKind = "detail",
@@ -125,6 +127,11 @@ export function createReadOnlyResourceLineFixture({
           externalCompatibility: compatibility ?? Object.freeze({ kind: "native" }),
         })),
         replayExact() {
+          if (replayExactResult !== null) {
+            return Object.freeze({
+              ...replayExactResult,
+            });
+          }
           currentStatus = Object.freeze({ kind: "fulfilled", operation: "replay" });
           return Object.freeze({
             kind: "replayed",
@@ -136,6 +143,11 @@ export function createReadOnlyResourceLineFixture({
           });
         },
         restoreExact() {
+          if (restoreExactResult !== null) {
+            return Object.freeze({
+              ...restoreExactResult,
+            });
+          }
           currentStatus = Object.freeze({ kind: "fulfilled", operation: "restore" });
           currentVisibleSelection = Object.freeze({
             kind: "restored",

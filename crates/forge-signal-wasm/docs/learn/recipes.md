@@ -1,12 +1,26 @@
-# Resource Recipes
+# Recipes
 
-This page is the task-first companion to the feature docs.
+This page is the task-first companion to the feature docs for both resources
+and forms.
 
 If you know what you want to build but not which feature page owns it, start
 here.
 
 ## Quick Answers
 
+- ordinary local forms:
+  [Forms Overview](../forms/overview.md)
+- resource-backed forms:
+  [Resource-Line Forms](../forms/resource-line-forms.md)
+- async validation or server canonicalization:
+  [Async Lifecycle And Canonicalization](../forms/async-lifecycle-and-canonicalization.md)
+- host facts, interaction, accessibility, or generated layout:
+  [Host, Interaction, Accessibility, And Layout](../forms/host-interaction-accessibility-and-layout.md)
+- collaboration posture:
+  [Collaboration](../forms/collaboration.md)
+- submit lifecycle, diagnostics, or verification:
+  [Actions And Submit](../forms/actions-and-submit.md),
+  [Diagnostics, History, And Verification](../forms/diagnostics-history-and-verification.md)
 - fetch one item:
   [Fetch And Write Resources](../resources/fetch-and-write.md)
 - create, update, or remove:
@@ -50,6 +64,145 @@ here.
   [External Delivery And Compatibility](../resources/external-delivery-and-compatibility.md)
 - raw family declarations:
   [Raw Escape Hatch](../resources/raw-escape-hatch.md)
+
+## Forms Recipes
+
+## Recipe: Ordinary Local Form
+
+```ts
+const source = signals.input({ title: "Ship docs", done: false });
+
+const form = signals.form({
+  source,
+  fields: ({ field }) => ({
+    title: field("title"),
+    done: field("done"),
+  }),
+});
+
+form.fields.title.set("Ship docs today");
+console.log(form.effective());
+console.log(form.readiness());
+```
+
+## Recipe: Submit Lifecycle With Canonical Fulfillment
+
+```ts
+const form = signals.form({
+  source: { title: "", status: "draft" },
+  fields: ({ field }) => ({
+    title: field("title"),
+    status: field("status"),
+  }),
+  validation: ({ field }) => ({
+    titleRequired: field("title", (value) => value.length > 0 || {
+      kind: "invalid",
+      message: {
+        code: "title.required",
+        severity: "error",
+        audience: "user",
+        visibility: "visible",
+      },
+    }),
+  }),
+  actions: ({ submit }) => ({ submit: submit() }),
+});
+
+form.fields.title.set("Ship docs");
+const pending = form.executeAction("submit");
+form.fulfillAction(pending.operationId, {
+  canonicalValue: { title: "Ship docs", status: "published" },
+});
+```
+
+## Recipe: Resource-Backed Form
+
+```ts
+const form = signals.form({
+  source: signals.form.source.resourceLine(taskLine, { id: "task-resource" }),
+  fields: ({ field }) => ({
+    title: field("title"),
+  }),
+  actions: ({ submit }) => ({
+    submit: submit({
+      resourceEffectProfile: signals.resource.effects.branchNative(),
+    }),
+  }),
+});
+
+console.log(form.resourceSource());
+console.log(form.actionPlan("submit").resourceEffectProfile);
+```
+
+## Recipe: Async Validation
+
+```ts
+const form = signals.form({
+  source: { slug: "ship-docs" },
+  fields: ({ field }) => ({
+    slug: field("slug"),
+  }),
+  validation: ({ asyncField }) => ({
+    slugUnique: asyncField("slug", {
+      id: "slugUnique",
+      triggers: ["submit"],
+    }),
+  }),
+});
+
+const pending = form.startAsyncValidation("slugUnique");
+form.fulfillAsyncValidation(pending.operationId, {
+  reason: "slug is unique",
+});
+```
+
+## Recipe: Host Facts And Generated Layout
+
+```ts
+const form = signals.form({
+  source: { title: "Ship docs" },
+  fields: ({ field }) => ({
+    title: field("title", { row: "hero" }),
+  }),
+  host: {
+    focus: "title",
+    online: true,
+    viewport: { width: 1280, height: 720 },
+  },
+  measurement: {
+    observe: ["animationFrame"],
+  },
+});
+
+form.recordLayoutMeasurement([{ row: "hero", controlHeight: 32 }], {
+  cause: "animationFrame",
+});
+console.log(form.host());
+console.log(form.layoutMeasurement());
+```
+
+## Recipe: Collaboration Posture
+
+```ts
+const form = signals.form({
+  source: { title: "Ship docs" },
+  collaboration: {
+    mode: "fieldLease",
+    actorId: "me",
+    supportsPresence: true,
+  },
+  fields: ({ field }) => ({
+    title: field("title"),
+  }),
+});
+
+form.reportCollaboration({
+  posture: "blocked",
+  leasedFields: [{ field: "title", ownerId: "peer-1" }],
+  reason: "peer-1 owns the title lease",
+});
+console.log(form.fieldWritePosture("title"));
+```
 
 ## Recipe: Route-First Detail
 

@@ -1,0 +1,58 @@
+{
+  "entrypoints": [
+    {
+      "id": "forms_overview",
+      "doc": "forms/overview.md"
+    },
+    {
+      "id": "recipes",
+      "doc": "learn/recipes.md"
+    }
+  ],
+  "features": [
+    {
+      "id": "form_kernel_and_fields",
+      "doc": "forms/form-kernel-and-fields.md"
+    },
+    {
+      "id": "dirty_patch_and_readiness",
+      "doc": "forms/dirty-patch-and-readiness.md"
+    },
+    {
+      "id": "validation_and_messages",
+      "doc": "forms/validation-and-messages.md"
+    },
+    {
+      "id": "availability_admission_and_steps",
+      "doc": "forms/availability-admission-and-steps.md"
+    },
+    {
+      "id": "actions_and_submit",
+      "doc": "forms/actions-and-submit.md"
+    },
+    {
+      "id": "async_lifecycle_and_canonicalization",
+      "doc": "forms/async-lifecycle-and-canonicalization.md"
+    },
+    {
+      "id": "host_interaction_accessibility_and_layout",
+      "doc": "forms/host-interaction-accessibility-and-layout.md"
+    },
+    {
+      "id": "presentation_and_external_lanes",
+      "doc": "forms/presentation-and-external-lanes.md"
+    },
+    {
+      "id": "resource_line_forms",
+      "doc": "forms/resource-line-forms.md"
+    },
+    {
+      "id": "collaboration",
+      "doc": "forms/collaboration.md"
+    },
+    {
+      "id": "diagnostics_history_and_verification",
+      "doc": "forms/diagnostics-history-and-verification.md"
+    }
+  ]
+}

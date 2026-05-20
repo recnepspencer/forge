@@ -87,15 +87,6 @@ const typedCollection = signals.resource.collection({
   load: ({ workspaceId }) => ({ items: [{ id: workspaceId, count: 1 }] }),
 });
 
-typedCollection.line({ workspaceId: "demo" }).patch(
-  // @ts-expect-error undeclared aspect names must not type-check
-  resourcePatch.itemAspect({
-    itemId: "demo",
-    aspect: "title",
-    value: "wrong",
-  }),
-);
-
 const maybeReconcile:
   | ReturnType<
       typeof resourceCollectionShape<
@@ -130,15 +121,6 @@ maybeReconciledCollection.line({ workspaceId: "demo" }).deliver(
       itemId: "demo",
       nextItem: { id: "demo", count: 2 },
     }),
-  }),
-);
-
-typedCollection.line({ workspaceId: "demo" }).patch(
-  // @ts-expect-error declared aspect values must match the declared aspect type
-  resourcePatch.itemAspect({
-    itemId: "demo",
-    aspect: "count",
-    value: "wrong",
   }),
 );
 

@@ -1,0 +1,157 @@
+{
+  "proofLanes": [
+    "runtime",
+    "typeSurface",
+    "docs",
+    "diagnosticsHistory",
+    "resourceBranch",
+    "renderer",
+    "performance",
+    "closeout"
+  ],
+  "rows": [
+    {
+      "family": "kernelAndFields",
+      "runtime": [
+        "package/product/signals_runtime/forms/form_phase_one_kernel_authority.test.mjs",
+        "package/product/signals_runtime/forms/form_kernel_patch_plan.test.mjs"
+      ],
+      "typeSurface": [
+        "package/forms-phase-one-types-smoke.ts",
+        "package/forms-phase-ten-types-smoke.ts"
+      ],
+      "docs": [
+        "docs/forms/form-kernel-and-fields.md"
+      ],
+      "diagnosticsHistory": [
+        "package/product/signals_runtime/forms/form_state_history.test.mjs",
+        "package/product/signals_runtime/forms/form_diagnostics_summary.test.mjs"
+      ],
+      "resourceBranch": [],
+      "renderer": [],
+      "performance": [
+        "package/product/signals_runtime/forms/form_state_history.test.mjs"
+      ],
+      "closeout": [
+        "package/product/signals_runtime/forms/closeout/full_forms_hostile_convergence.test.mjs"
+      ]
+    },
+    {
+      "family": "validationAvailabilityAdmissionActions",
+      "runtime": [
+        "package/product/signals_runtime/forms/form_validation_readiness.test.mjs",
+        "package/product/signals_runtime/forms/form_availability_admission.test.mjs",
+        "package/product/signals_runtime/forms/form_action_execution.test.mjs"
+      ],
+      "typeSurface": [
+        "package/forms-phase-ten-types-smoke.ts"
+      ],
+      "docs": [
+        "docs/forms/validation-and-messages.md",
+        "docs/forms/availability-admission-and-steps.md",
+        "docs/forms/actions-and-submit.md",
+        "docs/forms/async-lifecycle-and-canonicalization.md"
+      ],
+      "diagnosticsHistory": [
+        "package/product/signals_runtime/forms/form_action_verification.test.mjs",
+        "package/product/signals_runtime/forms/form_async_validation.test.mjs"
+      ],
+      "resourceBranch": [],
+      "renderer": [],
+      "performance": [
+        "package/product/signals_runtime/forms/form_action_verification.test.mjs"
+      ],
+      "closeout": [
+        "package/product/signals_runtime/forms/closeout/full_forms_hostile_convergence.test.mjs"
+      ]
+    },
+    {
+      "family": "hostRendererPresentation",
+      "runtime": [
+        "package/product/signals_runtime/forms/host/form_host_facts.test.mjs",
+        "package/product/signals_runtime/forms/accessibility/form_accessibility_artifacts.test.mjs",
+        "package/product/signals_runtime/forms/measurement/form_layout_measurement.test.mjs",
+        "package/product/signals_runtime/forms/presentation/form_entry_bootstrap.test.mjs"
+      ],
+      "typeSurface": [
+        "package/forms-phase-ten-types-smoke.ts"
+      ],
+      "docs": [
+        "docs/forms/host-interaction-accessibility-and-layout.md",
+        "docs/forms/presentation-and-external-lanes.md"
+      ],
+      "diagnosticsHistory": [
+        "package/product/signals_runtime/forms/presentation/form_presentation_lifecycle.test.mjs",
+        "package/product/signals_runtime/forms/messages/form_message_visibility.test.mjs"
+      ],
+      "resourceBranch": [],
+      "renderer": [
+        "package/product/signals_runtime/forms/layout/form_layout_hints.test.mjs",
+        "package/product/signals_runtime/forms/measurement/form_layout_measurement.test.mjs"
+      ],
+      "performance": [
+        "package/product/signals_runtime/forms/measurement/form_layout_measurement.test.mjs"
+      ],
+      "closeout": [
+        "package/product/signals_runtime/forms/closeout/full_forms_hostile_convergence.test.mjs"
+      ]
+    },
+    {
+      "family": "resourceLineAndCollaboration",
+      "runtime": [
+        "package/product/signals_runtime/forms/resource_source/state/form_resource_source_readback.test.mjs",
+        "package/product/signals_runtime/forms/resource_source/state/form_resource_replay_restore.test.mjs",
+        "package/product/signals_runtime/forms/collaboration/form_collaboration_posture.test.mjs",
+        "package/product/signals_runtime/forms/collaboration/form_collaboration_events.test.mjs"
+      ],
+      "typeSurface": [
+        "package/forms-phase-eight-resource-types-smoke.ts",
+        "package/forms-phase-ten-types-smoke.ts"
+      ],
+      "docs": [
+        "docs/forms/resource-line-forms.md",
+        "docs/forms/collaboration.md"
+      ],
+      "diagnosticsHistory": [
+        "package/product/signals_runtime/forms/form_diagnostics_summary.test.mjs",
+        "package/product/signals_runtime/forms/resource_source/state/form_resource_reset.test.mjs"
+      ],
+      "resourceBranch": [
+        "package/product/signals_runtime/forms/resource_source/state/form_resource_visible_selection_readback.test.mjs",
+        "package/product/signals_runtime/forms/resource_source/actions/form_resource_submit_execution.test.mjs"
+      ],
+      "renderer": [
+        "package/product/signals_runtime/forms/resource_source/state/form_attachment_transfer_projection.test.mjs"
+      ],
+      "performance": [
+        "package/product/signals_runtime/forms/resource_source/state/form_resource_source_readback.test.mjs"
+      ],
+      "closeout": [
+        "package/product/signals_runtime/forms/closeout/full_forms_hostile_convergence.test.mjs"
+      ]
+    },
+    {
+      "family": "docsAndCloseout",
+      "runtime": [
+        "package/product/signals_runtime/forms/closeout/forms_feature_docs_happy_path.test.mjs",
+        "package/product/signals_runtime/forms/closeout/forms_closeout_matrix.test.mjs"
+      ],
+      "typeSurface": [
+        "package/forms-phase-ten-types-smoke.ts"
+      ],
+      "docs": [
+        "docs/forms/overview.md",
+        "docs/forms/diagnostics-history-and-verification.md"
+      ],
+      "diagnosticsHistory": [
+        "package/product/signals_runtime/forms/form_diagnostics_summary.test.mjs"
+      ],
+      "resourceBranch": [],
+      "renderer": [],
+      "performance": [],
+      "closeout": [
+        "package/product/signals_runtime/forms/closeout/full_forms_hostile_convergence.test.mjs"
+      ]
+    }
+  ]
+}

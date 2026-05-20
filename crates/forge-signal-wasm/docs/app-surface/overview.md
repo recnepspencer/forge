@@ -419,8 +419,8 @@ These surfaces explain the published boundary honestly. They do not turn local
 - portable graph import is still denied on the graph-native import surface
 - exact graph restore is the admitted import posture today
 - `debugName` may help diagnostics, but it is never addressability
-- the forms and resource products are still later layers, not part of this app
-  surface
+- route authority, browser-history, and router-coupled step semantics remain
+  outside the controller-local forms lane
 
 ## Related Docs
 

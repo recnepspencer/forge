@@ -1,6 +1,6 @@
 # Start Here
 
-This is the shortest path through the shipped resource surface.
+This is the shortest path through the shipped product surfaces.
 
 ## Default Mental Model
 
@@ -32,6 +32,34 @@ const line = userDetail.line({ userId: "u1" });
 
 console.log(line.summary());
 console.log(line.value());
+```
+
+For runtime-owned forms, the normal lane is:
+
+1. call `signals.form(...)`
+2. declare `field(...)`, `repeated(...)`, or `evidence(...)`
+3. add validation, availability, admission, steps, and actions only where the
+   form actually needs them
+4. read `effective()`, `dirty()`, `readiness()`, `actions()`, or
+   `diagnosticsSummary()`
+
+Small example:
+
+```ts
+const source = signals.input({ title: "Ship docs", done: false });
+
+const form = signals.form({
+  source,
+  fields: ({ field }) => ({
+    title: field("title"),
+    done: field("done"),
+  }),
+});
+
+form.fields.title.set("Ship docs today");
+
+console.log(form.effective());
+console.log(form.readiness());
 ```
 
 ## If You Already Know Your Task
@@ -68,11 +96,25 @@ console.log(line.value());
   [External Delivery And Compatibility](./resources/external-delivery-and-compatibility.md)
 - raw family declarations:
   [Raw Escape Hatch](./resources/raw-escape-hatch.md)
+- ordinary local or resource-backed forms:
+  [Forms Overview](./forms/overview.md)
+- semantic dirty truth, patch planning, and submit readiness:
+  [Dirty, Patch, And Readiness](./forms/dirty-patch-and-readiness.md)
+- validation, messages, and readiness blockers:
+  [Validation And Messages](./forms/validation-and-messages.md)
+- resource-backed form submit, merge, drift, replay, and rollback:
+  [Resource-Line Forms](./forms/resource-line-forms.md)
+- diagnostics, retained histories, and verification packages:
+  [Diagnostics, History, And Verification](./forms/diagnostics-history-and-verification.md)
 
 ## What Not To Do First
 
 Do not start with `signals.resource.*(...)` unless you already know you need
 manual identity, raw request shape control, or compatibility-specific behavior.
+
+Do not start by building your own form controller, draft store, validation
+cache, or action state machine beside `signals.form(...)`. The shipped forms
+surface already owns those boundaries.
 
 The raw lane is real and supported. It just should not be the first stop for
 ordinary app code.
@@ -80,4 +122,5 @@ ordinary app code.
 ## Next Reads
 
 - [Feature Index](./learn/feature-index.md)
-- [Resource Recipes](./learn/recipes.md)
+- [Recipes](./learn/recipes.md)
+- [Forms Overview](./forms/overview.md)

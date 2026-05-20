@@ -1,6 +1,6 @@
 # Feature Index
 
-This page exists so every shipped resource feature has one obvious canonical
+This page exists so every shipped product feature has one obvious canonical
 home.
 
 ## Start Here
@@ -28,6 +28,35 @@ home.
   [Mutation Response Reconciliation](../resources/mutation-response-reconciliation.md)
 - mutation response support categories and closeout honesty:
   [Mutation Response Closeout Matrix](../resource-contracts/mutation-response-closeout-matrix.md)
+
+## Forms Features
+
+- forms feature router:
+  [Forms Overview](../forms/overview.md)
+- source authority, draft truth, field loci, repeated items, and evidence
+  fields:
+  [Form Kernel And Fields](../forms/form-kernel-and-fields.md)
+- semantic dirty truth, patch planning, and submit readiness:
+  [Dirty, Patch, And Readiness](../forms/dirty-patch-and-readiness.md)
+- validation artifacts, parse failures, and visible messages:
+  [Validation And Messages](../forms/validation-and-messages.md)
+- dynamic availability, admission gates, and controller-local steps:
+  [Availability, Admission, And Steps](../forms/availability-admission-and-steps.md)
+- action planning, submit planning, and retained execution posture:
+  [Actions And Submit](../forms/actions-and-submit.md)
+- async validation, canonicalization, and source compatibility:
+  [Async Lifecycle And Canonicalization](../forms/async-lifecycle-and-canonicalization.md)
+- host facts, interaction posture, accessibility, layout hints, and
+  measurement:
+  [Host, Interaction, Accessibility, And Layout](../forms/host-interaction-accessibility-and-layout.md)
+- attachment/media/handoff/exit presentation lanes:
+  [Presentation And External Lanes](../forms/presentation-and-external-lanes.md)
+- resource-backed forms, merge/drift posture, replay, restore, and rollback:
+  [Resource-Line Forms](../forms/resource-line-forms.md)
+- collaboration, locks, leases, branch-per-actor posture, and comments:
+  [Collaboration](../forms/collaboration.md)
+- diagnostics summary, full diagnostics, retained history, and verification:
+  [Diagnostics, History, And Verification](../forms/diagnostics-history-and-verification.md)
 
 ## Patch / Delivery Features
 
