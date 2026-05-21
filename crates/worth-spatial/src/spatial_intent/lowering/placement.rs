@@ -1,10 +1,10 @@
 use crate::spatial_intent::refs::{
-    admit_spatial_frame, AdmittedSpatialFrameRef, EmptySpatialWitnessCatalog, SpatialAxis,
-    SpatialDirectionWitnessRef, SpatialFrameError, SpatialFrameRef, SpatialWitnessCatalog,
+    EmptySpatialWitnessCatalog, SpatialAxis, SpatialDirectionWitnessRef, SpatialFrameRef,
+    SpatialWitnessCatalog,
 };
 use crate::spatial_intent::resolution::{
-    resolve_spatial_direction_witness_with_catalog, ResolvedSpatialDirectionWitness,
-    SpatialWitnessFailureClass,
+    admit_spatial_frame, resolve_spatial_direction_witness_with_catalog, AdmittedSpatialFrameRef,
+    ResolvedSpatialDirectionWitness, SpatialFrameError, SpatialWitnessFailureClass,
 };
 use worth_geom::facade::Plane;
 

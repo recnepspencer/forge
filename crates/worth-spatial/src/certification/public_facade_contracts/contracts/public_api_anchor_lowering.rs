@@ -8,11 +8,12 @@ use worth_spatial::facade::{
     SpatialAnchorMatchConstraintSpec, SpatialAnchorRef, SpatialAxis, SpatialCarrierDirectionRole,
     SpatialCarrierPointRole, SpatialCatalogResolvedDirectionWitness,
     SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass,
-    SpatialDirectionWitnessRef, SpatialFixtureWitnessCatalog, SpatialFrameRef,
-    SpatialGeometricTagFailureClass, SpatialLiesOnConstraintSpec, SpatialMoveSpec,
-    SpatialOffsetSpec, SpatialPlacementConstraintError, SpatialPlacementMotionError,
-    SpatialPlacementSpec, SpatialReorientSpec, SpatialWitnessFailureClass,
+    SpatialDirectionWitnessRef, SpatialFrameRef, SpatialGeometricTagFailureClass,
+    SpatialLiesOnConstraintSpec, SpatialMoveSpec, SpatialOffsetSpec,
+    SpatialPlacementConstraintError, SpatialPlacementMotionError, SpatialPlacementSpec,
+    SpatialReorientSpec, SpatialWitnessFailureClass,
 };
+use worth_spatial::test_support::SpatialFixtureWitnessCatalog;
 
 #[test]
 fn spatial_public_facade_exports_catalog_backed_subject_anchor_translation_surfaces() {

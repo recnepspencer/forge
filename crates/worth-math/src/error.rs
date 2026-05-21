@@ -8,6 +8,18 @@
 
 use std::fmt;
 
+/// Structured numeric contract failures for admitted math-domain values.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum NumericContractKind {
+    FinitePoint2,
+    FinitePoint3,
+    FiniteVector2,
+    FiniteVector3,
+    UnitVector2,
+    UnitVector3,
+    FiniteNonNegativeScalar,
+}
+
 /// Errors that can occur during mathematical and geometric operations.
 #[derive(Debug, Clone)]
 pub enum MathError {
@@ -21,6 +33,14 @@ pub enum MathError {
 
     /// Invalid input provided to an operation.
     InvalidInput(String),
+
+    /// A typed numeric contract could not be satisfied.
+    NumericContractViolation {
+        /// Which admitted numeric contract failed.
+        kind: NumericContractKind,
+        /// Human-readable context for the contract site.
+        context: &'static str,
+    },
 
     /// Internal error — should never happen in correct code.
     InternalError(String),
@@ -53,6 +73,9 @@ impl fmt::Display for MathError {
                 )
             }
             MathError::InvalidInput(msg) => write!(f, "Invalid input: {}", msg),
+            MathError::NumericContractViolation { kind, context } => {
+                write!(f, "Numeric contract violation ({kind}): {context}")
+            }
             MathError::InternalError(msg) => write!(f, "Internal error: {}", msg),
             MathError::Ambiguous {
                 location,
@@ -70,3 +93,18 @@ impl fmt::Display for MathError {
 }
 
 impl std::error::Error for MathError {}
+
+impl fmt::Display for NumericContractKind {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let label = match self {
+            NumericContractKind::FinitePoint2 => "finite_point2",
+            NumericContractKind::FinitePoint3 => "finite_point3",
+            NumericContractKind::FiniteVector2 => "finite_vector2",
+            NumericContractKind::FiniteVector3 => "finite_vector3",
+            NumericContractKind::UnitVector2 => "unit_vector2",
+            NumericContractKind::UnitVector3 => "unit_vector3",
+            NumericContractKind::FiniteNonNegativeScalar => "finite_non_negative_scalar",
+        };
+        write!(f, "{label}")
+    }
+}

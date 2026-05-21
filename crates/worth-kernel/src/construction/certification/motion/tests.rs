@@ -14,6 +14,7 @@ use super::{
 use crate::construction::{PrimitiveConstructionIntent, RegularPyramidSpec, WireBodySpec};
 use crate::facade::{MoveSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent};
 use std::collections::BTreeSet;
+use worth_geom::ParameterSpacePoint;
 use worth_spatial::facade::{
     SpatialAnchorRef, SpatialAxis, SpatialCarrierDirectionRole, SpatialCarrierKind,
     SpatialCarrierPointRole, SpatialCatalogResolvedDirectionWitness,
@@ -195,7 +196,7 @@ fn motion_witness_resolution_reports_support_catalog_backed_carrier_and_feature_
         .with_parameter_space_direction(
             SpatialCarrierKind::Curve,
             "curve-2",
-            [0.25, 0.0],
+            ParameterSpacePoint::try_new([0.25, 0.0]).unwrap(),
             SpatialCarrierDirectionRole::Tangent,
             Ok(SpatialCatalogResolvedDirectionWitness::new(
                 [0.0, 1.0, 0.0],

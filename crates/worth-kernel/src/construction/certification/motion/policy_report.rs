@@ -1,4 +1,5 @@
 use forge_query::facade::ForgeQueryWorkspace;
+use worth_geom::ParameterSpacePoint;
 
 use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
 use crate::construction::{
@@ -252,7 +253,7 @@ pub fn prepare_primitive_construction_motion_resolution_policy_report(
                 &SpatialFixtureWitnessCatalog::new().with_parameter_space_direction(
                     SpatialCarrierKind::Curve,
                     "policy-curve",
-                    [0.25, 0.0],
+                    ParameterSpacePoint::try_new([0.25, 0.0]).unwrap(),
                     SpatialCarrierDirectionRole::Tangent,
                     Ok(SpatialCatalogResolvedDirectionWitness::new(
                         [0.0, 1.0, 0.0],

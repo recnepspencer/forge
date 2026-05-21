@@ -10,6 +10,7 @@
 // ── Primitives ───────────────────────────────────────────────────────────
 pub use super::primitives::aabb::Aabb;
 pub use super::primitives::implicit_vertex::Vertex;
+pub use super::primitives::parameter_space::ParameterSpacePoint;
 pub use super::primitives::plane::{intersect_three_planes_exact, signed_distance, Plane};
 pub use super::primitives::point::is_same_point_within;
 pub use super::primitives::polygon::{compute_polygon_area, compute_polygon_centroid};
@@ -29,6 +30,10 @@ pub use super::primitives::shape_realization::{
     PrimitiveSupportNormalClass, PrimitiveSupportRealization,
 };
 pub use super::primitives::vertex_geom::{VertexGeom, VertexProvenance};
+pub use super::surface::{
+    CanonicalParameterPoint, DomainParameterPoint, ParameterAxis, ParameterDomainError,
+    PolygonalTrimmedParameterPoint, PolygonalTrimmedParameterRegion,
+};
 
 // ── Shape generators ────────────────────────────────────────────────────
 pub use super::primitives::shapes::{

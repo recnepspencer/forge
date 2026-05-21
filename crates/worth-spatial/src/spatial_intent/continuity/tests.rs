@@ -3,7 +3,7 @@ use crate::spatial_intent::arbitration::{
     resolve_spatial_intent_conflict_by_choice, SpatialAuthoredActKind, SpatialIntentCandidate,
     SpatialIntentCapabilitySet, SpatialObservedRelationFact,
 };
-use crate::spatial_intent::resolution::SpatialIntentPolicyProfile;
+use crate::spatial_intent::policy::SpatialIntentPolicyProfile;
 
 use super::{
     assess_spatial_identity_continuity_from_analysis,

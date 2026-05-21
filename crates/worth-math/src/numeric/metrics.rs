@@ -1,14 +1,34 @@
-use crate::error::MathError;
+use crate::error::{MathError, NumericContractKind};
 use crate::linalg;
+
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct UnitVector2([f64; 2]);
+
+impl UnitVector2 {
+    pub fn try_new(vector: [f64; 2]) -> Result<Self, MathError> {
+        let normalized =
+            linalg::normalize_checked_2d(vector).ok_or(MathError::NumericContractViolation {
+                kind: NumericContractKind::UnitVector2,
+                context: "unit vector requires a finite non-zero 2D direction",
+            })?;
+        Ok(Self(normalized))
+    }
+
+    pub fn as_array(self) -> [f64; 2] {
+        self.0
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 pub struct UnitVector3([f64; 3]);
 
 impl UnitVector3 {
     pub fn try_new(vector: [f64; 3]) -> Result<Self, MathError> {
-        let normalized = linalg::normalize_checked(vector).ok_or_else(|| {
-            MathError::InvalidInput("unit vector requires a finite non-zero direction".to_string())
-        })?;
+        let normalized =
+            linalg::normalize_checked(vector).ok_or(MathError::NumericContractViolation {
+                kind: NumericContractKind::UnitVector3,
+                context: "unit vector requires a finite non-zero direction",
+            })?;
         Ok(Self(normalized))
     }
 
@@ -23,9 +43,10 @@ pub struct FiniteNonNegativeF64(f64);
 impl FiniteNonNegativeF64 {
     pub fn try_new(value: f64, context: &'static str) -> Result<Self, MathError> {
         if !value.is_finite() || value < 0.0 {
-            return Err(MathError::InvalidInput(format!(
-                "{context} requires a finite non-negative value"
-            )));
+            return Err(MathError::NumericContractViolation {
+                kind: NumericContractKind::FiniteNonNegativeScalar,
+                context,
+            });
         }
         Ok(Self(value))
     }
@@ -53,6 +74,12 @@ pub fn distance_between_points(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn unit_vector_2_rejects_zero_and_nan() {
+        assert!(UnitVector2::try_new([0.0, 0.0]).is_err());
+        assert!(UnitVector2::try_new([f64::NAN, 0.0]).is_err());
+    }
 
     #[test]
     fn unit_vector_rejects_zero_and_nan() {

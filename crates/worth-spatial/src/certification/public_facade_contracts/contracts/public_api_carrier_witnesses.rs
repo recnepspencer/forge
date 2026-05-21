@@ -1,13 +1,15 @@
+use worth_geom::ParameterSpacePoint;
 use worth_spatial::facade::{
     admit_spatial_placement_with_catalog, admit_spatial_points_toward_constraint_with_catalog,
     admit_spatial_reorient_with_catalog,
     apply_admitted_points_toward_constraint_to_placement_with_catalog, SpatialAnchorRef,
     SpatialCarrierDirectionRole, SpatialCarrierKind, SpatialCarrierPointRole,
     SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedPointWitness,
-    SpatialCatalogWitnessResolutionClass, SpatialDirectionWitnessRef, SpatialFixtureWitnessCatalog,
-    SpatialPlacementSpec, SpatialPointWitnessRef, SpatialPointsTowardConstraintSpec,
-    SpatialReorientSpec, SpatialWitnessFailureClass, SpatialWitnessResolutionClass,
+    SpatialCatalogWitnessResolutionClass, SpatialDirectionWitnessRef, SpatialPlacementSpec,
+    SpatialPointWitnessRef, SpatialPointsTowardConstraintSpec, SpatialReorientSpec,
+    SpatialWitnessFailureClass, SpatialWitnessResolutionClass,
 };
+use worth_spatial::test_support::SpatialFixtureWitnessCatalog;
 
 #[test]
 fn spatial_public_facade_exports_catalog_backed_carrier_witness_admission() {
@@ -15,7 +17,7 @@ fn spatial_public_facade_exports_catalog_backed_carrier_witness_admission() {
         .with_parameter_space_direction(
             SpatialCarrierKind::Surface,
             "surface-2",
-            [0.5, 0.25],
+            ParameterSpacePoint::try_new([0.5, 0.25]).unwrap(),
             SpatialCarrierDirectionRole::Normal,
             Ok(SpatialCatalogResolvedDirectionWitness::new(
                 [0.0, 0.0, 2.0],
@@ -92,7 +94,7 @@ fn spatial_public_facade_preserves_catalog_backed_undefined_and_exhausted_truth(
         .with_parameter_space_direction(
             SpatialCarrierKind::Curve,
             "curve-3",
-            [0.75, 0.0],
+            ParameterSpacePoint::try_new([0.75, 0.0]).unwrap(),
             SpatialCarrierDirectionRole::Tangent,
             Err(SpatialWitnessFailureClass::Exhausted),
         )

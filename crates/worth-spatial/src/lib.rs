@@ -8,3 +8,4 @@ mod bindings;
 mod spatial_intent;
 
 pub mod facade;
+pub mod test_support;

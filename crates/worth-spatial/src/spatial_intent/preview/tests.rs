@@ -6,7 +6,7 @@ use super::{
 use crate::spatial_intent::arbitration::{
     SpatialAuthoredActKind, SpatialIntentCapabilitySet, SpatialObservedRelationFact,
 };
-use crate::spatial_intent::resolution::{SpatialIntentPolicyProfile, SpatialPreviewRichness};
+use crate::spatial_intent::policy::{SpatialIntentPolicyProfile, SpatialPreviewRichness};
 
 #[test]
 fn conservative_preview_keeps_grazing_contact_in_clarification_posture() {

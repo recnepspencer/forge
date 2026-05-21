@@ -9,10 +9,11 @@ use crate::facade::{
     admit_spatial_move, admit_spatial_offset, admit_spatial_placement, admit_spatial_reorient,
     admit_spatial_rotate, SpatialAnchorRef, SpatialCarrierPointRole,
     SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass,
-    SpatialDirectionWitnessRef, SpatialFixtureWitnessCatalog, SpatialFrameRef,
-    SpatialGeometricTagFailureClass, SpatialMoveSpec, SpatialOffsetSpec, SpatialPlacementSpec,
-    SpatialPointWitnessRef, SpatialReorientSpec, SpatialRotateSpec, SpatialWitnessFailureClass,
+    SpatialDirectionWitnessRef, SpatialFrameRef, SpatialGeometricTagFailureClass, SpatialMoveSpec,
+    SpatialOffsetSpec, SpatialPlacementSpec, SpatialPointWitnessRef, SpatialReorientSpec,
+    SpatialRotateSpec, SpatialWitnessFailureClass,
 };
+use crate::test_support::SpatialFixtureWitnessCatalog;
 
 #[test]
 fn admitted_motion_can_lower_point_like_anchor_motion_into_placement() {

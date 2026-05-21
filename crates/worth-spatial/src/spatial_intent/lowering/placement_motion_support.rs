@@ -1,5 +1,5 @@
 use crate::spatial_intent::lowering::SpatialPlacementSpec;
-use crate::spatial_intent::refs::admit_spatial_frame;
+use crate::spatial_intent::resolution::admit_spatial_frame;
 
 pub(crate) fn translate_anchor_to_world_point(
     placement: SpatialPlacementSpec,

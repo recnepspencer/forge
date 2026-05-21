@@ -9,10 +9,11 @@ use crate::spatial_intent::lowering::placement_anchor_progression::{
 };
 use crate::spatial_intent::lowering::SpatialPlacementSpec;
 use crate::spatial_intent::refs::{
-    admit_spatial_frame, SpatialAnchorRef, SpatialFrameError, SpatialGeometricTagFailureClass,
-    SpatialWitnessCatalog,
+    SpatialAnchorRef, SpatialGeometricTagFailureClass, SpatialWitnessCatalog,
 };
-use crate::spatial_intent::resolution::SpatialWitnessFailureClass;
+use crate::spatial_intent::resolution::{
+    admit_spatial_frame, AdmittedSpatialFrameRef, SpatialFrameError, SpatialWitnessFailureClass,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SpatialPlacementConstraintError {
@@ -292,7 +293,7 @@ fn translate_placement_world_offset(
 
 fn project_subject_anchor_onto_frame_plane(
     placement: SpatialPlacementSpec,
-    target_frame: &crate::spatial_intent::refs::AdmittedSpatialFrameRef,
+    target_frame: &AdmittedSpatialFrameRef,
     anchor_world_point: [f64; 3],
 ) -> Result<SpatialPlacementSpec, SpatialPlacementConstraintError> {
     let current_reference_frame = admit_spatial_frame(placement.reference_frame().clone())

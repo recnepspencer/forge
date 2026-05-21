@@ -1,5 +1,5 @@
-use crate::spatial_intent::refs::SpatialFrameError;
 use crate::spatial_intent::refs::SpatialGeometricTagFailureClass;
+use crate::spatial_intent::resolution::SpatialFrameError;
 use crate::spatial_intent::resolution::SpatialWitnessFailureClass;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -27,8 +27,8 @@ mod tests {
     };
     use crate::spatial_intent::refs::{
         SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass,
-        SpatialFixtureWitnessCatalog,
     };
+    use crate::test_support::SpatialFixtureWitnessCatalog;
 
     #[test]
     fn translation_anchor_lowering_preserves_point_anchor_semantics() {

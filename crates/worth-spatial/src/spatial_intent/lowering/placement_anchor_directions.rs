@@ -117,13 +117,13 @@ mod tests {
     };
     use crate::facade::{
         SpatialAnchorRef, SpatialAxis, SpatialCatalogResolvedDirectionWitness,
-        SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass,
-        SpatialFixtureWitnessCatalog, SpatialFrameRef, SpatialPlacementSpec,
-        SpatialWitnessFailureClass,
+        SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass, SpatialFrameRef,
+        SpatialPlacementSpec, SpatialWitnessFailureClass,
     };
     use crate::spatial_intent::lowering::placement_anchor_progression::{
         lower_supported_reorient_anchor, lower_supported_reorient_anchor_with_catalog,
     };
+    use crate::test_support::SpatialFixtureWitnessCatalog;
 
     #[test]
     fn reorient_anchor_lowering_distinguishes_point_and_directional_meaning() {

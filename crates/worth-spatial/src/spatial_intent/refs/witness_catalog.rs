@@ -4,6 +4,7 @@ use crate::spatial_intent::refs::{
 use crate::spatial_intent::resolution::{
     SpatialWitnessFailureClass, SpatialWitnessResolutionClass,
 };
+use worth_geom::{CanonicalParameterPoint, DomainParameterPoint, ParameterSpacePoint};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SpatialCatalogWitnessResolutionClass {
@@ -20,10 +21,11 @@ impl SpatialCatalogWitnessResolutionClass {
     }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SpatialCatalogResolvedDirectionWitness {
     world_direction: [f64; 3],
     resolution_class: SpatialCatalogWitnessResolutionClass,
+    parameter_admission: Option<SpatialCatalogParameterAdmission>,
 }
 
 impl SpatialCatalogResolvedDirectionWitness {
@@ -34,6 +36,19 @@ impl SpatialCatalogResolvedDirectionWitness {
         Self {
             world_direction,
             resolution_class,
+            parameter_admission: None,
+        }
+    }
+
+    pub fn with_parameter_admission(
+        world_direction: [f64; 3],
+        resolution_class: SpatialCatalogWitnessResolutionClass,
+        parameter_admission: SpatialCatalogParameterAdmission,
+    ) -> Self {
+        Self {
+            world_direction,
+            resolution_class,
+            parameter_admission: Some(parameter_admission),
         }
     }
 
@@ -44,12 +59,17 @@ impl SpatialCatalogResolvedDirectionWitness {
     pub fn resolution_class(&self) -> SpatialCatalogWitnessResolutionClass {
         self.resolution_class
     }
+
+    pub fn parameter_admission(&self) -> Option<&SpatialCatalogParameterAdmission> {
+        self.parameter_admission.as_ref()
+    }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct SpatialCatalogResolvedPointWitness {
     world_point: [f64; 3],
     resolution_class: SpatialCatalogWitnessResolutionClass,
+    parameter_admission: Option<SpatialCatalogParameterAdmission>,
 }
 
 impl SpatialCatalogResolvedPointWitness {
@@ -60,6 +80,19 @@ impl SpatialCatalogResolvedPointWitness {
         Self {
             world_point,
             resolution_class,
+            parameter_admission: None,
+        }
+    }
+
+    pub fn with_parameter_admission(
+        world_point: [f64; 3],
+        resolution_class: SpatialCatalogWitnessResolutionClass,
+        parameter_admission: SpatialCatalogParameterAdmission,
+    ) -> Self {
+        Self {
+            world_point,
+            resolution_class,
+            parameter_admission: Some(parameter_admission),
         }
     }
 
@@ -70,9 +103,65 @@ impl SpatialCatalogResolvedPointWitness {
     pub fn resolution_class(&self) -> SpatialCatalogWitnessResolutionClass {
         self.resolution_class
     }
+
+    pub fn parameter_admission(&self) -> Option<&SpatialCatalogParameterAdmission> {
+        self.parameter_admission.as_ref()
+    }
 }
 
-#[derive(Clone, Copy, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
+pub struct SpatialCatalogParameterAdmission {
+    requested: ParameterSpacePoint,
+    domain_point: DomainParameterPoint,
+    canonical_point: CanonicalParameterPoint,
+    trimmed_posture: Option<SpatialCatalogTrimmedAdmissionPosture>,
+}
+
+impl SpatialCatalogParameterAdmission {
+    pub fn new(
+        requested: ParameterSpacePoint,
+        domain_point: DomainParameterPoint,
+        canonical_point: CanonicalParameterPoint,
+    ) -> Self {
+        Self {
+            requested,
+            domain_point,
+            canonical_point,
+            trimmed_posture: None,
+        }
+    }
+
+    pub fn with_trimmed_posture(
+        mut self,
+        trimmed_posture: SpatialCatalogTrimmedAdmissionPosture,
+    ) -> Self {
+        self.trimmed_posture = Some(trimmed_posture);
+        self
+    }
+
+    pub fn requested(&self) -> ParameterSpacePoint {
+        self.requested
+    }
+
+    pub fn domain_point(&self) -> &DomainParameterPoint {
+        &self.domain_point
+    }
+
+    pub fn canonical_point(&self) -> &CanonicalParameterPoint {
+        &self.canonical_point
+    }
+
+    pub fn trimmed_posture(&self) -> Option<SpatialCatalogTrimmedAdmissionPosture> {
+        self.trimmed_posture
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SpatialCatalogTrimmedAdmissionPosture {
+    PolygonalRegion,
+}
+
+#[derive(Clone, Debug, PartialEq)]
 pub enum SpatialCatalogResolvedGeometricTag {
     PointLike(SpatialCatalogResolvedPointWitness),
     DirectionLike(SpatialCatalogResolvedDirectionWitness),
@@ -109,7 +198,7 @@ pub trait SpatialWitnessCatalog {
         &self,
         carrier_kind: SpatialCarrierKind,
         carrier: &str,
-        parameter: [f64; 2],
+        parameter: ParameterSpacePoint,
         role: SpatialCarrierDirectionRole,
     ) -> Result<SpatialCatalogResolvedDirectionWitness, SpatialWitnessFailureClass>;
 
@@ -123,7 +212,7 @@ pub trait SpatialWitnessCatalog {
         &self,
         carrier_kind: SpatialCarrierKind,
         carrier: &str,
-        parameter: [f64; 2],
+        parameter: ParameterSpacePoint,
     ) -> Result<SpatialCatalogResolvedPointWitness, SpatialWitnessFailureClass>;
 
     fn resolve_feature_owned_point(
@@ -148,7 +237,7 @@ impl SpatialWitnessCatalog for EmptySpatialWitnessCatalog {
         &self,
         _carrier_kind: SpatialCarrierKind,
         _carrier: &str,
-        _parameter: [f64; 2],
+        _parameter: ParameterSpacePoint,
         _role: SpatialCarrierDirectionRole,
     ) -> Result<SpatialCatalogResolvedDirectionWitness, SpatialWitnessFailureClass> {
         Err(SpatialWitnessFailureClass::Unsupported)
@@ -166,7 +255,7 @@ impl SpatialWitnessCatalog for EmptySpatialWitnessCatalog {
         &self,
         _carrier_kind: SpatialCarrierKind,
         _carrier: &str,
-        _parameter: [f64; 2],
+        _parameter: ParameterSpacePoint,
     ) -> Result<SpatialCatalogResolvedPointWitness, SpatialWitnessFailureClass> {
         Err(SpatialWitnessFailureClass::Unsupported)
     }
@@ -178,226 +267,6 @@ impl SpatialWitnessCatalog for EmptySpatialWitnessCatalog {
     ) -> Result<SpatialCatalogResolvedPointWitness, SpatialWitnessFailureClass> {
         Err(SpatialWitnessFailureClass::Unsupported)
     }
-}
-
-#[derive(Clone, Debug, Default)]
-pub struct SpatialFixtureWitnessCatalog {
-    tag_entries: Vec<GeometricTagEntry>,
-    direction_parameter_entries: Vec<DirectionParameterEntry>,
-    direction_feature_entries: Vec<DirectionFeatureEntry>,
-    point_parameter_entries: Vec<PointParameterEntry>,
-    point_feature_entries: Vec<PointFeatureEntry>,
-}
-
-impl SpatialFixtureWitnessCatalog {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
-    pub fn with_geometric_tag_point(
-        mut self,
-        tag: impl Into<String>,
-        outcome: Result<SpatialCatalogResolvedPointWitness, SpatialWitnessFailureClass>,
-    ) -> Self {
-        self.tag_entries.push(GeometricTagEntry {
-            tag: tag.into(),
-            outcome: outcome.map(SpatialCatalogResolvedGeometricTag::PointLike),
-        });
-        self
-    }
-
-    pub fn with_geometric_tag_direction(
-        mut self,
-        tag: impl Into<String>,
-        outcome: Result<SpatialCatalogResolvedDirectionWitness, SpatialWitnessFailureClass>,
-    ) -> Self {
-        self.tag_entries.push(GeometricTagEntry {
-            tag: tag.into(),
-            outcome: outcome.map(SpatialCatalogResolvedGeometricTag::DirectionLike),
-        });
-        self
-    }
-
-    pub fn with_geometric_tag_unsupported_class(mut self, tag: impl Into<String>) -> Self {
-        self.tag_entries.push(GeometricTagEntry {
-            tag: tag.into(),
-            outcome: Ok(SpatialCatalogResolvedGeometricTag::UnsupportedClass),
-        });
-        self
-    }
-
-    pub fn with_parameter_space_direction(
-        mut self,
-        carrier_kind: SpatialCarrierKind,
-        carrier: impl Into<String>,
-        parameter: [f64; 2],
-        role: SpatialCarrierDirectionRole,
-        outcome: Result<SpatialCatalogResolvedDirectionWitness, SpatialWitnessFailureClass>,
-    ) -> Self {
-        self.direction_parameter_entries
-            .push(DirectionParameterEntry {
-                carrier_kind,
-                carrier: carrier.into(),
-                parameter,
-                role,
-                outcome,
-            });
-        self
-    }
-
-    pub fn with_feature_owned_direction(
-        mut self,
-        feature: impl Into<String>,
-        role: SpatialCarrierDirectionRole,
-        outcome: Result<SpatialCatalogResolvedDirectionWitness, SpatialWitnessFailureClass>,
-    ) -> Self {
-        self.direction_feature_entries.push(DirectionFeatureEntry {
-            feature: feature.into(),
-            role,
-            outcome,
-        });
-        self
-    }
-
-    pub fn with_parameter_space_point(
-        mut self,
-        carrier_kind: SpatialCarrierKind,
-        carrier: impl Into<String>,
-        parameter: [f64; 2],
-        outcome: Result<SpatialCatalogResolvedPointWitness, SpatialWitnessFailureClass>,
-    ) -> Self {
-        self.point_parameter_entries.push(PointParameterEntry {
-            carrier_kind,
-            carrier: carrier.into(),
-            parameter,
-            outcome,
-        });
-        self
-    }
-
-    pub fn with_feature_owned_point(
-        mut self,
-        feature: impl Into<String>,
-        role: SpatialCarrierPointRole,
-        outcome: Result<SpatialCatalogResolvedPointWitness, SpatialWitnessFailureClass>,
-    ) -> Self {
-        self.point_feature_entries.push(PointFeatureEntry {
-            feature: feature.into(),
-            role,
-            outcome,
-        });
-        self
-    }
-}
-
-impl SpatialWitnessCatalog for SpatialFixtureWitnessCatalog {
-    fn resolve_geometric_tag(
-        &self,
-        tag: &str,
-    ) -> Result<SpatialCatalogResolvedGeometricTag, SpatialWitnessFailureClass> {
-        self.tag_entries
-            .iter()
-            .find(|entry| entry.tag == tag)
-            .map(|entry| entry.outcome)
-            .unwrap_or(Err(SpatialWitnessFailureClass::Unsupported))
-    }
-
-    fn resolve_parameter_space_direction(
-        &self,
-        carrier_kind: SpatialCarrierKind,
-        carrier: &str,
-        parameter: [f64; 2],
-        role: SpatialCarrierDirectionRole,
-    ) -> Result<SpatialCatalogResolvedDirectionWitness, SpatialWitnessFailureClass> {
-        self.direction_parameter_entries
-            .iter()
-            .find(|entry| {
-                entry.carrier_kind == carrier_kind
-                    && entry.carrier == carrier
-                    && entry.parameter == parameter
-                    && entry.role == role
-            })
-            .map(|entry| entry.outcome)
-            .unwrap_or(Err(SpatialWitnessFailureClass::Unsupported))
-    }
-
-    fn resolve_feature_owned_direction(
-        &self,
-        feature: &str,
-        role: SpatialCarrierDirectionRole,
-    ) -> Result<SpatialCatalogResolvedDirectionWitness, SpatialWitnessFailureClass> {
-        self.direction_feature_entries
-            .iter()
-            .find(|entry| entry.feature == feature && entry.role == role)
-            .map(|entry| entry.outcome)
-            .unwrap_or(Err(SpatialWitnessFailureClass::Unsupported))
-    }
-
-    fn resolve_parameter_space_point(
-        &self,
-        carrier_kind: SpatialCarrierKind,
-        carrier: &str,
-        parameter: [f64; 2],
-    ) -> Result<SpatialCatalogResolvedPointWitness, SpatialWitnessFailureClass> {
-        self.point_parameter_entries
-            .iter()
-            .find(|entry| {
-                entry.carrier_kind == carrier_kind
-                    && entry.carrier == carrier
-                    && entry.parameter == parameter
-            })
-            .map(|entry| entry.outcome)
-            .unwrap_or(Err(SpatialWitnessFailureClass::Unsupported))
-    }
-
-    fn resolve_feature_owned_point(
-        &self,
-        feature: &str,
-        role: SpatialCarrierPointRole,
-    ) -> Result<SpatialCatalogResolvedPointWitness, SpatialWitnessFailureClass> {
-        self.point_feature_entries
-            .iter()
-            .find(|entry| entry.feature == feature && entry.role == role)
-            .map(|entry| entry.outcome)
-            .unwrap_or(Err(SpatialWitnessFailureClass::Unsupported))
-    }
-}
-
-#[derive(Clone, Debug)]
-struct DirectionParameterEntry {
-    carrier_kind: SpatialCarrierKind,
-    carrier: String,
-    parameter: [f64; 2],
-    role: SpatialCarrierDirectionRole,
-    outcome: Result<SpatialCatalogResolvedDirectionWitness, SpatialWitnessFailureClass>,
-}
-
-#[derive(Clone, Debug)]
-struct GeometricTagEntry {
-    tag: String,
-    outcome: Result<SpatialCatalogResolvedGeometricTag, SpatialWitnessFailureClass>,
-}
-
-#[derive(Clone, Debug)]
-struct DirectionFeatureEntry {
-    feature: String,
-    role: SpatialCarrierDirectionRole,
-    outcome: Result<SpatialCatalogResolvedDirectionWitness, SpatialWitnessFailureClass>,
-}
-
-#[derive(Clone, Debug)]
-struct PointParameterEntry {
-    carrier_kind: SpatialCarrierKind,
-    carrier: String,
-    parameter: [f64; 2],
-    outcome: Result<SpatialCatalogResolvedPointWitness, SpatialWitnessFailureClass>,
-}
-
-#[derive(Clone, Debug)]
-struct PointFeatureEntry {
-    feature: String,
-    role: SpatialCarrierPointRole,
-    outcome: Result<SpatialCatalogResolvedPointWitness, SpatialWitnessFailureClass>,
 }
 
 #[cfg(test)]

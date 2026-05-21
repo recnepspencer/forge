@@ -8,7 +8,7 @@ use super::conflicts::{
     SpatialAuthoredActKind, SpatialIntentConflictClass, SpatialObservedRelationFact,
 };
 use super::ranking::{SpatialIntentCandidateRank, SpatialIntentExplanationClass};
-use crate::spatial_intent::resolution::{SpatialArbitrationPosture, SpatialIntentPolicyProfile};
+use crate::spatial_intent::policy::{SpatialArbitrationPosture, SpatialIntentPolicyProfile};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SpatialIntentEscalation {

@@ -227,7 +227,9 @@ fn kernel_public_facade_finishes_primitive_motion_into_updated_placement_intent(
     let admitted_pointed =
         admit_spatial_placement(pointed.placement_spec()).expect("pointed placement");
     assert!(admitted_reoriented.facing_vector()[2].abs() < 1.0e-12);
-    assert!(admitted_rotated.facing_vector()[2].abs() > 0.99);
+    assert!(admitted_rotated.facing_vector()[0] > 0.99);
+    assert!(admitted_rotated.facing_vector()[1].abs() < 1.0e-12);
+    assert!(admitted_rotated.facing_vector()[2].abs() < 1.0e-12);
     assert_eq!(lies_on.placement_spec().origin(), [0.0, 0.0, 0.0]);
     assert!(admitted_pointed.facing_vector()[1] > 0.99);
     assert_eq!(matched.placement_spec().origin(), [0.0, 0.0, 0.0]);

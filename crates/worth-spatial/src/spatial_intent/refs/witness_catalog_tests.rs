@@ -1,12 +1,14 @@
 use super::{
     EmptySpatialWitnessCatalog, SpatialCatalogResolvedDirectionWitness,
     SpatialCatalogResolvedGeometricTag, SpatialCatalogResolvedPointWitness,
-    SpatialCatalogWitnessResolutionClass, SpatialFixtureWitnessCatalog, SpatialWitnessCatalog,
+    SpatialCatalogWitnessResolutionClass, SpatialWitnessCatalog,
 };
 use crate::facade::{
     SpatialCarrierDirectionRole, SpatialCarrierKind, SpatialCarrierPointRole,
     SpatialWitnessFailureClass,
 };
+use crate::test_support::SpatialFixtureWitnessCatalog;
+use worth_geom::ParameterSpacePoint;
 
 #[test]
 fn empty_catalog_rejects_advanced_carrier_witnesses_as_unsupported() {
@@ -16,7 +18,7 @@ fn empty_catalog_rejects_advanced_carrier_witnesses_as_unsupported() {
         catalog.resolve_parameter_space_direction(
             SpatialCarrierKind::Curve,
             "curve-1",
-            [0.25, 0.0],
+            ParameterSpacePoint::try_new([0.25, 0.0]).unwrap(),
             SpatialCarrierDirectionRole::Tangent,
         ),
         Err(SpatialWitnessFailureClass::Unsupported)
@@ -37,7 +39,7 @@ fn fixture_catalog_preserves_resolved_and_failure_outcomes() {
         .with_parameter_space_direction(
             SpatialCarrierKind::Curve,
             "curve-1",
-            [0.25, 0.0],
+            ParameterSpacePoint::try_new([0.25, 0.0]).unwrap(),
             SpatialCarrierDirectionRole::Tangent,
             Ok(SpatialCatalogResolvedDirectionWitness::new(
                 [1.0, 0.0, 0.0],
@@ -59,7 +61,7 @@ fn fixture_catalog_preserves_resolved_and_failure_outcomes() {
         .with_parameter_space_point(
             SpatialCarrierKind::Surface,
             "surface-1",
-            [0.5, 0.25],
+            ParameterSpacePoint::try_new([0.5, 0.25]).unwrap(),
             Ok(SpatialCatalogResolvedPointWitness::new(
                 [2.0, 3.0, 4.0],
                 SpatialCatalogWitnessResolutionClass::FallbackDerived,
@@ -71,7 +73,7 @@ fn fixture_catalog_preserves_resolved_and_failure_outcomes() {
             .resolve_parameter_space_direction(
                 SpatialCarrierKind::Curve,
                 "curve-1",
-                [0.25, 0.0],
+                ParameterSpacePoint::try_new([0.25, 0.0]).unwrap(),
                 SpatialCarrierDirectionRole::Tangent,
             )
             .expect("direction")
@@ -91,7 +93,11 @@ fn fixture_catalog_preserves_resolved_and_failure_outcomes() {
     );
     assert_eq!(
         catalog
-            .resolve_parameter_space_point(SpatialCarrierKind::Surface, "surface-1", [0.5, 0.25],)
+            .resolve_parameter_space_point(
+                SpatialCarrierKind::Surface,
+                "surface-1",
+                ParameterSpacePoint::try_new([0.5, 0.25]).unwrap(),
+            )
             .expect("point")
             .resolution_class(),
         SpatialCatalogWitnessResolutionClass::FallbackDerived

@@ -56,6 +56,16 @@ pub fn norm(v: [f64; 3]) -> f64 {
     norm_sq(v).sqrt()
 }
 
+/// Squared Euclidean norm of a 2D vector.
+pub fn norm_sq_2d(v: [f64; 2]) -> f64 {
+    v[0] * v[0] + v[1] * v[1]
+}
+
+/// Euclidean norm of a 2D vector.
+pub fn norm_2d(v: [f64; 2]) -> f64 {
+    norm_sq_2d(v).sqrt()
+}
+
 /// Squared Euclidean distance between two 3D points.
 pub fn distance_sq(a: [f64; 3], b: [f64; 3]) -> f64 {
     norm_sq(sub(a, b))
@@ -67,6 +77,14 @@ pub fn normalize_checked(v: [f64; 3]) -> Option<[f64; 3]> {
         return None;
     }
     Some([v[0] / len, v[1] / len, v[2] / len])
+}
+
+pub fn normalize_checked_2d(v: [f64; 2]) -> Option<[f64; 2]> {
+    let len = norm_2d(v);
+    if !len.is_finite() || len == 0.0 {
+        return None;
+    }
+    Some([v[0] / len, v[1] / len])
 }
 
 /// Compute a reference direction perpendicular to the given vector.
@@ -233,6 +251,13 @@ mod tests {
     fn normalize_checked_unit_result() {
         let result = normalize_checked([3.0, 4.0, 0.0]).unwrap();
         let len = norm(result);
+        assert!((len - 1.0).abs() < 1e-15);
+    }
+
+    #[test]
+    fn normalize_checked_2d_unit_result() {
+        let result = normalize_checked_2d([3.0, 4.0]).unwrap();
+        let len = norm_2d(result);
         assert!((len - 1.0).abs() < 1e-15);
     }
 

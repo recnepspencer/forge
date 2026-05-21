@@ -11,11 +11,11 @@ use crate::facade::{
     admit_spatial_anchor_match_constraint, admit_spatial_frame, admit_spatial_lies_on_constraint,
     admit_spatial_placement, admit_spatial_points_toward_constraint,
     SpatialAnchorMatchConstraintSpec, SpatialAnchorRef, SpatialCarrierPointRole,
-    SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass,
-    SpatialFixtureWitnessCatalog, SpatialFrameRef, SpatialGeometricTagFailureClass,
-    SpatialLiesOnConstraintSpec, SpatialPlacementSpec, SpatialPointsTowardConstraintSpec,
-    SpatialWitnessFailureClass,
+    SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass, SpatialFrameRef,
+    SpatialGeometricTagFailureClass, SpatialLiesOnConstraintSpec, SpatialPlacementSpec,
+    SpatialPointsTowardConstraintSpec, SpatialWitnessFailureClass,
 };
+use crate::test_support::SpatialFixtureWitnessCatalog;
 
 #[test]
 fn admitted_constraints_can_lower_shape_origin_constraint_intent_into_placement() {

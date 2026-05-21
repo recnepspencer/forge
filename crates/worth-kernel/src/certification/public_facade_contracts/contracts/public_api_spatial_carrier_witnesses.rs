@@ -1,4 +1,5 @@
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
+use worth_geom::ParameterSpacePoint;
 use worth_kernel::facade::{
     authoring::{construction::*, intents::*},
     certification::query::*,
@@ -17,7 +18,7 @@ fn kernel_public_facade_exports_catalog_backed_carrier_motion_and_placement_surf
         .with_parameter_space_direction(
             SpatialCarrierKind::Curve,
             "curve-4",
-            [0.5, 0.0],
+            ParameterSpacePoint::try_new([0.5, 0.0]).unwrap(),
             SpatialCarrierDirectionRole::Tangent,
             Ok(SpatialCatalogResolvedDirectionWitness::new(
                 [0.0, 2.0, 0.0],
@@ -27,7 +28,7 @@ fn kernel_public_facade_exports_catalog_backed_carrier_motion_and_placement_surf
         .with_parameter_space_direction(
             SpatialCarrierKind::Surface,
             "surface-4",
-            [0.25, 0.75],
+            ParameterSpacePoint::try_new([0.25, 0.75]).unwrap(),
             SpatialCarrierDirectionRole::Normal,
             Ok(SpatialCatalogResolvedDirectionWitness::new(
                 [0.0, 0.0, 3.0],
@@ -105,7 +106,7 @@ fn kernel_public_facade_exports_query_motion_parity_for_catalog_backed_carrier_r
     let catalog = SpatialFixtureWitnessCatalog::new().with_parameter_space_direction(
         SpatialCarrierKind::Curve,
         "curve-5",
-        [0.125, 0.0],
+        ParameterSpacePoint::try_new([0.125, 0.0]).unwrap(),
         SpatialCarrierDirectionRole::Tangent,
         Ok(SpatialCatalogResolvedDirectionWitness::new(
             [1.0, 1.0, 0.0],

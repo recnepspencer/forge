@@ -352,8 +352,12 @@ fn spatial_public_facade_lowers_constraint_style_intents_into_placement_updates(
     .expect("placement matches world origin");
     let admitted = admit_spatial_placement(matched.clone()).expect("admitted matched placement");
 
-    assert_eq!(matched.origin(), [0.0, 0.0, 0.0]);
-    assert_eq!(matched.reference_frame(), &SpatialFrameRef::world());
+    let matched_frame = admit_spatial_frame(matched.reference_frame().clone()).expect("frame");
+    assert_eq!(matched.reference_frame(), &workplane);
+    assert_eq!(
+        matched_frame.basis().embed_point(matched.origin()),
+        [0.0, 0.0, 0.0]
+    );
     assert!(matches!(
         matched.direction_witness(),
         SpatialDirectionWitnessRef::WorldDirection(direction)

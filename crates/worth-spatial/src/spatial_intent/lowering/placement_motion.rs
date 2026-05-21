@@ -17,9 +17,9 @@ use crate::spatial_intent::lowering::{
     AdmittedSpatialRotate, SpatialPlacementSpec,
 };
 use crate::spatial_intent::refs::{
-    admit_spatial_frame, SpatialAnchorRef, SpatialGeometricTagFailureClass, SpatialWitnessCatalog,
+    SpatialAnchorRef, SpatialGeometricTagFailureClass, SpatialWitnessCatalog,
 };
-use crate::spatial_intent::resolution::SpatialWitnessFailureClass;
+use crate::spatial_intent::resolution::{admit_spatial_frame, SpatialWitnessFailureClass};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SpatialPlacementMotionError {

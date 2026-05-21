@@ -6,6 +6,7 @@ use super::{
 };
 use crate::construction::{PrimitiveConstructionIntent, RegularPyramidSpec, WireBodySpec};
 use crate::facade::{MoveSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent};
+use worth_geom::ParameterSpacePoint;
 use worth_spatial::facade::{
     SpatialAnchorRef, SpatialCarrierDirectionRole, SpatialCarrierKind, SpatialCarrierPointRole,
     SpatialCatalogResolvedDirectionWitness, SpatialCatalogResolvedPointWitness,
@@ -41,7 +42,7 @@ fn motion_replay_parity_reports_cover_catalog_backed_direction_and_point_witness
         .with_parameter_space_direction(
             SpatialCarrierKind::Curve,
             "curve-replay",
-            [0.25, 0.0],
+            ParameterSpacePoint::try_new([0.25, 0.0]).unwrap(),
             SpatialCarrierDirectionRole::Tangent,
             Ok(SpatialCatalogResolvedDirectionWitness::new(
                 [0.0, 2.0, 0.0],

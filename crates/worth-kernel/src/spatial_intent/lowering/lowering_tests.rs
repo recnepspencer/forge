@@ -3,6 +3,7 @@ use crate::construction::{PrimitiveConstructionIntent, RegularPyramidSpec, WireB
 use crate::facade::{
     MoveSpatialIntent, OffsetSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent,
 };
+use worth_geom::ParameterSpacePoint;
 use worth_spatial::facade::{
     admit_spatial_placement, SpatialAnchorRef, SpatialAxis, SpatialCarrierPointRole,
     SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass,
@@ -283,7 +284,7 @@ fn primitive_construction_motion_finish_with_catalog_rejects_parameter_space_anc
     let catalog = SpatialFixtureWitnessCatalog::new().with_parameter_space_point(
         worth_spatial::facade::SpatialCarrierKind::Surface,
         "surface-anchor",
-        [0.25, 0.75],
+        ParameterSpacePoint::try_new([0.25, 0.75]).unwrap(),
         Ok(SpatialCatalogResolvedPointWitness::new(
             [4.0, 0.0, 0.0],
             SpatialCatalogWitnessResolutionClass::CarrierDerived,

@@ -2,6 +2,7 @@ mod arbitration;
 mod constraints;
 mod continuity;
 mod lowering;
+mod policy;
 mod preview;
 mod refs;
 mod resolution;
@@ -19,6 +20,7 @@ pub use arbitration::{
 pub use constraints::*;
 pub use continuity::*;
 pub use lowering::*;
+pub use policy::*;
 pub use preview::*;
 pub use refs::*;
 pub use resolution::*;

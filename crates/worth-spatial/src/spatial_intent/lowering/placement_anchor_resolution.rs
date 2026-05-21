@@ -2,13 +2,12 @@ use crate::spatial_intent::lowering::placement_anchor_directions::SpatialPlaceme
 use crate::spatial_intent::lowering::placement_anchor_points::SpatialPlacementPointAnchorError;
 use crate::spatial_intent::lowering::{admit_spatial_placement, SpatialPlacementSpec};
 use crate::spatial_intent::refs::{
-    admit_spatial_frame, SpatialAnchorRef, SpatialCarrierPointRole,
-    SpatialCatalogResolvedGeometricTag, SpatialDirectionWitnessRef,
-    SpatialGeometricTagFailureClass, SpatialWitnessCatalog,
+    SpatialAnchorRef, SpatialCarrierPointRole, SpatialCatalogResolvedGeometricTag,
+    SpatialDirectionWitnessRef, SpatialGeometricTagFailureClass, SpatialWitnessCatalog,
 };
 use crate::spatial_intent::resolution::{
-    resolve_spatial_direction_witness, resolve_spatial_direction_witness_with_catalog,
-    SpatialWitnessFailureClass,
+    admit_spatial_frame, resolve_spatial_direction_witness,
+    resolve_spatial_direction_witness_with_catalog, SpatialWitnessFailureClass,
 };
 
 pub(crate) fn resolve_shape_origin_world_point(

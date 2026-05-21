@@ -3,7 +3,7 @@ use crate::spatial_intent::arbitration::{
     SpatialBlockedCapability, SpatialIntentArbitrationAnalysis, SpatialIntentCandidate,
     SpatialIntentCapabilitySet, SpatialIntentEscalation, SpatialObservedRelationFact,
 };
-use crate::spatial_intent::resolution::{SpatialIntentPolicyProfile, SpatialPreviewRichness};
+use crate::spatial_intent::policy::{SpatialIntentPolicyProfile, SpatialPreviewRichness};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SpatialIntentPreviewCommitDisposition {

@@ -17,6 +17,12 @@ impl From<worth_math::MathError> for KernelError {
                 message: msg,
                 context: None,
             },
+            worth_math::MathError::NumericContractViolation { kind, context } => {
+                KernelError::InvalidInput {
+                    message: format!("numeric contract violation ({kind}): {context}"),
+                    context: None,
+                }
+            }
             worth_math::MathError::InternalError(msg) => KernelError::InternalError {
                 message: msg,
                 context: None,

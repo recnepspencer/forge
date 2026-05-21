@@ -1,5 +1,6 @@
 pub mod aabb;
 pub mod implicit_vertex;
+pub mod parameter_space;
 pub mod plane;
 pub mod point;
 pub mod polygon;

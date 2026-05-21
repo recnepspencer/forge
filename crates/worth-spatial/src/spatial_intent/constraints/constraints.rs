@@ -1,10 +1,10 @@
 use crate::spatial_intent::refs::{
-    admit_spatial_frame, AdmittedSpatialFrameRef, EmptySpatialWitnessCatalog, SpatialAnchorRef,
-    SpatialFrameError, SpatialFrameRef, SpatialPointWitnessRef, SpatialWitnessCatalog,
+    EmptySpatialWitnessCatalog, SpatialAnchorRef, SpatialFrameRef, SpatialPointWitnessRef,
+    SpatialWitnessCatalog,
 };
 use crate::spatial_intent::resolution::{
-    resolve_spatial_point_witness_with_catalog, ResolvedSpatialPointWitness,
-    SpatialWitnessFailureClass,
+    admit_spatial_frame, resolve_spatial_point_witness_with_catalog, AdmittedSpatialFrameRef,
+    ResolvedSpatialPointWitness, SpatialFrameError, SpatialWitnessFailureClass,
 };
 
 #[derive(Clone, Debug, PartialEq)]

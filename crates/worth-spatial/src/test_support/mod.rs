@@ -1,0 +1,3 @@
+mod spatial_fixture_witness_catalog;
+
+pub use spatial_fixture_witness_catalog::SpatialFixtureWitnessCatalog;
