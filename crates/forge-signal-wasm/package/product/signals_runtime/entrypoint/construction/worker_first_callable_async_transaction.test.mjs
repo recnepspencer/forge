@@ -44,7 +44,7 @@ test("default worker-first root exposes async transaction and batch mutation ove
     const rootCount = workerSignals.spec.input("wizard.count", 2);
     const rootItem = workerSignals.spec.input("wizard.item", { label: "alpha", count: 1 });
 
-    const transactionSummary = await workerSignals.transactionAsync((tx) => {
+    const transactionSummary = await workerSignals.transaction((tx) => {
       tx.set(rootCount, 7);
       tx.patch(rootItem, { label: "beta" });
     });
@@ -62,7 +62,7 @@ test("default worker-first root exposes async transaction and batch mutation ove
       compatibilityImportedGraph.read().doubled,
     );
 
-    const batchSummary = await workerSignals.batchAsync((tx) => {
+    const batchSummary = await workerSignals.batch((tx) => {
       tx.set(importedGraph.input("count"), 9);
       tx.patch(rootItem, { count: 4 });
     });

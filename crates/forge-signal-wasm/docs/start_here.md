@@ -18,7 +18,7 @@ Small example:
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const api = signals.api({
   baseUrl: "/api",

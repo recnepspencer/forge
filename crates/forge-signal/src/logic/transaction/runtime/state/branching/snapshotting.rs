@@ -212,7 +212,7 @@ where
         }
         let snapshot_state = self
             .branches
-            .snapshot_state(snapshot.meta.snapshot_id)
+            .snapshot_state(snapshot.meta.branch_id, snapshot.meta.snapshot_id)
             .cloned();
         if let Some(snapshot_state) = snapshot_state {
             let current_diagnostics = self.graph.diagnostics_state().clone();
@@ -489,12 +489,12 @@ where
         }
         let snapshot_state = self
             .branches
-            .snapshot_state(snapshot.meta.snapshot_id)
+            .snapshot_state(snapshot.meta.branch_id, snapshot.meta.snapshot_id)
             .cloned()
             .ok_or_else(|| {
                 SignalError::internal(format!(
-                    "snapshot `{}` is missing runtime-local branch semantic state",
-                    snapshot.meta.snapshot_id.0
+                    "snapshot `{}:{}` is missing runtime-local branch semantic state",
+                    snapshot.meta.branch_id.0, snapshot.meta.snapshot_id.0
                 ))
             })?;
         let current_diagnostics = self

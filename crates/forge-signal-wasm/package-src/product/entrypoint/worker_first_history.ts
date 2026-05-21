@@ -7,8 +7,6 @@ import {
 } from "./sessions/support/worker_first_history_proofs.js";
 
 export function createWorkerFirstHistoryFacade(session) {
-  const branchSnapshotArtifacts = new Map();
-  const branchSnapshotEnvelopeArtifacts = new Map();
   let runtimeProofReportPromise = null;
 
   return Object.freeze({
@@ -27,12 +25,21 @@ export function createWorkerFirstHistoryFacade(session) {
       );
     },
     restore_snapshot(snapshot) {
-      void snapshot;
-      throwWorkerFirstHistoryUnavailable("history.restore_snapshot");
+      if (typeof snapshot?.snapshotEnvelopePortableWire === "string") {
+        return session.bridge.restoreSnapshotEnvelopePortableWire(
+          snapshot.snapshotEnvelopePortableWire,
+        );
+      }
+      return session.bridge.restoreSnapshotEnvelope(snapshot);
     },
     restore_exact_snapshot(snapshot) {
-      void snapshot;
-      throwWorkerFirstHistoryUnavailable("history.restore_exact_snapshot");
+      const restoreToken = snapshot?.snapshotEnvelopeRestoreToken;
+      if (typeof restoreToken !== "string") {
+        throw new TypeError(
+          "history.restore_exact_snapshot expects an artifact returned by history.snapshot() or history.branch_snapshot_envelope()",
+        );
+      }
+      return session.bridge.restoreSnapshotEnvelopeWire(restoreToken);
     },
     current_branch() {
       return session.bridge.currentBranch();
@@ -41,89 +48,71 @@ export function createWorkerFirstHistoryFacade(session) {
       return session.bridge.branches();
     },
     create_branch(name) {
-      void name;
-      throwWorkerFirstHistoryUnavailable("history.create_branch");
+      return session.bridge.createBranch(name);
     },
     switch_branch(branchId) {
-      void branchId;
-      throwWorkerFirstHistoryUnavailable("history.switch_branch");
+      return session.bridge.switchBranch(branchId);
     },
     replay_for_branch(branchId) {
       return session.bridge.replayForBranch(branchId);
     },
     branch_snapshot(branchId) {
-      return requireWorkerFirstBranchSnapshotArtifact(
-        session,
-        branchSnapshotArtifacts,
-        branchId,
-      ).then((artifact) => createWorkerFirstSnapshotArtifact(artifact));
+      return session.bridge.branchSnapshotArtifact(branchId)
+        .then((artifact) => createWorkerFirstSnapshotArtifact(artifact));
     },
     branch_snapshot_id(branchId) {
-      return requireWorkerFirstBranchSnapshotArtifact(
-        session,
-        branchSnapshotArtifacts,
-        branchId,
-      ).then((artifact) => artifact.snapshot.meta.snapshot_id);
+      return session.bridge.branchSnapshotArtifact(branchId)
+        .then((artifact) => artifact.snapshot.meta.snapshot_id);
     },
     async branch_snapshot_envelope(branchId) {
       return createWorkerFirstSnapshotEnvelopeArtifact(
-        await requireWorkerFirstBranchSnapshotEnvelopeArtifact(
-          session,
-          branchSnapshotEnvelopeArtifacts,
-          branchId,
-        ),
+        await session.bridge.branchSnapshotEnvelopeArtifact(branchId),
       );
     },
     restore_branch_snapshot(branchId, snapshot) {
-      void branchId;
-      void snapshot;
-      throwWorkerFirstHistoryUnavailable("history.restore_branch_snapshot");
+      if (typeof snapshot?.snapshotPortableWire === "string") {
+        return session.bridge.restoreBranchSnapshotPortableWire(
+          branchId,
+          snapshot.snapshotPortableWire,
+        );
+      }
+      return session.bridge.restoreBranchSnapshotArtifact(branchId, snapshot);
     },
     restore_exact_branch_snapshot(branchId, snapshot) {
-      void branchId;
-      void snapshot;
-      throwWorkerFirstHistoryUnavailable("history.restore_exact_branch_snapshot");
+      const restoreToken = snapshot?.snapshotRestoreToken;
+      if (typeof restoreToken !== "string") {
+        throw new TypeError(
+          "history.restore_exact_branch_snapshot expects an artifact returned by history.branch_snapshot()",
+        );
+      }
+      return session.bridge.restoreBranchSnapshotWire(branchId, restoreToken);
     },
     restore_branch_snapshot_by_id(branchId, snapshotId) {
-      void branchId;
-      void snapshotId;
-      throwWorkerFirstHistoryUnavailable("history.restore_branch_snapshot_by_id");
+      return session.bridge.restoreBranchSnapshotById(branchId, snapshotId);
     },
     merge_branches(sourceBranchId, targetBranchId) {
-      void sourceBranchId;
-      void targetBranchId;
-      throwWorkerFirstHistoryUnavailable("history.merge_branches");
+      return session.bridge.mergeBranches(sourceBranchId, targetBranchId);
     },
     merge_branches_with_proof(sourceBranchId, targetBranchId) {
-      void sourceBranchId;
-      void targetBranchId;
-      throwWorkerFirstHistoryUnavailable("history.merge_branches_with_proof");
+      return session.bridge.mergeBranchesWithProof(sourceBranchId, targetBranchId);
     },
     plan_merge_branches(sourceBranchId, targetBranchId) {
-      void sourceBranchId;
-      void targetBranchId;
-      throwWorkerFirstHistoryUnavailable("history.plan_merge_branches");
+      return session.bridge.planMergeBranches(sourceBranchId, targetBranchId);
     },
     plan_merge_branches_with_proof(sourceBranchId, targetBranchId) {
-      void sourceBranchId;
-      void targetBranchId;
-      throwWorkerFirstHistoryUnavailable("history.plan_merge_branches_with_proof");
+      return session.bridge.planMergeBranchesWithProof(sourceBranchId, targetBranchId);
     },
     plan_merge_policy_preview(request) {
-      void request;
-      throwWorkerFirstHistoryUnavailable("history.plan_merge_policy_preview");
+      return session.bridge.planMergePolicyPreview(request);
     },
     plan_merge_policy_preview_with_proof(request) {
-      void request;
-      throwWorkerFirstHistoryUnavailable("history.plan_merge_policy_preview_with_proof");
+      return session.bridge.planMergePolicyPreviewWithProof(request);
     },
     merge_branches_policy_preview(request) {
-      void request;
-      throwWorkerFirstHistoryUnavailable("history.merge_branches_policy_preview");
+      return session.bridge.mergeBranchesPolicyPreview(request);
     },
     merge_branches_policy_preview_with_proof(request) {
-      void request;
-      throwWorkerFirstHistoryUnavailable("history.merge_branches_policy_preview_with_proof");
+      return session.bridge.mergeBranchesPolicyPreviewWithProof(request);
     },
     branch_state_proof(branchId) {
       return session.bridge.branchStateProof(branchId);
@@ -165,30 +154,6 @@ export function createWorkerFirstHistoryFacade(session) {
     runtimeProofReportPromise ??= session.bridge.runtimeProofReport();
     return runtimeProofReportPromise;
   }
-}
-
-function requireWorkerFirstBranchSnapshotArtifact(session, branchSnapshotArtifacts, branchId) {
-  const branchKey = typeof branchId === "bigint" ? branchId : BigInt(branchId);
-  let artifactPromise = branchSnapshotArtifacts.get(branchKey);
-  if (!artifactPromise) {
-    artifactPromise = session.bridge.branchSnapshotArtifact(branchId);
-    branchSnapshotArtifacts.set(branchKey, artifactPromise);
-  }
-  return artifactPromise;
-}
-
-function requireWorkerFirstBranchSnapshotEnvelopeArtifact(
-  session,
-  branchSnapshotArtifacts,
-  branchId,
-) {
-  const branchKey = typeof branchId === "bigint" ? branchId : BigInt(branchId);
-  let artifactPromise = branchSnapshotArtifacts.get(branchKey);
-  if (!artifactPromise) {
-    artifactPromise = session.bridge.branchSnapshotEnvelopeArtifact(branchId);
-    branchSnapshotArtifacts.set(branchKey, artifactPromise);
-  }
-  return artifactPromise;
 }
 
 function throwWorkerFirstHistoryUnavailable(operation) {

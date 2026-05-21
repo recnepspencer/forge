@@ -101,7 +101,7 @@ import {
   resourcePatch,
 } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const tasks = signals.api({}).url("/workspaces/:workspaceId/tasks")
   .items((item: { id: string; title: string }) => item.id)
@@ -137,7 +137,7 @@ import {
   resourcePatch,
 } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const feed = signals.api({}).url("/workspaces/:workspaceId/feed")
   .items((item: { id: string; title: string }) => item.id)

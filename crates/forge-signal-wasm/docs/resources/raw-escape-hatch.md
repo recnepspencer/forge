@@ -21,7 +21,7 @@ import {
   resourceParams,
 } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const userDetail = signals.resource.detail({
   params: resourceParams(),

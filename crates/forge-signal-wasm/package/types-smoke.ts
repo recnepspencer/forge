@@ -14,6 +14,8 @@ import {
   type PublishedSignalGraph,
   type ScopedSignalNamespace,
   type SignalNamespace,
+  resourceParamIdentity,
+  resourceParams,
   viewportCapability,
   type ComputedSpec,
   type InputSignalHandle,
@@ -128,6 +130,9 @@ const asyncRootComputed = await signals.computedAsync<number>({
   },
   identity: { kind: "exact" },
 });
+const asyncRootComputedCallback = await signals.computedAsync<number>(
+  () => asyncScopedInput() + 1,
+);
 const asyncScopedOutput = await scopedSignals.outputAsync<{ total: number }>({
   reads: [asyncScopedInput.id, asyncRootComputed.id],
   expr: {
@@ -138,6 +143,9 @@ const asyncScopedOutput = await scopedSignals.outputAsync<{ total: number }>({
   },
   identity: { kind: "exact" },
 });
+const asyncScopedOutputCallback = await scopedSignals.outputAsync<{ total: number }>(
+  () => ({ total: asyncRootComputedCallback() }),
+);
 const asyncLinked = await signals.linkedAsync(() => asyncRootInput());
 await asyncLinked.relink();
 const asyncScopedLinked = await scopedSignals.linkedAsync({
@@ -145,10 +153,105 @@ const asyncScopedLinked = await scopedSignals.linkedAsync({
   computation: (value: { title: string; done: boolean }) => value,
 });
 await asyncScopedLinked.reset();
+const workerFirstDetailFamily = signals.resource.detail({
+  params: resourceParams(),
+  normalizeParams: ({ taskId }: { taskId: string }) =>
+    resourceParamIdentity({ taskId }, taskId),
+  load: ({ taskId }: { taskId: string }) => ({
+    id: taskId,
+    title: "Draft",
+  }),
+});
+const workerFirstDetailLine = workerFirstDetailFamily.line({ taskId: "task-1" } as never);
+const workerFirstCollectionFamily = scopedSignals.resource.collection({
+  params: resourceParams(),
+  normalizeParams: ({ workspaceId }: { workspaceId: string }) =>
+    resourceParamIdentity({ workspaceId }, workspaceId),
+  itemIdentity: (item: { id: string }) => item.id,
+  load: ({ workspaceId }: { workspaceId: string }) => [{
+    id: `${workspaceId}:1`,
+    title: "Scoped",
+  }],
+});
+const workerFirstPagedFamily = signals.resource.paged({
+  params: resourceParams(),
+  normalizeParams: ({ feedId }: { feedId: string }) =>
+    resourceParamIdentity({ feedId }, feedId),
+  itemIdentity: (item: { id: string }) => item.id,
+  accumulatePage: (existing: { id: string }[], next: { id: string }[]) => [...existing, ...next],
+  load: ({ feedId }: { feedId: string }) => [{ id: `${feedId}:1`, title: "Paged" }],
+});
+const workerFirstExternalDetail = signals.resource.compatibility.detail({
+  version: "forge-resource-external-v1",
+  family: "detail",
+  definitionId: "external-detail",
+  requestContract: "native-v1",
+  reconciliationContract: "none",
+  declaration: {
+    params: resourceParams(),
+    normalizeParams: ({ taskId }: { taskId: string }) =>
+      resourceParamIdentity({ taskId }, taskId),
+    load: ({ taskId }: { taskId: string }) => ({ id: taskId, title: "External" }),
+  },
+});
+const workerFirstApi = signals.api({
+  baseUrl: "https://example.test",
+  effects: signals.resource.effects.branchNative(),
+});
+const workerFirstApiDetailLine = workerFirstApi.url("/tasks/:taskId").response(
+  signals.resource.response.detail()(),
+).detail({
+  load: ({ taskId }: { taskId: string }) => ({ id: taskId, title: "API" }),
+}).line({ taskId: "task-1" } as never);
 const scopedCount = nestedScopedSignals.input(1, { debugName: "count" });
 const scopedStringValue = nestedScopedSignals.input("value", { debugName: "scopedStringValue" });
+const scopedDeclarativeDouble = nestedScopedSignals.computed({
+  reads: [scopedCount.id],
+  expr: {
+    kind: "sum",
+    args: [
+      { kind: "read", id: scopedCount.id },
+      { kind: "read", id: scopedCount.id },
+    ],
+  },
+  identity: { kind: "exact" },
+});
+const scopedDeclarativeWhen = nestedScopedSignals.computed({
+  reads: [scopedCount.id],
+  when: {
+    expr: {
+      kind: "gt",
+      left: { kind: "read", id: scopedCount.id },
+      right: { kind: "value", value: 0 },
+    },
+  },
+  expr: { kind: "read", id: scopedCount.id },
+  identity: { kind: "exact" },
+});
 const scopedLabel = nestedScopedSignals.computed(() => `${scopedCount()}`, { debugName: "label" });
-const scopedOutput = nestedScopedSignals.output(() => ({ count: scopedCount() }), { debugName: "panel" });
+const scopedOutput = nestedScopedSignals.output({
+  reads: [scopedDeclarativeDouble.id],
+  expr: {
+    kind: "object",
+    fields: [["count", { kind: "read", id: scopedDeclarativeDouble.id }]],
+  },
+  identity: { kind: "exact" },
+});
+const scopedOutputWhen = nestedScopedSignals.output({
+  reads: [scopedDeclarativeWhen.id],
+  when: {
+    expr: {
+      kind: "gt",
+      left: { kind: "read", id: scopedDeclarativeWhen.id },
+      right: { kind: "value", value: 0 },
+    },
+  },
+  expr: {
+    kind: "object",
+    fields: [["count", { kind: "read", id: scopedDeclarativeWhen.id }]],
+  },
+  identity: { kind: "exact" },
+});
 const scopedSpecCount = nestedScopedSignals.spec.input("count", 1);
 const scopedSpecComputed: Signal<number> = nestedScopedSignals.computedSpec<number>("doubleCount", {
   reads: [scopedSpecCount.id],
@@ -521,6 +624,11 @@ const graphTransactionCommit = graph.transaction((
   tx.set(graph.inputs.count, 5);
   // @ts-expect-error primitive graph inputs must not admit graph transaction patch helpers
   tx.patch("count", 6);
+});
+const awaitedGraphTransactionCommit = await graph.transaction((
+  tx: PublishedGraphTransaction<NonNullable<typeof graphRequest.inputs>>,
+) => {
+  tx.set("count", 8);
 });
 const graphTransactionAsyncCommit = await graph.transactionAsync((
   tx: PublishedGraphTransaction<NonNullable<typeof graphRequest.inputs>>,
@@ -1004,6 +1112,17 @@ const explicitCallbackPanel = signals.spec.outputCallback<{ count: number; doubl
   "callbackPanelExplicit",
   () => snapshot,
 );
+const workerFirstSignals = await createSignals();
+const workerFirstExplicitComputed = workerFirstSignals.spec.computedCallback(
+  "workerFirstExplicitComputed",
+  () => 1,
+);
+const workerFirstScopedExplicitOutput = workerFirstSignals.scope("wizard").spec.outputCallback(
+  "panelExplicit",
+  () => ({ ok: true as const, count: workerFirstExplicitComputed() }),
+);
+const workerFirstExplicitComputedValue = workerFirstExplicitComputed();
+const workerFirstScopedExplicitOutputValue = workerFirstScopedExplicitOutput();
 const adapters = signals.adapters();
 const definitions = adapters.exportDefinitions();
 const runtimeEnvelope = adapters.exportRuntimeEnvelope();
@@ -1025,7 +1144,7 @@ const diagnostics = signals.diagnostics();
 const history = signals.history();
 const specialist = signals.specialist();
 const currentBranch = history.current_branch();
-const previewBranch = history.create_branch("preview");
+const previewBranch = await history.create_branch("preview");
 const branchReplay = history.replay_for_branch(currentBranch.id);
 const branchSnapshot = history.branch_snapshot(currentBranch.id);
 const branchEnvelope = history.branch_snapshot_envelope(currentBranch.id);
@@ -1044,25 +1163,25 @@ const artifactProof = history.replay_artifact_proof({
   lineageDigest: null,
   branchStateDigest: branchProof.stateDigest,
 }, currentBranch.id);
-const previewPlan = history.plan_merge_policy_preview({
+const previewPlan = await history.plan_merge_policy_preview({
   source_branch_id: previewBranch.id,
   target_branch_id: currentBranch.id,
 });
-const previewPlanProof = history.plan_merge_policy_preview_with_proof({
+const previewPlanProof = await history.plan_merge_policy_preview_with_proof({
   source_branch_id: previewBranch.id,
   target_branch_id: currentBranch.id,
 });
-const previewResult = history.merge_branches_policy_preview({
+const previewResult = await history.merge_branches_policy_preview({
   source_branch_id: previewBranch.id,
   target_branch_id: currentBranch.id,
 });
-const previewResultProof = history.merge_branches_policy_preview_with_proof({
+const previewResultProof = await history.merge_branches_policy_preview_with_proof({
   source_branch_id: previewBranch.id,
   target_branch_id: currentBranch.id,
 });
 const graphSummary = diagnostics.summaryNow();
 const specialistGraphSummary = specialist.graphSummary();
-const specialistEvaluateDirty = specialist.evaluateDirty();
+const specialistEvaluateDirty = await specialist.evaluateDirty();
 const performanceSummary = diagnostics.performanceSummary();
 const latestFlow = diagnostics.latestFlow();
 const latestObservation = diagnostics.latestObservation();
@@ -1135,6 +1254,9 @@ signals.transaction((tx) => {
   tx.patch(count, 4);
   // @ts-expect-error computed handles must stay read-only inside transactions
   tx.set(doubled, 4);
+});
+const awaitedLegacyTransactionCommit = await signals.transaction((tx) => {
+  tx.set(count, snapshot.count + commit.touchedNodes + 2);
 });
 const asyncTransactionCommit = await signals.transactionAsync((tx) => {
   tx.set(count, snapshot.count + commit.touchedNodes + 1);
@@ -1431,3 +1553,4 @@ void persistenceRevision;
 void persistenceDescriptor;
 void persistenceCommit;
 void forgedSignal;
+await signals.terminate();

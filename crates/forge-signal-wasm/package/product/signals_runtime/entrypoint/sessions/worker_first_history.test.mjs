@@ -47,6 +47,67 @@ function comparableReplayParityProof(proof) {
   };
 }
 
+function comparableMergePlan(plan) {
+  return {
+    source_branch_id: plan.source_branch_id,
+    target_branch_id: plan.target_branch_id,
+    merge_kind: plan.merge_kind,
+    selected_semantics: plan.selected_semantics,
+    counters: plan.counters,
+  };
+}
+
+function comparableMergePlanProof(envelope) {
+  return {
+    plan: comparableMergePlan(envelope.plan),
+    proof: {
+      proofSchemaVersion: envelope.proof.proofSchemaVersion,
+      registryBundleDigest: envelope.proof.registryBundleDigest,
+      semanticsDigest: envelope.proof.semanticsDigest,
+      selectedStrategyDigest: envelope.proof.selectedStrategyDigest,
+      selectedMergeBaseDigest: envelope.proof.selectedMergeBaseDigest,
+      selectedConflictPolicyDigest: envelope.proof.selectedConflictPolicyDigest,
+      selectedConflictIsolationDigest: envelope.proof.selectedConflictIsolationDigest,
+      selectedIdentityMatcherDigest: envelope.proof.selectedIdentityMatcherDigest,
+      selectedSourceOnlyPolicyDigest: envelope.proof.selectedSourceOnlyPolicyDigest,
+      selectedDeletionPolicyDigest: envelope.proof.selectedDeletionPolicyDigest,
+    },
+  };
+}
+
+function comparableMergeResult(result) {
+  return {
+    source_branch: result.source_branch,
+    target_branch: result.target_branch,
+    merge_kind: result.merge_kind,
+    selected_semantics: result.selected_semantics,
+    counters: result.counters,
+  };
+}
+
+function comparableMergeResultProof(envelope) {
+  return {
+    result: {
+      source_branch: envelope.result.source_branch,
+      target_branch: envelope.result.target_branch,
+      selected_semantics: envelope.result.selected_semantics,
+      counters: envelope.result.counters,
+    },
+    proof: {
+      proofSchemaVersion: envelope.proof.proofSchemaVersion,
+      registryBundleDigest: envelope.proof.registryBundleDigest,
+      semanticsDigest: envelope.proof.semanticsDigest,
+      selectedStrategyDigest: envelope.proof.selectedStrategyDigest,
+      selectedMergeBaseDigest: envelope.proof.selectedMergeBaseDigest,
+      selectedConflictPolicyDigest: envelope.proof.selectedConflictPolicyDigest,
+      selectedConflictIsolationDigest: envelope.proof.selectedConflictIsolationDigest,
+      selectedIdentityMatcherDigest: envelope.proof.selectedIdentityMatcherDigest,
+      selectedSourceOnlyPolicyDigest: envelope.proof.selectedSourceOnlyPolicyDigest,
+      selectedDeletionPolicyDigest: envelope.proof.selectedDeletionPolicyDigest,
+    },
+  };
+}
+
 function comparableBranchReplay(summary) {
   return {
     frames: summary.frames.filter(
@@ -55,7 +116,7 @@ function comparableBranchReplay(summary) {
   };
 }
 
-test("worker-first history facade preserves replay, snapshot, and branch read truth while keeping branch mutation operations explicit", async () => {
+test("worker-first history facade preserves branch lifecycle and exact snapshot restore parity on worker-owned truth", async () => {
   const previousWorker = globalThis.Worker;
   globalThis.Worker = NodeWorker;
   const mod = await loadSignalsModule({ rawSurface: "real" });
@@ -106,6 +167,8 @@ test("worker-first history facade preserves replay, snapshot, and branch read tr
       },
     ]);
     const history = createWorkerFirstHistoryFacade({ bridge });
+    const baselineSnapshot = await history.snapshot();
+    const compatibilityBaselineSnapshot = compatibilitySignals.history().snapshot();
 
     assert.deepEqual(
       await history.replay_for(outputId),
@@ -171,11 +234,155 @@ test("worker-first history facade preserves replay, snapshot, and branch read tr
       await history.replay_artifact_proof(replayArtifactInput, 0),
       compatibilitySignals.history().replay_artifact_proof(replayArtifactInput, 0),
     );
-    assert.throws(
-      () => history.restore_exact_snapshot({}),
-      /mainThreadCompatibility/,
+
+    const workerFeature = await history.create_branch("feature");
+    const compatibilityFeature = compatibilitySignals.history().create_branch("feature");
+    assert.deepEqual(
+      comparableRuntimeBranch(workerFeature),
+      comparableRuntimeBranch(compatibilityFeature),
     );
-    assert.throws(() => history.create_branch("feature"), /worker-first history facade/);
+    await history.switch_branch(workerFeature.id);
+    compatibilitySignals.history().switch_branch(compatibilityFeature.id);
+    await bridge.applyTransaction([{ kind: "set", id: count.id, value: 11 }]);
+    count.set(11);
+    assert.deepEqual(
+      comparableRuntimeBranch(await history.current_branch()),
+      comparableRuntimeBranch(compatibilitySignals.history().current_branch()),
+    );
+    assert.equal(
+      (await bridge.readSignals({ signalIds: [outputId] })).signals[0]?.value,
+      compatibilitySignals.read(outputId),
+    );
+
+    const workerFeatureSnapshot = await history.branch_snapshot(workerFeature.id);
+    const compatibilityFeatureSnapshot = compatibilitySignals.history().branch_snapshot(
+      compatibilityFeature.id,
+    );
+    assert.deepEqual(
+      comparableSnapshotArtifact(workerFeatureSnapshot),
+      comparableSnapshotArtifact(compatibilityFeatureSnapshot),
+    );
+    await bridge.applyTransaction([{ kind: "set", id: count.id, value: 13 }]);
+    count.set(13);
+    const workerFeatureSnapshotUpdated = await history.branch_snapshot(workerFeature.id);
+    const compatibilityFeatureSnapshotUpdated = compatibilitySignals.history().branch_snapshot(
+      compatibilityFeature.id,
+    );
+    assert.notEqual(
+      workerFeatureSnapshotUpdated.snapshotRestoreToken,
+      workerFeatureSnapshot.snapshotRestoreToken,
+    );
+    assert.deepEqual(
+      comparableSnapshotArtifact(workerFeatureSnapshotUpdated),
+      comparableSnapshotArtifact(compatibilityFeatureSnapshotUpdated),
+    );
+    assert.deepEqual(
+      comparableMergePlan(
+        await history.plan_merge_branches(workerFeature.id, 0),
+      ),
+      comparableMergePlan(
+        compatibilitySignals.history().plan_merge_branches(compatibilityFeature.id, 0),
+      ),
+    );
+    const previewRequest = {
+      source_branch_id: workerFeature.id,
+      target_branch_id: 0,
+    };
+    assert.deepEqual(
+      comparableMergePlanProof(
+        await history.plan_merge_policy_preview_with_proof(previewRequest),
+      ),
+      comparableMergePlanProof(
+        compatibilitySignals.history().plan_merge_policy_preview_with_proof({
+          source_branch_id: compatibilityFeature.id,
+          target_branch_id: 0,
+        }),
+      ),
+    );
+    assert.deepEqual(
+      comparableMergeResult(
+        await history.merge_branches_policy_preview(previewRequest),
+      ),
+      comparableMergeResult(
+        compatibilitySignals.history().merge_branches_policy_preview({
+          source_branch_id: compatibilityFeature.id,
+          target_branch_id: 0,
+        }),
+      ),
+    );
+    assert.deepEqual(
+      comparableMergeResultProof(
+        await history.merge_branches_policy_preview_with_proof(previewRequest),
+      ),
+      comparableMergeResultProof(
+        compatibilitySignals.history().merge_branches_policy_preview_with_proof({
+          source_branch_id: compatibilityFeature.id,
+          target_branch_id: 0,
+        }),
+      ),
+    );
+    assert.deepEqual(
+      comparableMergeResultProof(
+        await history.merge_branches_with_proof(workerFeature.id, 0),
+      ),
+      comparableMergeResultProof(
+        compatibilitySignals.history().merge_branches_with_proof(compatibilityFeature.id, 0),
+      ),
+    );
+    assert.equal(
+      (await bridge.readSignals({ signalIds: [outputId] })).signals[0]?.value,
+      compatibilitySignals.read(outputId),
+    );
+
+    const workerPostMergeFeature = await history.create_branch("feature-post-merge");
+    const compatibilityPostMergeFeature = compatibilitySignals.history().create_branch("feature-post-merge");
+    await history.switch_branch(workerPostMergeFeature.id);
+    compatibilitySignals.history().switch_branch(compatibilityPostMergeFeature.id);
+    await bridge.applyTransaction([{ kind: "set", id: count.id, value: 17 }]);
+    count.set(17);
+    assert.deepEqual(
+      comparableMergeResult(
+        await history.merge_branches(workerPostMergeFeature.id, 0),
+      ),
+      comparableMergeResult(
+        compatibilitySignals.history().merge_branches(compatibilityPostMergeFeature.id, 0),
+      ),
+    );
+    assert.equal(
+      (await bridge.readSignals({ signalIds: [outputId] })).signals[0]?.value,
+      compatibilitySignals.read(outputId),
+    );
+
+    await history.restore_exact_snapshot(baselineSnapshot);
+    compatibilitySignals.history().restore_exact_snapshot(compatibilityBaselineSnapshot);
+    assert.equal(
+      (await bridge.readSignals({ signalIds: [outputId] })).signals[0]?.value,
+      compatibilitySignals.read(outputId),
+    );
+
+    await history.switch_branch(workerFeature.id);
+    compatibilitySignals.history().switch_branch(compatibilityFeature.id);
+    await history.restore_exact_branch_snapshot(workerFeature.id, workerFeatureSnapshot);
+    compatibilitySignals.history().restore_exact_branch_snapshot(
+      compatibilityFeature.id,
+      compatibilityFeatureSnapshot,
+    );
+    assert.equal(
+      (await bridge.readSignals({ signalIds: [outputId] })).signals[0]?.value,
+      compatibilitySignals.read(outputId),
+    );
+    await history.restore_branch_snapshot_by_id(
+      workerFeature.id,
+      await history.branch_snapshot_id(workerFeature.id),
+    );
+    compatibilitySignals.history().restore_branch_snapshot_by_id(
+      compatibilityFeature.id,
+      compatibilitySignals.history().branch_snapshot_id(compatibilityFeature.id),
+    );
+    assert.equal(
+      (await bridge.readSignals({ signalIds: [outputId] })).signals[0]?.value,
+      compatibilitySignals.read(outputId),
+    );
   } finally {
     await bridge.terminate();
     compatibilitySignals.free();

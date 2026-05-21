@@ -53,10 +53,10 @@ export interface FormControllerActionBindings {
   asyncValidationHistory(): ReadonlyArray<FormAsyncValidationLifecycleArtifact>;
   canonicalizationHistory(): ReadonlyArray<FormCanonicalizationArtifact>;
   reset(options?: { readonly reason?: string }): FormResetArtifact;
-  rollbackLastResourceEffect(options?: { readonly reason?: string }): FormResetArtifact;
+  rollbackLastResourceEffect(options?: { readonly reason?: string }): FormResetArtifact | Promise<FormResetArtifact>;
   resetHistory(): ReadonlyArray<FormResetArtifact>;
   stateHistory(): ReadonlyArray<FormStateHistoryArtifact>;
-  replayExactResourceSource(options?: { readonly reason?: string }): FormReplayRestoreArtifact;
-  restoreExactResourceSource(options?: { readonly reason?: string }): FormReplayRestoreArtifact;
+  replayExactResourceSource(options?: { readonly reason?: string }): FormReplayRestoreArtifact | Promise<FormReplayRestoreArtifact>;
+  restoreExactResourceSource(options?: { readonly reason?: string }): FormReplayRestoreArtifact | Promise<FormReplayRestoreArtifact>;
   replayRestoreHistory(): ReadonlyArray<FormReplayRestoreArtifact>;
 }

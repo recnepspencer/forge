@@ -99,7 +99,7 @@ Current shipped posture:
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const productDetail = signals.api({
   baseUrl: "/api",
@@ -126,7 +126,7 @@ import {
   resourcePatch,
 } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const tasks = signals.api({}).url("/workspaces/:workspaceId/tasks")
   .items((item: { id: string; title: string }) => item.id)

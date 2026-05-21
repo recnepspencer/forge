@@ -191,7 +191,7 @@ test("default worker-first root graph exposes contract, export, and inspection p
   }
 });
 
-test("default worker-first root graph mutates through async worker-owned lanes, keeps sync transaction unavailable, and invalidates on superseding import", async () => {
+test("default worker-first root graph mutates through worker-owned transaction lanes and invalidates on superseding import", async () => {
   const previousWorker = globalThis.Worker;
   globalThis.Worker = NodeWorker;
   const { createSignals, cleanup } = await loadSignalsModule({ rawSurface: "real" });
@@ -229,7 +229,7 @@ test("default worker-first root graph mutates through async worker-owned lanes, 
     await workerAlias.writeInputs({ left: 5 });
     assert.equal(workerAlias.readInputs().left, 5);
 
-    await workerAlias.transactionAsync((tx) => {
+    await workerAlias.transaction((tx) => {
       tx.set("left", 6);
     });
     assert.equal(workerAlias.read().mirrored, 6);
@@ -242,10 +242,6 @@ test("default worker-first root graph mutates through async worker-owned lanes, 
     await workerAlias.resetInput("left");
     assert.equal(workerAlias.readInputs().left, 1);
 
-    assert.throws(
-      () => workerAlias.transaction(() => {}),
-      (error) => error?.name === "WorkerFirstGraphMutationUnavailable",
-    );
     await assert.rejects(
       () => workerAlias.transactionAsync(() => {}),
       /requires at least one staged mutation/,

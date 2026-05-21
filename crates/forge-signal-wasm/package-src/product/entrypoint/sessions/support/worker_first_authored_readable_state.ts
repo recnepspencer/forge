@@ -20,10 +20,11 @@ export function createAuthoredReadablePublication(id, family, spec) {
   };
 }
 
-export function createWorkerFirstAuthoredReadableState(family, value) {
+export function createWorkerFirstAuthoredReadableState(family, value, dependencyIds = []) {
   return {
     family,
     currentValue: materializeWorkerCachedValue(value),
+    dependencyIds: Array.isArray(dependencyIds) ? [...dependencyIds] : [],
     invalidatedMessage: null,
   };
 }

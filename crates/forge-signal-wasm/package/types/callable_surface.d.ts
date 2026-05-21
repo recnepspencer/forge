@@ -404,7 +404,7 @@ export interface PersistenceCapabilityDescriptor {
 
 export interface HostPersistenceCapability<T = SignalValue> {
   value(): T;
-  commit(): RunSummary;
+  commit(): RunSummary | Promise<RunSummary>;
   descriptor(): PersistenceCapabilityDescriptor;
   readonly [forgeSignalPersistenceCapabilityHandleBrand]: "persistenceCapabilityHandle";
 }
@@ -493,12 +493,12 @@ export interface CallableSignalHistory {
   replay_for(id: string): ReplaySummary;
   lineage_for(id: string): LineageSummary;
   snapshot(): RuntimeSnapshotEnvelopeArtifact;
-  restore_snapshot(snapshot: RuntimeSnapshotEnvelope): void;
-  restore_exact_snapshot(snapshot: RuntimeSnapshotEnvelopeArtifact): void;
+  restore_snapshot(snapshot: RuntimeSnapshotEnvelope): void | Promise<void>;
+  restore_exact_snapshot(snapshot: RuntimeSnapshotEnvelopeArtifact): void | Promise<void>;
   current_branch(): RuntimeBranchHandle;
   branches(): ReadonlyArray<RuntimeBranchHandle>;
-  create_branch(name: string): RuntimeBranchHandle;
-  switch_branch(branchId: CallableBranchId): void;
+  create_branch(name: string): RuntimeBranchHandle | Promise<RuntimeBranchHandle>;
+  switch_branch(branchId: CallableBranchId): void | Promise<void>;
   replay_for_branch(branchId: CallableBranchId): ReplaySummary;
   branch_snapshot(branchId: CallableBranchId): RuntimeSnapshotArtifactWithWire;
   branch_snapshot_id(branchId: CallableBranchId): bigint;
@@ -506,26 +506,43 @@ export interface CallableSignalHistory {
   restore_branch_snapshot(
     branchId: CallableBranchId,
     snapshot: RuntimeSnapshotArtifact,
-  ): void;
+  ): void | Promise<void>;
   restore_exact_branch_snapshot(
     branchId: CallableBranchId,
     snapshot: RuntimeSnapshotArtifactWithWire,
-  ): void;
-  restore_branch_snapshot_by_id(branchId: CallableBranchId, snapshotId: number | bigint): void;
-  merge_branches(sourceBranchId: CallableBranchId, targetBranchId: CallableBranchId): MergeResultArtifact;
+  ): void | Promise<void>;
+  restore_branch_snapshot_by_id(
+    branchId: CallableBranchId,
+    snapshotId: number | bigint,
+  ): void | Promise<void>;
+  merge_branches(
+    sourceBranchId: CallableBranchId,
+    targetBranchId: CallableBranchId,
+  ): MergeResultArtifact | Promise<MergeResultArtifact>;
   merge_branches_with_proof(
     sourceBranchId: CallableBranchId,
     targetBranchId: CallableBranchId,
-  ): MergeResultProofEnvelope;
-  plan_merge_branches(sourceBranchId: CallableBranchId, targetBranchId: CallableBranchId): MergePlanArtifact;
+  ): MergeResultProofEnvelope | Promise<MergeResultProofEnvelope>;
+  plan_merge_branches(
+    sourceBranchId: CallableBranchId,
+    targetBranchId: CallableBranchId,
+  ): MergePlanArtifact | Promise<MergePlanArtifact>;
   plan_merge_branches_with_proof(
     sourceBranchId: CallableBranchId,
     targetBranchId: CallableBranchId,
-  ): MergePlanProofEnvelope;
-  plan_merge_policy_preview(request: MergePolicyPreviewRequest): MergePlanArtifact;
-  plan_merge_policy_preview_with_proof(request: MergePolicyPreviewRequest): MergePlanProofEnvelope;
-  merge_branches_policy_preview(request: MergePolicyPreviewRequest): MergeResultArtifact;
-  merge_branches_policy_preview_with_proof(request: MergePolicyPreviewRequest): MergeResultProofEnvelope;
+  ): MergePlanProofEnvelope | Promise<MergePlanProofEnvelope>;
+  plan_merge_policy_preview(
+    request: MergePolicyPreviewRequest,
+  ): MergePlanArtifact | Promise<MergePlanArtifact>;
+  plan_merge_policy_preview_with_proof(
+    request: MergePolicyPreviewRequest,
+  ): MergePlanProofEnvelope | Promise<MergePlanProofEnvelope>;
+  merge_branches_policy_preview(
+    request: MergePolicyPreviewRequest,
+  ): MergeResultArtifact | Promise<MergeResultArtifact>;
+  merge_branches_policy_preview_with_proof(
+    request: MergePolicyPreviewRequest,
+  ): MergeResultProofEnvelope | Promise<MergeResultProofEnvelope>;
   branch_state_proof(branchId: CallableBranchId): BranchStateProofReport;
   replay_parity_proof(
     expectedBranchId: CallableBranchId,
@@ -540,8 +557,8 @@ export interface CallableSignalHistory {
 }
 
 export interface CallableSignalSpecialist {
-  evaluateDirty(): RunSummary;
-  evaluate_dirty(): RunSummary;
+  evaluateDirty(): RunSummary | Promise<RunSummary>;
+  evaluate_dirty(): RunSummary | Promise<RunSummary>;
   graphSummary(): GraphSummary;
   graph_summary(): GraphSummary;
   readVersions(ids: ReadonlyArray<string>): ReadonlyArray<VersionSummary>;
@@ -762,8 +779,8 @@ export interface CallableSignals<TPersistence = SignalValue> {
     snapshot: ExportedSignalGraphSnapshot<TOutputs, TInputs>,
   ): ImportedSignalGraph<TOutputs, TInputs>;
   read<T = SignalValue>(target: CallableSignalTarget): T;
-  transaction(callback: (tx: CallableSignalsTransaction) => void): RunSummary;
-  batch(callback: (tx: CallableSignalsTransaction) => void): RunSummary;
+  transaction(callback: (tx: CallableSignalsTransaction) => void): RunSummary | Promise<RunSummary>;
+  batch(callback: (tx: CallableSignalsTransaction) => void): RunSummary | Promise<RunSummary>;
   transactionAsync(callback: (tx: AsyncCallableSignalsTransaction) => void): Promise<RunSummary>;
   batchAsync(callback: (tx: AsyncCallableSignalsTransaction) => void): Promise<RunSummary>;
   watch(target: CallableSignalTarget, callback: (notice: WebObservationNotice) => void): DisposableHandle;
@@ -775,6 +792,7 @@ export interface CallableSignals<TPersistence = SignalValue> {
   adapters(): CallableSignalAdapters;
   compatibilityApp(): SignalApp;
   compatibilityRuntime(): SignalRuntime;
+  terminate(): void | Promise<void>;
   free(): void;
   [Symbol.dispose](): void;
 }

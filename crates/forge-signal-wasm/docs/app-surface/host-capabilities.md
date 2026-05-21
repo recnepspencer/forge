@@ -86,7 +86,7 @@ Think about host capability in three layers:
 Registration is explicit:
 
 ```ts
-const signals = createSignals({
+const signals = await createSignals({
   hostCapabilities: hostCapabilityPlan({
     visibility: visibilityCapability({ source: visibilitySource() }),
     viewport: viewportCapability({ source: viewportSource() }),
@@ -141,7 +141,7 @@ import {
   visibilityCapability,
 } from "forge-signal-wasm";
 
-const signals = createSignals({
+const signals = await createSignals({
   hostCapabilities: hostCapabilityPlan({
     visibility: visibilityCapability({
       source: {
@@ -184,7 +184,7 @@ import {
 
 let persistedDraft = { mode: "draft", revision: 1 };
 
-const signals = createSignals({
+const signals = await createSignals({
   hostCapabilities: hostCapabilityPlan({
     visibility: visibilityCapability({
       source: {

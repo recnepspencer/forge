@@ -100,6 +100,10 @@ test("createWorkerRuntimeBridge preserves graph inspection parity for published 
       compatibilityGraph.readVersions(),
     );
     assert.deepEqual(
+      await bridge.evaluateDirty(),
+      compatibilitySignals.specialist().evaluateDirty(),
+    );
+    assert.deepEqual(
       await bridge.runtimeProofReport(),
       compatibilityGraph.adapters().runtimeProofReport(),
     );

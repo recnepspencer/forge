@@ -22,7 +22,7 @@ Use this page when the question is not just "what is the line doing now?" but
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const productDetail = signals.api({
   baseUrl: "/api",

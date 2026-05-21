@@ -11,10 +11,11 @@ impl RuntimeCore {
             let mut history = self.runtime.history();
             history.snapshot()
         };
+        let snapshot_key = runtime_snapshot_key(&snapshot);
         self.runtime_snapshots
-            .insert(snapshot.meta.snapshot_id.0, snapshot.clone());
+            .insert(snapshot_key, snapshot.clone());
         self.snapshot_states
-            .insert(snapshot.meta.snapshot_id.0, self.snapshot_branch_state());
+            .insert(snapshot_key, self.snapshot_branch_state());
         Ok(RuntimeSnapshotEnvelope {
             snapshot,
             state: self.lock_store()?.snapshot(&self.catalog),
@@ -55,12 +56,11 @@ impl RuntimeCore {
         let snapshot = history
             .branch_snapshot(branch)
             .map_err(ForgeSignalJsError::from)?;
+        let snapshot_key = runtime_snapshot_key(&snapshot);
         self.runtime_snapshots
-            .insert(snapshot.meta.snapshot_id.0, snapshot.clone());
-        self.snapshot_states.insert(
-            snapshot.meta.snapshot_id.0,
-            self.state_for_branch(branch_id),
-        );
+            .insert(snapshot_key, snapshot.clone());
+        self.snapshot_states
+            .insert(snapshot_key, self.state_for_branch(branch_id));
         Ok(snapshot)
     }
 
@@ -73,14 +73,15 @@ impl RuntimeCore {
         branch_id: u64,
     ) -> Result<RuntimeSnapshotEnvelope, ForgeSignalJsError> {
         let snapshot = self.branch_snapshot(branch_id)?;
+        let snapshot_key = runtime_snapshot_key(&snapshot);
         let state = self
             .snapshot_states
-            .get(&snapshot.meta.snapshot_id.0)
+            .get(&snapshot_key)
             .map(|state| state.store.clone())
             .ok_or_else(|| {
                 ForgeSignalJsError::internal(format!(
-                    "snapshot `{}` missing runtime-local branch state",
-                    snapshot.meta.snapshot_id.0
+                    "snapshot `{}:{}` missing runtime-local branch state",
+                    snapshot.meta.branch_id.0, snapshot.meta.snapshot_id.0
                 ))
             })?;
         Ok(RuntimeSnapshotEnvelope { snapshot, state })
@@ -91,14 +92,15 @@ impl RuntimeCore {
         branch_id: u64,
         snapshot: RuntimeSnapshot,
     ) -> Result<(), ForgeSignalJsError> {
+        let snapshot_key = runtime_snapshot_key(&snapshot);
         let state = self
             .snapshot_states
-            .get(&snapshot.meta.snapshot_id.0)
+            .get(&snapshot_key)
             .cloned()
             .ok_or_else(|| {
                 ForgeSignalJsError::internal(format!(
-                    "snapshot `{}` is missing runtime-local branch semantic state",
-                    snapshot.meta.snapshot_id.0
+                    "snapshot `{}:{}` is missing runtime-local branch semantic state",
+                    snapshot.meta.branch_id.0, snapshot.meta.snapshot_id.0
                 ))
             })?;
         self.ensure_callback_snapshot_availability(&state.store)?;
@@ -125,13 +127,17 @@ impl RuntimeCore {
     ) -> Result<(), ForgeSignalJsError> {
         let snapshot = self
             .runtime_snapshots
-            .get(&snapshot_id)
+            .get(&(branch_id, snapshot_id))
             .cloned()
             .ok_or_else(|| {
                 ForgeSignalJsError::invalid_input(format!(
-                    "unknown runtime snapshot `{snapshot_id}`"
+                    "unknown runtime snapshot `{branch_id}:{snapshot_id}`"
                 ))
             })?;
         self.restore_branch_snapshot(branch_id, snapshot)
     }
+}
+
+fn runtime_snapshot_key(snapshot: &RuntimeSnapshot) -> (u64, u64) {
+    (snapshot.meta.branch_id.0, snapshot.meta.snapshot_id.0)
 }

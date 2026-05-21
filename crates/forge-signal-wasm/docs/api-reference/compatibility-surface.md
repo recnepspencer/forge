@@ -38,6 +38,17 @@ though it is not the recommended starting point for normal browser app code.
 
 ## Stable Entry Points
 
+The compatibility surface is available only from an explicitly constructed
+compatibility root:
+
+```ts
+const signals = await createSignals({
+  deployment: "mainThreadCompatibility",
+});
+```
+
+From that explicitly compatibility-owned root:
+
 - `signals.compatibilityApp()`
 - `signals.compatibilityRuntime()`
 
@@ -61,8 +72,15 @@ So the rule is:
 - use the main app surface for ordinary app code
 - use the compatibility surface when you truly need lower-level runtime shapes
 
-If you are starting a normal browser app today, begin with `createSignals()`,
-not `SignalApp` or `SignalRuntime`.
+If you are starting a normal browser app today, begin with:
+
+```ts
+const signals = await createSignals();
+```
+
+Do not assume a worker-first root exposes `signals.compatibilityApp()` or
+`signals.compatibilityRuntime()`. Those compatibility doors belong to the
+explicit `mainThreadCompatibility` construction lane.
 
 ## How It Executes
 
@@ -81,6 +99,9 @@ surface. They do not create their own semantic model.
 ## Small Example
 
 ```ts
+const signals = await createSignals({
+  deployment: "mainThreadCompatibility",
+});
 const app = signals.compatibilityApp();
 
 const count = app.source({
@@ -101,6 +122,9 @@ directly:
 ## Real Example
 
 ```ts
+const signals = await createSignals({
+  deployment: "mainThreadCompatibility",
+});
 const runtime = signals.compatibilityRuntime();
 
 runtime.define_source({
@@ -146,6 +170,9 @@ Use `signals.compatibilityApp()` when you want the lower-level app-oriented
 compatibility door:
 
 ```ts
+const signals = await createSignals({
+  deployment: "mainThreadCompatibility",
+});
 const app = signals.compatibilityApp();
 ```
 
@@ -171,6 +198,9 @@ Use `signals.compatibilityRuntime()` when you want the runtime-oriented lower
 door:
 
 ```ts
+const signals = await createSignals({
+  deployment: "mainThreadCompatibility",
+});
 const runtime = signals.compatibilityRuntime();
 ```
 

@@ -2,7 +2,8 @@ use crate::boundary::errors::ForgeSignalJsError;
 use crate::runtime::adapters::RuntimeDefinitionEnvelope;
 use crate::runtime::specialist::VersionSummary;
 use crate::runtime::summaries::{
-    FlowSurfaceSummary, LineageSummary, ObservationSurfaceSummary, ReplaySummary, WhySummary,
+    FlowSurfaceSummary, LineageSummary, ObservationSurfaceSummary, ReplaySummary, RunSummary,
+    WhySummary,
 };
 use forge_signal::facade::adapters::RuntimeProofReport;
 use forge_signal::facade::diagnostics::ExecutionHistorySummary;
@@ -41,6 +42,10 @@ impl WorkerRuntimeShell {
         ids: Vec<String>,
     ) -> Result<Vec<VersionSummary>, ForgeSignalJsError> {
         self.core.read_versions(ids)
+    }
+
+    pub fn evaluate_dirty(&mut self) -> Result<RunSummary, ForgeSignalJsError> {
+        self.core.evaluate_dirty()
     }
 
     pub fn export_definitions(&mut self) -> Result<RuntimeDefinitionEnvelope, ForgeSignalJsError> {

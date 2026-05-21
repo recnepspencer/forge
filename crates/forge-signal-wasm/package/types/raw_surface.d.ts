@@ -286,6 +286,7 @@ export class SignalWorkerRuntime {
   replayFor(id: string): ReplaySummary;
   lineageFor(id: string): LineageSummary;
   readVersions(ids: ReadonlyArray<string>): ReadonlyArray<VersionSummary>;
+  evaluateDirty(): RunSummary;
   exportDefinitions(): RuntimeDefinitionEnvelope;
   exportWorkerRuntimeEnvelope(): RuntimeEnvelope;
   exportWorkerSnapshotEnvelope(): RuntimeSnapshotEnvelope;

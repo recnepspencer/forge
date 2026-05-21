@@ -26,6 +26,12 @@ import {
   createRootSpecialistFacade,
   readRootSignalValue,
 } from "./worker_first_root_cached_facades.js";
+import {
+  createWorkerFirstSyncInputHandle,
+  createWorkerFirstSyncLinkedHandle,
+  createWorkerFirstSyncOutputCallbackHandle,
+  createWorkerFirstSyncRecipeHandle,
+} from "./worker_first_sync_authoring.js";
 
 export function createWorkerFirstCallableSignals(request) {
   const rootSession = createWorkerFirstRootSession(request);
@@ -62,7 +68,7 @@ async function createWorkerFirstCallableSignalsAfterBootstrap(rootSession, reque
       return form;
     },
     get resource() {
-      resource ??= createWorkerFirstResourceNamespace(rootSession);
+      resource ??= createWorkerFirstResourceNamespace(callableSignals, rootSession);
       return resource;
     },
     get api() {
@@ -79,9 +85,11 @@ async function createWorkerFirstCallableSignalsAfterBootstrap(rootSession, reque
       return namespace().publicInput(handle, options);
     },
     input(initial, options) {
-      void initial;
-      void options;
-      throwWorkerFirstCallableUnavailable("signals.input");
+      const normalizedOptions = normalizeWorkerFirstInputOptions(options);
+      const id =
+        normalizedOptions?.[PRIVATE_AUTHORING_ID]
+        ?? rootSession.nextGeneratedStandaloneSignalId("input");
+      return createWorkerFirstSyncInputHandle(rootSession, id, initial, normalizedOptions);
     },
     async inputAsync(initial, options) {
       const normalizedOptions = normalizeWorkerFirstInputOptions(options);
@@ -92,13 +100,18 @@ async function createWorkerFirstCallableSignalsAfterBootstrap(rootSession, reque
       return createWorkerFirstAsyncInputHandle(
         rootSession,
         id,
-        normalizedOptions ? requireOptionalDebugName("input", normalizedOptions) : null,
+        normalizedOptions
+          ? requireOptionalDebugName("input", normalizedOptions)
+          : null,
       );
     },
     linked(sourceOrDefinition, options) {
-      void sourceOrDefinition;
-      void options;
-      throwWorkerFirstCallableUnavailable("signals.linked");
+      return createWorkerFirstSyncLinkedHandle(
+        rootSession,
+        rootSession.nextGeneratedStandaloneSignalId("input"),
+        sourceOrDefinition,
+        options,
+      );
     },
     async linkedAsync(sourceOrDefinition, options) {
       return createWorkerFirstAsyncLinkedHandle(
@@ -112,9 +125,14 @@ async function createWorkerFirstCallableSignalsAfterBootstrap(rootSession, reque
       return callableSignals.spec.computed(id, spec, options);
     },
     computed(specOrCompute, options) {
-      void specOrCompute;
-      void options;
-      throwWorkerFirstCallableUnavailable("signals.computed");
+      return createWorkerFirstSyncRecipeHandle(
+        rootSession,
+        "computed",
+        rootSession.nextGeneratedStandaloneSignalId("computed"),
+        specOrCompute,
+        options,
+        "signals.computed",
+      );
     },
     async computedAsync(specOrCompute, options) {
       const normalizedOptions = normalizeWorkerFirstAsyncRecipeOptions("computed", options);
@@ -130,9 +148,14 @@ async function createWorkerFirstCallableSignalsAfterBootstrap(rootSession, reque
       return callableSignals.spec.output(id, spec, options);
     },
     output(specOrCompute, options) {
-      void specOrCompute;
-      void options;
-      throwWorkerFirstCallableUnavailable("signals.output");
+      return createWorkerFirstSyncRecipeHandle(
+        rootSession,
+        "output",
+        rootSession.nextGeneratedStandaloneSignalId("output"),
+        specOrCompute,
+        options,
+        "signals.output",
+      );
     },
     async outputAsync(specOrCompute, options) {
       const normalizedOptions = normalizeWorkerFirstAsyncRecipeOptions("output", options);
@@ -145,10 +168,12 @@ async function createWorkerFirstCallableSignalsAfterBootstrap(rootSession, reque
       );
     },
     outputCallback(id, compute, options) {
-      void id;
-      void compute;
-      void options;
-      throwWorkerFirstCallableUnavailable("signals.outputCallback");
+      return createWorkerFirstSyncOutputCallbackHandle(
+        rootSession,
+        id,
+        compute,
+        options,
+      );
     },
     graph(id, definitionOrBuilder) {
       return namespace().graph(id, definitionOrBuilder);
@@ -168,12 +193,18 @@ async function createWorkerFirstCallableSignalsAfterBootstrap(rootSession, reque
       return readRootSignalValue(rootSession, target);
     },
     transaction(callback) {
-      void callback;
-      throwWorkerFirstCallableUnavailable("signals.transaction");
+      return runWorkerFirstAsyncTransaction(
+        rootSession,
+        callback,
+        "signals.transaction",
+      );
     },
     batch(callback) {
-      void callback;
-      throwWorkerFirstCallableUnavailable("signals.batch");
+      return runWorkerFirstAsyncTransaction(
+        rootSession,
+        callback,
+        "signals.batch",
+      );
     },
     transactionAsync(callback) {
       return runWorkerFirstAsyncTransaction(
@@ -220,13 +251,15 @@ async function createWorkerFirstCallableSignalsAfterBootstrap(rootSession, reque
     compatibilityRuntime() {
       throwWorkerFirstCallableUnavailable("signals.compatibilityRuntime");
     },
-    free() {
+    async terminate() {
       terminateTrackedGraphs(trackedGraphs);
-      void rootSession.terminate();
+      await rootSession.terminate();
+    },
+    free() {
+      void callableSignals.terminate();
     },
     [Symbol.dispose]() {
-      terminateTrackedGraphs(trackedGraphs);
-      void rootSession.terminate();
+      void callableSignals.terminate();
     },
   };
 

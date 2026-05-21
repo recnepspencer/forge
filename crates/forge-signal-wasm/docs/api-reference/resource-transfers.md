@@ -98,7 +98,7 @@ import {
   resourceUploadResult,
 } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const receiptUpload = signals.api({
   baseUrl: "/api",
@@ -140,7 +140,7 @@ import {
   resourceUploadResult,
 } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 let callCount = 0;
 
 const receiptPipeline = signals.api({

@@ -12,12 +12,41 @@ test("createSignals constructs the default worker-first callable root when a wor
     const signals = await createSignals();
     assert.equal(typeof signals.importGraph, "function");
     assert.equal(typeof signals.free, "function");
-    assert.throws(
-      () => signals.input(1),
-      (error) =>
-        error?.name === "WorkerFirstCallableSurfaceUnavailable"
-        && error?.compatibilityRecovery?.deployment === "mainThreadCompatibility",
-    );
+    const count = signals.input(1, { debugName: "count" });
+    const declarativeDouble = signals.computed({
+      reads: [count.id],
+      expr: {
+        kind: "sum",
+        args: [
+          { kind: "read", id: count.id },
+          { kind: "read", id: count.id },
+        ],
+      },
+      identity: { kind: "exact" },
+    });
+    const doubled = signals.computed(() => count() * 2);
+    const panel = signals.output(() => ({ count: doubled() }));
+    const declarativePanel = signals.output({
+      reads: [declarativeDouble.id],
+      expr: {
+        kind: "object",
+        fields: [["count", { kind: "read", id: declarativeDouble.id }]],
+      },
+      identity: { kind: "exact" },
+    });
+    const explicitPanel = signals.outputCallback("panel", () => ({ count: count() }));
+
+    assert.equal(count(), 1);
+    assert.equal(declarativeDouble(), 2);
+    assert.equal(doubled(), 2);
+    assert.deepEqual(panel(), { count: 2 });
+    assert.deepEqual(declarativePanel(), { count: 2 });
+    assert.deepEqual(explicitPanel(), { count: 1 });
+    await signals.transaction((tx) => {
+      tx.set(count, 4);
+    });
+    assert.equal(declarativeDouble(), 8);
+    assert.deepEqual(declarativePanel(), { count: 8 });
     signals.free();
   } finally {
     await cleanup();
@@ -25,12 +54,15 @@ test("createSignals constructs the default worker-first callable root when a wor
   }
 });
 
-test("createSignals keeps the default worker-first root explicit about compatibility-only root authoring lanes", async () => {
+test("createSignals keeps the default worker-first root explicit about the remaining sync-only compatibility lanes", async () => {
   const previousWorker = globalThis.Worker;
   globalThis.Worker = NodeWorker;
   const { createSignals, cleanup } = await loadSignalsModule({ rawSurface: "real" });
   try {
     const signals = await createSignals();
+    const count = signals.input(1, { debugName: "count" });
+    const gate = signals.input(false, { debugName: "gate" });
+    const gatedValue = signals.input(10, { debugName: "gatedValue" });
     assert.throws(
       () => signals.graph("g", { outputs: { missing: {} } }),
       /active imported graph/,
@@ -42,6 +74,77 @@ test("createSignals keeps the default worker-first root explicit about compatibi
     assert.equal(typeof signals.diagnostics, "function");
     assert.equal(typeof signals.history, "function");
     assert.equal(typeof signals.adapters, "function");
+    const gatedComputed = signals.computed({
+      reads: [count.id],
+      when: {
+        expr: {
+          kind: "gt",
+          left: { kind: "read", id: count.id },
+          right: { kind: "value", value: 2 },
+        },
+      },
+      expr: {
+        kind: "sum",
+        args: [
+          { kind: "read", id: count.id },
+          { kind: "value", value: 10 },
+        ],
+      },
+      identity: { kind: "exact" },
+    });
+    const gatedOutput = signals.output({
+      reads: [count.id],
+      when: {
+        expr: {
+          kind: "gt",
+          left: { kind: "read", id: count.id },
+          right: { kind: "value", value: 2 },
+        },
+      },
+      expr: {
+        kind: "object",
+        fields: [["count", { kind: "read", id: count.id }]],
+      },
+      identity: { kind: "exact" },
+    });
+    assert.equal(gatedComputed(), 11);
+    assert.deepEqual(gatedOutput(), { count: 1 });
+    await signals.transaction((tx) => {
+      tx.set(count, 4);
+    });
+    assert.equal(gatedComputed(), 14);
+    assert.deepEqual(gatedOutput(), { count: 4 });
+    await signals.transaction((tx) => {
+      tx.set(count, 1);
+    });
+    assert.equal(gatedComputed(), 14);
+    assert.deepEqual(gatedOutput(), { count: 4 });
+    const suppressedUntilGate = signals.output({
+      reads: [gate.id, gatedValue.id],
+      when: { expr: { kind: "read", id: gate.id } },
+      expr: {
+        kind: "object",
+        fields: [["value", { kind: "read", id: gatedValue.id }]],
+      },
+      identity: { kind: "exact" },
+    });
+    assert.deepEqual(suppressedUntilGate(), { value: 10 });
+    await signals.transaction((tx) => {
+      tx.set(gatedValue, 12);
+    });
+    assert.deepEqual(suppressedUntilGate(), { value: 10 });
+    await signals.transaction((tx) => {
+      tx.set(gate, true);
+    });
+    assert.deepEqual(suppressedUntilGate(), { value: 12 });
+    assert.throws(
+      () => signals.computed({ when: null, expr: { kind: "value", value: 1 } }),
+      /requires spec.when as a condition object/,
+    );
+    assert.throws(
+      () => signals.output({ expr: { kind: "read", id: "missing" }, reads: ["missing"] }),
+      /currently available/,
+    );
     signals.free();
   } finally {
     await cleanup();
@@ -118,7 +221,7 @@ test("createSignals admits supported worker-first host-capability plans, keeps s
   }
 });
 
-test("createSignals still rejects worker-first persistence host-capability plans", async () => {
+test("createSignals admits worker-first persistence host-capability plans and replays them across runtime replacement", async () => {
   const previousWorker = globalThis.Worker;
   globalThis.Worker = NodeWorker;
   const {
@@ -127,24 +230,64 @@ test("createSignals still rejects worker-first persistence host-capability plans
     persistenceCapability,
     cleanup,
   } = await loadSignalsModule({ rawSurface: "real" });
+  let sourceSignals = null;
+  let workerSignals = null;
+  let importedGraph = null;
+  let replacedGraph = null;
+  const persistenceSource = createMutablePersistenceSource({ revision: 1 });
   try {
-    await assert.rejects(
-      () => createSignals({
-        hostCapabilities: hostCapabilityPlan({
-          persistence: persistenceCapability({
-            source: {
-              current() {
-                return { revision: 1 };
-              },
-            },
-          }),
+    workerSignals = await createSignals({
+      hostCapabilities: hostCapabilityPlan({
+        persistence: persistenceCapability({
+          source: persistenceSource,
         }),
       }),
-      (error) =>
-        error?.name === "signalsConstructionDenied"
-        && error?.reason === "workerFirstPersistenceHostCapabilityNotImplemented",
+    });
+    assert.deepEqual(workerSignals.host.persistence.value(), { revision: 1 });
+    assert.throws(() => {
+      workerSignals.host.persistence.value().revision = 99;
+    }, /read only|Cannot assign|object is not extensible/i);
+    assert.deepEqual(workerSignals.host.persistence.value(), { revision: 1 });
+
+    persistenceSource.set({ revision: 2 });
+    const firstCommit = await workerSignals.host.persistence.commit();
+    const noOpCommit = await workerSignals.host.persistence.commit();
+    assert.equal(typeof firstCommit.touchedNodes, "number");
+    assert.deepEqual(noOpCommit, { touchedNodes: 0, nodesRecomputed: 0 });
+    assert.equal(workerSignals.diagnostics().latestHostCapabilityEvent()?.family, "persistence");
+    assert.equal(
+      workerSignals.diagnostics().hostCapabilityReport().totals.manualCommitCount,
+      2,
     );
+    assert.equal(
+      workerSignals.diagnostics().hostCapabilityReport().totals.noOpManualCommitCount,
+      1,
+    );
+
+    sourceSignals = await createSignals({ deployment: "mainThreadCompatibility" });
+    const count = sourceSignals.input(3, { debugName: "count" });
+    const graph = sourceSignals.graph("workerFirstPersistenceImport", {
+      inputs: { count },
+      outputs: { count },
+    });
+    importedGraph = workerSignals.importGraph(graph.exportDefinition(), graph.exportSnapshot());
+    await importedGraph.ready();
+
+    persistenceSource.set({ revision: 5 });
+    await workerSignals.host.persistence.commit();
+    assert.deepEqual(workerSignals.host.persistence.value(), { revision: 5 });
+
+    replacedGraph = workerSignals.importGraph(graph.exportDefinition(), graph.exportSnapshot());
+    await replacedGraph.ready();
+
+    persistenceSource.set({ revision: 6 });
+    await workerSignals.host.persistence.commit();
+    assert.deepEqual(workerSignals.host.persistence.value(), { revision: 6 });
   } finally {
+    await replacedGraph?.terminate();
+    await importedGraph?.terminate();
+    workerSignals?.free();
+    sourceSignals?.free();
     await cleanup();
     globalThis.Worker = previousWorker;
   }
@@ -181,4 +324,16 @@ async function waitForValue(read, expected) {
     await new Promise((resolve) => setTimeout(resolve, 10));
   }
   assert.equal(read(), expected);
+}
+
+function createMutablePersistenceSource(initialValue) {
+  let currentValue = initialValue;
+  return {
+    current() {
+      return currentValue;
+    },
+    set(nextValue) {
+      currentValue = nextValue;
+    },
+  };
 }

@@ -78,7 +78,7 @@ over that runtime truth.
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const count = signals.input(1);
 const doubled = signals.computed(() => count() * 2);
@@ -106,7 +106,7 @@ diagnostics; it is optional metadata, not part of local identity.
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const itemWorkspace = signals.graph("itemWorkspace", (graph) => {
   const editor = graph.controller("editor", ({ input, computed, linked }) => {

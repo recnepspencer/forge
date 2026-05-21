@@ -50,7 +50,7 @@ Diagnostics follow the same pattern through the runtime diagnostics surface.
 import { createSignals } from "forge-signal-wasm";
 import { createReactSignalsStore, useSignalValue } from "forge-signal-wasm/react";
 
-const signals = createSignals();
+const signals = await createSignals();
 const count = signals.input(1);
 const store = createReactSignalsStore(signals);
 
@@ -80,7 +80,7 @@ import {
   useSignalsDiagnostics,
 } from "forge-signal-wasm/react";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const itemWorkspace = signals.graph("itemWorkspace", (graph) => {
   const editor = graph.controller("editor", ({ input, computed }) => {

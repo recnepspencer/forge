@@ -87,10 +87,10 @@ export function createRootAdaptersFacade(rootSession) {
 export function createRootSpecialistFacade(rootSession) {
   return freezeObject({
     evaluateDirty() {
-      throwWorkerFirstSpecialistUnavailable("specialist.evaluateDirty");
+      return rootSession.evaluateDirty();
     },
     evaluate_dirty() {
-      throwWorkerFirstSpecialistUnavailable("specialist.evaluate_dirty");
+      return rootSession.evaluateDirty();
     },
     graphSummary() {
       return rootSession.currentImportContext().diagnosticsSummary;
@@ -151,18 +151,4 @@ function readVersionSummaries(rootSession, ids, operation) {
     }
     return context.versionById.get(id);
   });
-}
-
-function throwWorkerFirstSpecialistUnavailable(operation) {
-  const error = new Error(
-    `${operation} is unavailable on the current worker-first specialist facade until a live root mutation lane exists; use deployment: "mainThreadCompatibility" for root dirty-evaluation operations`,
-  );
-  error.name = "WorkerFirstSpecialistUnavailable";
-  error.code = "workerFirstSpecialistUnavailable";
-  error.compatibilityRecovery = Object.freeze({
-    deployment: "mainThreadCompatibility",
-    message:
-      'Retry with deployment: "mainThreadCompatibility" to use full root specialist mutation operations.',
-  });
-  throw error;
 }

@@ -1,65 +1,56 @@
-import { createResourceBranchNamespace } from "../resource/branch/resource_branch_capabilities.js";
-import { resourceExternalDelivery } from "../resource/compatibility/resource_external_delivery.js";
-import { resourceEffects } from "../resource/effects/resource_effect_profile.js";
-import { resourceMutationResponses } from "../resource/mutation/resource_mutation_response_closeout_matrix.js";
-import { resourceDetailFields } from "../resource/reconciliation/resource_detail_fields.js";
-import { resourceDetailJsonPaths } from "../resource/reconciliation/resource_detail_json_paths.js";
-import { resourceDetailRegions } from "../resource/reconciliation/resource_detail_regions.js";
-import { resourceResponse } from "../resource/response/resource_response_contract.js";
 import { freezeObject } from "../graph_support.js";
-import { createRootHistoryFacade } from "./worker_first_root_history.js";
+import { createResourceNamespace } from "../resource/facade.js";
 
-export function createWorkerFirstResourceNamespace(rootSession) {
+export function createWorkerFirstResourceNamespace(
+  signalNamespace,
+  rootSession,
+) {
   const rawSignals = freezeObject({
     history() {
-      return createRootHistoryFacade(rootSession);
+      return freezeObject({
+        current_branch() {
+          const branch = rootSession.currentBranchSummary();
+          if (branch === null) {
+            throw new TypeError(
+              "worker-first resource branch history requires current_branch(...) to be available on the worker-owned root",
+            );
+          }
+          return branch;
+        },
+        branches() {
+          return rootSession.branchesSummary();
+        },
+        plan_merge_policy_preview_with_proof(request) {
+          return rootSession.bridge().planMergePolicyPreviewWithProof(request);
+        },
+        merge_branches_policy_preview_with_proof(request) {
+          return rootSession.bridge().mergeBranchesPolicyPreviewWithProof(request);
+        },
+      });
     },
   });
-
-  const compatibility = freezeObject({
-    delivery: resourceExternalDelivery,
-    detail() {
-      throwWorkerFirstResourceUnavailable("signals.resource.compatibility.detail");
-    },
-    collection() {
-      throwWorkerFirstResourceUnavailable("signals.resource.compatibility.collection");
-    },
-    paged() {
-      throwWorkerFirstResourceUnavailable("signals.resource.compatibility.paged");
-    },
-  });
-
+  const namespace = createResourceNamespace(signalNamespace, rawSignals);
   return freezeObject({
-    branch: createResourceBranchNamespace(rawSignals),
-    compatibility,
-    effects: resourceEffects,
-    mutationResponses: resourceMutationResponses,
-    detailFields: resourceDetailFields,
-    detailRegions: resourceDetailRegions,
-    detailJsonPaths: resourceDetailJsonPaths,
-    response: resourceResponse,
-    detail() {
-      throwWorkerFirstResourceUnavailable("signals.resource.detail");
-    },
-    collection() {
-      throwWorkerFirstResourceUnavailable("signals.resource.collection");
-    },
-    paged() {
-      throwWorkerFirstResourceUnavailable("signals.resource.paged");
-    },
+    ...namespace,
+    branch: createWorkerFirstResourceBranchNamespace(namespace.branch),
   });
 }
 
-function throwWorkerFirstResourceUnavailable(operation) {
-  const error = new Error(
-    `${operation} is unavailable on the current worker-first resource surface because resource family materialization still depends on synchronous root signal creation; use deployment: "mainThreadCompatibility" for resource family construction`,
-  );
-  error.name = "WorkerFirstResourceSurfaceUnavailable";
-  error.code = "workerFirstResourceSurfaceUnavailable";
-  error.compatibilityRecovery = freezeObject({
-    deployment: "mainThreadCompatibility",
-    message:
-      'Retry with deployment: "mainThreadCompatibility" to use resource family constructors.',
+function createWorkerFirstResourceBranchNamespace(branchNamespace) {
+  return freezeObject({
+    planMerge(request) {
+      return branchNamespace.planMerge(request);
+    },
+    planEffectMerge(request) {
+      return branchNamespace.planEffectMerge(request);
+    },
+    mergeEffect() {
+      return freezeObject({
+        kind: "denied",
+        reason: "workerFirstResourceBranchEffectMergeUnavailable",
+        detail:
+          "worker-first resource.branch.mergeEffect(...) remains unavailable for root-authored resource lines; use deployment: \"mainThreadCompatibility\" for branch effect merge execution",
+      });
+    },
   });
-  throw error;
 }

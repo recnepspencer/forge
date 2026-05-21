@@ -47,7 +47,7 @@ and field handles from those declarations.
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 const source = signals.input({ title: "Ship docs", done: false });
 
 const form = signals.form({

@@ -31,13 +31,23 @@ function planResourceEffectMerge(rawSignals, request) {
       "planning",
     );
     const mergePlan = planResourceMerge(rawSignals, mergeRequest.merge);
-    if (mergePlan.kind === "denied") {
-      return mergePlan;
-    }
-    requireEffectMergeBranchBinding(mergePlan, mergeRequest.effect, "planning");
-    return createEffectMergePlanSummary(
+    return mapMaybePromise(
       mergePlan,
-      mergeRequest.effect,
+      (resolvedMergePlan) => {
+        if (resolvedMergePlan.kind === "denied") {
+          return resolvedMergePlan;
+        }
+        requireEffectMergeBranchBinding(resolvedMergePlan, mergeRequest.effect, "planning");
+        return createEffectMergePlanSummary(
+          resolvedMergePlan,
+          mergeRequest.effect,
+        );
+      },
+      (error) => Object.freeze({
+        kind: "denied",
+        reason: "resourceEffectMergeUnavailable",
+        detail: normalizeErrorDetail(error),
+      }),
     );
   } catch (error) {
     return Object.freeze({
@@ -61,13 +71,23 @@ function mergeResourceEffect(rawSignals, request) {
     );
     requireEffectMergeSourceRequestBinding(normalizedMerge, mergeRequest.effect);
     const mergeResult = mergeResource(rawSignals, normalizedMerge);
-    if (mergeResult.kind === "denied") {
-      return mergeResult;
-    }
-    requireEffectMergeBranchBinding(mergeResult, mergeRequest.effect, "execution");
-    return createEffectMergeExecutionSummary(
+    return mapMaybePromise(
       mergeResult,
-      mergeRequest.effect,
+      (resolvedMergeResult) => {
+        if (resolvedMergeResult.kind === "denied") {
+          return resolvedMergeResult;
+        }
+        requireEffectMergeBranchBinding(resolvedMergeResult, mergeRequest.effect, "execution");
+        return createEffectMergeExecutionSummary(
+          resolvedMergeResult,
+          mergeRequest.effect,
+        );
+      },
+      (error) => Object.freeze({
+        kind: "denied",
+        reason: "resourceEffectMergeUnavailable",
+        detail: normalizeErrorDetail(error),
+      }),
     );
   } catch (error) {
     return Object.freeze({
@@ -87,7 +107,15 @@ function planResourceMerge(rawSignals, request) {
           "history.plan_merge_policy_preview_with_proof",
         ),
       );
-    return createMergePlanSummary(envelope);
+    return mapMaybePromise(
+      envelope,
+      (resolvedEnvelope) => createMergePlanSummary(resolvedEnvelope),
+      (error) => Object.freeze({
+        kind: "denied",
+        reason: "mergePlanUnavailable",
+        detail: normalizeErrorDetail(error),
+      }),
+    );
   } catch (error) {
     return Object.freeze({
       kind: "denied",
@@ -106,7 +134,15 @@ function mergeResource(rawSignals, request) {
           "history.merge_branches_policy_preview_with_proof",
         ),
       );
-    return createMergeExecutionSummary(envelope);
+    return mapMaybePromise(
+      envelope,
+      (resolvedEnvelope) => createMergeExecutionSummary(resolvedEnvelope),
+      (error) => Object.freeze({
+        kind: "denied",
+        reason: "mergeExecutionUnavailable",
+        detail: normalizeErrorDetail(error),
+      }),
+    );
   } catch (error) {
     return Object.freeze({
       kind: "denied",
@@ -228,6 +264,19 @@ function normalizePreviewBranchId(value, operation) {
     );
   }
   return value;
+}
+
+function mapMaybePromise(value, mapValue, mapError) {
+  if (isPromiseLike(value)) {
+    return Promise.resolve(value).then(mapValue, mapError);
+  }
+  return mapValue(value);
+}
+
+function isPromiseLike(value) {
+  return value !== null
+    && (typeof value === "object" || typeof value === "function")
+    && typeof value.then === "function";
 }
 
 function normalizeErrorDetail(error) {

@@ -68,6 +68,30 @@ export function createFormResetStore() {
         });
       }
       const rollback = historyRead.rollbackLastEffect();
+      if (isPromiseLike(rollback)) {
+        return rollback.then((settledRollback) => {
+          if (settledRollback.kind === "unavailable") {
+            return recordArtifact({
+              mode: "resourceRollback",
+              resultKind: "unavailable",
+              reason: options.reason ?? settledRollback.detail,
+              before,
+              after: before,
+              resourceRollback: normalizeRollbackResult(settledRollback),
+            });
+          }
+          context.writeDraft(canonicalization.previousDraftValue);
+          const after = readFormStateSnapshot(context.form);
+          return recordArtifact({
+            mode: "resourceRollback",
+            resultKind: "rolledBack",
+            reason: options.reason ?? "resource rollback restored visible source truth and cleared local draft edits",
+            before,
+            after,
+            resourceRollback: normalizeRollbackResult(settledRollback),
+          });
+        });
+      }
       if (rollback.kind === "unavailable") {
         return recordArtifact({
           mode: "resourceRollback",
@@ -117,6 +141,10 @@ export function createFormResetStore() {
     history.push(frozen);
     return frozen;
   }
+}
+
+function isPromiseLike(value) {
+  return value !== null && typeof value === "object" && typeof value.then === "function";
 }
 
 function latestResourceCanonicalization(form) {

@@ -117,7 +117,7 @@ That means:
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const api = signals.api({
   baseUrl: "/api",
@@ -150,7 +150,7 @@ Use this shape when:
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const workspaceApi = signals.api({
   baseUrl: "/api",

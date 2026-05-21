@@ -236,6 +236,7 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
+    branch_id: SignalBranchId,
     snapshot_id: SignalSnapshotId,
     state: SnapshotBranchState<D, I, T>,
 }
@@ -284,6 +285,7 @@ where
 
     pub fn packet(self, snapshot_id: SignalSnapshotId) -> SnapshotStatePacket<D, I, T> {
         SnapshotStatePacket {
+            branch_id: self.ancestry.branch_id(),
             snapshot_id,
             state: self,
         }
@@ -296,8 +298,8 @@ where
     I: Copy + Ord,
     T: Copy + Ord,
 {
-    pub fn into_parts(self) -> (SignalSnapshotId, SnapshotBranchState<D, I, T>) {
-        (self.snapshot_id, self.state)
+    pub fn into_parts(self) -> (SignalBranchId, SignalSnapshotId, SnapshotBranchState<D, I, T>) {
+        (self.branch_id, self.snapshot_id, self.state)
     }
 }
 
@@ -309,7 +311,7 @@ where
 {
     branches: BTreeMap<SignalBranchId, BranchState<D, I, T>>,
     branch_meta: BTreeMap<SignalBranchId, BranchRuntimeMeta>,
-    snapshots: BTreeMap<SignalSnapshotId, SnapshotBranchState<D, I, T>>,
+    snapshots: BTreeMap<(SignalBranchId, SignalSnapshotId), SnapshotBranchState<D, I, T>>,
     next_node_index: u32,
     next_snapshot_id: u64,
     next_branch_id: u64,
@@ -510,15 +512,16 @@ where
     }
 
     pub fn insert_snapshot(&mut self, packet: SnapshotStatePacket<D, I, T>) {
-        let (snapshot_id, state) = packet.into_parts();
-        self.snapshots.insert(snapshot_id, state);
+        let (branch_id, snapshot_id, state) = packet.into_parts();
+        self.snapshots.insert((branch_id, snapshot_id), state);
     }
 
     pub fn snapshot_state(
         &self,
+        branch_id: SignalBranchId,
         snapshot_id: SignalSnapshotId,
     ) -> Option<&SnapshotBranchState<D, I, T>> {
-        self.snapshots.get(&snapshot_id)
+        self.snapshots.get(&(branch_id, snapshot_id))
     }
 
     pub fn replay_graph<'a>(

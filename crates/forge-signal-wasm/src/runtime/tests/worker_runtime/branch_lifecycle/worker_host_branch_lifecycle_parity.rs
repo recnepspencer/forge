@@ -169,3 +169,76 @@ fn worker_runtime_branch_switch_preserves_isolated_materialization() {
         SignalValue::Number(10.0)
     );
 }
+
+#[test]
+fn worker_runtime_branch_restore_uses_branch_local_snapshot_identity() {
+    let publication = portable_counter_publication();
+    let mut worker_shell = WorkerRuntimeShell::new(RuntimePolicySpec::default()).unwrap();
+    let mut compatibility_runtime = RuntimeCore::new(RuntimePolicySpec::default()).unwrap();
+    worker_shell.publish_graph(publication).unwrap();
+    define_portable_counter_graph(&mut compatibility_runtime);
+
+    let worker_baseline_snapshot = worker_shell.export_worker_snapshot_envelope().unwrap();
+    let compatibility_baseline_snapshot = compatibility_runtime.snapshot().unwrap();
+    let worker_feature = worker_shell.create_branch("feature".to_owned()).unwrap();
+    let compatibility_feature = compatibility_runtime
+        .create_branch("feature".to_owned())
+        .unwrap();
+
+    worker_shell.switch_branch(worker_feature.id.0).unwrap();
+    compatibility_runtime
+        .switch_branch(compatibility_feature.id.0)
+        .unwrap();
+    worker_shell
+        .apply_committed_transaction(vec![TransactionOp::Set {
+            id: "counter".to_owned(),
+            value: SignalValue::Number(11.0),
+            aspect: None,
+            aspects: None,
+        }])
+        .unwrap();
+    compatibility_runtime
+        .apply_transaction(vec![TransactionOp::Set {
+            id: "counter".to_owned(),
+            value: SignalValue::Number(11.0),
+            aspect: None,
+            aspects: None,
+        }])
+        .unwrap();
+    let worker_feature_snapshot = worker_shell.branch_snapshot(worker_feature.id.0).unwrap();
+    let compatibility_feature_snapshot = compatibility_runtime
+        .branch_snapshot(compatibility_feature.id.0)
+        .unwrap();
+
+    worker_shell
+        .restore_snapshot(worker_baseline_snapshot)
+        .unwrap();
+    compatibility_runtime
+        .restore_snapshot(compatibility_baseline_snapshot)
+        .unwrap();
+    worker_shell.switch_branch(worker_feature.id.0).unwrap();
+    compatibility_runtime
+        .switch_branch(compatibility_feature.id.0)
+        .unwrap();
+    let restored_worker_feature = worker_shell
+        .restore_branch_snapshot(worker_feature.id.0, worker_feature_snapshot)
+        .unwrap();
+    compatibility_runtime
+        .restore_branch_snapshot(compatibility_feature.id.0, compatibility_feature_snapshot)
+        .unwrap();
+
+    let compatibility_feature_digest = compatibility_runtime
+        .branch_state_proof(compatibility_feature.id.0)
+        .unwrap()
+        .state_digest;
+    let feature_report = WorkerBranchLifecycleTruthReport::compare(
+        &restored_worker_feature,
+        compatibility_feature_digest,
+    );
+
+    assert!(feature_report.branch_truth_matches);
+    assert_eq!(
+        worker_shell.read_value("doubleCounter").unwrap(),
+        compatibility_runtime.read_value("doubleCounter").unwrap()
+    );
+}

@@ -621,6 +621,10 @@ export function wrapSignals(rawSignals, options) {
     },
     compatibilityApp: rawSignals.compatibilityApp.bind(rawSignals),
     compatibilityRuntime: rawSignals.compatibilityRuntime.bind(rawSignals),
+    async terminate() {
+      hostCapabilities.dispose();
+      rawSignals.free();
+    },
     free() {
       hostCapabilities.dispose();
       rawSignals.free();

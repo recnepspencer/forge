@@ -44,6 +44,10 @@ function comparableGraphSummary(summary) {
       || key === "shared_snapshot_replacement_count"
       || key === "snapshot_batch_size"
       || key === "structural_replace_batch_commit_count"
+      || key === "gc_epoch_count"
+      || key === "graph_storage_compaction_count"
+      || key === "graph_storage_snapshot_rewrites"
+      || key === "graph_storage_subscriber_segments_rewritten"
     ) {
       continue;
     }
@@ -118,6 +122,55 @@ function comparableReplayParityProof(proof) {
   };
 }
 
+function comparableMergePlan(plan) {
+  return {
+    source_branch_id: plan.source_branch_id,
+    target_branch_id: plan.target_branch_id,
+    merge_kind: plan.merge_kind,
+    selected_semantics: plan.selected_semantics,
+    counters: plan.counters,
+  };
+}
+
+function comparableMergePlanProof(envelope) {
+  return {
+    plan: comparableMergePlan(envelope.plan),
+    proof: envelope.proof,
+  };
+}
+
+function comparableMergeResult(result) {
+  return {
+    source_branch: result.source_branch,
+    target_branch: result.target_branch,
+    merge_kind: result.merge_kind,
+    selected_semantics: result.selected_semantics,
+    counters: result.counters,
+  };
+}
+
+function comparableMergeResultProof(envelope) {
+  return {
+    result: {
+      source_branch: envelope.result.source_branch,
+      target_branch: envelope.result.target_branch,
+      selected_semantics: envelope.result.selected_semantics,
+    },
+    proof: {
+      proofSchemaVersion: envelope.proof.proofSchemaVersion,
+      registryBundleDigest: envelope.proof.registryBundleDigest,
+      semanticsDigest: envelope.proof.semanticsDigest,
+      selectedStrategyDigest: envelope.proof.selectedStrategyDigest,
+      selectedMergeBaseDigest: envelope.proof.selectedMergeBaseDigest,
+      selectedConflictPolicyDigest: envelope.proof.selectedConflictPolicyDigest,
+      selectedConflictIsolationDigest: envelope.proof.selectedConflictIsolationDigest,
+      selectedIdentityMatcherDigest: envelope.proof.selectedIdentityMatcherDigest,
+      selectedSourceOnlyPolicyDigest: envelope.proof.selectedSourceOnlyPolicyDigest,
+      selectedDeletionPolicyDigest: envelope.proof.selectedDeletionPolicyDigest,
+    },
+  };
+}
+
 test("default worker-first root exposes synchronous cached diagnostics, history, and adapters for the active imported graph", async () => {
   const previousWorker = globalThis.Worker;
   globalThis.Worker = NodeWorker;
@@ -148,7 +201,8 @@ test("default worker-first root exposes synchronous cached diagnostics, history,
   const compatibilityImportedSignals = await createSignals({
     deployment: "mainThreadCompatibility",
   });
-  await compatibilityImportedSignals.importGraph(definition, snapshot).ready();
+  const compatibilityImportedGraph = compatibilityImportedSignals.importGraph(definition, snapshot);
+  await compatibilityImportedGraph.ready();
 
   try {
     const workerSignals = await createSignals();
@@ -259,10 +313,106 @@ test("default worker-first root exposes synchronous cached diagnostics, history,
       workerSignals.history().replay_artifact_proof(replayArtifactInput, 0),
       compatibilityImportedSignals.history().replay_artifact_proof(replayArtifactInput, 0),
     );
-    assert.throws(
-      () => workerSignals.history().create_branch("feature"),
-      /WorkerFirstHistoryUnavailable/,
+    const workerHistorySnapshot = workerSignals.history().snapshot();
+    const compatibilityHistorySnapshot = compatibilityImportedSignals.history().snapshot();
+    const workerFeatureBranch = await workerSignals.history().create_branch("feature");
+    const compatibilityFeatureBranch = compatibilityImportedSignals.history().create_branch("feature");
+    assert.deepEqual(
+      comparableRuntimeBranch(workerFeatureBranch),
+      comparableRuntimeBranch(compatibilityFeatureBranch),
     );
+    await workerSignals.history().switch_branch(workerFeatureBranch.id);
+    compatibilityImportedSignals.history().switch_branch(compatibilityFeatureBranch.id);
+    await importedGraph.writeInput("count", 11);
+    await compatibilityImportedGraph.writeInput("count", 11);
+    assert.equal(workerSignals.read(outputId), compatibilityImportedSignals.read(outputId));
+    const workerFeatureSnapshot = workerSignals.history().branch_snapshot(workerFeatureBranch.id);
+    const compatibilityFeatureSnapshot = compatibilityImportedSignals.history().branch_snapshot(
+      compatibilityFeatureBranch.id,
+    );
+    assert.deepEqual(
+      comparableSnapshotArtifact(workerFeatureSnapshot),
+      comparableSnapshotArtifact(compatibilityFeatureSnapshot),
+    );
+    await workerSignals.history().restore_exact_snapshot(workerHistorySnapshot);
+    compatibilityImportedSignals.history().restore_exact_snapshot(compatibilityHistorySnapshot);
+    assert.equal(workerSignals.read(outputId), compatibilityImportedSignals.read(outputId));
+    await workerSignals.history().switch_branch(workerFeatureBranch.id);
+    compatibilityImportedSignals.history().switch_branch(compatibilityFeatureBranch.id);
+    await workerSignals.history().restore_exact_branch_snapshot(
+      workerFeatureBranch.id,
+      workerFeatureSnapshot,
+    );
+    compatibilityImportedSignals.history().restore_exact_branch_snapshot(
+      compatibilityFeatureBranch.id,
+      compatibilityFeatureSnapshot,
+    );
+    await workerSignals.history().restore_branch_snapshot_by_id(
+      workerFeatureBranch.id,
+      workerSignals.history().branch_snapshot_id(workerFeatureBranch.id),
+    );
+    compatibilityImportedSignals.history().restore_branch_snapshot_by_id(
+      compatibilityFeatureBranch.id,
+      compatibilityImportedSignals.history().branch_snapshot_id(compatibilityFeatureBranch.id),
+    );
+    assert.equal(workerSignals.read(outputId), compatibilityImportedSignals.read(outputId));
+    const workerMergePlan = await workerSignals.history().plan_merge_branches(
+      workerFeatureBranch.id,
+      0,
+    );
+    assert.equal(workerMergePlan.source_branch_id, workerFeatureBranch.id);
+    assert.equal(workerMergePlan.target_branch_id, 0);
+    assert.equal(typeof workerMergePlan.merge_kind, "string");
+    const workerMergePlanProof = await workerSignals.history().plan_merge_policy_preview_with_proof({
+      source_branch_id: workerFeatureBranch.id,
+      target_branch_id: 0,
+    });
+    assert.deepEqual(
+      comparableMergePlan(workerMergePlanProof.plan),
+      comparableMergePlan(workerMergePlan),
+    );
+    assert.equal(typeof workerMergePlanProof.proof?.proofSchemaVersion, "string");
+    const workerMergePreview = await workerSignals.history().merge_branches_policy_preview({
+      source_branch_id: workerFeatureBranch.id,
+      target_branch_id: 0,
+    });
+    assert.equal(typeof workerMergePreview.merge_kind, "string");
+    const workerMergePreviewProof = await workerSignals.history().merge_branches_policy_preview_with_proof({
+      source_branch_id: workerFeatureBranch.id,
+      target_branch_id: 0,
+    });
+    assert.deepEqual(
+      comparableMergeResult(workerMergePreviewProof.result),
+      comparableMergeResult(workerMergePreview),
+    );
+    assert.equal(typeof workerMergePreviewProof.proof?.proofSchemaVersion, "string");
+    const workerAppliedMerge = await workerSignals.history().merge_branches(workerFeatureBranch.id, 0);
+    assert.deepEqual(
+      comparableMergeResult(workerAppliedMerge),
+      comparableMergeResult(workerMergePreview),
+    );
+    compatibilityImportedSignals.history().merge_branches(compatibilityFeatureBranch.id, 0);
+    assert.equal(workerSignals.read(outputId), compatibilityImportedSignals.read(outputId));
+    assert.deepEqual(
+      comparableRuntimeBranch(workerSignals.history().current_branch()),
+      comparableRuntimeBranch(compatibilityImportedSignals.history().current_branch()),
+    );
+
+    const workerProofBranch = await workerSignals.history().create_branch("feature-proof");
+    const compatibilityProofBranch = compatibilityImportedSignals.history().create_branch("feature-proof");
+    await workerSignals.history().switch_branch(workerProofBranch.id);
+    compatibilityImportedSignals.history().switch_branch(compatibilityProofBranch.id);
+    await importedGraph.writeInput("count", 17);
+    await compatibilityImportedGraph.writeInput("count", 17);
+    assert.deepEqual(
+      comparableMergeResultProof(
+        await workerSignals.history().merge_branches_with_proof(workerProofBranch.id, 0),
+      ),
+      comparableMergeResultProof(
+        compatibilityImportedSignals.history().merge_branches_with_proof(compatibilityProofBranch.id, 0),
+      ),
+    );
+    assert.equal(workerSignals.read(outputId), compatibilityImportedSignals.read(outputId));
 
     assert.deepEqual(
       workerSignals.adapters().exportDefinitions(),
@@ -311,13 +461,13 @@ test("default worker-first root exposes synchronous cached diagnostics, history,
       workerSignals.specialist().read_versions([outputId]),
       compatibilityImportedSignals.specialist().read_versions([outputId]),
     );
-    assert.throws(
-      () => workerSignals.specialist().evaluateDirty(),
-      /WorkerFirstSpecialistUnavailable/,
+    assert.deepEqual(
+      await workerSignals.specialist().evaluateDirty(),
+      compatibilityImportedSignals.specialist().evaluateDirty(),
     );
-    assert.throws(
-      () => workerSignals.specialist().evaluate_dirty(),
-      /WorkerFirstSpecialistUnavailable/,
+    assert.deepEqual(
+      await workerSignals.specialist().evaluate_dirty(),
+      compatibilityImportedSignals.specialist().evaluate_dirty(),
     );
     assert.throws(
       () => workerSignals.diagnostics().why("not-an-active-id"),
@@ -341,11 +491,11 @@ test("default worker-first root exposes synchronous cached diagnostics, history,
       effectCount += 1;
     });
 
-    graph.writeInput("count", 11);
+    graph.writeInput("count", 13);
     const changedSnapshot = graph.exportSnapshot();
     const reimportedGraph = workerSignals.importGraph(definition, changedSnapshot);
     await reimportedGraph.ready();
-    assert.equal(workerSignals.read(outputId), 22);
+    assert.equal(workerSignals.read(outputId), 26);
     assert.equal(notices.length, 1);
     assert.equal(notices[0].signalId, outputId);
     assert.equal(notices[0].meaningfulChange, true);
@@ -362,8 +512,9 @@ test("default worker-first root exposes synchronous cached diagnostics, history,
     await unchangedGraph.terminate();
     await reimportedGraph.terminate();
     await importedGraph.terminate();
-    workerSignals.free();
+    await workerSignals.terminate();
   } finally {
+    await compatibilityImportedGraph.terminate();
     compatibilityImportedSignals.free();
     compatibilitySignals.free();
     await cleanup();
@@ -462,7 +613,7 @@ test("default worker-first root adapters restore runtime envelopes, preserve tru
     assert.equal(workerSignals.read(outputId), 4);
 
     await reimportedAfterBaseline.terminate();
-    workerSignals.free();
+    await workerSignals.terminate();
   } finally {
     callbackSignals.free();
     compatibilitySignals.free();

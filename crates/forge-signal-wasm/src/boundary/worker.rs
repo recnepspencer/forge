@@ -1,10 +1,9 @@
 use std::cell::RefCell;
 
-use js_sys::{Object, Reflect};
 use wasm_bindgen::prelude::*;
 
 use crate::boundary::restore_tokens::{
-    load_runtime_envelope, store_runtime_envelope, store_snapshot, store_snapshot_envelope,
+    load_runtime_envelope, store_runtime_envelope, store_snapshot_envelope,
 };
 use crate::boundary::serde::{from_js, from_json_wire, to_js, to_js_structured, to_json_wire};
 use crate::recipe::model::TransactionOp;
@@ -20,6 +19,7 @@ use crate::runtime::worker_host::{
 
 use super::types::SignalWorkerRuntime;
 
+mod branch_history;
 mod test_support;
 
 #[wasm_bindgen]
@@ -154,7 +154,7 @@ impl SignalWorkerRuntime {
     #[wasm_bindgen(js_name = exportWorkerSnapshotEnvelopeArtifact)]
     pub fn export_worker_snapshot_envelope_artifact(&self) -> Result<JsValue, JsValue> {
         let snapshot = self.export_worker_snapshot_envelope_for_test()?;
-        worker_snapshot_envelope_artifact(snapshot)
+        branch_history::worker_snapshot_envelope_artifact(snapshot)
     }
 
     #[wasm_bindgen(js_name = exportWorkerSnapshotEnvelopeWire)]
@@ -168,64 +168,6 @@ impl SignalWorkerRuntime {
     pub fn export_worker_snapshot_envelope_portable_wire(&self) -> Result<String, JsValue> {
         to_json_wire(&self.export_worker_snapshot_envelope_for_test()?).map_err(JsValue::from)
     }
-
-    #[wasm_bindgen(js_name = currentBranch)]
-    pub fn current_branch(&self) -> Result<JsValue, JsValue> {
-        to_js(&self.current_branch_for_test()?).map_err(JsValue::from)
-    }
-
-    #[wasm_bindgen(js_name = branches)]
-    pub fn branches(&self) -> Result<JsValue, JsValue> {
-        to_js(&self.branches_for_test()?).map_err(JsValue::from)
-    }
-
-    #[wasm_bindgen(js_name = replayForBranch)]
-    pub fn replay_for_branch(&self, branch_id: u64) -> Result<JsValue, JsValue> {
-        to_js(&self.replay_for_branch_for_test(branch_id)?).map_err(JsValue::from)
-    }
-
-    #[wasm_bindgen(js_name = branchSnapshotId)]
-    pub fn branch_snapshot_id(&self, branch_id: u64) -> Result<u64, JsValue> {
-        self.branch_snapshot_id_for_test(branch_id)
-    }
-
-    #[wasm_bindgen(js_name = branchSnapshotEnvelope)]
-    pub fn branch_snapshot_envelope(&self, branch_id: u64) -> Result<JsValue, JsValue> {
-        to_js_structured(&self.branch_snapshot_envelope_for_test(branch_id)?).map_err(JsValue::from)
-    }
-
-    #[wasm_bindgen(js_name = branchSnapshotEnvelopeArtifact)]
-    pub fn branch_snapshot_envelope_artifact(&self, branch_id: u64) -> Result<JsValue, JsValue> {
-        let snapshot = self.branch_snapshot_envelope_for_test(branch_id)?;
-        worker_snapshot_envelope_artifact(snapshot)
-    }
-
-    #[wasm_bindgen(js_name = branchSnapshotArtifact)]
-    pub fn branch_snapshot_artifact(&self, branch_id: u64) -> Result<JsValue, JsValue> {
-        let snapshot = self.branch_snapshot_for_test(branch_id)?;
-        worker_snapshot_artifact(snapshot)
-    }
-
-    #[wasm_bindgen(js_name = branchSnapshotEnvelopeWire)]
-    pub fn branch_snapshot_envelope_wire(&self, branch_id: u64) -> Result<String, JsValue> {
-        Ok(store_snapshot_envelope(
-            self.branch_snapshot_envelope_for_test(branch_id)?,
-        ))
-    }
-
-    #[wasm_bindgen(js_name = branchSnapshotEnvelopePortableWire)]
-    pub fn branch_snapshot_envelope_portable_wire(
-        &self,
-        branch_id: u64,
-    ) -> Result<String, JsValue> {
-        to_json_wire(&self.branch_snapshot_envelope_for_test(branch_id)?).map_err(JsValue::from)
-    }
-
-    #[wasm_bindgen(js_name = branchStateProof)]
-    pub fn branch_state_proof(&self, branch_id: u64) -> Result<JsValue, JsValue> {
-        to_js(&self.branch_state_proof_for_test(branch_id)?).map_err(JsValue::from)
-    }
-
     #[wasm_bindgen(js_name = exportWorkerRuntimeEnvelopeWire)]
     pub fn export_worker_runtime_envelope_wire(&self) -> Result<String, JsValue> {
         let artifact = self.export_exact_worker_runtime_restore_artifact_for_test()?;
@@ -312,48 +254,4 @@ impl SignalWorkerRuntime {
         let package = self.certify_worker_output_delivery_for_test()?;
         to_js(&package).map_err(JsValue::from)
     }
-}
-
-fn worker_snapshot_envelope_artifact(
-    snapshot: RuntimeSnapshotEnvelope,
-) -> Result<JsValue, JsValue> {
-    let artifact = Object::new();
-    Reflect::set(
-        &artifact,
-        &JsValue::from_str("snapshotEnvelope"),
-        &to_js_structured(&snapshot).map_err(JsValue::from)?,
-    )?;
-    Reflect::set(
-        &artifact,
-        &JsValue::from_str("snapshotEnvelopeRestoreToken"),
-        &JsValue::from_str(&store_snapshot_envelope(snapshot.clone())),
-    )?;
-    Reflect::set(
-        &artifact,
-        &JsValue::from_str("snapshotEnvelopePortableWire"),
-        &JsValue::from_str(&to_json_wire(&snapshot).map_err(JsValue::from)?),
-    )?;
-    Ok(artifact.into())
-}
-
-fn worker_snapshot_artifact(
-    snapshot: forge_signal::facade::history::RuntimeSnapshot,
-) -> Result<JsValue, JsValue> {
-    let artifact = Object::new();
-    Reflect::set(
-        &artifact,
-        &JsValue::from_str("snapshot"),
-        &to_js_structured(&snapshot).map_err(JsValue::from)?,
-    )?;
-    Reflect::set(
-        &artifact,
-        &JsValue::from_str("snapshotRestoreToken"),
-        &JsValue::from_str(&store_snapshot(snapshot.clone())),
-    )?;
-    Reflect::set(
-        &artifact,
-        &JsValue::from_str("snapshotPortableWire"),
-        &JsValue::from_str(&to_json_wire(&snapshot).map_err(JsValue::from)?),
-    )?;
-    Ok(artifact.into())
 }

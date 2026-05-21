@@ -854,6 +854,9 @@ Why it belongs here:
 Engineering spec:
 [worker_runtime_product_entrypoint_correction_plan.md](./worker_runtime_product_entrypoint_correction_plan.md)
 
+Formal closeout ledger:
+[worker_runtime_product_entrypoint_correction_closeout.md](./worker_runtime_product_entrypoint_correction_closeout.md)
+
 ### Goal
 
 Correct the remaining product-entrypoint mismatch after Milestone 9 closeout so
@@ -907,6 +910,13 @@ This follow-on is complete only when:
   and semantically equivalent for supported compatibility workloads
 - docs and README teach the corrected entrypoint story instead of the old
   main-thread default
+
+### Closeout Status
+
+This follow-on is now closed. The worker-first entry contract, explicit
+compatibility recovery, typed worker-unavailable construction artifact, docs
+alignment, and named entrypoint proof families all ship together, and the final
+release-build aggregate runtime verification is green.
 
 Why it belongs here:
 

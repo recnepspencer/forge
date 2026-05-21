@@ -302,7 +302,13 @@ export type ResourceEffectMergeExecutionResult =
   | ResourceEffectMergeDenial;
 
 export interface ResourceBranchNamespace {
-  planMerge(request: MergePolicyPreviewRequest): ResourceBranchMergePlanResult;
-  planEffectMerge(request: ResourceEffectMergeRequest): ResourceEffectMergePlanResult;
-  mergeEffect(request: ResourceEffectMergeRequest): ResourceEffectMergeExecutionResult;
+  planMerge(
+    request: MergePolicyPreviewRequest,
+  ): ResourceBranchMergePlanResult | Promise<ResourceBranchMergePlanResult>;
+  planEffectMerge(
+    request: ResourceEffectMergeRequest,
+  ): ResourceEffectMergePlanResult | Promise<ResourceEffectMergePlanResult>;
+  mergeEffect(
+    request: ResourceEffectMergeRequest,
+  ): ResourceEffectMergeExecutionResult | Promise<ResourceEffectMergeExecutionResult>;
 }

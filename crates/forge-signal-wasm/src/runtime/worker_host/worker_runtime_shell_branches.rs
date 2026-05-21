@@ -89,12 +89,32 @@ impl WorkerRuntimeShell {
         Ok(snapshot)
     }
 
+    pub fn restore_snapshot(
+        &mut self,
+        snapshot: RuntimeSnapshotEnvelope,
+    ) -> Result<WorkerBranchTruthEnvelope, ForgeSignalJsError> {
+        self.core.restore_snapshot(snapshot)?;
+        self.clear_worker_boundary_certification_evidence();
+        self.branch_truth_envelope()
+    }
+
     pub fn restore_branch_snapshot(
         &mut self,
         branch_id: u64,
         snapshot: RuntimeSnapshot,
     ) -> Result<WorkerBranchTruthEnvelope, ForgeSignalJsError> {
         self.core.restore_branch_snapshot(branch_id, snapshot)?;
+        self.clear_worker_boundary_certification_evidence();
+        self.branch_truth_envelope_for_branch(branch_id)
+    }
+
+    pub fn restore_branch_snapshot_by_id(
+        &mut self,
+        branch_id: u64,
+        snapshot_id: u64,
+    ) -> Result<WorkerBranchTruthEnvelope, ForgeSignalJsError> {
+        self.core
+            .restore_branch_snapshot_by_id(branch_id, snapshot_id)?;
         self.clear_worker_boundary_certification_evidence();
         self.branch_truth_envelope_for_branch(branch_id)
     }

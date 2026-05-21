@@ -142,7 +142,7 @@ const previousContract = itemWorkspaceGraph.contract();
 const delta = itemWorkspaceGraph.contractDelta(previousContract);
 const definition = itemWorkspaceGraph.exportDefinition();
 const snapshot = itemWorkspaceGraph.exportSnapshot();
-const restoredGraph = createSignals().importGraph(definition, snapshot);
+const restoredGraph = (await createSignals()).importGraph(definition, snapshot);
 
 console.log(delta);
 console.log(restoredGraph.contractHistory());

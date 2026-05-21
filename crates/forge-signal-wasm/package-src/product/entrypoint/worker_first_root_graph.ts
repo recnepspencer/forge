@@ -102,7 +102,7 @@ class WorkerFirstRootGraph {
       resetInputs: (names) => this.resetInputs(names),
       resetInput: (name) => this.resetInput(name),
       apply: (mutation) => this.apply(mutation),
-      transaction: () => throwWorkerFirstGraphMutationUnavailable(this.#graphId, "transaction"),
+      transaction: (callback) => this.transaction(callback),
       transactionAsync: (callback) => this.transactionAsync(callback),
       batchAsync: (callback) => this.batchAsync(callback),
       why: (name) => this.why(name),
@@ -251,6 +251,20 @@ class WorkerFirstRootGraph {
       this.#graphId,
       this.#mutationContext,
       mutation,
+    );
+  }
+
+  transaction(callback) {
+    this.#requireActive("transaction");
+    return runWorkerFirstRootGraphTransaction(
+      this.#rootSession,
+      this.#graphId,
+      {
+        ...this.#mutationContext,
+        currentInputValues: this.#currentInputValues(),
+      },
+      callback,
+      "transaction",
     );
   }
 

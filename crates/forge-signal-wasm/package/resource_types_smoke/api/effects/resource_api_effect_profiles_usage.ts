@@ -49,7 +49,7 @@ const diagnosticsEffects: ResourceEffectProfile | null =
 void lineEffects;
 void diagnosticsEffects;
 void signals.resource.effects.deliveryAuthoritative();
-void signals.resource.branch.planMerge({
+void await signals.resource.branch.planMerge({
   source_branch_id: 0,
   target_branch_id: 0,
 });

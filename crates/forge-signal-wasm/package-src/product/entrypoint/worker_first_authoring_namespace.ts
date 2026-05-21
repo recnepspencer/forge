@@ -1,7 +1,6 @@
 import { createApiFactory } from "../api/api_namespace.js";
 import {
   requireAuthoringOptions,
-  requireOptionalDebugName,
 } from "../authoring_option_validation.js";
 import { freezeObject } from "../graph_support.js";
 import { CONTROLLER_CONTRACT, PRIVATE_AUTHORING_ID, PUBLIC_GRAPH_INPUT } from "../symbols.js";
@@ -15,6 +14,13 @@ import { createWorkerFirstExplicitSpecNamespace } from "./worker_first_explicit_
 import { createWorkerFirstFormFactory } from "./worker_first_form_factory.js";
 import { createWorkerFirstResourceNamespace } from "./worker_first_resource_namespace.js";
 import { createWorkerFirstRootGraph } from "./worker_first_root_graph.js";
+import { createRootHistoryFacade } from "./worker_first_root_history.js";
+import {
+  createWorkerFirstSyncInputHandle,
+  createWorkerFirstSyncLinkedHandle,
+  createWorkerFirstSyncOutputCallbackHandle,
+  createWorkerFirstSyncRecipeHandle,
+} from "./worker_first_sync_authoring.js";
 
 export function createWorkerFirstScopedNamespace(rootSession, path = []) {
   return freezeObject(createNamespace(rootSession, path));
@@ -29,7 +35,7 @@ function createNamespace(rootSession, path) {
   let api = null;
   let spec = null;
 
-  return {
+  const namespace = {
     host: rootSession.hostSurface(),
     get spec() {
       spec ??= createWorkerFirstExplicitSpecNamespace(rootSession, path);
@@ -40,12 +46,15 @@ function createNamespace(rootSession, path) {
       return form;
     },
     get resource() {
-      resource ??= createWorkerFirstResourceNamespace(rootSession);
+      resource ??= createWorkerFirstResourceNamespace(namespace, rootSession);
       return resource;
     },
     get api() {
-      api ??= createApiFactory(this);
+      api ??= createApiFactory(namespace);
       return api;
+    },
+    history() {
+      return createRootHistoryFacade(rootSession);
     },
     scope(localScopeId) {
       requireNonEmptyString(localScopeId, `${operationPrefix}.scope`);
@@ -58,7 +67,22 @@ function createNamespace(rootSession, path) {
       return createWorkerFirstPublicInputEntry(rootSession, handle, options);
     },
     input() {
-      throwWorkerFirstCallableUnavailable(`${operationPrefix}.input`);
+      const initial = arguments[0];
+      const options = arguments[1];
+      const normalizedOptions = normalizeWorkerFirstScopedInputOptions(
+        operationPrefix,
+        options,
+      );
+      const localId = normalizedOptions?.[PRIVATE_AUTHORING_ID] ?? null;
+      const canonicalId = localId === null
+        ? rootSession.nextGeneratedStandaloneSignalId("input", path.join(".") || null)
+        : canonicalScopedInputId(path, localId);
+      return createWorkerFirstSyncInputHandle(
+        rootSession,
+        canonicalId,
+        initial,
+        normalizedOptions,
+      );
     },
     async inputAsync(initial, options) {
       const normalizedOptions = normalizeWorkerFirstScopedInputOptions(
@@ -73,59 +97,67 @@ function createNamespace(rootSession, path) {
       return createWorkerFirstAsyncInputHandle(
         rootSession,
         canonicalId,
-        normalizedOptions ? requireOptionalDebugName("input", normalizedOptions) : null,
+        normalizedOptions?.debugName ?? null,
       );
     },
     linked() {
-      throwWorkerFirstCallableUnavailable(`${operationPrefix}.linked`);
-    },
-    async linkedAsync(sourceOrDefinition, options) {
-      return createWorkerFirstAsyncLinkedHandle(
+      return createWorkerFirstSyncLinkedHandle(
         rootSession,
         rootSession.nextGeneratedStandaloneSignalId("input", path.join(".") || null),
-        sourceOrDefinition,
-        options,
+        arguments[0],
+        arguments[1],
       );
+    },
+    async linkedAsync(sourceOrDefinition, options) {
+      return createWorkerFirstAsyncLinkedHandle(rootSession, rootSession.nextGeneratedStandaloneSignalId("input", path.join(".") || null), sourceOrDefinition, options);
     },
     computedSpec() {
       return this.spec.computed(...arguments);
     },
     computed() {
-      throwWorkerFirstCallableUnavailable(`${operationPrefix}.computed`);
-    },
-    async computedAsync(specOrCompute, options) {
-      const normalizedOptions = normalizeWorkerFirstAsyncRecipeOptions("computed", options);
-      return createWorkerFirstAsyncRecipeHandle(
+      return createWorkerFirstSyncRecipeHandle(
         rootSession,
         "computed",
         rootSession.nextGeneratedStandaloneSignalId("computed", path.join(".") || null),
-        specOrCompute,
-        normalizedOptions,
+        arguments[0],
+        arguments[1],
+        `${operationPrefix}.computed`,
       );
+    },
+    async computedAsync(specOrCompute, options) {
+      const normalizedOptions = normalizeWorkerFirstAsyncRecipeOptions("computed", options);
+      return createWorkerFirstAsyncRecipeHandle(rootSession, "computed", rootSession.nextGeneratedStandaloneSignalId("computed", path.join(".") || null), specOrCompute, normalizedOptions);
     },
     outputSpec() {
       return this.spec.output(...arguments);
     },
     output() {
-      throwWorkerFirstCallableUnavailable(`${operationPrefix}.output`);
-    },
-    async outputAsync(specOrCompute, options) {
-      const normalizedOptions = normalizeWorkerFirstAsyncRecipeOptions("output", options);
-      return createWorkerFirstAsyncRecipeHandle(
+      return createWorkerFirstSyncRecipeHandle(
         rootSession,
         "output",
         rootSession.nextGeneratedStandaloneSignalId("output", path.join(".") || null),
-        specOrCompute,
-        normalizedOptions,
+        arguments[0],
+        arguments[1],
+        `${operationPrefix}.output`,
       );
     },
+    async outputAsync(specOrCompute, options) {
+      const normalizedOptions = normalizeWorkerFirstAsyncRecipeOptions("output", options);
+      return createWorkerFirstAsyncRecipeHandle(rootSession, "output", rootSession.nextGeneratedStandaloneSignalId("output", path.join(".") || null), specOrCompute, normalizedOptions);
+    },
     outputCallback() {
-      throwWorkerFirstCallableUnavailable(`${operationPrefix}.outputCallback`);
+      return createWorkerFirstSyncOutputCallbackHandle(
+        rootSession,
+        canonicalScopedInputId(path, arguments[0]),
+        arguments[1],
+        arguments[2],
+      );
     },
     graph() {
       return createWorkerFirstRootGraph(rootSession, path, ...arguments);
     },
   };
+  return namespace;
 }
 
 function buildControllerContract(rootSession, path, definitionOrBuilder) {
@@ -357,6 +389,7 @@ function requireNonEmptyString(value, operation) {
   }
   return value;
 }
+
 
 function nullPrototypeRecord() {
   return Object.create(null);

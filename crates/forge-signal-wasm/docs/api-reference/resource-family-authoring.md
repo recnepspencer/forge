@@ -107,7 +107,7 @@ The family shape rules are strict on purpose:
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const profileDetail = signals.api({
   baseUrl: "/api",
@@ -140,7 +140,7 @@ import {
   resourceUploadTransport,
 } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const invoicePages = signals.resource.paged({
   params: resourceParams<{

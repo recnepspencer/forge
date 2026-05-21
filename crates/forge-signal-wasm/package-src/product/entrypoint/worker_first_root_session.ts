@@ -1,6 +1,12 @@
 import { createWorkerRuntimeBridge } from "./bridge/worker_runtime_bridge.js";
 import { createWorkerFirstHostCapabilities } from "./worker_first_host_capabilities.js";
+import {
+  createWorkerFirstRootHistoryLifecycle,
+  refreshWorkerFirstRootAfterHistoryMutation,
+} from "./worker_first_root_history_lifecycle.js";
+import { createWorkerFirstRootMutation } from "./worker_first_root_mutation.js";
 import { createWorkerFirstRootObservationManager } from "./worker_first_root_observations.js";
+import { createWorkerFirstRootRuntimeReplacement } from "./worker_first_root_runtime_replacement.js";
 import { createWorkerFirstRootAuthoredRuntime } from "./sessions/support/worker_first_root_authored_runtime.js";
 import { buildActiveImportContext } from "./sessions/support/worker_first_root_import_context.js";
 
@@ -18,13 +24,17 @@ class WorkerFirstRootSession {
   #activeImportContext;
   #importChain;
   #authoredRuntime;
+  #historyLifecycle;
+  #mutation;
+  #runtimeReplacement;
+  #cachedCurrentBranch;
+  #cachedBranches;
   #terminated;
 
   constructor(options) {
     this.#bridge = createWorkerRuntimeBridge(
       options.workerUrl === undefined ? {} : { workerUrl: options.workerUrl },
     );
-    this.#hostCapabilities = createWorkerFirstHostCapabilities(options.hostCapabilities ?? null);
     this.#observations = createWorkerFirstRootObservationManager();
     this.#bootstrap = this.#bootstrapBridge();
     this.#activeImportController = null;
@@ -35,7 +45,53 @@ class WorkerFirstRootSession {
       this.#bridge,
       () => this.#activeImportContext,
       (operation) => this.#requireActive(operation),
+      this,
     );
+    this.#historyLifecycle = createWorkerFirstRootHistoryLifecycle({
+      ready: () => this.ready(),
+      requireActive: (operation) => this.#requireActive(operation),
+      requireControllerActive: (controller, operation) => this.#requireControllerActive(controller, operation),
+      bridge: this.#bridge,
+      observations: this.#observations,
+      authoredRuntime: this.#authoredRuntime,
+      activeImportContext: () => this.#activeImportContext,
+      activeImportController: () => this.#activeImportController,
+      setActiveImportContext: (context) => {
+        this.#activeImportContext = context;
+      },
+      refreshBranchCache: () => this.#refreshBranchCache(),
+      refreshActiveImportContext: () => this.refreshActiveImportContext(),
+      refreshAfterHistoryMutation: (operation, activeImportContext) => this.#refreshAfterHistoryMutation(operation, activeImportContext),
+    });
+    this.#mutation = createWorkerFirstRootMutation({
+      ready: () => this.ready(),
+      requireActive: (operation) => this.#requireActive(operation),
+      requireControllerActive: (controller, operation) => this.#requireControllerActive(controller, operation),
+      bridge: this.#bridge,
+      observations: this.#observations,
+      authoredRuntime: this.#authoredRuntime,
+      activeImportContext: () => this.#activeImportContext,
+      activeImportController: () => this.#activeImportController,
+      setActiveImportContext: (context) => {
+        this.#activeImportContext = context;
+      },
+      refreshBranchCache: () => this.#refreshBranchCache(),
+      currentImportContext: () => this.currentImportContext(),
+      hasMutableInputId: (id) => this.hasMutableInputId(id),
+      applyImportMutation: (controller, transactionOps, outputIds) => this.applyImportMutation(controller, transactionOps, outputIds),
+    });
+    this.#cachedCurrentBranch = null;
+    this.#cachedBranches = [];
+    this.#hostCapabilities = createWorkerFirstHostCapabilities(this, options.hostCapabilities ?? null);
+    this.#runtimeReplacement = createWorkerFirstRootRuntimeReplacement({
+      ready: () => this.ready(),
+      requireActive: (operation) => this.#requireActive(operation),
+      bridge: this.#bridge,
+      observations: this.#observations,
+      authoredRuntime: this.#authoredRuntime,
+      hostCapabilities: this.#hostCapabilities,
+      invalidateActiveImport: (message) => this.#invalidateActiveImport(message),
+    });
     this.#terminated = false;
   }
 
@@ -65,6 +121,7 @@ class WorkerFirstRootSession {
     this.#activeImportController = controller;
     const importPromise = this.#importChain.then(async () => {
       this.#requireActive("importGraph");
+      await this.#authoredRuntime.settlePendingPublications();
       await this.ready();
       await this.#observations.clearContext(this.#bridge);
       this.#requireControllerActive(controller, "importGraph");
@@ -74,6 +131,7 @@ class WorkerFirstRootSession {
           `worker-first root importGraph(...) could not admit the portable runtime envelope: ${report?.importOutcome ?? "Unknown"}`,
         );
       }
+      await this.#hostCapabilities.replayCurrentIngress();
       this.#activeImportContext = await buildActiveImportContext(
         this.#bridge,
         definition,
@@ -122,62 +180,97 @@ class WorkerFirstRootSession {
     return this.#authoredRuntime.readAuthoredInputBaseline(id);
   }
 
+  currentBranchSummary() {
+    return this.#activeImportContext?.currentBranch ?? this.#cachedCurrentBranch;
+  }
+
+  branchesSummary() {
+    return this.#activeImportContext?.branches ?? this.#cachedBranches;
+  }
+
   writeAuthoredInputBaseline(id, value) {
     this.#authoredRuntime.writeAuthoredInputBaseline(id, value);
   }
 
   async createStandaloneInput(id, initial, options = {}) {
-    await this.ready();
-    await this.#authoredRuntime.createStandaloneInput(id, initial, options);
+    await this.ready(); await this.#authoredRuntime.createStandaloneInput(id, initial, options);
   }
-
+  createEagerStandaloneInput(id, initial, options = {}) {
+    this.#authoredRuntime.createEagerStandaloneInput(id, initial, options);
+  }
   async createStandaloneReadable(id, family, spec) {
-    await this.ready();
-    await this.#authoredRuntime.createStandaloneReadable(id, family, spec);
+    await this.ready(); await this.#authoredRuntime.createStandaloneReadable(id, family, spec);
+  }
+  createEagerStandaloneReadable(id, family, spec, initialValue, dependencyIds) {
+    this.#authoredRuntime.createEagerStandaloneReadable(
+      id,
+      family,
+      spec,
+      initialValue,
+      dependencyIds,
+    );
+  }
+  async createStandaloneCallbackReadable(id, family, callback) {
+    await this.ready(); await this.#authoredRuntime.createStandaloneCallbackReadable(id, family, callback);
+  }
+  createEagerStandaloneCallbackReadable(id, family, callback) {
+    this.#authoredRuntime.createEagerStandaloneCallbackReadable(id, family, callback);
   }
 
   async replaceRuntimeEnvelope(envelope) {
-    const portableWire = envelope?.runtimeEnvelopePortableWire;
-    if (typeof portableWire !== "string") {
-      throw new TypeError(
-        "worker-first root adapters().replaceRuntimeEnvelope(...) requires an artifact returned by adapters.exportRuntimeEnvelope()",
-      );
-    }
-    await this.ready();
-    this.#requireActive("adapters.replaceRuntimeEnvelope");
-    const report = await this.#bridge.admitWorkerRuntimeEnvelopeImportPortableWire(portableWire);
-    if (isWorkerRuntimeEnvelopeImportAdmitted(report)) {
-      this.#invalidateActiveImport(
-        "worker-first root adapters().replaceRuntimeEnvelope(...) replaced the active imported graph runtime",
-      );
-      this.#authoredRuntime.invalidate(
-        "worker-first root adapters().replaceRuntimeEnvelope(...) replaced the worker-owned runtime",
-      );
-      await this.#observations.clearContext(this.#bridge);
-    }
-    return report;
+    return this.#runtimeReplacement.replaceRuntimeEnvelope(envelope);
   }
 
   async restoreExactRuntimeEnvelope(envelope) {
-    const restoreToken = envelope?.runtimeEnvelopeRestoreToken;
-    if (typeof restoreToken !== "string") {
-      throw new TypeError(
-        "worker-first root adapters().restoreExactRuntimeEnvelope(...) requires an artifact returned by adapters.exportRuntimeEnvelope()",
-      );
-    }
-    await this.ready();
-    this.#requireActive("adapters.restoreExactRuntimeEnvelope");
-    const report = await this.#bridge.admitWorkerRuntimeEnvelopeImportWire(restoreToken);
-    if (isWorkerRuntimeEnvelopeImportAdmitted(report)) {
-      this.#invalidateActiveImport(
-        "worker-first root adapters().restoreExactRuntimeEnvelope(...) replaced the active imported graph runtime",
-      );
-      this.#authoredRuntime.invalidate(
-        "worker-first root adapters().restoreExactRuntimeEnvelope(...) replaced the worker-owned runtime",
-      );
-      await this.#observations.clearContext(this.#bridge);
-    }
-    return report;
+    return this.#runtimeReplacement.restoreExactRuntimeEnvelope(envelope);
+  }
+
+  async createHistoryBranch(name) {
+    return this.#historyLifecycle.createBranch(name);
+  }
+
+  async switchHistoryBranch(branchId) {
+    return this.#historyLifecycle.switchBranch(branchId);
+  }
+
+  async restoreHistorySnapshotEnvelope(snapshotEnvelope) {
+    return this.#historyLifecycle.restoreSnapshotEnvelope(snapshotEnvelope);
+  }
+
+  async restoreExactHistorySnapshotEnvelope(restoreToken) {
+    return this.#historyLifecycle.restoreExactSnapshotEnvelope(restoreToken);
+  }
+
+  async restorePortableHistorySnapshotEnvelope(portableWire) {
+    return this.#historyLifecycle.restorePortableSnapshotEnvelope(portableWire);
+  }
+
+  async restoreHistoryBranchSnapshot(branchId, snapshot) {
+    return this.#historyLifecycle.restoreBranchSnapshot(branchId, snapshot);
+  }
+
+  async restoreExactHistoryBranchSnapshot(branchId, restoreToken) {
+    return this.#historyLifecycle.restoreExactBranchSnapshot(branchId, restoreToken);
+  }
+
+  async restorePortableHistoryBranchSnapshot(branchId, portableWire) {
+    return this.#historyLifecycle.restorePortableBranchSnapshot(branchId, portableWire);
+  }
+
+  async restoreHistoryBranchSnapshotById(branchId, snapshotId) {
+    return this.#historyLifecycle.restoreBranchSnapshotById(branchId, snapshotId);
+  }
+
+  async mergeHistoryBranches(sourceBranchId, targetBranchId) {
+    return this.#historyLifecycle.mergeBranches(sourceBranchId, targetBranchId);
+  }
+
+  async mergeHistoryBranchesWithProof(sourceBranchId, targetBranchId) {
+    return this.#historyLifecycle.mergeBranchesWithProof(sourceBranchId, targetBranchId);
+  }
+
+  async evaluateDirty() {
+    return this.#historyLifecycle.evaluateDirty();
   }
 
   async terminate() {
@@ -185,6 +278,7 @@ class WorkerFirstRootSession {
       return;
     }
     this.#terminated = true;
+    await this.#authoredRuntime.settlePendingPublications();
     this.#hostCapabilities.dispose();
     this.#invalidateActiveImport("worker-first root session terminated");
     this.#authoredRuntime.invalidate("worker-first root session terminated");
@@ -214,107 +308,19 @@ class WorkerFirstRootSession {
   }
 
   async applyImportMutation(controller, transactionOps, outputIds) {
-    await this.ready();
-    this.#requireActive("importedGraph.apply");
-    this.#requireControllerActive(controller, "importedGraph.apply");
-    await this.#observations.syncLifecycle(this.#bridge);
-    const projectionPacket = await this.#bridge.applyTransactionProjection({
-      transactionOps,
-      outputIds,
-    });
-    this.#requireControllerActive(controller, "importedGraph.apply");
-    const activeImportController = this.#activeImportController;
-    const activeImportContext = this.#activeImportContext;
-    if (activeImportController === null || activeImportContext === null) {
-      throw new TypeError(
-        "worker-first root importedGraph.apply() requires an active imported graph context",
-      );
-    }
-    this.#activeImportContext = await buildActiveImportContext(
-      this.#bridge,
-      activeImportContext.definition,
-      activeImportContext.snapshot,
-    );
-    const deliveryPacket = await this.#observations.syncLifecycle(this.#bridge)
-      .then(() => this.#bridge.deliverLatestObservation())
-      .catch(() => null);
-    await this.#observations.replaceContext(
-      this.#bridge,
-      this.#activeImportContext,
-      deliveryPacket,
-    );
-    if (typeof activeImportController?.refreshFromRootRuntime === "function") {
-      await activeImportController.refreshFromRootRuntime();
-    }
-    this.#authoredRuntime.applyCommittedInputs(transactionOps);
-    await this.#authoredRuntime.refreshReadables();
-    this.#requireControllerActive(activeImportController, "importedGraph.apply");
-    return projectionPacket.transaction.runSummary;
+    return this.#mutation.applyImportMutation(controller, transactionOps, outputIds);
   }
 
   async applyActiveTransaction(transactionOps) {
-    await this.ready();
-    this.#requireActive("transactionAsync");
-    if (!Array.isArray(transactionOps)) {
-      throw new TypeError("worker-first root transactionAsync(...) requires transactionOps as an array");
-    }
-    for (const op of transactionOps) {
-      if (!op || typeof op !== "object" || typeof op.id !== "string") {
-        throw new TypeError(
-          "worker-first root transactionAsync(...) encountered an invalid input mutation operation",
-        );
-      }
-      if (!this.hasMutableInputId(op.id)) {
-        throw new TypeError(
-          `worker-first root transactionAsync(...) can mutate only currently available worker-first inputs; \`${op.id}\` is not currently available`,
-        );
-      }
-    }
-    return this.#applyWorkerOwnedTransaction(transactionOps);
+    return this.#mutation.applyActiveTransaction(transactionOps);
   }
 
   async applyActiveInputMutation(id, mutation) {
-    await this.ready();
-    this.#requireActive("signals.spec.input");
-    const activeImportContext = this.currentImportContext();
-    const inputDescriptor = activeImportContext.definition.inputDescriptors.find(
-      (entry) => entry.sourceId === id,
-    );
-    if (!inputDescriptor) {
-      throw new TypeError(
-        `worker-first signals.spec.input(...) binds only to input ids from the active imported graph; \`${id}\` is not currently available`,
-      );
-    }
-    const transactionOps = [buildActiveInputMutationOperation(id, mutation)];
-    return this.applyImportMutation(
-      this.#activeImportController,
-      transactionOps,
-      activeImportContext.definition.descriptors.map((entry) => entry.publishedId),
-    );
+    return this.#mutation.applyActiveInputMutation(id, mutation);
   }
 
-  async applyAuthoredInputMutation(id, mutation) {
-    await this.ready();
-    this.#requireActive("signals.inputAsync");
-    return this.#applyWorkerOwnedTransaction(
-      this.#authoredRuntime.authoredInputMutation(id, mutation),
-    );
-  }
-
-  async #applyWorkerOwnedTransaction(transactionOps) {
-    const activeImportController = this.#activeImportController;
-    const activeImportContext = this.#activeImportContext;
-    if (activeImportController === null || activeImportContext === null) {
-      const transaction = await this.#bridge.applyTransaction(transactionOps);
-      this.#authoredRuntime.applyCommittedInputs(transactionOps);
-      await this.#authoredRuntime.refreshReadables();
-      return transaction.runSummary;
-    }
-    return this.applyImportMutation(
-      activeImportController,
-      transactionOps,
-      activeImportContext.definition.descriptors.map((entry) => entry.publishedId),
-    );
+  applyAuthoredInputMutation(id, mutation) {
+    return this.#mutation.applyAuthoredInputMutation(id, mutation);
   }
 
   #invalidateActiveImport(message) {
@@ -338,6 +344,7 @@ class WorkerFirstRootSession {
     await this.#bridge.bootstrapRecord();
     await this.#bridge.workerRuntimeShellLock();
     await this.#hostCapabilities.bootstrap();
+    await this.#refreshBranchCache();
   }
 
   #requireActive(operation) {
@@ -355,24 +362,37 @@ class WorkerFirstRootSession {
     }
     throw controller.invalidatedError(operation);
   }
-}
 
-function buildActiveInputMutationOperation(id, mutation) {
-  if (!mutation || typeof mutation !== "object") {
-    throw new TypeError("worker-first signals.spec.input mutation requires an operation object");
+  async #refreshAfterHistoryMutation(operation, activeImportContext) {
+    await refreshWorkerFirstRootAfterHistoryMutation(
+      {
+        bridge: this.#bridge,
+        observations: this.#observations,
+        authoredRuntime: this.#authoredRuntime,
+        activeImportContext: () => this.#activeImportContext,
+        activeImportController: () => this.#activeImportController,
+        setActiveImportContext: (context) => {
+          this.#activeImportContext = context;
+        },
+        refreshBranchCache: () => this.#refreshBranchCache(),
+        requireControllerActive: (controller, action) => this.#requireControllerActive(controller, action),
+      },
+      operation,
+      activeImportContext,
+    );
   }
-  switch (mutation.kind) {
-    case "set":
-      return { kind: "set", id, value: mutation.value };
-    case "reset":
-      return { kind: "reset", id };
-    case "patch":
-      return { kind: "patch", id, value: mutation.value };
-    default:
-      throw new TypeError("worker-first signals.spec.input mutation kind is unsupported");
-  }
-}
 
-function isWorkerRuntimeEnvelopeImportAdmitted(report) {
-  return report?.importOutcome === "Admitted" || report?.importOutcome === "AdmittedExact";
+  async #refreshBranchCache() {
+    let currentBranch = await this.#bridge.currentBranch();
+    if (currentBranch !== null && currentBranch.head_snapshot_id === null) {
+      try {
+        currentBranch = {
+          ...currentBranch,
+          head_snapshot_id: await this.#bridge.branchSnapshotId(currentBranch.id),
+        };
+      } catch {}
+    }
+    this.#cachedCurrentBranch = currentBranch;
+    this.#cachedBranches = await this.#bridge.branches();
+  }
 }

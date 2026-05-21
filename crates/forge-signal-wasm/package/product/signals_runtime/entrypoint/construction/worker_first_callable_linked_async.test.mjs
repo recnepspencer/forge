@@ -36,6 +36,10 @@ test("default worker-first root admits standalone, scoped, and active-import lin
     const firstOption = await workerSignals.linkedAsync(() => shippingOptions()[0], {
       debugName: "firstOption",
     });
+    const syncSelection = workerSignals.scope("checkout").linked(
+      () => shippingOptions()[0],
+      { debugName: "syncSelection" },
+    );
     const preservedSelection = await workerSignals.scope("checkout").linkedAsync({
       source: () => shippingOptions(),
       computation: (options, previous) =>
@@ -45,6 +49,7 @@ test("default worker-first root admits standalone, scoped, and active-import lin
 
     assert.equal(firstOption.debugName, "firstOption");
     assert.equal(firstOption().id, "ground");
+    assert.equal(syncSelection().id, "ground");
     assert.equal(preservedSelection().id, "ground");
 
     await preservedSelection.set({ id: "air", label: "Air" });
@@ -65,6 +70,8 @@ test("default worker-first root admits standalone, scoped, and active-import lin
     ]);
     await firstOption.reset();
     assert.equal(firstOption().id, "sea");
+    await syncSelection.reset();
+    assert.equal(syncSelection().id, "sea");
 
     const importedGraph = workerSignals.importGraph(
       graph.exportDefinition(),
@@ -73,8 +80,10 @@ test("default worker-first root admits standalone, scoped, and active-import lin
     await importedGraph.ready();
 
     assert.throws(() => firstOption(), STALE_WORKER_FIRST_AUTHORITY);
+    assert.throws(() => syncSelection(), STALE_WORKER_FIRST_AUTHORITY);
     assert.throws(() => preservedSelection(), STALE_WORKER_FIRST_AUTHORITY);
     await assert.rejects(firstOption.relink(), STALE_WORKER_FIRST_AUTHORITY);
+    await assert.rejects(syncSelection.relink(), STALE_WORKER_FIRST_AUTHORITY);
     await assert.rejects(preservedSelection.reset(), STALE_WORKER_FIRST_AUTHORITY);
 
     const importedCount = importedGraph.input("count");

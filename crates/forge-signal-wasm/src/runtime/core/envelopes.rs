@@ -38,8 +38,8 @@ pub(crate) struct ExactRuntimeRestoreArtifact {
     nodes_by_id: BTreeMap<forge_signal::facade::NodeId, String>,
     dense_grids: BTreeMap<String, Arc<DenseGridFamily>>,
     branch_states: BTreeMap<u64, BranchRuntimeState>,
-    snapshot_states: BTreeMap<u64, BranchRuntimeState>,
-    runtime_snapshots: BTreeMap<u64, forge_signal::facade::history::RuntimeSnapshot>,
+    snapshot_states: BTreeMap<(u64, u64), BranchRuntimeState>,
+    runtime_snapshots: BTreeMap<(u64, u64), forge_signal::facade::history::RuntimeSnapshot>,
     policy: crate::runtime::policy::RuntimePolicySpec,
     web_metrics: WebRuntimeMetrics,
 }

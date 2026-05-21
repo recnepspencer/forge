@@ -21,6 +21,12 @@ test("createSignals constructs the explicit main-thread compatibility lane when 
       expr: { kind: "read", id: asyncComputed.id },
       identity: { kind: "exact" },
     });
+    const asyncComputedCallback = await signals.computedAsync(
+      () => asyncCount() * 2,
+    );
+    const asyncOutputCallback = await signals.outputAsync(
+      () => ({ total: asyncComputedCallback() }),
+    );
 
     signals.transaction((tx) => {
       tx.set(count, 2);
@@ -38,6 +44,8 @@ test("createSignals constructs the explicit main-thread compatibility lane when 
     assert.equal(asyncCount(), 7);
     assert.equal(asyncComputed(), 7);
     assert.equal(asyncOutput(), 7);
+    assert.equal(asyncComputedCallback(), 14);
+    assert.deepEqual(asyncOutputCallback(), { total: 14 });
     signals.free();
   } finally {
     await cleanup();

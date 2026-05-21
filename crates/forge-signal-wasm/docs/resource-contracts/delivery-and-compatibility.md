@@ -101,7 +101,7 @@ import {
   resourcePatch,
 } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const tasks = signals.resource.collection({
   params: resourceParams<{ workspaceId: string }>(),
@@ -147,7 +147,7 @@ import {
   resourceRequestContext,
 } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const externalTasks = signals.resource.compatibility.collection({
   version: "forge-resource-external-v1",

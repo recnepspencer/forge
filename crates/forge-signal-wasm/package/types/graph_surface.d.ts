@@ -639,7 +639,7 @@ export interface PublishedSignalGraph<
   ): RunSummary | Promise<RunSummary>;
   resetInput<TName extends keyof NormalizeGraphRecord<TInputs>>(name: TName): RunSummary | Promise<RunSummary>;
   apply(mutation: GraphMutationRequest<TInputs>): RunSummary | Promise<RunSummary>;
-  transaction(callback: (tx: PublishedGraphTransaction<TInputs>) => void): RunSummary;
+  transaction(callback: (tx: PublishedGraphTransaction<TInputs>) => void): RunSummary | Promise<RunSummary>;
   transactionAsync(callback: (tx: PublishedGraphTransaction<TInputs>) => void): Promise<RunSummary>;
   batchAsync(callback: (tx: PublishedGraphTransaction<TInputs>) => void): Promise<RunSummary>;
   why<TName extends keyof NormalizeGraphRecord<TOutputs>>(name: TName): WhySummary;

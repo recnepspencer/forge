@@ -108,10 +108,29 @@ export function createFormReplayRestoreStore() {
       });
     }
     const rawResult = execute(historyRead);
-    const resourceReplayRestore = normalize(rawResult);
-    const after = rawResult.kind === "unavailable"
-      ? before
-      : readFormStateSnapshot(context.form);
+    if (isPromiseLike(rawResult)) {
+      return rawResult.then((settledResult) => recordReplayRestoreArtifact(
+        mode,
+        before,
+        normalize(settledResult),
+        settledResult.kind === "unavailable"
+          ? before
+          : readFormStateSnapshot(context.form),
+        reasonFor,
+      ));
+    }
+    return recordReplayRestoreArtifact(
+      mode,
+      before,
+      normalize(rawResult),
+      rawResult.kind === "unavailable"
+        ? before
+        : readFormStateSnapshot(context.form),
+      reasonFor,
+    );
+  }
+
+  function recordReplayRestoreArtifact(mode, before, resourceReplayRestore, after, reasonFor) {
     return recordArtifact({
       mode,
       resultKind: resourceReplayRestore.kind === "unavailable"
@@ -147,6 +166,10 @@ export function createFormReplayRestoreStore() {
     history.push(frozen);
     return frozen;
   }
+}
+
+function isPromiseLike(value) {
+  return value !== null && typeof value === "object" && typeof value.then === "function";
 }
 
 function unavailableResult(result) {

@@ -10,6 +10,9 @@ import type {
   HostCapabilityTransportReport,
   InvalidationTraceRecord,
   ObservationSurfaceSummary,
+  ReplayArtifactProofInput,
+  ReplayArtifactProofReport,
+  ReplayParityProofReport,
   RollbackDiagnostic,
   RuntimeDefinitionEnvelope,
   RuntimeEnvelope,
@@ -441,6 +444,32 @@ export interface WorkerRuntimeBridge {
   recentHistory(): Promise<ReadonlyArray<ExecutionHistorySummary>>;
   currentBranch(): Promise<RuntimeBranchHandle>;
   branches(): Promise<ReadonlyArray<RuntimeBranchHandle>>;
+  createBranch(name: string): Promise<RuntimeBranchHandle>;
+  switchBranch(branchId: bigint | number): Promise<unknown>;
+  planMergeBranches(
+    sourceBranchId: bigint | number,
+    targetBranchId: bigint | number,
+  ): Promise<MergePlanArtifact>;
+  planMergeBranchesWithProof(
+    sourceBranchId: bigint | number,
+    targetBranchId: bigint | number,
+  ): Promise<MergePlanProofEnvelope>;
+  mergeBranches(
+    sourceBranchId: bigint | number,
+    targetBranchId: bigint | number,
+  ): Promise<MergeResultArtifact>;
+  mergeBranchesWithProof(
+    sourceBranchId: bigint | number,
+    targetBranchId: bigint | number,
+  ): Promise<MergeResultProofEnvelope>;
+  planMergePolicyPreview(request: MergePolicyPreviewRequest): Promise<MergePlanArtifact>;
+  planMergePolicyPreviewWithProof(
+    request: MergePolicyPreviewRequest,
+  ): Promise<MergePlanProofEnvelope>;
+  mergeBranchesPolicyPreview(request: MergePolicyPreviewRequest): Promise<MergeResultArtifact>;
+  mergeBranchesPolicyPreviewWithProof(
+    request: MergePolicyPreviewRequest,
+  ): Promise<MergeResultProofEnvelope>;
   replayForBranch(branchId: bigint | number): Promise<ReplaySummary>;
   branchSnapshotId(branchId: bigint | number): Promise<bigint | number>;
   branchSnapshotEnvelope(branchId: bigint | number): Promise<RuntimeSnapshotEnvelope>;
@@ -450,16 +479,27 @@ export interface WorkerRuntimeBridge {
   ): Promise<WorkerSnapshotEnvelopeArtifact>;
   branchSnapshotEnvelopeWire(branchId: bigint | number): Promise<string>;
   branchSnapshotEnvelopePortableWire(branchId: bigint | number): Promise<string>;
+  restoreBranchSnapshotArtifact(
+    branchId: bigint | number,
+    snapshot: RuntimeSnapshotArtifact,
+  ): Promise<unknown>;
+  restoreBranchSnapshotWire(branchId: bigint | number, snapshot: string): Promise<unknown>;
+  restoreBranchSnapshotPortableWire(branchId: bigint | number, snapshot: string): Promise<unknown>;
+  restoreBranchSnapshotById(branchId: bigint | number, snapshotId: bigint | number): Promise<unknown>;
   branchStateProof(branchId: bigint | number): Promise<BranchStateProofReport>;
   replayFor(id: string): Promise<ReplaySummary>;
   lineageFor(id: string): Promise<LineageSummary>;
   readVersions(ids: ReadonlyArray<string>): Promise<ReadonlyArray<VersionSummary>>;
+  evaluateDirty(): Promise<RunSummary>;
   exportDefinitions(): Promise<RuntimeDefinitionEnvelope>;
   exportWorkerRuntimeEnvelope(): Promise<RuntimeEnvelope>;
   exportWorkerSnapshotEnvelope(): Promise<RuntimeSnapshotEnvelope>;
   exportWorkerSnapshotEnvelopeArtifact(): Promise<WorkerSnapshotEnvelopeArtifact>;
   exportWorkerSnapshotEnvelopeWire(): Promise<string>;
   exportWorkerSnapshotEnvelopePortableWire(): Promise<string>;
+  restoreSnapshotEnvelope(snapshot: RuntimeSnapshotEnvelope): Promise<unknown>;
+  restoreSnapshotEnvelopeWire(snapshot: string): Promise<unknown>;
+  restoreSnapshotEnvelopePortableWire(snapshot: string): Promise<unknown>;
   exportWorkerRuntimeEnvelopeWire(): Promise<string>;
   exportWorkerRuntimeEnvelopePortableWire(): Promise<string>;
   admitWorkerRuntimeEnvelopeImportWire(
@@ -512,6 +552,56 @@ export interface WorkerFirstHistoryFacade {
   replay_for(id: string): Promise<ReplaySummary>;
   lineage_for(id: string): Promise<LineageSummary>;
   recentHistory(): Promise<ReadonlyArray<ExecutionHistorySummary>>;
+  snapshot(): Promise<WorkerSnapshotEnvelopeArtifact>;
+  restore_snapshot(snapshot: RuntimeSnapshotEnvelope): Promise<unknown>;
+  restore_exact_snapshot(snapshot: WorkerSnapshotEnvelopeArtifact): Promise<unknown>;
+  current_branch(): Promise<RuntimeBranchHandle>;
+  branches(): Promise<ReadonlyArray<RuntimeBranchHandle>>;
+  create_branch(name: string): Promise<RuntimeBranchHandle>;
+  switch_branch(branchId: bigint | number): Promise<unknown>;
+  replay_for_branch(branchId: bigint | number): Promise<ReplaySummary>;
+  branch_snapshot(branchId: bigint | number): Promise<WorkerSnapshotArtifact>;
+  branch_snapshot_id(branchId: bigint | number): Promise<bigint | number>;
+  branch_snapshot_envelope(branchId: bigint | number): Promise<WorkerSnapshotEnvelopeArtifact>;
+  restore_branch_snapshot(branchId: bigint | number, snapshot: RuntimeSnapshotArtifact): Promise<unknown>;
+  restore_exact_branch_snapshot(
+    branchId: bigint | number,
+    snapshot: WorkerSnapshotArtifact,
+  ): Promise<unknown>;
+  restore_branch_snapshot_by_id(branchId: bigint | number, snapshotId: bigint | number): Promise<unknown>;
+  plan_merge_branches(
+    sourceBranchId: bigint | number,
+    targetBranchId: bigint | number,
+  ): Promise<MergePlanArtifact>;
+  plan_merge_branches_with_proof(
+    sourceBranchId: bigint | number,
+    targetBranchId: bigint | number,
+  ): Promise<MergePlanProofEnvelope>;
+  merge_branches(
+    sourceBranchId: bigint | number,
+    targetBranchId: bigint | number,
+  ): Promise<MergeResultArtifact>;
+  merge_branches_with_proof(
+    sourceBranchId: bigint | number,
+    targetBranchId: bigint | number,
+  ): Promise<MergeResultProofEnvelope>;
+  plan_merge_policy_preview(request: MergePolicyPreviewRequest): Promise<MergePlanArtifact>;
+  plan_merge_policy_preview_with_proof(
+    request: MergePolicyPreviewRequest,
+  ): Promise<MergePlanProofEnvelope>;
+  merge_branches_policy_preview(request: MergePolicyPreviewRequest): Promise<MergeResultArtifact>;
+  merge_branches_policy_preview_with_proof(
+    request: MergePolicyPreviewRequest,
+  ): Promise<MergeResultProofEnvelope>;
+  branch_state_proof(branchId: bigint | number): Promise<BranchStateProofReport>;
+  replay_parity_proof(
+    expectedBranchId: bigint | number,
+    replayedBranchId: bigint | number,
+  ): Promise<ReplayParityProofReport>;
+  replay_artifact_proof(
+    expected: ReplayArtifactProofInput,
+    replayedBranchId: bigint | number,
+  ): Promise<ReplayArtifactProofReport>;
 }
 
 export interface WorkerFirstAdaptersFacade {

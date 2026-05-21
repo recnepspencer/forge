@@ -17,10 +17,43 @@ export async function createWorkerFirstAsyncLinkedHandle(
   sourceOrDefinition,
   options,
 ) {
-  const { source, computation, debugName } = normalizeLinkedDefinition(sourceOrDefinition, options);
-  const initialSourceValue = evaluateLinkedSource(rootSession, source);
-  const initialValue = computation(initialSourceValue, null);
+  const normalized = normalizeLinkedDefinition(sourceOrDefinition, options);
+  const initialSourceValue = evaluateLinkedSource(rootSession, normalized.source);
+  const initialValue = normalized.computation(initialSourceValue, null);
   await rootSession.createStandaloneInput(id, initialValue, {});
+  return createWorkerFirstLinkedHandleState(
+    rootSession,
+    id,
+    normalized,
+    initialSourceValue,
+  );
+}
+
+export function createWorkerFirstLinkedHandle(
+  rootSession,
+  id,
+  sourceOrDefinition,
+  options,
+) {
+  const normalized = normalizeLinkedDefinition(sourceOrDefinition, options);
+  const initialSourceValue = evaluateLinkedSource(rootSession, normalized.source);
+  const initialValue = normalized.computation(initialSourceValue, null);
+  rootSession.createEagerStandaloneInput(id, initialValue, {});
+  return createWorkerFirstLinkedHandleState(
+    rootSession,
+    id,
+    normalized,
+    initialSourceValue,
+  );
+}
+
+function createWorkerFirstLinkedHandleState(
+  rootSession,
+  id,
+  normalized,
+  initialSourceValue,
+) {
+  const { source, computation, debugName } = normalized;
 
   let latestSourceValue = cloneLinkedSignalValue(initialSourceValue);
   const read = () => readWorkerFirstTrackedSignal(rootSession, id, () => rootSession.readSignalValue(id));

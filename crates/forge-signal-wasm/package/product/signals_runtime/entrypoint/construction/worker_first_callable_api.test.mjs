@@ -4,7 +4,12 @@ import { Worker as NodeWorker } from "node:worker_threads";
 
 import { loadSignalsModule } from "../../module_loading/load_signals_module.mjs";
 
-test("default worker-first root exposes declarative api namespaces and keeps resource-family realization explicit", async () => {
+async function settleWorkerResourceLine() {
+  await Promise.resolve();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+test("default worker-first root exposes terminal api detail, collection, and paged families", async () => {
   const previousWorker = globalThis.Worker;
   globalThis.Worker = NodeWorker;
   const { createSignals, cleanup } = await loadSignalsModule({ rawSurface: "real" });
@@ -20,10 +25,6 @@ test("default worker-first root exposes declarative api namespaces and keeps res
       headers: { "x-scope": "wizard" },
     });
 
-    assert.equal(typeof api.scope, "function");
-    assert.equal(typeof api.url, "function");
-    assert.equal(typeof scopedApi.scope, "function");
-
     const route = api.url("/tasks/:taskId").response(
       workerSignals.resource.response.detail()({ title: "title" }),
     );
@@ -31,29 +32,50 @@ test("default worker-first root exposes declarative api namespaces and keeps res
       workerSignals.resource.response.detail()({ title: "title" }),
     );
 
-    assert.equal(typeof route.detail, "function");
-    assert.equal(typeof route.update, "function");
-    assert.equal(typeof route.remove, "function");
-    assert.equal(typeof scopedRoute.detail, "function");
+    const detailLine = route.detail({
+      load: ({ taskId }) => ({ id: taskId, title: "Draft" }),
+    }).line({ taskId: "task-1" });
+    await settleWorkerResourceLine();
+    assert.deepEqual(detailLine.value(), {
+      id: "task-1",
+      title: "Draft",
+    });
 
-    assert.throws(
-      () => route.detail({
-        load: ({ taskId }) => ({ id: taskId, title: "Draft" }),
-      }),
-      /worker-first resource surface/i,
-    );
-    assert.throws(
-      () => scopedRoute.detail({
-        load: ({ taskId }) => ({ id: taskId, title: "Draft" }),
-      }),
-      /worker-first resource surface/i,
-    );
-    assert.throws(
-      () => api.url("/tasks").list({
-        load: () => ({ tasks: [] }),
-      }),
-      /worker-first resource surface/i,
-    );
+    const scopedDetailLine = scopedRoute.detail({
+      load: ({ taskId }) => ({ id: taskId, title: "Scoped" }),
+    }).line({ taskId: "task-2" });
+    await settleWorkerResourceLine();
+    assert.deepEqual(scopedDetailLine.value(), {
+      id: "task-2",
+      title: "Scoped",
+    });
+
+    const collectionLine = api.url("/tasks").list({
+      itemIdentity: (item) => item.id,
+      load: () => [{ id: "task-1", title: "List" }],
+    }).line({});
+    await settleWorkerResourceLine();
+    assert.deepEqual(collectionLine.value(), [{
+      id: "task-1",
+      title: "List",
+    }]);
+
+    const pagedLine = api.url("/feed").paged({
+      itemIdentity: (item) => item.id,
+      accumulatePage: (existing, next) => [...existing, ...next],
+      load: () => [{ id: "feed-1", title: "Paged" }],
+    }).line({});
+    await settleWorkerResourceLine();
+    assert.deepEqual(pagedLine.value(), [{
+      id: "feed-1",
+      title: "Paged",
+    }]);
+
+    detailLine.free();
+    scopedDetailLine.free();
+    collectionLine.free();
+    pagedLine.free();
+    await workerSignals.terminate();
   } finally {
     await cleanup();
     globalThis.Worker = previousWorker;

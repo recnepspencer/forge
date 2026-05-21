@@ -18,26 +18,49 @@ import {
   readWorkerFirstAuthoredReadableValue,
   updateWorkerFirstAuthoredReadables,
 } from "./worker_first_authored_readable_state.js";
+import { captureWorkerFirstAuthoredCallback } from "./worker_first_authored_callback_capture.js";
+import {
+  refreshWorkerFirstAuthoredCallbackReadables,
+  refreshWorkerFirstAuthoredReadableSignals,
+} from "./worker_first_authored_readable_refresh.js";
+import { materializeWorkerCachedValue } from "./worker_cached_value.js";
+import { outputProjectionSpec } from "../../../output_projection_ids.js";
 
-export function createWorkerFirstRootAuthoredRuntime(bridge, activeImportContext, requireActive) {
-  return new WorkerFirstRootAuthoredRuntime(bridge, activeImportContext, requireActive);
+export function createWorkerFirstRootAuthoredRuntime(
+  bridge,
+  activeImportContext,
+  requireActive,
+  runtimeMarker,
+) {
+  return new WorkerFirstRootAuthoredRuntime(
+    bridge,
+    activeImportContext,
+    requireActive,
+    runtimeMarker,
+  );
 }
 
 class WorkerFirstRootAuthoredRuntime {
   #bridge;
   #activeImportContext;
   #requireActive;
+  #runtimeMarker;
   #authoredInputs;
   #authoredReadables;
+  #authoredCallbacks;
   #generatedStandaloneSignalCounters;
+  #pendingPublications;
 
-  constructor(bridge, activeImportContext, requireActive) {
+  constructor(bridge, activeImportContext, requireActive, runtimeMarker) {
     this.#bridge = bridge;
     this.#activeImportContext = activeImportContext;
     this.#requireActive = requireActive;
+    this.#runtimeMarker = runtimeMarker;
     this.#authoredInputs = new Map();
     this.#authoredReadables = new Map();
+    this.#authoredCallbacks = new Map();
     this.#generatedStandaloneSignalCounters = new Map();
+    this.#pendingPublications = new Set();
   }
 
   nextGeneratedStandaloneSignalId(family, scopeId = null) {
@@ -71,26 +94,28 @@ class WorkerFirstRootAuthoredRuntime {
     );
   }
 
-  readAuthoredInputBaseline(id) {
-    return readWorkerFirstAuthoredInputBaseline(this.#authoredInputs, id);
-  }
+  readAuthoredInputBaseline(id) { return readWorkerFirstAuthoredInputBaseline(this.#authoredInputs, id); }
 
   async createStandaloneInput(id, initial, options = {}) {
     this.#requireActive("inputAsync");
     if (typeof id !== "string" || id.length === 0) {
       throw new TypeError("worker-first inputAsync(...) requires a non-empty authored input id");
     }
-    if (
-      this.#authoredInputs.has(id)
-      || this.#authoredReadables.has(id)
-      || this.#activeImportContext()?.signalValueById.has(id)
-    ) {
-      throw new TypeError(
-        `worker-first inputAsync(...) cannot reuse canonical id \`${id}\` in the same worker-owned runtime`,
-      );
+    this.#assertUnusedId(id, "inputAsync");
+    await this.#publishAuthoredInput(id, initial, options);
+  }
+
+  createEagerStandaloneInput(id, initial, options = {}) {
+    this.#requireActive("input");
+    if (typeof id !== "string" || id.length === 0) {
+      throw new TypeError("worker-first input(...) requires a non-empty authored input id");
     }
-    await this.#bridge.publishPortableGraph(createAuthoredInputPublication(id, initial, options));
+    this.#assertUnusedId(id, "input");
     this.#authoredInputs.set(id, createWorkerFirstAuthoredInputState(initial));
+    this.#trackPendingPublication(
+      this.#bridge.publishPortableGraph(createAuthoredInputPublication(id, initial, options)),
+      () => invalidateAuthoredInput(this.#authoredInputs, id, "worker-first input(...) background publication failed"),
+    );
   }
 
   async createStandaloneReadable(id, family, spec) {
@@ -98,15 +123,7 @@ class WorkerFirstRootAuthoredRuntime {
     if (typeof id !== "string" || id.length === 0) {
       throw new TypeError(`worker-first ${family}Async(...) requires a non-empty authored ${family} id`);
     }
-    if (
-      this.#authoredInputs.has(id)
-      || this.#authoredReadables.has(id)
-      || this.#activeImportContext()?.signalValueById.has(id)
-    ) {
-      throw new TypeError(
-        `worker-first ${family}Async(...) cannot reuse canonical id \`${id}\` in the same worker-owned runtime`,
-      );
-    }
+    this.#assertUnusedId(id, `${family}Async`);
     this.#assertSupportedReadableSpec(family, spec);
     await this.#bridge.publishPortableGraph(createAuthoredReadablePublication(id, family, spec));
     const signalPacket = await this.#bridge.readSignals({ signalIds: [id] });
@@ -116,17 +133,125 @@ class WorkerFirstRootAuthoredRuntime {
         `worker-first ${family}Async(...) could not read committed worker truth for \`${id}\` after authoring`,
       );
     }
-    this.#authoredReadables.set(id, createWorkerFirstAuthoredReadableState(family, signal.value));
+    this.#authoredReadables.set(
+      id,
+      createWorkerFirstAuthoredReadableState(family, signal.value, spec.reads ?? []),
+    );
   }
 
-  authoredInputMutation(id, mutation) {
+  createEagerStandaloneReadable(id, family, spec, initialValue, dependencyIds) {
+    this.#requireActive(`${family}`);
+    if (typeof id !== "string" || id.length === 0) {
+      throw new TypeError(`worker-first ${family}(...) requires a non-empty authored ${family} id`);
+    }
+    this.#assertUnusedId(id, `${family}`);
+    this.#assertSupportedReadableSpec(family, spec);
+    this.#authoredReadables.set(
+      id,
+      createWorkerFirstAuthoredReadableState(family, initialValue, dependencyIds),
+    );
+    const initializePublishedReadable = spec?.when === undefined || spec?.when === null
+      ? this.#bridge.publishPortableGraph(createAuthoredReadablePublication(id, family, spec))
+      : this.#bridge.publishPortableGraph(createAuthoredReadablePublication(id, family, spec))
+        .then(() => this.#bridge.readSignals({ signalIds: [id] }))
+        .then((signalPacket) => {
+          updateWorkerFirstAuthoredReadables(this.#authoredReadables, signalPacket.signals);
+        });
+    this.#trackPendingPublication(
+      initializePublishedReadable,
+      () => invalidateAuthoredReadable(this.#authoredReadables, id, `worker-first ${family}(...) background publication failed`),
+    );
+  }
+
+  async createStandaloneCallbackReadable(id, family, callback) {
+    this.#requireActive(`${family}Async`);
+    if (typeof id !== "string" || id.length === 0) {
+      throw new TypeError(`worker-first ${family}Async(...) requires a non-empty authored ${family} id`);
+    }
+    if (typeof callback !== "function") {
+      throw new TypeError(`worker-first ${family}Async(...) callback form requires a function`);
+    }
+    this.#assertUnusedId(id, `${family}Async`);
+    const capture = this.#captureCallback(callback, family);
+    const hiddenInputId = nextHiddenCallbackInputId(
+      this.#generatedStandaloneSignalCounters,
+      family,
+      id,
+    );
+    await this.#publishAuthoredInput(hiddenInputId, capture.value, {});
+    await this.#bridge.publishPortableGraph(
+      createAuthoredReadablePublication(id, family, outputProjectionSpec(hiddenInputId)),
+    );
+    const signalPacket = await this.#bridge.readSignals({ signalIds: [id] });
+    const signal = signalPacket.signals[0];
+    if (!signal || signal.id !== id) {
+      throw new TypeError(
+        `worker-first ${family}Async(...) could not read committed worker truth for \`${id}\` after callback authoring`,
+      );
+    }
+    this.#authoredReadables.set(
+      id,
+      createWorkerFirstAuthoredReadableState(family, signal.value),
+    );
+    this.#authoredCallbacks.set(id, {
+      family,
+      callback,
+      hiddenInputId,
+      dependencyIds: capture.reads,
+    });
+  }
+
+  createEagerStandaloneCallbackReadable(id, family, callback) {
+    this.#requireActive(`${family}`);
+    if (typeof id !== "string" || id.length === 0) {
+      throw new TypeError(`worker-first ${family}(...) requires a non-empty authored ${family} id`);
+    }
+    if (typeof callback !== "function") {
+      throw new TypeError(`worker-first ${family}(...) callback form requires a function`);
+    }
+    this.#assertUnusedId(id, `${family}`);
+    const capture = this.#captureCallback(callback, family);
+    const hiddenInputId = nextHiddenCallbackInputId(
+      this.#generatedStandaloneSignalCounters,
+      family,
+      id,
+    );
+    this.#authoredInputs.set(hiddenInputId, createWorkerFirstAuthoredInputState(capture.value));
+    this.#authoredReadables.set(
+      id,
+      createWorkerFirstAuthoredReadableState(family, capture.value, capture.reads),
+    );
+    this.#authoredCallbacks.set(id, {
+      family,
+      callback,
+      hiddenInputId,
+      dependencyIds: capture.reads,
+    });
+    this.#trackPendingPublication(
+      this.#publishCallbackReadableGraph(id, family, hiddenInputId, capture.value),
+      () => {
+        invalidateAuthoredInput(this.#authoredInputs, hiddenInputId, `worker-first ${family}(...) background publication failed`);
+        invalidateAuthoredReadable(this.#authoredReadables, id, `worker-first ${family}(...) background publication failed`);
+      },
+    );
+  }
+
+  beginAuthoredInputMutation(id, mutation) {
     const authoredInput = this.#authoredInputs.get(id);
     if (!authoredInput || authoredInput.invalidatedMessage !== null) {
       throw new TypeError(
         `worker-first inputAsync(...) can mutate only currently available worker-first authored inputs; \`${id}\` is not currently available`,
       );
     }
-    return [buildAuthoredInputMutationOperation(id, mutation, authoredInput)];
+    const previousValue = authoredInput.currentValue;
+    const transactionOp = buildAuthoredInputMutationOperation(id, mutation, authoredInput);
+    authoredInput.currentValue = materializeWorkerCachedValue(transactionOp.value);
+    return Object.freeze({
+      transactionOps: [transactionOp],
+      rollback() {
+        authoredInput.currentValue = previousValue;
+      },
+    });
   }
 
   applyCommittedInputs(transactionOps) {
@@ -137,22 +262,72 @@ class WorkerFirstRootAuthoredRuntime {
     writeWorkerFirstAuthoredInputBaseline(this.#authoredInputs, id, value);
   }
 
-  async refreshReadables() {
-    const activeReadableIds = [...this.#authoredReadables.entries()]
-      .filter(([, authoredReadable]) => authoredReadable.invalidatedMessage === null)
-      .map(([id]) => id);
-    if (activeReadableIds.length === 0) {
-      return;
-    }
-    const signalPacket = await this.#bridge.readSignals({
-      signalIds: activeReadableIds,
+  async refreshReadables(changedIds = []) {
+    await refreshWorkerFirstAuthoredCallbackReadables({
+      bridge: this.#bridge,
+      authoredInputs: this.#authoredInputs,
+      authoredReadables: this.#authoredReadables,
+      authoredCallbacks: this.#authoredCallbacks,
+      changedIds,
+      captureCallback: (callback, family) => this.#captureCallback(callback, family),
     });
-    updateWorkerFirstAuthoredReadables(this.#authoredReadables, signalPacket.signals);
+    await refreshWorkerFirstAuthoredReadableSignals({
+      bridge: this.#bridge,
+      authoredReadables: this.#authoredReadables,
+    });
   }
 
   invalidate(message) {
     invalidateWorkerFirstAuthoredInputs(this.#authoredInputs, message);
     invalidateWorkerFirstAuthoredReadables(this.#authoredReadables, message);
+  }
+
+  async settlePendingPublications() {
+    if (this.#pendingPublications.size > 0) await Promise.all([...this.#pendingPublications]);
+  }
+
+  async refreshAllReadables() {
+    await refreshWorkerFirstAuthoredReadableSignals({
+      bridge: this.#bridge,
+      authoredReadables: this.#authoredReadables,
+    });
+    await refreshWorkerFirstAuthoredCallbackReadables({
+      bridge: this.#bridge,
+      authoredInputs: this.#authoredInputs,
+      authoredReadables: this.#authoredReadables,
+      authoredCallbacks: this.#authoredCallbacks,
+      changedIds: null,
+      captureCallback: (callback, family) => this.#captureCallback(callback, family),
+      skipDirectReadableRefresh: true,
+    });
+    await refreshWorkerFirstAuthoredReadableSignals({
+      bridge: this.#bridge,
+      authoredReadables: this.#authoredReadables,
+    });
+  }
+
+  #assertUnusedId(id, operation) {
+    if (
+      this.#authoredInputs.has(id)
+      || this.#authoredReadables.has(id)
+      || this.#activeImportContext()?.signalValueById.has(id)
+    ) {
+      throw new TypeError(
+        `worker-first ${operation}(...) cannot reuse canonical id \`${id}\` in the same worker-owned runtime`,
+      );
+    }
+  }
+
+  async #publishAuthoredInput(id, initial, options) {
+    await this.#bridge.publishPortableGraph(createAuthoredInputPublication(id, initial, options));
+    this.#authoredInputs.set(id, createWorkerFirstAuthoredInputState(initial));
+  }
+
+  async #publishCallbackReadableGraph(id, family, hiddenInputId, initialValue) {
+    await this.#bridge.publishPortableGraph(createAuthoredInputPublication(hiddenInputId, initialValue, {}));
+    await this.#bridge.publishPortableGraph(
+      createAuthoredReadablePublication(id, family, outputProjectionSpec(hiddenInputId)),
+    );
   }
 
   #assertSupportedReadableSpec(family, spec) {
@@ -175,5 +350,35 @@ class WorkerFirstRootAuthoredRuntime {
         );
       }
     }
+  }
+
+  #captureCallback(callback, family) {
+    return captureWorkerFirstAuthoredCallback(
+      this.#runtimeMarker,
+      callback,
+      family,
+      (id) => this.hasKnownSignalId(id),
+    );
+  }
+
+  #trackPendingPublication(publication, onFailure) {
+    const tracked = Promise.resolve(publication).catch((error) => {
+      onFailure(error);
+    }).finally(() => {
+      this.#pendingPublications.delete(tracked);
+    });
+    this.#pendingPublications.add(tracked);
+  }
+}
+
+function nextHiddenCallbackInputId(counters, family, visibleId) {
+  const suffix = nextGeneratedStandaloneSignalId(counters, "callbackBacking", family);
+  return `${suffix}.${visibleId}`;
+}
+
+function invalidateAuthoredInput(authoredInputs, id, message) {
+  const authoredInput = authoredInputs.get(id);
+  if (authoredInput) {
+    authoredInput.invalidatedMessage = message;
   }
 }

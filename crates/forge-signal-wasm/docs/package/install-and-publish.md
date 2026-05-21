@@ -167,7 +167,7 @@ This is the simplest useful example for the current app lane:
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const count = signals.input(1);
 const doubled = signals.computed(() => count() * 2);
@@ -193,7 +193,7 @@ controller composition, and graph publication:
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const itemWorkspace = signals.graph("itemWorkspace", (graph) => {
   const editor = graph.controller("editor", ({ input, computed, linked }) => {
@@ -347,6 +347,37 @@ Good to know:
 - this is for exact graph restore
 - portable graph import is still denied on this surface
 - `importPosture()` tells you what kind of restore is actually admitted
+
+## Explicit Compatibility Recovery
+
+The normal package lane is:
+
+```ts
+const signals = await createSignals();
+```
+
+If worker-first construction is unavailable, recover explicitly:
+
+```ts
+import { createSignals } from "forge-signal-wasm";
+
+let signals;
+
+try {
+  signals = await createSignals();
+} catch (error) {
+  if (error?.artifactFamily !== "workerUnavailableConstruction") {
+    throw error;
+  }
+  signals = await createSignals({
+    deployment: "mainThreadCompatibility",
+  });
+}
+```
+
+Do not assume `createSignals()` silently falls back. The package keeps the
+worker-unavailable lane typed so callers can decide whether compatibility is
+acceptable.
 
 ## What To Read Next
 

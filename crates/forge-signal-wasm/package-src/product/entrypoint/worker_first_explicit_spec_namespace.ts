@@ -1,5 +1,6 @@
 import { freezeObject } from "../graph_support.js";
 import { PRODUCT_SIGNAL_KIND } from "../symbols.js";
+import { createWorkerFirstSyncCallbackRecipeHandle } from "./worker_first_async_recipe.js";
 import {
   denyWorkerFirstMutationDuringCallbackAuthoring,
   readWorkerFirstTrackedSignal,
@@ -24,10 +25,14 @@ export function createWorkerFirstExplicitSpecNamespace(rootSession, path = []) {
       );
     },
     computedCallback(localId, callback, options) {
-      void localId;
-      void callback;
-      void options;
-      throwWorkerFirstSpecCallbackUnavailable("signals.spec.computedCallback");
+      const id = canonicalSpecId(path, localId);
+      return createWorkerFirstSyncCallbackRecipeHandle(
+        rootSession,
+        "computed",
+        id,
+        callback,
+        options,
+      );
     },
     output(localId, spec, options) {
       const id = canonicalSpecId(path, localId);
@@ -39,10 +44,14 @@ export function createWorkerFirstExplicitSpecNamespace(rootSession, path = []) {
       );
     },
     outputCallback(localId, callback, options) {
-      void localId;
-      void callback;
-      void options;
-      throwWorkerFirstSpecCallbackUnavailable("signals.spec.outputCallback");
+      const id = canonicalSpecId(path, localId);
+      return createWorkerFirstSyncCallbackRecipeHandle(
+        rootSession,
+        "output",
+        id,
+        callback,
+        options,
+      );
     },
   });
 }
@@ -179,20 +188,6 @@ function normalizeOptionalArray(value) {
 
 function sameJsonValue(left, right) {
   return JSON.stringify(left) === JSON.stringify(right);
-}
-
-function throwWorkerFirstSpecCallbackUnavailable(operation) {
-  const error = new Error(
-    `${operation}(...) is unavailable on the current worker-first spec surface because callback declarations are not portable through active imported-graph binding; use deployment: "mainThreadCompatibility" for callback explicit authoring`,
-  );
-  error.name = "WorkerFirstSpecCallbackUnavailable";
-  error.code = "workerFirstSpecCallbackUnavailable";
-  error.compatibilityRecovery = freezeObject({
-    deployment: "mainThreadCompatibility",
-    message:
-      'Retry with deployment: "mainThreadCompatibility" to use callback explicit authoring.',
-  });
-  throw error;
 }
 
 function canonicalSpecId(path, localId) {

@@ -93,6 +93,14 @@ async function loadSignalsModuleIntoCachedTempDir(options, cacheKey) {
         "product/entrypoint/worker_first_async_recipe.js",
       ],
       [
+        "product/entrypoint/worker_first_declarative_expr.ts",
+        "product/entrypoint/worker_first_declarative_expr.js",
+      ],
+      [
+        "product/entrypoint/worker_first_sync_authoring.ts",
+        "product/entrypoint/worker_first_sync_authoring.js",
+      ],
+      [
         "product/entrypoint/worker_first_form_factory.ts",
         "product/entrypoint/worker_first_form_factory.js",
       ],
@@ -121,8 +129,28 @@ async function loadSignalsModuleIntoCachedTempDir(options, cacheKey) {
         "product/entrypoint/worker_first_root_graph_support.js",
       ],
       [
+        "product/entrypoint/worker_first_root_history_lifecycle.ts",
+        "product/entrypoint/worker_first_root_history_lifecycle.js",
+      ],
+      [
+        "product/entrypoint/worker_first_root_mutation.ts",
+        "product/entrypoint/worker_first_root_mutation.js",
+      ],
+      [
+        "product/entrypoint/worker_first_root_runtime_replacement.ts",
+        "product/entrypoint/worker_first_root_runtime_replacement.js",
+      ],
+      [
         "product/entrypoint/worker_first_host_capabilities.ts",
         "product/entrypoint/worker_first_host_capabilities.js",
+      ],
+      [
+        "product/entrypoint/worker_first_host_capability_events.ts",
+        "product/entrypoint/worker_first_host_capability_events.js",
+      ],
+      [
+        "product/entrypoint/worker_first_persistence_host_capability.ts",
+        "product/entrypoint/worker_first_persistence_host_capability.js",
       ],
       [
         "product/entrypoint/worker_first_root_session.ts",
@@ -171,6 +199,14 @@ async function loadSignalsModuleIntoCachedTempDir(options, cacheKey) {
       [
         "product/entrypoint/sessions/support/worker_first_authored_readable_state.ts",
         "product/entrypoint/sessions/support/worker_first_authored_readable_state.js",
+      ],
+      [
+        "product/entrypoint/sessions/support/worker_first_authored_callback_capture.ts",
+        "product/entrypoint/sessions/support/worker_first_authored_callback_capture.js",
+      ],
+      [
+        "product/entrypoint/sessions/support/worker_first_authored_readable_refresh.ts",
+        "product/entrypoint/sessions/support/worker_first_authored_readable_refresh.js",
       ],
       [
         "product/entrypoint/sessions/support/worker_first_graph_inspection.ts",

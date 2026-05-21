@@ -32,6 +32,13 @@ test("default worker-first root admits explicit async input authoring and mixed 
 
   try {
     const workerSignals = await createSignals();
+    const eagerInput = workerSignals.input(1, {
+      debugName: "eagerInput",
+    });
+    assert.equal(eagerInput(), 1);
+    await eagerInput.set(2);
+    assert.equal(eagerInput(), 2);
+
     const preImportInput = await workerSignals.inputAsync(1, {
       debugName: "preImportInput",
     });
@@ -39,6 +46,10 @@ test("default worker-first root admits explicit async input authoring and mixed 
 
     const importedGraph = workerSignals.importGraph(definition, snapshot);
     await importedGraph.ready();
+    assert.throws(
+      () => eagerInput(),
+      /replaced the worker-owned runtime/,
+    );
     assert.throws(
       () => preImportInput(),
       /replaced the worker-owned runtime/,

@@ -42,19 +42,55 @@ function executeLineExactBranchRestore(materialization, restoreTarget, basis) {
   try {
     const history = materialization.history;
     if (typeof history.restore_branch_snapshot_by_id === "function") {
-      history.restore_branch_snapshot_by_id(
+      const restoreResult = history.restore_branch_snapshot_by_id(
         BigInt(restoreTarget.branchId),
         BigInt(restoreTarget.snapshotId),
       );
+      if (isPromiseLike(restoreResult)) {
+        return restoreResult.then(
+          () => finalizeLineExactBranchRestore(
+            materialization,
+            restoreTarget,
+            basis,
+            fallbackRequestDescriptor,
+            fallbackPreviousValue,
+            previousDiagnostics,
+            previousLifecycleEntries,
+          ),
+          (error) => createLineExactBranchRestoreUnavailable(
+            "resource line exact branch restore is unavailable because restore execution failed",
+            error,
+            basis,
+          ),
+        );
+      }
     } else if (
       typeof history.restore_exact_branch_snapshot === "function"
       && typeof history.branch_snapshot === "function"
     ) {
       const snapshot = history.branch_snapshot(BigInt(restoreTarget.branchId));
-      history.restore_exact_branch_snapshot(
+      const restoreResult = history.restore_exact_branch_snapshot(
         BigInt(restoreTarget.branchId),
         snapshot,
       );
+      if (isPromiseLike(restoreResult)) {
+        return restoreResult.then(
+          () => finalizeLineExactBranchRestore(
+            materialization,
+            restoreTarget,
+            basis,
+            fallbackRequestDescriptor,
+            fallbackPreviousValue,
+            previousDiagnostics,
+            previousLifecycleEntries,
+          ),
+          (error) => createLineExactBranchRestoreUnavailable(
+            "resource line exact branch restore is unavailable because restore execution failed",
+            error,
+            basis,
+          ),
+        );
+      }
     } else {
       const unavailable = createUnavailableRestoreAvailability(
         "unsupportedByRuntime",
@@ -69,21 +105,32 @@ function executeLineExactBranchRestore(materialization, restoreTarget, basis) {
       });
     }
   } catch (error) {
-    const unavailable = createUnavailableRestoreAvailability(
-      "runtimeRejected",
-      readHistoryRuntimeErrorDetail(
-        "resource line exact branch restore is unavailable because restore execution failed",
-        error,
-      ),
+    return createLineExactBranchRestoreUnavailable(
+      "resource line exact branch restore is unavailable because restore execution failed",
+      error,
+      basis,
     );
-    return Object.freeze({
-      kind: "unavailable",
-      reason: unavailable.reason,
-      detail: unavailable.detail,
-      basisCurrentId: basis.currentBasisId,
-      basisAdvanceCount: basis.advanceCount,
-    });
   }
+  return finalizeLineExactBranchRestore(
+    materialization,
+    restoreTarget,
+    basis,
+    fallbackRequestDescriptor,
+    fallbackPreviousValue,
+    previousDiagnostics,
+    previousLifecycleEntries,
+  );
+}
+
+function finalizeLineExactBranchRestore(
+  materialization,
+  restoreTarget,
+  basis,
+  fallbackRequestDescriptor,
+  fallbackPreviousValue,
+  previousDiagnostics,
+  previousLifecycleEntries,
+) {
   const restoredRequestDescriptor =
     readRequestDescriptorFallback(materialization) ?? fallbackRequestDescriptor;
   if (restoredRequestDescriptor === null) {
@@ -119,6 +166,24 @@ function executeLineExactBranchRestore(materialization, restoreTarget, basis) {
     basisAdvanceCount: basis.advanceCount,
     reloadStatus,
   });
+}
+
+function createLineExactBranchRestoreUnavailable(detailPrefix, error, basis) {
+  const unavailable = createUnavailableRestoreAvailability(
+    "runtimeRejected",
+    readHistoryRuntimeErrorDetail(detailPrefix, error),
+  );
+  return Object.freeze({
+    kind: "unavailable",
+    reason: unavailable.reason,
+    detail: unavailable.detail,
+    basisCurrentId: basis.currentBasisId,
+    basisAdvanceCount: basis.advanceCount,
+  });
+}
+
+function isPromiseLike(value) {
+  return value !== null && typeof value === "object" && typeof value.then === "function";
 }
 
 function readPreviousDiagnosticsFallback(materialization) {

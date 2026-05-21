@@ -31,23 +31,28 @@ function executeLineHistoryExactReplay(materialization, historyRead) {
         basisAdvanceCount: basis.advanceCount,
       });
     }
-    history.replay_signal_by_id(availability.signalId);
+    const replayResult = history.replay_signal_by_id(availability.signalId);
+    if (isPromiseLike(replayResult)) {
+      return replayResult.then(
+        () => createReplayResult(materialization, availability, basis),
+        (error) => createReplayUnavailableResult(
+          "resource line exact replay is unavailable because replay execution failed",
+          error,
+          basis,
+        ),
+      );
+    }
   } catch (error) {
-    const unavailable = createUnavailableReplayAvailability(
-      "runtimeRejected",
-      readHistoryRuntimeErrorDetail(
-        "resource line exact replay is unavailable because replay execution failed",
-        error,
-      ),
+    return createReplayUnavailableResult(
+      "resource line exact replay is unavailable because replay execution failed",
+      error,
+      basis,
     );
-    return Object.freeze({
-      kind: "unavailable",
-      reason: unavailable.reason,
-      detail: unavailable.detail,
-      basisCurrentId: basis.currentBasisId,
-      basisAdvanceCount: basis.advanceCount,
-    });
   }
+  return createReplayResult(materialization, availability, basis);
+}
+
+function createReplayResult(materialization, availability, basis) {
   const reloadStatus = executeLineReload(
     materialization,
     "replay",
@@ -61,6 +66,24 @@ function executeLineHistoryExactReplay(materialization, historyRead) {
     basisAdvanceCount: basis.advanceCount,
     reloadStatus,
   });
+}
+
+function createReplayUnavailableResult(detailPrefix, error, basis) {
+  const unavailable = createUnavailableReplayAvailability(
+    "runtimeRejected",
+    readHistoryRuntimeErrorDetail(detailPrefix, error),
+  );
+  return Object.freeze({
+    kind: "unavailable",
+    reason: unavailable.reason,
+    detail: unavailable.detail,
+    basisCurrentId: basis.currentBasisId,
+    basisAdvanceCount: basis.advanceCount,
+  });
+}
+
+function isPromiseLike(value) {
+  return value !== null && typeof value === "object" && typeof value.then === "function";
 }
 
 export { executeLineHistoryExactReplay };

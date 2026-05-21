@@ -4,6 +4,53 @@ import { Worker as NodeWorker } from "node:worker_threads";
 
 import { loadSignalsModule } from "../../module_loading/load_signals_module.mjs";
 
+async function settleWorkerResourceLine() {
+  await Promise.resolve();
+  await new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+function assertEquivalentFormTruth(left, right) {
+  assert.deepEqual(left.source(), right.source());
+  assert.deepEqual(left.draft(), right.draft());
+  assert.deepEqual(left.effective(), right.effective());
+  assert.deepEqual(left.dirty(), right.dirty());
+  assert.deepEqual(left.patchPlan(), right.patchPlan());
+  assert.deepEqual(left.readiness(), right.readiness());
+  assert.deepEqual(left.validation(), right.validation());
+  assert.deepEqual(left.availability(), right.availability());
+  assert.deepEqual(left.admission(), right.admission());
+  assert.deepEqual(left.actionReadiness("submit"), right.actionReadiness("submit"));
+  assert.equal(left.actionPlan("submit").planDigest, right.actionPlan("submit").planDigest);
+}
+
+function comparableResourceExecution(execution) {
+  return {
+    resultKind: execution.resultKind,
+    patchCount: execution.resourceSubmission?.patchCount ?? null,
+    rollbackKind: execution.resourceSubmission?.rollback?.kind ?? null,
+    rollbackMode: execution.resourceSubmission?.rollback?.mode ?? null,
+    visibleSelectionKind: execution.resourceSubmission?.visibleSelection?.kind ?? null,
+  };
+}
+
+function comparableRollback(result) {
+  return {
+    mode: result.mode,
+    resultKind: result.resultKind,
+    kind: result.resourceRollback.kind,
+    rollbackMode: result.resourceRollback.mode ?? null,
+  };
+}
+
+function comparableReplayRestore(result) {
+  return {
+    mode: result.mode,
+    resultKind: result.resultKind,
+    kind: result.resourceReplayRestore.kind,
+    replayRestoreMode: result.resourceReplayRestore.mode ?? null,
+  };
+}
+
 test("default worker-first root exposes form factories over active imported-graph handles", async () => {
   const previousWorker = globalThis.Worker;
   globalThis.Worker = NodeWorker;
@@ -98,6 +145,110 @@ test("default worker-first root exposes form factories over active imported-grap
   } finally {
     compatibilityImportedSignals.free();
     compatibilitySignals.free();
+    await cleanup();
+    globalThis.Worker = previousWorker;
+  }
+});
+
+test("default worker-first root preserves resource-line form action and restore parity with explicit compatibility", async () => {
+  const previousWorker = globalThis.Worker;
+  globalThis.Worker = NodeWorker;
+  const { createSignals, cleanup } = await loadSignalsModule({ rawSurface: "real" });
+
+  let workerSignals = null;
+  let compatibilitySignals = null;
+  let workerLine = null;
+  let compatibilityLine = null;
+  try {
+    workerSignals = await createSignals();
+    compatibilitySignals = await createSignals({ deployment: "mainThreadCompatibility" });
+
+    workerLine = workerSignals.api({
+      effects: workerSignals.resource.effects.branchNative(),
+    }).url("/tasks/:taskId").response(
+      workerSignals.resource.response.detail()({ title: "title", status: "status" }),
+    ).detail({
+      load: ({ taskId }) => ({ id: taskId, title: "Draft", status: "editing" }),
+    }).line({ taskId: "task-1" });
+    compatibilityLine = compatibilitySignals.api({
+      effects: compatibilitySignals.resource.effects.branchNative(),
+    }).url("/tasks/:taskId").response(
+      compatibilitySignals.resource.response.detail()({ title: "title", status: "status" }),
+    ).detail({
+      load: ({ taskId }) => ({ id: taskId, title: "Draft", status: "editing" }),
+    }).line({ taskId: "task-1" });
+    await settleWorkerResourceLine();
+
+    const workerForm = workerSignals.form({
+      source: workerSignals.form.source.resourceLine(workerLine, { id: "worker-resource-form" }),
+      fields: ({ field }) => ({
+        title: field("title"),
+        status: field("status"),
+      }),
+    });
+    const compatibilityForm = compatibilitySignals.form({
+      source: compatibilitySignals.form.source.resourceLine(compatibilityLine, { id: "worker-resource-form" }),
+      fields: ({ field }) => ({
+        title: field("title"),
+        status: field("status"),
+      }),
+    });
+
+    assertEquivalentFormTruth(workerForm, compatibilityForm);
+    assert.equal(
+      workerForm.sourceAuthority().sourceId,
+      compatibilityForm.sourceAuthority().sourceId,
+    );
+
+    workerForm.fields.title.set("Published docs");
+    workerForm.fields.status.set("review");
+    compatibilityForm.fields.title.set("Published docs");
+    compatibilityForm.fields.status.set("review");
+
+    const workerExecution = workerForm.executeAction("submit");
+    const compatibilityExecution = compatibilityForm.executeAction("submit");
+    assert.deepEqual(
+      comparableResourceExecution(workerExecution),
+      comparableResourceExecution(compatibilityExecution),
+    );
+    assertEquivalentFormTruth(workerForm, compatibilityForm);
+
+    const workerRollback = await workerForm.rollbackLastResourceEffect();
+    const compatibilityRollback = await compatibilityForm.rollbackLastResourceEffect();
+    assert.deepEqual(
+      comparableRollback(workerRollback),
+      comparableRollback(compatibilityRollback),
+    );
+    assertEquivalentFormTruth(workerForm, compatibilityForm);
+    assert.equal(workerForm.resetHistory().length, compatibilityForm.resetHistory().length);
+
+    workerForm.fields.title.set("Published docs again");
+    compatibilityForm.fields.title.set("Published docs again");
+    workerForm.executeAction("submit");
+    compatibilityForm.executeAction("submit");
+    workerForm.fields.title.set("Local draft after submit");
+    compatibilityForm.fields.title.set("Local draft after submit");
+
+    const workerRestore = await workerForm.restoreExactResourceSource();
+    const compatibilityRestore = await compatibilityForm.restoreExactResourceSource();
+    assert.deepEqual(
+      comparableReplayRestore(workerRestore),
+      comparableReplayRestore(compatibilityRestore),
+    );
+    assertEquivalentFormTruth(workerForm, compatibilityForm);
+    assert.equal(
+      workerForm.resourceSource().visibleSelection.kind,
+      compatibilityForm.resourceSource().visibleSelection.kind,
+    );
+    assert.equal(
+      workerForm.replayRestoreHistory().length,
+      compatibilityForm.replayRestoreHistory().length,
+    );
+  } finally {
+    workerLine?.free();
+    compatibilityLine?.free();
+    await workerSignals?.terminate();
+    compatibilitySignals?.free();
     await cleanup();
     globalThis.Worker = previousWorker;
   }

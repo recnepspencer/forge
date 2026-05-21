@@ -58,18 +58,32 @@ test("default worker-first root exposes explicit spec handles over the active im
       expr: { kind: "read", id: rootDoubled.id },
       identity: { kind: "exact" },
     });
+    const callbackDoubled = workerSignals.spec.computedCallback(
+      "wizard.callbackDoubled",
+      () => rootCount() * 2,
+    );
+    const callbackPanel = workerSignals.scope("wizard").spec.outputCallback(
+      "callbackPanel",
+      () => callbackDoubled(),
+    );
 
     assert.equal(rootCount.id, importedGraph.input("count").id);
     assert.equal(scopedCount.id, importedGraph.input("count").id);
     assert.equal(rootDoubled.id, "wizard.doubled");
     assert.equal(scopedPanel.id, "wizard.panel");
+    assert.equal(callbackDoubled.id, "wizard.callbackDoubled");
+    assert.equal(callbackPanel.id, "wizard.callbackPanel");
     assert.equal(rootCount(), 2);
     assert.equal(rootDoubled(), 4);
     assert.equal(scopedPanel(), 4);
+    assert.equal(callbackDoubled(), 4);
+    assert.equal(callbackPanel(), 4);
 
     await rootCount.set(7);
     assert.equal(importedGraph.input("count")(), 7);
     assert.equal(rootDoubled(), 14);
+    assert.equal(callbackDoubled(), 14);
+    assert.equal(callbackPanel(), 14);
 
     const controller = workerSignals.controller((surface) => {
       const nested = surface.scope("wizard");
@@ -103,7 +117,7 @@ test("default worker-first root exposes explicit spec handles over the active im
     );
     assert.throws(
       () => workerSignals.spec.computedCallback("wizard.doubled", () => 1),
-      /WorkerFirstSpecCallbackUnavailable/,
+      /cannot reuse canonical id|already uses id|requires an unused signal id|already exists/,
     );
 
     const nextGraph = compatibilitySignals.graph("workerFirstExplicitSpecReplacement", {
@@ -125,6 +139,14 @@ test("default worker-first root exposes explicit spec handles over the active im
     assert.throws(
       () => rootCount(),
       /worker-first signals\.spec\.input/,
+    );
+    assert.throws(
+      () => callbackDoubled(),
+      /replaced the worker-owned runtime|currently available|worker-first computed/,
+    );
+    assert.throws(
+      () => callbackPanel(),
+      /replaced the worker-owned runtime|currently available|worker-first output/,
     );
 
     await nextImportedGraph.terminate();

@@ -73,7 +73,7 @@ The normal app lane is handle-based and id-less:
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const count = signals.input(1);
 const doubled = signals.computed(() => count() * 2);
@@ -99,7 +99,7 @@ This is the simplest useful example of the app lane:
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const count = signals.input(1);
 const doubled = signals.computed(() => count() * 2);
@@ -118,7 +118,7 @@ This example shows the surface we actually want for ordinary feature code:
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const itemWorkspace = signals.graph("itemWorkspace", (graph) => {
   const editor = graph.controller("editor", ({ input, computed, linked }) => {
@@ -327,7 +327,7 @@ import {
   visibilityCapability,
 } from "forge-signal-wasm";
 
-const signals = createSignals({
+const signals = await createSignals({
   hostCapabilities: hostCapabilityPlan({
     visibility: visibilityCapability({
       source: {
@@ -368,7 +368,7 @@ import {
   resourceParams,
 } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const productDetail = signals.resource.detail({
   params: resourceParams<{ productId: string }>(),
@@ -583,7 +583,7 @@ Published graphs can also export exact restore artifacts directly:
 ```ts
 const definition = itemWorkspace.exportDefinition();
 const snapshot = itemWorkspace.exportSnapshot();
-const restored = createSignals().importGraph(definition, snapshot);
+const restored = (await createSignals()).importGraph(definition, snapshot);
 
 console.log(restored.contractHistory());
 ```
@@ -646,16 +646,36 @@ function ItemPanel() {
 }
 ```
 
-## Compatibility Lane
+## Compatibility Recovery
 
-Lower-level compatibility surfaces still exist:
+The normal package lane is worker-first:
 
-- `signals.compatibilityApp()`
-- `signals.compatibilityRuntime()`
-- `signals.adapters()`
+```ts
+const signals = await createSignals();
+```
 
-Use them when you need runtime-facing or export-facing detail. Most app code
-should stay on the callable surface.
+If worker construction is unavailable, recover explicitly instead of expecting
+the package to fall back on its own:
+
+```ts
+import { createSignals } from "forge-signal-wasm";
+
+let signals;
+
+try {
+  signals = await createSignals();
+} catch (error) {
+  if (error?.artifactFamily !== "workerUnavailableConstruction") {
+    throw error;
+  }
+  signals = await createSignals({
+    deployment: "mainThreadCompatibility",
+  });
+}
+```
+
+Use explicit compatibility construction when the environment cannot admit the
+worker lane or when you deliberately need the main-thread runtime posture.
 
 ## Docs
 

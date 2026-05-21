@@ -79,6 +79,16 @@ impl SignalWorkerRuntime {
         to_js(&versions).map_err(JsValue::from)
     }
 
+    #[wasm_bindgen(js_name = evaluateDirty)]
+    pub fn evaluate_dirty(&self) -> Result<JsValue, JsValue> {
+        let summary = self
+            .shell
+            .borrow_mut()
+            .evaluate_dirty()
+            .map_err(JsValue::from)?;
+        to_js(&summary).map_err(JsValue::from)
+    }
+
     #[wasm_bindgen(js_name = exportDefinitions)]
     pub fn export_definitions(&self) -> Result<JsValue, JsValue> {
         let definitions = self

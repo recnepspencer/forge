@@ -6,6 +6,8 @@ class WorkerRuntimeBridge {
   #nextRequestId = 0;
   #pending = new Map();
   #worker;
+  #terminated = false;
+  #terminating = null;
 
   constructor(options) {
     if (typeof globalThis.Worker !== "function") {
@@ -115,6 +117,74 @@ class WorkerRuntimeBridge {
     return this.#request("branches");
   }
 
+  createBranch(name) {
+    return this.#request("createBranch", name);
+  }
+
+  switchBranch(branchId) {
+    return this.#request("switchBranch", normalizeWorkerBranchId(branchId, "switchBranch"));
+  }
+
+  planMergeBranches(sourceBranchId, targetBranchId) {
+    return this.#request(
+      "planMergeBranches",
+      normalizeWorkerBranchId(sourceBranchId, "planMergeBranches.sourceBranchId"),
+      normalizeWorkerBranchId(targetBranchId, "planMergeBranches.targetBranchId"),
+    );
+  }
+
+  planMergeBranchesWithProof(sourceBranchId, targetBranchId) {
+    return this.#request(
+      "planMergeBranchesWithProof",
+      normalizeWorkerBranchId(sourceBranchId, "planMergeBranchesWithProof.sourceBranchId"),
+      normalizeWorkerBranchId(targetBranchId, "planMergeBranchesWithProof.targetBranchId"),
+    );
+  }
+
+  mergeBranches(sourceBranchId, targetBranchId) {
+    return this.#request(
+      "mergeBranches",
+      normalizeWorkerBranchId(sourceBranchId, "mergeBranches.sourceBranchId"),
+      normalizeWorkerBranchId(targetBranchId, "mergeBranches.targetBranchId"),
+    );
+  }
+
+  mergeBranchesWithProof(sourceBranchId, targetBranchId) {
+    return this.#request(
+      "mergeBranchesWithProof",
+      normalizeWorkerBranchId(sourceBranchId, "mergeBranchesWithProof.sourceBranchId"),
+      normalizeWorkerBranchId(targetBranchId, "mergeBranchesWithProof.targetBranchId"),
+    );
+  }
+
+  planMergePolicyPreview(request) {
+    return this.#request(
+      "planMergePolicyPreview",
+      normalizeWorkerMergePreviewRequest(request, "planMergePolicyPreview"),
+    );
+  }
+
+  planMergePolicyPreviewWithProof(request) {
+    return this.#request(
+      "planMergePolicyPreviewWithProof",
+      normalizeWorkerMergePreviewRequest(request, "planMergePolicyPreviewWithProof"),
+    );
+  }
+
+  mergeBranchesPolicyPreview(request) {
+    return this.#request(
+      "mergeBranchesPolicyPreview",
+      normalizeWorkerMergePreviewRequest(request, "mergeBranchesPolicyPreview"),
+    );
+  }
+
+  mergeBranchesPolicyPreviewWithProof(request) {
+    return this.#request(
+      "mergeBranchesPolicyPreviewWithProof",
+      normalizeWorkerMergePreviewRequest(request, "mergeBranchesPolicyPreviewWithProof"),
+    );
+  }
+
   replayForBranch(branchId) {
     return this.#request("replayForBranch", normalizeWorkerBranchId(branchId, "replayForBranch"));
   }
@@ -155,6 +225,38 @@ class WorkerRuntimeBridge {
     );
   }
 
+  restoreBranchSnapshotArtifact(branchId, snapshot) {
+    return this.#request(
+      "restoreBranchSnapshotArtifact",
+      normalizeWorkerBranchId(branchId, "restoreBranchSnapshotArtifact"),
+      snapshot,
+    );
+  }
+
+  restoreBranchSnapshotWire(branchId, snapshot) {
+    return this.#request(
+      "restoreBranchSnapshotWire",
+      normalizeWorkerBranchId(branchId, "restoreBranchSnapshotWire"),
+      snapshot,
+    );
+  }
+
+  restoreBranchSnapshotPortableWire(branchId, snapshot) {
+    return this.#request(
+      "restoreBranchSnapshotPortableWire",
+      normalizeWorkerBranchId(branchId, "restoreBranchSnapshotPortableWire"),
+      snapshot,
+    );
+  }
+
+  restoreBranchSnapshotById(branchId, snapshotId) {
+    return this.#request(
+      "restoreBranchSnapshotById",
+      normalizeWorkerBranchId(branchId, "restoreBranchSnapshotById"),
+      normalizeWorkerBranchId(snapshotId, "restoreBranchSnapshotById.snapshotId"),
+    );
+  }
+
   branchStateProof(branchId) {
     return this.#request("branchStateProof", normalizeWorkerBranchId(branchId, "branchStateProof"));
   }
@@ -169,6 +271,10 @@ class WorkerRuntimeBridge {
 
   readVersions(ids) {
     return this.#request("readVersions", ids);
+  }
+
+  evaluateDirty() {
+    return this.#request("evaluateDirty");
   }
 
   exportDefinitions() {
@@ -201,6 +307,18 @@ class WorkerRuntimeBridge {
 
   exportWorkerSnapshotEnvelopePortableWire() {
     return this.#request("exportWorkerSnapshotEnvelopePortableWire");
+  }
+
+  restoreSnapshotEnvelope(snapshot) {
+    return this.#request("restoreSnapshotEnvelope", snapshot);
+  }
+
+  restoreSnapshotEnvelopeWire(snapshot) {
+    return this.#request("restoreSnapshotEnvelopeWire", snapshot);
+  }
+
+  restoreSnapshotEnvelopePortableWire(snapshot) {
+    return this.#request("restoreSnapshotEnvelopePortableWire", snapshot);
   }
 
   admitWorkerRuntimeEnvelopeImportWire(envelope) {
@@ -256,16 +374,53 @@ class WorkerRuntimeBridge {
   }
 
   async terminate() {
-    this.#worker.terminate();
-    this.#rejectAll(new Error("Worker runtime bridge terminated"));
+    if (this.#terminated) {
+      return;
+    }
+    if (this.#terminating !== null) {
+      await this.#terminating;
+      return;
+    }
+    this.#terminating = this.#terminateWhenIdle();
+    try {
+      await this.#terminating;
+    } finally {
+      this.#terminating = null;
+    }
   }
 
   #request(method, ...args) {
+    if (this.#terminated) {
+      return Promise.reject(new Error("Worker runtime bridge terminated"));
+    }
     const id = ++this.#nextRequestId;
     return new Promise((resolve, reject) => {
-      this.#pending.set(id, { resolve, reject });
+      this.#pending.set(id, { resolve, reject, method });
       this.#worker.postMessage({ id, method, args });
     });
+  }
+
+  async #terminateWhenIdle() {
+    await this.#waitForIdle();
+    this.#worker.terminate();
+    this.#terminated = true;
+    const pendingMethods = [...new Set([...this.#pending.values()].map((pending) => pending.method))];
+    const suffix = pendingMethods.length === 0
+      ? ""
+      : ` while requests were pending: ${pendingMethods.join(", ")}`;
+    this.#rejectAll(new Error(`Worker runtime bridge terminated${suffix}`));
+  }
+
+  async #waitForIdle() {
+    let idlePasses = 0;
+    for (let attempts = 0; attempts < 50 && idlePasses < 2; attempts += 1) {
+      if (this.#pending.size === 0) {
+        idlePasses += 1;
+      } else {
+        idlePasses = 0;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    }
   }
 
   #rejectAll(error) {
@@ -297,6 +452,41 @@ function normalizeWorkerBranchId(branchId, operation) {
     throw new TypeError(`${operation} expects a non-negative safe integer branch id`);
   }
   return BigInt(branchId);
+}
+
+function normalizeWorkerMergePreviewRequest(request, operation) {
+  if (!request || typeof request !== "object" || Array.isArray(request)) {
+    throw new TypeError(`${operation} expects a merge preview request object`);
+  }
+  return {
+    ...request,
+    source_branch_id: normalizeWorkerPreviewBranchId(
+      request.source_branch_id,
+      `${operation}.source_branch_id`,
+    ),
+    target_branch_id: normalizeWorkerPreviewBranchId(
+      request.target_branch_id,
+      `${operation}.target_branch_id`,
+    ),
+  };
+}
+
+function normalizeWorkerPreviewBranchId(branchId, operation) {
+  if (typeof branchId === "bigint") {
+    if (branchId < 0n) {
+      throw new RangeError(`${operation} expects a non-negative branch id`);
+    }
+    if (branchId > BigInt(Number.MAX_SAFE_INTEGER)) {
+      throw new RangeError(
+        `${operation} exceeds the safe integer range supported by merge preview requests`,
+      );
+    }
+    return Number(branchId);
+  }
+  if (!Number.isSafeInteger(branchId) || branchId < 0) {
+    throw new TypeError(`${operation} expects a non-negative safe integer branch id`);
+  }
+  return branchId;
 }
 
 function deserializeError(error) {

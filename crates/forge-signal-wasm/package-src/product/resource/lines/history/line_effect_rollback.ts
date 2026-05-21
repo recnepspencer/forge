@@ -45,6 +45,30 @@ function executeLineEffectRollback(materialization, historyRead) {
     },
     basis,
   );
+  if (isPromiseLike(restoreResult)) {
+    return restoreResult.then((settledRestoreResult) => {
+      if (settledRestoreResult.kind === "unavailable") {
+        return createUnavailableRollbackResult({
+          reason: settledRestoreResult.reason,
+          detail: settledRestoreResult.detail,
+          effectId: effect.effectId,
+          rollback,
+          basis,
+        });
+      }
+      return Object.freeze({
+        kind: "rolledBack",
+        mode: settledRestoreResult.mode,
+        effectId: effect.effectId,
+        branchId: settledRestoreResult.branchId,
+        snapshotId: settledRestoreResult.snapshotId,
+        basisCurrentId: settledRestoreResult.basisCurrentId,
+        basisAdvanceCount: settledRestoreResult.basisAdvanceCount,
+        rollback,
+        reloadStatus: settledRestoreResult.reloadStatus,
+      });
+    });
+  }
   if (restoreResult.kind === "unavailable") {
     return createUnavailableRollbackResult({
       reason: restoreResult.reason,
@@ -65,6 +89,10 @@ function executeLineEffectRollback(materialization, historyRead) {
     rollback,
     reloadStatus: restoreResult.reloadStatus,
   });
+}
+
+function isPromiseLike(value) {
+  return value !== null && typeof value === "object" && typeof value.then === "function";
 }
 
 function executeCompactInverseRollback(

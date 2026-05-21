@@ -38,9 +38,9 @@ function createInitialLineBinding(
   lifecycleHistory,
   mutationResponsePlanning = null,
 ) {
-  const valueSignal = lineScope.input(null, {
+  const valueSignal = wrapInternalLineMutableSignal(lineScope.input(null, {
     debugName: `${familyKind}ResourceValue`,
-  });
+  }));
   const readableValueSignal = lineScope.computed(() => valueSignal(), {
     debugName: `${familyKind}ResourceLine`,
   });
@@ -51,27 +51,27 @@ function createInitialLineBinding(
     requestDescriptor.uploadTransport.kind,
   );
   const initialDownload = createLineDownload();
-  const processingSignal = lineScope.input(initialProcessing, {
+  const processingSignal = wrapInternalLineMutableSignal(lineScope.input(initialProcessing, {
     debugName: `${familyKind}ResourceProcessing`,
-  });
-  const uploadSignal = lineScope.input(initialUpload, {
+  }));
+  const uploadSignal = wrapInternalLineMutableSignal(lineScope.input(initialUpload, {
     debugName: `${familyKind}ResourceUpload`,
-  });
-  const downloadSignal = lineScope.input(initialDownload, {
+  }));
+  const downloadSignal = wrapInternalLineMutableSignal(lineScope.input(initialDownload, {
     debugName: `${familyKind}ResourceDownload`,
-  });
-  const statusSignal = lineScope.input(
+  }));
+  const statusSignal = wrapInternalLineMutableSignal(lineScope.input(
     createPendingLineStatus("initialLoad", false),
     {
       debugName: `${familyKind}ResourceStatus`,
     },
-  );
-  const freshnessSignal = lineScope.input(
+  ));
+  const freshnessSignal = wrapInternalLineMutableSignal(lineScope.input(
     createPendingFreshness("initialLoad"),
     {
       debugName: `${familyKind}ResourceFreshness`,
     },
-  );
+  ));
   const binding = Object.freeze({
     valueSignal,
     readableValueSignal,
@@ -80,7 +80,7 @@ function createInitialLineBinding(
     downloadSignal,
     statusSignal,
     freshnessSignal,
-    diagnosticsSignal: lineScope.input(
+    diagnosticsSignal: wrapInternalLineMutableSignal(lineScope.input(
       createInitialLineDiagnostics(
         policy,
         requestDescriptor,
@@ -92,7 +92,7 @@ function createInitialLineBinding(
       {
         debugName: `${familyKind}ResourceDiagnostics`,
       },
-    ),
+    )),
   });
 
   let resolvedBindingResult;
@@ -271,6 +271,36 @@ function normalizeReloadFailure(error) {
     error,
     retryAttempts: 0,
   });
+}
+
+function wrapInternalLineMutableSignal(handle) {
+  const signal = function internalLineMutableSignal() {
+    return handle();
+  };
+  signal.get = handle.get?.bind(handle);
+  signal.value = handle.value?.bind(handle);
+  signal.free = handle.free?.bind(handle);
+  signal[Symbol.dispose] = handle[Symbol.dispose]?.bind(handle);
+  signal.id = handle.id;
+  signal.debugName = handle.debugName ?? null;
+  signal.set = wrapInternalLineMutation(handle.set?.bind(handle));
+  signal.reset = wrapInternalLineMutation(handle.reset?.bind(handle));
+  signal.patch = wrapInternalLineMutation(handle.patch?.bind(handle));
+  signal.assign = wrapInternalLineMutation(handle.assign?.bind(handle));
+  return Object.freeze(signal);
+}
+
+function wrapInternalLineMutation(mutate) {
+  if (typeof mutate !== "function") {
+    return undefined;
+  }
+  return (...args) => {
+    const result = mutate(...args);
+    if (result && typeof result.then === "function") {
+      void result.catch(() => {});
+    }
+    return result;
+  };
 }
 
 export { createInitialLineBinding };

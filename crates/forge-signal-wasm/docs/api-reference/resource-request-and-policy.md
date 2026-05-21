@@ -105,7 +105,7 @@ import {
   resourceRequestContext,
 } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const workspaceApi = signals.api({
   auth: resourceAuth.workspace(),
@@ -144,7 +144,7 @@ import {
   resourceRequestContext,
 } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const receiptApi = signals.api({
   auth: ({ workspaceId }: { workspaceId: string }) =>

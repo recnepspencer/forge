@@ -12,8 +12,14 @@ import {
   normalizeViewportState,
 } from "../host_capability_declarations.js";
 import { buildHostCapabilityDiagnosticsReport } from "../host_capability_reports.js";
+import {
+  recordFlushedEvent,
+  recordIgnoredStaleEvent,
+  recordNoOpEvent,
+} from "./worker_first_host_capability_events.js";
+import { createWorkerFirstPersistenceCapability } from "./worker_first_persistence_host_capability.js";
 
-export function createWorkerFirstHostCapabilities(hostCapabilities) {
+export function createWorkerFirstHostCapabilities(rootSession, hostCapabilities) {
   const performanceSummary = emptyPerformanceSummary();
   const diagnosticsRecorder = createDiagnosticsRecorder();
   if (hostCapabilities === null) {
@@ -57,6 +63,12 @@ export function createWorkerFirstHostCapabilities(hostCapabilities) {
     ),
     hostCapabilities.clock && createClockCapability(
       hostCapabilities.clock,
+      performanceSummary,
+      diagnosticsRecorder,
+    ),
+    hostCapabilities.persistence && createWorkerFirstPersistenceCapability(
+      hostCapabilities.persistence,
+      rootSession,
       performanceSummary,
       diagnosticsRecorder,
     ),
@@ -128,6 +140,7 @@ function createViewportCapability(registration, performanceSummary, diagnosticsR
           performanceSummary,
           diagnosticsRecorder,
           descriptor,
+          "push-driven",
           currentState,
         );
         return;
@@ -215,6 +228,7 @@ function createBinaryCapability(registration, config, performanceSummary, diagno
           performanceSummary,
           diagnosticsRecorder,
           descriptor,
+          "push-driven",
           currentState,
         );
         return;
@@ -342,75 +356,7 @@ function createClockCapability(registration, performanceSummary, diagnosticsReco
   };
 }
 
-function recordIgnoredStaleEvent(performanceSummary, diagnosticsRecorder, descriptor, currentState) {
-  performanceSummary.hostCapabilityStaleInvalidationIgnoredCount += 1;
-  diagnosticsRecorder.push({
-    kind: "InvalidationIgnoredStale",
-    family: descriptor.family,
-    registrationId: descriptor.registrationId,
-    compatibility: descriptor.compatibility,
-    invalidationMode: "push-driven",
-    queuedInvalidationCount: 1,
-    previousState: currentState,
-    nextState: currentState,
-    touchedNodes: 0,
-    reevaluatedNodes: 0,
-  });
-}
-
-function recordNoOpEvent(
-  performanceSummary,
-  diagnosticsRecorder,
-  descriptor,
-  invalidationMode,
-  previousState,
-  nextState,
-) {
-  performanceSummary.hostCapabilityNoOpInvalidationSuppressedCount += 1;
-  diagnosticsRecorder.push({
-    kind: "InvalidationNoOpSuppressed",
-    family: descriptor.family,
-    registrationId: descriptor.registrationId,
-    compatibility: descriptor.compatibility,
-    invalidationMode,
-    queuedInvalidationCount: 1,
-    previousState,
-    nextState,
-    touchedNodes: 0,
-    reevaluatedNodes: 0,
-  });
-}
-
-function recordFlushedEvent(
-  performanceSummary,
-  diagnosticsRecorder,
-  descriptor,
-  invalidationMode,
-  previousState,
-  nextState,
-) {
-  performanceSummary.hostCapabilityInvalidationBatchFlushCount += 1;
-  diagnosticsRecorder.push({
-    kind: "InvalidationFlushed",
-    family: descriptor.family,
-    registrationId: descriptor.registrationId,
-    compatibility: descriptor.compatibility,
-    invalidationMode,
-    queuedInvalidationCount: 1,
-    previousState,
-    nextState,
-    touchedNodes: 0,
-    reevaluatedNodes: 0,
-  });
-}
-
 export function workerFirstHostCapabilitiesUnsupportedReason(hostCapabilities) {
-  if (hostCapabilities?.persistence) {
-    return Object.freeze({
-      reason: "workerFirstPersistenceHostCapabilityNotImplemented",
-      message:
-        "Worker-first package entry construction does not support persistence hostCapabilities yet; use deployment: \"mainThreadCompatibility\" explicitly.",
-    });
-  }
+  void hostCapabilities;
   return null;
 }

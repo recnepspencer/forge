@@ -68,10 +68,10 @@ test("default worker-first root admits scoped controller and public-input compos
     const scoped = workerSignals.scope("workflow");
     assert.equal(typeof scoped.controller, "function");
     assert.equal(typeof scoped.publicInput, "function");
-    assert.throws(
-      () => scoped.input(1),
-      /WorkerFirstCallableSurfaceUnavailable/,
-    );
+    const scopedDraft = scoped.input(1, { debugName: "scopedDraft" });
+    assert.equal(scopedDraft(), 1);
+    await scopedDraft.set(2);
+    assert.equal(scopedDraft(), 2);
 
     await importedGraph.terminate();
     workerSignals.free();

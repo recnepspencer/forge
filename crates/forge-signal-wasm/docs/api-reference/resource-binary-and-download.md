@@ -90,7 +90,7 @@ import {
   createSignals,
 } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const reportDetail = signals.api({
   baseUrl: "/api",
@@ -124,7 +124,7 @@ import {
   createSignals,
 } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 let downloadReady = false;
 
 const manualDetail = signals.api({

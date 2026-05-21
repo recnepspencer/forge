@@ -100,7 +100,7 @@ executing exact replay.
 ```ts
 import { createSignals } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const productDetail = signals.api({
   baseUrl: "/api",
@@ -146,7 +146,7 @@ import {
   resourceRequestContext,
 } from "forge-signal-wasm";
 
-const signals = createSignals();
+const signals = await createSignals();
 
 const workspaceApi = signals.api({
   auth: resourceAuth.workspace(),
