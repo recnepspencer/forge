@@ -29,6 +29,7 @@ pub(crate) fn domain_material_token(domain: CanonicalBasisDomain) -> &'static st
         CanonicalBasisDomain::Identity => "identity",
         CanonicalBasisDomain::Locator => "locator",
         CanonicalBasisDomain::Profile => "profile",
+        CanonicalBasisDomain::Performance => "performance",
         CanonicalBasisDomain::BoundaryArtifact => "boundary-artifact",
         CanonicalBasisDomain::Transition => "transition",
         CanonicalBasisDomain::Diagnostic => "diagnostic",

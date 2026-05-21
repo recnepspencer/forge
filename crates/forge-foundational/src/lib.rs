@@ -20,6 +20,7 @@
 //! - `docs/branching-merging-and-commit-vocabulary/README.md`
 //! - `docs/diagnostics-and-explanation-ontology/README.md`
 //! - `docs/lineage-provenance-receipts-and-support-truth/README.md`
+//! - `docs/performance/README.md`
 
 #![forbid(unsafe_code)]
 
@@ -35,6 +36,8 @@ mod diagnostics;
 pub mod facade;
 mod identities;
 mod locators;
+mod performance;
+pub mod performance_api;
 mod profiles;
 pub mod profiles_api;
 mod transitions;
