@@ -3,7 +3,7 @@ use crate::facade::{
     SpatialDirectionWitnessRef, SpatialFrameRef, SpatialWitnessFailureClass,
     SpatialWitnessResolutionClass,
 };
-use worth_geom::facade::Plane;
+use worth_geom::facade::{realize_tetrahedron_support_with_altitude_component, Plane};
 
 #[test]
 fn admitted_spatial_placement_builds_deterministic_frame_from_requested_witness() {
@@ -117,4 +117,39 @@ fn placement_rejects_ambiguous_direction_witnesses_honestly() {
             SpatialWitnessFailureClass::Ambiguous
         )
     );
+}
+
+#[test]
+fn placement_embeds_world_collapsed_exact_support_planes_without_invalidating_them() {
+    let placement = admit_spatial_placement(SpatialPlacementSpec::world().at([
+        2.0f64.powi(548),
+        -2.0f64.powi(548),
+        2.0f64.powi(548),
+    ]))
+    .expect("placement");
+    let realization =
+        realize_tetrahedron_support_with_altitude_component([0.0, 0.0, 0.0], 1.0e-200, 1.0e-220)
+            .expect("simplex realization");
+    let geometry = apply_spatial_placement(
+        &placement,
+        realization.planes(),
+        &[
+            [0.0, 0.0, 1.0e-200],
+            [0.0, 1.0e-200, -1.0e-200],
+            [-1.0e-200 * 0.7071, -1.0e-200 * 0.5, -1.0e-200],
+            [1.0e-200 * 0.7071, -1.0e-200 * 0.5, -1.0e-200 + 1.0e-220],
+        ],
+    )
+    .expect("embedded geometry");
+
+    assert_eq!(geometry.support_planes().len(), 4);
+    assert_eq!(geometry.vertex_positions().len(), 4);
+    assert!(geometry
+        .support_planes()
+        .iter()
+        .all(|plane| plane.normal().iter().all(|value| value.is_finite())));
+    assert!(geometry
+        .vertex_positions()
+        .iter()
+        .all(|point| point.iter().all(|value| value.is_finite())));
 }

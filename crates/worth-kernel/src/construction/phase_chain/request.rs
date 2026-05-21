@@ -59,6 +59,7 @@ pub(crate) enum PrimitiveConstructionGeometry {
     SimplexSolid {
         placement: PrimitiveConstructionPlacement,
         scale: u64,
+        auxiliary_altitude_component: u64,
     },
     Orthotope {
         placement: PrimitiveConstructionPlacement,
@@ -96,13 +97,14 @@ pub struct PrimitiveConstructionRequest {
 
 impl PrimitiveConstructionRequest {
     pub fn simplex_solid(center: [f64; 3], scale: f64) -> Self {
-        Self::simplex_solid_spec(SimplexSolidSpec { scale }).with_origin(center)
+        Self::simplex_solid_spec(SimplexSolidSpec::new(scale)).with_origin(center)
     }
 
     pub fn simplex_solid_spec(spec: SimplexSolidSpec) -> Self {
         let geometry = PrimitiveConstructionGeometry::SimplexSolid {
             placement: PrimitiveConstructionPlacement::world(),
             scale: spec.scale.to_bits(),
+            auxiliary_altitude_component: spec.auxiliary_altitude_component.to_bits(),
         };
         Self::new(
             PrimitiveConstructionFamily::SimplexSolid,

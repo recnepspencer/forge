@@ -1,5 +1,5 @@
 use crate::construction::digest::digest_owned_parts;
-use crate::spatial_intent::{
+use crate::spatial_intent::arbitration::{
     analyze_primitive_intent_conflict, analyze_primitive_intent_conflict_with_capabilities,
 };
 use worth_spatial::facade::{

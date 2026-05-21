@@ -20,6 +20,7 @@ pub enum PrimitiveConstructionCorpusParameterRole {
     StressAdmitted,
     ThresholdAdmitted,
     ThresholdRejected,
+    ExplicitExhaustion,
     ExplicitRejected,
 }
 
@@ -31,6 +32,7 @@ impl PrimitiveConstructionCorpusParameterRole {
             Self::StressAdmitted => "stress_admitted",
             Self::ThresholdAdmitted => "threshold_admitted",
             Self::ThresholdRejected => "threshold_rejected",
+            Self::ExplicitExhaustion => "explicit_exhaustion",
             Self::ExplicitRejected => "explicit_rejected",
         }
     }

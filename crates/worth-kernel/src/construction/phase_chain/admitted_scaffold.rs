@@ -12,7 +12,7 @@ use crate::construction::scaffold_geometry::{
 use crate::construction::topology_counts::PrimitiveConstructionTopologyCounts;
 use worth_geom::facade::{
     build_direct_realization_report, realize_block_support, realize_prism_support,
-    realize_pyramid_support, realize_tetrahedron_support,
+    realize_pyramid_support, realize_tetrahedron_support_with_altitude_component,
 };
 use worth_spatial::facade::{apply_spatial_placement, SpatialPlacementError};
 
@@ -61,12 +61,23 @@ fn realize_admitted_geometry(
     PrimitiveConstructionPhaseError,
 > {
     match geometry {
-        AdmittedPrimitiveConstructionGeometry::SimplexSolid { placement, scale } => {
-            let realization =
-                realize_tetrahedron_support([0.0, 0.0, 0.0], *scale).map_err(map_geometry)?;
-            let embedded =
-                apply_spatial_placement(placement, realization.planes(), &simplex_vertices(*scale))
-                    .map_err(map_placement_geometry)?;
+        AdmittedPrimitiveConstructionGeometry::SimplexSolid {
+            placement,
+            scale,
+            auxiliary_altitude_component,
+        } => {
+            let realization = realize_tetrahedron_support_with_altitude_component(
+                [0.0, 0.0, 0.0],
+                *scale,
+                *auxiliary_altitude_component,
+            )
+            .map_err(map_realization_geometry)?;
+            let embedded = apply_spatial_placement(
+                placement,
+                realization.planes(),
+                &simplex_vertices(*scale, *auxiliary_altitude_component),
+            )
+            .map_err(map_placement_geometry)?;
             let (planes, vertices) = embedded.into_parts();
             Ok((
                 planes,
@@ -132,7 +143,7 @@ fn realize_admitted_geometry(
             height,
         } => {
             let realization = realize_pyramid_support([0.0, 0.0, 0.0], *sides, *radius, *height)
-                .map_err(map_pyramid_geometry)?;
+                .map_err(map_realization_geometry)?;
             let embedded = apply_spatial_placement(
                 placement,
                 realization.planes(),
@@ -219,7 +230,7 @@ fn map_geometry(error: impl ToString) -> PrimitiveConstructionPhaseError {
     ))
 }
 
-fn map_pyramid_geometry(
+fn map_realization_geometry(
     error: worth_geom::facade::PrimitiveRealizationError,
 ) -> PrimitiveConstructionPhaseError {
     PrimitiveConstructionPhaseError::Geometry(

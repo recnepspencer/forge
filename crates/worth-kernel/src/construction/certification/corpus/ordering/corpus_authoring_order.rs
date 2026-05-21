@@ -1,7 +1,5 @@
 use crate::construction::digest::digest_owned_parts;
 
-use super::replay_siege_report::PrimitiveConstructionCorpusReplaySiegeRow;
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrimitiveConstructionCorpusAuthoringOrderRow {
     lane_name: String,
@@ -62,11 +60,17 @@ impl PrimitiveConstructionCorpusAuthoringOrderRow {
     }
 }
 
-pub(super) fn lane_digest(rows: &[PrimitiveConstructionCorpusReplaySiegeRow]) -> String {
-    digest_owned_parts(
-        &rows
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .collect::<Vec<_>>(),
-    )
+pub(crate) fn lane_digest(row_digests: impl IntoIterator<Item = String>) -> String {
+    digest_owned_parts(&row_digests.into_iter().collect::<Vec<_>>())
+}
+
+pub(crate) fn normalized_matrix_digest(
+    row_pairs: impl IntoIterator<Item = (String, String)>,
+) -> String {
+    let mut parts = row_pairs
+        .into_iter()
+        .map(|(scenario_id, row_digest)| format!("{scenario_id}:{row_digest}"))
+        .collect::<Vec<_>>();
+    parts.sort();
+    digest_owned_parts(&parts)
 }

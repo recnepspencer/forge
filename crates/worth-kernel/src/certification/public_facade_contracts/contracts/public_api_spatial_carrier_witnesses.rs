@@ -4,11 +4,12 @@ use worth_kernel::facade::{
     prepare_primitive_construction_reorient_witness_resolution_report_with_catalog,
     CreateSpatialIntent, PrimitiveConstructionIntent,
     PrimitiveConstructionMotionQueryFactProvenance, PrimitiveConstructionMotionQueryReadSurface,
-    RegularPyramidSpec, ReorientSpatialIntent, WireBodySpec,
+    RegularPyramidSpec, ReorientSpatialIntent, RotateSpatialIntent, WireBodySpec,
 };
 use worth_spatial::facade::{
-    admit_spatial_placement_with_catalog, SpatialCarrierDirectionRole, SpatialCarrierKind,
-    SpatialCatalogResolvedDirectionWitness, SpatialCatalogWitnessResolutionClass,
+    admit_spatial_placement_with_catalog, SpatialAnchorRef, SpatialCarrierDirectionRole,
+    SpatialCarrierKind, SpatialCarrierPointRole, SpatialCatalogResolvedDirectionWitness,
+    SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass,
     SpatialDirectionWitnessRef, SpatialFixtureWitnessCatalog, SpatialWitnessResolutionClass,
 };
 
@@ -32,6 +33,14 @@ fn kernel_public_facade_exports_catalog_backed_carrier_motion_and_placement_surf
             SpatialCarrierDirectionRole::Normal,
             Ok(SpatialCatalogResolvedDirectionWitness::new(
                 [0.0, 0.0, 3.0],
+                SpatialCatalogWitnessResolutionClass::FallbackDerived,
+            )),
+        )
+        .with_feature_owned_point(
+            "feature-anchor",
+            SpatialCarrierPointRole::Anchor,
+            Ok(SpatialCatalogResolvedPointWitness::new(
+                [4.0, 0.0, 0.0],
                 SpatialCatalogWitnessResolutionClass::FallbackDerived,
             )),
         );
@@ -58,6 +67,18 @@ fn kernel_public_facade_exports_catalog_backed_carrier_motion_and_placement_surf
             &catalog,
         )
         .expect("placement");
+    let rotated = RotateSpatialIntent::shape(PrimitiveConstructionIntent::regular_pyramid(
+        RegularPyramidSpec {
+            sides: 4,
+            radius: 1.0,
+            height: 2.0,
+        },
+    ))
+    .about(SpatialAnchorRef::feature_owned("feature-anchor"))
+    .around([0.0, 0.0, 1.0])
+    .by_radians(std::f64::consts::FRAC_PI_2)
+    .finish_with_catalog(&catalog)
+    .expect("feature-owned anchor rotate");
 
     assert_eq!(
         report.resolution_class(),
@@ -69,6 +90,8 @@ fn kernel_public_facade_exports_catalog_backed_carrier_motion_and_placement_surf
         SpatialWitnessResolutionClass::FallbackDerived
     );
     assert_eq!(admitted.facing_vector(), [0.0, 0.0, 1.0]);
+    assert!((rotated.placement_spec().origin()[0] - 4.0).abs() < 1.0e-12);
+    assert!((rotated.placement_spec().origin()[1] + 4.0).abs() < 1.0e-12);
 }
 
 #[test]

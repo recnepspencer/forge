@@ -6,7 +6,7 @@ use crate::construction::{
 use super::replay_siege_report::PrimitiveConstructionCorpusParameterRole;
 
 #[derive(Clone)]
-pub(super) struct PrimitiveConstructionCorpusScenario {
+pub(crate) struct PrimitiveConstructionCorpusScenario {
     pub(super) scenario_id: &'static str,
     pub(super) family: PrimitiveConstructionFamily,
     pub(super) parameter_role: PrimitiveConstructionCorpusParameterRole,
@@ -18,36 +18,39 @@ pub(super) fn primitive_construction_corpus() -> Vec<PrimitiveConstructionCorpus
         scenario(
             "simplex_minimal",
             PrimitiveConstructionCorpusParameterRole::MinimalAdmitted,
-            PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec { scale: 1.0 }),
+            PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec::new(1.0)),
         ),
         scenario(
             "simplex_generic",
             PrimitiveConstructionCorpusParameterRole::GenericAdmitted,
-            PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec { scale: 2.5 })
+            PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec::new(2.5))
                 .at([1.0, -2.0, 0.5]),
         ),
         scenario(
             "simplex_stress",
             PrimitiveConstructionCorpusParameterRole::StressAdmitted,
-            PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec { scale: 10.0 })
+            PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec::new(10.0))
                 .at([8.0, 8.0, 8.0]),
         ),
         scenario(
-            "simplex_threshold_admitted",
+            "simplex_world_collapsed_admitted_local_or_exact",
             PrimitiveConstructionCorpusParameterRole::ThresholdAdmitted,
-            PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec {
-                scale: f64::MIN_POSITIVE,
-            }),
+            simplex_world_collapsed_admitted_local_or_exact_intent(),
         ),
         scenario(
-            "simplex_threshold_rejected",
+            "simplex_world_collapsed_threshold_rejected",
             PrimitiveConstructionCorpusParameterRole::ThresholdRejected,
-            PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec { scale: 0.0 }),
+            simplex_world_collapsed_threshold_rejected_intent(),
+        ),
+        scenario(
+            "simplex_world_collapsed_explicit_exhaustion",
+            PrimitiveConstructionCorpusParameterRole::ExplicitExhaustion,
+            simplex_world_collapsed_explicit_exhaustion_intent(),
         ),
         scenario(
             "simplex_rejected",
             PrimitiveConstructionCorpusParameterRole::ExplicitRejected,
-            PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec { scale: 1.0 }).at([
+            PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec::new(1.0)).at([
                 f64::NAN,
                 0.0,
                 0.0,
@@ -184,7 +187,7 @@ pub(super) fn primitive_construction_corpus() -> Vec<PrimitiveConstructionCorpus
             .at([2f64.powi(548), -2f64.powi(548), 2f64.powi(548)]),
         ),
         scenario(
-            "regular_pyramid_threshold_admitted",
+            "pyramid_threshold_admitted_exact_support",
             PrimitiveConstructionCorpusParameterRole::ThresholdAdmitted,
             PrimitiveConstructionIntent::regular_pyramid(RegularPyramidSpec {
                 sides: 3,
@@ -193,12 +196,21 @@ pub(super) fn primitive_construction_corpus() -> Vec<PrimitiveConstructionCorpus
             }),
         ),
         scenario(
-            "regular_pyramid_threshold_rejected",
+            "pyramid_threshold_rejected_neighbor",
             PrimitiveConstructionCorpusParameterRole::ThresholdRejected,
             PrimitiveConstructionIntent::regular_pyramid(RegularPyramidSpec {
                 sides: 3,
                 radius: 1.0,
                 height: 0.0,
+            }),
+        ),
+        scenario(
+            "pyramid_semantic_exhaustion",
+            PrimitiveConstructionCorpusParameterRole::ExplicitExhaustion,
+            PrimitiveConstructionIntent::regular_pyramid(RegularPyramidSpec {
+                sides: 3,
+                radius: 0.0,
+                height: 1.0,
             }),
         ),
         scenario(
@@ -289,6 +301,29 @@ pub(super) fn primitive_construction_corpus() -> Vec<PrimitiveConstructionCorpus
             }),
         ),
     ]
+}
+
+pub(crate) fn simplex_world_collapsed_admitted_local_or_exact_intent() -> PrimitiveConstructionIntent
+{
+    PrimitiveConstructionIntent::simplex_solid(
+        SimplexSolidSpec::new(1.0e-200).with_auxiliary_altitude_component(1.0e-220),
+    )
+    .at([2f64.powi(548), -2f64.powi(548), 2f64.powi(548)])
+}
+
+pub(crate) fn simplex_world_collapsed_threshold_rejected_intent() -> PrimitiveConstructionIntent {
+    PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec::new(0.0)).at([
+        2f64.powi(548),
+        -2f64.powi(548),
+        2f64.powi(548),
+    ])
+}
+
+pub(crate) fn simplex_world_collapsed_explicit_exhaustion_intent() -> PrimitiveConstructionIntent {
+    PrimitiveConstructionIntent::simplex_solid(
+        SimplexSolidSpec::new(1.0e-240).with_auxiliary_altitude_component(1.0e-280),
+    )
+    .at([2f64.powi(548), -2f64.powi(548), 2f64.powi(548)])
 }
 
 fn scenario(

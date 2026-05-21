@@ -35,7 +35,13 @@ fn family_boundary_report_certifies_every_threshold_pair() {
     assert!(report
         .row_for(PrimitiveConstructionFamily::ShellWithHole)
         .is_some());
-    assert!(!report.report_digest().is_empty());
+    assert_ne!(
+        report.report_digest(),
+        report
+            .row_for(PrimitiveConstructionFamily::SimplexSolid)
+            .expect("simplex row")
+            .row_digest()
+    );
 }
 
 #[test]
@@ -43,6 +49,9 @@ fn family_boundary_report_distinguishes_direct_and_escalated_boundary_classes() 
     let mut workspace = siege_workspace("corpus-family-boundaries.transition-classes");
     let report = prepare_primitive_construction_family_boundary_report(&mut workspace)
         .expect("family boundary report");
+    let simplex = report
+        .row_for(PrimitiveConstructionFamily::SimplexSolid)
+        .expect("simplex row");
     let prism = report
         .row_for(PrimitiveConstructionFamily::RegularPrism)
         .expect("prism row");
@@ -61,6 +70,30 @@ fn family_boundary_report_distinguishes_direct_and_escalated_boundary_classes() 
     assert_eq!(
         prism.admitted_stability_class(),
         PrimitiveStabilityClass::StableDirect
+    );
+
+    assert_eq!(
+        simplex.transition_class(),
+        PrimitiveConstructionFamilyBoundaryTransitionClass::EscalatedStableToTypedRejection
+    );
+    assert_eq!(
+        simplex.admitted_strategy(),
+        PrimitiveRealizationStrategy::ExactSupport
+    );
+    assert_eq!(
+        simplex.admitted_attempted_strategies(),
+        &[
+            PrimitiveRealizationStrategy::DirectWorld,
+            PrimitiveRealizationStrategy::ExactSupport,
+        ]
+    );
+    assert_eq!(
+        simplex.admitted_stability_class(),
+        PrimitiveStabilityClass::StableAfterEscalation
+    );
+    assert_eq!(
+        simplex.admitted_normalization_disposition(),
+        PrimitiveNormalizationDisposition::LocalTransformationApplied
     );
 
     assert_eq!(
@@ -93,6 +126,9 @@ fn family_boundary_report_binds_lower_layer_exhaustion_truth_for_pyramid_floor()
     let mut workspace = siege_workspace("corpus-family-boundaries.lower-layer-exhaustion");
     let report = prepare_primitive_construction_family_boundary_report(&mut workspace)
         .expect("family boundary report");
+    let simplex = report
+        .row_for(PrimitiveConstructionFamily::SimplexSolid)
+        .expect("simplex row");
     let pyramid = report
         .row_for(PrimitiveConstructionFamily::RegularPyramid)
         .expect("pyramid row");
@@ -132,4 +168,35 @@ fn family_boundary_report_binds_lower_layer_exhaustion_truth_for_pyramid_floor()
         .lower_layer_exhaustion_attempted_strategies()
         .is_empty());
     assert!(orthotope.lower_layer_exhaustion_witnesses().is_empty());
+
+    assert_eq!(simplex.lower_layer_exhaustion_witness_kind(), None);
+    assert_eq!(simplex.lower_layer_exhaustion_reason(), None);
+    assert!(simplex
+        .lower_layer_exhaustion_attempted_strategies()
+        .is_empty());
+    assert_eq!(simplex.lower_layer_exhaustion_witnesses().len(), 2);
+    assert_eq!(
+        simplex
+            .lower_layer_exhaustion_witnesses()
+            .iter()
+            .map(|witness| witness.witness_kind())
+            .collect::<Vec<_>>(),
+        vec![
+            PrimitiveRealizationExhaustionWitnessKind::ZeroScaleSimplexSupportCollapse,
+            PrimitiveRealizationExhaustionWitnessKind::AltitudeSqueezedSimplexSupportCollapse,
+        ]
+    );
+    assert!(simplex
+        .lower_layer_exhaustion_witnesses()
+        .iter()
+        .all(|witness| witness.exhaustion_reason()
+            == PrimitiveRealizationExhaustionReason::DegenerateSupportNormals));
+    assert!(simplex
+        .lower_layer_exhaustion_witnesses()
+        .iter()
+        .all(|witness| witness.attempted_strategies()
+            == &[
+                PrimitiveRealizationStrategy::DirectWorld,
+                PrimitiveRealizationStrategy::ExactSupport,
+            ]));
 }

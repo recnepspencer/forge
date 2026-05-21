@@ -960,6 +960,9 @@ spatial/binding truth, and later kernel orchestration.
   - curve bindings
   - coedge bindings
   - vertex geometry bindings
+- robust carrier-local parameter-space anchor truth for admitted curve and
+  surface bindings, replacing the typed unsupported placeholder intentionally
+  left by Milestone 4 Phase 5.5.6
 - diagnostics for rebinding and continuity decisions
 
 This milestone belongs primarily to `worth-spatial`. It exists specifically so

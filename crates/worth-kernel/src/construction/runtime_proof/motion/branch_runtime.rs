@@ -294,5 +294,8 @@ fn prepare_branch_report(
 }
 
 #[cfg(test)]
+#[path = "branch_runtime_directional_tests.rs"]
+mod directional_tests;
+#[cfg(test)]
 #[path = "branch_runtime_tests.rs"]
 mod tests;

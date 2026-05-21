@@ -140,5 +140,11 @@ fn motion_resolution_policy_report_distinguishes_resolution_and_failure_classes(
             SpatialPlacementConstraintError::CoincidentTarget
         )
     );
-    assert!(!report.report_digest().is_empty());
+    assert_ne!(
+        report.report_digest(),
+        report
+            .row(PrimitiveConstructionMotionResolutionPolicyCase::DirectMove)
+            .expect("direct move")
+            .row_digest()
+    );
 }

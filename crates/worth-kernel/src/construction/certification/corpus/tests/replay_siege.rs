@@ -5,7 +5,10 @@ use crate::construction::{
     PrimitiveConstructionBlockingBoundary, PrimitiveConstructionFamily,
     PrimitiveConstructionRejectionClass, PrimitiveConstructionRejectionLocality,
 };
-use worth_geom::facade::{PrimitiveRealizationStrategy, PrimitiveStabilityClass};
+use std::collections::BTreeSet;
+use worth_geom::facade::{
+    PrimitiveRealizationExhaustionReason, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
+};
 
 use super::support::siege_report;
 
@@ -24,13 +27,15 @@ fn corpus_replay_siege_mixes_admitted_and_rejected_rows_across_family_ladder() {
     assert_eq!(
         rejected_ids,
         vec![
-            "simplex_threshold_rejected".to_string(),
+            "simplex_world_collapsed_threshold_rejected".to_string(),
+            "simplex_world_collapsed_explicit_exhaustion".to_string(),
             "simplex_rejected".to_string(),
             "orthotope_threshold_rejected".to_string(),
             "orthotope_rejected".to_string(),
             "regular_prism_threshold_rejected".to_string(),
             "regular_prism_rejected".to_string(),
-            "regular_pyramid_threshold_rejected".to_string(),
+            "pyramid_threshold_rejected_neighbor".to_string(),
+            "pyramid_semantic_exhaustion".to_string(),
             "regular_pyramid_rejected".to_string(),
             "wire_body_threshold_rejected".to_string(),
             "wire_body_rejected".to_string(),
@@ -38,13 +43,22 @@ fn corpus_replay_siege_mixes_admitted_and_rejected_rows_across_family_ladder() {
             "shell_with_hole_rejected".to_string(),
         ]
     );
-    assert_eq!(report.rows().len(), 36);
+    assert_eq!(report.rows().len(), 38);
     assert_eq!(report.accepted_count(), 24);
-    assert_eq!(report.rejected_count(), 12);
+    assert_eq!(report.rejected_count(), 14);
     assert_eq!(report.authoring_order_rows().len(), 4);
     assert!(report.authoring_order_parity_verified());
     assert_eq!(report.rejection_witness_rows().len(), 6);
-    assert!(!report.report_digest().is_empty());
+    assert_ne!(
+        report.report_digest(),
+        report
+            .row_for(
+                PrimitiveConstructionFamily::SimplexSolid,
+                PrimitiveConstructionCorpusParameterRole::ThresholdAdmitted,
+            )
+            .expect("simplex threshold admitted row")
+            .row_digest()
+    );
 }
 
 #[test]
@@ -61,10 +75,12 @@ fn corpus_replay_siege_admitted_rows_bind_real_breadth_and_birth_truth() {
         row.outcome_disposition(),
         PrimitiveConstructionCorpusOutcomeDisposition::Admitted
     );
-    assert!(row.birth_digest().is_some());
+    let birth_digest = row.birth_digest().expect("admitted rows keep birth truth");
     assert!(row.construction_breadth() > 0);
     assert!(row.birth_attachment_breadth() > 0);
     assert!(row.certification_breadth() > 0);
+    assert_ne!(birth_digest, row.row_digest());
+    assert_ne!(birth_digest, row.direct_construction_digest());
     assert_eq!(
         row.realization_strategy(),
         Some(PrimitiveRealizationStrategy::DirectWorld)
@@ -150,6 +166,10 @@ fn corpus_replay_siege_authoring_order_rows_prove_multiple_real_sequence_shapes(
 
     assert!(lanes.iter().all(|row| row.parity_verified()));
     assert_eq!(
+        lanes.iter().map(|row| row.lane_name()).collect::<Vec<_>>(),
+        vec!["canonical", "reversed", "rejected_first", "role_clustered"]
+    );
+    assert_eq!(
         lanes[0].normalized_matrix_digest(),
         lanes[1].normalized_matrix_digest()
     );
@@ -161,9 +181,14 @@ fn corpus_replay_siege_authoring_order_rows_prove_multiple_real_sequence_shapes(
         lanes[0].normalized_matrix_digest(),
         lanes[3].normalized_matrix_digest()
     );
-    assert_ne!(lanes[0].lane_digest(), lanes[1].lane_digest());
-    assert_ne!(lanes[0].lane_digest(), lanes[2].lane_digest());
-    assert_ne!(lanes[0].lane_digest(), lanes[3].lane_digest());
+    assert_eq!(
+        lanes
+            .iter()
+            .map(|row| row.lane_digest())
+            .collect::<BTreeSet<_>>()
+            .len(),
+        lanes.len()
+    );
 }
 
 #[test]
@@ -234,4 +259,90 @@ fn corpus_replay_siege_distinguishes_threshold_and_explicit_rejections_within_a_
         explicit.direct_construction_digest()
     );
     assert_ne!(threshold.row_digest(), explicit.row_digest());
+}
+
+#[test]
+fn corpus_replay_siege_explicit_exhaustion_rows_preserve_realization_failure_truth() {
+    let report = siege_report("corpus-replay-siege.explicit-exhaustion");
+    let simplex = report
+        .row_for(
+            PrimitiveConstructionFamily::SimplexSolid,
+            PrimitiveConstructionCorpusParameterRole::ExplicitExhaustion,
+        )
+        .expect("explicit exhaustion simplex row");
+    let pyramid = report
+        .rows()
+        .iter()
+        .find(|row| row.scenario_id() == "pyramid_semantic_exhaustion")
+        .expect("explicit exhaustion pyramid row");
+
+    assert_eq!(
+        simplex.scenario_id(),
+        "simplex_world_collapsed_explicit_exhaustion"
+    );
+    assert_eq!(
+        simplex.outcome_disposition(),
+        PrimitiveConstructionCorpusOutcomeDisposition::Rejected
+    );
+    assert_eq!(
+        simplex.rejection_class(),
+        Some(PrimitiveConstructionRejectionClass::ConditioningExhaustion)
+    );
+    assert_eq!(
+        simplex.rejection_locality(),
+        Some(PrimitiveConstructionRejectionLocality::Scaffold)
+    );
+    assert_eq!(
+        simplex.blocking_boundary(),
+        Some(PrimitiveConstructionBlockingBoundary::KernelIntent)
+    );
+    assert_eq!(
+        simplex.attempted_realization_strategies(),
+        &[
+            PrimitiveRealizationStrategy::DirectWorld,
+            PrimitiveRealizationStrategy::ExactSupport,
+        ]
+    );
+    assert_eq!(
+        simplex.stability_class(),
+        Some(PrimitiveStabilityClass::RejectedBelowConditioningFloor)
+    );
+    assert!(simplex.birth_digest().is_none());
+    assert_eq!(simplex.construction_breadth(), 0);
+    assert_eq!(simplex.birth_attachment_breadth(), 0);
+    assert_eq!(
+        pyramid.family(),
+        PrimitiveConstructionFamily::RegularPyramid
+    );
+    assert_eq!(
+        pyramid.parameter_role(),
+        PrimitiveConstructionCorpusParameterRole::ExplicitExhaustion
+    );
+    assert_eq!(
+        pyramid.rejection_class(),
+        Some(PrimitiveConstructionRejectionClass::ConditioningExhaustion)
+    );
+    assert_eq!(
+        pyramid.rejection_locality(),
+        Some(PrimitiveConstructionRejectionLocality::Scaffold)
+    );
+    assert_eq!(
+        pyramid.blocking_boundary(),
+        Some(PrimitiveConstructionBlockingBoundary::KernelIntent)
+    );
+    assert_eq!(
+        pyramid.attempted_realization_strategies(),
+        &[
+            PrimitiveRealizationStrategy::DirectWorld,
+            PrimitiveRealizationStrategy::ExactSupport,
+        ]
+    );
+    assert_eq!(
+        pyramid.stability_class(),
+        Some(PrimitiveStabilityClass::RejectedBelowConditioningFloor)
+    );
+    assert_eq!(
+        pyramid.exhaustion_reason(),
+        Some(PrimitiveRealizationExhaustionReason::DegenerateSupportNormals)
+    );
 }

@@ -1,6 +1,6 @@
 use crate::construction::digest::digest_owned_parts;
 
-const AUDITED_FILES: [(&str, &str); 17] = [
+const AUDITED_FILES: [(&str, &str); 27] = [
     (
         "worth-kernel.authoring",
         include_str!(concat!(
@@ -30,10 +30,66 @@ const AUDITED_FILES: [(&str, &str); 17] = [
         )),
     ),
     (
+        "worth-kernel.arbitration-replay",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/runtime_proof/arbitration/replay.rs"
+        )),
+    ),
+    (
+        "worth-kernel.continuity-branch-runtime",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/runtime_proof/continuity_branch_runtime.rs"
+        )),
+    ),
+    (
+        "worth-kernel.continuity-replay",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/runtime_proof/continuity_replay.rs"
+        )),
+    ),
+    (
+        "worth-kernel.preview-branch-runtime",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/runtime_proof/preview_branch_runtime.rs"
+        )),
+    ),
+    (
+        "worth-kernel.preview-replay",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/runtime_proof/preview_replay.rs"
+        )),
+    ),
+    (
+        "worth-kernel.profile-branch-runtime",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/runtime_proof/profile_branch_runtime.rs"
+        )),
+    ),
+    (
+        "worth-kernel.profile-replay",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/runtime_proof/profile_replay.rs"
+        )),
+    ),
+    (
         "worth-kernel.query-basis-preview-parity",
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/src/construction/runtime_proof/query/basis_preview_parity.rs"
+        )),
+    ),
+    (
+        "worth-kernel.query-continuity",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/runtime_proof/query/continuity.rs"
         )),
     ),
     (
@@ -62,6 +118,20 @@ const AUDITED_FILES: [(&str, &str); 17] = [
         include_str!(concat!(
             env!("CARGO_MANIFEST_DIR"),
             "/src/construction/runtime_proof/query/motion_parity.rs"
+        )),
+    ),
+    (
+        "worth-kernel.query-preview-parity",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/runtime_proof/query/preview.rs"
+        )),
+    ),
+    (
+        "worth-kernel.query-policy-profile",
+        include_str!(concat!(
+            env!("CARGO_MANIFEST_DIR"),
+            "/src/construction/runtime_proof/query/profile.rs"
         )),
     ),
     (
@@ -183,7 +253,7 @@ mod tests {
     fn query_no_local_runtime_workaround_audit_proves_the_current_path_avoids_local_bypasses() {
         let report = prepare_primitive_construction_query_no_local_runtime_workaround_audit();
 
-        assert_eq!(report.audited_file_count(), 17);
+        assert_eq!(report.audited_file_count(), 27);
         assert_eq!(report.violation_count(), 0);
         assert!(!report.report_digest().is_empty());
     }

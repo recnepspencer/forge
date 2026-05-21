@@ -1,5 +1,7 @@
 mod clarification;
+mod conflict;
 
+pub use conflict::PrimitiveIntentConflict;
 use worth_spatial::facade::{
     analyze_spatial_intent_conflict, analyze_spatial_intent_conflict_with_capabilities,
     resolve_spatial_intent_conflict_by_choice, resolve_spatial_intent_conflict_by_policy,

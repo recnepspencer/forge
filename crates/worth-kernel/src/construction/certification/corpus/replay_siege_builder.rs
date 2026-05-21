@@ -1,6 +1,7 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
 use super::cases::PrimitiveConstructionCorpusScenario;
+use super::execution::prepare_corpus_execution_proof_ingredients;
 use super::replay_siege::PrimitiveConstructionCorpusReplaySiegeError;
 use super::replay_siege_report::{
     PrimitiveConstructionCorpusOutcomeDisposition, PrimitiveConstructionCorpusReplaySiegeRow,
@@ -10,10 +11,6 @@ use super::row_support::{
     rejection_locality_row_for,
 };
 use crate::construction::outcome::PrimitiveConstructionPreparedOutcome;
-use crate::construction::parity::{
-    prepare_primitive_construction_branch_local_parity_report,
-    prepare_primitive_construction_replay_parity_report,
-};
 use crate::construction::result::{
     prepare_primitive_construction_result, PrimitiveConstructionResultError,
 };
@@ -33,55 +30,25 @@ pub(super) fn build_corpus_rows(
     Ok(rows)
 }
 
-pub(super) fn normalized_row_digests(
-    rows: &[PrimitiveConstructionCorpusReplaySiegeRow],
-) -> Vec<String> {
-    let mut digests = rows
-        .iter()
-        .map(|row| format!("{}:{}", row.scenario_id(), row.row_digest()))
-        .collect::<Vec<_>>();
-    digests.sort();
-    digests
-}
-
 fn build_corpus_row(
     workspace: &mut ForgeQueryWorkspace,
     scenario: &PrimitiveConstructionCorpusScenario,
 ) -> Result<PrimitiveConstructionCorpusReplaySiegeRow, PrimitiveConstructionCorpusReplaySiegeError>
 {
-    let request = scenario.intent.request().clone();
-    let replay = prepare_primitive_construction_replay_parity_report(scenario.intent.clone());
-    if !replay.parity_verified() {
-        return Err(
-            PrimitiveConstructionCorpusReplaySiegeError::ReplayParityDrift {
-                family: scenario.family,
-                parameter_role: scenario.parameter_role,
-            },
-        );
-    }
-    let branch = prepare_primitive_construction_branch_local_parity_report(
+    let execution = prepare_corpus_execution_proof_ingredients(
         workspace,
         scenario.intent.clone(),
-    )
-    .map_err(PrimitiveConstructionCorpusReplaySiegeError::RuntimeBasis)?;
-    if !branch.parity_verified() {
-        return Err(
-            PrimitiveConstructionCorpusReplaySiegeError::BranchLocalParityDrift {
-                family: scenario.family,
-                parameter_role: scenario.parameter_role,
-            },
-        );
-    }
+        || PrimitiveConstructionCorpusReplaySiegeError::ReplayParityDrift {
+            family: scenario.family,
+            parameter_role: scenario.parameter_role,
+        },
+        || PrimitiveConstructionCorpusReplaySiegeError::BranchLocalParityDrift {
+            family: scenario.family,
+            parameter_role: scenario.parameter_role,
+        },
+    )?;
 
-    let direct_outcome = replay.direct_outcome().clone();
-    let replay_digest = replay.replay_outcome().outcome_digest().to_string();
-    let branch_digest = branch
-        .branch_preview_runtime_report()
-        .outcome()
-        .outcome_digest()
-        .to_string();
-
-    match direct_outcome {
+    match execution.direct_outcome().clone() {
         PrimitiveConstructionPreparedOutcome::Accepted(outcome) => {
             let result = prepare_primitive_construction_result(scenario.intent.clone()).map_err(
                 |error| PrimitiveConstructionCorpusReplaySiegeError::AcceptedArtifactUnavailable {
@@ -96,8 +63,8 @@ fn build_corpus_row(
                 scenario.parameter_role,
                 PrimitiveConstructionCorpusOutcomeDisposition::Admitted,
                 outcome.outcome_digest().to_string(),
-                branch_digest,
-                replay_digest,
+                execution.branch_digest().to_string(),
+                execution.replay_digest().to_string(),
                 Some(outcome.birth_truth_digest().to_string()),
                 Some(outcome.realization_strategy()),
                 outcome.attempted_realization_strategies().to_vec(),
@@ -109,7 +76,7 @@ fn build_corpus_row(
                 None,
                 None,
                 None,
-                construction_breadth(&request).map_err(|reason| {
+                construction_breadth(execution.request()).map_err(|reason| {
                     PrimitiveConstructionCorpusReplaySiegeError::AcceptedArtifactUnavailable {
                         family: scenario.family,
                         parameter_role: scenario.parameter_role,
@@ -121,21 +88,22 @@ fn build_corpus_row(
             ))
         }
         PrimitiveConstructionPreparedOutcome::Rejected(outcome) => {
-            let rejection_row = rejection_locality_row_for(request).map_err(|reason| {
-                PrimitiveConstructionCorpusReplaySiegeError::AcceptedArtifactUnavailable {
-                    family: scenario.family,
-                    parameter_role: scenario.parameter_role,
-                    reason,
-                }
-            })?;
+            let rejection_row =
+                rejection_locality_row_for(execution.request().clone()).map_err(|reason| {
+                    PrimitiveConstructionCorpusReplaySiegeError::AcceptedArtifactUnavailable {
+                        family: scenario.family,
+                        parameter_role: scenario.parameter_role,
+                        reason,
+                    }
+                })?;
             Ok(PrimitiveConstructionCorpusReplaySiegeRow::new(
                 scenario.scenario_id.to_string(),
                 scenario.family,
                 scenario.parameter_role,
                 PrimitiveConstructionCorpusOutcomeDisposition::Rejected,
                 outcome.failure_digest().to_string(),
-                branch_digest,
-                replay_digest,
+                execution.branch_digest().to_string(),
+                execution.replay_digest().to_string(),
                 None,
                 None,
                 outcome.attempted_realization_strategies().to_vec(),

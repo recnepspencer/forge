@@ -23,6 +23,12 @@ impl PrimitiveConstructionRealizationExhaustionWitnessRow {
             PrimitiveRealizationExhaustionWitnessKind::ZeroRadiusPyramidSupportCollapse => {
                 PrimitiveConstructionFamily::RegularPyramid
             }
+            PrimitiveRealizationExhaustionWitnessKind::ZeroScaleSimplexSupportCollapse => {
+                PrimitiveConstructionFamily::SimplexSolid
+            }
+            PrimitiveRealizationExhaustionWitnessKind::AltitudeSqueezedSimplexSupportCollapse => {
+                PrimitiveConstructionFamily::SimplexSolid
+            }
         };
         let row_digest = digest_owned_parts(&[
             row.witness_kind().as_str().to_string(),

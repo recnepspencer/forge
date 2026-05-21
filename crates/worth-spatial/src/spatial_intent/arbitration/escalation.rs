@@ -8,6 +8,7 @@ use super::conflicts::{
     SpatialAuthoredActKind, SpatialIntentConflictClass, SpatialObservedRelationFact,
 };
 use super::ranking::{SpatialIntentCandidateRank, SpatialIntentExplanationClass};
+use crate::spatial_intent::resolution::{SpatialArbitrationPosture, SpatialIntentPolicyProfile};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SpatialIntentEscalation {
@@ -57,10 +58,11 @@ pub fn analyze_spatial_intent_conflict(
     authored_act: SpatialAuthoredActKind,
     observed_relation_facts: &[SpatialObservedRelationFact],
 ) -> SpatialIntentArbitrationAnalysis {
-    analyze_spatial_intent_conflict_with_capabilities(
+    analyze_spatial_intent_conflict_with_capabilities_and_profile(
         authored_act,
         observed_relation_facts,
         SpatialIntentCapabilitySet::blocked_defaults(),
+        SpatialIntentPolicyProfile::conservative_exact_modeling(),
     )
 }
 
@@ -68,6 +70,33 @@ pub fn analyze_spatial_intent_conflict_with_capabilities(
     authored_act: SpatialAuthoredActKind,
     observed_relation_facts: &[SpatialObservedRelationFact],
     capabilities: SpatialIntentCapabilitySet,
+) -> SpatialIntentArbitrationAnalysis {
+    analyze_spatial_intent_conflict_with_capabilities_and_profile(
+        authored_act,
+        observed_relation_facts,
+        capabilities,
+        SpatialIntentPolicyProfile::conservative_exact_modeling(),
+    )
+}
+
+pub fn analyze_spatial_intent_conflict_with_profile(
+    authored_act: SpatialAuthoredActKind,
+    observed_relation_facts: &[SpatialObservedRelationFact],
+    profile: SpatialIntentPolicyProfile,
+) -> SpatialIntentArbitrationAnalysis {
+    analyze_spatial_intent_conflict_with_capabilities_and_profile(
+        authored_act,
+        observed_relation_facts,
+        SpatialIntentCapabilitySet::blocked_defaults(),
+        profile,
+    )
+}
+
+pub fn analyze_spatial_intent_conflict_with_capabilities_and_profile(
+    authored_act: SpatialAuthoredActKind,
+    observed_relation_facts: &[SpatialObservedRelationFact],
+    capabilities: SpatialIntentCapabilitySet,
+    profile: SpatialIntentPolicyProfile,
 ) -> SpatialIntentArbitrationAnalysis {
     let baseline = SpatialIntentCandidate::baseline_for(authored_act);
     let mut inserted = HashSet::new();
@@ -169,11 +198,23 @@ pub fn analyze_spatial_intent_conflict_with_capabilities(
     let nonbaseline_available = available
         .iter()
         .any(|candidate| candidate.candidate() != baseline);
+    let preferred_available =
+        preferred_profile_candidate(&available, profile, observed_relation_facts);
     let (conflict_class, escalation, chosen_candidate) = if only_baseline_available {
         (
             SpatialIntentConflictClass::SingleClearIntent,
             SpatialIntentEscalation::AutoResolve(baseline),
             Some(baseline),
+        )
+    } else if let Some(candidate) = preferred_available {
+        (
+            if available.len() > 1 {
+                SpatialIntentConflictClass::UnsafeToAssume
+            } else {
+                SpatialIntentConflictClass::SingleClearIntent
+            },
+            SpatialIntentEscalation::AutoResolve(candidate),
+            Some(candidate),
         )
     } else if !blocked.is_empty() && (nonbaseline_available || available.len() == 1) {
         (
@@ -188,13 +229,21 @@ pub fn analyze_spatial_intent_conflict_with_capabilities(
     {
         (
             SpatialIntentConflictClass::UnsafeToAssume,
-            SpatialIntentEscalation::AskForClarification,
+            match profile.arbitration_posture() {
+                SpatialArbitrationPosture::PreserveAmbiguity => {
+                    SpatialIntentEscalation::PreserveCandidates
+                }
+                _ => SpatialIntentEscalation::AskForClarification,
+            },
             None,
         )
     } else if available.len() > 1 {
         (
             SpatialIntentConflictClass::MultiplePlausibleIntents,
-            SpatialIntentEscalation::PreserveCandidates,
+            match profile.arbitration_posture() {
+                SpatialArbitrationPosture::AskFirst => SpatialIntentEscalation::AskForClarification,
+                _ => SpatialIntentEscalation::PreserveCandidates,
+            },
             None,
         )
     } else {
@@ -212,6 +261,34 @@ pub fn analyze_spatial_intent_conflict_with_capabilities(
         conflict_class,
         escalation,
         chosen_candidate,
+    }
+}
+
+fn preferred_profile_candidate(
+    available: &[SpatialIntentCandidateRank],
+    profile: SpatialIntentPolicyProfile,
+    observed_relation_facts: &[SpatialObservedRelationFact],
+) -> Option<SpatialIntentCandidate> {
+    match profile.arbitration_posture() {
+        SpatialArbitrationPosture::PreferSnap
+            if observed_relation_facts.contains(&SpatialObservedRelationFact::GrazingContact) =>
+        {
+            available
+                .iter()
+                .find(|candidate| candidate.candidate() == SpatialIntentCandidate::SnapFlush)
+                .map(|candidate| candidate.candidate())
+        }
+        SpatialArbitrationPosture::PreferHostRelationships
+            if observed_relation_facts.contains(&SpatialObservedRelationFact::HostFaceContact) =>
+        {
+            available
+                .iter()
+                .find(|candidate| {
+                    candidate.candidate() == SpatialIntentCandidate::AttachRelationally
+                })
+                .map(|candidate| candidate.candidate())
+        }
+        _ => None,
     }
 }
 

@@ -1,6 +1,10 @@
 mod arbitration;
+mod closeout;
+pub(crate) mod continuity;
 mod corpus;
 mod motion;
+pub(crate) mod preview;
+pub(crate) mod profile;
 mod realization;
 
 pub use arbitration::{
@@ -33,27 +37,66 @@ pub use arbitration::{
     PrimitiveConstructionPreservedIntentResolutionReportError,
     PrimitiveConstructionPreservedIntentResolutionRow, PrimitiveConstructionPreservedIntentTruth,
 };
+pub use closeout::{
+    prepare_primitive_construction_milestone_four_kernel_closeout_evidence_report,
+    prepare_primitive_construction_phase_five_six_closeout_report,
+    PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReport,
+    PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError,
+    PrimitiveConstructionPhaseFiveSixCloseoutReport,
+    PrimitiveConstructionPhaseFiveSixCloseoutReportError,
+};
+pub use continuity::{
+    prepare_primitive_construction_continuity_bundle_from_hostility_suite,
+    prepare_primitive_construction_continuity_hostility_suite_report,
+    prepare_primitive_construction_continuity_report_bundle,
+    prepare_primitive_construction_continuity_surface_report, PrimitiveConstructionContinuityCase,
+    PrimitiveConstructionContinuityHostilitySuiteReport,
+    PrimitiveConstructionContinuityReportBundle, PrimitiveConstructionContinuityReportBundleError,
+    PrimitiveConstructionContinuityResolutionSource, PrimitiveConstructionContinuityRow,
+    PrimitiveConstructionContinuitySurfaceReport,
+    PrimitiveConstructionContinuitySurfaceReportError,
+};
 pub use corpus::{
     prepare_primitive_construction_compound_adversarial_siege_report,
+    prepare_primitive_construction_compound_exhaustion_witness_parity_report,
     prepare_primitive_construction_compound_grazing_boundary_report,
+    prepare_primitive_construction_compound_milestone_closeout_report,
     prepare_primitive_construction_compound_motion_parity_report,
+    prepare_primitive_construction_compound_ordering_parity_report,
+    prepare_primitive_construction_compound_parity_report,
     prepare_primitive_construction_corpus_replay_siege,
+    prepare_primitive_construction_family_boundary_drift_report,
     prepare_primitive_construction_family_boundary_report,
+    prepare_primitive_construction_simplex_realization_exhaustion_witness_report,
+    prepare_primitive_construction_simplex_realization_strategy_ladder_report,
     PrimitiveConstructionCompoundAdversarialSiegeError,
     PrimitiveConstructionCompoundAdversarialSiegeReport,
     PrimitiveConstructionCompoundAuthoringOrderRow,
+    PrimitiveConstructionCompoundExhaustionWitnessParityReport,
+    PrimitiveConstructionCompoundExhaustionWitnessParityRow,
     PrimitiveConstructionCompoundGrazingBoundaryReport,
     PrimitiveConstructionCompoundGrazingBoundaryRow, PrimitiveConstructionCompoundGrazingKind,
-    PrimitiveConstructionCompoundMotionKind, PrimitiveConstructionCompoundMotionParityReport,
-    PrimitiveConstructionCompoundMotionParityRow, PrimitiveConstructionCompoundRow,
-    PrimitiveConstructionCompoundRowClass, PrimitiveConstructionCompoundTopologyClass,
-    PrimitiveConstructionCompoundWorkloadFamily, PrimitiveConstructionCorpusAuthoringOrderRow,
-    PrimitiveConstructionCorpusOutcomeDisposition, PrimitiveConstructionCorpusParameterRole,
-    PrimitiveConstructionCorpusRejectionWitnessRow, PrimitiveConstructionCorpusReplaySiegeError,
-    PrimitiveConstructionCorpusReplaySiegeReport, PrimitiveConstructionCorpusReplaySiegeRow,
+    PrimitiveConstructionCompoundMilestoneCloseoutReport, PrimitiveConstructionCompoundMotionKind,
+    PrimitiveConstructionCompoundMotionParityReport, PrimitiveConstructionCompoundMotionParityRow,
+    PrimitiveConstructionCompoundOrderLaneReport,
+    PrimitiveConstructionCompoundOrderingParityReport,
+    PrimitiveConstructionCompoundOrderingScenarioRow, PrimitiveConstructionCompoundParityReport,
+    PrimitiveConstructionCompoundRow, PrimitiveConstructionCompoundRowClass,
+    PrimitiveConstructionCompoundTopologyClass, PrimitiveConstructionCompoundWorkloadFamily,
+    PrimitiveConstructionCorpusAuthoringOrderRow, PrimitiveConstructionCorpusOutcomeDisposition,
+    PrimitiveConstructionCorpusParameterRole, PrimitiveConstructionCorpusRejectionWitnessRow,
+    PrimitiveConstructionCorpusReplaySiegeError, PrimitiveConstructionCorpusReplaySiegeReport,
+    PrimitiveConstructionCorpusReplaySiegeRow, PrimitiveConstructionFamilyBoundaryDriftReport,
+    PrimitiveConstructionFamilyBoundaryDriftRow,
     PrimitiveConstructionFamilyBoundaryLowerLayerWitnessSummary,
     PrimitiveConstructionFamilyBoundaryReport, PrimitiveConstructionFamilyBoundaryReportError,
     PrimitiveConstructionFamilyBoundaryRow, PrimitiveConstructionFamilyBoundaryTransitionClass,
+    PrimitiveConstructionSimplexExhaustionWitnessRow,
+    PrimitiveConstructionSimplexQuerySurfaceStatus,
+    PrimitiveConstructionSimplexRealizationExhaustionWitnessReport,
+    PrimitiveConstructionSimplexRealizationLadderReportError,
+    PrimitiveConstructionSimplexRealizationLadderRow,
+    PrimitiveConstructionSimplexRealizationStrategyLadderReport,
 };
 pub use motion::{
     prepare_primitive_construction_motion_dx_surface_report,
@@ -87,6 +130,39 @@ pub use motion::{
     PrimitiveConstructionMotionWitnessResolutionStatus,
     PrimitiveConstructionRequestedMotionWitness, PrimitiveConstructionResolvedMotionWitness,
 };
+pub use preview::{
+    prepare_primitive_construction_preview_bundle_from_hostility_suite,
+    prepare_primitive_construction_preview_hostility_suite_report,
+    prepare_primitive_construction_preview_report_bundle,
+    prepare_primitive_construction_preview_surface_report, PrimitiveConstructionPreviewCase,
+    PrimitiveConstructionPreviewHostilitySuiteReport, PrimitiveConstructionPreviewReportBundle,
+    PrimitiveConstructionPreviewReportBundleError, PrimitiveConstructionPreviewRow,
+    PrimitiveConstructionPreviewSurfaceReport, PrimitiveConstructionPreviewSurfaceReportError,
+};
+pub use profile::{
+    prepare_primitive_construction_policy_pressure_delta_report,
+    prepare_primitive_construction_policy_pressure_report,
+    prepare_primitive_construction_policy_pressure_report_bundle,
+    prepare_primitive_construction_policy_profile_bundle_from_combined_hostility_suite,
+    prepare_primitive_construction_policy_profile_bundle_from_hostility_suites,
+    prepare_primitive_construction_policy_profile_report,
+    prepare_primitive_construction_policy_profile_report_bundle,
+    prepare_primitive_construction_preview_continuity_hostility_suite_report,
+    PrimitiveConstructionPolicyPressureCase, PrimitiveConstructionPolicyPressureDeltaCase,
+    PrimitiveConstructionPolicyPressureDeltaReport,
+    PrimitiveConstructionPolicyPressureDeltaReportError,
+    PrimitiveConstructionPolicyPressureDeltaRow, PrimitiveConstructionPolicyPressureReportBundle,
+    PrimitiveConstructionPolicyPressureReportBundleError, PrimitiveConstructionPolicyPressureRow,
+    PrimitiveConstructionPolicyPressureSetup, PrimitiveConstructionPolicyPressureSurfaceReport,
+    PrimitiveConstructionPolicyPressureSurfaceReportError, PrimitiveConstructionPolicyProfileCase,
+    PrimitiveConstructionPolicyProfileReportBundle,
+    PrimitiveConstructionPolicyProfileReportBundleError, PrimitiveConstructionPolicyProfileRow,
+    PrimitiveConstructionPolicyProfileSurfaceReport,
+    PrimitiveConstructionPreviewContinuityHostilityCase,
+    PrimitiveConstructionPreviewContinuityHostilityRow,
+    PrimitiveConstructionPreviewContinuityHostilitySuiteError,
+    PrimitiveConstructionPreviewContinuityHostilitySuiteReport,
+};
 pub use realization::{
     prepare_primitive_construction_conditioning_witness_report,
     prepare_primitive_construction_realization_exhaustion_report,
@@ -102,3 +178,8 @@ pub use realization::{
     PrimitiveConstructionRealizationReportBundle, PrimitiveConstructionRealizationStrategyReport,
     PrimitiveConstructionStabilityClassReport,
 };
+
+#[cfg(test)]
+mod milestone_four_kernel_closeout_tests;
+#[cfg(test)]
+mod phase_five_six_closeout_tests;

@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_policy_profile_report_bundle_constructor_not_exported.rs:4:61
+  |
+4 |       let _ = PrimitiveConstructionPolicyProfileReportBundle::new;
+  |                                                               ^^^ private associated function
+  |
+ ::: src/construction/certification/profile/bundle.rs
+  |
+  | /     fn new(
+  | |         case: PrimitiveConstructionPolicyProfileCase,
+  | |         profile_row: PrimitiveConstructionPolicyProfileRow,
+  | |         replay_report: PrimitiveConstructionPolicyProfileReplayParityReport,
+... |
+  | |         branch_runtime_report: PrimitiveConstructionPolicyProfileBranchPreviewRuntimeReport,
+  | |     ) -> Self {
+  | |_____________- private associated function defined here

@@ -22,7 +22,9 @@ pub fn block(center: [f64; 3], half_extents: [f64; 3]) -> Result<Vec<Plane>, Mat
 }
 
 pub fn tetrahedron(center: [f64; 3], scale: f64) -> Result<Vec<Plane>, MathError> {
-    Ok(realize_tetrahedron_support(center, scale)?.into_planes())
+    realize_tetrahedron_support(center, scale)
+        .map(|realization| realization.into_planes())
+        .map_err(map_realization_error)
 }
 
 pub fn dodecahedron(center: [f64; 3], scale: f64) -> Result<Vec<Plane>, MathError> {

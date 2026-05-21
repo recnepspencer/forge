@@ -150,7 +150,7 @@ fn kernel_public_facade_exports_branch_preview_runtime_report() {
     .expect("workspace");
     let report = prepare_primitive_construction_branch_preview_runtime_report(
         &mut workspace,
-        PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec { scale: 1.0 }),
+        PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec::new(1.0)),
     )
     .expect("branch preview report");
 
@@ -168,9 +168,18 @@ fn kernel_public_facade_exports_branch_preview_runtime_report() {
         report.stability_class(),
         Some(PrimitiveStabilityClass::StableDirect)
     );
-    assert!(!report.outcome().outcome_digest().is_empty());
-    assert!(!report.preview_lane().admission_digest().is_empty());
-    assert!(!report.branch_lane().admission_digest().is_empty());
+    assert_ne!(
+        report.outcome().outcome_digest(),
+        report.preview_lane().admission_digest()
+    );
+    assert_ne!(
+        report.outcome().outcome_digest(),
+        report.branch_lane().admission_digest()
+    );
+    assert_ne!(
+        report.preview_lane().admission_digest(),
+        report.branch_lane().admission_digest()
+    );
 }
 
 #[test]

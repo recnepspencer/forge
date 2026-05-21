@@ -1,0 +1,11 @@
+error[E0432]: unresolved imports `worth_kernel::facade::preview_primitive_intent_continuity_with_capabilities_and_profile`, `worth_kernel::facade::preview_primitive_intent_continuity_with_profile`, `worth_kernel::facade::preview_primitive_intent_with_capabilities_and_profile`, `worth_kernel::facade::preview_primitive_intent_with_profile`
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_preview_helper_exports_demoted.rs:2:5
+  |
+2 |     preview_primitive_intent_continuity_with_capabilities_and_profile,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `preview_primitive_intent_continuity_with_capabilities_and_profile` in `facade`
+3 |     preview_primitive_intent_continuity_with_profile,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `preview_primitive_intent_continuity_with_profile` in `facade`
+4 |     preview_primitive_intent_with_capabilities_and_profile, preview_primitive_intent_with_profile,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `preview_primitive_intent_with_profile` in `facade`
+  |     |
+  |     no `preview_primitive_intent_with_capabilities_and_profile` in `facade`

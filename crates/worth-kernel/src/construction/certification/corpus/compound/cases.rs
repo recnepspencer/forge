@@ -1,6 +1,6 @@
 use crate::construction::{
     OrthotopeSpec, PrimitiveConstructionIntent, RegularPrismSpec, RegularPyramidSpec,
-    ShellWithHoleSpec, WireBodySpec,
+    ShellWithHoleSpec, SimplexSolidSpec, WireBodySpec,
 };
 use crate::facade::{
     MoveSpatialIntent, OffsetSpatialIntent, PrimitiveConstructionSpatialIntentError,
@@ -15,7 +15,7 @@ use super::schema::{
 };
 
 #[derive(Clone)]
-pub(super) struct PrimitiveConstructionCompoundScenario {
+pub(crate) struct PrimitiveConstructionCompoundScenario {
     pub(super) scenario_id: &'static str,
     pub(super) workload_family: PrimitiveConstructionCompoundWorkloadFamily,
     pub(super) topology_class: PrimitiveConstructionCompoundTopologyClass,
@@ -83,6 +83,18 @@ impl PrimitiveConstructionCompoundGrazingPlan {
 }
 
 impl PrimitiveConstructionCompoundScenario {
+    pub(crate) fn scenario_id(&self) -> &'static str {
+        self.scenario_id
+    }
+
+    pub(crate) fn workload_family(&self) -> PrimitiveConstructionCompoundWorkloadFamily {
+        self.workload_family
+    }
+
+    pub(crate) fn row_class(&self) -> PrimitiveConstructionCompoundRowClass {
+        self.row_class
+    }
+
     pub(super) fn resolved_intent(
         &self,
     ) -> Result<PrimitiveConstructionIntent, PrimitiveConstructionSpatialIntentError> {
@@ -164,7 +176,20 @@ pub(super) fn compound_scenarios() -> Vec<PrimitiveConstructionCompoundScenario>
             None,
         ),
         scenario(
-            "regular_pyramid_threshold_exact_support",
+            "pyramid_direct_stable_comparison",
+            PrimitiveConstructionCompoundWorkloadFamily::RegularPyramid,
+            PrimitiveConstructionCompoundTopologyClass::ClosedSolid,
+            PrimitiveConstructionCompoundRowClass::DirectStable,
+            PrimitiveConstructionIntent::regular_pyramid(RegularPyramidSpec {
+                sides: 3,
+                radius: 1.0,
+                height: 1.0,
+            }),
+            None,
+            None,
+        ),
+        scenario(
+            "pyramid_threshold_admitted_exact_support",
             PrimitiveConstructionCompoundWorkloadFamily::RegularPyramid,
             PrimitiveConstructionCompoundTopologyClass::ClosedSolid,
             PrimitiveConstructionCompoundRowClass::EscalatedStableExactSupport,
@@ -177,7 +202,7 @@ pub(super) fn compound_scenarios() -> Vec<PrimitiveConstructionCompoundScenario>
             None,
         ),
         scenario(
-            "regular_pyramid_threshold_rejected_neighbor",
+            "pyramid_threshold_rejected_neighbor",
             PrimitiveConstructionCompoundWorkloadFamily::RegularPyramid,
             PrimitiveConstructionCompoundTopologyClass::ClosedSolid,
             PrimitiveConstructionCompoundRowClass::BoundaryDriftGuardCase,
@@ -186,6 +211,55 @@ pub(super) fn compound_scenarios() -> Vec<PrimitiveConstructionCompoundScenario>
                 radius: 1.0,
                 height: 0.0,
             }),
+            None,
+            None,
+        ),
+        scenario(
+            "pyramid_semantic_exhaustion",
+            PrimitiveConstructionCompoundWorkloadFamily::RegularPyramid,
+            PrimitiveConstructionCompoundTopologyClass::ClosedSolid,
+            PrimitiveConstructionCompoundRowClass::StructuredRealizationExhaustion,
+            PrimitiveConstructionIntent::regular_pyramid(RegularPyramidSpec {
+                sides: 3,
+                radius: 0.0,
+                height: 1.0,
+            }),
+            None,
+            None,
+        ),
+        scenario(
+            "simplex_world_collapsed_admitted_local_or_exact",
+            PrimitiveConstructionCompoundWorkloadFamily::SimplexSolid,
+            PrimitiveConstructionCompoundTopologyClass::ClosedSolid,
+            PrimitiveConstructionCompoundRowClass::EscalatedStableExactSupport,
+            PrimitiveConstructionIntent::simplex_solid(
+                SimplexSolidSpec::new(1.0e-200).with_auxiliary_altitude_component(1.0e-220),
+            )
+            .at([2f64.powi(548), -2f64.powi(548), 2f64.powi(548)]),
+            None,
+            None,
+        ),
+        scenario(
+            "simplex_world_collapsed_threshold_rejected",
+            PrimitiveConstructionCompoundWorkloadFamily::SimplexSolid,
+            PrimitiveConstructionCompoundTopologyClass::ClosedSolid,
+            PrimitiveConstructionCompoundRowClass::BoundaryDriftGuardCase,
+            PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec::new(0.0))
+                .created()
+                .at([2f64.powi(548), -2f64.powi(548), 2f64.powi(548)])
+                .finish(),
+            None,
+            None,
+        ),
+        scenario(
+            "simplex_world_collapsed_explicit_exhaustion",
+            PrimitiveConstructionCompoundWorkloadFamily::SimplexSolid,
+            PrimitiveConstructionCompoundTopologyClass::ClosedSolid,
+            PrimitiveConstructionCompoundRowClass::StructuredRealizationExhaustion,
+            PrimitiveConstructionIntent::simplex_solid(
+                SimplexSolidSpec::new(1.0e-240).with_auxiliary_altitude_component(1.0e-280),
+            )
+            .at([2f64.powi(548), -2f64.powi(548), 2f64.powi(548)]),
             None,
             None,
         ),
@@ -211,7 +285,7 @@ pub(super) fn compound_scenarios() -> Vec<PrimitiveConstructionCompoundScenario>
             }),
         ),
         scenario(
-            "wire_open_origin_graze",
+            "wire_open_endpoint_graze",
             PrimitiveConstructionCompoundWorkloadFamily::WireOpen,
             PrimitiveConstructionCompoundTopologyClass::OpenWire,
             PrimitiveConstructionCompoundRowClass::PreBooleanGrazingCase,
@@ -244,34 +318,6 @@ pub(super) fn compound_scenarios() -> Vec<PrimitiveConstructionCompoundScenario>
             None,
         ),
     ]
-}
-
-pub(super) fn canonical_order(
-    scenarios: &[PrimitiveConstructionCompoundScenario],
-) -> Vec<PrimitiveConstructionCompoundScenario> {
-    scenarios.to_vec()
-}
-
-pub(super) fn reversed_order(
-    scenarios: &[PrimitiveConstructionCompoundScenario],
-) -> Vec<PrimitiveConstructionCompoundScenario> {
-    let mut rows = scenarios.to_vec();
-    rows.reverse();
-    rows
-}
-
-pub(super) fn topology_clustered_order(
-    scenarios: &[PrimitiveConstructionCompoundScenario],
-) -> Vec<PrimitiveConstructionCompoundScenario> {
-    let mut rows = scenarios.to_vec();
-    rows.sort_by_key(|scenario| {
-        (
-            scenario.topology_class as u8,
-            scenario.workload_family as u8,
-            scenario.scenario_id,
-        )
-    });
-    rows
 }
 
 fn scenario(

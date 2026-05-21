@@ -1,22 +1,21 @@
 use worth_kernel::facade::{
-    analyze_primitive_intent_conflict, analyze_primitive_intent_conflict_with_capabilities,
     prepare_primitive_chosen_intent_resolution_report,
     prepare_primitive_intent_arbitration_policy_report,
-    prepare_primitive_intent_clarification_request,
     prepare_primitive_intent_conflict_dx_surface_report,
-    resolve_primitive_intent_conflict_by_choice, resolve_primitive_intent_conflict_by_policy,
     PrimitiveConstructionChosenIntentResolutionAuthority,
     PrimitiveConstructionChosenIntentResolutionCase,
     PrimitiveConstructionIntentArbitrationDxSurface,
     PrimitiveConstructionIntentArbitrationPolicyCase, PrimitiveIntentClarificationRequestError,
-    SpatialAuthoredActKind, SpatialIntentCandidate, SpatialIntentCapabilitySet,
-    SpatialIntentConflictClass, SpatialIntentEscalation, SpatialObservedRelationFact,
+    PrimitiveIntentConflict, SpatialAuthoredActKind, SpatialIntentCandidate,
+    SpatialIntentCapabilitySet, SpatialIntentConflictClass, SpatialIntentEscalation,
+    SpatialObservedRelationFact,
 };
+use worth_spatial::facade::SpatialBlockedCapability;
 
 #[test]
-fn kernel_public_facade_exports_intent_arbitration_analysis_surface() {
-    let direct = analyze_primitive_intent_conflict(SpatialAuthoredActKind::Move, &[]);
-    let advanced = analyze_primitive_intent_conflict_with_capabilities(
+fn kernel_public_facade_exports_artifact_style_intent_arbitration_analysis_surface() {
+    let direct = PrimitiveIntentConflict::analyze(SpatialAuthoredActKind::Move, &[]);
+    let advanced = PrimitiveIntentConflict::analyze_with_capabilities(
         SpatialAuthoredActKind::Move,
         &[SpatialObservedRelationFact::Overlap],
         SpatialIntentCapabilitySet::blocked_defaults()
@@ -63,19 +62,15 @@ fn kernel_public_facade_exports_intent_arbitration_reports() {
 }
 
 #[test]
-fn kernel_public_facade_exports_intent_resolution_surface() {
-    let policy = resolve_primitive_intent_conflict_by_policy(analyze_primitive_intent_conflict(
+fn kernel_public_facade_exports_artifact_style_intent_resolution_surface() {
+    let policy = PrimitiveIntentConflict::analyze(SpatialAuthoredActKind::Move, &[])
+        .resolve_by_policy()
+        .expect("policy resolution");
+    let explicit = PrimitiveIntentConflict::analyze(
         SpatialAuthoredActKind::Move,
-        &[],
-    ))
-    .expect("policy resolution");
-    let explicit = resolve_primitive_intent_conflict_by_choice(
-        analyze_primitive_intent_conflict(
-            SpatialAuthoredActKind::Move,
-            &[SpatialObservedRelationFact::GrazingContact],
-        ),
-        SpatialIntentCandidate::SnapFlush,
+        &[SpatialObservedRelationFact::GrazingContact],
     )
+    .resolve_by_choice(SpatialIntentCandidate::SnapFlush)
     .expect("explicit resolution");
 
     assert_eq!(policy.chosen_candidate(), SpatialIntentCandidate::MoveOnly);
@@ -86,30 +81,41 @@ fn kernel_public_facade_exports_intent_resolution_surface() {
 }
 
 #[test]
-fn kernel_public_facade_exports_intent_clarification_boundary_surface() {
-    let unresolved =
-        prepare_primitive_intent_clarification_request(analyze_primitive_intent_conflict(
-            SpatialAuthoredActKind::Move,
-            &[SpatialObservedRelationFact::GrazingContact],
-        ))
-        .expect("clarification request");
-    let blocked =
-        prepare_primitive_intent_clarification_request(analyze_primitive_intent_conflict(
-            SpatialAuthoredActKind::Move,
-            &[SpatialObservedRelationFact::HostPenetration],
-        ))
-        .expect("blocked clarification");
-    let direct = prepare_primitive_intent_clarification_request(analyze_primitive_intent_conflict(
+fn kernel_public_facade_exports_artifact_style_intent_clarification_boundary_surface() {
+    let unresolved = PrimitiveIntentConflict::analyze(
         SpatialAuthoredActKind::Move,
-        &[],
-    ));
+        &[SpatialObservedRelationFact::GrazingContact],
+    )
+    .clarification_request()
+    .expect("clarification request");
+    let blocked = PrimitiveIntentConflict::analyze(
+        SpatialAuthoredActKind::Move,
+        &[SpatialObservedRelationFact::HostPenetration],
+    )
+    .clarification_request()
+    .expect("blocked clarification");
+    let direct =
+        PrimitiveIntentConflict::analyze(SpatialAuthoredActKind::Move, &[]).clarification_request();
 
     assert_eq!(
         unresolved.escalation(),
         SpatialIntentEscalation::AskForClarification
     );
-    assert!(!unresolved.candidates().is_empty());
-    assert!(blocked.blocked_capability().is_some());
+    assert_eq!(
+        unresolved
+            .candidates()
+            .iter()
+            .map(|candidate| candidate.candidate())
+            .collect::<Vec<_>>(),
+        vec![
+            SpatialIntentCandidate::SnapFlush,
+            SpatialIntentCandidate::MoveOnly,
+        ]
+    );
+    assert_eq!(
+        blocked.blocked_capability(),
+        Some(SpatialBlockedCapability::CutOpening)
+    );
     assert_eq!(
         direct,
         Err(

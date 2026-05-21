@@ -1405,7 +1405,8 @@ The implementation rule is:
 - finish `Phase 5.5.2` before starting `Phase 5.5.3`
 - finish `Phase 5.5.3` before starting `Phase 5.5.4`
 - finish `Phase 5.5.4` before starting `Phase 5.5.5`
-- finish `Phase 5.5.5` before starting `Phase 5.6`
+- finish `Phase 5.5.5` before starting `Phase 5.5.6`
+- finish `Phase 5.5.6` before starting `Phase 5.6`
 - finish `Phase 5.6` before starting `Phase 6`
 - finish `Phase 6` before starting `Phase 7`
 
@@ -3652,6 +3653,26 @@ At minimum the built surface must aim for:
   so UI teams can build dropdowns, previews, or command palettes without
   inventing a second arbitration model
 
+The intended kernel-facing common path should converge toward one artifact-style
+surface rather than a pile of sibling helpers. At minimum the target shape
+should be explicit enough that the implementation can honestly grow toward a
+surface like:
+
+- `PrimitiveIntentConflict::analyze(...)`
+- `PrimitiveIntentConflict::analyze_with_capabilities(...)`
+- `PrimitiveIntentConflict::clarification_request()`
+- `PrimitiveIntentConflict::resolve_by_policy()`
+- `PrimitiveIntentConflict::resolve_by_choice(...)`
+- `PrimitiveIntentConflict::analysis()`
+
+The exact final names may evolve, but the DX target must be explicit that:
+
+- the common path returns one inspectable conflict artifact
+- clarification and resolution are phase-progressive operations on that
+  artifact, not disconnected utility calls
+- the advanced path can still expose the lower `SpatialIntentArbitrationAnalysis`
+  truth directly when the caller needs it
+
 #### Required adversarial cases this phase must plan for
 
 This phase must explicitly plan for at least these conflict-heavy edge cases:
@@ -3951,6 +3972,46 @@ Developers must be able to ask questions like:
 
 without dropping into logs or app-local heuristics.
 
+The intended kernel-facing common path should converge toward one envelope-style
+preview surface rather than separate sibling calls for preview and continuity.
+At minimum the target shape should be explicit enough that the implementation
+can honestly grow toward a surface like:
+
+- `PrimitiveIntentPreview::analyze(...)`
+- `PrimitiveIntentPreview::analyze_with_capabilities(...)`
+- `PrimitiveIntentPreviewAssessment::preview()`
+- `PrimitiveIntentPreviewAssessment::continuity()`
+- `PrimitiveIntentPreviewAssessment::analysis()`
+- `PrimitiveIntentPreviewAssessment::profile()`
+- `PrimitiveIntentPreviewAssessment::capabilities()`
+- `PrimitiveIntentPreviewAssessment::clarification_request()`
+
+The exact final names may evolve, but the DX target must be explicit that:
+
+- one common-path artifact carries preview and continuity truth together
+- continuity is visibly derived from the same preview analysis rather than
+  recomputed through app-local folklore
+- the advanced path can still expose the lower `SpatialIntentPreview` and
+  `SpatialIdentityContinuityAssessment` truth directly when the caller needs it
+
+The reusable profile substrate must also expose one principled override or
+derivation surface rather than only a growing list of frozen presets. At
+minimum the phase should converge toward an explicit surface like:
+
+- `SpatialIntentPolicyProfile::derive(SpatialIntentPolicyProfileOverride)`
+- or an equally explicit profile-override artifact with named fields for:
+  - proximity posture
+  - alignment posture
+  - arbitration posture
+  - preview richness
+
+The exact final names may evolve, but the phase must make it explicit that:
+
+- named profiles remain the common path
+- local semantic overrides are a first-class advanced path
+- hostile suites in Phase 5.6 must not be forced to add one-off hard-coded
+  profiles every time they need one stricter or richer posture
+
 #### Required Query posture
 
 This phase must make Forge Query feel native to preview, continuity, and
@@ -3978,6 +4039,12 @@ And that Query-backed reports can certify parity of those surfaces across:
 - implement one reusable preview and simulation substrate in `worth-spatial`
 - implement one reusable identity continuity model
 - implement one reusable tolerance and policy profile model
+- implement one kernel-owned conflict artifact surface over the arbitration
+  substrate rather than leaving the public DX as disconnected helper calls
+- implement one kernel-owned preview assessment envelope that binds preview and
+  continuity truth together for the common path
+- implement one named profile-override or derivation surface so advanced callers
+  can specialize a profile without inventing ad hoc presets
 - implement one Query-backed artifact and report story for:
   - preview truth
   - continuity truth
@@ -4025,6 +4092,317 @@ these things machine-checkably true:
   and topology-changing operations
 - Phase 5.6 can pressure motion, conflict, preview, continuity, and profile
   behavior on top of one coherent foundation
+
+### Phase 5.5.6: Freeze Anchor Breadth, Directional Anchors, And Reference-Translation Semantics Before The Compound Siege
+
+Turn the remaining spatial-anchor support gaps into one explicit shared
+substrate before Phase 5.6 and before later host, snapping, boolean, fillet,
+and parameter-space work force the kernel to invent suite-local anchor folklore.
+
+#### Adversarial constraint
+
+The same authored intent must not change meaning merely because the caller uses
+a different anchor vocabulary for the same spatial fact. A naive implementation
+either:
+
+- forces every non-`ShapeOrigin` case through point-anchor lowering and silently
+  lies about direction, tag, or carrier-local meaning, or
+- leaves every advanced anchor unsupported and forces later suites to invent
+  one-off lowering paths that drift from each other under replay, branch, and
+  preview pressure
+
+This phase exists to survive that failure mode.
+
+#### Why this phase comes now
+
+Phases 5.5.2 through 5.5.5 already freeze:
+
+- motion witness and motion-resolution truth
+- conflict, arbitration, and blocked-capability truth
+- preview, continuity, and policy-profile truth
+
+But the anchor substrate is still materially incomplete if we stop there:
+
+- external reference anchors are not yet a principled translation surface
+- axis-bearing anchors are not yet first-class lowering inputs
+- geometric tags do not yet resolve through one reusable authority
+- parameter-space anchors still use a placeholder string payload rather than a
+  numeric carrier-local model
+
+Phase 5.6 should not have to decide whether a hostile case uses:
+
+- a subject-owned point anchor
+- an external reference point anchor
+- a directional axis anchor
+- a tagged anchor
+- a carrier-local parameter-space anchor
+
+by inventing its own suite-local lowering folklore.
+
+This phase therefore belongs before Phase 5.6 because the compound suite must
+pressure one coherent anchor substrate rather than a partially closed point-only
+path plus a growing list of typed unsupported excuses.
+
+#### What this phase must establish
+
+This phase must freeze four anchor semantics explicitly:
+
+1. subject-owned translation anchors
+2. external reference translation anchors
+3. directional and axis anchors
+4. tag-backed and parameter-space anchor identity
+
+The system must stop pretending these are all one point-anchor problem.
+
+At minimum, the model must distinguish:
+
+- anchors that move with the subject
+- anchors that are external references only
+- anchors that denote points
+- anchors that denote directions or axes
+- anchors that denote carrier-local parameter-space locations
+- anchors that denote named feature or geometric tags requiring resolution
+
+#### Required reusable ownership and directory topology
+
+The anchor substrate must keep shared semantics in `worth-spatial` and expose
+kernel DX through `worth-kernel` without burying anchor reasoning under one
+verb.
+
+The intended permanent shared skeleton in `worth-spatial` is:
+
+```text
+crates/worth-spatial/src/spatial_intent/
+  refs/
+  lowering/
+```
+
+Where:
+
+- `refs/`
+  - owns anchor, witness, carrier, and tag identity models
+- `lowering/`
+  - owns lowering of authored spatial semantics into point, direction, and
+    placement truth
+
+The intended kernel-facing skeleton remains:
+
+```text
+crates/worth-kernel/src/spatial_intent/
+  lowering/
+```
+
+Where:
+
+- kernel owns the public common-path lowering and diagnostics posture
+- spatial owns the reusable anchor and lowering meaning they consume
+
+#### Required anchor-semantics split
+
+This phase must make it impossible to silently treat external references as if
+they were subject-owned anchors.
+
+At minimum, the plan must distinguish:
+
+- subject-owned point anchors
+  - `ShapeOrigin`
+  - subject-owned point-like `FeatureOwned(...)`
+- external reference point anchors
+  - `WorldOrigin`
+  - `FrameOrigin(...)`
+  - external point-like `FeatureOwned(...)` resolved through the witness
+    catalog when allowed
+- directional anchors
+  - `ShapeAxis(...)`
+  - `FrameAxis(...)`
+  - direction-like `FeatureOwned(...)`
+- tagged anchors
+  - `GeometricTag(...)`
+- carrier-local anchors
+  - `ParameterSpace(...)`
+
+The exact final type names may evolve, but the substrate must stop collapsing
+point ownership, external reference, direction, tag, and parameter-space into
+one enum branch with ad hoc verb checks.
+
+#### Required support closure in this phase
+
+This phase must add honest support for the remaining anchor cases the current
+substrate can reasonably carry now:
+
+- external-reference translation semantics for authored move/offset-style
+  operations
+- directional lowering for:
+  - `ShapeAxis(...)`
+  - `FrameAxis(...)`
+  - direction-like `FeatureOwned(...)`
+- tag-backed anchor lowering for:
+  - `GeometricTag(...)`
+- target-side parity where the system already supports the same anchor meaning
+  on the source side
+
+That support must be principled. It must not silently mutate the meaning of
+existing verbs.
+
+If `Move` and `Offset` keep their current subject-owned meaning, then this
+phase must either:
+
+- introduce an explicit external-reference translation surface, or
+- refactor the lowering model so the subject-owned vs external-reference
+  distinction is encoded structurally before execution
+
+What this phase must not do is let `WorldOrigin` or `FrameOrigin(...)` masquerade
+as a moving subject-owned anchor without the type system admitting that the
+meaning changed.
+
+#### Required directional-anchor model
+
+This phase must make axis and direction anchors first-class lowering inputs
+instead of leaving them as typed decorations with no execution path.
+
+At minimum, the substrate must define:
+
+- which authored acts consume point anchors
+- which authored acts consume directional anchors
+- which authored acts can accept either with different lowered plans
+- one reusable lowering bridge from:
+  - `ShapeAxis(...)`
+  - `FrameAxis(...)`
+  - direction-like `FeatureOwned(...)`
+  into the direction-witness substrate
+
+The model must be explicit that axis anchors are not points and must not be
+forced through point-anchor lowering.
+
+#### Required geometric-tag model
+
+This phase must stop treating `GeometricTag(...)` as a placeholder escape hatch.
+
+At minimum, the plan must freeze:
+
+- one authoritative tag-resolution seam
+- one typed distinction between:
+  - unresolved tag
+  - ambiguous tag
+  - resolved point-like tag
+  - resolved direction-like tag
+  - resolved unsupported tag class
+- one lowering path that consumes resolved tag meaning rather than raw strings
+
+The exact final tag inventory may evolve later, but Phase 5.6 must inherit a
+real resolution substrate rather than hard-coding tag folklore inside hostile
+fixtures.
+
+#### Parameter-space deferral boundary
+
+Robust `ParameterSpace(...)` anchor support is intentionally deferred out of
+Phase 5.5.6 and into Milestone 5.
+
+That deferral is not because parameter-space is unimportant. It is because
+carrier-local parameter anchors belong with topology-to-geometry binding truth,
+curve/surface binding semantics, and rebinding/continuity authority rather than
+with the pre-Boolean primitive intent-lowering cleanup in this milestone.
+
+Phase 5.5.6 must therefore preserve only the honest denial boundary:
+
+- `ParameterSpace(...)` remains typed unsupported here
+- no suite-local string parsing or fake numeric lowering may be introduced
+- no operation may pretend that a display string is authoritative carrier-local
+  identity
+
+Milestone 5 must then replace that denial with a real carrier-local anchor
+model aligned to the binding substrate.
+
+#### Relationship to exact geometric predicates
+
+This milestone must also make explicit why `worth-math` exact predicates are
+necessary but not sufficient for future parameter-space support.
+
+Exact orientation, incidence, and classification support helps only after the
+system already knows:
+
+- which carrier the anchor lives on
+- which numeric parameter coordinates are authoritative
+- whether the anchor denotes a point or a direction-like role
+
+Predicates can certify geometry at that numeric location. They cannot replace
+the missing anchor identity model or tell the lowering layer what carrier-local
+fact the caller intended. That model belongs to Milestone 5's binding truth.
+
+#### Required Query and proof posture
+
+This phase must preserve typed unsupported and typed resolution-failure truth
+instead of flattening it into generic unsupported-anchor errors.
+
+The artifact and proof surfaces must be able to preserve:
+
+- supported lowering
+- typed unsupported anchor class
+- typed witness failure
+- typed tag-resolution failure
+- typed ambiguity between point-like and direction-like meaning
+
+And Query-backed reports must certify parity of those surfaces across:
+
+- direct preparation
+- replay
+- branch / preview
+- inspection
+- projection-consumption
+
+#### Do this in this phase
+
+- freeze the anchor-semantics split between subject-owned point anchors,
+  external reference anchors, directional anchors, tag-backed anchors, and
+  carrier-local anchors
+- implement one principled external-reference translation model instead of
+  overloading subject-owned move semantics implicitly
+- implement one reusable directional-anchor lowering path for:
+  - `ShapeAxis(...)`
+  - `FrameAxis(...)`
+  - direction-like `FeatureOwned(...)`
+- implement one authoritative `GeometricTag(...)` resolution seam and lowering
+  path
+- implement one Query-backed artifact and report story for anchor lowering
+  support, typed unsupported classes, witness failures, and tag failures
+- add hostile proof lanes for:
+  - source-side vs target-side anchor symmetry where the semantics should match
+  - subject-owned vs external-reference translation meaning
+  - point-anchor vs directional-anchor lowering differences
+  - typed tag failure vs typed witness failure vs typed unsupported class
+
+#### Required implementation deliverables
+
+At minimum, this phase must ship:
+
+- one implemented anchor-semantics split broad enough to distinguish point,
+  direction, tag, and carrier-local anchors
+- one implemented external-reference translation model
+- one implemented directional-anchor lowering path
+- one implemented geometric-tag resolution and lowering path
+- one Query-backed artifact and report story for anchor-lowering truth
+
+#### Required acceptance evidence from implementation
+
+This phase is not done when the document merely says "we support more anchors."
+It is done only when the built system makes these things machine-checkably
+true:
+
+- external references do not silently masquerade as subject-owned anchors
+- axis anchors do not silently masquerade as point anchors
+- geometric tags do not bypass one shared resolution authority
+- later hostile suites can author anchor-rich pressure on top of one shared
+  substrate instead of inventing per-suite lowering folklore
+
+#### Do not start the next phase until
+
+- point, direction, tag, and carrier-local anchor semantics have a permanent
+  shared home
+- the remaining supported anchor breadth is closed on one reusable lowering
+  substrate
+- geometric-tag resolution is no longer an unowned placeholder
+- Phase 5.6 can pressure anchor-rich motion, conflict, preview, continuity, and
+  mixed-topology workloads without inventing suite-local anchor rules
 
 ### Phase 5.6: Freeze The Compound Primitive Adversarial Suite Before Docs
 

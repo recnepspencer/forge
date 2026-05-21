@@ -13,6 +13,7 @@ pub(crate) enum AdmittedPrimitiveConstructionGeometry {
     SimplexSolid {
         placement: AdmittedSpatialPlacement,
         scale: f64,
+        auxiliary_altitude_component: f64,
     },
     Orthotope {
         placement: AdmittedSpatialPlacement,
@@ -76,11 +77,25 @@ pub(crate) fn admit_request(
     request_digest: String,
 ) -> Result<AdmittedPrimitiveConstructionIntent, PrimitiveConstructionPhaseError> {
     let geometry = match geometry {
-        PrimitiveConstructionGeometry::SimplexSolid { placement, scale } => {
+        PrimitiveConstructionGeometry::SimplexSolid {
+            placement,
+            scale,
+            auxiliary_altitude_component,
+        } => {
             let placement = admit_placement(family, placement)?;
             let scale = f64::from_bits(scale);
+            let auxiliary_altitude_component = f64::from_bits(auxiliary_altitude_component);
             reject_non_positive_scalar(family, "scale", scale)?;
-            AdmittedPrimitiveConstructionGeometry::SimplexSolid { placement, scale }
+            reject_non_negative_scalar(
+                family,
+                "auxiliary_altitude_component",
+                auxiliary_altitude_component,
+            )?;
+            AdmittedPrimitiveConstructionGeometry::SimplexSolid {
+                placement,
+                scale,
+                auxiliary_altitude_component,
+            }
         }
         PrimitiveConstructionGeometry::Orthotope {
             placement,
@@ -131,7 +146,7 @@ pub(crate) fn admit_request(
             reject_minimum_sides(family, sides)?;
             let radius = f64::from_bits(radius);
             let height = f64::from_bits(height);
-            reject_non_positive_scalar(family, "radius", radius)?;
+            reject_non_negative_scalar(family, "radius", radius)?;
             reject_non_positive_scalar(family, "height", height)?;
             AdmittedPrimitiveConstructionGeometry::RegularPyramid {
                 placement,
@@ -199,6 +214,26 @@ fn reject_non_positive_scalar(
                 "radius" => "radius must stay finite and positive",
                 "height" => "height must stay finite and positive",
                 _ => "scalar parameter must stay finite and positive",
+            },
+        });
+    }
+    Ok(())
+}
+
+fn reject_non_negative_scalar(
+    family: PrimitiveConstructionFamily,
+    name: &'static str,
+    value: f64,
+) -> Result<(), PrimitiveConstructionPhaseError> {
+    if !value.is_finite() || value < 0.0 {
+        return Err(PrimitiveConstructionPhaseError::InvalidRequest {
+            family,
+            reason: match name {
+                "auxiliary_altitude_component" => {
+                    "auxiliary altitude component must stay finite and non-negative"
+                }
+                "radius" => "radius must stay finite and non-negative",
+                _ => "scalar parameter must stay finite and non-negative",
             },
         });
     }

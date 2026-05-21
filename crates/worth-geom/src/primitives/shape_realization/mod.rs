@@ -19,7 +19,7 @@ pub use schema::{
 };
 pub use support::{
     realize_block_support, realize_prism_support, realize_pyramid_support,
-    realize_tetrahedron_support,
+    realize_tetrahedron_support, realize_tetrahedron_support_with_altitude_component,
 };
 pub use witnesses::{
     primitive_realization_exhaustion_witness_rows, PrimitiveRealizationExhaustionWitnessKind,

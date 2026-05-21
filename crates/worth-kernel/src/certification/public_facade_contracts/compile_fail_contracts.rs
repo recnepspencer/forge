@@ -47,4 +47,22 @@ fn kernel_public_boundary_rejects_internal_constructor_bypass() {
     t.compile_fail(format!(
         "{compile_fail}/reports/public_intent_arbitration_hostility_suite_constructor_not_exported.rs"
     ));
+    t.compile_fail(format!(
+        "{compile_fail}/reports/public_intent_arbitration_helper_exports_demoted.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/reports/public_preview_report_bundle_constructor_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/reports/public_preview_helper_exports_demoted.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/reports/public_continuity_report_bundle_constructor_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/reports/public_policy_profile_report_bundle_constructor_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/reports/public_preview_continuity_hostility_suite_constructor_not_exported.rs"
+    ));
 }

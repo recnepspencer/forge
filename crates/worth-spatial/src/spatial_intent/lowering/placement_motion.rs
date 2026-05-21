@@ -1,8 +1,25 @@
+use crate::spatial_intent::lowering::placement_anchor_directions::{
+    lowered_reorient_facing_from_directional_anchor, SpatialPlacementDirectionalAnchorError,
+    SpatialPlacementReorientAnchorMode,
+};
+use crate::spatial_intent::lowering::placement_anchor_points::SpatialPlacementPointAnchorError;
+use crate::spatial_intent::lowering::placement_anchor_progression::{
+    lower_supported_point_anchor, lower_supported_point_anchor_with_catalog,
+    lower_supported_reorient_anchor, lower_supported_reorient_anchor_with_catalog,
+    lower_supported_translation_anchor, lower_supported_translation_anchor_with_catalog,
+};
+use crate::spatial_intent::lowering::placement_motion_support::{
+    rotate_point_about_pivot, rotate_vector, translate_anchor_to_world_point,
+    translate_placement_world_offset,
+};
 use crate::spatial_intent::lowering::{
     admit_spatial_placement, AdmittedSpatialMove, AdmittedSpatialOffset, AdmittedSpatialReorient,
     AdmittedSpatialRotate, SpatialPlacementSpec,
 };
-use crate::spatial_intent::refs::SpatialAnchorRef;
+use crate::spatial_intent::refs::{
+    admit_spatial_frame, SpatialAnchorRef, SpatialGeometricTagFailureClass, SpatialWitnessCatalog,
+};
+use crate::spatial_intent::resolution::SpatialWitnessFailureClass;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SpatialPlacementMotionError {
@@ -10,6 +27,9 @@ pub enum SpatialPlacementMotionError {
     UnsupportedOffsetAnchor,
     UnsupportedRotateAnchor,
     UnsupportedReorientAnchor,
+    AmbiguousReorientAnchorMeaning,
+    AnchorWitnessFailure(SpatialWitnessFailureClass),
+    AnchorTagFailure(SpatialGeometricTagFailureClass),
     InvalidExistingPlacement,
 }
 
@@ -17,19 +37,38 @@ impl std::fmt::Display for SpatialPlacementMotionError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::UnsupportedMoveAnchor => {
-                write!(f, "only shape-origin movement can lower into placement")
+                write!(
+                    f,
+                    "only subject-owned or external-reference point-like move anchors can lower into placement"
+                )
             }
             Self::UnsupportedOffsetAnchor => {
-                write!(f, "only shape-origin offset can lower into placement")
+                write!(
+                    f,
+                    "only subject-owned or external-reference point-like offset anchors can lower into placement"
+                )
             }
             Self::UnsupportedRotateAnchor => {
-                write!(f, "only shape-origin rotation can lower into placement")
+                write!(
+                    f,
+                    "only point-like rotation anchors can lower into placement"
+                )
             }
             Self::UnsupportedReorientAnchor => {
                 write!(
                     f,
-                    "only shape-origin reorientation can lower into placement"
+                    "only supported point-like or directional reorientation anchors can lower into placement"
                 )
+            }
+            Self::AmbiguousReorientAnchorMeaning => write!(
+                f,
+                "feature-owned reorientation anchor is ambiguous between point-like and directional meaning"
+            ),
+            Self::AnchorWitnessFailure(error) => {
+                write!(f, "anchor witness failure: {error:?}")
+            }
+            Self::AnchorTagFailure(error) => {
+                write!(f, "geometric-tag anchor failure: {error:?}")
             }
             Self::InvalidExistingPlacement => {
                 write!(
@@ -47,39 +86,96 @@ pub fn apply_admitted_move_to_placement(
     placement: SpatialPlacementSpec,
     motion: &AdmittedSpatialMove,
 ) -> Result<SpatialPlacementSpec, SpatialPlacementMotionError> {
-    match motion.spec().anchor() {
-        SpatialAnchorRef::ShapeOrigin => Ok(placement.at(motion.destination_point())),
-        _ => Err(SpatialPlacementMotionError::UnsupportedMoveAnchor),
-    }
+    let anchor_world_point = lower_supported_translation_anchor(&placement, motion.spec().anchor())
+        .map_err(map_move_anchor_error)?
+        .payload()
+        .world_point();
+    translate_anchor_to_world_point(placement, anchor_world_point, motion.destination_point())
+        .ok_or(SpatialPlacementMotionError::InvalidExistingPlacement)
+}
+
+pub fn apply_admitted_move_to_placement_with_catalog(
+    placement: SpatialPlacementSpec,
+    motion: &AdmittedSpatialMove,
+    catalog: &impl SpatialWitnessCatalog,
+) -> Result<SpatialPlacementSpec, SpatialPlacementMotionError> {
+    let anchor_world_point = lower_supported_translation_anchor_with_catalog(
+        &placement,
+        motion.spec().anchor(),
+        catalog,
+    )
+    .map_err(map_move_anchor_error)?
+    .payload()
+    .world_point();
+    translate_anchor_to_world_point(placement, anchor_world_point, motion.destination_point())
+        .ok_or(SpatialPlacementMotionError::InvalidExistingPlacement)
 }
 
 pub fn apply_admitted_offset_to_placement(
     placement: SpatialPlacementSpec,
     motion: &AdmittedSpatialOffset,
 ) -> Result<SpatialPlacementSpec, SpatialPlacementMotionError> {
-    match motion.spec().anchor() {
-        SpatialAnchorRef::ShapeOrigin => {
-            let origin = placement.origin();
-            let offset = motion.spec().offset();
-            Ok(placement.at([
-                origin[0] + offset[0],
-                origin[1] + offset[1],
-                origin[2] + offset[2],
-            ]))
-        }
-        _ => Err(SpatialPlacementMotionError::UnsupportedOffsetAnchor),
-    }
+    lower_supported_translation_anchor(&placement, motion.spec().anchor())
+        .map_err(map_offset_anchor_error)?;
+    translate_placement_world_offset(placement, motion.spec().offset())
+        .ok_or(SpatialPlacementMotionError::InvalidExistingPlacement)
+}
+
+pub fn apply_admitted_offset_to_placement_with_catalog(
+    placement: SpatialPlacementSpec,
+    motion: &AdmittedSpatialOffset,
+    catalog: &impl SpatialWitnessCatalog,
+) -> Result<SpatialPlacementSpec, SpatialPlacementMotionError> {
+    lower_supported_translation_anchor_with_catalog(&placement, motion.spec().anchor(), catalog)
+        .map_err(map_offset_anchor_error)?;
+    translate_placement_world_offset(placement, motion.spec().offset())
+        .ok_or(SpatialPlacementMotionError::InvalidExistingPlacement)
 }
 
 pub fn apply_admitted_reorient_to_placement(
     placement: SpatialPlacementSpec,
     motion: &AdmittedSpatialReorient,
 ) -> Result<SpatialPlacementSpec, SpatialPlacementMotionError> {
-    match motion.spec().anchor() {
-        SpatialAnchorRef::ShapeOrigin => {
+    match lower_supported_reorient_anchor(&placement, motion.spec().anchor())
+        .map_err(map_reorient_directional_anchor_error)?
+        .payload()
+    {
+        SpatialPlacementReorientAnchorMode::PointLike => {
             Ok(placement.facing_witness(motion.spec().direction_witness().clone()))
         }
-        _ => Err(SpatialPlacementMotionError::UnsupportedReorientAnchor),
+        SpatialPlacementReorientAnchorMode::Directional(source_world_direction) => {
+            let lowered_facing = lowered_reorient_facing_from_directional_anchor(
+                &placement,
+                *source_world_direction,
+                motion.normalized_facing(),
+            )
+            .map_err(map_reorient_directional_anchor_error)?;
+            Ok(placement.facing(lowered_facing))
+        }
+    }
+}
+
+pub fn apply_admitted_reorient_to_placement_with_catalog(
+    placement: SpatialPlacementSpec,
+    motion: &AdmittedSpatialReorient,
+    catalog: &impl SpatialWitnessCatalog,
+) -> Result<SpatialPlacementSpec, SpatialPlacementMotionError> {
+    match lower_supported_reorient_anchor_with_catalog(&placement, motion.spec().anchor(), catalog)
+        .map_err(map_reorient_directional_anchor_error)?
+        .payload()
+    {
+        SpatialPlacementReorientAnchorMode::PointLike => {
+            Ok(placement.facing_witness(motion.spec().direction_witness().clone()))
+        }
+        SpatialPlacementReorientAnchorMode::Directional(source_world_direction) => {
+            let lowered_facing = lowered_reorient_facing_from_directional_anchor(
+                &placement,
+                *source_world_direction,
+                motion.normalized_facing(),
+            )
+            .map_err(map_reorient_directional_anchor_error)?;
+            Ok(placement.facing(lowered_facing))
+        }
     }
 }
 
@@ -98,97 +194,152 @@ pub fn apply_admitted_rotate_to_placement(
                 motion.spec().angle_radians(),
             )))
         }
+        SpatialAnchorRef::WorldOrigin | SpatialAnchorRef::FrameOrigin(_) => {
+            let admitted = admit_spatial_placement(placement.clone())
+                .map_err(|_| SpatialPlacementMotionError::InvalidExistingPlacement)?;
+            let reference_frame = admit_spatial_frame(placement.reference_frame().clone())
+                .map_err(|_| SpatialPlacementMotionError::InvalidExistingPlacement)?;
+            let pivot_world_point =
+                lower_supported_point_anchor(&placement, motion.spec().anchor())
+                    .map_err(map_rotate_anchor_error)?
+                    .payload()
+                    .world_point();
+            let origin_world_point = reference_frame.basis().embed_point(placement.origin());
+            let rotated_origin_world_point = rotate_point_about_pivot(
+                origin_world_point,
+                pivot_world_point,
+                motion.normalized_axis(),
+                motion.spec().angle_radians(),
+            );
+            let rotated_facing = rotate_vector(
+                admitted.facing_vector(),
+                motion.normalized_axis(),
+                motion.spec().angle_radians(),
+            );
+            Ok(placement
+                .at(reference_frame
+                    .basis()
+                    .project_point(rotated_origin_world_point))
+                .facing(rotated_facing))
+        }
         _ => Err(SpatialPlacementMotionError::UnsupportedRotateAnchor),
     }
 }
 
-fn rotate_vector(vector: [f64; 3], axis: [f64; 3], angle_radians: f64) -> [f64; 3] {
-    let cos_theta = angle_radians.cos();
-    let sin_theta = angle_radians.sin();
-    let dot = axis[0] * vector[0] + axis[1] * vector[1] + axis[2] * vector[2];
-    let cross = [
-        axis[1] * vector[2] - axis[2] * vector[1],
-        axis[2] * vector[0] - axis[0] * vector[2],
-        axis[0] * vector[1] - axis[1] * vector[0],
-    ];
-    [
-        vector[0] * cos_theta + cross[0] * sin_theta + axis[0] * dot * (1.0 - cos_theta),
-        vector[1] * cos_theta + cross[1] * sin_theta + axis[1] * dot * (1.0 - cos_theta),
-        vector[2] * cos_theta + cross[2] * sin_theta + axis[2] * dot * (1.0 - cos_theta),
-    ]
+pub fn apply_admitted_rotate_to_placement_with_catalog(
+    placement: SpatialPlacementSpec,
+    motion: &AdmittedSpatialRotate,
+    catalog: &impl SpatialWitnessCatalog,
+) -> Result<SpatialPlacementSpec, SpatialPlacementMotionError> {
+    match motion.spec().anchor() {
+        SpatialAnchorRef::ShapeOrigin
+        | SpatialAnchorRef::WorldOrigin
+        | SpatialAnchorRef::FrameOrigin(_) => apply_admitted_rotate_to_placement(placement, motion),
+        SpatialAnchorRef::FeatureOwned(_) => {
+            let admitted = admit_spatial_placement(placement.clone())
+                .map_err(|_| SpatialPlacementMotionError::InvalidExistingPlacement)?;
+            let reference_frame = admit_spatial_frame(placement.reference_frame().clone())
+                .map_err(|_| SpatialPlacementMotionError::InvalidExistingPlacement)?;
+            let pivot_world_point = lower_supported_point_anchor_with_catalog(
+                &placement,
+                motion.spec().anchor(),
+                catalog,
+            )
+            .map_err(map_rotate_anchor_error)?
+            .payload()
+            .world_point();
+            let origin_world_point = reference_frame.basis().embed_point(placement.origin());
+            let rotated_origin_world_point = rotate_point_about_pivot(
+                origin_world_point,
+                pivot_world_point,
+                motion.normalized_axis(),
+                motion.spec().angle_radians(),
+            );
+            let rotated_facing = rotate_vector(
+                admitted.facing_vector(),
+                motion.normalized_axis(),
+                motion.spec().angle_radians(),
+            );
+            Ok(placement
+                .at(reference_frame
+                    .basis()
+                    .project_point(rotated_origin_world_point))
+                .facing(rotated_facing))
+        }
+        _ => Err(SpatialPlacementMotionError::UnsupportedRotateAnchor),
+    }
+}
+
+fn map_rotate_anchor_error(error: SpatialPlacementPointAnchorError) -> SpatialPlacementMotionError {
+    match error {
+        SpatialPlacementPointAnchorError::UnsupportedAnchor => {
+            SpatialPlacementMotionError::UnsupportedRotateAnchor
+        }
+        SpatialPlacementPointAnchorError::InvalidReferenceFrame(_) => {
+            SpatialPlacementMotionError::InvalidExistingPlacement
+        }
+        SpatialPlacementPointAnchorError::AnchorWitnessFailure(error) => {
+            SpatialPlacementMotionError::AnchorWitnessFailure(error)
+        }
+        SpatialPlacementPointAnchorError::AnchorTagFailure(error) => {
+            SpatialPlacementMotionError::AnchorTagFailure(error)
+        }
+    }
+}
+
+fn map_reorient_directional_anchor_error(
+    error: SpatialPlacementDirectionalAnchorError,
+) -> SpatialPlacementMotionError {
+    match error {
+        SpatialPlacementDirectionalAnchorError::UnsupportedAnchor => {
+            SpatialPlacementMotionError::UnsupportedReorientAnchor
+        }
+        SpatialPlacementDirectionalAnchorError::AmbiguousAnchorMeaning => {
+            SpatialPlacementMotionError::AmbiguousReorientAnchorMeaning
+        }
+        SpatialPlacementDirectionalAnchorError::AnchorWitnessFailure(error) => {
+            SpatialPlacementMotionError::AnchorWitnessFailure(error)
+        }
+        SpatialPlacementDirectionalAnchorError::InvalidExistingPlacement => {
+            SpatialPlacementMotionError::InvalidExistingPlacement
+        }
+    }
+}
+
+fn map_move_anchor_error(error: SpatialPlacementPointAnchorError) -> SpatialPlacementMotionError {
+    match error {
+        SpatialPlacementPointAnchorError::UnsupportedAnchor => {
+            SpatialPlacementMotionError::UnsupportedMoveAnchor
+        }
+        SpatialPlacementPointAnchorError::InvalidReferenceFrame(_) => {
+            SpatialPlacementMotionError::InvalidExistingPlacement
+        }
+        SpatialPlacementPointAnchorError::AnchorWitnessFailure(error) => {
+            SpatialPlacementMotionError::AnchorWitnessFailure(error)
+        }
+        SpatialPlacementPointAnchorError::AnchorTagFailure(error) => {
+            SpatialPlacementMotionError::AnchorTagFailure(error)
+        }
+    }
+}
+
+fn map_offset_anchor_error(error: SpatialPlacementPointAnchorError) -> SpatialPlacementMotionError {
+    match error {
+        SpatialPlacementPointAnchorError::UnsupportedAnchor => {
+            SpatialPlacementMotionError::UnsupportedOffsetAnchor
+        }
+        SpatialPlacementPointAnchorError::InvalidReferenceFrame(_) => {
+            SpatialPlacementMotionError::InvalidExistingPlacement
+        }
+        SpatialPlacementPointAnchorError::AnchorWitnessFailure(error) => {
+            SpatialPlacementMotionError::AnchorWitnessFailure(error)
+        }
+        SpatialPlacementPointAnchorError::AnchorTagFailure(error) => {
+            SpatialPlacementMotionError::AnchorTagFailure(error)
+        }
+    }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        apply_admitted_move_to_placement, apply_admitted_offset_to_placement,
-        apply_admitted_reorient_to_placement, apply_admitted_rotate_to_placement,
-        SpatialPlacementMotionError,
-    };
-    use crate::facade::{
-        admit_spatial_move, admit_spatial_offset, admit_spatial_placement, admit_spatial_reorient,
-        admit_spatial_rotate, SpatialAnchorRef, SpatialDirectionWitnessRef, SpatialMoveSpec,
-        SpatialOffsetSpec, SpatialPlacementSpec, SpatialPointWitnessRef, SpatialReorientSpec,
-        SpatialRotateSpec,
-    };
-
-    #[test]
-    fn admitted_motion_can_lower_shape_origin_move_offset_and_reorient_into_placement() {
-        let moved = apply_admitted_move_to_placement(
-            SpatialPlacementSpec::world().at([1.0, 2.0, 3.0]),
-            &admit_spatial_move(SpatialMoveSpec::shape_origin().to([10.0, -4.0, 8.0]))
-                .expect("move"),
-        )
-        .expect("moved placement");
-        let offset = apply_admitted_offset_to_placement(
-            moved.clone(),
-            &admit_spatial_offset(SpatialOffsetSpec::shape_origin().by([2.0, 0.0, -3.0]))
-                .expect("offset"),
-        )
-        .expect("offset placement");
-        let reoriented = apply_admitted_reorient_to_placement(
-            offset,
-            &admit_spatial_reorient(
-                SpatialReorientSpec::shape_origin()
-                    .toward_witness(SpatialDirectionWitnessRef::world_direction([0.0, 1.0, 1.0])),
-            )
-            .expect("reorient"),
-        )
-        .expect("reoriented placement");
-        let rotated = apply_admitted_rotate_to_placement(
-            reoriented.clone(),
-            &admit_spatial_rotate(
-                SpatialRotateSpec::shape_origin()
-                    .around([1.0, 0.0, 0.0])
-                    .by_radians(std::f64::consts::FRAC_PI_2),
-            )
-            .expect("rotate"),
-        )
-        .expect("rotated placement");
-        let admitted_reoriented = admit_spatial_placement(reoriented.clone()).expect("admitted");
-        let admitted_rotated = admit_spatial_placement(rotated.clone()).expect("admitted rotated");
-
-        assert_eq!(moved.origin(), [10.0, -4.0, 8.0]);
-        assert_eq!(reoriented.origin(), [12.0, -4.0, 5.0]);
-        assert!(admitted_reoriented.facing_vector()[1] > 0.70);
-        assert!(admitted_reoriented.facing_vector()[2] > 0.70);
-        assert!(admitted_rotated.facing_vector()[1] < -0.70);
-        assert!(admitted_rotated.facing_vector()[2] > 0.70);
-    }
-
-    #[test]
-    fn lowering_rejects_non_shape_origin_anchors_for_current_placement_model() {
-        let error = apply_admitted_move_to_placement(
-            SpatialPlacementSpec::world(),
-            &admit_spatial_move(
-                SpatialMoveSpec::shape_origin()
-                    .from(SpatialAnchorRef::world_origin())
-                    .to_witness(SpatialPointWitnessRef::world_point([1.0, 2.0, 3.0])),
-            )
-            .expect("move"),
-        )
-        .expect_err("unsupported world-origin move anchor should fail");
-
-        assert_eq!(error, SpatialPlacementMotionError::UnsupportedMoveAnchor);
-    }
-}
+#[path = "placement_motion_tests.rs"]
+mod tests;

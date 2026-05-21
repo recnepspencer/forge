@@ -1,38 +1,31 @@
 use forge_query::facade::ForgeQueryWorkspace;
+use worth_geom::facade::PrimitiveRealizationExhaustionWitnessKind;
 
-use super::cases::{
-    canonical_order, compound_scenarios, reversed_order, topology_clustered_order,
-    PrimitiveConstructionCompoundGrazingPlan, PrimitiveConstructionCompoundScenario,
+use super::super::ordering::{
+    apply_compound_authoring_order_lane, PrimitiveConstructionAdversarialAuthoringOrderLane,
 };
+use super::super::parity::{derive_specialized_rows, require_specialized_row_field};
+use super::cases::compound_scenarios;
+use super::lane_report::PrimitiveConstructionCompoundOrderLaneReport;
+use super::ordering_report::PrimitiveConstructionCompoundOrderingParityReport;
 use super::report::{
     PrimitiveConstructionCompoundAdversarialSiegeReport,
+    PrimitiveConstructionCompoundExhaustionWitnessParityReport,
     PrimitiveConstructionCompoundGrazingBoundaryReport,
-    PrimitiveConstructionCompoundMotionParityReport,
+    PrimitiveConstructionCompoundMotionParityReport, PrimitiveConstructionCompoundParityReport,
 };
-use super::schema::{
-    PrimitiveConstructionCompoundAuthoringOrderRow,
+use super::row_builder::{
+    authoring_order_row, build_rows_for_lane, compute_normalized_matrix_digest,
+};
+use super::rows::{
+    PrimitiveConstructionCompoundExhaustionWitnessParityRow,
     PrimitiveConstructionCompoundGrazingBoundaryRow, PrimitiveConstructionCompoundMotionParityRow,
-    PrimitiveConstructionCompoundRow,
 };
-use crate::construction::diagnostics::prepare_primitive_construction_rejection_locality_report;
-use crate::construction::digest::digest_owned_parts;
-use crate::construction::outcome::PrimitiveConstructionPreparedOutcome;
-use crate::construction::result::prepare_primitive_construction_result;
+use crate::construction::prepare_primitive_construction_realization_exhaustion_witness_report;
 use crate::construction::{
-    prepare_primitive_construction_branch_local_parity_report,
-    prepare_primitive_construction_query_inspection_parity_report,
-    prepare_primitive_construction_query_projection_consumption_receipt_report,
-    prepare_primitive_construction_replay_parity_report, PrimitiveConstructionIntent,
-    PrimitiveConstructionQueryInspectionParityError,
-    PrimitiveConstructionQueryProjectionConsumptionReceiptError, PrimitiveConstructionResultError,
-    PrimitiveConstructionRuntimeBasisError,
+    PrimitiveConstructionResultError, PrimitiveConstructionRuntimeBasisError,
 };
 use crate::facade::PrimitiveConstructionSpatialIntentError;
-use worth_spatial::facade::{admit_spatial_placement, SpatialFrameRef};
-
-use super::super::row_support::{
-    birth_attachment_breadth, certification_breadth, construction_breadth,
-};
 
 #[derive(Debug)]
 pub enum PrimitiveConstructionCompoundAdversarialSiegeError {
@@ -40,7 +33,10 @@ pub enum PrimitiveConstructionCompoundAdversarialSiegeError {
     Placement(String),
     RuntimeBasis(PrimitiveConstructionRuntimeBasisError),
     Result(PrimitiveConstructionResultError),
+    ReplayParityDrift(String),
+    BranchLocalParityDrift(String),
     InvalidRejectedLocality(String),
+    InvalidSpecializedRow(String),
     Inspection(String),
     Projection(String),
 }
@@ -52,7 +48,10 @@ impl std::fmt::Display for PrimitiveConstructionCompoundAdversarialSiegeError {
             Self::Placement(error) => write!(f, "{error}"),
             Self::RuntimeBasis(error) => write!(f, "{error}"),
             Self::Result(error) => write!(f, "{error}"),
+            Self::ReplayParityDrift(reason) => write!(f, "{reason}"),
+            Self::BranchLocalParityDrift(reason) => write!(f, "{reason}"),
             Self::InvalidRejectedLocality(reason) => write!(f, "{reason}"),
+            Self::InvalidSpecializedRow(reason) => write!(f, "{reason}"),
             Self::Inspection(reason) => write!(f, "{reason}"),
             Self::Projection(reason) => write!(f, "{reason}"),
         }
@@ -61,6 +60,14 @@ impl std::fmt::Display for PrimitiveConstructionCompoundAdversarialSiegeError {
 
 impl std::error::Error for PrimitiveConstructionCompoundAdversarialSiegeError {}
 
+impl From<PrimitiveConstructionRuntimeBasisError>
+    for PrimitiveConstructionCompoundAdversarialSiegeError
+{
+    fn from(error: PrimitiveConstructionRuntimeBasisError) -> Self {
+        Self::RuntimeBasis(error)
+    }
+}
+
 pub fn prepare_primitive_construction_compound_adversarial_siege_report(
     workspace: &mut ForgeQueryWorkspace,
 ) -> Result<
@@ -68,24 +75,49 @@ pub fn prepare_primitive_construction_compound_adversarial_siege_report(
     PrimitiveConstructionCompoundAdversarialSiegeError,
 > {
     let scenarios = compound_scenarios();
-    let canonical = build_rows_for_lane(workspace, &canonical_order(&scenarios))?;
+    let canonical = build_rows_for_lane(
+        workspace,
+        &apply_compound_authoring_order_lane(
+            PrimitiveConstructionAdversarialAuthoringOrderLane::Canonical,
+            &scenarios,
+        ),
+    )?;
     let normalized = compute_normalized_matrix_digest(&canonical);
-    let authoring_order_rows = vec![
-        authoring_order_row("canonical", &canonical, &normalized),
-        authoring_order_row(
-            "reversed",
-            &build_rows_for_lane(workspace, &reversed_order(&scenarios))?,
-            &normalized,
-        ),
-        authoring_order_row(
-            "topology_clustered",
-            &build_rows_for_lane(workspace, &topology_clustered_order(&scenarios))?,
-            &normalized,
-        ),
-    ];
-    Ok(PrimitiveConstructionCompoundAdversarialSiegeReport::new(
+    let mut lane_reports = Vec::with_capacity(
+        PrimitiveConstructionAdversarialAuthoringOrderLane::all_compound().len(),
+    );
+    lane_reports.push(build_lane_report(
+        PrimitiveConstructionAdversarialAuthoringOrderLane::Canonical,
         canonical,
-        authoring_order_rows,
+        &normalized,
+    ));
+    for lane in PrimitiveConstructionAdversarialAuthoringOrderLane::all_compound()
+        .into_iter()
+        .filter(|lane| *lane != PrimitiveConstructionAdversarialAuthoringOrderLane::Canonical)
+    {
+        lane_reports.push(build_lane_report(
+            lane,
+            build_rows_for_lane(
+                workspace,
+                &apply_compound_authoring_order_lane(lane, &scenarios),
+            )?,
+            &normalized,
+        ));
+    }
+    Ok(PrimitiveConstructionCompoundAdversarialSiegeReport::new(
+        lane_reports,
+    ))
+}
+
+pub fn prepare_primitive_construction_compound_ordering_parity_report(
+    workspace: &mut ForgeQueryWorkspace,
+) -> Result<
+    PrimitiveConstructionCompoundOrderingParityReport,
+    PrimitiveConstructionCompoundAdversarialSiegeError,
+> {
+    let siege = prepare_primitive_construction_compound_adversarial_siege_report(workspace)?;
+    Ok(PrimitiveConstructionCompoundOrderingParityReport::new(
+        siege.lane_reports().to_vec(),
     ))
 }
 
@@ -96,21 +128,7 @@ pub fn prepare_primitive_construction_compound_motion_parity_report(
     PrimitiveConstructionCompoundAdversarialSiegeError,
 > {
     let siege = prepare_primitive_construction_compound_adversarial_siege_report(workspace)?;
-    let rows = siege
-        .rows()
-        .iter()
-        .filter_map(|row| {
-            Some(PrimitiveConstructionCompoundMotionParityRow::new(
-                row.scenario_id().to_string(),
-                row.motion_kind()?,
-                row.motion_digest()?.to_string(),
-            ))
-        })
-        .collect::<Vec<_>>();
-    Ok(PrimitiveConstructionCompoundMotionParityReport::new(
-        rows,
-        siege.authoring_order_parity_verified(),
-    ))
+    build_motion_parity_report_from_siege(&siege)
 }
 
 pub fn prepare_primitive_construction_compound_grazing_boundary_report(
@@ -120,266 +138,204 @@ pub fn prepare_primitive_construction_compound_grazing_boundary_report(
     PrimitiveConstructionCompoundAdversarialSiegeError,
 > {
     let siege = prepare_primitive_construction_compound_adversarial_siege_report(workspace)?;
-    let rows = siege
-        .rows()
-        .iter()
-        .filter_map(|row| {
-            Some(PrimitiveConstructionCompoundGrazingBoundaryRow::new(
+    build_grazing_boundary_report_from_siege(&siege)
+}
+
+pub(super) fn build_motion_parity_report_from_siege(
+    siege: &PrimitiveConstructionCompoundAdversarialSiegeReport,
+) -> Result<
+    PrimitiveConstructionCompoundMotionParityReport,
+    PrimitiveConstructionCompoundAdversarialSiegeError,
+> {
+    let ordering =
+        PrimitiveConstructionCompoundOrderingParityReport::new(siege.lane_reports().to_vec());
+    let rows = derive_specialized_rows(
+        siege.rows().iter(),
+        |row: &super::rows::PrimitiveConstructionCompoundRow| {
+            row.motion_kind().is_some() || row.motion_digest().is_some()
+        },
+        |row: &super::rows::PrimitiveConstructionCompoundRow| {
+            let motion_kind = require_specialized_row_field(
+                row.scenario_id(),
+                "motion kind",
+                row.motion_kind(),
+                PrimitiveConstructionCompoundAdversarialSiegeError::InvalidSpecializedRow,
+            )?;
+            let motion_digest = require_specialized_row_field(
+                row.scenario_id(),
+                "motion digest",
+                row.motion_digest(),
+                PrimitiveConstructionCompoundAdversarialSiegeError::InvalidSpecializedRow,
+            )?;
+            Ok::<
+                PrimitiveConstructionCompoundMotionParityRow,
+                PrimitiveConstructionCompoundAdversarialSiegeError,
+            >(PrimitiveConstructionCompoundMotionParityRow::new(
                 row.scenario_id().to_string(),
-                row.grazing_kind()?,
-                row.grazing_digest()?.to_string(),
+                motion_kind,
+                motion_digest.to_string(),
             ))
-        })
-        .collect::<Vec<_>>();
-    Ok(PrimitiveConstructionCompoundGrazingBoundaryReport::new(
-        rows,
-        siege.authoring_order_parity_verified(),
+        },
+    )?;
+    Ok(PrimitiveConstructionCompoundMotionParityReport::new(
+        rows, &ordering,
     ))
 }
 
-fn build_rows_for_lane(
-    workspace: &mut ForgeQueryWorkspace,
-    scenarios: &[PrimitiveConstructionCompoundScenario],
-) -> Result<Vec<PrimitiveConstructionCompoundRow>, PrimitiveConstructionCompoundAdversarialSiegeError>
-{
-    scenarios
-        .iter()
-        .map(|scenario| build_row(workspace, scenario))
-        .collect()
-}
-
-fn build_row(
-    workspace: &mut ForgeQueryWorkspace,
-    scenario: &PrimitiveConstructionCompoundScenario,
-) -> Result<PrimitiveConstructionCompoundRow, PrimitiveConstructionCompoundAdversarialSiegeError> {
-    let intent = scenario
-        .resolved_intent()
-        .map_err(PrimitiveConstructionCompoundAdversarialSiegeError::Motion)?;
-    let admitted_placement = admit_spatial_placement(intent.placement_spec()).map_err(|error| {
-        PrimitiveConstructionCompoundAdversarialSiegeError::Placement(error.to_string())
-    })?;
-    let replay = prepare_primitive_construction_replay_parity_report(intent.clone());
-    let branch =
-        prepare_primitive_construction_branch_local_parity_report(workspace, intent.clone())
-            .map_err(PrimitiveConstructionCompoundAdversarialSiegeError::RuntimeBasis)?;
-    let motion_digest = scenario.motion().map(|motion| {
-        digest_owned_parts(&[
-            motion.kind().as_str().to_string(),
-            format!("{:?}", admitted_placement.origin().map(f64::to_bits)),
-            format!("{:?}", admitted_placement.facing_vector().map(f64::to_bits)),
-        ])
-    });
-    let grazing_digest = scenario.grazing().map(|grazing| {
-        grazing_digest(
-            grazing,
-            admitted_placement.origin(),
-            admitted_placement.facing_vector(),
-        )
-    });
-
-    match replay.direct_outcome() {
-        PrimitiveConstructionPreparedOutcome::Accepted(outcome) => {
-            let inspection = prepare_primitive_construction_query_inspection_parity_report(
-                workspace,
-                intent.clone(),
-            )
-            .map_err(|error: PrimitiveConstructionQueryInspectionParityError| {
-                PrimitiveConstructionCompoundAdversarialSiegeError::Inspection(error.to_string())
-            })?;
-            let projection =
-                prepare_primitive_construction_query_projection_consumption_receipt_report(
-                    workspace,
-                    intent.clone(),
-                )
-                .map_err(
-                    |error: PrimitiveConstructionQueryProjectionConsumptionReceiptError| {
-                        PrimitiveConstructionCompoundAdversarialSiegeError::Projection(
-                            error.to_string(),
-                        )
-                    },
-                )?;
-            let result = prepare_primitive_construction_result(intent.clone())
-                .map_err(PrimitiveConstructionCompoundAdversarialSiegeError::Result)?;
-            Ok(PrimitiveConstructionCompoundRow::new(
-                scenario.scenario_id.to_string(),
-                scenario.workload_family,
-                scenario.topology_class,
-                scenario.row_class,
-                outcome.outcome_digest().to_string(),
-                replay.replay_outcome().outcome_digest().to_string(),
-                branch
-                    .branch_preview_runtime_report()
-                    .outcome()
-                    .outcome_digest()
-                    .to_string(),
-                Some(inspection.report_digest().to_string()),
-                Some(projection.report_digest().to_string()),
-                Some(outcome.realization_strategy()),
-                outcome.attempted_realization_strategies().to_vec(),
-                Some(outcome.stability_class()),
-                Some(outcome.feature_conditioning_class()),
-                Some(outcome.support_normal_class()),
-                Some(outcome.normalization_disposition()),
-                None,
-                None,
-                None,
-                None,
-                scenario.motion().map(|motion| motion.kind()),
-                motion_digest,
-                scenario.grazing().map(|grazing| grazing.kind()),
-                grazing_digest,
-                construction_breadth(intent.request()).map_err(
-                    PrimitiveConstructionCompoundAdversarialSiegeError::InvalidRejectedLocality,
-                )?,
-                birth_attachment_breadth(&result),
-                certification_breadth(&result),
-            ))
-        }
-        PrimitiveConstructionPreparedOutcome::Rejected(outcome) => {
-            let rejection_locality = rejected_locality(intent.clone())?;
-            Ok(PrimitiveConstructionCompoundRow::new(
-                scenario.scenario_id.to_string(),
-                scenario.workload_family,
-                scenario.topology_class,
-                scenario.row_class,
-                outcome.failure_digest().to_string(),
-                replay.replay_outcome().outcome_digest().to_string(),
-                branch
-                    .branch_preview_runtime_report()
-                    .outcome()
-                    .outcome_digest()
-                    .to_string(),
-                None,
-                None,
-                outcome.selected_realization_strategy(),
-                outcome.attempted_realization_strategies().to_vec(),
-                outcome.stability_class(),
-                outcome.feature_conditioning_class(),
-                outcome.support_normal_class(),
-                outcome.normalization_disposition(),
-                outcome.exhaustion_reason(),
-                Some(outcome.rejection_class()),
-                Some(rejection_locality.rejection_locality()),
-                Some(rejection_locality.blocking_boundary()),
-                scenario.motion().map(|motion| motion.kind()),
-                motion_digest,
-                scenario.grazing().map(|grazing| grazing.kind()),
-                grazing_digest,
-                0,
-                0,
-                0,
-            ))
-        }
-    }
-}
-
-fn authoring_order_row(
-    lane_name: &str,
-    rows: &[PrimitiveConstructionCompoundRow],
-    expected_normalized_matrix_digest: &str,
-) -> PrimitiveConstructionCompoundAuthoringOrderRow {
-    PrimitiveConstructionCompoundAuthoringOrderRow::new(
-        lane_name.to_string(),
-        lane_digest(rows),
-        expected_normalized_matrix_digest.to_string(),
-        expected_normalized_matrix_digest == compute_normalized_matrix_digest(rows),
-    )
-}
-
-fn lane_digest(rows: &[PrimitiveConstructionCompoundRow]) -> String {
-    digest_owned_parts(
-        &rows
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .collect::<Vec<_>>(),
-    )
-}
-
-fn compute_normalized_matrix_digest(rows: &[PrimitiveConstructionCompoundRow]) -> String {
-    let mut parts = rows
-        .iter()
-        .map(|row| format!("{}:{}", row.scenario_id(), row.row_digest()))
-        .collect::<Vec<_>>();
-    parts.sort();
-    digest_owned_parts(&parts)
-}
-
-fn grazing_digest(
-    grazing: &PrimitiveConstructionCompoundGrazingPlan,
-    origin: [f64; 3],
-    facing: [f64; 3],
-) -> String {
-    match grazing {
-        PrimitiveConstructionCompoundGrazingPlan::NearFrameNormal {
-            frame,
-            max_angle_radians,
-        } => {
-            let facing = normalize(facing);
-            let normal = normalize(frame_normal(frame));
-            let dot = (facing[0] * normal[0] + facing[1] * normal[1] + facing[2] * normal[2])
-                .clamp(-1.0, 1.0);
-            let angle = dot.acos();
-            digest_owned_parts(&[
-                "frame-normal".to_string(),
-                angle.to_string(),
-                max_angle_radians.to_string(),
-                (angle <= *max_angle_radians).to_string(),
-            ])
-        }
-        PrimitiveConstructionCompoundGrazingPlan::NearReferenceAnchor {
-            reference_point,
-            max_distance,
-        } => {
-            let dx = origin[0] - reference_point[0];
-            let dy = origin[1] - reference_point[1];
-            let dz = origin[2] - reference_point[2];
-            let distance = (dx * dx + dy * dy + dz * dz).sqrt();
-            digest_owned_parts(&[
-                "anchor-distance".to_string(),
-                distance.to_string(),
-                max_distance.to_string(),
-                (distance <= *max_distance).to_string(),
-            ])
-        }
-    }
-}
-
-fn rejected_locality(
-    intent: PrimitiveConstructionIntent,
+pub(super) fn build_grazing_boundary_report_from_siege(
+    siege: &PrimitiveConstructionCompoundAdversarialSiegeReport,
 ) -> Result<
-    crate::construction::PrimitiveConstructionRejectionLocalityRow,
+    PrimitiveConstructionCompoundGrazingBoundaryReport,
     PrimitiveConstructionCompoundAdversarialSiegeError,
 > {
-    let report =
-        prepare_primitive_construction_rejection_locality_report(vec![intent.into_request()]);
-    match report.rows() {
-        [row] => Ok(row.clone()),
-        [] => Err(
-            PrimitiveConstructionCompoundAdversarialSiegeError::InvalidRejectedLocality(
-                "compound rejected row did not produce a locality row".to_string(),
-            ),
-        ),
-        _ => Err(
-            PrimitiveConstructionCompoundAdversarialSiegeError::InvalidRejectedLocality(
-                "compound rejected row produced multiple locality rows".to_string(),
-            ),
-        ),
+    let ordering =
+        PrimitiveConstructionCompoundOrderingParityReport::new(siege.lane_reports().to_vec());
+    let rows = derive_specialized_rows(
+        siege.rows().iter(),
+        |row: &super::rows::PrimitiveConstructionCompoundRow| {
+            row.grazing_kind().is_some() || row.grazing_digest().is_some()
+        },
+        |row: &super::rows::PrimitiveConstructionCompoundRow| {
+            let grazing_kind = require_specialized_row_field(
+                row.scenario_id(),
+                "grazing kind",
+                row.grazing_kind(),
+                PrimitiveConstructionCompoundAdversarialSiegeError::InvalidSpecializedRow,
+            )?;
+            let grazing_digest = require_specialized_row_field(
+                row.scenario_id(),
+                "grazing digest",
+                row.grazing_digest(),
+                PrimitiveConstructionCompoundAdversarialSiegeError::InvalidSpecializedRow,
+            )?;
+            Ok::<
+                PrimitiveConstructionCompoundGrazingBoundaryRow,
+                PrimitiveConstructionCompoundAdversarialSiegeError,
+            >(PrimitiveConstructionCompoundGrazingBoundaryRow::new(
+                row.scenario_id().to_string(),
+                grazing_kind,
+                grazing_digest.to_string(),
+            ))
+        },
+    )?;
+    Ok(PrimitiveConstructionCompoundGrazingBoundaryReport::new(
+        rows, &ordering,
+    ))
+}
+
+pub fn prepare_primitive_construction_compound_exhaustion_witness_parity_report(
+    workspace: &mut ForgeQueryWorkspace,
+) -> Result<
+    PrimitiveConstructionCompoundExhaustionWitnessParityReport,
+    PrimitiveConstructionCompoundAdversarialSiegeError,
+> {
+    let siege = prepare_primitive_construction_compound_adversarial_siege_report(workspace)?;
+    build_exhaustion_witness_parity_report_from_siege(&siege)
+}
+
+pub fn prepare_primitive_construction_compound_parity_report(
+    workspace: &mut ForgeQueryWorkspace,
+) -> Result<
+    PrimitiveConstructionCompoundParityReport,
+    PrimitiveConstructionCompoundAdversarialSiegeError,
+> {
+    let siege = prepare_primitive_construction_compound_adversarial_siege_report(workspace)?;
+    build_compound_parity_report_from_siege(&siege)
+}
+
+pub(super) fn build_compound_parity_report_from_siege(
+    siege: &PrimitiveConstructionCompoundAdversarialSiegeReport,
+) -> Result<
+    PrimitiveConstructionCompoundParityReport,
+    PrimitiveConstructionCompoundAdversarialSiegeError,
+> {
+    let ordering =
+        PrimitiveConstructionCompoundOrderingParityReport::new(siege.lane_reports().to_vec());
+    let motion = build_motion_parity_report_from_siege(siege)?;
+    let grazing = build_grazing_boundary_report_from_siege(siege)?;
+    let exhaustion = build_exhaustion_witness_parity_report_from_siege(siege)?;
+    Ok(PrimitiveConstructionCompoundParityReport::new(
+        ordering, motion, grazing, exhaustion,
+    ))
+}
+
+pub(super) fn build_exhaustion_witness_parity_report_from_siege(
+    siege: &PrimitiveConstructionCompoundAdversarialSiegeReport,
+) -> Result<
+    PrimitiveConstructionCompoundExhaustionWitnessParityReport,
+    PrimitiveConstructionCompoundAdversarialSiegeError,
+> {
+    let witness_report = prepare_primitive_construction_realization_exhaustion_witness_report();
+    let rows = siege
+        .rows()
+        .iter()
+        .filter_map(|row| exhaustion_witness_kind_for(row.scenario_id()).map(|kind| (row, kind)))
+        .map(|(row, witness_kind)| {
+            let witness_row = witness_report.row_for(witness_kind).ok_or_else(|| {
+                PrimitiveConstructionCompoundAdversarialSiegeError::InvalidSpecializedRow(format!(
+                    "compound exhaustion row '{}' is missing lower-layer witness row",
+                    row.scenario_id()
+                ))
+            })?;
+            if witness_row.exhaustion_reason()
+                != row.exhaustion_reason().ok_or_else(|| {
+                    PrimitiveConstructionCompoundAdversarialSiegeError::InvalidSpecializedRow(
+                        format!(
+                            "compound exhaustion row '{}' is missing exhaustion reason",
+                            row.scenario_id()
+                        ),
+                    )
+                })?
+            {
+                return Err(
+                    PrimitiveConstructionCompoundAdversarialSiegeError::InvalidSpecializedRow(
+                        format!(
+                            "compound exhaustion row '{}' drifted from lower-layer witness truth",
+                            row.scenario_id()
+                        ),
+                    ),
+                );
+            }
+            Ok(
+                PrimitiveConstructionCompoundExhaustionWitnessParityRow::new(
+                    row.scenario_id().to_string(),
+                    witness_kind,
+                    row.row_digest().to_string(),
+                    witness_row.row_digest().to_string(),
+                ),
+            )
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let ordering =
+        PrimitiveConstructionCompoundOrderingParityReport::new(siege.lane_reports().to_vec());
+    Ok(PrimitiveConstructionCompoundExhaustionWitnessParityReport::new(rows, &ordering))
+}
+
+fn exhaustion_witness_kind_for(
+    scenario_id: &str,
+) -> Option<PrimitiveRealizationExhaustionWitnessKind> {
+    match scenario_id {
+        "pyramid_semantic_exhaustion" => {
+            Some(PrimitiveRealizationExhaustionWitnessKind::ZeroRadiusPyramidSupportCollapse)
+        }
+        "simplex_world_collapsed_explicit_exhaustion" => {
+            Some(PrimitiveRealizationExhaustionWitnessKind::AltitudeSqueezedSimplexSupportCollapse)
+        }
+        _ => None,
     }
 }
 
-fn frame_normal(frame: &SpatialFrameRef) -> [f64; 3] {
-    match frame {
-        SpatialFrameRef::World | SpatialFrameRef::ShapeLocal => [0.0, 0.0, 1.0],
-        SpatialFrameRef::Workplane { normal, .. }
-        | SpatialFrameRef::FeatureLocal { normal, .. } => *normal,
-    }
-}
-
-fn normalize(vector: [f64; 3]) -> [f64; 3] {
-    let magnitude = (vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2]).sqrt();
-    [
-        vector[0] / magnitude,
-        vector[1] / magnitude,
-        vector[2] / magnitude,
-    ]
+fn build_lane_report(
+    lane: PrimitiveConstructionAdversarialAuthoringOrderLane,
+    rows: Vec<super::rows::PrimitiveConstructionCompoundRow>,
+    expected_normalized_matrix_digest: &str,
+) -> PrimitiveConstructionCompoundOrderLaneReport {
+    let summary = authoring_order_row(lane.as_str(), &rows, expected_normalized_matrix_digest);
+    PrimitiveConstructionCompoundOrderLaneReport::new(
+        lane.as_str().to_string(),
+        rows,
+        summary.lane_digest().to_string(),
+        summary.normalized_matrix_digest().to_string(),
+        summary.parity_verified(),
+    )
 }

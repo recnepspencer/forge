@@ -43,6 +43,8 @@ pub use witness_report::{
 };
 
 #[cfg(test)]
+mod bundle_directional_tests;
+#[cfg(test)]
 mod bundle_tests;
 #[cfg(test)]
 mod dx_surface_report_tests;

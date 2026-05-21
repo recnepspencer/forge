@@ -201,7 +201,7 @@ fn kernel_public_facade_finishes_primitive_motion_into_updated_placement_intent(
             height: 2.0,
         },
     ))
-    .so(SpatialAnchorRef::shape_origin())
+    .so(SpatialAnchorRef::world_origin())
     .points_toward([0.0, 3.0, 0.0])
     .finish()
     .expect("points toward target");
@@ -212,6 +212,19 @@ fn kernel_public_facade_finishes_primitive_motion_into_updated_placement_intent(
     .matches(SpatialAnchorRef::world_origin())
     .finish()
     .expect("matches world origin");
+    let rotated_about_frame_origin =
+        RotateSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
+            edge_count: 6,
+        }))
+        .about(SpatialAnchorRef::frame_origin(SpatialFrameRef::workplane(
+            "pivot-1",
+            [4.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0],
+        )))
+        .around([0.0, 0.0, 1.0])
+        .by_radians(std::f64::consts::FRAC_PI_2)
+        .finish()
+        .expect("frame-origin rotate");
 
     assert_eq!(moved.placement_spec().origin(), [10.0, 0.0, 3.0]);
     let admitted_reoriented =
@@ -225,16 +238,15 @@ fn kernel_public_facade_finishes_primitive_motion_into_updated_placement_intent(
     assert_eq!(lies_on.placement_spec().origin(), [0.0, 0.0, 0.0]);
     assert!(admitted_pointed.facing_vector()[1] > 0.99);
     assert_eq!(matched.placement_spec().origin(), [0.0, 0.0, 0.0]);
-
-    let error = MoveSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
-        edge_count: 6,
-    }))
-    .from(SpatialAnchorRef::world_origin())
-    .to([10.0, 0.0, 3.0])
-    .finish()
-    .expect_err("unsupported motion anchor should fail");
+    assert!(rotated_about_frame_origin.placement_spec().origin()[0] < 4.0);
     assert!(matches!(
-        error,
+        MoveSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
+            edge_count: 6,
+        }))
+        .from(SpatialAnchorRef::shape_axis(SpatialAxis::W))
+        .to([10.0, 0.0, 3.0])
+        .finish()
+        .expect_err("unsupported motion anchor should fail"),
         PrimitiveConstructionSpatialIntentError::PlacementLowering(_)
     ));
 

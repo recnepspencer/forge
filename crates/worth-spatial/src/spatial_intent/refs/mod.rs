@@ -12,7 +12,8 @@ pub use frames::{
 pub use point_witnesses::{SpatialCarrierPointRole, SpatialPointWitnessRef};
 pub use witness_catalog::{
     EmptySpatialWitnessCatalog, SpatialCatalogResolvedDirectionWitness,
-    SpatialCatalogResolvedPointWitness, SpatialCatalogWitnessResolutionClass,
-    SpatialFixtureWitnessCatalog, SpatialWitnessCatalog,
+    SpatialCatalogResolvedGeometricTag, SpatialCatalogResolvedPointWitness,
+    SpatialCatalogWitnessResolutionClass, SpatialFixtureWitnessCatalog,
+    SpatialGeometricTagFailureClass, SpatialWitnessCatalog,
 };
 pub use witnesses::{SpatialCarrierDirectionRole, SpatialCarrierKind, SpatialDirectionWitnessRef};

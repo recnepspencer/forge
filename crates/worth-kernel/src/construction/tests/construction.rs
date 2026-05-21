@@ -23,7 +23,7 @@ use worth_geom::facade::{PrimitiveRealizationStrategy, PrimitiveStabilityClass};
 #[test]
 fn admitted_phase_three_family_ladder_builds_generic_phase_chain_reports() {
     let requests = [
-        PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec { scale: 1.0 }).into_request(),
+        PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec::new(1.0)).into_request(),
         PrimitiveConstructionIntent::orthotope(OrthotopeSpec {
             half_extents: [1.0, 2.0, 3.0],
         })
@@ -76,9 +76,9 @@ fn admitted_phase_three_family_ladder_builds_generic_phase_chain_reports() {
             report.mutation_surface(),
             TopologyConstructionMutationSurface::ComposeGraph
         );
-        assert!(!report.execution_digest().is_empty());
-        assert!(!report.certification_digest().is_empty());
-        assert!(!report.report_digest().is_empty());
+        assert_ne!(report.execution_digest(), report.certification_digest());
+        assert_ne!(report.report_digest(), report.execution_digest());
+        assert_ne!(report.report_digest(), report.certification_digest());
     }
 }
 
@@ -116,7 +116,16 @@ fn family_coverage_report_marks_all_phase_three_rows_explicitly() {
         PrimitiveConstructionFamilyCoverageStatus::AdmittedPlanarConstruction
     );
     assert_eq!(report.rows().len(), PrimitiveConstructionFamily::ALL.len());
-    assert!(!report.report_digest().is_empty());
+    assert_ne!(
+        report
+            .row_for(PrimitiveConstructionFamily::RegularPrism)
+            .expect("prism row")
+            .row_digest(),
+        report
+            .row_for(PrimitiveConstructionFamily::WireBody)
+            .expect("wire row")
+            .row_digest()
+    );
 }
 
 #[test]
@@ -160,7 +169,7 @@ fn canonical_artifact_surface_binds_phase_chain_and_birth_truth() {
         artifact.stability_class(),
         PrimitiveStabilityClass::StableDirect
     );
-    assert!(!artifact.artifact_digest().is_empty());
+    assert_ne!(artifact.artifact_digest(), artifact.birth_truth_digest());
 }
 
 #[test]
@@ -189,7 +198,10 @@ fn prepared_result_common_path_bundles_birth_mapping_and_artifact() {
     );
     assert_eq!(result.evidence().birth_mapping_report().rows().len(), 7);
     assert_eq!(result.evidence().topology_fact_report().rows().len(), 7);
-    assert!(!result.result_digest().is_empty());
+    assert_ne!(
+        result.result_digest(),
+        result.canonical_artifact().artifact_digest()
+    );
 }
 
 #[test]
@@ -203,6 +215,39 @@ fn tiny_pyramid_result_preserves_escalated_realization_truth() {
     )
     .expect("tiny pyramid result");
 
+    assert_eq!(
+        result.realization_strategy(),
+        PrimitiveRealizationStrategy::ExactSupport
+    );
+    assert_eq!(
+        result.stability_class(),
+        PrimitiveStabilityClass::StableAfterEscalation
+    );
+}
+
+#[test]
+fn literal_world_collapsed_simplex_result_survives_full_kernel_common_path() {
+    let intent = PrimitiveConstructionIntent::simplex_solid(
+        SimplexSolidSpec::new(1.0e-200).with_auxiliary_altitude_component(1.0e-220),
+    )
+    .at([2.0f64.powi(548), -2.0f64.powi(548), 2.0f64.powi(548)]);
+    let request = intent.clone().into_request();
+    let admitted = request.clone().admit().expect("admitted simplex intent");
+    let scaffold = admitted.build_scaffold().expect("simplex scaffold");
+    let result = prepare_primitive_construction_result(intent)
+        .expect("literal world-collapsed simplex result");
+
+    assert_eq!(
+        scaffold.realization_report().strategy(),
+        PrimitiveRealizationStrategy::ExactSupport
+    );
+    assert_eq!(
+        scaffold.realization_report().attempted_strategies(),
+        &[
+            PrimitiveRealizationStrategy::DirectWorld,
+            PrimitiveRealizationStrategy::ExactSupport,
+        ]
+    );
     assert_eq!(
         result.realization_strategy(),
         PrimitiveRealizationStrategy::ExactSupport

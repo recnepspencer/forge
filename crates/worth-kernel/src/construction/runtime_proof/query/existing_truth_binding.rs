@@ -139,7 +139,7 @@ mod tests {
     #[test]
     fn existing_truth_binding_report_proves_fresh_primitive_birth_avoids_existing_truth_flows() {
         let report = prepare_primitive_construction_query_existing_truth_binding_report(
-            PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec { scale: 1.0 }),
+            PrimitiveConstructionIntent::simplex_solid(SimplexSolidSpec::new(1.0)),
         );
 
         assert_eq!(report.family(), PrimitiveConstructionFamily::SimplexSolid);

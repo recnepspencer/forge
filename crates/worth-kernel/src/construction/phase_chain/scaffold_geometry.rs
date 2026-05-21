@@ -1,11 +1,15 @@
 use worth_geom::facade::Plane;
 
-pub fn simplex_vertices(scale: f64) -> Vec<[f64; 3]> {
+pub fn simplex_vertices(scale: f64, auxiliary_altitude_component: f64) -> Vec<[f64; 3]> {
     vec![
         [0.0, 0.0, scale],
         [0.0, scale, -scale],
         [-scale * 0.7071, -scale * 0.5, -scale],
-        [scale * 0.7071, -scale * 0.5, -scale],
+        [
+            scale * 0.7071,
+            -scale * 0.5,
+            -scale + auxiliary_altitude_component,
+        ],
     ]
 }
 

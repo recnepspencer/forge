@@ -13,6 +13,7 @@ use super::{
 };
 use crate::construction::{PrimitiveConstructionIntent, RegularPyramidSpec, WireBodySpec};
 use crate::facade::{MoveSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent};
+use std::collections::BTreeSet;
 use worth_spatial::facade::{
     SpatialAnchorRef, SpatialAxis, SpatialCarrierDirectionRole, SpatialCarrierKind,
     SpatialCarrierPointRole, SpatialCatalogResolvedDirectionWitness,
@@ -121,10 +122,18 @@ fn motion_witness_resolution_reports_preserve_requested_and_resolved_witness_tru
         points_report.resolution_class(),
         Some(SpatialWitnessResolutionClass::DirectWorld)
     );
-    assert!(!move_report.report_digest().is_empty());
-    assert!(!rotate_report.report_digest().is_empty());
-    assert!(!reorient_report.report_digest().is_empty());
-    assert!(!points_report.report_digest().is_empty());
+    assert_eq!(
+        [
+            move_report.report_digest(),
+            rotate_report.report_digest(),
+            reorient_report.report_digest(),
+            points_report.report_digest(),
+        ]
+        .into_iter()
+        .collect::<BTreeSet<_>>()
+        .len(),
+        4
+    );
 }
 
 #[test]

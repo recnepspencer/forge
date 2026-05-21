@@ -20,7 +20,8 @@ pub use super::primitives::ray::{
 pub use super::primitives::shape_realization::{
     build_direct_realization_report, primitive_realization_exhaustion_witness_rows,
     realize_block_support, realize_prism_support, realize_pyramid_support,
-    realize_tetrahedron_support, PrimitiveConditioningWitness, PrimitiveFeatureConditioningClass,
+    realize_tetrahedron_support, realize_tetrahedron_support_with_altitude_component,
+    PrimitiveConditioningWitness, PrimitiveFeatureConditioningClass,
     PrimitiveNormalizationDisposition, PrimitiveRealizationError,
     PrimitiveRealizationExhaustionReason, PrimitiveRealizationExhaustionReport,
     PrimitiveRealizationExhaustionWitnessKind, PrimitiveRealizationExhaustionWitnessRow,

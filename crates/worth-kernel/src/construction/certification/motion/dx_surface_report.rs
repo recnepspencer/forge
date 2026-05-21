@@ -50,6 +50,10 @@ impl PrimitiveConstructionMotionDxSurfaceRow {
     pub fn runtime_surface_status(&self) -> PrimitiveConstructionMotionRuntimeSurfaceStatus {
         self.runtime_surface_status
     }
+
+    pub fn row_digest(&self) -> &str {
+        &self.row_digest
+    }
 }
 
 #[derive(Clone, Debug, PartialEq)]

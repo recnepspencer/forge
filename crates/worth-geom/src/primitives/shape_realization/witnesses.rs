@@ -5,18 +5,27 @@ use super::exhaustion::{
     PrimitiveRealizationError, PrimitiveRealizationExhaustionReason,
     PrimitiveRealizationExhaustionReport,
 };
-use super::support::realize_pyramid_support;
+use super::support::{
+    realize_pyramid_support, realize_tetrahedron_support,
+    realize_tetrahedron_support_with_altitude_component,
+};
 use super::PrimitiveRealizationStrategy;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveRealizationExhaustionWitnessKind {
     ZeroRadiusPyramidSupportCollapse,
+    ZeroScaleSimplexSupportCollapse,
+    AltitudeSqueezedSimplexSupportCollapse,
 }
 
 impl PrimitiveRealizationExhaustionWitnessKind {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::ZeroRadiusPyramidSupportCollapse => "zero_radius_pyramid_support_collapse",
+            Self::ZeroScaleSimplexSupportCollapse => "zero_scale_simplex_support_collapse",
+            Self::AltitudeSqueezedSimplexSupportCollapse => {
+                "altitude_squeezed_simplex_support_collapse"
+            }
         }
     }
 }
@@ -56,7 +65,11 @@ impl PrimitiveRealizationExhaustionWitnessRow {
 
 pub fn primitive_realization_exhaustion_witness_rows(
 ) -> Vec<PrimitiveRealizationExhaustionWitnessRow> {
-    vec![zero_radius_pyramid_support_collapse()]
+    vec![
+        zero_radius_pyramid_support_collapse(),
+        zero_scale_simplex_support_collapse(),
+        altitude_squeezed_simplex_support_collapse(),
+    ]
 }
 
 fn zero_radius_pyramid_support_collapse() -> PrimitiveRealizationExhaustionWitnessRow {
@@ -70,6 +83,37 @@ fn zero_radius_pyramid_support_collapse() -> PrimitiveRealizationExhaustionWitne
     };
     witness_row(
         PrimitiveRealizationExhaustionWitnessKind::ZeroRadiusPyramidSupportCollapse,
+        exhaustion_report,
+    )
+}
+
+fn zero_scale_simplex_support_collapse() -> PrimitiveRealizationExhaustionWitnessRow {
+    let error = realize_tetrahedron_support([0.0, 0.0, 0.0], 0.0)
+        .expect_err("zero-scale simplex should exhaust sanctioned support strategies");
+    let exhaustion_report = match error {
+        PrimitiveRealizationError::Exhausted(report) => report,
+        PrimitiveRealizationError::Geometry(other) => {
+            panic!("expected exhausted realization report, got geometry error: {other}")
+        }
+    };
+    witness_row(
+        PrimitiveRealizationExhaustionWitnessKind::ZeroScaleSimplexSupportCollapse,
+        exhaustion_report,
+    )
+}
+
+fn altitude_squeezed_simplex_support_collapse() -> PrimitiveRealizationExhaustionWitnessRow {
+    let error =
+        realize_tetrahedron_support_with_altitude_component([0.0, 0.0, 0.0], 1.0e-240, 1.0e-280)
+            .expect_err("altitude-squeezed simplex should exhaust sanctioned support strategies");
+    let exhaustion_report = match error {
+        PrimitiveRealizationError::Exhausted(report) => report,
+        PrimitiveRealizationError::Geometry(other) => {
+            panic!("expected exhausted realization report, got geometry error: {other}")
+        }
+    };
+    witness_row(
+        PrimitiveRealizationExhaustionWitnessKind::AltitudeSqueezedSimplexSupportCollapse,
         exhaustion_report,
     )
 }

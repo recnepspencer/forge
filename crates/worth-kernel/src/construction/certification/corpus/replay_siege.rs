@@ -1,12 +1,15 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
 use super::cases::primitive_construction_corpus;
-use super::replay_siege_builder::{build_corpus_rows, normalized_row_digests};
+use super::ordering::{
+    apply_corpus_authoring_order_lane, lane_digest, normalized_matrix_digest,
+    PrimitiveConstructionCorpusAuthoringOrderLane,
+};
+use super::replay_siege_builder::build_corpus_rows;
 use crate::construction::certification::corpus::replay_siege_report::{
     PrimitiveConstructionCorpusAuthoringOrderRow, PrimitiveConstructionCorpusOutcomeDisposition,
     PrimitiveConstructionCorpusParameterRole, PrimitiveConstructionCorpusReplaySiegeReport,
 };
-use crate::construction::digest::digest_owned_parts;
 use crate::construction::request::PrimitiveConstructionFamily;
 use crate::construction::runtime_basis::PrimitiveConstructionRuntimeBasisError;
 
@@ -66,13 +69,22 @@ impl std::fmt::Display for PrimitiveConstructionCorpusReplaySiegeError {
 
 impl std::error::Error for PrimitiveConstructionCorpusReplaySiegeError {}
 
+impl From<PrimitiveConstructionRuntimeBasisError> for PrimitiveConstructionCorpusReplaySiegeError {
+    fn from(error: PrimitiveConstructionRuntimeBasisError) -> Self {
+        Self::RuntimeBasis(error)
+    }
+}
+
 pub fn prepare_primitive_construction_corpus_replay_siege(
     workspace: &mut ForgeQueryWorkspace,
 ) -> Result<PrimitiveConstructionCorpusReplaySiegeReport, PrimitiveConstructionCorpusReplaySiegeError>
 {
     let scenarios = primitive_construction_corpus();
     let rows = build_corpus_rows(workspace, &scenarios)?;
-    let canonical_digest = digest_owned_parts(&normalized_row_digests(&rows));
+    let canonical_digest = normalized_matrix_digest(
+        rows.iter()
+            .map(|row| (row.scenario_id().to_string(), row.row_digest().to_string())),
+    );
     let order_lanes = build_authoring_order_rows(workspace, &scenarios, &canonical_digest)?;
     let accepted_count = rows
         .iter()
@@ -100,53 +112,18 @@ fn build_authoring_order_rows(
     Vec<PrimitiveConstructionCorpusAuthoringOrderRow>,
     PrimitiveConstructionCorpusReplaySiegeError,
 > {
-    let mut reversed = scenarios.to_vec();
-    reversed.reverse();
-    let mut rejected_first = scenarios
-        .iter()
-        .filter(|scenario| {
-            matches!(
-                scenario.parameter_role,
-                PrimitiveConstructionCorpusParameterRole::ThresholdRejected
-                    | PrimitiveConstructionCorpusParameterRole::ExplicitRejected
-            )
-        })
-        .cloned()
-        .collect::<Vec<_>>();
-    rejected_first.extend(
-        scenarios
-            .iter()
-            .filter(|scenario| {
-                !matches!(
-                    scenario.parameter_role,
-                    PrimitiveConstructionCorpusParameterRole::ThresholdRejected
-                        | PrimitiveConstructionCorpusParameterRole::ExplicitRejected
-                )
-            })
-            .cloned(),
-    );
-    let mut role_clustered = scenarios.to_vec();
-    role_clustered.sort_by_key(|scenario| {
-        (
-            scenario.parameter_role.as_str(),
-            scenario.family.as_str(),
-            scenario.scenario_id,
-        )
-    });
-    let lanes = vec![
-        ("canonical", scenarios.to_vec()),
-        ("reversed", reversed),
-        ("rejected_first", rejected_first),
-        ("role_clustered", role_clustered),
-    ];
-
     let mut rows = Vec::new();
-    for (lane_name, lane_scenarios) in lanes {
+    for lane in PrimitiveConstructionCorpusAuthoringOrderLane::all() {
+        let lane_scenarios = apply_corpus_authoring_order_lane(lane, scenarios);
         let lane_rows = build_corpus_rows(workspace, &lane_scenarios)?;
-        let normalized_digest = digest_owned_parts(&normalized_row_digests(&lane_rows));
+        let normalized_digest = normalized_matrix_digest(
+            lane_rows
+                .iter()
+                .map(|row| (row.scenario_id().to_string(), row.row_digest().to_string())),
+        );
         rows.push(PrimitiveConstructionCorpusAuthoringOrderRow::new(
-            lane_name.to_string(),
-            super::ordering::lane_digest(&lane_rows),
+            lane.as_str().to_string(),
+            lane_digest(lane_rows.iter().map(|row| row.row_digest().to_string())),
             normalized_digest.clone(),
             lane_rows.len(),
             normalized_digest == canonical_digest,

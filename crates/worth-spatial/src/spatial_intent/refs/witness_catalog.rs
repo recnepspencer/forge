@@ -72,7 +72,39 @@ impl SpatialCatalogResolvedPointWitness {
     }
 }
 
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub enum SpatialCatalogResolvedGeometricTag {
+    PointLike(SpatialCatalogResolvedPointWitness),
+    DirectionLike(SpatialCatalogResolvedDirectionWitness),
+    UnsupportedClass,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum SpatialGeometricTagFailureClass {
+    Resolution(SpatialWitnessFailureClass),
+    ResolvedDirectionLike,
+    ResolvedUnsupportedClass,
+}
+
 pub trait SpatialWitnessCatalog {
+    fn resolve_geometric_tag(
+        &self,
+        tag: &str,
+    ) -> Result<SpatialCatalogResolvedGeometricTag, SpatialWitnessFailureClass>;
+
+    fn resolve_geometric_tag_point(
+        &self,
+        tag: &str,
+    ) -> Result<SpatialCatalogResolvedPointWitness, SpatialWitnessFailureClass> {
+        match self.resolve_geometric_tag(tag)? {
+            SpatialCatalogResolvedGeometricTag::PointLike(resolved) => Ok(resolved),
+            SpatialCatalogResolvedGeometricTag::DirectionLike(_)
+            | SpatialCatalogResolvedGeometricTag::UnsupportedClass => {
+                Err(SpatialWitnessFailureClass::Unsupported)
+            }
+        }
+    }
+
     fn resolve_parameter_space_direction(
         &self,
         carrier_kind: SpatialCarrierKind,
@@ -105,6 +137,13 @@ pub trait SpatialWitnessCatalog {
 pub struct EmptySpatialWitnessCatalog;
 
 impl SpatialWitnessCatalog for EmptySpatialWitnessCatalog {
+    fn resolve_geometric_tag(
+        &self,
+        _tag: &str,
+    ) -> Result<SpatialCatalogResolvedGeometricTag, SpatialWitnessFailureClass> {
+        Err(SpatialWitnessFailureClass::Unsupported)
+    }
+
     fn resolve_parameter_space_direction(
         &self,
         _carrier_kind: SpatialCarrierKind,
@@ -143,6 +182,7 @@ impl SpatialWitnessCatalog for EmptySpatialWitnessCatalog {
 
 #[derive(Clone, Debug, Default)]
 pub struct SpatialFixtureWitnessCatalog {
+    tag_entries: Vec<GeometricTagEntry>,
     direction_parameter_entries: Vec<DirectionParameterEntry>,
     direction_feature_entries: Vec<DirectionFeatureEntry>,
     point_parameter_entries: Vec<PointParameterEntry>,
@@ -152,6 +192,38 @@ pub struct SpatialFixtureWitnessCatalog {
 impl SpatialFixtureWitnessCatalog {
     pub fn new() -> Self {
         Self::default()
+    }
+
+    pub fn with_geometric_tag_point(
+        mut self,
+        tag: impl Into<String>,
+        outcome: Result<SpatialCatalogResolvedPointWitness, SpatialWitnessFailureClass>,
+    ) -> Self {
+        self.tag_entries.push(GeometricTagEntry {
+            tag: tag.into(),
+            outcome: outcome.map(SpatialCatalogResolvedGeometricTag::PointLike),
+        });
+        self
+    }
+
+    pub fn with_geometric_tag_direction(
+        mut self,
+        tag: impl Into<String>,
+        outcome: Result<SpatialCatalogResolvedDirectionWitness, SpatialWitnessFailureClass>,
+    ) -> Self {
+        self.tag_entries.push(GeometricTagEntry {
+            tag: tag.into(),
+            outcome: outcome.map(SpatialCatalogResolvedGeometricTag::DirectionLike),
+        });
+        self
+    }
+
+    pub fn with_geometric_tag_unsupported_class(mut self, tag: impl Into<String>) -> Self {
+        self.tag_entries.push(GeometricTagEntry {
+            tag: tag.into(),
+            outcome: Ok(SpatialCatalogResolvedGeometricTag::UnsupportedClass),
+        });
+        self
     }
 
     pub fn with_parameter_space_direction(
@@ -219,6 +291,17 @@ impl SpatialFixtureWitnessCatalog {
 }
 
 impl SpatialWitnessCatalog for SpatialFixtureWitnessCatalog {
+    fn resolve_geometric_tag(
+        &self,
+        tag: &str,
+    ) -> Result<SpatialCatalogResolvedGeometricTag, SpatialWitnessFailureClass> {
+        self.tag_entries
+            .iter()
+            .find(|entry| entry.tag == tag)
+            .map(|entry| entry.outcome)
+            .unwrap_or(Err(SpatialWitnessFailureClass::Unsupported))
+    }
+
     fn resolve_parameter_space_direction(
         &self,
         carrier_kind: SpatialCarrierKind,
@@ -287,6 +370,12 @@ struct DirectionParameterEntry {
     parameter: [f64; 2],
     role: SpatialCarrierDirectionRole,
     outcome: Result<SpatialCatalogResolvedDirectionWitness, SpatialWitnessFailureClass>,
+}
+
+#[derive(Clone, Debug)]
+struct GeometricTagEntry {
+    tag: String,
+    outcome: Result<SpatialCatalogResolvedGeometricTag, SpatialWitnessFailureClass>,
 }
 
 #[derive(Clone, Debug)]

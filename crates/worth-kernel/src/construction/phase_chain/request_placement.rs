@@ -39,9 +39,15 @@ pub(crate) fn map_geometry_placement(
     placement: PrimitiveConstructionPlacement,
 ) -> PrimitiveConstructionGeometry {
     match geometry {
-        PrimitiveConstructionGeometry::SimplexSolid { scale, .. } => {
-            PrimitiveConstructionGeometry::SimplexSolid { placement, scale }
-        }
+        PrimitiveConstructionGeometry::SimplexSolid {
+            scale,
+            auxiliary_altitude_component,
+            ..
+        } => PrimitiveConstructionGeometry::SimplexSolid {
+            placement,
+            scale,
+            auxiliary_altitude_component,
+        },
         PrimitiveConstructionGeometry::Orthotope { half_extents, .. } => {
             PrimitiveConstructionGeometry::Orthotope {
                 placement,
@@ -100,8 +106,13 @@ pub(crate) fn request_digest_parts(
         format!("{:?}", placement.reference_frame()),
     ];
     match geometry {
-        PrimitiveConstructionGeometry::SimplexSolid { scale, .. } => {
+        PrimitiveConstructionGeometry::SimplexSolid {
+            scale,
+            auxiliary_altitude_component,
+            ..
+        } => {
             parts.push(scale.to_string());
+            parts.push(auxiliary_altitude_component.to_string());
         }
         PrimitiveConstructionGeometry::Orthotope { half_extents, .. } => {
             parts.push(format!("{:?}", half_extents));

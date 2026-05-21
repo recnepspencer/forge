@@ -8,7 +8,9 @@ use super::{
     PrimitiveConstructionIntentArbitrationDxSurface,
     PrimitiveConstructionIntentArbitrationPolicyCase,
 };
-use worth_spatial::facade::{SpatialBlockedCapability, SpatialIntentEscalation};
+use worth_spatial::facade::{
+    SpatialBlockedCapability, SpatialIntentCandidate, SpatialIntentEscalation,
+};
 
 #[test]
 fn arbitration_policy_report_preserves_blocked_and_conflict_truth() {
@@ -25,7 +27,19 @@ fn arbitration_policy_report_preserves_blocked_and_conflict_truth() {
         overlap.escalation(),
         SpatialIntentEscalation::BlockedByMissingCapability(SpatialBlockedCapability::MergeBoolean)
     );
-    assert!(!overlap.blocked_candidates().is_empty());
+    assert_eq!(
+        overlap.blocked_candidates(),
+        &[
+            (
+                SpatialIntentCandidate::MergeCandidate,
+                SpatialBlockedCapability::MergeBoolean,
+            ),
+            (
+                SpatialIntentCandidate::SubtractCandidate,
+                SpatialBlockedCapability::SubtractBoolean,
+            ),
+        ]
+    );
 }
 
 #[test]

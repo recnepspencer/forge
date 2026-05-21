@@ -1,6 +1,7 @@
 use super::{
-    prepare_primitive_construction_motion_dx_surface_report, PrimitiveConstructionMotionDxSurface,
-    PrimitiveConstructionMotionResolutionPolicyCase,
+    prepare_primitive_construction_motion_dx_surface_report,
+    prepare_primitive_construction_motion_resolution_policy_report,
+    PrimitiveConstructionMotionDxSurface, PrimitiveConstructionMotionResolutionPolicyCase,
 };
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 
@@ -20,6 +21,9 @@ fn motion_dx_surface_report_distinguishes_common_advanced_and_degraded_paths() {
     let mut workspace = workspace("worth-kernel.motion-dx-surface");
     let report =
         prepare_primitive_construction_motion_dx_surface_report(&mut workspace).expect("dx report");
+    let policy_report =
+        prepare_primitive_construction_motion_resolution_policy_report(&mut workspace)
+            .expect("policy report");
 
     assert_eq!(
         report
@@ -49,5 +53,5 @@ fn motion_dx_surface_report_distinguishes_common_advanced_and_degraded_paths() {
             .dx_surface(),
         PrimitiveConstructionMotionDxSurface::UnsafeOrDegradedPath
     );
-    assert!(!report.report_digest().is_empty());
+    assert_ne!(report.report_digest(), policy_report.report_digest());
 }

@@ -314,14 +314,34 @@ fn embed_plane(
     plane: &Plane,
 ) -> Result<Plane, SpatialPlacementError> {
     let local_raw_normal = plane.raw_normal();
-    let local_raw_offset = plane.raw_offset();
-    let world_raw_normal = placement.embed_vector(local_raw_normal);
-    let origin = placement.origin();
-    let world_raw_offset = local_raw_offset
-        - (world_raw_normal[0] * origin[0]
-            + world_raw_normal[1] * origin[1]
-            + world_raw_normal[2] * origin[2]);
-    Plane::try_from_f64(world_raw_normal, world_raw_offset)
+    let coefficient_scale = local_raw_normal[0]
+        .abs()
+        .max(local_raw_normal[1].abs())
+        .max(local_raw_normal[2].abs());
+    if !coefficient_scale.is_finite() || coefficient_scale <= f64::MIN_POSITIVE {
+        return Err(SpatialPlacementError::InvalidEmbeddedPlane);
+    }
+    let normalized_local_normal = [
+        local_raw_normal[0] / coefficient_scale,
+        local_raw_normal[1] / coefficient_scale,
+        local_raw_normal[2] / coefficient_scale,
+    ];
+    let normalized_local_offset = plane.raw_offset() / coefficient_scale;
+    let world_raw_normal = placement.embed_vector(normalized_local_normal);
+    let normal_length_sq = normalized_local_normal[0] * normalized_local_normal[0]
+        + normalized_local_normal[1] * normalized_local_normal[1]
+        + normalized_local_normal[2] * normalized_local_normal[2];
+    if !normal_length_sq.is_finite() || normal_length_sq <= f64::MIN_POSITIVE {
+        return Err(SpatialPlacementError::InvalidEmbeddedPlane);
+    }
+    let point_scale = -normalized_local_offset / normal_length_sq;
+    let local_plane_point = [
+        normalized_local_normal[0] * point_scale,
+        normalized_local_normal[1] * point_scale,
+        normalized_local_normal[2] * point_scale,
+    ];
+    let world_plane_point = placement.embed_point(local_plane_point);
+    Plane::from_point_normal(world_plane_point, world_raw_normal)
         .map_err(|_| SpatialPlacementError::InvalidEmbeddedPlane)
 }
 

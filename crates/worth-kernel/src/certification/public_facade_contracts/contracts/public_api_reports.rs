@@ -1,7 +1,7 @@
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_geom::facade::{
-    PrimitiveNormalizationDisposition, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
-    PrimitiveSupportNormalClass,
+    PrimitiveNormalizationDisposition, PrimitiveRealizationExhaustionWitnessKind,
+    PrimitiveRealizationStrategy, PrimitiveStabilityClass, PrimitiveSupportNormalClass,
 };
 use worth_kernel::facade::{
     prepare_primitive_construction_branch_local_parity_report,
@@ -144,10 +144,13 @@ fn kernel_public_facade_exports_query_and_rejection_reports() {
         inspection.attempted_realization_strategies(),
         &[PrimitiveRealizationStrategy::DirectWorld]
     );
-    assert!(!inspection.query_contract_digest().is_empty());
+    assert_ne!(
+        inspection.query_contract_digest(),
+        inspection.report_digest()
+    );
     assert_eq!(graph.family(), PrimitiveConstructionFamily::Orthotope);
     assert!(graph.parity_verified());
-    assert!(!graph.query_contract_digest().is_empty());
+    assert_ne!(graph.query_contract_digest(), graph.report_digest());
     assert_eq!(
         existing_truth.family(),
         PrimitiveConstructionFamily::WireBody
@@ -163,7 +166,7 @@ fn kernel_public_facade_exports_query_and_rejection_reports() {
         receipt.attempted_realization_strategies(),
         &[PrimitiveRealizationStrategy::DirectWorld]
     );
-    assert!(!receipt.query_contract_digest().is_empty());
+    assert_ne!(receipt.query_contract_digest(), receipt.report_digest());
     assert_eq!(gap_register.rows().len(), 6);
     assert!(gap_register.unresolved_gap_count() >= 1);
     assert_eq!(
@@ -276,22 +279,60 @@ fn kernel_public_facade_exports_realization_truth_reports() {
 #[test]
 fn kernel_public_facade_exports_lower_layer_realization_exhaustion_witness_suite() {
     let report = prepare_primitive_construction_realization_exhaustion_witness_report();
+    let pyramid = report
+        .row_for(PrimitiveRealizationExhaustionWitnessKind::ZeroRadiusPyramidSupportCollapse)
+        .expect("pyramid witness row");
+    let simplex = report
+        .row_for(PrimitiveRealizationExhaustionWitnessKind::ZeroScaleSimplexSupportCollapse)
+        .expect("simplex witness row");
+    let squeezed_simplex = report
+        .row_for(PrimitiveRealizationExhaustionWitnessKind::AltitudeSqueezedSimplexSupportCollapse)
+        .expect("squeezed simplex witness row");
 
-    assert_eq!(report.rows().len(), 1);
+    assert_eq!(report.rows().len(), 3);
     assert_eq!(
-        report.rows()[0].family(),
+        pyramid.family(),
         PrimitiveConstructionFamily::RegularPyramid
     );
     assert_eq!(
-        report.rows()[0].attempted_strategies(),
+        pyramid.attempted_strategies(),
         &[
             PrimitiveRealizationStrategy::DirectWorld,
             PrimitiveRealizationStrategy::ExactSupport,
         ]
     );
     assert_eq!(
-        report.rows()[0].stability_class(),
+        pyramid.stability_class(),
         PrimitiveStabilityClass::RejectedBelowConditioningFloor
     );
-    assert!(!report.report_digest().is_empty());
+    assert_eq!(simplex.family(), PrimitiveConstructionFamily::SimplexSolid);
+    assert_eq!(
+        simplex.attempted_strategies(),
+        &[
+            PrimitiveRealizationStrategy::DirectWorld,
+            PrimitiveRealizationStrategy::ExactSupport,
+        ]
+    );
+    assert_eq!(
+        simplex.stability_class(),
+        PrimitiveStabilityClass::RejectedBelowConditioningFloor
+    );
+    assert_eq!(
+        squeezed_simplex.family(),
+        PrimitiveConstructionFamily::SimplexSolid
+    );
+    assert_eq!(
+        squeezed_simplex.attempted_strategies(),
+        &[
+            PrimitiveRealizationStrategy::DirectWorld,
+            PrimitiveRealizationStrategy::ExactSupport,
+        ]
+    );
+    assert_eq!(
+        squeezed_simplex.stability_class(),
+        PrimitiveStabilityClass::RejectedBelowConditioningFloor
+    );
+    assert_ne!(report.report_digest(), pyramid.row_digest());
+    assert_ne!(report.report_digest(), simplex.row_digest());
+    assert_ne!(report.report_digest(), squeezed_simplex.row_digest());
 }

@@ -13,9 +13,9 @@ use worth_kernel::facade::{
     RegularPyramidSpec, ReorientSpatialIntent, RotateSpatialIntent, WireBodySpec,
 };
 use worth_spatial::facade::{
-    SpatialAnchorRef, SpatialCarrierPointRole, SpatialCatalogResolvedPointWitness,
+    SpatialAnchorRef, SpatialAxis, SpatialCarrierPointRole, SpatialCatalogResolvedPointWitness,
     SpatialCatalogWitnessResolutionClass, SpatialDirectionWitnessRef, SpatialFixtureWitnessCatalog,
-    SpatialPointWitnessRef,
+    SpatialFrameRef, SpatialPointWitnessRef, SpatialWitnessFailureClass,
 };
 
 #[test]
@@ -63,7 +63,14 @@ fn kernel_public_facade_exports_motion_replay_parity_reports() {
     ] {
         assert!(report.parity_verified());
         assert_eq!(report.direct_report(), report.replay_report());
-        assert!(!report.report_digest().is_empty());
+        assert_ne!(
+            report.report_digest(),
+            report.direct_report().report_digest()
+        );
+        assert_ne!(
+            report.report_digest(),
+            report.replay_report().report_digest()
+        );
     }
 }
 
@@ -90,7 +97,7 @@ fn kernel_public_facade_exports_motion_branch_preview_runtime_reports() {
         MoveSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
             edge_count: 6,
         }))
-        .from(SpatialAnchorRef::world_origin())
+        .from(SpatialAnchorRef::shape_axis(SpatialAxis::W))
         .to([10.0, 0.0, 3.0]),
     )
     .expect("blocked runtime report");
@@ -99,6 +106,11 @@ fn kernel_public_facade_exports_motion_branch_preview_runtime_reports() {
         RotateSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
             edge_count: 6,
         }))
+        .about(SpatialAnchorRef::frame_origin(SpatialFrameRef::workplane(
+            "runtime-pivot",
+            [4.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0],
+        )))
         .around([0.0, 0.0, 1.0])
         .by_radians(0.5),
     )
@@ -124,10 +136,19 @@ fn kernel_public_facade_exports_motion_branch_preview_runtime_reports() {
                 height: 1.0,
             },
         ))
-        .so(SpatialAnchorRef::shape_origin())
+        .so(SpatialAnchorRef::world_origin())
         .points_toward([1.0, 2.0, 3.0]),
     )
     .expect("points runtime report");
+    let external_move = prepare_primitive_construction_move_branch_preview_runtime_report(
+        &mut workspace,
+        MoveSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
+            edge_count: 6,
+        }))
+        .from(SpatialAnchorRef::world_origin())
+        .to([10.0, 0.0, 3.0]),
+    )
+    .expect("external move runtime report");
 
     assert_eq!(
         available.runtime_surface_status(),
@@ -156,6 +177,11 @@ fn kernel_public_facade_exports_motion_branch_preview_runtime_reports() {
         PrimitiveConstructionMotionRuntimeSurfaceStatus::Available
     );
     assert!(points.runtime_report().is_some());
+    assert_eq!(
+        external_move.runtime_surface_status(),
+        PrimitiveConstructionMotionRuntimeSurfaceStatus::Available
+    );
+    assert!(external_move.runtime_report().is_some());
 }
 
 #[test]
@@ -193,4 +219,60 @@ fn kernel_public_facade_exports_catalog_backed_motion_runtime_reports() {
         PrimitiveConstructionMotionRuntimeSurfaceStatus::Available
     );
     assert!(report.runtime_report().is_some());
+}
+
+#[test]
+fn kernel_public_facade_preserves_feature_owned_anchor_witness_failure_in_motion_runtime() {
+    let runtime = milestone_one_runtime_builder()
+        .expect("runtime builder")
+        .build();
+    let mut workspace = topology_runtime(
+        TopologyRuntimeAdapters::current_head(runtime),
+        "worth-kernel.public-api.motion-runtime.anchor-failure".to_string(),
+    )
+    .expect("workspace");
+    let report = prepare_primitive_construction_rotate_branch_preview_runtime_report(
+        &mut workspace,
+        RotateSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
+            edge_count: 6,
+        }))
+        .about(SpatialAnchorRef::feature_owned("feature-public-runtime"))
+        .around([0.0, 0.0, 1.0])
+        .by_radians(0.5),
+    )
+    .expect("runtime report");
+    let blocked = worth_kernel::facade::prepare_primitive_construction_rotate_branch_preview_runtime_report_with_catalog(
+        &mut workspace,
+        RotateSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
+            edge_count: 6,
+        }))
+        .about(SpatialAnchorRef::feature_owned("feature-public-runtime"))
+        .around([0.0, 0.0, 1.0])
+        .by_radians(0.5),
+        &SpatialFixtureWitnessCatalog::new().with_feature_owned_point(
+            "feature-public-runtime",
+            SpatialCarrierPointRole::Anchor,
+            Err(SpatialWitnessFailureClass::Undefined),
+        ),
+    )
+    .expect("catalog runtime report");
+
+    assert_eq!(
+        report.runtime_surface_status(),
+        PrimitiveConstructionMotionRuntimeSurfaceStatus::PlacementLoweringBlocked(
+            worth_spatial::facade::SpatialPlacementMotionError::AnchorWitnessFailure(
+                SpatialWitnessFailureClass::Unsupported
+            )
+        )
+    );
+    assert!(report.runtime_report().is_none());
+    assert_eq!(
+        blocked.runtime_surface_status(),
+        PrimitiveConstructionMotionRuntimeSurfaceStatus::PlacementLoweringBlocked(
+            worth_spatial::facade::SpatialPlacementMotionError::AnchorWitnessFailure(
+                SpatialWitnessFailureClass::Undefined
+            )
+        )
+    );
+    assert!(blocked.runtime_report().is_none());
 }

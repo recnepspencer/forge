@@ -30,7 +30,7 @@ pub struct PrimitiveConstructionRuntimeBasisLaneReport {
 }
 
 impl PrimitiveConstructionRuntimeBasisLaneReport {
-    fn from_preview(admission: &ForgeQueryPreviewBasisAdmission) -> Self {
+    pub(crate) fn from_preview(admission: &ForgeQueryPreviewBasisAdmission) -> Self {
         Self::new(
             admission.label(),
             admission.effect_policy(),
@@ -39,7 +39,7 @@ impl PrimitiveConstructionRuntimeBasisLaneReport {
         )
     }
 
-    fn from_branch(admission: &ForgeQueryBranchBasisAdmission) -> Self {
+    pub(crate) fn from_branch(admission: &ForgeQueryBranchBasisAdmission) -> Self {
         Self::new(
             admission.label(),
             admission.effect_policy(),

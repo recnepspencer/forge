@@ -1,5 +1,5 @@
 use crate::construction::digest::digest_owned_parts;
-use crate::spatial_intent::{
+use crate::spatial_intent::arbitration::{
     analyze_primitive_intent_conflict, analyze_primitive_intent_conflict_with_capabilities,
     resolve_primitive_intent_conflict_by_choice, resolve_primitive_intent_conflict_by_policy,
 };

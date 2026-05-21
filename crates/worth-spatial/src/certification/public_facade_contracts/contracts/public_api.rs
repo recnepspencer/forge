@@ -1,5 +1,8 @@
+mod public_api_anchor_lowering;
 mod public_api_arbitration;
 mod public_api_carrier_witnesses;
+mod public_api_continuity;
+mod public_api_preview;
 
 use worth_spatial::facade::{
     admit_spatial_anchor_match_constraint, admit_spatial_frame, admit_spatial_lies_on_constraint,

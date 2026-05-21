@@ -54,5 +54,11 @@ fn kernel_public_facade_exports_motion_resolution_policy_report() {
             SpatialPlacementConstraintError::CoincidentTarget
         )
     );
-    assert!(!report.report_digest().is_empty());
+    assert_ne!(
+        report.report_digest(),
+        report
+            .row(PrimitiveConstructionMotionResolutionPolicyCase::DirectMove)
+            .expect("direct move")
+            .row_digest()
+    );
 }

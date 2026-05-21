@@ -14,7 +14,9 @@ pub use conflicts::{
 };
 pub use escalation::{
     analyze_spatial_intent_conflict, analyze_spatial_intent_conflict_with_capabilities,
-    SpatialIntentArbitrationAnalysis, SpatialIntentEscalation,
+    analyze_spatial_intent_conflict_with_capabilities_and_profile,
+    analyze_spatial_intent_conflict_with_profile, SpatialIntentArbitrationAnalysis,
+    SpatialIntentEscalation,
 };
 pub use ranking::{SpatialIntentCandidateRank, SpatialIntentExplanationClass};
 pub use resolution::{
