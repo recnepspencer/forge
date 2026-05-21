@@ -1,8 +1,4 @@
-use worth_kernel::facade::PrimitiveConstructionSpatialIntentError;
-use worth_kernel::facade::{
-    MoveSpatialIntent, OffsetSpatialIntent, PrimitiveConstructionIntent, RegularPyramidSpec,
-    ReorientSpatialIntent, WireBodySpec,
-};
+use worth_kernel::facade::authoring::{construction::*, intents::*};
 use worth_spatial::facade::{
     admit_spatial_placement, SpatialAnchorRef, SpatialAxis, SpatialCarrierDirectionRole,
     SpatialCarrierPointRole, SpatialCatalogResolvedDirectionWitness,

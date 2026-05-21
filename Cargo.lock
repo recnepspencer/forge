@@ -5196,9 +5196,12 @@ dependencies = [
 name = "worth-kernel"
 version = "0.1.0"
 dependencies = [
+ "forge-proof",
  "forge-query",
+ "sha2",
  "trybuild",
  "worth-geom",
+ "worth-math",
  "worth-spatial",
  "worth-topo",
 ]

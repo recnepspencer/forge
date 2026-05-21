@@ -38,6 +38,8 @@ mod preview_replay;
 mod profile_branch_runtime;
 #[path = "runtime_proof/profile_replay.rs"]
 mod profile_replay;
+#[path = "proof/mod.rs"]
+mod proof;
 #[path = "runtime_proof/query/mod.rs"]
 mod query;
 #[path = "runtime_proof/realization_truth.rs"]
@@ -66,8 +68,7 @@ pub use artifact::{
 };
 pub use authoring::{
     primitive_construction_authoring, PrimitiveConstructionAuthoringSession,
-    PrimitiveConstructionAuthorityChainReport, PrimitiveConstructionQueryGapRow,
-    WorthKernelAuthorityError,
+    PrimitiveConstructionAuthorityChainReport, WorthKernelAuthorityError,
 };
 pub use certification::{
     prepare_primitive_chosen_intent_resolution_report,
@@ -146,11 +147,13 @@ pub use certification::{
     PrimitiveConstructionCompoundMotionParityReport, PrimitiveConstructionCompoundMotionParityRow,
     PrimitiveConstructionCompoundOrderLaneReport,
     PrimitiveConstructionCompoundOrderingParityReport,
-    PrimitiveConstructionCompoundOrderingScenarioRow, PrimitiveConstructionCompoundParityReport,
-    PrimitiveConstructionCompoundRow, PrimitiveConstructionCompoundRowClass,
-    PrimitiveConstructionCompoundTopologyClass, PrimitiveConstructionCompoundWorkloadFamily,
-    PrimitiveConstructionConditioningWitnessReport, PrimitiveConstructionContinuityCase,
-    PrimitiveConstructionContinuityHostilitySuiteReport,
+    PrimitiveConstructionCompoundOrderingScenarioRow,
+    PrimitiveConstructionCompoundParityCanonicalTruth, PrimitiveConstructionCompoundParityReport,
+    PrimitiveConstructionCompoundParityVerificationFailure,
+    PrimitiveConstructionCompoundParityVerificationMismatch, PrimitiveConstructionCompoundRow,
+    PrimitiveConstructionCompoundRowClass, PrimitiveConstructionCompoundTopologyClass,
+    PrimitiveConstructionCompoundWorkloadFamily, PrimitiveConstructionConditioningWitnessReport,
+    PrimitiveConstructionContinuityCase, PrimitiveConstructionContinuityHostilitySuiteReport,
     PrimitiveConstructionContinuityReportBundle, PrimitiveConstructionContinuityReportBundleError,
     PrimitiveConstructionContinuityResolutionSource, PrimitiveConstructionContinuityRow,
     PrimitiveConstructionContinuitySurfaceReport,
@@ -164,6 +167,9 @@ pub use certification::{
     PrimitiveConstructionFamilyBoundaryReport, PrimitiveConstructionFamilyBoundaryReportError,
     PrimitiveConstructionFamilyBoundaryRow, PrimitiveConstructionFamilyBoundaryTransitionClass,
     PrimitiveConstructionIntentArbitrationBundleCase,
+    PrimitiveConstructionIntentArbitrationBundleVerificationFailure,
+    PrimitiveConstructionIntentArbitrationBundleVerificationMismatch,
+    PrimitiveConstructionIntentArbitrationCanonicalTruth,
     PrimitiveConstructionIntentArbitrationConflictClass,
     PrimitiveConstructionIntentArbitrationDxSurface,
     PrimitiveConstructionIntentArbitrationDxSurfaceReport,
@@ -173,13 +179,16 @@ pub use certification::{
     PrimitiveConstructionIntentArbitrationPolicyReport,
     PrimitiveConstructionIntentArbitrationPolicyReportError,
     PrimitiveConstructionIntentArbitrationPolicyRow,
-    PrimitiveConstructionIntentArbitrationReportBundle,
     PrimitiveConstructionIntentArbitrationReportBundleError,
     PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReport,
     PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError,
-    PrimitiveConstructionMotionDxSurface, PrimitiveConstructionMotionDxSurfaceReport,
-    PrimitiveConstructionMotionDxSurfaceReportError, PrimitiveConstructionMotionDxSurfaceRow,
-    PrimitiveConstructionMotionReportBundle, PrimitiveConstructionMotionReportBundleError,
+    PrimitiveConstructionMilestoneFourKernelCloseoutVerificationFailure,
+    PrimitiveConstructionMilestoneFourKernelCloseoutVerificationMismatch,
+    PrimitiveConstructionMotionBundleVerificationFailure,
+    PrimitiveConstructionMotionBundleVerificationMismatch,
+    PrimitiveConstructionMotionCanonicalTruth, PrimitiveConstructionMotionDxSurface,
+    PrimitiveConstructionMotionDxSurfaceReport, PrimitiveConstructionMotionDxSurfaceReportError,
+    PrimitiveConstructionMotionDxSurfaceRow, PrimitiveConstructionMotionReportBundleError,
     PrimitiveConstructionMotionResolutionPolicyCase,
     PrimitiveConstructionMotionResolutionPolicyReport,
     PrimitiveConstructionMotionResolutionPolicyReportError,
@@ -189,7 +198,12 @@ pub use certification::{
     PrimitiveConstructionMotionWitnessResolutionReport,
     PrimitiveConstructionMotionWitnessResolutionStatus,
     PrimitiveConstructionObservedIntentRelation, PrimitiveConstructionPhaseFiveSixCloseoutReport,
-    PrimitiveConstructionPhaseFiveSixCloseoutReportError, PrimitiveConstructionPolicyPressureCase,
+    PrimitiveConstructionPhaseFiveSixCloseoutReportError,
+    PrimitiveConstructionPhaseFiveSixCloseoutVerificationFailure,
+    PrimitiveConstructionPhaseFiveSixCloseoutVerificationMismatch,
+    PrimitiveConstructionPolicyPressureBundleVerificationFailure,
+    PrimitiveConstructionPolicyPressureBundleVerificationMismatch,
+    PrimitiveConstructionPolicyPressureCanonicalTruth, PrimitiveConstructionPolicyPressureCase,
     PrimitiveConstructionPolicyPressureDeltaCase, PrimitiveConstructionPolicyPressureDeltaReport,
     PrimitiveConstructionPolicyPressureDeltaReportError,
     PrimitiveConstructionPolicyPressureDeltaRow, PrimitiveConstructionPolicyPressureReportBundle,
@@ -215,14 +229,15 @@ pub use certification::{
     PrimitiveConstructionRealizationExhaustionWitnessReport,
     PrimitiveConstructionRealizationExhaustionWitnessRow,
     PrimitiveConstructionRealizationReportBundle, PrimitiveConstructionRealizationStrategyReport,
-    PrimitiveConstructionRequestedMotionWitness, PrimitiveConstructionResolvedMotionWitness,
-    PrimitiveConstructionSimplexExhaustionWitnessRow,
+    PrimitiveConstructionRequestedMotionWitness, PrimitiveConstructionSimplexExhaustionWitnessRow,
     PrimitiveConstructionSimplexQuerySurfaceStatus,
     PrimitiveConstructionSimplexRealizationExhaustionWitnessReport,
     PrimitiveConstructionSimplexRealizationLadderReportError,
     PrimitiveConstructionSimplexRealizationLadderRow,
     PrimitiveConstructionSimplexRealizationStrategyLadderReport,
     PrimitiveConstructionStabilityClassReport,
+    PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
+    PrimitiveConstructionVerifiedMotionReportBundle,
 };
 pub use continuity_branch_runtime::{
     prepare_primitive_construction_continuity_branch_preview_runtime_report,
@@ -283,7 +298,6 @@ pub use parity::{
     prepare_primitive_construction_replay_parity_report,
     PrimitiveConstructionBranchLocalParityReport, PrimitiveConstructionReplayParityReport,
 };
-pub use phase_report::PrimitiveConstructionPhaseChainReport;
 pub use preview_branch_runtime::{
     prepare_primitive_construction_preview_branch_preview_runtime_report,
     PrimitiveConstructionPreviewBranchPreviewRuntimeError,
@@ -302,6 +316,23 @@ pub use profile_replay::{
     prepare_primitive_construction_policy_profile_replay_parity_report,
     PrimitiveConstructionPolicyProfileReplayParityError,
     PrimitiveConstructionPolicyProfileReplayParityReport,
+};
+pub use proof::{
+    prepare_primitive_construction_digest_protocol_report,
+    prepare_primitive_construction_proof_boundary_compile_fail_report,
+    prepare_primitive_construction_proof_substrate_closeout_report,
+    prepare_primitive_construction_truth_projection_matrix,
+    prepare_primitive_construction_verified_artifact_surface_report,
+    PrimitiveConstructionDigestProtocolReport,
+    PrimitiveConstructionProofBoundaryCompileFailFixture,
+    PrimitiveConstructionProofBoundaryCompileFailReport,
+    PrimitiveConstructionProofSubstrateCloseoutReport,
+    PrimitiveConstructionProofSubstrateCloseoutReportError,
+    PrimitiveConstructionProofSubstrateCloseoutVerificationFailure,
+    PrimitiveConstructionProofSubstrateCloseoutVerificationMismatch,
+    PrimitiveConstructionTruthProjectionMatrix, PrimitiveConstructionTruthProjectionRow,
+    PrimitiveConstructionVerifiedArtifactSurfaceReport,
+    PrimitiveConstructionVerifiedArtifactSurfaceRow,
 };
 pub use query::{
     prepare_primitive_construction_query_basis_preview_parity_report,
@@ -362,7 +393,7 @@ pub use request::{
 };
 pub use result::{
     prepare_primitive_construction_result, PreparedPrimitiveConstructionResult,
-    PrimitiveConstructionResultError, PrimitiveConstructionResultEvidence,
+    PrimitiveConstructionResultError,
 };
 pub use runtime_basis::{
     prepare_primitive_construction_branch_preview_runtime_report,

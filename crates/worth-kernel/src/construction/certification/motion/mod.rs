@@ -1,6 +1,8 @@
 mod bundle;
+mod bundle_verified;
 mod dx_surface_report;
 mod policy_report;
+mod truth;
 mod witness_report;
 
 pub use bundle::{
@@ -12,7 +14,12 @@ pub use bundle::{
     prepare_primitive_construction_reorient_motion_report_bundle_with_catalog,
     prepare_primitive_construction_rotate_motion_report_bundle,
     prepare_primitive_construction_rotate_motion_report_bundle_with_catalog,
-    PrimitiveConstructionMotionReportBundle, PrimitiveConstructionMotionReportBundleError,
+    PrimitiveConstructionMotionReportBundleError,
+};
+pub use bundle_verified::{
+    PrimitiveConstructionMotionBundleVerificationFailure,
+    PrimitiveConstructionMotionBundleVerificationMismatch,
+    PrimitiveConstructionVerifiedMotionReportBundle,
 };
 pub use dx_surface_report::{
     prepare_primitive_construction_motion_dx_surface_report, PrimitiveConstructionMotionDxSurface,
@@ -26,6 +33,7 @@ pub use policy_report::{
     PrimitiveConstructionMotionResolutionPolicyReportError,
     PrimitiveConstructionMotionResolutionPolicyRow,
 };
+pub use truth::PrimitiveConstructionMotionCanonicalTruth;
 pub use witness_report::{
     prepare_primitive_construction_move_witness_resolution_report,
     prepare_primitive_construction_move_witness_resolution_report_with_catalog,

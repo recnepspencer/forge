@@ -1,13 +1,7 @@
 use worth_kernel::facade::{
-    prepare_primitive_construction_policy_pressure_delta_report,
-    prepare_primitive_construction_policy_pressure_report,
-    prepare_primitive_construction_policy_pressure_report_bundle,
-    PrimitiveConstructionPolicyPressureCase, PrimitiveConstructionPolicyPressureDeltaCase,
-    PrimitiveIntentConflict, SpatialArbitrationPosture, SpatialAuthoredActKind,
-    SpatialBlockedCapability, SpatialChosenIntentAuthority, SpatialIdentityContinuityClass,
-    SpatialIntentCandidate, SpatialIntentEscalation, SpatialIntentPolicyProfile,
-    SpatialIntentPolicyProfileOverride, SpatialIntentPreviewCommitDisposition,
-    SpatialObservedRelationFact,
+    authoring::{intents::*, policy::*},
+    certification::policy::*,
+    diagnostics::{arbitration::*, continuity::*, policy::*, preview::*},
 };
 
 #[test]
@@ -77,9 +71,7 @@ fn kernel_public_facade_exports_policy_pressure_siege_surface() {
     );
     assert_eq!(
         host_override.escalation(),
-        SpatialIntentEscalation::BlockedByMissingCapability(
-            worth_kernel::facade::SpatialBlockedCapability::Join
-        )
+        SpatialIntentEscalation::BlockedByMissingCapability(SpatialBlockedCapability::Join)
     );
 }
 
@@ -154,11 +146,14 @@ fn kernel_public_facade_exports_policy_pressure_delta_surface() {
 fn kernel_public_facade_exports_policy_pressure_bundle_surface() {
     let bundle = prepare_primitive_construction_policy_pressure_report_bundle().expect("bundle");
 
-    assert!(bundle.parity_verified());
-    assert!(bundle.direct_cases_present());
-    assert!(bundle.delta_cases_present());
     assert_eq!(
         bundle.direct_report().report_digest(),
         bundle.delta_report().direct_report().report_digest()
+    );
+    assert_eq!(bundle.required_direct_cases().len(), 7);
+    assert_eq!(bundle.required_delta_cases().len(), 5);
+    assert_eq!(
+        bundle.truth().required_direct_cases(),
+        bundle.required_direct_cases()
     );
 }

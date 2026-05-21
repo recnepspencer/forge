@@ -1,10 +1,8 @@
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_kernel::facade::{
-    prepare_primitive_construction_query_motion_inspection_parity_report,
-    prepare_primitive_construction_reorient_witness_resolution_report_with_catalog,
-    CreateSpatialIntent, PrimitiveConstructionIntent,
-    PrimitiveConstructionMotionQueryFactProvenance, PrimitiveConstructionMotionQueryReadSurface,
-    RegularPyramidSpec, ReorientSpatialIntent, RotateSpatialIntent, WireBodySpec,
+    authoring::{construction::*, intents::*},
+    certification::query::*,
+    diagnostics::motion::*,
 };
 use worth_spatial::facade::{
     admit_spatial_placement_with_catalog, SpatialAnchorRef, SpatialCarrierDirectionRole,

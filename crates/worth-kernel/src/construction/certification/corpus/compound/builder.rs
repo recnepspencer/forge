@@ -1,5 +1,4 @@
 use forge_query::facade::ForgeQueryWorkspace;
-use worth_geom::facade::PrimitiveRealizationExhaustionWitnessKind;
 
 use super::super::ordering::{
     apply_compound_authoring_order_lane, PrimitiveConstructionAdversarialAuthoringOrderLane,
@@ -8,11 +7,17 @@ use super::super::parity::{derive_specialized_rows, require_specialized_row_fiel
 use super::cases::compound_scenarios;
 use super::lane_report::PrimitiveConstructionCompoundOrderLaneReport;
 use super::ordering_report::PrimitiveConstructionCompoundOrderingParityReport;
+use super::parity::exhaustion_witness_kind_for;
+use super::parity::{
+    verify_bundle, PrimitiveConstructionCompoundParityReport,
+    PrimitiveConstructionCompoundParityReportBundle,
+    PrimitiveConstructionCompoundParityVerificationFailure,
+};
 use super::report::{
     PrimitiveConstructionCompoundAdversarialSiegeReport,
     PrimitiveConstructionCompoundExhaustionWitnessParityReport,
     PrimitiveConstructionCompoundGrazingBoundaryReport,
-    PrimitiveConstructionCompoundMotionParityReport, PrimitiveConstructionCompoundParityReport,
+    PrimitiveConstructionCompoundMotionParityReport,
 };
 use super::row_builder::{
     authoring_order_row, build_rows_for_lane, compute_normalized_matrix_digest,
@@ -39,6 +44,8 @@ pub enum PrimitiveConstructionCompoundAdversarialSiegeError {
     InvalidSpecializedRow(String),
     Inspection(String),
     Projection(String),
+    NumericWitness(String),
+    Verification(PrimitiveConstructionCompoundParityVerificationFailure),
 }
 
 impl std::fmt::Display for PrimitiveConstructionCompoundAdversarialSiegeError {
@@ -54,6 +61,8 @@ impl std::fmt::Display for PrimitiveConstructionCompoundAdversarialSiegeError {
             Self::InvalidSpecializedRow(reason) => write!(f, "{reason}"),
             Self::Inspection(reason) => write!(f, "{reason}"),
             Self::Projection(reason) => write!(f, "{reason}"),
+            Self::NumericWitness(reason) => write!(f, "{reason}"),
+            Self::Verification(error) => write!(f, "{error:?}"),
         }
     }
 }
@@ -254,8 +263,12 @@ pub(super) fn build_compound_parity_report_from_siege(
     let motion = build_motion_parity_report_from_siege(siege)?;
     let grazing = build_grazing_boundary_report_from_siege(siege)?;
     let exhaustion = build_exhaustion_witness_parity_report_from_siege(siege)?;
-    Ok(PrimitiveConstructionCompoundParityReport::new(
-        ordering, motion, grazing, exhaustion,
+    verify_bundle(PrimitiveConstructionCompoundParityReportBundle::new(
+        siege.clone(),
+        ordering,
+        motion,
+        grazing,
+        exhaustion,
     ))
 }
 
@@ -309,20 +322,6 @@ pub(super) fn build_exhaustion_witness_parity_report_from_siege(
     let ordering =
         PrimitiveConstructionCompoundOrderingParityReport::new(siege.lane_reports().to_vec());
     Ok(PrimitiveConstructionCompoundExhaustionWitnessParityReport::new(rows, &ordering))
-}
-
-fn exhaustion_witness_kind_for(
-    scenario_id: &str,
-) -> Option<PrimitiveRealizationExhaustionWitnessKind> {
-    match scenario_id {
-        "pyramid_semantic_exhaustion" => {
-            Some(PrimitiveRealizationExhaustionWitnessKind::ZeroRadiusPyramidSupportCollapse)
-        }
-        "simplex_world_collapsed_explicit_exhaustion" => {
-            Some(PrimitiveRealizationExhaustionWitnessKind::AltitudeSqueezedSimplexSupportCollapse)
-        }
-        _ => None,
-    }
 }
 
 fn build_lane_report(

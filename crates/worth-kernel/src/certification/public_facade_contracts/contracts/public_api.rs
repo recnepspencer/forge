@@ -17,6 +17,7 @@ mod public_api_phase_five_six_closeout;
 mod public_api_policy_pressure;
 mod public_api_policy_profile;
 mod public_api_preview;
+mod public_api_proof_substrate_closeout;
 mod public_api_reports;
 mod public_api_spatial_anchor_lowering;
 mod public_api_spatial_carrier_witnesses;

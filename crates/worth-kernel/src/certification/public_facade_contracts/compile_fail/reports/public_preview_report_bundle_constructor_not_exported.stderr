@@ -1,16 +1,15 @@
-error[E0624]: associated function `new` is private
- --> src/certification/public_facade_contracts/compile_fail/reports/public_preview_report_bundle_constructor_not_exported.rs:4:55
+error[E0432]: unresolved import `worth_kernel::facade::PrimitiveConstructionPreviewReportBundle`
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_preview_report_bundle_constructor_not_exported.rs:1:5
   |
-4 |       let _ = PrimitiveConstructionPreviewReportBundle::new;
-  |                                                         ^^^ private associated function
+1 | use worth_kernel::facade::PrimitiveConstructionPreviewReportBundle;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionPreviewReportBundle` in `facade`
   |
- ::: src/construction/certification/preview/bundle.rs
+help: a similar name exists in the module
   |
-  | /     fn new(
-  | |         case: PrimitiveConstructionPreviewCase,
-  | |         preview_row: PrimitiveConstructionPreviewRow,
-  | |         replay_report: PrimitiveConstructionPreviewReplayParityReport,
-... |
-  | |         branch_runtime_report: PrimitiveConstructionPreviewBranchPreviewRuntimeReport,
-  | |     ) -> Self {
-  | |_____________- private associated function defined here
+1 - use worth_kernel::facade::PrimitiveConstructionPreviewReportBundle;
+1 + use worth_kernel::facade::PrimitiveConstructionPreparedOutcome;
+  |
+help: consider importing this struct instead
+  |
+1 | use worth_kernel::facade::certification::preview::PrimitiveConstructionPreviewReportBundle;
+  |                           ++++++++++++++++++++++++

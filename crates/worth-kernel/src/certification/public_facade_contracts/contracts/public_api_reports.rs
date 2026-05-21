@@ -4,27 +4,10 @@ use worth_geom::facade::{
     PrimitiveRealizationStrategy, PrimitiveStabilityClass, PrimitiveSupportNormalClass,
 };
 use worth_kernel::facade::{
-    prepare_primitive_construction_branch_local_parity_report,
-    prepare_primitive_construction_conditioning_witness_report,
-    prepare_primitive_construction_outcome,
-    prepare_primitive_construction_query_basis_preview_parity_report,
-    prepare_primitive_construction_query_boundary_gap_register,
-    prepare_primitive_construction_query_existing_truth_binding_report,
-    prepare_primitive_construction_query_graph_composition_parity_report,
-    prepare_primitive_construction_query_inspection_parity_report,
-    prepare_primitive_construction_query_no_local_runtime_workaround_audit,
-    prepare_primitive_construction_query_projection_consumption_receipt_report,
-    prepare_primitive_construction_realization_exhaustion_report,
-    prepare_primitive_construction_realization_exhaustion_witness_report,
-    prepare_primitive_construction_realization_report_bundle,
-    prepare_primitive_construction_realization_strategy_report,
-    prepare_primitive_construction_rejection_locality_report,
-    prepare_primitive_construction_replay_parity_report,
-    prepare_primitive_construction_stability_class_report, OrthotopeSpec,
-    PrimitiveConstructionFamily, PrimitiveConstructionIntent,
-    PrimitiveConstructionQueryBoundaryGapStatus, PrimitiveConstructionQueryBoundaryUsagePosture,
-    PrimitiveConstructionRealizationExhaustionStatus, RegularPrismSpec, RegularPyramidSpec,
-    ShellWithHoleSpec, WireBodySpec,
+    authoring::construction::*,
+    certification::{query::*, realization::*},
+    diagnostics::{query::*, rejection::*},
+    outcome::prepared::*,
 };
 
 #[test]

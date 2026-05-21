@@ -1,15 +1,21 @@
 mod bundle;
+mod bundle_verified;
 mod chosen_report;
 mod dx_surface_report;
 mod policy_report;
 mod preserved_report;
 mod suite;
+mod truth;
 
 pub use bundle::{
     prepare_primitive_construction_intent_arbitration_report_bundle,
     PrimitiveConstructionIntentArbitrationBundleCase,
-    PrimitiveConstructionIntentArbitrationReportBundle,
     PrimitiveConstructionIntentArbitrationReportBundleError,
+};
+pub use bundle_verified::{
+    PrimitiveConstructionIntentArbitrationBundleVerificationFailure,
+    PrimitiveConstructionIntentArbitrationBundleVerificationMismatch,
+    PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
 };
 pub use chosen_report::{
     prepare_primitive_chosen_intent_resolution_report,
@@ -44,6 +50,7 @@ pub use suite::{
     prepare_primitive_construction_intent_arbitration_hostility_suite_report,
     PrimitiveConstructionIntentArbitrationHostilitySuiteReport,
 };
+pub use truth::PrimitiveConstructionIntentArbitrationCanonicalTruth;
 
 #[cfg(test)]
 mod bundle_tests;

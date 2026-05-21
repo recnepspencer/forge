@@ -1,9 +1,7 @@
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_kernel::facade::{
-    prepare_primitive_construction_intent_arbitration_hostility_suite_report,
-    prepare_primitive_construction_intent_arbitration_report_bundle,
-    PrimitiveConstructionChosenIntentResolutionAuthority,
-    PrimitiveConstructionIntentArbitrationBundleCase, PrimitiveConstructionIntentChosenTruth,
+    certification::{arbitration::*, query::*},
+    diagnostics::arbitration::*,
 };
 use worth_spatial::facade::SpatialIntentCandidate;
 
@@ -28,13 +26,27 @@ fn kernel_public_facade_exports_intent_arbitration_report_bundle() {
     )
     .expect("explicit bundle");
 
-    assert!(unresolved.bundle_verified());
+    assert_eq!(
+        unresolved.truth().preserved_truth(),
+        PrimitiveConstructionPreservedIntentTruth::Unresolved {
+            escalation: worth_spatial::facade::SpatialIntentEscalation::BlockedByMissingCapability(
+                worth_spatial::facade::SpatialBlockedCapability::CutOpening
+            ),
+            blocked_capability: Some(worth_spatial::facade::SpatialBlockedCapability::CutOpening),
+        }
+    );
     assert!(unresolved.replay_parity_report().parity_verified());
     assert_eq!(
         unresolved.query_inspection_parity_report().chosen_truth(),
         PrimitiveConstructionIntentChosenTruth::Unresolved
     );
-    assert!(explicit.bundle_verified());
+    assert_eq!(
+        explicit.truth().preserved_truth(),
+        PrimitiveConstructionPreservedIntentTruth::Resolved {
+            candidate: SpatialIntentCandidate::SnapFlush,
+            authority: PrimitiveConstructionChosenIntentResolutionAuthority::ExplicitChoice,
+        }
+    );
     assert!(explicit.replay_parity_report().parity_verified());
     assert_eq!(
         explicit.query_projection_receipt_report().chosen_truth(),

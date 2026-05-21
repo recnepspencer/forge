@@ -28,7 +28,7 @@ pub use worth_spatial::facade::{
     SpatialIntentCandidate, SpatialIntentCandidateAvailability, SpatialIntentCandidateRank,
     SpatialIntentCapabilitySet, SpatialIntentConflictClass, SpatialIntentEscalation,
     SpatialIntentExplanationClass, SpatialIntentPolicyProfile, SpatialIntentPolicyProfileOverride,
-    SpatialIntentPreview, SpatialIntentPreviewCommitDisposition, SpatialIntentPreviewWarning,
+    SpatialIntentPreviewCommitDisposition, SpatialIntentPreviewWarning,
     SpatialIntentResolutionError, SpatialObservedRelationFact, SpatialPreviewRichness,
     SpatialThresholdPosture,
 };

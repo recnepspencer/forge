@@ -1,13 +1,6 @@
 use worth_kernel::facade::{
-    prepare_primitive_construction_move_witness_resolution_report,
-    prepare_primitive_construction_points_toward_witness_resolution_report,
-    prepare_primitive_construction_reorient_witness_resolution_report,
-    prepare_primitive_construction_rotate_witness_resolution_report, CreateSpatialIntent,
-    MoveSpatialIntent, OffsetSpatialIntent, PrimitiveConstructionIntent,
-    PrimitiveConstructionMotionWitnessResolutionFailureKind,
-    PrimitiveConstructionMotionWitnessResolutionKind, PrimitiveConstructionRequestedMotionWitness,
-    PrimitiveConstructionSpatialIntentError, RegularPyramidSpec, ReorientSpatialIntent,
-    RotateSpatialIntent, WireBodySpec,
+    authoring::{construction::*, intents::*},
+    diagnostics::motion::*,
 };
 use worth_spatial::facade::{
     admit_spatial_placement, SpatialAnchorRef, SpatialAxis, SpatialDirectionWitnessRef,

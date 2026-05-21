@@ -1,3 +1,4 @@
+use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
 use crate::construction::{PrimitiveConstructionFamily, PrimitiveConstructionIntent};
 use crate::spatial_intent::{
     MoveSpatialIntent, PointsTowardSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent,
@@ -320,9 +321,18 @@ fn build_report(
     resolution_class: Option<SpatialWitnessResolutionClass>,
     failure_kind: Option<PrimitiveConstructionMotionWitnessResolutionFailureKind>,
 ) -> PrimitiveConstructionMotionWitnessResolutionReport {
-    let report_digest = format!(
-        "{kind:?}|{}|{anchor:?}|{requested_witness:?}|{status:?}|{resolved_witness:?}|{resolution_class:?}|{failure_kind:?}",
-        subject_family.as_str(),
+    let report_digest = digest_owned_parts_with_scope(
+        ConstructionDigestScope::ArtifactIdentity,
+        &[
+            format!("{kind:?}"),
+            subject_family.as_str().to_string(),
+            format!("{anchor:?}"),
+            format!("{requested_witness:?}"),
+            format!("{status:?}"),
+            format!("{resolved_witness:?}"),
+            format!("{resolution_class:?}"),
+            format!("{failure_kind:?}"),
+        ],
     );
     PrimitiveConstructionMotionWitnessResolutionReport {
         kind,

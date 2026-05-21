@@ -3,13 +3,7 @@ use worth_geom::facade::{
     PrimitiveRealizationExhaustionReason, PrimitiveRealizationExhaustionWitnessKind,
     PrimitiveRealizationStrategy, PrimitiveStabilityClass,
 };
-use worth_kernel::facade::{
-    prepare_primitive_construction_family_boundary_drift_report,
-    prepare_primitive_construction_simplex_realization_exhaustion_witness_report,
-    prepare_primitive_construction_simplex_realization_strategy_ladder_report,
-    PrimitiveConstructionCorpusParameterRole, PrimitiveConstructionFamily,
-    PrimitiveConstructionSimplexQuerySurfaceStatus,
-};
+use worth_kernel::facade::{authoring::construction::*, certification::corpus::*};
 
 #[test]
 fn kernel_public_facade_exports_direct_simplex_ladder_and_witness_artifacts() {

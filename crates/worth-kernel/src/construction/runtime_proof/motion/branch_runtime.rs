@@ -11,7 +11,7 @@ use crate::construction::certification::{
     PrimitiveConstructionMotionWitnessResolutionStatus,
     PrimitiveConstructionRequestedMotionWitness, PrimitiveConstructionResolvedMotionWitness,
 };
-use crate::construction::digest::digest_owned_parts;
+use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
 use crate::construction::runtime_basis::{
     prepare_primitive_construction_branch_preview_runtime_report,
     PrimitiveConstructionBranchPreviewRuntimeReport, PrimitiveConstructionRuntimeBasisError,
@@ -54,21 +54,24 @@ impl PrimitiveConstructionMotionBranchPreviewRuntimeReport {
         runtime_surface_status: PrimitiveConstructionMotionRuntimeSurfaceStatus,
         runtime_report: Option<PrimitiveConstructionBranchPreviewRuntimeReport>,
     ) -> Self {
-        let report_digest = digest_owned_parts(&[
-            format!("{:?}", motion_report.kind()),
-            motion_report.subject_family().as_str().to_string(),
-            format!("{:?}", motion_report.anchor()),
-            format!("{:?}", motion_report.requested_witness()),
-            format!("{:?}", motion_report.status()),
-            format!("{:?}", motion_report.resolved_witness()),
-            format!("{:?}", motion_report.resolution_class()),
-            format!("{:?}", motion_report.failure_kind()),
-            format!("{runtime_surface_status:?}"),
-            runtime_report
-                .as_ref()
-                .map(|report| report.report_digest().to_string())
-                .unwrap_or_default(),
-        ]);
+        let report_digest = digest_owned_parts_with_scope(
+            ConstructionDigestScope::ParityIdentity,
+            &[
+                format!("{:?}", motion_report.kind()),
+                motion_report.subject_family().as_str().to_string(),
+                format!("{:?}", motion_report.anchor()),
+                format!("{:?}", motion_report.requested_witness()),
+                format!("{:?}", motion_report.status()),
+                format!("{:?}", motion_report.resolved_witness()),
+                format!("{:?}", motion_report.resolution_class()),
+                format!("{:?}", motion_report.failure_kind()),
+                format!("{runtime_surface_status:?}"),
+                runtime_report
+                    .as_ref()
+                    .map(|report| report.report_digest().to_string())
+                    .unwrap_or_default(),
+            ],
+        );
         Self {
             kind: motion_report.kind(),
             family: motion_report.subject_family(),

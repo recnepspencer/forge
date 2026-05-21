@@ -1,8 +1,5 @@
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
-use worth_kernel::facade::{
-    prepare_primitive_construction_motion_dx_surface_report, PrimitiveConstructionMotionDxSurface,
-    PrimitiveConstructionMotionResolutionPolicyCase,
-};
+use worth_kernel::facade::diagnostics::motion::*;
 
 #[test]
 fn kernel_public_facade_exports_motion_dx_surface_report() {

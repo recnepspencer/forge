@@ -1,10 +1,5 @@
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
-use worth_kernel::facade::{
-    prepare_primitive_construction_motion_resolution_policy_report,
-    PrimitiveConstructionMotionResolutionPolicyCase,
-    PrimitiveConstructionMotionRuntimeSurfaceStatus,
-    PrimitiveConstructionMotionWitnessResolutionFailureKind,
-};
+use worth_kernel::facade::diagnostics::motion::*;
 use worth_spatial::facade::{SpatialPlacementConstraintError, SpatialWitnessFailureClass};
 
 #[test]

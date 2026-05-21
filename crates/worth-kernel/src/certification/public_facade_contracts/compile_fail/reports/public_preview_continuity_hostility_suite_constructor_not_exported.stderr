@@ -1,10 +1,10 @@
-error[E0624]: associated function `new` is private
- --> src/certification/public_facade_contracts/compile_fail/reports/public_preview_continuity_hostility_suite_constructor_not_exported.rs:4:73
+error[E0432]: unresolved import `worth_kernel::facade::PrimitiveConstructionPreviewContinuityHostilitySuiteReport`
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_preview_continuity_hostility_suite_constructor_not_exported.rs:1:5
   |
-4 |     let _ = PrimitiveConstructionPreviewContinuityHostilitySuiteReport::new;
-  |                                                                         ^^^ private associated function
+1 | use worth_kernel::facade::PrimitiveConstructionPreviewContinuityHostilitySuiteReport;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionPreviewContinuityHostilitySuiteReport` in `facade`
   |
- ::: src/construction/certification/profile/suite.rs
+help: consider importing this struct instead
   |
-  |     fn new(rows: Vec<PrimitiveConstructionPreviewContinuityHostilityRow>) -> Self {
-  |     ----------------------------------------------------------------------------- private associated function defined here
+1 | use worth_kernel::facade::certification::preview::PrimitiveConstructionPreviewContinuityHostilitySuiteReport;
+  |                           ++++++++++++++++++++++++

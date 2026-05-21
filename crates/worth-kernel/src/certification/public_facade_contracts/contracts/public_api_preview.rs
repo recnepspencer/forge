@@ -1,16 +1,9 @@
 use forge_query::facade::ForgeQueryAuthorityLane;
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_kernel::facade::{
-    prepare_primitive_construction_preview_branch_preview_runtime_report,
-    prepare_primitive_construction_preview_bundle_from_hostility_suite,
-    prepare_primitive_construction_preview_hostility_suite_report,
-    prepare_primitive_construction_preview_replay_parity_report,
-    prepare_primitive_construction_preview_report_bundle,
-    prepare_primitive_construction_preview_surface_report,
-    prepare_primitive_construction_query_preview_inspection_parity_report,
-    PrimitiveConstructionPreviewCase, PrimitiveIntentPreview, SpatialArbitrationPosture,
-    SpatialAuthoredActKind, SpatialIntentCandidate, SpatialIntentPolicyProfile,
-    SpatialIntentPolicyProfileOverride, SpatialObservedRelationFact, SpatialPreviewRichness,
+    authoring::{intents::*, policy::*},
+    certification::{preview::*, query::*},
+    diagnostics::{arbitration::*, preview::*},
 };
 
 #[test]
@@ -105,9 +98,7 @@ fn kernel_public_facade_exports_preview_assessment_envelope_and_profile_override
     assert_eq!(assessment.profile().name(), "aggressive_snap_high_fidelity");
     assert_eq!(
         assessment.commit_disposition(),
-        worth_kernel::facade::SpatialIntentPreviewCommitDisposition::WouldAutoResolve(
-            SpatialIntentCandidate::SnapFlush
-        )
+        SpatialIntentPreviewCommitDisposition::WouldAutoResolve(SpatialIntentCandidate::SnapFlush)
     );
     assert_eq!(
         assessment.preview().preview_richness(),
@@ -120,11 +111,9 @@ fn kernel_public_facade_exports_preview_assessment_envelope_and_profile_override
     assert!(assessment.clarification_request().is_err());
     assert!(assessment
         .warnings()
-        .contains(&worth_kernel::facade::SpatialIntentPreviewWarning::HighFidelityPreview));
+        .contains(&SpatialIntentPreviewWarning::HighFidelityPreview));
     assert_eq!(
         assessment.preview().commit_disposition(),
-        worth_kernel::facade::SpatialIntentPreviewCommitDisposition::WouldAutoResolve(
-            SpatialIntentCandidate::SnapFlush
-        )
+        SpatialIntentPreviewCommitDisposition::WouldAutoResolve(SpatialIntentCandidate::SnapFlush)
     );
 }

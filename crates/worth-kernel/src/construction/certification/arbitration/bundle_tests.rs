@@ -3,7 +3,9 @@ use super::{
     PrimitiveConstructionChosenIntentResolutionAuthority,
     PrimitiveConstructionIntentArbitrationBundleCase,
 };
-use crate::construction::PrimitiveConstructionIntentChosenTruth;
+use crate::construction::{
+    PrimitiveConstructionIntentChosenTruth, PrimitiveConstructionPreservedIntentTruth,
+};
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_spatial::facade::{SpatialIntentCandidate, SpatialIntentEscalation};
 
@@ -27,7 +29,15 @@ fn arbitration_report_bundle_verifies_policy_dx_and_query_truth_for_unresolved_c
     )
     .expect("bundle");
 
-    assert!(bundle.bundle_verified());
+    assert_eq!(
+        bundle.truth().preserved_truth(),
+        PrimitiveConstructionPreservedIntentTruth::Unresolved {
+            escalation: SpatialIntentEscalation::BlockedByMissingCapability(
+                worth_spatial::facade::SpatialBlockedCapability::CutOpening
+            ),
+            blocked_capability: Some(worth_spatial::facade::SpatialBlockedCapability::CutOpening),
+        }
+    );
     assert!(bundle.replay_parity_report().parity_verified());
     assert!(bundle.chosen_row().is_none());
     assert_eq!(
@@ -51,7 +61,13 @@ fn arbitration_report_bundle_preserves_explicit_choice_truth() {
     )
     .expect("bundle");
 
-    assert!(bundle.bundle_verified());
+    assert_eq!(
+        bundle.truth().preserved_truth(),
+        PrimitiveConstructionPreservedIntentTruth::Resolved {
+            candidate: SpatialIntentCandidate::SnapFlush,
+            authority: PrimitiveConstructionChosenIntentResolutionAuthority::ExplicitChoice,
+        }
+    );
     assert!(bundle.replay_parity_report().parity_verified());
     assert_eq!(
         bundle.chosen_row().expect("chosen row").authority(),
@@ -75,7 +91,13 @@ fn arbitration_report_bundle_preserves_policy_auto_resolution_truth() {
     )
     .expect("bundle");
 
-    assert!(bundle.bundle_verified());
+    assert_eq!(
+        bundle.truth().preserved_truth(),
+        PrimitiveConstructionPreservedIntentTruth::Resolved {
+            candidate: SpatialIntentCandidate::MoveOnly,
+            authority: PrimitiveConstructionChosenIntentResolutionAuthority::PolicyAutoResolve,
+        }
+    );
     assert!(bundle.replay_parity_report().parity_verified());
     assert_eq!(
         bundle.query_inspection_parity_report().chosen_truth(),

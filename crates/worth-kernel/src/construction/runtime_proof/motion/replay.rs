@@ -6,7 +6,7 @@ use crate::construction::certification::{
     PrimitiveConstructionMotionWitnessResolutionKind,
     PrimitiveConstructionMotionWitnessResolutionReport,
 };
-use crate::construction::digest::digest_owned_parts;
+use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
 use crate::construction::{PrimitiveConstructionFamily, PrimitiveConstructionIntent};
 use crate::spatial_intent::{
     MoveSpatialIntent, PointsTowardSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent,
@@ -31,13 +31,16 @@ impl PrimitiveConstructionMotionReplayParityReport {
         replay_report: PrimitiveConstructionMotionWitnessResolutionReport,
     ) -> Self {
         let parity_verified = direct_report == replay_report;
-        let report_digest = digest_owned_parts(&[
-            format!("{kind:?}"),
-            family.as_str().to_string(),
-            direct_report.report_digest().to_string(),
-            replay_report.report_digest().to_string(),
-            parity_verified.to_string(),
-        ]);
+        let report_digest = digest_owned_parts_with_scope(
+            ConstructionDigestScope::ReplayIdentity,
+            &[
+                format!("{kind:?}"),
+                family.as_str().to_string(),
+                direct_report.report_digest().to_string(),
+                replay_report.report_digest().to_string(),
+                parity_verified.to_string(),
+            ],
+        );
         Self {
             kind,
             family,

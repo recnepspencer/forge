@@ -7,9 +7,6 @@ use super::{
 fn policy_pressure_bundle_binds_direct_and_same_setup_delta_truth() {
     let bundle = prepare_primitive_construction_policy_pressure_report_bundle().expect("bundle");
 
-    assert!(bundle.parity_verified());
-    assert!(bundle.direct_cases_present());
-    assert!(bundle.delta_cases_present());
     assert_eq!(
         bundle.required_direct_cases(),
         &[
@@ -35,6 +32,14 @@ fn policy_pressure_bundle_binds_direct_and_same_setup_delta_truth() {
     assert_eq!(
         bundle.direct_report().report_digest(),
         bundle.delta_report().direct_report().report_digest()
+    );
+    assert_eq!(
+        bundle.truth().required_direct_cases(),
+        bundle.required_direct_cases()
+    );
+    assert_eq!(
+        bundle.truth().required_delta_cases(),
+        bundle.required_delta_cases()
     );
     assert_eq!(
         bundle

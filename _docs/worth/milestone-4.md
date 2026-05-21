@@ -1407,7 +1407,12 @@ The implementation rule is:
 - finish `Phase 5.5.4` before starting `Phase 5.5.5`
 - finish `Phase 5.5.5` before starting `Phase 5.5.6`
 - finish `Phase 5.5.6` before starting `Phase 5.6`
-- finish `Phase 5.6` before starting `Phase 6`
+- finish `Phase 5.6` before starting `Phase 5.7`
+- finish `Phase 5.7` before starting `Phase 5.8`
+- finish `Phase 5.8` before starting `Phase 5.9`
+- finish `Phase 5.9` before starting `Phase 5.10`
+- finish `Phase 5.10` before starting `Phase 5.11`
+- finish `Phase 5.11` before starting `Phase 6`
 - finish `Phase 6` before starting `Phase 7`
 
 Each phase must leave the system in a coherent, enforceable state for the next
@@ -5273,6 +5278,925 @@ This phase must replace:
   believable pre-METABOSS gate rather than a renamed threshold corpus
 - the docs phase would describe a compound primitive proof substrate we would
   actually trust under future MetaBoss pressure
+
+### Phase 5.7: Freeze Canonical Proof Truth, Verified Artifact Boundaries, And Stable Digest Protocol Before Docs
+
+Turn the now-broad Milestone 4 proof surface into a principled proof substrate
+before the documentation phase freezes it into the public story.
+
+#### Why this phase comes now
+
+Phase 5.6 proves that the primitive compound suite is real. Phase 5.7 makes
+sure the proof layer itself is structurally honest enough to scale.
+
+This phase exists because Milestone 4 now has a lot of proof-bearing surfaces:
+
+- runtime parity reports
+- query inspection and projection parity reports
+- motion / arbitration / preview / continuity bundles
+- corpus parity artifacts
+- policy-pressure bundles
+- milestone closeout artifacts
+
+Conceptually this is good. Structurally it is still too hand-assembled:
+
+- sibling reports are compared by bespoke field-equality logic
+- `bundle_verified`, `parity_verified`, and `closeout_verified` booleans are
+  still common authority boundaries
+- digest-looking strings exist, but they are not yet governed by one canonical,
+  stable digest protocol
+
+For aerospace-grade scale, that is not a cosmetic problem. It is a proof
+substrate problem.
+
+If this phase is skipped:
+
+- future proof dimensions will be easy to forget when assembling bundles
+- callers will keep inheriting proof by convention instead of by type
+- digest identities will look more durable than they really are
+- the docs phase will fossilize an authority boundary we already know is softer
+  than the system philosophy requires
+
+This phase therefore belongs before docs because the docs should describe the
+proof model we actually intend to scale to millions of tokens, not the
+transitional one that happened to get Milestone 4 over the line.
+
+#### Adversarial constraint in this phase
+
+Milestone 4 proof infrastructure must survive this hostile condition:
+
+> As the kernel grows from hundreds of thousands of tokens to multi-million-
+> token scale, new proof lanes, new diagnostic projections, new replay and
+> branch surfaces, and new milestone closeout artifacts must not be able to
+> silently bypass canonical truth, silently omit one required proof dimension,
+> or silently emit unstable digest identities while still producing
+> proof-looking report objects.
+
+The proof substrate fails if:
+
+- two sibling reports are treated as proving the same truth without lowering to
+  one canonical truth object
+- a "verified" artifact can still be constructed as an ordinary report plus a
+  boolean the caller must remember to inspect
+- a digest is used as if it were durable identity even though its algorithm,
+  domain, or canonical encoding is implicit
+- new proof dimensions can be added without compile-time or test-time pressure
+  to update the relevant verified artifact boundary
+
+#### Structural rule this phase must freeze
+
+Milestone 4 must stop treating "bundle" as the primary proof abstraction.
+
+The primary abstraction must become:
+
+- `CanonicalTruth`
+- `TruthProjection`
+- `VerificationResult`
+- `VerifiedArtifact`
+- `CanonicalDigestProtocol`
+
+That means each proof family must have:
+
+- one authoritative canonical truth type
+- one or more named projections of that truth for specific surfaces
+- one typed verification result that compares projection(s) back to the
+  canonical truth
+- one stronger verified artifact type that only exists when verification
+  succeeds
+
+This phase must not respond by creating one fake-universal truth object.
+
+The structural rule is:
+
+`shared proof law, family-local canonical truth`
+
+The common substrate may unify proof progression and verification shape, but
+each proof family must still own its own canonical truth type and projection
+types according to its real semantics.
+
+This is the minimum architecture that satisfies:
+
+- `MENTALITY.md` on enforcement over convention
+- `arch_laws.md` Law 30 on proof-bearing phase chains
+- `arch_laws.md` Law 41 on types encoding what has been proven
+- the Worth roadmap requirement that replay, audit, and certification surfaces
+  remain exact and machine-checkable as the system scales
+
+#### Canonical digest protocol required in this phase
+
+Milestone 4 must freeze one canonical digest protocol for kernel proof and
+artifact surfaces.
+
+At minimum, this protocol must require:
+
+- explicit domain separation
+- explicit versioning
+- explicit canonical part ordering
+- explicit stable encoding
+- one shared stable hashing algorithm
+- no `Debug` formatting as artifact identity
+- no `DefaultHasher`
+- no helper-local digest implementations that bypass the shared protocol
+
+The protocol should be strong enough to support future use as:
+
+- replay identity
+- audit identity
+- certification artifact identity
+- cache or memoization identity where justified
+- branch-comparison and parity identity
+
+The protocol does not need to solve every future cryptographic requirement in
+Milestone 4, but it must stop the current ambiguity where digest-looking values
+can be mistaken for durable proof identity without actually being governed by a
+formal protocol.
+
+This phase must also freeze the intended Milestone 4 scope of those digests.
+
+At minimum the spec must distinguish whether a digest is being used as:
+
+- artifact identity
+- replay identity
+- parity identity
+- cache or memoization identity, where justified
+
+and must make clear that stability is governed by the digest domain and version
+rather than by optimistic assumptions about one undifferentiated "digest"
+string.
+
+#### Inventory and registry rule required in this phase
+
+Milestone 4 must stop restating proof inventories in parallel hard-coded lists.
+
+If a proof family has:
+
+- required cases
+- required row classes
+- required scenario IDs
+- required witness kinds
+- required closeout inventory
+
+then that family must define one registry that owns the inventory truth, and
+all of these must derive from it:
+
+- report coverage matrices
+- closeout gates
+- public API contract tests
+- hostility suites
+- inventory and count assertions
+
+The structural rule is:
+
+`one proof-family inventory declaration, many derived proof consumers`
+
+This phase must therefore add registry-backed inventory ownership for the major
+Milestone 4 proof families instead of leaving the milestone with multiple
+parallel specification lists that can drift independently.
+
+These registries must stay declarative.
+
+They may own:
+
+- case identity
+- inventory membership
+- required coverage labels
+- closeout inclusion truth
+
+They must not quietly become:
+
+- execution runtimes
+- report builders
+- diagnostic formatting engines
+- hidden secondary specification interpreters
+
+#### Single-execution epoch rule required in this phase
+
+Milestone 4 must stop rebuilding one full hostile siege per sibling report when
+those reports are certifying the same workload family.
+
+If one proof family needs:
+
+- ordering parity
+- motion parity
+- grazing parity
+- exhaustion parity
+- closeout parity
+
+over the same compound workload, the architecture must prefer:
+
+- one canonical execution epoch
+- one provenance root
+- many derived reports
+
+over repeated full execution through the same mutable runtime workspace.
+
+The rule is:
+
+`execution happens once; proof views derive many times`
+
+This phase must therefore freeze proof-family execution artifacts that can own:
+
+- execution provenance
+- canonical execution digest
+- canonical truth payload
+- derived report projection
+
+before later milestones inherit repeated siege reconstruction as the default
+proof pattern.
+
+The execution artifact must become the hard phase boundary.
+
+After canonical execution completes, sibling proof derivation must be
+workspace-free. Derived reports may consume the immutable execution artifact,
+its retained receipts, and its canonical truth payload, but they must not
+re-enter `ForgeQueryWorkspace` to rediscover sibling proof views.
+
+#### Verified artifact boundary required in this phase
+
+Milestone 4 must distinguish between:
+
+- diagnostic reports that may describe a failed proof attempt
+- verification-failure artifacts that explain why proof failed
+- verified artifacts that can cross an authority boundary as certified truth
+
+The phase must therefore replace proof-leaking authority boundaries of the
+shape:
+
+- `bundle_verified: bool`
+- `parity_verified: bool`
+- `closeout_verified: bool`
+
+when those booleans are acting as the only guard between an assembled report
+and a supposedly certified surface.
+
+Diagnostic reports are still allowed to carry booleans when that is useful for
+inspection, but the stronger authority boundary must mint a distinct verified
+type only on success.
+
+This boundary must include an explicit verification-failure artifact, not only
+an unverified report plus a boolean.
+
+The key rule is:
+
+`a caller should not have to remember to ask a proof-shaped object whether it is actually proved before treating it as certified`
+
+#### Truth / projection rule required in this phase
+
+For each major Milestone 4 proof family, the phase must identify the canonical
+truth and require sibling proof surfaces to lower into it.
+
+At minimum this must cover:
+
+- motion witness / replay / query / branch preview proof
+- intent arbitration policy / chosen / dx / replay / query proof
+- policy-pressure direct and delta proof
+- corpus parity and compound parity proof
+- phase closeout and milestone closeout proof
+
+The phase does not need to force one giant ultra-generic metaframework.
+It does need to freeze one common law:
+
+- one proof family
+- one canonical truth boundary
+- explicit projections
+- typed verification
+- verified artifact on success
+
+#### Numeric witness rule required in this phase
+
+Milestone 4 certification and proof logic must stop doing geometry-significant
+numeric work ad hoc inside report and test code.
+
+In particular, certification boundaries must not casually perform operations
+like:
+
+- vector normalization
+- distance computation
+- angle computation
+- `acos`
+- threshold comparisons over raw floating-point values
+- digest construction from unchecked numeric stringification
+
+when those values are serving proof, hostility, or digest identity semantics.
+
+This work must instead be owned by:
+
+- `worth-math` for the actual numeric operations and validity discipline
+- admitted numeric witness types for values crossing proof boundaries
+
+`worth-math` owns the numeric primitives and checked operations.
+`worth-spatial` and `worth-kernel` own the domain-specific admitted numeric
+witness meaning that crosses proof and certification boundaries.
+
+The phase must therefore freeze one rule:
+
+`report and certification code consumes admitted numeric witnesses; it does not invent numeric validity locally`
+
+At minimum, hostile numeric proof boundaries should consume typed forms such as:
+
+- finite distances
+- finite angles
+- nonzero finite vectors
+- unit vectors proven by admitted construction
+
+The exact type names may vary, but the architectural requirement may not.
+
+The intent is not to move all geometry into report code. The intent is to make
+sure proof artifacts do not silently perform geometry-ish math on raw `f64`
+values while claiming to certify hostile numeric behavior.
+
+#### Shared proof-grade vocabulary required in this phase
+
+Milestone 4 must stop letting proof level drift behind local names such as:
+
+- `parity_verified`
+- `bundle_verified`
+- `suite_verified`
+- `closeout_verified`
+- `kernel_evidence_verified`
+
+These names are locally readable but globally too soft.
+
+This phase must therefore freeze one shared proof-grade vocabulary that
+distinguishes at minimum:
+
+- local parity
+- replay parity
+- query parity
+- bundle coherence
+- hostility coverage
+- milestone closeout
+
+The exact enum or type family may vary, but verified artifacts must carry proof
+grade explicitly so later milestones can distinguish what was proved, not only
+whether some local boolean happened to be true.
+
+Proof grade alone is not sufficient. Verified artifacts must carry grade
+together with explicit proof subject or family identity so "replay parity" for
+one subject cannot be confused with "replay parity" for another.
+
+#### `forge-proof` role required in this phase
+
+Milestone 4 must use `forge-proof` where the problem is proof-bearing
+progression, sealed proof construction, and compile-time prevention of forged
+proved forms.
+
+`forge-proof` is the required substrate for:
+
+- verified artifact minting
+- proof-bearing transitions from raw or assembled proof inputs into stronger
+  verified forms
+- sealed constructors that ensure only the proving boundary can mint the
+  stronger type
+- execution-epoch or provenance progression when a family truly has a staged
+  proof lifecycle
+
+`forge-proof` is not the primary substrate for:
+
+- inventory registries
+- digest algorithm implementation
+- broad report struct modeling
+- raw numeric primitive design in `worth-math`
+
+The rule is:
+
+`use forge-proof for proof-bearing transitions and verified-artifact minting, not as a generic replacement for every report-shaped structure`
+
+#### Physical organization rule required in this phase
+
+The proof substrate must be organized so the next engineer can predict where
+shared proof mechanics live, where family-local truth lives, and where
+certification consumes the result.
+
+This phase must therefore preserve three structural homes:
+
+- shared proof substrate in `worth-kernel` proof-owned space
+- family-local canonical truth and projection types in their existing family
+  domains
+- certification and closeout consumers in certification-owned space
+
+The architecture must not collapse these into one "proof" bucket where shared
+substrate, family truth, and milestone closeout all compete for ownership.
+
+#### Family migration order required in this phase
+
+This phase must migrate proof families in an intentional order so the substrate
+shape is earned by real pressure instead of by speculative generalization.
+
+The required migration order is:
+
+1. motion proof family
+2. intent arbitration proof family
+3. corpus / compound parity proof family
+4. policy-pressure proof family
+5. phase and milestone closeout proof families
+
+This is an implementation order, not an invitation to leave the phase
+half-migrated. The order exists so smaller families shape the substrate before
+compound execution-epoch and closeout pressure consume it.
+
+#### Registry placement rule required in this phase
+
+Proof-family registries must live with the proof family that owns their case
+truth.
+
+That means:
+
+- motion registries live with motion proof code
+- arbitration registries live with arbitration proof code
+- corpus and compound registries live with corpus / compound proof code
+- policy-pressure registries live with policy-pressure proof code
+
+Shared registry helpers may exist in the shared proof substrate only when they
+are truly family-agnostic. Inventory truth itself must remain family-local.
+
+#### Numeric primitive ownership rule required in this phase
+
+`worth-math` must own the numeric primitives and checked operations required by
+the new proof substrate.
+
+At minimum this includes the family of types and operations needed for:
+
+- finite scalar values
+- non-negative finite distances
+- nonzero finite vectors
+- unit vectors
+- checked angle and distance operations
+
+`worth-spatial` and `worth-kernel` may then layer domain-specific admitted
+numeric witnesses on top of those `worth-math` primitives, but they must not
+reinvent the primitive numeric-validity substrate locally.
+
+#### Public exposure rule required in this phase
+
+The new Phase 5.7 substrate is not a new root-facade feature buffet.
+
+By default:
+
+- proof substrate internals stay non-public or crate-local
+- family-local truth and projection helpers stay internal
+- only true public certification surfaces may cross into
+  `facade::certification::*`
+
+The milestone must not export transitional proof machinery through the happy
+path or widen the public facade just because the proof refactor is large.
+
+#### Early compile-fail enforcement rule required in this phase
+
+Compile-fail and equivalent structural enforcement must land at the same time
+as the new verified-artifact boundaries, not after the migration is mostly
+done.
+
+As soon as a family moves onto the new substrate, the phase must add
+mechanical proof that:
+
+- verified artifacts cannot be constructed directly
+- raw reports cannot be passed where verified artifacts are required
+- demoted older boolean-only authority paths are no longer accepted as the
+  certified boundary
+
+#### Do this in this phase
+
+- define the canonical proof substrate for Milestone 4 in terms of:
+  - canonical truth
+  - named projection
+  - verification result
+  - verified artifact
+  - canonical digest protocol
+- replace helper-local or file-local digest implementations with the shared
+  digest protocol
+- remove `DefaultHasher`-based artifact identity from kernel proof surfaces
+- freeze one shared stable digest encoding rule and domain/version prefix rule
+- identify every proof family in Milestone 4 that currently assembles sibling
+  reports by convention and move it to the new truth / projection /
+  verification model
+- demote plain boolean verification flags to diagnostic support where
+  appropriate
+- promote distinct verified artifact types at the actual authority boundaries
+- use `forge-proof` to encode proof-carrying progression wherever a type must
+  carry what has already been proven and the constructor should be sealed to
+  the proving function
+- keep the proof substrate small and principled rather than inventing an
+  abstraction swamp
+- add compile-fail or equivalent structural tests proving that verified
+  artifacts cannot be forged without the verification boundary
+- add direct tests proving canonical digest identity is:
+  - stable
+  - domain-separated
+  - sensitive to canonical truth changes
+  - not dependent on debug formatting or helper-local field-order accidents
+- replace parallel hard-coded required-case and expected-inventory lists with
+  registry-backed proof-family inventory ownership
+- add single-execution-epoch proof artifacts for hostile suites that currently
+  rebuild the same workload repeatedly to derive sibling reports
+- route certification-grade numeric operations through `worth-math` and admitted
+  numeric witness types instead of raw report-local floating-point math
+- add one shared proof-grade vocabulary and require verified artifacts to carry
+  it explicitly
+- add one migration rule stating that once a proof family moves onto the Phase
+  5.7 verified-artifact boundary, the older boolean-only authority boundary is
+  no longer authoritative for that family
+
+#### Recommended implementation order in this phase
+
+The work in this phase should proceed in this order:
+
+1. freeze the canonical digest protocol
+2. freeze verified artifact and verification-failure boundaries
+3. freeze single-execution-epoch proof artifacts
+4. freeze registry-backed inventory ownership
+5. freeze shared proof-grade vocabulary
+6. route hostile numeric proof boundaries through `worth-math` plus admitted
+   numeric witnesses
+7. migrate the existing Milestone 4 proof families onto the new substrate
+
+#### Required outputs from this phase
+
+Phase 5.7 must emit direct closeout artifacts for the new substrate itself.
+
+At minimum:
+
+- `primitive_construction_digest_protocol_report`
+- `primitive_construction_verified_artifact_surface_report`
+- `primitive_construction_truth_projection_matrix`
+- `primitive_construction_proof_boundary_compile_fail_report`
+- `primitive_construction_proof_substrate_closeout_report`
+
+These artifacts are required because this phase is not only a refactor. It is
+freezing the proof substrate that later milestones will inherit.
+
+#### Must preserve in this phase
+
+- the existing diagnostic richness of Milestone 4 proof surfaces
+- the ability to inspect failed proof attempts explicitly
+- the Query-backed proof lanes already frozen in earlier phases
+- the compound suite, policy-pressure suite, and hostile proof families as
+  visible named certification surfaces
+
+This phase must strengthen authority boundaries without flattening the
+explanatory surfaces that made Milestone 4 valuable.
+
+#### Do not start the docs phase until
+
+- every major Milestone 4 proof family has one named canonical truth boundary
+- the docs would describe verified artifact boundaries, not raw reports plus
+  booleans
+- the digest protocol is formal, shared, stable, and versioned
+- helper-local digest implementations and `DefaultHasher`-based proof identity
+  are gone from the Milestone 4 proof surface
+- a new proof dimension added to a verified family can no longer be forgotten
+  purely by convention
+- the remaining proof substrate still feels small, principled, and
+  responsibility-shaped rather than generic for its own sake
+
+### Phase 5.8: Freeze Worth-Spatial Digest, Identity, And Failure Vocabulary Before Docs
+
+Turn the still-stringly `worth-spatial` identity and primitive-birth substrate
+into typed, stable, machine-grade kernel vocabulary before the docs phase makes
+the current weaker forms look intentional.
+
+#### Why this phase comes now
+
+Phase 5.7 hardened the kernel proof substrate. The next structural risk is that
+`worth-spatial` still exposes proof-looking and authority-looking values
+through:
+
+- `String` digests
+- `&'static str` birth-class identity
+- string-shaped scaffold and report identities
+- string-shaped validation failures
+- repeated count clusters
+
+That is acceptable as architecture sketch code. It is not acceptable as the
+spatial authority substrate later binding, planar, boolean, and audit work will
+inherit.
+
+This phase therefore belongs before further `worth-spatial` hardening because
+typed proofs and typed facades built on top of weak identity still inherit weak
+identity.
+
+#### Adversarial constraint in this phase
+
+`worth-spatial` must survive this hostile condition:
+
+> As primitive birth, spatial intent, binding, and later audit surfaces widen,
+> no spatial module may silently invent a new digest protocol, silently treat a
+> display string as durable identity, or silently collapse machine-actionable
+> failure semantics into `&'static str` reason text while still producing
+> proof-looking reports and plans.
+
+The spatial substrate fails if:
+
+- `DefaultHasher` remains on any authority-looking digest path
+- display strings can still masquerade as source-of-truth identity
+- family contracts, birth classes, and rejection reasons remain primarily
+  stringly
+- count-cluster signatures keep widening instead of collapsing into named value
+  objects
+
+#### Structural rule this phase must freeze
+
+`worth-spatial` must inherit the same identity law Milestone 4 just froze for
+`worth-kernel`:
+
+`typed identity and stable digest protocol first; human-readable strings second`
+
+This phase must therefore introduce central spatial-kernel vocabulary for:
+
+- stable digest wrappers
+- typed birth-class identity
+- typed failure reasons
+- named count/value objects
+
+Display strings remain required, but only as projections of typed truth.
+
+#### Do this in this phase
+
+- replace `DefaultHasher` and helper-local digest code in `worth-spatial` with
+  the stable versioned digest protocol
+- introduce typed identity wrappers for spatial digests and birth/report
+  identities
+- replace string-primary primitive-birth failures with typed failure enums and
+  structured fields
+- replace repeated primitive count clusters with named count value objects
+- replace raw family-contract `match` folklore with declarative family contract
+  objects that own validation truth explicitly
+- keep string projections only as display/report surfaces layered on top
+
+#### Required outputs from this phase
+
+- one shared `worth-spatial` identity / digest substrate
+- typed primitive-birth failure topology
+- named topology-count and support-count value objects
+- declarative primitive-family contract surface
+- closeout and contract tests proving no `DefaultHasher`-based authority digest
+  remains in `worth-spatial`
+
+#### Must preserve in this phase
+
+- the current primitive-birth capability boundary
+- the current public facade contract and compile-fail posture
+- the ability to inspect family-contract mismatch reasons explicitly
+
+### Phase 5.9: Freeze Proof-Bearing Spatial Phase Progression Before Docs
+
+Expand `forge-proof` from anchor progression into the real organizing law of
+`worth-spatial` so admitted, lowered, and applicable spatial values stop
+claiming proof only by naming convention.
+
+#### Why this phase comes now
+
+The strongest idea already present in `worth-spatial` is the proof-bearing
+anchor progression substrate. The weakness is that most of the crate still uses
+ordinary structs such as:
+
+- `AdmittedSpatialMove`
+- `AdmittedSpatialPlacement`
+- `AdmittedSpatialOffset`
+- `SpatialConstructionBirthPlan`
+
+even when those values are logically phase-proved.
+
+If this phase is skipped, future contributors will keep adding new admitted and
+lowered structs that look architecturally consistent but are still only
+convention-proved.
+
+This phase therefore belongs immediately after typed identity hardening because
+proof-bearing transitions need stable identity, stable failure vocabulary, and
+typed phase law underneath them.
+
+#### Adversarial constraint in this phase
+
+`worth-spatial` must survive this hostile condition:
+
+> As authored intent, admission, lowering, application, and later binding
+> phases widen, no downstream consumer may be able to confuse a raw spec with
+> an admitted value, an admitted value with a lowered plan, or a lowered plan
+> with an applicable spatial delta merely because the structs are named
+> sensibly and returned from the right function today.
+
+The phase chain fails if:
+
+- serious phase transitions still return plain structs without carrying what
+  has been proven
+- a future helper can synthesize an admitted-looking or lowered-looking value
+  without passing through the proving boundary
+- proof-bearing anchor lowering remains the exception instead of the law
+
+#### Structural rule this phase must freeze
+
+For `worth-spatial`, the required phase law is:
+
+`Raw Spec -> Admitted Spec + Admission Proof -> Lowered Plan + Lowering Proof -> Applicable Delta + Applicability Proof`
+
+This phase must not mean "wrap every struct in the same generic shape whether
+it helps or not." It does mean:
+
+- every real phase boundary must become proof-bearing
+- constructors for proof-bearing forms must be sealed
+- downstream code must consume the stronger phase-typed form rather than
+  re-proving the same boundary ad hoc
+
+`forge-proof` is required in this phase, not optional.
+
+#### Do this in this phase
+
+- convert the main authored/admitted/lowered/applicable spatial boundaries into
+  proof-bearing artifacts or proof-carrying domain wrappers
+- keep phase proof local to the owning boundary rather than leaking raw
+  authority witnesses broadly through the crate
+- bind proofs to the exact payload and basis they certify, not only to a nearby
+  authority marker
+- widen the current anchor progression model into the main move/offset/rotate/
+  reorient/placement and birth-plan transitions
+- add compile-fail or equivalent structural tests proving the stronger forms
+  cannot be forged directly
+
+#### Required outputs from this phase
+
+- one explicit proof-bearing phase chain for the main `worth-spatial` authored
+  and lowering surfaces
+- sealed admitted and lowered boundary constructors
+- public contract proof that the facade exposes phase-correct surfaces, not raw
+  internal constructors
+
+#### Must preserve in this phase
+
+- the current rich failure classes
+- the current anchor-lowering proof chain
+- the current public compile-fail enforcement style
+
+### Phase 5.10: Freeze Central Spatial Semantics Algebra And Certified Facade Layers Before Docs
+
+Stop letting `worth-spatial` rediscover anchor meaning, witness meaning, and
+surface stability in local matches and one broad facade. This phase centralizes
+the semantic algebra and narrows the public promise surface.
+
+#### Why this phase comes now
+
+Once identity and phase proofs are hardened, the next real scaling risk is
+semantic drift:
+
+- point-anchor meaning is rediscovered locally
+- directional-anchor meaning is rediscovered locally
+- feature-owned and geometric-tag meaning is repeated across lowering paths
+- fixture/testing utilities sit beside production-certified facade concepts
+
+At 10x size, that becomes one of the most dangerous forms of debt: many locally
+reasonable decision tables that slowly stop agreeing.
+
+This phase therefore belongs before numeric and trace hardening because those
+later surfaces should consume one central semantic algebra and one intentional
+facade topology rather than many local matches and one broad export bucket.
+
+#### Adversarial constraint in this phase
+
+`worth-spatial` must survive this hostile condition:
+
+> As new verbs, new anchor classes, new witness families, new catalog-backed
+> paths, and new product-facing read surfaces are added, one semantic fix in
+> anchor meaning, witness meaning, or supported surface policy must not require
+> hunting through many unrelated local matches or updating a development-wide
+> public facade by convention.
+
+The crate fails this phase if:
+
+- anchor meaning is still encoded primarily as repeated local `match` logic
+- motion, constraints, and lowering paths can drift semantically while still
+  compiling
+- the public facade continues exporting testing or fixture surfaces as if they
+  were production-certified API
+
+#### Structural rule this phase must freeze
+
+`worth-spatial` must define one central semantic algebra for anchor and witness
+meaning, and all higher acts must consume shared lowered products from that
+algebra rather than rediscover meaning locally.
+
+It must also freeze public layers by stability and authority:
+
+- minimal stable facade
+- certified public surfaces
+- diagnostics surfaces
+- testing / fixture surfaces kept out of the production-certified export path
+
+#### Do this in this phase
+
+- define a central spatial semantics algebra for:
+  - subject-owned point anchors
+  - external-reference point anchors
+  - directional anchors
+  - feature-owned references
+  - geometric-tag references
+  - deferred carrier-local references
+- make higher motion and constraint lowering consume shared semantic products
+  instead of rediscovering meaning locally
+- centralize witness-resolution meaning similarly where the same classes repeat
+- split the `worth-spatial` facade by authority and stability level
+- remove fixture/testing utilities from the production-certified public surface
+- keep compile-fail proof that sealed constructors and non-public helpers remain
+  demoted
+
+#### Required outputs from this phase
+
+- one shared anchor/witness semantics algebra
+- one narrower production-certified facade
+- one non-certified testing / fixture access surface kept separate from the
+  main facade
+- compile-fail proof that production consumers cannot reach demoted internal or
+  fixture-only surfaces accidentally
+
+#### Must preserve in this phase
+
+- the current rich diagnostics surfaces
+- the current catalog-backed and non-catalog-backed supported semantics
+- the existing worth-spatial public contract discipline
+
+### Phase 5.11: Freeze Worth-Math Numeric Policy, Domain Witnesses, And Decision Traces Before Docs
+
+Harden the last soft substrate in `worth-spatial`: ad hoc numeric validity and
+opaque planner decisions. This phase makes numeric discipline and causal traces
+first-class before the docs phase turns current behavior into a reader contract.
+
+#### Why this phase comes now
+
+After the semantic algebra and facade are stabilized, the remaining major gap
+is that too much geometry-significant reasoning still risks being:
+
+- ordinary `f64`
+- local finite checks
+- implicit conditioning assumptions
+- planner outcomes without reconstructable causal traces
+
+That is good enough for architecture sketch code. It is not good enough for a
+kernel whose later milestones must support branch replay, audit, hostile
+classification, and manufacturing-grade explanation.
+
+This phase therefore belongs last in the Milestone 4 hardening tail because it
+must consume the identity, proof, and semantic layers already frozen by
+Phases 5.8 through 5.10.
+
+#### Adversarial constraint in this phase
+
+`worth-spatial` must survive this hostile condition:
+
+> Under large coordinates, near-degenerate vectors, ambiguous witness
+> resolution, and policy-sensitive intent arbitration, no planner or report may
+> silently rely on raw `f64` folklore or emit an outcome that cannot be
+> reconstructed from explicit decision steps, admitted numeric witnesses, and
+> the authority basis that produced it.
+
+The crate fails this phase if:
+
+- geometric-significant checks still depend on incidental thresholds such as
+  representation minima rather than explicit numeric policy
+- planner decisions remain inferable only from output shape and local code
+  reading instead of explicit decision traces
+- numeric validity and domain witness meaning are still mixed informally inside
+  the same local helpers
+
+#### Structural rule this phase must freeze
+
+`worth-math` owns numeric primitives and checked operations.
+`worth-spatial` owns domain-specific admitted numeric witnesses and decision
+traces that consume those primitives.
+
+Planner and arbitration surfaces must therefore return:
+
+- typed numeric witness forms where numeric validity matters
+- explicit decision traces where policy, ambiguity, or classification meaning
+  matters
+
+This phase must not demote trace to logging-only decoration.
+
+#### Do this in this phase
+
+- introduce one explicit spatial numeric policy vocabulary layered on top of
+  `worth-math`
+- replace raw threshold folklore on serious admission/lowering/classification
+  paths with admitted numeric witnesses and policy-owned checks
+- route geometry-significant normalization, angle, distance, and conditioning
+  work through `worth-math`
+- add decision-trace artifacts for the major arbitration, admission, and
+  lowering planners so the causal path is reconstructable
+- require digest and proof surfaces that depend on numeric facts to consume the
+  admitted witness forms rather than raw float strings
+
+#### Required outputs from this phase
+
+- one `worth-math`-backed spatial numeric policy substrate
+- domain-specific admitted numeric witness types for serious spatial proof
+  boundaries
+- decision-trace artifacts for the major policy / ambiguity / lowering planners
+- closeout proof that raw-float folklore no longer owns serious spatial
+  authority decisions
+
+#### Must preserve in this phase
+
+- the existing fine-grained failure classes
+- the current policy-profile and ambiguity vocabulary
+- the current ability to inspect why a spatial decision escalated, blocked, or
+  lowered the way it did
 
 ### Phase 6: Freeze Milestone 4 Crate Documentation And Reader Onboarding Surfaces
 

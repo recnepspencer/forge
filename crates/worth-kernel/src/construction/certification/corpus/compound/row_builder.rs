@@ -1,4 +1,8 @@
 use forge_query::facade::ForgeQueryWorkspace;
+use worth_math::error::MathError;
+use worth_math::numeric::metrics::{
+    angle_between_unit_vectors, distance_between_points, FiniteNonNegativeF64, UnitVector3,
+};
 use worth_spatial::facade::{admit_spatial_placement, SpatialFrameRef};
 
 use super::super::execution::prepare_corpus_execution_proof_ingredients;
@@ -96,13 +100,16 @@ fn build_row(
             format!("{:?}", admitted_placement.facing_vector().map(f64::to_bits)),
         ])
     });
-    let grazing_digest = scenario.grazing().map(|grazing| {
-        grazing_digest(
-            grazing,
-            admitted_placement.origin(),
-            admitted_placement.facing_vector(),
-        )
-    });
+    let grazing_digest = scenario
+        .grazing()
+        .map(|grazing| {
+            grazing_digest(
+                grazing,
+                admitted_placement.origin(),
+                admitted_placement.facing_vector(),
+            )
+        })
+        .transpose()?;
 
     match execution.direct_outcome().clone() {
         PrimitiveConstructionPreparedOutcome::Accepted(outcome) => {
@@ -244,38 +251,36 @@ fn grazing_digest(
     grazing: &PrimitiveConstructionCompoundGrazingPlan,
     origin: [f64; 3],
     facing: [f64; 3],
-) -> String {
+) -> Result<String, PrimitiveConstructionCompoundAdversarialSiegeError> {
     match grazing {
         PrimitiveConstructionCompoundGrazingPlan::NearFrameNormal {
             frame,
             max_angle_radians,
         } => {
-            let facing = normalize(facing);
-            let normal = normalize(frame_normal(frame));
-            let dot = (facing[0] * normal[0] + facing[1] * normal[1] + facing[2] * normal[2])
-                .clamp(-1.0, 1.0);
-            let angle = dot.acos();
-            digest_owned_parts(&[
+            let angle =
+                admitted_angle_between(facing, frame_normal(frame)).map_err(numeric_error)?;
+            let max_angle = FiniteNonNegativeF64::try_new(*max_angle_radians, "max grazing angle")
+                .map_err(numeric_error)?;
+            Ok(digest_owned_parts(&[
                 "frame-normal".to_string(),
-                angle.to_string(),
-                max_angle_radians.to_string(),
-                (angle <= *max_angle_radians).to_string(),
-            ])
+                angle.get().to_string(),
+                max_angle.get().to_string(),
+                (angle.get() <= max_angle.get()).to_string(),
+            ]))
         }
         PrimitiveConstructionCompoundGrazingPlan::NearReferenceAnchor {
             reference_point,
             max_distance,
         } => {
-            let dx = origin[0] - reference_point[0];
-            let dy = origin[1] - reference_point[1];
-            let dz = origin[2] - reference_point[2];
-            let distance = (dx * dx + dy * dy + dz * dz).sqrt();
-            digest_owned_parts(&[
+            let distance = admitted_distance(origin, *reference_point).map_err(numeric_error)?;
+            let max_distance = FiniteNonNegativeF64::try_new(*max_distance, "max grazing distance")
+                .map_err(numeric_error)?;
+            Ok(digest_owned_parts(&[
                 "anchor-distance".to_string(),
-                distance.to_string(),
-                max_distance.to_string(),
-                (distance <= *max_distance).to_string(),
-            ])
+                distance.get().to_string(),
+                max_distance.get().to_string(),
+                (distance.get() <= max_distance.get()).to_string(),
+            ]))
         }
     }
 }
@@ -311,11 +316,20 @@ fn frame_normal(frame: &SpatialFrameRef) -> [f64; 3] {
     }
 }
 
-fn normalize(vector: [f64; 3]) -> [f64; 3] {
-    let magnitude = (vector[0] * vector[0] + vector[1] * vector[1] + vector[2] * vector[2]).sqrt();
-    [
-        vector[0] / magnitude,
-        vector[1] / magnitude,
-        vector[2] / magnitude,
-    ]
+fn admitted_angle_between(
+    source: [f64; 3],
+    target: [f64; 3],
+) -> Result<FiniteNonNegativeF64, MathError> {
+    angle_between_unit_vectors(UnitVector3::try_new(source)?, UnitVector3::try_new(target)?)
+}
+
+fn admitted_distance(
+    source: [f64; 3],
+    target: [f64; 3],
+) -> Result<FiniteNonNegativeF64, MathError> {
+    distance_between_points(source, target)
+}
+
+fn numeric_error(error: MathError) -> PrimitiveConstructionCompoundAdversarialSiegeError {
+    PrimitiveConstructionCompoundAdversarialSiegeError::NumericWitness(error.to_string())
 }

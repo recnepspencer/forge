@@ -5,31 +5,42 @@ use crate::construction::digest::digest_owned_parts;
 use super::{
     prepare_primitive_construction_intent_arbitration_report_bundle,
     PrimitiveConstructionIntentArbitrationBundleCase,
-    PrimitiveConstructionIntentArbitrationReportBundle,
     PrimitiveConstructionIntentArbitrationReportBundleError,
+    PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
 };
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct PrimitiveConstructionIntentArbitrationHostilitySuiteReport {
-    bundles: Vec<PrimitiveConstructionIntentArbitrationReportBundle>,
+    bundles: Vec<PrimitiveConstructionVerifiedIntentArbitrationReportBundle>,
     suite_verified: bool,
     report_digest: String,
 }
 
 impl PrimitiveConstructionIntentArbitrationHostilitySuiteReport {
-    fn new(bundles: Vec<PrimitiveConstructionIntentArbitrationReportBundle>) -> Self {
-        let suite_verified = bundles.iter().all(|bundle| bundle.bundle_verified());
+    fn new(bundles: Vec<PrimitiveConstructionVerifiedIntentArbitrationReportBundle>) -> Self {
+        let expected_cases = [
+            PrimitiveConstructionIntentArbitrationBundleCase::DirectMoveOnlyPolicy,
+            PrimitiveConstructionIntentArbitrationBundleCase::GrazingSnapExplicitChoice,
+            PrimitiveConstructionIntentArbitrationBundleCase::OverlapMoveOnlyWithBlockedMerge,
+            PrimitiveConstructionIntentArbitrationBundleCase::HostPenetrationBlockedCut,
+            PrimitiveConstructionIntentArbitrationBundleCase::FrameAlignedIntent,
+            PrimitiveConstructionIntentArbitrationBundleCase::OverlapAdvancedCapabilities,
+        ];
+        let suite_verified = bundles.len() == expected_cases.len()
+            && expected_cases
+                .iter()
+                .all(|case| bundles.iter().any(|bundle| bundle.case() == *case))
+            && {
+                let unique_digests = bundles
+                    .iter()
+                    .map(|bundle| bundle.bundle_digest())
+                    .collect::<std::collections::BTreeSet<_>>();
+                unique_digests.len() == bundles.len()
+            };
         let report_digest = digest_owned_parts(
             &bundles
                 .iter()
-                .map(|bundle| {
-                    format!(
-                        "{:?}:{}:{}",
-                        bundle.case(),
-                        bundle.bundle_digest(),
-                        bundle.bundle_verified()
-                    )
-                })
+                .map(|bundle| format!("{:?}:{}", bundle.case(), bundle.bundle_digest()))
                 .collect::<Vec<_>>(),
         );
         Self {
@@ -39,14 +50,14 @@ impl PrimitiveConstructionIntentArbitrationHostilitySuiteReport {
         }
     }
 
-    pub fn bundles(&self) -> &[PrimitiveConstructionIntentArbitrationReportBundle] {
+    pub fn bundles(&self) -> &[PrimitiveConstructionVerifiedIntentArbitrationReportBundle] {
         &self.bundles
     }
 
     pub fn bundle(
         &self,
         case: PrimitiveConstructionIntentArbitrationBundleCase,
-    ) -> Option<&PrimitiveConstructionIntentArbitrationReportBundle> {
+    ) -> Option<&PrimitiveConstructionVerifiedIntentArbitrationReportBundle> {
         self.bundles.iter().find(|bundle| bundle.case() == case)
     }
 

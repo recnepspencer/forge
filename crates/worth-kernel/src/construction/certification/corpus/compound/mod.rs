@@ -1,8 +1,9 @@
 mod builder;
 mod cases;
-mod closeout;
 mod lane_report;
+mod milestone_closeout;
 mod ordering_report;
+mod parity;
 mod report;
 mod row_builder;
 mod rows;
@@ -12,16 +13,22 @@ pub(super) use cases::PrimitiveConstructionCompoundScenario;
 pub use lane_report::{
     PrimitiveConstructionCompoundAuthoringOrderRow, PrimitiveConstructionCompoundOrderLaneReport,
 };
+pub use milestone_closeout::PrimitiveConstructionCompoundMilestoneCloseoutReport;
 pub use ordering_report::{
     PrimitiveConstructionCompoundOrderingParityReport,
     PrimitiveConstructionCompoundOrderingScenarioRow,
+};
+pub use parity::PrimitiveConstructionCompoundParityCanonicalTruth;
+pub use parity::{
+    PrimitiveConstructionCompoundParityReport,
+    PrimitiveConstructionCompoundParityVerificationFailure,
+    PrimitiveConstructionCompoundParityVerificationMismatch,
 };
 pub use report::{
     PrimitiveConstructionCompoundAdversarialSiegeReport,
     PrimitiveConstructionCompoundExhaustionWitnessParityReport,
     PrimitiveConstructionCompoundGrazingBoundaryReport,
-    PrimitiveConstructionCompoundMilestoneCloseoutReport,
-    PrimitiveConstructionCompoundMotionParityReport, PrimitiveConstructionCompoundParityReport,
+    PrimitiveConstructionCompoundMotionParityReport,
 };
 pub use rows::{
     PrimitiveConstructionCompoundExhaustionWitnessParityRow,
@@ -43,7 +50,7 @@ pub use builder::{
     prepare_primitive_construction_compound_parity_report,
     PrimitiveConstructionCompoundAdversarialSiegeError,
 };
-pub use closeout::prepare_primitive_construction_compound_milestone_closeout_report;
+pub use milestone_closeout::prepare_primitive_construction_compound_milestone_closeout_report;
 
 #[cfg(test)]
 mod tests;

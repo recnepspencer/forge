@@ -9,7 +9,7 @@ use crate::construction::certification::{
     PrimitiveConstructionMotionWitnessResolutionStatus,
     PrimitiveConstructionRequestedMotionWitness, PrimitiveConstructionResolvedMotionWitness,
 };
-use crate::construction::digest::digest_owned_parts;
+use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum PrimitiveConstructionMotionQueryInspectionSurface {
@@ -109,26 +109,29 @@ impl PrimitiveConstructionQueryMotionWitnessParityReport {
                         && motion_report.failure_kind().is_some()
                 }
             };
-        let report_digest = digest_owned_parts(&[
-            format!("{:?}", motion_report.kind()),
-            motion_report.subject_family().as_str().to_string(),
-            format!("{:?}", motion_report.anchor()),
-            format!("{:?}", motion_report.requested_witness()),
-            format!("{:?}", motion_report.status()),
-            format!("{:?}", motion_report.resolved_witness()),
-            format!("{:?}", motion_report.resolution_class()),
-            format!("{:?}", motion_report.failure_kind()),
-            query_contract_digest.clone(),
-            required_query_families
-                .iter()
-                .map(|family| format!("{family:?}"))
-                .collect::<Vec<_>>()
-                .join("|"),
-            read_surface.as_str().to_string(),
-            inspection_surface.as_str().to_string(),
-            fact_provenance.as_str().to_string(),
-            parity_verified.to_string(),
-        ]);
+        let report_digest = digest_owned_parts_with_scope(
+            ConstructionDigestScope::ParityIdentity,
+            &[
+                format!("{:?}", motion_report.kind()),
+                motion_report.subject_family().as_str().to_string(),
+                format!("{:?}", motion_report.anchor()),
+                format!("{:?}", motion_report.requested_witness()),
+                format!("{:?}", motion_report.status()),
+                format!("{:?}", motion_report.resolved_witness()),
+                format!("{:?}", motion_report.resolution_class()),
+                format!("{:?}", motion_report.failure_kind()),
+                query_contract_digest.clone(),
+                required_query_families
+                    .iter()
+                    .map(|family| format!("{family:?}"))
+                    .collect::<Vec<_>>()
+                    .join("|"),
+                read_surface.as_str().to_string(),
+                inspection_surface.as_str().to_string(),
+                fact_provenance.as_str().to_string(),
+                parity_verified.to_string(),
+            ],
+        );
         Self {
             kind: motion_report.kind(),
             subject_family: motion_report.subject_family(),

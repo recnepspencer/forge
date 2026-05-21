@@ -3,18 +3,7 @@ use worth_geom::facade::{
     PrimitiveNormalizationDisposition, PrimitiveRealizationExhaustionReason,
     PrimitiveRealizationStrategy, PrimitiveStabilityClass,
 };
-use worth_kernel::facade::{
-    prepare_primitive_construction_compound_adversarial_siege_report,
-    prepare_primitive_construction_compound_grazing_boundary_report,
-    prepare_primitive_construction_compound_milestone_closeout_report,
-    prepare_primitive_construction_compound_motion_parity_report,
-    prepare_primitive_construction_corpus_replay_siege,
-    prepare_primitive_construction_family_boundary_report,
-    PrimitiveConstructionCompoundGrazingKind, PrimitiveConstructionCompoundMotionKind,
-    PrimitiveConstructionCompoundTopologyClass, PrimitiveConstructionCompoundWorkloadFamily,
-    PrimitiveConstructionCorpusParameterRole, PrimitiveConstructionFamily,
-    PrimitiveConstructionFamilyBoundaryTransitionClass,
-};
+use worth_kernel::facade::{authoring::construction::*, certification::corpus::*};
 
 fn sorted_ids(ids: impl IntoIterator<Item = String>) -> Vec<String> {
     let mut ids = ids.into_iter().collect::<Vec<_>>();

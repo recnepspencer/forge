@@ -109,8 +109,20 @@ impl PrimitiveConstructionCompoundScenario {
         self.motion.as_ref()
     }
 
+    pub(crate) fn motion_kind(&self) -> Option<PrimitiveConstructionCompoundMotionKind> {
+        self.motion
+            .as_ref()
+            .map(PrimitiveConstructionCompoundMotionPlan::kind)
+    }
+
     pub(super) fn grazing(&self) -> Option<&PrimitiveConstructionCompoundGrazingPlan> {
         self.grazing.as_ref()
+    }
+
+    pub(crate) fn grazing_kind(&self) -> Option<PrimitiveConstructionCompoundGrazingKind> {
+        self.grazing
+            .as_ref()
+            .map(PrimitiveConstructionCompoundGrazingPlan::kind)
     }
 }
 

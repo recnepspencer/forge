@@ -1,6 +1,8 @@
 use crate::construction::runtime_basis::prepare_primitive_construction_branch_preview_runtime_report;
 use crate::construction::{PrimitiveConstructionIntent, RegularPyramidSpec};
-use crate::facade::{PrimitiveConstructionMotionRuntimeSurfaceStatus, ReorientSpatialIntent};
+use crate::facade::{
+    diagnostics::motion::PrimitiveConstructionMotionRuntimeSurfaceStatus, ReorientSpatialIntent,
+};
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_spatial::facade::{SpatialAnchorRef, SpatialAxis, SpatialDirectionWitnessRef};
 
@@ -96,9 +98,6 @@ fn motion_report_bundle_supports_directional_reorient_anchor_paths() {
     )
     .expect("frame-axis direct runtime report");
 
-    assert!(shape_u_bundle.bundle_verified());
-    assert!(shape_v_bundle.bundle_verified());
-    assert!(frame_axis_bundle.bundle_verified());
     assert_eq!(
         shape_u_bundle
             .branch_preview_runtime_report()

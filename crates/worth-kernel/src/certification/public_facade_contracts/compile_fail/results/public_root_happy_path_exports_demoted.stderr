@@ -1,0 +1,64 @@
+error[E0432]: unresolved imports `worth_kernel::facade::PreparedPrimitiveConstructionExecution`, `worth_kernel::facade::PrimitiveConstructionAcceptedOutcome`, `worth_kernel::facade::PrimitiveConstructionAuthorityChainReport`, `worth_kernel::facade::PrimitiveConstructionRejectedOutcome`, `worth_kernel::facade::PrimitiveConstructionResultEvidence`, `worth_kernel::facade::PrimitiveConstructionRejectionClass`, `worth_kernel::facade::PrimitiveConstructionRejectionLocality`, `worth_kernel::facade::WorthKernelAuthorityError`
+ --> src/certification/public_facade_contracts/compile_fail/results/public_root_happy_path_exports_demoted.rs:2:5
+  |
+2 |     PreparedPrimitiveConstructionExecution, PrimitiveConstructionAcceptedOutcome,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionAcceptedOutcome` in `facade`
+  |     |
+  |     no `PreparedPrimitiveConstructionExecution` in `facade`
+3 |     PrimitiveConstructionAuthorityChainReport, PrimitiveConstructionRejectedOutcome,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionRejectedOutcome` in `facade`
+  |     |
+  |     no `PrimitiveConstructionAuthorityChainReport` in `facade`
+4 |     PrimitiveConstructionResultEvidence, PrimitiveConstructionRejectionClass,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionRejectionClass` in `facade`
+  |     |
+  |     no `PrimitiveConstructionResultEvidence` in `facade`
+5 |     PrimitiveConstructionRejectionLocality, WorthKernelAuthorityError,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^ no `WorthKernelAuthorityError` in `facade`
+  |     |
+  |     no `PrimitiveConstructionRejectionLocality` in `facade`
+  |
+  = help: consider importing this struct instead:
+          worth_kernel::facade::outcome::execution::PreparedPrimitiveConstructionExecution
+  = help: consider importing this struct instead:
+          worth_kernel::facade::outcome::states::PrimitiveConstructionAcceptedOutcome
+  = help: consider importing this struct instead:
+          worth_kernel::facade::diagnostics::query::PrimitiveConstructionAuthorityChainReport
+  = help: consider importing this struct instead:
+          worth_kernel::facade::outcome::states::PrimitiveConstructionRejectedOutcome
+  = help: consider importing this enum instead:
+          worth_kernel::facade::outcome::states::PrimitiveConstructionRejectionClass
+  = help: consider importing this enum instead:
+          worth_kernel::facade::outcome::states::PrimitiveConstructionRejectionLocality
+  = help: consider importing this enum instead:
+          worth_kernel::facade::authoring::construction::WorthKernelAuthorityError
+help: a similar name exists in the module
+  |
+2 -     PreparedPrimitiveConstructionExecution, PrimitiveConstructionAcceptedOutcome,
+2 +     PreparedPrimitiveConstructionResult, PrimitiveConstructionAcceptedOutcome,
+  |
+help: a similar name exists in the module
+  |
+2 -     PreparedPrimitiveConstructionExecution, PrimitiveConstructionAcceptedOutcome,
+2 +     PreparedPrimitiveConstructionExecution, PrimitiveConstructionPreparedOutcome,
+  |
+help: a similar name exists in the module
+  |
+3 -     PrimitiveConstructionAuthorityChainReport, PrimitiveConstructionRejectedOutcome,
+3 +     PrimitiveConstructionAuthoringSession, PrimitiveConstructionRejectedOutcome,
+  |
+help: a similar name exists in the module
+  |
+3 -     PrimitiveConstructionAuthorityChainReport, PrimitiveConstructionRejectedOutcome,
+3 +     PrimitiveConstructionAuthorityChainReport, PrimitiveConstructionPreparedOutcome,
+  |
+help: a similar name exists in the module
+  |
+4 -     PrimitiveConstructionResultEvidence, PrimitiveConstructionRejectionClass,
+4 +     PrimitiveConstructionResultError, PrimitiveConstructionRejectionClass,
+  |
+help: a similar name exists in the module
+  |
+4 -     PrimitiveConstructionResultEvidence, PrimitiveConstructionRejectionClass,
+4 +     PrimitiveConstructionResultEvidence, PrimitiveConstructionRequest,
+  |

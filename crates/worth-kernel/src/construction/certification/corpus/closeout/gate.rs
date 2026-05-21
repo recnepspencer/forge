@@ -36,6 +36,19 @@ impl PrimitiveConstructionCorpusCloseoutGateStatus {
         }
     }
 
+    pub(crate) fn from_verified_support(
+        requirements: &PrimitiveConstructionCorpusRequiredScenarioInventory,
+        required_rows_present: bool,
+        supporting_digests: impl IntoIterator<Item = String>,
+    ) -> Self {
+        Self::new(
+            requirements,
+            required_rows_present,
+            true,
+            supporting_digests,
+        )
+    }
+
     pub(crate) fn required_rows_present(&self) -> bool {
         self.required_rows_present
     }

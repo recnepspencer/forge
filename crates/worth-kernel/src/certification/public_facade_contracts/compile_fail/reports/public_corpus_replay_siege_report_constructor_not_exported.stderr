@@ -1,16 +1,17 @@
-error[E0624]: associated function `new` is private
- --> src/certification/public_facade_contracts/compile_fail/reports/public_corpus_replay_siege_report_constructor_not_exported.rs:7:59
+error[E0432]: unresolved imports `worth_kernel::facade::PrimitiveConstructionCorpusAuthoringOrderRow`, `worth_kernel::facade::PrimitiveConstructionCorpusRejectionWitnessRow`, `worth_kernel::facade::PrimitiveConstructionCorpusReplaySiegeReport`
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_corpus_replay_siege_report_constructor_not_exported.rs:2:5
   |
-7 |       let _ = PrimitiveConstructionCorpusReplaySiegeReport::new(
-  |                                                             ^^^ private associated function
+2 |     PrimitiveConstructionCorpusAuthoringOrderRow, PrimitiveConstructionCorpusRejectionWitnessRow,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionCorpusRejectionWitnessRow` in `facade`
+  |     |
+  |     no `PrimitiveConstructionCorpusAuthoringOrderRow` in `facade`
+  |     help: a similar name exists in the module: `PrimitiveConstructionAuthoringSession`
+3 |     PrimitiveConstructionCorpusReplaySiegeReport,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionCorpusReplaySiegeReport` in `facade`
   |
- ::: src/construction/certification/corpus/replay_siege_report.rs
-  |
-  | /     pub(super) fn new(
-  | |         rows: Vec<PrimitiveConstructionCorpusReplaySiegeRow>,
-  | |         accepted_count: usize,
-  | |         rejected_count: usize,
-  | |         authoring_order_rows: Vec<PrimitiveConstructionCorpusAuthoringOrderRow>,
-  | |         rejection_witness_rows: Vec<PrimitiveConstructionCorpusRejectionWitnessRow>,
-  | |     ) -> Self {
-  | |_____________- private associated function defined here
+  = help: consider importing this struct instead:
+          worth_kernel::facade::certification::corpus::PrimitiveConstructionCorpusAuthoringOrderRow
+  = help: consider importing this struct instead:
+          worth_kernel::facade::certification::corpus::PrimitiveConstructionCorpusRejectionWitnessRow
+  = help: consider importing this struct instead:
+          worth_kernel::facade::certification::corpus::PrimitiveConstructionCorpusReplaySiegeReport

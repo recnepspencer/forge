@@ -1,5 +1,5 @@
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
-use worth_kernel::facade::prepare_primitive_construction_phase_five_six_closeout_report;
+use worth_kernel::facade::certification::closeout::prepare_primitive_construction_phase_five_six_closeout_report;
 
 #[test]
 fn kernel_public_facade_exports_phase_five_six_closeout_surface() {
@@ -14,18 +14,27 @@ fn kernel_public_facade_exports_phase_five_six_closeout_surface() {
     let report = prepare_primitive_construction_phase_five_six_closeout_report(&mut workspace)
         .expect("phase 5.6 closeout");
 
-    assert!(report.closeout_verified());
     assert!(report.compound_closeout().closeout_gate_verified());
-    assert!(report.policy_pressure().parity_verified());
-    assert!(report.required_simplex_rows_present());
     assert_eq!(
-        report.required_simplex_scenarios(),
-        &[
-            "simplex_world_collapsed_admitted_local_or_exact",
-            "simplex_world_collapsed_threshold_rejected",
-            "simplex_world_collapsed_explicit_exhaustion",
-        ]
+        report.simplex_ladder().rows().len(),
+        report.required_simplex_scenarios().len()
     );
-    assert_eq!(report.policy_pressure().required_direct_cases().len(), 7);
-    assert_eq!(report.policy_pressure().required_delta_cases().len(), 5);
+    for scenario_id in report.required_simplex_scenarios() {
+        assert!(report.simplex_ladder().row_for(scenario_id).is_some());
+    }
+    assert_eq!(
+        report.policy_pressure().direct_report().rows().len(),
+        report.policy_pressure().required_direct_cases().len()
+    );
+    assert_eq!(
+        report.policy_pressure().delta_report().rows().len(),
+        report.policy_pressure().required_delta_cases().len()
+    );
+    assert_eq!(
+        report.simplex_exhaustion().rows().len(),
+        report.required_exhaustion_kinds().len()
+    );
+    for witness_kind in report.required_exhaustion_kinds() {
+        assert!(report.simplex_exhaustion().row_for(*witness_kind).is_some());
+    }
 }

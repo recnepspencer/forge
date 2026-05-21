@@ -9,6 +9,5 @@ error[E0432]: unresolved imports `worth_kernel::facade::analyze_primitive_intent
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `resolve_primitive_intent_conflict_by_choice` in `facade`
   |     |
   |     no `prepare_primitive_intent_clarification_request` in `facade`
-  |     help: a similar name exists in the module: `PrimitiveIntentClarificationRequest`
 4 |     resolve_primitive_intent_conflict_by_policy,
   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `resolve_primitive_intent_conflict_by_policy` in `facade`

@@ -1,30 +1,30 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
-use crate::construction::digest::digest_owned_parts;
+use crate::construction::certification::arbitration::bundle_verified::{
+    verify_bundle, PrimitiveConstructionIntentArbitrationBundleVerificationFailure,
+    PrimitiveConstructionIntentArbitrationReportBundle,
+    PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
+};
 use crate::construction::query::{
     prepare_primitive_construction_query_intent_arbitration_inspection_parity_report,
     prepare_primitive_construction_query_intent_arbitration_projection_consumption_receipt_report,
     PrimitiveConstructionQueryIntentArbitrationParityError,
-    PrimitiveConstructionQueryIntentArbitrationParityReport,
 };
 use crate::construction::{
     prepare_primitive_construction_intent_arbitration_replay_parity_report,
     PrimitiveConstructionIntentArbitrationReplayParityError,
-    PrimitiveConstructionIntentArbitrationReplayParityReport,
 };
 
 use super::{
     prepare_primitive_chosen_intent_resolution_report,
+    prepare_primitive_construction_preserved_intent_resolution_report,
     prepare_primitive_intent_arbitration_policy_report,
     prepare_primitive_intent_conflict_dx_surface_report,
     PrimitiveConstructionChosenIntentResolutionCase,
     PrimitiveConstructionChosenIntentResolutionReport,
-    PrimitiveConstructionChosenIntentResolutionRow,
     PrimitiveConstructionIntentArbitrationDxSurfaceReport,
-    PrimitiveConstructionIntentArbitrationPolicyCase,
     PrimitiveConstructionIntentArbitrationPolicyReport,
-    PrimitiveConstructionIntentArbitrationPolicyRow,
-    PrimitiveConstructionPreservedIntentResolutionCase,
+    PrimitiveConstructionPreservedIntentResolutionReport,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -38,30 +38,30 @@ pub enum PrimitiveConstructionIntentArbitrationBundleCase {
 }
 
 impl PrimitiveConstructionIntentArbitrationBundleCase {
-    fn policy_case(&self) -> PrimitiveConstructionIntentArbitrationPolicyCase {
+    pub(crate) fn policy_case(&self) -> super::PrimitiveConstructionIntentArbitrationPolicyCase {
         match self {
             Self::DirectMoveOnlyPolicy => {
-                PrimitiveConstructionIntentArbitrationPolicyCase::DirectMoveOnly
+                super::PrimitiveConstructionIntentArbitrationPolicyCase::DirectMoveOnly
             }
             Self::GrazingSnapExplicitChoice => {
-                PrimitiveConstructionIntentArbitrationPolicyCase::GrazingSnapConflict
+                super::PrimitiveConstructionIntentArbitrationPolicyCase::GrazingSnapConflict
             }
             Self::OverlapMoveOnlyWithBlockedMerge => {
-                PrimitiveConstructionIntentArbitrationPolicyCase::OverlapBlockedCandidates
+                super::PrimitiveConstructionIntentArbitrationPolicyCase::OverlapBlockedCandidates
             }
             Self::HostPenetrationBlockedCut => {
-                PrimitiveConstructionIntentArbitrationPolicyCase::HostPenetrationBlockedCut
+                super::PrimitiveConstructionIntentArbitrationPolicyCase::HostPenetrationBlockedCut
             }
             Self::FrameAlignedIntent => {
-                PrimitiveConstructionIntentArbitrationPolicyCase::FrameAlignedIntent
+                super::PrimitiveConstructionIntentArbitrationPolicyCase::FrameAlignedIntent
             }
             Self::OverlapAdvancedCapabilities => {
-                PrimitiveConstructionIntentArbitrationPolicyCase::OverlapAdvancedCapabilities
+                super::PrimitiveConstructionIntentArbitrationPolicyCase::OverlapAdvancedCapabilities
             }
         }
     }
 
-    fn chosen_case(&self) -> Option<PrimitiveConstructionChosenIntentResolutionCase> {
+    pub(crate) fn chosen_case(&self) -> Option<PrimitiveConstructionChosenIntentResolutionCase> {
         match self {
             Self::DirectMoveOnlyPolicy => {
                 Some(PrimitiveConstructionChosenIntentResolutionCase::PolicyMoveOnly)
@@ -78,158 +78,29 @@ impl PrimitiveConstructionIntentArbitrationBundleCase {
         }
     }
 
-    fn preserved_case(&self) -> PrimitiveConstructionPreservedIntentResolutionCase {
+    pub(crate) fn preserved_case(
+        &self,
+    ) -> super::PrimitiveConstructionPreservedIntentResolutionCase {
         match self {
             Self::DirectMoveOnlyPolicy => {
-                PrimitiveConstructionPreservedIntentResolutionCase::PolicyMoveOnly
+                super::PrimitiveConstructionPreservedIntentResolutionCase::PolicyMoveOnly
             }
             Self::FrameAlignedIntent => {
-                PrimitiveConstructionPreservedIntentResolutionCase::FrameAlignedPolicy
+                super::PrimitiveConstructionPreservedIntentResolutionCase::FrameAlignedPolicy
             }
             Self::GrazingSnapExplicitChoice => {
-                PrimitiveConstructionPreservedIntentResolutionCase::ExplicitSnapFlush
+                super::PrimitiveConstructionPreservedIntentResolutionCase::ExplicitSnapFlush
             }
             Self::OverlapMoveOnlyWithBlockedMerge => {
-                PrimitiveConstructionPreservedIntentResolutionCase::ExplicitMoveOnlyWithBlockedMerge
+                super::PrimitiveConstructionPreservedIntentResolutionCase::ExplicitMoveOnlyWithBlockedMerge
             }
             Self::HostPenetrationBlockedCut => {
-                PrimitiveConstructionPreservedIntentResolutionCase::HostPenetrationBlockedCut
+                super::PrimitiveConstructionPreservedIntentResolutionCase::HostPenetrationBlockedCut
             }
             Self::OverlapAdvancedCapabilities => {
-                PrimitiveConstructionPreservedIntentResolutionCase::OverlapAdvancedClarification
+                super::PrimitiveConstructionPreservedIntentResolutionCase::OverlapAdvancedClarification
             }
         }
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct PrimitiveConstructionIntentArbitrationReportBundle {
-    case: PrimitiveConstructionIntentArbitrationBundleCase,
-    policy_row: PrimitiveConstructionIntentArbitrationPolicyRow,
-    chosen_row: Option<PrimitiveConstructionChosenIntentResolutionRow>,
-    dx_surface_report: PrimitiveConstructionIntentArbitrationDxSurfaceReport,
-    replay_parity_report: PrimitiveConstructionIntentArbitrationReplayParityReport,
-    query_inspection_parity_report: PrimitiveConstructionQueryIntentArbitrationParityReport,
-    query_projection_receipt_report: PrimitiveConstructionQueryIntentArbitrationParityReport,
-    bundle_verified: bool,
-    bundle_digest: String,
-}
-
-impl PrimitiveConstructionIntentArbitrationReportBundle {
-    fn new(
-        case: PrimitiveConstructionIntentArbitrationBundleCase,
-        policy_row: PrimitiveConstructionIntentArbitrationPolicyRow,
-        chosen_row: Option<PrimitiveConstructionChosenIntentResolutionRow>,
-        dx_surface_report: PrimitiveConstructionIntentArbitrationDxSurfaceReport,
-        replay_parity_report: PrimitiveConstructionIntentArbitrationReplayParityReport,
-        query_inspection_parity_report: PrimitiveConstructionQueryIntentArbitrationParityReport,
-        query_projection_receipt_report: PrimitiveConstructionQueryIntentArbitrationParityReport,
-    ) -> Result<Self, PrimitiveConstructionIntentArbitrationReportBundleError> {
-        let dx_row = dx_surface_report
-            .row(case.policy_case())
-            .ok_or(PrimitiveConstructionIntentArbitrationReportBundleError::MissingDxRow(case))?;
-        let chosen_matches = match chosen_row.as_ref() {
-            Some(row) => {
-                row.authored_act() == policy_row.authored_act()
-                    && row.observed_relations() == policy_row.observed_relations()
-                    && row.conflict_class() == policy_row.conflict_class()
-                    && policy_row.candidates().contains(&row.chosen_candidate())
-            }
-            None => true,
-        };
-        let dx_matches = dx_row.conflict_class() == policy_row.conflict_class()
-            && dx_row.escalation() == policy_row.escalation()
-            && dx_row.candidate_count() == policy_row.candidates().len()
-            && dx_row.blocked_candidate_count() == policy_row.blocked_candidates().len()
-            && dx_row.chosen_candidate() == policy_row.chosen_candidate();
-        let query_matches = query_inspection_parity_report.parity_verified()
-            && query_projection_receipt_report.parity_verified()
-            && query_inspection_parity_report.authored_act() == policy_row.authored_act()
-            && query_projection_receipt_report.authored_act() == policy_row.authored_act()
-            && query_inspection_parity_report.observed_relations()
-                == policy_row.observed_relations()
-            && query_projection_receipt_report.observed_relations()
-                == policy_row.observed_relations()
-            && query_inspection_parity_report.conflict_class() == policy_row.conflict_class()
-            && query_projection_receipt_report.conflict_class() == policy_row.conflict_class()
-            && query_inspection_parity_report.escalation() == policy_row.escalation()
-            && query_projection_receipt_report.escalation() == policy_row.escalation();
-        let replay_matches = replay_parity_report.parity_verified()
-            && replay_parity_report.direct_row().authored_act() == policy_row.authored_act()
-            && replay_parity_report.direct_row().observed_relations()
-                == policy_row.observed_relations()
-            && replay_parity_report.direct_row().conflict_class() == policy_row.conflict_class()
-            && replay_parity_report.direct_row().escalation() == policy_row.escalation()
-            && replay_parity_report.direct_row().candidates() == policy_row.candidates()
-            && replay_parity_report.direct_row().blocked_candidates()
-                == policy_row.blocked_candidates();
-        let bundle_verified = chosen_matches && dx_matches && replay_matches && query_matches;
-        let bundle_digest = digest_owned_parts(&[
-            format!("{case:?}"),
-            policy_row.row_digest().to_string(),
-            dx_surface_report.report_digest().to_string(),
-            replay_parity_report.report_digest().to_string(),
-            query_inspection_parity_report.report_digest().to_string(),
-            query_projection_receipt_report.report_digest().to_string(),
-            chosen_row
-                .as_ref()
-                .map(|row| row.row_digest().to_string())
-                .unwrap_or_else(|| "unresolved".to_string()),
-            bundle_verified.to_string(),
-        ]);
-        Ok(Self {
-            case,
-            policy_row,
-            chosen_row,
-            dx_surface_report,
-            replay_parity_report,
-            query_inspection_parity_report,
-            query_projection_receipt_report,
-            bundle_verified,
-            bundle_digest,
-        })
-    }
-
-    pub fn case(&self) -> PrimitiveConstructionIntentArbitrationBundleCase {
-        self.case
-    }
-
-    pub fn policy_row(&self) -> &PrimitiveConstructionIntentArbitrationPolicyRow {
-        &self.policy_row
-    }
-
-    pub fn chosen_row(&self) -> Option<&PrimitiveConstructionChosenIntentResolutionRow> {
-        self.chosen_row.as_ref()
-    }
-
-    pub fn dx_surface_report(&self) -> &PrimitiveConstructionIntentArbitrationDxSurfaceReport {
-        &self.dx_surface_report
-    }
-
-    pub fn replay_parity_report(
-        &self,
-    ) -> &PrimitiveConstructionIntentArbitrationReplayParityReport {
-        &self.replay_parity_report
-    }
-
-    pub fn query_inspection_parity_report(
-        &self,
-    ) -> &PrimitiveConstructionQueryIntentArbitrationParityReport {
-        &self.query_inspection_parity_report
-    }
-
-    pub fn query_projection_receipt_report(
-        &self,
-    ) -> &PrimitiveConstructionQueryIntentArbitrationParityReport {
-        &self.query_projection_receipt_report
-    }
-
-    pub fn bundle_verified(&self) -> bool {
-        self.bundle_verified
-    }
-
-    pub fn bundle_digest(&self) -> &str {
-        &self.bundle_digest
     }
 }
 
@@ -237,11 +108,13 @@ impl PrimitiveConstructionIntentArbitrationReportBundle {
 pub enum PrimitiveConstructionIntentArbitrationReportBundleError {
     PolicyReport(super::PrimitiveConstructionIntentArbitrationPolicyReportError),
     ChosenReport(super::PrimitiveConstructionChosenIntentResolutionReportError),
+    PreservedReport(super::PrimitiveConstructionPreservedIntentResolutionReportError),
     Replay(PrimitiveConstructionIntentArbitrationReplayParityError),
     Query(PrimitiveConstructionQueryIntentArbitrationParityError),
+    Verification(PrimitiveConstructionIntentArbitrationBundleVerificationFailure),
     MissingPolicyRow(PrimitiveConstructionIntentArbitrationBundleCase),
-    MissingDxRow(PrimitiveConstructionIntentArbitrationBundleCase),
     MissingChosenRow(PrimitiveConstructionIntentArbitrationBundleCase),
+    MissingPreservedRow(PrimitiveConstructionIntentArbitrationBundleCase),
 }
 
 impl std::fmt::Display for PrimitiveConstructionIntentArbitrationReportBundleError {
@@ -249,14 +122,22 @@ impl std::fmt::Display for PrimitiveConstructionIntentArbitrationReportBundleErr
         match self {
             Self::PolicyReport(error) => write!(f, "{error}"),
             Self::ChosenReport(error) => write!(f, "{error}"),
+            Self::PreservedReport(error) => write!(f, "{error}"),
             Self::Replay(error) => write!(f, "{error}"),
             Self::Query(error) => write!(f, "{error}"),
+            Self::Verification(failure) => write!(
+                f,
+                "intent arbitration bundle failed coherence verification: {:?}",
+                failure.mismatches()
+            ),
             Self::MissingPolicyRow(case) => {
                 write!(f, "missing policy arbitration row for {case:?}")
             }
-            Self::MissingDxRow(case) => write!(f, "missing dx arbitration row for {case:?}"),
             Self::MissingChosenRow(case) => {
                 write!(f, "missing chosen arbitration row for {case:?}")
+            }
+            Self::MissingPreservedRow(case) => {
+                write!(f, "missing preserved arbitration row for {case:?}")
             }
         }
     }
@@ -268,7 +149,7 @@ pub fn prepare_primitive_construction_intent_arbitration_report_bundle(
     workspace: &mut ForgeQueryWorkspace,
     case: PrimitiveConstructionIntentArbitrationBundleCase,
 ) -> Result<
-    PrimitiveConstructionIntentArbitrationReportBundle,
+    PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
     PrimitiveConstructionIntentArbitrationReportBundleError,
 > {
     let policy_report = prepare_primitive_intent_arbitration_policy_report()
@@ -277,12 +158,15 @@ pub fn prepare_primitive_construction_intent_arbitration_report_bundle(
         .map_err(PrimitiveConstructionIntentArbitrationReportBundleError::PolicyReport)?;
     let chosen_report = prepare_primitive_chosen_intent_resolution_report()
         .map_err(PrimitiveConstructionIntentArbitrationReportBundleError::ChosenReport)?;
+    let preserved_report = prepare_primitive_construction_preserved_intent_resolution_report()
+        .map_err(PrimitiveConstructionIntentArbitrationReportBundleError::PreservedReport)?;
     prepare_bundle_from_reports(
         workspace,
         case,
         &policy_report,
         &dx_surface_report,
         &chosen_report,
+        &preserved_report,
     )
 }
 
@@ -292,8 +176,9 @@ fn prepare_bundle_from_reports(
     policy_report: &PrimitiveConstructionIntentArbitrationPolicyReport,
     dx_surface_report: &PrimitiveConstructionIntentArbitrationDxSurfaceReport,
     chosen_report: &PrimitiveConstructionChosenIntentResolutionReport,
+    preserved_report: &PrimitiveConstructionPreservedIntentResolutionReport,
 ) -> Result<
-    PrimitiveConstructionIntentArbitrationReportBundle,
+    PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
     PrimitiveConstructionIntentArbitrationReportBundleError,
 > {
     let policy_row = policy_report
@@ -311,6 +196,10 @@ fn prepare_bundle_from_reports(
         ),
         None => None,
     };
+    let preserved_row = preserved_report
+        .row(case.preserved_case())
+        .ok_or(PrimitiveConstructionIntentArbitrationReportBundleError::MissingPreservedRow(case))?
+        .clone();
     let replay_parity_report =
         prepare_primitive_construction_intent_arbitration_replay_parity_report(
             case.preserved_case(),
@@ -330,13 +219,15 @@ fn prepare_bundle_from_reports(
             chosen_row.clone(),
         )
         .map_err(PrimitiveConstructionIntentArbitrationReportBundleError::Query)?;
-    PrimitiveConstructionIntentArbitrationReportBundle::new(
+    verify_bundle(PrimitiveConstructionIntentArbitrationReportBundle::new(
         case,
         policy_row,
         chosen_row,
+        preserved_row,
         dx_surface_report.clone(),
         replay_parity_report,
         query_inspection_parity_report,
         query_projection_receipt_report,
-    )
+    ))
+    .map_err(PrimitiveConstructionIntentArbitrationReportBundleError::Verification)
 }

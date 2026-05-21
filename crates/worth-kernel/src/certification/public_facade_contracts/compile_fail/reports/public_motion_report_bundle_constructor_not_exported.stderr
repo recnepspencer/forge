@@ -1,16 +1,5 @@
-error[E0624]: associated function `new` is private
- --> src/certification/public_facade_contracts/compile_fail/reports/public_motion_report_bundle_constructor_not_exported.rs:4:54
+error[E0432]: unresolved import `worth_kernel::facade::PrimitiveConstructionMotionReportBundle`
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_motion_report_bundle_constructor_not_exported.rs:1:5
   |
-4 |       let _ = PrimitiveConstructionMotionReportBundle::new;
-  |                                                        ^^^ private associated function
-  |
- ::: src/construction/certification/motion/bundle.rs
-  |
-  | /     fn new(
-  | |         witness_report: PrimitiveConstructionMotionWitnessResolutionReport,
-  | |         replay_parity_report: PrimitiveConstructionMotionReplayParityReport,
-  | |         query_inspection_parity_report: PrimitiveConstructionQueryMotionWitnessParityReport,
-  | |         query_projection_receipt_report: PrimitiveConstructionQueryMotionWitnessParityReport,
-  | |         branch_preview_runtime_report: PrimitiveConstructionMotionBranchPreviewRuntimeReport,
-  | |     ) -> Self {
-  | |_____________- private associated function defined here
+1 | use worth_kernel::facade::PrimitiveConstructionMotionReportBundle;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionMotionReportBundle` in `facade`

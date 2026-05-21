@@ -3,26 +3,16 @@ use super::super::{
     prepare_primitive_construction_compound_ordering_parity_report,
     prepare_primitive_construction_compound_parity_report,
 };
+use super::support::{
+    compound_workspace, expected_exhaustion_scenario_ids, expected_grazing_scenario_ids,
+    expected_motion_scenario_ids, expected_required_scenario_ids, sorted_ids,
+};
 use std::collections::BTreeSet;
-use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_geom::facade::PrimitiveRealizationExhaustionWitnessKind;
-
-fn sorted_ids(ids: impl IntoIterator<Item = String>) -> Vec<String> {
-    let mut ids = ids.into_iter().collect::<Vec<_>>();
-    ids.sort();
-    ids
-}
 
 #[test]
 fn compound_ordering_parity_report_requires_the_full_spec_order_matrix() {
-    let runtime = milestone_one_runtime_builder()
-        .expect("runtime builder")
-        .build();
-    let mut workspace = topology_runtime(
-        TopologyRuntimeAdapters::current_head(runtime),
-        "worth-kernel.compound-ordering-parity".to_string(),
-    )
-    .expect("workspace");
+    let mut workspace = compound_workspace("worth-kernel.compound-ordering-parity");
     let report = prepare_primitive_construction_compound_ordering_parity_report(&mut workspace)
         .expect("ordering parity report");
 
@@ -56,23 +46,7 @@ fn compound_ordering_parity_report_requires_the_full_spec_order_matrix() {
                 .iter()
                 .map(|row| row.scenario_id().to_string()),
         ),
-        vec![
-            "mixed_topology_class_batch".to_string(),
-            "orthotope_boundary_neighbor_rejected".to_string(),
-            "orthotope_direct_stable".to_string(),
-            "pyramid_direct_stable_comparison".to_string(),
-            "pyramid_semantic_exhaustion".to_string(),
-            "pyramid_threshold_admitted_exact_support".to_string(),
-            "pyramid_threshold_rejected_neighbor".to_string(),
-            "regular_prism_boundary_neighbor_rejected".to_string(),
-            "regular_prism_direct_stable".to_string(),
-            "sheet_patch_reorient_grazing_workplane".to_string(),
-            "simplex_world_collapsed_admitted_local_or_exact".to_string(),
-            "simplex_world_collapsed_explicit_exhaustion".to_string(),
-            "simplex_world_collapsed_threshold_rejected".to_string(),
-            "wire_open_endpoint_graze".to_string(),
-            "wire_open_motion_relocation".to_string(),
-        ]
+        expected_required_scenario_ids()
     );
     let shell_graze = report
         .scenario_row_for("sheet_patch_reorient_grazing_workplane")
@@ -101,17 +75,14 @@ fn compound_ordering_parity_report_requires_the_full_spec_order_matrix() {
 
 #[test]
 fn compound_exhaustion_witness_parity_report_binds_kernel_rows_to_lower_layer_witnesses() {
-    let runtime = milestone_one_runtime_builder()
-        .expect("runtime builder")
-        .build();
-    let mut workspace = topology_runtime(
-        TopologyRuntimeAdapters::current_head(runtime),
-        "worth-kernel.compound-exhaustion-parity".to_string(),
-    )
-    .expect("workspace");
+    let mut workspace = compound_workspace("worth-kernel.compound-exhaustion-parity");
     let report =
         prepare_primitive_construction_compound_exhaustion_witness_parity_report(&mut workspace)
             .expect("exhaustion parity report");
+    let truth = prepare_primitive_construction_compound_parity_report(&mut compound_workspace(
+        "worth-kernel.compound-exhaustion-truth",
+    ))
+    .expect("compound parity report");
 
     assert!(report.parity_verified());
     assert_eq!(
@@ -121,10 +92,7 @@ fn compound_exhaustion_witness_parity_report_binds_kernel_rows_to_lower_layer_wi
                 .iter()
                 .map(|row| row.scenario_id().to_string())
         ),
-        vec![
-            "pyramid_semantic_exhaustion".to_string(),
-            "simplex_world_collapsed_explicit_exhaustion".to_string(),
-        ]
+        expected_exhaustion_scenario_ids(truth.truth())
     );
     assert_eq!(
         report
@@ -162,22 +130,15 @@ fn compound_exhaustion_witness_parity_report_binds_kernel_rows_to_lower_layer_wi
 
 #[test]
 fn compound_parity_report_bundles_ordering_motion_grazing_and_exhaustion_truth() {
-    let runtime = milestone_one_runtime_builder()
-        .expect("runtime builder")
-        .build();
-    let mut workspace = topology_runtime(
-        TopologyRuntimeAdapters::current_head(runtime),
-        "worth-kernel.compound-parity".to_string(),
-    )
-    .expect("workspace");
+    let mut workspace = compound_workspace("worth-kernel.compound-parity");
     let report = prepare_primitive_construction_compound_parity_report(&mut workspace)
         .expect("compound parity report");
+    let truth = report.truth().clone();
 
-    assert!(report.parity_verified());
-    assert!(report.ordering().parity_verified());
-    assert!(report.motion().parity_verified());
-    assert!(report.grazing().parity_verified());
-    assert!(report.exhaustion().parity_verified());
+    assert_eq!(
+        report.truth().siege().report_digest(),
+        report.siege().report_digest()
+    );
     assert_eq!(report.motion().rows().len(), 3);
     assert_eq!(report.grazing().rows().len(), 2);
     assert_eq!(report.exhaustion().rows().len(), 2);
@@ -189,11 +150,7 @@ fn compound_parity_report_bundles_ordering_motion_grazing_and_exhaustion_truth()
                 .iter()
                 .map(|row| row.scenario_id().to_string()),
         ),
-        vec![
-            "sheet_patch_reorient_grazing_workplane".to_string(),
-            "wire_open_endpoint_graze".to_string(),
-            "wire_open_motion_relocation".to_string(),
-        ]
+        expected_motion_scenario_ids(&truth)
     );
     assert_eq!(
         sorted_ids(
@@ -203,10 +160,7 @@ fn compound_parity_report_bundles_ordering_motion_grazing_and_exhaustion_truth()
                 .iter()
                 .map(|row| row.scenario_id().to_string()),
         ),
-        vec![
-            "sheet_patch_reorient_grazing_workplane".to_string(),
-            "wire_open_endpoint_graze".to_string(),
-        ]
+        expected_grazing_scenario_ids(&truth)
     );
     assert_eq!(
         sorted_ids(
@@ -216,10 +170,7 @@ fn compound_parity_report_bundles_ordering_motion_grazing_and_exhaustion_truth()
                 .iter()
                 .map(|row| row.scenario_id().to_string()),
         ),
-        vec![
-            "pyramid_semantic_exhaustion".to_string(),
-            "simplex_world_collapsed_explicit_exhaustion".to_string(),
-        ]
+        expected_exhaustion_scenario_ids(&truth)
     );
     assert_ne!(
         report.motion().report_digest(),
@@ -233,14 +184,7 @@ fn compound_parity_report_bundles_ordering_motion_grazing_and_exhaustion_truth()
 
 #[test]
 fn compound_ordering_parity_report_anchors_stability_on_named_canonical_lane_not_vector_position() {
-    let runtime = milestone_one_runtime_builder()
-        .expect("runtime builder")
-        .build();
-    let mut workspace = topology_runtime(
-        TopologyRuntimeAdapters::current_head(runtime),
-        "worth-kernel.compound-ordering-canonical-lane".to_string(),
-    )
-    .expect("workspace");
+    let mut workspace = compound_workspace("worth-kernel.compound-ordering-canonical-lane");
     let report = prepare_primitive_construction_compound_ordering_parity_report(&mut workspace)
         .expect("ordering parity report");
     let mut reordered_lanes = report.lane_reports().to_vec();
@@ -271,4 +215,73 @@ fn compound_ordering_parity_report_anchors_stability_on_named_canonical_lane_not
         .scenario_row_for("pyramid_semantic_exhaustion")
         .expect("pyramid scenario row")
         .stable_across_orders());
+}
+
+#[test]
+fn compound_parity_verification_failure_preserves_exact_mismatch_and_full_drift_context() {
+    use super::super::builder::{
+        build_exhaustion_witness_parity_report_from_siege,
+        build_grazing_boundary_report_from_siege, build_motion_parity_report_from_siege,
+        prepare_primitive_construction_compound_adversarial_siege_report,
+        PrimitiveConstructionCompoundAdversarialSiegeError,
+    };
+    use super::super::ordering_report::PrimitiveConstructionCompoundOrderingParityReport;
+    use super::super::parity::{
+        verify_bundle, PrimitiveConstructionCompoundParityReportBundle,
+        PrimitiveConstructionCompoundParityVerificationMismatch,
+    };
+    use super::super::rows::PrimitiveConstructionCompoundMotionParityRow;
+    use super::super::PrimitiveConstructionCompoundMotionParityReport;
+
+    let mut workspace = compound_workspace("worth-kernel.compound-parity-verification-failure");
+    let siege = prepare_primitive_construction_compound_adversarial_siege_report(&mut workspace)
+        .expect("compound siege report");
+    let ordering =
+        PrimitiveConstructionCompoundOrderingParityReport::new(siege.lane_reports().to_vec());
+    let canonical_motion = build_motion_parity_report_from_siege(&siege).expect("motion report");
+    let drifted_rows = canonical_motion
+        .rows()
+        .iter()
+        .enumerate()
+        .map(|(index, row)| {
+            let digest = if index == 0 {
+                format!("{}-drift", row.motion_digest())
+            } else {
+                row.motion_digest().to_string()
+            };
+            PrimitiveConstructionCompoundMotionParityRow::new(
+                row.scenario_id().to_string(),
+                row.motion_kind(),
+                digest,
+            )
+        })
+        .collect::<Vec<_>>();
+    let drifted_motion =
+        PrimitiveConstructionCompoundMotionParityReport::new(drifted_rows, &ordering);
+    let bundle = PrimitiveConstructionCompoundParityReportBundle::new(
+        siege.clone(),
+        ordering,
+        drifted_motion,
+        build_grazing_boundary_report_from_siege(&siege).expect("grazing report"),
+        build_exhaustion_witness_parity_report_from_siege(&siege).expect("exhaustion report"),
+    );
+
+    let error = verify_bundle(bundle).expect_err("drifted bundle should reject");
+    let failure = match error {
+        PrimitiveConstructionCompoundAdversarialSiegeError::Verification(failure) => failure,
+        other => panic!("expected verification error, got {other:?}"),
+    };
+
+    assert_eq!(
+        failure.mismatches(),
+        &[PrimitiveConstructionCompoundParityVerificationMismatch::MotionProjectionDrift]
+    );
+    assert_eq!(
+        failure.truth().siege().report_digest(),
+        failure.siege().report_digest()
+    );
+    assert_eq!(failure.ordering().lane_reports().len(), 5);
+    assert_eq!(failure.motion().rows().len(), 3);
+    assert_eq!(failure.grazing().rows().len(), 2);
+    assert_eq!(failure.exhaustion().rows().len(), 2);
 }

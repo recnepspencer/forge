@@ -8,13 +8,9 @@ use worth_geom::facade::{
     PrimitiveSupportNormalClass,
 };
 use worth_kernel::facade::{
-    build_canonical_primitive_construction_artifact, lower_scaffold_to_topology,
-    prepare_primitive_construction_branch_preview_runtime_report,
-    prepare_primitive_construction_result, primitive_construction_authoring,
-    primitive_construction_family_coverage_report, PreparedPrimitiveConstructionExecution,
-    PrimitiveConstructionFamily, PrimitiveConstructionFamilyCoverageStatus,
-    PrimitiveConstructionIntent, RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec,
-    WireBodySpec,
+    authoring::construction::*,
+    diagnostics::{family::*, query::*},
+    outcome::{execution::*, prepared::*},
 };
 
 #[test]

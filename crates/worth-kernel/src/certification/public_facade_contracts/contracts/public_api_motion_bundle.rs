@@ -1,9 +1,8 @@
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_kernel::facade::{
-    prepare_primitive_construction_move_motion_report_bundle,
-    prepare_primitive_construction_points_toward_motion_report_bundle_with_catalog,
-    MoveSpatialIntent, PrimitiveConstructionIntent,
-    PrimitiveConstructionMotionRuntimeSurfaceStatus, ReorientSpatialIntent, WireBodySpec,
+    authoring::{construction::*, intents::*},
+    certification::motion::*,
+    diagnostics::motion::*,
 };
 use worth_spatial::facade::{
     SpatialAnchorRef, SpatialCarrierPointRole, SpatialCatalogResolvedPointWitness,
@@ -29,7 +28,10 @@ fn kernel_public_facade_exports_motion_report_bundle() {
     )
     .expect("bundle");
 
-    assert!(bundle.bundle_verified());
+    assert_eq!(
+        bundle.truth(),
+        &PrimitiveConstructionMotionCanonicalTruth::from_witness_report(bundle.witness_report())
+    );
     assert!(bundle.replay_parity_report().parity_verified());
     assert!(bundle.query_inspection_parity_report().parity_verified());
     assert_eq!(
@@ -71,7 +73,10 @@ fn kernel_public_facade_exports_catalog_backed_motion_report_bundle() {
     )
     .expect("catalog bundle");
 
-    assert!(bundle.bundle_verified());
+    assert_eq!(
+        bundle.truth(),
+        &PrimitiveConstructionMotionCanonicalTruth::from_witness_report(bundle.witness_report())
+    );
     assert_eq!(
         bundle
             .branch_preview_runtime_report()

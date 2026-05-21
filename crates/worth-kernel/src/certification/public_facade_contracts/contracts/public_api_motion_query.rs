@@ -1,12 +1,8 @@
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_kernel::facade::{
-    prepare_primitive_construction_move_witness_resolution_report,
-    prepare_primitive_construction_query_motion_inspection_parity_report,
-    prepare_primitive_construction_query_motion_projection_consumption_receipt_report,
-    prepare_primitive_construction_rotate_witness_resolution_report, MoveSpatialIntent,
-    PrimitiveConstructionIntent, PrimitiveConstructionMotionQueryFactProvenance,
-    PrimitiveConstructionMotionQueryReadSurface,
-    PrimitiveConstructionMotionWitnessResolutionFailureKind, RotateSpatialIntent, WireBodySpec,
+    authoring::{construction::*, intents::*},
+    certification::query::*,
+    diagnostics::motion::*,
 };
 
 #[test]

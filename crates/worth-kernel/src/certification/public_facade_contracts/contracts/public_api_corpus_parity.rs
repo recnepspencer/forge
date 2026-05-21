@@ -1,11 +1,7 @@
 use std::collections::BTreeSet;
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_geom::facade::PrimitiveRealizationExhaustionWitnessKind;
-use worth_kernel::facade::{
-    prepare_primitive_construction_compound_exhaustion_witness_parity_report,
-    prepare_primitive_construction_compound_ordering_parity_report,
-    prepare_primitive_construction_compound_parity_report,
-};
+use worth_kernel::facade::certification::corpus::*;
 
 fn sorted_ids(ids: impl IntoIterator<Item = String>) -> Vec<String> {
     let mut ids = ids.into_iter().collect::<Vec<_>>();
@@ -83,7 +79,10 @@ fn kernel_public_facade_exports_compound_ordering_and_exhaustion_parity_artifact
         exhaustion.rows().len()
     );
     assert_eq!(compound.exhaustion().rows().len(), 2);
-    assert!(compound.parity_verified());
+    assert_eq!(
+        compound.truth().siege().report_digest(),
+        compound.siege().report_digest()
+    );
     assert_eq!(compound.motion().rows().len(), 3);
     assert_eq!(compound.grazing().rows().len(), 2);
     assert_ne!(

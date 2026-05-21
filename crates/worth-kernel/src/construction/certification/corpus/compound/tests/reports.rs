@@ -6,27 +6,17 @@ use super::super::{
     PrimitiveConstructionCompoundRowClass, PrimitiveConstructionCompoundTopologyClass,
     PrimitiveConstructionCompoundWorkloadFamily,
 };
-use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
+use super::support::{
+    compound_workspace, expected_grazing_scenario_ids, expected_motion_scenario_ids,
+    parity_truth_from_siege, sorted_ids,
+};
 use worth_geom::facade::{
     PrimitiveRealizationExhaustionReason, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
 };
 
-fn sorted_ids(ids: impl IntoIterator<Item = String>) -> Vec<String> {
-    let mut ids = ids.into_iter().collect::<Vec<_>>();
-    ids.sort();
-    ids
-}
-
 #[test]
 fn compound_adversarial_siege_report_carries_shell_wire_and_motion_truth() {
-    let runtime = milestone_one_runtime_builder()
-        .expect("runtime builder")
-        .build();
-    let mut workspace = topology_runtime(
-        TopologyRuntimeAdapters::current_head(runtime),
-        "worth-kernel.compound-adversarial-siege".to_string(),
-    )
-    .expect("workspace");
+    let mut workspace = compound_workspace("worth-kernel.compound-adversarial-siege");
     let report = prepare_primitive_construction_compound_adversarial_siege_report(&mut workspace)
         .expect("compound report");
     let shell = report
@@ -165,16 +155,10 @@ fn compound_adversarial_siege_report_carries_shell_wire_and_motion_truth() {
 
 #[test]
 fn compound_motion_and_grazing_reports_summarize_their_specialized_rows() {
-    let runtime = milestone_one_runtime_builder()
-        .expect("runtime builder")
-        .build();
-    let mut workspace = topology_runtime(
-        TopologyRuntimeAdapters::current_head(runtime),
-        "worth-kernel.compound-motion-grazing".to_string(),
-    )
-    .expect("workspace");
+    let mut workspace = compound_workspace("worth-kernel.compound-motion-grazing");
     let report = prepare_primitive_construction_compound_adversarial_siege_report(&mut workspace)
         .expect("compound report");
+    let truth = parity_truth_from_siege(&report);
     let motion = prepare_primitive_construction_compound_motion_parity_report(&mut workspace)
         .expect("motion report");
     let grazing = prepare_primitive_construction_compound_grazing_boundary_report(&mut workspace)
@@ -193,14 +177,7 @@ fn compound_motion_and_grazing_reports_summarize_their_specialized_rows() {
     );
 
     assert!(motion.parity_verified());
-    assert_eq!(
-        motion_ids,
-        vec![
-            "sheet_patch_reorient_grazing_workplane".to_string(),
-            "wire_open_endpoint_graze".to_string(),
-            "wire_open_motion_relocation".to_string(),
-        ]
-    );
+    assert_eq!(motion_ids, expected_motion_scenario_ids(&truth));
     assert_eq!(
         motion
             .row_for("sheet_patch_reorient_grazing_workplane")
@@ -256,13 +233,7 @@ fn compound_motion_and_grazing_reports_summarize_their_specialized_rows() {
             .expect("wire relocation siege motion digest")
     );
     assert!(grazing.parity_verified());
-    assert_eq!(
-        grazing_ids,
-        vec![
-            "sheet_patch_reorient_grazing_workplane".to_string(),
-            "wire_open_endpoint_graze".to_string(),
-        ]
-    );
+    assert_eq!(grazing_ids, expected_grazing_scenario_ids(&truth));
     assert_eq!(
         grazing
             .row_for("sheet_patch_reorient_grazing_workplane")
@@ -304,14 +275,7 @@ fn compound_motion_and_grazing_reports_summarize_their_specialized_rows() {
 
 #[test]
 fn compound_siege_report_anchors_public_rows_on_named_canonical_lane_not_vector_position() {
-    let runtime = milestone_one_runtime_builder()
-        .expect("runtime builder")
-        .build();
-    let mut workspace = topology_runtime(
-        TopologyRuntimeAdapters::current_head(runtime),
-        "worth-kernel.compound-siege-canonical-lane".to_string(),
-    )
-    .expect("workspace");
+    let mut workspace = compound_workspace("worth-kernel.compound-siege-canonical-lane");
     let report = prepare_primitive_construction_compound_adversarial_siege_report(&mut workspace)
         .expect("compound report");
     let mut reordered_lanes = report.lane_reports().to_vec();

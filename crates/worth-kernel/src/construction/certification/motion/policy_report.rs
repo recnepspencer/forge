@@ -1,6 +1,6 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
-use crate::construction::digest::digest_owned_parts;
+use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
 use crate::construction::{
     prepare_primitive_construction_move_motion_report_bundle,
     prepare_primitive_construction_points_toward_motion_report_bundle,
@@ -9,12 +9,12 @@ use crate::construction::{
     prepare_primitive_construction_reorient_motion_report_bundle_with_catalog,
     prepare_primitive_construction_rotate_motion_report_bundle_with_catalog,
     PrimitiveConstructionFamily, PrimitiveConstructionIntent,
-    PrimitiveConstructionMotionReportBundle, PrimitiveConstructionMotionReportBundleError,
-    PrimitiveConstructionMotionRuntimeSurfaceStatus,
+    PrimitiveConstructionMotionReportBundleError, PrimitiveConstructionMotionRuntimeSurfaceStatus,
     PrimitiveConstructionMotionWitnessResolutionFailureKind,
     PrimitiveConstructionMotionWitnessResolutionKind,
     PrimitiveConstructionMotionWitnessResolutionStatus,
-    PrimitiveConstructionRequestedMotionWitness, RegularPyramidSpec, WireBodySpec,
+    PrimitiveConstructionRequestedMotionWitness, PrimitiveConstructionVerifiedMotionReportBundle,
+    RegularPyramidSpec, WireBodySpec,
 };
 use crate::spatial_intent::{MoveSpatialIntent, ReorientSpatialIntent, RotateSpatialIntent};
 use worth_spatial::facade::{
@@ -55,43 +55,42 @@ pub struct PrimitiveConstructionMotionResolutionPolicyRow {
 impl PrimitiveConstructionMotionResolutionPolicyRow {
     fn new(
         case: PrimitiveConstructionMotionResolutionPolicyCase,
-        bundle: PrimitiveConstructionMotionReportBundle,
-    ) -> Result<Self, PrimitiveConstructionMotionResolutionPolicyReportError> {
-        if !bundle.bundle_verified() {
-            return Err(
-                PrimitiveConstructionMotionResolutionPolicyReportError::UnverifiedBundle(case),
-            );
-        }
+        bundle: PrimitiveConstructionVerifiedMotionReportBundle,
+    ) -> Self {
         let witness_report = bundle.witness_report();
         let runtime_surface_status = bundle
             .branch_preview_runtime_report()
             .runtime_surface_status();
-        let row_digest = digest_owned_parts(&[
-            format!("{case:?}"),
-            witness_report.subject_family().as_str().to_string(),
-            format!("{:?}", witness_report.anchor()),
-            format!("{:?}", witness_report.kind()),
-            format!("{:?}", witness_report.requested_witness()),
-            format!("{:?}", witness_report.status()),
-            format!("{:?}", witness_report.resolution_class()),
-            format!("{:?}", witness_report.failure_kind()),
-            format!("{runtime_surface_status:?}"),
-            bundle.witness_report().report_digest().to_string(),
-            bundle.replay_parity_report().report_digest().to_string(),
-            bundle
-                .query_inspection_parity_report()
-                .report_digest()
-                .to_string(),
-            bundle
-                .query_projection_receipt_report()
-                .report_digest()
-                .to_string(),
-            bundle
-                .branch_preview_runtime_report()
-                .report_digest()
-                .to_string(),
-        ]);
-        Ok(Self {
+        let row_digest = digest_owned_parts_with_scope(
+            ConstructionDigestScope::ParityIdentity,
+            &[
+                format!("{case:?}"),
+                witness_report.subject_family().as_str().to_string(),
+                format!("{:?}", witness_report.anchor()),
+                format!("{:?}", witness_report.kind()),
+                format!("{:?}", witness_report.requested_witness()),
+                format!("{:?}", witness_report.status()),
+                format!("{:?}", witness_report.resolution_class()),
+                format!("{:?}", witness_report.failure_kind()),
+                format!("{runtime_surface_status:?}"),
+                bundle.truth().truth_digest().to_string(),
+                bundle.witness_report().report_digest().to_string(),
+                bundle.replay_parity_report().report_digest().to_string(),
+                bundle
+                    .query_inspection_parity_report()
+                    .report_digest()
+                    .to_string(),
+                bundle
+                    .query_projection_receipt_report()
+                    .report_digest()
+                    .to_string(),
+                bundle
+                    .branch_preview_runtime_report()
+                    .report_digest()
+                    .to_string(),
+            ],
+        );
+        Self {
             case,
             subject_family: witness_report.subject_family(),
             anchor: witness_report.anchor().clone(),
@@ -102,7 +101,7 @@ impl PrimitiveConstructionMotionResolutionPolicyRow {
             failure_kind: witness_report.failure_kind(),
             runtime_surface_status,
             row_digest,
-        })
+        }
     }
 
     pub fn case(&self) -> PrimitiveConstructionMotionResolutionPolicyCase {
@@ -154,7 +153,8 @@ pub struct PrimitiveConstructionMotionResolutionPolicyReport {
 
 impl PrimitiveConstructionMotionResolutionPolicyReport {
     fn new(rows: Vec<PrimitiveConstructionMotionResolutionPolicyRow>) -> Self {
-        let report_digest = digest_owned_parts(
+        let report_digest = digest_owned_parts_with_scope(
+            ConstructionDigestScope::ParityIdentity,
             &rows
                 .iter()
                 .map(|row| row.row_digest().to_string())
@@ -185,19 +185,12 @@ impl PrimitiveConstructionMotionResolutionPolicyReport {
 #[derive(Debug)]
 pub enum PrimitiveConstructionMotionResolutionPolicyReportError {
     Bundle(PrimitiveConstructionMotionReportBundleError),
-    UnverifiedBundle(PrimitiveConstructionMotionResolutionPolicyCase),
 }
 
 impl std::fmt::Display for PrimitiveConstructionMotionResolutionPolicyReportError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::Bundle(error) => write!(f, "{error}"),
-            Self::UnverifiedBundle(case) => {
-                write!(
-                    f,
-                    "motion policy case {case:?} did not produce a verified proof bundle"
-                )
-            }
         }
     }
 }
@@ -221,7 +214,7 @@ pub fn prepare_primitive_construction_motion_resolution_policy_report(
                 .to([10.0, 0.0, 3.0]),
             )
             .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Bundle)?,
-        )?,
+        ),
         PrimitiveConstructionMotionResolutionPolicyRow::new(
             PrimitiveConstructionMotionResolutionPolicyCase::FrameReorient,
             prepare_primitive_construction_reorient_motion_report_bundle(
@@ -240,7 +233,7 @@ pub fn prepare_primitive_construction_motion_resolution_policy_report(
                 )),
             )
             .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Bundle)?,
-        )?,
+        ),
         PrimitiveConstructionMotionResolutionPolicyRow::new(
             PrimitiveConstructionMotionResolutionPolicyCase::CarrierReorient,
             prepare_primitive_construction_reorient_motion_report_bundle_with_catalog(
@@ -268,7 +261,7 @@ pub fn prepare_primitive_construction_motion_resolution_policy_report(
                 ),
             )
             .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Bundle)?,
-        )?,
+        ),
         PrimitiveConstructionMotionResolutionPolicyRow::new(
             PrimitiveConstructionMotionResolutionPolicyCase::FallbackPointsToward,
             prepare_primitive_construction_points_toward_motion_report_bundle_with_catalog(
@@ -292,7 +285,7 @@ pub fn prepare_primitive_construction_motion_resolution_policy_report(
                 ),
             )
             .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Bundle)?,
-        )?,
+        ),
         PrimitiveConstructionMotionResolutionPolicyRow::new(
             PrimitiveConstructionMotionResolutionPolicyCase::AmbiguousMove,
             prepare_primitive_construction_move_motion_report_bundle(
@@ -305,7 +298,7 @@ pub fn prepare_primitive_construction_motion_resolution_policy_report(
                 )),
             )
             .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Bundle)?,
-        )?,
+        ),
         PrimitiveConstructionMotionResolutionPolicyRow::new(
             PrimitiveConstructionMotionResolutionPolicyCase::UndefinedReorient,
             prepare_primitive_construction_reorient_motion_report_bundle_with_catalog(
@@ -327,7 +320,7 @@ pub fn prepare_primitive_construction_motion_resolution_policy_report(
                 ),
             )
             .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Bundle)?,
-        )?,
+        ),
         PrimitiveConstructionMotionResolutionPolicyRow::new(
             PrimitiveConstructionMotionResolutionPolicyCase::UnsupportedReorient,
             prepare_primitive_construction_reorient_motion_report_bundle(
@@ -346,7 +339,7 @@ pub fn prepare_primitive_construction_motion_resolution_policy_report(
                 )),
             )
             .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Bundle)?,
-        )?,
+        ),
         PrimitiveConstructionMotionResolutionPolicyRow::new(
             PrimitiveConstructionMotionResolutionPolicyCase::ExhaustedRotate,
             prepare_primitive_construction_rotate_motion_report_bundle_with_catalog(
@@ -365,7 +358,7 @@ pub fn prepare_primitive_construction_motion_resolution_policy_report(
                 ),
             )
             .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Bundle)?,
-        )?,
+        ),
         PrimitiveConstructionMotionResolutionPolicyRow::new(
             PrimitiveConstructionMotionResolutionPolicyCase::CoincidentPointsToward,
             prepare_primitive_construction_points_toward_motion_report_bundle(
@@ -381,7 +374,7 @@ pub fn prepare_primitive_construction_motion_resolution_policy_report(
                 .points_toward([0.0, 0.0, 0.0]),
             )
             .map_err(PrimitiveConstructionMotionResolutionPolicyReportError::Bundle)?,
-        )?,
+        ),
     ];
     Ok(PrimitiveConstructionMotionResolutionPolicyReport::new(rows))
 }

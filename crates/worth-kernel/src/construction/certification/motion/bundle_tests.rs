@@ -44,7 +44,6 @@ fn motion_report_bundle_binds_direct_replay_query_and_runtime_truth() {
     )
     .expect("bundle");
 
-    assert!(bundle.bundle_verified());
     assert_eq!(
         bundle.witness_report().status(),
         PrimitiveConstructionMotionWitnessResolutionStatus::Admitted
@@ -86,7 +85,6 @@ fn motion_report_bundle_preserves_rejected_and_lowering_blocked_truth() {
     )
     .expect("blocked bundle");
 
-    assert!(rejected.bundle_verified());
     assert_eq!(
         rejected.witness_report().status(),
         PrimitiveConstructionMotionWitnessResolutionStatus::Rejected
@@ -97,7 +95,6 @@ fn motion_report_bundle_preserves_rejected_and_lowering_blocked_truth() {
             .runtime_surface_status(),
         PrimitiveConstructionMotionRuntimeSurfaceStatus::MotionRejected
     );
-    assert!(blocked.bundle_verified());
     assert_eq!(
         blocked
             .branch_preview_runtime_report()
@@ -150,14 +147,12 @@ fn motion_report_bundle_supports_external_pivot_rotate_and_world_origin_points_t
     )
     .expect("world-origin points bundle");
 
-    assert!(rotate_bundle.bundle_verified());
     assert_eq!(
         rotate_bundle
             .branch_preview_runtime_report()
             .runtime_surface_status(),
         PrimitiveConstructionMotionRuntimeSurfaceStatus::Available
     );
-    assert!(bundle.bundle_verified());
     assert_eq!(
         bundle
             .branch_preview_runtime_report()
@@ -192,7 +187,6 @@ fn motion_report_bundle_supports_catalog_backed_point_witnesses() {
     )
     .expect("catalog bundle");
 
-    assert!(bundle.bundle_verified());
     assert_eq!(
         bundle.witness_report().resolution_class(),
         Some(SpatialWitnessResolutionClass::FallbackDerived)
@@ -245,14 +239,12 @@ fn motion_report_bundle_supports_feature_owned_anchor_paths_with_catalog() {
         )
         .expect("points bundle");
 
-    assert!(rotate_bundle.bundle_verified());
     assert_eq!(
         rotate_bundle
             .branch_preview_runtime_report()
             .runtime_surface_status(),
         PrimitiveConstructionMotionRuntimeSurfaceStatus::Available
     );
-    assert!(points_bundle.bundle_verified());
     assert_eq!(
         points_bundle
             .branch_preview_runtime_report()
@@ -283,7 +275,6 @@ fn motion_report_bundle_supports_feature_owned_move_anchor_paths_with_catalog() 
     )
     .expect("move bundle");
 
-    assert!(bundle.bundle_verified());
     assert_eq!(
         bundle
             .branch_preview_runtime_report()
@@ -305,7 +296,6 @@ fn motion_report_bundle_supports_external_reference_translation_paths() {
     )
     .expect("move bundle");
 
-    assert!(bundle.bundle_verified());
     assert_eq!(
         bundle
             .branch_preview_runtime_report()
@@ -348,7 +338,6 @@ fn motion_report_bundle_preserves_directional_anchor_ambiguity_truth() {
     )
     .expect("ambiguity bundle");
 
-    assert!(bundle.bundle_verified());
     assert_eq!(
         bundle
             .branch_preview_runtime_report()

@@ -1,0 +1,45 @@
+error[E0432]: unresolved imports `worth_kernel::facade::authoring::construction::PrimitiveConstructionAuthorityChainReport`, `worth_kernel::facade::authoring::construction::PrimitiveConstructionExecutionError`, `worth_kernel::facade::diagnostics::family::prepare_primitive_construction_family_boundary_report`, `worth_kernel::facade::diagnostics::family::prepare_primitive_construction_rejection_locality_report`, `worth_kernel::facade::diagnostics::family::PrimitiveConstructionFamilyBoundaryReport`, `worth_kernel::facade::diagnostics::family::PrimitiveConstructionRejectionLocalityReport`
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_misclassified_surface_exports_demoted.rs:3:9
+  |
+3 |         PrimitiveConstructionAuthorityChainReport, PrimitiveConstructionExecutionError,
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionExecutionError` in `facade::authoring::construction`
+  |         |
+  |         no `PrimitiveConstructionAuthorityChainReport` in `facade::authoring::construction`
+...
+6 |         prepare_primitive_construction_family_boundary_report,
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `prepare_primitive_construction_family_boundary_report` in `facade::diagnostics::family`
+7 |         prepare_primitive_construction_rejection_locality_report,
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `prepare_primitive_construction_rejection_locality_report` in `facade::diagnostics::family`
+8 |         PrimitiveConstructionFamilyBoundaryReport, PrimitiveConstructionRejectionLocalityReport,
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionRejectionLocalityReport` in `facade::diagnostics::family`
+  |         |
+  |         no `PrimitiveConstructionFamilyBoundaryReport` in `facade::diagnostics::family`
+  |
+  = help: consider importing this struct instead:
+          worth_kernel::facade::diagnostics::query::PrimitiveConstructionAuthorityChainReport
+  = help: consider importing this enum instead:
+          worth_kernel::facade::outcome::execution::PrimitiveConstructionExecutionError
+  = help: consider importing this struct instead:
+          worth_kernel::facade::certification::corpus::PrimitiveConstructionFamilyBoundaryReport
+  = help: consider importing this struct instead:
+          worth_kernel::facade::diagnostics::rejection::PrimitiveConstructionRejectionLocalityReport
+help: a similar name exists in the module
+  |
+3 -         PrimitiveConstructionAuthorityChainReport, PrimitiveConstructionExecutionError,
+3 +         PrimitiveConstructionAuthoringSession, PrimitiveConstructionExecutionError,
+  |
+help: a similar name exists in the module
+  |
+3 -         PrimitiveConstructionAuthorityChainReport, PrimitiveConstructionExecutionError,
+3 +         PrimitiveConstructionAuthorityChainReport, PrimitiveConstructionArtifactError,
+  |
+help: a similar name exists in the module
+  |
+6 -         prepare_primitive_construction_family_boundary_report,
+6 +         primitive_construction_family_coverage_report,
+  |
+help: a similar name exists in the module
+  |
+8 -         PrimitiveConstructionFamilyBoundaryReport, PrimitiveConstructionRejectionLocalityReport,
+8 +         PrimitiveConstructionFamilyCoverageReport, PrimitiveConstructionRejectionLocalityReport,
+  |

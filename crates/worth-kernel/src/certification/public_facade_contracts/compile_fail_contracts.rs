@@ -1,3 +1,5 @@
+use worth_kernel::facade::certification::closeout::prepare_primitive_construction_proof_boundary_compile_fail_report;
+
 #[test]
 fn kernel_public_boundary_rejects_internal_constructor_bypass() {
     let t = trybuild::TestCases::new();
@@ -22,6 +24,9 @@ fn kernel_public_boundary_rejects_internal_constructor_bypass() {
     ));
     t.compile_fail(format!(
         "{compile_fail}/results/public_prepared_result_constructor_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/results/public_root_happy_path_exports_demoted.rs"
     ));
     t.compile_fail(format!(
         "{compile_fail}/reports/public_branch_local_parity_report_constructor_not_exported.rs"
@@ -51,6 +56,18 @@ fn kernel_public_boundary_rejects_internal_constructor_bypass() {
         "{compile_fail}/reports/public_intent_arbitration_helper_exports_demoted.rs"
     ));
     t.compile_fail(format!(
+        "{compile_fail}/reports/public_authoring_bucket_exports_demoted.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/reports/public_diagnostics_bucket_exports_demoted.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/reports/public_certification_bucket_exports_demoted.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/reports/public_misclassified_surface_exports_demoted.rs"
+    ));
+    t.compile_fail(format!(
         "{compile_fail}/reports/public_preview_report_bundle_constructor_not_exported.rs"
     ));
     t.compile_fail(format!(
@@ -65,4 +82,7 @@ fn kernel_public_boundary_rejects_internal_constructor_bypass() {
     t.compile_fail(format!(
         "{compile_fail}/reports/public_preview_continuity_hostility_suite_constructor_not_exported.rs"
     ));
+    for fixture in prepare_primitive_construction_proof_boundary_compile_fail_report().fixtures() {
+        t.compile_fail(fixture.path().to_string());
+    }
 }

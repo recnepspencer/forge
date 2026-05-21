@@ -1,12 +1,11 @@
-use std::collections::hash_map::DefaultHasher;
-use std::hash::{Hash, Hasher};
-
 use forge_query::facade::{
     ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupportStatus,
     ForgeQueryRuntimePublicApiFamilyContract, ForgeQueryWorkspace,
 };
 use topology::facade::{topology_construction_authority, TopologyConstructionAuthority};
 use worth_spatial::facade::{construction_birth_authority, SpatialConstructionBirthAuthority};
+
+use crate::construction::digest::{digest_owned_parts_with_scope, ConstructionDigestScope};
 
 const REQUIRED_QUERY_FAMILIES: [ForgeQueryRuntimeFacadeFamily; 2] = [
     ForgeQueryRuntimeFacadeFamily::Write,
@@ -178,7 +177,8 @@ impl PrimitiveConstructionAuthorityChainReport {
                 .iter()
                 .map(|row| row.contract_digest().to_string()),
         );
-        let report_digest = digest_parts(&parts);
+        let report_digest =
+            digest_owned_parts_with_scope(ConstructionDigestScope::ArtifactIdentity, &parts);
         Self {
             workspace_name,
             query_front_door,
@@ -235,14 +235,6 @@ pub fn primitive_construction_authoring(
     PrimitiveConstructionAuthoringSession::new(workspace)
 }
 
-fn digest_parts(parts: &[String]) -> String {
-    let mut hasher = DefaultHasher::new();
-    for part in parts {
-        part.hash(&mut hasher);
-    }
-    format!("{:016x}", hasher.finish())
-}
-
 #[cfg(test)]
 mod tests {
     use super::primitive_construction_authoring;
@@ -280,7 +272,9 @@ mod tests {
         );
         assert_eq!(report.required_query_family_contracts().len(), 2);
         assert!(report.query_gap_rows().is_empty());
-        assert!(!report.report_digest().is_empty());
+        assert!(report
+            .report_digest()
+            .starts_with("worth-kernel.v1:artifact-identity:sha256:"));
     }
 
     #[test]

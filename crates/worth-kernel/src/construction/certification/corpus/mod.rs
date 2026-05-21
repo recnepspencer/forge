@@ -13,6 +13,7 @@ mod replay_siege_report;
 mod row_support;
 mod simplex_exhaustion_witness_report;
 mod simplex_ladder_report;
+mod simplex_registry;
 
 pub use compound::{
     prepare_primitive_construction_compound_adversarial_siege_report,
@@ -33,9 +34,12 @@ pub use compound::{
     PrimitiveConstructionCompoundMotionParityReport, PrimitiveConstructionCompoundMotionParityRow,
     PrimitiveConstructionCompoundOrderLaneReport,
     PrimitiveConstructionCompoundOrderingParityReport,
-    PrimitiveConstructionCompoundOrderingScenarioRow, PrimitiveConstructionCompoundParityReport,
-    PrimitiveConstructionCompoundRow, PrimitiveConstructionCompoundRowClass,
-    PrimitiveConstructionCompoundTopologyClass, PrimitiveConstructionCompoundWorkloadFamily,
+    PrimitiveConstructionCompoundOrderingScenarioRow,
+    PrimitiveConstructionCompoundParityCanonicalTruth, PrimitiveConstructionCompoundParityReport,
+    PrimitiveConstructionCompoundParityVerificationFailure,
+    PrimitiveConstructionCompoundParityVerificationMismatch, PrimitiveConstructionCompoundRow,
+    PrimitiveConstructionCompoundRowClass, PrimitiveConstructionCompoundTopologyClass,
+    PrimitiveConstructionCompoundWorkloadFamily,
 };
 pub use family_boundary_drift_report::{
     prepare_primitive_construction_family_boundary_drift_report,
@@ -66,6 +70,9 @@ pub use simplex_ladder_report::{
     PrimitiveConstructionSimplexRealizationLadderReportError,
     PrimitiveConstructionSimplexRealizationLadderRow,
     PrimitiveConstructionSimplexRealizationStrategyLadderReport,
+};
+pub(crate) use simplex_registry::{
+    required_simplex_exhaustion_witness_kinds, required_simplex_ladder_scenarios,
 };
 
 #[cfg(test)]

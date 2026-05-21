@@ -1,15 +1,5 @@
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
-use worth_kernel::facade::{
-    prepare_primitive_chosen_intent_resolution_report,
-    prepare_primitive_construction_query_intent_arbitration_inspection_parity_report,
-    prepare_primitive_construction_query_intent_arbitration_projection_consumption_receipt_report,
-    prepare_primitive_intent_arbitration_policy_report,
-    PrimitiveConstructionChosenIntentResolutionAuthority,
-    PrimitiveConstructionChosenIntentResolutionCase,
-    PrimitiveConstructionIntentArbitrationPolicyCase,
-    PrimitiveConstructionIntentArbitrationQueryFactProvenance,
-    PrimitiveConstructionIntentArbitrationQueryReadSurface, PrimitiveConstructionIntentChosenTruth,
-};
+use worth_kernel::facade::{certification::query::*, diagnostics::arbitration::*};
 use worth_spatial::facade::SpatialIntentCandidate;
 
 #[test]

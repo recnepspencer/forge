@@ -4,5 +4,5 @@ error[E0432]: unresolved import `worth_kernel::facade::PrimitiveConstructionCert
 1 | use worth_kernel::facade::PrimitiveConstructionCertificationPlan;
   |     ^^^^^^^^^^^^^^^^^^^^^^--------------------------------------
   |     |                     |
-  |     |                     help: a similar name exists in the module: `PrimitiveConstructionRejectionClass`
+  |     |                     help: a similar name exists in the module: `PrimitiveConstructionArtifactError`
   |     no `PrimitiveConstructionCertificationPlan` in `facade`

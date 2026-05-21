@@ -1,17 +1,8 @@
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_kernel::facade::{
-    prepare_primitive_construction_continuity_hostility_suite_report,
-    prepare_primitive_construction_policy_profile_branch_preview_runtime_report,
-    prepare_primitive_construction_policy_profile_bundle_from_combined_hostility_suite,
-    prepare_primitive_construction_policy_profile_bundle_from_hostility_suites,
-    prepare_primitive_construction_policy_profile_replay_parity_report,
-    prepare_primitive_construction_policy_profile_report,
-    prepare_primitive_construction_policy_profile_report_bundle,
-    prepare_primitive_construction_preview_continuity_hostility_suite_report,
-    prepare_primitive_construction_preview_hostility_suite_report,
-    prepare_primitive_construction_query_policy_profile_inspection_parity_report,
-    prepare_primitive_construction_query_policy_profile_projection_consumption_receipt_report,
-    PrimitiveConstructionPolicyProfileCase, SpatialArbitrationPosture, SpatialPreviewRichness,
+    authoring::policy::*,
+    certification::{continuity::*, policy::*, preview::*, query::*},
+    diagnostics::policy::*,
 };
 
 #[test]

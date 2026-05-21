@@ -1,11 +1,8 @@
-use crate::construction::certification::corpus::closeout::{
-    PrimitiveConstructionCorpusCloseoutGateStatus,
-    PrimitiveConstructionCorpusRequiredScenarioInventory,
-};
 use crate::construction::certification::corpus::compound::lane_report::{
     PrimitiveConstructionCompoundAuthoringOrderRow, PrimitiveConstructionCompoundOrderLaneReport,
 };
 use crate::construction::certification::corpus::compound::ordering_report::PrimitiveConstructionCompoundOrderingParityReport;
+use crate::construction::certification::corpus::compound::parity::compound_parity_registry;
 use crate::construction::certification::corpus::compound::rows::{
     PrimitiveConstructionCompoundExhaustionWitnessParityRow,
     PrimitiveConstructionCompoundGrazingBoundaryRow, PrimitiveConstructionCompoundMotionParityRow,
@@ -13,46 +10,6 @@ use crate::construction::certification::corpus::compound::rows::{
 };
 use crate::construction::digest::digest_owned_parts;
 use std::collections::{BTreeMap, BTreeSet};
-
-const EXPECTED_MOTION_ROWS: [(&str, super::schema::PrimitiveConstructionCompoundMotionKind); 3] = [
-    (
-        "sheet_patch_reorient_grazing_workplane",
-        super::schema::PrimitiveConstructionCompoundMotionKind::Reorient,
-    ),
-    (
-        "wire_open_endpoint_graze",
-        super::schema::PrimitiveConstructionCompoundMotionKind::Offset,
-    ),
-    (
-        "wire_open_motion_relocation",
-        super::schema::PrimitiveConstructionCompoundMotionKind::Move,
-    ),
-];
-
-const EXPECTED_GRAZING_ROWS: [(
-    &str,
-    super::schema::PrimitiveConstructionCompoundGrazingKind,
-); 2] = [
-    (
-        "sheet_patch_reorient_grazing_workplane",
-        super::schema::PrimitiveConstructionCompoundGrazingKind::NearFrameNormalAlignment,
-    ),
-    (
-        "wire_open_endpoint_graze",
-        super::schema::PrimitiveConstructionCompoundGrazingKind::NearReferenceAnchorDistance,
-    ),
-];
-
-const EXPECTED_EXHAUSTION_ROWS: [(&str, worth_geom::facade::PrimitiveRealizationExhaustionWitnessKind); 2] = [
-    (
-        "pyramid_semantic_exhaustion",
-        worth_geom::facade::PrimitiveRealizationExhaustionWitnessKind::ZeroRadiusPyramidSupportCollapse,
-    ),
-    (
-        "simplex_world_collapsed_explicit_exhaustion",
-        worth_geom::facade::PrimitiveRealizationExhaustionWitnessKind::AltitudeSqueezedSimplexSupportCollapse,
-    ),
-];
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PrimitiveConstructionCompoundAdversarialSiegeReport {
     lane_reports: Vec<PrimitiveConstructionCompoundOrderLaneReport>,
@@ -128,13 +85,10 @@ impl PrimitiveConstructionCompoundMotionParityReport {
                     .is_some_and(|scenario| {
                         scenario.stable_across_orders()
                             && scenario.motion_kind_stable()
-                            && row.motion_kind()
-                                == EXPECTED_MOTION_ROWS
-                                    .iter()
-                                    .find_map(|(scenario_id, kind)| {
-                                        (*scenario_id == row.scenario_id()).then_some(*kind)
-                                    })
-                                    .expect("expected motion inventory is complete")
+                            && compound_parity_registry()
+                                .motion_inventory()
+                                .get(row.scenario_id())
+                                .is_some_and(|kind| row.motion_kind() == *kind)
                     })
             });
         let mut parts = rows
@@ -187,13 +141,10 @@ impl PrimitiveConstructionCompoundGrazingBoundaryReport {
                     .is_some_and(|scenario| {
                         scenario.stable_across_orders()
                             && scenario.grazing_kind_stable()
-                            && row.grazing_kind()
-                                == EXPECTED_GRAZING_ROWS
-                                    .iter()
-                                    .find_map(|(scenario_id, kind)| {
-                                        (*scenario_id == row.scenario_id()).then_some(*kind)
-                                    })
-                                    .expect("expected grazing inventory is complete")
+                            && compound_parity_registry()
+                                .grazing_inventory()
+                                .get(row.scenario_id())
+                                .is_some_and(|kind| row.grazing_kind() == *kind)
                     })
             });
         let mut parts = rows
@@ -221,85 +172,6 @@ impl PrimitiveConstructionCompoundGrazingBoundaryReport {
     pub fn parity_verified(&self) -> bool {
         self.parity_verified
     }
-    pub fn report_digest(&self) -> &str {
-        &self.report_digest
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PrimitiveConstructionCompoundMilestoneCloseoutReport {
-    siege: PrimitiveConstructionCompoundAdversarialSiegeReport,
-    parity: PrimitiveConstructionCompoundParityReport,
-    requirements: PrimitiveConstructionCorpusRequiredScenarioInventory,
-    gate: PrimitiveConstructionCorpusCloseoutGateStatus,
-    report_digest: String,
-}
-
-impl PrimitiveConstructionCompoundMilestoneCloseoutReport {
-    pub(crate) fn new(
-        siege: PrimitiveConstructionCompoundAdversarialSiegeReport,
-        parity: PrimitiveConstructionCompoundParityReport,
-        requirements: PrimitiveConstructionCorpusRequiredScenarioInventory,
-    ) -> Self {
-        let required_rows_present =
-            requirements.all_present(|scenario_id| siege.row_for(scenario_id));
-        let gate = PrimitiveConstructionCorpusCloseoutGateStatus::new(
-            &requirements,
-            required_rows_present,
-            parity.parity_verified(),
-            [
-                siege.report_digest().to_string(),
-                parity.report_digest().to_string(),
-            ],
-        );
-        let report_digest = digest_owned_parts(&[
-            siege.report_digest().to_string(),
-            parity.report_digest().to_string(),
-            requirements.inventory_digest().to_string(),
-            gate.gate_digest().to_string(),
-        ]);
-        Self {
-            siege,
-            parity,
-            requirements,
-            gate,
-            report_digest,
-        }
-    }
-
-    pub fn siege(&self) -> &PrimitiveConstructionCompoundAdversarialSiegeReport {
-        &self.siege
-    }
-
-    pub fn motion(&self) -> &PrimitiveConstructionCompoundMotionParityReport {
-        self.parity.motion()
-    }
-
-    pub fn parity(&self) -> &PrimitiveConstructionCompoundParityReport {
-        &self.parity
-    }
-
-    pub fn grazing(&self) -> &PrimitiveConstructionCompoundGrazingBoundaryReport {
-        self.parity.grazing()
-    }
-
-    pub fn required_scenarios(&self) -> &[String] {
-        self.requirements.scenario_ids()
-    }
-
-    pub fn required_row_for(&self, scenario_id: &str) -> Option<&PrimitiveConstructionCompoundRow> {
-        self.requirements
-            .row_for(scenario_id, |required| self.siege.row_for(required))
-    }
-
-    pub fn required_rows_present(&self) -> bool {
-        self.gate.required_rows_present()
-    }
-
-    pub fn closeout_gate_verified(&self) -> bool {
-        self.gate.gate_verified()
-    }
-
     pub fn report_digest(&self) -> &str {
         &self.report_digest
     }
@@ -363,16 +235,13 @@ impl PrimitiveConstructionCompoundExhaustionWitnessParityReport {
 }
 
 fn exact_motion_inventory_matches(rows: &[PrimitiveConstructionCompoundMotionParityRow]) -> bool {
+    let registry = compound_parity_registry();
     let actual = rows
         .iter()
         .map(|row| (row.scenario_id().to_string(), row.motion_kind()))
         .collect::<BTreeMap<_, _>>();
     actual.len() == rows.len()
-        && actual
-            == EXPECTED_MOTION_ROWS
-                .into_iter()
-                .map(|(scenario_id, kind)| (scenario_id.to_string(), kind))
-                .collect::<BTreeMap<_, _>>()
+        && actual == *registry.motion_inventory()
         && rows
             .iter()
             .map(|row| row.row_digest().to_string())
@@ -384,16 +253,13 @@ fn exact_motion_inventory_matches(rows: &[PrimitiveConstructionCompoundMotionPar
 fn exact_grazing_inventory_matches(
     rows: &[PrimitiveConstructionCompoundGrazingBoundaryRow],
 ) -> bool {
+    let registry = compound_parity_registry();
     let actual = rows
         .iter()
         .map(|row| (row.scenario_id().to_string(), row.grazing_kind()))
         .collect::<BTreeMap<_, _>>();
     actual.len() == rows.len()
-        && actual
-            == EXPECTED_GRAZING_ROWS
-                .into_iter()
-                .map(|(scenario_id, kind)| (scenario_id.to_string(), kind))
-                .collect::<BTreeMap<_, _>>()
+        && actual == *registry.grazing_inventory()
         && rows
             .iter()
             .map(|row| row.row_digest().to_string())
@@ -405,83 +271,17 @@ fn exact_grazing_inventory_matches(
 fn exact_exhaustion_inventory_matches(
     rows: &[PrimitiveConstructionCompoundExhaustionWitnessParityRow],
 ) -> bool {
+    let registry = compound_parity_registry();
     let actual = rows
         .iter()
         .map(|row| (row.scenario_id().to_string(), row.witness_kind()))
         .collect::<BTreeMap<_, _>>();
     actual.len() == rows.len()
-        && actual
-            == EXPECTED_EXHAUSTION_ROWS
-                .into_iter()
-                .map(|(scenario_id, kind)| (scenario_id.to_string(), kind))
-                .collect::<BTreeMap<_, _>>()
+        && actual == *registry.exhaustion_inventory()
         && rows
             .iter()
             .map(|row| row.row_digest().to_string())
             .collect::<BTreeSet<_>>()
             .len()
             == rows.len()
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct PrimitiveConstructionCompoundParityReport {
-    ordering: PrimitiveConstructionCompoundOrderingParityReport,
-    motion: PrimitiveConstructionCompoundMotionParityReport,
-    grazing: PrimitiveConstructionCompoundGrazingBoundaryReport,
-    exhaustion: PrimitiveConstructionCompoundExhaustionWitnessParityReport,
-    parity_verified: bool,
-    report_digest: String,
-}
-
-impl PrimitiveConstructionCompoundParityReport {
-    pub fn new(
-        ordering: PrimitiveConstructionCompoundOrderingParityReport,
-        motion: PrimitiveConstructionCompoundMotionParityReport,
-        grazing: PrimitiveConstructionCompoundGrazingBoundaryReport,
-        exhaustion: PrimitiveConstructionCompoundExhaustionWitnessParityReport,
-    ) -> Self {
-        let parity_verified = ordering.parity_verified()
-            && motion.parity_verified()
-            && grazing.parity_verified()
-            && exhaustion.parity_verified();
-        let report_digest = digest_owned_parts(&[
-            ordering.report_digest().to_string(),
-            motion.report_digest().to_string(),
-            grazing.report_digest().to_string(),
-            exhaustion.report_digest().to_string(),
-            parity_verified.to_string(),
-        ]);
-        Self {
-            ordering,
-            motion,
-            grazing,
-            exhaustion,
-            parity_verified,
-            report_digest,
-        }
-    }
-
-    pub fn ordering(&self) -> &PrimitiveConstructionCompoundOrderingParityReport {
-        &self.ordering
-    }
-
-    pub fn motion(&self) -> &PrimitiveConstructionCompoundMotionParityReport {
-        &self.motion
-    }
-
-    pub fn grazing(&self) -> &PrimitiveConstructionCompoundGrazingBoundaryReport {
-        &self.grazing
-    }
-
-    pub fn exhaustion(&self) -> &PrimitiveConstructionCompoundExhaustionWitnessParityReport {
-        &self.exhaustion
-    }
-
-    pub fn parity_verified(&self) -> bool {
-        self.parity_verified
-    }
-
-    pub fn report_digest(&self) -> &str {
-        &self.report_digest
-    }
 }

@@ -1,16 +1,9 @@
 use forge_query::facade::ForgeQueryAuthorityLane;
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_kernel::facade::{
-    prepare_primitive_construction_continuity_branch_preview_runtime_report,
-    prepare_primitive_construction_continuity_bundle_from_hostility_suite,
-    prepare_primitive_construction_continuity_hostility_suite_report,
-    prepare_primitive_construction_continuity_replay_parity_report,
-    prepare_primitive_construction_continuity_report_bundle,
-    prepare_primitive_construction_continuity_surface_report,
-    prepare_primitive_construction_query_continuity_inspection_parity_report,
-    PrimitiveConstructionContinuityCase, PrimitiveIntentPreview, SpatialAuthoredActKind,
-    SpatialIdentityContinuityClass, SpatialIntentCapabilitySet, SpatialIntentPolicyProfile,
-    SpatialObservedRelationFact,
+    authoring::{intents::*, policy::*},
+    certification::{continuity::*, query::*},
+    diagnostics::{arbitration::*, continuity::*, preview::*},
 };
 
 #[test]

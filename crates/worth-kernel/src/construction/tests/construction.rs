@@ -1,3 +1,4 @@
+use crate::construction::phase_report::PrimitiveConstructionPhaseChainReport;
 use crate::construction::{
     build_canonical_primitive_construction_artifact, lower_scaffold_to_topology,
     prepare_primitive_construction_branch_local_parity_report,
@@ -9,8 +10,8 @@ use crate::construction::{
     primitive_construction_family_coverage_report, OrthotopeSpec,
     PreparedPrimitiveConstructionExecution, PrimitiveConstructionFamily,
     PrimitiveConstructionFamilyCoverageStatus, PrimitiveConstructionIntent,
-    PrimitiveConstructionPhaseChainReport, PrimitiveConstructionRequest, RegularPrismSpec,
-    RegularPyramidSpec, ShellWithHoleSpec, SimplexSolidSpec, WireBodySpec,
+    PrimitiveConstructionRequest, RegularPrismSpec, RegularPyramidSpec, ShellWithHoleSpec,
+    SimplexSolidSpec, WireBodySpec,
 };
 use forge_query::facade::ForgeQueryAuthorityLane;
 use topology::facade::{

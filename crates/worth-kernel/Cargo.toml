@@ -15,9 +15,12 @@ path = "src/certification/public_facade_contracts/compile_fail_contracts.rs"
 
 [dependencies]
 forge-query.workspace = true
+forge-proof.workspace = true
 worth-geom.workspace = true
+worth-math.workspace = true
 worth-spatial.workspace = true
 worth-topo.workspace = true
+sha2 = "0.10"
 
 [dev-dependencies]
 trybuild.workspace = true

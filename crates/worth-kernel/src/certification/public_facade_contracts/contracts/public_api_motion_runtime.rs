@@ -1,16 +1,7 @@
 use topology::facade::{milestone_one_runtime_builder, topology_runtime, TopologyRuntimeAdapters};
 use worth_kernel::facade::{
-    prepare_primitive_construction_move_branch_preview_runtime_report,
-    prepare_primitive_construction_move_branch_preview_runtime_report_with_catalog,
-    prepare_primitive_construction_move_replay_parity_report,
-    prepare_primitive_construction_points_toward_branch_preview_runtime_report,
-    prepare_primitive_construction_points_toward_replay_parity_report,
-    prepare_primitive_construction_reorient_branch_preview_runtime_report,
-    prepare_primitive_construction_reorient_replay_parity_report,
-    prepare_primitive_construction_rotate_branch_preview_runtime_report,
-    prepare_primitive_construction_rotate_replay_parity_report, MoveSpatialIntent,
-    PrimitiveConstructionIntent, PrimitiveConstructionMotionRuntimeSurfaceStatus,
-    RegularPyramidSpec, ReorientSpatialIntent, RotateSpatialIntent, WireBodySpec,
+    authoring::{construction::*, intents::*},
+    diagnostics::motion::*,
 };
 use worth_spatial::facade::{
     SpatialAnchorRef, SpatialAxis, SpatialCarrierPointRole, SpatialCatalogResolvedPointWitness,
@@ -241,7 +232,7 @@ fn kernel_public_facade_preserves_feature_owned_anchor_witness_failure_in_motion
         .by_radians(0.5),
     )
     .expect("runtime report");
-    let blocked = worth_kernel::facade::prepare_primitive_construction_rotate_branch_preview_runtime_report_with_catalog(
+    let blocked = prepare_primitive_construction_rotate_branch_preview_runtime_report_with_catalog(
         &mut workspace,
         RotateSpatialIntent::shape(PrimitiveConstructionIntent::wire_body(WireBodySpec {
             edge_count: 6,

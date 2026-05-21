@@ -1,15 +1,4 @@
-use worth_kernel::facade::{
-    prepare_primitive_chosen_intent_resolution_report,
-    prepare_primitive_intent_arbitration_policy_report,
-    prepare_primitive_intent_conflict_dx_surface_report,
-    PrimitiveConstructionChosenIntentResolutionAuthority,
-    PrimitiveConstructionChosenIntentResolutionCase,
-    PrimitiveConstructionIntentArbitrationDxSurface,
-    PrimitiveConstructionIntentArbitrationPolicyCase, PrimitiveIntentClarificationRequestError,
-    PrimitiveIntentConflict, SpatialAuthoredActKind, SpatialIntentCandidate,
-    SpatialIntentCapabilitySet, SpatialIntentConflictClass, SpatialIntentEscalation,
-    SpatialObservedRelationFact,
-};
+use worth_kernel::facade::{authoring::intents::*, diagnostics::arbitration::*};
 use worth_spatial::facade::SpatialBlockedCapability;
 
 #[test]
@@ -76,7 +65,7 @@ fn kernel_public_facade_exports_artifact_style_intent_resolution_surface() {
     assert_eq!(policy.chosen_candidate(), SpatialIntentCandidate::MoveOnly);
     assert_eq!(
         explicit.authority(),
-        worth_kernel::facade::SpatialChosenIntentAuthority::ExplicitChoice
+        SpatialChosenIntentAuthority::ExplicitChoice
     );
 }
 

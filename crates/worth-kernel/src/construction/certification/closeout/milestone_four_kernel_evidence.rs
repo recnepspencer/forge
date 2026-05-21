@@ -1,9 +1,9 @@
 use forge_query::facade::ForgeQueryWorkspace;
 
-use crate::construction::certification::closeout::milestone_four_kernel_requirements::{
-    arbitration_policy_inventory_present, continuity_inventory_present,
-    motion_policy_inventory_present, policy_profile_inventory_present, preview_inventory_present,
-    query_boundary_closeout_verified, realization_exhaustion_inventory_present,
+use crate::construction::certification::closeout::milestone_four_kernel_evidence_verified::{
+    verify_closeout, PrimitiveConstructionMilestoneFourKernelCloseoutAssembly,
+    PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReport,
+    PrimitiveConstructionMilestoneFourKernelCloseoutVerificationFailure,
 };
 use crate::construction::certification::{
     prepare_primitive_construction_continuity_bundle_from_hostility_suite,
@@ -20,214 +20,36 @@ use crate::construction::certification::{
     prepare_primitive_construction_realization_exhaustion_witness_report,
     prepare_primitive_intent_arbitration_policy_report,
     prepare_primitive_intent_conflict_dx_surface_report, PrimitiveConstructionContinuityCase,
-    PrimitiveConstructionContinuityReportBundle, PrimitiveConstructionContinuityReportBundleError,
-    PrimitiveConstructionContinuitySurfaceReport,
+    PrimitiveConstructionContinuityReportBundleError,
     PrimitiveConstructionContinuitySurfaceReportError,
     PrimitiveConstructionIntentArbitrationBundleCase,
-    PrimitiveConstructionIntentArbitrationDxSurfaceReport,
-    PrimitiveConstructionIntentArbitrationPolicyReport,
     PrimitiveConstructionIntentArbitrationPolicyReportError,
-    PrimitiveConstructionIntentArbitrationReportBundle,
     PrimitiveConstructionIntentArbitrationReportBundleError,
-    PrimitiveConstructionMotionDxSurfaceReport, PrimitiveConstructionMotionDxSurfaceReportError,
-    PrimitiveConstructionMotionResolutionPolicyReport,
+    PrimitiveConstructionMotionDxSurfaceReportError,
     PrimitiveConstructionMotionResolutionPolicyReportError,
-    PrimitiveConstructionPhaseFiveSixCloseoutReport,
     PrimitiveConstructionPhaseFiveSixCloseoutReportError, PrimitiveConstructionPolicyProfileCase,
-    PrimitiveConstructionPolicyProfileReportBundle,
-    PrimitiveConstructionPolicyProfileReportBundleError,
-    PrimitiveConstructionPolicyProfileSurfaceReport, PrimitiveConstructionPreviewCase,
-    PrimitiveConstructionPreviewReportBundle, PrimitiveConstructionPreviewReportBundleError,
-    PrimitiveConstructionPreviewSurfaceReport, PrimitiveConstructionPreviewSurfaceReportError,
-    PrimitiveConstructionRealizationExhaustionWitnessReport,
+    PrimitiveConstructionPolicyProfileReportBundleError, PrimitiveConstructionPreviewCase,
+    PrimitiveConstructionPreviewReportBundleError, PrimitiveConstructionPreviewSurfaceReportError,
 };
-use crate::construction::digest::digest_owned_parts;
 use crate::construction::query::{
     prepare_primitive_construction_query_basis_preview_parity_report,
     prepare_primitive_construction_query_boundary_gap_register,
     prepare_primitive_construction_query_existing_truth_binding_report,
     prepare_primitive_construction_query_graph_composition_parity_report,
     prepare_primitive_construction_query_no_local_runtime_workaround_audit,
-    PrimitiveConstructionQueryBasisPreviewParityReport,
-    PrimitiveConstructionQueryBoundaryGapRegister,
     PrimitiveConstructionQueryGraphCompositionParityError,
-    PrimitiveConstructionQueryGraphCompositionParityReport,
-    PrimitiveConstructionQueryNoLocalRuntimeWorkaroundAudit,
 };
 use crate::construction::{
-    prepare_primitive_construction_intent_arbitration_report_bundle, OrthotopeSpec,
-    PrimitiveConstructionExistingTruthBindingPosture, PrimitiveConstructionIntent,
+    prepare_primitive_construction_intent_arbitration_report_bundle,
+    prepare_primitive_construction_proof_substrate_closeout_report, OrthotopeSpec,
+    PrimitiveConstructionIntent, PrimitiveConstructionProofSubstrateCloseoutReportError,
     PrimitiveConstructionRuntimeBasisError, SimplexSolidSpec, WorthKernelAuthorityError,
 };
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReport {
-    phase_five_six_closeout: PrimitiveConstructionPhaseFiveSixCloseoutReport,
-    query_boundary_gap_register: PrimitiveConstructionQueryBoundaryGapRegister,
-    query_no_local_runtime_workaround_audit:
-        PrimitiveConstructionQueryNoLocalRuntimeWorkaroundAudit,
-    query_existing_truth_binding_report:
-        crate::construction::PrimitiveConstructionQueryExistingTruthBindingReport,
-    query_graph_composition_parity_report: PrimitiveConstructionQueryGraphCompositionParityReport,
-    query_basis_preview_parity_report: PrimitiveConstructionQueryBasisPreviewParityReport,
-    motion_policy_report: PrimitiveConstructionMotionResolutionPolicyReport,
-    motion_dx_surface_report: PrimitiveConstructionMotionDxSurfaceReport,
-    intent_arbitration_policy_report: PrimitiveConstructionIntentArbitrationPolicyReport,
-    intent_conflict_dx_surface_report: PrimitiveConstructionIntentArbitrationDxSurfaceReport,
-    representative_intent_bundle: PrimitiveConstructionIntentArbitrationReportBundle,
-    preview_surface_report: PrimitiveConstructionPreviewSurfaceReport,
-    representative_preview_bundle: PrimitiveConstructionPreviewReportBundle,
-    continuity_surface_report: PrimitiveConstructionContinuitySurfaceReport,
-    representative_continuity_bundle: PrimitiveConstructionContinuityReportBundle,
-    policy_profile_report: PrimitiveConstructionPolicyProfileSurfaceReport,
-    representative_policy_profile_bundle: PrimitiveConstructionPolicyProfileReportBundle,
-    realization_exhaustion_witness_report: PrimitiveConstructionRealizationExhaustionWitnessReport,
-    query_closeout_verified: bool,
-    spatial_intent_closeout_verified: bool,
-    realization_closeout_verified: bool,
-    kernel_evidence_verified: bool,
-    report_digest: String,
-}
-
-impl PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReport {
-    fn new(
-        phase_five_six_closeout: PrimitiveConstructionPhaseFiveSixCloseoutReport,
-        query_boundary_gap_register: PrimitiveConstructionQueryBoundaryGapRegister,
-        query_no_local_runtime_workaround_audit: PrimitiveConstructionQueryNoLocalRuntimeWorkaroundAudit,
-        query_existing_truth_binding_report: crate::construction::PrimitiveConstructionQueryExistingTruthBindingReport,
-        query_graph_composition_parity_report: PrimitiveConstructionQueryGraphCompositionParityReport,
-        query_basis_preview_parity_report: PrimitiveConstructionQueryBasisPreviewParityReport,
-        motion_policy_report: PrimitiveConstructionMotionResolutionPolicyReport,
-        motion_dx_surface_report: PrimitiveConstructionMotionDxSurfaceReport,
-        intent_arbitration_policy_report: PrimitiveConstructionIntentArbitrationPolicyReport,
-        intent_conflict_dx_surface_report: PrimitiveConstructionIntentArbitrationDxSurfaceReport,
-        representative_intent_bundle: PrimitiveConstructionIntentArbitrationReportBundle,
-        preview_surface_report: PrimitiveConstructionPreviewSurfaceReport,
-        representative_preview_bundle: PrimitiveConstructionPreviewReportBundle,
-        continuity_surface_report: PrimitiveConstructionContinuitySurfaceReport,
-        representative_continuity_bundle: PrimitiveConstructionContinuityReportBundle,
-        policy_profile_report: PrimitiveConstructionPolicyProfileSurfaceReport,
-        representative_policy_profile_bundle: PrimitiveConstructionPolicyProfileReportBundle,
-        realization_exhaustion_witness_report: PrimitiveConstructionRealizationExhaustionWitnessReport,
-    ) -> Self {
-        let query_closeout_verified = query_boundary_closeout_verified(&query_boundary_gap_register)
-            && query_no_local_runtime_workaround_audit.violation_count() == 0
-            && query_existing_truth_binding_report.posture()
-                == PrimitiveConstructionExistingTruthBindingPosture::NotRequiredForFreshPrimitiveBirth
-            && query_existing_truth_binding_report.forbidden_pattern_count() == 0
-            && query_graph_composition_parity_report.parity_verified()
-            && query_basis_preview_parity_report.parity_verified();
-        let spatial_intent_closeout_verified =
-            motion_policy_inventory_present(&motion_policy_report)
-                && motion_dx_surface_report.rows().len() == 9
-                && arbitration_policy_inventory_present(&intent_arbitration_policy_report)
-                && intent_conflict_dx_surface_report.rows().len() == 6
-                && representative_intent_bundle.bundle_verified()
-                && preview_inventory_present(&preview_surface_report)
-                && representative_preview_bundle.parity_verified()
-                && continuity_inventory_present(&continuity_surface_report)
-                && representative_continuity_bundle.parity_verified()
-                && policy_profile_inventory_present(&policy_profile_report)
-                && representative_policy_profile_bundle.parity_verified();
-        let realization_closeout_verified =
-            realization_exhaustion_inventory_present(&realization_exhaustion_witness_report);
-        let kernel_evidence_verified = phase_five_six_closeout.closeout_verified()
-            && query_closeout_verified
-            && spatial_intent_closeout_verified
-            && realization_closeout_verified;
-        let report_digest = digest_owned_parts(&[
-            phase_five_six_closeout.report_digest().to_string(),
-            query_boundary_gap_register.report_digest().to_string(),
-            query_no_local_runtime_workaround_audit
-                .report_digest()
-                .to_string(),
-            query_existing_truth_binding_report
-                .report_digest()
-                .to_string(),
-            query_graph_composition_parity_report
-                .report_digest()
-                .to_string(),
-            query_basis_preview_parity_report
-                .report_digest()
-                .to_string(),
-            motion_policy_report.report_digest().to_string(),
-            motion_dx_surface_report.report_digest().to_string(),
-            intent_arbitration_policy_report.report_digest().to_string(),
-            intent_conflict_dx_surface_report
-                .report_digest()
-                .to_string(),
-            representative_intent_bundle.bundle_digest().to_string(),
-            preview_surface_report.report_digest().to_string(),
-            representative_preview_bundle.report_digest().to_string(),
-            continuity_surface_report.report_digest().to_string(),
-            representative_continuity_bundle.report_digest().to_string(),
-            policy_profile_report.report_digest().to_string(),
-            representative_policy_profile_bundle
-                .report_digest()
-                .to_string(),
-            realization_exhaustion_witness_report
-                .report_digest()
-                .to_string(),
-            query_closeout_verified.to_string(),
-            spatial_intent_closeout_verified.to_string(),
-            realization_closeout_verified.to_string(),
-            kernel_evidence_verified.to_string(),
-        ]);
-        Self {
-            phase_five_six_closeout,
-            query_boundary_gap_register,
-            query_no_local_runtime_workaround_audit,
-            query_existing_truth_binding_report,
-            query_graph_composition_parity_report,
-            query_basis_preview_parity_report,
-            motion_policy_report,
-            motion_dx_surface_report,
-            intent_arbitration_policy_report,
-            intent_conflict_dx_surface_report,
-            representative_intent_bundle,
-            preview_surface_report,
-            representative_preview_bundle,
-            continuity_surface_report,
-            representative_continuity_bundle,
-            policy_profile_report,
-            representative_policy_profile_bundle,
-            realization_exhaustion_witness_report,
-            query_closeout_verified,
-            spatial_intent_closeout_verified,
-            realization_closeout_verified,
-            kernel_evidence_verified,
-            report_digest,
-        }
-    }
-
-    pub fn phase_five_six_closeout(&self) -> &PrimitiveConstructionPhaseFiveSixCloseoutReport {
-        &self.phase_five_six_closeout
-    }
-
-    pub fn query_closeout_verified(&self) -> bool {
-        self.query_closeout_verified
-    }
-
-    pub fn spatial_intent_closeout_verified(&self) -> bool {
-        self.spatial_intent_closeout_verified
-    }
-
-    pub fn realization_closeout_verified(&self) -> bool {
-        self.realization_closeout_verified
-    }
-
-    pub fn kernel_evidence_verified(&self) -> bool {
-        self.kernel_evidence_verified
-    }
-
-    pub fn report_digest(&self) -> &str {
-        &self.report_digest
-    }
-}
 
 #[derive(Debug)]
 pub enum PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError {
     PhaseFiveSix(PrimitiveConstructionPhaseFiveSixCloseoutReportError),
+    ProofSubstrateCloseout(PrimitiveConstructionProofSubstrateCloseoutReportError),
     QueryBoundaryGapRegister(WorthKernelAuthorityError),
     QueryGraphComposition(PrimitiveConstructionQueryGraphCompositionParityError),
     QueryBasisPreview(PrimitiveConstructionRuntimeBasisError),
@@ -241,12 +63,14 @@ pub enum PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError {
     ContinuitySurface(PrimitiveConstructionContinuitySurfaceReportError),
     ContinuityBundle(PrimitiveConstructionContinuityReportBundleError),
     PolicyProfileBundle(PrimitiveConstructionPolicyProfileReportBundleError),
+    Verification(PrimitiveConstructionMilestoneFourKernelCloseoutVerificationFailure),
 }
 
 impl std::fmt::Display for PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
             Self::PhaseFiveSix(error) => write!(f, "{error}"),
+            Self::ProofSubstrateCloseout(error) => write!(f, "{error}"),
             Self::QueryBoundaryGapRegister(error) => write!(f, "{error:?}"),
             Self::QueryGraphComposition(error) => write!(f, "{error}"),
             Self::QueryBasisPreview(error) => write!(f, "{error}"),
@@ -260,6 +84,13 @@ impl std::fmt::Display for PrimitiveConstructionMilestoneFourKernelCloseoutEvide
             Self::ContinuitySurface(error) => write!(f, "{error}"),
             Self::ContinuityBundle(error) => write!(f, "{error}"),
             Self::PolicyProfileBundle(error) => write!(f, "{error}"),
+            Self::Verification(failure) => {
+                write!(
+                    f,
+                    "milestone four kernel closeout failed verification: {:?}",
+                    failure.mismatches()
+                )
+            }
         }
     }
 }
@@ -276,6 +107,11 @@ pub fn prepare_primitive_construction_milestone_four_kernel_closeout_evidence_re
         workspace,
     )
     .map_err(PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError::PhaseFiveSix)?;
+    let proof_substrate_closeout = prepare_primitive_construction_proof_substrate_closeout_report(
+    )
+    .map_err(
+        PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError::ProofSubstrateCloseout,
+    )?;
     let query_boundary_gap_register =
         prepare_primitive_construction_query_boundary_gap_register(workspace).map_err(
             PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError::QueryBoundaryGapRegister,
@@ -366,9 +202,10 @@ pub fn prepare_primitive_construction_milestone_four_kernel_closeout_evidence_re
         )?;
     let realization_exhaustion_witness_report =
         prepare_primitive_construction_realization_exhaustion_witness_report();
-    Ok(
-        PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReport::new(
+    verify_closeout(
+        PrimitiveConstructionMilestoneFourKernelCloseoutAssembly::new(
             phase_five_six_closeout,
+            proof_substrate_closeout,
             query_boundary_gap_register,
             query_no_local_runtime_workaround_audit,
             query_existing_truth_binding_report,
@@ -388,6 +225,7 @@ pub fn prepare_primitive_construction_milestone_four_kernel_closeout_evidence_re
             realization_exhaustion_witness_report,
         ),
     )
+    .map_err(PrimitiveConstructionMilestoneFourKernelCloseoutEvidenceReportError::Verification)
 }
 
 fn representative_query_intent() -> PrimitiveConstructionIntent {
