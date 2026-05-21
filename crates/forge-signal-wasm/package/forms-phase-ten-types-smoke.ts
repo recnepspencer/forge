@@ -1,6 +1,6 @@
 import { createSignals } from "./index.js";
 
-const signals = createSignals();
+const signals = await createSignals({ deployment: "mainThreadCompatibility" });
 const state = signals.input({
   title: "Ship docs",
   slug: "ship-docs",

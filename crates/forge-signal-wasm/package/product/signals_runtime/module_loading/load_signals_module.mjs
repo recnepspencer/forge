@@ -48,6 +48,172 @@ async function loadSignalsModuleIntoCachedTempDir(options, cacheKey) {
         "product/authoring_option_validation.ts",
         "product/authoring_option_validation.js",
       ],
+      [
+        "product/entrypoint/construction/entrypoint_construction.ts",
+        "product/entrypoint/construction/entrypoint_construction.js",
+      ],
+      [
+        "product/entrypoint/bridge/worker_runtime_bridge.ts",
+        "product/entrypoint/bridge/worker_runtime_bridge.js",
+      ],
+      [
+        "product/entrypoint/bridge/worker_runtime_envelope_normalization.ts",
+        "product/entrypoint/bridge/worker_runtime_envelope_normalization.js",
+      ],
+      [
+        "product/entrypoint/bridge/worker_runtime_bridge_worker.ts",
+        "product/entrypoint/bridge/worker_runtime_bridge_worker.js",
+      ],
+      [
+        "product/entrypoint/worker_first_callable_signals.ts",
+        "product/entrypoint/worker_first_callable_signals.js",
+      ],
+      [
+        "product/entrypoint/worker_first_async_transaction.ts",
+        "product/entrypoint/worker_first_async_transaction.js",
+      ],
+      [
+        "product/entrypoint/worker_first_async_input.ts",
+        "product/entrypoint/worker_first_async_input.js",
+      ],
+      [
+        "product/entrypoint/worker_first_async_linked.ts",
+        "product/entrypoint/worker_first_async_linked.js",
+      ],
+      [
+        "product/entrypoint/worker_first_async_readable.ts",
+        "product/entrypoint/worker_first_async_readable.js",
+      ],
+      [
+        "product/entrypoint/worker_first_callback_tracking.ts",
+        "product/entrypoint/worker_first_callback_tracking.js",
+      ],
+      [
+        "product/entrypoint/worker_first_async_recipe.ts",
+        "product/entrypoint/worker_first_async_recipe.js",
+      ],
+      [
+        "product/entrypoint/worker_first_form_factory.ts",
+        "product/entrypoint/worker_first_form_factory.js",
+      ],
+      [
+        "product/entrypoint/worker_first_resource_namespace.ts",
+        "product/entrypoint/worker_first_resource_namespace.js",
+      ],
+      [
+        "product/entrypoint/worker_first_explicit_spec_namespace.ts",
+        "product/entrypoint/worker_first_explicit_spec_namespace.js",
+      ],
+      [
+        "product/entrypoint/worker_first_authoring_namespace.ts",
+        "product/entrypoint/worker_first_authoring_namespace.js",
+      ],
+      [
+        "product/entrypoint/worker_first_root_graph.ts",
+        "product/entrypoint/worker_first_root_graph.js",
+      ],
+      [
+        "product/entrypoint/worker_first_root_graph_mutation.ts",
+        "product/entrypoint/worker_first_root_graph_mutation.js",
+      ],
+      [
+        "product/entrypoint/worker_first_root_graph_support.ts",
+        "product/entrypoint/worker_first_root_graph_support.js",
+      ],
+      [
+        "product/entrypoint/worker_first_host_capabilities.ts",
+        "product/entrypoint/worker_first_host_capabilities.js",
+      ],
+      [
+        "product/entrypoint/worker_first_root_session.ts",
+        "product/entrypoint/worker_first_root_session.js",
+      ],
+      [
+        "product/entrypoint/worker_first_root_observations.ts",
+        "product/entrypoint/worker_first_root_observations.js",
+      ],
+      [
+        "product/entrypoint/worker_first_root_imported_graph.ts",
+        "product/entrypoint/worker_first_root_imported_graph.js",
+      ],
+      [
+        "product/entrypoint/worker_first_root_cached_facades.ts",
+        "product/entrypoint/worker_first_root_cached_facades.js",
+      ],
+      [
+        "product/entrypoint/worker_first_root_history.ts",
+        "product/entrypoint/worker_first_root_history.js",
+      ],
+      [
+        "product/entrypoint/worker_first_projection_session.ts",
+        "product/entrypoint/worker_first_projection_session.js",
+      ],
+      [
+        "product/entrypoint/worker_first_diagnostics.ts",
+        "product/entrypoint/worker_first_diagnostics.js",
+      ],
+      [
+        "product/entrypoint/worker_first_adapters.ts",
+        "product/entrypoint/worker_first_adapters.js",
+      ],
+      [
+        "product/entrypoint/worker_first_history.ts",
+        "product/entrypoint/worker_first_history.js",
+      ],
+      [
+        "product/entrypoint/sessions/support/worker_cached_value.ts",
+        "product/entrypoint/sessions/support/worker_cached_value.js",
+      ],
+      [
+        "product/entrypoint/sessions/support/worker_first_authored_input_state.ts",
+        "product/entrypoint/sessions/support/worker_first_authored_input_state.js",
+      ],
+      [
+        "product/entrypoint/sessions/support/worker_first_authored_readable_state.ts",
+        "product/entrypoint/sessions/support/worker_first_authored_readable_state.js",
+      ],
+      [
+        "product/entrypoint/sessions/support/worker_first_graph_inspection.ts",
+        "product/entrypoint/sessions/support/worker_first_graph_inspection.js",
+      ],
+      [
+        "product/entrypoint/sessions/support/worker_first_imported_graph_support.ts",
+        "product/entrypoint/sessions/support/worker_first_imported_graph_support.js",
+      ],
+      [
+        "product/entrypoint/sessions/support/worker_first_history_proofs.ts",
+        "product/entrypoint/sessions/support/worker_first_history_proofs.js",
+      ],
+      [
+        "product/entrypoint/sessions/support/worker_first_root_authored_runtime.ts",
+        "product/entrypoint/sessions/support/worker_first_root_authored_runtime.js",
+      ],
+      [
+        "product/entrypoint/sessions/support/worker_first_root_import_context.ts",
+        "product/entrypoint/sessions/support/worker_first_root_import_context.js",
+      ],
+      [
+        "product/entrypoint/worker_first_imported_graph.ts",
+        "product/entrypoint/worker_first_imported_graph.js",
+      ],
+      [
+        "product/entrypoint/sessions/support/worker_first_published_graph_definition.ts",
+        "product/entrypoint/sessions/support/worker_first_published_graph_definition.js",
+      ],
+      [
+        "product/entrypoint/worker_first_published_graph.ts",
+        "product/entrypoint/worker_first_published_graph.js",
+      ],
+      [
+        "product/entrypoint/sessions/support/worker_first_published_graph_mutation.ts",
+        "product/entrypoint/sessions/support/worker_first_published_graph_mutation.js",
+      ],
+      [
+        "product/imported_graph_surface_support.ts",
+        "product/imported_graph_surface_support.js",
+      ],
+      ["product/imported_graphs.ts", "product/imported_graphs.js"],
+      ["product/published_graphs.ts", "product/published_graphs.js"],
       ["product/signals.ts", "product/signals.js"],
       ["product/callback_frames.ts", "product/callback_frames.js"],
       ["product/controllers.ts", "product/controllers.js"],
@@ -74,6 +240,7 @@ async function loadSignalsModuleIntoCachedTempDir(options, cacheKey) {
       ["product/history.ts", "product/history.js"],
       ["product/handles.ts", "product/handles.js"],
       ["product/linked.ts", "product/linked.js"],
+      ["product/linked_definition.ts", "product/linked_definition.js"],
       ["product/output_projection_ids.ts", "product/output_projection_ids.js"],
       ["product/public_inputs.ts", "product/public_inputs.js"],
       [
@@ -118,7 +285,7 @@ async function loadSignalsModuleIntoCachedTempDir(options, cacheKey) {
       ).href;
       await writeFile(
         rawSurfacePath,
-        `export * from ${JSON.stringify(realRawSurfaceUrl)};\n`,
+        `export { default } from ${JSON.stringify(realRawSurfaceUrl)};\nexport * from ${JSON.stringify(realRawSurfaceUrl)};\n`,
         "utf8",
       );
     } else {
@@ -132,9 +299,43 @@ async function loadSignalsModuleIntoCachedTempDir(options, cacheKey) {
     const moduleUrl = new URL(
       `file:///${path.join(tempDir, "product", "signals.js").replace(/\\/g, "/")}`,
     );
-    const loaded = await import(moduleUrl.href);
+    const [loadedSignals, loadedEntrypointConstruction, loadedWorkerRuntimeBridge] =
+      await Promise.all([
+        import(moduleUrl.href),
+        import(
+          pathToFileURL(
+            path.join(
+              tempDir,
+              "product",
+              "entrypoint",
+              "construction",
+              "entrypoint_construction.js",
+            ),
+          ).href
+        ),
+        import(
+          pathToFileURL(
+            path.join(
+              tempDir,
+              "product",
+              "entrypoint",
+              "bridge",
+              "worker_runtime_bridge.js",
+            ),
+          ).href
+        ),
+      ]);
     return {
-      ...loaded,
+      ...loadedSignals,
+      ...loadedEntrypointConstruction,
+      ...loadedWorkerRuntimeBridge,
+      importProductModule(relativePath) {
+        return import(
+          pathToFileURL(
+            path.join(tempDir, "product", relativePath),
+          ).href
+        );
+      },
       cleanup: async () => {},
     };
   } catch (error) {

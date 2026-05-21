@@ -1,6 +1,6 @@
 import { createSignals } from "../../../index.js";
 
-const signals = createSignals();
+const signals = await createSignals({ deployment: "mainThreadCompatibility" });
 
 const detailLine = signals.api({}).url("/reports/:reportId").detail({
   load: ({ reportId }) => ({ id: reportId }),

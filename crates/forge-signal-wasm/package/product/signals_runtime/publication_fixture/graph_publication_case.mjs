@@ -150,7 +150,7 @@ export async function createGraphPublicationCase() {
       return {
         export_definitions() {
           return {
-            policy: { preset: "WebDevelopment" },
+            policy: { preset: "webDevelopment" },
             sources: [
               { id: "count", initial: 1 },
               { id: "other", initial: 99 },

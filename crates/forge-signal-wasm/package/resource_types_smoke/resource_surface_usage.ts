@@ -16,7 +16,7 @@ import {
   resourceValueSummaries,
 } from "../index.js";
 
-const signals = createSignals();
+const signals = await createSignals({ deployment: "mainThreadCompatibility" });
 
 const detail = signals.resource.detail({
   params: resourceParams<{ productId: string }>(),

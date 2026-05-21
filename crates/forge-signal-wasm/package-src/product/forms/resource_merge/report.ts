@@ -32,8 +32,8 @@ export function readResourceMergeReport(store, source) {
     summary,
     counters,
     digest: stableValueDigest({
-      current,
-      history,
+      currentDigest: current?.resultDigest ?? null,
+      historyDigests: history.map((artifact) => artifact?.resultDigest ?? null),
       summary,
       counters,
     }),

@@ -180,6 +180,13 @@ export interface SetValueWithRegions {
   aspects?: ReadonlyArray<AspectId>;
 }
 
+export interface SetValue {
+  id: string;
+  value: SignalValue;
+  aspect?: AspectId;
+  aspects?: ReadonlyArray<AspectId>;
+}
+
 export interface KeyedSetValue {
   key: string;
   value: SignalValue;
@@ -189,11 +196,23 @@ export interface KeyedSetValue {
 
 export type TransactionOp =
   | {
-      kind?: undefined;
+      kind: "set";
       id: string;
       value: SignalValue;
       aspect?: AspectId;
       aspects?: ReadonlyArray<AspectId>;
+    }
+  | {
+      kind: "setWithRegions";
+      id: string;
+      value: SignalValue;
+      changedRegions: unknown;
+      aspect?: AspectId;
+      aspects?: ReadonlyArray<AspectId>;
+    }
+  | {
+      kind: "setMany";
+      values: ReadonlyArray<SetValue>;
     }
   | {
       kind: "setManyWithRegions";
@@ -223,4 +242,3 @@ export interface WebObservationNotice {
   meaningfulChange: boolean;
   triggerMatched: boolean;
 }
-

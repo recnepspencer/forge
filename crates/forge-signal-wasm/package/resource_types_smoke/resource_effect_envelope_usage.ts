@@ -19,7 +19,7 @@ import {
   type ResourceLineVisibleSelection,
 } from "../index.js";
 
-const signals = createSignals();
+const signals = await createSignals({ deployment: "mainThreadCompatibility" });
 
 type Task = { id: string; title: string };
 type TaskResponse = { items: Task[] };

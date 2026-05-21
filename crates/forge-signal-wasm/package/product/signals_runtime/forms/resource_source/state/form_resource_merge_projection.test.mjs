@@ -244,6 +244,64 @@ test("signals.form reports unavailable merge preview posture when the form sourc
   }
 });
 
+test("signals.form verification stays bounded across repeated resource merge previews", async () => {
+  const runtime = await createRealRequestRuntime();
+  let restoreResource = null;
+  try {
+    const { signals } = runtime;
+    createBranchHead(signals, "forms-resource-merge-history");
+    const line = createDetailFieldLine(signals).line({ profileId: "p1" });
+    const form = signals.form({
+      source: signals.form.source.resourceLine(line, { id: "resource-merge-history" }),
+      fields: ({ field }) => ({
+        title: field("title"),
+      }),
+      availability: ({ section }) => ({
+        details: section("details", ["title"], ["title"], () => true),
+      }),
+    });
+
+    form.fields.title.set("Local");
+    form.executeAction("submit");
+    const effect = line.diagnostics().lastEffect;
+    const resourceWithConflictHistory = runtime.mod.createResourceNamespace(null, {
+      history() {
+        return {
+          plan_merge_policy_preview_with_proof(request) {
+            return createConflictPreviewEnvelope(
+              signals.history().plan_merge_policy_preview_with_proof(request),
+              request,
+            );
+          },
+        };
+      },
+    });
+    const originalResource = signals.resource;
+    restoreResource = () => {
+      signals.resource = originalResource;
+    };
+    signals.resource = resourceWithConflictHistory;
+
+    for (let iteration = 0; iteration < 24; iteration += 1) {
+      const preview = form.previewResourceMerge({
+        source_branch_id: effect.optimistic.branchId,
+        target_branch_id: 0,
+      });
+      assert.equal(preview.status, "conflict");
+    }
+
+    const verification = form.verification();
+    assert.equal(form.resourceMerge().history.length, 24);
+    assert.equal(verification.performanceEnvelope.resourceMerge.previews, 24);
+    assert.equal(typeof verification.digests.resourceMergeDigest, "string");
+    assert.equal(typeof verification.digests.resourceMergeHistoryDigest, "string");
+    assert.equal(typeof verification.packageDigest, "string");
+  } finally {
+    restoreResource?.();
+    await runtime.cleanup();
+  }
+});
+
 function createDetailFieldLine(signals) {
   const response = signals.resource.response.detail()({
     title: "title",

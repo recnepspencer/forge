@@ -1,28 +1,26 @@
 use std::cell::RefCell;
 
+use js_sys::{Object, Reflect};
 use wasm_bindgen::prelude::*;
 
-use crate::boundary::serde::{from_js, to_js};
+use crate::boundary::restore_tokens::{
+    load_runtime_envelope, store_runtime_envelope, store_snapshot, store_snapshot_envelope,
+};
+use crate::boundary::serde::{from_js, from_json_wire, to_js, to_js_structured, to_json_wire};
 use crate::recipe::model::TransactionOp;
-use crate::runtime::adapters::RuntimeEnvelope;
+use crate::runtime::adapters::{PortableRuntimeEnvelopeArtifact, RuntimeEnvelope};
 use crate::runtime::policy::RuntimePolicySpec;
+use crate::runtime::summaries::RuntimeSnapshotEnvelope;
 use crate::runtime::worker_host::{
-    WorkerBrowserHistoryIngress, WorkerBrowserHistoryIngressReport,
-    WorkerCallbackCapabilityExportCertificationPackage,
-    WorkerCallbackPhase4CloseoutCertificationPackage, WorkerCommittedTransactionEnvelope,
-    WorkerGraphPublicationSummary, WorkerHostCapabilityIngressBatch,
-    WorkerHostCapabilityIngressReport, WorkerHostEffectAcknowledgement,
-    WorkerHostEffectAcknowledgementReport, WorkerHostEffectRequest,
-    WorkerHostEffectRequestEnvelope, WorkerImportExportCallbackUnavailabilityCertificationPackage,
-    WorkerMainThreadHostBridgeCertificationPackage, WorkerMainThreadHostedCallbackRequestEnvelope,
-    WorkerMainThreadHostedCallbackResult, WorkerMainThreadHostedCallbackResultReport,
-    WorkerObservationDeliveryCertificationPackage, WorkerObservationDeliveryPacket,
-    WorkerOutputDeliveryCertificationPackage, WorkerOutputDeliveryPacket,
-    WorkerOutputDeliveryRequest, WorkerPortableGraphPublication, WorkerRuntimeBootstrapRecord,
-    WorkerRuntimeEnvelopeImportReport, WorkerRuntimeShell, WorkerRuntimeShellLock,
+    WorkerBrowserHistoryIngress, WorkerHostCapabilityIngressBatch, WorkerHostEffectAcknowledgement,
+    WorkerHostEffectRequest, WorkerMainThreadHostedCallbackRequestEnvelope,
+    WorkerMainThreadHostedCallbackResult, WorkerOutputDeliveryRequest,
+    WorkerPortableGraphPublication, WorkerRuntimeShell,
 };
 
 use super::types::SignalWorkerRuntime;
+
+mod test_support;
 
 #[wasm_bindgen]
 impl SignalWorkerRuntime {
@@ -129,7 +127,109 @@ impl SignalWorkerRuntime {
     #[wasm_bindgen(js_name = exportWorkerRuntimeEnvelope)]
     pub fn export_worker_runtime_envelope(&self) -> Result<JsValue, JsValue> {
         let envelope = self.export_worker_runtime_envelope_for_test()?;
-        to_js(&envelope).map_err(JsValue::from)
+        to_js_structured(&envelope).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = exportWorkerRuntimeEnvelopePortableWire)]
+    pub fn export_worker_runtime_envelope_portable_wire(&self) -> Result<String, JsValue> {
+        let definitions = self
+            .shell
+            .borrow_mut()
+            .export_definitions()
+            .map_err(JsValue::from)?;
+        let state = self
+            .export_worker_runtime_envelope_for_test()
+            .map(|envelope| envelope.snapshot.state)
+            .map_err(JsValue::from)?;
+        let artifact = PortableRuntimeEnvelopeArtifact { definitions, state };
+        to_json_wire(&artifact).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = exportWorkerSnapshotEnvelope)]
+    pub fn export_worker_snapshot_envelope(&self) -> Result<JsValue, JsValue> {
+        let snapshot: RuntimeSnapshotEnvelope = self.export_worker_snapshot_envelope_for_test()?;
+        to_js_structured(&snapshot).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = exportWorkerSnapshotEnvelopeArtifact)]
+    pub fn export_worker_snapshot_envelope_artifact(&self) -> Result<JsValue, JsValue> {
+        let snapshot = self.export_worker_snapshot_envelope_for_test()?;
+        worker_snapshot_envelope_artifact(snapshot)
+    }
+
+    #[wasm_bindgen(js_name = exportWorkerSnapshotEnvelopeWire)]
+    pub fn export_worker_snapshot_envelope_wire(&self) -> Result<String, JsValue> {
+        Ok(store_snapshot_envelope(
+            self.export_worker_snapshot_envelope_for_test()?,
+        ))
+    }
+
+    #[wasm_bindgen(js_name = exportWorkerSnapshotEnvelopePortableWire)]
+    pub fn export_worker_snapshot_envelope_portable_wire(&self) -> Result<String, JsValue> {
+        to_json_wire(&self.export_worker_snapshot_envelope_for_test()?).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = currentBranch)]
+    pub fn current_branch(&self) -> Result<JsValue, JsValue> {
+        to_js(&self.current_branch_for_test()?).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = branches)]
+    pub fn branches(&self) -> Result<JsValue, JsValue> {
+        to_js(&self.branches_for_test()?).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = replayForBranch)]
+    pub fn replay_for_branch(&self, branch_id: u64) -> Result<JsValue, JsValue> {
+        to_js(&self.replay_for_branch_for_test(branch_id)?).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = branchSnapshotId)]
+    pub fn branch_snapshot_id(&self, branch_id: u64) -> Result<u64, JsValue> {
+        self.branch_snapshot_id_for_test(branch_id)
+    }
+
+    #[wasm_bindgen(js_name = branchSnapshotEnvelope)]
+    pub fn branch_snapshot_envelope(&self, branch_id: u64) -> Result<JsValue, JsValue> {
+        to_js_structured(&self.branch_snapshot_envelope_for_test(branch_id)?).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = branchSnapshotEnvelopeArtifact)]
+    pub fn branch_snapshot_envelope_artifact(&self, branch_id: u64) -> Result<JsValue, JsValue> {
+        let snapshot = self.branch_snapshot_envelope_for_test(branch_id)?;
+        worker_snapshot_envelope_artifact(snapshot)
+    }
+
+    #[wasm_bindgen(js_name = branchSnapshotArtifact)]
+    pub fn branch_snapshot_artifact(&self, branch_id: u64) -> Result<JsValue, JsValue> {
+        let snapshot = self.branch_snapshot_for_test(branch_id)?;
+        worker_snapshot_artifact(snapshot)
+    }
+
+    #[wasm_bindgen(js_name = branchSnapshotEnvelopeWire)]
+    pub fn branch_snapshot_envelope_wire(&self, branch_id: u64) -> Result<String, JsValue> {
+        Ok(store_snapshot_envelope(
+            self.branch_snapshot_envelope_for_test(branch_id)?,
+        ))
+    }
+
+    #[wasm_bindgen(js_name = branchSnapshotEnvelopePortableWire)]
+    pub fn branch_snapshot_envelope_portable_wire(
+        &self,
+        branch_id: u64,
+    ) -> Result<String, JsValue> {
+        to_json_wire(&self.branch_snapshot_envelope_for_test(branch_id)?).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = branchStateProof)]
+    pub fn branch_state_proof(&self, branch_id: u64) -> Result<JsValue, JsValue> {
+        to_js(&self.branch_state_proof_for_test(branch_id)?).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = exportWorkerRuntimeEnvelopeWire)]
+    pub fn export_worker_runtime_envelope_wire(&self) -> Result<String, JsValue> {
+        let artifact = self.export_exact_worker_runtime_restore_artifact_for_test()?;
+        Ok(store_runtime_envelope(artifact))
     }
 
     #[wasm_bindgen(js_name = certifyWorkerCallbackCapabilityExport)]
@@ -160,6 +260,34 @@ impl SignalWorkerRuntime {
         to_js(&report).map_err(JsValue::from)
     }
 
+    #[wasm_bindgen(js_name = admitWorkerRuntimeEnvelopeImportPortableWire)]
+    pub fn admit_worker_runtime_envelope_import_portable_wire(
+        &self,
+        envelope: String,
+    ) -> Result<JsValue, JsValue> {
+        let artifact: PortableRuntimeEnvelopeArtifact =
+            from_json_wire(&envelope).map_err(JsValue::from)?;
+        let report = self
+            .shell
+            .borrow_mut()
+            .admit_worker_runtime_envelope_import_portable_artifact(
+                artifact.definitions,
+                artifact.state,
+            )
+            .map_err(JsValue::from)?;
+        to_js(&report).map_err(JsValue::from)
+    }
+
+    #[wasm_bindgen(js_name = admitWorkerRuntimeEnvelopeImportWire)]
+    pub fn admit_worker_runtime_envelope_import_wire(
+        &self,
+        envelope: String,
+    ) -> Result<JsValue, JsValue> {
+        let envelope = load_runtime_envelope(&envelope).map_err(JsValue::from)?;
+        let report = self.admit_exact_worker_runtime_restore_artifact_for_test(envelope)?;
+        to_js(&report).map_err(JsValue::from)
+    }
+
     #[wasm_bindgen(js_name = deliverLatestObservation)]
     pub fn deliver_latest_observation(&self) -> Result<JsValue, JsValue> {
         let packet = self.deliver_latest_observation_for_test()?;
@@ -186,201 +314,46 @@ impl SignalWorkerRuntime {
     }
 }
 
-impl SignalWorkerRuntime {
-    pub(crate) fn bootstrap_record_for_test(
-        &self,
-    ) -> Result<WorkerRuntimeBootstrapRecord, JsValue> {
-        Ok(self.shell.borrow().bootstrap_record())
-    }
+fn worker_snapshot_envelope_artifact(
+    snapshot: RuntimeSnapshotEnvelope,
+) -> Result<JsValue, JsValue> {
+    let artifact = Object::new();
+    Reflect::set(
+        &artifact,
+        &JsValue::from_str("snapshotEnvelope"),
+        &to_js_structured(&snapshot).map_err(JsValue::from)?,
+    )?;
+    Reflect::set(
+        &artifact,
+        &JsValue::from_str("snapshotEnvelopeRestoreToken"),
+        &JsValue::from_str(&store_snapshot_envelope(snapshot.clone())),
+    )?;
+    Reflect::set(
+        &artifact,
+        &JsValue::from_str("snapshotEnvelopePortableWire"),
+        &JsValue::from_str(&to_json_wire(&snapshot).map_err(JsValue::from)?),
+    )?;
+    Ok(artifact.into())
+}
 
-    pub(crate) fn worker_runtime_shell_lock_for_test(
-        &self,
-    ) -> Result<WorkerRuntimeShellLock, JsValue> {
-        Ok(self.shell.borrow().shell_lock())
-    }
-
-    pub(crate) fn publish_portable_graph_for_test(
-        &self,
-        publication: WorkerPortableGraphPublication,
-    ) -> Result<WorkerGraphPublicationSummary, JsValue> {
-        self.shell
-            .borrow_mut()
-            .publish_graph(publication)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn apply_transaction_for_test(
-        &self,
-        transaction_ops: Vec<TransactionOp>,
-    ) -> Result<WorkerCommittedTransactionEnvelope, JsValue> {
-        self.shell
-            .borrow_mut()
-            .apply_committed_transaction(transaction_ops)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn admit_host_capability_ingress_for_test(
-        &self,
-        batch: WorkerHostCapabilityIngressBatch,
-    ) -> Result<WorkerHostCapabilityIngressReport, JsValue> {
-        self.shell
-            .borrow_mut()
-            .admit_host_capability_ingress(batch)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn admit_browser_history_ingress_for_test(
-        &self,
-        ingress: WorkerBrowserHistoryIngress,
-    ) -> Result<WorkerBrowserHistoryIngressReport, JsValue> {
-        self.shell
-            .borrow_mut()
-            .admit_browser_history_ingress(ingress)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn issue_host_effect_request_for_test(
-        &self,
-        request: WorkerHostEffectRequest,
-    ) -> Result<WorkerHostEffectRequestEnvelope, JsValue> {
-        self.shell
-            .borrow_mut()
-            .issue_host_effect_request(request)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn admit_host_effect_acknowledgement_for_test(
-        &self,
-        acknowledgement: WorkerHostEffectAcknowledgement,
-    ) -> Result<WorkerHostEffectAcknowledgementReport, JsValue> {
-        self.shell
-            .borrow_mut()
-            .admit_host_effect_acknowledgement(acknowledgement)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn certify_main_thread_host_bridge_for_test(
-        &self,
-    ) -> Result<WorkerMainThreadHostBridgeCertificationPackage, JsValue> {
-        self.shell
-            .borrow()
-            .certify_main_thread_host_bridge()
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn issue_main_thread_hosted_callback_request_for_test(
-        &self,
-        callback_id: String,
-    ) -> Result<WorkerMainThreadHostedCallbackRequestEnvelope, JsValue> {
-        self.shell
-            .borrow_mut()
-            .issue_main_thread_hosted_callback_request(&callback_id)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn admit_main_thread_hosted_callback_result_for_test(
-        &self,
-        request: WorkerMainThreadHostedCallbackRequestEnvelope,
-        result: WorkerMainThreadHostedCallbackResult,
-    ) -> Result<WorkerMainThreadHostedCallbackResultReport, JsValue> {
-        self.shell
-            .borrow_mut()
-            .admit_main_thread_hosted_callback_result(request, result)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn certify_main_thread_hosted_callback_execution_for_test(
-        &self,
-    ) -> Result<
-        crate::runtime::worker_host::WorkerMainThreadHostedCallbackExecutionCertificationPackage,
-        JsValue,
-    > {
-        self.shell
-            .borrow()
-            .certify_main_thread_hosted_callback_execution()
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn export_worker_runtime_envelope_for_test(
-        &self,
-    ) -> Result<RuntimeEnvelope, JsValue> {
-        self.shell
-            .borrow_mut()
-            .export_worker_runtime_envelope()
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn certify_worker_callback_capability_export_for_test(
-        &self,
-    ) -> Result<WorkerCallbackCapabilityExportCertificationPackage, JsValue> {
-        self.shell
-            .borrow_mut()
-            .certify_worker_callback_capability_export()
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn certify_worker_callback_phase4_closeout_for_test(
-        &self,
-    ) -> Result<WorkerCallbackPhase4CloseoutCertificationPackage, JsValue> {
-        self.shell
-            .borrow()
-            .certify_worker_callback_phase4_closeout()
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn certify_worker_import_export_callback_unavailability_for_test(
-        &self,
-    ) -> Result<WorkerImportExportCallbackUnavailabilityCertificationPackage, JsValue> {
-        self.shell
-            .borrow_mut()
-            .certify_worker_import_export_callback_unavailability()
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn admit_worker_runtime_envelope_import_for_test(
-        &self,
-        envelope: RuntimeEnvelope,
-    ) -> Result<WorkerRuntimeEnvelopeImportReport, JsValue> {
-        self.shell
-            .borrow_mut()
-            .admit_worker_runtime_envelope_import(envelope)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn deliver_latest_observation_for_test(
-        &self,
-    ) -> Result<WorkerObservationDeliveryPacket, JsValue> {
-        self.shell
-            .borrow_mut()
-            .deliver_latest_observation()
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn certify_worker_observation_delivery_for_test(
-        &self,
-    ) -> Result<WorkerObservationDeliveryCertificationPackage, JsValue> {
-        self.shell
-            .borrow()
-            .certify_worker_observation_delivery()
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn deliver_outputs_for_test(
-        &self,
-        request: WorkerOutputDeliveryRequest,
-    ) -> Result<WorkerOutputDeliveryPacket, JsValue> {
-        self.shell
-            .borrow_mut()
-            .deliver_outputs(request)
-            .map_err(JsValue::from)
-    }
-
-    pub(crate) fn certify_worker_output_delivery_for_test(
-        &self,
-    ) -> Result<WorkerOutputDeliveryCertificationPackage, JsValue> {
-        self.shell
-            .borrow()
-            .certify_worker_output_delivery()
-            .map_err(JsValue::from)
-    }
+fn worker_snapshot_artifact(
+    snapshot: forge_signal::facade::history::RuntimeSnapshot,
+) -> Result<JsValue, JsValue> {
+    let artifact = Object::new();
+    Reflect::set(
+        &artifact,
+        &JsValue::from_str("snapshot"),
+        &to_js_structured(&snapshot).map_err(JsValue::from)?,
+    )?;
+    Reflect::set(
+        &artifact,
+        &JsValue::from_str("snapshotRestoreToken"),
+        &JsValue::from_str(&store_snapshot(snapshot.clone())),
+    )?;
+    Reflect::set(
+        &artifact,
+        &JsValue::from_str("snapshotPortableWire"),
+        &JsValue::from_str(&to_json_wire(&snapshot).map_err(JsValue::from)?),
+    )?;
+    Ok(artifact.into())
 }

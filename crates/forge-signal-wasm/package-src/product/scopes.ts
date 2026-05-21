@@ -321,6 +321,29 @@ export function createScopedSignalNamespace(
         ),
       );
     },
+    inputAsync(firstArg, secondArg, thirdArg) {
+      if (hasExplicitAuthoringIdOption(secondArg)) {
+        return Promise.resolve(
+          tagScopedHandle(
+            callableSignals.spec.input(
+              canonicalId(scopeId, secondArg.id),
+              firstArg,
+              stripExplicitAuthoringIdOption(secondArg),
+            ),
+            secondArg.id,
+          ),
+        );
+      }
+      const authoringId = nextGeneratedScopedId(rawSignals, scopeId, "input");
+      return Promise.resolve(
+        tagScopedHandle(
+          callableSignals.input(
+            firstArg,
+            withPrivateAuthoringId(secondArg, authoringId),
+          ),
+        ),
+      );
+    },
     computedSpec(id, spec, options) {
       return tagScopedHandle(
         callableSignals.spec.computed(
@@ -340,6 +363,9 @@ export function createScopedSignalNamespace(
           options,
         ),
       );
+    },
+    linkedAsync(sourceOrDefinition, options) {
+      return Promise.resolve(this.linked(sourceOrDefinition, options));
     },
     computed(firstArg, secondArg, thirdArg) {
       if (typeof firstArg === "string") {
@@ -401,6 +427,11 @@ export function createScopedSignalNamespace(
           firstArg,
           withPrivateAuthoringId(secondArg, authoringId),
         ),
+      );
+    },
+    computedAsync(firstArg, secondArg, thirdArg) {
+      return Promise.resolve(
+        scopedNamespace.computed(firstArg, secondArg, thirdArg),
       );
     },
     outputSpec(id, spec, options) {
@@ -469,6 +500,11 @@ export function createScopedSignalNamespace(
           firstArg,
           withPrivateAuthoringId(secondArg, authoringId),
         ),
+      );
+    },
+    outputAsync(firstArg, secondArg, thirdArg) {
+      return Promise.resolve(
+        scopedNamespace.output(firstArg, secondArg, thirdArg),
       );
     },
     outputCallback(id, callback, options) {

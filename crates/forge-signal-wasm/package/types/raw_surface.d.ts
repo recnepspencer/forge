@@ -47,6 +47,33 @@ import type {
   WhySummary,
   RuntimePolicySpec,
 } from "./diagnostics.js";
+import type {
+  WorkerBrowserHistoryIngress,
+  WorkerBrowserHistoryIngressReport,
+  WorkerCommittedProjectionPacket,
+  WorkerCommittedProjectionRequest,
+  WorkerCommittedTransactionEnvelope,
+  WorkerDiagnosticsHistoryReadPacket,
+  WorkerDiagnosticsSummaryReadPacket,
+  WorkerGraphPublicationSummary,
+  WorkerHostCapabilityIngressBatch,
+  WorkerHostCapabilityIngressReport,
+  WorkerHostEffectAcknowledgement,
+  WorkerHostEffectAcknowledgementReport,
+  WorkerHostEffectRequest,
+  WorkerHostEffectRequestEnvelope,
+  WorkerLifecycleControlPacket,
+  WorkerMainThreadHostBridgeCertificationPackage,
+  WorkerObservationDeliveryAttachRequest,
+  WorkerObservationDeliveryDetachRequest,
+  WorkerObservationDeliveryPacket,
+  WorkerOutputDeliveryPacket,
+  WorkerPortableGraphPublication,
+  WorkerSignalReadbackPacket,
+  WorkerSignalReadbackRequest,
+  WorkerRuntimeBootstrapRecord,
+  WorkerRuntimeShellLock,
+} from "./worker_runtime_bridge.js";
 
 export class InputSignal {
   private constructor();
@@ -206,6 +233,78 @@ export class SignalAdapters {
   replace_runtime_envelope_wire(envelope: string): void;
   replace_runtime_envelope_portable_wire(envelope: string): void;
   runtime_proof_report(): RuntimeProofReport;
+}
+
+export class SignalWorkerRuntime {
+  constructor();
+  free(): void;
+  [Symbol.dispose](): void;
+  bootstrapRecord(): WorkerRuntimeBootstrapRecord;
+  workerRuntimeShellLock(): WorkerRuntimeShellLock;
+  publishPortableGraph(publication: WorkerPortableGraphPublication): WorkerGraphPublicationSummary;
+  applyTransaction(transactionOps: ReadonlyArray<TransactionOp>): WorkerCommittedTransactionEnvelope;
+  applyTransactionProjection(
+    request: WorkerCommittedProjectionRequest,
+  ): WorkerCommittedProjectionPacket;
+  admitHostCapabilityIngress(batch: WorkerHostCapabilityIngressBatch): WorkerHostCapabilityIngressReport;
+  admitBrowserHistoryIngress(ingress: WorkerBrowserHistoryIngress): WorkerBrowserHistoryIngressReport;
+  issueHostEffectRequest(request: WorkerHostEffectRequest): WorkerHostEffectRequestEnvelope;
+  admitHostEffectAcknowledgement(
+    acknowledgement: WorkerHostEffectAcknowledgement,
+  ): WorkerHostEffectAcknowledgementReport;
+  certifyMainThreadHostBridge(): WorkerMainThreadHostBridgeCertificationPackage;
+  attachObservationDelivery(request: WorkerObservationDeliveryAttachRequest): WorkerLifecycleControlPacket;
+  detachObservationDelivery(request: WorkerObservationDeliveryDetachRequest): WorkerLifecycleControlPacket;
+  why(id: string): WhySummary;
+  health(): HealthSummary;
+  latestFlow(): FlowSurfaceSummary | null;
+  latestObservation(): ObservationSurfaceSummary | null;
+  performanceSummary(): WebPerformanceSummary;
+  latestFailure(): FailureSummary | null;
+  latestRollback(): RollbackDiagnostic | null;
+  latestFrontierExecution(): FrontierExecutionSummary | null;
+  latestInvalidationTraceRecords(): ReadonlyArray<InvalidationTraceRecord>;
+  recentHistory(): ReadonlyArray<ExecutionHistorySummary>;
+  currentBranch(): RuntimeBranchHandle;
+  branches(): ReadonlyArray<RuntimeBranchHandle>;
+  replayForBranch(branchId: bigint): ReplaySummary;
+  branchSnapshotId(branchId: bigint): bigint;
+  branchSnapshotEnvelope(branchId: bigint): RuntimeSnapshotEnvelope;
+  branchSnapshotArtifact(branchId: bigint): {
+    snapshot: RuntimeSnapshotArtifact;
+    snapshotRestoreToken: string;
+    snapshotPortableWire: string;
+  };
+  branchSnapshotEnvelopeArtifact(branchId: bigint): {
+    snapshotEnvelope: RuntimeSnapshotEnvelope;
+    snapshotEnvelopeRestoreToken: string;
+    snapshotEnvelopePortableWire: string;
+  };
+  branchSnapshotEnvelopeWire(branchId: bigint): string;
+  branchSnapshotEnvelopePortableWire(branchId: bigint): string;
+  branchStateProof(branchId: bigint): BranchStateProofReport;
+  replayFor(id: string): ReplaySummary;
+  lineageFor(id: string): LineageSummary;
+  readVersions(ids: ReadonlyArray<string>): ReadonlyArray<VersionSummary>;
+  exportDefinitions(): RuntimeDefinitionEnvelope;
+  exportWorkerRuntimeEnvelope(): RuntimeEnvelope;
+  exportWorkerSnapshotEnvelope(): RuntimeSnapshotEnvelope;
+  exportWorkerSnapshotEnvelopeArtifact(): {
+    snapshotEnvelope: RuntimeSnapshotEnvelope;
+    snapshotEnvelopeRestoreToken: string;
+    snapshotEnvelopePortableWire: string;
+  };
+  exportWorkerSnapshotEnvelopeWire(): string;
+  exportWorkerSnapshotEnvelopePortableWire(): string;
+  exportWorkerRuntimeEnvelopePortableWire(): string;
+  admitWorkerRuntimeEnvelopeImport(envelope: RuntimeEnvelope): unknown;
+  admitWorkerRuntimeEnvelopeImportPortableWire(envelope: string): unknown;
+  runtimeProofReport(): RuntimeProofReport;
+  deliverLatestObservation(): WorkerObservationDeliveryPacket;
+  deliverOutputs(request: WorkerOutputDeliveryRequest): WorkerOutputDeliveryPacket;
+  readSignals(request: WorkerSignalReadbackRequest): WorkerSignalReadbackPacket;
+  readDiagnosticsSummary(): WorkerDiagnosticsSummaryReadPacket;
+  readDiagnosticsHistory(): WorkerDiagnosticsHistoryReadPacket;
 }
 
 export class SignalApp {

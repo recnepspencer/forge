@@ -58,7 +58,7 @@ test("The Graph Publication Compatibility Export Surface Test", async () => {
         inputDescriptors: [],
         descriptors: graph.descriptors(),
         definitions: {
-          policy: { preset: "WebDevelopment" },
+          policy: { preset: "webDevelopment" },
           sources: [{ id: "count", initial: 1 }],
           recipes: [
             {
@@ -93,7 +93,7 @@ test("The Graph Publication Compatibility Export Surface Test", async () => {
     rawSignals.adapters = () => ({
       export_definitions() {
         return {
-          policy: { preset: "WebDevelopment" },
+          policy: { preset: "webDevelopment" },
           sources: [{ id: "count", initial: 1 }],
           recipes: [
             {

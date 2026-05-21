@@ -6,7 +6,7 @@ import {
   resourcePatch,
 } from "../index.js";
 
-const signals = createSignals();
+const signals = await createSignals({ deployment: "mainThreadCompatibility" });
 
 const collection = signals.resource.collection({
   params: resourceParams<{ workspaceId: string }>(),

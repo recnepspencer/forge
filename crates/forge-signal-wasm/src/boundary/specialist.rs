@@ -1,10 +1,8 @@
 use wasm_bindgen::prelude::*;
 
 use crate::boundary::restore_tokens::{load_runtime_envelope, store_runtime_envelope};
-use crate::boundary::serde::{
-    from_js, from_portable_wire, to_js, to_js_structured, to_portable_wire,
-};
-use crate::runtime::adapters::RuntimeEnvelope;
+use crate::boundary::serde::{from_js, from_json_wire, to_js, to_js_structured, to_json_wire};
+use crate::runtime::adapters::{PortableRuntimeEnvelopeArtifact, RuntimeEnvelope};
 
 use super::types::{SignalAdapters, SignalSpecialist};
 
@@ -65,12 +63,19 @@ impl SignalAdapters {
     }
 
     pub fn export_runtime_envelope_portable_wire(&self) -> Result<String, JsValue> {
-        let envelope = self
+        let definitions = self
             .core
             .borrow_mut()
-            .export_runtime_envelope()
+            .export_definitions()
             .map_err(JsValue::from)?;
-        to_portable_wire(&envelope).map_err(JsValue::from)
+        let state = self
+            .core
+            .borrow_mut()
+            .snapshot()
+            .map(|snapshot| snapshot.state)
+            .map_err(JsValue::from)?;
+        let artifact = PortableRuntimeEnvelopeArtifact { definitions, state };
+        to_json_wire(&artifact).map_err(JsValue::from)
     }
 
     pub fn runtime_proof_report(&self) -> Result<JsValue, JsValue> {
@@ -95,10 +100,11 @@ impl SignalAdapters {
     }
 
     pub fn replace_runtime_envelope_portable_wire(&self, envelope: String) -> Result<(), JsValue> {
-        let envelope: RuntimeEnvelope = from_portable_wire(&envelope).map_err(JsValue::from)?;
+        let artifact: PortableRuntimeEnvelopeArtifact =
+            from_json_wire(&envelope).map_err(JsValue::from)?;
         self.core
             .borrow_mut()
-            .replace_runtime_envelope(envelope)
+            .replace_runtime_envelope_portable_artifact(artifact.definitions, artifact.state)
             .map_err(JsValue::from)
     }
 }

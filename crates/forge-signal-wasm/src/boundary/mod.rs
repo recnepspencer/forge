@@ -15,12 +15,16 @@ pub mod specialist;
 pub mod types;
 pub mod worker;
 pub mod worker_callback_reattachments;
+pub mod worker_committed_projection;
 pub mod worker_diagnostics_history_read;
+pub mod worker_diagnostics_surface;
+pub mod worker_graph_inspection;
 pub mod worker_lifecycle_control;
 pub mod worker_phase5_closeout;
 pub mod worker_phase6_closeout;
 pub mod worker_phase7_closeout;
 pub mod worker_replay_restore_capability;
+pub mod worker_signal_readback;
 
 #[cfg(test)]
 mod tests;

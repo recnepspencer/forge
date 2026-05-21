@@ -9,7 +9,7 @@ test("wrapSignals adapters wrapper marks same-runtime exact restore while preser
   try {
     const rawEnvelope = {
       definitions: {
-        policy: { preset: "WebDevelopment" },
+        policy: { preset: "webDevelopment" },
         sources: [],
         recipes: [],
         sourceFamilies: [],
@@ -237,4 +237,3 @@ test("wrapSignals adapters wrapper marks same-runtime exact restore while preser
     await cleanup();
   }
 });
-

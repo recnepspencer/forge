@@ -1,6 +1,6 @@
 import { createSignals } from "./index.js";
 
-const signals = createSignals();
+const signals = await createSignals({ deployment: "mainThreadCompatibility" });
 const typedResourceLine = null as unknown as import("./types/resource/resource_lifecycle.js").ResourceLine<
   { id: string },
   { title: string }

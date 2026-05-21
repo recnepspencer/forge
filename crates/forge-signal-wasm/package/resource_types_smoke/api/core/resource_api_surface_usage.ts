@@ -12,7 +12,7 @@ import type {
   ResourceValueSummary,
 } from "../../../index.js";
 
-const signals = createSignals();
+const signals = await createSignals({ deployment: "mainThreadCompatibility" });
 
 type TaskCatalogValue = {
   items: Array<{ id: string; title: string }>;

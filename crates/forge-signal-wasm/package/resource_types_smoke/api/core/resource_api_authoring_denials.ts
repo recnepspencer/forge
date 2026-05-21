@@ -7,7 +7,7 @@ import {
   resourceValueSummaries,
 } from "../../../index.js";
 
-const signals = createSignals();
+const signals = await createSignals({ deployment: "mainThreadCompatibility" });
 
 const detail = signals.api({}).url("/users/:userId").detail({
   load: ({ userId }) => ({ id: userId }),

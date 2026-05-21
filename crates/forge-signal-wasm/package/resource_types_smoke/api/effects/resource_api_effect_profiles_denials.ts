@@ -7,7 +7,7 @@ import {
   type ResourceEffectRebaseArtifact,
 } from "../../../index.js";
 
-const signals = createSignals();
+const signals = await createSignals({ deployment: "mainThreadCompatibility" });
 
 signals.api({
   // @ts-expect-error effects must be created by resourceEffects

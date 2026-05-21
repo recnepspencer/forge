@@ -142,7 +142,7 @@ test("The Controller Composition And Flat Runtime Equivalence Test", async () =>
           return {
             export_definitions() {
               return {
-                policy: { preset: "WebDevelopment" },
+                policy: { preset: "webDevelopment" },
                 sources: [
                   { id: "serverItemData", initial: null },
                   { id: "draftEdits", initial: {} },
@@ -310,5 +310,3 @@ test("The Controller Composition And Flat Runtime Equivalence Test", async () =>
     await cleanup();
   }
 });
-
-

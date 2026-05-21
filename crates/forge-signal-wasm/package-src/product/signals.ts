@@ -1,4 +1,3 @@
-import { createRawSignals } from "../raw_surface.js";
 import {
   parseComputedCallbackArgs,
   parseOutputCallbackArgs,
@@ -416,6 +415,11 @@ export function wrapSignals(rawSignals, options) {
         ),
       );
     },
+    inputAsync(idOrInitial, initialOrOptions, maybeOptions) {
+      return Promise.resolve(
+        callableSignals.input(idOrInitial, initialOrOptions, maybeOptions),
+      );
+    },
     linked(sourceOrDefinition, options) {
       return createLinkedSignal(
         callableSignals,
@@ -423,6 +427,9 @@ export function wrapSignals(rawSignals, options) {
         sourceOrDefinition,
         options,
       );
+    },
+    linkedAsync(sourceOrDefinition, options) {
+      return Promise.resolve(callableSignals.linked(sourceOrDefinition, options));
     },
     computedSpec(id, spec, options) {
       return explicitSpec.computed(id, spec, options);
@@ -467,6 +474,11 @@ export function wrapSignals(rawSignals, options) {
           "computed",
           debugName,
         ),
+      );
+    },
+    computedAsync(idOrCompute, specOrCompute, maybeOptions) {
+      return Promise.resolve(
+        callableSignals.computed(idOrCompute, specOrCompute, maybeOptions),
       );
     },
     outputSpec(id, spec, options) {
@@ -523,6 +535,11 @@ export function wrapSignals(rawSignals, options) {
         ),
       );
     },
+    outputAsync(idOrSpec, specOrCompute, maybeOptions) {
+      return Promise.resolve(
+        callableSignals.output(idOrSpec, specOrCompute, maybeOptions),
+      );
+    },
     outputCallback(id, callback, options) {
       return explicitSpec.outputCallback(id, callback, options);
     },
@@ -569,6 +586,20 @@ export function wrapSignals(rawSignals, options) {
         callback(wrapTransaction(rawTx, rawSignals)),
       );
     },
+    transactionAsync(callback) {
+      return Promise.resolve(
+        rawSignals.transaction((rawTx) =>
+          callback(wrapTransaction(rawTx, rawSignals)),
+        ),
+      );
+    },
+    batchAsync(callback) {
+      return Promise.resolve(
+        rawSignals.batch((rawTx) =>
+          callback(wrapTransaction(rawTx, rawSignals)),
+        ),
+      );
+    },
     nuke: rawSignals.nuke.bind(rawSignals),
     diagnostics() {
       if (!diagnostics) {
@@ -610,12 +641,4 @@ export function wrapSignals(rawSignals, options) {
   );
   callableSignals.api = createApiFactory(callableSignals);
   return callableSignals;
-}
-
-export function createCallableSignals(options) {
-  return wrapSignals(createRawSignals(), options);
-}
-
-export function createSignals(options) {
-  return createCallableSignals(options);
 }

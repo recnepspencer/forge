@@ -180,7 +180,7 @@ export function createGraphOperationalRuntime() {
       return {
         export_definitions() {
           return {
-            policy: { preset: "WebDevelopment" },
+            policy: { preset: "webDevelopment" },
             sources: [...values.keys()].map((id) => ({ id, initial: null })),
             recipes: [],
             sourceFamilies: [],

@@ -11,7 +11,7 @@ test("The Public Graph Input And Output Contract Test", async () => {
     rawSignals.adapters = () => ({
       export_definitions() {
         return {
-          policy: { preset: "WebDevelopment" },
+          policy: { preset: "webDevelopment" },
           sources: [
             { id: "itemDetail.editSession.serverItemData", initial: null },
             { id: "itemDetail.editSession.draftEdits", initial: {} },
@@ -281,5 +281,4 @@ test("The Public Graph Input And Output Contract Test", async () => {
     await cleanup();
   }
 });
-
 

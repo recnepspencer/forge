@@ -59,24 +59,51 @@ export function buildFormVerificationPackage(form, diagnosticsSnapshot) {
     diagnosticsSnapshot.diagnosticsStateDigest,
     diagnosticsHistory,
   );
+  const canonicalizationDigests = canonicalizationHistory.map((artifact) => artifact.canonicalizationDigest);
+  const canonicalizationResourceRollbackDigests = canonicalizationHistory.map(
+    (artifact) => artifact.resourceLine?.rollback?.digest ?? null,
+  );
+  const canonicalizationMutationResponseDigests = canonicalizationHistory.map(
+    (artifact) => artifact.resourceLine?.mutationResponse?.digest ?? null,
+  );
+  const actionHistoryDigests = historyDigestChain(actionHistory, ["resultDigest"]);
+  const actionExecutionHistoryDigests = historyDigestChain(actionExecutionHistory, ["executionDigest"]);
+  const asyncValidationHistoryDigests = historyDigestChain(asyncValidationHistory, ["lifecycleDigest"]);
+  const resourceMergeHistoryDigests = resourceMerge.history.map(
+    (artifact) => artifact.resultDigest ?? artifact.digest ?? null,
+  );
+  const resourceDriftHistoryDigests = historyDigestChain(resourceDrift.history, ["resultDigest"]);
+  const interactionHistoryDigests = historyDigestChain(interactionHistory, ["interactionDigest", "intentDigest"]);
+  const navigationHistoryDigests = historyDigestChain(navigationHistory, ["navigationDigest"]);
+  const presentationHistoryDigests = historyDigestChain(
+    presentationHistory,
+    ["presentationDigest", "settlementDigest"],
+  );
+  const sourceCompatibilityHistoryDigests = historyDigestChain(
+    sourceCompatibilityHistory,
+    ["compatibilityDigest"],
+  );
   const digests = Object.freeze({
     sourceAuthorityDigest: sourceAuthority.sourceAuthorityDigest,
-    sourceAuthorityContractDigest: stableValueDigest({
+    sourceAuthorityContractDigest: digestWithLabel("sourceAuthorityContractDigest", {
       kind: sourceAuthority.kind,
       sourceId: sourceAuthority.sourceId,
       explicit: sourceAuthority.explicit,
       contract: sourceAuthority.contract,
       identity: sourceAuthority.identity,
     }),
-    sourceAdmissionDigest: stableValueDigest(sourceAdmission),
-    draftRestoreDigest: stableValueDigest(draftRestore),
+    sourceAdmissionDigest: digestWithLabel("sourceAdmissionDigest", sourceAdmission),
+    draftRestoreDigest: digestWithLabel("draftRestoreDigest", draftRestore),
     resourceSourceDigest: resourceSource?.digest ?? null,
     resourceMergeDigest: resourceMerge.digest,
     resourceDriftDigest: resourceDrift.digest,
     resourceShapeDigest: resourceSource?.shape.digest ?? null,
     resourceLifecycleDigest: resourceSource?.lifecycle.digest ?? null,
     resourceSettlementDigest: resourceSource?.settlement.digest ?? null,
-    resourceEffectProfileDigest: stableValueDigest(resourceSource?.effectProfile.profile ?? null),
+    resourceEffectProfileDigest: digestWithLabel(
+      "resourceEffectProfileDigest",
+      resourceSource?.effectProfile.profile ?? null,
+    ),
     resourceExternalCompatibilityDigest: resourceSource?.externalCompatibility.digest ?? null,
     resourceTransferDigest: resourceSource?.transfer.digest ?? null,
     resourceVisibleBranchSelectionDigest: resourceSource?.visibleSelection.digest ?? stableValueDigest(null),
@@ -93,10 +120,10 @@ export function buildFormVerificationPackage(form, diagnosticsSnapshot) {
       resourceSource?.mutationResponse?.targetOutcomeDigest ?? null,
     resourceMutationResponseCloseoutMatrixDigest:
       resourceSource?.verification.mutationResponseCloseoutMatrixDigest ?? null,
-    sourceValueDigest: stableValueDigest(source),
-    formDeclarationDigest: stableValueDigest(formDeclaration),
-    fieldContractDigest: stableValueDigest(fieldContract),
-    inputAdapterCapabilityDigest: stableValueDigest(inputAdapters),
+    sourceValueDigest: digestWithLabel("sourceValueDigest", source),
+    formDeclarationDigest: digestWithLabel("formDeclarationDigest", formDeclaration),
+    fieldContractDigest: digestWithLabel("fieldContractDigest", fieldContract),
+    inputAdapterCapabilityDigest: digestWithLabel("inputAdapterCapabilityDigest", inputAdapters),
     hostFactDigest: host.digest,
     inputCapabilityDigest: inputCapabilities.digest,
     exitDigest: exit.digest,
@@ -108,42 +135,48 @@ export function buildFormVerificationPackage(form, diagnosticsSnapshot) {
     collaborationDigest: collaboration.digest,
     collaborationEventDigest: collaboration.eventsDigest,
     interactionDigest: interaction.digest,
-    interactionHistoryDigest: stableValueDigest(interactionHistory),
+    interactionHistoryDigest: digestWithLabel("interactionHistoryDigest", interactionHistoryDigests),
     navigationDigest: navigation.digest,
-    navigationHistoryDigest: stableValueDigest(navigationHistory),
+    navigationHistoryDigest: digestWithLabel("navigationHistoryDigest", navigationHistoryDigests),
     accessibilityDigest: accessibility.digest,
     presentationOrderHintDigest: accessibility.orderDigest,
     layoutDigest: layout.digest,
     layoutMeasurementDigest: layoutMeasurement.digest,
     presentationDigest: presentation.digest,
     presentationSettlementAcknowledgementDigest: presentation.acknowledgements.digest,
-    sourceCompatibilityDigest: stableValueDigest(sourceCompatibility),
-    draftDigest: stableValueDigest(draft),
-    effectiveValueDigest: stableValueDigest(effective),
-    semanticEqualityDigest: stableValueDigest(dirty),
+    sourceCompatibilityDigest: digestWithLabel("sourceCompatibilityDigest", sourceCompatibility),
+    draftDigest: digestWithLabel("draftDigest", draft),
+    effectiveValueDigest: digestWithLabel("effectiveValueDigest", effective),
+    semanticEqualityDigest: digestWithLabel("semanticEqualityDigest", dirty),
     patchPlanDigest: patchPlan.equivalenceDigest,
-    readinessDigest: stableValueDigest(readiness.blockers),
-    validationDigest: stableValueDigest(validation),
-    asyncValidationLifecycleDigest: stableValueDigest(asyncValidationHistory),
-    canonicalizationDigest: stableValueDigest(canonicalizationHistory),
-    replayRestoreDigest: stableValueDigest(replayRestoreHistory.at(-1) ?? null),
-    resetRollbackDigest: stableValueDigest(
-      canonicalizationHistory.map((artifact) => artifact.resourceLine?.rollback ?? null),
+    readinessDigest: digestWithLabel("readinessDigest", readiness.blockers),
+    validationDigest: digestWithLabel("validationDigest", validation),
+    asyncValidationLifecycleDigest: digestWithLabel("asyncValidationLifecycleDigest", asyncValidationHistoryDigests),
+    canonicalizationDigest: digestWithLabel("canonicalizationDigest", canonicalizationDigests),
+    replayRestoreDigest: replayRestoreHistory.at(-1)?.replayRestoreDigest ?? digestWithLabel("replayRestoreDigest", null),
+    resetRollbackDigest: digestWithLabel("resetRollbackDigest", canonicalizationResourceRollbackDigests),
+    resetHistoryDigest: digestWithLabel("resetHistoryDigest", resetHistory.map((artifact) => artifact.resetDigest)),
+    replayRestoreHistoryDigest: digestWithLabel(
+      "replayRestoreHistoryDigest",
+      replayRestoreHistory.map((artifact) => artifact.replayRestoreDigest),
     ),
-    resetHistoryDigest: stableValueDigest(resetHistory),
-    replayRestoreHistoryDigest: stableValueDigest(replayRestoreHistory),
     stateHistoryDigest: digestFormStateHistory(stateHistory),
-    resourceMergeHistoryDigest: stableValueDigest(resourceMerge.history),
-    resourceDriftHistoryDigest: stableValueDigest(resourceDrift.history),
-    mutationResponseReconciliationDigest: stableValueDigest(
-      canonicalizationHistory.map((artifact) => artifact.resourceLine?.mutationResponse ?? null),
+    resourceMergeHistoryDigest: digestWithLabel("resourceMergeHistoryDigest", resourceMergeHistoryDigests),
+    resourceDriftHistoryDigest: digestWithLabel("resourceDriftHistoryDigest", resourceDriftHistoryDigests),
+    mutationResponseReconciliationDigest: digestWithLabel(
+      "mutationResponseReconciliationDigest",
+      canonicalizationMutationResponseDigests,
     ),
-    sourceCompatibilityHistoryDigest: stableValueDigest(sourceCompatibilityHistory),
-    presentationHistoryDigest: stableValueDigest(presentationHistory),
-    availabilityDependencyDigest: stableValueDigest(availability.dependencyBreadth),
-    stepDeclarationProgressDigest: stableValueDigest(steps.artifacts),
-    admissionPolicyDigest: stableValueDigest(admission.dependencyBreadth),
-    regulatedBindingDigest: stableValueDigest(
+    sourceCompatibilityHistoryDigest: digestWithLabel(
+      "sourceCompatibilityHistoryDigest",
+      sourceCompatibilityHistoryDigests,
+    ),
+    presentationHistoryDigest: digestWithLabel("presentationHistoryDigest", presentationHistoryDigests),
+    availabilityDependencyDigest: digestWithLabel("availabilityDependencyDigest", availability.dependencyBreadth),
+    stepDeclarationProgressDigest: digestWithLabel("stepDeclarationProgressDigest", steps.artifacts),
+    admissionPolicyDigest: digestWithLabel("admissionPolicyDigest", admission.dependencyBreadth),
+    regulatedBindingDigest: digestWithLabel(
+      "regulatedBindingDigest",
       admission.artifacts
         .filter((artifact) => artifact.binding !== undefined)
         .map((artifact) => artifact.binding.bindingDigest),
@@ -152,8 +185,8 @@ export function buildFormVerificationPackage(form, diagnosticsSnapshot) {
     actionReadinessAdmissionDigest: actions.digests.readinessAdmissionDigest,
     actionPlanDigestSetDigest: actions.digests.planDigestSetDigest,
     submitPlanDigest: actions.digests.submitPlanDigest,
-    actionLifecycleDigest: stableValueDigest(actionHistory),
-    actionExecutionLifecycleDigest: stableValueDigest(actionExecutionHistory),
+    actionLifecycleDigest: digestWithLabel("actionLifecycleDigest", actionHistoryDigests),
+    actionExecutionLifecycleDigest: digestWithLabel("actionExecutionLifecycleDigest", actionExecutionHistoryDigests),
     diagnosticsHistoryDigest: digestFormDiagnosticsHistory(diagnosticsHistory),
     diagnosticsSummaryDigest: diagnosticsSummary.digest,
     diagnosticsDigest,
@@ -247,7 +280,7 @@ export function buildFormVerificationPackage(form, diagnosticsSnapshot) {
       navigationHistory,
       sourceCompatibilityHistory,
     }),
-    packageDigest: stableValueDigest(digests),
+    packageDigest: digestDigestRecord(digests),
   });
 }
 
@@ -292,4 +325,54 @@ function formPerformanceEnvelope(reports) {
     steps: reports.steps.counters,
     actions: reports.actions.counters,
   });
+}
+
+function historyDigestChain(history, digestKeys) {
+  return history.map((artifact) => artifactDigestToken(artifact, digestKeys));
+}
+
+function artifactDigestToken(artifact, digestKeys) {
+  if (artifact === null || artifact === undefined) {
+    return null;
+  }
+  for (const key of digestKeys) {
+    const digest = artifact[key];
+    if (typeof digest === "string") {
+      return digest;
+    }
+  }
+  return stableValueDigest(artifact);
+}
+
+function digestWithLabel(label, value) {
+  try {
+    return stableValueDigest(value);
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new RangeError(`${label}: ${detail}`);
+  }
+}
+
+function digestDigestRecord(record) {
+  let hash = 2166136261;
+  for (const key of Object.keys(record).sort()) {
+    hash = digestHashChunk(hash, key);
+    hash = digestHashChunk(hash, "\u0000");
+    const value = record[key];
+    hash = digestHashChunk(
+      hash,
+      typeof value === "string" ? value : stableValueDigest(value),
+    );
+    hash = digestHashChunk(hash, "\u0001");
+  }
+  return `f1a-${(hash >>> 0).toString(16).padStart(8, "0")}`;
+}
+
+function digestHashChunk(hash, value) {
+  let nextHash = hash;
+  for (let index = 0; index < value.length; index += 1) {
+    nextHash ^= value.charCodeAt(index);
+    nextHash = Math.imul(nextHash, 16777619);
+  }
+  return nextHash;
 }

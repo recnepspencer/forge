@@ -29,7 +29,8 @@ let clockTick = 0;
 let persistedDraft = { mode: "draft", revision: 1 };
 type ShippingOption = { id: string; label: string };
 
-const signals = createSignals({
+const signals = await createSignals({
+  deployment: "mainThreadCompatibility",
   hostCapabilities: hostCapabilityPlan({
     visibility: visibilityCapability({
       source: {
@@ -114,6 +115,36 @@ const scopedIdentityScopePath = scopedIdentity.scopePath;
 const scopedDescriptorPath = scopedDescriptor.path;
 const scopedDescriptorIdentity = scopedDescriptor.identity;
 const scopedDescriptorGraphOwnerId = scopedDescriptor.graphOwnerId;
+const asyncRootInput = await signals.inputAsync({
+  title: "Ship docs",
+  done: false,
+});
+const asyncScopedInput = await scopedSignals.inputAsync(3);
+const asyncRootComputed = await signals.computedAsync<number>({
+  reads: [asyncRootInput.id],
+  expr: {
+    kind: "value",
+    value: 1,
+  },
+  identity: { kind: "exact" },
+});
+const asyncScopedOutput = await scopedSignals.outputAsync<{ total: number }>({
+  reads: [asyncScopedInput.id, asyncRootComputed.id],
+  expr: {
+    kind: "object",
+    fields: [
+      ["total", { kind: "read", id: asyncRootComputed.id }],
+    ],
+  },
+  identity: { kind: "exact" },
+});
+const asyncLinked = await signals.linkedAsync(() => asyncRootInput());
+await asyncLinked.relink();
+const asyncScopedLinked = await scopedSignals.linkedAsync({
+  source: () => asyncRootInput(),
+  computation: (value: { title: string; done: boolean }) => value,
+});
+await asyncScopedLinked.reset();
 const scopedCount = nestedScopedSignals.input(1, { debugName: "count" });
 const scopedStringValue = nestedScopedSignals.input("value", { debugName: "scopedStringValue" });
 const scopedLabel = nestedScopedSignals.computed(() => `${scopedCount()}`, { debugName: "label" });
@@ -159,7 +190,11 @@ clock?.free();
 persistence?.free();
 const next: number = count();
 const alsoNext: number = count.get();
-const commit = count.set(next + alsoNext);
+const commit = await count.set(next + alsoNext);
+const asyncRootInputCommit = await asyncRootInput.assign({
+  done: true,
+});
+const asyncScopedInputCommit = await asyncScopedInput.set(4);
 // @ts-expect-error patch unavailable on primitive input
 count.patch(4);
 // @ts-expect-error patch unavailable on primitive input
@@ -487,6 +522,16 @@ const graphTransactionCommit = graph.transaction((
   // @ts-expect-error primitive graph inputs must not admit graph transaction patch helpers
   tx.patch("count", 6);
 });
+const graphTransactionAsyncCommit = await graph.transactionAsync((
+  tx: PublishedGraphTransaction<NonNullable<typeof graphRequest.inputs>>,
+) => {
+  tx.set("count", 4);
+});
+const graphBatchAsyncCommit = await graph.batchAsync((
+  tx: PublishedGraphTransaction<NonNullable<typeof graphRequest.inputs>>,
+) => {
+  tx.set(graph.inputs.count, 5);
+});
 const graphSnapshot = graph.read();
 const graphCountValue = graphSnapshot.count;
 const graphDoubledValue = graphSnapshot.doubled;
@@ -530,12 +575,20 @@ const graphHistory = graph.history();
 const graphSpecialist = graph.specialist();
 const graphAdapters = graph.adapters();
 const graphOutputByName = graph.output("panel");
-const restoredGraph = createSignals().importGraph(graphExportDefinition, graphExportSnapshot);
+const restoredGraph = (await createSignals({ deployment: "mainThreadCompatibility" })).importGraph(graphExportDefinition, graphExportSnapshot);
+await restoredGraph.ready();
 const restoredGraphContract = restoredGraph.contract();
 const restoredGraphContractHistory = restoredGraph.contractHistory();
 const restoredGraphImportPosture = restoredGraph.importPosture();
+const restoredGraphOperationalContract = restoredGraph.operationalContract();
 const restoredGraphRead = restoredGraph.read();
 const restoredGraphReadInputs = restoredGraph.readInputs();
+const restoredGraphInputSignal = restoredGraph.input("count");
+const restoredGraphWriteRunSummary = await restoredGraph.writeInput("count", 9);
+const restoredGraphResetRunSummary = await restoredGraph.resetInput("count");
+const restoredGraphHandleWriteRunSummary = await restoredGraph.inputs.count.set(10);
+const restoredGraphHandleResetRunSummary = await restoredGraphInputSignal.reset();
+const restoredGraphApplyRunSummary = await restoredGraph.apply({ writes: { count: 11 } });
 const restoredGraphCompatibility = restoredGraph.exportCompatibilityDefinition();
 const restoredGraphDiagnostics = restoredGraph.inspectDiagnostics();
 const restoredGraphHistory = restoredGraph.inspectHistory();
@@ -682,15 +735,20 @@ const itemDetailGraphContractSummary = itemDetailGraphDiagnostics.contractSummar
 const itemDetailGraphHistoryDependency =
   itemDetailGraphHistory.dependenciesForOutput("submitReadiness");
 const itemDetailGraphHistoryContractSummary = itemDetailGraphHistory.contractSummary();
-const restoredItemDetailGraph = createSignals().importGraph(
+const restoredItemDetailGraph = (await createSignals({ deployment: "mainThreadCompatibility" })).importGraph(
   itemDetailGraphExportDefinition,
   itemDetailGraphExportSnapshot,
 );
+await restoredItemDetailGraph.ready();
 const restoredItemDetailGraphContract = restoredItemDetailGraph.contract();
 const restoredItemDetailGraphContractHistory = restoredItemDetailGraph.contractHistory();
 const restoredItemDetailGraphImportPosture = restoredItemDetailGraph.importPosture();
 const restoredItemDetailGraphRead = restoredItemDetailGraph.read();
 const restoredItemDetailGraphReadInputs = restoredItemDetailGraph.readInputs();
+const restoredItemDetailGraphPatchRunSummary =
+  await restoredItemDetailGraph.inputs.serverItemData.patch({ workflow_target_state_id: 3 });
+const restoredItemDetailGraphAssignRunSummary =
+  await restoredItemDetailGraph.input("serverItemData").assign({ workflow_target_state_id: 4 });
 const restoredItemDetailGraphDependency =
   restoredItemDetailGraph.inspectDiagnostics().dependenciesForOutput("submitReadiness");
 
@@ -802,20 +860,20 @@ function createAuthorityController(namespace: SignalNamespace) {
   });
 }
 
-const taskEditorGraph = createSignals().graph("taskEditor", (graph) => {
+const taskEditorGraph = (await createSignals({ deployment: "mainThreadCompatibility" })).graph("taskEditor", (graph) => {
   const form = createFormController(graph.scope("form"));
   const resource = createResourceController(graph.scope("resource"), form);
   return graph.expose({
     controllers: [form, resource],
   });
 });
-const authorityGraph = createSignals().graph("taskAuthority", (graph) => {
+const authorityGraph = (await createSignals({ deployment: "mainThreadCompatibility" })).graph("taskAuthority", (graph) => {
   const authority = createAuthorityController(graph.scope("authority"));
   return graph.expose({
     controllers: [authority],
   });
 });
-const requirednessGraph = createSignals().graph("taskRequiredness", (graph) => {
+const requirednessGraph = (await createSignals({ deployment: "mainThreadCompatibility" })).graph("taskRequiredness", (graph) => {
   const scope = graph.scope("requiredness");
   const serverValue = scope.input({
     id: "task-7",
@@ -854,10 +912,11 @@ const taskEditorGraphExportDefinition = taskEditorGraph.exportDefinition();
 const taskEditorGraphExportSnapshot = taskEditorGraph.exportSnapshot();
 const taskEditorGraphImportPosture = taskEditorGraph.importPosture();
 const taskEditorGraphContractHistory = taskEditorGraph.contractHistory();
-const restoredTaskEditorGraph = createSignals().importGraph(
+const restoredTaskEditorGraph = (await createSignals({ deployment: "mainThreadCompatibility" })).importGraph(
   taskEditorGraphExportDefinition,
   taskEditorGraphExportSnapshot,
 );
+await restoredTaskEditorGraph.ready();
 const restoredTaskEditorGraphHistory = restoredTaskEditorGraph.contractHistory();
 const restoredTaskEditorGraphImportPosture = restoredTaskEditorGraph.importPosture();
 const taskEditorGraphPatchCommit = taskEditorGraph.patchInputs({
@@ -900,7 +959,7 @@ const requirednessServerRequiredness = requirednessGraphDescriptors[0]?.required
 const requirednessDraftRequiredness = requirednessGraphDescriptors[1]?.requiredness;
 const requirednessAuthorityRequiredness =
   requirednessGraph.operationalContract().authorities.serverValue.requiredness;
-createSignals().graph("invalidRequirednessTypes", (graph) => {
+(await createSignals({ deployment: "mainThreadCompatibility" })).graph("invalidRequirednessTypes", (graph) => {
   const scope = graph.scope("requiredness");
   const value = scope.spec.input("value", 1);
   // @ts-expect-error contradictory requiredness must be unrepresentable
@@ -948,7 +1007,7 @@ const explicitCallbackPanel = signals.spec.outputCallback<{ count: number; doubl
 const adapters = signals.adapters();
 const definitions = adapters.exportDefinitions();
 const runtimeEnvelope = adapters.exportRuntimeEnvelope();
-adapters.restoreExactRuntimeEnvelope(runtimeEnvelope);
+await adapters.restoreExactRuntimeEnvelope(runtimeEnvelope);
 const transportReport = adapters.hostCapabilityTransportReport(runtimeEnvelope);
 const proof = adapters.runtimeProofReport();
 const runtimeEnvelopeRestoreMode = runtimeEnvelope.runtimeEnvelopeRestoreMode;
@@ -1077,6 +1136,16 @@ signals.transaction((tx) => {
   // @ts-expect-error computed handles must stay read-only inside transactions
   tx.set(doubled, 4);
 });
+const asyncTransactionCommit = await signals.transactionAsync((tx) => {
+  tx.set(count, snapshot.count + commit.touchedNodes + 1);
+});
+const asyncAuthoredTransactionCommit = await signals.transactionAsync((tx) => {
+  tx.patch(asyncRootInput, { title: "Close milestone" });
+  tx.set(asyncScopedInput, 5);
+});
+const asyncBatchCommit = await signals.batchAsync((tx) => {
+  tx.set(count, snapshot.count + asyncTransactionCommit.touchedNodes);
+});
 
 // @ts-expect-error branded callable handles must not accept structural forgeries
 const forgedSignal: InputSignalHandle<number> = {
@@ -1089,6 +1158,9 @@ const forgedSignal: InputSignalHandle<number> = {
   },
 };
 
+void asyncBatchCommit;
+void graphTransactionAsyncCommit;
+void graphBatchAsyncCommit;
 void constantFromCallback;
 void doubledFromCallback;
 void generatedFromCallback;

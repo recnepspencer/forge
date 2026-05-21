@@ -1,6 +1,6 @@
 import { createSignals, resourceProcessingResult, resourceUploadResult } from "../../../index.js";
 
-const signals = createSignals();
+const signals = await createSignals({ deployment: "mainThreadCompatibility" });
 const api = signals.api({});
 
 const directTaskUploadPages = api.url("/workspaces/:workspaceId/direct-task-upload-pages")

@@ -10,7 +10,7 @@ import {
   type ResourceEffectMergePlanResult,
 } from "../../../index.js";
 
-const signals = createSignals();
+const signals = await createSignals({ deployment: "mainThreadCompatibility" });
 
 const scopedApi = signals.api({
   effects: resourceEffects.branchNative(),

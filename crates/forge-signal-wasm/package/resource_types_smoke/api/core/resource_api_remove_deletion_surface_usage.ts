@@ -1,6 +1,6 @@
 import { createSignals } from "../../../index.js";
 
-const signals = createSignals();
+const signals = await createSignals({ deployment: "mainThreadCompatibility" });
 const api = signals.api({ baseUrl: "/api" });
 
 const taskList = api.url("/workspaces/:workspaceId/tasks")

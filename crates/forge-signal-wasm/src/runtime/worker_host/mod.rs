@@ -12,11 +12,14 @@ mod worker_callback_capability_transport;
 mod worker_callback_definition_publication;
 mod worker_callback_phase4_closeout_certification;
 mod worker_certification_digest;
+mod worker_committed_projection;
 mod worker_compatibility_certification_probe;
 mod worker_compatibility_certification_report;
 mod worker_compatibility_certification_scenario;
 mod worker_diagnostics_history_read;
+mod worker_diagnostics_surface;
 mod worker_diagnostics_truth_comparison;
+mod worker_graph_inspection;
 mod worker_graph_parity_probe;
 mod worker_graph_publication;
 mod worker_host_boundary_causality;
@@ -46,6 +49,7 @@ mod worker_runtime_identity;
 mod worker_runtime_shell;
 mod worker_runtime_shell_branches;
 mod worker_runtime_shell_lock;
+mod worker_signal_readback;
 mod worker_unavailable_compatibility_artifact;
 
 pub use branch_lifecycle_truth_report::WorkerBranchLifecycleTruthReport;
@@ -70,6 +74,9 @@ pub(crate) use worker_callback_definition_publication::DefinitionEnvelopeCallbac
 pub use worker_callback_definition_publication::WorkerDefinitionEnvelopePublicationReport;
 pub use worker_callback_phase4_closeout_certification::WorkerCallbackPhase4CloseoutCertificationPackage;
 pub(crate) use worker_certification_digest::canonical_worker_certification_digest;
+pub use worker_committed_projection::{
+    WorkerCommittedProjectionPacket, WorkerCommittedProjectionRequest,
+};
 pub use worker_compatibility_certification_probe::certify_worker_compatibility;
 pub use worker_compatibility_certification_report::{
     WorkerCompatibilityCertificationReport, WorkerRuntimeAsyncLifecycleTruthReport,
@@ -158,6 +165,7 @@ pub use worker_replay_restore_capability::{
 pub use worker_runtime_bootstrap_record::WorkerRuntimeBootstrapRecord;
 pub use worker_runtime_identity::WorkerRuntimeShellLock;
 pub use worker_runtime_shell::WorkerRuntimeShell;
+pub use worker_signal_readback::{WorkerSignalReadbackPacket, WorkerSignalReadbackRequest};
 pub use worker_unavailable_compatibility_artifact::{
     certify_worker_unavailable_compatibility_artifact,
     WorkerUnavailableCompatibilityCertificationPackage,

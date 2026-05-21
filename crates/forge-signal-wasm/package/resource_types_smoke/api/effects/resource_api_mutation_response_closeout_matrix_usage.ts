@@ -4,7 +4,7 @@ import {
   type ResourceMutationResponseCloseoutMatrixRow,
 } from "../../../index.js";
 
-const signals = createSignals();
+const signals = await createSignals({ deployment: "mainThreadCompatibility" });
 
 const matrix: ResourceMutationResponseCloseoutMatrix =
   signals.resource.mutationResponses.closeoutMatrix();

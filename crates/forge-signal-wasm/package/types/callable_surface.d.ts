@@ -120,10 +120,10 @@ type AssignSignalValue<T> = T extends ReadonlyArray<unknown>
       : never;
 
 export interface InputSignalHandle<T = SignalValue> extends Signal<T> {
-  set(value: T): RunSummary;
-  reset(): RunSummary;
-  patch(value: PatchSignalValue<T>): RunSummary;
-  assign(fields: AssignSignalValue<T>): RunSummary;
+  set(value: T): RunSummary | Promise<RunSummary>;
+  reset(): RunSummary | Promise<RunSummary>;
+  patch(value: PatchSignalValue<T>): RunSummary | Promise<RunSummary>;
+  assign(fields: AssignSignalValue<T>): RunSummary | Promise<RunSummary>;
   readonly [forgeSignalInputBrand]: "input";
 }
 
@@ -156,7 +156,7 @@ export type LinkedSignalDefinition<TSource = SignalValue, TValue = SignalValue> 
 
 export interface LinkedSignalHandle<TValue = SignalValue, TSource = TValue>
   extends InputSignalHandle<TValue> {
-  relink(): RunSummary;
+  relink(): RunSummary | Promise<RunSummary>;
 }
 
 export interface ComputedSignalHandle<T = SignalValue> extends Signal<T> {
@@ -276,8 +276,36 @@ export interface HostCapabilityPlan<TPersistence = SignalValue> {
   readonly [forgeSignalHostCapabilityPlanBrand]: "hostCapabilityPlan";
 }
 
+export type SignalsDeployment = "workerFirst" | "mainThreadCompatibility";
+
 export interface CreateSignalsOptions<TPersistence = SignalValue> {
+  deployment?: SignalsDeployment;
   hostCapabilities?: HostCapabilityPlan<TPersistence>;
+}
+
+export interface WrapSignalsOptions<TPersistence = SignalValue> {
+  hostCapabilities?: HostCapabilityPlan<TPersistence>;
+}
+
+export interface SignalsCompatibilityRecovery {
+  deployment: "mainThreadCompatibility";
+  message: string;
+}
+
+export interface SignalsConstructionArtifact {
+  artifactFamily: "workerUnavailableConstruction" | "signalsConstructionDenied";
+  requestedDeployment: SignalsDeployment;
+  reason: string;
+  message: string;
+  compatibilityRecovery: SignalsCompatibilityRecovery;
+}
+
+export interface SignalsConstructionExplanation {
+  requestedDeployment: SignalsDeployment;
+  selectedFamily: "mainThreadCompatibility" | "workerUnavailable" | "denied";
+  selectedDeployment: "mainThreadCompatibility" | null;
+  reason: string;
+  compatibilityRecovery: SignalsCompatibilityRecovery | null;
 }
 
 export interface InputAuthoringOptions extends InputOptions {
@@ -410,11 +438,26 @@ export interface CallableSignalsTransaction {
   [Symbol.dispose](): void;
 }
 
+export interface AsyncCallableSignalsTransaction {
+  set<T = SignalValue>(input: InputSignalHandle<T>, value: T): void;
+  patch<T = SignalValue>(input: InputSignalHandle<T>, value: PatchSignalValue<T>): void;
+  setWithAspects<T = SignalValue>(input: InputSignalHandle<T>, value: T, aspects: ReadonlyArray<AspectId>): void;
+  setWithRegions<T = SignalValue>(input: InputSignalHandle<T>, value: T, changedRegions: unknown): void;
+  setWithRegionsAndAspects(
+    input: InputSignalHandle,
+    value: SignalValue,
+    changedRegions: unknown,
+    aspects: ReadonlyArray<AspectId>,
+  ): void;
+  free(): void;
+  [Symbol.dispose](): void;
+}
+
 export interface CallableSignalAdapters {
   exportDefinitions(): RuntimeDefinitionEnvelope;
   exportRuntimeEnvelope(): RuntimeEnvelopeArtifact;
-  replaceRuntimeEnvelope(envelope: RuntimeEnvelope): void;
-  restoreExactRuntimeEnvelope(envelope: RuntimeEnvelopeArtifact): void;
+  replaceRuntimeEnvelope(envelope: RuntimeEnvelope): Promise<void>;
+  restoreExactRuntimeEnvelope(envelope: RuntimeEnvelopeArtifact): Promise<void>;
   runtimeProofReport(): RuntimeProofReport;
   hostCapabilityTransportReport(envelope?: RuntimeEnvelope): HostCapabilityTransportReport;
   free(): void;
@@ -563,6 +606,10 @@ export interface ScopedSignalNamespace<TPersistence = SignalValue> {
     options?: PublicGraphInputOptions,
   ): PublicGraphInputContractEntry<THandle>;
   input<T = SignalValue>(initial: T, options?: InputAuthoringOptions): InputSignalHandle<T>;
+  inputAsync<T = SignalValue>(
+    initial: T,
+    options?: InputAuthoringOptions,
+  ): Promise<InputSignalHandle<T>>;
   linked<T = SignalValue>(
     source: () => T,
     options?: LinkedSignalOptions,
@@ -573,6 +620,16 @@ export interface ScopedSignalNamespace<TPersistence = SignalValue> {
   linked<TSource = SignalValue, TValue = TSource>(
     definition: LinkedComputedSignalDefinition<TSource, TValue>,
   ): LinkedSignalHandle<TValue, TSource>;
+  linkedAsync<T = SignalValue>(
+    source: () => T,
+    options?: LinkedSignalOptions,
+  ): Promise<LinkedSignalHandle<T, T>>;
+  linkedAsync<TSource = SignalValue>(
+    definition: LinkedIdentitySignalDefinition<TSource>,
+  ): Promise<LinkedSignalHandle<TSource, TSource>>;
+  linkedAsync<TSource = SignalValue, TValue = TSource>(
+    definition: LinkedComputedSignalDefinition<TSource, TValue>,
+  ): Promise<LinkedSignalHandle<TValue, TSource>>;
   computedSpec<T = SignalValue>(
     id: string,
     spec: ComputedSpec | NamedComputedCallbackDefinition<T>,
@@ -580,6 +637,8 @@ export interface ScopedSignalNamespace<TPersistence = SignalValue> {
   ): ComputedSignalHandle<T>;
   computed<T = SignalValue>(spec: ComputedSpec, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
   computed<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
+  computedAsync<T = SignalValue>(spec: ComputedSpec, options?: SignalAuthoringOptions): Promise<ComputedSignalHandle<T>>;
+  computedAsync<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): Promise<ComputedSignalHandle<T>>;
   outputSpec<T = SignalValue>(
     id: string,
     spec: OutputSpec | NamedOutputCallbackDefinition<T>,
@@ -587,6 +646,8 @@ export interface ScopedSignalNamespace<TPersistence = SignalValue> {
   ): OutputSignalHandle<T>;
   output<T = SignalValue>(spec: OutputSpec, options?: SignalAuthoringOptions): OutputSignalHandle<T>;
   output<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): OutputSignalHandle<T>;
+  outputAsync<T = SignalValue>(spec: OutputSpec, options?: SignalAuthoringOptions): Promise<OutputSignalHandle<T>>;
+  outputAsync<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): Promise<OutputSignalHandle<T>>;
   outputCallback<T = SignalValue>(
     id: string,
     compute: () => T,
@@ -632,6 +693,10 @@ export interface CallableSignals<TPersistence = SignalValue> {
     options?: PublicGraphInputOptions,
   ): PublicGraphInputContractEntry<THandle>;
   input<T = SignalValue>(initial: T, options?: InputAuthoringOptions): InputSignalHandle<T>;
+  inputAsync<T = SignalValue>(
+    initial: T,
+    options?: InputAuthoringOptions,
+  ): Promise<InputSignalHandle<T>>;
   linked<T = SignalValue>(
     source: () => T,
     options?: LinkedSignalOptions,
@@ -642,6 +707,16 @@ export interface CallableSignals<TPersistence = SignalValue> {
   linked<TSource = SignalValue, TValue = TSource>(
     definition: LinkedComputedSignalDefinition<TSource, TValue>,
   ): LinkedSignalHandle<TValue, TSource>;
+  linkedAsync<T = SignalValue>(
+    source: () => T,
+    options?: LinkedSignalOptions,
+  ): Promise<LinkedSignalHandle<T, T>>;
+  linkedAsync<TSource = SignalValue>(
+    definition: LinkedIdentitySignalDefinition<TSource>,
+  ): Promise<LinkedSignalHandle<TSource, TSource>>;
+  linkedAsync<TSource = SignalValue, TValue = TSource>(
+    definition: LinkedComputedSignalDefinition<TSource, TValue>,
+  ): Promise<LinkedSignalHandle<TValue, TSource>>;
   computedSpec<T = SignalValue>(
     id: string,
     spec: ComputedSpec | NamedComputedCallbackDefinition<T>,
@@ -649,6 +724,8 @@ export interface CallableSignals<TPersistence = SignalValue> {
   ): ComputedSignalHandle<T>;
   computed<T = SignalValue>(spec: ComputedSpec, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
   computed<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
+  computedAsync<T = SignalValue>(spec: ComputedSpec, options?: SignalAuthoringOptions): Promise<ComputedSignalHandle<T>>;
+  computedAsync<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): Promise<ComputedSignalHandle<T>>;
   outputSpec<T = SignalValue>(
     id: string,
     spec: OutputSpec | NamedOutputCallbackDefinition<T>,
@@ -656,6 +733,8 @@ export interface CallableSignals<TPersistence = SignalValue> {
   ): OutputSignalHandle<T>;
   output<T = SignalValue>(spec: OutputSpec, options?: SignalAuthoringOptions): OutputSignalHandle<T>;
   output<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): OutputSignalHandle<T>;
+  outputAsync<T = SignalValue>(spec: OutputSpec, options?: SignalAuthoringOptions): Promise<OutputSignalHandle<T>>;
+  outputAsync<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): Promise<OutputSignalHandle<T>>;
   outputCallback<T = SignalValue>(
     id: string,
     compute: () => T,
@@ -685,6 +764,8 @@ export interface CallableSignals<TPersistence = SignalValue> {
   read<T = SignalValue>(target: CallableSignalTarget): T;
   transaction(callback: (tx: CallableSignalsTransaction) => void): RunSummary;
   batch(callback: (tx: CallableSignalsTransaction) => void): RunSummary;
+  transactionAsync(callback: (tx: AsyncCallableSignalsTransaction) => void): Promise<RunSummary>;
+  batchAsync(callback: (tx: AsyncCallableSignalsTransaction) => void): Promise<RunSummary>;
   watch(target: CallableSignalTarget, callback: (notice: WebObservationNotice) => void): DisposableHandle;
   effect(target: CallableSignalTarget, callback: () => void): DisposableHandle;
   nuke(handle: DisposableHandle): boolean;
@@ -704,9 +785,15 @@ export function onlineCapability(options: OnlineCapabilityOptions): OnlineCapabi
 export function clockCapability(options: ClockCapabilityOptions): ClockCapabilityRegistration;
 export function persistenceCapability<T = SignalValue>(options: PersistenceCapabilityOptions<T>): PersistenceCapabilityRegistration<T>;
 export function hostCapabilityPlan<TPersistence = SignalValue>(input?: HostCapabilityPlanInput<TPersistence>): HostCapabilityPlan<TPersistence>;
-export function createSignals<TPersistence = SignalValue>(options?: CreateSignalsOptions<TPersistence>): CallableSignals<TPersistence>;
-export function createCallableSignals<TPersistence = SignalValue>(options?: CreateSignalsOptions<TPersistence>): CallableSignals<TPersistence>;
-export function wrapSignals<TPersistence = SignalValue>(signals: Signals, options?: CreateSignalsOptions<TPersistence>): CallableSignals<TPersistence>;
+export function explainCreateSignalsConstruction<TPersistence = SignalValue>(
+  options?: CreateSignalsOptions<TPersistence>,
+): SignalsConstructionExplanation;
+export function planCreateSignalsDeployment<TPersistence = SignalValue>(
+  options?: CreateSignalsOptions<TPersistence>,
+): { explanation: SignalsConstructionExplanation };
+export function createSignals<TPersistence = SignalValue>(options?: CreateSignalsOptions<TPersistence>): Promise<CallableSignals<TPersistence>>;
+export function createCallableSignals<TPersistence = SignalValue>(options?: CreateSignalsOptions<TPersistence>): Promise<CallableSignals<TPersistence>>;
+export function wrapSignals<TPersistence = SignalValue>(signals: Signals, options?: WrapSignalsOptions<TPersistence>): CallableSignals<TPersistence>;
 
 export {
   Signals as RawSignals,

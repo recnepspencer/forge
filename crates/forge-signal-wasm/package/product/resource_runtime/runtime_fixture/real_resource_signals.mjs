@@ -3,7 +3,7 @@ import { loadResourceModule } from "../module_loading/load_resource_module.mjs";
 
 export async function createRealResourceSignals() {
   const mod = await loadSignalsModule({ rawSurface: "real" });
-  const signals = mod.createSignals();
+  const signals = await mod.createSignals({ deployment: "mainThreadCompatibility" });
   return {
     mod,
     signals,

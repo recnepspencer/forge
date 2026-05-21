@@ -23,13 +23,13 @@ export type HostCapabilityCompatibility =
   | "SnapshotPortable"
   | "ImportDenied";
 export type RuntimePolicyPreset =
-  | "Development"
-  | "Operational"
-  | "Forensic"
-  | "WebDevelopment"
-  | "Fintech"
-  | "Kernel"
-  | "GameEngine";
+  | "development"
+  | "operational"
+  | "forensic"
+  | "webDevelopment"
+  | "fintech"
+  | "kernel"
+  | "gameEngine";
 
 export interface RuntimePolicySpec {
   preset: RuntimePolicyPreset;

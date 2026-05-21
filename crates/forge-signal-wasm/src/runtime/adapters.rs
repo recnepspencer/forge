@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::recipe::model::{KeyedRecipeFamilySpec, KeyedSourceFamilySpec, RecipeSpec, SourceSpec};
 use crate::runtime::compute_callbacks::CapturedHostCapabilityRead;
 use crate::runtime::policy::RuntimePolicySpec;
-use crate::runtime::summaries::RuntimeSnapshotEnvelope;
+use crate::runtime::summaries::{RuntimeSnapshotEnvelope, RuntimeStoreSnapshot};
 
 mod merge;
 pub use merge::*;
@@ -51,4 +51,11 @@ pub struct RuntimeDefinitionEnvelope {
 pub struct RuntimeEnvelope {
     pub definitions: RuntimeDefinitionEnvelope,
     pub snapshot: RuntimeSnapshotEnvelope,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PortableRuntimeEnvelopeArtifact {
+    pub definitions: RuntimeDefinitionEnvelope,
+    pub state: RuntimeStoreSnapshot,
 }

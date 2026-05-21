@@ -1,5 +1,5 @@
 use std::collections::BTreeMap;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use forge_signal::facade::adapters::{
     branch_state_proof_report, merge_plan_proof_report, merge_result_proof_report,
@@ -25,6 +25,8 @@ use super::state::{
     StoredRecipeDefinition, WebRuntimeMetrics, WebSignalKind,
 };
 use super::RuntimeCore;
+
+mod restore;
 
 #[derive(Clone)]
 pub(crate) struct ExactRuntimeRestoreArtifact {
@@ -309,71 +311,5 @@ impl RuntimeCore {
         result: &BranchMergeResult,
     ) -> Result<MergeResultProofReport, ForgeSignalJsError> {
         Ok(merge_result_proof_report(result))
-    }
-
-    #[cfg_attr(not(test), allow(dead_code))]
-    pub fn replace_runtime_envelope(
-        &mut self,
-        envelope: RuntimeEnvelope,
-    ) -> Result<(), ForgeSignalJsError> {
-        if !envelope.definitions.unavailable_callbacks.is_empty() {
-            self.web_metrics
-                .compute_callback_missing_unavailability_count = self
-                .web_metrics
-                .compute_callback_missing_unavailability_count
-                .saturating_add(envelope.definitions.unavailable_callbacks.len() as u64);
-            let ids = envelope
-                .definitions
-                .unavailable_callbacks
-                .iter()
-                .map(|artifact| artifact.id.clone())
-                .collect::<Vec<_>>()
-                .join(", ");
-            return Err(ForgeSignalJsError::callback_failure(
-                CALLBACK_UNAVAILABLE_FOR_RUNTIME_ENVELOPE_IMPORT,
-                format!(
-                    "runtime envelope import cannot restore callback-backed nodes without live callback registrations: {ids}"
-                ),
-                Some(ids),
-            ));
-        }
-        let mut rebuilt = RuntimeCore::new(envelope.definitions.policy.clone())?;
-        for family in envelope.definitions.source_families {
-            rebuilt.define_source_family(family)?;
-        }
-        for family in envelope.definitions.recipe_families {
-            rebuilt.define_keyed_recipe_family(family)?;
-        }
-        for source in envelope.definitions.sources {
-            rebuilt.define_source(source)?;
-        }
-        let worker_public_output_ids = envelope.definitions.worker_public_output_ids;
-        for recipe in envelope.definitions.recipes {
-            rebuilt.define_recipe(recipe)?;
-        }
-        rebuilt.restore_snapshot(envelope.snapshot)?;
-        rebuilt.mark_worker_public_outputs(worker_public_output_ids)?;
-        *self = rebuilt;
-        Ok(())
-    }
-
-    pub(crate) fn replace_runtime_envelope_exact(
-        &mut self,
-        artifact: ExactRuntimeRestoreArtifact,
-    ) -> Result<(), ForgeSignalJsError> {
-        let mut rebuilt = RuntimeCore::new(artifact.policy.clone())?;
-        rebuilt.catalog = artifact.catalog;
-        rebuilt.web_signals = artifact.web_signals;
-        rebuilt.nodes_by_id = artifact.nodes_by_id;
-        rebuilt.dense_grids = artifact.dense_grids;
-        rebuilt.branch_states = artifact.branch_states;
-        rebuilt.snapshot_states = artifact.snapshot_states;
-        rebuilt.runtime_snapshots = artifact.runtime_snapshots;
-        rebuilt.web_metrics = artifact.web_metrics;
-        rebuilt.store = Arc::new(Mutex::new(artifact.store));
-        rebuilt.callback_diagnostics = Arc::new(Mutex::new(artifact.callback_diagnostics));
-        rebuilt.restore_snapshot(artifact.snapshot)?;
-        *self = rebuilt;
-        Ok(())
     }
 }

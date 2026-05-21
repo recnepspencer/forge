@@ -9,7 +9,7 @@ import {
   resourceUploadTransport,
 } from "../index.js";
 
-const signals = createSignals();
+const signals = await createSignals({ deployment: "mainThreadCompatibility" });
 
 const retryingDetail = signals.resource.detail({
   params: resourceParams<{ productId: string }>(),

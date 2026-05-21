@@ -2,8 +2,6 @@ export { default } from "./raw_surface.js";
 export * from "./raw_surface.js";
 export {
   clockCapability,
-  createCallableSignals,
-  createSignals,
   hostCapabilityPlan,
   onlineCapability,
   persistenceCapability,
@@ -32,4 +30,10 @@ export {
   visibilityCapability,
   wrapSignals,
 } from "./product/signals.js";
+export {
+  createCallableSignals,
+  createSignals,
+  explainCreateSignalsConstruction,
+  planCreateSignalsDeployment,
+} from "./product/entrypoint/construction/entrypoint_construction.js";
 export { resourceEffects } from "./product/resource/facade.js";

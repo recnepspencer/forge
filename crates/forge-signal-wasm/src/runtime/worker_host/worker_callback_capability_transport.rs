@@ -1,8 +1,12 @@
 use serde::Serialize;
 
 use crate::boundary::errors::ForgeSignalJsError;
-use crate::runtime::adapters::{RuntimeEnvelope, UnavailableCallbackArtifact};
+use crate::runtime::adapters::{
+    RuntimeDefinitionEnvelope, RuntimeEnvelope, UnavailableCallbackArtifact,
+};
+use crate::runtime::core::ExactRuntimeRestoreArtifact;
 pub(crate) use crate::runtime::core::RuntimeEnvelopeCallbackReattachment;
+use crate::runtime::summaries::RuntimeStoreSnapshot;
 
 use super::{
     canonical_worker_certification_digest, committed_truth_digest_for_runtime, WorkerRuntimeShell,
@@ -78,18 +82,16 @@ impl WorkerCallbackCapabilityExportCertificationPackage {
 }
 
 impl WorkerRuntimeEnvelopeImportReport {
-    pub(in crate::runtime::worker_host) fn rejected(
-        envelope: &RuntimeEnvelope,
+    pub(in crate::runtime::worker_host) fn rejected_callbacks(
+        unavailable_callbacks: &[UnavailableCallbackArtifact],
         worker_first_truth_digest: String,
     ) -> Result<Self, ForgeSignalJsError> {
-        let rejected_callback_ids = envelope
-            .definitions
-            .unavailable_callbacks
+        let rejected_callback_ids = unavailable_callbacks
             .iter()
             .map(|artifact| artifact.id.clone())
             .collect::<Vec<_>>();
         let host_capability_transport_count =
-            host_capability_transport_count(&envelope.definitions.unavailable_callbacks);
+            host_capability_transport_count(unavailable_callbacks);
         let import_digest = canonical_worker_certification_digest(&(
             "workerRuntimeEnvelopeImport",
             "Denied",
@@ -144,6 +146,16 @@ impl WorkerRuntimeEnvelopeImportReport {
             import_digest,
         })
     }
+
+    pub(in crate::runtime::worker_host) fn rejected(
+        envelope: &RuntimeEnvelope,
+        worker_first_truth_digest: String,
+    ) -> Result<Self, ForgeSignalJsError> {
+        Self::rejected_callbacks(
+            &envelope.definitions.unavailable_callbacks,
+            worker_first_truth_digest,
+        )
+    }
 }
 
 impl WorkerRuntimeShell {
@@ -151,6 +163,12 @@ impl WorkerRuntimeShell {
         &mut self,
     ) -> Result<RuntimeEnvelope, ForgeSignalJsError> {
         self.core.export_runtime_envelope()
+    }
+
+    pub fn export_exact_worker_runtime_restore_artifact(
+        &mut self,
+    ) -> Result<ExactRuntimeRestoreArtifact, ForgeSignalJsError> {
+        self.core.export_exact_runtime_restore_artifact()
     }
 
     pub fn certify_worker_callback_capability_export(
@@ -176,6 +194,51 @@ impl WorkerRuntimeShell {
             return Ok(report);
         }
         self.core.replace_runtime_envelope(envelope)?;
+        self.clear_worker_boundary_certification_evidence();
+        let report = WorkerRuntimeEnvelopeImportReport::admitted(
+            "Admitted",
+            Vec::new(),
+            0,
+            0,
+            committed_truth_digest_for_runtime(&self.core)?,
+        )?;
+        self.latest_worker_runtime_envelope_import_report = Some(report.clone());
+        Ok(report)
+    }
+
+    pub fn admit_exact_worker_runtime_restore_artifact(
+        &mut self,
+        artifact: ExactRuntimeRestoreArtifact,
+    ) -> Result<WorkerRuntimeEnvelopeImportReport, ForgeSignalJsError> {
+        self.core.replace_runtime_envelope_exact(artifact)?;
+        self.clear_worker_boundary_certification_evidence();
+        let report = WorkerRuntimeEnvelopeImportReport::admitted(
+            "AdmittedExact",
+            Vec::new(),
+            0,
+            0,
+            committed_truth_digest_for_runtime(&self.core)?,
+        )?;
+        self.latest_worker_runtime_envelope_import_report = Some(report.clone());
+        Ok(report)
+    }
+
+    pub fn admit_worker_runtime_envelope_import_portable_artifact(
+        &mut self,
+        definitions: RuntimeDefinitionEnvelope,
+        state: RuntimeStoreSnapshot,
+    ) -> Result<WorkerRuntimeEnvelopeImportReport, ForgeSignalJsError> {
+        if !definitions.unavailable_callbacks.is_empty() {
+            let report = WorkerRuntimeEnvelopeImportReport::rejected_callbacks(
+                &definitions.unavailable_callbacks,
+                committed_truth_digest_for_runtime(&self.core)?,
+            )?;
+            self.latest_worker_runtime_envelope_import_report = Some(report.clone());
+            self.latest_worker_runtime_envelope_import_denial_report = Some(report.clone());
+            return Ok(report);
+        }
+        self.core
+            .replace_runtime_envelope_portable_artifact(definitions, state)?;
         self.clear_worker_boundary_certification_evidence();
         let report = WorkerRuntimeEnvelopeImportReport::admitted(
             "Admitted",

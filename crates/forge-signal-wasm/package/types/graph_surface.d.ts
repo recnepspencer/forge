@@ -439,12 +439,20 @@ export type ImportedGraphSignals<
   TDefinitions extends Record<string, GraphReadableHandle | GraphInputDefinition>,
 > = {
   readonly [TName in keyof NormalizeGraphRecord<TDefinitions>]:
-    TDefinitions[TName] extends GraphReadableHandle<infer TValue>
-      ? import("./callable_surface.js").Signal<TValue>
-      : UnwrapGraphInputHandle<TDefinitions[TName]> extends GraphInputHandle<infer TValue>
+    UnwrapGraphInputHandle<TDefinitions[TName]> extends GraphInputHandle<infer TValue>
+      ? ImportedGraphInputHandle<TValue>
+      : TDefinitions[TName] extends GraphReadableHandle<infer TValue>
       ? import("./callable_surface.js").Signal<TValue>
       : never;
 };
+
+export interface ImportedGraphInputHandle<T = SignalValue>
+  extends import("./callable_surface.js").Signal<T> {
+  set(value: T): Promise<RunSummary>;
+  reset(): Promise<RunSummary>;
+  patch(value: GraphPatchValue<T>): Promise<RunSummary>;
+  assign(fields: GraphPatchValue<T>): Promise<RunSummary>;
+}
 
 export interface GraphPublicationRequest<
   TInputs extends GraphInputDefinitions = Record<string, never>,
@@ -616,20 +624,24 @@ export interface PublishedSignalGraph<
   output<TName extends keyof NormalizeGraphRecord<TOutputs>>(name: TName): PublishedGraphOutputs<TOutputs>[TName];
   read(): PublishedGraphValues<TOutputs>;
   readInputs(): PublishedGraphInputValues<TInputs>;
-  writeInputs(values: Partial<PublishedGraphInputValues<TInputs>>): RunSummary;
+  writeInputs(values: Partial<PublishedGraphInputValues<TInputs>>): RunSummary | Promise<RunSummary>;
   writeInput<TName extends keyof NormalizeGraphRecord<TInputs>>(
     name: TName,
     value: PublishedGraphInputValues<TInputs>[TName],
-  ): RunSummary;
-  patchInputs(patches: PublishedGraphPatchValues<TInputs>): RunSummary;
+  ): RunSummary | Promise<RunSummary>;
+  patchInputs(patches: PublishedGraphPatchValues<TInputs>): RunSummary | Promise<RunSummary>;
   patchInput<TName extends keyof NormalizeGraphRecord<TInputs>>(
     name: TName,
     patch: PublishedGraphPatchValues<TInputs>[TName],
-  ): RunSummary;
-  resetInputs(inputNames?: ReadonlyArray<Extract<keyof NormalizeGraphRecord<TInputs>, string>>): RunSummary;
-  resetInput<TName extends keyof NormalizeGraphRecord<TInputs>>(name: TName): RunSummary;
-  apply(mutation: GraphMutationRequest<TInputs>): RunSummary;
+  ): RunSummary | Promise<RunSummary>;
+  resetInputs(
+    inputNames?: ReadonlyArray<Extract<keyof NormalizeGraphRecord<TInputs>, string>>,
+  ): RunSummary | Promise<RunSummary>;
+  resetInput<TName extends keyof NormalizeGraphRecord<TInputs>>(name: TName): RunSummary | Promise<RunSummary>;
+  apply(mutation: GraphMutationRequest<TInputs>): RunSummary | Promise<RunSummary>;
   transaction(callback: (tx: PublishedGraphTransaction<TInputs>) => void): RunSummary;
+  transactionAsync(callback: (tx: PublishedGraphTransaction<TInputs>) => void): Promise<RunSummary>;
+  batchAsync(callback: (tx: PublishedGraphTransaction<TInputs>) => void): Promise<RunSummary>;
   why<TName extends keyof NormalizeGraphRecord<TOutputs>>(name: TName): WhySummary;
   replayFor<TName extends keyof NormalizeGraphRecord<TOutputs>>(name: TName): ReplaySummary;
   lineageFor<TName extends keyof NormalizeGraphRecord<TOutputs>>(name: TName): LineageSummary;
@@ -657,13 +669,30 @@ export interface ImportedSignalGraph<
   readonly id: string;
   readonly inputs: ImportedGraphSignals<TInputs>;
   readonly outputs: ImportedGraphSignals<TOutputs>;
+  ready(): Promise<void>;
   contract(): PublishedGraphContractSurface;
   contractHistory(): PublishedGraphContractHistory;
   importPosture(): GraphImportPosture;
+  operationalContract(): PublishedGraphOperationalContractSurface<TInputs>;
   input<TName extends keyof NormalizeGraphRecord<TInputs>>(name: TName): ImportedGraphSignals<TInputs>[TName];
   output<TName extends keyof NormalizeGraphRecord<TOutputs>>(name: TName): ImportedGraphSignals<TOutputs>[TName];
   read(): PublishedGraphValues<TOutputs>;
   readInputs(): PublishedGraphInputValues<TInputs>;
+  writeInputs(values: Partial<PublishedGraphInputValues<TInputs>>): Promise<RunSummary>;
+  writeInput<TName extends keyof NormalizeGraphRecord<TInputs>>(
+    name: TName,
+    value: PublishedGraphInputValues<TInputs>[TName],
+  ): Promise<RunSummary>;
+  patchInputs(patches: PublishedGraphPatchValues<TInputs>): Promise<RunSummary>;
+  patchInput<TName extends keyof NormalizeGraphRecord<TInputs>>(
+    name: TName,
+    patch: PublishedGraphPatchValues<TInputs>[TName],
+  ): Promise<RunSummary>;
+  resetInputs(
+    inputNames?: ReadonlyArray<Extract<keyof NormalizeGraphRecord<TInputs>, string>>,
+  ): Promise<RunSummary>;
+  resetInput<TName extends keyof NormalizeGraphRecord<TInputs>>(name: TName): Promise<RunSummary>;
+  apply(mutation: GraphMutationRequest<TInputs>): Promise<RunSummary>;
   summary(): PublishedGraphSummary;
   inputDescriptors(): ReadonlyArray<PublishedGraphInputDescriptor>;
   descriptors(): ReadonlyArray<PublishedGraphDescriptor>;
@@ -672,6 +701,7 @@ export interface ImportedSignalGraph<
   exportCompatibilityDefinition(): PublishedGraphCompatibilityDefinition;
   exportDefinition(): ExportedSignalGraphDefinition<TOutputs, TInputs>;
   exportSnapshot(): ExportedSignalGraphSnapshot<TOutputs, TInputs>;
+  terminate(): void | Promise<void>;
 }
 
 export type SignalNamespace<TPersistence = SignalValue> = Pick<

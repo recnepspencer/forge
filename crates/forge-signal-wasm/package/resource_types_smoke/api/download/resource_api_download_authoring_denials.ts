@@ -1,6 +1,6 @@
 import { createSignals } from "../../../index.js";
 
-const signals = createSignals();
+const signals = await createSignals({ deployment: "mainThreadCompatibility" });
 
 signals.api({}).url("/reports/:reportId").downloads(
   // @ts-expect-error downloads(...) must return binary descriptors, not arbitrary values

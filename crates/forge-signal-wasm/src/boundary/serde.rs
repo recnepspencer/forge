@@ -54,3 +54,20 @@ where
     rmp_serde::from_slice(&bytes)
         .map_err(|err| ForgeSignalJsError::invalid_input(format!("invalid wasm payload: {err}")))
 }
+
+pub fn to_json_wire<T>(value: &T) -> Result<String, ForgeSignalJsError>
+where
+    T: Serialize,
+{
+    serde_json::to_string(value).map_err(|err| {
+        ForgeSignalJsError::internal(format!("failed to serialize wasm value: {err}"))
+    })
+}
+
+pub fn from_json_wire<T>(value: &str) -> Result<T, ForgeSignalJsError>
+where
+    T: DeserializeOwned,
+{
+    serde_json::from_str(value)
+        .map_err(|err| ForgeSignalJsError::invalid_input(format!("invalid wasm payload: {err}")))
+}

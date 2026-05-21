@@ -4,83 +4,11 @@ import {
   registerSignalCleanup,
   writeInputBaselineValue,
 } from "./handles.js";
-
-function isPlainObject(value) {
-  return value !== null && typeof value === "object" && !Array.isArray(value);
-}
-
-function cloneSignalValue(value) {
-  if (typeof globalThis.structuredClone === "function") {
-    try {
-      return globalThis.structuredClone(value);
-    } catch {
-      return value;
-    }
-  }
-  if (Array.isArray(value)) {
-    return value.slice();
-  }
-  if (isPlainObject(value)) {
-    return { ...value };
-  }
-  return value;
-}
-
-function requireLinkedDebugName(options) {
-  if (!options || options.debugName === undefined) {
-    return null;
-  }
-  if (typeof options.debugName !== "string" || options.debugName.length === 0) {
-    throw new TypeError("signals.linked debugName must be a non-empty string when provided");
-  }
-  return options.debugName;
-}
-
-function forbidLinkedIdOption(options) {
-  if (options && Object.prototype.hasOwnProperty.call(options, "id")) {
-    throw new TypeError(
-      "signals.linked app authoring does not accept id; use signals.spec.* when you need an explicit structural name",
-    );
-  }
-}
-
-function normalizeLinkedDefinition(sourceOrDefinition, maybeOptions) {
-  if (typeof sourceOrDefinition === "function") {
-    if (
-      maybeOptions !== undefined
-      && (!isPlainObject(maybeOptions) || Array.isArray(maybeOptions))
-    ) {
-      throw new TypeError("signals.linked options must be an object when provided");
-    }
-    forbidLinkedIdOption(maybeOptions);
-    return {
-      source: sourceOrDefinition,
-      computation(sourceValue) {
-        return sourceValue;
-      },
-      debugName: requireLinkedDebugName(maybeOptions),
-    };
-  }
-
-  if (!isPlainObject(sourceOrDefinition) || typeof sourceOrDefinition.source !== "function") {
-    throw new TypeError(
-      "signals.linked expects a source callback or a definition object with a source callback",
-    );
-  }
-  if (maybeOptions !== undefined) {
-    throw new TypeError("signals.linked definition form does not accept a second argument");
-  }
-  const computation = sourceOrDefinition.computation ?? ((sourceValue) => sourceValue);
-  if (typeof computation !== "function") {
-    throw new TypeError("signals.linked computation must be a function when provided");
-  }
-  forbidLinkedIdOption(sourceOrDefinition);
-  return {
-    source: sourceOrDefinition.source,
-    computation,
-    debugName: requireLinkedDebugName(sourceOrDefinition),
-  };
-}
+import {
+  cloneLinkedSignalValue as cloneSignalValue,
+  createLinkedPrevious,
+  normalizeLinkedDefinition,
+} from "./linked_definition.js";
 
 function disposeResource(resource) {
   if (!resource) {
@@ -120,10 +48,7 @@ export function createLinkedSignal(namespace, rawSignals, sourceOrDefinition, ma
   });
 
   function computeLinkedBaseline(nextSourceValue) {
-    const previous = {
-      value: cloneSignalValue(latestBaselineValue),
-      source: cloneSignalValue(latestSourceValue),
-    };
+    const previous = createLinkedPrevious(latestBaselineValue, latestSourceValue);
     return {
       sourceValue: cloneSignalValue(nextSourceValue),
       nextValue: computation(nextSourceValue, previous),
@@ -131,10 +56,7 @@ export function createLinkedSignal(namespace, rawSignals, sourceOrDefinition, ma
   }
 
   function computeRelinkValue(nextSourceValue) {
-    const previous = {
-      value: cloneSignalValue(latestLinkedValue),
-      source: cloneSignalValue(latestSourceValue),
-    };
+    const previous = createLinkedPrevious(latestLinkedValue, latestSourceValue);
     return {
       sourceValue: cloneSignalValue(nextSourceValue),
       nextValue: computation(nextSourceValue, previous),

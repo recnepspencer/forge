@@ -200,5 +200,3 @@ test("The Graph Operational Mutation Rejection Precedes Transaction Entry Test",
     await cleanup();
   }
 });
-
-

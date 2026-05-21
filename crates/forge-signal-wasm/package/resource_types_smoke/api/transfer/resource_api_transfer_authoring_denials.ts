@@ -4,7 +4,7 @@ import {
   resourceUploadTransport,
 } from "../../../index.js";
 
-const signals = createSignals();
+const signals = await createSignals({ deployment: "mainThreadCompatibility" });
 
 signals.api({}).url("/receipts/:receiptId/upload")
   .signedUpload({

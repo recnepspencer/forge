@@ -165,6 +165,25 @@ impl WorkerHostBoundaryPerformanceEnvelope {
         })
     }
 
+    pub(in crate::runtime::worker_host) fn signal_readback(
+        signal_readback_breadth: u64,
+        signal_payload_byte_count: u64,
+        signal_digest: &str,
+    ) -> Result<Self, ForgeSignalJsError> {
+        Self::from_boundary_counts(WorkerHostBoundaryPerformanceCounts {
+            boundary_family: "signalReadback",
+            bridge_envelope_count: 1,
+            submitted_item_count: signal_readback_breadth,
+            coalesced_item_count: signal_readback_breadth,
+            runtime_admitted_item_count: 0,
+            runtime_mutation_breadth: 0,
+            ambient_worker_read_count: 0,
+            diagnostics_cold_reconstruction_count: 0,
+            payload_identity_byte_count: signal_payload_byte_count
+                .saturating_add(payload_identity_byte_count([signal_digest])),
+        })
+    }
+
     pub(in crate::runtime::worker_host) fn diagnostics_summary_read(
         summary_digest: &str,
         rich_read_availability_digest: &str,

@@ -2,7 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { withSignals } from "../../action_execution_test_helpers.mjs";
-import { createDetailPatchLineFixture } from "../fixtures/resource_line_fixture.mjs";
+import {
+  createDetailPatchLineFixture,
+  createMutationResponsePlanFixture,
+} from "../fixtures/resource_line_fixture.mjs";
 
 test("signals.form rollbackLastResourceEffect restores resource line source truth and records reset history", async () => {
   await withSignals((signals) => {
@@ -85,5 +88,47 @@ test("signals.form reset clears local draft truth and rollbackLastResourceEffect
     const noOp = form.reset();
     assert.equal(noOp.resultKind, "noOp");
     assert.equal(form.resetHistory().length, 3);
+  });
+});
+
+test("signals.form verification stays bounded across repeated resource rollback and canonicalization history", async () => {
+  await withSignals((signals) => {
+    const source = createDetailPatchLineFixture({
+      effectProfile: signals.resource.effects.branchNative(),
+      initialValue: {
+        title: "Ship docs",
+        status: "draft",
+      },
+      mutationResponse: createMutationResponsePlanFixture({
+        confirmationKind: "partialCanonicalTruth",
+        fallbackKind: "partialReconciliation",
+      }),
+    });
+    const form = signals.form({
+      source: signals.form.source.resourceLine(source, { id: "task-resource-reset-history" }),
+      fields: ({ field }) => ({
+        title: field("title"),
+        status: field("status"),
+      }),
+    });
+
+    for (let iteration = 0; iteration < 24; iteration += 1) {
+      form.fields.title.set(`Published docs ${iteration}`);
+      form.fields.status.set(iteration % 2 === 0 ? "review" : "published");
+      const execution = form.executeAction("submit");
+      assert.equal(execution.resultKind, "fulfilled");
+      const rollback = form.rollbackLastResourceEffect();
+      assert.equal(rollback.resultKind, "rolledBack");
+    }
+
+    const verification = form.verification();
+    assert.equal(form.canonicalizationHistory().length, 24);
+    assert.equal(form.resetHistory().length, 24);
+    assert.equal(verification.canonicalizationHistory.operations, 24);
+    assert.equal(verification.resetHistory.operations, 24);
+    assert.equal(typeof verification.digests.canonicalizationDigest, "string");
+    assert.equal(typeof verification.digests.resetRollbackDigest, "string");
+    assert.equal(typeof verification.digests.mutationResponseReconciliationDigest, "string");
+    assert.equal(typeof verification.packageDigest, "string");
   });
 });

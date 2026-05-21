@@ -42,12 +42,20 @@ function createArtifact(artifactId, state, summary, diagnosticsStateDigest) {
     availabilityDigest: stableValueDigest(state.availability),
     admissionDigest: stableValueDigest(state.admission),
     actionPlanDigestSetDigest: state.actions.digests.planDigestSetDigest,
-    actionLifecycleDigest: stableValueDigest(state.actionHistory),
-    actionExecutionLifecycleDigest: stableValueDigest(state.actionExecutionHistory),
-    asyncValidationDigest: stableValueDigest(state.asyncValidationHistory),
-    canonicalizationDigest: stableValueDigest(state.canonicalizationHistory),
+    actionLifecycleDigest: stableValueDigest(historyDigestChain(state.actionHistory, ["resultDigest"])),
+    actionExecutionLifecycleDigest: stableValueDigest(
+      historyDigestChain(state.actionExecutionHistory, ["executionDigest"]),
+    ),
+    asyncValidationDigest: stableValueDigest(
+      historyDigestChain(state.asyncValidationHistory, ["lifecycleDigest"]),
+    ),
+    canonicalizationDigest: stableValueDigest(
+      historyDigestChain(state.canonicalizationHistory, ["canonicalizationDigest"]),
+    ),
     sourceCompatibilityDigest: stableValueDigest(state.sourceCompatibility),
-    sourceCompatibilityHistoryDigest: stableValueDigest(state.sourceCompatibilityHistory),
+    sourceCompatibilityHistoryDigest: stableValueDigest(
+      historyDigestChain(state.sourceCompatibilityHistory, ["compatibilityDigest"]),
+    ),
     resourceSourceDigest: state.resourceSource?.digest ?? null,
     collaborationDigest: state.collaboration.digest,
     interactionDigest: state.interaction.digest,
@@ -63,4 +71,21 @@ function createArtifact(artifactId, state, summary, diagnosticsStateDigest) {
     ...artifact,
     diagnosticsDigest: stableValueDigest(digestInput),
   });
+}
+
+function historyDigestChain(history, digestKeys) {
+  return history.map((artifact) => artifactDigestToken(artifact, digestKeys));
+}
+
+function artifactDigestToken(artifact, digestKeys) {
+  if (artifact === null || artifact === undefined) {
+    return null;
+  }
+  for (const key of digestKeys) {
+    const digest = artifact[key];
+    if (typeof digest === "string") {
+      return digest;
+    }
+  }
+  return stableValueDigest(artifact);
 }

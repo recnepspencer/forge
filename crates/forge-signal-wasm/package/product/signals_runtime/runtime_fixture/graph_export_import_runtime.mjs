@@ -39,7 +39,7 @@ export function createGraphExportImportRuntime() {
 
   function exportDefinitions() {
     return {
-      policy: { preset: "WebDevelopment" },
+      policy: { preset: "webDevelopment" },
       sources: [...sourceIds].map((id) => ({ id, initial: null })),
       recipes: [
         ...[...callbackRecipes.entries()].map(([id, recipe]) => ({

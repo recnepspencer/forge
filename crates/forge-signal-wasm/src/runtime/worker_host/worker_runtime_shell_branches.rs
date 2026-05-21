@@ -1,7 +1,9 @@
+use forge_signal::facade::adapters::BranchStateProofReport;
 use forge_signal::facade::history::{RuntimeBranch, RuntimeSnapshot};
 
 use crate::boundary::errors::ForgeSignalJsError;
 use crate::recipe::model::TransactionOp;
+use crate::runtime::summaries::{ReplaySummary, RuntimeSnapshotEnvelope};
 
 use super::{WorkerBranchTruthEnvelope, WorkerCommittedTransactionEnvelope, WorkerRuntimeShell};
 
@@ -28,6 +30,14 @@ impl WorkerRuntimeShell {
         Ok(branch)
     }
 
+    pub fn current_branch(&self) -> RuntimeBranch {
+        self.core.current_branch()
+    }
+
+    pub fn branches(&self) -> Vec<RuntimeBranch> {
+        self.core.branches()
+    }
+
     pub fn switch_branch(
         &mut self,
         branch_id: u64,
@@ -42,6 +52,39 @@ impl WorkerRuntimeShell {
         branch_id: u64,
     ) -> Result<RuntimeSnapshot, ForgeSignalJsError> {
         let snapshot = self.core.branch_snapshot(branch_id)?;
+        self.clear_worker_boundary_certification_evidence();
+        Ok(snapshot)
+    }
+
+    pub fn replay_for_branch(
+        &mut self,
+        branch_id: u64,
+    ) -> Result<ReplaySummary, ForgeSignalJsError> {
+        self.core.replay_for_branch(branch_id)
+    }
+
+    pub fn branch_snapshot_id(&mut self, branch_id: u64) -> Result<u64, ForgeSignalJsError> {
+        self.core.branch_snapshot_id(branch_id)
+    }
+
+    pub fn branch_snapshot_envelope(
+        &mut self,
+        branch_id: u64,
+    ) -> Result<RuntimeSnapshotEnvelope, ForgeSignalJsError> {
+        self.core.branch_snapshot_envelope(branch_id)
+    }
+
+    pub fn branch_state_proof(
+        &self,
+        branch_id: u64,
+    ) -> Result<BranchStateProofReport, ForgeSignalJsError> {
+        self.core.branch_state_proof(branch_id)
+    }
+
+    pub fn export_worker_snapshot_envelope(
+        &mut self,
+    ) -> Result<RuntimeSnapshotEnvelope, ForgeSignalJsError> {
+        let snapshot = self.core.snapshot()?;
         self.clear_worker_boundary_certification_evidence();
         Ok(snapshot)
     }

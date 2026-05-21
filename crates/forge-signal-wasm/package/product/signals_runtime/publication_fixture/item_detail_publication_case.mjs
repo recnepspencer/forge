@@ -175,7 +175,7 @@ export async function createItemDetailPublicationCase() {
       return {
         export_definitions() {
           return {
-            policy: { preset: "WebDevelopment" },
+            policy: { preset: "webDevelopment" },
             sources: [
               { id: "serverItemData", initial: null },
               { id: "draftEdits", initial: {} },
