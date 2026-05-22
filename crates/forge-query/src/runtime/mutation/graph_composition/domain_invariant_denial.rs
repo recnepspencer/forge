@@ -26,36 +26,31 @@ impl ForgeQueryGraphCompositionDomainInvariantDenial {
         violation: ForgeQueryGraphCompositionInvariantPackViolation,
         context: &ForgeQueryGraphCompositionInvariantPackContext<'_>,
     ) -> Self {
-        use ForgeQueryGraphCompositionAdmissionTraceStage as Stage;
+        Self::build(
+            violation.invariant_family().to_string(),
+            violation.message().to_string(),
+            context.graph_composition_domain_invariant_summary(),
+            violation.violation_digest().to_string(),
+        )
+    }
 
-        let domain_invariant_summary = context.graph_composition_domain_invariant_summary();
-        let admission_trace = ForgeQueryGraphCompositionAdmissionTrace::new(
-            vec![
-                Stage::ProgramParsed,
-                Stage::SymbolsValidated,
-                Stage::LoweringValidated,
-                Stage::DomainInvariantEvaluated,
-                Stage::DeniedBeforeExecution,
-            ],
-            Stage::DomainInvariantEvaluated,
+    pub(crate) fn from_contributed(
+        invariant_family: impl Into<String>,
+        message: impl Into<String>,
+        domain_invariant_summary: ForgeQueryGraphCompositionDomainInvariantSummary,
+    ) -> Self {
+        let invariant_family = invariant_family.into();
+        let message = message.into();
+        let violation = ForgeQueryGraphCompositionInvariantPackViolation::new(
+            invariant_family.clone(),
+            message.clone(),
         );
-        let denial_digest = hash_parts(&[
-            "forge_query_graph_composition_domain_invariant_denial_v1".to_string(),
-            format!("hook:{DOMAIN_INVARIANT_PACK_HOOK_FAMILY}"),
-            format!("invariant:{}", violation.invariant_family()),
-            format!("message:{}", violation.message()),
-            format!("summary:{}", domain_invariant_summary.summary_digest()),
-            format!("trace:{}", admission_trace.admission_trace_digest()),
-            format!("violation:{}", violation.violation_digest()),
-        ]);
-        Self {
-            hook_family: DOMAIN_INVARIANT_PACK_HOOK_FAMILY.to_string(),
-            invariant_family: violation.invariant_family().to_string(),
-            message: violation.message().to_string(),
+        Self::build(
+            invariant_family,
+            message,
             domain_invariant_summary,
-            admission_trace,
-            denial_digest,
-        }
+            violation.violation_digest().to_string(),
+        )
     }
 
     pub fn hook_family(&self) -> &str {
@@ -84,6 +79,45 @@ impl ForgeQueryGraphCompositionDomainInvariantDenial {
 
     pub fn denial_digest(&self) -> &str {
         &self.denial_digest
+    }
+}
+
+impl ForgeQueryGraphCompositionDomainInvariantDenial {
+    fn build(
+        invariant_family: String,
+        message: String,
+        domain_invariant_summary: ForgeQueryGraphCompositionDomainInvariantSummary,
+        violation_digest: String,
+    ) -> Self {
+        use ForgeQueryGraphCompositionAdmissionTraceStage as Stage;
+
+        let admission_trace = ForgeQueryGraphCompositionAdmissionTrace::new(
+            vec![
+                Stage::ProgramParsed,
+                Stage::SymbolsValidated,
+                Stage::LoweringValidated,
+                Stage::DomainInvariantEvaluated,
+                Stage::DeniedBeforeExecution,
+            ],
+            Stage::DomainInvariantEvaluated,
+        );
+        let denial_digest = hash_parts(&[
+            "forge_query_graph_composition_domain_invariant_denial_v1".to_string(),
+            format!("hook:{DOMAIN_INVARIANT_PACK_HOOK_FAMILY}"),
+            format!("invariant:{invariant_family}"),
+            format!("message:{message}"),
+            format!("summary:{}", domain_invariant_summary.summary_digest()),
+            format!("trace:{}", admission_trace.admission_trace_digest()),
+            format!("violation:{violation_digest}"),
+        ]);
+        Self {
+            hook_family: DOMAIN_INVARIANT_PACK_HOOK_FAMILY.to_string(),
+            invariant_family,
+            message,
+            domain_invariant_summary,
+            admission_trace,
+            denial_digest,
+        }
     }
 }
 

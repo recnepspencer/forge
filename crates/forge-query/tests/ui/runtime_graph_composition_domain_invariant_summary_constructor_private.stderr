@@ -17,7 +17,7 @@ error: cannot construct `ForgeQueryGraphCompositionDomainInvariantSummary` with 
    |         ------------------------------------- private field
    |
    = note: ...and other private fields `declared_collections` and `declared_symbols` that were not provided
-help: you might have meant to use the `derive` associated function
+help: you might have meant to use an associated function to build this type
    |
  4 -     let _ = ForgeQueryGraphCompositionDomainInvariantSummary {
  5 -         target_combination_families: vec!["mixed_existing_and_symbolic_entity_identity_edges".into()],
@@ -28,4 +28,14 @@ help: you might have meant to use the `derive` associated function
 10 -         summary_digest: "summary".to_string(),
 11 -     };
  4 +     let _ = ForgeQueryGraphCompositionDomainInvariantSummary::derive(_, _, _);
+   |
+ 4 -     let _ = ForgeQueryGraphCompositionDomainInvariantSummary {
+ 5 -         target_combination_families: vec!["mixed_existing_and_symbolic_entity_identity_edges".into()],
+ 6 -         lifecycle_families: vec!["mixed_existing_target_verified_retarget".into()],
+ 7 -         program_digest: "digest".to_string(),
+ 8 -         breadth_digest: "breadth".to_string(),
+ 9 -         counter_snapshot: "components=2".to_string(),
+10 -         summary_digest: "summary".to_string(),
+11 -     };
+ 4 +     let _ = ForgeQueryGraphCompositionDomainInvariantSummary::from_parts(_, _, _, _, _, _, _);
    |

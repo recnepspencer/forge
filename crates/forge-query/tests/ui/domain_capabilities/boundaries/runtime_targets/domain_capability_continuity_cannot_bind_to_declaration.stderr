@@ -1,0 +1,12 @@
+error[E0599]: no method named `for_intent_declaration` found for struct `ForgeQueryContinuityContributionAuthoring` in the current scope
+  --> tests/ui/domain_capabilities/boundaries/runtime_targets/domain_capability_continuity_cannot_bind_to_declaration.rs:18:6
+   |
+14 |       let _ = ForgeQueryContinuityContributionAuthoring::preserved(
+   |  _____________-
+15 | |         "continuity.preserved",
+16 | |         "identity was preserved",
+17 | |     )
+18 | |     .for_intent_declaration(&declaration);
+   | |     -^^^^^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryContinuityContributionAuthoring`
+   | |_____|
+   |

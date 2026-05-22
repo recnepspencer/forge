@@ -1355,6 +1355,125 @@ every remaining direct seam is intentional compatibility debt with an exit
 story, and the runtime API stabilization gate can rely on one closed
 lower-runtime boundary model rather than scattered convenience contact.
 
+## Milestone 9.3.7 Named Certification Suites
+
+### 9.3.7. Domain Capability Contribution And Canonical Runtime Materialization Test
+
+Purpose
+
+Prove that downstream domains can contribute semantic capability posture across
+admission, support, invariant, workflow, continuity, aftermath, and
+explanation categories through one public Query-owned contribution seam while
+Query remains the sole owner of canonical runtime artifacts.
+
+Scenario
+
+- use concrete runtime-backed fixtures with one canonical `ForgeQueryIntentDeclaration`
+  and at least two equivalent public domain-contribution builder paths for:
+  - admission posture
+  - declaration-scoped support posture
+  - graph-composition capability-gap posture
+  - graph-composition invariant-denial posture
+  - workflow posture
+  - continuity posture
+  - aftermath posture
+  - explanation posture
+- materialize canonical Query artifacts from each admitted contribution
+- include hostile lanes where:
+  - a domain attempts to mint canonical runtime artifacts directly
+  - a contribution uses free-form fallback payloads instead of typed posture
+  - declaration-scoped support tries to mutate or impersonate the global
+    support matrix
+  - equivalent support evidence is reordered without changing semantic meaning
+  - intentionally different category posture must change
+    the canonical digests
+
+Required concrete lanes
+
+- admission parity lane where two equivalent domain admission contributions
+  produce the same canonical admission artifacts
+- declaration-scoped support lane where support materialization remains bound
+  to one declaration and does not masquerade as a global inventory mutation
+- capability-gap lane where domain capability posture materializes as canonical
+  `ForgeQueryGraphCompositionCapabilitySupportRow` artifacts
+- invariant-denial lane where domain invariant posture materializes as
+  canonical `ForgeQueryGraphCompositionDomainInvariantDenial` artifacts
+- workflow parity lane where equivalent workflow posture contributes the same
+  canonical workflow / preview artifact family
+- continuity parity lane where equivalent continuity posture contributes the
+  same canonical continuity / lineage artifact family
+- aftermath parity lane where equivalent aftermath posture contributes the
+  same canonical consequence / aftermath artifact family
+- explanation parity lane where equivalent explanation posture contributes the
+  same canonical explanation / inspection artifact family
+- direct-minting denial lane where callers outside Query cannot mint canonical
+  runtime artifacts directly
+- category-mismatch compile-fail lane where a contribution admitted for one
+  category cannot be fed to another category's materializer
+- contribution-shape denial lane where stringly or opaque fallback payloads
+  fail typed before canonical materialization
+
+Must verify
+
+- the public contribution seam is declaration-scoped and bound to one Query
+  declaration or admitted family context
+- canonical runtime artifacts remain Query-owned and sealed
+- equivalent domain contribution meaning normalizes to the same canonical Query
+  artifact regardless of builder path or evidence ordering
+- intentionally different semantic posture changes the declared digests
+- declaration-scoped support and traceability do not mutate the global support
+  matrix or certification inventory
+- graph-composition capability and invariant posture materialize through
+  canonical Query runtime artifacts rather than domain-local wrappers
+- workflow, continuity, aftermath, and explanation posture each materialize as
+  real canonical public families with ordinary, inspectable, and proof-bearing
+  lanes that all hit the same semantics
+- category mismatch is a type error, not a runtime branch
+- contribution-aware trace rows localize whether failure occurred during
+  contribution authoring, eligibility, canonical materialization, or runtime
+  artifact shaping
+- small/medium/larger fixture runs prove contribution materialization scales
+  with contribution width, trace width, and support width rather than
+  unrelated runtime graph size
+
+Required verification output
+
+- `query_digest`
+- `intent_declaration_digest`
+- `domain_capability_contribution_request_digest`
+- `domain_capability_contribution_eligibility_digest`
+- `admitted_domain_capability_contribution_digest`
+- `canonical_runtime_materialization_digest`
+- `admission_artifact_digest`
+- `declaration_scoped_support_digest`
+- `workflow_artifact_digest`
+- `continuity_artifact_digest`
+- `aftermath_artifact_digest`
+- `explanation_artifact_digest`
+- `capability_support_row_digest`
+- `domain_invariant_denial_digest`
+- `decision_trace_digest`
+- `support_traceability_digest`
+- `public_boundary_digest`
+- `compile_fail_boundary_digest`
+- `failure_digest`
+- `counter_snapshot`
+- `contribution_width`
+- `trace_width`
+- `category_width`
+- `support_width`
+- `contribution_materialization_slope_digest`
+- `trace_materialization_slope_digest`
+- `category_materialization_slope_digest`
+- `support_materialization_slope_digest`
+
+Pass condition
+
+Domains can publicly contribute broad semantic capability posture without
+building local pseudo-Query runtime layers, canonical Query artifacts remain
+Query-owned, and equivalent contribution meaning materializes identically
+across builder-path variation and category boundaries.
+
 ## Runtime API Public Stabilization Gate Named Certification Suites
 
 ### Runtime API Golden DX And Async-Safe Facade Test

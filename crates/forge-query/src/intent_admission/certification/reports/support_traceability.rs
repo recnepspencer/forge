@@ -16,10 +16,84 @@ pub struct ForgeQueryIntentAdmissionSupportTraceabilityRow {
     family: String,
     entrypoint: String,
     support_detail: String,
+    target_binding_digest: Option<String>,
+    request_digest: Option<String>,
+    eligibility_digest: Option<String>,
+    decision_digest: Option<String>,
     row_digest: String,
 }
 
 impl ForgeQueryIntentAdmissionSupportTraceabilityRow {
+    pub(crate) fn new(
+        lane: &'static str,
+        family: impl Into<String>,
+        entrypoint: impl Into<String>,
+        support_detail: impl Into<String>,
+    ) -> Self {
+        Self::new_domain_scoped(
+            lane,
+            family,
+            entrypoint,
+            support_detail,
+            None,
+            None,
+            None,
+            None,
+        )
+    }
+
+    pub(crate) fn new_domain_scoped(
+        lane: &'static str,
+        family: impl Into<String>,
+        entrypoint: impl Into<String>,
+        support_detail: impl Into<String>,
+        target_binding_digest: Option<String>,
+        request_digest: Option<String>,
+        eligibility_digest: Option<String>,
+        decision_digest: Option<String>,
+    ) -> Self {
+        let family = family.into();
+        let entrypoint = entrypoint.into();
+        let support_detail = support_detail.into();
+        let target_binding_digest_part = target_binding_digest.as_deref().map_or_else(
+            || "target_binding:none".to_string(),
+            |digest| format!("target_binding:{digest}"),
+        );
+        let request_digest_part = request_digest.as_deref().map_or_else(
+            || "request:none".to_string(),
+            |digest| format!("request:{digest}"),
+        );
+        let eligibility_digest_part = eligibility_digest.as_deref().map_or_else(
+            || "eligibility:none".to_string(),
+            |digest| format!("eligibility:{digest}"),
+        );
+        let decision_digest_part = decision_digest.as_deref().map_or_else(
+            || "decision:none".to_string(),
+            |digest| format!("decision:{digest}"),
+        );
+        Self {
+            lane,
+            family: family.clone(),
+            entrypoint: entrypoint.clone(),
+            support_detail: support_detail.clone(),
+            target_binding_digest,
+            request_digest,
+            eligibility_digest,
+            decision_digest,
+            row_digest: hash_parts(&[
+                "forge_query_intent_admission_support_traceability_row_v1".to_string(),
+                format!("lane:{lane}"),
+                format!("family:{family}"),
+                format!("entrypoint:{entrypoint}"),
+                support_detail,
+                target_binding_digest_part,
+                request_digest_part,
+                eligibility_digest_part,
+                decision_digest_part,
+            ]),
+        }
+    }
+
     pub fn lane(&self) -> &'static str {
         self.lane
     }
@@ -36,6 +110,22 @@ impl ForgeQueryIntentAdmissionSupportTraceabilityRow {
         &self.support_detail
     }
 
+    pub fn target_binding_digest(&self) -> Option<&str> {
+        self.target_binding_digest.as_deref()
+    }
+
+    pub fn request_digest(&self) -> Option<&str> {
+        self.request_digest.as_deref()
+    }
+
+    pub fn eligibility_digest(&self) -> Option<&str> {
+        self.eligibility_digest.as_deref()
+    }
+
+    pub fn decision_digest(&self) -> Option<&str> {
+        self.decision_digest.as_deref()
+    }
+
     pub fn row_digest(&self) -> &str {
         &self.row_digest
     }
@@ -48,6 +138,19 @@ pub struct ForgeQueryIntentAdmissionSupportTraceabilityReport {
 }
 
 impl ForgeQueryIntentAdmissionSupportTraceabilityReport {
+    pub(crate) fn from_rows(rows: Vec<ForgeQueryIntentAdmissionSupportTraceabilityRow>) -> Self {
+        let decision_support_traceability_digest = hash_parts(
+            &rows
+                .iter()
+                .map(|row| row.row_digest().to_string())
+                .collect::<Vec<_>>(),
+        );
+        Self {
+            rows,
+            decision_support_traceability_digest,
+        }
+    }
+
     pub fn rows(&self) -> &[ForgeQueryIntentAdmissionSupportTraceabilityRow] {
         &self.rows
     }
@@ -127,16 +230,7 @@ pub fn forge_query_intent_admission_support_traceability_report(
             ),
         ),
     ];
-    let decision_support_traceability_digest = hash_parts(
-        &rows
-            .iter()
-            .map(|row| row.row_digest().to_string())
-            .collect::<Vec<_>>(),
-    );
-    ForgeQueryIntentAdmissionSupportTraceabilityReport {
-        rows,
-        decision_support_traceability_digest,
-    }
+    ForgeQueryIntentAdmissionSupportTraceabilityReport::from_rows(rows)
 }
 
 fn traceability_row(
@@ -145,19 +239,7 @@ fn traceability_row(
     entrypoint: &str,
     support_detail: String,
 ) -> ForgeQueryIntentAdmissionSupportTraceabilityRow {
-    ForgeQueryIntentAdmissionSupportTraceabilityRow {
-        lane,
-        family: family.to_string(),
-        entrypoint: entrypoint.to_string(),
-        support_detail: support_detail.clone(),
-        row_digest: hash_parts(&[
-            "forge_query_intent_admission_support_traceability_row_v1".to_string(),
-            format!("lane:{lane}"),
-            format!("family:{family}"),
-            format!("entrypoint:{entrypoint}"),
-            support_detail,
-        ]),
-    }
+    ForgeQueryIntentAdmissionSupportTraceabilityRow::new(lane, family, entrypoint, support_detail)
 }
 
 fn support_row_detail(

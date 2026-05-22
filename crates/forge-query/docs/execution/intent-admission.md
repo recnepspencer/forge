@@ -87,8 +87,9 @@ Good to know:
 
 - coverage is concrete, not blanket. These named families are covered now.
 - Generic materialization neighbors, temporal families, async/resource
-  families, store-backed restart work, and other later neighbors remain
-  explicitly deferred.
+  families, store-backed restart work, and other later neighbors remain explicitly deferred.
+- unsupported or future families are still support-gated even when nearby
+  covered families already have ordinary public entry points.
 
 ## Core Mental Model
 
@@ -367,7 +368,7 @@ types.
 - the covered families listed above are real now, but they are not the whole
   future Query surface
 - generic materialization neighbors, temporal families, async/resource
-  families, durable restart work, and store-backed replay remain deferred
+  families, durable restart work, and store-backed replay remain explicitly deferred
 - support posture still matters. Method presence is not a promise that every
   runtime profile admits every intent family
 

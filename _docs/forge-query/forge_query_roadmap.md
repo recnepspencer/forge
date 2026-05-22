@@ -206,9 +206,14 @@ cross-feature proof gates before final certification:
 - `Milestone 9.3.6` must prove lower-runtime contact is capability-routed
   through contractual boundary envelopes rather than scattered direct bridge,
   relational, signal, or store access
+- `Milestone 9.3.7` must prove downstream domains can contribute typed domain
+  capability posture through one public Query-owned contribution seam across
+  admission, support, traceability, invariant, workflow, continuity, aftermath,
+  and explanation categories, so Query can materialize canonical runtime
+  artifacts without forcing domains to mint local pseudo-Query layers
 - the `Runtime API Public Stabilization Gate` must freeze the ordinary public
   workspace/handle/state/aspect/effect/intent/inspection contract after the
-  runtime API facade consumes 9.1 through 9.3.6, so domain runtimes can build
+  runtime API facade consumes 9.1 through 9.3.7, so domain runtimes can build
   now and temporal/async milestones extend the same model later rather than
   adding parallel APIs
 - the `Runtime Authoritative Mutation Evidence Gate` must freeze the ordinary
@@ -250,7 +255,7 @@ Critical path:
   `Milestone 7` -> `Milestone 8` -> `Milestone 9` -> `Milestone 9.1` ->
   `Milestone 9.2` -> `Milestone 9.3` -> `Milestone 9.3.1` ->
   `Milestone 9.3.2` -> `Milestone 9.3.3` -> `Milestone 9.3.4` ->
-  `Milestone 9.3.5` -> `Milestone 9.3.6` ->
+  `Milestone 9.3.5` -> `Milestone 9.3.6` -> `Milestone 9.3.7` ->
   `Runtime API Public Stabilization Gate` ->
   `Runtime Authoritative Mutation Evidence Gate` -> `Milestone 9.4` ->
   `Milestone 9.5` -> `Milestone 9.6` -> `Milestone 9.7` ->
@@ -314,6 +319,10 @@ Store-gated completion tracks:
 - `Milestone 9.3.6` can ship runtime-backed lower-runtime capability routing
   first, but store-backed route parity and durable route replay remain explicit
   debt until `Milestone 10` and `Milestone 11` close
+- `Milestone 9.3.7` must close the full domain capability contribution seam
+  across all named category families rather than shipping a split between
+  finished categories and half-closed category shells that would force later
+  rewrites
 - the `Runtime API Public Stabilization Gate` can freeze the stable
   runtime-backed public facade, golden DX transcripts, handle/state/aspect
   contracts, inspection contract, and temporal/async support gates without
@@ -2621,12 +2630,90 @@ lower-runtime route, receipt, and boundary envelope, and any remaining direct
 path is intentionally tracked compatibility debt rather than an accidental
 escape hatch.
 
+## Milestone 9.3.7: Domain Capability Contributions And Canonical Runtime Materialization
+
+### Goal
+
+Allow downstream domains to contribute typed semantic capability posture to
+Query through one public contribution seam, while Query remains the sole owner
+of canonical runtime artifacts across admission, support, traceability,
+workflow, continuity, aftermath, and explanation surfaces.
+
+### Specification
+
+The governing milestone spec is
+[milestone-9.3.7.md](./milestone-9.3.7.md).
+
+### Adversarial Constraint
+
+A serious downstream domain must be able to tell Query "this declaration is
+advisory", "this declaration is violating", "this declaration carries
+declaration-scoped support or traceability", "this declaration has workflow
+promotion or discard posture", "this declaration preserves or splits
+continuity", "this declaration establishes aftermath facts", or "this
+declaration requires explanation context" without minting local pseudo-Query
+artifacts, without calling crate-private constructors, and without flattening
+semantic posture into generic strings or ad hoc JSON.
+
+### Phase Contract
+
+```text
+DomainCapabilityContributionRequest
+  -> DomainCapabilityContributionEligibility
+  -> AdmittedDomainCapabilityContribution
+  -> CanonicalRuntimeMaterialization
+  -> QueryAdmissionDecision
+   | QuerySupportTraceability
+   | QueryWorkflowArtifacts
+   | QueryContinuityArtifacts
+   | QueryAftermathArtifacts
+   | QueryExplanationArtifacts
+```
+
+### Must Ship
+
+- one public Query-owned domain capability contribution lifecycle
+- typed domain contribution families for:
+  - admission posture
+  - declaration-scoped support and traceability posture
+  - invariant and capability posture
+  - workflow / preview posture
+  - continuity / lineage posture
+  - consequence / aftermath posture
+  - explanation / inspection posture
+- canonical materializers that turn admitted domain contributions into:
+  - `ForgeQueryIntentAdvisoryDecision`
+  - `ForgeQueryIntentViolationDecision`
+  - declaration-scoped support/traceability artifacts
+  - graph-composition capability / invariant-facing artifacts where applicable
+- fully closed workflow, continuity, aftermath, and explanation contribution
+  families on top of the shared contribution substrate
+- compile-boundary and certification proof that canonical Query decision
+  artifacts remain Query-owned and cannot be minted directly by domains
+
+### Must Preserve
+
+- Query remains owner of canonical runtime admission artifacts
+- downstream domains own semantic meaning, not canonical artifact authority
+- public constructors for canonical advisory and violation artifacts do not
+  become a free-for-all bypass
+- declaration-scoped support and invariant posture stays typed and
+  machine-checkable rather than collapsing into free-form messages
+
+### Acceptance Evidence
+
+This milestone is complete only when semantically equivalent domain-authored
+advisory or violation posture materializes into the same canonical Query
+decision/support artifacts regardless of builder path, while semantically
+different posture diverges predictably and illegal direct artifact minting
+fails closed.
+
 ## Runtime API Public Stabilization Gate
 
 ### Goal
 
 Freeze the ordinary public runtime API contract after the runtime facade has
-consumed Milestones 9.1 through 9.3.6, so downstream domain runtimes can build
+consumed Milestones 9.1 through 9.3.7, so downstream domain runtimes can build
 against named surfaces and typed handles now while Milestones 9.4 through 9.7
 later extend the same API model with temporal and async/resource semantics.
 
@@ -2772,11 +2859,12 @@ execution time remains explicit in the basis bundle.
 ### Why This Milestone Exists
 
 Milestone 6 gives Query historical truth basis semantics. Milestones 9.1
-through 9.3.6 give Query subscription declaration, lifecycle, diagnostic
+through 9.3.7 give Query subscription declaration, lifecycle, diagnostic
 honesty, cross-runtime causal inspection, basis capability, effect execution,
-projection consumption, admission decisions, and lower-runtime routing. Once
-Forge Signal and the Runtime Bridge can express temporal execution basis, Query
-needs a roadmap home for saying what time-aware live queries mean.
+projection consumption, admission decisions, lower-runtime routing, and
+domain-authored capability contribution materialization. Once Forge Signal and
+the Runtime Bridge can express temporal execution basis, Query needs a roadmap
+home for saying what time-aware live queries mean.
 
 Without this milestone:
 
@@ -2840,10 +2928,11 @@ Without this milestone:
 
 ### Sequencing Notes
 
-This belongs after Milestone 9.3.6 because Query needs certified subscription
+This belongs after Milestone 9.3.7 because Query needs certified subscription
 family diagnostics, cross-runtime causal inspection, basis capability,
-authority-scoped effects, projection consumption, decision traces, and
-lower-runtime routing before adding temporal basis as another admitted family
+authority-scoped effects, projection consumption, decision traces,
+lower-runtime routing, and domain-authored capability contribution
+materialization before adding temporal basis as another admitted family
 dimension.
 
 It belongs before Milestone 10 because store-backed execution parity should
@@ -3245,7 +3334,7 @@ runtime-backed path for the same admitted capability.
 
 ### Why This Milestone Exists
 
-Milestones 4 through 9.3.6 can build the semantic query surface against
+Milestones 4 through 9.3.7 can build the semantic query surface against
 runtime truth first. This milestone exists to close the backend-parity boundary
 later, once `forge-store` can participate honestly in execution and basis
 restore.
@@ -3709,6 +3798,7 @@ answer is "store-gated" or "shared with another subsystem."
 | Declared projection consumption | Milestone 9.3.4 | Projection consumption declarations, materialized projection contracts, consumed fact receipts | Consumers use typed facts from declared materializations without reopening source authority | Milestone 9.3.4 projection consumption certification + Milestone 13 projection/domain suites |
 | Intent admission decision lattice | Milestone 9.3.5 | Admission decisions, advisory/violation variants, admitted execution handoffs, decision trace envelopes | Query-crossing intents resolve before construction/lowering, and covered runtime-backed paths cross into execution through typed admitted handoffs with structured success, advisory, and violation context | Milestone 9.3.5 admission lattice certification + Milestone 13 diagnostics suites |
 | Lower-runtime capability routing | Milestone 9.3.6, shared with runtime bridge, relational, signal, and store | Lower-runtime route plans, boundary execution receipts, lower-runtime boundary envelopes | Lower-runtime contact is capability-routed and receipt-backed; remaining direct paths are explicit compatibility debt | Milestone 9.3.6 boundary routing certification + Milestone 13 support-matrix suites |
+| Domain-authored capability contributions | Milestone 9.3.7 | Domain capability contribution requests, admitted domain capability artifacts, canonical runtime materializers, declaration-scoped support traceability artifacts, workflow/continuity/aftermath/explanation contribution families | Domains contribute semantic capability posture through one public Query seam while Query keeps canonical runtime artifact ownership across major category families | Milestone 9.3.7 domain capability certification + Milestone 13 diagnostics/support suites |
 | Temporal query basis and time-aware subscriptions | Milestone 9.4, shared with runtime bridge and signal temporal execution | Temporal query context descriptors, temporal subscription declaration metadata, bridge temporal basis requests | Truth basis and temporal execution basis stay distinct; time-only deliveries remain query-shaped | Milestone 9.7 temporal/async certification + Milestone 13 live/history suites |
 | Time-only query result delivery | Milestone 9.4 | Temporal cause metadata, time-aware delivery batches, previous-value comparison basis | Clock wakes can change admitted query results without raw signal events or ambient timers | Milestone 9.7 temporal/async certification |
 | Async/resource query families | Milestone 9.5, shared with runtime bridge and signal async resources | Async resource query declarations, result-state descriptors, completion-causality artifacts | Stale, cancelled, retried, failed, and superseded completions remain query-shaped and basis-bound | Milestone 9.7 temporal/async certification |
@@ -3768,6 +3858,7 @@ must gain a row in the same patch or the roadmap is incomplete.
 - [milestone-9.3.4.md](./milestone-9.3.4.md)
 - [milestone-9.3.5.md](./milestone-9.3.5.md)
 - [milestone-9.3.6.md](./milestone-9.3.6.md)
+- [milestone-9.3.7.md](./milestone-9.3.7.md)
 - [runtime-api-public-stabilization-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-api-public-stabilization-plan.md)
 - [runtime-authoritative-mutation-evidence-plan.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-query/runtime-authoritative-mutation-evidence-plan.md)
 - [forge_runtime_bridge_roadmap.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/forge-runtime-bridge/forge_runtime_bridge_roadmap.md)

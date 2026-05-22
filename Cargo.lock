@@ -1442,6 +1442,8 @@ dependencies = [
 name = "forge-query"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
+ "forge-proof",
  "forge-relational",
  "forge-runtime-bridge",
  "forge-signal",

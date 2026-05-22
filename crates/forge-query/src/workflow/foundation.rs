@@ -306,17 +306,28 @@ pub(crate) fn synthetic_runtime_workflow_binding(
     source_label: &str,
     runtime_snapshot_token: impl Into<String>,
 ) -> WorkflowContextBinding {
+    synthetic_runtime_workflow_binding_scoped(source_label, "unscoped", runtime_snapshot_token)
+}
+
+pub(crate) fn synthetic_runtime_workflow_binding_scoped(
+    source_label: &str,
+    binding_scope_digest: &str,
+    runtime_snapshot_token: impl Into<String>,
+) -> WorkflowContextBinding {
     let runtime_snapshot_token = runtime_snapshot_token.into();
     let query_identity_digest = hash_parts(&[
         format!("synthetic_query:{source_label}"),
+        format!("scope:{binding_scope_digest}"),
         "basis:runtime".to_string(),
     ]);
     let source_digest = hash_parts(&[
         format!("synthetic_source:{source_label}"),
+        format!("scope:{binding_scope_digest}"),
         runtime_snapshot_token.clone(),
     ]);
     let basis_digest = hash_parts(&[
         format!("synthetic_basis:{source_label}"),
+        format!("scope:{binding_scope_digest}"),
         runtime_snapshot_token.clone(),
     ]);
     let digest = hash_parts(&[
@@ -352,18 +363,35 @@ pub(crate) fn synthetic_preview_workflow_binding(
     preview_session_identity: impl Into<String>,
     evaluation_class: WorkflowPreviewEvaluationClass,
 ) -> WorkflowContextBinding {
+    synthetic_preview_workflow_binding_scoped(
+        source_label,
+        "unscoped",
+        preview_session_identity,
+        evaluation_class,
+    )
+}
+
+pub(crate) fn synthetic_preview_workflow_binding_scoped(
+    source_label: &str,
+    binding_scope_digest: &str,
+    preview_session_identity: impl Into<String>,
+    evaluation_class: WorkflowPreviewEvaluationClass,
+) -> WorkflowContextBinding {
     let preview_session_identity = preview_session_identity.into();
     let query_identity_digest = hash_parts(&[
         format!("synthetic_query:{source_label}"),
+        format!("scope:{binding_scope_digest}"),
         format!("preview_session:{preview_session_identity}"),
     ]);
     let source_digest = hash_parts(&[
         format!("synthetic_source:{source_label}"),
+        format!("scope:{binding_scope_digest}"),
         format!("evaluation:{}", evaluation_class.as_str()),
         format!("preview_session:{preview_session_identity}"),
     ]);
     let basis_digest = hash_parts(&[
         format!("synthetic_basis:{source_label}"),
+        format!("scope:{binding_scope_digest}"),
         format!("preview_session:{preview_session_identity}"),
     ]);
     let digest = hash_parts(&[
