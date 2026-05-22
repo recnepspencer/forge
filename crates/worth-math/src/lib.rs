@@ -29,9 +29,13 @@ pub mod numeric;
 pub mod predicates;
 
 pub use data_access::{GeometrySource, PlaneCoefficients};
-pub use error::MathError;
+pub use error::{MathError, NumericContractKind};
 // Re-exports
+pub use numeric::coordinates::{
+    canonical_perpendicular_unit_vector, FinitePoint2, FinitePoint3, FiniteVector2, FiniteVector3,
+};
 pub use numeric::deterministic_rng;
+pub use numeric::metrics::{FiniteNonNegativeF64, UnitVector2, UnitVector3};
 pub use numeric::sign; // Commonly used // Commonly used
 
 #[cfg(feature = "strict_env")]

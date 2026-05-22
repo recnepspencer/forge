@@ -27,7 +27,7 @@ fn current_head_runtime_executes_two_half_edge_span_relocation_successor_program
         topology_runtime(adapters, ".current-head.query-edit-rewire-successor-span")
             .expect("workspace");
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&workspace, &assembly);
+    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let moved_start_identity = support.first_source_identity_for_relation_kind(
         schema::facade::TopologyRelationKind::HalfEdgeNext,
     );
@@ -149,7 +149,7 @@ fn current_head_runtime_executes_three_half_edge_span_relocation_successor_progr
     )
     .expect("workspace");
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&workspace, &assembly);
+    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let moved_start_identity = support.first_source_identity_for_relation_kind(
         schema::facade::TopologyRelationKind::HalfEdgeNext,
     );

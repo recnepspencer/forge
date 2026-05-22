@@ -1,0 +1,10 @@
+error[E0432]: unresolved import `worth_kernel::facade::PrimitiveConstructionPreviewContinuityHostilitySuiteReport`
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_preview_continuity_hostility_suite_constructor_not_exported.rs:1:5
+  |
+1 | use worth_kernel::facade::PrimitiveConstructionPreviewContinuityHostilitySuiteReport;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionPreviewContinuityHostilitySuiteReport` in `facade`
+  |
+help: consider importing this struct instead
+  |
+1 | use worth_kernel::facade::certification::preview::PrimitiveConstructionPreviewContinuityHostilitySuiteReport;
+  |                           ++++++++++++++++++++++++

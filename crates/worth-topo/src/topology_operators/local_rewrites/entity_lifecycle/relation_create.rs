@@ -1,11 +1,12 @@
 use std::collections::BTreeMap;
 
 use forge_query::facade::{
-    ForgeQueryAspectMutationBuilder, ForgeQueryEntity, ForgeQueryMutationBatchBuilder,
+    ForgeQueryAspectMutationBuilder, ForgeQueryMutationBatchBuilder,
     ForgeQuerySymbolicTargetReference,
 };
 use schema::facade::{EntityReference, TopologyEntityKind};
 
+use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::bindings::{query_entity_binding, QueryEntityBinding};
 use crate::topology_operators::application::{
     TopologyOperatorExecutionError, TopologyOperatorRunner,
@@ -21,7 +22,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
     pub(crate) fn lower_attach_shell_or_wire_membership(
         &self,
         builder: ForgeQueryMutationBatchBuilder,
-        entity_rows: &[ForgeQueryEntity],
+        bindings: &TopologyQueryBindingIndex,
         created_entity_kinds: &BTreeMap<String, TopologyEntityKind>,
         kind: ShellOrWireMembershipKind,
         owner: &EntityReference,
@@ -40,7 +41,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         };
         self.lower_relation_create(
             builder,
-            entity_rows,
+            bindings,
             created_entity_kinds,
             kind.relation_kind(),
             owner,
@@ -53,7 +54,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
     pub(crate) fn lower_relation_create(
         &self,
         builder: ForgeQueryMutationBatchBuilder,
-        entity_rows: &[ForgeQueryEntity],
+        bindings: &TopologyQueryBindingIndex,
         created_entity_kinds: &BTreeMap<String, TopologyEntityKind>,
         relation_kind: schema::facade::TopologyRelationKind,
         source: &EntityReference,
@@ -61,18 +62,10 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         target: &EntityReference,
         expected_target_kind: TopologyEntityKind,
     ) -> Result<ForgeQueryMutationBatchBuilder, TopologyOperatorExecutionError> {
-        let source = lower_entity_reference(
-            entity_rows,
-            created_entity_kinds,
-            source,
-            expected_source_kind,
-        )?;
-        let target = lower_entity_reference(
-            entity_rows,
-            created_entity_kinds,
-            target,
-            expected_target_kind,
-        )?;
+        let source =
+            lower_entity_reference(bindings, created_entity_kinds, source, expected_source_kind)?;
+        let target =
+            lower_entity_reference(bindings, created_entity_kinds, target, expected_target_kind)?;
         Ok(builder.insert("TopologyRelation", |mutation| {
             let mutation = authored_relation_endpoint(
                 mutation.aspect("topology.kind", relation_kind.kind_name()),
@@ -85,14 +78,14 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
 }
 
 fn lower_entity_reference(
-    entity_rows: &[ForgeQueryEntity],
+    bindings: &TopologyQueryBindingIndex,
     created_entity_kinds: &BTreeMap<String, TopologyEntityKind>,
     reference: &EntityReference,
     expected_kind: TopologyEntityKind,
 ) -> Result<LoweredEntityReference, TopologyOperatorExecutionError> {
     match reference {
         EntityReference::Existing(entity_id) => {
-            let binding = query_entity_binding(entity_rows, *entity_id)?
+            let binding = query_entity_binding(bindings, *entity_id)?
                 .ok_or(TopologyOperatorExecutionError::MissingExistingEntityBinding(*entity_id))?;
             if binding.kind != expected_kind {
                 return Err(TopologyOperatorExecutionError::ExistingEntityKindMismatch {

@@ -105,7 +105,7 @@ impl ForgeQueryContinuityMutationEvidence {
         }
     }
 
-    pub(in crate::runtime) fn from_intent(
+    pub(crate) fn from_intent(
         intent: &crate::runtime::ForgeQueryContinuityMutationIntent,
         basis_binding_digest: Option<&str>,
         resolved_target_entity_identity: Option<&str>,

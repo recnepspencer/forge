@@ -1,8 +1,8 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
-use forge_query::facade::ForgeQueryEntity;
 use schema::facade::{EntityReference, TopologyEntityKind};
 
+use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::bindings::{
     query_entity_binding, query_entity_id_by_identity, query_incoming_relation_ids,
     query_outgoing_relation_target_identities, query_relation_binding,
@@ -64,21 +64,20 @@ pub(super) fn parse_wire_rehome_program(
 }
 
 pub(super) fn supports_owned_half_edge_set_wire_rehome_program(
-    entity_rows: &[ForgeQueryEntity],
-    relation_rows: &[ForgeQueryEntity],
+    bindings: &TopologyQueryBindingIndex,
     contracts: &[TopologyEditContract],
 ) -> bool {
     let Some(program) = parse_wire_rehome_program(contracts) else {
         return false;
     };
-    let Some(retired_wire_binding) = query_entity_binding(entity_rows, program.retired_wire_id)
+    let Some(retired_wire_binding) = query_entity_binding(bindings, program.retired_wire_id)
         .ok()
         .flatten()
     else {
         return false;
     };
     let Ok(outgoing_half_edge_targets) = query_outgoing_relation_target_identities(
-        relation_rows,
+        bindings,
         &retired_wire_binding.query_identity,
         schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
     ) else {
@@ -92,7 +91,7 @@ pub(super) fn supports_owned_half_edge_set_wire_rehome_program(
     let outgoing_half_edge_ids = outgoing_half_edge_targets
         .iter()
         .map(|identity| {
-            query_entity_id_by_identity(entity_rows, identity)
+            query_entity_id_by_identity(bindings, identity)
                 .ok()
                 .flatten()
         })
@@ -150,27 +149,25 @@ pub(super) fn parse_wire_split_program(
 }
 
 pub(super) fn supports_connected_wire_split_program(
-    entity_rows: &[ForgeQueryEntity],
-    relation_rows: &[ForgeQueryEntity],
+    bindings: &TopologyQueryBindingIndex,
     contracts: &[TopologyEditContract],
 ) -> bool {
     let Some(mut program) = parse_wire_split_program(contracts) else {
         return false;
     };
-    let Some(retained_wire_id) =
-        shared_existing_wire_owner_id(entity_rows, relation_rows, &program.half_edge_ids)
+    let Some(retained_wire_id) = shared_existing_wire_owner_id(bindings, &program.half_edge_ids)
     else {
         return false;
     };
     program.retained_wire_id = Some(retained_wire_id);
-    let Some(retained_wire_binding) = query_entity_binding(entity_rows, retained_wire_id)
+    let Some(retained_wire_binding) = query_entity_binding(bindings, retained_wire_id)
         .ok()
         .flatten()
     else {
         return false;
     };
     let Ok(outgoing_half_edge_targets) = query_outgoing_relation_target_identities(
-        relation_rows,
+        bindings,
         &retained_wire_binding.query_identity,
         schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
     ) else {
@@ -179,7 +176,7 @@ pub(super) fn supports_connected_wire_split_program(
     let outgoing_half_edge_ids = outgoing_half_edge_targets
         .iter()
         .map(|identity| {
-            query_entity_id_by_identity(entity_rows, identity)
+            query_entity_id_by_identity(bindings, identity)
                 .ok()
                 .flatten()
         })
@@ -197,36 +194,33 @@ pub(super) fn supports_connected_wire_split_program(
         .filter(|half_edge_id| !moved_half_edge_ids.contains(half_edge_id))
         .collect::<BTreeSet<_>>();
     !retained_half_edge_ids.is_empty()
-        && connected_by_incident_vertices(entity_rows, relation_rows, &moved_half_edge_ids)
-        && connected_by_incident_vertices(entity_rows, relation_rows, &retained_half_edge_ids)
+        && connected_by_incident_vertices(bindings, &moved_half_edge_ids)
+        && connected_by_incident_vertices(bindings, &retained_half_edge_ids)
 }
 
 pub(super) fn resolve_wire_split_program(
-    entity_rows: &[ForgeQueryEntity],
-    relation_rows: &[ForgeQueryEntity],
+    bindings: &TopologyQueryBindingIndex,
     contracts: &[TopologyEditContract],
 ) -> Option<WireSplitProgram> {
     let mut program = parse_wire_split_program(contracts)?;
     program.retained_wire_id = Some(shared_existing_wire_owner_id(
-        entity_rows,
-        relation_rows,
+        bindings,
         &program.half_edge_ids,
     )?);
-    supports_connected_wire_split_program(entity_rows, relation_rows, contracts).then_some(program)
+    supports_connected_wire_split_program(bindings, contracts).then_some(program)
 }
 
 fn shared_existing_wire_owner_id(
-    entity_rows: &[ForgeQueryEntity],
-    relation_rows: &[ForgeQueryEntity],
+    bindings: &TopologyQueryBindingIndex,
     half_edge_ids: &[forge_relational::facade::identity::EntityId],
 ) -> Option<forge_relational::facade::identity::EntityId> {
     let mut owner_id = None;
     for half_edge_id in half_edge_ids {
-        let half_edge_binding = query_entity_binding(entity_rows, *half_edge_id)
+        let half_edge_binding = query_entity_binding(bindings, *half_edge_id)
             .ok()
             .flatten()?;
         let incoming_relation_ids = query_incoming_relation_ids(
-            relation_rows,
+            bindings,
             &half_edge_binding.query_identity,
             schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
         )
@@ -234,11 +228,11 @@ fn shared_existing_wire_owner_id(
         let [relation_id] = incoming_relation_ids.as_slice() else {
             return None;
         };
-        let relation_binding = query_relation_binding(relation_rows, *relation_id)
+        let relation_binding = query_relation_binding(bindings, *relation_id)
             .ok()
             .flatten()?;
         let candidate_owner_id =
-            query_entity_id_by_identity(entity_rows, &relation_binding.source_query_identity)
+            query_entity_id_by_identity(bindings, &relation_binding.source_query_identity)
                 .ok()
                 .flatten()?;
         if owner_id.get_or_insert(candidate_owner_id) != &candidate_owner_id {
@@ -249,8 +243,7 @@ fn shared_existing_wire_owner_id(
 }
 
 fn connected_by_incident_vertices(
-    entity_rows: &[ForgeQueryEntity],
-    relation_rows: &[ForgeQueryEntity],
+    bindings: &TopologyQueryBindingIndex,
     half_edge_ids: &BTreeSet<forge_relational::facade::identity::EntityId>,
 ) -> bool {
     if half_edge_ids.is_empty() {
@@ -258,9 +251,7 @@ fn connected_by_incident_vertices(
     }
     let mut incident_vertices = BTreeMap::new();
     for half_edge_id in half_edge_ids {
-        let Some(half_edge_binding) = query_entity_binding(entity_rows, *half_edge_id)
-            .ok()
-            .flatten()
+        let Some(half_edge_binding) = query_entity_binding(bindings, *half_edge_id).ok().flatten()
         else {
             return false;
         };
@@ -270,14 +261,14 @@ fn connected_by_incident_vertices(
             schema::facade::TopologyRelationKind::HalfEdgeEndsAtVertex,
         ] {
             let Ok(target_identities) = query_outgoing_relation_target_identities(
-                relation_rows,
+                bindings,
                 &half_edge_binding.query_identity,
                 kind,
             ) else {
                 return false;
             };
             for target_identity in target_identities {
-                let Some(vertex_id) = query_entity_id_by_identity(entity_rows, &target_identity)
+                let Some(vertex_id) = query_entity_id_by_identity(bindings, &target_identity)
                     .ok()
                     .flatten()
                 else {

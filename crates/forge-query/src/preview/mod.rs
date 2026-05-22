@@ -21,10 +21,15 @@ use forge_runtime_bridge::facade::{
 #[cfg(test)]
 use forge_runtime_bridge::facade::{BridgePreviewPromotionRecord, BridgePreviewReplayBundle};
 
+pub(crate) mod domain_capability;
 mod scoped;
 #[cfg(test)]
 mod scoped_tests;
 
+pub(crate) use domain_capability::{
+    admit_contributed_preview_workflow_foundation,
+    materialize_contributed_preview_workflow_foundation_artifact,
+};
 pub use scoped::{
     admit_scoped_preview_live_session_plan, admit_scoped_preview_session_plan_binding,
     admit_scoped_preview_session_plan_binding_from_preview_binding,

@@ -1442,6 +1442,8 @@ dependencies = [
 name = "forge-query"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
+ "forge-proof",
  "forge-relational",
  "forge-runtime-bridge",
  "forge-signal",
@@ -5193,6 +5195,20 @@ dependencies = [
 ]
 
 [[package]]
+name = "worth-kernel"
+version = "0.1.0"
+dependencies = [
+ "forge-proof",
+ "forge-query",
+ "sha2",
+ "trybuild",
+ "worth-geom",
+ "worth-math",
+ "worth-spatial",
+ "worth-topo",
+]
+
+[[package]]
 name = "worth-math"
 version = "0.1.0"
 dependencies = [
@@ -5222,6 +5238,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "worth-spatial"
+version = "0.1.0"
+dependencies = [
+ "forge-foundational",
+ "forge-proof",
+ "forge-query",
+ "serde_json",
+ "trybuild",
+ "worth-geom",
+ "worth-math",
+]
+
+[[package]]
 name = "worth-topo"
 version = "0.1.0"
 dependencies = [
@@ -5232,6 +5261,7 @@ dependencies = [
  "serde_json",
  "trybuild",
  "worth-schema",
+ "worth-spatial",
 ]
 
 [[package]]

@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/domain_capabilities/boundaries/runtime_targets/domain_capability_graph_invariant_denial_requires_lower_runtime_target.rs:46:67
+   |
+46 |     let _ = materialize_graph_composition_domain_invariant_denial(ready);
+   |             ----------------------------------------------------- ^^^^^ expected `ForgeQueryLowerRuntimeBoundaryBoundContributionTarget`, found `ForgeQueryDeclarationBoundContributionTarget`
+   |             |
+   |             arguments to this function are incorrect
+   |
+   = note: expected struct `ForgeQueryMaterializationReadyDomainCapabilityContribution<ForgeQueryInvariantCapabilityContributionPayload, ForgeQueryLowerRuntimeBoundaryBoundContributionTarget>`
+              found struct `ForgeQueryMaterializationReadyDomainCapabilityContribution<ForgeQueryInvariantCapabilityContributionPayload, ForgeQueryDeclarationBoundContributionTarget>`
+note: function defined here
+  --> src/domain_capabilities/canonical_runtime/invariant_capability.rs
+   |
+   | pub fn materialize_graph_composition_domain_invariant_denial(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

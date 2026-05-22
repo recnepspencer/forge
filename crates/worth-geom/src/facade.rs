@@ -10,6 +10,7 @@
 // ── Primitives ───────────────────────────────────────────────────────────
 pub use super::primitives::aabb::Aabb;
 pub use super::primitives::implicit_vertex::Vertex;
+pub use super::primitives::parameter_space::ParameterSpacePoint;
 pub use super::primitives::plane::{intersect_three_planes_exact, signed_distance, Plane};
 pub use super::primitives::point::is_same_point_within;
 pub use super::primitives::polygon::{compute_polygon_area, compute_polygon_centroid};
@@ -17,7 +18,22 @@ pub use super::primitives::ray::{
     compute_ray_plane_intersection, dominant_projection_axes, resolve_zero_edge,
     scanline_edge_crossing, EdgeTieBreaker,
 };
+pub use super::primitives::shape_realization::{
+    build_direct_realization_report, primitive_realization_exhaustion_witness_rows,
+    realize_block_support, realize_prism_support, realize_pyramid_support,
+    realize_tetrahedron_support, realize_tetrahedron_support_with_altitude_component,
+    PrimitiveConditioningWitness, PrimitiveFeatureConditioningClass,
+    PrimitiveNormalizationDisposition, PrimitiveRealizationError,
+    PrimitiveRealizationExhaustionReason, PrimitiveRealizationExhaustionReport,
+    PrimitiveRealizationExhaustionWitnessKind, PrimitiveRealizationExhaustionWitnessRow,
+    PrimitiveRealizationReport, PrimitiveRealizationStrategy, PrimitiveStabilityClass,
+    PrimitiveSupportNormalClass, PrimitiveSupportRealization,
+};
 pub use super::primitives::vertex_geom::{VertexGeom, VertexProvenance};
+pub use super::surface::{
+    CanonicalParameterPoint, DomainParameterPoint, ParameterAxis, ParameterDomainError,
+    PolygonalTrimmedParameterPoint, PolygonalTrimmedParameterRegion,
+};
 
 // ── Shape generators ────────────────────────────────────────────────────
 pub use super::primitives::shapes::{

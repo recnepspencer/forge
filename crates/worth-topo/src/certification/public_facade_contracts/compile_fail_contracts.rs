@@ -31,6 +31,12 @@ fn topo_public_boundary_rejects_internal_runtime_bypass() {
         "{compile_fail}/public_query_row_materializer_not_exported.rs"
     ));
     t.compile_fail(format!(
+        "{compile_fail}/public_query_row_helpers_not_exported.rs"
+    ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_topology_construction_authority_constructor_not_exported.rs"
+    ));
+    t.compile_fail(format!(
         "{compile_fail}/public_runtime_read_family_support_row_not_forgeable.rs"
     ));
     t.compile_fail(format!(

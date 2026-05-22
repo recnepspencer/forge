@@ -138,8 +138,26 @@ impl ForgeQueryGraphCompositionDomainInvariantSummary {
             target_combination_families.len(),
             lifecycle_families.len(),
         );
-        let program_digest = program.program_digest().to_string();
-        let breadth_digest = breadth.breadth_digest().to_string();
+        Self::from_parts(
+            declared_collections,
+            declared_symbols,
+            target_combination_families,
+            lifecycle_families,
+            program.program_digest().to_string(),
+            breadth.breadth_digest().to_string(),
+            counter_snapshot,
+        )
+    }
+
+    pub(crate) fn from_parts(
+        declared_collections: Vec<String>,
+        declared_symbols: Vec<String>,
+        target_combination_families: Vec<String>,
+        lifecycle_families: Vec<String>,
+        program_digest: String,
+        breadth_digest: String,
+        counter_snapshot: String,
+    ) -> Self {
         let summary_digest = hash_parts(&[
             "forge_query_graph_composition_domain_invariant_summary_v1".to_string(),
             format!("program:{program_digest}"),

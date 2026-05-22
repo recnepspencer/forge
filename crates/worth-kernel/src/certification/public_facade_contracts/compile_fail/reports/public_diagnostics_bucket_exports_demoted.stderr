@@ -1,0 +1,16 @@
+error[E0432]: unresolved imports `worth_kernel::facade::diagnostics::prepare_primitive_construction_move_witness_resolution_report`, `worth_kernel::facade::diagnostics::prepare_primitive_construction_preview_surface_report`, `worth_kernel::facade::diagnostics::PrimitiveConstructionQueryBoundaryGapRegister`, `worth_kernel::facade::diagnostics::PrimitiveIntentConflict`
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_diagnostics_bucket_exports_demoted.rs:2:5
+  |
+2 |     prepare_primitive_construction_move_witness_resolution_report,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `prepare_primitive_construction_move_witness_resolution_report` in `facade::diagnostics`
+3 |     prepare_primitive_construction_preview_surface_report, PrimitiveConstructionQueryBoundaryGapRegister,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionQueryBoundaryGapRegister` in `facade::diagnostics`
+  |     |
+  |     no `prepare_primitive_construction_preview_surface_report` in `facade::diagnostics`
+4 |     PrimitiveIntentConflict,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveIntentConflict` in `facade::diagnostics`
+  |
+  = help: consider importing this struct instead:
+          worth_kernel::facade::diagnostics::query::PrimitiveConstructionQueryBoundaryGapRegister
+  = help: consider importing this struct instead:
+          worth_kernel::facade::diagnostics::arbitration::PrimitiveIntentConflict

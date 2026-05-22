@@ -1,9 +1,10 @@
 use forge_query::facade::{
-    ForgeQueryBatchWriteReceipt, ForgeQueryBatchWriteReceiptInspection, ForgeQueryEntity,
-    ForgeQueryInspection,
+    ForgeQueryBatchWriteReceipt, ForgeQueryBatchWriteReceiptInspection, ForgeQueryInspection,
 };
 
-use crate::derived_topology::materialized_graph::MaterializedTopologyView;
+use crate::projection::runtime_boundary::query_runtime::{
+    load_post_write_materialized_topology, TopologyQueryBindingIndex,
+};
 use crate::topology_operators::application::{
     TopologyOperatorExecution, TopologyOperatorExecutionError, TopologyOperatorRunner,
 };
@@ -16,11 +17,10 @@ use crate::topology_operators::{
 };
 
 pub(crate) fn supports_composed_loop_successor_program(
-    entity_rows: &[ForgeQueryEntity],
-    relation_rows: &[ForgeQueryEntity],
+    bindings: &TopologyQueryBindingIndex,
     contracts: &[TopologyEditContract],
 ) -> bool {
-    supports_admitted_loop_successor_program(entity_rows, relation_rows, contracts)
+    supports_admitted_loop_successor_program(bindings, contracts)
 }
 
 impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
@@ -32,8 +32,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         naming_continuity_matrix: NamingEditContinuityMatrix,
         naming_report: crate::topology_operators::TopologyEditNamingReport,
         contracts: &[TopologyEditContract],
-        entity_rows: &[ForgeQueryEntity],
-        relation_rows: &[ForgeQueryEntity],
+        bindings: &TopologyQueryBindingIndex,
     ) -> Result<TopologyOperatorExecution, TopologyOperatorExecutionError> {
         let rewires = contracts
             .iter()
@@ -44,8 +43,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                     half_edge_id,
                     successor_half_edge_id,
                 } => self.resolve_loop_successor_rewire(
-                    entity_rows,
-                    relation_rows,
+                    bindings,
                     relation_id,
                     kind,
                     half_edge_id,
@@ -68,13 +66,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 ForgeQueryInspection::BatchWriteReceipt(inspection) => inspection,
                 _ => return Err(TopologyOperatorExecutionError::UnexpectedInspectionFamily),
             };
-        let materialized_rows = self.workspace.materialize(self.assembly.materialized());
-        let materialized: MaterializedTopologyView =
-            serde_json::from_value(materialized_rows[0].clone()).map_err(|error| {
-                TopologyOperatorExecutionError::MaterializedDecode(format!(
-                    "query-derived `materialized topology` row failed to decode: {error}"
-                ))
-            })?;
+        let materialized = load_post_write_materialized_topology(self.workspace, self.assembly)?;
         Ok(TopologyOperatorExecution {
             mode,
             families,

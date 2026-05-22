@@ -26,7 +26,7 @@ fn current_head_runtime_executes_splice_radial_adjacency_through_topology_operat
     let mut workspace =
         topology_runtime(adapters, ".current-head.query-edit-splice-radial").expect("workspace");
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&workspace, &assembly);
+    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let relation_rows = workspace.read(assembly.relations());
     let relation = relation_rows
         .iter()
@@ -124,7 +124,7 @@ fn current_head_runtime_denies_splice_radial_adjacency_with_mismatched_source_bi
     )
     .expect("workspace");
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&workspace, &assembly);
+    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let relation_rows = workspace.read(assembly.relations());
     let relation = relation_rows
         .iter()
@@ -218,7 +218,7 @@ fn current_head_runtime_denies_splice_radial_adjacency_across_different_edges() 
         topology_runtime(adapters, ".current-head.query-edit-splice-radial-mismatch")
             .expect("workspace");
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&workspace, &assembly);
+    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let relation_rows = workspace.read(assembly.relations());
     let relation = relation_rows
         .iter()

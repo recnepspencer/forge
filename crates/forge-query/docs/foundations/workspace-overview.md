@@ -4,7 +4,8 @@
 
 `ForgeQueryWorkspace` is the stabilized public runtime facade for ordinary
 runtime-backed `forge-query` work. It is the place where product code declares
-live views, computed state, and effects, performs reads and writes, opens
+live views, computed state, and effects, performs reads and writes, authors
+same-batch graph composition, works against existing authoritative truth, opens
 preview or branch sessions, snapshots state, and inspects retained runtime
 evidence.
 
@@ -30,6 +31,17 @@ Stable runtime-backed entry points:
 - `workspace.delete(...)`
 - `workspace.batch(...)`
 - `workspace.write(...)` as the lower-level mutation path
+- `workspace.compose_graph(...)`
+- `workspace.compose_graph_with_invariant_pack(...)`
+- `workspace.bind_existing_entity(...)`
+- `workspace.bind_existing_relation(...)`
+- `workspace.update_existing(...)`
+- `workspace.delete_existing(...)`
+- `workspace.assert_existing(...)`
+- `workspace.verify_existing(...)`
+- `workspace.update_existing_verified(...)`
+- `workspace.delete_existing_verified(...)`
+- `workspace.probe_existing(...)`
 - `workspace.compose_read(...)`
 - `workspace.read(...)`
 - `workspace.observe(...)`
@@ -73,6 +85,11 @@ Think of it this way:
   different questions about those retained surfaces
 - `compose_read` lets you execute one bounded graph-shaped read without
   installing a retained live view first
+- graph composition lets you execute one symbolic same-batch authoring program
+  without flattening graph lifecycle meaning into plain `batch(...)` rows
+- existing-truth surfaces let you bind, verify, update, delete, or probe
+  already authoritative targets without reconstructing target identity or
+  verification folklore in caller code
 - projection consumption lets you turn read results, write receipts, or
   query-context execution artifacts into typed facts when rows or payload bags
   are not a strong enough contract
@@ -82,6 +99,10 @@ Think of it this way:
 
 If you are building ordinary runtime-backed product features, the workspace is
 the place you should start from.
+
+If you are building a downstream runtime or domain crate, read
+[Downstream Runtime Integration](downstream-runtime-integration.md) before you
+invent local mutation, basis, or inspection patterns above Query.
 
 ## How It Executes
 
@@ -93,12 +114,19 @@ The typical workspace lifecycle looks like this:
    `workspace.update(...)`, `workspace.delete(...)`, or `workspace.batch(...)`.
    Aspect-level reset stays on the same path through builder calls such as
    `task.clear("description.value")`.
-4. Read current rows, drain patches, or materialize derived rows from retained
+4. Use `workspace.compose_graph(...)` when one logical authoring step needs
+   symbolic same-batch handles, graph lifecycle evidence, or invariant-pack
+   denial instead of plain ordered writes.
+5. Use existing-truth surfaces such as `workspace.bind_existing_entity(...)`,
+   `workspace.verify_existing(...)`, `workspace.update_existing_verified(...)`,
+   or `workspace.probe_existing(...)` when the target is already authoritative
+   and target binding or backend verification is part of the contract.
+6. Read current rows, drain patches, or materialize derived rows from retained
    handles.
-5. Use `workspace.compose_read(...)` when you need one bounded graph read with
+7. Use `workspace.compose_read(...)` when you need one bounded graph read with
    an attached runtime receipt instead of a retained live view.
-6. Inspect handles or snapshot state when you need explanations or readiness.
-7. Open preview or branch sessions when you need isolated experimentation.
+8. Inspect handles or snapshot state when you need explanations or readiness.
+9. Open preview or branch sessions when you need isolated experimentation.
 
 The workspace keeps the durable handles and their retained evidence aligned with
 the same runtime. A handle from one runtime is not portable into another
@@ -301,6 +329,11 @@ inspection without hand-built cache or invalidation glue.
   other computed surfaces.
 - Use [Effects](../execution/effects.md) when a surface should deliver or stage something
   because another surface changed.
+- Use [Graph Composition Authoring](../authoring/graph-composition-authoring.md) when one
+  logical write must carry symbolic same-batch handles, lifecycle evidence, or
+  invariant-pack denial instead of plain ordered writes.
+- Use [Existing Truth](../capabilities/existing-truth.md) when a mutation or probe starts
+  from already authoritative truth instead of creating new truth from scratch.
 - Use [Projection Consumption](../capabilities/projection-consumption.md) when a read result,
   write receipt, or query-context execution must become typed consumed facts
   instead of staying a raw payload or receipt artifact.
@@ -349,6 +382,9 @@ runtime.
 - [Live Views](../runtime-surfaces/live-views.md)
 - [Computed](../runtime-surfaces/computed.md)
 - [Effects](../execution/effects.md)
+- [Graph Composition Authoring](../authoring/graph-composition-authoring.md)
+- [Downstream Runtime Integration](downstream-runtime-integration.md)
+- [Existing Truth](../capabilities/existing-truth.md)
 - [Projection Consumption](../capabilities/projection-consumption.md)
 - [Intent Admission](../execution/intent-admission.md)
 

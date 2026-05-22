@@ -80,7 +80,7 @@ impl QueryLookupRows {
 }
 
 pub(in crate::certification::projection_closeout::tests) fn current_lookup_rows(
-    workspace: &ForgeQueryWorkspace,
+    workspace: &mut ForgeQueryWorkspace,
     assembly: &TopologyQueryAssembly,
 ) -> QueryLookupRows {
     QueryLookupRows {

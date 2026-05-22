@@ -1,0 +1,112 @@
+use forge_proof::TransitionOutcome;
+
+use crate::correspondence::{
+    resolve_correspondence_evidence, CorrespondenceEvaluationFailureClass,
+    CorrespondenceEvidenceResolved,
+};
+use crate::domain_capabilities::denials::{
+    ForgeQueryDomainCapabilityProgressionDenial, ForgeQueryDomainCapabilityProgressionDenialKind,
+};
+use crate::domain_capabilities::payloads::{
+    ForgeQueryContinuityContributionPayload, ForgeQueryContinuityContributionPosture,
+};
+use crate::domain_capabilities::targets::ForgeQueryAdmittedPlanBoundContributionTarget;
+use crate::domain_capabilities::{
+    ForgeQueryDomainCapabilityTransitionOutcome,
+    ForgeQueryMaterializationReadyContinuityContribution,
+};
+
+pub fn materialize_correspondence_evidence_resolved(
+    contribution: ForgeQueryMaterializationReadyContinuityContribution<
+        ForgeQueryAdmittedPlanBoundContributionTarget,
+    >,
+) -> ForgeQueryDomainCapabilityTransitionOutcome<CorrespondenceEvidenceResolved> {
+    let domain_contribution = contribution.payload();
+    let payload = domain_contribution.payload();
+
+    if payload.posture() != ForgeQueryContinuityContributionPosture::CorrespondenceOnly {
+        return TransitionOutcome::Denied(unsupported_posture_denial(
+            payload,
+            domain_contribution.request_digest(),
+        ));
+    }
+
+    let Some(correspondence_semantics) = payload.correspondence_semantics() else {
+        return TransitionOutcome::Denied(missing_correspondence_semantics_denial(
+            payload,
+            domain_contribution.request_digest(),
+        ));
+    };
+
+    match resolve_correspondence_evidence(correspondence_semantics.to_request()) {
+        Ok(resolved) => TransitionOutcome::Success(resolved),
+        Err(error) => TransitionOutcome::Denied(correspondence_error_denial(
+            payload,
+            domain_contribution.request_digest(),
+            error.failure_class(),
+        )),
+    }
+}
+
+fn missing_correspondence_semantics_denial(
+    payload: &ForgeQueryContinuityContributionPayload,
+    request_digest: &str,
+) -> ForgeQueryDomainCapabilityProgressionDenial {
+    ForgeQueryDomainCapabilityProgressionDenial::new(
+        ForgeQueryDomainCapabilityProgressionDenialKind::MissingCanonicalMaterializationSemantics,
+        "continuity-lineage",
+        crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind::AdmittedIntentPlan,
+        request_digest,
+        format!(
+            "continuity correspondence materialization requires correspondence semantics for `{}`",
+            payload.semantic_code()
+        ),
+    )
+}
+
+fn unsupported_posture_denial(
+    payload: &ForgeQueryContinuityContributionPayload,
+    request_digest: &str,
+) -> ForgeQueryDomainCapabilityProgressionDenial {
+    ForgeQueryDomainCapabilityProgressionDenial::new(
+        ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
+        "continuity-lineage",
+        crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind::AdmittedIntentPlan,
+        request_digest,
+        format!(
+            "continuity correspondence materialization only supports `correspondence-only`; got `{}`",
+            payload.posture().as_str()
+        ),
+    )
+}
+
+fn correspondence_error_denial(
+    payload: &ForgeQueryContinuityContributionPayload,
+    request_digest: &str,
+    failure_class: CorrespondenceEvaluationFailureClass,
+) -> ForgeQueryDomainCapabilityProgressionDenial {
+    let denial_kind = match failure_class {
+        CorrespondenceEvaluationFailureClass::InvalidRequest => {
+            ForgeQueryDomainCapabilityProgressionDenialKind::InconsistentCanonicalMaterializationSemantics
+        }
+        CorrespondenceEvaluationFailureClass::UnsupportedTopology
+        | CorrespondenceEvaluationFailureClass::UnsupportedStructuralFamily
+        | CorrespondenceEvaluationFailureClass::UnsupportedMixedEvidence
+        | CorrespondenceEvaluationFailureClass::BroadStructuralScanRequired
+        | CorrespondenceEvaluationFailureClass::StructuralBreadthExceeded => {
+            ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture
+        }
+    };
+
+    ForgeQueryDomainCapabilityProgressionDenial::new(
+        denial_kind,
+        "continuity-lineage",
+        crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind::AdmittedIntentPlan,
+        request_digest,
+        format!(
+            "continuity correspondence materialization denied for `{}` with `{:?}`",
+            payload.semantic_code(),
+            failure_class
+        ),
+    )
+}

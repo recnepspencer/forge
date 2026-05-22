@@ -1,0 +1,9 @@
+error[E0432]: unresolved imports `worth_kernel::facade::certification::prepare_primitive_construction_preview_report_bundle`, `worth_kernel::facade::certification::prepare_primitive_construction_replay_parity_report`, `worth_kernel::facade::certification::prepare_primitive_construction_simplex_realization_strategy_ladder_report`
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_certification_bucket_exports_demoted.rs:2:5
+  |
+2 |     prepare_primitive_construction_preview_report_bundle,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `prepare_primitive_construction_preview_report_bundle` in `facade::certification`
+3 |     prepare_primitive_construction_replay_parity_report,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `prepare_primitive_construction_replay_parity_report` in `facade::certification`
+4 |     prepare_primitive_construction_simplex_realization_strategy_ladder_report,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `prepare_primitive_construction_simplex_realization_strategy_ladder_report` in `facade::certification`

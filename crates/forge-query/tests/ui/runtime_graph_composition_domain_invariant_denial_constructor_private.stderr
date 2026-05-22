@@ -15,7 +15,7 @@ error: cannot construct `ForgeQueryGraphCompositionDomainInvariantDenial` with s
    |         --------------------------------- private field
    |
    = note: ...and other private field `domain_invariant_summary` that was not provided
-help: you might have meant to use the `from_violation` associated function
+help: you might have meant to use an associated function to build this type
    |
  4 -     let _ = ForgeQueryGraphCompositionDomainInvariantDenial {
  5 -         hook_family: "domain_invariant_pack_hook".to_string(),
@@ -25,4 +25,22 @@ help: you might have meant to use the `from_violation` associated function
  9 -         denial_digest: "fake".to_string(),
 10 -     };
  4 +     let _ = ForgeQueryGraphCompositionDomainInvariantDenial::from_violation(_, _);
+   |
+ 4 -     let _ = ForgeQueryGraphCompositionDomainInvariantDenial {
+ 5 -         hook_family: "domain_invariant_pack_hook".to_string(),
+ 6 -         invariant_family: "non_manifold_topology".to_string(),
+ 7 -         message: "should not compile".to_string(),
+ 8 -         admission_trace: unsafe { std::mem::zeroed() },
+ 9 -         denial_digest: "fake".to_string(),
+10 -     };
+ 4 +     let _ = ForgeQueryGraphCompositionDomainInvariantDenial::from_contributed(_, _, _);
+   |
+ 4 -     let _ = ForgeQueryGraphCompositionDomainInvariantDenial {
+ 5 -         hook_family: "domain_invariant_pack_hook".to_string(),
+ 6 -         invariant_family: "non_manifold_topology".to_string(),
+ 7 -         message: "should not compile".to_string(),
+ 8 -         admission_trace: unsafe { std::mem::zeroed() },
+ 9 -         denial_digest: "fake".to_string(),
+10 -     };
+ 4 +     let _ = ForgeQueryGraphCompositionDomainInvariantDenial::build(_, _, _, _);
    |

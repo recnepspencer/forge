@@ -1,11 +1,12 @@
 use forge_query::facade::{
-    ForgeQueryEntity, ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget,
+    ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget,
     ForgeQueryExistingTruthTargetBinding, ForgeQueryGraphCompositionBuilder,
     ForgeQueryRuntimeError,
 };
 use forge_relational::facade::identity::{EntityId, RelationId};
 use schema::facade::TopologyEntityKind;
 
+use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::TopologyEditContract;
 use crate::topology_operators::{TopologyOperatorExecutionError, TopologyOperatorRunner};
 
@@ -22,13 +23,12 @@ pub(super) fn bind_existing_relation_handle(
 
 pub(super) fn bind_existing_entity_handle(
     runner: &TopologyOperatorRunner<'_, '_>,
-    entity_rows: &[ForgeQueryEntity],
+    bindings: &TopologyQueryBindingIndex,
     entity_id: EntityId,
     expected_kind: TopologyEntityKind,
 ) -> Result<ForgeQueryExistingTruthTargetBinding, TopologyOperatorExecutionError> {
     let binding = crate::topology_operators::application::bindings::query_entity_binding(
-        entity_rows,
-        entity_id,
+        bindings, entity_id,
     )?
     .ok_or(TopologyOperatorExecutionError::MissingExistingEntityBinding(entity_id))?;
     if binding.kind != expected_kind {

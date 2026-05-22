@@ -1,0 +1,99 @@
+use crate::construction::certification::{
+    PrimitiveConstructionContinuityReportBundle, PrimitiveConstructionContinuitySurfaceReport,
+    PrimitiveConstructionIntentArbitrationDxSurfaceReport,
+    PrimitiveConstructionIntentArbitrationPolicyReport, PrimitiveConstructionMotionDxSurfaceReport,
+    PrimitiveConstructionMotionResolutionPolicyReport,
+    PrimitiveConstructionPhaseFiveSixCloseoutReport,
+    PrimitiveConstructionPolicyProfileReportBundle,
+    PrimitiveConstructionPolicyProfileSurfaceReport, PrimitiveConstructionPreviewReportBundle,
+    PrimitiveConstructionPreviewSurfaceReport,
+    PrimitiveConstructionRealizationExhaustionWitnessReport,
+};
+use crate::construction::query::{
+    PrimitiveConstructionQueryBasisPreviewParityReport,
+    PrimitiveConstructionQueryBoundaryGapRegister,
+    PrimitiveConstructionQueryGraphCompositionParityReport,
+    PrimitiveConstructionQueryNoLocalRuntimeWorkaroundAudit,
+};
+use crate::construction::{
+    PrimitiveConstructionProofSubstrateCloseoutReport,
+    PrimitiveConstructionQueryExistingTruthBindingReport,
+    PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
+};
+
+#[derive(Clone, Debug, PartialEq)]
+pub(crate) struct PrimitiveConstructionMilestoneFourKernelCloseoutAssembly {
+    pub(super) phase_five_six_closeout: PrimitiveConstructionPhaseFiveSixCloseoutReport,
+    pub(super) proof_substrate_closeout: PrimitiveConstructionProofSubstrateCloseoutReport,
+    pub(super) query_boundary_gap_register: PrimitiveConstructionQueryBoundaryGapRegister,
+    pub(super) query_no_local_runtime_workaround_audit:
+        PrimitiveConstructionQueryNoLocalRuntimeWorkaroundAudit,
+    pub(super) query_existing_truth_binding_report:
+        PrimitiveConstructionQueryExistingTruthBindingReport,
+    pub(super) query_graph_composition_parity_report:
+        PrimitiveConstructionQueryGraphCompositionParityReport,
+    pub(super) query_basis_preview_parity_report:
+        PrimitiveConstructionQueryBasisPreviewParityReport,
+    pub(super) motion_policy_report: PrimitiveConstructionMotionResolutionPolicyReport,
+    pub(super) motion_dx_surface_report: PrimitiveConstructionMotionDxSurfaceReport,
+    pub(super) intent_arbitration_policy_report: PrimitiveConstructionIntentArbitrationPolicyReport,
+    pub(super) intent_conflict_dx_surface_report:
+        PrimitiveConstructionIntentArbitrationDxSurfaceReport,
+    pub(super) representative_intent_bundle:
+        PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
+    pub(super) preview_surface_report: PrimitiveConstructionPreviewSurfaceReport,
+    pub(super) representative_preview_bundle: PrimitiveConstructionPreviewReportBundle,
+    pub(super) continuity_surface_report: PrimitiveConstructionContinuitySurfaceReport,
+    pub(super) representative_continuity_bundle: PrimitiveConstructionContinuityReportBundle,
+    pub(super) policy_profile_report: PrimitiveConstructionPolicyProfileSurfaceReport,
+    pub(super) representative_policy_profile_bundle: PrimitiveConstructionPolicyProfileReportBundle,
+    pub(super) realization_exhaustion_witness_report:
+        PrimitiveConstructionRealizationExhaustionWitnessReport,
+}
+
+impl PrimitiveConstructionMilestoneFourKernelCloseoutAssembly {
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new(
+        phase_five_six_closeout: PrimitiveConstructionPhaseFiveSixCloseoutReport,
+        proof_substrate_closeout: PrimitiveConstructionProofSubstrateCloseoutReport,
+        query_boundary_gap_register: PrimitiveConstructionQueryBoundaryGapRegister,
+        query_no_local_runtime_workaround_audit: PrimitiveConstructionQueryNoLocalRuntimeWorkaroundAudit,
+        query_existing_truth_binding_report: PrimitiveConstructionQueryExistingTruthBindingReport,
+        query_graph_composition_parity_report: PrimitiveConstructionQueryGraphCompositionParityReport,
+        query_basis_preview_parity_report: PrimitiveConstructionQueryBasisPreviewParityReport,
+        motion_policy_report: PrimitiveConstructionMotionResolutionPolicyReport,
+        motion_dx_surface_report: PrimitiveConstructionMotionDxSurfaceReport,
+        intent_arbitration_policy_report: PrimitiveConstructionIntentArbitrationPolicyReport,
+        intent_conflict_dx_surface_report: PrimitiveConstructionIntentArbitrationDxSurfaceReport,
+        representative_intent_bundle: PrimitiveConstructionVerifiedIntentArbitrationReportBundle,
+        preview_surface_report: PrimitiveConstructionPreviewSurfaceReport,
+        representative_preview_bundle: PrimitiveConstructionPreviewReportBundle,
+        continuity_surface_report: PrimitiveConstructionContinuitySurfaceReport,
+        representative_continuity_bundle: PrimitiveConstructionContinuityReportBundle,
+        policy_profile_report: PrimitiveConstructionPolicyProfileSurfaceReport,
+        representative_policy_profile_bundle: PrimitiveConstructionPolicyProfileReportBundle,
+        realization_exhaustion_witness_report: PrimitiveConstructionRealizationExhaustionWitnessReport,
+    ) -> Self {
+        Self {
+            phase_five_six_closeout,
+            proof_substrate_closeout,
+            query_boundary_gap_register,
+            query_no_local_runtime_workaround_audit,
+            query_existing_truth_binding_report,
+            query_graph_composition_parity_report,
+            query_basis_preview_parity_report,
+            motion_policy_report,
+            motion_dx_surface_report,
+            intent_arbitration_policy_report,
+            intent_conflict_dx_surface_report,
+            representative_intent_bundle,
+            preview_surface_report,
+            representative_preview_bundle,
+            continuity_surface_report,
+            representative_continuity_bundle,
+            policy_profile_report,
+            representative_policy_profile_bundle,
+            realization_exhaustion_witness_report,
+        }
+    }
+}

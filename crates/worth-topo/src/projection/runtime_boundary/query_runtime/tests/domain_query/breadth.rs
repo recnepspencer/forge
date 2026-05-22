@@ -22,7 +22,7 @@ fn relation_update_query_support_reports_domain_query_breadth_aggregate() {
     let mut workspace = topology_runtime(adapters, ".current-head.domain-query-breadth.runtime")
         .expect("workspace");
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&workspace, &assembly);
+    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let moved_identity =
         support.first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext);
 
@@ -81,7 +81,7 @@ fn relation_update_query_support_reports_topology_operator_radial_breadth_aggreg
     )
     .expect("workspace");
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-    let support = QueryRuntimeSupport::load(&workspace, &assembly);
+    let support = QueryRuntimeSupport::load(&mut workspace, &assembly);
     let source_identity =
         support.first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeRadialNext);
     let current_target_identity =

@@ -2,41 +2,37 @@ use forge_query::facade::ForgeQueryWorkspace;
 use schema::facade::DerivedTopologyReadBasis;
 use serde_json::Value;
 
+use super::snapshot_rows::TopologyQuerySnapshotRows;
 use super::{TopologyQueryAssembly, TopologyQuerySurfaceError};
-use crate::derived_topology::materialized_graph::TopologyMaterializer;
+use crate::derived_topology::materialized_graph::{
+    TopologyMaterializer, TopologyQueryMaterializationInput,
+};
 use crate::facade::{
     DerivedReadDiagnostics, DerivedTopologyValidationReport, InterpretedTopologyView,
 };
 use crate::projection::diagnostic_surfaces::build_derived_read_diagnostics;
 use crate::projection::{
-    interpreted_topology_from_materialized_rows, naming_attachment_report_from_query_rows,
-    validation_report_from_query_rows,
+    interpreted_topology_from_materialized_rows, naming_attachment_report_from_query_input,
+    validation_report_from_query_rows, TopologyNamingAttachmentInput,
 };
 
-#[derive(Debug, Clone)]
-pub(super) struct TopologyHistoricalDerivedRows {
-    pub naming_attachments: crate::facade::NamingAttachmentReport,
-    pub materialized_rows: Vec<Value>,
-    pub interpreted_rows: Vec<Value>,
-    pub validation_rows: Vec<Value>,
-    pub diagnostics_rows: Vec<Value>,
-    pub equivalence_rows: Vec<Value>,
-}
-
-pub(super) fn historical_derived_rows(
+pub(super) fn historical_snapshot_rows(
     assembly: &TopologyQueryAssembly,
     workspace: &mut ForgeQueryWorkspace,
     read_basis: &DerivedTopologyReadBasis,
-) -> Result<TopologyHistoricalDerivedRows, TopologyQuerySurfaceError> {
+) -> Result<TopologyQuerySnapshotRows, TopologyQuerySurfaceError> {
     let entity_rows = workspace.read(assembly.entities());
     let relation_rows = workspace.read(assembly.relations());
     let persistent_name_rows = workspace.read(assembly.persistent_names());
-    let naming_attachments =
-        naming_attachment_report_from_query_rows(&entity_rows, &persistent_name_rows)?;
+    let naming_attachments = naming_attachment_report_from_query_input(
+        TopologyNamingAttachmentInput::new(&entity_rows, &persistent_name_rows),
+    )?;
 
-    let materialized =
-        TopologyMaterializer::materialize_from_query_rows(&entity_rows, &relation_rows)
+    let materialized_input =
+        TopologyQueryMaterializationInput::decode(&entity_rows, &relation_rows)
             .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
+    let materialized = TopologyMaterializer::materialize_query_input(&materialized_input)
+        .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
     let materialized_rows = vec![encode_row(
         &materialized,
         "query-derived `materialized topology` row",
@@ -107,7 +103,7 @@ pub(super) fn historical_derived_rows(
         equivalence_rows
     };
 
-    Ok(TopologyHistoricalDerivedRows {
+    Ok(TopologyQuerySnapshotRows {
         naming_attachments,
         materialized_rows,
         interpreted_rows,

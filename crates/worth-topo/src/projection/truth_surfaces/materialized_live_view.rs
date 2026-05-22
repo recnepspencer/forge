@@ -10,7 +10,9 @@ use schema::facade::{
 };
 use serde_json::json;
 
-use crate::derived_topology::materialized_graph::TopologyMaterializer;
+use crate::derived_topology::materialized_graph::{
+    TopologyMaterializer, TopologyQueryMaterializationInput,
+};
 
 use super::QUERY_SURFACE_FAILURE_ROW_KEY;
 
@@ -67,12 +69,14 @@ impl ForgeQueryDerivedViewMaintainer for TopologyMaterializedMaintainer {
         let entity_rows = upstreams.live_rows(&self.entity_view_name).unwrap_or(&[]);
         let relation_rows = upstreams.live_rows(&self.relation_view_name).unwrap_or(&[]);
 
-        let payload =
-            match TopologyMaterializer::materialize_from_query_rows(entity_rows, relation_rows) {
+        let payload = match TopologyQueryMaterializationInput::decode(entity_rows, relation_rows) {
+            Ok(input) => match TopologyMaterializer::materialize_query_input(&input) {
                 Ok(materialized) => serde_json::to_value(materialized)
                     .expect("materialized topology view must serialize"),
                 Err(error) => json!({ QUERY_SURFACE_FAILURE_ROW_KEY: error.to_string() }),
-            };
+            },
+            Err(error) => json!({ QUERY_SURFACE_FAILURE_ROW_KEY: error.to_string() }),
+        };
         materialization.replace_rows([payload.clone()]);
         Some(ForgeQueryDerivedPatch::whole_refresh_materialized(
             view.name(),

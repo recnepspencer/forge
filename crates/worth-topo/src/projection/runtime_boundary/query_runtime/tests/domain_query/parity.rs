@@ -43,10 +43,13 @@ fn relation_update_query_support_reports_domain_query_proof_report_with_replay_p
         let mut workspace = topology_runtime(adapters, ".current-head.domain-query-parity.runtime")
             .expect("workspace");
         let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
-        (QueryRuntimeSupport::load(&workspace, &assembly), workspace)
+        (
+            QueryRuntimeSupport::load(&mut workspace, &assembly),
+            workspace,
+        )
     };
     let (mut snapshot_workspace, snapshot_assembly) = replay_workspace;
-    let replay_support = QueryRuntimeSupport::load(&snapshot_workspace, &snapshot_assembly);
+    let replay_support = QueryRuntimeSupport::load(&mut snapshot_workspace, &snapshot_assembly);
     let moved_identity = current_head_support.first_source_identity_for_relation_kind(
         schema::facade::TopologyRelationKind::HalfEdgeNext,
     );

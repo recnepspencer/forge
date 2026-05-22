@@ -50,7 +50,7 @@ fn domain_query_exposes_shared_vertex_and_radial_half_edge_neighborhoods() {
         MilestoneOnePrimitiveCase::NmtEdgeFan { face_count: 4 },
     );
     let domain_query = TopologyDomainQuery::load();
-    let lookup_rows = current_lookup_rows(&workspace, &assembly);
+    let lookup_rows = current_lookup_rows(&mut workspace, &assembly);
     let source_identity = lookup_rows
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeRadialNext)
@@ -164,7 +164,7 @@ fn domain_query_exposes_local_rewire_cycle_from_sheet_disk() {
         MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
     );
     let domain_query = TopologyDomainQuery::load();
-    let lookup_rows = current_lookup_rows(&workspace, &assembly);
+    let lookup_rows = current_lookup_rows(&mut workspace, &assembly);
     let moved_identity = lookup_rows
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)
@@ -226,7 +226,7 @@ fn domain_query_moves_loop_cycle_onto_query_runtime_without_decode_debt() {
         MilestoneOnePrimitiveCase::WireClosed { half_edge_count: 5 },
     );
     let domain_query = TopologyDomainQuery::load();
-    let lookup_rows = current_lookup_rows(&workspace, &assembly);
+    let lookup_rows = current_lookup_rows(&mut workspace, &assembly);
     let start_identity = lookup_rows
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)
@@ -283,7 +283,7 @@ fn snapshot_domain_query_uses_historical_basis_context_receipt() {
     let (mut workspace, assembly) =
         snapshot_basis_workspace(&runtime, &format!("{stem}.snapshot"), &verified.read_basis);
     let domain_query = TopologyDomainQuery::load();
-    let lookup_rows = current_lookup_rows(&workspace, &assembly);
+    let lookup_rows = current_lookup_rows(&mut workspace, &assembly);
     let start_identity = lookup_rows
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)
@@ -323,7 +323,7 @@ fn domain_query_denies_zero_and_oversized_cycle_depths_typed_and_early() {
         MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
     );
     let domain_query = TopologyDomainQuery::load();
-    let lookup_rows = current_lookup_rows(&workspace, &assembly);
+    let lookup_rows = current_lookup_rows(&mut workspace, &assembly);
     let moved_identity = lookup_rows
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)

@@ -1,9 +1,11 @@
 use forge_query::facade::{
-    ForgeQueryEntity, ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget,
+    ForgeQueryExistingEntityTarget, ForgeQueryExistingRelationTarget,
     ForgeQueryMutationBatchBuilder,
 };
 use forge_relational::facade::identity::{EntityId, RelationId};
 use schema::facade::{TopologyEntityKind, TopologyRelationKind};
+
+use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 
 use super::bindings::{query_entity_binding, query_relation_binding};
 use super::{TopologyEditContract, TopologyOperatorExecutionError, TopologyOperatorRunner};
@@ -12,12 +14,12 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
     pub(crate) fn lower_retire_topology_entity(
         &self,
         builder: ForgeQueryMutationBatchBuilder,
-        entity_rows: &[ForgeQueryEntity],
+        bindings: &TopologyQueryBindingIndex,
         entity_id: EntityId,
         expected_kind: TopologyEntityKind,
         contract: &TopologyEditContract,
     ) -> Result<ForgeQueryMutationBatchBuilder, TopologyOperatorExecutionError> {
-        let binding = query_entity_binding(entity_rows, entity_id)?
+        let binding = query_entity_binding(bindings, entity_id)?
             .ok_or(TopologyOperatorExecutionError::MissingExistingEntityBinding(entity_id))?;
         if binding.kind != expected_kind {
             return Err(TopologyOperatorExecutionError::ExistingEntityKindMismatch {
@@ -48,12 +50,12 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
     pub(super) fn lower_delete_existing_relation(
         &self,
         builder: ForgeQueryMutationBatchBuilder,
-        relation_rows: &[ForgeQueryEntity],
+        bindings: &TopologyQueryBindingIndex,
         relation_id: RelationId,
         expected_kind: TopologyRelationKind,
         contract: &TopologyEditContract,
     ) -> Result<ForgeQueryMutationBatchBuilder, TopologyOperatorExecutionError> {
-        let binding = query_relation_binding(relation_rows, relation_id)?
+        let binding = query_relation_binding(bindings, relation_id)?
             .ok_or(TopologyOperatorExecutionError::MissingExistingRelationBinding(relation_id))?;
         if binding.kind != expected_kind {
             return Err(

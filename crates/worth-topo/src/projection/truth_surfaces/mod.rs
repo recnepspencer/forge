@@ -12,6 +12,6 @@ pub use materialized_live_view::{
     TopologyMaterializedMaintainer,
 };
 pub use persistent_naming::{
-    declare_persistent_name_live_view, naming_attachment_report_from_query_rows,
-    persistent_name_live_view_declaration,
+    declare_persistent_name_live_view, naming_attachment_report_from_query_input,
+    persistent_name_live_view_declaration, TopologyNamingAttachmentInput,
 };

@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/domain_capabilities/boundaries/runtime_targets/domain_capability_explanation_artifact_requires_lower_runtime_target.rs:47:58
+   |
+47 |     let _ = materialize_query_causal_inspection_artifact(ready);
+   |             -------------------------------------------- ^^^^^ expected `ForgeQueryLowerRuntimeBoundaryBoundContributionTarget`, found `ForgeQueryAdmittedPlanBoundContributionTarget`
+   |             |
+   |             arguments to this function are incorrect
+   |
+   = note: expected struct `ForgeQueryMaterializationReadyDomainCapabilityContribution<ForgeQueryExplanationContributionPayload, ForgeQueryLowerRuntimeBoundaryBoundContributionTarget>`
+              found struct `ForgeQueryMaterializationReadyDomainCapabilityContribution<ForgeQueryExplanationContributionPayload, ForgeQueryAdmittedPlanBoundContributionTarget>`
+note: function defined here
+  --> src/domain_capabilities/canonical_runtime/explanation.rs
+   |
+   | pub fn materialize_query_causal_inspection_artifact(
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

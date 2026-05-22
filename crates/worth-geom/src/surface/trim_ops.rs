@@ -5,6 +5,9 @@
 //! eligibility path uses these to determine whether two adjacent faces
 //! on the same support surface have compatible trim boundaries.
 
+use crate::primitives::parameter_space::ParameterSpacePoint;
+use worth_math::UnitVector2;
+
 /// Result of a trim curve overlap check in UV space.
 #[derive(Debug, Clone, PartialEq)]
 pub enum TrimOverlapResult {
@@ -28,10 +31,10 @@ pub enum TrimOverlapResult {
 /// Implementation will be added when curved merge execution is built.
 pub trait TrimCurveOps {
     /// UV-space endpoints of this trim curve.
-    fn uv_endpoints(&self) -> ([f64; 2], [f64; 2]);
+    fn uv_endpoints(&self) -> (ParameterSpacePoint, ParameterSpacePoint);
 
     /// Unit direction vector in UV space at the start of the trim.
-    fn uv_direction(&self) -> [f64; 2];
+    fn uv_direction(&self) -> UnitVector2;
 
     /// Check whether this trim curve overlaps another in UV space.
     ///

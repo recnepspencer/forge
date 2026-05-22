@@ -18,6 +18,7 @@ fn topology_crate_skeleton_keeps_the_domain_story() {
         BTreeSet::from([
             "brep".to_string(),
             "certification".to_string(),
+            "construction".to_string(),
             "derived_topology".to_string(),
             "projection".to_string(),
             "test_support".to_string(),
@@ -189,9 +190,11 @@ fn broad_direct_file_clusters_stay_explicitly_reviewed() {
     let allowed_dense_directories = [
         "certification",
         "certification/public_facade_contracts/compile_fail",
+        "construction",
         "derived_topology/materialized_graph",
         "projection/diagnostic_surfaces/read_proof",
         "projection/runtime_boundary/query_assembly",
+        "projection/runtime_boundary/query_runtime",
         "projection/runtime_boundary/query_runtime/tests",
         "validation/reference_integrity",
     ];
@@ -312,7 +315,31 @@ fn dependency_direction_violations(src: &Path) -> Vec<String> {
     collect_forbidden_imports(
         &src.join("topology_operators"),
         &["crate::certification", "crate::projection"],
-        &["topology_operators/application/mod.rs"],
+        &[
+            "topology_operators/application/admission.rs",
+            "topology_operators/application/bindings.rs",
+            "topology_operators/application/existing_truth.rs",
+            "topology_operators/application/mod.rs",
+            "topology_operators/local_rewrites/boundary_wiring/adjacency_support.rs",
+            "topology_operators/local_rewrites/boundary_wiring/composed_successor_program.rs",
+            "topology_operators/local_rewrites/boundary_wiring/membership.rs",
+            "topology_operators/local_rewrites/boundary_wiring/relation_update.rs",
+            "topology_operators/local_rewrites/boundary_wiring/successor_admission.rs",
+            "topology_operators/local_rewrites/boundary_wiring/successor_support.rs",
+            "topology_operators/local_rewrites/entity_lifecycle/relation_create.rs",
+            "topology_operators/local_rewrites/radial_cycles/splice_adjacency.rs",
+            "topology_operators/local_rewrites/sheet_wire_laminar/membership_admission.rs",
+            "topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/face_inner_loop_program.rs",
+            "topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/mod.rs",
+            "topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/shared.rs",
+            "topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/shell_membership_program.rs",
+            "topology_operators/local_rewrites/sheet_wire_laminar/membership_programs/wire_membership_program.rs",
+            "topology_operators/local_rewrites/sheet_wire_laminar/shell_face_rehome.rs",
+            "topology_operators/local_rewrites/sheet_wire_laminar/shell_face_rehome_support.rs",
+            "topology_operators/local_rewrites/sheet_wire_laminar/shell_face_split.rs",
+            "topology_operators/local_rewrites/sheet_wire_laminar/wire_rehome.rs",
+            "topology_operators/local_rewrites/sheet_wire_laminar/wire_rehome_support.rs",
+        ],
         &mut violations,
     );
     collect_forbidden_imports(

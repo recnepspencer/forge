@@ -24,6 +24,7 @@ mod correspondence_history;
 mod correspondence_history_parity;
 mod declarative_live;
 mod diagnostics;
+mod domain_capabilities;
 mod effect_lifecycle;
 mod execution;
 pub mod facade;

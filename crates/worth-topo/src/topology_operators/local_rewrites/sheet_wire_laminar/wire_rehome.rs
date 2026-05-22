@@ -1,12 +1,13 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use forge_query::facade::{
-    ForgeQueryEntity, ForgeQueryExistingRelationTarget, ForgeQueryMutationBatchBuilder,
+    ForgeQueryExistingRelationTarget, ForgeQueryMutationBatchBuilder,
     ForgeQuerySymbolicTargetReference,
 };
 use schema::facade::TopologyEntityKind;
 
 use super::wire_rehome_support::{parse_wire_rehome_program, resolve_wire_split_program};
+use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::bindings::{
     query_entity_binding, query_outgoing_relation_ids,
 };
@@ -19,8 +20,7 @@ use crate::topology_operators::TopologyEditContract;
 impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
     pub(super) fn lower_rehome_owned_half_edge_set_to_new_wire_program(
         &self,
-        entity_rows: &[ForgeQueryEntity],
-        relation_rows: &[ForgeQueryEntity],
+        bindings: &TopologyQueryBindingIndex,
         contracts: &[TopologyEditContract],
     ) -> Result<ForgeQueryMutationBatchBuilder, TopologyOperatorExecutionError> {
         let Some(program) = parse_wire_rehome_program(contracts) else {
@@ -28,14 +28,11 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 crate::topology_operators::TopologyEditFamily::AttachShellOrWireMembership,
             ]));
         };
-        let retired_wire_binding = query_entity_binding(entity_rows, program.retired_wire_id)?
-            .ok_or(
-                TopologyOperatorExecutionError::MissingExistingEntityBinding(
-                    program.retired_wire_id,
-                ),
-            )?;
+        let retired_wire_binding = query_entity_binding(bindings, program.retired_wire_id)?.ok_or(
+            TopologyOperatorExecutionError::MissingExistingEntityBinding(program.retired_wire_id),
+        )?;
         let outgoing_relation_ids = query_outgoing_relation_ids(
-            relation_rows,
+            bindings,
             &retired_wire_binding.query_identity,
             schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
         )?;
@@ -52,7 +49,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         let mut half_edge_bindings = Vec::with_capacity(program.half_edge_ids.len());
         let mut expected_half_edge_identities = BTreeSet::new();
         for half_edge_id in &program.half_edge_ids {
-            let half_edge_binding = query_entity_binding(entity_rows, *half_edge_id)?.ok_or(
+            let half_edge_binding = query_entity_binding(bindings, *half_edge_id)?.ok_or(
                 TopologyOperatorExecutionError::MissingExistingEntityBinding(*half_edge_id),
             )?;
             if half_edge_binding.kind != TopologyEntityKind::HalfEdge {
@@ -69,7 +66,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         for relation_id in outgoing_relation_ids {
             let relation_binding =
                 crate::topology_operators::application::bindings::query_relation_binding(
-                    relation_rows,
+                    bindings,
                     relation_id,
                 )?
                 .ok_or(
@@ -184,7 +181,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         }
         self.lower_retire_topology_entity(
             builder,
-            entity_rows,
+            bindings,
             program.retired_wire_id,
             TopologyEntityKind::Wire,
             contracts
@@ -195,12 +192,10 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
 
     pub(super) fn lower_split_connected_half_edge_set_to_new_wire_program(
         &self,
-        entity_rows: &[ForgeQueryEntity],
-        relation_rows: &[ForgeQueryEntity],
+        bindings: &TopologyQueryBindingIndex,
         contracts: &[TopologyEditContract],
     ) -> Result<ForgeQueryMutationBatchBuilder, TopologyOperatorExecutionError> {
-        let Some(program) = resolve_wire_split_program(entity_rows, relation_rows, contracts)
-        else {
+        let Some(program) = resolve_wire_split_program(bindings, contracts) else {
             return Err(TopologyOperatorExecutionError::UnsupportedFamilies(vec![
                 crate::topology_operators::TopologyEditFamily::AttachShellOrWireMembership,
             ]));
@@ -208,18 +203,18 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         let retained_wire_id = program
             .retained_wire_id
             .expect("resolved wire split program always sets retained wire id");
-        let retained_wire_binding = query_entity_binding(entity_rows, retained_wire_id)?.ok_or(
+        let retained_wire_binding = query_entity_binding(bindings, retained_wire_id)?.ok_or(
             TopologyOperatorExecutionError::MissingExistingEntityBinding(retained_wire_id),
         )?;
         let outgoing_relation_ids = query_outgoing_relation_ids(
-            relation_rows,
+            bindings,
             &retained_wire_binding.query_identity,
             schema::facade::TopologyRelationKind::WireOwnsHalfEdge,
         )?;
         let mut half_edge_bindings = Vec::with_capacity(program.half_edge_ids.len());
         let mut moved_half_edge_identities = BTreeSet::new();
         for half_edge_id in &program.half_edge_ids {
-            let half_edge_binding = query_entity_binding(entity_rows, *half_edge_id)?.ok_or(
+            let half_edge_binding = query_entity_binding(bindings, *half_edge_id)?.ok_or(
                 TopologyOperatorExecutionError::MissingExistingEntityBinding(*half_edge_id),
             )?;
             if half_edge_binding.kind != TopologyEntityKind::HalfEdge {
@@ -236,7 +231,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         for relation_id in outgoing_relation_ids {
             let relation_binding =
                 crate::topology_operators::application::bindings::query_relation_binding(
-                    relation_rows,
+                    bindings,
                     relation_id,
                 )?
                 .ok_or(

@@ -17,7 +17,7 @@ pub(super) fn local_rewire_parity_artifact(
     read_basis: &DerivedTopologyReadBasis,
 ) -> TopologyDomainQueryViewParityArtifact {
     let (mut workspace, assembly) = snapshot_basis_workspace(runtime, stem, read_basis);
-    let lookup_rows = current_lookup_rows(&workspace, &assembly);
+    let lookup_rows = current_lookup_rows(&mut workspace, &assembly);
     let moved_identity = lookup_rows
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)
@@ -39,7 +39,7 @@ pub(super) fn loop_cycle_parity_artifact(
     depth: usize,
 ) -> TopologyDomainQueryViewParityArtifact {
     let (mut workspace, assembly) = snapshot_basis_workspace(runtime, stem, read_basis);
-    let lookup_rows = current_lookup_rows(&workspace, &assembly);
+    let lookup_rows = current_lookup_rows(&mut workspace, &assembly);
     let start_identity = lookup_rows
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeNext)
@@ -60,7 +60,7 @@ pub(super) fn radial_parity_artifact(
     read_basis: &DerivedTopologyReadBasis,
 ) -> TopologyDomainQueryViewParityArtifact {
     let (mut workspace, assembly) = snapshot_basis_workspace(runtime, stem, read_basis);
-    let lookup_rows = current_lookup_rows(&workspace, &assembly);
+    let lookup_rows = current_lookup_rows(&mut workspace, &assembly);
     let source_identity = lookup_rows
         .lookup()
         .first_source_identity_for_relation_kind(TopologyRelationKind::HalfEdgeRadialNext)

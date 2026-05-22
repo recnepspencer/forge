@@ -833,6 +833,9 @@ rebuilding neighborhood logic as caller-owned row joins.
 
 ## Milestone 4: Topology-Certified Primitive Construction
 
+Engineering spec:
+- [milestone-4.md](/Users/Esther/Documents/Programming/forge_workspace/forge/_docs/worth/milestone-4.md)
+
 ### Goal
 
 Prove that Worth can construct the primitive and body classes enabled by the
@@ -917,6 +920,11 @@ workflow classes such as:
 - name primitive construction and certification contracts
 - expose exact counters for construction breadth, assembly breadth, and
   certification breadth
+- freeze one canonical proof substrate before the milestone documentation pass:
+  - canonical proof truth per family
+  - named projections of that truth
+  - typed verification results and verified artifacts
+  - one stable, versioned, domain-separated digest protocol for proof identity
 
 ### Allowed Debt
 
@@ -934,6 +942,20 @@ the topology substrate honestly, and fail cleanly outside the admitted class.
 This belongs before spatial binding, planar boolean contracts, and all boolean
 pipelines because booleans need a real construction substrate, not only seeded
 fixtures.
+
+Milestone 4 also needs a late hardening tail before its documentation phase
+closes. That tail now has two distinct jobs:
+
+- `Phase 5.7` freezes the kernel proof substrate so later milestones inherit
+  canonical truth, verified-artifact boundaries, and stable digest identity
+- `Phase 5.8` through `Phase 5.11` freeze the matching `worth-spatial`
+  substrate so later binding, planar, boolean, and audit milestones do not
+  inherit stringly identity, ad hoc digests, informal phase progression, or a
+  development-wide facade
+
+That hardening still belongs in Milestone 4 because later binding, planar,
+boolean, and audit milestones will inherit both the kernel proof model and the
+spatial authority model directly.
 
 ## Milestone 5: Spatial Binding And Topology-To-Geometry Contracts
 
@@ -957,6 +979,9 @@ spatial/binding truth, and later kernel orchestration.
   - curve bindings
   - coedge bindings
   - vertex geometry bindings
+- robust carrier-local parameter-space anchor truth for admitted curve and
+  surface bindings, replacing the typed unsupported placeholder intentionally
+  left by Milestone 4 Phase 5.5.6
 - diagnostics for rebinding and continuity decisions
 
 This milestone belongs primarily to `worth-spatial`. It exists specifically so

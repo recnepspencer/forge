@@ -1,0 +1,5 @@
+error[E0432]: unresolved import `worth_kernel::facade::PrimitiveConstructionIntentArbitrationReportBundle`
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_intent_arbitration_report_bundle_constructor_not_exported.rs:1:5
+  |
+1 | use worth_kernel::facade::PrimitiveConstructionIntentArbitrationReportBundle;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionIntentArbitrationReportBundle` in `facade`

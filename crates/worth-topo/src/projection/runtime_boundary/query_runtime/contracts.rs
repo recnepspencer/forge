@@ -1,6 +1,7 @@
 use forge_query::facade::{
-    ForgeQueryRuntimeError, ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport,
-    ForgeQueryRuntimeSupportProfile,
+    ForgeQueryAuthorityLane, ForgeQueryEffectPolicy, ForgeQueryRuntimeError,
+    ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport,
+    ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeSupportProfile, ForgeQueryWorkspace,
 };
 use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
 use forge_relational::facade::snapshots::SnapshotHandle;
@@ -27,6 +28,7 @@ use super::runtime_posture::{
 
 pub(crate) const TOPOLOGY_SNAPSHOT_HISTORICAL_BASIS_EVIDENCE: &str =
     "topology-snapshot-historical-basis";
+const TOPOLOGY_CURRENT_HEAD_PREVIEW_BASIS_EVIDENCE: &str = "topology-current-head-preview-basis";
 
 #[derive(Debug)]
 pub struct TopologyRuntimeAdapters {
@@ -176,15 +178,44 @@ impl TopologyRuntimeSupport {
         }
     }
 
-    pub(super) fn preview_basis_denial_reason(&self) -> &'static str {
+    pub(super) fn preview_basis_adapter(&self) -> super::adapters::TopologyPreviewBasis {
+        if self.supports_posture(TopologyRuntimePostureCapability::BranchPreviewBasis) {
+            return super::adapters::TopologyPreviewBasis::supported(
+                TOPOLOGY_CURRENT_HEAD_PREVIEW_BASIS_EVIDENCE,
+            );
+        }
+        super::adapters::TopologyPreviewBasis::denied(self.preview_basis_denial_reason())
+    }
+
+    fn preview_basis_denial_reason(&self) -> &'static str {
         if self.supports_posture(TopologyRuntimePostureCapability::HistoricalBasis) {
             "topology snapshot runtime is bound to one historical basis and does not admit preview or branch-local sessions"
         } else {
-            "topology production runtime current-head slice does not admit historical or preview bases yet"
+            "topology production runtime does not admit preview or branch-local basis selection"
         }
     }
 
     fn branch_preview_support_row(&self) -> ForgeQueryRuntimeFamilySupport {
+        if self.supports_posture(TopologyRuntimePostureCapability::BranchPreviewBasis) {
+            return ForgeQueryRuntimeFamilySupport::supported(
+                ForgeQueryRuntimeFacadeFamily::BranchPreview,
+                [
+                    ForgeQueryAuthorityLane::PreviewTruth,
+                    ForgeQueryAuthorityLane::BranchLocalTruth,
+                ],
+                [
+                    ForgeQueryEffectPolicy::DeriveOnly,
+                    ForgeQueryEffectPolicy::Muted,
+                    ForgeQueryEffectPolicy::Redirected,
+                    ForgeQueryEffectPolicy::SandboxedWriteIntent,
+                    ForgeQueryEffectPolicy::AuthoritativeAllowed,
+                ],
+                [
+                    "preview-session-admission",
+                    TOPOLOGY_CURRENT_HEAD_PREVIEW_BASIS_EVIDENCE,
+                ],
+            );
+        }
         if self.supports_posture(TopologyRuntimePostureCapability::HistoricalBasis) {
             return ForgeQueryRuntimeFamilySupport::unsupported_with_evidence(
                 ForgeQueryRuntimeFacadeFamily::BranchPreview,
@@ -208,11 +239,28 @@ impl TopologyRuntimeSupport {
         } else {
             (
                 "topology-current-head-subscription-activation",
-                "topology-current-head-preview-denial",
+                TOPOLOGY_CURRENT_HEAD_PREVIEW_BASIS_EVIDENCE,
                 "topology-current-head-inspector-evidence",
             )
         }
     }
+}
+
+pub(crate) fn workspace_requires_historical_basis_context(workspace: &ForgeQueryWorkspace) -> bool {
+    // `workspace.admit_public_api_family(...)` currently reports both ordinary
+    // preview denial and snapshot historical-basis denial as the same
+    // unsupported-family error. The public family contract is the narrowest
+    // workspace-owned surface that still preserves the distinguishing evidence.
+    workspace
+        .public_api_contract()
+        .family(ForgeQueryRuntimeFacadeFamily::BranchPreview)
+        .is_some_and(|contract| {
+            contract.status() == ForgeQueryRuntimeFamilySupportStatus::Unsupported
+                && contract
+                    .evidence()
+                    .iter()
+                    .any(|evidence| evidence == TOPOLOGY_SNAPSHOT_HISTORICAL_BASIS_EVIDENCE)
+        })
 }
 
 #[derive(Debug)]

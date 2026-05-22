@@ -13,10 +13,9 @@ pub use derived_surfaces::{
 };
 pub use diagnostic_surfaces::query_diagnostics::{
     declare_topology_diagnostics_surface, declare_topology_equivalence_contract_surface,
-    derived_read_diagnostics_from_query_rows, equivalence_contract_from_diagnostics_rows,
-    topology_diagnostics_computed_declaration, topology_equivalence_contract_computed_declaration,
-    TopologyDiagnosticsMaintainer, TopologyEquivalenceContractMaintainer,
-    TopologyQueryMutationEvidence,
+    equivalence_contract_from_diagnostics_rows, topology_diagnostics_computed_declaration,
+    topology_equivalence_contract_computed_declaration, TopologyDiagnosticsMaintainer,
+    TopologyEquivalenceContractMaintainer, TopologyQueryMutationEvidence,
 };
 pub(crate) use read_views::domain::parity::{
     build_domain_query_view_parity_artifact, TopologyDomainQueryViewParityArtifact,
@@ -48,7 +47,8 @@ pub(crate) use runtime_boundary::query_support::{
 pub use truth_surfaces::{
     declare_persistent_name_live_view, declare_topology_entity_live_view,
     declare_topology_materialized_surface, declare_topology_relation_live_view,
-    naming_attachment_report_from_query_rows, persistent_name_live_view_declaration,
+    naming_attachment_report_from_query_input, persistent_name_live_view_declaration,
     topology_entity_live_view_declaration, topology_materialized_computed_declaration,
     topology_relation_live_view_declaration, TopologyMaterializedMaintainer,
+    TopologyNamingAttachmentInput,
 };

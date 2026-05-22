@@ -80,6 +80,18 @@ impl LocalCoordinateSpace {
         Self { origin, scale }
     }
 
+    /// Compute a local frame from an explicit semantic origin and extent.
+    ///
+    /// This is used when the semantic primitive intent is trustworthy even if a
+    /// sampled world-space point set is too ill-conditioned to drive the frame.
+    pub fn from_origin_and_extent(origin: [f64; 3], extent: f64) -> Self {
+        let clamped_extent = extent.abs().max(f64::MIN_POSITIVE);
+        let scale_log2 = clamped_extent.log2().ceil();
+        let safe_extent = scale_log2.exp2();
+        let scale = 1.0 / safe_extent;
+        Self { origin, scale }
+    }
+
     /// Compute a local frame from a set of planes.
     ///
     /// Uses the plane offsets and normals to estimate a representative

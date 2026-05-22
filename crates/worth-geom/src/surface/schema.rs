@@ -70,7 +70,7 @@ pub enum SurfaceKind {
 /// - Cylinder: `u ∈ [0, 2π)` (periodic), `v ∈ (-∞, ∞)`.
 /// - Sphere: `u ∈ [0, 2π)` (periodic), `v ∈ [-π/2, π/2]`.
 /// - Torus: both periodic `[0, 2π)`.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ParameterDomain {
     /// Minimum of the u parameter.
     pub u_min: f64,

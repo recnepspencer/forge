@@ -20,6 +20,32 @@ use crate::projection::{parse_entity_identity, required_text};
 
 use super::TopologyQuerySurfaceError;
 
+#[derive(Debug, Clone, Copy)]
+pub struct TopologyNamingAttachmentInput<'a> {
+    entity_rows: &'a [ForgeQueryEntity],
+    persistent_name_rows: &'a [ForgeQueryEntity],
+}
+
+impl<'a> TopologyNamingAttachmentInput<'a> {
+    pub fn new(
+        entity_rows: &'a [ForgeQueryEntity],
+        persistent_name_rows: &'a [ForgeQueryEntity],
+    ) -> Self {
+        Self {
+            entity_rows,
+            persistent_name_rows,
+        }
+    }
+
+    fn entity_rows(&self) -> &'a [ForgeQueryEntity] {
+        self.entity_rows
+    }
+
+    fn persistent_name_rows(&self) -> &'a [ForgeQueryEntity] {
+        self.persistent_name_rows
+    }
+}
+
 pub fn persistent_name_live_view_declaration(
     surface_name: impl Into<String>,
 ) -> Result<ForgeQueryWorkspaceLiveViewDeclaration, QueryDeclarationError> {
@@ -52,9 +78,8 @@ pub fn declare_persistent_name_live_view<T>(
     workspace.live_view_request(surface_name, request, schema_view)
 }
 
-pub fn naming_attachment_report_from_query_rows(
-    entity_rows: &[ForgeQueryEntity],
-    persistent_name_rows: &[ForgeQueryEntity],
+pub fn naming_attachment_report_from_query_input(
+    input: TopologyNamingAttachmentInput<'_>,
 ) -> Result<NamingAttachmentReport, TopologyQuerySurfaceError> {
     let topology_kind_names: BTreeSet<_> = TopologyEntityKind::WRAPPED_ALL
         .into_iter()
@@ -63,7 +88,7 @@ pub fn naming_attachment_report_from_query_rows(
 
     let mut topology_entities = Vec::new();
     let mut topology_identities = BTreeMap::new();
-    for row in entity_rows {
+    for row in input.entity_rows() {
         let entity_id = parse_entity_identity(&row.identity)
             .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
         let kind_name = required_text(&row.payload, "topology.kind")
@@ -84,7 +109,7 @@ pub fn naming_attachment_report_from_query_rows(
     let mut attachments = BTreeMap::<_, Vec<_>>::new();
     let persistent_name_kind = EntityKind::Naming(NamingEntityKind::PersistentName);
     let mut orphan_persistent_name_ids = Vec::new();
-    for row in persistent_name_rows {
+    for row in input.persistent_name_rows() {
         let persistent_name_id = parse_entity_identity(&row.identity)
             .map_err(|error| TopologyQuerySurfaceError::new(error.to_string()))?;
         let kind_name = required_text(&row.payload, "topology.kind")
@@ -191,8 +216,11 @@ mod tests {
             }),
         }];
 
-        let error = naming_attachment_report_from_query_rows(&entity_rows, &persistent_name_rows)
-            .expect_err("unknown query target identities must fail closed");
+        let error = naming_attachment_report_from_query_input(TopologyNamingAttachmentInput::new(
+            &entity_rows,
+            &persistent_name_rows,
+        ))
+        .expect_err("unknown query target identities must fail closed");
 
         assert!(error
             .to_string()

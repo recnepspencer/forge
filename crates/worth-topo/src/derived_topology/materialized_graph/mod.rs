@@ -2,6 +2,7 @@ mod entity_catalog;
 mod entity_labels;
 mod errors;
 mod input_rows;
+mod query_input;
 pub(crate) mod query_input_decode;
 mod relation_wiring;
 mod relation_wiring_support;
@@ -13,6 +14,7 @@ mod view_builder;
 mod tests;
 
 pub use errors::TopologyMaterializationError;
+pub(crate) use query_input::TopologyQueryMaterializationInput;
 pub use types::{
     MaterializationBreadthReport, MaterializationFallbackClass, MaterializationReport,
     MaterializedTopologyView,
@@ -28,7 +30,6 @@ use crate::derived_topology::materialized_graph::relation_wiring::{
 use crate::derived_topology::materialized_graph::view_builder::{
     has_topology_content, push_entity_row,
 };
-use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::runtime::RelationalReadView;
 
 #[derive(Debug, Default, Clone, Copy)]
@@ -56,23 +57,14 @@ impl TopologyMaterializer {
         )
     }
 
-    pub(crate) fn materialize_from_query_rows(
-        entity_rows: &[ForgeQueryEntity],
-        relation_rows: &[ForgeQueryEntity],
+    pub(crate) fn materialize_query_input(
+        input: &TopologyQueryMaterializationInput,
     ) -> Result<MaterializedTopologyView, TopologyMaterializationError> {
-        let entities = entity_rows
-            .iter()
-            .map(MaterializationEntityRow::from_query_row)
-            .collect::<Result<Vec<_>, _>>()?;
-        let relations = relation_rows
-            .iter()
-            .map(MaterializationRelationRow::from_query_row)
-            .collect::<Result<Vec<_>, _>>()?;
         Self::materialize_from_rows(
-            &entities,
-            &relations,
-            entity_rows.len(),
-            relation_rows.len(),
+            input.entities(),
+            input.relations(),
+            input.entity_count(),
+            input.relation_count(),
         )
     }
 

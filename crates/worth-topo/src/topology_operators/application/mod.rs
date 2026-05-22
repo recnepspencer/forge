@@ -1,5 +1,7 @@
 mod admission;
 pub(crate) mod bindings;
+#[cfg(test)]
+mod boundary_tests;
 mod dependency_paths;
 mod error;
 mod existing_truth;
@@ -7,13 +9,16 @@ mod existing_truth;
 use std::collections::BTreeMap;
 
 use forge_query::facade::{
-    ForgeQueryBatchWriteReceipt, ForgeQueryBatchWriteReceiptInspection, ForgeQueryEntity,
-    ForgeQueryInspection, ForgeQueryMutationBatchBuilder, ForgeQueryWorkspace,
+    ForgeQueryBatchWriteReceipt, ForgeQueryBatchWriteReceiptInspection, ForgeQueryInspection,
+    ForgeQueryMutationBatchBuilder, ForgeQueryWorkspace,
 };
 use schema::facade::{TopologyEntityKind, TopologyRelationKind};
 
 use crate::derived_topology::materialized_graph::MaterializedTopologyView;
 use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
+use crate::projection::runtime_boundary::query_runtime::{
+    load_post_write_materialized_topology, TopologyQueryBindingIndex, TopologyRuntimeSupport,
+};
 
 use super::contracts::{
     TopologyEditAction, TopologyEditContract, TopologyEditFamily, TopologyEditNamingReport,
@@ -71,15 +76,17 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         let naming_report = batch.naming_report();
         let families = batch.families();
         let contracts = batch.contracts();
+        let support = TopologyRuntimeSupport::current_head_authoritative();
         let entity_rows = self.workspace.read(self.assembly.entities());
         let relation_rows = self.workspace.read(self.assembly.relations());
-        let unsupported = unsupported_families(&entity_rows, &relation_rows, &families, contracts);
+        let bindings = TopologyQueryBindingIndex::from_query_rows(&entity_rows, &relation_rows)?;
+        let unsupported = unsupported_families(&support, &bindings, &families, contracts);
         if !unsupported.is_empty() {
             return Err(TopologyOperatorExecutionError::UnsupportedFamilies(
                 unsupported,
             ));
         }
-        if supports_composed_loop_successor_program(&entity_rows, &relation_rows, contracts) {
+        if supports_composed_loop_successor_program(&bindings, contracts) {
             return self.apply_composed_loop_successor_program(
                 mode,
                 families,
@@ -87,11 +94,10 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 naming_continuity_matrix,
                 naming_report,
                 contracts,
-                &entity_rows,
-                &relation_rows,
+                &bindings,
             );
         }
-        if supports_composed_membership_program(&entity_rows, &relation_rows, contracts) {
+        if supports_composed_membership_program(&bindings, contracts) {
             return self.apply_composed_membership_program(
                 mode,
                 families,
@@ -99,32 +105,18 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 naming_continuity_matrix,
                 naming_report,
                 contracts,
-                &entity_rows,
-                &relation_rows,
+                &bindings,
             );
         }
         let created_entity_kinds = planned_created_entity_kinds(contracts);
-        let lowered_batch = if supports_admitted_shell_or_wire_create_program(
-            &entity_rows,
-            &relation_rows,
-            contracts,
-        ) {
-            self.lower_admitted_shell_or_wire_create_program(
-                &entity_rows,
-                &relation_rows,
-                contracts,
-            )?
+        let lowered_batch = if supports_admitted_shell_or_wire_create_program(&bindings, contracts)
+        {
+            self.lower_admitted_shell_or_wire_create_program(&bindings, contracts)?
         } else {
             contracts.iter().try_fold(
                 ForgeQueryMutationBatchBuilder::new(),
                 |builder, contract| {
-                    self.lower_contract(
-                        builder,
-                        &entity_rows,
-                        &relation_rows,
-                        &created_entity_kinds,
-                        contract,
-                    )
+                    self.lower_contract(builder, &bindings, &created_entity_kinds, contract)
                 },
             )?
         };
@@ -134,13 +126,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             ForgeQueryInspection::BatchWriteReceipt(inspection) => inspection,
             _ => return Err(TopologyOperatorExecutionError::UnexpectedInspectionFamily),
         };
-        let materialized_rows = self.workspace.materialize(self.assembly.materialized());
-        let materialized: MaterializedTopologyView =
-            serde_json::from_value(materialized_rows[0].clone()).map_err(|error| {
-                TopologyOperatorExecutionError::MaterializedDecode(format!(
-                    "query-derived `materialized topology` row failed to decode: {error}"
-                ))
-            })?;
+        let materialized = load_post_write_materialized_topology(self.workspace, self.assembly)?;
         Ok(TopologyOperatorExecution {
             mode,
             families,
@@ -156,8 +142,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
     fn lower_contract(
         &self,
         builder: ForgeQueryMutationBatchBuilder,
-        entity_rows: &[ForgeQueryEntity],
-        relation_rows: &[ForgeQueryEntity],
+        bindings: &TopologyQueryBindingIndex,
         created_entity_kinds: &BTreeMap<String, TopologyEntityKind>,
         contract: &TopologyEditContract,
     ) -> Result<ForgeQueryMutationBatchBuilder, TopologyOperatorExecutionError> {
@@ -169,7 +154,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 ..
             } => self.lower_attach_boundary_membership(
                 builder,
-                entity_rows,
+                bindings,
                 created_entity_kinds,
                 *kind,
                 owner,
@@ -182,7 +167,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 ..
             } => self.lower_attach_shell_or_wire_membership(
                 builder,
-                entity_rows,
+                bindings,
                 created_entity_kinds,
                 *kind,
                 owner,
@@ -202,7 +187,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 relation_id, kind, ..
             } => self.lower_delete_existing_relation(
                 builder,
-                relation_rows,
+                bindings,
                 *relation_id,
                 kind.relation_kind(),
                 contract,
@@ -210,7 +195,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             TopologyEditAction::DetachRadialAdjacency { relation_id } => self
                 .lower_delete_existing_relation(
                     builder,
-                    relation_rows,
+                    bindings,
                     *relation_id,
                     TopologyRelationKind::HalfEdgeRadialNext,
                     contract,
@@ -219,7 +204,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 relation_id, kind, ..
             } => self.lower_delete_existing_relation(
                 builder,
-                relation_rows,
+                bindings,
                 *relation_id,
                 kind.relation_kind(),
                 contract,
@@ -231,8 +216,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 vertex_id,
             } => self.lower_rewire_loop_endpoint(
                 builder,
-                entity_rows,
-                relation_rows,
+                bindings,
                 *relation_id,
                 *endpoint,
                 *half_edge_id,
@@ -245,8 +229,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 successor_half_edge_id,
             } => self.lower_rewire_loop_successor(
                 builder,
-                entity_rows,
-                relation_rows,
+                bindings,
                 *relation_id,
                 *kind,
                 *half_edge_id,
@@ -258,17 +241,14 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 radial_next_half_edge_id,
             } => self.lower_splice_radial_adjacency(
                 builder,
-                entity_rows,
-                relation_rows,
+                bindings,
                 *relation_id,
                 *half_edge_id,
                 *radial_next_half_edge_id,
             ),
             TopologyEditAction::RetireTopologyEntity {
                 entity_id, kind, ..
-            } => {
-                self.lower_retire_topology_entity(builder, entity_rows, *entity_id, *kind, contract)
-            }
+            } => self.lower_retire_topology_entity(builder, bindings, *entity_id, *kind, contract),
         }
     }
 }

@@ -13,8 +13,8 @@ scratch. They cover:
 
 This is one capability family, not four unrelated feature surfaces.
 
-Post-5.5, the probe and verified-existing convenience surfaces are also part
-of the covered intent-admission story. They still belong to one existing-truth
+The probe and verified-existing convenience surfaces are also part of the
+covered intent-admission story. They still belong to one existing-truth
 capability family; they just delegate through the shared lattice before the
 runtime executes the bridge-backed work.
 

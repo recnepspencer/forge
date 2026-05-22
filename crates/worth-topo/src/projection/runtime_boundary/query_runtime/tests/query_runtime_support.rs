@@ -32,7 +32,10 @@ pub(super) struct QueryRuntimeSupport {
 }
 
 impl QueryRuntimeSupport {
-    pub(super) fn load(workspace: &ForgeQueryWorkspace, assembly: &TopologyQueryAssembly) -> Self {
+    pub(super) fn load(
+        workspace: &mut ForgeQueryWorkspace,
+        assembly: &TopologyQueryAssembly,
+    ) -> Self {
         let entity_rows = workspace.read::<Value>(assembly.entities());
         let relation_rows = workspace.read::<Value>(assembly.relations());
         Self {

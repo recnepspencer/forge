@@ -5,8 +5,8 @@
 Projection consumption turns a materialized Query artifact into typed facts you
 can trust without reopening source authority yourself.
 
-Post-5.5 it is also one of the admitted families that uses the shared intent
-admission vocabulary without crossing a runtime execution seam.
+It is also one of the admitted families that uses the shared intent admission
+vocabulary without crossing a runtime execution seam.
 
 Use it when you already have one of these:
 

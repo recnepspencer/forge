@@ -39,7 +39,7 @@ impl RelationalStrategyTarget {
     }
 }
 
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum MutationLoweringInput {
     IntentReconciliation {
         entity_id: EntityId,

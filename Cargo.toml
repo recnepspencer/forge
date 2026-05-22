@@ -5,9 +5,11 @@ members = [
     "crates/worth-math",
     "crates/worth-schema",
     "crates/worth-topo",
+    "crates/worth-spatial",
     "crates/forge-core",
     "crates/forge-topo",
     "crates/worth-geom",
+    "crates/worth-kernel",
     "crates/forge-kernel",
     "crates/forge-io",
 
@@ -43,9 +45,11 @@ forge-harness = { path = "crates/forge-harness", version = "0.1.0" }
 worth-math = { path = "crates/worth-math" }
 worth-schema = { path = "crates/worth-schema" }
 worth-topo = { path = "crates/worth-topo" }
+worth-spatial = { path = "crates/worth-spatial" }
 forge-core = { path = "crates/forge-core" }
 forge-topo = { path = "crates/forge-topo" }
 worth-geom = { path = "crates/worth-geom" }
+worth-kernel = { path = "crates/worth-kernel" }
 forge-kernel = { path = "crates/forge-kernel" }
 forge-io = { path = "crates/forge-io" }
 

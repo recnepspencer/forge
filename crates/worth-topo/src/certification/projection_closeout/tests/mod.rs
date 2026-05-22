@@ -4,7 +4,6 @@ use forge_query::facade::{
 use schema::facade::{TopologyEntityKind, TopologyRelationKind};
 use serde_json::json;
 
-use crate::derived_topology::materialized_graph::TopologyMaterializer;
 use crate::facade::{
     DerivedReadDiagnostics, DerivedTopologyValidationReport, InterpretedTopologyView,
     MaterializedTopologyView,

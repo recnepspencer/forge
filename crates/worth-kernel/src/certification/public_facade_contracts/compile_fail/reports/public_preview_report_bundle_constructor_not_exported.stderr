@@ -1,0 +1,15 @@
+error[E0432]: unresolved import `worth_kernel::facade::PrimitiveConstructionPreviewReportBundle`
+ --> src/certification/public_facade_contracts/compile_fail/reports/public_preview_report_bundle_constructor_not_exported.rs:1:5
+  |
+1 | use worth_kernel::facade::PrimitiveConstructionPreviewReportBundle;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ no `PrimitiveConstructionPreviewReportBundle` in `facade`
+  |
+help: a similar name exists in the module
+  |
+1 - use worth_kernel::facade::PrimitiveConstructionPreviewReportBundle;
+1 + use worth_kernel::facade::PrimitiveConstructionPreparedOutcome;
+  |
+help: consider importing this struct instead
+  |
+1 | use worth_kernel::facade::certification::preview::PrimitiveConstructionPreviewReportBundle;
+  |                           ++++++++++++++++++++++++

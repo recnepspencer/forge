@@ -1,11 +1,10 @@
-use forge_query::facade::{
-    ForgeQueryBatchWriteReceipt, ForgeQueryEntity, ForgeQuerySymbolicTargetReference,
-};
+use forge_query::facade::{ForgeQueryBatchWriteReceipt, ForgeQuerySymbolicTargetReference};
 use schema::facade::{TopologyEntityKind, TopologyRelationKind};
 
 use super::shared::{
     bind_existing_entity_handle, bind_existing_relation_handle, delete_existing_entity_from_graph,
 };
+use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::topology_relation_dependency_path;
 use crate::topology_operators::TopologyEditContract;
 use crate::topology_operators::{TopologyOperatorExecutionError, TopologyOperatorRunner};
@@ -15,12 +14,11 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         &mut self,
         program: super::super::wire_rehome_support::WireRehomeProgram,
         contracts: &[TopologyEditContract],
-        entity_rows: &[ForgeQueryEntity],
-        relation_rows: &[ForgeQueryEntity],
+        bindings: &TopologyQueryBindingIndex,
     ) -> Result<ForgeQueryBatchWriteReceipt, TopologyOperatorExecutionError> {
         let retired_wire_binding =
             crate::topology_operators::application::bindings::query_entity_binding(
-                entity_rows,
+                bindings,
                 program.retired_wire_id,
             )?
             .ok_or(
@@ -38,7 +36,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             .expect("wire rehome program always ends with retire contract");
         let retired_wire_handle = bind_existing_entity_handle(
             self,
-            entity_rows,
+            bindings,
             program.retired_wire_id,
             TopologyEntityKind::Wire,
         )?;
@@ -46,7 +44,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         for half_edge_id in &program.half_edge_ids {
             let half_edge_binding =
                 crate::topology_operators::application::bindings::query_entity_binding(
-                    entity_rows,
+                    bindings,
                     *half_edge_id,
                 )?
                 .ok_or(
@@ -54,7 +52,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 )?;
             let incoming_relation_ids =
                 crate::topology_operators::application::bindings::query_incoming_relation_ids(
-                    relation_rows,
+                    bindings,
                     &half_edge_binding.query_identity,
                     TopologyRelationKind::WireOwnsHalfEdge,
                 )?;
@@ -70,7 +68,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             };
             let relation_binding =
                 crate::topology_operators::application::bindings::query_relation_binding(
-                    relation_rows,
+                    bindings,
                     *relation_id,
                 )?
                 .ok_or(
@@ -158,15 +156,14 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
     pub(super) fn compose_wire_split_program(
         &mut self,
         program: super::super::wire_rehome_support::WireSplitProgram,
-        entity_rows: &[ForgeQueryEntity],
-        relation_rows: &[ForgeQueryEntity],
+        bindings: &TopologyQueryBindingIndex,
     ) -> Result<ForgeQueryBatchWriteReceipt, TopologyOperatorExecutionError> {
         let retained_wire_id = program
             .retained_wire_id
             .expect("resolved wire split program always sets retained wire id");
         let retained_wire_binding =
             crate::topology_operators::application::bindings::query_entity_binding(
-                entity_rows,
+                bindings,
                 retained_wire_id,
             )?
             .ok_or(
@@ -181,7 +178,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         for half_edge_id in &program.half_edge_ids {
             let half_edge_binding =
                 crate::topology_operators::application::bindings::query_entity_binding(
-                    entity_rows,
+                    bindings,
                     *half_edge_id,
                 )?
                 .ok_or(
@@ -189,7 +186,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
                 )?;
             let incoming_relation_ids =
                 crate::topology_operators::application::bindings::query_incoming_relation_ids(
-                    relation_rows,
+                    bindings,
                     &half_edge_binding.query_identity,
                     TopologyRelationKind::WireOwnsHalfEdge,
                 )?;
@@ -205,7 +202,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             };
             let relation_binding =
                 crate::topology_operators::application::bindings::query_relation_binding(
-                    relation_rows,
+                    bindings,
                     *relation_id,
                 )?
                 .ok_or(
