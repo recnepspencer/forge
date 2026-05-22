@@ -79,7 +79,7 @@ pub(super) fn certified_surface_evidence(
             FoundationalBoundaryEvidenceSyntheticRuntimePressure::TrustBoundaryReadmissionForgery,
             FoundationalBoundaryEvidenceCompileFailBoundary::AttachmentScopeAndReadmissionBoundaries,
             "tests/certification/boundary_evidence/attachments.rs",
-            "tests/ui/boundary_evidence/attachments/unbridged_current_basis_attachment_cannot_be_readmitted.rs",
+            "tests/ui/boundary_evidence/attachments/readmission/unbridged_current_basis_attachment_cannot_be_readmitted.rs",
         ),
     ]
 }
