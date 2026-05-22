@@ -353,6 +353,20 @@ Use these when you need to answer:
 - which callback ids were denied on portable import
 - whether an artifact was denied or merely unavailable
 
+Host-read denial is also explicit. A known host family that was not admitted in
+`hostCapabilityPlan(...)` denies with
+`computeCallbackMissingHostCapabilityReadDenied`; a host handle retained after
+runtime termination denies with
+`computeCallbackDetachedHostCapabilityReadDenied`. Both paths are counted in
+`hostCapabilityReport().totals.readDenialCount`, and the latest denial is
+reflected in
+`hostCapabilityReport().callbackHostReadCertification.ambientHostReadDenialArtifact`.
+This is separate from the zero per-read RPC claim: callback host reads either
+lower into admitted worker-owned dependencies or deny with a typed artifact.
+Host ingress refresh failures are reported separately as
+`hostCapabilityReport().totals.dependencyRefreshFailureCount`; they are
+availability/refresh failures, not host-read denials.
+
 ## Anti-Patterns
 
 - reading browser globals directly in callbacks and expecting reactivity

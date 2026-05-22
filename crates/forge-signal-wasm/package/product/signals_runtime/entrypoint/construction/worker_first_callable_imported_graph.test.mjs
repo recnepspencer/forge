@@ -3,6 +3,40 @@ import test from "node:test";
 import { Worker as NodeWorker } from "node:worker_threads";
 
 import { loadSignalsModule } from "../../module_loading/load_signals_module.mjs";
+import {
+  materializeGraphDiagnosticsSurface,
+  materializeGraphHistorySurface,
+} from "../../runtime_fixture/surface_materialization.mjs";
+
+function comparableDiagnosticsSurface(surface) {
+  const materialized = materializeGraphDiagnosticsSurface(surface);
+  return {
+    graph: materialized.graph,
+    contract: materialized.contract,
+    dependencies: materialized.dependencies,
+    inputDescriptors: materialized.inputDescriptors,
+    descriptors: materialized.descriptors,
+    inputVersionIds: materialized.inputVersions.map((entry) => entry?.id ?? null),
+    outputVersionIds: materialized.outputVersions.map((entry) => entry?.id ?? null),
+    inputNames: Object.keys(materialized.inputs),
+    outputNames: Object.keys(materialized.outputs),
+    contractSummary: surface.contractSummary(),
+  };
+}
+
+function comparableHistorySurface(surface) {
+  const materialized = materializeGraphHistorySurface(surface);
+  return {
+    graph: materialized.graph,
+    contract: materialized.contract,
+    dependencies: materialized.dependencies,
+    inputDescriptors: materialized.inputDescriptors,
+    descriptors: materialized.descriptors,
+    inputNames: Object.keys(materialized.inputs),
+    outputNames: Object.keys(materialized.outputs),
+    contractSummary: surface.contractSummary(),
+  };
+}
 
 function comparableSnapshotSources(snapshot) {
   return snapshot.snapshotEnvelope.state.sources.map((source) => ({
@@ -52,6 +86,18 @@ test("default worker-first createSignals admits imported graphs through explicit
     assert.deepEqual(importedGraph.readInputs(), compatibilityImportedGraph.readInputs());
     assert.deepEqual(importedGraph.read(), compatibilityImportedGraph.read());
     assert.deepEqual(importedGraph.contract(), compatibilityImportedGraph.contract());
+    const diagnosticsSurface = importedGraph.inspectDiagnostics();
+    const historySurface = importedGraph.inspectHistory();
+    assert.equal(typeof diagnosticsSurface.then, "undefined");
+    assert.equal(typeof historySurface.then, "undefined");
+    assert.deepEqual(
+      comparableDiagnosticsSurface(diagnosticsSurface),
+      comparableDiagnosticsSurface(compatibilityImportedGraph.inspectDiagnostics()),
+    );
+    assert.deepEqual(
+      comparableHistorySurface(historySurface),
+      comparableHistorySurface(compatibilityImportedGraph.inspectHistory()),
+    );
 
     const laterSignals = await createSignals({ deployment: "mainThreadCompatibility" });
     const otherCount = laterSignals.input(3, { debugName: "otherCount" });

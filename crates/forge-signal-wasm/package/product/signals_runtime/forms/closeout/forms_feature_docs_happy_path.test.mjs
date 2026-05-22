@@ -8,8 +8,9 @@ import {
   createDetailPatchLineFixture,
   createReadOnlyResourceLineFixture,
 } from "../resource_source/fixtures/resource_line_fixture.mjs";
+import { formsDocsRoot } from "./forms_docs_root.mjs";
 
-const docsRoot = path.resolve("docs/forms");
+const docsRoot = path.join(formsDocsRoot, "forms");
 
 test("forms feature docs preserve entry bootstrap, resource transfer, and verification guidance", async () => {
   const presentationDoc = fs.readFileSync(

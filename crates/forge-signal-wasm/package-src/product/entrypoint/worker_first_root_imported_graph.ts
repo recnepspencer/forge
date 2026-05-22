@@ -6,9 +6,9 @@ import {
   requireKnownOutput,
 } from "../graph_support.js";
 import {
-  inspectWorkerFirstGraphDiagnostics,
-  inspectWorkerFirstGraphHistory,
-} from "./sessions/support/worker_first_graph_inspection.js";
+  inspectWorkerFirstRootGraphDiagnostics,
+  inspectWorkerFirstRootGraphHistory,
+} from "./worker_first_root_graph_inspection.js";
 import {
   buildImportedInputSignalRecord,
   buildImportedSignalRecord,
@@ -218,17 +218,8 @@ class WorkerFirstRootImportedGraph {
     return this.#rootSession.applyImportMutation(this, transactionOps, this.#trackedOutputIds);
   }
 
-  async inspectDiagnostics() {
-    await this.ready();
-    this.#requireActive("inspectDiagnostics");
-    return inspectWorkerFirstGraphDiagnostics(this.#inspectionContext());
-  }
-
-  async inspectHistory() {
-    await this.ready();
-    this.#requireActive("inspectHistory");
-    return inspectWorkerFirstGraphHistory(this.#inspectionContext());
-  }
+  inspectDiagnostics() { this.#requireHydrated("inspectDiagnostics"); return inspectWorkerFirstRootGraphDiagnostics(this); }
+  inspectHistory() { this.#requireHydrated("inspectHistory"); return inspectWorkerFirstRootGraphHistory(this); }
 
   async refreshFromRootRuntime() {
     if (this.#terminated || this.#invalidatedMessage !== null || !this.#ready) {
@@ -308,6 +299,9 @@ class WorkerFirstRootImportedGraph {
     return this.#cachedDiagnosticsHistory;
   }
 
+  get definition() { return this.#definition; }
+  get rootSession() { return this.#rootSession; }
+
   async #initialize() {
     try {
       await this.#rootSession.beginExactImport(this.#definition, this.#snapshot, this);
@@ -342,17 +336,6 @@ class WorkerFirstRootImportedGraph {
     for (const output of outputPacket.outputs) {
       this.#cachedOutputs.set(output.id, materializeWorkerCachedValue(output.value));
     }
-  }
-
-  #inspectionContext() {
-    return freezeObject({
-      bridge: this.#rootSession.bridge(),
-      definition: this.#definition,
-      trackedInputIds: this.#trackedInputIds,
-      trackedOutputIds: this.#trackedOutputIds,
-      diagnosticsSummary: () => this.diagnosticsSummary(),
-      diagnosticsHistory: () => this.diagnosticsHistory(),
-    });
   }
 
   #readCachedInput(id) {

@@ -60,6 +60,22 @@ export function createWorkerFirstSyncRecipeHandle(
   );
 }
 
+export function createWorkerFirstSyncComputedCallbackHandle(
+  rootSession,
+  id,
+  compute,
+  options,
+) {
+  const normalizedOptions = normalizeWorkerFirstAsyncRecipeOptions("computed", options);
+  return createWorkerFirstSyncCallbackRecipeHandle(
+    rootSession,
+    "computed",
+    id,
+    compute,
+    normalizedOptions,
+  );
+}
+
 export function createWorkerFirstSyncOutputCallbackHandle(
   rootSession,
   id,

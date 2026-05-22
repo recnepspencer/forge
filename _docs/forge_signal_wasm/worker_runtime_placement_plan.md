@@ -688,6 +688,52 @@ Required consequence:
 - host-capability ingress remains one runtime truth lane, not a second local
   store or framework-specific side channel
 
+### 10.5.1 Host Reads Inside Worker-First Callback Capture Are Typed Dependencies
+
+Callback-first ergonomics do not grant ambient host-read permission.
+
+If a worker-first callback reads a host capability during capture, the read must
+be treated as a declared host-capability dependency, not as an immediate
+main-thread lookup and not as an untracked closure side effect.
+
+Required consequence:
+
+- the callback collector records host-capability reads beside signal reads
+  using capability family, registration identity, compatibility posture, and
+  canonical dependency identity
+- the callback receives the latest worker-admitted host fact snapshot rather
+  than synchronously requesting arbitrary data from the main thread
+- host-capability changes enter the worker through the Phase 3 typed ingress
+  envelope and invalidate callback-backed readables through runtime-owned
+  dependency truth
+- callback recomputation caused by host churn is driven by committed host
+  ingress, not by per-read request/response chatter
+- unsupported, missing, detached, stale, or unavailable host capability reads
+  produce typed denial or unavailability artifacts instead of reusing stale
+  callback-derived values
+- main-thread-hosted callback execution may consume only the closed input
+  frontier supplied by the worker, including any admitted host fact snapshots;
+  it may not perform fresh ambient graph reads or fresh ambient host reads while
+  executing
+
+Normative lowering contract:
+
+- raw callback capture may contain signal reads and host-capability reads
+- placement classification must lower captured host reads into proof-bearing
+  host dependency records before worker-first publication can admit the
+  callback-backed readable
+- worker runtime truth owns the committed host dependency edge and the
+  invalidation relationship between host ingress and callback recomputation
+- main-thread host code owns browser API observation and transport of typed
+  ingress envelopes only; it does not own derived callback truth
+- any host read that cannot be represented by an admitted host-capability
+  descriptor is out of spec for worker-first callback capture
+
+This explicitly rejects a tempting but wrong design: letting callback capture
+perform an ad hoc async request to the main thread whenever it wants a host
+fact. That would create nondeterministic callback evaluation, hidden bridge
+breadth, replay dishonesty, and a second main-thread authority path.
+
 ### 10.6 Host Effects Remain Main-Thread Execution Boundaries
 
 Host effects are not worker work.
@@ -930,11 +976,16 @@ This phase must ship:
 - explicit stale, denied, detached, and unavailable host-boundary artifacts
 - bounded coalescing and attribution for host-boundary traffic
 - host-boundary admission that preserves transaction and generation ordering
+- canonical host fact dependency identities that later callback-capture
+  lowering can consume without inventing a separate host-read lane
 
 Phase 3 gate:
 
 - no later phase begins until browser-only host facts and main-thread-only host
   effects are integrated without ambient reads or imperative side channels
+- no later phase admits host reads inside worker-first callback capture until
+  host-capability ingress can publish worker-admitted host fact snapshots with
+  stable dependency identity and stale/detached/unavailable artifacts
 
 Phase 3 implementation evidence:
 
@@ -1003,6 +1054,9 @@ This phase must ship:
 
 - placement classification for authored computed, output, and effect work
 - a worker-executable lowering lane for admitted portable work
+- host-capability read lowering for callback capture, turning captured host
+  reads into proof-bearing host dependency records consumed by worker-owned
+  invalidation truth
 - an explicit main-thread-hosted execution lane for work that remains process-
   local host capability, limited to typed host-boundary execution against
   worker-supplied closed inputs
@@ -1022,7 +1076,9 @@ Main-thread-hosted lane contract:
   the worker and may return only a typed result, typed failure, or typed
   denial/unavailability artifact
 - main-thread-hosted execution may not perform ambient graph reads, ambient
-  runtime writes, or local shadow lifecycle tracking
+  host reads, ambient runtime writes, or local shadow lifecycle tracking
+- main-thread-hosted execution may consume admitted host fact snapshots only
+  when those facts are part of the worker-issued closed input frontier
 - if a callback-authored shape cannot be expressed honestly through this closed
   request and result contract, it must be denied or explicitly restricted rather
   than silently widened into arbitrary main-thread derivation
@@ -1032,6 +1088,10 @@ Phase 4 gate:
 - no later phase begins until callback placement, denial, and fallback are
   explicit enough that worker-first mode no longer relies on folklore about
   closure portability
+- no later phase begins until callback-captured host reads either lower into
+  admitted host dependency records or deny with a typed host-read artifact; a
+  callback that reads host capability must not be admitted by delaying a
+  main-thread request until execution time
 
 Phase 4 implementation evidence:
 
@@ -1041,10 +1101,24 @@ Phase 4 implementation evidence:
   unavailable rows, carries denial/fallback/capability/identity/performance
   digests, records signal-read and host-capability breadth, and keeps fallback
   count at zero until an explicit fallback lane exists.
+- Callback placement eligibility treats host-capability reads captured by
+  callback authoring as first-class placement inputs. Signal reads and host
+  reads remain separate frontiers: signal reads lower to runtime signal
+  dependencies, while host reads lower to admitted host dependency records
+  derived from Phase 3 host fact identities. Unsupported host reads deny before
+  publication, and no callback row may be certified by relying on execution-time
+  main-thread host lookup.
 - Callback eligibility now denies raw live-callback transport as a placement
   fact rather than treating "compiled once" as worker portability. Main-thread
   hosted rows explicitly require a closed request/result lane, while unavailable
   rows emit unavailability artifacts instead of widening into fallback.
+- Worker-first callable host surfaces now expose typed missing-capability denial
+  handles for known but unadmitted host families. Callback capture that reads an
+  unadmitted host fact rejects before publication, records a host-read denial
+  artifact, and leaves callback host dependency truth empty.
+- Detached worker-first host handles now deny reads after runtime termination
+  instead of serving stale cached host facts. The denial flows through the same
+  host-read artifact and certification path as missing capability reads.
 - The second Phase 4 slice introduces the narrow main-thread-hosted callback
   execution boundary. `SignalWorkerRuntime` can now issue a closed
   worker-owned callback request for a declared hosted callback and readmit a
@@ -1053,11 +1127,13 @@ Phase 4 implementation evidence:
 - Main-thread-hosted callback readmission mutates worker-owned callback truth
   only for completed artifacts. Failed, denied, and unavailable artifacts emit
   typed reports with zero runtime mutation breadth; completed artifacts reject
-  any ambient graph read outside the worker-issued closed input frontier.
+  any ambient graph or host read outside the worker-issued closed input
+  frontier.
 - The hosted callback result report now carries callback execution artifact,
   closed request/result digest, runtime admitted result count, mutation breadth,
   worker-first truth digest, boundary performance envelope, ambient graph-read
-  denial, non-authoritative host-result posture, and fallback count.
+  denial, ambient host-read denial, non-authoritative host-result posture, and
+  fallback count.
 - The third Phase 4 slice adds a hosted callback execution certification
   package that binds placement eligibility evidence to the worker-retained
   closed request/result boundary. The package carries placement, denial, fallback,
@@ -1315,7 +1391,7 @@ Implementation evidence so far:
   proof coverage.
 - The second Phase 7 slice adds test-requirements certification. `SignalDiagnostics
   .workerPhase7TestRequirements` now emits
-  `workerPhase7TestRequirementsCertification`, mapping all 13 required proof
+  `workerPhase7TestRequirementsCertification`, mapping all 14 required proof
   families from Section 15 to concrete runtime test files, boundary test files,
   certification surfaces, and hostile requirements. The package also binds the
   acceptance artifact checklist from Section 16, records all proof families as
@@ -1341,7 +1417,7 @@ Implementation evidence so far:
   artifact digest, and current worker truth into a
   `workerPhase7CloseoutReadinessCertification` package. The package is
   intentionally honest: it reports `Suite0TrackedPendingFinalCloseout`,
-  keeps `milestoneClosed` false while all 13 proof families remain
+  keeps `milestoneClosed` false while all 14 proof families remain
   `CoveredPendingFinalCloseout`, and rejects missing Phase 5 evidence, missing
   Phase 6 evidence, hidden bridge allocation, and weak Phase 7 proof tracking.
   The slice also hardens runtime-envelope import/export so worker public output
@@ -1351,7 +1427,7 @@ Implementation evidence so far:
   coexist in one suite 0 path.
 - The final Phase 7 closeout pass promotes suite 0 from readiness to closure.
   `SignalWorkerRuntime.certifyWorkerPhase7Closeout` emits
-  `workerPhase7CloseoutCertification`, requires the 13 proof families to be
+  `workerPhase7CloseoutCertification`, requires the 14 proof families to be
   `ClosedByCanonicalCertification`, requires `finalCloseoutPendingCount = 0`,
   reports `Suite0FinalCloseoutCertified`, and sets `milestoneClosed = true`.
   The final package top-level binds proof-family, counter-catalog, complexity-
@@ -1369,6 +1445,10 @@ Implementation evidence so far:
   so the facade cannot silently drop proof-family, performance, allocation,
   acceptance, truth, parity, or boundary-performance artifacts while runtime
   tests still pass.
+- Worker-first session support now keeps authored runtime state, callback
+  capture, readable refresh, and callback host-dependency proof files under the
+  `sessions/support/authored/` boundary. The parent support directory and the
+  authored subdirectory both stay below the workspace 10-file topology cap.
 
 ## 12. Must Ship
 
@@ -1385,6 +1465,9 @@ It is done only when `forge-signal-wasm` ships:
   browser-history ingress, host-effect egress, committed output delivery,
   committed observation delivery, diagnostics/history/export/import requests,
   and lifecycle/disposal coordination
+- callback host-read dependency lowering that turns captured host-capability
+  reads into admitted worker-owned dependency truth rather than per-read
+  main-thread requests
 - explicit capability denial, fallback, detachment, and unavailability
   artifacts
 - main-thread compatibility mode with semantic parity proof against
@@ -1412,6 +1495,9 @@ It is done only when `forge-signal-wasm` ships:
   and replay semantics
 - browser APIs remain host authority boundaries rather than ambient worker
   state
+- host reads inside worker-first callback capture remain typed host-capability
+  dependencies; they do not become ambient closure reads, execution-time RPCs,
+  or main-thread-owned derived truth
 - worker placement does not create a second cache, lifecycle engine, router
   engine, or resource engine on the main thread
 - callback-first ergonomics remain available without pretending that arbitrary
@@ -1465,6 +1551,7 @@ The milestone must also declare named complexity contracts for:
 - diagnostics summary reads
 - diagnostics rich reads
 - callback placement classification
+- callback host-read dependency lowering
 - worker-executable declaration lowering
 - main-thread-hosted callback execution routing
 - replay/restore capability reconstruction
@@ -1481,6 +1568,9 @@ Each contract must name its real cost bases explicitly. At minimum:
   frontier and coalesced update width
 - callback placement classification cost must be stated in terms of declaration
   classification work, not runtime graph breadth
+- callback host-read dependency lowering cost must be stated in terms of
+  captured host-read frontier width and admitted host dependency records, not
+  total host capability registrations or runtime graph size
 - diagnostics summary read cost must remain summary lookup only, with zero rich
   reconstruction
 - replay/restore capability reconstruction cost must be stated in terms of
@@ -1517,6 +1607,10 @@ At minimum:
 - `AmbientHostReadRelapse`
   Browser facts regain semantic meaning through ambient reads instead of typed
   host-capability ingress.
+- `CallbackHostReadRpcLeak`
+  Worker-first callback capture or execution performs fresh per-read
+  main-thread host requests instead of consuming worker-admitted host fact
+  snapshots through dependency truth.
 
 ## 15. Required Named Proof Families
 
@@ -1526,6 +1620,7 @@ At minimum:
 - `The Browser History Worker Admission Parity Test`
 - `The Main-Thread Host Effect Boundary Test`
 - `The Callback Placement Eligibility And Denial Test`
+- `The Callback Host Read Dependency Admission Test`
 - `The Worker Ineligible Node Does Not Collapse Graph Breadth Test`
 - `The Observation And Output Delivery Boundary Test`
 - `The Diagnostics Summary Cost Honesty Test`
@@ -1545,6 +1640,7 @@ following with canonical machine-checkable artifacts:
 - the `Browser History Worker Admission Parity Test`
 - the `Main-Thread Host Effect Boundary Test`
 - the `Callback Placement Eligibility And Denial Test`
+- the `Callback Host Read Dependency Admission Test`
 - the `Worker Ineligible Node Does Not Collapse Graph Breadth Test`
 - the `Observation And Output Delivery Boundary Test`
 - the `Diagnostics Summary Cost Honesty Test`
@@ -1560,6 +1656,7 @@ for:
 - worker runtime identity
 - transaction envelopes
 - host-capability update envelopes
+- callback host-read dependency artifacts
 - browser-history event envelopes
 - host-effect request and acknowledgement envelopes
 - committed output delivery packets
@@ -1580,6 +1677,9 @@ for:
 - Callback-first ergonomics and worker-first placement are compatible only if
   placement classification is explicit. The spec should prefer honest dual
   lanes over a fake universal closure story.
+- Host reads inside callback capture should look like dependency capture, not
+  like synchronous host RPC. The worker consumes admitted host fact snapshots;
+  the main thread only observes browser facts and submits typed ingress.
 - Browser-history integration should look like host capability for navigation:
   raw browser events on the main thread, typed route meaning in the runtime.
 - Output delivery should prefer one committed projection packet per boundary

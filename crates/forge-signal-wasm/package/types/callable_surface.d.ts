@@ -656,6 +656,11 @@ export interface ScopedSignalNamespace<TPersistence = SignalValue> {
   computed<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
   computedAsync<T = SignalValue>(spec: ComputedSpec, options?: SignalAuthoringOptions): Promise<ComputedSignalHandle<T>>;
   computedAsync<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): Promise<ComputedSignalHandle<T>>;
+  computedCallback<T = SignalValue>(
+    id: string,
+    compute: () => T,
+    options?: CallbackSignalAuthoringOptions,
+  ): ComputedSignalHandle<T>;
   outputSpec<T = SignalValue>(
     id: string,
     spec: OutputSpec | NamedOutputCallbackDefinition<T>,
@@ -743,6 +748,11 @@ export interface CallableSignals<TPersistence = SignalValue> {
   computed<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): ComputedSignalHandle<T>;
   computedAsync<T = SignalValue>(spec: ComputedSpec, options?: SignalAuthoringOptions): Promise<ComputedSignalHandle<T>>;
   computedAsync<T = SignalValue>(compute: () => T, options?: SignalAuthoringOptions): Promise<ComputedSignalHandle<T>>;
+  computedCallback<T = SignalValue>(
+    id: string,
+    compute: () => T,
+    options?: CallbackSignalAuthoringOptions,
+  ): ComputedSignalHandle<T>;
   outputSpec<T = SignalValue>(
     id: string,
     spec: OutputSpec | NamedOutputCallbackDefinition<T>,

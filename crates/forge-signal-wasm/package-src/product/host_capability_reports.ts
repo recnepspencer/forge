@@ -1,30 +1,8 @@
-function stableClone(value) {
-  if (Array.isArray(value)) {
-    return value.map(stableClone);
-  }
-  if (value && typeof value === "object") {
-    return Object.keys(value)
-      .sort()
-      .reduce((acc, key) => {
-        acc[key] = stableClone(value[key]);
-        return acc;
-      }, {});
-  }
-  return value;
-}
-
-function canonicalJson(value) {
-  return JSON.stringify(stableClone(value));
-}
-
-function digestString(value) {
-  let hash = 2166136261;
-  for (let index = 0; index < value.length; index += 1) {
-    hash ^= value.charCodeAt(index);
-    hash = Math.imul(hash, 16777619);
-  }
-  return `f1a-${(hash >>> 0).toString(16).padStart(8, "0")}`;
-}
+import {
+  canonicalDiagnosticJson,
+  digestCanonicalDiagnosticValue,
+  digestDiagnosticString,
+} from "./canonical_diagnostic_digest.js";
 
 function groupedFamilies(entries, projector) {
   const byFamily = new Map();
@@ -42,7 +20,13 @@ function groupedFamilies(entries, projector) {
     }));
 }
 
-export function buildHostCapabilityDiagnosticsReport(performanceSummary, recentEvents) {
+export function buildHostCapabilityDiagnosticsReport(
+  performanceSummary,
+  recentEvents,
+  callbackHostDependencies = null,
+) {
+  const normalizedCallbackHostDependencies =
+    normalizeCallbackHostDependencies(callbackHostDependencies);
   const events = Array.isArray(recentEvents) ? recentEvents : [];
   const lineage = events.map((event) => ({
     sequence: event?.sequence ?? 0,
@@ -56,6 +40,10 @@ export function buildHostCapabilityDiagnosticsReport(performanceSummary, recentE
     reevaluatedNodes: event?.reevaluatedNodes ?? 0,
     portableImportOutcome: event?.portableImportOutcome ?? null,
     deniedCallbackIds: [...(event?.deniedCallbackIds ?? [])].sort(),
+    errorCode: event?.errorCode ?? null,
+    denialReason: event?.denialReason ?? null,
+    deniedBeforePublication: event?.deniedBeforePublication ?? null,
+    failureMessage: event?.failureMessage ?? null,
   }));
   const families = groupedFamilies(events, (event) => ({
     kind: event?.kind ?? null,
@@ -65,6 +53,10 @@ export function buildHostCapabilityDiagnosticsReport(performanceSummary, recentE
     touchedNodes: event?.touchedNodes ?? 0,
     reevaluatedNodes: event?.reevaluatedNodes ?? 0,
     deniedCallbackIds: [...(event?.deniedCallbackIds ?? [])].sort(),
+    errorCode: event?.errorCode ?? null,
+    denialReason: event?.denialReason ?? null,
+    deniedBeforePublication: event?.deniedBeforePublication ?? null,
+    failureMessage: event?.failureMessage ?? null,
   })).map((family) => ({
     family: family.family,
     eventCount: family.entries.length,
@@ -75,6 +67,7 @@ export function buildHostCapabilityDiagnosticsReport(performanceSummary, recentE
     maxTouchedNodes: Math.max(0, ...family.entries.map((entry) => entry.touchedNodes)),
     maxReevaluatedNodes: Math.max(0, ...family.entries.map((entry) => entry.reevaluatedNodes)),
     deniedCallbackIds: [...new Set(family.entries.flatMap((entry) => entry.deniedCallbackIds))].sort(),
+    failureCount: family.entries.filter((entry) => entry.failureMessage !== null).length,
   }));
   const breadth = {
     maxQueuedInvalidationCount: Math.max(0, ...lineage.map((entry) => entry.queuedInvalidationCount)),
@@ -88,8 +81,8 @@ export function buildHostCapabilityDiagnosticsReport(performanceSummary, recentE
       maxReevaluatedNodes: family.maxReevaluatedNodes,
     })),
   };
-  const lineageDigest = digestString(canonicalJson(lineage));
-  const breadthDigest = digestString(canonicalJson(breadth));
+  const lineageDigest = digestCanonicalDiagnosticValue(lineage);
+  const breadthDigest = digestCanonicalDiagnosticValue(breadth);
   const report = {
     totals: {
       registrationCount: performanceSummary?.hostCapabilityRegistrationCount ?? 0,
@@ -101,12 +94,16 @@ export function buildHostCapabilityDiagnosticsReport(performanceSummary, recentE
       noOpManualCommitCount: performanceSummary?.hostCapabilityNoOpManualCommitCount ?? 0,
       invalidationCount: performanceSummary?.hostCapabilityInvalidationCount ?? 0,
       invalidationBatchFlushCount: performanceSummary?.hostCapabilityInvalidationBatchFlushCount ?? 0,
+      dependencyRefreshCount: performanceSummary?.hostCapabilityDependencyRefreshCount ?? 0,
+      dependencyRefreshFailureCount:
+        performanceSummary?.hostCapabilityDependencyRefreshFailureCount ?? 0,
       reevaluationCount: performanceSummary?.hostCapabilityReevaluationCount ?? 0,
       invalidationTouchedNodeCount: performanceSummary?.hostCapabilityInvalidationTouchedNodeCount ?? 0,
       noOpInvalidationSuppressedCount: performanceSummary?.hostCapabilityNoOpInvalidationSuppressedCount ?? 0,
       staleInvalidationIgnoredCount: performanceSummary?.hostCapabilityStaleInvalidationIgnoredCount ?? 0,
       compatibilityDenialCount: performanceSummary?.hostCapabilityCompatibilityDenialCount ?? 0,
       unavailabilityArtifactCount: performanceSummary?.hostCapabilityUnavailabilityArtifactCount ?? 0,
+      readDenialCount: performanceSummary?.hostCapabilityReadDenialCount ?? 0,
       broadFanoutDenialCount: performanceSummary?.hostCapabilityBroadFanoutDenialCount ?? 0,
       retainedEventCount: events.length,
     },
@@ -115,11 +112,99 @@ export function buildHostCapabilityDiagnosticsReport(performanceSummary, recentE
     breadth,
     breadthDigest,
     families,
+    callbackHostDependencies: normalizedCallbackHostDependencies,
   };
-  const digestInput = canonicalJson(report);
-  return {
+  const boundaryPerformanceEnvelope = {
+    perReadHostRpcCount: 0,
+    hostIngressEventCount: report.totals.invalidationBatchFlushCount,
+    hostDependencyRefreshCount: report.totals.dependencyRefreshCount,
+    callbackHostDependencyEdgeCount:
+      report.callbackHostDependencies.totals.dependencyEdgeCount,
+    mainThreadHostReadCount: report.totals.readCount,
+    mainThreadRuntimeReevaluationCount: report.totals.reevaluationCount,
+  };
+  boundaryPerformanceEnvelope.digest = digestCanonicalDiagnosticValue(
+    boundaryPerformanceEnvelope,
+  );
+  const callbackHostReadCertification = buildCallbackHostReadCertification({
+    callbackHostDependencies: report.callbackHostDependencies,
+    lineageDigest,
+    breadthDigest,
+    boundaryPerformanceEnvelope,
+    ambientHostReadDenialArtifact: latestAmbientHostReadDenialArtifact(lineage),
+  });
+  const reportWithEnvelope = {
     ...report,
-    digest: digestString(digestInput),
+    boundaryPerformanceEnvelope,
+    callbackHostReadCertification,
+  };
+  const digestInput = canonicalDiagnosticJson(reportWithEnvelope);
+  return {
+    ...reportWithEnvelope,
+    digest: digestDiagnosticString(digestInput),
+  };
+}
+
+function normalizeCallbackHostDependencies(callbackHostDependencies) {
+  const normalized = callbackHostDependencies ?? {
+    totals: {
+      callbackCount: 0,
+      dependentCallbackCount: 0,
+      dependencyEdgeCount: 0,
+      distinctDependencyCount: 0,
+    },
+    dependencies: [],
+    callbacks: [],
+  };
+  return {
+    ...normalized,
+    dependencyDigest: normalized.dependencyDigest
+      ?? digestCanonicalDiagnosticValue(normalized.dependencies ?? []),
+    callbackDigest: normalized.callbackDigest
+      ?? digestCanonicalDiagnosticValue(normalized.callbacks ?? []),
+    digest: normalized.digest
+      ?? digestCanonicalDiagnosticValue({
+        totals: normalized.totals,
+        dependencies: normalized.dependencies ?? [],
+        callbacks: normalized.callbacks ?? [],
+      }),
+  };
+}
+
+function buildCallbackHostReadCertification(evidence) {
+  const certification = {
+    artifactFamily: "CallbackHostReadDependencyAdmission",
+    callbackHostReadDependencyDigest: evidence.callbackHostDependencies.digest,
+    hostCapabilityIngressDigest: evidence.lineageDigest,
+    callbackRecomputationDigest: evidence.callbackHostDependencies.callbackDigest,
+    boundaryPerformanceEnvelopeDigest: evidence.boundaryPerformanceEnvelope.digest,
+    workerOwnedDependencyEdgeCount:
+      evidence.callbackHostDependencies.totals.dependencyEdgeCount,
+    perReadHostRpcCount: evidence.boundaryPerformanceEnvelope.perReadHostRpcCount,
+    ambientHostReadDenialArtifact: evidence.ambientHostReadDenialArtifact,
+    breadthDigest: evidence.breadthDigest,
+  };
+  return {
+    ...certification,
+    digest: digestCanonicalDiagnosticValue(certification),
+  };
+}
+
+function latestAmbientHostReadDenialArtifact(lineage) {
+  const denial = lineage.findLast((event) => event.kind === "HostCapabilityReadDenied");
+  if (!denial) {
+    return {
+      errorCode: "computeCallbackForeignRuntimeReadDenied",
+      deniedBeforePublication: true,
+    };
+  }
+  return {
+    errorCode: denial.errorCode,
+    family: denial.family,
+    registrationId: denial.registrationId,
+    compatibility: denial.compatibility,
+    denialReason: denial.denialReason,
+    deniedBeforePublication: denial.deniedBeforePublication === true,
   };
 }
 
@@ -166,9 +251,9 @@ export function buildHostCapabilityTransportReport(unavailableCallbacks) {
     },
     families,
   };
-  const digestInput = canonicalJson(report);
+  const digestInput = canonicalDiagnosticJson(report);
   return {
     ...report,
-    digest: digestString(digestInput),
+    digest: digestDiagnosticString(digestInput),
   };
 }

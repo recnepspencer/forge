@@ -3,12 +3,10 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
-const matrixPath = path.resolve(
-  "docs/metadata/forms-closeout-matrix.json",
-);
-const inventoryPath = path.resolve(
-  "docs/metadata/forms-feature-doc-inventory.json",
-);
+import { formsCrateRoot, formsDocsRoot } from "./forms_docs_root.mjs";
+
+const matrixPath = path.join(formsDocsRoot, "metadata/forms-closeout-matrix.json");
+const inventoryPath = path.join(formsDocsRoot, "metadata/forms-feature-doc-inventory.json");
 
 test("forms closeout matrix ties product families to machine-checkable evidence", () => {
   const matrix = JSON.parse(fs.readFileSync(matrixPath, "utf8"));
@@ -49,8 +47,15 @@ test("forms closeout matrix ties product families to machine-checkable evidence"
       assert.ok(Array.isArray(row[lane]), `${row.family} ${lane} is not an array`);
       for (const ref of row[lane]) {
         assert.equal(typeof ref, "string");
-        assert.ok(fs.existsSync(path.resolve(ref)), `${row.family} missing ${ref}`);
+        assert.ok(fs.existsSync(resolveMatrixRef(ref)), `${row.family} missing ${ref}`);
       }
     }
   }
 });
+
+function resolveMatrixRef(ref) {
+  if (ref.startsWith("docs/")) {
+    return path.join(formsCrateRoot, ref);
+  }
+  return path.join(formsCrateRoot, ref);
+}

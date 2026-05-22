@@ -1,4 +1,4 @@
-import { materializeWorkerCachedValue } from "./worker_cached_value.js";
+import { materializeWorkerCachedValue } from "../worker_cached_value.js";
 
 export function createAuthoredReadablePublication(id, family, spec) {
   return {
@@ -20,11 +20,19 @@ export function createAuthoredReadablePublication(id, family, spec) {
   };
 }
 
-export function createWorkerFirstAuthoredReadableState(family, value, dependencyIds = []) {
+export function createWorkerFirstAuthoredReadableState(
+  family,
+  value,
+  dependencyIds = [],
+  hostDependencyIds = [],
+  hostDependencies = [],
+) {
   return {
     family,
     currentValue: materializeWorkerCachedValue(value),
     dependencyIds: Array.isArray(dependencyIds) ? [...dependencyIds] : [],
+    hostDependencyIds: Array.isArray(hostDependencyIds) ? [...hostDependencyIds] : [],
+    hostDependencies: Array.isArray(hostDependencies) ? [...hostDependencies] : [],
     invalidatedMessage: null,
   };
 }

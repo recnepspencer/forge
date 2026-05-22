@@ -5,15 +5,30 @@ import {
   invalidateWorkerFirstAuthoredReadables,
   updateWorkerFirstAuthoredReadables,
 } from "./worker_first_authored_readable_state.js";
-import { materializeWorkerCachedValue } from "./worker_cached_value.js";
+import { hostDependenciesIntersect } from "./worker_first_host_dependency_records.js";
+import { materializeWorkerCachedValue } from "../worker_cached_value.js";
 
 export async function refreshWorkerFirstAuthoredCallbackReadables(deps) {
-  const { bridge, authoredInputs, authoredReadables, authoredCallbacks, changedIds, captureCallback, skipDirectReadableRefresh = false } = deps;
-  const refreshAll = !Array.isArray(changedIds) || changedIds.length === 0;
-  if (!refreshAll && changedIds.length === 0) {
+  const {
+    bridge,
+    authoredInputs,
+    authoredReadables,
+    authoredCallbacks,
+    changedIds,
+    changedHostDependencyIds = [],
+    captureCallback,
+    skipDirectReadableRefresh = false,
+  } = deps;
+  const refreshAll = !Array.isArray(changedIds) || !Array.isArray(changedHostDependencyIds);
+  if (
+    !refreshAll
+    && changedIds.length === 0
+    && changedHostDependencyIds.length === 0
+  ) {
     return;
   }
   const changedIdSet = refreshAll ? new Set() : new Set(changedIds);
+  const changedHostDependencyIdSet = refreshAll ? new Set() : new Set(changedHostDependencyIds);
   const directlyChangedReadableIds = [];
   for (const [id, authoredReadable] of authoredReadables) {
     if (authoredReadable.invalidatedMessage !== null) {
@@ -44,13 +59,22 @@ export async function refreshWorkerFirstAuthoredCallbackReadables(deps) {
     if (
       !refreshAll
       && !authoredCallback.dependencyIds.some((dependencyId) => changedIdSet.has(dependencyId))
+      && !hostDependenciesIntersect(
+        authoredCallback.hostDependencyIds,
+        changedHostDependencyIdSet,
+      )
     ) {
       continue;
     }
     const capture = captureCallback(authoredCallback.callback, authoredCallback.family);
     authoredCallback.dependencyIds = capture.reads;
+    authoredCallback.hostDependencyIds = capture.hostDependencyIds;
+    authoredCallback.hostDependencies = capture.hostDependencies;
     const nextValue = materializeWorkerCachedValue(capture.value);
     authoredReadable.currentValue = nextValue;
+    authoredReadable.dependencyIds = [...capture.reads];
+    authoredReadable.hostDependencyIds = [...capture.hostDependencyIds];
+    authoredReadable.hostDependencies = [...capture.hostDependencies];
     hiddenTransactionOps.push({
       kind: "set",
       id: authoredCallback.hiddenInputId,

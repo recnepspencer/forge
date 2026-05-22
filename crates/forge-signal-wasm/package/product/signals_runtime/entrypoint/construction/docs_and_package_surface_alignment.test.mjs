@@ -30,6 +30,15 @@ test("README and published package docs teach await createSignals() as the norma
   const readme = docs[0];
   assert.doesNotMatch(readme, /signals\.compatibilityApp\(\)/);
   assert.doesNotMatch(readme, /signals\.compatibilityRuntime\(\)/);
+
+  const hostCapabilityDoc = docs.find((text) => (
+    text.includes("# Host Capabilities")
+    && text.includes("ambientHostReadDenialArtifact")
+  ));
+  assert.match(hostCapabilityDoc ?? "", /readDenialCount/);
+  assert.match(hostCapabilityDoc ?? "", /dependencyRefreshFailureCount/);
+  assert.match(hostCapabilityDoc ?? "", /computeCallbackMissingHostCapabilityReadDenied/);
+  assert.match(hostCapabilityDoc ?? "", /computeCallbackDetachedHostCapabilityReadDenied/);
 });
 
 async function collectMarkdownFiles(rootDir) {

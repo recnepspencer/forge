@@ -66,9 +66,39 @@ test("default worker-first root admits scoped controller and public-input compos
     assert.equal(controller.internal.rawCount.id, importedGraph.input("count").id);
 
     const scoped = workerSignals.scope("workflow");
+    const compatibilityScoped = compatibilitySignals.scope("workflow");
+    assert.equal(scoped.scopeId, "workflow");
+    assert.equal(scoped.localScopeId, "workflow");
+    assert.equal(scoped.parentScopeId, null);
+    assert.equal(scoped.canonicalId("draft"), "workflow.draft");
+    assert.deepEqual(scoped.descriptor(), compatibilityScoped.descriptor());
+    assert.deepEqual(
+      scoped.signalIdentity("draft"),
+      compatibilityScoped.signalIdentity("draft"),
+    );
+    const nestedScope = scoped.scope("step-1");
+    assert.equal(nestedScope.scopeId, "workflow.step-1");
+    assert.equal(nestedScope.parentScopeId, "workflow");
+    assert.equal(nestedScope.canonicalId("draft"), "workflow.step-1.draft");
+    assert.deepEqual(nestedScope.descriptor().path, [
+      { id: "workflow", localScopeId: "workflow", depth: 1 },
+      { id: "workflow.step-1", localScopeId: "step-1", depth: 2 },
+    ]);
     assert.equal(typeof scoped.controller, "function");
     assert.equal(typeof scoped.publicInput, "function");
     const scopedDraft = scoped.input(1, { debugName: "scopedDraft" });
+    const scopedNamedDraft = scoped.input(1, { id: "draft", debugName: "scopedNamedDraft" });
+    const scopedNamedComputed = scoped.computedCallback("doubleDraft", () => scopedNamedDraft() * 2);
+    const scopedNamedOutput = scoped.outputCallback("panel", () => ({
+      draft: scopedNamedDraft(),
+      doubled: scopedNamedComputed(),
+    }));
+    assert.deepEqual(
+      scopedNamedDraft.signalIdentity(),
+      compatibilityScoped.signalIdentity("draft"),
+    );
+    assert.equal(scopedNamedComputed.signalIdentity().canonicalId, "workflow.doubleDraft");
+    assert.equal(scopedNamedOutput.signalIdentity().canonicalId, "workflow.panel");
     assert.equal(scopedDraft(), 1);
     await scopedDraft.set(2);
     assert.equal(scopedDraft(), 2);

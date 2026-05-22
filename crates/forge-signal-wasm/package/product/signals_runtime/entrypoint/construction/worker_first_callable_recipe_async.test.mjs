@@ -31,14 +31,26 @@ test("default worker-first root admits standalone and active-import async comput
     const workerSignals = await createSignals();
     const eagerCount = workerSignals.input(2, { debugName: "eagerCount" });
     const eagerDouble = workerSignals.computed(() => eagerCount() * 2);
+    const eagerNamedDouble = workerSignals.computedCallback(
+      "namedDouble",
+      () => eagerCount() * 2,
+    );
+    const eagerScopedTriple = workerSignals.scope("draft").computedCallback(
+      "namedTriple",
+      () => eagerCount() * 3,
+    );
     const eagerPanel = workerSignals.output(() => ({ total: eagerDouble() }));
     const eagerNamedPanel = workerSignals.scope("draft").outputCallback(
       "namedPanel",
-      () => ({ total: eagerCount() }),
+      () => ({ total: eagerNamedDouble(), triple: eagerScopedTriple() }),
     );
     assert.equal(eagerDouble(), 4);
+    assert.equal(eagerNamedDouble.id, "namedDouble");
+    assert.equal(eagerScopedTriple.id, "draft.namedTriple");
+    assert.equal(eagerNamedDouble(), 4);
+    assert.equal(eagerScopedTriple(), 6);
     assert.deepEqual(eagerPanel(), { total: 4 });
-    assert.deepEqual(eagerNamedPanel(), { total: 2 });
+    assert.deepEqual(eagerNamedPanel(), { total: 4, triple: 6 });
 
     const preImportCount = await workerSignals.inputAsync(2);
     const preImportDouble = await workerSignals.computedAsync({
@@ -76,8 +88,10 @@ test("default worker-first root admits standalone and active-import async comput
     });
     assert.equal(runSummary.touchedNodes > 0, true);
     assert.equal(eagerDouble(), 18);
+    assert.equal(eagerNamedDouble(), 18);
+    assert.equal(eagerScopedTriple(), 27);
     assert.deepEqual(eagerPanel(), { total: 18 });
-    assert.deepEqual(eagerNamedPanel(), { total: 9 });
+    assert.deepEqual(eagerNamedPanel(), { total: 18, triple: 27 });
     assert.equal(preImportDouble(), 14);
     assert.equal(preImportTriple(), 21);
     assert.deepEqual(preImportPanel(), { total: 14, triple: 21 });
@@ -90,6 +104,8 @@ test("default worker-first root admits standalone and active-import async comput
 
     assert.throws(() => preImportDouble(), /replaced the worker-owned runtime/);
     assert.throws(() => eagerDouble(), /replaced the worker-owned runtime/);
+    assert.throws(() => eagerNamedDouble(), /replaced the worker-owned runtime/);
+    assert.throws(() => eagerScopedTriple(), /replaced the worker-owned runtime/);
     assert.throws(() => eagerPanel(), /replaced the worker-owned runtime/);
     assert.throws(() => preImportTriple(), /replaced the worker-owned runtime/);
     assert.throws(() => preImportPanel(), /replaced the worker-owned runtime/);

@@ -13,10 +13,15 @@ import {
 } from "../host_capability_declarations.js";
 import { buildHostCapabilityDiagnosticsReport } from "../host_capability_reports.js";
 import {
+  createWorkerFirstHostSurface,
+  recordWorkerFirstAdmittedHostCapabilityRead,
+} from "./worker_first_denied_host_capabilities.js";
+import {
   recordFlushedEvent,
   recordIgnoredStaleEvent,
   recordNoOpEvent,
 } from "./worker_first_host_capability_events.js";
+import { scheduleWorkerFirstHostDependencyRefresh } from "./worker_first_host_dependency_refresh.js";
 import { createWorkerFirstPersistenceCapability } from "./worker_first_persistence_host_capability.js";
 
 export function createWorkerFirstHostCapabilities(rootSession, hostCapabilities) {
@@ -24,7 +29,7 @@ export function createWorkerFirstHostCapabilities(rootSession, hostCapabilities)
   const diagnosticsRecorder = createDiagnosticsRecorder();
   if (hostCapabilities === null) {
     return createWorkerFirstHostCapabilityManager(
-      Object.freeze({}),
+      createWorkerFirstHostSurface([], performanceSummary, diagnosticsRecorder),
       [],
       performanceSummary,
       diagnosticsRecorder,
@@ -34,6 +39,7 @@ export function createWorkerFirstHostCapabilities(rootSession, hostCapabilities)
   const registrations = [
     hostCapabilities.viewport && createViewportCapability(
       hostCapabilities.viewport,
+      rootSession,
       performanceSummary,
       diagnosticsRecorder,
     ),
@@ -46,6 +52,7 @@ export function createWorkerFirstHostCapabilities(rootSession, hostCapabilities)
         booleanMethodName: "isVisible",
         brand: HOST_VISIBILITY_HANDLE_BRAND,
       },
+      rootSession,
       performanceSummary,
       diagnosticsRecorder,
     ),
@@ -58,11 +65,13 @@ export function createWorkerFirstHostCapabilities(rootSession, hostCapabilities)
         booleanMethodName: "isOnline",
         brand: HOST_ONLINE_HANDLE_BRAND,
       },
+      rootSession,
       performanceSummary,
       diagnosticsRecorder,
     ),
     hostCapabilities.clock && createClockCapability(
       hostCapabilities.clock,
+      rootSession,
       performanceSummary,
       diagnosticsRecorder,
     ),
@@ -76,14 +85,7 @@ export function createWorkerFirstHostCapabilities(rootSession, hostCapabilities)
   performanceSummary.hostCapabilityRegistrationCount = registrations.length;
 
   return createWorkerFirstHostCapabilityManager(
-    freezeObject(
-      Object.fromEntries(
-        registrations.map((registration) => [
-          registration.handle.descriptor().family,
-          registration.handle,
-        ]),
-      ),
-    ),
+    createWorkerFirstHostSurface(registrations, performanceSummary, diagnosticsRecorder),
     registrations,
     performanceSummary,
     diagnosticsRecorder,
@@ -115,16 +117,17 @@ function createWorkerFirstHostCapabilityManager(
     recentEvents() {
       return Object.freeze(diagnosticsRecorder.recent());
     },
-    report() {
+    report(callbackHostDependencies = null) {
       return buildHostCapabilityDiagnosticsReport(
         performanceSummary,
         diagnosticsRecorder.recent(),
+        callbackHostDependencies,
       );
     },
   };
 }
 
-function createViewportCapability(registration, performanceSummary, diagnosticsRecorder) {
+function createViewportCapability(registration, rootSession, performanceSummary, diagnosticsRecorder) {
   const descriptor = freezeObject({
     family: "viewport",
     compatibility: registration.compatibility,
@@ -168,6 +171,7 @@ function createViewportCapability(registration, performanceSummary, diagnosticsR
         previousState,
         nextState,
       );
+      scheduleHostDependencyRefresh(rootSession, descriptor, performanceSummary, diagnosticsRecorder, "push-driven");
     }),
     "viewport",
   );
@@ -175,15 +179,15 @@ function createViewportCapability(registration, performanceSummary, diagnosticsR
   return {
     handle: freezeObject({
       size() {
-        performanceSummary.hostCapabilityReadCount += 1;
+        recordWorkerFirstAdmittedHostCapabilityRead(rootSession, descriptor, performanceSummary, diagnosticsRecorder, disposed);
         return currentState;
       },
       width() {
-        performanceSummary.hostCapabilityReadCount += 1;
+        recordWorkerFirstAdmittedHostCapabilityRead(rootSession, descriptor, performanceSummary, diagnosticsRecorder, disposed);
         return currentState.width;
       },
       height() {
-        performanceSummary.hostCapabilityReadCount += 1;
+        recordWorkerFirstAdmittedHostCapabilityRead(rootSession, descriptor, performanceSummary, diagnosticsRecorder, disposed);
         return currentState.height;
       },
       descriptor() {
@@ -207,7 +211,13 @@ function createViewportCapability(registration, performanceSummary, diagnosticsR
   };
 }
 
-function createBinaryCapability(registration, config, performanceSummary, diagnosticsRecorder) {
+function createBinaryCapability(
+  registration,
+  config,
+  rootSession,
+  performanceSummary,
+  diagnosticsRecorder,
+) {
   const descriptor = freezeObject({
     family: config.family,
     compatibility: registration.compatibility,
@@ -261,6 +271,7 @@ function createBinaryCapability(registration, config, performanceSummary, diagno
         previousState,
         nextState,
       );
+      scheduleHostDependencyRefresh(rootSession, descriptor, performanceSummary, diagnosticsRecorder, "push-driven");
     }),
     config.family,
   );
@@ -268,11 +279,11 @@ function createBinaryCapability(registration, config, performanceSummary, diagno
   return {
     handle: freezeObject({
       state() {
-        performanceSummary.hostCapabilityReadCount += 1;
+        recordWorkerFirstAdmittedHostCapabilityRead(rootSession, descriptor, performanceSummary, diagnosticsRecorder, disposed);
         return currentState;
       },
       [config.booleanMethodName]() {
-        performanceSummary.hostCapabilityReadCount += 1;
+        recordWorkerFirstAdmittedHostCapabilityRead(rootSession, descriptor, performanceSummary, diagnosticsRecorder, disposed);
         return currentState === config.positiveState;
       },
       descriptor() {
@@ -296,7 +307,7 @@ function createBinaryCapability(registration, config, performanceSummary, diagno
   };
 }
 
-function createClockCapability(registration, performanceSummary, diagnosticsRecorder) {
+function createClockCapability(registration, rootSession, performanceSummary, diagnosticsRecorder) {
   const descriptor = freezeObject({
     family: "clock",
     compatibility: registration.compatibility,
@@ -326,13 +337,14 @@ function createClockCapability(registration, performanceSummary, diagnosticsReco
       previousState,
       nextState,
     );
+    scheduleHostDependencyRefresh(rootSession, descriptor, performanceSummary, diagnosticsRecorder, "polled");
   }, registration.pollMs);
   intervalHandle.unref?.();
 
   return {
     handle: freezeObject({
       now() {
-        performanceSummary.hostCapabilityReadCount += 1;
+        recordWorkerFirstAdmittedHostCapabilityRead(rootSession, descriptor, performanceSummary, diagnosticsRecorder, disposed);
         return currentState;
       },
       descriptor() {
@@ -359,4 +371,20 @@ function createClockCapability(registration, performanceSummary, diagnosticsReco
 export function workerFirstHostCapabilitiesUnsupportedReason(hostCapabilities) {
   void hostCapabilities;
   return null;
+}
+
+function scheduleHostDependencyRefresh(
+  rootSession,
+  descriptor,
+  performanceSummary,
+  diagnosticsRecorder,
+  invalidationMode,
+) {
+  scheduleWorkerFirstHostDependencyRefresh({
+    rootSession,
+    descriptor,
+    performanceSummary,
+    diagnosticsRecorder,
+    invalidationMode,
+  });
 }

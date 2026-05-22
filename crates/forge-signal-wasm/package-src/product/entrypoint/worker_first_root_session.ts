@@ -7,7 +7,7 @@ import {
 import { createWorkerFirstRootMutation } from "./worker_first_root_mutation.js";
 import { createWorkerFirstRootObservationManager } from "./worker_first_root_observations.js";
 import { createWorkerFirstRootRuntimeReplacement } from "./worker_first_root_runtime_replacement.js";
-import { createWorkerFirstRootAuthoredRuntime } from "./sessions/support/worker_first_root_authored_runtime.js";
+import { createWorkerFirstRootAuthoredRuntime } from "./sessions/support/authored/worker_first_root_authored_runtime.js";
 import { buildActiveImportContext } from "./sessions/support/worker_first_root_import_context.js";
 
 export function createWorkerFirstRootSession(options = {}) {
@@ -36,7 +36,6 @@ class WorkerFirstRootSession {
       options.workerUrl === undefined ? {} : { workerUrl: options.workerUrl },
     );
     this.#observations = createWorkerFirstRootObservationManager();
-    this.#bootstrap = this.#bootstrapBridge();
     this.#activeImportController = null;
     this.#activeImportDependents = new Set();
     this.#activeImportContext = null;
@@ -54,11 +53,10 @@ class WorkerFirstRootSession {
       bridge: this.#bridge,
       observations: this.#observations,
       authoredRuntime: this.#authoredRuntime,
+      settlePendingMutations: () => this.#mutation.settlePendingMutations(),
       activeImportContext: () => this.#activeImportContext,
       activeImportController: () => this.#activeImportController,
-      setActiveImportContext: (context) => {
-        this.#activeImportContext = context;
-      },
+      setActiveImportContext: (context) => { this.#activeImportContext = context; },
       refreshBranchCache: () => this.#refreshBranchCache(),
       refreshActiveImportContext: () => this.refreshActiveImportContext(),
       refreshAfterHistoryMutation: (operation, activeImportContext) => this.#refreshAfterHistoryMutation(operation, activeImportContext),
@@ -72,9 +70,7 @@ class WorkerFirstRootSession {
       authoredRuntime: this.#authoredRuntime,
       activeImportContext: () => this.#activeImportContext,
       activeImportController: () => this.#activeImportController,
-      setActiveImportContext: (context) => {
-        this.#activeImportContext = context;
-      },
+      setActiveImportContext: (context) => { this.#activeImportContext = context; },
       refreshBranchCache: () => this.#refreshBranchCache(),
       currentImportContext: () => this.currentImportContext(),
       hasMutableInputId: (id) => this.hasMutableInputId(id),
@@ -92,6 +88,7 @@ class WorkerFirstRootSession {
       hostCapabilities: this.#hostCapabilities,
       invalidateActiveImport: (message) => this.#invalidateActiveImport(message),
     });
+    this.#bootstrap = this.#bootstrapBridge();
     this.#terminated = false;
   }
 
@@ -100,7 +97,7 @@ class WorkerFirstRootSession {
   hostSurface() { return this.#hostCapabilities.host; }
   latestHostCapabilityEvent() { return this.#hostCapabilities.latestEvent(); }
   recentHostCapabilityEvents() { return this.#hostCapabilities.recentEvents(); }
-  hostCapabilityReport() { return this.#hostCapabilities.report(); }
+  hostCapabilityReport() { return this.#hostCapabilities.report(this.#authoredRuntime.hostDependencyReport()); }
   watch(target, callback) { return this.#observations.watch(this.#bridge, target, callback); }
   effect(target, callback) { return this.#observations.effect(this.#bridge, target, callback); }
   nuke(handle) { return this.#observations.nuke(this.#bridge, handle); }
@@ -269,6 +266,9 @@ class WorkerFirstRootSession {
     return this.#historyLifecycle.mergeBranchesWithProof(sourceBranchId, targetBranchId);
   }
 
+  async mergeHistoryBranchesPolicyPreview(request) { return this.#historyLifecycle.mergeBranchesPolicyPreview(request); }
+  async mergeHistoryBranchesPolicyPreviewWithProof(request) { return this.#historyLifecycle.mergeBranchesPolicyPreviewWithProof(request); }
+
   async evaluateDirty() {
     return this.#historyLifecycle.evaluateDirty();
   }
@@ -315,13 +315,11 @@ class WorkerFirstRootSession {
     return this.#mutation.applyActiveTransaction(transactionOps);
   }
 
-  async applyActiveInputMutation(id, mutation) {
-    return this.#mutation.applyActiveInputMutation(id, mutation);
-  }
+  async applyActiveInputMutation(id, mutation) { return this.#mutation.applyActiveInputMutation(id, mutation); }
 
-  applyAuthoredInputMutation(id, mutation) {
-    return this.#mutation.applyAuthoredInputMutation(id, mutation);
-  }
+  async refreshHostCapabilityReadables(hostDependencyIds) { return this.#authoredRuntime.refreshReadables([], hostDependencyIds); }
+
+  applyAuthoredInputMutation(id, mutation) { return this.#mutation.applyAuthoredInputMutation(id, mutation); }
 
   #invalidateActiveImport(message) {
     if (this.#activeImportController === null) {

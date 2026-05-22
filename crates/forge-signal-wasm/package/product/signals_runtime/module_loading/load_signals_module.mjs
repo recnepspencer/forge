@@ -49,6 +49,10 @@ async function loadSignalsModuleIntoCachedTempDir(options, cacheKey) {
         "product/authoring_option_validation.js",
       ],
       [
+        "product/canonical_diagnostic_digest.ts",
+        "product/canonical_diagnostic_digest.js",
+      ],
+      [
         "product/entrypoint/construction/entrypoint_construction.ts",
         "product/entrypoint/construction/entrypoint_construction.js",
       ],
@@ -101,6 +105,18 @@ async function loadSignalsModuleIntoCachedTempDir(options, cacheKey) {
         "product/entrypoint/worker_first_sync_authoring.js",
       ],
       [
+        "product/entrypoint/worker_first_scope_handle.ts",
+        "product/entrypoint/worker_first_scope_handle.js",
+      ],
+      [
+        "product/entrypoint/worker_first_scope_identity.ts",
+        "product/entrypoint/worker_first_scope_identity.js",
+      ],
+      [
+        "product/entrypoint/worker_first_public_input_support.ts",
+        "product/entrypoint/worker_first_public_input_support.js",
+      ],
+      [
         "product/entrypoint/worker_first_form_factory.ts",
         "product/entrypoint/worker_first_form_factory.js",
       ],
@@ -145,8 +161,16 @@ async function loadSignalsModuleIntoCachedTempDir(options, cacheKey) {
         "product/entrypoint/worker_first_host_capabilities.js",
       ],
       [
+        "product/entrypoint/worker_first_denied_host_capabilities.ts",
+        "product/entrypoint/worker_first_denied_host_capabilities.js",
+      ],
+      [
         "product/entrypoint/worker_first_host_capability_events.ts",
         "product/entrypoint/worker_first_host_capability_events.js",
+      ],
+      [
+        "product/entrypoint/worker_first_host_dependency_refresh.ts",
+        "product/entrypoint/worker_first_host_dependency_refresh.js",
       ],
       [
         "product/entrypoint/worker_first_persistence_host_capability.ts",
@@ -193,20 +217,28 @@ async function loadSignalsModuleIntoCachedTempDir(options, cacheKey) {
         "product/entrypoint/sessions/support/worker_cached_value.js",
       ],
       [
-        "product/entrypoint/sessions/support/worker_first_authored_input_state.ts",
-        "product/entrypoint/sessions/support/worker_first_authored_input_state.js",
+        "product/entrypoint/sessions/support/authored/worker_first_authored_input_state.ts",
+        "product/entrypoint/sessions/support/authored/worker_first_authored_input_state.js",
       ],
       [
-        "product/entrypoint/sessions/support/worker_first_authored_readable_state.ts",
-        "product/entrypoint/sessions/support/worker_first_authored_readable_state.js",
+        "product/entrypoint/sessions/support/authored/worker_first_authored_readable_state.ts",
+        "product/entrypoint/sessions/support/authored/worker_first_authored_readable_state.js",
       ],
       [
-        "product/entrypoint/sessions/support/worker_first_authored_callback_capture.ts",
-        "product/entrypoint/sessions/support/worker_first_authored_callback_capture.js",
+        "product/entrypoint/sessions/support/authored/worker_first_authored_callback_authoring.ts",
+        "product/entrypoint/sessions/support/authored/worker_first_authored_callback_authoring.js",
       ],
       [
-        "product/entrypoint/sessions/support/worker_first_authored_readable_refresh.ts",
-        "product/entrypoint/sessions/support/worker_first_authored_readable_refresh.js",
+        "product/entrypoint/sessions/support/authored/worker_first_host_dependency_records.ts",
+        "product/entrypoint/sessions/support/authored/worker_first_host_dependency_records.js",
+      ],
+      [
+        "product/entrypoint/sessions/support/authored/worker_first_host_dependency_report.ts",
+        "product/entrypoint/sessions/support/authored/worker_first_host_dependency_report.js",
+      ],
+      [
+        "product/entrypoint/sessions/support/authored/worker_first_authored_readable_refresh.ts",
+        "product/entrypoint/sessions/support/authored/worker_first_authored_readable_refresh.js",
       ],
       [
         "product/entrypoint/sessions/support/worker_first_graph_inspection.ts",
@@ -221,8 +253,8 @@ async function loadSignalsModuleIntoCachedTempDir(options, cacheKey) {
         "product/entrypoint/sessions/support/worker_first_history_proofs.js",
       ],
       [
-        "product/entrypoint/sessions/support/worker_first_root_authored_runtime.ts",
-        "product/entrypoint/sessions/support/worker_first_root_authored_runtime.js",
+        "product/entrypoint/sessions/support/authored/worker_first_root_authored_runtime.ts",
+        "product/entrypoint/sessions/support/authored/worker_first_root_authored_runtime.js",
       ],
       [
         "product/entrypoint/sessions/support/worker_first_root_import_context.ts",
@@ -239,6 +271,18 @@ async function loadSignalsModuleIntoCachedTempDir(options, cacheKey) {
       [
         "product/entrypoint/worker_first_published_graph.ts",
         "product/entrypoint/worker_first_published_graph.js",
+      ],
+      [
+        "product/entrypoint/worker_first_published_graph_surface.ts",
+        "product/entrypoint/worker_first_published_graph_surface.js",
+      ],
+      [
+        "product/entrypoint/worker_first_published_graph_transaction.ts",
+        "product/entrypoint/worker_first_published_graph_transaction.js",
+      ],
+      [
+        "product/entrypoint/worker_first_root_graph_inspection.ts",
+        "product/entrypoint/worker_first_root_graph_inspection.js",
       ],
       [
         "product/entrypoint/sessions/support/worker_first_published_graph_mutation.ts",

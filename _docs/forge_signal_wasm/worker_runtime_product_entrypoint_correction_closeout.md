@@ -65,11 +65,13 @@ Worker-root responsibility boundaries:
 
 Worker-first authored runtime support:
 
-- [worker_first_root_authored_runtime.ts](../../crates/forge-signal-wasm/package-src/product/entrypoint/sessions/support/worker_first_root_authored_runtime.ts)
-- [worker_first_authored_input_state.ts](../../crates/forge-signal-wasm/package-src/product/entrypoint/sessions/support/worker_first_authored_input_state.ts)
-- [worker_first_authored_readable_state.ts](../../crates/forge-signal-wasm/package-src/product/entrypoint/sessions/support/worker_first_authored_readable_state.ts)
-- [worker_first_authored_callback_capture.ts](../../crates/forge-signal-wasm/package-src/product/entrypoint/sessions/support/worker_first_authored_callback_capture.ts)
-- [worker_first_authored_readable_refresh.ts](../../crates/forge-signal-wasm/package-src/product/entrypoint/sessions/support/worker_first_authored_readable_refresh.ts)
+- [worker_first_root_authored_runtime.ts](../../crates/forge-signal-wasm/package-src/product/entrypoint/sessions/support/authored/worker_first_root_authored_runtime.ts)
+- [worker_first_authored_input_state.ts](../../crates/forge-signal-wasm/package-src/product/entrypoint/sessions/support/authored/worker_first_authored_input_state.ts)
+- [worker_first_authored_readable_state.ts](../../crates/forge-signal-wasm/package-src/product/entrypoint/sessions/support/authored/worker_first_authored_readable_state.ts)
+- [worker_first_authored_callback_authoring.ts](../../crates/forge-signal-wasm/package-src/product/entrypoint/sessions/support/authored/worker_first_authored_callback_authoring.ts)
+- [worker_first_authored_readable_refresh.ts](../../crates/forge-signal-wasm/package-src/product/entrypoint/sessions/support/authored/worker_first_authored_readable_refresh.ts)
+- [worker_first_host_dependency_records.ts](../../crates/forge-signal-wasm/package-src/product/entrypoint/sessions/support/authored/worker_first_host_dependency_records.ts)
+- [worker_first_host_dependency_report.ts](../../crates/forge-signal-wasm/package-src/product/entrypoint/sessions/support/authored/worker_first_host_dependency_report.ts)
 
 Compatibility and construction explanation surfaces:
 
@@ -149,8 +151,8 @@ The current alignment proof rejects:
 
 ## Final Verification Captured
 
-The closeout verification record for the corrected worker-first package surface
-is:
+The refreshed closeout verification record for the corrected worker-first
+package surface is:
 
 ```sh
 npm --prefix crates/forge-signal-wasm run typecheck:package-surface
@@ -163,13 +165,22 @@ node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm
   crates/forge-signal-wasm/package/product/signals.runtime.test.mjs
 ```
 
-Captured aggregate result:
+Captured result on 2026-05-21:
 
-- `257` tests passed
-- `0` failed
+- `npm --prefix crates/forge-signal-wasm run typecheck:package-surface` passed
+- `git diff --check` passed
+- construction aggregate passed with `36/36`
+- `wasm-pack build crates/forge-signal-wasm --target bundler --release --out-dir pkg` passed
+- `node scripts/wasm/prepare-forge-signal-wasm-package.mjs crates/forge-signal-wasm/pkg` passed
+- `signals.runtime.test.mjs` passed with `271/271`
 
-The known wrapper-thruput concern did not block the final release-build
-aggregate run.
+The refreshed aggregate rerun also caught and closed two real post-closeout
+drifts:
+
+- scoped worker-first linked handles were dropping `relink()` during scope
+  decoration
+- forms closeout/doc tests were still resolving docs and metadata from the
+  repository root instead of the crate-local docs tree
 
 ## Honest Residual Boundaries
 

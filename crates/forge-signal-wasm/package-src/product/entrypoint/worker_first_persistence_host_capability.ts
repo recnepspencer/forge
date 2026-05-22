@@ -1,12 +1,14 @@
 import {
   HOST_PERSISTENCE_HANDLE_BRAND,
 } from "../host_capability_declarations.js";
+import { recordHostCapabilityRead } from "../callback_frames.js";
 import { freezeObject } from "../graph_support.js";
-import { createAuthoredInputPublication } from "./sessions/support/worker_first_authored_input_state.js";
+import { createAuthoredInputPublication } from "./sessions/support/authored/worker_first_authored_input_state.js";
 import { materializeWorkerCachedValue } from "./sessions/support/worker_cached_value.js";
+import { throwDetachedWorkerFirstHostCapabilityRead } from "./worker_first_denied_host_capabilities.js";
+import { refreshWorkerFirstHostDependencyOrThrow } from "./worker_first_host_dependency_refresh.js";
 import {
   recordFlushedEvent,
-  recordIgnoredStaleEvent,
   recordNoOpEvent,
 } from "./worker_first_host_capability_events.js";
 
@@ -28,7 +30,15 @@ export function createWorkerFirstPersistenceCapability(
   return {
     handle: freezeObject({
       value() {
+        if (disposed) {
+          throwDetachedWorkerFirstHostCapabilityRead(
+            performanceSummary,
+            diagnosticsRecorder,
+            descriptor,
+          );
+        }
         performanceSummary.hostCapabilityReadCount += 1;
+        recordHostCapabilityRead(rootSession, descriptor);
         return committedState;
       },
       commit() {
@@ -63,14 +73,11 @@ export function createWorkerFirstPersistenceCapability(
 
   async function commitPersistence() {
     if (disposed) {
-      recordIgnoredStaleEvent(
+      throwDetachedWorkerFirstHostCapabilityRead(
         performanceSummary,
         diagnosticsRecorder,
         descriptor,
-        "manually-committed",
-        committedState,
       );
-      return { touchedNodes: 0, nodesRecomputed: 0 };
     }
     performanceSummary.hostCapabilityManualCommitCount += 1;
     const nextState = materializeWorkerCachedValue(registration.source.current());
@@ -112,6 +119,13 @@ export function createWorkerFirstPersistenceCapability(
       touchedNodes,
       reevaluatedNodes,
     );
+    await refreshWorkerFirstHostDependencyOrThrow({
+      rootSession,
+      descriptor,
+      performanceSummary,
+      diagnosticsRecorder,
+      invalidationMode: "manually-committed",
+    });
     return result.runSummary ?? { touchedNodes, nodesRecomputed: reevaluatedNodes };
   }
 }

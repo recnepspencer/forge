@@ -1,4 +1,4 @@
-import { materializeWorkerCachedValue } from "./worker_cached_value.js";
+import { materializeWorkerCachedValue } from "../worker_cached_value.js";
 
 export function nextGeneratedStandaloneSignalId(counters, family, scopeId = null) {
   const counterKey = scopeId ?? "__root__";

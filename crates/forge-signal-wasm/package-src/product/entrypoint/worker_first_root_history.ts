@@ -146,10 +146,10 @@ export function createRootHistoryFacade(rootSession) {
       return rootSession.bridge().planMergePolicyPreviewWithProof(request);
     },
     merge_branches_policy_preview(request) {
-      return rootSession.bridge().mergeBranchesPolicyPreview(request);
+      return rootSession.mergeHistoryBranchesPolicyPreview(request);
     },
     merge_branches_policy_preview_with_proof(request) {
-      return rootSession.bridge().mergeBranchesPolicyPreviewWithProof(request);
+      return rootSession.mergeHistoryBranchesPolicyPreviewWithProof(request);
     },
     branch_state_proof(branchId) {
       return requireWorkerFirstBranchValue(

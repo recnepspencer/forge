@@ -6,6 +6,7 @@ export function createWorkerFirstRootHistoryLifecycle(deps) {
       await deps.ready();
       deps.requireActive("history.create_branch");
       await deps.authoredRuntime.settlePendingPublications();
+      await deps.settlePendingMutations();
       const branch = await deps.bridge.createBranch(name);
       await deps.refreshAfterHistoryMutation("history.create_branch", deps.activeImportContext());
       return branch;
@@ -14,6 +15,7 @@ export function createWorkerFirstRootHistoryLifecycle(deps) {
       await deps.ready();
       deps.requireActive("history.switch_branch");
       await deps.authoredRuntime.settlePendingPublications();
+      await deps.settlePendingMutations();
       await deps.bridge.switchBranch(branchId);
       await deps.refreshAfterHistoryMutation("history.switch_branch", deps.activeImportContext());
     },
@@ -21,6 +23,7 @@ export function createWorkerFirstRootHistoryLifecycle(deps) {
       await deps.ready();
       deps.requireActive("history.restore_snapshot");
       await deps.authoredRuntime.settlePendingPublications();
+      await deps.settlePendingMutations();
       const activeImportContext = deps.activeImportContext();
       await deps.bridge.restoreSnapshotEnvelope(snapshotEnvelope);
       await deps.refreshAfterHistoryMutation("history.restore_snapshot", activeImportContext);
@@ -29,6 +32,7 @@ export function createWorkerFirstRootHistoryLifecycle(deps) {
       await deps.ready();
       deps.requireActive("history.restore_exact_snapshot");
       await deps.authoredRuntime.settlePendingPublications();
+      await deps.settlePendingMutations();
       const activeImportContext = deps.activeImportContext();
       await deps.bridge.restoreSnapshotEnvelopeWire(restoreToken);
       await deps.refreshAfterHistoryMutation("history.restore_exact_snapshot", activeImportContext);
@@ -37,6 +41,7 @@ export function createWorkerFirstRootHistoryLifecycle(deps) {
       await deps.ready();
       deps.requireActive("history.restore_snapshot");
       await deps.authoredRuntime.settlePendingPublications();
+      await deps.settlePendingMutations();
       const activeImportContext = deps.activeImportContext();
       await deps.bridge.restoreSnapshotEnvelopePortableWire(portableWire);
       await deps.refreshAfterHistoryMutation("history.restore_snapshot", activeImportContext);
@@ -45,6 +50,7 @@ export function createWorkerFirstRootHistoryLifecycle(deps) {
       await deps.ready();
       deps.requireActive("history.restore_branch_snapshot");
       await deps.authoredRuntime.settlePendingPublications();
+      await deps.settlePendingMutations();
       const activeImportContext = deps.activeImportContext();
       await deps.bridge.restoreBranchSnapshotArtifact(branchId, snapshot);
       await deps.refreshAfterHistoryMutation("history.restore_branch_snapshot", activeImportContext);
@@ -53,6 +59,7 @@ export function createWorkerFirstRootHistoryLifecycle(deps) {
       await deps.ready();
       deps.requireActive("history.restore_exact_branch_snapshot");
       await deps.authoredRuntime.settlePendingPublications();
+      await deps.settlePendingMutations();
       const activeImportContext = deps.activeImportContext();
       await deps.bridge.restoreBranchSnapshotWire(branchId, restoreToken);
       await deps.refreshAfterHistoryMutation(
@@ -64,6 +71,7 @@ export function createWorkerFirstRootHistoryLifecycle(deps) {
       await deps.ready();
       deps.requireActive("history.restore_branch_snapshot");
       await deps.authoredRuntime.settlePendingPublications();
+      await deps.settlePendingMutations();
       const activeImportContext = deps.activeImportContext();
       await deps.bridge.restoreBranchSnapshotPortableWire(branchId, portableWire);
       await deps.refreshAfterHistoryMutation("history.restore_branch_snapshot", activeImportContext);
@@ -72,6 +80,7 @@ export function createWorkerFirstRootHistoryLifecycle(deps) {
       await deps.ready();
       deps.requireActive("history.restore_branch_snapshot_by_id");
       await deps.authoredRuntime.settlePendingPublications();
+      await deps.settlePendingMutations();
       const activeImportContext = deps.activeImportContext();
       await deps.bridge.restoreBranchSnapshotById(branchId, snapshotId);
       await deps.refreshAfterHistoryMutation(
@@ -83,6 +92,7 @@ export function createWorkerFirstRootHistoryLifecycle(deps) {
       await deps.ready();
       deps.requireActive("history.merge_branches");
       await deps.authoredRuntime.settlePendingPublications();
+      await deps.settlePendingMutations();
       const activeImportContext = deps.activeImportContext();
       const result = await deps.bridge.mergeBranches(sourceBranchId, targetBranchId);
       await deps.refreshAfterHistoryMutation("history.merge_branches", activeImportContext);
@@ -92,6 +102,7 @@ export function createWorkerFirstRootHistoryLifecycle(deps) {
       await deps.ready();
       deps.requireActive("history.merge_branches_with_proof");
       await deps.authoredRuntime.settlePendingPublications();
+      await deps.settlePendingMutations();
       const activeImportContext = deps.activeImportContext();
       const envelope = await deps.bridge.mergeBranchesWithProof(sourceBranchId, targetBranchId);
       await deps.refreshAfterHistoryMutation(
@@ -100,10 +111,37 @@ export function createWorkerFirstRootHistoryLifecycle(deps) {
       );
       return envelope;
     },
+    async mergeBranchesPolicyPreview(request) {
+      await deps.ready();
+      deps.requireActive("history.merge_branches_policy_preview");
+      await deps.authoredRuntime.settlePendingPublications();
+      await deps.settlePendingMutations();
+      const activeImportContext = deps.activeImportContext();
+      const result = await deps.bridge.mergeBranchesPolicyPreview(request);
+      await deps.refreshAfterHistoryMutation(
+        "history.merge_branches_policy_preview",
+        activeImportContext,
+      );
+      return result;
+    },
+    async mergeBranchesPolicyPreviewWithProof(request) {
+      await deps.ready();
+      deps.requireActive("history.merge_branches_policy_preview_with_proof");
+      await deps.authoredRuntime.settlePendingPublications();
+      await deps.settlePendingMutations();
+      const activeImportContext = deps.activeImportContext();
+      const envelope = await deps.bridge.mergeBranchesPolicyPreviewWithProof(request);
+      await deps.refreshAfterHistoryMutation(
+        "history.merge_branches_policy_preview_with_proof",
+        activeImportContext,
+      );
+      return envelope;
+    },
     async evaluateDirty() {
       await deps.ready();
       deps.requireActive("specialist.evaluateDirty");
       await deps.authoredRuntime.settlePendingPublications();
+      await deps.settlePendingMutations();
       const runSummary = await deps.bridge.evaluateDirty();
       await deps.refreshBranchCache();
       if (deps.activeImportContext() !== null) {

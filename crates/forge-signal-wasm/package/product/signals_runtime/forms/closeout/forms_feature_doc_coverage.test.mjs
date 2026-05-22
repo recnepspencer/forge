@@ -3,7 +3,8 @@ import fs from "node:fs";
 import path from "node:path";
 import test from "node:test";
 
-const docsDir = path.resolve("docs");
+import { formsDocsRoot as docsDir } from "./forms_docs_root.mjs";
+
 const inventoryPath = path.join(docsDir, "metadata/forms-feature-doc-inventory.json");
 
 function readDoc(name) {

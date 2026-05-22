@@ -3,7 +3,7 @@ import {
   requireAuthoringOptions,
 } from "../authoring_option_validation.js";
 import { freezeObject } from "../graph_support.js";
-import { CONTROLLER_CONTRACT, PRIVATE_AUTHORING_ID, PUBLIC_GRAPH_INPUT } from "../symbols.js";
+import { CONTROLLER_CONTRACT, PRIVATE_AUTHORING_ID } from "../symbols.js";
 import { createWorkerFirstAsyncInputHandle } from "./worker_first_async_input.js";
 import { createWorkerFirstAsyncLinkedHandle } from "./worker_first_async_linked.js";
 import {
@@ -12,10 +12,24 @@ import {
 } from "./worker_first_async_recipe.js";
 import { createWorkerFirstExplicitSpecNamespace } from "./worker_first_explicit_spec_namespace.js";
 import { createWorkerFirstFormFactory } from "./worker_first_form_factory.js";
+import {
+  createWorkerFirstPublicInputEntry,
+  isWorkerFirstPublicGraphInputEntry,
+  requireWorkerFirstInputHandle,
+  requireWorkerFirstSignalHandle,
+} from "./worker_first_public_input_support.js";
 import { createWorkerFirstResourceNamespace } from "./worker_first_resource_namespace.js";
 import { createWorkerFirstRootGraph } from "./worker_first_root_graph.js";
 import { createRootHistoryFacade } from "./worker_first_root_history.js";
+import { decorateWorkerFirstScopedHandle } from "./worker_first_scope_handle.js";
 import {
+  canonicalWorkerFirstScopedSignalId,
+  createWorkerFirstScopeDescriptor,
+  createWorkerFirstScopedSignalIdentity,
+  requireWorkerFirstScopeLocalId,
+} from "./worker_first_scope_identity.js";
+import {
+  createWorkerFirstSyncComputedCallbackHandle,
   createWorkerFirstSyncInputHandle,
   createWorkerFirstSyncLinkedHandle,
   createWorkerFirstSyncOutputCallbackHandle,
@@ -34,6 +48,12 @@ function createNamespace(rootSession, path) {
   let resource = null;
   let api = null;
   let spec = null;
+  const descriptor = createWorkerFirstScopeDescriptor(path);
+  const tagHandle = (handle, localId = null) => decorateWorkerFirstScopedHandle(
+    handle,
+    descriptor,
+    typeof localId === "string" ? createWorkerFirstScopedSignalIdentity(path, localId) : null,
+  );
 
   const namespace = {
     host: rootSession.hostSurface(),
@@ -76,13 +96,13 @@ function createNamespace(rootSession, path) {
       const localId = normalizedOptions?.[PRIVATE_AUTHORING_ID] ?? null;
       const canonicalId = localId === null
         ? rootSession.nextGeneratedStandaloneSignalId("input", path.join(".") || null)
-        : canonicalScopedInputId(path, localId);
-      return createWorkerFirstSyncInputHandle(
+        : canonicalWorkerFirstScopedSignalId(path, localId);
+      return tagHandle(createWorkerFirstSyncInputHandle(
         rootSession,
         canonicalId,
         initial,
         normalizedOptions,
-      );
+      ), localId);
     },
     async inputAsync(initial, options) {
       const normalizedOptions = normalizeWorkerFirstScopedInputOptions(
@@ -92,69 +112,122 @@ function createNamespace(rootSession, path) {
       const localId = normalizedOptions?.[PRIVATE_AUTHORING_ID] ?? null;
       const canonicalId = localId === null
         ? rootSession.nextGeneratedStandaloneSignalId("input", path.join(".") || null)
-        : canonicalScopedInputId(path, localId);
+        : canonicalWorkerFirstScopedSignalId(path, localId);
       await rootSession.createStandaloneInput(canonicalId, initial, normalizedOptions);
-      return createWorkerFirstAsyncInputHandle(
+      return tagHandle(createWorkerFirstAsyncInputHandle(
         rootSession,
         canonicalId,
         normalizedOptions?.debugName ?? null,
-      );
+      ), localId);
     },
     linked() {
-      return createWorkerFirstSyncLinkedHandle(
+      return tagHandle(createWorkerFirstSyncLinkedHandle(
         rootSession,
         rootSession.nextGeneratedStandaloneSignalId("input", path.join(".") || null),
         arguments[0],
         arguments[1],
-      );
+      ));
     },
     async linkedAsync(sourceOrDefinition, options) {
-      return createWorkerFirstAsyncLinkedHandle(rootSession, rootSession.nextGeneratedStandaloneSignalId("input", path.join(".") || null), sourceOrDefinition, options);
+      return tagHandle(
+        await createWorkerFirstAsyncLinkedHandle(
+          rootSession,
+          rootSession.nextGeneratedStandaloneSignalId("input", path.join(".") || null),
+          sourceOrDefinition,
+          options,
+        ),
+      );
     },
     computedSpec() {
-      return this.spec.computed(...arguments);
+      return tagHandle(this.spec.computed(...arguments), arguments[0]);
     },
     computed() {
-      return createWorkerFirstSyncRecipeHandle(
+      return tagHandle(createWorkerFirstSyncRecipeHandle(
         rootSession,
         "computed",
         rootSession.nextGeneratedStandaloneSignalId("computed", path.join(".") || null),
         arguments[0],
         arguments[1],
         `${operationPrefix}.computed`,
-      );
+      ));
     },
     async computedAsync(specOrCompute, options) {
       const normalizedOptions = normalizeWorkerFirstAsyncRecipeOptions("computed", options);
-      return createWorkerFirstAsyncRecipeHandle(rootSession, "computed", rootSession.nextGeneratedStandaloneSignalId("computed", path.join(".") || null), specOrCompute, normalizedOptions);
+      return tagHandle(
+        await createWorkerFirstAsyncRecipeHandle(
+          rootSession,
+          "computed",
+          rootSession.nextGeneratedStandaloneSignalId("computed", path.join(".") || null),
+          specOrCompute,
+          normalizedOptions,
+        ),
+      );
+    },
+    computedCallback() {
+      return tagHandle(createWorkerFirstSyncComputedCallbackHandle(
+        rootSession,
+        canonicalWorkerFirstScopedSignalId(path, arguments[0]),
+        arguments[1],
+        arguments[2],
+      ), arguments[0]);
     },
     outputSpec() {
-      return this.spec.output(...arguments);
+      return tagHandle(this.spec.output(...arguments), arguments[0]);
     },
     output() {
-      return createWorkerFirstSyncRecipeHandle(
+      return tagHandle(createWorkerFirstSyncRecipeHandle(
         rootSession,
         "output",
         rootSession.nextGeneratedStandaloneSignalId("output", path.join(".") || null),
         arguments[0],
         arguments[1],
         `${operationPrefix}.output`,
-      );
+      ));
     },
     async outputAsync(specOrCompute, options) {
       const normalizedOptions = normalizeWorkerFirstAsyncRecipeOptions("output", options);
-      return createWorkerFirstAsyncRecipeHandle(rootSession, "output", rootSession.nextGeneratedStandaloneSignalId("output", path.join(".") || null), specOrCompute, normalizedOptions);
+      return tagHandle(
+        await createWorkerFirstAsyncRecipeHandle(
+          rootSession,
+          "output",
+          rootSession.nextGeneratedStandaloneSignalId("output", path.join(".") || null),
+          specOrCompute,
+          normalizedOptions,
+        ),
+      );
     },
     outputCallback() {
-      return createWorkerFirstSyncOutputCallbackHandle(
+      return tagHandle(createWorkerFirstSyncOutputCallbackHandle(
         rootSession,
-        canonicalScopedInputId(path, arguments[0]),
+        canonicalWorkerFirstScopedSignalId(path, arguments[0]),
         arguments[1],
         arguments[2],
-      );
+      ), arguments[0]);
     },
     graph() {
       return createWorkerFirstRootGraph(rootSession, path, ...arguments);
+    },
+    canonicalId(localId) {
+      return canonicalWorkerFirstScopedSignalId(path, localId);
+    },
+    signalIdentity(localId) {
+      requireWorkerFirstScopeLocalId(localId);
+      return createWorkerFirstScopedSignalIdentity(path, localId);
+    },
+    descriptor() {
+      return descriptor;
+    },
+    get scopeId() {
+      return descriptor.id;
+    },
+    get localScopeId() {
+      return descriptor.localScopeId;
+    },
+    get parentScopeId() {
+      return descriptor.parentScopeId;
+    },
+    get graphOwnerId() {
+      return descriptor.graphOwnerId;
     },
   };
   return namespace;
@@ -227,92 +300,6 @@ function requireControllerInternalRecord(record) {
   return freezeObject(clone);
 }
 
-function createWorkerFirstPublicInputEntry(rootSession, handle, options) {
-  const normalizedHandle = requireWorkerFirstInputHandle(
-    rootSession,
-    handle,
-    "signals.publicInput(...)",
-  );
-  const normalizedOptions = normalizePublicInputOptions(options);
-  return freezeObject({
-    handle: normalizedHandle,
-    authority: normalizedOptions.authority,
-    requiredness: normalizedOptions.requiredness,
-    [PUBLIC_GRAPH_INPUT]: true,
-  });
-}
-
-function normalizePublicInputOptions(options) {
-  if (options === undefined) {
-    return { authority: "writable", requiredness: "required" };
-  }
-  if (!isPlainObject(options)) {
-    throw new TypeError("signals.publicInput(...) options must be an object when provided");
-  }
-  return {
-    authority: requireAuthority(options.authority),
-    requiredness: requireRequiredness(options.requiredness),
-  };
-}
-
-function requireWorkerFirstInputHandle(rootSession, handle, operation) {
-  const normalizedHandle = requireWorkerFirstSignalHandle(
-    rootSession,
-    handle,
-    `${operation} expects a worker-first input handle`,
-  );
-  if (
-    !rootSession.hasMutableInputId(normalizedHandle.id)
-    || typeof normalizedHandle.set !== "function"
-    || typeof normalizedHandle.reset !== "function"
-    || typeof normalizedHandle.patch !== "function"
-    || typeof normalizedHandle.assign !== "function"
-  ) {
-    throw new TypeError(`${operation} expects a worker-first input handle`);
-  }
-  return normalizedHandle;
-}
-
-function requireWorkerFirstSignalHandle(rootSession, handle, message) {
-  if (
-    typeof handle !== "function"
-    || typeof handle.id !== "string"
-    || handle.id.length === 0
-    || !rootSession.hasKnownSignalId(handle.id)
-  ) {
-    throw new TypeError(message);
-  }
-  return handle;
-}
-
-function isWorkerFirstPublicGraphInputEntry(candidate) {
-  return isPlainObject(candidate) && candidate[PUBLIC_GRAPH_INPUT] === true;
-}
-
-function requireAuthority(authority) {
-  if (authority === undefined) {
-    return "writable";
-  }
-  if (authority !== "writable" && authority !== "readOnly" && authority !== "imported") {
-    throw new TypeError(
-      `signals.publicInput(...) authority must be "writable", "readOnly", or "imported" when provided`,
-    );
-  }
-  return authority;
-}
-
-function requireRequiredness(requiredness) {
-  if (requiredness === undefined) {
-    return "required";
-  }
-  if (requiredness !== "required" && requiredness !== "optional") {
-    throw new TypeError(
-      'signals.publicInput(...) requiredness must be "required" or "optional" when provided',
-    );
-  }
-  return requiredness;
-}
-
 function normalizeWorkerFirstScopedInputOptions(operationPrefix, options) {
   if (options === undefined) {
     return undefined;
@@ -328,45 +315,6 @@ function normalizeWorkerFirstScopedInputOptions(operationPrefix, options) {
     };
   }
   return normalized;
-}
-
-function canonicalScopedInputId(path, localId) {
-  requireNonEmptyString(localId, "worker-first scoped inputAsync requires a non-empty local id");
-  return path.length === 0 ? localId : `${path.join(".")}.${localId}`;
-}
-
-function createUnavailableNamespace(operation) {
-  return new Proxy(
-    freezeObject({}),
-    {
-      get() {
-        throwWorkerFirstCallableUnavailable(operation);
-      },
-      has() {
-        return false;
-      },
-      ownKeys() {
-        return [];
-      },
-      getOwnPropertyDescriptor() {
-        return undefined;
-      },
-    },
-  );
-}
-
-function throwWorkerFirstCallableUnavailable(operation) {
-  const error = new Error(
-    `${operation} is unavailable on the current worker-first callable surface; use deployment: "mainThreadCompatibility" for authoring and root runtime operations beyond imported graph hydration`,
-  );
-  error.name = "WorkerFirstCallableSurfaceUnavailable";
-  error.code = "workerFirstCallableSurfaceUnavailable";
-  error.compatibilityRecovery = Object.freeze({
-    deployment: "mainThreadCompatibility",
-    message:
-      'Retry with deployment: "mainThreadCompatibility" to use the full callable root surface.',
-  });
-  throw error;
 }
 
 function requireRecord(candidate, fieldName) {

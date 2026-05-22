@@ -11,6 +11,20 @@ import {
 } from "./sessions/support/worker_first_published_graph_mutation.js";
 import { materializeWorkerCachedValue } from "./sessions/support/worker_cached_value.js";
 import { createWorkerRuntimeBridge } from "./bridge/worker_runtime_bridge.js";
+import { createWorkerFirstDiagnosticsFacade } from "./worker_first_diagnostics.js";
+import { createWorkerFirstHistoryFacade } from "./worker_first_history.js";
+import { createWorkerFirstAdaptersFacade } from "./worker_first_adapters.js";
+import {
+  buildImportedInputSignalRecord,
+  buildImportedSignalRecord,
+} from "./sessions/support/worker_first_imported_graph_support.js";
+import {
+  createWorkerFirstPublishedGraphSpecialistFacade,
+  exportWorkerFirstPublishedGraphSnapshot,
+  throwWorkerFirstPublishedGraphUnavailable,
+} from "./worker_first_published_graph_surface.js";
+import { buildGraphContractDelta } from "../graph_support.js";
+import { runWorkerFirstPublishedGraphTransaction } from "./worker_first_published_graph_transaction.js";
 
 export async function createWorkerFirstPublishedGraphSession(options) {
   const session = new WorkerFirstPublishedGraphSession(options);
@@ -27,6 +41,8 @@ class WorkerFirstPublishedGraphSession {
   #outputDescriptorsByName;
   #trackedInputIds;
   #trackedOutputIds;
+  #inputs;
+  #outputs;
   #cachedInputs;
   #cachedOutputs;
   #cachedDiagnosticsSummary;
@@ -45,6 +61,21 @@ class WorkerFirstPublishedGraphSession {
     this.#outputDescriptorsByName = normalized.outputDescriptorsByName;
     this.#trackedInputIds = normalized.trackedInputIds;
     this.#trackedOutputIds = normalized.trackedOutputIds;
+    this.#inputs = buildImportedInputSignalRecord(
+      this,
+      this.#definition.inputDescriptors,
+      "inputName",
+      (descriptor) => descriptor.sourceId,
+      (descriptor) => this.readInput(descriptor.inputName),
+      (mutation) => this.apply(mutation),
+    );
+    this.#outputs = buildImportedSignalRecord(
+      this,
+      this.#definition.descriptors,
+      "outputName",
+      (descriptor) => descriptor.publishedId,
+      (descriptor) => this.readOutput(descriptor.outputName),
+    );
     this.#cachedInputs = new Map();
     this.#cachedOutputs = new Map();
     this.#cachedDiagnosticsSummary = null;
@@ -63,13 +94,22 @@ class WorkerFirstPublishedGraphSession {
   }
 
   api() {
+    let diagnostics = null;
+    let history = null;
+    let adapters = null;
+    let specialist = null;
     return Object.freeze({
       id: this.#definition.id,
+      inputs: this.#inputs,
+      outputs: this.#outputs,
       summary: () => this.#definition.summary,
       contract: () => this.#definition.contract,
+      contractDelta: (previousContract) => buildGraphContractDelta(this.#definition.contract, previousContract),
       operationalContract: () => this.#definition.operationalContract,
       inputDescriptors: () => this.#definition.inputDescriptors,
       descriptors: () => this.#definition.descriptors,
+      input: (name) => this.input(name),
+      output: (name) => this.output(name),
       read: () => this.read(),
       readInputs: () => this.readInputs(),
       readInput: (name) => this.readInput(name),
@@ -85,16 +125,32 @@ class WorkerFirstPublishedGraphSession {
       resetInputs: (names) => this.resetInputs(names),
       resetInput: (name) => this.resetInput(name),
       apply: (mutation) => this.apply(mutation),
+      transaction: (callback) => this.transaction(callback),
+      transactionAsync: (callback) => this.transactionAsync(callback),
+      batchAsync: (callback) => this.batchAsync(callback),
       diagnosticsSummary: () => this.diagnosticsSummary(),
       diagnosticsHistory: () => this.diagnosticsHistory(),
       inspectDiagnostics: () => this.inspectDiagnostics(),
       inspectHistory: () => this.inspectHistory(),
       exportCompatibilityDefinition: () => this.exportCompatibilityDefinition(),
       exportDefinition: () => this.exportDefinition(),
+      exportSnapshot: () => this.exportSnapshot(),
+      diagnostics: () => (diagnostics ??= createWorkerFirstDiagnosticsFacade(this)),
+      history: () => (history ??= createWorkerFirstHistoryFacade(this)),
+      specialist: () => (specialist ??= createWorkerFirstPublishedGraphSpecialistFacade(this)),
+      adapters: () => (adapters ??= createWorkerFirstAdaptersFacade(this)),
+      compatibilityApp: () => throwWorkerFirstPublishedGraphUnavailable(this.#definition.id, "compatibilityApp"),
+      compatibilityRuntime: () =>
+        throwWorkerFirstPublishedGraphUnavailable(this.#definition.id, "compatibilityRuntime"),
       runtimeProofReport: () => this.runtimeProofReport(),
       terminate: () => this.terminate(),
     });
   }
+
+  get bridge() { return this.#bridge; }
+  get definition() { return this.#definition; }
+  get inputDescriptorsByName() { return this.#inputDescriptorsByName; }
+  get inputAuthoritiesByName() { return this.#inputAuthoritiesByName; }
 
   read() {
     this.#requireActive("read");
@@ -184,6 +240,22 @@ class WorkerFirstPublishedGraphSession {
   async resetInput(name) {
     return this.apply({ reset: [name] });
   }
+
+  async transaction(callback) { this.#requireActive("transaction"); return runWorkerFirstPublishedGraphTransaction(this, callback, "transaction"); }
+  async transactionAsync(callback) { this.#requireActive("transactionAsync"); return runWorkerFirstPublishedGraphTransaction(this, callback, "transactionAsync"); }
+  async batchAsync(callback) { this.#requireActive("batchAsync"); return runWorkerFirstPublishedGraphTransaction(this, callback, "batchAsync"); }
+  input(name) {
+    this.#requireActive("input");
+    const descriptor = requireKnownInputDescriptor(this.#inputDescriptorsByName, this.#definition.id, name);
+    return this.#inputs[descriptor.inputName];
+  }
+
+  output(name) {
+    this.#requireActive("output");
+    const descriptor = requireKnownOutputDescriptor(this.#outputDescriptorsByName, this.#definition.id, name);
+    return this.#outputs[descriptor.outputName];
+  }
+
   async apply(mutation) {
     this.#requireActive("apply");
     const transactionOps = planWorkerFirstPublishedGraphMutation({
@@ -194,17 +266,7 @@ class WorkerFirstPublishedGraphSession {
       cachedInputs: this.#cachedInputs,
       mutation,
     });
-    const projectionPacket = await this.#bridge.applyTransactionProjection({
-      transactionOps,
-      outputIds: this.#trackedOutputIds,
-    });
-    this.#cacheOutputs(projectionPacket.outputs.outputs);
-    this.#cacheDiagnosticsPackets(
-      projectionPacket.diagnosticsSummary,
-      projectionPacket.diagnosticsHistory,
-    );
-    await this.#refreshInputCache();
-    return projectionPacket.transaction.runSummary;
+    return this.applyTransactionOps(transactionOps);
   }
   diagnosticsSummary() {
     this.#requireActive("diagnosticsSummary");
@@ -241,9 +303,23 @@ class WorkerFirstPublishedGraphSession {
     return this.#definition;
   }
 
-  async runtimeProofReport() {
-    this.#requireActive("runtimeProofReport");
-    return this.#bridge.runtimeProofReport();
+  async exportSnapshot() { this.#requireActive("exportSnapshot"); return exportWorkerFirstPublishedGraphSnapshot(this); }
+
+  async runtimeProofReport() { this.#requireActive("runtimeProofReport"); return this.#bridge.runtimeProofReport(); }
+
+  async applyTransactionOps(transactionOps) {
+    this.#requireActive("applyTransactionOps");
+    const projectionPacket = await this.#bridge.applyTransactionProjection({
+      transactionOps,
+      outputIds: this.#trackedOutputIds,
+    });
+    this.#cacheOutputs(projectionPacket.outputs.outputs);
+    this.#cacheDiagnosticsPackets(
+      projectionPacket.diagnosticsSummary,
+      projectionPacket.diagnosticsHistory,
+    );
+    await this.#refreshInputCache();
+    return projectionPacket.transaction.runSummary;
   }
   async terminate() {
     if (this.#terminated) {

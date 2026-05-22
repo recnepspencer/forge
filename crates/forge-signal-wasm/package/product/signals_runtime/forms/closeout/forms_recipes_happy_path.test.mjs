@@ -5,8 +5,9 @@ import test from "node:test";
 
 import { withSignals } from "../action_execution_test_helpers.mjs";
 import { createDetailPatchLineFixture } from "../resource_source/fixtures/resource_line_fixture.mjs";
+import { formsDocsRoot } from "./forms_docs_root.mjs";
 
-const docPath = path.resolve("docs/learn/recipes.md");
+const docPath = path.join(formsDocsRoot, "learn/recipes.md");
 
 test("forms recipes doc covers copyable local resource async host collaboration and submit entrypoints", async () => {
   const doc = fs.readFileSync(docPath, "utf8");

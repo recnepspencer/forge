@@ -18,13 +18,18 @@ import {
   readWorkerFirstAuthoredReadableValue,
   updateWorkerFirstAuthoredReadables,
 } from "./worker_first_authored_readable_state.js";
-import { captureWorkerFirstAuthoredCallback } from "./worker_first_authored_callback_capture.js";
+import {
+  captureWorkerFirstAuthoredCallback,
+  createWorkerFirstAuthoredCallbackState,
+  nextWorkerFirstCallbackBackingInputId,
+} from "./worker_first_authored_callback_authoring.js";
+import { buildWorkerFirstHostDependencyReport } from "./worker_first_host_dependency_report.js";
 import {
   refreshWorkerFirstAuthoredCallbackReadables,
   refreshWorkerFirstAuthoredReadableSignals,
 } from "./worker_first_authored_readable_refresh.js";
-import { materializeWorkerCachedValue } from "./worker_cached_value.js";
-import { outputProjectionSpec } from "../../../output_projection_ids.js";
+import { materializeWorkerCachedValue } from "../worker_cached_value.js";
+import { outputProjectionSpec } from "../../../../output_projection_ids.js";
 
 export function createWorkerFirstRootAuthoredRuntime(
   bridge,
@@ -173,7 +178,7 @@ class WorkerFirstRootAuthoredRuntime {
     }
     this.#assertUnusedId(id, `${family}Async`);
     const capture = this.#captureCallback(callback, family);
-    const hiddenInputId = nextHiddenCallbackInputId(
+    const hiddenInputId = nextWorkerFirstCallbackBackingInputId(
       this.#generatedStandaloneSignalCounters,
       family,
       id,
@@ -191,14 +196,18 @@ class WorkerFirstRootAuthoredRuntime {
     }
     this.#authoredReadables.set(
       id,
-      createWorkerFirstAuthoredReadableState(family, signal.value),
+      createWorkerFirstAuthoredReadableState(
+        family,
+        signal.value,
+        capture.reads,
+        capture.hostDependencyIds,
+        capture.hostDependencies,
+      ),
     );
-    this.#authoredCallbacks.set(id, {
-      family,
-      callback,
-      hiddenInputId,
-      dependencyIds: capture.reads,
-    });
+    this.#authoredCallbacks.set(
+      id,
+      createWorkerFirstAuthoredCallbackState(family, callback, hiddenInputId, capture),
+    );
   }
 
   createEagerStandaloneCallbackReadable(id, family, callback) {
@@ -211,7 +220,7 @@ class WorkerFirstRootAuthoredRuntime {
     }
     this.#assertUnusedId(id, `${family}`);
     const capture = this.#captureCallback(callback, family);
-    const hiddenInputId = nextHiddenCallbackInputId(
+    const hiddenInputId = nextWorkerFirstCallbackBackingInputId(
       this.#generatedStandaloneSignalCounters,
       family,
       id,
@@ -219,14 +228,18 @@ class WorkerFirstRootAuthoredRuntime {
     this.#authoredInputs.set(hiddenInputId, createWorkerFirstAuthoredInputState(capture.value));
     this.#authoredReadables.set(
       id,
-      createWorkerFirstAuthoredReadableState(family, capture.value, capture.reads),
+      createWorkerFirstAuthoredReadableState(
+        family,
+        capture.value,
+        capture.reads,
+        capture.hostDependencyIds,
+        capture.hostDependencies,
+      ),
     );
-    this.#authoredCallbacks.set(id, {
-      family,
-      callback,
-      hiddenInputId,
-      dependencyIds: capture.reads,
-    });
+    this.#authoredCallbacks.set(
+      id,
+      createWorkerFirstAuthoredCallbackState(family, callback, hiddenInputId, capture),
+    );
     this.#trackPendingPublication(
       this.#publishCallbackReadableGraph(id, family, hiddenInputId, capture.value),
       () => {
@@ -254,21 +267,18 @@ class WorkerFirstRootAuthoredRuntime {
     });
   }
 
-  applyCommittedInputs(transactionOps) {
-    applyCommittedWorkerFirstAuthoredInputs(this.#authoredInputs, transactionOps);
-  }
+  applyCommittedInputs(transactionOps) { applyCommittedWorkerFirstAuthoredInputs(this.#authoredInputs, transactionOps); }
 
-  writeAuthoredInputBaseline(id, value) {
-    writeWorkerFirstAuthoredInputBaseline(this.#authoredInputs, id, value);
-  }
+  writeAuthoredInputBaseline(id, value) { writeWorkerFirstAuthoredInputBaseline(this.#authoredInputs, id, value); }
 
-  async refreshReadables(changedIds = []) {
+  async refreshReadables(changedIds = [], changedHostDependencyIds = []) {
     await refreshWorkerFirstAuthoredCallbackReadables({
       bridge: this.#bridge,
       authoredInputs: this.#authoredInputs,
       authoredReadables: this.#authoredReadables,
       authoredCallbacks: this.#authoredCallbacks,
       changedIds,
+      changedHostDependencyIds,
       captureCallback: (callback, family) => this.#captureCallback(callback, family),
     });
     await refreshWorkerFirstAuthoredReadableSignals({
@@ -277,10 +287,9 @@ class WorkerFirstRootAuthoredRuntime {
     });
   }
 
-  invalidate(message) {
-    invalidateWorkerFirstAuthoredInputs(this.#authoredInputs, message);
-    invalidateWorkerFirstAuthoredReadables(this.#authoredReadables, message);
-  }
+  hostDependencyReport() { return buildWorkerFirstHostDependencyReport(this.#authoredCallbacks); }
+
+  invalidate(message) { invalidateWorkerFirstAuthoredInputs(this.#authoredInputs, message); invalidateWorkerFirstAuthoredReadables(this.#authoredReadables, message); }
 
   async settlePendingPublications() {
     if (this.#pendingPublications.size > 0) await Promise.all([...this.#pendingPublications]);
@@ -297,6 +306,7 @@ class WorkerFirstRootAuthoredRuntime {
       authoredReadables: this.#authoredReadables,
       authoredCallbacks: this.#authoredCallbacks,
       changedIds: null,
+      changedHostDependencyIds: null,
       captureCallback: (callback, family) => this.#captureCallback(callback, family),
       skipDirectReadableRefresh: true,
     });
@@ -369,11 +379,6 @@ class WorkerFirstRootAuthoredRuntime {
     });
     this.#pendingPublications.add(tracked);
   }
-}
-
-function nextHiddenCallbackInputId(counters, family, visibleId) {
-  const suffix = nextGeneratedStandaloneSignalId(counters, "callbackBacking", family);
-  return `${suffix}.${visibleId}`;
 }
 
 function invalidateAuthoredInput(authoredInputs, id, message) {

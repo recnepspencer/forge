@@ -27,6 +27,7 @@ import {
   readRootSignalValue,
 } from "./worker_first_root_cached_facades.js";
 import {
+  createWorkerFirstSyncComputedCallbackHandle,
   createWorkerFirstSyncInputHandle,
   createWorkerFirstSyncLinkedHandle,
   createWorkerFirstSyncOutputCallbackHandle,
@@ -142,6 +143,14 @@ async function createWorkerFirstCallableSignalsAfterBootstrap(rootSession, reque
         rootSession.nextGeneratedStandaloneSignalId("computed"),
         specOrCompute,
         normalizedOptions,
+      );
+    },
+    computedCallback(id, compute, options) {
+      return createWorkerFirstSyncComputedCallbackHandle(
+        rootSession,
+        id,
+        compute,
+        options,
       );
     },
     outputSpec(id, spec, options) {

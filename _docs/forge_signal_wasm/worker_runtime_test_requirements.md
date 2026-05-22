@@ -228,11 +228,11 @@ Equivalent histories must match exactly when semantically equivalent.
 - Phase 2 is closed only by suite 3 plus the non-callback/non-host slice of
   suite 4.
 - Phase 3 is closed only by suites 5 through 7.
-- Phase 4 is closed only by suites 8 through 9 plus the callback and
+- Phase 4 is closed only by suites 8 through 10 plus the callback and
   main-thread-hosted slices of suite 4.
-- Phase 5 is closed only by suites 10 through 11.
-- Phase 6 is closed only by suites 12 through 13.
-- Phase 7 is closed only by suites 14 through 15.
+- Phase 5 is closed only by suites 11 through 12.
+- Phase 6 is closed only by suites 13 through 14.
+- Phase 7 is closed only by suites 15 through 16.
 
 ## Phase 1: Placement Taxonomy And Bridge Artifact Lock
 
@@ -494,7 +494,46 @@ The verification package must emit placement digest, denial/fallback digest,
 capability availability digest, replay/import compatibility digest, and
 placement-identity digest.
 
-9. The Worker Ineligible Node Does Not Collapse Graph Breadth Test
+9. The Callback Host Read Dependency Admission Test
+
+Purpose
+
+Prove that host capability reads inside worker-first callback capture become
+typed worker-owned dependencies, not ambient closure reads or per-read
+main-thread RPC.
+
+What to stress
+
+- callbacks that read viewport, visibility, online, clock, and persistence host
+  facts through admitted host handles
+- callbacks that mix signal reads and host-capability reads
+- host-capability churn that invalidates callback-backed readables
+- detached, stale, missing, and unsupported host capability reads during
+  callback capture
+- main-thread-hosted callback execution with a worker-issued closed input
+  frontier that includes admitted host fact snapshots
+
+What to verify
+
+- captured host reads lower into proof-bearing host dependency records
+- worker-owned runtime truth owns the dependency edge from host ingress to
+  callback recomputation
+- host churn recomputes through committed host ingress, not fresh execution-time
+  host requests
+- unsupported host reads deny before publication or readmission
+- main-thread-hosted callback execution rejects ambient host reads outside the
+  closed input frontier
+- compatibility mode and worker-first mode converge on equivalent host-read
+  callback truth under the same host ingress sequence
+
+Pass condition
+
+The verification package must emit callback host-read dependency digest,
+host-capability ingress digest, callback recomputation digest, ambient host-read
+denial artifact, worker-first truth digest, compatibility truth digest, and
+boundary-performance envelope proving zero per-read host RPC.
+
+10. The Worker Ineligible Node Does Not Collapse Graph Breadth Test
 
 Purpose
 
@@ -522,7 +561,7 @@ main-thread breadth digest, and placement-collapse denial artifact.
 
 ## Phase 5: Observation, Output, Diagnostics, And History Boundary
 
-10. The Observation And Output Delivery Boundary Test
+11. The Observation And Output Delivery Boundary Test
 
 Purpose
 
@@ -547,7 +586,7 @@ Pass condition
 The verification package must emit output-delivery digest, observation-delivery
 digest, rollback-suppression artifact, and delivery breadth envelope.
 
-11. The Diagnostics Summary Cost Honesty Test
+12. The Diagnostics Summary Cost Honesty Test
 
 Purpose
 
@@ -574,7 +613,7 @@ envelope. Cold-reconstruction counters must remain zero for summary reads.
 
 ## Phase 6: Replay, Restore, Import/Export, And Capability Parity
 
-12. The Worker Replay Restore Capability Honesty Test
+13. The Worker Replay Restore Capability Honesty Test
 
 Purpose
 
@@ -603,7 +642,7 @@ The verification package must emit replay/restore digest, capability
 availability digest, exact-restore artifact, and incompatibility or
 unavailability artifact where relevant.
 
-13. The Import Export Callback Unavailability Test
+14. The Import Export Callback Unavailability Test
 
 Purpose
 
@@ -631,7 +670,7 @@ reattachment digest, and callback-unavailability artifact.
 
 ## Phase 7: Certification, Performance Closeout, And Product Guidance
 
-14. The Worker Bridge Boundedness Test
+15. The Worker Bridge Boundedness Test
 
 Purpose
 
@@ -657,7 +696,7 @@ Pass condition
 The verification package must emit bridge breadth envelope, allocation posture
 digest, coalescing digest, and main-thread broad-work denial artifact.
 
-15. The UI Freeze Surface Denial Test
+16. The UI Freeze Surface Denial Test
 
 Purpose
 

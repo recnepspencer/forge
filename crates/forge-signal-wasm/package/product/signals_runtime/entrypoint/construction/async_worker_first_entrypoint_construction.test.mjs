@@ -25,6 +25,7 @@ test("createSignals constructs the default worker-first callable root when a wor
       identity: { kind: "exact" },
     });
     const doubled = signals.computed(() => count() * 2);
+    const explicitDoubled = signals.computedCallback("explicitDoubled", () => count() * 2);
     const panel = signals.output(() => ({ count: doubled() }));
     const declarativePanel = signals.output({
       reads: [declarativeDouble.id],
@@ -39,6 +40,7 @@ test("createSignals constructs the default worker-first callable root when a wor
     assert.equal(count(), 1);
     assert.equal(declarativeDouble(), 2);
     assert.equal(doubled(), 2);
+    assert.equal(explicitDoubled(), 2);
     assert.deepEqual(panel(), { count: 2 });
     assert.deepEqual(declarativePanel(), { count: 2 });
     assert.deepEqual(explicitPanel(), { count: 1 });
@@ -46,6 +48,7 @@ test("createSignals constructs the default worker-first callable root when a wor
       tx.set(count, 4);
     });
     assert.equal(declarativeDouble(), 8);
+    assert.equal(explicitDoubled(), 8);
     assert.deepEqual(declarativePanel(), { count: 8 });
     signals.free();
   } finally {

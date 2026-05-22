@@ -195,13 +195,10 @@ test("default worker-first root materializes native and compatibility resource f
       },
       effect: compatibilityEffect,
     });
-    assert.deepEqual(workerEffectMerge, {
-      kind: "denied",
-      reason: "workerFirstResourceBranchEffectMergeUnavailable",
-      detail:
-        'worker-first resource.branch.mergeEffect(...) remains unavailable for root-authored resource lines; use deployment: "mainThreadCompatibility" for branch effect merge execution',
-    });
-    assert.equal(compatibilityEffectMerge.kind, "merged");
+    assert.deepEqual(
+      comparableResourceEffectMerge(workerEffectMerge),
+      comparableResourceEffectMerge(compatibilityEffectMerge),
+    );
 
     workerLine.free();
     compatibilityLine.free();
