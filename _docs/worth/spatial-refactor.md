@@ -210,6 +210,34 @@ The implementation order for this refactor should be:
    - narrow and lock the public surface only after the internal slice seams are
      honest
 
+## Current Status
+
+The refactor is no longer just planned. The current implementation state is:
+
+1. `spatial_intent/refs` + `spatial_intent/resolution`
+   - closed through the parameter-admission seam
+   - local progression now uses `forge-proof`
+   - descriptive boundary materialization now uses `forge-foundational`
+   - remaining changes here should only happen in service of later slices
+2. `spatial_intent/lowering`
+   - structurally closed
+   - local semantic origination, proof progression, foundational
+     materialization, and immediate Query handoff now exist as separate layers
+3. `spatial_intent/arbitration`
+   - structurally closed as a declaration seam
+   - downstream preview and continuity now consume declared arbitration posture
+     instead of rediscovering it from raw escalation enums
+   - this slice exposed a real Query platform gap: domains cannot yet
+     contribute canonical advisory or violation posture through a public Query
+     admission hook
+4. `spatial_intent/preview` + `spatial_intent/constraints` + `spatial_intent/continuity`
+   - not started as a combined refactor slice
+   - now unblocked by the completed lowering and arbitration seams
+5. `bindings`
+   - not started
+6. `certification` + `facade`
+   - not started as the final narrowing pass
+
 The highest-leverage semantic knot is still `spatial_intent/lowering`, because
 it currently combines:
 
@@ -427,6 +455,27 @@ When implementing a section of this refactor:
 The burden of proof is now on local reinvention, not on Query use.
 
 ### `spatial_intent/lowering`
+
+#### Closure Status
+
+This slice is now structurally closed.
+
+The following work is complete:
+
+- the fragmented anchor file topology has been replaced by one centered local
+  semantic anchor layer
+- local motion and constraint application now share one lowering core instead
+  of separate anchor-lowering mini-frameworks
+- local phase law now runs through explicit `forge-proof` progression
+- descriptive lowering support and provenance now materialize through
+  `forge-foundational`
+- the runtime-facing lowering handoff now terminates directly in real
+  `forge-query` declaration surfaces instead of a Worth-local pseudo-runtime
+  layer
+
+The remaining work around lowering is no longer lowering cleanup. Future
+changes here should only happen to support later slices or to consume a better
+Query hook once that platform gap is closed.
 
 #### Current Problem
 
@@ -1950,6 +1999,48 @@ Concrete proof should include:
   promote immediately
 
 ### `arbitration`
+
+#### Closure Status
+
+This slice is now structurally closed as the canonical decision declaration
+seam.
+
+The following work is complete:
+
+- the old fragmented arbitration topology has been replaced by one centered
+  declaration core
+- local phase law now runs through explicit `forge-proof` request -> admit ->
+  declare progression
+- descriptive arbitration support and provenance now materialize through
+  `forge-foundational`
+- preview and continuity now consume declared arbitration posture instead of
+  rematching directly on raw escalation enums
+- the runtime-facing arbitration handoff now terminates in real Query-facing
+  runtime declarations, support posture, and invariant/support artifacts where
+  the public API allows it
+
+This slice also exposed a real platform gap in Query.
+
+The current public Query runtime admission surface can canonicalize:
+
+- generic runtime admission from covered family and entrypoint support
+- global support inventory and traceability inventory
+
+But it cannot yet canonicalize:
+
+- domain-authored advisory posture
+- domain-authored violation posture
+- declaration-scoped support and traceability artifacts
+
+without either:
+
+- abusing generic runtime admission that does not actually express the domain
+  semantics
+- or inventing Worth-local pseudo-Query artifacts
+
+That is not a `worth-spatial` cleanup task. It is a Query platform task, and it
+should be handled in `forge-query 9.3.7` through a real public
+domain-admission contribution hook.
 
 After reviewing the code, arbitration should have come before preview and
 continuity because it is the actual upstream semantic decision engine.

@@ -5,4 +5,7 @@ fn spatial_public_boundary_rejects_internal_constructor_bypass() {
     t.compile_fail(format!(
         "{compile_fail}/public_spatial_authority_constructor_not_exported.rs"
     ));
+    t.compile_fail(format!(
+        "{compile_fail}/public_spatial_witness_progression_artifacts_not_exported.rs"
+    ));
 }

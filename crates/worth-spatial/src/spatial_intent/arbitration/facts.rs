@@ -45,11 +45,3 @@ impl SpatialObservedRelationFact {
         }
     }
 }
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SpatialIntentConflictClass {
-    SingleClearIntent,
-    MultiplePlausibleIntents,
-    UnsafeToAssume,
-    BlockedCandidateSet,
-}

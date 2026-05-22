@@ -10,11 +10,16 @@ mod resolution;
 pub use arbitration::{
     analyze_spatial_intent_conflict, analyze_spatial_intent_conflict_with_capabilities,
     analyze_spatial_intent_conflict_with_capabilities_and_profile,
-    analyze_spatial_intent_conflict_with_profile, resolve_spatial_intent_conflict_by_choice,
-    resolve_spatial_intent_conflict_by_policy, SpatialAuthoredActKind, SpatialBlockedCapability,
+    analyze_spatial_intent_conflict_with_profile, declare_spatial_arbitration_runtime,
+    materialize_spatial_arbitration_support_report, resolve_spatial_intent_conflict_by_choice,
+    resolve_spatial_intent_conflict_by_policy, SpatialArbitrationContinuityHint,
+    SpatialArbitrationMaterializationDenial, SpatialArbitrationMaterializationProfilePlan,
+    SpatialArbitrationPreviewHint, SpatialArbitrationRuntimeDeclaration,
+    SpatialArbitrationSupportMaterialization, SpatialAuthoredActKind, SpatialBlockedCapability,
     SpatialChosenIntentAuthority, SpatialChosenIntentResolution, SpatialIntentArbitrationAnalysis,
-    SpatialIntentCandidate, SpatialIntentCandidateAvailability, SpatialIntentCandidateRank,
-    SpatialIntentCapabilitySet, SpatialIntentConflictClass, SpatialIntentEscalation,
+    SpatialIntentArbitrationDeclaration, SpatialIntentCandidate,
+    SpatialIntentCandidateAvailability, SpatialIntentCandidateRank, SpatialIntentCapabilitySet,
+    SpatialIntentCapabilitySummary, SpatialIntentConflictClass, SpatialIntentEscalation,
     SpatialIntentExplanationClass, SpatialIntentResolutionError, SpatialObservedRelationFact,
 };
 pub use constraints::*;

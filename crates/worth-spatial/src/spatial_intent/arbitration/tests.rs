@@ -1,9 +1,10 @@
 use super::{
     analyze_spatial_intent_conflict, analyze_spatial_intent_conflict_with_capabilities,
-    resolve_spatial_intent_conflict_by_choice, resolve_spatial_intent_conflict_by_policy,
-    SpatialAuthoredActKind, SpatialBlockedCapability, SpatialChosenIntentAuthority,
-    SpatialIntentCandidate, SpatialIntentCapabilitySet, SpatialIntentConflictClass,
-    SpatialIntentEscalation, SpatialIntentResolutionError, SpatialObservedRelationFact,
+    declare_spatial_arbitration_runtime, resolve_spatial_intent_conflict_by_choice,
+    resolve_spatial_intent_conflict_by_policy, SpatialAuthoredActKind, SpatialBlockedCapability,
+    SpatialChosenIntentAuthority, SpatialIntentCandidate, SpatialIntentCapabilitySet,
+    SpatialIntentConflictClass, SpatialIntentEscalation, SpatialIntentResolutionError,
+    SpatialObservedRelationFact,
 };
 
 #[test]
@@ -131,4 +132,30 @@ fn blocked_candidate_cannot_be_resolved_by_choice() {
             SpatialBlockedCapability::MergeBoolean
         )
     );
+}
+
+#[test]
+fn runtime_declaration_preserves_query_seam_and_invariant_violations() {
+    let analysis = analyze_spatial_intent_conflict(
+        SpatialAuthoredActKind::Move,
+        &[SpatialObservedRelationFact::Overlap],
+    );
+    let runtime = declare_spatial_arbitration_runtime(analysis.clone());
+    let eligibility = runtime
+        .to_query_eligibility()
+        .expect("runtime request should be valid");
+
+    assert_eq!(
+        eligibility
+            .request()
+            .runtime_declaration()
+            .expect("runtime declaration")
+            .name(),
+        "worth.spatial.arbitration"
+    );
+    assert!(!runtime.graph_composition_invariant_violations().is_empty());
+    assert!(!runtime
+        .graph_composition_capability_support_rows()
+        .is_empty());
+    assert_eq!(runtime.declaration(), &analysis);
 }

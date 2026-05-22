@@ -1,6 +1,6 @@
 use crate::spatial_intent::arbitration::{
-    SpatialBlockedCapability, SpatialChosenIntentResolution, SpatialIntentArbitrationAnalysis,
-    SpatialIntentCandidate, SpatialIntentEscalation,
+    SpatialArbitrationContinuityHint, SpatialBlockedCapability, SpatialChosenIntentResolution,
+    SpatialIntentArbitrationAnalysis, SpatialIntentCandidate,
 };
 
 use super::outcomes::{
@@ -11,20 +11,25 @@ use super::outcomes::{
 pub fn assess_spatial_identity_continuity_from_analysis(
     analysis: &SpatialIntentArbitrationAnalysis,
 ) -> SpatialIdentityContinuityAssessment {
-    match analysis.escalation() {
-        SpatialIntentEscalation::AutoResolve(candidate) => {
+    match analysis.continuity_hint() {
+        SpatialArbitrationContinuityHint::IdentityPreserved(candidate)
+        | SpatialArbitrationContinuityHint::AnchorContinuityPreserved(candidate)
+        | SpatialArbitrationContinuityHint::IdentityReinterpreted(candidate)
+        | SpatialArbitrationContinuityHint::IdentitySplit(candidate)
+        | SpatialArbitrationContinuityHint::IdentityMerged(candidate) => {
             assessment_for_candidate(Some(candidate), None)
         }
-        SpatialIntentEscalation::PreserveCandidates
-        | SpatialIntentEscalation::AskForClarification => SpatialIdentityContinuityAssessment::new(
-            SpatialIdentityContinuityClass::IdentityBlockedPendingChoice,
-            SpatialIdentityContinuityExplanationClass::CandidateSetPendingChoice,
-            None,
-            None,
-            false,
-            false,
-        ),
-        SpatialIntentEscalation::BlockedByMissingCapability(capability) => {
+        SpatialArbitrationContinuityHint::PendingChoice => {
+            SpatialIdentityContinuityAssessment::new(
+                SpatialIdentityContinuityClass::IdentityBlockedPendingChoice,
+                SpatialIdentityContinuityExplanationClass::CandidateSetPendingChoice,
+                None,
+                None,
+                false,
+                false,
+            )
+        }
+        SpatialArbitrationContinuityHint::BlockedPendingChoice(capability) => {
             blocked_pending_choice(capability)
         }
     }

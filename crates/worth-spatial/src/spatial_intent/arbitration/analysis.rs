@@ -1,63 +1,27 @@
 use std::collections::HashSet;
 
-use super::blocked::{
-    SpatialBlockedCapability, SpatialIntentCandidateAvailability, SpatialIntentCapabilitySet,
-};
-use super::candidates::SpatialIntentCandidate;
-use super::conflicts::{
-    SpatialAuthoredActKind, SpatialIntentConflictClass, SpatialObservedRelationFact,
-};
-use super::ranking::{SpatialIntentCandidateRank, SpatialIntentExplanationClass};
+use forge_proof::TransitionOutcome;
+
 use crate::spatial_intent::policy::{SpatialArbitrationPosture, SpatialIntentPolicyProfile};
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum SpatialIntentEscalation {
-    AutoResolve(SpatialIntentCandidate),
-    PreserveCandidates,
-    AskForClarification,
-    BlockedByMissingCapability(SpatialBlockedCapability),
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct SpatialIntentArbitrationAnalysis {
-    authored_act: SpatialAuthoredActKind,
-    observed_relation_facts: Vec<SpatialObservedRelationFact>,
-    candidates: Vec<SpatialIntentCandidateRank>,
-    conflict_class: SpatialIntentConflictClass,
-    escalation: SpatialIntentEscalation,
-    chosen_candidate: Option<SpatialIntentCandidate>,
-}
-
-impl SpatialIntentArbitrationAnalysis {
-    pub fn authored_act(&self) -> SpatialAuthoredActKind {
-        self.authored_act
-    }
-
-    pub fn observed_relation_facts(&self) -> &[SpatialObservedRelationFact] {
-        &self.observed_relation_facts
-    }
-
-    pub fn candidates(&self) -> &[SpatialIntentCandidateRank] {
-        &self.candidates
-    }
-
-    pub fn conflict_class(&self) -> SpatialIntentConflictClass {
-        self.conflict_class
-    }
-
-    pub fn escalation(&self) -> SpatialIntentEscalation {
-        self.escalation
-    }
-
-    pub fn chosen_candidate(&self) -> Option<SpatialIntentCandidate> {
-        self.chosen_candidate
-    }
-}
+use super::candidates::SpatialIntentCandidate;
+use super::capabilities::{
+    SpatialBlockedCapability, SpatialIntentCandidateAvailability, SpatialIntentCapabilitySet,
+};
+use super::declared_analysis::{
+    SpatialIntentArbitrationDeclaration, SpatialIntentCandidateRank, SpatialIntentConflictClass,
+    SpatialIntentEscalation, SpatialIntentExplanationClass,
+};
+use super::facts::{SpatialAuthoredActKind, SpatialObservedRelationFact};
+use super::progression::{
+    admit_requested_spatial_arbitration_intent, declare_admitted_spatial_arbitration_intent,
+    request_spatial_arbitration_intent,
+};
 
 pub fn analyze_spatial_intent_conflict(
     authored_act: SpatialAuthoredActKind,
     observed_relation_facts: &[SpatialObservedRelationFact],
-) -> SpatialIntentArbitrationAnalysis {
+) -> SpatialIntentArbitrationDeclaration {
     analyze_spatial_intent_conflict_with_capabilities_and_profile(
         authored_act,
         observed_relation_facts,
@@ -70,7 +34,7 @@ pub fn analyze_spatial_intent_conflict_with_capabilities(
     authored_act: SpatialAuthoredActKind,
     observed_relation_facts: &[SpatialObservedRelationFact],
     capabilities: SpatialIntentCapabilitySet,
-) -> SpatialIntentArbitrationAnalysis {
+) -> SpatialIntentArbitrationDeclaration {
     analyze_spatial_intent_conflict_with_capabilities_and_profile(
         authored_act,
         observed_relation_facts,
@@ -83,7 +47,7 @@ pub fn analyze_spatial_intent_conflict_with_profile(
     authored_act: SpatialAuthoredActKind,
     observed_relation_facts: &[SpatialObservedRelationFact],
     profile: SpatialIntentPolicyProfile,
-) -> SpatialIntentArbitrationAnalysis {
+) -> SpatialIntentArbitrationDeclaration {
     analyze_spatial_intent_conflict_with_capabilities_and_profile(
         authored_act,
         observed_relation_facts,
@@ -97,7 +61,31 @@ pub fn analyze_spatial_intent_conflict_with_capabilities_and_profile(
     observed_relation_facts: &[SpatialObservedRelationFact],
     capabilities: SpatialIntentCapabilitySet,
     profile: SpatialIntentPolicyProfile,
-) -> SpatialIntentArbitrationAnalysis {
+) -> SpatialIntentArbitrationDeclaration {
+    let requested = request_spatial_arbitration_intent(
+        authored_act,
+        observed_relation_facts,
+        capabilities,
+        profile,
+    );
+    let admitted = match admit_requested_spatial_arbitration_intent(requested) {
+        TransitionOutcome::Success(admitted) => admitted,
+        _ => unreachable!("spatial arbitration admission is infallible"),
+    };
+    let declared = match declare_admitted_spatial_arbitration_intent(admitted) {
+        TransitionOutcome::Success(declared) => declared,
+        _ => unreachable!("spatial arbitration declaration is infallible"),
+    };
+    let (payload, _, _) = declared.into_parts().into_parts();
+    payload
+}
+
+pub(crate) fn compute_spatial_intent_arbitration_declaration(
+    authored_act: SpatialAuthoredActKind,
+    observed_relation_facts: &[SpatialObservedRelationFact],
+    capabilities: SpatialIntentCapabilitySet,
+    profile: SpatialIntentPolicyProfile,
+) -> SpatialIntentArbitrationDeclaration {
     let baseline = SpatialIntentCandidate::baseline_for(authored_act);
     let mut inserted = HashSet::new();
     let mut candidates = Vec::new();
@@ -107,6 +95,8 @@ pub fn analyze_spatial_intent_conflict_with_capabilities_and_profile(
         baseline,
         capabilities.availability_for(None),
         SpatialIntentExplanationClass::AuthoredBaseline,
+        true,
+        false,
     );
 
     for fact in observed_relation_facts.iter().copied() {
@@ -118,6 +108,8 @@ pub fn analyze_spatial_intent_conflict_with_capabilities_and_profile(
                     SpatialIntentCandidate::MergeCandidate,
                     capabilities.availability_for(Some(SpatialBlockedCapability::MergeBoolean)),
                     SpatialIntentExplanationClass::BlockedFutureCapability,
+                    false,
+                    false,
                 );
                 push_candidate(
                     &mut candidates,
@@ -125,6 +117,8 @@ pub fn analyze_spatial_intent_conflict_with_capabilities_and_profile(
                     SpatialIntentCandidate::SubtractCandidate,
                     capabilities.availability_for(Some(SpatialBlockedCapability::SubtractBoolean)),
                     SpatialIntentExplanationClass::BlockedFutureCapability,
+                    false,
+                    false,
                 );
             }
             SpatialObservedRelationFact::GrazingContact => push_candidate(
@@ -133,6 +127,8 @@ pub fn analyze_spatial_intent_conflict_with_capabilities_and_profile(
                 SpatialIntentCandidate::SnapFlush,
                 capabilities.availability_for(None),
                 SpatialIntentExplanationClass::UnsafeBoundary,
+                false,
+                false,
             ),
             SpatialObservedRelationFact::FrameAligned => push_candidate(
                 &mut candidates,
@@ -140,6 +136,8 @@ pub fn analyze_spatial_intent_conflict_with_capabilities_and_profile(
                 SpatialIntentCandidate::AlignFrames,
                 capabilities.availability_for(None),
                 SpatialIntentExplanationClass::RelationInferred,
+                false,
+                false,
             ),
             SpatialObservedRelationFact::InsideTarget => push_candidate(
                 &mut candidates,
@@ -147,6 +145,8 @@ pub fn analyze_spatial_intent_conflict_with_capabilities_and_profile(
                 SpatialIntentCandidate::NestInside,
                 capabilities.availability_for(None),
                 SpatialIntentExplanationClass::UnsafeBoundary,
+                false,
+                false,
             ),
             SpatialObservedRelationFact::HostFaceContact => {
                 push_candidate(
@@ -155,6 +155,8 @@ pub fn analyze_spatial_intent_conflict_with_capabilities_and_profile(
                     SpatialIntentCandidate::AttachRelationally,
                     capabilities.availability_for(Some(SpatialBlockedCapability::HostAttach)),
                     SpatialIntentExplanationClass::BlockedFutureCapability,
+                    false,
+                    false,
                 );
                 push_candidate(
                     &mut candidates,
@@ -162,6 +164,8 @@ pub fn analyze_spatial_intent_conflict_with_capabilities_and_profile(
                     SpatialIntentCandidate::JoinCandidate,
                     capabilities.availability_for(Some(SpatialBlockedCapability::Join)),
                     SpatialIntentExplanationClass::BlockedFutureCapability,
+                    false,
+                    false,
                 );
             }
             SpatialObservedRelationFact::HostPenetration => push_candidate(
@@ -170,6 +174,8 @@ pub fn analyze_spatial_intent_conflict_with_capabilities_and_profile(
                 SpatialIntentCandidate::CutOpeningCandidate,
                 capabilities.availability_for(Some(SpatialBlockedCapability::CutOpening)),
                 SpatialIntentExplanationClass::BlockedFutureCapability,
+                false,
+                false,
             ),
         }
     }
@@ -193,13 +199,17 @@ pub fn analyze_spatial_intent_conflict_with_capabilities_and_profile(
         })
         .collect::<Vec<_>>();
 
+    let preferred_available =
+        preferred_profile_candidate(&available, profile, observed_relation_facts);
+    if let Some(candidate) = preferred_available {
+        mark_policy_preferred(&mut candidates, candidate);
+    }
+
     let only_baseline_available =
         available.len() == 1 && available[0].candidate() == baseline && blocked.is_empty();
     let nonbaseline_available = available
         .iter()
         .any(|candidate| candidate.candidate() != baseline);
-    let preferred_available =
-        preferred_profile_candidate(&available, profile, observed_relation_facts);
     let (conflict_class, escalation, chosen_candidate) = if only_baseline_available {
         (
             SpatialIntentConflictClass::SingleClearIntent,
@@ -254,14 +264,16 @@ pub fn analyze_spatial_intent_conflict_with_capabilities_and_profile(
         )
     };
 
-    SpatialIntentArbitrationAnalysis {
+    SpatialIntentArbitrationDeclaration::new(
         authored_act,
-        observed_relation_facts: observed_relation_facts.to_vec(),
+        observed_relation_facts.to_vec(),
         candidates,
         conflict_class,
         escalation,
         chosen_candidate,
-    }
+        profile.name(),
+        capabilities.summary(),
+    )
 }
 
 fn preferred_profile_candidate(
@@ -276,7 +288,7 @@ fn preferred_profile_candidate(
             available
                 .iter()
                 .find(|candidate| candidate.candidate() == SpatialIntentCandidate::SnapFlush)
-                .map(|candidate| candidate.candidate())
+                .map(SpatialIntentCandidateRank::candidate)
         }
         SpatialArbitrationPosture::PreferHostRelationships
             if observed_relation_facts.contains(&SpatialObservedRelationFact::HostFaceContact) =>
@@ -286,7 +298,7 @@ fn preferred_profile_candidate(
                 .find(|candidate| {
                     candidate.candidate() == SpatialIntentCandidate::AttachRelationally
                 })
-                .map(|candidate| candidate.candidate())
+                .map(SpatialIntentCandidateRank::candidate)
         }
         _ => None,
     }
@@ -298,22 +310,41 @@ fn push_candidate(
     candidate: SpatialIntentCandidate,
     availability: SpatialIntentCandidateAvailability,
     explanation: SpatialIntentExplanationClass,
+    is_baseline: bool,
+    is_policy_preferred: bool,
 ) {
     if inserted.insert(candidate) {
         candidates.push(SpatialIntentCandidateRank::new(
             candidate,
             availability,
             explanation,
+            is_baseline,
+            is_policy_preferred,
         ));
+    }
+}
+
+fn mark_policy_preferred(
+    candidates: &mut [SpatialIntentCandidateRank],
+    candidate: SpatialIntentCandidate,
+) {
+    if let Some(rank) = candidates
+        .iter_mut()
+        .find(|rank| rank.candidate() == candidate)
+    {
+        *rank = SpatialIntentCandidateRank::new(
+            rank.candidate(),
+            rank.availability(),
+            SpatialIntentExplanationClass::PolicyPreferred,
+            rank.is_baseline(),
+            true,
+        );
     }
 }
 
 fn first_blocked_capability(candidates: &[SpatialIntentCandidateRank]) -> SpatialBlockedCapability {
     candidates
         .iter()
-        .find_map(|candidate| match candidate.availability() {
-            SpatialIntentCandidateAvailability::Blocked(blocked) => Some(blocked),
-            SpatialIntentCandidateAvailability::Available => None,
-        })
+        .find_map(SpatialIntentCandidateRank::blocked_capability)
         .expect("blocked candidate capability")
 }

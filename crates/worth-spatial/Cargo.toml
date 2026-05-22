@@ -14,9 +14,12 @@ name = "ui"
 path = "src/certification/public_facade_contracts/compile_fail_contracts.rs"
 
 [dependencies]
+forge-foundational.workspace = true
 forge-proof.workspace = true
+forge-query.workspace = true
 worth-geom.workspace = true
 worth-math.workspace = true
+serde_json.workspace = true
 
 [dev-dependencies]
 trybuild.workspace = true

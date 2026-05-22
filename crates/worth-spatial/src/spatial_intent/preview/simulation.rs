@@ -1,7 +1,7 @@
 use crate::spatial_intent::arbitration::{
-    analyze_spatial_intent_conflict_with_capabilities_and_profile, SpatialAuthoredActKind,
-    SpatialBlockedCapability, SpatialIntentArbitrationAnalysis, SpatialIntentCandidate,
-    SpatialIntentCapabilitySet, SpatialIntentEscalation, SpatialObservedRelationFact,
+    analyze_spatial_intent_conflict_with_capabilities_and_profile, SpatialArbitrationPreviewHint,
+    SpatialAuthoredActKind, SpatialBlockedCapability, SpatialIntentArbitrationAnalysis,
+    SpatialIntentCandidate, SpatialIntentCapabilitySet, SpatialObservedRelationFact,
 };
 use crate::spatial_intent::policy::{SpatialIntentPolicyProfile, SpatialPreviewRichness};
 
@@ -103,17 +103,17 @@ pub fn prepare_spatial_intent_preview_with_capabilities_and_profile(
         capabilities,
         profile,
     );
-    let commit_disposition = match analysis.escalation() {
-        SpatialIntentEscalation::AutoResolve(candidate) => {
+    let commit_disposition = match analysis.preview_hint() {
+        SpatialArbitrationPreviewHint::AutoResolve(candidate) => {
             SpatialIntentPreviewCommitDisposition::WouldAutoResolve(candidate)
         }
-        SpatialIntentEscalation::PreserveCandidates => {
+        SpatialArbitrationPreviewHint::PreserveCandidates => {
             SpatialIntentPreviewCommitDisposition::WouldPreserveCandidates
         }
-        SpatialIntentEscalation::AskForClarification => {
+        SpatialArbitrationPreviewHint::ClarificationRequired => {
             SpatialIntentPreviewCommitDisposition::WouldRequireClarification
         }
-        SpatialIntentEscalation::BlockedByMissingCapability(capability) => {
+        SpatialArbitrationPreviewHint::BlockedByCapability(capability) => {
             SpatialIntentPreviewCommitDisposition::WouldBlockOnCapability(capability)
         }
     };

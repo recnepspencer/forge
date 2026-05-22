@@ -1,4 +1,4 @@
-use super::conflicts::SpatialAuthoredActKind;
+use super::facts::SpatialAuthoredActKind;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Hash)]
 pub enum SpatialIntentCandidate {

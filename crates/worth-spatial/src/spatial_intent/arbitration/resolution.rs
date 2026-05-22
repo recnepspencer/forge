@@ -1,6 +1,6 @@
-use super::blocked::{SpatialBlockedCapability, SpatialIntentCandidateAvailability};
 use super::candidates::SpatialIntentCandidate;
-use super::escalation::{SpatialIntentArbitrationAnalysis, SpatialIntentEscalation};
+use super::capabilities::{SpatialBlockedCapability, SpatialIntentCandidateAvailability};
+use super::declared_analysis::{SpatialIntentArbitrationAnalysis, SpatialIntentEscalation};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SpatialChosenIntentAuthority {

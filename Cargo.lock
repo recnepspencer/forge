@@ -5239,7 +5239,10 @@ dependencies = [
 name = "worth-spatial"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
  "forge-proof",
+ "forge-query",
+ "serde_json",
  "trybuild",
  "worth-geom",
  "worth-math",

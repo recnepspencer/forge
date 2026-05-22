@@ -1,12 +1,18 @@
 use crate::spatial_intent::refs::{
-    EmptySpatialWitnessCatalog, SpatialAxis, SpatialCarrierDirectionRole, SpatialCarrierPointRole,
-    SpatialCatalogParameterAdmission, SpatialDirectionWitnessRef, SpatialFrameRef,
-    SpatialPointWitnessRef, SpatialWitnessCatalog,
+    EmptySpatialWitnessCatalog, SpatialCarrierDirectionRole, SpatialCarrierPointRole,
+    SpatialCatalogParameterAdmission, SpatialDirectionWitnessRef, SpatialPointWitnessRef,
+    SpatialWitnessCatalog,
 };
 use crate::spatial_intent::resolution::{
-    admit_spatial_frame, SpatialWitnessFailureClass, SpatialWitnessResolutionClass,
+    SpatialWitnessFailureClass, SpatialWitnessResolutionClass,
 };
 
+use super::progression::{
+    admit_requested_spatial_direction_witness, admit_requested_spatial_point_witness,
+    request_spatial_direction_witness, request_spatial_point_witness,
+    resolve_admitted_spatial_direction_witness, resolve_admitted_spatial_point_witness,
+    AdmittedSpatialDirectionWitnessRequest, AdmittedSpatialPointWitnessRequest,
+};
 use super::witness_support::{
     axis_from_basis, fallback_perpendicular, finite_point, normalize_direction,
 };
@@ -73,49 +79,19 @@ pub fn resolve_spatial_point_witness_with_catalog(
     requested: SpatialPointWitnessRef,
     catalog: &impl SpatialWitnessCatalog,
 ) -> Result<ResolvedSpatialPointWitness, SpatialWitnessFailureClass> {
-    let (resolved_world_point, resolution_class, parameter_admission) = match &requested {
-        SpatialPointWitnessRef::WorldPoint(point) => (
-            finite_point(*point)?,
-            SpatialWitnessResolutionClass::DirectWorld,
-            None,
-        ),
-        SpatialPointWitnessRef::FrameOrigin(frame) => (
-            admitted_frame_origin(frame.clone())?,
-            SpatialWitnessResolutionClass::FrameDerived,
-            None,
-        ),
-        SpatialPointWitnessRef::CarrierPoint { .. } => {
-            return Err(SpatialWitnessFailureClass::Ambiguous);
-        }
-        SpatialPointWitnessRef::ParameterSpacePoint {
-            carrier_kind,
-            carrier,
-            parameter,
-        } => {
-            let resolved =
-                catalog.resolve_parameter_space_point(*carrier_kind, carrier, *parameter)?;
-            (
-                finite_point(resolved.world_point())?,
-                resolved.resolution_class().as_witness_resolution_class(),
-                resolved.parameter_admission().cloned(),
-            )
-        }
-        SpatialPointWitnessRef::FeatureOwnedPoint { feature, role } => {
-            let _role: SpatialCarrierPointRole = *role;
-            let resolved = catalog.resolve_feature_owned_point(feature, *role)?;
-            (
-                finite_point(resolved.world_point())?,
-                resolved.resolution_class().as_witness_resolution_class(),
-                resolved.parameter_admission().cloned(),
-            )
-        }
+    let requested = request_spatial_point_witness(requested);
+    let admitted = match admit_requested_spatial_point_witness(requested) {
+        forge_proof::TransitionOutcome::Success(admitted) => admitted,
+        forge_proof::TransitionOutcome::Denied(denial) => return Err(denial),
+        _ => unreachable!("witness admission uses only denial outcomes"),
     };
-    Ok(ResolvedSpatialPointWitness {
-        requested,
-        resolved_world_point,
-        resolution_class,
-        parameter_admission,
-    })
+    match resolve_admitted_spatial_point_witness(admitted, catalog) {
+        forge_proof::TransitionOutcome::Success(resolved) => {
+            Ok(resolved.into_parts().into_parts().0)
+        }
+        forge_proof::TransitionOutcome::Denied(denial) => Err(denial),
+        _ => unreachable!("witness resolution uses only denial outcomes"),
+    }
 }
 
 pub fn resolve_spatial_direction_witness(
@@ -128,81 +104,161 @@ pub fn resolve_spatial_direction_witness_with_catalog(
     requested: SpatialDirectionWitnessRef,
     catalog: &impl SpatialWitnessCatalog,
 ) -> Result<ResolvedSpatialDirectionWitness, SpatialWitnessFailureClass> {
-    let (resolved_world_direction, resolution_class, parameter_admission) = match &requested {
-        SpatialDirectionWitnessRef::WorldDirection(direction) => (
-            normalize_direction(*direction)?,
+    let requested = request_spatial_direction_witness(requested);
+    let admitted = match admit_requested_spatial_direction_witness(requested) {
+        forge_proof::TransitionOutcome::Success(admitted) => admitted,
+        forge_proof::TransitionOutcome::Denied(denial) => return Err(denial),
+        _ => unreachable!("witness admission uses only denial outcomes"),
+    };
+    match resolve_admitted_spatial_direction_witness(admitted, catalog) {
+        forge_proof::TransitionOutcome::Success(resolved) => {
+            Ok(resolved.into_parts().into_parts().0)
+        }
+        forge_proof::TransitionOutcome::Denied(denial) => Err(denial),
+        _ => unreachable!("witness resolution uses only denial outcomes"),
+    }
+}
+
+pub(crate) fn resolve_admitted_spatial_point_witness_request(
+    admitted: AdmittedSpatialPointWitnessRequest,
+    catalog: &impl SpatialWitnessCatalog,
+) -> Result<ResolvedSpatialPointWitness, SpatialWitnessFailureClass> {
+    let (requested, resolved_world_point, resolution_class, parameter_admission) = match admitted {
+        AdmittedSpatialPointWitnessRequest::WorldPoint { requested, point } => (
+            requested,
+            point,
             SpatialWitnessResolutionClass::DirectWorld,
             None,
         ),
-        SpatialDirectionWitnessRef::FrameAxis { frame, axis } => {
-            let direction = admitted_frame_axis(frame.clone(), *axis)?;
-            (
-                normalize_direction(direction)
-                    .map_err(|_| SpatialWitnessFailureClass::Degenerate)?,
-                SpatialWitnessResolutionClass::FrameDerived,
-                None,
-            )
-        }
-        SpatialDirectionWitnessRef::FramePerpendicularAxis { frame, axis } => {
-            let parallel = admitted_frame_axis(frame.clone(), *axis)?;
-            (
-                fallback_perpendicular(parallel)?,
-                SpatialWitnessResolutionClass::FallbackDerived,
-                None,
-            )
-        }
-        SpatialDirectionWitnessRef::CarrierDirection { .. } => {
+        AdmittedSpatialPointWitnessRequest::FrameOrigin { requested, frame } => (
+            requested,
+            frame.basis().origin(),
+            SpatialWitnessResolutionClass::FrameDerived,
+            None,
+        ),
+        AdmittedSpatialPointWitnessRequest::CarrierPoint { .. } => {
             return Err(SpatialWitnessFailureClass::Ambiguous);
         }
-        SpatialDirectionWitnessRef::ParameterSpaceDirection {
+        AdmittedSpatialPointWitnessRequest::ParameterSpacePoint {
+            requested,
             carrier_kind,
             carrier,
             parameter,
-            role,
         } => {
-            let resolved = catalog.resolve_parameter_space_direction(
-                *carrier_kind,
-                carrier,
-                *parameter,
-                *role,
-            )?;
+            let resolved =
+                catalog.resolve_parameter_space_point(carrier_kind, &carrier, parameter)?;
             (
-                normalize_direction(resolved.world_direction())?,
+                requested,
+                finite_point(resolved.world_point())?,
                 resolved.resolution_class().as_witness_resolution_class(),
                 resolved.parameter_admission().cloned(),
             )
         }
-        SpatialDirectionWitnessRef::FeatureOwnedDirection { feature, role } => {
-            let _role: SpatialCarrierDirectionRole = *role;
-            let resolved = catalog.resolve_feature_owned_direction(feature, *role)?;
+        AdmittedSpatialPointWitnessRequest::FeatureOwnedPoint {
+            requested,
+            feature,
+            role,
+        } => {
+            let _role: SpatialCarrierPointRole = role;
+            let resolved = catalog.resolve_feature_owned_point(&feature, role)?;
             (
-                normalize_direction(resolved.world_direction())?,
+                requested,
+                finite_point(resolved.world_point())?,
                 resolved.resolution_class().as_witness_resolution_class(),
                 resolved.parameter_admission().cloned(),
             )
         }
     };
+
+    Ok(ResolvedSpatialPointWitness {
+        requested,
+        resolved_world_point,
+        resolution_class,
+        parameter_admission,
+    })
+}
+
+pub(crate) fn resolve_admitted_spatial_direction_witness_request(
+    admitted: AdmittedSpatialDirectionWitnessRequest,
+    catalog: &impl SpatialWitnessCatalog,
+) -> Result<ResolvedSpatialDirectionWitness, SpatialWitnessFailureClass> {
+    let (requested, resolved_world_direction, resolution_class, parameter_admission) =
+        match admitted {
+            AdmittedSpatialDirectionWitnessRequest::WorldDirection {
+                requested,
+                direction,
+            } => (
+                requested,
+                direction,
+                SpatialWitnessResolutionClass::DirectWorld,
+                None,
+            ),
+            AdmittedSpatialDirectionWitnessRequest::FrameAxis {
+                requested,
+                frame,
+                axis,
+            } => (
+                requested,
+                normalize_direction(axis_from_basis(frame.basis(), axis))
+                    .map_err(|_| SpatialWitnessFailureClass::Degenerate)?,
+                SpatialWitnessResolutionClass::FrameDerived,
+                None,
+            ),
+            AdmittedSpatialDirectionWitnessRequest::FramePerpendicularAxis {
+                requested,
+                frame,
+                axis,
+            } => (
+                requested,
+                fallback_perpendicular(axis_from_basis(frame.basis(), axis))?,
+                SpatialWitnessResolutionClass::FallbackDerived,
+                None,
+            ),
+            AdmittedSpatialDirectionWitnessRequest::CarrierDirection { .. } => {
+                return Err(SpatialWitnessFailureClass::Ambiguous);
+            }
+            AdmittedSpatialDirectionWitnessRequest::ParameterSpaceDirection {
+                requested,
+                carrier_kind,
+                carrier,
+                parameter,
+                role,
+            } => {
+                let resolved = catalog.resolve_parameter_space_direction(
+                    carrier_kind,
+                    &carrier,
+                    parameter,
+                    role,
+                )?;
+                (
+                    requested,
+                    normalize_direction(resolved.world_direction())?,
+                    resolved.resolution_class().as_witness_resolution_class(),
+                    resolved.parameter_admission().cloned(),
+                )
+            }
+            AdmittedSpatialDirectionWitnessRequest::FeatureOwnedDirection {
+                requested,
+                feature,
+                role,
+            } => {
+                let _role: SpatialCarrierDirectionRole = role;
+                let resolved = catalog.resolve_feature_owned_direction(&feature, role)?;
+                (
+                    requested,
+                    normalize_direction(resolved.world_direction())?,
+                    resolved.resolution_class().as_witness_resolution_class(),
+                    resolved.parameter_admission().cloned(),
+                )
+            }
+        };
+
     Ok(ResolvedSpatialDirectionWitness {
         requested,
         resolved_world_direction,
         resolution_class,
         parameter_admission,
     })
-}
-
-fn admitted_frame_origin(frame: SpatialFrameRef) -> Result<[f64; 3], SpatialWitnessFailureClass> {
-    let admitted =
-        admit_spatial_frame(frame).map_err(|_| SpatialWitnessFailureClass::Degenerate)?;
-    Ok(admitted.basis().origin())
-}
-
-fn admitted_frame_axis(
-    frame: SpatialFrameRef,
-    axis: SpatialAxis,
-) -> Result<[f64; 3], SpatialWitnessFailureClass> {
-    let admitted =
-        admit_spatial_frame(frame).map_err(|_| SpatialWitnessFailureClass::Degenerate)?;
-    Ok(axis_from_basis(admitted.basis(), axis))
 }
 
 #[cfg(test)]

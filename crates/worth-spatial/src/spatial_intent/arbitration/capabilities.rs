@@ -1,4 +1,4 @@
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
 pub enum SpatialBlockedCapability {
     MergeBoolean,
     SubtractBoolean,
@@ -7,10 +7,45 @@ pub enum SpatialBlockedCapability {
     HostAttach,
 }
 
+impl SpatialBlockedCapability {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::MergeBoolean => "merge_boolean",
+            Self::SubtractBoolean => "subtract_boolean",
+            Self::CutOpening => "cut_opening",
+            Self::Join => "join",
+            Self::HostAttach => "host_attach",
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum SpatialIntentCandidateAvailability {
     Available,
     Blocked(SpatialBlockedCapability),
+}
+
+#[derive(Clone, Debug, Default, Eq, PartialEq)]
+pub struct SpatialIntentCapabilitySummary {
+    supported: Vec<SpatialBlockedCapability>,
+    blocked: Vec<SpatialBlockedCapability>,
+}
+
+impl SpatialIntentCapabilitySummary {
+    pub(crate) fn new(
+        supported: Vec<SpatialBlockedCapability>,
+        blocked: Vec<SpatialBlockedCapability>,
+    ) -> Self {
+        Self { supported, blocked }
+    }
+
+    pub fn supported(&self) -> &[SpatialBlockedCapability] {
+        &self.supported
+    }
+
+    pub fn blocked(&self) -> &[SpatialBlockedCapability] {
+        &self.blocked
+    }
 }
 
 #[derive(Clone, Copy, Debug, Default, Eq, PartialEq)]
@@ -70,6 +105,20 @@ impl SpatialIntentCapabilitySet {
             }
             Some(capability) => SpatialIntentCandidateAvailability::Blocked(capability),
         }
+    }
+
+    pub fn summary(&self) -> SpatialIntentCapabilitySummary {
+        let all = [
+            SpatialBlockedCapability::MergeBoolean,
+            SpatialBlockedCapability::SubtractBoolean,
+            SpatialBlockedCapability::CutOpening,
+            SpatialBlockedCapability::Join,
+            SpatialBlockedCapability::HostAttach,
+        ];
+        let (supported, blocked): (Vec<_>, Vec<_>) = all
+            .into_iter()
+            .partition(|capability| self.supports(*capability));
+        SpatialIntentCapabilitySummary::new(supported, blocked)
     }
 
     fn supports(&self, capability: SpatialBlockedCapability) -> bool {
