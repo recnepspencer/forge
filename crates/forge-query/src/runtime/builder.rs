@@ -1,9 +1,51 @@
 use super::*;
+use crate::domain_capabilities::ForgeQueryInvariantCatalogRegistrationArtifact;
+use forge_relational::facade::runtime::{
+    CustomInvariantRegistration, CustomInvariantRule, InvariantCatalog, RelationalRuntimeBuilder,
+};
+
+#[derive(Default)]
+struct QueuedInvariantRegistrations {
+    invariant_catalog: Option<InvariantCatalog>,
+    custom_invariants: Vec<CustomInvariantRegistration>,
+}
+
+impl QueuedInvariantRegistrations {
+    fn is_empty(&self) -> bool {
+        self.invariant_catalog.is_none() && self.custom_invariants.is_empty()
+    }
+
+    fn push_invariant_catalog(&mut self, invariant_catalog: InvariantCatalog) {
+        match &mut self.invariant_catalog {
+            Some(existing) => {
+                existing
+                    .registrations
+                    .extend(invariant_catalog.registrations);
+                *existing = existing.canonicalized();
+            }
+            None => {
+                self.invariant_catalog = Some(invariant_catalog.canonicalized());
+            }
+        }
+    }
+
+    fn lower_into_relational_runtime(self) -> RelationalRuntime {
+        let mut builder = RelationalRuntimeBuilder::new();
+        if let Some(invariant_catalog) = self.invariant_catalog {
+            builder = builder.invariant_catalog(invariant_catalog.canonicalized());
+        }
+        for custom_invariant in self.custom_invariants {
+            builder = builder.custom_invariant(custom_invariant);
+        }
+        builder.build()
+    }
+}
 
 #[derive(Default)]
 pub struct ForgeQueryRuntimeBuilder {
     backend: Option<Result<Box<dyn ForgeQueryRuntimeBackend>, ForgeQueryRuntimeError>>,
     backend_parts: ForgeQueryRuntimeBackendParts,
+    queued_invariant_registrations: QueuedInvariantRegistrations,
 }
 
 impl ForgeQueryRuntimeBuilder {
@@ -19,6 +61,44 @@ impl ForgeQueryRuntimeBuilder {
     pub fn relational_runtime(mut self, runtime: RelationalRuntime) -> Self {
         self.backend_parts = self.backend_parts.relational_runtime(runtime);
         self
+    }
+
+    pub fn invariant_catalog(mut self, invariant_catalog: InvariantCatalog) -> Self {
+        self.queued_invariant_registrations
+            .push_invariant_catalog(invariant_catalog);
+        self
+    }
+
+    pub fn invariant_registration_artifact(
+        mut self,
+        artifact: ForgeQueryInvariantCatalogRegistrationArtifact,
+    ) -> Self {
+        self.queued_invariant_registrations
+            .push_invariant_catalog(artifact.invariant_catalog().clone());
+        self
+    }
+
+    pub fn custom_invariant(mut self, custom_invariant: CustomInvariantRegistration) -> Self {
+        self.queued_invariant_registrations
+            .custom_invariants
+            .push(custom_invariant);
+        self
+    }
+
+    pub fn register_invariant<R>(mut self, rule: R) -> Result<Self, ForgeQueryRuntimeError>
+    where
+        R: CustomInvariantRule + std::panic::UnwindSafe + 'static,
+    {
+        let registration = CustomInvariantRegistration::new(rule).map_err(|error| {
+            ForgeQueryRuntimeError::InvariantRegistration {
+                stage: "query_builder_custom_invariant_registration",
+                message: format!("{error:?}"),
+            }
+        })?;
+        self.queued_invariant_registrations
+            .custom_invariants
+            .push(registration);
+        Ok(self)
     }
 
     pub fn runtime_bridge(mut self, bridge: RuntimeBridge) -> Self {
@@ -101,15 +181,43 @@ impl ForgeQueryRuntimeBuilder {
     }
 
     pub fn build_backend_from_parts(mut self) -> Self {
+        if self.backend.is_some() {
+            self.backend = Some(Err(ForgeQueryRuntimeError::InvariantRegistration {
+                stage: "runtime_backend_authority_selection",
+                message: "build_backend_from_parts() cannot replace an explicit runtime backend selected through backend(...); choose one backend authority path".to_string(),
+            }));
+            self.backend_parts = ForgeQueryRuntimeBackendParts::new();
+            self.queued_invariant_registrations = QueuedInvariantRegistrations::default();
+            return self;
+        }
+        if let Err(error) = self.lower_queued_invariant_registrations_into_backend_parts() {
+            self.backend = Some(Err(error));
+            self.backend_parts = ForgeQueryRuntimeBackendParts::new();
+            self.queued_invariant_registrations = QueuedInvariantRegistrations::default();
+            return self;
+        }
         self.backend = Some(
             ForgeQueryBridgeBackedRuntimeBackend::from_parts(self.backend_parts)
                 .map(|backend| Box::new(backend) as Box<dyn ForgeQueryRuntimeBackend>),
         );
         self.backend_parts = ForgeQueryRuntimeBackendParts::new();
+        self.queued_invariant_registrations = QueuedInvariantRegistrations::default();
         self
     }
 
     pub fn build(self) -> Result<ForgeQueryRuntime, ForgeQueryRuntimeError> {
+        if self.backend.is_some() && !self.backend_parts.is_empty() {
+            return Err(ForgeQueryRuntimeError::InvariantRegistration {
+                stage: "runtime_backend_authority_selection",
+                message: "explicit runtime backends cannot be combined with backend parts such as runtime_bridge(...), schema_adapter(...), or write_authority(...); choose one backend authority path".to_string(),
+            });
+        }
+        if self.backend.is_some() && !self.queued_invariant_registrations.is_empty() {
+            return Err(ForgeQueryRuntimeError::InvariantRegistration {
+                stage: "runtime_backend_selection",
+                message: "queued Query-owned invariant registrations cannot be applied after selecting an explicit runtime backend; lower them through ForgeQueryRuntimeBuilder before backend(...) or relational_runtime(...)".to_string(),
+            });
+        }
         let backend = self
             .backend
             .ok_or(ForgeQueryRuntimeError::MissingBackend)??;
@@ -128,5 +236,23 @@ impl ForgeQueryRuntimeBuilder {
             effect_index: ForgeQueryEffectIndex::default(),
             next_run_id: 0,
         })
+    }
+
+    fn lower_queued_invariant_registrations_into_backend_parts(
+        &mut self,
+    ) -> Result<(), ForgeQueryRuntimeError> {
+        if self.queued_invariant_registrations.is_empty() {
+            return Ok(());
+        }
+        if self.backend_parts.has_relational_runtime() {
+            return Err(ForgeQueryRuntimeError::InvariantRegistration {
+                stage: "relational_runtime_authority_selection",
+                message: "queued Query-owned invariant registrations conflict with an explicitly supplied relational runtime; choose one authority path".to_string(),
+            });
+        }
+        let queued = std::mem::take(&mut self.queued_invariant_registrations);
+        self.backend_parts = std::mem::take(&mut self.backend_parts)
+            .relational_runtime(queued.lower_into_relational_runtime());
+        Ok(())
     }
 }

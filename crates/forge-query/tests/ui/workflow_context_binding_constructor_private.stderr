@@ -31,4 +31,4 @@ error: cannot construct `WorkflowContextBinding` with struct literal syntax due 
 12 |         counters: todo!(),
    |         ----------------- private field
    |
-   = note: ...and other private field `runtime_snapshot_token` that was not provided
+   = note: ...and other private fields `runtime_snapshot_token` and `preview_request_family` that were not provided

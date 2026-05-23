@@ -6,7 +6,7 @@ error[E0277]: the trait bound `ForgeQueryLowerRuntimeBoundaryBoundContributionTa
    |
    = help: the trait `forge_query::domain_capabilities::canonical_runtime::workflow::ForgeQueryWorkflowDeclarationMaterializationTarget` is not implemented for `ForgeQueryLowerRuntimeBoundaryBoundContributionTarget`
 help: the following other types implement trait `forge_query::domain_capabilities::canonical_runtime::workflow::ForgeQueryWorkflowDeclarationMaterializationTarget`
-  --> src/domain_capabilities/canonical_runtime/workflow.rs
+  --> src/domain_capabilities/canonical_runtime/workflow/mod.rs
    |
    | / impl ForgeQueryWorkflowDeclarationMaterializationTarget
    | |     for ForgeQueryDeclarationBoundContributionTarget
@@ -16,7 +16,7 @@ help: the following other types implement trait `forge_query::domain_capabilitie
    | |     for ForgeQueryAdmittedPlanBoundContributionTarget
    | |_____________________________________________________^ `ForgeQueryAdmittedPlanBoundContributionTarget`
 note: required by a bound in `materialize_lowered_mutation_intent_declaration`
-  --> src/domain_capabilities/canonical_runtime/workflow_lowering.rs
+  --> src/domain_capabilities/canonical_runtime/workflow/lowering.rs
    |
    | pub fn materialize_lowered_mutation_intent_declaration<T>(
    |        ----------------------------------------------- required by a bound in this function

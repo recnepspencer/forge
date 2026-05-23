@@ -7,10 +7,6 @@ mod explanation;
 mod invariant_capability;
 mod support;
 mod workflow;
-mod workflow_inspection;
-mod workflow_lowering;
-mod workflow_preview;
-mod workflow_semantics;
 
 pub use admission::*;
 pub use aftermath::*;
@@ -21,6 +17,3 @@ pub use explanation::*;
 pub use invariant_capability::*;
 pub use support::*;
 pub use workflow::*;
-pub use workflow_inspection::*;
-pub use workflow_lowering::*;
-pub use workflow_preview::*;

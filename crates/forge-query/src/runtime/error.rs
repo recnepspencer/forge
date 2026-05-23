@@ -70,6 +70,10 @@ pub enum ForgeQueryRuntimeError {
     PreviewPromotionWriteFailed {
         evidence: ForgeQueryPreviewPromotionDenialEvidence,
     },
+    InvariantRegistration {
+        stage: &'static str,
+        message: String,
+    },
     PreviewOperationEffectDenied {
         label: String,
         stage: &'static str,
@@ -225,6 +229,10 @@ impl std::fmt::Display for ForgeQueryRuntimeError {
                 evidence.label(),
                 evidence.kind().as_str(),
                 evidence.reason()
+            ),
+            Self::InvariantRegistration { stage, message } => write!(
+                f,
+                "runtime invariant registration failed during {stage}: {message}"
             ),
             Self::PreviewOperationEffectDenied {
                 label,

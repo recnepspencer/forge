@@ -8,6 +8,7 @@ use crate::domain_capabilities::denials::{
 };
 use crate::domain_capabilities::payloads::{
     ForgeQueryWorkflowContributionPayload, ForgeQueryWorkflowContributionPosture,
+    ForgeQueryWorkflowRuntimeSemantics,
 };
 use crate::domain_capabilities::targets::{
     ForgeQueryAdmittedPlanBoundContributionTarget, ForgeQueryDeclarationBoundContributionTarget,
@@ -24,7 +25,7 @@ use crate::preview::{
     PreviewWorkflowFoundationRequest,
 };
 
-use super::workflow_semantics::{
+use super::semantics::{
     inconsistent_workflow_runtime_semantics_denial, missing_workflow_runtime_semantics_denial,
     workflow_runtime_semantics_match_posture, workflow_source_label,
 };
@@ -35,7 +36,13 @@ pub fn materialize_query_preview_workflow_artifact<T>(
 where
     T: ForgeQueryWorkflowPreviewMaterializationTarget,
 {
-    match prepare_preview_workflow_foundation(contribution) {
+    match validated_preview_workflow_runtime_semantics(
+        &contribution,
+        "preview workflow artifact materialization",
+    )
+    .and_then(|runtime_semantics| {
+        prepare_validated_preview_workflow_foundation(&contribution, runtime_semantics)
+    }) {
         Ok((artifact, ..)) => TransitionOutcome::Success(artifact),
         Err(denial) => TransitionOutcome::Denied(denial),
     }
@@ -47,26 +54,14 @@ pub fn materialize_admitted_preview_workflow_foundation<T>(
 where
     T: ForgeQueryWorkflowPreviewMaterializationTarget,
 {
-    match prepare_preview_workflow_foundation(contribution) {
-        Ok((artifact, target_kind, request_digest)) => {
-            match admit_contributed_preview_workflow_foundation(artifact) {
-                Ok(foundation) => TransitionOutcome::Success(foundation),
-                Err(error) => {
-                    let failure_class = error.failure_class().clone();
-                    TransitionOutcome::Denied(ForgeQueryDomainCapabilityProgressionDenial::new(
-                        ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
-                        "workflow-preview",
-                        target_kind,
-                        &request_digest,
-                        format!(
-                            "preview workflow foundation admission denied with `{:?}`: {}",
-                            failure_class,
-                            error.message()
-                        ),
-                    ))
-                }
-            }
-        }
+    match validated_preview_workflow_runtime_semantics(
+        &contribution,
+        "preview workflow foundation admission",
+    )
+    .and_then(|runtime_semantics| {
+        admit_validated_preview_workflow_foundation(&contribution, runtime_semantics)
+    }) {
+        Ok(foundation) => TransitionOutcome::Success(foundation),
         Err(denial) => TransitionOutcome::Denied(denial),
     }
 }
@@ -93,8 +88,68 @@ mod private {
 impl private::Sealed for ForgeQueryDeclarationBoundContributionTarget {}
 impl private::Sealed for ForgeQueryAdmittedPlanBoundContributionTarget {}
 
-fn prepare_preview_workflow_foundation<T>(
-    contribution: ForgeQueryMaterializationReadyWorkflowContribution<T>,
+pub(super) fn admit_validated_preview_workflow_foundation<T>(
+    contribution: &ForgeQueryMaterializationReadyWorkflowContribution<T>,
+    runtime_semantics: &ForgeQueryWorkflowRuntimeSemantics,
+) -> Result<AdmittedPreviewWorkflowFoundation, ForgeQueryDomainCapabilityProgressionDenial>
+where
+    T: ForgeQueryWorkflowPreviewMaterializationTarget,
+{
+    let (artifact, target_kind, request_digest) =
+        prepare_validated_preview_workflow_foundation(contribution, runtime_semantics)?;
+    match admit_contributed_preview_workflow_foundation(artifact) {
+        Ok(foundation) => Ok(foundation),
+        Err(error) => {
+            let failure_class = error.failure_class().clone();
+            Err(ForgeQueryDomainCapabilityProgressionDenial::new(
+                ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
+                "workflow-preview",
+                target_kind,
+                &request_digest,
+                format!(
+                    "preview workflow foundation admission denied with `{:?}`: {}",
+                    failure_class,
+                    error.message()
+                ),
+            ))
+        }
+    }
+}
+
+pub(super) fn validated_preview_workflow_runtime_semantics<'a, T>(
+    contribution: &'a ForgeQueryMaterializationReadyWorkflowContribution<T>,
+    operation_label: &'static str,
+) -> Result<&'a ForgeQueryWorkflowRuntimeSemantics, ForgeQueryDomainCapabilityProgressionDenial>
+where
+    T: ForgeQueryWorkflowPreviewMaterializationTarget,
+{
+    let domain_contribution = contribution.payload();
+    let payload = domain_contribution.payload();
+    let target = domain_contribution.target();
+    let Some(runtime_semantics) = payload.runtime_semantics() else {
+        return Err(missing_workflow_runtime_semantics_denial(
+            operation_label,
+            payload,
+            target.kind(),
+            domain_contribution.request_digest(),
+        ));
+    };
+    if !workflow_runtime_semantics_match_posture(payload.posture(), runtime_semantics) {
+        return Err(inconsistent_workflow_runtime_semantics_denial(
+            operation_label,
+            payload,
+            runtime_semantics,
+            target.kind(),
+            domain_contribution.request_digest(),
+        ));
+    }
+
+    Ok(runtime_semantics)
+}
+
+fn prepare_validated_preview_workflow_foundation<T>(
+    contribution: &ForgeQueryMaterializationReadyWorkflowContribution<T>,
+    runtime_semantics: &ForgeQueryWorkflowRuntimeSemantics,
 ) -> Result<
     (
         PreviewWorkflowFoundationArtifact,
@@ -109,23 +164,6 @@ where
     let domain_contribution = contribution.payload();
     let payload = domain_contribution.payload();
     let target = domain_contribution.target();
-    let Some(runtime_semantics) = payload.runtime_semantics() else {
-        return Err(missing_workflow_runtime_semantics_denial(
-            "preview workflow artifact materialization",
-            payload,
-            target.kind(),
-            domain_contribution.request_digest(),
-        ));
-    };
-    if !workflow_runtime_semantics_match_posture(payload.posture(), runtime_semantics) {
-        return Err(inconsistent_workflow_runtime_semantics_denial(
-            "preview workflow artifact materialization",
-            payload,
-            runtime_semantics,
-            target.kind(),
-            domain_contribution.request_digest(),
-        ));
-    }
     let Some((preview_session_identity, evaluation_class)) =
         runtime_semantics.binding().preview_foundation_binding()
     else {
@@ -139,6 +177,7 @@ where
     let source_label = workflow_source_label(target, payload);
     let preview_session_identity = BridgePreviewSessionIdentity::new(preview_session_identity);
     let request_family = preview_request_family(payload.posture());
+    let request_family_label = request_family.as_str();
     let binding_digest = target.binding_digest().to_string();
     let canonical_query_digest = CanonicalQueryDigest::from_parts(&[
         "forge_query_domain_preview_query_v1".to_string(),
@@ -146,15 +185,17 @@ where
         format!("binding:{binding_digest}"),
         format!("preview_session:{}", preview_session_identity.as_str()),
         format!("evaluation:{}", evaluation_class.as_str()),
+        format!("request_family:{request_family_label}"),
     ]);
     let validated_query_digest = ValidatedQueryDigest::from_parts(&[
         "forge_query_domain_preview_validated_query_v1".to_string(),
         format!("canonical:{}", canonical_query_digest.as_str()),
     ]);
     let declaration_identity = BridgePreviewSessionDeclarationIdentity::new(format!(
-        "domain-preview-declaration:{}:{}",
+        "domain-preview-declaration:{}:{}:{}",
         payload.semantic_code(),
-        binding_digest
+        binding_digest,
+        request_family_label,
     ));
     let declaration_digest = hash_parts(&[
         "forge_query_domain_preview_declaration_v1".to_string(),
@@ -181,7 +222,7 @@ where
     ))
 }
 
-fn preview_request_family(
+pub(super) fn preview_request_family(
     posture: ForgeQueryWorkflowContributionPosture,
 ) -> PreviewWorkflowFoundationRequest {
     match posture {

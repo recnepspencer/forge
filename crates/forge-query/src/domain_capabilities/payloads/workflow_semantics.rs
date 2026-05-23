@@ -1,5 +1,6 @@
 use forge_relational::facade::merge::RelationalMergeInspectionArtifact;
 
+use crate::basis::ExecutionPreflightBundle;
 use crate::workflow::{
     LoweredMergeWorkflowDeclaration, MergeLoweringInput, MutationLoweringInput,
     QueryWritebackDeclaration, WorkflowAuthorityTargetFamily, WorkflowBudgetClass,
@@ -12,6 +13,9 @@ pub enum ForgeQueryWorkflowRuntimeBindingSemantics {
     RuntimePreflight {
         runtime_snapshot_token: String,
     },
+    RuntimePreflightBundle {
+        preflight: ExecutionPreflightBundle,
+    },
     PreviewFoundation {
         preview_session_identity: String,
         evaluation_class: WorkflowPreviewEvaluationClass,
@@ -23,6 +27,10 @@ impl ForgeQueryWorkflowRuntimeBindingSemantics {
         Self::RuntimePreflight {
             runtime_snapshot_token: runtime_snapshot_token.into(),
         }
+    }
+
+    pub fn runtime_preflight_bundle(preflight: ExecutionPreflightBundle) -> Self {
+        Self::RuntimePreflightBundle { preflight }
     }
 
     pub fn preview_foundation(
@@ -40,7 +48,17 @@ impl ForgeQueryWorkflowRuntimeBindingSemantics {
             Self::RuntimePreflight {
                 runtime_snapshot_token,
             } => Some(runtime_snapshot_token.as_str()),
+            Self::RuntimePreflightBundle { preflight } => {
+                Some(preflight.basis().identity().snapshot_token())
+            }
             Self::PreviewFoundation { .. } => None,
+        }
+    }
+
+    pub fn runtime_preflight_bundle_ref(&self) -> Option<&ExecutionPreflightBundle> {
+        match self {
+            Self::RuntimePreflightBundle { preflight } => Some(preflight),
+            Self::RuntimePreflight { .. } | Self::PreviewFoundation { .. } => None,
         }
     }
 
@@ -50,7 +68,7 @@ impl ForgeQueryWorkflowRuntimeBindingSemantics {
                 preview_session_identity,
                 evaluation_class,
             } => Some((preview_session_identity.as_str(), evaluation_class.clone())),
-            Self::RuntimePreflight { .. } => None,
+            Self::RuntimePreflight { .. } | Self::RuntimePreflightBundle { .. } => None,
         }
     }
 
@@ -59,6 +77,12 @@ impl ForgeQueryWorkflowRuntimeBindingSemantics {
             Self::RuntimePreflight {
                 runtime_snapshot_token,
             } => format!("runtime:{runtime_snapshot_token}"),
+            Self::RuntimePreflightBundle { preflight } => format!(
+                "runtime_preflight:{}:{}:{}",
+                preflight.plan().query().plan_digest().as_str(),
+                preflight.plan().query().canonical_query_digest().as_str(),
+                preflight.basis().proof().digest().as_str()
+            ),
             Self::PreviewFoundation {
                 preview_session_identity,
                 evaluation_class,

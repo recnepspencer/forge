@@ -79,3 +79,31 @@ fn runtime_authoritative_mutation_support_exposes_graph_composition_hook_rows() 
     }));
     assert!(rows.iter().all(|row| !row.semantic_bypass_allowed()));
 }
+
+#[test]
+fn runtime_authoritative_mutation_support_includes_contributed_graph_capability_rows() {
+    let support_profile = ForgeQueryRuntimeSupportProfile::bridge_backed(
+        "test-subscription-activation",
+        "test-preview-basis",
+        "test-inspector-evidence",
+    )
+    .with_graph_composition_capability_support_row(
+        ForgeQueryGraphCompositionCapabilitySupportRow::new(
+            "graph.face_inner_loop_insertion",
+            ForgeQueryGraphCompositionCapabilityClass::LifecycleStep,
+        ),
+    );
+    let support =
+        ForgeQueryRuntime::public_authoritative_mutation_evidence_support_for_support_profile(
+            &support_profile,
+        );
+    let rows = support.graph_composition_capability_support_rows();
+
+    assert!(rows.iter().any(|row| {
+        row.capability_family() == "graph.face_inner_loop_insertion"
+            && row.capability_class() == ForgeQueryGraphCompositionCapabilityClass::LifecycleStep
+    }));
+    assert!(support
+        .graph_composition_families()
+        .contains(&"graph.face_inner_loop_insertion".to_string()));
+}

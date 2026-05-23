@@ -33,6 +33,25 @@ impl ForgeQueryRuntimeBackendParts {
         Self::default()
     }
 
+    pub(in crate::runtime) fn is_empty(&self) -> bool {
+        self.relational_runtime.is_none()
+            && self.runtime_bridge.is_none()
+            && self.schema_adapter.is_none()
+            && self.source_adapter.is_none()
+            && self.existing_truth_verification.is_none()
+            && self.write_authority.is_none()
+            && self.signal_sink.is_none()
+            && self.subscription_activation.is_none()
+            && self.preview_basis.is_none()
+            && self.inspector_evidence.is_none()
+            && self.intent_authority.is_none()
+            && self.support_profile.is_none()
+    }
+
+    pub(in crate::runtime) fn has_relational_runtime(&self) -> bool {
+        self.relational_runtime.is_some()
+    }
+
     pub fn relational_runtime(mut self, runtime: RelationalRuntime) -> Self {
         self.relational_runtime = Some(runtime);
         self

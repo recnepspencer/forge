@@ -52,11 +52,12 @@ pub(super) fn workflow_runtime_semantics_match_posture(
         ForgeQueryWorkflowContributionPosture::ConfirmationRequired => matches!(
             runtime_semantics.binding(),
             ForgeQueryWorkflowRuntimeBindingSemantics::RuntimePreflight { .. }
+                | ForgeQueryWorkflowRuntimeBindingSemantics::RuntimePreflightBundle { .. }
         ),
         ForgeQueryWorkflowContributionPosture::DiscardRequired => matches!(
             runtime_semantics.binding(),
             ForgeQueryWorkflowRuntimeBindingSemantics::PreviewFoundation {
-                evaluation_class: WorkflowPreviewEvaluationClass::ReadOnly,
+                evaluation_class: WorkflowPreviewEvaluationClass::PromotionEligible,
                 ..
             }
         ),

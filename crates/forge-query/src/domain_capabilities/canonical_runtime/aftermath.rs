@@ -11,10 +11,47 @@ use crate::domain_capabilities::{
     ForgeQueryMaterializationReadyAftermathContribution,
 };
 use crate::projection_consumption::{
-    declare_projection_consumption, evaluate_projection_consumption_eligibility,
-    AdmittedProjectionConsumption, MaterializedProjectionContract,
-    ProjectionConsumptionEligibility,
+    declare_projection_consumption, discover_projection_consumption_support,
+    evaluate_projection_consumption_eligibility, AdmittedProjectionConsumption,
+    MaterializedProjectionContract, ProjectionConsumptionDeclaration,
+    ProjectionConsumptionEligibility, ProjectionConsumptionSupportReport,
 };
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct ForgeQueryAftermathProjectionConsumptionReview {
+    semantic_code: String,
+    request_digest: String,
+    target_kind: crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind,
+    declaration: ProjectionConsumptionDeclaration,
+    support_report: ProjectionConsumptionSupportReport,
+    eligibility: ProjectionConsumptionEligibility,
+}
+
+impl ForgeQueryAftermathProjectionConsumptionReview {
+    pub fn semantic_code(&self) -> &str {
+        &self.semantic_code
+    }
+
+    pub fn request_digest(&self) -> &str {
+        &self.request_digest
+    }
+
+    pub fn target_kind(&self) -> crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind {
+        self.target_kind
+    }
+
+    pub fn declaration(&self) -> &ProjectionConsumptionDeclaration {
+        &self.declaration
+    }
+
+    pub fn support_report(&self) -> &ProjectionConsumptionSupportReport {
+        &self.support_report
+    }
+
+    pub fn eligibility(&self) -> &ProjectionConsumptionEligibility {
+        &self.eligibility
+    }
+}
 
 pub fn materialize_canonical_aftermath_artifact<T>(
     contribution: ForgeQueryMaterializationReadyAftermathContribution<T>,
@@ -30,6 +67,40 @@ pub fn materialize_projection_consumption_eligibility(
         ForgeQueryAdmittedPlanBoundContributionTarget,
     >,
 ) -> ForgeQueryDomainCapabilityTransitionOutcome<ProjectionConsumptionEligibility> {
+    match materialize_projection_consumption_review(contribution) {
+        TransitionOutcome::Success(review) => {
+            TransitionOutcome::Success(review.eligibility().clone())
+        }
+        TransitionOutcome::Denied(denial) => TransitionOutcome::Denied(denial),
+        TransitionOutcome::Stale(stale) => TransitionOutcome::Stale(stale),
+        TransitionOutcome::RebindRequired(rebind) => TransitionOutcome::RebindRequired(rebind),
+        TransitionOutcome::Failed(failure) => TransitionOutcome::Failed(failure),
+        TransitionOutcome::Deferred(never) => match never {},
+    }
+}
+
+pub fn materialize_projection_consumption_support_report(
+    contribution: ForgeQueryMaterializationReadyAftermathContribution<
+        ForgeQueryAdmittedPlanBoundContributionTarget,
+    >,
+) -> ForgeQueryDomainCapabilityTransitionOutcome<ProjectionConsumptionSupportReport> {
+    match materialize_projection_consumption_review(contribution) {
+        TransitionOutcome::Success(review) => {
+            TransitionOutcome::Success(review.support_report().clone())
+        }
+        TransitionOutcome::Denied(denial) => TransitionOutcome::Denied(denial),
+        TransitionOutcome::Stale(stale) => TransitionOutcome::Stale(stale),
+        TransitionOutcome::RebindRequired(rebind) => TransitionOutcome::RebindRequired(rebind),
+        TransitionOutcome::Failed(failure) => TransitionOutcome::Failed(failure),
+        TransitionOutcome::Deferred(never) => match never {},
+    }
+}
+
+pub fn materialize_projection_consumption_review(
+    contribution: ForgeQueryMaterializationReadyAftermathContribution<
+        ForgeQueryAdmittedPlanBoundContributionTarget,
+    >,
+) -> ForgeQueryDomainCapabilityTransitionOutcome<ForgeQueryAftermathProjectionConsumptionReview> {
     let domain_contribution = contribution.payload();
     let payload = domain_contribution.payload();
     let Some(runtime_semantics) = payload.runtime_semantics() else {
@@ -60,7 +131,17 @@ pub fn materialize_projection_consumption_eligibility(
         }
     };
 
-    TransitionOutcome::Success(evaluate_projection_consumption_eligibility(&declaration))
+    let support_report = discover_projection_consumption_support(runtime_semantics.source());
+    let eligibility = evaluate_projection_consumption_eligibility(&declaration);
+
+    TransitionOutcome::Success(ForgeQueryAftermathProjectionConsumptionReview {
+        semantic_code: payload.semantic_code().to_string(),
+        request_digest: domain_contribution.request_digest().to_string(),
+        target_kind: domain_contribution.target().kind(),
+        declaration,
+        support_report,
+        eligibility,
+    })
 }
 
 pub fn materialize_admitted_projection_consumption(
@@ -68,28 +149,23 @@ pub fn materialize_admitted_projection_consumption(
         ForgeQueryAdmittedPlanBoundContributionTarget,
     >,
 ) -> ForgeQueryDomainCapabilityTransitionOutcome<AdmittedProjectionConsumption> {
-    let domain_contribution = contribution.payload();
-    let target_kind = domain_contribution.target().kind();
-    let request_digest = domain_contribution.request_digest().to_string();
-    let semantic_code = domain_contribution.payload().semantic_code().to_string();
-
-    match materialize_projection_consumption_eligibility(contribution) {
-        TransitionOutcome::Success(eligibility) => match eligibility {
+    match materialize_projection_consumption_review(contribution) {
+        TransitionOutcome::Success(review) => match review.eligibility() {
             ProjectionConsumptionEligibility::Admitted(admitted) => {
-                TransitionOutcome::Success(admitted)
+                TransitionOutcome::Success(admitted.clone())
             }
             ProjectionConsumptionEligibility::AdmittedWithWarnings(admitted, _) => {
-                TransitionOutcome::Success(admitted)
+                TransitionOutcome::Success(admitted.clone())
             }
             ProjectionConsumptionEligibility::Denied(denied) => {
                 TransitionOutcome::Denied(ForgeQueryDomainCapabilityProgressionDenial::new(
                     ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
                     "consequence-aftermath",
-                    target_kind,
-                    request_digest.clone(),
+                    review.target_kind(),
+                    review.request_digest(),
                     format!(
                         "projection consumption eligibility denied for `{}` with `{:?}`",
-                        semantic_code,
+                        review.semantic_code(),
                         denied.reason()
                     ),
                 ))
@@ -98,11 +174,11 @@ pub fn materialize_admitted_projection_consumption(
                 TransitionOutcome::Denied(ForgeQueryDomainCapabilityProgressionDenial::new(
                     ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
                     "consequence-aftermath",
-                    target_kind,
-                    request_digest.clone(),
+                    review.target_kind(),
+                    review.request_digest(),
                     format!(
                         "projection consumption eligibility deferred for `{}` with `{:?}`",
-                        semantic_code,
+                        review.semantic_code(),
                         deferred.reason()
                     ),
                 ))
@@ -111,11 +187,11 @@ pub fn materialize_admitted_projection_consumption(
                 TransitionOutcome::Denied(ForgeQueryDomainCapabilityProgressionDenial::new(
                     ForgeQueryDomainCapabilityProgressionDenialKind::InconsistentCanonicalMaterializationSemantics,
                     "consequence-aftermath",
-                    target_kind,
-                    request_digest,
+                    review.target_kind(),
+                    review.request_digest(),
                     format!(
                         "projection consumption source mismatch for `{}` with `{:?}` / `{:?}`",
-                        semantic_code,
+                        review.semantic_code(),
                         mismatch.source_family(),
                         mismatch.requested_fact_kind()
                     ),

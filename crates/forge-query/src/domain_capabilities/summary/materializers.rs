@@ -2,6 +2,7 @@ use forge_foundational::FoundationalProfileSet;
 
 use super::super::foundational_integration::{
     build_provenance, build_rows, materialize_profile_progression,
+    ForgeQueryDomainCapabilityProvenanceFreshnessPolicy,
 };
 use super::super::materialization::{
     ForgeQueryDomainCapabilityDescriptiveArtifactKind,
@@ -66,6 +67,7 @@ where
         &profile_progression,
         &rows,
         ForgeQueryDomainCapabilityDescriptiveArtifactKind::Summary,
+        ForgeQueryDomainCapabilityProvenanceFreshnessPolicy::SummaryReduction,
     )?;
 
     Ok(ForgeQueryDomainCapabilityDescriptiveSummary::new(

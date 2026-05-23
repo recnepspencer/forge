@@ -13,12 +13,12 @@ use crate::domain_capabilities::{
     ForgeQueryMaterializationReadyWorkflowContribution,
 };
 use crate::workflow::{
-    admit_query_workflow_declaration, synthetic_preview_workflow_binding_scoped,
-    synthetic_runtime_workflow_binding_scoped, QueryWorkflowDeclaration,
-    WorkflowDeclarationRequest,
+    admit_query_workflow_declaration, bind_workflow_context,
+    scoped_runtime_preflight_workflow_binding, synthetic_runtime_workflow_binding_scoped,
+    QueryWorkflowDeclaration, WorkflowBindingSource, WorkflowDeclarationRequest,
 };
 
-use super::workflow_semantics::{
+use self::semantics::{
     inconsistent_workflow_runtime_semantics_denial, missing_workflow_runtime_semantics_denial,
     workflow_runtime_semantics_match_posture, workflow_source_label,
 };
@@ -68,15 +68,52 @@ where
             target.binding_digest(),
             runtime_snapshot_token,
         ),
-        ForgeQueryWorkflowRuntimeBindingSemantics::PreviewFoundation {
-            preview_session_identity,
-            evaluation_class,
-        } => synthetic_preview_workflow_binding_scoped(
-            source_label.as_str(),
-            target.binding_digest(),
-            preview_session_identity,
-            evaluation_class.clone(),
-        ),
+        ForgeQueryWorkflowRuntimeBindingSemantics::RuntimePreflightBundle { preflight } =>
+            match scoped_runtime_preflight_workflow_binding(preflight, target.binding_digest()) {
+                Ok(binding) => binding,
+                Err(error) => {
+                    return TransitionOutcome::Denied(
+                        ForgeQueryDomainCapabilityProgressionDenial::new(
+                            ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
+                            "workflow-preview",
+                            domain_contribution.target().kind(),
+                            domain_contribution.request_digest(),
+                            format!(
+                                "workflow runtime-preflight binding admission denied with `{:?}`: {}",
+                                error.failure_class(),
+                                error.message()
+                            ),
+                        ),
+                    )
+                }
+            },
+        ForgeQueryWorkflowRuntimeBindingSemantics::PreviewFoundation { .. } => {
+            let foundation = match preview::admit_validated_preview_workflow_foundation(
+                &contribution,
+                runtime_semantics,
+            ) {
+                Ok(foundation) => foundation,
+                Err(denial) => return TransitionOutcome::Denied(denial),
+            };
+            match bind_workflow_context(WorkflowBindingSource::PreviewFoundation(&foundation)) {
+                Ok(binding) => binding,
+                Err(error) => {
+                    return TransitionOutcome::Denied(
+                        ForgeQueryDomainCapabilityProgressionDenial::new(
+                            ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
+                            "workflow-preview",
+                            domain_contribution.target().kind(),
+                            domain_contribution.request_digest(),
+                            format!(
+                                "workflow preview binding admission denied with `{:?}`: {}",
+                                error.failure_class(),
+                                error.message()
+                            ),
+                        ),
+                    )
+                }
+            }
+        }
     };
     let request = WorkflowDeclarationRequest::new(
         runtime_semantics.declaration_family().clone(),
@@ -103,7 +140,9 @@ where
 }
 
 pub trait ForgeQueryWorkflowDeclarationMaterializationTarget:
-    ForgeQueryDomainCapabilityTargetBinding + private::Sealed
+    ForgeQueryDomainCapabilityTargetBinding
+    + preview::ForgeQueryWorkflowPreviewMaterializationTarget
+    + private::Sealed
 {
 }
 
@@ -123,3 +162,12 @@ mod private {
 
 impl private::Sealed for ForgeQueryDeclarationBoundContributionTarget {}
 impl private::Sealed for ForgeQueryAdmittedPlanBoundContributionTarget {}
+
+mod inspection;
+mod lowering;
+mod preview;
+mod semantics;
+
+pub use inspection::*;
+pub use lowering::*;
+pub use preview::*;

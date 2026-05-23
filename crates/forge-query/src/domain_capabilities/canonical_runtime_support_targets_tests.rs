@@ -1,0 +1,209 @@
+use super::test_support::{declaration_target, lower_runtime_target, ready, success};
+use super::{
+    materialize_intent_declaration_support_traceability_artifact,
+    materialize_lower_runtime_support_traceability_artifact,
+    ForgeQuerySupportContributionAuthoring, ForgeQuerySupportContributionPayload,
+    ForgeQuerySupportContributionPosture,
+};
+
+#[test]
+fn declaration_support_traceability_materializer_builds_real_declaration_artifact() {
+    let artifact = success(
+        materialize_intent_declaration_support_traceability_artifact(ready(
+            ForgeQuerySupportContributionAuthoring::declaration_traceability(
+                "intent.scope.traceability",
+                "support stays attached to the authored declaration",
+            )
+            .bind_to_declaration_target(declaration_target("intent-support")),
+        )),
+    );
+
+    assert_eq!(artifact.lane(), "domain_traceability");
+    assert_eq!(
+        artifact.support_detail(),
+        "intent.scope.traceability:support stays attached to the authored declaration"
+    );
+    assert_eq!(artifact.intent_name(), "test.intent");
+    assert_eq!(artifact.strategy_name(), "test.strategy");
+    assert_eq!(artifact.strategy_version(), "1");
+    assert_eq!(artifact.input_contract(), "test.contract");
+    assert_eq!(
+        artifact.source_lane(),
+        crate::runtime::ForgeQueryIntentSourceLane::UserAuthored
+    );
+    assert_eq!(
+        artifact.target_lane(),
+        crate::runtime::ForgeQueryAuthorityLane::AuthoritativeTruth
+    );
+    assert!(!artifact.target_binding_digest().is_empty());
+    assert!(!artifact.request_digest().is_empty());
+    assert!(!artifact.materialization_digest().is_empty());
+}
+
+#[test]
+fn lower_runtime_support_traceability_materializer_builds_real_boundary_artifact() {
+    let artifact = success(materialize_lower_runtime_support_traceability_artifact(
+        ready(
+            ForgeQuerySupportContributionAuthoring::narrowed_support(
+                "boundary.scope.support",
+                "support stays attached to the lower runtime seam",
+            )
+            .bind_to_lower_runtime_boundary_target(lower_runtime_target("boundary-support")),
+        ),
+    ));
+
+    assert_eq!(artifact.lane(), "domain_narrowed_support");
+    assert_eq!(
+        artifact.support_detail(),
+        "boundary.scope.support:support stays attached to the lower runtime seam"
+    );
+    assert_eq!(
+        artifact.seam_key(),
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSeamKey::RuntimeIntentModule
+    );
+    assert_eq!(artifact.capability_label(), "test.capability");
+    assert_eq!(
+        artifact.crossing_classification(),
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeCrossingClassification::CanonicalLowerRuntimeReuse
+    );
+    assert_eq!(
+        artifact.route_kind(),
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeRouteKind::RoutePlanning
+    );
+    assert_eq!(
+        artifact.support_posture(),
+        crate::lower_runtime_routing::ForgeQueryLowerRuntimeSupportPosture::Admitted
+    );
+    assert_eq!(artifact.envelope_digest(), "test.envelope");
+    assert!(!artifact.target_binding_digest().is_empty());
+    assert!(!artifact.request_digest().is_empty());
+    assert!(!artifact.materialization_digest().is_empty());
+}
+
+#[test]
+fn declaration_support_traceability_digest_changes_when_scope_changes() {
+    let left = success(
+        materialize_intent_declaration_support_traceability_artifact(ready(
+            super::proof_integration::create_requested_domain_capability_contribution(
+                declaration_target("intent-support-left"),
+                ForgeQuerySupportContributionPayload::new(
+                    ForgeQuerySupportContributionPosture::DeclarationSupport,
+                    "intent.scope.support",
+                    "support stays scoped to a declaration binding",
+                ),
+            ),
+        )),
+    );
+    let right = success(
+        materialize_intent_declaration_support_traceability_artifact(ready(
+            super::proof_integration::create_requested_domain_capability_contribution(
+                declaration_target("intent-support-right"),
+                ForgeQuerySupportContributionPayload::new(
+                    ForgeQuerySupportContributionPosture::DeclarationSupport,
+                    "intent.scope.support",
+                    "support stays scoped to a declaration binding",
+                ),
+            ),
+        )),
+    );
+
+    assert_ne!(left.target_binding_digest(), right.target_binding_digest());
+    assert_ne!(
+        left.materialization_digest(),
+        right.materialization_digest()
+    );
+}
+
+#[test]
+fn equivalent_declaration_support_meaning_materializes_same_artifact_digest() {
+    let authored = success(
+        materialize_intent_declaration_support_traceability_artifact(ready(
+            ForgeQuerySupportContributionAuthoring::declaration_support(
+                "intent.scope.support",
+                "support stays scoped to a declaration binding",
+            )
+            .bind_to_declaration_target(declaration_target("intent-support")),
+        )),
+    );
+    let direct = success(
+        materialize_intent_declaration_support_traceability_artifact(ready(
+            super::proof_integration::create_requested_domain_capability_contribution(
+                declaration_target("intent-support"),
+                ForgeQuerySupportContributionPayload::new(
+                    ForgeQuerySupportContributionPosture::DeclarationSupport,
+                    "intent.scope.support",
+                    "support stays scoped to a declaration binding",
+                ),
+            ),
+        )),
+    );
+
+    assert_eq!(
+        authored.materialization_digest(),
+        direct.materialization_digest()
+    );
+}
+
+#[test]
+fn lower_runtime_support_traceability_digest_changes_when_scope_changes() {
+    let left = success(materialize_lower_runtime_support_traceability_artifact(
+        ready(
+            super::proof_integration::create_requested_domain_capability_contribution(
+                lower_runtime_target("boundary-support-left"),
+                ForgeQuerySupportContributionPayload::new(
+                    ForgeQuerySupportContributionPosture::DeclarationTraceability,
+                    "boundary.scope.traceability",
+                    "support stays scoped to a lower-runtime binding",
+                ),
+            ),
+        ),
+    ));
+    let right = success(materialize_lower_runtime_support_traceability_artifact(
+        ready(
+            super::proof_integration::create_requested_domain_capability_contribution(
+                lower_runtime_target("boundary-support-right"),
+                ForgeQuerySupportContributionPayload::new(
+                    ForgeQuerySupportContributionPosture::DeclarationTraceability,
+                    "boundary.scope.traceability",
+                    "support stays scoped to a lower-runtime binding",
+                ),
+            ),
+        ),
+    ));
+
+    assert_ne!(left.target_binding_digest(), right.target_binding_digest());
+    assert_ne!(
+        left.materialization_digest(),
+        right.materialization_digest()
+    );
+}
+
+#[test]
+fn equivalent_lower_runtime_support_meaning_materializes_same_artifact_digest() {
+    let authored = success(materialize_lower_runtime_support_traceability_artifact(
+        ready(
+            ForgeQuerySupportContributionAuthoring::declaration_traceability(
+                "boundary.scope.traceability",
+                "support stays scoped to a lower-runtime binding",
+            )
+            .bind_to_lower_runtime_boundary_target(lower_runtime_target("boundary-support")),
+        ),
+    ));
+    let direct = success(materialize_lower_runtime_support_traceability_artifact(
+        ready(
+            super::proof_integration::create_requested_domain_capability_contribution(
+                lower_runtime_target("boundary-support"),
+                ForgeQuerySupportContributionPayload::new(
+                    ForgeQuerySupportContributionPosture::DeclarationTraceability,
+                    "boundary.scope.traceability",
+                    "support stays scoped to a lower-runtime binding",
+                ),
+            ),
+        ),
+    ));
+
+    assert_eq!(
+        authored.materialization_digest(),
+        direct.materialization_digest()
+    );
+}

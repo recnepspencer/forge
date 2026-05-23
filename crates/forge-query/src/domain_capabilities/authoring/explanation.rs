@@ -102,7 +102,7 @@ impl ForgeQueryExplanationContributionAuthoring {
         )
     }
 
-    pub fn unsupported_store_backed_replay_explanation(
+    pub fn store_backed_replay_gap_explanation(
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
         reference_set: CausalEvidenceReferenceSet,

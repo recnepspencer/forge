@@ -127,6 +127,28 @@ impl Default for InvariantCatalog {
 }
 
 impl InvariantCatalog {
+    pub fn canonicalized(&self) -> Self {
+        let mut registrations = self.registrations.clone();
+        registrations.sort_by_cached_key(|registration| {
+            serde_json::to_string(registration)
+                .expect("invariant registrations should serialize for canonical ordering")
+        });
+        registrations.dedup();
+        Self { registrations }
+    }
+
+    pub fn canonical_registration_digest(&self) -> String {
+        self.canonicalized()
+            .registrations
+            .iter()
+            .map(|registration| {
+                serde_json::to_string(registration)
+                    .expect("invariant registrations should serialize for catalog digests")
+            })
+            .collect::<Vec<_>>()
+            .join("|")
+    }
+
     pub(crate) fn registrations_for_execution_point(
         &self,
         execution_point: InvariantExecutionPoint,

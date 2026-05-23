@@ -3,7 +3,8 @@ use super::materialization::{
     materialize_admission_trace_artifact, materialize_continuity_explanation_bundle,
     materialize_continuity_summary, materialize_explanation_explanation_bundle,
     materialize_explanation_trace_artifact, materialize_invariant_capability_support_report,
-    materialize_support_traceability_support_report, materialize_workflow_support_report,
+    materialize_support_traceability_support_report,
+    materialize_support_traceability_trace_artifact, materialize_workflow_support_report,
 };
 use super::payloads::{
     ForgeQueryAdmissionContributionPayload, ForgeQueryAdmissionContributionPosture,
@@ -83,6 +84,10 @@ fn admission_support_report_materializes_foundational_rows_and_fresh_provenance(
         FoundationalDiagnosticOutcomeKind::Advisory
     );
     assert_eq!(
+        summary.provenance().freshness_posture(),
+        forge_foundational::FoundationalBoundaryEvidenceFreshnessPosture::ReducedRetained
+    );
+    assert_eq!(
         summary
             .profile_progression()
             .materialized()
@@ -112,6 +117,10 @@ fn admission_support_report_materializes_foundational_rows_and_fresh_provenance(
     assert_eq!(trace.required_rows().len(), 2);
     assert_eq!(trace.standard_rows().len(), 1);
     assert_eq!(trace.forensic_rows().len(), 1);
+    assert_eq!(
+        trace.provenance().freshness_posture(),
+        forge_foundational::FoundationalBoundaryEvidenceFreshnessPosture::FreshRetained
+    );
 }
 
 #[test]
@@ -204,11 +213,11 @@ fn lower_runtime_support_report_preserves_requested_richness_and_current_provena
     );
     assert_eq!(
         report.provenance().locality(),
-        forge_foundational::FoundationalBoundaryEvidenceLocality::Current
+        forge_foundational::FoundationalBoundaryEvidenceLocality::ReplayDerived
     );
     assert_eq!(
         report.provenance().freshness_posture(),
-        forge_foundational::FoundationalBoundaryEvidenceFreshnessPosture::FreshRetained
+        forge_foundational::FoundationalBoundaryEvidenceFreshnessPosture::ReconstructedFromReplay
     );
     assert!(report.provenance().strategy_basis().is_some());
     assert!(report
@@ -221,6 +230,23 @@ fn lower_runtime_support_report_preserves_requested_richness_and_current_provena
             forge_foundational::FoundationalDiagnosticEvidencePosture::Summarized
         )
     )));
+
+    let trace = materialize_support_traceability_trace_artifact(
+        lower_runtime_ready_contribution(
+            "boundary-a",
+            ForgeQuerySupportContributionPayload::new(
+                ForgeQuerySupportContributionPosture::DeclarationTraceability,
+                "runtime.boundary.traceability",
+                "lower runtime support derives from reconstructed boundary evidence",
+            ),
+        ),
+        forensic_support_profile(),
+    )
+    .expect("trace artifact should materialize");
+    assert_eq!(
+        trace.provenance().freshness_posture(),
+        forge_foundational::FoundationalBoundaryEvidenceFreshnessPosture::ReconstructedFromReplay
+    );
 }
 
 #[test]

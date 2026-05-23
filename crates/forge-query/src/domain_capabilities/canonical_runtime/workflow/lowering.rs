@@ -15,12 +15,12 @@ use crate::workflow::{
     WorkflowStalenessClass,
 };
 
-use super::workflow::materialize_query_workflow_declaration;
-use super::workflow::ForgeQueryWorkflowDeclarationMaterializationTarget;
-use super::workflow_semantics::{
+use super::materialize_query_workflow_declaration;
+use super::semantics::{
     inconsistent_workflow_lowering_semantics_denial, missing_workflow_lowering_semantics_denial,
     workflow_lowering_semantics_match_runtime,
 };
+use super::ForgeQueryWorkflowDeclarationMaterializationTarget;
 
 pub fn materialize_lowered_mutation_intent_declaration<T>(
     contribution: ForgeQueryMaterializationReadyWorkflowContribution<T>,

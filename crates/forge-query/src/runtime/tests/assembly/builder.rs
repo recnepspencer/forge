@@ -259,3 +259,80 @@ fn runtime_builder_accepts_bridge_backed_backend_parts() {
         );
     }
 }
+
+#[test]
+fn runtime_builder_rejects_replacing_explicit_backend_with_backend_parts() {
+    let explicit_backend = ForgeQueryBridgeBackedRuntimeBackend::from_parts(
+        ForgeQueryRuntimeBackendParts::new()
+            .runtime_bridge(test_bridge())
+            .schema_adapter(TestSchemaAdapter)
+            .source_adapter(TestSourceAdapter::default())
+            .write_authority(TestWriteAuthority)
+            .signal_sink(TestSignalSink)
+            .subscription_activation(TestSubscriptionActivation)
+            .preview_basis(TestPreviewBasis)
+            .inspector_evidence(TestInspectorEvidence),
+    )
+    .expect("explicit backend should build for replacement test");
+    let error = ForgeQueryRuntime::builder()
+        .backend(explicit_backend)
+        .runtime_bridge(test_bridge())
+        .schema_adapter(TestSchemaAdapter)
+        .source_adapter(TestSourceAdapter::default())
+        .write_authority(TestWriteAuthority)
+        .signal_sink(TestSignalSink)
+        .subscription_activation(TestSubscriptionActivation)
+        .preview_basis(TestPreviewBasis)
+        .inspector_evidence(TestInspectorEvidence)
+        .build_backend_from_parts()
+        .build();
+    let error = match error {
+        Ok(_) => panic!("explicit backend replacement should reject"),
+        Err(error) => error,
+    };
+
+    assert!(matches!(
+        error,
+        ForgeQueryRuntimeError::InvariantRegistration {
+            stage: "runtime_backend_authority_selection",
+            ..
+        }
+    ));
+    assert!(error.to_string().contains("build_backend_from_parts()"));
+    assert!(error.to_string().contains("backend(...)"));
+}
+
+#[test]
+fn runtime_builder_rejects_explicit_backend_with_stray_backend_parts() {
+    let explicit_backend = ForgeQueryBridgeBackedRuntimeBackend::from_parts(
+        ForgeQueryRuntimeBackendParts::new()
+            .runtime_bridge(test_bridge())
+            .schema_adapter(TestSchemaAdapter)
+            .source_adapter(TestSourceAdapter::default())
+            .write_authority(TestWriteAuthority)
+            .signal_sink(TestSignalSink)
+            .subscription_activation(TestSubscriptionActivation)
+            .preview_basis(TestPreviewBasis)
+            .inspector_evidence(TestInspectorEvidence),
+    )
+    .expect("explicit backend should build for stray-parts test");
+    let error = ForgeQueryRuntime::builder()
+        .runtime_bridge(test_bridge())
+        .schema_adapter(TestSchemaAdapter)
+        .backend(explicit_backend)
+        .build();
+    let error = match error {
+        Ok(_) => panic!("explicit backend with stray backend parts should reject"),
+        Err(error) => error,
+    };
+
+    assert!(matches!(
+        error,
+        ForgeQueryRuntimeError::InvariantRegistration {
+            stage: "runtime_backend_authority_selection",
+            ..
+        }
+    ));
+    assert!(error.to_string().contains("runtime_bridge(...)"));
+    assert!(error.to_string().contains("backend authority path"));
+}

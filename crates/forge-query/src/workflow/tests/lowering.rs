@@ -1,7 +1,7 @@
 use crate::harness::fixtures::{execution_preflights, preview_bridge::active_preview_artifacts};
 use crate::preview::{
-    admit_preview_workflow_foundation, bind_preflight_to_preview_session, PreviewEvaluationClass,
-    PreviewSessionQueryContext,
+    admit_preview_workflow_foundation_request, bind_preflight_to_preview_session,
+    PreviewEvaluationClass, PreviewSessionQueryContext, PreviewWorkflowFoundationRequest,
 };
 use crate::workflow::{
     admit_query_workflow_declaration, bind_workflow_context, lower_merge_workflow_declaration,
@@ -156,8 +156,11 @@ fn writeback_lowering_requires_authoritative_rebind_outside_runtime_basis() {
         ),
     )
     .expect("promotion preview binding should succeed");
-    let foundation = admit_preview_workflow_foundation(&preview_binding)
-        .expect("promotion workflow foundation should admit");
+    let foundation = admit_preview_workflow_foundation_request(
+        &preview_binding,
+        PreviewWorkflowFoundationRequest::deferred_mutation_writeback(),
+    )
+    .expect("deferred writeback workflow foundation should admit");
     let workflow_binding =
         bind_workflow_context(WorkflowBindingSource::PreviewFoundation(&foundation))
             .expect("preview workflow binding should succeed");
@@ -178,6 +181,11 @@ fn writeback_lowering_requires_authoritative_rebind_outside_runtime_basis() {
         WritebackLoweringInput::projected_state_diff(),
     )
     .expect_err("preview writeback should require explicit rebind");
+
+    assert_eq!(
+        workflow_binding.preview_request_family(),
+        Some(&PreviewWorkflowFoundationRequest::DeferredMutationWriteback)
+    );
 
     assert_eq!(
         error.failure_class(),
@@ -213,8 +221,11 @@ fn writeback_lowering_stale_denies_exact_basis_preview_requests() {
         ),
     )
     .expect("promotion preview binding should succeed");
-    let foundation = admit_preview_workflow_foundation(&preview_binding)
-        .expect("promotion workflow foundation should admit");
+    let foundation = admit_preview_workflow_foundation_request(
+        &preview_binding,
+        PreviewWorkflowFoundationRequest::deferred_mutation_writeback(),
+    )
+    .expect("deferred writeback workflow foundation should admit");
     let workflow_binding =
         bind_workflow_context(WorkflowBindingSource::PreviewFoundation(&foundation))
             .expect("preview workflow binding should succeed");

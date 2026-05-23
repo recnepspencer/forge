@@ -1,0 +1,274 @@
+use super::{forge_query_domain, ForgeQueryDomainCapabilityOutcomeKind};
+use crate::domain_capabilities::{
+    admit_eligible_domain_capability_contribution,
+    evaluate_requested_domain_capability_contribution, materialize_projection_consumption_contract,
+    materialize_projection_consumption_review,
+    prepare_admitted_domain_capability_contribution_for_materialization,
+    ForgeQueryAftermathContributionAuthoring, ForgeQueryProjectionContractRequest,
+};
+use crate::projection_consumption::{
+    ProjectMaterializedFacts, ProjectionConsumptionBindingContext,
+    ProjectionConsumptionEligibility, ProjectionConsumptionSource,
+    ProjectionConsumptionSupportPosture, ProjectionSourceFamily,
+};
+use crate::runtime::ForgeQueryAdmittedIntentPlan;
+
+#[test]
+fn common_aftermath_contract_lane_matches_proof_lane_materialization() {
+    let plan = admitted_projection_consumption_plan();
+
+    let common = forge_query_domain("worth.spatial")
+        .for_admitted_intent_plan(&plan)
+        .consumes_projection_contract(
+            "projection.contract",
+            ForgeQueryProjectionContractRequest::new(
+                admitted_projection_source(),
+                admitted_projection_binding(),
+                ProjectMaterializedFacts::declare().display_field("field.visible"),
+            ),
+        )
+        .because("admitted plan aftermath should bind a stable projection contract")
+        .materialize()
+        .expect("aftermath common lane should materialize");
+
+    let proof = proof_contract(&plan);
+
+    assert_eq!(common, proof);
+}
+
+#[test]
+fn common_aftermath_review_lane_matches_proof_lane_materialization() {
+    let plan = admitted_projection_consumption_plan();
+
+    let common = forge_query_domain("worth.spatial")
+        .for_admitted_intent_plan(&plan)
+        .establishes_projection_contract(
+            "projection.review",
+            ForgeQueryProjectionContractRequest::new(
+                deferred_projection_source(),
+                deferred_projection_binding(),
+                ProjectMaterializedFacts::declare().target_identity(),
+            ),
+        )
+        .because("write-receipt projection aftermath should stay inspectable before admission")
+        .review()
+        .expect("aftermath review lane should materialize");
+
+    let proof = proof_review(&plan);
+
+    assert_eq!(common, proof);
+}
+
+#[test]
+fn common_aftermath_support_and_eligibility_lanes_preserve_warning_truth() {
+    let plan = admitted_projection_consumption_plan();
+
+    let support = forge_query_domain("worth.spatial")
+        .for_admitted_intent_plan(&plan)
+        .establishes_projection_contract(
+            "projection.warning",
+            ForgeQueryProjectionContractRequest::new(
+                warning_projection_source(),
+                warning_projection_binding(),
+                ProjectMaterializedFacts::declare().display_field("field.visible"),
+            ),
+        )
+        .because("query-context display aftermath should keep warning-bearing support truth")
+        .materialize_support_report()
+        .expect("aftermath support lane should materialize");
+
+    let eligibility = forge_query_domain("worth.spatial")
+        .for_admitted_intent_plan(&plan)
+        .establishes_projection_contract(
+            "projection.warning",
+            ForgeQueryProjectionContractRequest::new(
+                warning_projection_source(),
+                warning_projection_binding(),
+                ProjectMaterializedFacts::declare().display_field("field.visible"),
+            ),
+        )
+        .because("query-context display aftermath should keep warning-bearing support truth")
+        .materialize_eligibility()
+        .expect("aftermath eligibility lane should materialize");
+
+    assert_eq!(
+        support.source_family(),
+        ProjectionSourceFamily::QueryContextExecution
+    );
+    assert!(support.rows().iter().any(|row| {
+        row.fact_kind() == crate::projection_consumption::ProjectionFactKind::DisplayField
+            && matches!(
+                row.posture(),
+                ProjectionConsumptionSupportPosture::AdmittedWithWarnings(_)
+            )
+    }));
+    assert!(matches!(
+        eligibility,
+        ProjectionConsumptionEligibility::AdmittedWithWarnings(_, _)
+    ));
+}
+
+#[test]
+fn checked_aftermath_lane_preserves_denied_metadata() {
+    let plan = admitted_projection_consumption_plan();
+
+    let checked = forge_query_domain("worth.spatial")
+        .for_admitted_intent_plan(&plan)
+        .consumes_projection_contract(
+            "projection.contract",
+            ForgeQueryProjectionContractRequest::new(
+                admitted_projection_source(),
+                admitted_projection_binding(),
+                ProjectMaterializedFacts::declare().display_field("field.visible"),
+            ),
+        )
+        .because("")
+        .try_materialize();
+
+    assert_eq!(
+        checked.kind(),
+        ForgeQueryDomainCapabilityOutcomeKind::Denied
+    );
+    assert_eq!(checked.category(), "consequence-aftermath");
+    assert_eq!(checked.semantic_posture(), "consumes-fact");
+    assert_eq!(
+        checked.target_kind(),
+        crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind::AdmittedIntentPlan
+    );
+    assert!(checked.denial().is_some());
+}
+
+fn proof_contract(
+    plan: &ForgeQueryAdmittedIntentPlan,
+) -> crate::projection_consumption::MaterializedProjectionContract {
+    let proof_requested = ForgeQueryAftermathContributionAuthoring::consumes_projection_contract(
+        "worth.spatial.projection.contract",
+        "admitted plan aftermath should bind a stable projection contract",
+        admitted_projection_source(),
+        admitted_projection_binding(),
+        ProjectMaterializedFacts::declare().display_field("field.visible"),
+    )
+    .for_admitted_intent_plan(plan);
+    let proof_admitted = success(admit_eligible_domain_capability_contribution(success(
+        evaluate_requested_domain_capability_contribution(proof_requested),
+    )));
+    let proof_target = proof_admitted.payload().target().clone();
+
+    success(materialize_projection_consumption_contract(success(
+        prepare_admitted_domain_capability_contribution_for_materialization(
+            proof_admitted,
+            proof_target,
+        ),
+    )))
+}
+
+fn proof_review(
+    plan: &ForgeQueryAdmittedIntentPlan,
+) -> crate::domain_capabilities::ForgeQueryAftermathProjectionConsumptionReview {
+    let proof_requested =
+        ForgeQueryAftermathContributionAuthoring::establishes_projection_contract(
+            "worth.spatial.projection.review",
+            "write-receipt projection aftermath should stay inspectable before admission",
+            deferred_projection_source(),
+            deferred_projection_binding(),
+            ProjectMaterializedFacts::declare().target_identity(),
+        )
+        .for_admitted_intent_plan(plan);
+    let proof_admitted = success(admit_eligible_domain_capability_contribution(success(
+        evaluate_requested_domain_capability_contribution(proof_requested),
+    )));
+    let proof_target = proof_admitted.payload().target().clone();
+
+    success(materialize_projection_consumption_review(success(
+        prepare_admitted_domain_capability_contribution_for_materialization(
+            proof_admitted,
+            proof_target,
+        ),
+    )))
+}
+
+fn success<T>(
+    outcome: crate::domain_capabilities::ForgeQueryDomainCapabilityTransitionOutcome<T>,
+) -> T {
+    match outcome {
+        forge_proof::TransitionOutcome::Success(value) => value,
+        _ => panic!("expected success"),
+    }
+}
+
+fn admitted_projection_consumption_plan() -> ForgeQueryAdmittedIntentPlan {
+    let declaration = crate::projection_consumption::declare_projection_consumption(
+        admitted_projection_source(),
+        admitted_projection_binding(),
+        ProjectMaterializedFacts::declare().display_field("field.visible"),
+    )
+    .expect("projection declaration should build");
+    let request =
+        crate::intent_admission::ForgeQueryRawIntentAdmissionRequest::projection_consumption(
+            declaration,
+        )
+        .expect("projection request should build");
+
+    match crate::intent_admission::admit_runtime_intent_request(request) {
+        crate::intent_admission::ForgeQueryIntentAdmissionDecision::Admitted(plan) => plan,
+        other => panic!("expected admitted projection-consumption plan, got {other:?}"),
+    }
+}
+
+fn admitted_projection_source() -> ProjectionConsumptionSource {
+    ProjectionConsumptionSource::test_only(
+        ProjectionSourceFamily::QueryReadReceipt,
+        Some("query-digest:domain-capability"),
+        Some("basis-digest:domain-capability"),
+        Some("result-digest:domain-capability"),
+        Some("shape-digest:domain-capability"),
+        "query-read:domain-capability",
+    )
+}
+
+fn warning_projection_source() -> ProjectionConsumptionSource {
+    ProjectionConsumptionSource::test_only(
+        ProjectionSourceFamily::QueryContextExecution,
+        Some("query-digest:domain-capability"),
+        Some("basis-digest:domain-capability"),
+        Some("result-digest:domain-capability"),
+        Some("shape-digest:domain-capability"),
+        "query-context:domain-capability",
+    )
+}
+
+fn deferred_projection_source() -> ProjectionConsumptionSource {
+    ProjectionConsumptionSource::test_only(
+        ProjectionSourceFamily::QueryWriteReceipt,
+        None,
+        Some("basis-digest:domain-capability"),
+        None,
+        None,
+        "query-write:domain-capability",
+    )
+}
+
+fn admitted_projection_binding() -> ProjectionConsumptionBindingContext {
+    ProjectionConsumptionBindingContext::intent_admission_certification_binding(
+        "shape-digest:domain-capability",
+        "query-digest:domain-capability",
+        "shape-digest:domain-capability",
+        "authorized-projection:domain-capability",
+        "narrowed-shape-digest:domain-capability",
+        "policy-digest:domain-capability",
+        "tenant-schema-digest:domain-capability",
+        vec!["field.visible".to_string()],
+    )
+}
+
+fn warning_projection_binding() -> ProjectionConsumptionBindingContext {
+    admitted_projection_binding()
+}
+
+fn deferred_projection_binding() -> ProjectionConsumptionBindingContext {
+    ProjectionConsumptionBindingContext::test_only(
+        "result-shape:test",
+        "authorized-projection:domain-capability",
+        vec!["identity.id".to_string()],
+    )
+}

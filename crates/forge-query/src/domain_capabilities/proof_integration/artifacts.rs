@@ -211,6 +211,27 @@ macro_rules! impl_wrapper_accessors {
     };
 }
 
+fn phase_digest<Phase, P, T, S>(
+    phase: &'static str,
+    artifact: &Artifact<
+        Phase,
+        ForgeQueryDomainCapabilityContribution<P, T>,
+        S,
+        DomainCapabilityBasis,
+    >,
+) -> String
+where
+    P: ForgeQueryDomainCapabilityPayload,
+    T: ForgeQueryDomainCapabilityTargetBinding,
+{
+    hash_parts(&[
+        "forge_query_domain_capability_phase_digest_v1".to_string(),
+        format!("phase:{phase}"),
+        format!("request:{}", artifact.payload().request_digest()),
+        format!("basis:{}", contribution_basis(artifact)),
+    ])
+}
+
 impl_wrapper_accessors!(
     ForgeQueryRequestedDomainCapabilityContribution,
     RequestedContributionArtifact
@@ -227,6 +248,46 @@ impl_wrapper_accessors!(
     ForgeQueryMaterializationReadyDomainCapabilityContribution,
     MaterializationReadyContributionArtifact
 );
+
+impl<P, T> ForgeQueryRequestedDomainCapabilityContribution<P, T>
+where
+    P: ForgeQueryDomainCapabilityPayload,
+    T: ForgeQueryDomainCapabilityTargetBinding,
+{
+    pub fn requested_digest(&self) -> String {
+        phase_digest("requested", &self.0)
+    }
+}
+
+impl<P, T> ForgeQueryEligibleDomainCapabilityContribution<P, T>
+where
+    P: ForgeQueryDomainCapabilityPayload,
+    T: ForgeQueryDomainCapabilityTargetBinding,
+{
+    pub fn eligibility_digest(&self) -> String {
+        phase_digest("eligible", &self.0)
+    }
+}
+
+impl<P, T> ForgeQueryAdmittedDomainCapabilityContribution<P, T>
+where
+    P: ForgeQueryDomainCapabilityPayload,
+    T: ForgeQueryDomainCapabilityTargetBinding,
+{
+    pub fn admitted_digest(&self) -> String {
+        phase_digest("admitted", &self.0)
+    }
+}
+
+impl<P, T> ForgeQueryMaterializationReadyDomainCapabilityContribution<P, T>
+where
+    P: ForgeQueryDomainCapabilityPayload,
+    T: ForgeQueryDomainCapabilityTargetBinding,
+{
+    pub fn materialization_ready_digest(&self) -> String {
+        phase_digest("materialization-ready", &self.0)
+    }
+}
 
 pub type ForgeQueryRequestedAdmissionContribution<T> =
     ForgeQueryRequestedDomainCapabilityContribution<ForgeQueryAdmissionContributionPayload, T>;

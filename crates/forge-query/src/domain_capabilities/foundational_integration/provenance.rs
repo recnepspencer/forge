@@ -4,10 +4,10 @@ use forge_foundational::{
     FoundationalBoundaryEvidenceFreshnessPosture, FoundationalBoundaryEvidenceProfileBasis,
     FoundationalBoundaryEvidenceProvenanceArtifact, FoundationalBoundaryEvidenceSourceBasis,
     FoundationalBoundaryEvidenceStrategyBasis,
-    FoundationalBoundaryEvidenceSupportContextAttachment, FoundationalTransitionStrategyFamily,
-    FoundationalTransitionStrategyId, FoundationalTransitionStrategyIdentity,
-    FoundationalTransitionStrategyOwnershipClass, FoundationalTransitionStrategySemanticName,
-    FoundationalTransitionStrategyVersion,
+    FoundationalBoundaryEvidenceSupportContextAttachment, FoundationalDiagnosticDeliveryClass,
+    FoundationalTransitionStrategyFamily, FoundationalTransitionStrategyId,
+    FoundationalTransitionStrategyIdentity, FoundationalTransitionStrategyOwnershipClass,
+    FoundationalTransitionStrategySemanticName, FoundationalTransitionStrategyVersion,
 };
 use forge_proof::TransitionOutcome;
 
@@ -23,11 +23,19 @@ use super::super::{
 };
 use super::rows::ForgeQueryDomainCapabilityDiagnosticRows;
 
+#[derive(Clone, Copy)]
+pub(crate) enum ForgeQueryDomainCapabilityProvenanceFreshnessPolicy {
+    SupportSurface(FoundationalDiagnosticDeliveryClass),
+    SummaryReduction,
+    TraceRetention,
+}
+
 pub(crate) fn build_provenance<P, T>(
     contribution: &ForgeQueryMaterializationReadyDomainCapabilityContribution<P, T>,
     profile_progression: &ForgeQueryDomainCapabilityProfileProgression,
     rows: &ForgeQueryDomainCapabilityDiagnosticRows,
     artifact_kind: ForgeQueryDomainCapabilityDescriptiveArtifactKind,
+    freshness_policy: ForgeQueryDomainCapabilityProvenanceFreshnessPolicy,
 ) -> Result<
     FoundationalBoundaryEvidenceProvenanceArtifact,
     ForgeQueryDomainCapabilityDescriptiveMaterializationDenial,
@@ -37,6 +45,7 @@ where
     T: ForgeQueryDomainCapabilityTargetBinding,
 {
     let category = contribution.payload().category();
+    let freshness_posture = freshness_for(freshness_policy, contribution.payload().target().kind());
     let profile_identity = match derive_foundational_profile_identity(
         CanonicalizationRuleVersion::new("forge.query.domain-capabilities.v1")
             .expect("valid canonicalization rule version"),
@@ -56,15 +65,27 @@ where
     };
 
     let semantic_posture = contribution.payload().payload().semantic_posture();
-    let step = boundary_evidence()
-        .provenance()
-        .current(source_basis_for(contribution))
-        .profile_basis(FoundationalBoundaryEvidenceProfileBasis::profile(
-            profile_identity.clone(),
-        ))
-        .canonical_digest_basis(FoundationalBoundaryEvidenceCanonicalDigestBasis::digest(
-            profile_identity.digest().clone(),
-        ));
+    let step = match freshness_posture {
+        FoundationalBoundaryEvidenceFreshnessPosture::ReconstructedFromReplay => {
+            boundary_evidence()
+                .provenance()
+                .replay_derived(source_basis_for(contribution))
+        }
+        FoundationalBoundaryEvidenceFreshnessPosture::RestoredFromCheckpoint => boundary_evidence()
+            .provenance()
+            .restored_readmitted(source_basis_for(contribution)),
+        FoundationalBoundaryEvidenceFreshnessPosture::FreshRetained
+        | FoundationalBoundaryEvidenceFreshnessPosture::StaleRetained
+        | FoundationalBoundaryEvidenceFreshnessPosture::ReducedRetained => boundary_evidence()
+            .provenance()
+            .current(source_basis_for(contribution)),
+    }
+    .profile_basis(FoundationalBoundaryEvidenceProfileBasis::profile(
+        profile_identity.clone(),
+    ))
+    .canonical_digest_basis(FoundationalBoundaryEvidenceCanonicalDigestBasis::digest(
+        profile_identity.digest().clone(),
+    ));
     let step = if semantic_posture.is_policy_or_inferred() {
         step.strategy_basis(strategy_basis_for(contribution, semantic_posture))
     } else {
@@ -79,7 +100,7 @@ where
         ),
     );
 
-    match step.with_freshness(freshness_for()) {
+    match step.with_freshness(freshness_posture) {
         TransitionOutcome::Success(provenance) => Ok(provenance),
         TransitionOutcome::Denied(denial) => panic!("unexpected provenance denial: {denial:?}"),
         outcome => panic!("unexpected provenance outcome: {outcome:?}"),
@@ -100,8 +121,37 @@ where
     FoundationalBoundaryEvidenceSourceBasis::boundary_artifact(locator)
 }
 
-fn freshness_for() -> FoundationalBoundaryEvidenceFreshnessPosture {
-    FoundationalBoundaryEvidenceFreshnessPosture::FreshRetained
+fn freshness_for(
+    freshness_policy: ForgeQueryDomainCapabilityProvenanceFreshnessPolicy,
+    target_kind: crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind,
+) -> FoundationalBoundaryEvidenceFreshnessPosture {
+    if target_kind == crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind::LowerRuntimeBoundaryEnvelope
+    {
+        return FoundationalBoundaryEvidenceFreshnessPosture::ReconstructedFromReplay;
+    }
+
+    match freshness_policy {
+        ForgeQueryDomainCapabilityProvenanceFreshnessPolicy::SupportSurface(delivery_class) => {
+            match delivery_class {
+                FoundationalDiagnosticDeliveryClass::MustBeHot => {
+                    FoundationalBoundaryEvidenceFreshnessPosture::FreshRetained
+                }
+                FoundationalDiagnosticDeliveryClass::CanDefer
+                | FoundationalDiagnosticDeliveryClass::UnavailableByPolicy => {
+                    FoundationalBoundaryEvidenceFreshnessPosture::StaleRetained
+                }
+                FoundationalDiagnosticDeliveryClass::ReconstructableFromReplay => {
+                    FoundationalBoundaryEvidenceFreshnessPosture::ReconstructedFromReplay
+                }
+            }
+        }
+        ForgeQueryDomainCapabilityProvenanceFreshnessPolicy::SummaryReduction => {
+            FoundationalBoundaryEvidenceFreshnessPosture::ReducedRetained
+        }
+        ForgeQueryDomainCapabilityProvenanceFreshnessPolicy::TraceRetention => {
+            FoundationalBoundaryEvidenceFreshnessPosture::FreshRetained
+        }
+    }
 }
 
 fn strategy_basis_for<P, T>(

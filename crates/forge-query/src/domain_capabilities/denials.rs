@@ -1,6 +1,7 @@
 use forge_proof::TransitionOutcome;
 
 use super::targets::ForgeQueryDomainCapabilityTargetKind;
+use crate::identity::hash_parts;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryDomainCapabilityProgressionDenialKind {
@@ -55,6 +56,17 @@ impl ForgeQueryDomainCapabilityProgressionDenial {
 
     pub fn message(&self) -> &str {
         &self.message
+    }
+
+    pub fn failure_digest(&self) -> String {
+        hash_parts(&[
+            "forge_query_domain_capability_progression_denial_v1".to_string(),
+            format!("kind:{:?}", self.kind),
+            format!("category:{}", self.category),
+            format!("target-kind:{}", self.target_kind.as_str()),
+            format!("request:{}", self.request_digest),
+            format!("message:{}", self.message),
+        ])
     }
 }
 

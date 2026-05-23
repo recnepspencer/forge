@@ -1,10 +1,12 @@
 use crate::runtime::{ForgeQueryIntentDeclaration, ForgeQueryLowerRuntimeBoundaryEnvelope};
+use forge_relational::facade::runtime::{InvariantCatalog, InvariantRegistration};
 
 use super::bind_requested;
 use crate::domain_capabilities::payloads::{
     ForgeQueryGraphCapabilityRuntimeSemantics, ForgeQueryGraphInvariantDenialRuntimeSemantics,
     ForgeQueryInvariantCapabilityContributionPayload,
     ForgeQueryInvariantCapabilityContributionPosture,
+    ForgeQueryInvariantRegistrationRuntimeSemantics,
 };
 use crate::domain_capabilities::proof_integration::ForgeQueryRequestedInvariantCapabilityContribution;
 use crate::domain_capabilities::targets::{
@@ -100,13 +102,28 @@ impl ForgeQueryInvariantCapabilityContributionAuthoring {
     }
 
     pub fn invariant_registration(
+        invariant_catalog: InvariantCatalog,
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
     ) -> Self {
-        Self::new(
+        Self::with_invariant_registration(
             ForgeQueryInvariantCapabilityContributionPosture::InvariantRegistration,
             semantic_code,
             detail,
+            ForgeQueryInvariantRegistrationRuntimeSemantics::new(invariant_catalog),
+        )
+    }
+
+    pub fn invariant_rule_registration(
+        registration: InvariantRegistration,
+        semantic_code: impl Into<String>,
+        detail: impl Into<String>,
+    ) -> Self {
+        Self::with_invariant_registration(
+            ForgeQueryInvariantCapabilityContributionPosture::InvariantRegistration,
+            semantic_code,
+            detail,
+            ForgeQueryInvariantRegistrationRuntimeSemantics::from_registration(registration),
         )
     }
 
@@ -194,6 +211,22 @@ impl ForgeQueryInvariantCapabilityContributionAuthoring {
                 semantic_code,
                 detail,
                 Some(graph_invariant_denial),
+            ),
+        }
+    }
+
+    fn with_invariant_registration(
+        posture: ForgeQueryInvariantCapabilityContributionPosture,
+        semantic_code: impl Into<String>,
+        detail: impl Into<String>,
+        invariant_registration: ForgeQueryInvariantRegistrationRuntimeSemantics,
+    ) -> Self {
+        Self {
+            payload: ForgeQueryInvariantCapabilityContributionPayload::with_invariant_registration(
+                posture,
+                semantic_code,
+                detail,
+                Some(invariant_registration),
             ),
         }
     }

@@ -5,7 +5,6 @@ pub use super::authoritative_mutation_evidence_support_bridge::{
     ForgeQueryBridgeBackedVerificationSupportRow, ForgeQueryBridgeBackedVerificationSupportStatus,
 };
 use super::support::{
-    default_graph_composition_capability_support_rows,
     default_graph_composition_extension_hook_support_rows,
     ForgeQueryGraphCompositionCapabilitySupportRow,
     ForgeQueryGraphCompositionExtensionHookSupportRow,
@@ -24,6 +23,9 @@ pub struct ForgeQueryAuthoritativeMutationEvidenceSupport {
     identity_preserving_update_families: Vec<String>,
     symbolic_target_reference_families: Vec<String>,
     symbolic_aspect_reference_families: Vec<String>,
+    graph_composition_capability_support_rows: Vec<ForgeQueryGraphCompositionCapabilitySupportRow>,
+    graph_composition_extension_hook_support_rows:
+        Vec<ForgeQueryGraphCompositionExtensionHookSupportRow>,
     graph_composition_families: Vec<String>,
     naming_mutation_families: Vec<String>,
     continuity_mutation_families: Vec<String>,
@@ -37,6 +39,11 @@ impl ForgeQueryAuthoritativeMutationEvidenceSupport {
         let backend_posture = support_profile.posture();
         let declared_resolved_target_model =
             "declared-resolved-target-evidence-with-touched-fallout".to_string();
+        let graph_composition_capability_support_rows = support_profile
+            .graph_composition_capability_support_rows()
+            .to_vec();
+        let graph_composition_extension_hook_support_rows =
+            default_graph_composition_extension_hook_support_rows();
         let existing_truth_binding_families = vec![
             "direct_entity_identity".to_string(),
             "direct_relation_identity".to_string(),
@@ -59,21 +66,13 @@ impl ForgeQueryAuthoritativeMutationEvidenceSupport {
         let symbolic_target_reference_families = vec!["same_batch_declared_target".to_string()];
         let symbolic_aspect_reference_families =
             vec!["same_batch_declared_entity_identity".to_string()];
-        let graph_composition_families = vec![
-            "same_batch_entity_relation_identity_edges".to_string(),
-            "mixed_existing_and_symbolic_entity_identity_edges".to_string(),
-            "same_batch_symbolic_entity_followup_mutation".to_string(),
-            "same_batch_symbolic_relation_followup_mutation".to_string(),
-            "same_batch_symbolic_relation_retirement".to_string(),
-            "mixed_existing_target_followup_mutation".to_string(),
-            "mixed_existing_target_retarget".to_string(),
-            "mixed_existing_target_supersession".to_string(),
-            "mixed_existing_target_retirement".to_string(),
-            "mixed_existing_target_verified_followup_mutation".to_string(),
-            "mixed_existing_target_verified_retarget".to_string(),
-            "mixed_existing_target_verified_supersession".to_string(),
-            "mixed_existing_target_verified_retirement".to_string(),
-        ];
+        let mut graph_composition_families = Vec::new();
+        for row in &graph_composition_capability_support_rows {
+            let family = row.capability_family().to_string();
+            if !graph_composition_families.contains(&family) {
+                graph_composition_families.push(family);
+            }
+        }
         let naming_mutation_families = vec![
             "attach_new_target".to_string(),
             "attach_existing_target".to_string(),
@@ -177,12 +176,12 @@ impl ForgeQueryAuthoritativeMutationEvidenceSupport {
                 .map(|item| format!("graph-composition:{item}")),
         );
         parts.extend(
-            default_graph_composition_capability_support_rows()
+            graph_composition_capability_support_rows
                 .iter()
                 .map(|row| format!("graph-composition-row:{}", row.row_digest())),
         );
         parts.extend(
-            default_graph_composition_extension_hook_support_rows()
+            graph_composition_extension_hook_support_rows
                 .iter()
                 .map(|row| format!("graph-composition-hook-row:{}", row.row_digest())),
         );
@@ -218,6 +217,8 @@ impl ForgeQueryAuthoritativeMutationEvidenceSupport {
             identity_preserving_update_families,
             symbolic_target_reference_families,
             symbolic_aspect_reference_families,
+            graph_composition_capability_support_rows,
+            graph_composition_extension_hook_support_rows,
             graph_composition_families,
             naming_mutation_families,
             continuity_mutation_families,
@@ -253,14 +254,14 @@ impl ForgeQueryAuthoritativeMutationEvidenceSupport {
 
     pub fn graph_composition_capability_support_rows(
         &self,
-    ) -> Vec<ForgeQueryGraphCompositionCapabilitySupportRow> {
-        default_graph_composition_capability_support_rows()
+    ) -> &[ForgeQueryGraphCompositionCapabilitySupportRow] {
+        &self.graph_composition_capability_support_rows
     }
 
     pub fn graph_composition_extension_hook_support_rows(
         &self,
-    ) -> Vec<ForgeQueryGraphCompositionExtensionHookSupportRow> {
-        default_graph_composition_extension_hook_support_rows()
+    ) -> &[ForgeQueryGraphCompositionExtensionHookSupportRow] {
+        &self.graph_composition_extension_hook_support_rows
     }
 
     pub fn existing_truth_assertion_modes(&self) -> &[String] {

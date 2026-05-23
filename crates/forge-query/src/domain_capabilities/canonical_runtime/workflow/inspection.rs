@@ -12,11 +12,11 @@ use crate::workflow::{
     QueryConflictInspectionArtifact, QueryPostMergeInspectionArtifact, WorkflowDeclarationRequest,
 };
 
-use super::workflow::ForgeQueryWorkflowDeclarationMaterializationTarget;
-use super::workflow_semantics::{
+use super::semantics::{
     inconsistent_workflow_runtime_semantics_denial, missing_workflow_runtime_semantics_denial,
     workflow_inspection_semantics_match_runtime, workflow_runtime_semantics_match_posture,
 };
+use super::ForgeQueryWorkflowDeclarationMaterializationTarget;
 
 pub fn materialize_query_conflict_inspection_artifact<T>(
     contribution: ForgeQueryMaterializationReadyWorkflowContribution<T>,

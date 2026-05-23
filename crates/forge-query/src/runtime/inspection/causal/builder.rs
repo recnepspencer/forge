@@ -224,6 +224,22 @@ pub struct CausalInspectionPlan {
 }
 
 impl CausalInspectionPlan {
+    pub(crate) fn from_resolved_request(
+        reference_set: CausalEvidenceReferenceSet,
+        request: CausalInspectionRequest,
+        redaction_policy: CausalInspectionRedactionPolicy,
+        materialization_policy: CausalInspectionMaterializationPolicy,
+    ) -> Self {
+        let admission = admit_causal_inspection(request.clone());
+        Self {
+            reference_set,
+            request,
+            admission,
+            redaction_policy,
+            materialization_policy,
+        }
+    }
+
     pub fn support_posture(&self) -> CausalInspectionSupportPosture {
         match &self.admission {
             CausalInspectionProofFlow::Admitted(_) => CausalInspectionSupportPosture::Admitted,
