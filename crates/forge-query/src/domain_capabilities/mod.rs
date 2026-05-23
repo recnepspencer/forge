@@ -1,9 +1,12 @@
+mod aftermath;
 mod authoring;
 mod canonical_runtime;
 mod certification;
+mod continuity;
 mod denials;
 mod dx;
 mod eligibility;
+mod explanation;
 mod foundational_integration;
 mod materialization;
 mod payloads;
@@ -12,6 +15,7 @@ mod summary;
 mod support;
 mod targets;
 mod trace;
+mod workflow;
 
 pub use authoring::*;
 pub use canonical_runtime::*;
@@ -54,6 +58,8 @@ mod canonical_runtime_workflow_runtime_preflight_tests;
 mod certification_closeout_test_support;
 #[cfg(test)]
 mod certification_closeout_tests;
+#[cfg(test)]
+mod certification_public_lane_tests;
 #[cfg(test)]
 mod materialization_provenance_tests;
 #[cfg(test)]

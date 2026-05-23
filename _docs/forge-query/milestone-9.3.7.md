@@ -1,6 +1,7 @@
 # Milestone 9.3.7 Engineering Spec: Domain Capability Contributions And Canonical Runtime Materialization
 
-> **Status:** Draft
+> **Status:** Closed on 2026-05-22 via
+> [milestone-9.3.7-closeout.md](./milestone-9.3.7-closeout.md)
 >
 > **Roadmap parent:** [forge_query_roadmap.md](./forge_query_roadmap.md)
 >
@@ -8,10 +9,14 @@
 >
 > **Prior milestone:** [milestone-9.3.6.md](./milestone-9.3.6.md)
 >
+> **Prior closeout:** [milestone-9.3.6-closeout.md](./milestone-9.3.6-closeout.md)
+>
 > **Next milestone:** [runtime-api-public-stabilization-plan.md](./runtime-api-public-stabilization-plan.md)
 > freezes the ordinary public runtime facade only after Query can accept
 > domain-authored capability posture across its major runtime artifact classes
 > without forcing domains to mint pseudo-Query layers above the public API.
+>
+> **Shipped closeout:** [milestone-9.3.7-closeout.md](./milestone-9.3.7-closeout.md)
 >
 > **Test requirements:** [test-requirements.md](./test-requirements.md)
 >

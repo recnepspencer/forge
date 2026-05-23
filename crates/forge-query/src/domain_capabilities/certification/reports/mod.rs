@@ -1,5 +1,6 @@
 mod fixtures;
 mod representative;
+mod scaled;
 mod slopes;
 
 pub use representative::{

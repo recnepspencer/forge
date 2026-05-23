@@ -1,0 +1,48 @@
+# Domain Capabilities
+
+`forge-query` domain capabilities let downstream domains contribute semantic
+runtime posture through Query-owned public surfaces while Query keeps canonical
+artifact authority.
+
+This docs tree is organized by category rather than by milestone history:
+
+- `admission/`
+  - [Advisory And Violation Contributions](./admission/advisory-and-violation-contributions.md)
+  - [Declaration Vs Admitted-Plan Targets](./admission/declaration-vs-admitted-plan-targets.md)
+- `support/`
+  - [Declaration-Scoped Support And Traceability](./support/declaration-scoped-support-and-traceability.md)
+  - [Admission-Local Support Reports](./support/admission-local-support-reports.md)
+  - [Lower-Runtime Support And Boundary Traceability](./support/lower-runtime-support-and-boundary-traceability.md)
+- `invariants/`
+  - [Registering Domain Invariants Through Query](./invariants/registering-domain-invariants-through-query.md)
+  - [Capability Gaps And Invariant Denials](./invariants/capability-gaps-and-invariant-denials.md)
+- `workflow/`
+  - [Preview Inspection And Mutation Planning](./workflow/preview-inspection-and-mutation-planning.md)
+  - [Runtime-Preflight Workflow Contributions](./workflow/runtime-preflight-workflow-contributions.md)
+  - [Workflow Lanes: Common, Checked, Proof, And Raw](./workflow/workflow-lanes-common-checked-proof-raw.md)
+- `continuity/`
+  - [Continuity Contributions And Authoritative Successors](./continuity/continuity-contributions-and-authoritative-successors.md)
+  - [Continuity Vs Correspondence](./continuity/continuity-vs-correspondence.md)
+- `aftermath/`
+  - [Projection Contract Consumption](./aftermath/projection-contract-consumption.md)
+  - [Aftermath Review, Support, Eligibility, And Materialization](./aftermath/aftermath-review-support-eligibility-and-materialization.md)
+- `explanation/`
+  - [Lower-Runtime Explanation Contributions](./explanation/lower-runtime-explanation-contributions.md)
+  - [Cross-Runtime Fallback Vs Store-Backed Replay Gap](./explanation/cross-runtime-fallback-vs-store-backed-replay-gap.md)
+- `certification/`
+  - [Certification Surface And Closeout Bundle](./certification/certification-surface-and-closeout-bundle.md)
+  - [Goldens, Boundaries, And Hostile Certification](./certification/goldens-boundaries-and-hostile-certification.md)
+
+Use these docs when you are building domain-specific behavior on top of the
+public Query runtime, especially when your domain needs typed admission,
+support, workflow, continuity, projection aftermath, or explanation artifacts
+without rebuilding a pseudo-Query layer locally.
+
+Start here if:
+
+- you need ordinary Query-facing invariants: [Registering Domain Invariants Through Query](./invariants/registering-domain-invariants-through-query.md)
+- you need declaration-preview workflow planning: [Preview Inspection And Mutation Planning](./workflow/preview-inspection-and-mutation-planning.md)
+- you need successor truth across topology changes: [Continuity Contributions And Authoritative Successors](./continuity/continuity-contributions-and-authoritative-successors.md)
+- you need lower-runtime causal explanation: [Lower-Runtime Explanation Contributions](./explanation/lower-runtime-explanation-contributions.md)
+- you need projection aftermath contracts: [Projection Contract Consumption](./aftermath/projection-contract-consumption.md)
+- you need to audit the proof surface itself: [Certification Surface And Closeout Bundle](./certification/certification-surface-and-closeout-bundle.md)

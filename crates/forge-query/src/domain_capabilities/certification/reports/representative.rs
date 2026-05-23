@@ -337,7 +337,9 @@ pub fn forge_query_domain_capability_representative_report(
         public_boundary_digest,
         compile_fail_boundary_digest: forge_query_domain_capability_compile_fail_boundary_digest(),
         failure_digest: denial.failure_digest(),
-        contribution_width: 7,
+        contribution_width: forge_query_domain_capability_public_surface_inventory()
+            .rows()
+            .len(),
         trace_width: decision_trace.rows().len(),
         category_width: forge_query_domain_capability_public_surface_inventory()
             .rows()

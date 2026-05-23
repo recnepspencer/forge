@@ -1,3 +1,7 @@
+use crate::domain_capabilities::aftermath::DOMAIN_CAPABILITY_AFTERMATH_CATEGORY_MODULE;
+use crate::domain_capabilities::continuity::DOMAIN_CAPABILITY_CONTINUITY_CATEGORY_MODULE;
+use crate::domain_capabilities::explanation::DOMAIN_CAPABILITY_EXPLANATION_CATEGORY_MODULE;
+use crate::domain_capabilities::workflow::DOMAIN_CAPABILITY_WORKFLOW_CATEGORY_MODULE;
 use crate::domain_capabilities::ForgeQueryDomainCapabilityCategory;
 use crate::identity::hash_parts;
 
@@ -129,15 +133,15 @@ const CERTIFIED_SURFACE_ROWS: &[ForgeQueryDomainCapabilityCertifiedSurfaceRow] =
         "forge_query_domain(...).for_intent(...).plans_preview_mutation(...).because(...).try_materialize()",
         "ForgeQueryWorkflowContributionAuthoring::promotion_eligible_mutation_lowering(...).for_intent_declaration(...)",
         "materialize_query_workflow_declaration(...)",
-        "crates/forge-query/src/domain_capabilities/dx/common/intent_workflow.rs",
+        DOMAIN_CAPABILITY_WORKFLOW_CATEGORY_MODULE,
     ),
     ForgeQueryDomainCapabilityCertifiedSurfaceRow::new(
         ForgeQueryDomainCapabilityCategory::ContinuityLineage,
         "forge_query_domain(...).for_admitted_intent_plan(...).preserves_continuity(...).because(...).materialize()",
         "forge_query_domain(...).for_admitted_intent_plan(...).preserves_continuity(...).because(...).try_materialize()",
-        "ForgeQueryContinuityContributionAuthoring::split(...).for_admitted_intent_plan(...)",
-        "materialize_canonical_continuity_artifact(...)",
-        "crates/forge-query/src/domain_capabilities/dx/common/admitted_plan.rs",
+        "ForgeQueryContinuityContributionAuthoring::preserved_rebind(...).for_admitted_intent_plan(...)",
+        "materialize_runtime_continuity_evidence(...)",
+        DOMAIN_CAPABILITY_CONTINUITY_CATEGORY_MODULE,
     ),
     ForgeQueryDomainCapabilityCertifiedSurfaceRow::new(
         ForgeQueryDomainCapabilityCategory::ConsequenceAftermath,
@@ -145,15 +149,15 @@ const CERTIFIED_SURFACE_ROWS: &[ForgeQueryDomainCapabilityCertifiedSurfaceRow] =
         "forge_query_domain(...).for_admitted_intent_plan(...).consumes_projection_contract(...).because(...).review()",
         "ForgeQueryAftermathContributionAuthoring::projection_contract_consumption(...).for_admitted_intent_plan(...)",
         "materialize_projection_consumption_contract(...)",
-        "crates/forge-query/src/domain_capabilities/dx/common/aftermath.rs",
+        DOMAIN_CAPABILITY_AFTERMATH_CATEGORY_MODULE,
     ),
     ForgeQueryDomainCapabilityCertifiedSurfaceRow::new(
         ForgeQueryDomainCapabilityCategory::ExplanationInspection,
-        "forge_query_domain(...).for_lower_runtime_boundary_envelope(...).explains_cross_runtime_fallback(...).because(...).materialize_artifact()",
-        "forge_query_domain(...).for_lower_runtime_boundary_envelope(...).explains_cross_runtime_fallback(...).because(...).review()",
-        "ForgeQueryExplanationContributionAuthoring::cross_runtime_fallback_explanation(...).for_lower_runtime_boundary_envelope(...)",
+        "forge_query_domain(...).for_lower_runtime_boundary_envelope(...).explains_store_backed_replay_gap(...).because(...).materialize_artifact()",
+        "forge_query_domain(...).for_lower_runtime_boundary_envelope(...).explains_store_backed_replay_gap(...).because(...).review()",
+        "ForgeQueryExplanationContributionAuthoring::store_backed_replay_gap_explanation(...).for_lower_runtime_boundary_envelope(...)",
         "materialize_query_causal_inspection_artifact(...)",
-        "crates/forge-query/src/domain_capabilities/dx/common/lower_runtime.rs",
+        DOMAIN_CAPABILITY_EXPLANATION_CATEGORY_MODULE,
     ),
 ];
 

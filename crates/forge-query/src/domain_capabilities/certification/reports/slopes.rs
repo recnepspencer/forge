@@ -1,6 +1,7 @@
 use crate::identity::hash_parts;
 
 use super::representative::ForgeQueryDomainCapabilityRepresentativeReport;
+use super::scaled::forge_query_domain_capability_scaled_evidence;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDomainCapabilityCertificationCounterSnapshot {
@@ -65,46 +66,59 @@ impl ForgeQueryDomainCapabilitySlopeReport {
 }
 
 pub fn forge_query_domain_capability_slope_report(
-    representative: &ForgeQueryDomainCapabilityRepresentativeReport,
+    _representative: &ForgeQueryDomainCapabilityRepresentativeReport,
 ) -> ForgeQueryDomainCapabilitySlopeReport {
+    let scaled = forge_query_domain_capability_scaled_evidence();
+    let full_scale = &scaled[2];
     let counter_snapshot = ForgeQueryDomainCapabilityCertificationCounterSnapshot {
-        contribution_width: representative.contribution_width(),
-        trace_width: representative.trace_width(),
-        category_width: representative.category_width(),
-        support_width: representative.support_width(),
+        contribution_width: full_scale.contribution_width(),
+        trace_width: full_scale.trace_width(),
+        category_width: full_scale.category_width(),
+        support_width: full_scale.support_width(),
         digest: hash_parts(&[
-            format!("contribution-width:{}", representative.contribution_width()),
-            format!("trace-width:{}", representative.trace_width()),
-            format!("category-width:{}", representative.category_width()),
-            format!("support-width:{}", representative.support_width()),
+            format!("contribution-width:{}", full_scale.contribution_width()),
+            format!("trace-width:{}", full_scale.trace_width()),
+            format!("category-width:{}", full_scale.category_width()),
+            format!("support-width:{}", full_scale.support_width()),
         ]),
     };
 
     ForgeQueryDomainCapabilitySlopeReport {
         contribution_materialization_slope_digest: slope_digest(
             "contribution-materialization",
-            representative.contribution_width(),
+            &scaled,
+            |e| (e.contribution_width(), e.contribution_digest()),
         ),
-        trace_materialization_slope_digest: slope_digest(
-            "trace-materialization",
-            representative.trace_width(),
-        ),
+        trace_materialization_slope_digest: slope_digest("trace-materialization", &scaled, |e| {
+            (e.trace_width(), e.trace_digest())
+        }),
         category_materialization_slope_digest: slope_digest(
             "category-materialization",
-            representative.category_width(),
+            &scaled,
+            |e| (e.category_width(), e.category_digest()),
         ),
         support_materialization_slope_digest: slope_digest(
             "support-materialization",
-            representative.support_width(),
+            &scaled,
+            |e| (e.support_width(), e.support_digest()),
         ),
         counter_snapshot,
     }
 }
 
-fn slope_digest(label: &'static str, width: usize) -> String {
+fn slope_digest(
+    label: &'static str,
+    scaled: &[super::scaled::ForgeQueryDomainCapabilityScaledEvidence; 3],
+    projector: impl Fn(&super::scaled::ForgeQueryDomainCapabilityScaledEvidence) -> (usize, &str),
+) -> String {
     hash_parts(
-        &(1..=3)
-            .map(|scale| format!("{label}:{scale}:{}", width * scale))
+        &scaled
+            .iter()
+            .enumerate()
+            .map(|(index, evidence)| {
+                let (width, digest) = projector(evidence);
+                format!("{label}:{}:{width}:{digest}", index + 1)
+            })
             .collect::<Vec<_>>(),
     )
 }
@@ -119,14 +133,8 @@ mod tests {
         let representative = forge_query_domain_capability_representative_report();
         let slopes = forge_query_domain_capability_slope_report(&representative);
 
-        assert_eq!(
-            slopes.counter_snapshot().contribution_width(),
-            representative.contribution_width()
-        );
-        assert_eq!(
-            slopes.counter_snapshot().trace_width(),
-            representative.trace_width()
-        );
+        assert_eq!(slopes.counter_snapshot().contribution_width(), 7);
+        assert!(slopes.counter_snapshot().trace_width() >= representative.trace_width());
         assert!(!slopes.counter_snapshot().digest().is_empty());
         assert!(!slopes
             .contribution_materialization_slope_digest()

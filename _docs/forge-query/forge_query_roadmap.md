@@ -211,9 +211,15 @@ cross-feature proof gates before final certification:
   admission, support, traceability, invariant, workflow, continuity, aftermath,
   and explanation categories, so Query can materialize canonical runtime
   artifacts without forcing domains to mint local pseudo-Query layers
+- `Milestone 9.3.8` must prove serious downstream domains can enter Query as a
+  first-class platform boundary through one Query-owned declaration,
+  progression, routing, inspection, orchestration, and certification seam
+  rather than rebuilding local pre-Query declaration, preparation, and handoff
+  worlds above relational, the runtime bridge, signal, `forge-proof`, and
+  `forge-foundational`
 - the `Runtime API Public Stabilization Gate` must freeze the ordinary public
   workspace/handle/state/aspect/effect/intent/inspection contract after the
-  runtime API facade consumes 9.1 through 9.3.7, so domain runtimes can build
+  runtime API facade consumes 9.1 through 9.3.8, so domain runtimes can build
   now and temporal/async milestones extend the same model later rather than
   adding parallel APIs
 - the `Runtime Authoritative Mutation Evidence Gate` must freeze the ordinary
@@ -256,7 +262,7 @@ Critical path:
   `Milestone 9.2` -> `Milestone 9.3` -> `Milestone 9.3.1` ->
   `Milestone 9.3.2` -> `Milestone 9.3.3` -> `Milestone 9.3.4` ->
   `Milestone 9.3.5` -> `Milestone 9.3.6` -> `Milestone 9.3.7` ->
-  `Runtime API Public Stabilization Gate` ->
+  `Milestone 9.3.8` -> `Runtime API Public Stabilization Gate` ->
   `Runtime Authoritative Mutation Evidence Gate` -> `Milestone 9.4` ->
   `Milestone 9.5` -> `Milestone 9.6` -> `Milestone 9.7` ->
   `Milestone 10` -> `Milestone 11` -> `Milestone 12` -> `Milestone 13`
@@ -323,6 +329,10 @@ Store-gated completion tracks:
   across all named category families rather than shipping a split between
   finished categories and half-closed category shells that would force later
   rewrites
+- `Milestone 9.3.8` must establish Query-owned platform entry for serious
+  downstream domain work as one end-to-end seam rather than a split between
+  declaration, preparation, and runtime handoff milestones that still leave
+  local pseudo-Query scaffolding above lower authorities
 - the `Runtime API Public Stabilization Gate` can freeze the stable
   runtime-backed public facade, golden DX transcripts, handle/state/aspect
   contracts, inspection contract, and temporal/async support gates without
@@ -2708,12 +2718,66 @@ decision/support artifacts regardless of builder path, while semantically
 different posture diverges predictably and illegal direct artifact minting
 fails closed.
 
+## Milestone 9.3.8: Query-As-Beginning Platform Entry
+
+### Goal
+
+Make `forge-query` the true first-class platform entry for serious downstream
+domain work so declarations, progression, authority routing, preparation,
+continuation, inspection, ergonomics, and certification all begin inside one
+Query-owned public seam rather than being split across local pseudo-Query
+layers above relational, the runtime bridge, signal, `forge-proof`, and
+`forge-foundational`.
+
+### Adversarial Constraint
+
+A geometry-kernel-grade domain must be able to enter Forge through Query once
+and stay inside one honest public lifecycle while expressing declaration
+meaning, support posture, continuity posture, preparation readiness, runtime
+continuation, and inspection needs without reconstructing a second semantic
+world in host glue or domain-local adapters.
+
+### Must Ship
+
+- one Query-owned platform-entry seam that begins at domain entry and extends
+  through the full boundary stack captured in
+  [milestone-9.3.8.md](./milestone-9.3.8.md)
+- a phase-locked implementation that follows the milestone's explicit
+  boundary order rather than re-splitting the work into disconnected
+  declaration, preparation, and runtime-handoff mini-products
+- public route-plan, boundary-receipt, and boundary-envelope artifacts for the
+  covered lower-authority crossings
+- a framework-quality ordinary lane that compiles onto lower authorities
+  without caller-owned choreography
+- unified inspection, support/readiness, documentation, and certification for
+  the resulting platform-entry lifecycle
+
+### Must Preserve
+
+- Query remains the front door and orchestration surface rather than a second
+  truth, continuation, or derived-execution engine
+- relational, the runtime bridge, signal, `forge-proof`, and
+  `forge-foundational` remain the authorities for the semantics they already
+  own
+- each internal phase remains a real capability boundary rather than a vague
+  implementation bucket
+- the milestone may be large, but it must still close as one coherent product
+  capability instead of shipping fragmented half-seams
+
+### Acceptance Evidence
+
+This milestone is complete only when serious downstream domains can enter
+Query once, progress through the covered boundary phases without rebuilding
+local pseudo-Query layers, and receive public route/receipt/envelope,
+inspection, and certification artifacts that converge across equivalent paths
+while divergent posture and illegal shortcuts fail typed and early.
+
 ## Runtime API Public Stabilization Gate
 
 ### Goal
 
 Freeze the ordinary public runtime API contract after the runtime facade has
-consumed Milestones 9.1 through 9.3.7, so downstream domain runtimes can build
+consumed Milestones 9.1 through 9.3.8, so downstream domain runtimes can build
 against named surfaces and typed handles now while Milestones 9.4 through 9.7
 later extend the same API model with temporal and async/resource semantics.
 
@@ -3799,6 +3863,7 @@ answer is "store-gated" or "shared with another subsystem."
 | Intent admission decision lattice | Milestone 9.3.5 | Admission decisions, advisory/violation variants, admitted execution handoffs, decision trace envelopes | Query-crossing intents resolve before construction/lowering, and covered runtime-backed paths cross into execution through typed admitted handoffs with structured success, advisory, and violation context | Milestone 9.3.5 admission lattice certification + Milestone 13 diagnostics suites |
 | Lower-runtime capability routing | Milestone 9.3.6, shared with runtime bridge, relational, signal, and store | Lower-runtime route plans, boundary execution receipts, lower-runtime boundary envelopes | Lower-runtime contact is capability-routed and receipt-backed; remaining direct paths are explicit compatibility debt | Milestone 9.3.6 boundary routing certification + Milestone 13 support-matrix suites |
 | Domain-authored capability contributions | Milestone 9.3.7 | Domain capability contribution requests, admitted domain capability artifacts, canonical runtime materializers, declaration-scoped support traceability artifacts, workflow/continuity/aftermath/explanation contribution families | Domains contribute semantic capability posture through one public Query seam while Query keeps canonical runtime artifact ownership across major category families | Milestone 9.3.7 domain capability certification + Milestone 13 diagnostics/support suites |
+| Query-as-beginning platform entry for serious downstream domains | Milestone 9.3.8, shared with forge-proof, forge-foundational, forge-relational, forge-runtime-bridge, and forge-signal | Typed domain entry surfaces, canonical declaration artifacts, progression states, route plans, boundary receipts, boundary envelopes, support/readiness snapshots, orchestration artifacts, and certification bundles | Serious downstream domains enter Forge through one Query-owned seam that covers declaration, preparation, continuation, inspection, and lower-authority routing without rebuilding local pseudo-Query layers | Milestone 9.3.8 platform-entry certification + Milestone 13 diagnostics/support/workflow suites |
 | Temporal query basis and time-aware subscriptions | Milestone 9.4, shared with runtime bridge and signal temporal execution | Temporal query context descriptors, temporal subscription declaration metadata, bridge temporal basis requests | Truth basis and temporal execution basis stay distinct; time-only deliveries remain query-shaped | Milestone 9.7 temporal/async certification + Milestone 13 live/history suites |
 | Time-only query result delivery | Milestone 9.4 | Temporal cause metadata, time-aware delivery batches, previous-value comparison basis | Clock wakes can change admitted query results without raw signal events or ambient timers | Milestone 9.7 temporal/async certification |
 | Async/resource query families | Milestone 9.5, shared with runtime bridge and signal async resources | Async resource query declarations, result-state descriptors, completion-causality artifacts | Stale, cancelled, retried, failed, and superseded completions remain query-shaped and basis-bound | Milestone 9.7 temporal/async certification |

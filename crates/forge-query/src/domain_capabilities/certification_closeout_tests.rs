@@ -305,10 +305,10 @@ fn certification_bundle_populates_stable_width_and_slope_outputs() {
     let bundle = certify_domain_capabilities();
     let representative = forge_query_domain_capability_representative_report();
     let slopes = forge_query_domain_capability_slope_report(&representative);
-    let contribution_width = representative.contribution_width().to_string();
-    let trace_width = representative.trace_width().to_string();
-    let category_width = representative.category_width().to_string();
-    let support_width = representative.support_width().to_string();
+    let contribution_width = slopes.counter_snapshot().contribution_width().to_string();
+    let trace_width = slopes.counter_snapshot().trace_width().to_string();
+    let category_width = slopes.counter_snapshot().category_width().to_string();
+    let support_width = slopes.counter_snapshot().support_width().to_string();
 
     assert_eq!(
         bundle.output_digest("counter_snapshot"),
