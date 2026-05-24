@@ -1,9 +1,8 @@
 use forge_query::facade::{
     ForgeQueryCanonicalDeclarationArtifact, ForgeQueryCapabilityFamily,
-    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationFamilyTaxonomy,
-    ForgeQueryDeclarationInput, ForgeQueryDeclarationPrimaryAuthorityFamily,
-    ForgeQueryDomainEntryMarker, ForgeQueryGroupedDeclarationPosture,
-    ForgeQuerySignalCompatibilityPosture,
+    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+    ForgeQueryRelationalTruthAuthority, ForgeQuerySignalCompatiblePosture,
+    ForgeQuerySingleOnlyGrouping,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -30,16 +29,12 @@ struct SplitEdgeDeclaration;
 struct SplitEdgeFamily;
 
 impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
+    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQuerySingleOnlyGrouping;
+
     fn semantic_family_key() -> &'static str {
         "split-edge"
-    }
-
-    fn taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy {
-        ForgeQueryDeclarationFamilyTaxonomy::new(
-            ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
-            ForgeQuerySignalCompatibilityPosture::Compatible,
-            ForgeQueryGroupedDeclarationPosture::SingleOnly,
-        )
     }
 }
 
@@ -61,11 +56,7 @@ fn main() {
     let _ = ForgeQueryCanonicalDeclarationArtifact::<GeometryDomain, SplitEdgeDeclaration> {
         handle_identity_digest: String::new(),
         declaration_family_key: "split-edge",
-        declaration_taxonomy: ForgeQueryDeclarationFamilyTaxonomy::new(
-            ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
-            ForgeQuerySignalCompatibilityPosture::Compatible,
-            ForgeQueryGroupedDeclarationPosture::SingleOnly,
-        ),
+        declaration_taxonomy: SplitEdgeFamily::taxonomy(),
         canonical_entries: Vec::new(),
         canonical_basis_bundle: fake(),
         declaration_digest: fake(),

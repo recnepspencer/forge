@@ -84,4 +84,17 @@ impl ForgeQueryDeclarationFamilyTaxonomy {
     pub fn grouped_posture(&self) -> ForgeQueryGroupedDeclarationPosture {
         self.grouped_posture
     }
+
+    pub fn from_type_tags<P, S, G>() -> Self
+    where
+        P: ForgeQueryDeclarationPrimaryAuthorityTag,
+        S: ForgeQueryDeclarationSignalCompatibilityTag,
+        G: ForgeQueryDeclarationGroupedPostureTag,
+    {
+        Self::new(P::runtime_value(), S::runtime_value(), G::runtime_value())
+    }
 }
+use crate::application::{
+    ForgeQueryDeclarationGroupedPostureTag, ForgeQueryDeclarationPrimaryAuthorityTag,
+    ForgeQueryDeclarationSignalCompatibilityTag,
+};

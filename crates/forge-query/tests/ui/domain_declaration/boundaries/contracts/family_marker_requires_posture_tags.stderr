@@ -1,0 +1,9 @@
+error[E0046]: not all trait items implemented, missing: `PrimaryAuthority`, `SignalCompatibility`, `GroupedPosture`
+  --> tests/ui/domain_declaration/boundaries/contracts/family_marker_requires_posture_tags.rs:14:1
+   |
+14 | impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `PrimaryAuthority`, `SignalCompatibility`, `GroupedPosture` in implementation
+   |
+   = help: implement the missing item: `type PrimaryAuthority = /* Type */;`
+   = help: implement the missing item: `type SignalCompatibility = /* Type */;`
+   = help: implement the missing item: `type GroupedPosture = /* Type */;`

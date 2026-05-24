@@ -1,5 +1,5 @@
 error[E0599]: no method named `declare` found for struct `ForgeQueryValidatedConfiguredDomainHandle<D, C>` in the current scope
-  --> tests/ui/domain_declaration/boundaries/ordinary_lane_requires_admitted_handle.rs:83:23
+  --> tests/ui/domain_declaration/boundaries/contracts/ordinary_lane_requires_admitted_handle.rs:78:23
    |
-83 |     let _ = validated.declare(SplitEdgeDeclaration);
+78 |     let _ = validated.declare(SplitEdgeDeclaration);
    |                       ^^^^^^^ method not found in `ForgeQueryValidatedConfiguredDomainHandle<GeometryDomain, GeometryOperatingContext>`

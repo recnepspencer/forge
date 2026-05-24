@@ -1,9 +1,12 @@
 use super::operating_context::ForgeQueryDomainOperatingContext;
 use crate::application::{
-    forge_query_canonical_declaration, ForgeQueryCanonicalDeclarationArtifact,
-    ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
-    ForgeQueryDeclarationCanonicalizationError, ForgeQueryDeclarationCanonicalizationVersion,
-    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker, ForgeQueryDomainEntrySupportSnapshot,
+    forge_query_checked_family_declaration, forge_query_checked_family_support,
+    ForgeQueryCanonicalDeclarationArtifact, ForgeQueryCapabilityFamily,
+    ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAdmissionError,
+    ForgeQueryDeclarationCanonicalizationVersion, ForgeQueryDeclarationFamilyMarker,
+    ForgeQueryDeclarationFamilySupportChecked, ForgeQueryDeclarationFamilySupportReport,
+    ForgeQueryDeclarationInput, ForgeQueryDeclaredFamilyChecked, ForgeQueryDomainEntryMarker,
+    ForgeQueryDomainEntrySupportSnapshot,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -68,17 +71,57 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
         &self.handle_identity_digest
     }
 
+    pub fn family_support<F>(&self) -> ForgeQueryDeclarationFamilySupportReport<D, F>
+    where
+        F: ForgeQueryDeclarationFamilyMarker<D>,
+    {
+        match self.family_support_checked::<F>() {
+            ForgeQueryDeclarationFamilySupportChecked::Admitted(report)
+            | ForgeQueryDeclarationFamilySupportChecked::Deferred(report)
+            | ForgeQueryDeclarationFamilySupportChecked::Unsupported(report)
+            | ForgeQueryDeclarationFamilySupportChecked::InvalidContext(report) => report,
+        }
+    }
+
+    pub fn family_support_checked<F>(&self) -> ForgeQueryDeclarationFamilySupportChecked<D, F>
+    where
+        F: ForgeQueryDeclarationFamilyMarker<D>,
+    {
+        forge_query_checked_family_support::<D, C, F>(self)
+    }
+
     pub fn declare<I>(
         &self,
         input: I,
     ) -> Result<
         ForgeQueryCanonicalDeclarationArtifact<D, I>,
-        ForgeQueryDeclarationCanonicalizationError,
+        ForgeQueryDeclarationAdmissionError<D, I>,
     >
     where
         I: ForgeQueryDeclarationInput<D>,
     {
-        forge_query_canonical_declaration(
+        match self.declare_checked(input) {
+            ForgeQueryDeclaredFamilyChecked::Admitted(artifact) => Ok(artifact),
+            ForgeQueryDeclaredFamilyChecked::Deferred(denial) => {
+                Err(ForgeQueryDeclarationAdmissionError::Deferred(denial))
+            }
+            ForgeQueryDeclaredFamilyChecked::Unsupported(denial) => {
+                Err(ForgeQueryDeclarationAdmissionError::Unsupported(denial))
+            }
+            ForgeQueryDeclaredFamilyChecked::InvalidContext(denial) => {
+                Err(ForgeQueryDeclarationAdmissionError::InvalidContext(denial))
+            }
+            ForgeQueryDeclaredFamilyChecked::Canonicalization(error) => {
+                Err(ForgeQueryDeclarationAdmissionError::Canonicalization(error))
+            }
+        }
+    }
+
+    pub fn declare_checked<I>(&self, input: I) -> ForgeQueryDeclaredFamilyChecked<D, I>
+    where
+        I: ForgeQueryDeclarationInput<D>,
+    {
+        forge_query_checked_family_declaration(
             self,
             input,
             ForgeQueryDeclarationCanonicalizationVersion::default(),
@@ -91,11 +134,25 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
         version: ForgeQueryDeclarationCanonicalizationVersion,
     ) -> Result<
         ForgeQueryCanonicalDeclarationArtifact<D, I>,
-        ForgeQueryDeclarationCanonicalizationError,
+        ForgeQueryDeclarationAdmissionError<D, I>,
     >
     where
         I: ForgeQueryDeclarationInput<D>,
     {
-        forge_query_canonical_declaration(self, input, version)
+        match forge_query_checked_family_declaration(self, input, version) {
+            ForgeQueryDeclaredFamilyChecked::Admitted(artifact) => Ok(artifact),
+            ForgeQueryDeclaredFamilyChecked::Deferred(denial) => {
+                Err(ForgeQueryDeclarationAdmissionError::Deferred(denial))
+            }
+            ForgeQueryDeclaredFamilyChecked::Unsupported(denial) => {
+                Err(ForgeQueryDeclarationAdmissionError::Unsupported(denial))
+            }
+            ForgeQueryDeclaredFamilyChecked::InvalidContext(denial) => {
+                Err(ForgeQueryDeclarationAdmissionError::InvalidContext(denial))
+            }
+            ForgeQueryDeclaredFamilyChecked::Canonicalization(error) => {
+                Err(ForgeQueryDeclarationAdmissionError::Canonicalization(error))
+            }
+        }
     }
 }

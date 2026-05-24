@@ -1,25 +1,17 @@
-use forge_foundational::facade::CanonicalEquivalenceBasis;
 use forge_query::facade::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationFamilyMarker,
-    ForgeQueryDeclarationFamilyTaxonomy, ForgeQueryDeclarationInput,
-    ForgeQueryDeclarationPrimaryAuthorityFamily, ForgeQueryDomainEntryMarker,
-    ForgeQueryDomainOperatingContext, ForgeQueryGroupedDeclarationPosture,
-    ForgeQuerySignalCompatibilityPosture,
+    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
+    ForgeQueryRelationalTruthAuthority, ForgeQuerySignalCompatiblePosture,
+    ForgeQuerySingleOnlyGrouping,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct GeometryDomain;
 
 impl ForgeQueryDomainEntryMarker for GeometryDomain {
-    fn domain_key(&self) -> &'static str {
-        "example.geometry"
-    }
-
-    fn display_name(&self) -> &'static str {
-        "GeometryDomain"
-    }
-
+    fn domain_key(&self) -> &'static str { "example.geometry" }
+    fn display_name(&self) -> &'static str { "GeometryDomain" }
     fn required_capability_families(&self) -> &'static [ForgeQueryCapabilityFamily] {
         &[ForgeQueryCapabilityFamily::QueryComposition]
     }
@@ -34,42 +26,31 @@ impl ForgeQueryDomainOperatingContext<GeometryDomain> for GeometryOperatingConte
     }
 
     fn required_config_sections(&self) -> &'static [ForgeQueryConfigSectionFamily] {
-        &[
-            ForgeQueryConfigSectionFamily::Query,
-            ForgeQueryConfigSectionFamily::Relational,
-        ]
+        &[ForgeQueryConfigSectionFamily::Query, ForgeQueryConfigSectionFamily::Relational]
     }
 
-    fn context_identity_digest(&self) -> String {
-        "geometry.collaborative".to_string()
-    }
+    fn context_identity_digest(&self) -> String { "geometry.single".to_string() }
 }
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct SplitEdgeDeclaration(&'static str);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct SplitEdgeFamily;
 
 impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
-    fn semantic_family_key() -> &'static str {
-        "split-edge"
-    }
+    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQuerySingleOnlyGrouping;
 
-    fn taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy {
-        ForgeQueryDeclarationFamilyTaxonomy::new(
-            ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
-            ForgeQuerySignalCompatibilityPosture::Compatible,
-            ForgeQueryGroupedDeclarationPosture::SingleOnly,
-        )
-    }
+    fn semantic_family_key() -> &'static str { "split-edge" }
 }
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct SplitEdgeDeclaration;
 
 impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
     type Family = SplitEdgeFamily;
 
     fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.0)]
+        vec![ForgeQueryDeclarationCanonicalEntry::text("edge_ref", "edge:42")]
     }
 }
 
@@ -82,9 +63,6 @@ fn main() {
         .unwrap()
         .admit()
         .unwrap();
-
-    let left = handle.declare(SplitEdgeDeclaration("edge:42")).unwrap();
-    let right = SplitEdgeDeclaration("edge:42");
-
-    let _ = left.compare_under(&right, CanonicalEquivalenceBasis::ExactCanonicalBasis);
+    let declaration = handle.declare(SplitEdgeDeclaration).unwrap();
+    let _ = declaration.neighborhood_capable();
 }

@@ -1,6 +1,7 @@
 mod capability;
 mod config;
 mod declaration;
+mod declaration_capability;
 mod declaration_family;
 mod domain_entry;
 mod domain_handle;
@@ -26,6 +27,24 @@ pub use declaration::{
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationCanonicalEntryKind,
     ForgeQueryDeclarationCanonicalValue, ForgeQueryDeclarationCanonicalizationError,
     ForgeQueryDeclarationCanonicalizationVersion, ForgeQueryDeclarationInput,
+};
+pub use declaration_capability::{
+    ForgeQueryBatchCapableDeclaration, ForgeQueryBatchCapableGrouping,
+    ForgeQueryBridgeContinuationAuthority, ForgeQueryBridgeContinuationDeclaration,
+    ForgeQueryDeclarationAdmissionError, ForgeQueryDeclarationCapabilityDenial,
+    ForgeQueryDeclarationCapabilityStatus, ForgeQueryDeclarationCapabilityVerb,
+    ForgeQueryDeclarationFamilySupportChecked, ForgeQueryDeclarationFamilySupportReport,
+    ForgeQueryDeclarationFamilySupportRow, ForgeQueryDeclarationGroupedPostureTag,
+    ForgeQueryDeclarationPrimaryAuthorityTag, ForgeQueryDeclarationSignalCompatibilityTag,
+    ForgeQueryDeclarationSupportsBatchGrouping, ForgeQueryDeclarationSupportsBridgeContinuation,
+    ForgeQueryDeclarationSupportsNeighborhoodGrouping,
+    ForgeQueryDeclarationSupportsRelationalTruth, ForgeQueryDeclarationSupportsSignalCompatibility,
+    ForgeQueryDeclaredFamilyChecked, ForgeQueryDescriptiveOnlyAuthority, ForgeQueryMixedAuthority,
+    ForgeQueryNeighborhoodAndBatchCapableGrouping, ForgeQueryNeighborhoodCapableDeclaration,
+    ForgeQueryNeighborhoodCapableGrouping, ForgeQueryRelationalTruthAuthority,
+    ForgeQueryRelationalTruthDeclaration, ForgeQuerySignalCompatibleDeclaration,
+    ForgeQuerySignalCompatiblePosture, ForgeQuerySignalDeferredPosture,
+    ForgeQuerySignalNotCompatiblePosture, ForgeQuerySingleOnlyGrouping,
 };
 pub use declaration_family::{
     ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationFamilyTaxonomy,
@@ -54,6 +73,9 @@ pub use support::{
 };
 
 pub(crate) use declaration::forge_query_canonical_declaration;
+pub(crate) use declaration_capability::{
+    forge_query_checked_family_declaration, forge_query_checked_family_support,
+};
 
 #[cfg(test)]
 mod tests;

@@ -1,5 +1,5 @@
 error[E0046]: not all trait items implemented, missing: `Family`
-  --> tests/ui/domain_declaration/boundaries/declaration_input_requires_family_marker.rs:25:1
+  --> tests/ui/domain_declaration/boundaries/contracts/declaration_input_requires_family_marker.rs:25:1
    |
 25 | impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ missing `Family` in implementation

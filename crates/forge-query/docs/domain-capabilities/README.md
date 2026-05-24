@@ -11,6 +11,7 @@ of domain work you are trying to do:
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Declaration Family Taxonomy](./declaration-family-taxonomy.md)
+- [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
 - `admission/`
   - [Advisory And Violation Contributions](./admission/advisory-and-violation-contributions.md)
   - [Declaration Vs Admitted-Plan Targets](./admission/declaration-vs-admitted-plan-targets.md)
@@ -55,7 +56,10 @@ admitted world needs to express declaration-local meaning through one retained
 Query-owned declaration artifact. Use
 [Declaration Family Taxonomy](./declaration-family-taxonomy.md) when you need
 to understand how Query classifies downstream declaration families and carries
-that classification forward without owning the family nouns themselves.
+that classification forward without owning the family nouns themselves. Use
+[Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
+when you need family-scoped support reports, checked family admission, or
+structural witness surfaces on canonical declarations.
 
 Start here if:
 

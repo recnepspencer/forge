@@ -60,5 +60,6 @@ parallel example-only siblings.
 - `domain-capabilities/configured-domain-handles.md`
 - `domain-capabilities/canonical-domain-declarations.md`
 - `domain-capabilities/declaration-family-taxonomy.md`
+- `domain-capabilities/declaration-family-capability-matrix.md`
 
 

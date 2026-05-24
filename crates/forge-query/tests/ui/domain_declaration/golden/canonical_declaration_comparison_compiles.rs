@@ -2,10 +2,9 @@ use forge_foundational::facade::CanonicalEquivalenceBasis;
 use forge_query::facade::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationFamilyMarker,
-    ForgeQueryDeclarationFamilyTaxonomy, ForgeQueryDeclarationInput,
-    ForgeQueryDeclarationPrimaryAuthorityFamily, ForgeQueryDomainEntryMarker,
-    ForgeQueryDomainOperatingContext, ForgeQueryGroupedDeclarationPosture,
-    ForgeQuerySignalCompatibilityPosture,
+    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
+    ForgeQueryNeighborhoodCapableGrouping, ForgeQueryRelationalTruthAuthority,
+    ForgeQuerySignalCompatiblePosture,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -52,16 +51,12 @@ struct SplitEdgeDeclaration(&'static str);
 struct SplitEdgeFamily;
 
 impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
+    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
     fn semantic_family_key() -> &'static str {
         "split-edge"
-    }
-
-    fn taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy {
-        ForgeQueryDeclarationFamilyTaxonomy::new(
-            ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
-            ForgeQuerySignalCompatibilityPosture::Compatible,
-            ForgeQueryGroupedDeclarationPosture::NeighborhoodCapable,
-        )
     }
 }
 

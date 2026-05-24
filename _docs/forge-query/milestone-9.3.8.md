@@ -111,8 +111,9 @@ shape decisions and must not be rediscovered later:
   context that changes the admitted world; equivalent contexts must converge
   canonically and materially different admitted worlds must diverge.
 - one admitted declaration must yield one Query-owned route plan. Multiple
-  lower-authority consequences are only allowed when the declaration family is
-  explicitly mixed; accidental widening is forbidden.
+  lower-authority consequences are only allowed when the retained declaration
+  family taxonomy explicitly admits mixed-authority or a later richer
+  route-multiplicity posture; accidental widening is forbidden.
 - caller-owned runtime builder assembly and caller-owned basis/preflight/
   historical-binding choreography are in-scope defects for this milestone, not
   later polish work.
@@ -155,7 +156,10 @@ locked decisions above:
    Every domain declaration entering Query canonicalizes into one authoritative declaration artifact family. This is the "one meaning, one identity" boundary.
 
 4. **Phase 4: Declaration Family Taxonomy Boundary**
-   Query freezes the family system for declarations: descriptive, truth-bearing, continuation-bearing, mixed, later-derived, neighborhood-capable, and so on. This stops generic-bag drift.
+   Query freezes the typed declaration family taxonomy: downstream semantic
+   family identity plus Query-owned primary authority posture and modifiers.
+   This stops generic-bag drift and prevents later phases from rediscovering
+   family meaning from labels or payload folklore.
 
 5. **Phase 5: Compile-Time Capability Matrix Boundary**
    Method presence and family eligibility become compile-time facts. This is where wrong families, wrong verbs, and wrong handles become unrepresentable or uncompilable.
@@ -577,12 +581,14 @@ branching.
 
 ### Phase 5: Compile-Time Capability Matrix Boundary
 
-This phase makes family eligibility, verb presence, and target availability
-compile-time facts wherever the wrong combination is structurally knowable.
+This phase makes family-taxonomy-aware eligibility, verb presence, and target
+availability compile-time facts wherever the wrong combination is structurally
+knowable.
 
 **Required Query artifacts**
 
-- one sealed capability matrix for `domain handle x declaration family x verb`
+- one sealed capability matrix for `admitted handle x retained family taxonomy x
+  verb`
 - one checked-lane outcome family for data-dependent denials that remain after
   compile-time gating
 - one support-matrix projection that exposes the same posture publicly
@@ -596,13 +602,17 @@ compile-time facts wherever the wrong combination is structurally knowable.
 
 **Requirements**
 
-- if a configured-handle/family/verb combination is invalid by admitted
-  operating world, family posture, or compile-time-visible route/continuation
-  posture alone, it must be unrepresentable or uncompilable
+- if an admitted-handle/retained-family-taxonomy/verb combination is invalid by
+  admitted operating world, retained primary authority posture, retained
+  modifier posture, or compile-time-visible route/continuation posture alone,
+  it must be unrepresentable or uncompilable
 - only data-dependent, policy-dependent, or declaration-content-dependent
   failures may survive into checked-lane denial outcomes
 - family visibility may depend on admitted operating-world proof from Phase 2;
   taxonomy is global, but public family availability need not be
+- compile-time gating must consume retained canonical declaration family proof
+  from Phase 4 rather than rediscovering family meaning from semantic family
+  keys, payload shape, or host-local routing heuristics
 - the matrix must be inspectable through Query's public support/readiness
   surfaces so ordinary users can understand why something is unavailable
 - the matrix must reserve later authority-routing eligibility columns for
@@ -622,8 +632,8 @@ compile-time facts wherever the wrong combination is structurally knowable.
 
 **Compile-time enforcement**
 
-- wrong-family verbs, wrong-handle verbs, and wrong-target verbs must have UI
-  compile-fail coverage
+- wrong-family-taxonomy verbs, wrong-handle verbs, and wrong-target verbs must
+  have UI compile-fail coverage
 - wrong operating-world verbs and wrong continuation-mode verbs must also have
   compile-fail coverage wherever the mismatch is structurally knowable
 - support-matrix posture may not disagree with actual method presence on the
@@ -631,7 +641,7 @@ compile-time facts wherever the wrong combination is structurally knowable.
 
 **Acceptance evidence**
 
-- compile-fail suites for illegal handle/family/verb combinations
+- compile-fail suites for illegal handle/family-taxonomy/verb combinations
 - parity tests between support-matrix rows and real public method presence
 - checked-lane denial tests proving only content-dependent and policy-dependent
   failures survive past compile-time gating
@@ -649,7 +659,8 @@ compile-time facts wherever the wrong combination is structurally knowable.
 
 This phase proves the declaration is structurally legal before it can enter the
 stronger proof-bearing progression. It is the declaration-entry equivalent of
-Query's earlier legality gates.
+Query's earlier legality gates, and it must consume retained family-taxonomy
+proof rather than reclassifying declarations ad hoc.
 
 **Required Query artifacts**
 
@@ -671,6 +682,10 @@ Query's earlier legality gates.
   configured handles; it may not evaluate declarations in a worldless vacuum
 - legality must run after canonical declaration formation and family taxonomy
   freeze, but before proof-bearing admission and foundational materialization
+- legality must consume the retained semantic family key plus Query-owned
+  taxonomy posture from Phase 4; it may not rediscover authority class,
+  grouped posture, or signal posture from payload inspection or route-local
+  heuristics
 - legality must distinguish unsupported structure, illegal authority claims,
   illegal disposition claims, and later-content-dependent denials rather than
   collapsing all failure into one generic rejection
@@ -873,8 +888,9 @@ support, explanation, attachments, receipts, and canonical evidence bundles.
 ### Phase 9: Query Route-Plan Boundary
 
 This phase introduces the first explicit crossing artifact for domain entry:
-the Query-owned route plan that decides which lower authority families are in
-play for an admitted declaration and why.
+the Query-owned route plan that decides which lower-authority families are in
+play for an admitted declaration and why, using retained declaration family
+taxonomy proof rather than family-label folklore.
 
 **Required Query artifacts**
 
@@ -898,21 +914,25 @@ play for an admitted declaration and why.
 
 **Requirements**
 
-- every admitted declaration family must lower into exactly one explicit Query
-  route-plan artifact before any lower-authority receipt or continuation can be
-  claimed
+- every admitted declaration family taxonomy posture must lower into exactly
+  one explicit Query route-plan artifact before any lower-authority receipt or
+  continuation can be claimed
 - a route plan may reference more than one lower authority family only when the
-  declaration family is explicitly typed as mixed-authority or another later
-  route-multiplicity posture that the Query taxonomy admits by spec; otherwise
-  one declaration maps to one lower-authority family or one typed
+  retained declaration family taxonomy is explicitly typed as mixed-authority
+  or another later route-multiplicity posture that the Query taxonomy admits by
+  spec; otherwise one declaration maps to one lower-authority family or one typed
   deferred/forbidden posture
 - route plans must distinguish "no lower authority yet", "relational-backed",
   "bridge-backed", "mixed-authority", "signal-compatible later", "deferred
   neighbor", and "forbidden" as separate public postures
 - route planning must preserve whether continuation participation is required,
   optional, deferred, or absent whenever that distinction is part of the
-  admitted declaration family's typed posture; Query must not collapse those
+  retained declaration family's typed posture; Query must not collapse those
   cases into one coarse "mixed-authority" bucket
+- route planning must consume retained semantic family identity and retained
+  Query taxonomy posture directly from canonical declaration artifacts; it may
+  not infer lower-authority class from family labels alone or from declaration
+  payload structure
 - route planning must consume admitted operating-world proof from Phase 2 plus
   admitted declaration proof from earlier phases; route intent may narrow or
   select crossings within that world, but it may not redefine the world itself
@@ -957,8 +977,8 @@ play for an admitted declaration and why.
 
 - parity suites showing equivalent admitted declarations produce the same route
   plan
-- inequality assertions for declarations whose family or authority posture
-  differs intentionally
+- inequality assertions for declarations whose retained family taxonomy or
+  authority posture differs intentionally
 - compile-fail coverage proving later receipt/envelope phases cannot skip the
   route-plan artifact
 - representative continuation tests proving runtime-capable route plans encode
@@ -1189,8 +1209,9 @@ Query-mediated crossings rather than future intentions.
 
 ### Phase 13: Bridge Continuation-Routing Boundary
 
-This phase turns continuation-bearing declaration families into real
-Query-mediated bridge crossings.
+This phase turns bridge-continuation declaration families into real
+Query-mediated bridge crossings, and it must consume retained taxonomy proof
+instead of reinterpreting declarations by name or payload.
 
 **Required Query artifacts**
 
@@ -1224,6 +1245,9 @@ Query-mediated bridge crossings.
   writeback, and cross-runtime continuity semantics
 - Query must mediate the bridge crossing, but the bridge remains authoritative
   for continuation/coordination semantics
+- bridge routing must consume the canonical declaration's retained family
+  taxonomy and the Phase 9 route plan rather than rediscovering continuation
+  class from semantic family labels or declaration payload structure
 - bridge continuation artifacts must consume admitted configured-handle proof as
   prior operating-world authority, not reconstruct policy/access/invariant
   posture from ad hoc declaration metadata
@@ -1577,7 +1601,8 @@ surfaces across the entire declaration-entry seam.
 **Required Query artifacts**
 
 - one platform-entry support matrix
-- one readiness/disposition report for declaration families and crossings
+- one readiness/disposition report for retained family taxonomy rows and
+  crossings
 - one denial/deferred residual-debt projection over the same matrix
 - one typed support/readiness request family for querying capability and
   admission posture explicitly
@@ -1591,15 +1616,18 @@ surfaces across the entire declaration-entry seam.
 
 **Requirements**
 
-- support posture must be visible for domain entry, family selection, route
-  planning, lower-authority routing, signal compatibility, and neighborhood
-  readiness where applicable
+- support posture must be visible for domain entry, family-taxonomy selection,
+  route planning, lower-authority routing, signal compatibility, and
+  neighborhood readiness where applicable
 - support/readiness posture must also be visible for admitted operating-world
   questions: which configured regimes are supported, which continuation modes
   are supported for a given admitted world, and which truth contexts are valid
   inside that world
 - the support matrix must be the same source of truth used by ordinary DX,
   checked outcomes, docs, and certification
+- support/readiness rows must be keyed by retained domain-scoped family
+  identity plus Query-owned taxonomy posture where family meaning matters; the
+  matrix may not fall back to raw family-label folklore
 - unsupported, deferred, and forbidden surfaces must remain explicitly named
   and may not degrade into "not implemented" folklore
 - support/readiness posture must be inspectable before expensive work happens
@@ -1627,7 +1655,7 @@ surfaces across the entire declaration-entry seam.
 **Acceptance evidence**
 
 - parity tests between live public surfaces and the support matrix
-- typed denial tests for deferred and unsupported families
+- typed denial tests for deferred and unsupported family-taxonomy rows
 - certification bundles proving support/readiness digests align with the
   crossing inventory from Phase 16
 

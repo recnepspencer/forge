@@ -1,9 +1,10 @@
+use forge_foundational::facade::CanonicalEquivalenceBasis;
 use forge_query::facade::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationFamilyMarker,
     ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
-    ForgeQueryNeighborhoodCapableGrouping, ForgeQueryRelationalTruthAuthority,
-    ForgeQuerySignalCompatiblePosture,
+    ForgeQueryRelationalTruthAuthority, ForgeQuerySignalCompatiblePosture,
+    ForgeQuerySingleOnlyGrouping,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -44,10 +45,7 @@ impl ForgeQueryDomainOperatingContext<GeometryDomain> for GeometryOperatingConte
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct SplitEdgeDeclaration {
-    edge_ref: &'static str,
-    parameter: &'static str,
-}
+struct SplitEdgeDeclaration(&'static str);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 struct SplitEdgeFamily;
@@ -55,7 +53,7 @@ struct SplitEdgeFamily;
 impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
     type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
     type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
-    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+    type GroupedPosture = ForgeQuerySingleOnlyGrouping;
 
     fn semantic_family_key() -> &'static str {
         "split-edge"
@@ -66,10 +64,7 @@ impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
     type Family = SplitEdgeFamily;
 
     fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![
-            ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.edge_ref),
-            ForgeQueryDeclarationCanonicalEntry::text("parameter", self.parameter),
-        ]
+        vec![ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.0)]
     }
 }
 
@@ -83,20 +78,8 @@ fn main() {
         .admit()
         .unwrap();
 
-    let declaration = handle
-        .declare(SplitEdgeDeclaration {
-            edge_ref: "edge:42",
-            parameter: "midpoint",
-        })
-        .unwrap();
+    let left = handle.declare(SplitEdgeDeclaration("edge:42")).unwrap();
+    let right = SplitEdgeDeclaration("edge:42");
 
-    let _ = declaration.declaration_family_key();
-    let _ = declaration.declaration_primary_authority_family();
-    let _ = declaration.declaration_grouped_posture();
-    let _ = declaration.declaration_signal_compatibility();
-    let _ = declaration.declaration_digest();
-    let _ = declaration.canonical_basis_bundle();
-    let _ = declaration.relational_truth();
-    let _ = declaration.signal_compatible();
-    let _ = declaration.neighborhood_capable();
+    let _ = left.compare_under(&right, CanonicalEquivalenceBasis::ExactCanonicalBasis);
 }

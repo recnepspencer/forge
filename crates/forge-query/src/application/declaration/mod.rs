@@ -17,4 +17,7 @@ pub use version::ForgeQueryDeclarationCanonicalizationVersion;
 pub(crate) use artifact::forge_query_canonical_declaration;
 
 #[cfg(test)]
+mod capability_tests;
+
+#[cfg(test)]
 mod tests;

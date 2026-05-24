@@ -9,10 +9,11 @@ use super::{
 };
 use crate::application::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
-    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationFamilyTaxonomy,
-    ForgeQueryDeclarationPrimaryAuthorityFamily, ForgeQueryDomainEntryMarker,
-    ForgeQueryDomainOperatingContext, ForgeQueryGroupedDeclarationPosture,
-    ForgeQuerySignalCompatibilityPosture,
+    ForgeQueryDeclarationCapabilityStatus, ForgeQueryDeclarationFamilyMarker,
+    ForgeQueryDeclarationFamilyTaxonomy, ForgeQueryDomainEntryMarker,
+    ForgeQueryDomainOperatingContext, ForgeQueryNeighborhoodCapableGrouping,
+    ForgeQueryRelationalTruthAuthority, ForgeQuerySignalCompatiblePosture,
+    ForgeQuerySingleOnlyGrouping,
 };
 
 const ENTRY_CAPABILITIES: &[ForgeQueryCapabilityFamily] =
@@ -104,16 +105,12 @@ impl SplitEdgeDeclaration {
 struct SplitEdgeFamily;
 
 impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
+    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
     fn semantic_family_key() -> &'static str {
         "split-edge"
-    }
-
-    fn taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy {
-        ForgeQueryDeclarationFamilyTaxonomy::new(
-            ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
-            ForgeQuerySignalCompatibilityPosture::Compatible,
-            ForgeQueryGroupedDeclarationPosture::NeighborhoodCapable,
-        )
     }
 }
 
@@ -121,16 +118,12 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
 struct SplitEdgeSingleOnlyFamily;
 
 impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeSingleOnlyFamily {
+    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQuerySingleOnlyGrouping;
+
     fn semantic_family_key() -> &'static str {
         "split-edge"
-    }
-
-    fn taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy {
-        ForgeQueryDeclarationFamilyTaxonomy::new(
-            ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
-            ForgeQuerySignalCompatibilityPosture::Compatible,
-            ForgeQueryGroupedDeclarationPosture::SingleOnly,
-        )
     }
 }
 
@@ -210,16 +203,12 @@ impl ForgeQueryDomainOperatingContext<TopologyDomain> for GeometryOperatingConte
 struct SplitEdgeTopologyFamily;
 
 impl ForgeQueryDeclarationFamilyMarker<TopologyDomain> for SplitEdgeTopologyFamily {
+    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
     fn semantic_family_key() -> &'static str {
         "split-edge"
-    }
-
-    fn taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy {
-        ForgeQueryDeclarationFamilyTaxonomy::new(
-            ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
-            ForgeQuerySignalCompatibilityPosture::Compatible,
-            ForgeQueryGroupedDeclarationPosture::NeighborhoodCapable,
-        )
     }
 }
 
@@ -269,23 +258,30 @@ fn equivalent_declaration_authoring_paths_share_the_same_digest() {
     assert_eq!(
         left.declaration_taxonomy(),
         ForgeQueryDeclarationFamilyTaxonomy::new(
-            ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
-            ForgeQuerySignalCompatibilityPosture::Compatible,
-            ForgeQueryGroupedDeclarationPosture::NeighborhoodCapable,
+            crate::application::ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
+            crate::application::ForgeQuerySignalCompatibilityPosture::Compatible,
+            crate::application::ForgeQueryGroupedDeclarationPosture::NeighborhoodCapable,
         )
     );
     assert_eq!(
         left.declaration_primary_authority_family(),
-        ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth
+        crate::application::ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth
     );
     assert_eq!(
         left.declaration_signal_compatibility(),
-        ForgeQuerySignalCompatibilityPosture::Compatible
+        crate::application::ForgeQuerySignalCompatibilityPosture::Compatible
     );
     assert_eq!(
         left.declaration_grouped_posture(),
-        ForgeQueryGroupedDeclarationPosture::NeighborhoodCapable
+        crate::application::ForgeQueryGroupedDeclarationPosture::NeighborhoodCapable
     );
+    assert_eq!(
+        handle.family_support::<SplitEdgeFamily>().declare_status(),
+        ForgeQueryDeclarationCapabilityStatus::Admitted
+    );
+    let _truth = left.relational_truth();
+    let _signal = left.signal_compatible();
+    let _grouped = left.neighborhood_capable();
     assert_eq!(left.declaration_digest(), right.declaration_digest());
 }
 
