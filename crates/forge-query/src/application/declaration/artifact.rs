@@ -33,6 +33,7 @@ pub enum ForgeQueryDeclarationCanonicalizationError {
     ComparisonPreparationFailed,
 }
 
+#[derive(Debug)]
 pub struct ForgeQueryCanonicalDeclarationArtifact<
     D: ForgeQueryDomainEntryMarker,
     I: ForgeQueryDeclarationInput<D>,

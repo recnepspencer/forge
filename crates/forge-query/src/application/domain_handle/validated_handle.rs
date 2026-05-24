@@ -17,6 +17,7 @@ pub struct ForgeQueryValidatedConfiguredDomainHandle<
     support_snapshot: ForgeQueryDomainEntrySupportSnapshot,
     required_capability_families: Vec<ForgeQueryCapabilityFamily>,
     required_config_sections: Vec<ForgeQueryConfigSectionFamily>,
+    operating_context_identity_digest: String,
     handle_identity_digest: String,
 }
 
@@ -29,6 +30,7 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
         support_snapshot: ForgeQueryDomainEntrySupportSnapshot,
         required_capability_families: Vec<ForgeQueryCapabilityFamily>,
         required_config_sections: Vec<ForgeQueryConfigSectionFamily>,
+        operating_context_identity_digest: String,
         handle_identity_digest: String,
     ) -> Self {
         Self {
@@ -37,6 +39,7 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
             support_snapshot,
             required_capability_families,
             required_config_sections,
+            operating_context_identity_digest,
             handle_identity_digest,
         }
     }
@@ -73,6 +76,10 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
         &self.handle_identity_digest
     }
 
+    pub fn operating_context_identity_digest(&self) -> &str {
+        &self.operating_context_identity_digest
+    }
+
     pub fn admit(
         self,
     ) -> Result<
@@ -91,6 +98,7 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
         Vec<ForgeQueryCapabilityFamily>,
         Vec<ForgeQueryConfigSectionFamily>,
         String,
+        String,
     ) {
         (
             self.marker,
@@ -98,6 +106,7 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
             self.support_snapshot,
             self.required_capability_families,
             self.required_config_sections,
+            self.operating_context_identity_digest,
             self.handle_identity_digest,
         )
     }

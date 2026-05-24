@@ -10,10 +10,10 @@ use super::{
 use crate::application::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
     ForgeQueryDeclarationCapabilityStatus, ForgeQueryDeclarationFamilyMarker,
-    ForgeQueryDeclarationFamilyTaxonomy, ForgeQueryDomainEntryMarker,
-    ForgeQueryDomainOperatingContext, ForgeQueryNeighborhoodCapableGrouping,
-    ForgeQueryRelationalTruthAuthority, ForgeQuerySignalCompatiblePosture,
-    ForgeQuerySingleOnlyGrouping,
+    ForgeQueryDeclarationFamilyTaxonomy, ForgeQueryDeclarationLegalityContract,
+    ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
+    ForgeQueryNeighborhoodCapableGrouping, ForgeQueryRelationalTruthAuthority,
+    ForgeQuerySignalCompatiblePosture, ForgeQuerySingleOnlyGrouping,
 };
 
 const ENTRY_CAPABILITIES: &[ForgeQueryCapabilityFamily] =
@@ -112,6 +112,10 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
     fn semantic_family_key() -> &'static str {
         "split-edge"
     }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -124,6 +128,10 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeSingleOnlyFa
 
     fn semantic_family_key() -> &'static str {
         "split-edge"
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
     }
 }
 
@@ -209,6 +217,10 @@ impl ForgeQueryDeclarationFamilyMarker<TopologyDomain> for SplitEdgeTopologyFami
 
     fn semantic_family_key() -> &'static str {
         "split-edge"
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
     }
 }
 

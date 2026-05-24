@@ -1,10 +1,10 @@
 error[E0599]: the method `relational_truth` exists for struct `ForgeQueryCanonicalDeclarationArtifact<GeometryDomain, PreviewBridgeDeclaration>`, but its trait bounds were not satisfied
-  --> tests/ui/domain_declaration/boundaries/witnesses/non_relational_family_has_no_relational_truth_witness.rs:67:25
+  --> tests/ui/domain_declaration/boundaries/witnesses/non_relational_family_has_no_relational_truth_witness.rs:72:25
    |
-36 | struct PreviewBridgeFamily;
+37 | struct PreviewBridgeFamily;
    | -------------------------- doesn't satisfy `<_ as ForgeQueryDeclarationFamilyMarker<GeometryDomain>>::PrimaryAuthority = ForgeQueryRelationalTruthAuthority` or `_: ForgeQueryDeclarationSupportsRelationalTruth<GeometryDomain>`
 ...
-67 |     let _ = declaration.relational_truth();
+72 |     let _ = declaration.relational_truth();
    |                         ^^^^^^^^^^^^^^^^ method cannot be called due to unsatisfied trait bounds
    |
    = note: the following trait bounds were not satisfied:

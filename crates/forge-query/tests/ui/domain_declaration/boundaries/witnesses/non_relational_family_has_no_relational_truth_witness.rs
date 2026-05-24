@@ -1,7 +1,8 @@
 use forge_query::facade::{
     ForgeQueryApplicationFacade, ForgeQueryBridgeContinuationAuthority, ForgeQueryCapabilityFamily,
     ForgeQueryConfigSectionFamily, ForgeQueryDeclarationCanonicalEntry,
-    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationLegalityContract, ForgeQueryDomainEntryMarker,
     ForgeQueryDomainOperatingContext, ForgeQuerySignalCompatiblePosture,
     ForgeQuerySingleOnlyGrouping,
 };
@@ -41,6 +42,10 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for PreviewBridgeFamily {
     type GroupedPosture = ForgeQuerySingleOnlyGrouping;
 
     fn semantic_family_key() -> &'static str { "preview-bridge" }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

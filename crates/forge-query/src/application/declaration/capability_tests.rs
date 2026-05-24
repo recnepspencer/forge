@@ -2,8 +2,8 @@ use super::{ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationInput};
 use crate::application::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfig,
     ForgeQueryConfigSectionFamily, ForgeQueryDeclarationCapabilityStatus,
-    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclaredFamilyChecked,
-    ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
+    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationLegalityContract,
+    ForgeQueryDeclaredFamilyChecked, ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
     ForgeQueryNeighborhoodCapableGrouping, ForgeQueryRelationalConfig,
     ForgeQueryRelationalTruthAuthority, ForgeQuerySignalCompatiblePosture,
 };
@@ -57,6 +57,10 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for DurableFamily {
     fn required_capability_families() -> &'static [ForgeQueryCapabilityFamily] {
         &[ForgeQueryCapabilityFamily::DurableArtifacts]
     }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -90,6 +94,10 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for HistoricalFamily {
 
     fn required_config_sections() -> &'static [ForgeQueryConfigSectionFamily] {
         &[ForgeQueryConfigSectionFamily::Relational]
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
     }
 }
 

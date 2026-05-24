@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/domain_declaration/boundaries/contracts/raw_declaration_input_cannot_satisfy_foundational_evidence_api.rs:72:42
+   |
+72 |     let _ = handle.describe_foundational(SplitEdgeDeclaration);
+   |                    --------------------- ^^^^^^^^^^^^^^^^^^^^ expected `ForgeQueryDeclarationFoundationalEvidenceInput<..., _>`, found `SplitEdgeDeclaration`
+   |                    |
+   |                    arguments to this method are incorrect
+   |
+   = note: expected enum `ForgeQueryDeclarationFoundationalEvidenceInput<GeometryDomain, _>`
+            found struct `SplitEdgeDeclaration`
+note: method defined here
+  --> src/application/domain_handle/admitted_handle.rs
+   |
+   |     pub fn describe_foundational<I>(
+   |            ^^^^^^^^^^^^^^^^^^^^^

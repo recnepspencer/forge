@@ -162,22 +162,40 @@ locked decisions above:
    family meaning from labels or payload folklore.
 
 5. **Phase 5: Compile-Time Capability Matrix Boundary**
-   Method presence and family eligibility become compile-time facts. This is where wrong families, wrong verbs, and wrong handles become unrepresentable or uncompilable.
+   Query freezes the hybrid family capability boundary: structural witness
+   availability becomes compile-time wherever posture is type-known, while
+   family admission that still depends on support/config posture remains a
+   typed checked-lane outcome. This is where wrong witness surfaces disappear,
+   wrong families and wrong handles fail honestly, and later phases stop
+   pretending runtime support facts are compile-time truths.
 
 6. **Phase 6: Declaration Legality Boundary**
-   Query proves the declaration is structurally legal before richer progression continues. This is the declaration-side equivalent of Query's existing legality gates.
+   Query proves the declaration is structurally legal inside an already
+   admitted operating world and for an already capability-admitted family.
+   This is the declaration-side equivalent of Query's existing legality gates.
 
 7. **Phase 7: Proof-Bearing Declaration Progression Boundary**
-   Request, review, eligibility, admission, stale, rebind, denial, and stronger forms become a real `forge-proof` progression. This is where declaration entry stops being "typed helpers" and becomes a real proof chain.
+   Request, review, legality-cleared eligibility, admission, stale, rebind,
+   denial, and stronger forms become a real `forge-proof` progression. This
+   is where declaration entry stops being "typed helpers" and becomes a real
+   proof chain over already retained family capability posture.
 
 8. **Phase 8: Foundational Description Boundary**
-   Provenance, support, explanation, receipts, reports, summaries, artifacts, and equivalence vocabulary become first-class through `forge-foundational`. This is where declaration entry gains a shared descriptive language instead of local dialects.
+   Provenance, support, explanation, receipts, reports, summaries, artifacts,
+   and equivalence vocabulary become first-class through
+   `forge-foundational`. This is where declaration entry gains a shared
+   descriptive language over declaration identity, family capability posture,
+   retained progression truth, and retained admitted-world identity instead of
+   local dialects.
 
 9. **Phase 9: Query Route-Plan Boundary**
-   Query owns an explicit route plan for every admitted declaration. This is where the platform decides which lower authority families are actually in play.
+   Query owns an explicit route plan for every admitted declaration. This is
+   where the platform decides which lower authority families are actually in
+   play by consuming retained family taxonomy and capability posture rather
+   than reopening family meaning from labels or payload heuristics.
 
 10. **Phase 10: Query Boundary-Receipt Boundary**
-    Every real crossing produces a Query-owned boundary receipt. This is where declaration lowering becomes inspectable and certifiable as a public event, not an internal implementation detail.
+    Every real crossing produces a Query-owned boundary receipt. This is where declaration lowering becomes inspectable and certifiable as a public event, with retained progression posture and retained admitted-world identity carried forward instead of hidden as internal implementation detail.
 
 11. **Phase 11: Query Boundary-Envelope Boundary**
     Query wraps route plan, receipt, foundational evidence, and denial topology into one self-describing declaration boundary envelope. This is the public crossing artifact boundary.
@@ -201,13 +219,13 @@ locked decisions above:
     Query gets one unified inspection surface over declaration, route plan, receipt, envelope, relational lowering, bridge lowering, and later signal compatibility posture. This is where the platform becomes understandable.
 
 18. **Phase 18: Support And Readiness Boundary**
-    Query gets a first-class support/readiness story for declaration families and their routed authority posture. This is where "is this admitted/supported/deferred/denied here?" becomes a public product surface.
+    Query gets a first-class support/readiness story for declaration families and their routed authority posture. This is where "is this admitted/supported/deferred/denied here?" becomes a public product surface, with progression deferral, stale, and rebind posture kept distinct from earlier admission and legality denials.
 
 19. **Phase 19: Happy-Path Orchestration Boundary**
-    Query becomes the compiler for the ordinary lane: strong defaults, short semantic verbs, automatic proof/routing prep, no caller-owned choreography. This is the Laravel boundary.
+    Query becomes the compiler for the ordinary lane: strong defaults, short semantic verbs, automatic admission/canonicalization/legality/progression/routing prep, no caller-owned choreography. This is the Laravel boundary.
 
 20. **Phase 20: Denial And Recovery UX Boundary**
-    Typed denials, stale/rebind outcomes, fallback guidance, and route-sensitive explanations become product-quality. This is where failure becomes as usable as success.
+    Typed denials, progression deferral, stale/rebind outcomes, failed progression, fallback guidance, and route-sensitive explanations become product-quality. This is where failure becomes as usable as success.
 
 21. **Phase 21: Family-Specific Ergonomics Boundary**
     The public lane gets the domain-shaped helpers for the major declaration families instead of forcing generic entry patterns everywhere. This is where the surface starts feeling native to real domain work.
@@ -581,16 +599,23 @@ branching.
 
 ### Phase 5: Compile-Time Capability Matrix Boundary
 
-This phase makes family-taxonomy-aware eligibility, verb presence, and target
-availability compile-time facts wherever the wrong combination is structurally
-knowable.
+This phase makes family-taxonomy-aware structural witness availability and
+family-specific admission posture explicit and machine-checkable.
+
+It is intentionally hybrid:
+
+- structurally wrong witness surfaces become compile-time absences wherever the
+  wrong combination is knowable from admitted handle type, declaration input
+  type, and retained family posture tags
+- family admission that still depends on support snapshot or config posture
+  remains a typed checked-lane outcome instead of fake compile-time magic
 
 **Required Query artifacts**
 
 - one sealed capability matrix for `admitted handle x retained family taxonomy x
-  verb`
-- one checked-lane outcome family for data-dependent denials that remain after
-  compile-time gating
+  witness surface`
+- one checked-lane outcome family for support/config/data-dependent denials
+  that remain after structural compile-time gating
 - one support-matrix projection that exposes the same posture publicly
 
 **Locked local surfaces**
@@ -602,12 +627,15 @@ knowable.
 
 **Requirements**
 
-- if an admitted-handle/retained-family-taxonomy/verb combination is invalid by
-  admitted operating world, retained primary authority posture, retained
-  modifier posture, or compile-time-visible route/continuation posture alone,
-  it must be unrepresentable or uncompilable
-- only data-dependent, policy-dependent, or declaration-content-dependent
-  failures may survive into checked-lane denial outcomes
+- if a retained family witness surface is invalid by retained primary
+  authority posture, retained modifier posture, or other type-visible family
+  posture alone, it must be unrepresentable or uncompilable
+- if a family admission decision depends on support snapshot or config posture,
+  it must remain a typed checked-lane outcome rather than being mislabeled as
+  compile-time fact
+- only support/config/data-dependent, policy-dependent, or
+  declaration-content-dependent failures may survive into checked-lane denial
+  outcomes
 - family visibility may depend on admitted operating-world proof from Phase 2;
   taxonomy is global, but public family availability need not be
 - compile-time gating must consume retained canonical declaration family proof
@@ -641,10 +669,10 @@ knowable.
 
 **Acceptance evidence**
 
-- compile-fail suites for illegal handle/family-taxonomy/verb combinations
+- compile-fail suites for illegal handle/family-taxonomy/witness combinations
 - parity tests between support-matrix rows and real public method presence
-- checked-lane denial tests proving only content-dependent and policy-dependent
-  failures survive past compile-time gating
+- checked-lane denial tests proving only support/config/content-dependent and
+  policy-dependent failures survive past structural compile-time gating
 
 **Open questions before implementation**
 
@@ -660,7 +688,8 @@ knowable.
 This phase proves the declaration is structurally legal before it can enter the
 stronger proof-bearing progression. It is the declaration-entry equivalent of
 Query's earlier legality gates, and it must consume retained family-taxonomy
-proof rather than reclassifying declarations ad hoc.
+proof plus retained Phase 5 capability posture rather than reclassifying
+declarations ad hoc.
 
 **Required Query artifacts**
 
@@ -686,6 +715,9 @@ proof rather than reclassifying declarations ad hoc.
   taxonomy posture from Phase 4; it may not rediscover authority class,
   grouped posture, or signal posture from payload inspection or route-local
   heuristics
+- legality must consume retained Phase 5 family capability/admission posture
+  instead of re-running support gating or pretending support/config denials
+  belong to legality
 - legality must distinguish unsupported structure, illegal authority claims,
   illegal disposition claims, and later-content-dependent denials rather than
   collapsing all failure into one generic rejection
@@ -762,6 +794,12 @@ than a chain of typed helper structs.
 - the phase sequence must at minimum represent declaration request,
   legality-cleared declaration, review/eligibility, admitted declaration, and
   typed stale/rebind/denied branches where applicable
+- the proof chain must begin from declarations that already retain Phase 4
+  family taxonomy proof, Phase 5 family capability posture, and Phase 6
+  legality evidence plus the retained explicit legality contract; progression
+  may strengthen or deny that state, but it may not fall back to pre-Phase-5
+  generic declaration meaning or silently rerun legality from taxonomy/capability
+  folklore alone
 - the proof chain must inherit admitted configured-handle identity and
   operating-world proof from Phase 2 rather than re-binding it as ambient
   metadata on later declaration stages
@@ -771,6 +809,9 @@ than a chain of typed helper structs.
   branch honestly without dropping immediately to raw proof APIs
 - proof-bearing declaration artifacts must be stable inputs to later
   foundational description and route-plan phases
+- progression must consume retained legality evidence as the source of
+  structural-legality truth; it may not treat "capability-admitted" as if that
+  already implied legality-cleared progression eligibility
 
 **DX target**
 
@@ -823,6 +864,14 @@ support, explanation, attachments, receipts, and canonical evidence bundles.
 - one support surface for declaration-time support/readiness disclosure
 - one receipt/report/summary distinction for the entry lifecycle
 - one canonical digest derivation surface for foundational evidence bundles
+- one legality-description surface for retained legality evidence, explicit
+  legality contracts, and typed legality denials
+- one progression-description surface for retained progression outcome truth,
+  progression digests, and retained admitted-world identity
+- one typed foundational-evidence input family over legality evidence, legality
+  denials, admitted progression, and non-success progression outcomes
+- one materialization-profile surface that preserves retained declaration truth
+  while allowing descriptive-richness reduction without semantic drift
 
 **Locked external surfaces**
 
@@ -845,6 +894,26 @@ support, explanation, attachments, receipts, and canonical evidence bundles.
   planning, receipts, and envelopes can compose it rather than recreate it
 - support/readiness disclosures emitted here must line up with Query's public
   support-matrix story from Phases 1, 2, and 5
+- foundational evidence must be able to describe retained family capability
+  posture and family-admission truth where those facts are part of the public
+  declaration story rather than leaving later phases to rediscover them
+- foundational evidence must also be able to describe retained legality
+  evidence, explicit legality-contract posture, and typed legality denials
+  where those facts are part of the public declaration story
+- foundational evidence must also be able to describe retained progression
+  truth, `ProofOutcomeKind`, progression digests, and retained admitted
+  operating-world identity rather than treating legality evidence as the final
+  strengthened artifact
+- foundational evidence must support both legality-only descriptive lanes and
+  progression-bearing descriptive lanes; later phases may not assume that all
+  declaration evidence already came from admitted progression
+- the ordinary descriptive lane should default to a full descriptive
+  materialization profile, while checked/proof lanes may select leaner
+  materialization profiles without changing the retained declaration truth being
+  described
+- foundational descriptive receipts produced here are not yet the Query-owned
+  crossing receipts from Phase 10; later phases must compose or wrap them
+  rather than aliasing them as equivalent products
 - foundational evidence digests must become part of later certification bundles
   and parity suites
 
@@ -874,6 +943,9 @@ support, explanation, attachments, receipts, and canonical evidence bundles.
 - parity suites proving ordinary, checked, and proof declaration paths yield
   the same foundational provenance/support/receipt meaning when semantically
   equivalent
+- hostile suites proving legality-only descriptive lanes diverge when admitted
+  world identity changes and non-success progression outcomes do not collapse
+  into admitted-progression evidence
 
 **Open questions before implementation**
 
@@ -890,7 +962,8 @@ support, explanation, attachments, receipts, and canonical evidence bundles.
 This phase introduces the first explicit crossing artifact for domain entry:
 the Query-owned route plan that decides which lower-authority families are in
 play for an admitted declaration and why, using retained declaration family
-taxonomy proof rather than family-label folklore.
+taxonomy proof, retained Phase 5 capability posture, and retained Phase 6
+legality evidence rather than family-label folklore.
 
 **Required Query artifacts**
 
@@ -930,9 +1003,19 @@ taxonomy proof rather than family-label folklore.
   retained declaration family's typed posture; Query must not collapse those
   cases into one coarse "mixed-authority" bucket
 - route planning must consume retained semantic family identity and retained
-  Query taxonomy posture directly from canonical declaration artifacts; it may
-  not infer lower-authority class from family labels alone or from declaration
-  payload structure
+  Query taxonomy posture directly from canonical declaration artifacts, and it
+  should prefer retained capability posture or typed witness-bearing forms from
+  Phase 5 wherever those already make a structural route question explicit; it
+  may not infer lower-authority class from family labels alone or from
+  declaration payload structure
+- route planning must consume retained legality evidence and the explicit
+  legality contract from Phase 6 or stronger progression outputs that preserve
+  them; it may not re-run structural legality or assume taxonomy/capability
+  posture is sufficient proof of route eligibility
+- success-path route planning must still start from admitted progression proof
+  or stronger artifacts that preserve it; legality-only or non-success
+  progression descriptive evidence from Phase 8 is valuable for inspection and
+  denial UX, but it must not masquerade as route-admitted declaration proof
 - route planning must consume admitted operating-world proof from Phase 2 plus
   admitted declaration proof from earlier phases; route intent may narrow or
   select crossings within that world, but it may not redefine the world itself
@@ -1025,6 +1108,20 @@ boundary receipt rather than an invisible implementation transition.
   evidence
 - receipts must say what crossed, why it was admitted, which route-plan row it
   followed, and which authority family it touched
+- receipts must retain whether the crossing came from legality-cleared
+  declaration evidence and which explicit legality contract or legality-denial
+  posture governed the crossing boundary
+- receipts must retain whether the crossing came from admitted progression,
+  deferred progression, stale progression, rebind-required progression, or
+  failed progression instead of flattening progression posture into generic
+  success/failure folklore
+- receipts must preserve retained handle identity and retained operating-context
+  identity whenever those are part of the crossing's admitted-world proof
+- Query boundary receipts must compose Phase 8 foundational descriptive
+  receipts and evidence rather than re-materializing declaration provenance,
+  support, or descriptive receipt meaning from scratch
+- Query boundary receipts must remain distinct from Phase 8 foundational
+  descriptive receipts even when they carry overlapping descriptive facts
 - deferred-neighbor and forbidden crossings must still produce Query-owned
   typed receipt/denial posture rather than silent absence
 - receipts must be inspectable without lower-crate spelunking
@@ -1090,6 +1187,12 @@ boundary receipt into one self-describing public envelope.
 - envelopes must contain, at minimum: declaration identity, family posture,
   legality posture, admitted progression posture, route-plan posture, receipt
   posture, and foundational evidence posture
+- envelopes must preserve retained legality evidence and the explicit
+  legality-contract posture rather than flattening legality into one generic
+  "legal/illegal" note
+- envelopes must preserve whether their descriptive evidence came from a
+  legality-only lane, an admitted progression lane, or a non-success
+  progression lane rather than flattening Phase 8 evidence origin
 - envelopes must become the primary public artifact for later inspection,
   diagnostics, and certification
 - lower crates may remain authoritative for their own evidence, but Query must
@@ -1619,6 +1722,18 @@ surfaces across the entire declaration-entry seam.
 - support posture must be visible for domain entry, family-taxonomy selection,
   route planning, lower-authority routing, signal compatibility, and
   neighborhood readiness where applicable
+- support/readiness must distinguish structural witness availability from
+  operating-world family admission wherever those are different truths; the
+  public product surface may not collapse "this witness does not exist" and
+  "this family is structurally valid but currently denied here" into one vague
+  unavailable posture
+- support/readiness must also distinguish legality denial from family-admission
+  denial wherever those are different truths; the public product surface may
+  not collapse "this family can admit here" and "this admitted declaration is
+  still structurally illegal here" into one generic denial posture
+- support/readiness must also distinguish progression denial, progression
+  deferral, stale progression, and rebind-required progression from both
+  earlier family-admission denial and legality denial
 - support/readiness posture must also be visible for admitted operating-world
   questions: which configured regimes are supported, which continuation modes
   are supported for a given admitted world, and which truth contexts are valid
@@ -1695,6 +1810,13 @@ steps themselves.
   operating world, express declaration intent within that world, and have Query
   perform canonicalization, legality, progression, foundational materialization,
   route planning, and crossing assembly automatically where admitted
+- the ordinary lane must compile through admitted operating-world proof,
+  canonical declaration proof, legality evidence, and admitted progression
+  proof in order; it may not skip progression and jump directly from legality
+  to later routing or crossing assembly
+- the ordinary foundational-materialization default should use the full
+  descriptive-richness profile unless the caller explicitly opts into a leaner
+  checked/proof lane surface
 - the ordinary lane must stay domain-first in naming and shape; it may not
   devolve into `ForgeQuery*` ceremony or substrate-driven builder steps
 - orchestration may automate sequencing, but it may not hide authority changes,
@@ -1778,6 +1900,15 @@ rebind requirements, and recovery posture into public product artifacts.
 - denials must distinguish unsupported family, illegal structure, denied
   legality, denied route, stale basis, rebind required, deferred neighbor, and
   forbidden duplicate posture where those are semantically different
+- denial posture must preserve explicit legality-contract-driven causes such as
+  wrong admitted world, illegal role claim, and illegal surface disposition
+  instead of flattening legality into a generic "not allowed" outcome
+- denial posture must preserve explicit Phase 7 progression outcomes such as
+  `Deferred`, `Stale`, `RebindRequired`, and `Failed` rather than flattening
+  them into generic route failure or retry folklore
+- denial posture must be able to surface Phase 8 foundational evidence for
+  legality denials and non-success progression lanes directly, rather than
+  forcing recovery UX to reconstruct descriptive context from raw denial enums
 - denial and recovery posture must distinguish at least three repair surfaces
   when they differ semantically: admitted operating-world repair,
   declaration-meaning repair, and truth/continuation-context repair
@@ -1842,6 +1973,9 @@ surfaces instead of forcing everything through one generic orchestration shape.
   framework contribution plumbing
 - helpers must compile onto the same canonical declaration, route, receipt, and
   envelope artifacts as the generic lane
+- helper surfaces must compile onto the same Phase 5 family capability
+  boundary, including the same support/admission checks and the same structural
+  witness availability rules
 - helper surfaces may not invent new authority classes, new progression rules,
   or new receipt semantics
 - any helper that meaningfully changes semantics must declare a distinct family
@@ -1900,6 +2034,9 @@ single declarations.
 
 - neighborhood and batch declarations must remain explicit groups, not ad hoc
   arrays of unrelated single declarations
+- grouped declaration formation must consume retained grouped-posture proof from
+  earlier phases rather than rediscovering grouping semantics from family names
+  or generic collection shape
 - grouped declaration semantics must preserve shared posture, shared rationale,
   and shared route/denial context where that grouping is semantically real
 - batching may improve ergonomics and cost posture, but it may not silently

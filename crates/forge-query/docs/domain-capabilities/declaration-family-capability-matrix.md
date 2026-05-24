@@ -12,7 +12,7 @@ This is where Query decides two different things:
 - whether the admitted operating world can admit that family right now based on
   support and config posture
 
-That is why the phase is hybrid. Some family behavior is type-level. Some is
+That is why the boundary is hybrid. Some family behavior is type-level. Some is
 support-dependent.
 
 ## Why You Use It
@@ -20,8 +20,8 @@ support-dependent.
 - inspect family support before canonicalization
 - get typed checked-lane family admission instead of ad hoc denials
 - keep structurally wrong witness surfaces absent at compile time
-- let later phases consume typed witness wrappers instead of reopening taxonomy
-  decisions
+- let other Query declaration features consume typed witness wrappers instead of reopening taxonomy
+  decisions or redoing family support gating
 
 ## Stable Entry Points
 
@@ -48,6 +48,68 @@ Good to know:
 - support-dependent denial happens before canonicalization
 - witness methods exist only when the family marker's posture tags make them
   structurally valid
+
+## API Reference
+
+The main public capability surfaces are:
+
+Admitted-handle family support:
+- `family_support::<F>() -> ForgeQueryDeclarationFamilySupportReport<D, F>`
+- `family_support_checked::<F>() -> ForgeQueryDeclarationFamilySupportChecked<D, F>`
+- `declare_checked(input) -> ForgeQueryDeclaredFamilyChecked<D, I>`
+
+Support report inspection:
+- `domain_key() -> &'static str`
+- `declaration_family_key() -> &'static str`
+- `declaration_taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy`
+- `required_capability_families() -> &[ForgeQueryCapabilityFamily]`
+- `required_config_sections() -> &[ForgeQueryConfigSectionFamily]`
+- `rows() -> &[ForgeQueryDeclarationFamilySupportRow]`
+- `row(verb) -> Option<&ForgeQueryDeclarationFamilySupportRow>`
+- `declare_status() -> ForgeQueryDeclarationCapabilityStatus`
+- `support_digest() -> &str`
+
+Support row inspection:
+- `verb() -> ForgeQueryDeclarationCapabilityVerb`
+- `status() -> ForgeQueryDeclarationCapabilityStatus`
+- `reason() -> &'static str`
+
+Capability enum helpers:
+- `ForgeQueryDeclarationCapabilityVerb::as_str() -> &'static str`
+- `ForgeQueryDeclarationCapabilityStatus::as_str() -> &'static str`
+
+Checked support outcomes:
+- `ForgeQueryDeclarationFamilySupportChecked::Admitted(ForgeQueryDeclarationFamilySupportReport<D, F>)`
+- `ForgeQueryDeclarationFamilySupportChecked::Deferred(ForgeQueryDeclarationFamilySupportReport<D, F>)`
+- `ForgeQueryDeclarationFamilySupportChecked::Unsupported(ForgeQueryDeclarationFamilySupportReport<D, F>)`
+- `ForgeQueryDeclarationFamilySupportChecked::InvalidContext(ForgeQueryDeclarationFamilySupportReport<D, F>)`
+
+Checked admission outcomes:
+- `ForgeQueryDeclaredFamilyChecked::Admitted(ForgeQueryCanonicalDeclarationArtifact<D, I>)`
+- `ForgeQueryDeclaredFamilyChecked::Deferred(ForgeQueryDeclarationCapabilityDenial<D, I::Family>)`
+- `ForgeQueryDeclaredFamilyChecked::Unsupported(ForgeQueryDeclarationCapabilityDenial<D, I::Family>)`
+- `ForgeQueryDeclaredFamilyChecked::InvalidContext(ForgeQueryDeclarationCapabilityDenial<D, I::Family>)`
+- `ForgeQueryDeclaredFamilyChecked::Canonicalization(ForgeQueryDeclarationCanonicalizationError)`
+
+Admission-denial inspection:
+- `capability_status() -> ForgeQueryDeclarationCapabilityStatus`
+- `support_report() -> &ForgeQueryDeclarationFamilySupportReport<D, F>`
+
+Admission error family:
+- `ForgeQueryDeclarationAdmissionError::Deferred(ForgeQueryDeclarationCapabilityDenial<D, I::Family>)`
+- `ForgeQueryDeclarationAdmissionError::Unsupported(ForgeQueryDeclarationCapabilityDenial<D, I::Family>)`
+- `ForgeQueryDeclarationAdmissionError::InvalidContext(ForgeQueryDeclarationCapabilityDenial<D, I::Family>)`
+- `ForgeQueryDeclarationAdmissionError::Canonicalization(ForgeQueryDeclarationCanonicalizationError)`
+
+Witness wrappers:
+- `ForgeQueryRelationalTruthDeclaration<'a, D, I>`
+- `ForgeQueryBridgeContinuationDeclaration<'a, D, I>`
+- `ForgeQuerySignalCompatibleDeclaration<'a, D, I>`
+- `ForgeQueryNeighborhoodCapableDeclaration<'a, D, I>`
+- `ForgeQueryBatchCapableDeclaration<'a, D, I>`
+
+Witness-wrapper inspection:
+- `artifact() -> &ForgeQueryCanonicalDeclarationArtifact<D, I>`
 
 ## Core Mental Model
 
@@ -144,6 +206,7 @@ use forge_query::facade::{
     ForgeQueryConfigSectionFamily, ForgeQueryDeclarationCanonicalEntry,
     ForgeQueryDeclarationCapabilityStatus, ForgeQueryDeclarationCapabilityVerb,
     ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationLegalityContract,
     ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
     ForgeQueryNeighborhoodCapableGrouping, ForgeQueryRelationalTruthAuthority,
     ForgeQuerySignalCompatiblePosture,
@@ -197,6 +260,10 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
 
     fn required_capability_families() -> &'static [ForgeQueryCapabilityFamily] {
         &[ForgeQueryCapabilityFamily::HistoricalEvaluation]
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
     }
 }
 
@@ -262,6 +329,10 @@ What this example is showing:
   availability
 - [Canonical Domain Declarations](./canonical-domain-declarations.md) provide
   the retained artifacts the witness wrappers point back to
+- [Declaration Legality](./declaration-legality.md) begins only after this
+  matrix has already admitted the family
+- [Declaration Progression](./declaration-progression.md) begins only after the
+  family is admitted and legality evidence exists
 
 ## Inspection And Debugging
 
@@ -291,25 +362,28 @@ structural posture issue, not a support snapshot issue.
 - treating all family denial as if it were compile-time
 - canonicalizing declarations before checking family support
 - using raw family strings as the primary support lookup key
-- re-reading taxonomy values in later phases when a typed witness wrapper is
+- re-reading taxonomy values in other Query declaration features when a typed
+  witness wrapper is
   already available
 - expecting Query to enumerate every downstream family globally
 
 ## Current Limits
 
-Family capability matrix does not yet decide:
+Family capability matrix now decides family admission before legality begins.
+It still does not decide:
 
-- declaration legality
 - lower-authority route planning
 - grouped execution semantics
 - continuation execution
 
-It freezes the family support boundary and structural witness surface those
-later phases depend on.
+It freezes the family support boundary and structural witness surface other
+Query declaration features depend on.
 
 ## Related Docs
 
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Declaration Family Taxonomy](./declaration-family-taxonomy.md)
+- [Declaration Legality](./declaration-legality.md)
+- [Declaration Progression](./declaration-progression.md)
 - [Domain Capabilities](./README.md)

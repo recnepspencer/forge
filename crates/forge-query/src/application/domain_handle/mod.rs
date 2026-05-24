@@ -6,7 +6,9 @@ mod operating_context;
 mod validated_handle;
 mod validation;
 
-pub use admitted_handle::ForgeQueryAdmittedConfiguredDomainHandle;
+pub use admitted_handle::{
+    ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryDeclarationEntryProgressionError,
+};
 pub use checked_outcome::{
     ForgeQueryConfiguredDomainHandleAdmissionError, ForgeQueryConfiguredDomainHandleChecked,
     ForgeQueryConfiguredDomainHandleDeferred, ForgeQueryConfiguredDomainHandleInvalidContext,

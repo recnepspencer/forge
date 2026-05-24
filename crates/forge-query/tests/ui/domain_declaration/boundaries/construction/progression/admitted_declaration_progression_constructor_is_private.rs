@@ -1,6 +1,7 @@
 use forge_query::facade::{
-    ForgeQueryCanonicalDeclarationArtifact, ForgeQueryCapabilityFamily,
-    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+    ForgeQueryAdmittedDeclarationProgression, ForgeQueryCapabilityFamily,
+    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationLegalityContract, ForgeQueryDomainEntryMarker,
     ForgeQueryRelationalTruthAuthority, ForgeQuerySignalCompatiblePosture,
     ForgeQuerySingleOnlyGrouping,
 };
@@ -36,6 +37,10 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
     fn semantic_family_key() -> &'static str {
         "split-edge"
     }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
 }
 
 impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
@@ -53,14 +58,8 @@ fn main() {
         panic!()
     }
 
-    let _ = ForgeQueryCanonicalDeclarationArtifact::<GeometryDomain, SplitEdgeDeclaration> {
-        handle_identity_digest: String::new(),
-        declaration_family_key: "split-edge",
-        declaration_taxonomy: SplitEdgeFamily::taxonomy(),
-        canonical_entries: Vec::new(),
-        canonical_basis_bundle: fake(),
-        declaration_digest: fake(),
-        version: fake(),
-        _marker: std::marker::PhantomData,
+    let _ = ForgeQueryAdmittedDeclarationProgression::<GeometryDomain, SplitEdgeDeclaration> {
+        recipe: fake(),
+        progression_digest: String::new(),
     };
 }

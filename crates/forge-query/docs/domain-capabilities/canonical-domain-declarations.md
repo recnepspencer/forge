@@ -32,6 +32,9 @@ bundle; the digest is not the source of truth.
 - `ForgeQueryAdmittedConfiguredDomainHandle::declare(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::declare_checked(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::declare_with_version(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::review_legality(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::review_legality_checked(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::declare_and_review(...)`
 - `ForgeQueryDeclarationInput`
 - `ForgeQueryDeclarationFamilyMarker`
 - `ForgeQueryCanonicalDeclarationArtifact`
@@ -44,6 +47,74 @@ Good to know:
 - the ordinary lane stays generic: `handle.declare(input)`
 - family admission now happens before canonicalization
 - raw declaration normalization stays behind Query-owned front doors
+
+## API Reference
+
+The main public declaration artifact surfaces are:
+
+Declaration input authoring:
+- `ForgeQueryDeclarationInput::canonical_declaration_entries() -> Vec<ForgeQueryDeclarationCanonicalEntry>`
+- `ForgeQueryDeclarationCanonicalEntry::new(locus, kind, value) -> ForgeQueryDeclarationCanonicalEntry`
+- `ForgeQueryDeclarationCanonicalEntry::text(locus, value) -> ForgeQueryDeclarationCanonicalEntry`
+- `ForgeQueryDeclarationCanonicalEntry::locus() -> &str`
+- `ForgeQueryDeclarationCanonicalEntry::kind() -> ForgeQueryDeclarationCanonicalEntryKind`
+- `ForgeQueryDeclarationCanonicalEntry::value() -> &ForgeQueryDeclarationCanonicalValue`
+- `ForgeQueryDeclarationCanonicalEntryKind::{Header, Shape, Value, Field, Identity}`
+- `ForgeQueryDeclarationCanonicalValue::{Null, Bool, SignedInteger, UnsignedInteger, ExactText, DecimalText}`
+
+Authoring:
+- `declare(input) -> Result<ForgeQueryCanonicalDeclarationArtifact<D, I>, ForgeQueryDeclarationAdmissionError<D, I>>`
+- `declare_checked(input) -> ForgeQueryDeclaredFamilyChecked<D, I>`
+- `declare_with_version(input, version) -> Result<ForgeQueryCanonicalDeclarationArtifact<D, I>, ForgeQueryDeclarationAdmissionError<D, I>>`
+
+Artifact inspection:
+- `handle_identity_digest() -> &str`
+- `declaration_family_key() -> &'static str`
+- `declaration_taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy`
+- `declaration_primary_authority_family() -> ForgeQueryDeclarationPrimaryAuthorityFamily`
+- `declaration_signal_compatibility() -> ForgeQuerySignalCompatibilityPosture`
+- `declaration_grouped_posture() -> ForgeQueryGroupedDeclarationPosture`
+- `canonical_basis_bundle() -> &CanonicalBundleReadyArtifact`
+- `declaration_digest() -> &CanonicalDerivedDigest`
+- `version() -> &ForgeQueryDeclarationCanonicalizationVersion`
+- `canonicalization_version() -> &ForgeQueryDeclarationCanonicalizationVersion`
+
+Comparison:
+- `compare_under(other, basis) -> Result<ForgeQueryCanonicalDeclarationComparison, ForgeQueryDeclarationCanonicalizationError>`
+
+Comparison result inspection:
+- `outcome() -> &CanonicalComparisonOutcome`
+- `equivalent_basis() -> Option<&CanonicalEquivalentBasis>`
+- `mismatch_basis() -> Option<&CanonicalMismatchBasis>`
+- `unsupported_basis() -> Option<&CanonicalMismatchBasis>`
+
+Checked admission outcomes:
+- `ForgeQueryDeclaredFamilyChecked::Admitted(ForgeQueryCanonicalDeclarationArtifact<D, I>)`
+- `ForgeQueryDeclaredFamilyChecked::Deferred(ForgeQueryDeclarationCapabilityDenial<D, I::Family>)`
+- `ForgeQueryDeclaredFamilyChecked::Unsupported(ForgeQueryDeclarationCapabilityDenial<D, I::Family>)`
+- `ForgeQueryDeclaredFamilyChecked::InvalidContext(ForgeQueryDeclarationCapabilityDenial<D, I::Family>)`
+- `ForgeQueryDeclaredFamilyChecked::Canonicalization(ForgeQueryDeclarationCanonicalizationError)`
+
+Admission error family:
+- `ForgeQueryDeclarationAdmissionError::Deferred(ForgeQueryDeclarationCapabilityDenial<D, I::Family>)`
+- `ForgeQueryDeclarationAdmissionError::Unsupported(ForgeQueryDeclarationCapabilityDenial<D, I::Family>)`
+- `ForgeQueryDeclarationAdmissionError::InvalidContext(ForgeQueryDeclarationCapabilityDenial<D, I::Family>)`
+- `ForgeQueryDeclarationAdmissionError::Canonicalization(ForgeQueryDeclarationCanonicalizationError)`
+
+Canonicalization version helpers:
+- `ForgeQueryDeclarationCanonicalizationVersion::pinned_v1() -> ForgeQueryDeclarationCanonicalizationVersion`
+- `ForgeQueryDeclarationCanonicalizationVersion::explicit(foundational) -> ForgeQueryDeclarationCanonicalizationVersion`
+- `foundational() -> &CanonicalizationRuleVersion`
+
+Witness access:
+- `relational_truth() -> ForgeQueryRelationalTruthDeclaration<'_, D, I>`
+- `bridge_continuation() -> ForgeQueryBridgeContinuationDeclaration<'_, D, I>`
+- `signal_compatible() -> ForgeQuerySignalCompatibleDeclaration<'_, D, I>`
+- `neighborhood_capable() -> ForgeQueryNeighborhoodCapableDeclaration<'_, D, I>`
+- `batch_capable() -> ForgeQueryBatchCapableDeclaration<'_, D, I>`
+
+The witness methods are only present when the declaration family's structural
+posture admits them.
 
 ## Core Mental Model
 
@@ -98,6 +169,7 @@ use forge_query::facade::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily,
     ForgeQueryConfigSectionFamily, ForgeQueryDeclarationCanonicalEntry,
     ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationLegalityContract,
     ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
     ForgeQueryNeighborhoodCapableGrouping, ForgeQueryRelationalTruthAuthority,
     ForgeQuerySignalCompatiblePosture,
@@ -152,6 +224,10 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
     fn required_capability_families() -> &'static [ForgeQueryCapabilityFamily] {
         &[ForgeQueryCapabilityFamily::HistoricalEvaluation]
     }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -190,7 +266,8 @@ use forge_query::facade::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily,
     ForgeQueryConfigSectionFamily, ForgeQueryDeclarationCanonicalEntry,
     ForgeQueryDeclarationCapabilityStatus, ForgeQueryDeclarationFamilyMarker,
-    ForgeQueryDeclarationInput, ForgeQueryDeclaredFamilyChecked,
+    ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityContract,
+    ForgeQueryDeclaredFamilyChecked,
     ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
     ForgeQueryNeighborhoodCapableGrouping, ForgeQueryRelationalTruthAuthority,
     ForgeQuerySignalCompatiblePosture,
@@ -244,6 +321,10 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
 
     fn required_capability_families() -> &'static [ForgeQueryCapabilityFamily] {
         &[ForgeQueryCapabilityFamily::HistoricalEvaluation]
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
     }
 }
 
@@ -300,6 +381,11 @@ What this example is showing:
 - [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
   defines family support reports, checked admission, and structural witness
   surfaces
+- [Declaration Legality](./declaration-legality.md) reviews the admitted
+  canonical declaration for structural legality
+- [Declaration Progression](./declaration-progression.md) turns the legality-cleared
+  canonical declaration into one proof-bearing progression artifact or one typed
+  progression outcome
 
 ## Inspection And Debugging
 
@@ -307,6 +393,8 @@ The main inspection surfaces are:
 
 - `handle.family_support::<F>()`
 - `handle.family_support_checked::<F>()`
+- `handle.review_legality(...)`
+- `handle.review_legality_checked(...)`
 - `declaration_family_key()`
 - `declaration_taxonomy()`
 - `declaration_digest()`
@@ -333,16 +421,19 @@ Use them to answer:
 
 ## Current Limits
 
-Canonical domain declarations now decide family admission and canonical
-declaration identity. They still do not decide:
+Canonical domain declarations decide family admission and canonical declaration
+identity. Structural legality is handled separately by
+[Declaration Legality](./declaration-legality.md), and proof-bearing
+declaration progression is handled separately by
+[Declaration Progression](./declaration-progression.md). This feature still
+does not decide:
 
-- legality of the declaration inside one admitted operating world
 - lower-authority routing into relational, bridge, or signal surfaces
 - grouped execution semantics
 - runtime continuation
 
-This feature gives later phases one retained canonical artifact plus one
-retained family admission boundary to build on.
+This feature gives other Query declaration features one retained canonical
+artifact plus one retained family admission boundary to build on.
 
 ## Related Docs
 
@@ -350,4 +441,6 @@ retained family admission boundary to build on.
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Declaration Family Taxonomy](./declaration-family-taxonomy.md)
 - [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
+- [Declaration Legality](./declaration-legality.md)
+- [Declaration Progression](./declaration-progression.md)
 - [Domain Capabilities](./README.md)

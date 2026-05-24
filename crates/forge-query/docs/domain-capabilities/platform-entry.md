@@ -19,6 +19,8 @@ support posture, and lane structure around it.
   without changing the domain meaning
 - inspect support posture before you commit to deeper declaration or runtime
   work
+- establish the typed starting point that later configured-handle, declaration,
+  legality, progression, and foundational-evidence surfaces build on
 
 ## Stable Entry Points
 
@@ -217,6 +219,7 @@ yet give you:
 
 - full domain configuration or validated domain handles
 - declaration canonicalization or legality
+- foundational declaration evidence
 - relational, bridge, or signal routing
 - runtime continuation
 
@@ -224,6 +227,9 @@ yet give you:
 
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
+- [Declaration Legality](./declaration-legality.md)
+- [Declaration Progression](./declaration-progression.md)
+- [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
 - [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
 - [Domain Capabilities Index](./README.md)
 - [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)

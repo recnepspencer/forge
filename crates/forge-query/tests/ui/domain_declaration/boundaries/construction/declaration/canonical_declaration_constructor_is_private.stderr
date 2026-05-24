@@ -1,21 +1,21 @@
 error[E0451]: fields `handle_identity_digest`, `declaration_family_key`, `declaration_taxonomy`, `canonical_entries`, `canonical_basis_bundle`, `declaration_digest`, `version` and `_marker` of struct `ForgeQueryCanonicalDeclarationArtifact` are private
-  --> tests/ui/domain_declaration/boundaries/construction/canonical_declaration_constructor_is_private.rs:57:9
+  --> tests/ui/domain_declaration/boundaries/construction/declaration/canonical_declaration_constructor_is_private.rs:62:9
    |
-56 |     let _ = ForgeQueryCanonicalDeclarationArtifact::<GeometryDomain, SplitEdgeDeclaration> {
+61 |     let _ = ForgeQueryCanonicalDeclarationArtifact::<GeometryDomain, SplitEdgeDeclaration> {
    |             ------------------------------------------------------------------------------ in this type
-57 |         handle_identity_digest: String::new(),
+62 |         handle_identity_digest: String::new(),
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field
-58 |         declaration_family_key: "split-edge",
+63 |         declaration_family_key: "split-edge",
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field
-59 |         declaration_taxonomy: SplitEdgeFamily::taxonomy(),
+64 |         declaration_taxonomy: SplitEdgeFamily::taxonomy(),
    |         ^^^^^^^^^^^^^^^^^^^^ private field
-60 |         canonical_entries: Vec::new(),
+65 |         canonical_entries: Vec::new(),
    |         ^^^^^^^^^^^^^^^^^ private field
-61 |         canonical_basis_bundle: fake(),
+66 |         canonical_basis_bundle: fake(),
    |         ^^^^^^^^^^^^^^^^^^^^^^ private field
-62 |         declaration_digest: fake(),
+67 |         declaration_digest: fake(),
    |         ^^^^^^^^^^^^^^^^^^ private field
-63 |         version: fake(),
+68 |         version: fake(),
    |         ^^^^^^^ private field
-64 |         _marker: std::marker::PhantomData,
+69 |         _marker: std::marker::PhantomData,
    |         ^^^^^^^ private field

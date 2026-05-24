@@ -17,9 +17,10 @@ This keeps family meaning out of raw strings and host-local branch logic.
 ## Why You Use It
 
 - classify declaration families without making Query own your domain nouns
-- freeze authority, signal, and grouped posture before later gating and routing
+- freeze authority, signal, and grouped posture before capability review,
+  legality review, and routing
 - carry family posture forward as real retained declaration meaning
-- let later capability surfaces derive structural witness availability from one
+- let other Query capability surfaces derive structural witness availability from one
   sealed vocabulary
 
 ## Stable Entry Points
@@ -48,6 +49,45 @@ Good to know:
 - the runtime taxonomy object is still the public inspection authority
 - family markers may also declare required capability families and config
   sections
+- the same family marker also carries additional declaration-side contracts, so
+  legality and progression stay explicit instead of being inferred from taxonomy
+
+## API Reference
+
+The main public taxonomy surfaces are:
+
+Family marker contract:
+- `semantic_family_key() -> &'static str`
+- `required_capability_families() -> &'static [ForgeQueryCapabilityFamily]`
+- `required_config_sections() -> &'static [ForgeQueryConfigSectionFamily]`
+- `taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy`
+- `legality_contract() -> ForgeQueryDeclarationLegalityContract`
+- `progression_contract(handle_identity_digest, operating_context_identity_digest) -> ForgeQueryDeclarationProgressionContract`
+
+Runtime taxonomy object:
+- `ForgeQueryDeclarationFamilyTaxonomy::new(primary, signal, grouped) -> ForgeQueryDeclarationFamilyTaxonomy`
+- `ForgeQueryDeclarationFamilyTaxonomy::from_type_tags::<P, S, G>() -> ForgeQueryDeclarationFamilyTaxonomy`
+- `primary_authority_family() -> ForgeQueryDeclarationPrimaryAuthorityFamily`
+- `signal_compatibility() -> ForgeQuerySignalCompatibilityPosture`
+- `grouped_posture() -> ForgeQueryGroupedDeclarationPosture`
+
+Taxonomy enums:
+- `ForgeQueryDeclarationPrimaryAuthorityFamily::as_str() -> &'static str`
+- `ForgeQuerySignalCompatibilityPosture::as_str() -> &'static str`
+- `ForgeQueryGroupedDeclarationPosture::as_str() -> &'static str`
+
+Posture tag families:
+- `ForgeQueryDescriptiveOnlyAuthority`
+- `ForgeQueryRelationalTruthAuthority`
+- `ForgeQueryBridgeContinuationAuthority`
+- `ForgeQueryMixedAuthority`
+- `ForgeQuerySignalNotCompatiblePosture`
+- `ForgeQuerySignalCompatiblePosture`
+- `ForgeQuerySignalDeferredPosture`
+- `ForgeQuerySingleOnlyGrouping`
+- `ForgeQueryNeighborhoodCapableGrouping`
+- `ForgeQueryBatchCapableGrouping`
+- `ForgeQueryNeighborhoodAndBatchCapableGrouping`
 
 ## Core Mental Model
 
@@ -84,7 +124,7 @@ as:
 4. declaration inputs point at the marker through their associated `Family`
    type
 5. canonical declarations retain the semantic family key and runtime taxonomy
-6. later capability surfaces derive structural witness availability from the
+6. other Query capability surfaces derive structural witness availability from the
    same family marker
 
 The practical consequence is that taxonomy is not an advisory label. It is part
@@ -95,6 +135,7 @@ of canonical declaration meaning and later support behavior.
 ```rust
 use forge_query::facade::{
     ForgeQueryCapabilityFamily, ForgeQueryDeclarationFamilyMarker,
+    ForgeQueryDeclarationLegalityContract,
     ForgeQueryNeighborhoodCapableGrouping, ForgeQueryRelationalTruthAuthority,
     ForgeQuerySignalCompatiblePosture,
 };
@@ -114,6 +155,10 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
     fn required_capability_families() -> &'static [ForgeQueryCapabilityFamily] {
         &[ForgeQueryCapabilityFamily::HistoricalEvaluation]
     }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
 }
 ```
 
@@ -123,7 +168,8 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
 use forge_query::facade::{
     ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationFamilyMarker,
-    ForgeQueryDeclarationInput, ForgeQueryNeighborhoodCapableGrouping,
+    ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityContract,
+    ForgeQueryNeighborhoodCapableGrouping,
     ForgeQueryRelationalTruthAuthority, ForgeQuerySignalCompatiblePosture,
 };
 
@@ -146,6 +192,10 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
 
     fn required_config_sections() -> &'static [ForgeQueryConfigSectionFamily] {
         &[ForgeQueryConfigSectionFamily::Relational]
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
     }
 }
 
@@ -176,6 +226,8 @@ What this example is showing:
 - [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
   turns family posture and requirements into support rows, checked admission,
   and witness availability
+- [Declaration Legality](./declaration-legality.md) consumes the retained
+  family taxonomy together with one explicit family legality contract
 - grouped posture here is classification, not grouped execution
 - signal posture here is classification, not signal execution
 
@@ -208,19 +260,20 @@ expose different follow-on family surfaces.
 
 ## Current Limits
 
-Declaration family taxonomy does not yet decide:
+Declaration family taxonomy now feeds legality review directly. It still does
+not decide:
 
-- declaration legality inside one admitted operating world
 - grouped execution semantics
 - lower-authority route planning
 - continuation participation beyond the retained family posture
 
-It freezes the classification and support vocabulary those later phases
-consume.
+It freezes the classification and support vocabulary other Query declaration
+features consume.
 
 ## Related Docs
 
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
+- [Declaration Legality](./declaration-legality.md)
 - [Platform Entry](./platform-entry.md)

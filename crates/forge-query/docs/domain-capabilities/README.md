@@ -12,6 +12,9 @@ of domain work you are trying to do:
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Declaration Family Taxonomy](./declaration-family-taxonomy.md)
 - [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
+- [Declaration Legality](./declaration-legality.md)
+- [Declaration Progression](./declaration-progression.md)
+- [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
 - `admission/`
   - [Advisory And Violation Contributions](./admission/advisory-and-violation-contributions.md)
   - [Declaration Vs Admitted-Plan Targets](./admission/declaration-vs-admitted-plan-targets.md)
@@ -59,7 +62,67 @@ to understand how Query classifies downstream declaration families and carries
 that classification forward without owning the family nouns themselves. Use
 [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
 when you need family-scoped support reports, checked family admission, or
-structural witness surfaces on canonical declarations.
+structural witness surfaces on canonical declarations. Use
+[Declaration Legality](./declaration-legality.md) when you need to review an
+already admitted canonical declaration for structural legality inside one
+admitted operating world. Use
+[Declaration Progression](./declaration-progression.md) when you need to carry
+that legality-cleared declaration into a proof-bearing admitted progression or
+one typed deferred/denied/stale/rebind/failed outcome. Use
+[Declaration Foundational Evidence](./declaration-foundational-evidence.md)
+when you need to describe retained legality or progression truth through shared
+foundational provenance, support, receipt, and attachment-bundle artifacts.
+
+## Declaration Pipeline Surface Map
+
+The declaration-side public lane is handle-centered and progresses in this
+order:
+
+- configured-handle admission:
+  - `with_operating_context(...)`
+  - `validate()`
+  - `admit()`
+- family support and declaration authoring:
+  - `family_support::<F>()`
+  - `family_support_checked::<F>()`
+  - `declare(...)`
+  - `declare_checked(...)`
+  - `declare_with_version(...)`
+- legality review:
+  - `review_legality(...)`
+  - `review_legality_checked(...)`
+  - `declare_and_review(...)`
+- proof-bearing progression:
+  - `declaration_progression_recipe(...)`
+  - `progress_declaration(...)`
+  - `progress_declaration_checked(...)`
+  - `progress_declaration_recipe(...)`
+  - `progress_declaration_recipe_checked(...)`
+  - `declare_review_and_progress(...)`
+- foundational description:
+  - `describe_foundational(...)`
+  - `describe_foundational_checked(...)`
+  - `describe_foundational_with_profile(...)`
+
+The main retained public artifacts introduced along that path are:
+
+- `ForgeQueryCanonicalDeclarationArtifact`
+- `ForgeQueryDeclarationLegalityEvidence`
+- `ForgeQueryAdmittedDeclarationProgression`
+- `ForgeQueryDeclarationFoundationalEvidence`
+
+The main checked and denied families are:
+
+- `ForgeQueryDeclaredFamilyChecked`
+- `ForgeQueryDeclarationAdmissionError`
+- `ForgeQueryDeclarationLegalityChecked`
+- `ForgeQueryDeclarationLegalityDenial`
+- `ForgeQueryDeclarationAdmissionOrLegalityError`
+- `ForgeQueryDeclarationProgressionChecked`
+- `ForgeQueryDeclarationProgressionTerminalError`
+- `ForgeQueryDeclarationEntryProgressionError`
+- `ForgeQueryDeclarationFoundationalEvidenceChecked`
+- `ForgeQueryDeclarationFoundationalEvidenceDenial`
 
 Start here if:
 

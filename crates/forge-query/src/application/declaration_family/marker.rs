@@ -1,6 +1,7 @@
 use crate::application::{
     ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
-    ForgeQueryDeclarationGroupedPostureTag, ForgeQueryDeclarationPrimaryAuthorityTag,
+    ForgeQueryDeclarationGroupedPostureTag, ForgeQueryDeclarationLegalityContract,
+    ForgeQueryDeclarationPrimaryAuthorityTag, ForgeQueryDeclarationProgressionContract,
     ForgeQueryDeclarationSignalCompatibilityTag, ForgeQueryDomainEntryMarker,
 };
 
@@ -27,5 +28,14 @@ pub trait ForgeQueryDeclarationFamilyMarker<D: ForgeQueryDomainEntryMarker> {
             Self::SignalCompatibility,
             Self::GroupedPosture,
         >()
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract;
+
+    fn progression_contract(
+        _handle_identity_digest: &str,
+        _operating_context_identity_digest: &str,
+    ) -> ForgeQueryDeclarationProgressionContract {
+        ForgeQueryDeclarationProgressionContract::admitted_current()
     }
 }

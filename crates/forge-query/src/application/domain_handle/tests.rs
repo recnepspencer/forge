@@ -219,6 +219,10 @@ fn distinct_stable_regimes_yield_distinct_handle_digests() {
         collaborative.handle_identity_digest(),
         restricted.handle_identity_digest()
     );
+    assert_ne!(
+        collaborative.operating_context_identity_digest(),
+        restricted.operating_context_identity_digest()
+    );
 }
 
 #[test]

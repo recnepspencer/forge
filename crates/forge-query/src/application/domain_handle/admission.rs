@@ -75,6 +75,7 @@ pub(crate) fn checked_from_validated_handle<
         support_snapshot,
         required_capability_families,
         required_config_sections,
+        operating_context_identity_digest,
         handle_identity_digest,
     ) = validated_handle.into_parts();
     ForgeQueryConfiguredDomainHandleChecked::Admitted(
@@ -84,6 +85,7 @@ pub(crate) fn checked_from_validated_handle<
             support_snapshot,
             required_capability_families,
             required_config_sections,
+            operating_context_identity_digest,
             handle_identity_digest,
         ),
     )

@@ -1,7 +1,8 @@
 use forge_query::facade::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationFamilyMarker,
-    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
+    ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityContract,
+    ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
     ForgeQueryNeighborhoodCapableGrouping, ForgeQueryRelationalTruthAuthority,
     ForgeQuerySignalCompatiblePosture,
 };
@@ -56,6 +57,10 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
 
     fn semantic_family_key() -> &'static str {
         "split-edge"
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
     }
 }
 

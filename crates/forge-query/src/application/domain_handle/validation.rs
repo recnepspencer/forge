@@ -81,6 +81,7 @@ pub(crate) fn validate_configured_domain_handle_draft<
         support_snapshot,
         required_capability_families,
         required_config_sections,
+        context_identity_digest,
         handle_identity_digest,
     ))
 }

@@ -34,6 +34,50 @@ falling back to raw IDs, ambient builder state, or host-local policy glue.
 - `ForgeQueryAdmittedConfiguredDomainHandle`
 - `ForgeQueryConfiguredDomainHandleChecked`
 
+## API Reference
+
+Operating-context contract:
+
+- `required_capability_families() -> &'static [ForgeQueryCapabilityFamily]`
+- `required_config_sections() -> &'static [ForgeQueryConfigSectionFamily]`
+- `context_identity_digest() -> String`
+
+Configured-handle entry points:
+
+- `with_operating_context(context) -> ForgeQueryConfiguredDomainHandleDraft<D, C>`
+- `validate() -> Result<ForgeQueryValidatedConfiguredDomainHandle<D, C>, ForgeQueryConfiguredDomainHandleInvalidContext<D, C>>`
+- `admit() -> Result<ForgeQueryAdmittedConfiguredDomainHandle<D, C>, ForgeQueryConfiguredDomainHandleAdmissionError<D, C>>`
+
+Validated and admitted handle inspection:
+
+- `domain_key() -> &'static str`
+- `display_name() -> &'static str`
+- `operating_context() -> &C`
+- `support_snapshot() -> &ForgeQueryDomainEntrySupportSnapshot`
+- `required_capability_families() -> &[ForgeQueryCapabilityFamily]`
+- `required_config_sections() -> &[ForgeQueryConfigSectionFamily]`
+- `operating_context_identity_digest() -> &str`
+- `handle_identity_digest() -> &str`
+
+Admitted-handle declaration evidence entry points:
+
+- `describe_foundational(subject) -> Result<ForgeQueryDeclarationFoundationalEvidence<D, I>, ForgeQueryDeclarationFoundationalEvidenceDenial<D, I>>`
+- `describe_foundational_checked(subject) -> ForgeQueryDeclarationFoundationalEvidenceChecked<D, I>`
+- `describe_foundational_with_profile(subject, profile) -> Result<ForgeQueryDeclarationFoundationalEvidence<D, I>, ForgeQueryDeclarationFoundationalEvidenceDenial<D, I>>`
+
+Checked admission outcomes:
+
+- `ForgeQueryConfiguredDomainHandleChecked::Admitted(ForgeQueryAdmittedConfiguredDomainHandle<D, C>)`
+- `ForgeQueryConfiguredDomainHandleChecked::Deferred(ForgeQueryConfiguredDomainHandleDeferred<D, C>)`
+- `ForgeQueryConfiguredDomainHandleChecked::Unsupported(ForgeQueryConfiguredDomainHandleUnsupported<D, C>)`
+- `ForgeQueryConfiguredDomainHandleChecked::InvalidContext(ForgeQueryConfiguredDomainHandleInvalidContext<D, C>)`
+
+Checked denial inspection:
+
+- `blocking_capability_families() -> &[ForgeQueryCapabilityFamily]`
+- `blocking_config_sections() -> &[ForgeQueryConfigSectionFamily]`
+- `reason() -> &str`
+
 ## Core Mental Model
 
 A configured domain handle is not a declaration and not a runtime binding.
@@ -231,6 +275,7 @@ match query
     .with_operating_context(GeometryOperatingContext::collaborative())
 {
     ForgeQueryConfiguredDomainHandleChecked::Admitted(handle) => {
+        let _ = handle.operating_context_identity_digest();
         let _ = handle.handle_identity_digest();
         let _ = handle.required_capability_families();
     }
@@ -267,10 +312,16 @@ Dynamic eligibility belongs later:
 If a value changes the stable admitted world, it belongs here.
 If it changes the legality of one specific operation later, it does not.
 
+That retained admitted-world identity is also what later legality,
+progression, and foundational evidence surfaces consume. Those later features
+should not call back into the operating-context object and rediscover world
+identity on their own.
+
 ## Inspection And Debugging
 
 The most useful inspection points are:
 
+- `operating_context_identity_digest()`
 - `handle_identity_digest()`
 - `required_capability_families()`
 - `required_config_sections()`
@@ -299,7 +350,9 @@ Configured domain handles stop at stable admitted context.
 They do not yet provide:
 
 - declaration canonicalization
-- declaration legality
+- declaration legality proof by themselves
+- declaration progression proof by themselves
+- foundational declaration evidence by themselves
 - dynamic operation eligibility
 - preview, historical, or runtime basis binding
 - lower-authority routing
@@ -307,6 +360,9 @@ They do not yet provide:
 ## Related Docs
 
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
+- [Declaration Legality](./declaration-legality.md)
+- [Declaration Progression](./declaration-progression.md)
+- [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
 - [Platform Entry](./platform-entry.md)
 - [Domain Capabilities Index](./README.md)
 - [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)

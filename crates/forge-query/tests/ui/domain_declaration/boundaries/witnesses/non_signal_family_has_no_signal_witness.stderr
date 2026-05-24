@@ -1,10 +1,10 @@
 error[E0599]: the method `signal_compatible` exists for struct `ForgeQueryCanonicalDeclarationArtifact<GeometryDomain, SplitEdgeDeclaration>`, but its trait bounds were not satisfied
-  --> tests/ui/domain_declaration/boundaries/witnesses/non_signal_family_has_no_signal_witness.rs:67:25
+  --> tests/ui/domain_declaration/boundaries/witnesses/non_signal_family_has_no_signal_witness.rs:72:25
    |
-36 | struct SplitEdgeFamily;
+37 | struct SplitEdgeFamily;
    | ---------------------- doesn't satisfy `<_ as ForgeQueryDeclarationFamilyMarker<GeometryDomain>>::SignalCompatibility = ForgeQuerySignalCompatiblePosture` or `_: ForgeQueryDeclarationSupportsSignalCompatibility<GeometryDomain>`
 ...
-67 |     let _ = declaration.signal_compatible();
+72 |     let _ = declaration.signal_compatible();
    |                         ^^^^^^^^^^^^^^^^^ method cannot be called due to unsatisfied trait bounds
    |
    = note: the following trait bounds were not satisfied:
