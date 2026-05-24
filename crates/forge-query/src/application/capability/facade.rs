@@ -11,6 +11,12 @@ use crate::application::config::{
     ConfigurationAdmissionError, ForgeQueryConfig, ForgeQueryConfigSectionFamily,
     ForgeQueryConfigSectionResolution, ValidatedForgeQueryConfig,
 };
+use crate::application::domain_entry::{
+    forge_query_checked_domain_entry, forge_query_domain_entry,
+    forge_query_domain_entry_support_snapshot, forge_query_domain_proof_root,
+    ForgeQueryDomainEntryChecked, ForgeQueryDomainEntryMarker, ForgeQueryDomainEntryProofRoot,
+    ForgeQueryDomainEntryRoot, ForgeQueryDomainEntrySupportSnapshot,
+};
 use crate::application::support::{
     ForgeQueryCapabilityFamily, ForgeQueryCapabilityRegistry, ForgeQueryCapabilityStatus,
     ForgeQuerySupportMatrix, ForgeQuerySupportReport,
@@ -62,6 +68,31 @@ impl ForgeQueryApplicationFacade {
             &self.config,
             self.support_matrix.clone(),
         )
+    }
+
+    pub fn domain_entry_support_snapshot(&self) -> ForgeQueryDomainEntrySupportSnapshot {
+        forge_query_domain_entry_support_snapshot(self)
+    }
+
+    pub fn domain<D: ForgeQueryDomainEntryMarker>(
+        &self,
+        marker: D,
+    ) -> ForgeQueryDomainEntryRoot<D> {
+        forge_query_domain_entry(self, marker)
+    }
+
+    pub fn domain_checked<D: ForgeQueryDomainEntryMarker>(
+        &self,
+        marker: D,
+    ) -> ForgeQueryDomainEntryChecked<D> {
+        forge_query_checked_domain_entry(self, marker)
+    }
+
+    pub fn domain_proof_root<D: ForgeQueryDomainEntryMarker>(
+        &self,
+        marker: D,
+    ) -> ForgeQueryDomainEntryProofRoot<D> {
+        forge_query_domain_proof_root(self, marker)
     }
 
     pub fn resolve_config_section(

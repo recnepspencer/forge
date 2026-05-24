@@ -97,12 +97,25 @@ shape decisions and must not be rediscovered later:
 - the primary ordinary lane must be typed and domain-first. Raw string domain
   ids may exist as compatibility or lower lanes, but they are not allowed to be
   the main public entry model.
+- hidden ambient context may not creep back in through convenience APIs.
+  Domain configuration, route intent, truth context, continuation mode,
+  grouped declaration semantics, support/readiness queries, and recovery paths
+  must all have typed input families underneath any ordinary-lane sugar.
 - one canonical declaration identity must exist, and it must derive from
   foundational canonicalization rather than host-local hashing or lane-local
   builder shape.
+- configured domain handles own stable admitted operating context only.
+  Dynamic operation eligibility, exact preview/historical/runtime basis
+  binding, and declaration-specific meaning must remain later-phase concerns.
+- configured domain handle identity must include all typed stable operating
+  context that changes the admitted world; equivalent contexts must converge
+  canonically and materially different admitted worlds must diverge.
 - one admitted declaration must yield one Query-owned route plan. Multiple
   lower-authority consequences are only allowed when the declaration family is
   explicitly mixed; accidental widening is forbidden.
+- caller-owned runtime builder assembly and caller-owned basis/preflight/
+  historical-binding choreography are in-scope defects for this milestone, not
+  later polish work.
 - every real covered crossing must yield one Query-owned boundary receipt and
   one Query-owned boundary envelope.
 - the lane hierarchy is mandatory: ordinary -> checked -> proof -> raw. No
@@ -135,8 +148,8 @@ locked decisions above:
 1. **Phase 1: Public Domain Entry Boundary**
    Query gets one first-class typed domain entry surface. This is the moment domains stop starting outside the platform.
 
-2. **Phase 2: Domain Handle And Configuration Boundary**
-   Typed domain handles, their configuration contract, and their construction/admission rules become explicit and sealed. This prevents stringly or bag-shaped domain entry.
+2. **Phase 2: Configured Domain Handle As Admitted Operating Context Boundary**
+   Typed configured domain handles, their stable operating-context contract, and their validation/admission rules become explicit and sealed. This prevents stringly or bag-shaped domain entry while freezing one admitted operating world that later declaration work can honestly depend on.
 
 3. **Phase 3: Canonical Declaration Artifact Boundary**
    Every domain declaration entering Query canonicalizes into one authoritative declaration artifact family. This is the "one meaning, one identity" boundary.
@@ -234,6 +247,11 @@ crate-specific declaration world and later "hand something to Query."
 - the ordinary lane must expose one obvious domain-first entry grammar and may
   not start from raw `String`, JSON, or map-shaped bags as the primary public
   authoring model
+- Query owns the generic entry capability, progression reserve, and
+  support/readiness posture; downstream crates own concrete domain identity
+  through downstream-implemented marker types
+- this phase may publicly commit to a generic marker trait, but it may not
+  define or export Query-owned concrete domains now or later
 - the public import path must stay inside `forge_query::facade`; no early
   phase may require direct imports from `forge-proof`, `forge-foundational`,
   `forge-relational`, `forge-runtime-bridge`, or `forge-signal`
@@ -260,27 +278,54 @@ crate-specific declaration world and later "hand something to Query."
 
 - direct construction of raw domain-entry artifacts outside Query-owned front
   doors must be impossible or crate-private
-- ordinary entry must be anchored on typed domain handles or typed domain entry
-  front doors, not unvalidated free-form strings as the primary lane
+- ordinary entry must be anchored on downstream-owned typed domain markers or
+  equivalent downstream-owned typed entry fronts, not unvalidated free-form
+  strings as the primary lane
+- `forge_query::facade` may export the generic marker contract, but it may not
+  export real downstream domain nouns as if they were Query-owned concepts
 
 **Acceptance evidence**
 
 - golden DX transcripts for ordinary, checked, and proof entry roots
 - compile-fail fixtures proving that internal entry constructors are not public
+- compile-fail fixtures proving fake Query-owned concrete domain markers are not
+  available from the facade
 - parity assertions showing entry support/readiness inspection stays identical
   across equivalent ordinary and checked entry roots
 
-### Phase 2: Domain Handle And Configuration Boundary
+**Open questions before implementation**
 
-This phase freezes what a typed domain handle is, how it is configured, and
-which Query-owned posture it is allowed to carry.
+- the ordinary entry root is a method on `ForgeQueryApplicationFacade`; checked
+  and proof siblings also live on the facade but do not displace the ordinary
+  lane as the primary front door
+- the public participation contract in this phase is a downstream-implemented
+  `ForgeQueryDomainEntryMarker` trait; Query does not define concrete domain
+  marker types
+- checked entry posture uses a typed checked-entry family immediately rather
+  than collapsing into `Result<T, E>` or waiting for raw declaration-phase
+  strengthening later
+- the minimum entry support/readiness snapshot in this phase is capability
+  families plus config section posture and one stable digest
+
+### Phase 2: Configured Domain Handle As Admitted Operating Context Boundary
+
+This phase freezes the first Query-owned configured domain context that later
+declaration work is allowed to depend on. The configured handle is not merely a
+typed config wrapper. It is one admitted operating world composed from a
+downstream-owned domain marker plus a downstream-owned operating-context input,
+with Query owning the draft, validated, admitted, and checked lifecycle around
+that pair.
 
 **Required Query artifacts**
 
-- one sealed typed domain handle family
-- one domain-handle configuration artifact family
-- one validated domain-handle admission result
-- one stable digest for handle-plus-configuration identity
+- one downstream-implemented operating-context contract for stable admitted
+  regime inputs
+- one Query-owned configured-handle draft family
+- one Query-owned validated configured-handle family
+- one Query-owned admitted configured-handle family
+- one checked configured-handle denial family
+- one stable digest for configured-handle identity across marker, operating
+  context, and validated Query config posture
 
 **Locked local surfaces**
 
@@ -289,48 +334,95 @@ which Query-owned posture it is allowed to carry.
 - `forge_query::facade::ForgeQueryConfigSectionFamily`
 - `forge_query::facade::ForgeQueryConfigSectionResolution`
 - `forge_query::facade::ForgeQueryCapabilityRegistry`
+- `forge_query::facade::ForgeQuerySupportMatrix`
+- `forge_query::facade::ForgeQuerySupportReport`
 
 **Requirements**
 
-- domain handles must be configurable without becoming service locators or bag
-  objects for lower-runtime dependencies
-- the milestone must decide the domain participation contract in this phase:
-  downstream domains may vary in semantics, but the ordinary lane must still
-  produce typed Query-owned handles rather than making callers start from
-  untyped domain ids or host-local registration folklore
-- every handle must name the Query capability families it requires and the
-  configuration sections that materially affect its admission
-- handle construction must separate raw configuration, validated
-  configuration, and admitted handle state
+- Query owns the configured-handle lifecycle; downstream crates own concrete
+  domain markers and concrete operating-context values
+- the operating-context contract in this phase must stay declarative and narrow:
+  it may name required capability families, required config sections, and one
+  stable context-identity digest, but it may not smuggle in host-local policy
+  callbacks, invariant callbacks, or builder-side ambient state
+- the configured handle must represent stable admitted operating regime only.
+  Allowed content includes policy/access class identity, invariant regime
+  identity, assumption/tolerance regime identity, collaborator/tenant-like
+  operating class identity when it changes the admitted world, and similar
+  stable regime posture
+- the configured handle must not carry declaration-specific meaning,
+  per-operation trigger dependency graphs, exact preview/historical/runtime
+  basis binding, raw collaborator/tenant/branch ids as Query authority, or bool
+  shortcut flags such as `can_edit`, `preview`, or `physics_enabled`
+- every configured handle must name the Query capability families and config
+  sections that materially affect its admission
+- handle construction must separate draft configured handle, validated
+  configured handle, admitted configured handle, and checked denial posture
 - this phase may reserve later relational/bridge/signal routing posture on the
   handle, but may not yet perform lower-authority routing
+- configured-handle identity must include marker identity, all typed stable
+  operating-context identity, required capability families, required config
+  sections, operating-context digest, and validated Query config digest
+- validation must remain Query-owned and structural only. It may canonicalize
+  capability families, canonicalize required config sections, verify
+  capability-to-section coverage, and stabilize identity; it may not pretend to
+  evaluate downstream declaration semantics
+- admission must deny early when required capability families are deferred or
+  unsupported, when required config sections are disabled, or when the
+  operating context asks for a regime Query cannot honestly admit yet
+- canonicalization, digest derivation, and admission classification must happen
+  once per configured-handle lifecycle and later phases must consume the
+  validated/admitted proof-bearing handle rather than rediscovering those facts
+  from raw marker/context inputs
 
 **DX target**
 
-- handles should read like stable domain contexts, not service locators or raw
-  config bags
-- normal users should understand "I have a configured domain handle" without
-  needing to learn subsystem ownership details first
+- handles should read like stable admitted domain contexts, not service
+  locators or raw config bags
+- normal users should understand "I have a configured domain handle inside one
+  operating regime" without needing to learn subsystem ownership details first
 
 **Documentation obligation**
 
-- yes; typed handles and their configuration posture are public and need
+- yes; typed handles and their operating-context posture are public and need
   explicit usage guidance
 
 **Compile-time enforcement**
 
-- unvalidated handle configuration may not masquerade as an admitted domain
-  handle
-- domain handles must be sealed against downstream implementation unless the
-  spec later names an explicit extension contract
+- unvalidated configured handles may not masquerade as admitted configured
+  handles
+- Query-owned configured-handle wrappers must be sealed against downstream
+  implementation even though the marker and operating-context contracts remain
+  downstream-owned and open
+- raw ids, bool shortcuts, and callback-shaped operating-context shortcuts may
+  not become ordinary public Query authority lanes
 
 **Acceptance evidence**
 
 - compile-fail coverage for illegal direct handle construction
 - checked-lane tests showing unsupported capability families deny handle
   admission before declaration authoring begins
-- digest parity tests showing equivalent validated handle configuration yields
-  one canonical handle identity
+- digest parity tests showing equivalent stable operating contexts yield one
+  canonical configured-handle identity while materially different admitted
+  worlds diverge
+- adversarial tests proving stable regime inputs do not leak through ambient
+  builder-side state once the typed operating-context input family exists
+- denial tests proving deferred, unsupported, and invalid-context posture stop
+  before declaration authoring exists
+- counter or proof tests proving capability-family canonicalization,
+  config-section canonicalization, digest derivation, and admission
+  classification are not repeatedly rediscovered across the configured-handle
+  lifecycle
+
+**Open questions before implementation**
+
+- should the operating-context contract stay as one shared generic contract or
+  allow family-specific extensions while preserving one canonical lowering path?
+- which stable regime facts belong in configured-handle identity from day one:
+  policy/access class, invariant regime, assumption/tolerance regime,
+  collaborator scope class, or a narrower initial subset?
+- should admitted configured handles expose partial-support posture directly, or
+  only through support/readiness inspection surfaces?
 
 ### Phase 3: Canonical Declaration Artifact Boundary
 
@@ -355,11 +447,17 @@ must canonicalize into one declaration meaning.
 
 **Requirements**
 
+- canonical declaration formation must consume an admitted configured domain
+  handle plus declaration-local input; it may not restart from bare domain
+  markers or bypass the admitted operating-world proof established in Phase 2
 - every domain declaration admitted by Query must lower into one canonical
   basis bundle before later legality, proof progression, or foundational
   description
 - declaration identity must be derived from canonical basis preparation rather
   than host-local hashing rules
+- declaration identity must compose handle-rooted admitted-world identity with
+  declaration-local meaning; later phases may extend the proof chain around
+  that identity, but they may not redefine the configured-handle contribution
 - the ordinary lane may expose domain-first authoring verbs, but all authoring
   paths must converge before they can claim authoritative declaration meaning
 - no later phase may redefine declaration identity or introduce a second
@@ -389,8 +487,22 @@ must canonicalize into one declaration meaning.
 - canonical digest parity across at least two semantically equivalent builder
   paths
 - inequality assertions for intentionally different declaration meaning
+- parity tests proving identical declaration-local input rooted in distinct
+  admitted operating worlds does not collapse when the admitted world changes
+  canonical meaning
 - compile-fail coverage for direct artifact minting outside canonical front
   doors
+
+**Open questions before implementation**
+
+- should raw declaration input and canonical declaration artifacts be distinct
+  public types in ordinary lanes, or should ordinary lanes mostly hide the raw
+  form behind front doors?
+- does family membership live structurally inside the canonical declaration
+  artifact, or alongside it as a tightly-bound paired artifact before Phase 4
+  fully freezes taxonomy?
+- what comparison/equivalence helpers should be public now versus reserved for
+  certification and inspection surfaces later?
 
 ### Phase 4: Declaration Family Taxonomy Boundary
 
@@ -453,6 +565,16 @@ branching.
 - checked-lane parity showing equivalent declarations in the same family
   converge while cross-family declarations diverge
 
+**Open questions before implementation**
+
+- should declaration family taxonomy be modeled as a sealed enum, sealed trait
+  family, or another typed representation that still supports compile-time verb
+  gating cleanly?
+- which family distinctions need first-class public names immediately versus
+  being internal subcategories under the required top-level taxonomy?
+- how should neighborhood-capable posture relate to family identity without
+  prematurely collapsing grouped semantics into family tags alone?
+
 ### Phase 5: Compile-Time Capability Matrix Boundary
 
 This phase makes family eligibility, verb presence, and target availability
@@ -474,10 +596,13 @@ compile-time facts wherever the wrong combination is structurally knowable.
 
 **Requirements**
 
-- if a handle/family/verb combination is invalid by type and configuration
-  alone, it must be unrepresentable or uncompilable
+- if a configured-handle/family/verb combination is invalid by admitted
+  operating world, family posture, or compile-time-visible route/continuation
+  posture alone, it must be unrepresentable or uncompilable
 - only data-dependent, policy-dependent, or declaration-content-dependent
   failures may survive into checked-lane denial outcomes
+- family visibility may depend on admitted operating-world proof from Phase 2;
+  taxonomy is global, but public family availability need not be
 - the matrix must be inspectable through Query's public support/readiness
   surfaces so ordinary users can understand why something is unavailable
 - the matrix must reserve later authority-routing eligibility columns for
@@ -499,6 +624,8 @@ compile-time facts wherever the wrong combination is structurally knowable.
 
 - wrong-family verbs, wrong-handle verbs, and wrong-target verbs must have UI
   compile-fail coverage
+- wrong operating-world verbs and wrong continuation-mode verbs must also have
+  compile-fail coverage wherever the mismatch is structurally knowable
 - support-matrix posture may not disagree with actual method presence on the
   public lane
 
@@ -508,6 +635,15 @@ compile-time facts wherever the wrong combination is structurally knowable.
 - parity tests between support-matrix rows and real public method presence
 - checked-lane denial tests proving only content-dependent and policy-dependent
   failures survive past compile-time gating
+
+**Open questions before implementation**
+
+- should the capability matrix be materialized as explicit Rust marker/state
+  types, generated code, table-driven compile-time traits, or a hybrid?
+- which capability decisions are truly compile-time knowable versus requiring a
+  checked-lane runtime/config denial even after type selection?
+- how should support-matrix rows map back to the capability matrix so docs and
+  compile-fail fixtures stay synchronized?
 
 ### Phase 6: Declaration Legality Boundary
 
@@ -531,6 +667,8 @@ Query's earlier legality gates.
 
 **Requirements**
 
+- legality must consume canonical declaration artifacts rooted in admitted
+  configured handles; it may not evaluate declarations in a worldless vacuum
 - legality must run after canonical declaration formation and family taxonomy
   freeze, but before proof-bearing admission and foundational materialization
 - legality must distinguish unsupported structure, illegal authority claims,
@@ -540,6 +678,10 @@ Query's earlier legality gates.
   role/disposition judgments from scratch
 - legality must remain Query-owned even when it delegates specific boundary
   legality vocabulary to `forge-foundational`
+- legality must stop at structural legality. Dynamic per-operation eligibility,
+  live truth predicates, preview/historical basis sensitivity, and runtime
+  trigger conditions remain later-phase concerns even when the admitted
+  operating world constrains the legal space
 
 **DX target**
 
@@ -566,6 +708,15 @@ Query's earlier legality gates.
 - typed-failure assertions for role/disposition violations
 - proofs that later phases consume legality evidence rather than re-running
   structural legality ad hoc
+
+**Open questions before implementation**
+
+- should legality evidence be a standalone artifact family or a strengthening
+  wrapper around canonical declarations?
+- what is the exact split between legality denials that belong here versus
+  capability/readiness denials that should stay in Phase 5 or Phase 18?
+- how much foundational legality vocabulary should be re-exposed directly in
+  Query types versus wrapped in Query-owned denial/readout families?
 
 ### Phase 7: Proof-Bearing Declaration Progression Boundary
 
@@ -596,6 +747,9 @@ than a chain of typed helper structs.
 - the phase sequence must at minimum represent declaration request,
   legality-cleared declaration, review/eligibility, admitted declaration, and
   typed stale/rebind/denied branches where applicable
+- the proof chain must inherit admitted configured-handle identity and
+  operating-world proof from Phase 2 rather than re-binding it as ambient
+  metadata on later declaration stages
 - Query may wrap proof surfaces for DX, but it may not replace
   `forge-proof` with a Query-local typestate imitation
 - checked outcomes must preserve the next lower proof truth so callers can
@@ -626,9 +780,21 @@ than a chain of typed helper structs.
 
 - parity suites showing ordinary and proof-lane progression converge to the
   same admitted declaration meaning
+- proof-chain parity tests proving declaration progression preserves admitted
+  configured-handle identity rather than re-deriving it from raw inputs
 - compile-fail tests for illegal out-of-order strengthening
 - checked-lane tests proving stale, rebind, and denial variants remain typed
   and inspectable
+
+**Open questions before implementation**
+
+- what is the smallest proof-stage family that still captures the required
+  declaration request, legality-cleared, reviewed, admitted, stale, rebind, and
+  denied distinctions honestly?
+- should the ordinary lane surface one main checked outcome family throughout
+  progression, or should each major phase expose its own checked outcome type?
+- where should phase-local convenience wrappers stop so Query does not
+  accidentally imitate `forge-proof` instead of reusing it?
 
 ### Phase 8: Foundational Description Boundary
 
@@ -694,6 +860,16 @@ support, explanation, attachments, receipts, and canonical evidence bundles.
   the same foundational provenance/support/receipt meaning when semantically
   equivalent
 
+**Open questions before implementation**
+
+- what is the minimum foundational evidence bundle that later route plans,
+  receipts, and envelopes can consume without forcing re-materialization?
+- should provenance, support, and receipt/report/summary surfaces be separate
+  top-level artifacts from the start or grouped behind one declaration-entry
+  evidence bundle with typed views?
+- how should foundational evidence digests compose with canonical declaration
+  digests so later certification can compare both cleanly?
+
 ### Phase 9: Query Route-Plan Boundary
 
 This phase introduces the first explicit crossing artifact for domain entry:
@@ -708,6 +884,8 @@ play for an admitted declaration and why.
 - one route-plan classification vocabulary for later relational, bridge,
   signal-compatible, mixed, deferred, and forbidden routes
 - one route-plan digest and inspection surface
+- one typed route-intent input family for declaration families whose routing
+  posture is caller-meaningful rather than purely inferred
 
 **Locked local and adjacent references**
 
@@ -730,10 +908,24 @@ play for an admitted declaration and why.
 - route plans must distinguish "no lower authority yet", "relational-backed",
   "bridge-backed", "mixed-authority", "signal-compatible later", "deferred
   neighbor", and "forbidden" as separate public postures
+- route planning must consume admitted operating-world proof from Phase 2 plus
+  admitted declaration proof from earlier phases; route intent may narrow or
+  select crossings within that world, but it may not redefine the world itself
 - route planning must remain Query-owned orchestration, not a restatement of
   lower-crate semantics
 - route plans must be derived once from admitted declaration meaning and
   foundational evidence; later phases may consume them but not re-decide them
+- declarations that can continue into Query runtime must carry one explicit
+  runtime-continuation preparation posture in the route plan rather than
+  leaving runtime builder assembly or basis-binding choreography to caller-owned
+  code
+- where callers are allowed to distinguish truth-only, continuation-bearing, or
+  mixed-authority intent, that distinction must travel through a typed
+  route-intent input family rather than ambient method choice or comment-level
+  convention
+- route intent and operating context are distinct typed inputs. The former asks
+  what crossing is desired from within an admitted world; the latter defines the
+  admitted world itself
 
 **DX target**
 
@@ -760,6 +952,18 @@ play for an admitted declaration and why.
   differs intentionally
 - compile-fail coverage proving later receipt/envelope phases cannot skip the
   route-plan artifact
+- representative continuation tests proving runtime-capable route plans encode
+  enough preparation posture to remove caller-owned runtime assembly sequencing
+  from downstream domain code
+
+**Open questions before implementation**
+
+- should route intent be a standalone typed input family, a property of certain
+  declaration families, or both with one canonical lowering path?
+- what is the smallest route-plan artifact shape that can still carry runtime-
+  continuation preparation posture without becoming a second envelope too early?
+- how should deferred and forbidden route rows be represented so they stay
+  certifiable without imitating successful lower-authority routes?
 
 ### Phase 10: Query Boundary-Receipt Boundary
 
@@ -791,6 +995,9 @@ boundary receipt rather than an invisible implementation transition.
 - deferred-neighbor and forbidden crossings must still produce Query-owned
   typed receipt/denial posture rather than silent absence
 - receipts must be inspectable without lower-crate spelunking
+- runtime continuation receipts must record whether workspace/runtime
+  preparation and current/historical basis binding were Query-owned outcomes
+  rather than caller-owned choreography
 
 **DX target**
 
@@ -814,6 +1021,17 @@ boundary receipt rather than an invisible implementation transition.
 - typed denial assertions for denied and deferred crossing kinds
 - compile-fail coverage proving public crossing APIs cannot claim success
   without a receipt artifact
+- continuation tests proving runtime-facing receipts expose runtime preparation
+  and basis-binding admission as first-class receipt facts
+
+**Open questions before implementation**
+
+- should boundary receipts be one unified typed family with variants or several
+  tightly-related receipt families keyed by crossing class?
+- how much lower-authority detail belongs in a receipt versus being deferred to
+  envelopes and inspection surfaces?
+- what is the minimum receipt identity needed so equivalent crossings converge
+  without erasing meaningful route differences?
 
 ### Phase 11: Query Boundary-Envelope Boundary
 
@@ -845,6 +1063,9 @@ boundary receipt into one self-describing public envelope.
   own the envelope that composes those facts into one public crossing story
 - envelopes must remain self-describing enough to support hostile certification
   without ambient reconstruction
+- runtime-capable envelopes must make runtime/workspace preparation and
+  current/historical basis-binding outcomes visible without requiring
+  downstream glue code to reconstruct those facts
 
 **DX target**
 
@@ -871,6 +1092,17 @@ boundary receipt into one self-describing public envelope.
   differs semantically
 - compile-fail coverage for direct envelope minting outside Query-owned
   boundaries
+- continuation tests proving runtime-capable envelopes can explain runtime
+  preparation and basis-binding outcomes without consulting local runtime glue
+
+**Open questions before implementation**
+
+- should envelopes store foundational evidence by value, by digest plus lookup
+  reference, or through typed attachment handles?
+- how much route/receipt detail should be normalized into the envelope itself
+  versus accessed through envelope-backed inspection views?
+- what comparison basis should the envelope use so certification can compare
+  semantically equivalent crossings across ordinary and proof lanes cleanly?
 
 ### Phase 12: Relational Truth-Routing Boundary
 
@@ -932,6 +1164,16 @@ Query-mediated crossings rather than future intentions.
 - support/readiness tests proving relational-backed posture is public and
   accurate before runtime execution
 
+**Open questions before implementation**
+
+- should identity, lineage, history, invariant, grouped-truth, and strategy-
+  backed relational routes be one relational family with typed submodes or
+  several public relational route families?
+- which relational-backed declaration shapes should surface as ordinary-lane
+  verbs first versus remaining checked/proof-only until later?
+- how should Query preserve relational power without leaking relational-first
+  API choreography into the ordinary lane?
+
 ### Phase 13: Bridge Continuation-Routing Boundary
 
 This phase turns continuation-bearing declaration families into real
@@ -943,6 +1185,13 @@ Query-mediated bridge crossings.
 - one bridge route-plan lowering family
 - one bridge boundary-receipt and envelope population path
 - one bridge support/readiness posture row set
+- one Query-owned runtime continuation/preparation artifact family for bridge-
+  routed declarations that continue into runtime-backed workspaces or
+  basis-bound reads
+- one typed continuation-request family covering runtime, workspace, preview,
+  truth-view, current-snapshot, and historical continuation modes
+- one typed truth-context family covering current, historical, and preview
+  worlds for continuation-bearing declarations
 
 **Locked external surfaces**
 
@@ -951,6 +1200,7 @@ Query-mediated bridge crossings.
 - `forge_runtime_bridge::facade::BridgeTruthViewEvaluationRequest`
 - `forge_runtime_bridge::facade::BridgeSpeculativeSessionRequest`
 - `forge_runtime_bridge::facade::BridgeSpeculativePromotionRequest`
+- `forge_runtime_bridge::facade::HistoricalEvaluationDeclaration`
 - bridge subscription and writeback facade exports re-exported from
   `forge_runtime_bridge::facade`
 
@@ -961,10 +1211,22 @@ Query-mediated bridge crossings.
   writeback, and cross-runtime continuity semantics
 - Query must mediate the bridge crossing, but the bridge remains authoritative
   for continuation/coordination semantics
+- bridge continuation artifacts must consume admitted configured-handle proof as
+  prior operating-world authority, not reconstruct policy/access/invariant
+  posture from ad hoc declaration metadata
 - bridge-backed receipts and envelopes must preserve which bridge family was
   reached and which continuation posture was admitted or denied
 - this phase must not hide bridge-sensitive differences behind one fake
   universal continuation family
+- Query must provide bridge-routed continuation artifacts that replace
+  caller-owned runtime builder assembly and caller-owned current/historical
+  basis-binding choreography for supported runtime-capable declaration families
+- current-snapshot, historical, preview, and subscription-basis continuation
+  must all be expressible through Query-owned bridge continuation artifacts
+  rather than downstream glue code
+- continuation mode and truth-context differences must enter Query as typed
+  inputs, not as ambient builder flags, optional tokens, or host-local control
+  flow around a generic continuation method
 
 **DX target**
 
@@ -973,6 +1235,9 @@ Query-mediated bridge crossings.
   specialist mode
 - the surface should make preview, truth-view, subscription, and writeback
   differences understandable without overwhelming the user
+- runtime-capable bridge paths should read like "continue into
+  runtime/workspace/basis" rather than "assemble backend parts and bind a basis
+  context yourself"
 
 **Documentation obligation**
 
@@ -984,6 +1249,11 @@ Query-mediated bridge crossings.
 - non-continuation families must not expose bridge-routing verbs
 - bridge-backed routes must consume route plans rather than ambient
   caller-owned bridge setup
+- runtime continuation verbs may appear only for declaration families whose
+  route plans and support matrices admit Query-owned runtime preparation and
+  basis-binding continuation
+- truth-context and continuation-request families must gate which continuation
+  verbs and bridge families are visible at compile time
 
 **Acceptance evidence**
 
@@ -991,6 +1261,22 @@ Query-mediated bridge crossings.
   same bridge route-plan/receipt/envelope posture
 - typed denial assertions for unsupported continuation families
 - compile-fail coverage proving direct bridge contact is not the ordinary lane
+- replacement tests proving representative runtime-capable domain flows no
+  longer require caller-owned `ForgeQueryRuntime::builder()` assembly or
+  caller-owned basis/preflight/historical binding choreography once they pass
+  through Query-owned bridge continuation artifacts
+
+**Open questions before implementation**
+
+- should runtime continuation, preview, truth-view, subscription, and writeback
+  be one continuation-request family with typed modes or several sibling
+  families sharing a common trait?
+- should truth context be a separate typed input family from continuation
+  request, or should continuation requests carry truth-context variants
+  structurally?
+- what is the minimal Query-owned runtime continuation artifact that fully
+  replaces local runtime builder and basis-binding choreography without hiding
+  bridge-specific differences?
 
 ### Phase 14: Signal Compatibility Boundary
 
@@ -1019,6 +1305,9 @@ without yet claiming that `9.3.8` executes those declarations through Signal.
   execution semantics
 - the route plan and envelope must preserve whether a declaration is
   signal-compatible, signal-incompatible, or signal-deferred
+- later derived-execution continuation must consume typed continuation and
+  truth-context inputs rather than ambient execution-mode switches bolted on
+  after declaration entry
 
 **DX target**
 
@@ -1044,6 +1333,16 @@ without yet claiming that `9.3.8` executes those declarations through Signal.
 - parity tests showing equivalent declarations expose identical
   signal-compatibility posture
 - denial tests for families intentionally excluded from signal continuation
+
+**Open questions before implementation**
+
+- should signal compatibility be modeled as a simple typed posture on route
+  plans/envelopes or as a richer contract artifact with its own identity and
+  inspection view?
+- which continuation and truth-context inputs need to be preserved verbatim so
+  later signal execution can resume without semantic reinterpretation?
+- how should signal-deferred posture differ from signal-incompatible posture in
+  public checked/readiness surfaces?
 
 ### Phase 15: Seam Classification Boundary
 
@@ -1100,6 +1399,15 @@ so the milestone cannot hide ambiguous or convenience-driven seams.
 - certification parity showing classification posture aligns with actual route
   plan and receipt behavior
 
+**Open questions before implementation**
+
+- should seam classification live as code-level typed rows, generated metadata,
+  or certification-harness fixtures that are checked against code?
+- how much of the classification table should be inspectable publicly versus
+  reserved as internal certification metadata?
+- what is the exact exit-criteria shape for `compatibility debt` and `deferred
+  neighbor` rows so they remain actionable rather than decorative?
+
 ### Phase 16: Concrete Crossing Inventory Boundary
 
 This phase replaces abstract family talk with a named, executable inventory of
@@ -1154,6 +1462,15 @@ the actual public and internal crossings that `9.3.8` covers.
 - compile-fail or harness-fail checks for unsynchronized public surfaces
 - certification bundles proving the live ordinary lane breadth matches the
   inventory exactly
+
+**Open questions before implementation**
+
+- should the crossing inventory be hand-authored, generated from typed route
+  definitions, or assembled through a hybrid model?
+- what row granularity is sufficient to keep coverage honest without exploding
+  the inventory into low-value duplication?
+- how should inventory rows map back to support matrix rows, docs, and golden
+  transcripts so synchronization stays cheap enough to maintain?
 
 ### Phase 17: Cross-Authority Inspection Boundary
 
@@ -1220,6 +1537,15 @@ lower crate independently.
 - compile-fail coverage proving direct lower-crate inspection types are not the
   required public lane
 
+**Open questions before implementation**
+
+- should unified inspection return one deeply-structured result family or a
+  smaller top-level result with typed expandable views?
+- how much lower-authority evidence should be embedded directly in inspection
+  results versus referenced through route/receipt/envelope-backed links?
+- what is the minimum inspection digest/evidence surface needed for
+  certification without turning inspection into a second envelope system?
+
 ### Phase 18: Support And Readiness Boundary
 
 This phase makes support, readiness, deferral, and denial first-class public
@@ -1230,6 +1556,8 @@ surfaces across the entire declaration-entry seam.
 - one platform-entry support matrix
 - one readiness/disposition report for declaration families and crossings
 - one denial/deferred residual-debt projection over the same matrix
+- one typed support/readiness request family for querying capability and
+  admission posture explicitly
 
 **Locked local surfaces**
 
@@ -1243,11 +1571,19 @@ surfaces across the entire declaration-entry seam.
 - support posture must be visible for domain entry, family selection, route
   planning, lower-authority routing, signal compatibility, and neighborhood
   readiness where applicable
+- support/readiness posture must also be visible for admitted operating-world
+  questions: which configured regimes are supported, which continuation modes
+  are supported for a given admitted world, and which truth contexts are valid
+  inside that world
 - the support matrix must be the same source of truth used by ordinary DX,
   checked outcomes, docs, and certification
 - unsupported, deferred, and forbidden surfaces must remain explicitly named
   and may not degrade into "not implemented" folklore
 - support/readiness posture must be inspectable before expensive work happens
+- callers must be able to ask explicit typed support/readiness questions about
+  operating context, route families, continuation modes, truth contexts,
+  grouped declaration semantics, and handle-vs-declaration posture rather than
+  inferring readiness from trial and error
 
 **DX target**
 
@@ -1272,6 +1608,15 @@ surfaces across the entire declaration-entry seam.
 - certification bundles proving support/readiness digests align with the
   crossing inventory from Phase 16
 
+**Open questions before implementation**
+
+- should support/readiness requests be family-specific typed inputs, one shared
+  request family with typed selectors, or a hybrid?
+- how much readiness detail belongs in ordinary-lane support answers versus
+  checked/inspection-only surfaces?
+- what is the cheapest synchronization mechanism between the live support
+  matrix, compile-time gating, and documented feature coverage?
+
 ### Phase 19: Happy-Path Orchestration Boundary
 
 This phase is the Laravel boundary: Query becomes the compiler for the ordinary
@@ -1295,7 +1640,8 @@ steps themselves.
 
 **Requirements**
 
-- the ordinary lane must let a serious domain author intent once and have Query
+- the ordinary lane must let a serious domain author establish one admitted
+  operating world, express declaration intent within that world, and have Query
   perform canonicalization, legality, progression, foundational materialization,
   route planning, and crossing assembly automatically where admitted
 - the ordinary lane must stay domain-first in naming and shape; it may not
@@ -1304,6 +1650,13 @@ steps themselves.
   denial classes, or expensive work
 - checked and proof lanes must remain available and truthful rather than
   turning the ordinary lane into the only real implementation path
+- orchestration must compile from admitted configured-handle proof rather than
+  re-binding operating-world facts through parallel helper parameters later in
+  the flow
+- for supported runtime-capable families, ordinary-lane callers must not need
+  to manually assemble Query runtime builders, backend parts, workspace entry,
+  or current/historical basis binding once the declaration has been admitted
+  and routed through Query
 
 **DX target**
 
@@ -1311,6 +1664,9 @@ steps themselves.
   the common case
 - users should feel like they stated intent once and Query handled the hard
   choreography honestly
+- runtime-capable happy paths should read like "continue into
+  runtime/workspace/basis" rather than "build adapters, wire backend parts,
+  then bind a basis context"
 
 **Documentation obligation**
 
@@ -1332,6 +1688,18 @@ steps themselves.
   checked/proof paths
 - hostile tests proving orchestration does not invent unsupported combinations
   by convenience
+- end-to-end examples proving representative domain declarations can continue
+  into runtime-backed workspace and basis-bound read paths without any
+  caller-owned runtime builder or basis-binding glue
+
+**Open questions before implementation**
+
+- what is the exact orchestration front-door shape for ordinary lanes so it
+  stays domain-first without fragmenting into too many equal entry paths?
+- how much orchestration transcript detail should be retained publicly versus
+  reserved for certification and debugging?
+- where should ordinary-lane sugar stop so advanced callers can still see the
+  real underlying artifacts without duplicating orchestration logic?
 
 ### Phase 20: Denial And Recovery UX Boundary
 
@@ -1344,6 +1712,8 @@ rebind requirements, and recovery posture into public product artifacts.
 - one recovery/rebind/stale posture family
 - one explanation surface that ties denial posture back to route, family, and
   authority context
+- one typed recovery-request family for rebind, retry, repair, or reroute paths
+  that are actually supported
 
 **Locked local and external surfaces**
 
@@ -1357,11 +1727,17 @@ rebind requirements, and recovery posture into public product artifacts.
 - denials must distinguish unsupported family, illegal structure, denied
   legality, denied route, stale basis, rebind required, deferred neighbor, and
   forbidden duplicate posture where those are semantically different
+- denial and recovery posture must distinguish at least three repair surfaces
+  when they differ semantically: admitted operating-world repair,
+  declaration-meaning repair, and truth/continuation-context repair
 - the recovery story must explain what the user can do next without forcing
   them to reverse-engineer lower-crate semantics
 - ordinary-lane denial UX must be concise but truthful; checked and proof lanes
   must expose the exact typed structure underneath
 - denial explanations must remain route-sensitive and family-sensitive
+- supported recovery paths must take typed recovery inputs rather than relying
+  on developers to remember which bits of context need to be repaired or
+  replayed after a denial, stale, or rebind outcome
 
 **DX target**
 
@@ -1388,6 +1764,15 @@ rebind requirements, and recovery posture into public product artifacts.
   posture across ordinary and checked lanes
 - compile-fail coverage for code paths that try to treat typed denial families
   as opaque success/failure booleans
+
+**Open questions before implementation**
+
+- should recovery requests be one typed family with submodes or several
+  dedicated recovery input families for rebind, retry, repair, and reroute?
+- which recovery paths are ergonomic enough for the ordinary lane versus better
+  left to checked/proof guidance only?
+- how much automatic repair guidance can Query offer without pretending to own
+  lower-authority semantics it does not actually control?
 
 ### Phase 21: Family-Specific Ergonomics Boundary
 
@@ -1436,6 +1821,15 @@ surfaces instead of forcing everything through one generic orchestration shape.
 - compile-fail suites proving helper families are not callable where the
   capability matrix forbids them
 
+**Open questions before implementation**
+
+- which family-specific helpers are important enough to deserve first-class
+  surfaces in the initial build versus later follow-on polish?
+- should helpers be methods on typed family handles, generated helper modules,
+  or another form that still maps cleanly back to canonical family identity?
+- how do we keep helper naming pleasant without creating overlapping synonyms
+  that weaken the “one obvious path” rule?
+
 ### Phase 22: Neighborhood And Batch Declaration Boundary
 
 This phase makes meaningful grouped declarations first-class so geometry and
@@ -1448,6 +1842,8 @@ single declarations.
 - one grouped route/receipt/envelope family
 - one grouped support/readiness and denial posture family
 - one grouped canonical digest/equivalence surface
+- one typed grouped-declaration input family that captures grouping semantics
+  explicitly rather than accepting a bare collection
 
 **Requirements**
 
@@ -1459,6 +1855,9 @@ single declarations.
   merge declarations whose semantics should stay distinct
 - grouped artifacts must still map back to single-declaration family and route
   inventory rows in a certification-readable way
+- grouped declaration inputs must carry typed semantics for shared posture,
+  continuity assumptions, ordering/atomicity, and exploratory vs authoritative
+  grouping where those distinctions are admitted
 
 **DX target**
 
@@ -1485,6 +1884,16 @@ single declarations.
   canonicalize identically
 - hostile tests for illegal grouped mixes and illegal shared-posture claims
 - cost/readiness evidence showing batching does not hide widened work
+
+**Open questions before implementation**
+
+- should grouped declarations start with one general typed input family or a
+  small set of specialized neighborhood/batch families with shared traits?
+- which grouped semantics must be first-class from day one: shared rationale,
+  shared support posture, ordering, atomicity, exploratory grouping, or all of
+  them?
+- how should grouped route/receipt/envelope artifacts expose member-level versus
+  group-level facts without becoming unreadable?
 
 ### Phase 23: Public Documentation And Golden Teaching Boundary
 
@@ -1529,6 +1938,15 @@ lose critical behavior to oral tradition.
 - doc coverage inventory aligned with Phase 16 crossing rows
 - golden transcript parity checks against live public APIs
 - QA pass proving no critical platform-entry behavior is lost to history
+
+**Open questions before implementation**
+
+- what is the exact doc inventory format that keeps feature docs, goldens, and
+  crossing inventory synchronized without too much manual bookkeeping?
+- which examples should be the canonical teaching cases for the first public
+  rollout, especially for runtime-capable and grouped declaration paths?
+- how should docs surface lower-authority ownership honestly without forcing
+  users to learn relational/bridge/signal internals too early?
 
 ### Phase 24: Certification And Closeout Boundary
 
@@ -1586,9 +2004,18 @@ This phase closes the milestone with hostile proof rather than plausibility.
   paths
 - support matrix, inventory, docs, and certification digest equality checks
 
+**Open questions before implementation**
+
+- what certification harness layout best keeps compile-fail, parity, hostile,
+  and docs-coverage checks maintainable as the public surface grows?
+- which digest families need to be compared independently versus rolled into a
+  higher-level milestone closeout digest?
+- how should milestone closeout report residual deferred/debt seams, if any,
+  without weakening the closure bar for the admitted surface?
+
 ## Remaining Phase Detail
 
-Phases 1 through 24 now all have boundary-level requirements, but the document
-still needs a hostile QA pass to tighten wording, remove any accidental
-overlap, and decide whether any phase should be merged or split before
-implementation begins.
+Phases 1 through 24 now all have boundary-level requirements. Future hostile
+QA passes should continue tightening wording as later phases land, but the
+spec's current boundary set is now explicit enough to drive implementation
+without falling back to milestone folklore.

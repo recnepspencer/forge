@@ -1,0 +1,7 @@
+error[E0560]: struct `ForgeQueryCanonicalDeclarationArtifact<GeometryDomain, SplitEdgeDeclaration>` has no field named `input`
+  --> tests/ui/domain_declaration/boundaries/canonical_declaration_constructor_is_private.rs:46:9
+   |
+46 |         input: SplitEdgeDeclaration,
+   |         ^^^^^ `ForgeQueryCanonicalDeclarationArtifact<GeometryDomain, SplitEdgeDeclaration>` does not have this field
+   |
+   = note: all struct fields are already assigned

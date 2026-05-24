@@ -25,9 +25,10 @@ parallel example-only siblings.
 - `modeling/`
   - aspect, authority-lane, and schema/modeling guidance
 - `domain-capabilities/`
-  - downstream domain contribution surfaces for admission, support,
+  - downstream domain entry and contribution surfaces for admission, support,
     invariants, workflow, continuity, aftermath, explanation, and
     certification
+  - typed domain front doors and later domain-shaped Query surfaces
 
 ## Current Layout
 
@@ -55,5 +56,8 @@ parallel example-only siblings.
 - `modeling/aspects-and-authority-lanes.md`
 - `modeling/schema-validation.md`
 - `domain-capabilities/README.md`
+- `domain-capabilities/platform-entry.md`
+- `domain-capabilities/configured-domain-handles.md`
+- `domain-capabilities/canonical-domain-declarations.md`
 
 
