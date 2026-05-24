@@ -9,18 +9,56 @@ here.
 ## Quick Answers
 
 - ordinary local forms:
-  [Forms Overview](../forms/overview.md)
-- resource-backed forms:
-  [Resource-Line Forms](../forms/resource-line-forms.md)
+  [Forms Overview](../forms/index.md)
+- patching complex edit forms:
+  [Patching Complex Edit Forms](../forms/changes/patching-complex-edit-forms.md)
 - async validation or server canonicalization:
-  [Async Lifecycle And Canonicalization](../forms/async-lifecycle-and-canonicalization.md)
-- host facts, interaction, accessibility, or generated layout:
-  [Host, Interaction, Accessibility, And Layout](../forms/host-interaction-accessibility-and-layout.md)
-- collaboration posture:
-  [Collaboration](../forms/collaboration.md)
-- submit lifecycle, diagnostics, or verification:
-  [Actions And Submit](../forms/actions-and-submit.md),
-  [Diagnostics, History, And Verification](../forms/diagnostics-history-and-verification.md)
+  [Async Validation](../forms/validation/async-validation.md) and
+  [Server Canonicalization](../forms/validation/server-canonicalization.md)
+- unchanged submit denial:
+  [Unchanged Forms And Submit Readiness](../forms/changes/unchanged-forms-and-submit-readiness.md)
+- submit blockers or approval requirements:
+  [Readiness Blockers](../forms/availability/readiness-blockers.md) and
+  [Approval, Signature, And Review Requirements](../forms/availability/approval-signature-and-review-requirements.md)
+- multi-step forms or next/back actions:
+  [Controller-Local Steps](../forms/steps/controller-local-steps.md) and
+  [Step Actions](../forms/steps/step-actions.md)
+- submit execution or retry behavior:
+  [Submit Actions](../forms/actions/submit-actions.md) and
+  [Repeated Attempts And Idempotency](../forms/actions/repeated-attempts-and-idempotency.md)
+- label sizing or accessibility reads:
+  [Label Size And Control Sizing](../forms/layout/label-size-and-control-sizing.md) and
+  [Accessibility Artifacts](../forms/layout/accessibility-artifacts.md)
+- custom dropdowns, search inputs, or imperative controls:
+  [Inputs And Controls](../forms/inputs/README.md),
+  [Dropdowns, Comboboxes, And Search](../forms/inputs/dropdowns-comboboxes-and-search.md), and
+  [Input Capability Matrix](../forms/inputs/input-capability-matrix.md)
+- focus state, host facts, or offline blockers:
+  [Focus, Touch, And Visited State](../forms/interaction/focus-touch-and-visited-state.md) and
+  [Offline And Host Blockers](../forms/interaction/offline-and-host-blockers.md)
+- entry bootstrap, exit state, or handoff visibility:
+  [Entry Bootstrap](../forms/lifecycle/entry-bootstrap.md),
+  [Exit Posture](../forms/lifecycle/exit-posture.md), and
+  [Handoffs](../forms/lifecycle/handoffs.md)
+- attachment transfers or media preview state:
+  [Attachment Transfers](../forms/media/attachment-transfers.md) and
+  [Media Visibility](../forms/media/media-visibility.md)
+- resource-backed source truth, settlement, or replay/restore:
+  [Resource Line Source](../forms/resource-backed/resource-line-source.md),
+  [Resource Settlement](../forms/resource-backed/resource-settlement.md), and
+  [Replay And Restore](../forms/resource-backed/replay-and-restore.md)
+- locks, leases, comments, or reviewer collaboration:
+  [Collaboration](../forms/collaboration/README.md),
+  [Locks And Leases](../forms/collaboration/locks-and-leases.md), and
+  [Comments And Presence](../forms/collaboration/comments-and-presence.md)
+- route-coupled draft freeze, discard, or deferred submit:
+  [Route-Coupled Forms](../forms/route-coupling/README.md),
+  [Freeze, Discard, Defer, And Cleared Authority](../forms/route-coupling/freeze-discard-defer-and-cleared-authority.md), and
+  [Route-Coupled Steps And Actions](../forms/route-coupling/route-coupled-steps-and-actions.md)
+- form debugging, retained state history, or verification:
+  [Diagnostics And History](../forms/diagnostics/README.md),
+  [State History](../forms/diagnostics/state-history.md), and
+  [Verification Packages](../forms/verification/verification-packages.md)
 - fetch one item:
   [Fetch And Write Resources](../resources/fetch-and-write.md)
 - create, update, or remove:
@@ -83,6 +121,26 @@ const form = signals.form({
 form.fields.title.set("Ship docs today");
 console.log(form.effective());
 console.log(form.readiness());
+```
+
+## Recipe: Complex Edit Form With Nested Patch Truth
+
+```ts
+const form = signals.form({
+  source: {
+    profile: { displayName: "Ship docs" },
+    tags: ["regulated"],
+  },
+  fields: ({ field }) => ({
+    displayName: field("profile.displayName"),
+    firstTag: field(["tags", 0], { id: "firstTag" }),
+  }),
+});
+
+form.fields.displayName.set("Published docs");
+form.fields.firstTag.set("released");
+
+console.log(form.patchPlan().operations);
 ```
 
 ## Recipe: Submit Lifecycle With Canonical Fulfillment

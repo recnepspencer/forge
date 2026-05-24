@@ -96,16 +96,36 @@ console.log(form.readiness());
   [External Delivery And Compatibility](./resources/external-delivery-and-compatibility.md)
 - raw family declarations:
   [Raw Escape Hatch](./resources/raw-escape-hatch.md)
-- ordinary local or resource-backed forms:
-  [Forms Overview](./forms/overview.md)
-- semantic dirty truth, patch planning, and submit readiness:
-  [Dirty, Patch, And Readiness](./forms/dirty-patch-and-readiness.md)
-- validation, messages, and readiness blockers:
-  [Validation And Messages](./forms/validation-and-messages.md)
-- resource-backed form submit, merge, drift, replay, and rollback:
-  [Resource-Line Forms](./forms/resource-line-forms.md)
-- diagnostics, retained histories, and verification packages:
-  [Diagnostics, History, And Verification](./forms/diagnostics-history-and-verification.md)
+- ordinary local forms and the rewritten forms docs:
+  [Forms Overview](./forms/index.md)
+- semantic dirty truth, patch planning, and complex edit forms:
+  [Changes And Patching](./forms/changes/README.md)
+- validation, messages, async checks, and source compatibility:
+  [Validation](./forms/validation/README.md)
+- field availability, submit blockers, and approval-style requirements:
+  [Availability And Permissions](./forms/availability/README.md)
+- multi-step forms and submit execution:
+  [Steps And Multi-Step Forms](./forms/steps/README.md) and
+  [Actions And Submit](./forms/actions/README.md)
+- label sizing, layout hints, and accessibility reads:
+  [Layout And Accessibility](./forms/layout/README.md)
+- dropdowns, searches, imperative widgets, and control capability truth:
+  [Inputs And Controls](./forms/inputs/README.md)
+- focus state, input capability support, and host facts:
+  [Interaction And Host Facts](./forms/interaction/README.md)
+- entry bootstrap, exit state, and handoff visibility:
+  [Lifecycle](./forms/lifecycle/README.md)
+- attachment/media state and transfer readback:
+  [Attachments And Media](./forms/media/README.md)
+- resource-backed source truth and resource-backed execution:
+  [Resource-Backed Forms](./forms/resource-backed/README.md)
+- collaboration posture, reviewer lanes, and branch-backed shared editing:
+  [Collaboration](./forms/collaboration/README.md)
+- route-coupled draft handoff and continuity:
+  [Route-Coupled Forms](./forms/route-coupling/README.md)
+- form debugging, retained history, and verification:
+  [Diagnostics And History](./forms/diagnostics/README.md) and
+  [Verification](./forms/verification/README.md)
 
 ## What Not To Do First
 
@@ -123,4 +143,4 @@ ordinary app code.
 
 - [Feature Index](./learn/feature-index.md)
 - [Recipes](./learn/recipes.md)
-- [Forms Overview](./forms/overview.md)
+- [Forms Overview](./forms/index.md)

@@ -11,7 +11,7 @@
   ],
   "rows": [
     {
-      "family": "kernelAndFields",
+      "family": "gettingStartedAndState",
       "runtime": [
         "package/product/signals_runtime/forms/form_phase_one_kernel_authority.test.mjs",
         "package/product/signals_runtime/forms/form_kernel_patch_plan.test.mjs"
@@ -21,7 +21,13 @@
         "package/forms-phase-ten-types-smoke.ts"
       ],
       "docs": [
-        "docs/forms/form-kernel-and-fields.md"
+        "docs/forms/getting-started/your-first-form.md",
+        "docs/forms/getting-started/choosing-a-form-source.md",
+        "docs/forms/state/source-truth-draft-and-effective-values.md",
+        "docs/forms/state/fields-and-field-paths.md",
+        "docs/forms/state/repeated-items.md",
+        "docs/forms/state/attachments-and-evidence-fields.md",
+        "docs/forms/state/input-adapters.md"
       ],
       "diagnosticsHistory": [
         "package/product/signals_runtime/forms/form_state_history.test.mjs",
@@ -37,24 +43,31 @@
       ]
     },
     {
-      "family": "validationAvailabilityAdmissionActions",
+      "family": "changesAndValidation",
       "runtime": [
         "package/product/signals_runtime/forms/form_validation_readiness.test.mjs",
-        "package/product/signals_runtime/forms/form_availability_admission.test.mjs",
-        "package/product/signals_runtime/forms/form_action_execution.test.mjs"
+        "package/product/signals_runtime/forms/form_async_validation.test.mjs",
+        "package/product/signals_runtime/forms/form_kernel_patch_plan.test.mjs"
       ],
       "typeSurface": [
         "package/forms-phase-ten-types-smoke.ts"
       ],
       "docs": [
-        "docs/forms/validation-and-messages.md",
-        "docs/forms/availability-admission-and-steps.md",
-        "docs/forms/actions-and-submit.md",
-        "docs/forms/async-lifecycle-and-canonicalization.md"
+        "docs/forms/changes/dirty-state.md",
+        "docs/forms/changes/patch-plans.md",
+        "docs/forms/changes/patching-complex-edit-forms.md",
+        "docs/forms/changes/unchanged-forms-and-submit-readiness.md",
+        "docs/forms/changes/broad-replacement-vs-narrow-patches.md",
+        "docs/forms/validation/validation-overview.md",
+        "docs/forms/validation/parse-failures.md",
+        "docs/forms/validation/visible-messages.md",
+        "docs/forms/validation/async-validation.md",
+        "docs/forms/validation/server-canonicalization.md",
+        "docs/forms/validation/source-compatibility-and-draft-migration.md"
       ],
       "diagnosticsHistory": [
         "package/product/signals_runtime/forms/form_action_verification.test.mjs",
-        "package/product/signals_runtime/forms/form_async_validation.test.mjs"
+        "package/product/signals_runtime/forms/form_diagnostics_summary.test.mjs"
       ],
       "resourceBranch": [],
       "renderer": [],
@@ -66,7 +79,7 @@
       ]
     },
     {
-      "family": "hostRendererPresentation",
+      "family": "laterSectionsPending",
       "runtime": [
         "package/product/signals_runtime/forms/host/form_host_facts.test.mjs",
         "package/product/signals_runtime/forms/accessibility/form_accessibility_artifacts.test.mjs",
@@ -76,10 +89,7 @@
       "typeSurface": [
         "package/forms-phase-ten-types-smoke.ts"
       ],
-      "docs": [
-        "docs/forms/host-interaction-accessibility-and-layout.md",
-        "docs/forms/presentation-and-external-lanes.md"
-      ],
+      "docs": [],
       "diagnosticsHistory": [
         "package/product/signals_runtime/forms/presentation/form_presentation_lifecycle.test.mjs",
         "package/product/signals_runtime/forms/messages/form_message_visibility.test.mjs"
@@ -97,7 +107,7 @@
       ]
     },
     {
-      "family": "resourceLineAndCollaboration",
+      "family": "resourceBackedAndCollaborationPending",
       "runtime": [
         "package/product/signals_runtime/forms/resource_source/state/form_resource_source_readback.test.mjs",
         "package/product/signals_runtime/forms/resource_source/state/form_resource_replay_restore.test.mjs",
@@ -108,10 +118,7 @@
         "package/forms-phase-eight-resource-types-smoke.ts",
         "package/forms-phase-ten-types-smoke.ts"
       ],
-      "docs": [
-        "docs/forms/resource-line-forms.md",
-        "docs/forms/collaboration.md"
-      ],
+      "docs": [],
       "diagnosticsHistory": [
         "package/product/signals_runtime/forms/form_diagnostics_summary.test.mjs",
         "package/product/signals_runtime/forms/resource_source/state/form_resource_reset.test.mjs"
@@ -140,8 +147,10 @@
         "package/forms-phase-ten-types-smoke.ts"
       ],
       "docs": [
-        "docs/forms/overview.md",
-        "docs/forms/diagnostics-history-and-verification.md"
+        "docs/forms/README.md",
+        "docs/forms/index.md",
+        "docs/forms/recipes.md",
+        "docs/forms/milestone-crosswalk.md"
       ],
       "diagnosticsHistory": [
         "package/product/signals_runtime/forms/form_diagnostics_summary.test.mjs"

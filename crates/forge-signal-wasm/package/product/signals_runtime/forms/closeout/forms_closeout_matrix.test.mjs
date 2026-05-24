@@ -8,7 +8,7 @@ import { formsCrateRoot, formsDocsRoot } from "./forms_docs_root.mjs";
 const matrixPath = path.join(formsDocsRoot, "metadata/forms-closeout-matrix.json");
 const inventoryPath = path.join(formsDocsRoot, "metadata/forms-feature-doc-inventory.json");
 
-test("forms closeout matrix ties product families to machine-checkable evidence", () => {
+test("forms closeout matrix ties current product families to machine-checkable evidence", () => {
   const matrix = JSON.parse(fs.readFileSync(matrixPath, "utf8"));
   const inventory = JSON.parse(fs.readFileSync(inventoryPath, "utf8"));
 
@@ -23,7 +23,7 @@ test("forms closeout matrix ties product families to machine-checkable evidence"
     "closeout",
   ]);
   assert.equal(matrix.rows.length, 5);
-  assert.equal(inventory.features.length, 11);
+  assert.equal(inventory.features.length, 19);
 
   const docsRow = matrix.rows.find((row) => row.family === "docsAndCloseout");
   assert.ok(docsRow);
@@ -31,7 +31,7 @@ test("forms closeout matrix ties product families to machine-checkable evidence"
     "package/product/signals_runtime/forms/closeout/forms_feature_docs_happy_path.test.mjs",
   ));
 
-  const resourceRow = matrix.rows.find((row) => row.family === "resourceLineAndCollaboration");
+  const resourceRow = matrix.rows.find((row) => row.family === "resourceBackedAndCollaborationPending");
   assert.ok(resourceRow.resourceBranch.includes(
     "package/product/signals_runtime/forms/resource_source/state/form_resource_visible_selection_readback.test.mjs",
   ));
@@ -54,8 +54,5 @@ test("forms closeout matrix ties product families to machine-checkable evidence"
 });
 
 function resolveMatrixRef(ref) {
-  if (ref.startsWith("docs/")) {
-    return path.join(formsCrateRoot, ref);
-  }
   return path.join(formsCrateRoot, ref);
 }
