@@ -44,10 +44,6 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
         self.marker.domain_key()
     }
 
-    pub(crate) fn domain_marker(&self) -> &D {
-        &self.marker
-    }
-
     pub fn display_name(&self) -> &'static str {
         self.marker.display_name()
     }

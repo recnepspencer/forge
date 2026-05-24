@@ -9,8 +9,10 @@ use forge_foundational::facade::{
 use forge_proof::TransitionOutcome;
 
 use crate::application::{
-    ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryDomainEntryMarker,
-    ForgeQueryDomainOperatingContext,
+    ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryDeclarationFamilyTaxonomy,
+    ForgeQueryDeclarationPrimaryAuthorityFamily, ForgeQueryDomainEntryMarker,
+    ForgeQueryDomainOperatingContext, ForgeQueryGroupedDeclarationPosture,
+    ForgeQuerySignalCompatibilityPosture,
 };
 
 use super::comparison::ForgeQueryCanonicalDeclarationComparison;
@@ -23,7 +25,9 @@ use super::version::ForgeQueryDeclarationCanonicalizationVersion;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ForgeQueryDeclarationCanonicalizationError {
-    EmptyDeclarationEntries { declaration_family: &'static str },
+    EmptyDeclarationEntries {
+        declaration_family_key: &'static str,
+    },
     BasisConstructionDenied(String),
     DigestDerivationDenied(CanonicalDigestDerivationDenial),
     ComparisonPreparationFailed,
@@ -34,7 +38,8 @@ pub struct ForgeQueryCanonicalDeclarationArtifact<
     I: ForgeQueryDeclarationInput<D>,
 > {
     handle_identity_digest: String,
-    declaration_family: &'static str,
+    declaration_family_key: &'static str,
+    declaration_taxonomy: ForgeQueryDeclarationFamilyTaxonomy,
     canonical_entries: Vec<CanonicalBasisEntry>,
     canonical_basis_bundle: CanonicalBundleReadyArtifact,
     declaration_digest: CanonicalDerivedDigest,
@@ -49,7 +54,8 @@ where
 {
     fn new(
         handle_identity_digest: String,
-        declaration_family: &'static str,
+        declaration_family_key: &'static str,
+        declaration_taxonomy: ForgeQueryDeclarationFamilyTaxonomy,
         canonical_entries: Vec<CanonicalBasisEntry>,
         canonical_basis_bundle: CanonicalBundleReadyArtifact,
         declaration_digest: CanonicalDerivedDigest,
@@ -57,7 +63,8 @@ where
     ) -> Self {
         Self {
             handle_identity_digest,
-            declaration_family,
+            declaration_family_key,
+            declaration_taxonomy,
             canonical_entries,
             canonical_basis_bundle,
             declaration_digest,
@@ -70,8 +77,26 @@ where
         &self.handle_identity_digest
     }
 
-    pub fn declaration_family(&self) -> &'static str {
-        self.declaration_family
+    pub fn declaration_family_key(&self) -> &'static str {
+        self.declaration_family_key
+    }
+
+    pub fn declaration_taxonomy(&self) -> ForgeQueryDeclarationFamilyTaxonomy {
+        self.declaration_taxonomy
+    }
+
+    pub fn declaration_primary_authority_family(
+        &self,
+    ) -> ForgeQueryDeclarationPrimaryAuthorityFamily {
+        self.declaration_taxonomy.primary_authority_family()
+    }
+
+    pub fn declaration_signal_compatibility(&self) -> ForgeQuerySignalCompatibilityPosture {
+        self.declaration_taxonomy.signal_compatibility()
+    }
+
+    pub fn declaration_grouped_posture(&self) -> ForgeQueryGroupedDeclarationPosture {
+        self.declaration_taxonomy.grouped_posture()
     }
 
     pub fn canonical_basis_bundle(&self) -> &CanonicalBundleReadyArtifact {
@@ -83,6 +108,10 @@ where
     }
 
     pub fn version(&self) -> &ForgeQueryDeclarationCanonicalizationVersion {
+        &self.version
+    }
+
+    pub fn canonicalization_version(&self) -> &ForgeQueryDeclarationCanonicalizationVersion {
         &self.version
     }
 
@@ -119,21 +148,23 @@ where
     C: ForgeQueryDomainOperatingContext<D>,
     I: ForgeQueryDeclarationInput<D>,
 {
-    let raw = ForgeQueryRawDeclarationInput::new(handle.domain_marker().clone(), input);
+    let raw = ForgeQueryRawDeclarationInput::new(input);
     if raw.canonical_entries().is_empty() {
         return Err(
             ForgeQueryDeclarationCanonicalizationError::EmptyDeclarationEntries {
-                declaration_family: raw.declaration_family(),
+                declaration_family_key: raw.declaration_family_key(),
             },
         );
     }
 
     let canonical_entries = declaration_entries(handle, &raw);
-    let digest_basis_bundle =
+    let canonical_basis_bundle =
         canonical_basis_bundle_from_entries(&canonical_entries, version.foundational());
 
     let algorithm = CanonicalDigestAlgorithmId::test_stable_fixture();
-    let digest_ready = match CanonicalDigestFrontDoor.for_bundle(digest_basis_bundle, algorithm) {
+    let digest_ready = match CanonicalDigestFrontDoor
+        .for_bundle(canonical_basis_bundle.clone(), algorithm)
+    {
         TransitionOutcome::Success(ready) => ready,
         TransitionOutcome::Denied(denial) => {
             return Err(ForgeQueryDeclarationCanonicalizationError::DigestDerivationDenied(denial))
@@ -147,12 +178,11 @@ where
         }
     };
     let declaration_digest = derive_canonical_digest(digest_ready);
-    let canonical_basis_bundle =
-        canonical_basis_bundle_from_entries(&canonical_entries, version.foundational());
 
     Ok(ForgeQueryCanonicalDeclarationArtifact::new(
         handle.handle_identity_digest().to_string(),
-        raw.declaration_family(),
+        raw.declaration_family_key(),
+        raw.declaration_taxonomy(),
         canonical_entries,
         canonical_basis_bundle,
         declaration_digest,
@@ -209,9 +239,29 @@ where
         ),
         text_entry(
             domain,
-            "declaration.family",
+            "declaration.family_key",
             CanonicalBasisEntryKind::Shape,
-            raw.declaration_family(),
+            raw.declaration_family_key(),
+        ),
+        text_entry(
+            domain,
+            "declaration.family.primary_authority",
+            CanonicalBasisEntryKind::Shape,
+            raw.declaration_taxonomy()
+                .primary_authority_family()
+                .as_str(),
+        ),
+        text_entry(
+            domain,
+            "declaration.family.signal_compatibility",
+            CanonicalBasisEntryKind::Shape,
+            raw.declaration_taxonomy().signal_compatibility().as_str(),
+        ),
+        text_entry(
+            domain,
+            "declaration.family.grouped_posture",
+            CanonicalBasisEntryKind::Shape,
+            raw.declaration_taxonomy().grouped_posture().as_str(),
         ),
     ];
     entries.extend(

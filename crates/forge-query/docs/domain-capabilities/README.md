@@ -10,6 +10,7 @@ of domain work you are trying to do:
 - [Platform Entry](./platform-entry.md)
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
+- [Declaration Family Taxonomy](./declaration-family-taxonomy.md)
 - `admission/`
   - [Advisory And Violation Contributions](./admission/advisory-and-violation-contributions.md)
   - [Declaration Vs Admitted-Plan Targets](./admission/declaration-vs-admitted-plan-targets.md)
@@ -44,13 +45,17 @@ without rebuilding a pseudo-Query layer locally.
 
 Start with [Platform Entry](./platform-entry.md) when you need the typed
 facade-first domain front door where the downstream domain supplies its own
-marker type rather than relying on the older string-authored contribution path.
+marker type rather than relying on separate string-authored contribution
+surfaces.
 
 Move next to [Configured Domain Handles](./configured-domain-handles.md) when
 you need an admitted operating world, then to
 [Canonical Domain Declarations](./canonical-domain-declarations.md) when that
 admitted world needs to express declaration-local meaning through one retained
-Query-owned declaration artifact.
+Query-owned declaration artifact. Use
+[Declaration Family Taxonomy](./declaration-family-taxonomy.md) when you need
+to understand how Query classifies downstream declaration families and carries
+that classification forward without owning the family nouns themselves.
 
 Start here if:
 

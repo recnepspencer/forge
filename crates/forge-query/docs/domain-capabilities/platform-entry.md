@@ -31,8 +31,8 @@ support posture, and lane structure around it.
 Good to know:
 - this is the preferred front door when a downstream domain needs to enter
   Query as a typed capability
-- the older `forge_query_domain("...")` path belongs to string-authored domain
-  contribution surfaces, not this typed platform-entry path
+- string-authored contribution surfaces are separate from this typed
+  platform-entry path
 
 ## Core Mental Model
 

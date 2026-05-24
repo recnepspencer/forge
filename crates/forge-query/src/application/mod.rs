@@ -1,6 +1,7 @@
 mod capability;
 mod config;
 mod declaration;
+mod declaration_family;
 mod domain_entry;
 mod domain_handle;
 mod support;
@@ -25,6 +26,11 @@ pub use declaration::{
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationCanonicalEntryKind,
     ForgeQueryDeclarationCanonicalValue, ForgeQueryDeclarationCanonicalizationError,
     ForgeQueryDeclarationCanonicalizationVersion, ForgeQueryDeclarationInput,
+};
+pub use declaration_family::{
+    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationFamilyTaxonomy,
+    ForgeQueryDeclarationPrimaryAuthorityFamily, ForgeQueryGroupedDeclarationPosture,
+    ForgeQuerySignalCompatibilityPosture,
 };
 pub use domain_entry::{
     ForgeQueryDomainEntryChecked, ForgeQueryDomainEntryDeferred, ForgeQueryDomainEntryMarker,

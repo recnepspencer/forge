@@ -16,7 +16,7 @@ where
 {
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Proof<P, A>(PhantomData<(P, A)>);
 
 impl<P, A> Proof<P, A> {

@@ -1,4 +1,4 @@
-use crate::application::ForgeQueryDomainEntryMarker;
+use crate::application::{ForgeQueryDeclarationFamilyMarker, ForgeQueryDomainEntryMarker};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryDeclarationCanonicalEntryKind {
@@ -39,6 +39,14 @@ impl ForgeQueryDeclarationCanonicalEntry {
         }
     }
 
+    pub fn text(locus: impl Into<String>, value: impl Into<String>) -> Self {
+        Self::new(
+            locus,
+            ForgeQueryDeclarationCanonicalEntryKind::Field,
+            ForgeQueryDeclarationCanonicalValue::ExactText(value.into()),
+        )
+    }
+
     pub fn locus(&self) -> &str {
         &self.locus
     }
@@ -53,7 +61,7 @@ impl ForgeQueryDeclarationCanonicalEntry {
 }
 
 pub trait ForgeQueryDeclarationInput<D: ForgeQueryDomainEntryMarker> {
-    fn declaration_family(&self) -> &'static str;
+    type Family: ForgeQueryDeclarationFamilyMarker<D>;
 
-    fn canonical_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry>;
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry>;
 }

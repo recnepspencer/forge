@@ -6,6 +6,7 @@ use crate::canonicalization::basis::{
     CanonicalizationRuleVersion,
 };
 
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CanonicalBasisBundle {
     version: CanonicalizationRuleVersion,
     sequences: Vec<CanonicalBasisReadyArtifact>,

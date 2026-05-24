@@ -1,7 +1,22 @@
-error[E0560]: struct `ForgeQueryCanonicalDeclarationArtifact<GeometryDomain, SplitEdgeDeclaration>` has no field named `input`
-  --> tests/ui/domain_declaration/boundaries/canonical_declaration_constructor_is_private.rs:46:9
+error[E0451]: fields `handle_identity_digest`, `declaration_family_key`, `declaration_taxonomy`, `canonical_entries`, `canonical_basis_bundle`, `declaration_digest`, `version` and `_marker` of struct `ForgeQueryCanonicalDeclarationArtifact` are private
+  --> tests/ui/domain_declaration/boundaries/canonical_declaration_constructor_is_private.rs:62:9
    |
-46 |         input: SplitEdgeDeclaration,
-   |         ^^^^^ `ForgeQueryCanonicalDeclarationArtifact<GeometryDomain, SplitEdgeDeclaration>` does not have this field
-   |
-   = note: all struct fields are already assigned
+61 |     let _ = ForgeQueryCanonicalDeclarationArtifact::<GeometryDomain, SplitEdgeDeclaration> {
+   |             ------------------------------------------------------------------------------ in this type
+62 |         handle_identity_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+63 |         declaration_family_key: "split-edge",
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+64 |         declaration_taxonomy: ForgeQueryDeclarationFamilyTaxonomy::new(
+   |         ^^^^^^^^^^^^^^^^^^^^ private field
+...
+69 |         canonical_entries: Vec::new(),
+   |         ^^^^^^^^^^^^^^^^^ private field
+70 |         canonical_basis_bundle: fake(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+71 |         declaration_digest: fake(),
+   |         ^^^^^^^^^^^^^^^^^^ private field
+72 |         version: fake(),
+   |         ^^^^^^^ private field
+73 |         _marker: std::marker::PhantomData,
+   |         ^^^^^^^ private field

@@ -1,8 +1,10 @@
 use forge_query::facade::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
-    ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationCanonicalEntryKind,
-    ForgeQueryDeclarationCanonicalValue, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
-    ForgeQueryDomainOperatingContext,
+    ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationFamilyMarker,
+    ForgeQueryDeclarationFamilyTaxonomy, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationPrimaryAuthorityFamily, ForgeQueryDomainEntryMarker,
+    ForgeQueryDomainOperatingContext, ForgeQueryGroupedDeclarationPosture,
+    ForgeQuerySignalCompatibilityPosture,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -48,23 +50,30 @@ struct SplitEdgeDeclaration {
     parameter: &'static str,
 }
 
-impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
-    fn declaration_family(&self) -> &'static str {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct SplitEdgeFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
+    fn semantic_family_key() -> &'static str {
         "split-edge"
     }
 
-    fn canonical_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+    fn taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy {
+        ForgeQueryDeclarationFamilyTaxonomy::new(
+            ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
+            ForgeQuerySignalCompatibilityPosture::Compatible,
+            ForgeQueryGroupedDeclarationPosture::NeighborhoodCapable,
+        )
+    }
+}
+
+impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
+    type Family = SplitEdgeFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
         vec![
-            ForgeQueryDeclarationCanonicalEntry::new(
-                "split_edge.edge_ref",
-                ForgeQueryDeclarationCanonicalEntryKind::Identity,
-                ForgeQueryDeclarationCanonicalValue::ExactText(self.edge_ref.to_string()),
-            ),
-            ForgeQueryDeclarationCanonicalEntry::new(
-                "split_edge.parameter",
-                ForgeQueryDeclarationCanonicalEntryKind::Field,
-                ForgeQueryDeclarationCanonicalValue::ExactText(self.parameter.to_string()),
-            ),
+            ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.edge_ref),
+            ForgeQueryDeclarationCanonicalEntry::text("parameter", self.parameter),
         ]
     }
 }
@@ -86,7 +95,10 @@ fn main() {
         })
         .unwrap();
 
-    let _ = declaration.declaration_family();
+    let _ = declaration.declaration_family_key();
+    let _ = declaration.declaration_primary_authority_family();
+    let _ = declaration.declaration_grouped_posture();
+    let _ = declaration.declaration_signal_compatibility();
     let _ = declaration.declaration_digest();
     let _ = declaration.canonical_basis_bundle();
 }

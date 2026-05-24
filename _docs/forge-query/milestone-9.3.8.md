@@ -902,12 +902,17 @@ play for an admitted declaration and why.
   route-plan artifact before any lower-authority receipt or continuation can be
   claimed
 - a route plan may reference more than one lower authority family only when the
-  declaration family is explicitly typed as mixed-authority; otherwise one
-  declaration maps to one lower-authority family or one typed deferred/forbidden
-  posture
+  declaration family is explicitly typed as mixed-authority or another later
+  route-multiplicity posture that the Query taxonomy admits by spec; otherwise
+  one declaration maps to one lower-authority family or one typed
+  deferred/forbidden posture
 - route plans must distinguish "no lower authority yet", "relational-backed",
   "bridge-backed", "mixed-authority", "signal-compatible later", "deferred
   neighbor", and "forbidden" as separate public postures
+- route planning must preserve whether continuation participation is required,
+  optional, deferred, or absent whenever that distinction is part of the
+  admitted declaration family's typed posture; Query must not collapse those
+  cases into one coarse "mixed-authority" bucket
 - route planning must consume admitted operating-world proof from Phase 2 plus
   admitted declaration proof from earlier phases; route intent may narrow or
   select crossings within that world, but it may not redefine the world itself
@@ -926,6 +931,10 @@ play for an admitted declaration and why.
 - route intent and operating context are distinct typed inputs. The former asks
   what crossing is desired from within an admitted world; the latter defines the
   admitted world itself
+- route plans must remain explicit about route multiplicity and continuation
+  participation for geometry-style or other multi-seam domains whose later
+  routing consequences cannot be described honestly by a single yes/no mixed
+  flag alone
 
 **DX target**
 
@@ -962,6 +971,10 @@ play for an admitted declaration and why.
   declaration families, or both with one canonical lowering path?
 - what is the smallest route-plan artifact shape that can still carry runtime-
   continuation preparation posture without becoming a second envelope too early?
+- should continuation participation and route multiplicity remain simple public
+  postures on route plans, or should later phases promote one or both into
+  richer route-contract artifacts once mixed-authority domains need more than a
+  coarse flag?
 - how should deferred and forbidden route rows be represented so they stay
   certifiable without imitating successful lower-authority routes?
 
@@ -1218,6 +1231,9 @@ Query-mediated bridge crossings.
   reached and which continuation posture was admitted or denied
 - this phase must not hide bridge-sensitive differences behind one fake
   universal continuation family
+- bridge continuation artifacts must preserve whether continuation
+  participation was required, optional, or deferred for the routed declaration
+  family whenever Phase 9 route plans carry that distinction
 - Query must provide bridge-routed continuation artifacts that replace
   caller-owned runtime builder assembly and caller-owned current/historical
   basis-binding choreography for supported runtime-capable declaration families
@@ -1274,6 +1290,10 @@ Query-mediated bridge crossings.
 - should truth context be a separate typed input family from continuation
   request, or should continuation requests carry truth-context variants
   structurally?
+- if later mixed-authority or geometry-heavy families need richer route-
+  multiplicity or continuation-participation contracts, should Phase 13 consume
+  those as route-plan postures or promote them into first-class bridge route
+  contract artifacts?
 - what is the minimal Query-owned runtime continuation artifact that fully
   replaces local runtime builder and basis-binding choreography without hiding
   bridge-specific differences?
@@ -1305,6 +1325,9 @@ without yet claiming that `9.3.8` executes those declarations through Signal.
   execution semantics
 - the route plan and envelope must preserve whether a declaration is
   signal-compatible, signal-incompatible, or signal-deferred
+- signal compatibility must remain a modifier over the declaration family's
+  primary lower-authority posture rather than being reinterpreted as a peer
+  authority family in later phases
 - later derived-execution continuation must consume typed continuation and
   truth-context inputs rather than ambient execution-mode switches bolted on
   after declaration entry

@@ -103,6 +103,20 @@ fn canonical_basis_and_bundle_artifacts_carry_named_readiness_proof_sets() {
 }
 
 #[test]
+fn canonical_ready_bundle_artifacts_clone_without_losing_payload_or_proofs() {
+    let version = version("m2.proof-carriage.bundle-clone");
+    let bundle = ready_bundle(version);
+    let cloned = bundle.clone();
+
+    accepts_bundle_proofs(cloned.proofs());
+    assert_eq!(bundle.payload().version(), cloned.payload().version());
+    assert_eq!(
+        bundle.payload().sequences().len(),
+        cloned.payload().sequences().len()
+    );
+}
+
+#[test]
 fn comparison_export_digest_and_production_artifacts_carry_named_readiness_proof_sets() {
     let comparison_version = version("m2.proof-carriage.comparison");
     let comparison = match prepare_canonical_comparison(

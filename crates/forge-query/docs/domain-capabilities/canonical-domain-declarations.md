@@ -22,6 +22,8 @@ canonical basis bundle; the digest is not the source of truth.
   layer
 - freeze one canonical declaration identity before legality, routing, or
   continuation begin
+- retain declaration family key and Query-owned taxonomy posture as part of the
+  canonical declaration artifact
 - compare declarations under an explicit equivalence basis
 - keep declaration meaning rooted in an admitted operating world instead of
   ambient host state
@@ -31,6 +33,8 @@ canonical basis bundle; the digest is not the source of truth.
 - `ForgeQueryAdmittedConfiguredDomainHandle::declare(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::declare_with_version(...)`
 - `ForgeQueryDeclarationInput`
+- `ForgeQueryDeclarationFamilyMarker`
+- `ForgeQueryDeclarationFamilyTaxonomy`
 - `ForgeQueryCanonicalDeclarationArtifact`
 - `ForgeQueryCanonicalDeclarationArtifact::compare_under(...)`
 - `ForgeQueryDeclarationCanonicalizationVersion`
@@ -39,6 +43,9 @@ Good to know:
 - Query still does not own your domain families or nouns
 - the ordinary lane is generic: downstream code defines the typed declaration
   input, and Query canonicalizes it
+- declaration family identity is carried through the input type's associated
+  family marker, and that family meaning participates in canonical declaration
+  identity
 - raw declaration normalization stays behind Query-owned front doors
 
 ## Core Mental Model
@@ -55,7 +62,9 @@ meaningfully.
 
 The declaration input type does two things:
 
-- names the declaration family explicitly
+- identifies the declaration family for your domain through its associated
+  family marker
+- binds that family to one Query-owned taxonomy posture
 - exposes the canonical declaration-local components that Query will lower into
   foundational basis entries
 
@@ -70,7 +79,8 @@ the comparison surface.
 3. call `declare(...)` or `declare_with_version(...)`
 4. Query combines:
    - admitted handle identity
-   - declaration family identity
+   - declaration family key
+   - declaration taxonomy posture
    - declaration-local canonical components
 5. Query lowers that meaning into one foundational canonical basis artifact and
    one canonical basis bundle
@@ -82,14 +92,21 @@ The ordinary lane pins the canonicalization version for you. Use the explicit
 version surface only when you are doing advanced tooling, proof work, or
 certification.
 
+The important practical point is that Query retains the canonical declaration
+artifact for later phases. Capability gating, legality, routing, and
+continuation should consume that retained artifact rather than re-deriving
+family meaning from host glue.
+
 ## Small Example
 
 ```rust
 use forge_query::facade::{
-    ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
-    ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationCanonicalEntryKind,
-    ForgeQueryDeclarationCanonicalValue, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
-    ForgeQueryDomainOperatingContext,
+    ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily,
+    ForgeQueryConfigSectionFamily, ForgeQueryDeclarationCanonicalEntry,
+    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationFamilyTaxonomy,
+    ForgeQueryDeclarationInput, ForgeQueryDeclarationPrimaryAuthorityFamily,
+    ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
+    ForgeQueryGroupedDeclarationPosture, ForgeQuerySignalCompatibilityPosture,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -114,14 +131,11 @@ struct GeometryOperatingContext;
 
 impl ForgeQueryDomainOperatingContext<GeometryDomain> for GeometryOperatingContext {
     fn required_capability_families(&self) -> &'static [ForgeQueryCapabilityFamily] {
-        &[ForgeQueryCapabilityFamily::HistoricalEvaluation]
+        &[ForgeQueryCapabilityFamily::QueryContext]
     }
 
     fn required_config_sections(&self) -> &'static [ForgeQueryConfigSectionFamily] {
-        &[
-            ForgeQueryConfigSectionFamily::Query,
-            ForgeQueryConfigSectionFamily::Relational,
-        ]
+        &[ForgeQueryConfigSectionFamily::Query]
     }
 
     fn context_identity_digest(&self) -> String {
@@ -135,23 +149,30 @@ struct SplitEdgeDeclaration {
     parameter: &'static str,
 }
 
-impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
-    fn declaration_family(&self) -> &'static str {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct SplitEdgeFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
+    fn semantic_family_key() -> &'static str {
         "split-edge"
     }
 
-    fn canonical_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+    fn taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy {
+        ForgeQueryDeclarationFamilyTaxonomy::new(
+            ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
+            ForgeQuerySignalCompatibilityPosture::Compatible,
+            ForgeQueryGroupedDeclarationPosture::NeighborhoodCapable,
+        )
+    }
+}
+
+impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
+    type Family = SplitEdgeFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
         vec![
-            ForgeQueryDeclarationCanonicalEntry::new(
-                "split_edge.edge_ref",
-                ForgeQueryDeclarationCanonicalEntryKind::Identity,
-                ForgeQueryDeclarationCanonicalValue::ExactText(self.edge_ref.to_string()),
-            ),
-            ForgeQueryDeclarationCanonicalEntry::new(
-                "split_edge.parameter",
-                ForgeQueryDeclarationCanonicalEntryKind::Field,
-                ForgeQueryDeclarationCanonicalValue::ExactText(self.parameter.to_string()),
-            ),
+            ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.edge_ref),
+            ForgeQueryDeclarationCanonicalEntry::text("parameter", self.parameter),
         ]
     }
 }
@@ -167,6 +188,9 @@ let declaration = handle.declare(SplitEdgeDeclaration {
     edge_ref: "edge:42",
     parameter: "midpoint",
 })?;
+
+let digest = declaration.declaration_digest();
+let family = declaration.declaration_family_key();
 ```
 
 ## Real Example
@@ -174,10 +198,12 @@ let declaration = handle.declare(SplitEdgeDeclaration {
 ```rust
 use forge_foundational::facade::CanonicalEquivalenceBasis;
 use forge_query::facade::{
-    ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
-    ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationCanonicalEntryKind,
-    ForgeQueryDeclarationCanonicalValue, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
-    ForgeQueryDomainOperatingContext,
+    ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily,
+    ForgeQueryConfigSectionFamily, ForgeQueryDeclarationCanonicalEntry,
+    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationFamilyTaxonomy,
+    ForgeQueryDeclarationInput, ForgeQueryDeclarationPrimaryAuthorityFamily,
+    ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
+    ForgeQueryGroupedDeclarationPosture, ForgeQuerySignalCompatibilityPosture,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -212,7 +238,10 @@ impl GeometryOperatingContext {
 
 impl ForgeQueryDomainOperatingContext<GeometryDomain> for GeometryOperatingContext {
     fn required_capability_families(&self) -> &'static [ForgeQueryCapabilityFamily] {
-        &[ForgeQueryCapabilityFamily::HistoricalEvaluation]
+        &[
+            ForgeQueryCapabilityFamily::QueryContext,
+            ForgeQueryCapabilityFamily::HistoricalEvaluation,
+        ]
     }
 
     fn required_config_sections(&self) -> &'static [ForgeQueryConfigSectionFamily] {
@@ -230,17 +259,28 @@ impl ForgeQueryDomainOperatingContext<GeometryDomain> for GeometryOperatingConte
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct SplitEdgeDeclaration(&'static str);
 
-impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
-    fn declaration_family(&self) -> &'static str {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct SplitEdgeFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
+    fn semantic_family_key() -> &'static str {
         "split-edge"
     }
 
-    fn canonical_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::new(
-            "split_edge.edge_ref",
-            ForgeQueryDeclarationCanonicalEntryKind::Identity,
-            ForgeQueryDeclarationCanonicalValue::ExactText(self.0.to_string()),
-        )]
+    fn taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy {
+        ForgeQueryDeclarationFamilyTaxonomy::new(
+            ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
+            ForgeQuerySignalCompatibilityPosture::Compatible,
+            ForgeQueryGroupedDeclarationPosture::NeighborhoodCapable,
+        )
+    }
+}
+
+impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
+    type Family = SplitEdgeFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+        vec![ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.0)]
     }
 }
 
@@ -259,6 +299,86 @@ let digest = left.declaration_digest();
 let basis_bundle = left.canonical_basis_bundle();
 ```
 
+What this example is showing:
+
+- the operating context changes the admitted world the declaration belongs to
+- the declaration input contributes family-local meaning
+- Query retains a canonical declaration artifact you can compare, inspect, and
+  hand to later phases without reopening the original authoring context
+
+## How It Relates To Other Features
+
+- [Platform Entry](./platform-entry.md)
+  gives you the typed domain front door
+- [Configured Domain Handles](./configured-domain-handles.md)
+  give you the admitted operating world declaration work depends on
+- [Declaration Family Taxonomy](./declaration-family-taxonomy.md)
+  defines the Query-owned classification carried by the declaration family
+  marker
+- later capability gating, legality, and routing should consume the retained
+  canonical declaration artifact rather than rediscovering family meaning from
+  host-local strings or control flow
+
+## Inspection And Debugging
+
+The main inspection surfaces are on the canonical declaration artifact:
+
+- `declaration_family_key()`
+- `declaration_taxonomy()`
+- `declaration_primary_authority_family()`
+- `declaration_grouped_posture()`
+- `declaration_signal_compatibility()`
+- `declaration_digest()`
+- `handle_identity_digest()`
+- `canonical_basis_bundle()`
+- `canonicalization_version()`
+- `compare_under(...)`
+
+Use them to answer:
+
+- whether two authoring paths produced the same canonical declaration
+- whether a declaration changed because the admitted operating world changed
+- which family a retained declaration artifact belongs to
+- which Query-owned taxonomy posture that family carries
+- which canonicalization version was used
+
+If two declarations look the same locally but compare differently, check the
+admitted configured handle identity first. In Query, operating-world proof is
+part of declaration identity.
+
+## Anti-Patterns
+
+- treating the declaration input as a bag of host-local data instead of a
+  canonical declaration-local meaning surface
+- hashing or comparing downstream declaration structs directly instead of using
+  the retained canonical declaration artifact
+- rebuilding family meaning from ad hoc strings or branch logic after Query has
+  already canonicalized the declaration
+- smuggling dynamic eligibility, preview tokens, or runtime continuation setup
+  into declaration authoring
+- treating the declaration digest as the authority instead of the canonical
+  basis bundle it was derived from
+
+## Current Limits
+
+Canonical domain declarations do not yet decide:
+
+- whether a declaration family is admitted for a given handle
+- legality of the declaration inside one admitted operating world
+- lower-authority routing into relational, bridge, or signal surfaces
+- grouped execution semantics
+- runtime, preview, or historical continuation
+
+This feature freezes declaration-local meaning and gives later phases one
+retained canonical artifact to build on.
+
+## Related Docs
+
+- [Platform Entry](./platform-entry.md)
+- [Configured Domain Handles](./configured-domain-handles.md)
+- [Declaration Family Taxonomy](./declaration-family-taxonomy.md)
+- [Domain Capabilities](./README.md)
+
 What is authoritative here:
 
 - the admitted handle is authoritative for the stable operating world
@@ -269,63 +389,3 @@ What is derived:
 - the declaration digest is derived from the canonical basis bundle
 - comparison posture is derived from the chosen equivalence basis plus the two
   canonical declaration artifacts
-
-## How It Relates To Other Features
-
-- start with [Platform Entry](./platform-entry.md) when the domain has not
-  entered Query yet
-- use [Configured Domain Handles](./configured-domain-handles.md) to establish
-  the admitted operating world before you declare inside it
-- later legality, routing, and continuation phases build on this retained
-  declaration artifact rather than replacing it
-
-## Inspection And Debugging
-
-Use the canonical declaration artifact to inspect:
-
-- the admitted handle identity digest
-- the declaration family
-- the pinned or explicit canonicalization version
-- the canonical basis bundle
-- the derived declaration digest
-
-Use `compare_under(...)` when you need explicit equivalence or mismatch posture
-instead of guessing from digest equality alone.
-
-If canonicalization fails, start by checking:
-
-- whether the declaration input produced any canonical entries
-- whether two entries collided on the same locus and kind
-- whether the declaration-local meaning is accidentally depending on hidden host
-  state instead of stable typed inputs
-
-## Anti-Patterns
-
-- treating digest equality as the only declaration-equality story
-- skipping configured handles and trying to declare straight from a domain
-  marker
-- hiding declaration family identity and expecting Query to infer it later
-- smuggling dynamic trigger conditions or exact runtime basis into the
-  declaration-local canonical entries
-- teaching raw canonical-entry assembly as the default product-code workflow
-
-## Current Limits
-
-This feature gives you canonical declaration identity. It does not yet give you:
-
-- structural legality
-- dynamic eligibility
-- route planning
-- runtime, preview, or historical continuation binding
-- domain-specific helper verbs owned by Query
-
-The ordinary lane is intentionally generic. If you want domain-shaped helper
-verbs such as `declare_split_edge(...)`, those should live in downstream code or
-later Query extension layers, not in the generic Query facade itself.
-
-## Related Docs
-
-- [Platform Entry](./platform-entry.md)
-- [Configured Domain Handles](./configured-domain-handles.md)
-- [Workflow Lanes: Common, Checked, Proof, And Raw](./workflow/workflow-lanes-common-checked-proof-raw.md)
-- [Typed Query Expressions And Result Shapes](../authoring/query-expressions-and-result-shapes.md)

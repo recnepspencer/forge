@@ -1,6 +1,9 @@
 use forge_query::facade::{
-    ForgeQueryCanonicalDeclarationArtifact, ForgeQueryCapabilityFamily, ForgeQueryDeclarationInput,
-    ForgeQueryDomainEntryMarker,
+    ForgeQueryCanonicalDeclarationArtifact, ForgeQueryCapabilityFamily,
+    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationFamilyTaxonomy,
+    ForgeQueryDeclarationInput, ForgeQueryDeclarationPrimaryAuthorityFamily,
+    ForgeQueryDomainEntryMarker, ForgeQueryGroupedDeclarationPosture,
+    ForgeQuerySignalCompatibilityPosture,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -23,12 +26,27 @@ impl ForgeQueryDomainEntryMarker for GeometryDomain {
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct SplitEdgeDeclaration;
 
-impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
-    fn declaration_family(&self) -> &'static str {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct SplitEdgeFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
+    fn semantic_family_key() -> &'static str {
         "split-edge"
     }
 
-    fn canonical_entries(
+    fn taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy {
+        ForgeQueryDeclarationFamilyTaxonomy::new(
+            ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
+            ForgeQuerySignalCompatibilityPosture::Compatible,
+            ForgeQueryGroupedDeclarationPosture::SingleOnly,
+        )
+    }
+}
+
+impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
+    type Family = SplitEdgeFamily;
+
+    fn canonical_declaration_entries(
         &self,
     ) -> Vec<forge_query::facade::ForgeQueryDeclarationCanonicalEntry> {
         Vec::new()
@@ -42,9 +60,14 @@ fn main() {
 
     let _ = ForgeQueryCanonicalDeclarationArtifact::<GeometryDomain, SplitEdgeDeclaration> {
         handle_identity_digest: String::new(),
-        declaration_family: "split-edge",
-        input: SplitEdgeDeclaration,
+        declaration_family_key: "split-edge",
+        declaration_taxonomy: ForgeQueryDeclarationFamilyTaxonomy::new(
+            ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
+            ForgeQuerySignalCompatibilityPosture::Compatible,
+            ForgeQueryGroupedDeclarationPosture::SingleOnly,
+        ),
         canonical_entries: Vec::new(),
+        canonical_basis_bundle: fake(),
         declaration_digest: fake(),
         version: fake(),
         _marker: std::marker::PhantomData,

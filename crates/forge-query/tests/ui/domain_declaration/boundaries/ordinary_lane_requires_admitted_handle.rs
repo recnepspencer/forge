@@ -1,8 +1,10 @@
 use forge_query::facade::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
-    ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationCanonicalEntryKind,
-    ForgeQueryDeclarationCanonicalValue, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
-    ForgeQueryDomainOperatingContext,
+    ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationFamilyMarker,
+    ForgeQueryDeclarationFamilyTaxonomy, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationPrimaryAuthorityFamily, ForgeQueryDomainEntryMarker,
+    ForgeQueryDomainOperatingContext, ForgeQueryGroupedDeclarationPosture,
+    ForgeQuerySignalCompatibilityPosture,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -45,17 +47,28 @@ impl ForgeQueryDomainOperatingContext<GeometryDomain> for GeometryOperatingConte
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct SplitEdgeDeclaration;
 
-impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
-    fn declaration_family(&self) -> &'static str {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct SplitEdgeFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
+    fn semantic_family_key() -> &'static str {
         "split-edge"
     }
 
-    fn canonical_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::new(
-            "split_edge.edge_ref",
-            ForgeQueryDeclarationCanonicalEntryKind::Identity,
-            ForgeQueryDeclarationCanonicalValue::ExactText("edge:42".to_string()),
-        )]
+    fn taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy {
+        ForgeQueryDeclarationFamilyTaxonomy::new(
+            ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
+            ForgeQuerySignalCompatibilityPosture::Compatible,
+            ForgeQueryGroupedDeclarationPosture::SingleOnly,
+        )
+    }
+}
+
+impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
+    type Family = SplitEdgeFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+        vec![ForgeQueryDeclarationCanonicalEntry::text("edge_ref", "edge:42")]
     }
 }
 

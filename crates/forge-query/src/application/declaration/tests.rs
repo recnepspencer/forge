@@ -9,7 +9,10 @@ use super::{
 };
 use crate::application::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
-    ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
+    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationFamilyTaxonomy,
+    ForgeQueryDeclarationPrimaryAuthorityFamily, ForgeQueryDomainEntryMarker,
+    ForgeQueryDomainOperatingContext, ForgeQueryGroupedDeclarationPosture,
+    ForgeQuerySignalCompatibilityPosture,
 };
 
 const ENTRY_CAPABILITIES: &[ForgeQueryCapabilityFamily] =
@@ -97,12 +100,44 @@ impl SplitEdgeDeclaration {
     }
 }
 
-impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
-    fn declaration_family(&self) -> &'static str {
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct SplitEdgeFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
+    fn semantic_family_key() -> &'static str {
         "split-edge"
     }
 
-    fn canonical_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+    fn taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy {
+        ForgeQueryDeclarationFamilyTaxonomy::new(
+            ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
+            ForgeQuerySignalCompatibilityPosture::Compatible,
+            ForgeQueryGroupedDeclarationPosture::NeighborhoodCapable,
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct SplitEdgeSingleOnlyFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeSingleOnlyFamily {
+    fn semantic_family_key() -> &'static str {
+        "split-edge"
+    }
+
+    fn taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy {
+        ForgeQueryDeclarationFamilyTaxonomy::new(
+            ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
+            ForgeQuerySignalCompatibilityPosture::Compatible,
+            ForgeQueryGroupedDeclarationPosture::SingleOnly,
+        )
+    }
+}
+
+impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
+    type Family = SplitEdgeFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
         vec![
             ForgeQueryDeclarationCanonicalEntry::new(
                 "family.operation",
@@ -120,6 +155,88 @@ impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
                 ForgeQueryDeclarationCanonicalValue::ExactText(self.edge_ref.to_string()),
             ),
         ]
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct SplitEdgeSingleOnlyDeclaration {
+    edge_ref: &'static str,
+}
+
+impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeSingleOnlyDeclaration {
+    type Family = SplitEdgeSingleOnlyFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+        vec![ForgeQueryDeclarationCanonicalEntry::new(
+            "split_edge.edge_ref",
+            ForgeQueryDeclarationCanonicalEntryKind::Identity,
+            ForgeQueryDeclarationCanonicalValue::ExactText(self.edge_ref.to_string()),
+        )]
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct TopologyDomain;
+
+impl ForgeQueryDomainEntryMarker for TopologyDomain {
+    fn domain_key(&self) -> &'static str {
+        "test.topology"
+    }
+
+    fn display_name(&self) -> &'static str {
+        "TopologyDomain"
+    }
+
+    fn required_capability_families(&self) -> &'static [ForgeQueryCapabilityFamily] {
+        ENTRY_CAPABILITIES
+    }
+}
+
+impl ForgeQueryDomainOperatingContext<TopologyDomain> for GeometryOperatingContext {
+    fn required_capability_families(&self) -> &'static [ForgeQueryCapabilityFamily] {
+        OPERATING_CAPABILITIES
+    }
+
+    fn required_config_sections(&self) -> &'static [ForgeQueryConfigSectionFamily] {
+        OPERATING_SECTIONS
+    }
+
+    fn context_identity_digest(&self) -> String {
+        format!("topology-regime:{}", self.regime)
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct SplitEdgeTopologyFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<TopologyDomain> for SplitEdgeTopologyFamily {
+    fn semantic_family_key() -> &'static str {
+        "split-edge"
+    }
+
+    fn taxonomy() -> ForgeQueryDeclarationFamilyTaxonomy {
+        ForgeQueryDeclarationFamilyTaxonomy::new(
+            ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
+            ForgeQuerySignalCompatibilityPosture::Compatible,
+            ForgeQueryGroupedDeclarationPosture::NeighborhoodCapable,
+        )
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+struct TopologySplitEdgeDeclaration {
+    edge_ref: &'static str,
+}
+
+impl ForgeQueryDeclarationInput<TopologyDomain> for TopologySplitEdgeDeclaration {
+    type Family = SplitEdgeTopologyFamily;
+
+    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
+        vec![ForgeQueryDeclarationCanonicalEntry::new(
+            "split_edge.edge_ref",
+            ForgeQueryDeclarationCanonicalEntryKind::Identity,
+            ForgeQueryDeclarationCanonicalValue::ExactText(self.edge_ref.to_string()),
+        )]
     }
 }
 
@@ -148,7 +265,27 @@ fn equivalent_declaration_authoring_paths_share_the_same_digest() {
         .declare(SplitEdgeDeclaration::midpoint_builder("edge:42"))
         .expect("equivalent midpoint declaration should canonicalize");
 
-    assert_eq!(left.declaration_family(), "split-edge");
+    assert_eq!(left.declaration_family_key(), "split-edge");
+    assert_eq!(
+        left.declaration_taxonomy(),
+        ForgeQueryDeclarationFamilyTaxonomy::new(
+            ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
+            ForgeQuerySignalCompatibilityPosture::Compatible,
+            ForgeQueryGroupedDeclarationPosture::NeighborhoodCapable,
+        )
+    );
+    assert_eq!(
+        left.declaration_primary_authority_family(),
+        ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth
+    );
+    assert_eq!(
+        left.declaration_signal_compatibility(),
+        ForgeQuerySignalCompatibilityPosture::Compatible
+    );
+    assert_eq!(
+        left.declaration_grouped_posture(),
+        ForgeQueryGroupedDeclarationPosture::NeighborhoodCapable
+    );
     assert_eq!(left.declaration_digest(), right.declaration_digest());
 }
 
@@ -177,6 +314,61 @@ fn admitted_operating_world_changes_declaration_identity_when_meaning_depends_on
         .declare(SplitEdgeDeclaration::midpoint("edge:42"))
         .expect("restricted declaration should canonicalize");
 
+    assert_ne!(
+        left.handle_identity_digest(),
+        right.handle_identity_digest()
+    );
+    assert_ne!(left.declaration_digest(), right.declaration_digest());
+}
+
+#[test]
+fn taxonomy_posture_changes_declaration_identity() {
+    let handle = admitted_handle(GeometryOperatingContext::collaborative());
+    let neighborhood = handle
+        .declare(SplitEdgeDeclaration::midpoint("edge:42"))
+        .expect("neighborhood declaration should canonicalize");
+    let single_only = handle
+        .declare(SplitEdgeSingleOnlyDeclaration {
+            edge_ref: "edge:42",
+        })
+        .expect("single-only declaration should canonicalize");
+
+    assert_eq!(neighborhood.declaration_family_key(), "split-edge");
+    assert_eq!(single_only.declaration_family_key(), "split-edge");
+    assert_ne!(
+        neighborhood.declaration_grouped_posture(),
+        single_only.declaration_grouped_posture()
+    );
+    assert_ne!(
+        neighborhood.declaration_digest(),
+        single_only.declaration_digest()
+    );
+}
+
+#[test]
+fn identical_family_keys_in_different_domains_do_not_collapse() {
+    let geometry = admitted_handle(GeometryOperatingContext::collaborative());
+    let topology = ForgeQueryApplicationFacade::runtime_backed_default()
+        .domain(TopologyDomain)
+        .with_operating_context(GeometryOperatingContext::collaborative())
+        .validate()
+        .expect("topology context should validate")
+        .admit()
+        .expect("topology context should admit");
+
+    let left = geometry
+        .declare(SplitEdgeDeclaration::midpoint("edge:42"))
+        .expect("geometry declaration should canonicalize");
+    let right = topology
+        .declare(TopologySplitEdgeDeclaration {
+            edge_ref: "edge:42",
+        })
+        .expect("topology declaration should canonicalize");
+
+    assert_eq!(
+        left.declaration_family_key(),
+        right.declaration_family_key()
+    );
     assert_ne!(
         left.handle_identity_digest(),
         right.handle_identity_digest()
