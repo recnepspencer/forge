@@ -12,7 +12,7 @@ use crate::application::{
 };
 use crate::basis_lifecycle::BasisFamily;
 
-use super::{
+use super::super::{
     contribution::{
         ForgeQueryDeclarationEntryContributionComposition,
         ForgeQueryDeclarationEntryContributionCompositionError,

@@ -5,20 +5,17 @@ use crate::application::{
 
 use super::{
     contribution::{
-        ForgeQueryDeclarationEntryContributionComposition,
+        reconcile_contribution_evidence, ForgeQueryDeclarationEntryContributionComposition,
         ForgeQueryDeclarationEntryContributionCompositionError,
         ForgeQueryDeclarationEntryContributionEvidenceSet,
+        ForgeQueryDeclarationEntryContributionProofScope,
+        ForgeQueryDeclarationEntryContributionReconciliationContext,
         ForgeQueryDeclarationEntryRetainedSubjectStrength,
     },
-    contribution_reconciliation::{
-        reconcile_contribution_evidence,
-        ForgeQueryDeclarationEntryContributionReconciliationContext,
-    },
-    contribution_scope::ForgeQueryDeclarationEntryContributionProofScope,
     digest::derive_readiness_digest,
+    inspection::{normalize_retained_subject, ForgeQueryDeclarationEntryRetainedSubjectInput},
     readiness_projection::readiness_row_for_crossing,
     row::{crossing_rows_for_family, ForgeQueryDeclarationEntryCrossingRow},
-    subject::{normalize_retained_subject, ForgeQueryDeclarationEntryRetainedSubjectInput},
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

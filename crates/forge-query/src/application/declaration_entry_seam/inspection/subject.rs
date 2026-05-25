@@ -11,12 +11,12 @@ use crate::application::{
 use crate::basis_lifecycle::BasisFamily;
 
 use super::{
-    contribution::{
+    super::contribution::{
         ForgeQueryDeclarationEntryContributionEvidenceSet,
+        ForgeQueryDeclarationEntryContributionProofScope,
         ForgeQueryDeclarationEntryRetainedSubjectStrength,
     },
-    contribution_scope::ForgeQueryDeclarationEntryContributionProofScope,
-    inspection_artifact::{
+    artifact::{
         ForgeQueryDeclarationEntryInspectionBridgePosture,
         ForgeQueryDeclarationEntryInspectionRelationalPosture,
         ForgeQueryDeclarationEntryInspectionSignalPosture,
