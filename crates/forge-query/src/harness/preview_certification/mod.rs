@@ -14,7 +14,6 @@ use crate::harness::fixtures::{
 };
 use crate::preview::{
     admit_authoritative_preview_comparison_candidate, admit_preview_promotion_parity_comparison,
-    admit_preview_workflow_foundation_request,
     admit_promotion_eligible_preview_session_plan_binding,
     admit_read_only_preview_session_plan_binding, admit_scoped_preview_live_session_plan,
     admit_scoped_preview_session_plan_binding_from_preview_binding, assess_preview_live_drift,
@@ -24,8 +23,7 @@ use crate::preview::{
     PreviewComparisonCounters, PreviewComparisonError, PreviewComparisonFailureClass,
     PreviewEvaluationClass, PreviewExecutionCounters, PreviewExecutionEnvelope,
     PreviewLiveCounters, PreviewLiveDriftOutcome, PreviewLiveError, PreviewLiveFailureClass,
-    PreviewSessionQueryContext, PreviewWorkflowFoundationError,
-    PreviewWorkflowFoundationFailureClass, PreviewWorkflowFoundationRequest,
+    PreviewSessionQueryContext, PreviewWorkflowFoundationRequest,
 };
 use model::{MilestoneFivePointTwoPreviewCertificationArtifact, PreviewCertificationMatrix};
 use row_catalog::{
@@ -49,7 +47,6 @@ pub enum PreviewPerturbationClass {
     PromotionLinkageDenied,
     ReplayLinkageDenied,
     PromotionEligibilityBoolForbidden,
-    WorkflowFoundationScopeOverreach,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -96,9 +93,9 @@ pub enum PreviewFailureClass {
     StaleOrInactivePreviewLifecycle,
     PreviewLiveDriftDenied,
     PreviewLiveBroadFallbackForbidden,
+    WorkflowFoundationAuthorityDenied,
     PromotionLinkageMismatch,
     PreviewShapeMismatchDenied,
-    WorkflowFoundationScopeOverreach,
     CompileFail,
 }
 
@@ -111,9 +108,9 @@ impl PreviewFailureClass {
             Self::StaleOrInactivePreviewLifecycle => "stale-or-inactive-preview-lifecycle",
             Self::PreviewLiveDriftDenied => "preview-live-drift-denied",
             Self::PreviewLiveBroadFallbackForbidden => "preview-live-broad-fallback-forbidden",
+            Self::WorkflowFoundationAuthorityDenied => "workflow-foundation-authority-denied",
             Self::PromotionLinkageMismatch => "promotion-linkage-mismatch",
             Self::PreviewShapeMismatchDenied => "preview-shape-mismatch-denied",
-            Self::WorkflowFoundationScopeOverreach => "workflow-foundation-scope-overreach",
             Self::CompileFail => "compile_fail",
         }
     }
@@ -325,11 +322,14 @@ impl PreviewCertificationRejection {
         }
     }
 
-    fn from_workflow_failure(error: &PreviewWorkflowFoundationError) -> Self {
+    fn from_workflow_failure(error: &crate::preview::PreviewWorkflowFoundationError) -> Self {
         Self {
             failure_class: match error.failure_class() {
-                PreviewWorkflowFoundationFailureClass::OutOfScopeWorkflowFoundationRequest => {
-                    PreviewFailureClass::WorkflowFoundationScopeOverreach
+                crate::preview::PreviewWorkflowFoundationFailureClass::ReadOnlyPreviewWritebackFoundationForbidden => {
+                    PreviewFailureClass::WorkflowFoundationAuthorityDenied
+                }
+                crate::preview::PreviewWorkflowFoundationFailureClass::OutOfScopeWorkflowFoundationRequest => {
+                    panic!("out-of-scope workflow foundation denial is no longer expected in preview certification")
                 }
             },
             counters: None,
@@ -592,11 +592,14 @@ impl MilestoneFivePointTwoPreviewCertificationAdapter {
             &shape_mismatch_candidate,
         )
         .expect_err("shape mismatch comparison should reject");
-        let workflow_scope_overreach = admit_preview_workflow_foundation_request(
-            &promotable_binding,
-            PreviewWorkflowFoundationRequest::deferred_mutation_writeback(),
-        )
-        .expect_err("workflow foundation requests that imply writeback authority must reject");
+        let read_only_writeback_foundation_denied =
+            crate::preview::admit_preview_workflow_foundation_request(
+                &active_binding,
+                PreviewWorkflowFoundationRequest::deferred_mutation_writeback(),
+            )
+            .expect_err(
+                "read-only preview workflow foundations must deny deferred writeback authority",
+            );
         let (_rebind_old_runtime, rebind_old_active, rebind_old_execution_record) =
             active_preview_artifacts("preview-certification-live-rebind-old");
         let rebind_seed_binding = bind_preflight_to_preview_session(
@@ -711,7 +714,7 @@ impl MilestoneFivePointTwoPreviewCertificationAdapter {
                         &discarded_lifecycle,
                         &preview_live_drift_denied,
                         &preview_live_broad_fallback_denied,
-                        &workflow_scope_overreach,
+                        &read_only_writeback_foundation_denied,
                         &promotion_linkage_denied,
                         &replay_linkage_denied,
                         &shape_mismatch_denied,
@@ -944,12 +947,14 @@ mod tests {
                     1
                 );
             }
-            if spec.row_name == "out-of-scope-workflow-foundation-request" {
+            if spec.row_name == "read-only-preview-writeback-foundation-forbidden" {
                 assert_eq!(
                     row.hostile_lane
                         .execution_counters
                         .as_ref()
-                        .expect("workflow-foundation scope denial should retain execution counters")
+                        .expect(
+                            "workflow-foundation authority denial should retain execution counters"
+                        )
                         .preview_workflow_foundation_denial_count(),
                     1
                 );
@@ -1180,10 +1185,6 @@ mod tests {
                 .preview_workflow_foundation_admission_count(),
             expected_execution_counters.preview_workflow_foundation_admission_count()
         );
-        assert!(
-            expected_execution_counters.preview_workflow_foundation_denial_count() > 0,
-            "artifact counter snapshot should retain denied workflow-foundation requests"
-        );
         assert!(expected_comparison_counters.preview_promotion_comparison_count() > 0);
         assert_eq!(
             artifact
@@ -1277,7 +1278,7 @@ fn rejection_row(
     discarded_lifecycle: &PreviewBindingError,
     preview_live_drift_denied: &crate::preview::PreviewLiveDriftDenied,
     preview_live_broad_fallback_denied: &crate::preview::PreviewLiveDriftDenied,
-    workflow_scope_overreach: &PreviewWorkflowFoundationError,
+    read_only_writeback_foundation_denied: &crate::preview::PreviewWorkflowFoundationError,
     promotion_linkage_denied: &PreviewBindingError,
     replay_linkage_denied: &PreviewBindingError,
     shape_mismatch_denied: &PreviewComparisonError,
@@ -1329,8 +1330,10 @@ fn rejection_row(
                 preview_live_broad_fallback_denied.error(),
             )
         }
-        Some(row_catalog::PreviewRuntimeFailureSelector::WorkflowFoundationScopeOverreach) => {
-            PreviewCertificationRejection::from_workflow_failure(workflow_scope_overreach)
+        Some(row_catalog::PreviewRuntimeFailureSelector::WorkflowFoundationAuthorityDenied) => {
+            PreviewCertificationRejection::from_workflow_failure(
+                read_only_writeback_foundation_denied,
+            )
         }
         Some(row_catalog::PreviewRuntimeFailureSelector::PromotionLinkageDenied) => {
             PreviewCertificationRejection::from_runtime_failure(

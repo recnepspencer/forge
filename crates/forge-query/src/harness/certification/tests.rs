@@ -76,9 +76,6 @@ fn requirements_registry_exposes_milestone_rows() {
         .required_rejection_rows
         .contains(&"preview-live-broad-fallback-forbidden"));
     assert!(milestone_five_point_two
-        .required_rejection_rows
-        .contains(&"out-of-scope-workflow-foundation-request"));
-    assert!(milestone_five_point_two
         .required_assertion_classes
         .contains(&RequiredAssertionClass::Inequality));
     assert_eq!(

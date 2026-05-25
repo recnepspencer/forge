@@ -2,15 +2,19 @@ use std::marker::PhantomData;
 
 pub trait FreshnessClass: 'static {}
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CurrentValidity;
 impl FreshnessClass for CurrentValidity {}
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct StaleReadable;
 impl FreshnessClass for StaleReadable {}
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct RebindRequired;
 impl FreshnessClass for RebindRequired {}
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct AuthorityRevalidationRequired;
 impl FreshnessClass for AuthorityRevalidationRequired {}
 

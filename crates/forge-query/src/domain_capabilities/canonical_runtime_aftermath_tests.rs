@@ -4,11 +4,13 @@ use super::targets::ForgeQueryAdmittedPlanBoundContributionTarget;
 use super::test_support::{admitted_plan_target, ready, success};
 use super::{
     materialize_admitted_projection_consumption, materialize_projection_consumption_contract,
-    materialize_projection_consumption_eligibility, ForgeQueryAftermathContributionAuthoring,
+    materialize_projection_consumption_eligibility, materialize_projection_consumption_review,
+    materialize_projection_consumption_support_report, ForgeQueryAftermathContributionAuthoring,
 };
 use crate::projection_consumption::{
     ProjectionConsumptionBindingContext, ProjectionConsumptionEligibility,
-    ProjectionConsumptionSource, ProjectionConsumptionWarningKind, ProjectionSourceFamily,
+    ProjectionConsumptionSource, ProjectionConsumptionSupportPosture,
+    ProjectionConsumptionWarningKind, ProjectionSourceFamily,
 };
 
 #[test]
@@ -160,6 +162,56 @@ fn aftermath_runtime_materializer_preserves_source_mismatch_eligibility() {
         }
         other => panic!("expected source mismatch eligibility, got {other:?}"),
     }
+}
+
+#[test]
+fn aftermath_runtime_review_and_support_hook_preserve_deferred_truth() {
+    let review_contribution = ready_aftermath(
+        ForgeQueryAftermathContributionAuthoring::establishes_projection_contract(
+            "aftermath.projection.deferred",
+            "write-receipt target identity should remain deferred in the checked lane",
+            deferred_projection_source(),
+            deferred_projection_binding(),
+            crate::projection_consumption::ProjectMaterializedFacts::declare().target_identity(),
+        ),
+    );
+    let support_contribution = ready_aftermath(
+        ForgeQueryAftermathContributionAuthoring::establishes_projection_contract(
+            "aftermath.projection.deferred",
+            "write-receipt target identity should remain deferred in the checked lane",
+            deferred_projection_source(),
+            deferred_projection_binding(),
+            crate::projection_consumption::ProjectMaterializedFacts::declare().target_identity(),
+        ),
+    );
+
+    let review = success(materialize_projection_consumption_review(
+        review_contribution,
+    ));
+    let support = success(materialize_projection_consumption_support_report(
+        support_contribution,
+    ));
+
+    assert_eq!(review.semantic_code(), "aftermath.projection.deferred");
+    assert_eq!(
+        review.declaration().source().family(),
+        ProjectionSourceFamily::QueryWriteReceipt
+    );
+    assert!(matches!(
+        review.eligibility(),
+        ProjectionConsumptionEligibility::Deferred(_)
+    ));
+    assert_eq!(
+        support.source_family(),
+        ProjectionSourceFamily::QueryWriteReceipt
+    );
+    assert!(support.rows().iter().any(|row| {
+        row.fact_kind() == crate::projection_consumption::ProjectionFactKind::TargetIdentity
+            && matches!(
+                row.posture(),
+                ProjectionConsumptionSupportPosture::Deferred(_)
+            )
+    }));
 }
 
 fn ready_aftermath(

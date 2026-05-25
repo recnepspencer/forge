@@ -2,6 +2,15 @@ use std::collections::{BTreeMap, BTreeSet};
 use std::num::NonZeroUsize;
 
 use forge_relational::facade::runtime::RelationalRuntime;
+pub use forge_relational::facade::runtime::{
+    CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
+    CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
+    CustomInvariantRegistration, CustomInvariantRegistrationError, CustomInvariantRule,
+    CustomInvariantRuleId, CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
+    CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantCatalog, InvariantCostClass,
+    InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup, InvariantGroupSet,
+    InvariantRegistration, InvariantRule,
+};
 use forge_runtime_bridge::facade::{
     BridgeContinuityMutationBundle, BridgeNamingMutationBundle,
     BridgeSymbolicTargetReferenceBundle, RuntimeBridge,

@@ -6,7 +6,7 @@ mod performance;
 
 pub use foundation::*;
 pub(crate) use foundation::{
-    synthetic_preview_workflow_binding, synthetic_preview_workflow_binding_scoped,
+    scoped_runtime_preflight_workflow_binding, synthetic_preview_workflow_binding,
     synthetic_runtime_workflow_binding, synthetic_runtime_workflow_binding_scoped,
 };
 pub use inspection::*;

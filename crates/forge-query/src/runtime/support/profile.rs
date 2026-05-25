@@ -5,7 +5,8 @@ use super::bridge_backed_verification_profile::{
     ForgeQueryBridgeBackedVerificationSupportProfileRow,
 };
 use super::{
-    ForgeQueryBranchBasisAdmission, ForgeQueryPreviewBasisAdmission,
+    default_graph_composition_capability_support_rows, ForgeQueryBranchBasisAdmission,
+    ForgeQueryGraphCompositionCapabilitySupportRow, ForgeQueryPreviewBasisAdmission,
     ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimeEvidenceAuthority,
     ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport,
     ForgeQueryRuntimeFamilySupportStatus, ForgeQueryRuntimeInspectionEvidence,
@@ -18,6 +19,7 @@ pub struct ForgeQueryRuntimeSupportProfile {
     rows: BTreeMap<ForgeQueryRuntimeFacadeFamily, ForgeQueryRuntimeFamilySupport>,
     bridge_backed_verification_support_rows:
         Vec<ForgeQueryBridgeBackedVerificationSupportProfileRow>,
+    graph_composition_capability_support_rows: Vec<ForgeQueryGraphCompositionCapabilitySupportRow>,
 }
 
 impl ForgeQueryRuntimeSupportProfile {
@@ -27,6 +29,8 @@ impl ForgeQueryRuntimeSupportProfile {
             rows: rows.into_iter().map(|row| (row.family(), row)).collect(),
             bridge_backed_verification_support_rows:
                 default_bridge_backed_verification_support_rows(),
+            graph_composition_capability_support_rows:
+                default_graph_composition_capability_support_rows(),
         }
     }
 
@@ -200,6 +204,12 @@ impl ForgeQueryRuntimeSupportProfile {
         &self.bridge_backed_verification_support_rows
     }
 
+    pub(crate) fn graph_composition_capability_support_rows(
+        &self,
+    ) -> &[ForgeQueryGraphCompositionCapabilitySupportRow] {
+        &self.graph_composition_capability_support_rows
+    }
+
     pub(crate) fn with_bridge_backed_verification_support_row(
         mut self,
         row: ForgeQueryBridgeBackedVerificationSupportProfileRow,
@@ -233,6 +243,25 @@ impl ForgeQueryRuntimeSupportProfile {
                 denial_class_when_primary_unsupported,
             ),
         )
+    }
+
+    pub fn with_graph_composition_capability_support_row(
+        mut self,
+        row: ForgeQueryGraphCompositionCapabilitySupportRow,
+    ) -> Self {
+        if let Some(index) = self
+            .graph_composition_capability_support_rows
+            .iter()
+            .position(|candidate| {
+                candidate.capability_family() == row.capability_family()
+                    && candidate.capability_class() == row.capability_class()
+            })
+        {
+            self.graph_composition_capability_support_rows[index] = row;
+        } else {
+            self.graph_composition_capability_support_rows.push(row);
+        }
+        self
     }
 
     pub fn rows(&self) -> impl Iterator<Item = &ForgeQueryRuntimeFamilySupport> {

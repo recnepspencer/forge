@@ -8,7 +8,7 @@ use crate::identity::{hash_parts, CanonicalQueryDigest, ValidatedQueryDigest};
 use crate::preview::{
     AdmittedPreviewWorkflowFoundation, PreviewBindingCounters, PreviewEvaluationClass,
     PreviewExecutionCounters, PreviewWorkflowFoundationArtifact, PreviewWorkflowFoundationError,
-    PreviewWorkflowFoundationFailureClass, PreviewWorkflowFoundationRequest,
+    PreviewWorkflowFoundationRequest,
 };
 
 pub(crate) fn materialize_contributed_preview_workflow_foundation_artifact(
@@ -68,44 +68,29 @@ pub(crate) fn admit_contributed_preview_workflow_foundation(
     artifact: PreviewWorkflowFoundationArtifact,
 ) -> Result<AdmittedPreviewWorkflowFoundation, PreviewWorkflowFoundationError> {
     match artifact.request_family() {
-        PreviewWorkflowFoundationRequest::CompareBasisPair => Ok(AdmittedPreviewWorkflowFoundation {
-            artifact,
-            counters: PreviewExecutionCounters {
-                binding_counters: PreviewBindingCounters::default(),
-                execution_counters: ExecutionCounters::default(),
-                preview_execution_envelope_count: 0,
-                preview_execution_count: 0,
-                preview_promotable_execution_count: 0,
-                preview_read_only_execution_count: 0,
-                preview_comparison_eligibility_proof_count: 0,
-                preview_comparison_shape_check_width: 0,
-                preview_workflow_foundation_admission_count: 1,
-                preview_workflow_foundation_denial_count: 0,
-                preview_workflow_foundation_artifact_lookup_count: 1,
-                preview_work_avoided_by_explicit_basis_count: 1,
-            },
-        }),
-        PreviewWorkflowFoundationRequest::DeferredMutationWriteback => {
-            Err(PreviewWorkflowFoundationError {
-                failure_class:
-                    PreviewWorkflowFoundationFailureClass::OutOfScopeWorkflowFoundationRequest,
-                message:
-                    "preview workflow foundation requests that imply mutation or writeback authority remain out of scope in milestone 5.2",
-                counters: PreviewExecutionCounters {
-                    binding_counters: PreviewBindingCounters::default(),
-                    execution_counters: ExecutionCounters::default(),
-                    preview_execution_envelope_count: 0,
-                    preview_execution_count: 0,
-                    preview_promotable_execution_count: 0,
-                    preview_read_only_execution_count: 0,
-                    preview_comparison_eligibility_proof_count: 0,
-                    preview_comparison_shape_check_width: 0,
-                    preview_workflow_foundation_admission_count: 0,
-                    preview_workflow_foundation_denial_count: 1,
-                    preview_workflow_foundation_artifact_lookup_count: 0,
-                    preview_work_avoided_by_explicit_basis_count: 0,
-                },
+        PreviewWorkflowFoundationRequest::CompareBasisPair
+        | PreviewWorkflowFoundationRequest::DeferredMutationWriteback => {
+            Ok(AdmittedPreviewWorkflowFoundation {
+                artifact,
+                counters: admitted_contributed_preview_workflow_foundation_counters(),
             })
         }
+    }
+}
+
+fn admitted_contributed_preview_workflow_foundation_counters() -> PreviewExecutionCounters {
+    PreviewExecutionCounters {
+        binding_counters: PreviewBindingCounters::default(),
+        execution_counters: ExecutionCounters::default(),
+        preview_execution_envelope_count: 0,
+        preview_execution_count: 0,
+        preview_promotable_execution_count: 0,
+        preview_read_only_execution_count: 0,
+        preview_comparison_eligibility_proof_count: 0,
+        preview_comparison_shape_check_width: 0,
+        preview_workflow_foundation_admission_count: 1,
+        preview_workflow_foundation_denial_count: 0,
+        preview_workflow_foundation_artifact_lookup_count: 1,
+        preview_work_avoided_by_explicit_basis_count: 1,
     }
 }

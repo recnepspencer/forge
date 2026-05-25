@@ -2,19 +2,17 @@ use forge_proof::TransitionOutcome;
 
 use super::targets::{
     ForgeQueryAdmittedPlanBoundContributionTarget, ForgeQueryDeclarationBoundContributionTarget,
-    ForgeQueryDomainCapabilityTargetBinding,
 };
 use super::test_support::{
     admitted_plan_target, admitted_plan_target_parts, declaration_target, ready, success,
 };
 use super::{
-    materialize_admitted_preview_workflow_foundation,
     materialize_intent_admission_support_traceability_report,
-    materialize_query_preview_workflow_artifact, materialize_query_workflow_declaration,
-    ForgeQuerySupportContributionAuthoring, ForgeQuerySupportContributionPayload,
-    ForgeQuerySupportContributionPosture, ForgeQueryWorkflowContributionAuthoring,
-    ForgeQueryWorkflowContributionPayload, ForgeQueryWorkflowContributionPosture,
-    ForgeQueryWorkflowRuntimeBindingSemantics, ForgeQueryWorkflowRuntimeSemantics,
+    materialize_query_workflow_declaration, ForgeQuerySupportContributionAuthoring,
+    ForgeQuerySupportContributionPayload, ForgeQuerySupportContributionPosture,
+    ForgeQueryWorkflowContributionAuthoring, ForgeQueryWorkflowContributionPayload,
+    ForgeQueryWorkflowContributionPosture, ForgeQueryWorkflowRuntimeBindingSemantics,
+    ForgeQueryWorkflowRuntimeSemantics,
 };
 
 #[test]
@@ -205,6 +203,34 @@ fn workflow_materializer_accepts_admitted_plan_targets() {
 }
 
 #[test]
+fn discard_required_workflow_materializer_uses_promotion_eligible_preview_binding() {
+    let discard = success(materialize_query_workflow_declaration(ready_workflow(
+        ForgeQueryWorkflowContributionAuthoring::discard_required_query_inspection(
+            "spatial.preview.discard",
+            "discard-required preview semantics should now carry promotable preview authority at the workflow seam",
+            "preview-session:discard",
+        ),
+    )));
+
+    assert_eq!(
+        discard.binding().basis_family(),
+        &crate::workflow::WorkflowBasisFamily::PreviewFoundation
+    );
+    assert_eq!(
+        discard.binding().preview_evaluation_class(),
+        Some(&crate::workflow::WorkflowPreviewEvaluationClass::PromotionEligible)
+    );
+    assert_eq!(
+        discard.request().authority_target_family(),
+        &crate::workflow::WorkflowAuthorityTargetFamily::QueryInspection
+    );
+    assert_eq!(
+        discard.binding().preview_request_family(),
+        Some(&crate::preview::PreviewWorkflowFoundationRequest::deferred_mutation_writeback())
+    );
+}
+
+#[test]
 fn workflow_materialization_digest_changes_when_declaration_scope_changes() {
     let left = success(materialize_query_workflow_declaration(ready(
         super::proof_integration::create_requested_domain_capability_contribution(
@@ -337,214 +363,6 @@ fn workflow_materializer_denies_missing_or_inconsistent_runtime_semantics() {
         TransitionOutcome::Denied(denial)
             if denial.kind()
                 == super::ForgeQueryDomainCapabilityProgressionDenialKind::InconsistentCanonicalMaterializationSemantics
-    ));
-}
-
-#[test]
-fn preview_workflow_artifact_materializer_builds_preview_artifacts() {
-    let read_only = success(materialize_query_preview_workflow_artifact(ready_workflow(
-        ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
-            "spatial.preview.only",
-            "preview remains read-only",
-            "preview-session:42",
-        ),
-    )));
-    let promotion = success(materialize_query_preview_workflow_artifact(
-        ready_workflow_plan(
-            ForgeQueryWorkflowContributionAuthoring::promotion_eligible_mutation_lowering(
-                "spatial.preview.lowering",
-                "promotion-eligible preview can lower bounded mutation workflow",
-                "preview-session:77",
-            ),
-            admitted_plan_target_parts(
-                "plan-preview-promotion",
-                "request-preview",
-                "eligibility-preview",
-                "decision-preview",
-            ),
-        ),
-    ));
-    let discard = success(materialize_query_preview_workflow_artifact(ready_workflow(
-        ForgeQueryWorkflowContributionAuthoring::discard_required_query_inspection(
-            "spatial.preview.discard",
-            "preview must discard rather than promote",
-            "preview-session:99",
-        ),
-    )));
-
-    assert_eq!(
-        read_only.request_family(),
-        &crate::preview::PreviewWorkflowFoundationRequest::compare_basis_pair()
-    );
-    assert_eq!(
-        read_only.preview_session_identity().as_str(),
-        "preview-session:42"
-    );
-    assert_eq!(
-        read_only.evaluation_class(),
-        &crate::preview::PreviewEvaluationClass::read_only()
-    );
-    assert_eq!(
-        promotion.preview_session_identity().as_str(),
-        "preview-session:77"
-    );
-    assert_eq!(
-        promotion.request_family(),
-        &crate::preview::PreviewWorkflowFoundationRequest::compare_basis_pair()
-    );
-    assert_eq!(
-        promotion.evaluation_class(),
-        &crate::preview::PreviewEvaluationClass::promotion_eligible()
-    );
-    assert_eq!(
-        promotion.binding_digest(),
-        admitted_plan_target_parts(
-            "plan-preview-promotion",
-            "request-preview",
-            "eligibility-preview",
-            "decision-preview",
-        )
-        .binding_digest()
-    );
-    assert_eq!(
-        discard.request_family(),
-        &crate::preview::PreviewWorkflowFoundationRequest::deferred_mutation_writeback()
-    );
-}
-
-#[test]
-fn preview_workflow_artifact_digest_changes_when_scope_changes() {
-    let left = success(materialize_query_preview_workflow_artifact(
-        ready_workflow_plan(
-            ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
-                "spatial.preview.only",
-                "preview remains read-only",
-                "preview-session:42",
-            ),
-            admitted_plan_target_parts(
-                "plan-preview-left",
-                "request-left",
-                "eligibility-left",
-                "decision-left",
-            ),
-        ),
-    ));
-    let right = success(materialize_query_preview_workflow_artifact(
-        ready_workflow_plan(
-            ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
-                "spatial.preview.only",
-                "preview remains read-only",
-                "preview-session:42",
-            ),
-            admitted_plan_target_parts(
-                "plan-preview-right",
-                "request-right",
-                "eligibility-right",
-                "decision-right",
-            ),
-        ),
-    ));
-
-    assert_ne!(left.digest(), right.digest());
-    assert_ne!(left.declaration_digest(), right.declaration_digest());
-    assert_ne!(
-        left.canonical_query_digest().as_str(),
-        right.canonical_query_digest().as_str()
-    );
-}
-
-#[test]
-fn preview_workflow_artifact_materializer_denies_runtime_only_workflow_postures() {
-    let denied = materialize_query_preview_workflow_artifact(ready_workflow_plan(
-        ForgeQueryWorkflowContributionAuthoring::confirmation_required_query_inspection(
-            "spatial.confirmation.runtime",
-            "authoritative confirmation requires runtime preflight context",
-            "runtime-snapshot:77",
-        ),
-        admitted_plan_target_parts(
-            "plan-preview-runtime",
-            "request-runtime",
-            "eligibility-runtime",
-            "decision-runtime",
-        ),
-    ));
-
-    assert!(matches!(
-        denied,
-        TransitionOutcome::Denied(denial)
-            if denial.kind()
-                == super::ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture
-    ));
-}
-
-#[test]
-fn admitted_preview_workflow_foundation_materializer_builds_real_foundations() {
-    let read_only = success(materialize_admitted_preview_workflow_foundation(
-        ready_workflow(
-            ForgeQueryWorkflowContributionAuthoring::preview_only_query_inspection(
-                "spatial.preview.only",
-                "preview remains read-only",
-                "preview-session:42",
-            ),
-        ),
-    ));
-    let promotion = success(materialize_admitted_preview_workflow_foundation(
-        ready_workflow_plan(
-            ForgeQueryWorkflowContributionAuthoring::promotion_eligible_mutation_lowering(
-                "spatial.preview.lowering",
-                "promotion-eligible preview can lower bounded mutation workflow",
-                "preview-session:77",
-            ),
-            admitted_plan_target_parts(
-                "plan-preview-promotion",
-                "request-preview",
-                "eligibility-preview",
-                "decision-preview",
-            ),
-        ),
-    ));
-
-    assert_eq!(
-        read_only.request_family(),
-        &crate::preview::PreviewWorkflowFoundationRequest::compare_basis_pair()
-    );
-    assert_eq!(
-        read_only.evaluation_class(),
-        &crate::preview::PreviewEvaluationClass::read_only()
-    );
-    assert_eq!(
-        promotion.evaluation_class(),
-        &crate::preview::PreviewEvaluationClass::promotion_eligible()
-    );
-    assert_eq!(
-        read_only
-            .counters()
-            .preview_workflow_foundation_admission_count(),
-        1
-    );
-    assert_eq!(
-        promotion
-            .counters()
-            .preview_workflow_foundation_artifact_lookup_count(),
-        1
-    );
-}
-
-#[test]
-fn admitted_preview_workflow_foundation_denies_discard_required_requests() {
-    let denied = materialize_admitted_preview_workflow_foundation(ready_workflow(
-        ForgeQueryWorkflowContributionAuthoring::discard_required_query_inspection(
-            "spatial.preview.discard",
-            "preview must discard rather than promote",
-            "preview-session:66",
-        ),
-    ));
-
-    assert!(matches!(
-        denied,
-        TransitionOutcome::Denied(denial)
-            if denial.kind()
-                == super::ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture
     ));
 }
 

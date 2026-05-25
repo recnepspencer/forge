@@ -1,9 +1,10 @@
 use crate::harness::fixtures::{execution_preflights, preview_bridge::active_preview_artifacts};
 use crate::preview::{
     admit_authoritative_preview_comparison_candidate, admit_preview_promotion_parity_comparison,
-    admit_preview_workflow_foundation, bind_preflight_to_preview_session,
-    execute_promotion_eligible_preview_session_plan, execute_read_only_preview_session_plan,
-    PreviewEvaluationClass, PreviewSessionQueryContext,
+    admit_preview_workflow_foundation, admit_preview_workflow_foundation_request,
+    bind_preflight_to_preview_session, execute_promotion_eligible_preview_session_plan,
+    execute_read_only_preview_session_plan, PreviewEvaluationClass, PreviewSessionQueryContext,
+    PreviewWorkflowFoundationFailureClass, PreviewWorkflowFoundationRequest,
 };
 use crate::workflow::{
     admit_query_workflow_declaration, bind_workflow_context, WorkflowAdmissionFailureClass,
@@ -224,5 +225,32 @@ fn read_only_preview_foundation_denies_authority_requests() {
     assert_eq!(
         error.failure_class(),
         &WorkflowAdmissionFailureClass::PreviewReadOnlyAuthorityRequestForbidden
+    );
+}
+
+#[test]
+fn read_only_preview_cannot_request_deferred_writeback_foundation() {
+    let preflight = execution_preflights::direct_runtime_preflight();
+    let (_runtime, active, execution_record) =
+        active_preview_artifacts("workflow-read-only-writeback-foundation-denied");
+    let preview_binding = bind_preflight_to_preview_session(
+        preflight,
+        PreviewSessionQueryContext::active(
+            &active,
+            &execution_record,
+            PreviewEvaluationClass::read_only(),
+        ),
+    )
+    .expect("read-only preview binding should succeed");
+
+    let error = admit_preview_workflow_foundation_request(
+        &preview_binding,
+        PreviewWorkflowFoundationRequest::deferred_mutation_writeback(),
+    )
+    .expect_err("read-only preview should not admit deferred writeback foundations");
+
+    assert_eq!(
+        error.failure_class(),
+        &PreviewWorkflowFoundationFailureClass::ReadOnlyPreviewWritebackFoundationForbidden
     );
 }

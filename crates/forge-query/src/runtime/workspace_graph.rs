@@ -28,19 +28,48 @@ impl ForgeQueryWorkspace {
         )
             -> Result<(), ForgeQueryGraphCompositionInvariantPackViolation>,
     ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
+        self.compose_graph_with_invariant_gate(declaration, invariant_pack, |violation, context| {
+            ForgeQueryRuntimeError::GraphCompositionDomainInvariantDenied(
+                ForgeQueryGraphCompositionDomainInvariantDenial::from_violation(violation, context),
+            )
+        })
+    }
+
+    pub fn compose_graph_with_domain_invariant_denial(
+        &mut self,
+        declaration: impl FnOnce(
+            &mut ForgeQueryGraphCompositionBuilder,
+        ) -> Result<(), ForgeQueryRuntimeError>,
+        invariant_denial: impl FnOnce(
+            &ForgeQueryGraphCompositionInvariantPackContext<'_>,
+        )
+            -> Result<(), ForgeQueryGraphCompositionDomainInvariantDenial>,
+    ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
+        self.compose_graph_with_invariant_gate(declaration, invariant_denial, |denial, _context| {
+            ForgeQueryRuntimeError::GraphCompositionDomainInvariantDenied(denial)
+        })
+    }
+
+    fn compose_graph_with_invariant_gate<E>(
+        &mut self,
+        declaration: impl FnOnce(
+            &mut ForgeQueryGraphCompositionBuilder,
+        ) -> Result<(), ForgeQueryRuntimeError>,
+        invariant_gate: impl FnOnce(
+            &ForgeQueryGraphCompositionInvariantPackContext<'_>,
+        ) -> Result<(), E>,
+        map_invariant_error: impl FnOnce(
+            E,
+            &ForgeQueryGraphCompositionInvariantPackContext<'_>,
+        ) -> ForgeQueryRuntimeError,
+    ) -> Result<ForgeQueryBatchWriteReceipt, ForgeQueryRuntimeError> {
         let mut builder = ForgeQueryGraphCompositionBuilder::new();
         declaration(&mut builder)?;
         let (commands, breadth, program) = builder.finish()?;
         let invariant_context =
             ForgeQueryGraphCompositionInvariantPackContext::new(&commands, &breadth, &program);
-        invariant_pack(&invariant_context).map_err(|violation| {
-            ForgeQueryRuntimeError::GraphCompositionDomainInvariantDenied(
-                ForgeQueryGraphCompositionDomainInvariantDenial::from_violation(
-                    violation,
-                    &invariant_context,
-                ),
-            )
-        })?;
+        invariant_gate(&invariant_context)
+            .map_err(|error| map_invariant_error(error, &invariant_context))?;
         match self.runtime.write_graph_batch(commands, breadth, program) {
             Err(ForgeQueryRuntimeError::ExistingTruthAssertionDenied(denial)) => {
                 let kind = match denial.kind() {

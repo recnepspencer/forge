@@ -17,7 +17,7 @@ fn continuity_correspondence_materializer_builds_lineage_continuity() {
             ForgeQueryContinuityContributionAuthoring::correspondence_lineage_only(
                 "edge:12",
                 "edge:14",
-            StructuralCandidateDiscoveryPlan::IndexBackedBounded,
+                StructuralCandidateDiscoveryPlan::IndexBackedBounded,
                 4,
                 "continuity.correspondence.lineage_only",
                 "lineage evidence supplies the authoritative counterpart",
@@ -40,7 +40,7 @@ fn continuity_correspondence_materializer_builds_structural_ambiguity() {
         ready_continuity(
             ForgeQueryContinuityContributionAuthoring::correspondence_structural_only(
                 ["edge:14", "edge:15"],
-            StructuralCandidateDiscoveryPlan::IndexBackedBounded,
+                StructuralCandidateDiscoveryPlan::IndexBackedBounded,
                 4,
                 StructuralCandidateOrderingContract::StableFingerprintThenLineageHintOrder,
                 "continuity.correspondence.structural_only",
@@ -76,7 +76,7 @@ fn continuity_correspondence_materializer_builds_mixed_disagreement() {
                 "edge:12",
                 "edge:14",
                 ["edge:99"],
-            StructuralCandidateDiscoveryPlan::IndexBackedBounded,
+                StructuralCandidateDiscoveryPlan::IndexBackedBounded,
                 4,
                 StructuralCandidateOrderingContract::StableFingerprintThenLineageHintOrder,
                 "continuity.correspondence.mixed",

@@ -172,6 +172,29 @@ fn workflow_lowering_materializer_preserves_runtime_stale_posture() {
 }
 
 #[test]
+fn discard_required_writeback_lowering_preserves_preview_stale_posture() {
+    let stale = materialize_query_writeback_lowering(ready(
+        ForgeQueryWorkflowContributionAuthoring::discard_required_writeback_projected_state_diff(
+            "spatial.workflow.writeback.discard",
+            "discard-required preview writeback should stay stale until authoritative revalidation",
+            "preview-session:91",
+        )
+        .bind_to_declaration_target(declaration_target("intent-workflow-writeback-discard")),
+    ));
+
+    match stale {
+        TransitionOutcome::Stale(stale) => {
+            assert_eq!(stale.category(), "workflow-preview");
+            assert_eq!(
+                stale.bound_target_digest(),
+                "intent-workflow-writeback-discard"
+            );
+        }
+        other => panic!("expected stale outcome, got {other:?}"),
+    }
+}
+
+#[test]
 fn workflow_lowering_materializer_preserves_runtime_rebind_posture() {
     let rebind = materialize_query_writeback_lowering(ready_payload(
         declaration_target("intent-workflow-writeback-rebind"),

@@ -59,7 +59,7 @@ impl ProofMarker for CanonicalDigestInputShapeBound {}
 pub struct CanonicalProductionReadinessCertified;
 impl ProofMarker for CanonicalProductionReadinessCertified {}
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct CanonicalBasisConstructionAuthority(());
 
 impl CanonicalBasisConstructionAuthority {

@@ -3,12 +3,13 @@ use forge_proof::TransitionOutcome;
 use super::targets::{
     ForgeQueryAdmittedPlanBoundContributionTarget, ForgeQueryDomainCapabilityTargetBinding,
 };
-use super::test_support::{admitted_plan_target, lower_runtime_target, ready, success};
+use super::test_support::{admitted_plan_target, ready, success};
 use super::{
-    materialize_graph_composition_capability_support_row,
-    materialize_graph_composition_domain_invariant_denial, materialize_runtime_admission_decision,
+    materialize_intent_admission_support_traceability_row, materialize_runtime_admission_decision,
+    materialize_runtime_admission_support_traceability_report,
+    materialize_runtime_admission_support_traceability_row,
     materialize_runtime_continuity_evidence, ForgeQueryAdmissionContributionAuthoring,
-    ForgeQueryContinuityContributionAuthoring, ForgeQueryInvariantCapabilityContributionAuthoring,
+    ForgeQueryContinuityContributionAuthoring, ForgeQuerySupportContributionAuthoring,
 };
 
 #[test]
@@ -54,74 +55,54 @@ fn admission_runtime_materializer_builds_query_decisions() {
 }
 
 #[test]
-fn admission_support_only_runtime_decision_is_denied() {
-    let outcome = materialize_runtime_admission_decision(ready_admission(
-        ForgeQueryAdmissionContributionAuthoring::support_only(
+fn admission_support_only_runtime_materializer_builds_support_traceability() {
+    let row = success(materialize_runtime_admission_support_traceability_row(
+        ready_admission(ForgeQueryAdmissionContributionAuthoring::support_only(
             "spatial.arbitration.support_only",
             "declaration remains support-scoped only",
-        ),
+        )),
+    ));
+    let report = success(materialize_runtime_admission_support_traceability_report(
+        ready_admission(ForgeQueryAdmissionContributionAuthoring::support_only(
+            "spatial.arbitration.support_only",
+            "declaration remains support-scoped only",
+        )),
     ));
 
-    match outcome {
-        TransitionOutcome::Denied(denial) => {
-            assert_eq!(
-                denial.kind(),
-                super::ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture
-            );
-        }
-        other => panic!("expected denied support-only decision materialization, got {other:?}"),
-    }
-}
-
-#[test]
-fn graph_capability_runtime_materializer_preserves_capability_semantics() {
-    let row = success(materialize_graph_composition_capability_support_row(
-        ready_invariant_capability(
-            ForgeQueryInvariantCapabilityContributionAuthoring::graph_capability_gap(
-                "graph.face_inner_loop_insertion",
-                crate::runtime::ForgeQueryGraphCompositionCapabilityClass::TargetCombination,
-                "graph.face_inner_loop_insertion",
-                "topology substrate is unavailable",
-            ),
-        ),
-    ));
-
-    assert_eq!(row.capability_family(), "graph.face_inner_loop_insertion");
+    assert_eq!(row.family(), "authoritative-user-intent");
+    assert_eq!(row.entrypoint(), "ForgeQueryRuntime::execute_intent");
+    assert_eq!(row.lane(), "admission_local_support");
     assert_eq!(
-        row.capability_class(),
-        crate::runtime::ForgeQueryGraphCompositionCapabilityClass::TargetCombination
+        row.support_detail(),
+        "spatial.arbitration.support_only:declaration remains support-scoped only"
     );
+    assert_eq!(report.rows().len(), 1);
+    assert_eq!(report.rows()[0], row);
 }
 
 #[test]
-fn graph_capability_runtime_materializer_denies_missing_or_unsupported_semantics() {
-    let missing = materialize_graph_composition_capability_support_row(ready_invariant_capability(
-        ForgeQueryInvariantCapabilityContributionAuthoring::capability_gap(
-            "graph.face_inner_loop_insertion",
-            "topology substrate is unavailable",
+fn admission_support_traceability_materializer_denies_non_support_postures() {
+    let advisory = materialize_runtime_admission_support_traceability_row(ready_admission(
+        ForgeQueryAdmissionContributionAuthoring::advisory(
+            "spatial.arbitration.requires_clarification",
+            "multiple candidates remain admissible",
         ),
     ));
-    let unsupported =
-        materialize_graph_composition_capability_support_row(ready_invariant_payload(
-            super::ForgeQueryInvariantCapabilityContributionPayload::with_graph_capability(
-                super::ForgeQueryInvariantCapabilityContributionPosture::InvariantDenial,
-                "spatial.non_manifold_edge_split",
-                "registered as a runtime invariant",
-                Some(super::ForgeQueryGraphCapabilityRuntimeSemantics::new(
-                    "graph.face_inner_loop_insertion",
-                    crate::runtime::ForgeQueryGraphCompositionCapabilityClass::TargetCombination,
-                )),
-            ),
-        ));
+    let violation = materialize_runtime_admission_support_traceability_report(ready_admission(
+        ForgeQueryAdmissionContributionAuthoring::violation(
+            "spatial.arbitration.invalid_target",
+            "requested target violates spatial law",
+        ),
+    ));
 
     assert!(matches!(
-        missing,
+        advisory,
         TransitionOutcome::Denied(denial)
             if denial.kind()
-                == super::ForgeQueryDomainCapabilityProgressionDenialKind::MissingCanonicalMaterializationSemantics
+                == super::ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture
     ));
     assert!(matches!(
-        unsupported,
+        violation,
         TransitionOutcome::Denied(denial)
             if denial.kind()
                 == super::ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture
@@ -129,134 +110,25 @@ fn graph_capability_runtime_materializer_denies_missing_or_unsupported_semantics
 }
 
 #[test]
-fn graph_invariant_denial_runtime_materializer_builds_query_denial() {
-    let denial = success(materialize_graph_composition_domain_invariant_denial(
-        ready_invariant_capability(
-            ForgeQueryInvariantCapabilityContributionAuthoring::graph_invariant_denial(
-                "spatial.non_manifold_edge_split",
-                ["edges", "faces"],
-                ["edge:12"],
-                ["mixed_existing_and_symbolic_entity_identity_edges"],
-                ["mixed_existing_target_followup_mutation"],
-                "program-graph-1",
-                "breadth-graph-1",
-                "components=3;symbolic_entities=1;symbolic_relations=0;declared_collections=2;declared_symbols=1;target_combinations=1;lifecycle_families=1",
-                "spatial.non_manifold_edge_split",
-                "result would introduce non-manifold topology",
-            ),
-        ),
+fn admission_local_support_and_support_traceability_rows_stay_distinct() {
+    let admission_row = success(materialize_runtime_admission_support_traceability_row(
+        ready_admission(ForgeQueryAdmissionContributionAuthoring::support_only(
+            "spatial.shared.support",
+            "same support detail through shared runtime family",
+        )),
+    ));
+    let support_row = success(materialize_intent_admission_support_traceability_row(
+        ready_support(ForgeQuerySupportContributionAuthoring::declaration_support(
+            "spatial.shared.support",
+            "same support detail through shared runtime family",
+        )),
     ));
 
-    assert_eq!(denial.invariant_family(), "spatial.non_manifold_edge_split");
-    assert_eq!(
-        denial.domain_invariant_summary().declared_collections(),
-        &["edges".to_string(), "faces".to_string()]
-    );
-    assert_eq!(
-        denial.failure_stage(),
-        crate::runtime::ForgeQueryGraphCompositionAdmissionTraceStage::DomainInvariantEvaluated
-    );
-}
-
-#[test]
-fn graph_invariant_denial_runtime_materializer_denies_missing_or_wrong_posture() {
-    let missing =
-        materialize_graph_composition_domain_invariant_denial(ready_invariant_capability(
-            ForgeQueryInvariantCapabilityContributionAuthoring::invariant_denial(
-                "spatial.non_manifold_edge_split",
-                "result would introduce non-manifold topology",
-            ),
-        ));
-    let wrong_posture = materialize_graph_composition_domain_invariant_denial(
-        ready_invariant_payload(
-            super::ForgeQueryInvariantCapabilityContributionPayload::with_graph_invariant_denial(
-                super::ForgeQueryInvariantCapabilityContributionPosture::SupportSummary,
-                "spatial.non_manifold_edge_split",
-                "result would introduce non-manifold topology",
-                Some(super::ForgeQueryGraphInvariantDenialRuntimeSemantics::new(
-                    "spatial.non_manifold_edge_split",
-                    ["edges"],
-                    ["edge:12"],
-                    ["mixed_existing_and_symbolic_entity_identity_edges"],
-                    ["mixed_existing_target_followup_mutation"],
-                    "program-graph-1",
-                    "breadth-graph-1",
-                    "components=2;symbolic_entities=1;symbolic_relations=0;declared_collections=1;declared_symbols=1;target_combinations=1;lifecycle_families=1",
-                )),
-            ),
-        ),
-    );
-
-    assert!(matches!(
-        missing,
-        TransitionOutcome::Denied(denial)
-            if denial.kind()
-                == super::ForgeQueryDomainCapabilityProgressionDenialKind::MissingCanonicalMaterializationSemantics
-    ));
-    assert!(matches!(
-        wrong_posture,
-        TransitionOutcome::Denied(denial)
-            if denial.kind()
-                == super::ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture
-    ));
-}
-
-#[test]
-fn graph_invariant_denial_runtime_materializer_preserves_parity_and_difference() {
-    let left = success(materialize_graph_composition_domain_invariant_denial(
-        ready_invariant_capability(
-            ForgeQueryInvariantCapabilityContributionAuthoring::graph_invariant_denial(
-                "spatial.non_manifold_edge_split",
-                ["edges", "faces"],
-                ["edge:12"],
-                ["mixed_existing_and_symbolic_entity_identity_edges"],
-                ["mixed_existing_target_followup_mutation"],
-                "program-graph-1",
-                "breadth-graph-1",
-                "components=3;symbolic_entities=1;symbolic_relations=0;declared_collections=2;declared_symbols=1;target_combinations=1;lifecycle_families=1",
-                "spatial.non_manifold_edge_split",
-                "result would introduce non-manifold topology",
-            ),
-        ),
-    ));
-    let right = success(materialize_graph_composition_domain_invariant_denial(
-        ready_invariant_payload(
-            super::ForgeQueryInvariantCapabilityContributionPayload::with_graph_invariant_denial(
-                super::ForgeQueryInvariantCapabilityContributionPosture::InvariantDenial,
-                "spatial.non_manifold_edge_split",
-                "result would introduce non-manifold topology",
-                Some(super::ForgeQueryGraphInvariantDenialRuntimeSemantics::new(
-                    "spatial.non_manifold_edge_split",
-                    ["edges", "faces"],
-                    ["edge:12"],
-                    ["mixed_existing_and_symbolic_entity_identity_edges"],
-                    ["mixed_existing_target_followup_mutation"],
-                    "program-graph-1",
-                    "breadth-graph-1",
-                    "components=3;symbolic_entities=1;symbolic_relations=0;declared_collections=2;declared_symbols=1;target_combinations=1;lifecycle_families=1",
-                )),
-            ),
-        ),
-    ));
-    let different = success(materialize_graph_composition_domain_invariant_denial(
-        ready_invariant_capability(
-            ForgeQueryInvariantCapabilityContributionAuthoring::graph_invariant_denial(
-                "spatial.closed_loop_self_intersection",
-                ["edges", "faces"],
-                ["edge:12"],
-                ["mixed_existing_and_symbolic_entity_identity_edges"],
-                ["mixed_existing_target_followup_mutation"],
-                "program-graph-2",
-                "breadth-graph-1",
-                "components=3;symbolic_entities=1;symbolic_relations=0;declared_collections=2;declared_symbols=1;target_combinations=1;lifecycle_families=1",
-                "spatial.closed_loop_self_intersection",
-                "result would introduce a self-intersecting loop",
-            ),
-        ),
-    ));
-
-    assert_eq!(left.denial_digest(), right.denial_digest());
-    assert_ne!(left.denial_digest(), different.denial_digest());
+    assert_eq!(admission_row.support_detail(), support_row.support_detail());
+    assert_eq!(admission_row.family(), support_row.family());
+    assert_eq!(admission_row.entrypoint(), support_row.entrypoint());
+    assert_ne!(admission_row.lane(), support_row.lane());
+    assert_ne!(admission_row.row_digest(), support_row.row_digest());
 }
 
 #[test]
@@ -354,25 +226,12 @@ fn ready_admission(
     ready(authoring.bind_to_admitted_plan_target(admitted_plan_target("plan-admission")))
 }
 
-fn ready_invariant_capability(
-    authoring: ForgeQueryInvariantCapabilityContributionAuthoring,
-) -> super::ForgeQueryMaterializationReadyInvariantCapabilityContribution<
-    super::ForgeQueryLowerRuntimeBoundaryBoundContributionTarget,
+fn ready_support(
+    authoring: ForgeQuerySupportContributionAuthoring,
+) -> super::ForgeQueryMaterializationReadySupportContribution<
+    ForgeQueryAdmittedPlanBoundContributionTarget,
 > {
-    ready(authoring.bind_to_lower_runtime_boundary_target(lower_runtime_target("boundary-graph")))
-}
-
-fn ready_invariant_payload(
-    payload: super::ForgeQueryInvariantCapabilityContributionPayload,
-) -> super::ForgeQueryMaterializationReadyInvariantCapabilityContribution<
-    super::ForgeQueryLowerRuntimeBoundaryBoundContributionTarget,
-> {
-    ready(
-        super::proof_integration::create_requested_domain_capability_contribution(
-            lower_runtime_target("boundary-graph"),
-            payload,
-        ),
-    )
+    ready(authoring.bind_to_admitted_plan_target(admitted_plan_target("plan-admission")))
 }
 
 fn ready_continuity(

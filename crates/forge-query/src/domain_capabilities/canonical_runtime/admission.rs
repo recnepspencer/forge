@@ -12,7 +12,8 @@ use crate::domain_capabilities::{
     ForgeQueryMaterializationReadyAdmissionContribution,
 };
 use crate::intent_admission::{
-    ForgeQueryIntentAdmissionDecision, ForgeQueryIntentAdvisoryDecision,
+    ForgeQueryIntentAdmissionDecision, ForgeQueryIntentAdmissionSupportTraceabilityReport,
+    ForgeQueryIntentAdmissionSupportTraceabilityRow, ForgeQueryIntentAdvisoryDecision,
     ForgeQueryIntentViolationDecision,
 };
 
@@ -61,16 +62,71 @@ pub fn materialize_runtime_admission_decision(
             )),
         ),
         ForgeQueryAdmissionContributionPosture::SupportOnly => {
-            TransitionOutcome::Denied(unsupported_posture_denial(
-                payload.semantic_code(),
+            TransitionOutcome::Denied(unsupported_decision_posture_denial(
+                payload.posture(),
                 domain_contribution.request_digest(),
             ))
         }
     }
 }
 
-fn unsupported_posture_denial(
-    semantic_code: &str,
+pub fn materialize_runtime_admission_support_traceability_report(
+    contribution: ForgeQueryMaterializationReadyAdmissionContribution<
+        ForgeQueryAdmittedPlanBoundContributionTarget,
+    >,
+) -> ForgeQueryDomainCapabilityTransitionOutcome<ForgeQueryIntentAdmissionSupportTraceabilityReport>
+{
+    match materialize_runtime_admission_support_traceability_row(contribution) {
+        TransitionOutcome::Success(row) => TransitionOutcome::Success(
+            ForgeQueryIntentAdmissionSupportTraceabilityReport::from_rows(vec![row]),
+        ),
+        TransitionOutcome::Denied(denial) => TransitionOutcome::Denied(denial),
+        TransitionOutcome::Stale(stale) => TransitionOutcome::Stale(stale),
+        TransitionOutcome::RebindRequired(rebind) => TransitionOutcome::RebindRequired(rebind),
+        TransitionOutcome::Failed(failure) => TransitionOutcome::Failed(failure),
+        TransitionOutcome::Deferred(never) => match never {},
+    }
+}
+
+pub fn materialize_runtime_admission_support_traceability_row(
+    contribution: ForgeQueryMaterializationReadyAdmissionContribution<
+        ForgeQueryAdmittedPlanBoundContributionTarget,
+    >,
+) -> ForgeQueryDomainCapabilityTransitionOutcome<ForgeQueryIntentAdmissionSupportTraceabilityRow> {
+    let domain_contribution = contribution.payload();
+    let payload = domain_contribution.payload();
+    let Some((family, entrypoint, request_digest, eligibility_digest, decision_digest)) =
+        domain_contribution
+            .target()
+            .semantics()
+            .admitted_intent_plan()
+    else {
+        unreachable!("admitted-plan bound target should preserve admitted-plan semantics")
+    };
+
+    if payload.posture() != ForgeQueryAdmissionContributionPosture::SupportOnly {
+        return TransitionOutcome::Denied(unsupported_support_posture_denial(
+            payload.posture(),
+            domain_contribution.request_digest(),
+        ));
+    }
+
+    TransitionOutcome::Success(
+        ForgeQueryIntentAdmissionSupportTraceabilityRow::new_domain_scoped(
+            "admission_local_support",
+            family.as_str(),
+            entrypoint.as_str(),
+            format!("{}:{}", payload.semantic_code(), payload.detail()),
+            Some(domain_contribution.target().binding_digest().to_string()),
+            Some(request_digest.to_string()),
+            Some(eligibility_digest.to_string()),
+            Some(decision_digest.to_string()),
+        ),
+    )
+}
+
+fn unsupported_decision_posture_denial(
+    posture: ForgeQueryAdmissionContributionPosture,
     request_digest: &str,
 ) -> ForgeQueryDomainCapabilityProgressionDenial {
     ForgeQueryDomainCapabilityProgressionDenial::new(
@@ -79,7 +135,24 @@ fn unsupported_posture_denial(
         crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind::AdmittedIntentPlan,
         request_digest,
         format!(
-            "admission runtime decision materialization only supports advisory and violation postures; got `{semantic_code}`"
+            "admission runtime decision materialization only supports advisory and violation postures; got `{}`",
+            posture.as_str()
+        ),
+    )
+}
+
+fn unsupported_support_posture_denial(
+    posture: ForgeQueryAdmissionContributionPosture,
+    request_digest: &str,
+) -> ForgeQueryDomainCapabilityProgressionDenial {
+    ForgeQueryDomainCapabilityProgressionDenial::new(
+        ForgeQueryDomainCapabilityProgressionDenialKind::UnsupportedCanonicalMaterializationPosture,
+        "admission",
+        crate::domain_capabilities::ForgeQueryDomainCapabilityTargetKind::AdmittedIntentPlan,
+        request_digest,
+        format!(
+            "admission support traceability materialization only supports support-only posture; got `{}`",
+            posture.as_str()
         ),
     )
 }

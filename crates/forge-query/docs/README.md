@@ -24,6 +24,11 @@ parallel example-only siblings.
     subscription diagnostics
 - `modeling/`
   - aspect, authority-lane, and schema/modeling guidance
+- `domain-capabilities/`
+  - downstream domain entry and contribution surfaces for admission, support,
+    invariants, workflow, continuity, aftermath, explanation, and
+    certification
+  - typed domain front doors and later domain-shaped Query surfaces
 
 ## Current Layout
 
@@ -50,5 +55,11 @@ parallel example-only siblings.
 - `capabilities/subscription-selection-and-diagnostics.md`
 - `modeling/aspects-and-authority-lanes.md`
 - `modeling/schema-validation.md`
+- `domain-capabilities/README.md`
+- `domain-capabilities/platform-entry.md`
+- `domain-capabilities/configured-domain-handles.md`
+- `domain-capabilities/canonical-domain-declarations.md`
+- `domain-capabilities/declaration-family-taxonomy.md`
+- `domain-capabilities/declaration-family-capability-matrix.md`
 
 

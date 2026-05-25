@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/domain_declaration/boundaries/construction/evidence/foundational_evidence_constructor_is_private.rs:47:100
+   |
+47 |       let _ctor = ForgeQueryDeclarationFoundationalEvidence::<GeometryDomain, SplitEdgeDeclaration>::new;
+   |                                                                                                      ^^^ private associated function
+   |
+  ::: src/application/declaration_evidence/artifact.rs
+   |
+   | /     pub(crate) fn new(
+   | |         subject: ForgeQueryDeclarationFoundationalEvidenceInput<D, I>,
+   | |         handle_identity_digest: String,
+   | |         operating_context_identity_digest: String,
+...  |
+   | |         materialization_profile: FoundationalBoundaryEvidenceMaterializationProfile,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

@@ -1,0 +1,42 @@
+error: cannot construct `ForgeQueryDeclarationLegalityEvidence<GeometryDomain, SplitEdgeDeclaration>` with struct literal syntax due to private fields
+  --> tests/ui/domain_declaration/boundaries/construction/legality/legality_evidence_constructor_is_private.rs:52:13
+   |
+52 |       let _ = ForgeQueryDeclarationLegalityEvidence::<GeometryDomain, SplitEdgeDeclaration> {
+   |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+53 |           declaration: fake(),
+   |           ------------------- private field
+54 |           support_report: fake(),
+   |           ---------------------- private field
+55 |           legality_contract: ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact(),
+   |           -------------------------------------------------------------------------------------- private field
+56 |           role_claim_category: fake(),
+   |           --------------------------- private field
+57 |           role_claim_role: fake(),
+   |           ----------------------- private field
+58 | /         surface_disposition: evaluate_boundary_surface_disposition_legality(
+59 | |             fake(),
+60 | |             fake(),
+61 | |         )
+62 | |         .unwrap(),
+   | |_________________- private field
+63 |           legality_digest: String::new(),
+   |           ------------------------------ private field
+   |
+   = note: ...and other private field `operating_context_identity_digest` that was not provided
+help: you might have meant to use the `new` associated function
+   |
+52 -     let _ = ForgeQueryDeclarationLegalityEvidence::<GeometryDomain, SplitEdgeDeclaration> {
+53 -         declaration: fake(),
+54 -         support_report: fake(),
+55 -         legality_contract: ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact(),
+56 -         role_claim_category: fake(),
+57 -         role_claim_role: fake(),
+58 -         surface_disposition: evaluate_boundary_surface_disposition_legality(
+59 -             fake(),
+60 -             fake(),
+61 -         )
+62 -         .unwrap(),
+63 -         legality_digest: String::new(),
+64 -     };
+52 +     let _ = ForgeQueryDeclarationLegalityEvidence::<GeometryDomain, SplitEdgeDeclaration>::new(_, _, _, _, _, _, _, _);
+   |

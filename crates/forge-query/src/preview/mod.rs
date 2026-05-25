@@ -1710,6 +1710,7 @@ impl PreviewWorkflowFoundationRequest {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum PreviewWorkflowFoundationFailureClass {
     OutOfScopeWorkflowFoundationRequest,
+    ReadOnlyPreviewWritebackFoundationForbidden,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -2266,49 +2267,49 @@ pub fn admit_preview_workflow_foundation_request(
     binding: &PreviewSessionPlanBinding,
     request: PreviewWorkflowFoundationRequest,
 ) -> Result<AdmittedPreviewWorkflowFoundation, PreviewWorkflowFoundationError> {
-    match request {
-        PreviewWorkflowFoundationRequest::CompareBasisPair => {
-            Ok(AdmittedPreviewWorkflowFoundation {
-                artifact: derive_preview_workflow_foundation(binding, request),
-                counters: PreviewExecutionCounters {
-                    binding_counters: binding.report().counters().clone(),
-                    execution_counters: ExecutionCounters::default(),
-                    preview_execution_envelope_count: 0,
-                    preview_execution_count: 0,
-                    preview_promotable_execution_count: 0,
-                    preview_read_only_execution_count: 0,
-                    preview_comparison_eligibility_proof_count: 0,
-                    preview_comparison_shape_check_width: 0,
-                    preview_workflow_foundation_admission_count: 1,
-                    preview_workflow_foundation_denial_count: 0,
-                    preview_workflow_foundation_artifact_lookup_count: 1,
-                    preview_work_avoided_by_explicit_basis_count: 1,
-                },
-            })
-        }
-        PreviewWorkflowFoundationRequest::DeferredMutationWriteback => Err(
-            PreviewWorkflowFoundationError {
-                failure_class:
-                    PreviewWorkflowFoundationFailureClass::OutOfScopeWorkflowFoundationRequest,
-                message:
-                    "preview workflow foundation requests that imply mutation or writeback authority remain out of scope in milestone 5.2",
-                counters: PreviewExecutionCounters {
-                    binding_counters: binding.report().counters().clone(),
-                    execution_counters: ExecutionCounters::default(),
-                    preview_execution_envelope_count: 0,
-                    preview_execution_count: 0,
-                    preview_promotable_execution_count: 0,
-                    preview_read_only_execution_count: 0,
-                    preview_comparison_eligibility_proof_count: 0,
-                    preview_comparison_shape_check_width: 0,
-                    preview_workflow_foundation_admission_count: 0,
-                    preview_workflow_foundation_denial_count: 1,
-                    preview_workflow_foundation_artifact_lookup_count: 0,
-                    preview_work_avoided_by_explicit_basis_count: 0,
-                },
+    if request == PreviewWorkflowFoundationRequest::DeferredMutationWriteback
+        && binding.basis().binding_tuple().evaluation_class()
+            == &PreviewEvaluationClass::read_only()
+    {
+        return Err(PreviewWorkflowFoundationError {
+            failure_class:
+                PreviewWorkflowFoundationFailureClass::ReadOnlyPreviewWritebackFoundationForbidden,
+            message:
+                "read-only preview workflow foundations cannot request deferred mutation writeback authority",
+            counters: PreviewExecutionCounters {
+                binding_counters: binding.report().counters().clone(),
+                execution_counters: ExecutionCounters::default(),
+                preview_execution_envelope_count: 0,
+                preview_execution_count: 0,
+                preview_promotable_execution_count: 0,
+                preview_read_only_execution_count: 0,
+                preview_comparison_eligibility_proof_count: 0,
+                preview_comparison_shape_check_width: 0,
+                preview_workflow_foundation_admission_count: 0,
+                preview_workflow_foundation_denial_count: 1,
+                preview_workflow_foundation_artifact_lookup_count: 0,
+                preview_work_avoided_by_explicit_basis_count: 0,
             },
-        ),
+        });
     }
+
+    Ok(AdmittedPreviewWorkflowFoundation {
+        artifact: derive_preview_workflow_foundation(binding, request),
+        counters: PreviewExecutionCounters {
+            binding_counters: binding.report().counters().clone(),
+            execution_counters: ExecutionCounters::default(),
+            preview_execution_envelope_count: 0,
+            preview_execution_count: 0,
+            preview_promotable_execution_count: 0,
+            preview_read_only_execution_count: 0,
+            preview_comparison_eligibility_proof_count: 0,
+            preview_comparison_shape_check_width: 0,
+            preview_workflow_foundation_admission_count: 1,
+            preview_workflow_foundation_denial_count: 0,
+            preview_workflow_foundation_artifact_lookup_count: 1,
+            preview_work_avoided_by_explicit_basis_count: 1,
+        },
+    })
 }
 
 fn derive_preview_comparison_candidate(
@@ -4301,10 +4302,10 @@ mod tests {
     }
 
     #[test]
-    fn out_of_scope_workflow_foundation_request_is_denied() {
+    fn deferred_writeback_workflow_foundation_admits_with_explicit_request_family() {
         let preflight = execution_preflights::direct_runtime_preflight();
         let (_runtime, active, execution_record) =
-            active_preview_artifacts("preview-workflow-foundation-denied");
+            active_preview_artifacts("preview-workflow-foundation-writeback");
         let binding = bind_preflight_to_preview_session(
             preflight,
             PreviewSessionQueryContext::active(
@@ -4315,15 +4316,70 @@ mod tests {
         )
         .expect("promotion-eligible preview binding should succeed");
 
+        let workflow = admit_preview_workflow_foundation_request(
+            &binding,
+            PreviewWorkflowFoundationRequest::deferred_mutation_writeback(),
+        )
+        .expect(
+            "deferred writeback workflow foundations should admit on the ordinary preview path",
+        );
+
+        assert_eq!(
+            workflow.request_family(),
+            &PreviewWorkflowFoundationRequest::deferred_mutation_writeback()
+        );
+        assert_eq!(
+            workflow.artifact().evaluation_class(),
+            &PreviewEvaluationClass::promotion_eligible()
+        );
+        assert_eq!(
+            workflow.artifact().binding_digest(),
+            binding.basis().binding_tuple().digest()
+        );
+        assert_eq!(
+            workflow
+                .counters()
+                .preview_workflow_foundation_admission_count(),
+            1
+        );
+        assert_eq!(
+            workflow
+                .counters()
+                .preview_workflow_foundation_denial_count(),
+            0
+        );
+        assert_eq!(
+            workflow
+                .counters()
+                .preview_workflow_foundation_artifact_lookup_count(),
+            1
+        );
+    }
+
+    #[test]
+    fn read_only_preview_denies_deferred_writeback_workflow_foundation_request() {
+        let preflight = execution_preflights::direct_runtime_preflight();
+        let (_runtime, active, execution_record) =
+            active_preview_artifacts("preview-workflow-foundation-read-only-writeback-denied");
+        let binding = bind_preflight_to_preview_session(
+            preflight,
+            PreviewSessionQueryContext::active(
+                &active,
+                &execution_record,
+                PreviewEvaluationClass::read_only(),
+            ),
+        )
+        .expect("read-only preview binding should succeed");
+
         let error = admit_preview_workflow_foundation_request(
             &binding,
             PreviewWorkflowFoundationRequest::deferred_mutation_writeback(),
         )
-        .expect_err("workflow requests that imply writeback authority must reject in 5.2");
+        .expect_err("read-only preview should not admit deferred writeback foundations");
 
         assert_eq!(
             error.failure_class(),
-            &PreviewWorkflowFoundationFailureClass::OutOfScopeWorkflowFoundationRequest
+            &PreviewWorkflowFoundationFailureClass::ReadOnlyPreviewWritebackFoundationForbidden
         );
         assert_eq!(
             error

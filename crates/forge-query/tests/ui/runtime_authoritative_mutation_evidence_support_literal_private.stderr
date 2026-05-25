@@ -34,7 +34,7 @@ error: cannot construct `ForgeQueryAuthoritativeMutationEvidenceSupport` with st
 14 |         support_digest: String::new(),
    |         ----------------------------- private field
    |
-   = note: ...and other private fields `existing_truth_assertion_modes`, `existing_truth_probe_modes`, `existing_truth_verified_mutation_modes`, `bridge_backed_verification_support_rows`, `identity_preserving_update_families` and `graph_composition_families` that were not provided
+   = note: ...and other private fields that were not provided
 help: you might have meant to use the `derive` associated function
    |
  4 -     let _ = ForgeQueryAuthoritativeMutationEvidenceSupport {

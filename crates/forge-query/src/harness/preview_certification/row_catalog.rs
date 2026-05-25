@@ -20,7 +20,7 @@ pub enum PreviewRuntimeFailureSelector {
     DiscardedLifecycle,
     PreviewLiveDriftDenied,
     PreviewLiveBroadFallbackDenied,
-    WorkflowFoundationScopeOverreach,
+    WorkflowFoundationAuthorityDenied,
     PromotionLinkageDenied,
     ReplayLinkageDenied,
     ShapeMismatchDenied,
@@ -193,6 +193,15 @@ pub const PREVIEW_REJECTION_ROW_SPECS: &[PreviewRejectionRowSpec] = &[
         compile_fail_case: None,
     },
     PreviewRejectionRowSpec {
+        row_name: "read-only-preview-writeback-foundation-forbidden",
+        perturbation_class: PreviewPerturbationClass::PromotionEligibilityBoolForbidden,
+        failure_class: PreviewFailureClass::WorkflowFoundationAuthorityDenied,
+        runtime_failure_selector: Some(
+            PreviewRuntimeFailureSelector::WorkflowFoundationAuthorityDenied,
+        ),
+        compile_fail_case: None,
+    },
+    PreviewRejectionRowSpec {
         row_name: "preview-promotion-linkage-denied",
         perturbation_class: PreviewPerturbationClass::PromotionLinkageDenied,
         failure_class: PreviewFailureClass::PromotionLinkageMismatch,
@@ -234,15 +243,6 @@ pub const PREVIEW_REJECTION_ROW_SPECS: &[PreviewRejectionRowSpec] = &[
         runtime_failure_selector: None,
         compile_fail_case: Some("tests/ui/fabricated_preview_lifecycle_forbidden.rs"),
     },
-    PreviewRejectionRowSpec {
-        row_name: "out-of-scope-workflow-foundation-request",
-        perturbation_class: PreviewPerturbationClass::WorkflowFoundationScopeOverreach,
-        failure_class: PreviewFailureClass::WorkflowFoundationScopeOverreach,
-        runtime_failure_selector: Some(
-            PreviewRuntimeFailureSelector::WorkflowFoundationScopeOverreach,
-        ),
-        compile_fail_case: None,
-    },
 ];
 
 pub const PREVIEW_REQUIRED_CANONICAL_ROW_NAMES: &[&str] = &[
@@ -265,6 +265,7 @@ pub const PREVIEW_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
     "preview-live-drift-denied",
     "preview-live-broad-fallback-forbidden",
     "preview-broad-fallback-forbidden",
+    "read-only-preview-writeback-foundation-forbidden",
     "discarded-preview-execution-denied",
     "unsupported-preview-promotion-comparison",
     "read-only-preview-denies-promotion-comparison",
@@ -275,5 +276,4 @@ pub const PREVIEW_REQUIRED_REJECTION_ROW_NAMES: &[&str] = &[
     "promotion-eligibility-bool-forbidden",
     "preview-diagnostics-rescan-forbidden",
     "fabricated-preview-lifecycle-forbidden",
-    "out-of-scope-workflow-foundation-request",
 ];

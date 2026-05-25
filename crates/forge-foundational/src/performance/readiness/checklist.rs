@@ -322,7 +322,6 @@ where
 
 #[cfg(test)]
 mod tests {
-    use super::*;
     use crate::performance::readiness::foundational_performance_milestone8_readiness_report;
 
     #[test]

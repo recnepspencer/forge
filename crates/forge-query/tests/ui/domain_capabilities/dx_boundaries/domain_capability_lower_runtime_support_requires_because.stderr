@@ -1,0 +1,24 @@
+warning: the type `ForgeQueryLowerRuntimeBoundaryBoundContributionTarget` does not permit zero-initialization
+ --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_lower_runtime_support_requires_because.rs:8:26
+  |
+8 |         target: unsafe { std::mem::zeroed::<ForgeQueryLowerRuntimeBoundaryBoundContributionTarget>() },
+  |                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |                          |
+  |                          this code causes undefined behavior when executed
+  |                          help: use `MaybeUninit<T>` instead, and only call `assume_init` after initialization is done
+  |
+  = note: `std::ptr::Unique<u8>` must be non-null
+  = note: because `std::ptr::NonNull<u8>` must be non-null
+  = note: `#[warn(invalid_value)]` on by default
+
+error[E0451]: fields `domain`, `target` and `semantic_code` of struct `ForgeQueryLowerRuntimeSupportDraft` are private
+ --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_lower_runtime_support_requires_because.rs:7:9
+  |
+6 |     let _ = ForgeQueryLowerRuntimeSupportDraft {
+  |             ---------------------------------- in this type
+7 |         domain: "worth.spatial".to_string(),
+  |         ^^^^^^ private field
+8 |         target: unsafe { std::mem::zeroed::<ForgeQueryLowerRuntimeBoundaryBoundContributionTarget>() },
+  |         ^^^^^^ private field
+9 |         semantic_code: "routing.signal_invalidation".to_string(),
+  |         ^^^^^^^^^^^^^ private field

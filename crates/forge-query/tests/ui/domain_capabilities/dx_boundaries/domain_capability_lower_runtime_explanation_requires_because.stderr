@@ -1,0 +1,13 @@
+error[E0599]: no method named `review` found for struct `ForgeQueryLowerRuntimeExplanationDraft` in the current scope
+  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_lower_runtime_explanation_requires_because.rs:13:10
+   |
+ 7 |       let _ = forge_query_domain("worth.spatial")
+   |  _____________-
+ 8 | |         .for_lower_runtime_boundary_envelope(&envelope())
+ 9 | |         .explains_store_backed_replay_gap(
+10 | |             "routing.store_backed_replay",
+...  |
+13 | |         .review();
+   | |         -^^^^^^ method not found in `ForgeQueryLowerRuntimeExplanationDraft`
+   | |_________|
+   |

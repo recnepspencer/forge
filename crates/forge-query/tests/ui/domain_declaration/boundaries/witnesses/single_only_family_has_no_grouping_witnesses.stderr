@@ -1,0 +1,17 @@
+error[E0599]: the method `neighborhood_capable` exists for struct `ForgeQueryCanonicalDeclarationArtifact<GeometryDomain, SplitEdgeDeclaration>`, but its trait bounds were not satisfied
+  --> tests/ui/domain_declaration/boundaries/witnesses/single_only_family_has_no_grouping_witnesses.rs:72:25
+   |
+37 | struct SplitEdgeFamily;
+   | ---------------------- doesn't satisfy `_: ForgeQueryDeclarationSupportsNeighborhoodGrouping<GeometryDomain>`
+...
+72 |     let _ = declaration.neighborhood_capable();
+   |                         ^^^^^^^^^^^^^^^^^^^^ method cannot be called due to unsatisfied trait bounds
+   |
+  ::: src/application/declaration_capability/tags.rs
+   |
+   |         pub struct $name;
+   |         ----------------- doesn't satisfy `_: ForgeQueryNeighborhoodCapableGroupingTag`
+   |
+   = note: the following trait bounds were not satisfied:
+           `ForgeQuerySingleOnlyGrouping: forge_query::application::declaration_capability::tags::ForgeQueryNeighborhoodCapableGroupingTag`
+           which is required by `SplitEdgeFamily: ForgeQueryDeclarationSupportsNeighborhoodGrouping<GeometryDomain>`

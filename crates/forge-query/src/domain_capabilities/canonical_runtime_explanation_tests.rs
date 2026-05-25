@@ -3,12 +3,13 @@ use forge_proof::TransitionOutcome;
 use super::targets::ForgeQueryLowerRuntimeBoundaryBoundContributionTarget;
 use super::test_support::{lower_runtime_target, ready, success};
 use super::{
-    materialize_query_causal_inspection_artifact, ForgeQueryExplanationContributionAuthoring,
+    materialize_query_causal_inspection_artifact, materialize_query_causal_inspection_review,
+    ForgeQueryExplanationContributionAuthoring,
 };
 use crate::runtime::{
     anchor_causal_observation, causal_inspection_target, resolve_causal_evidence_references,
     CausalEvidenceFamily, CausalEvidenceReferenceResolution, CausalInspectionReason,
-    ForgeQueryReadExecutionEngine, ForgeQueryReadReceipt,
+    CausalInspectionSupportPosture, ForgeQueryReadExecutionEngine, ForgeQueryReadReceipt,
 };
 
 #[test]
@@ -39,7 +40,7 @@ fn explanation_runtime_materializer_builds_denied_causal_artifact() {
 
     let artifact = success(materialize_query_causal_inspection_artifact(
         ready_explanation(
-            ForgeQueryExplanationContributionAuthoring::unsupported_store_backed_replay_explanation(
+            ForgeQueryExplanationContributionAuthoring::store_backed_replay_gap_explanation(
                 "explanation.store_backed_replay",
                 "store-backed replay should deny without the required lower-runtime evidence",
                 reference_set,
@@ -75,6 +76,77 @@ fn explanation_runtime_materializer_denies_missing_semantics() {
             if denial.kind()
                 == super::ForgeQueryDomainCapabilityProgressionDenialKind::MissingCanonicalMaterializationSemantics
     ));
+}
+
+#[test]
+fn explanation_runtime_review_preserves_denied_plan_identity() {
+    let read_receipt = ForgeQueryReadReceipt::test_only(
+        "read-graph:domain-capability",
+        "query:domain-capability",
+        "basis:domain-capability",
+        "result:domain-capability",
+        ForgeQueryReadExecutionEngine::QueryRuntimeHistorical,
+    );
+    let observation = crate::runtime::QueryObservationReceipt::from_read_receipt(&read_receipt);
+    let anchor = anchor_causal_observation(
+        observation.clone(),
+        CausalInspectionReason::HistoricalReplayResult,
+    )
+    .expect("historical replay observation should anchor");
+    let CausalEvidenceReferenceResolution::Resolved { reference_set, .. } =
+        resolve_causal_evidence_references(anchor, &[CausalEvidenceFamily::QueryInspection])
+    else {
+        panic!("query-inspection-only replay evidence should resolve");
+    };
+    let target = causal_inspection_target(
+        observation.observation_target_digest(),
+        observation.result_shape_context_digest(),
+    )
+    .expect("observation-derived target should be valid");
+    let review_contribution = ready_explanation(
+        ForgeQueryExplanationContributionAuthoring::store_backed_replay_gap_explanation(
+            "explanation.store_backed_replay",
+            "store-backed replay should deny without the required lower-runtime evidence",
+            reference_set.clone(),
+            target.clone(),
+            vec![CausalEvidenceFamily::QueryInspection],
+            crate::runtime::CausalInspectionRedactionPolicy::PreserveDetail,
+            crate::runtime::CausalInspectionMaterializationPolicy::OfflineInterpretableArtifact,
+        ),
+    );
+    let artifact_contribution = ready_explanation(
+        ForgeQueryExplanationContributionAuthoring::store_backed_replay_gap_explanation(
+            "explanation.store_backed_replay",
+            "store-backed replay should deny without the required lower-runtime evidence",
+            reference_set,
+            target,
+            vec![CausalEvidenceFamily::QueryInspection],
+            crate::runtime::CausalInspectionRedactionPolicy::PreserveDetail,
+            crate::runtime::CausalInspectionMaterializationPolicy::OfflineInterpretableArtifact,
+        ),
+    );
+
+    let review = success(materialize_query_causal_inspection_review(
+        review_contribution,
+    ));
+    let artifact = success(materialize_query_causal_inspection_artifact(
+        artifact_contribution,
+    ));
+
+    assert_eq!(
+        review.plan().support_posture(),
+        CausalInspectionSupportPosture::Denied
+    );
+    assert_eq!(review.semantic_code(), "explanation.store_backed_replay");
+    match artifact {
+        crate::runtime::QueryCausalInspectionArtifact::Denied(denied) => {
+            assert_eq!(
+                denied.query_denial_digest(),
+                review.plan().admission_digest()
+            );
+        }
+        other => panic!("expected denied causal inspection artifact, got {other:?}"),
+    }
 }
 
 fn ready_explanation(

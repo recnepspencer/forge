@@ -1,12 +1,12 @@
-error[E0277]: the trait bound `ForgeQueryLowerRuntimeBoundaryBoundContributionTarget: forge_query::domain_capabilities::canonical_runtime::workflow_preview::ForgeQueryWorkflowPreviewMaterializationTarget` is not satisfied
+error[E0277]: the trait bound `ForgeQueryLowerRuntimeBoundaryBoundContributionTarget: forge_query::domain_capabilities::canonical_runtime::workflow::preview::ForgeQueryWorkflowPreviewMaterializationTarget` is not satisfied
   --> tests/ui/domain_capabilities/boundaries/materializers/domain_capability_preview_workflow_artifact_requires_workflow_target.rs:14:9
    |
 14 |         materialize_query_preview_workflow_artifact;
    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ unsatisfied trait bound
    |
-   = help: the trait `forge_query::domain_capabilities::canonical_runtime::workflow_preview::ForgeQueryWorkflowPreviewMaterializationTarget` is not implemented for `ForgeQueryLowerRuntimeBoundaryBoundContributionTarget`
-help: the following other types implement trait `forge_query::domain_capabilities::canonical_runtime::workflow_preview::ForgeQueryWorkflowPreviewMaterializationTarget`
-  --> src/domain_capabilities/canonical_runtime/workflow_preview.rs
+   = help: the trait `forge_query::domain_capabilities::canonical_runtime::workflow::preview::ForgeQueryWorkflowPreviewMaterializationTarget` is not implemented for `ForgeQueryLowerRuntimeBoundaryBoundContributionTarget`
+help: the following other types implement trait `forge_query::domain_capabilities::canonical_runtime::workflow::preview::ForgeQueryWorkflowPreviewMaterializationTarget`
+  --> src/domain_capabilities/canonical_runtime/workflow/preview.rs
    |
    | / impl ForgeQueryWorkflowPreviewMaterializationTarget
    | |     for ForgeQueryDeclarationBoundContributionTarget
@@ -16,7 +16,7 @@ help: the following other types implement trait `forge_query::domain_capabilitie
    | |     for ForgeQueryAdmittedPlanBoundContributionTarget
    | |_____________________________________________________^ `ForgeQueryAdmittedPlanBoundContributionTarget`
 note: required by a bound in `materialize_query_preview_workflow_artifact`
-  --> src/domain_capabilities/canonical_runtime/workflow_preview.rs
+  --> src/domain_capabilities/canonical_runtime/workflow/preview.rs
    |
    | pub fn materialize_query_preview_workflow_artifact<T>(
    |        ------------------------------------------- required by a bound in this function

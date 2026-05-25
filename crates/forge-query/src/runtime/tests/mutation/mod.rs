@@ -11,6 +11,7 @@ mod existing_binding;
 mod graph_composition;
 mod graph_composition_boundary;
 mod graph_composition_denial;
+mod graph_composition_domain_capability;
 mod graph_composition_edge_split;
 mod graph_composition_existing_binding_denial;
 mod graph_composition_face_inner_loop;

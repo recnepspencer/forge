@@ -182,6 +182,23 @@ impl QueryObservationReceipt {
         })
     }
 
+    pub(crate) fn certification_historical_replay_fixture(label: &str) -> Self {
+        Self::from_parts(ObservationReceiptParts {
+            family: QueryObservationReceiptFamily::Fixture,
+            observation_receipt_digest: format!("fixture-observation-replayed:{label}"),
+            query_digest: format!("fixture-query:{label}"),
+            basis_posture: "historical_replay_certification".to_string(),
+            basis_digest: format!("fixture-basis:{label}"),
+            result_shape_context_digest: format!("fixture-result-shape:{label}"),
+            observation_target_digest: format!("fixture-target:{label}"),
+            outcome: CausalObservationOutcome::Replayed,
+            evidence_identities: vec![CausalObservationEvidenceIdentity::new(
+                CausalEvidenceFamily::QueryInspection,
+                format!("fixture-query-inspection:{label}"),
+            )],
+        })
+    }
+
     #[cfg(test)]
     pub(in crate::runtime) fn fixture(
         outcome: CausalObservationOutcome,

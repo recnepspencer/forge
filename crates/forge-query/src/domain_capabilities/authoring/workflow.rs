@@ -1,3 +1,4 @@
+use crate::basis::ExecutionPreflightBundle;
 use crate::runtime::{ForgeQueryAdmittedIntentPlan, ForgeQueryIntentDeclaration};
 use crate::workflow::{
     MergeLoweringInput, MutationLoweringInput, WorkflowAuthorityTargetFamily, WorkflowBudgetClass,
@@ -137,6 +138,36 @@ impl ForgeQueryWorkflowContributionAuthoring {
         )
     }
 
+    pub fn confirmation_required_mutation_reconciliation_from_preflight(
+        semantic_code: impl Into<String>,
+        detail: impl Into<String>,
+        preflight: ExecutionPreflightBundle,
+        authority_binding_digest: impl Into<String>,
+        entity_id: EntityId,
+        desired_payload: serde_json::Value,
+    ) -> Self {
+        Self::with_runtime_and_lowering_semantics(
+            ForgeQueryWorkflowContributionPosture::ConfirmationRequired,
+            semantic_code,
+            detail,
+            ForgeQueryWorkflowRuntimeSemantics::new(
+                ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight_bundle(preflight),
+                WorkflowDeclarationFamily::MutationLoweringNarrow,
+                WorkflowAuthorityTargetFamily::RelationalMutation,
+                WorkflowCostClass::MutationLoweringNarrow,
+                WorkflowBudgetClass::AuthorityTargetBounded,
+                WorkflowFreshnessPolicy::ExactBasis,
+            ),
+            ForgeQueryWorkflowLoweringSemantics::mutation(
+                authority_binding_digest,
+                MutationLoweringInput::IntentReconciliation {
+                    entity_id,
+                    desired_payload,
+                },
+            ),
+        )
+    }
+
     pub fn promotion_eligible_merge_reconciliation(
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
@@ -188,6 +219,26 @@ impl ForgeQueryWorkflowContributionAuthoring {
         )
     }
 
+    pub fn confirmation_required_query_inspection_from_preflight(
+        semantic_code: impl Into<String>,
+        detail: impl Into<String>,
+        preflight: ExecutionPreflightBundle,
+    ) -> Self {
+        Self::with_runtime_semantics(
+            ForgeQueryWorkflowContributionPosture::ConfirmationRequired,
+            semantic_code,
+            detail,
+            ForgeQueryWorkflowRuntimeSemantics::new(
+                ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight_bundle(preflight),
+                WorkflowDeclarationFamily::ConflictInspectionNarrow,
+                WorkflowAuthorityTargetFamily::QueryInspection,
+                WorkflowCostClass::InspectionNarrow,
+                WorkflowBudgetClass::InspectionBounded,
+                WorkflowFreshnessPolicy::ExactBasis,
+            ),
+        )
+    }
+
     pub fn confirmation_required_writeback_projected_state_diff(
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
@@ -213,6 +264,29 @@ impl ForgeQueryWorkflowContributionAuthoring {
         )
     }
 
+    pub fn confirmation_required_writeback_projected_state_diff_from_preflight(
+        semantic_code: impl Into<String>,
+        detail: impl Into<String>,
+        preflight: ExecutionPreflightBundle,
+    ) -> Self {
+        Self::with_runtime_and_lowering_semantics(
+            ForgeQueryWorkflowContributionPosture::ConfirmationRequired,
+            semantic_code,
+            detail,
+            ForgeQueryWorkflowRuntimeSemantics::new(
+                ForgeQueryWorkflowRuntimeBindingSemantics::runtime_preflight_bundle(preflight),
+                WorkflowDeclarationFamily::WritebackLoweringNarrow,
+                WorkflowAuthorityTargetFamily::BridgeWriteback,
+                WorkflowCostClass::WritebackLoweringNarrow,
+                WorkflowBudgetClass::AuthorityTargetBounded,
+                WorkflowFreshnessPolicy::ExactBasis,
+            ),
+            ForgeQueryWorkflowLoweringSemantics::writeback(
+                WritebackLoweringInput::projected_state_diff(),
+            ),
+        )
+    }
+
     pub fn discard_required_query_inspection(
         semantic_code: impl Into<String>,
         detail: impl Into<String>,
@@ -225,7 +299,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
             ForgeQueryWorkflowRuntimeSemantics::new(
                 ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
                     preview_session_identity,
-                    WorkflowPreviewEvaluationClass::ReadOnly,
+                    WorkflowPreviewEvaluationClass::PromotionEligible,
                 ),
                 WorkflowDeclarationFamily::ConflictInspectionNarrow,
                 WorkflowAuthorityTargetFamily::QueryInspection,
@@ -248,7 +322,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
             ForgeQueryWorkflowRuntimeSemantics::new(
                 ForgeQueryWorkflowRuntimeBindingSemantics::preview_foundation(
                     preview_session_identity,
-                    WorkflowPreviewEvaluationClass::ReadOnly,
+                    WorkflowPreviewEvaluationClass::PromotionEligible,
                 ),
                 WorkflowDeclarationFamily::WritebackLoweringNarrow,
                 WorkflowAuthorityTargetFamily::BridgeWriteback,

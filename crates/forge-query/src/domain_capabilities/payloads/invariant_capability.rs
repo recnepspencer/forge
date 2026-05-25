@@ -1,5 +1,6 @@
 use crate::identity::hash_parts;
 use crate::runtime::ForgeQueryGraphCompositionCapabilityClass;
+use forge_relational::facade::runtime::{InvariantCatalog, InvariantRegistration};
 
 use super::common::{
     ForgeQueryDomainCapabilityCategory, ForgeQueryDomainCapabilityPayload,
@@ -138,12 +139,42 @@ impl ForgeQueryGraphInvariantDenialRuntimeSemantics {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub struct ForgeQueryInvariantRegistrationRuntimeSemantics {
+    invariant_catalog: InvariantCatalog,
+}
+
+impl ForgeQueryInvariantRegistrationRuntimeSemantics {
+    pub fn new(invariant_catalog: InvariantCatalog) -> Self {
+        Self { invariant_catalog }
+    }
+
+    pub fn from_registration(registration: InvariantRegistration) -> Self {
+        Self::new(InvariantCatalog {
+            registrations: vec![registration],
+        })
+    }
+
+    pub fn invariant_catalog(&self) -> &InvariantCatalog {
+        &self.invariant_catalog
+    }
+
+    pub fn canonical_invariant_catalog(&self) -> InvariantCatalog {
+        self.invariant_catalog.canonicalized()
+    }
+
+    pub fn registration_digest(&self) -> String {
+        self.invariant_catalog.canonical_registration_digest()
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryInvariantCapabilityContributionPayload {
     posture: ForgeQueryInvariantCapabilityContributionPosture,
     semantic_code: String,
     detail: String,
     graph_capability: Option<ForgeQueryGraphCapabilityRuntimeSemantics>,
     graph_invariant_denial: Option<ForgeQueryGraphInvariantDenialRuntimeSemantics>,
+    invariant_registration: Option<ForgeQueryInvariantRegistrationRuntimeSemantics>,
     payload_digest: String,
 }
 
@@ -162,7 +193,7 @@ impl ForgeQueryInvariantCapabilityContributionPayload {
         detail: impl Into<String>,
         graph_capability: Option<ForgeQueryGraphCapabilityRuntimeSemantics>,
     ) -> Self {
-        Self::with_runtime_semantics(posture, semantic_code, detail, graph_capability, None)
+        Self::with_runtime_semantics(posture, semantic_code, detail, graph_capability, None, None)
     }
 
     pub fn with_graph_invariant_denial(
@@ -171,7 +202,30 @@ impl ForgeQueryInvariantCapabilityContributionPayload {
         detail: impl Into<String>,
         graph_invariant_denial: Option<ForgeQueryGraphInvariantDenialRuntimeSemantics>,
     ) -> Self {
-        Self::with_runtime_semantics(posture, semantic_code, detail, None, graph_invariant_denial)
+        Self::with_runtime_semantics(
+            posture,
+            semantic_code,
+            detail,
+            None,
+            graph_invariant_denial,
+            None,
+        )
+    }
+
+    pub fn with_invariant_registration(
+        posture: ForgeQueryInvariantCapabilityContributionPosture,
+        semantic_code: impl Into<String>,
+        detail: impl Into<String>,
+        invariant_registration: Option<ForgeQueryInvariantRegistrationRuntimeSemantics>,
+    ) -> Self {
+        Self::with_runtime_semantics(
+            posture,
+            semantic_code,
+            detail,
+            None,
+            None,
+            invariant_registration,
+        )
     }
 
     pub fn with_runtime_semantics(
@@ -180,6 +234,7 @@ impl ForgeQueryInvariantCapabilityContributionPayload {
         detail: impl Into<String>,
         graph_capability: Option<ForgeQueryGraphCapabilityRuntimeSemantics>,
         graph_invariant_denial: Option<ForgeQueryGraphInvariantDenialRuntimeSemantics>,
+        invariant_registration: Option<ForgeQueryInvariantRegistrationRuntimeSemantics>,
     ) -> Self {
         let semantic_code = semantic_code.into();
         let detail = detail.into();
@@ -210,6 +265,10 @@ impl ForgeQueryInvariantCapabilityContributionPayload {
                 )
             },
         );
+        let invariant_registration_digest = invariant_registration.as_ref().map_or_else(
+            || "none".to_string(),
+            ForgeQueryInvariantRegistrationRuntimeSemantics::registration_digest,
+        );
         let payload_digest = hash_parts(&[
             "forge_query_domain_capability_payload_v2".to_string(),
             format!(
@@ -221,6 +280,7 @@ impl ForgeQueryInvariantCapabilityContributionPayload {
             format!("detail:{detail}"),
             format!("graph_capability:{graph_capability_digest}"),
             format!("graph_invariant_denial:{graph_invariant_denial_digest}"),
+            format!("invariant_registration:{invariant_registration_digest}"),
         ]);
         Self {
             posture,
@@ -228,6 +288,7 @@ impl ForgeQueryInvariantCapabilityContributionPayload {
             detail,
             graph_capability,
             graph_invariant_denial,
+            invariant_registration,
             payload_digest,
         }
     }
@@ -256,6 +317,12 @@ impl ForgeQueryInvariantCapabilityContributionPayload {
         &self,
     ) -> Option<&ForgeQueryGraphInvariantDenialRuntimeSemantics> {
         self.graph_invariant_denial.as_ref()
+    }
+
+    pub fn invariant_registration(
+        &self,
+    ) -> Option<&ForgeQueryInvariantRegistrationRuntimeSemantics> {
+        self.invariant_registration.as_ref()
     }
 
     pub fn payload_digest(&self) -> &str {

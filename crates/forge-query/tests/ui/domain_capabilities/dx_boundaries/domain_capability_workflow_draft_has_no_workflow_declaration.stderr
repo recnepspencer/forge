@@ -1,0 +1,11 @@
+error[E0599]: no method named `workflow_declaration` found for struct `ForgeQueryIntentPreviewMutationDraft` in the current scope
+  --> tests/ui/domain_capabilities/dx_boundaries/domain_capability_workflow_draft_has_no_workflow_declaration.rs:16:10
+   |
+13 |       let _ = forge_query_domain("worth.spatial")
+   |  _____________-
+14 | |         .for_intent(&declaration)
+15 | |         .plans_preview_mutation("topology.preview_mutation", "preview-session:77")
+16 | |         .workflow_declaration();
+   | |         -^^^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryIntentPreviewMutationDraft`
+   | |_________|
+   |

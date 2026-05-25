@@ -2,11 +2,13 @@
 //! External crates should import through this module rather than reaching into
 //! internal crate structure directly.
 
+mod exports_application;
 mod exports_foundation;
 mod exports_policy;
 mod exports_runtime;
 
 pub mod foundation {
+    pub use super::exports_application::*;
     pub use super::exports_foundation::*;
 }
 
@@ -26,6 +28,7 @@ pub mod runtime {
     pub use super::exports_runtime::*;
 }
 
+pub use exports_application::*;
 pub use exports_foundation::*;
 pub use exports_policy::*;
 pub use exports_runtime::*;

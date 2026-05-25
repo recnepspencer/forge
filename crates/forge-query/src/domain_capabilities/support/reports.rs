@@ -6,6 +6,7 @@ use forge_foundational::{
 
 use super::super::foundational_integration::{
     build_provenance, build_rows, materialize_profile_progression,
+    ForgeQueryDomainCapabilityProvenanceFreshnessPolicy,
 };
 use super::super::materialization::{
     ForgeQueryDomainCapabilityDescriptiveArtifactKind,
@@ -68,6 +69,7 @@ where
         &profile_progression,
         &rows,
         ForgeQueryDomainCapabilityDescriptiveArtifactKind::SupportReport,
+        ForgeQueryDomainCapabilityProvenanceFreshnessPolicy::SupportSurface(delivery_class),
     )?;
     let report = materialize_diagnostic_support_report(
         FoundationalDiagnosticSupportInput::new(

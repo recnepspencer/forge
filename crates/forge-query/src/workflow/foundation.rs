@@ -3,7 +3,7 @@ use crate::basis::{BasisAuthorityFamily, ExecutionPreflightBundle};
 use crate::correspondence_history::CorrespondenceHistoricalEnvelope;
 use crate::identity::hash_parts;
 use crate::preview::{
-    AdmittedPreviewWorkflowFoundation, PreviewEvaluationClass,
+    AdmittedPreviewWorkflowFoundation, PreviewEvaluationClass, PreviewWorkflowFoundationRequest,
     PromotionParityPreviewComparisonAdmission,
 };
 
@@ -260,6 +260,7 @@ pub struct WorkflowContextBinding {
     basis_digest: String,
     runtime_snapshot_token: Option<String>,
     preview_evaluation_class: Option<WorkflowPreviewEvaluationClass>,
+    preview_request_family: Option<PreviewWorkflowFoundationRequest>,
     preview_session_identity: Option<String>,
     counters: WorkflowCounters,
 }
@@ -291,6 +292,10 @@ impl WorkflowContextBinding {
 
     pub fn preview_evaluation_class(&self) -> Option<&WorkflowPreviewEvaluationClass> {
         self.preview_evaluation_class.as_ref()
+    }
+
+    pub fn preview_request_family(&self) -> Option<&PreviewWorkflowFoundationRequest> {
+        self.preview_request_family.as_ref()
     }
 
     pub fn preview_session_identity(&self) -> Option<&str> {
@@ -348,6 +353,7 @@ pub(crate) fn synthetic_runtime_workflow_binding_scoped(
         basis_digest,
         runtime_snapshot_token: Some(runtime_snapshot_token),
         preview_evaluation_class: None,
+        preview_request_family: None,
         preview_session_identity: None,
         counters: WorkflowCounters {
             workflow_basis_binding_count: 1,
@@ -356,6 +362,28 @@ pub(crate) fn synthetic_runtime_workflow_binding_scoped(
             ..WorkflowCounters::default()
         },
     }
+}
+
+pub(crate) fn scoped_runtime_preflight_workflow_binding(
+    preflight: &ExecutionPreflightBundle,
+    binding_scope_digest: &str,
+) -> Result<WorkflowContextBinding, WorkflowAdmissionError> {
+    let mut binding = bind_runtime_preflight(preflight)?;
+    binding.digest = hash_parts(&[
+        format!("source:{}", binding.source_digest),
+        format!("query:{}", binding.query_identity_digest),
+        format!("basis_family:{}", binding.basis_family.as_str()),
+        format!("basis:{}", binding.basis_digest),
+        format!(
+            "runtime_snapshot:{}",
+            binding
+                .runtime_snapshot_token
+                .as_deref()
+                .expect("runtime preflight bindings always carry a snapshot token")
+        ),
+        format!("scope:{binding_scope_digest}"),
+    ]);
+    Ok(binding)
 }
 
 pub(crate) fn synthetic_preview_workflow_binding(
@@ -376,6 +404,22 @@ pub(crate) fn synthetic_preview_workflow_binding_scoped(
     binding_scope_digest: &str,
     preview_session_identity: impl Into<String>,
     evaluation_class: WorkflowPreviewEvaluationClass,
+) -> WorkflowContextBinding {
+    synthetic_preview_workflow_binding_request_scoped(
+        source_label,
+        binding_scope_digest,
+        preview_session_identity,
+        evaluation_class,
+        PreviewWorkflowFoundationRequest::compare_basis_pair(),
+    )
+}
+
+pub(crate) fn synthetic_preview_workflow_binding_request_scoped(
+    source_label: &str,
+    binding_scope_digest: &str,
+    preview_session_identity: impl Into<String>,
+    evaluation_class: WorkflowPreviewEvaluationClass,
+    request_family: PreviewWorkflowFoundationRequest,
 ) -> WorkflowContextBinding {
     let preview_session_identity = preview_session_identity.into();
     let query_identity_digest = hash_parts(&[
@@ -403,6 +447,7 @@ pub(crate) fn synthetic_preview_workflow_binding_scoped(
         ),
         format!("basis:{basis_digest}"),
         format!("evaluation:{}", evaluation_class.as_str()),
+        format!("request_family:{}", request_family.as_str()),
         format!("preview_session:{preview_session_identity}"),
     ]);
     WorkflowContextBinding {
@@ -413,6 +458,7 @@ pub(crate) fn synthetic_preview_workflow_binding_scoped(
         basis_digest,
         runtime_snapshot_token: None,
         preview_evaluation_class: Some(evaluation_class),
+        preview_request_family: Some(request_family),
         preview_session_identity: Some(preview_session_identity),
         counters: WorkflowCounters {
             workflow_basis_binding_count: 1,
@@ -629,6 +675,7 @@ fn bind_runtime_preflight(
         basis_digest: basis_digest.to_string(),
         runtime_snapshot_token: Some(runtime_snapshot_token.to_string()),
         preview_evaluation_class: None,
+        preview_request_family: None,
         preview_session_identity: None,
         counters: WorkflowCounters {
             workflow_basis_binding_count: 1,
@@ -674,6 +721,7 @@ fn bind_preview_foundation(
         basis_digest: basis_digest.to_string(),
         runtime_snapshot_token: None,
         preview_evaluation_class: Some(evaluation_class),
+        preview_request_family: Some(foundation.request_family().clone()),
         preview_session_identity: Some(foundation.preview_session_identity().as_str().to_string()),
         counters: WorkflowCounters {
             workflow_basis_binding_count: 1,
@@ -708,6 +756,7 @@ fn bind_preview_promotion_comparison(
         basis_digest: basis_digest.to_string(),
         runtime_snapshot_token: None,
         preview_evaluation_class: Some(WorkflowPreviewEvaluationClass::PromotionEligible),
+        preview_request_family: None,
         preview_session_identity: None,
         counters: WorkflowCounters {
             workflow_basis_binding_count: 1,
@@ -786,8 +835,7 @@ fn validate_binding_for_request(
                 ));
             }
             if binding.preview_evaluation_class() == Some(&WorkflowPreviewEvaluationClass::ReadOnly)
-                && request.authority_target_family()
-                    != &WorkflowAuthorityTargetFamily::QueryInspection
+                && !read_only_preview_request_allows_requested_authority(binding, request)
             {
                 return Err(WorkflowAdmissionError::new(
                     WorkflowAdmissionFailureClass::PreviewReadOnlyAuthorityRequestForbidden,
@@ -861,4 +909,18 @@ fn validate_binding_for_request(
             },
         )),
     }
+}
+
+fn read_only_preview_request_allows_requested_authority(
+    binding: &WorkflowContextBinding,
+    request: &WorkflowDeclarationRequest,
+) -> bool {
+    if request.authority_target_family() == &WorkflowAuthorityTargetFamily::QueryInspection {
+        return true;
+    }
+
+    request.authority_target_family() == &WorkflowAuthorityTargetFamily::BridgeWriteback
+        && request.declaration_family() == &WorkflowDeclarationFamily::WritebackLoweringNarrow
+        && binding.preview_request_family()
+            == Some(&PreviewWorkflowFoundationRequest::DeferredMutationWriteback)
 }
