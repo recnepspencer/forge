@@ -65,6 +65,30 @@ Admitted-handle declaration evidence entry points:
 - `describe_foundational_checked(subject) -> ForgeQueryDeclarationFoundationalEvidenceChecked<D, I>`
 - `describe_foundational_with_profile(subject, profile) -> Result<ForgeQueryDeclarationFoundationalEvidence<D, I>, ForgeQueryDeclarationFoundationalEvidenceDenial<D, I>>`
 
+Admitted-handle route-planning entry points:
+
+- `plan_routes(subject) -> Result<ForgeQueryDeclarationRoutePlan<D, I>, ForgeQueryDeclarationRoutePlanTerminalError<D, I>>`
+- `plan_routes_checked(subject) -> ForgeQueryDeclarationRoutePlanChecked<D, I>`
+- `plan_routes_from_progressed(progressed) -> Result<ForgeQueryDeclarationRoutePlan<D, I>, ForgeQueryDeclarationRoutePlanTerminalError<D, I>>`
+- `plan_routes_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationRoutePlan<D, I>, ForgeQueryDeclarationRoutePlanTerminalError<D, I>>`
+- `declare_review_progress_describe_and_plan(input) -> Result<ForgeQueryDeclarationRoutePlan<D, I>, ForgeQueryDeclarationEntryRoutePlanError<D, I>>`
+
+Admitted-handle receipt entry points:
+
+- `receipt_routes(subject) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationReceiptTerminalError<D, I>>`
+- `receipt_routes_checked(subject) -> ForgeQueryDeclarationReceiptChecked<D, I>`
+- `receipt_routes_from_progressed(progressed) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationReceiptTerminalError<D, I>>`
+- `receipt_routes_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationReceiptTerminalError<D, I>>`
+- `declare_review_progress_describe_plan_and_receipt(input) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationEntryReceiptError<D, I>>`
+
+Admitted-handle envelope entry points:
+
+- `envelope_routes(subject) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
+- `envelope_routes_checked(subject) -> ForgeQueryDeclarationEnvelopeChecked<D, I>`
+- `envelope_routes_from_progressed(progressed) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
+- `envelope_routes_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
+- `declare_review_progress_describe_plan_receipt_and_envelope(input) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEntryEnvelopeError<D, I>>`
+
 Checked admission outcomes:
 
 - `ForgeQueryConfiguredDomainHandleChecked::Admitted(ForgeQueryAdmittedConfiguredDomainHandle<D, C>)`
@@ -353,6 +377,9 @@ They do not yet provide:
 - declaration legality proof by themselves
 - declaration progression proof by themselves
 - foundational declaration evidence by themselves
+- declaration route planning by themselves
+- declaration boundary receipts by themselves
+- declaration boundary envelopes by themselves
 - dynamic operation eligibility
 - preview, historical, or runtime basis binding
 - lower-authority routing
@@ -363,6 +390,9 @@ They do not yet provide:
 - [Declaration Legality](./declaration-legality.md)
 - [Declaration Progression](./declaration-progression.md)
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
+- [Declaration Route Plans](./declaration-route-plan.md)
+- [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
+- [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Platform Entry](./platform-entry.md)
 - [Domain Capabilities Index](./README.md)
 - [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)

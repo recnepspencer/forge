@@ -15,6 +15,9 @@ of domain work you are trying to do:
 - [Declaration Legality](./declaration-legality.md)
 - [Declaration Progression](./declaration-progression.md)
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
+- [Declaration Route Plans](./declaration-route-plan.md)
+- [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
+- [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - `admission/`
   - [Advisory And Violation Contributions](./admission/advisory-and-violation-contributions.md)
   - [Declaration Vs Admitted-Plan Targets](./admission/declaration-vs-admitted-plan-targets.md)
@@ -72,6 +75,16 @@ one typed deferred/denied/stale/rebind/failed outcome. Use
 [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
 when you need to describe retained legality or progression truth through shared
 foundational provenance, support, receipt, and attachment-bundle artifacts.
+Use [Declaration Route Plans](./declaration-route-plan.md) when you need one
+Query-owned route plan over admitted progression proof plus matching
+foundational evidence, with explicit route sets, typed caller route intent,
+and plan-local explanations. Use
+[Declaration Boundary Receipts](./declaration-boundary-receipts.md) when you
+need the Query-owned operational crossing artifact that records what followed
+from that route truth. Use
+[Declaration Boundary Envelopes](./declaration-boundary-envelopes.md) when you
+need the one public artifact that carries retained evidence, route truth, and
+receipt truth forward together.
 
 ## Declaration Pipeline Surface Map
 
@@ -103,6 +116,24 @@ order:
   - `describe_foundational(...)`
   - `describe_foundational_checked(...)`
   - `describe_foundational_with_profile(...)`
+- route planning:
+  - `plan_routes(...)`
+  - `plan_routes_checked(...)`
+  - `plan_routes_from_progressed(...)`
+  - `plan_routes_from_progressed_with_intent(...)`
+  - `declare_review_progress_describe_and_plan(...)`
+- boundary receipts:
+  - `receipt_routes(...)`
+  - `receipt_routes_checked(...)`
+  - `receipt_routes_from_progressed(...)`
+  - `receipt_routes_from_progressed_with_intent(...)`
+  - `declare_review_progress_describe_plan_and_receipt(...)`
+- boundary envelopes:
+  - `envelope_routes(...)`
+  - `envelope_routes_checked(...)`
+  - `envelope_routes_from_progressed(...)`
+  - `envelope_routes_from_progressed_with_intent(...)`
+  - `declare_review_progress_describe_plan_receipt_and_envelope(...)`
 
 The main retained public artifacts introduced along that path are:
 
@@ -110,6 +141,9 @@ The main retained public artifacts introduced along that path are:
 - `ForgeQueryDeclarationLegalityEvidence`
 - `ForgeQueryAdmittedDeclarationProgression`
 - `ForgeQueryDeclarationFoundationalEvidence`
+- `ForgeQueryDeclarationRoutePlan`
+- `ForgeQueryDeclarationReceipt`
+- `ForgeQueryDeclarationEnvelope`
 
 The main checked and denied families are:
 
@@ -123,6 +157,15 @@ The main checked and denied families are:
 - `ForgeQueryDeclarationEntryProgressionError`
 - `ForgeQueryDeclarationFoundationalEvidenceChecked`
 - `ForgeQueryDeclarationFoundationalEvidenceDenial`
+- `ForgeQueryDeclarationRoutePlanChecked`
+- `ForgeQueryDeclarationRoutePlanTerminalError`
+- `ForgeQueryDeclarationEntryRoutePlanError`
+- `ForgeQueryDeclarationReceiptChecked`
+- `ForgeQueryDeclarationReceiptTerminalError`
+- `ForgeQueryDeclarationEntryReceiptError`
+- `ForgeQueryDeclarationEnvelopeChecked`
+- `ForgeQueryDeclarationEnvelopeTerminalError`
+- `ForgeQueryDeclarationEntryEnvelopeError`
 
 Start here if:
 

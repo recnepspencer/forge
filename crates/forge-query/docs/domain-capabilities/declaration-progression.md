@@ -38,6 +38,8 @@ instead of stopping at legality evidence.
 - `ForgeQueryAdmittedConfiguredDomainHandle::progress_declaration_recipe_checked(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::declare_review_and_progress(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::describe_foundational(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::plan_routes_from_progressed(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::plan_routes_from_progressed_with_intent(...)`
 - `ForgeQueryDeclarationProgressionRecipe`
 - `ForgeQueryDeclarationProgressionChecked`
 - `ForgeQueryDeclarationProgressionTerminalError`
@@ -81,6 +83,11 @@ Relevant admitted-handle identity inspection:
 Foundational-evidence entry that can consume progression truth:
 
 - `describe_foundational(subject) -> Result<ForgeQueryDeclarationFoundationalEvidence<D, I>, ForgeQueryDeclarationFoundationalEvidenceDenial<D, I>>`
+
+Route-planning entries that can consume admitted progression truth:
+
+- `plan_routes_from_progressed(progressed) -> Result<ForgeQueryDeclarationRoutePlan<D, I>, ForgeQueryDeclarationRoutePlanTerminalError<D, I>>`
+- `plan_routes_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationRoutePlan<D, I>, ForgeQueryDeclarationRoutePlanTerminalError<D, I>>`
 
 Recipe inspection:
 
@@ -341,6 +348,9 @@ What this example is showing:
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
   describes admitted, deferred, denied, stale, rebind, and failed progression
   truths through shared foundational artifacts
+- [Declaration Route Plans](./declaration-route-plan.md) consumes admitted
+  progression proof plus matching foundational evidence and turns that retained
+  declaration truth into one explicit lower-authority route set
 
 ## Inspection And Debugging
 
@@ -379,9 +389,10 @@ Declaration progression now gives other Query declaration features a proof
 artifact over legality-cleared declarations. It still does not decide:
 
 - lower-authority route planning
+- Query boundary receipts
 - grouped execution semantics
 - continuation execution
-- public Query receipts or envelopes
+- public Query boundary envelopes
 
 ## Related Docs
 
@@ -389,5 +400,8 @@ artifact over legality-cleared declarations. It still does not decide:
 - [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
 - [Declaration Legality](./declaration-legality.md)
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
+- [Declaration Route Plans](./declaration-route-plan.md)
+- [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
+- [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Domain Capabilities](./README.md)

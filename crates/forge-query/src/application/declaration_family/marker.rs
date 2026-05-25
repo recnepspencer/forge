@@ -2,7 +2,8 @@ use crate::application::{
     ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
     ForgeQueryDeclarationGroupedPostureTag, ForgeQueryDeclarationLegalityContract,
     ForgeQueryDeclarationPrimaryAuthorityTag, ForgeQueryDeclarationProgressionContract,
-    ForgeQueryDeclarationSignalCompatibilityTag, ForgeQueryDomainEntryMarker,
+    ForgeQueryDeclarationRouteContract, ForgeQueryDeclarationSignalCompatibilityTag,
+    ForgeQueryDomainEntryMarker,
 };
 
 use super::taxonomy::ForgeQueryDeclarationFamilyTaxonomy;
@@ -37,5 +38,9 @@ pub trait ForgeQueryDeclarationFamilyMarker<D: ForgeQueryDomainEntryMarker> {
         _operating_context_identity_digest: &str,
     ) -> ForgeQueryDeclarationProgressionContract {
         ForgeQueryDeclarationProgressionContract::admitted_current()
+    }
+
+    fn route_contract() -> ForgeQueryDeclarationRouteContract {
+        ForgeQueryDeclarationRouteContract::deferred_auto()
     }
 }

@@ -81,7 +81,7 @@ impl ForgeQueryDeclarationFamilySupportRow {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct ForgeQueryDeclarationFamilySupportReport<
     D: ForgeQueryDomainEntryMarker,
     F: ForgeQueryDeclarationFamilyMarker<D>,
@@ -94,6 +94,23 @@ pub struct ForgeQueryDeclarationFamilySupportReport<
     rows: Vec<ForgeQueryDeclarationFamilySupportRow>,
     support_digest: String,
     _marker: std::marker::PhantomData<(D, F)>,
+}
+
+impl<D: ForgeQueryDomainEntryMarker, F: ForgeQueryDeclarationFamilyMarker<D>> Clone
+    for ForgeQueryDeclarationFamilySupportReport<D, F>
+{
+    fn clone(&self) -> Self {
+        Self {
+            domain_key: self.domain_key,
+            declaration_family_key: self.declaration_family_key,
+            declaration_taxonomy: self.declaration_taxonomy,
+            required_capability_families: self.required_capability_families.clone(),
+            required_config_sections: self.required_config_sections.clone(),
+            rows: self.rows.clone(),
+            support_digest: self.support_digest.clone(),
+            _marker: std::marker::PhantomData,
+        }
+    }
 }
 
 impl<D: ForgeQueryDomainEntryMarker, F: ForgeQueryDeclarationFamilyMarker<D>>
