@@ -299,10 +299,10 @@ export interface AdmittedGraphCapability<
 
 export interface AdmittedRouteCapability<
   TRoute extends string = string,
-  TSearch extends RouterSearchSchema = Record<string, never>,
-  THash extends RouterHashField<unknown> | null = null,
-  TControllers extends RouteControllerMap = Record<string, never>,
-  TGraphs extends RouteGraphMap = Record<string, never>,
+  TSearch extends RouterSearchSchema = RouterSearchSchema,
+  THash extends RouterHashField<unknown> | null = RouterHashField<unknown> | null,
+  TControllers extends RouteControllerMap = RouteControllerMap,
+  TGraphs extends RouteGraphMap = RouteGraphMap,
 > {
   readonly kind: "admittedRouteCapability";
   readonly routeId: string;

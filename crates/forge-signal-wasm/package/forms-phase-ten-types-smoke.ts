@@ -162,11 +162,11 @@ signals.form({
     title: field("title"),
   }),
   validation: ({ field }) => ({
+    // @ts-expect-error validation severity must be info warning or error
     invalidSeverity: field("title", () => ({
       kind: "invalid",
       message: {
         code: "bad",
-        // @ts-expect-error validation severity must be info warning or error
         severity: "fatal",
         audience: "user",
         visibility: "visible",

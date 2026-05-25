@@ -29,6 +29,9 @@ import type {
   RouterBrowserHistoryOutletCompositionVerificationPackage,
   RouterNavigationAuditability,
 } from "./router_history_auditability_surface.js";
+import type {
+  RouterHydrationAdmissionReport,
+} from "./router_hydration_surface.js";
 
 declare const forgeSignalRouterBrowserHistoryIngressBrand: unique symbol;
 declare const forgeSignalRouterBrowserHistoryIngressVerificationBrand: unique symbol;

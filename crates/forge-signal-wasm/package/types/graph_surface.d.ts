@@ -17,6 +17,7 @@ import type {
   RuntimeSnapshotEnvelope,
   WhySummary,
 } from "./diagnostics.js";
+import type { Signal } from "./callable_surface.js";
 
 export type GraphReadableHandle<T = SignalValue> =
   | import("./callable_surface.js").InputSignalHandle<T>
@@ -447,7 +448,7 @@ export type ImportedGraphSignals<
 };
 
 export interface ImportedGraphInputHandle<T = SignalValue>
-  extends import("./callable_surface.js").Signal<T> {
+  extends Signal<T> {
   set(value: T): Promise<RunSummary>;
   reset(): Promise<RunSummary>;
   patch(value: GraphPatchValue<T>): Promise<RunSummary>;

@@ -1,5 +1,7 @@
 import type {
   ReplaySummary,
+} from "./diagnostics.js";
+import type {
   RuntimeSnapshotEnvelopeArtifact,
 } from "./callable_surface.js";
 

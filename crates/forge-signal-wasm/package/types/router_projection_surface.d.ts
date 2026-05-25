@@ -114,10 +114,10 @@ export interface ProjectedGraphCapability<
 
 export interface ProjectedRouteCapability<
   TRoute extends string = string,
-  TSearch extends RouterSearchSchema = Record<string, never>,
-  THash extends RouterHashField<unknown> | null = null,
-  TControllers extends RouteControllerMap = Record<string, never>,
-  TGraphs extends RouteGraphMap = Record<string, never>,
+  TSearch extends RouterSearchSchema = RouterSearchSchema,
+  THash extends RouterHashField<unknown> | null = RouterHashField<unknown> | null,
+  TControllers extends RouteControllerMap = RouteControllerMap,
+  TGraphs extends RouteGraphMap = RouteGraphMap,
 > {
   readonly kind: "projectedRouteCapability";
   readonly routeId: string;
@@ -169,10 +169,10 @@ export interface ProjectedOutletContract<
 
 export interface ProjectedLayoutPlacement<
   TRoute extends string = string,
-  TSearch extends RouterSearchSchema = Record<string, never>,
-  THash extends RouterHashField<unknown> | null = null,
-  TControllers extends RouteControllerMap = Record<string, never>,
-  TGraphs extends RouteGraphMap = Record<string, never>,
+  TSearch extends RouterSearchSchema = RouterSearchSchema,
+  THash extends RouterHashField<unknown> | null = RouterHashField<unknown> | null,
+  TControllers extends RouteControllerMap = RouteControllerMap,
+  TGraphs extends RouteGraphMap = RouteGraphMap,
 > {
   readonly kind: "projectedLayoutPlacement";
   readonly outletId: string;
@@ -185,8 +185,20 @@ export interface ProjectedLayoutPlacement<
 }
 
 export interface ProjectedRouteCandidate<
-  TRouteCapability extends ProjectedRouteCapability = ProjectedRouteCapability,
-  TLayoutPlacement extends ProjectedLayoutPlacement = ProjectedLayoutPlacement,
+  TRouteCapability extends ProjectedRouteCapability<
+    string,
+    RouterSearchSchema,
+    RouterHashField<unknown> | null,
+    RouteControllerMap,
+    RouteGraphMap
+  > = ProjectedRouteCapability,
+  TLayoutPlacement extends ProjectedLayoutPlacement<
+    string,
+    RouterSearchSchema,
+    RouterHashField<unknown> | null,
+    RouteControllerMap,
+    RouteGraphMap
+  > = ProjectedLayoutPlacement,
 > {
   readonly kind: "projectedCandidate";
   readonly href: string;

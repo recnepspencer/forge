@@ -214,11 +214,6 @@ packageJson.peerDependenciesMeta = {
   },
 };
 
-await writeFile(
-  packageJsonPath,
-  `${JSON.stringify(packageJson, null, 2)}\n`,
-  "utf8",
-);
 await resetPackageStage();
 
 const noticePath = path.join(pkgDir, "PROPRIETARY.md");
@@ -269,6 +264,11 @@ await copyFile(
 await copyFile(
   reactModelDeclarationsPath,
   path.join(pkgDir, "react", "model.d.ts"),
+);
+await writeFile(
+  packageJsonPath,
+  `${JSON.stringify(packageJson, null, 2)}\n`,
+  "utf8",
 );
 
 console.log(`Prepared ${packageJson.name} in ${pkgDir}`);

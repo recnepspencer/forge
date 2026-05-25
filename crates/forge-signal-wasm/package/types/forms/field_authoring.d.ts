@@ -123,7 +123,7 @@ export interface FormRepeatedResourceLocus {
 }
 
 export interface FormRepeatedFieldOptions<TValue = SignalValue, TRaw = TValue>
-  extends FormFieldOptions<TValue, TRaw> {
+  extends Omit<FormFieldOptions<TValue, TRaw>, "resourceLocus"> {
   readonly resourceLocus?: FormRepeatedResourceLocus;
 }
 

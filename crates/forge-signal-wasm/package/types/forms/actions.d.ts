@@ -1,5 +1,9 @@
 import type { SignalValue } from "../model.js";
 import type { ResourceEffectProfileDigest } from "../resource/resource_effect_envelope.js";
+import type {
+  ResourceLineFreshness,
+  ResourceLineStatus,
+} from "../resource/resource_lifecycle.js";
 import type { FormAdmissionCapability, FormAdmissionReport } from "./admission.js";
 import type { FormAvailabilityReport } from "./availability.js";
 import type { FormPatchOperation, FormPatchReplacement, FormReadinessBlocker } from "./core.js";

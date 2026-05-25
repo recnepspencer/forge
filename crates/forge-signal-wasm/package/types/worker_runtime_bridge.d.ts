@@ -1,6 +1,7 @@
 import type {
   BranchStateProofReport,
   ExecutionHistorySummary,
+  LineageSummary,
   FailureSummary,
   FlowSurfaceSummary,
   FrontierExecutionSummary,
@@ -13,6 +14,7 @@ import type {
   ReplayArtifactProofInput,
   ReplayArtifactProofReport,
   ReplayParityProofReport,
+  ReplaySummary,
   RollbackDiagnostic,
   RuntimeDefinitionEnvelope,
   RuntimeEnvelope,
@@ -21,17 +23,20 @@ import type {
   RuntimeSnapshotArtifact,
   RuntimeSnapshotEnvelope,
   RuntimePolicySpec,
-  VersionSummary,
+  MergePlanArtifact,
+  MergePlanProofEnvelope,
+  MergePolicyPreviewRequest,
+  MergeResultArtifact,
+  MergeResultProofEnvelope,
   WebPerformanceSummary,
   WhySummary,
 } from "./diagnostics.js";
 import type {
-  LineageSummary,
   RecipeSpec,
-  ReplaySummary,
   RunSummary,
   SourceSpec,
   TransactionOp,
+  VersionSummary,
 } from "./model.js";
 import type {
   WorkerBrowserHistoryIngress,
