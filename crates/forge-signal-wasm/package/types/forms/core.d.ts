@@ -354,6 +354,7 @@ export interface FormReadinessBlocker {
     | "navigation:noBackStep"
     | "navigation:removedTarget"
     | "navigation:unavailableTarget"
+    | "routeAuthority:frozen"
     | "collaboration:resourceProofUnavailable"
     | "collaboration:locked"
     | "collaboration:leased"

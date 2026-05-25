@@ -195,6 +195,38 @@ test("signals.form adapter interaction ingress lowers into the same interaction 
   }
 });
 
+test("signals.form bindInput gives common control integrations a task-shaped event bridge", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const signals = wrapSignals(createGraphOperationalRuntime());
+    const form = signals.form({
+      source: { query: "" },
+      fields: ({ field }) => ({
+        query: field("query", {
+          input: {
+            adapter: {
+              tier: "externalImperative",
+            },
+            parse: (raw) => raw.trim(),
+          },
+        }),
+      }),
+    });
+
+    const query = form.bindInput("query", { source: "typing" });
+    query.input("  ship docs  ");
+    query.focus();
+    query.commit();
+    query.blur();
+
+    assert.equal(form.effective().query, "ship docs");
+    assert.equal(form.interaction().fields.find((entry) => entry.field === "query")?.blurred, true);
+    assert.equal(form.fields.query.diagnostics().inputAdapter.tier, "externalImperative");
+  } finally {
+    await cleanup();
+  }
+});
+
 test("signals.form interaction report keeps raw-input and composition capability unavailability explicit", async () => {
   const { wrapSignals, cleanup } = await loadSignalsModule();
   try {

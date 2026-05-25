@@ -67,6 +67,7 @@ import type {
   WorkerObservationDeliveryAttachRequest,
   WorkerObservationDeliveryDetachRequest,
   WorkerObservationDeliveryPacket,
+  WorkerOutputDeliveryRequest,
   WorkerOutputDeliveryPacket,
   WorkerPortableGraphPublication,
   WorkerSignalReadbackPacket,

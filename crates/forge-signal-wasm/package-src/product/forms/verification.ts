@@ -1,3 +1,4 @@
+import { readRouteAuthorityContinuityAudit } from "./route_authority/continuity_audit.js";
 import { digestFormDiagnosticsProof } from "./diagnostics/digests.js";
 import { stableValueDigest } from "./values/value_paths.js";
 import { digestFormDiagnosticsHistory } from "./diagnostics/history.js";
@@ -26,6 +27,7 @@ export function buildFormVerificationPackage(form, diagnosticsSnapshot) {
   const inputCapabilities = state.inputCapabilities;
   const exit = state.exit;
   const handoff = state.handoff;
+  const routeAuthority = state.routeAuthority;
   const attachments = state.attachments;
   const media = state.media;
   const messages = state.messages;
@@ -42,6 +44,7 @@ export function buildFormVerificationPackage(form, diagnosticsSnapshot) {
   const sourceCompatibility = state.sourceCompatibility;
   const steps = state.steps;
   const actions = state.actions;
+  const routeAuthorityContinuity = readRouteAuthorityContinuityAudit(routeAuthority, steps, actions);
   const fieldContract = state.fieldContract;
   const inputAdapters = state.inputAdapters;
   const actionHistory = state.actionHistory;
@@ -128,6 +131,8 @@ export function buildFormVerificationPackage(form, diagnosticsSnapshot) {
     inputCapabilityDigest: inputCapabilities.digest,
     exitDigest: exit.digest,
     handoffDigest: handoff.digest,
+    routeAuthorityDigest: routeAuthority.digest,
+    routeAuthorityContinuityDigest: routeAuthorityContinuity.digest,
     attachmentDigest: attachments.digest,
     attachmentTransferDigest: attachmentTransfers.digest,
     mediaDigest: media.digest,
@@ -194,6 +199,7 @@ export function buildFormVerificationPackage(form, diagnosticsSnapshot) {
   return Object.freeze({
     kind: "formVerification",
     sourceAuthority,
+    routeAuthorityContinuity,
     digests,
     actionHistory: Object.freeze({
       attempts: actionHistory.length,
@@ -253,6 +259,7 @@ export function buildFormVerificationPackage(form, diagnosticsSnapshot) {
       inputCapabilities,
       exit,
       handoff,
+      routeAuthority,
       attachments,
       media,
       messages,
@@ -307,6 +314,7 @@ function formPerformanceEnvelope(reports) {
     inputCapabilities: reports.inputCapabilities.counters,
     exit: reports.exit.counters,
     handoff: reports.handoff.counters,
+    routeAuthority: reports.routeAuthority.counters,
     attachments: reports.attachments.counters,
     attachmentTransfers: reports.attachmentTransfers.counters,
     media: reports.media.counters,

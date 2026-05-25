@@ -13,11 +13,13 @@ test("signals.form layout report derives section row column and track hints from
       fields: ({ field }) => ({
         title: field("title", {
           label: "Title",
-          row: "hero",
-          column: "left",
-          minHeight: 44,
-          grow: true,
-          responsive: ["mobile:stack", "desktop:two-column"],
+          layout: {
+            row: "hero",
+            column: "left",
+            minHeight: 44,
+            grow: true,
+            responsive: ["mobile:stack", "desktop:two-column"],
+          },
         }),
         summary: field("summary", {
           label: "Summary",
@@ -70,6 +72,8 @@ test("signals.form layout report derives section row column and track hints from
     assert.equal(titleHint.column, "left");
     assert.equal(titleHint.tracks.help, "omitted");
     assert.equal(titleHint.tracks.message, "declared");
+    assert.equal(titleHint.inputAdapterTier, "signalNative");
+    assert.equal(titleHint.capabilities.supportsMessageTrack, true);
     assert.equal(titleHint.minHeight, 44);
     assert.equal(titleHint.grow, true);
     assert.deepEqual(titleHint.responsive, ["mobile:stack", "desktop:two-column"]);
@@ -80,6 +84,7 @@ test("signals.form layout report derives section row column and track hints from
     assert.equal(layout.sections.find((section) => section.id === "details").density, "spacious");
     assert.equal(layout.summary.unavailableFields, 0);
     assert.equal(layout.counters.responsiveTokens, 3);
+    assert.equal(form.layoutField("title")?.field, "title");
     assert.equal(form.diagnostics().layout.digest, layout.digest);
   } finally {
     await cleanup();
@@ -118,6 +123,7 @@ test("signals.form layout report keeps unavailable posture explicit when adapter
 
     const titleHint = form.layout().fields[0];
     assert.equal(titleHint.capabilityPosture.posture, "unavailable");
+    assert.equal(titleHint.capabilities.supportsMessageTrack, false);
     assert.deepEqual(titleHint.capabilityPosture.unavailableCapabilities, [
       "minHeightSync",
       "responsiveTokens",
@@ -140,11 +146,28 @@ test("signals.form layout declarations deny malformed field and step layout hint
         source: { title: "" },
         fields: ({ field }) => ({
           title: field("title", {
-            minHeight: -1,
+            layout: {
+              minHeight: -1,
+            },
           }),
         }),
       }),
       /minHeight must be a non-negative finite number/,
+    );
+
+    assert.throws(
+      () => signals.form({
+        source: { title: "" },
+        fields: ({ field }) => ({
+          title: field("title", {
+            row: "hero",
+            layout: {
+              row: "hero",
+            },
+          }),
+        }),
+      }),
+      /either layout or flat layout hints, not both/,
     );
 
     assert.throws(

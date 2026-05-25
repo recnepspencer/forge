@@ -222,7 +222,7 @@ const MUTATION_RESPONSE_CLOSEOUT_ROWS = Object.freeze([
       ],
       typeSurface: ["resource_api_response_mutation_contract_denials.ts"],
       docs: ["mutation-response-closeout-matrix.md"],
-      closeout: ["mutation_response_closeout_matrix_happy_path.test.mjs"],
+      closeout: ["resource_mutation_response_closeout_matrix.test.mjs"],
     },
   }),
   createMutationResponseCloseoutMatrixRow({
@@ -234,7 +234,7 @@ const MUTATION_RESPONSE_CLOSEOUT_ROWS = Object.freeze([
       runtimeTests: ["mutation_response_fallback_honesty.test.mjs"],
       typeSurface: ["resource_api_response_mutation_contract_denials.ts"],
       docs: ["mutation-response-closeout-matrix.md"],
-      closeout: ["mutation_response_closeout_matrix_happy_path.test.mjs"],
+      closeout: ["resource_mutation_response_closeout_matrix.test.mjs"],
     },
   }),
   createMutationResponseCloseoutMatrixRow({
@@ -249,7 +249,7 @@ const MUTATION_RESPONSE_CLOSEOUT_ROWS = Object.freeze([
       ],
       typeSurface: ["resource_api_response_mutation_contract_denials.ts"],
       docs: ["mutation-response-closeout-matrix.md"],
-      closeout: ["mutation_response_closeout_matrix_happy_path.test.mjs"],
+      closeout: ["resource_mutation_response_closeout_matrix.test.mjs"],
     },
   }),
   createMutationResponseCloseoutMatrixRow({
@@ -260,11 +260,11 @@ const MUTATION_RESPONSE_CLOSEOUT_ROWS = Object.freeze([
     evidence: {
       runtimeTests: [
         "api_write_semantic_finalizers.test.mjs",
-        "mutation_response_closeout_matrix_happy_path.test.mjs",
+        "resource_mutation_response_closeout_matrix.test.mjs",
       ],
       typeSurface: ["resource_api_response_mutation_contract_denials.ts"],
       docs: ["mutation-response-closeout-matrix.md"],
-      closeout: ["mutation_response_closeout_matrix_happy_path.test.mjs"],
+      closeout: ["resource_mutation_response_closeout_matrix.test.mjs"],
     },
   }),
 ]);

@@ -36,6 +36,8 @@ Product-facing package docs live separately in:
 - [worker_runtime_placement_closeout.md](worker_runtime_placement_closeout.md)
 - [worker_runtime_product_entrypoint_correction_plan.md](worker_runtime_product_entrypoint_correction_plan.md)
 - [worker_runtime_test_requirements.md](worker_runtime_test_requirements.md)
+- [router_navigation_projection_plan.md](router_navigation_projection_plan.md)
+- [router_test_requirements.md](router_test_requirements.md)
 
 ## Reading Order
 
@@ -51,5 +53,7 @@ Product-facing package docs live separately in:
 10. [resource_mutation_response_reconciliation_plan.md](resource_mutation_response_reconciliation_plan.md)
 11. [worker_runtime_placement_plan.md](worker_runtime_placement_plan.md)
 12. [worker_runtime_test_requirements.md](worker_runtime_test_requirements.md)
-13. [worker_runtime_placement_closeout.md](worker_runtime_placement_closeout.md)
-14. [worker_runtime_product_entrypoint_correction_plan.md](worker_runtime_product_entrypoint_correction_plan.md)
+13. [router_navigation_projection_plan.md](router_navigation_projection_plan.md)
+14. [router_test_requirements.md](router_test_requirements.md)
+15. [worker_runtime_placement_closeout.md](worker_runtime_placement_closeout.md)
+16. [worker_runtime_product_entrypoint_correction_plan.md](worker_runtime_product_entrypoint_correction_plan.md)

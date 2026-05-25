@@ -21,6 +21,7 @@ export function readFormDiagnostics(state, summary, diagnosticsHistory, verifica
     inputCapabilities: state.inputCapabilities,
     exit: state.exit,
     handoff: state.handoff,
+    routeAuthority: state.routeAuthority,
     attachments: state.attachments,
     media: state.media,
     messages: state.messages,

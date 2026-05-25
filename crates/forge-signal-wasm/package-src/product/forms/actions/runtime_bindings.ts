@@ -1,5 +1,6 @@
 import { executeResourceBackedAction } from "./resource_action_execution.js";
 import { consumeDraftFields } from "./action_patch_scope.js";
+import { readActionDebug } from "./debug.js";
 
 export function createActionRuntimeBindings({
   formRef,
@@ -12,6 +13,7 @@ export function createActionRuntimeBindings({
   fieldDeclarations,
   setDraft,
   applyControllerLocalNavigation,
+  reportRouteHandoff,
   resets,
   replayRestores,
 }) {
@@ -21,6 +23,9 @@ export function createActionRuntimeBindings({
     },
     actionHistory() {
       return actionAttempts.history();
+    },
+    debugAction(actionId) {
+      return readActionDebug(formRef(), actionId);
     },
     executeAction(actionId) {
       const form = formRef();
@@ -32,6 +37,7 @@ export function createActionRuntimeBindings({
           resourceSettlement: currentResourceSettlementForPlan(form, plan),
         });
         applyControllerLocalNavigation(execution);
+        reportRouteHandoff?.(plan, execution);
         return execution;
       }
       const resourceExecution = executeResourceBackedAction(source, fieldDeclarations, plan, {
@@ -63,6 +69,7 @@ export function createActionRuntimeBindings({
         }
       }
       applyControllerLocalNavigation(execution);
+      reportRouteHandoff?.(plan, execution);
       return execution;
     },
     fulfillAction(operationId, payload = {}) {
@@ -85,6 +92,7 @@ export function createActionRuntimeBindings({
         setDraft(nextDraft.nextDraft);
       }
       applyControllerLocalNavigation(settled);
+      reportRouteHandoff?.(settled.planSnapshot ?? null, settled);
       return settled;
     },
     rejectAction(operationId, payload = {}) {

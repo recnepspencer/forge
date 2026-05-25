@@ -54,7 +54,7 @@ export type FormResourceActionDeclaration =
 
 export interface FormResourceBackedPatchActionDeclarationOptions extends Omit<
   FormActionDeclarationOptions,
-  "patchPolicy" | "effectPolicy" | "hostEffect"
+  "patchPolicy" | "effectPolicy" | "hostEffect" | "resourceAction"
 > {
   readonly patchPolicy?: "requiresNonEmpty";
   readonly effectPolicy?: "deferred";
@@ -64,7 +64,7 @@ export interface FormResourceBackedPatchActionDeclarationOptions extends Omit<
 
 export interface FormResourceBackedLifecycleActionDeclarationOptions extends Omit<
   FormActionDeclarationOptions,
-  "patchPolicy" | "effectPolicy" | "hostEffect" | "resourceEffectProfile"
+  "patchPolicy" | "effectPolicy" | "hostEffect" | "resourceEffectProfile" | "resourceAction"
 > {
   readonly patchPolicy?: "ignore";
   readonly effectPolicy?: "deferred";
@@ -75,7 +75,7 @@ export interface FormResourceBackedLifecycleActionDeclarationOptions extends Omi
 
 export interface FormResourceBackedRecoveryActionDeclarationOptions extends Omit<
   FormActionDeclarationOptions,
-  "patchPolicy" | "effectPolicy" | "hostEffect" | "resourceEffectProfile"
+  "patchPolicy" | "effectPolicy" | "hostEffect" | "resourceEffectProfile" | "resourceAction"
 > {
   readonly patchPolicy?: "ignore";
   readonly effectPolicy?: "deferred";

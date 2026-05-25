@@ -17,6 +17,7 @@ import { runWorkerFirstAsyncTransaction } from "./worker_first_async_transaction
 import { createWorkerFirstFormFactory } from "./worker_first_form_factory.js";
 import { createWorkerFirstResourceNamespace } from "./worker_first_resource_namespace.js";
 import { createWorkerFirstExplicitSpecNamespace } from "./worker_first_explicit_spec_namespace.js";
+import { createRouterNamespace } from "../router/router_namespace.js";
 import { createWorkerFirstRootImportedGraph } from "./worker_first_root_imported_graph.js";
 import { createRootHistoryFacade } from "./worker_first_root_history.js";
 import { createWorkerFirstRootSession } from "./worker_first_root_session.js";
@@ -49,6 +50,7 @@ async function createWorkerFirstCallableSignalsAfterBootstrap(rootSession, reque
   let form = null;
   let resource = null;
   let api = null;
+  let router = null;
   let spec = null;
   let rootNamespace = null;
   void request;
@@ -75,6 +77,10 @@ async function createWorkerFirstCallableSignalsAfterBootstrap(rootSession, reque
     get api() {
       api ??= createApiFactory(callableSignals);
       return api;
+    },
+    get router() {
+      router ??= createRouterNamespace();
+      return router;
     },
     scope(localScopeId) {
       return namespace().scope(localScopeId);

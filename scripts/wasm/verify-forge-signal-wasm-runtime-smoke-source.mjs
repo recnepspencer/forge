@@ -11,7 +11,8 @@ let onlineState = "online";
 let onlineListener = null;
 let clockTick = 0;
 let persistedDraft = { mode: "draft", revision: 1 };
-const signals = createSignals({
+const signals = await createSignals({
+  deployment: "mainThreadCompatibility",
   hostCapabilities: hostCapabilityPlan({
     visibility: visibilityCapability({
       source: {
@@ -411,50 +412,49 @@ const linkedRevisionGraph = signals.graph("linkedRevisionSelection", (graph) => 
   clockTick = 5;
   await new Promise((resolve) => setTimeout(resolve, 15));
   persistedDraft = { mode: "draft", revision: 2 };
-  signals.host.persistence?.commit();
-  signals.host.persistence?.commit();
-  await Promise.resolve();
-signals.transaction((tx) => {
+  await Promise.resolve(signals.host.persistence?.commit());
+  await Promise.resolve(signals.host.persistence?.commit());
+await Promise.resolve(signals.transaction((tx) => {
   tx.set(count, 2);
-});
-localDraft.patch({
+}));
+await Promise.resolve(localDraft.patch({
   done: true,
-});
-localDraft.assign({
+}));
+await Promise.resolve(localDraft.assign({
   title: "Ready to ship",
-});
-signals.transaction((tx) => {
+}));
+await Promise.resolve(signals.transaction((tx) => {
   tx.patch(localDraft, {
     status: "queued",
   });
-});
-preservedShippingOption.set({ id: "air", label: "Air" });
-shippingOptions.set([
+}));
+await Promise.resolve(preservedShippingOption.set({ id: "air", label: "Air" }));
+await Promise.resolve(shippingOptions.set([
   { id: "ground", label: "Ground" },
   { id: "air", label: "Air" },
   { id: "sea", label: "Sea" },
-]);
+]));
 const preservedShippingAfterSourceChange = preservedShippingOption();
-preservedShippingOption.relink();
+await Promise.resolve(preservedShippingOption.relink());
 const preservedShippingAfterRelink = preservedShippingOption();
-preservedShippingOption.set({ id: "manual", label: "Manual" });
-preservedShippingOption.reset();
+await Promise.resolve(preservedShippingOption.set({ id: "manual", label: "Manual" }));
+await Promise.resolve(preservedShippingOption.reset());
 const preservedShippingAfterReset = preservedShippingOption();
-shippingOptions.set([
+await Promise.resolve(shippingOptions.set([
   { id: "sea", label: "Sea" },
   { id: "ground", label: "Ground" },
-]);
-firstShippingOption.set({ id: "manual", label: "Manual" });
-firstShippingOption.reset();
+]));
+await Promise.resolve(firstShippingOption.set({ id: "manual", label: "Manual" }));
+await Promise.resolve(firstShippingOption.reset());
 const firstShippingAfterReset = firstShippingOption();
-firstShippingOption.relink();
+await Promise.resolve(firstShippingOption.relink());
 const firstShippingAfterRelink = firstShippingOption();
-preservedShippingOption.set({ id: "manual", label: "Manual" });
-preservedShippingOption.relink();
+await Promise.resolve(preservedShippingOption.set({ id: "manual", label: "Manual" }));
+await Promise.resolve(preservedShippingOption.relink());
 const preservedShippingAfterFallbackRelink = preservedShippingOption();
 const history = signals.history();
 const branch = history.current_branch();
-const previewBranch = history.create_branch("preview");
+const previewBranch = await history.create_branch("preview");
 const replay = history.replay_for_branch(branch.id);
 const snapshot = history.snapshot();
 const branchSnapshot = history.branch_snapshot(branch.id);
@@ -462,12 +462,12 @@ const branchEnvelope = history.branch_snapshot_envelope(branch.id);
 const adapters = signals.adapters();
 const runtimeEnvelope = adapters.exportRuntimeEnvelope();
 const transportReport = adapters.hostCapabilityTransportReport(runtimeEnvelope);
-const restoredExact = createSignals();
-restoredExact.adapters().restoreExactRuntimeEnvelope(runtimeEnvelope);
-const portableImport = createSignals();
+const restoredExact = await createSignals({ deployment: "mainThreadCompatibility" });
+await restoredExact.adapters().restoreExactRuntimeEnvelope(runtimeEnvelope);
+const portableImport = await createSignals({ deployment: "mainThreadCompatibility" });
 let portableImportError = null;
 try {
-  portableImport.adapters().replaceRuntimeEnvelope(runtimeEnvelope);
+  await portableImport.adapters().replaceRuntimeEnvelope(runtimeEnvelope);
 } catch (error) {
   portableImportError = {
     code: error?.code ?? null,
@@ -520,23 +520,23 @@ const itemDetailGraphInputs = itemDetailGraph.readInputs();
 const itemDetailGraphOutputId = itemDetailGraph.output("submitReadiness").id;
 const itemDetailGraphContract = itemDetailGraph.contract();
 const itemDetailGraphOperationalContract = itemDetailGraph.operationalContract();
-itemDetailGraph.writeInputs({
+await Promise.resolve(itemDetailGraph.writeInputs({
   serverItemData: {
     workflow_target_state_id: "ready",
   },
-});
-itemDetailGraph.writeInput("serverItemData", {
+}));
+await Promise.resolve(itemDetailGraph.writeInput("serverItemData", {
   workflow_target_state_id: "review",
-});
-itemDetailGraph.patchInputs({
+}));
+await Promise.resolve(itemDetailGraph.patchInputs({
   draftEdits: {
     title: "Ship docs",
   },
-});
-itemDetailGraph.patchInput("draftEdits", {
+}));
+await Promise.resolve(itemDetailGraph.patchInput("draftEdits", {
   queued: true,
-});
-itemDetailGraph.transaction((tx) => {
+}));
+await Promise.resolve(itemDetailGraph.transaction((tx) => {
   tx.set("draftEdits", {
     title: "Ready to ship",
     workflow_target_state_id: "ready",
@@ -544,8 +544,8 @@ itemDetailGraph.transaction((tx) => {
   tx.patch("draftEdits", {
     staged: true,
   });
-});
-itemDetailGraph.apply({
+}));
+await Promise.resolve(itemDetailGraph.apply({
   writes: {
     serverItemData: {
       workflow_target_state_id: "done",
@@ -557,7 +557,7 @@ itemDetailGraph.apply({
     },
   },
   commands: {},
-});
+}));
 const itemDetailGraphOperationalSnapshot = itemDetailGraph.readInputs();
 itemDetailGraph.resetInputs();
 const itemDetailGraphResetSnapshot = itemDetailGraph.readInputs();
@@ -567,7 +567,9 @@ const itemDetailGraphCompatibility = itemDetailGraph.exportCompatibilityDefiniti
 const itemDetailGraphExportDefinition = itemDetailGraph.exportDefinition();
 const itemDetailGraphExportSnapshot = itemDetailGraph.exportSnapshot();
 const itemDetailGraphImportPosture = itemDetailGraph.importPosture();
-const importedItemDetailGraph = createSignals().importGraph(
+const importedItemDetailGraph = (
+  await createSignals({ deployment: "mainThreadCompatibility" })
+).importGraph(
   itemDetailGraphExportDefinition,
   itemDetailGraphExportSnapshot,
 );
@@ -585,15 +587,15 @@ const itemDetailGraphContractDelta = itemDetailGraph.contractDelta({
 });
 const taskEditorGraphContract = taskEditorGraph.contract();
 const taskEditorGraphOperationalContract = taskEditorGraph.operationalContract();
-taskEditorGraph.patchInputs({
+await Promise.resolve(taskEditorGraph.patchInputs({
   draftValue: {
     status: "published",
   },
-});
-taskEditorGraph.patchInput("draftValue", {
+}));
+await Promise.resolve(taskEditorGraph.patchInput("draftValue", {
   title: "Ship package",
-});
-taskEditorGraph.apply({
+}));
+await Promise.resolve(taskEditorGraph.apply({
   writes: {
     routeParams: {
       taskId: "task-8",
@@ -606,48 +608,48 @@ taskEditorGraph.apply({
     },
   },
   commands: {},
-});
+}));
 const taskEditorGraphDiagnostics = taskEditorGraph.inspectDiagnostics();
 const taskEditorGraphHistory = taskEditorGraph.inspectHistory();
 const taskEditorGraphCompatibility = taskEditorGraph.exportCompatibilityDefinition();
 const authorityGraphContract = authorityGraph.contract();
 const authorityGraphOperationalContract = authorityGraph.operationalContract();
-authorityGraph.writeInputs({
+await Promise.resolve(authorityGraph.writeInputs({
   draftValue: {
     title: "Ready to ship",
   },
-});
-authorityGraph.writeInput("draftValue", {
+}));
+await Promise.resolve(authorityGraph.writeInput("draftValue", {
   title: "Reviewed",
-});
-authorityGraph.patchInputs({
+}));
+await Promise.resolve(authorityGraph.patchInputs({
   draftValue: {
     title: "Approved",
   },
-});
-authorityGraph.patchInput("draftValue", {
+}));
+await Promise.resolve(authorityGraph.patchInput("draftValue", {
   status: "queued",
-});
-authorityGraph.transaction((tx) => {
+}));
+await Promise.resolve(authorityGraph.transaction((tx) => {
   tx.set("draftValue", {
     title: "Queued",
   });
   tx.patch("draftValue", {
     status: "queued",
   });
-});
-linkedSelectionGraph.writeInputs({
+}));
+await Promise.resolve(linkedSelectionGraph.writeInputs({
   chosen: { id: "review", label: "Review" },
-});
-linkedSelectionGraph.writeInputs({
+}));
+await Promise.resolve(linkedSelectionGraph.writeInputs({
   available: [
     { id: "ready", label: "Ready" },
     { id: "review", label: "Review" },
   ],
-});
-linkedSelectionGraph.resetInputs(["chosen"]);
+}));
+await Promise.resolve(linkedSelectionGraph.resetInputs(["chosen"]));
 const linkedSelectionAfterGraphReset = linkedSelectionGraph.readInputs().chosen;
-linkedRevisionGraph.writeInputs({
+await Promise.resolve(linkedRevisionGraph.writeInputs({
   available: {
     revision: 2,
     options: [
@@ -655,9 +657,9 @@ linkedRevisionGraph.writeInputs({
       { id: "ready", label: "Ready" },
     ],
   },
-});
-linkedRevisionGraph.resetInputs(["chosen"]);
-linkedRevisionGraph.writeInputs({
+}));
+await Promise.resolve(linkedRevisionGraph.resetInputs(["chosen"]));
+await Promise.resolve(linkedRevisionGraph.writeInputs({
   available: {
     revision: 2,
     options: [
@@ -665,8 +667,8 @@ linkedRevisionGraph.writeInputs({
       { id: "review", label: "Review" },
     ],
   },
-});
-linkedRevisionGraph.resetInputs(["chosen"]);
+}));
+await Promise.resolve(linkedRevisionGraph.resetInputs(["chosen"]));
 const linkedRevisionAfterSecondGraphReset = linkedRevisionGraph.readInputs().chosen;
 const authorityGraphRead = authorityGraph.read();
 const authorityGraphInputs = authorityGraph.readInputs();

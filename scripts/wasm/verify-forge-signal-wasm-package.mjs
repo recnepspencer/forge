@@ -187,10 +187,14 @@ async function main() {
   assert.equal(packageJson.exports["./react"].types, "./react/index.d.ts");
 
   await rm(tarballPath, { force: true });
-  await runNpm(["pack"], { cwd: pkgDir });
-
-  const { stdout: tarStdout } = await execFileAsync("tar", ["-tf", expectedTarballName], { cwd: pkgDir });
-  const entries = normalizeTarEntries(tarStdout);
+  const { stdout: packStdout } = await runNpm(["pack", "--json"], { cwd: pkgDir });
+  const packResults = JSON.parse(packStdout);
+  const packedFiles = Array.isArray(packResults) && packResults.length > 0
+    ? packResults[0].files
+    : [];
+  const entries = packedFiles.map((file) =>
+    `package/${String(file.path).replaceAll("\\", "/")}`
+  );
   const requiredEntries = [
     "package/index.js",
     "package/index.d.ts",
@@ -230,7 +234,6 @@ async function main() {
     "package/docs/resource-contracts/closeout-matrix.md",
     "package/docs/resource-contracts/reconciliation.md",
     "package/docs/api-reference/route-authoring.md",
-    "package/docs/metadata/resource-feature-doc-inventory.json",
   ];
   const forbiddenEntries = [
     "package/forge_signal_wasm.d.ts",

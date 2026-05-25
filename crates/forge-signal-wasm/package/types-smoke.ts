@@ -203,6 +203,506 @@ const workerFirstApiDetailLine = workerFirstApi.url("/tasks/:taskId").response(
 ).detail({
   load: ({ taskId }: { taskId: string }) => ({ id: taskId, title: "API" }),
 }).line({ taskId: "task-1" } as never);
+const routes = signals.router.define({
+  home: signals.router.route("/"),
+  userDetail: signals.router.route("/users/:userId", {
+    search: {
+      tab: signals.router.search.optional.string(),
+      page: signals.router.search.optional.number(),
+      active: signals.router.search.optional.boolean(),
+    },
+    hash: signals.router.hash.string(),
+  }),
+});
+const projectedAuthSource = signals.router.host.string("auth");
+const projectedWorkspaceReadySource = signals.router.resource.boolean("workspaceReady");
+const projectedTenantCapabilitySource = signals.router.graph.string("tenantCapability");
+const projectedAuthRequired = signals.router.prerequisite("projected-auth-required", {
+  consumes: [projectedAuthSource, projectedWorkspaceReadySource, projectedTenantCapabilitySource] as const,
+  evaluate: ({ consume, allow, denied }) => (
+    consume(projectedAuthSource) === "signedIn" &&
+      consume(projectedWorkspaceReadySource) === true &&
+      consume(projectedTenantCapabilitySource) === "granted"
+      ? allow({ reason: "authenticated" })
+      : denied({ reason: "admissionSourcesBlocked" })
+  ),
+});
+const projectedRouteRecovery = signals.router.recovery(
+  "projected-user-detail-recovery",
+  ({ terminalArtifact, fallback }) => (
+    terminalArtifact.kind === "notFound"
+      ? fallback({ href: "/users", reason: "staleDetail" })
+      : null
+  ),
+);
+const projectedRouteLabel = signals.output(() => "detail");
+const projectedDetailController = signals.controller({
+  outputs: {
+    projectedRouteLabel,
+  },
+});
+const projectedDetailGraph = signals.graph("routeDetailGraph", {
+  outputs: {
+    projectedRouteLabel,
+  },
+});
+const projectedRoutes = signals.router.define({
+  app: signals.router.layout("/", { outlet: "shell" }, {
+    home: signals.router.route("/"),
+    users: signals.router.layout("/users", { outlet: "detail" }, {
+      index: signals.router.route("/users"),
+      detail: signals.router.route("/users/:userId", {
+        search: {
+          tab: signals.router.search.optional.string(),
+        },
+        controllers: {
+          detail: projectedDetailController,
+        },
+        graphs: {
+          detailGraph: projectedDetailGraph,
+        },
+        resources: {
+          detailLine: signals.router.resourceLine(workerFirstDetailFamily, {
+            params: ({ params }) => ({ taskId: params.userId }),
+            prefetch: "hover",
+          }),
+        },
+        admission: [projectedAuthRequired],
+        recovery: [projectedRouteRecovery],
+        forms: signals.router.forms("user-detail-form", {
+          continuity: "preserve",
+        }),
+      }),
+    }),
+  }),
+});
+const routeBreadcrumbDeclaration = signals.router.breadcrumb({
+  id: "user-detail",
+  label: ({ params }) => `User ${params.userId}`,
+  parent: signals.router.breadcrumbParent({
+    fallback: signals.router.breadcrumbEntry({
+      id: "users",
+      label: "Users",
+      target: "/users",
+    }),
+  }),
+});
+const routeBreadcrumbTrailDeclaration = signals.router.breadcrumbTrail([
+  signals.router.breadcrumbEntry({
+    id: "workspace",
+    label: "Workspace",
+    target: "/workspace/acme",
+  }),
+]);
+const breadcrumbRoute = signals.router.route("/users/:userId", {
+  breadcrumb: routeBreadcrumbDeclaration,
+});
+const breadcrumbRouteTree = signals.router.define({
+  breadcrumbRoute,
+});
+const breadcrumbProjectedCandidate = breadcrumbRouteTree.project("/users/task-1");
+const breadcrumbProjectedEntry = breadcrumbProjectedCandidate?.route().breadcrumb();
+const breadcrumbProjectedTrail = breadcrumbProjectedCandidate?.route().breadcrumbTrail();
+const scopedRoutes = scopedSignals.router.define({
+  step: signals.router.route("/wizard/:stepId"),
+});
+const rawLocationAuthority = signals.router.raw(
+  "/users/task-1?page=2&tab=activity&active=true#panel",
+  { navigationType: "manual" },
+);
+const browserHistoryIngress = signals.router.browserHistory.push("/users/task-1?page=2", {
+  routeIdentity: "userDetail:task-1",
+  runtimeRouteSourceId: "routeIdentity",
+  routeValue: "userDetail:task-1",
+  runtimeContinuitySourceId: "routeContinuity",
+  continuityValue: "restored",
+});
+const browserHistoryIngressKind:
+  import("./types/router_surface.js").BrowserHistoryNavigationKind =
+    browserHistoryIngress.navigationKind;
+const browserHistoryIngressDigest: string =
+  browserHistoryIngress.verification().browserHistoryEnvelopeDigest;
+const browserHistoryWriteback = signals.router.browserHistory.writeback.replace(
+  routes.userDetail.to({
+    params: { userId: "task-1" },
+    search: { page: 2 },
+  }),
+  {
+    routeIdentity: "userDetail:task-1",
+    runtimeRouteSourceId: "routeIdentity",
+    routeValue: "userDetail:task-1",
+  },
+);
+const browserHistoryWritebackDigest: string =
+  browserHistoryWriteback.verification().browserHistoryWritebackDigest;
+const browserHistoryExternalWriteback = signals.router.browserHistory.writeback.external(
+  "https://example.com/docs/router",
+);
+const browserHistoryStory = signals.router.browserHistory.story();
+const browserHistoryBreadcrumbTrail = browserHistoryStory.breadcrumbTrail();
+const carriedBreadcrumbs = signals.router.carryBreadcrumbs(browserHistoryBreadcrumbTrail.entries);
+const carriedBreadcrumbsDigest: string =
+  carriedBreadcrumbs.verification().carriedBreadcrumbsDigest;
+const rawLocationNavigationType:
+  import("./types/router_surface.js").RawLocationNavigationType =
+    rawLocationAuthority.navigationType;
+const canonicalUrlAuthority = rawLocationAuthority.canonical();
+const canonicalUrlAuthorityHref: string = canonicalUrlAuthority.href;
+const canonicalUrlAuthorityDigest: string =
+  canonicalUrlAuthority.verification().canonicalUrlDigest;
+const userDetailLocation = routes.userDetail.to({
+  params: { userId: "task-1" },
+  search: { tab: "activity", page: 2, active: true },
+  hash: "panel",
+});
+const userDetailCanonical = routes.userDetail.canonical({
+  params: { userId: "task-1" },
+  search: { tab: "activity", page: 2, active: true },
+  hash: "panel",
+});
+const userDetailCanonicalHref: string = userDetailCanonical.href;
+const userDetailCanonicalDigest: string = userDetailCanonical.equivalenceDigest;
+const userDetailReferenceVerification = routes.userDetail.verification();
+const userDetailRouteSchemaDigest: string = userDetailReferenceVerification.routeSchemaDigest;
+const userDetailCanonicalVerification = userDetailCanonical.verification();
+const userDetailCanonicalUrlDigest: string =
+  userDetailCanonicalVerification.canonicalUrlDigest;
+const userDetailIntent = routes.userDetail.intent(
+  {
+    params: { userId: "task-1" },
+    search: { tab: "activity", page: 2, active: true },
+    hash: "panel",
+  },
+  {
+    kind: "replace",
+  },
+);
+const userDetailIntentDescriptorKind = userDetailIntent.descriptor().kind;
+const userDetailIntentCanonicalDigest: string =
+  userDetailIntent.descriptor().canonical().equivalenceDigest;
+const userDetailIntentVerificationDigest: string =
+  userDetailIntent.verification().navigationIntentDigest;
+const userDetailPlan = userDetailIntent.policy({
+  continuity: "preserve-visible-while-pending",
+  projectionRefresh: "explicit",
+  artifactPolicy: "diagnostics",
+  deployment: "workerFirst",
+}).compile();
+const userDetailPlanKind = userDetailPlan.kind;
+const userDetailPlanHref: string = userDetailPlan.href;
+const userDetailPlanCost = userDetailPlan.cost();
+const userDetailPlanLooksExpensive: boolean = userDetailPlanCost.looksExpensive;
+const userDetailPlanProjectionRefresh = userDetailPlan.projectionPolicy().projectionRefresh;
+const userDetailPlanCanonicalDigest: string = userDetailPlan.canonical().equivalenceDigest;
+const userDetailPlanExplainCanonicalDigest: string =
+  userDetailPlan.explain().canonical.equivalenceDigest;
+const userDetailPlanVerificationDigest: string =
+  userDetailPlan.verification().navigationPlanDigest;
+const userDetailPlanExplainabilityDigest: string =
+  userDetailPlan.verification().navigationExplainabilityDigest;
+const directUserDetailPlan = userDetailLocation.plan({
+  continuity: "refresh-immediately",
+  projectionRefresh: "immediate",
+});
+const directUserDetailPlanKind = directUserDetailPlan.kind;
+const directUserDetailPlanExplanationHref: string = directUserDetailPlan.explain().href;
+const directUserDetailCanonicalDigest: string =
+  userDetailLocation.canonical().canonicalUrlDigest;
+const userDetailHref: string = routes.userDetail.href({
+  params: { userId: "task-1" },
+  search: { tab: "activity", page: 2, active: true },
+  hash: "panel",
+});
+const matchedUserDetail = routes.userDetail.match(userDetailHref);
+const matchedUserDetailId: string | number | undefined = matchedUserDetail?.params.userId;
+const matchedUserDetailPage: number | undefined = matchedUserDetail?.search.page;
+const matchedUserDetailActive: boolean | undefined = matchedUserDetail?.search.active;
+const matchedUserDetailHash: string | undefined = matchedUserDetail?.hash;
+const matchedFromRawAuthority = routes.userDetail.match(
+  signals.router.raw("/users/task-1?active=true&page=2&tab=activity#panel"),
+);
+const matchedFromCanonicalAuthority = routes.userDetail.match(
+  signals.router.canonical("/users/task-1?active=true&page=2&tab=activity#panel"),
+);
+const projectedCandidate = projectedRoutes.project("/users/task-1?tab=activity");
+const projectedTreeWarmup = projectedRoutes.warmup("/users/task-1?tab=activity", "intent");
+const projectedRoute = projectedCandidate?.route();
+const projectedRouteId: string | undefined = projectedRoute?.routeId;
+const projectedRouteParamId: string | number | undefined = projectedRoute?.params.userId;
+const projectedRouteCanonicalDigest: string | undefined =
+  projectedRoute?.canonical().equivalenceDigest;
+const projectedRouteResourceNames: ReadonlyArray<string> | undefined =
+  projectedRoute?.resourceNames();
+const projectedRoutePrefetchPosture:
+  import("./types/router_surface.js").RouteResourcePrefetchPosture | undefined =
+    projectedRoute?.resource("detailLine").prefetchPosture();
+const projectedRoutePrefetchDigest: string | undefined =
+  projectedRoute?.resource("detailLine").prefetch().verification().routeResourcePrefetchDigest;
+const projectedRouteWarmupDigest: string | undefined =
+  projectedRoute?.resource("detailLine").warmup("intent").verification().routeResourcePrefetchDigest;
+const projectedCandidatePrefetch = projectedCandidate?.prefetch("hover");
+const projectedCandidateWarmup = projectedCandidate?.warmup("intent");
+const projectedCandidatePrefetchTrigger:
+  import("./types/router_surface.js").RoutePrefetchTrigger | undefined =
+    projectedCandidatePrefetch?.trigger;
+const projectedCandidatePrefetchResourceDigest: string | undefined =
+  projectedCandidatePrefetch?.resource("detailLine").verification().routeResourcePrefetchDigest;
+const projectedCandidateWarmupSkippedNames: ReadonlyArray<string> | undefined =
+  projectedCandidateWarmup?.skippedResourceNames();
+const projectedTreeWarmupDigest: string | undefined =
+  projectedTreeWarmup?.verification().routePrefetchDigest;
+const projectedWarmupIngress = signals.router.warmup.hover("/users/task-1", {
+  sourceId: "sidebar-link",
+  routeIdentity: "usersDetail",
+});
+const projectedWarmupIngressDigest: string =
+  projectedWarmupIngress.verification().routeWarmupIngressDigest;
+const projectedWarmupReport = projectedRoutes.applyWarmupIngress(projectedWarmupIngress);
+const projectedWarmupBoundaryArtifact:
+  "routeWarmupStarted" | "noMatchingWarmupResources" | "noProjectedCandidate" =
+    projectedWarmupReport.diagnostics().boundaryArtifact;
+const projectedAdmissionPlan = projectedCandidate?.admission({
+  auth: "signedIn",
+  workspaceReady: true,
+  tenantCapability: "granted",
+});
+const projectedAdmissionPlanDigest: string | undefined =
+  projectedAdmissionPlan?.verification().admissionPlanDigest;
+const projectedAdmissionRecoveryNames: ReadonlyArray<string> | undefined =
+  projectedAdmissionPlan?.recoveryNames();
+const projectedAdmissionPlanProvenanceAttemptedRouteId: string | undefined =
+  projectedAdmissionPlan?.provenance().attemptedRouteId;
+const projectedAdmissionPlanConsumedSourceName: string | undefined =
+  projectedAdmissionPlan?.provenance().consumedSources[0]?.name;
+const projectedAdmissionOutcome = await projectedRoutes.admit("/users/task-1?tab=activity", {
+  auth: "signedIn",
+  workspaceReady: true,
+  tenantCapability: "granted",
+});
+const projectedBrowserHistoryReport = await projectedRoutes.admitBrowserHistoryIngress(
+  signals.router.browserHistory.push("/users/task-1?tab=activity", {
+    routeIdentity: "userDetail:task-1",
+  }),
+  {
+    auth: "signedIn",
+    workspaceReady: true,
+    tenantCapability: "granted",
+  },
+);
+const projectedAdmissionOutcomeKind = projectedAdmissionOutcome.kind;
+const projectedTransition = projectedAdmissionOutcome.kind === "admitted"
+  ? await projectedRoutes.transition(projectedAdmissionOutcome, projectedCandidatePrefetch!, {
+    continuity: "preserve-visible-while-pending",
+  })
+  : null;
+const projectedTransitionVisibleSource:
+  import("./types/router_surface.js").RouteVisibleChangeSource | undefined =
+    projectedTransition?.diagnostics().visibleChangeSource;
+const projectedTransitionDigest: string | undefined =
+  projectedTransition?.verification().routeTransitionDigest;
+const projectedBrowserHistoryEnvelopeFamily = projectedBrowserHistoryReport.envelopeFamily;
+const projectedBrowserHistoryRouteTruthDigest: string =
+  projectedBrowserHistoryReport.verification().routeTruthDigest;
+const projectedBrowserHistoryWritebackReport = await projectedRoutes.applyBrowserHistoryWriteback(
+  browserHistoryWriteback,
+  {
+    auth: "signedIn",
+    workspaceReady: true,
+    tenantCapability: "granted",
+  },
+);
+const projectedBrowserHistoryWritebackFamily = projectedBrowserHistoryWritebackReport.envelopeFamily;
+const projectedBrowserHistoryWritebackBoundaryDigest: string =
+  projectedBrowserHistoryWritebackReport.verification().boundaryStoryDigest;
+const projectedExternalWritebackReport = await projectedRoutes.applyBrowserHistoryWriteback(
+  browserHistoryExternalWriteback,
+);
+const projectedExternalWritebackOutcome = projectedExternalWritebackReport.outcome();
+const projectedBrowserHistorySeedEvent = browserHistoryStory.record(projectedBrowserHistoryReport);
+const projectedBrowserHistoryEvent = browserHistoryStory.record(projectedBrowserHistoryWritebackReport);
+const projectedBrowserHistoryEvents = browserHistoryStory.events();
+const browserHistoryStoryCurrent = browserHistoryStory.current();
+const browserHistoryStoryLatestBoundaryEvent = browserHistoryStory.latestBoundaryEvent();
+const browserHistoryStoryCurrentRouteTruthEvent = browserHistoryStory.currentRouteTruthEvent();
+const projectedBrowserHistoryBack = browserHistoryStory.back();
+const projectedBrowserHistoryBreadcrumbs = browserHistoryStory.breadcrumbs();
+const projectedBrowserHistoryBackProvenance = browserHistoryStory.backProvenance();
+const projectedBrowserHistoryBreadcrumbTrail = browserHistoryStory.breadcrumbTrail();
+const projectedBrowserHistoryStoryDigest: string =
+  browserHistoryStory.verification().historyStoryDigest;
+const projectedAdmissionOutcomeRecovery = projectedAdmissionOutcome.recovery();
+const projectedAdmissionDiagnosticsRecovery = projectedAdmissionOutcome.diagnostics().recovery;
+const projectedAdmissionOutcomeProvenance = projectedAdmissionOutcome.provenance();
+const projectedAdmissionOutcomeTerminalSource = projectedAdmissionOutcome.provenance().terminalSource;
+const projectedAdmissionOutcomeRecoveryTrail = projectedAdmissionOutcome.provenance().recoveryTrail;
+const projectedAdmissionFormsAuthority =
+  projectedAdmissionOutcome.kind === "admitted"
+    ? projectedAdmissionOutcome.route().formsAuthority()
+    : null;
+const projectedAdmissionFormsAuthoritySurfaceId: string | null =
+  projectedAdmissionFormsAuthority?.surfaceId ?? null;
+const projectedAdmissionFormsAuthorityDigest: string | null =
+  projectedAdmissionFormsAuthority?.verification().formsAuthorityDigest ?? null;
+const projectedAdmissionRouteResourceFamilyId: string | null =
+  projectedAdmissionOutcome.kind === "admitted"
+    ? projectedAdmissionOutcome.route().resource("detailLine").current().descriptor.family.familyId
+    : null;
+const projectedAdmissionRouteResourceCanonicalKey: string | null =
+  projectedAdmissionOutcome.kind === "admitted"
+    ? projectedAdmissionOutcome.route().resource("detailLine").line().descriptor().canonicalParams.canonicalKey
+    : null;
+const projectedAdmissionOutcomeConsumedSourceFamily:
+  import("./types/router_surface.js").RouteAdmissionSourceFamily | undefined =
+    projectedAdmissionOutcome.provenance().prerequisiteDecisions[0]?.consumedSources[0]?.family;
+if (projectedAdmissionOutcome.kind === "admitted") {
+  projectedAdmissionOutcome.route().canonical();
+} else {
+  projectedAdmissionOutcome.artifact().reason;
+}
+const projectedLayouts = projectedCandidate?.layouts();
+const projectedOutletId: string | null | undefined = projectedCandidate?.outlet().outletId;
+const projectedCandidateDigest: string | undefined =
+  projectedCandidate?.verification().projectedCandidateDigest;
+const projectedAppOutletId: string = projectedRoutes.app.outletId;
+const projectedUsersOutletId: string = projectedRoutes.app.users.outletId;
+const projectedRouteAuthorityForm = signals.form({
+  source: { title: "Ship docs" },
+  fields: ({ field }) => ({
+    title: field("title"),
+  }),
+  steps: ({ step }) => ({
+    review: step("review", ["title"], { routeCoupled: true }),
+  }),
+  actions: ({ step }) => ({
+    reviewRoute: step("reviewRoute", "review", "jump", { routeCoupled: true }),
+  }),
+});
+if (projectedAdmissionOutcome.kind === "admitted" && projectedAdmissionOutcome.route().formsAuthority() !== null) {
+  projectedRouteAuthorityForm.reportRouteAuthority(projectedAdmissionOutcome.route().formsAuthority()!);
+}
+const projectedRouteAuthoritySummary = projectedRouteAuthorityForm.routeAuthority().summary;
+const projectedRouteAuthorityContinuity = projectedRouteAuthoritySummary.continuity;
+const projectedRouteAuthorityHandoff = projectedRouteAuthoritySummary.handoff;
+const projectedRouteAuthorityDraftContinuity = projectedRouteAuthoritySummary.draftContinuity;
+const projectedRouteAuthorityDraftResolution:
+  | "preservedValue"
+  | "preservedFrozenValue"
+  | "replacedFromSource"
+  | "awaitingAdmittedTruth"
+  | "authorityCleared"
+  | undefined = projectedRouteAuthorityDraftContinuity?.draftResolution;
+const projectedRouteAuthorityRouteCoupledBehavior:
+  "admitted" | "deferred" | "cleared" | undefined = projectedRouteAuthorityHandoff?.routeCoupledBehavior;
+const projectedRouteAuthorityContinuityApplied = projectedRouteAuthoritySummary.continuityApplied;
+const projectedRouteAuthorityTransitionKind = projectedRouteAuthoritySummary.transitionKind;
+const projectedRouteAuthorityPreviousAuthorityDigest = projectedRouteAuthoritySummary.previousAuthorityDigest;
+const projectedRouteAuthorityChangedReports = projectedRouteAuthorityForm.routeAuthority().counters.changedReports;
+const projectedRouteAuthorityPreservedDraftUpdates =
+  projectedRouteAuthorityForm.routeAuthority().counters.preservedDraftUpdates;
+const scopedRouteHref: string = scopedRoutes.step.href({
+  params: { stepId: 3 },
+});
+const routeLocationCheck: boolean = signals.router.isRouteLocation(userDetailLocation);
+const rawLocationCheck: boolean = signals.router.isRawLocationAuthority(rawLocationAuthority);
+const canonicalUrlCheck: boolean =
+  signals.router.isCanonicalUrlAuthority(canonicalUrlAuthority);
+// @ts-expect-error routes must start with /
+signals.router.route("users/:userId");
+// @ts-expect-error route params must satisfy declared path params
+routes.userDetail.to({ params: {} });
+// @ts-expect-error route search values must satisfy declared value kinds
+routes.userDetail.to({ params: { userId: "task-1" }, search: { page: "2" } });
+// @ts-expect-error undeclared search params must not leak past declaration boundaries
+routes.userDetail.to({ params: { userId: "task-1" }, search: { extra: "nope" } });
+// @ts-expect-error hash must satisfy the declared hash kind
+routes.userDetail.to({ params: { userId: "task-1" }, hash: 2 });
+// @ts-expect-error root route does not admit undeclared params
+routes.home.to({ params: { anything: "nope" } });
+// @ts-expect-error navigation intent kinds stay inside the declared vocabulary
+routes.userDetail.intent({ params: { userId: "task-1" } }, { kind: "teleport" });
+// @ts-expect-error navigation policy continuity stays inside the declared vocabulary
+routes.userDetail.intent({ params: { userId: "task-1" } }).policy({ continuity: "maybe" });
+// @ts-expect-error navigation policy projection refresh stays inside the declared vocabulary
+userDetailLocation.plan({ projectionRefresh: "later" });
+// @ts-expect-error route resources must be declared with signals.router.resourceLine(...)
+signals.router.route("/bad-resource", { resources: { detail: workerFirstDetailFamily } });
+signals.router.resourceLine(workerFirstDetailFamily, {
+  params: () => ({ taskId: "task-1" }),
+  // @ts-expect-error route resource prefetch posture stays inside the declared vocabulary
+  prefetch: "later",
+});
+// @ts-expect-error route prefetch trigger must stay inside the declared vocabulary
+projectedCandidate?.prefetch("manual");
+// @ts-expect-error route warmup trigger must stay inside the declared vocabulary
+projectedCandidate?.warmup("manual");
+// @ts-expect-error router warmup ingress requires local href string or raw location authority
+signals.router.warmup.hover({ href: "/users/task-1" });
+// @ts-expect-error raw location navigation types stay inside the declared vocabulary
+signals.router.raw("/users/task-1", { navigationType: "teleport" });
+// @ts-expect-error browser history ingress requires a local href string or raw location authority
+signals.router.browserHistory.push({ href: "/users/task-1" });
+// @ts-expect-error local writeback rejects arbitrary href-shaped objects that are not typed route locations or raw location authority
+signals.router.browserHistory.writeback.push({ href: "/users/task-1" });
+// @ts-expect-error local writeback requires explicit routeIdentity authority
+signals.router.browserHistory.writeback.replace("/users/task-1");
+signals.router.browserHistory.writeback.external("/users/task-1");
+// @ts-expect-error browser history story requires a real boundary report
+signals.router.browserHistory.story().record({ envelopeFamily: "browserHistoryIngress" });
+// @ts-expect-error layout declarations require nested route children
+signals.router.layout("/", { outlet: "shell" });
+// @ts-expect-error projected route candidates expose candidate truth rather than route-location navigation APIs
+projectedCandidate?.route().plan({ projectionRefresh: "immediate" });
+// @ts-expect-error projected route candidates must not expose admitted-only forms authority
+projectedCandidate?.route().formsAuthority();
+// @ts-expect-error admission declarations must be created with signals.router.prerequisite(...)
+signals.router.route("/broken", { admission: [{ name: "bad" }] });
+// @ts-expect-error prerequisite consumes entries must be declared router admission sources
+signals.router.prerequisite("broken-consumes", { consumes: [{ name: "auth" }], evaluate: ({ allow }) => allow() });
+signals.router.prerequisite("broken-consume-usage", {
+  consumes: [projectedAuthSource] as const,
+  evaluate: ({ consume, allow }) => {
+    // @ts-expect-error prerequisite evaluation may only consume declared sources
+    consume(projectedWorkspaceReadySource);
+    return allow();
+  },
+});
+// @ts-expect-error recovery declarations must be created with signals.router.recovery(...)
+signals.router.route("/broken-recovery", { recovery: [{ name: "bad" }] });
+// @ts-expect-error projected route candidates must not masquerade as admitted route outcomes
+projectedCandidate?.route().artifact();
+// @ts-expect-error canonical route artifacts stay branded and must not accept structural forgeries
+const forgedCanonicalArtifact:
+  import("./types/router_surface.js").CanonicalRouteArtifact<"/", Record<string, never>, null> = {};
+// @ts-expect-error raw location authorities stay branded and must not accept structural forgeries
+const forgedRawLocationAuthority:
+  import("./types/router_surface.js").RawLocationAuthority = {};
+// @ts-expect-error canonical url authorities stay branded and must not accept structural forgeries
+const forgedCanonicalUrlAuthority:
+  import("./types/router_surface.js").CanonicalUrlAuthority = {};
+// @ts-expect-error route verification packages stay branded and must not accept structural forgeries
+const forgedRouteVerificationPackage:
+  import("./types/router_surface.js").RouteReferenceVerificationPackage = {};
+// @ts-expect-error raw location verification packages stay branded and must not accept structural forgeries
+const forgedRawLocationVerificationPackage:
+  import("./types/router_surface.js").RawLocationVerificationPackage = {};
+// @ts-expect-error canonical url verification packages stay branded and must not accept structural forgeries
+const forgedCanonicalUrlVerificationPackage:
+  import("./types/router_surface.js").CanonicalUrlVerificationPackage = {};
+// @ts-expect-error canonical verification packages stay branded and must not accept structural forgeries
+const forgedCanonicalVerificationPackage:
+  import("./types/router_surface.js").CanonicalRouteVerificationPackage = {};
+// @ts-expect-error navigation intent verification packages stay branded and must not accept structural forgeries
+const forgedNavigationIntentVerificationPackage:
+  import("./types/router_surface.js").NavigationIntentVerificationPackage = {};
+// @ts-expect-error navigation plan verification packages stay branded and must not accept structural forgeries
+const forgedNavigationPlanVerificationPackage:
+  import("./types/router_surface.js").NavigationPlanVerificationPackage = {};
+// @ts-expect-error projected route capabilities stay branded and must not accept structural forgeries
+const forgedProjectedRouteCapability:
+  import("./types/router_surface.js").ProjectedRouteCapability = {};
+// @ts-expect-error projected route candidates stay branded and must not accept structural forgeries
+const forgedProjectedRouteCandidate:
+  import("./types/router_surface.js").ProjectedRouteCandidate = {};
 const scopedCount = nestedScopedSignals.input(1, { debugName: "count" });
 const scopedStringValue = nestedScopedSignals.input("value", { debugName: "scopedStringValue" });
 const scopedDeclarativeDouble = nestedScopedSignals.computed({
@@ -474,6 +974,29 @@ const taskFormTitleDiagnosticsWritePosture =
   taskForm.fields.title.diagnostics().writePosture.canWrite;
 const taskFormSubmitReady = taskForm.actionReadiness("submit").canRun;
 const taskFormVisibleMessageCount = taskForm.visibleMessages().length;
+const taskFormDiagnosticsSummary = taskForm.diagnosticsSummary();
+const taskFormDiagnosticsRouteAuthorityDigest: string =
+  taskFormDiagnosticsSummary.routeAuthority.digest;
+const taskFormDiagnosticsRouteAuthorityPosture:
+  "preserve" | "freeze" | "discard" | "defer" | "cleared" | null =
+  taskFormDiagnosticsSummary.routeAuthority.handoff?.posture ?? null;
+const taskFormDiagnosticsHistoryRouteAuthorityDigest: string =
+  taskForm.diagnosticsHistory()[0]?.routeAuthorityDigest ?? "";
+const taskFormDiagnosticsHistoryRouteAuthorityResolution:
+  "preservedValue"
+  | "preservedFrozenValue"
+  | "replacedFromSource"
+  | "awaitingAdmittedTruth"
+  | "authorityCleared"
+  | null =
+  taskForm.diagnosticsHistory()[0]?.routeAuthorityDraftResolution ?? null;
+const taskFormDiagnosticsRouteAuthorityAuditDigest: string =
+  taskFormDiagnosticsSummary.routeAuthority.continuityAudit.digest;
+const taskFormVerificationRouteAuthorityContinuityDigest: string =
+  taskForm.verification().digests.routeAuthorityContinuityDigest;
+const taskFormVerificationRouteAuthorityContinuityBehavior:
+  "admitted" | "deferred" | "cleared" | null =
+  taskForm.verification().routeAuthorityContinuity.routeCoupledBehavior;
 const optionList = signals.input([
   { id: "draft", label: "Draft" },
   { id: "review", label: "Review" },
@@ -831,6 +1354,50 @@ const itemDetailGraphCompatibilityContractInputId =
   itemDetailGraphCompatibility.contract.inputs.serverItemData;
 const itemDetailGraphCompatibilityOutputId =
   itemDetailGraphCompatibility.outputs.submitReadiness;
+const projectedComposedRoutes = signals.router.define({
+  app: signals.router.layout("/", { outlet: "shell" }, {
+    itemDetail: signals.router.route("/items/:itemId", {
+      controllers: {
+        editSession,
+      },
+      graphs: {
+        itemDetailGraph,
+      },
+    }),
+  }),
+});
+const projectedComposedCandidate = projectedComposedRoutes.project("/items/task-1");
+const projectedComposedRoute = projectedComposedCandidate?.route();
+const projectedComposedController = projectedComposedRoute?.controller("editSession");
+const projectedComposedGraph = projectedComposedRoute?.graph("itemDetailGraph");
+const projectedComposedOutlets = projectedComposedCandidate?.outlets();
+const projectedComposedLeafOutlet = projectedComposedCandidate?.outlet();
+const projectedComposedNestedOutlet = projectedComposedCandidate?.layouts()[0]?.outlet();
+const projectedComposedNestedOccupant = projectedComposedNestedOutlet?.occupant();
+const projectedComposedLeafOccupant = projectedComposedLeafOutlet?.occupant();
+const projectedComposedControllerOutputs = projectedComposedController?.outputNames();
+const projectedComposedGraphSummary = projectedComposedGraph?.summary();
+const projectedComposedGraphOutputNames = projectedComposedGraph?.outputNames();
+const projectedComposedCompositionDigest: string | undefined =
+  projectedComposedCandidate?.verification().routeCompositionDigest;
+const projectedComposedOutletStackDigest: string | undefined =
+  projectedComposedCandidate?.verification().outletStackDigest;
+if (projectedComposedNestedOccupant?.kind === "projectedLayoutPlacement") {
+  projectedComposedNestedOccupant.capability();
+}
+if (projectedComposedLeafOccupant?.kind === "projectedRouteCapability") {
+  projectedComposedLeafOccupant.controller("editSession");
+}
+// @ts-expect-error route references must not expose projected route-local controller access directly
+routes.userDetail.controller("detail");
+// @ts-expect-error route references must not expose projected route-local graph access directly
+routes.userDetail.graph("detailGraph");
+// @ts-expect-error projected controller capabilities stay on composition summaries rather than live controller handles
+projectedComposedRoute?.controller("editSession").outputs.effectiveItemData;
+// @ts-expect-error projected graph capabilities stay on composition summaries rather than live graph runtime methods
+projectedComposedRoute?.graph("itemDetailGraph").output("submitReadiness");
+// @ts-expect-error outlet consumers must narrow projected outlet occupants before using route-only APIs
+projectedComposedCandidate?.outlets()[0]?.occupant().controller("editSession");
 const itemDetailGraphContractInputId =
   itemDetailGraphContract.inputs.serverItemData;
 const itemDetailGraphHistoryReplay = itemDetailGraphHistory.outputs.submitReadiness.replay;
@@ -1357,6 +1924,21 @@ void itemDetailGraphInputs;
 void itemDetailGraphInputDescriptor;
 void itemDetailGraphCompatibilityInputId;
 void itemDetailGraphCompatibilityOutputId;
+void projectedComposedRoutes;
+void projectedComposedCandidate;
+void projectedComposedRoute;
+void projectedComposedController;
+void projectedComposedGraph;
+void projectedComposedOutlets;
+void projectedComposedLeafOutlet;
+void projectedComposedNestedOutlet;
+void projectedComposedNestedOccupant;
+void projectedComposedLeafOccupant;
+void projectedComposedControllerOutputs;
+void projectedComposedGraphSummary;
+void projectedComposedGraphOutputNames;
+void projectedComposedCompositionDigest;
+void projectedComposedOutletStackDigest;
 void itemDetailGraphContractHistory;
 void restoredItemDetailGraph;
 void restoredItemDetailGraphContract;
@@ -1418,6 +2000,14 @@ void taskFormTitleWritePosture;
 void taskFormTitleDiagnosticsWritePosture;
 void taskFormSubmitReady;
 void taskFormVisibleMessageCount;
+void taskFormDiagnosticsSummary;
+void taskFormDiagnosticsRouteAuthorityDigest;
+void taskFormDiagnosticsRouteAuthorityPosture;
+void taskFormDiagnosticsHistoryRouteAuthorityDigest;
+void taskFormDiagnosticsHistoryRouteAuthorityResolution;
+void taskFormDiagnosticsRouteAuthorityAuditDigest;
+void taskFormVerificationRouteAuthorityContinuityDigest;
+void taskFormVerificationRouteAuthorityContinuityBehavior;
 void taskEditorGraphExportDefinition;
 void taskEditorGraphExportSnapshot;
 void taskEditorGraphImportPosture;
@@ -1454,6 +2044,99 @@ void scopedSignals;
 void nestedScopedSignals;
 void scopedDescriptor;
 void scopedCanonicalCountId;
+void routes;
+void projectedRoutes;
+void scopedRoutes;
+void rawLocationAuthority;
+void rawLocationNavigationType;
+void canonicalUrlAuthority;
+void canonicalUrlAuthorityHref;
+void canonicalUrlAuthorityDigest;
+void userDetailLocation;
+void userDetailCanonical;
+void userDetailCanonicalHref;
+void userDetailCanonicalDigest;
+void projectedAuthSource;
+void projectedWorkspaceReadySource;
+void projectedTenantCapabilitySource;
+void userDetailReferenceVerification;
+void userDetailRouteSchemaDigest;
+void userDetailCanonicalVerification;
+void userDetailCanonicalUrlDigest;
+void userDetailIntent;
+void userDetailIntentDescriptorKind;
+void userDetailIntentCanonicalDigest;
+void userDetailIntentVerificationDigest;
+void userDetailPlan;
+void userDetailPlanKind;
+void userDetailPlanHref;
+void userDetailPlanCost;
+void userDetailPlanLooksExpensive;
+void userDetailPlanProjectionRefresh;
+void userDetailPlanCanonicalDigest;
+void userDetailPlanExplainCanonicalDigest;
+void userDetailPlanVerificationDigest;
+void userDetailPlanExplainabilityDigest;
+void directUserDetailPlan;
+void directUserDetailPlanKind;
+void directUserDetailPlanExplanationHref;
+void directUserDetailCanonicalDigest;
+void userDetailHref;
+void matchedUserDetail;
+void matchedUserDetailId;
+void matchedUserDetailPage;
+void matchedUserDetailActive;
+void matchedUserDetailHash;
+void matchedFromRawAuthority;
+void matchedFromCanonicalAuthority;
+void projectedCandidate;
+void projectedRoute;
+void projectedRouteId;
+void projectedRouteParamId;
+void projectedRouteCanonicalDigest;
+void projectedAdmissionPlan;
+void projectedAdmissionPlanDigest;
+void projectedAdmissionRecoveryNames;
+void projectedAdmissionPlanProvenanceAttemptedRouteId;
+void projectedAdmissionPlanConsumedSourceName;
+void projectedAdmissionOutcome;
+void projectedAdmissionOutcomeKind;
+void projectedAdmissionOutcomeRecovery;
+void projectedAdmissionDiagnosticsRecovery;
+void projectedAdmissionOutcomeProvenance;
+void projectedAdmissionOutcomeTerminalSource;
+void projectedAdmissionOutcomeRecoveryTrail;
+void projectedAdmissionFormsAuthority;
+void projectedAdmissionFormsAuthoritySurfaceId;
+void projectedAdmissionFormsAuthorityDigest;
+void projectedAdmissionOutcomeConsumedSourceFamily;
+void projectedLayouts;
+void projectedOutletId;
+void projectedCandidateDigest;
+void projectedAppOutletId;
+void projectedUsersOutletId;
+void projectedRouteAuthorityForm;
+void projectedRouteAuthoritySummary;
+void projectedRouteAuthorityContinuity;
+void projectedRouteAuthorityContinuityApplied;
+void projectedRouteAuthorityTransitionKind;
+void projectedRouteAuthorityPreviousAuthorityDigest;
+void projectedRouteAuthorityChangedReports;
+void scopedRouteHref;
+void routeLocationCheck;
+void rawLocationCheck;
+void canonicalUrlCheck;
+void forgedCanonicalArtifact;
+void forgedRawLocationAuthority;
+void forgedCanonicalUrlAuthority;
+void forgedRouteVerificationPackage;
+void forgedRawLocationVerificationPackage;
+void forgedCanonicalUrlVerificationPackage;
+void forgedCanonicalVerificationPackage;
+void forgedNavigationIntentVerificationPackage;
+void forgedNavigationPlanVerificationPackage;
+void forgedProjectedRouteCapability;
+void forgedProjectedRouteCandidate;
 void scopedCounterGraph;
 void definitions;
 void runtimeEnvelope;

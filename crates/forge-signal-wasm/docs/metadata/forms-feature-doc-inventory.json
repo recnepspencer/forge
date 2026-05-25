@@ -1,8 +1,16 @@
 {
   "entrypoints": [
     {
+      "id": "forms_home",
+      "doc": "forms/README.md"
+    },
+    {
       "id": "forms_overview",
-      "doc": "forms/overview.md"
+      "doc": "forms/index.md"
+    },
+    {
+      "id": "forms_recipes",
+      "doc": "forms/recipes.md"
     },
     {
       "id": "recipes",
@@ -11,48 +19,80 @@
   ],
   "features": [
     {
-      "id": "form_kernel_and_fields",
-      "doc": "forms/form-kernel-and-fields.md"
+      "id": "your_first_form",
+      "doc": "forms/getting-started/your-first-form.md"
     },
     {
-      "id": "dirty_patch_and_readiness",
-      "doc": "forms/dirty-patch-and-readiness.md"
+      "id": "choosing_a_form_source",
+      "doc": "forms/getting-started/choosing-a-form-source.md"
     },
     {
-      "id": "validation_and_messages",
-      "doc": "forms/validation-and-messages.md"
+      "id": "common_form_patterns",
+      "doc": "forms/getting-started/common-form-patterns.md"
     },
     {
-      "id": "availability_admission_and_steps",
-      "doc": "forms/availability-admission-and-steps.md"
+      "id": "source_truth_draft_and_effective_values",
+      "doc": "forms/state/source-truth-draft-and-effective-values.md"
     },
     {
-      "id": "actions_and_submit",
-      "doc": "forms/actions-and-submit.md"
+      "id": "fields_and_field_paths",
+      "doc": "forms/state/fields-and-field-paths.md"
     },
     {
-      "id": "async_lifecycle_and_canonicalization",
-      "doc": "forms/async-lifecycle-and-canonicalization.md"
+      "id": "repeated_items",
+      "doc": "forms/state/repeated-items.md"
     },
     {
-      "id": "host_interaction_accessibility_and_layout",
-      "doc": "forms/host-interaction-accessibility-and-layout.md"
+      "id": "attachments_and_evidence_fields",
+      "doc": "forms/state/attachments-and-evidence-fields.md"
     },
     {
-      "id": "presentation_and_external_lanes",
-      "doc": "forms/presentation-and-external-lanes.md"
+      "id": "input_adapters",
+      "doc": "forms/state/input-adapters.md"
     },
     {
-      "id": "resource_line_forms",
-      "doc": "forms/resource-line-forms.md"
+      "id": "dirty_state",
+      "doc": "forms/changes/dirty-state.md"
     },
     {
-      "id": "collaboration",
-      "doc": "forms/collaboration.md"
+      "id": "patch_plans",
+      "doc": "forms/changes/patch-plans.md"
     },
     {
-      "id": "diagnostics_history_and_verification",
-      "doc": "forms/diagnostics-history-and-verification.md"
+      "id": "patching_complex_edit_forms",
+      "doc": "forms/changes/patching-complex-edit-forms.md"
+    },
+    {
+      "id": "unchanged_forms_and_submit_readiness",
+      "doc": "forms/changes/unchanged-forms-and-submit-readiness.md"
+    },
+    {
+      "id": "broad_replacement_vs_narrow_patches",
+      "doc": "forms/changes/broad-replacement-vs-narrow-patches.md"
+    },
+    {
+      "id": "validation_overview",
+      "doc": "forms/validation/validation-overview.md"
+    },
+    {
+      "id": "parse_failures",
+      "doc": "forms/validation/parse-failures.md"
+    },
+    {
+      "id": "visible_messages",
+      "doc": "forms/validation/visible-messages.md"
+    },
+    {
+      "id": "async_validation",
+      "doc": "forms/validation/async-validation.md"
+    },
+    {
+      "id": "server_canonicalization",
+      "doc": "forms/validation/server-canonicalization.md"
+    },
+    {
+      "id": "source_compatibility_and_draft_migration",
+      "doc": "forms/validation/source-compatibility-and-draft-migration.md"
     }
   ]
 }

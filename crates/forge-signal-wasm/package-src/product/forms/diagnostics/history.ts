@@ -1,3 +1,4 @@
+import { readRouteAuthorityContinuityAudit } from "../route_authority/continuity_audit.js";
 import { stableValueDigest } from "../values/value_paths.js";
 
 export function createFormDiagnosticsHistoryStore() {
@@ -56,6 +57,18 @@ function createArtifact(artifactId, state, summary, diagnosticsStateDigest) {
     sourceCompatibilityHistoryDigest: stableValueDigest(
       historyDigestChain(state.sourceCompatibilityHistory, ["compatibilityDigest"]),
     ),
+    routeAuthorityDigest: state.routeAuthority.digest,
+    routeAuthorityTransitionKind: state.routeAuthority.summary.transitionKind,
+    routeAuthorityHandoffPosture: state.routeAuthority.summary.handoff?.posture ?? null,
+    routeAuthorityRouteCoupledBehavior:
+      state.routeAuthority.summary.handoff?.routeCoupledBehavior ?? null,
+    routeAuthorityDraftResolution:
+      state.routeAuthority.summary.draftContinuity?.draftResolution ?? null,
+    routeAuthorityContinuityAuditDigest: readRouteAuthorityContinuityAudit(
+      state.routeAuthority,
+      state.steps,
+      state.actions,
+    ).digest,
     resourceSourceDigest: state.resourceSource?.digest ?? null,
     collaborationDigest: state.collaboration.digest,
     interactionDigest: state.interaction.digest,

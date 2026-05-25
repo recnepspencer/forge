@@ -1,5 +1,6 @@
 import { createWorkerRuntimeBridge } from "./bridge/worker_runtime_bridge.js";
 import { materializeWorkerCachedValue } from "./sessions/support/worker_cached_value.js";
+import { normalizeWorkerBrowserHistoryIngress } from "../router/projection/ingress/router_browser_history_ingress.js";
 
 export async function createWorkerFirstProjectionSession(options) {
   const session = new WorkerFirstProjectionSession(options);
@@ -133,7 +134,12 @@ class WorkerFirstProjectionSession {
 
   async admitBrowserHistoryIngress(ingress, options) {
     this.#requireActive("admitBrowserHistoryIngress");
-    const report = await this.#bridge.admitBrowserHistoryIngress(ingress);
+    const report = await this.#bridge.admitBrowserHistoryIngress(
+      normalizeWorkerBrowserHistoryIngress(
+        ingress,
+        "worker-first projection session admitBrowserHistoryIngress(...)",
+      ),
+    );
     await this.#maybeRefreshAfterHostMutation(options);
     return report;
   }

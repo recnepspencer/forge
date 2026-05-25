@@ -251,7 +251,7 @@ mod tests {
 
     #[test]
     fn anti_drift_cylinder_uv_to_3d_lands_on_surface() {
-        use crate::surface::SurfaceData;
+        use crate::surface::schema::SurfaceData;
         let radius = 3.0;
         let surface = SurfaceData::cylinder([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], radius);
         let coedge = Coedge {
@@ -279,7 +279,7 @@ mod tests {
 
     #[test]
     fn anti_drift_sphere_uv_to_3d_lands_on_surface() {
-        use crate::surface::SurfaceData;
+        use crate::surface::schema::SurfaceData;
         let radius = 5.0;
         let surface = SurfaceData::sphere([1.0, 2.0, 3.0], radius);
         let coedge = Coedge {
@@ -314,7 +314,7 @@ mod tests {
 
     #[test]
     fn anti_drift_torus_uv_to_3d_lands_on_surface() {
-        use crate::surface::SurfaceData;
+        use crate::surface::schema::SurfaceData;
         let major = 5.0;
         let minor = 1.0;
         let surface = SurfaceData::torus([0.0, 0.0, 0.0], [0.0, 0.0, 1.0], major, minor);

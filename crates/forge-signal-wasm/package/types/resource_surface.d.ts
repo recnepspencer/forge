@@ -32,6 +32,9 @@ export {
   type RouteParamNames,
   type RoutePathParams,
 } from "./resource/api_route_types.js";
+export type {
+  RouteConstraint,
+} from "./router/route_types.js";
 export {
   type ResourceCompatibilityNamespace,
   type ResourceNamespace,

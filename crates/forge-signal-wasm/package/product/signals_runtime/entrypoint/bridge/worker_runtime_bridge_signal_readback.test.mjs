@@ -33,7 +33,12 @@ test("createWorkerRuntimeBridge reads committed source and derived signal truth 
       signalIds: ["counter", "doubleCounter"],
     });
 
+    assert.equal(initialPacket.envelopeFamily, "signalReadback");
     assert.equal(initialPacket.readbackMode, "CommittedSignalReadback");
+    assert.equal(initialPacket.runtimeAuthority, "workerOwnedRuntime");
+    assert.equal(initialPacket.signalReadbackBreadth, 2);
+    assert.match(initialPacket.workerFirstTruthDigest, /worker-first-truth:/);
+    assert.match(initialPacket.packetDigest, /forge-worker-bridge:signal-readback-packet:/);
     assert.deepEqual(
       initialPacket.signals.map((entry) => [entry.id, entry.value]),
       [["counter", 2], ["doubleCounter", 4]],
@@ -48,6 +53,7 @@ test("createWorkerRuntimeBridge reads committed source and derived signal truth 
       updatedPacket.signals.map((entry) => [entry.id, entry.value]),
       [["counter", 9], ["doubleCounter", 18]],
     );
+    assert.notEqual(updatedPacket.workerFirstTruthDigest, initialPacket.workerFirstTruthDigest);
   } finally {
     await bridge.terminate();
     await cleanup();

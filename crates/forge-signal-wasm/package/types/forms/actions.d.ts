@@ -1,5 +1,9 @@
 import type { SignalValue } from "../model.js";
 import type { ResourceEffectProfileDigest } from "../resource/resource_effect_envelope.js";
+import type {
+  ResourceLineFreshness,
+  ResourceLineStatus,
+} from "../resource/resource_lifecycle.js";
 import type { FormAdmissionCapability, FormAdmissionReport } from "./admission.js";
 import type { FormAvailabilityReport } from "./availability.js";
 import type { FormPatchOperation, FormPatchReplacement, FormReadinessBlocker } from "./core.js";
@@ -299,6 +303,27 @@ export interface FormActionExecutionArtifact {
   readonly supersededOperationId?: number;
   readonly supersededByOperationId?: number;
   readonly executionDigest: string;
+}
+
+export interface FormActionDebugReport {
+  readonly kind: "actionDebug";
+  readonly action: string;
+  readonly canRun: boolean;
+  readonly pending: boolean;
+  readonly latestReason: string;
+  readonly blockers: ReadonlyArray<FormReadinessBlocker>;
+  readonly plan: FormActionPlan;
+  readonly latestAttempt: FormActionResultArtifact | null;
+  readonly latestExecution: FormActionExecutionArtifact | null;
+  readonly attempts: ReadonlyArray<FormActionResultArtifact>;
+  readonly executions: ReadonlyArray<FormActionExecutionArtifact>;
+  readonly verification: {
+    readonly packageDigest: string;
+    readonly actionPlanDigest: string;
+    readonly actionLifecycleDigest: string;
+    readonly actionExecutionLifecycleDigest: string;
+  };
+  readonly digest: string;
 }
 
 export interface FormActionsReport {

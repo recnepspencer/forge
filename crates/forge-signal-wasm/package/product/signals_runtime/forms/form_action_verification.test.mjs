@@ -165,6 +165,58 @@ test("signals.form verification package carries source admission and draft resto
   }
 });
 
+test("signals.form exposes task-shaped action debug reads for common submit diagnostics", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const signals = wrapSignals(createGraphOperationalRuntime());
+    const form = signals.form({
+      source: { title: "Ship docs", approved: false },
+      fields: ({ field }) => ({
+        title: field("title"),
+        approved: field("approved"),
+      }),
+      admission: ({ action }) => ({
+        approveAdmission: action("approve", "approval", ["approved"], () => ({
+          posture: "requiresApproval",
+          actorDigest: "actor:reviewer",
+          policyDigest: "policy:approve",
+        })),
+      }),
+      actions: ({ action }) => ({
+        approve: action("approve", {
+          patchPolicy: "allowEmpty",
+          hostEffect: "workflow.approve",
+          idempotency: "deny",
+        }),
+      }),
+    });
+
+    const before = form.debugAction("approve");
+    assert.equal(before.action, "approve");
+    assert.equal(before.canRun, false);
+    assert.equal(before.latestAttempt, null);
+    assert.equal(before.latestExecution, null);
+    assert.equal(before.plan.id, "approve");
+    assert.equal(before.blockers[0].kind, "admission:requiresApproval");
+
+    form.attemptAction("approve");
+
+    const after = form.debugAction("approve");
+    assert.equal(after.attempts.length, 1);
+    assert.equal(after.executions.length, 0);
+    assert.equal(after.latestAttempt?.resultKind, "denied");
+    assert.equal(after.latestExecution, null);
+    assert.equal(after.latestReason, "action plan is not ready");
+    assert.equal(after.verification.actionPlanDigest, form.actionPlan("approve").planDigest);
+    assert.equal(
+      after.verification.actionLifecycleDigest,
+      form.verification().digests.actionLifecycleDigest,
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
 test("signals.form verification package carries host fact digests and counters", async () => {
   const loaded = await loadSignalsModule();
   const {

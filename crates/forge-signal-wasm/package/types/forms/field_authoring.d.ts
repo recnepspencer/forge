@@ -20,6 +20,11 @@ export interface FormInputAdapterOptions {
   supportsResponsiveTokens?: boolean;
 }
 
+export interface FormFieldInputOptions<TValue = SignalValue, TRaw = TValue> {
+  readonly adapter?: FormInputAdapterOptions;
+  readonly parse?: (rawValue: TRaw) => TValue;
+}
+
 export interface FormInputAdapterCapabilitySet {
   readonly reportsRawInput: boolean;
   readonly reportsCommitBoundary: boolean;
@@ -55,6 +60,7 @@ export interface FormFieldLayoutOptions {
 
 export interface FormFieldOptions<TValue = SignalValue, TRaw = TValue> {
   id?: string;
+  input?: FormFieldInputOptions<TValue, TRaw>;
   adapter?: FormInputAdapterOptions;
   inputAdapter?: FormInputAdapterOptions;
   parse?: (rawValue: TRaw) => TValue;
@@ -117,7 +123,7 @@ export interface FormRepeatedResourceLocus {
 }
 
 export interface FormRepeatedFieldOptions<TValue = SignalValue, TRaw = TValue>
-  extends FormFieldOptions<TValue, TRaw> {
+  extends Omit<FormFieldOptions<TValue, TRaw>, "resourceLocus"> {
   readonly resourceLocus?: FormRepeatedResourceLocus;
 }
 

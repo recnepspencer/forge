@@ -20,6 +20,7 @@ import {
 } from "./worker_first_public_input_support.js";
 import { createWorkerFirstResourceNamespace } from "./worker_first_resource_namespace.js";
 import { createWorkerFirstRootGraph } from "./worker_first_root_graph.js";
+import { createRouterNamespace } from "../router/router_namespace.js";
 import { createRootHistoryFacade } from "./worker_first_root_history.js";
 import { decorateWorkerFirstScopedHandle } from "./worker_first_scope_handle.js";
 import {
@@ -47,6 +48,7 @@ function createNamespace(rootSession, path) {
   let form = null;
   let resource = null;
   let api = null;
+  let router = null;
   let spec = null;
   const descriptor = createWorkerFirstScopeDescriptor(path);
   const tagHandle = (handle, localId = null) => decorateWorkerFirstScopedHandle(
@@ -72,6 +74,10 @@ function createNamespace(rootSession, path) {
     get api() {
       api ??= createApiFactory(namespace);
       return api;
+    },
+    get router() {
+      router ??= createRouterNamespace(descriptor.id);
+      return router;
     },
     history() {
       return createRootHistoryFacade(rootSession);

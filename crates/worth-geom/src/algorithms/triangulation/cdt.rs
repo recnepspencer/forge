@@ -508,7 +508,7 @@ mod tests {
         let has_diagonal = result
             .triangles
             .iter()
-            .any(|t| (t.contains(&0) && t.contains(&2)));
+            .any(|t| t.contains(&0) && t.contains(&2));
         assert!(
             has_diagonal,
             "Cut diagonal 0-2 should appear as triangle edge"

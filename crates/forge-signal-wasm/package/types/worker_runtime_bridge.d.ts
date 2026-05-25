@@ -1,6 +1,7 @@
 import type {
   BranchStateProofReport,
   ExecutionHistorySummary,
+  LineageSummary,
   FailureSummary,
   FlowSurfaceSummary,
   FrontierExecutionSummary,
@@ -13,6 +14,7 @@ import type {
   ReplayArtifactProofInput,
   ReplayArtifactProofReport,
   ReplayParityProofReport,
+  ReplaySummary,
   RollbackDiagnostic,
   RuntimeDefinitionEnvelope,
   RuntimeEnvelope,
@@ -21,18 +23,59 @@ import type {
   RuntimeSnapshotArtifact,
   RuntimeSnapshotEnvelope,
   RuntimePolicySpec,
-  VersionSummary,
+  MergePlanArtifact,
+  MergePlanProofEnvelope,
+  MergePolicyPreviewRequest,
+  MergeResultArtifact,
+  MergeResultProofEnvelope,
   WebPerformanceSummary,
   WhySummary,
 } from "./diagnostics.js";
 import type {
-  LineageSummary,
   RecipeSpec,
-  ReplaySummary,
   RunSummary,
   SourceSpec,
   TransactionOp,
+  VersionSummary,
 } from "./model.js";
+import type {
+  WorkerBrowserHistoryIngress,
+  WorkerBrowserHistoryIngressReport,
+  WorkerBrowserHistoryStory,
+  WorkerBrowserHistoryWriteback,
+  WorkerBrowserHistoryWritebackReport,
+  WorkerHostBoundaryCausality,
+  WorkerHostBoundaryPerformanceEnvelope,
+  WorkerHostCapabilityBoundaryArtifact,
+  WorkerHostCapabilityIngressBatch,
+  WorkerHostCapabilityIngressReport,
+  WorkerHostCapabilityUpdate,
+  WorkerHostEffectAcknowledgement,
+  WorkerHostEffectAcknowledgementReport,
+  WorkerHostEffectOutcome,
+  WorkerHostEffectRequest,
+  WorkerHostEffectRequestEnvelope,
+} from "./worker_runtime_bridge_boundary.js";
+import type {
+  WorkerCommittedProjectionPacket,
+  WorkerCommittedProjectionRequest,
+  WorkerCommittedTransactionEnvelope,
+  WorkerDiagnosticsHistoryReadPacket,
+  WorkerDiagnosticsSummaryReadPacket,
+  WorkerDeliveredOutput,
+  WorkerLifecycleControlPacket,
+  WorkerObservationDeliveryAttachRequest,
+  WorkerObservationDeliveryDetachRequest,
+  WorkerObservationDeliveryPacket,
+  WorkerOutputDeliveryPacket,
+  WorkerOutputDeliveryRequest,
+  WorkerReadbackSignal,
+  WorkerSignalReadbackPacket,
+  WorkerSignalReadbackRequest,
+} from "./worker_runtime_bridge_delivery.js";
+
+export type * from "./worker_runtime_bridge_boundary.js";
+export type * from "./worker_runtime_bridge_delivery.js";
 
 export interface WorkerRuntimeIdentity {
   deploymentPosture: "workerFirst";
@@ -81,82 +124,6 @@ export interface WorkerGraphPublicationSummary {
   deniedCallbackCount: number;
 }
 
-export interface WorkerCommittedTransactionEnvelope {
-  deploymentPosture: "workerFirst";
-  envelopeFamily: "transactionResult";
-  runtimeAuthority: "workerOwnedRuntime";
-  branchId: number;
-  committedTruthDigest: string;
-  runSummary: RunSummary;
-}
-
-export interface WorkerCommittedProjectionRequest {
-  transactionOps: ReadonlyArray<TransactionOp>;
-  outputIds: ReadonlyArray<string>;
-}
-
-export interface WorkerObservationDeliveryAttachRequest {
-  signalId: string;
-}
-
-export interface WorkerObservationDeliveryDetachRequest {
-  lifecycleSubscriptionId: number;
-}
-
-export interface WorkerLifecycleControlPacket {
-  runtimeAuthority: "workerOwnedRuntime";
-  workerFirstTruthDigest: string;
-  activeLifecycleSubscriptionCount: number;
-  packetDigest: string;
-}
-
-export interface WorkerObservationDeliveryPacket {
-  envelopeFamily: "observationDelivery";
-  deliveryMode: "CommittedObservationDelivery";
-  runtimeAuthority: "workerOwnedRuntime";
-  observationDeliveryPacketCount: number;
-  observationDeliveryBreadth: number;
-  deliveredObservationCount: number;
-  rollbackSuppressedDeliveryCount: number;
-  callbackNodeCount: number;
-  activeLifecycleSubscriptionCount: number;
-  workerFirstTruthDigest: string;
-  observationDigest: string;
-  observationLifecycleDigest: string;
-  boundaryPerformance: WorkerHostBoundaryPerformanceEnvelope;
-  packetDigest: string;
-  observation: ObservationSurfaceSummary;
-}
-
-export interface WorkerDiagnosticsSummaryReadPacket {
-  envelopeFamily: "diagnosticsHistoryRead";
-  readMode: "SummaryDiagnosticsRead";
-  runtimeAuthority: "workerOwnedRuntime";
-  diagnosticsSummaryReadCount: number;
-  diagnosticsRichReadCount: number;
-  diagnosticsColdReconstructionCount: number;
-  workerFirstTruthDigest: string;
-  diagnosticsSummaryDigest: string;
-  richReadAvailabilityDigest: string;
-  boundaryPerformance: WorkerHostBoundaryPerformanceEnvelope;
-  packetDigest: string;
-  summary: GraphSummary;
-}
-
-export interface WorkerDiagnosticsHistoryReadPacket {
-  envelopeFamily: "diagnosticsHistoryRead";
-  readMode: "RichDiagnosticsHistoryRead";
-  runtimeAuthority: "workerOwnedRuntime";
-  diagnosticsSummaryReadCount: number;
-  diagnosticsRichReadCount: number;
-  diagnosticsColdReconstructionCount: number;
-  workerFirstTruthDigest: string;
-  diagnosticsHistoryDigest: string;
-  boundaryPerformance: WorkerHostBoundaryPerformanceEnvelope;
-  packetDigest: string;
-  history: ExecutionHistorySurfaceSummary;
-}
-
 export interface WorkerSnapshotEnvelopeArtifact {
   snapshotEnvelope: RuntimeSnapshotEnvelope;
   snapshotEnvelopeRestoreToken: string;
@@ -167,175 +134,6 @@ export interface WorkerSnapshotArtifact {
   snapshot: RuntimeSnapshotArtifact;
   snapshotRestoreToken: string;
   snapshotPortableWire: string;
-}
-
-export interface WorkerHostBoundaryCausality {
-  transactionSequence: number;
-  generation: number;
-  orderingBasis: string;
-}
-
-export interface WorkerHostBoundaryPerformanceEnvelope {
-  bridgeEnvelopeCount: number;
-  submittedItemCount: number;
-  coalescedItemCount: number;
-  runtimeAdmittedItemCount: number;
-  runtimeMutationBreadth: number;
-  ambientWorkerReadCount: number;
-  diagnosticsColdReconstructionCount: number;
-  payloadIdentityByteCount: number;
-  performanceDigest: string;
-}
-
-export type WorkerHostCapabilityBoundaryArtifact =
-  | "admitted"
-  | "stale"
-  | "denied"
-  | "detached"
-  | "unavailable";
-
-export interface WorkerHostCapabilityUpdate {
-  family: string;
-  registrationId: string;
-  semanticValueIdentity: string;
-  boundaryArtifact?: WorkerHostCapabilityBoundaryArtifact;
-  runtimeSourceId?: string;
-  runtimeValue?: unknown;
-}
-
-export interface WorkerHostCapabilityIngressBatch {
-  updates: ReadonlyArray<WorkerHostCapabilityUpdate>;
-}
-
-export interface WorkerHostCapabilityIngressReport {
-  envelopeFamily: "hostCapabilityIngress";
-  causality: WorkerHostBoundaryCausality;
-  submittedUpdateCount: number;
-  submittedAdmittedUpdateCount: number;
-  submittedStaleUpdateCount: number;
-  submittedDeniedUpdateCount: number;
-  submittedDetachedUpdateCount: number;
-  submittedUnavailableUpdateCount: number;
-  coalescedAdmittedUpdateCount: number;
-  coalescedUpdateCount: number;
-  coalescedStaleUpdateCount: number;
-  coalescedDeniedUpdateCount: number;
-  coalescedDetachedUpdateCount: number;
-  coalescedUnavailableUpdateCount: number;
-  runtimeAdmittedUpdateCount: number;
-  runtimeMutationBreadth: number;
-  performance: WorkerHostBoundaryPerformanceEnvelope;
-  hostCapabilityEnvelopeDigest: string;
-  lifecycleDigest: string;
-  truthDigest: string;
-  workerFirstTruthDigest: string;
-  coalescingDigest: string;
-  hostBoundaryArtifactDigest: string;
-  ambientWorkerReadDenied: boolean;
-}
-
-export interface WorkerBrowserHistoryIngress {
-  navigationKind: string;
-  rawLocation: string;
-  routeIdentity: string;
-  runtimeRouteSourceId?: string;
-  routeValue?: unknown;
-  runtimeContinuitySourceId?: string;
-  continuityValue?: unknown;
-}
-
-export interface WorkerBrowserHistoryIngressReport {
-  envelopeFamily: "browserHistoryIngress";
-  causality: WorkerHostBoundaryCausality;
-  browserHistoryEnvelopeDigest: string;
-  routeTruthDigest: string;
-  continuityDigest: string;
-  replayRestoreDigest: string;
-  runtimeAdmittedRouteCount: number;
-  runtimeAdmittedContinuityCount: number;
-  runtimeMutationBreadth: number;
-  workerFirstTruthDigest: string;
-  performance: WorkerHostBoundaryPerformanceEnvelope;
-  ambientLocationReadDenied: boolean;
-}
-
-export interface WorkerHostEffectRequest {
-  effectId: string;
-  hostCapabilityFamily: string;
-  closedPayloadIdentity: string;
-}
-
-export interface WorkerHostEffectRequestEnvelope {
-  envelopeFamily: "hostEffectEgress";
-  causality: WorkerHostBoundaryCausality;
-  requestDigest: string;
-  hostExecutionBoundary: "mainThreadHostEffect";
-  performance: WorkerHostBoundaryPerformanceEnvelope;
-}
-
-export type WorkerHostEffectOutcome =
-  | "completed"
-  | "failed"
-  | "detached"
-  | "unavailable"
-  | "denied";
-
-export interface WorkerHostEffectAcknowledgement {
-  requestDigest: string;
-  outcome: WorkerHostEffectOutcome;
-  artifactIdentity: string;
-  runtimeLifecycleSourceId?: string;
-  lifecycleValue?: unknown;
-}
-
-export interface WorkerHostEffectAcknowledgementReport {
-  envelopeFamily: "hostEffectEgress";
-  causality: WorkerHostBoundaryCausality;
-  acknowledgedRequestDigest: string;
-  acknowledgementDigest: string;
-  hostEffectLifecycleArtifact: string;
-  lifecycleIntegrityDigest: string;
-  forgeProofReadmissionDigest: string;
-  runtimeAdmittedLifecycleCount: number;
-  runtimeMutationBreadth: number;
-  workerFirstTruthDigest: string;
-  performance: WorkerHostBoundaryPerformanceEnvelope;
-  hostAcknowledgementIsAuthoritative: boolean;
-  workerReadmissionRequired: boolean;
-}
-
-export interface WorkerOutputDeliveryRequest {
-  outputIds: ReadonlyArray<string>;
-}
-
-export interface WorkerSignalReadbackRequest {
-  signalIds: ReadonlyArray<string>;
-}
-
-export interface WorkerDeliveredOutput {
-  id: string;
-  value: unknown;
-  payloadByteCount: number;
-}
-
-export interface WorkerReadbackSignal {
-  id: string;
-  value: unknown;
-  payloadByteCount: number;
-}
-
-export interface WorkerOutputDeliveryPacket {
-  envelopeFamily: "outputDelivery";
-  deliveryMode: "CommittedOutputDelivery";
-  runtimeAuthority: "workerOwnedRuntime";
-  outputDeliveryPacketCount: number;
-  outputDeliveryBreadth: number;
-  outputPayloadByteCount: number;
-  workerFirstTruthDigest: string;
-  outputDigest: string;
-  boundaryPerformance: WorkerHostBoundaryPerformanceEnvelope;
-  packetDigest: string;
-  outputs: ReadonlyArray<WorkerDeliveredOutput>;
 }
 
 export interface WorkerRuntimeEnvelopeImportReport {
@@ -355,33 +153,6 @@ export interface WorkerFirstRuntimeEnvelopeArtifact extends RuntimeEnvelope {
   runtimeEnvelopeRestoreToken: string;
   runtimeEnvelopeRestoreMode: "SameRuntimeExact";
   runtimeEnvelopePortableWire: string;
-}
-
-export interface WorkerSignalReadbackPacket {
-  envelopeFamily: "signalReadback";
-  readbackMode: "CommittedSignalReadback";
-  runtimeAuthority: "workerOwnedRuntime";
-  signalReadbackPacketCount: number;
-  signalReadbackBreadth: number;
-  signalPayloadByteCount: number;
-  workerFirstTruthDigest: string;
-  signalDigest: string;
-  boundaryPerformance: WorkerHostBoundaryPerformanceEnvelope;
-  packetDigest: string;
-  signals: ReadonlyArray<WorkerReadbackSignal>;
-}
-
-export interface WorkerCommittedProjectionPacket {
-  envelopeFamily: "workerCommittedProjection";
-  deploymentPosture: "workerFirst";
-  runtimeAuthority: "workerOwnedRuntime";
-  workerFirstTruthDigest: string;
-  projectionDigest: string;
-  packetDigest: string;
-  transaction: WorkerCommittedTransactionEnvelope;
-  outputs: WorkerOutputDeliveryPacket;
-  diagnosticsSummary: WorkerDiagnosticsSummaryReadPacket;
-  diagnosticsHistory: WorkerDiagnosticsHistoryReadPacket;
 }
 
 export interface WorkerMainThreadHostBridgeCertificationPackage {
@@ -515,6 +286,12 @@ export interface WorkerRuntimeBridge {
   admitBrowserHistoryIngress(
     ingress: WorkerBrowserHistoryIngress,
   ): Promise<WorkerBrowserHistoryIngressReport>;
+  applyBrowserHistoryWriteback(
+    writeback: WorkerBrowserHistoryWriteback,
+  ): Promise<WorkerBrowserHistoryWritebackReport>;
+  browserHistoryStory(
+    initialReport?: WorkerBrowserHistoryIngressReport | WorkerBrowserHistoryWritebackReport,
+  ): WorkerBrowserHistoryStory;
   issueHostEffectRequest(
     request: WorkerHostEffectRequest,
   ): Promise<WorkerHostEffectRequestEnvelope>;

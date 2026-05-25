@@ -1,3 +1,5 @@
+import type { FormInputAdapterCapabilitySet, FormInputAdapterTier } from "./core.js";
+
 export interface FormLayoutFieldHint {
   readonly field: string;
   readonly path: string;
@@ -16,6 +18,8 @@ export interface FormLayoutFieldHint {
   readonly grow: boolean;
   readonly wrap: boolean;
   readonly responsive: ReadonlyArray<string>;
+  readonly inputAdapterTier: FormInputAdapterTier;
+  readonly capabilities: FormInputAdapterCapabilitySet;
   readonly capabilityPosture: {
     readonly posture: "supported" | "unavailable";
     readonly unavailableCapabilities: ReadonlyArray<string>;

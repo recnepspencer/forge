@@ -20,39 +20,104 @@ the broader signal app model.
 
 ## Forms
 
-- [Forms Overview](./forms/overview.md)
-  The feature router for `signals.form(...)`.
-- [Form Kernel And Fields](./forms/form-kernel-and-fields.md)
-  Source authority, draft truth, effective projection, field loci, repeated
-  items, and evidence fields.
-- [Dirty, Patch, And Readiness](./forms/dirty-patch-and-readiness.md)
-  Semantic dirty truth, patch planning, and default submit readiness.
-- [Validation And Messages](./forms/validation-and-messages.md)
-  Validation artifacts, parse failures, visible messages, and readiness
+- [Forms Docs Home](./forms/README.md)
+  The navigation root for the rewritten forms docs.
+- [Forms Overview](./forms/index.md)
+  The shortest path into the shipped `signals.form(...)` surface.
+- [Getting Started](./forms/getting-started/README.md)
+  Starting a form, choosing a source, and common first patterns.
+- [Form State](./forms/state/README.md)
+  Source truth, draft, effective values, fields, repeated items, attachments,
+  and adapters.
+- [Changes And Patching](./forms/changes/README.md)
+  Dirty state, patch plans, complex edit forms, unchanged submit denial, and
+  broad replacement posture.
+- [Validation](./forms/validation/README.md)
+  Validation artifacts, parse failures, visible messages, async validation,
+  canonicalization, and source compatibility.
+- [Availability And Permissions](./forms/availability/README.md)
+  Availability states, admission rules, readiness blockers, and regulated
+  requirements like approval or signature.
+- [Steps And Multi-Step Forms](./forms/steps/README.md)
+  Controller-local step declarations, step readiness, step actions, and step
+  navigation.
+- [Actions And Submit](./forms/actions/README.md)
+  Action declarations, action plans, submit execution, recovery, and repeated
+  attempt posture.
+- [Layout And Accessibility](./forms/layout/README.md)
+  Layout hints, label sizing, layout measurement, and accessibility reports.
+- [Inputs And Controls](./forms/inputs/README.md)
+  Input adapter declaration, custom control integration, commit/focus
+  reporting, and control-level availability.
+- [Interaction And Host Facts](./forms/interaction/README.md)
+  Interaction history, input-adapter capabilities, host facts, and host-side
   blockers.
-- [Availability, Admission, And Steps](./forms/availability-admission-and-steps.md)
-  Dynamic field/control posture, capability gates, and controller-local steps.
-- [Actions And Submit](./forms/actions-and-submit.md)
-  Action planning, submit planning, recovery, and execution posture.
-- [Async Lifecycle And Canonicalization](./forms/async-lifecycle-and-canonicalization.md)
-  Async validation, server result mapping, schema compatibility, and
-  canonicalization.
-- [Host, Interaction, Accessibility, And Layout](./forms/host-interaction-accessibility-and-layout.md)
-  Host facts, interaction posture, accessibility artifacts, layout hints, and
-  measurement.
-- [Presentation And External Lanes](./forms/presentation-and-external-lanes.md)
-  Attachment/media/handoff/exit and visible settlement posture.
-- [Resource-Line Forms](./forms/resource-line-forms.md)
-  Resource-backed forms, effect lowering, merge/drift posture, replay, and
-  rollback.
-- [Collaboration](./forms/collaboration.md)
-  Locks, leases, branch-per-actor posture, comments, and advisory presence.
-- [Diagnostics, History, And Verification](./forms/diagnostics-history-and-verification.md)
-  Summary diagnostics, full diagnostics, retained histories, and verification
-  packages.
+- [Lifecycle](./forms/lifecycle/README.md)
+  Entry bootstrap, visible lifecycle state, handoffs, exit posture, and
+  external presentation lanes.
+- [Attachments And Media](./forms/media/README.md)
+  Attachment presentation, transfer readback, media visibility, and evidence
+  field behavior.
+- [Resource-Backed Forms](./forms/resource-backed/README.md)
+  Resource-line source truth, drift, merge, settlement, replay/restore, and
+  resource-backed action execution.
+- [Collaboration](./forms/collaboration/README.md)
+  Shared editing posture, locks, leases, comments, presence, and
+  branch-backed collaboration.
+- [Route-Coupled Forms](./forms/route-coupling/README.md)
+  Route-authority handoff, draft continuity, and route-coupled audit truth.
+- [Diagnostics And History](./forms/diagnostics/README.md)
+  Compact current-state reads and retained form history surfaces.
+- [Verification](./forms/verification/README.md)
+  Proof-bearing digest packages for the full forms surface.
 
 ## Resources
 
+- [Resources Docs Home](./resources/README.md)
+  The navigation root for the rewritten resource docs.
+- [Resource Overview](./resources/index.md)
+  The shortest path into the new task-first resource tree.
+- [Start Here](./resources/start-here/README.md)
+  First resource, shape choice, and common recipes.
+- [Fetching Data](./resources/fetching/README.md)
+  Single records, collections, paged lists, auth/context, and request policy.
+- [Updating Data](./resources/updating/README.md)
+  Standard writes, local patches, effect profiles, and post-write inspection.
+- [Handling Server Responses](./resources/responses/README.md)
+  Mutation responses, partial canonical truth, fallback reconciliation, and
+  response-owned read updates.
+- [Working With Lists](./resources/lists/README.md)
+  Collection identity, visible selection, narrow row updates, and summaries.
+- [Caching And Refresh](./resources/caching/README.md)
+  Line reuse, stale/fresh state, invalidation, refresh, and derived truth.
+- [Partial Updates And Derived Views](./resources/partial-updates/README.md)
+  Narrow patches, automatic derived views, and explicit aspect declarations.
+- [Uploads And Transfers](./resources/transfers/README.md)
+  Upload preparation, processing jobs, and transfer result reads.
+- [Downloads And Binary Data](./resources/downloads/README.md)
+  Builder-owned binary descriptors, multipart handoff, and download
+  availability.
+- [Inspecting And Debugging Resources](./resources/debugging/README.md)
+  Grouped line reads, retained history, delivery/compatibility inspection, and
+  exact recovery.
+- [Effects And Recovery](./resources/effects/README.md)
+  Effect profiles, branch-native envelopes, merge/rebase, and rollback.
+- [Using Resources In Forms](./resources/forms/README.md)
+  Resource-line form sources, settlement, drift, merge, and mutation-response
+  readback from the resource side.
+- [Using Resources In Routes](./resources/router/README.md)
+  Route-resource declarations, prefetch/warmup, and projected/admitted route
+  capability reads.
+- [Advanced Resource Modeling](./resources/advanced/README.md)
+  Raw family declarations, canonical identity, detail patch declarations, and
+  raw lines.
+- [Verification And Proof](./resources/verification/README.md)
+  Verification packages, topology proof, mutation-response support, and
+  delivery/compatibility digests.
+- [Transfers](./resources/transfers.md)
+  The older flat transfer page for the same feature area.
+- [Downloads](./resources/downloads.md)
+  The older flat download page for the same feature area.
 - [Resource Overview](./resources/overview.md)
   The feature router for server-backed resource state.
 - [Fetch And Write Resources](./resources/fetch-and-write.md)
@@ -67,11 +132,6 @@ the broader signal app model.
 - [Mutation Response Reconciliation](./resources/mutation-response-reconciliation.md)
   response-owned create/update/remove reconciliation, identity migration,
   partial mapping, fallback posture, and compact mutation-response evidence.
-- [Transfers](./resources/transfers.md)
-  Signed upload, multipart upload, finalize-required flows, and deferred
-  processing.
-- [Downloads](./resources/downloads.md)
-  Builder-owned downloads, binary descriptors, and multipart download handoff.
 - [Line Inspection](./resources/line-inspection.md)
   `line.summary()`, request inspection, diagnostics, history, upload,
   processing, and download reads.
@@ -134,10 +194,29 @@ details.
 - [Diagnostics And History](./app-surface/diagnostics-and-history.md)
 - [Aspects](./app-surface/aspects.md)
 
+## Router
+
+- [Router Docs Home](./router/README.md)
+- [Router Overview](./router/index.md)
+- [Authority](./router/authority/README.md)
+- [Projection](./router/projection/README.md)
+- [Admission](./router/admission/README.md)
+- [History](./router/history/README.md)
+- [Recovery](./router/recovery/README.md)
+- [Speculation](./router/speculation/README.md)
+- [Breadcrumbs](./router/breadcrumbs/README.md)
+- [Restore And Replay](./router/restore/README.md)
+- [Route Resources](./router/resources/README.md)
+- [Transitions](./router/transitions/README.md)
+- [Boundaries](./router/boundaries/README.md)
+- [Runtime Placement](./router/runtime_placement/README.md)
+- [Router And Forms](./router/forms/README.md)
+- [Diagnostics And Proof](./router/diagnostics/README.md)
+
 ## Reading Order
 
 1. [start_here.md](./start_here.md)
 2. [Feature Index](./learn/feature-index.md)
-3. [Forms Overview](./forms/overview.md) or [Recipes](./learn/recipes.md), depending on which product lane you need
+3. [Forms Overview](./forms/index.md) or [Recipes](./learn/recipes.md), depending on which product lane you need
 4. the one feature page that matches your task
 5. the matching reference page only if you need lower-level detail

@@ -15,7 +15,8 @@ let clockTick = 0;
 let persistedDraft = { mode: "draft" as const, revision: 1 };
 type ShippingOption = { id: string; label: string };
 const emptyHostCapabilityPlan = hostCapabilityPlan();
-const signals = createSignals({
+const signals = await createSignals({
+  deployment: "mainThreadCompatibility",
   hostCapabilities: hostCapabilityPlan({
     visibility: visibilityCapability({
       source: {
@@ -230,7 +231,7 @@ const requirednessDescriptorKind: "required" | "optional" =
   requirednessGraph.inputDescriptors()[0]?.requiredness ?? "required";
 const requirednessAuthorityKind: "required" | "optional" =
   requirednessGraph.operationalContract().authorities.draftValue.requiredness;
-createSignals().graph("invalidRequirednessTypes", (graph) => {
+(await createSignals({ deployment: "mainThreadCompatibility" })).graph("invalidRequirednessTypes", (graph) => {
   const scope = graph.scope("requiredness");
   const value = scope.spec.input("value", 1);
   // @ts-expect-error contradictory requiredness must be unrepresentable
@@ -462,7 +463,7 @@ const itemDetailGraph = signals.graph("itemDetail", (graph) => {
     controllers: [editSession, workflow],
   });
 });
-const pageModalGraph = createSignals().graph("itemWorkspace", (graph) => {
+const pageModalGraph = (await createSignals({ deployment: "mainThreadCompatibility" })).graph("itemWorkspace", (graph) => {
   const page = createEditSessionController(graph.scope("page"));
   const modal = createEditSessionController(graph.scope("modal"));
   return graph.expose({
@@ -476,14 +477,14 @@ const pageModalGraph = createSignals().graph("itemWorkspace", (graph) => {
     },
   });
 });
-const taskEditorGraph = createSignals().graph("taskEditor", (graph) => {
+const taskEditorGraph = (await createSignals({ deployment: "mainThreadCompatibility" })).graph("taskEditor", (graph) => {
   const form = createFormController(graph.scope("form"));
   const resource = createResourceController(graph.scope("resource"), form);
   return graph.expose({
     controllers: [form, resource],
   });
 });
-const authorityGraph = createSignals().graph("taskAuthority", (graph) => {
+const authorityGraph = (await createSignals({ deployment: "mainThreadCompatibility" })).graph("taskAuthority", (graph) => {
   const authority = createAuthorityController(graph.scope("authority"));
   return graph.expose({
     controllers: [authority],
@@ -504,18 +505,18 @@ const checkpointImage = runtimeEnvelope.snapshot.snapshot.checkpoint_image;
 const diagnosticGraph = runtimeEnvelope.snapshot.snapshot.diagnostic_graph;
 const history = signals.history();
 const specialist = signals.specialist();
-const currentBranch = history.current_branch();
-const previewBranch = history.create_branch("preview");
-const branchReplay = history.replay_for_branch(currentBranch.id);
-const branchSnapshot = history.branch_snapshot(currentBranch.id);
-const branchEnvelope = history.branch_snapshot_envelope(currentBranch.id);
+const currentBranch = await Promise.resolve(history.current_branch());
+const previewBranch = await Promise.resolve(history.create_branch("preview"));
+const branchReplay = await Promise.resolve(history.replay_for_branch(currentBranch.id));
+const branchSnapshot = await Promise.resolve(history.branch_snapshot(currentBranch.id));
+const branchEnvelope = await Promise.resolve(history.branch_snapshot_envelope(currentBranch.id));
 const specialistGraphSummary = specialist.graphSummary();
-const specialistEvaluateDirty = specialist.evaluateDirty();
-history.restore_snapshot(branchEnvelope);
-history.restore_branch_snapshot(currentBranch.id, branchSnapshot);
-const branchProof = history.branch_state_proof(currentBranch.id);
-const parityProof = history.replay_parity_proof(currentBranch.id, currentBranch.id);
-const artifactProof = history.replay_artifact_proof({
+const specialistEvaluateDirty = await Promise.resolve(specialist.evaluateDirty());
+await Promise.resolve(history.restore_snapshot(branchEnvelope));
+await Promise.resolve(history.restore_branch_snapshot(currentBranch.id, branchSnapshot));
+const branchProof = await Promise.resolve(history.branch_state_proof(currentBranch.id));
+const parityProof = await Promise.resolve(history.replay_parity_proof(currentBranch.id, currentBranch.id));
+const artifactProof = await Promise.resolve(history.replay_artifact_proof({
   proofSchemaVersion: runtimeProof.proofSchemaVersion,
   registryBundleDigest: runtimeProof.registryBundleDigest,
   loweredStrategyBundleDigest: null,
@@ -523,23 +524,23 @@ const artifactProof = history.replay_artifact_proof({
   mergeResultDigest: null,
   lineageDigest: null,
   branchStateDigest: branchProof.stateDigest,
-}, currentBranch.id);
-const previewPlan = history.plan_merge_policy_preview({
+}, currentBranch.id));
+const previewPlan = await Promise.resolve(history.plan_merge_policy_preview({
   source_branch_id: previewBranch.id,
   target_branch_id: currentBranch.id,
-});
-const previewPlanProof = history.plan_merge_policy_preview_with_proof({
+}));
+const previewPlanProof = await Promise.resolve(history.plan_merge_policy_preview_with_proof({
   source_branch_id: previewBranch.id,
   target_branch_id: currentBranch.id,
-});
-const previewResult = history.merge_branches_policy_preview({
+}));
+const previewResult = await Promise.resolve(history.merge_branches_policy_preview({
   source_branch_id: previewBranch.id,
   target_branch_id: currentBranch.id,
-});
-const previewResultProof = history.merge_branches_policy_preview_with_proof({
+}));
+const previewResultProof = await Promise.resolve(history.merge_branches_policy_preview_with_proof({
   source_branch_id: previewBranch.id,
   target_branch_id: currentBranch.id,
-});
+}));
 const diagnostics = signals.diagnostics();
 const latestObservation = diagnostics.latestObservation();
 const latestFlow = diagnostics.latestFlow();
@@ -670,7 +671,7 @@ const itemDetailGraphHistoryDependency = itemDetailGraphHistory.dependenciesForO
 const itemDetailGraphHistoryContractSummary = itemDetailGraphHistory.contractSummary();
 const itemDetailGraphCompatibilityContractInputId =
   itemDetailGraphCompatibility.contract.inputs.serverItemData;
-const restoredItemDetailGraph = createSignals().importGraph(
+const restoredItemDetailGraph = (await createSignals({ deployment: "mainThreadCompatibility" })).importGraph(
   itemDetailGraphExportDefinition,
   itemDetailGraphExportSnapshot,
 );

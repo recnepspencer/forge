@@ -1,5 +1,5 @@
 import { FormDeclarationError } from "../form_errors.js";
-import { normalizeInputAdapter } from "../input_adapters.js";
+import { normalizeInputAdapter, readFieldParse } from "../input_adapters.js";
 import { fieldPathKey, parseFieldPath } from "../values/value_paths.js";
 
 const FIELD_DECLARATION_BRAND = Symbol("forge.form.fieldDeclaration");
@@ -44,7 +44,7 @@ export function materializeFieldDeclarations(declaration) {
         resourceLocus: field.resourceLocus,
         attachment: field.attachment,
         inputAdapter: normalizeInputAdapter(field.options),
-        parse: typeof field.options.parse === "function" ? field.options.parse : null,
+        parse: readFieldParse(field.options),
       });
     }),
   );
@@ -151,6 +151,22 @@ function normalizeFieldLayout(options, fieldId) {
     });
   }
   const responsive = options.responsive ?? declared.responsive ?? [];
+  const hasFlatLayoutHints = [
+    "row",
+    "column",
+    "density",
+    "alignment",
+    "minHeight",
+    "grow",
+    "wrap",
+    "responsive",
+  ].some((key) => options[key] !== undefined);
+  if (options.layout !== undefined && hasFlatLayoutHints) {
+    throw new FormDeclarationError(
+      "form field layout should be declared in either layout or flat layout hints, not both",
+      { field: fieldId },
+    );
+  }
   if (!Array.isArray(responsive) || responsive.some((entry) => typeof entry !== "string" || entry.length === 0)) {
     throw new FormDeclarationError("form field layout responsive entries must be non-empty strings", {
       field: fieldId,

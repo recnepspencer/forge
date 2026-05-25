@@ -1,7 +1,7 @@
 //! Tests for BSP convex polyhedron construction.
 
 use crate::primitives::plane::{signed_distance, Plane};
-use crate::spatial::bsp::{build_convex_polyhedron, BspConfig, ConvexCell};
+use crate::spatial::acceleration::bsp::{build_convex_polyhedron, BspConfig, ConvexCell};
 
 const TEST_TOLERANCE: f64 = 1e-8;
 const TEST_DEGENERACY: f64 = 1e-14;

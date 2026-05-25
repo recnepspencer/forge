@@ -6,6 +6,7 @@ import type { FormValidationReport } from "./validation.js";
 import type { FormHostReport } from "./host.js";
 import type { FormExitReport } from "./exit.js";
 import type { FormHandoffReport } from "./handoff.js";
+import type { FormRouteAuthorityReport } from "./route_authority.js";
 import type { FormAttachmentsReport } from "./attachments.js";
 import type { FormAttachmentTransfersReport } from "./attachment_transfers.js";
 import type { FormMessagesReport } from "./messages.js";
@@ -56,6 +57,8 @@ export interface FormVerificationPackage {
     readonly inputCapabilityDigest: string;
     readonly exitDigest: string;
     readonly handoffDigest: string;
+    readonly routeAuthorityDigest: string;
+    readonly routeAuthorityContinuityDigest: string;
     readonly attachmentDigest: string;
     readonly attachmentTransferDigest: string;
     readonly messageDigest: string;
@@ -106,6 +109,31 @@ export interface FormVerificationPackage {
     readonly diagnosticsDigest: string;
   };
   readonly sourceAuthority: FormSourceAuthorityDiagnostics;
+  readonly routeAuthorityContinuity: {
+    readonly kind: "routeAuthorityContinuityAudit";
+    readonly handoffPosture:
+      NonNullable<FormRouteAuthorityReport["summary"]["handoff"]>["posture"] | null;
+    readonly routeCoupledBehavior:
+      NonNullable<FormRouteAuthorityReport["summary"]["handoff"]>["routeCoupledBehavior"] | null;
+    readonly draftDisposition:
+      NonNullable<FormRouteAuthorityReport["summary"]["handoff"]>["draftDisposition"] | null;
+    readonly draftResolution:
+      NonNullable<FormRouteAuthorityReport["summary"]["draftContinuity"]>["draftResolution"] | null;
+    readonly transitionKind: FormRouteAuthorityReport["summary"]["transitionKind"];
+    readonly authorityAvailable: boolean;
+    readonly routeCoupledSteps: {
+      readonly total: number;
+      readonly active: number;
+      readonly unavailable: number;
+    };
+    readonly routeCoupledActions: {
+      readonly total: number;
+      readonly accepted: number;
+      readonly denied: number;
+    };
+    readonly blockingReason: string | null;
+    readonly digest: string;
+  };
   readonly actionHistory: {
     readonly attempts: number;
     readonly digest: string;
@@ -176,6 +204,7 @@ export interface FormVerificationPackage {
     readonly inputCapabilities: FormInputCapabilitiesReport["counters"];
     readonly exit: FormExitReport["counters"];
     readonly handoff: FormHandoffReport["counters"];
+    readonly routeAuthority: FormRouteAuthorityReport["counters"];
     readonly attachments: FormAttachmentsReport["counters"];
     readonly attachmentTransfers: FormAttachmentTransfersReport["counters"];
     readonly messages: FormMessagesReport["counters"];

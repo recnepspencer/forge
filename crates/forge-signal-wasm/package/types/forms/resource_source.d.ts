@@ -4,7 +4,10 @@ import type {
 } from "../resource/resource_line_history.js";
 import type {
   ResourceLineFreshness,
+  ResourceLineDownload,
+  ResourceLineProcessing,
   ResourceLineStatus,
+  ResourceLineUpload,
 } from "../resource/resource_lifecycle.js";
 import type { ResourceEffectProfileDigest } from "../resource/resource_effect_envelope.js";
 import type { ResourceRequestDescriptor } from "../resource/resource_postures.js";

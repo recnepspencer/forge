@@ -2,7 +2,7 @@ use std::fmt;
 
 use serde::{Deserialize, Serialize};
 
-use crate::algorithms::point_strictly_inside_polygon;
+use crate::algorithms::intersection::polygon_overlap::point_strictly_inside_polygon;
 use crate::primitives::parameter_space::ParameterSpacePoint;
 
 use super::schema::ParameterDomain;
