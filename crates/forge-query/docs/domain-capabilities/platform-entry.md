@@ -225,6 +225,7 @@ yet give you:
 - declaration boundary receipts
 - declaration boundary envelopes
 - relational, bridge, or signal routing
+- signal compatibility
 - runtime continuation
 
 ## Related Docs
@@ -237,6 +238,9 @@ yet give you:
 - [Declaration Route Plans](./declaration-route-plan.md)
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
+- [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
+- [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
+- [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
 - [Domain Capabilities Index](./README.md)
 - [Support Matrix And Admission](../foundations/support-matrix-and-admission.md)

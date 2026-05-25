@@ -20,6 +20,18 @@ pub enum ForgeQueryDeclarationRoutePlanDenialCause {
 }
 
 impl ForgeQueryDeclarationRoutePlanDenialCause {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::WrongAdmittedWorld => "wrong_admitted_world",
+            Self::EvidenceMismatch => "evidence_mismatch",
+            Self::IntentRequired => "intent_required",
+            Self::IntentForbidden => "intent_forbidden",
+            Self::IntentConflictsWithRouteContract => "intent_conflicts_with_route_contract",
+            Self::NoAllowedRoutes => "no_allowed_routes",
+            Self::ForbiddenRouteCombination => "forbidden_route_combination",
+        }
+    }
+
     pub fn reason(&self) -> &'static str {
         match self {
             Self::WrongAdmittedWorld => {

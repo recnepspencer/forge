@@ -128,6 +128,9 @@ The receipt stays Query-owned even when the lower authority has its own local
 receipt or evidence language.
 
 Declaration boundary envelopes are the next public crossing-story boundary.
+Bridge continuation routing is the later lower-authority continuation boundary
+that can consume those retained envelope truths after relational routing or on
+bridge-authoritative family paths.
 
 ## How It Executes
 
@@ -311,6 +314,9 @@ Declaration boundary receipts now provide one Query-owned crossing artifact
 over retained route truth. They still do not provide:
 
 - public boundary envelopes over that retained receipt truth
+- public relational truth routing from retained envelope truth
+- public bridge continuation routing from retained envelope truth
+- public signal compatibility classification from retained envelope truth
 - grouped declaration crossing receipts
 - successful signal-only receipt kinds
 - lower-authority execution internals outside the retained route plan and
@@ -321,6 +327,9 @@ over retained route truth. They still do not provide:
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
+- [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
+- [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
+- [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Declaration Route Plans](./declaration-route-plan.md)
 - [Declaration Progression](./declaration-progression.md)
 - [Domain Capabilities](./README.md)

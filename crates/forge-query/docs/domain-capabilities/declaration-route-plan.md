@@ -457,6 +457,9 @@ over retained declaration proof. It still does not perform:
 - lower-authority boundary crossing
 - public Query boundary-receipt materialization
 - public Query boundary-envelope materialization
+- public Query relational truth routing
+- public Query bridge continuation routing
+- public Query signal compatibility classification
 - grouped declaration lowering
 
 ## Related Docs
@@ -466,5 +469,8 @@ over retained declaration proof. It still does not perform:
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
+- [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
+- [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
+- [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Declaration Legality](./declaration-legality.md)
 - [Domain Capabilities](./README.md)

@@ -272,7 +272,9 @@ not decide:
 - actual lower-authority crossings after route planning
 - Query boundary receipts over those crossings
 - Query boundary envelopes over retained receipt truth
-- continuation participation beyond the retained family posture
+- Query relational truth routing from retained envelope truth
+- Query bridge continuation routing from retained envelope truth
+- signal execution or continuation participation beyond the retained family posture
 
 It freezes the classification and support vocabulary other Query declaration
 features consume.
@@ -286,4 +288,7 @@ features consume.
 - [Declaration Route Plans](./declaration-route-plan.md)
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
+- [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
+- [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
+- [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Platform Entry](./platform-entry.md)

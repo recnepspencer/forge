@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/domain_declaration/boundaries/contracts/legality_evidence_cannot_satisfy_bridge_routing_api.rs:79:46
+   |
+79 |     let _ = handle.route_bridge_continuation(legality);
+   |                    ------------------------- ^^^^^^^^ expected `ForgeQueryDeclarationBridgeRoutingInput<..., _>`, found `ForgeQueryDeclarationLegalityEvidence<..., ...>`
+   |                    |
+   |                    arguments to this method are incorrect
+   |
+   = note: expected enum `ForgeQueryDeclarationBridgeRoutingInput<GeometryDomain, _>`
+            found struct `ForgeQueryDeclarationLegalityEvidence<GeometryDomain, SplitEdgeDeclaration>`
+note: method defined here
+  --> src/application/domain_handle/admitted_handle/bridge_routing.rs
+   |
+   |     pub fn route_bridge_continuation<I: ForgeQueryDeclarationInput<D>>(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^

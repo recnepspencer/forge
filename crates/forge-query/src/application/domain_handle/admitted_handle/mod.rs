@@ -1,9 +1,13 @@
+mod bridge_routing;
 mod declaration;
+mod declaration_entry_seam;
 mod envelope;
 mod evidence;
 mod progression;
 mod receipt;
+mod relational_routing;
 mod route_plan;
+mod signal_compatibility;
 
 pub use progression::ForgeQueryDeclarationEntryProgressionError;
 

@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/domain_declaration/boundaries/contracts/route_plan_cannot_satisfy_bridge_routing_api.rs:95:46
+   |
+95 |     let _ = handle.route_bridge_continuation(route_plan);
+   |                    ------------------------- ^^^^^^^^^^ expected `ForgeQueryDeclarationBridgeRoutingInput<..., _>`, found `ForgeQueryDeclarationRoutePlan<..., ...>`
+   |                    |
+   |                    arguments to this method are incorrect
+   |
+   = note: expected enum `ForgeQueryDeclarationBridgeRoutingInput<GeometryDomain, _>`
+            found struct `ForgeQueryDeclarationRoutePlan<GeometryDomain, SplitEdgeDeclaration>`
+note: method defined here
+  --> src/application/domain_handle/admitted_handle/bridge_routing.rs
+   |
+   |     pub fn route_bridge_continuation<I: ForgeQueryDeclarationInput<D>>(
+   |            ^^^^^^^^^^^^^^^^^^^^^^^^^

@@ -1,9 +1,10 @@
 use crate::application::{
     ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
-    ForgeQueryDeclarationGroupedPostureTag, ForgeQueryDeclarationLegalityContract,
-    ForgeQueryDeclarationPrimaryAuthorityTag, ForgeQueryDeclarationProgressionContract,
-    ForgeQueryDeclarationRouteContract, ForgeQueryDeclarationSignalCompatibilityTag,
-    ForgeQueryDomainEntryMarker,
+    ForgeQueryDeclarationBridgeContinuationContract, ForgeQueryDeclarationGroupedPostureTag,
+    ForgeQueryDeclarationLegalityContract, ForgeQueryDeclarationPrimaryAuthorityTag,
+    ForgeQueryDeclarationProgressionContract, ForgeQueryDeclarationRelationalTruthContract,
+    ForgeQueryDeclarationRouteContract, ForgeQueryDeclarationSignalCompatibilityContract,
+    ForgeQueryDeclarationSignalCompatibilityTag, ForgeQueryDomainEntryMarker,
 };
 
 use super::taxonomy::ForgeQueryDeclarationFamilyTaxonomy;
@@ -42,5 +43,27 @@ pub trait ForgeQueryDeclarationFamilyMarker<D: ForgeQueryDomainEntryMarker> {
 
     fn route_contract() -> ForgeQueryDeclarationRouteContract {
         ForgeQueryDeclarationRouteContract::deferred_auto()
+    }
+
+    fn bridge_continuation_contract() -> Option<ForgeQueryDeclarationBridgeContinuationContract> {
+        match Self::taxonomy().primary_authority_family() {
+            crate::application::ForgeQueryDeclarationPrimaryAuthorityFamily::BridgeContinuation => {
+                Some(ForgeQueryDeclarationBridgeContinuationContract::runtime_route_current())
+            }
+            _ => None,
+        }
+    }
+
+    fn relational_truth_contract() -> Option<ForgeQueryDeclarationRelationalTruthContract> {
+        match Self::taxonomy().primary_authority_family() {
+            crate::application::ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth => {
+                Some(ForgeQueryDeclarationRelationalTruthContract::authoritative_current_truth())
+            }
+            _ => None,
+        }
+    }
+
+    fn signal_compatibility_contract() -> Option<ForgeQueryDeclarationSignalCompatibilityContract> {
+        None
     }
 }

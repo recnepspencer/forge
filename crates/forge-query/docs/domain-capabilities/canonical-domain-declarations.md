@@ -436,7 +436,9 @@ does not decide:
 - explicit lower-authority route planning
 - Query boundary receipts
 - Query boundary envelopes
-- lower-authority routing into relational, bridge, or signal surfaces
+- lower-authority relational truth routing
+- lower-authority bridge continuation routing
+- lower-authority signal compatibility classification
 - grouped execution semantics
 - runtime continuation
 
@@ -454,4 +456,7 @@ artifact plus one retained family admission boundary to build on.
 - [Declaration Route Plans](./declaration-route-plan.md)
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
+- [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
+- [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
+- [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Domain Capabilities](./README.md)
