@@ -9,7 +9,7 @@ error[E0308]: mismatched types
    = note: expected struct `ForgeQueryDeclarationLegalityEvidence<GeometryDomain, _>`
               found struct `ForgeQueryCanonicalDeclarationArtifact<GeometryDomain, SplitEdgeDeclaration>`
 note: method defined here
-  --> src/application/domain_handle/admitted_handle.rs
+  --> src/application/domain_handle/admitted_handle/progression.rs
    |
    |     pub fn progress_declaration<I>(
    |            ^^^^^^^^^^^^^^^^^^^^

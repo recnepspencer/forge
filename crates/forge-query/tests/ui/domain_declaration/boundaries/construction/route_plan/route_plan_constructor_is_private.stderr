@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/domain_declaration/boundaries/construction/route_plan/route_plan_constructor_is_private.rs:61:85
+   |
+61 |       let _ = ForgeQueryDeclarationRoutePlan::<GeometryDomain, SplitEdgeDeclaration>::new(
+   |                                                                                       ^^^ private associated function
+   |
+  ::: src/application/declaration_route_plan/plan.rs
+   |
+   | /     pub(crate) fn new(
+   | |         progressed: ForgeQueryAdmittedDeclarationProgression<D, I>,
+   | |         evidence: ForgeQueryDeclarationFoundationalEvidence<D, I>,
+   | |         route_intent: Option<ForgeQueryDeclarationRouteIntent>,
+...  |
+   | |         explanation: ForgeQueryDeclarationRoutePlanExplanation,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

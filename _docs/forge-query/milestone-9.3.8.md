@@ -117,7 +117,8 @@ shape decisions and must not be rediscovered later:
 - caller-owned runtime builder assembly and caller-owned basis/preflight/
   historical-binding choreography are in-scope defects for this milestone, not
   later polish work.
-- every real covered crossing must yield one Query-owned boundary receipt and
+- every admitted route posture that reaches the receipt boundary must yield one
+  Query-owned boundary receipt artifact, and every covered crossing must yield
   one Query-owned boundary envelope.
 - the lane hierarchy is mandatory: ordinary -> checked -> proof -> raw. No
   phase may collapse directly from ordinary into raw internals.
@@ -195,7 +196,12 @@ locked decisions above:
    than reopening family meaning from labels or payload heuristics.
 
 10. **Phase 10: Query Boundary-Receipt Boundary**
-    Every real crossing produces a Query-owned boundary receipt. This is where declaration lowering becomes inspectable and certifiable as a public event, with retained progression posture and retained admitted-world identity carried forward instead of hidden as internal implementation detail.
+    Query records route-backed crossing posture as a Query-owned boundary
+    receipt artifact. This is where declaration lowering becomes inspectable
+    and certifiable as a public event, with retained progression posture,
+    retained admitted-world identity, and deferred/denied/failed crossing
+    posture carried forward instead of hidden as internal implementation
+    detail.
 
 11. **Phase 11: Query Boundary-Envelope Boundary**
     Query wraps route plan, receipt, foundational evidence, and denial topology into one self-describing declaration boundary envelope. This is the public crossing artifact boundary.
@@ -961,20 +967,26 @@ support, explanation, attachments, receipts, and canonical evidence bundles.
 
 This phase introduces the first explicit crossing artifact for domain entry:
 the Query-owned route plan that decides which lower-authority families are in
-play for an admitted declaration and why, using retained declaration family
-taxonomy proof, retained Phase 5 capability posture, and retained Phase 6
-legality evidence rather than family-label folklore.
+play for an admitted declaration and why, using admitted progression proof,
+matching foundational evidence, retained declaration family taxonomy proof,
+and retained Phase 5 capability posture rather than family-label folklore.
 
 **Required Query artifacts**
 
 - one declaration route-plan artifact family
-- one route-plan input family over admitted declarations plus foundational
-  evidence bundles
+- one route-plan input family over admitted declaration progression plus
+  matching foundational evidence bundles
 - one route-plan classification vocabulary for later relational, bridge,
   signal-compatible, mixed, deferred, and forbidden routes
 - one route-plan digest and inspection surface
 - one typed route-intent input family for declaration families whose routing
   posture is caller-meaningful rather than purely inferred
+- one explicit route-set artifact family so zero, one, or many valid routes
+  remain first-class public truth
+- one route-plan explanation surface for why route segments were admitted and
+  why deferred or denied outcomes occurred
+- one typed route-plan denial-cause vocabulary rather than free-form denial
+  strings
 
 **Locked local and adjacent references**
 
@@ -990,6 +1002,10 @@ legality evidence rather than family-label folklore.
 - every admitted declaration family taxonomy posture must lower into exactly
   one explicit Query route-plan artifact before any lower-authority receipt or
   continuation can be claimed
+- route planning must start from admitted progression proof plus matching
+  foundational evidence; legality-only truth, canonical declarations alone,
+  and family-support posture alone must not masquerade as ordinary-lane
+  route-admitted inputs
 - a route plan may reference more than one lower authority family only when the
   retained declaration family taxonomy is explicitly typed as mixed-authority
   or another later route-multiplicity posture that the Query taxonomy admits by
@@ -1008,17 +1024,18 @@ legality evidence rather than family-label folklore.
   Phase 5 wherever those already make a structural route question explicit; it
   may not infer lower-authority class from family labels alone or from
   declaration payload structure
-- route planning must consume retained legality evidence and the explicit
-  legality contract from Phase 6 or stronger progression outputs that preserve
-  them; it may not re-run structural legality or assume taxonomy/capability
-  posture is sufficient proof of route eligibility
-- success-path route planning must still start from admitted progression proof
-  or stronger artifacts that preserve it; legality-only or non-success
-  progression descriptive evidence from Phase 8 is valuable for inspection and
-  denial UX, but it must not masquerade as route-admitted declaration proof
+- route planning must consume retained legality/progression proof rather than
+  re-run structural legality or assume taxonomy/capability posture is
+  sufficient proof of route eligibility
+- legality-only or non-success progression descriptive evidence from Phase 8 is
+  valuable for inspection and denial UX, but it must not masquerade as
+  route-admitted declaration proof
 - route planning must consume admitted operating-world proof from Phase 2 plus
   admitted declaration proof from earlier phases; route intent may narrow or
   select crossings within that world, but it may not redefine the world itself
+- matching handle identity, operating-context identity, declaration digest,
+  progression digest, and admitted evidence class are all part of the route-
+  plan trust boundary and must deny or fail closed on mismatch
 - route planning must remain Query-owned orchestration, not a restatement of
   lower-crate semantics
 - route plans must be derived once from admitted declaration meaning and
@@ -1034,6 +1051,13 @@ legality evidence rather than family-label folklore.
 - route intent and operating context are distinct typed inputs. The former asks
   what crossing is desired from within an admitted world; the latter defines the
   admitted world itself
+- route-planning denial topology must be typed and public. At minimum, wrong
+  admitted world, evidence mismatch, required intent, forbidden intent,
+  intent/contract conflict, no allowed routes, and forbidden route
+  combinations must stay distinguishable
+- stale and rebind posture remain Phase 7 concerns. Phase 9 must not reinvent
+  them as new ordinary-lane route facts; mismatched retained inputs should
+  deny or fail on route-plan integrity instead
 - route plans must remain explicit about route multiplicity and continuation
   participation for geometry-style or other multi-seam domains whose later
   routing consequences cannot be described honestly by a single yes/no mixed
@@ -1055,6 +1079,10 @@ legality evidence rather than family-label folklore.
 - lower-authority receipt/envelope APIs must not accept raw declarations in
   place of route plans
 - route-plan artifact construction must remain behind Query-owned front doors
+- route planning must not accept raw declaration input, canonical declarations,
+  or legality evidence directly on the ordinary success lane
+- caller route intent must remain a typed family, not raw strings or ad hoc
+  enums threaded through convenience methods
 
 **Acceptance evidence**
 
@@ -1062,6 +1090,10 @@ legality evidence rather than family-label folklore.
   plan
 - inequality assertions for declarations whose retained family taxonomy or
   authority posture differs intentionally
+- typed-denial tests covering route-intent and admitted-world integrity
+  failures
+- compile-fail coverage proving canonical declarations and legality evidence
+  cannot satisfy route-planning APIs directly
 - compile-fail coverage proving later receipt/envelope phases cannot skip the
   route-plan artifact
 - representative continuation tests proving runtime-capable route plans encode
@@ -1088,11 +1120,13 @@ boundary receipt rather than an invisible implementation transition.
 
 **Required Query artifacts**
 
-- one boundary-receipt artifact family keyed by declaration route plan
-- one receipt-kind vocabulary for relational, bridge, mixed, deferred, and
-  denied crossings
+- one boundary-receipt input family keyed by retained route truth
+- one boundary-receipt artifact family keyed by planned, deferred, denied, or
+  failed route posture
+- one receipt-class and receipt-kind vocabulary
+- one receipt explanation surface
 - one receipt integrity/digest surface
-- one checked-lane receipt denial family
+- one checked-lane receipt outcome family plus typed receipt-boundary denials
 
 **Locked external surfaces**
 
@@ -1106,8 +1140,21 @@ boundary receipt rather than an invisible implementation transition.
 - every admitted crossing covered by this milestone must emit one Query-owned
   receipt artifact even when the lower authority also emits its own local
   evidence
+- receipt construction must start from retained route truth; raw declaration
+  input, canonical declarations alone, legality evidence alone, and
+  foundational evidence alone must not masquerade as ordinary-lane
+  receipt-admitted inputs
+- planned, deferred, denied, and failed route posture must all remain
+  first-class receipt inputs and first-class public receipt outcomes rather
+  than collapsing non-success crossings into silent absence
 - receipts must say what crossed, why it was admitted, which route-plan row it
   followed, and which authority family it touched
+- receipts must preserve route-plan explanation and typed route-denial causes
+  whenever the crossing stays deferred or denied, rather than flattening Phase
+  9 route reasoning into generic closeout prose
+- receipts must preserve receipt-boundary-specific denial causes when the route
+  plan was valid but receipt issuance was unsupported or materially mismatched;
+  receipt-boundary denial must not be flattened into route denial folklore
 - receipts must retain whether the crossing came from legality-cleared
   declaration evidence and which explicit legality contract or legality-denial
   posture governed the crossing boundary
@@ -1122,12 +1169,28 @@ boundary receipt rather than an invisible implementation transition.
   support, or descriptive receipt meaning from scratch
 - Query boundary receipts must remain distinct from Phase 8 foundational
   descriptive receipts even when they carry overlapping descriptive facts
+- where a retained descriptive receipt already exists from Phase 8, Phase 10
+  should carry it forward as descriptive basis rather than regenerating a
+  second descriptive receipt story
 - deferred-neighbor and forbidden crossings must still produce Query-owned
   typed receipt/denial posture rather than silent absence
+- receipt kinds and classes must stay explicit and typed; covered, deferred,
+  denied, and failed crossing posture may not collapse into one generic
+  success/failure story
+- successful receipt materialization must fail closed when the retained route
+  kind is not yet supported as a successful crossing kind; unsupported
+  crossing kinds must become typed receipt denial rather than accidental
+  pseudo-success
 - receipts must be inspectable without lower-crate spelunking
 - runtime continuation receipts must record whether workspace/runtime
   preparation and current/historical basis binding were Query-owned outcomes
   rather than caller-owned choreography
+- receipt digest identity must be explicit and topology-sensitive. At minimum,
+  retained handle identity, retained operating-context identity, declaration
+  identity, retained progression posture, retained route-plan posture,
+  receipt class, receipt kind, and foundational evidence bundle identity must
+  participate so equivalent retained truth converges and distinct deferred,
+  denied, failed, or world-divergent crossings do not collapse
 
 **DX target**
 
@@ -1144,13 +1207,21 @@ boundary receipt rather than an invisible implementation transition.
 - route-plan consumers that claim successful crossing must return a receipt
   artifact family, not `()` or free-form text
 - receipt kinds must be typed rather than host strings
+- ordinary-lane receipt APIs must not accept legality evidence or foundational
+  evidence directly in place of retained route truth
+- direct construction of receipt artifacts must remain sealed behind
+  Query-owned front doors
 
 **Acceptance evidence**
 
 - parity suites showing equivalent route plans emit equivalent receipts
 - typed denial assertions for denied and deferred crossing kinds
+- typed denial assertions for receipt-boundary-specific unsupported or
+  mismatched receipt kinds
 - compile-fail coverage proving public crossing APIs cannot claim success
   without a receipt artifact
+- compile-fail coverage proving route-truth-bypassing inputs cannot satisfy
+  receipt APIs directly
 - continuation tests proving runtime-facing receipts expose runtime preparation
   and basis-binding admission as first-class receipt facts
 
@@ -1165,8 +1236,9 @@ boundary receipt rather than an invisible implementation transition.
 
 ### Phase 11: Query Boundary-Envelope Boundary
 
-This phase wraps declaration meaning, route plan, foundational evidence, and
-boundary receipt into one self-describing public envelope.
+This phase wraps retained receipt truth into one self-describing public
+envelope that still preserves the retained foundational evidence and retained
+route truth carried by that receipt.
 
 **Required Query artifacts**
 
@@ -1174,6 +1246,8 @@ boundary receipt into one self-describing public envelope.
 - one envelope digest surface
 - one envelope inspection surface
 - one envelope comparison basis for certification
+- one receipt-backed public envelope lane over issued, deferred, denied, and
+  failed receipt truth
 
 **Locked external surfaces**
 
@@ -1181,18 +1255,33 @@ boundary receipt into one self-describing public envelope.
   [milestone-9.3.6.md](./milestone-9.3.6.md)
 - foundational attachments and receipts must reuse Phase 8 surfaces rather than
   introducing a second descriptive bundle format
+- the public envelope lane is receipt-backed only; legality evidence,
+  foundational evidence, and route plans do not satisfy the ordinary envelope
+  boundary directly
 
 **Requirements**
 
 - envelopes must contain, at minimum: declaration identity, family posture,
-  legality posture, admitted progression posture, route-plan posture, receipt
-  posture, and foundational evidence posture
+  admitted-world identity, evidence-origin posture, route-plan posture when
+  present, receipt posture, and foundational evidence posture
 - envelopes must preserve retained legality evidence and the explicit
   legality-contract posture rather than flattening legality into one generic
   "legal/illegal" note
 - envelopes must preserve whether their descriptive evidence came from a
   legality-only lane, an admitted progression lane, or a non-success
   progression lane rather than flattening Phase 8 evidence origin
+- envelopes must preserve route-plan explanation and typed route-denial causes
+  whenever routing did not produce a planned crossing
+- envelopes must also preserve receipt explanation, receipt class/kind, and
+  typed receipt-boundary denial causes whenever Phase 10 did not issue a
+  covered crossing receipt
+- envelopes must start from retained receipt truth on the public lane and may
+  not accept raw declarations, canonical declarations, legality evidence,
+  foundational evidence alone, or route plans directly as ordinary envelope
+  inputs
+- the envelope input family must preserve checked receipt truth as a real input
+  form rather than forcing callers to destructure checked receipt outcomes
+  themselves before entering Phase 11
 - envelopes must become the primary public artifact for later inspection,
   diagnostics, and certification
 - lower crates may remain authoritative for their own evidence, but Query must
@@ -1219,6 +1308,9 @@ boundary receipt into one self-describing public envelope.
 - later inspection/certification surfaces must consume envelopes or stronger
   derived artifacts, not ad hoc tuples
 - public envelope construction must stay behind Query-owned front doors
+- public Phase 11 surface area must remain honest: only denial and failure
+  families that the boundary can actually produce should be exported or
+  documented as public envelope artifacts
 
 **Acceptance evidence**
 
@@ -1228,6 +1320,8 @@ boundary receipt into one self-describing public envelope.
   differs semantically
 - compile-fail coverage for direct envelope minting outside Query-owned
   boundaries
+- compile-fail coverage proving route plans cannot satisfy the public envelope
+  lane without receipt truth
 - continuation tests proving runtime-capable envelopes can explain runtime
   preparation and basis-binding outcomes without consulting local runtime glue
 
@@ -1658,6 +1752,12 @@ lower crate independently.
   be Query-shaped and stable
 - inspection must not silently erase authority distinctions in the name of one
   pretty summary
+- inspection must expose route-plan explanation and typed route-denial causes
+  as first-class read surfaces rather than leaving callers to reverse-engineer
+  why a route set was planned or denied
+- inspection must expose receipt explanation, receipt class/kind, and typed
+  receipt-boundary denial causes as first-class read surfaces rather than
+  flattening Phase 10 crossing posture into one generic "receipt status"
 
 **DX target**
 
@@ -1734,6 +1834,12 @@ surfaces across the entire declaration-entry seam.
 - support/readiness must also distinguish progression denial, progression
   deferral, stale progression, and rebind-required progression from both
   earlier family-admission denial and legality denial
+- support/readiness must also expose typed route-plan denial causes and
+  explicit route multiplicity instead of collapsing those into generic
+  unsupported or mixed labels
+- support/readiness must also distinguish route-plan denial from
+  receipt-boundary denial where a route is admissible in principle but the
+  current crossing kind is not yet admitted as a successful receipt kind
 - support/readiness posture must also be visible for admitted operating-world
   questions: which configured regimes are supported, which continuation modes
   are supported for a given admitted world, and which truth contexts are valid
@@ -1817,6 +1923,17 @@ steps themselves.
 - the ordinary foundational-materialization default should use the full
   descriptive-richness profile unless the caller explicitly opts into a leaner
   checked/proof lane surface
+- the ordinary route-planning lane should prefer
+  `plan_routes_from_progressed` and
+  `declare_review_progress_describe_and_plan` semantics rather than making
+  callers materialize foundational evidence or route-plan inputs unless they
+  intentionally drop to the advanced lane
+- the ordinary receipt lane should prefer
+  `receipt_routes_from_progressed`,
+  `receipt_routes_from_progressed_with_intent`, and
+  `declare_review_progress_describe_plan_and_receipt` semantics rather than
+  making callers manually assemble receipt inputs unless they intentionally
+  drop to the advanced lane
 - the ordinary lane must stay domain-first in naming and shape; it may not
   devolve into `ForgeQuery*` ceremony or substrate-driven builder steps
 - orchestration may automate sequencing, but it may not hide authority changes,
@@ -1906,6 +2023,12 @@ rebind requirements, and recovery posture into public product artifacts.
 - denial posture must preserve explicit Phase 7 progression outcomes such as
   `Deferred`, `Stale`, `RebindRequired`, and `Failed` rather than flattening
   them into generic route failure or retry folklore
+- denial posture must preserve the typed Phase 9 route-plan denial causes and
+  route explanation surface rather than reducing them to free-form summary
+  strings
+- denial posture must preserve the typed Phase 10 receipt-boundary denial
+  causes and receipt explanation surface rather than flattening unsupported or
+  failed crossing issuance into generic route denial or generic retry folklore
 - denial posture must be able to surface Phase 8 foundational evidence for
   legality denials and non-success progression lanes directly, rather than
   forcing recovery UX to reconstruct descriptive context from raw denial enums

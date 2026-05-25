@@ -1,0 +1,32 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/domain_declaration/boundaries/construction/receipt/receipt_constructor_is_private.rs:58:83
+   |
+58 |       let _ = ForgeQueryDeclarationReceipt::<GeometryDomain, SplitEdgeDeclaration>::new(
+   |                                                                                     ^^^ private associated function
+   |
+  ::: src/application/declaration_receipt/artifact.rs
+   |
+   | /     pub(crate) fn new(
+   | |         class: ForgeQueryDeclarationReceiptClass,
+   | |         kind: ForgeQueryDeclarationReceiptKind,
+   | |         route_plan: Option<ForgeQueryDeclarationRoutePlan<D, I>>,
+...  |
+   | |         receipt_digest: CanonicalDerivedDigest,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
+
+error[E0624]: associated function `new` is private
+  --> tests/ui/domain_declaration/boundaries/construction/receipt/receipt_constructor_is_private.rs:64:50
+   |
+64 |           ForgeQueryDeclarationReceiptExplanation::new("x", None, Vec::new(), "x".to_string()),
+   |                                                    ^^^ private associated function
+   |
+  ::: src/application/declaration_receipt/explain.rs
+   |
+   | /     pub(crate) fn new(
+   | |         crossing_posture: &'static str,
+   | |         route_reference: Option<String>,
+   | |         retained_truths: Vec<String>,
+   | |         governing_reason: String,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

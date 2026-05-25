@@ -317,6 +317,14 @@ What this example is showing:
   and legality denials that can be described directly
 - [Declaration Progression](./declaration-progression.md) supplies admitted,
   deferred, denied, stale, rebind, and failed progression truths
+- [Declaration Route Plans](./declaration-route-plan.md) consumes admitted
+  progression plus matching foundational evidence and turns that retained
+  declaration truth into one explicit route set
+- [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
+  records the public crossing posture that follows from retained route truth
+- [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
+  publish the one self-describing public artifact that carries retained
+  evidence, route truth, and receipt truth together
 
 ## Inspection And Debugging
 
@@ -361,7 +369,7 @@ through shared foundational artifacts. It still does not decide:
 
 - route planning
 - lower-authority boundary crossing
-- public Query receipts
+- public Query boundary receipts
 - public Query envelopes
 - continuity or diagnostic attachments
 
@@ -370,5 +378,8 @@ through shared foundational artifacts. It still does not decide:
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Declaration Legality](./declaration-legality.md)
 - [Declaration Progression](./declaration-progression.md)
+- [Declaration Route Plans](./declaration-route-plan.md)
+- [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
+- [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Domain Capabilities](./README.md)

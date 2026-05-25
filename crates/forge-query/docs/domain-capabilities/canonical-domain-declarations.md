@@ -10,7 +10,7 @@ The important boundary is:
 - the admitted configured handle carries the stable operating world
 - the declaration input carries declaration-local meaning inside that world
 - the declaration family's marker carries retained family identity and family
-  posture
+  posture plus later declaration-side contracts
 - Query canonicalizes the combined meaning into one authoritative declaration
   artifact
 
@@ -46,6 +46,8 @@ Good to know:
 - Query does not own your concrete family nouns
 - the ordinary lane stays generic: `handle.declare(input)`
 - family admission now happens before canonicalization
+- the retained family marker meaning now includes later legality,
+  progression, and route-contract posture
 - raw declaration normalization stays behind Query-owned front doors
 
 ## API Reference
@@ -386,6 +388,9 @@ What this example is showing:
 - [Declaration Progression](./declaration-progression.md) turns the legality-cleared
   canonical declaration into one proof-bearing progression artifact or one typed
   progression outcome
+- [Declaration Route Plans](./declaration-route-plan.md) turns admitted
+  progression proof plus matching foundational evidence into one explicit
+  lower-authority route set
 
 ## Inspection And Debugging
 
@@ -428,6 +433,9 @@ declaration progression is handled separately by
 [Declaration Progression](./declaration-progression.md). This feature still
 does not decide:
 
+- explicit lower-authority route planning
+- Query boundary receipts
+- Query boundary envelopes
 - lower-authority routing into relational, bridge, or signal surfaces
 - grouped execution semantics
 - runtime continuation
@@ -443,4 +451,7 @@ artifact plus one retained family admission boundary to build on.
 - [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
 - [Declaration Legality](./declaration-legality.md)
 - [Declaration Progression](./declaration-progression.md)
+- [Declaration Route Plans](./declaration-route-plan.md)
+- [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
+- [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Domain Capabilities](./README.md)

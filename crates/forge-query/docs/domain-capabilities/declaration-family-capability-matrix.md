@@ -22,6 +22,8 @@ support-dependent.
 - keep structurally wrong witness surfaces absent at compile time
 - let other Query declaration features consume typed witness wrappers instead of reopening taxonomy
   decisions or redoing family support gating
+- let later progression and route-planning work start from one already-admitted
+  family boundary instead of rediscovering support posture
 
 ## Stable Entry Points
 
@@ -333,6 +335,9 @@ What this example is showing:
   matrix has already admitted the family
 - [Declaration Progression](./declaration-progression.md) begins only after the
   family is admitted and legality evidence exists
+- [Declaration Route Plans](./declaration-route-plan.md) begins only after the
+  family is admitted, progression is admitted, and matching foundational
+  evidence exists
 
 ## Inspection And Debugging
 
@@ -373,6 +378,8 @@ Family capability matrix now decides family admission before legality begins.
 It still does not decide:
 
 - lower-authority route planning
+- Query boundary receipts
+- Query boundary envelopes
 - grouped execution semantics
 - continuation execution
 
@@ -386,4 +393,7 @@ Query declaration features depend on.
 - [Declaration Family Taxonomy](./declaration-family-taxonomy.md)
 - [Declaration Legality](./declaration-legality.md)
 - [Declaration Progression](./declaration-progression.md)
+- [Declaration Route Plans](./declaration-route-plan.md)
+- [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
+- [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Domain Capabilities](./README.md)
