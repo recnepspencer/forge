@@ -73,6 +73,51 @@ the broader signal app model.
 
 ## Resources
 
+- [Resources Docs Home](./resources/README.md)
+  The navigation root for the rewritten resource docs.
+- [Resource Overview](./resources/index.md)
+  The shortest path into the new task-first resource tree.
+- [Start Here](./resources/start-here/README.md)
+  First resource, shape choice, and common recipes.
+- [Fetching Data](./resources/fetching/README.md)
+  Single records, collections, paged lists, auth/context, and request policy.
+- [Updating Data](./resources/updating/README.md)
+  Standard writes, local patches, effect profiles, and post-write inspection.
+- [Handling Server Responses](./resources/responses/README.md)
+  Mutation responses, partial canonical truth, fallback reconciliation, and
+  response-owned read updates.
+- [Working With Lists](./resources/lists/README.md)
+  Collection identity, visible selection, narrow row updates, and summaries.
+- [Caching And Refresh](./resources/caching/README.md)
+  Line reuse, stale/fresh state, invalidation, refresh, and derived truth.
+- [Partial Updates And Derived Views](./resources/partial-updates/README.md)
+  Narrow patches, automatic derived views, and explicit aspect declarations.
+- [Uploads And Transfers](./resources/transfers/README.md)
+  Upload preparation, processing jobs, and transfer result reads.
+- [Downloads And Binary Data](./resources/downloads/README.md)
+  Builder-owned binary descriptors, multipart handoff, and download
+  availability.
+- [Inspecting And Debugging Resources](./resources/debugging/README.md)
+  Grouped line reads, retained history, delivery/compatibility inspection, and
+  exact recovery.
+- [Effects And Recovery](./resources/effects/README.md)
+  Effect profiles, branch-native envelopes, merge/rebase, and rollback.
+- [Using Resources In Forms](./resources/forms/README.md)
+  Resource-line form sources, settlement, drift, merge, and mutation-response
+  readback from the resource side.
+- [Using Resources In Routes](./resources/router/README.md)
+  Route-resource declarations, prefetch/warmup, and projected/admitted route
+  capability reads.
+- [Advanced Resource Modeling](./resources/advanced/README.md)
+  Raw family declarations, canonical identity, detail patch declarations, and
+  raw lines.
+- [Verification And Proof](./resources/verification/README.md)
+  Verification packages, topology proof, mutation-response support, and
+  delivery/compatibility digests.
+- [Transfers](./resources/transfers.md)
+  The older flat transfer page for the same feature area.
+- [Downloads](./resources/downloads.md)
+  The older flat download page for the same feature area.
 - [Resource Overview](./resources/overview.md)
   The feature router for server-backed resource state.
 - [Fetch And Write Resources](./resources/fetch-and-write.md)
@@ -87,11 +132,6 @@ the broader signal app model.
 - [Mutation Response Reconciliation](./resources/mutation-response-reconciliation.md)
   response-owned create/update/remove reconciliation, identity migration,
   partial mapping, fallback posture, and compact mutation-response evidence.
-- [Transfers](./resources/transfers.md)
-  Signed upload, multipart upload, finalize-required flows, and deferred
-  processing.
-- [Downloads](./resources/downloads.md)
-  Builder-owned downloads, binary descriptors, and multipart download handoff.
 - [Line Inspection](./resources/line-inspection.md)
   `line.summary()`, request inspection, diagnostics, history, upload,
   processing, and download reads.

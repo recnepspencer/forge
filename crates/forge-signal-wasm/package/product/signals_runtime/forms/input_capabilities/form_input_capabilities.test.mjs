@@ -15,15 +15,17 @@ test("signals.form input capability report keeps unavailable posture explicit ac
       },
       fields: ({ field }) => ({
         title: field("title", {
-          adapter: {
-            tier: "externalImperative",
-            reportsRawInput: false,
-            reportsCommitBoundary: false,
-            reportsComposition: false,
-            reportsFocus: false,
-            supportsMessageTrack: false,
-            supportsMinHeightSync: false,
-            supportsResponsiveTokens: false,
+          input: {
+            adapter: {
+              tier: "externalImperative",
+              reportsRawInput: false,
+              reportsCommitBoundary: false,
+              reportsComposition: false,
+              reportsFocus: false,
+              supportsMessageTrack: false,
+              supportsMinHeightSync: false,
+              supportsResponsiveTokens: false,
+            },
           },
         }),
         notes: field("notes", {
@@ -48,6 +50,7 @@ test("signals.form input capability report keeps unavailable posture explicit ac
     assert.equal(inputCapabilities.counters.signalNativeFields, 1);
 
     const titleField = inputCapabilities.fields.find((field) => field.field === "title");
+    assert.equal(form.inputCapability("title")?.capabilityDigest, titleField?.capabilityDigest);
     assert.equal(titleField?.posture, "unavailable");
     assert.match(titleField?.reason ?? "", /cannot honor/);
     assert.deepEqual(
@@ -89,6 +92,29 @@ test("signals.form input capability report keeps unavailable posture explicit ac
     assert.equal(
       form.verification().performanceEnvelope.inputCapabilities.unavailableCapabilities,
       7,
+    );
+  } finally {
+    await cleanup();
+  }
+});
+
+test("signals.form rejects ambiguous duplicated input adapter declaration surfaces", async () => {
+  const { wrapSignals, cleanup } = await loadSignalsModule();
+  try {
+    const signals = wrapSignals(createGraphOperationalRuntime());
+    assert.throws(
+      () => signals.form({
+        source: { title: "Ship docs" },
+        fields: ({ field }) => ({
+          title: field("title", {
+            input: {
+              adapter: { tier: "signalBridge" },
+            },
+            adapter: { tier: "externalImperative" },
+          }),
+        }),
+      }),
+      /either input\.adapter or adapter\/inputAdapter, not both/,
     );
   } finally {
     await cleanup();

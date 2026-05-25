@@ -13,7 +13,7 @@ This page covers the track model inside the layout report.
 ## Stable Entry Points
 
 - `form.layout().fields[*].tracks`
-- `form.inputCapabilities()`
+- `form.layoutField(fieldId)`
 - field adapter capabilities:
   `supportsLabelTrack`, `supportsHelpTrack`, `supportsMessageTrack`
 
@@ -26,8 +26,9 @@ Tracks are the declared layout lanes around one field:
 - help
 - message
 
-The layout report shows whether those lanes are declared or omitted. Input
-capability reports tell you whether the current control can honor them.
+The layout report shows whether those lanes are declared or omitted. Each
+layout field hint also carries the control capability truth for that same
+field.
 
 ## How It Executes
 
@@ -38,19 +39,18 @@ capability reports tell you whether the current control can honor them.
 ## Small Example
 
 ```ts
-const title = form.layout().fields.find((entry) => entry.field === "title");
+const title = form.layoutField("title");
 console.log(title?.tracks);
 ```
 
 ## Real Example
 
 ```ts
-const field = form.layout().fields.find((entry) => entry.field === "title");
-const capability = form.inputCapabilities().fields.find((entry) => entry.field === "title");
+const field = form.layoutField("title");
 
 console.log(field?.tracks);
-console.log(capability?.capabilities.supportsLabelTrack);
-console.log(capability?.capabilities.supportsMessageTrack);
+console.log(field?.capabilities.supportsLabelTrack);
+console.log(field?.capabilities.supportsMessageTrack);
 ```
 
 ## How It Relates To Other Features
@@ -62,7 +62,8 @@ console.log(capability?.capabilities.supportsMessageTrack);
 ## Inspection And Debugging
 
 - `tracks` tells you which lanes were declared
-- capability reports tell you which lanes are unsupported
+- `layoutField(fieldId)` is the shortest read when you want track and
+  capability truth together
 - accessibility reports tell you what those lanes mean for labels and
   described-by output
 

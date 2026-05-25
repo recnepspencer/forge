@@ -87,6 +87,8 @@ function fieldLayoutHint(declaration, accessibility, step) {
     grow: declaration.layout.grow,
     wrap: declaration.layout.wrap,
     responsive: declaration.layout.responsive,
+    inputAdapterTier: declaration.inputAdapter.tier,
+    capabilities: Object.freeze(declaration.inputAdapter.capabilities),
     capabilityPosture: unavailableCapabilities.length === 0
       ? Object.freeze({
           posture: "supported",

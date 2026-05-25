@@ -73,6 +73,54 @@ export interface FormDiagnosticsSummaryReport {
     readonly summary: FormPresentationReport["summary"];
     readonly digest: string;
   };
+  readonly routeAuthority: {
+    readonly authorityAvailable: boolean;
+    readonly continuity: FormRouteAuthorityReport["summary"]["continuity"];
+    readonly transitionKind: FormRouteAuthorityReport["summary"]["transitionKind"];
+    readonly handoff: null | {
+      readonly posture: NonNullable<FormRouteAuthorityReport["summary"]["handoff"]>["posture"];
+      readonly routeCoupledBehavior:
+        NonNullable<FormRouteAuthorityReport["summary"]["handoff"]>["routeCoupledBehavior"];
+      readonly draftDisposition:
+        NonNullable<FormRouteAuthorityReport["summary"]["handoff"]>["draftDisposition"];
+    };
+    readonly draftContinuity: null | {
+      readonly posture:
+        NonNullable<FormRouteAuthorityReport["summary"]["draftContinuity"]>["posture"];
+      readonly authorityChange:
+        NonNullable<FormRouteAuthorityReport["summary"]["draftContinuity"]>["authorityChange"];
+      readonly draftResolution:
+        NonNullable<FormRouteAuthorityReport["summary"]["draftContinuity"]>["draftResolution"];
+      readonly draftChanged:
+        NonNullable<FormRouteAuthorityReport["summary"]["draftContinuity"]>["draftChanged"];
+    };
+    readonly continuityAudit: {
+      readonly kind: "routeAuthorityContinuityAudit";
+      readonly handoffPosture:
+        NonNullable<FormRouteAuthorityReport["summary"]["handoff"]>["posture"] | null;
+      readonly routeCoupledBehavior:
+        NonNullable<FormRouteAuthorityReport["summary"]["handoff"]>["routeCoupledBehavior"] | null;
+      readonly draftDisposition:
+        NonNullable<FormRouteAuthorityReport["summary"]["handoff"]>["draftDisposition"] | null;
+      readonly draftResolution:
+        NonNullable<FormRouteAuthorityReport["summary"]["draftContinuity"]>["draftResolution"] | null;
+      readonly transitionKind: FormRouteAuthorityReport["summary"]["transitionKind"];
+      readonly authorityAvailable: boolean;
+      readonly routeCoupledSteps: {
+        readonly total: number;
+        readonly active: number;
+        readonly unavailable: number;
+      };
+      readonly routeCoupledActions: {
+        readonly total: number;
+        readonly accepted: number;
+        readonly denied: number;
+      };
+      readonly blockingReason: string | null;
+      readonly digest: string;
+    };
+    readonly digest: string;
+  };
   readonly sourceCompatibility: {
     readonly posture: "notDeclared" | "current" | "compatible" | "migrated" | "unavailable";
     readonly digest: string;
@@ -118,6 +166,27 @@ export interface FormDiagnosticsHistoryArtifact {
   readonly canonicalizationDigest: string;
   readonly sourceCompatibilityDigest: string;
   readonly sourceCompatibilityHistoryDigest: string;
+  readonly routeAuthorityDigest: string;
+  readonly routeAuthorityTransitionKind: FormRouteAuthorityReport["summary"]["transitionKind"];
+  readonly routeAuthorityHandoffPosture:
+    FormRouteAuthorityReport["summary"]["handoff"] extends infer THandoff
+      ? THandoff extends null
+        ? never
+        : NonNullable<THandoff>["posture"] | null
+      : never;
+  readonly routeAuthorityRouteCoupledBehavior:
+    FormRouteAuthorityReport["summary"]["handoff"] extends infer THandoff
+      ? THandoff extends null
+        ? never
+        : NonNullable<THandoff>["routeCoupledBehavior"] | null
+      : never;
+  readonly routeAuthorityDraftResolution:
+    FormRouteAuthorityReport["summary"]["draftContinuity"] extends infer TContinuity
+      ? TContinuity extends null
+        ? never
+        : NonNullable<TContinuity>["draftResolution"] | null
+      : never;
+  readonly routeAuthorityContinuityAuditDigest: string;
   readonly resourceSourceDigest: string | null;
   readonly collaborationDigest: string;
   readonly interactionDigest: string;

@@ -1,6 +1,7 @@
 import { FormDeclarationError } from "../form_errors.js";
 import { hostRequirementBlockers } from "../host/artifacts.js";
 import { controllerLocalNavigationBlockers } from "../navigation/semantics.js";
+import { routeAuthorityReadinessBlockers } from "../route_authority/artifacts.js";
 import { stableValueDigest } from "../values/value_paths.js";
 import { resolveActionPatchArtifact } from "./action_patch_scope.js";
 import { resolveResourceEffectProfileBinding } from "./resource_effect_profile_binding.js";
@@ -27,6 +28,7 @@ export function planActions(actionDeclarations, form, fieldDeclarations, sourceD
   const resourceMerge = form.resourceMerge();
   const canonicalizationHistory = form.canonicalizationHistory();
   const steps = form.steps();
+  const routeAuthority = form.routeAuthority();
   const navigation = form.navigation();
   const binding = createActionProofBinding(form, fieldDeclarations);
   const basePlans = actionDeclarations.map((declaration) =>
@@ -43,6 +45,7 @@ export function planActions(actionDeclarations, form, fieldDeclarations, sourceD
       sourceDeclaration,
       fieldDeclarations,
       steps,
+      routeAuthority,
       navigation,
       binding,
     }),
@@ -104,9 +107,10 @@ function actionPlan(declaration, context) {
     resourceEffectProfile.blockers,
   );
   const status = blockers.length === 0 ? "accepted" : "denied";
+  const effectiveEffectPolicy = routeAuthorityEffectPolicy(declaration, context.routeAuthority);
   const actionSchemaDigest = stableValueDigest(declaration.schema);
   const effectDigest = stableValueDigest({
-    effectPolicy: declaration.effectPolicy,
+    effectPolicy: effectiveEffectPolicy,
     hostEffect: declaration.hostEffect,
     resourceAction,
     resourceEffectProfile,
@@ -131,7 +135,7 @@ function actionPlan(declaration, context) {
     admissionCapability: declaration.admissionCapability,
     destructive: declaration.destructive,
     idempotency: declaration.idempotency,
-    effectPolicy: declaration.effectPolicy,
+    effectPolicy: effectiveEffectPolicy,
     hostEffect: declaration.hostEffect,
     hostRequirements: declaration.hostRequirements,
     resourceAction,
@@ -145,6 +149,7 @@ function actionPlan(declaration, context) {
   const planDigest = stableValueDigest(planSeed);
   return Object.freeze({
     ...actionCatalogEntry(declaration),
+    effectPolicy: effectiveEffectPolicy,
     resourceAction,
     resourceEffectProfile,
     status,
@@ -202,13 +207,19 @@ function actionReadinessBlockers(declaration, context, patch, resourceActionBloc
     ...hostRequirementBlockers(context.host, declaration.hostRequirements, declaration.id),
     ...resourceActionBlockers,
     ...resourceEffectBlockers,
+    ...routeAuthorityReadinessBlockers(context.routeAuthority),
   ];
   if (declaration.step?.routeCoupled === true) {
-    blockers.push(Object.freeze({
-      kind: "action:deferred",
-      action: declaration.id,
-      reason: "route-coupled step action requires route authority outside controller-local navigation",
-    }));
+    if (!routeAuthorityAllowsRouteCoupledBehavior(context.routeAuthority)) {
+      blockers.push(Object.freeze({
+        kind: "action:deferred",
+        action: declaration.id,
+        reason: routeAuthorityUnavailableReason(
+          context.routeAuthority,
+          "route-coupled step action",
+        ),
+      }));
+    }
   }
   if (declaration.step?.routeCoupled !== true && declaration.kind === "step") {
     blockers.push(
@@ -367,3 +378,14 @@ function routeSemantics(declaration) {
     : "controllerLocalOnly";
 }
 
+function routeAuthorityEffectPolicy(declaration, routeAuthority) {
+  if (declaration.step?.routeCoupled === true && routeAuthorityAllowsRouteCoupledBehavior(routeAuthority)) {
+    return "deferred";
+  }
+  return declaration.effectPolicy;
+}
+
+import {
+  routeAuthorityAllowsRouteCoupledBehavior,
+  routeAuthorityUnavailableReason,
+} from "../route_authority/handoff.js";

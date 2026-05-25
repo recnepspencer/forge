@@ -20,6 +20,7 @@ export function readFormDiagnosticsState(form, fieldDeclarations) {
     inputCapabilities: form.inputCapabilities(),
     exit: form.exit(),
     handoff: form.handoff(),
+    routeAuthority: form.routeAuthority(),
     attachments: form.attachments(),
     media: form.media(),
     messages: form.messages(),

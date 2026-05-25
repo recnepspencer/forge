@@ -1,3 +1,4 @@
+import { readRouteAuthorityContinuityAudit } from "../route_authority/continuity_audit.js";
 import { stableValueDigest } from "../values/value_paths.js";
 
 export function readFormDiagnosticsSummary(state) {
@@ -41,6 +42,32 @@ export function readFormDiagnosticsSummary(state) {
   const presentation = Object.freeze({
     summary: state.presentation.summary,
     digest: state.presentation.digest,
+  });
+  const routeAuthority = Object.freeze({
+    authorityAvailable: state.routeAuthority.summary.authorityAvailable,
+    continuity: state.routeAuthority.summary.continuity,
+    transitionKind: state.routeAuthority.summary.transitionKind,
+    handoff: state.routeAuthority.summary.handoff === null
+      ? null
+      : Object.freeze({
+        posture: state.routeAuthority.summary.handoff.posture,
+        routeCoupledBehavior: state.routeAuthority.summary.handoff.routeCoupledBehavior,
+        draftDisposition: state.routeAuthority.summary.handoff.draftDisposition,
+      }),
+    draftContinuity: state.routeAuthority.summary.draftContinuity === null
+      ? null
+      : Object.freeze({
+        posture: state.routeAuthority.summary.draftContinuity.posture,
+        authorityChange: state.routeAuthority.summary.draftContinuity.authorityChange,
+        draftResolution: state.routeAuthority.summary.draftContinuity.draftResolution,
+        draftChanged: state.routeAuthority.summary.draftContinuity.draftChanged,
+      }),
+    continuityAudit: readRouteAuthorityContinuityAudit(
+      state.routeAuthority,
+      state.steps,
+      state.actions,
+    ),
+    digest: state.routeAuthority.digest,
   });
   const sourceCompatibility = Object.freeze({
     posture: state.sourceCompatibility.posture,
@@ -95,6 +122,7 @@ export function readFormDiagnosticsSummary(state) {
     interaction,
     navigation,
     presentation,
+    routeAuthority,
     sourceCompatibility,
     steps,
     actions,

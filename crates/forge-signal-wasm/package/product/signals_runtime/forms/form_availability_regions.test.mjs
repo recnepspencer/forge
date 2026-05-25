@@ -121,6 +121,8 @@ test("signals.form derives control group and section availability topology", asy
     assert.equal(saveControl.state, "disabled");
     assert.equal(saveControl.scope, "control");
     assert.deepEqual(saveControl.fields, []);
+    assert.equal(form.controlAvailability("saveButton")?.reason, "save control is disabled");
+    assert.equal(form.controlAvailabilities().length, 1);
     assert.equal(form.diagnostics().availability.summary.byScope.control, 1);
   } finally {
     await cleanup();

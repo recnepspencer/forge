@@ -53,7 +53,6 @@ pub enum FuzzyMatchMode {
 /// (origin→dest), looks up grid cells near its REVERSED endpoints
 /// (query origin ≈ candidate dest, query dest ≈ candidate origin).
 pub struct EdgeMatcher {
-    cell_size: f64,
     inv_cell_size: f64,
     tolerance_sq: f64,
     dest_grid: BTreeMap<(i64, i64, i64), Vec<usize>>,
@@ -76,7 +75,6 @@ impl EdgeMatcher {
         }
 
         Self {
-            cell_size,
             inv_cell_size,
             tolerance_sq,
             dest_grid,

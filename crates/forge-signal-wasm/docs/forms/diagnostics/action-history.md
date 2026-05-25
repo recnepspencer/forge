@@ -15,6 +15,7 @@ controller and diagnostics surface.
 
 - `form.actionHistory()`
 - `form.actionExecutionHistory()`
+- `form.debugAction(actionId)`
 - `form.diagnostics().actionHistory`
 - `form.diagnostics().actionExecutionHistory`
 
@@ -25,7 +26,8 @@ There are two histories:
 - action attempt history
 - action execution lifecycle history
 
-Planning and execution are intentionally separate.
+Planning and execution are intentionally separate. `debugAction(...)` is the
+task-shaped common path that pulls the nearby pieces together for one action.
 
 ## How It Executes
 
@@ -53,6 +55,7 @@ form.fulfillAction(pending.operationId, {
 
 console.log(form.actionHistory());
 console.log(form.actionExecutionHistory());
+console.log(form.debugAction("submit"));
 ```
 
 ## How It Relates To Other Features
@@ -66,6 +69,8 @@ console.log(form.actionExecutionHistory());
 
 - action attempt history tells you whether a plan was accepted or denied
 - action execution history tells you what happened after execution started
+- `debugAction(actionId)` gives you the current plan, nearby blockers, and the
+  filtered attempt/execution history for one action
 - `form.diagnosticsSummary().histories.actionAttempts` and
   `actionExecutions` show retained counts
 

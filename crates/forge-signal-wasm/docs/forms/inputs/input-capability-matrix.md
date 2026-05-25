@@ -45,7 +45,7 @@ console.log(form.inputCapabilities().summary);
 ## Real Example
 
 ```ts
-const title = form.inputCapabilities().fields.find((entry) => entry.field === "title");
+const title = form.inputCapability("title");
 
 console.log(title?.tier);
 console.log(title?.posture);

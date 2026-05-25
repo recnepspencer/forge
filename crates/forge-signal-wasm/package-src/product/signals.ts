@@ -16,7 +16,9 @@ import {
 import { wrapDiagnostics } from "./diagnostics.js";
 import { createFormController } from "./forms/form_controller.js";
 import { createFormSourceFactory } from "./forms/sources/form_sources.js";
+import { requireRouteFormsAuthorityArtifact } from "./router/projection/admission/router_forms_authority_artifact.js";
 import { createApiFactory } from "./api/api_namespace.js";
+import { createRouterNamespace } from "./router/router_namespace.js";
 import {
   createImportedSignalGraph,
   createPublishedSignalGraph,
@@ -374,7 +376,9 @@ export function wrapSignals(rawSignals, options) {
   const explicitSpec = explicitSignalSpecNamespace(rawSignals);
   const formSourceFactory = createFormSourceFactory();
   function createForm(declaration) {
-    return createFormController(callableSignals, declaration);
+    return createFormController(callableSignals, declaration, {
+      requireRouteFormsAuthorityArtifact,
+    });
   }
   Object.defineProperty(createForm, "source", {
     enumerable: true,
@@ -384,6 +388,7 @@ export function wrapSignals(rawSignals, options) {
     host: hostCapabilities.host,
     resource: createResourceNamespace(null, rawSignals),
     api: null,
+    router: null,
     spec: explicitSpec,
     scope(localScopeId) {
       return createScopedSignalNamespace(
@@ -644,5 +649,6 @@ export function wrapSignals(rawSignals, options) {
     rawSignals,
   );
   callableSignals.api = createApiFactory(callableSignals);
+  callableSignals.router = createRouterNamespace();
   return callableSignals;
 }

@@ -66,12 +66,11 @@ impl Vertex {
 // =========================================================================
 
 mod eval {
-    use std::convert::TryFrom;
     use worth_math::arithmetic::Rational;
     use worth_math::linalg::det3_rows;
     use worth_math::{GeometrySource, MathError};
 
-    use crate::primitives::plane::{intersect_three_planes, signed_distance, Plane};
+    use crate::primitives::plane::{intersect_three_planes, Plane};
 
     use super::{PlaneRef, Vertex};
 
@@ -232,13 +231,12 @@ mod eval {
 #[cfg(test)]
 mod tests {
     use crate::primitives::implicit_vertex::{
-        resolve_position, select_best_triple, PlaneRef, Vertex,
+        resolve_position, PlaneRef, Vertex,
     };
     use crate::primitives::plane::Plane;
-    use crate::spatial::bsp::PlaneSet;
+    use crate::spatial::acceleration::bsp::PlaneSet;
 
     const TEST_DEGENERACY: f64 = 1e-15;
-    const TEST_TOLERANCE: f64 = 1e-10;
 
     fn cube_planes() -> Vec<Plane> {
         vec![

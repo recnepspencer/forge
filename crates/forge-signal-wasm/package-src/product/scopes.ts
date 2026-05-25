@@ -2,6 +2,7 @@ import { buildControllerContract } from "./controllers.js";
 import { createApiFactory } from "./api/api_namespace.js";
 import { createLinkedSignal } from "./linked.js";
 import { createResourceNamespace } from "./resource/facade.js";
+import { createRouterNamespace } from "./router/router_namespace.js";
 import {
   DEBUG_NAME,
   GRAPH_LOCAL_ID,
@@ -244,6 +245,7 @@ export function createScopedSignalNamespace(
     host: callableSignals.host,
     resource: null,
     api: null,
+    router: null,
     spec: Object.freeze({
       input(id, initial, options) {
         return tagScopedHandle(
@@ -552,6 +554,7 @@ export function createScopedSignalNamespace(
     rawSignals,
   );
   scopedNamespace.api = createApiFactory(scopedNamespace);
+  scopedNamespace.router = createRouterNamespace(scopeId);
 
   return Object.freeze(scopedNamespace);
 }

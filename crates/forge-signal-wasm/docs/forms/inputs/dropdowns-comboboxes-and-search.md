@@ -13,6 +13,7 @@ interaction wiring instead of plain `set(...)` calls.
 
 ## Stable Entry Points
 
+- `form.bindInput(fieldId, options?)`
 - adapter capabilities such as `reportsRawInput`, `reportsCommitBoundary`,
   `reportsFocus`
 - field handle methods:
@@ -45,21 +46,15 @@ statusSelect.onChange((value) => {
 ## Real Example
 
 ```ts
-searchBox.onInput((raw) => {
-  form.fields.query.input(raw, { source: "typing" });
+const query = form.bindInput("query", {
+  source: "typing",
+  parse: (raw) => raw.trim(),
 });
 
-searchBox.onCommit((raw) => {
-  form.fields.query.commitInput((value) => value.trim());
-});
-
-searchBox.onFocus(() => {
-  form.fields.query.focus();
-});
-
-searchBox.onBlur(() => {
-  form.fields.query.blur();
-});
+searchBox.onInput(query.input);
+searchBox.onCommit(query.commit);
+searchBox.onFocus(query.focus);
+searchBox.onBlur(query.blur);
 ```
 
 ## How It Relates To Other Features
@@ -73,6 +68,8 @@ searchBox.onBlur(() => {
 
 ## Inspection And Debugging
 
+- `form.bindInput(...)` is the shortest common path for search, combobox, and
+  similar controls
 - `fieldHandle.diagnostics()` is the best first read for one control
 - `form.inputCapabilities()` shows whether the control is overclaiming support
 - `form.actionReadiness(...)` helps when search or selection controls affect

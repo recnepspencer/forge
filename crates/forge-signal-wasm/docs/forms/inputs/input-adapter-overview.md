@@ -14,7 +14,7 @@ controls.
 
 ## Stable Entry Points
 
-- field option `adapter` or `inputAdapter`
+- field option `input: { adapter: ... }`
 - `form.inputAdapters()`
 - `form.inputCapabilities()`
 - `fieldHandle.diagnostics().inputAdapter`
@@ -44,12 +44,14 @@ const form = signals.form({
   source: { title: "Ship docs" },
   fields: ({ field }) => ({
     title: field("title", {
-      adapter: {
-        tier: "externalImperative",
-        reportsRawInput: true,
-        reportsCommitBoundary: true,
-        reportsComposition: false,
-        reportsFocus: true,
+      input: {
+        adapter: {
+          tier: "externalImperative",
+          reportsRawInput: true,
+          reportsCommitBoundary: true,
+          reportsComposition: false,
+          reportsFocus: true,
+        },
       },
     }),
   }),
@@ -61,7 +63,7 @@ console.log(form.inputAdapters());
 ## Real Example
 
 ```ts
-const title = form.inputCapabilities().fields.find((entry) => entry.field === "title");
+const title = form.inputCapability("title");
 
 console.log(title?.tier);
 console.log(title?.capabilities);

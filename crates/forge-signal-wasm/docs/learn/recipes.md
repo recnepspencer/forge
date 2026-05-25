@@ -10,6 +10,70 @@ here.
 
 - ordinary local forms:
   [Forms Overview](../forms/index.md)
+- first resource, shape choice, and common resource patterns:
+  [Start Here](../resources/start-here/README.md),
+  [Your First Resource](../resources/start-here/your-first-resource.md),
+  [Choose A Resource Shape](../resources/start-here/choose-a-resource-shape.md), and
+  [Common Resource Recipes](../resources/start-here/common-resource-recipes.md)
+- fetch one record, a list, or accumulating pages:
+  [Fetching Data](../resources/fetching/README.md),
+  [Fetch A Single Record](../resources/fetching/fetch-a-single-record.md),
+  [Fetch A Collection](../resources/fetching/fetch-a-collection.md), and
+  [Fetch A Paged List](../resources/fetching/fetch-a-paged-list.md)
+- auth, headers, basis, or request policy:
+  [Request Auth And Context](../resources/fetching/request-auth-and-context.md)
+  and [Request Policies](../resources/fetching/request-policies.md)
+- create, update, remove, local patches, or choosing an effect profile:
+  [Updating Data](../resources/updating/README.md),
+  [Write A Resource](../resources/updating/write-a-resource.md),
+  [Submit Patches And Replacements](../resources/updating/submit-patches-and-replacements.md),
+  [Choose An Effect Profile](../resources/updating/choose-an-effect-profile.md), and
+  [What Happens After A Write](../resources/updating/what-happens-after-a-write.md)
+- understanding what a write response changed:
+  [Understand Mutation Responses](../resources/responses/understand-mutation-responses.md)
+- one row update without replacing the whole list:
+  [Update One Item Without Replacing Everything](../resources/lists/update-one-item-without-replacing-everything.md)
+- stale lines, refresh, or revalidate:
+  [Caching And Refresh](../resources/caching/README.md),
+  [Stale, Pending, And Settled State](../resources/caching/stale-pending-and-settled-state.md), and
+  [Invalidation And Refresh](../resources/caching/invalidation-and-refresh.md)
+- partial updates or explicit derived-item declarations:
+  [Partial Updates And Derived Views](../resources/partial-updates/README.md),
+  [Automatic Derived Views](../resources/partial-updates/automatic-derived-views.md), and
+  [Update One Region, Field, Or Item](../resources/partial-updates/update-one-region-field-or-item.md)
+- upload preparation or accepted processing jobs:
+  [Uploads And Transfers](../resources/transfers/README.md),
+  [Upload Files](../resources/transfers/upload-files.md), and
+  [Track Processing Jobs](../resources/transfers/track-processing-jobs.md)
+- builder-owned downloads or multipart export descriptors:
+  [Downloads And Binary Data](../resources/downloads/README.md),
+  [Offer Downloads](../resources/downloads/offer-downloads.md), and
+  [File, Media, And Export Downloads](../resources/downloads/file-media-and-export-downloads.md)
+- grouped line inspection, retained-history debugging, or exact recovery:
+  [Inspecting And Debugging Resources](../resources/debugging/README.md),
+  [Inspect A Resource Line](../resources/debugging/inspect-a-resource-line.md), and
+  [Restore, Replay, And Recover](../resources/debugging/restore-replay-and-recover.md)
+- optimistic effects, merge/rebase, or rollback posture:
+  [Effects And Recovery](../resources/effects/README.md),
+  [Branch-Native Effects](../resources/effects/branch-native-effects.md), and
+  [Rollback And Recovery](../resources/effects/rollback-and-recovery.md)
+- resource-backed forms, settlement, drift, merge, or replay/restore:
+  [Using Resources In Forms](../resources/forms/README.md),
+  [Use A Resource As Form Source](../resources/forms/use-a-resource-as-form-source.md),
+  [Handle Resource Drift And Merge](../resources/forms/handle-resource-drift-and-merge.md), and
+  [Replay, Restore, And Reset Resource-Backed Forms](../resources/forms/replay-restore-and-reset-resource-backed-forms.md)
+- route-resource declarations, prefetch, warmup, or projected/admitted reads:
+  [Using Resources In Routes](../resources/router/README.md),
+  [Declare Route Resources](../resources/router/declare-route-resources.md), and
+  [Prefetch And Warmup Route Resources](../resources/router/prefetch-and-warmup-route-resources.md)
+- raw family declarations or canonical identity control:
+  [Advanced Resource Modeling](../resources/advanced/README.md),
+  [Resource Family Identity](../resources/advanced/resource-family-identity.md), and
+  [Raw Resource Lines](../resources/advanced/raw-resource-lines.md)
+- proof packages, topology proof, or mutation-response support matrices:
+  [Verification And Proof](../resources/verification/README.md),
+  [Verification Packages](../resources/verification/verification-packages.md), and
+  [Mutation-Response Closeout Matrix](../resources/verification/mutation-response-closeout-matrix.md)
 - patching complex edit forms:
   [Patching Complex Edit Forms](../forms/changes/patching-complex-edit-forms.md)
 - async validation or server canonicalization:
@@ -75,10 +139,6 @@ here.
   [Fetch And Write Resources](../resources/fetch-and-write.md)
 - item patching, summaries, or delivery:
   [Collections And Delivery](../resources/collections-and-delivery.md)
-- signed upload or multipart upload:
-  [Transfers](../resources/transfers.md)
-- downloads or multipart downloads:
-  [Downloads](../resources/downloads.md)
 - line reads and debugging:
   [Line Inspection](../resources/line-inspection.md)
 - exact restore, replay availability, or verification packages:

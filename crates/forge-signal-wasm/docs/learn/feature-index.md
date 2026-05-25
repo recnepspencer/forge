@@ -10,6 +10,95 @@ home.
 
 ## Authoring Features
 
+- rewritten resource docs home:
+  [Resources Docs Home](../resources/README.md)
+- first resource, shape choice, and common resource patterns:
+  [Start Here](../resources/start-here/README.md),
+  [Your First Resource](../resources/start-here/your-first-resource.md),
+  [Choose A Resource Shape](../resources/start-here/choose-a-resource-shape.md), and
+  [Common Resource Recipes](../resources/start-here/common-resource-recipes.md)
+- fetch one record, one collection snapshot, or one paged line:
+  [Fetching Data](../resources/fetching/README.md),
+  [Fetch A Single Record](../resources/fetching/fetch-a-single-record.md),
+  [Fetch A Collection](../resources/fetching/fetch-a-collection.md), and
+  [Fetch A Paged List](../resources/fetching/fetch-a-paged-list.md)
+- auth, request context, and request policy:
+  [Request Auth And Context](../resources/fetching/request-auth-and-context.md)
+  and [Request Policies](../resources/fetching/request-policies.md)
+- create, update, remove, local patches, and effect profile choice:
+  [Updating Data](../resources/updating/README.md),
+  [Write A Resource](../resources/updating/write-a-resource.md),
+  [Submit Patches And Replacements](../resources/updating/submit-patches-and-replacements.md),
+  [Choose An Effect Profile](../resources/updating/choose-an-effect-profile.md), and
+  [What Happens After A Write](../resources/updating/what-happens-after-a-write.md)
+- mutation responses, partial canonical truth, fallback reconciliation, and
+  response-owned read updates:
+  [Handling Server Responses](../resources/responses/README.md),
+  [Understand Mutation Responses](../resources/responses/understand-mutation-responses.md),
+  [Handle Partial Canonical Truth](../resources/responses/handle-partial-canonical-truth.md), and
+  [Handle Fallback Reconciliation](../resources/responses/handle-fallback-reconciliation.md)
+- list identity, visible list truth, narrow row updates, and list summaries:
+  [Working With Lists](../resources/lists/README.md),
+  [List Shapes And Item Identity](../resources/lists/list-shapes-and-item-identity.md),
+  [Visible Selection](../resources/lists/visible-selection.md), and
+  [Update One Item Without Replacing Everything](../resources/lists/update-one-item-without-replacing-everything.md)
+- line reuse, staleness, refresh, revalidation, and derived resource truth:
+  [Caching And Refresh](../resources/caching/README.md),
+  [How Resource Caching Works](../resources/caching/how-resource-caching-works.md),
+  [Stale, Pending, And Settled State](../resources/caching/stale-pending-and-settled-state.md), and
+  [Invalidation And Refresh](../resources/caching/invalidation-and-refresh.md)
+- narrow patches, derived item views, summaries, and explicit aspect
+  declarations:
+  [Partial Updates And Derived Views](../resources/partial-updates/README.md),
+  [How Partial Resource Updates Work](../resources/partial-updates/how-partial-resource-updates-work.md),
+  [Automatic Derived Views](../resources/partial-updates/automatic-derived-views.md), and
+  [Update One Region, Field, Or Item](../resources/partial-updates/update-one-region-field-or-item.md)
+- upload preparation, processing jobs, and transfer result reads:
+  [Uploads And Transfers](../resources/transfers/README.md),
+  [Upload Files](../resources/transfers/upload-files.md),
+  [Track Processing Jobs](../resources/transfers/track-processing-jobs.md), and
+  [Understand Transfer Results](../resources/transfers/understand-transfer-results.md)
+- builder-owned binary descriptors, descriptor kinds, multipart download
+  handoff, and unavailable/incompatible download truth:
+  [Downloads And Binary Data](../resources/downloads/README.md),
+  [Offer Downloads](../resources/downloads/offer-downloads.md),
+  [File, Media, And Export Downloads](../resources/downloads/file-media-and-export-downloads.md), and
+  [Why A Download Is Unavailable](../resources/downloads/why-a-download-is-unavailable.md)
+- grouped line reads, retained history, delivery/compatibility debugging, and
+  exact recovery:
+  [Inspecting And Debugging Resources](../resources/debugging/README.md),
+  [Inspect A Resource Line](../resources/debugging/inspect-a-resource-line.md),
+  [Check Status, Freshness, And History](../resources/debugging/check-status-settlement-and-history.md), and
+  [Restore, Replay, And Recover](../resources/debugging/restore-replay-and-recover.md)
+- effect profiles, effect envelopes, merge/rebase, and rollback:
+  [Effects And Recovery](../resources/effects/README.md),
+  [Branch-Native Effects](../resources/effects/branch-native-effects.md),
+  [Effect Envelopes And Closeout](../resources/effects/effect-envelopes-and-closeout.md), and
+  [Rollback And Recovery](../resources/effects/rollback-and-recovery.md)
+- resource-backed form sources, settlement, drift, merge, mutation-response
+  readback, and replay/restore:
+  [Using Resources In Forms](../resources/forms/README.md),
+  [Use A Resource As Form Source](../resources/forms/use-a-resource-as-form-source.md),
+  [Handle Resource Drift And Merge](../resources/forms/handle-resource-drift-and-merge.md), and
+  [Replay, Restore, And Reset Resource-Backed Forms](../resources/forms/replay-restore-and-reset-resource-backed-forms.md)
+- route-resource declarations, prefetch/warmup, and projected/admitted route
+  capability reads:
+  [Using Resources In Routes](../resources/router/README.md),
+  [Declare Route Resources](../resources/router/declare-route-resources.md),
+  [Prefetch And Warmup Route Resources](../resources/router/prefetch-and-warmup-route-resources.md), and
+  [Read Projected And Admitted Resource Capabilities](../resources/router/read-projected-and-admitted-resource-capabilities.md)
+- raw family declarations, canonical identity, detail field/region/json-path
+  declarations, and item/summary declarations:
+  [Advanced Resource Modeling](../resources/advanced/README.md),
+  [Resource Family Identity](../resources/advanced/resource-family-identity.md),
+  [Detail Fields, Regions, And Json Paths](../resources/advanced/detail-fields-regions-and-json-paths.md), and
+  [Item Aspects And Value Summaries](../resources/advanced/item-aspects-and-value-summaries.md)
+- verification packages, topology proof, mutation-response support, and
+  delivery/compatibility proof digests:
+  [Verification And Proof](../resources/verification/README.md),
+  [Verification Packages](../resources/verification/verification-packages.md),
+  [Response Topology Proof](../resources/verification/response-topology-proof.md), and
+  [Delivery And Compatibility Digests](../resources/verification/delivery-and-compatibility-digests.md)
 - shared API roots and nested scopes:
   [Fetch And Write Resources](../resources/fetch-and-write.md)
 - detail, list, paged, create, update, remove:
@@ -176,20 +265,20 @@ home.
 ## Transfer Features
 
 - signed upload:
-  [Transfers](../resources/transfers.md)
+  [Upload Files](../resources/transfers/upload-files.md)
 - multipart upload:
-  [Transfers](../resources/transfers.md)
+  [Upload Files](../resources/transfers/upload-files.md)
 - deferred processing:
-  [Transfers](../resources/transfers.md)
+  [Track Processing Jobs](../resources/transfers/track-processing-jobs.md)
 
 ## Download Features
 
 - builder-owned `.downloads(...)`:
-  [Downloads](../resources/downloads.md)
+  [Offer Downloads](../resources/downloads/offer-downloads.md)
 - binary descriptors:
-  [Downloads](../resources/downloads.md)
+  [Describe Binary Values](../resources/downloads/describe-binary-values.md)
 - multipart downloads:
-  [Downloads](../resources/downloads.md)
+  [File, Media, And Export Downloads](../resources/downloads/file-media-and-export-downloads.md)
 
 ## Read / Debug Features
 

@@ -9,6 +9,8 @@ This page covers the action-related proof surfaces inside `form.verification()`.
 - verify that action planning and execution history stay distinct
 - inspect attempt and execution counts in one package
 - confirm action catalog and readiness digests
+- compare the verification package with `form.debugAction(actionId)` when you
+  need a friendlier runtime read beside the proof surface
 
 ## Stable Entry Points
 
@@ -62,6 +64,8 @@ console.log(after.actionHistory.attempts);
 
 - action catalog digests stay stable when only lifecycle history changes
 - action lifecycle digests change when attempts or execution history changes
+- `form.debugAction(actionId).verification` gives the matching action-facing
+  digest view beside the broader verification package
 
 ## Anti-Patterns
 

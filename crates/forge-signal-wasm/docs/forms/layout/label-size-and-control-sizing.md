@@ -37,7 +37,7 @@ when you need actual retained geometry.
 ## Small Example
 
 ```ts
-const title = form.layout().fields.find((entry) => entry.field === "title");
+const title = form.layoutField("title");
 console.log(title?.minHeight);
 ```
 

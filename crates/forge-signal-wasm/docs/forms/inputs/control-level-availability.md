@@ -16,6 +16,8 @@ than to the field's semantic meaning.
 
 - `availability: ({ control }) => ...`
 - `form.availability()`
+- `form.controlAvailabilities()`
+- `form.controlAvailability(controlId)`
 - `form.readiness()`
 
 ## Core Mental Model
@@ -30,6 +32,8 @@ The control is one UI surface that may or may not currently be usable.
 1. declare control availability rules
 2. the runtime evaluates those rules alongside field and action availability
 3. availability reports keep the control posture explicit
+4. control-specific reads give you the common-path lookup without manual
+   filtering
 
 ## Small Example
 
@@ -45,10 +49,8 @@ availability: ({ control }) => ({
 ## Real Example
 
 ```ts
-const report = form.availability();
-
-console.log(report.artifacts.filter((artifact) => artifact.scope === "control"));
-console.log(report.summary.byScope.control);
+console.log(form.controlAvailabilities());
+console.log(form.controlAvailability("searchOpen"));
 ```
 
 ## How It Relates To Other Features
@@ -60,8 +62,9 @@ console.log(report.summary.byScope.control);
 
 ## Inspection And Debugging
 
-- `availability().artifacts.filter((artifact) => artifact.scope === "control")`
-  is the first read for control availability
+- `controlAvailabilities()` is the first read for all control availability
+- `controlAvailability(controlId)` is the first read when you already know the
+  control id
 - `availability().summary.byScope.control` shows how many control artifacts are
   present
 

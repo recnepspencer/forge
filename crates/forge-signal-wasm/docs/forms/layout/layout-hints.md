@@ -43,7 +43,7 @@ title: field("title", {
 ## Real Example
 
 ```ts
-const hint = form.layout().fields.find((entry) => entry.field === "title");
+const hint = form.layoutField("title");
 
 console.log(hint?.row);
 console.log(hint?.column);

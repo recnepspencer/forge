@@ -4,6 +4,7 @@
 
 This page covers the public route-authority seam for forms:
 
+- `form.bindRouteAuthority(...)`
 - `form.reportRouteAuthority(...)`
 - `form.clearRouteAuthority(...)`
 - `form.routeAuthority()`
@@ -18,6 +19,7 @@ This page covers the public route-authority seam for forms:
 ## Stable Entry Points
 
 - `form.routeAuthority()`
+- `form.bindRouteAuthority(route)`
 - `form.reportRouteAuthority(authority)`
 - `form.clearRouteAuthority(...)`
 - `outcome.route().formsAuthority()`
@@ -37,7 +39,7 @@ The handoff tells the form:
 
 1. admit a route
 2. read the route-owned forms authority from the admitted route
-3. report that authority into the form
+3. bind that authority into the form
 4. inspect the route-authority report, diagnostics summary, or verification
 
 ## Small Example
@@ -46,7 +48,7 @@ The handoff tells the form:
 const outcome = routes.admit({ href: "/tasks/ship-docs" });
 
 if (outcome.kind === "admitted") {
-  form.reportRouteAuthority(outcome.route().formsAuthority());
+  form.bindRouteAuthority(outcome.route());
 }
 
 console.log(form.routeAuthority().summary);
@@ -58,7 +60,7 @@ console.log(form.routeAuthority().summary);
 const outcome = routes.admit({ href: "/tasks/ship-docs/review" });
 
 if (outcome.kind === "admitted") {
-  form.reportRouteAuthority(outcome.route().formsAuthority());
+  form.bindRouteAuthority(outcome.route());
 }
 
 const report = form.routeAuthority();
@@ -80,12 +82,15 @@ console.log(form.diagnosticsSummary().routeAuthority);
 - `form.routeAuthority().summary` shows current route id, continuity, handoff,
   and transition kind
 - `form.routeAuthority().history` retains prior route-authority updates
+- `form.bindRouteAuthority(route)` is the shortest common path when you already
+  have an admitted route in hand
 - `form.diagnosticsSummary().routeAuthority` gives the same seam in a compact
   summary shape
 
 ## Anti-Patterns
 
 - calling `reportRouteAuthority(...)` with a test helper artifact in app code
+- binding an admitted route that does not actually declare a forms surface
 - treating route authority as if the form owned it independently
 - assuming every route outcome is admitted before reading `formsAuthority()`
 

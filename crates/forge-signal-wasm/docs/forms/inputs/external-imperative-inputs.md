@@ -14,6 +14,8 @@ to the form runtime.
 ## Stable Entry Points
 
 - adapter tier `externalImperative`
+- field option `input: { adapter: ... }`
+- `form.bindInput(fieldId, options?)`
 - field handle methods such as `input(...)`, `commitInput()`, `focus()`,
   `blur()`, and `set(...)`
 - `form.inputCapabilities()`
@@ -33,12 +35,14 @@ pretend to have capabilities it does not actually expose.
 
 ```ts
 title: field("title", {
-  adapter: {
-    tier: "externalImperative",
-    reportsRawInput: true,
-    reportsCommitBoundary: true,
-    reportsComposition: false,
-    reportsFocus: true,
+  input: {
+    adapter: {
+      tier: "externalImperative",
+      reportsRawInput: true,
+      reportsCommitBoundary: true,
+      reportsComposition: false,
+      reportsFocus: true,
+    },
   },
 })
 ```
@@ -46,17 +50,11 @@ title: field("title", {
 ## Real Example
 
 ```ts
-thirdPartyPicker.onChange((value) => {
-  form.fields.status.set(value);
-});
+const statusInput = form.bindInput("status");
 
-thirdPartyPicker.onOpen(() => {
-  form.fields.status.focus();
-});
-
-thirdPartyPicker.onClose(() => {
-  form.fields.status.blur();
-});
+thirdPartyPicker.onChange(statusInput.set);
+thirdPartyPicker.onOpen(statusInput.focus);
+thirdPartyPicker.onClose(statusInput.blur);
 
 console.log(form.fields.status.diagnostics());
 ```
@@ -71,6 +69,8 @@ console.log(form.fields.status.diagnostics());
 ## Inspection And Debugging
 
 - the adapter tier tells you you are on the imperative lane
+- `bindInput(...)` gives you the common callback bundle when the widget mostly
+  needs event wiring
 - field diagnostics show what the widget actually reported
 - input capabilities show what the widget could not promise
 

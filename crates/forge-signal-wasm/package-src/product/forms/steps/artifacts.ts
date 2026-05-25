@@ -17,6 +17,7 @@ export function evaluateSteps(stepDeclarations, form) {
   const validation = form.validation();
   const availability = form.availability();
   const admission = form.admission();
+  const routeAuthority = form.routeAuthority();
   const dirty = form.dirty();
   const patchPlan = form.patchPlan();
   const messages = form.visibleMessages();
@@ -26,6 +27,7 @@ export function evaluateSteps(stepDeclarations, form) {
       validation,
       availability,
       admission,
+      routeAuthority,
       dirty,
       patchPlan,
       messages,
@@ -109,7 +111,7 @@ function messageProjectionKey(message) {
 
 function stepArtifact(declaration, readView, formArtifacts) {
   const posture = declaration.routeCoupled
-    ? routeCoupledStepPosture()
+    ? routeCoupledStepPosture(declaration, readView, formArtifacts.routeAuthority)
     : normalizeStepPosture(runStepResolver(declaration, readView), declaration);
   const fieldSet = new Set(declaration.fields);
   const dirtyFields = formArtifacts.dirty.fields.filter((field) => fieldSet.has(field.field));
@@ -237,6 +239,11 @@ function stepReadinessBlockers(fieldSet, posture, formArtifacts) {
   return blockers;
 }
 
+import {
+  routeAuthorityAllowsRouteCoupledBehavior,
+  routeAuthorityUnavailableReason,
+} from "../route_authority/handoff.js";
+
 function blockerAppliesToStepFields(blocker, fieldSet) {
   if (blocker.field !== undefined) {
     return fieldSet.has(blocker.field);
@@ -260,10 +267,13 @@ function stepProgress(posture, blockers, dirtyFields) {
   return "complete";
 }
 
-function routeCoupledStepPosture() {
+function routeCoupledStepPosture(declaration, readView, routeAuthority) {
+  if (routeAuthorityAllowsRouteCoupledBehavior(routeAuthority)) {
+    return normalizeStepPosture(runStepResolver(declaration, readView), declaration);
+  }
   return Object.freeze({
     posture: "unavailable",
-    reason: "route-coupled step behavior requires route authority outside controller-local navigation",
+    reason: routeAuthorityUnavailableReason(routeAuthority, "route-coupled step behavior"),
     routeCoupled: true,
   });
 }

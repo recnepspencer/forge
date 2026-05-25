@@ -12,11 +12,3 @@ pub mod acceleration;
 pub mod coordinate;
 pub mod matching;
 pub mod union_find;
-
-pub use acceleration::bsp;
-pub use acceleration::bvh;
-pub use coordinate::bounds;
-pub use coordinate::local_space;
-pub use matching::coincidence;
-pub use matching::edge_match;
-pub use matching::epsilon_weld;

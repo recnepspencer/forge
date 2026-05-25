@@ -15,6 +15,7 @@ import type { FormHostReport } from "./host.js";
 import type { FormHostBindings } from "./host.js";
 import type { FormExitReport } from "./exit.js";
 import type { FormHandoffReport } from "./handoff.js";
+import type { FormRouteAuthorityArtifact, FormRouteAuthorityReport } from "./route_authority.js";
 import type { FormInputCapabilitiesReport } from "./input_capabilities.js";
 import type { FormResourceSourceReport } from "./resource_source.js";
 import type { FormResourceDriftReport } from "./resource_drift.js";
@@ -28,6 +29,7 @@ import type {
   FormCollaborationReport,
 } from "./collaboration.js";
 import type { FormInteractionReport } from "./interaction.js";
+import type { FormBoundInput, FormBoundInputOptions } from "./input_binding.js";
 import type { FormNavigationReport } from "./navigation.js";
 import type { FormAccessibilityReport } from "./accessibility.js";
 import type { FormLayoutReport } from "./layout.js";
@@ -80,6 +82,8 @@ import type { FormVerificationPackage } from "./verification.js";
 import type { MergePolicyPreviewRequest } from "../diagnostics.js";
 import type { FormControllerActionBindings } from "./controller_actions.js";
 import type { FormControllerPresentationBindings } from "./controller_presentation.js";
+import type { RouteFormsAuthorityArtifact } from "../router_admission_surface.js";
+import type { AdmittedRouteCapability } from "../router_admission_surface.js";
 
 export interface FormDeclaration<
   TSource = SignalValue,
@@ -175,8 +179,21 @@ export interface FormController<
   clearResourceMerge(reason?: string): FormResourceMergeArtifact;
   host(): FormHostReport;
   inputCapabilities(): FormInputCapabilitiesReport;
+  inputCapability(fieldId: string): import("./input_capabilities.js").FormInputCapabilityArtifact | null;
+  bindInput<TValue = SignalValue, TRaw = TValue>(
+    fieldId: string,
+    options?: FormBoundInputOptions<TValue, TRaw>,
+  ): FormBoundInput<TValue, TRaw>;
   exit(): FormExitReport;
   handoff(): FormHandoffReport;
+  routeAuthority(): FormRouteAuthorityReport;
+  reportRouteAuthority(authority: RouteFormsAuthorityArtifact): FormRouteAuthorityArtifact;
+  bindRouteAuthority(
+    routeOrAuthority: AdmittedRouteCapability | RouteFormsAuthorityArtifact,
+  ): FormRouteAuthorityArtifact;
+  clearRouteAuthority(options?: { readonly reason?: string }): FormRouteAuthorityArtifact;
+  controlAvailabilities(): ReadonlyArray<import("./availability.js").FormAvailabilityArtifact>;
+  controlAvailability(controlId: string): import("./availability.js").FormAvailabilityArtifact | null;
   attachments(): FormAttachmentsReport;
   attachmentTransfers(): FormAttachmentTransfersReport;
   media(): FormMediaReport;
@@ -206,6 +223,7 @@ export interface FormController<
   navigation(): FormNavigationReport;
   accessibility(): FormAccessibilityReport;
   layout(): FormLayoutReport;
+  layoutField(fieldId: string): import("./layout.js").FormLayoutFieldHint | null;
   layoutMeasurement(): FormLayoutMeasurementReport;
   recordLayoutMeasurement(
     rows: ReadonlyArray<FormLayoutRowMeasurement>,
@@ -299,6 +317,7 @@ export interface FormController<
     readonly inputCapabilities: FormInputCapabilitiesReport;
     readonly exit: FormExitReport;
     readonly handoff: FormHandoffReport;
+    readonly routeAuthority: FormRouteAuthorityReport;
     readonly attachments: FormAttachmentsReport;
     readonly media: FormMediaReport;
     readonly messages: FormMessagesReport;

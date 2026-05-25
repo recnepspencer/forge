@@ -1,5 +1,6 @@
 import type { SignalValue } from "../model.js";
 import type {
+  FormActionDebugReport,
   FormActionExecutionArtifact,
   FormActionPlan,
   FormActionResultArtifact,
@@ -14,6 +15,7 @@ export interface FormControllerActionBindings {
   actionPlan(actionId: string): FormActionPlan;
   attemptAction(actionId: string): FormActionResultArtifact;
   actionHistory(): ReadonlyArray<FormActionResultArtifact>;
+  debugAction(actionId: string): FormActionDebugReport;
   executeAction(actionId: string): FormActionExecutionArtifact;
   fulfillAction(operationId: number, payload?: {
     readonly reason?: string;

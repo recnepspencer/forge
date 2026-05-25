@@ -10,7 +10,9 @@ const packageDir = path.join(moduleDir, "..", "..", "..");
 const packageSourceDir = path.join(packageDir, "..", "package-src");
 const apiSourceDir = path.join(packageSourceDir, "product", "api");
 const formsSourceDir = path.join(packageSourceDir, "product", "forms");
+const routeSourceDir = path.join(packageSourceDir, "product", "route");
 const resourceSourceDir = path.join(packageSourceDir, "product", "resource");
+const routerSourceDir = path.join(packageSourceDir, "product", "router");
 const signalsModuleGlobal = globalThis;
 const cachedSignalsModuleLoads =
   signalsModuleGlobal.__forgeCachedSignalsModuleLoads ?? new Map();
@@ -61,12 +63,24 @@ async function loadSignalsModuleIntoCachedTempDir(options, cacheKey) {
         "product/entrypoint/bridge/worker_runtime_bridge.js",
       ],
       [
+        "product/entrypoint/bridge/worker_runtime_bridge_router_boundary.ts",
+        "product/entrypoint/bridge/worker_runtime_bridge_router_boundary.js",
+      ],
+      [
+        "product/entrypoint/bridge/worker_runtime_bridge_support.ts",
+        "product/entrypoint/bridge/worker_runtime_bridge_support.js",
+      ],
+      [
         "product/entrypoint/bridge/worker_runtime_envelope_normalization.ts",
         "product/entrypoint/bridge/worker_runtime_envelope_normalization.js",
       ],
       [
         "product/entrypoint/bridge/worker_runtime_bridge_worker.ts",
         "product/entrypoint/bridge/worker_runtime_bridge_worker.js",
+      ],
+      [
+        "product/entrypoint/bridge/worker_runtime_bridge_worker_mirror.ts",
+        "product/entrypoint/bridge/worker_runtime_bridge_worker_mirror.js",
       ],
       [
         "product/entrypoint/worker_first_callable_signals.ts",
@@ -354,8 +368,16 @@ async function loadSignalsModuleIntoCachedTempDir(options, cacheKey) {
       path.join(tempDir, "product", "forms"),
     );
     await writeConvertedTree(
+      routeSourceDir,
+      path.join(tempDir, "product", "route"),
+    );
+    await writeConvertedTree(
       resourceSourceDir,
       path.join(tempDir, "product", "resource"),
+    );
+    await writeConvertedTree(
+      routerSourceDir,
+      path.join(tempDir, "product", "router"),
     );
 
     const rawSurfacePath = path.join(tempDir, "raw_surface.js");

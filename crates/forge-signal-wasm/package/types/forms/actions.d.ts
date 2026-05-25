@@ -301,6 +301,27 @@ export interface FormActionExecutionArtifact {
   readonly executionDigest: string;
 }
 
+export interface FormActionDebugReport {
+  readonly kind: "actionDebug";
+  readonly action: string;
+  readonly canRun: boolean;
+  readonly pending: boolean;
+  readonly latestReason: string;
+  readonly blockers: ReadonlyArray<FormReadinessBlocker>;
+  readonly plan: FormActionPlan;
+  readonly latestAttempt: FormActionResultArtifact | null;
+  readonly latestExecution: FormActionExecutionArtifact | null;
+  readonly attempts: ReadonlyArray<FormActionResultArtifact>;
+  readonly executions: ReadonlyArray<FormActionExecutionArtifact>;
+  readonly verification: {
+    readonly packageDigest: string;
+    readonly actionPlanDigest: string;
+    readonly actionLifecycleDigest: string;
+    readonly actionExecutionLifecycleDigest: string;
+  };
+  readonly digest: string;
+}
+
 export interface FormActionsReport {
   readonly catalog: ReadonlyArray<FormActionCatalogEntry>;
   readonly plans: ReadonlyArray<FormActionPlan>;

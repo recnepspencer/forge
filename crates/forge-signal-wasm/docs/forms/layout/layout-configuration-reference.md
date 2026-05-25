@@ -13,9 +13,6 @@ layout?"
 
 ## Stable Entry Points
 
-- field options:
-  `row`, `column`, `density`, `alignment`, `minHeight`, `grow`, `wrap`,
-  `responsive`
 - field option `layout`
 - `form.layout()`
 
@@ -45,21 +42,23 @@ measurement.
 
 ```ts
 title: field("title", {
-  row: "hero",
-  column: "left",
-  density: "comfortable",
-  alignment: "stretch",
-  minHeight: 44,
-  grow: true,
-  wrap: false,
-  responsive: ["md", "lg"],
+  layout: {
+    row: "hero",
+    column: "left",
+    density: "comfortable",
+    alignment: "stretch",
+    minHeight: 44,
+    grow: true,
+    wrap: false,
+    responsive: ["md", "lg"],
+  },
 })
 ```
 
 ## Real Example
 
 ```ts
-const field = form.layout().fields.find((entry) => entry.field === "title");
+const field = form.layoutField("title");
 
 console.log({
   row: field?.row,
@@ -83,6 +82,7 @@ console.log({
 
 ## Inspection And Debugging
 
+- `layout` is the clearest declaration lane for new code
 - `form.layout().fields` is the first read for declared layout
 - `capabilityPosture` shows whether a field's input can honor the declared
   layout capabilities

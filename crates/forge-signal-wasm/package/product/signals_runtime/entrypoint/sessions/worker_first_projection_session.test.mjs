@@ -151,10 +151,11 @@ test("worker-first projection session rejects malformed tracked output ids befor
 test("worker-first projection session refreshes cached worker truth after host-boundary mutations only when refresh is explicitly requested", async () => {
   const previousWorker = globalThis.Worker;
   globalThis.Worker = NodeWorker;
-  const { importProductModule, cleanup } = await loadSignalsModule({ rawSurface: "real" });
+  const { createSignals, importProductModule, cleanup } = await loadSignalsModule({ rawSurface: "real" });
   const { createWorkerFirstProjectionSession } = await importProductModule(
     "entrypoint/worker_first_projection_session.js",
   );
+  const routerSignals = await createSignals({ deployment: "mainThreadCompatibility" });
   const session = await createWorkerFirstProjectionSession({
     publication: routeAndOutputPublication(),
     outputIds: ["routeProjection"],
@@ -163,15 +164,13 @@ test("worker-first projection session refreshes cached worker truth after host-b
     assert.equal(session.readProjectedOutput("routeProjection"), "homeRoute");
 
     const ingress = await session.admitBrowserHistoryIngress(
-      {
-        navigationKind: "pushstate",
-        rawLocation: "/search?q=forge",
+      routerSignals.router.browserHistory.push("/search?q=forge", {
         routeIdentity: "searchRoute:forge",
         runtimeRouteSourceId: "routeIdentity",
         routeValue: "searchRoute:forge",
         runtimeContinuitySourceId: "routeContinuity",
         continuityValue: "restored",
-      },
+      }),
       { refreshProjection: true },
     );
 
@@ -180,6 +179,7 @@ test("worker-first projection session refreshes cached worker truth after host-b
     assert.equal(session.diagnosticsSummary().profile, "Operational");
   } finally {
     await session.terminate();
+    routerSignals.free();
     await cleanup();
     globalThis.Worker = previousWorker;
   }
@@ -188,10 +188,11 @@ test("worker-first projection session refreshes cached worker truth after host-b
 test("worker-first projection session preserves stale cached truth by default after host-boundary mutations", async () => {
   const previousWorker = globalThis.Worker;
   globalThis.Worker = NodeWorker;
-  const { importProductModule, cleanup } = await loadSignalsModule({ rawSurface: "real" });
+  const { createSignals, importProductModule, cleanup } = await loadSignalsModule({ rawSurface: "real" });
   const { createWorkerFirstProjectionSession } = await importProductModule(
     "entrypoint/worker_first_projection_session.js",
   );
+  const routerSignals = await createSignals({ deployment: "mainThreadCompatibility" });
   const session = await createWorkerFirstProjectionSession({
     publication: routeAndOutputPublication(),
     outputIds: ["routeProjection"],
@@ -200,15 +201,13 @@ test("worker-first projection session preserves stale cached truth by default af
     assert.equal(session.readProjectedOutput("routeProjection"), "homeRoute");
 
     await session.admitBrowserHistoryIngress(
-      {
-        navigationKind: "pushstate",
-        rawLocation: "/search?q=forge",
+      routerSignals.router.browserHistory.push("/search?q=forge", {
         routeIdentity: "searchRoute:forge",
         runtimeRouteSourceId: "routeIdentity",
         routeValue: "searchRoute:forge",
         runtimeContinuitySourceId: "routeContinuity",
         continuityValue: "restored",
-      },
+      }),
     );
 
     assert.equal(session.readProjectedOutput("routeProjection"), "homeRoute");
@@ -218,6 +217,7 @@ test("worker-first projection session preserves stale cached truth by default af
     assert.equal(session.readProjectedOutput("routeProjection"), "searchRoute:forge");
   } finally {
     await session.terminate();
+    routerSignals.free();
     await cleanup();
     globalThis.Worker = previousWorker;
   }

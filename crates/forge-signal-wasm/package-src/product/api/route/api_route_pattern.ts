@@ -3,51 +3,13 @@ import {
   createRouteRequestParams,
 } from "./api_route_request_params.js";
 import { createApiRouteBodyCanonicalSuffix } from "./api_route_body_identity.js";
+import {
+  createRouteRequestPath as createSharedRouteRequestPath,
+  parseRoutePattern,
+} from "../../route/route_pattern.js";
 
 function parseApiRoutePattern(route) {
-  if (typeof route !== "string" || route.length === 0) {
-    throw new TypeError("api.url(...) requires a non-empty route string");
-  }
-  if (!route.startsWith("/")) {
-    throw new TypeError("api.url(...) routes must start with /");
-  }
-  if (route === "/") {
-    return Object.freeze({
-      route,
-      tokens: Object.freeze([]),
-      pathParamNames: Object.freeze([]),
-    });
-  }
-  const pathParamNames = [];
-  const seen = new Set();
-  const tokens = [];
-  const segments = route.slice(1).split("/");
-  for (const segment of segments) {
-    if (segment.length === 0) {
-      throw new TypeError(
-        `api.url(...) route "${route}" must not contain empty path segments`,
-      );
-    }
-    if (segment.startsWith(":")) {
-      const name = segment.slice(1);
-      validatePathParamName(route, segment, name);
-      if (seen.has(name)) {
-        throw new TypeError(
-          `api.url(...) route "${route}" must not repeat path param "${name}"`,
-        );
-      }
-      seen.add(name);
-      pathParamNames.push(name);
-      tokens.push(Object.freeze({ kind: "param", name }));
-      continue;
-    }
-    tokens.push(Object.freeze({ kind: "literal", value: segment }));
-  }
-  return Object.freeze({
-    route,
-    tokens: Object.freeze(tokens),
-    pathParamNames: Object.freeze(pathParamNames),
-  });
+  return parseRoutePattern(route, "api.url(...)");
 }
 
 function createRouteBoundParams(
@@ -109,45 +71,12 @@ function createRouteCanonicalKey(pattern, params, includeBody = false) {
 }
 
 function createRouteRequestPath(pattern, params) {
-  const requestParams = params.params;
-  if (pattern.tokens.length === 0) {
-    return "/";
-  }
-  return `/${pattern.tokens.map((token) => renderRouteToken(pattern.route, token, params)).join("/")}`;
-}
-
-function encodeRouteParamValue(route, name, value) {
-  if (
-    typeof value !== "string"
-    && typeof value !== "number"
-  ) {
-    throw new TypeError(
-      `${route} path param "${name}" must be a string or number`,
-    );
-  }
-  return encodeURIComponent(String(value));
-}
-
-function renderRouteToken(route, token, params) {
-  if (token.kind === "literal") {
-    return token.value;
-  }
-  return encodeRouteParamValue(route, token.name, params[token.name]);
-}
-
-function validatePathParamName(route, segment, name) {
-  if (!isValidParamStart(name[0])) {
-    throw new TypeError(
-      `api.url(...) route segment "${segment}" in "${route}" must use :paramName placeholders`,
-    );
-  }
-  for (let index = 1; index < name.length; index += 1) {
-    if (!isValidParamPart(name[index])) {
-      throw new TypeError(
-        `api.url(...) route segment "${segment}" in "${route}" must use :paramName placeholders`,
-      );
-    }
-  }
+  return createSharedRouteRequestPath(
+    pattern,
+    params,
+    `api.url("${pattern.route}").line(...)`,
+    { admittedKeys: ["params", "body"] },
+  );
 }
 
 function requireDeclaredRouteRequestParams(pattern, rawParams) {
@@ -157,33 +86,6 @@ function requireDeclaredRouteRequestParams(pattern, rawParams) {
   throw new TypeError(
     `${pattern.route} line(...) requires an explicit params object when request params are declared`,
   );
-}
-
-function isValidParamStart(character) {
-  return isAsciiLetter(character) || character === "_";
-}
-
-function isValidParamPart(character) {
-  return isAsciiLetter(character) || isAsciiDigit(character) || character === "_";
-}
-
-function isAsciiLetter(character) {
-  if (typeof character !== "string" || character.length !== 1) {
-    return false;
-  }
-  const code = character.charCodeAt(0);
-  return (
-    (code >= 65 && code <= 90)
-    || (code >= 97 && code <= 122)
-  );
-}
-
-function isAsciiDigit(character) {
-  if (typeof character !== "string" || character.length !== 1) {
-    return false;
-  }
-  const code = character.charCodeAt(0);
-  return code >= 48 && code <= 57;
 }
 
 export {

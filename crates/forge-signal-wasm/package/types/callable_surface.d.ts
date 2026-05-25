@@ -54,6 +54,9 @@ import type {
   FormFactory,
 } from "./forms_surface.js";
 import type {
+  RouterNamespace,
+} from "./router_surface.js";
+import type {
   ComputedSignal,
   DisposableHandle,
   InputSignal,
@@ -602,6 +605,7 @@ export interface ScopedSignalIdentity {
 
 export interface ScopedSignalNamespace<TPersistence = SignalValue> {
   readonly host: CallableSignalsHost<TPersistence>;
+  readonly router: RouterNamespace;
   readonly scopeId: string;
   readonly localScopeId: string;
   readonly parentScopeId: string | null;
@@ -697,6 +701,7 @@ export interface ScopedSignalNamespace<TPersistence = SignalValue> {
 
 export interface CallableSignals<TPersistence = SignalValue> {
   readonly host: CallableSignalsHost<TPersistence>;
+  readonly router: RouterNamespace;
   readonly spec: ExplicitSignalSpecNamespace;
   scope(localScopeId: string): GraphScope<TPersistence>;
   controller<

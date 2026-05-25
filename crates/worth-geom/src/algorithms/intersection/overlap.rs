@@ -10,5 +10,9 @@ pub fn polygons_overlap_3d(
     poly_a: &[[f64; 3]],
     poly_b: &[[f64; 3]],
 ) -> bool {
-    crate::algorithms::polygon_overlap::polygons_overlap_3d(plane_normal, poly_a, poly_b)
+    crate::algorithms::intersection::polygon_overlap::polygons_overlap_3d(
+        plane_normal,
+        poly_a,
+        poly_b,
+    )
 }
