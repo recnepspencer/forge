@@ -1,5 +1,14 @@
 use crate::application::{ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker};
 
+mod adapter;
+mod reconciliation;
+mod scope;
+
+pub(crate) use reconciliation::{
+    reconcile_contribution_evidence, ForgeQueryDeclarationEntryContributionReconciliationContext,
+};
+pub(crate) use scope::ForgeQueryDeclarationEntryContributionProofScope;
+
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryDeclarationEntryContributionCategoryFamily {
     Admission,

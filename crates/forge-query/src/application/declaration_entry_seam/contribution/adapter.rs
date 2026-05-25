@@ -1,6 +1,6 @@
 use crate::domain_capabilities::ForgeQueryDomainCapabilityTargetBinding;
 
-use super::contribution::{
+use super::{
     ForgeQueryDeclarationEntryContributionCategoryFamily,
     ForgeQueryDeclarationEntryContributionEvidence,
     ForgeQueryDeclarationEntryContributionEvidenceRecord,

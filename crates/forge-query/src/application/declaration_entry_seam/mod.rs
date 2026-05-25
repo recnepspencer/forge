@@ -1,15 +1,10 @@
 mod classification;
 mod contribution;
-mod contribution_adapter;
-mod contribution_reconciliation;
-mod contribution_scope;
 mod digest;
 mod inspection;
-mod inspection_artifact;
 mod inventory;
 mod readiness_projection;
 mod row;
-mod subject;
 mod support;
 
 pub use classification::{
@@ -24,17 +19,17 @@ pub use contribution::{
     ForgeQueryDeclarationEntryContributionEvidenceSet,
     ForgeQueryDeclarationEntryContributionTargetFamily,
 };
-pub use inspection_artifact::{
+pub use inspection::{
     ForgeQueryDeclarationEntryInspection, ForgeQueryDeclarationEntryInspectionBridgePosture,
     ForgeQueryDeclarationEntryInspectionError,
     ForgeQueryDeclarationEntryInspectionRelationalPosture,
     ForgeQueryDeclarationEntryInspectionSignalPosture,
 };
-pub use inventory::ForgeQueryDeclarationEntryCrossingInventory;
-pub use row::{ForgeQueryDeclarationEntryCrossingRow, ForgeQueryDeclarationEntryCrossingSurface};
-pub use subject::{
+pub use inspection::{
     ForgeQueryDeclarationEntryInspectionInput, ForgeQueryDeclarationEntryRetainedSubjectInput,
 };
+pub use inventory::ForgeQueryDeclarationEntryCrossingInventory;
+pub use row::{ForgeQueryDeclarationEntryCrossingRow, ForgeQueryDeclarationEntryCrossingSurface};
 pub use support::{
     ForgeQueryDeclarationEntryReadinessReport, ForgeQueryDeclarationEntryReadinessRequest,
     ForgeQueryDeclarationEntryReadinessRow, ForgeQueryDeclarationEntryReadinessStatus,

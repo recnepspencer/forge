@@ -233,25 +233,94 @@ locked decisions above:
 18. **Phase 18: Support And Readiness Boundary**
     Query gets a first-class support/readiness story for declaration families and their routed authority posture. This is where "is this admitted/supported/deferred/denied here?" becomes a public product surface, with progression deferral, stale, and rebind posture kept distinct from earlier admission and legality denials.
 
-19. **Phase 19: Happy-Path Orchestration Boundary**
-    Query becomes the compiler for the ordinary lane: strong defaults, short semantic verbs, automatic admission/canonicalization/legality/progression/routing prep, no caller-owned choreography. This is the Laravel boundary.
+18. **Phase 18 Addendum: 9.3.7 Composition Lock**
+    Query locks the declaration-entry composition law with `9.3.7` so unified
+    inspection and readiness/support become one public story when
+    declaration-scoped contribution evidence is present.
 
-20. **Phase 20: Denial And Recovery UX Boundary**
-    Typed denials, progression deferral, stale/rebind outcomes, failed progression, fallback guidance, and route-sensitive explanations become product-quality. This is where failure becomes as usable as success.
+19. **Phase 19: Admitted-Orchestration Law Boundary**
+    Query becomes the admitted orchestrator for the ordinary surface without
+    becoming a shortcut around proof. This phase locks the law that the
+    domain-first ordinary surface is one view over the same canonical
+    pipeline.
 
-21. **Phase 21: Family-Specific Ergonomics Boundary**
-    The public lane gets the domain-shaped helpers for the major declaration families instead of forcing generic entry patterns everywhere. This is where the surface starts feeling native to real domain work.
+20. **Phase 20: Orchestration Artifact Model Boundary**
+    Query defines typed orchestration inputs, plans, outcomes, transcripts,
+    exposure levels, and denial/refusal families. This is where orchestration
+    becomes a certifiable artifact-producing subsystem rather than a bag of
+    helpers.
 
-22. **Phase 22: Neighborhood Authoring DX Boundary**
+21. **Phase 21: Public Orchestration Verb Grammar Boundary**
+    Query freezes the front-door verb grammar for ordinary, checked, and
+    proof-visible orchestration so the ergonomic surface stays singular instead
+    of fragmenting into too many equal entrypoints.
+
+22. **Phase 22: Canonical Sequencing Automation Boundary**
+    Query specifies exactly how admitted world, declaration, legality,
+    progression, foundational description, route planning, receipt issuance,
+    and envelope construction may be sequenced automatically, and where that
+    automation must refuse.
+
+23. **Phase 23: Artifact Materialization And Cost Policy Boundary**
+    Query locks default artifact richness, lean/proof-visible materialization
+    policy, and explicit expensive-work gates so the ordinary surface never
+    hides meaningful execution cost.
+
+24. **Phase 24: Route / Receipt / Envelope Orchestration Boundary**
+    Query automates route planning, receipt issuance, and envelope construction
+    while preserving those products as first-class public artifacts rather
+    than laundering them away behind orchestration.
+
+25. **Phase 25: Denial-Preserving Ordinary Outcome Boundary**
+    Typed denials, unsupported posture, deferred posture, stale/rebind
+    requirements, and authority-transition constraints become first-class
+    ordinary outcomes instead of escape hatches from the ergonomic surface.
+
+26. **Phase 26: Runtime / Workspace / Basis Continuation Boundary**
+    Query removes caller-owned runtime builder, workspace entry, and
+    basis-binding choreography for admitted supported families while keeping
+    prepared-vs-executed posture, truth context, and basis sensitivity honest.
+
+27. **Phase 27: Signal Compatibility Orchestration Boundary**
+    Query composes Phase 14 signal compatibility into ordinary orchestration
+    without erasing execution family, required basis families, or typed
+    compatibility denials.
+
+28. **Phase 28: Contribution-Composed Orchestration Boundary**
+    Query composes `9.3.8` declaration-entry orchestration with `9.3.7`
+    contribution authoring so callers do not have to cross a second public
+    grammar seam.
+
+29. **Phase 29: Orchestration Inventory And Transcript Boundary**
+    Query synchronizes live orchestration verbs, transcripts, support/readiness
+    rows, docs, goldens, and certification so the ergonomic layer remains
+    structurally honest under growth.
+
+30. **Phase 30: Denial And Recovery UX Boundary**
+    Typed denials, progression deferral, stale/rebind outcomes, failed
+    progression, fallback guidance, and route-sensitive explanations become
+    product-quality. This is where failure becomes as usable as success.
+
+31. **Phase 31: Family-Specific Ergonomics Boundary**
+    The public lane gets the domain-shaped helpers for the major declaration
+    families instead of forcing generic entry patterns everywhere. This is
+    where the surface starts feeling native to real domain work.
+
+32. **Phase 32: Neighborhood Authoring DX Boundary**
     Query supports meaningful groups of declarations as first-class authoring
     units. This matters a lot for geometry because real work often happens in
     local neighborhoods, not isolated single declarations.
 
-23. **Phase 23: Public Documentation And Golden Teaching Boundary**
-    The docs, examples, and goldens all teach the exact public path honestly. This is where we make sure the platform is discoverable, not just implemented.
+33. **Phase 33: Public Documentation And Golden Teaching Boundary**
+    The docs, examples, and goldens all teach the exact public path honestly.
+    This is where we make sure the platform is discoverable, not just
+    implemented.
 
-24. **Phase 24: Certification And Closeout Boundary**
-    Compile-fail boundaries, parity tests, hostile certification, route/receipt/envelope digests, and end-to-end convergence proofs close the milestone. This is where the whole seam becomes production-grade rather than plausible.
+34. **Phase 34: Certification And Closeout Boundary**
+    Compile-fail boundaries, parity tests, hostile certification,
+    route/receipt/envelope digests, and end-to-end convergence proofs close
+    the milestone. This is where the whole seam becomes production-grade
+    rather than plausible.
 
 ## Phase Specifications
 

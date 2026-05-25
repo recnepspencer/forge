@@ -1,6 +1,6 @@
 use crate::application::{ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker};
 
-use super::contribution::{
+use super::{
     ForgeQueryDeclarationEntryContributionCategoryFamily,
     ForgeQueryDeclarationEntryContributionComposition,
     ForgeQueryDeclarationEntryContributionCompositionError,
@@ -61,7 +61,7 @@ pub(crate) fn reconcile_contribution_evidence<
 }
 
 fn reconcile_evidence(
-    evidence: &super::contribution::ForgeQueryDeclarationEntryContributionEvidence,
+    evidence: &super::ForgeQueryDeclarationEntryContributionEvidence,
     context: &ForgeQueryDeclarationEntryContributionReconciliationContext<'_>,
 ) -> Result<
     (),

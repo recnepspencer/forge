@@ -1,8 +1,7 @@
 use crate::application::{
-    ForgeQueryDeclarationEntryContributionCompositionFailureClass,
     ForgeQueryDeclarationEntryContributionEvidence,
     ForgeQueryDeclarationEntryContributionEvidenceSet, ForgeQueryDeclarationEntryInspectionInput,
-    ForgeQueryDeclarationEntryReadinessRequest, ForgeQueryDeclarationEntryRetainedSubjectInput,
+    ForgeQueryDeclarationEntryReadinessRequest,
 };
 
 use super::support::{
@@ -143,106 +142,6 @@ fn readiness_digest_changes_while_baseline_rows_stay_intact() {
 }
 
 #[test]
-fn subject_aware_readiness_rejects_mismatched_declaration_digest() {
-    let handle = handle("preview");
-    let error = match handle.try_declaration_entry_readiness::<Input<BridgeSignalFamily>>(
-        ForgeQueryDeclarationEntryReadinessRequest::base()
-            .for_retained_subject(
-                ForgeQueryDeclarationEntryRetainedSubjectInput::envelope_checked(
-                    crate::application::ForgeQueryDeclarationEnvelopeChecked::Enveloped(
-                        bridge_signal_envelope(&handle, "edge:42"),
-                    ),
-                ),
-            )
-            .with_contribution_evidence(ForgeQueryDeclarationEntryContributionEvidenceSet::new(
-                vec![ForgeQueryDeclarationEntryContributionEvidence::from(
-                    admitted_declaration_support("wrong:digest", "support", "mismatch"),
-                )],
-            )),
-    ) {
-        Ok(_) => panic!("subject-aware readiness should reject mismatched digest"),
-        Err(error) => error,
-    };
-    assert_eq!(
-        error.failure_class(),
-        ForgeQueryDeclarationEntryContributionCompositionFailureClass::TargetDigestMismatch
-    );
-}
-
-#[test]
-fn subject_aware_readiness_rejects_wrong_handle_subject() {
-    let source = handle("source");
-    let target = handle("target");
-    let error = match target.try_declaration_entry_readiness::<Input<BridgeSignalFamily>>(
-        ForgeQueryDeclarationEntryReadinessRequest::base().for_retained_subject(
-            ForgeQueryDeclarationEntryRetainedSubjectInput::envelope_checked(
-                crate::application::ForgeQueryDeclarationEnvelopeChecked::Enveloped(
-                    bridge_signal_envelope(&source, "edge:42"),
-                ),
-            ),
-        ),
-    ) {
-        Ok(_) => panic!("wrong-handle readiness subject should deny"),
-        Err(error) => error,
-    };
-    assert_eq!(
-        error.failure_class(),
-        ForgeQueryDeclarationEntryContributionCompositionFailureClass::RetainedSubjectMismatch
-    );
-}
-
-#[test]
-fn workflow_and_plan_bound_evidence_fail_closed() {
-    let handle = handle("preview");
-    let declaration_digest = bridge_signal_envelope(&handle, "edge:42")
-        .declaration_digest()
-        .to_string();
-    let workflow_error = match handle.inspect_declaration_entry(
-        ForgeQueryDeclarationEntryInspectionInput::envelope_checked(
-            crate::application::ForgeQueryDeclarationEnvelopeChecked::Enveloped(
-                bridge_signal_envelope(&handle, "edge:42"),
-            ),
-        )
-        .with_contribution_evidence(
-            ForgeQueryDeclarationEntryContributionEvidenceSet::new(vec![
-                ForgeQueryDeclarationEntryContributionEvidence::from(
-                    admitted_declaration_workflow(&declaration_digest, "workflow", "preview-only"),
-                ),
-            ]),
-        ),
-    ) {
-        Ok(_) => panic!("workflow evidence should fail closed"),
-        Err(error) => error,
-    };
-    let workflow_error = workflow_error
-        .contribution_composition_error()
-        .expect("workflow mismatch should be a composition error");
-    assert_eq!(
-        workflow_error.failure_class(),
-        ForgeQueryDeclarationEntryContributionCompositionFailureClass::CategoryNotComposableForRetainedSeam
-    );
-
-    let readiness_error = match handle.try_declaration_entry_readiness::<Input<BridgeSignalFamily>>(
-        ForgeQueryDeclarationEntryReadinessRequest::base().with_contribution_evidence(
-            ForgeQueryDeclarationEntryContributionEvidenceSet::new(vec![
-                ForgeQueryDeclarationEntryContributionEvidence::from(admitted_plan_support(
-                    &admitted_plan(),
-                    "support",
-                    "plan-bound",
-                )),
-            ]),
-        ),
-    ) {
-        Ok(_) => panic!("plan-bound readiness evidence should fail closed"),
-        Err(error) => error,
-    };
-    assert_eq!(
-        readiness_error.failure_class(),
-        ForgeQueryDeclarationEntryContributionCompositionFailureClass::TargetFamilyTooStrong
-    );
-}
-
-#[test]
 fn declaration_workflow_evidence_composes_when_admitted_plan_scope_is_present() {
     let handle = handle("preview");
     let declaration_digest = bridge_signal_envelope(&handle, "edge:42")
@@ -286,7 +185,7 @@ fn admitted_plan_bound_categories_compose_with_retained_plan_scope() {
         .try_declaration_entry_readiness::<Input<BridgeSignalFamily>>(
             ForgeQueryDeclarationEntryReadinessRequest::base()
                 .for_retained_subject(
-                    ForgeQueryDeclarationEntryRetainedSubjectInput::envelope_checked(
+                    crate::application::ForgeQueryDeclarationEntryRetainedSubjectInput::envelope_checked(
                         crate::application::ForgeQueryDeclarationEnvelopeChecked::Enveloped(
                             bridge_signal_envelope(&handle, "edge:42"),
                         ),

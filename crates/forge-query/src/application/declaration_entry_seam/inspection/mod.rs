@@ -2,18 +2,24 @@ use forge_foundational::facade::CanonicalDerivedDigest;
 
 use crate::application::{ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker};
 
+mod artifact;
+mod subject;
+
+pub use artifact::{
+    ForgeQueryDeclarationEntryInspection, ForgeQueryDeclarationEntryInspectionBridgePosture,
+    ForgeQueryDeclarationEntryInspectionError,
+    ForgeQueryDeclarationEntryInspectionRelationalPosture,
+    ForgeQueryDeclarationEntryInspectionSignalPosture,
+};
+pub use subject::{
+    ForgeQueryDeclarationEntryInspectionInput, ForgeQueryDeclarationEntryRetainedSubjectInput,
+};
+
+pub(crate) use subject::{normalize_retained_subject, normalized_subject};
+
 use super::{
-    contribution_reconciliation::{
-        reconcile_contribution_evidence,
-        ForgeQueryDeclarationEntryContributionReconciliationContext,
-    },
-    digest::derive_inspection_digest,
-    inspection_artifact::{
-        ForgeQueryDeclarationEntryInspection, ForgeQueryDeclarationEntryInspectionError,
-    },
-    inventory::forge_query_declaration_entry_crossing_inventory,
+    digest::derive_inspection_digest, inventory::forge_query_declaration_entry_crossing_inventory,
     row::ForgeQueryDeclarationEntryCrossingSurface,
-    subject::{normalized_subject, ForgeQueryDeclarationEntryInspectionInput},
 };
 
 pub(crate) fn forge_query_declaration_entry_inspection_on_handle<
@@ -47,17 +53,7 @@ pub(crate) fn forge_query_declaration_entry_inspection_on_handle<
             "declaration-entry inspection requires retained seam artifacts from the same admitted handle and world",
         ));
     }
-    let contribution_composition = reconcile_contribution_evidence::<D, I>(
-        ForgeQueryDeclarationEntryContributionReconciliationContext {
-            declaration_family_key: subject.envelope.declaration_family_key(),
-            declaration_digest: Some(subject.envelope.declaration_digest()),
-            subject_strength: subject.subject_strength,
-            admitted_plan_digest: contribution_scope.admitted_plan_digest(),
-            lower_runtime_boundary_digest: contribution_scope.lower_runtime_boundary_digest(),
-        },
-        contribution_evidence.as_ref(),
-    )
-    .map_err(ForgeQueryDeclarationEntryInspectionError::ContributionComposition)?;
+    let contribution_composition = readiness.contribution_composition().cloned();
 
     let matching_row_digests = inventory
         .rows()
@@ -150,7 +146,7 @@ pub(crate) fn forge_query_declaration_entry_inspection_on_handle<
 
 fn row_matches_subject<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
     row: &crate::application::ForgeQueryDeclarationEntryCrossingRow,
-    subject: &super::subject::NormalizedInspectionSubject<D, I>,
+    subject: &subject::NormalizedInspectionSubject<D, I>,
 ) -> bool {
     matches!(
         row.surface(),
