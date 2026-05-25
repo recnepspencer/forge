@@ -14,6 +14,15 @@ pub enum ForgeQueryDeclarationReceiptDenialCause {
 }
 
 impl ForgeQueryDeclarationReceiptDenialCause {
+    pub fn as_str(self) -> &'static str {
+        match self {
+            Self::MissingRoutePlan => "missing_route_plan",
+            Self::UnsupportedReceiptKind => "unsupported_receipt_kind",
+            Self::ReceiptMaterializationMismatch => "receipt_materialization_mismatch",
+            Self::RouteIntegrityMismatch => "route_integrity_mismatch",
+        }
+    }
+
     pub fn reason(&self) -> &'static str {
         match self {
             Self::MissingRoutePlan => {

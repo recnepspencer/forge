@@ -371,6 +371,9 @@ through shared foundational artifacts. It still does not decide:
 - lower-authority boundary crossing
 - public Query boundary receipts
 - public Query envelopes
+- public Query relational truth routing
+- public Query bridge continuation routing
+- public Query signal compatibility classification
 - continuity or diagnostic attachments
 
 ## Related Docs
@@ -381,5 +384,8 @@ through shared foundational artifacts. It still does not decide:
 - [Declaration Route Plans](./declaration-route-plan.md)
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
+- [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
+- [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
+- [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Domain Capabilities](./README.md)

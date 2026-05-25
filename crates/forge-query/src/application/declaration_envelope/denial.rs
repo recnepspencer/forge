@@ -27,6 +27,10 @@ macro_rules! define_envelope_terminal {
             pub fn reason(&self) -> &'static str {
                 self.reason
             }
+
+            pub(crate) fn into_envelope(self) -> ForgeQueryDeclarationEnvelope<D, I> {
+                self.envelope
+            }
         }
     };
 }
@@ -75,6 +79,10 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn reason(&self) -> &'static str {
         self.reason
+    }
+
+    pub(crate) fn into_envelope(self) -> ForgeQueryDeclarationEnvelope<D, I> {
+        self.envelope
     }
 }
 

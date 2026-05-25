@@ -120,6 +120,12 @@ shape decisions and must not be rediscovered later:
 - every admitted route posture that reaches the receipt boundary must yield one
   Query-owned boundary receipt artifact, and every covered crossing must yield
   one Query-owned boundary envelope.
+- `9.3.8` platform-entry lifecycle and `9.3.7`
+  domain-capability-contribution lifecycle are sequential phases of one Query
+  pipeline. Admitted declarations, route plans, and boundary envelopes
+  produced by `9.3.8` must be valid binding targets for `9.3.7`
+  contribution authoring without forcing the caller through a second public
+  entry grammar or adapter-shaped conversion story.
 - the lane hierarchy is mandatory: ordinary -> checked -> proof -> raw. No
   phase may collapse directly from ordinary into raw internals.
 - support matrix breadth, crossing inventory breadth, docs coverage breadth,
@@ -236,8 +242,10 @@ locked decisions above:
 21. **Phase 21: Family-Specific Ergonomics Boundary**
     The public lane gets the domain-shaped helpers for the major declaration families instead of forcing generic entry patterns everywhere. This is where the surface starts feeling native to real domain work.
 
-22. **Phase 22: Neighborhood And Batch Declaration Boundary**
-    Query supports meaningful groups of declarations as first-class units. This matters a lot for geometry because real work often happens in local neighborhoods, not isolated single declarations.
+22. **Phase 22: Neighborhood Authoring DX Boundary**
+    Query supports meaningful groups of declarations as first-class authoring
+    units. This matters a lot for geometry because real work often happens in
+    local neighborhoods, not isolated single declarations.
 
 23. **Phase 23: Public Documentation And Golden Teaching Boundary**
     The docs, examples, and goldens all teach the exact public path honestly. This is where we make sure the platform is discoverable, not just implemented.
@@ -1341,9 +1349,10 @@ Query-mediated crossings rather than future intentions.
 
 **Required Query artifacts**
 
-- one relational-routing declaration family set
-- one relational route-plan lowering family
-- one relational boundary-receipt and envelope population path
+- one envelope-backed relational-routing input family
+- one Query-owned relational truth-routing artifact family
+- one checked relational-routing outcome family over covered, deferred,
+  denied, and failed envelope truth
 - one relational support/readiness posture row set
 
 **Locked external surfaces**
@@ -1356,16 +1365,29 @@ Query-mediated crossings rather than future intentions.
 
 **Requirements**
 
+- the public Phase 12 lane must start from retained envelope truth only; it
+  may not accept legality evidence, foundational evidence, route plans, or
+  receipts directly as ordinary relational-routing inputs
 - truth-bearing declaration families must lower through Query into explicit
-  relational-backed routes rather than making callers import relational
+  relational-backed bindings rather than making callers import relational
   directly
 - this phase must explicitly cover relational families for identity, lineage,
   historical truth, invariant-bearing truth, grouped/materialized truth, and
   strategy-backed truth where those meanings belong to relational authority
+- mixed relational+bridge declaration families must still route in Phase 12,
+  but this phase may lower only the relational slice and must preserve that
+  mixed-origin posture explicitly for later bridge continuation work
 - Query may compile onto relational APIs, but it may not redefine truth,
   lineage, invariant, or commit-strategy semantics locally
-- relational-backed receipts and envelopes must preserve which relational
-  authority family was reached
+- relational routing must be admitted-handle-bound: retained envelope truth
+  from a different admitted handle or a different admitted operating world
+  must deny at the Query boundary rather than silently lowering
+- relational-routing artifacts must preserve which relational authority family
+  was reached, which truth claim was routed, and whether the routed posture
+  was exclusive relational truth or the relational slice of mixed authority
+- support/readiness rows in this phase must expose at least declaration
+  family, relational truth claim, relational authority family, support
+  status, and reason
 
 **DX target**
 
@@ -1383,38 +1405,50 @@ Query-mediated crossings rather than future intentions.
 
 - declaration families that are not relational-truth-bearing must not expose
   relational-routing verbs or route-plan outcomes
+- declaration families whose primary authority is mixed but relational-truth-
+  capable must keep the common relational-routing lane available
+- ordinary relational-routing helpers must remain unavailable to families that
+  are not relational-truth-capable, even if they are otherwise admitted for
+  declaration progression and envelope production
 - route-plan rows marked relational-backed must only lower through the named
   relational facade families, not internal crate-private shortcuts
 
 **Acceptance evidence**
 
 - parity suites showing equivalent relational-backed declarations converge to
-  the same relational route-plan/receipt/envelope posture
+  the same relational-routing digest from both the explicit and common lanes
+- hostile tests proving mixed-authority families still keep the common
+  relational lane while lowering only the relational slice
+- hostile tests proving explicit relational routing rejects retained envelope
+  truth from the wrong admitted handle or wrong admitted world
 - compile-fail coverage for wrong-family relational routing
 - support/readiness tests proving relational-backed posture is public and
   accurate before runtime execution
 
 **Open questions before implementation**
 
-- should identity, lineage, history, invariant, grouped-truth, and strategy-
-  backed relational routes be one relational family with typed submodes or
-  several public relational route families?
-- which relational-backed declaration shapes should surface as ordinary-lane
-  verbs first versus remaining checked/proof-only until later?
-- how should Query preserve relational power without leaking relational-first
-  API choreography into the ordinary lane?
+- the public surface is one relational-routing family with typed truth-claim
+  and authority-family submodes rather than several sibling public families
+- the ordinary lane remains admitted-handle-owned and envelope-backed rather
+  than exposing relational-first choreography
+- mixed-authority continuation remains intentionally incomplete here; Phase 13
+  must consume the retained mixed-origin posture without reopening Phase 12
+  routing meaning
 
 ### Phase 13: Bridge Continuation-Routing Boundary
 
-This phase turns bridge-continuation declaration families into real
-Query-mediated bridge crossings, and it must consume retained taxonomy proof
-instead of reinterpreting declarations by name or payload.
+This phase turns bridge-continuation declaration families into one
+envelope-backed, Query-mediated bridge continuation-routing boundary, and it
+must consume retained taxonomy proof instead of reinterpreting declarations by
+name or payload.
 
 **Required Query artifacts**
 
 - one bridge-routing declaration family set
-- one bridge route-plan lowering family
-- one bridge boundary-receipt and envelope population path
+- one envelope-backed bridge-routing input family spanning issued, deferred,
+  denied, failed, and checked envelope truth
+- one Query-owned bridge continuation-routing artifact family with checked
+  `Routed`, `Deferred`, `Denied`, and `Failed` outcomes
 - one bridge support/readiness posture row set
 - one Query-owned runtime continuation/preparation artifact family for bridge-
   routed declarations that continue into runtime-backed workspaces or
@@ -1442,16 +1476,23 @@ instead of reinterpreting declarations by name or payload.
   writeback, and cross-runtime continuity semantics
 - Query must mediate the bridge crossing, but the bridge remains authoritative
   for continuation/coordination semantics
+- the ordinary public bridge-routing lane must be envelope-backed only; raw
+  declarations, canonical declarations, legality evidence, foundational
+  evidence, route plans, and receipts alone may not satisfy the ordinary
+  bridge-routing boundary
 - bridge routing must consume the canonical declaration's retained family
-  taxonomy and the Phase 9 route plan rather than rediscovering continuation
+  taxonomy plus retained envelope truth rather than rediscovering continuation
   class from semantic family labels or declaration payload structure
 - bridge continuation artifacts must consume admitted configured-handle proof as
   prior operating-world authority, not reconstruct policy/access/invariant
   posture from ad hoc declaration metadata
-- bridge-backed receipts and envelopes must preserve which bridge family was
-  reached and which continuation posture was admitted or denied
+- bridge continuation routing must stay admitted-handle-bound; wrong-handle or
+  wrong-world envelopes must deny before lower bridge contact
 - this phase must not hide bridge-sensitive differences behind one fake
   universal continuation family
+- mixed-authority declaration families must remain eligible for the ordinary
+  bridge lane when their bridge slice is admitted, but Phase 13 lowers only the
+  bridge slice and may not reopen Phase 12 relational routing decisions
 - bridge continuation artifacts must preserve whether continuation
   participation was required, optional, or deferred for the routed declaration
   family whenever Phase 9 route plans carry that distinction
@@ -1464,6 +1505,13 @@ instead of reinterpreting declarations by name or payload.
 - continuation mode and truth-context differences must enter Query as typed
   inputs, not as ambient builder flags, optional tokens, or host-local control
   flow around a generic continuation method
+- bridge-routing digests must be sensitive to retained truth context,
+  continuation mode, admitted world identity, and denial topology so preview,
+  historical, and current continuation do not collapse into one canonical
+  posture
+- bridge lowering must reuse retained basis/boundary proof once per routed
+  artifact rather than repeatedly rediscovering current/historical/preview
+  basis posture during request shaping
 
 **DX target**
 
@@ -1484,20 +1532,27 @@ instead of reinterpreting declarations by name or payload.
 **Compile-time enforcement**
 
 - non-continuation families must not expose bridge-routing verbs
-- bridge-backed routes must consume route plans rather than ambient
+- bridge-backed routes must consume retained envelope truth rather than ambient
   caller-owned bridge setup
 - runtime continuation verbs may appear only for declaration families whose
   route plans and support matrices admit Query-owned runtime preparation and
   basis-binding continuation
 - truth-context and continuation-request families must gate which continuation
   verbs and bridge families are visible at compile time
+- route plans and receipts alone must not satisfy the ordinary bridge-routing
+  lane without envelope truth
 
 **Acceptance evidence**
 
 - parity suites showing equivalent bridge-backed declarations converge to the
-  same bridge route-plan/receipt/envelope posture
+  same bridge-routing digest and continuation posture
 - typed denial assertions for unsupported continuation families
-- compile-fail coverage proving direct bridge contact is not the ordinary lane
+- typed denial assertions proving wrong-handle or wrong-world envelopes are
+  rejected before lower bridge contact
+- parity and divergence suites proving truth-context-sensitive bridge routes
+  stay distinct across current, historical, and preview continuation posture
+- compile-fail coverage proving direct bridge contact, route plans, and
+  receipts are not the ordinary lane
 - replacement tests proving representative runtime-capable domain flows no
   longer require caller-owned `ForgeQueryRuntime::builder()` assembly or
   caller-owned basis/preflight/historical binding choreography once they pass
@@ -1505,12 +1560,6 @@ instead of reinterpreting declarations by name or payload.
 
 **Open questions before implementation**
 
-- should runtime continuation, preview, truth-view, subscription, and writeback
-  be one continuation-request family with typed modes or several sibling
-  families sharing a common trait?
-- should truth context be a separate typed input family from continuation
-  request, or should continuation requests carry truth-context variants
-  structurally?
 - if later mixed-authority or geometry-heavy families need richer route-
   multiplicity or continuation-participation contracts, should Phase 13 consume
   those as route-plan postures or promote them into first-class bridge route
@@ -1527,7 +1576,10 @@ without yet claiming that `9.3.8` executes those declarations through Signal.
 **Required Query artifacts**
 
 - one signal-compatibility contract family
-- one signal-eligibility posture on route plans and envelopes
+- one envelope-backed signal-compatibility input family
+- one Query-owned signal-compatibility artifact family
+- one checked compatibility outcome family with `Compatible`, `Deferred`,
+  `Denied`, and `Failed` posture
 - one signal-compatibility support/readiness inspection surface
 
 **Locked external surfaces**
@@ -1542,16 +1594,30 @@ without yet claiming that `9.3.8` executes those declarations through Signal.
   continue into signal-backed derived execution and which are not
 - signal compatibility must remain a typed public contract, not a note in
   prose or a host-local convention
+- the ordinary public lane must be envelope-backed only; signal compatibility
+  may not start from raw declarations, canonical declarations, legality
+  evidence, foundational evidence, route plans, or receipts alone
 - no public API in this phase may imply that `9.3.8` already owns signal
   execution semantics
-- the route plan and envelope must preserve whether a declaration is
-  signal-compatible, signal-incompatible, or signal-deferred
+- signal compatibility must be a Query-owned artifact with its own digest and
+  explanation surface rather than a boolean or a small posture enum stuffed
+  into route plans or envelopes
+- the retained envelope must preserve route posture, receipt posture, and
+  evidence origin as input evidence to compatibility classification without
+  re-running Phase 12 or Phase 13 lowering internally
 - signal compatibility must remain a modifier over the declaration family's
   primary lower-authority posture rather than being reinterpreted as a peer
   authority family in later phases
-- later derived-execution continuation must consume typed continuation and
-  truth-context inputs rather than ambient execution-mode switches bolted on
+- signal compatibility must reuse `basis_lifecycle::BasisFamily` vocabulary
+  directly rather than inventing a second public signal truth-context grammar
+- later derived-execution continuation must consume typed basis-sensitive
+  compatibility truth rather than ambient execution-mode switches bolted on
   after declaration entry
+- common-lane helpers must exist only for structurally signal-compatible
+  declaration families; deferred and incompatible families remain support-
+  visible and checked-visible instead of gaining fake ordinary success lanes
+- handle-owned compatibility classification must reject wrong-handle or
+  wrong-world envelopes before compatibility success can occur
 
 **DX target**
 
@@ -1568,8 +1634,12 @@ without yet claiming that `9.3.8` executes those declarations through Signal.
 
 - families that are not signal-compatible must not claim signal continuation
   flags or methods
-- signal-compatibility posture must be derivable from typed family/capability
-  state, not from free-form tags
+- the ordinary signal-compatibility lane must be unavailable from raw
+  declarations, canonical declarations, legality evidence, route plans, and
+  receipts
+- signal-compatibility posture and witness availability must be derivable from
+  typed family/capability state, not from free-form tags
+- direct construction of signal-compatibility artifacts must remain private
 
 **Acceptance evidence**
 
@@ -1577,16 +1647,22 @@ without yet claiming that `9.3.8` executes those declarations through Signal.
 - parity tests showing equivalent declarations expose identical
   signal-compatibility posture
 - denial tests for families intentionally excluded from signal continuation
+- hostile proofs that different admitted worlds can diverge in compatibility
+  digest for the same declaration meaning
+- hostile proofs that wrong-handle envelopes deny before compatibility
+  classification
+- parity proofs that basis-family differences remain distinct in digest and
+  explanation
 
-**Open questions before implementation**
+**Locked implementation outcomes**
 
-- should signal compatibility be modeled as a simple typed posture on route
-  plans/envelopes or as a richer contract artifact with its own identity and
-  inspection view?
-- which continuation and truth-context inputs need to be preserved verbatim so
-  later signal execution can resume without semantic reinterpretation?
-- how should signal-deferred posture differ from signal-incompatible posture in
-  public checked/readiness surfaces?
+- signal compatibility is a richer Query-owned artifact boundary, not a simple
+  route-plan or envelope posture bit
+- the public lane is envelope-backed only
+- basis-sensitive compatibility uses `BasisFamily` directly rather than a
+  second signal-specific truth-context grammar
+- signal-deferred posture remains distinct from signal-incompatible posture in
+  checked and support/readiness surfaces
 
 ### Phase 15: Seam Classification Boundary
 
@@ -1613,6 +1689,9 @@ so the milestone cannot hide ambiguous or convenience-driven seams.
   classification row
 - classification rows must say which lower crate owns the semantics, what Query
   owns, and what exit criteria apply if the seam is debt or deferred
+- classification rows for Phase 14 must distinguish retained signal
+  compatibility from later actual signal execution so the seam table does not
+  blur compatibility ownership with execution ownership
 - no direct lower-crate path may remain uncategorized
 - classification must become part of the certification and documentation story
   later in the milestone
@@ -1670,12 +1749,17 @@ the actual public and internal crossings that `9.3.8` covers.
 - every checked/proof lane surface that can reach a lower-authority crossing
 - every relational-backed and bridge-backed route-plan/receipt/envelope family
 - every signal-compatibility contract row
+- every signal-compatibility support/readiness row keyed by execution family
+  and basis family
 
 **Requirements**
 
 - each row must name the public entrypoint, declaration family, handle posture,
   route-plan class, receipt family, envelope family, seam classification, and
   owner crate
+- rows that include signal compatibility must also name execution family,
+  required basis families, and whether the retained compatibility posture is
+  `Compatible`, `Deferred`, `Denied`, or `Failed`
 - the inventory must be executable and certification-readable rather than a
   prose appendix only
 - support/readiness posture must be derivable against the same row set
@@ -1758,6 +1842,15 @@ lower crate independently.
 - inspection must expose receipt explanation, receipt class/kind, and typed
   receipt-boundary denial causes as first-class read surfaces rather than
   flattening Phase 10 crossing posture into one generic "receipt status"
+- inspection must expose signal-compatibility class, signal execution family,
+  required basis families, support/readiness posture, and typed compatibility
+  denial causes as first-class read surfaces rather than flattening Phase 14
+  into one generic "signal ready" label
+- when a declaration carries `9.3.7` domain-capability contribution artifacts
+  such as explanation, support, advisory, or violation evidence, unified
+  inspection must compose those as typed contribution evidence alongside the
+  entry-phase crossing story rather than forcing callers to query a second
+  contribution-specific inspection system
 
 **DX target**
 
@@ -1784,6 +1877,10 @@ lower crate independently.
   results
 - hostile inspection cases proving intentionally different route, receipt, or
   denial posture remains visible
+- composition tests proving `9.3.7` declaration-scoped explanation and
+  inspection contributions attached to a declaration are visible through the
+  unified inspection surface without a separate contribution-specific
+  inspection call
 - compile-fail coverage proving direct lower-crate inspection types are not the
   required public lane
 
@@ -1840,15 +1937,26 @@ surfaces across the entire declaration-entry seam.
 - support/readiness must also distinguish route-plan denial from
   receipt-boundary denial where a route is admissible in principle but the
   current crossing kind is not yet admitted as a successful receipt kind
+- support/readiness must also distinguish signal-compatible admitted posture,
+  signal-deferred posture, signal-family unsupported posture, invalid-basis
+  posture, and later execution denial posture rather than collapsing them into
+  one flat "signal supported" bit
 - support/readiness posture must also be visible for admitted operating-world
   questions: which configured regimes are supported, which continuation modes
   are supported for a given admitted world, and which truth contexts are valid
   inside that world
+- the platform-entry support matrix must compose with `9.3.7`
+  declaration-scoped support contributions rather than presenting a separate
+  readiness vocabulary. Entry-phase support/readiness and contribution-phase
+  declaration-scoped support must be accessible through one support surface
+  with typed distinctions, not two unrelated support systems
 - the support matrix must be the same source of truth used by ordinary DX,
   checked outcomes, docs, and certification
 - support/readiness rows must be keyed by retained domain-scoped family
   identity plus Query-owned taxonomy posture where family meaning matters; the
   matrix may not fall back to raw family-label folklore
+- signal-compatibility support/readiness rows must additionally be keyed by
+  signal execution family and basis family where those distinctions matter
 - unsupported, deferred, and forbidden surfaces must remain explicitly named
   and may not degrade into "not implemented" folklore
 - support/readiness posture must be inspectable before expensive work happens
@@ -1889,109 +1997,511 @@ surfaces across the entire declaration-entry seam.
 - what is the cheapest synchronization mechanism between the live support
   matrix, compile-time gating, and documented feature coverage?
 
-### Phase 19: Happy-Path Orchestration Boundary
+### Phase 18 Addendum: 9.3.7 Composition Lock
 
-This phase is the Laravel boundary: Query becomes the compiler for the ordinary
-lane instead of making callers sequence proof, foundational, and lower-authority
-steps themselves.
+This addendum closes the structural composition gap between `9.3.8`
+declaration-entry seam truth and the already-shipped `9.3.7`
+domain-capability contribution seam.
 
 **Required Query artifacts**
 
-- one ordinary-lane orchestration surface over Phases 1 through 18
-- one checked orchestration lane
-- one proof-preserving orchestration lane that stays honest about what it
-  automates
-- one orchestration transcript inventory for certification and docs
+- one declaration-entry composition contract for `9.3.7` contribution evidence
+- one unified inspection composition path for declaration-scoped contribution
+  evidence
+- one unified support/readiness composition path for declaration-scoped
+  contribution posture
 
-**Locked local and adjacent references**
+**Locked composition rule**
 
-- orchestration must compile onto the prior phase artifacts rather than
-  bypassing them
-- public route-plan / receipt / envelope outputs remain required products of
-  orchestration, not hidden internals
+- `9.3.8` platform-entry lifecycle and `9.3.7`
+  domain-capability-contribution lifecycle are sequential phases of one Query
+  pipeline
+- admitted declarations, route plans, receipts, envelopes, and retained seam
+  artifacts produced by `9.3.8` must remain valid binding targets for
+  declaration-scoped `9.3.7` contribution authoring and materialization
+- entry-phase inspection/support and contribution-phase
+  explanation/support/advisory/violation/workflow/continuity/aftermath posture
+  must compose into one public Query story rather than two unrelated public
+  systems
 
 **Requirements**
 
-- the ordinary lane must let a serious domain author establish one admitted
-  operating world, express declaration intent within that world, and have Query
-  perform canonicalization, legality, progression, foundational materialization,
-  route planning, and crossing assembly automatically where admitted
-- the ordinary lane must compile through admitted operating-world proof,
-  canonical declaration proof, legality evidence, and admitted progression
-  proof in order; it may not skip progression and jump directly from legality
-  to later routing or crossing assembly
+- unified inspection from Phase 17 must compose declaration-scoped `9.3.7`
+  contribution evidence when present, including explanation/inspection
+  artifacts and the broader declaration-scoped contribution categories that
+  materially affect what happened and why
+- support/readiness from Phase 18 must compose declaration-scoped `9.3.7`
+  contribution posture when present, including declaration support,
+  advisory/violation posture, and broader declaration-scoped contribution
+  categories that materially affect readiness truth
+- this composition must preserve the distinction between entry-phase truth and
+  contribution-phase meaning; it may compose them, but it may not flatten them
+  into one unlabeled summary bucket
+- callers must not have to query a second contribution-specific inspection or
+  support system to understand one declaration’s full public story
+
+**Acceptance evidence**
+
+- composition tests proving declaration-scoped `9.3.7` contribution evidence is
+  visible through unified inspection without a second contribution-specific
+  inspection call
+- composition tests proving declaration-scoped `9.3.7` support/readiness
+  posture is visible through the platform-entry support matrix without a second
+  support system
+- hostile tests proving entry-phase denial/readiness truth and contribution-
+  phase advisory/violation/support meaning remain distinct when both are
+  present
+
+### Phase 19: Admitted-Orchestration Law Boundary
+
+This phase replaces the old "happy path" framing with the real rule: Query's
+ordinary public surface is a domain-first view over the same canonical
+declaration-entry pipeline, not convenience sugar around a different hidden
+implementation.
+
+**Required Query artifacts**
+
+- one admitted-orchestration law for the ordinary public surface
+- one explicit statement of the canonical pipeline shared by ordinary,
+  checked, and proof-visible surfaces
+- one typed refusal posture saying when automation must stop instead of guess
+
+**Locked local and adjacent references**
+
+- orchestration must compile onto Phases 1 through 18 artifacts rather than
+  bypassing them
+- ordinary, checked, and proof-visible surfaces are multiple exposures over
+  one canonical pipeline, not rival implementations
+- `9.3.8` declaration-entry and `9.3.7` contribution lifecycle remain one
+  sequential Query pipeline under this phase and later orchestration phases
+
+**Requirements**
+
+- the ordinary public surface must let a serious domain author establish one
+  admitted operating world, state domain intent once, and have Query own every
+  transition it can prove while refusing every transition it cannot prove
+- orchestration may automate sequencing only where admitted operating-world
+  proof, canonical declaration proof, legality evidence, progression proof,
+  and later retained crossing artifacts already justify that automation
+- the ordinary surface must preserve typed denial, advisory, unsupported,
+  deferred, stale, rebind-required, authority-transition, receipt, envelope,
+  and transcript posture as first-class outcomes rather than escape hatches
+- checked and proof-visible surfaces must remain explicit visibility levels
+  over the same pipeline rather than turning the ordinary surface into the only
+  real implementation path
+- orchestration must stay handle-bound and proof-preserving; it may not
+  re-bind operating worlds, basis facts, or lower-authority facts through
+  parallel helper parameters later in the flow
+
+**DX target**
+
+- the platform should feel framework-owned rather than helper-owned
+- the user should feel that they stated intent once and Query assumed
+  responsibility for every admitted transition without erasing the underlying
+  choreography
+
+**Documentation obligation**
+
+- yes; this law must be taught explicitly because it governs every later
+  orchestration phase
+
+**Compile-time enforcement**
+
+- any ordinary orchestrated surface must compile onto typed prior-phase
+  artifacts rather than ad hoc host chains
+- ordinary, checked, and proof-visible public surfaces must not be able to
+  diverge semantically for the same admitted intent
+
+**Acceptance evidence**
+
+- parity suites proving ordinary, checked, and proof-visible orchestration
+  converge for the same admitted declaration-entry intent
+- hostile tests proving the ordinary surface refuses unsupported automation
+  rather than inventing it by convenience
+
+**Open questions before implementation**
+
+- which orchestration outcomes deserve distinct public families versus shared
+  outcome envelopes with typed sub-posture?
+
+### Phase 20: Orchestration Artifact Model Boundary
+
+This phase turns orchestration into a certifiable subsystem rather than a pile
+of helper methods by giving it its own typed artifact family.
+
+**Required Query artifacts**
+
+- one orchestration input family
+- one orchestration plan family
+- one orchestration outcome family
+- one orchestration transcript family
+- one orchestration denial / refusal family
+- one orchestration exposure-level family
+- one orchestration artifact-policy family
+- one orchestration step-record inventory
+
+**Requirements**
+
+- orchestration artifacts must be Query-owned and must reference retained
+  declaration-entry truth from Phases 1 through 18 rather than reconstructing
+  it from host-local helper context
+- orchestration plans must record which phase transitions were admitted,
+  automated, refused, deferred, denied, or left explicit for the caller
+- orchestration outcomes must preserve route-plan, receipt, envelope,
+  relational-routing, bridge-routing, and signal-compatibility posture where
+  those artifacts were crossed
+- transcripts must be first-class public/certification artifacts rather than
+  debug logs, and must be capable of explaining what was automated and what was
+  intentionally left explicit
+- artifact policy and exposure level must be typed so ordinary surfaces,
+  checked surfaces, and proof-visible surfaces can differ in visibility without
+  becoming separate semantic implementations
+
+**Compile-time enforcement**
+
+- orchestration plans and outcomes must be sealed so callers cannot mint fake
+  orchestration truth
+- transcript-bearing and non-transcript-bearing surfaces must still share the
+  same canonical orchestration identity where semantics are identical
+
+**Acceptance evidence**
+
+- canonical digest parity for equivalent orchestration inputs across exposure
+  levels
+- hostile tests proving transcript, denial, and artifact-policy posture cannot
+  drift apart for the same underlying orchestration
+
+### Phase 21: Public Orchestration Verb Grammar Boundary
+
+This phase freezes the front-door verb family so the public surface feels
+singular instead of fragmenting into too many equal helper paths.
+
+**Required Query artifacts**
+
+- one ordinary public verb grammar
+- one checked public verb grammar
+- one proof-visible / transcript-visible verb grammar
+- one explicit mapping from family-specific helpers back to the canonical
+  orchestration verb inventory
+
+**Requirements**
+
+- the ordinary public verbs must stay domain-first in naming and shape; they
+  may not devolve into `ForgeQuery*` ceremony, builder choreography, or
+  substrate-driven parameter bags
+- the verb grammar must answer, structurally and explicitly, which surfaces
+  return progression-only posture, route plans, receipts, envelopes,
+  compatibility posture, prepared continuation, or contribution-composed
+  artifacts
+- the checked equivalent and proof-visible equivalent of an ordinary verb must
+  be predictable and discoverable rather than invented ad hoc per family
+- generic verbs and family-specific verbs must have one obvious relationship;
+  family-specific surfaces may specialize domain naming, but they may not
+  invent parallel semantics
+- verbs that imply expensive work, runtime continuation, workspace entry, or
+  basis binding must advertise that boundary in the API shape rather than
+  masquerading as cheap getters
+
+**Acceptance evidence**
+
+- inventory tests proving every public orchestration verb maps to exactly one
+  canonical orchestration surface
+- hostile naming/shape review proving there is one obvious front door per
+  supported orchestration family instead of many equal entry paths
+
+**Open questions before implementation**
+
+- which orchestration verbs should be universal from day one, and which should
+  stay family-specific until Phase 31?
+
+### Phase 22: Canonical Sequencing Automation Boundary
+
+This phase specifies exactly how Query automates the declaration-entry pipeline
+and exactly where it must refuse automation.
+
+**Required Query artifacts**
+
+- one canonical sequencing plan over the declaration-entry pipeline
+- one typed automation-refusal family
+- one sequencing parity surface tying explicit phase-by-phase calls to the
+  orchestrated surface
+
+**Requirements**
+
+- the ordinary surface may automate only the canonical sequence:
+  admitted operating world -> canonical declaration -> legality ->
+  progression -> foundational materialization -> route planning ->
+  receipt issuance -> envelope construction -> later admitted orchestration
+- the automation path must consume each retained proof exactly once and pass it
+  forward rather than re-deciding phase eligibility later
+- sequencing automation may not skip progression, jump around route/receipt/
+  envelope boundaries, or surface a later-phase artifact without the earlier
+  retained proof it depends on
+- automation refusal must be typed and explain whether the stop came from
+  unsupported surface breadth, missing proof, explicit expensive-work
+  requirement, authority-transition requirement, or family-specific non-admission
+
+**Acceptance evidence**
+
+- parity suites showing explicit phase-by-phase declaration-entry progression
+  converges with orchestrated sequencing
+- hostile tests proving unsupported or proof-insufficient shortcuts fail closed
+
+### Phase 23: Artifact Materialization And Cost Policy Boundary
+
+This phase makes richness and expensive work explicit so the ordinary surface
+stays ergonomically strong without becoming cost-dishonest.
+
+**Required Query artifacts**
+
+- one orchestration artifact-richness policy family
+- one explicit cost-posture family
+- one prepared-vs-executed family where expensive work can be staged but not
+  run implicitly
+
+**Requirements**
+
 - the ordinary foundational-materialization default should use the full
   descriptive-richness profile unless the caller explicitly opts into a leaner
-  checked/proof lane surface
-- the ordinary route-planning lane should prefer
+  checked or proof-visible exposure
+- orchestration may prepare expensive work, but it may not silently execute
+  expensive continuation, workspace entry, signal-backed execution, or other
+  costly lower-runtime work without an API shape that advertises that cost
+- cost posture must distinguish at least: cheap retained-artifact assembly,
+  prepared-but-not-executed continuation, explicit execution acknowledgment
+  required, and unsupported-by-default expensive work
+- artifact-richness policy must stay separate from semantic meaning: richer
+  transcripts and richer descriptive artifacts may increase visibility but may
+  not change canonical orchestration truth
+
+**Acceptance evidence**
+
+- parity tests proving richer and leaner materialization policies do not change
+  orchestration truth unless semantics intentionally differ
+- hostile tests proving cheap-looking ordinary verbs cannot hide expensive work
+
+### Phase 24: Route / Receipt / Envelope Orchestration Boundary
+
+This phase closes the last pure declaration-entry automation layer by making
+route planning, receipt issuance, and envelope construction ordinary Query
+orchestration products without turning them into hidden internals.
+
+**Required Query artifacts**
+
+- one orchestrated route-planning surface
+- one orchestrated receipt surface
+- one orchestrated envelope surface
+- one transcript / inventory mapping from orchestrated verbs back to retained
+  route, receipt, and envelope artifacts
+
+**Requirements**
+
+- the ordinary route-planning surface should prefer
   `plan_routes_from_progressed` and
   `declare_review_progress_describe_and_plan` semantics rather than making
   callers materialize foundational evidence or route-plan inputs unless they
-  intentionally drop to the advanced lane
-- the ordinary receipt lane should prefer
+  intentionally drop to a more explicit exposure level
+- the ordinary receipt surface should prefer
   `receipt_routes_from_progressed`,
   `receipt_routes_from_progressed_with_intent`, and
   `declare_review_progress_describe_plan_and_receipt` semantics rather than
   making callers manually assemble receipt inputs unless they intentionally
-  drop to the advanced lane
-- the ordinary lane must stay domain-first in naming and shape; it may not
-  devolve into `ForgeQuery*` ceremony or substrate-driven builder steps
-- orchestration may automate sequencing, but it may not hide authority changes,
-  denial classes, or expensive work
-- checked and proof lanes must remain available and truthful rather than
-  turning the ordinary lane into the only real implementation path
-- orchestration must compile from admitted configured-handle proof rather than
-  re-binding operating-world facts through parallel helper parameters later in
-  the flow
-- for supported runtime-capable families, ordinary-lane callers must not need
-  to manually assemble Query runtime builders, backend parts, workspace entry,
-  or current/historical basis binding once the declaration has been admitted
-  and routed through Query
-
-**DX target**
-
-- this phase should make the platform feel inevitable and framework-quality in
-  the common case
-- users should feel like they stated intent once and Query handled the hard
-  choreography honestly
-- runtime-capable happy paths should read like "continue into
-  runtime/workspace/basis" rather than "build adapters, wire backend parts,
-  then bind a basis context"
-
-**Documentation obligation**
-
-- yes; this is one of the most visible public phases and needs exemplary docs
-  and goldens
-
-**Compile-time enforcement**
-
-- the ordinary lane must compile onto typed prior-phase artifacts, not
-  host-owned ad hoc helper chains
-- orchestration helpers may not return opaque success types that erase receipt,
-  envelope, or denial posture
+  drop lower
+- the ordinary envelope surface should preserve retained route-plan, receipt,
+  evidence-origin, denial, and explanation posture explicitly; envelopes may
+  be orchestrated, but they may not disappear into opaque success results
+- route/receipt/envelope orchestration must remain handle-bound and must deny
+  wrong-handle or wrong-world retained artifacts before later continuation or
+  contribution composition can proceed
 
 **Acceptance evidence**
 
-- golden DX transcripts for the ordinary lane across representative family
-  types
-- parity suites showing orchestrated ordinary paths converge with explicit
-  checked/proof paths
-- hostile tests proving orchestration does not invent unsupported combinations
-  by convenience
-- end-to-end examples proving representative domain declarations can continue
-  into runtime-backed workspace and basis-bound read paths without any
-  caller-owned runtime builder or basis-binding glue
+- parity suites proving orchestrated route/receipt/envelope products converge
+  with explicit retained-artifact assembly
+- hostile tests proving orchestration cannot erase route denial, receipt
+  denial, or evidence-origin distinctions
 
-**Open questions before implementation**
+### Phase 25: Denial-Preserving Ordinary Outcome Boundary
 
-- what is the exact orchestration front-door shape for ordinary lanes so it
-  stays domain-first without fragmenting into too many equal entry paths?
-- how much orchestration transcript detail should be retained publicly versus
-  reserved for certification and debugging?
-- where should ordinary-lane sugar stop so advanced callers can still see the
-  real underlying artifacts without duplicating orchestration logic?
+This phase ensures the ordinary public surface returns the same typed
+non-success posture the explicit surfaces already know how to expose.
 
-### Phase 20: Denial And Recovery UX Boundary
+**Required Query artifacts**
+
+- one ordinary-surface denial / advisory / deferred / unsupported outcome
+  family
+- one ordinary-to-checked/proof denial parity mapping
+- one typed explanation surface tying ordinary outcomes back to retained
+  declaration-entry truth
+
+**Requirements**
+
+- ordinary orchestration may not flatten unsupported family, denied legality,
+  denied route, denied receipt, deferred neighbor, stale basis, rebind
+  required, invalid basis, incompatible signal family, or forbidden duplicate
+  posture into opaque success/failure results
+- denial posture must preserve explicit legality-contract-driven causes, Phase 7
+  progression outcomes, Phase 9 route-plan denial causes, Phase 10 receipt
+  denial causes, and Phase 14 signal-compatibility denial posture where those
+  are the real reasons
+- ordinary outcomes must remain concise, but the concise surface must still map
+  exactly onto the same typed denial topology visible through checked and
+  proof-visible surfaces
+
+**Acceptance evidence**
+
+- parity tests proving equivalent non-success causes converge across ordinary,
+  checked, and proof-visible orchestration
+- hostile tests proving convenience surfaces cannot erase denial topology
+
+### Phase 26: Runtime / Workspace / Basis Continuation Boundary
+
+This phase is the hardest continuation boundary in the orchestration stack:
+Query must remove caller-owned runtime/workspace/basis glue without lying about
+truth context, basis identity, authority, or execution cost.
+
+**Required Query artifacts**
+
+- one prepared continuation artifact family
+- one runtime / workspace / basis continuation contract family
+- one typed truth-context / basis-binding / workspace-entry posture family
+- one prepared-vs-executed continuation transcript family
+
+**Locked local and adjacent references**
+
+- Phase 13 bridge continuation routing remains the authoritative continuation
+  route posture
+- Phase 14 signal compatibility remains the authoritative declaration-to-
+  derived-execution compatibility posture
+- basis lifecycle remains the source of basis authority and rebinding truth
+
+**Requirements**
+
+- supported runtime-capable families must be able to continue from admitted
+  declaration-entry truth without caller-owned runtime builder, backend-part,
+  workspace-entry, or basis-binding choreography
+- continuation must distinguish current, historical, and preview truth/basis
+  posture explicitly; it may not collapse them into ambient "non-current"
+  folklore
+- continuation must distinguish prepared, explicitly executable, denied,
+  deferred, wrong-world, wrong-handle, stale-basis, invalid-basis, and
+  authority-transition-required posture explicitly
+- workspace entry, runtime entry, basis rebinding, and truth-context binding
+  must stay typed and inspectable; the ordinary surface may automate them only
+  when prior retained proof admits that automation
+- mixed-authority declarations, bridge continuation posture, and signal
+  compatibility posture must remain observably distinct inside prepared
+  continuation rather than merging into one fake universal continuation story
+- prepared continuation may stage expensive lower-runtime work, but execution
+  must remain explicit where cost, basis, or authority acknowledgment matters
+
+**DX target**
+
+- runtime-capable paths should read like "prepare continuation" and "execute
+  continuation" rather than "assemble adapters, bind basis, enter workspace,
+  then call the bridge"
+
+**Acceptance evidence**
+
+- end-to-end examples proving representative declarations can continue into
+  runtime-backed workspace and basis-bound paths without caller-owned glue
+- hostile tests for wrong-world, wrong-handle, stale-basis, invalid-basis,
+  preview/current/historical divergence, and prepared-vs-executed honesty
+
+### Phase 27: Signal Compatibility Orchestration Boundary
+
+This phase composes the Phase 14 compatibility boundary into ordinary
+orchestration without erasing execution family, required basis families, or
+typed compatibility denials.
+
+**Required Query artifacts**
+
+- one orchestrated signal-compatibility surface
+- one prepared-from-compatible continuation admission surface
+- one compatibility-preserving ordinary outcome family
+
+**Requirements**
+
+- when the declaration family is structurally signal-compatible, ordinary
+  orchestration should be able to lower through envelope construction and
+  signal-compatibility classification without forcing the caller to manually
+  inspect basis-sensitive support posture first
+- ordinary orchestration that surfaces Phase 14 results may not erase signal
+  execution family, required basis families, or typed compatibility denial
+  posture
+- compatibility must remain a declaration-to-derived-execution boundary rather
+  than silently turning into actual signal execution
+
+**Acceptance evidence**
+
+- parity suites proving orchestrated compatibility results converge with the
+  explicit Phase 14 checked surfaces
+- hostile tests proving compatible, deferred, unsupported, and invalid-basis
+  posture remain distinct through the ordinary surface
+
+### Phase 28: Contribution-Composed Orchestration Boundary
+
+This phase composes `9.3.8` declaration-entry orchestration with `9.3.7`
+domain-capability contribution authoring so the user does not have to cross a
+second public grammar seam.
+
+**Required Query artifacts**
+
+- one contribution-composed orchestration surface
+- one typed contribution-composed transcript / inspection surface
+- one typed contribution-composed denial / support posture mapping
+
+**Requirements**
+
+- for supported declaration families, the ordinary orchestration surface must
+  be composable with `9.3.7` domain-capability contribution authoring without
+  surfacing the entry/contribution lifecycle boundary as a visible caller seam
+- callers should be able to state domain intent, add declaration-scoped
+  capability posture, and obtain canonical materialized artifacts in one
+  coherent flow while Query preserves that entry and contribution are still two
+  proof-bearing internal progressions
+- contribution evidence, denial posture, support posture, and grouped-target
+  semantics must remain typed and inspectable inside orchestration products
+
+**Acceptance evidence**
+
+- composition tests proving `9.3.8` entry orchestration and `9.3.7`
+  contribution authoring converge to one canonical orchestrated story
+- hostile tests proving contribution denial or advisory posture cannot be
+  laundered away by ordinary orchestration
+
+### Phase 29: Orchestration Inventory And Transcript Boundary
+
+This phase synchronizes the live public orchestration surface with transcripts,
+support/readiness, docs, and certification so the ergonomic layer stays honest
+under growth.
+
+**Required Query artifacts**
+
+- one orchestration verb inventory
+- one orchestration transcript inventory
+- one coverage map from verbs to support/readiness rows, seam-ledger rows,
+  docs, goldens, and certification suites
+
+**Requirements**
+
+- ordinary public verbs, checked verbs, proof-visible verbs, support/readiness
+  rows, crossing inventory rows, transcript records, docs/goldens, and
+  certification coverage must all agree about what orchestration surfaces
+  actually exist
+- adding a new admitted orchestration surface must fail closure if there is no
+  matching transcript/inventory/support/doc/certification coverage
+- transcript inventory must preserve prepared-vs-executed continuation posture,
+  contribution composition posture, and denial topology where those matter
+
+**Acceptance evidence**
+
+- parity tests proving live verbs, transcript inventory, and support/readiness
+  inventory stay synchronized
+- hostile certification showing no documented or exported orchestration surface
+  lacks transcript, support, or proof coverage
+
+### Phase 30: Denial And Recovery UX Boundary
 
 This phase makes failure as usable as success by turning denials, stale states,
 rebind requirements, and recovery posture into public product artifacts.
@@ -2029,6 +2539,10 @@ rebind requirements, and recovery posture into public product artifacts.
 - denial posture must preserve the typed Phase 10 receipt-boundary denial
   causes and receipt explanation surface rather than flattening unsupported or
   failed crossing issuance into generic route denial or generic retry folklore
+- denial posture must preserve the typed Phase 14 signal-compatibility
+  classes, signal execution family, required basis families, and compatibility
+  denial causes rather than flattening basis mismatch or incompatible-family
+  posture into generic "signal not ready"
 - denial posture must be able to surface Phase 8 foundational evidence for
   legality denials and non-success progression lanes directly, rather than
   forcing recovery UX to reconstruct descriptive context from raw denial enums
@@ -2037,8 +2551,8 @@ rebind requirements, and recovery posture into public product artifacts.
   declaration-meaning repair, and truth/continuation-context repair
 - the recovery story must explain what the user can do next without forcing
   them to reverse-engineer lower-crate semantics
-- ordinary-lane denial UX must be concise but truthful; checked and proof lanes
-  must expose the exact typed structure underneath
+- ordinary-surface denial UX must be concise but truthful; checked and
+  proof-visible surfaces must expose the exact typed structure underneath
 - denial explanations must remain route-sensitive and family-sensitive
 - supported recovery paths must take typed recovery inputs rather than relying
   on developers to remember which bits of context need to be repaired or
@@ -2079,7 +2593,7 @@ rebind requirements, and recovery posture into public product artifacts.
 - how much automatic repair guidance can Query offer without pretending to own
   lower-authority semantics it does not actually control?
 
-### Phase 21: Family-Specific Ergonomics Boundary
+### Phase 31: Family-Specific Ergonomics Boundary
 
 This phase gives the major declaration families native-feeling public helper
 surfaces instead of forcing everything through one generic orchestration shape.
@@ -2087,15 +2601,17 @@ surfaces instead of forcing everything through one generic orchestration shape.
 **Required Query artifacts**
 
 - one family-specific helper surface per admitted major family
-- one mapping from helper surface back to canonical family identity
+- one mapping from helper surface back to canonical orchestration and family
+  identity
 - one support/readiness and denial posture projection per helper family
 
 **Requirements**
 
 - helper surfaces must read like the user's domain intent, not like generic
   framework contribution plumbing
-- helpers must compile onto the same canonical declaration, route, receipt, and
-  envelope artifacts as the generic lane
+- helpers must compile onto the same canonical declaration, route, receipt,
+  envelope, orchestration, and contribution-composed artifacts as the generic
+  surface
 - helper surfaces must compile onto the same Phase 5 family capability
   boundary, including the same support/admission checks and the same structural
   witness availability rules
@@ -2138,7 +2654,7 @@ surfaces instead of forcing everything through one generic orchestration shape.
 - how do we keep helper naming pleasant without creating overlapping synonyms
   that weaken the “one obvious path” rule?
 
-### Phase 22: Neighborhood And Batch Declaration Boundary
+### Phase 32: Neighborhood Authoring DX Boundary
 
 This phase makes meaningful grouped declarations first-class so geometry and
 topology domains can work in local neighborhoods rather than only isolated
@@ -2147,7 +2663,7 @@ single declarations.
 **Required Query artifacts**
 
 - one grouped declaration artifact family
-- one grouped route/receipt/envelope family
+- one grouped route/receipt/envelope/orchestration family
 - one grouped support/readiness and denial posture family
 - one grouped canonical digest/equivalence surface
 - one typed grouped-declaration input family that captures grouping semantics
@@ -2162,6 +2678,11 @@ single declarations.
   or generic collection shape
 - grouped declaration semantics must preserve shared posture, shared rationale,
   and shared route/denial context where that grouping is semantically real
+- grouped declaration artifacts must preserve the ability to carry `9.3.7`
+  domain-capability contributions at group level and at member level.
+  Grouped contribution binding must compose with `9.3.7`
+  contribution-target binding families rather than inventing a second grouped
+  contribution vocabulary
 - batching may improve ergonomics and cost posture, but it may not silently
   merge declarations whose semantics should stay distinct
 - grouped artifacts must still map back to single-declaration family and route
@@ -2206,26 +2727,30 @@ single declarations.
 - how should grouped route/receipt/envelope artifacts expose member-level versus
   group-level facts without becoming unreadable?
 
-### Phase 23: Public Documentation And Golden Teaching Boundary
+### Phase 33: Public Documentation And Golden Teaching Boundary
 
 This phase makes the platform-entry seam teachable and ensures the docs do not
 lose critical behavior to oral tradition.
 
 **Required Query artifacts**
 
-- one documentation inventory over the admitted platform-entry surfaces
-- one golden transcript catalog that matches the ordinary public lane
-- one coverage map from docs and transcripts back to the crossing inventory
+- one documentation inventory over the admitted platform-entry and admitted-
+  orchestration surfaces
+- one golden transcript catalog that matches the ordinary public surface
+- one coverage map from docs and transcripts back to the crossing inventory and
+  orchestration inventory
 
 **Requirements**
 
-- every admitted ordinary-lane family and helper surface must have one honest
-  documented path
+- every admitted ordinary public family, continuation surface, contribution-
+  composed surface, and major helper surface must have one honest documented
+  path
 - docs must teach support/readiness posture, denial posture, route/receipt/
-  envelope meaning, and lower-authority ownership honestly
+  envelope meaning, continuation truth, contribution composition, and lower-
+  authority ownership honestly
 - golden transcripts must be treated as product artifacts, not blog-style
   examples
-- docs must not reintroduce obsolete three-milestone or split-seam framing
+- docs must not reintroduce obsolete split-seam or "happy path" framing
 
 **DX target**
 
@@ -2246,30 +2771,35 @@ lose critical behavior to oral tradition.
 
 **Acceptance evidence**
 
-- doc coverage inventory aligned with Phase 16 crossing rows
+- doc coverage inventory aligned with the seam ledger and orchestration
+  inventory
 - golden transcript parity checks against live public APIs
 - QA pass proving no critical platform-entry behavior is lost to history
 
 **Open questions before implementation**
 
-- what is the exact doc inventory format that keeps feature docs, goldens, and
-  crossing inventory synchronized without too much manual bookkeeping?
+- what is the exact doc inventory format that keeps feature docs, goldens,
+  crossing inventory, and orchestration inventory synchronized without too much
+  manual bookkeeping?
 - which examples should be the canonical teaching cases for the first public
-  rollout, especially for runtime-capable and grouped declaration paths?
+  rollout, especially for runtime-capable, contribution-composed, and grouped
+  declaration paths?
 - how should docs surface lower-authority ownership honestly without forcing
   users to learn relational/bridge/signal internals too early?
 
-### Phase 24: Certification And Closeout Boundary
+### Phase 34: Certification And Closeout Boundary
 
 This phase closes the milestone with hostile proof rather than plausibility.
 
 **Required Query artifacts**
 
-- one certification bundle for the full platform-entry seam
-- one compile-fail suite spanning Phases 1 through 23
-- one parity suite spanning ordinary, checked, and proof lanes
+- one certification bundle for the full platform-entry and orchestration seam
+- one compile-fail suite spanning Phases 1 through 33
+- one parity suite spanning ordinary, checked, proof-visible, helper, grouped,
+  and contribution-composed surfaces
 - one hostile certification harness over route plans, receipts, envelopes,
-  support posture, denials, grouped declarations, and docs coverage
+  support posture, denials, continuation, transcripts, grouped declarations,
+  and docs coverage
 
 **Locked certification expectations**
 
@@ -2280,20 +2810,20 @@ This phase closes the milestone with hostile proof rather than plausibility.
 
 **Requirements**
 
-- equivalent public/proof/generic/helper/grouped paths must converge
-  canonically when semantically identical
-- intentionally different family, route, authority, denial, and support posture
-  must diverge observably and predictably
+- equivalent public/proof/generic/helper/grouped/contribution-composed paths
+  must converge canonically when semantically identical
+- intentionally different family, route, authority, denial, cost, continuation,
+  support, and contribution posture must diverge observably and predictably
 - compile-fail coverage must match the live ordinary lane breadth
-- inventory, docs, support matrix, and certification bundle breadth must all
-  agree exactly
+- inventory, docs, support matrix, transcript inventory, and certification
+  bundle breadth must all agree exactly
 
 **DX target**
 
 - users should feel that the platform is trustworthy because every admitted path
   is proven, not just plausible
 - the final public experience should feel coherent across ordinary, checked,
-  proof, helper, and grouped lanes
+  proof-visible, helper, grouped, and contribution-composed surfaces
 
 **Documentation obligation**
 
@@ -2311,9 +2841,10 @@ This phase closes the milestone with hostile proof rather than plausibility.
 
 - end-to-end hostile certification bundles
 - compile-fail suites for the full public breadth
-- parity suites covering ordinary vs checked vs proof vs helper vs grouped
-  paths
-- support matrix, inventory, docs, and certification digest equality checks
+- parity suites covering ordinary vs checked vs proof-visible vs helper vs
+  grouped vs contribution-composed paths
+- support matrix, seam inventory, orchestration inventory, docs, and
+  certification digest equality checks
 
 **Open questions before implementation**
 
@@ -2326,7 +2857,7 @@ This phase closes the milestone with hostile proof rather than plausibility.
 
 ## Remaining Phase Detail
 
-Phases 1 through 24 now all have boundary-level requirements. Future hostile
+Phases 1 through 34 now all have boundary-level requirements. Future hostile
 QA passes should continue tightening wording as later phases land, but the
 spec's current boundary set is now explicit enough to drive implementation
 without falling back to milestone folklore.

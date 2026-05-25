@@ -390,9 +390,12 @@ artifact over legality-cleared declarations. It still does not decide:
 
 - lower-authority route planning
 - Query boundary receipts
+- public Query boundary envelopes
+- public Query relational truth routing
+- public Query bridge continuation routing
+- public Query signal compatibility classification
 - grouped execution semantics
 - continuation execution
-- public Query boundary envelopes
 
 ## Related Docs
 
@@ -403,5 +406,8 @@ artifact over legality-cleared declarations. It still does not decide:
 - [Declaration Route Plans](./declaration-route-plan.md)
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
+- [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
+- [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
+- [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Domain Capabilities](./README.md)

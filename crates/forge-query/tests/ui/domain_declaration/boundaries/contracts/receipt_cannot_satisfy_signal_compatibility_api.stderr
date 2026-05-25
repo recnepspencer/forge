@@ -1,0 +1,15 @@
+error[E0308]: mismatched types
+  --> tests/ui/domain_declaration/boundaries/contracts/receipt_cannot_satisfy_signal_compatibility_api.rs:86:41
+   |
+86 |     let _ = handle.signal_compatibility(receipt);
+   |                    -------------------- ^^^^^^^ expected `ForgeQueryDeclarationSignalCompatibilityInput<..., _>`, found `ForgeQueryDeclarationReceipt<..., ...>`
+   |                    |
+   |                    arguments to this method are incorrect
+   |
+   = note: expected enum `ForgeQueryDeclarationSignalCompatibilityInput<GeometryDomain, _>`
+            found struct `ForgeQueryDeclarationReceipt<GeometryDomain, SplitEdgeDeclaration>`
+note: method defined here
+  --> src/application/domain_handle/admitted_handle/signal_compatibility.rs
+   |
+   |     pub fn signal_compatibility<I: ForgeQueryDeclarationInput<D>>(
+   |            ^^^^^^^^^^^^^^^^^^^^

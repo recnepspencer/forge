@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/domain_declaration/boundaries/construction/bridge_routing/bridge_routing_constructor_is_private.rs:55:49
+   |
+55 |       let _ = ForgeQueryDeclarationBridgeRouting::new(
+   |                                                   ^^^ private associated function
+   |
+  ::: src/application/declaration_bridge_routing/artifact.rs
+   |
+   | /     pub(crate) fn new(
+   | |         class: ForgeQueryDeclarationBridgeRoutingClass,
+   | |         continuation_request: ForgeQueryDeclarationBridgeContinuationRequest,
+   | |         continuation_family: ForgeQueryDeclarationBridgeContinuationFamily,
+...  |
+   | |         explanation: ForgeQueryDeclarationBridgeRoutingExplanation,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

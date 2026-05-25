@@ -351,6 +351,8 @@ This feature still does not decide:
 - lower-authority route planning
 - Query boundary receipts
 - Query boundary envelopes
+- Query relational truth routing
+- Query bridge continuation routing
 - grouped execution semantics
 - continuation execution
 
@@ -364,4 +366,7 @@ This feature still does not decide:
 - [Declaration Route Plans](./declaration-route-plan.md)
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
+- [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
+- [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
+- [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Configured Domain Handles](./configured-domain-handles.md)

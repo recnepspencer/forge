@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/domain_declaration/boundaries/construction/signal_compatibility/signal_compatibility_constructor_is_private.rs:50:86
+   |
+50 |       let _ = ForgeQueryDeclarationSignalCompatibility::<ExampleDomain, ExampleInput>::new(
+   |                                                                                        ^^^ private associated function
+   |
+  ::: src/application/declaration_signal_compatibility/artifact.rs
+   |
+   | /     pub(crate) fn new(
+   | |         primary_authority_family: ForgeQueryDeclarationPrimaryAuthorityFamily,
+   | |         execution_family: ForgeQueryDeclarationSignalExecutionFamily,
+   | |         basis_families: Vec<BasisFamily>,
+...  |
+   | |         explanation: ForgeQueryDeclarationSignalCompatibilityExplanation,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here
