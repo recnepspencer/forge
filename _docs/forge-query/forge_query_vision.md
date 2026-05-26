@@ -294,9 +294,21 @@ What this enables:
 #### Implicit topological binding (Route-model binding generalized)
 
 Technical role:
-The query layer acts as a Type-Bound Dependency Injector, taking inspiration from Laravel's route-model binding but generalizing it to graph-native truth. Consumer functions (UI components, controller endpoints, or kernel solvers) declare their data needs purely as typed signature inputs (e.g., `Query<Entity, SubgraphCone<Depth=3>>`). 
+The query layer owns one shared proof-bearing binding substrate, starting
+with one retained target-binding core that both contribution authoring and
+declaration-entry orchestration consume before later extractor/resolver
+expansion, taking
+inspiration from Laravel's route-model binding but translating it into
+Rust-native typed extractors, retained-artifact resolvers, capability
+witnesses, and family-scoped binding contracts. Consumer functions (UI
+components, controller endpoints, kernel solvers, contribution authors, and
+later orchestration/continuation callers) declare their data needs as typed
+signature inputs or typed request forms rather than ambient host lookups.
 
-The runtime automatically parses the active context, binds the target, executes the query, and injects the fully-resolved regional dependencies into the function.
+The runtime binds declared context and retained proof into the right admitted
+Query artifact, executes against canonical query meaning, and exposes the same
+binding story across direct query execution, domain capability contribution,
+declaration-entry orchestration, and later continuation surfaces.
 
 What this enables:
 
@@ -304,7 +316,11 @@ What this enables:
 - **Workflow context** can implicitly bind to a pending-approval scope
 - **Geometry triggers** can implicitly bind to a neighborhood/subgraph traversal
 - **AI execution contexts** can implicitly bind to a speculative branch or time window
-- eradication of explicit "data fetching" and "loading/error states" from consuming code
+- contribution authoring and later declaration/continuation ergonomics can
+  reuse the same binding substrate instead of inventing local glue families
+- eradication of explicit "data fetching" and "loading/error states" from
+  consuming code where the binding contract already proves what can be safely
+  resolved
 
 ### Live Query Architecture
 

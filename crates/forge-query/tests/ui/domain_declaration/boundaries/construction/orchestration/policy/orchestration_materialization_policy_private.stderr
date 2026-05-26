@@ -1,0 +1,20 @@
+error[E0451]: fields `foundational_evidence_profile`, `receipt_tier`, `envelope_tier`, `support_rich_publication_admitted`, `diagnostic_rich_publication_admitted`, `cost_posture` and `materialization_gate` of struct `ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy` are private
+  --> tests/ui/domain_declaration/boundaries/construction/orchestration/policy/orchestration_materialization_policy_private.rs:11:9
+   |
+10 |     let _ = ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy {
+   |             ------------------------------------------------------------ in this type
+11 |         foundational_evidence_profile:
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+12 |             FoundationalBoundaryEvidenceMaterializationProfile::FullDescriptiveRichness,
+13 |         receipt_tier: ForgeQueryDeclarationEntryOrchestrationMaterializationTier::SupportReady,
+   |         ^^^^^^^^^^^^ private field
+14 |         envelope_tier: ForgeQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive,
+   |         ^^^^^^^^^^^^^ private field
+15 |         support_rich_publication_admitted: true,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+16 |         diagnostic_rich_publication_admitted: true,
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+17 |         cost_posture: ForgeQueryDeclarationEntryOrchestrationCostPosture::ExplicitlyRich,
+   |         ^^^^^^^^^^^^ private field
+18 |         materialization_gate:
+   |         ^^^^^^^^^^^^^^^^^^^^ private field

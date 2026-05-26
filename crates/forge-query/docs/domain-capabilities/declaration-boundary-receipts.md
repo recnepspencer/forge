@@ -45,6 +45,8 @@ receipts record the Query crossing posture that followed from that truth.
 - `ForgeQueryAdmittedConfiguredDomainHandle::receipt_routes_checked(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::receipt_routes_from_progressed(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::receipt_routes_from_progressed_with_intent(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_receipt_from_progressed(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_receipt_from_progressed_with_intent(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::declare_review_progress_describe_plan_and_receipt(...)`
 
 Good to know:
@@ -73,6 +75,8 @@ Admitted-handle receipt entry points:
 - `receipt_routes_checked(subject) -> ForgeQueryDeclarationReceiptChecked<D, I>`
 - `receipt_routes_from_progressed(progressed) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationReceiptTerminalError<D, I>>`
 - `receipt_routes_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationReceiptTerminalError<D, I>>`
+- `orchestrate_receipt_from_progressed(progressed) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationReceiptTerminalError<D, I>>`
+- `orchestrate_receipt_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationReceiptTerminalError<D, I>>`
 - `declare_review_progress_describe_plan_and_receipt(input) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationEntryReceiptError<D, I>>`
 
 Checked receipt outcomes:
@@ -105,6 +109,25 @@ Receipt-denial causes:
 - `ReceiptMaterializationMismatch`
 - `RouteIntegrityMismatch`
 
+Receipt inspection:
+
+- `class() -> ForgeQueryDeclarationReceiptClass`
+- `kind() -> ForgeQueryDeclarationReceiptKind`
+- `declaration_family_key() -> &'static str`
+- `handle_identity_digest() -> &str`
+- `operating_context_identity_digest() -> &str`
+- `declaration_digest() -> &str`
+- `progression_digest() -> &str`
+- `route_plan_digest() -> &str`
+- `receipt_digest() -> &str`
+- `binding_target() -> ForgeQueryDeclarationReceiptBindingTarget`
+- `foundational_evidence() -> &ForgeQueryDeclarationFoundationalEvidence<D, I>`
+- `route_plan() -> &ForgeQueryDeclarationRoutePlan<D, I>`
+- `route_denial_cause() -> Option<ForgeQueryDeclarationRoutePlanDenialCause>`
+- `explain() -> &ForgeQueryDeclarationReceiptExplanation`
+- `descriptive_receipt() -> &ForgeQueryDeclarationBoundaryDescriptiveReceipt`
+- `boundary_receipt() -> &FoundationalBoundaryReceipt`
+
 ## Core Mental Model
 
 Think of declaration boundary receipts as the first operational artifact after
@@ -126,6 +149,11 @@ That means:
 
 The receipt stays Query-owned even when the lower authority has its own local
 receipt or evidence language.
+
+The retained receipt artifact is also now one shared binding target. Envelope
+construction and later continuation surfaces should bind from this receipt
+identity directly instead of rebuilding crossing posture from lower-level
+artifacts.
 
 Declaration boundary envelopes are the next public crossing-story boundary.
 Bridge continuation routing is the later lower-authority continuation boundary
@@ -167,7 +195,7 @@ use forge_query::facade::{
 };
 
 let progressed = handle.declare_review_and_progress(
-    SplitEdgeAtMidpoint { edge_ref: "edge:42" },
+    geometry_session.attach_face_material_for_active_selection()?,
 )?;
 
 match handle.receipt_routes_checked(
@@ -196,7 +224,10 @@ use forge_query::facade::{
 };
 
 let progressed = handle.progress_declaration(
-    handle.declare_and_review(SplitEdgeAtMidpoint { edge_ref: "edge:42" })?,
+    handle.declare_and_review(AttachFaceMaterialAssignment {
+        face_ref: "face:loading-bay-west",
+        material_profile_ref: "material-profile:fire-rated-primer",
+    })?,
 )?;
 
 let evidence = handle.describe_foundational(
@@ -217,7 +248,7 @@ match handle.receipt_routes_checked(
     ForgeQueryDeclarationReceiptInput::planned(route_plan),
 ) {
     ForgeQueryDeclarationReceiptChecked::Issued(receipt) => {
-        assert_eq!(receipt.declaration_family_key(), "split-edge");
+        assert_eq!(receipt.declaration_family_key(), "attach-face-material");
         let _ = receipt.receipt_digest();
         let _ = receipt.explain();
         let _ = receipt.boundary_receipt();
@@ -242,6 +273,8 @@ What this example is showing:
 - the receipt keeps route explanation and denial topology visible
 - the receipt exposes both Query-level inspection and the underlying
   foundational boundary receipt artifact
+- orchestration may publish the same retained receipt truth through a leaner
+  or richer policy without changing the receipt's semantic crossing story
 
 ## How It Relates To Other Features
 
@@ -253,6 +286,8 @@ What this example is showing:
   posture and route explanation receipts consume
 - [Configured Domain Handles](./configured-domain-handles.md) retain the
   admitted-world identity receipts must not rediscover
+- [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md) bind
+  their public crossing story from this retained receipt target
 
 Use route planning when you need to decide what lower-authority participation
 is in play. Use boundary receipts when you need the public operational artifact
@@ -274,6 +309,7 @@ Use these surfaces when inspecting a receipt:
 - `progression_digest()`
 - `route_plan_digest()`
 - `receipt_digest()`
+- `binding_target()`
 - `foundational_evidence()`
 - `route_plan()`
 - `route_denial_cause()`
@@ -296,6 +332,8 @@ These surfaces help answer:
 - whether two equivalent retained-proof paths converged to the same receipt
   digest
 - whether divergence came from admitted world, route posture, or receipt kind
+- which retained receipt identity later envelope or continuation consumers
+  should bind to directly
 
 ## Anti-Patterns
 

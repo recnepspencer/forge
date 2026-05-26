@@ -6,6 +6,8 @@ use forge_foundational::facade::{
 };
 use forge_proof::TransitionOutcome;
 
+use crate::application::ForgeQueryDeclarationFoundationalEvidenceClass;
+
 use super::artifact::{ForgeQueryDeclarationReceiptClass, ForgeQueryDeclarationReceiptKind};
 
 pub(crate) fn derive_receipt_digest(
@@ -18,7 +20,9 @@ pub(crate) fn derive_receipt_digest(
     route_plan_digest: Option<&str>,
     class: ForgeQueryDeclarationReceiptClass,
     kind: ForgeQueryDeclarationReceiptKind,
-    foundational_evidence_digest: &str,
+    foundational_evidence_class: ForgeQueryDeclarationFoundationalEvidenceClass,
+    foundational_support_digest: &str,
+    legality_digest: Option<&str>,
     route_contract_reason: Option<&str>,
     route_intent_token: Option<&str>,
     route_cause_reason: Option<&str>,
@@ -34,8 +38,15 @@ pub(crate) fn derive_receipt_digest(
         text_entry("receipt.declaration", declaration_digest),
         text_entry("receipt.class", receipt_class_token(class)),
         text_entry("receipt.kind", receipt_kind_token(kind)),
-        text_entry("receipt.evidence_bundle", foundational_evidence_digest),
+        text_entry(
+            "receipt.evidence_class",
+            foundational_evidence_class_token(foundational_evidence_class),
+        ),
+        text_entry("receipt.support", foundational_support_digest),
     ];
+    if let Some(entry) = optional_text_entry("receipt.legality", legality_digest) {
+        entries.push(entry);
+    }
     if let Some(entry) = optional_text_entry("receipt.progression", progression_digest) {
         entries.push(entry);
     }
@@ -112,5 +123,26 @@ fn receipt_class_token(class: ForgeQueryDeclarationReceiptClass) -> &'static str
         ForgeQueryDeclarationReceiptClass::DeferredCrossing => "deferred_crossing",
         ForgeQueryDeclarationReceiptClass::DeniedCrossing => "denied_crossing",
         ForgeQueryDeclarationReceiptClass::FailedCrossing => "failed_crossing",
+    }
+}
+
+fn foundational_evidence_class_token(
+    class: ForgeQueryDeclarationFoundationalEvidenceClass,
+) -> &'static str {
+    match class {
+        ForgeQueryDeclarationFoundationalEvidenceClass::LegalityAdmitted => "legality_admitted",
+        ForgeQueryDeclarationFoundationalEvidenceClass::LegalityDenied => "legality_denied",
+        ForgeQueryDeclarationFoundationalEvidenceClass::ProgressionAdmitted => {
+            "progression_admitted"
+        }
+        ForgeQueryDeclarationFoundationalEvidenceClass::ProgressionDeferred => {
+            "progression_deferred"
+        }
+        ForgeQueryDeclarationFoundationalEvidenceClass::ProgressionDenied => "progression_denied",
+        ForgeQueryDeclarationFoundationalEvidenceClass::ProgressionStale => "progression_stale",
+        ForgeQueryDeclarationFoundationalEvidenceClass::ProgressionRebindRequired => {
+            "progression_rebind_required"
+        }
+        ForgeQueryDeclarationFoundationalEvidenceClass::ProgressionFailed => "progression_failed",
     }
 }

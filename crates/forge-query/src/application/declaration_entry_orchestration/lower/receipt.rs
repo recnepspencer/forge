@@ -1,6 +1,6 @@
 use crate::application::{
-    ForgeQueryDeclarationEntryOrchestrationOutcome, ForgeQueryDeclarationEntryOrchestrationRefusal,
-    ForgeQueryDeclarationEntryOrchestrationStage,
+    ForgeQueryDeclarationEntryOrchestrationOutcome, ForgeQueryDeclarationEntryOrchestrationPlan,
+    ForgeQueryDeclarationEntryOrchestrationRefusal, ForgeQueryDeclarationEntryOrchestrationStage,
     ForgeQueryDeclarationEntryOrchestrationStageRecord, ForgeQueryDeclarationInput,
     ForgeQueryDeclarationReceiptChecked, ForgeQueryDeclarationReceiptDenialCause,
     ForgeQueryDomainEntryMarker,
@@ -22,6 +22,7 @@ pub(super) fn lower_from_receipt_checked<
     I: ForgeQueryDeclarationInput<D>,
 >(
     handle: &crate::application::ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
+    plan: &ForgeQueryDeclarationEntryOrchestrationPlan<D, I>,
     automation_context: &ForgeQueryDeclarationEntryOrchestrationAutomationContext<'_>,
     step_records: &mut Vec<ForgeQueryDeclarationEntryOrchestrationStageRecord>,
     checked: ForgeQueryDeclarationReceiptChecked<D, I>,
@@ -33,9 +34,10 @@ pub(super) fn lower_from_receipt_checked<
                 ForgeQueryDeclarationEntryOrchestrationStageRecord::automated(
                     ForgeQueryDeclarationEntryOrchestrationStage::ReceiptIssued,
                     Some(digest),
-                ),
+                )
+                .with_materialization_tier(plan.receipt_materialization_tier()),
             );
-            lower_from_issued_envelope(handle, step_records, receipt)
+            lower_from_issued_envelope(handle, plan, step_records, receipt)
         }
         ForgeQueryDeclarationReceiptChecked::Deferred(receipt) => {
             let digest =
@@ -45,7 +47,8 @@ pub(super) fn lower_from_receipt_checked<
                     ForgeQueryDeclarationEntryOrchestrationStage::ReceiptIssued,
                     Some(digest.clone()),
                     receipt.reason(),
-                ),
+                )
+                .with_materialization_tier(plan.receipt_materialization_tier()),
             );
             lower_from_deferred_envelope(handle, receipt)
         }
@@ -57,11 +60,14 @@ pub(super) fn lower_from_receipt_checked<
             if receipt.receipt_cause()
                 == Some(ForgeQueryDeclarationReceiptDenialCause::UnsupportedReceiptKind)
             {
-                step_records.push(ForgeQueryDeclarationEntryOrchestrationStageRecord::refused(
-                    receipt_stop,
-                    Some(digest.clone()),
-                    receipt.reason(),
-                ));
+                step_records.push(
+                    ForgeQueryDeclarationEntryOrchestrationStageRecord::refused(
+                        receipt_stop,
+                        Some(digest.clone()),
+                        receipt.reason(),
+                    )
+                    .with_materialization_tier(plan.receipt_materialization_tier()),
+                );
                 return ForgeQueryDeclarationEntryOrchestrationOutcome::Refused(
                     ForgeQueryDeclarationEntryOrchestrationRefusal::from_automation(
                         ForgeQueryDeclarationEntryOrchestrationAutomationRefusal::new(
@@ -78,21 +84,27 @@ pub(super) fn lower_from_receipt_checked<
                 );
             }
 
-            step_records.push(ForgeQueryDeclarationEntryOrchestrationStageRecord::denied(
-                receipt_stop,
-                Some(digest),
-                receipt.reason(),
-            ));
+            step_records.push(
+                ForgeQueryDeclarationEntryOrchestrationStageRecord::denied(
+                    receipt_stop,
+                    Some(digest),
+                    receipt.reason(),
+                )
+                .with_materialization_tier(plan.receipt_materialization_tier()),
+            );
             lower_from_denied_envelope(handle, receipt)
         }
         ForgeQueryDeclarationReceiptChecked::Failed(receipt) => {
             let digest =
                 super::super::artifacts::canonical_digest_token(receipt.receipt().receipt_digest());
-            step_records.push(ForgeQueryDeclarationEntryOrchestrationStageRecord::failed(
-                ForgeQueryDeclarationEntryOrchestrationStage::ReceiptIssued,
-                Some(digest),
-                receipt.reason(),
-            ));
+            step_records.push(
+                ForgeQueryDeclarationEntryOrchestrationStageRecord::failed(
+                    ForgeQueryDeclarationEntryOrchestrationStage::ReceiptIssued,
+                    Some(digest),
+                    receipt.reason(),
+                )
+                .with_materialization_tier(plan.receipt_materialization_tier()),
+            );
             lower_from_failed_envelope(handle, receipt)
         }
     }

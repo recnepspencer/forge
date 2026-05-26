@@ -103,8 +103,8 @@ eligible for Signal-backed derived execution.
 [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 when you want one admitted-handle front door over the declaration-entry
 pipeline through the current envelope ceiling, with ordinary, checked, and
-proof-visible visibility levels over the same canonical lowering path and one
-locked automation sequence.
+proof-visible visibility levels over the same canonical lowering path, one
+locked automation sequence, and one inspectable materialization/cost policy.
 [Declaration Entry Inspection](./declaration-entry-inspection.md)
 when you need one unified read surface over retained seam artifacts after that
 lowering. Use
@@ -185,6 +185,9 @@ order:
   - `orchestrate_declaration_entry(...)`
   - `orchestrate_declaration_entry_checked(...)`
   - `orchestrate_declaration_entry_proof(...)`
+  - `orchestrate_routes_from_progressed(...)`
+  - `orchestrate_receipt_from_progressed(...)`
+  - `orchestrate_envelope_from_progressed(...)`
 - seam-ledger projections:
   - `declaration_entry_crossing_inventory::<I>()`
   - `declaration_entry_readiness::<I>()`
@@ -212,36 +215,72 @@ The main retained public artifacts introduced along that path are:
 - `ForgeQueryDeclarationEntryInspection`
 - `ForgeQueryDeclarationEntryReadinessReport`
 
+The main retained binding targets carried by those artifacts are:
+
+- `ForgeQueryAdmittedDeclarationProgressionBindingTarget`
+- `ForgeQueryDeclarationRoutePlanBindingTarget`
+- `ForgeQueryDeclarationReceiptBindingTarget`
+- `ForgeQueryDeclarationEnvelopeBindingTarget`
+
+These belong to the shared retained target-binding seam that now connects
+`9.3.7` contribution authoring and `9.3.8` declaration-entry/product
+orchestration. They are not the same subsystem as the older query
+canonicalization/slot-fulfillment binding code under `src/binding/`.
+
 Use this quick chooser when the declaration-entry docs feel close together:
 
 - choose orchestration when Query should own the current declaration-entry
-  lowering path for one already-assembled declaration input
+  lowering path and default materialization policy for one already-assembled
+  declaration input
 - choose envelopes when you already have retained receipt-backed crossing truth
   and want the public crossing artifact directly
 - choose inspection when you need one read artifact over retained seam truth
 - choose readiness when you need family-level seam posture before or beside one
   concrete run
 
-The current public orchestration grammar is intentionally narrow:
+The current public orchestration grammar is intentionally layered:
 
 - `orchestrate_declaration_entry(...)`
 - `orchestrate_declaration_entry_checked(...)`
 - `orchestrate_declaration_entry_proof(...)`
+- `orchestrate_routes_from_progressed(...)`
+- `orchestrate_receipt_from_progressed(...)`
+- `orchestrate_envelope_from_progressed(...)`
 
-Treat that trio as the generic front door.
+Treat the trio as the generic declaration-input front door.
+Treat the progressed route/receipt/envelope methods as compact product-target
+projections over the same retained pipeline.
 Treat the earlier declaration, legality, progression, foundational, route,
 receipt, and envelope methods as the advanced explicit path.
 If you need the locked grammar as data, use
 `ForgeQueryDeclarationEntryOrchestrationVerbInventory::current()` and inspect
 its rows instead of inferring the surface from scattered examples.
 
+If you need the locked publication story as data, inspect the orchestration
+plan and transcript instead of guessing from the current receipt or envelope
+shape:
+
+- `materialization_policy()`
+- `materialization_tier()`
+- `cost_posture()`
+- `materialization_gate()`
+- `foundational_evidence_profile()`
+
 The orchestration front door also has one locked sequencing boundary:
 
-- Query starts after your session or tool resolved the user’s targets
+- Query starts after your session or tool resolved the user's targets
 - Query automates admitted handle through envelope only
 - checked and proof-visible lanes keep stop posture and boundary honesty typed
 - `Refused` means automation stopped intentionally, not that Query flattened
   every non-success posture into one error
+
+It also has one locked materialization boundary:
+
+- the default orchestration lane uses lean foundational evidence publication
+- receipt and envelope publication stay support-ready by default
+- richer publication changes descriptive breadth, not declaration-entry truth
+- cost posture and publication gate are inspectable through the orchestration
+  plan and transcript
 
 The main checked and denied families are:
 

@@ -1,0 +1,37 @@
+error: cannot construct `ForgeQueryDeclarationEntryOrchestrationVerb` with struct literal syntax due to private fields
+  --> tests/ui/domain_declaration/boundaries/construction/orchestration/artifacts/orchestration_verb_private.rs:9:13
+   |
+ 9 |     let _ = ForgeQueryDeclarationEntryOrchestrationVerb {
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+10 |         public_name: "orchestrate_declaration_entry_debug",
+   |         -------------------------------------------------- private field
+11 |         family: ForgeQueryDeclarationEntryOrchestrationVerbFamily::GenericDeclarationEntry,
+   |         ---------------------------------------------------------------------------------- private field
+12 |         exposure_level: ForgeQueryDeclarationEntryOrchestrationExposureLevel::Ordinary,
+   |         ------------------------------------------------------------------------------ private field
+13 |         ceiling: ForgeQueryDeclarationEntryOrchestrationVerbCeiling::Envelope,
+   |         --------------------------------------------------------------------- private field
+14 |         canonical_base_name: "orchestrate_declaration_entry",
+   |         ---------------------------------------------------- private field
+   |
+   = note: ...and other private field `product` that was not provided
+help: you might have meant to use an associated function to build this type
+   |
+ 9 -     let _ = ForgeQueryDeclarationEntryOrchestrationVerb {
+10 -         public_name: "orchestrate_declaration_entry_debug",
+11 -         family: ForgeQueryDeclarationEntryOrchestrationVerbFamily::GenericDeclarationEntry,
+12 -         exposure_level: ForgeQueryDeclarationEntryOrchestrationExposureLevel::Ordinary,
+13 -         ceiling: ForgeQueryDeclarationEntryOrchestrationVerbCeiling::Envelope,
+14 -         canonical_base_name: "orchestrate_declaration_entry",
+15 -     };
+ 9 +     let _ = ForgeQueryDeclarationEntryOrchestrationVerb::generic_declaration_entry(_, _);
+   |
+ 9 -     let _ = ForgeQueryDeclarationEntryOrchestrationVerb {
+10 -         public_name: "orchestrate_declaration_entry_debug",
+11 -         family: ForgeQueryDeclarationEntryOrchestrationVerbFamily::GenericDeclarationEntry,
+12 -         exposure_level: ForgeQueryDeclarationEntryOrchestrationExposureLevel::Ordinary,
+13 -         ceiling: ForgeQueryDeclarationEntryOrchestrationVerbCeiling::Envelope,
+14 -         canonical_base_name: "orchestrate_declaration_entry",
+15 -     };
+ 9 +     let _ = ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(_, _, _, _, _);
+   |

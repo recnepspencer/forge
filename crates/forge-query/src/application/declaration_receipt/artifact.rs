@@ -8,6 +8,7 @@ use crate::application::{
     ForgeQueryDeclarationRoutePlan, ForgeQueryDeclarationRoutePlanDenialCause,
     ForgeQueryDomainEntryMarker,
 };
+use crate::target_binding::ForgeQueryDeclarationReceiptBindingTarget;
 
 use super::explain::ForgeQueryDeclarationReceiptExplanation;
 
@@ -152,6 +153,10 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn receipt_digest(&self) -> &CanonicalDerivedDigest {
         &self.receipt_digest
+    }
+
+    pub fn binding_target(&self) -> ForgeQueryDeclarationReceiptBindingTarget {
+        ForgeQueryDeclarationReceiptBindingTarget::for_receipt(self)
     }
 
     pub fn foundational_evidence(&self) -> &ForgeQueryDeclarationFoundationalEvidence<D, I> {

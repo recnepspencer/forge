@@ -11,8 +11,8 @@ use super::legality::lower_from_legality_checked;
 use super::reason::{canonicalization_reason, declare_row_reason};
 use crate::application::{
     ForgeQueryDeclarationEntryOrchestrationDeferred, ForgeQueryDeclarationEntryOrchestrationFailed,
-    ForgeQueryDeclarationEntryOrchestrationOutcome, ForgeQueryDeclarationEntryOrchestrationRefusal,
-    ForgeQueryDeclarationEntryOrchestrationStage,
+    ForgeQueryDeclarationEntryOrchestrationOutcome, ForgeQueryDeclarationEntryOrchestrationPlan,
+    ForgeQueryDeclarationEntryOrchestrationRefusal, ForgeQueryDeclarationEntryOrchestrationStage,
     ForgeQueryDeclarationEntryOrchestrationStageRecord, ForgeQueryDeclaredFamilyChecked,
 };
 
@@ -22,6 +22,7 @@ pub(super) fn lower_from_declaration_checked<
     I: ForgeQueryDeclarationInput<D>,
 >(
     handle: &crate::application::ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
+    plan: &ForgeQueryDeclarationEntryOrchestrationPlan<D, I>,
     automation_context: &ForgeQueryDeclarationEntryOrchestrationAutomationContext<'_>,
     step_records: &mut Vec<ForgeQueryDeclarationEntryOrchestrationStageRecord>,
     input: I,
@@ -38,6 +39,7 @@ pub(super) fn lower_from_declaration_checked<
             );
             lower_from_legality_checked(
                 handle,
+                plan,
                 automation_context,
                 step_records,
                 handle.review_legality_checked(declaration),

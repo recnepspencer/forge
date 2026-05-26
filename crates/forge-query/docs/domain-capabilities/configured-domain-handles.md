@@ -127,6 +127,12 @@ Admitted-handle orchestration entry points:
 - `orchestrate_declaration_entry(input) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEntryOrchestrationTerminalError<D, I>>`
 - `orchestrate_declaration_entry_checked(input) -> ForgeQueryDeclarationEntryOrchestrationOutcome<D, I>`
 - `orchestrate_declaration_entry_proof(input) -> ForgeQueryDeclarationEntryOrchestrationTranscript<D, I>`
+- `orchestrate_routes_from_progressed(progressed) -> Result<ForgeQueryDeclarationRoutePlan<D, I>, ForgeQueryDeclarationRoutePlanTerminalError<D, I>>`
+- `orchestrate_routes_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationRoutePlan<D, I>, ForgeQueryDeclarationRoutePlanTerminalError<D, I>>`
+- `orchestrate_receipt_from_progressed(progressed) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationReceiptTerminalError<D, I>>`
+- `orchestrate_receipt_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationReceiptTerminalError<D, I>>`
+- `orchestrate_envelope_from_progressed(progressed) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
+- `orchestrate_envelope_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
 
 Handle-independent orchestration grammar inventory:
 
@@ -138,13 +144,17 @@ Orchestration artifact inspection:
 
 - `ForgeQueryDeclarationEntryOrchestrationInput::{declaration_family_key, handle_identity_digest, operating_context_identity_digest, exposure_level, artifact_policy}`
 - `ForgeQueryDeclarationEntryOrchestrationPlan::{declaration_family_key, handle_identity_digest, operating_context_identity_digest, exposure_level, artifact_policy, ceiling_stage, automation_boundary, automation_steps, explicit_caller_handoff_steps, step_plan, orchestration_identity_digest}`
-- `ForgeQueryDeclarationEntryOrchestrationOutcome::{stop_stage, declaration_family_key, retained_digest, outcome_identity_digest, is_automation_refusal}`
-- `ForgeQueryDeclarationEntryOrchestrationTranscript::{plan, outcome, step_records, automation_boundary, orchestration_digest}`
-- `ForgeQueryDeclarationEntryOrchestrationStepRecord::{stage, automation_step, disposition, retained_digest, reason, is_reached, is_stop, is_terminal}`
+- `ForgeQueryDeclarationEntryOrchestrationPlan::{materialization_policy, materialization_tier, cost_posture, materialization_gate, foundational_evidence_profile, descriptive_materialization_cost}`
+- `ForgeQueryDeclarationEntryOrchestrationOutcome::{stop_stage, declaration_family_key, retained_digest, outcome_identity_digest, is_automation_refusal, is_expensive_work_refusal}`
+- `ForgeQueryDeclarationEntryOrchestrationTranscript::{plan, outcome, step_records, automation_boundary, materialization_policy, cost_posture, orchestration_digest}`
+- `ForgeQueryDeclarationEntryOrchestrationStepRecord::{stage, automation_step, disposition, materialization_tier, retained_digest, reason, is_reached, is_stop, is_terminal}`
 - `ForgeQueryDeclarationEntryOrchestrationRefusal::{refusal_class, automation_refusal_class, stop_stage, reason, retained_digest, orchestration_identity_digest, automation_boundary}`
 - `ForgeQueryDeclarationEntryOrchestrationAutomationBoundary::{EnvelopeCeiling}`
 - `ForgeQueryDeclarationEntryOrchestrationAutomationStep::{AdmittedHandle, CanonicalDeclaration, Legality, Progression, FoundationalEvidence, RoutePlan, Receipt, Envelope}`
 - `ForgeQueryDeclarationEntryOrchestrationAutomationRefusalClass::{ExplicitIntentRequired, ExpensiveAutomationForbidden, AuthorityTransitionRequired, PreparedButNotExecuted, UnsupportedAutomation, StrongerProofRequired}`
+- `ForgeQueryDeclarationEntryOrchestrationMaterializationTier::{OperationalLean, SupportReady, FullDescriptive}`
+- `ForgeQueryDeclarationEntryOrchestrationCostPosture::{OrdinaryDefault, ExplicitlyLean, ExplicitlyRich, PreparedButNotExecuted, ExpensiveByDefault}`
+- `ForgeQueryDeclarationEntryOrchestrationMaterializationGate::{AdmittedByDefault, ExplicitRequestRequired, ForbiddenOnOrdinaryLane, PreparedOnly, UnsupportedForCurrentArtifactSet}`
 
 Checked admission outcomes:
 
@@ -169,6 +179,11 @@ That same admitted world is also the ownership boundary for declaration-entry
 inventory, readiness, inspection, and declaration-entry orchestration.
 Seam-ledger projections and orchestration both reject retained artifacts from
 the wrong admitted handle or operating world.
+
+When later declaration-entry artifacts expose shared binding targets, those
+targets are still scoped by this admitted world. The binding seam does not
+replace handle admission; it carries retained artifact identity forward after
+the admitted world already exists.
 
 That means it should carry stable regime facts such as:
 
@@ -436,14 +451,20 @@ That orchestration trio also locks one sequencing boundary:
 - `Refused` means automation stopped intentionally; it does not erase stale,
   rebind-required, denied, deferred, or failed posture
 
-In the current public grammar, that trio is the only orchestration verb family:
+It also locks one materialization boundary:
 
-- `orchestrate_declaration_entry(...)`
-- `orchestrate_declaration_entry_checked(...)`
-- `orchestrate_declaration_entry_proof(...)`
+- visibility level and materialization policy are separate axes
+- the default orchestration lane uses lean foundational evidence publication
+  plus support-ready receipt and envelope publication
+- checked and proof-visible lanes may inspect richer policy metadata without
+  silently changing declaration-entry truth
+- prepared publication still does not imply later execution
 
-That is the generic front door. The other declaration-entry handle methods are
-explicit lower-phase surfaces, not parallel orchestration grammars.
+That trio remains the generic declaration-input front door. Phase 24 adds
+public route/receipt/envelope orchestration from progressed declarations, but
+those product-target methods still compile onto the same retained plan,
+materialization policy, and stop-boundary law rather than introducing a second
+pipeline.
 
 If you need to inspect the locked public grammar itself rather than invoke one
 of those methods, use `ForgeQueryDeclarationEntryOrchestrationVerbInventory`

@@ -77,11 +77,15 @@ pub use declaration_entry_orchestration::{
     ForgeQueryDeclarationEntryOrchestrationAutomationRefusalClass,
     ForgeQueryDeclarationEntryOrchestrationAutomationStep,
     ForgeQueryDeclarationEntryOrchestrationChecked,
+    ForgeQueryDeclarationEntryOrchestrationCostPosture,
     ForgeQueryDeclarationEntryOrchestrationDeferred, ForgeQueryDeclarationEntryOrchestrationDenied,
     ForgeQueryDeclarationEntryOrchestrationExposureLevel,
     ForgeQueryDeclarationEntryOrchestrationFailed, ForgeQueryDeclarationEntryOrchestrationInput,
+    ForgeQueryDeclarationEntryOrchestrationMaterializationGate,
+    ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy,
+    ForgeQueryDeclarationEntryOrchestrationMaterializationTier,
     ForgeQueryDeclarationEntryOrchestrationOutcome, ForgeQueryDeclarationEntryOrchestrationPlan,
-    ForgeQueryDeclarationEntryOrchestrationProof,
+    ForgeQueryDeclarationEntryOrchestrationProduct, ForgeQueryDeclarationEntryOrchestrationProof,
     ForgeQueryDeclarationEntryOrchestrationRebindRequired,
     ForgeQueryDeclarationEntryOrchestrationRefusal,
     ForgeQueryDeclarationEntryOrchestrationRefusalClass,
@@ -95,6 +99,12 @@ pub use declaration_entry_orchestration::{
     ForgeQueryDeclarationEntryOrchestrationVerbCeiling,
     ForgeQueryDeclarationEntryOrchestrationVerbFamily,
     ForgeQueryDeclarationEntryOrchestrationVerbInventory,
+    ForgeQueryDeclarationEnvelopeOrchestrationProof,
+    ForgeQueryDeclarationEnvelopeOrchestrationTranscript,
+    ForgeQueryDeclarationReceiptOrchestrationProof,
+    ForgeQueryDeclarationReceiptOrchestrationTranscript,
+    ForgeQueryDeclarationRouteOrchestrationProof,
+    ForgeQueryDeclarationRouteOrchestrationTranscript,
 };
 pub use declaration_entry_seam::{
     ForgeQueryDeclarationEntryContributionCategoryFamily,
@@ -226,8 +236,19 @@ pub(crate) use declaration_capability::{
 };
 pub(crate) use declaration_entry_orchestration::{
     forge_query_checked_declaration_entry_orchestration_on_handle,
+    forge_query_checked_declaration_envelope_orchestration_from_progressed_on_handle,
+    forge_query_checked_declaration_receipt_orchestration_from_progressed_on_handle,
+    forge_query_checked_declaration_route_orchestration_from_progressed_on_handle,
     forge_query_declaration_entry_orchestration_on_handle,
     forge_query_declaration_entry_orchestration_proof_on_handle,
+    forge_query_declaration_envelope_orchestration_from_progressed_on_handle,
+    forge_query_declaration_envelope_orchestration_from_progressed_proof_on_handle,
+    forge_query_declaration_receipt_orchestration_from_progressed_on_handle,
+    forge_query_declaration_receipt_orchestration_from_progressed_proof_on_handle,
+    forge_query_declaration_route_orchestration_from_progressed_on_handle,
+    forge_query_declaration_route_orchestration_from_progressed_proof_on_handle,
+    forge_query_lower_declaration_entry_product_orchestration_from_progressed_on_handle,
+    materialized_profile_for_tier, ForgeQueryDeclarationEntryProductChecked,
 };
 pub(crate) use declaration_entry_seam::{
     forge_query_bridge_routing_support_from_entry_readiness,
@@ -245,7 +266,11 @@ pub(crate) use declaration_legality::review_declaration_legality;
 pub(crate) use declaration_progression::{
     forge_query_checked_declaration_progression, forge_query_declaration_progression_recipe,
 };
-pub(crate) use declaration_receipt::forge_query_checked_declaration_receipt;
+pub(crate) use declaration_receipt::{
+    forge_query_checked_declaration_receipt,
+    forge_query_checked_declaration_receipt_with_materialized_profile,
+    receipt_materialized_profile_for_tier,
+};
 pub(crate) use declaration_relational_routing::{
     derive_relational_routing_support_report,
     forge_query_checked_declaration_relational_routing_on_handle,
@@ -255,6 +280,7 @@ pub(crate) use declaration_signal_compatibility::{
     derive_signal_compatibility_support_report,
     forge_query_checked_declaration_signal_compatibility_on_handle,
 };
+pub(crate) use domain_handle::checked_route_plan_from_progressed_with_profile;
 
 #[cfg(test)]
 mod tests;

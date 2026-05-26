@@ -1,4 +1,5 @@
 use crate::application::{ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker};
+use forge_foundational::facade::MaterializedFoundationalProfileSet;
 
 use super::{
     artifact::ForgeQueryDeclarationReceipt,
@@ -7,7 +8,10 @@ use super::{
         ForgeQueryDeclarationReceiptFailed,
     },
     input::ForgeQueryDeclarationReceiptInput,
-    materialize::{deferred_receipt, denied_receipt, failed_receipt, receipt_from_plan},
+    materialize::{
+        default_receipt_materialized_profile, deferred_receipt, denied_receipt, failed_receipt,
+        receipt_from_plan,
+    },
 };
 
 pub enum ForgeQueryDeclarationReceiptChecked<
@@ -26,54 +30,76 @@ pub(crate) fn forge_query_checked_declaration_receipt<
 >(
     input: ForgeQueryDeclarationReceiptInput<D, I>,
 ) -> ForgeQueryDeclarationReceiptChecked<D, I> {
+    forge_query_checked_declaration_receipt_with_materialized_profile(
+        input,
+        default_receipt_materialized_profile(),
+    )
+}
+
+pub(crate) fn forge_query_checked_declaration_receipt_with_materialized_profile<
+    D: ForgeQueryDomainEntryMarker,
+    I: ForgeQueryDeclarationInput<D>,
+>(
+    input: ForgeQueryDeclarationReceiptInput<D, I>,
+    materialized_profile: &MaterializedFoundationalProfileSet,
+) -> ForgeQueryDeclarationReceiptChecked<D, I> {
     match input {
-        ForgeQueryDeclarationReceiptInput::PlannedRoute(plan) => match receipt_from_plan(plan) {
-            Ok(receipt) => ForgeQueryDeclarationReceiptChecked::Issued(receipt),
-            Err((plan, cause)) => {
-                let (
-                    _progressed,
-                    evidence,
-                    route_intent,
-                    route_set,
-                    class,
-                    _automation_requires_explicit_handoff,
-                    _explanation,
-                    _decl,
-                    _digest,
-                ) = plan.into_parts();
-                let planned_route_reference = route_set
-                    .primary_route()
-                    .map(|route| format!("planned-route:{}", route.family().as_str()))
-                    .or_else(|| {
-                        route_set
-                            .route_families()
-                            .first()
-                            .map(|family| format!("planned-route:{}", family.as_str()))
-                    });
-                let extra_route_truths = vec![format!("planned-class:{class:?}")];
-                let receipt = denied_receipt(
-                    evidence,
-                    route_intent,
-                    None,
-                    None,
-                    cause,
-                    planned_route_reference,
-                    extra_route_truths,
-                )
-                .expect("unsupported receipt kinds should still materialize denied receipts");
-                ForgeQueryDeclarationReceiptChecked::Denied(
-                    ForgeQueryDeclarationReceiptDenied::from_receipt_cause(
-                        receipt,
+        ForgeQueryDeclarationReceiptInput::PlannedRoute(plan) => {
+            match receipt_from_plan(plan, materialized_profile) {
+                Ok(receipt) => ForgeQueryDeclarationReceiptChecked::Issued(receipt),
+                Err((plan, cause)) => {
+                    let (
+                        _progressed,
+                        evidence,
                         route_intent,
+                        route_set,
+                        class,
+                        _automation_requires_explicit_handoff,
+                        _explanation,
+                        _decl,
+                        _digest,
+                    ) = plan.into_parts();
+                    let planned_route_reference = route_set
+                        .primary_route()
+                        .map(|route| format!("planned-route:{}", route.family().as_str()))
+                        .or_else(|| {
+                            route_set
+                                .route_families()
+                                .first()
+                                .map(|family| format!("planned-route:{}", family.as_str()))
+                        });
+                    let extra_route_truths = vec![format!("planned-class:{class:?}")];
+                    let receipt = denied_receipt(
+                        evidence,
+                        route_intent,
+                        None,
+                        None,
                         cause,
-                    ),
-                )
+                        planned_route_reference,
+                        extra_route_truths,
+                        materialized_profile,
+                    )
+                    .expect("unsupported receipt kinds should still materialize denied receipts");
+                    ForgeQueryDeclarationReceiptChecked::Denied(
+                        ForgeQueryDeclarationReceiptDenied::from_receipt_cause(
+                            receipt,
+                            route_intent,
+                            cause,
+                        ),
+                    )
+                }
             }
-        },
+        }
         ForgeQueryDeclarationReceiptInput::DeferredRoute(plan) => {
             let (_progressed, evidence, route_intent, contract, reason) = plan.into_parts();
-            let receipt = deferred_receipt(evidence, route_intent, contract, reason)
-                .expect("deferred route truth should always materialize a deferred receipt");
+            let receipt = deferred_receipt(
+                evidence,
+                route_intent,
+                contract,
+                reason,
+                materialized_profile,
+            )
+            .expect("deferred route truth should always materialize a deferred receipt");
             ForgeQueryDeclarationReceiptChecked::Deferred(
                 ForgeQueryDeclarationReceiptDeferred::new(receipt, route_intent, reason),
             )
@@ -88,6 +114,7 @@ pub(crate) fn forge_query_checked_declaration_receipt<
                 crate::application::ForgeQueryDeclarationReceiptDenialCause::RouteIntegrityMismatch,
                 None,
                 Vec::new(),
+                materialized_profile,
             )
             .expect("denied route truth should always materialize a denied receipt");
             ForgeQueryDeclarationReceiptChecked::Denied(
@@ -96,8 +123,14 @@ pub(crate) fn forge_query_checked_declaration_receipt<
         }
         ForgeQueryDeclarationReceiptInput::FailedRoute(plan) => {
             let (_progressed, evidence, route_intent, contract, reason) = plan.into_parts();
-            let receipt = failed_receipt(evidence, route_intent, contract, reason)
-                .expect("failed route truth should always materialize a failed receipt");
+            let receipt = failed_receipt(
+                evidence,
+                route_intent,
+                contract,
+                reason,
+                materialized_profile,
+            )
+            .expect("failed route truth should always materialize a failed receipt");
             ForgeQueryDeclarationReceiptChecked::Failed(ForgeQueryDeclarationReceiptFailed::new(
                 receipt,
                 route_intent,

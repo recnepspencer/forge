@@ -1,5 +1,5 @@
 error[E0451]: fields `declaration_family_key`, `handle_identity_digest`, `operating_context_identity_digest`, `exposure_level`, `artifact_policy` and `_marker` of struct `ForgeQueryDeclarationEntryOrchestrationInput` are private
-  --> tests/ui/domain_declaration/boundaries/construction/orchestration/orchestration_input_private.rs:43:9
+  --> tests/ui/domain_declaration/boundaries/construction/orchestration/artifacts/orchestration_input_private.rs:43:9
    |
 42 |     let _ = ForgeQueryDeclarationEntryOrchestrationInput::<GeometryDomain, FakeInput> {
    |             ------------------------------------------------------------------------- in this type

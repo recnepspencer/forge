@@ -1,5 +1,7 @@
 use crate::application::{
-    ForgeQueryDeclarationEntryOrchestrationOutcome, ForgeQueryDeclarationEntryOrchestrationRefusal,
+    forge_query_checked_declaration_receipt_with_materialized_profile,
+    receipt_materialized_profile_for_tier, ForgeQueryDeclarationEntryOrchestrationOutcome,
+    ForgeQueryDeclarationEntryOrchestrationPlan, ForgeQueryDeclarationEntryOrchestrationRefusal,
     ForgeQueryDeclarationEntryOrchestrationStage,
     ForgeQueryDeclarationEntryOrchestrationStageRecord, ForgeQueryDeclarationInput,
     ForgeQueryDeclarationReceiptInput, ForgeQueryDeclarationRoutePlanChecked,
@@ -19,6 +21,7 @@ pub(super) fn lower_from_route_checked<
     I: ForgeQueryDeclarationInput<D>,
 >(
     handle: &crate::application::ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
+    orchestration_plan: &ForgeQueryDeclarationEntryOrchestrationPlan<D, I>,
     automation_context: &ForgeQueryDeclarationEntryOrchestrationAutomationContext<'_>,
     step_records: &mut Vec<ForgeQueryDeclarationEntryOrchestrationStageRecord>,
     checked: ForgeQueryDeclarationRoutePlanChecked<D, I>,
@@ -59,9 +62,15 @@ pub(super) fn lower_from_route_checked<
             );
             lower_from_receipt_checked(
                 handle,
+                orchestration_plan,
                 automation_context,
                 step_records,
-                handle.receipt_routes_checked(ForgeQueryDeclarationReceiptInput::planned(plan)),
+                forge_query_checked_declaration_receipt_with_materialized_profile(
+                    ForgeQueryDeclarationReceiptInput::planned(plan),
+                    &receipt_materialized_profile_for_tier(
+                        orchestration_plan.receipt_materialization_tier(),
+                    ),
+                ),
             )
         }
         ForgeQueryDeclarationRoutePlanChecked::Deferred(plan) => {
@@ -73,9 +82,15 @@ pub(super) fn lower_from_route_checked<
             );
             lower_from_receipt_checked(
                 handle,
+                orchestration_plan,
                 automation_context,
                 step_records,
-                handle.receipt_routes_checked(ForgeQueryDeclarationReceiptInput::deferred(plan)),
+                forge_query_checked_declaration_receipt_with_materialized_profile(
+                    ForgeQueryDeclarationReceiptInput::deferred(plan),
+                    &receipt_materialized_profile_for_tier(
+                        orchestration_plan.receipt_materialization_tier(),
+                    ),
+                ),
             )
         }
         ForgeQueryDeclarationRoutePlanChecked::Denied(plan) => {
@@ -114,9 +129,15 @@ pub(super) fn lower_from_route_checked<
             );
             lower_from_receipt_checked(
                 handle,
+                orchestration_plan,
                 automation_context,
                 step_records,
-                handle.receipt_routes_checked(ForgeQueryDeclarationReceiptInput::denied(plan)),
+                forge_query_checked_declaration_receipt_with_materialized_profile(
+                    ForgeQueryDeclarationReceiptInput::denied(plan),
+                    &receipt_materialized_profile_for_tier(
+                        orchestration_plan.receipt_materialization_tier(),
+                    ),
+                ),
             )
         }
         ForgeQueryDeclarationRoutePlanChecked::Failed(plan) => {
@@ -128,9 +149,15 @@ pub(super) fn lower_from_route_checked<
             );
             lower_from_receipt_checked(
                 handle,
+                orchestration_plan,
                 automation_context,
                 step_records,
-                handle.receipt_routes_checked(ForgeQueryDeclarationReceiptInput::failed(plan)),
+                forge_query_checked_declaration_receipt_with_materialized_profile(
+                    ForgeQueryDeclarationReceiptInput::failed(plan),
+                    &receipt_materialized_profile_for_tier(
+                        orchestration_plan.receipt_materialization_tier(),
+                    ),
+                ),
             )
         }
     }

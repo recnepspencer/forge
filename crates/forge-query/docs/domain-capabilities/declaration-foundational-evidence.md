@@ -152,10 +152,11 @@ foundational evidence should stay observably different.
    - one materialized attachment bundle and bundle digest
 6. Query returns one evidence wrapper or one typed construction denial
 
-The ordinary lane uses
-`FoundationalBoundaryEvidenceMaterializationProfile::FullDescriptiveRichness`.
-Use `describe_foundational_with_profile(...)` when you want the same retained
-truth with a leaner materialized bundle.
+`describe_foundational(...)` uses the default full descriptive bundle for this
+direct feature. Use `describe_foundational_with_profile(...)` when you want the
+same retained truth with a leaner materialized bundle or when another surface,
+such as declaration-entry orchestration, has already chosen the lean
+foundational default for you.
 
 ## Small Example
 
@@ -168,12 +169,14 @@ use forge_query::facade::{
 match handle.describe_foundational_checked(
     ForgeQueryDeclarationFoundationalEvidenceInput::progression_checked(
         handle.progress_declaration_checked(
-            handle.declare_and_review(SplitEdgeAtMidpoint { edge_ref: "edge:42" })?,
+            handle.declare_and_review(
+                geometry_session.attach_face_material_for_active_selection()?,
+            )?,
         ),
     ),
 ) {
     ForgeQueryDeclarationFoundationalEvidenceChecked::Described(evidence) => {
-        assert_eq!(evidence.declaration_family_key(), "split-edge");
+        assert_eq!(evidence.declaration_family_key(), "attach-face-material");
     }
     ForgeQueryDeclarationFoundationalEvidenceChecked::ConstructionDenied(denial) => {
         panic!("unexpected evidence denial: {}", denial.reason());
@@ -226,15 +229,15 @@ impl ForgeQueryDomainOperatingContext<GeometryDomain> for CollaborativeWorld {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct SplitEdge;
+struct AttachFaceMaterial;
 
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AttachFaceMaterial {
     type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
     type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
     type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "attach-face-material"
     }
 
     fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
@@ -250,15 +253,22 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct SplitEdgeAtMidpoint {
-    edge_ref: &'static str,
+struct AttachFaceMaterialAssignment {
+    face_ref: &'static str,
+    material_profile_ref: &'static str,
 }
 
-impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeAtMidpoint {
-    type Family = SplitEdge;
+impl ForgeQueryDeclarationInput<GeometryDomain> for AttachFaceMaterialAssignment {
+    type Family = AttachFaceMaterial;
 
     fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.edge_ref)]
+        vec![
+            ForgeQueryDeclarationCanonicalEntry::text("face_ref", self.face_ref),
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "material_profile_ref",
+                self.material_profile_ref,
+            ),
+        ]
     }
 }
 
@@ -269,8 +279,9 @@ let handle = query
     .validate()?
     .admit()?;
 
-let progressed = handle.declare_review_and_progress(SplitEdgeAtMidpoint {
-    edge_ref: "edge:42",
+let progressed = handle.declare_review_and_progress(AttachFaceMaterialAssignment {
+    face_ref: "face:loading-bay-west",
+    material_profile_ref: "material-profile:fire-rated-primer",
 })?;
 
 let evidence = handle.describe_foundational(
@@ -281,7 +292,7 @@ assert_eq!(
     evidence.class(),
     ForgeQueryDeclarationFoundationalEvidenceClass::ProgressionAdmitted,
 );
-assert_eq!(evidence.declaration_family_key(), "split-edge");
+assert_eq!(evidence.declaration_family_key(), "attach-face-material");
 assert_eq!(evidence.operating_context_identity_digest(), "geometry.collaborative");
 assert!(evidence.progression_digest().is_some());
 assert!(evidence.support_attachment().is_some());
@@ -289,8 +300,9 @@ assert!(evidence.receipt().is_some());
 
 let lean = handle.describe_foundational_with_profile(
     ForgeQueryDeclarationFoundationalEvidenceInput::admitted_progression(
-        handle.declare_review_and_progress(SplitEdgeAtMidpoint {
-            edge_ref: "edge:42",
+        handle.declare_review_and_progress(AttachFaceMaterialAssignment {
+            face_ref: "face:loading-bay-west",
+            material_profile_ref: "material-profile:fire-rated-primer",
         })?,
     ),
     FoundationalBoundaryEvidenceMaterializationProfile::ElideSupportAndDiagnostics,

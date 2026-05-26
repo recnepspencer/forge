@@ -7,6 +7,7 @@ use crate::application::{
     ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityContract,
     ForgeQueryDeclarationLegalityEvidence, ForgeQueryDomainEntryMarker,
 };
+use crate::target_binding::ForgeQueryAdmittedDeclarationProgressionBindingTarget;
 
 use super::payload::{derive_progression_digest, ForgeQueryDeclarationProgressionPayload};
 use super::review::{
@@ -77,6 +78,10 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn progression_digest(&self) -> &str {
         &self.progression_digest
+    }
+
+    pub fn binding_target(&self) -> ForgeQueryAdmittedDeclarationProgressionBindingTarget {
+        ForgeQueryAdmittedDeclarationProgressionBindingTarget::for_progressed(self)
     }
 
     pub fn outcome(&self) -> ForgeQueryDeclarationProgressionOutcomeView {

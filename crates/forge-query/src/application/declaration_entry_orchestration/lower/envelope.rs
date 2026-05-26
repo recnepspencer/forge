@@ -1,7 +1,7 @@
 use crate::application::{
     ForgeQueryDeclarationEntryOrchestrationDeferred, ForgeQueryDeclarationEntryOrchestrationDenied,
     ForgeQueryDeclarationEntryOrchestrationFailed, ForgeQueryDeclarationEntryOrchestrationOutcome,
-    ForgeQueryDeclarationEntryOrchestrationStage,
+    ForgeQueryDeclarationEntryOrchestrationPlan, ForgeQueryDeclarationEntryOrchestrationStage,
     ForgeQueryDeclarationEntryOrchestrationStageRecord, ForgeQueryDeclarationEnvelopeChecked,
     ForgeQueryDeclarationEnvelopeInput, ForgeQueryDeclarationInput, ForgeQueryDeclarationReceipt,
     ForgeQueryDeclarationReceiptDeferred, ForgeQueryDeclarationReceiptDenied,
@@ -14,6 +14,7 @@ pub(super) fn lower_from_issued_envelope<
     I: ForgeQueryDeclarationInput<D>,
 >(
     handle: &crate::application::ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
+    plan: &ForgeQueryDeclarationEntryOrchestrationPlan<D, I>,
     step_records: &mut Vec<ForgeQueryDeclarationEntryOrchestrationStageRecord>,
     receipt: ForgeQueryDeclarationReceipt<D, I>,
 ) -> ForgeQueryDeclarationEntryOrchestrationOutcome<D, I> {
@@ -25,7 +26,8 @@ pub(super) fn lower_from_issued_envelope<
                     Some(super::super::artifacts::canonical_digest_token(
                         envelope.envelope_digest(),
                     )),
-                ),
+                )
+                .with_materialization_tier(plan.envelope_materialization_tier()),
             );
             ForgeQueryDeclarationEntryOrchestrationOutcome::Enveloped(envelope)
         }

@@ -5,6 +5,7 @@ use crate::application::{
     ForgeQueryDeclarationReceiptInput, ForgeQueryDeclarationRoutePlanChecked,
     ForgeQueryDeclarationRoutePlanInput,
 };
+use forge_foundational::facade::FoundationalBoundaryEvidenceMaterializationProfile;
 
 use super::domain::{
     AdmittedFamily, CollaborativeWorld, DeferredRouteFamily, GeometryDomain, Input,
@@ -31,10 +32,11 @@ pub(super) fn explicit_success_path_parity(
         _ => panic!("progression should admit"),
     };
     let evidence = handle
-        .describe_foundational(
+        .describe_foundational_with_profile(
             ForgeQueryDeclarationFoundationalEvidenceInput::admitted_progression(
                 progressed.clone(),
             ),
+            FoundationalBoundaryEvidenceMaterializationProfile::ElideSupportAndDiagnostics,
         )
         .unwrap_or_else(|_| panic!("foundational evidence should materialize"));
     let route_plan = match handle.plan_routes_checked(
@@ -78,10 +80,11 @@ pub(super) fn explicit_deferred_route_path_parity(
         _ => panic!("progression should admit"),
     };
     let evidence = handle
-        .describe_foundational(
+        .describe_foundational_with_profile(
             ForgeQueryDeclarationFoundationalEvidenceInput::admitted_progression(
                 progressed.clone(),
             ),
+            FoundationalBoundaryEvidenceMaterializationProfile::ElideSupportAndDiagnostics,
         )
         .unwrap_or_else(|_| panic!("foundational evidence should materialize"));
     let route_plan = match handle.plan_routes_checked(

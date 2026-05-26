@@ -14,6 +14,15 @@ continue into runtime execution, workspace entry, signal execution, or `9.3.7`
 composition. It starts after your tool or session has already decided what the
 user is trying to do.
 
+Phase 24 also adds product-target orchestration for callers who already hold
+progression proof and want one compact route, receipt, or envelope surface
+without rebuilding route-plan, receipt, or envelope inputs by hand.
+
+Those progressed product lanes now share the same retained target-binding
+story as `9.3.7` contribution authoring. Progression, route, receipt, and
+envelope artifacts can expose typed binding targets without turning Query into
+a target-resolution or ambient-DI layer.
+
 ## Why You Use It
 
 - run one declaration-entry sequence without manually stitching phases together
@@ -21,6 +30,7 @@ user is trying to do.
 - preserve deferred, denied, stale, rebind-required, failed, and refused
   posture as typed results
 - inspect the exact stop boundary when automation cannot continue
+- inspect the default materialization and cost policy for the run
 - compare equivalent runs through stable orchestration and outcome digests
 
 ## Stable Entry Points
@@ -28,10 +38,16 @@ user is trying to do.
 - `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_declaration_entry(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_declaration_entry_checked(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_declaration_entry_proof(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_routes_from_progressed(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_receipt_from_progressed(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_envelope_from_progressed(...)`
 - `ForgeQueryDeclarationEntryOrchestrationInput`
 - `ForgeQueryDeclarationEntryOrchestrationPlan`
 - `ForgeQueryDeclarationEntryOrchestrationOutcome`
 - `ForgeQueryDeclarationEntryOrchestrationTranscript`
+- `ForgeQueryDeclarationRouteOrchestrationTranscript`
+- `ForgeQueryDeclarationReceiptOrchestrationTranscript`
+- `ForgeQueryDeclarationEnvelopeOrchestrationTranscript`
 - `ForgeQueryDeclarationEntryOrchestrationExposureLevel`
 - `ForgeQueryDeclarationEntryOrchestrationArtifactPolicy`
 - `ForgeQueryDeclarationEntryOrchestrationStepRecord`
@@ -40,6 +56,10 @@ user is trying to do.
 - `ForgeQueryDeclarationEntryOrchestrationAutomationStep`
 - `ForgeQueryDeclarationEntryOrchestrationAutomationRefusal`
 - `ForgeQueryDeclarationEntryOrchestrationAutomationRefusalClass`
+- `ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy`
+- `ForgeQueryDeclarationEntryOrchestrationMaterializationTier`
+- `ForgeQueryDeclarationEntryOrchestrationCostPosture`
+- `ForgeQueryDeclarationEntryOrchestrationMaterializationGate`
 - `ForgeQueryDeclarationEntryOrchestrationVerbInventory`
 
 Good to know:
@@ -79,12 +99,43 @@ same run:
 
 The important system boundary is this:
 
-- your session or tool resolves the user’s targets and assembles declaration
+- your session or tool resolves the user's targets and assembles declaration
   intent
 - Query lowers that intent through the retained declaration-entry pipeline
 
 Do not teach your app team that Query is the target-resolution layer. It is
 the orchestration layer after intent already exists.
+
+## Product Targets
+
+Phase 24 adds a second declarative ladder for callers who already hold
+`ForgeQueryAdmittedDeclarationProgression`:
+
+- `orchestrate_routes_from_progressed(...)`
+- `orchestrate_routes_from_progressed_with_intent(...)`
+- `orchestrate_receipt_from_progressed(...)`
+- `orchestrate_receipt_from_progressed_with_intent(...)`
+- `orchestrate_envelope_from_progressed(...)`
+- `orchestrate_envelope_from_progressed_with_intent(...)`
+
+Each family also has checked and proof-visible variants.
+
+These are not a new orchestration engine. They are compact product-target
+projections over the same retained declaration-entry path:
+
+1. progression
+2. foundational evidence
+3. route plan
+4. receipt when needed
+5. envelope when needed
+
+Use this request ladder when you want stronger DX without giving up control:
+
+- shortest path: `...from_progressed(...)`
+- narrowed path: `...from_progressed_with_intent(...)`
+- checked path: `..._checked(...)`
+- proof path: `..._proof(...)`
+- explicit substrate: direct route/receipt/envelope input families still exist
 
 ## How It Executes
 
@@ -112,6 +163,15 @@ The plan exposes that sequencing law directly:
 - `automation_steps()`
 - `explicit_caller_handoff_steps()`
 - `orchestration_identity_digest()`
+
+The plan also exposes the materialization and cost policy directly:
+
+- `materialization_policy()`
+- `materialization_tier()`
+- `cost_posture()`
+- `materialization_gate()`
+- `foundational_evidence_profile()`
+- `descriptive_materialization_cost()`
 
 In the current shipped boundary, `explicit_caller_handoff_steps()` is still
 empty because the public front door stops at envelope construction instead of
@@ -147,6 +207,30 @@ Step records expose the real reached sequence through:
 - `is_reached()`
 - `is_stop()`
 - `is_terminal()`
+
+## Materialization And Cost Policy
+
+Sequencing and publication are separate public axes.
+
+Keep these concepts distinct:
+
+- exposure level: ordinary, checked, proof-visible
+- sequencing law: which declaration-entry steps Query may automate
+- materialization policy: how lean or rich the descriptive artifacts are
+- cost posture: whether that publication shape is an ordinary default, an
+  explicit rich request, or a prepared-but-not-executed boundary
+
+The current default orchestration policy is intentionally conservative:
+
+- foundational evidence uses
+  `FoundationalBoundaryEvidenceMaterializationProfile::ElideSupportAndDiagnostics`
+- receipt publication uses the `SupportReady` tier
+- envelope publication uses the `SupportReady` tier
+- the plan reports `OrdinaryDefault` cost posture and `AdmittedByDefault` gate
+
+That keeps the generic orchestration trio cheap-looking in truth. Proof-visible
+inspection exposes more metadata, but it does not silently widen declaration
+truth or claim later execution happened.
 
 ## Where Automation Stops
 
@@ -207,7 +291,7 @@ Examples:
   remains `RoutePlanned`
 
 This is why proof-visible orchestration is more than debug logging. It shows
-the exact automation story Query is willing to claim.
+the exact automation story and publication policy Query is willing to claim.
 
 ## Public Grammar
 
@@ -216,6 +300,10 @@ The grammar is fixed for this feature:
 - base verb: `orchestrate_declaration_entry`
 - checked suffix: `_checked`
 - proof-visible suffix: `_proof`
+
+That trio is still the generic declaration-input front door. The grammar
+inventory now also reports the public route/receipt/envelope product-target
+orchestration verbs for progressed declarations.
 
 Do not introduce parallel names like:
 
@@ -250,6 +338,19 @@ let envelope = handle.orchestrate_declaration_entry(trim_request)?;
 let _ = envelope.envelope_digest();
 ```
 
+Progressed-product orchestration is the compact route/receipt/envelope ladder:
+
+```rust
+let progressed = handle.declare_review_and_progress(trim_request)?;
+let route_plan = handle.orchestrate_routes_from_progressed(progressed.clone())?;
+let receipt = handle.orchestrate_receipt_from_progressed(progressed.clone())?;
+let envelope = handle.orchestrate_envelope_from_progressed(progressed)?;
+
+let _ = route_plan.route_plan_digest();
+let _ = receipt.receipt_digest();
+let _ = envelope.envelope_digest();
+```
+
 ## Real Example
 
 Use the checked lane when the UI or collaboration workflow needs to know
@@ -277,7 +378,8 @@ match handle.orchestrate_declaration_entry_checked(trim_request) {
 }
 ```
 
-Use the proof-visible lane when you need the exact reached sequence:
+Use the proof-visible lane when you need the exact reached sequence and the
+declared publication policy:
 
 ```rust
 let trim_request = geometry_session.trim_segment_at_active_intersection()?;
@@ -285,12 +387,16 @@ let transcript = handle.orchestrate_declaration_entry_proof(trim_request);
 
 let _ = transcript.plan().automation_boundary();
 let _ = transcript.plan().automation_steps();
+let _ = transcript.plan().materialization_policy();
+let _ = transcript.plan().foundational_evidence_profile();
+let _ = transcript.plan().descriptive_materialization_cost();
 let _ = transcript.outcome().stop_stage();
 
 for record in transcript.step_records() {
     let _ = record.stage();
     let _ = record.automation_step();
     let _ = record.disposition();
+    let _ = record.materialization_tier();
     let _ = record.retained_digest();
     let _ = record.reason();
 }
@@ -304,6 +410,9 @@ for record in transcript.step_records() {
   you need to author or inspect declaration intent without lowering it.
 - Use [Declaration Progression](./declaration-progression.md) when you want the
   proof-bearing progression artifact directly.
+- Use [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
+  when you want to control foundational descriptive richness explicitly outside
+  the orchestration default policy.
 - Use [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
   when you already have retained receipt-backed crossing truth and want the
   envelope artifact directly.
@@ -328,6 +437,7 @@ Use the proof-visible lane when you need:
 - the farthest crossed public boundary
 - retained digests attached to each reached or stopped stage
 - parity evidence across equivalent runs
+- the declared materialization tier and cost posture for the run
 
 Useful accessors:
 
@@ -335,13 +445,20 @@ Useful accessors:
 - `outcome().outcome_identity_digest()`
 - `plan().automation_boundary()`
 - `plan().automation_steps()`
+- `plan().materialization_policy()`
+- `plan().cost_posture()`
+- `plan().foundational_evidence_profile()`
+- `plan().descriptive_materialization_cost()`
 - `step_records()`
 - `step_record.automation_step()`
+- `step_record.materialization_tier()`
 
 ## Anti-Patterns
 
-- treating ordinary orchestration as “best effort farther lowering”
+- treating ordinary orchestration as "best effort farther lowering"
 - assuming a successful envelope implies later runtime or signal work is ready
+- assuming proof-visible automatically means full descriptive publication
+- assuming richer descriptive publication means more declaration-entry progress
 - passing raw geometry IDs as the main public mental model for app usage docs
 - teaching that Query resolves user selections or highlights for you
 - flattening `Stale`, `RebindRequired`, `Denied`, `Failed`, and `Refused` into
@@ -366,6 +483,7 @@ Useful accessors:
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Declaration Progression](./declaration-progression.md)
+- [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
 - [Declaration Entry Readiness](./declaration-entry-readiness.md)

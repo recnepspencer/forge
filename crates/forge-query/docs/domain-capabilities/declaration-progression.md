@@ -126,6 +126,7 @@ Admitted progression inspection:
 - `progression_digest() -> &str`
 - `outcome() -> ForgeQueryDeclarationProgressionOutcomeView`
 - `stage() -> RecipeStageKind`
+- `binding_target() -> ForgeQueryAdmittedDeclarationProgressionBindingTarget`
 
 Deferred, denied, and failed inspection:
 
@@ -184,6 +185,12 @@ Think of progression as the first declaration-side proof flow after legality:
 If progression succeeds, you get one admitted declaration progression artifact.
 If it does not, you still get a typed progression truth rather than a generic
 failure.
+
+That admitted progression artifact is also now one shared retained binding
+target. Route, receipt, envelope, and progressed-entry orchestration surfaces
+can bind from it without inventing a second local binding story, and that same
+retained target seam is the one later continuation and grouped-authoring work
+must extend.
 
 ## How It Executes
 
@@ -351,6 +358,9 @@ What this example is showing:
 - [Declaration Route Plans](./declaration-route-plan.md) consumes admitted
   progression proof plus matching foundational evidence and turns that retained
   declaration truth into one explicit lower-authority route set
+- [Configured Domain Handles](./configured-domain-handles.md) own the admitted
+  world that scopes progression binding targets and later retained artifact
+  binding
 
 ## Inspection And Debugging
 
@@ -364,6 +374,7 @@ Use these surfaces when reviewing progression:
 - `progressed.outcome().kind()`
 - `progressed.stage()`
 - `progressed.legality_evidence()`
+- `progressed.binding_target()`
 
 Use them to answer:
 
@@ -373,6 +384,8 @@ Use them to answer:
   progression digest
 - whether a world-sensitive family changed progression posture because the
   admitted operating world changed
+- which shared retained target identity later route/receipt/envelope and
+  orchestration consumers should bind from
 
 ## Anti-Patterns
 

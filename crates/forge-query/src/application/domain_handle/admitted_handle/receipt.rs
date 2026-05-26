@@ -1,9 +1,11 @@
 use crate::application::{
-    forge_query_checked_declaration_receipt, ForgeQueryAdmittedDeclarationProgression,
-    ForgeQueryDeclarationInput, ForgeQueryDeclarationReceipt, ForgeQueryDeclarationReceiptChecked,
+    checked_route_plan_from_progressed_with_profile, forge_query_checked_declaration_receipt,
+    ForgeQueryAdmittedDeclarationProgression, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationReceipt, ForgeQueryDeclarationReceiptChecked,
     ForgeQueryDeclarationReceiptInput, ForgeQueryDeclarationReceiptTerminalError,
     ForgeQueryDeclarationRouteIntent, ForgeQueryDomainEntryMarker,
 };
+use forge_foundational::facade::FoundationalBoundaryEvidenceMaterializationProfile;
 
 use super::ForgeQueryAdmittedConfiguredDomainHandle;
 use crate::application::ForgeQueryDomainOperatingContext;
@@ -49,18 +51,11 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
     where
         I: ForgeQueryDeclarationInput<D>,
     {
-        let checked = self.plan_routes_checked(
-            crate::application::ForgeQueryDeclarationRoutePlanInput::admitted(
-                progressed.clone(),
-                self.describe_foundational(
-                    crate::application::ForgeQueryDeclarationFoundationalEvidenceInput::admitted_progression(
-                        progressed,
-                    ),
-                )
-                .unwrap_or_else(|_| {
-                    panic!("same-handle admitted progression should always describe foundational evidence")
-                }),
-            ),
+        let checked = checked_route_plan_from_progressed_with_profile(
+            self,
+            progressed,
+            None,
+            FoundationalBoundaryEvidenceMaterializationProfile::FullDescriptiveRichness,
         );
         self.receipt_routes(ForgeQueryDeclarationReceiptInput::route_checked(checked))
     }
@@ -73,19 +68,11 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
     where
         I: ForgeQueryDeclarationInput<D>,
     {
-        let checked = self.plan_routes_checked(
-            crate::application::ForgeQueryDeclarationRoutePlanInput::with_intent(
-                progressed.clone(),
-                self.describe_foundational(
-                    crate::application::ForgeQueryDeclarationFoundationalEvidenceInput::admitted_progression(
-                        progressed,
-                    ),
-                )
-                .unwrap_or_else(|_| {
-                    panic!("same-handle admitted progression should always describe foundational evidence")
-                }),
-                intent,
-            ),
+        let checked = checked_route_plan_from_progressed_with_profile(
+            self,
+            progressed,
+            Some(intent),
+            FoundationalBoundaryEvidenceMaterializationProfile::FullDescriptiveRichness,
         );
         self.receipt_routes(ForgeQueryDeclarationReceiptInput::route_checked(checked))
     }

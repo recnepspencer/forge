@@ -52,6 +52,8 @@ This keeps the public story honest:
 - `ForgeQueryAdmittedConfiguredDomainHandle::envelope_routes_checked(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::envelope_routes_from_progressed(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::envelope_routes_from_progressed_with_intent(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_envelope_from_progressed(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_envelope_from_progressed_with_intent(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::declare_review_progress_describe_plan_receipt_and_envelope(...)`
 
 Good to know:
@@ -80,7 +82,29 @@ Admitted-handle envelope entry points:
 - `envelope_routes_checked(subject) -> ForgeQueryDeclarationEnvelopeChecked<D, I>`
 - `envelope_routes_from_progressed(progressed) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
 - `envelope_routes_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
+- `orchestrate_envelope_from_progressed(progressed) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
+- `orchestrate_envelope_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
 - `declare_review_progress_describe_plan_receipt_and_envelope(input) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEntryEnvelopeError<D, I>>`
+
+Envelope inspection:
+
+- `class() -> ForgeQueryDeclarationEnvelopeClass`
+- `declaration_family_key() -> &'static str`
+- `handle_identity_digest() -> &str`
+- `operating_context_identity_digest() -> &str`
+- `declaration_digest() -> &str`
+- `progression_digest() -> &str`
+- `route_plan_digest() -> &str`
+- `receipt_digest() -> &str`
+- `envelope_digest() -> &str`
+- `binding_target() -> ForgeQueryDeclarationEnvelopeBindingTarget`
+- `foundational_evidence() -> &ForgeQueryDeclarationFoundationalEvidence<D, I>`
+- `receipt() -> &ForgeQueryDeclarationReceipt<D, I>`
+- `route_plan() -> &ForgeQueryDeclarationRoutePlan<D, I>`
+- `route_denial_cause() -> Option<ForgeQueryDeclarationRoutePlanDenialCause>`
+- `receipt_denial_cause() -> Option<ForgeQueryDeclarationReceiptDenialCause>`
+- `evidence_origin() -> ForgeQueryDeclarationEnvelopeEvidenceOrigin`
+- `explain() -> &ForgeQueryDeclarationEnvelopeExplanation`
 
 Checked envelope outcomes:
 
@@ -123,6 +147,11 @@ over already-proved declaration truth:
 
 That means envelopes do not invent new route or receipt meaning. They preserve
 and present retained meaning that earlier phases already proved.
+
+The retained envelope artifact is also now one shared binding target. Later
+relational-routing, bridge-continuation, signal-compatibility, and grouped
+binding work should bind from this envelope identity rather than reopening the
+declaration-entry seam.
 
 ## How It Executes
 
@@ -249,6 +278,8 @@ What this example is showing:
 - foundational evidence origin is still visible on the public story
 - route posture and receipt posture stay distinct
 - the envelope digest is separate from the receipt digest
+- richer orchestration publication may expose more metadata, but it does not
+  change the retained envelope truth being published
 
 ## How It Relates To Other Features
 
@@ -295,6 +326,7 @@ Use these surfaces when inspecting an envelope:
 - `route_plan_digest()`
 - `receipt_digest()`
 - `envelope_digest()`
+- `binding_target()`
 - `foundational_evidence()`
 - `receipt()`
 - `route_plan()`
@@ -319,6 +351,8 @@ These surfaces help answer:
   posture
 - whether route denial or receipt denial is the real public blocker
 - whether the public envelope preserved the same retained truth as the receipt
+- which retained public crossing identity later continuation-oriented features
+  should bind from directly
 
 ## Anti-Patterns
 

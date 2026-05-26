@@ -3,6 +3,7 @@ mod input;
 mod outcome;
 mod plan;
 mod policy;
+mod product;
 mod refusal;
 mod step_record;
 mod terminal;
@@ -19,6 +20,7 @@ pub use outcome::{
 };
 pub use plan::ForgeQueryDeclarationEntryOrchestrationPlan;
 pub use policy::ForgeQueryDeclarationEntryOrchestrationArtifactPolicy;
+pub use product::ForgeQueryDeclarationEntryOrchestrationProduct;
 pub use refusal::{
     ForgeQueryDeclarationEntryOrchestrationRefusal,
     ForgeQueryDeclarationEntryOrchestrationRefusalClass,

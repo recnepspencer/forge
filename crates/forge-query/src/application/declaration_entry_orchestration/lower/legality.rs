@@ -1,6 +1,7 @@
 use crate::application::{
-    ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityChecked,
-    ForgeQueryDeclarationLegalityDenial, ForgeQueryDomainEntryMarker,
+    ForgeQueryDeclarationEntryOrchestrationPlan, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationLegalityChecked, ForgeQueryDeclarationLegalityDenial,
+    ForgeQueryDomainEntryMarker,
 };
 
 use super::super::sequencing::{
@@ -23,6 +24,7 @@ pub(super) fn lower_from_legality_checked<
     I: ForgeQueryDeclarationInput<D>,
 >(
     handle: &crate::application::ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
+    plan: &ForgeQueryDeclarationEntryOrchestrationPlan<D, I>,
     automation_context: &ForgeQueryDeclarationEntryOrchestrationAutomationContext<'_>,
     step_records: &mut Vec<ForgeQueryDeclarationEntryOrchestrationStageRecord>,
     checked: ForgeQueryDeclarationLegalityChecked<D, I>,
@@ -37,6 +39,7 @@ pub(super) fn lower_from_legality_checked<
             );
             lower_from_progression_checked(
                 handle,
+                plan,
                 automation_context,
                 step_records,
                 handle.progress_declaration_checked(legal),

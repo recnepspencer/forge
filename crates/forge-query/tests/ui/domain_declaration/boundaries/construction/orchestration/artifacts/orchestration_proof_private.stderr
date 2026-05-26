@@ -1,5 +1,5 @@
 error: cannot construct `ForgeQueryDeclarationEntryOrchestrationProof<GeometryDomain, FakeInput>` with struct literal syntax due to private fields
-  --> tests/ui/domain_declaration/boundaries/construction/orchestration/orchestration_proof_private.rs:47:13
+  --> tests/ui/domain_declaration/boundaries/construction/orchestration/artifacts/orchestration_proof_private.rs:47:13
    |
 47 |     let _ = ForgeQueryDeclarationEntryOrchestrationProof::<GeometryDomain, FakeInput> {
    |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

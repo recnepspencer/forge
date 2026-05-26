@@ -262,65 +262,166 @@ locked decisions above:
     automation must refuse.
 
 23. **Phase 23: Artifact Materialization And Cost Policy Boundary**
-    Query locks default artifact richness, lean/proof-visible materialization
-    policy, and explicit expensive-work gates so the ordinary surface never
-    hides meaningful execution cost.
+    Query locks default artifact richness, lane-visible materialization policy,
+    and explicit expensive-work gates so the ordinary surface never hides
+    meaningful execution cost or changes declaration truth when publication
+    gets richer.
 
 24. **Phase 24: Route / Receipt / Envelope Orchestration Boundary**
     Query automates route planning, receipt issuance, and envelope construction
     while preserving those products as first-class public artifacts rather
     than laundering them away behind orchestration.
 
-25. **Phase 25: Denial-Preserving Ordinary Outcome Boundary**
+24a. **Phase 24 Addendum: Shared Binding Continuity Extraction**
+    Query extracts one shared retained target-binding substrate immediately
+    after the shipped Phase 24 product lane so `9.3.7` contribution targets
+    and progressed route/receipt/envelope orchestration stop living on
+    parallel binding seams.
+
+24b. **Phase 24 Addendum: Aspect Contract And Granularity Extraction**
+    Query retrofits aggressive aspect-aware contracts across the already-closed
+    declaration-entry, routing, compatibility, materialization, and progressed
+    product boundaries so binding, scope enforcement, permission narrowing,
+    invariant posture, and later continuation all inherit fine-grained
+    semantic slices instead of only artifact digests and family posture.
+
+25. **Phase 25: Typed Binding / Extractor / Resolver Boundary**
+    Query broadens the already-shipped shared retained binding substrate into
+    the larger extractor / resolver / capability-witness system for the new
+    platform surface: typed extractors, retained-artifact resolvers,
+    aspect-aware family-scoped binding contracts, and capability witnesses that
+    make declarative entry paths compact without ambient DI, decorator magic,
+    or hidden authority crossings.
+
+26. **Phase 26: Denial-Preserving Ordinary Outcome Boundary**
     Typed denials, unsupported posture, deferred posture, stale/rebind
     requirements, and authority-transition constraints become first-class
     ordinary outcomes instead of escape hatches from the ergonomic surface.
 
-26. **Phase 26: Runtime / Workspace / Basis Continuation Boundary**
+27. **Phase 27: Runtime / Workspace / Basis Continuation Boundary**
     Query removes caller-owned runtime builder, workspace entry, and
-    basis-binding choreography for admitted supported families while keeping
+    basis-binding choreography for admitted supported families by compiling
+    continuation onto the shared binding substrate while keeping
     prepared-vs-executed posture, truth context, and basis sensitivity honest.
 
-27. **Phase 27: Signal Compatibility Orchestration Boundary**
+28. **Phase 28: Signal Compatibility Orchestration Boundary**
     Query composes Phase 14 signal compatibility into ordinary orchestration
     without erasing execution family, required basis families, or typed
     compatibility denials.
 
-28. **Phase 28: Contribution-Composed Orchestration Boundary**
+29. **Phase 29: Contribution-Composed Orchestration Boundary**
     Query composes `9.3.8` declaration-entry orchestration with `9.3.7`
-    contribution authoring so callers do not have to cross a second public
-    grammar seam.
+    contribution authoring through the same shared binding substrate so
+    callers do not have to cross a second public grammar seam or a second
+    binding world.
 
-29. **Phase 29: Orchestration Inventory And Transcript Boundary**
+30. **Phase 30: Orchestration Inventory And Transcript Boundary**
     Query synchronizes live orchestration verbs, transcripts, support/readiness
     rows, docs, goldens, and certification so the ergonomic layer remains
     structurally honest under growth.
 
-30. **Phase 30: Denial And Recovery UX Boundary**
+31. **Phase 31: Denial And Recovery UX Boundary**
     Typed denials, progression deferral, stale/rebind outcomes, failed
     progression, fallback guidance, and route-sensitive explanations become
     product-quality. This is where failure becomes as usable as success.
 
-31. **Phase 31: Family-Specific Ergonomics Boundary**
+32. **Phase 32: Family-Specific Ergonomics Boundary**
     The public lane gets the domain-shaped helpers for the major declaration
-    families instead of forcing generic entry patterns everywhere. This is
-    where the surface starts feeling native to real domain work.
+    families as projections over the shared binding substrate instead of
+    forcing generic entry patterns everywhere. This is where the surface
+    starts feeling native to real domain work.
 
-32. **Phase 32: Neighborhood Authoring DX Boundary**
+33. **Phase 33: Neighborhood Authoring DX Boundary**
     Query supports meaningful groups of declarations as first-class authoring
-    units. This matters a lot for geometry because real work often happens in
-    local neighborhoods, not isolated single declarations.
+    units through the same shared binding substrate. This matters a lot for
+    geometry because real work often happens in local neighborhoods, not
+    isolated single declarations.
 
-33. **Phase 33: Public Documentation And Golden Teaching Boundary**
+34. **Phase 34: Public Documentation And Golden Teaching Boundary**
     The docs, examples, and goldens all teach the exact public path honestly.
     This is where we make sure the platform is discoverable, not just
-    implemented.
+    implemented, including one explicit binding story instead of local helper
+    folklore.
 
-34. **Phase 34: Certification And Closeout Boundary**
+35. **Phase 35: Certification And Closeout Boundary**
     Compile-fail boundaries, parity tests, hostile certification,
-    route/receipt/envelope digests, and end-to-end convergence proofs close
-    the milestone. This is where the whole seam becomes production-grade
-    rather than plausible.
+    route/receipt/envelope digests, binding-substrate parity proofs, and
+    end-to-end convergence proofs close the milestone. This is where the
+    whole seam becomes production-grade rather than plausible.
+
+## Shared Binding Continuity Lock
+
+The shared retained target-binding core lands immediately after shipped
+Phase 24, and Phase 25 broadens that core into the larger extractor/resolver
+system. Binding continuity is therefore not a future hope; it is a locked
+substrate rule from the moment Phase 24 closes.
+
+From Phase 25 onward, every future ergonomic widening in `9.3.8` must obey
+these rules:
+
+- Query may have only one public proof-bearing binding substrate for this
+  milestone family
+- the `9.3.7` typed contribution target-binding family must be generalized
+  into that shared substrate rather than preserved as a parallel contribution-
+  only binding world
+- declaration-context extraction, contribution authoring, route/receipt/
+  envelope product binding, continuation preparation, family helpers, and
+  grouped authoring must all compile onto that one binding substrate
+- no later phase may introduce a continuation-local extractor vocabulary, a
+  helper-local resolver vocabulary, or a grouped-authoring-local binding
+  vocabulary
+- binding explanation, denial, and authority posture must remain projections
+  of the same canonical Query truth rather than local convenience summaries
+- any future DX work that appears to "inject" context must still be explicit
+  in the types, witnesses, and proof-bearing artifacts; there is no ambient
+  dependency-injection container hiding behind the facade
+
+If a later phase needs a new binding form, it must extend the shared
+substrate. It may not fork it.
+
+## Aspect Contract And Granularity Lock
+
+The declaration-entry milestone also inherits a second immediate retrofit
+obligation after the shipped Phase 24 and Phase 24a work: the already-closed
+Phase 5-14 and Phase 23-24 boundaries must gain one explicit aspect-aware
+contract story before later extractor/resolver ergonomics widen the public
+binding surface.
+
+This is not optional polishing. It protects four things the surrounding stack
+already treats as first-class:
+
+- `forge-relational` already owns aspect-filtered reads, projection
+  `required_aspects()`, and aspect-sensitive historical/materialized access
+- `forge-runtime-bridge` already owns explicit aspect mapping and ambiguity
+  failures
+- `forge-signal` already owns aspect-version reads, aspect masks, and
+  produced/dependency aspect contracts
+- `forge-query` runtime/computed/effect/view surfaces already use aspects for
+  projection, invalidation narrowing, produced-state contracts, and
+  authority-lane inspection
+
+From this addendum onward, every future widening in `9.3.8` must therefore
+obey these rules:
+
+- declaration-entry binding may not stay artifact-digest-only when a narrower
+  aspect contract is the real semantic discriminator
+- route, receipt, envelope, relational-routing, bridge-routing, and
+  signal-compatibility surfaces must be able to say which semantic slices they
+  require, preserve, publish, or deny
+- scope, permission, policy masking, and invariant enforcement may use family
+  posture and admitted-world posture, but they must also be able to narrow by
+  declared aspect contract where that is the real truth boundary
+- cheap-looking ordinary APIs may not silently widen to broad whole-artifact
+  semantics when later Query, relational, bridge, or signal layers already
+  operate on narrower aspect contracts
+- ambiguity resolution must prefer aspect fit, aspect coverage, and explicit
+  incompatibility over folklore ordering of candidate sources
+- later extractor/resolver ergonomics may automate context gathering, but they
+  may not bypass aspect-sensitive denial, masking, or invariant posture
+
+If a later phase needs finer semantic granularity, it must extend this shared
+aspect contract story. It may not create local aspect vocabularies per helper,
+per continuation mode, or per authority family.
 
 ## Phase Specifications
 
@@ -2365,7 +2466,7 @@ Phase 21 also freezes one public grammar inventory for that trio:
 **Open questions before implementation**
 
 - how should the grammar inventory rows be synchronized mechanically with docs,
-  goldens, and compile-fail boundaries before Phase 29 expands that story?
+  goldens, and compile-fail boundaries before Phase 30 expands that story?
 
 ### Phase 22: Canonical Sequencing Automation Boundary
 
@@ -2459,9 +2560,9 @@ smuggling cost policy into hidden sequencing changes.
 
 **Requirements**
 
-- the ordinary foundational-materialization default should use the full
-  descriptive-richness profile unless the caller explicitly opts into a leaner
-  checked or proof-visible exposure
+- the ordinary orchestration default should use lean foundational publication
+  plus support-ready receipt and envelope publication unless a later explicit
+  materialization request admits richer publication
 - orchestration may prepare expensive work, but it may not silently execute
   expensive continuation, workspace entry, signal-backed execution, or other
   costly lower-runtime work without an API shape that advertises that cost
@@ -2475,6 +2576,11 @@ smuggling cost policy into hidden sequencing changes.
   not change canonical orchestration truth
 - artifact-richness policy and cost posture must also stay separate from the
   Phase 20 exposure-level and visibility-policy surface
+- the shipped Phase 23 default now treats ordinary, checked, and proof-visible
+  lanes as the same declaration-entry truth with different visibility over one
+  inspectable materialization policy; later phases may widen explicit rich
+  requests, but they must not silently move the ordinary default back to
+  full-descriptive publication
 
 **Documentation obligation**
 
@@ -2526,11 +2632,23 @@ orchestration products without turning them into hidden internals.
 - any widening here must preserve the shipped Phase 22 stop-boundary honesty,
   including caller handoff at route or receipt when the public automation
   contract intentionally stops there
+- any widening here must preserve the shipped Phase 23 materialization law:
+  richer publication may widen descriptive breadth, but it may not change
+  route, receipt, or envelope semantic truth
 
 **Documentation obligation**
 
 - yes; route, receipt, and envelope orchestration must be documented as public
   products rather than treated as internal sequencing details
+
+**Closed status**
+
+- shipped in Phase 24:
+  - `orchestrate_routes_from_progressed(...)`
+  - `orchestrate_receipt_from_progressed(...)`
+  - `orchestrate_envelope_from_progressed(...)`
+  - checked/proof-visible and explicit-intent variants on the same retained
+    pipeline
 
 **Acceptance evidence**
 
@@ -2539,23 +2657,326 @@ orchestration products without turning them into hidden internals.
 - hostile tests proving orchestration cannot erase route denial, receipt
   denial, or evidence-origin distinctions
 
-### Phase 25: Denial-Preserving Ordinary Outcome Boundary
+### Phase 24 Addendum: Aspect Contract And Granularity Extraction
+
+This addendum retrofits aggressive aspect-aware contract law across the
+already-closed declaration-entry and product-target boundaries.
+
+The hard problem is not merely "add aspect metadata." The hard problem is that
+the surrounding Forge stack already treats aspects as real semantic,
+performance, masking, invalidation, and bridge-mapping contracts, while the
+current `9.3.8` declaration-entry seam still leans too heavily on retained
+artifact identity, admitted-world identity, family posture, and typed
+denial/refusal posture alone.
+
+That is good enough for correctness at coarse grain, but it leaves real value
+on the table:
+
+- ambiguity that could have been denied or narrowed by aspect fit remains a
+  later binding problem
+- policy/scope/invariant enforcement that could ride explicit aspect contracts
+  remains broader than it needs to be
+- materialization richness stays profile-oriented without saying which semantic
+  slices are actually widened or elided
+- later continuation, grouped authoring, and family ergonomics would be forced
+  to reconstruct aspect granularity locally even though the runtime, bridge,
+  relational, and signal layers already own that vocabulary
+
+This addendum therefore lands before Phase 25 so the extractor/resolver work
+inherits an already-shipped aspect contract substrate rather than trying to
+invent both at once.
+
+**Required Query artifacts**
+
+- one Query-owned declaration-entry aspect contract vocabulary that can express
+  required, preserved, published, masked, and incompatible semantic slices
+  across the declaration-entry seam
+- one typed aspect-coverage story on retained declaration-entry artifacts:
+  progression, foundational evidence, route plans, receipts, envelopes,
+  relational-routing, bridge-routing, and signal-compatibility artifacts
+- one aspect-fit / aspect-mismatch taxonomy for later binding and
+  continuation-facing denial surfaces
+- one aspect-aware materialization description for lean/support-ready/rich
+  publication so cost and richness can speak in semantic slices rather than
+  only profile names
+- one aspect-aware support/readiness projection where family-scoped support can
+  remain family-first but still disclose narrower aspect-sensitive posture when
+  it is the real gating truth
+
+**Grounding references**
+
+This addendum is grounded in the already-shipped docs and neighboring aspect
+surfaces, not in speculative future folklore:
+
+- [Declaration Family Capability Matrix](../../crates/forge-query/docs/domain-capabilities/declaration-family-capability-matrix.md)
+- [Declaration Legality](../../crates/forge-query/docs/domain-capabilities/declaration-legality.md)
+- [Declaration Progression](../../crates/forge-query/docs/domain-capabilities/declaration-progression.md)
+- [Declaration Foundational Evidence](../../crates/forge-query/docs/domain-capabilities/declaration-foundational-evidence.md)
+- [Declaration Route Plans](../../crates/forge-query/docs/domain-capabilities/declaration-route-plan.md)
+- [Declaration Boundary Receipts](../../crates/forge-query/docs/domain-capabilities/declaration-boundary-receipts.md)
+- [Declaration Boundary Envelopes](../../crates/forge-query/docs/domain-capabilities/declaration-boundary-envelopes.md)
+- [Declaration Relational Truth Routing](../../crates/forge-query/docs/domain-capabilities/declaration-relational-truth-routing.md)
+- [Declaration Bridge Continuation Routing](../../crates/forge-query/docs/domain-capabilities/declaration-bridge-continuation-routing.md)
+- [Declaration Signal Compatibility](../../crates/forge-query/docs/domain-capabilities/declaration-signal-compatibility.md)
+- [Declaration Entry Orchestration](../../crates/forge-query/docs/domain-capabilities/declaration-entry-orchestration.md)
+- [Aspects And Authority Lanes](../../crates/forge-query/docs/modeling/aspects-and-authority-lanes.md)
+- [forge_query_vision.md](./forge_query_vision.md)
+- [relational_architecture.md](../forge-relational/relational_architecture.md)
+
+**Requirements**
+
+- the addendum must not reinterpret aspects as optional diagnostics. In this
+  milestone family, aspects are load-bearing contracts for granularity,
+  invalidation, masking, performance, and later binding specificity
+- declaration-entry aspect contracts must remain separate from:
+  - admitted-world identity
+  - family taxonomy posture
+  - route/receipt/envelope semantic class
+  - authority-lane ownership
+  They compose with those axes; they do not replace them
+- aspect-aware narrowing must prefer explicit semantic fit over folklore source
+  ordering whenever multiple candidate retained artifacts or context binders
+  could satisfy the same later request
+- aspect-sensitive denial must remain typed and inspectable rather than being
+  flattened into generic unsupported, denied, or failed posture
+- later policy masking, scope narrowing, and invariant posture must be able to
+  say "this surface is admitted broadly, but this semantic slice is denied,
+  masked, or unsupported" without forcing later phases to rebuild a second
+  aspect vocabulary
+
+**Per-phase benefit map**
+
+This addendum explicitly strengthens the following shipped boundaries:
+
+- Phase 5, from [Declaration Family Capability Matrix](../../crates/forge-query/docs/domain-capabilities/declaration-family-capability-matrix.md):
+  the family support matrix gains aspect-qualified capability posture where a
+  family is broadly admitted but only some semantic slices are structurally
+  available, permissioned, or invariant-safe
+- Phase 6, from [Declaration Legality](../../crates/forge-query/docs/domain-capabilities/declaration-legality.md):
+  legality evidence gains explicit aspect-sensitive structural scope so later
+  phases know which semantic slices were actually reviewed, not just that a
+  broad declaration artifact passed legality
+- Phase 7, from [Declaration Progression](../../crates/forge-query/docs/domain-capabilities/declaration-progression.md):
+  progression carries forward aspect-qualified admissible truth, which makes
+  `binding_target()` and later product binding sharper than plain progression
+  digest matching
+- Phase 8, from [Declaration Foundational Evidence](../../crates/forge-query/docs/domain-capabilities/declaration-foundational-evidence.md):
+  foundational evidence learns to describe which semantic slices are present,
+  elided, widened, or masked under a materialization profile instead of only
+  naming a descriptive profile family
+- Phase 9, from [Declaration Route Plans](../../crates/forge-query/docs/domain-capabilities/declaration-route-plan.md):
+  route plans can express which aspects are required for route admission,
+  preserved in route explanation, or incompatible with a requested route
+  intent, improving both denial clarity and later binding specificity
+- Phase 10, from [Declaration Boundary Receipts](../../crates/forge-query/docs/domain-capabilities/declaration-boundary-receipts.md):
+  receipts can say which semantic slices the crossing posture actually covers,
+  rather than exposing one coarse crossing claim over the whole retained route
+  artifact
+- Phase 11, from [Declaration Boundary Envelopes](../../crates/forge-query/docs/domain-capabilities/declaration-boundary-envelopes.md):
+  envelopes can publish one public crossing story that remains self-describing
+  at aspect granularity, making later continuation or grouped authoring bind
+  to what really crossed instead of to broad artifact shape alone
+- Phase 12, from [Declaration Relational Truth Routing](../../crates/forge-query/docs/domain-capabilities/declaration-relational-truth-routing.md):
+  relational routing can align more directly with relational
+  `required_aspects()` / aspect-filtered truth access, especially for scope,
+  invariants, history, and merge-strategy-sensitive truth claims
+- Phase 13, from [Declaration Bridge Continuation Routing](../../crates/forge-query/docs/domain-capabilities/declaration-bridge-continuation-routing.md):
+  bridge routing can surface mapped, missing, ambiguous, or partially covered
+  aspect sets explicitly instead of leaving later continuation binding to
+  rediscover bridge aspect-map truth
+- Phase 14, from [Declaration Signal Compatibility](../../crates/forge-query/docs/domain-capabilities/declaration-signal-compatibility.md):
+  signal compatibility can speak in dependency aspects, produced aspects,
+  basis-sensitive aspect requirements, and explicit incompatibility at the
+  semantic slice level rather than only family-level compatibility posture
+- Phase 23, from [Declaration Entry Orchestration](../../crates/forge-query/docs/domain-capabilities/declaration-entry-orchestration.md):
+  materialization tiers and cost posture can say which semantic slices are
+  widened, support-ready, elided, or masked, improving both performance
+  honesty and policy clarity
+- Phase 24, from [Declaration Entry Orchestration](../../crates/forge-query/docs/domain-capabilities/declaration-entry-orchestration.md) plus
+  [Declaration Progression](../../crates/forge-query/docs/domain-capabilities/declaration-progression.md),
+  [Declaration Route Plans](../../crates/forge-query/docs/domain-capabilities/declaration-route-plan.md),
+  [Declaration Boundary Receipts](../../crates/forge-query/docs/domain-capabilities/declaration-boundary-receipts.md), and
+  [Declaration Boundary Envelopes](../../crates/forge-query/docs/domain-capabilities/declaration-boundary-envelopes.md):
+  progressed product-target orchestration can choose between candidates using
+  aspect fit and aspect coverage before source-order precedence, which is the
+  exact class of silent binding bug this addendum is meant to prevent
+
+**DX target**
+
+- later binding and continuation code should be able to say "bind the current
+  retained artifact that satisfies this aspect contract" instead of "guess
+  which broad artifact the user probably meant"
+- advanced users should gain finer scope, permission, invariant, and
+  materialization control without giving up the compact ordinary lanes
+
+**Documentation obligation**
+
+- yes; this addendum must update both milestone sequencing and feature docs so
+  the declaration-entry story teaches one aspect-aware semantic-granularity
+  contract rather than leaving aspects to the runtime-only mental model
+
+**Acceptance evidence**
+
+- parity suites proving aspect-qualified and non-qualified paths converge when
+  they are semantically identical and diverge observably when aspect contracts
+  differ
+- hostile tests proving candidate ambiguity denies or resolves by aspect fit
+  rather than folklore ordering
+- hostile tests proving masked or unsupported semantic slices never enter
+  later retained binding, route/receipt/envelope, relational-routing,
+  bridge-routing, or signal-compatibility success lanes
+- materialization/cost tests proving lean/support-ready/rich publication can
+  narrow or widen aspect contracts without changing declaration-entry semantic
+  truth
+
+**Open questions before implementation**
+
+- what is the minimum shared declaration-entry aspect contract vocabulary that
+  can talk to relational `required_aspects()`, bridge aspect mappings, signal
+  dependency/produced aspects, and Query materialization without inventing
+  four local dialects?
+- which aspect mismatches deserve distinct public denial families versus being
+  represented as sub-causes on existing denial surfaces?
+- where should aspect-qualified binding specificity live so later Phase 25
+  extractors/resolvers can reuse it directly instead of copying heuristics?
+
+### Phase 25: Typed Binding / Extractor / Resolver Boundary
+
+This phase gives `9.3.8` its Rust-native equivalent of route-model binding:
+not ambient magic, not a DI container, but a typed binding pipeline that turns
+declared context plus retained proof plus explicit aspect contracts into the
+next admissible Query artifact.
+
+This phase should be read as a generalization of the typed target-binding seam
+that already shipped in `9.3.7`, not as a second binding invention beside it.
+`9.3.7` proved that contribution authoring needed one typed target-binding
+family; Phase 25 lifts that same idea into the shared binding substrate for
+all later declaration-entry, orchestration, continuation, and ergonomic
+surfaces in this milestone family. Phase 24b now lands first so the extractor
+and resolver model inherits an already-shipped aspect granularity law instead
+of trying to invent both seams at once.
+
+The goal is to make the new platform-entry and product-target orchestration
+surfaces feel compact and declarative without reintroducing the exact
+architectural lies the earlier phases just removed. Binding must therefore
+remain:
+
+- proof-bearing rather than heuristic
+- capability-scoped rather than ambient
+- inspectable rather than magical
+- authority-preserving rather than convenience-first
+
+**Required Query artifacts**
+
+- one typed request-extractor family for binding external session/tool/UI
+  context into admitted declaration-entry requests
+- one retained-artifact resolver family for binding canonical Query artifacts
+  into the next admissible route/receipt/envelope/continuation inputs
+- one family-scoped binding contract family that lets declaration families
+  expose binding semantics without minting local pseudo-Query layers
+- one aspect-fit / aspect-coverage binding layer that can prefer exact semantic
+  slice match over folklore source ordering
+- one context-bound capability witness family so route narrowing, world
+  identity, and authority posture can be carried structurally rather than
+  rediscovered from ambient glue
+- one binding transcript / explanation surface mapping declarative binding
+  requests back to the same canonical orchestration and admission artifacts
+
+**Requirements**
+
+- the shipped `9.3.7` typed contribution target-binding family must either be
+  reused directly or subsumed by a stronger shared binding substrate; it may
+  not remain as a parallel contribution-only binding world once this phase
+  closes
+- binding may not be implemented as an ambient service container, dynamic
+  decorator stack, or hidden runtime registry that changes behavior outside
+  the type signatures
+- extraction from session/tool/UI context must lower into the same admitted
+  declaration-entry and progressed-declaration truths the explicit path would
+  have produced, or reject before construction if the required context is
+  unavailable
+- retained-artifact resolvers must consume proof-bearing Query artifacts such
+  as canonical declarations, progressed declarations, route plans, receipts,
+  envelopes, and future continuation artifacts rather than re-deciding meaning
+  from raw host data
+- extractors and resolvers must compile onto the Phase 24b declaration-entry
+  aspect contract vocabulary rather than inventing a second local notion of
+  semantic granularity
+- family-scoped binding contracts must compile onto the existing Phase 5
+  family capability and Phase 21-24 orchestration laws instead of creating a
+  second family-registration or family-helper world
+- capability witnesses must preserve wrong-world, wrong-handle, basis, and
+  authority posture distinctions explicitly; binding may not turn those into
+  generic "dependency missing" folklore
+- declarative binding convenience must not imply later route, receipt,
+  envelope, continuation, runtime, workspace, or signal execution happened if
+  the pipeline only prepared or admitted the next step
+- binding surfaces must preserve materialization, sequencing, and denial truth;
+  they are an ergonomic lowering layer, not a semantics-changing layer
+- Query should be able to say "this declaration request binds from the active
+  geometry selection" or "this continuation request binds from the current
+  receipt and admitted basis" without forcing callers to manually reassemble
+  those same facts
+
+**DX target**
+
+- ordinary domain code should read like "bind request from my current context"
+  or "bind continuation from this retained artifact" rather than "load UI
+  state, resolve ids, construct helpers, and manually prove the same
+  preconditions"
+- advanced users must still be able to drop to explicit retained-artifact
+  constructors whenever they want exact control
+
+**Documentation obligation**
+
+- yes; this phase must explicitly teach the difference between typed binding
+  and ambient framework magic, because the DX story will otherwise be
+  misunderstood as hidden execution
+
+**Acceptance evidence**
+
+- parity suites proving bound declaration-entry, route, receipt, and envelope
+  requests converge with explicit retained-artifact construction when they
+  describe the same meaning
+- hostile tests for wrong-world, wrong-handle, missing-context, stale-basis,
+  and authority-mismatch binding posture
+- compile-fail coverage proving capability witnesses, family-scoped binding
+  contracts, and binding-only constructors cannot be forged outside the
+  proving authority
+
+**Open questions before implementation**
+
+- which binding families deserve first-class Query-owned request types in the
+  initial build: selection/session extractors, retained-artifact resolvers,
+  or both?
+- should the binding explanation surface be a projection of existing
+  orchestration transcripts, or does it need a small distinct artifact that
+  still maps back to the canonical substrate?
+- where should family-scoped binding contracts live so they remain Query-owned
+  public seams instead of accidental helper registries?
+
+### Phase 26: Denial-Preserving Ordinary Outcome Boundary
 
 This phase ensures the ordinary public surface returns the same typed
 non-success posture the explicit surfaces already know how to expose.
 
 Phase 20 already preserves typed non-success posture on the generic ordinary
 entry surface through `ForgeQueryDeclarationEntryOrchestrationTerminalError`.
-Phase 25 should therefore be read as follow-on work for any broader ordinary
+Phase 26 should therefore be read as follow-on work for any broader ordinary
 outcome expansion, explanation shaping, or parity closure beyond the current
 envelope-ceiling ordinary result shape. It should not assume that ordinary
 entry currently collapses non-success posture into an untyped or stringly
 error.
 
-Phase 22 also already freezes a second distinction that Phase 25 must preserve:
+Phase 22 also already freezes a second distinction that Phase 26 must preserve:
 
 - automation refusal is not the same thing as denial, deferral, stale,
   rebind-required, or failure posture
+
+Phase 23 now freezes a third distinction that Phase 26 must also preserve:
+
+- expensive work or richer publication gates are not themselves denial,
+  deferral, stale, rebind-required, or failure posture
 
 **Required Query artifacts**
 
@@ -2590,7 +3011,7 @@ Phase 22 also already freezes a second distinction that Phase 25 must preserve:
   checked, and proof-visible orchestration
 - hostile tests proving convenience surfaces cannot erase denial topology
 
-### Phase 26: Runtime / Workspace / Basis Continuation Boundary
+### Phase 27: Runtime / Workspace / Basis Continuation Boundary
 
 This phase is the hardest continuation boundary in the orchestration stack:
 Query must remove caller-owned runtime/workspace/basis glue without lying about
@@ -2602,6 +3023,8 @@ truth context, basis identity, authority, or execution cost.
 - one runtime / workspace / basis continuation contract family
 - one typed truth-context / basis-binding / workspace-entry posture family
 - one prepared-vs-executed continuation transcript family
+- one continuation-binding projection over the shared Phase 25 binding
+  substrate, not a continuation-local binding model
 
 **Locked local and adjacent references**
 
@@ -2616,6 +3039,13 @@ truth context, basis identity, authority, or execution cost.
 - supported runtime-capable families must be able to continue from admitted
   declaration-entry truth without caller-owned runtime builder, backend-part,
   workspace-entry, or basis-binding choreography
+- this phase should compile onto the shipped Phase 25 typed binding model
+  rather than inventing a second continuation-local extractor or resolver
+  vocabulary
+- when continuation also consumes `9.3.7` contribution-authored posture, both
+  contribution binding and continuation binding must converge on the same
+  shared substrate rather than meeting through adapters between two binding
+  systems
 - continuation must distinguish current, historical, and preview truth/basis
   posture explicitly; it may not collapse them into ambient "non-current"
   folklore
@@ -2650,7 +3080,7 @@ truth context, basis identity, authority, or execution cost.
 - hostile tests for wrong-world, wrong-handle, stale-basis, invalid-basis,
   preview/current/historical divergence, and prepared-vs-executed honesty
 
-### Phase 27: Signal Compatibility Orchestration Boundary
+### Phase 28: Signal Compatibility Orchestration Boundary
 
 This phase composes the Phase 14 compatibility boundary into ordinary
 orchestration without erasing execution family, required basis families, or
@@ -2686,7 +3116,7 @@ typed compatibility denials.
 - hostile tests proving compatible, deferred, unsupported, and invalid-basis
   posture remain distinct through the ordinary surface
 
-### Phase 28: Contribution-Composed Orchestration Boundary
+### Phase 29: Contribution-Composed Orchestration Boundary
 
 This phase composes `9.3.8` declaration-entry orchestration with `9.3.7`
 domain-capability contribution authoring so the user does not have to cross a
@@ -2703,6 +3133,9 @@ second public grammar seam.
 - for supported declaration families, the ordinary orchestration surface must
   be composable with `9.3.7` domain-capability contribution authoring without
   surfacing the entry/contribution lifecycle boundary as a visible caller seam
+- the contribution composition surface must reuse the shared Phase 25 binding
+  substrate so declaration extraction, contribution target binding, and
+  orchestration target binding remain one continuous public story
 - callers should be able to state domain intent, add declaration-scoped
   capability posture, and obtain canonical materialized artifacts in one
   coherent flow while Query preserves that entry and contribution are still two
@@ -2722,7 +3155,7 @@ second public grammar seam.
 - hostile tests proving contribution denial or advisory posture cannot be
   laundered away by ordinary orchestration
 
-### Phase 29: Orchestration Inventory And Transcript Boundary
+### Phase 30: Orchestration Inventory And Transcript Boundary
 
 This phase synchronizes the live public orchestration surface with transcripts,
 support/readiness, docs, and certification so the ergonomic layer stays honest
@@ -2737,7 +3170,7 @@ under growth.
   docs, goldens, and certification suites
 
 Phase 21 already ships the first public grammar inventory for the generic trio.
-Phase 29 extends that seed into the full anti-drift synchronization boundary;
+Phase 30 extends that seed into the full anti-drift synchronization boundary;
 it must not invent a second competing inventory model.
 
 **Requirements**
@@ -2746,6 +3179,9 @@ it must not invent a second competing inventory model.
   rows, crossing inventory rows, transcript records, docs/goldens, and
   certification coverage must all agree about what orchestration surfaces
   actually exist
+- the same inventory must explicitly track the shared binding substrate and its
+  projections so later helper or continuation work cannot silently grow a
+  second binding vocabulary
 - adding a new admitted orchestration surface must fail closure if there is no
   matching transcript/inventory/support/doc/certification coverage
 - transcript inventory must preserve prepared-vs-executed continuation posture,
@@ -2764,7 +3200,7 @@ it must not invent a second competing inventory model.
 - hostile certification showing no documented or exported orchestration surface
   lacks transcript, support, or proof coverage
 
-### Phase 30: Denial And Recovery UX Boundary
+### Phase 31: Denial And Recovery UX Boundary
 
 This phase makes failure as usable as success by turning denials, stale states,
 rebind requirements, and recovery posture into public product artifacts.
@@ -2856,7 +3292,7 @@ rebind requirements, and recovery posture into public product artifacts.
 - how much automatic repair guidance can Query offer without pretending to own
   lower-authority semantics it does not actually control?
 
-### Phase 31: Family-Specific Ergonomics Boundary
+### Phase 32: Family-Specific Ergonomics Boundary
 
 This phase gives the major declaration families native-feeling public helper
 surfaces instead of forcing everything through one generic orchestration shape.
@@ -2875,6 +3311,9 @@ surfaces instead of forcing everything through one generic orchestration shape.
 - helpers must compile onto the same canonical declaration, route, receipt,
   envelope, orchestration, and contribution-composed artifacts as the generic
   surface
+- helper surfaces should prefer the shipped typed binding / extractor /
+  resolver seam where that keeps domain callsites declarative without hiding
+  retained proof or authority posture
 - helper surfaces are additive aliases under the locked generic trio, not a
   replacement grammar and not a second equally-primary front door
 - helper surfaces must compile onto the same Phase 5 family capability
@@ -2882,6 +3321,8 @@ surfaces instead of forcing everything through one generic orchestration shape.
   witness availability rules
 - helper surfaces may not invent new authority classes, new progression rules,
   or new receipt semantics
+- helper surfaces may not invent helper-local binders or resolvers; they must
+  project onto the shared binding substrate and canonical orchestration path
 - any helper that meaningfully changes semantics must declare a distinct family
   rather than posing as a synonym
 
@@ -2919,7 +3360,7 @@ surfaces instead of forcing everything through one generic orchestration shape.
 - how do we keep helper naming pleasant without creating overlapping synonyms
   that weaken the “one obvious path” rule?
 
-### Phase 32: Neighborhood Authoring DX Boundary
+### Phase 33: Neighborhood Authoring DX Boundary
 
 This phase makes meaningful grouped declarations first-class so geometry and
 topology domains can work in local neighborhoods rather than only isolated
@@ -2938,6 +3379,9 @@ single declarations.
 
 - neighborhood and batch declarations must remain explicit groups, not ad hoc
   arrays of unrelated single declarations
+- grouped authoring must reuse the same shared binding substrate for group-
+  level and member-level target resolution instead of introducing neighborhood-
+  specific binders
 - grouped declaration formation must consume retained grouped-posture proof from
   earlier phases rather than rediscovering grouping semantics from family names
   or generic collection shape
@@ -2992,7 +3436,7 @@ single declarations.
 - how should grouped route/receipt/envelope artifacts expose member-level versus
   group-level facts without becoming unreadable?
 
-### Phase 33: Public Documentation And Golden Teaching Boundary
+### Phase 34: Public Documentation And Golden Teaching Boundary
 
 This phase makes the platform-entry seam teachable and ensures the docs do not
 lose critical behavior to oral tradition.
@@ -3010,6 +3454,10 @@ lose critical behavior to oral tradition.
 - every admitted ordinary public family, continuation surface, contribution-
   composed surface, and major helper surface must have one honest documented
   path
+- the docs and goldens must teach one shared binding story that connects
+  `9.3.7` contribution target binding, `9.3.8` declaration/product binding,
+  and later continuation/grouped binding, rather than documenting those as
+  unrelated convenience families
 - docs must teach support/readiness posture, denial posture, route/receipt/
   envelope meaning, continuation truth, contribution composition, and lower-
   authority ownership honestly
@@ -3052,7 +3500,7 @@ lose critical behavior to oral tradition.
 - how should docs surface lower-authority ownership honestly without forcing
   users to learn relational/bridge/signal internals too early?
 
-### Phase 34: Certification And Closeout Boundary
+### Phase 35: Certification And Closeout Boundary
 
 This phase closes the milestone with hostile proof rather than plausibility.
 
@@ -3077,6 +3525,9 @@ This phase closes the milestone with hostile proof rather than plausibility.
 
 - equivalent public/proof/generic/helper/grouped/contribution-composed paths
   must converge canonically when semantically identical
+- equivalent contribution-binding, declaration-binding, product-binding, and
+  continuation-binding paths must converge onto the same shared binding
+  substrate artifacts when semantically identical
 - intentionally different family, route, authority, denial, cost, continuation,
   support, and contribution posture must diverge observably and predictably
 - compile-fail coverage must match the live ordinary lane breadth

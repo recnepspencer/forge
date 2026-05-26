@@ -1,9 +1,10 @@
-# Milestone 9.3.8 Closeout: Declaration Entry Seam And Envelope-Ceiling Orchestration Boundary
+# Milestone 9.3.8 Closeout: Declaration Entry Seam, Sequencing, Materialization, Product Orchestration, And Shared Binding Boundary
 
 ## Status
 
-Milestone 9.3.8 Phases 15 through 22 are closed as of 2026-05-25 for the
-Query-owned declaration-entry seam and envelope-ceiling orchestration boundary
+Milestone 9.3.8 Phases 15 through 24 plus the immediate Phase 24 addendum are
+closed as of 2026-05-26 for the Query-owned declaration-entry seam and
+envelope-ceiling orchestration/materialization/product/shared-binding boundary
 in `forge-query`.
 
 This closeout covers:
@@ -22,6 +23,12 @@ This closeout covers:
   - `orchestrate_declaration_entry(...)`
   - `orchestrate_declaration_entry_checked(...)`
   - `orchestrate_declaration_entry_proof(...)`
+  - `orchestrate_routes_from_progressed(...)`
+  - `orchestrate_receipt_from_progressed(...)`
+  - `orchestrate_envelope_from_progressed(...)`
+- one shared retained target-binding substrate consumed by both
+  `9.3.7` contribution targets and progressed declaration-entry product
+  orchestration
 - one public orchestration grammar inventory:
   - `ForgeQueryDeclarationEntryOrchestrationVerbInventory`
   - `ForgeQueryDeclarationEntryOrchestrationVerb`
@@ -32,10 +39,16 @@ This closeout covers:
   - `ForgeQueryDeclarationEntryOrchestrationAutomationStep`
   - `ForgeQueryDeclarationEntryOrchestrationAutomationRefusal`
   - `ForgeQueryDeclarationEntryOrchestrationAutomationRefusalClass`
+- one typed materialization/cost boundary surface:
+  - `ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy`
+  - `ForgeQueryDeclarationEntryOrchestrationMaterializationTier`
+  - `ForgeQueryDeclarationEntryOrchestrationCostPosture`
+  - `ForgeQueryDeclarationEntryOrchestrationMaterializationGate`
 - API-reference docs for:
   - `declaration-entry-inspection.md`
   - `declaration-entry-readiness.md`
   - `declaration-entry-orchestration.md`
+  - `declaration-foundational-evidence.md`
 
 This closeout does not claim:
 
@@ -63,10 +76,11 @@ This closeout does not claim:
 - `perf_laws.md`: closure required readiness/support truth to be derived once
   and orchestration truth to be lowered once and projected honestly, without
   cheap-looking helper surfaces hiding broader recomputation.
-- `milestone-9.3.8.md`: the shipped surface satisfies the Phase 15-22 seam,
-  orchestration artifact, orchestration grammar, and sequencing boundaries as
-  now written, excluding the later Phase 18 addendum and post-envelope-ceiling
-  orchestration widening phases.
+- `milestone-9.3.8.md`: the shipped surface satisfies the Phase 15-24 seam,
+  orchestration artifact, orchestration grammar, sequencing, materialization,
+  product-target orchestration, and immediate shared-binding extraction
+  boundaries as now written, excluding the later Phase 18 addendum and
+  post-envelope-ceiling continuation widening phases.
 
 ## Adversarial Constraints Closed
 
@@ -87,11 +101,12 @@ The closed surface now guarantees that:
 - envelope-only inspection remains honest about lower-authority absence instead
   of fabricating relational, bridge, or signal posture that never occurred
 
-Phases 19 through 22 had to survive the hostile case where Query would add an
+Phases 19 through 23 had to survive the hostile case where Query would add an
 ordinary orchestration helper that either lied about what proof-visible stages
 were crossed, silently forked into separate ordinary, checked, and
-proof-visible implementations, or fragmented into competing public alias
-families.
+proof-visible implementations, fragmented into competing public alias
+families, or quietly changed declaration truth when richer publication was
+requested.
 
 The closed orchestration surface now guarantees that:
 
@@ -110,6 +125,10 @@ The closed orchestration surface now guarantees that:
 - the only public orchestration grammar is the generic trio, and that grammar
   is mechanically represented through one public verb inventory rather than
   folklore
+- lean versus richer publication stays an inspectable policy decision rather
+  than hidden receipt or envelope behavior
+- richer publication changes descriptive breadth and reported cost posture, not
+  declaration-entry meaning, route truth, receipt truth, or envelope truth
 - envelope-ceiling orchestration still stops at the declaration boundary
   envelope and does not pretend to automate continuation, runtime execution,
   signal work, or
@@ -195,6 +214,19 @@ Phase 22 closed with:
 - product docs that teach Query as the orchestration layer after session/tool
   code has already assembled declaration intent
 
+Phase 23 closed with:
+
+- one Query-owned materialization policy, tier, cost-posture, and gate surface
+  over the existing orchestration plan
+- explicit foundational-profile mapping between Query orchestration tiers and
+  `forge-foundational` materialization profiles
+- one shipped default policy of lean foundational publication plus
+  support-ready receipt and envelope publication
+- parity evidence proving richer publication does not change declaration-entry
+  truth
+- product docs that teach visibility, sequencing, and materialization as
+  separate public axes
+
 ## Verification Summary
 
 The closeout surface was validated through the targeted seam-ledger QA and
@@ -217,7 +249,7 @@ The final verification bar was also shaped by these QA passes:
 
 This closeout does not claim `cargo test -p forge-query --quiet` as a required
 closure artifact. That broader crate-wide checkpoint previously timed out and
-is outside the narrow Phase 15-22 declaration-entry closure bar.
+is outside the narrow Phase 15-24a declaration-entry closure bar.
 
 ## Residual Deferred Scope
 
@@ -234,9 +266,9 @@ The next plan starts from these still-open items:
 Those remaining items are real follow-on work. They are not silently included
 in this closeout.
 
-## Handoff To Phase 23+
+## Handoff To Phase 24b+
 
-Phase 23 and later now inherit:
+Phase 24b and later now inherit:
 
 - one closed seam-ledger substrate rather than four competing seam summaries
 - one executable crossing inventory and one readiness source of truth that
@@ -252,8 +284,16 @@ Phase 23 and later now inherit:
   route and receipt boundary crossings
 - one locked sequencing law and one typed automation-refusal boundary over that
   same envelope-ceiling pipeline
+- one shipped materialization/cost policy boundary that keeps lean defaults,
+  support-ready receipt/envelope publication, and expensive-work gates
+  inspectable
+- one shipped rule that richer publication may widen descriptive breadth but
+  may not change declaration-entry semantic truth
+- one shipped product-target orchestration ladder from progressed declarations
+  to route plans, receipts, and envelopes, with explicit checked/proof-visible
+  companions and retained-artifact parity obligations
 
-Phase 23 and later must not reopen these closed questions:
+Phase 24b and later must not reopen these closed questions:
 
 - whether Query has one shared declaration-entry seam substrate
 - whether ordinary, checked, and proof-visible orchestration are separate
@@ -262,5 +302,20 @@ Phase 23 and later must not reopen these closed questions:
   front door before later family-specific ergonomics
 - whether automation refusal is allowed to flatten into route denial, receipt
   denial, or generic failure
+- whether visibility policy, sequencing policy, and materialization policy are
+  separate public axes
+- whether ordinary defaults may silently drift back to full-descriptive
+  materialization
 - whether envelope-ceiling orchestration may imply later continuation or
   execution happened when it only prepared or stopped
+- whether progressed-artifact route/receipt/envelope products are public
+  first-class artifacts or just internal helper leftovers
+
+The next future phase should now start by retrofitting one aggressive
+declaration-entry aspect contract and granularity law across the already-closed
+Phase 5-14, 23, and 24 surfaces, and only after that should later work widen
+the typed binding / extractor / resolver model. Continuation, contribution
+composition, family-specific ergonomics, grouped authoring, docs, and
+certification should therefore build on one authority-preserving binding story
+and one aspect-aware semantic-granularity story instead of inventing local
+glue.

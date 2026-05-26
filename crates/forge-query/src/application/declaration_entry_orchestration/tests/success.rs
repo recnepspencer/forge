@@ -1,11 +1,16 @@
 use forge_foundational::facade::CanonicalDerivedDigest;
+use forge_foundational::facade::FoundationalBoundaryEvidenceMaterializationProfile;
 
 use crate::application::{
     ForgeQueryDeclarationEntryOrchestrationArtifactPolicy,
     ForgeQueryDeclarationEntryOrchestrationAutomationBoundary,
     ForgeQueryDeclarationEntryOrchestrationAutomationStep,
+    ForgeQueryDeclarationEntryOrchestrationCostPosture,
     ForgeQueryDeclarationEntryOrchestrationExposureLevel,
-    ForgeQueryDeclarationEntryOrchestrationOutcome, ForgeQueryDeclarationEntryOrchestrationStage,
+    ForgeQueryDeclarationEntryOrchestrationMaterializationGate,
+    ForgeQueryDeclarationEntryOrchestrationMaterializationTier,
+    ForgeQueryDeclarationEntryOrchestrationOutcome, ForgeQueryDeclarationEntryOrchestrationProduct,
+    ForgeQueryDeclarationEntryOrchestrationStage,
     ForgeQueryDeclarationEntryOrchestrationStepDisposition,
     ForgeQueryDeclarationEntryOrchestrationVerbCeiling,
     ForgeQueryDeclarationEntryOrchestrationVerbFamily,
@@ -74,6 +79,27 @@ fn proof_surface_records_the_full_envelope_ceiling_sequence() {
         ]
     );
     assert!(proof.plan().explicit_caller_handoff_steps().is_empty());
+    assert_eq!(
+        proof.plan().receipt_materialization_tier(),
+        ForgeQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive
+    );
+    assert_eq!(
+        proof.plan().envelope_materialization_tier(),
+        ForgeQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive
+    );
+    assert_eq!(
+        proof.plan().cost_posture(),
+        ForgeQueryDeclarationEntryOrchestrationCostPosture::ExplicitlyRich
+    );
+    assert_eq!(
+        proof.plan().materialization_gate(),
+        ForgeQueryDeclarationEntryOrchestrationMaterializationGate::ExplicitRequestRequired
+    );
+    assert_eq!(
+        proof.plan().foundational_evidence_profile(),
+        FoundationalBoundaryEvidenceMaterializationProfile::FullDescriptiveRichness
+    );
+    assert!(proof.plan().descriptive_materialization_cost().is_some());
     assert!(stages[..7].iter().all(|record| record.is_reached()));
     assert_eq!(
         stages
@@ -92,6 +118,18 @@ fn proof_surface_records_the_full_envelope_ceiling_sequence() {
     assert_eq!(
         stages.last().expect("last stage should exist").stage(),
         ForgeQueryDeclarationEntryOrchestrationStage::EnvelopeConstructed
+    );
+    assert_eq!(
+        stages[4].materialization_tier(),
+        Some(ForgeQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive)
+    );
+    assert_eq!(
+        stages[6].materialization_tier(),
+        Some(ForgeQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive)
+    );
+    assert_eq!(
+        stages[7].materialization_tier(),
+        Some(ForgeQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive)
     );
     assert_eq!(
         proof.automation_boundary(),
@@ -138,6 +176,42 @@ fn canonical_lowering_preserves_plan_and_outcome_identity_across_exposure_levels
     assert_eq!(
         checked.outcome.outcome_identity_digest(),
         proof.outcome.outcome_identity_digest()
+    );
+    assert_eq!(
+        ordinary.plan.foundational_evidence_profile(),
+        FoundationalBoundaryEvidenceMaterializationProfile::ElideSupportAndDiagnostics
+    );
+    assert_eq!(
+        checked.plan.foundational_evidence_profile(),
+        FoundationalBoundaryEvidenceMaterializationProfile::ElideSupportAndDiagnostics
+    );
+    assert_eq!(
+        proof.plan.foundational_evidence_profile(),
+        FoundationalBoundaryEvidenceMaterializationProfile::FullDescriptiveRichness
+    );
+    assert_eq!(
+        ordinary.plan.cost_posture(),
+        ForgeQueryDeclarationEntryOrchestrationCostPosture::OrdinaryDefault
+    );
+    assert_eq!(
+        checked.plan.cost_posture(),
+        ForgeQueryDeclarationEntryOrchestrationCostPosture::ExplicitlyLean
+    );
+    assert_eq!(
+        proof.plan.cost_posture(),
+        ForgeQueryDeclarationEntryOrchestrationCostPosture::ExplicitlyRich
+    );
+    assert_eq!(
+        ordinary.plan.receipt_materialization_tier(),
+        ForgeQueryDeclarationEntryOrchestrationMaterializationTier::SupportReady
+    );
+    assert_eq!(
+        checked.plan.receipt_materialization_tier(),
+        ForgeQueryDeclarationEntryOrchestrationMaterializationTier::OperationalLean
+    );
+    assert_eq!(
+        proof.plan.receipt_materialization_tier(),
+        ForgeQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive
     );
 }
 
@@ -210,26 +284,57 @@ fn grammar_inventory_freezes_the_generic_trio_and_envelope_ceiling() {
     let inventory = ForgeQueryDeclarationEntryOrchestrationVerbInventory::current();
     let verbs = inventory.verbs();
 
-    assert_eq!(verbs.len(), 3);
+    assert_eq!(verbs.len(), 21);
+    assert_eq!(verbs[0].public_name(), "orchestrate_declaration_entry");
+    assert_eq!(
+        verbs[20].public_name(),
+        "orchestrate_envelope_from_progressed_proof_with_intent"
+    );
     assert_eq!(
         verbs
             .iter()
-            .map(|verb| verb.public_name())
-            .collect::<Vec<_>>(),
-        vec![
-            "orchestrate_declaration_entry",
-            "orchestrate_declaration_entry_checked",
-            "orchestrate_declaration_entry_proof",
-        ]
+            .filter(|verb| {
+                verb.family()
+                    == ForgeQueryDeclarationEntryOrchestrationVerbFamily::GenericDeclarationEntry
+            })
+            .count(),
+        3
     );
-    assert!(verbs.iter().all(|verb| {
-        verb.family() == ForgeQueryDeclarationEntryOrchestrationVerbFamily::GenericDeclarationEntry
-    }));
+    assert_eq!(
+        verbs
+            .iter()
+            .filter(|verb| {
+                verb.family()
+                    == ForgeQueryDeclarationEntryOrchestrationVerbFamily::RouteFromProgressed
+            })
+            .count(),
+        6
+    );
+    assert_eq!(
+        verbs
+            .iter()
+            .filter(|verb| {
+                verb.family()
+                    == ForgeQueryDeclarationEntryOrchestrationVerbFamily::ReceiptFromProgressed
+            })
+            .count(),
+        6
+    );
+    assert_eq!(
+        verbs
+            .iter()
+            .filter(|verb| {
+                verb.family()
+                    == ForgeQueryDeclarationEntryOrchestrationVerbFamily::EnvelopeFromProgressed
+            })
+            .count(),
+        6
+    );
     assert!(verbs.iter().all(|verb| {
         verb.ceiling() == ForgeQueryDeclarationEntryOrchestrationVerbCeiling::Envelope
     }));
     assert_eq!(
-        verbs
+        verbs[..3]
             .iter()
             .map(|verb| verb.canonical_base_name())
             .collect::<Vec<_>>(),
@@ -240,7 +345,7 @@ fn grammar_inventory_freezes_the_generic_trio_and_envelope_ceiling() {
         ]
     );
     assert_eq!(
-        verbs
+        verbs[..3]
             .iter()
             .map(|verb| verb.exposure_level())
             .collect::<Vec<_>>(),
@@ -249,6 +354,57 @@ fn grammar_inventory_freezes_the_generic_trio_and_envelope_ceiling() {
             ForgeQueryDeclarationEntryOrchestrationExposureLevel::Checked,
             ForgeQueryDeclarationEntryOrchestrationExposureLevel::ProofVisible,
         ]
+    );
+    assert_eq!(
+        verbs
+            .iter()
+            .filter(|verb| {
+                verb.product() == ForgeQueryDeclarationEntryOrchestrationProduct::RoutePlan
+            })
+            .count(),
+        6
+    );
+    assert_eq!(
+        verbs
+            .iter()
+            .filter(|verb| {
+                verb.product() == ForgeQueryDeclarationEntryOrchestrationProduct::Receipt
+            })
+            .count(),
+        6
+    );
+    assert_eq!(
+        verbs
+            .iter()
+            .filter(|verb| {
+                verb.product() == ForgeQueryDeclarationEntryOrchestrationProduct::Envelope
+            })
+            .count(),
+        9
+    );
+}
+
+#[test]
+fn foundational_profile_mapping_stays_explicit_and_stable() {
+    use crate::application::declaration_entry_orchestration::materialization::foundational_profile_for_tier;
+
+    assert_eq!(
+        foundational_profile_for_tier(
+            ForgeQueryDeclarationEntryOrchestrationMaterializationTier::OperationalLean
+        ),
+        FoundationalBoundaryEvidenceMaterializationProfile::ElideSupportAndDiagnostics
+    );
+    assert_eq!(
+        foundational_profile_for_tier(
+            ForgeQueryDeclarationEntryOrchestrationMaterializationTier::SupportReady
+        ),
+        FoundationalBoundaryEvidenceMaterializationProfile::ElideDiagnostics
+    );
+    assert_eq!(
+        foundational_profile_for_tier(
+            ForgeQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive
+        ),
+        FoundationalBoundaryEvidenceMaterializationProfile::FullDescriptiveRichness
     );
 }
 

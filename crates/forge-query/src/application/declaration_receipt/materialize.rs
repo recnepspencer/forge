@@ -3,7 +3,7 @@ use forge_foundational::facade::{
     AdmissionReadinessProfile, CertificationPostureProfile, CompatibilityPostureProfile,
     DiagnosticRichnessProfile, FoundationalBoundaryMaterializationSeam,
     FoundationalBoundaryMaterializationSource, FoundationalBoundaryReceiptSurface,
-    RetentionDeliveryProfile, SupportPostureProfile,
+    MaterializedFoundationalProfileSet, RetentionDeliveryProfile, SupportPostureProfile,
 };
 use forge_proof::TransitionOutcome;
 
@@ -21,12 +21,17 @@ use super::{
     denial::ForgeQueryDeclarationReceiptDenialCause,
     explain::ForgeQueryDeclarationReceiptExplanation,
 };
+use crate::application::{
+    materialized_profile_for_tier as orchestration_materialized_profile_for_tier,
+    ForgeQueryDeclarationEntryOrchestrationMaterializationTier,
+};
 
 pub(crate) fn receipt_from_plan<
     D: ForgeQueryDomainEntryMarker,
     I: ForgeQueryDeclarationInput<D>,
 >(
     plan: ForgeQueryDeclarationRoutePlan<D, I>,
+    materialized_profile: &MaterializedFoundationalProfileSet,
 ) -> Result<
     ForgeQueryDeclarationReceipt<D, I>,
     (
@@ -56,6 +61,7 @@ pub(crate) fn receipt_from_plan<
         None,
         None,
         None,
+        materialized_profile,
     ))
 }
 
@@ -64,6 +70,7 @@ pub(crate) fn deferred_receipt<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDecl
     route_intent: Option<crate::application::ForgeQueryDeclarationRouteIntent>,
     route_contract: crate::application::ForgeQueryDeclarationRouteContract,
     reason: &'static str,
+    materialized_profile: &MaterializedFoundationalProfileSet,
 ) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationReceiptDenialCause> {
     let explanation = ForgeQueryDeclarationReceiptExplanation::new(
         "deferred crossing recorded",
@@ -82,6 +89,7 @@ pub(crate) fn deferred_receipt<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDecl
         route_intent,
         None,
         None,
+        materialized_profile,
     ))
 }
 
@@ -93,6 +101,7 @@ pub(crate) fn denied_receipt<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclar
     receipt_cause: ForgeQueryDeclarationReceiptDenialCause,
     route_reference_override: Option<String>,
     extra_route_truths: Vec<String>,
+    materialized_profile: &MaterializedFoundationalProfileSet,
 ) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationReceiptDenialCause> {
     let reason = route_cause
         .map(|cause| cause.reason().to_string())
@@ -118,6 +127,7 @@ pub(crate) fn denied_receipt<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclar
         route_intent,
         route_cause,
         Some(receipt_cause),
+        materialized_profile,
     ))
 }
 
@@ -126,6 +136,7 @@ pub(crate) fn failed_receipt<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclar
     route_intent: Option<crate::application::ForgeQueryDeclarationRouteIntent>,
     route_contract: crate::application::ForgeQueryDeclarationRouteContract,
     reason: &'static str,
+    materialized_profile: &MaterializedFoundationalProfileSet,
 ) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationReceiptDenialCause> {
     let explanation = ForgeQueryDeclarationReceiptExplanation::new(
         "failed crossing recorded",
@@ -144,6 +155,7 @@ pub(crate) fn failed_receipt<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclar
         route_intent,
         None,
         None,
+        materialized_profile,
     ))
 }
 
@@ -158,6 +170,7 @@ fn build_receipt<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D
     route_intent: Option<crate::application::ForgeQueryDeclarationRouteIntent>,
     route_cause: Option<ForgeQueryDeclarationRoutePlanDenialCause>,
     receipt_cause: Option<ForgeQueryDeclarationReceiptDenialCause>,
+    materialized_profile: &MaterializedFoundationalProfileSet,
 ) -> ForgeQueryDeclarationReceipt<D, I> {
     let evidence_ref = match (route_plan.as_ref(), evidence.as_ref()) {
         (Some(plan), None) => plan.foundational_evidence(),
@@ -177,7 +190,7 @@ fn build_receipt<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D
         claim_receipt_evidence_boundary_surface(surface),
         FoundationalBoundaryMaterializationSource::CompatibilityLowered,
         FoundationalBoundaryMaterializationSeam::BoundaryExchange,
-        materialized_profile(),
+        materialized_profile.clone(),
     )
     .expect("retained crossing truth should materialize a foundational boundary receipt");
     let descriptive_receipt = evidence_ref.receipt().cloned();
@@ -197,7 +210,9 @@ fn build_receipt<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D
         route_plan.as_ref().map(|plan| plan.route_plan_digest()),
         class,
         kind,
-        &format!("{:?}", evidence_ref.attachment_bundle_digest()),
+        evidence_ref.class(),
+        evidence_ref.support_digest(),
+        evidence_ref.legality_digest(),
         route_contract.map(|contract| contract.reason()),
         route_intent.map(|intent| intent.as_str()),
         route_cause.map(|cause| cause.reason()),
@@ -235,7 +250,14 @@ fn kind_for_plan<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D
     }
 }
 
-fn materialized_profile() -> forge_foundational::facade::MaterializedFoundationalProfileSet {
+pub(crate) fn default_receipt_materialized_profile() -> &'static MaterializedFoundationalProfileSet
+{
+    static ONCE: std::sync::OnceLock<MaterializedFoundationalProfileSet> =
+        std::sync::OnceLock::new();
+    ONCE.get_or_init(build_default_receipt_materialized_profile)
+}
+
+fn build_default_receipt_materialized_profile() -> MaterializedFoundationalProfileSet {
     let requested = profiles()
         .set()
         .diagnostic_richness(DiagnosticRichnessProfile::Standard)
@@ -254,6 +276,12 @@ fn materialized_profile() -> forge_foundational::facade::MaterializedFoundationa
         TransitionOutcome::Success(value) => *value.payload(),
         outcome => panic!("receipt profile materialization should succeed: {outcome:?}"),
     }
+}
+
+pub(crate) fn receipt_materialized_profile_for_tier(
+    tier: ForgeQueryDeclarationEntryOrchestrationMaterializationTier,
+) -> MaterializedFoundationalProfileSet {
+    orchestration_materialized_profile_for_tier(tier)
 }
 
 fn completed_boundary_text(kind: ForgeQueryDeclarationReceiptKind, family: &str) -> String {

@@ -1,16 +1,20 @@
 use crate::application::{
     ForgeQueryDeclarationEntryOrchestrationAutomationRefusalClass,
+    ForgeQueryDeclarationEntryOrchestrationCostPosture,
+    ForgeQueryDeclarationEntryOrchestrationMaterializationGate,
     ForgeQueryDeclarationEntryOrchestrationOutcome,
     ForgeQueryDeclarationEntryOrchestrationRefusalClass,
     ForgeQueryDeclarationEntryOrchestrationStage,
     ForgeQueryDeclarationEntryOrchestrationStepDisposition,
     ForgeQueryDeclarationEntryOrchestrationTerminalError,
+    ForgeQueryDeclarationReceiptTerminalError, ForgeQueryDeclarationRoutePlanDenialCause,
+    ForgeQueryDeclarationRoutePlanTerminalError,
 };
 
 use super::domain::{
-    admitted_handle, DeferredFamily, DeferredRouteFamily, DeniedFamily, ExpensiveAutomationFamily,
-    ExplicitIntentFamily, FailedFamily, Input, StaleFamily, UnsupportedReceiptFamily,
-    WorldSensitiveFamily,
+    admitted_handle, AdmittedFamily, DeferredFamily, DeferredRouteFamily, DeniedFamily,
+    ExpensiveAutomationFamily, ExplicitIntentFamily, FailedFamily, Input, StaleFamily,
+    UnsupportedReceiptFamily, WorldSensitiveFamily,
 };
 
 #[test]
@@ -89,7 +93,6 @@ fn unsupported_receipt_kind_is_refused_without_hidden_continuation() {
     let handle = admitted_handle("collaborative");
     let checked = handle
         .orchestrate_declaration_entry_checked(Input::<UnsupportedReceiptFamily>::new("edge:42"));
-
     match checked {
         ForgeQueryDeclarationEntryOrchestrationOutcome::Refused(refusal) => {
             assert_eq!(
@@ -134,7 +137,6 @@ fn expensive_but_legal_declaration_refuses_automation_at_route() {
         }
         _ => panic!("expected expensive automation refusal"),
     }
-
     let last = proof
         .stage_records()
         .last()
@@ -147,6 +149,7 @@ fn expensive_but_legal_declaration_refuses_automation_at_route() {
         last.disposition(),
         ForgeQueryDeclarationEntryOrchestrationStepDisposition::ExplicitForCaller
     );
+    assert_eq!(last.materialization_tier(), None);
 }
 
 #[test]
@@ -258,4 +261,68 @@ fn refusal_taxonomies_remain_publicly_nameable_even_before_all_classes_are_reach
             "stronger_proof_required",
         ]
     );
+}
+
+#[test]
+fn materialization_taxonomies_remain_publicly_nameable_even_before_all_gates_are_reached() {
+    let cost_labels = [
+        ForgeQueryDeclarationEntryOrchestrationCostPosture::OrdinaryDefault,
+        ForgeQueryDeclarationEntryOrchestrationCostPosture::ExplicitlyLean,
+        ForgeQueryDeclarationEntryOrchestrationCostPosture::ExplicitlyRich,
+        ForgeQueryDeclarationEntryOrchestrationCostPosture::PreparedButNotExecuted,
+        ForgeQueryDeclarationEntryOrchestrationCostPosture::ExpensiveByDefault,
+    ]
+    .map(|posture| posture.as_str());
+    let gate_labels = [
+        ForgeQueryDeclarationEntryOrchestrationMaterializationGate::AdmittedByDefault,
+        ForgeQueryDeclarationEntryOrchestrationMaterializationGate::ExplicitRequestRequired,
+        ForgeQueryDeclarationEntryOrchestrationMaterializationGate::ForbiddenOnOrdinaryLane,
+        ForgeQueryDeclarationEntryOrchestrationMaterializationGate::PreparedOnly,
+        ForgeQueryDeclarationEntryOrchestrationMaterializationGate::UnsupportedForCurrentArtifactSet,
+    ]
+    .map(|gate| gate.as_str());
+
+    assert_eq!(
+        cost_labels,
+        [
+            "ordinary_default",
+            "explicitly_lean",
+            "explicitly_rich",
+            "prepared_but_not_executed",
+            "expensive_by_default",
+        ]
+    );
+    assert_eq!(
+        gate_labels,
+        [
+            "admitted_by_default",
+            "explicit_request_required",
+            "forbidden_on_ordinary_lane",
+            "prepared_only",
+            "unsupported_for_current_artifact_set",
+        ]
+    );
+}
+
+#[test]
+fn product_orchestration_denies_wrong_world_progressed_artifacts_without_panicking() {
+    let collaborative = admitted_handle("collaborative");
+    let restricted = admitted_handle("restricted");
+    let progressed = collaborative
+        .declare_review_and_progress(Input::<AdmittedFamily>::new("edge:42"))
+        .unwrap_or_else(|_| panic!("progression should admit"));
+
+    assert!(matches!(
+        restricted.orchestrate_routes_from_progressed(progressed.clone()),
+        Err(ForgeQueryDeclarationRoutePlanTerminalError::Denied(denial))
+            if denial.cause() == ForgeQueryDeclarationRoutePlanDenialCause::WrongAdmittedWorld
+    ));
+    assert!(matches!(
+        restricted.orchestrate_receipt_from_progressed(progressed.clone()),
+        Err(ForgeQueryDeclarationReceiptTerminalError::Denied(_))
+    ));
+    assert!(matches!(
+        restricted.orchestrate_envelope_from_progressed_checked(progressed),
+        crate::application::ForgeQueryDeclarationEnvelopeChecked::Denied(_)
+    ));
 }

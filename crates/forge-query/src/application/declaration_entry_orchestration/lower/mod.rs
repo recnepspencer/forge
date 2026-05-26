@@ -13,6 +13,7 @@ mod entry;
 mod envelope;
 mod foundational;
 mod legality;
+mod product;
 mod progression;
 mod reason;
 mod receipt;
@@ -58,6 +59,7 @@ pub(crate) fn forge_query_lower_declaration_entry_orchestration_on_handle<
     ];
     let outcome = entry::lower_from_declaration_checked(
         handle,
+        &plan,
         &automation_context,
         &mut step_records,
         input,
@@ -86,3 +88,8 @@ pub(crate) fn forge_query_checked_declaration_entry_orchestration_on_handle<
     )
     .outcome
 }
+
+pub(crate) use product::{
+    forge_query_lower_declaration_entry_product_orchestration_from_progressed_on_handle,
+    ForgeQueryDeclarationEntryProductChecked,
+};

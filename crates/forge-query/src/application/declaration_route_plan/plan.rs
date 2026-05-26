@@ -3,6 +3,7 @@ use crate::application::{
     ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
 };
 use crate::identity::hash_parts;
+use crate::target_binding::ForgeQueryDeclarationRoutePlanBindingTarget;
 
 use super::{
     class::{ForgeQueryDeclarationRoutePlanClass, ForgeQueryLowerAuthorityRouteFamily},
@@ -112,6 +113,10 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         &self.route_plan_digest
     }
 
+    pub fn binding_target(&self) -> ForgeQueryDeclarationRoutePlanBindingTarget {
+        ForgeQueryDeclarationRoutePlanBindingTarget::for_route_plan(self)
+    }
+
     pub fn foundational_evidence(&self) -> &ForgeQueryDeclarationFoundationalEvidence<D, I> {
         &self.evidence
     }
@@ -171,8 +176,8 @@ fn derive_route_plan_digest<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclara
             "declaration:{:?}",
             progressed.canonical_declaration().declaration_digest()
         ),
+        format!("support:{}", evidence.support_digest()),
         format!("progression:{}", progressed.progression_digest()),
-        format!("evidence:{:?}", evidence.attachment_bundle_digest()),
     ];
     if let Some(intent) = route_intent {
         parts.push(format!("intent:{}", intent.as_str()));

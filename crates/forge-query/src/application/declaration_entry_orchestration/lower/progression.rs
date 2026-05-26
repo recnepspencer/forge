@@ -1,6 +1,7 @@
 use crate::application::{
     ForgeQueryDeclarationEntryOrchestrationDeferred, ForgeQueryDeclarationEntryOrchestrationDenied,
     ForgeQueryDeclarationEntryOrchestrationFailed, ForgeQueryDeclarationEntryOrchestrationOutcome,
+    ForgeQueryDeclarationEntryOrchestrationPlan,
     ForgeQueryDeclarationEntryOrchestrationRebindRequired,
     ForgeQueryDeclarationEntryOrchestrationStage,
     ForgeQueryDeclarationEntryOrchestrationStageRecord,
@@ -17,6 +18,7 @@ pub(super) fn lower_from_progression_checked<
     I: ForgeQueryDeclarationInput<D>,
 >(
     handle: &crate::application::ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
+    plan: &ForgeQueryDeclarationEntryOrchestrationPlan<D, I>,
     automation_context: &ForgeQueryDeclarationEntryOrchestrationAutomationContext<'_>,
     step_records: &mut Vec<ForgeQueryDeclarationEntryOrchestrationStageRecord>,
     checked: ForgeQueryDeclarationProgressionChecked<D, I>,
@@ -29,7 +31,7 @@ pub(super) fn lower_from_progression_checked<
                     Some(progressed.progression_digest().to_string()),
                 ),
             );
-            lower_from_progressed(handle, automation_context, step_records, progressed)
+            lower_from_progressed(handle, plan, automation_context, step_records, progressed)
         }
         ForgeQueryDeclarationProgressionChecked::Deferred(progress) => {
             let digest = Some(progress.progression_digest().to_string());

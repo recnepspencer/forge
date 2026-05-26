@@ -1,6 +1,10 @@
 use crate::application::{ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker};
 use crate::identity::hash_parts;
 
+use super::super::materialization::{
+    ForgeQueryDeclarationEntryOrchestrationCostPosture,
+    ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy,
+};
 use super::super::sequencing::ForgeQueryDeclarationEntryOrchestrationAutomationBoundary;
 use super::outcome::ForgeQueryDeclarationEntryOrchestrationOutcome;
 use super::plan::ForgeQueryDeclarationEntryOrchestrationPlan;
@@ -74,6 +78,16 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn automation_boundary(&self) -> ForgeQueryDeclarationEntryOrchestrationAutomationBoundary {
         self.plan.automation_boundary()
+    }
+
+    pub fn materialization_policy(
+        &self,
+    ) -> &ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy {
+        self.plan.materialization_policy()
+    }
+
+    pub fn cost_posture(&self) -> ForgeQueryDeclarationEntryOrchestrationCostPosture {
+        self.plan.cost_posture()
     }
 }
 

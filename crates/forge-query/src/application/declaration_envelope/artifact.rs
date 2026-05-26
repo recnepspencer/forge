@@ -7,6 +7,7 @@ use crate::application::{
     ForgeQueryDeclarationReceiptFailed, ForgeQueryDeclarationRoutePlan,
     ForgeQueryDeclarationRoutePlanDenialCause, ForgeQueryDomainEntryMarker,
 };
+use crate::target_binding::ForgeQueryDeclarationEnvelopeBindingTarget;
 
 use super::{
     class::{ForgeQueryDeclarationEnvelopeClass, ForgeQueryDeclarationEnvelopeEvidenceOrigin},
@@ -177,6 +178,10 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn envelope_digest(&self) -> &CanonicalDerivedDigest {
         &self.envelope_digest
+    }
+
+    pub fn binding_target(&self) -> ForgeQueryDeclarationEnvelopeBindingTarget {
+        ForgeQueryDeclarationEnvelopeBindingTarget::for_envelope(self)
     }
 
     pub fn foundational_evidence(&self) -> &ForgeQueryDeclarationFoundationalEvidence<D, I> {

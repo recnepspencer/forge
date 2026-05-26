@@ -1,3 +1,4 @@
+use super::super::materialization::ForgeQueryDeclarationEntryOrchestrationMaterializationTier;
 use super::super::sequencing::{
     automation_step_for_stage, ForgeQueryDeclarationEntryOrchestrationAutomationStep,
 };
@@ -68,6 +69,7 @@ pub struct ForgeQueryDeclarationEntryOrchestrationStageRecord {
     disposition: ForgeQueryDeclarationEntryOrchestrationStepDisposition,
     retained_digest: Option<String>,
     reason: Option<&'static str>,
+    materialization_tier: Option<ForgeQueryDeclarationEntryOrchestrationMaterializationTier>,
 }
 
 impl ForgeQueryDeclarationEntryOrchestrationStageRecord {
@@ -183,7 +185,16 @@ impl ForgeQueryDeclarationEntryOrchestrationStageRecord {
             disposition,
             retained_digest,
             reason,
+            materialization_tier: None,
         }
+    }
+
+    pub(crate) fn with_materialization_tier(
+        mut self,
+        materialization_tier: ForgeQueryDeclarationEntryOrchestrationMaterializationTier,
+    ) -> Self {
+        self.materialization_tier = Some(materialization_tier);
+        self
     }
 
     pub fn stage(&self) -> ForgeQueryDeclarationEntryOrchestrationStage {
@@ -204,6 +215,12 @@ impl ForgeQueryDeclarationEntryOrchestrationStageRecord {
 
     pub fn reason(&self) -> Option<&'static str> {
         self.reason
+    }
+
+    pub fn materialization_tier(
+        &self,
+    ) -> Option<ForgeQueryDeclarationEntryOrchestrationMaterializationTier> {
+        self.materialization_tier
     }
 
     pub fn is_reached(&self) -> bool {

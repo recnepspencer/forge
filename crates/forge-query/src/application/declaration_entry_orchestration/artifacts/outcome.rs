@@ -150,6 +150,15 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     pub fn is_automation_refusal(&self) -> bool {
         matches!(self, Self::Refused(_))
     }
+
+    pub fn is_expensive_work_refusal(&self) -> bool {
+        matches!(
+            self,
+            Self::Refused(outcome)
+                if outcome.refusal_class()
+                    == super::refusal::ForgeQueryDeclarationEntryOrchestrationRefusalClass::ExpensiveWorkNotAdmittedByDefault
+        )
+    }
 }
 
 fn terminal_identity(kind: &str, outcome: &dyn TerminalOutcomeView) -> String {
