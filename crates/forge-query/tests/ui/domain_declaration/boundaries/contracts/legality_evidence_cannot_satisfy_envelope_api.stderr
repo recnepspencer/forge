@@ -1,0 +1,24 @@
+error[E0277]: `ForgeQueryDeclarationAdmissionOrLegalityError<GeometryDomain, SplitEdgeDeclaration>` doesn't implement `Debug`
+  --> tests/ui/domain_declaration/boundaries/contracts/legality_evidence_cannot_satisfy_envelope_api.rs:71:65
+   |
+71 |     let legal = handle.declare_and_review(SplitEdgeDeclaration).unwrap();
+   |                                                                 ^^^^^^ the trait `Debug` is not implemented for `ForgeQueryDeclarationAdmissionOrLegalityError<GeometryDomain, SplitEdgeDeclaration>`
+   |
+note: required by a bound in `std::result::Result::<T, E>::unwrap`
+  --> $RUST/core/src/result.rs
+
+error[E0308]: mismatched types
+  --> tests/ui/domain_declaration/boundaries/contracts/legality_evidence_cannot_satisfy_envelope_api.rs:73:88
+   |
+73 |     let _ = handle.envelope_routes(ForgeQueryDeclarationEnvelopeInput::receipt_checked(legal));
+   |                                    --------------------------------------------------- ^^^^^ expected `ForgeQueryDeclarationReceiptChecked<..., _>`, found `ForgeQueryDeclarationLegalityEvidence<..., ...>`
+   |                                    |
+   |                                    arguments to this function are incorrect
+   |
+   = note: expected enum `ForgeQueryDeclarationReceiptChecked<GeometryDomain, _>`
+            found struct `ForgeQueryDeclarationLegalityEvidence<GeometryDomain, SplitEdgeDeclaration>`
+note: associated function defined here
+  --> src/application/declaration_envelope/input.rs
+   |
+   |     pub fn receipt_checked(checked: ForgeQueryDeclarationReceiptChecked<D, I>) -> Self {
+   |            ^^^^^^^^^^^^^^^

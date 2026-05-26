@@ -15,6 +15,15 @@ of domain work you are trying to do:
 - [Declaration Legality](./declaration-legality.md)
 - [Declaration Progression](./declaration-progression.md)
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
+- [Declaration Route Plans](./declaration-route-plan.md)
+- [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
+- [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
+- [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
+- [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
+- [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
+- [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
+- [Declaration Entry Inspection](./declaration-entry-inspection.md)
+- [Declaration Entry Readiness](./declaration-entry-readiness.md)
 - `admission/`
   - [Advisory And Violation Contributions](./admission/advisory-and-violation-contributions.md)
   - [Declaration Vs Admitted-Plan Targets](./admission/declaration-vs-admitted-plan-targets.md)
@@ -72,6 +81,32 @@ one typed deferred/denied/stale/rebind/failed outcome. Use
 [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
 when you need to describe retained legality or progression truth through shared
 foundational provenance, support, receipt, and attachment-bundle artifacts.
+Use [Declaration Route Plans](./declaration-route-plan.md) when you need one
+Query-owned route plan over admitted progression proof plus matching
+foundational evidence, with explicit route sets, typed caller route intent,
+and plan-local explanations. Use
+[Declaration Boundary Receipts](./declaration-boundary-receipts.md) when you
+need the Query-owned operational crossing artifact that records what followed
+from that route truth. Use
+[Declaration Boundary Envelopes](./declaration-boundary-envelopes.md) when you
+need the one public artifact that carries retained evidence, route truth, and
+receipt truth forward together. Use
+[Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
+when that public crossing story needs to bind into one real relational
+truth-authority family. Use
+[Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
+when that same public crossing story needs to bind into one real bridge
+continuation family. Use
+[Declaration Signal Compatibility](./declaration-signal-compatibility.md)
+when you need to freeze whether that retained declaration story is later
+eligible for Signal-backed derived execution.
+[Declaration Entry Orchestration](./declaration-entry-orchestration.md)
+when you want one admitted-handle front door over the declaration-entry
+pipeline through the current envelope ceiling.
+[Declaration Entry Inspection](./declaration-entry-inspection.md)
+when you need one unified read surface over that retained seam story. Use
+[Declaration Entry Readiness](./declaration-entry-readiness.md) when you need
+family-level seam support posture and executable crossing inventory rows.
 
 ## Declaration Pipeline Surface Map
 
@@ -103,6 +138,53 @@ order:
   - `describe_foundational(...)`
   - `describe_foundational_checked(...)`
   - `describe_foundational_with_profile(...)`
+- route planning:
+  - `plan_routes(...)`
+  - `plan_routes_checked(...)`
+  - `plan_routes_from_progressed(...)`
+  - `plan_routes_from_progressed_with_intent(...)`
+  - `declare_review_progress_describe_and_plan(...)`
+- boundary receipts:
+  - `receipt_routes(...)`
+  - `receipt_routes_checked(...)`
+  - `receipt_routes_from_progressed(...)`
+  - `receipt_routes_from_progressed_with_intent(...)`
+  - `declare_review_progress_describe_plan_and_receipt(...)`
+- boundary envelopes:
+  - `envelope_routes(...)`
+  - `envelope_routes_checked(...)`
+  - `envelope_routes_from_progressed(...)`
+  - `envelope_routes_from_progressed_with_intent(...)`
+  - `declare_review_progress_describe_plan_receipt_and_envelope(...)`
+- relational truth routing:
+  - `route_relational_truth(...)`
+  - `route_relational_truth_checked(...)`
+  - `route_relational_truth_from_progressed(...)`
+  - `route_relational_truth_from_progressed_with_intent(...)`
+  - `declare_review_progress_describe_plan_receipt_envelope_and_route_relational_truth(...)`
+  - `relational_truth_support::<I>()`
+- bridge continuation routing:
+  - `route_bridge_continuation(...)`
+  - `route_bridge_continuation_checked(...)`
+  - `route_bridge_continuation_from_progressed(...)`
+  - `route_bridge_continuation_from_progressed_with_intent(...)`
+  - `declare_review_progress_describe_plan_receipt_envelope_and_route_bridge_continuation(...)`
+  - `bridge_continuation_support::<I>()`
+- signal compatibility:
+  - `signal_compatibility(...)`
+  - `signal_compatibility_checked(...)`
+  - `signal_compatibility_from_progressed(...)`
+  - `signal_compatibility_from_progressed_with_intent(...)`
+  - `declare_review_progress_describe_plan_receipt_envelope_and_check_signal_compatibility(...)`
+  - `signal_compatibility_support::<I>()`
+- declaration-entry orchestration:
+  - `orchestrate_declaration_entry(...)`
+  - `orchestrate_declaration_entry_checked(...)`
+  - `orchestrate_declaration_entry_proof(...)`
+- seam-ledger projections:
+  - `declaration_entry_crossing_inventory::<I>()`
+  - `declaration_entry_readiness::<I>()`
+  - `inspect_declaration_entry(...)`
 
 The main retained public artifacts introduced along that path are:
 
@@ -110,6 +192,17 @@ The main retained public artifacts introduced along that path are:
 - `ForgeQueryDeclarationLegalityEvidence`
 - `ForgeQueryAdmittedDeclarationProgression`
 - `ForgeQueryDeclarationFoundationalEvidence`
+- `ForgeQueryDeclarationRoutePlan`
+- `ForgeQueryDeclarationReceipt`
+- `ForgeQueryDeclarationEnvelope`
+- `ForgeQueryDeclarationRelationalRouting`
+- `ForgeQueryDeclarationBridgeRouting`
+- `ForgeQueryDeclarationSignalCompatibility`
+- `ForgeQueryDeclarationEntryOrchestrationChecked`
+- `ForgeQueryDeclarationEntryOrchestrationProof`
+- `ForgeQueryDeclarationEntryCrossingInventory`
+- `ForgeQueryDeclarationEntryInspection`
+- `ForgeQueryDeclarationEntryReadinessReport`
 
 The main checked and denied families are:
 
@@ -123,6 +216,25 @@ The main checked and denied families are:
 - `ForgeQueryDeclarationEntryProgressionError`
 - `ForgeQueryDeclarationFoundationalEvidenceChecked`
 - `ForgeQueryDeclarationFoundationalEvidenceDenial`
+- `ForgeQueryDeclarationRoutePlanChecked`
+- `ForgeQueryDeclarationRoutePlanTerminalError`
+- `ForgeQueryDeclarationEntryRoutePlanError`
+- `ForgeQueryDeclarationReceiptChecked`
+- `ForgeQueryDeclarationReceiptTerminalError`
+- `ForgeQueryDeclarationEntryReceiptError`
+- `ForgeQueryDeclarationEnvelopeChecked`
+- `ForgeQueryDeclarationEnvelopeTerminalError`
+- `ForgeQueryDeclarationEntryEnvelopeError`
+- `ForgeQueryDeclarationRelationalRoutingChecked`
+- `ForgeQueryDeclarationRelationalRoutingTerminalError`
+- `ForgeQueryDeclarationEntryRelationalRoutingError`
+- `ForgeQueryDeclarationBridgeRoutingChecked`
+- `ForgeQueryDeclarationBridgeRoutingTerminalError`
+- `ForgeQueryDeclarationEntryBridgeRoutingError`
+- `ForgeQueryDeclarationSignalCompatibilityChecked`
+- `ForgeQueryDeclarationSignalCompatibilityTerminalError`
+- `ForgeQueryDeclarationEntrySignalCompatibilityError`
+- `ForgeQueryDeclarationEntryOrchestrationTerminalError`
 
 Start here if:
 

@@ -1,0 +1,16 @@
+error[E0624]: associated function `new` is private
+  --> tests/ui/domain_declaration/boundaries/construction/relational_routing/relational_routing_constructor_is_private.rs:53:53
+   |
+53 |       let _ = ForgeQueryDeclarationRelationalRouting::new(
+   |                                                       ^^^ private associated function
+   |
+  ::: src/application/declaration_relational_routing/artifact.rs
+   |
+   | /     pub(crate) fn new(
+   | |         class: ForgeQueryDeclarationRelationalRoutingClass,
+   | |         truth_claim: ForgeQueryDeclarationRelationalTruthClaim,
+   | |         authority_family: ForgeQueryDeclarationRelationalAuthorityFamily,
+...  |
+   | |         explanation: ForgeQueryDeclarationRelationalRoutingExplanation,
+   | |     ) -> Self {
+   | |_____________- private associated function defined here

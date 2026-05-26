@@ -91,3 +91,14 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         self.recipe.payload().operating_context_identity_digest()
     }
 }
+
+impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>> Clone
+    for ForgeQueryAdmittedDeclarationProgression<D, I>
+{
+    fn clone(&self) -> Self {
+        Self {
+            recipe: self.recipe.clone(),
+            progression_digest: self.progression_digest.clone(),
+        }
+    }
+}

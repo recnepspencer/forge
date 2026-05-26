@@ -136,17 +136,16 @@ declare_tag!(
 impl<D, F> ForgeQueryDeclarationSupportsRelationalTruth<D> for F
 where
     D: ForgeQueryDomainEntryMarker,
-    F: ForgeQueryDeclarationFamilyMarker<D, PrimaryAuthority = ForgeQueryRelationalTruthAuthority>,
+    F: ForgeQueryDeclarationFamilyMarker<D>,
+    F::PrimaryAuthority: ForgeQueryRelationalTruthCapableAuthorityTag,
 {
 }
 
 impl<D, F> ForgeQueryDeclarationSupportsBridgeContinuation<D> for F
 where
     D: ForgeQueryDomainEntryMarker,
-    F: ForgeQueryDeclarationFamilyMarker<
-        D,
-        PrimaryAuthority = ForgeQueryBridgeContinuationAuthority,
-    >,
+    F: ForgeQueryDeclarationFamilyMarker<D>,
+    F::PrimaryAuthority: ForgeQueryBridgeContinuationCapableAuthorityTag,
 {
 }
 
@@ -180,3 +179,18 @@ impl ForgeQueryNeighborhoodCapableGroupingTag for ForgeQueryNeighborhoodCapableG
 impl ForgeQueryNeighborhoodCapableGroupingTag for ForgeQueryNeighborhoodAndBatchCapableGrouping {}
 impl ForgeQueryBatchCapableGroupingTag for ForgeQueryBatchCapableGrouping {}
 impl ForgeQueryBatchCapableGroupingTag for ForgeQueryNeighborhoodAndBatchCapableGrouping {}
+
+pub trait ForgeQueryRelationalTruthCapableAuthorityTag:
+    ForgeQueryDeclarationPrimaryAuthorityTag
+{
+}
+
+pub trait ForgeQueryBridgeContinuationCapableAuthorityTag:
+    ForgeQueryDeclarationPrimaryAuthorityTag
+{
+}
+
+impl ForgeQueryRelationalTruthCapableAuthorityTag for ForgeQueryRelationalTruthAuthority {}
+impl ForgeQueryRelationalTruthCapableAuthorityTag for ForgeQueryMixedAuthority {}
+impl ForgeQueryBridgeContinuationCapableAuthorityTag for ForgeQueryBridgeContinuationAuthority {}
+impl ForgeQueryBridgeContinuationCapableAuthorityTag for ForgeQueryMixedAuthority {}
