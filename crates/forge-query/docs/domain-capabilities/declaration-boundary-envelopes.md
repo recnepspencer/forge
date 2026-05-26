@@ -257,6 +257,9 @@ Use receipts when you need the operational crossing artifact itself. Use
 envelopes when you need the one self-describing public artifact that keeps
 retained evidence, route truth, and receipt truth together for later
 inspection or recovery work. Use
+[Declaration Entry Orchestration](./declaration-entry-orchestration.md) when
+you want Query to own the full declaration-entry lowering path through the
+current envelope ceiling. Use
 [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
 when that same public crossing story needs to bind into relational truth
 authority. Use
@@ -265,11 +268,6 @@ when it needs to bind into bridge continuation authority. Use
 [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 when you need to freeze whether that retained crossing story can later
 continue into Signal-backed derived execution.
-when that public envelope now needs to bind to one lower relational truth
-authority family. Use
-[Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
-when that same public envelope now needs to bind to one lower bridge
-continuation family.
 
 ## Inspection And Debugging
 
@@ -328,7 +326,6 @@ over retained receipt truth. They still do not provide:
 - relational truth routing on their own; that begins in the next boundary
 - bridge continuation routing on their own; that begins in the next boundary
 - grouped declaration envelopes
-- a later unified inspection surface over multiple declaration envelopes
 - lower-authority execution internals beyond the retained route and receipt
   artifacts they compose
 
@@ -336,6 +333,7 @@ over retained receipt truth. They still do not provide:
 
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
+- [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)

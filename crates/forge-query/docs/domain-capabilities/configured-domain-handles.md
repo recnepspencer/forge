@@ -122,6 +122,12 @@ Admitted-handle seam-ledger entry points:
 - `declaration_entry_readiness::<I>() -> ForgeQueryDeclarationEntryReadinessReport<D, I>`
 - `inspect_declaration_entry(subject) -> Result<ForgeQueryDeclarationEntryInspection<D, I>, ForgeQueryDeclarationEntryInspectionError<D, I>>`
 
+Admitted-handle orchestration entry points:
+
+- `orchestrate_declaration_entry(input) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEntryOrchestrationTerminalError<D, I>>`
+- `orchestrate_declaration_entry_checked(input) -> ForgeQueryDeclarationEntryOrchestrationChecked<D, I>`
+- `orchestrate_declaration_entry_proof(input) -> ForgeQueryDeclarationEntryOrchestrationProof<D, I>`
+
 Checked admission outcomes:
 
 - `ForgeQueryConfiguredDomainHandleChecked::Admitted(ForgeQueryAdmittedConfiguredDomainHandle<D, C>)`
@@ -142,8 +148,9 @@ It is the stable admitted world that later declaration work is allowed to
 depend on.
 
 That same admitted world is also the ownership boundary for declaration-entry
-inventory, readiness, and inspection. Seam-ledger projections reject retained
-artifacts from the wrong admitted handle or operating world.
+inventory, readiness, inspection, and declaration-entry orchestration.
+Seam-ledger projections and orchestration both reject retained artifacts from
+the wrong admitted handle or operating world.
 
 That means it should carry stable regime facts such as:
 
@@ -378,6 +385,12 @@ progression, and foundational evidence surfaces consume. Those later features
 should not call back into the operating-context object and rediscover world
 identity on their own.
 
+Once the handle is admitted, it is also the stable front door for the current
+declaration-entry orchestration ceiling. You do not need to manually chain
+declaration review, legality, progression, foundational description, route
+planning, receipt, and envelope calls unless you specifically want one of those
+intermediate artifacts directly.
+
 ## Inspection And Debugging
 
 The most useful inspection points are:
@@ -420,6 +433,7 @@ They do not yet provide:
 - declaration relational truth routing by themselves
 - declaration bridge continuation routing by themselves
 - declaration signal compatibility by themselves
+- declaration-entry orchestration beyond the retained envelope ceiling
 - dynamic operation eligibility
 - preview, historical, or runtime basis binding
 - lower-authority routing
@@ -437,6 +451,7 @@ They do not yet provide:
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
+- [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
 - [Declaration Entry Readiness](./declaration-entry-readiness.md)
 - [Platform Entry](./platform-entry.md)

@@ -2103,6 +2103,17 @@ domain-capability contribution seam.
   contribution posture when present, including declaration support,
   advisory/violation posture, and broader declaration-scoped contribution
   categories that materially affect readiness truth
+- this composition must be on-demand through Query-owned composition inputs or
+  request surfaces; the seam ledger must not pretend it discovered domain
+  contribution evidence automatically from ambient state or hidden registries
+- declaration-bound contribution evidence may compose directly against retained
+  declaration-entry seam subjects, but admitted-plan-bound and
+  lower-runtime-bound contribution categories must require matching retained
+  downstream proof explicitly rather than being inferred from declaration-entry
+  posture alone
+- support/readiness composition must admit a retained-subject-aware path so
+  Query can fail closed on wrong-handle, wrong-world, or mismatched
+  declaration-digest posture before contribution composition succeeds
 - this composition must preserve the distinction between entry-phase truth and
   contribution-phase meaning; it may compose them, but it may not flatten them
   into one unlabeled summary bucket
@@ -2117,6 +2128,10 @@ domain-capability contribution seam.
 - composition tests proving declaration-scoped `9.3.7` support/readiness
   posture is visible through the platform-entry support matrix without a second
   support system
+- hostile tests proving admitted-plan-bound and lower-runtime-bound
+  contribution categories are accepted only when matching retained downstream
+  proof is attached, and rejected with typed composition mismatch posture when
+  that proof is absent or wrong
 - hostile tests proving entry-phase denial/readiness truth and contribution-
   phase advisory/violation/support meaning remain distinct when both are
   present
@@ -2134,6 +2149,9 @@ implementation.
 - one explicit statement of the canonical pipeline shared by ordinary,
   checked, and proof-visible surfaces
 - one typed refusal posture saying when automation must stop instead of guess
+- one explicit lowering-boundary rule saying how far ordinary orchestration is
+  admitted to progress before later phases define richer orchestration
+  artifacts
 
 **Locked local and adjacent references**
 
@@ -2143,6 +2161,9 @@ implementation.
   one canonical pipeline, not rival implementations
 - `9.3.8` declaration-entry and `9.3.7` contribution lifecycle remain one
   sequential Query pipeline under this phase and later orchestration phases
+- ordinary orchestration may shorten caller-owned choreography, but it may not
+  erase route-plan, receipt, envelope, seam-ledger, or contribution meaning
+  that earlier phases already froze as retained Query artifacts
 
 **Requirements**
 
@@ -2152,15 +2173,38 @@ implementation.
 - orchestration may automate sequencing only where admitted operating-world
   proof, canonical declaration proof, legality evidence, progression proof,
   and later retained crossing artifacts already justify that automation
+- the ordinary surface must expose typed refusal posture for at least these
+  orchestration-stop classes whenever they differ semantically:
+  unsupported automation, explicit-intent-required, stronger-proof-required,
+  authority-transition-required, expensive-work-not-admitted-by-default, and
+  prepared-but-not-executed continuation posture
+- until later orchestration phases define richer execution products, ordinary
+  orchestration may lower only as far as the strongest already-admitted
+  retained Query artifact boundary. It may stop at declaration progression,
+  foundational description, route plan, receipt, envelope, or other later
+  retained seam artifacts as admitted, but it may not silently imply that
+  farther continuation or execution already happened
 - the ordinary surface must preserve typed denial, advisory, unsupported,
   deferred, stale, rebind-required, authority-transition, receipt, envelope,
   and transcript posture as first-class outcomes rather than escape hatches
+- for the first public admitted-orchestration ceiling, ordinary success must
+  return the retained declaration envelope rather than inventing a broader
+  execution or continuation product early
 - checked and proof-visible surfaces must remain explicit visibility levels
   over the same pipeline rather than turning the ordinary surface into the only
   real implementation path
+- the first proof-visible surface may stay intentionally thin, but its stage
+  records must still identify the farthest retained declaration-entry boundary
+  actually crossed and the real stop stage for the semantic outcome Query
+  returned
 - orchestration must stay handle-bound and proof-preserving; it may not
   re-bind operating worlds, basis facts, or lower-authority facts through
   parallel helper parameters later in the flow
+- orchestration may not silently cross meaningful cost, authority, or
+  continuation boundaries. Expensive continuation, basis rebinding,
+  lower-authority execution, and contribution-side effects must remain explicit
+  unless a later orchestration phase defines an admitted typed contract for
+  that exact automation
 
 **DX target**
 
@@ -2187,6 +2231,10 @@ implementation.
   converge for the same admitted declaration-entry intent
 - hostile tests proving the ordinary surface refuses unsupported automation
   rather than inventing it by convenience
+- proof-visible stage-record suites proving the reported stop boundary matches
+  the farthest retained declaration-entry boundary actually crossed for the
+  checked/ordinary semantic outcome, including route-level non-success paths
+  that still lower through receipt truth before stopping
 
 **Open questions before implementation**
 
@@ -2233,6 +2281,11 @@ of helper methods by giving it its own typed artifact family.
 - transcript-bearing and non-transcript-bearing surfaces must still share the
   same canonical orchestration identity where semantics are identical
 
+**Documentation obligation**
+
+- yes; this phase must teach the public orchestration artifact families and how
+  they differ from later richer transcript, policy, and continuation products
+
 **Acceptance evidence**
 
 - canonical digest parity for equivalent orchestration inputs across exposure
@@ -2270,6 +2323,11 @@ singular instead of fragmenting into too many equal helper paths.
 - verbs that imply expensive work, runtime continuation, workspace entry, or
   basis binding must advertise that boundary in the API shape rather than
   masquerading as cheap getters
+
+**Documentation obligation**
+
+- yes; this phase must be taught explicitly because the public verb grammar is
+  the main caller-facing map of the orchestration surface
 
 **Acceptance evidence**
 
@@ -2310,6 +2368,11 @@ and exactly where it must refuse automation.
   unsupported surface breadth, missing proof, explicit expensive-work
   requirement, authority-transition requirement, or family-specific non-admission
 
+**Documentation obligation**
+
+- yes; the canonical sequencing story and its refusal boundaries must be taught
+  so ordinary orchestration does not look like hidden host-local convenience
+
 **Acceptance evidence**
 
 - parity suites showing explicit phase-by-phase declaration-entry progression
@@ -2342,6 +2405,11 @@ stays ergonomically strong without becoming cost-dishonest.
 - artifact-richness policy must stay separate from semantic meaning: richer
   transcripts and richer descriptive artifacts may increase visibility but may
   not change canonical orchestration truth
+
+**Documentation obligation**
+
+- yes; this phase must explain ordinary defaults, explicit cost gates, and the
+  difference between richer visibility and changed orchestration meaning
 
 **Acceptance evidence**
 
@@ -2383,6 +2451,11 @@ orchestration products without turning them into hidden internals.
   wrong-handle or wrong-world retained artifacts before later continuation or
   contribution composition can proceed
 
+**Documentation obligation**
+
+- yes; route, receipt, and envelope orchestration must be documented as public
+  products rather than treated as internal sequencing details
+
 **Acceptance evidence**
 
 - parity suites proving orchestrated route/receipt/envelope products converge
@@ -2416,6 +2489,11 @@ non-success posture the explicit surfaces already know how to expose.
 - ordinary outcomes must remain concise, but the concise surface must still map
   exactly onto the same typed denial topology visible through checked and
   proof-visible surfaces
+
+**Documentation obligation**
+
+- yes; this phase must teach how ordinary denial posture stays concise without
+  flattening the typed topology behind it
 
 **Acceptance evidence**
 
@@ -2470,6 +2548,12 @@ truth context, basis identity, authority, or execution cost.
   continuation" rather than "assemble adapters, bind basis, enter workspace,
   then call the bridge"
 
+**Documentation obligation**
+
+- yes; runtime/workspace/basis continuation must be taught carefully because it
+  is the first orchestration layer where DX can easily become structurally
+  dishonest
+
 **Acceptance evidence**
 
 - end-to-end examples proving representative declarations can continue into
@@ -2500,6 +2584,11 @@ typed compatibility denials.
   posture
 - compatibility must remain a declaration-to-derived-execution boundary rather
   than silently turning into actual signal execution
+
+**Documentation obligation**
+
+- yes; this phase must teach the distinction between compatibility,
+  continuation preparation, and actual derived execution
 
 **Acceptance evidence**
 
@@ -2532,6 +2621,11 @@ second public grammar seam.
 - contribution evidence, denial posture, support posture, and grouped-target
   semantics must remain typed and inspectable inside orchestration products
 
+**Documentation obligation**
+
+- yes; this phase must explicitly teach how contribution composition enters the
+  orchestration story without creating a second public grammar seam
+
 **Acceptance evidence**
 
 - composition tests proving `9.3.8` entry orchestration and `9.3.7`
@@ -2562,6 +2656,12 @@ under growth.
   matching transcript/inventory/support/doc/certification coverage
 - transcript inventory must preserve prepared-vs-executed continuation posture,
   contribution composition posture, and denial topology where those matter
+
+**Documentation obligation**
+
+- yes; this phase must define and teach the inventory/transcript/doc
+  synchronization contract because it is the main anti-drift mechanism for the
+  orchestration layer
 
 **Acceptance evidence**
 

@@ -21,6 +21,7 @@ of domain work you are trying to do:
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
+- [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
 - [Declaration Entry Readiness](./declaration-entry-readiness.md)
 - `admission/`
@@ -99,6 +100,9 @@ continuation family. Use
 [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 when you need to freeze whether that retained declaration story is later
 eligible for Signal-backed derived execution.
+[Declaration Entry Orchestration](./declaration-entry-orchestration.md)
+when you want one admitted-handle front door over the declaration-entry
+pipeline through the current envelope ceiling.
 [Declaration Entry Inspection](./declaration-entry-inspection.md)
 when you need one unified read surface over that retained seam story. Use
 [Declaration Entry Readiness](./declaration-entry-readiness.md) when you need
@@ -173,6 +177,10 @@ order:
   - `signal_compatibility_from_progressed_with_intent(...)`
   - `declare_review_progress_describe_plan_receipt_envelope_and_check_signal_compatibility(...)`
   - `signal_compatibility_support::<I>()`
+- declaration-entry orchestration:
+  - `orchestrate_declaration_entry(...)`
+  - `orchestrate_declaration_entry_checked(...)`
+  - `orchestrate_declaration_entry_proof(...)`
 - seam-ledger projections:
   - `declaration_entry_crossing_inventory::<I>()`
   - `declaration_entry_readiness::<I>()`
@@ -190,6 +198,8 @@ The main retained public artifacts introduced along that path are:
 - `ForgeQueryDeclarationRelationalRouting`
 - `ForgeQueryDeclarationBridgeRouting`
 - `ForgeQueryDeclarationSignalCompatibility`
+- `ForgeQueryDeclarationEntryOrchestrationChecked`
+- `ForgeQueryDeclarationEntryOrchestrationProof`
 - `ForgeQueryDeclarationEntryCrossingInventory`
 - `ForgeQueryDeclarationEntryInspection`
 - `ForgeQueryDeclarationEntryReadinessReport`
@@ -224,6 +234,7 @@ The main checked and denied families are:
 - `ForgeQueryDeclarationSignalCompatibilityChecked`
 - `ForgeQueryDeclarationSignalCompatibilityTerminalError`
 - `ForgeQueryDeclarationEntrySignalCompatibilityError`
+- `ForgeQueryDeclarationEntryOrchestrationTerminalError`
 
 Start here if:
 
