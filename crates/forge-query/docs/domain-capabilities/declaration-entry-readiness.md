@@ -97,6 +97,9 @@ That means:
 6. stronger admitted-plan-bound and lower-runtime-bound contribution categories
    require matching retained downstream proof explicitly; readiness does not
    infer that proof from family posture alone
+7. the narrower relational, bridge, and signal support helpers remain
+   entry-phase-only seam projections; declaration-entry readiness is the
+   composed public support surface when contribution evidence matters
 
 Readiness is not a substitute for retained inspection of a concrete declaration
 artifact. It answers family-level seam posture, not concrete legality or
@@ -165,6 +168,9 @@ Use readiness when you need to know:
   the family-level readiness answer
 - whether attached contribution evidence actually matches one retained
   declaration-entry subject before composition is admitted
+- whether stronger admitted-plan-bound or lower-runtime-bound contribution
+  targets were backed by matching retained downstream proof rather than family
+  posture alone
 
 ## Anti-Patterns
 
@@ -196,6 +202,7 @@ Use readiness when you need to know:
 
 ## Related Docs
 
+- [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Configured Domain Handles](./configured-domain-handles.md)

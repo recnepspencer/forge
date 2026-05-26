@@ -97,6 +97,9 @@ That means:
 6. stronger admitted-plan-bound and lower-runtime-bound contribution categories
    require matching retained downstream proof explicitly; they are not inferred
    from declaration-entry posture alone
+7. the narrower relational, bridge, and signal support helpers remain
+   entry-phase-only projections; they do not become contribution-composed
+   inspection surfaces just because contribution evidence is attached here
 
 If a stronger lower seam artifact is missing, inspection keeps that absence
 honest and falls back to readiness posture for that layer.
@@ -152,6 +155,8 @@ Use inspection when you need to answer:
 - what route and receipt posture was retained?
 - did the seam reach relational, bridge, or signal posture?
 - which declaration-scoped domain contribution evidence was explicitly attached?
+- whether attached admitted-plan or lower-runtime proof actually justified the
+  stronger contribution target families that were supplied
 - which seam-ledger rows explain the retained crossing?
 
 ## Anti-Patterns
@@ -184,6 +189,7 @@ Use inspection when you need to answer:
 
 ## Related Docs
 
+- [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Declaration Entry Readiness](./declaration-entry-readiness.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)

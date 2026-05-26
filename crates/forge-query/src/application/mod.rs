@@ -3,6 +3,7 @@ mod config;
 mod declaration;
 mod declaration_bridge_routing;
 mod declaration_capability;
+mod declaration_entry_orchestration;
 mod declaration_entry_seam;
 mod declaration_envelope;
 mod declaration_evidence;
@@ -68,6 +69,18 @@ pub use declaration_capability::{
     ForgeQueryRelationalTruthDeclaration, ForgeQuerySignalCompatibleDeclaration,
     ForgeQuerySignalCompatiblePosture, ForgeQuerySignalDeferredPosture,
     ForgeQuerySignalNotCompatiblePosture, ForgeQuerySingleOnlyGrouping,
+};
+pub use declaration_entry_orchestration::{
+    ForgeQueryDeclarationEntryOrchestrationChecked,
+    ForgeQueryDeclarationEntryOrchestrationDeferred, ForgeQueryDeclarationEntryOrchestrationDenied,
+    ForgeQueryDeclarationEntryOrchestrationFailed, ForgeQueryDeclarationEntryOrchestrationProof,
+    ForgeQueryDeclarationEntryOrchestrationRebindRequired,
+    ForgeQueryDeclarationEntryOrchestrationRefusal,
+    ForgeQueryDeclarationEntryOrchestrationRefusalClass,
+    ForgeQueryDeclarationEntryOrchestrationStage,
+    ForgeQueryDeclarationEntryOrchestrationStageRecord,
+    ForgeQueryDeclarationEntryOrchestrationStale,
+    ForgeQueryDeclarationEntryOrchestrationTerminalError,
 };
 pub use declaration_entry_seam::{
     ForgeQueryDeclarationEntryContributionCategoryFamily,
@@ -196,6 +209,11 @@ pub(crate) use declaration_bridge_routing::{
 };
 pub(crate) use declaration_capability::{
     forge_query_checked_family_declaration, forge_query_checked_family_support,
+};
+pub(crate) use declaration_entry_orchestration::{
+    forge_query_checked_declaration_entry_orchestration_on_handle,
+    forge_query_declaration_entry_orchestration_on_handle,
+    forge_query_declaration_entry_orchestration_proof_on_handle,
 };
 pub(crate) use declaration_entry_seam::{
     forge_query_bridge_routing_support_from_entry_readiness,
