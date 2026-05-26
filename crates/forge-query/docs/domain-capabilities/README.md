@@ -102,11 +102,15 @@ when you need to freeze whether that retained declaration story is later
 eligible for Signal-backed derived execution.
 [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 when you want one admitted-handle front door over the declaration-entry
-pipeline through the current envelope ceiling.
+pipeline through the current envelope ceiling, with ordinary, checked, and
+proof-visible visibility levels over the same canonical lowering path and one
+locked automation sequence.
 [Declaration Entry Inspection](./declaration-entry-inspection.md)
-when you need one unified read surface over that retained seam story. Use
+when you need one unified read surface over retained seam artifacts after that
+lowering. Use
 [Declaration Entry Readiness](./declaration-entry-readiness.md) when you need
-family-level seam support posture and executable crossing inventory rows.
+family-level seam support posture and executable crossing inventory rows rather
+than one concrete orchestration or lowering run.
 
 ## Declaration Pipeline Surface Map
 
@@ -198,11 +202,46 @@ The main retained public artifacts introduced along that path are:
 - `ForgeQueryDeclarationRelationalRouting`
 - `ForgeQueryDeclarationBridgeRouting`
 - `ForgeQueryDeclarationSignalCompatibility`
+- `ForgeQueryDeclarationEntryOrchestrationInput`
+- `ForgeQueryDeclarationEntryOrchestrationPlan`
+- `ForgeQueryDeclarationEntryOrchestrationOutcome`
+- `ForgeQueryDeclarationEntryOrchestrationTranscript`
 - `ForgeQueryDeclarationEntryOrchestrationChecked`
 - `ForgeQueryDeclarationEntryOrchestrationProof`
 - `ForgeQueryDeclarationEntryCrossingInventory`
 - `ForgeQueryDeclarationEntryInspection`
 - `ForgeQueryDeclarationEntryReadinessReport`
+
+Use this quick chooser when the declaration-entry docs feel close together:
+
+- choose orchestration when Query should own the current declaration-entry
+  lowering path for one already-assembled declaration input
+- choose envelopes when you already have retained receipt-backed crossing truth
+  and want the public crossing artifact directly
+- choose inspection when you need one read artifact over retained seam truth
+- choose readiness when you need family-level seam posture before or beside one
+  concrete run
+
+The current public orchestration grammar is intentionally narrow:
+
+- `orchestrate_declaration_entry(...)`
+- `orchestrate_declaration_entry_checked(...)`
+- `orchestrate_declaration_entry_proof(...)`
+
+Treat that trio as the generic front door.
+Treat the earlier declaration, legality, progression, foundational, route,
+receipt, and envelope methods as the advanced explicit path.
+If you need the locked grammar as data, use
+`ForgeQueryDeclarationEntryOrchestrationVerbInventory::current()` and inspect
+its rows instead of inferring the surface from scattered examples.
+
+The orchestration front door also has one locked sequencing boundary:
+
+- Query starts after your session or tool resolved the user’s targets
+- Query automates admitted handle through envelope only
+- checked and proof-visible lanes keep stop posture and boundary honesty typed
+- `Refused` means automation stopped intentionally, not that Query flattened
+  every non-success posture into one error
 
 The main checked and denied families are:
 

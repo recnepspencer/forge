@@ -104,6 +104,12 @@ That means:
 If a stronger lower seam artifact is missing, inspection keeps that absence
 honest and falls back to readiness posture for that layer.
 
+Inspection is about retained declaration-entry seam artifacts such as
+envelopes, relational routing, bridge routing, and signal compatibility.
+It is not the read surface for orchestration transcripts. Proof-visible
+orchestration transcripts explain one orchestration run; inspection explains
+retained seam artifacts after the run.
+
 ## Small Example
 
 ```rust
@@ -126,7 +132,10 @@ let _ = inspection.readiness();
 
 ```rust
 let envelope = handle.envelope_routes_from_progressed(
-    handle.declare_review_and_progress(SplitEdgeAtMidpoint { edge_ref: "edge:42" })?,
+    handle.declare_review_and_progress(AttachFaceMaterialAssignment {
+        face_ref: "face:outer-wall-a",
+        material_ref: "material:fire-rated-plaster",
+    })?,
 )?;
 
 let evidence = ForgeQueryDeclarationEntryContributionEvidenceSet::new(vec![
@@ -165,6 +174,8 @@ Use inspection when you need to answer:
 - do not treat inspection as a lower-runtime execution surface
 - do not infer lower-authority success from readiness alone when there is no
   retained lower seam artifact
+- do not pass orchestration transcripts as though they were retained seam
+  subjects
 - do not attach workflow, continuity, or aftermath contribution evidence unless
   the retained seam subject is strong enough to justify those targets
 - do not assume admitted-plan-bound or lower-runtime-bound evidence will compose

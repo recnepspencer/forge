@@ -160,7 +160,10 @@ use forge_query::facade::{
 
 let receipt = handle.receipt_routes_from_progressed(
     handle.declare_review_and_progress(
-        SplitEdgeAtMidpoint { edge_ref: "edge:42" },
+        ReclassifyBoundaryLoop {
+            loop_ref: "loop:facade-west",
+            target_classification: "structural_opening",
+        },
     )?,
 )?;
 
@@ -189,7 +192,10 @@ use forge_query::facade::{
 };
 
 let progressed = handle.progress_declaration(
-    handle.declare_and_review(SplitEdgeAtMidpoint { edge_ref: "edge:42" })?,
+    handle.declare_and_review(AttachFaceMaterialAssignment {
+        face_ref: "face:panel-17",
+        material_ref: "material:fire-rated-core",
+    })?,
 )?;
 
 let evidence = handle.describe_foundational(
@@ -214,7 +220,10 @@ match handle.envelope_routes_checked(
     ForgeQueryDeclarationEnvelopeInput::issued(receipt),
 ) {
     ForgeQueryDeclarationEnvelopeChecked::Enveloped(envelope) => {
-        assert_eq!(envelope.declaration_family_key(), "split-edge");
+        assert_eq!(
+            envelope.declaration_family_key(),
+            "attach-face-material-assignment"
+        );
         let _ = envelope.evidence_origin();
         let _ = envelope.route_plan_digest();
         let _ = envelope.receipt_digest();
@@ -259,7 +268,11 @@ retained evidence, route truth, and receipt truth together for later
 inspection or recovery work. Use
 [Declaration Entry Orchestration](./declaration-entry-orchestration.md) when
 you want Query to own the full declaration-entry lowering path through the
-current envelope ceiling. Use
+current envelope ceiling and produce a Query-owned orchestration plan,
+outcome, or proof-visible transcript over that same retained envelope
+boundary. Orchestration may stop honestly at `RoutePlanned` or
+`ReceiptIssued` before any envelope is produced; use direct envelope surfaces
+when you already know you want the receipt-backed crossing artifact itself. Use
 [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
 when that same public crossing story needs to bind into relational truth
 authority. Use
@@ -313,6 +326,7 @@ These surfaces help answer:
 - attempting envelope construction from foundational evidence alone
 - rebuilding route or receipt meaning from family labels or payload folklore
 - treating envelopes as if they were allowed to hide denial topology
+- treating envelopes and orchestration transcripts as interchangeable artifacts
 - using public crossing-story APIs as if they were allowed to return free-form
   text or no artifact at all
 
@@ -323,8 +337,10 @@ over retained receipt truth. They still do not provide:
 
 - direct construction from foundational evidence or route plans on the public
   lane
-- relational truth routing on their own; that begins in the next boundary
-- bridge continuation routing on their own; that begins in the next boundary
+- relational truth routing on their own; use the dedicated relational-routing
+  surface when the envelope needs to bind into lower relational truth
+- bridge continuation routing on their own; use the dedicated bridge-routing
+  surface when the envelope needs to bind into lower continuation authority
 - grouped declaration envelopes
 - lower-authority execution internals beyond the retained route and receipt
   artifacts they compose

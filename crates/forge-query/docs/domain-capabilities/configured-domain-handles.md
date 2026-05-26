@@ -125,8 +125,26 @@ Admitted-handle seam-ledger entry points:
 Admitted-handle orchestration entry points:
 
 - `orchestrate_declaration_entry(input) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEntryOrchestrationTerminalError<D, I>>`
-- `orchestrate_declaration_entry_checked(input) -> ForgeQueryDeclarationEntryOrchestrationChecked<D, I>`
-- `orchestrate_declaration_entry_proof(input) -> ForgeQueryDeclarationEntryOrchestrationProof<D, I>`
+- `orchestrate_declaration_entry_checked(input) -> ForgeQueryDeclarationEntryOrchestrationOutcome<D, I>`
+- `orchestrate_declaration_entry_proof(input) -> ForgeQueryDeclarationEntryOrchestrationTranscript<D, I>`
+
+Handle-independent orchestration grammar inventory:
+
+- `ForgeQueryDeclarationEntryOrchestrationVerbInventory::current()`
+- `ForgeQueryDeclarationEntryOrchestrationVerbInventory::verbs()`
+- `ForgeQueryDeclarationEntryOrchestrationVerb::{public_name, family, exposure_level, ceiling, canonical_base_name}`
+
+Orchestration artifact inspection:
+
+- `ForgeQueryDeclarationEntryOrchestrationInput::{declaration_family_key, handle_identity_digest, operating_context_identity_digest, exposure_level, artifact_policy}`
+- `ForgeQueryDeclarationEntryOrchestrationPlan::{declaration_family_key, handle_identity_digest, operating_context_identity_digest, exposure_level, artifact_policy, ceiling_stage, automation_boundary, automation_steps, explicit_caller_handoff_steps, step_plan, orchestration_identity_digest}`
+- `ForgeQueryDeclarationEntryOrchestrationOutcome::{stop_stage, declaration_family_key, retained_digest, outcome_identity_digest, is_automation_refusal}`
+- `ForgeQueryDeclarationEntryOrchestrationTranscript::{plan, outcome, step_records, automation_boundary, orchestration_digest}`
+- `ForgeQueryDeclarationEntryOrchestrationStepRecord::{stage, automation_step, disposition, retained_digest, reason, is_reached, is_stop, is_terminal}`
+- `ForgeQueryDeclarationEntryOrchestrationRefusal::{refusal_class, automation_refusal_class, stop_stage, reason, retained_digest, orchestration_identity_digest, automation_boundary}`
+- `ForgeQueryDeclarationEntryOrchestrationAutomationBoundary::{EnvelopeCeiling}`
+- `ForgeQueryDeclarationEntryOrchestrationAutomationStep::{AdmittedHandle, CanonicalDeclaration, Legality, Progression, FoundationalEvidence, RoutePlan, Receipt, Envelope}`
+- `ForgeQueryDeclarationEntryOrchestrationAutomationRefusalClass::{ExplicitIntentRequired, ExpensiveAutomationForbidden, AuthorityTransitionRequired, PreparedButNotExecuted, UnsupportedAutomation, StrongerProofRequired}`
 
 Checked admission outcomes:
 
@@ -390,6 +408,46 @@ declaration-entry orchestration ceiling. You do not need to manually chain
 declaration review, legality, progression, foundational description, route
 planning, receipt, and envelope calls unless you specifically want one of those
 intermediate artifacts directly.
+
+That front door now comes with one locked orchestration artifact model:
+
+- one Query-owned orchestration input
+- one Query-owned orchestration plan
+- one Query-owned orchestration outcome
+- one proof-visible orchestration transcript
+
+Ordinary, checked, and proof-visible entry points are visibility levels over
+that same canonical lowering path. They are not competing helper pipelines.
+
+Use `orchestrate_declaration_entry(...)` when the handle should own the current
+declaration-entry lowering path through the envelope ceiling. Use the earlier
+handle entry points when you specifically want to stop at legality,
+progression, foundational evidence, route planning, receipt, or envelope
+materialization yourself.
+
+That orchestration trio also locks one sequencing boundary:
+
+- Query starts after your tool or session has already assembled declaration
+  intent
+- Query automates only the declaration-entry sequence through the envelope
+  ceiling
+- Query does not treat handle admission as blanket authorization for later
+  lower-authority transitions
+- `Refused` means automation stopped intentionally; it does not erase stale,
+  rebind-required, denied, deferred, or failed posture
+
+In the current public grammar, that trio is the only orchestration verb family:
+
+- `orchestrate_declaration_entry(...)`
+- `orchestrate_declaration_entry_checked(...)`
+- `orchestrate_declaration_entry_proof(...)`
+
+That is the generic front door. The other declaration-entry handle methods are
+explicit lower-phase surfaces, not parallel orchestration grammars.
+
+If you need to inspect the locked public grammar itself rather than invoke one
+of those methods, use `ForgeQueryDeclarationEntryOrchestrationVerbInventory`
+instead of probing the handle surface by convention.
 
 ## Inspection And Debugging
 

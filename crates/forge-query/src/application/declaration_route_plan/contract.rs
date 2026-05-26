@@ -18,11 +18,18 @@ const MIXED_ONLY: &[ForgeQueryLowerAuthorityRouteFamily] =
 const NO_ROUTES: &[ForgeQueryLowerAuthorityRouteFamily] = &[];
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+enum ForgeQueryDeclarationRouteAutomationAdmission {
+    AdmittedByDefault,
+    ExpensiveByDefault,
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDeclarationRouteContract {
     allowed_route_families: &'static [ForgeQueryLowerAuthorityRouteFamily],
     multiplicity: ForgeQueryDeclarationRouteMultiplicity,
     intent_requirement: ForgeQueryDeclarationRouteIntentRequirement,
     can_defer: bool,
+    automation_admission: ForgeQueryDeclarationRouteAutomationAdmission,
     signal_routed: bool,
     reason: &'static str,
 }
@@ -34,6 +41,7 @@ impl ForgeQueryDeclarationRouteContract {
             multiplicity: ForgeQueryDeclarationRouteMultiplicity::Singular,
             intent_requirement: ForgeQueryDeclarationRouteIntentRequirement::Optional,
             can_defer: false,
+            automation_admission: ForgeQueryDeclarationRouteAutomationAdmission::AdmittedByDefault,
             signal_routed: false,
             reason: "the declaration lowers through one relational route",
         }
@@ -45,6 +53,7 @@ impl ForgeQueryDeclarationRouteContract {
             multiplicity: ForgeQueryDeclarationRouteMultiplicity::Singular,
             intent_requirement: ForgeQueryDeclarationRouteIntentRequirement::Optional,
             can_defer: false,
+            automation_admission: ForgeQueryDeclarationRouteAutomationAdmission::AdmittedByDefault,
             signal_routed: false,
             reason: "the declaration lowers through one bridge route",
         }
@@ -56,6 +65,7 @@ impl ForgeQueryDeclarationRouteContract {
             multiplicity: ForgeQueryDeclarationRouteMultiplicity::Singular,
             intent_requirement: ForgeQueryDeclarationRouteIntentRequirement::Optional,
             can_defer: false,
+            automation_admission: ForgeQueryDeclarationRouteAutomationAdmission::AdmittedByDefault,
             signal_routed: true,
             reason: "the declaration lowers through one signal route",
         }
@@ -67,6 +77,7 @@ impl ForgeQueryDeclarationRouteContract {
             multiplicity: ForgeQueryDeclarationRouteMultiplicity::PluralCapable,
             intent_requirement: ForgeQueryDeclarationRouteIntentRequirement::Optional,
             can_defer: false,
+            automation_admission: ForgeQueryDeclarationRouteAutomationAdmission::AdmittedByDefault,
             signal_routed: false,
             reason: "the declaration may lower through both relational and bridge routes",
         }
@@ -78,6 +89,7 @@ impl ForgeQueryDeclarationRouteContract {
             multiplicity: ForgeQueryDeclarationRouteMultiplicity::Singular,
             intent_requirement: ForgeQueryDeclarationRouteIntentRequirement::Optional,
             can_defer: true,
+            automation_admission: ForgeQueryDeclarationRouteAutomationAdmission::AdmittedByDefault,
             signal_routed: false,
             reason: "the declaration route remains explicitly deferred",
         }
@@ -89,6 +101,7 @@ impl ForgeQueryDeclarationRouteContract {
             multiplicity: ForgeQueryDeclarationRouteMultiplicity::Singular,
             intent_requirement: ForgeQueryDeclarationRouteIntentRequirement::Required,
             can_defer: false,
+            automation_admission: ForgeQueryDeclarationRouteAutomationAdmission::AdmittedByDefault,
             signal_routed: false,
             reason: "the declaration needs caller route intent before relational lowering",
         }
@@ -100,6 +113,7 @@ impl ForgeQueryDeclarationRouteContract {
             multiplicity: ForgeQueryDeclarationRouteMultiplicity::Singular,
             intent_requirement: ForgeQueryDeclarationRouteIntentRequirement::Forbidden,
             can_defer: false,
+            automation_admission: ForgeQueryDeclarationRouteAutomationAdmission::AdmittedByDefault,
             signal_routed: false,
             reason: "the declaration does not allow caller-owned route narrowing",
         }
@@ -111,8 +125,22 @@ impl ForgeQueryDeclarationRouteContract {
             multiplicity: ForgeQueryDeclarationRouteMultiplicity::PluralCapable,
             intent_requirement: ForgeQueryDeclarationRouteIntentRequirement::Optional,
             can_defer: false,
+            automation_admission: ForgeQueryDeclarationRouteAutomationAdmission::AdmittedByDefault,
             signal_routed: false,
             reason: "the declaration route contract still names a classification-only mixed route",
+        }
+    }
+
+    #[cfg(test)]
+    pub(crate) fn expensive_by_default_for_tests() -> Self {
+        Self {
+            allowed_route_families: RELATIONAL_ONLY,
+            multiplicity: ForgeQueryDeclarationRouteMultiplicity::Singular,
+            intent_requirement: ForgeQueryDeclarationRouteIntentRequirement::Optional,
+            can_defer: false,
+            automation_admission: ForgeQueryDeclarationRouteAutomationAdmission::ExpensiveByDefault,
+            signal_routed: false,
+            reason: "the declaration has one legal route, but ordinary orchestration must stop before automating it by default",
         }
     }
 
@@ -130,6 +158,11 @@ impl ForgeQueryDeclarationRouteContract {
 
     pub fn can_defer(&self) -> bool {
         self.can_defer
+    }
+
+    pub(crate) fn automation_requires_explicit_handoff(&self) -> bool {
+        self.automation_admission
+            == ForgeQueryDeclarationRouteAutomationAdmission::ExpensiveByDefault
     }
 
     pub fn signal_routed(&self) -> bool {

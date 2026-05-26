@@ -105,10 +105,15 @@ Readiness is not a substitute for retained inspection of a concrete declaration
 artifact. It answers family-level seam posture, not concrete legality or
 progression outcomes for one already-authored declaration.
 
+Readiness also is not an orchestration transcript surface. It answers which
+declaration-entry seam rows are structurally available for a family in one
+admitted world. It does not describe which stages one specific orchestration
+run crossed.
+
 ## Small Example
 
 ```rust
-let readiness = handle.declaration_entry_readiness::<SplitEdgeAtMidpoint>();
+let readiness = handle.declaration_entry_readiness::<ReclassifyBoundaryLoop>();
 
 for row in readiness.rows() {
     let _ = row.crossing_row().entrypoint_key();
@@ -123,7 +128,7 @@ for row in readiness.rows() {
 let request = ForgeQueryDeclarationEntryReadinessRequest::base()
     .with_contribution_evidence(evidence);
 
-let readiness = handle.try_declaration_entry_readiness::<SplitEdgeAtMidpoint>(request)?;
+let readiness = handle.try_declaration_entry_readiness::<ReclassifyBoundaryLoop>(request)?;
 
 let _ = readiness.contribution_composition();
 let _ = readiness.readiness_digest();
@@ -137,7 +142,7 @@ let request = ForgeQueryDeclarationEntryReadinessRequest::base()
     )
     .with_admitted_plan_scope(admitted_plan);
 
-let readiness = handle.try_declaration_entry_readiness::<SplitEdgeAtMidpoint>(request)?;
+let readiness = handle.try_declaration_entry_readiness::<AttachFaceMaterialAssignment>(request)?;
 
 let _ = readiness.contribution_composition();
 let _ = readiness.readiness_digest();
@@ -150,7 +155,7 @@ let request = ForgeQueryDeclarationEntryReadinessRequest::base()
         ForgeQueryDeclarationEntryRetainedSubjectInput::envelope_checked(checked_envelope),
     );
 
-let readiness = handle.try_declaration_entry_readiness::<SplitEdgeAtMidpoint>(request)?;
+let readiness = handle.try_declaration_entry_readiness::<PublishRevisionWithToleranceProfile>(request)?;
 
 let _ = readiness.contribution_composition();
 let _ = readiness.readiness_digest();
@@ -178,6 +183,7 @@ Use readiness when you need to know:
   crossed a lower seam
 - do not use readiness to replace route, receipt, envelope, or signal
   inspection on a retained declaration artifact
+- do not use readiness to explain one proof-visible orchestration transcript
 - do not assume `declaration_entry_readiness::<I>()` discovers domain
   contributions automatically; use the explicit request path when you need
   composition

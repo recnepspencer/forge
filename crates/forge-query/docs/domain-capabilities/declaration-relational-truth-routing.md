@@ -265,8 +265,9 @@ row before attempting routing.
 Declaration relational truth routing now binds retained envelope truth to one
 real relational authority family. It still does not provide:
 
-- bridge continuation routing for the mixed-authority slice; that begins in the
-  next boundary
+- bridge continuation routing for the mixed-authority slice; use the dedicated
+  bridge-routing surface when the crossing story needs lower continuation
+  authority too
 - signal execution
 - signal compatibility classification
 - grouped declaration batching

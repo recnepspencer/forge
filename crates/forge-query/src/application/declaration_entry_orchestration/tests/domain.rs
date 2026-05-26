@@ -152,6 +152,14 @@ define_family!(
     ForgeQueryDeclarationRouteContract::signal_only(),
     ForgeQueryDeclarationProgressionContract::admitted_current()
 );
+define_family!(
+    ExpensiveAutomationFamily,
+    ForgeQueryRelationalTruthAuthority,
+    ForgeQuerySignalNotCompatiblePosture,
+    ForgeQuerySingleOnlyGrouping,
+    ForgeQueryDeclarationRouteContract::expensive_by_default_for_tests(),
+    ForgeQueryDeclarationProgressionContract::admitted_current()
+);
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct WorldSensitiveFamily;
@@ -210,6 +218,7 @@ impl_input!(
     ExplicitIntentFamily,
     DeferredRouteFamily,
     UnsupportedReceiptFamily,
+    ExpensiveAutomationFamily,
     WorldSensitiveFamily
 );
 

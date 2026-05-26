@@ -2273,6 +2273,10 @@ of helper methods by giving it its own typed artifact family.
 - artifact policy and exposure level must be typed so ordinary surfaces,
   checked surfaces, and proof-visible surfaces can differ in visibility without
   becoming separate semantic implementations
+- Phase 20 closes the envelope-ceiling artifact model only; proof-visible
+  surfaces expose the transcript family in this phase while ordinary and
+  checked surfaces remain transcript-free projections over the same canonical
+  lowering
 
 **Compile-time enforcement**
 
@@ -2298,13 +2302,29 @@ of helper methods by giving it its own typed artifact family.
 This phase freezes the front-door verb family so the public surface feels
 singular instead of fragmenting into too many equal helper paths.
 
+Phase 20 already stabilizes the generic admitted-handle front door:
+
+- `orchestrate_declaration_entry(...)`
+- `orchestrate_declaration_entry_checked(...)`
+- `orchestrate_declaration_entry_proof(...)`
+
+Phase 21 builds on that base. It should extend, specialize, or clarify the
+front-door grammar from the already-shipped trio rather than casually
+re-litigating whether one generic front door exists at all.
+
+Phase 21 also freezes one public grammar inventory for that trio:
+
+- `ForgeQueryDeclarationEntryOrchestrationVerbInventory`
+- `ForgeQueryDeclarationEntryOrchestrationVerb`
+- `ForgeQueryDeclarationEntryOrchestrationVerbFamily`
+- `ForgeQueryDeclarationEntryOrchestrationVerbCeiling`
+
 **Required Query artifacts**
 
 - one ordinary public verb grammar
 - one checked public verb grammar
 - one proof-visible / transcript-visible verb grammar
-- one explicit mapping from family-specific helpers back to the canonical
-  orchestration verb inventory
+- one public grammar inventory over the live orchestration trio
 
 **Requirements**
 
@@ -2320,6 +2340,12 @@ singular instead of fragmenting into too many equal helper paths.
 - generic verbs and family-specific verbs must have one obvious relationship;
   family-specific surfaces may specialize domain naming, but they may not
   invent parallel semantics
+- Phase 21 itself keeps the generic trio as the only public orchestration
+  verb family; family-specific aliases remain a later-phase concern
+- any new family-specific verb must still lower through the Phase 20 canonical
+  orchestration artifact model rather than standing up a competing helper path
+- alternate proof-visible suffix families such as `_transcript`, `_trace`,
+  `_debug`, or `_verbose` are forbidden in this phase
 - verbs that imply expensive work, runtime continuation, workspace entry, or
   basis binding must advertise that boundary in the API shape rather than
   masquerading as cheap getters
@@ -2338,8 +2364,8 @@ singular instead of fragmenting into too many equal helper paths.
 
 **Open questions before implementation**
 
-- which orchestration verbs should be universal from day one, and which should
-  stay family-specific until Phase 31?
+- how should the grammar inventory rows be synchronized mechanically with docs,
+  goldens, and compile-fail boundaries before Phase 29 expands that story?
 
 ### Phase 22: Canonical Sequencing Automation Boundary
 
@@ -2353,6 +2379,24 @@ and exactly where it must refuse automation.
 - one sequencing parity surface tying explicit phase-by-phase calls to the
   orchestrated surface
 
+This phase extends the sequencing rules that Phase 20 already froze in the
+public orchestration artifact model:
+
+- orchestration input
+- orchestration plan
+- orchestration outcome
+- orchestration transcript
+
+It must not introduce a second planning abstraction that competes with the
+existing Phase 20 plan artifact. The work here is to enrich sequencing law and
+automation/refusal posture on top of that model.
+
+It must also preserve the Phase 21 grammar lock:
+
+- the generic orchestration trio remains the only public sequencing front door
+- Phase 22 may deepen sequencing law, but it may not widen the grammar by
+  convenience
+
 **Requirements**
 
 - the ordinary surface may automate only the canonical sequence:
@@ -2364,6 +2408,8 @@ and exactly where it must refuse automation.
 - sequencing automation may not skip progression, jump around route/receipt/
   envelope boundaries, or surface a later-phase artifact without the earlier
   retained proof it depends on
+- any richer sequencing metadata must remain an extension of the Phase 20
+  orchestration plan/outcome model rather than a parallel execution grammar
 - automation refusal must be typed and explain whether the stop came from
   unsupported surface breadth, missing proof, explicit expensive-work
   requirement, authority-transition requirement, or family-specific non-admission
@@ -2391,6 +2437,26 @@ stays ergonomically strong without becoming cost-dishonest.
 - one prepared-vs-executed family where expensive work can be staged but not
   run implicitly
 
+Phase 20 already freezes a different policy axis:
+
+- `OrdinaryEnvelopeOnly`
+- `CheckedOutcomeOnly`
+- `ProofVisibleTranscript`
+
+Those are visibility policies over one canonical orchestration truth. Phase 23
+must add richness and cost policy as a separate axis. It must not retroactively
+reinterpret the Phase 20 visibility policy as if it already expressed richness,
+prepared-work posture, or expensive-execution admission.
+
+Phase 22 now also freezes the sequencing axis:
+
+- one envelope-ceiling automation boundary
+- one canonical automation-step order
+- one typed automation-refusal family
+
+Phase 23 must therefore build on that shipped sequencing law rather than
+smuggling cost policy into hidden sequencing changes.
+
 **Requirements**
 
 - the ordinary foundational-materialization default should use the full
@@ -2399,12 +2465,16 @@ stays ergonomically strong without becoming cost-dishonest.
 - orchestration may prepare expensive work, but it may not silently execute
   expensive continuation, workspace entry, signal-backed execution, or other
   costly lower-runtime work without an API shape that advertises that cost
+- cost policy must preserve the already-shipped Phase 22 distinction between
+  ordinary typed non-success posture and automation refusal
 - cost posture must distinguish at least: cheap retained-artifact assembly,
   prepared-but-not-executed continuation, explicit execution acknowledgment
   required, and unsupported-by-default expensive work
 - artifact-richness policy must stay separate from semantic meaning: richer
   transcripts and richer descriptive artifacts may increase visibility but may
   not change canonical orchestration truth
+- artifact-richness policy and cost posture must also stay separate from the
+  Phase 20 exposure-level and visibility-policy surface
 
 **Documentation obligation**
 
@@ -2450,6 +2520,12 @@ orchestration products without turning them into hidden internals.
 - route/receipt/envelope orchestration must remain handle-bound and must deny
   wrong-handle or wrong-world retained artifacts before later continuation or
   contribution composition can proceed
+- any orchestrated route/receipt/envelope surface must project from the
+  existing Phase 20 canonical orchestration artifacts rather than creating a
+  fresh helper stack with separate transcript or denial logic
+- any widening here must preserve the shipped Phase 22 stop-boundary honesty,
+  including caller handoff at route or receipt when the public automation
+  contract intentionally stops there
 
 **Documentation obligation**
 
@@ -2467,6 +2543,19 @@ orchestration products without turning them into hidden internals.
 
 This phase ensures the ordinary public surface returns the same typed
 non-success posture the explicit surfaces already know how to expose.
+
+Phase 20 already preserves typed non-success posture on the generic ordinary
+entry surface through `ForgeQueryDeclarationEntryOrchestrationTerminalError`.
+Phase 25 should therefore be read as follow-on work for any broader ordinary
+outcome expansion, explanation shaping, or parity closure beyond the current
+envelope-ceiling ordinary result shape. It should not assume that ordinary
+entry currently collapses non-success posture into an untyped or stringly
+error.
+
+Phase 22 also already freezes a second distinction that Phase 25 must preserve:
+
+- automation refusal is not the same thing as denial, deferral, stale,
+  rebind-required, or failure posture
 
 **Required Query artifacts**
 
@@ -2641,10 +2730,15 @@ under growth.
 
 **Required Query artifacts**
 
-- one orchestration verb inventory
+- one expanded orchestration verb inventory over every admitted orchestration
+  family
 - one orchestration transcript inventory
 - one coverage map from verbs to support/readiness rows, seam-ledger rows,
   docs, goldens, and certification suites
+
+Phase 21 already ships the first public grammar inventory for the generic trio.
+Phase 29 extends that seed into the full anti-drift synchronization boundary;
+it must not invent a second competing inventory model.
 
 **Requirements**
 
@@ -2781,6 +2875,8 @@ surfaces instead of forcing everything through one generic orchestration shape.
 - helpers must compile onto the same canonical declaration, route, receipt,
   envelope, orchestration, and contribution-composed artifacts as the generic
   surface
+- helper surfaces are additive aliases under the locked generic trio, not a
+  replacement grammar and not a second equally-primary front door
 - helper surfaces must compile onto the same Phase 5 family capability
   boundary, including the same support/admission checks and the same structural
   witness availability rules

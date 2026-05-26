@@ -36,6 +36,7 @@ pub(crate) fn forge_query_checked_declaration_receipt<
                     route_intent,
                     route_set,
                     class,
+                    _automation_requires_explicit_handoff,
                     _explanation,
                     _decl,
                     _digest,

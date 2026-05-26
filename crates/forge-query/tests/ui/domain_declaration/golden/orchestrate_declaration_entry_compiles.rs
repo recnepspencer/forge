@@ -43,14 +43,14 @@ impl ForgeQueryDomainOperatingContext<GeometryDomain> for GeometryOperatingConte
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct SplitEdgeFamily;
+struct TrimSegmentFamily;
 
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for TrimSegmentFamily {
     type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
     type SignalCompatibility = ForgeQuerySignalNotCompatiblePosture;
     type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
 
-    fn semantic_family_key() -> &'static str { "split-edge" }
+    fn semantic_family_key() -> &'static str { "trim-segment-at-intersection" }
     fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
         ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
     }
@@ -66,13 +66,22 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdgeFamily {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct SplitEdgeDeclaration(&'static str);
+struct TrimSegmentAtIntersection {
+    segment_ref: &'static str,
+    intersection_ref: &'static str,
+}
 
-impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeDeclaration {
-    type Family = SplitEdgeFamily;
+impl ForgeQueryDeclarationInput<GeometryDomain> for TrimSegmentAtIntersection {
+    type Family = TrimSegmentFamily;
 
     fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.0)]
+        vec![
+            ForgeQueryDeclarationCanonicalEntry::text("segment_ref", self.segment_ref),
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "intersection_ref",
+                self.intersection_ref,
+            ),
+        ]
     }
 }
 
@@ -82,7 +91,10 @@ fn accepts_orchestration_surface(
         GeometryOperatingContext,
     >,
 ) {
-    let _ = handle.orchestrate_declaration_entry(SplitEdgeDeclaration("edge:42"));
+    let _ = handle.orchestrate_declaration_entry(TrimSegmentAtIntersection {
+        segment_ref: "segment:outer-wall-a",
+        intersection_ref: "intersection:trim-42",
+    });
 }
 
 fn main() {}

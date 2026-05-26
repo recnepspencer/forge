@@ -1,0 +1,17 @@
+error[E0451]: fields `declaration_family_key`, `handle_identity_digest`, `operating_context_identity_digest`, `exposure_level`, `artifact_policy` and `_marker` of struct `ForgeQueryDeclarationEntryOrchestrationInput` are private
+  --> tests/ui/domain_declaration/boundaries/construction/orchestration/orchestration_input_private.rs:43:9
+   |
+42 |     let _ = ForgeQueryDeclarationEntryOrchestrationInput::<GeometryDomain, FakeInput> {
+   |             ------------------------------------------------------------------------- in this type
+43 |         declaration_family_key: "fake",
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+44 |         handle_identity_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+45 |         operating_context_identity_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+46 |         exposure_level: ForgeQueryDeclarationEntryOrchestrationExposureLevel::Checked,
+   |         ^^^^^^^^^^^^^^ private field
+47 |         artifact_policy: ForgeQueryDeclarationEntryOrchestrationArtifactPolicy::CheckedOutcomeOnly,
+   |         ^^^^^^^^^^^^^^^ private field
+48 |         _marker: std::marker::PhantomData,
+   |         ^^^^^^^ private field

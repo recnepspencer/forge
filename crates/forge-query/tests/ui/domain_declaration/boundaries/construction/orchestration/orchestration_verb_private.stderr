@@ -1,0 +1,15 @@
+error[E0451]: fields `public_name`, `family`, `exposure_level`, `ceiling` and `canonical_base_name` of struct `ForgeQueryDeclarationEntryOrchestrationVerb` are private
+  --> tests/ui/domain_declaration/boundaries/construction/orchestration/orchestration_verb_private.rs:10:9
+   |
+ 9 |     let _ = ForgeQueryDeclarationEntryOrchestrationVerb {
+   |             ------------------------------------------- in this type
+10 |         public_name: "orchestrate_declaration_entry_debug",
+   |         ^^^^^^^^^^^ private field
+11 |         family: ForgeQueryDeclarationEntryOrchestrationVerbFamily::GenericDeclarationEntry,
+   |         ^^^^^^ private field
+12 |         exposure_level: ForgeQueryDeclarationEntryOrchestrationExposureLevel::Ordinary,
+   |         ^^^^^^^^^^^^^^ private field
+13 |         ceiling: ForgeQueryDeclarationEntryOrchestrationVerbCeiling::Envelope,
+   |         ^^^^^^^ private field
+14 |         canonical_base_name: "orchestrate_declaration_entry",
+   |         ^^^^^^^^^^^^^^^^^^^ private field

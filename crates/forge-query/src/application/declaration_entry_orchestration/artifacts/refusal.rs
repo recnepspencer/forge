@@ -1,12 +1,11 @@
 use crate::application::{ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker};
 
-use super::checked::{
-    ForgeQueryDeclarationEntryOrchestrationDeferred, ForgeQueryDeclarationEntryOrchestrationDenied,
-    ForgeQueryDeclarationEntryOrchestrationFailed,
-    ForgeQueryDeclarationEntryOrchestrationRebindRequired,
-    ForgeQueryDeclarationEntryOrchestrationStale,
+use super::super::sequencing::{
+    ForgeQueryDeclarationEntryOrchestrationAutomationBoundary,
+    ForgeQueryDeclarationEntryOrchestrationAutomationRefusal,
+    ForgeQueryDeclarationEntryOrchestrationAutomationRefusalClass,
 };
-use super::proof::ForgeQueryDeclarationEntryOrchestrationStage;
+use super::step_record::ForgeQueryDeclarationEntryOrchestrationStage;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryDeclarationEntryOrchestrationRefusalClass {
@@ -39,23 +38,24 @@ pub struct ForgeQueryDeclarationEntryOrchestrationRefusal<
     refusal_class: ForgeQueryDeclarationEntryOrchestrationRefusalClass,
     stop_stage: ForgeQueryDeclarationEntryOrchestrationStage,
     reason: &'static str,
+    automation_refusal: ForgeQueryDeclarationEntryOrchestrationAutomationRefusal,
     _marker: std::marker::PhantomData<(D, I)>,
 }
 
 impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     ForgeQueryDeclarationEntryOrchestrationRefusal<D, I>
 {
-    pub(crate) fn new(
-        declaration_family_key: &'static str,
-        refusal_class: ForgeQueryDeclarationEntryOrchestrationRefusalClass,
+    pub(crate) fn from_automation(
+        automation_refusal: ForgeQueryDeclarationEntryOrchestrationAutomationRefusal,
         stop_stage: ForgeQueryDeclarationEntryOrchestrationStage,
-        reason: &'static str,
     ) -> Self {
+        let refusal_class = automation_refusal.refusal_class().broad_refusal_class();
         Self {
-            declaration_family_key,
+            declaration_family_key: automation_refusal.declaration_family_key(),
             refusal_class,
             stop_stage,
-            reason,
+            reason: automation_refusal.reason(),
+            automation_refusal,
             _marker: std::marker::PhantomData,
         }
     }
@@ -75,31 +75,26 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     pub fn reason(&self) -> &'static str {
         self.reason
     }
-}
 
-pub enum ForgeQueryDeclarationEntryOrchestrationTerminalError<
-    D: ForgeQueryDomainEntryMarker,
-    I: ForgeQueryDeclarationInput<D>,
-> {
-    Deferred(ForgeQueryDeclarationEntryOrchestrationDeferred<D, I>),
-    Denied(ForgeQueryDeclarationEntryOrchestrationDenied<D, I>),
-    Stale(ForgeQueryDeclarationEntryOrchestrationStale<D, I>),
-    RebindRequired(ForgeQueryDeclarationEntryOrchestrationRebindRequired<D, I>),
-    Failed(ForgeQueryDeclarationEntryOrchestrationFailed<D, I>),
-    Refused(ForgeQueryDeclarationEntryOrchestrationRefusal<D, I>),
-}
+    pub fn automation_refusal_class(
+        &self,
+    ) -> ForgeQueryDeclarationEntryOrchestrationAutomationRefusalClass {
+        self.automation_refusal.refusal_class()
+    }
 
-impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
-    ForgeQueryDeclarationEntryOrchestrationTerminalError<D, I>
-{
-    pub fn reason(&self) -> &'static str {
-        match self {
-            Self::Deferred(outcome) => outcome.reason(),
-            Self::Denied(outcome) => outcome.reason(),
-            Self::Stale(outcome) => outcome.reason(),
-            Self::RebindRequired(outcome) => outcome.reason(),
-            Self::Failed(outcome) => outcome.reason(),
-            Self::Refused(outcome) => outcome.reason(),
-        }
+    pub fn automation_boundary(&self) -> ForgeQueryDeclarationEntryOrchestrationAutomationBoundary {
+        self.automation_refusal.automation_boundary()
+    }
+
+    pub fn retained_digest(&self) -> Option<&str> {
+        self.automation_refusal.retained_digest()
+    }
+
+    pub fn orchestration_identity_digest(&self) -> &str {
+        self.automation_refusal.orchestration_identity_digest()
+    }
+
+    pub fn automation_refusal(&self) -> &ForgeQueryDeclarationEntryOrchestrationAutomationRefusal {
+        &self.automation_refusal
     }
 }

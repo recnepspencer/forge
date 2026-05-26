@@ -1,5 +1,5 @@
 error[E0599]: no method named `declare` found for struct `ForgeQueryDomainEntryRoot<D>` in the current scope
-  --> tests/ui/domain_declaration/boundaries/accessors/canonical_declaration_has_no_direct_signal_compatibility.rs:47:10
+  --> tests/ui/domain_declaration/boundaries/accessors/canonical_declaration/lower_authority/canonical_declaration_has_no_direct_signal_compatibility.rs:47:10
    |
 45 |       let declaration = forge_query::facade::ForgeQueryApplicationFacade::runtime_backed_default()
    |  _______________________-

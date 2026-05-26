@@ -25,7 +25,7 @@ pub use intent::ForgeQueryDeclarationRouteIntent;
 pub use plan::ForgeQueryDeclarationRoutePlan;
 pub use route_set::{ForgeQueryDeclarationRouteSegment, ForgeQueryDeclarationRouteSet};
 
-pub(crate) use plan::forge_query_checked_declaration_route_plan;
+pub(crate) use checked::forge_query_checked_declaration_route_plan;
 
 #[cfg(test)]
 mod tests;

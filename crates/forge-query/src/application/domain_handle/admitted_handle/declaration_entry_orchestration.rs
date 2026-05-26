@@ -2,8 +2,9 @@ use crate::application::{
     forge_query_checked_declaration_entry_orchestration_on_handle,
     forge_query_declaration_entry_orchestration_on_handle,
     forge_query_declaration_entry_orchestration_proof_on_handle,
-    ForgeQueryDeclarationEntryOrchestrationChecked, ForgeQueryDeclarationEntryOrchestrationProof,
-    ForgeQueryDeclarationEntryOrchestrationTerminalError, ForgeQueryDeclarationEnvelope,
+    ForgeQueryDeclarationEntryOrchestrationOutcome,
+    ForgeQueryDeclarationEntryOrchestrationTerminalError,
+    ForgeQueryDeclarationEntryOrchestrationTranscript, ForgeQueryDeclarationEnvelope,
     ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
 };
 
@@ -29,7 +30,7 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
     pub fn orchestrate_declaration_entry_checked<I>(
         &self,
         input: I,
-    ) -> ForgeQueryDeclarationEntryOrchestrationChecked<D, I>
+    ) -> ForgeQueryDeclarationEntryOrchestrationOutcome<D, I>
     where
         I: ForgeQueryDeclarationInput<D>,
     {
@@ -39,7 +40,7 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
     pub fn orchestrate_declaration_entry_proof<I>(
         &self,
         input: I,
-    ) -> ForgeQueryDeclarationEntryOrchestrationProof<D, I>
+    ) -> ForgeQueryDeclarationEntryOrchestrationTranscript<D, I>
     where
         I: ForgeQueryDeclarationInput<D>,
     {
