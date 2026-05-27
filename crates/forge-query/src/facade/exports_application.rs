@@ -212,6 +212,11 @@ pub use crate::contribution_composed_orchestration::{
     ForgeQueryContributionComposedOrchestrationTranscript, ForgeQueryContributionComposedSummary,
     ForgeQueryContributionIntent,
 };
+pub use crate::family_helpers::{
+    ForgeQueryFamilyHelpers, ForgeQueryGeometryActiveFaceSelectionHelperFamily,
+    ForgeQueryGeometryFamilyHelpers, ForgeQueryGeometryMaterialAttachmentHelperFamily,
+    ForgeQueryGeometryMaterialAttachmentInput,
+};
 pub use crate::orchestration_inventory::{
     ForgeQueryOrchestrationBindingProjection, ForgeQueryOrchestrationCheckedTopologyKind,
     ForgeQueryOrchestrationInventoryAudit, ForgeQueryOrchestrationProofContract,

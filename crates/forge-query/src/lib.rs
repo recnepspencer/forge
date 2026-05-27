@@ -31,6 +31,7 @@ mod domain_capabilities;
 mod effect_lifecycle;
 mod execution;
 pub mod facade;
+mod family_helpers;
 mod frontier_planning;
 mod frontier_signal_adapter;
 mod historical;
@@ -95,6 +96,11 @@ pub use contribution_composed_orchestration::{
     ForgeQueryContributionComposedOrchestrationPosture,
     ForgeQueryContributionComposedOrchestrationTranscript, ForgeQueryContributionComposedSummary,
     ForgeQueryContributionIntent,
+};
+pub use family_helpers::{
+    ForgeQueryFamilyHelpers, ForgeQueryGeometryActiveFaceSelectionHelperFamily,
+    ForgeQueryGeometryFamilyHelpers, ForgeQueryGeometryMaterialAttachmentHelperFamily,
+    ForgeQueryGeometryMaterialAttachmentInput,
 };
 pub use orchestration_inventory::{
     ForgeQueryOrchestrationBindingProjection, ForgeQueryOrchestrationCheckedTopologyKind,

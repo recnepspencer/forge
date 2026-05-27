@@ -1,4 +1,5 @@
 use super::certification::ForgeQueryOrchestrationSurfaceCertificationReference;
+use super::current_helpers::forge_query_family_helper_orchestration_rows;
 use super::docs::ForgeQueryOrchestrationSurfaceDocReference;
 use super::family::{
     ForgeQueryOrchestrationBindingProjection, ForgeQueryOrchestrationCheckedTopologyKind,
@@ -28,36 +29,33 @@ struct RowSpec {
 
 pub(crate) fn forge_query_current_orchestration_surface_inventory(
 ) -> ForgeQueryOrchestrationSurfaceInventory {
-    ForgeQueryOrchestrationSurfaceInventory::new(
-        current_row_specs()
-            .iter()
-            .map(|spec| {
-                ForgeQueryOrchestrationSurfaceRow::new(
-                    spec.public_name,
-                    spec.canonical_base_name,
-                    spec.family,
-                    spec.visibility,
-                    spec.ordinary_outcome_supported,
-                    spec.binding_projection,
-                    ForgeQueryOrchestrationProofContract::new(
-                        spec.checked_type_name,
-                        spec.proof_type_name,
-                        spec.transcript_family,
-                        spec.checked_topology_kind,
-                        spec.support_surface,
-                    ),
-                    ForgeQueryOrchestrationSurfaceDocReference::new(
-                        spec.doc_path,
-                        spec.doc_section,
-                    ),
-                    ForgeQueryOrchestrationSurfaceCertificationReference::new(
-                        spec.certification_suite,
-                        spec.certification_command,
-                    ),
-                )
-            })
-            .collect(),
-    )
+    let mut rows = current_row_specs()
+        .iter()
+        .map(|spec| {
+            ForgeQueryOrchestrationSurfaceRow::new(
+                spec.public_name,
+                spec.canonical_base_name,
+                spec.family,
+                spec.visibility,
+                spec.ordinary_outcome_supported,
+                spec.binding_projection,
+                ForgeQueryOrchestrationProofContract::new(
+                    spec.checked_type_name,
+                    spec.proof_type_name,
+                    spec.transcript_family,
+                    spec.checked_topology_kind,
+                    spec.support_surface,
+                ),
+                ForgeQueryOrchestrationSurfaceDocReference::new(spec.doc_path, spec.doc_section),
+                ForgeQueryOrchestrationSurfaceCertificationReference::new(
+                    spec.certification_suite,
+                    spec.certification_command,
+                ),
+            )
+        })
+        .collect::<Vec<_>>();
+    rows.extend(forge_query_family_helper_orchestration_rows());
+    ForgeQueryOrchestrationSurfaceInventory::new(rows)
 }
 
 fn current_row_specs() -> Vec<RowSpec> {
@@ -205,7 +203,6 @@ fn current_row_specs() -> Vec<RowSpec> {
         ForgeQueryOrchestrationCheckedTopologyKind::ContributionComposed,
         ForgeQueryOrchestrationBindingProjection::SharedContributionBinding,
     );
-
     rows
 }
 

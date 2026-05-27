@@ -188,6 +188,9 @@ What this example is showing:
 - [Recovery Boundary](./recovery-boundary.md) is the next-step surface when
   this lane stops at basis mismatch, wrong world, wrong handle, or other typed
   non-success posture.
+- [Family Helpers](./family-helpers.md) expose geometry-specific preview,
+  runtime-route, and truth-view helper verbs that lower onto this same
+  signal-facing orchestration surface after declaration progression succeeds.
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
   remains the generic declaration-entry front door through the envelope
   ceiling.
@@ -259,6 +262,7 @@ Use the recovery lane when the app now needs one typed repair answer:
 - [Continuation Pipeline](./continuation-pipeline.md)
 - [Ordinary Outcomes](./ordinary-outcomes.md)
 - [Recovery Boundary](./recovery-boundary.md)
+- [Family Helpers](./family-helpers.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Domain Capabilities](./README.md)

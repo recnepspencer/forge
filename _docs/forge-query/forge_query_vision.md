@@ -23,7 +23,7 @@ too-limited-to-express (REST endpoints for everything). `forge-query` fills
 that gap with a query model that is expressive enough for real applications
 and constrained enough for the runtime to optimize, narrow, and subscribe.
 
-That public story now also includes seven compact product-facing layers on top
+That public story now also includes eight compact product-facing layers on top
 of the retained declaration-entry pipeline:
 
 - a typed binding pipeline for turning current context or retained artifacts
@@ -44,6 +44,9 @@ of the retained declaration-entry pipeline:
 - a recovery boundary that turns ordinary, checked, and proof-visible stop
   posture into one typed explanation and repair surface without pretending
   Query already owns automatic repair execution
+- a family-helper projection layer that gives major declaration families
+  domain-native helper surfaces while still compiling onto the same generic
+  binding, orchestration, ordinary, recovery, and audit lanes
 
 ## What This Query Layer Is For
 

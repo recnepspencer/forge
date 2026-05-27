@@ -161,6 +161,37 @@ Admitted-handle recovery entry points:
 - `recover_from_contribution_composed_checked(checked) -> Option<ForgeQueryRecoveryBrief>`
 - `recover_from_contribution_composed_proof(proof) -> Option<ForgeQueryRecoveryBrief>`
 
+Admitted-handle family-helper entry points:
+
+- `family_helpers() -> ForgeQueryFamilyHelpers<'_, D, C>`
+- `geometry_helpers() -> ForgeQueryGeometryFamilyHelpers<'_, D, C>`
+- `progress_active_face_selection(input) -> Result<ForgeQueryAdmittedDeclarationProgression<D, I>, ForgeQueryDeclarationEntryProgressionError<D, I>>`
+- `prepare_preview_for_active_face_selection(progressed) -> ForgeQuerySignalCompatibilityOrchestrationOutcome<D, I>`
+- `prepare_preview_for_active_face_selection_outcome(progressed) -> ForgeQueryOrdinaryOutcome<ForgeQuerySignalCompatibilityOrchestration<D, I>>`
+- `prepare_preview_for_active_face_selection_checked(progressed) -> ForgeQuerySignalCompatibilityOrchestrationChecked<D, I>`
+- `prepare_preview_for_active_face_selection_proof(progressed) -> ForgeQuerySignalCompatibilityOrchestrationTranscript<D, I>`
+- `prepare_runtime_route_for_active_face_selection(progressed) -> ForgeQuerySignalCompatibilityOrchestrationOutcome<D, I>`
+- `prepare_runtime_route_for_active_face_selection_outcome(progressed) -> ForgeQueryOrdinaryOutcome<ForgeQuerySignalCompatibilityOrchestration<D, I>>`
+- `prepare_runtime_route_for_active_face_selection_checked(progressed) -> ForgeQuerySignalCompatibilityOrchestrationChecked<D, I>`
+- `prepare_runtime_route_for_active_face_selection_proof(progressed) -> ForgeQuerySignalCompatibilityOrchestrationTranscript<D, I>`
+- `prepare_current_truth_view_for_active_face_selection(progressed) -> ForgeQuerySignalCompatibilityOrchestrationOutcome<D, I>`
+- `prepare_current_truth_view_for_active_face_selection_outcome(progressed) -> ForgeQueryOrdinaryOutcome<ForgeQuerySignalCompatibilityOrchestration<D, I>>`
+- `prepare_current_truth_view_for_active_face_selection_checked(progressed) -> ForgeQuerySignalCompatibilityOrchestrationChecked<D, I>`
+- `prepare_current_truth_view_for_active_face_selection_proof(progressed) -> ForgeQuerySignalCompatibilityOrchestrationTranscript<D, I>`
+- `prepare_historical_truth_view_for_active_face_selection(progressed) -> ForgeQuerySignalCompatibilityOrchestrationOutcome<D, I>`
+- `prepare_historical_truth_view_for_active_face_selection_outcome(progressed) -> ForgeQueryOrdinaryOutcome<ForgeQuerySignalCompatibilityOrchestration<D, I>>`
+- `prepare_historical_truth_view_for_active_face_selection_checked(progressed) -> ForgeQuerySignalCompatibilityOrchestrationChecked<D, I>`
+- `prepare_historical_truth_view_for_active_face_selection_proof(progressed) -> ForgeQuerySignalCompatibilityOrchestrationTranscript<D, I>`
+- `orchestrate_material_attachment_for_active_face_selection(input) -> Result<ForgeQueryContributionComposedOrchestration<D, I>, ForgeQueryContributionComposedOrchestrationOutcome<D, I>>`
+- `orchestrate_material_attachment_for_active_face_selection_outcome(input) -> ForgeQueryOrdinaryOutcome<ForgeQueryContributionComposedOrchestration<D, I>>`
+- `orchestrate_material_attachment_for_active_face_selection_checked(input) -> ForgeQueryContributionComposedOrchestrationChecked<D, I>`
+- `orchestrate_material_attachment_for_active_face_selection_proof(input) -> ForgeQueryContributionComposedOrchestrationTranscript<D, I>`
+
+Use [Family Helpers](./family-helpers.md) for the mental model, examples, and
+family-gating rules behind these helper verbs. This page keeps the configured
+handle inventory; the helper page teaches when to reach for the helper surface
+instead of the generic orchestration lanes.
+
 Admitted-handle seam-ledger entry points:
 
 - `declaration_entry_crossing_inventory::<I>() -> ForgeQueryDeclarationEntryCrossingInventory<D, I>`
@@ -310,6 +341,12 @@ proof-visible stop surfaces. The admitted handle now owns
 "what stopped, who owns the fix, and what is the next supported repair step?"
 without flattening declaration, continuation, signal, or contribution posture
 into one generic retry.
+
+Phase 32 adds one family-helper projection lane on top of those same shipped
+surfaces. The admitted handle now owns `family_helpers()` and
+`geometry_helpers()` when your app already knows the declaration family it is
+working with and wants domain-native helper calls that still compile onto the
+shared generic Query paths.
 
 When later declaration-entry artifacts expose shared binding targets, those
 targets are still scoped by this admitted world. The binding seam does not
@@ -675,6 +712,7 @@ They do not yet provide:
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
 - [Recovery Boundary](./recovery-boundary.md)
+- [Family Helpers](./family-helpers.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
 - [Declaration Entry Readiness](./declaration-entry-readiness.md)

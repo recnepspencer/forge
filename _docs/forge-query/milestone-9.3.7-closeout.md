@@ -177,8 +177,9 @@ The runtime API public stabilization gate now inherits:
   now-shipped Phase 28 signal-compatibility orchestration seam, and the
   now-shipped Phase 29 contribution-composed orchestration seam, the
   now-shipped Phase 30 orchestration inventory / anti-drift audit seam, and
-  the now-shipped Phase 31 denial-and-recovery boundary; later widening should
-  extend those shipped seams phase by phase with in-flight feature-doc
+  the now-shipped Phase 31 denial-and-recovery boundary, and the now-shipped
+  Phase 32 family-helper projection seam; later widening should extend those
+  shipped seams phase by phase with in-flight feature-doc
   synchronization and inventory/certification synchronization rather than as
   one final documentation pass
 

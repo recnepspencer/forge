@@ -219,6 +219,9 @@ What this example is showing:
 - [Orchestration Inventory](./orchestration-inventory.md) is the anti-drift
   registry that keeps public recovery lanes aligned with the shipped
   orchestration surface.
+- [Family Helpers](./family-helpers.md) expose family-native ordinary, checked,
+  and proof-visible lanes, but they still hand non-success posture into this
+  same shared recovery surface.
 
 ## Inspection And Debugging
 
@@ -282,4 +285,5 @@ repair intent instead of a prose explanation:
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
 - [Orchestration Inventory](./orchestration-inventory.md)
+- [Family Helpers](./family-helpers.md)
 - [Domain Capabilities](./README.md)

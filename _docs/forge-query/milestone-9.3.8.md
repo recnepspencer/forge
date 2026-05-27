@@ -350,7 +350,9 @@ locked decisions above:
     families as projections over the shared binding substrate instead of
     forcing generic entry patterns everywhere. This is where the surface
     starts feeling native to real domain work. Helper families must continue to
-    return the shared ordinary outcome story on concise lanes.
+    return the shared ordinary outcome story on concise lanes, and this phase
+    now ships as the public family-helper projection seam over the admitted
+    handle.
 
 33. **Phase 33: Neighborhood Authoring DX Boundary**
     Query supports meaningful groups of declarations as first-class authoring
@@ -358,19 +360,24 @@ locked decisions above:
     geometry because real work often happens in local neighborhoods, not
     isolated single declarations. Group-level ordinary results must extend the
     shared ordinary outcome family rather than creating grouped-only terminal
-    shortcuts.
+    shortcuts, and grouped ergonomics must compose onto the now-shipped family
+    helper seam instead of introducing a separate grouped-helper grammar.
 
 34. **Phase 34: Public Documentation And Golden Teaching Boundary**
     The docs, examples, and goldens all teach the exact public path honestly.
     This is where we make sure the platform is discoverable, not just
     implemented, including one explicit binding story instead of local helper
-    folklore.
+    folklore. This phase must now treat family helpers as part of the shipped
+    public teaching inventory rather than leaving them buried inside configured
+    handle method lists.
 
 35. **Phase 35: Certification And Closeout Boundary**
     Compile-fail boundaries, parity tests, hostile certification,
     route/receipt/envelope digests, binding-substrate parity proofs, and
     end-to-end convergence proofs close the milestone. This is where the
-    whole seam becomes production-grade rather than plausible.
+    whole seam becomes production-grade rather than plausible, including
+    helper-vs-generic parity and helper-family gating as closure-grade proof
+    obligations rather than helper-local niceties.
 
 ## Shared Binding Continuity Lock
 
@@ -2486,7 +2493,7 @@ Phase 21 also freezes one public grammar inventory for that trio:
 - hostile naming/shape review proving there is one obvious front door per
   supported orchestration family instead of many equal entry paths
 
-**Open questions before implementation**
+**Historical closure notes**
 
 - how should the grammar inventory rows be synchronized mechanically with docs,
   goldens, and compile-fail boundaries before Phase 30 expands that story?
@@ -3829,12 +3836,21 @@ guidance, rather than inventing helper-local retry or repair bags.
 - compile-fail suites proving helper families are not callable where the
   capability matrix forbids them
 
-**Open questions before implementation**
+**Historical closure notes**
 
-- which family-specific helpers are important enough to deserve first-class
-  surfaces in the initial build versus later follow-on polish?
-- should helpers be methods on typed family handles, generated helper modules,
-  or another form that still maps cleanly back to canonical family identity?
+- the first shipped helper family is geometry, not a speculative all-families
+  sweep
+- helper access now lands through one admitted-handle helper facade with
+  family-gated geometry surfaces rather than a second public root
+- continuation-oriented geometry helpers currently project onto the shipped
+  signal-compatibility orchestration seam instead of minting helper-local
+  continuation artifacts
+- declaration-scoped material-attachment helpers currently project onto the
+  shipped contribution-composed orchestration seam instead of inventing a
+  helper-local contribution grammar
+- later phases must extend this helper seam rather than reopening whether
+  helpers are allowed to bypass shared binding, shared recovery, or the
+  orchestration inventory
 - how do we keep helper naming pleasant without creating overlapping synonyms
   that weaken the “one obvious path” rule?
 

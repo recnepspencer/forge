@@ -13,6 +13,7 @@ of domain work you are trying to do:
 - [Ordinary Outcomes](./ordinary-outcomes.md)
 - [Recovery Boundary](./recovery-boundary.md)
 - [Orchestration Inventory](./orchestration-inventory.md)
+- [Family Helpers](./family-helpers.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Declaration Family Taxonomy](./declaration-family-taxonomy.md)
@@ -84,6 +85,10 @@ guessing from reason strings. Use
 canonical registry for shipped orchestration verbs, transcript families,
 support coverage, doc coverage, and certification coverage instead of inferring
 the live public surface from examples or scattered docs. Use
+[Family Helpers](./family-helpers.md) when you already know the declaration
+family you are working with and want a domain-native helper surface that still
+compiles onto the same generic signal-orchestration, contribution-composed,
+ordinary-outcome, recovery, and audit lanes. Use
 [Continuation Pipeline](./continuation-pipeline.md) when the next job is to
 turn a continuation-ready binding result into one prepared continuation
 artifact and optional explicit execution step without rebuilding bridge,
@@ -390,6 +395,8 @@ one bound composed artifact without pretending those are the same proof chain.
 Treat the recovery lane as the next-step surface when any of those public lanes
 stop and you need one typed explanation plus one typed repair request instead
 of a helper-local retry guess.
+Treat family helpers as family-native projections over those same shipped lanes,
+not as a second orchestration engine.
 Treat the earlier declaration, legality, progression, foundational, route,
 receipt, and envelope methods as the advanced explicit path.
 If you need the locked grammar as data, use

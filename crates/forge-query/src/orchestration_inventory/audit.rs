@@ -199,7 +199,7 @@ fn actual_orchestration_public_verbs() -> BTreeSet<String> {
     verbs
 }
 
-fn admitted_handle_sources() -> [&'static str; 5] {
+fn admitted_handle_sources() -> [&'static str; 7] {
     [
         include_str!(
             "../application/domain_handle/admitted_handle/declaration_entry/orchestration.rs"
@@ -212,6 +212,8 @@ fn admitted_handle_sources() -> [&'static str; 5] {
         include_str!(
             "../application/domain_handle/admitted_handle/contribution_composed_orchestration.rs"
         ),
+        include_str!("../family_helpers/geometry/mod.rs"),
+        include_str!("../family_helpers/geometry/continuation.rs"),
     ]
 }
 
@@ -227,6 +229,10 @@ fn extract_pub_fn_names(source: &str) -> BTreeSet<String> {
         .filter(|name| {
             name.starts_with("orchestrate_")
                 || name.starts_with("prepare_continuation_")
+                || name.starts_with("prepare_preview_for_active_face_selection")
+                || name.starts_with("prepare_runtime_route_for_active_face_selection")
+                || name.starts_with("prepare_current_truth_view_for_active_face_selection")
+                || name.starts_with("prepare_historical_truth_view_for_active_face_selection")
                 || name == "execute_prepared_continuation"
                 || name == "execute_prepared_continuation_outcome"
                 || name == "execute_prepared_continuation_checked"

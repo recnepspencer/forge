@@ -5,6 +5,7 @@ mod declaration;
 mod declaration_entry;
 mod envelope;
 mod evidence;
+mod family_helpers;
 mod receipt;
 mod recovery;
 mod relational_routing;

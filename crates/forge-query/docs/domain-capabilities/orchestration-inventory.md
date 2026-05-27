@@ -71,6 +71,11 @@ The current shipped families are:
 - signal-compatibility orchestration
 - contribution-composed orchestration
 
+Helper verbs are also registered here. They keep their underlying family
+ownership. A geometry preview helper still inventories as
+signal-compatibility orchestration, and a geometry material-attachment helper
+still inventories as contribution-composed orchestration.
+
 The current visibility lanes are:
 
 - `Ordinary`
@@ -180,6 +185,8 @@ for row in continuation_rows {
   owns the signal-facing orchestration verbs recorded here.
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
   owns the declaration-plus-contribution orchestration verbs recorded here.
+- [Family Helpers](./family-helpers.md) own the family-native helper verbs that
+  are also registered here as ordinary, checked, and proof-visible public rows.
 - [Ordinary Outcomes](./ordinary-outcomes.md) owns the compact outcome surface
   that the inventory treats as a first-class visibility lane rather than as a
   comment on the checked lane.
@@ -253,4 +260,5 @@ Useful audit accessors:
 - [Continuation Pipeline](./continuation-pipeline.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
+- [Family Helpers](./family-helpers.md)
 - [Declaration Entry Readiness](./declaration-entry-readiness.md)

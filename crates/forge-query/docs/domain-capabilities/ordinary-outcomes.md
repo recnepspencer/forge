@@ -74,6 +74,14 @@ Admitted-handle contribution-composed orchestration entry points:
 
 - `orchestrate_declaration_with_contributions_outcome(...)`
 
+Admitted-handle family-helper ordinary entry points:
+
+- `prepare_preview_for_active_face_selection_outcome(...)`
+- `prepare_runtime_route_for_active_face_selection_outcome(...)`
+- `prepare_current_truth_view_for_active_face_selection_outcome(...)`
+- `prepare_historical_truth_view_for_active_face_selection_outcome(...)`
+- `orchestrate_material_attachment_for_active_face_selection_outcome(...)`
+
 ## Core Mental Model
 
 Think of ordinary outcomes as a public compatibility layer over stronger truth.
@@ -190,6 +198,8 @@ match outcome {
   side note on checked or proof-visible orchestration surfaces.
 - [Recovery Boundary](./recovery-boundary.md) is the next-step surface when
   this compact lane stopped and your app needs one typed repair answer.
+- [Family Helpers](./family-helpers.md) expose family-native helper verbs whose
+  `..._outcome(...)` variants still compile onto this same ordinary vocabulary.
 - [Typed Binding Pipeline](./typed-binding-pipeline.md) owns the checked and
   proof-visible binding outcomes that ordinary binding projects from.
 - [Continuation Pipeline](./continuation-pipeline.md) owns the checked and
@@ -269,5 +279,6 @@ Binding linked artifacts can expose:
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
 - [Recovery Boundary](./recovery-boundary.md)
+- [Family Helpers](./family-helpers.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Domain Capabilities](./README.md)

@@ -187,6 +187,9 @@ Good to know:
   vs contribution-side repair ownership.
 - Use [Configured Domain Handles](./configured-domain-handles.md) for the
   admitted-handle entry points that own this run.
+- Use [Family Helpers](./family-helpers.md) when you already know the
+  declaration family and want a family-native wrapper over this composed input
+  and result surface instead of constructing the generic input yourself.
 - Use the `support/`, `workflow/`, `admission/`, and `explanation/` docs in
   this tree when you need the standalone contribution-authoring model behind
   the composed lane.
@@ -279,6 +282,7 @@ inspection:
 - [Continuation Pipeline](./continuation-pipeline.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Recovery Boundary](./recovery-boundary.md)
+- [Family Helpers](./family-helpers.md)
 - [Declaration-Scoped Support And Traceability](./support/declaration-scoped-support-and-traceability.md)
 - [Advisory And Violation Contributions](./admission/advisory-and-violation-contributions.md)
 - [Preview Inspection And Mutation Planning](./workflow/preview-inspection-and-mutation-planning.md)

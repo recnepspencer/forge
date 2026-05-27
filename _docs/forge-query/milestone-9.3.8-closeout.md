@@ -329,10 +329,11 @@ beneath the shipped:
 - Phase 29 contribution-composed orchestration boundary
 - Phase 30 orchestration inventory / anti-drift audit boundary
 - Phase 31 denial and recovery UX boundary
+- Phase 32 family-specific ergonomics boundary
 
 and not as an open prompt to plan any of those phases again.
 
-The next live planning surface now starts at Phase 32 and later. Those later
+The next live planning surface now starts at Phase 33 and later. Those later
 phases should keep extending:
 
 - one authority-preserving binding story
@@ -343,5 +344,6 @@ phases should keep extending:
 - one explicit declaration-plus-contribution composition story
 - one canonical orchestration inventory and anti-drift audit story
 - one typed recovery brief / request / route-sensitive explanation story
+- one family-gated helper projection story over the same generic public lanes
 
 instead of inventing local glue.
