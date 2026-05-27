@@ -1,5 +1,5 @@
 error[E0624]: associated function `new` is private
-  --> tests/ui/domain_handle/boundaries/configured_handle_constructors_private.rs:42:101
+  --> tests/ui/domain_handle/boundaries/construction/configured_handle_constructors_private.rs:42:101
    |
 42 |       let _ = ForgeQueryConfiguredDomainHandleDraft::<GeometryDomainEntry, GeometryOperatingContext>::new(
    |                                                                                                       ^^^ private associated function

@@ -7,8 +7,11 @@ use crate::application::{
     ForgeQueryDeclarationEntryOrchestrationTranscript, ForgeQueryDeclarationEnvelope,
     ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
 };
+use crate::ordinary_outcome::{
+    ordinary_outcome_from_orchestration_terminal, ForgeQueryOrdinaryOutcome,
+};
 
-use super::ForgeQueryAdmittedConfiguredDomainHandle;
+use super::super::ForgeQueryAdmittedConfiguredDomainHandle;
 use crate::application::ForgeQueryDomainOperatingContext;
 
 impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
@@ -25,6 +28,19 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
         I: ForgeQueryDeclarationInput<D>,
     {
         forge_query_declaration_entry_orchestration_on_handle(self, input)
+    }
+
+    pub fn orchestrate_declaration_entry_outcome<I>(
+        &self,
+        input: I,
+    ) -> ForgeQueryOrdinaryOutcome<ForgeQueryDeclarationEnvelope<D, I>>
+    where
+        I: ForgeQueryDeclarationInput<D>,
+    {
+        match forge_query_declaration_entry_orchestration_on_handle(self, input) {
+            Ok(envelope) => ForgeQueryOrdinaryOutcome::Bound(envelope),
+            Err(terminal) => ordinary_outcome_from_orchestration_terminal(terminal),
+        }
     }
 
     pub fn orchestrate_declaration_entry_checked<I>(

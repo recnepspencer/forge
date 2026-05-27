@@ -173,7 +173,7 @@ impl ForgeQueryBindingNarrowingDecision {
     }
 }
 
-#[derive(Clone, Debug, Default, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryBindingLinkedArtifacts {
     declaration_digest: Option<String>,
     progression_digest: Option<String>,
@@ -185,7 +185,14 @@ pub struct ForgeQueryBindingLinkedArtifacts {
 
 impl ForgeQueryBindingLinkedArtifacts {
     pub(crate) fn new() -> Self {
-        Self::default()
+        Self {
+            declaration_digest: None,
+            progression_digest: None,
+            route_plan_digest: None,
+            receipt_digest: None,
+            envelope_digest: None,
+            orchestration_digest: None,
+        }
     }
 
     pub(crate) fn with_declaration_digest(mut self, value: impl Into<String>) -> Self {

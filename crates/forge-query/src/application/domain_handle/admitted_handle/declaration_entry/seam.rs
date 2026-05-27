@@ -3,13 +3,15 @@ use crate::application::{
     forge_query_declaration_entry_inspection_on_handle,
     forge_query_declaration_entry_readiness_report,
     forge_query_declaration_entry_readiness_report_with_request,
-    ForgeQueryAdmittedConfiguredDomainHandle,
     ForgeQueryDeclarationEntryContributionCompositionError,
     ForgeQueryDeclarationEntryCrossingInventory, ForgeQueryDeclarationEntryInspection,
     ForgeQueryDeclarationEntryInspectionError, ForgeQueryDeclarationEntryInspectionInput,
     ForgeQueryDeclarationEntryReadinessReport, ForgeQueryDeclarationEntryReadinessRequest,
-    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
+    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
 };
+
+use super::super::ForgeQueryAdmittedConfiguredDomainHandle;
+use crate::application::ForgeQueryDomainOperatingContext;
 
 impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
     ForgeQueryAdmittedConfiguredDomainHandle<D, C>

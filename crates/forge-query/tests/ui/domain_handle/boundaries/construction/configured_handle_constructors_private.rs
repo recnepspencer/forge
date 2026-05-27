@@ -1,7 +1,7 @@
 use forge_query::facade::{
     ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
-    ForgeQueryConfiguredDomainHandleDraft, ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
-    ForgeQueryDomainEntrySupportSnapshot,
+    ForgeQueryConfiguredDomainHandleDraft, ForgeQueryDomainEntryMarker,
+    ForgeQueryDomainEntrySupportSnapshot, ForgeQueryDomainOperatingContext,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

@@ -41,6 +41,7 @@ when you already know which declaration-entry lowering run should happen.
 ## Stable Entry Points
 
 - `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_declaration_entry(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_declaration_entry_outcome(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_declaration_entry_checked(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_declaration_entry_proof(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_routes_from_progressed(...)`
@@ -101,6 +102,14 @@ same run:
 - ordinary: give me the envelope or one typed terminal error
 - checked: give me the typed stop posture
 - proof-visible: give me the same posture plus the exact automation transcript
+
+Phase 26 makes the ordinary lane explicit as one shared public outcome family:
+
+- `ForgeQueryOrdinaryOutcome<T>`
+
+That ordinary surface is still a projection over the same checked topology. It
+does not introduce a second orchestration engine or a second stop-boundary
+model.
 
 The important system boundary is this:
 
@@ -504,6 +513,8 @@ for record in transcript.step_records() {
 - Use [Typed Binding Pipeline](./typed-binding-pipeline.md) when the main job
   is selecting or denying the next explicit input from context or retained
   targets rather than lowering through the declaration-entry ceiling.
+- Use [Ordinary Outcomes](./ordinary-outcomes.md) when you want the compact
+  public result vocabulary shared by binding and orchestration.
 
 ## Inspection And Debugging
 
@@ -592,6 +603,7 @@ when the ordinary lane stopped at the envelope ceiling.
 
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
+- [Ordinary Outcomes](./ordinary-outcomes.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Declaration Progression](./declaration-progression.md)
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)

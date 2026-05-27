@@ -189,6 +189,11 @@ pub use crate::binding_pipeline::{
     ForgeQueryResolveReceiptFromTargetRequest, ForgeQueryResolveRouteFromTargetRequest,
     ForgeQueryRouteBindingRequest, ForgeQueryRouteResolverSubject,
 };
+pub use crate::ordinary_outcome::{
+    ForgeQueryOrdinaryBindingCheckedTopologyKind, ForgeQueryOrdinaryCheckedTopology,
+    ForgeQueryOrdinaryNextStep, ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture,
+    ForgeQueryOrdinaryPostureKind,
+};
 pub use crate::target_binding::{
     ForgeQueryAdmittedDeclarationProgressionBindingTarget, ForgeQueryBindingTarget,
     ForgeQueryBindingTargetKind, ForgeQueryBindingTargetSemantics, ForgeQueryBindingTargetWitness,

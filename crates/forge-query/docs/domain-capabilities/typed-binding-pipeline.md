@@ -64,30 +64,39 @@ the retained-artifact and context-binding seam built on top of:
 Admitted-handle entry points:
 
 - `bind_declaration_from_context(...)`
+- `bind_declaration_from_context_outcome(...)`
 - `bind_declaration_from_context_checked(...)`
 - `bind_declaration_from_context_proof(...)`
 - `bind_route_request_from_context(...)`
+- `bind_route_request_from_context_outcome(...)`
 - `bind_route_request_from_context_checked(...)`
 - `bind_route_request_from_context_proof(...)`
 - `bind_receipt_request_from_context(...)`
+- `bind_receipt_request_from_context_outcome(...)`
 - `bind_receipt_request_from_context_checked(...)`
 - `bind_receipt_request_from_context_proof(...)`
 - `bind_envelope_request_from_context(...)`
+- `bind_envelope_request_from_context_outcome(...)`
 - `bind_envelope_request_from_context_checked(...)`
 - `bind_envelope_request_from_context_proof(...)`
 - `bind_continuation_request_from_context(...)`
+- `bind_continuation_request_from_context_outcome(...)`
 - `bind_continuation_request_from_context_checked(...)`
 - `bind_continuation_request_from_context_proof(...)`
 - `bind_route_from_target(...)`
+- `bind_route_from_target_outcome(...)`
 - `bind_route_from_target_checked(...)`
 - `bind_route_from_target_proof(...)`
 - `bind_receipt_from_target(...)`
+- `bind_receipt_from_target_outcome(...)`
 - `bind_receipt_from_target_checked(...)`
 - `bind_receipt_from_target_proof(...)`
 - `bind_envelope_from_target(...)`
+- `bind_envelope_from_target_outcome(...)`
 - `bind_envelope_from_target_checked(...)`
 - `bind_envelope_from_target_proof(...)`
 - `bind_continuation_from_target(...)`
+- `bind_continuation_from_target_outcome(...)`
 - `bind_continuation_from_target_checked(...)`
 - `bind_continuation_from_target_proof(...)`
 
@@ -161,6 +170,13 @@ most for the current surface:
 
 This is the first slice of the binding pipeline, not the end of it.
 
+Phase 26 adds one more public layer on top of that checked/proof surface:
+
+- `ForgeQueryOrdinaryOutcome<T>`
+
+Use the new `..._outcome(...)` entry points when you want one compact result
+type without flattening the binding non-success taxonomy.
+
 ## Small Example
 
 ```rust
@@ -224,6 +240,8 @@ This is the intended shape:
 
 - [Configured Domain Handles](./configured-domain-handles.md) own the admitted
   world the binding pipeline checks first.
+- [Ordinary Outcomes](./ordinary-outcomes.md) provide the compact public result
+  lane over `ForgeQueryBindingChecked<T>`.
 - [Declaration Progression](./declaration-progression.md) introduces the first
   retained artifact most binding flows start from.
 - [Declaration Route Plans](./declaration-route-plan.md),

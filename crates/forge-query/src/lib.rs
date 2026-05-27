@@ -39,6 +39,7 @@ mod live;
 mod live_performance;
 mod lower_runtime_routing;
 mod memory_workspace;
+mod ordinary_outcome;
 mod planning;
 mod policy_basis;
 mod policy_certification;
@@ -67,6 +68,12 @@ mod validation;
 mod view_shape;
 mod view_shape_live;
 mod workflow;
+
+pub use ordinary_outcome::{
+    ForgeQueryOrdinaryBindingCheckedTopologyKind, ForgeQueryOrdinaryCheckedTopology,
+    ForgeQueryOrdinaryNextStep, ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture,
+    ForgeQueryOrdinaryPostureKind,
+};
 
 #[cfg(test)]
 mod harness;

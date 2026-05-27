@@ -313,11 +313,23 @@ Phase 24b and later must not reopen these closed questions:
 
 That handoff has now been acted on in the next milestone slices: the
 aggressive declaration-entry aspect contract and granularity retrofit landed
-first, and the typed binding / extractor / resolver model now ships on top of
-it. Historical readers should therefore treat this closeout as the settled
-base beneath the shipped Phase 25 binding pipeline, not as an open prompt to
-plan Phase 25 again.
+first, the typed binding / extractor / resolver model now ships on top of it,
+and the denial-preserving ordinary outcome layer now ships on top of that
+binding and orchestration truth.
 
-The next live planning surface starts at Phase 26 and later. Those later phases
-should keep extending one authority-preserving binding story and one
-aspect-aware semantic-granularity story instead of inventing local glue.
+Historical readers should therefore treat this closeout as the settled base
+beneath the shipped:
+
+- Phase 25 typed binding pipeline
+- Phase 26 denial-preserving ordinary outcome boundary
+
+and not as an open prompt to plan either of those phases again.
+
+The next live planning surface now starts at Phase 27 and later. Those later
+phases should keep extending:
+
+- one authority-preserving binding story
+- one aspect-aware semantic-granularity story
+- one denial-preserving ordinary outcome story
+
+instead of inventing local glue.

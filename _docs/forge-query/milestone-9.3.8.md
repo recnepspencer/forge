@@ -297,45 +297,59 @@ locked decisions above:
     Typed denials, unsupported posture, deferred posture, stale/rebind
     requirements, and authority-transition constraints become first-class
     ordinary outcomes instead of escape hatches from the ergonomic surface.
+    This phase now ships and future phases must project onto that one shared
+    ordinary outcome family rather than inventing local ordinary vocabularies.
 
 27. **Phase 27: Runtime / Workspace / Basis Continuation Boundary**
     Query removes caller-owned runtime builder, workspace entry, and
     basis-binding choreography for admitted supported families by compiling
     continuation onto the shared binding substrate while keeping
     prepared-vs-executed posture, truth context, and basis sensitivity honest.
+    It must also project any concise continuation outcomes onto the now-shipped
+    ordinary outcome layer instead of creating continuation-local terminal
+    result families.
 
 28. **Phase 28: Signal Compatibility Orchestration Boundary**
     Query composes Phase 14 signal compatibility into ordinary orchestration
     without erasing execution family, required basis families, or typed
-    compatibility denials.
+    compatibility denials. The concise signal-facing surface must therefore
+    compile onto the shipped ordinary outcome family instead of inventing a
+    signal-only convenience error lane.
 
 29. **Phase 29: Contribution-Composed Orchestration Boundary**
     Query composes `9.3.8` declaration-entry orchestration with `9.3.7`
     contribution authoring through the same shared binding substrate so
     callers do not have to cross a second public grammar seam or a second
-    binding world.
+    binding world. It must also preserve one shared ordinary outcome story over
+    entry, contribution, and composed orchestration posture.
 
 30. **Phase 30: Orchestration Inventory And Transcript Boundary**
     Query synchronizes live orchestration verbs, transcripts, support/readiness
     rows, docs, goldens, and certification so the ergonomic layer remains
-    structurally honest under growth.
+    structurally honest under growth. That inventory must now explicitly track
+    ordinary outcomes as one shipped public layer, not just verbs and proof
+    transcripts.
 
 31. **Phase 31: Denial And Recovery UX Boundary**
     Typed denials, progression deferral, stale/rebind outcomes, failed
     progression, fallback guidance, and route-sensitive explanations become
-    product-quality. This is where failure becomes as usable as success.
+    product-quality. This is where failure becomes as usable as success, but it
+    must widen the shipped ordinary outcome family rather than replacing it.
 
 32. **Phase 32: Family-Specific Ergonomics Boundary**
     The public lane gets the domain-shaped helpers for the major declaration
     families as projections over the shared binding substrate instead of
     forcing generic entry patterns everywhere. This is where the surface
-    starts feeling native to real domain work.
+    starts feeling native to real domain work. Helper families must continue to
+    return the shared ordinary outcome story on concise lanes.
 
 33. **Phase 33: Neighborhood Authoring DX Boundary**
     Query supports meaningful groups of declarations as first-class authoring
     units through the same shared binding substrate. This matters a lot for
     geometry because real work often happens in local neighborhoods, not
-    isolated single declarations.
+    isolated single declarations. Group-level ordinary results must extend the
+    shared ordinary outcome family rather than creating grouped-only terminal
+    shortcuts.
 
 34. **Phase 34: Public Documentation And Golden Teaching Boundary**
     The docs, examples, and goldens all teach the exact public path honestly.
@@ -3272,6 +3286,15 @@ so Phase 26 must extend that same `binding_pipeline` seam rather than
 inventing a second ordinary-outcome vocabulary for context and retained-target
 binding.
 
+This phase now ships. Historical readers should therefore treat the ordinary
+outcome family as closed public surface, not as a future placeholder:
+
+- `ForgeQueryOrdinaryOutcome<T>`
+- `ForgeQueryOrdinaryPosture`
+- `ForgeQueryOrdinaryPostureKind`
+- `ForgeQueryOrdinaryNextStep`
+- `ForgeQueryOrdinaryCheckedTopology`
+
 **Required Query artifacts**
 
 - one ordinary-surface denial / advisory / deferred / unsupported outcome
@@ -3316,6 +3339,11 @@ retained artifacts. Continuation, workspace, and basis widening in this phase
 must compile onto that shipped `binding_pipeline` surface rather than
 introducing continuation-local extractors, workspace-local target recovery, or
 basis-local helper registries.
+
+Phase 26 now also ships one denial-preserving ordinary outcome family. Any
+concise continuation surface in this phase must project onto that shipped
+ordinary layer rather than inventing continuation-local terminal enums or
+stringly fallback lanes.
 
 **Required Query artifacts**
 
@@ -3386,6 +3414,10 @@ This phase composes the Phase 14 compatibility boundary into ordinary
 orchestration without erasing execution family, required basis families, or
 typed compatibility denials.
 
+Phase 26 now ships the ordinary outcome surface that this phase must reuse.
+Signal-facing concise outcomes therefore belong inside the shared ordinary
+family, with checked/proof-visible topology still remaining authoritative.
+
 **Required Query artifacts**
 
 - one orchestrated signal-compatibility surface
@@ -3426,6 +3458,10 @@ Phase 25 now closes the shared binding pipeline for both context extraction and
 retained-target resolution. This phase must therefore be read as contribution
 composition over the shipped binding pipeline, not as a place where
 contribution authoring or orchestration can each grow local binding glue.
+
+Phase 26 now closes the ordinary outcome vocabulary those composed surfaces
+must reuse. Contribution composition may add richer typed posture, but it must
+not fork a second concise terminal story.
 
 **Required Query artifacts**
 
@@ -3478,6 +3514,11 @@ Phase 21 already ships the first public grammar inventory for the generic trio.
 Phase 30 extends that seed into the full anti-drift synchronization boundary;
 it must not invent a second competing inventory model.
 
+Phase 26 now adds a second already-shipped public layer that the inventory must
+track explicitly:
+
+- the ordinary outcome surface and its checked-topology links
+
 **Requirements**
 
 - ordinary public verbs, checked verbs, proof-visible verbs, support/readiness
@@ -3509,6 +3550,10 @@ it must not invent a second competing inventory model.
 
 This phase makes failure as usable as success by turning denials, stale states,
 rebind requirements, and recovery posture into public product artifacts.
+
+Phase 26 now ships the concise ordinary outcome vocabulary that this phase must
+widen rather than replace. Recovery UX must therefore refine the shipped
+ordinary posture story, not branch into a second convenience-only denial API.
 
 **Required Query artifacts**
 
@@ -3607,6 +3652,9 @@ for aspect-aware binding. Family helpers in this phase must project onto those
 same shipped binding artifacts rather than exposing family-local binding bags,
 ambient source probing, or undocumented proof shortcuts.
 
+Phase 26 now ships the shared ordinary outcome family those helpers must use on
+their concise public lanes.
+
 **Required Query artifacts**
 
 - one family-specific helper surface per admitted major family
@@ -3680,6 +3728,10 @@ Phase 25 now ships the retained-target and context-binding seam that grouped
 authoring must consume. Group-level and member-level resolution in this phase
 must therefore extend the shipped binding pipeline instead of inventing
 neighborhood-specific binders or grouped-only target-recovery helpers.
+
+Phase 26 now ships the shared ordinary outcome family. Grouped authoring must
+therefore extend that same concise result story instead of creating grouped-only
+terminal shortcuts.
 
 **Required Query artifacts**
 

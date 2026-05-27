@@ -180,4 +180,14 @@ impl<T> ForgeQueryBindingChecked<T> {
     pub fn linked_artifacts(&self) -> &crate::binding_pipeline::ForgeQueryBindingLinkedArtifacts {
         &self.linked_artifacts
     }
+
+    pub(crate) fn into_parts(
+        self,
+    ) -> (
+        ForgeQueryBindingOutcome<T>,
+        String,
+        crate::binding_pipeline::ForgeQueryBindingLinkedArtifacts,
+    ) {
+        (self.outcome, self.binding_digest, self.linked_artifacts)
+    }
 }

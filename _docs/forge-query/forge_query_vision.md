@@ -23,6 +23,14 @@ too-limited-to-express (REST endpoints for everything). `forge-query` fills
 that gap with a query model that is expressive enough for real applications
 and constrained enough for the runtime to optimize, narrow, and subscribe.
 
+That public story now also includes two compact product-facing layers on top
+of the retained declaration-entry pipeline:
+
+- a typed binding pipeline for turning current context or retained artifacts
+  into the next explicit Query input
+- a denial-preserving ordinary outcome layer that keeps ordinary call sites
+  concise without flattening checked or proof-visible topology
+
 ## What This Query Layer Is For
 
 `forge-query` exists for every consumer that needs to read, filter, project,

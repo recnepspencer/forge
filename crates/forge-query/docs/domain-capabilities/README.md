@@ -10,6 +10,7 @@ of domain work you are trying to do:
 - [Platform Entry](./platform-entry.md)
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
+- [Ordinary Outcomes](./ordinary-outcomes.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Declaration Family Taxonomy](./declaration-family-taxonomy.md)
 - [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
@@ -66,8 +67,10 @@ Move next to [Configured Domain Handles](./configured-domain-handles.md) when
 you need an admitted operating world, then to
 [Typed Binding Pipeline](./typed-binding-pipeline.md) when that admitted world
 or one retained declaration-entry artifact needs to bind current context into
-the next explicit Query input without relying on ambient framework magic. Then
-move to
+the next explicit Query input without relying on ambient framework magic. Use
+[Ordinary Outcomes](./ordinary-outcomes.md) when you want the compact public
+result lane over that binding or orchestration surface without flattening the
+checked topology underneath. Then move to
 [Canonical Domain Declarations](./canonical-domain-declarations.md) when that
 admitted world needs to express declaration-local meaning through one retained
 Query-owned declaration artifact. Use
@@ -128,30 +131,39 @@ order:
   - `admit()`
 - typed binding:
   - `bind_declaration_from_context(...)`
+  - `bind_declaration_from_context_outcome(...)`
   - `bind_declaration_from_context_checked(...)`
   - `bind_declaration_from_context_proof(...)`
   - `bind_route_request_from_context(...)`
+  - `bind_route_request_from_context_outcome(...)`
   - `bind_route_request_from_context_checked(...)`
   - `bind_route_request_from_context_proof(...)`
   - `bind_receipt_request_from_context(...)`
+  - `bind_receipt_request_from_context_outcome(...)`
   - `bind_receipt_request_from_context_checked(...)`
   - `bind_receipt_request_from_context_proof(...)`
   - `bind_envelope_request_from_context(...)`
+  - `bind_envelope_request_from_context_outcome(...)`
   - `bind_envelope_request_from_context_checked(...)`
   - `bind_envelope_request_from_context_proof(...)`
   - `bind_continuation_request_from_context(...)`
+  - `bind_continuation_request_from_context_outcome(...)`
   - `bind_continuation_request_from_context_checked(...)`
   - `bind_continuation_request_from_context_proof(...)`
   - `bind_route_from_target(...)`
+  - `bind_route_from_target_outcome(...)`
   - `bind_route_from_target_checked(...)`
   - `bind_route_from_target_proof(...)`
   - `bind_receipt_from_target(...)`
+  - `bind_receipt_from_target_outcome(...)`
   - `bind_receipt_from_target_checked(...)`
   - `bind_receipt_from_target_proof(...)`
   - `bind_envelope_from_target(...)`
+  - `bind_envelope_from_target_outcome(...)`
   - `bind_envelope_from_target_checked(...)`
   - `bind_envelope_from_target_proof(...)`
   - `bind_continuation_from_target(...)`
+  - `bind_continuation_from_target_outcome(...)`
   - `bind_continuation_from_target_checked(...)`
   - `bind_continuation_from_target_proof(...)`
 - family support and declaration authoring:
@@ -216,6 +228,7 @@ order:
   - `signal_compatibility_support::<I>()`
 - declaration-entry orchestration:
   - `orchestrate_declaration_entry(...)`
+  - `orchestrate_declaration_entry_outcome(...)`
   - `orchestrate_declaration_entry_checked(...)`
   - `orchestrate_declaration_entry_proof(...)`
   - `orchestrate_routes_from_progressed(...)`
@@ -269,6 +282,11 @@ The typed binding pipeline is the public consumer of that seam. It converts:
 
 without silently choosing between candidates when aspect fit, authority, or
 admitted-world posture disagree.
+
+Ordinary outcomes are the compact public compatibility lane over those checked
+surfaces. They let ordinary callers keep one shared typed result vocabulary for
+binding and declaration-entry orchestration instead of falling back to separate
+terminal enums or string errors.
 
 Use this quick chooser when the declaration-entry docs feel close together:
 

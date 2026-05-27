@@ -18,7 +18,7 @@ use crate::application::{
     ForgeQueryDeclarationRoutePlanTerminalError, ForgeQueryDomainEntryMarker,
 };
 
-use super::ForgeQueryAdmittedConfiguredDomainHandle;
+use super::super::ForgeQueryAdmittedConfiguredDomainHandle;
 use crate::application::ForgeQueryDomainOperatingContext;
 
 impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
