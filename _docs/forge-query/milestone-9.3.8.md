@@ -364,12 +364,13 @@ locked decisions above:
     helper seam instead of introducing a separate grouped-helper grammar.
 
 34. **Phase 34: Public Documentation And Golden Teaching Boundary**
-    The docs, examples, and goldens all teach the exact public path honestly.
-    This is where we make sure the platform is discoverable, not just
-    implemented, including one explicit binding story instead of local helper
-    folklore. This phase must now treat family helpers as part of the shipped
-    public teaching inventory rather than leaving them buried inside configured
-    handle method lists.
+     The docs, examples, and goldens all teach the exact public path honestly.
+     This is where we make sure the platform is discoverable, not just
+     implemented, including one explicit binding story instead of local helper
+     folklore. This phase now also ships the public-doc-coverage registry and
+     anti-drift audit, so family helpers, grouped authoring, and the ordinary
+     orchestration families all live under one published docs/goldens coverage
+     boundary instead of being tracked by scattered page links and examples.
 
 35. **Phase 35: Certification And Closeout Boundary**
     Compile-fail boundaries, parity tests, hostile certification,
@@ -4017,6 +4018,11 @@ grouped orchestration, grouped helper verbs, and grouped recovery as part of
 the ordinary public teaching inventory rather than burying them inside helper
 docs or milestone history.
 
+This phase now ships as the public-doc-coverage seam for Query's teaching
+surface. Later phases must therefore consume the shipped coverage inventory,
+golden catalog, and docs-coverage audit instead of rebuilding docs/goldens
+breadth from scattered markdown, file names, or certification folklore.
+
 **Required Query artifacts**
 
 - one documentation inventory over the admitted platform-entry and admitted-
@@ -4067,6 +4073,17 @@ docs or milestone history.
   inventory
 - golden transcript parity checks against live public APIs
 - QA pass proving no critical platform-entry behavior is lost to history
+
+**Historical closure notes**
+
+- the shipped docs/goldens authority is now `public_doc_coverage`, not the
+  README alone and not orchestration inventory references by themselves
+- the shipped golden catalog now distinguishes real surface-coverage goldens
+  from the docs-coverage boundary readout itself
+- helper and grouped-authoring public surfaces are now first-class coverage
+  rows instead of implicit coverage through nearby generic pages
+- later certification work must consume this shipped coverage seam instead of
+  reconstructing docs breadth by hand
 
 **Open questions before implementation**
 
@@ -4128,6 +4145,10 @@ This phase closes the milestone with hostile proof rather than plausibility.
   boundary as authoritative for public orchestration breadth, and must fail if
   any covered public orchestration surface lacks an inventory row, transcript
   family, docs reference, or certification reference
+- certification closure must also treat the shipped public-doc-coverage
+  inventory/audit boundary as authoritative for feature-doc, README-discovery,
+  journey, and golden-readout breadth, and must fail if any covered public
+  surface lacks a coverage row, valid golden kind, or aligned journey
 - inventory, docs, support matrix, transcript inventory, and certification
   bundle breadth must all agree exactly
 

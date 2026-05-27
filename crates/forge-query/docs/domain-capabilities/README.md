@@ -13,6 +13,7 @@ of domain work you are trying to do:
 - [Ordinary Outcomes](./ordinary-outcomes.md)
 - [Recovery Boundary](./recovery-boundary.md)
 - [Orchestration Inventory](./orchestration-inventory.md)
+- [Public Doc Coverage](./public-doc-coverage.md)
 - [Family Helpers](./family-helpers.md)
 - [Grouped Authoring](./grouped-authoring.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
@@ -86,6 +87,9 @@ guessing from reason strings. Use
 canonical registry for shipped orchestration verbs, transcript families,
 support coverage, doc coverage, and certification coverage instead of inferring
 the live public surface from examples or scattered docs. Use
+[Public Doc Coverage](./public-doc-coverage.md) when you need the published
+coverage registry for which feature page, README entry, golden readout, and
+journey lane currently teach each shipped public orchestration surface. Use
 [Family Helpers](./family-helpers.md) when you already know the declaration
 family you are working with and want a domain-native helper surface that still
 compiles onto the same generic signal-orchestration, contribution-composed,

@@ -56,6 +56,7 @@ mod policy_plan;
 mod preview;
 mod program;
 mod projection_consumption;
+mod public_doc_coverage;
 mod query_basis_lifecycle;
 mod query_context;
 mod recovery_boundary;
@@ -127,6 +128,13 @@ pub use ordinary_outcome::{
     ForgeQueryOrdinaryContributionComposedCheckedTopologyKind, ForgeQueryOrdinaryNextStep,
     ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture, ForgeQueryOrdinaryPostureKind,
     ForgeQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
+};
+pub use public_doc_coverage::{
+    forge_query_public_doc_coverage_golden_transcript_digest,
+    forge_query_public_doc_coverage_golden_transcripts, ForgeQueryPublicDocCoverageAudit,
+    ForgeQueryPublicDocCoverageInventory, ForgeQueryPublicDocCoverageRow,
+    ForgeQueryPublicDocReference, ForgeQueryPublicGoldenTranscript,
+    ForgeQueryPublicGoldenTranscriptKind, ForgeQueryPublicJourneyKind,
 };
 pub use recovery_boundary::{
     forge_query_recovery_brief_from_continuation_execution_checked,

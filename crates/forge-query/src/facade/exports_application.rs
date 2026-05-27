@@ -242,6 +242,13 @@ pub use crate::ordinary_outcome::{
     ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture, ForgeQueryOrdinaryPostureKind,
     ForgeQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
 };
+pub use crate::public_doc_coverage::{
+    forge_query_public_doc_coverage_golden_transcript_digest,
+    forge_query_public_doc_coverage_golden_transcripts, ForgeQueryPublicDocCoverageAudit,
+    ForgeQueryPublicDocCoverageInventory, ForgeQueryPublicDocCoverageRow,
+    ForgeQueryPublicDocReference, ForgeQueryPublicGoldenTranscript,
+    ForgeQueryPublicGoldenTranscriptKind, ForgeQueryPublicJourneyKind,
+};
 pub use crate::recovery_boundary::{
     forge_query_recovery_brief_from_continuation_execution_checked,
     forge_query_recovery_brief_from_continuation_execution_proof,

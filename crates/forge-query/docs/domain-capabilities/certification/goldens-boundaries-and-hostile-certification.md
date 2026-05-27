@@ -66,6 +66,9 @@ When you add a new domain-capability feature, the honest path is:
 
 - [Certification Surface And Closeout Bundle](./certification-surface-and-closeout-bundle.md)
   explains the public readout that summarizes these proofs
+- [Public Doc Coverage](../public-doc-coverage.md) owns the published registry
+  that maps shipped public surfaces to their feature docs, README discovery
+  labels, and golden readouts
 - every category doc in this tree should have a matching golden or boundary
   story through these surfaces
 
@@ -90,4 +93,5 @@ When you add a new domain-capability feature, the honest path is:
 ## Related Docs
 
 - [Certification Surface And Closeout Bundle](./certification-surface-and-closeout-bundle.md)
+- [Public Doc Coverage](../public-doc-coverage.md)
 - [Domain Capabilities](../README.md)

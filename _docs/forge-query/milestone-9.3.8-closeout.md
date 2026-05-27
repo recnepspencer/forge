@@ -331,10 +331,11 @@ beneath the shipped:
 - Phase 31 denial and recovery UX boundary
 - Phase 32 family-specific ergonomics boundary
 - Phase 33 grouped / neighborhood authoring boundary
+- Phase 34 public documentation / golden teaching / docs-coverage boundary
 
 and not as an open prompt to plan any of those phases again.
 
-The next live planning surface now starts at Phase 34 and later. Those later
+The next live planning surface now starts at Phase 35 and later. Those later
 phases should keep extending:
 
 - one authority-preserving binding story
@@ -348,5 +349,7 @@ phases should keep extending:
 - one family-gated helper projection story over the same generic public lanes
 - one real grouped declaration and grouped orchestration story over the same
   generic, helper, inventory, and recovery seams
+- one published docs/goldens coverage story over the same live public surface
+  instead of rediscovering teaching breadth from markdown drift
 
 instead of inventing local glue.

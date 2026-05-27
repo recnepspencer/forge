@@ -192,6 +192,9 @@ for row in continuation_rows {
 - [Ordinary Outcomes](./ordinary-outcomes.md) owns the compact outcome surface
   that the inventory treats as a first-class visibility lane rather than as a
   comment on the checked lane.
+- [Public Doc Coverage](./public-doc-coverage.md) projects from this inventory
+  to answer which feature page, README entry, golden readout, and journey lane
+  teach each shipped public surface.
 - [Declaration Entry Readiness](./declaration-entry-readiness.md) owns part of
   the support/readiness truth that declaration-entry inventory rows point back
   to.
@@ -257,6 +260,7 @@ Useful audit accessors:
 ## Related Docs
 
 - [Domain Capabilities](./README.md)
+- [Public Doc Coverage](./public-doc-coverage.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Ordinary Outcomes](./ordinary-outcomes.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
