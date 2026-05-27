@@ -116,6 +116,21 @@ Admitted-handle signal-compatibility entry points:
 - `declare_review_progress_describe_plan_receipt_envelope_and_check_signal_compatibility(input) -> Result<ForgeQueryDeclarationSignalCompatibility<D, I>, ForgeQueryDeclarationEntrySignalCompatibilityError<D, I>>`
 - `signal_compatibility_support::<I>() -> ForgeQueryDeclarationSignalCompatibilitySupportReport<D, I>`
 
+Admitted-handle continuation entry points:
+
+- `prepare_continuation_from_target(request) -> ForgeQueryPreparedContinuationOutcome<D, I>`
+- `prepare_continuation_from_target_outcome(request) -> ForgeQueryOrdinaryOutcome<ForgeQueryPreparedContinuation<D, I>>`
+- `prepare_continuation_from_target_checked(request) -> ForgeQueryPreparedContinuationChecked<D, I>`
+- `prepare_continuation_from_target_proof(request) -> ForgeQueryPreparedContinuationTranscript<D, I>`
+- `prepare_continuation_from_context(request) -> ForgeQueryPreparedContinuationOutcome<D, I>`
+- `prepare_continuation_from_context_outcome(request) -> ForgeQueryOrdinaryOutcome<ForgeQueryPreparedContinuation<D, I>>`
+- `prepare_continuation_from_context_checked(request) -> ForgeQueryPreparedContinuationChecked<D, I>`
+- `prepare_continuation_from_context_proof(request) -> ForgeQueryPreparedContinuationTranscript<D, I>`
+- `execute_prepared_continuation(prepared) -> ForgeQueryContinuationExecutionOutcome<D, I>`
+- `execute_prepared_continuation_outcome(prepared) -> ForgeQueryOrdinaryOutcome<ForgeQueryContinuationExecution<D, I>>`
+- `execute_prepared_continuation_checked(prepared) -> ForgeQueryContinuationExecutionChecked<D, I>`
+- `execute_prepared_continuation_proof(prepared) -> ForgeQueryContinuationExecutionTranscript<D, I>`
+
 Admitted-handle seam-ledger entry points:
 
 - `declaration_entry_crossing_inventory::<I>() -> ForgeQueryDeclarationEntryCrossingInventory<D, I>`
@@ -235,6 +250,11 @@ Phase 26 adds the ordinary outcome layer on top of both binding and
 declaration-entry orchestration. The admitted handle now exposes
 `..._outcome(...)` entry points when you want one compact public result type
 without dropping the checked topology underneath.
+
+Phase 27 adds the continuation pipeline on top of binding and retained bridge
+or signal truth. The admitted handle now owns one explicit prepared/executed
+continuation lane instead of leaving callers to manually rebuild continuation
+requests, basis posture, workspace posture, and execution handoff glue.
 
 When later declaration-entry artifacts expose shared binding targets, those
 targets are still scoped by this admitted world. The binding seam does not
@@ -568,6 +588,7 @@ They do not yet provide:
 - declaration relational truth routing by themselves
 - declaration bridge continuation routing by themselves
 - declaration signal compatibility by themselves
+- continuation preparation or explicit continuation execution by themselves
 - declaration-entry orchestration beyond the retained envelope ceiling
 - dynamic operation eligibility
 - preview, historical, or runtime basis binding
@@ -579,6 +600,7 @@ They do not yet provide:
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Ordinary Outcomes](./ordinary-outcomes.md)
+- [Continuation Pipeline](./continuation-pipeline.md)
 - [Declaration Legality](./declaration-legality.md)
 - [Declaration Progression](./declaration-progression.md)
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)

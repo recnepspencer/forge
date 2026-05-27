@@ -20,6 +20,22 @@ pub enum ForgeQueryOrdinaryBindingCheckedTopologyKind {
     WrongWorld,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ForgeQueryOrdinaryContinuationCheckedTopologyKind {
+    Ambiguous,
+    AuthorityMismatch,
+    BasisMismatch,
+    Deferred,
+    Denied,
+    Failed,
+    RebindRequired,
+    Stale,
+    Unavailable,
+    Unsupported,
+    WrongHandle,
+    WrongWorld,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum ForgeQueryOrdinaryCheckedTopologyRepr {
     Orchestration {
@@ -29,6 +45,10 @@ enum ForgeQueryOrdinaryCheckedTopologyRepr {
     },
     Binding {
         kind: ForgeQueryOrdinaryBindingCheckedTopologyKind,
+        linked_artifacts: ForgeQueryBindingLinkedArtifacts,
+    },
+    Continuation {
+        kind: ForgeQueryOrdinaryContinuationCheckedTopologyKind,
         linked_artifacts: ForgeQueryBindingLinkedArtifacts,
     },
 }
@@ -65,12 +85,25 @@ impl ForgeQueryOrdinaryCheckedTopology {
         }
     }
 
+    pub(crate) fn continuation(
+        kind: ForgeQueryOrdinaryContinuationCheckedTopologyKind,
+        linked_artifacts: ForgeQueryBindingLinkedArtifacts,
+    ) -> Self {
+        Self {
+            repr: ForgeQueryOrdinaryCheckedTopologyRepr::Continuation {
+                kind,
+                linked_artifacts,
+            },
+        }
+    }
+
     pub fn orchestration_stop_stage(&self) -> Option<ForgeQueryDeclarationEntryOrchestrationStage> {
         match &self.repr {
             ForgeQueryOrdinaryCheckedTopologyRepr::Orchestration { stop_stage, .. } => {
                 Some(*stop_stage)
             }
-            ForgeQueryOrdinaryCheckedTopologyRepr::Binding { .. } => None,
+            ForgeQueryOrdinaryCheckedTopologyRepr::Binding { .. }
+            | ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { .. } => None,
         }
     }
 
@@ -79,7 +112,8 @@ impl ForgeQueryOrdinaryCheckedTopology {
             ForgeQueryOrdinaryCheckedTopologyRepr::Orchestration {
                 retained_digest, ..
             } => retained_digest.as_deref(),
-            ForgeQueryOrdinaryCheckedTopologyRepr::Binding { .. } => None,
+            ForgeQueryOrdinaryCheckedTopologyRepr::Binding { .. }
+            | ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { .. } => None,
         }
     }
 
@@ -90,14 +124,16 @@ impl ForgeQueryOrdinaryCheckedTopology {
             ForgeQueryOrdinaryCheckedTopologyRepr::Orchestration { refusal_class, .. } => {
                 *refusal_class
             }
-            ForgeQueryOrdinaryCheckedTopologyRepr::Binding { .. } => None,
+            ForgeQueryOrdinaryCheckedTopologyRepr::Binding { .. }
+            | ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { .. } => None,
         }
     }
 
     pub fn binding_kind(&self) -> Option<ForgeQueryOrdinaryBindingCheckedTopologyKind> {
         match &self.repr {
             ForgeQueryOrdinaryCheckedTopologyRepr::Binding { kind, .. } => Some(*kind),
-            ForgeQueryOrdinaryCheckedTopologyRepr::Orchestration { .. } => None,
+            ForgeQueryOrdinaryCheckedTopologyRepr::Orchestration { .. }
+            | ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { .. } => None,
         }
     }
 
@@ -106,7 +142,26 @@ impl ForgeQueryOrdinaryCheckedTopology {
             ForgeQueryOrdinaryCheckedTopologyRepr::Binding {
                 linked_artifacts, ..
             } => Some(linked_artifacts),
-            ForgeQueryOrdinaryCheckedTopologyRepr::Orchestration { .. } => None,
+            ForgeQueryOrdinaryCheckedTopologyRepr::Orchestration { .. }
+            | ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { .. } => None,
+        }
+    }
+
+    pub fn continuation_kind(&self) -> Option<ForgeQueryOrdinaryContinuationCheckedTopologyKind> {
+        match &self.repr {
+            ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { kind, .. } => Some(*kind),
+            ForgeQueryOrdinaryCheckedTopologyRepr::Orchestration { .. }
+            | ForgeQueryOrdinaryCheckedTopologyRepr::Binding { .. } => None,
+        }
+    }
+
+    pub fn continuation_linked_artifacts(&self) -> Option<&ForgeQueryBindingLinkedArtifacts> {
+        match &self.repr {
+            ForgeQueryOrdinaryCheckedTopologyRepr::Continuation {
+                linked_artifacts, ..
+            } => Some(linked_artifacts),
+            ForgeQueryOrdinaryCheckedTopologyRepr::Orchestration { .. }
+            | ForgeQueryOrdinaryCheckedTopologyRepr::Binding { .. } => None,
         }
     }
 }

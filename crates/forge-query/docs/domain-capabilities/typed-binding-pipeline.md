@@ -240,6 +240,9 @@ This is the intended shape:
 
 - [Configured Domain Handles](./configured-domain-handles.md) own the admitted
   world the binding pipeline checks first.
+- [Continuation Pipeline](./continuation-pipeline.md) consumes
+  continuation-ready binding results and turns them into prepared and executed
+  continuation artifacts.
 - [Ordinary Outcomes](./ordinary-outcomes.md) provide the compact public result
   lane over `ForgeQueryBindingChecked<T>`.
 - [Declaration Progression](./declaration-progression.md) introduces the first
@@ -291,12 +294,14 @@ The first shipped Phase 25 slice does not yet provide:
 - broad ambient UI probing outside the declared candidate set
 - grouped or neighborhood binding
 - arbitrary continuation execution
+- prepared or executed continuation artifacts
 - a second orchestration engine
 - a replacement for explicit route/receipt/envelope constructors
 
 ## Related Docs
 
 - [Configured Domain Handles](./configured-domain-handles.md)
+- [Continuation Pipeline](./continuation-pipeline.md)
 - [Declaration Progression](./declaration-progression.md)
 - [Declaration Route Plans](./declaration-route-plan.md)
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)

@@ -20,6 +20,7 @@ mod binding_pipeline;
 mod canonicalization;
 mod collection;
 mod composition;
+mod continuation_pipeline;
 mod correspondence;
 mod correspondence_history;
 mod correspondence_history_parity;
@@ -69,10 +70,21 @@ mod view_shape;
 mod view_shape_live;
 mod workflow;
 
+pub use continuation_pipeline::{
+    ForgeQueryContinuationBasisPosture, ForgeQueryContinuationExecution,
+    ForgeQueryContinuationExecutionChecked, ForgeQueryContinuationExecutionOutcome,
+    ForgeQueryContinuationExecutionTranscript, ForgeQueryContinuationRuntimeContract,
+    ForgeQueryContinuationTruthContext, ForgeQueryContinuationWorkspaceContract,
+    ForgeQueryExecutePreparedContinuationRequest, ForgeQueryPreparedContinuation,
+    ForgeQueryPreparedContinuationChecked, ForgeQueryPreparedContinuationExecutionMode,
+    ForgeQueryPreparedContinuationFamily, ForgeQueryPreparedContinuationOutcome,
+    ForgeQueryPreparedContinuationRequest, ForgeQueryPreparedContinuationSignalPosture,
+    ForgeQueryPreparedContinuationTranscript,
+};
 pub use ordinary_outcome::{
     ForgeQueryOrdinaryBindingCheckedTopologyKind, ForgeQueryOrdinaryCheckedTopology,
-    ForgeQueryOrdinaryNextStep, ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture,
-    ForgeQueryOrdinaryPostureKind,
+    ForgeQueryOrdinaryContinuationCheckedTopologyKind, ForgeQueryOrdinaryNextStep,
+    ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture, ForgeQueryOrdinaryPostureKind,
 };
 
 #[cfg(test)]

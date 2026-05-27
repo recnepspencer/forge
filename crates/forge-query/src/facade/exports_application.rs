@@ -189,10 +189,21 @@ pub use crate::binding_pipeline::{
     ForgeQueryResolveReceiptFromTargetRequest, ForgeQueryResolveRouteFromTargetRequest,
     ForgeQueryRouteBindingRequest, ForgeQueryRouteResolverSubject,
 };
+pub use crate::continuation_pipeline::{
+    ForgeQueryContinuationBasisPosture, ForgeQueryContinuationExecution,
+    ForgeQueryContinuationExecutionChecked, ForgeQueryContinuationExecutionOutcome,
+    ForgeQueryContinuationExecutionTranscript, ForgeQueryContinuationRuntimeContract,
+    ForgeQueryContinuationTruthContext, ForgeQueryContinuationWorkspaceContract,
+    ForgeQueryExecutePreparedContinuationRequest, ForgeQueryPreparedContinuation,
+    ForgeQueryPreparedContinuationChecked, ForgeQueryPreparedContinuationExecutionMode,
+    ForgeQueryPreparedContinuationFamily, ForgeQueryPreparedContinuationOutcome,
+    ForgeQueryPreparedContinuationRequest, ForgeQueryPreparedContinuationSignalPosture,
+    ForgeQueryPreparedContinuationTranscript,
+};
 pub use crate::ordinary_outcome::{
     ForgeQueryOrdinaryBindingCheckedTopologyKind, ForgeQueryOrdinaryCheckedTopology,
-    ForgeQueryOrdinaryNextStep, ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture,
-    ForgeQueryOrdinaryPostureKind,
+    ForgeQueryOrdinaryContinuationCheckedTopologyKind, ForgeQueryOrdinaryNextStep,
+    ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture, ForgeQueryOrdinaryPostureKind,
 };
 pub use crate::target_binding::{
     ForgeQueryAdmittedDeclarationProgressionBindingTarget, ForgeQueryBindingTarget,

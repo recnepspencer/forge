@@ -7,6 +7,7 @@ where Query most often needs to stop and explain itself:
 
 - declaration-entry orchestration
 - typed binding
+- continuation preparation and execution
 
 Use this feature when you want one compact outcome value that still keeps the
 important non-success categories separate.
@@ -18,7 +19,8 @@ typed vocabulary while still linking back to the checked topology underneath.
 ## Why You Use It
 
 - keep ordinary handle calls concise without flattening real stop posture
-- share one non-success vocabulary across binding and orchestration
+- share one non-success vocabulary across binding, continuation, and
+  orchestration
 - get a machine-readable next step instead of parsing prose
 - inspect which checked topology the ordinary outcome came from
 - keep `Denied`, `Refused`, `Stale`, `RebindRequired`, `Unsupported`, and
@@ -51,6 +53,12 @@ Admitted-handle binding entry points:
 - `bind_envelope_from_target_outcome(...)`
 - `bind_continuation_from_target_outcome(...)`
 
+Admitted-handle continuation entry points:
+
+- `prepare_continuation_from_target_outcome(...)`
+- `prepare_continuation_from_context_outcome(...)`
+- `execute_prepared_continuation_outcome(...)`
+
 ## Core Mental Model
 
 Think of ordinary outcomes as a public compatibility layer over stronger truth.
@@ -80,6 +88,9 @@ Query does not compute a second decision tree for ordinary outcomes.
 Instead, ordinary outcomes are derived from:
 
 - `ForgeQueryBindingChecked<T>` for typed binding
+- `ForgeQueryPreparedContinuationChecked<D, I>` and
+  `ForgeQueryContinuationExecutionChecked<D, I>` for continuation preparation
+  and execution
 - `ForgeQueryDeclarationEntryOrchestrationTerminalError<D, I>` for declaration-entry orchestration
 
 That projection keeps one small shared posture surface:
@@ -151,6 +162,9 @@ match outcome {
   admitted-handle ordinary entry points.
 - [Typed Binding Pipeline](./typed-binding-pipeline.md) owns the checked and
   proof-visible binding outcomes that ordinary binding projects from.
+- [Continuation Pipeline](./continuation-pipeline.md) owns the checked and
+  proof-visible prepared/executed continuation outcomes that ordinary
+  continuation projects from.
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md) owns
   the checked and proof-visible orchestration stop posture that ordinary
   orchestration projects from.
@@ -189,13 +203,13 @@ Binding linked artifacts can expose:
 - treating `Stale` and `RebindRequired` as interchangeable
 - parsing `reason()` when `kind()` or `next_step()` already carry the machine
   decision you need
-- assuming ordinary binding and ordinary orchestration are unrelated error
-  vocabularies
+- assuming ordinary binding, continuation, and orchestration are unrelated
+  error vocabularies
 
 ## Current Limits
 
-- ordinary outcomes are currently shipped for typed binding and declaration-entry
-  orchestration only
+- ordinary outcomes are currently shipped for typed binding,
+  continuation preparation/execution, and declaration-entry orchestration
 - the ordinary surface is intentionally projection-only; it does not own new
   execution or binding logic
 - ordinary outcomes do not expose full transcripts; switch to checked or
@@ -205,5 +219,6 @@ Binding linked artifacts can expose:
 
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
+- [Continuation Pipeline](./continuation-pipeline.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Domain Capabilities](./README.md)

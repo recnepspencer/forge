@@ -1,4 +1,5 @@
 mod bridge_routing;
+mod continuation;
 mod declaration;
 mod declaration_entry;
 mod envelope;

@@ -40,6 +40,15 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             subject,
         }
     }
+
+    pub(crate) fn into_bridge_parts(
+        self,
+    ) -> (
+        ForgeQueryDeclarationBridgeContinuationRequest,
+        crate::application::ForgeQueryDeclarationBridgeRoutingInput<D, I>,
+    ) {
+        (self.bridge_request, self.subject)
+    }
 }
 
 macro_rules! request_common {

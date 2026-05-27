@@ -288,6 +288,9 @@ artifact actually proved it.
   still owns the relational slice of mixed-authority route plans
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md) still own
   crossing posture; bridge routing does not replace them
+- [Continuation Pipeline](./continuation-pipeline.md) consumes retained
+  bridge-routing truth when the next job is prepared or explicit continuation
+  execution
 - [Configured Domain Handles](./configured-domain-handles.md) still own the
   public orchestration lane and support snapshot
 
@@ -363,6 +366,10 @@ one real bridge continuation family. It still does not provide:
 The retained bridge binding tells you which lower bridge surface this
 declaration now routes to. It does not claim the lower bridge request already
 ran.
+
+When you do want Query to carry that retained bridge-routing truth forward into
+one prepared continuation artifact and optional explicit execution step, move
+to [Continuation Pipeline](./continuation-pipeline.md).
 
 ## Related Docs
 

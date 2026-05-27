@@ -514,7 +514,10 @@ for record in transcript.step_records() {
   is selecting or denying the next explicit input from context or retained
   targets rather than lowering through the declaration-entry ceiling.
 - Use [Ordinary Outcomes](./ordinary-outcomes.md) when you want the compact
-  public result vocabulary shared by binding and orchestration.
+  public result vocabulary shared by binding, continuation, and orchestration.
+- Use [Continuation Pipeline](./continuation-pipeline.md) when the next job is
+  to turn retained envelope or continuation-ready truth into one prepared
+  continuation artifact and explicit execution step.
 
 ## Inspection And Debugging
 
@@ -604,6 +607,7 @@ when the ordinary lane stopped at the envelope ceiling.
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Ordinary Outcomes](./ordinary-outcomes.md)
+- [Continuation Pipeline](./continuation-pipeline.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Declaration Progression](./declaration-progression.md)
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)

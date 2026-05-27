@@ -171,9 +171,10 @@ The runtime API public stabilization gate now inherits:
 - the first of those broadenings is now the immediate post-Phase-24 shared
   retained target-binding extraction rather than a distant cleanup, followed by
   the explicit declaration-entry aspect-contract/granularity addendum and the
-  now-shipped Phase 25 typed binding / extractor / resolver pipeline plus the
-  now-shipped Phase 26 denial-preserving ordinary outcome layer; later widening
-  should extend that shipped seam phase by phase with in-flight feature-doc
+  now-shipped Phase 25 typed binding / extractor / resolver pipeline, the
+  now-shipped Phase 26 denial-preserving ordinary outcome layer, and the
+  now-shipped Phase 27 prepared/executed continuation pipeline; later widening
+  should extend those shipped seams phase by phase with in-flight feature-doc
   synchronization rather than as one final documentation pass
 
 The stabilization gate must not reopen 9.3.7's category-coverage, public-lane,

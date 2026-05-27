@@ -11,6 +11,7 @@ of domain work you are trying to do:
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Ordinary Outcomes](./ordinary-outcomes.md)
+- [Continuation Pipeline](./continuation-pipeline.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Declaration Family Taxonomy](./declaration-family-taxonomy.md)
 - [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
@@ -70,7 +71,11 @@ or one retained declaration-entry artifact needs to bind current context into
 the next explicit Query input without relying on ambient framework magic. Use
 [Ordinary Outcomes](./ordinary-outcomes.md) when you want the compact public
 result lane over that binding or orchestration surface without flattening the
-checked topology underneath. Then move to
+checked topology underneath. Use
+[Continuation Pipeline](./continuation-pipeline.md) when the next job is to
+turn a continuation-ready binding result into one prepared continuation
+artifact and optional explicit execution step without rebuilding bridge,
+basis, and workspace handoff glue yourself. Then move to
 [Canonical Domain Declarations](./canonical-domain-declarations.md) when that
 admitted world needs to express declaration-local meaning through one retained
 Query-owned declaration artifact. Use
@@ -107,7 +112,7 @@ when that same public crossing story needs to bind into one real bridge
 continuation family. Use
 [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 when you need to freeze whether that retained declaration story is later
-eligible for Signal-backed derived execution.
+eligible for Signal-backed derived execution. Use
 [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 when you want one admitted-handle front door over the declaration-entry
 pipeline through the current envelope ceiling, with ordinary, checked, and
@@ -226,6 +231,19 @@ order:
   - `signal_compatibility_from_progressed_with_intent(...)`
   - `declare_review_progress_describe_plan_receipt_envelope_and_check_signal_compatibility(...)`
   - `signal_compatibility_support::<I>()`
+- continuation preparation and execution:
+  - `prepare_continuation_from_target(...)`
+  - `prepare_continuation_from_target_outcome(...)`
+  - `prepare_continuation_from_target_checked(...)`
+  - `prepare_continuation_from_target_proof(...)`
+  - `prepare_continuation_from_context(...)`
+  - `prepare_continuation_from_context_outcome(...)`
+  - `prepare_continuation_from_context_checked(...)`
+  - `prepare_continuation_from_context_proof(...)`
+  - `execute_prepared_continuation(...)`
+  - `execute_prepared_continuation_outcome(...)`
+  - `execute_prepared_continuation_checked(...)`
+  - `execute_prepared_continuation_proof(...)`
 - declaration-entry orchestration:
   - `orchestrate_declaration_entry(...)`
   - `orchestrate_declaration_entry_outcome(...)`
@@ -251,6 +269,8 @@ The main retained public artifacts introduced along that path are:
 - `ForgeQueryDeclarationRelationalRouting`
 - `ForgeQueryDeclarationBridgeRouting`
 - `ForgeQueryDeclarationSignalCompatibility`
+- `ForgeQueryPreparedContinuation`
+- `ForgeQueryContinuationExecution`
 - `ForgeQueryDeclarationEntryOrchestrationInput`
 - `ForgeQueryDeclarationEntryOrchestrationPlan`
 - `ForgeQueryDeclarationEntryOrchestrationOutcome`

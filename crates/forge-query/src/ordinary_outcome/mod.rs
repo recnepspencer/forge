@@ -12,6 +12,7 @@ pub use outcome::ForgeQueryOrdinaryOutcome;
 pub use posture::ForgeQueryOrdinaryPosture;
 pub use topology::{
     ForgeQueryOrdinaryBindingCheckedTopologyKind, ForgeQueryOrdinaryCheckedTopology,
+    ForgeQueryOrdinaryContinuationCheckedTopologyKind,
 };
 
 pub(crate) use binding::ordinary_outcome_from_binding_outcome;

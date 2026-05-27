@@ -288,6 +288,9 @@ of filling them from broad signal family posture.
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
   still owns bridge continuation binding and truth-context-sensitive bridge
   request selection
+- [Continuation Pipeline](./continuation-pipeline.md) carries retained signal
+  posture forward when Query prepares one continuation artifact for later
+  explicit execution
 - [Configured Domain Handles](./configured-domain-handles.md) still own the
   support snapshot and admitted-world identity that compatibility classification
   must not rediscover
@@ -367,6 +370,10 @@ one Query-owned compatibility artifact. It still does not provide:
 The retained compatibility artifact tells you whether later Signal-backed
 execution is structurally in play. It does not claim that derived execution
 already ran.
+
+When you want Query to reuse that retained signal posture while preparing one
+explicit continuation artifact for lower bridge execution, move to
+[Continuation Pipeline](./continuation-pipeline.md).
 
 ## Related Docs
 

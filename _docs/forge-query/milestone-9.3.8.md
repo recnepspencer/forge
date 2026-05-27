@@ -3345,6 +3345,21 @@ concise continuation surface in this phase must project onto that shipped
 ordinary layer rather than inventing continuation-local terminal enums or
 stringly fallback lanes.
 
+This phase now ships. Historical readers should therefore treat the prepared
+continuation surface as closed public product, not as a future placeholder:
+
+- `ForgeQueryPreparedContinuation`
+- `ForgeQueryPreparedContinuationChecked`
+- `ForgeQueryPreparedContinuationTranscript`
+- `ForgeQueryPreparedContinuationOutcome`
+- `ForgeQueryContinuationExecution`
+- `ForgeQueryContinuationExecutionChecked`
+- `ForgeQueryContinuationExecutionTranscript`
+- `ForgeQueryContinuationExecutionOutcome`
+- `prepare_continuation_from_target(...)`
+- `prepare_continuation_from_context(...)`
+- `execute_prepared_continuation(...)`
+
 **Required Query artifacts**
 
 - one prepared continuation artifact family
@@ -3418,6 +3433,11 @@ Phase 26 now ships the ordinary outcome surface that this phase must reuse.
 Signal-facing concise outcomes therefore belong inside the shared ordinary
 family, with checked/proof-visible topology still remaining authoritative.
 
+Phase 27 now also ships the prepared/executed continuation pipeline. This
+phase must therefore compose signal compatibility with that shipped prepared
+continuation seam instead of inventing a signal-local continuation readiness
+story or a second execution-admission ladder.
+
 **Required Query artifacts**
 
 - one orchestrated signal-compatibility surface
@@ -3462,6 +3482,11 @@ contribution authoring or orchestration can each grow local binding glue.
 Phase 26 now closes the ordinary outcome vocabulary those composed surfaces
 must reuse. Contribution composition may add richer typed posture, but it must
 not fork a second concise terminal story.
+
+Phase 27 now also closes the prepared/executed continuation seam. If
+contribution-composed orchestration later reaches continuation preparation or
+execution, that composition must lower through the shipped continuation
+pipeline rather than contribution-local runtime/workspace glue.
 
 **Required Query artifacts**
 
@@ -3519,6 +3544,12 @@ track explicitly:
 
 - the ordinary outcome surface and its checked-topology links
 
+Phase 27 now adds a third already-shipped public layer the same inventory must
+track explicitly:
+
+- prepared continuation artifacts, execution artifacts, and their proof-visible
+  transcripts
+
 **Requirements**
 
 - ordinary public verbs, checked verbs, proof-visible verbs, support/readiness
@@ -3554,6 +3585,12 @@ rebind requirements, and recovery posture into public product artifacts.
 Phase 26 now ships the concise ordinary outcome vocabulary that this phase must
 widen rather than replace. Recovery UX must therefore refine the shipped
 ordinary posture story, not branch into a second convenience-only denial API.
+
+Phase 27 now also ships typed continuation preparation and execution outcomes.
+Recovery UX in this phase must therefore include continuation-specific
+wrong-world, wrong-handle, stale-basis, basis-mismatch, authority-mismatch,
+prepared-only, and execution-failed posture as refinements of the same shared
+ordinary story rather than a second continuation-only recovery vocabulary.
 
 **Required Query artifacts**
 
@@ -3813,6 +3850,11 @@ docs/goldens phase must treat that surface as part of the ordinary public
 teaching inventory rather than as background architecture implied by
 orchestration examples.
 
+Phase 27 now ships a dedicated continuation pipeline feature surface too, so
+this docs/goldens phase must treat prepared/executed continuation as part of
+the ordinary public teaching inventory rather than as hidden bridge follow-up
+knowledge.
+
 **Required Query artifacts**
 
 - one documentation inventory over the admitted platform-entry and admitted-
@@ -3900,6 +3942,9 @@ This phase closes the milestone with hostile proof rather than plausibility.
 - equivalent contribution-binding, declaration-binding, product-binding, and
   continuation-binding paths must converge onto the same shared binding
   substrate artifacts when semantically identical
+- equivalent prepared-continuation and executed-continuation paths must
+  converge canonically with explicit retained bridge/signal/basis routing when
+  semantically identical
 - intentionally different family, route, authority, denial, cost, continuation,
   support, and contribution posture must diverge observably and predictably
 - compile-fail coverage must match the live ordinary lane breadth
