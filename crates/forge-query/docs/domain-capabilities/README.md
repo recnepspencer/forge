@@ -14,6 +14,7 @@ of domain work you are trying to do:
 - [Recovery Boundary](./recovery-boundary.md)
 - [Orchestration Inventory](./orchestration-inventory.md)
 - [Family Helpers](./family-helpers.md)
+- [Grouped Authoring](./grouped-authoring.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Declaration Family Taxonomy](./declaration-family-taxonomy.md)
@@ -89,6 +90,9 @@ the live public surface from examples or scattered docs. Use
 family you are working with and want a domain-native helper surface that still
 compiles onto the same generic signal-orchestration, contribution-composed,
 ordinary-outcome, recovery, and audit lanes. Use
+[Grouped Authoring](./grouped-authoring.md) when the group itself is part of
+the declaration meaning and you need one retained grouped artifact plus one
+grouped orchestration lane instead of a loop over single declarations. Use
 [Continuation Pipeline](./continuation-pipeline.md) when the next job is to
 turn a continuation-ready binding result into one prepared continuation
 artifact and optional explicit execution step without rebuilding bridge,

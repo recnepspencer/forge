@@ -9,6 +9,7 @@ pub enum ForgeQueryRecoveryStopFamily {
     DeclarationEntry,
     DeclarationReceipt,
     DeclarationRoutePlan,
+    GroupedNeighborhoodOrchestration,
     SignalCompatibilityOrchestration,
 }
 
@@ -125,6 +126,11 @@ impl ForgeQueryRecoveryBrief {
 
     pub fn recovery_request(&self) -> &ForgeQueryRecoveryRequest {
         &self.recovery_request
+    }
+
+    pub(crate) fn with_stop_family(mut self, stop_family: ForgeQueryRecoveryStopFamily) -> Self {
+        self.stop_family = stop_family;
+        self
     }
 }
 

@@ -160,6 +160,8 @@ Admitted-handle recovery entry points:
 - `recover_from_signal_compatibility_proof(proof) -> Option<ForgeQueryRecoveryBrief>`
 - `recover_from_contribution_composed_checked(checked) -> Option<ForgeQueryRecoveryBrief>`
 - `recover_from_contribution_composed_proof(proof) -> Option<ForgeQueryRecoveryBrief>`
+- `recover_from_grouped_orchestration_checked(checked) -> Option<ForgeQueryRecoveryBrief>`
+- `recover_from_grouped_orchestration_proof(proof) -> Option<ForgeQueryRecoveryBrief>`
 
 Admitted-handle family-helper entry points:
 
@@ -186,6 +188,13 @@ Admitted-handle family-helper entry points:
 - `orchestrate_material_attachment_for_active_face_selection_outcome(input) -> ForgeQueryOrdinaryOutcome<ForgeQueryContributionComposedOrchestration<D, I>>`
 - `orchestrate_material_attachment_for_active_face_selection_checked(input) -> ForgeQueryContributionComposedOrchestrationChecked<D, I>`
 - `orchestrate_material_attachment_for_active_face_selection_proof(input) -> ForgeQueryContributionComposedOrchestrationTranscript<D, I>`
+- `local_neighborhood_for_active_face_selection(input) -> ForgeQueryGroupedDeclarationInput<D, I>`
+- `declare_local_neighborhood_for_active_face_selection(input) -> Result<ForgeQueryGroupedDeclarationArtifact<D, I>, ForgeQueryGroupedDeclarationStop>`
+- `declare_local_neighborhood_for_active_face_selection_checked(input) -> ForgeQueryGroupedDeclarationChecked<D, I>`
+- `orchestrate_local_neighborhood_for_active_face_selection(declaration) -> Result<ForgeQueryGroupedOrchestration<D, I>, ForgeQueryGroupedOrchestrationStop<D, I>>`
+- `orchestrate_local_neighborhood_for_active_face_selection_outcome(declaration) -> ForgeQueryOrdinaryOutcome<ForgeQueryGroupedOrchestration<D, I>>`
+- `orchestrate_local_neighborhood_for_active_face_selection_checked(declaration) -> ForgeQueryGroupedOrchestrationChecked<D, I>`
+- `orchestrate_local_neighborhood_for_active_face_selection_proof(declaration) -> ForgeQueryGroupedOrchestrationTranscript<D, I>`
 
 Use [Family Helpers](./family-helpers.md) for the mental model, examples, and
 family-gating rules behind these helper verbs. This page keeps the configured
@@ -713,6 +722,7 @@ They do not yet provide:
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
 - [Recovery Boundary](./recovery-boundary.md)
 - [Family Helpers](./family-helpers.md)
+- [Grouped Authoring](./grouped-authoring.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
 - [Declaration Entry Readiness](./declaration-entry-readiness.md)

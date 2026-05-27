@@ -73,8 +73,10 @@ The current shipped families are:
 
 Helper verbs are also registered here. They keep their underlying family
 ownership. A geometry preview helper still inventories as
-signal-compatibility orchestration, and a geometry material-attachment helper
-still inventories as contribution-composed orchestration.
+signal-compatibility orchestration, a geometry material-attachment helper
+still inventories as contribution-composed orchestration, and a grouped
+local-neighborhood helper still inventories through the helper registry instead
+of hiding as undocumented surface drift.
 
 The current visibility lanes are:
 
@@ -245,8 +247,8 @@ Useful audit accessors:
 
 ## Current Limits
 
-- the inventory currently covers the shipped orchestration families through
-  Phase 30 only
+- the inventory currently covers the shipped orchestration families plus the
+  registered helper lanes that project onto them
 - the audit checks the real admitted-handle source surface, but it is still a
   code-level certification boundary rather than a rendered docs inventory
 - the older declaration-entry grammar inventory is now a projection of this
@@ -261,4 +263,5 @@ Useful audit accessors:
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
 - [Family Helpers](./family-helpers.md)
+- [Grouped Authoring](./grouped-authoring.md)
 - [Declaration Entry Readiness](./declaration-entry-readiness.md)

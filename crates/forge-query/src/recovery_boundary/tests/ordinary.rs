@@ -3,6 +3,11 @@ use crate::application::{
     ForgeQueryDeclarationEntryOrchestrationStage,
 };
 use crate::binding_pipeline::ForgeQueryBindingLinkedArtifacts;
+use crate::grouped_authoring::{
+    forge_query_grouped_declaration_checked_on_handle,
+    forge_query_grouped_orchestration_checked_on_handle, ForgeQueryGroupedDeclarationChecked,
+    ForgeQueryGroupedDeclarationInput, ForgeQueryGroupedOrchestrationChecked,
+};
 use crate::ordinary_outcome::{
     ForgeQueryOrdinaryCheckedTopology, ForgeQueryOrdinaryContinuationCheckedTopologyKind,
     ForgeQueryOrdinaryNextStep, ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture,
@@ -10,6 +15,7 @@ use crate::ordinary_outcome::{
     ForgeQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
 };
 
+use super::support::{recovery_admitted_handle, RecoveryInput, SignalReceiptFamily};
 use crate::recovery_boundary::{
     forge_query_recovery_brief_from_ordinary_outcome, ForgeQueryRecoveryAction,
     ForgeQueryRecoveryAuthoritySurface, ForgeQueryRecoveryStopFamily, ForgeQueryRecoveryStopKind,
@@ -154,5 +160,45 @@ fn ordinary_signal_basis_mismatch_maps_to_signal_repair() {
     assert_eq!(
         brief.recommended_action(),
         ForgeQueryRecoveryAction::RefreshBasis
+    );
+}
+
+#[test]
+fn grouped_wrong_world_checked_uses_grouped_recovery_family() {
+    let left = recovery_admitted_handle("left");
+    let right = recovery_admitted_handle("right");
+    let declaration = match forge_query_grouped_declaration_checked_on_handle(
+        &left,
+        ForgeQueryGroupedDeclarationInput::local_neighborhood(
+            RecoveryInput::<SignalReceiptFamily>::new("edge-a"),
+        ),
+    ) {
+        ForgeQueryGroupedDeclarationChecked::Bound(value) => value,
+        ForgeQueryGroupedDeclarationChecked::MemberStopped(_) => {
+            panic!("grouped declaration should admit")
+        }
+    };
+
+    let checked = forge_query_grouped_orchestration_checked_on_handle(&right, declaration);
+    assert!(matches!(
+        checked,
+        ForgeQueryGroupedOrchestrationChecked::WrongWorld(_)
+    ));
+
+    let brief = right
+        .recover_from_grouped_orchestration_checked(checked)
+        .expect("grouped wrong-world stop should yield a recovery brief");
+    assert_eq!(
+        brief.stop_family(),
+        ForgeQueryRecoveryStopFamily::GroupedNeighborhoodOrchestration
+    );
+    assert_eq!(brief.stop_kind(), ForgeQueryRecoveryStopKind::WrongWorld);
+    assert_eq!(
+        brief.authority_surface(),
+        ForgeQueryRecoveryAuthoritySurface::AdmittedOperatingWorld
+    );
+    assert_eq!(
+        brief.recommended_action(),
+        ForgeQueryRecoveryAction::CorrectWorld
     );
 }

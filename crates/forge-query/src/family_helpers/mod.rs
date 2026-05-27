@@ -3,6 +3,7 @@ mod geometry;
 pub use geometry::{
     ForgeQueryGeometryActiveFaceSelectionHelperFamily, ForgeQueryGeometryFamilyHelpers,
     ForgeQueryGeometryMaterialAttachmentHelperFamily, ForgeQueryGeometryMaterialAttachmentInput,
+    ForgeQueryGeometryNeighborhoodHelperFamily,
 };
 
 use crate::application::{

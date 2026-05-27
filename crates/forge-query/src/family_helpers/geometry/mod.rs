@@ -1,4 +1,5 @@
 mod continuation;
+mod grouped;
 mod material_attachment;
 
 pub use material_attachment::ForgeQueryGeometryMaterialAttachmentInput;
@@ -27,6 +28,11 @@ pub trait ForgeQueryGeometryActiveFaceSelectionHelperFamily<D: ForgeQueryDomainE
 }
 
 pub trait ForgeQueryGeometryMaterialAttachmentHelperFamily<D: ForgeQueryDomainEntryMarker>:
+    ForgeQueryDeclarationFamilyMarker<D>
+{
+}
+
+pub trait ForgeQueryGeometryNeighborhoodHelperFamily<D: ForgeQueryDomainEntryMarker>:
     ForgeQueryDeclarationFamilyMarker<D>
 {
 }

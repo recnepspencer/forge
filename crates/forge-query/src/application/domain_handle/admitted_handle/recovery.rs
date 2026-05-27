@@ -10,6 +10,9 @@ use crate::contribution_composed_orchestration::{
     ForgeQueryContributionComposedOrchestrationChecked,
     ForgeQueryContributionComposedOrchestrationTranscript,
 };
+use crate::grouped_authoring::{
+    ForgeQueryGroupedOrchestrationChecked, ForgeQueryGroupedOrchestrationTranscript,
+};
 use crate::ordinary_outcome::ForgeQueryOrdinaryOutcome;
 use crate::recovery_boundary::{
     forge_query_recovery_brief_from_continuation_execution_checked,
@@ -20,6 +23,8 @@ use crate::recovery_boundary::{
     forge_query_recovery_brief_from_declaration_entry_proof,
     forge_query_recovery_brief_from_declaration_receipt_checked,
     forge_query_recovery_brief_from_declaration_route_plan_checked,
+    forge_query_recovery_brief_from_grouped_orchestration_checked,
+    forge_query_recovery_brief_from_grouped_orchestration_proof,
     forge_query_recovery_brief_from_ordinary_outcome,
     forge_query_recovery_brief_from_prepared_continuation_checked,
     forge_query_recovery_brief_from_prepared_continuation_proof,
@@ -125,5 +130,19 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
         proof: ForgeQueryContributionComposedOrchestrationTranscript<D, I>,
     ) -> Option<ForgeQueryRecoveryBrief> {
         forge_query_recovery_brief_from_contribution_composed_proof(proof)
+    }
+
+    pub fn recover_from_grouped_orchestration_checked<I: ForgeQueryDeclarationInput<D>>(
+        &self,
+        checked: ForgeQueryGroupedOrchestrationChecked<D, I>,
+    ) -> Option<ForgeQueryRecoveryBrief> {
+        forge_query_recovery_brief_from_grouped_orchestration_checked(checked)
+    }
+
+    pub fn recover_from_grouped_orchestration_proof<I: ForgeQueryDeclarationInput<D>>(
+        &self,
+        proof: ForgeQueryGroupedOrchestrationTranscript<D, I>,
+    ) -> Option<ForgeQueryRecoveryBrief> {
+        forge_query_recovery_brief_from_grouped_orchestration_proof(proof)
     }
 }

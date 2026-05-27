@@ -54,6 +54,8 @@ Admitted-handle recovery entry points:
 - `recover_from_signal_compatibility_proof(...)`
 - `recover_from_contribution_composed_checked(...)`
 - `recover_from_contribution_composed_proof(...)`
+- `recover_from_grouped_orchestration_checked(...)`
+- `recover_from_grouped_orchestration_proof(...)`
 
 Good to know:
 
@@ -222,6 +224,9 @@ What this example is showing:
 - [Family Helpers](./family-helpers.md) expose family-native ordinary, checked,
   and proof-visible lanes, but they still hand non-success posture into this
   same shared recovery surface.
+- [Grouped Authoring](./grouped-authoring.md) owns grouped declaration and
+  grouped orchestration truth; recovery preserves grouped stop identity when
+  that lane stops.
 
 ## Inspection And Debugging
 
@@ -272,7 +277,8 @@ repair intent instead of a prose explanation:
 - the ordinary lane is the generic public front door, but checked and proof
   recovery lanes still carry stronger evidence
 - recovery currently covers ordinary, declaration-entry, route-plan, receipt,
-  continuation, signal-orchestration, and contribution-composed stop surfaces
+  continuation, signal-orchestration, contribution-composed, and grouped
+  orchestration stop surfaces
 - readiness and support reports may inform the next step, but they are not
   treated as proof of one concrete failure run
 
@@ -286,4 +292,5 @@ repair intent instead of a prose explanation:
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
 - [Orchestration Inventory](./orchestration-inventory.md)
 - [Family Helpers](./family-helpers.md)
+- [Grouped Authoring](./grouped-authoring.md)
 - [Domain Capabilities](./README.md)

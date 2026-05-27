@@ -9,6 +9,7 @@ pub enum ForgeQueryOrchestrationSurfaceFamily {
     ContinuationExecute,
     SignalCompatibilityOrchestration,
     ContributionComposedOrchestration,
+    GroupedNeighborhoodOrchestration,
 }
 
 impl ForgeQueryOrchestrationSurfaceFamily {
@@ -23,6 +24,7 @@ impl ForgeQueryOrchestrationSurfaceFamily {
             Self::ContinuationExecute => "continuation_execute",
             Self::SignalCompatibilityOrchestration => "signal_compatibility_orchestration",
             Self::ContributionComposedOrchestration => "contribution_composed_orchestration",
+            Self::GroupedNeighborhoodOrchestration => "grouped_neighborhood_orchestration",
         }
     }
 }
@@ -56,6 +58,7 @@ pub enum ForgeQueryOrchestrationTranscriptFamily {
     ContinuationExecution,
     SignalCompatibilityOrchestration,
     ContributionComposedOrchestration,
+    GroupedNeighborhoodOrchestration,
 }
 
 impl ForgeQueryOrchestrationTranscriptFamily {
@@ -69,6 +72,7 @@ impl ForgeQueryOrchestrationTranscriptFamily {
             Self::ContinuationExecution => "continuation_execution",
             Self::SignalCompatibilityOrchestration => "signal_compatibility_orchestration",
             Self::ContributionComposedOrchestration => "contribution_composed_orchestration",
+            Self::GroupedNeighborhoodOrchestration => "grouped_neighborhood_orchestration",
         }
     }
 }
@@ -119,6 +123,7 @@ pub enum ForgeQueryOrchestrationBindingProjection {
     SharedContinuationBinding,
     SharedSignalCompatibilityBinding,
     SharedContributionBinding,
+    SharedGroupedBinding,
 }
 
 impl ForgeQueryOrchestrationBindingProjection {
@@ -128,6 +133,7 @@ impl ForgeQueryOrchestrationBindingProjection {
             Self::SharedContinuationBinding => "shared_continuation_binding",
             Self::SharedSignalCompatibilityBinding => "shared_signal_compatibility_binding",
             Self::SharedContributionBinding => "shared_contribution_binding",
+            Self::SharedGroupedBinding => "shared_grouped_binding",
         }
     }
 }

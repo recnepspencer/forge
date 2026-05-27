@@ -34,6 +34,7 @@ pub mod facade;
 mod family_helpers;
 mod frontier_planning;
 mod frontier_signal_adapter;
+mod grouped_authoring;
 mod historical;
 mod identity;
 mod identity_evolution;
@@ -100,7 +101,17 @@ pub use contribution_composed_orchestration::{
 pub use family_helpers::{
     ForgeQueryFamilyHelpers, ForgeQueryGeometryActiveFaceSelectionHelperFamily,
     ForgeQueryGeometryFamilyHelpers, ForgeQueryGeometryMaterialAttachmentHelperFamily,
-    ForgeQueryGeometryMaterialAttachmentInput,
+    ForgeQueryGeometryMaterialAttachmentInput, ForgeQueryGeometryNeighborhoodHelperFamily,
+};
+pub use grouped_authoring::{
+    ForgeQueryGroupedDeclarationArtifact, ForgeQueryGroupedDeclarationChecked,
+    ForgeQueryGroupedDeclarationInput, ForgeQueryGroupedDeclarationMember,
+    ForgeQueryGroupedDeclarationStop, ForgeQueryGroupedDeclarationStopKind,
+    ForgeQueryGroupedEnvelopeMember, ForgeQueryGroupedMemberOrchestrationStop,
+    ForgeQueryGroupedOrchestration, ForgeQueryGroupedOrchestrationAlignmentStop,
+    ForgeQueryGroupedOrchestrationChecked, ForgeQueryGroupedOrchestrationProof,
+    ForgeQueryGroupedOrchestrationStop, ForgeQueryGroupedOrchestrationTranscript,
+    ForgeQueryGroupedOrdering, ForgeQueryGroupedSemantics,
 };
 pub use orchestration_inventory::{
     ForgeQueryOrchestrationBindingProjection, ForgeQueryOrchestrationCheckedTopologyKind,

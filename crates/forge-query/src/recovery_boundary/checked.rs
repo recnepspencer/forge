@@ -9,6 +9,10 @@ use crate::contribution_composed_orchestration::{
     ForgeQueryContributionComposedOrchestrationChecked,
     ForgeQueryContributionComposedOrchestrationTranscript,
 };
+use crate::grouped_authoring::{
+    ordinary_outcome_from_grouped_orchestration_checked, ForgeQueryGroupedOrchestrationChecked,
+    ForgeQueryGroupedOrchestrationTranscript,
+};
 use crate::signal_compatibility_orchestration::{
     ordinary_outcome_from_signal_compatibility_orchestration_checked,
     ForgeQuerySignalCompatibilityOrchestrationChecked,
@@ -96,4 +100,29 @@ pub fn forge_query_recovery_brief_from_contribution_composed_proof<
     proof: ForgeQueryContributionComposedOrchestrationTranscript<D, I>,
 ) -> Option<ForgeQueryRecoveryBrief> {
     forge_query_recovery_brief_from_contribution_composed_checked(proof.into_checked())
+}
+
+pub fn forge_query_recovery_brief_from_grouped_orchestration_checked<
+    D: ForgeQueryDomainEntryMarker,
+    I: ForgeQueryDeclarationInput<D>,
+>(
+    checked: ForgeQueryGroupedOrchestrationChecked<D, I>,
+) -> Option<ForgeQueryRecoveryBrief> {
+    forge_query_recovery_brief_from_ordinary_outcome(
+        &ordinary_outcome_from_grouped_orchestration_checked(checked),
+    )
+    .map(|brief| {
+        brief.with_stop_family(
+            crate::recovery_boundary::ForgeQueryRecoveryStopFamily::GroupedNeighborhoodOrchestration,
+        )
+    })
+}
+
+pub fn forge_query_recovery_brief_from_grouped_orchestration_proof<
+    D: ForgeQueryDomainEntryMarker,
+    I: ForgeQueryDeclarationInput<D>,
+>(
+    proof: ForgeQueryGroupedOrchestrationTranscript<D, I>,
+) -> Option<ForgeQueryRecoveryBrief> {
+    forge_query_recovery_brief_from_grouped_orchestration_checked(proof.into_checked())
 }

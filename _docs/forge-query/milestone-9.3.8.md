@@ -3885,6 +3885,12 @@ must therefore extend that same recovery surface for group-level and
 member-level denial, stale, rebind, and support posture instead of inventing a
 grouped-only repair vocabulary.
 
+This phase now ships as the public grouped-authoring seam for Query's first
+real neighborhood-shaped declaration flow. Later phases must therefore build on
+that real grouped declaration artifact, grouped orchestration lane, grouped
+helper projection, grouped inventory registration, and grouped recovery path
+instead of treating grouped authoring as unresolved future glue.
+
 **Required Query artifacts**
 
 - one grouped declaration artifact family
@@ -3955,6 +3961,19 @@ grouped-only repair vocabulary.
 - how should grouped route/receipt/envelope artifacts expose member-level versus
   group-level facts without becoming unreadable?
 
+**Historical closure notes**
+
+- the first shipped grouped semantics slice is `LocalNeighborhood`, not an
+  all-grouped abstraction sweep
+- the first shipped grouped front door is geometry-only and extends the helper
+  seam rather than introducing a second grouped root
+- grouped declaration admission and grouped orchestration now ship as real
+  retained public artifacts instead of helper-local bags
+- grouped wrong-world and wrong-handle posture now stop at the grouped lane
+  before member lowering and remain visible through grouped recovery
+- later phases must extend this grouped seam rather than reopening whether
+  grouped authoring is allowed to degrade into loops over single-member helpers
+
 ### Phase 34: Public Documentation And Golden Teaching Boundary
 
 This phase makes the platform-entry seam teachable and ensures the docs do not
@@ -3992,6 +4011,12 @@ route-sensitive denial explanation as part of the ordinary public teaching
 inventory rather than leaving failure handling to scattered examples or helper
 folklore.
 
+Phase 33 now also ships a dedicated grouped-authoring feature surface, so this
+docs/goldens phase must treat grouped declaration inputs, grouped artifacts,
+grouped orchestration, grouped helper verbs, and grouped recovery as part of
+the ordinary public teaching inventory rather than burying them inside helper
+docs or milestone history.
+
 **Required Query artifacts**
 
 - one documentation inventory over the admitted platform-entry and admitted-
@@ -4002,9 +4027,9 @@ folklore.
 
 **Requirements**
 
-- every admitted ordinary public family, continuation surface, contribution-
-  composed surface, and major helper surface must have one honest documented
-  path
+- every admitted ordinary public family, continuation surface,
+  contribution-composed surface, grouped-authoring surface, and major helper
+  surface must have one honest documented path
 - the docs/goldens coverage inventory must derive from the shipped
   orchestration inventory and its audit posture rather than a second manual
   list of public orchestration surfaces
@@ -4093,6 +4118,9 @@ This phase closes the milestone with hostile proof rather than plausibility.
   ordinary, checked, and proof-visible stop surfaces when they describe the
   same semantic stop, and intentionally diverge when the fix belongs to a
   different authority surface
+- equivalent grouped-helper and generic grouped-authoring paths must converge
+  canonically when they describe the same grouped declaration meaning, and
+  intentionally diverge when group-level versus member-level posture differs
 - intentionally different family, route, authority, denial, cost, continuation,
   support, and contribution posture must diverge observably and predictably
 - compile-fail coverage must match the live ordinary lane breadth

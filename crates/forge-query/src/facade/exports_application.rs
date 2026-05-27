@@ -215,7 +215,17 @@ pub use crate::contribution_composed_orchestration::{
 pub use crate::family_helpers::{
     ForgeQueryFamilyHelpers, ForgeQueryGeometryActiveFaceSelectionHelperFamily,
     ForgeQueryGeometryFamilyHelpers, ForgeQueryGeometryMaterialAttachmentHelperFamily,
-    ForgeQueryGeometryMaterialAttachmentInput,
+    ForgeQueryGeometryMaterialAttachmentInput, ForgeQueryGeometryNeighborhoodHelperFamily,
+};
+pub use crate::grouped_authoring::{
+    ForgeQueryGroupedDeclarationArtifact, ForgeQueryGroupedDeclarationChecked,
+    ForgeQueryGroupedDeclarationInput, ForgeQueryGroupedDeclarationMember,
+    ForgeQueryGroupedDeclarationStop, ForgeQueryGroupedDeclarationStopKind,
+    ForgeQueryGroupedEnvelopeMember, ForgeQueryGroupedMemberOrchestrationStop,
+    ForgeQueryGroupedOrchestration, ForgeQueryGroupedOrchestrationAlignmentStop,
+    ForgeQueryGroupedOrchestrationChecked, ForgeQueryGroupedOrchestrationProof,
+    ForgeQueryGroupedOrchestrationStop, ForgeQueryGroupedOrchestrationTranscript,
+    ForgeQueryGroupedOrdering, ForgeQueryGroupedSemantics,
 };
 pub use crate::orchestration_inventory::{
     ForgeQueryOrchestrationBindingProjection, ForgeQueryOrchestrationCheckedTopologyKind,

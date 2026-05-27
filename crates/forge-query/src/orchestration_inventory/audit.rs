@@ -162,6 +162,10 @@ fn binding_projection_missing(row: &ForgeQueryOrchestrationSurfaceRow) -> bool {
             row.binding_projection()
                 != ForgeQueryOrchestrationBindingProjection::SharedContributionBinding
         }
+        ForgeQueryOrchestrationSurfaceFamily::GroupedNeighborhoodOrchestration => {
+            row.binding_projection()
+                != ForgeQueryOrchestrationBindingProjection::SharedGroupedBinding
+        }
         ForgeQueryOrchestrationSurfaceFamily::DeclarationEntry
         | ForgeQueryOrchestrationSurfaceFamily::RouteFromProgressed
         | ForgeQueryOrchestrationSurfaceFamily::ReceiptFromProgressed

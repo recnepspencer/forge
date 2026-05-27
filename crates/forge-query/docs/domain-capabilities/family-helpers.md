@@ -64,6 +64,13 @@ Geometry helper verbs:
 - `orchestrate_material_attachment_for_active_face_selection_outcome(...)`
 - `orchestrate_material_attachment_for_active_face_selection_checked(...)`
 - `orchestrate_material_attachment_for_active_face_selection_proof(...)`
+- `local_neighborhood_for_active_face_selection(...)`
+- `declare_local_neighborhood_for_active_face_selection(...)`
+- `declare_local_neighborhood_for_active_face_selection_checked(...)`
+- `orchestrate_local_neighborhood_for_active_face_selection(...)`
+- `orchestrate_local_neighborhood_for_active_face_selection_outcome(...)`
+- `orchestrate_local_neighborhood_for_active_face_selection_checked(...)`
+- `orchestrate_local_neighborhood_for_active_face_selection_proof(...)`
 
 Good to know:
 
@@ -117,6 +124,18 @@ The current geometry helper lifecycle is:
 5. Query lowers that helper call into the generic canonical lane
 6. ordinary, checked, proof-visible, and recovery behavior stay owned by the
    generic lane
+
+The grouped local-neighborhood helper slice extends the same rule:
+
+1. start from `geometry_helpers()`
+2. construct one typed neighborhood with
+   `local_neighborhood_for_active_face_selection(...)`
+3. optionally add more members or a shared rationale
+4. declare the grouped artifact or orchestrate it through the grouped lane
+5. keep grouped ordinary, checked, and proof-visible posture on the canonical
+   grouped-authoring surface
+6. use grouped recovery on the shared recovery boundary when the grouped lane
+   stops
 
 The continuation-oriented helpers deliberately stop at signal-facing
 orchestration. They do not skip directly to continuation execution, and they do
@@ -245,6 +264,8 @@ Use the shared recovery boundary when a helper lane stopped:
 - `recover_from_signal_compatibility_proof(...)`
 - `recover_from_contribution_composed_checked(...)`
 - `recover_from_contribution_composed_proof(...)`
+- `recover_from_grouped_orchestration_checked(...)`
+- `recover_from_grouped_orchestration_proof(...)`
 
 Use the orchestration inventory when you need to audit the shipped helper verbs
 as data:
@@ -272,13 +293,17 @@ as data:
 - helper verbs still require real family marker traits at compile time
 - continuation-oriented helpers currently stop at signal-compatibility
   orchestration; they do not execute continuation or Signal work
-- grouped or multi-member family helper flows are not part of this slice yet
+- grouped helper coverage is currently limited to geometry local-neighborhood
+  authoring from active-face selection
+- grouped helper verbs currently lower onto grouped declaration admission and
+  grouped orchestration only
 
 ## Related Docs
 
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
+- [Grouped Authoring](./grouped-authoring.md)
 - [Ordinary Outcomes](./ordinary-outcomes.md)
 - [Recovery Boundary](./recovery-boundary.md)
 - [Orchestration Inventory](./orchestration-inventory.md)

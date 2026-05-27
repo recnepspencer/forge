@@ -10,7 +10,7 @@ use super::transcript::ForgeQueryOrchestrationProofContract;
 
 pub(crate) fn forge_query_family_helper_orchestration_rows(
 ) -> Vec<ForgeQueryOrchestrationSurfaceRow> {
-    let doc_path = "crates/forge-query/docs/domain-capabilities/configured-domain-handles.md";
+    let doc_path = "crates/forge-query/docs/domain-capabilities/family-helpers.md";
     let certification_command = "cargo test -p forge-query family_helpers -- --nocapture";
 
     let mut rows = Vec::new();
@@ -78,6 +78,19 @@ pub(crate) fn forge_query_family_helper_orchestration_rows(
         ForgeQueryOrchestrationSupportSurface::ContributionComposedOrchestration,
         ForgeQueryOrchestrationCheckedTopologyKind::ContributionComposed,
         ForgeQueryOrchestrationBindingProjection::SharedContributionBinding,
+    );
+    push_four_lane_rows(
+        &mut rows,
+        doc_path,
+        certification_command,
+        "orchestrate_local_neighborhood_for_active_face_selection",
+        ForgeQueryOrchestrationSurfaceFamily::GroupedNeighborhoodOrchestration,
+        ForgeQueryOrchestrationTranscriptFamily::GroupedNeighborhoodOrchestration,
+        "ForgeQueryGroupedOrchestrationChecked",
+        "ForgeQueryGroupedOrchestrationTranscript",
+        ForgeQueryOrchestrationSupportSurface::DeclarationEntryReadiness,
+        ForgeQueryOrchestrationCheckedTopologyKind::DeclarationEntryStage,
+        ForgeQueryOrchestrationBindingProjection::SharedGroupedBinding,
     );
     rows
 }
