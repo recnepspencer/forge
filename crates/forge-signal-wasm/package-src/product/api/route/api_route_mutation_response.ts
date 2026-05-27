@@ -23,25 +23,34 @@ const MUTATION_RESPONSE_FALLBACK_KINDS = Object.freeze([
 function createApiRouteMutationResponseDeclaration(
   route,
   method,
+  semanticFinalizer,
+  authoringSurface,
   response,
   reconciles,
   atomicity,
   diagnostics,
   identity,
 ) {
-  const loweredTargets = lowerMutationResponseTargets(route, method, response, reconciles);
+  const mutationSource = readMutationResponseSource(route, authoringSurface);
+  const loweredTargets = lowerMutationResponseTargets(
+    route,
+    authoringSurface,
+    semanticFinalizer,
+    response,
+    reconciles,
+  );
   const loweredDiagnostics = lowerMutationResponseDiagnostics(
     route,
-    method,
+    semanticFinalizer,
     response,
     diagnostics,
   );
   return createMutationResponseDeclaration({
-    source: `api.url("${route}").response(...).${method.toLowerCase()}(...)`,
+    source: mutationSource,
     lensProof: createMutationResponseLensProof({
       route,
       method,
-      source: `api.url("${route}").response(...)`,
+      source: mutationSource,
       readLensProof: response.lensProof,
     }),
     responseMappedFieldNames: readMutationResponseMappedFieldNames(
@@ -55,45 +64,48 @@ function createApiRouteMutationResponseDeclaration(
     identityMigration: lowerMutationResponseIdentityMigration(
       route,
       method,
+      semanticFinalizer,
       response,
       identity,
     ),
   });
 }
 
-function lowerMutationResponseTargets(route, method, response, reconciles) {
+function lowerMutationResponseTargets(route, authoringSurface, semanticFinalizer, response, reconciles) {
   if (reconciles === undefined) {
     return Object.freeze([]);
   }
   if (!Array.isArray(reconciles)) {
     throw new TypeError(
-      `api.url("${route}").response(...).create/update/remove(...) requires reconciles to be an array of declared targets`,
+      `${readMutationResponseSource(route, authoringSurface)} requires reconciles to be an array of declared targets`,
     );
   }
   return Object.freeze(
     reconciles.map((target, index) =>
-      lowerMutationResponseTarget(route, method, response, target, index)),
+      lowerMutationResponseTarget(route, authoringSurface, semanticFinalizer, response, target, index)),
   );
 }
 
-function lowerMutationResponseTarget(route, method, response, target, index) {
+function lowerMutationResponseTarget(route, authoringSurface, semanticFinalizer, response, target, index) {
+  const mutationSource = readMutationResponseSource(route, authoringSurface);
   if (!target || typeof target !== "object" || Array.isArray(target)) {
     throw new TypeError(
-      `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] must be a target declaration object`,
+      `${mutationSource} reconciles[${index}] must be a target declaration object`,
     );
   }
   if (typeof target.params !== "function") {
     throw new TypeError(
-      `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] requires params(mutationParams)`,
+      `${mutationSource} reconciles[${index}] requires params(mutationParams)`,
     );
   }
   const familyMetadata = requireResourceFamilyMetadata(
     target.family,
-    `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}].family`,
+    `${mutationSource} reconciles[${index}].family`,
   );
   const reconciliation = lowerMutationResponseTargetReconciliation(
     route,
-    method,
+    authoringSurface,
+    semanticFinalizer,
     response,
     familyMetadata,
     target,
@@ -101,7 +113,7 @@ function lowerMutationResponseTarget(route, method, response, target, index) {
   );
   return Object.freeze({
     targetId: `mutationTarget${index + 1}`,
-    fallback: requireMutationResponseFallback(route, target.fallback, index),
+    fallback: requireMutationResponseFallback(route, authoringSurface, target.fallback, index),
     readTargetLineIdentity: familyMetadata.readTargetLineIdentity,
     lookupResidentTargetMaterialization:
       familyMetadata.lookupResidentTargetMaterialization,
@@ -117,10 +129,10 @@ function lowerMutationResponseTarget(route, method, response, target, index) {
   });
 }
 
-function requireMutationResponseFallback(route, fallback, index) {
+function requireMutationResponseFallback(route, authoringSurface, fallback, index) {
   if (!MUTATION_RESPONSE_FALLBACK_KINDS.includes(fallback)) {
     throw new TypeError(
-      `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] fallback must be one of ${MUTATION_RESPONSE_FALLBACK_KINDS.join(", ")}`,
+      `${readMutationResponseSource(route, authoringSurface)} reconciles[${index}] fallback must be one of ${MUTATION_RESPONSE_FALLBACK_KINDS.join(", ")}`,
     );
   }
   return fallback;
@@ -128,7 +140,8 @@ function requireMutationResponseFallback(route, fallback, index) {
 
 function lowerMutationResponseTargetReconciliation(
   route,
-  method,
+  authoringSurface,
+  semanticFinalizer,
   response,
   familyMetadata,
   target,
@@ -143,13 +156,13 @@ function lowerMutationResponseTargetReconciliation(
   }
   if (declaredReconciliationCount > 1) {
     throw new TypeError(
-      `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] declares more than one exact reconciliation target`,
+      `${readMutationResponseSource(route, authoringSurface)} reconciles[${index}] declares more than one exact reconciliation target`,
     );
   }
   if (target.collection !== undefined) {
     return lowerCollectionReconciliation(
       route,
-      method,
+      semanticFinalizer,
       response,
       familyMetadata,
       target.collection,
@@ -167,7 +180,7 @@ function lowerMutationResponseTargetReconciliation(
   }
   return lowerDetailReconciliation(
     route,
-    method,
+    semanticFinalizer,
     response,
     familyMetadata,
     target.detail,
@@ -259,6 +272,10 @@ function readDetailDefinitionCost(cost) {
     topologyTraversalBreadth: cost.traversalBreadth,
     reconstructionBreadth: cost.reconstructionBreadth,
   });
+}
+
+function readMutationResponseSource(route, authoringSurface) {
+  return `api.url("${route}").response(...).${authoringSurface}(...)`;
 }
 
 export { createApiRouteMutationResponseDeclaration };

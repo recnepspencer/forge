@@ -42,6 +42,9 @@ import {
   createProjectedCandidateVerification,
 } from "./router_projection_verification.js";
 import {
+  createRouteSequenceScenario,
+} from "./router_sequence_scenario.js";
+import {
   ROUTE_LAYOUT_REFERENCE,
   ROUTE_PROJECTED_CANDIDATE,
   ROUTE_TREE_ROOT,
@@ -52,7 +55,7 @@ import {
   isRawLocationAuthority,
 } from "../url_authority/router_url_authority.js";
 
-function attachProjectionRoot(tree, rootNodes) {
+function attachProjectionRoot(tree, rootNodes, navigationSupport) {
   function projectRouteCandidate(routeAuthority) {
     return projectResolvedRouteTree(rootNodes, routeAuthority, projectRouteCandidate);
   }
@@ -130,6 +133,9 @@ function attachProjectionRoot(tree, rootNodes) {
         ? null
         : await this.admit(normalizedWriteback.rawLocation, facts);
       return createBrowserHistoryWritebackReport(normalizedWriteback, outcome);
+    },
+    simulateSequence(sequence) {
+      return createRouteSequenceScenario(this, navigationSupport, sequence);
     },
   });
 }

@@ -370,6 +370,7 @@ export interface RouterBrowserHistoryBreadcrumbTrail {
 
 export interface RouterBrowserHistoryStory {
   record(report: RouterBrowserHistoryBoundaryReport): RouterBrowserHistoryBoundaryEvent;
+  subscribe(listener: () => void): () => void;
   events(): ReadonlyArray<RouterBrowserHistoryBoundaryEvent>;
   admittedEntries(): ReadonlyArray<RouterBrowserHistoryStoryEntry>;
   current(): RouterBrowserHistoryStoryEntry | null;

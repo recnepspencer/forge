@@ -19,6 +19,10 @@ Use `signals.api(...)` when you want to:
 - keep common reads, writes, uploads, downloads, and list behavior in one
   grammar
 
+Use `signals.apiScope(...)` when you want one stable runtime-scoped API identity
+that can be reused across app features, catalogs, or helper layers without
+app-authored cache wrappers.
+
 In plain English: this is the pleasant app-facing lane for server-backed state.
 It still produces the same kind of resource family and line as the lower-level
 `signals.resource.*(...)` surface.
@@ -27,7 +31,7 @@ It still produces the same kind of resource family and line as the lower-level
 
 - keep auth, headers, and base URL setup out of every single resource
 - declare route shape directly instead of hand-writing canonical keys first
-- use one obvious lane for detail, list, paged, create, update, and remove
+- use one obvious lane for detail, list, paged, create, update, remove, command, and mutation
 - stay in the same grammar when an endpoint needs uploads, processing, custom
   verbs, or downloads
 - keep the raw family surface available as an escape hatch instead of the
@@ -38,6 +42,7 @@ It still produces the same kind of resource family and line as the lower-level
 Shared API posture:
 
 - `signals.api(...)`
+- `signals.apiScope(...)`
 - `api.scope(...)`
 
 Route-first authoring:
@@ -50,6 +55,8 @@ Route-first authoring:
 - `.create(...)`
 - `.update(...)`
 - `.remove(...)`
+- `.mutation({ semantics, method?, ... })`
+- `.command({ semantics, method?, ... })`
 
 Collection-owned helpers:
 
@@ -74,9 +81,10 @@ Advanced request and transfer shaping:
 Think in four steps:
 
 1. declare shared request posture once with `signals.api(...)`
-2. narrow it with `scope(...)` when one feature area needs more defaults
-3. declare one route with `url(...)`
-4. finish it with the semantic finalizer that matches the endpoint
+2. use `signals.apiScope(...)` when one feature area needs a stable named API identity
+3. narrow it with `scope(...)` when one feature area needs more defaults
+4. declare one route with `url(...)`
+5. finish it with the semantic finalizer that matches the endpoint
 
 Example:
 
@@ -84,6 +92,22 @@ Example:
 - `api.url("/users").params().list(...)` means "a list with request params"
 - `api.url("/receipts/upload").create(...).signedUpload().processing("poll")`
   means "a write endpoint that also prepares upload and later processing"
+
+For standard CRUD-shaped writes, the semantic finalizer is still:
+
+- `.create(...)`
+- `.update(...)`
+- `.remove(...)`
+
+When the transport method and the semantic mutation class should be expressed
+honestly instead of guessed from a CRUD bucket, use:
+
+- `.mutation({ semantics: "create" | "update" | "remove", method?, ... })`
+- `.command({ semantics: "command" | "relationshipUpdate" | "aggregateMutation" | "sideEffect", method?, ... })`
+
+`command(...)` is intentionally narrower in the response lane. It only admits
+fallback-only reconciliation targets, so command routes do not pretend to prove
+an exact visible-topology update they did not actually return.
 
 The important boundary is this:
 
@@ -152,7 +176,7 @@ import { createSignals } from "forge-signal-wasm";
 
 const signals = await createSignals();
 
-const workspaceApi = signals.api({
+const workspaceApi = signals.apiScope("workspace-api", {
   baseUrl: "/api",
   headers: {
     authorization: "Bearer root-token",
@@ -223,6 +247,7 @@ console.log(productListLine.reconciliation());
 
 What this example shows:
 
+- `signals.apiScope(...)` gives a stable reusable API identity for the feature area
 - API-root and scoped headers are inherited automatically
 - route params stay explicit in the route string
 - request params stay explicit in `params`

@@ -17,7 +17,8 @@ import { wrapDiagnostics } from "./diagnostics.js";
 import { createFormController } from "./forms/form_controller.js";
 import { createFormSourceFactory } from "./forms/sources/form_sources.js";
 import { requireRouteFormsAuthorityArtifact } from "./router/projection/admission/router_forms_authority_artifact.js";
-import { createApiFactory } from "./api/api_namespace.js";
+import { createApiFactory, createApiScopeFactory } from "./api/api_namespace.js";
+import { createFeatureStoreFactory } from "./feature_store/feature_store_factory.js";
 import { createRouterNamespace } from "./router/router_namespace.js";
 import {
   createImportedSignalGraph,
@@ -30,6 +31,7 @@ import {
   wrapReadableSignal,
 } from "./handles.js";
 import { createLinkedSignal } from "./linked.js";
+import { createLocalNamespace } from "./local/local_namespace.js";
 import {
   nextOutputProjectionId,
   outputProjectionSpec,
@@ -75,6 +77,10 @@ import {
   nextGeneratedAuthoringSignalId,
 } from "./scopes.js";
 import { wrapSpecialist } from "./specialist.js";
+import {
+  assertSignalsRuntimeCompatibility,
+  createSignalsRuntimeContract,
+} from "./runtime_contract.js";
 import { PRIVATE_AUTHORING_ID, RAW_SIGNALS } from "./symbols.js";
 import { wrapAdapters, wrapTransaction } from "./transactions.js";
 
@@ -373,6 +379,17 @@ export {
 export function wrapSignals(rawSignals, options) {
   const hostCapabilities = createHostCapabilities(rawSignals, options);
   let diagnostics = null;
+  let history = null;
+  const contract = createSignalsRuntimeContract({
+    surfaceFamily: "mainThreadCompatibilityCallable",
+    deployment: "mainThreadCompatibility",
+    capabilities: {
+      callableSurface: true,
+      scopedAuthoring: true,
+      specNamespace: true,
+      workerRuntime: false,
+    },
+  });
   const explicitSpec = explicitSignalSpecNamespace(rawSignals);
   const formSourceFactory = createFormSourceFactory();
   function createForm(declaration) {
@@ -388,6 +405,9 @@ export function wrapSignals(rawSignals, options) {
     host: hostCapabilities.host,
     resource: createResourceNamespace(null, rawSignals),
     api: null,
+    apiScope: null,
+    featureStore: null,
+    local: null,
     router: null,
     spec: explicitSpec,
     scope(localScopeId) {
@@ -616,10 +636,23 @@ export function wrapSignals(rawSignals, options) {
       return diagnostics;
     },
     history() {
-      return wrapHistory(rawSignals.history());
+      if (!history) {
+        history = wrapHistory(rawSignals.history());
+      }
+      return history;
     },
     specialist() {
       return wrapSpecialist(rawSignals.specialist());
+    },
+    contract() {
+      return contract;
+    },
+    assertCompatibility(options) {
+      return assertSignalsRuntimeCompatibility(
+        contract,
+        options,
+        "signals.assertCompatibility",
+      );
     },
     adapters() {
       return wrapAdapters(rawSignals.adapters(), hostCapabilities);
@@ -649,6 +682,9 @@ export function wrapSignals(rawSignals, options) {
     rawSignals,
   );
   callableSignals.api = createApiFactory(callableSignals);
+  callableSignals.apiScope = createApiScopeFactory(callableSignals);
+  callableSignals.featureStore = createFeatureStoreFactory(callableSignals);
+  callableSignals.local = createLocalNamespace(callableSignals);
   callableSignals.router = createRouterNamespace();
   return callableSignals;
 }

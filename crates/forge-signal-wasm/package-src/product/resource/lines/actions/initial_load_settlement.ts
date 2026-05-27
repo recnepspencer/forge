@@ -40,7 +40,7 @@ function createInitialLineBinding(
 ) {
   const valueSignal = wrapInternalLineMutableSignal(lineScope.input(null, {
     debugName: `${familyKind}ResourceValue`,
-  }));
+  }), lineScope);
   const readableValueSignal = lineScope.computed(() => valueSignal(), {
     debugName: `${familyKind}ResourceLine`,
   });
@@ -53,25 +53,25 @@ function createInitialLineBinding(
   const initialDownload = createLineDownload();
   const processingSignal = wrapInternalLineMutableSignal(lineScope.input(initialProcessing, {
     debugName: `${familyKind}ResourceProcessing`,
-  }));
+  }), lineScope);
   const uploadSignal = wrapInternalLineMutableSignal(lineScope.input(initialUpload, {
     debugName: `${familyKind}ResourceUpload`,
-  }));
+  }), lineScope);
   const downloadSignal = wrapInternalLineMutableSignal(lineScope.input(initialDownload, {
     debugName: `${familyKind}ResourceDownload`,
-  }));
+  }), lineScope);
   const statusSignal = wrapInternalLineMutableSignal(lineScope.input(
     createPendingLineStatus("initialLoad", false),
     {
       debugName: `${familyKind}ResourceStatus`,
     },
-  ));
+  ), lineScope);
   const freshnessSignal = wrapInternalLineMutableSignal(lineScope.input(
     createPendingFreshness("initialLoad"),
     {
       debugName: `${familyKind}ResourceFreshness`,
     },
-  ));
+  ), lineScope);
   const binding = Object.freeze({
     valueSignal,
     readableValueSignal,
@@ -92,7 +92,7 @@ function createInitialLineBinding(
       {
         debugName: `${familyKind}ResourceDiagnostics`,
       },
-    )),
+    ), lineScope),
   });
 
   let resolvedBindingResult;
@@ -273,7 +273,7 @@ function normalizeReloadFailure(error) {
   });
 }
 
-function wrapInternalLineMutableSignal(handle) {
+function wrapInternalLineMutableSignal(handle, lineScope) {
   const signal = function internalLineMutableSignal() {
     return handle();
   };
@@ -287,7 +287,22 @@ function wrapInternalLineMutableSignal(handle) {
   signal.reset = wrapInternalLineMutation(handle.reset?.bind(handle));
   signal.patch = wrapInternalLineMutation(handle.patch?.bind(handle));
   signal.assign = wrapInternalLineMutation(handle.assign?.bind(handle));
+  signal.watch = createInternalLineWatch(handle.id, lineScope);
   return Object.freeze(signal);
+}
+
+function createInternalLineWatch(signalId, lineScope) {
+  const rawSignalsSymbol = Object.getOwnPropertySymbols(lineScope).find(
+    (symbol) => String(symbol) === "Symbol(forgeSignal.rawSignals)",
+  );
+  if (rawSignalsSymbol === undefined) {
+    return undefined;
+  }
+  const rawSignals = lineScope[rawSignalsSymbol];
+  if (!rawSignals || typeof rawSignals.watch !== "function") {
+    return undefined;
+  }
+  return (callback) => rawSignals.watch(signalId, callback);
 }
 
 function wrapInternalLineMutation(mutate) {

@@ -295,6 +295,37 @@ export interface SignalsCompatibilityRecovery {
   message: string;
 }
 
+export type SignalsRuntimeCapabilityName =
+  | "callableSurface"
+  | "scopedAuthoring"
+  | "specNamespace"
+  | "workerRuntime";
+
+export type SignalsRuntimeSurfaceFamily =
+  | "mainThreadCompatibilityCallable"
+  | "mainThreadCompatibilityScoped"
+  | "workerFirstCallable"
+  | "workerFirstScoped";
+
+export interface SignalsRuntimeCapabilities {
+  callableSurface: boolean;
+  scopedAuthoring: boolean;
+  specNamespace: boolean;
+  workerRuntime: boolean;
+}
+
+export interface SignalsRuntimeContract {
+  surfaceFamily: SignalsRuntimeSurfaceFamily;
+  surfaceVersion: "1";
+  deployment: SignalsDeployment;
+  scopeId: string | null;
+  capabilities: Readonly<SignalsRuntimeCapabilities>;
+}
+
+export interface SignalsCompatibilityAssertionOptions {
+  requires?: ReadonlyArray<SignalsRuntimeCapabilityName>;
+}
+
 export interface SignalsConstructionArtifact {
   artifactFamily: "workerUnavailableConstruction" | "signalsConstructionDenied";
   requestedDeployment: SignalsDeployment;
@@ -555,6 +586,7 @@ export interface CallableSignalHistory {
     expected: ReplayArtifactProofInput,
     replayedBranchId: CallableBranchId,
   ): ReplayArtifactProofReport;
+  subscribe(listener: () => void): () => void;
   free(): void;
   [Symbol.dispose](): void;
 }
@@ -694,6 +726,8 @@ export interface ScopedSignalNamespace<TPersistence = SignalValue> {
     builder: GraphBuilder<TPersistence, TInputs, TOutputs>,
   ): PublishedSignalGraph<TOutputs, TInputs>;
   history(): CallableSignalHistory;
+  contract(): SignalsRuntimeContract;
+  assertCompatibility(options: SignalsCompatibilityAssertionOptions): SignalsRuntimeContract;
   canonicalId(localId: string): string;
   signalIdentity(localId: string): ScopedSignalIdentity;
   descriptor(): ScopeDescriptor;
@@ -803,6 +837,8 @@ export interface CallableSignals<TPersistence = SignalValue> {
   nuke(handle: DisposableHandle): boolean;
   diagnostics(): CallableSignalDiagnostics;
   history(): CallableSignalHistory;
+  contract(): SignalsRuntimeContract;
+  assertCompatibility(options: SignalsCompatibilityAssertionOptions): SignalsRuntimeContract;
   specialist(): CallableSignalSpecialist;
   adapters(): CallableSignalAdapters;
   compatibilityApp(): SignalApp;

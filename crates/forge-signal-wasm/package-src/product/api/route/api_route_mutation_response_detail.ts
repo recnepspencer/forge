@@ -2,7 +2,7 @@ import { resourcePatch } from "../../resource/reconciliation/resource_patch.js";
 
 function lowerDetailReconciliation(
   route,
-  method,
+  semanticFinalizer,
   response,
   familyMetadata,
   detail,
@@ -25,14 +25,14 @@ function lowerDetailReconciliation(
       return Object.freeze({
         kind: "replace",
         executionKind: "exactDetail",
-        materializeDeclaredTarget: method === "POST",
+        materializeDeclaredTarget: semanticFinalizer === "create",
         targetDigest: "detail:replace",
         createPatch(responseValue) {
           return resourcePatch.replace(responseValue);
         },
       });
     case "invalidate":
-      if (method !== "DELETE") {
+      if (semanticFinalizer !== "remove") {
         throw new TypeError(
           `api.url("${route}").response(...).create/update/remove(...) reconciles[${index}] detail invalidation is currently admitted only for remove/delete responses`,
         );

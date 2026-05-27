@@ -130,6 +130,178 @@ test("promise-backed refresh enters pending and preserves the visible value unti
   }
 });
 
+test("resource lines expose a first-class awaitSettlement lane for pending refresh truth", async () => {
+  const runtime = await createRealLifecycleRuntime();
+  try {
+    const { mod, resource } = runtime;
+    let callCount = 0;
+    const deferred = createDeferred();
+    const detail = resource.detail({
+      params: mod.resourceParams(),
+      normalizeParams: ({ productId }) =>
+        mod.resourceParamIdentity({ productId }, productId),
+      load: ({ productId }) => {
+        callCount += 1;
+        if (callCount === 1) {
+          return { id: productId, version: 1 };
+        }
+        return deferred.promise;
+      },
+    });
+
+    const line = detail.line({ productId: "p1" });
+    line.refresh();
+    const settlementPromise = line.awaitSettlement();
+
+    deferred.resolve({ id: "p1", version: 2 });
+    const settlement = await settlementPromise;
+
+    assert.equal(settlement.resultKind, "fulfilled");
+    assert.deepEqual(settlement.status, {
+      kind: "fulfilled",
+      operation: "refresh",
+    });
+    assert.deepEqual(settlement.value, { id: "p1", version: 2 });
+    assert.equal(settlement.summary.current.status.kind, "fulfilled");
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("resource lines expose an execution object with settled() over the same lifecycle truth", async () => {
+  const runtime = await createRealLifecycleRuntime();
+  try {
+    const { mod, resource } = runtime;
+    let callCount = 0;
+    const deferred = createDeferred();
+    const detail = resource.detail({
+      params: mod.resourceParams(),
+      normalizeParams: ({ productId }) =>
+        mod.resourceParamIdentity({ productId }, productId),
+      load: ({ productId }) => {
+        callCount += 1;
+        if (callCount === 1) {
+          return { id: productId, version: 1 };
+        }
+        return deferred.promise;
+      },
+    });
+
+    const line = detail.line({ productId: "p1" });
+    line.refresh();
+    const execution = line.execute();
+
+    deferred.resolve({ id: "p1", version: 2 });
+    const settlement = await execution.settled();
+
+    assert.equal(settlement.resultKind, "fulfilled");
+    assert.deepEqual(settlement.value, { id: "p1", version: 2 });
+    assert.throws(() => line.value(), /cannot be used after line\.free/);
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("resource families expose optionalLine and execute as first-class final-form lanes", async () => {
+  const runtime = await createRealLifecycleRuntime();
+  try {
+    const { mod, resource } = runtime;
+    let callCount = 0;
+    const deferred = createDeferred();
+    const detail = resource.detail({
+      params: mod.resourceParams(),
+      normalizeParams: ({ productId }) =>
+        mod.resourceParamIdentity({ productId }, productId),
+      load: ({ productId }) => {
+        callCount += 1;
+        if (callCount === 1) {
+          return { id: productId, version: 1 };
+        }
+        return deferred.promise;
+      },
+    });
+
+    assert.equal(detail.optionalLine({ enabled: false }), null);
+
+    const resident = detail.optionalLine({ productId: "p1" });
+    assert.ok(resident);
+    resident.refresh();
+
+    const execution = detail.execute({ productId: "p1" });
+    deferred.resolve({ id: "p1", version: 2 });
+    const settlement = await execution.settled();
+
+    assert.equal(settlement.resultKind, "fulfilled");
+    assert.deepEqual(settlement.value, { id: "p1", version: 2 });
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("resource line awaitSettlement rejects when the caller timeout elapses first", async () => {
+  const runtime = await createRealLifecycleRuntime();
+  try {
+    const { mod, resource } = runtime;
+    const deferred = createDeferred();
+    let callCount = 0;
+    const detail = resource.detail({
+      params: mod.resourceParams(),
+      normalizeParams: ({ productId }) =>
+        mod.resourceParamIdentity({ productId }, productId),
+      load: ({ productId }) => {
+        callCount += 1;
+        if (callCount === 1) {
+          return { id: productId, version: 1 };
+        }
+        return deferred.promise;
+      },
+    });
+
+    const line = detail.line({ productId: "p1" });
+    line.refresh();
+
+    await assert.rejects(
+      () => line.awaitSettlement({ timeoutMs: 1 }),
+      /Timed out waiting for resource line settlement/,
+    );
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
+test("resource line awaitSettlement rejects if the line is freed before settlement", async () => {
+  const runtime = await createRealLifecycleRuntime();
+  try {
+    const { mod, resource } = runtime;
+    const deferred = createDeferred();
+    let callCount = 0;
+    const detail = resource.detail({
+      params: mod.resourceParams(),
+      normalizeParams: ({ productId }) =>
+        mod.resourceParamIdentity({ productId }, productId),
+      load: ({ productId }) => {
+        callCount += 1;
+        if (callCount === 1) {
+          return { id: productId, version: 1 };
+        }
+        return deferred.promise;
+      },
+    });
+
+    const line = detail.line({ productId: "p1" });
+    line.refresh();
+    const settlement = line.awaitSettlement();
+    line.free();
+
+    await assert.rejects(
+      () => settlement,
+      /resource line awaitSettlement was cancelled because line\.free\(\) released the line/,
+    );
+  } finally {
+    await runtime.cleanup();
+  }
+});
+
 test("superseded pending refresh completions do not overwrite newer reload truth", async () => {
   const runtime = await createRealLifecycleRuntime();
   try {

@@ -18,12 +18,8 @@ pub(super) fn read_signal_value(
     core: &crate::runtime::core::SharedCore,
     id: &str,
 ) -> Result<JsValue, JsValue> {
-    let value = {
-        let mut borrowed = core.borrow_mut();
-        let value = borrowed.read_value(id).map_err(JsValue::from)?;
-        borrowed.note_app_signal_serialization(id, &value);
-        value
-    };
+    let value = core.borrow_mut().read_value(id).map_err(JsValue::from)?;
+    core.borrow_mut().note_app_signal_serialization(id, &value);
     to_js(&value).map_err(JsValue::from)
 }
 

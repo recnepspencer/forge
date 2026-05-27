@@ -1,5 +1,9 @@
 import type { SignalValue } from "../model.js";
-import type { ResourceLine } from "./resource_lifecycle.js";
+import type {
+  ResourceLine,
+  ResourceLineExecution,
+  ResourceLineExecutionOptions,
+} from "./resource_lifecycle.js";
 import type {
   ResourceDetailFieldMap,
   ResourceDetailFields,
@@ -29,6 +33,16 @@ import type {
 
 type ExactResourceParams<TExpected, TActual extends TExpected> =
   Exclude<keyof TActual, keyof TExpected> extends never ? TActual : never;
+
+export interface DisabledResourceFamilySelection {
+  readonly enabled: false;
+}
+
+export type ResourceFamilySelection<TParams> =
+  | TParams
+  | null
+  | undefined
+  | DisabledResourceFamilySelection;
 
 type ResourceLineAspectMapFor<
   TItem,
@@ -75,6 +89,13 @@ export interface DetailResourceFamily<
   line<TActualParams extends TParams>(
     params: ExactResourceParams<TParams, TActualParams>,
   ): ResourceDetailPatchCapableLine<TParams, TValue, TReconcile>;
+  optionalLine<TActualParams extends TParams>(
+    selection: ResourceFamilySelection<ExactResourceParams<TParams, TActualParams>>,
+  ): ResourceDetailPatchCapableLine<TParams, TValue, TReconcile> | null;
+  execute<TActualParams extends TParams>(
+    params: ExactResourceParams<TParams, TActualParams>,
+    options?: ResourceLineExecutionOptions,
+  ): ResourceLineExecution<TParams, TValue | null>;
 }
 
 export interface CollectionResourceFamily<
@@ -96,6 +117,13 @@ export interface CollectionResourceFamily<
   line<TActualParams extends TParams>(
     params: ExactResourceParams<TParams, TActualParams>,
   ): ResourcePatchCapableLine<TParams, TValue, TItem, TReconcile, "collection">;
+  optionalLine<TActualParams extends TParams>(
+    selection: ResourceFamilySelection<ExactResourceParams<TParams, TActualParams>>,
+  ): ResourcePatchCapableLine<TParams, TValue, TItem, TReconcile, "collection"> | null;
+  execute<TActualParams extends TParams>(
+    params: ExactResourceParams<TParams, TActualParams>,
+    options?: ResourceLineExecutionOptions,
+  ): ResourceLineExecution<TParams, TValue | null>;
 }
 
 export interface PagedResourceFamily<
@@ -117,6 +145,13 @@ export interface PagedResourceFamily<
   line<TActualParams extends TParams>(
     params: ExactResourceParams<TParams, TActualParams>,
   ): ResourcePatchCapableLine<TParams, TValue, TItem, TReconcile, "paged">;
+  optionalLine<TActualParams extends TParams>(
+    selection: ResourceFamilySelection<ExactResourceParams<TParams, TActualParams>>,
+  ): ResourcePatchCapableLine<TParams, TValue, TItem, TReconcile, "paged"> | null;
+  execute<TActualParams extends TParams>(
+    params: ExactResourceParams<TParams, TActualParams>,
+    options?: ResourceLineExecutionOptions,
+  ): ResourceLineExecution<TParams, TValue | null>;
 }
 
 export interface ResourcePatchCapableLine<

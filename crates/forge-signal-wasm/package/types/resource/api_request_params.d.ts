@@ -14,12 +14,17 @@ import type {
 } from "./resource_detail_json_paths.js";
 import type {
   CollectionResourceFamily,
+  DisabledResourceFamilySelection,
   DetailResourceFamily,
   PagedResourceFamily,
   ResourceDetailPatchCapableLine,
   ResourcePatchCapableLine,
 } from "./resource_family_surfaces.js";
-import type { ResourceLine } from "./resource_lifecycle.js";
+import type {
+  ResourceLine,
+  ResourceLineExecution,
+  ResourceLineExecutionOptions,
+} from "./resource_lifecycle.js";
 import type {
   ApiFamilyDeliveryHelpers,
   ApiFamilyPatchHelpers,
@@ -221,6 +226,21 @@ export interface ApiDetailResourceFamily<
     TValue,
     TReconcile
   >;
+  optionalLine<TActualParams extends ApiRouteLineParams<TRoute, TRequestParams, TBody>>(
+    selection:
+      | ExactApiRouteLineParams<TRoute, TRequestParams, TBody, TActualParams>
+      | null
+      | undefined
+      | DisabledResourceFamilySelection,
+  ): ResourceDetailPatchCapableLine<
+    ApiRouteLineParams<TRoute, TRequestParams, TBody>,
+    TValue,
+    TReconcile
+  > | null;
+  execute<TActualParams extends ApiRouteLineParams<TRoute, TRequestParams, TBody>>(
+    params: ExactApiRouteLineParams<TRoute, TRequestParams, TBody, TActualParams>,
+    options?: ResourceLineExecutionOptions,
+  ): ResourceLineExecution<ApiRouteLineParams<TRoute, TRequestParams, TBody>, TValue | null>;
 }
 
 export interface ApiCollectionResourceFamily<
@@ -257,6 +277,23 @@ export interface ApiCollectionResourceFamily<
     TReconcile,
     "collection"
   >;
+  optionalLine<TActualParams extends ApiRouteLineParams<TRoute, TRequestParams, TBody>>(
+    selection:
+      | ExactApiRouteLineParams<TRoute, TRequestParams, TBody, TActualParams>
+      | null
+      | undefined
+      | DisabledResourceFamilySelection,
+  ): ResourcePatchCapableLine<
+    ApiRouteLineParams<TRoute, TRequestParams, TBody>,
+    TValue,
+    TItem,
+    TReconcile,
+    "collection"
+  > | null;
+  execute<TActualParams extends ApiRouteLineParams<TRoute, TRequestParams, TBody>>(
+    params: ExactApiRouteLineParams<TRoute, TRequestParams, TBody, TActualParams>,
+    options?: ResourceLineExecutionOptions,
+  ): ResourceLineExecution<ApiRouteLineParams<TRoute, TRequestParams, TBody>, TValue | null>;
 }
 
 export interface ApiPagedResourceFamily<
@@ -288,6 +325,23 @@ export interface ApiPagedResourceFamily<
     TReconcile,
     "paged"
   >;
+  optionalLine<TActualParams extends ApiRouteLineParams<TRoute, TRequestParams, TBody>>(
+    selection:
+      | ExactApiRouteLineParams<TRoute, TRequestParams, TBody, TActualParams>
+      | null
+      | undefined
+      | DisabledResourceFamilySelection,
+  ): ResourcePatchCapableLine<
+    ApiRouteLineParams<TRoute, TRequestParams, TBody>,
+    TValue,
+    TItem,
+    TReconcile,
+    "paged"
+  > | null;
+  execute<TActualParams extends ApiRouteLineParams<TRoute, TRequestParams, TBody>>(
+    params: ExactApiRouteLineParams<TRoute, TRequestParams, TBody, TActualParams>,
+    options?: ResourceLineExecutionOptions,
+  ): ResourceLineExecution<ApiRouteLineParams<TRoute, TRequestParams, TBody>, TValue | null>;
 }
 
 export type {

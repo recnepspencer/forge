@@ -1,6 +1,8 @@
 import type { SignalValue } from "../model.js";
 import type { CallableSignals, ScopedSignalNamespace } from "../callable_surface.js";
-import type { ApiFactory } from "./api_namespace.js";
+import type { ApiFactory, ApiScopeFactory } from "./api_namespace.js";
+import type { FeatureStoreFactory } from "../local/feature_store.js";
+import type { LocalNamespace } from "../local/local_namespace.js";
 import type {
   DetailResourceFamily,
   CollectionResourceFamily,
@@ -333,10 +335,16 @@ declare module "../callable_surface.js" {
   interface CallableSignals<TPersistence = SignalValue> {
     readonly resource: ResourceNamespace;
     readonly api: ApiFactory;
+    readonly apiScope: ApiScopeFactory;
+    readonly local: LocalNamespace;
+    readonly featureStore: FeatureStoreFactory;
   }
 
   interface ScopedSignalNamespace<TPersistence = SignalValue> {
     readonly resource: ResourceNamespace;
     readonly api: ApiFactory;
+    readonly apiScope: ApiScopeFactory;
+    readonly local: LocalNamespace;
+    readonly featureStore: FeatureStoreFactory;
   }
 }

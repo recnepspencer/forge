@@ -355,6 +355,17 @@ const userDetailLocation = routes.userDetail.to({
   search: { tab: "activity", page: 2, active: true },
   hash: "panel",
 });
+const routeSequenceScenario = routes.simulateSequence([
+  routes.home.to(),
+  userDetailLocation,
+]);
+const routeSequenceResult = await routeSequenceScenario.run();
+routeSequenceResult.steps;
+routeSequenceResult.story;
+routeSequenceResult.replay.outcomes();
+routeSequenceResult.replay.breadcrumbTrail();
+routeSequenceResult.replay.currentEntries();
+const routeSequenceFirstOutcomeKind: string = routeSequenceResult.replay.outcomes()[0].kind;
 const userDetailCanonical = routes.userDetail.canonical({
   params: { userId: "task-1" },
   search: { tab: "activity", page: 2, active: true },
@@ -641,6 +652,9 @@ signals.router.warmup.hover({ href: "/users/task-1" });
 signals.router.raw("/users/task-1", { navigationType: "teleport" });
 // @ts-expect-error browser history ingress requires a local href string or raw location authority
 signals.router.browserHistory.push({ href: "/users/task-1" });
+// @ts-expect-error route sequence targets reject arbitrary numbers
+const invalidRouteSequenceTarget:
+  import("./types/router_sequence_surface.js").RouterSequenceTarget = 42;
 // @ts-expect-error local writeback rejects arbitrary href-shaped objects that are not typed route locations or raw location authority
 signals.router.browserHistory.writeback.push({ href: "/users/task-1" });
 // @ts-expect-error local writeback requires explicit routeIdentity authority

@@ -20,7 +20,14 @@ import {
 function createBrowserHistoryStory(initialReport) {
   const boundaryEvents = [];
   const admittedEntries = [];
+  const listeners = new Set();
   let currentRouteTruthBoundaryEvent = null;
+
+  function notifyListeners() {
+    for (const listener of Array.from(listeners)) {
+      listener();
+    }
+  }
 
   const api = Object.freeze({
     record(report) {
@@ -39,7 +46,19 @@ function createBrowserHistoryStory(initialReport) {
         admittedEntries.push(event.routeTruthEntry);
         currentRouteTruthBoundaryEvent = event;
       }
+      notifyListeners();
       return event;
+    },
+    subscribe(listener) {
+      if (typeof listener !== "function") {
+        throw new TypeError(
+          "signals.router.browserHistory.story().subscribe(...) requires a listener function",
+        );
+      }
+      listeners.add(listener);
+      return () => {
+        listeners.delete(listener);
+      };
     },
     events() {
       return Object.freeze([...boundaryEvents]);

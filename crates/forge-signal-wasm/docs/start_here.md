@@ -9,7 +9,7 @@ For API-backed state, the normal lane is:
 1. declare shared request posture with `signals.api(...)`
 2. declare one route with `api.url(...)`
 3. finish it with `.detail(...)`, `.list(...)`, `.paged(...)`, `.create(...)`,
-   `.update(...)`, or `.remove(...)`
+   `.update(...)`, `.remove(...)`, `.mutation(...)`, or `.command(...)`
 4. materialize a line with `family.line(...)`
 5. start reading with `line.summary()`
 

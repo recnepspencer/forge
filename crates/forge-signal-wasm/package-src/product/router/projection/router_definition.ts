@@ -7,13 +7,13 @@ import {
   createRouteLayoutReference,
 } from "./router_projection_candidate.js";
 
-function defineRoutes(definitions, scopeId) {
+function defineRoutes(definitions, scopeId, navigationSupport) {
   if (!isPlainObject(definitions)) {
     throw new TypeError("signals.router.define(...) requires an object of route declarations");
   }
   const { resolvedTree, childNodes, projectedLeaves } = resolveRouteTree(definitions, [], scopeId);
   assertNoAmbiguousProjectedRoutes(projectedLeaves);
-  return attachProjectionRoot(resolvedTree, childNodes);
+  return attachProjectionRoot(resolvedTree, childNodes, navigationSupport);
 }
 
 function resolveRouteTree(definitions, path, scopeId) {

@@ -34,13 +34,15 @@ import {
 
 function createRouterNamespace(scopeId = null) {
   const browserHistory = createBrowserHistoryNamespace();
+  const createStory = (initialReport) => createBrowserHistoryStory(initialReport);
+  const carryBreadcrumbs = (trail) => createCarriedBreadcrumbsArtifact(trail);
   return Object.freeze({
     search: createSearchNamespace(),
     hash: createHashNamespace(),
     browserHistory: Object.freeze({
       ...browserHistory,
       story(initialReport) {
-        return createBrowserHistoryStory(initialReport);
+        return createStory(initialReport);
       },
       coherence: createBrowserAuthorityCoherenceNamespace(),
       writeback: createBrowserHistoryWritebackNamespace(),
@@ -78,7 +80,7 @@ function createRouterNamespace(scopeId = null) {
       return createRouteBreadcrumbTrailDeclaration(entries);
     },
     carryBreadcrumbs(trail) {
-      return createCarriedBreadcrumbsArtifact(trail);
+      return carryBreadcrumbs(trail);
     },
     restoreBreadcrumbs(trail) {
       return createRestoredBreadcrumbsArtifact(trail);
@@ -100,7 +102,13 @@ function createRouterNamespace(scopeId = null) {
       );
     },
     define(definitions) {
-      return defineRoutes(definitions, scopeId);
+      return defineRoutes(definitions, scopeId, {
+        browserHistory: Object.freeze({
+          ...browserHistory,
+          story: createStory,
+        }),
+        carryBreadcrumbs,
+      });
     },
     isRouteLocation(value) {
       return isRouteLocation(value);

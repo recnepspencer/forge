@@ -25,6 +25,8 @@
     "./package/forms-phase-one-types-smoke.ts",
     "./package/forms-phase-eight-resource-types-smoke.ts",
     "./package/forms-phase-ten-types-smoke.ts",
+    "./package/feature-store-types-smoke.ts",
+    "./package/runtime-contract-types-smoke.ts",
     "./package/resource-types-smoke.ts",
     "./package/worker-first-callback-types-smoke.ts"
   ]

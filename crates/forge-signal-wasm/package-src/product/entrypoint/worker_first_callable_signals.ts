@@ -1,4 +1,4 @@
-import { createApiFactory } from "../api/api_namespace.js";
+import { createApiFactory, createApiScopeFactory } from "../api/api_namespace.js";
 import {
   forbidOpaqueIdOption,
   requireAuthoringOptions,
@@ -15,11 +15,17 @@ import {
 } from "./worker_first_async_recipe.js";
 import { runWorkerFirstAsyncTransaction } from "./worker_first_async_transaction.js";
 import { createWorkerFirstFormFactory } from "./worker_first_form_factory.js";
+import { createFeatureStoreFactory } from "../feature_store/feature_store_factory.js";
+import { createLocalNamespace } from "../local/local_namespace.js";
 import { createWorkerFirstResourceNamespace } from "./worker_first_resource_namespace.js";
 import { createWorkerFirstExplicitSpecNamespace } from "./worker_first_explicit_spec_namespace.js";
 import { createRouterNamespace } from "../router/router_namespace.js";
+import {
+  assertSignalsRuntimeCompatibility,
+  createSignalsRuntimeContract,
+} from "../runtime_contract.js";
 import { createWorkerFirstRootImportedGraph } from "./worker_first_root_imported_graph.js";
-import { createRootHistoryFacade } from "./worker_first_root_history.js";
+import { readRootHistoryFacade } from "./worker_first_root_history.js";
 import { createWorkerFirstRootSession } from "./worker_first_root_session.js";
 import {
   createRootAdaptersFacade,
@@ -50,9 +56,22 @@ async function createWorkerFirstCallableSignalsAfterBootstrap(rootSession, reque
   let form = null;
   let resource = null;
   let api = null;
+  let apiScope = null;
+  let featureStore = null;
+  let local = null;
   let router = null;
   let spec = null;
   let rootNamespace = null;
+  const contract = createSignalsRuntimeContract({
+    surfaceFamily: "workerFirstCallable",
+    deployment: "workerFirst",
+    capabilities: {
+      callableSurface: true,
+      scopedAuthoring: true,
+      specNamespace: true,
+      workerRuntime: true,
+    },
+  });
   void request;
 
   const namespace = () => {
@@ -77,6 +96,18 @@ async function createWorkerFirstCallableSignalsAfterBootstrap(rootSession, reque
     get api() {
       api ??= createApiFactory(callableSignals);
       return api;
+    },
+    get apiScope() {
+      apiScope ??= createApiScopeFactory(callableSignals);
+      return apiScope;
+    },
+    get featureStore() {
+      featureStore ??= createFeatureStoreFactory(callableSignals);
+      return featureStore;
+    },
+    get local() {
+      local ??= createLocalNamespace(callableSignals);
+      return local;
     },
     get router() {
       router ??= createRouterNamespace();
@@ -249,12 +280,22 @@ async function createWorkerFirstCallableSignalsAfterBootstrap(rootSession, reque
       return diagnostics;
     },
     history() {
-      history ??= createRootHistoryFacade(rootSession);
+      history ??= readRootHistoryFacade(rootSession);
       return history;
     },
     specialist() {
       specialist ??= createRootSpecialistFacade(rootSession);
       return specialist;
+    },
+    contract() {
+      return contract;
+    },
+    assertCompatibility(options) {
+      return assertSignalsRuntimeCompatibility(
+        contract,
+        options,
+        "signals.assertCompatibility",
+      );
     },
     adapters() {
       adapters ??= createRootAdaptersFacade(rootSession);
