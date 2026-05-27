@@ -1,0 +1,31 @@
+error[E0451]: fields `envelope`, `contribution_composition`, `contributions` and `composed_digest` of struct `ForgeQueryContributionComposedOrchestration` are private
+  --> tests/ui/domain_handle/boundaries/construction/contribution_composed_orchestration_artifact_constructors_private.rs:77:9
+   |
+76 |     let _ = ForgeQueryContributionComposedOrchestration::<GeometryDomainEntry, GeometryInput> {
+   |             --------------------------------------------------------------------------------- in this type
+77 |         envelope: unsafe { std::mem::zeroed() },
+   |         ^^^^^^^^ private field
+78 |         contribution_composition: unsafe { std::mem::zeroed() },
+   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
+79 |         contributions: vec![],
+   |         ^^^^^^^^^^^^^ private field
+80 |         composed_digest: String::new(),
+   |         ^^^^^^^^^^^^^^^ private field
+
+error[E0451]: fields `request_digest`, `outcome`, `linked_artifacts` and `contribution_digest` of struct `ForgeQueryContributionComposedOrchestrationTranscript` are private
+  --> tests/ui/domain_handle/boundaries/construction/contribution_composed_orchestration_artifact_constructors_private.rs:86:9
+   |
+82 |       let _ = ForgeQueryContributionComposedOrchestrationTranscript::<
+   |  _____________-
+83 | |         GeometryDomainEntry,
+84 | |         GeometryInput,
+85 | |     > {
+   | |_____- in this type
+86 |           request_digest: String::new(),
+   |           ^^^^^^^^^^^^^^ private field
+87 |           outcome: unsafe { std::mem::zeroed() },
+   |           ^^^^^^^ private field
+88 |           linked_artifacts: unsafe { std::mem::zeroed() },
+   |           ^^^^^^^^^^^^^^^^ private field
+89 |           contribution_digest: None,
+   |           ^^^^^^^^^^^^^^^^^^^ private field

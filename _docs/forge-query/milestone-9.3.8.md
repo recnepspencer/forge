@@ -323,7 +323,8 @@ locked decisions above:
     contribution authoring through the same shared binding substrate so
     callers do not have to cross a second public grammar seam or a second
     binding world. It must also preserve one shared ordinary outcome story over
-    entry, contribution, and composed orchestration posture.
+    entry, contribution, and composed orchestration posture. This phase now
+    ships as the public declaration-plus-contribution composition seam.
 
 30. **Phase 30: Orchestration Inventory And Transcript Boundary**
     Query synchronizes live orchestration verbs, transcripts, support/readiness
@@ -3509,6 +3510,16 @@ or continue from retained compatibility, it must lower through the shipped
 signal-compatibility orchestration surface rather than a contribution-local
 signal readiness helper family.
 
+This phase now ships and settles three questions that later phases must not
+reopen:
+
+- declaration-side and contribution-side non-success posture stay distinct even
+  when one public call composes both proof chains
+- declaration-scoped contribution composition reuses the shared binding
+  substrate rather than inventing composition-local target glue
+- concise contribution-composed results project onto the shared ordinary
+  outcome family rather than introducing a local convenience vocabulary
+
 **Required Query artifacts**
 
 - one contribution-composed orchestration surface
@@ -3577,6 +3588,12 @@ track explicitly:
 - signal-compatibility orchestration artifacts, their ordinary outcome
   projections, and their proof-visible transcripts
 
+Phase 29 now adds a fifth already-shipped public layer the same inventory must
+track explicitly:
+
+- contribution-composed orchestration artifacts, their ordinary outcome
+  projections, and their proof-visible transcripts
+
 **Requirements**
 
 - ordinary public verbs, checked verbs, proof-visible verbs, support/readiness
@@ -3624,6 +3641,12 @@ Recovery UX in this phase must therefore preserve `Compatible`, `Prepared`,
 `BasisMismatch`, `WrongWorld`, `WrongHandle`, `Deferred`, `Denied`, and
 `Unsupported` as distinct recovery surfaces rather than collapsing them into a
 generic "signal not ready" explanation.
+
+Phase 29 now also ships contribution-composed orchestration outcomes. Recovery
+UX in this phase must therefore preserve declaration-side defer/deny/stale/
+rebind posture separately from contribution-side deny/stale/rebind posture,
+rather than collapsing all composed non-success into one generic declaration
+failure or one generic "contribution could not be applied" message.
 
 **Required Query artifacts**
 
@@ -3725,6 +3748,11 @@ ambient source probing, or undocumented proof shortcuts.
 Phase 26 now ships the shared ordinary outcome family those helpers must use on
 their concise public lanes.
 
+Phase 29 now also ships contribution-composed orchestration. Family helpers in
+this phase must therefore compose onto the same declaration-plus-contribution
+surface when they promise declaration-scoped contribution posture, rather than
+inventing helper-local composition lanes or bypassing the composed proof story.
+
 **Required Query artifacts**
 
 - one family-specific helper surface per admitted major family
@@ -3802,6 +3830,11 @@ neighborhood-specific binders or grouped-only target-recovery helpers.
 Phase 26 now ships the shared ordinary outcome family. Grouped authoring must
 therefore extend that same concise result story instead of creating grouped-only
 terminal shortcuts.
+
+Phase 29 now also ships contribution-composed orchestration. Grouped authoring
+in this phase must therefore preserve a path to group-level and member-level
+contribution composition on top of the shipped composed seam rather than
+inventing a second grouped-only contribution grammar.
 
 **Required Query artifacts**
 
@@ -3893,6 +3926,11 @@ surface, so this docs/goldens phase must treat signal-facing
 `Compatible`/`Prepared` composition as part of the ordinary public teaching
 inventory rather than as a footnote inside retained compatibility or
 continuation docs.
+
+Phase 29 now also ships a dedicated contribution-composed orchestration feature
+surface, so this docs/goldens phase must treat declaration-plus-contribution
+composition as part of the ordinary public teaching inventory rather than as a
+local advanced recipe hidden between declaration-entry and contribution docs.
 
 **Required Query artifacts**
 

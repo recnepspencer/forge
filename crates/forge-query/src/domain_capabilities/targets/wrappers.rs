@@ -1,3 +1,6 @@
+use crate::application::{
+    ForgeQueryCanonicalDeclarationArtifact, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+};
 use crate::runtime::{
     ForgeQueryAdmittedIntentPlan, ForgeQueryIntentDeclaration,
     ForgeQueryLowerRuntimeBoundaryEnvelope,
@@ -27,6 +30,17 @@ pub struct ForgeQueryLowerRuntimeBoundaryBoundContributionTarget {
 impl ForgeQueryDeclarationBoundContributionTarget {
     pub fn for_intent_declaration(declaration: &ForgeQueryIntentDeclaration) -> Self {
         let shared = ForgeQueryIntentDeclarationBindingTarget::for_intent_declaration(declaration);
+        Self::from_shared(shared)
+    }
+
+    pub fn for_canonical_declaration<
+        D: ForgeQueryDomainEntryMarker,
+        I: ForgeQueryDeclarationInput<D>,
+    >(
+        declaration: &ForgeQueryCanonicalDeclarationArtifact<D, I>,
+    ) -> Self {
+        let shared =
+            ForgeQueryIntentDeclarationBindingTarget::for_canonical_declaration(declaration);
         Self::from_shared(shared)
     }
 

@@ -123,6 +123,13 @@ Admitted-handle signal-compatibility orchestration entry points:
 - `orchestrate_signal_compatibility_checked(input) -> ForgeQuerySignalCompatibilityOrchestrationChecked<D, I>`
 - `orchestrate_signal_compatibility_proof(input) -> ForgeQuerySignalCompatibilityOrchestrationTranscript<D, I>`
 
+Admitted-handle contribution-composed orchestration entry points:
+
+- `orchestrate_declaration_with_contributions(input) -> Result<ForgeQueryContributionComposedOrchestration<D, I>, ForgeQueryContributionComposedOrchestrationOutcome<D, I>>`
+- `orchestrate_declaration_with_contributions_outcome(input) -> ForgeQueryOrdinaryOutcome<ForgeQueryContributionComposedOrchestration<D, I>>`
+- `orchestrate_declaration_with_contributions_checked(input) -> ForgeQueryContributionComposedOrchestrationChecked<D, I>`
+- `orchestrate_declaration_with_contributions_proof(input) -> ForgeQueryContributionComposedOrchestrationTranscript<D, I>`
+
 Admitted-handle continuation entry points:
 
 - `prepare_continuation_from_target(request) -> ForgeQueryPreparedContinuationOutcome<D, I>`
@@ -269,6 +276,17 @@ owns an `orchestrate_signal_compatibility(...)` family when your app wants to
 ask "do we stop at signal compatibility, or can Query also prepare the next
 continuation step right now?" without flattening compatibility, preparation,
 and execution into one result.
+
+Phase 29 adds one declaration-plus-contribution composition lane on top of the
+retained declaration-entry path and the standalone contribution-authoring
+surfaces. The admitted handle now owns an
+`orchestrate_declaration_with_contributions(...)` family when your app wants
+one public call that can:
+
+- lower declaration entry through the envelope ceiling
+- bind declaration-scoped contribution intents
+- preserve declaration-side and contribution-side non-success posture
+- optionally materialize contribution summaries
 
 When later declaration-entry artifacts expose shared binding targets, those
 targets are still scoped by this admitted world. The binding seam does not
@@ -530,6 +548,13 @@ handle entry points when you specifically want to stop at legality,
 progression, foundational evidence, route planning, receipt, or envelope
 materialization yourself.
 
+Use `orchestrate_declaration_with_contributions(...)` when that same
+declaration-entry run should also carry declaration-scoped contribution
+authoring in the same admitted-handle call. It still uses the retained
+declaration-entry path underneath, but it keeps contribution denial and
+contribution summary materialization typed instead of forcing the app to stitch
+declaration entry and contribution authoring together manually.
+
 That orchestration trio also locks one sequencing boundary:
 
 - Query starts after your tool or session has already assembled declaration
@@ -625,6 +650,7 @@ They do not yet provide:
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
+- [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
 - [Declaration Entry Readiness](./declaration-entry-readiness.md)

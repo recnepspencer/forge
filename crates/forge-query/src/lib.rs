@@ -21,6 +21,7 @@ mod canonicalization;
 mod collection;
 mod composition;
 mod continuation_pipeline;
+mod contribution_composed_orchestration;
 mod correspondence;
 mod correspondence_history;
 mod correspondence_history_parity;
@@ -82,9 +83,21 @@ pub use continuation_pipeline::{
     ForgeQueryPreparedContinuationRequest, ForgeQueryPreparedContinuationSignalPosture,
     ForgeQueryPreparedContinuationTranscript,
 };
+pub use contribution_composed_orchestration::{
+    ForgeQueryContributionComposedContribution,
+    ForgeQueryContributionComposedMaterializationPolicy,
+    ForgeQueryContributionComposedOrchestration,
+    ForgeQueryContributionComposedOrchestrationChecked,
+    ForgeQueryContributionComposedOrchestrationInput,
+    ForgeQueryContributionComposedOrchestrationOutcome,
+    ForgeQueryContributionComposedOrchestrationPosture,
+    ForgeQueryContributionComposedOrchestrationTranscript, ForgeQueryContributionComposedSummary,
+    ForgeQueryContributionIntent,
+};
 pub use ordinary_outcome::{
     ForgeQueryOrdinaryBindingCheckedTopologyKind, ForgeQueryOrdinaryCheckedTopology,
-    ForgeQueryOrdinaryContinuationCheckedTopologyKind, ForgeQueryOrdinaryNextStep,
+    ForgeQueryOrdinaryContinuationCheckedTopologyKind,
+    ForgeQueryOrdinaryContributionComposedCheckedTopologyKind, ForgeQueryOrdinaryNextStep,
     ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture, ForgeQueryOrdinaryPostureKind,
     ForgeQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
 };

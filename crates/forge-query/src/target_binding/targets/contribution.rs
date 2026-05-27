@@ -1,3 +1,6 @@
+use crate::application::{
+    ForgeQueryCanonicalDeclarationArtifact, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+};
 use crate::runtime::{
     ForgeQueryAdmittedIntentPlan, ForgeQueryIntentDeclaration,
     ForgeQueryLowerRuntimeBoundaryEnvelope,
@@ -23,6 +26,19 @@ impl ForgeQueryIntentDeclarationBindingTarget {
             ForgeQueryBindingTargetKind::IntentDeclaration,
             declaration.input_digest().to_string(),
             ForgeQueryBindingTargetSemantics::for_intent_declaration(declaration),
+        ))
+    }
+
+    pub fn for_canonical_declaration<
+        D: ForgeQueryDomainEntryMarker,
+        I: ForgeQueryDeclarationInput<D>,
+    >(
+        declaration: &ForgeQueryCanonicalDeclarationArtifact<D, I>,
+    ) -> Self {
+        Self(ForgeQueryBindingTarget::new(
+            ForgeQueryBindingTargetKind::IntentDeclaration,
+            format!("{:?}", declaration.declaration_digest()),
+            ForgeQueryBindingTargetSemantics::for_canonical_declaration(declaration),
         ))
     }
 

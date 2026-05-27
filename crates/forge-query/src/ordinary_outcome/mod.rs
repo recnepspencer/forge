@@ -13,6 +13,7 @@ pub use posture::ForgeQueryOrdinaryPosture;
 pub use topology::{
     ForgeQueryOrdinaryBindingCheckedTopologyKind, ForgeQueryOrdinaryCheckedTopology,
     ForgeQueryOrdinaryContinuationCheckedTopologyKind,
+    ForgeQueryOrdinaryContributionComposedCheckedTopologyKind,
     ForgeQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
 };
 

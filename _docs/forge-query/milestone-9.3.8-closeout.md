@@ -326,10 +326,11 @@ beneath the shipped:
 - Phase 26 denial-preserving ordinary outcome boundary
 - Phase 27 runtime / workspace / basis continuation boundary
 - Phase 28 signal compatibility orchestration boundary
+- Phase 29 contribution-composed orchestration boundary
 
 and not as an open prompt to plan any of those phases again.
 
-The next live planning surface now starts at Phase 29 and later. Those later
+The next live planning surface now starts at Phase 30 and later. Those later
 phases should keep extending:
 
 - one authority-preserving binding story
@@ -337,5 +338,6 @@ phases should keep extending:
 - one denial-preserving ordinary outcome story
 - one explicit prepared-vs-executed continuation story
 - one explicit signal-compatible-vs-prepared continuation story
+- one explicit declaration-plus-contribution composition story
 
 instead of inventing local glue.

@@ -64,6 +64,10 @@ Admitted-handle signal-compatibility orchestration entry points:
 
 - `orchestrate_signal_compatibility_outcome(...)`
 
+Admitted-handle contribution-composed orchestration entry points:
+
+- `orchestrate_declaration_with_contributions_outcome(...)`
+
 ## Core Mental Model
 
 Think of ordinary outcomes as a public compatibility layer over stronger truth.
@@ -114,6 +118,9 @@ The checked-topology link stays typed:
   artifacts
 - signal-compatibility orchestration outcomes expose signal-orchestration
   checked-topology kind plus linked retained artifacts
+- contribution-composed orchestration outcomes expose contribution-composed
+  checked-topology kind, linked retained artifacts, and optional contribution
+  digest
 
 ## Small Example
 
@@ -198,6 +205,9 @@ result maps back to:
 - `orchestration_refusal_class()`
 - `binding_kind()`
 - `binding_linked_artifacts()`
+- `contribution_composed_kind()`
+- `contribution_composed_linked_artifacts()`
+- `contribution_composed_digest()`
 - `signal_compatibility_orchestration_kind()`
 - `signal_compatibility_orchestration_linked_artifacts()`
 
@@ -236,5 +246,6 @@ Binding linked artifacts can expose:
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
+- [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Domain Capabilities](./README.md)

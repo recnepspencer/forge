@@ -14,6 +14,11 @@ continue into runtime execution, workspace entry, signal execution, or `9.3.7`
 composition. It starts after your tool or session has already decided what the
 user is trying to do.
 
+If that same declaration-entry run also needs declaration-scoped contribution
+authoring, use the separate contribution-composed orchestration surface instead
+of trying to treat the generic declaration-entry front door as if it already
+owned contribution posture.
+
 Phase 24 also adds product-target orchestration for callers who already hold
 progression proof and want one compact route, receipt, or envelope surface
 without rebuilding route-plan, receipt, or envelope inputs by hand.
@@ -515,6 +520,9 @@ for record in transcript.step_records() {
   targets rather than lowering through the declaration-entry ceiling.
 - Use [Ordinary Outcomes](./ordinary-outcomes.md) when you want the compact
   public result vocabulary shared by binding, continuation, and orchestration.
+- Use [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
+  when the declaration-entry run also needs declaration-scoped contribution
+  authoring or contribution summary materialization in the same public call.
 - Use [Continuation Pipeline](./continuation-pipeline.md) when the next job is
   to turn retained envelope or continuation-ready truth into one prepared
   continuation artifact and explicit execution step.
@@ -611,6 +619,7 @@ when the ordinary lane stopped at the envelope ceiling.
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Ordinary Outcomes](./ordinary-outcomes.md)
+- [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)

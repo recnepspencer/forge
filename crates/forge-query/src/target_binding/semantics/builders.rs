@@ -1,7 +1,8 @@
 use crate::application::{
-    ForgeQueryAdmittedDeclarationProgression, ForgeQueryDeclarationAspectContract,
-    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationInput,
-    ForgeQueryDeclarationReceipt, ForgeQueryDeclarationRoutePlan, ForgeQueryDomainEntryMarker,
+    ForgeQueryAdmittedDeclarationProgression, ForgeQueryCanonicalDeclarationArtifact,
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
+    ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationInput, ForgeQueryDeclarationReceipt,
+    ForgeQueryDeclarationRoutePlan, ForgeQueryDomainEntryMarker,
 };
 use crate::runtime::{
     ForgeQueryAdmittedIntentPlan, ForgeQueryIntentDeclaration,
@@ -19,6 +20,22 @@ impl ForgeQueryBindingTargetSemantics {
             input_contract: declaration.input_contract().to_string(),
             source_lane: declaration.source_lane(),
             target_lane: declaration.target_lane(),
+        }
+    }
+
+    pub(crate) fn for_canonical_declaration<
+        D: ForgeQueryDomainEntryMarker,
+        I: ForgeQueryDeclarationInput<D>,
+    >(
+        declaration: &ForgeQueryCanonicalDeclarationArtifact<D, I>,
+    ) -> Self {
+        Self::IntentDeclaration {
+            name: declaration.declaration_family_key().to_string(),
+            strategy_name: "forge-query.canonical-declaration".to_string(),
+            strategy_version: format!("{:?}", declaration.canonicalization_version()),
+            input_contract: "forge-query.canonical-declaration".to_string(),
+            source_lane: crate::runtime::ForgeQueryIntentSourceLane::UserAuthored,
+            target_lane: crate::runtime::ForgeQueryAuthorityLane::AuthoritativeTruth,
         }
     }
 

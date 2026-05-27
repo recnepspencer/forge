@@ -26,6 +26,7 @@ of domain work you are trying to do:
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
+- [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
 - [Declaration Entry Readiness](./declaration-entry-readiness.md)
 - `admission/`
@@ -124,6 +125,11 @@ when you want one admitted-handle front door over the declaration-entry
 pipeline through the current envelope ceiling, with ordinary, checked, and
 proof-visible visibility levels over the same canonical lowering path, one
 locked automation sequence, and one inspectable materialization/cost policy.
+Use [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
+when the declaration-entry run also needs declaration-scoped contribution
+authoring and optional contribution summary materialization in the same public
+call without losing the distinction between declaration posture and
+contribution posture. Use
 [Declaration Entry Inspection](./declaration-entry-inspection.md)
 when you need one unified read surface over retained seam artifacts after that
 lowering. Use
@@ -242,6 +248,11 @@ order:
   - `orchestrate_signal_compatibility_outcome(...)`
   - `orchestrate_signal_compatibility_checked(...)`
   - `orchestrate_signal_compatibility_proof(...)`
+- contribution-composed orchestration:
+  - `orchestrate_declaration_with_contributions(...)`
+  - `orchestrate_declaration_with_contributions_outcome(...)`
+  - `orchestrate_declaration_with_contributions_checked(...)`
+  - `orchestrate_declaration_with_contributions_proof(...)`
 - continuation preparation and execution:
   - `prepare_continuation_from_target(...)`
   - `prepare_continuation_from_target_outcome(...)`
@@ -281,6 +292,9 @@ The main retained public artifacts introduced along that path are:
 - `ForgeQueryDeclarationBridgeRouting`
 - `ForgeQueryDeclarationSignalCompatibility`
 - `ForgeQuerySignalCompatibilityOrchestration`
+- `ForgeQueryContributionComposedOrchestration`
+- `ForgeQueryContributionComposedOrchestrationOutcome`
+- `ForgeQueryContributionComposedOrchestrationTranscript`
 - `ForgeQueryPreparedContinuation`
 - `ForgeQueryContinuationExecution`
 - `ForgeQueryDeclarationEntryOrchestrationInput`
@@ -346,6 +360,9 @@ projections over the same retained pipeline.
 Treat signal-compatibility orchestration as the signal-facing composition lane
 that starts from retained compatibility or progression truth and can stop at
 `Compatible` or advance into `Prepared` without executing anything.
+Treat contribution-composed orchestration as the declaration-plus-contribution
+composition lane that can stop at declaration posture, contribution posture, or
+one bound composed artifact without pretending those are the same proof chain.
 Treat the earlier declaration, legality, progression, foundational, route,
 receipt, and envelope methods as the advanced explicit path.
 If you need the locked grammar as data, use

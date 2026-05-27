@@ -125,6 +125,7 @@ pub use declaration_entry_seam::{
     ForgeQueryDeclarationEntryContributionCompositionError,
     ForgeQueryDeclarationEntryContributionCompositionFailureClass,
     ForgeQueryDeclarationEntryContributionEvidence,
+    ForgeQueryDeclarationEntryContributionEvidenceRecord,
     ForgeQueryDeclarationEntryContributionEvidenceSet,
     ForgeQueryDeclarationEntryContributionTargetFamily,
     ForgeQueryDeclarationEntryCrossingInventory, ForgeQueryDeclarationEntryCrossingRow,

@@ -17,6 +17,7 @@ pub use contribution::{
     ForgeQueryDeclarationEntryContributionCompositionError,
     ForgeQueryDeclarationEntryContributionCompositionFailureClass,
     ForgeQueryDeclarationEntryContributionEvidence,
+    ForgeQueryDeclarationEntryContributionEvidenceRecord,
     ForgeQueryDeclarationEntryContributionEvidenceSet,
     ForgeQueryDeclarationEntryContributionTargetFamily,
 };

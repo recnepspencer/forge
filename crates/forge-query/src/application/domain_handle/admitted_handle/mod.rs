@@ -1,5 +1,6 @@
 mod bridge_routing;
 mod continuation;
+mod contribution_composed_orchestration;
 mod declaration;
 mod declaration_entry;
 mod envelope;

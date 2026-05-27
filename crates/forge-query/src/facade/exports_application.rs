@@ -35,6 +35,7 @@ pub use crate::application::{
     ForgeQueryDeclarationEntryContributionCompositionError,
     ForgeQueryDeclarationEntryContributionCompositionFailureClass,
     ForgeQueryDeclarationEntryContributionEvidence,
+    ForgeQueryDeclarationEntryContributionEvidenceRecord,
     ForgeQueryDeclarationEntryContributionEvidenceSet,
     ForgeQueryDeclarationEntryContributionTargetFamily,
     ForgeQueryDeclarationEntryCrossingInventory, ForgeQueryDeclarationEntryCrossingRow,
@@ -200,9 +201,21 @@ pub use crate::continuation_pipeline::{
     ForgeQueryPreparedContinuationRequest, ForgeQueryPreparedContinuationSignalPosture,
     ForgeQueryPreparedContinuationTranscript,
 };
+pub use crate::contribution_composed_orchestration::{
+    ForgeQueryContributionComposedContribution,
+    ForgeQueryContributionComposedMaterializationPolicy,
+    ForgeQueryContributionComposedOrchestration,
+    ForgeQueryContributionComposedOrchestrationChecked,
+    ForgeQueryContributionComposedOrchestrationInput,
+    ForgeQueryContributionComposedOrchestrationOutcome,
+    ForgeQueryContributionComposedOrchestrationPosture,
+    ForgeQueryContributionComposedOrchestrationTranscript, ForgeQueryContributionComposedSummary,
+    ForgeQueryContributionIntent,
+};
 pub use crate::ordinary_outcome::{
     ForgeQueryOrdinaryBindingCheckedTopologyKind, ForgeQueryOrdinaryCheckedTopology,
-    ForgeQueryOrdinaryContinuationCheckedTopologyKind, ForgeQueryOrdinaryNextStep,
+    ForgeQueryOrdinaryContinuationCheckedTopologyKind,
+    ForgeQueryOrdinaryContributionComposedCheckedTopologyKind, ForgeQueryOrdinaryNextStep,
     ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture, ForgeQueryOrdinaryPostureKind,
     ForgeQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
 };
