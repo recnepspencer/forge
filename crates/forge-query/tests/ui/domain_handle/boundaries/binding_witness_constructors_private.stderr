@@ -1,0 +1,33 @@
+error[E0451]: fields `handle_identity_digest` and `operating_context_identity_digest` of struct `ForgeQueryBindingAuthorityWitness` are private
+ --> tests/ui/domain_handle/boundaries/binding_witness_constructors_private.rs:8:9
+  |
+7 |     let _ = ForgeQueryBindingAuthorityWitness {
+  |             --------------------------------- in this type
+8 |         handle_identity_digest: String::from("handle"),
+  |         ^^^^^^^^^^^^^^^^^^^^^^ private field
+9 |         operating_context_identity_digest: String::from("world"),
+  |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ private field
+
+error[E0451]: field `basis_label` of struct `ForgeQueryBindingBasisWitness` is private
+  --> tests/ui/domain_handle/boundaries/binding_witness_constructors_private.rs:12:9
+   |
+11 |     let _ = ForgeQueryBindingBasisWitness {
+   |             ----------------------------- in this type
+12 |         basis_label: "basis",
+   |         ^^^^^^^^^^^ private field
+
+error[E0451]: field `binding_digests` of struct `ForgeQueryBindingTargetWitnessSet` is private
+  --> tests/ui/domain_handle/boundaries/binding_witness_constructors_private.rs:15:9
+   |
+14 |     let _ = ForgeQueryBindingTargetWitnessSet {
+   |             --------------------------------- in this type
+15 |         binding_digests: vec![String::from("binding")],
+   |         ^^^^^^^^^^^^^^^ private field
+
+error[E0451]: field `family_key` of struct `ForgeQueryBindingFamilyWitness` is private
+  --> tests/ui/domain_handle/boundaries/binding_witness_constructors_private.rs:18:9
+   |
+17 |     let _ = ForgeQueryBindingFamilyWitness {
+   |             ------------------------------ in this type
+18 |         family_key: "family",
+   |         ^^^^^^^^^^ private field

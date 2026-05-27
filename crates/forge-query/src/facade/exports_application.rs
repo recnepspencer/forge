@@ -167,6 +167,28 @@ pub use crate::application::{
     QueryContextDeferredScopeMarker, QueryReadCapability, ValidatedForgeQueryConfig,
     WorkflowOrchestrationCapability,
 };
+pub use crate::binding_pipeline::{
+    ForgeQueryBindingAmbiguity, ForgeQueryBindingAspectConflict, ForgeQueryBindingAspectFitReport,
+    ForgeQueryBindingAuthorityMismatch, ForgeQueryBindingAuthorityWitness,
+    ForgeQueryBindingBasisMismatch, ForgeQueryBindingBasisWitness,
+    ForgeQueryBindingCandidateRecord, ForgeQueryBindingChecked, ForgeQueryBindingContextWitness,
+    ForgeQueryBindingExplicitNarrowingRequired, ForgeQueryBindingFamilyWitness,
+    ForgeQueryBindingLinkedArtifacts, ForgeQueryBindingMissingRequiredAspect,
+    ForgeQueryBindingNarrowingDecision, ForgeQueryBindingOutcome, ForgeQueryBindingRebindRequired,
+    ForgeQueryBindingRequestDescriptor, ForgeQueryBindingSourceKind, ForgeQueryBindingSpecificity,
+    ForgeQueryBindingStale, ForgeQueryBindingTargetWitnessSet, ForgeQueryBindingTranscript,
+    ForgeQueryBindingUnavailable, ForgeQueryBindingUnsupported, ForgeQueryBindingWitnessCheck,
+    ForgeQueryBindingWrongHandle, ForgeQueryBindingWrongWorld, ForgeQueryContinuationBindingInput,
+    ForgeQueryContinuationBindingRequest, ForgeQueryDeclarationBindingRequest,
+    ForgeQueryDeclarationContextCandidate, ForgeQueryEnvelopeBindingRequest,
+    ForgeQueryEnvelopeContextCandidate, ForgeQueryEnvelopeResolverSubject,
+    ForgeQueryFamilyBindingContract, ForgeQueryFamilyContextExtractorContract,
+    ForgeQueryFamilyTargetResolverContract, ForgeQueryProgressionContextCandidate,
+    ForgeQueryReceiptBindingRequest, ForgeQueryReceiptResolverSubject,
+    ForgeQueryResolveContinuationFromTargetRequest, ForgeQueryResolveEnvelopeFromTargetRequest,
+    ForgeQueryResolveReceiptFromTargetRequest, ForgeQueryResolveRouteFromTargetRequest,
+    ForgeQueryRouteBindingRequest, ForgeQueryRouteResolverSubject,
+};
 pub use crate::target_binding::{
     ForgeQueryAdmittedDeclarationProgressionBindingTarget, ForgeQueryBindingTarget,
     ForgeQueryBindingTargetKind, ForgeQueryBindingTargetSemantics, ForgeQueryBindingTargetWitness,

@@ -73,7 +73,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             input,
             product,
             requested_route_intent,
-            ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved,
+            ForgeQueryDeclarationEntryOrchestrationStage::ProgressionAdmitted,
         )
     }
 

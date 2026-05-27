@@ -16,12 +16,12 @@ pub(super) fn step_plan_for(
 ) -> Vec<ForgeQueryDeclarationEntryOrchestrationStage> {
     let full = match product {
         ForgeQueryDeclarationEntryOrchestrationProduct::RoutePlan => vec![
-            ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved,
+            progression_starting_stage(starting_artifact_stage),
             ForgeQueryDeclarationEntryOrchestrationStage::FoundationalDescribed,
             ForgeQueryDeclarationEntryOrchestrationStage::RoutePlanned,
         ],
         ForgeQueryDeclarationEntryOrchestrationProduct::Receipt => vec![
-            ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved,
+            progression_starting_stage(starting_artifact_stage),
             ForgeQueryDeclarationEntryOrchestrationStage::FoundationalDescribed,
             ForgeQueryDeclarationEntryOrchestrationStage::RoutePlanned,
             ForgeQueryDeclarationEntryOrchestrationStage::ReceiptIssued,
@@ -109,7 +109,7 @@ fn envelope_step_plan(
         ]
     } else {
         vec![
-            ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved,
+            progression_starting_stage(starting_artifact_stage),
             ForgeQueryDeclarationEntryOrchestrationStage::FoundationalDescribed,
             ForgeQueryDeclarationEntryOrchestrationStage::RoutePlanned,
             ForgeQueryDeclarationEntryOrchestrationStage::ReceiptIssued,
@@ -131,7 +131,8 @@ fn stage_to_automation_step(
         ForgeQueryDeclarationEntryOrchestrationStage::LegalityEstablished => {
             ForgeQueryDeclarationEntryOrchestrationAutomationStep::Legality
         }
-        ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved => {
+        ForgeQueryDeclarationEntryOrchestrationStage::ProgressionAdmitted
+        | ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved => {
             ForgeQueryDeclarationEntryOrchestrationAutomationStep::Progression
         }
         ForgeQueryDeclarationEntryOrchestrationStage::FoundationalDescribed => {
@@ -146,5 +147,16 @@ fn stage_to_automation_step(
         ForgeQueryDeclarationEntryOrchestrationStage::EnvelopeConstructed => {
             ForgeQueryDeclarationEntryOrchestrationAutomationStep::Envelope
         }
+    }
+}
+
+fn progression_starting_stage(
+    starting_artifact_stage: ForgeQueryDeclarationEntryOrchestrationStage,
+) -> ForgeQueryDeclarationEntryOrchestrationStage {
+    match starting_artifact_stage {
+        ForgeQueryDeclarationEntryOrchestrationStage::ProgressionAdmitted => {
+            ForgeQueryDeclarationEntryOrchestrationStage::ProgressionAdmitted
+        }
+        _ => ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved,
     }
 }

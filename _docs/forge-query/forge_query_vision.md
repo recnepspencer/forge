@@ -296,8 +296,8 @@ What this enables:
 Technical role:
 The query layer owns one shared proof-bearing binding substrate, starting
 with one retained target-binding core that both contribution authoring and
-declaration-entry orchestration consume before later extractor/resolver
-expansion, taking
+declaration-entry orchestration consume before the shipped first
+extractor/resolver expansion in Phase 25 and later follow-on widening, taking
 inspiration from Laravel's route-model binding but translating it into
 Rust-native typed extractors, retained-artifact resolvers, capability
 witnesses, and family-scoped binding contracts. Consumer functions (UI
@@ -309,6 +309,13 @@ The runtime binds declared context and retained proof into the right admitted
 Query artifact, executes against canonical query meaning, and exposes the same
 binding story across direct query execution, domain capability contribution,
 declaration-entry orchestration, and later continuation surfaces.
+
+The first shipped slice now covers both sides of that seam:
+
+- context-bound declaration, route, receipt, envelope, and continuation-ready
+  request preparation
+- retained progression / route / receipt / envelope target resolution into the
+  next explicit Query input
 
 What this enables:
 

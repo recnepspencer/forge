@@ -272,7 +272,8 @@ pub(crate) fn automation_step_for_stage(
         ForgeQueryDeclarationEntryOrchestrationStage::LegalityEstablished => {
             ForgeQueryDeclarationEntryOrchestrationAutomationStep::Legality
         }
-        ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved => {
+        ForgeQueryDeclarationEntryOrchestrationStage::ProgressionAdmitted
+        | ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved => {
             ForgeQueryDeclarationEntryOrchestrationAutomationStep::Progression
         }
         ForgeQueryDeclarationEntryOrchestrationStage::FoundationalDescribed => {

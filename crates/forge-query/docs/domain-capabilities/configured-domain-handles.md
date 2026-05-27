@@ -134,6 +134,36 @@ Admitted-handle orchestration entry points:
 - `orchestrate_envelope_from_progressed(progressed) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
 - `orchestrate_envelope_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
 
+Admitted-handle typed binding entry points:
+
+- `bind_declaration_from_context(request) -> ForgeQueryBindingOutcome<ForgeQueryCanonicalDeclarationArtifact<D, I>>`
+- `bind_declaration_from_context_checked(request) -> ForgeQueryBindingChecked<ForgeQueryCanonicalDeclarationArtifact<D, I>>`
+- `bind_declaration_from_context_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryCanonicalDeclarationArtifact<D, I>>`
+- `bind_route_request_from_context(request) -> ForgeQueryBindingOutcome<ForgeQueryDeclarationRoutePlanInput<D, I>>`
+- `bind_route_request_from_context_checked(request) -> ForgeQueryBindingChecked<ForgeQueryDeclarationRoutePlanInput<D, I>>`
+- `bind_route_request_from_context_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryDeclarationRoutePlanInput<D, I>>`
+- `bind_receipt_request_from_context(request) -> ForgeQueryBindingOutcome<ForgeQueryDeclarationReceiptInput<D, I>>`
+- `bind_receipt_request_from_context_checked(request) -> ForgeQueryBindingChecked<ForgeQueryDeclarationReceiptInput<D, I>>`
+- `bind_receipt_request_from_context_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryDeclarationReceiptInput<D, I>>`
+- `bind_envelope_request_from_context(request) -> ForgeQueryBindingOutcome<ForgeQueryDeclarationEnvelopeInput<D, I>>`
+- `bind_envelope_request_from_context_checked(request) -> ForgeQueryBindingChecked<ForgeQueryDeclarationEnvelopeInput<D, I>>`
+- `bind_envelope_request_from_context_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryDeclarationEnvelopeInput<D, I>>`
+- `bind_continuation_request_from_context(request) -> ForgeQueryBindingOutcome<ForgeQueryContinuationBindingInput<D, I>>`
+- `bind_continuation_request_from_context_checked(request) -> ForgeQueryBindingChecked<ForgeQueryContinuationBindingInput<D, I>>`
+- `bind_continuation_request_from_context_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryContinuationBindingInput<D, I>>`
+- `bind_route_from_target(request) -> ForgeQueryBindingOutcome<ForgeQueryDeclarationRoutePlanInput<D, I>>`
+- `bind_route_from_target_checked(request) -> ForgeQueryBindingChecked<ForgeQueryDeclarationRoutePlanInput<D, I>>`
+- `bind_route_from_target_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryDeclarationRoutePlanInput<D, I>>`
+- `bind_receipt_from_target(request) -> ForgeQueryBindingOutcome<ForgeQueryDeclarationReceiptInput<D, I>>`
+- `bind_receipt_from_target_checked(request) -> ForgeQueryBindingChecked<ForgeQueryDeclarationReceiptInput<D, I>>`
+- `bind_receipt_from_target_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryDeclarationReceiptInput<D, I>>`
+- `bind_envelope_from_target(request) -> ForgeQueryBindingOutcome<ForgeQueryDeclarationEnvelopeInput<D, I>>`
+- `bind_envelope_from_target_checked(request) -> ForgeQueryBindingChecked<ForgeQueryDeclarationEnvelopeInput<D, I>>`
+- `bind_envelope_from_target_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryDeclarationEnvelopeInput<D, I>>`
+- `bind_continuation_from_target(request) -> ForgeQueryBindingOutcome<ForgeQueryContinuationBindingInput<D, I>>`
+- `bind_continuation_from_target_checked(request) -> ForgeQueryBindingChecked<ForgeQueryContinuationBindingInput<D, I>>`
+- `bind_continuation_from_target_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryContinuationBindingInput<D, I>>`
+
 Handle-independent orchestration grammar inventory:
 
 - `ForgeQueryDeclarationEntryOrchestrationVerbInventory::current()`
@@ -179,6 +209,17 @@ That same admitted world is also the ownership boundary for declaration-entry
 inventory, readiness, inspection, and declaration-entry orchestration.
 Seam-ledger projections and orchestration both reject retained artifacts from
 the wrong admitted handle or operating world.
+
+The new typed binding pipeline follows the same rule. Binding does not replace
+handle admission and it does not introduce ambient dependency injection.
+Instead, it lets the admitted handle verify:
+
+- current context candidates
+- retained target identity
+- admitted-world alignment
+- aspect-fit and specificity posture
+
+before it prepares the next explicit Query input.
 
 When later declaration-entry artifacts expose shared binding targets, those
 targets are still scoped by this admitted world. The binding seam does not
@@ -521,6 +562,7 @@ They do not yet provide:
 ## Related Docs
 
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
+- [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Declaration Legality](./declaration-legality.md)
 - [Declaration Progression](./declaration-progression.md)
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)

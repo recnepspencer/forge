@@ -77,6 +77,9 @@ Admitted-handle receipt entry points:
 - `receipt_routes_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationReceiptTerminalError<D, I>>`
 - `orchestrate_receipt_from_progressed(progressed) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationReceiptTerminalError<D, I>>`
 - `orchestrate_receipt_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationReceiptTerminalError<D, I>>`
+- `bind_envelope_from_target(request) -> ForgeQueryBindingOutcome<ForgeQueryDeclarationEnvelopeInput<D, I>>`
+- `bind_envelope_from_target_checked(request) -> ForgeQueryBindingChecked<ForgeQueryDeclarationEnvelopeInput<D, I>>`
+- `bind_envelope_from_target_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryDeclarationEnvelopeInput<D, I>>`
 - `declare_review_progress_describe_plan_and_receipt(input) -> Result<ForgeQueryDeclarationReceipt<D, I>, ForgeQueryDeclarationEntryReceiptError<D, I>>`
 
 Checked receipt outcomes:
@@ -302,6 +305,9 @@ What this example is showing:
   admitted-world identity receipts must not rediscover
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md) bind
   their public crossing story from this retained receipt target
+- [Typed Binding Pipeline](./typed-binding-pipeline.md) turns a retained receipt
+  target into the next envelope input while preserving wrong-world,
+  wrong-handle, and aspect-fit denial posture
 
 Use route planning when you need to decide what lower-authority participation
 is in play. Use boundary receipts when you need the public operational artifact
@@ -388,6 +394,7 @@ over retained route truth. They still do not provide:
 ## Related Docs
 
 - [Configured Domain Handles](./configured-domain-handles.md)
+- [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)

@@ -1,3 +1,4 @@
+mod binding;
 mod bridge_routing;
 mod declaration;
 mod declaration_entry_orchestration;

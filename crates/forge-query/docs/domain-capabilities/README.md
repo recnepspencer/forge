@@ -9,6 +9,7 @@ of domain work you are trying to do:
 
 - [Platform Entry](./platform-entry.md)
 - [Configured Domain Handles](./configured-domain-handles.md)
+- [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Declaration Family Taxonomy](./declaration-family-taxonomy.md)
 - [Declaration Family Capability Matrix](./declaration-family-capability-matrix.md)
@@ -63,6 +64,10 @@ surfaces.
 
 Move next to [Configured Domain Handles](./configured-domain-handles.md) when
 you need an admitted operating world, then to
+[Typed Binding Pipeline](./typed-binding-pipeline.md) when that admitted world
+or one retained declaration-entry artifact needs to bind current context into
+the next explicit Query input without relying on ambient framework magic. Then
+move to
 [Canonical Domain Declarations](./canonical-domain-declarations.md) when that
 admitted world needs to express declaration-local meaning through one retained
 Query-owned declaration artifact. Use
@@ -121,6 +126,34 @@ order:
   - `with_operating_context(...)`
   - `validate()`
   - `admit()`
+- typed binding:
+  - `bind_declaration_from_context(...)`
+  - `bind_declaration_from_context_checked(...)`
+  - `bind_declaration_from_context_proof(...)`
+  - `bind_route_request_from_context(...)`
+  - `bind_route_request_from_context_checked(...)`
+  - `bind_route_request_from_context_proof(...)`
+  - `bind_receipt_request_from_context(...)`
+  - `bind_receipt_request_from_context_checked(...)`
+  - `bind_receipt_request_from_context_proof(...)`
+  - `bind_envelope_request_from_context(...)`
+  - `bind_envelope_request_from_context_checked(...)`
+  - `bind_envelope_request_from_context_proof(...)`
+  - `bind_continuation_request_from_context(...)`
+  - `bind_continuation_request_from_context_checked(...)`
+  - `bind_continuation_request_from_context_proof(...)`
+  - `bind_route_from_target(...)`
+  - `bind_route_from_target_checked(...)`
+  - `bind_route_from_target_proof(...)`
+  - `bind_receipt_from_target(...)`
+  - `bind_receipt_from_target_checked(...)`
+  - `bind_receipt_from_target_proof(...)`
+  - `bind_envelope_from_target(...)`
+  - `bind_envelope_from_target_checked(...)`
+  - `bind_envelope_from_target_proof(...)`
+  - `bind_continuation_from_target(...)`
+  - `bind_continuation_from_target_checked(...)`
+  - `bind_continuation_from_target_proof(...)`
 - family support and declaration authoring:
   - `family_support::<F>()`
   - `family_support_checked::<F>()`
@@ -226,6 +259,16 @@ These belong to the shared retained target-binding seam that now connects
 `9.3.7` contribution authoring and `9.3.8` declaration-entry/product
 orchestration. They are not the same subsystem as the older query
 canonicalization/slot-fulfillment binding code under `src/binding/`.
+
+The typed binding pipeline is the public consumer of that seam. It converts:
+
+- declared context into canonical declaration, route, receipt, envelope, or
+  continuation-ready inputs
+- retained progression/route/receipt/envelope artifacts into the next explicit
+  Query input
+
+without silently choosing between candidates when aspect fit, authority, or
+admitted-world posture disagree.
 
 Use this quick chooser when the declaration-entry docs feel close together:
 

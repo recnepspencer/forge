@@ -7,81 +7,49 @@ use crate::target_binding::{
     ForgeQueryIntentDeclarationBindingTarget, ForgeQueryLowerRuntimeBoundaryEnvelopeBindingTarget,
 };
 
-use super::core::{
-    ForgeQueryDomainCapabilityTarget, ForgeQueryDomainCapabilityTargetBinding,
-    ForgeQueryDomainCapabilityTargetKind, ForgeQueryDomainCapabilityTargetSemantics,
-};
+use super::core::{ForgeQueryDomainCapabilityTarget, ForgeQueryDomainCapabilityTargetBinding};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDeclarationBoundContributionTarget {
-    shared: ForgeQueryIntentDeclarationBindingTarget,
     erased: ForgeQueryDomainCapabilityTarget,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryAdmittedPlanBoundContributionTarget {
-    shared: ForgeQueryAdmittedIntentPlanBindingTarget,
     erased: ForgeQueryDomainCapabilityTarget,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryLowerRuntimeBoundaryBoundContributionTarget {
-    shared: ForgeQueryLowerRuntimeBoundaryEnvelopeBindingTarget,
     erased: ForgeQueryDomainCapabilityTarget,
 }
 
 impl ForgeQueryDeclarationBoundContributionTarget {
     pub fn for_intent_declaration(declaration: &ForgeQueryIntentDeclaration) -> Self {
         let shared = ForgeQueryIntentDeclarationBindingTarget::for_intent_declaration(declaration);
-        let erased = ForgeQueryDomainCapabilityTarget::new(
-            shared.clone().into_erased_target(),
-            ForgeQueryDomainCapabilityTargetKind::IntentDeclaration,
-            ForgeQueryDomainCapabilityTargetSemantics::IntentDeclaration {
-                name: declaration.name().to_string(),
-                strategy_name: declaration.strategy_name().to_string(),
-                strategy_version: declaration.strategy_version().to_string(),
-                input_contract: declaration.input_contract().to_string(),
-                source_lane: declaration.source_lane(),
-                target_lane: declaration.target_lane(),
-            },
-        );
-        Self { shared, erased }
+        Self::from_shared(shared)
     }
 
     #[cfg(test)]
     pub(crate) fn from_digest(target_digest: impl Into<String>) -> Self {
         let shared = ForgeQueryIntentDeclarationBindingTarget::from_digest(target_digest);
-        let erased = ForgeQueryDomainCapabilityTarget::new(
-            shared.clone().into_erased_target(),
-            ForgeQueryDomainCapabilityTargetKind::IntentDeclaration,
-            ForgeQueryDomainCapabilityTargetSemantics::IntentDeclaration {
-                name: "test.intent".to_string(),
-                strategy_name: "test.strategy".to_string(),
-                strategy_version: "1".to_string(),
-                input_contract: "test.contract".to_string(),
-                source_lane: crate::runtime::ForgeQueryIntentSourceLane::UserAuthored,
-                target_lane: crate::runtime::ForgeQueryAuthorityLane::AuthoritativeTruth,
-            },
-        );
-        Self { shared, erased }
+        Self::from_shared(shared)
+    }
+
+    fn from_shared(shared: ForgeQueryIntentDeclarationBindingTarget) -> Self {
+        let erased =
+            ForgeQueryDomainCapabilityTarget::from_shared(shared.clone().into_erased_target())
+                .expect(
+                    "intent declaration target should project into the domain-capability veneer",
+                );
+        Self { erased }
     }
 }
 
 impl ForgeQueryAdmittedPlanBoundContributionTarget {
     pub fn for_admitted_intent_plan(plan: &ForgeQueryAdmittedIntentPlan) -> Self {
         let shared = ForgeQueryAdmittedIntentPlanBindingTarget::for_admitted_intent_plan(plan);
-        let erased = ForgeQueryDomainCapabilityTarget::new(
-            shared.clone().into_erased_target(),
-            ForgeQueryDomainCapabilityTargetKind::AdmittedIntentPlan,
-            ForgeQueryDomainCapabilityTargetSemantics::AdmittedIntentPlan {
-                family: plan.family(),
-                entrypoint: plan.entrypoint(),
-                request_digest: plan.request_digest().to_string(),
-                eligibility_digest: plan.eligibility_digest().to_string(),
-                decision_digest: plan.decision_digest().to_string(),
-            },
-        );
-        Self { shared, erased }
+        Self::from_shared(shared)
     }
 
     #[cfg(test)]
@@ -101,32 +69,22 @@ impl ForgeQueryAdmittedPlanBoundContributionTarget {
         eligibility_digest: impl Into<String>,
         decision_digest: impl Into<String>,
     ) -> Self {
-        let family =
-            crate::intent_admission::ForgeQueryIntentAdmissionFamily::AuthoritativeUserIntent;
-        let entrypoint =
-            crate::intent_admission::ForgeQueryIntentAdmissionCoveredEntrypoint::ExecuteIntent;
         let shared = ForgeQueryAdmittedIntentPlanBindingTarget::from_digest_parts(
             target_digest,
             request_digest.into(),
             eligibility_digest.into(),
             decision_digest.into(),
         );
-        let (_, _, request_digest, eligibility_digest, decision_digest) = shared
-            .semantics()
-            .admitted_intent_plan()
-            .expect("shared admitted-intent-plan target must carry admitted-plan semantics");
-        let erased = ForgeQueryDomainCapabilityTarget::new(
-            shared.clone().into_erased_target(),
-            ForgeQueryDomainCapabilityTargetKind::AdmittedIntentPlan,
-            ForgeQueryDomainCapabilityTargetSemantics::AdmittedIntentPlan {
-                family,
-                entrypoint,
-                request_digest: request_digest.to_string(),
-                eligibility_digest: eligibility_digest.to_string(),
-                decision_digest: decision_digest.to_string(),
-            },
-        );
-        Self { shared, erased }
+        Self::from_shared(shared)
+    }
+
+    fn from_shared(shared: ForgeQueryAdmittedIntentPlanBindingTarget) -> Self {
+        let erased =
+            ForgeQueryDomainCapabilityTarget::from_shared(shared.clone().into_erased_target())
+                .expect(
+                    "admitted-intent-plan target should project into the domain-capability veneer",
+                );
+        Self { erased }
     }
 }
 
@@ -138,50 +96,23 @@ impl ForgeQueryLowerRuntimeBoundaryBoundContributionTarget {
             ForgeQueryLowerRuntimeBoundaryEnvelopeBindingTarget::for_lower_runtime_boundary_envelope(
                 envelope,
             );
-        let erased = ForgeQueryDomainCapabilityTarget::new(
-            shared.clone().into_erased_target(),
-            ForgeQueryDomainCapabilityTargetKind::LowerRuntimeBoundaryEnvelope,
-            ForgeQueryDomainCapabilityTargetSemantics::LowerRuntimeBoundaryEnvelope {
-                seam_key: envelope.seam_key(),
-                capability_label: envelope.capability_label(),
-                crossing_classification: envelope.crossing_classification(),
-                route_kind: envelope.route_kind(),
-                support_posture: envelope.support_posture(),
-                envelope_digest: envelope.envelope_digest().to_string(),
-            },
-        );
-        Self { shared, erased }
+        Self::from_shared(shared)
     }
 
     #[cfg(test)]
     pub(crate) fn from_digest(target_digest: impl Into<String>) -> Self {
         let shared =
             ForgeQueryLowerRuntimeBoundaryEnvelopeBindingTarget::from_digest(target_digest);
-        let (
-            _,
-            capability_label,
-            crossing_classification,
-            route_kind,
-            support_posture,
-            envelope_digest,
-        ) = shared
-            .semantics()
-            .lower_runtime_boundary()
-            .expect("shared lower-runtime target must carry lower-runtime semantics");
-        let erased = ForgeQueryDomainCapabilityTarget::new(
-            shared.clone().into_erased_target(),
-            ForgeQueryDomainCapabilityTargetKind::LowerRuntimeBoundaryEnvelope,
-            ForgeQueryDomainCapabilityTargetSemantics::LowerRuntimeBoundaryEnvelope {
-                seam_key:
-                    crate::lower_runtime_routing::ForgeQueryLowerRuntimeSeamKey::RuntimeIntentModule,
-                capability_label,
-                crossing_classification,
-                route_kind,
-                support_posture,
-                envelope_digest: envelope_digest.to_string(),
-            },
-        );
-        Self { shared, erased }
+        Self::from_shared(shared)
+    }
+
+    fn from_shared(shared: ForgeQueryLowerRuntimeBoundaryEnvelopeBindingTarget) -> Self {
+        let erased =
+            ForgeQueryDomainCapabilityTarget::from_shared(shared.clone().into_erased_target())
+                .expect(
+                "lower-runtime boundary target should project into the domain-capability veneer",
+            );
+        Self { erased }
     }
 }
 
@@ -226,30 +157,30 @@ impl crate::target_binding::sealed::Sealed
 
 impl ForgeQueryBindingTargetWitness for ForgeQueryDeclarationBoundContributionTarget {
     fn erased_target(&self) -> &crate::target_binding::ForgeQueryBindingTarget {
-        self.shared.erased_target()
+        self.erased.shared()
     }
 
     fn into_erased_target(self) -> crate::target_binding::ForgeQueryBindingTarget {
-        self.shared.into_erased_target()
+        self.erased.into_shared()
     }
 }
 
 impl ForgeQueryBindingTargetWitness for ForgeQueryAdmittedPlanBoundContributionTarget {
     fn erased_target(&self) -> &crate::target_binding::ForgeQueryBindingTarget {
-        self.shared.erased_target()
+        self.erased.shared()
     }
 
     fn into_erased_target(self) -> crate::target_binding::ForgeQueryBindingTarget {
-        self.shared.into_erased_target()
+        self.erased.into_shared()
     }
 }
 
 impl ForgeQueryBindingTargetWitness for ForgeQueryLowerRuntimeBoundaryBoundContributionTarget {
     fn erased_target(&self) -> &crate::target_binding::ForgeQueryBindingTarget {
-        self.shared.erased_target()
+        self.erased.shared()
     }
 
     fn into_erased_target(self) -> crate::target_binding::ForgeQueryBindingTarget {
-        self.shared.into_erased_target()
+        self.erased.into_shared()
     }
 }

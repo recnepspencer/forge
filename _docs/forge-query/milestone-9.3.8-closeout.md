@@ -311,13 +311,13 @@ Phase 24b and later must not reopen these closed questions:
 - whether progressed-artifact route/receipt/envelope products are public
   first-class artifacts or just internal helper leftovers
 
-The next future phase should now start by retrofitting one aggressive
-declaration-entry aspect contract and granularity law across the already-closed
-Phase 5-14, 23, and 24 surfaces, and only after that should later work widen
-the typed binding / extractor / resolver model. That retrofit should now be
-treated as a phase-by-phase program rather than a single tail cleanup: each
-phase lands only when its code, its feature doc, and its adjacent-phase doc
-review are all complete. Continuation, contribution composition,
-family-specific ergonomics, grouped authoring, docs, and certification should
-therefore build on one authority-preserving binding story and one
+That handoff has now been acted on in the next milestone slices: the
+aggressive declaration-entry aspect contract and granularity retrofit landed
+first, and the typed binding / extractor / resolver model now ships on top of
+it. Historical readers should therefore treat this closeout as the settled
+base beneath the shipped Phase 25 binding pipeline, not as an open prompt to
+plan Phase 25 again.
+
+The next live planning surface starts at Phase 26 and later. Those later phases
+should keep extending one authority-preserving binding story and one
 aspect-aware semantic-granularity story instead of inventing local glue.

@@ -16,6 +16,7 @@ mod authorized_projection;
 mod basis;
 mod basis_lifecycle;
 mod binding;
+mod binding_pipeline;
 mod canonicalization;
 mod collection;
 mod composition;

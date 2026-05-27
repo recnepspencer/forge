@@ -69,7 +69,7 @@ pub(crate) fn forge_query_lower_declaration_entry_product_orchestration_from_pro
     );
     let mut step_records = vec![
         ForgeQueryDeclarationEntryOrchestrationStageRecord::admitted(
-            ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved,
+            ForgeQueryDeclarationEntryOrchestrationStage::ProgressionAdmitted,
             Some(resolved_progression.target().binding_digest().to_string()),
         ),
     ];

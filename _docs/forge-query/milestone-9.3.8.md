@@ -3122,6 +3122,21 @@ not ambient magic, not a DI container, but a typed binding pipeline that turns
 declared context plus retained proof plus explicit aspect contracts into the
 next admissible Query artifact.
 
+The first slice of this phase now ships under
+`crates/forge-query/src/binding_pipeline/` as the Query-owned extraction,
+resolution, witness, and proof boundary over the shared retained
+target-binding substrate from Phase 24a and the aspect-law retrofit from
+Phase 24b.
+
+The first shipped slice now includes both context extractors and retained
+artifact resolvers:
+
+- declaration binding from explicit declaration candidates
+- route / receipt / envelope request binding from current progression context
+- continuation request binding from current envelope context
+- route / receipt / envelope / continuation resolver requests from retained
+  progression, route-plan, receipt, and envelope targets
+
 This phase should be read as a generalization of the typed target-binding seam
 that already shipped in `9.3.7`, not as a second binding invention beside it.
 `9.3.7` proved that contribution authoring needed one typed target-binding
@@ -3219,16 +3234,15 @@ remain:
   contracts, and binding-only constructors cannot be forged outside the
   proving authority
 
-**Open questions before implementation**
+**Shipped first-slice answers**
 
-- which binding families deserve first-class Query-owned request types in the
-  initial build: selection/session extractors, retained-artifact resolvers,
-  or both?
-- should the binding explanation surface be a projection of existing
-  orchestration transcripts, or does it need a small distinct artifact that
-  still maps back to the canonical substrate?
-- where should family-scoped binding contracts live so they remain Query-owned
-  public seams instead of accidental helper registries?
+- the initial build ships both context extractors and retained-artifact
+  resolvers rather than forcing one side to invent local glue first
+- the proof surface is a small distinct binding artifact family
+  (`ForgeQueryBindingChecked` and `ForgeQueryBindingTranscript`) that still
+  maps back to canonical retained artifacts
+- family-scoped contracts now live in the Query-owned binding pipeline seam as
+  public contract artifacts instead of helper-local registries
 
 ### Phase 26: Denial-Preserving Ordinary Outcome Boundary
 
@@ -3252,6 +3266,11 @@ Phase 23 now freezes a third distinction that Phase 26 must also preserve:
 
 - expensive work or richer publication gates are not themselves denial,
   deferral, stale, rebind-required, or failure posture
+
+Phase 25 now ships the ordinary/checked/proof-visible binding outcome family,
+so Phase 26 must extend that same `binding_pipeline` seam rather than
+inventing a second ordinary-outcome vocabulary for context and retained-target
+binding.
 
 **Required Query artifacts**
 
@@ -3291,6 +3310,12 @@ Phase 23 now freezes a third distinction that Phase 26 must also preserve:
 This phase is the hardest continuation boundary in the orchestration stack:
 Query must remove caller-owned runtime/workspace/basis glue without lying about
 truth context, basis identity, authority, or execution cost.
+
+Phase 25 now ships one aspect-aware binding pipeline for declared context and
+retained artifacts. Continuation, workspace, and basis widening in this phase
+must compile onto that shipped `binding_pipeline` surface rather than
+introducing continuation-local extractors, workspace-local target recovery, or
+basis-local helper registries.
 
 **Required Query artifacts**
 
@@ -3396,6 +3421,11 @@ typed compatibility denials.
 This phase composes `9.3.8` declaration-entry orchestration with `9.3.7`
 domain-capability contribution authoring so the user does not have to cross a
 second public grammar seam.
+
+Phase 25 now closes the shared binding pipeline for both context extraction and
+retained-target resolution. This phase must therefore be read as contribution
+composition over the shipped binding pipeline, not as a place where
+contribution authoring or orchestration can each grow local binding glue.
 
 **Required Query artifacts**
 
@@ -3572,6 +3602,11 @@ rebind requirements, and recovery posture into public product artifacts.
 This phase gives the major declaration families native-feeling public helper
 surfaces instead of forcing everything through one generic orchestration shape.
 
+Phase 25 now ships the public request, outcome, witness, and transcript seam
+for aspect-aware binding. Family helpers in this phase must project onto those
+same shipped binding artifacts rather than exposing family-local binding bags,
+ambient source probing, or undocumented proof shortcuts.
+
 **Required Query artifacts**
 
 - one family-specific helper surface per admitted major family
@@ -3640,6 +3675,11 @@ surfaces instead of forcing everything through one generic orchestration shape.
 This phase makes meaningful grouped declarations first-class so geometry and
 topology domains can work in local neighborhoods rather than only isolated
 single declarations.
+
+Phase 25 now ships the retained-target and context-binding seam that grouped
+authoring must consume. Group-level and member-level resolution in this phase
+must therefore extend the shipped binding pipeline instead of inventing
+neighborhood-specific binders or grouped-only target-recovery helpers.
 
 **Required Query artifacts**
 
@@ -3715,6 +3755,11 @@ single declarations.
 
 This phase makes the platform-entry seam teachable and ensures the docs do not
 lose critical behavior to oral tradition.
+
+Phase 25 now ships a dedicated typed binding pipeline feature surface, so this
+docs/goldens phase must treat that surface as part of the ordinary public
+teaching inventory rather than as background architecture implied by
+orchestration examples.
 
 **Required Query artifacts**
 

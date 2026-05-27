@@ -84,6 +84,12 @@ Admitted-handle envelope entry points:
 - `envelope_routes_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
 - `orchestrate_envelope_from_progressed(progressed) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
 - `orchestrate_envelope_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEnvelopeTerminalError<D, I>>`
+- `bind_continuation_request_from_context(request) -> ForgeQueryBindingOutcome<ForgeQueryContinuationBindingInput<D, I>>`
+- `bind_continuation_request_from_context_checked(request) -> ForgeQueryBindingChecked<ForgeQueryContinuationBindingInput<D, I>>`
+- `bind_continuation_request_from_context_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryContinuationBindingInput<D, I>>`
+- `bind_continuation_from_target(request) -> ForgeQueryBindingOutcome<ForgeQueryContinuationBindingInput<D, I>>`
+- `bind_continuation_from_target_checked(request) -> ForgeQueryBindingChecked<ForgeQueryContinuationBindingInput<D, I>>`
+- `bind_continuation_from_target_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryContinuationBindingInput<D, I>>`
 - `declare_review_progress_describe_plan_receipt_and_envelope(input) -> Result<ForgeQueryDeclarationEnvelope<D, I>, ForgeQueryDeclarationEntryEnvelopeError<D, I>>`
 
 Envelope inspection:
@@ -338,6 +344,11 @@ when it needs to bind into bridge continuation authority. Use
 when you need to freeze whether that retained crossing story can later
 continue into Signal-backed derived execution.
 
+Use [Typed Binding Pipeline](./typed-binding-pipeline.md) when you already have
+current-envelope context or one retained envelope target and want Query to
+prepare the next continuation-ready input without pretending continuation
+already executed.
+
 ## Inspection And Debugging
 
 Use these surfaces when inspecting an envelope:
@@ -416,6 +427,7 @@ over retained receipt truth. They still do not provide:
 ## Related Docs
 
 - [Configured Domain Handles](./configured-domain-handles.md)
+- [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)

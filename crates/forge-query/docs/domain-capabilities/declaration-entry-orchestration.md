@@ -23,6 +23,11 @@ story as `9.3.7` contribution authoring. Progression, route, receipt, and
 envelope artifacts can expose typed binding targets without turning Query into
 a target-resolution or ambient-DI layer.
 
+Phase 25 now ships the separate typed binding pipeline on top of that retained
+target seam. Use binding when you need Query to choose or deny the next
+explicit input from current context or a retained artifact. Use orchestration
+when you already know which declaration-entry lowering run should happen.
+
 ## Why You Use It
 
 - run one declaration-entry sequence without manually stitching phases together
@@ -496,6 +501,9 @@ for record in transcript.step_records() {
   you need a read surface over retained seam artifacts after a run.
 - Use [Declaration Entry Readiness](./declaration-entry-readiness.md) when you
   need family-level seam support posture instead of one concrete run.
+- Use [Typed Binding Pipeline](./typed-binding-pipeline.md) when the main job
+  is selecting or denying the next explicit input from context or retained
+  targets rather than lowering through the declaration-entry ceiling.
 
 ## Inspection And Debugging
 
@@ -583,6 +591,7 @@ when the ordinary lane stopped at the envelope ceiling.
 ## Related Docs
 
 - [Configured Domain Handles](./configured-domain-handles.md)
+- [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Declaration Progression](./declaration-progression.md)
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)

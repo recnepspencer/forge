@@ -31,7 +31,7 @@ fn route_product_orchestration_matches_explicit_route_plan_digest() {
     );
     assert_eq!(
         proof.plan().starting_artifact_stage(),
-        ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved
+        ForgeQueryDeclarationEntryOrchestrationStage::ProgressionAdmitted
     );
     assert_eq!(
         proof

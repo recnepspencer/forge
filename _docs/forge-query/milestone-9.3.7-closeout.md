@@ -170,10 +170,10 @@ The runtime API public stabilization gate now inherits:
   shared Query binding substrate rather than re-solving locally
 - the first of those broadenings is now the immediate post-Phase-24 shared
   retained target-binding extraction rather than a distant cleanup, followed by
-  the explicit declaration-entry aspect-contract/granularity addendum before
-  later extractor/resolver ergonomics widen that seam; that addendum should be
-  landed phase by phase with in-flight feature-doc synchronization rather than
-  as one final documentation pass
+  the explicit declaration-entry aspect-contract/granularity addendum and the
+  now-shipped Phase 25 typed binding / extractor / resolver pipeline; later
+  widening should extend that shipped seam phase by phase with in-flight
+  feature-doc synchronization rather than as one final documentation pass
 
 The stabilization gate must not reopen 9.3.7's category-coverage, public-lane,
 or certification-honesty questions. It should consume the shipped

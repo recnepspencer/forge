@@ -114,6 +114,9 @@ Admitted-handle route-planning entry points:
 - `plan_routes_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationRoutePlan<D, I>, ForgeQueryDeclarationRoutePlanTerminalError<D, I>>`
 - `orchestrate_routes_from_progressed(progressed) -> Result<ForgeQueryDeclarationRoutePlan<D, I>, ForgeQueryDeclarationRoutePlanTerminalError<D, I>>`
 - `orchestrate_routes_from_progressed_with_intent(progressed, intent) -> Result<ForgeQueryDeclarationRoutePlan<D, I>, ForgeQueryDeclarationRoutePlanTerminalError<D, I>>`
+- `bind_receipt_from_target(request) -> ForgeQueryBindingOutcome<ForgeQueryDeclarationReceiptInput<D, I>>`
+- `bind_receipt_from_target_checked(request) -> ForgeQueryBindingChecked<ForgeQueryDeclarationReceiptInput<D, I>>`
+- `bind_receipt_from_target_proof(request) -> ForgeQueryBindingTranscript<ForgeQueryDeclarationReceiptInput<D, I>>`
 - `declare_review_progress_describe_and_plan(input) -> Result<ForgeQueryDeclarationRoutePlan<D, I>, ForgeQueryDeclarationEntryRoutePlanError<D, I>>`
 
 Checked route-plan outcomes:
@@ -456,6 +459,9 @@ What this example is showing:
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md) bind
   retained crossing posture from this route artifact instead of reopening route
   planning
+- [Typed Binding Pipeline](./typed-binding-pipeline.md) lets you turn a
+  retained route-plan target into the next receipt input without reconstructing
+  the route-plan input family yourself
 
 ## Aspect-aware retrofit note
 
@@ -518,6 +524,7 @@ over retained declaration proof. It still does not perform:
 ## Related Docs
 
 - [Configured Domain Handles](./configured-domain-handles.md)
+- [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Declaration Progression](./declaration-progression.md)
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md)
