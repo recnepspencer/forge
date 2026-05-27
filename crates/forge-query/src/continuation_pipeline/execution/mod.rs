@@ -11,7 +11,8 @@ use super::ForgeQueryPreparedContinuation;
 
 pub(crate) use execute::execute_prepared_continuation_on_handle;
 pub(crate) use prepare::{
-    prepare_continuation_from_context_on_handle, prepare_continuation_from_target_on_handle,
+    prepare_continuation_from_context_on_handle,
+    prepare_continuation_from_signal_checked_on_handle, prepare_continuation_from_target_on_handle,
 };
 
 pub struct ForgeQueryContinuationExecution<

@@ -8,6 +8,7 @@ where Query most often needs to stop and explain itself:
 - declaration-entry orchestration
 - typed binding
 - continuation preparation and execution
+- signal-compatibility orchestration
 
 Use this feature when you want one compact outcome value that still keeps the
 important non-success categories separate.
@@ -59,6 +60,10 @@ Admitted-handle continuation entry points:
 - `prepare_continuation_from_context_outcome(...)`
 - `execute_prepared_continuation_outcome(...)`
 
+Admitted-handle signal-compatibility orchestration entry points:
+
+- `orchestrate_signal_compatibility_outcome(...)`
+
 ## Core Mental Model
 
 Think of ordinary outcomes as a public compatibility layer over stronger truth.
@@ -91,6 +96,8 @@ Instead, ordinary outcomes are derived from:
 - `ForgeQueryPreparedContinuationChecked<D, I>` and
   `ForgeQueryContinuationExecutionChecked<D, I>` for continuation preparation
   and execution
+- `ForgeQuerySignalCompatibilityOrchestrationChecked<D, I>` for signal-facing
+  compatibility orchestration
 - `ForgeQueryDeclarationEntryOrchestrationTerminalError<D, I>` for declaration-entry orchestration
 
 That projection keeps one small shared posture surface:
@@ -105,6 +112,8 @@ The checked-topology link stays typed:
 - orchestration outcomes expose stop stage, retained digest, and refusal class
 - binding outcomes expose binding checked-topology kind plus linked retained
   artifacts
+- signal-compatibility orchestration outcomes expose signal-orchestration
+  checked-topology kind plus linked retained artifacts
 
 ## Small Example
 
@@ -165,6 +174,9 @@ match outcome {
 - [Continuation Pipeline](./continuation-pipeline.md) owns the checked and
   proof-visible prepared/executed continuation outcomes that ordinary
   continuation projects from.
+- [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
+  owns the checked and proof-visible signal-facing compatibility outcomes that
+  ordinary signal orchestration projects from.
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md) owns
   the checked and proof-visible orchestration stop posture that ordinary
   orchestration projects from.
@@ -186,6 +198,8 @@ result maps back to:
 - `orchestration_refusal_class()`
 - `binding_kind()`
 - `binding_linked_artifacts()`
+- `signal_compatibility_orchestration_kind()`
+- `signal_compatibility_orchestration_linked_artifacts()`
 
 Binding linked artifacts can expose:
 
@@ -209,7 +223,8 @@ Binding linked artifacts can expose:
 ## Current Limits
 
 - ordinary outcomes are currently shipped for typed binding,
-  continuation preparation/execution, and declaration-entry orchestration
+  continuation preparation/execution, signal-compatibility orchestration, and
+  declaration-entry orchestration
 - the ordinary surface is intentionally projection-only; it does not own new
   execution or binding logic
 - ordinary outcomes do not expose full transcripts; switch to checked or
@@ -220,5 +235,6 @@ Binding linked artifacts can expose:
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
+- [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Domain Capabilities](./README.md)

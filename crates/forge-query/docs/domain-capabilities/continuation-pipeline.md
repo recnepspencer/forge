@@ -243,13 +243,17 @@ What this example is showing:
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
   remains the authority for derived-execution signal posture and basis-family
   requirements.
+- [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
+  is the signal-facing composition lane that can reuse retained signal truth
+  and optionally stop at `Compatible` before continuation preparation begins.
 - [Configured Domain Handles](./configured-domain-handles.md) remain the
   admitted-world boundary that preparation and execution both verify.
 
 Use bridge routing when you want the retained bridge continuation artifact
 directly. Use the continuation pipeline when you want Query to turn that
 retained truth into one prepared continuation artifact and optional explicit
-execution step.
+execution step. Use signal-compatibility orchestration when the public question
+is still "compatible or prepared?" rather than "prepare or execute now."
 
 ## Inspection And Debugging
 
@@ -318,6 +322,7 @@ checked-topology link:
 - [Ordinary Outcomes](./ordinary-outcomes.md)
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
+- [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Domain Capabilities](./README.md)

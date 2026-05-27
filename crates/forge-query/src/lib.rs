@@ -61,6 +61,7 @@ mod saved_query;
 mod schema_macro;
 mod relationship_proof;
 mod schema_view;
+mod signal_compatibility_orchestration;
 mod subscription;
 mod target_binding;
 mod tenant_basis;
@@ -85,6 +86,15 @@ pub use ordinary_outcome::{
     ForgeQueryOrdinaryBindingCheckedTopologyKind, ForgeQueryOrdinaryCheckedTopology,
     ForgeQueryOrdinaryContinuationCheckedTopologyKind, ForgeQueryOrdinaryNextStep,
     ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture, ForgeQueryOrdinaryPostureKind,
+    ForgeQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
+};
+pub use signal_compatibility_orchestration::{
+    ForgeQuerySignalCompatibilityOrchestration, ForgeQuerySignalCompatibilityOrchestrationChecked,
+    ForgeQuerySignalCompatibilityOrchestrationClass,
+    ForgeQuerySignalCompatibilityOrchestrationInput,
+    ForgeQuerySignalCompatibilityOrchestrationOutcome,
+    ForgeQuerySignalCompatibilityOrchestrationSubject,
+    ForgeQuerySignalCompatibilityOrchestrationTranscript,
 };
 
 #[cfg(test)]

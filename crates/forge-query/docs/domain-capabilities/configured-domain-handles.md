@@ -116,6 +116,13 @@ Admitted-handle signal-compatibility entry points:
 - `declare_review_progress_describe_plan_receipt_envelope_and_check_signal_compatibility(input) -> Result<ForgeQueryDeclarationSignalCompatibility<D, I>, ForgeQueryDeclarationEntrySignalCompatibilityError<D, I>>`
 - `signal_compatibility_support::<I>() -> ForgeQueryDeclarationSignalCompatibilitySupportReport<D, I>`
 
+Admitted-handle signal-compatibility orchestration entry points:
+
+- `orchestrate_signal_compatibility(input) -> ForgeQuerySignalCompatibilityOrchestrationOutcome<D, I>`
+- `orchestrate_signal_compatibility_outcome(input) -> ForgeQueryOrdinaryOutcome<ForgeQuerySignalCompatibilityOrchestration<D, I>>`
+- `orchestrate_signal_compatibility_checked(input) -> ForgeQuerySignalCompatibilityOrchestrationChecked<D, I>`
+- `orchestrate_signal_compatibility_proof(input) -> ForgeQuerySignalCompatibilityOrchestrationTranscript<D, I>`
+
 Admitted-handle continuation entry points:
 
 - `prepare_continuation_from_target(request) -> ForgeQueryPreparedContinuationOutcome<D, I>`
@@ -255,6 +262,13 @@ Phase 27 adds the continuation pipeline on top of binding and retained bridge
 or signal truth. The admitted handle now owns one explicit prepared/executed
 continuation lane instead of leaving callers to manually rebuild continuation
 requests, basis posture, workspace posture, and execution handoff glue.
+
+Phase 28 adds one signal-facing composition lane on top of retained signal
+compatibility and optional continuation preparation. The admitted handle now
+owns an `orchestrate_signal_compatibility(...)` family when your app wants to
+ask "do we stop at signal compatibility, or can Query also prepare the next
+continuation step right now?" without flattening compatibility, preparation,
+and execution into one result.
 
 When later declaration-entry artifacts expose shared binding targets, those
 targets are still scoped by this admitted world. The binding seam does not
@@ -610,6 +624,7 @@ They do not yet provide:
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
+- [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
 - [Declaration Entry Readiness](./declaration-entry-readiness.md)

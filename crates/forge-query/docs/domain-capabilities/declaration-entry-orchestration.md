@@ -518,6 +518,10 @@ for record in transcript.step_records() {
 - Use [Continuation Pipeline](./continuation-pipeline.md) when the next job is
   to turn retained envelope or continuation-ready truth into one prepared
   continuation artifact and explicit execution step.
+- Use [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
+  when the next job is signal-facing composition over retained compatibility
+  and optional continuation preparation, not the generic envelope-ceiling
+  declaration-entry run.
 
 ## Inspection And Debugging
 
@@ -608,6 +612,7 @@ when the ordinary lane stopped at the envelope ceiling.
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Ordinary Outcomes](./ordinary-outcomes.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
+- [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Declaration Progression](./declaration-progression.md)
 - [Declaration Foundational Evidence](./declaration-foundational-evidence.md)

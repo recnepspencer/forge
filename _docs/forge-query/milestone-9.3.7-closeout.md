@@ -173,7 +173,8 @@ The runtime API public stabilization gate now inherits:
   the explicit declaration-entry aspect-contract/granularity addendum and the
   now-shipped Phase 25 typed binding / extractor / resolver pipeline, the
   now-shipped Phase 26 denial-preserving ordinary outcome layer, and the
-  now-shipped Phase 27 prepared/executed continuation pipeline; later widening
+  now-shipped Phase 27 prepared/executed continuation pipeline, and the
+  now-shipped Phase 28 signal-compatibility orchestration seam; later widening
   should extend those shipped seams phase by phase with in-flight feature-doc
   synchronization rather than as one final documentation pass
 

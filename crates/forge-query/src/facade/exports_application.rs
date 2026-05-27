@@ -204,6 +204,15 @@ pub use crate::ordinary_outcome::{
     ForgeQueryOrdinaryBindingCheckedTopologyKind, ForgeQueryOrdinaryCheckedTopology,
     ForgeQueryOrdinaryContinuationCheckedTopologyKind, ForgeQueryOrdinaryNextStep,
     ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture, ForgeQueryOrdinaryPostureKind,
+    ForgeQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
+};
+pub use crate::signal_compatibility_orchestration::{
+    ForgeQuerySignalCompatibilityOrchestration, ForgeQuerySignalCompatibilityOrchestrationChecked,
+    ForgeQuerySignalCompatibilityOrchestrationClass,
+    ForgeQuerySignalCompatibilityOrchestrationInput,
+    ForgeQuerySignalCompatibilityOrchestrationOutcome,
+    ForgeQuerySignalCompatibilityOrchestrationSubject,
+    ForgeQuerySignalCompatibilityOrchestrationTranscript,
 };
 pub use crate::target_binding::{
     ForgeQueryAdmittedDeclarationProgressionBindingTarget, ForgeQueryBindingTarget,

@@ -24,6 +24,7 @@ of domain work you are trying to do:
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
+- [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
 - [Declaration Entry Readiness](./declaration-entry-readiness.md)
@@ -113,6 +114,11 @@ continuation family. Use
 [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 when you need to freeze whether that retained declaration story is later
 eligible for Signal-backed derived execution. Use
+[Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
+when you want Query to take that retained signal truth and answer the next
+signal-facing question directly: stop at `Compatible`, advance into
+`Prepared`, or return one typed non-success posture on the shared ordinary
+lane. Use
 [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 when you want one admitted-handle front door over the declaration-entry
 pipeline through the current envelope ceiling, with ordinary, checked, and
@@ -231,6 +237,11 @@ order:
   - `signal_compatibility_from_progressed_with_intent(...)`
   - `declare_review_progress_describe_plan_receipt_envelope_and_check_signal_compatibility(...)`
   - `signal_compatibility_support::<I>()`
+- signal-compatibility orchestration:
+  - `orchestrate_signal_compatibility(...)`
+  - `orchestrate_signal_compatibility_outcome(...)`
+  - `orchestrate_signal_compatibility_checked(...)`
+  - `orchestrate_signal_compatibility_proof(...)`
 - continuation preparation and execution:
   - `prepare_continuation_from_target(...)`
   - `prepare_continuation_from_target_outcome(...)`
@@ -269,6 +280,7 @@ The main retained public artifacts introduced along that path are:
 - `ForgeQueryDeclarationRelationalRouting`
 - `ForgeQueryDeclarationBridgeRouting`
 - `ForgeQueryDeclarationSignalCompatibility`
+- `ForgeQuerySignalCompatibilityOrchestration`
 - `ForgeQueryPreparedContinuation`
 - `ForgeQueryContinuationExecution`
 - `ForgeQueryDeclarationEntryOrchestrationInput`
@@ -331,6 +343,9 @@ The current public orchestration grammar is intentionally layered:
 Treat the trio as the generic declaration-input front door.
 Treat the progressed route/receipt/envelope methods as compact product-target
 projections over the same retained pipeline.
+Treat signal-compatibility orchestration as the signal-facing composition lane
+that starts from retained compatibility or progression truth and can stop at
+`Compatible` or advance into `Prepared` without executing anything.
 Treat the earlier declaration, legality, progression, foundational, route,
 receipt, and envelope methods as the advanced explicit path.
 If you need the locked grammar as data, use

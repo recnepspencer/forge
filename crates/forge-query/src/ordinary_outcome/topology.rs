@@ -36,6 +36,24 @@ pub enum ForgeQueryOrdinaryContinuationCheckedTopologyKind {
     WrongWorld,
 }
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum ForgeQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind {
+    Ambiguous,
+    AspectConflict,
+    AuthorityMismatch,
+    BasisMismatch,
+    Deferred,
+    Denied,
+    Failed,
+    MissingRequiredAspect,
+    RebindRequired,
+    Stale,
+    Unavailable,
+    Unsupported,
+    WrongHandle,
+    WrongWorld,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 enum ForgeQueryOrdinaryCheckedTopologyRepr {
     Orchestration {
@@ -49,6 +67,10 @@ enum ForgeQueryOrdinaryCheckedTopologyRepr {
     },
     Continuation {
         kind: ForgeQueryOrdinaryContinuationCheckedTopologyKind,
+        linked_artifacts: ForgeQueryBindingLinkedArtifacts,
+    },
+    SignalCompatibilityOrchestration {
+        kind: ForgeQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
         linked_artifacts: ForgeQueryBindingLinkedArtifacts,
     },
 }
@@ -97,13 +119,28 @@ impl ForgeQueryOrdinaryCheckedTopology {
         }
     }
 
+    pub(crate) fn signal_compatibility_orchestration(
+        kind: ForgeQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
+        linked_artifacts: ForgeQueryBindingLinkedArtifacts,
+    ) -> Self {
+        Self {
+            repr: ForgeQueryOrdinaryCheckedTopologyRepr::SignalCompatibilityOrchestration {
+                kind,
+                linked_artifacts,
+            },
+        }
+    }
+
     pub fn orchestration_stop_stage(&self) -> Option<ForgeQueryDeclarationEntryOrchestrationStage> {
         match &self.repr {
             ForgeQueryOrdinaryCheckedTopologyRepr::Orchestration { stop_stage, .. } => {
                 Some(*stop_stage)
             }
             ForgeQueryOrdinaryCheckedTopologyRepr::Binding { .. }
-            | ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { .. } => None,
+            | ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { .. }
+            | ForgeQueryOrdinaryCheckedTopologyRepr::SignalCompatibilityOrchestration { .. } => {
+                None
+            }
         }
     }
 
@@ -113,7 +150,10 @@ impl ForgeQueryOrdinaryCheckedTopology {
                 retained_digest, ..
             } => retained_digest.as_deref(),
             ForgeQueryOrdinaryCheckedTopologyRepr::Binding { .. }
-            | ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { .. } => None,
+            | ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { .. }
+            | ForgeQueryOrdinaryCheckedTopologyRepr::SignalCompatibilityOrchestration { .. } => {
+                None
+            }
         }
     }
 
@@ -125,7 +165,10 @@ impl ForgeQueryOrdinaryCheckedTopology {
                 *refusal_class
             }
             ForgeQueryOrdinaryCheckedTopologyRepr::Binding { .. }
-            | ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { .. } => None,
+            | ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { .. }
+            | ForgeQueryOrdinaryCheckedTopologyRepr::SignalCompatibilityOrchestration { .. } => {
+                None
+            }
         }
     }
 
@@ -133,7 +176,10 @@ impl ForgeQueryOrdinaryCheckedTopology {
         match &self.repr {
             ForgeQueryOrdinaryCheckedTopologyRepr::Binding { kind, .. } => Some(*kind),
             ForgeQueryOrdinaryCheckedTopologyRepr::Orchestration { .. }
-            | ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { .. } => None,
+            | ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { .. }
+            | ForgeQueryOrdinaryCheckedTopologyRepr::SignalCompatibilityOrchestration { .. } => {
+                None
+            }
         }
     }
 
@@ -143,7 +189,10 @@ impl ForgeQueryOrdinaryCheckedTopology {
                 linked_artifacts, ..
             } => Some(linked_artifacts),
             ForgeQueryOrdinaryCheckedTopologyRepr::Orchestration { .. }
-            | ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { .. } => None,
+            | ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { .. }
+            | ForgeQueryOrdinaryCheckedTopologyRepr::SignalCompatibilityOrchestration { .. } => {
+                None
+            }
         }
     }
 
@@ -151,7 +200,10 @@ impl ForgeQueryOrdinaryCheckedTopology {
         match &self.repr {
             ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { kind, .. } => Some(*kind),
             ForgeQueryOrdinaryCheckedTopologyRepr::Orchestration { .. }
-            | ForgeQueryOrdinaryCheckedTopologyRepr::Binding { .. } => None,
+            | ForgeQueryOrdinaryCheckedTopologyRepr::Binding { .. }
+            | ForgeQueryOrdinaryCheckedTopologyRepr::SignalCompatibilityOrchestration { .. } => {
+                None
+            }
         }
     }
 
@@ -161,7 +213,38 @@ impl ForgeQueryOrdinaryCheckedTopology {
                 linked_artifacts, ..
             } => Some(linked_artifacts),
             ForgeQueryOrdinaryCheckedTopologyRepr::Orchestration { .. }
-            | ForgeQueryOrdinaryCheckedTopologyRepr::Binding { .. } => None,
+            | ForgeQueryOrdinaryCheckedTopologyRepr::Binding { .. }
+            | ForgeQueryOrdinaryCheckedTopologyRepr::SignalCompatibilityOrchestration { .. } => {
+                None
+            }
+        }
+    }
+
+    pub fn signal_compatibility_orchestration_kind(
+        &self,
+    ) -> Option<ForgeQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind> {
+        match &self.repr {
+            ForgeQueryOrdinaryCheckedTopologyRepr::SignalCompatibilityOrchestration {
+                kind,
+                ..
+            } => Some(*kind),
+            ForgeQueryOrdinaryCheckedTopologyRepr::Orchestration { .. }
+            | ForgeQueryOrdinaryCheckedTopologyRepr::Binding { .. }
+            | ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { .. } => None,
+        }
+    }
+
+    pub fn signal_compatibility_orchestration_linked_artifacts(
+        &self,
+    ) -> Option<&ForgeQueryBindingLinkedArtifacts> {
+        match &self.repr {
+            ForgeQueryOrdinaryCheckedTopologyRepr::SignalCompatibilityOrchestration {
+                linked_artifacts,
+                ..
+            } => Some(linked_artifacts),
+            ForgeQueryOrdinaryCheckedTopologyRepr::Orchestration { .. }
+            | ForgeQueryOrdinaryCheckedTopologyRepr::Binding { .. }
+            | ForgeQueryOrdinaryCheckedTopologyRepr::Continuation { .. } => None,
         }
     }
 }

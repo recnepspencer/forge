@@ -314,7 +314,9 @@ locked decisions above:
     without erasing execution family, required basis families, or typed
     compatibility denials. The concise signal-facing surface must therefore
     compile onto the shipped ordinary outcome family instead of inventing a
-    signal-only convenience error lane.
+    signal-only convenience error lane. This phase now ships as the public
+    signal-facing composition seam between retained compatibility and prepared
+    continuation.
 
 29. **Phase 29: Contribution-Composed Orchestration Boundary**
     Query composes `9.3.8` declaration-entry orchestration with `9.3.7`
@@ -3429,6 +3431,10 @@ This phase composes the Phase 14 compatibility boundary into ordinary
 orchestration without erasing execution family, required basis families, or
 typed compatibility denials.
 
+This phase now ships. Later phases must therefore treat signal-facing
+compatibility orchestration as one real public seam rather than unresolved
+glue between retained compatibility and continuation preparation.
+
 Phase 26 now ships the ordinary outcome surface that this phase must reuse.
 Signal-facing concise outcomes therefore belong inside the shared ordinary
 family, with checked/proof-visible topology still remaining authoritative.
@@ -3468,6 +3474,15 @@ story or a second execution-admission ladder.
 - hostile tests proving compatible, deferred, unsupported, and invalid-basis
   posture remain distinct through the ordinary surface
 
+This shipped boundary also settles three questions that later phases must not
+reopen:
+
+- `Compatible` and `Prepared` are distinct public states
+- retained Phase 14 signal truth is reused rather than rediscovered inside the
+  signal-facing composition lane
+- signal-facing concise outcomes belong on the shared ordinary outcome family,
+  not a signal-local convenience vocabulary
+
 ### Phase 29: Contribution-Composed Orchestration Boundary
 
 This phase composes `9.3.8` declaration-entry orchestration with `9.3.7`
@@ -3487,6 +3502,12 @@ Phase 27 now also closes the prepared/executed continuation seam. If
 contribution-composed orchestration later reaches continuation preparation or
 execution, that composition must lower through the shipped continuation
 pipeline rather than contribution-local runtime/workspace glue.
+
+Phase 28 now also closes the signal-facing composition seam. If
+contribution-composed orchestration later needs to classify signal readiness
+or continue from retained compatibility, it must lower through the shipped
+signal-compatibility orchestration surface rather than a contribution-local
+signal readiness helper family.
 
 **Required Query artifacts**
 
@@ -3550,6 +3571,12 @@ track explicitly:
 - prepared continuation artifacts, execution artifacts, and their proof-visible
   transcripts
 
+Phase 28 now adds a fourth already-shipped public layer the same inventory must
+track explicitly:
+
+- signal-compatibility orchestration artifacts, their ordinary outcome
+  projections, and their proof-visible transcripts
+
 **Requirements**
 
 - ordinary public verbs, checked verbs, proof-visible verbs, support/readiness
@@ -3591,6 +3618,12 @@ Recovery UX in this phase must therefore include continuation-specific
 wrong-world, wrong-handle, stale-basis, basis-mismatch, authority-mismatch,
 prepared-only, and execution-failed posture as refinements of the same shared
 ordinary story rather than a second continuation-only recovery vocabulary.
+
+Phase 28 now also ships signal-facing compatibility orchestration outcomes.
+Recovery UX in this phase must therefore preserve `Compatible`, `Prepared`,
+`BasisMismatch`, `WrongWorld`, `WrongHandle`, `Deferred`, `Denied`, and
+`Unsupported` as distinct recovery surfaces rather than collapsing them into a
+generic "signal not ready" explanation.
 
 **Required Query artifacts**
 
@@ -3855,6 +3888,12 @@ this docs/goldens phase must treat prepared/executed continuation as part of
 the ordinary public teaching inventory rather than as hidden bridge follow-up
 knowledge.
 
+Phase 28 now also ships a dedicated signal-compatibility orchestration feature
+surface, so this docs/goldens phase must treat signal-facing
+`Compatible`/`Prepared` composition as part of the ordinary public teaching
+inventory rather than as a footnote inside retained compatibility or
+continuation docs.
+
 **Required Query artifacts**
 
 - one documentation inventory over the admitted platform-entry and admitted-
@@ -3925,8 +3964,8 @@ This phase closes the milestone with hostile proof rather than plausibility.
 - one parity suite spanning ordinary, checked, proof-visible, helper, grouped,
   and contribution-composed surfaces
 - one hostile certification harness over route plans, receipts, envelopes,
-  support posture, denials, continuation, transcripts, grouped declarations,
-  and docs coverage
+  support posture, denials, continuation, signal-facing compatibility
+  orchestration, transcripts, grouped declarations, and docs coverage
 
 **Locked certification expectations**
 
@@ -3945,6 +3984,10 @@ This phase closes the milestone with hostile proof rather than plausibility.
 - equivalent prepared-continuation and executed-continuation paths must
   converge canonically with explicit retained bridge/signal/basis routing when
   semantically identical
+- equivalent retained signal-compatibility, signal-facing orchestration, and
+  prepared-continuation paths must converge canonically when they describe the
+  same retained declaration story and intentionally diverge when orchestration
+  stops at compatibility instead of preparation
 - intentionally different family, route, authority, denial, cost, continuation,
   support, and contribution posture must diverge observably and predictably
 - compile-fail coverage must match the live ordinary lane breadth

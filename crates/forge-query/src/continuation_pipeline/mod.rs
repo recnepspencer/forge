@@ -25,7 +25,7 @@ pub use transcript::{
 
 pub(crate) use execution::{
     execute_prepared_continuation_on_handle, prepare_continuation_from_context_on_handle,
-    prepare_continuation_from_target_on_handle,
+    prepare_continuation_from_signal_checked_on_handle, prepare_continuation_from_target_on_handle,
 };
 
 #[cfg(test)]

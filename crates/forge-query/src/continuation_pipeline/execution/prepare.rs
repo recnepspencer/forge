@@ -48,6 +48,34 @@ pub(crate) fn prepare_continuation_from_context_on_handle<
     prepare_from_binding_transcript(handle, binding)
 }
 
+pub(crate) fn prepare_continuation_from_signal_checked_on_handle<
+    D: ForgeQueryDomainEntryMarker,
+    C: ForgeQueryDomainOperatingContext<D>,
+    I: ForgeQueryDeclarationInput<D>,
+>(
+    handle: &ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
+    checked: crate::application::ForgeQueryDeclarationSignalCompatibilityChecked<D, I>,
+    bridge_request: crate::application::ForgeQueryDeclarationBridgeContinuationRequest,
+    required_contract: crate::application::ForgeQueryDeclarationAspectContract,
+) -> ForgeQueryPreparedContinuationTranscript<D, I> {
+    let request = ForgeQueryBindingRequestDescriptor::new(
+        I::Family::semantic_family_key(),
+        "prepared_continuation",
+        required_contract.clone(),
+    );
+    let (signal_truth, subject) = bridge_subject_and_signal_truth(checked);
+    let linked = linked_from_subject(&subject);
+    prepare_from_resolved_signal_truth(
+        handle,
+        request,
+        linked,
+        signal_truth,
+        subject,
+        bridge_request,
+        required_contract,
+    )
+}
+
 fn prepare_continuation_from_input_on_handle<
     D: ForgeQueryDomainEntryMarker,
     C: ForgeQueryDomainOperatingContext<D>,
@@ -64,10 +92,35 @@ fn prepare_continuation_from_input_on_handle<
         "prepared_continuation",
         required_contract.clone(),
     );
-    let linked = linked_from_subject(&subject);
     let signal_checked =
         handle.signal_compatibility_checked(signal_subject_from_bridge_subject(subject));
-    let (signal_truth, bridge_subject) = bridge_subject_and_signal_truth(signal_checked);
+    let (signal_truth, subject) = bridge_subject_and_signal_truth(signal_checked);
+    let linked = linked_from_subject(&subject);
+    prepare_from_resolved_signal_truth(
+        handle,
+        request_descriptor,
+        linked,
+        signal_truth,
+        subject,
+        bridge_request,
+        required_contract,
+    )
+}
+
+#[allow(clippy::too_many_arguments)]
+fn prepare_from_resolved_signal_truth<
+    D: ForgeQueryDomainEntryMarker,
+    C: ForgeQueryDomainOperatingContext<D>,
+    I: ForgeQueryDeclarationInput<D>,
+>(
+    handle: &ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
+    request_descriptor: ForgeQueryBindingRequestDescriptor,
+    linked: crate::binding_pipeline::ForgeQueryBindingLinkedArtifacts,
+    signal_truth: super::support::ResolvedSignalContinuationTruth,
+    subject: crate::application::ForgeQueryDeclarationBridgeRoutingInput<D, I>,
+    bridge_request: crate::application::ForgeQueryDeclarationBridgeContinuationRequest,
+    required_contract: crate::application::ForgeQueryDeclarationAspectContract,
+) -> ForgeQueryPreparedContinuationTranscript<D, I> {
     let mut witness_checks = vec![
         ForgeQueryBindingWitnessCheck::passed("continuation_binding"),
         ForgeQueryBindingWitnessCheck::passed("signal_compatibility"),
@@ -75,7 +128,6 @@ fn prepare_continuation_from_input_on_handle<
     let mut narrowing = vec![ForgeQueryBindingNarrowingDecision::new(
         "prepared continuation reuses retained continuation binding and lower-authority continuation truth",
     )];
-
     if !matches!(
         signal_truth.posture,
         ForgeQueryPreparedContinuationSignalPosture::Compatible
@@ -86,8 +138,7 @@ fn prepare_continuation_from_input_on_handle<
             "prepared continuation carries forward target-specific signal compatibility posture",
         ));
     }
-
-    let bridge_checked = handle.route_bridge_continuation_checked(bridge_subject);
+    let bridge_checked = handle.route_bridge_continuation_checked(subject);
     let outcome = prepared_outcome_from_bridge_checked(
         handle,
         &bridge_request,
@@ -103,7 +154,6 @@ fn prepare_continuation_from_input_on_handle<
         &linked,
         prepared_outcome_token(&outcome),
     );
-
     ForgeQueryPreparedContinuationTranscript::new(
         request_descriptor,
         outcome,

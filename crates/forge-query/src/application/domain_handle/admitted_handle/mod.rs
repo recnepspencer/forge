@@ -8,6 +8,7 @@ mod receipt;
 mod relational_routing;
 mod route_plan;
 mod signal_compatibility;
+mod signal_compatibility_orchestration;
 
 pub use declaration_entry::ForgeQueryDeclarationEntryProgressionError;
 pub(crate) use route_plan::checked_route_plan_from_progressed_with_profile;

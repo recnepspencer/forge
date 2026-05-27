@@ -53,6 +53,10 @@ evidence, route plans, or receipts alone.
 - `ForgeQueryAdmittedConfiguredDomainHandle::signal_compatibility_from_progressed_with_intent(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::declare_review_progress_describe_plan_receipt_envelope_and_check_signal_compatibility(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::signal_compatibility_support::<I>()`
+- `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_signal_compatibility(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_signal_compatibility_outcome(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_signal_compatibility_checked(...)`
+- `ForgeQueryAdmittedConfiguredDomainHandle::orchestrate_signal_compatibility_proof(...)`
 - `ForgeQueryAdmittedConfiguredDomainHandle::declaration_entry_crossing_inventory::<I>()`
 - `ForgeQueryAdmittedConfiguredDomainHandle::declaration_entry_readiness::<I>()`
 - `ForgeQueryAdmittedConfiguredDomainHandle::inspect_declaration_entry(...)`
@@ -291,6 +295,9 @@ of filling them from broad signal family posture.
 - [Continuation Pipeline](./continuation-pipeline.md) carries retained signal
   posture forward when Query prepares one continuation artifact for later
   explicit execution
+- [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
+  composes this retained compatibility truth into one signal-facing next-step
+  result that can stop at `Compatible` or advance into `Prepared`
 - [Configured Domain Handles](./configured-domain-handles.md) still own the
   support snapshot and admitted-world identity that compatibility classification
   must not rediscover
@@ -375,11 +382,16 @@ When you want Query to reuse that retained signal posture while preparing one
 explicit continuation artifact for lower bridge execution, move to
 [Continuation Pipeline](./continuation-pipeline.md).
 
+When you want one public signal-facing orchestration lane that can stop at
+retained compatibility or advance into prepared continuation, move to
+[Signal Compatibility Orchestration](./signal-compatibility-orchestration.md).
+
 ## Related Docs
 
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
 - [Declaration Entry Readiness](./declaration-entry-readiness.md)
 - [Configured Domain Handles](./configured-domain-handles.md)
+- [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)

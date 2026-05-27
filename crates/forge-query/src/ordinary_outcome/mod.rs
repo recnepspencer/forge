@@ -13,6 +13,7 @@ pub use posture::ForgeQueryOrdinaryPosture;
 pub use topology::{
     ForgeQueryOrdinaryBindingCheckedTopologyKind, ForgeQueryOrdinaryCheckedTopology,
     ForgeQueryOrdinaryContinuationCheckedTopologyKind,
+    ForgeQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
 };
 
 pub(crate) use binding::ordinary_outcome_from_binding_outcome;
