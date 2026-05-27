@@ -170,6 +170,9 @@ for golden in forge_query_public_doc_coverage_golden_transcripts() {
   and [Goldens, Boundaries, And Hostile Certification](./certification/goldens-boundaries-and-hostile-certification.md)
   remain the broader certification docs around the proof surface that these
   rows point into.
+- [Platform Entry Closeout](./platform-entry-closeout.md) consumes this
+  coverage inventory and its audit directly when it closes the late
+  platform-entry public product.
 
 ## Inspection And Debugging
 
@@ -246,5 +249,6 @@ Useful golden-manifest accessors:
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Recovery Boundary](./recovery-boundary.md)
+- [Platform Entry Closeout](./platform-entry-closeout.md)
 - [Certification Surface And Closeout Bundle](./certification/certification-surface-and-closeout-bundle.md)
 - [Goldens, Boundaries, And Hostile Certification](./certification/goldens-boundaries-and-hostile-certification.md)

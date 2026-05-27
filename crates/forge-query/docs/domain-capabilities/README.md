@@ -14,6 +14,7 @@ of domain work you are trying to do:
 - [Recovery Boundary](./recovery-boundary.md)
 - [Orchestration Inventory](./orchestration-inventory.md)
 - [Public Doc Coverage](./public-doc-coverage.md)
+- [Platform Entry Closeout](./platform-entry-closeout.md)
 - [Family Helpers](./family-helpers.md)
 - [Grouped Authoring](./grouped-authoring.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
@@ -90,6 +91,10 @@ the live public surface from examples or scattered docs. Use
 [Public Doc Coverage](./public-doc-coverage.md) when you need the published
 coverage registry for which feature page, README entry, golden readout, and
 journey lane currently teach each shipped public orchestration surface. Use
+[Platform Entry Closeout](./platform-entry-closeout.md) when you need one
+machine-checkable closure surface over the shipped public platform-entry
+product, including compile-fail breadth, docs/golden breadth, parity proofs,
+hostile proofs, and the final closeout digest. Use
 [Family Helpers](./family-helpers.md) when you already know the declaration
 family you are working with and want a domain-native helper surface that still
 compiles onto the same generic signal-orchestration, contribution-composed,
@@ -480,5 +485,6 @@ Start here if:
 - you need successor truth across topology changes: [Continuity Contributions And Authoritative Successors](./continuity/continuity-contributions-and-authoritative-successors.md)
 - you need lower-runtime causal explanation: [Lower-Runtime Explanation Contributions](./explanation/lower-runtime-explanation-contributions.md)
 - you need one typed "what stopped and what should we do next?" answer: [Recovery Boundary](./recovery-boundary.md)
+- you need the final machine-checkable platform-entry certification ledger: [Platform Entry Closeout](./platform-entry-closeout.md)
 - you need projection aftermath contracts: [Projection Contract Consumption](./aftermath/projection-contract-consumption.md)
 - you need to audit the proof surface itself: [Certification Surface And Closeout Bundle](./certification/certification-surface-and-closeout-bundle.md)

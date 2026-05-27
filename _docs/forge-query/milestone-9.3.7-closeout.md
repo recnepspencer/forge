@@ -180,7 +180,8 @@ The runtime API public stabilization gate now inherits:
   the now-shipped Phase 31 denial-and-recovery boundary, and the now-shipped
   Phase 32 family-helper projection seam, and the now-shipped Phase 33
   grouped-authoring seam, and the now-shipped Phase 34 public-doc-coverage
-  seam; later widening should extend those shipped seams
+  seam, and the now-shipped Phase 35 platform-entry closeout seam; later
+  widening should extend those shipped seams
   phase by phase with in-flight feature-doc
   synchronization and inventory/certification synchronization rather than as
   one final documentation pass

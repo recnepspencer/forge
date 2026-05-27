@@ -1,6 +1,6 @@
 # Milestone 9.3.8 Engineering Spec: Query-As-Beginning Platform Entry
 
-> **Status:** Proposed
+> **Status:** Shipped and closed on 2026-05-27
 >
 > **Roadmap parent:** [forge_query_roadmap.md](./forge_query_roadmap.md)
 >
@@ -4180,18 +4180,36 @@ This phase closes the milestone with hostile proof rather than plausibility.
 - support matrix, seam inventory, orchestration inventory, docs, and
   certification digest equality checks
 
-**Open questions before implementation**
+This phase now ships as the platform-entry closeout seam for the late
+platform-entry public product. Runtime API stabilization and later roadmap
+work must therefore consume the shipped closeout surface, closeout bundle,
+compile-fail manifest, parity manifest, hostile manifest, and docs/inventory
+alignment audits instead of rebuilding closure from scattered seam-local
+tests, markdown pages, or remembered command lists.
 
-- what certification harness layout best keeps compile-fail, parity, hostile,
-  and docs-coverage checks maintainable as the public surface grows?
-- which digest families need to be compared independently versus rolled into a
-  higher-level milestone closeout digest?
-- how should milestone closeout report residual deferred/debt seams, if any,
-  without weakening the closure bar for the admitted surface?
+**Historical closure notes**
+
+- the shipped closeout authority is now `platform_entry_closeout`, not a bag
+  of green test commands or milestone prose
+- compile-fail closure now consumes the shipped public-doc golden registry for
+  surface-readout breadth instead of a frozen remembered subset
+- parity and hostile manifests now require both a proof path and a named proof
+  anchor so stale rows cannot pass by pointing at an existing file only
+- grouped recovery parity is intentionally certified as checked-vs-proof
+  convergence for the same grouped stop rather than over-claiming
+  ordinary-vs-checked equality where the shipped product still projects the
+  ordinary lane through generic binding recovery
+- later roadmap work must treat the shipped closeout seam as the final
+  certification ledger over orchestration breadth, docs/goldens breadth,
+  compile-fail breadth, parity breadth, and hostile breadth
 
 ## Remaining Phase Detail
 
-Phases 1 through 34 now all have boundary-level requirements. Future hostile
-QA passes should continue tightening wording as later phases land, but the
-spec's current boundary set is now explicit enough to drive implementation
-without falling back to milestone folklore.
+Phases 1 through 35 now all have boundary-level requirements, and those
+boundaries now ship as one closed `9.3.8` platform-entry product.
+
+Future hostile QA may still tighten wording if later roadmap work uncovers a
+teaching or sequencing gap, but `9.3.8` no longer has an unfinished live phase
+frontier inside this spec. The next planning frontier is the runtime API
+stabilization gate and the later roadmap work that consumes this now-closed
+platform-entry seam.

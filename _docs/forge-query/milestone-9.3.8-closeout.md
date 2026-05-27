@@ -332,11 +332,13 @@ beneath the shipped:
 - Phase 32 family-specific ergonomics boundary
 - Phase 33 grouped / neighborhood authoring boundary
 - Phase 34 public documentation / golden teaching / docs-coverage boundary
+- Phase 35 platform-entry certification / closeout boundary
 
 and not as an open prompt to plan any of those phases again.
 
-The next live planning surface now starts at Phase 35 and later. Those later
-phases should keep extending:
+The next live planning surface no longer starts inside `9.3.8`. Milestone
+`9.3.8` now closes with the shipped Phase 35 platform-entry closeout seam, and
+later roadmap work should consume that closure through:
 
 - one authority-preserving binding story
 - one aspect-aware semantic-granularity story
@@ -351,5 +353,8 @@ phases should keep extending:
   generic, helper, inventory, and recovery seams
 - one published docs/goldens coverage story over the same live public surface
   instead of rediscovering teaching breadth from markdown drift
+- one platform-entry closeout ledger that keeps compile-fail, parity, hostile,
+  orchestration-inventory, and docs-coverage breadth synchronized
 
-instead of inventing local glue.
+instead of inventing local glue or reopening `9.3.8` as if Phase 35 were still
+pending.

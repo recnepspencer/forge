@@ -46,6 +46,7 @@ mod memory_workspace;
 mod orchestration_inventory;
 mod ordinary_outcome;
 mod planning;
+mod platform_entry_closeout;
 mod policy_basis;
 mod policy_certification;
 mod policy_delivery;
@@ -128,6 +129,20 @@ pub use ordinary_outcome::{
     ForgeQueryOrdinaryContributionComposedCheckedTopologyKind, ForgeQueryOrdinaryNextStep,
     ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture, ForgeQueryOrdinaryPostureKind,
     ForgeQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
+};
+pub use platform_entry_closeout::{
+    certify_platform_entry_closeout, forge_query_platform_entry_closeout_surface,
+    forge_query_platform_entry_compile_fail_boundary_digest,
+    forge_query_platform_entry_compile_fail_manifest, forge_query_platform_entry_hostile_manifest,
+    forge_query_platform_entry_parity_manifest, ForgeQueryPlatformEntryAlignmentAudit,
+    ForgeQueryPlatformEntryCloseoutBundle, ForgeQueryPlatformEntryCloseoutOutput,
+    ForgeQueryPlatformEntryCloseoutSurface, ForgeQueryPlatformEntryCompileFailAudit,
+    ForgeQueryPlatformEntryCompileFailManifest, ForgeQueryPlatformEntryHostileAudit,
+    ForgeQueryPlatformEntryHostileDivergenceClass, ForgeQueryPlatformEntryHostileManifest,
+    ForgeQueryPlatformEntryHostileRow, ForgeQueryPlatformEntryParityAssertionClass,
+    ForgeQueryPlatformEntryParityAudit, ForgeQueryPlatformEntryParityLane,
+    ForgeQueryPlatformEntryParityManifest, ForgeQueryPlatformEntryParityRow,
+    ForgeQueryPlatformEntryUiProofKind, ForgeQueryPlatformEntryUiProofRow,
 };
 pub use public_doc_coverage::{
     forge_query_public_doc_coverage_golden_transcript_digest,

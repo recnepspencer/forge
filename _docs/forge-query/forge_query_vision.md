@@ -23,7 +23,7 @@ too-limited-to-express (REST endpoints for everything). `forge-query` fills
 that gap with a query model that is expressive enough for real applications
 and constrained enough for the runtime to optimize, narrow, and subscribe.
 
-That public story now also includes ten compact product-facing layers on top
+That public story now also includes eleven compact product-facing layers on top
 of the retained declaration-entry pipeline:
 
 - a typed binding pipeline for turning current context or retained artifacts
@@ -55,6 +55,10 @@ of the retained declaration-entry pipeline:
   golden readouts, and teaching journeys synchronized with the live public
   orchestration surface instead of letting documentation drift into a second
   invented product
+- a platform-entry closeout layer that turns the shipped orchestration,
+  docs/goldens, compile-fail, parity, and hostile proof surfaces into one
+  machine-checkable certification ledger rather than a bag of local green
+  checks
 
 ## What This Query Layer Is For
 

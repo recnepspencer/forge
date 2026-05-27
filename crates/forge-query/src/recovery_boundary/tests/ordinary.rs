@@ -202,3 +202,45 @@ fn grouped_wrong_world_checked_uses_grouped_recovery_family() {
         ForgeQueryRecoveryAction::CorrectWorld
     );
 }
+
+#[test]
+fn grouped_wrong_world_recovery_brief_matches_between_checked_and_proof_lanes() {
+    let left = recovery_admitted_handle("left");
+    let right = recovery_admitted_handle("right");
+    let declaration = |edge_ref| match forge_query_grouped_declaration_checked_on_handle(
+        &left,
+        ForgeQueryGroupedDeclarationInput::local_neighborhood(
+            RecoveryInput::<SignalReceiptFamily>::new(edge_ref),
+        ),
+    ) {
+        ForgeQueryGroupedDeclarationChecked::Bound(value) => value,
+        ForgeQueryGroupedDeclarationChecked::MemberStopped(_) => {
+            panic!("grouped declaration should admit")
+        }
+    };
+
+    let checked_brief = right
+        .recover_from_grouped_orchestration_checked(
+            forge_query_grouped_orchestration_checked_on_handle(&right, declaration("edge-b")),
+        )
+        .expect("checked grouped stop should yield a recovery brief");
+    let proof_brief = right
+        .recover_from_grouped_orchestration_proof(
+            crate::grouped_authoring::forge_query_grouped_orchestration_proof_on_handle(
+                &right,
+                declaration("edge-b"),
+            ),
+        )
+        .expect("proof grouped stop should yield a recovery brief");
+
+    assert_eq!(checked_brief.stop_family(), proof_brief.stop_family());
+    assert_eq!(checked_brief.stop_kind(), proof_brief.stop_kind());
+    assert_eq!(
+        checked_brief.authority_surface(),
+        proof_brief.authority_surface()
+    );
+    assert_eq!(
+        checked_brief.recommended_action(),
+        proof_brief.recommended_action()
+    );
+}
