@@ -182,6 +182,9 @@ Good to know:
   when you only need the declaration-side envelope-ceiling run.
 - Use [Ordinary Outcomes](./ordinary-outcomes.md) when you want the compact
   public result lane over this composed surface.
+- Use [Recovery Boundary](./recovery-boundary.md) when the composed lane
+  stopped and your app needs one typed answer that preserves declaration-side
+  vs contribution-side repair ownership.
 - Use [Configured Domain Handles](./configured-domain-handles.md) for the
   admitted-handle entry points that own this run.
 - Use the `support/`, `workflow/`, `admission/`, and `explanation/` docs in
@@ -238,6 +241,13 @@ Use the proof lane when you need retained proof over the whole composed run:
 - `contribution_digest()`
 - `into_checked()`
 
+Use the recovery lane when the next job is repair guidance instead of more
+inspection:
+
+- `recover_from_outcome(...)`
+- `recover_from_contribution_composed_checked(...)`
+- `recover_from_contribution_composed_proof(...)`
+
 ## Anti-Patterns
 
 - treating declaration success as if it implies contribution success
@@ -268,6 +278,7 @@ Use the proof lane when you need retained proof over the whole composed run:
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
+- [Recovery Boundary](./recovery-boundary.md)
 - [Declaration-Scoped Support And Traceability](./support/declaration-scoped-support-and-traceability.md)
 - [Advisory And Violation Contributions](./admission/advisory-and-violation-contributions.md)
 - [Preview Inspection And Mutation Planning](./workflow/preview-inspection-and-mutation-planning.md)

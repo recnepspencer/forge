@@ -227,6 +227,24 @@ pub use crate::ordinary_outcome::{
     ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture, ForgeQueryOrdinaryPostureKind,
     ForgeQueryOrdinarySignalCompatibilityOrchestrationCheckedTopologyKind,
 };
+pub use crate::recovery_boundary::{
+    forge_query_recovery_brief_from_continuation_execution_checked,
+    forge_query_recovery_brief_from_continuation_execution_proof,
+    forge_query_recovery_brief_from_contribution_composed_checked,
+    forge_query_recovery_brief_from_contribution_composed_proof,
+    forge_query_recovery_brief_from_declaration_entry_checked,
+    forge_query_recovery_brief_from_declaration_entry_proof,
+    forge_query_recovery_brief_from_declaration_receipt_checked,
+    forge_query_recovery_brief_from_declaration_route_plan_checked,
+    forge_query_recovery_brief_from_ordinary_outcome,
+    forge_query_recovery_brief_from_prepared_continuation_checked,
+    forge_query_recovery_brief_from_prepared_continuation_proof,
+    forge_query_recovery_brief_from_signal_compatibility_checked,
+    forge_query_recovery_brief_from_signal_compatibility_proof, ForgeQueryRecoveryAction,
+    ForgeQueryRecoveryAuthoritySurface, ForgeQueryRecoveryBrief, ForgeQueryRecoveryExplanation,
+    ForgeQueryRecoveryRequest, ForgeQueryRecoveryRequestKind, ForgeQueryRecoveryStopFamily,
+    ForgeQueryRecoveryStopKind,
+};
 pub use crate::signal_compatibility_orchestration::{
     ForgeQuerySignalCompatibilityOrchestration, ForgeQuerySignalCompatibilityOrchestrationChecked,
     ForgeQuerySignalCompatibilityOrchestrationClass,

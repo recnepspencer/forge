@@ -342,7 +342,8 @@ locked decisions above:
     must widen the shipped ordinary outcome family rather than replacing it,
     and it must register its public recovery/denial lanes against the shipped
     orchestration inventory/audit boundary instead of creating uncatalogued
-    helper surfaces.
+    helper surfaces. This phase now ships as the public recovery boundary over
+    the ordinary, checked, and proof-visible stop surfaces.
 
 32. **Phase 32: Family-Specific Ergonomics Boundary**
     The public lane gets the domain-shaped helpers for the major declaration
@@ -3653,6 +3654,11 @@ rebind posture separately from contribution-side deny/stale/rebind posture,
 rather than collapsing all composed non-success into one generic declaration
 failure or one generic "contribution could not be applied" message.
 
+Phase 30 now also ships the orchestration inventory and audit boundary.
+Recovery UX in this phase must therefore register its public ordinary,
+checked, and proof-visible recovery entry points through that shipped registry
+instead of relying on helper-local discoverability or docs-only coverage.
+
 **Required Query artifacts**
 
 - one denial family for ordinary and checked lanes
@@ -3764,6 +3770,11 @@ lanes, ordinary projections, docs references, and certification references
 through that shipped inventory instead of relying on helper-local folklore or
 docs-only discoverability.
 
+Phase 31 now also ships the recovery boundary. Family helpers in this phase
+must therefore project helper-local denial and repair posture onto that same
+typed recovery brief/request surface when they expose helper-specific failure
+guidance, rather than inventing helper-local retry or repair bags.
+
 **Required Query artifacts**
 
 - one family-specific helper surface per admitted major family
@@ -3852,6 +3863,11 @@ authoring in this phase must therefore extend the canonical inventory with its
 group-level orchestration families, transcript families, support rows, docs
 references, and certification references rather than introducing grouped-only
 surface maps.
+
+Phase 31 now also ships the recovery boundary. Grouped authoring in this phase
+must therefore extend that same recovery surface for group-level and
+member-level denial, stale, rebind, and support posture instead of inventing a
+grouped-only repair vocabulary.
 
 **Required Query artifacts**
 
@@ -3954,6 +3970,12 @@ docs/goldens phase must consume that registry as the source of truth for
 covered public orchestration surfaces rather than hand-maintaining a parallel
 surface list in docs-only metadata.
 
+Phase 31 now also ships a dedicated recovery feature surface, so this
+docs/goldens phase must treat typed recovery briefs, requests, and
+route-sensitive denial explanation as part of the ordinary public teaching
+inventory rather than leaving failure handling to scattered examples or helper
+folklore.
+
 **Required Query artifacts**
 
 - one documentation inventory over the admitted platform-entry and admitted-
@@ -4051,6 +4073,10 @@ This phase closes the milestone with hostile proof rather than plausibility.
   prepared-continuation paths must converge canonically when they describe the
   same retained declaration story and intentionally diverge when orchestration
   stops at compatibility instead of preparation
+- equivalent recovery briefs and recovery requests must converge across
+  ordinary, checked, and proof-visible stop surfaces when they describe the
+  same semantic stop, and intentionally diverge when the fix belongs to a
+  different authority surface
 - intentionally different family, route, authority, denial, cost, continuation,
   support, and contribution posture must diverge observably and predictably
 - compile-fail coverage must match the live ordinary lane breadth

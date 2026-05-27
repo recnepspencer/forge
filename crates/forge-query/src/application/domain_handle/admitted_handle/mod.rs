@@ -6,6 +6,7 @@ mod declaration_entry;
 mod envelope;
 mod evidence;
 mod receipt;
+mod recovery;
 mod relational_routing;
 mod route_plan;
 mod signal_compatibility;

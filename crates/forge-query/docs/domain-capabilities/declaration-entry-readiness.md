@@ -121,6 +121,11 @@ Readiness is not a substitute for retained inspection of a concrete declaration
 artifact. It answers family-level seam posture, not concrete legality or
 progression outcomes for one already-authored declaration.
 
+Readiness is also not the recovery surface for one concrete failed run. If an
+ordinary, checked, or proof-visible declaration-entry lane already stopped and
+you need the next supported repair step, use the recovery boundary instead of
+trying to infer a fix from family-level readiness rows.
+
 Readiness also is not an orchestration transcript surface. It answers which
 declaration-entry seam rows are structurally available for a family in one
 admitted world. It does not describe which stages one specific orchestration
@@ -240,3 +245,4 @@ Use readiness when you need to know:
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Configured Domain Handles](./configured-domain-handles.md)
+- [Recovery Boundary](./recovery-boundary.md)

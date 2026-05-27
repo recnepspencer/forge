@@ -327,10 +327,12 @@ beneath the shipped:
 - Phase 27 runtime / workspace / basis continuation boundary
 - Phase 28 signal compatibility orchestration boundary
 - Phase 29 contribution-composed orchestration boundary
+- Phase 30 orchestration inventory / anti-drift audit boundary
+- Phase 31 denial and recovery UX boundary
 
 and not as an open prompt to plan any of those phases again.
 
-The next live planning surface now starts at Phase 31 and later. Those later
+The next live planning surface now starts at Phase 32 and later. Those later
 phases should keep extending:
 
 - one authority-preserving binding story
@@ -340,5 +342,6 @@ phases should keep extending:
 - one explicit signal-compatible-vs-prepared continuation story
 - one explicit declaration-plus-contribution composition story
 - one canonical orchestration inventory and anti-drift audit story
+- one typed recovery brief / request / route-sensitive explanation story
 
 instead of inventing local glue.

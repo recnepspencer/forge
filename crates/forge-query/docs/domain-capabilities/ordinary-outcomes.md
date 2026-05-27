@@ -26,6 +26,8 @@ typed vocabulary while still linking back to the checked topology underneath.
 - inspect which checked topology the ordinary outcome came from
 - keep `Denied`, `Refused`, `Stale`, `RebindRequired`, `Unsupported`, and
   `Ambiguous` distinct
+- hand the stop directly into the recovery boundary when the next job is repair
+  guidance instead of local branching
 
 ## Stable Entry Points
 
@@ -37,6 +39,10 @@ Core ordinary-outcome types:
 - `ForgeQueryOrdinaryNextStep`
 - `ForgeQueryOrdinaryCheckedTopology`
 - `ForgeQueryOrdinaryBindingCheckedTopologyKind`
+
+Recovery handoff:
+
+- `ForgeQueryAdmittedConfiguredDomainHandle::recover_from_outcome(...)`
 
 Admitted-handle orchestration entry points:
 
@@ -122,6 +128,9 @@ The checked-topology link stays typed:
   checked-topology kind, linked retained artifacts, and optional contribution
   digest
 
+That checked-topology link is also what the recovery boundary compiles onto
+when you call `recover_from_outcome(...)`.
+
 ## Small Example
 
 ```rust
@@ -179,6 +188,8 @@ match outcome {
 - [Orchestration Inventory](./orchestration-inventory.md) records ordinary
   outcome rows as a first-class visibility lane instead of treating them as a
   side note on checked or proof-visible orchestration surfaces.
+- [Recovery Boundary](./recovery-boundary.md) is the next-step surface when
+  this compact lane stopped and your app needs one typed repair answer.
 - [Typed Binding Pipeline](./typed-binding-pipeline.md) owns the checked and
   proof-visible binding outcomes that ordinary binding projects from.
 - [Continuation Pipeline](./continuation-pipeline.md) owns the checked and
@@ -213,6 +224,9 @@ result maps back to:
 - `contribution_composed_digest()`
 - `signal_compatibility_orchestration_kind()`
 - `signal_compatibility_orchestration_linked_artifacts()`
+
+Use the recovery boundary when the next question is no longer "what kind of
+ordinary stop was this?" but "who owns the fix and what should we do next?".
 
 Binding linked artifacts can expose:
 
@@ -254,5 +268,6 @@ Binding linked artifacts can expose:
 - [Continuation Pipeline](./continuation-pipeline.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
+- [Recovery Boundary](./recovery-boundary.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Domain Capabilities](./README.md)

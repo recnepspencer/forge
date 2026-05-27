@@ -11,6 +11,7 @@ of domain work you are trying to do:
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Ordinary Outcomes](./ordinary-outcomes.md)
+- [Recovery Boundary](./recovery-boundary.md)
 - [Orchestration Inventory](./orchestration-inventory.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
@@ -75,6 +76,10 @@ the next explicit Query input without relying on ambient framework magic. Use
 [Ordinary Outcomes](./ordinary-outcomes.md) when you want the compact public
 result lane over that binding or orchestration surface without flattening the
 checked topology underneath. Use
+[Recovery Boundary](./recovery-boundary.md) when one of those ordinary,
+checked, or proof-visible lanes stopped and your app needs one machine-readable
+"what stopped, who owns the fix, and what do we do next?" surface instead of
+guessing from reason strings. Use
 [Orchestration Inventory](./orchestration-inventory.md) when you need the
 canonical registry for shipped orchestration verbs, transcript families,
 support coverage, doc coverage, and certification coverage instead of inferring
@@ -258,6 +263,20 @@ order:
   - `orchestrate_declaration_with_contributions_outcome(...)`
   - `orchestrate_declaration_with_contributions_checked(...)`
   - `orchestrate_declaration_with_contributions_proof(...)`
+- recovery:
+  - `recover_from_outcome(...)`
+  - `recover_from_declaration_entry_checked(...)`
+  - `recover_from_declaration_entry_proof(...)`
+  - `recover_from_declaration_route_plan_checked(...)`
+  - `recover_from_declaration_receipt_checked(...)`
+  - `recover_from_prepared_continuation_checked(...)`
+  - `recover_from_prepared_continuation_proof(...)`
+  - `recover_from_continuation_execution_checked(...)`
+  - `recover_from_continuation_execution_proof(...)`
+  - `recover_from_signal_compatibility_checked(...)`
+  - `recover_from_signal_compatibility_proof(...)`
+  - `recover_from_contribution_composed_checked(...)`
+  - `recover_from_contribution_composed_proof(...)`
 - continuation preparation and execution:
   - `prepare_continuation_from_target(...)`
   - `prepare_continuation_from_target_outcome(...)`
@@ -368,6 +387,9 @@ that starts from retained compatibility or progression truth and can stop at
 Treat contribution-composed orchestration as the declaration-plus-contribution
 composition lane that can stop at declaration posture, contribution posture, or
 one bound composed artifact without pretending those are the same proof chain.
+Treat the recovery lane as the next-step surface when any of those public lanes
+stop and you need one typed explanation plus one typed repair request instead
+of a helper-local retry guess.
 Treat the earlier declaration, legality, progression, foundational, route,
 receipt, and envelope methods as the advanced explicit path.
 If you need the locked grammar as data, use
@@ -442,5 +464,6 @@ Start here if:
 - you need declaration-preview workflow planning: [Preview Inspection And Mutation Planning](./workflow/preview-inspection-and-mutation-planning.md)
 - you need successor truth across topology changes: [Continuity Contributions And Authoritative Successors](./continuity/continuity-contributions-and-authoritative-successors.md)
 - you need lower-runtime causal explanation: [Lower-Runtime Explanation Contributions](./explanation/lower-runtime-explanation-contributions.md)
+- you need one typed "what stopped and what should we do next?" answer: [Recovery Boundary](./recovery-boundary.md)
 - you need projection aftermath contracts: [Projection Contract Consumption](./aftermath/projection-contract-consumption.md)
 - you need to audit the proof surface itself: [Certification Surface And Closeout Bundle](./certification/certification-surface-and-closeout-bundle.md)

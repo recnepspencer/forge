@@ -185,6 +185,9 @@ What this example is showing:
   prepared continuation and explicit execution.
 - [Ordinary Outcomes](./ordinary-outcomes.md) provide the concise shared result
   vocabulary for `orchestrate_signal_compatibility_outcome(...)`.
+- [Recovery Boundary](./recovery-boundary.md) is the next-step surface when
+  this lane stops at basis mismatch, wrong world, wrong handle, or other typed
+  non-success posture.
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
   remains the generic declaration-entry front door through the envelope
   ceiling.
@@ -224,6 +227,12 @@ the checked-topology link:
 
 - `orchestrate_signal_compatibility_outcome(...)`
 
+Use the recovery lane when the app now needs one typed repair answer:
+
+- `recover_from_outcome(...)`
+- `recover_from_signal_compatibility_checked(...)`
+- `recover_from_signal_compatibility_proof(...)`
+
 ## Anti-Patterns
 
 - treating `Compatible` as if continuation was already prepared
@@ -249,6 +258,7 @@ the checked-topology link:
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
 - [Ordinary Outcomes](./ordinary-outcomes.md)
+- [Recovery Boundary](./recovery-boundary.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Domain Capabilities](./README.md)

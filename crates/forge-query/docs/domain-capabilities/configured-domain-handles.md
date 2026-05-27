@@ -145,6 +145,22 @@ Admitted-handle continuation entry points:
 - `execute_prepared_continuation_checked(prepared) -> ForgeQueryContinuationExecutionChecked<D, I>`
 - `execute_prepared_continuation_proof(prepared) -> ForgeQueryContinuationExecutionTranscript<D, I>`
 
+Admitted-handle recovery entry points:
+
+- `recover_from_outcome(outcome) -> Option<ForgeQueryRecoveryBrief>`
+- `recover_from_declaration_entry_checked(checked) -> Option<ForgeQueryRecoveryBrief>`
+- `recover_from_declaration_entry_proof(proof) -> Option<ForgeQueryRecoveryBrief>`
+- `recover_from_declaration_route_plan_checked(checked) -> Option<ForgeQueryRecoveryBrief>`
+- `recover_from_declaration_receipt_checked(checked) -> Option<ForgeQueryRecoveryBrief>`
+- `recover_from_prepared_continuation_checked(checked) -> Option<ForgeQueryRecoveryBrief>`
+- `recover_from_prepared_continuation_proof(proof) -> Option<ForgeQueryRecoveryBrief>`
+- `recover_from_continuation_execution_checked(checked) -> Option<ForgeQueryRecoveryBrief>`
+- `recover_from_continuation_execution_proof(proof) -> Option<ForgeQueryRecoveryBrief>`
+- `recover_from_signal_compatibility_checked(checked) -> Option<ForgeQueryRecoveryBrief>`
+- `recover_from_signal_compatibility_proof(proof) -> Option<ForgeQueryRecoveryBrief>`
+- `recover_from_contribution_composed_checked(checked) -> Option<ForgeQueryRecoveryBrief>`
+- `recover_from_contribution_composed_proof(proof) -> Option<ForgeQueryRecoveryBrief>`
+
 Admitted-handle seam-ledger entry points:
 
 - `declaration_entry_crossing_inventory::<I>() -> ForgeQueryDeclarationEntryCrossingInventory<D, I>`
@@ -287,6 +303,13 @@ one public call that can:
 - bind declaration-scoped contribution intents
 - preserve declaration-side and contribution-side non-success posture
 - optionally materialize contribution summaries
+
+Phase 31 adds one recovery lane over the shipped ordinary, checked, and
+proof-visible stop surfaces. The admitted handle now owns
+`recover_from_...(...)` entry points when your app wants one typed answer to
+"what stopped, who owns the fix, and what is the next supported repair step?"
+without flattening declaration, continuation, signal, or contribution posture
+into one generic retry.
 
 When later declaration-entry artifacts expose shared binding targets, those
 targets are still scoped by this admitted world. The binding seam does not
@@ -651,6 +674,7 @@ They do not yet provide:
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
+- [Recovery Boundary](./recovery-boundary.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Declaration Entry Inspection](./declaration-entry-inspection.md)
 - [Declaration Entry Readiness](./declaration-entry-readiness.md)

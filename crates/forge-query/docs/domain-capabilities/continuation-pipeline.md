@@ -237,6 +237,8 @@ What this example is showing:
   continuation-ready input before preparation begins.
 - [Ordinary Outcomes](./ordinary-outcomes.md) provide the compact public result
   lane for both preparation and execution.
+- [Recovery Boundary](./recovery-boundary.md) is the next-step surface when
+  preparation or execution stopped and your app needs a typed repair answer.
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
   remains the authority for which bridge continuation family and truth context
   Query selected.
@@ -291,6 +293,14 @@ checked-topology link:
 - `prepare_continuation_from_context_outcome(...)`
 - `execute_prepared_continuation_outcome(...)`
 
+Use the recovery lane when you want Query to classify who owns the fix:
+
+- `recover_from_outcome(...)`
+- `recover_from_prepared_continuation_checked(...)`
+- `recover_from_prepared_continuation_proof(...)`
+- `recover_from_continuation_execution_checked(...)`
+- `recover_from_continuation_execution_proof(...)`
+
 ## Anti-Patterns
 
 - treating preparation as if it already executed lower bridge or runtime work
@@ -323,6 +333,7 @@ checked-topology link:
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
+- [Recovery Boundary](./recovery-boundary.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Domain Capabilities](./README.md)
