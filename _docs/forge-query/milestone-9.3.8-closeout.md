@@ -330,7 +330,7 @@ beneath the shipped:
 
 and not as an open prompt to plan any of those phases again.
 
-The next live planning surface now starts at Phase 30 and later. Those later
+The next live planning surface now starts at Phase 31 and later. Those later
 phases should keep extending:
 
 - one authority-preserving binding story
@@ -339,5 +339,6 @@ phases should keep extending:
 - one explicit prepared-vs-executed continuation story
 - one explicit signal-compatible-vs-prepared continuation story
 - one explicit declaration-plus-contribution composition story
+- one canonical orchestration inventory and anti-drift audit story
 
 instead of inventing local glue.

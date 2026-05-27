@@ -11,6 +11,7 @@ of domain work you are trying to do:
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Ordinary Outcomes](./ordinary-outcomes.md)
+- [Orchestration Inventory](./orchestration-inventory.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
 - [Canonical Domain Declarations](./canonical-domain-declarations.md)
 - [Declaration Family Taxonomy](./declaration-family-taxonomy.md)
@@ -74,6 +75,10 @@ the next explicit Query input without relying on ambient framework magic. Use
 [Ordinary Outcomes](./ordinary-outcomes.md) when you want the compact public
 result lane over that binding or orchestration surface without flattening the
 checked topology underneath. Use
+[Orchestration Inventory](./orchestration-inventory.md) when you need the
+canonical registry for shipped orchestration verbs, transcript families,
+support coverage, doc coverage, and certification coverage instead of inferring
+the live public surface from examples or scattered docs. Use
 [Continuation Pipeline](./continuation-pipeline.md) when the next job is to
 turn a continuation-ready binding result into one prepared continuation
 artifact and optional explicit execution step without rebuilding bridge,
@@ -367,7 +372,11 @@ Treat the earlier declaration, legality, progression, foundational, route,
 receipt, and envelope methods as the advanced explicit path.
 If you need the locked grammar as data, use
 `ForgeQueryDeclarationEntryOrchestrationVerbInventory::current()` and inspect
-its rows instead of inferring the surface from scattered examples.
+its rows instead of inferring the surface from scattered examples. If you need
+the larger cross-family registry that now also covers continuation, signal, and
+contribution-composed orchestration, use
+`ForgeQueryOrchestrationSurfaceInventory::current()` and
+`ForgeQueryOrchestrationInventoryAudit::current()`.
 
 If you need the locked publication story as data, inspect the orchestration
 plan and transcript instead of guessing from the current receipt or envelope

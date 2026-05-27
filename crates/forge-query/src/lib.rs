@@ -41,6 +41,7 @@ mod live;
 mod live_performance;
 mod lower_runtime_routing;
 mod memory_workspace;
+mod orchestration_inventory;
 mod ordinary_outcome;
 mod planning;
 mod policy_basis;
@@ -93,6 +94,14 @@ pub use contribution_composed_orchestration::{
     ForgeQueryContributionComposedOrchestrationPosture,
     ForgeQueryContributionComposedOrchestrationTranscript, ForgeQueryContributionComposedSummary,
     ForgeQueryContributionIntent,
+};
+pub use orchestration_inventory::{
+    ForgeQueryOrchestrationBindingProjection, ForgeQueryOrchestrationCheckedTopologyKind,
+    ForgeQueryOrchestrationInventoryAudit, ForgeQueryOrchestrationProofContract,
+    ForgeQueryOrchestrationSupportSurface, ForgeQueryOrchestrationSurfaceCertificationReference,
+    ForgeQueryOrchestrationSurfaceDocReference, ForgeQueryOrchestrationSurfaceFamily,
+    ForgeQueryOrchestrationSurfaceInventory, ForgeQueryOrchestrationSurfaceRow,
+    ForgeQueryOrchestrationSurfaceVisibility, ForgeQueryOrchestrationTranscriptFamily,
 };
 pub use ordinary_outcome::{
     ForgeQueryOrdinaryBindingCheckedTopologyKind, ForgeQueryOrdinaryCheckedTopology,

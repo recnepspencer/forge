@@ -2,6 +2,10 @@ use super::artifacts::{
     ForgeQueryDeclarationEntryOrchestrationExposureLevel,
     ForgeQueryDeclarationEntryOrchestrationProduct,
 };
+use crate::orchestration_inventory::{
+    ForgeQueryOrchestrationSurfaceFamily, ForgeQueryOrchestrationSurfaceInventory,
+    ForgeQueryOrchestrationSurfaceVisibility,
+};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryDeclarationEntryOrchestrationVerbFamily {
@@ -113,160 +117,96 @@ impl ForgeQueryDeclarationEntryOrchestrationVerb {
     }
 }
 
-const CURRENT_VERBS: [ForgeQueryDeclarationEntryOrchestrationVerb; 21] = [
-    ForgeQueryDeclarationEntryOrchestrationVerb::generic_declaration_entry(
-        "orchestrate_declaration_entry",
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::Ordinary,
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::generic_declaration_entry(
-        "orchestrate_declaration_entry_checked",
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::Checked,
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::generic_declaration_entry(
-        "orchestrate_declaration_entry_proof",
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::ProofVisible,
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
-        "orchestrate_routes_from_progressed",
-        ForgeQueryDeclarationEntryOrchestrationVerbFamily::RouteFromProgressed,
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::Ordinary,
-        ForgeQueryDeclarationEntryOrchestrationProduct::RoutePlan,
-        "orchestrate_routes_from_progressed",
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
-        "orchestrate_routes_from_progressed_with_intent",
-        ForgeQueryDeclarationEntryOrchestrationVerbFamily::RouteFromProgressed,
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::Ordinary,
-        ForgeQueryDeclarationEntryOrchestrationProduct::RoutePlan,
-        "orchestrate_routes_from_progressed",
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
-        "orchestrate_routes_from_progressed_checked",
-        ForgeQueryDeclarationEntryOrchestrationVerbFamily::RouteFromProgressed,
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::Checked,
-        ForgeQueryDeclarationEntryOrchestrationProduct::RoutePlan,
-        "orchestrate_routes_from_progressed",
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
-        "orchestrate_routes_from_progressed_checked_with_intent",
-        ForgeQueryDeclarationEntryOrchestrationVerbFamily::RouteFromProgressed,
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::Checked,
-        ForgeQueryDeclarationEntryOrchestrationProduct::RoutePlan,
-        "orchestrate_routes_from_progressed",
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
-        "orchestrate_routes_from_progressed_proof",
-        ForgeQueryDeclarationEntryOrchestrationVerbFamily::RouteFromProgressed,
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::ProofVisible,
-        ForgeQueryDeclarationEntryOrchestrationProduct::RoutePlan,
-        "orchestrate_routes_from_progressed",
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
-        "orchestrate_routes_from_progressed_proof_with_intent",
-        ForgeQueryDeclarationEntryOrchestrationVerbFamily::RouteFromProgressed,
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::ProofVisible,
-        ForgeQueryDeclarationEntryOrchestrationProduct::RoutePlan,
-        "orchestrate_routes_from_progressed",
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
-        "orchestrate_receipt_from_progressed",
-        ForgeQueryDeclarationEntryOrchestrationVerbFamily::ReceiptFromProgressed,
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::Ordinary,
-        ForgeQueryDeclarationEntryOrchestrationProduct::Receipt,
-        "orchestrate_receipt_from_progressed",
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
-        "orchestrate_receipt_from_progressed_with_intent",
-        ForgeQueryDeclarationEntryOrchestrationVerbFamily::ReceiptFromProgressed,
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::Ordinary,
-        ForgeQueryDeclarationEntryOrchestrationProduct::Receipt,
-        "orchestrate_receipt_from_progressed",
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
-        "orchestrate_receipt_from_progressed_checked",
-        ForgeQueryDeclarationEntryOrchestrationVerbFamily::ReceiptFromProgressed,
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::Checked,
-        ForgeQueryDeclarationEntryOrchestrationProduct::Receipt,
-        "orchestrate_receipt_from_progressed",
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
-        "orchestrate_receipt_from_progressed_checked_with_intent",
-        ForgeQueryDeclarationEntryOrchestrationVerbFamily::ReceiptFromProgressed,
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::Checked,
-        ForgeQueryDeclarationEntryOrchestrationProduct::Receipt,
-        "orchestrate_receipt_from_progressed",
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
-        "orchestrate_receipt_from_progressed_proof",
-        ForgeQueryDeclarationEntryOrchestrationVerbFamily::ReceiptFromProgressed,
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::ProofVisible,
-        ForgeQueryDeclarationEntryOrchestrationProduct::Receipt,
-        "orchestrate_receipt_from_progressed",
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
-        "orchestrate_receipt_from_progressed_proof_with_intent",
-        ForgeQueryDeclarationEntryOrchestrationVerbFamily::ReceiptFromProgressed,
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::ProofVisible,
-        ForgeQueryDeclarationEntryOrchestrationProduct::Receipt,
-        "orchestrate_receipt_from_progressed",
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
-        "orchestrate_envelope_from_progressed",
-        ForgeQueryDeclarationEntryOrchestrationVerbFamily::EnvelopeFromProgressed,
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::Ordinary,
-        ForgeQueryDeclarationEntryOrchestrationProduct::Envelope,
-        "orchestrate_envelope_from_progressed",
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
-        "orchestrate_envelope_from_progressed_with_intent",
-        ForgeQueryDeclarationEntryOrchestrationVerbFamily::EnvelopeFromProgressed,
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::Ordinary,
-        ForgeQueryDeclarationEntryOrchestrationProduct::Envelope,
-        "orchestrate_envelope_from_progressed",
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
-        "orchestrate_envelope_from_progressed_checked",
-        ForgeQueryDeclarationEntryOrchestrationVerbFamily::EnvelopeFromProgressed,
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::Checked,
-        ForgeQueryDeclarationEntryOrchestrationProduct::Envelope,
-        "orchestrate_envelope_from_progressed",
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
-        "orchestrate_envelope_from_progressed_checked_with_intent",
-        ForgeQueryDeclarationEntryOrchestrationVerbFamily::EnvelopeFromProgressed,
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::Checked,
-        ForgeQueryDeclarationEntryOrchestrationProduct::Envelope,
-        "orchestrate_envelope_from_progressed",
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
-        "orchestrate_envelope_from_progressed_proof",
-        ForgeQueryDeclarationEntryOrchestrationVerbFamily::EnvelopeFromProgressed,
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::ProofVisible,
-        ForgeQueryDeclarationEntryOrchestrationProduct::Envelope,
-        "orchestrate_envelope_from_progressed",
-    ),
-    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
-        "orchestrate_envelope_from_progressed_proof_with_intent",
-        ForgeQueryDeclarationEntryOrchestrationVerbFamily::EnvelopeFromProgressed,
-        ForgeQueryDeclarationEntryOrchestrationExposureLevel::ProofVisible,
-        ForgeQueryDeclarationEntryOrchestrationProduct::Envelope,
-        "orchestrate_envelope_from_progressed",
-    ),
-];
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryDeclarationEntryOrchestrationVerbInventory {
-    verbs: &'static [ForgeQueryDeclarationEntryOrchestrationVerb],
+    verbs: Vec<ForgeQueryDeclarationEntryOrchestrationVerb>,
 }
 
 impl ForgeQueryDeclarationEntryOrchestrationVerbInventory {
     pub fn current() -> Self {
         Self {
-            verbs: &CURRENT_VERBS,
+            verbs: verbs_from_orchestration_inventory(),
         }
     }
 
     pub fn verbs(&self) -> &[ForgeQueryDeclarationEntryOrchestrationVerb] {
-        self.verbs
+        &self.verbs
     }
+}
+
+fn verbs_from_orchestration_inventory() -> Vec<ForgeQueryDeclarationEntryOrchestrationVerb> {
+    ForgeQueryOrchestrationSurfaceInventory::current()
+        .rows()
+        .iter()
+        .filter_map(|row| {
+            let family = match row.family() {
+                ForgeQueryOrchestrationSurfaceFamily::DeclarationEntry => {
+                    ForgeQueryDeclarationEntryOrchestrationVerbFamily::GenericDeclarationEntry
+                }
+                ForgeQueryOrchestrationSurfaceFamily::RouteFromProgressed => {
+                    ForgeQueryDeclarationEntryOrchestrationVerbFamily::RouteFromProgressed
+                }
+                ForgeQueryOrchestrationSurfaceFamily::ReceiptFromProgressed => {
+                    ForgeQueryDeclarationEntryOrchestrationVerbFamily::ReceiptFromProgressed
+                }
+                ForgeQueryOrchestrationSurfaceFamily::EnvelopeFromProgressed => {
+                    ForgeQueryDeclarationEntryOrchestrationVerbFamily::EnvelopeFromProgressed
+                }
+                ForgeQueryOrchestrationSurfaceFamily::ContinuationPrepareTarget
+                | ForgeQueryOrchestrationSurfaceFamily::ContinuationPrepareContext
+                | ForgeQueryOrchestrationSurfaceFamily::ContinuationExecute
+                | ForgeQueryOrchestrationSurfaceFamily::SignalCompatibilityOrchestration
+                | ForgeQueryOrchestrationSurfaceFamily::ContributionComposedOrchestration => {
+                    return None;
+                }
+            };
+            let exposure_level = match row.visibility() {
+                ForgeQueryOrchestrationSurfaceVisibility::Ordinary => {
+                    ForgeQueryDeclarationEntryOrchestrationExposureLevel::Ordinary
+                }
+                ForgeQueryOrchestrationSurfaceVisibility::Checked => {
+                    ForgeQueryDeclarationEntryOrchestrationExposureLevel::Checked
+                }
+                ForgeQueryOrchestrationSurfaceVisibility::ProofVisible => {
+                    ForgeQueryDeclarationEntryOrchestrationExposureLevel::ProofVisible
+                }
+                ForgeQueryOrchestrationSurfaceVisibility::OrdinaryOutcome => return None,
+            };
+            Some(match family {
+                ForgeQueryDeclarationEntryOrchestrationVerbFamily::GenericDeclarationEntry => {
+                    ForgeQueryDeclarationEntryOrchestrationVerb::generic_declaration_entry(
+                        row.public_name(),
+                        exposure_level,
+                    )
+                }
+                ForgeQueryDeclarationEntryOrchestrationVerbFamily::RouteFromProgressed => {
+                    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
+                        row.public_name(),
+                        family,
+                        exposure_level,
+                        ForgeQueryDeclarationEntryOrchestrationProduct::RoutePlan,
+                        row.canonical_base_name(),
+                    )
+                }
+                ForgeQueryDeclarationEntryOrchestrationVerbFamily::ReceiptFromProgressed => {
+                    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
+                        row.public_name(),
+                        family,
+                        exposure_level,
+                        ForgeQueryDeclarationEntryOrchestrationProduct::Receipt,
+                        row.canonical_base_name(),
+                    )
+                }
+                ForgeQueryDeclarationEntryOrchestrationVerbFamily::EnvelopeFromProgressed => {
+                    ForgeQueryDeclarationEntryOrchestrationVerb::product_from_progressed(
+                        row.public_name(),
+                        family,
+                        exposure_level,
+                        ForgeQueryDeclarationEntryOrchestrationProduct::Envelope,
+                        row.canonical_base_name(),
+                    )
+                }
+            })
+        })
+        .collect()
 }

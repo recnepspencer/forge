@@ -331,13 +331,18 @@ locked decisions above:
     rows, docs, goldens, and certification so the ergonomic layer remains
     structurally honest under growth. That inventory must now explicitly track
     ordinary outcomes as one shipped public layer, not just verbs and proof
-    transcripts.
+    transcripts. This phase now ships as the canonical orchestration-surface
+    registry and anti-drift audit boundary over the admitted orchestration
+    families.
 
 31. **Phase 31: Denial And Recovery UX Boundary**
     Typed denials, progression deferral, stale/rebind outcomes, failed
     progression, fallback guidance, and route-sensitive explanations become
     product-quality. This is where failure becomes as usable as success, but it
-    must widen the shipped ordinary outcome family rather than replacing it.
+    must widen the shipped ordinary outcome family rather than replacing it,
+    and it must register its public recovery/denial lanes against the shipped
+    orchestration inventory/audit boundary instead of creating uncatalogued
+    helper surfaces.
 
 32. **Phase 32: Family-Specific Ergonomics Boundary**
     The public lane gets the domain-shaped helpers for the major declaration
@@ -3753,6 +3758,12 @@ this phase must therefore compose onto the same declaration-plus-contribution
 surface when they promise declaration-scoped contribution posture, rather than
 inventing helper-local composition lanes or bypassing the composed proof story.
 
+Phase 30 now also ships the orchestration inventory and audit boundary. Family
+helpers in this phase must therefore register their public verbs, checked/proof
+lanes, ordinary projections, docs references, and certification references
+through that shipped inventory instead of relying on helper-local folklore or
+docs-only discoverability.
+
 **Required Query artifacts**
 
 - one family-specific helper surface per admitted major family
@@ -3835,6 +3846,12 @@ Phase 29 now also ships contribution-composed orchestration. Grouped authoring
 in this phase must therefore preserve a path to group-level and member-level
 contribution composition on top of the shipped composed seam rather than
 inventing a second grouped-only contribution grammar.
+
+Phase 30 now also ships the orchestration inventory and audit boundary. Grouped
+authoring in this phase must therefore extend the canonical inventory with its
+group-level orchestration families, transcript families, support rows, docs
+references, and certification references rather than introducing grouped-only
+surface maps.
 
 **Required Query artifacts**
 
@@ -3932,6 +3949,11 @@ surface, so this docs/goldens phase must treat declaration-plus-contribution
 composition as part of the ordinary public teaching inventory rather than as a
 local advanced recipe hidden between declaration-entry and contribution docs.
 
+Phase 30 now also ships the orchestration inventory and audit boundary, so this
+docs/goldens phase must consume that registry as the source of truth for
+covered public orchestration surfaces rather than hand-maintaining a parallel
+surface list in docs-only metadata.
+
 **Required Query artifacts**
 
 - one documentation inventory over the admitted platform-entry and admitted-
@@ -3945,6 +3967,9 @@ local advanced recipe hidden between declaration-entry and contribution docs.
 - every admitted ordinary public family, continuation surface, contribution-
   composed surface, and major helper surface must have one honest documented
   path
+- the docs/goldens coverage inventory must derive from the shipped
+  orchestration inventory and its audit posture rather than a second manual
+  list of public orchestration surfaces
 - the docs and goldens must teach one shared binding story that connects
   `9.3.7` contribution target binding, `9.3.8` declaration/product binding,
   and later continuation/grouped binding, rather than documenting those as
@@ -4029,6 +4054,10 @@ This phase closes the milestone with hostile proof rather than plausibility.
 - intentionally different family, route, authority, denial, cost, continuation,
   support, and contribution posture must diverge observably and predictably
 - compile-fail coverage must match the live ordinary lane breadth
+- certification closure must treat the shipped orchestration inventory/audit
+  boundary as authoritative for public orchestration breadth, and must fail if
+  any covered public orchestration surface lacks an inventory row, transcript
+  family, docs reference, or certification reference
 - inventory, docs, support matrix, transcript inventory, and certification
   bundle breadth must all agree exactly
 

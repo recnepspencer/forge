@@ -176,6 +176,9 @@ match outcome {
 
 - [Configured Domain Handles](./configured-domain-handles.md) expose the
   admitted-handle ordinary entry points.
+- [Orchestration Inventory](./orchestration-inventory.md) records ordinary
+  outcome rows as a first-class visibility lane instead of treating them as a
+  side note on checked or proof-visible orchestration surfaces.
 - [Typed Binding Pipeline](./typed-binding-pipeline.md) owns the checked and
   proof-visible binding outcomes that ordinary binding projects from.
 - [Continuation Pipeline](./continuation-pipeline.md) owns the checked and
@@ -237,12 +240,16 @@ Binding linked artifacts can expose:
   declaration-entry orchestration
 - the ordinary surface is intentionally projection-only; it does not own new
   execution or binding logic
+- orchestration inventory is the code-level anti-drift boundary that now keeps
+  ordinary-outcome rows synchronized with exported orchestration verbs, docs,
+  and certification references
 - ordinary outcomes do not expose full transcripts; switch to checked or
   proof-visible lanes when you need the full diagnostic surface
 
 ## Related Docs
 
 - [Configured Domain Handles](./configured-domain-handles.md)
+- [Orchestration Inventory](./orchestration-inventory.md)
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)

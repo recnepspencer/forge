@@ -72,6 +72,8 @@ when you already know which declaration-entry lowering run should happen.
 - `ForgeQueryDeclarationEntryOrchestrationCostPosture`
 - `ForgeQueryDeclarationEntryOrchestrationMaterializationGate`
 - `ForgeQueryDeclarationEntryOrchestrationVerbInventory`
+- `ForgeQueryOrchestrationSurfaceInventory`
+- `ForgeQueryOrchestrationInventoryAudit`
 
 Good to know:
 
@@ -415,6 +417,23 @@ for verb in inventory.verbs() {
 }
 ```
 
+Phase 30 also adds a larger cross-family orchestration inventory. Use that
+when you need the declaration-entry rows in the context of continuation,
+signal-facing orchestration, and contribution-composed orchestration instead of
+as a declaration-entry-only list:
+
+```rust
+let inventory = ForgeQueryOrchestrationSurfaceInventory::current();
+
+let row = inventory
+    .row_for_public_name("orchestrate_declaration_entry")
+    .expect("declaration-entry row should exist");
+
+let _ = row.family();
+let _ = row.visibility();
+let _ = row.proof_contract().transcript_family();
+```
+
 ## Small Example
 
 This example shows the intended boundary: the editing session resolved the
@@ -578,6 +597,8 @@ Useful accessors:
 - `step_records()`
 - `step_record.automation_step()`
 - `step_record.materialization_tier()`
+- `ForgeQueryOrchestrationSurfaceInventory::current()`
+- `ForgeQueryOrchestrationInventoryAudit::current()`
 
 ## Anti-Patterns
 
@@ -619,6 +640,7 @@ when the ordinary lane stopped at the envelope ceiling.
 - [Configured Domain Handles](./configured-domain-handles.md)
 - [Typed Binding Pipeline](./typed-binding-pipeline.md)
 - [Ordinary Outcomes](./ordinary-outcomes.md)
+- [Orchestration Inventory](./orchestration-inventory.md)
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)

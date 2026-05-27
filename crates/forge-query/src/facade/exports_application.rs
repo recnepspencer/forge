@@ -212,6 +212,14 @@ pub use crate::contribution_composed_orchestration::{
     ForgeQueryContributionComposedOrchestrationTranscript, ForgeQueryContributionComposedSummary,
     ForgeQueryContributionIntent,
 };
+pub use crate::orchestration_inventory::{
+    ForgeQueryOrchestrationBindingProjection, ForgeQueryOrchestrationCheckedTopologyKind,
+    ForgeQueryOrchestrationInventoryAudit, ForgeQueryOrchestrationProofContract,
+    ForgeQueryOrchestrationSupportSurface, ForgeQueryOrchestrationSurfaceCertificationReference,
+    ForgeQueryOrchestrationSurfaceDocReference, ForgeQueryOrchestrationSurfaceFamily,
+    ForgeQueryOrchestrationSurfaceInventory, ForgeQueryOrchestrationSurfaceRow,
+    ForgeQueryOrchestrationSurfaceVisibility, ForgeQueryOrchestrationTranscriptFamily,
+};
 pub use crate::ordinary_outcome::{
     ForgeQueryOrdinaryBindingCheckedTopologyKind, ForgeQueryOrdinaryCheckedTopology,
     ForgeQueryOrdinaryContinuationCheckedTopologyKind,
