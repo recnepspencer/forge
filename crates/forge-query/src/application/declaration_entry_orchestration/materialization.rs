@@ -7,6 +7,12 @@ use forge_foundational::facade::{
 };
 use forge_proof::TransitionOutcome;
 
+use crate::application::declaration_publication::declaration_publication_for_tier;
+use crate::application::{
+    route_scoped_declaration_aspect_contract, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationAspectPublication,
+};
+
 use super::artifacts::{
     ForgeQueryDeclarationEntryOrchestrationArtifactPolicy,
     ForgeQueryDeclarationEntryOrchestrationExposureLevel,
@@ -75,6 +81,9 @@ pub struct ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy {
     foundational_evidence_profile: FoundationalBoundaryEvidenceMaterializationProfile,
     receipt_tier: ForgeQueryDeclarationEntryOrchestrationMaterializationTier,
     envelope_tier: ForgeQueryDeclarationEntryOrchestrationMaterializationTier,
+    foundational_aspect_publication: ForgeQueryDeclarationAspectPublication,
+    receipt_aspect_publication: ForgeQueryDeclarationAspectPublication,
+    envelope_aspect_publication: ForgeQueryDeclarationAspectPublication,
     support_rich_publication_admitted: bool,
     diagnostic_rich_publication_admitted: bool,
     cost_posture: ForgeQueryDeclarationEntryOrchestrationCostPosture,
@@ -85,60 +94,87 @@ impl ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy {
     pub(crate) fn default_for_lane(
         exposure_level: ForgeQueryDeclarationEntryOrchestrationExposureLevel,
         artifact_policy: ForgeQueryDeclarationEntryOrchestrationArtifactPolicy,
+        aspect_contract: &ForgeQueryDeclarationAspectContract,
+        aspect_coverage: &ForgeQueryDeclarationAspectCoverage,
     ) -> Self {
-        match (exposure_level, artifact_policy) {
+        let (
+            foundational_evidence_profile,
+            receipt_tier,
+            envelope_tier,
+            support_rich_publication_admitted,
+            diagnostic_rich_publication_admitted,
+            cost_posture,
+            materialization_gate,
+        ) = match (exposure_level, artifact_policy) {
             (
                 ForgeQueryDeclarationEntryOrchestrationExposureLevel::Ordinary,
                 ForgeQueryDeclarationEntryOrchestrationArtifactPolicy::OrdinaryEnvelopeOnly,
-            ) => Self {
-                foundational_evidence_profile: foundational_profile_for_tier(
+            ) => (
+                foundational_profile_for_tier(
                     ForgeQueryDeclarationEntryOrchestrationMaterializationTier::OperationalLean,
                 ),
-                receipt_tier:
-                    ForgeQueryDeclarationEntryOrchestrationMaterializationTier::SupportReady,
-                envelope_tier:
-                    ForgeQueryDeclarationEntryOrchestrationMaterializationTier::SupportReady,
-                support_rich_publication_admitted: true,
-                diagnostic_rich_publication_admitted: false,
-                cost_posture: ForgeQueryDeclarationEntryOrchestrationCostPosture::OrdinaryDefault,
-                materialization_gate:
-                    ForgeQueryDeclarationEntryOrchestrationMaterializationGate::AdmittedByDefault,
-            },
+                ForgeQueryDeclarationEntryOrchestrationMaterializationTier::SupportReady,
+                ForgeQueryDeclarationEntryOrchestrationMaterializationTier::SupportReady,
+                true,
+                false,
+                ForgeQueryDeclarationEntryOrchestrationCostPosture::OrdinaryDefault,
+                ForgeQueryDeclarationEntryOrchestrationMaterializationGate::AdmittedByDefault,
+            ),
             (
                 ForgeQueryDeclarationEntryOrchestrationExposureLevel::Checked,
                 ForgeQueryDeclarationEntryOrchestrationArtifactPolicy::CheckedOutcomeOnly,
-            ) => Self {
-                foundational_evidence_profile: foundational_profile_for_tier(
+            ) => (
+                foundational_profile_for_tier(
                     ForgeQueryDeclarationEntryOrchestrationMaterializationTier::OperationalLean,
                 ),
-                receipt_tier:
-                    ForgeQueryDeclarationEntryOrchestrationMaterializationTier::OperationalLean,
-                envelope_tier:
-                    ForgeQueryDeclarationEntryOrchestrationMaterializationTier::OperationalLean,
-                support_rich_publication_admitted: false,
-                diagnostic_rich_publication_admitted: false,
-                cost_posture: ForgeQueryDeclarationEntryOrchestrationCostPosture::ExplicitlyLean,
-                materialization_gate:
-                    ForgeQueryDeclarationEntryOrchestrationMaterializationGate::AdmittedByDefault,
-            },
+                ForgeQueryDeclarationEntryOrchestrationMaterializationTier::OperationalLean,
+                ForgeQueryDeclarationEntryOrchestrationMaterializationTier::OperationalLean,
+                false,
+                false,
+                ForgeQueryDeclarationEntryOrchestrationCostPosture::ExplicitlyLean,
+                ForgeQueryDeclarationEntryOrchestrationMaterializationGate::AdmittedByDefault,
+            ),
             (
                 ForgeQueryDeclarationEntryOrchestrationExposureLevel::ProofVisible,
                 ForgeQueryDeclarationEntryOrchestrationArtifactPolicy::ProofVisibleTranscript,
-            ) => Self {
-                foundational_evidence_profile: foundational_profile_for_tier(
+            ) => (
+                foundational_profile_for_tier(
                     ForgeQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive,
                 ),
-                receipt_tier:
-                    ForgeQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive,
-                envelope_tier:
-                    ForgeQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive,
-                support_rich_publication_admitted: true,
-                diagnostic_rich_publication_admitted: true,
-                cost_posture: ForgeQueryDeclarationEntryOrchestrationCostPosture::ExplicitlyRich,
-                materialization_gate:
-                    ForgeQueryDeclarationEntryOrchestrationMaterializationGate::ExplicitRequestRequired,
-            },
+                ForgeQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive,
+                ForgeQueryDeclarationEntryOrchestrationMaterializationTier::FullDescriptive,
+                true,
+                true,
+                ForgeQueryDeclarationEntryOrchestrationCostPosture::ExplicitlyRich,
+                ForgeQueryDeclarationEntryOrchestrationMaterializationGate::ExplicitRequestRequired,
+            ),
             _ => panic!("unsupported orchestration exposure/artifact policy pairing"),
+        };
+        let crossing_aspect_contract = route_scoped_declaration_aspect_contract(aspect_contract);
+
+        Self {
+            foundational_evidence_profile,
+            receipt_tier,
+            envelope_tier,
+            foundational_aspect_publication: declaration_publication_for_tier(
+                aspect_contract,
+                aspect_coverage,
+                foundational_materialization_tier(foundational_evidence_profile),
+            ),
+            receipt_aspect_publication: declaration_publication_for_tier(
+                &crossing_aspect_contract,
+                aspect_coverage,
+                receipt_tier,
+            ),
+            envelope_aspect_publication: declaration_publication_for_tier(
+                &crossing_aspect_contract,
+                aspect_coverage,
+                envelope_tier,
+            ),
+            support_rich_publication_admitted,
+            diagnostic_rich_publication_admitted,
+            cost_posture,
+            materialization_gate,
         }
     }
 
@@ -154,6 +190,18 @@ impl ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy {
 
     pub fn envelope_tier(&self) -> ForgeQueryDeclarationEntryOrchestrationMaterializationTier {
         self.envelope_tier
+    }
+
+    pub fn foundational_aspect_publication(&self) -> &ForgeQueryDeclarationAspectPublication {
+        &self.foundational_aspect_publication
+    }
+
+    pub fn receipt_aspect_publication(&self) -> &ForgeQueryDeclarationAspectPublication {
+        &self.receipt_aspect_publication
+    }
+
+    pub fn envelope_aspect_publication(&self) -> &ForgeQueryDeclarationAspectPublication {
+        &self.envelope_aspect_publication
     }
 
     pub fn support_rich_publication_admitted(&self) -> bool {

@@ -1,6 +1,8 @@
 use crate::application::{
-    ForgeQueryAdmittedDeclarationProgression, ForgeQueryDeclarationFoundationalEvidence,
-    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+    ForgeQueryAdmittedDeclarationProgression, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationAspectFit, ForgeQueryDeclarationAspectPublication,
+    ForgeQueryDeclarationFoundationalEvidence, ForgeQueryDeclarationInput,
+    ForgeQueryDomainEntryMarker,
 };
 use crate::identity::hash_parts;
 use crate::target_binding::ForgeQueryDeclarationRoutePlanBindingTarget;
@@ -22,6 +24,9 @@ pub struct ForgeQueryDeclarationRoutePlan<
     route_set: ForgeQueryDeclarationRouteSet,
     class: ForgeQueryDeclarationRoutePlanClass,
     automation_requires_explicit_handoff: bool,
+    route_aspect_contract: ForgeQueryDeclarationAspectContract,
+    route_aspect_fit: ForgeQueryDeclarationAspectFit,
+    route_aspect_publication: ForgeQueryDeclarationAspectPublication,
     explanation: ForgeQueryDeclarationRoutePlanExplanation,
     declaration_digest: String,
     route_plan_digest: String,
@@ -38,10 +43,20 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         route_set: ForgeQueryDeclarationRouteSet,
         class: ForgeQueryDeclarationRoutePlanClass,
         automation_requires_explicit_handoff: bool,
+        route_aspect_contract: ForgeQueryDeclarationAspectContract,
+        route_aspect_fit: ForgeQueryDeclarationAspectFit,
+        route_aspect_publication: ForgeQueryDeclarationAspectPublication,
         explanation: ForgeQueryDeclarationRoutePlanExplanation,
     ) -> Self {
-        let route_plan_digest =
-            derive_route_plan_digest(&progressed, &evidence, route_intent, route_set.routes());
+        let route_plan_digest = derive_route_plan_digest(
+            &progressed,
+            &evidence,
+            route_intent,
+            route_set.routes(),
+            &route_aspect_contract,
+            route_aspect_fit,
+            &route_aspect_publication,
+        );
         let declaration_digest = format!(
             "{:?}",
             progressed.canonical_declaration().declaration_digest()
@@ -53,6 +68,9 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             route_set,
             class,
             automation_requires_explicit_handoff,
+            route_aspect_contract,
+            route_aspect_fit,
+            route_aspect_publication,
             explanation,
             declaration_digest,
             route_plan_digest,
@@ -85,6 +103,18 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub(crate) fn automation_requires_explicit_handoff(&self) -> bool {
         self.automation_requires_explicit_handoff
+    }
+
+    pub fn aspect_contract(&self) -> &ForgeQueryDeclarationAspectContract {
+        &self.route_aspect_contract
+    }
+
+    pub fn aspect_fit(&self) -> ForgeQueryDeclarationAspectFit {
+        self.route_aspect_fit
+    }
+
+    pub fn aspect_publication(&self) -> &ForgeQueryDeclarationAspectPublication {
+        &self.route_aspect_publication
     }
 
     pub fn declaration_family_key(&self) -> &'static str {
@@ -138,6 +168,9 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         ForgeQueryDeclarationRouteSet,
         ForgeQueryDeclarationRoutePlanClass,
         bool,
+        ForgeQueryDeclarationAspectContract,
+        ForgeQueryDeclarationAspectFit,
+        ForgeQueryDeclarationAspectPublication,
         ForgeQueryDeclarationRoutePlanExplanation,
         String,
         String,
@@ -149,6 +182,9 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             self.route_set,
             self.class,
             self.automation_requires_explicit_handoff,
+            self.route_aspect_contract,
+            self.route_aspect_fit,
+            self.route_aspect_publication,
             self.explanation,
             self.declaration_digest,
             self.route_plan_digest,
@@ -161,6 +197,9 @@ fn derive_route_plan_digest<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclara
     evidence: &ForgeQueryDeclarationFoundationalEvidence<D, I>,
     route_intent: Option<ForgeQueryDeclarationRouteIntent>,
     routes: &[ForgeQueryDeclarationRouteSegment],
+    route_aspect_contract: &ForgeQueryDeclarationAspectContract,
+    route_aspect_fit: ForgeQueryDeclarationAspectFit,
+    route_aspect_publication: &ForgeQueryDeclarationAspectPublication,
 ) -> String {
     let mut parts = vec![
         format!(
@@ -178,6 +217,9 @@ fn derive_route_plan_digest<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclara
         ),
         format!("support:{}", evidence.support_digest()),
         format!("progression:{}", progressed.progression_digest()),
+        format!("route_aspect_contract:{route_aspect_contract:?}"),
+        format!("route_aspect_fit:{route_aspect_fit:?}"),
+        format!("route_aspect_publication:{route_aspect_publication:?}"),
     ];
     if let Some(intent) = route_intent {
         parts.push(format!("intent:{}", intent.as_str()));

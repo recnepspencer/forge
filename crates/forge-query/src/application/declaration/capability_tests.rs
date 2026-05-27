@@ -1,9 +1,11 @@
 use super::{ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationInput};
 use crate::application::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfig,
-    ForgeQueryConfigSectionFamily, ForgeQueryDeclarationCapabilityStatus,
-    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationLegalityContract,
-    ForgeQueryDeclaredFamilyChecked, ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
+    ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationAspectFit,
+    ForgeQueryDeclarationCapabilityStatus, ForgeQueryDeclarationFamilyMarker,
+    ForgeQueryDeclarationLegalityContract, ForgeQueryDeclaredFamilyChecked,
+    ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
     ForgeQueryNeighborhoodCapableGrouping, ForgeQueryRelationalConfig,
     ForgeQueryRelationalTruthAuthority, ForgeQuerySignalCompatiblePosture,
 };
@@ -56,6 +58,16 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for DurableFamily {
 
     fn required_capability_families() -> &'static [ForgeQueryCapabilityFamily] {
         &[ForgeQueryCapabilityFamily::DurableArtifacts]
+    }
+
+    fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
+        ForgeQueryDeclarationAspectContract::from_slices(
+            &["selection.active_edge"],
+            &["selection.active_edge"],
+            &["selection.active_edge"],
+            &[],
+            &["selection.material_edit"],
+        )
     }
 
     fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
@@ -111,6 +123,41 @@ impl ForgeQueryDeclarationInput<GeometryDomain> for HistoricalDeclaration {
         vec![ForgeQueryDeclarationCanonicalEntry::text(
             "edge_ref", "edge:99",
         )]
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+struct MaskedCoverageFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for MaskedCoverageFamily {
+    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "masked-coverage-family"
+    }
+
+    fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
+        ForgeQueryDeclarationAspectContract::from_slices(
+            &["selection.active_edge"],
+            &["selection.active_edge"],
+            &["selection.active_edge"],
+            &[],
+            &[],
+        )
+    }
+
+    fn aspect_coverage() -> ForgeQueryDeclarationAspectCoverage {
+        ForgeQueryDeclarationAspectCoverage::from_slices(
+            &["selection.active_edge"],
+            &["selection.active_edge"],
+            &[],
+        )
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
     }
 }
 
@@ -174,4 +221,48 @@ fn family_support_and_checked_declaration_agree_on_invalid_context_denial() {
             std::mem::discriminant(&other)
         ),
     }
+}
+
+#[test]
+fn family_support_report_exposes_aspect_contract_alongside_family_admission() {
+    let handle = admitted_query_only_handle(ForgeQueryConfig::runtime_backed_default());
+    let support = handle.family_support::<DurableFamily>();
+
+    assert_eq!(
+        support.aspect_contract().required(),
+        &["selection.active_edge".to_string()]
+    );
+    assert_eq!(
+        support.aspect_contract().incompatible(),
+        &["selection.material_edit".to_string()]
+    );
+    assert_eq!(
+        support
+            .row(crate::application::ForgeQueryDeclarationCapabilityVerb::Declare)
+            .expect("declare row should exist")
+            .aspect_fit(),
+        ForgeQueryDeclarationAspectFit::Exact
+    );
+}
+
+#[test]
+fn family_support_report_can_expose_masked_semantic_slices_without_losing_family_admission() {
+    let handle = admitted_query_only_handle(ForgeQueryConfig::runtime_backed_default());
+    let support = handle.family_support::<MaskedCoverageFamily>();
+
+    assert_eq!(
+        support.declare_status(),
+        ForgeQueryDeclarationCapabilityStatus::Admitted
+    );
+    assert_eq!(
+        support.aspect_coverage().masked(),
+        &["selection.active_edge".to_string()]
+    );
+    assert_eq!(
+        support
+            .row(crate::application::ForgeQueryDeclarationCapabilityVerb::Declare)
+            .expect("declare row should exist")
+            .aspect_fit(),
+        ForgeQueryDeclarationAspectFit::MissingRequired
+    );
 }

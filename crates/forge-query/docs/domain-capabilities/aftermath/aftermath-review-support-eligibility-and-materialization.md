@@ -93,6 +93,36 @@ final contract materialization.
 - duplicating the same aftermath progression outside Query
 - assuming support reports and eligibility are redundant
 
+## Aspect-aware retrofit note
+
+Phase 24b requires aftermath materialization tiers to become semantic-slice
+honest. Lean, support-ready, and richer publication must explain what truth is
+actually being widened, masked, or elided rather than only naming a profile
+family. That keeps cost posture honest and lets later declaration-entry phases
+consume aftermath publication as retained aspect-aware evidence instead of
+profile folklore.
+
+The declaration-entry side now makes that law concrete:
+
+- lean publication exposes only the required visibly covered slices
+- support-ready publication may widen to preserved support-relevant slices
+- full-descriptive publication may widen again to intentionally published
+  descriptive slices
+- masked or conflicting slices stay explicitly masked
+
+This aftermath doc should be read with the same expectation. Review, support,
+eligibility, and materialization surfaces need to align with that same
+semantic-publication law rather than relying on richness names alone.
+
+On the declaration-entry side, this is already live:
+
+- coverage basis is explicit when publication is declared-family, reviewed,
+  or support-reported
+- conflicting slices do not become visible simply because a richer
+  materialization lane was chosen
+- lean vs support-ready vs full-descriptive publication changes semantic
+  breadth honestly rather than changing underlying retained truth
+
 ## Current Limits
 
 - the ordinary lane is admitted-plan-bound

@@ -1,9 +1,14 @@
 use crate::application::{
-    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationFoundationalEvidenceClass,
-    ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+    ForgeQueryDeclarationAspectFit, ForgeQueryDeclarationFamilyMarker,
+    ForgeQueryDeclarationFoundationalEvidenceClass, ForgeQueryDeclarationInput,
+    ForgeQueryDomainEntryMarker,
 };
 
 use super::{
+    aspects::{
+        route_aspect_contract, route_aspect_fit, route_aspect_publication,
+        route_aspect_publication_summary,
+    },
     class::{
         ForgeQueryDeclarationRouteIntentRequirement, ForgeQueryDeclarationRouteMultiplicity,
         ForgeQueryDeclarationRoutePlanClass, ForgeQueryLowerAuthorityRouteFamily,
@@ -37,6 +42,10 @@ pub(crate) fn forge_query_checked_declaration_route_plan<
 ) -> ForgeQueryDeclarationRoutePlanChecked<D, I> {
     let (progressed, evidence, route_intent) = input.into_parts();
     let route_contract = I::Family::route_contract();
+    let route_aspect_contract = route_aspect_contract(progressed.aspect_contract());
+    let route_aspect_fit = route_aspect_fit(evidence.aspect_coverage(), &route_aspect_contract);
+    let route_aspect_publication =
+        route_aspect_publication(&route_aspect_contract, evidence.aspect_coverage());
 
     if evidence.class() != ForgeQueryDeclarationFoundationalEvidenceClass::ProgressionAdmitted {
         return ForgeQueryDeclarationRoutePlanChecked::Denied(
@@ -48,6 +57,34 @@ pub(crate) fn forge_query_checked_declaration_route_plan<
                 ForgeQueryDeclarationRoutePlanDenialCause::EvidenceMismatch,
             ),
         );
+    }
+
+    match route_aspect_fit {
+        ForgeQueryDeclarationAspectFit::Conflict => {
+            return ForgeQueryDeclarationRoutePlanChecked::Denied(
+                ForgeQueryDeclarationRoutePlanDenied::new(
+                    progressed,
+                    evidence,
+                    route_intent,
+                    route_contract,
+                    ForgeQueryDeclarationRoutePlanDenialCause::AspectConflict,
+                ),
+            );
+        }
+        ForgeQueryDeclarationAspectFit::MissingRequired => {
+            return ForgeQueryDeclarationRoutePlanChecked::Denied(
+                ForgeQueryDeclarationRoutePlanDenied::new(
+                    progressed,
+                    evidence,
+                    route_intent,
+                    route_contract,
+                    ForgeQueryDeclarationRoutePlanDenialCause::MissingRequiredAspect,
+                ),
+            );
+        }
+        ForgeQueryDeclarationAspectFit::Exact
+        | ForgeQueryDeclarationAspectFit::CompatibleSuperset
+        | ForgeQueryDeclarationAspectFit::Partial => {}
     }
 
     if progressed.canonical_declaration().handle_identity_digest()
@@ -209,6 +246,15 @@ pub(crate) fn forge_query_checked_declaration_route_plan<
                 progressed.operating_context_identity_digest()
             ),
             format!("progression:{}", progressed.progression_digest()),
+            format!("route-aspect-fit:{route_aspect_fit:?}"),
+            format!(
+                "route-coverage-basis:{:?}",
+                evidence.aspect_coverage_basis()
+            ),
+            format!(
+                "route-publication:{}",
+                route_aspect_publication_summary(&route_aspect_publication)
+            ),
         ],
         routes
             .iter()
@@ -223,6 +269,9 @@ pub(crate) fn forge_query_checked_declaration_route_plan<
         ForgeQueryDeclarationRouteSet::new(routes),
         class,
         route_contract.automation_requires_explicit_handoff(),
+        route_aspect_contract,
+        route_aspect_fit,
+        route_aspect_publication,
         explanation,
     ))
 }

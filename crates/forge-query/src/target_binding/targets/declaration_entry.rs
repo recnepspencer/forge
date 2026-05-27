@@ -1,7 +1,7 @@
 use crate::application::{
-    ForgeQueryAdmittedDeclarationProgression, ForgeQueryDeclarationEnvelope,
-    ForgeQueryDeclarationInput, ForgeQueryDeclarationReceipt, ForgeQueryDeclarationRoutePlan,
-    ForgeQueryDomainEntryMarker,
+    ForgeQueryAdmittedDeclarationProgression, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationReceipt, ForgeQueryDeclarationRoutePlan, ForgeQueryDomainEntryMarker,
 };
 
 use crate::target_binding::{
@@ -32,6 +32,8 @@ pub(crate) struct ForgeQueryAdmittedDeclarationProgressionBindingTargetSource<
     pub(crate) declaration_digest: String,
     pub(crate) progression_digest: String,
     pub(crate) declaration_family_label: &'static str,
+    pub(crate) aspect_contract: ForgeQueryDeclarationAspectContract,
+    pub(crate) reviewed_aspect_coverage: ForgeQueryDeclarationAspectCoverage,
 }
 
 impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
@@ -50,6 +52,8 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         );
         let progression_digest = progressed.progression_digest().to_string();
         let declaration_family_label = progressed.declaration_family_key();
+        let aspect_contract = progressed.aspect_contract().clone();
+        let reviewed_aspect_coverage = progressed.reviewed_aspect_coverage().clone();
         Self {
             progressed,
             handle_identity_digest,
@@ -57,6 +61,8 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             declaration_digest,
             progression_digest,
             declaration_family_label,
+            aspect_contract,
+            reviewed_aspect_coverage,
         }
     }
 }
@@ -84,6 +90,8 @@ impl ForgeQueryAdmittedDeclarationProgressionBindingTarget {
                 source.declaration_digest.clone(),
                 source.progression_digest.clone(),
                 source.declaration_family_label,
+                source.aspect_contract.clone(),
+                source.reviewed_aspect_coverage.clone(),
             ),
         ))
     }

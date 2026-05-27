@@ -151,6 +151,9 @@ Route-plan inspection:
 - `binding_target() -> ForgeQueryDeclarationRoutePlanBindingTarget`
 - `foundational_evidence() -> &ForgeQueryDeclarationFoundationalEvidence<D, I>`
 - `progressed_declaration() -> &ForgeQueryAdmittedDeclarationProgression<D, I>`
+- `aspect_contract() -> &ForgeQueryDeclarationAspectContract`
+- `aspect_fit() -> ForgeQueryDeclarationAspectFit`
+- `aspect_publication() -> &ForgeQueryDeclarationAspectPublication`
 - `explain() -> &ForgeQueryDeclarationRoutePlanExplanation`
 
 Route-set and segment inspection:
@@ -182,6 +185,8 @@ Denied route-plan causes:
 
 - `WrongAdmittedWorld`
 - `EvidenceMismatch`
+- `MissingRequiredAspect`
+- `AspectConflict`
 - `IntentRequired`
 - `IntentForbidden`
 - `IntentConflictsWithRouteContract`
@@ -234,6 +239,16 @@ envelope, and later continuation surfaces should bind from this retained
 artifact seam instead of reconstructing route meaning or inventing
 route-local binding helpers.
 
+Phase 24b makes that binding seam explicitly aspect-aware:
+
+- the route plan carries a route-scoped `aspect_contract()` derived from the
+  admitted declaration contract, not from family labels alone
+- `aspect_fit()` records whether foundational evidence actually satisfied that
+  route-scoped semantic contract
+- `aspect_publication()` records what later receipts and envelopes are allowed
+  to publish from the route-backed slice without widening into unrelated
+  declaration semantics
+
 ## How It Executes
 
 1. define `route_contract()` on the family marker when the default deferred
@@ -252,6 +267,8 @@ route-local binding helpers.
    - the family route contract
    - the caller route intent
    - the retained declaration proof
+   - the foundational evidence aspect coverage against the route-scoped aspect
+     contract
 8. Query returns one planned, deferred, denied, or failed route artifact
 
 The convenience lane `declare_review_progress_describe_and_plan(...)` preserves
@@ -439,6 +456,16 @@ What this example is showing:
 - [Declaration Boundary Receipts](./declaration-boundary-receipts.md) bind
   retained crossing posture from this route artifact instead of reopening route
   planning
+
+## Aspect-aware retrofit note
+
+Phase 24b requires route plans to expose which semantic slices are required for
+route admission, which are preserved into route explanation, and which are
+incompatible with the requested route intent. Later receipts, envelopes, and
+orchestration must bind from that route-scoped semantic contract rather than
+from broad route artifact shape. The shipped route surface now exposes
+`aspect_contract()`, `aspect_fit()`, and `aspect_publication()` for exactly
+that reason.
 
 ## Inspection And Debugging
 

@@ -1,6 +1,8 @@
 use forge_foundational::facade::CanonicalDerivedDigest;
 
 use crate::application::{
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
+    ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationAspectFit,
     ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationReceiptDenialCause,
     ForgeQueryDeclarationRoutePlanDenialCause,
 };
@@ -22,6 +24,10 @@ pub(crate) fn derive_relational_routing_digest<
     truth_claim: ForgeQueryDeclarationRelationalTruthClaim,
     authority_family: ForgeQueryDeclarationRelationalAuthorityFamily,
     binding_surface: &'static str,
+    aspect_contract: &ForgeQueryDeclarationAspectContract,
+    aspect_coverage: &ForgeQueryDeclarationAspectCoverage,
+    aspect_coverage_basis: ForgeQueryDeclarationAspectCoverageBasis,
+    aspect_fit: ForgeQueryDeclarationAspectFit,
     route_cause: Option<ForgeQueryDeclarationRoutePlanDenialCause>,
     receipt_cause: Option<ForgeQueryDeclarationReceiptDenialCause>,
 ) -> String {
@@ -53,6 +59,10 @@ pub(crate) fn derive_relational_routing_digest<
         format!("truth_claim:{}", truth_claim.as_str()),
         format!("authority_family:{}", authority_family.as_str()),
         format!("binding_surface:{binding_surface}"),
+        format!("aspect_contract:{aspect_contract:?}"),
+        format!("aspect_coverage:{aspect_coverage:?}"),
+        format!("aspect_coverage_basis:{aspect_coverage_basis:?}"),
+        format!("aspect_fit:{aspect_fit:?}"),
         format!("evidence_origin:{:?}", envelope.evidence_origin()),
         format!("route_cause:{route_cause:?}"),
         format!("receipt_cause:{receipt_cause:?}"),

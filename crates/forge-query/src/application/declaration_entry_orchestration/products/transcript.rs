@@ -1,9 +1,11 @@
 use crate::application::{
+    ForgeQueryDeclarationBridgeAuthorityAspectSummary,
     ForgeQueryDeclarationEntryOrchestrationCostPosture,
     ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy,
     ForgeQueryDeclarationEntryOrchestrationPlan,
     ForgeQueryDeclarationEntryOrchestrationStageRecord, ForgeQueryDeclarationInput,
-    ForgeQueryDomainEntryMarker,
+    ForgeQueryDeclarationRelationalAuthorityAspectSummary,
+    ForgeQueryDeclarationSignalAuthorityAspectSummary, ForgeQueryDomainEntryMarker,
 };
 use crate::identity::hash_parts;
 
@@ -75,6 +77,24 @@ macro_rules! define_product_transcript {
 
             pub fn cost_posture(&self) -> ForgeQueryDeclarationEntryOrchestrationCostPosture {
                 self.plan.cost_posture()
+            }
+
+            pub fn relational_authority_summary(
+                &self,
+            ) -> &ForgeQueryDeclarationRelationalAuthorityAspectSummary {
+                self.plan.relational_authority_summary()
+            }
+
+            pub fn bridge_authority_summary(
+                &self,
+            ) -> &ForgeQueryDeclarationBridgeAuthorityAspectSummary {
+                self.plan.bridge_authority_summary()
+            }
+
+            pub fn signal_authority_summary(
+                &self,
+            ) -> &ForgeQueryDeclarationSignalAuthorityAspectSummary {
+                self.plan.signal_authority_summary()
             }
         }
 

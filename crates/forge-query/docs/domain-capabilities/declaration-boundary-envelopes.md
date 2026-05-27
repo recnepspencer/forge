@@ -95,8 +95,8 @@ Envelope inspection:
 - `declaration_digest() -> &str`
 - `progression_digest() -> &str`
 - `route_plan_digest() -> &str`
-- `receipt_digest() -> &str`
-- `envelope_digest() -> &str`
+- `receipt_digest() -> &CanonicalDerivedDigest`
+- `envelope_digest() -> &CanonicalDerivedDigest`
 - `binding_target() -> ForgeQueryDeclarationEnvelopeBindingTarget`
 - `foundational_evidence() -> &ForgeQueryDeclarationFoundationalEvidence<D, I>`
 - `receipt() -> &ForgeQueryDeclarationReceipt<D, I>`
@@ -104,6 +104,8 @@ Envelope inspection:
 - `route_denial_cause() -> Option<ForgeQueryDeclarationRoutePlanDenialCause>`
 - `receipt_denial_cause() -> Option<ForgeQueryDeclarationReceiptDenialCause>`
 - `evidence_origin() -> ForgeQueryDeclarationEnvelopeEvidenceOrigin`
+- `aspect_contract() -> &ForgeQueryDeclarationAspectContract`
+- `aspect_publication() -> &ForgeQueryDeclarationAspectPublication`
 - `explain() -> &ForgeQueryDeclarationEnvelopeExplanation`
 
 Checked envelope outcomes:
@@ -153,6 +155,26 @@ relational-routing, bridge-continuation, signal-compatibility, and grouped
 binding work should bind from this envelope identity rather than reopening the
 declaration-entry seam.
 
+Phase 24b makes that public seam explicitly aspect-scoped:
+
+- `aspect_contract()` tells later consumers which semantic crossing contract
+  the envelope is actually publishing
+- `aspect_publication()` tells them which slices are visible and which remain
+  masked at the public boundary
+- the envelope inherits that truth from the retained receipt instead of
+  widening it from foundational evidence on its own
+
+Declaration-entry orchestration, inspection, and readiness now consume that
+published slice directly. They may summarize later relational, bridge, and
+signal posture as retained consequence, but they do not treat those summaries
+as proof that lower-authority routing already ran.
+
+That also means later surfaces must stay honest about absence. If the retained
+envelope alone does not prove one concrete lower-authority truth claim,
+continuation family, or signal execution family, downstream inspection and
+readiness surfaces may summarize the public slice but must not fabricate those
+more specific facts.
+
 ## How It Executes
 
 The advanced lane executes in this order:
@@ -166,6 +188,8 @@ The advanced lane executes in this order:
    - reuses retained foundational evidence through the receipt
    - reuses retained route explanation or route denial through the receipt
    - reuses retained receipt explanation or receipt denial directly
+   - preserves the receipt-scoped aspect publication instead of widening the
+     public story back to broader declaration semantics
    - derives one envelope digest from retained proof and denial topology
 6. Query returns one enveloped, deferred, denied, or failed envelope artifact
 
@@ -189,10 +213,7 @@ use forge_query::facade::{
 
 let receipt = handle.receipt_routes_from_progressed(
     handle.declare_review_and_progress(
-        ReclassifyBoundaryLoop {
-            loop_ref: "loop:facade-west",
-            target_classification: "structural_opening",
-        },
+        geometry_session.reclassify_active_boundary_loop_as_structural_opening()?,
     )?,
 )?;
 
@@ -221,10 +242,9 @@ use forge_query::facade::{
 };
 
 let progressed = handle.progress_declaration(
-    handle.declare_and_review(AttachFaceMaterialAssignment {
-        face_ref: "face:panel-17",
-        material_ref: "material:fire-rated-core",
-    })?,
+    handle.declare_and_review(
+        geometry_session.attach_material_for_active_face_selection()?,
+    )?,
 )?;
 
 let evidence = handle.describe_foundational(
@@ -280,6 +300,11 @@ What this example is showing:
 - the envelope digest is separate from the receipt digest
 - richer orchestration publication may expose more metadata, but it does not
   change the retained envelope truth being published
+
+The main DX point is that the caller is still working from active geometry
+context. Any canonical loop, face, or material identifiers stay inside the
+retained declaration artifact instead of becoming the primary public targeting
+story.
 
 ## How It Relates To Other Features
 
@@ -353,6 +378,15 @@ These surfaces help answer:
 - whether the public envelope preserved the same retained truth as the receipt
 - which retained public crossing identity later continuation-oriented features
   should bind from directly
+
+## Aspect-aware retrofit note
+
+Phase 24b requires envelopes to publish one self-describing aspect-scoped
+crossing story. Later continuation and grouped-authoring surfaces should be
+able to bind from what the envelope really published, including what it masked,
+without reopening the lower receipt or route artifacts just to rediscover the
+semantic slice that crossed. The shipped envelope surface now exposes
+`aspect_contract()` and `aspect_publication()` for that purpose.
 
 ## Anti-Patterns
 

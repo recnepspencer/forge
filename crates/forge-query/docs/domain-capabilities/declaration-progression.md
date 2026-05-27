@@ -122,6 +122,8 @@ Admitted progression inspection:
 - `canonical_declaration() -> &ForgeQueryCanonicalDeclarationArtifact<D, I>`
 - `support_report() -> &ForgeQueryDeclarationFamilySupportReport<D, I::Family>`
 - `legality_contract() -> ForgeQueryDeclarationLegalityContract`
+- `aspect_contract() -> &ForgeQueryDeclarationAspectContract`
+- `reviewed_aspect_coverage() -> &ForgeQueryDeclarationAspectCoverage`
 - `declaration_family_key() -> &'static str`
 - `progression_digest() -> &str`
 - `outcome() -> ForgeQueryDeclarationProgressionOutcomeView`
@@ -192,6 +194,14 @@ can bind from it without inventing a second local binding story, and that same
 retained target seam is the one later continuation and grouped-authoring work
 must extend.
 
+That shared binding target now carries retained aspect contract and reviewed
+aspect coverage alongside progression identity so later phases can prefer
+semantic fit before broader artifact precedence.
+
+Reviewed coverage is carried forward exactly as legality proved it. If a slice
+was masked at support or legality time, progression preserves that masking in
+its retained binding semantics instead of widening it into visible coverage.
+
 ## How It Executes
 
 1. define `progression_contract(...)` on the family marker when the default
@@ -225,7 +235,7 @@ use forge_proof::ProofOutcomeKind;
 use forge_query::facade::ForgeQueryDeclarationProgressionChecked;
 
 match handle.progress_declaration_checked(handle.declare_and_review(
-    SplitEdgeAtMidpoint { edge_ref: "edge:42" },
+    AttachMaterialForActiveFaceSelection,
 )?) {
     ForgeQueryDeclarationProgressionChecked::Admitted(progressed) => {
         assert_eq!(progressed.outcome().kind(), ProofOutcomeKind::Success);
@@ -281,15 +291,15 @@ impl ForgeQueryDomainOperatingContext<GeometryDomain> for CollaborativeWorld {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct SplitEdge;
+struct AttachFaceMaterial;
 
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AttachFaceMaterial {
     type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
     type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
     type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "attach-face-material"
     }
 
     fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
@@ -309,15 +319,22 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct SplitEdgeAtMidpoint {
-    edge_ref: &'static str,
-}
+struct AttachMaterialForActiveFaceSelection;
 
-impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeAtMidpoint {
-    type Family = SplitEdge;
+impl ForgeQueryDeclarationInput<GeometryDomain> for AttachMaterialForActiveFaceSelection {
+    type Family = AttachFaceMaterial;
 
     fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.edge_ref)]
+        vec![
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "selection_scope",
+                "active-face-selection",
+            ),
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "progression_intent",
+                "material-attachment-from-current-selection",
+            ),
+        ]
     }
 }
 
@@ -328,7 +345,7 @@ let handle = query
     .validate()?
     .admit()?;
 
-let legal = handle.declare_and_review(SplitEdgeAtMidpoint { edge_ref: "edge:42" })?;
+let legal = handle.declare_and_review(AttachMaterialForActiveFaceSelection)?;
 let recipe = handle.declaration_progression_recipe(legal);
 assert_eq!(recipe.stage(), RecipeStageKind::Unresolved);
 
@@ -343,6 +360,16 @@ What this example is showing:
 - the lower-level recipe lane and the convenience lane describe the same
   proof-bearing boundary
 - world-sensitive progression posture is carried through an explicit contract
+- the public geometry story is current selection and current context, not raw
+  identifier passing
+
+## Aspect-aware retrofit note
+
+Phase 24b makes progression the first retained aspect-aware declaration-entry
+artifact later product binding can trust. `binding_target()` is no longer just
+about progression digest and family identity. It must carry aspect-qualified
+admissible truth so route, receipt, envelope, and orchestration phases can
+narrow semantically instead of reconstructing the same granularity locally.
 
 ## How It Relates To Other Features
 

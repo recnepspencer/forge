@@ -100,6 +100,12 @@ Support-report inspection:
 - `ForgeQueryDeclarationBridgeRoutingSupportRow::continuation_mode()`
 - `ForgeQueryDeclarationBridgeRoutingSupportRow::truth_context()`
 - `ForgeQueryDeclarationBridgeRoutingSupportRow::family()`
+- `ForgeQueryDeclarationBridgeRoutingSupportRow::required_aspect_slice()`
+- `ForgeQueryDeclarationBridgeRoutingSupportRow::available_aspect_slice()`
+- `ForgeQueryDeclarationBridgeRoutingSupportRow::aspect_fit()`
+- `ForgeQueryDeclarationBridgeRoutingSupportRow::aspect_mismatch()`
+- `ForgeQueryDeclarationBridgeRoutingSupportRow::mapped_aspect_slice()`
+- `ForgeQueryDeclarationBridgeRoutingSupportRow::mapping_fit()`
 - `ForgeQueryDeclarationBridgeRoutingSupportRow::status()`
 - `ForgeQueryDeclarationBridgeRoutingSupportRow::reason()`
 
@@ -150,6 +156,12 @@ That means the routing artifact is not a live bridge runtime. It is the
 proof-bearing Query boundary artifact that says which bridge continuation lane
 this declaration now binds to.
 
+The important Phase 24b shift is that bridge routing now starts from the
+envelope's published bridge-relevant slice and then freezes what actually
+mapped into the continuation request. "Available on the envelope" and
+"successfully mapped into bridge continuation semantics" are no longer treated
+as the same fact.
+
 ## How It Executes
 
 The advanced lane executes in this order:
@@ -161,6 +173,8 @@ The advanced lane executes in this order:
    - verifies the envelope is covered crossing truth
    - verifies the retained route plan still includes a bridge slice
    - verifies the envelope belongs to the current admitted handle and world
+   - narrows the public envelope contract to the bridge slice that is actually
+     eligible for continuation
    - reads the declaration family's bridge continuation contract
    - binds that contract to one real lower surface family:
      - `forge_runtime_bridge::facade::BridgeRouteRequest`
@@ -194,7 +208,7 @@ use forge_query::facade::{
 
 let envelope = handle.envelope_routes_from_progressed(
     handle.declare_review_and_progress(
-        SplitEdgeAtMidpoint { edge_ref: "edge:42" },
+        geometry_session.prepare_preview_for_active_face_selection()?,
     )?,
 )?;
 
@@ -218,7 +232,7 @@ checked boundary.
 ```rust
 let routing = handle
     .declare_review_progress_describe_plan_receipt_envelope_and_route_bridge_continuation(
-        SplitEdgeAtMidpoint { edge_ref: "edge:42" },
+        geometry_session.prepare_preview_for_active_face_selection()?,
     )?;
 
 assert_eq!(
@@ -241,8 +255,30 @@ What this example is showing:
 - the routed artifact tells you which continuation request was selected
 - the routed artifact tells you which lower bridge family now owns
   continuation semantics
+- the routed artifact distinguishes broad envelope coverage from the narrower
+  `mapped_aspects()` slice that actually entered bridge routing
 - later phases can keep using retained proof instead of rediscovering route,
   receipt, or envelope meaning
+
+## Aspect-aware retrofit note
+
+Phase 24b requires bridge continuation routing to expose mapped, missing,
+partial, and ambiguous aspect sets explicitly. Bridge mapping truth is already
+real in the bridge layer; later continuation work should consume that retained
+mapping posture from Query rather than rebuilding it locally from the envelope
+and bridge registry all over again. In the shipped `13` retrofit, bridge
+routing now freezes `aspect_contract()`, `aspect_coverage()`,
+`aspect_coverage_basis()`, `aspect_fit()`, `mapped_aspects()`, and
+`mapping_fit()` on the routed artifact before later continuation code touches
+it. Support rows expose that same split so a family can be bridge-capable in
+general while still surfacing `AuthorityAspectGap`, ambiguity, or partial
+mapping at the semantic-slice level.
+
+That same split now flows into declaration-entry readiness and inspection.
+Readiness may downgrade the bridge row from broad family admission to
+`Unsupported` when the retained envelope slice does not map cleanly, and denied
+inspection posture exposes continuation metadata only when the denied bridge
+artifact actually proved it.
 
 ## How It Relates To Other Features
 
@@ -268,6 +304,12 @@ Use these surfaces when inspecting a routed artifact:
 - `truth_context()`
 - `continuation_family()`
 - `binding()`
+- `aspect_contract()`
+- `aspect_coverage()`
+- `aspect_coverage_basis()`
+- `aspect_fit()`
+- `mapped_aspects()`
+- `mapping_fit()`
 - `declaration_family_key()`
 - `handle_identity_digest()`
 - `operating_context_identity_digest()`

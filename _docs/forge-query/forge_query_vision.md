@@ -318,6 +318,8 @@ What this enables:
 - **AI execution contexts** can implicitly bind to a speculative branch or time window
 - contribution authoring and later declaration/continuation ergonomics can
   reuse the same binding substrate instead of inventing local glue families
+- declaration-entry and later continuation binding should narrow by semantic
+  aspect contract, not by raw target-string folklore or broad artifact class
 - eradication of explicit "data fetching" and "loading/error states" from
   consuming code where the binding contract already proves what can be safely
   resolved

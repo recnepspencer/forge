@@ -122,6 +122,11 @@ That means the routing artifact is not a live relational runtime. It is the
 proof-bearing Query boundary artifact that says which relational authority lane
 this declaration now binds to.
 
+The important Phase 24b shift is that relational routing now binds from the
+envelope's published semantic slice, not from broad declaration identity
+alone. Query is answering, "which relational truth slice is actually safe to
+lower right now?"
+
 ## How It Executes
 
 The advanced lane executes in this order:
@@ -131,6 +136,8 @@ The advanced lane executes in this order:
 3. Query:
    - verifies the envelope is covered crossing truth
    - verifies the retained route plan still includes a relational slice
+   - narrows the declaration contract to the relational slice the envelope is
+     actually publishing
    - reads the declaration family's relational truth contract
    - binds that truth contract to one real lower surface family:
      - `forge_relational::facade::runtime`
@@ -164,7 +171,7 @@ use forge_query::facade::{
 
 let envelope = handle.envelope_routes_from_progressed(
     handle.declare_review_and_progress(
-        SplitEdgeAtMidpoint { edge_ref: "edge:42" },
+        geometry_session.attach_material_for_active_face_selection()?,
     )?,
 )?;
 
@@ -188,7 +195,7 @@ hiding the checked boundary.
 ```rust
 let routing = handle
     .declare_review_progress_describe_plan_receipt_envelope_and_route_relational_truth(
-        SplitEdgeAtMidpoint { edge_ref: "edge:42" },
+        geometry_session.attach_material_for_active_face_selection()?,
     )?;
 
 assert_eq!(
@@ -207,8 +214,30 @@ What this example is showing:
 - the routed artifact tells you which relational truth claim was selected
 - the routed artifact tells you which lower authority family now owns truth
   semantics
+- the routed artifact freezes the envelope-backed aspect slice, coverage basis,
+  and fit before relational binding happens
 - later phases can keep using retained proof instead of rediscovering route or
   receipt meaning
+
+## Aspect-aware retrofit note
+
+Phase 24b requires relational routing to align directly with relational
+`required_aspects()` and aspect-filtered truth access. Query should not invent
+its own broader local notion of relational truth here. Routing success and
+denial must expose which relational semantic slices were required, covered, or
+missing so later phases can trust the routed artifact without rediscovering
+relational granularity themselves. In the shipped `12` retrofit, relational
+routing now consumes the envelope's published aspect slice first, freezes one
+routed `aspect_contract()`, `aspect_coverage()`, `aspect_coverage_basis()`,
+and `aspect_fit()`, and only then selects the lower relational binding.
+Support rows surface that same posture ahead of time, so a family can be
+admitted structurally while still reporting an `AuthorityAspectGap` or other
+slice-level mismatch before routing succeeds.
+
+The same retained-truth rule now carries through declaration-entry inspection:
+if a denied relational-routing artifact did not actually prove one concrete
+truth claim or relational authority family, the inspection posture keeps those
+fields empty instead of synthesizing a best guess from family posture alone.
 
 ## How It Relates To Other Features
 
@@ -233,6 +262,10 @@ Use these surfaces when inspecting a routed artifact:
 - `truth_claim()`
 - `authority_family()`
 - `binding()`
+- `aspect_contract()`
+- `aspect_coverage()`
+- `aspect_coverage_basis()`
+- `aspect_fit()`
 - `declaration_family_key()`
 - `handle_identity_digest()`
 - `operating_context_identity_digest()`
@@ -250,6 +283,13 @@ Use these surfaces when inspecting a routed artifact:
 
 Use `relational_truth_support::<I>()` when you need the family-scoped readiness
 row before attempting routing.
+
+That support row is also where you inspect:
+
+- `required_aspect_slice()`
+- `available_aspect_slice()`
+- `aspect_fit()`
+- `aspect_mismatch()`
 
 ## Anti-Patterns
 

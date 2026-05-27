@@ -2660,53 +2660,48 @@ orchestration products without turning them into hidden internals.
 ### Phase 24 Addendum: Aspect Contract And Granularity Extraction
 
 This addendum retrofits aggressive aspect-aware contract law across the
-already-closed declaration-entry and product-target boundaries.
+already-closed declaration-entry and product-target boundaries. Its job is not
+to sprinkle aspect metadata over the same old retained-artifact story. Its job
+is to make the declaration-entry pipeline speak the same semantic granularity,
+masking, performance, and narrowing truth that runtime, relational, bridge,
+and signal already use.
 
-The hard problem is not merely "add aspect metadata." The hard problem is that
-the surrounding Forge stack already treats aspects as real semantic,
-performance, masking, invalidation, and bridge-mapping contracts, while the
-current `9.3.8` declaration-entry seam still leans too heavily on retained
-artifact identity, admitted-world identity, family posture, and typed
-denial/refusal posture alone.
+The guiding principle for every section below is:
 
-That is good enough for correctness at coarse grain, but it leaves real value
-on the table:
+- what do aspects need to provide here for later phases to live up to the
+  highest DX promised in `forge_query_vision.md`?
 
-- ambiguity that could have been denied or narrowed by aspect fit remains a
-  later binding problem
-- policy/scope/invariant enforcement that could ride explicit aspect contracts
-  remains broader than it needs to be
-- materialization richness stays profile-oriented without saying which semantic
-  slices are actually widened or elided
-- later continuation, grouped authoring, and family ergonomics would be forced
-  to reconstruct aspect granularity locally even though the runtime, bridge,
-  relational, and signal layers already own that vocabulary
+That means later declaration-entry, continuation, grouped-authoring, and
+binding surfaces must be able to ask Query for the current admissible artifact
+that satisfies a semantic aspect contract instead of guessing from broad
+artifact class, source-order folklore, or raw geometry target strings.
 
-This addendum therefore lands before Phase 25 so the extractor/resolver work
-inherits an already-shipped aspect contract substrate rather than trying to
-invent both at once.
+**Shared contract**
 
-**Required Query artifacts**
+This addendum lands one shared declaration-entry aspect vocabulary before Phase
+25 widens extractors and resolvers:
 
-- one Query-owned declaration-entry aspect contract vocabulary that can express
-  required, preserved, published, masked, and incompatible semantic slices
-  across the declaration-entry seam
-- one typed aspect-coverage story on retained declaration-entry artifacts:
-  progression, foundational evidence, route plans, receipts, envelopes,
-  relational-routing, bridge-routing, and signal-compatibility artifacts
-- one aspect-fit / aspect-mismatch taxonomy for later binding and
-  continuation-facing denial surfaces
-- one aspect-aware materialization description for lean/support-ready/rich
-  publication so cost and richness can speak in semantic slices rather than
-  only profile names
-- one aspect-aware support/readiness projection where family-scoped support can
-  remain family-first but still disclose narrower aspect-sensitive posture when
-  it is the real gating truth
+- `required`: slices that must be present for meaningful binding or progress
+- `preserved`: slices carried forward unchanged by a retained artifact
+- `published`: slices intentionally exposed on descriptive/public artifacts
+- `masked`: slices intentionally elided or withheld by policy or publication
+- `incompatible`: slices that make a candidate or next step semantically
+  non-bindable
+
+It also lands one shared fit taxonomy:
+
+- `Exact`
+- `CompatibleSuperset`
+- `Partial`
+- `MissingRequired`
+- `Conflict`
+
+These aspect contracts are load-bearing. They do not replace admitted-world
+identity, family posture, route/receipt/envelope class, or authority lanes.
+They compose with those axes so later phases can narrow semantically without
+reopening the whole proof chain.
 
 **Grounding references**
-
-This addendum is grounded in the already-shipped docs and neighboring aspect
-surfaces, not in speculative future folklore:
 
 - [Declaration Family Capability Matrix](../../crates/forge-query/docs/domain-capabilities/declaration-family-capability-matrix.md)
 - [Declaration Legality](../../crates/forge-query/docs/domain-capabilities/declaration-legality.md)
@@ -2723,122 +2718,402 @@ surfaces, not in speculative future folklore:
 - [forge_query_vision.md](./forge_query_vision.md)
 - [relational_architecture.md](../forge-relational/relational_architecture.md)
 
-**Requirements**
+#### Phase 5: Declaration Family Capability Matrix
 
-- the addendum must not reinterpret aspects as optional diagnostics. In this
-  milestone family, aspects are load-bearing contracts for granularity,
-  invalidation, masking, performance, and later binding specificity
-- declaration-entry aspect contracts must remain separate from:
-  - admitted-world identity
-  - family taxonomy posture
-  - route/receipt/envelope semantic class
-  - authority-lane ownership
-  They compose with those axes; they do not replace them
-- aspect-aware narrowing must prefer explicit semantic fit over folklore source
-  ordering whenever multiple candidate retained artifacts or context binders
-  could satisfy the same later request
-- aspect-sensitive denial must remain typed and inspectable rather than being
-  flattened into generic unsupported, denied, or failed posture
-- later policy masking, scope narrowing, and invariant posture must be able to
-  say "this surface is admitted broadly, but this semantic slice is denied,
-  masked, or unsupported" without forcing later phases to rebuild a second
-  aspect vocabulary
+**Why aspects matter here**
 
-**Per-phase benefit map**
+Phase 5 already freezes family-scoped support and witness posture, but it still
+answers at family breadth more often than semantic breadth. That leaves later
+phases with a coarse "family admitted" fact when the real truth is usually
+"family admitted, but only for some semantic slices."
 
-This addendum explicitly strengthens the following shipped boundaries:
+**Required aspect contract**
 
-- Phase 5, from [Declaration Family Capability Matrix](../../crates/forge-query/docs/domain-capabilities/declaration-family-capability-matrix.md):
-  the family support matrix gains aspect-qualified capability posture where a
-  family is broadly admitted but only some semantic slices are structurally
-  available, permissioned, or invariant-safe
-- Phase 6, from [Declaration Legality](../../crates/forge-query/docs/domain-capabilities/declaration-legality.md):
-  legality evidence gains explicit aspect-sensitive structural scope so later
-  phases know which semantic slices were actually reviewed, not just that a
-  broad declaration artifact passed legality
-- Phase 7, from [Declaration Progression](../../crates/forge-query/docs/domain-capabilities/declaration-progression.md):
-  progression carries forward aspect-qualified admissible truth, which makes
-  `binding_target()` and later product binding sharper than plain progression
-  digest matching
-- Phase 8, from [Declaration Foundational Evidence](../../crates/forge-query/docs/domain-capabilities/declaration-foundational-evidence.md):
-  foundational evidence learns to describe which semantic slices are present,
-  elided, widened, or masked under a materialization profile instead of only
-  naming a descriptive profile family
-- Phase 9, from [Declaration Route Plans](../../crates/forge-query/docs/domain-capabilities/declaration-route-plan.md):
-  route plans can express which aspects are required for route admission,
-  preserved in route explanation, or incompatible with a requested route
-  intent, improving both denial clarity and later binding specificity
-- Phase 10, from [Declaration Boundary Receipts](../../crates/forge-query/docs/domain-capabilities/declaration-boundary-receipts.md):
-  receipts can say which semantic slices the crossing posture actually covers,
-  rather than exposing one coarse crossing claim over the whole retained route
-  artifact
-- Phase 11, from [Declaration Boundary Envelopes](../../crates/forge-query/docs/domain-capabilities/declaration-boundary-envelopes.md):
-  envelopes can publish one public crossing story that remains self-describing
-  at aspect granularity, making later continuation or grouped authoring bind
-  to what really crossed instead of to broad artifact shape alone
-- Phase 12, from [Declaration Relational Truth Routing](../../crates/forge-query/docs/domain-capabilities/declaration-relational-truth-routing.md):
-  relational routing can align more directly with relational
-  `required_aspects()` / aspect-filtered truth access, especially for scope,
-  invariants, history, and merge-strategy-sensitive truth claims
-- Phase 13, from [Declaration Bridge Continuation Routing](../../crates/forge-query/docs/domain-capabilities/declaration-bridge-continuation-routing.md):
-  bridge routing can surface mapped, missing, ambiguous, or partially covered
-  aspect sets explicitly instead of leaving later continuation binding to
-  rediscover bridge aspect-map truth
-- Phase 14, from [Declaration Signal Compatibility](../../crates/forge-query/docs/domain-capabilities/declaration-signal-compatibility.md):
-  signal compatibility can speak in dependency aspects, produced aspects,
-  basis-sensitive aspect requirements, and explicit incompatibility at the
-  semantic slice level rather than only family-level compatibility posture
-- Phase 23, from [Declaration Entry Orchestration](../../crates/forge-query/docs/domain-capabilities/declaration-entry-orchestration.md):
-  materialization tiers and cost posture can say which semantic slices are
-  widened, support-ready, elided, or masked, improving both performance
-  honesty and policy clarity
-- Phase 24, from [Declaration Entry Orchestration](../../crates/forge-query/docs/domain-capabilities/declaration-entry-orchestration.md) plus
-  [Declaration Progression](../../crates/forge-query/docs/domain-capabilities/declaration-progression.md),
-  [Declaration Route Plans](../../crates/forge-query/docs/domain-capabilities/declaration-route-plan.md),
-  [Declaration Boundary Receipts](../../crates/forge-query/docs/domain-capabilities/declaration-boundary-receipts.md), and
-  [Declaration Boundary Envelopes](../../crates/forge-query/docs/domain-capabilities/declaration-boundary-envelopes.md):
-  progressed product-target orchestration can choose between candidates using
-  aspect fit and aspect coverage before source-order precedence, which is the
-  exact class of silent binding bug this addendum is meant to prevent
+- support rows must distinguish broad family admission from narrower
+  aspect-qualified availability
+- support must be able to expose slices that are structurally available,
+  permission-limited, invariant-sensitive, masked, or unsupported
+- later phases must be able to trust family support as the first support gate
+  without pretending it already proved every slice they need
 
-**DX target**
+**Implementation changes**
 
-- later binding and continuation code should be able to say "bind the current
-  retained artifact that satisfies this aspect contract" instead of "guess
-  which broad artifact the user probably meant"
-- advanced users should gain finer scope, permission, invariant, and
-  materialization control without giving up the compact ordinary lanes
+- support rows and witness-readiness projections gain aspect-qualified support
+  posture
+- family-scoped readiness remains the public outer shape, but rows may report a
+  narrower semantic slice as unsupported, masked, or denied
+- the declaration-entry aspect vocabulary becomes visible this early so later
+  phases do not mint local support dialects
 
-**Documentation obligation**
+**Documentation updates**
 
-- yes; this addendum must update both milestone sequencing and feature docs so
-  the declaration-entry story teaches one aspect-aware semantic-granularity
-  contract rather than leaving aspects to the runtime-only mental model
+- update the capability-matrix doc to treat dynamic geometry context as the
+  primary public mental model
+- keep canonical family strings only as low-level internal declaration facts,
+  not as the main targeting story
 
-**Acceptance evidence**
+**Acceptance criteria**
+
+- support reports can distinguish "family admitted" from "requested slice not
+  supported"
+- later legality/progression docs consume support as a family-first but not
+  slice-complete gate
+- adjacent review: [Declaration Family Taxonomy](../../crates/forge-query/docs/domain-capabilities/declaration-family-taxonomy.md),
+  [Declaration Legality](../../crates/forge-query/docs/domain-capabilities/declaration-legality.md)
+
+#### Phase 6: Declaration Legality
+
+**Why aspects matter here**
+
+Legality currently proves that a broad declaration artifact passed structural
+review. Phase 24b requires legality to say which semantic slices were actually
+reviewed so later phases do not over-trust a coarse legality success.
+
+**Required aspect contract**
+
+- legality evidence records reviewed slices explicitly
+- legality may deny on aspect-sensitive incompleteness or conflict where that
+  is the real failure
+- later phases may trust legality scope without reopening broad declaration
+  meaning
+
+**Implementation changes**
+
+- legality evidence gains aspect-sensitive structural scope
+- legality denial surfaces may carry aspect-sensitive sub-causes without
+  flattening into generic unsupported or denied posture
+
+**Documentation updates**
+
+- update the legality doc so its examples teach dynamic geometry context rather
+  than raw target lookup
+- make explicit that legality certifies a reviewed semantic slice, not just a
+  whole declaration bag
+
+**Acceptance criteria**
+
+- legality success and denial are inspectable in semantic-slice terms
+- progression and neighboring docs consume legality scope as retained proof
+- adjacent review: [Canonical Domain Declarations](../../crates/forge-query/docs/domain-capabilities/canonical-domain-declarations.md),
+  [Declaration Progression](../../crates/forge-query/docs/domain-capabilities/declaration-progression.md)
+
+#### Phase 7: Declaration Progression
+
+**Why aspects matter here**
+
+Progression is the first retained proof surface later product binding consumes.
+If progression stays digest-first and aspect-blind, later route/receipt/
+envelope/orchestration work inherits ambiguity that should already have been
+carried structurally here.
+
+**Required aspect contract**
+
+- progression carries aspect-qualified admissible truth
+- `binding_target()` exposes aspect contract and coverage
+- later product binding may narrow by aspect fit rather than only progression
+  identity or family label
+
+**Implementation changes**
+
+- progressed artifacts gain required/preserved/published/masked/incompatible
+  slice posture
+- the shared binding seam must treat progressed truth as aspect-aware, not only
+  digest-aware
+
+**Documentation updates**
+
+- update the progression doc to make aspect-qualified admissible truth explicit
+- update closeout/handoff language so later phases are described as consumers
+  of progressed aspect truth rather than rediscoverers of it
+
+**Acceptance criteria**
+
+- progressed artifacts expose contract and coverage needed by later binding
+- later product-target surfaces can narrow or deny by aspect fit
+- adjacent review: [Declaration Legality](../../crates/forge-query/docs/domain-capabilities/declaration-legality.md),
+  [Declaration Foundational Evidence](../../crates/forge-query/docs/domain-capabilities/declaration-foundational-evidence.md),
+  [milestone-9.3.7-closeout.md](./milestone-9.3.7-closeout.md)
+
+#### Phase 8: Declaration Foundational Evidence
+
+**Why aspects matter here**
+
+Foundational evidence is where descriptive publication begins. If it only names
+profiles and richness classes, later phases cannot tell which semantic slices
+were widened, elided, or masked.
+
+**Required aspect contract**
+
+- foundational evidence describes present, widened, elided, and masked slices
+- publication breadth becomes semantic-slice honest rather than profile-name
+  honest
+
+**Implementation changes**
+
+- foundational evidence and related materialization helpers expose one aspect
+  publication contract
+- retained explanations may say what was intentionally not published
+
+**Documentation updates**
+
+- update the foundational-evidence doc so materialization is described in
+  aspect terms rather than only richness terms
+
+**Acceptance criteria**
+
+- foundational evidence exposes aspect publication breadth
+- later route and materialization phases consume the same vocabulary
+- adjacent review: [Declaration Progression](../../crates/forge-query/docs/domain-capabilities/declaration-progression.md),
+  [Aftermath Review Support Eligibility And Materialization](../../crates/forge-query/docs/domain-capabilities/aftermath/aftermath-review-support-eligibility-and-materialization.md),
+  [Declaration Route Plans](../../crates/forge-query/docs/domain-capabilities/declaration-route-plan.md)
+
+#### Phase 9: Declaration Route Plans
+
+**Why aspects matter here**
+
+Route plans are the first place later phases start making "which path is
+meaningful?" decisions. That choice is often really about semantic slice
+fitness, not merely route family or retained identity.
+
+**Required aspect contract**
+
+- route plans expose required, preserved, and incompatible slices
+- route explanation preserves the route-relevant semantic slice
+- route denial may be aspect-sensitive when that is the real reason
+
+**Implementation changes**
+
+- route-plan artifacts gain route-relevant aspect contract and fit posture
+
+**Documentation updates**
+
+- update the route-plan doc with explicit aspect-aware admission and explanation
+
+**Acceptance criteria**
+
+- route artifacts expose route-relevant aspect truth
+- later receipts and envelopes consume route slices rather than broad route
+  shape
+- adjacent review: [Declaration Foundational Evidence](../../crates/forge-query/docs/domain-capabilities/declaration-foundational-evidence.md),
+  [Declaration Boundary Receipts](../../crates/forge-query/docs/domain-capabilities/declaration-boundary-receipts.md)
+
+#### Phase 10: Declaration Boundary Receipts
+
+**Why aspects matter here**
+
+Receipts are crossing claims. If they are coarse, later phases bind from a
+broad "crossed" story even when only some semantic slices truly crossed.
+
+**Required aspect contract**
+
+- receipts expose the slices the crossing posture actually covers
+- receipt truth may not overclaim beyond route-backed semantic coverage
+
+**Implementation changes**
+
+- receipt artifacts carry aspect-scoped crossing coverage
+
+**Documentation updates**
+
+- update the receipt doc so receipts are described as scoped crossing claims
+
+**Acceptance criteria**
+
+- later binding can distinguish covered slices from adjacent or masked slices
+- adjacent review: [Declaration Route Plans](../../crates/forge-query/docs/domain-capabilities/declaration-route-plan.md),
+  [Declaration Boundary Envelopes](../../crates/forge-query/docs/domain-capabilities/declaration-boundary-envelopes.md)
+
+#### Phase 11: Declaration Boundary Envelopes
+
+**Why aspects matter here**
+
+Envelopes are the public crossing artifact. Later continuation and grouped
+authoring should be able to bind from the published meaning honestly instead of
+reopening lower artifacts to rediscover which semantic slices crossed.
+
+**Required aspect contract**
+
+- envelopes expose published and masked slices
+- public crossing meaning stays self-describing at aspect granularity
+
+**Implementation changes**
+
+- envelope artifacts gain one public publication contract over semantic slices
+
+**Documentation updates**
+
+- update the envelope doc to describe aspect-scoped public meaning explicitly
+
+**Acceptance criteria**
+
+- later continuation can bind from envelope meaning without reopening route or
+  receipt truth
+- adjacent review: [Declaration Boundary Receipts](../../crates/forge-query/docs/domain-capabilities/declaration-boundary-receipts.md),
+  [Declaration Entry Orchestration](../../crates/forge-query/docs/domain-capabilities/declaration-entry-orchestration.md)
+
+#### Phase 12: Declaration Relational Truth Routing
+
+**Why aspects matter here**
+
+Relational already owns real aspect-filtered truth access. Query should route
+into that surface using the same semantic slice vocabulary instead of faking a
+broader local notion of relational truth.
+
+**Required aspect contract**
+
+- routing aligns with relational `required_aspects()`
+- routing exposes required, covered, and missing relational slices
+- scope, invariant, history, and merge-sensitive truth claims become
+  aspect-scoped
+
+**Implementation changes**
+
+- relational-routing artifacts expose relational aspect requirements and
+  coverage
+
+**Documentation updates**
+
+- update the relational-routing doc to connect directly to relational
+  projection and aspect-filtered truth access
+
+**Acceptance criteria**
+
+- routing success/denial aligns with relational aspect contracts
+- adjacent review: [Declaration Boundary Envelopes](../../crates/forge-query/docs/domain-capabilities/declaration-boundary-envelopes.md),
+  [Declaration Signal Compatibility](../../crates/forge-query/docs/domain-capabilities/declaration-signal-compatibility.md),
+  [relational_architecture.md](../forge-relational/relational_architecture.md)
+
+#### Phase 13: Declaration Bridge Continuation Routing
+
+**Why aspects matter here**
+
+Bridge mapping ambiguity is already real in the bridge layer. Query should not
+make later continuation phases rediscover mapped vs missing vs partial aspect
+coverage themselves.
+
+**Required aspect contract**
+
+- bridge routing exposes mapped, missing, partial, and ambiguous aspect sets
+- bridge mapping becomes retained semantic truth rather than hidden backend
+  detail
+
+**Implementation changes**
+
+- bridge-routing artifacts carry aspect-map coverage posture explicitly
+
+**Documentation updates**
+
+- update the bridge-routing doc so later continuation work is described as a
+  consumer of shipped mapping truth
+
+**Acceptance criteria**
+
+- mapping ambiguity or partial coverage is typed and observable
+- adjacent review: [Declaration Relational Truth Routing](../../crates/forge-query/docs/domain-capabilities/declaration-relational-truth-routing.md),
+  [Declaration Signal Compatibility](../../crates/forge-query/docs/domain-capabilities/declaration-signal-compatibility.md)
+
+#### Phase 14: Declaration Signal Compatibility
+
+**Why aspects matter here**
+
+Signal is already deeply aspect-aware. Compatibility that stays family-first
+and aspect-vague underuses the real semantics the signal layer already exposes.
+
+**Required aspect contract**
+
+- compatibility surfaces dependency aspects, produced aspects, and
+  basis-sensitive aspect requirements
+- aspect-level incompatibility becomes explicit and typed
+
+**Implementation changes**
+
+- signal-compatibility artifacts carry semantic-slice compatibility posture
+
+**Documentation updates**
+
+- update the signal-compatibility doc to align with runtime/signal aspect
+  vocabulary rather than a local approximation
+
+**Acceptance criteria**
+
+- compatibility denial can occur at semantic-slice level
+- adjacent review: [Declaration Bridge Continuation Routing](../../crates/forge-query/docs/domain-capabilities/declaration-bridge-continuation-routing.md),
+  [Aspects And Authority Lanes](../../crates/forge-query/docs/modeling/aspects-and-authority-lanes.md)
+
+#### Phase 23: Materialization / Aftermath
+
+**Why aspects matter here**
+
+Lean/support-ready/full-descriptive tiers already exist, but they currently say
+too much in terms of profile shape and too little in terms of semantic slices.
+
+**Required aspect contract**
+
+- tiers define semantic-slice widening, masking, and elision explicitly
+- cost posture remains honest about what truth is actually being published
+
+**Implementation changes**
+
+- materialization and aftermath publication surfaces expose semantic publication
+  breadth
+
+**Documentation updates**
+
+- update aftermath/materialization docs to align with foundational-evidence and
+  orchestration terminology
+
+**Acceptance criteria**
+
+- tiers are comparable in aspect-contract terms without changing semantic truth
+- adjacent review: [Declaration Foundational Evidence](../../crates/forge-query/docs/domain-capabilities/declaration-foundational-evidence.md),
+  [Declaration Entry Orchestration](../../crates/forge-query/docs/domain-capabilities/declaration-entry-orchestration.md)
+
+#### Phase 24: Declaration Entry Orchestration
+
+**Why aspects matter here**
+
+This is where candidate choice becomes user-visible. If orchestration prefers
+source order or broad artifact class before semantic slice fit, it recreates
+the same ambiguity bugs this addendum is meant to prevent.
+
+**Required aspect contract**
+
+- orchestration candidate selection prefers aspect fit and coverage before
+  fallback precedence
+- plans and transcripts expose aspect-contract digests and narrowing reasons
+- masked slices may not count as successful binding coverage
+
+**Implementation changes**
+
+- orchestration plans and transcripts carry aspect-contract and fit explanation
+- ambiguity denies when best-fit candidates tie
+
+**Documentation updates**
+
+- update orchestration docs so dynamic context binding is the primary geometry
+  mental model
+- keep low-level canonical strings as internals, not as the ideal DX story
+
+**Acceptance criteria**
+
+- orchestration resolves or denies by best aspect fit
+- transcripts explain why a candidate won or why ambiguity denied
+- adjacent review: [Declaration Route Plans](../../crates/forge-query/docs/domain-capabilities/declaration-route-plan.md),
+  [Declaration Boundary Receipts](../../crates/forge-query/docs/domain-capabilities/declaration-boundary-receipts.md),
+  [Declaration Boundary Envelopes](../../crates/forge-query/docs/domain-capabilities/declaration-boundary-envelopes.md),
+  [milestone-9.3.8-closeout.md](./milestone-9.3.8-closeout.md),
+  [forge_query_vision.md](./forge_query_vision.md)
+
+**Shared acceptance evidence**
 
 - parity suites proving aspect-qualified and non-qualified paths converge when
-  they are semantically identical and diverge observably when aspect contracts
-  differ
-- hostile tests proving candidate ambiguity denies or resolves by aspect fit
-  rather than folklore ordering
-- hostile tests proving masked or unsupported semantic slices never enter
-  later retained binding, route/receipt/envelope, relational-routing,
-  bridge-routing, or signal-compatibility success lanes
-- materialization/cost tests proving lean/support-ready/rich publication can
-  narrow or widen aspect contracts without changing declaration-entry semantic
-  truth
-
-**Open questions before implementation**
-
-- what is the minimum shared declaration-entry aspect contract vocabulary that
-  can talk to relational `required_aspects()`, bridge aspect mappings, signal
-  dependency/produced aspects, and Query materialization without inventing
-  four local dialects?
-- which aspect mismatches deserve distinct public denial families versus being
-  represented as sub-causes on existing denial surfaces?
-- where should aspect-qualified binding specificity live so later Phase 25
-  extractors/resolvers can reuse it directly instead of copying heuristics?
+  semantics are identical and diverge observably when contracts differ
+- hostile tests proving ambiguity resolves or denies by aspect fit rather than
+  folklore ordering
+- hostile tests proving masked or unsupported slices never leak into later
+  retained binding success
+- materialization and cost tests proving publication breadth may change without
+  changing declaration-entry semantic truth
 
 ### Phase 25: Typed Binding / Extractor / Resolver Boundary
 

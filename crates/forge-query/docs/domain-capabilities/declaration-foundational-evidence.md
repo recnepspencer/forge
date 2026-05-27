@@ -98,6 +98,10 @@ Foundational evidence inspection:
 - `attachment_bundle() -> &FoundationalMaterializedBoundaryEvidenceAttachmentBundle`
 - `attachment_bundle_digest() -> &CanonicalDerivedDigest`
 - `materialization_profile() -> FoundationalBoundaryEvidenceMaterializationProfile`
+- `aspect_contract() -> &ForgeQueryDeclarationAspectContract`
+- `aspect_coverage() -> &ForgeQueryDeclarationAspectCoverage`
+- `aspect_coverage_basis() -> ForgeQueryDeclarationAspectCoverageBasis`
+- `aspect_publication() -> &ForgeQueryDeclarationAspectPublication`
 - `subject() -> &ForgeQueryDeclarationFoundationalEvidenceInput<D, I>`
 
 Construction-denial inspection:
@@ -118,6 +122,13 @@ Materialization profiles:
 - `FoundationalBoundaryEvidenceMaterializationProfile::FullDescriptiveRichness`
 - `FoundationalBoundaryEvidenceMaterializationProfile::ElideDiagnostics`
 - `FoundationalBoundaryEvidenceMaterializationProfile::ElideSupportAndDiagnostics`
+
+Aspect-publication inspection:
+
+- `aspect_publication().present()`
+- `aspect_publication().widened()`
+- `aspect_publication().elided()`
+- `aspect_publication().masked()`
 
 ## Core Mental Model
 
@@ -158,6 +169,33 @@ same retained truth with a leaner materialized bundle or when another surface,
 such as declaration-entry orchestration, has already chosen the lean
 foundational default for you.
 
+Under the Phase 24b retrofit, those profiles now carry explicit semantic
+publication meaning:
+
+- `ElideSupportAndDiagnostics` publishes only the required semantic slices that
+  were visibly covered
+- `ElideDiagnostics` may widen publication to preserved support-relevant slices
+- `FullDescriptiveRichness` may widen publication again to intentionally
+  published descriptive slices
+- masked or conflicting slices stay masked rather than silently counting as
+  present
+
+`aspect_coverage_basis()` keeps that publication honest:
+
+- `ReviewedRetainedCoverage` means the evidence is publishing slices backed by
+  legality/progression review
+- `SupportReportedCoverage` means the evidence is publishing support-reported
+  coverage on a denied legality path rather than pretending review succeeded
+
+That distinction matters in practice:
+
+- admitted progression and legality-admitted evidence can publish reviewed
+  retained coverage
+- legality-denied evidence may still describe support-reported slices, but it
+  must not claim the same review basis as retained admitted proof
+- conflicting slices remain masked even on full descriptive publication rather
+  than being upgraded into visible truth
+
 ## Small Example
 
 ```rust
@@ -185,6 +223,11 @@ match handle.describe_foundational_checked(
 ```
 
 ## Real Example
+
+This is a low-level retained-shape example. The app-facing DX should still be
+dynamic context such as "attach material for the active face selection." The
+explicit refs below are just the canonical declaration content Query retains
+after your session already decided what that intent means.
 
 ```rust
 use forge_foundational::facade::FoundationalBoundaryEvidenceMaterializationProfile;
@@ -320,6 +363,18 @@ What this example is showing:
 - the evidence wrapper preserves admitted-world identity and declaration truth
 - materialization profile changes the bundle shape without changing the retained
   declaration truth being described
+- `aspect_publication()` is where later route and orchestration phases learn
+  which semantic slices were actually present, widened, elided, or masked
+
+## Aspect-aware retrofit note
+
+Phase 24b makes foundational evidence the first publication-oriented aspect
+surface in the declaration-entry pipeline. Profiles such as lean,
+support-ready, and richer publication are no longer allowed to mean only
+"different descriptive richness." They must also describe which semantic
+slices are present, widened, elided, or masked so later route/materialization/
+orchestration phases can stay semantically honest without rediscovering that
+publication breadth themselves.
 
 ## How It Relates To Other Features
 
@@ -355,6 +410,10 @@ Use these surfaces when reviewing foundational evidence:
 - `evidence.receipt()`
 - `evidence.support_attachment()`
 - `evidence.attachment_bundle_digest()`
+- `evidence.aspect_contract()`
+- `evidence.aspect_coverage()`
+- `evidence.aspect_coverage_basis()`
+- `evidence.aspect_publication()`
 
 Use them to answer:
 
@@ -364,6 +423,8 @@ Use them to answer:
   evidence bundle digest
 - whether a difference came from world identity, legality truth, or progression
   outcome rather than from formatting or local callback behavior
+- whether lean, support-ready, and full-descriptive publication changed the
+  semantic slices honestly without changing the retained declaration truth
 
 ## Anti-Patterns
 

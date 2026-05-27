@@ -13,6 +13,7 @@ use super::{
         receipt_from_plan,
     },
 };
+use crate::application::ForgeQueryDeclarationEntryOrchestrationMaterializationTier;
 
 pub enum ForgeQueryDeclarationReceiptChecked<
     D: ForgeQueryDomainEntryMarker,
@@ -33,6 +34,7 @@ pub(crate) fn forge_query_checked_declaration_receipt<
     forge_query_checked_declaration_receipt_with_materialized_profile(
         input,
         default_receipt_materialized_profile(),
+        ForgeQueryDeclarationEntryOrchestrationMaterializationTier::SupportReady,
     )
 }
 
@@ -42,10 +44,11 @@ pub(crate) fn forge_query_checked_declaration_receipt_with_materialized_profile<
 >(
     input: ForgeQueryDeclarationReceiptInput<D, I>,
     materialized_profile: &MaterializedFoundationalProfileSet,
+    receipt_tier: ForgeQueryDeclarationEntryOrchestrationMaterializationTier,
 ) -> ForgeQueryDeclarationReceiptChecked<D, I> {
     match input {
         ForgeQueryDeclarationReceiptInput::PlannedRoute(plan) => {
-            match receipt_from_plan(plan, materialized_profile) {
+            match receipt_from_plan(plan, materialized_profile, receipt_tier) {
                 Ok(receipt) => ForgeQueryDeclarationReceiptChecked::Issued(receipt),
                 Err((plan, cause)) => {
                     let (
@@ -55,6 +58,9 @@ pub(crate) fn forge_query_checked_declaration_receipt_with_materialized_profile<
                         route_set,
                         class,
                         _automation_requires_explicit_handoff,
+                        _route_aspect_contract,
+                        _route_aspect_fit,
+                        _route_aspect_publication,
                         _explanation,
                         _decl,
                         _digest,
@@ -78,6 +84,7 @@ pub(crate) fn forge_query_checked_declaration_receipt_with_materialized_profile<
                         planned_route_reference,
                         extra_route_truths,
                         materialized_profile,
+                        receipt_tier,
                     )
                     .expect("unsupported receipt kinds should still materialize denied receipts");
                     ForgeQueryDeclarationReceiptChecked::Denied(
@@ -98,6 +105,7 @@ pub(crate) fn forge_query_checked_declaration_receipt_with_materialized_profile<
                 contract,
                 reason,
                 materialized_profile,
+                receipt_tier,
             )
             .expect("deferred route truth should always materialize a deferred receipt");
             ForgeQueryDeclarationReceiptChecked::Deferred(
@@ -115,6 +123,7 @@ pub(crate) fn forge_query_checked_declaration_receipt_with_materialized_profile<
                 None,
                 Vec::new(),
                 materialized_profile,
+                receipt_tier,
             )
             .expect("denied route truth should always materialize a denied receipt");
             ForgeQueryDeclarationReceiptChecked::Denied(
@@ -129,6 +138,7 @@ pub(crate) fn forge_query_checked_declaration_receipt_with_materialized_profile<
                 contract,
                 reason,
                 materialized_profile,
+                receipt_tier,
             )
             .expect("failed route truth should always materialize a failed receipt");
             ForgeQueryDeclarationReceiptChecked::Failed(ForgeQueryDeclarationReceiptFailed::new(

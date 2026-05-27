@@ -113,6 +113,11 @@ Support-report inspection:
 - `ForgeQueryDeclarationSignalCompatibilitySupportReport::support_digest()`
 - `ForgeQueryDeclarationSignalCompatibilitySupportRow::execution_family()`
 - `ForgeQueryDeclarationSignalCompatibilitySupportRow::basis_family()`
+- `ForgeQueryDeclarationSignalCompatibilitySupportRow::required_dependency_aspects()`
+- `ForgeQueryDeclarationSignalCompatibilitySupportRow::produced_aspects()`
+- `ForgeQueryDeclarationSignalCompatibilitySupportRow::available_aspect_slice()`
+- `ForgeQueryDeclarationSignalCompatibilitySupportRow::aspect_fit()`
+- `ForgeQueryDeclarationSignalCompatibilitySupportRow::aspect_mismatch()`
 - `ForgeQueryDeclarationSignalCompatibilitySupportRow::status()`
 - `ForgeQueryDeclarationSignalCompatibilitySupportRow::reason()`
 
@@ -145,6 +150,11 @@ invalidation surface. It is the proof-bearing Query artifact that says whether
 later Signal execution is structurally admitted and which basis-family
 requirements that later execution must respect.
 
+The important Phase 24b shift is that signal compatibility now classifies from
+the envelope's published semantic slice plus the declaration family's signal
+contract. A structurally signal-capable family does not automatically satisfy
+the dependency aspects later derived execution would need.
+
 Later seam-ledger surfaces then use that retained compatibility artifact in
 two different ways:
 
@@ -163,6 +173,8 @@ The advanced lane executes in this order:
    - verifies the envelope belongs to the current admitted handle and world
    - verifies the retained envelope still represents covered crossing truth
    - reads the declaration family's signal-compatibility posture and contract
+   - checks the envelope publication against the dependency aspect slice that
+     later Signal-backed execution would require
    - derives one execution family and one required basis-family set from
      retained proof plus the family contract
    - checks the admitted-handle support snapshot for required capability and
@@ -194,7 +206,7 @@ use forge_query::facade::{
 
 let envelope = handle.envelope_routes_from_progressed(
     handle.declare_review_and_progress(
-        SplitEdgeAtMidpoint { edge_ref: "edge:42" },
+        geometry_session.prepare_preview_for_active_face_selection()?,
     )?,
 )?;
 
@@ -221,7 +233,7 @@ execution already happened.
 ```rust
 let compatibility = handle
     .declare_review_progress_describe_plan_receipt_envelope_and_check_signal_compatibility(
-        SplitEdgeAtMidpoint { edge_ref: "edge:42" },
+        geometry_session.prepare_preview_for_active_face_selection()?,
     )?;
 
 assert_eq!(
@@ -241,8 +253,30 @@ What this example is showing:
   play later
 - the returned artifact says which basis families later Signal execution must
   respect
+- the returned artifact freezes dependency and produced-aspect posture instead
+  of leaving later execution to rediscover it from envelope identity alone
 - the returned digest is separate from the envelope digest because basis
   posture and signal compatibility are distinct retained facts
+
+## Aspect-aware retrofit note
+
+Phase 24b requires signal compatibility to speak in dependency aspects,
+produced aspects, and basis-sensitive aspect requirements rather than only in
+family-level compatibility posture. Query should reuse real signal aspect
+semantics here so later execution and binding surfaces consume a genuine
+semantic-slice compatibility artifact instead of a local approximation. In the
+shipped `14` retrofit, the compatibility artifact now freezes
+`aspect_contract()`, `aspect_coverage()`, `aspect_coverage_basis()`,
+`aspect_fit()`, `dependency_aspects()`, and `produced_aspects()` directly off
+the retained envelope-backed public slice. Support rows surface the same
+contract so you can distinguish "this family is signal-aware" from "this
+envelope is actually missing the dependency slice and will report an
+`AuthorityAspectGap`."
+
+That contract now also stays honest in declaration-entry inspection: when a
+denied compatibility artifact did not actually prove one execution family or
+basis-family set, the inspection posture leaves those accessors empty instead
+of filling them from broad signal family posture.
 
 ## How It Relates To Other Features
 
@@ -273,6 +307,12 @@ Use these surfaces when inspecting a compatibility artifact:
 - `execution_family()`
 - `primary_authority_family()`
 - `basis_families()`
+- `aspect_contract()`
+- `aspect_coverage()`
+- `aspect_coverage_basis()`
+- `aspect_fit()`
+- `dependency_aspects()`
+- `produced_aspects()`
 - `declaration_family_key()`
 - `handle_identity_digest()`
 - `operating_context_identity_digest()`

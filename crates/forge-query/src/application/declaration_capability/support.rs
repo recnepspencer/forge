@@ -1,8 +1,10 @@
+use super::{batch_row, bridge_row, neighborhood_row, relational_row, row, signal_row};
 use crate::application::{
     ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryCapabilityFamily,
-    ForgeQueryCapabilityStatus, ForgeQueryConfigSectionFamily, ForgeQueryDeclarationFamilyMarker,
-    ForgeQueryDeclarationFamilyTaxonomy, ForgeQueryDomainEntryMarker,
-    ForgeQueryDomainOperatingContext,
+    ForgeQueryCapabilityStatus, ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationAspectFit,
+    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationFamilyTaxonomy,
+    ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
 };
 use crate::identity::hash_parts;
 
@@ -52,6 +54,7 @@ impl ForgeQueryDeclarationCapabilityStatus {
 pub struct ForgeQueryDeclarationFamilySupportRow {
     verb: ForgeQueryDeclarationCapabilityVerb,
     status: ForgeQueryDeclarationCapabilityStatus,
+    aspect_fit: ForgeQueryDeclarationAspectFit,
     reason: &'static str,
 }
 
@@ -59,11 +62,13 @@ impl ForgeQueryDeclarationFamilySupportRow {
     pub(crate) fn new(
         verb: ForgeQueryDeclarationCapabilityVerb,
         status: ForgeQueryDeclarationCapabilityStatus,
+        aspect_fit: ForgeQueryDeclarationAspectFit,
         reason: &'static str,
     ) -> Self {
         Self {
             verb,
             status,
+            aspect_fit,
             reason,
         }
     }
@@ -74,6 +79,10 @@ impl ForgeQueryDeclarationFamilySupportRow {
 
     pub fn status(&self) -> ForgeQueryDeclarationCapabilityStatus {
         self.status
+    }
+
+    pub fn aspect_fit(&self) -> ForgeQueryDeclarationAspectFit {
+        self.aspect_fit
     }
 
     pub fn reason(&self) -> &'static str {
@@ -89,6 +98,8 @@ pub struct ForgeQueryDeclarationFamilySupportReport<
     domain_key: &'static str,
     declaration_family_key: &'static str,
     declaration_taxonomy: ForgeQueryDeclarationFamilyTaxonomy,
+    aspect_contract: ForgeQueryDeclarationAspectContract,
+    aspect_coverage: ForgeQueryDeclarationAspectCoverage,
     required_capability_families: Vec<ForgeQueryCapabilityFamily>,
     required_config_sections: Vec<ForgeQueryConfigSectionFamily>,
     rows: Vec<ForgeQueryDeclarationFamilySupportRow>,
@@ -104,6 +115,8 @@ impl<D: ForgeQueryDomainEntryMarker, F: ForgeQueryDeclarationFamilyMarker<D>> Cl
             domain_key: self.domain_key,
             declaration_family_key: self.declaration_family_key,
             declaration_taxonomy: self.declaration_taxonomy,
+            aspect_contract: self.aspect_contract.clone(),
+            aspect_coverage: self.aspect_coverage.clone(),
             required_capability_families: self.required_capability_families.clone(),
             required_config_sections: self.required_config_sections.clone(),
             rows: self.rows.clone(),
@@ -120,6 +133,8 @@ impl<D: ForgeQueryDomainEntryMarker, F: ForgeQueryDeclarationFamilyMarker<D>>
         domain_key: &'static str,
         declaration_family_key: &'static str,
         declaration_taxonomy: ForgeQueryDeclarationFamilyTaxonomy,
+        aspect_contract: ForgeQueryDeclarationAspectContract,
+        aspect_coverage: ForgeQueryDeclarationAspectCoverage,
         required_capability_families: Vec<ForgeQueryCapabilityFamily>,
         required_config_sections: Vec<ForgeQueryConfigSectionFamily>,
         rows: Vec<ForgeQueryDeclarationFamilySupportRow>,
@@ -129,6 +144,8 @@ impl<D: ForgeQueryDomainEntryMarker, F: ForgeQueryDeclarationFamilyMarker<D>>
             domain_key,
             declaration_family_key,
             declaration_taxonomy,
+            aspect_contract,
+            aspect_coverage,
             required_capability_families,
             required_config_sections,
             rows,
@@ -145,6 +162,12 @@ impl<D: ForgeQueryDomainEntryMarker, F: ForgeQueryDeclarationFamilyMarker<D>>
     }
     pub fn declaration_taxonomy(&self) -> ForgeQueryDeclarationFamilyTaxonomy {
         self.declaration_taxonomy
+    }
+    pub fn aspect_contract(&self) -> &ForgeQueryDeclarationAspectContract {
+        &self.aspect_contract
+    }
+    pub fn aspect_coverage(&self) -> &ForgeQueryDeclarationAspectCoverage {
+        &self.aspect_coverage
     }
     pub fn required_capability_families(&self) -> &[ForgeQueryCapabilityFamily] {
         &self.required_capability_families
@@ -182,21 +205,30 @@ pub(crate) fn derive_family_support_report<
 ) -> ForgeQueryDeclarationFamilySupportReport<D, F> {
     let taxonomy = F::taxonomy();
     let family_status = family_status::<D, C, F>(handle);
+    let aspect_contract = F::aspect_contract();
+    let aspect_coverage = F::aspect_coverage();
+    let admitted_fit = aspect_coverage.fit_against(&aspect_contract);
     let required_capability_families = F::required_capability_families().to_vec();
     let required_config_sections = F::required_config_sections().to_vec();
     let rows = vec![
-        row(ForgeQueryDeclarationCapabilityVerb::Declare, family_status),
-        relational_row(family_status, taxonomy),
-        bridge_row(family_status, taxonomy),
-        signal_row(family_status, taxonomy),
-        neighborhood_row(family_status, taxonomy),
-        batch_row(family_status, taxonomy),
+        row(
+            ForgeQueryDeclarationCapabilityVerb::Declare,
+            family_status,
+            admitted_fit,
+        ),
+        relational_row(family_status, taxonomy, admitted_fit),
+        bridge_row(family_status, taxonomy, admitted_fit),
+        signal_row(family_status, taxonomy, admitted_fit),
+        neighborhood_row(family_status, taxonomy, admitted_fit),
+        batch_row(family_status, taxonomy, admitted_fit),
     ];
     let support_digest = hash_parts(&[
         format!("domain:{}", handle.domain_key()),
         format!("handle:{}", handle.handle_identity_digest()),
         format!("family:{}", F::semantic_family_key()),
         format!("taxonomy:{taxonomy:?}"),
+        format!("aspects:{aspect_contract:?}"),
+        format!("aspect_coverage:{aspect_coverage:?}"),
         format!(
             "capabilities:{}",
             required_capability_families
@@ -216,9 +248,10 @@ pub(crate) fn derive_family_support_report<
         rows.iter()
             .map(|row| {
                 format!(
-                    "{}:{}:{}",
+                    "{}:{}:{:?}:{}",
                     row.verb().as_str(),
                     row.status().as_str(),
+                    row.aspect_fit(),
                     row.reason()
                 )
             })
@@ -229,6 +262,8 @@ pub(crate) fn derive_family_support_report<
         handle.domain_key(),
         F::semantic_family_key(),
         taxonomy,
+        aspect_contract,
+        aspect_coverage,
         required_capability_families,
         required_config_sections,
         rows,
@@ -278,127 +313,4 @@ fn family_status<
         return ForgeQueryDeclarationCapabilityStatus::Unsupported;
     }
     ForgeQueryDeclarationCapabilityStatus::Admitted
-}
-
-fn row(
-    verb: ForgeQueryDeclarationCapabilityVerb,
-    status: ForgeQueryDeclarationCapabilityStatus,
-) -> ForgeQueryDeclarationFamilySupportRow {
-    let reason = match status {
-        ForgeQueryDeclarationCapabilityStatus::Admitted => {
-            "family capability is admitted for this operating world"
-        }
-        ForgeQueryDeclarationCapabilityStatus::DeferredDebt => {
-            "required family capability remains deferred debt in this Query build"
-        }
-        ForgeQueryDeclarationCapabilityStatus::Unsupported => {
-            "required family capability is unsupported in this operating world"
-        }
-        ForgeQueryDeclarationCapabilityStatus::InvalidContext => {
-            "required family config sections must be enabled before admission"
-        }
-    };
-    ForgeQueryDeclarationFamilySupportRow::new(verb, status, reason)
-}
-
-fn relational_row(
-    family_status: ForgeQueryDeclarationCapabilityStatus,
-    taxonomy: ForgeQueryDeclarationFamilyTaxonomy,
-) -> ForgeQueryDeclarationFamilySupportRow {
-    witness_row(
-        ForgeQueryDeclarationCapabilityVerb::RelationalTruthWitness,
-        family_status,
-        taxonomy.primary_authority_family()
-            == crate::application::ForgeQueryDeclarationPrimaryAuthorityFamily::RelationalTruth,
-        "family is not structurally relational-truth",
-    )
-}
-
-fn bridge_row(
-    family_status: ForgeQueryDeclarationCapabilityStatus,
-    taxonomy: ForgeQueryDeclarationFamilyTaxonomy,
-) -> ForgeQueryDeclarationFamilySupportRow {
-    witness_row(
-        ForgeQueryDeclarationCapabilityVerb::BridgeContinuationWitness,
-        family_status,
-        taxonomy.primary_authority_family()
-            == crate::application::ForgeQueryDeclarationPrimaryAuthorityFamily::BridgeContinuation,
-        "family is not structurally bridge-continuation",
-    )
-}
-
-fn signal_row(
-    family_status: ForgeQueryDeclarationCapabilityStatus,
-    taxonomy: ForgeQueryDeclarationFamilyTaxonomy,
-) -> ForgeQueryDeclarationFamilySupportRow {
-    match taxonomy.signal_compatibility() {
-        crate::application::ForgeQuerySignalCompatibilityPosture::Compatible => witness_row(
-            ForgeQueryDeclarationCapabilityVerb::SignalCompatibilityWitness,
-            family_status,
-            true,
-            "",
-        ),
-        crate::application::ForgeQuerySignalCompatibilityPosture::Deferred => {
-            ForgeQueryDeclarationFamilySupportRow::new(
-                ForgeQueryDeclarationCapabilityVerb::SignalCompatibilityWitness,
-                ForgeQueryDeclarationCapabilityStatus::DeferredDebt,
-                "signal compatibility for this family remains explicitly deferred",
-            )
-        }
-        crate::application::ForgeQuerySignalCompatibilityPosture::NotCompatible => {
-            ForgeQueryDeclarationFamilySupportRow::new(
-                ForgeQueryDeclarationCapabilityVerb::SignalCompatibilityWitness,
-                ForgeQueryDeclarationCapabilityStatus::Unsupported,
-                "family is not structurally signal-compatible",
-            )
-        }
-    }
-}
-
-fn neighborhood_row(
-    family_status: ForgeQueryDeclarationCapabilityStatus,
-    taxonomy: ForgeQueryDeclarationFamilyTaxonomy,
-) -> ForgeQueryDeclarationFamilySupportRow {
-    witness_row(
-        ForgeQueryDeclarationCapabilityVerb::NeighborhoodGroupingWitness,
-        family_status,
-        matches!(
-            taxonomy.grouped_posture(),
-            crate::application::ForgeQueryGroupedDeclarationPosture::NeighborhoodCapable
-                | crate::application::ForgeQueryGroupedDeclarationPosture::NeighborhoodAndBatchCapable
-        ),
-        "family is not structurally neighborhood-capable",
-    )
-}
-
-fn batch_row(
-    family_status: ForgeQueryDeclarationCapabilityStatus,
-    taxonomy: ForgeQueryDeclarationFamilyTaxonomy,
-) -> ForgeQueryDeclarationFamilySupportRow {
-    witness_row(
-        ForgeQueryDeclarationCapabilityVerb::BatchGroupingWitness,
-        family_status,
-        matches!(
-            taxonomy.grouped_posture(),
-            crate::application::ForgeQueryGroupedDeclarationPosture::BatchCapable
-                | crate::application::ForgeQueryGroupedDeclarationPosture::NeighborhoodAndBatchCapable
-        ),
-        "family is not structurally batch-capable",
-    )
-}
-
-fn witness_row(
-    verb: ForgeQueryDeclarationCapabilityVerb,
-    family_status: ForgeQueryDeclarationCapabilityStatus,
-    structurally_available: bool,
-    unsupported_reason: &'static str,
-) -> ForgeQueryDeclarationFamilySupportRow {
-    if !structurally_available {
-        return ForgeQueryDeclarationFamilySupportRow::new(
-            verb,
-            ForgeQueryDeclarationCapabilityStatus::Unsupported,
-            unsupported_reason,
-        );
-    }
-    row(verb, family_status)
 }

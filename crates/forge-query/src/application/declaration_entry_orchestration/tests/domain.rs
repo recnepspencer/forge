@@ -1,7 +1,11 @@
 use std::marker::PhantomData;
 
+#[path = "authority_rich.rs"]
+mod authority_rich;
+
 use crate::application::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
     ForgeQueryDeclarationBridgeContinuationContract, ForgeQueryDeclarationCanonicalEntry,
     ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput,
     ForgeQueryDeclarationLegalityContract, ForgeQueryDeclarationProgressionContract,
@@ -10,6 +14,8 @@ use crate::application::{
     ForgeQueryRelationalTruthAuthority, ForgeQuerySignalCompatiblePosture,
     ForgeQuerySignalNotCompatiblePosture, ForgeQuerySingleOnlyGrouping,
 };
+
+pub(super) use authority_rich::AuthorityRichFamily;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct GeometryDomain;
@@ -162,6 +168,98 @@ define_family!(
 );
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct AspectRichFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AspectRichFamily {
+    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
+    type SignalCompatibility = ForgeQuerySignalNotCompatiblePosture;
+    type GroupedPosture = ForgeQuerySingleOnlyGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "AspectRichFamily"
+    }
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
+    fn route_contract() -> ForgeQueryDeclarationRouteContract {
+        ForgeQueryDeclarationRouteContract::relational_only()
+    }
+    fn progression_contract(
+        _handle_identity_digest: &str,
+        _operating_context_identity_digest: &str,
+    ) -> ForgeQueryDeclarationProgressionContract {
+        ForgeQueryDeclarationProgressionContract::admitted_current()
+    }
+    fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
+        ForgeQueryDeclarationAspectContract::from_slices(
+            &["selection.active_edge"],
+            &["selection.local_topology"],
+            &["selection.material_edit"],
+            &["selection.private_authority"],
+            &[],
+        )
+    }
+    fn aspect_coverage() -> ForgeQueryDeclarationAspectCoverage {
+        ForgeQueryDeclarationAspectCoverage::from_slices(
+            &[
+                "selection.active_edge",
+                "selection.local_topology",
+                "selection.material_edit",
+                "selection.private_authority",
+            ],
+            &["selection.private_authority"],
+            &[],
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct ConflictingAspectFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for ConflictingAspectFamily {
+    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
+    type SignalCompatibility = ForgeQuerySignalNotCompatiblePosture;
+    type GroupedPosture = ForgeQuerySingleOnlyGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "ConflictingAspectFamily"
+    }
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
+    fn route_contract() -> ForgeQueryDeclarationRouteContract {
+        ForgeQueryDeclarationRouteContract::relational_only()
+    }
+    fn progression_contract(
+        _handle_identity_digest: &str,
+        _operating_context_identity_digest: &str,
+    ) -> ForgeQueryDeclarationProgressionContract {
+        ForgeQueryDeclarationProgressionContract::admitted_current()
+    }
+    fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
+        ForgeQueryDeclarationAspectContract::from_slices(
+            &["selection.active_edge"],
+            &["selection.local_topology"],
+            &["selection.material_edit"],
+            &["selection.private_authority"],
+            &[],
+        )
+    }
+    fn aspect_coverage() -> ForgeQueryDeclarationAspectCoverage {
+        ForgeQueryDeclarationAspectCoverage::from_slices(
+            &[
+                "selection.active_edge",
+                "selection.local_topology",
+                "selection.material_edit",
+                "selection.private_authority",
+            ],
+            &["selection.private_authority"],
+            &["selection.material_edit"],
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct WorldSensitiveFamily;
 
 impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for WorldSensitiveFamily {
@@ -219,7 +317,10 @@ impl_input!(
     DeferredRouteFamily,
     UnsupportedReceiptFamily,
     ExpensiveAutomationFamily,
-    WorldSensitiveFamily
+    AspectRichFamily,
+    ConflictingAspectFamily,
+    WorldSensitiveFamily,
+    AuthorityRichFamily
 );
 
 pub(super) fn admitted_handle(

@@ -65,6 +65,10 @@ Readiness row inspection:
 - `crossing_row()`
 - `status()`
 - `reason()`
+- `envelope_aspect_publication()`
+- `relational_authority_summary()`
+- `bridge_authority_summary()`
+- `signal_authority_summary()`
 - `readiness_digest()`
 
 Readiness statuses:
@@ -87,17 +91,29 @@ That means:
 2. the readiness report adds family-level admitted/deferred/unsupported
    posture to those same rows
 3. the narrower relational, bridge, and signal support helpers should agree
-   with the matching readiness rows
+   with the matching readiness rows, including status instead of only sharing a
+   descriptive reason string
 4. optional declaration-scoped `9.3.7` contribution evidence may be attached
    explicitly, but readiness remains the source of entry-phase seam truth
 5. when contribution evidence should be reconciled against one concrete
    retained declaration crossing, attach a retained seam subject explicitly so
    readiness can fail closed on wrong-handle, wrong-world, or mismatched
    declaration digest posture
-6. stronger admitted-plan-bound and lower-runtime-bound contribution categories
+6. retained-subject-aware readiness now carries the retained envelope
+   publication plus relational, bridge, and signal authority summaries on the
+   matching rows, but it still does not pretend those lower-authority phases
+   executed successfully
+7. if a retained envelope publication is missing, conflicting, or only
+   partially maps the required lower-authority slice, the matching readiness
+   row no longer stays `Admitted` just because the family and config posture
+   were broadly available
+8. bridge rows now also fail closed when the retained envelope publication is
+   broadly available but the narrower mapped continuation slice is only
+   partial, missing, or conflicting
+9. stronger admitted-plan-bound and lower-runtime-bound contribution categories
    require matching retained downstream proof explicitly; readiness does not
    infer that proof from family posture alone
-7. the narrower relational, bridge, and signal support helpers remain
+10. the narrower relational, bridge, and signal support helpers remain
    entry-phase-only seam projections; declaration-entry readiness is the
    composed public support surface when contribution evidence matters
 
@@ -146,6 +162,11 @@ let readiness = handle.try_declaration_entry_readiness::<AttachFaceMaterialAssig
 
 let _ = readiness.contribution_composition();
 let _ = readiness.readiness_digest();
+let _ = readiness
+    .rows()
+    .iter()
+    .find(|row| row.crossing_row().bridge_continuation_family().is_some())
+    .and_then(|row| row.bridge_authority_summary());
 ```
 
 ```rust
@@ -168,6 +189,13 @@ Use readiness when you need to know:
 - which seam rows exist for this family
 - which lower owner crate each row belongs to
 - whether a seam row is admitted, deferred, unsupported, or invalid here
+- which envelope-published slice and authority-specific mismatch posture the
+  retained subject currently implies for each row
+- whether a row became unsupported because the retained semantic slice was
+  missing or conflicting, rather than because the broad family/config support
+  was absent
+- whether a bridge row became unsupported because the retained envelope slice
+  existed broadly but did not map cleanly into the narrower continuation slice
 - whether the narrower support helpers still match the shared seam ledger
 - whether explicit declaration-scoped contribution evidence should travel with
   the family-level readiness answer

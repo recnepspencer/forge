@@ -48,9 +48,17 @@ pub(crate) fn forge_query_lower_declaration_entry_product_orchestration_from_pro
     route_intent: Option<ForgeQueryDeclarationRouteIntent>,
 ) -> ForgeQueryLoweredDeclarationEntryProductOrchestration<D, I> {
     let resolved_progression = resolve_admitted_progression_target(progressed);
+    let (_, _, _, _, _, aspect_contract, reviewed_aspect_coverage) = resolved_progression
+        .target()
+        .semantics()
+        .admitted_declaration_progression()
+        .expect("resolved progression target should retain admitted progression semantics");
     let orchestration_input = ForgeQueryDeclarationEntryOrchestrationInput::new(
         handle.handle_identity_digest(),
         handle.operating_context_identity_digest(),
+        aspect_contract.clone(),
+        reviewed_aspect_coverage.clone(),
+        crate::application::ForgeQueryDeclarationAspectCoverageBasis::ReviewedRetainedCoverage,
         exposure_level,
         artifact_policy,
     );
@@ -82,6 +90,7 @@ pub(crate) fn forge_query_lower_declaration_entry_product_orchestration_from_pro
             let receipt_checked = forge_query_checked_declaration_receipt_with_materialized_profile(
                 ForgeQueryDeclarationReceiptInput::route_checked(route_checked),
                 &receipt_materialized_profile_for_tier(plan.receipt_materialization_tier()),
+                plan.receipt_materialization_tier(),
             );
             append_receipt_stop(&mut step_records, &plan, &receipt_checked);
             ForgeQueryDeclarationEntryProductChecked::Receipt(receipt_checked)
@@ -146,6 +155,7 @@ where
     let receipt_checked = forge_query_checked_declaration_receipt_with_materialized_profile(
         ForgeQueryDeclarationReceiptInput::route_checked(route_checked),
         &receipt_materialized_profile_for_tier(plan.receipt_materialization_tier()),
+        plan.receipt_materialization_tier(),
     );
     append_receipt_progress_or_stop(step_records, plan, &receipt_checked);
     receipt_checked

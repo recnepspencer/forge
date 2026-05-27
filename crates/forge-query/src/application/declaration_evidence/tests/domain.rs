@@ -2,6 +2,7 @@ use std::marker::PhantomData;
 
 use crate::application::{
     ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationFamilyMarker,
     ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityContract,
     ForgeQueryDeclarationProgressionContract, ForgeQueryDescriptiveOnlyAuthority,
@@ -142,6 +143,100 @@ declare_family!(
 );
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct AspectRichFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AspectRichFamily {
+    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "split-edge"
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
+
+    fn progression_contract(
+        _handle_identity_digest: &str,
+        _operating_context_identity_digest: &str,
+    ) -> ForgeQueryDeclarationProgressionContract {
+        ForgeQueryDeclarationProgressionContract::admitted_current()
+    }
+
+    fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
+        ForgeQueryDeclarationAspectContract::from_slices(
+            &["selection.active_edge"],
+            &["selection.local_topology"],
+            &["selection.material_edit"],
+            &["selection.private_authority"],
+            &[],
+        )
+    }
+
+    fn aspect_coverage() -> ForgeQueryDeclarationAspectCoverage {
+        ForgeQueryDeclarationAspectCoverage::from_slices(
+            &[
+                "selection.active_edge",
+                "selection.local_topology",
+                "selection.material_edit",
+                "selection.private_authority",
+            ],
+            &["selection.private_authority"],
+            &[],
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct ConflictingAspectFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for ConflictingAspectFamily {
+    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "split-edge"
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
+
+    fn progression_contract(
+        _handle_identity_digest: &str,
+        _operating_context_identity_digest: &str,
+    ) -> ForgeQueryDeclarationProgressionContract {
+        ForgeQueryDeclarationProgressionContract::admitted_current()
+    }
+
+    fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
+        ForgeQueryDeclarationAspectContract::from_slices(
+            &["selection.active_edge"],
+            &["selection.local_topology"],
+            &["selection.material_edit"],
+            &["selection.private_authority"],
+            &[],
+        )
+    }
+
+    fn aspect_coverage() -> ForgeQueryDeclarationAspectCoverage {
+        ForgeQueryDeclarationAspectCoverage::from_slices(
+            &[
+                "selection.active_edge",
+                "selection.local_topology",
+                "selection.material_edit",
+                "selection.private_authority",
+            ],
+            &["selection.private_authority"],
+            &["selection.material_edit"],
+        )
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct IllegalRoleFamily;
 
 impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for IllegalRoleFamily {
@@ -223,6 +318,8 @@ impl_input!(
     StaleFamily,
     FailedFamily,
     DescriptiveDeferredSignalFamily,
+    AspectRichFamily,
+    ConflictingAspectFamily,
     IllegalRoleFamily,
     WorldSensitiveFamily,
 );

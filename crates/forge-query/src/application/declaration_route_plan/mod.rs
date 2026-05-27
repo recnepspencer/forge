@@ -1,3 +1,4 @@
+mod aspects;
 mod checked;
 mod class;
 mod contract;

@@ -12,6 +12,8 @@ use super::{
 pub enum ForgeQueryDeclarationRoutePlanDenialCause {
     WrongAdmittedWorld,
     EvidenceMismatch,
+    MissingRequiredAspect,
+    AspectConflict,
     IntentRequired,
     IntentForbidden,
     IntentConflictsWithRouteContract,
@@ -24,6 +26,8 @@ impl ForgeQueryDeclarationRoutePlanDenialCause {
         match self {
             Self::WrongAdmittedWorld => "wrong_admitted_world",
             Self::EvidenceMismatch => "evidence_mismatch",
+            Self::MissingRequiredAspect => "missing_required_aspect",
+            Self::AspectConflict => "aspect_conflict",
             Self::IntentRequired => "intent_required",
             Self::IntentForbidden => "intent_forbidden",
             Self::IntentConflictsWithRouteContract => "intent_conflicts_with_route_contract",
@@ -39,6 +43,12 @@ impl ForgeQueryDeclarationRoutePlanDenialCause {
             }
             Self::EvidenceMismatch => {
                 "route planning requires matching admitted progression and foundational evidence"
+            }
+            Self::MissingRequiredAspect => {
+                "route planning requires route-relevant semantic slices that were not visibly covered"
+            }
+            Self::AspectConflict => {
+                "route planning found conflicting route-relevant semantic slices in retained evidence"
             }
             Self::IntentRequired => {
                 "the declaration route contract requires explicit caller route intent"

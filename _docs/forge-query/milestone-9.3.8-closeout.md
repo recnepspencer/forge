@@ -57,7 +57,6 @@ This closeout does not claim:
   contribution evidence
 - later continuation, runtime, or `9.3.7` composition phases beyond the
   envelope ceiling
-- full-crate green status beyond the targeted seam-ledger verification bar
 
 ## Governing Source Summary
 
@@ -247,9 +246,10 @@ The final verification bar was also shaped by these QA passes:
 - adversarial test QA
 - code-quality QA
 
-This closeout does not claim `cargo test -p forge-query --quiet` as a required
-closure artifact. That broader crate-wide checkpoint previously timed out and
-is outside the narrow Phase 15-24a declaration-entry closure bar.
+This closeout originally did not require a crate-wide green checkpoint as part
+of the narrow Phase 15-24a closure bar. That broader verification gap has
+since been closed: `cargo test -p forge-query` now passes after the Phase 24b
+Phase 8/23 publication-materialization follow-up and QA corrections.
 
 ## Residual Deferred Scope
 
@@ -314,8 +314,10 @@ Phase 24b and later must not reopen these closed questions:
 The next future phase should now start by retrofitting one aggressive
 declaration-entry aspect contract and granularity law across the already-closed
 Phase 5-14, 23, and 24 surfaces, and only after that should later work widen
-the typed binding / extractor / resolver model. Continuation, contribution
-composition, family-specific ergonomics, grouped authoring, docs, and
-certification should therefore build on one authority-preserving binding story
-and one aspect-aware semantic-granularity story instead of inventing local
-glue.
+the typed binding / extractor / resolver model. That retrofit should now be
+treated as a phase-by-phase program rather than a single tail cleanup: each
+phase lands only when its code, its feature doc, and its adjacent-phase doc
+review are all complete. Continuation, contribution composition,
+family-specific ergonomics, grouped authoring, docs, and certification should
+therefore build on one authority-preserving binding story and one
+aspect-aware semantic-granularity story instead of inventing local glue.

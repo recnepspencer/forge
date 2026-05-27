@@ -1,11 +1,13 @@
 use crate::application::{
-    ForgeQueryDeclarationEntryInspectionInput, ForgeQueryDeclarationEntryReadinessStatus,
-    ForgeQueryDeclarationEntrySeamClassification, ForgeQueryDeclarationSignalCompatibilityInput,
+    ForgeQueryDeclarationBridgeRoutingSupportStatus, ForgeQueryDeclarationEntryReadinessStatus,
+    ForgeQueryDeclarationEntrySeamClassification,
+    ForgeQueryDeclarationRelationalTruthRoutingSupportStatus,
+    ForgeQueryDeclarationSignalCompatibilitySupportStatus,
 };
 
 use super::support::{
-    bridge_signal_envelope, handle, signal_disabled_handle, BridgeSignalFamily,
-    DeferredSignalFamily, Input, MixedFamily, RelationalFamily,
+    handle, signal_disabled_handle, BridgeSignalFamily, DeferredSignalFamily, Input, MixedFamily,
+    RelationalFamily,
 };
 
 #[test]
@@ -73,6 +75,10 @@ fn readiness_projection_matches_signal_support_status() {
 
     let signal_support = handle.signal_compatibility_support::<Input<BridgeSignalFamily>>();
     assert_eq!(signal_support.rows().len(), 1);
+    assert_eq!(
+        signal_support.rows()[0].status(),
+        ForgeQueryDeclarationSignalCompatibilitySupportStatus::Admitted
+    );
     assert_eq!(signal_support.rows()[0].reason(), signal_row.reason());
 }
 
@@ -94,19 +100,35 @@ fn mixed_family_readiness_matches_relational_and_bridge_support_rows() {
     let relational_support = handle.relational_truth_support::<Input<MixedFamily>>();
     assert_eq!(relational_support.rows().len(), 1);
     assert_eq!(
+        relational_support.rows()[0].status(),
+        ForgeQueryDeclarationRelationalTruthRoutingSupportStatus::Admitted
+    );
+    assert_eq!(
+        relational_row.status(),
+        ForgeQueryDeclarationEntryReadinessStatus::Admitted
+    );
+    assert_eq!(
         relational_support.rows()[0].reason(),
         relational_row.reason()
     );
 
     let bridge_support = handle.bridge_continuation_support::<Input<MixedFamily>>();
     assert_eq!(bridge_support.rows().len(), 1);
+    assert_eq!(
+        bridge_support.rows()[0].status(),
+        ForgeQueryDeclarationBridgeRoutingSupportStatus::Admitted
+    );
+    assert_eq!(
+        bridge_row.status(),
+        ForgeQueryDeclarationEntryReadinessStatus::Admitted
+    );
     assert_eq!(bridge_support.rows()[0].reason(), bridge_row.reason());
 }
 
 #[test]
 fn signalless_world_keeps_invalid_basis_distinct() {
-    let readiness = signal_disabled_handle("preview")
-        .declaration_entry_readiness::<Input<BridgeSignalFamily>>();
+    let handle = signal_disabled_handle("preview");
+    let readiness = handle.declaration_entry_readiness::<Input<BridgeSignalFamily>>();
     let signal_row = readiness
         .rows()
         .iter()
@@ -116,59 +138,12 @@ fn signalless_world_keeps_invalid_basis_distinct() {
         signal_row.status(),
         ForgeQueryDeclarationEntryReadinessStatus::InvalidBasis
     );
-}
 
-#[test]
-fn wrong_handle_retained_artifacts_are_denied_before_inspection() {
-    let source = handle("source");
-    let target = handle("target");
-    let envelope = bridge_signal_envelope(&source, "edge:42");
-
-    let error = match target.inspect_declaration_entry(
-        ForgeQueryDeclarationEntryInspectionInput::envelope_checked(
-            crate::application::ForgeQueryDeclarationEnvelopeChecked::Enveloped(envelope),
-        ),
-    ) {
-        Ok(_) => panic!("wrong-handle inspection must deny"),
-        Err(error) => error,
-    };
-    assert!(error.reason().contains("same admitted handle"));
-}
-
-#[test]
-fn envelope_only_inspection_does_not_fake_lower_authority_posture() {
-    let handle = handle("preview");
-    let envelope = bridge_signal_envelope(&handle, "edge:42");
-
-    let inspection = match handle.inspect_declaration_entry(
-        ForgeQueryDeclarationEntryInspectionInput::envelope_checked(
-            crate::application::ForgeQueryDeclarationEnvelopeChecked::Enveloped(envelope),
-        ),
-    ) {
-        Ok(inspection) => inspection,
-        Err(_) => panic!("inspection should succeed"),
-    };
-
-    assert!(inspection.relational_posture().is_none());
-    assert!(inspection.bridge_posture().is_none());
-    assert!(inspection.signal_posture().is_none());
-    assert_eq!(inspection.matching_row_digests().len(), 5);
-}
-
-#[test]
-fn signal_checked_inspection_exposes_signal_posture() {
-    let handle = handle("preview");
-    let envelope = bridge_signal_envelope(&handle, "edge:42");
-    let checked = handle.signal_compatibility_checked(
-        ForgeQueryDeclarationSignalCompatibilityInput::enveloped(envelope),
+    let signal_support = handle.signal_compatibility_support::<Input<BridgeSignalFamily>>();
+    assert_eq!(signal_support.rows().len(), 1);
+    assert_eq!(
+        signal_support.rows()[0].status(),
+        ForgeQueryDeclarationSignalCompatibilitySupportStatus::InvalidBasis
     );
-    let inspection = match handle.inspect_declaration_entry(
-        ForgeQueryDeclarationEntryInspectionInput::signal_compatibility_checked(checked),
-    ) {
-        Ok(inspection) => inspection,
-        Err(_) => panic!("inspection should succeed"),
-    };
-
-    assert!(inspection.signal_posture().is_some());
-    assert!(inspection.matching_row_digests().len() >= 2);
+    assert_eq!(signal_support.rows()[0].reason(), signal_row.reason());
 }

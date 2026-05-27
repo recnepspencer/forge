@@ -2,7 +2,8 @@ use std::marker::PhantomData;
 
 use crate::application::{
     ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryApplicationFacade,
-    ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily, ForgeQueryDeclarationCanonicalEntry,
+    ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationCanonicalEntry,
     ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput,
     ForgeQueryDeclarationLegalityContract, ForgeQueryDeclarationRouteContract,
     ForgeQueryDeclarationRouteIntent, ForgeQueryDeclarationRoutePlanInput,
@@ -110,6 +111,145 @@ define_family!(
     ForgeQueryDeclarationRouteContract::signal_only()
 );
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct AspectRichReceiptFamily;
+
+fn aspect_rich_contract() -> ForgeQueryDeclarationAspectContract {
+    ForgeQueryDeclarationAspectContract::from_slices(
+        &["selection.active_edge"],
+        &["selection.local_topology"],
+        &["selection.material_edit"],
+        &["selection.private_authority"],
+        &[],
+    )
+}
+
+fn aspect_rich_coverage() -> ForgeQueryDeclarationAspectCoverage {
+    ForgeQueryDeclarationAspectCoverage::from_slices(
+        &[
+            "selection.active_edge",
+            "selection.local_topology",
+            "selection.material_edit",
+            "selection.private_authority",
+        ],
+        &["selection.private_authority"],
+        &[],
+    )
+}
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AspectRichReceiptFamily {
+    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "AspectRichReceiptFamily"
+    }
+
+    fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
+        aspect_rich_contract()
+    }
+
+    fn aspect_coverage() -> ForgeQueryDeclarationAspectCoverage {
+        aspect_rich_coverage()
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
+
+    fn route_contract() -> ForgeQueryDeclarationRouteContract {
+        ForgeQueryDeclarationRouteContract::relational_only()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct AspectDeferredReceiptFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AspectDeferredReceiptFamily {
+    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "AspectDeferredReceiptFamily"
+    }
+
+    fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
+        aspect_rich_contract()
+    }
+
+    fn aspect_coverage() -> ForgeQueryDeclarationAspectCoverage {
+        aspect_rich_coverage()
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
+
+    fn route_contract() -> ForgeQueryDeclarationRouteContract {
+        ForgeQueryDeclarationRouteContract::deferred_auto()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct AspectSignalReceiptFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AspectSignalReceiptFamily {
+    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "AspectSignalReceiptFamily"
+    }
+
+    fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
+        aspect_rich_contract()
+    }
+
+    fn aspect_coverage() -> ForgeQueryDeclarationAspectCoverage {
+        aspect_rich_coverage()
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
+
+    fn route_contract() -> ForgeQueryDeclarationRouteContract {
+        ForgeQueryDeclarationRouteContract::signal_only()
+    }
+}
+
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(super) struct AspectFailedReceiptFamily;
+
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AspectFailedReceiptFamily {
+    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
+    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
+    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
+
+    fn semantic_family_key() -> &'static str {
+        "AspectFailedReceiptFamily"
+    }
+
+    fn aspect_contract() -> ForgeQueryDeclarationAspectContract {
+        aspect_rich_contract()
+    }
+
+    fn aspect_coverage() -> ForgeQueryDeclarationAspectCoverage {
+        aspect_rich_coverage()
+    }
+
+    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
+        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
+    }
+
+    fn route_contract() -> ForgeQueryDeclarationRouteContract {
+        ForgeQueryDeclarationRouteContract::unresolved_mixed()
+    }
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(super) struct ReceiptInput<F> {
     edge_ref: &'static str,
@@ -149,6 +289,10 @@ impl_declaration_input!(
     ForbiddenIntentReceiptFamily,
     FailedReceiptFamily,
     SignalReceiptFamily,
+    AspectRichReceiptFamily,
+    AspectDeferredReceiptFamily,
+    AspectSignalReceiptFamily,
+    AspectFailedReceiptFamily,
 );
 
 pub(super) fn admitted_handle(

@@ -1,5 +1,12 @@
+use crate::application::ForgeQueryDeclarationFamilyMarker;
 use crate::application::ForgeQueryDeclarationRouteIntent;
-use crate::application::{ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker};
+use crate::application::{
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
+    ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationAspectPublication,
+    ForgeQueryDeclarationBridgeAuthorityAspectSummary, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationRelationalAuthorityAspectSummary,
+    ForgeQueryDeclarationSignalAuthorityAspectSummary, ForgeQueryDomainEntryMarker,
+};
 use crate::identity::hash_parts;
 use forge_foundational::facade::{
     FoundationalBoundaryEvidenceMaterializationProfile, FoundationalMaterializationCost,
@@ -12,10 +19,14 @@ use super::super::materialization::{
     ForgeQueryDeclarationEntryOrchestrationMaterializationTier,
 };
 use super::super::sequencing::{
-    envelope_ceiling_automation_steps, ForgeQueryDeclarationEntryOrchestrationAutomationBoundary,
+    ForgeQueryDeclarationEntryOrchestrationAutomationBoundary,
     ForgeQueryDeclarationEntryOrchestrationAutomationStep,
 };
 use super::input::ForgeQueryDeclarationEntryOrchestrationInput;
+use super::plan_build::{
+    automation_steps_for, explicit_caller_handoff_steps_for, materialization_tier_for_product,
+    step_plan_for,
+};
 use super::product::ForgeQueryDeclarationEntryOrchestrationProduct;
 use super::step_record::ForgeQueryDeclarationEntryOrchestrationStage;
 
@@ -35,6 +46,9 @@ pub struct ForgeQueryDeclarationEntryOrchestrationPlan<
     materialization_policy: ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy,
     materialization_tier: ForgeQueryDeclarationEntryOrchestrationMaterializationTier,
     descriptive_materialization_cost: Option<FoundationalMaterializationCost>,
+    relational_authority_summary: ForgeQueryDeclarationRelationalAuthorityAspectSummary,
+    bridge_authority_summary: ForgeQueryDeclarationBridgeAuthorityAspectSummary,
+    signal_authority_summary: ForgeQueryDeclarationSignalAuthorityAspectSummary,
     orchestration_identity_digest: String,
 }
 
@@ -75,6 +89,8 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy::default_for_lane(
                 input.exposure_level(),
                 input.artifact_policy(),
+                input.aspect_contract(),
+                input.aspect_coverage(),
             );
         let step_plan = step_plan_for(product, starting_artifact_stage);
         let automation_steps = automation_steps_for(&step_plan);
@@ -84,6 +100,24 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         let descriptive_materialization_cost = Some(descriptive_materialization_cost_for_tier(
             materialization_tier,
         ));
+        let relational_authority_summary =
+            crate::application::relational_authority_summary_from_publication(
+                input.aspect_contract(),
+                materialization_policy.envelope_aspect_publication(),
+                I::Family::relational_truth_contract().as_ref(),
+            );
+        let bridge_authority_summary =
+            crate::application::bridge_authority_summary_from_publication(
+                input.aspect_contract(),
+                materialization_policy.envelope_aspect_publication(),
+                I::Family::bridge_continuation_contract().as_ref(),
+            );
+        let signal_authority_summary =
+            crate::application::signal_authority_summary_from_publication(
+                input.aspect_contract(),
+                materialization_policy.envelope_aspect_publication(),
+                I::Family::signal_compatibility_contract().as_ref(),
+            );
         let orchestration_identity_digest = hash_parts(&[
             format!("family:{}", input.declaration_family_key()),
             format!("handle:{}", input.handle_identity_digest()),
@@ -92,6 +126,8 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
                 input.operating_context_identity_digest()
             ),
             format!("product:{}", product.as_str()),
+            format!("exposure_level:{}", input.exposure_level().as_str()),
+            format!("artifact_policy:{}", input.artifact_policy().as_str()),
             format!("starting_stage:{}", starting_artifact_stage.as_str()),
             "ceiling:envelope_constructed".to_string(),
             format!(
@@ -115,6 +151,30 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
                     .collect::<Vec<_>>()
                     .join("|")
             ),
+            format!("aspect_contract:{:?}", input.aspect_contract()),
+            format!("aspect_coverage:{:?}", input.aspect_coverage()),
+            format!("aspect_coverage_basis:{:?}", input.aspect_coverage_basis()),
+            format!(
+                "foundational_aspect_publication:{:?}",
+                materialization_policy.foundational_aspect_publication()
+            ),
+            format!(
+                "receipt_aspect_publication:{:?}",
+                materialization_policy.receipt_aspect_publication()
+            ),
+            format!(
+                "envelope_aspect_publication:{:?}",
+                materialization_policy.envelope_aspect_publication()
+            ),
+            format!("relational_authority_summary:{relational_authority_summary:?}"),
+            format!("bridge_authority_summary:{bridge_authority_summary:?}"),
+            format!("signal_authority_summary:{signal_authority_summary:?}"),
+            format!(
+                "foundational_evidence_profile:{:?}",
+                materialization_policy.foundational_evidence_profile()
+            ),
+            format!("receipt_tier:{:?}", materialization_policy.receipt_tier()),
+            format!("envelope_tier:{:?}", materialization_policy.envelope_tier()),
         ]);
         Self {
             input,
@@ -129,6 +189,9 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             materialization_policy,
             materialization_tier,
             descriptive_materialization_cost,
+            relational_authority_summary,
+            bridge_authority_summary,
+            signal_authority_summary,
             orchestration_identity_digest,
         }
     }
@@ -155,6 +218,18 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn operating_context_identity_digest(&self) -> &str {
         self.input.operating_context_identity_digest()
+    }
+
+    pub fn aspect_contract(&self) -> &ForgeQueryDeclarationAspectContract {
+        self.input.aspect_contract()
+    }
+
+    pub fn aspect_coverage(&self) -> &ForgeQueryDeclarationAspectCoverage {
+        self.input.aspect_coverage()
+    }
+
+    pub fn aspect_coverage_basis(&self) -> ForgeQueryDeclarationAspectCoverageBasis {
+        self.input.aspect_coverage_basis()
     }
 
     pub fn exposure_level(
@@ -231,140 +306,38 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         self.materialization_policy.foundational_evidence_profile()
     }
 
+    pub fn foundational_aspect_publication(&self) -> &ForgeQueryDeclarationAspectPublication {
+        self.materialization_policy
+            .foundational_aspect_publication()
+    }
+
+    pub fn receipt_aspect_publication(&self) -> &ForgeQueryDeclarationAspectPublication {
+        self.materialization_policy.receipt_aspect_publication()
+    }
+
+    pub fn envelope_aspect_publication(&self) -> &ForgeQueryDeclarationAspectPublication {
+        self.materialization_policy.envelope_aspect_publication()
+    }
+
+    pub fn relational_authority_summary(
+        &self,
+    ) -> &ForgeQueryDeclarationRelationalAuthorityAspectSummary {
+        &self.relational_authority_summary
+    }
+
+    pub fn bridge_authority_summary(&self) -> &ForgeQueryDeclarationBridgeAuthorityAspectSummary {
+        &self.bridge_authority_summary
+    }
+
+    pub fn signal_authority_summary(&self) -> &ForgeQueryDeclarationSignalAuthorityAspectSummary {
+        &self.signal_authority_summary
+    }
+
     pub fn descriptive_materialization_cost(&self) -> Option<FoundationalMaterializationCost> {
         self.descriptive_materialization_cost
     }
 
     pub fn orchestration_identity_digest(&self) -> &str {
         &self.orchestration_identity_digest
-    }
-}
-
-fn step_plan_for(
-    product: ForgeQueryDeclarationEntryOrchestrationProduct,
-    starting_artifact_stage: ForgeQueryDeclarationEntryOrchestrationStage,
-) -> Vec<ForgeQueryDeclarationEntryOrchestrationStage> {
-    let full = match product {
-        ForgeQueryDeclarationEntryOrchestrationProduct::RoutePlan => vec![
-            ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved,
-            ForgeQueryDeclarationEntryOrchestrationStage::FoundationalDescribed,
-            ForgeQueryDeclarationEntryOrchestrationStage::RoutePlanned,
-        ],
-        ForgeQueryDeclarationEntryOrchestrationProduct::Receipt => vec![
-            ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved,
-            ForgeQueryDeclarationEntryOrchestrationStage::FoundationalDescribed,
-            ForgeQueryDeclarationEntryOrchestrationStage::RoutePlanned,
-            ForgeQueryDeclarationEntryOrchestrationStage::ReceiptIssued,
-        ],
-        ForgeQueryDeclarationEntryOrchestrationProduct::Envelope => {
-            if starting_artifact_stage
-                == ForgeQueryDeclarationEntryOrchestrationStage::AdmittedHandle
-            {
-                vec![
-                    ForgeQueryDeclarationEntryOrchestrationStage::AdmittedHandle,
-                    ForgeQueryDeclarationEntryOrchestrationStage::DeclarationReviewed,
-                    ForgeQueryDeclarationEntryOrchestrationStage::LegalityEstablished,
-                    ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved,
-                    ForgeQueryDeclarationEntryOrchestrationStage::FoundationalDescribed,
-                    ForgeQueryDeclarationEntryOrchestrationStage::RoutePlanned,
-                    ForgeQueryDeclarationEntryOrchestrationStage::ReceiptIssued,
-                    ForgeQueryDeclarationEntryOrchestrationStage::EnvelopeConstructed,
-                ]
-            } else {
-                vec![
-                    ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved,
-                    ForgeQueryDeclarationEntryOrchestrationStage::FoundationalDescribed,
-                    ForgeQueryDeclarationEntryOrchestrationStage::RoutePlanned,
-                    ForgeQueryDeclarationEntryOrchestrationStage::ReceiptIssued,
-                    ForgeQueryDeclarationEntryOrchestrationStage::EnvelopeConstructed,
-                ]
-            }
-        }
-    };
-    full.into_iter()
-        .skip_while(|stage| *stage != starting_artifact_stage)
-        .collect()
-}
-
-fn automation_steps_for(
-    step_plan: &[ForgeQueryDeclarationEntryOrchestrationStage],
-) -> Vec<ForgeQueryDeclarationEntryOrchestrationAutomationStep> {
-    let full = envelope_ceiling_automation_steps();
-    let first_step = step_plan.first().map(|stage| match stage {
-        ForgeQueryDeclarationEntryOrchestrationStage::AdmittedHandle => {
-            ForgeQueryDeclarationEntryOrchestrationAutomationStep::AdmittedHandle
-        }
-        ForgeQueryDeclarationEntryOrchestrationStage::DeclarationReviewed => {
-            ForgeQueryDeclarationEntryOrchestrationAutomationStep::CanonicalDeclaration
-        }
-        ForgeQueryDeclarationEntryOrchestrationStage::LegalityEstablished => {
-            ForgeQueryDeclarationEntryOrchestrationAutomationStep::Legality
-        }
-        ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved => {
-            ForgeQueryDeclarationEntryOrchestrationAutomationStep::Progression
-        }
-        ForgeQueryDeclarationEntryOrchestrationStage::FoundationalDescribed => {
-            ForgeQueryDeclarationEntryOrchestrationAutomationStep::FoundationalEvidence
-        }
-        ForgeQueryDeclarationEntryOrchestrationStage::RoutePlanned => {
-            ForgeQueryDeclarationEntryOrchestrationAutomationStep::RoutePlan
-        }
-        ForgeQueryDeclarationEntryOrchestrationStage::ReceiptIssued => {
-            ForgeQueryDeclarationEntryOrchestrationAutomationStep::Receipt
-        }
-        ForgeQueryDeclarationEntryOrchestrationStage::EnvelopeConstructed => {
-            ForgeQueryDeclarationEntryOrchestrationAutomationStep::Envelope
-        }
-    });
-    full.into_iter()
-        .skip_while(|step| Some(*step) != first_step)
-        .collect()
-}
-
-fn explicit_caller_handoff_steps_for(
-    product: ForgeQueryDeclarationEntryOrchestrationProduct,
-) -> Vec<ForgeQueryDeclarationEntryOrchestrationAutomationStep> {
-    match product {
-        ForgeQueryDeclarationEntryOrchestrationProduct::RoutePlan => vec![
-            ForgeQueryDeclarationEntryOrchestrationAutomationStep::Receipt,
-            ForgeQueryDeclarationEntryOrchestrationAutomationStep::Envelope,
-        ],
-        ForgeQueryDeclarationEntryOrchestrationProduct::Receipt => {
-            vec![ForgeQueryDeclarationEntryOrchestrationAutomationStep::Envelope]
-        }
-        ForgeQueryDeclarationEntryOrchestrationProduct::Envelope => Vec::new(),
-    }
-}
-
-fn materialization_tier_for_product(
-    policy: &ForgeQueryDeclarationEntryOrchestrationMaterializationPolicy,
-    product: ForgeQueryDeclarationEntryOrchestrationProduct,
-) -> ForgeQueryDeclarationEntryOrchestrationMaterializationTier {
-    match product {
-        ForgeQueryDeclarationEntryOrchestrationProduct::RoutePlan => {
-            ForgeQueryDeclarationEntryOrchestrationMaterializationTier::from(
-                policy.foundational_evidence_profile(),
-            )
-        }
-        ForgeQueryDeclarationEntryOrchestrationProduct::Receipt => policy.receipt_tier(),
-        ForgeQueryDeclarationEntryOrchestrationProduct::Envelope => policy.envelope_tier(),
-    }
-}
-
-impl From<FoundationalBoundaryEvidenceMaterializationProfile>
-    for ForgeQueryDeclarationEntryOrchestrationMaterializationTier
-{
-    fn from(value: FoundationalBoundaryEvidenceMaterializationProfile) -> Self {
-        match value {
-            FoundationalBoundaryEvidenceMaterializationProfile::ElideSupportAndDiagnostics => {
-                Self::OperationalLean
-            }
-            FoundationalBoundaryEvidenceMaterializationProfile::ElideDiagnostics => {
-                Self::SupportReady
-            }
-            FoundationalBoundaryEvidenceMaterializationProfile::FullDescriptiveRichness => {
-                Self::FullDescriptive
-            }
-        }
     }
 }

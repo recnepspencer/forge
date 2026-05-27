@@ -70,6 +70,7 @@ impl ForgeQueryBindingTarget {
             "forge_query_binding_target_v1".to_string(),
             format!("kind:{}", kind.as_str()),
             format!("target:{target_digest}"),
+            format!("semantics:{}", semantics.binding_digest_material()),
         ]);
         Self {
             kind,

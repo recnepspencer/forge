@@ -1,4 +1,5 @@
 use crate::application::{
+    ForgeQueryDeclarationBridgeContinuationFamily, ForgeQueryDeclarationBridgeContinuationRequest,
     ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
 };
 
@@ -9,6 +10,10 @@ pub enum ForgeQueryDeclarationBridgeRoutingDenialCause {
     UnsupportedContinuationMode,
     UnsupportedTruthContext,
     BridgeAuthorityUnavailable,
+    MissingRequiredAspect,
+    AspectConflict,
+    AuthorityAspectGap,
+    AuthorityAspectAmbiguity,
     BridgeEnvelopeMismatch,
     BasisLifecycleMismatch,
 }
@@ -30,6 +35,18 @@ impl ForgeQueryDeclarationBridgeRoutingDenialCause {
             }
             Self::BridgeAuthorityUnavailable => {
                 "required bridge continuation capabilities are unavailable in this operating world"
+            }
+            Self::MissingRequiredAspect => {
+                "the retained envelope publication does not expose the required bridge semantic slice"
+            }
+            Self::AspectConflict => {
+                "the retained envelope publication conflicts with the required bridge semantic slice"
+            }
+            Self::AuthorityAspectGap => {
+                "the retained envelope publication only partially covers the required bridge semantic slice"
+            }
+            Self::AuthorityAspectAmbiguity => {
+                "multiple bridge mappings claim the same retained semantic slice"
             }
             Self::BridgeEnvelopeMismatch => {
                 "the retained envelope truth and bridge continuation boundary expectations no longer agree"
@@ -79,6 +96,8 @@ pub struct ForgeQueryDeclarationBridgeRoutingDenied<
     I: ForgeQueryDeclarationInput<D>,
 > {
     envelope: ForgeQueryDeclarationEnvelope<D, I>,
+    continuation_request: Option<ForgeQueryDeclarationBridgeContinuationRequest>,
+    continuation_family: Option<ForgeQueryDeclarationBridgeContinuationFamily>,
     cause: ForgeQueryDeclarationBridgeRoutingDenialCause,
     reason: &'static str,
 }
@@ -88,10 +107,14 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 {
     pub(crate) fn new(
         envelope: ForgeQueryDeclarationEnvelope<D, I>,
+        continuation_request: Option<ForgeQueryDeclarationBridgeContinuationRequest>,
+        continuation_family: Option<ForgeQueryDeclarationBridgeContinuationFamily>,
         cause: ForgeQueryDeclarationBridgeRoutingDenialCause,
     ) -> Self {
         Self {
             envelope,
+            continuation_request,
+            continuation_family,
             cause,
             reason: cause.reason(),
         }
@@ -103,6 +126,14 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn cause(&self) -> ForgeQueryDeclarationBridgeRoutingDenialCause {
         self.cause
+    }
+
+    pub fn continuation_request(&self) -> Option<ForgeQueryDeclarationBridgeContinuationRequest> {
+        self.continuation_request
+    }
+
+    pub fn continuation_family(&self) -> Option<ForgeQueryDeclarationBridgeContinuationFamily> {
+        self.continuation_family
     }
 
     pub fn reason(&self) -> &'static str {

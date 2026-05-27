@@ -119,11 +119,14 @@ Receipt inspection:
 - `declaration_digest() -> &str`
 - `progression_digest() -> &str`
 - `route_plan_digest() -> &str`
-- `receipt_digest() -> &str`
+- `receipt_digest() -> &CanonicalDerivedDigest`
 - `binding_target() -> ForgeQueryDeclarationReceiptBindingTarget`
 - `foundational_evidence() -> &ForgeQueryDeclarationFoundationalEvidence<D, I>`
 - `route_plan() -> &ForgeQueryDeclarationRoutePlan<D, I>`
 - `route_denial_cause() -> Option<ForgeQueryDeclarationRoutePlanDenialCause>`
+- `aspect_contract() -> &ForgeQueryDeclarationAspectContract`
+- `aspect_coverage() -> &ForgeQueryDeclarationAspectCoverage`
+- `aspect_publication() -> &ForgeQueryDeclarationAspectPublication`
 - `explain() -> &ForgeQueryDeclarationReceiptExplanation`
 - `descriptive_receipt() -> &ForgeQueryDeclarationBoundaryDescriptiveReceipt`
 - `boundary_receipt() -> &FoundationalBoundaryReceipt`
@@ -155,6 +158,15 @@ construction and later continuation surfaces should bind from this receipt
 identity directly instead of rebuilding crossing posture from lower-level
 artifacts.
 
+Phase 24b makes the retained receipt explicitly route-scoped:
+
+- `aspect_contract()` records which semantic slices the crossing claim is
+  actually about
+- `aspect_coverage()` records which retained slices were present, masked, or
+  conflicting at the crossing seam
+- `aspect_publication()` records what this receipt is willing to publish at its
+  own materialization tier without widening beyond route-backed truth
+
 Declaration boundary envelopes are the next public crossing-story boundary.
 Bridge continuation routing is the later lower-authority continuation boundary
 that can consume those retained envelope truths after relational routing or on
@@ -173,6 +185,8 @@ The advanced lane executes in this order:
 6. Query:
    - reuses the retained foundational evidence
    - reuses the retained route explanation or route-denial cause
+   - narrows the receipt aspect contract to the route-backed slice instead of
+     reusing the broader declaration contract verbatim
    - materializes one foundational boundary receipt surface
    - derives one Query receipt digest from retained proof and crossing posture
 7. Query returns one issued, deferred, denied, or failed receipt artifact
@@ -334,6 +348,17 @@ These surfaces help answer:
 - whether divergence came from admitted world, route posture, or receipt kind
 - which retained receipt identity later envelope or continuation consumers
   should bind to directly
+
+## Aspect-aware retrofit note
+
+Phase 24b requires receipts to state which semantic slices the crossing claim
+actually covers. A receipt is no longer allowed to overclaim broad crossing
+truth when only some route-backed slices truly crossed. Later binding and
+envelope publication must be able to distinguish covered, masked, and merely
+adjacent semantics from the retained receipt itself. The shipped receipt
+surface now exposes `aspect_contract()`, `aspect_coverage()`, and
+`aspect_publication()` so later layers can consume that retained crossing truth
+directly.
 
 ## Anti-Patterns
 

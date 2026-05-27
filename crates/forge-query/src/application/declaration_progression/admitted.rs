@@ -4,6 +4,7 @@ use forge_proof::{
 };
 
 use crate::application::{
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
     ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityContract,
     ForgeQueryDeclarationLegalityEvidence, ForgeQueryDomainEntryMarker,
 };
@@ -70,6 +71,14 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn legality_contract(&self) -> ForgeQueryDeclarationLegalityContract {
         self.legality_evidence().legality_contract()
+    }
+
+    pub fn aspect_contract(&self) -> &ForgeQueryDeclarationAspectContract {
+        self.legality_evidence().aspect_contract()
+    }
+
+    pub fn reviewed_aspect_coverage(&self) -> &ForgeQueryDeclarationAspectCoverage {
+        self.legality_evidence().reviewed_aspect_coverage()
     }
 
     pub fn declaration_family_key(&self) -> &'static str {

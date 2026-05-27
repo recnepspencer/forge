@@ -70,6 +70,7 @@ pub(super) fn lower_from_route_checked<
                     &receipt_materialized_profile_for_tier(
                         orchestration_plan.receipt_materialization_tier(),
                     ),
+                    orchestration_plan.receipt_materialization_tier(),
                 ),
             )
         }
@@ -90,6 +91,7 @@ pub(super) fn lower_from_route_checked<
                     &receipt_materialized_profile_for_tier(
                         orchestration_plan.receipt_materialization_tier(),
                     ),
+                    orchestration_plan.receipt_materialization_tier(),
                 ),
             )
         }
@@ -137,6 +139,7 @@ pub(super) fn lower_from_route_checked<
                     &receipt_materialized_profile_for_tier(
                         orchestration_plan.receipt_materialization_tier(),
                     ),
+                    orchestration_plan.receipt_materialization_tier(),
                 ),
             )
         }
@@ -157,6 +160,7 @@ pub(super) fn lower_from_route_checked<
                     &receipt_materialized_profile_for_tier(
                         orchestration_plan.receipt_materialization_tier(),
                     ),
+                    orchestration_plan.receipt_materialization_tier(),
                 ),
             )
         }

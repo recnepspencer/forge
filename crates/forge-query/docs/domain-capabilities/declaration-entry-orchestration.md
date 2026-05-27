@@ -106,6 +106,11 @@ The important system boundary is this:
 Do not teach your app team that Query is the target-resolution layer. It is
 the orchestration layer after intent already exists.
 
+That distinction matters even more after the Phase 24b retrofit. The
+declaration-entry pipeline is now trying to preserve semantic slices from
+active geometry or workflow context, not teach callers to pass around raw
+geometry ids as the main DX model.
+
 ## Product Targets
 
 Phase 24 adds a second declarative ladder for callers who already hold
@@ -172,10 +177,30 @@ The plan also exposes the materialization and cost policy directly:
 - `materialization_gate()`
 - `foundational_evidence_profile()`
 - `descriptive_materialization_cost()`
+- `aspect_contract()`
+- `aspect_coverage()`
+- `aspect_coverage_basis()`
+- `foundational_aspect_publication()`
+- `receipt_aspect_publication()`
+- `envelope_aspect_publication()`
+- `relational_authority_summary()`
+- `bridge_authority_summary()`
+- `signal_authority_summary()`
 
 In the current shipped boundary, `explicit_caller_handoff_steps()` is still
 empty because the public front door stops at envelope construction instead of
 advertising a second automated continuation phase.
+
+That ceiling is now paired with retained authority posture. The plan and proof
+surfaces do not automate relational routing, bridge routing, or signal
+compatibility, but they do freeze what the retained envelope publication
+already implies for those later authority consumers.
+
+That implication remains a retained projection, not an executed lower stage.
+The transcript may tell you that the retained envelope publication would later
+leave the bridge slice missing, the signal dependency slice unsupported, or the
+relational slice only partially covered, while the orchestration run itself
+still honestly stops successfully at `EnvelopeConstructed`.
 
 ## Sequencing Law
 
@@ -231,6 +256,51 @@ The current default orchestration policy is intentionally conservative:
 That keeps the generic orchestration trio cheap-looking in truth. Proof-visible
 inspection exposes more metadata, but it does not silently widen declaration
 truth or claim later execution happened.
+
+Phase 24b now makes that policy semantically inspectable rather than only
+profile-shaped:
+
+- the plan retains the declaration-entry `aspect_contract()`
+- the plan retains `aspect_coverage()` plus `aspect_coverage_basis()` so callers
+  can tell whether the publication policy is operating on declared family
+  coverage or reviewed retained coverage
+- `foundational_aspect_publication()` tells you what the foundational profile
+  actually publishes
+- `receipt_aspect_publication()` and `envelope_aspect_publication()` tell you
+  how the ordinary, checked, and proof lanes widen or elide semantic slices for
+  later retained artifacts, using the route-scoped crossing contract rather
+  than the broader declaration-published slice
+- `relational_authority_summary()` tells you which relational slice is already
+  visible at the envelope boundary and whether it is exact, a compatible
+  superset, partial, missing, or conflicting
+- `bridge_authority_summary()` keeps the available envelope slice separate from
+  the narrower mapped continuation slice later bridge routing would still need
+- `signal_authority_summary()` freezes dependency and produced-aspect posture so
+  later execution surfaces do not have to rediscover it from the envelope
+
+The basis split is part of the public honesty contract:
+
+- `DeclaredFamilyCoverage` means the generic admitted-handle entry lane is
+  publishing from the family-declared semantic coverage it knows before later
+  retained proof exists
+- `ReviewedRetainedCoverage` means the progressed-product lane is publishing
+  from real reviewed retained proof, not just the family's declared semantic
+  promise
+- in both lanes, masked or conflicting slices stay masked instead of being
+  promoted into visible publication by richer transcript policy
+
+Later lower-authority phases now depend on that publication honesty directly:
+
+- relational routing consumes the envelope's published relational slice
+- bridge routing consumes the envelope's published bridge slice and freezes the
+  narrower mapped slice
+- signal compatibility consumes the envelope's published dependency slice plus
+  basis-family posture
+
+Orchestration now exposes those downstream consequences directly without
+pretending the lower-authority phases already ran. A bridge or signal summary
+can legitimately report `MissingRequired` while the orchestration proof still
+ends successfully at `Envelope`.
 
 ## Where Automation Stops
 
@@ -390,6 +460,12 @@ let _ = transcript.plan().automation_steps();
 let _ = transcript.plan().materialization_policy();
 let _ = transcript.plan().foundational_evidence_profile();
 let _ = transcript.plan().descriptive_materialization_cost();
+let _ = transcript.plan().foundational_aspect_publication();
+let _ = transcript.plan().receipt_aspect_publication();
+let _ = transcript.plan().envelope_aspect_publication();
+let _ = transcript.relational_authority_summary().aspect_fit();
+let _ = transcript.bridge_authority_summary().mapping_fit();
+let _ = transcript.signal_authority_summary().produced_aspects();
 let _ = transcript.outcome().stop_stage();
 
 for record in transcript.step_records() {
@@ -438,6 +514,10 @@ Use the proof-visible lane when you need:
 - retained digests attached to each reached or stopped stage
 - parity evidence across equivalent runs
 - the declared materialization tier and cost posture for the run
+- the exact semantic slices the foundational, receipt, and envelope tiers
+  published or elided
+- the downstream relational, bridge, and signal posture implied by the retained
+  envelope without widening the execution ladder
 
 Useful accessors:
 
@@ -449,6 +529,18 @@ Useful accessors:
 - `plan().cost_posture()`
 - `plan().foundational_evidence_profile()`
 - `plan().descriptive_materialization_cost()`
+- `plan().aspect_contract()`
+- `plan().aspect_coverage()`
+- `plan().aspect_coverage_basis()`
+- `plan().foundational_aspect_publication()`
+- `plan().receipt_aspect_publication()`
+- `plan().envelope_aspect_publication()`
+- `plan().relational_authority_summary()`
+- `plan().bridge_authority_summary()`
+- `plan().signal_authority_summary()`
+- `proof.relational_authority_summary()`
+- `proof.bridge_authority_summary()`
+- `proof.signal_authority_summary()`
 - `step_records()`
 - `step_record.automation_step()`
 - `step_record.materialization_tier()`
@@ -477,6 +569,16 @@ Useful accessors:
 - the automation boundary is currently single-valued: `EnvelopeCeiling`
 - the grammar is intentionally generic only; family-specific orchestration
   aliases are out of scope here
+
+## Aspect-aware retrofit note
+
+Phase 24b makes orchestration the first user-visible candidate-selection
+surface that must prefer semantic aspect fit over folklore ordering. The
+primary geometry story here is dynamic context binding such as active
+intersection trimming or active selection material edits, not raw identifier
+passing. Plans and transcripts therefore need to explain what semantic slices
+were required, which candidate covered them best, and what was masked or denied
+when the ordinary lane stopped at the envelope ceiling.
 
 ## Related Docs
 

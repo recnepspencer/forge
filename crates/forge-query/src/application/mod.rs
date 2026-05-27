@@ -1,6 +1,8 @@
 mod capability;
 mod config;
 mod declaration;
+mod declaration_aspect;
+mod declaration_authority_summary;
 mod declaration_bridge_routing;
 mod declaration_capability;
 mod declaration_entry_orchestration;
@@ -10,6 +12,7 @@ mod declaration_evidence;
 mod declaration_family;
 mod declaration_legality;
 mod declaration_progression;
+mod declaration_publication;
 mod declaration_receipt;
 mod declaration_relational_routing;
 mod declaration_route_plan;
@@ -38,6 +41,16 @@ pub use declaration::{
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationCanonicalEntryKind,
     ForgeQueryDeclarationCanonicalValue, ForgeQueryDeclarationCanonicalizationError,
     ForgeQueryDeclarationCanonicalizationVersion, ForgeQueryDeclarationInput,
+};
+pub use declaration_aspect::{
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
+    ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationAspectFit,
+    ForgeQueryDeclarationAuthorityAspectMismatch,
+};
+pub use declaration_authority_summary::{
+    ForgeQueryDeclarationBridgeAuthorityAspectSummary,
+    ForgeQueryDeclarationRelationalAuthorityAspectSummary,
+    ForgeQueryDeclarationSignalAuthorityAspectSummary,
 };
 pub use declaration_bridge_routing::{
     ForgeQueryDeclarationBridgeBinding, ForgeQueryDeclarationBridgeContinuationContract,
@@ -157,6 +170,7 @@ pub use declaration_progression::{
     ForgeQueryDeclarationProgressionRebindRequired, ForgeQueryDeclarationProgressionRecipe,
     ForgeQueryDeclarationProgressionStale, ForgeQueryDeclarationProgressionTerminalError,
 };
+pub use declaration_publication::ForgeQueryDeclarationAspectPublication;
 pub use declaration_receipt::{
     ForgeQueryDeclarationEntryReceiptError, ForgeQueryDeclarationReceipt,
     ForgeQueryDeclarationReceiptChecked, ForgeQueryDeclarationReceiptClass,
@@ -228,6 +242,16 @@ pub use support::{
 };
 
 pub(crate) use declaration::forge_query_canonical_declaration;
+pub(crate) use declaration_aspect::{
+    aspect_coverage_from_publication, authority_mismatch_from_fit,
+    authority_scoped_envelope_aspect_contract, merged_authority_aspect_contract,
+    route_scoped_declaration_aspect_contract,
+};
+pub(crate) use declaration_authority_summary::{
+    bridge_authority_summary_from_coverage, bridge_authority_summary_from_publication,
+    relational_authority_summary_from_coverage, relational_authority_summary_from_publication,
+    signal_authority_summary_from_coverage, signal_authority_summary_from_publication,
+};
 pub(crate) use declaration_bridge_routing::{
     derive_bridge_routing_support_report, forge_query_checked_declaration_bridge_routing_on_handle,
 };

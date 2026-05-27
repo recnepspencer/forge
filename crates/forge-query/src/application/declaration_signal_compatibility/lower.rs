@@ -12,7 +12,7 @@ pub(crate) fn derive_signal_execution_family<
     I: ForgeQueryDeclarationInput<D>,
 >(
     envelope: &ForgeQueryDeclarationEnvelope<D, I>,
-    contract: ForgeQueryDeclarationSignalCompatibilityContract,
+    contract: &ForgeQueryDeclarationSignalCompatibilityContract,
 ) -> ForgeQueryDeclarationSignalExecutionFamily {
     if envelope
         .route_plan()
@@ -25,7 +25,7 @@ pub(crate) fn derive_signal_execution_family<
 }
 
 pub(crate) fn derive_required_basis_families(
-    contract: ForgeQueryDeclarationSignalCompatibilityContract,
+    contract: &ForgeQueryDeclarationSignalCompatibilityContract,
 ) -> Vec<BasisFamily> {
     contract.required_basis_families().to_vec()
 }

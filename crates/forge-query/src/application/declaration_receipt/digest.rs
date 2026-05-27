@@ -6,7 +6,10 @@ use forge_foundational::facade::{
 };
 use forge_proof::TransitionOutcome;
 
-use crate::application::ForgeQueryDeclarationFoundationalEvidenceClass;
+use crate::application::{
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
+    ForgeQueryDeclarationAspectPublication, ForgeQueryDeclarationFoundationalEvidenceClass,
+};
 
 use super::artifact::{ForgeQueryDeclarationReceiptClass, ForgeQueryDeclarationReceiptKind};
 
@@ -27,6 +30,9 @@ pub(crate) fn derive_receipt_digest(
     route_intent_token: Option<&str>,
     route_cause_reason: Option<&str>,
     receipt_cause_reason: Option<&str>,
+    crossing_aspect_contract: &ForgeQueryDeclarationAspectContract,
+    crossing_aspect_coverage: &ForgeQueryDeclarationAspectCoverage,
+    crossing_aspect_publication: &ForgeQueryDeclarationAspectPublication,
 ) -> CanonicalDerivedDigest {
     let mut entries = vec![
         text_entry("receipt.handle", handle_identity_digest),
@@ -65,6 +71,18 @@ pub(crate) fn derive_receipt_digest(
     if let Some(entry) = optional_text_entry("receipt.receipt_cause", receipt_cause_reason) {
         entries.push(entry);
     }
+    entries.push(text_entry(
+        "receipt.crossing_aspect_contract",
+        &format!("{crossing_aspect_contract:?}"),
+    ));
+    entries.push(text_entry(
+        "receipt.crossing_aspect_coverage",
+        &format!("{crossing_aspect_coverage:?}"),
+    ));
+    entries.push(text_entry(
+        "receipt.crossing_aspect_publication",
+        &format!("{crossing_aspect_publication:?}"),
+    ));
     let ready = canonical_basis_from_entries(version.clone(), entries);
     let bundle = match prepare_canonical_basis_bundle(version, [ready]) {
         TransitionOutcome::Success(bundle) => bundle,

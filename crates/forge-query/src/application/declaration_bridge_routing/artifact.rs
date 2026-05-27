@@ -5,6 +5,8 @@ use forge_runtime_bridge::facade::{
 };
 
 use crate::application::{
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
+    ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationAspectFit,
     ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationEnvelopeEvidenceOrigin,
     ForgeQueryDeclarationInput, ForgeQueryDeclarationReceiptDenialCause,
     ForgeQueryDeclarationRoutePlanDenialCause, ForgeQueryDomainEntryMarker,
@@ -59,6 +61,12 @@ pub struct ForgeQueryDeclarationBridgeRouting<
     continuation_request: ForgeQueryDeclarationBridgeContinuationRequest,
     continuation_family: ForgeQueryDeclarationBridgeContinuationFamily,
     binding: ForgeQueryDeclarationBridgeBinding,
+    aspect_contract: ForgeQueryDeclarationAspectContract,
+    aspect_coverage: ForgeQueryDeclarationAspectCoverage,
+    aspect_coverage_basis: ForgeQueryDeclarationAspectCoverageBasis,
+    aspect_fit: ForgeQueryDeclarationAspectFit,
+    mapped_aspects: ForgeQueryDeclarationAspectCoverage,
+    mapping_fit: ForgeQueryDeclarationAspectFit,
     envelope: ForgeQueryDeclarationEnvelope<D, I>,
     bridge_routing_digest: String,
     explanation: ForgeQueryDeclarationBridgeRoutingExplanation,
@@ -72,6 +80,12 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         continuation_request: ForgeQueryDeclarationBridgeContinuationRequest,
         continuation_family: ForgeQueryDeclarationBridgeContinuationFamily,
         binding: ForgeQueryDeclarationBridgeBinding,
+        aspect_contract: ForgeQueryDeclarationAspectContract,
+        aspect_coverage: ForgeQueryDeclarationAspectCoverage,
+        aspect_coverage_basis: ForgeQueryDeclarationAspectCoverageBasis,
+        aspect_fit: ForgeQueryDeclarationAspectFit,
+        mapped_aspects: ForgeQueryDeclarationAspectCoverage,
+        mapping_fit: ForgeQueryDeclarationAspectFit,
         envelope: ForgeQueryDeclarationEnvelope<D, I>,
         bridge_routing_digest: String,
         explanation: ForgeQueryDeclarationBridgeRoutingExplanation,
@@ -81,6 +95,12 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             continuation_request,
             continuation_family,
             binding,
+            aspect_contract,
+            aspect_coverage,
+            aspect_coverage_basis,
+            aspect_fit,
+            mapped_aspects,
+            mapping_fit,
             envelope,
             bridge_routing_digest,
             explanation,
@@ -105,6 +125,30 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn binding(&self) -> &ForgeQueryDeclarationBridgeBinding {
         &self.binding
+    }
+
+    pub fn aspect_contract(&self) -> &ForgeQueryDeclarationAspectContract {
+        &self.aspect_contract
+    }
+
+    pub fn aspect_coverage(&self) -> &ForgeQueryDeclarationAspectCoverage {
+        &self.aspect_coverage
+    }
+
+    pub fn aspect_coverage_basis(&self) -> ForgeQueryDeclarationAspectCoverageBasis {
+        self.aspect_coverage_basis
+    }
+
+    pub fn aspect_fit(&self) -> ForgeQueryDeclarationAspectFit {
+        self.aspect_fit
+    }
+
+    pub fn mapped_aspects(&self) -> &ForgeQueryDeclarationAspectCoverage {
+        &self.mapped_aspects
+    }
+
+    pub fn mapping_fit(&self) -> ForgeQueryDeclarationAspectFit {
+        self.mapping_fit
     }
 
     pub fn declaration_family_key(&self) -> &'static str {

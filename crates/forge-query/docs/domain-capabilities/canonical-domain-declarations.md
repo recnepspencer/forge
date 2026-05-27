@@ -212,15 +212,15 @@ impl ForgeQueryDomainOperatingContext<GeometryDomain> for CollaborativeWorld {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct SplitEdge;
+struct AttachFaceMaterial;
 
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AttachFaceMaterial {
     type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
     type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
     type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "attach-face-material"
     }
 
     fn required_capability_families() -> &'static [ForgeQueryCapabilityFamily] {
@@ -233,15 +233,22 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct SplitEdgeAtMidpoint {
-    edge_ref: &'static str,
+struct AttachFaceMaterialAssignment {
+    face_ref: &'static str,
+    material_profile_ref: &'static str,
 }
 
-impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeAtMidpoint {
-    type Family = SplitEdge;
+impl ForgeQueryDeclarationInput<GeometryDomain> for AttachFaceMaterialAssignment {
+    type Family = AttachFaceMaterial;
 
     fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.edge_ref)]
+        vec![
+            ForgeQueryDeclarationCanonicalEntry::text("face_ref", self.face_ref),
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "material_profile_ref",
+                self.material_profile_ref,
+            ),
+        ]
     }
 }
 
@@ -252,13 +259,19 @@ let handle = query
     .validate()?
     .admit()?;
 
-let declaration = handle.declare(SplitEdgeAtMidpoint {
-    edge_ref: "edge:42",
+let declaration = handle.declare(AttachFaceMaterialAssignment {
+    face_ref: "face:loading-bay-west",
+    material_profile_ref: "material-profile:fire-rated-primer",
 })?;
 
 let digest = declaration.declaration_digest();
 let truth = declaration.relational_truth();
 ```
+
+Phase 24b note: canonical declaration entries are the retained internal shape,
+not the ideal app-facing geometry DX. Later declaration-entry docs may show
+dynamic context such as active selection or active neighborhood binding on the
+outside while still lowering into canonical entries internally.
 
 ## Real Example
 
@@ -310,15 +323,15 @@ impl ForgeQueryDomainOperatingContext<GeometryDomain> for CollaborativeWorld {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct SplitEdge;
+struct AttachFaceMaterial;
 
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
+impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AttachFaceMaterial {
     type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
     type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
     type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
 
     fn semantic_family_key() -> &'static str {
-        "split-edge"
+        "attach-face-material"
     }
 
     fn required_capability_families() -> &'static [ForgeQueryCapabilityFamily] {
@@ -331,13 +344,22 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for SplitEdge {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-struct SplitEdgeAtMidpoint(&'static str);
+struct AttachFaceMaterialForActiveSelection;
 
-impl ForgeQueryDeclarationInput<GeometryDomain> for SplitEdgeAtMidpoint {
-    type Family = SplitEdge;
+impl ForgeQueryDeclarationInput<GeometryDomain> for AttachFaceMaterialForActiveSelection {
+    type Family = AttachFaceMaterial;
 
     fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::text("edge_ref", self.0)]
+        vec![
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "selection_scope",
+                "active-face-selection",
+            ),
+            ForgeQueryDeclarationCanonicalEntry::text(
+                "material_edit_intent",
+                "attach-material-from-current-selection",
+            ),
+        ]
     }
 }
 
@@ -349,13 +371,13 @@ let handle = query
     .admit()?;
 
 assert_eq!(
-    handle.family_support::<SplitEdge>().declare_status(),
+    handle.family_support::<AttachFaceMaterial>().declare_status(),
     ForgeQueryDeclarationCapabilityStatus::Admitted,
 );
 
-match handle.declare_checked(SplitEdgeAtMidpoint("edge:42")) {
+match handle.declare_checked(AttachFaceMaterialForActiveSelection) {
     ForgeQueryDeclaredFamilyChecked::Admitted(left) => {
-        let right = handle.declare(SplitEdgeAtMidpoint("edge:42"))?;
+        let right = handle.declare(AttachFaceMaterialForActiveSelection)?;
         let comparison =
             left.compare_under(&right, CanonicalEquivalenceBasis::ExactCanonicalBasis)?;
         let _truth = left.relational_truth();
@@ -372,6 +394,8 @@ What this example is showing:
 - support admission and canonicalization are separate steps
 - the canonical artifact retains family posture for later typed witness access
 - later comparison still works over the retained canonical artifact
+- the user-facing geometry story can still be active selection while the
+  canonical artifact lowers into stable retained facts internally
 
 ## How It Relates To Other Features
 

@@ -60,6 +60,7 @@ Inspection accessors:
 - `receipt_digest()`
 - `envelope_digest()`
 - `envelope_class()`
+- `envelope_aspect_publication()`
 - `evidence_origin()`
 - `route_denial_cause()`
 - `receipt_denial_cause()`
@@ -72,6 +73,27 @@ Inspection accessors:
 - `matching_row_digests()`
 - `readiness()`
 - `inspection_digest()`
+
+Posture detail accessors:
+
+- `relational_posture().aspect_summary()`
+- `relational_posture().truth_claim()`
+- `relational_posture().authority_family()`
+- `bridge_posture().aspect_summary()`
+- `bridge_posture().continuation_mode()`
+- `bridge_posture().truth_context()`
+- `bridge_posture().continuation_family()`
+- `signal_posture().aspect_summary()`
+- `signal_posture().execution_family()`
+- `signal_posture().basis_families()`
+
+The lower-authority metadata accessors above are intentionally proof-sensitive.
+On successful retained lower-authority artifacts they return the frozen routed
+or compatible posture. On denied retained lower-authority artifacts they return
+only the metadata that denial artifact actually proved. If the denied artifact
+did not prove one concrete truth claim, continuation mode, continuation family,
+execution family, or basis-family set, the corresponding inspection accessor is
+empty rather than filled with a success-shaped default.
 
 Contribution composition accessors:
 
@@ -91,18 +113,28 @@ That means:
    posture
 3. inspection composes those retained truths into one readable Query artifact
 4. inspection does not re-run lower routing or invent fake success posture
-5. optional `9.3.7` contribution evidence may be attached on demand, but only
+5. envelope-only inspection still exposes the retained public publication slice
+   and then correlates it with readiness posture for later relational, bridge,
+   and signal consequences
+6. optional `9.3.7` contribution evidence may be attached on demand, but only
    when the retained seam subject can honestly justify that contribution target
    and category
-6. stronger admitted-plan-bound and lower-runtime-bound contribution categories
+7. stronger admitted-plan-bound and lower-runtime-bound contribution categories
    require matching retained downstream proof explicitly; they are not inferred
    from declaration-entry posture alone
-7. the narrower relational, bridge, and signal support helpers remain
+8. the narrower relational, bridge, and signal support helpers remain
    entry-phase-only projections; they do not become contribution-composed
    inspection surfaces just because contribution evidence is attached here
 
 If a stronger lower seam artifact is missing, inspection keeps that absence
 honest and falls back to readiness posture for that layer.
+
+When inspection does have a denied lower-authority artifact, it keeps the
+typed denial cause and any retained authority-shaping metadata the denied
+artifact actually proves. If the denied artifact did not prove a specific
+truth claim, authority family, continuation mode, continuation family, signal
+execution family, or basis-family set, the inspection posture leaves those
+accessors empty instead of fabricating a success-shaped default.
 
 Inspection is about retained declaration-entry seam artifacts such as
 envelopes, relational routing, bridge routing, and signal compatibility.
@@ -131,11 +163,13 @@ let _ = inspection.readiness();
 ## Real Example
 
 ```rust
+let assignment = geometry_session
+    .selection()
+    .active_face()
+    .attach_material("fire-rated-plaster")?;
+
 let envelope = handle.envelope_routes_from_progressed(
-    handle.declare_review_and_progress(AttachFaceMaterialAssignment {
-        face_ref: "face:outer-wall-a",
-        material_ref: "material:fire-rated-plaster",
-    })?,
+    handle.declare_review_and_progress(assignment)?,
 )?;
 
 let evidence = ForgeQueryDeclarationEntryContributionEvidenceSet::new(vec![
@@ -153,6 +187,7 @@ let inspection = handle.inspect_declaration_entry(
 
 let _ = inspection.contribution_composition();
 let _ = inspection.readiness();
+let _ = inspection.envelope_aspect_publication();
 ```
 
 ## Inspection And Debugging
@@ -162,7 +197,14 @@ Use inspection when you need to answer:
 - what declaration family crossed this seam?
 - which admitted world did it belong to?
 - what route and receipt posture was retained?
+- what semantic slice did the retained envelope actually publish?
 - did the seam reach relational, bridge, or signal posture?
+- if a lower-authority phase did not succeed, what retained aspect contract,
+  coverage basis, mismatch, mapped slice, or produced-aspect posture still
+  survived for diagnosis?
+- whether a denied lower-authority artifact actually proved one concrete truth
+  claim, continuation family, or signal execution family, or whether those
+  details must remain absent
 - which declaration-scoped domain contribution evidence was explicitly attached?
 - whether attached admitted-plan or lower-runtime proof actually justified the
   stronger contribution target families that were supplied

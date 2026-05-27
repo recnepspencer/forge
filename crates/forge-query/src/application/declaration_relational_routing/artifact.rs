@@ -1,4 +1,6 @@
 use crate::application::{
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
+    ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationAspectFit,
     ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationEnvelopeEvidenceOrigin,
     ForgeQueryDeclarationInput, ForgeQueryDeclarationReceiptDenialCause,
     ForgeQueryDeclarationRoutePlanDenialCause, ForgeQueryDomainEntryMarker,
@@ -46,6 +48,10 @@ pub struct ForgeQueryDeclarationRelationalRouting<
     truth_claim: ForgeQueryDeclarationRelationalTruthClaim,
     authority_family: ForgeQueryDeclarationRelationalAuthorityFamily,
     binding: ForgeQueryDeclarationRelationalBinding,
+    aspect_contract: ForgeQueryDeclarationAspectContract,
+    aspect_coverage: ForgeQueryDeclarationAspectCoverage,
+    aspect_coverage_basis: ForgeQueryDeclarationAspectCoverageBasis,
+    aspect_fit: ForgeQueryDeclarationAspectFit,
     envelope: ForgeQueryDeclarationEnvelope<D, I>,
     relational_routing_digest: String,
     explanation: ForgeQueryDeclarationRelationalRoutingExplanation,
@@ -59,6 +65,10 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         truth_claim: ForgeQueryDeclarationRelationalTruthClaim,
         authority_family: ForgeQueryDeclarationRelationalAuthorityFamily,
         binding: ForgeQueryDeclarationRelationalBinding,
+        aspect_contract: ForgeQueryDeclarationAspectContract,
+        aspect_coverage: ForgeQueryDeclarationAspectCoverage,
+        aspect_coverage_basis: ForgeQueryDeclarationAspectCoverageBasis,
+        aspect_fit: ForgeQueryDeclarationAspectFit,
         envelope: ForgeQueryDeclarationEnvelope<D, I>,
         relational_routing_digest: String,
         explanation: ForgeQueryDeclarationRelationalRoutingExplanation,
@@ -68,6 +78,10 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             truth_claim,
             authority_family,
             binding,
+            aspect_contract,
+            aspect_coverage,
+            aspect_coverage_basis,
+            aspect_fit,
             envelope,
             relational_routing_digest,
             explanation,
@@ -88,6 +102,22 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn binding(&self) -> &ForgeQueryDeclarationRelationalBinding {
         &self.binding
+    }
+
+    pub fn aspect_contract(&self) -> &ForgeQueryDeclarationAspectContract {
+        &self.aspect_contract
+    }
+
+    pub fn aspect_coverage(&self) -> &ForgeQueryDeclarationAspectCoverage {
+        &self.aspect_coverage
+    }
+
+    pub fn aspect_coverage_basis(&self) -> ForgeQueryDeclarationAspectCoverageBasis {
+        self.aspect_coverage_basis
+    }
+
+    pub fn aspect_fit(&self) -> ForgeQueryDeclarationAspectFit {
+        self.aspect_fit
     }
 
     pub fn declaration_family_key(&self) -> &'static str {

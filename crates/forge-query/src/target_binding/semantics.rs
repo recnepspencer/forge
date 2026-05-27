@@ -1,5 +1,7 @@
 use crate::application::{
-    ForgeQueryAdmittedDeclarationProgression, ForgeQueryDeclarationEnvelope,
+    ForgeQueryAdmittedDeclarationProgression, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationAspectFit,
+    ForgeQueryDeclarationAspectPublication, ForgeQueryDeclarationEnvelope,
     ForgeQueryDeclarationInput, ForgeQueryDeclarationReceipt, ForgeQueryDeclarationRoutePlan,
     ForgeQueryDomainEntryMarker,
 };
@@ -45,24 +47,34 @@ pub enum ForgeQueryBindingTargetSemantics {
         declaration_digest: String,
         progression_digest: String,
         declaration_family_label: &'static str,
+        aspect_contract: ForgeQueryDeclarationAspectContract,
+        reviewed_aspect_coverage: ForgeQueryDeclarationAspectCoverage,
     },
     DeclarationRoutePlan {
         handle_identity_digest: String,
         declaration_digest: String,
         route_plan_digest: String,
         route_contract_family_label: &'static str,
+        route_aspect_contract: ForgeQueryDeclarationAspectContract,
+        route_aspect_fit: ForgeQueryDeclarationAspectFit,
+        route_aspect_publication: ForgeQueryDeclarationAspectPublication,
     },
     DeclarationReceipt {
         declaration_digest: String,
         route_plan_digest: Option<String>,
         receipt_digest: String,
         receipt_posture_class: &'static str,
+        crossing_aspect_contract: ForgeQueryDeclarationAspectContract,
+        crossing_aspect_coverage: ForgeQueryDeclarationAspectCoverage,
+        crossing_aspect_publication: ForgeQueryDeclarationAspectPublication,
     },
     DeclarationEnvelope {
         declaration_digest: String,
         route_plan_digest: Option<String>,
         receipt_digest: String,
         envelope_digest: String,
+        published_aspect_contract: ForgeQueryDeclarationAspectContract,
+        published_aspect_publication: ForgeQueryDeclarationAspectPublication,
     },
 }
 
@@ -156,7 +168,15 @@ impl ForgeQueryBindingTargetSemantics {
 
     pub fn admitted_declaration_progression(
         &self,
-    ) -> Option<(&str, &str, &str, &str, &'static str)> {
+    ) -> Option<(
+        &str,
+        &str,
+        &str,
+        &str,
+        &'static str,
+        &ForgeQueryDeclarationAspectContract,
+        &ForgeQueryDeclarationAspectCoverage,
+    )> {
         match self {
             Self::AdmittedDeclarationProgression {
                 handle_identity_digest,
@@ -164,63 +184,112 @@ impl ForgeQueryBindingTargetSemantics {
                 declaration_digest,
                 progression_digest,
                 declaration_family_label,
+                aspect_contract,
+                reviewed_aspect_coverage,
             } => Some((
                 handle_identity_digest.as_str(),
                 operating_context_identity_digest.as_str(),
                 declaration_digest.as_str(),
                 progression_digest.as_str(),
                 *declaration_family_label,
+                aspect_contract,
+                reviewed_aspect_coverage,
             )),
             _ => None,
         }
     }
 
-    pub fn declaration_route_plan(&self) -> Option<(&str, &str, &str, &'static str)> {
+    pub fn declaration_route_plan(
+        &self,
+    ) -> Option<(
+        &str,
+        &str,
+        &str,
+        &'static str,
+        &ForgeQueryDeclarationAspectContract,
+        ForgeQueryDeclarationAspectFit,
+        &ForgeQueryDeclarationAspectPublication,
+    )> {
         match self {
             Self::DeclarationRoutePlan {
                 handle_identity_digest,
                 declaration_digest,
                 route_plan_digest,
                 route_contract_family_label,
+                route_aspect_contract,
+                route_aspect_fit,
+                route_aspect_publication,
             } => Some((
                 handle_identity_digest.as_str(),
                 declaration_digest.as_str(),
                 route_plan_digest.as_str(),
                 *route_contract_family_label,
+                route_aspect_contract,
+                *route_aspect_fit,
+                route_aspect_publication,
             )),
             _ => None,
         }
     }
 
-    pub fn declaration_receipt(&self) -> Option<(&str, Option<&str>, &str, &'static str)> {
+    pub fn declaration_receipt(
+        &self,
+    ) -> Option<(
+        &str,
+        Option<&str>,
+        &str,
+        &'static str,
+        &ForgeQueryDeclarationAspectContract,
+        &ForgeQueryDeclarationAspectCoverage,
+        &ForgeQueryDeclarationAspectPublication,
+    )> {
         match self {
             Self::DeclarationReceipt {
                 declaration_digest,
                 route_plan_digest,
                 receipt_digest,
                 receipt_posture_class,
+                crossing_aspect_contract,
+                crossing_aspect_coverage,
+                crossing_aspect_publication,
             } => Some((
                 declaration_digest.as_str(),
                 route_plan_digest.as_deref(),
                 receipt_digest.as_str(),
                 *receipt_posture_class,
+                crossing_aspect_contract,
+                crossing_aspect_coverage,
+                crossing_aspect_publication,
             )),
             _ => None,
         }
     }
 
-    pub fn declaration_envelope(&self) -> Option<(&str, Option<&str>, &str, &str)> {
+    pub fn declaration_envelope(
+        &self,
+    ) -> Option<(
+        &str,
+        Option<&str>,
+        &str,
+        &str,
+        &ForgeQueryDeclarationAspectContract,
+        &ForgeQueryDeclarationAspectPublication,
+    )> {
         match self {
             Self::DeclarationEnvelope {
                 declaration_digest,
                 route_plan_digest,
                 receipt_digest,
                 envelope_digest,
+                published_aspect_contract,
+                published_aspect_publication,
             } => Some((
                 declaration_digest.as_str(),
                 route_plan_digest.as_deref(),
                 receipt_digest.as_str(),
                 envelope_digest.as_str(),
+                published_aspect_contract,
+                published_aspect_publication,
             )),
             _ => None,
         }
@@ -266,6 +335,8 @@ impl ForgeQueryBindingTargetSemantics {
         declaration_digest: String,
         progression_digest: String,
         declaration_family_label: &'static str,
+        aspect_contract: ForgeQueryDeclarationAspectContract,
+        reviewed_aspect_coverage: ForgeQueryDeclarationAspectCoverage,
     ) -> Self {
         Self::AdmittedDeclarationProgression {
             handle_identity_digest,
@@ -273,6 +344,8 @@ impl ForgeQueryBindingTargetSemantics {
             declaration_digest,
             progression_digest,
             declaration_family_label,
+            aspect_contract,
+            reviewed_aspect_coverage,
         }
     }
 
@@ -294,6 +367,8 @@ impl ForgeQueryBindingTargetSemantics {
             ),
             progressed.progression_digest().to_string(),
             progressed.declaration_family_key(),
+            progressed.aspect_contract().clone(),
+            progressed.reviewed_aspect_coverage().clone(),
         )
     }
 
@@ -308,6 +383,9 @@ impl ForgeQueryBindingTargetSemantics {
             declaration_digest: route_plan.declaration_digest().to_string(),
             route_plan_digest: route_plan.route_plan_digest().to_string(),
             route_contract_family_label: route_plan.declaration_family_key(),
+            route_aspect_contract: route_plan.aspect_contract().clone(),
+            route_aspect_fit: route_plan.aspect_fit(),
+            route_aspect_publication: route_plan.aspect_publication().clone(),
         }
     }
 
@@ -329,6 +407,9 @@ impl ForgeQueryBindingTargetSemantics {
                 crate::application::ForgeQueryDeclarationReceiptClass::DeniedCrossing => "denied",
                 crate::application::ForgeQueryDeclarationReceiptClass::FailedCrossing => "failed",
             },
+            crossing_aspect_contract: receipt.aspect_contract().clone(),
+            crossing_aspect_coverage: receipt.aspect_coverage().clone(),
+            crossing_aspect_publication: receipt.aspect_publication().clone(),
         }
     }
 
@@ -343,6 +424,44 @@ impl ForgeQueryBindingTargetSemantics {
             route_plan_digest: envelope.route_plan_digest().map(ToOwned::to_owned),
             receipt_digest: format!("{:?}", envelope.receipt_digest()),
             envelope_digest: format!("{:?}", envelope.envelope_digest()),
+            published_aspect_contract: envelope.aspect_contract().clone(),
+            published_aspect_publication: envelope.aspect_publication().clone(),
+        }
+    }
+
+    pub(crate) fn binding_digest_material(&self) -> String {
+        match self {
+            Self::AdmittedDeclarationProgression {
+                aspect_contract,
+                reviewed_aspect_coverage,
+                ..
+            } => format!(
+                "aspect_contract:{aspect_contract:?}|reviewed_aspect_coverage:{reviewed_aspect_coverage:?}"
+            ),
+            Self::DeclarationRoutePlan {
+                route_aspect_contract,
+                route_aspect_fit,
+                route_aspect_publication,
+                ..
+            } => format!(
+                "route_aspect_contract:{route_aspect_contract:?}|route_aspect_fit:{route_aspect_fit:?}|route_aspect_publication:{route_aspect_publication:?}"
+            ),
+            Self::DeclarationReceipt {
+                crossing_aspect_contract,
+                crossing_aspect_coverage,
+                crossing_aspect_publication,
+                ..
+            } => format!(
+                "crossing_aspect_contract:{crossing_aspect_contract:?}|crossing_aspect_coverage:{crossing_aspect_coverage:?}|crossing_aspect_publication:{crossing_aspect_publication:?}"
+            ),
+            Self::DeclarationEnvelope {
+                published_aspect_contract,
+                published_aspect_publication,
+                ..
+            } => format!(
+                "published_aspect_contract:{published_aspect_contract:?}|published_aspect_publication:{published_aspect_publication:?}"
+            ),
+            _ => String::new(),
         }
     }
 }

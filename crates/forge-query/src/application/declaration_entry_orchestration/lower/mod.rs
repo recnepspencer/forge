@@ -1,4 +1,6 @@
-use crate::application::{ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker};
+use crate::application::{
+    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+};
 
 use super::artifacts::{
     ForgeQueryDeclarationEntryOrchestrationArtifactPolicy,
@@ -43,6 +45,9 @@ pub(crate) fn forge_query_lower_declaration_entry_orchestration_on_handle<
     let orchestration_input = ForgeQueryDeclarationEntryOrchestrationInput::new(
         handle.handle_identity_digest(),
         handle.operating_context_identity_digest(),
+        I::Family::aspect_contract(),
+        I::Family::aspect_coverage(),
+        crate::application::ForgeQueryDeclarationAspectCoverageBasis::DeclaredFamilyCoverage,
         exposure_level,
         artifact_policy,
     );

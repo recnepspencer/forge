@@ -1,9 +1,10 @@
 use crate::application::{
     forge_query_checked_declaration_relational_routing_on_handle,
-    ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryDeclarationEnvelopeInput,
-    ForgeQueryDeclarationFoundationalEvidenceInput, ForgeQueryDeclarationInput,
-    ForgeQueryDeclarationReceiptInput, ForgeQueryDeclarationRelationalRouting,
-    ForgeQueryDeclarationRelationalRoutingChecked, ForgeQueryDeclarationRelationalRoutingInput,
+    ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryDeclarationAuthorityAspectMismatch,
+    ForgeQueryDeclarationEnvelopeInput, ForgeQueryDeclarationFoundationalEvidenceInput,
+    ForgeQueryDeclarationInput, ForgeQueryDeclarationReceiptInput,
+    ForgeQueryDeclarationRelationalRouting, ForgeQueryDeclarationRelationalRoutingChecked,
+    ForgeQueryDeclarationRelationalRoutingInput,
     ForgeQueryDeclarationRelationalRoutingSupportReport,
     ForgeQueryDeclarationRelationalRoutingTerminalError,
     ForgeQueryDeclarationRelationalTruthRoutingSupportStatus, ForgeQueryDeclarationRouteIntent,
@@ -43,7 +44,23 @@ impl<D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
             .relational_truth_support::<I>()
             .rows()
             .first()
-            .map(|row| row.status())
+            .map(|row| {
+                if row.status() == ForgeQueryDeclarationRelationalTruthRoutingSupportStatus::Unsupported
+                    && matches!(
+                        row.aspect_mismatch(),
+                        Some(
+                            ForgeQueryDeclarationAuthorityAspectMismatch::MissingRequiredAspect
+                                | ForgeQueryDeclarationAuthorityAspectMismatch::AspectConflict
+                                | ForgeQueryDeclarationAuthorityAspectMismatch::AuthorityAspectGap
+                                | ForgeQueryDeclarationAuthorityAspectMismatch::AuthorityAspectAmbiguity
+                        )
+                    )
+                {
+                    ForgeQueryDeclarationRelationalTruthRoutingSupportStatus::Admitted
+                } else {
+                    row.status()
+                }
+            })
             .unwrap_or(ForgeQueryDeclarationRelationalTruthRoutingSupportStatus::Unsupported);
         forge_query_checked_declaration_relational_routing_on_handle(
             self.handle_identity_digest(),

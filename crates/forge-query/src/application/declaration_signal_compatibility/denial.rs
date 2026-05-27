@@ -1,12 +1,17 @@
 use crate::application::{
-    ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
+    ForgeQueryDeclarationEnvelope, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationSignalExecutionFamily, ForgeQueryDomainEntryMarker,
 };
+use crate::basis_lifecycle::BasisFamily;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryDeclarationSignalCompatibilityDenialCause {
     EnvelopeNotCoveredForSignalCompatibility,
     SignalFamilyUnsupported,
     SignalBasisMismatch,
+    MissingRequiredAspect,
+    AspectConflict,
+    AuthorityAspectGap,
     SignalCompatibilityMismatch,
     SignalExecutionFamilyUnavailable,
 }
@@ -22,6 +27,15 @@ impl ForgeQueryDeclarationSignalCompatibilityDenialCause {
             }
             Self::SignalBasisMismatch => {
                 "the retained envelope truth does not currently satisfy the required basis-sensitive signal continuation posture"
+            }
+            Self::MissingRequiredAspect => {
+                "the retained envelope publication does not expose the required signal dependency slice"
+            }
+            Self::AspectConflict => {
+                "the retained envelope publication conflicts with the required signal dependency slice"
+            }
+            Self::AuthorityAspectGap => {
+                "the retained envelope publication only partially covers the required signal dependency slice"
             }
             Self::SignalCompatibilityMismatch => {
                 "the retained envelope truth and signal compatibility boundary expectations no longer agree"
@@ -71,6 +85,8 @@ pub struct ForgeQueryDeclarationSignalCompatibilityDenied<
     I: ForgeQueryDeclarationInput<D>,
 > {
     envelope: ForgeQueryDeclarationEnvelope<D, I>,
+    execution_family: Option<ForgeQueryDeclarationSignalExecutionFamily>,
+    basis_families: Vec<BasisFamily>,
     cause: ForgeQueryDeclarationSignalCompatibilityDenialCause,
     reason: &'static str,
 }
@@ -80,10 +96,14 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 {
     pub(crate) fn new(
         envelope: ForgeQueryDeclarationEnvelope<D, I>,
+        execution_family: Option<ForgeQueryDeclarationSignalExecutionFamily>,
+        basis_families: Vec<BasisFamily>,
         cause: ForgeQueryDeclarationSignalCompatibilityDenialCause,
     ) -> Self {
         Self {
             envelope,
+            execution_family,
+            basis_families,
             cause,
             reason: cause.reason(),
         }
@@ -95,6 +115,14 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn cause(&self) -> ForgeQueryDeclarationSignalCompatibilityDenialCause {
         self.cause
+    }
+
+    pub fn execution_family(&self) -> Option<ForgeQueryDeclarationSignalExecutionFamily> {
+        self.execution_family
+    }
+
+    pub fn basis_families(&self) -> &[BasisFamily] {
+        &self.basis_families
     }
 
     pub fn reason(&self) -> &'static str {
