@@ -2,7 +2,7 @@
 
 ## What This Feature Is
 
-Declaration entry orchestration is the generic Query front door for the current
+Declaration entry orchestration is the generic Query front door for the
 declaration-entry pipeline.
 
 Give an admitted configured domain handle one already-assembled declaration
@@ -10,8 +10,9 @@ intent, and Query will lower it through the locked public sequence up to the
 current ceiling: envelope construction.
 
 This feature does not resolve geometry targets for you, and it does not
-continue into runtime execution, workspace entry, signal execution, or `9.3.7`
-composition. It starts after your tool or session has already decided what the
+continue into runtime execution, workspace entry, signal execution, or
+declaration-scoped contribution composition. It starts after your tool or
+session has already decided what the
 user is trying to do.
 
 If that same declaration-entry run also needs declaration-scoped contribution
@@ -19,23 +20,24 @@ authoring, use the separate contribution-composed orchestration surface instead
 of trying to treat the generic declaration-entry front door as if it already
 owned contribution posture.
 
-Phase 24 also adds product-target orchestration for callers who already hold
+Query also exposes product-target orchestration for callers who already hold
 progression proof and want one compact route, receipt, or envelope surface
 without rebuilding route-plan, receipt, or envelope inputs by hand.
 
-Those progressed product lanes now share the same retained target-binding
-story as `9.3.7` contribution authoring. Progression, route, receipt, and
+Those progressed product lanes share the same retained target-binding story as
+declaration-scoped contribution authoring. Progression, route, receipt, and
 envelope artifacts can expose typed binding targets without turning Query into
 a target-resolution or ambient-DI layer.
 
-Phase 25 now ships the separate typed binding pipeline on top of that retained
-target seam. Use binding when you need Query to choose or deny the next
+The separate typed binding pipeline sits on top of that retained target seam.
+Use binding when you need Query to choose or deny the next
 explicit input from current context or a retained artifact. Use orchestration
 when you already know which declaration-entry lowering run should happen.
 
 ## Why You Use It
 
-- run one declaration-entry sequence without manually stitching phases together
+- run one declaration-entry sequence without manually stitching multiple
+  surfaces together
 - keep ordinary, checked, and proof-visible lanes on one canonical pipeline
 - preserve deferred, denied, stale, rebind-required, failed, and refused
   posture as typed results
@@ -110,7 +112,7 @@ same run:
 - checked: give me the typed stop posture
 - proof-visible: give me the same posture plus the exact automation transcript
 
-Phase 26 makes the ordinary lane explicit as one shared public outcome family:
+The ordinary lane is one shared public outcome family:
 
 - `ForgeQueryOrdinaryOutcome<T>`
 
@@ -127,14 +129,15 @@ The important system boundary is this:
 Do not teach your app team that Query is the target-resolution layer. It is
 the orchestration layer after intent already exists.
 
-That distinction matters even more after the Phase 24b retrofit. The
+That distinction matters even more now that declaration-entry surfaces retain
+semantic slices explicitly. The
 declaration-entry pipeline is now trying to preserve semantic slices from
 active geometry or workflow context, not teach callers to pass around raw
 geometry ids as the main DX model.
 
 ## Product Targets
 
-Phase 24 adds a second declarative ladder for callers who already hold
+There is also a second declarative ladder for callers who already hold
 `ForgeQueryAdmittedDeclarationProgression`:
 
 - `orchestrate_routes_from_progressed(...)`
@@ -165,7 +168,7 @@ Use this request ladder when you want stronger DX without giving up control:
 
 ## How It Executes
 
-The current public ceiling is `EnvelopeCeiling`.
+The public ceiling is `EnvelopeCeiling`.
 
 That means the orchestration plan may automate only these steps:
 
@@ -208,9 +211,9 @@ The plan also exposes the materialization and cost policy directly:
 - `bridge_authority_summary()`
 - `signal_authority_summary()`
 
-In the current shipped boundary, `explicit_caller_handoff_steps()` is still
-empty because the public front door stops at envelope construction instead of
-advertising a second automated continuation phase.
+`explicit_caller_handoff_steps()` is currently empty because the public front
+door stops at envelope construction instead of
+advertising a second automated continuation step.
 
 That ceiling is now paired with retained authority posture. The plan and proof
 surfaces do not automate relational routing, bridge routing, or signal
@@ -266,7 +269,7 @@ Keep these concepts distinct:
 - cost posture: whether that publication shape is an ordinary default, an
   explicit rich request, or a prepared-but-not-executed boundary
 
-The current default orchestration policy is intentionally conservative:
+The default orchestration policy is intentionally conservative:
 
 - foundational evidence uses
   `FoundationalBoundaryEvidenceMaterializationProfile::ElideSupportAndDiagnostics`
@@ -278,8 +281,7 @@ That keeps the generic orchestration trio cheap-looking in truth. Proof-visible
 inspection exposes more metadata, but it does not silently widen declaration
 truth or claim later execution happened.
 
-Phase 24b now makes that policy semantically inspectable rather than only
-profile-shaped:
+That policy is now semantically inspectable rather than only profile-shaped:
 
 - the plan retains the declaration-entry `aspect_contract()`
 - the plan retains `aspect_coverage()` plus `aspect_coverage_basis()` so callers
@@ -310,7 +312,7 @@ The basis split is part of the public honesty contract:
 - in both lanes, masked or conflicting slices stay masked instead of being
   promoted into visible publication by richer transcript policy
 
-Later lower-authority phases now depend on that publication honesty directly:
+Later lower-authority surfaces now depend on that publication honesty directly:
 
 - relational routing consumes the envelope's published relational slice
 - bridge routing consumes the envelope's published bridge slice and freezes the
@@ -319,7 +321,7 @@ Later lower-authority phases now depend on that publication honesty directly:
   basis-family posture
 
 Orchestration now exposes those downstream consequences directly without
-pretending the lower-authority phases already ran. A bridge or signal summary
+pretending the lower-authority surfaces already ran. A bridge or signal summary
 can legitimately report `MissingRequired` while the orchestration proof still
 ends successfully at `Envelope`.
 
@@ -378,7 +380,7 @@ Examples:
   stage is `ReceiptIssued`
 - if receipt kind support is the blocker, the stop stage is `ReceiptIssued`,
   not `RoutePlanned`
-- if the route phase truly stopped before any receipt crossing, the stop stage
+- if the route boundary truly stopped before any receipt crossing, the stop stage
   remains `RoutePlanned`
 
 This is why proof-visible orchestration is more than debug logging. It shows
@@ -417,7 +419,7 @@ for verb in inventory.verbs() {
 }
 ```
 
-Phase 30 also adds a larger cross-family orchestration inventory. Use that
+The larger cross-family orchestration inventory is also available. Use that
 when you need the declaration-entry rows in the context of continuation,
 signal-facing orchestration, and contribution-composed orchestration instead of
 as a declaration-entry-only list:
@@ -625,15 +627,19 @@ Useful accessors:
 - the grammar is intentionally generic only; family-specific orchestration
   aliases are out of scope here
 
-## Aspect-aware retrofit note
+## Aspect Semantics
 
-Phase 24b makes orchestration the first user-visible candidate-selection
-surface that must prefer semantic aspect fit over folklore ordering. The
-primary geometry story here is dynamic context binding such as active
-intersection trimming or active selection material edits, not raw identifier
-passing. Plans and transcripts therefore need to explain what semantic slices
-were required, which candidate covered them best, and what was masked or denied
-when the ordinary lane stopped at the envelope ceiling.
+Orchestration is one of the first user-visible Query surfaces where semantic
+aspect fit matters more than source-order folklore.
+
+The main geometry story here is dynamic context binding such as active
+intersection trimming or active-selection material edits, not raw identifier
+passing. Plans and transcripts therefore explain:
+
+- which semantic slices were required
+- which retained coverage Query used
+- what was published at the foundational, receipt, and envelope boundaries
+- what remained masked, partial, or missing when the run stopped
 
 ## Related Docs
 

@@ -1,158 +1,163 @@
-use super::certification::ForgeQueryOrchestrationSurfaceCertificationReference;
-use super::docs::ForgeQueryOrchestrationSurfaceDocReference;
+use super::aspect::ForgeQueryOrchestrationAspectPosture;
+use super::authority::{
+    ForgeQueryOrchestrationBasisPosture, ForgeQueryOrchestrationCollaborativeExtensionPosture,
+    ForgeQueryOrchestrationLowerAuthorityAttachment, ForgeQueryOrchestrationPolicyTenantPosture,
+};
+use super::contribution::ForgeQueryOrchestrationContributionCompatibility;
+use super::current_support::{push_four_lane_rows, FourLaneSpec};
 use super::family::{
     ForgeQueryOrchestrationBindingProjection, ForgeQueryOrchestrationCheckedTopologyKind,
     ForgeQueryOrchestrationSupportSurface, ForgeQueryOrchestrationSurfaceFamily,
-    ForgeQueryOrchestrationSurfaceVisibility, ForgeQueryOrchestrationTranscriptFamily,
+    ForgeQueryOrchestrationTranscriptFamily,
 };
-use super::row::ForgeQueryOrchestrationSurfaceRow;
-use super::transcript::ForgeQueryOrchestrationProofContract;
+use super::row::{ForgeQueryOrchestrationSemanticProfile, ForgeQueryOrchestrationSurfaceRow};
+use super::strategy::ForgeQueryOrchestrationStrategyAttachment;
 
 pub(crate) fn forge_query_family_helper_orchestration_rows(
 ) -> Vec<ForgeQueryOrchestrationSurfaceRow> {
     let doc_path = "crates/forge-query/docs/domain-capabilities/family-helpers.md";
     let certification_command = "cargo test -p forge-query family_helpers -- --nocapture";
+    let mut specs = Vec::new();
 
-    let mut rows = Vec::new();
-    push_four_lane_rows(
-        &mut rows,
-        doc_path,
-        certification_command,
-        "prepare_preview_for_active_face_selection",
-        ForgeQueryOrchestrationSurfaceFamily::SignalCompatibilityOrchestration,
-        ForgeQueryOrchestrationTranscriptFamily::SignalCompatibilityOrchestration,
-        "ForgeQuerySignalCompatibilityOrchestrationChecked",
-        "ForgeQuerySignalCompatibilityOrchestrationTranscript",
-        ForgeQueryOrchestrationSupportSurface::SignalCompatibilityOrchestration,
-        ForgeQueryOrchestrationCheckedTopologyKind::SignalCompatibilityOrchestration,
-        ForgeQueryOrchestrationBindingProjection::SharedSignalCompatibilityBinding,
+    let preview_profile = ForgeQueryOrchestrationSemanticProfile::new(
+        ForgeQueryOrchestrationAspectPosture::RetainedContractAndCoverage,
+        ForgeQueryOrchestrationBasisPosture::PreviewSpecialized,
+        ForgeQueryOrchestrationPolicyTenantPosture::WorkflowPreviewAware,
+        ForgeQueryOrchestrationLowerAuthorityAttachment::relational_bridge_signal(),
+        ForgeQueryOrchestrationStrategyAttachment::signal_and_bridge(),
+        ForgeQueryOrchestrationContributionCompatibility::none(),
+        ForgeQueryOrchestrationCollaborativeExtensionPosture::CollaborativePhasesReady,
     );
-    push_four_lane_rows(
-        &mut rows,
-        doc_path,
-        certification_command,
-        "prepare_runtime_route_for_active_face_selection",
-        ForgeQueryOrchestrationSurfaceFamily::SignalCompatibilityOrchestration,
-        ForgeQueryOrchestrationTranscriptFamily::SignalCompatibilityOrchestration,
-        "ForgeQuerySignalCompatibilityOrchestrationChecked",
-        "ForgeQuerySignalCompatibilityOrchestrationTranscript",
-        ForgeQueryOrchestrationSupportSurface::SignalCompatibilityOrchestration,
-        ForgeQueryOrchestrationCheckedTopologyKind::SignalCompatibilityOrchestration,
-        ForgeQueryOrchestrationBindingProjection::SharedSignalCompatibilityBinding,
+    let current_profile = ForgeQueryOrchestrationSemanticProfile::new(
+        ForgeQueryOrchestrationAspectPosture::RetainedContractAndCoverage,
+        ForgeQueryOrchestrationBasisPosture::CurrentTruthViewSpecialized,
+        ForgeQueryOrchestrationPolicyTenantPosture::InheritedPlatformPolicy,
+        ForgeQueryOrchestrationLowerAuthorityAttachment::relational_bridge_signal(),
+        ForgeQueryOrchestrationStrategyAttachment::signal_and_bridge(),
+        ForgeQueryOrchestrationContributionCompatibility::none(),
+        ForgeQueryOrchestrationCollaborativeExtensionPosture::CollaborativePhasesReady,
     );
-    push_four_lane_rows(
-        &mut rows,
-        doc_path,
-        certification_command,
-        "prepare_current_truth_view_for_active_face_selection",
-        ForgeQueryOrchestrationSurfaceFamily::SignalCompatibilityOrchestration,
-        ForgeQueryOrchestrationTranscriptFamily::SignalCompatibilityOrchestration,
-        "ForgeQuerySignalCompatibilityOrchestrationChecked",
-        "ForgeQuerySignalCompatibilityOrchestrationTranscript",
-        ForgeQueryOrchestrationSupportSurface::SignalCompatibilityOrchestration,
-        ForgeQueryOrchestrationCheckedTopologyKind::SignalCompatibilityOrchestration,
-        ForgeQueryOrchestrationBindingProjection::SharedSignalCompatibilityBinding,
+    let historical_profile = ForgeQueryOrchestrationSemanticProfile::new(
+        ForgeQueryOrchestrationAspectPosture::RetainedContractAndCoverage,
+        ForgeQueryOrchestrationBasisPosture::HistoricalTruthViewSpecialized,
+        ForgeQueryOrchestrationPolicyTenantPosture::InheritedPlatformPolicy,
+        ForgeQueryOrchestrationLowerAuthorityAttachment::relational_bridge_signal(),
+        ForgeQueryOrchestrationStrategyAttachment::signal_and_bridge(),
+        ForgeQueryOrchestrationContributionCompatibility::none(),
+        ForgeQueryOrchestrationCollaborativeExtensionPosture::CollaborativePhasesReady,
     );
-    push_four_lane_rows(
-        &mut rows,
-        doc_path,
-        certification_command,
-        "prepare_historical_truth_view_for_active_face_selection",
-        ForgeQueryOrchestrationSurfaceFamily::SignalCompatibilityOrchestration,
-        ForgeQueryOrchestrationTranscriptFamily::SignalCompatibilityOrchestration,
-        "ForgeQuerySignalCompatibilityOrchestrationChecked",
-        "ForgeQuerySignalCompatibilityOrchestrationTranscript",
-        ForgeQueryOrchestrationSupportSurface::SignalCompatibilityOrchestration,
-        ForgeQueryOrchestrationCheckedTopologyKind::SignalCompatibilityOrchestration,
-        ForgeQueryOrchestrationBindingProjection::SharedSignalCompatibilityBinding,
+    let contribution_profile = ForgeQueryOrchestrationSemanticProfile::new(
+        ForgeQueryOrchestrationAspectPosture::CategoryScopedAspectComposition,
+        ForgeQueryOrchestrationBasisPosture::DeclarationScopedContribution,
+        ForgeQueryOrchestrationPolicyTenantPosture::InheritedPlatformPolicy,
+        ForgeQueryOrchestrationLowerAuthorityAttachment::relational_bridge_signal(),
+        ForgeQueryOrchestrationStrategyAttachment::foundational_materialization_profile(),
+        ForgeQueryOrchestrationContributionCompatibility::declaration_scoped(vec![
+            crate::application::ForgeQueryDeclarationEntryContributionCategoryFamily::Admission,
+            crate::application::ForgeQueryDeclarationEntryContributionCategoryFamily::SupportTraceability,
+            crate::application::ForgeQueryDeclarationEntryContributionCategoryFamily::ExplanationInspection,
+            crate::application::ForgeQueryDeclarationEntryContributionCategoryFamily::WorkflowPreview,
+        ]),
+        ForgeQueryOrchestrationCollaborativeExtensionPosture::CollaborativePhasesReady,
     );
-    push_four_lane_rows(
-        &mut rows,
-        doc_path,
-        certification_command,
-        "orchestrate_material_attachment_for_active_face_selection",
-        ForgeQueryOrchestrationSurfaceFamily::ContributionComposedOrchestration,
-        ForgeQueryOrchestrationTranscriptFamily::ContributionComposedOrchestration,
-        "ForgeQueryContributionComposedOrchestrationChecked",
-        "ForgeQueryContributionComposedOrchestrationTranscript",
-        ForgeQueryOrchestrationSupportSurface::ContributionComposedOrchestration,
-        ForgeQueryOrchestrationCheckedTopologyKind::ContributionComposed,
-        ForgeQueryOrchestrationBindingProjection::SharedContributionBinding,
+    let grouped_profile = ForgeQueryOrchestrationSemanticProfile::new(
+        ForgeQueryOrchestrationAspectPosture::RetainedContractAndCoverage,
+        ForgeQueryOrchestrationBasisPosture::GroupedNeighborhoodDeclaration,
+        ForgeQueryOrchestrationPolicyTenantPosture::InheritedPlatformPolicy,
+        ForgeQueryOrchestrationLowerAuthorityAttachment::relational_bridge_signal(),
+        ForgeQueryOrchestrationStrategyAttachment::none(),
+        ForgeQueryOrchestrationContributionCompatibility::grouped_neighborhood(),
+        ForgeQueryOrchestrationCollaborativeExtensionPosture::CollaborativePhasesReady,
     );
-    push_four_lane_rows(
-        &mut rows,
-        doc_path,
-        certification_command,
-        "orchestrate_local_neighborhood_for_active_face_selection",
-        ForgeQueryOrchestrationSurfaceFamily::GroupedNeighborhoodOrchestration,
-        ForgeQueryOrchestrationTranscriptFamily::GroupedNeighborhoodOrchestration,
-        "ForgeQueryGroupedOrchestrationChecked",
-        "ForgeQueryGroupedOrchestrationTranscript",
-        ForgeQueryOrchestrationSupportSurface::DeclarationEntryReadiness,
-        ForgeQueryOrchestrationCheckedTopologyKind::DeclarationEntryStage,
-        ForgeQueryOrchestrationBindingProjection::SharedGroupedBinding,
-    );
-    rows
-}
 
-fn leak(text: String) -> &'static str {
-    text.leak()
-}
-
-fn push_four_lane_rows(
-    rows: &mut Vec<ForgeQueryOrchestrationSurfaceRow>,
-    doc_path: &'static str,
-    certification_command: &'static str,
-    base_name: &'static str,
-    family: ForgeQueryOrchestrationSurfaceFamily,
-    transcript_family: ForgeQueryOrchestrationTranscriptFamily,
-    checked_type_name: &'static str,
-    proof_type_name: &'static str,
-    support_surface: ForgeQueryOrchestrationSupportSurface,
-    checked_topology_kind: ForgeQueryOrchestrationCheckedTopologyKind,
-    binding_projection: ForgeQueryOrchestrationBindingProjection,
-) {
-    for (public_name, visibility, doc_section) in [
+    for (name, profile) in [
+        ("prepare_preview_for_active_face_selection", preview_profile),
         (
-            base_name,
-            ForgeQueryOrchestrationSurfaceVisibility::Ordinary,
-            "family helper ordinary lane",
+            "prepare_runtime_route_for_active_face_selection",
+            current_profile.clone(),
         ),
         (
-            leak(format!("{base_name}_outcome")),
-            ForgeQueryOrchestrationSurfaceVisibility::OrdinaryOutcome,
-            "family helper ordinary outcome lane",
+            "prepare_current_truth_view_for_active_face_selection",
+            current_profile,
         ),
         (
-            leak(format!("{base_name}_checked")),
-            ForgeQueryOrchestrationSurfaceVisibility::Checked,
-            "family helper checked lane",
-        ),
-        (
-            leak(format!("{base_name}_proof")),
-            ForgeQueryOrchestrationSurfaceVisibility::ProofVisible,
-            "family helper proof lane",
+            "prepare_historical_truth_view_for_active_face_selection",
+            historical_profile,
         ),
     ] {
-        rows.push(ForgeQueryOrchestrationSurfaceRow::new(
-            public_name,
-            base_name,
-            family,
-            visibility,
-            true,
-            binding_projection,
-            ForgeQueryOrchestrationProofContract::new(
-                checked_type_name,
-                proof_type_name,
-                transcript_family,
-                checked_topology_kind,
-                support_surface,
-            ),
-            ForgeQueryOrchestrationSurfaceDocReference::new(doc_path, doc_section),
-            ForgeQueryOrchestrationSurfaceCertificationReference::new(
-                "family_helpers",
+        push_four_lane_rows(
+            &mut specs,
+            FourLaneSpec {
+                base_name: name,
+                family: ForgeQueryOrchestrationSurfaceFamily::SignalCompatibilityOrchestration,
+                transcript_family:
+                    ForgeQueryOrchestrationTranscriptFamily::SignalCompatibilityOrchestration,
+                checked_type_name: "ForgeQuerySignalCompatibilityOrchestrationChecked",
+                proof_type_name: "ForgeQuerySignalCompatibilityOrchestrationTranscript",
+                support_surface:
+                    ForgeQueryOrchestrationSupportSurface::SignalCompatibilityOrchestration,
+                checked_topology_kind:
+                    ForgeQueryOrchestrationCheckedTopologyKind::SignalCompatibilityOrchestration,
+                binding_projection:
+                    ForgeQueryOrchestrationBindingProjection::SharedSignalCompatibilityBinding,
+                semantic_profile: profile,
+                doc_path,
+                ordinary_section: "family helper ordinary lane",
+                outcome_section: "family helper ordinary outcome lane",
+                checked_section: "family helper checked lane",
+                proof_section: "family helper proof lane",
+                certification_suite: "family_helpers",
                 certification_command,
-            ),
-        ));
+            },
+        );
     }
+
+    push_four_lane_rows(
+        &mut specs,
+        FourLaneSpec {
+            base_name: "orchestrate_material_attachment_for_active_face_selection",
+            family: ForgeQueryOrchestrationSurfaceFamily::ContributionComposedOrchestration,
+            transcript_family:
+                ForgeQueryOrchestrationTranscriptFamily::ContributionComposedOrchestration,
+            checked_type_name: "ForgeQueryContributionComposedOrchestrationChecked",
+            proof_type_name: "ForgeQueryContributionComposedOrchestrationTranscript",
+            support_surface:
+                ForgeQueryOrchestrationSupportSurface::ContributionComposedOrchestration,
+            checked_topology_kind: ForgeQueryOrchestrationCheckedTopologyKind::ContributionComposed,
+            binding_projection: ForgeQueryOrchestrationBindingProjection::SharedContributionBinding,
+            semantic_profile: contribution_profile,
+            doc_path,
+            ordinary_section: "family helper ordinary lane",
+            outcome_section: "family helper ordinary outcome lane",
+            checked_section: "family helper checked lane",
+            proof_section: "family helper proof lane",
+            certification_suite: "family_helpers",
+            certification_command,
+        },
+    );
+    push_four_lane_rows(
+        &mut specs,
+        FourLaneSpec {
+            base_name: "orchestrate_local_neighborhood_for_active_face_selection",
+            family: ForgeQueryOrchestrationSurfaceFamily::GroupedNeighborhoodOrchestration,
+            transcript_family:
+                ForgeQueryOrchestrationTranscriptFamily::GroupedNeighborhoodOrchestration,
+            checked_type_name: "ForgeQueryGroupedOrchestrationChecked",
+            proof_type_name: "ForgeQueryGroupedOrchestrationTranscript",
+            support_surface: ForgeQueryOrchestrationSupportSurface::DeclarationEntryReadiness,
+            checked_topology_kind:
+                ForgeQueryOrchestrationCheckedTopologyKind::DeclarationEntryStage,
+            binding_projection: ForgeQueryOrchestrationBindingProjection::SharedGroupedBinding,
+            semantic_profile: grouped_profile,
+            doc_path,
+            ordinary_section: "family helper ordinary lane",
+            outcome_section: "family helper ordinary outcome lane",
+            checked_section: "family helper checked lane",
+            proof_section: "family helper proof lane",
+            certification_suite: "family_helpers",
+            certification_command,
+        },
+    );
+
+    specs.into_iter().map(|spec| spec.into_row()).collect()
 }

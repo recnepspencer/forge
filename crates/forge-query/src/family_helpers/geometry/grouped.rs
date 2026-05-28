@@ -7,11 +7,15 @@ use crate::grouped_authoring::{
     forge_query_grouped_declaration_checked_on_handle,
     forge_query_grouped_orchestration_checked_on_handle,
     forge_query_grouped_orchestration_proof_on_handle,
-    ordinary_outcome_from_grouped_orchestration_checked, ForgeQueryGroupedDeclarationArtifact,
-    ForgeQueryGroupedDeclarationChecked, ForgeQueryGroupedDeclarationInput,
-    ForgeQueryGroupedDeclarationStop, ForgeQueryGroupedOrchestration,
-    ForgeQueryGroupedOrchestrationChecked, ForgeQueryGroupedOrchestrationStop,
-    ForgeQueryGroupedOrchestrationTranscript,
+    ordinary_outcome_from_grouped_orchestration_checked, ForgeQueryGroupedContributionComposition,
+    ForgeQueryGroupedContributionInput, ForgeQueryGroupedContributionStop,
+    ForgeQueryGroupedDeclarationArtifact, ForgeQueryGroupedDeclarationChecked,
+    ForgeQueryGroupedDeclarationInput, ForgeQueryGroupedDeclarationStop,
+    ForgeQueryGroupedEnvelopeChecked, ForgeQueryGroupedEnvelopeTranscript,
+    ForgeQueryGroupedOrchestration, ForgeQueryGroupedOrchestrationChecked,
+    ForgeQueryGroupedOrchestrationStop, ForgeQueryGroupedOrchestrationTranscript,
+    ForgeQueryGroupedReceiptChecked, ForgeQueryGroupedReceiptTranscript,
+    ForgeQueryGroupedRouteChecked, ForgeQueryGroupedRouteTranscript,
 };
 use crate::ordinary_outcome::ForgeQueryOrdinaryOutcome;
 
@@ -102,6 +106,93 @@ impl<'a, D: ForgeQueryDomainEntryMarker, C: ForgeQueryDomainOperatingContext<D>>
             + ForgeQueryDeclarationSupportsNeighborhoodGrouping<D>,
     {
         orchestrate_local_neighborhood_for_active_face_selection_proof(self.handle, declaration)
+    }
+
+    pub fn grouped_routes_for_active_face_selection_checked<I>(
+        &self,
+        declaration: ForgeQueryGroupedDeclarationArtifact<D, I>,
+    ) -> ForgeQueryGroupedRouteChecked<D, I>
+    where
+        I: ForgeQueryDeclarationInput<D> + Clone,
+        I::Family: ForgeQueryGeometryNeighborhoodHelperFamily<D>
+            + ForgeQueryDeclarationSupportsNeighborhoodGrouping<D>,
+    {
+        self.handle.grouped_route_checked(declaration)
+    }
+
+    pub fn grouped_routes_for_active_face_selection_proof<I>(
+        &self,
+        declaration: ForgeQueryGroupedDeclarationArtifact<D, I>,
+    ) -> ForgeQueryGroupedRouteTranscript<D, I>
+    where
+        I: ForgeQueryDeclarationInput<D> + Clone,
+        I::Family: ForgeQueryGeometryNeighborhoodHelperFamily<D>
+            + ForgeQueryDeclarationSupportsNeighborhoodGrouping<D>,
+    {
+        self.handle.grouped_route_proof(declaration)
+    }
+
+    pub fn grouped_receipt_for_active_face_selection_checked<I>(
+        &self,
+        declaration: ForgeQueryGroupedDeclarationArtifact<D, I>,
+    ) -> ForgeQueryGroupedReceiptChecked<D, I>
+    where
+        I: ForgeQueryDeclarationInput<D> + Clone,
+        I::Family: ForgeQueryGeometryNeighborhoodHelperFamily<D>
+            + ForgeQueryDeclarationSupportsNeighborhoodGrouping<D>,
+    {
+        self.handle.grouped_receipt_checked(declaration)
+    }
+
+    pub fn grouped_receipt_for_active_face_selection_proof<I>(
+        &self,
+        declaration: ForgeQueryGroupedDeclarationArtifact<D, I>,
+    ) -> ForgeQueryGroupedReceiptTranscript<D, I>
+    where
+        I: ForgeQueryDeclarationInput<D> + Clone,
+        I::Family: ForgeQueryGeometryNeighborhoodHelperFamily<D>
+            + ForgeQueryDeclarationSupportsNeighborhoodGrouping<D>,
+    {
+        self.handle.grouped_receipt_proof(declaration)
+    }
+
+    pub fn grouped_envelope_for_active_face_selection_checked<I>(
+        &self,
+        declaration: ForgeQueryGroupedDeclarationArtifact<D, I>,
+    ) -> ForgeQueryGroupedEnvelopeChecked<D, I>
+    where
+        I: ForgeQueryDeclarationInput<D> + Clone,
+        I::Family: ForgeQueryGeometryNeighborhoodHelperFamily<D>
+            + ForgeQueryDeclarationSupportsNeighborhoodGrouping<D>,
+    {
+        self.handle.grouped_envelope_checked(declaration)
+    }
+
+    pub fn grouped_envelope_for_active_face_selection_proof<I>(
+        &self,
+        declaration: ForgeQueryGroupedDeclarationArtifact<D, I>,
+    ) -> ForgeQueryGroupedEnvelopeTranscript<D, I>
+    where
+        I: ForgeQueryDeclarationInput<D> + Clone,
+        I::Family: ForgeQueryGeometryNeighborhoodHelperFamily<D>
+            + ForgeQueryDeclarationSupportsNeighborhoodGrouping<D>,
+    {
+        self.handle.grouped_envelope_proof(declaration)
+    }
+
+    pub fn grouped_contributions_for_active_face_selection_checked<I>(
+        &self,
+        input: ForgeQueryGroupedContributionInput<D, I>,
+    ) -> Result<
+        ForgeQueryGroupedContributionComposition<D, I>,
+        ForgeQueryGroupedContributionStop<D, I>,
+    >
+    where
+        I: ForgeQueryDeclarationInput<D> + Clone,
+        I::Family: ForgeQueryGeometryNeighborhoodHelperFamily<D>
+            + ForgeQueryDeclarationSupportsNeighborhoodGrouping<D>,
+    {
+        self.handle.grouped_contributions_checked(input)
     }
 }
 

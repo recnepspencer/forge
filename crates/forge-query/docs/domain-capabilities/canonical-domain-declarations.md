@@ -268,8 +268,8 @@ let digest = declaration.declaration_digest();
 let truth = declaration.relational_truth();
 ```
 
-Phase 24b note: canonical declaration entries are the retained internal shape,
-not the ideal app-facing geometry DX. Later declaration-entry docs may show
+Canonical declaration entries are the retained internal shape, not the ideal
+app-facing geometry DX. Other declaration-entry docs may show
 dynamic context such as active selection or active neighborhood binding on the
 outside while still lowering into canonical entries internally.
 

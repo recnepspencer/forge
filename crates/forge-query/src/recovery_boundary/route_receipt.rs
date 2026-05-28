@@ -10,6 +10,7 @@ use super::brief::{
     ForgeQueryRecoveryStopFamily, ForgeQueryRecoveryStopKind,
 };
 use super::explanation::ForgeQueryRecoveryExplanation;
+use super::family::ForgeQueryRecoverySourceFamily;
 
 pub fn forge_query_recovery_brief_from_declaration_route_plan_checked<
     D: ForgeQueryDomainEntryMarker,
@@ -163,12 +164,13 @@ fn route_plan_brief(
         authority_surface,
         recommended_action,
         reason,
-        ForgeQueryRecoveryExplanation::new(
+        ForgeQueryRecoveryExplanation::new_with_source_family(
             crate::ordinary_outcome::ForgeQueryOrdinaryCheckedTopology::orchestration(
                 ForgeQueryDeclarationEntryOrchestrationStage::RoutePlanned,
                 Some(retained_digest),
                 None,
             ),
+            ForgeQueryRecoverySourceFamily::DeclarationRoutePlan,
         )
         .with_route_context(route_governing_reason, route_denial_cause),
     )
@@ -210,12 +212,13 @@ fn receipt_route_denied_brief(
         authority_surface,
         recommended_action,
         reason,
-        ForgeQueryRecoveryExplanation::new(
+        ForgeQueryRecoveryExplanation::new_with_source_family(
             crate::ordinary_outcome::ForgeQueryOrdinaryCheckedTopology::orchestration(
                 ForgeQueryDeclarationEntryOrchestrationStage::ReceiptIssued,
                 Some(retained_digest),
                 None,
             ),
+            ForgeQueryRecoverySourceFamily::DeclarationReceipt,
         )
         .with_route_context(route_cause.reason(), Some(route_cause))
         .with_receipt_context(receipt_governing_reason, None),
@@ -246,12 +249,13 @@ fn receipt_denied_brief(
         authority_surface,
         recommended_action,
         reason,
-        ForgeQueryRecoveryExplanation::new(
+        ForgeQueryRecoveryExplanation::new_with_source_family(
             crate::ordinary_outcome::ForgeQueryOrdinaryCheckedTopology::orchestration(
                 ForgeQueryDeclarationEntryOrchestrationStage::ReceiptIssued,
                 Some(retained_digest),
                 None,
             ),
+            ForgeQueryRecoverySourceFamily::DeclarationReceipt,
         )
         .with_receipt_context(receipt_governing_reason, Some(receipt_cause)),
     )
@@ -272,12 +276,13 @@ fn receipt_brief(
         authority_surface,
         recommended_action,
         reason,
-        ForgeQueryRecoveryExplanation::new(
+        ForgeQueryRecoveryExplanation::new_with_source_family(
             crate::ordinary_outcome::ForgeQueryOrdinaryCheckedTopology::orchestration(
                 ForgeQueryDeclarationEntryOrchestrationStage::ReceiptIssued,
                 Some(retained_digest),
                 None,
             ),
+            ForgeQueryRecoverySourceFamily::DeclarationReceipt,
         )
         .with_receipt_context(receipt_governing_reason, receipt_denial_cause),
     )

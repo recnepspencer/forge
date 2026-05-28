@@ -1,11 +1,11 @@
 use crate::application::{
     ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryApplicationFacade,
-    ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily, ForgeQueryDeclarationCanonicalEntry,
-    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput,
-    ForgeQueryDeclarationLegalityContract, ForgeQueryDeclarationRouteContract,
-    ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
-    ForgeQueryNeighborhoodCapableGrouping, ForgeQueryRelationalTruthAuthority,
-    ForgeQuerySignalCompatiblePosture,
+    ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
+    ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationFamilyMarker,
+    ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityContract,
+    ForgeQueryDeclarationRouteContract, ForgeQueryDomainEntryMarker,
+    ForgeQueryDomainOperatingContext, ForgeQueryNeighborhoodCapableGrouping,
+    ForgeQueryRelationalTruthAuthority, ForgeQuerySignalCompatiblePosture,
 };
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -142,6 +142,16 @@ pub(super) fn recovery_admitted_handle(
         .expect("recovery world should validate")
         .admit()
         .expect("recovery world should admit")
+}
+
+pub(super) fn standard_aspect_contract() -> ForgeQueryDeclarationAspectContract {
+    ForgeQueryDeclarationAspectContract::from_slices(
+        &["selection.face"],
+        &["selection.active_face"],
+        &[],
+        &[],
+        &[],
+    )
 }
 
 pub(super) fn recovery_progressed<F>(

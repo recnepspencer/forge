@@ -7,11 +7,14 @@ use crate::application::{
 };
 use crate::binding_pipeline::ForgeQueryBindingLinkedArtifacts;
 
+use super::composition::ForgeQueryContributionComposedStop;
+use super::intent_result::ForgeQueryContributionComposedIntentRequestDescriptor;
 use super::outcome::{
     ForgeQueryContributionComposedOrchestrationCheckedKind,
     ForgeQueryContributionComposedOrchestrationOutcome,
     ForgeQueryContributionComposedOrchestrationPosture,
 };
+use super::ForgeQueryContributionComposedDeclarationAspectRecord;
 
 pub(super) fn declaration_error_outcome<
     D: ForgeQueryDomainEntryMarker,
@@ -24,18 +27,22 @@ pub(super) fn declaration_error_outcome<
             ForgeQueryDeclarationAdmissionOrLegalityError::Admission(admission) => {
                 declaration_admission_outcome(admission)
             }
-            ForgeQueryDeclarationAdmissionOrLegalityError::Legality(_) => contribution_outcome(
+            ForgeQueryDeclarationAdmissionOrLegalityError::Legality(_) => declaration_outcome(
                 ForgeQueryContributionComposedOrchestrationCheckedKind::DeclarationDenied,
+                ForgeQueryContributionComposedStop::DeclarationDenied,
                 ForgeQueryDeclarationEntryOrchestrationStage::LegalityEstablished,
                 "declaration legality denied contribution-composed orchestration",
                 ForgeQueryBindingLinkedArtifacts::new(),
+                None,
+                None,
                 None,
             ),
         },
         ForgeQueryDeclarationEntryProgressionError::Progression(value) => match value {
             ForgeQueryDeclarationProgressionTerminalError::Deferred(progress) => {
-                contribution_outcome(
+                declaration_outcome(
                     ForgeQueryContributionComposedOrchestrationCheckedKind::Deferred,
+                    ForgeQueryContributionComposedStop::Deferred,
                     ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved,
                     "declaration progression remained deferred",
                     ForgeQueryBindingLinkedArtifacts::new().with_declaration_digest(format!(
@@ -46,25 +53,29 @@ pub(super) fn declaration_error_outcome<
                             .declaration_digest()
                     )),
                     None,
-                )
-            }
-            ForgeQueryDeclarationProgressionTerminalError::Denied(progress) => {
-                contribution_outcome(
-                    ForgeQueryContributionComposedOrchestrationCheckedKind::DeclarationDenied,
-                    ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved,
-                    "declaration progression was denied",
-                    ForgeQueryBindingLinkedArtifacts::new().with_declaration_digest(format!(
-                        "{:?}",
-                        progress
-                            .legality_evidence()
-                            .canonical_declaration()
-                            .declaration_digest()
-                    )),
+                    None,
                     None,
                 )
             }
-            ForgeQueryDeclarationProgressionTerminalError::Stale(progress) => contribution_outcome(
+            ForgeQueryDeclarationProgressionTerminalError::Denied(progress) => declaration_outcome(
+                ForgeQueryContributionComposedOrchestrationCheckedKind::DeclarationDenied,
+                ForgeQueryContributionComposedStop::DeclarationDenied,
+                ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved,
+                "declaration progression was denied",
+                ForgeQueryBindingLinkedArtifacts::new().with_declaration_digest(format!(
+                    "{:?}",
+                    progress
+                        .legality_evidence()
+                        .canonical_declaration()
+                        .declaration_digest()
+                )),
+                None,
+                None,
+                None,
+            ),
+            ForgeQueryDeclarationProgressionTerminalError::Stale(progress) => declaration_outcome(
                 ForgeQueryContributionComposedOrchestrationCheckedKind::Stale,
+                ForgeQueryContributionComposedStop::Stale,
                 ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved,
                 "declaration progression is stale",
                 ForgeQueryBindingLinkedArtifacts::new()
@@ -77,10 +88,13 @@ pub(super) fn declaration_error_outcome<
                     ))
                     .with_progression_digest(progress.progression_digest().to_string()),
                 None,
+                None,
+                None,
             ),
             ForgeQueryDeclarationProgressionTerminalError::RebindRequired(progress) => {
-                contribution_outcome(
+                declaration_outcome(
                     ForgeQueryContributionComposedOrchestrationCheckedKind::RebindRequired,
+                    ForgeQueryContributionComposedStop::RebindRequired,
                     ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved,
                     "declaration progression requires rebind",
                     ForgeQueryBindingLinkedArtifacts::new()
@@ -93,25 +107,28 @@ pub(super) fn declaration_error_outcome<
                         ))
                         .with_progression_digest(progress.progression_digest().to_string()),
                     None,
-                )
-            }
-            ForgeQueryDeclarationProgressionTerminalError::Failed(progress) => {
-                contribution_outcome(
-                    ForgeQueryContributionComposedOrchestrationCheckedKind::Failed,
-                    ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved,
-                    "declaration progression failed",
-                    ForgeQueryBindingLinkedArtifacts::new()
-                        .with_declaration_digest(format!(
-                            "{:?}",
-                            progress
-                                .legality_evidence()
-                                .canonical_declaration()
-                                .declaration_digest()
-                        ))
-                        .with_progression_digest(progress.progression_digest().to_string()),
+                    None,
                     None,
                 )
             }
+            ForgeQueryDeclarationProgressionTerminalError::Failed(progress) => declaration_outcome(
+                ForgeQueryContributionComposedOrchestrationCheckedKind::Failed,
+                ForgeQueryContributionComposedStop::Failed,
+                ForgeQueryDeclarationEntryOrchestrationStage::ProgressionResolved,
+                "declaration progression failed",
+                ForgeQueryBindingLinkedArtifacts::new()
+                    .with_declaration_digest(format!(
+                        "{:?}",
+                        progress
+                            .legality_evidence()
+                            .canonical_declaration()
+                            .declaration_digest()
+                    ))
+                    .with_progression_digest(progress.progression_digest().to_string()),
+                None,
+                None,
+                None,
+            ),
         },
     }
 }
@@ -125,31 +142,40 @@ pub(super) fn envelope_error_outcome<
     progression_digest: &str,
 ) -> ForgeQueryContributionComposedOrchestrationOutcome<D, I> {
     match error {
-        ForgeQueryDeclarationEnvelopeTerminalError::Deferred(value) => contribution_outcome(
+        ForgeQueryDeclarationEnvelopeTerminalError::Deferred(value) => declaration_outcome(
             ForgeQueryContributionComposedOrchestrationCheckedKind::DeclarationDenied,
+            ForgeQueryContributionComposedStop::DeclarationDenied,
             ForgeQueryDeclarationEntryOrchestrationStage::EnvelopeConstructed,
             value.reason(),
             linked_artifacts_for_envelope(value.envelope())
                 .with_declaration_digest(declaration_digest.to_string())
                 .with_progression_digest(progression_digest.to_string()),
             None,
+            None,
+            None,
         ),
-        ForgeQueryDeclarationEnvelopeTerminalError::Denied(value) => contribution_outcome(
+        ForgeQueryDeclarationEnvelopeTerminalError::Denied(value) => declaration_outcome(
             ForgeQueryContributionComposedOrchestrationCheckedKind::DeclarationDenied,
+            ForgeQueryContributionComposedStop::DeclarationDenied,
             ForgeQueryDeclarationEntryOrchestrationStage::EnvelopeConstructed,
             value.reason(),
             linked_artifacts_for_envelope(value.envelope())
                 .with_declaration_digest(declaration_digest.to_string())
                 .with_progression_digest(progression_digest.to_string()),
             None,
+            None,
+            None,
         ),
-        ForgeQueryDeclarationEnvelopeTerminalError::Failed(value) => contribution_outcome(
+        ForgeQueryDeclarationEnvelopeTerminalError::Failed(value) => declaration_outcome(
             ForgeQueryContributionComposedOrchestrationCheckedKind::Failed,
+            ForgeQueryContributionComposedStop::Failed,
             ForgeQueryDeclarationEntryOrchestrationStage::EnvelopeConstructed,
             value.reason(),
             linked_artifacts_for_envelope(value.envelope())
                 .with_declaration_digest(declaration_digest.to_string())
                 .with_progression_digest(progression_digest.to_string()),
+            None,
+            None,
             None,
         ),
     }
@@ -203,12 +229,9 @@ pub(super) fn contribution_digest_from_outcome<
     outcome: &ForgeQueryContributionComposedOrchestrationOutcome<D, I>,
 ) -> Option<String> {
     match outcome {
-        ForgeQueryContributionComposedOrchestrationOutcome::Bound(value) => Some(
-            value
-                .contribution_composition()
-                .contribution_digest()
-                .to_string(),
-        ),
+        ForgeQueryContributionComposedOrchestrationOutcome::Bound(value) => {
+            Some(value.composition_digest().to_string())
+        }
         ForgeQueryContributionComposedOrchestrationOutcome::Deferred(value)
         | ForgeQueryContributionComposedOrchestrationOutcome::DeclarationDenied(value)
         | ForgeQueryContributionComposedOrchestrationOutcome::ContributionDenied(value)
@@ -221,22 +244,50 @@ pub(super) fn contribution_digest_from_outcome<
     }
 }
 
-pub(super) fn contribution_outcome<
+pub(super) fn declaration_outcome<
     D: ForgeQueryDomainEntryMarker,
     I: ForgeQueryDeclarationInput<D>,
 >(
     kind: ForgeQueryContributionComposedOrchestrationCheckedKind,
+    stop: ForgeQueryContributionComposedStop,
     stop_stage: ForgeQueryDeclarationEntryOrchestrationStage,
     reason: impl Into<String>,
     linked_artifacts: ForgeQueryBindingLinkedArtifacts,
     contribution_digest: Option<String>,
+    declaration_aspect_record: Option<ForgeQueryContributionComposedDeclarationAspectRecord>,
+    primary_intent_descriptor: Option<ForgeQueryContributionComposedIntentRequestDescriptor>,
 ) -> ForgeQueryContributionComposedOrchestrationOutcome<D, I> {
-    let posture = ForgeQueryContributionComposedOrchestrationPosture::new(
+    composed_outcome(
         kind,
+        stop,
         stop_stage,
         reason,
         linked_artifacts,
         contribution_digest,
+        declaration_aspect_record,
+        primary_intent_descriptor,
+    )
+}
+
+pub(super) fn composed_outcome<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
+    kind: ForgeQueryContributionComposedOrchestrationCheckedKind,
+    stop: ForgeQueryContributionComposedStop,
+    stop_stage: ForgeQueryDeclarationEntryOrchestrationStage,
+    reason: impl Into<String>,
+    linked_artifacts: ForgeQueryBindingLinkedArtifacts,
+    contribution_digest: Option<String>,
+    declaration_aspect_record: Option<ForgeQueryContributionComposedDeclarationAspectRecord>,
+    primary_intent_descriptor: Option<ForgeQueryContributionComposedIntentRequestDescriptor>,
+) -> ForgeQueryContributionComposedOrchestrationOutcome<D, I> {
+    let posture = ForgeQueryContributionComposedOrchestrationPosture::new(
+        kind,
+        stop,
+        stop_stage,
+        reason,
+        linked_artifacts,
+        contribution_digest,
+        declaration_aspect_record,
+        primary_intent_descriptor,
     );
     match kind {
         ForgeQueryContributionComposedOrchestrationCheckedKind::Deferred => {
@@ -270,32 +321,44 @@ fn declaration_admission_outcome<
     error: ForgeQueryDeclarationAdmissionError<D, I>,
 ) -> ForgeQueryContributionComposedOrchestrationOutcome<D, I> {
     match error {
-        ForgeQueryDeclarationAdmissionError::Deferred(_) => contribution_outcome(
+        ForgeQueryDeclarationAdmissionError::Deferred(_) => declaration_outcome(
             ForgeQueryContributionComposedOrchestrationCheckedKind::Deferred,
+            ForgeQueryContributionComposedStop::Deferred,
             ForgeQueryDeclarationEntryOrchestrationStage::DeclarationReviewed,
             "declaration admission is deferred for this handle",
             ForgeQueryBindingLinkedArtifacts::new(),
             None,
+            None,
+            None,
         ),
-        ForgeQueryDeclarationAdmissionError::Unsupported(_) => contribution_outcome(
+        ForgeQueryDeclarationAdmissionError::Unsupported(_) => declaration_outcome(
             ForgeQueryContributionComposedOrchestrationCheckedKind::Unsupported,
+            ForgeQueryContributionComposedStop::Unsupported,
             ForgeQueryDeclarationEntryOrchestrationStage::DeclarationReviewed,
             "declaration family is unsupported for contribution-composed orchestration",
             ForgeQueryBindingLinkedArtifacts::new(),
             None,
+            None,
+            None,
         ),
-        ForgeQueryDeclarationAdmissionError::InvalidContext(_) => contribution_outcome(
+        ForgeQueryDeclarationAdmissionError::InvalidContext(_) => declaration_outcome(
             ForgeQueryContributionComposedOrchestrationCheckedKind::Unsupported,
+            ForgeQueryContributionComposedStop::Unsupported,
             ForgeQueryDeclarationEntryOrchestrationStage::DeclarationReviewed,
             "declaration family is invalid in the current admitted context",
             ForgeQueryBindingLinkedArtifacts::new(),
             None,
+            None,
+            None,
         ),
-        ForgeQueryDeclarationAdmissionError::Canonicalization(value) => contribution_outcome(
+        ForgeQueryDeclarationAdmissionError::Canonicalization(value) => declaration_outcome(
             ForgeQueryContributionComposedOrchestrationCheckedKind::Failed,
+            ForgeQueryContributionComposedStop::Failed,
             ForgeQueryDeclarationEntryOrchestrationStage::DeclarationReviewed,
             format!("{value:?}"),
             ForgeQueryBindingLinkedArtifacts::new(),
+            None,
+            None,
             None,
         ),
     }

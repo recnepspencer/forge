@@ -1,9 +1,11 @@
 use crate::application::{
-    ForgeQueryDeclarationBridgeContinuationMode, ForgeQueryDeclarationBridgeRouting,
-    ForgeQueryDeclarationInput, ForgeQueryDeclarationSignalExecutionFamily,
-    ForgeQueryDomainEntryMarker,
+    ForgeQueryCapabilityFamily, ForgeQueryDeclarationBridgeContinuationMode,
+    ForgeQueryDeclarationBridgeRouting, ForgeQueryDeclarationInput,
+    ForgeQueryDeclarationSignalExecutionFamily, ForgeQueryDomainEntryMarker,
 };
 use crate::basis_lifecycle::BasisFamily;
+
+use super::readmission::ForgeQueryPreparedContinuationExecutionReadmission;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryPreparedContinuationFamily {
@@ -73,6 +75,7 @@ pub struct ForgeQueryPreparedContinuation<
     runtime_contract: ForgeQueryContinuationRuntimeContract,
     execution_mode: ForgeQueryPreparedContinuationExecutionMode,
     required_basis_families: Vec<BasisFamily>,
+    execution_readmission: ForgeQueryPreparedContinuationExecutionReadmission,
     bridge_routing: ForgeQueryDeclarationBridgeRouting<D, I>,
     signal_posture: ForgeQueryPreparedContinuationSignalPosture,
     signal_execution_family: Option<ForgeQueryDeclarationSignalExecutionFamily>,
@@ -91,6 +94,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         runtime_contract: ForgeQueryContinuationRuntimeContract,
         execution_mode: ForgeQueryPreparedContinuationExecutionMode,
         required_basis_families: Vec<BasisFamily>,
+        execution_readmission: ForgeQueryPreparedContinuationExecutionReadmission,
         bridge_routing: ForgeQueryDeclarationBridgeRouting<D, I>,
         signal_posture: ForgeQueryPreparedContinuationSignalPosture,
         signal_execution_family: Option<ForgeQueryDeclarationSignalExecutionFamily>,
@@ -105,6 +109,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
             runtime_contract,
             execution_mode,
             required_basis_families,
+            execution_readmission,
             bridge_routing,
             signal_posture,
             signal_execution_family,
@@ -139,6 +144,14 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn required_basis_families(&self) -> &[BasisFamily] {
         &self.required_basis_families
+    }
+
+    pub fn required_capability_families(&self) -> &[ForgeQueryCapabilityFamily] {
+        self.execution_readmission.required_capability_families()
+    }
+
+    pub fn execution_readmission(&self) -> &ForgeQueryPreparedContinuationExecutionReadmission {
+        &self.execution_readmission
     }
 
     pub fn bridge_routing(&self) -> &ForgeQueryDeclarationBridgeRouting<D, I> {

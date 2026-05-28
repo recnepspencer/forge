@@ -7,10 +7,7 @@ mod transcript;
 pub use artifact::{
     ForgeQuerySignalCompatibilityOrchestration, ForgeQuerySignalCompatibilityOrchestrationClass,
 };
-pub use input::{
-    ForgeQuerySignalCompatibilityOrchestrationInput,
-    ForgeQuerySignalCompatibilityOrchestrationSubject,
-};
+pub use input::ForgeQuerySignalCompatibilityOrchestrationInput;
 pub use outcome::{
     ordinary_outcome_from_signal_compatibility_orchestration_checked,
     ForgeQuerySignalCompatibilityOrchestrationChecked,

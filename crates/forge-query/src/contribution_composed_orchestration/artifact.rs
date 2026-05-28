@@ -1,15 +1,15 @@
 use forge_foundational::FoundationalDiagnosticOutcomeKind;
 
 use crate::application::{
-    ForgeQueryDeclarationEntryContributionCategoryFamily,
     ForgeQueryDeclarationEntryContributionComposition,
     ForgeQueryDeclarationEntryContributionEvidence, ForgeQueryDeclarationEnvelope,
     ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker,
 };
-use crate::domain_capabilities::{
-    ForgeQueryDomainCapabilityCategory, ForgeQueryDomainCapabilitySemanticPosture,
+
+use super::composition::{
+    ForgeQueryContributionComposedClassification, ForgeQueryContributionComposedComposition,
 };
-use crate::identity::hash_parts;
+use super::intent_result::ForgeQueryContributionComposedIntentResult;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryContributionComposedSummary {
@@ -22,18 +22,18 @@ pub struct ForgeQueryContributionComposedSummary {
 }
 
 impl ForgeQueryContributionComposedSummary {
-    pub(crate) fn new(
-        materialization_ready_digest: String,
+    pub fn new(
+        materialization_ready_digest: impl Into<String>,
         outcome_kind: FoundationalDiagnosticOutcomeKind,
-        primary_code: String,
+        primary_code: impl Into<String>,
         required_row_count: usize,
         standard_row_count: usize,
         forensic_row_count: usize,
     ) -> Self {
         Self {
-            materialization_ready_digest,
+            materialization_ready_digest: materialization_ready_digest.into(),
             outcome_kind,
-            primary_code,
+            primary_code: primary_code.into(),
             required_row_count,
             standard_row_count,
             forensic_row_count,
@@ -68,25 +68,25 @@ impl ForgeQueryContributionComposedSummary {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryContributionComposedContribution {
     evidence: ForgeQueryDeclarationEntryContributionEvidence,
-    contribution_category: ForgeQueryDomainCapabilityCategory,
-    semantic_posture: ForgeQueryDomainCapabilitySemanticPosture,
+    contribution_category: crate::domain_capabilities::ForgeQueryDomainCapabilityCategory,
+    semantic_posture: crate::domain_capabilities::ForgeQueryDomainCapabilitySemanticPosture,
     request_digest: String,
     summary: Option<ForgeQueryContributionComposedSummary>,
 }
 
 impl ForgeQueryContributionComposedContribution {
-    pub(crate) fn new(
+    pub fn new(
         evidence: ForgeQueryDeclarationEntryContributionEvidence,
-        contribution_category: ForgeQueryDomainCapabilityCategory,
-        semantic_posture: ForgeQueryDomainCapabilitySemanticPosture,
-        request_digest: String,
+        contribution_category: crate::domain_capabilities::ForgeQueryDomainCapabilityCategory,
+        semantic_posture: crate::domain_capabilities::ForgeQueryDomainCapabilitySemanticPosture,
+        request_digest: impl Into<String>,
         summary: Option<ForgeQueryContributionComposedSummary>,
     ) -> Self {
         Self {
             evidence,
             contribution_category,
             semantic_posture,
-            request_digest,
+            request_digest: request_digest.into(),
             summary,
         }
     }
@@ -95,20 +95,16 @@ impl ForgeQueryContributionComposedContribution {
         &self.evidence
     }
 
-    pub fn category_family(&self) -> ForgeQueryDeclarationEntryContributionCategoryFamily {
-        self.evidence.category_family()
-    }
-
-    pub fn contribution_category(&self) -> ForgeQueryDomainCapabilityCategory {
+    pub fn contribution_category(
+        &self,
+    ) -> crate::domain_capabilities::ForgeQueryDomainCapabilityCategory {
         self.contribution_category
     }
 
-    pub fn semantic_posture(&self) -> ForgeQueryDomainCapabilitySemanticPosture {
+    pub fn semantic_posture(
+        &self,
+    ) -> crate::domain_capabilities::ForgeQueryDomainCapabilitySemanticPosture {
         self.semantic_posture
-    }
-
-    pub fn support_outcome_kind(&self) -> FoundationalDiagnosticOutcomeKind {
-        self.semantic_posture.outcome_kind()
     }
 
     pub fn request_digest(&self) -> &str {
@@ -117,6 +113,13 @@ impl ForgeQueryContributionComposedContribution {
 
     pub fn summary(&self) -> Option<&ForgeQueryContributionComposedSummary> {
         self.summary.as_ref()
+    }
+
+    pub fn support_outcome_kind(&self) -> FoundationalDiagnosticOutcomeKind {
+        self.summary
+            .as_ref()
+            .map(ForgeQueryContributionComposedSummary::outcome_kind)
+            .unwrap_or(FoundationalDiagnosticOutcomeKind::Advisory)
     }
 }
 
@@ -127,47 +130,26 @@ pub struct ForgeQueryContributionComposedOrchestration<
     envelope: ForgeQueryDeclarationEnvelope<D, I>,
     contribution_composition: ForgeQueryDeclarationEntryContributionComposition,
     contributions: Vec<ForgeQueryContributionComposedContribution>,
-    composed_digest: String,
+    intent_results: Vec<ForgeQueryContributionComposedIntentResult>,
+    composition: ForgeQueryContributionComposedComposition,
 }
 
 impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     ForgeQueryContributionComposedOrchestration<D, I>
 {
-    pub(crate) fn new(
+    pub fn new(
         envelope: ForgeQueryDeclarationEnvelope<D, I>,
         contribution_composition: ForgeQueryDeclarationEntryContributionComposition,
         contributions: Vec<ForgeQueryContributionComposedContribution>,
+        intent_results: Vec<ForgeQueryContributionComposedIntentResult>,
+        composition: ForgeQueryContributionComposedComposition,
     ) -> Self {
-        let mut digest_parts = vec![
-            format!("envelope:{:?}", envelope.envelope_digest()),
-            format!(
-                "composition:{}",
-                contribution_composition.contribution_digest()
-            ),
-        ];
-        digest_parts.extend(
-            contributions
-                .iter()
-                .map(|value| value.evidence().evidence_digest().to_string()),
-        );
-        digest_parts.extend(contributions.iter().filter_map(|value| {
-            value.summary().map(|summary| {
-                format!(
-                    "summary:{}:{}:{}:{}:{}",
-                    summary.materialization_ready_digest(),
-                    summary.primary_code(),
-                    summary.required_row_count(),
-                    summary.standard_row_count(),
-                    summary.forensic_row_count(),
-                )
-            })
-        }));
-        let composed_digest = hash_parts(&digest_parts);
         Self {
             envelope,
             contribution_composition,
             contributions,
-            composed_digest,
+            intent_results,
+            composition,
         }
     }
 
@@ -175,22 +157,57 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         &self.envelope
     }
 
+    pub fn declaration_artifact(&self) -> &ForgeQueryDeclarationEnvelope<D, I> {
+        &self.envelope
+    }
+
     pub fn contribution_composition(&self) -> &ForgeQueryDeclarationEntryContributionComposition {
         &self.contribution_composition
+    }
+
+    pub fn intent_results(&self) -> &[ForgeQueryContributionComposedIntentResult] {
+        &self.intent_results
     }
 
     pub fn contributions(&self) -> &[ForgeQueryContributionComposedContribution] {
         &self.contributions
     }
 
-    pub fn materialized_artifacts(&self) -> Vec<&ForgeQueryContributionComposedSummary> {
-        self.contributions
+    pub fn admitted_contributions(&self) -> &[ForgeQueryContributionComposedContribution] {
+        &self.contributions
+    }
+
+    pub fn rejected_intents(&self) -> Vec<&ForgeQueryContributionComposedIntentResult> {
+        self.intent_results
             .iter()
-            .filter_map(ForgeQueryContributionComposedContribution::summary)
+            .filter(|value| !value.is_admitted())
+            .collect()
+    }
+
+    pub fn composition(&self) -> &ForgeQueryContributionComposedComposition {
+        &self.composition
+    }
+
+    pub fn classification(&self) -> ForgeQueryContributionComposedClassification {
+        self.composition.classification()
+    }
+
+    pub fn materialized_artifacts(&self) -> Vec<&ForgeQueryContributionComposedSummary> {
+        self.intent_results
+            .iter()
+            .filter_map(|value| {
+                value
+                    .contribution()
+                    .and_then(ForgeQueryContributionComposedContribution::summary)
+            })
             .collect()
     }
 
     pub fn composed_digest(&self) -> &str {
-        &self.composed_digest
+        self.composition.composition_digest()
+    }
+
+    pub fn composition_digest(&self) -> &str {
+        self.composition.composition_digest()
     }
 }

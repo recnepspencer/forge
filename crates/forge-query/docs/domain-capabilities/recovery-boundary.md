@@ -3,44 +3,64 @@
 ## What This Feature Is
 
 The recovery boundary is the Query-owned surface for turning a typed stop into
-one typed recovery brief.
+one typed next-step answer.
 
-Use it when a declaration-entry, continuation, signal-orchestration, or
-contribution-composed call did not finish and your app needs to answer:
+Use it when a declaration-entry, continuation, signal, contribution-composed,
+or grouped run did not finish and your app needs to know:
 
 - what stopped
-- where it stopped
-- who owns the fix
-- what the next supported repair step is
+- which feature family it came from
+- whether the stop is stale, mismatched, unsupported, denied, or conflicted
+- whether the next move is refresh, rebind, declaration repair, contribution
+  review, or manual inspection
 
-This feature does not retry work for you. It explains the stop honestly and
-returns one typed recovery request shape that keeps the same context attached.
+This feature does not retry work for you. It gives you one recovery brief and
+one typed recovery request that stay attached to the same retained explanation.
 
 ## Why You Use It
 
-- keep `Deferred`, `Stale`, `RebindRequired`, `WrongWorld`, `WrongHandle`,
-  `BasisMismatch`, `ContributionDenied`, and `Refused` distinct
-- get one machine-readable next-step surface instead of parsing error strings
-- preserve route-plan and receipt denial causes when those are the real stop
-- keep ordinary, checked, and proof-visible non-success lanes aligned
-- tell your app whether the fix belongs to world selection, input narrowing,
-  contribution intent, signal posture, or an explicit handoff boundary
+- keep declaration, continuation, signal, contribution, and grouped stops
+  distinct
+- keep aspect-native failures visible instead of flattening them into generic
+  denial
+- distinguish stale basis, basis mismatch, wrong world, wrong handle, and
+  authority mismatch
+- preserve proof strength so your app knows whether the answer came from the
+  ordinary lane, a checked artifact, or a proof-visible transcript
+- reuse foundational support and diagnostics vocabulary without making your app
+  read lower-crate artifacts directly
 
 ## Stable Entry Points
 
-Core recovery types:
+Most callers only need two starting points:
+
+- `recover_from_outcome(...)` when you are already on the ordinary lane
+- the matching `recover_from_..._checked(...)` or `recover_from_..._proof(...)`
+  method when you need stronger retained context
+
+The main recovery types are:
 
 - `ForgeQueryRecoveryBrief`
+- `ForgeQueryRecoveryExplanation`
+- `ForgeQueryRecoveryGroupedMemberContext`
+- `ForgeQueryRecoveryRequest`
+- `ForgeQueryRecoveryRequestKind`
 - `ForgeQueryRecoveryStopFamily`
 - `ForgeQueryRecoveryStopKind`
 - `ForgeQueryRecoveryAuthoritySurface`
 - `ForgeQueryRecoveryAction`
-- `ForgeQueryRecoveryExplanation`
-- `ForgeQueryRecoveryRequest`
-- `ForgeQueryRecoveryRequestKind`
+- `ForgeQueryRecoverySourceFamily`
+- `ForgeQueryRecoveryAspectPosture`
+- `ForgeQueryRecoveryBasisPosture`
+- `ForgeQueryRecoveryEvidenceStrength`
+- `ForgeQueryRecoveryConflictPosture`
+- `ForgeQueryRecoveryMaterialization`
+- `ForgeQueryRecoveryFoundationalSupportContext`
+- `ForgeQueryRecoveryFoundationalDiagnosticContext`
 
-Admitted-handle recovery entry points:
+Common recovery entry points:
 
+- `forge_query_recovery_brief_from_ordinary_outcome(...)`
 - `recover_from_outcome(...)`
 - `recover_from_declaration_entry_checked(...)`
 - `recover_from_declaration_entry_proof(...)`
@@ -57,41 +77,45 @@ Admitted-handle recovery entry points:
 - `recover_from_grouped_orchestration_checked(...)`
 - `recover_from_grouped_orchestration_proof(...)`
 
-Good to know:
+The recovery boundary also has matching checked/proof entry points for:
 
-- `recover_from_outcome(...)` is the compact public lane for ordinary outcomes
-- checked and proof recovery entry points preserve stronger stop evidence
-- recovery requests are guidance-grade typed requests, not automatic repair
-  execution
+- declaration entry
+- route plans
+- receipts
+- prepared continuations
+- continuation execution
+- signal compatibility
+- contribution-composed orchestration
+- grouped orchestration
+
+Grouped routes, receipts, envelopes, and grouped contributions are currently
+best treated as rich inspection surfaces. When you need one typed next-step
+repair answer with retained member-local grouped context, the grouped
+orchestration checked/proof recovery lane is the strongest grouped recovery
+surface today.
 
 ## Core Mental Model
 
-Think of the recovery boundary as a public translation layer over typed stop
-posture that already exists elsewhere in Query.
+Recovery is a projection layer over proof you already have. It does not invent a
+second denial system.
 
-The recovery layer does not invent a second denial system. It projects the
-real stop into one recovery brief that answers four questions:
+Every recovery brief answers four questions first:
 
-1. `stop_family()`
-   What kind of surface stopped?
-2. `stop_kind()`
-   What kind of stop was it?
-3. `authority_surface()`
-   Which boundary owns the fix?
-4. `recommended_action()`
-   What kind of repair should the caller attempt next?
+1. `stop_family()`: which public feature stopped?
+2. `stop_kind()`: what kind of stop was it?
+3. `authority_surface()`: who owns the fix?
+4. `recommended_action()`: what should the caller do next?
 
-The important rule is:
+The explanation behind that brief then answers the follow-up questions:
 
-- recovery advice must stay narrower than the proof it came from
-
-That means:
-
-- prepared continuation is not explained as execution failure
-- readiness is not treated as proof of what happened in one concrete run
-- declaration denial and contribution denial stay distinct
-- signal `Compatible`, `Prepared`, and `BasisMismatch` are not collapsed into
-  one generic "not ready"
+- `source_family()`: was this declaration, continuation, signal,
+  contribution-composed, or grouped?
+- `aspect_posture()`: was aspect truth irrelevant, required, retained, or
+  readmission-sensitive?
+- `basis_posture()`: is the problem stale basis, basis mismatch, reduced basis,
+  or unknown?
+- `evidence_strength()`: did this answer come from the ordinary lane, a checked
+  artifact, or proof-visible retained context?
 
 ## How It Executes
 
@@ -103,130 +127,96 @@ The recovery boundary accepts one of three source shapes:
 
 It then:
 
-1. maps the stop into one recovery stop family and stop kind
-2. selects the authority surface that actually owns the fix
-3. picks one recommended recovery action
-4. builds one `ForgeQueryRecoveryExplanation`
-5. attaches that same explanation to one typed `ForgeQueryRecoveryRequest`
+1. maps the stop into one `ForgeQueryRecoveryStopFamily`
+2. maps the stop into one `ForgeQueryRecoveryStopKind`
+3. chooses the authority surface that owns the repair
+4. chooses one recommended action
+5. builds one `ForgeQueryRecoveryExplanation`
+6. attaches that same explanation to one `ForgeQueryRecoveryRequest`
 
-`ForgeQueryRecoveryExplanation` is the retained context surface. It can carry:
+The checked and proof entry points keep stronger source-family data when it
+exists. For example:
 
-- checked topology
-- orchestration stop stage
-- retained digest
-- refusal class
-- route governing reason
-- route denial cause
-- receipt governing reason
-- receipt denial cause
-- contribution digest
-
-That same explanation is available from both:
-
-- `brief.route_sensitive_explanation()`
-- `brief.recovery_request().explanation()`
-
-So the "what happened?" and "what should I do next?" lanes stay synchronized.
+- continuation recovery keeps aspect-sensitive readmission posture
+- signal recovery keeps required-aspect posture
+- contribution-composed recovery can keep retained declaration aspect truth and
+  one contribution intent descriptor
+- grouped recovery can keep the stopped member index, role, and member-local
+  aspect record when the grouped lane fails on one member
 
 ## Small Example
 
 ```rust
-let outcome = handle.prepare_continuation_from_target_outcome(
-    ForgeQueryResolveContinuationFromTargetRequest::new(
-        envelope,
-        PreparePreviewForActiveFaceSelection::aspect_contract(),
-    ),
-);
+let outcome = handle.orchestrate_declaration_with_contributions_outcome(input);
 
-match outcome {
-    ForgeQueryOrdinaryOutcome::Bound(prepared) => {
-        let _ = prepared.prepared_digest();
-    }
-    other => {
-        let brief = handle
-            .recover_from_outcome(&other)
-            .expect("ordinary non-success should yield a recovery brief");
-
-        assert_eq!(
-            brief.authority_surface(),
-            ForgeQueryRecoveryAuthoritySurface::AdmittedOperatingWorld,
-        );
-        assert_eq!(
-            brief.recommended_action(),
-            ForgeQueryRecoveryAction::CorrectWorld,
-        );
-    }
+if let Some(recovery) = forge_query_recovery_brief_from_ordinary_outcome(&outcome) {
+    assert_eq!(
+        recovery.source_family(),
+        ForgeQueryRecoverySourceFamily::ContributionComposed,
+    );
+    assert_eq!(
+        recovery.recommended_action(),
+        ForgeQueryRecoveryAction::ReviewContributionIntent,
+    );
 }
 ```
 
-Use this when you already chose the ordinary lane and want one compact recovery
-answer without switching back to checked or proof manually.
+Use this when you are already on the compact ordinary lane and want the next
+repair step without switching back to checked/proof manually.
 
 ## Real Example
 
 ```rust
-let progression = handle.declare_review_and_progress(
-    geometry_session.publish_boundary_change_for_active_face_selection()?,
-)?;
-let foundational = handle.describe_foundational(progression.clone())?;
-let route_checked = handle.plan_routes_checked(
-    ForgeQueryDeclarationRoutePlanInput::admitted(progression, foundational),
+let proof = handle.orchestrate_signal_compatibility_proof(input);
+
+let recovery = handle
+    .recover_from_signal_compatibility_proof(proof)
+    .expect("non-success should yield a recovery brief");
+
+assert_eq!(
+    recovery.source_family(),
+    ForgeQueryRecoverySourceFamily::SignalCompatibility,
+);
+assert_eq!(
+    recovery.aspect_posture(),
+    ForgeQueryRecoveryAspectPosture::RequiredContract,
 );
 
-if let Some(brief) = handle.recover_from_declaration_route_plan_checked(route_checked) {
-    assert_eq!(
-        brief.stop_family(),
-        ForgeQueryRecoveryStopFamily::DeclarationRoutePlan,
-    );
-    assert_eq!(
-        brief.recommended_action(),
-        ForgeQueryRecoveryAction::UseExplicitHandoff,
-    );
-
-    let explanation = brief.route_sensitive_explanation();
-    let _ = explanation.route_denial_cause();
-    let _ = explanation.route_governing_reason();
-
-    let request = brief.recovery_request();
-    let _ = request.kind();
-    let _ = request.explanation().route_denial_cause();
-}
+let explanation = recovery.explanation();
+let _ = (
+    explanation.evidence_strength(),
+    explanation.basis_posture(),
+    explanation.diagnostic_outcome_kind(),
+    explanation.diagnostic_denial_class(),
+);
 ```
 
-What this example is showing:
+What this is showing:
 
-- the stop came from a route-plan checked lane, not a generic error bucket
-- the recovery brief preserved the typed route denial cause
-- the recovery request carries the same explanation context forward
-- Query tells the caller to use an explicit handoff instead of pretending it
-  can silently repair the route intent itself
+- recovery keeps the source-family identity instead of flattening everything
+  into generic denial
+- signal aspect failures stay aspect-native
+- proof-visible recovery can carry stronger evidence posture than ordinary
+  recovery
+- grouped checked/proof recovery can also carry member-local grouped context
+  that the ordinary lane does not keep
 
 ## How It Relates To Other Features
 
-- [Ordinary Outcomes](./ordinary-outcomes.md) are the compact public stop lane
-  that `recover_from_outcome(...)` projects from.
+- [Ordinary Outcomes](./ordinary-outcomes.md) are the compact public stop lane.
 - [Continuation Pipeline](./continuation-pipeline.md) owns prepared/executed
-  continuation truth; recovery only explains how to respond when those lanes
-  stop.
+  continuation truth; recovery explains what to do when that truth stops.
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
-  owns signal-facing `Compatible`, `Prepared`, and typed non-success posture;
-  recovery explains who owns the fix when that lane stops.
+  owns signal-facing compatibility and preparation truth; recovery tells you who
+  owns the fix.
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
-  owns the distinction between declaration-side and contribution-side stop
-  posture; recovery preserves that distinction.
-- [Declaration Entry Readiness](./declaration-entry-readiness.md) is family-level
-  support posture, not concrete run recovery. Use readiness before work when
-  you want seam posture. Use recovery after a real stop when you need the next
-  repair step.
-- [Orchestration Inventory](./orchestration-inventory.md) is the anti-drift
-  registry that keeps public recovery lanes aligned with the shipped
-  orchestration surface.
-- [Family Helpers](./family-helpers.md) expose family-native ordinary, checked,
-  and proof-visible lanes, but they still hand non-success posture into this
-  same shared recovery surface.
-- [Grouped Authoring](./grouped-authoring.md) owns grouped declaration and
-  grouped orchestration truth; recovery preserves grouped stop identity when
-  that lane stops.
+  owns declaration-plus-contribution proof; recovery keeps declaration-owned and
+  contribution-owned repair paths distinct.
+- [Orchestration Inventory](./orchestration-inventory.md) is the semantic
+  registry that tells you which public surfaces participate in this recovery
+  model.
+- [Recovery Docs](./recovery/README.md) go deeper on aspect posture, support
+  truth, and request meanings.
 
 ## Inspection And Debugging
 
@@ -236,61 +226,70 @@ Use `ForgeQueryRecoveryBrief` for the compact decision surface:
 - `stop_kind()`
 - `authority_surface()`
 - `recommended_action()`
-- `reason()`
-- `route_sensitive_explanation()`
-- `recovery_request()`
+- `source_family()`
+- `basis_posture()`
+- `aspect_posture()`
+- `evidence_strength()`
+- `conflict_posture()`
 
-Use `ForgeQueryRecoveryExplanation` when you need the retained context:
+Use `ForgeQueryRecoveryExplanation` when you need retained context:
 
 - `checked_topology()`
 - `stop_stage()`
 - `retained_digest()`
-- `refusal_class()`
 - `route_governing_reason()`
 - `route_denial_cause()`
 - `receipt_governing_reason()`
 - `receipt_denial_cause()`
 - `contribution_digest()`
+- `contribution_intent_descriptor()`
+- `grouped_member_context()`
+- `support_truth_kind()`
+- `basis_disclosure()`
+- `degraded_recovery_posture()`
+- `diagnostic_outcome_kind()`
+- `diagnostic_denial_class()`
+- `materialization()`
 
 Use `ForgeQueryRecoveryRequest` when the next layer in your app wants one typed
-repair intent instead of a prose explanation:
+repair intent instead of re-deriving actions from prose.
 
-- `kind()`
-- `explanation()`
+When the stop came from grouped orchestration, `grouped_member_context()` is
+the shortest path to the retained member-local witness. It tells you which
+group member stopped, whether it was the seed or a later member, and which
+member-local aspect record the grouped lane had already retained.
 
 ## Anti-Patterns
 
-- flattening `Deferred`, `Denied`, `Stale`, and `RebindRequired` into one retry
-  path
-- treating prepared-but-not-executed continuation as execution failure
-- using family-level readiness as if it explained one concrete failed run
-- teaching recovery requests as if Query already executes the repair
-- parsing `reason()` when `stop_kind()`, `authority_surface()`, and
-  `recommended_action()` already carry the machine decision
-- merging declaration-side denial and contribution-side denial into the same
-  app behavior
+- treating aspect-native failures as generic denial
+- retrying every stop the same way
+- treating stale basis and basis mismatch as the same repair
+- using support-grade recovery truth as if it were fresh proof-bearing
+  readmission truth
+- expecting recovery for a bound partial contribution artifact; inspect the
+  bound artifact directly instead
+- parsing `reason()` when the typed stop family, stop kind, and recommended
+  action already exist
 
 ## Current Limits
 
-- recovery currently ships as an explanation and typed request surface; it does
-  not apply repairs automatically
-- the ordinary lane is the generic public front door, but checked and proof
-  recovery lanes still carry stronger evidence
-- recovery currently covers ordinary, declaration-entry, route-plan, receipt,
-  continuation, signal-orchestration, contribution-composed, and grouped
-  orchestration stop surfaces
-- readiness and support reports may inform the next step, but they are not
-  treated as proof of one concrete failure run
+- recovery is an explanation and next-step surface, not an automatic repair
+  engine
+- collaborative merge resolution is outside this surface; recovery preserves the
+  distinctions a dedicated conflict or merge workflow would need
+- route-plan and receipt recovery still carry thinner aspect context than the
+  continuation, signal, and contribution-composed proof lanes
+- recovery currently materializes a lean explanation surface rather than a
+  heavy operator bundle by default
 
 ## Related Docs
 
-- [Configured Domain Handles](./configured-domain-handles.md)
+- [Recovery Overview](./recovery/README.md)
+- [Aspect-Native Recovery](./recovery/aspect-native-recovery.md)
+- [Foundational Support And Evidence Strength](./recovery/foundational-support-and-evidence-strength.md)
+- [Recovery Requests And Next-Step Actions](./recovery/recovery-requests-and-next-step-actions.md)
 - [Ordinary Outcomes](./ordinary-outcomes.md)
-- [Declaration Entry Readiness](./declaration-entry-readiness.md)
 - [Continuation Pipeline](./continuation-pipeline.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
 - [Orchestration Inventory](./orchestration-inventory.md)
-- [Family Helpers](./family-helpers.md)
-- [Grouped Authoring](./grouped-authoring.md)
-- [Domain Capabilities](./README.md)

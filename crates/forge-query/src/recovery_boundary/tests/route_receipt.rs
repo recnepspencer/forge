@@ -1,5 +1,7 @@
 use crate::application::{ForgeQueryDeclarationReceiptInput, ForgeQueryDeclarationRoutePlanInput};
-use crate::recovery_boundary::{ForgeQueryRecoveryAction, ForgeQueryRecoveryStopFamily};
+use crate::recovery_boundary::{
+    ForgeQueryRecoveryAction, ForgeQueryRecoverySourceFamily, ForgeQueryRecoveryStopFamily,
+};
 
 use super::support::{
     recovery_admitted_handle, recovery_foundational, recovery_progressed, RecoveryInput,
@@ -25,6 +27,10 @@ fn route_plan_recovery_preserves_typed_route_denial_cause() {
     assert_eq!(
         brief.stop_family(),
         ForgeQueryRecoveryStopFamily::DeclarationRoutePlan
+    );
+    assert_eq!(
+        brief.explanation().source_family(),
+        ForgeQueryRecoverySourceFamily::DeclarationRoutePlan
     );
     assert_eq!(
         brief.route_sensitive_explanation().route_denial_cause(),
@@ -60,6 +66,10 @@ fn receipt_recovery_preserves_typed_receipt_denial_cause() {
     assert_eq!(
         brief.stop_family(),
         ForgeQueryRecoveryStopFamily::DeclarationReceipt
+    );
+    assert_eq!(
+        brief.explanation().source_family(),
+        ForgeQueryRecoverySourceFamily::DeclarationReceipt
     );
     assert_eq!(
         brief.route_sensitive_explanation().receipt_denial_cause(),

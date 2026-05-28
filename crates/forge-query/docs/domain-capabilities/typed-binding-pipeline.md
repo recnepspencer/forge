@@ -17,11 +17,11 @@ Use it when your app already has meaningful context such as:
 and you want Query to bind that context into the next declaration, route,
 receipt, envelope, or continuation-ready input.
 
-This is not the older `src/binding/` slot/canonicalization subsystem. It is
+This is not the low-level `src/binding/` slot/canonicalization subsystem. It is
 the retained-artifact and context-binding seam built on top of:
 
-- shared retained binding targets from Phase 24a
-- aspect contract and granularity law from Phase 24b
+- shared retained binding targets from the declaration-entry seam
+- explicit aspect contract and granularity semantics from the declaration-entry seam
 - the existing route/receipt/envelope/orchestration boundaries
 
 ## Why You Use It
@@ -32,7 +32,7 @@ the retained-artifact and context-binding seam built on top of:
 - preserve wrong-world, wrong-handle, stale, rebind-required, and
   missing-aspect posture as typed outcomes
 - bind retained artifacts into the next explicit Query input without reopening
-  lower phases by hand
+  lower surfaces by hand
 - get a proof-visible transcript when you need to inspect why one candidate won
   or why binding denied
 
@@ -150,7 +150,7 @@ The public family-scoped contract surface is inspectable too:
 - `ForgeQueryFamilyContextExtractorContract::{family_key, allowed_sources, required_aspect_contract}`
 - `ForgeQueryFamilyTargetResolverContract::{family_key, required_aspect_contract, route_intent, specificity_rank}`
 
-The first shipped source and subject families are intentionally narrow:
+The current source and subject families are intentionally narrow:
 
 - declaration binding from explicit declaration candidates
 - route/receipt/envelope request binding from current progression candidates
@@ -160,17 +160,15 @@ The first shipped source and subject families are intentionally narrow:
 - envelope resolution from progression or receipt targets
 - continuation resolution from envelope targets
 
-The shipped runtime proof now covers both resolver-parity ladders that matter
-most for the current surface:
+The public runtime proof covers the resolver-parity ladders that matter most
+for this surface:
 
 - `progression -> route`
 - `route_plan -> receipt`
 - `receipt -> envelope`
 - `envelope -> continuation-ready input`
 
-This is the first slice of the binding pipeline, not the end of it.
-
-Phase 26 adds one more public layer on top of that checked/proof surface:
+There is one more public layer on top of that checked/proof surface:
 
 - `ForgeQueryOrdinaryOutcome<T>`
 
@@ -250,7 +248,7 @@ This is the intended shape:
 - [Declaration Route Plans](./declaration-route-plan.md),
   [Declaration Boundary Receipts](./declaration-boundary-receipts.md), and
   [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md) each
-  expose `binding_target()` for later resolver phases.
+  expose `binding_target()` for later resolver surfaces.
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md) is a
   separate boundary. Binding can prepare the next input or explain why it
   cannot; orchestration still owns declaration-entry lowering.
@@ -289,7 +287,7 @@ Useful surfaces:
 
 ## Current Limits
 
-The first shipped Phase 25 slice does not yet provide:
+This surface does not yet provide:
 
 - broad ambient UI probing outside the declared candidate set
 - grouped or neighborhood binding

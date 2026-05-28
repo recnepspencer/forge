@@ -69,7 +69,7 @@ When you add a new domain-capability feature, the honest path is:
 - [Certification Surface And Closeout Bundle](./certification-surface-and-closeout-bundle.md)
   explains the public readout that summarizes these proofs
 - [Public Doc Coverage](../public-doc-coverage.md) owns the published registry
-  that maps shipped public surfaces to their feature docs, README discovery
+  that maps public surfaces to their feature docs, README discovery
   labels, and golden readouts
 - [Platform Entry Closeout](../platform-entry-closeout.md) is the later
   platform-entry closeout ledger that consumes docs coverage, the

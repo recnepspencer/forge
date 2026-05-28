@@ -73,12 +73,11 @@ pub enum ForgeQueryContinuationExecutionOutcome<
 > {
     Executed(ForgeQueryContinuationExecution<D, I>),
     WrongWorld(String),
-    WrongHandle(String),
     Stale(String),
     BasisMismatch(String),
     AuthorityMismatch(String),
+    WrongHandle(String),
     Unsupported(String),
-    Failed(String),
 }
 
 pub struct ForgeQueryContinuationExecutionChecked<
@@ -255,14 +254,6 @@ pub fn ordinary_outcome_from_execution_checked<
                 topology(ForgeQueryOrdinaryContinuationCheckedTopologyKind::WrongWorld),
             ))
         }
-        ForgeQueryContinuationExecutionOutcome::WrongHandle(reason) => {
-            ForgeQueryOrdinaryOutcome::WrongHandle(ForgeQueryOrdinaryPosture::new(
-                reason,
-                ForgeQueryOrdinaryPostureKind::WrongHandle,
-                ForgeQueryOrdinaryNextStep::CorrectHandle,
-                topology(ForgeQueryOrdinaryContinuationCheckedTopologyKind::WrongHandle),
-            ))
-        }
         ForgeQueryContinuationExecutionOutcome::Stale(reason) => {
             ForgeQueryOrdinaryOutcome::Stale(ForgeQueryOrdinaryPosture::new(
                 reason,
@@ -283,8 +274,16 @@ pub fn ordinary_outcome_from_execution_checked<
             ForgeQueryOrdinaryOutcome::AuthorityMismatch(ForgeQueryOrdinaryPosture::new(
                 reason,
                 ForgeQueryOrdinaryPostureKind::AuthorityMismatch,
-                ForgeQueryOrdinaryNextStep::UseExplicitHandoff,
+                ForgeQueryOrdinaryNextStep::InspectProofLane,
                 topology(ForgeQueryOrdinaryContinuationCheckedTopologyKind::AuthorityMismatch),
+            ))
+        }
+        ForgeQueryContinuationExecutionOutcome::WrongHandle(reason) => {
+            ForgeQueryOrdinaryOutcome::WrongHandle(ForgeQueryOrdinaryPosture::new(
+                reason,
+                ForgeQueryOrdinaryPostureKind::WrongHandle,
+                ForgeQueryOrdinaryNextStep::CorrectHandle,
+                topology(ForgeQueryOrdinaryContinuationCheckedTopologyKind::WrongHandle),
             ))
         }
         ForgeQueryContinuationExecutionOutcome::Unsupported(reason) => {
@@ -293,14 +292,6 @@ pub fn ordinary_outcome_from_execution_checked<
                 ForgeQueryOrdinaryPostureKind::Unsupported,
                 ForgeQueryOrdinaryNextStep::CheckSupport,
                 topology(ForgeQueryOrdinaryContinuationCheckedTopologyKind::Unsupported),
-            ))
-        }
-        ForgeQueryContinuationExecutionOutcome::Failed(reason) => {
-            ForgeQueryOrdinaryOutcome::Failed(ForgeQueryOrdinaryPosture::new(
-                reason,
-                ForgeQueryOrdinaryPostureKind::Failed,
-                ForgeQueryOrdinaryNextStep::EscalateFailure,
-                topology(ForgeQueryOrdinaryContinuationCheckedTopologyKind::Failed),
             ))
         }
     }

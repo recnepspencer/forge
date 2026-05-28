@@ -6,6 +6,7 @@ pub enum ForgeQueryPublicJourneyKind {
     ContributionComposed,
     HelperProjection,
     GroupedAuthoring,
+    Recovery,
 }
 
 impl ForgeQueryPublicJourneyKind {
@@ -17,6 +18,7 @@ impl ForgeQueryPublicJourneyKind {
             Self::ContributionComposed => "contribution_composed",
             Self::HelperProjection => "helper_projection",
             Self::GroupedAuthoring => "grouped_authoring",
+            Self::Recovery => "recovery",
         }
     }
 }

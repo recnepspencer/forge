@@ -1,6 +1,7 @@
 # Milestone 9.3.8 Engineering Spec: Query-As-Beginning Platform Entry
 
-> **Status:** Shipped and closed on 2026-05-27
+> **Status:** Shipped through Phase 35 on 2026-05-27; reopened for planned
+> collaboration-entry extension Phases 36 through 38
 >
 > **Roadmap parent:** [forge_query_roadmap.md](./forge_query_roadmap.md)
 >
@@ -379,6 +380,26 @@ locked decisions above:
     whole seam becomes production-grade rather than plausible, including
     helper-vs-generic parity and helper-family gating as closure-grade proof
     obligations rather than helper-local niceties.
+
+36. **Phase 36: Collaborative Authority Witness Boundary**
+    Query adds one stable collaboration-facing witness surface over the
+    already-planned preview-session, branch/workspace basis, lineage,
+    tenant/policy, and mutation-evidence groundwork so downstream domains do
+    not have to mint local pseudo-Query authority bags just to talk about
+    collaborative posture.
+
+37. **Phase 37: Collaborative Readmission And Conflict Classification Boundary**
+    Query adds one typed readmission and conflict-classification seam over the
+    retained collaborative witness so replayable, stale, rebind-required,
+    authority-mismatch, merge-inspection-required, and semantic-conflict
+    posture become ordinary Query-facing truth instead of host-local merge
+    folklore.
+
+38. **Phase 38: Collaborative Recovery And Inspection Boundary**
+    Query adds one operator-facing recovery and inspection seam that exposes
+    collaborative next-step posture over the retained witness and conflict
+    classification without stealing merge, writeback, or durable workflow
+    authority from later roadmap milestones.
 
 ## Shared Binding Continuity Lock
 
@@ -3509,6 +3530,12 @@ retained-target resolution. This phase must therefore be read as contribution
 composition over the shipped binding pipeline, not as a place where
 contribution authoring or orchestration can each grow local binding glue.
 
+That same rule applies to aspects. Contribution composition must preserve the
+declaration-side aspect contract and the contribution-side aspect coverage that
+already live in the shared binding substrate. This phase is not allowed to
+launder those semantic slices into one flat "declaration succeeded" story or
+one flat "contribution attached" story.
+
 Phase 26 now closes the ordinary outcome vocabulary those composed surfaces
 must reuse. Contribution composition may add richer typed posture, but it must
 not fork a second concise terminal story.
@@ -3539,6 +3566,8 @@ reopen:
 - one contribution-composed orchestration surface
 - one typed contribution-composed transcript / inspection surface
 - one typed contribution-composed denial / support posture mapping
+- one aspect-aware contribution-composed binding and inspection story over the
+  shipped shared binding substrate
 
 **Requirements**
 
@@ -3548,17 +3577,27 @@ reopen:
 - the contribution composition surface must reuse the shared Phase 25 binding
   substrate so declaration extraction, contribution target binding, and
   orchestration target binding remain one continuous public story
+- contribution composition must preserve declaration aspect contract and
+  contribution aspect coverage explicitly enough that later phases can tell
+  whether two composed intents depended on the same semantic slice or on
+  distinct slices
 - callers should be able to state domain intent, add declaration-scoped
   capability posture, and obtain canonical materialized artifacts in one
   coherent flow while Query preserves that entry and contribution are still two
   proof-bearing internal progressions
 - contribution evidence, denial posture, support posture, and grouped-target
   semantics must remain typed and inspectable inside orchestration products
+- mixed contribution results must remain inspectable with enough retained
+  target-binding and aspect-binding truth that later collaborative or
+  merge-aware phases do not have to rediscover aspect overlap from host-local
+  folklore or free-form diagnostics
 
 **Documentation obligation**
 
 - yes; this phase must explicitly teach how contribution composition enters the
-  orchestration story without creating a second public grammar seam
+  orchestration story without creating a second public grammar seam, and it
+  must teach how declaration-side aspect contract and contribution-side aspect
+  coverage remain part of the retained composed truth
 
 **Acceptance evidence**
 
@@ -3566,20 +3605,27 @@ reopen:
   contribution authoring converge to one canonical orchestrated story
 - hostile tests proving contribution denial or advisory posture cannot be
   laundered away by ordinary orchestration
+- parity and hostile tests proving aspect-aware declaration binding and
+  contribution binding survive composition without flattening into target-only
+  or digest-only explanations
 
-### Phase 30: Orchestration Inventory And Transcript Boundary
+### Phase 30: Semantic Orchestration Inventory And Transcript Boundary
 
 This phase synchronizes the live public orchestration surface with transcripts,
-support/readiness, docs, and certification so the ergonomic layer stays honest
-under growth.
+support/readiness, semantic attachments, docs, and certification so the
+ergonomic layer stays honest under growth.
 
 **Required Query artifacts**
 
-- one expanded orchestration verb inventory over every admitted orchestration
-  family
+- one expanded semantic orchestration inventory over every admitted
+  orchestration family
 - one orchestration transcript inventory
 - one coverage map from verbs to support/readiness rows, seam-ledger rows,
   docs, goldens, and certification suites
+- one typed semantic attachment layer over aspect posture, basis/preview
+  posture, policy/tenant posture, lower-authority family attachment, strategy
+  family attachment, contribution compatibility, and future collaborative
+  extension posture
 
 Phase 21 already ships the first public grammar inventory for the generic trio.
 Phase 30 extends that seed into the full anti-drift synchronization boundary;
@@ -3611,14 +3657,24 @@ track explicitly:
 **Requirements**
 
 - ordinary public verbs, checked verbs, proof-visible verbs, support/readiness
-  rows, crossing inventory rows, transcript records, docs/goldens, and
-  certification coverage must all agree about what orchestration surfaces
-  actually exist
+  rows, crossing inventory rows, transcript records, semantic attachment rows,
+  docs/goldens, and certification coverage must all agree about what
+  orchestration surfaces actually exist
 - the same inventory must explicitly track the shared binding substrate and its
   projections so later helper or continuation work cannot silently grow a
   second binding vocabulary
+- the same inventory must explicitly track aspect posture, basis posture,
+  lower-authority attachment, and strategy-family relevance so later preview,
+  merge, collaborative, or helper surfaces cannot smuggle semantic drift
+  through docs-only explanations
+- contribution-composed and grouped surfaces must advertise their contribution
+  compatibility posture explicitly enough that later collaborative or recovery
+  phases do not have to rediscover category compatibility from local helpers;
+  for some rows the honest posture may be "none", and that absence must remain
+  explicit rather than inferred
 - adding a new admitted orchestration surface must fail closure if there is no
-  matching transcript/inventory/support/doc/certification coverage
+  matching transcript/inventory/support/doc/certification coverage or if its
+  semantic attachment row is incomplete
 - transcript inventory must preserve prepared-vs-executed continuation posture,
   contribution composition posture, and denial topology where those matter
 
@@ -3633,7 +3689,7 @@ track explicitly:
 - parity tests proving live verbs, transcript inventory, and support/readiness
   inventory stay synchronized
 - hostile certification showing no documented or exported orchestration surface
-  lacks transcript, support, or proof coverage
+  lacks transcript, support, proof, or semantic attachment coverage
 
 ### Phase 31: Denial And Recovery UX Boundary
 
@@ -4203,13 +4259,323 @@ tests, markdown pages, or remembered command lists.
   certification ledger over orchestration breadth, docs/goldens breadth,
   compile-fail breadth, parity breadth, and hostile breadth
 
+### Phase 36: Collaborative Authority Witness Boundary
+
+This phase extends the now-shipped platform-entry seam so collaborative,
+branch-aware, preview-aware, and policy-aware downstream domains can enter
+Query once and carry one stable collaboration witness instead of rebuilding
+local authority bags above Query.
+
+This phase does not make `forge-query` the owner of branch workflows, preview
+session lifecycle, merge semantics, lineage semantics, tenant policy, or
+mutation evidence. It makes Query the stable entry surface that retains and
+projects those already-planned lower-authority truths coherently.
+
+**Required Query artifacts**
+
+- one Query-owned collaborative authority witness family
+- one typed descriptor over branch/workspace basis, preview posture, lineage /
+  identity continuity posture, collaborator / tenant authority posture, and
+  mutation-evidence posture
+- one sealed mapping surface from the collaborative witness back to the
+  existing platform-entry binding, route, continuation, contribution, and
+  recovery substrates
+
+**Locked references**
+
+- `Milestone 5.2` remains authoritative for preview-session query contexts
+- `Milestone 5.5` remains authoritative for query-authored mutation / merge /
+  writeback lowering
+- `Milestone 6` remains authoritative for branch-scoped, historical, and diff
+  truth posture
+- `Milestone 7` remains authoritative for lineage / correspondence / identity
+  evolution semantics
+- `Milestone 9` remains authoritative for tenant schema and policy variation
+- `forge-runtime-bridge` `Milestone 4` remains authoritative for historical
+  and branch-aware bridge evaluation posture
+- `forge-runtime-bridge` `Milestone 10` remains authoritative for speculative
+  truth-branch to signal-branch coordination and preview flows
+- `forge-runtime-bridge` `Milestone 11` remains authoritative for
+  cross-runtime policy propagation
+- the `Runtime Authoritative Mutation Evidence Gate` remains authoritative for
+  mutation-evidence ownership and proof shape
+- `forge-relational` remains authoritative for relational merge-strategy
+  semantics and execution
+- `forge-signal` remains authoritative for signal merge / invalidation /
+  delivery strategy semantics and execution
+- local Query substrate docs that this phase must extend honestly:
+  - `crates/forge-query/docs/foundations/branches-and-previews.md`
+  - `crates/forge-query/docs/domain-capabilities/platform-entry.md`
+  - `crates/forge-query/docs/domain-capabilities/configured-domain-handles.md`
+  - `crates/forge-query/docs/domain-capabilities/declaration-bridge-continuation-routing.md`
+  - `crates/forge-query/docs/domain-capabilities/continuation-pipeline.md`
+  - `crates/forge-query/docs/domain-capabilities/contribution-composed-orchestration.md`
+  - `crates/forge-query/docs/domain-capabilities/continuity/continuity-contributions-and-authoritative-successors.md`
+  - `crates/forge-query/docs/domain-capabilities/workflow/preview-inspection-and-mutation-planning.md`
+  - `crates/forge-query/docs/domain-capabilities/workflow/runtime-preflight-workflow-contributions.md`
+
+**Requirements**
+
+- Query must expose one stable collaboration-facing witness without forcing
+  callers to stitch together branch, preview, lineage, policy, and mutation
+  facts from multiple lower crates by hand
+- the collaborative witness must be proof-bearing and typed; no bag-shaped
+  `HashMap`-, json-, or string-label-based authority context is allowed
+- the collaborative witness must preserve the ownership split above instead of
+  duplicating lower-authority semantics inside Query
+- equivalent collaborative posture reached through ordinary, checked, proof,
+  helper, grouped, continuation, and contribution-composed lanes must converge
+  onto the same witness family
+- the collaborative witness must preserve enough bridge-owned branch/history/
+  preview/policy carry-forward evidence that later collaborative
+  classification does not need to rediscover those facts from host glue
+- the collaborative witness must retain enough strategy-facing posture that
+  later collaborative readmission can lower into extensible relational and
+  signal merge-strategy families without forcing domains to reopen host-local
+  merge glue
+- Query must provide ergonomic domain hooks for admitted relational and signal
+  merge-strategy families, but those hooks must lower into lower-authority
+  strategy surfaces instead of re-owning merge semantics in Query
+- the witness must be rich enough to support later readmission, conflict
+  classification, and recovery without reopening declaration meaning or target
+  binding from scratch
+
+**DX target**
+
+- a downstream domain should be able to ask Query "what collaborative world am
+  I in?" and receive one retained, inspectable answer instead of a pile of
+  lower-runtime handles and host-local glue
+
+**Documentation obligation**
+
+- yes; this phase changes the public platform-entry story and must document the
+  witness, what it retains, and what it intentionally does not own
+
+**Compile-time enforcement**
+
+- public construction of collaborative authority witnesses must remain sealed
+- wrong or incomplete collaborative authority posture must fail through typed
+  denial / unsupported / mismatch lanes rather than ambient fallback
+
+**Acceptance evidence**
+
+- parity proving equivalent collaboration-facing entry lanes converge onto the
+  same witness
+- hostile tests proving Query does not synthesize witness posture that was not
+  admitted by lower-authority seams
+- docs and inventory rows aligned with the new collaborative witness surface
+
+### Phase 37: Collaborative Readmission And Conflict Classification Boundary
+
+This phase turns the retained collaborative witness into one typed Query-facing
+readmission and conflict-classification seam.
+
+The hard problem is not detecting "something changed." It is preserving one
+typed, authority-honest classification over concurrent collaborative posture
+without making Query reimplement branch merge, preview promotion, lineage
+evolution, policy, or mutation semantics.
+
+**Required Query artifacts**
+
+- one collaborative readmission input family over the retained collaborative
+  witness
+- one checked / proof-visible conflict-classification result family
+- one typed classification taxonomy that distinguishes at minimum:
+  `Replayable`, `Stale`, `RebindRequired`, `AuthorityMismatch`,
+  `MergeInspectionRequired`, and `SemanticConflict`
+- one transcript / inspection artifact explaining which retained witness facts
+  drove the classification
+
+**Locked references**
+
+- `Milestone 5.5` remains authoritative for mutation / merge lowering and
+  mutation-side inspection posture
+- `Milestone 6` remains authoritative for branch/diff basis truth
+- `Milestone 7` remains authoritative for lineage / correspondence semantics
+- `forge-runtime-bridge` `Milestone 3` remains authoritative for
+  lineage-aware subscription continuity and merge-like continuity rejection
+- `forge-runtime-bridge` `Milestone 9` remains authoritative for merge-aware
+  bridge semantics and multi-parent history consumption
+- `forge-runtime-bridge` `Milestone 10` remains authoritative for preview /
+  speculative branch coordination posture where collaborative readmission
+  depends on preview-local versus authoritative branch meaning
+- `forge-runtime-bridge` `Milestone 11` remains authoritative for
+  cross-runtime policy propagation
+- `forge-runtime-bridge` `Milestone 12` and `12b` remain authoritative for
+  bridge-mediated commit strategies and extensible writeback-family protocol
+  meaning
+- `Runtime API Public Stabilization Gate` remains authoritative for the
+  ordinary public handle / workspace / state contract that this phase must
+  compose onto rather than bypass
+- local Query substrate docs that this phase must extend honestly:
+  - `crates/forge-query/docs/domain-capabilities/signal-compatibility-orchestration.md`
+  - `crates/forge-query/docs/domain-capabilities/continuation-pipeline.md`
+  - `crates/forge-query/docs/domain-capabilities/recovery-boundary.md`
+  - `crates/forge-query/docs/domain-capabilities/contribution-composed-orchestration.md`
+  - `crates/forge-query/docs/domain-capabilities/grouped-authoring.md`
+  - `crates/forge-query/docs/domain-capabilities/continuity/continuity-contributions-and-authoritative-successors.md`
+  - `crates/forge-query/docs/domain-capabilities/explanation/lower-runtime-explanation-contributions.md`
+  - `crates/forge-query/docs/foundations/branches-and-previews.md`
+- `forge-relational` remains authoritative for extensible relational
+  merge-strategy semantics
+- `forge-signal` remains authoritative for extensible signal merge /
+  invalidation / delivery strategy semantics
+
+**Requirements**
+
+- Query must classify collaborative readmission against retained witness truth
+  rather than rebuilding declaration meaning, contribution meaning, or target
+  identity from ad hoc host glue
+- the classification family must remain distinct from generic denial or
+  unsupported posture; collaborative conflict cannot collapse into ordinary
+  "failed" bags
+- the classification transcript must name enough retained facts that an
+  operator or later recovery surface can tell whether the problem is replay,
+  rebind, authority, merge inspection, or semantic conflict
+- equivalent collaborative scenarios must classify canonically regardless of
+  whether they were reached through declaration-entry, continuation,
+  contribution-composed, helper, or grouped public lanes
+- collaborative classification must be strategy-aware enough to distinguish
+  conflicts that arise from admitted relational merge strategies versus
+  admitted signal merge / delivery strategies when those lower-authority
+  families would classify the scenario differently
+- collaborative classification must also preserve bridge-owned distinctions for
+  merge-like continuity, preview-branch mismatch, policy-propagation mismatch,
+  and writeback-family mismatch where those lower-authority bridge seams admit
+  distinct outcomes
+- Query must expose ergonomic domain hooks that let serious downstream domains
+  select or admit the relevant relational and signal merge-strategy families
+  through Query-facing types instead of dropping to raw lower-runtime APIs
+- Query may lower to lower-authority merge / preview / lineage / policy logic,
+  but it must not silently reinterpret or override that logic
+
+**DX target**
+
+- a caller should be able to ask Query "can this collaborative intent be
+  replayed here, and if not, what exact class of problem blocked it?" and get
+  one typed answer with one explanation artifact
+
+**Documentation obligation**
+
+- yes; the public docs must teach the classification family as a Query entry
+  surface over lower-authority truth, not as a second merge engine
+
+**Compile-time enforcement**
+
+- public collaborative conflict classifications must be sealed to Query-owned
+  proving functions
+- convenience helpers must project the same classification family rather than
+  inventing helper-local conflict enums
+
+**Acceptance evidence**
+
+- hostile tests proving replayable vs stale vs rebind-required vs
+  authority-mismatch vs merge-inspection-required vs semantic-conflict remain
+  distinct
+- parity proving the same retained collaborative witness yields the same
+  classification across equivalent public lanes
+- transcript / inventory / docs coverage proving the classification seam is
+  product-grade rather than test-local
+
+### Phase 38: Collaborative Recovery And Inspection Boundary
+
+This phase makes collaborative conflict posture operable instead of merely
+detectable.
+
+The goal is one Query-facing recovery and inspection seam that tells callers
+what to do next without forcing them to spelunk preview, merge, lineage,
+policy, or mutation-evidence crates directly. It must remain a projection over
+lower-authority truths, not a second authority owner.
+
+**Required Query artifacts**
+
+- one collaborative recovery brief family over collaborative classification
+- one typed collaborative recovery request family that can express at minimum:
+  replay, rebind, authority repair, merge inspection, and semantic-repair
+  escalation
+- one inspection surface that joins the collaborative witness, collaborative
+  classification, and collaborative recovery posture into one explanation
+  artifact
+
+**Locked references**
+
+- `Milestone 5.2` remains authoritative for preview promotion / discard /
+  lifecycle semantics
+- `Milestone 5.5` remains authoritative for mutation, merge, and writeback
+  semantics
+- `forge-runtime-bridge` `Milestone 10` remains authoritative for preview-flow
+  discard / commit coordination and zero-residue preview behavior
+- `forge-runtime-bridge` `Milestone 12` and `12b` remain authoritative for
+  bridge-mediated writeback and extensible writeback-family recovery posture
+- `Milestone 11` remains authoritative for durable continuation / saved
+  artifact / restart-stable recovery stories
+- `Milestone 13` remains authoritative for later certification breadth over
+  collaborative and merge-aware scenarios
+- local Query substrate docs that this phase must extend honestly:
+  - `crates/forge-query/docs/domain-capabilities/recovery-boundary.md`
+  - `crates/forge-query/docs/domain-capabilities/platform-entry-closeout.md`
+  - `crates/forge-query/docs/domain-capabilities/public-doc-coverage.md`
+  - `crates/forge-query/docs/domain-capabilities/orchestration-inventory.md`
+  - `crates/forge-query/docs/domain-capabilities/explanation/lower-runtime-explanation-contributions.md`
+  - `crates/forge-query/docs/foundations/branches-and-previews.md`
+
+**Requirements**
+
+- collaborative recovery must preserve the distinction between declaration /
+  continuation / contribution / grouped posture and collaborative conflict
+  posture rather than flattening them into one "fix it" bag
+- recovery briefs must remain typed and machine-inspectable so later operator,
+  UI, and AI surfaces can consume them directly
+- collaborative inspection must reuse the shipped inventory, docs-coverage,
+  and closeout mentality rather than living as a helper-only escape hatch
+- collaborative recovery and inspection must preserve bridge-owned preview,
+  continuity, causality, and writeback-family evidence strongly enough that
+  downstream domains do not reopen raw bridge diagnostics just to explain the
+  next-step class
+- this phase may describe the next-step class, but it must not take ownership
+  of durable replay, persisted workflow state, or full merge execution away
+  from later roadmap milestones
+
+**DX target**
+
+- a serious downstream domain should be able to surface a trustworthy "what do
+  we do now?" answer for collaborative conflicts without inventing its own
+  recovery grammar above Query
+
+**Documentation obligation**
+
+- yes; collaborative recovery and inspection must ship with explicit examples
+  and anti-patterns because this is where operator trust is won or lost
+
+**Compile-time enforcement**
+
+- collaborative recovery request construction must remain sealed to admitted
+  collaborative classification posture
+- invalid recovery transitions must be unrepresentable at the type level
+
+**Acceptance evidence**
+
+- hostile tests proving collaborative recovery remains typed across replay,
+  rebind, authority repair, merge inspection, and semantic-repair escalation
+- parity between ordinary / checked / proof / helper-facing collaborative
+  recovery entrypoints when they describe the same retained collaborative stop
+- inventory, docs, and certification hooks proving the collaborative recovery
+  seam is part of the public platform rather than local host glue
+
 ## Remaining Phase Detail
 
 Phases 1 through 35 now all have boundary-level requirements, and those
-boundaries now ship as one closed `9.3.8` platform-entry product.
+boundaries ship as one closed original `9.3.8` platform-entry product.
+
+Phases 36 through 38 are the new planned collaboration-entry extension over
+that shipped substrate. They intentionally stop at stable Query entry,
+readmission, classification, recovery, and inspection veneers over already-
+planned lower-authority roadmap work. They do not claim to close preview
+workflow ownership, merge execution ownership, durable workflow continuation,
+or full certification breadth for later collaborative milestones.
 
 Future hostile QA may still tighten wording if later roadmap work uncovers a
-teaching or sequencing gap, but `9.3.8` no longer has an unfinished live phase
-frontier inside this spec. The next planning frontier is the runtime API
-stabilization gate and the later roadmap work that consumes this now-closed
-platform-entry seam.
+teaching or sequencing gap, but `9.3.8` now has one explicit late frontier:
+Query must become a stable platform entry for collaboration-aware branch /
+preview / lineage / policy / mutation-evidence posture before the runtime API
+stabilization gate and later roadmap work consume that entry seam.

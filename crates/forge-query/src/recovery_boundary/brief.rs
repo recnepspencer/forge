@@ -1,4 +1,9 @@
 use super::explanation::ForgeQueryRecoveryExplanation;
+use super::family::{
+    ForgeQueryRecoveryAspectPosture, ForgeQueryRecoveryBasisPosture,
+    ForgeQueryRecoveryConflictPosture, ForgeQueryRecoveryEvidenceStrength,
+    ForgeQueryRecoverySourceFamily,
+};
 use super::request::{ForgeQueryRecoveryRequest, ForgeQueryRecoveryRequestKind};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -116,8 +121,32 @@ impl ForgeQueryRecoveryBrief {
         self.recommended_action
     }
 
+    pub fn source_family(&self) -> ForgeQueryRecoverySourceFamily {
+        self.explanation.source_family()
+    }
+
+    pub fn evidence_strength(&self) -> ForgeQueryRecoveryEvidenceStrength {
+        self.explanation.evidence_strength()
+    }
+
+    pub fn basis_posture(&self) -> ForgeQueryRecoveryBasisPosture {
+        self.explanation.basis_posture()
+    }
+
+    pub fn aspect_posture(&self) -> ForgeQueryRecoveryAspectPosture {
+        self.explanation.aspect_posture()
+    }
+
+    pub fn conflict_posture(&self) -> ForgeQueryRecoveryConflictPosture {
+        self.explanation.conflict_posture()
+    }
+
     pub fn reason(&self) -> &str {
         &self.reason
+    }
+
+    pub fn explanation(&self) -> &ForgeQueryRecoveryExplanation {
+        &self.explanation
     }
 
     pub fn route_sensitive_explanation(&self) -> &ForgeQueryRecoveryExplanation {
@@ -130,6 +159,13 @@ impl ForgeQueryRecoveryBrief {
 
     pub(crate) fn with_stop_family(mut self, stop_family: ForgeQueryRecoveryStopFamily) -> Self {
         self.stop_family = stop_family;
+        self
+    }
+
+    pub(crate) fn with_explanation(mut self, explanation: ForgeQueryRecoveryExplanation) -> Self {
+        self.explanation = explanation.clone();
+        self.recovery_request =
+            ForgeQueryRecoveryRequest::new(request_kind(self.recommended_action), explanation);
         self
     }
 }

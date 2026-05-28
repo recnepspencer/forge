@@ -1,6 +1,7 @@
 mod artifacts;
 mod execution;
 mod outcome;
+mod readmission;
 mod request;
 mod transcript;
 
@@ -15,6 +16,11 @@ pub use outcome::{
     ordinary_outcome_from_continuation_checked, ordinary_outcome_from_execution_checked,
     ForgeQueryContinuationExecutionChecked, ForgeQueryContinuationExecutionOutcome,
     ForgeQueryPreparedContinuationChecked, ForgeQueryPreparedContinuationOutcome,
+};
+pub use readmission::{
+    ForgeQueryPreparedContinuationAuthorityWitness, ForgeQueryPreparedContinuationBasisKind,
+    ForgeQueryPreparedContinuationBasisWitness, ForgeQueryPreparedContinuationExecutionReadmission,
+    ForgeQueryPreparedContinuationFreshnessPosture,
 };
 pub use request::{
     ForgeQueryExecutePreparedContinuationRequest, ForgeQueryPreparedContinuationRequest,

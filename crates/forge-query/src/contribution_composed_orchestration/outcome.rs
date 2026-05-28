@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 use crate::application::{
     ForgeQueryDeclarationEntryOrchestrationStage, ForgeQueryDeclarationInput,
     ForgeQueryDomainEntryMarker,
@@ -8,10 +6,12 @@ use crate::binding_pipeline::ForgeQueryBindingLinkedArtifacts;
 use crate::ordinary_outcome::{
     ForgeQueryOrdinaryCheckedTopology, ForgeQueryOrdinaryContributionComposedCheckedTopologyKind,
     ForgeQueryOrdinaryNextStep, ForgeQueryOrdinaryOutcome, ForgeQueryOrdinaryPosture,
-    ForgeQueryOrdinaryPostureKind,
 };
 
 use super::artifact::ForgeQueryContributionComposedOrchestration;
+use super::aspect::ForgeQueryContributionComposedDeclarationAspectRecord;
+use super::composition::ForgeQueryContributionComposedStop;
+use super::intent_result::ForgeQueryContributionComposedIntentRequestDescriptor;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ForgeQueryContributionComposedOrchestrationCheckedKind {
@@ -30,35 +30,48 @@ pub struct ForgeQueryContributionComposedOrchestrationPosture<
     I: ForgeQueryDeclarationInput<D>,
 > {
     kind: ForgeQueryContributionComposedOrchestrationCheckedKind,
+    stop: ForgeQueryContributionComposedStop,
     stop_stage: ForgeQueryDeclarationEntryOrchestrationStage,
     reason: String,
     linked_artifacts: ForgeQueryBindingLinkedArtifacts,
     contribution_digest: Option<String>,
-    _marker: PhantomData<(D, I)>,
+    declaration_aspect_record: Option<ForgeQueryContributionComposedDeclarationAspectRecord>,
+    primary_intent_descriptor: Option<ForgeQueryContributionComposedIntentRequestDescriptor>,
+    _marker: std::marker::PhantomData<(D, I)>,
 }
 
 impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     ForgeQueryContributionComposedOrchestrationPosture<D, I>
 {
-    pub(crate) fn new(
+    pub fn new(
         kind: ForgeQueryContributionComposedOrchestrationCheckedKind,
+        stop: ForgeQueryContributionComposedStop,
         stop_stage: ForgeQueryDeclarationEntryOrchestrationStage,
         reason: impl Into<String>,
         linked_artifacts: ForgeQueryBindingLinkedArtifacts,
         contribution_digest: Option<String>,
+        declaration_aspect_record: Option<ForgeQueryContributionComposedDeclarationAspectRecord>,
+        primary_intent_descriptor: Option<ForgeQueryContributionComposedIntentRequestDescriptor>,
     ) -> Self {
         Self {
             kind,
+            stop,
             stop_stage,
             reason: reason.into(),
             linked_artifacts,
             contribution_digest,
-            _marker: PhantomData,
+            declaration_aspect_record,
+            primary_intent_descriptor,
+            _marker: std::marker::PhantomData,
         }
     }
 
     pub fn kind(&self) -> ForgeQueryContributionComposedOrchestrationCheckedKind {
         self.kind
+    }
+
+    pub fn stop(&self) -> ForgeQueryContributionComposedStop {
+        self.stop
     }
 
     pub fn stop_stage(&self) -> ForgeQueryDeclarationEntryOrchestrationStage {
@@ -75,6 +88,18 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn contribution_digest(&self) -> Option<&str> {
         self.contribution_digest.as_deref()
+    }
+
+    pub fn declaration_aspect_record(
+        &self,
+    ) -> Option<&ForgeQueryContributionComposedDeclarationAspectRecord> {
+        self.declaration_aspect_record.as_ref()
+    }
+
+    pub fn primary_intent_descriptor(
+        &self,
+    ) -> Option<&ForgeQueryContributionComposedIntentRequestDescriptor> {
+        self.primary_intent_descriptor.as_ref()
     }
 }
 
@@ -106,74 +131,114 @@ pub(crate) fn ordinary_outcome_from_contribution_composed_checked<
             ForgeQueryOrdinaryOutcome::Bound(value)
         }
         ForgeQueryContributionComposedOrchestrationOutcome::Deferred(value) => {
-            ForgeQueryOrdinaryOutcome::Deferred(to_posture(
+            ForgeQueryOrdinaryOutcome::Deferred(ordinary_posture(
                 value,
-                ForgeQueryOrdinaryPostureKind::Deferred,
-                ForgeQueryOrdinaryNextStep::RetryLater,
                 ForgeQueryOrdinaryContributionComposedCheckedTopologyKind::Deferred,
             ))
         }
         ForgeQueryContributionComposedOrchestrationOutcome::DeclarationDenied(value) => {
-            ForgeQueryOrdinaryOutcome::Denied(to_posture(
+            ForgeQueryOrdinaryOutcome::Denied(ordinary_posture(
                 value,
-                ForgeQueryOrdinaryPostureKind::Denied,
-                ForgeQueryOrdinaryNextStep::InspectCheckedLane,
                 ForgeQueryOrdinaryContributionComposedCheckedTopologyKind::DeclarationDenied,
             ))
         }
         ForgeQueryContributionComposedOrchestrationOutcome::ContributionDenied(value) => {
-            ForgeQueryOrdinaryOutcome::Denied(to_posture(
+            ForgeQueryOrdinaryOutcome::Denied(ordinary_posture(
                 value,
-                ForgeQueryOrdinaryPostureKind::Denied,
-                ForgeQueryOrdinaryNextStep::InspectCheckedLane,
                 ForgeQueryOrdinaryContributionComposedCheckedTopologyKind::ContributionDenied,
             ))
         }
         ForgeQueryContributionComposedOrchestrationOutcome::Stale(value) => {
-            ForgeQueryOrdinaryOutcome::Stale(to_posture(
+            ForgeQueryOrdinaryOutcome::Stale(ordinary_posture(
                 value,
-                ForgeQueryOrdinaryPostureKind::Stale,
-                ForgeQueryOrdinaryNextStep::RefreshBasis,
                 ForgeQueryOrdinaryContributionComposedCheckedTopologyKind::Stale,
             ))
         }
         ForgeQueryContributionComposedOrchestrationOutcome::RebindRequired(value) => {
-            ForgeQueryOrdinaryOutcome::RebindRequired(to_posture(
+            ForgeQueryOrdinaryOutcome::RebindRequired(ordinary_posture(
                 value,
-                ForgeQueryOrdinaryPostureKind::RebindRequired,
-                ForgeQueryOrdinaryNextStep::RebindContext,
                 ForgeQueryOrdinaryContributionComposedCheckedTopologyKind::RebindRequired,
             ))
         }
         ForgeQueryContributionComposedOrchestrationOutcome::Unsupported(value) => {
-            ForgeQueryOrdinaryOutcome::Unsupported(to_posture(
+            ForgeQueryOrdinaryOutcome::Unsupported(ordinary_posture(
                 value,
-                ForgeQueryOrdinaryPostureKind::Unsupported,
-                ForgeQueryOrdinaryNextStep::CheckSupport,
                 ForgeQueryOrdinaryContributionComposedCheckedTopologyKind::Unsupported,
             ))
         }
         ForgeQueryContributionComposedOrchestrationOutcome::Failed(value) => {
-            ForgeQueryOrdinaryOutcome::Failed(to_posture(
+            ForgeQueryOrdinaryOutcome::Failed(ordinary_posture(
                 value,
-                ForgeQueryOrdinaryPostureKind::Failed,
-                ForgeQueryOrdinaryNextStep::InspectProofLane,
                 ForgeQueryOrdinaryContributionComposedCheckedTopologyKind::Failed,
             ))
         }
     }
 }
 
-fn to_posture<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
-    value: ForgeQueryContributionComposedOrchestrationPosture<D, I>,
-    kind: ForgeQueryOrdinaryPostureKind,
-    next_step: ForgeQueryOrdinaryNextStep,
-    topology_kind: ForgeQueryOrdinaryContributionComposedCheckedTopologyKind,
+fn ordinary_posture<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>(
+    posture: ForgeQueryContributionComposedOrchestrationPosture<D, I>,
+    kind: ForgeQueryOrdinaryContributionComposedCheckedTopologyKind,
 ) -> ForgeQueryOrdinaryPosture {
-    let topology = ForgeQueryOrdinaryCheckedTopology::contribution_composed(
-        topology_kind,
-        value.linked_artifacts,
-        value.contribution_digest,
-    );
-    ForgeQueryOrdinaryPosture::new(value.reason, kind, next_step, topology)
+    ForgeQueryOrdinaryPosture::new(
+        posture.reason().to_string(),
+        ordinary_posture_kind(posture.kind()),
+        ordinary_next_step(posture.kind()),
+        ForgeQueryOrdinaryCheckedTopology::contribution_composed(
+            kind,
+            posture.linked_artifacts().clone(),
+            posture.contribution_digest().map(str::to_string),
+        ),
+    )
+}
+
+fn ordinary_posture_kind(
+    kind: ForgeQueryContributionComposedOrchestrationCheckedKind,
+) -> crate::ordinary_outcome::ForgeQueryOrdinaryPostureKind {
+    match kind {
+        ForgeQueryContributionComposedOrchestrationCheckedKind::Deferred => {
+            crate::ordinary_outcome::ForgeQueryOrdinaryPostureKind::Deferred
+        }
+        ForgeQueryContributionComposedOrchestrationCheckedKind::DeclarationDenied
+        | ForgeQueryContributionComposedOrchestrationCheckedKind::ContributionDenied => {
+            crate::ordinary_outcome::ForgeQueryOrdinaryPostureKind::Denied
+        }
+        ForgeQueryContributionComposedOrchestrationCheckedKind::Stale => {
+            crate::ordinary_outcome::ForgeQueryOrdinaryPostureKind::Stale
+        }
+        ForgeQueryContributionComposedOrchestrationCheckedKind::RebindRequired => {
+            crate::ordinary_outcome::ForgeQueryOrdinaryPostureKind::RebindRequired
+        }
+        ForgeQueryContributionComposedOrchestrationCheckedKind::Unsupported => {
+            crate::ordinary_outcome::ForgeQueryOrdinaryPostureKind::Unsupported
+        }
+        ForgeQueryContributionComposedOrchestrationCheckedKind::Failed => {
+            crate::ordinary_outcome::ForgeQueryOrdinaryPostureKind::Failed
+        }
+    }
+}
+
+fn ordinary_next_step(
+    kind: ForgeQueryContributionComposedOrchestrationCheckedKind,
+) -> ForgeQueryOrdinaryNextStep {
+    match kind {
+        ForgeQueryContributionComposedOrchestrationCheckedKind::Deferred => {
+            ForgeQueryOrdinaryNextStep::RetryLater
+        }
+        ForgeQueryContributionComposedOrchestrationCheckedKind::DeclarationDenied
+        | ForgeQueryContributionComposedOrchestrationCheckedKind::ContributionDenied => {
+            ForgeQueryOrdinaryNextStep::InspectCheckedLane
+        }
+        ForgeQueryContributionComposedOrchestrationCheckedKind::Stale => {
+            ForgeQueryOrdinaryNextStep::RefreshBasis
+        }
+        ForgeQueryContributionComposedOrchestrationCheckedKind::RebindRequired => {
+            ForgeQueryOrdinaryNextStep::RebindContext
+        }
+        ForgeQueryContributionComposedOrchestrationCheckedKind::Unsupported => {
+            ForgeQueryOrdinaryNextStep::CheckSupport
+        }
+        ForgeQueryContributionComposedOrchestrationCheckedKind::Failed => {
+            ForgeQueryOrdinaryNextStep::EscalateFailure
+        }
+    }
 }

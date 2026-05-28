@@ -93,14 +93,14 @@ final contract materialization.
 - duplicating the same aftermath progression outside Query
 - assuming support reports and eligibility are redundant
 
-## Aspect-aware retrofit note
+## Aspect Semantics
 
-Phase 24b requires aftermath materialization tiers to become semantic-slice
-honest. Lean, support-ready, and richer publication must explain what truth is
+Aftermath materialization tiers must be semantic-slice honest. Lean,
+support-ready, and richer publication must explain what truth is
 actually being widened, masked, or elided rather than only naming a profile
-family. That keeps cost posture honest and lets later declaration-entry phases
-consume aftermath publication as retained aspect-aware evidence instead of
-profile folklore.
+family. That keeps cost posture honest and lets other declaration-entry
+surfaces consume aftermath publication as retained aspect-aware evidence
+instead of profile folklore.
 
 The declaration-entry side now makes that law concrete:
 

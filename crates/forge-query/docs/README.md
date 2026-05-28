@@ -1,65 +1,43 @@
 # Forge Query Docs
 
-`forge-query` docs are organized by category instead of as one flat folder.
-Each category should contain one capability doc per public feature surface,
-with examples folded into the owning capability page instead of split into
-parallel example-only siblings.
+These docs are organized by working category, not by implementation order.
 
-## Categories
+Start with the section that matches the job you are doing. Use
+`domain-capabilities/` when a downstream domain wants Query to own the
+artifact, orchestration, grouping, and recovery model.
 
+## Start Here
+
+- [Domain Capabilities](./domain-capabilities/README.md)
+  Typed domain entry, declaration pipeline, helpers, grouped work, recovery,
+  continuation, and certification.
 - `foundations/`
-  - workspace and runtime-orientation docs
-  - support posture and state surfaces
-  - preview and branch session context
+  Runtime posture, support, state, workspace, and preview or branch context.
 - `authoring/`
-  - query authoring, composition, and reusable shape docs
+  Query authoring, composition, templates, and reusable shapes.
 - `runtime-surfaces/`
-  - retained live and derived runtime surfaces plus their consumption paths
+  Live views, computed reads, and retained read or materialize surfaces.
 - `execution/`
-  - execution-time runtime capabilities such as writes, effects, and intent
-    admission
+  Writes, effects, and intent admission.
 - `capabilities/`
-  - higher-level capability surfaces such as inspection, projection
-    consumption, existing-truth handling, historical basis work, lineage, and
-    subscription diagnostics
+  Inspection, projection consumption, existing truth, historical basis work,
+  lineage, and diagnostics.
 - `modeling/`
-  - aspect, authority-lane, and schema/modeling guidance
-- `domain-capabilities/`
-  - downstream domain entry and contribution surfaces for admission, support,
-    invariants, workflow, continuity, aftermath, explanation, and
-    certification
-  - typed domain front doors and later domain-shaped Query surfaces
+  Aspects, authority lanes, and schema or modeling guidance.
 
-## Current Layout
+## Best Starting Points
 
-- `foundations/workspace-overview.md`
-- `foundations/downstream-runtime-integration.md`
-- `foundations/support-matrix-and-admission.md`
-- `foundations/state.md`
-- `foundations/branches-and-previews.md`
-- `authoring/query-expressions-and-result-shapes.md`
-- `authoring/scopes-templates-saved-queries-and-view-shapes.md`
-- `authoring/read-composition.md`
-- `authoring/graph-composition-authoring.md`
-- `runtime-surfaces/live-views.md`
-- `runtime-surfaces/computed.md`
-- `runtime-surfaces/reads-observe-materialize.md`
-- `execution/writes-and-intents.md`
-- `execution/effects.md`
-- `execution/intent-admission.md`
-- `capabilities/existing-truth.md`
-- `capabilities/inspection.md`
-- `capabilities/projection-consumption.md`
-- `capabilities/historical-diff-and-basis.md`
-- `capabilities/lineage-and-correspondence.md`
-- `capabilities/subscription-selection-and-diagnostics.md`
-- `modeling/aspects-and-authority-lanes.md`
-- `modeling/schema-validation.md`
-- `domain-capabilities/README.md`
-- `domain-capabilities/platform-entry.md`
-- `domain-capabilities/configured-domain-handles.md`
-- `domain-capabilities/canonical-domain-declarations.md`
-- `domain-capabilities/declaration-family-taxonomy.md`
-- `domain-capabilities/declaration-family-capability-matrix.md`
+- if you are building domain workflows with Query:
+  [Domain Capabilities](./domain-capabilities/README.md)
+- if you need the shortest chooser path inside domain work:
+  [Choosing The Right Surface](./domain-capabilities/choosing/README.md)
+- if you want task-first guides for common multi-surface Query jobs:
+  [Workflow Guides](./domain-capabilities/workflow/README.md)
+- if you want short copy-oriented examples for common Query tasks:
+  [Recipes](./domain-capabilities/recipes/README.md)
+- if you need runtime posture and support context first:
+  [foundations/support-matrix-and-admission.md](./foundations/support-matrix-and-admission.md)
+- if you need aspect and authority semantics first:
+  [modeling/aspects-and-authority-lanes.md](./modeling/aspects-and-authority-lanes.md)
 
 

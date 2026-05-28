@@ -6,11 +6,11 @@ Declaration signal compatibility is the Query-owned boundary that turns one
 retained declaration envelope into one retained compatibility artifact for
 later Signal-backed derived execution.
 
-This phase freezes whether later derived execution is structurally admitted,
+This surface freezes whether later derived execution is structurally admitted,
 explicitly deferred, denied, or failed without pretending Query already
 executed through `forge-signal`.
 
-Phase 14 is envelope-backed only on the public lane. It does not start from
+The public lane is envelope-backed only. It does not start from
 raw declarations, canonical declarations, legality evidence, foundational
 evidence, route plans, or receipts alone.
 
@@ -26,7 +26,7 @@ evidence, route plans, or receipts alone.
 - get one signal-compatibility digest that converges when retained truth
   matches and diverges when world, basis family, authority posture, or denial
   topology changes
-- hand later phases one stable compatibility artifact so they do not reopen
+- hand later consumers one stable compatibility artifact so they do not reopen
   route, receipt, envelope, relational, or bridge meaning
 
 ## Stable Entry Points
@@ -67,7 +67,7 @@ Good to know:
 - common-lane helpers exist only for structurally signal-compatible
   declaration families
 - deferred and incompatible families remain support-visible and checked-visible
-- Phase 14 freezes compatibility only; it does not execute, invalidate,
+- this surface freezes compatibility only; it does not execute, invalidate,
   recompute, or schedule Signal work
 
 ## API Reference
@@ -154,7 +154,7 @@ invalidation surface. It is the proof-bearing Query artifact that says whether
 later Signal execution is structurally admitted and which basis-family
 requirements that later execution must respect.
 
-The important Phase 24b shift is that signal compatibility now classifies from
+The important shift is that signal compatibility now classifies from
 the envelope's published semantic slice plus the declaration family's signal
 contract. A structurally signal-capable family does not automatically satisfy
 the dependency aspects later derived execution would need.
@@ -262,19 +262,27 @@ What this example is showing:
 - the returned digest is separate from the envelope digest because basis
   posture and signal compatibility are distinct retained facts
 
-## Aspect-aware retrofit note
+## Aspect Semantics
 
-Phase 24b requires signal compatibility to speak in dependency aspects,
-produced aspects, and basis-sensitive aspect requirements rather than only in
-family-level compatibility posture. Query should reuse real signal aspect
-semantics here so later execution and binding surfaces consume a genuine
-semantic-slice compatibility artifact instead of a local approximation. In the
-shipped `14` retrofit, the compatibility artifact now freezes
-`aspect_contract()`, `aspect_coverage()`, `aspect_coverage_basis()`,
-`aspect_fit()`, `dependency_aspects()`, and `produced_aspects()` directly off
-the retained envelope-backed public slice. Support rows surface the same
-contract so you can distinguish "this family is signal-aware" from "this
-envelope is actually missing the dependency slice and will report an
+Signal compatibility speaks in dependency aspects, produced aspects, and
+basis-sensitive aspect requirements rather than only family-level compatibility
+posture.
+
+This surface preserves a real semantic-slice compatibility artifact so later
+execution and binding surfaces can reuse retained signal meaning instead of
+approximating it locally.
+
+The compatibility artifact and support rows expose:
+
+- `aspect_contract()`
+- `aspect_coverage()`
+- `aspect_coverage_basis()`
+- `aspect_fit()`
+- `dependency_aspects()`
+- `produced_aspects()`
+
+That lets you distinguish "this family is signal-aware" from "this retained
+envelope is missing the dependency slice and will report an
 `AuthorityAspectGap`."
 
 That contract now also stays honest in declaration-entry inspection: when a
@@ -285,7 +293,7 @@ of filling them from broad signal family posture.
 ## How It Relates To Other Features
 
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md) are
-  the required public input to Phase 14
+  the required public input to this surface
 - [Declaration Relational Truth Routing](./declaration-relational-truth-routing.md)
   still owns relational truth binding; signal compatibility does not replace
   it

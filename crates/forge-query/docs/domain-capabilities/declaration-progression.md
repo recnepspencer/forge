@@ -207,7 +207,7 @@ retained target seam is the one later continuation and grouped-authoring work
 must extend.
 
 That shared binding target now carries retained aspect contract and reviewed
-aspect coverage alongside progression identity so later phases can prefer
+aspect coverage alongside progression identity so later consumers can prefer
 semantic fit before broader artifact precedence.
 
 Reviewed coverage is carried forward exactly as legality proved it. If a slice
@@ -375,12 +375,12 @@ What this example is showing:
 - the public geometry story is current selection and current context, not raw
   identifier passing
 
-## Aspect-aware retrofit note
+## Aspect Semantics
 
-Phase 24b makes progression the first retained aspect-aware declaration-entry
+Progression is the first retained aspect-aware declaration-entry
 artifact later product binding can trust. `binding_target()` is no longer just
 about progression digest and family identity. It must carry aspect-qualified
-admissible truth so route, receipt, envelope, and orchestration phases can
+admissible truth so route, receipt, envelope, and orchestration surfaces can
 narrow semantically instead of reconstructing the same granularity locally.
 
 ## How It Relates To Other Features

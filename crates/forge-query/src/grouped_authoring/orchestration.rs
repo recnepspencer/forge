@@ -1,11 +1,15 @@
 use crate::application::{
-    ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryDeclarationEntryOrchestrationOutcome,
-    ForgeQueryDeclarationEntryOrchestrationProof, ForgeQueryDeclarationInput,
+    ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryDeclarationEnvelope,
+    ForgeQueryDeclarationEnvelopeOrchestrationTranscript, ForgeQueryDeclarationInput,
     ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
 };
 use crate::identity::hash_parts;
 
-use super::artifact::ForgeQueryGroupedDeclarationArtifact;
+use super::artifact::{
+    ForgeQueryGroupedDeclarationArtifact, ForgeQueryGroupedDeclarationAspectRecord,
+};
+use super::member_lowering::lower_grouped_members_on_handle;
+use super::posture::ForgeQueryGroupedMemberRole;
 
 mod ordinary;
 
@@ -16,18 +20,24 @@ pub struct ForgeQueryGroupedEnvelopeMember<
     I: ForgeQueryDeclarationInput<D>,
 > {
     member_index: usize,
-    envelope: crate::application::ForgeQueryDeclarationEnvelope<D, I>,
+    role: ForgeQueryGroupedMemberRole,
+    aspect_record: ForgeQueryGroupedDeclarationAspectRecord,
+    envelope: ForgeQueryDeclarationEnvelope<D, I>,
 }
 
 impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     ForgeQueryGroupedEnvelopeMember<D, I>
 {
-    fn new(
+    pub(crate) fn new(
         member_index: usize,
-        envelope: crate::application::ForgeQueryDeclarationEnvelope<D, I>,
+        role: ForgeQueryGroupedMemberRole,
+        aspect_record: ForgeQueryGroupedDeclarationAspectRecord,
+        envelope: ForgeQueryDeclarationEnvelope<D, I>,
     ) -> Self {
         Self {
             member_index,
+            role,
+            aspect_record,
             envelope,
         }
     }
@@ -36,7 +46,15 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         self.member_index
     }
 
-    pub fn envelope(&self) -> &crate::application::ForgeQueryDeclarationEnvelope<D, I> {
+    pub fn role(&self) -> ForgeQueryGroupedMemberRole {
+        self.role
+    }
+
+    pub fn aspect_record(&self) -> &ForgeQueryGroupedDeclarationAspectRecord {
+        &self.aspect_record
+    }
+
+    pub fn envelope(&self) -> &ForgeQueryDeclarationEnvelope<D, I> {
         &self.envelope
     }
 }
@@ -53,7 +71,7 @@ pub struct ForgeQueryGroupedOrchestration<
 impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     ForgeQueryGroupedOrchestration<D, I>
 {
-    fn new(
+    pub(crate) fn new(
         declaration: ForgeQueryGroupedDeclarationArtifact<D, I>,
         member_envelopes: Vec<ForgeQueryGroupedEnvelopeMember<D, I>>,
     ) -> Self {
@@ -64,8 +82,10 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
                 member_envelopes
                     .iter()
                     .map(|member| format!(
-                        "{}:{:?}",
+                        "{}:{:?}:{}:{:?}",
                         member.member_index(),
+                        member.role(),
+                        format!("{:?}", member.aspect_record().coverage_basis()),
                         member.envelope().envelope_digest()
                     ))
                     .collect::<Vec<_>>()
@@ -98,20 +118,26 @@ pub struct ForgeQueryGroupedMemberOrchestrationStop<
 > {
     declaration: ForgeQueryGroupedDeclarationArtifact<D, I>,
     member_index: usize,
-    member_outcome: ForgeQueryDeclarationEntryOrchestrationOutcome<D, I>,
+    member_role: ForgeQueryGroupedMemberRole,
+    member_aspect_record: ForgeQueryGroupedDeclarationAspectRecord,
+    member_outcome: crate::application::ForgeQueryDeclarationEntryOrchestrationOutcome<D, I>,
 }
 
 impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     ForgeQueryGroupedMemberOrchestrationStop<D, I>
 {
-    fn new(
+    pub(crate) fn new(
         declaration: ForgeQueryGroupedDeclarationArtifact<D, I>,
         member_index: usize,
-        member_outcome: ForgeQueryDeclarationEntryOrchestrationOutcome<D, I>,
+        member_role: ForgeQueryGroupedMemberRole,
+        member_aspect_record: ForgeQueryGroupedDeclarationAspectRecord,
+        member_outcome: crate::application::ForgeQueryDeclarationEntryOrchestrationOutcome<D, I>,
     ) -> Self {
         Self {
             declaration,
             member_index,
+            member_role,
+            member_aspect_record,
             member_outcome,
         }
     }
@@ -124,7 +150,17 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         self.member_index
     }
 
-    pub fn member_outcome(&self) -> &ForgeQueryDeclarationEntryOrchestrationOutcome<D, I> {
+    pub fn member_role(&self) -> ForgeQueryGroupedMemberRole {
+        self.member_role
+    }
+
+    pub fn member_aspect_record(&self) -> &ForgeQueryGroupedDeclarationAspectRecord {
+        &self.member_aspect_record
+    }
+
+    pub fn member_outcome(
+        &self,
+    ) -> &crate::application::ForgeQueryDeclarationEntryOrchestrationOutcome<D, I> {
         &self.member_outcome
     }
 }
@@ -140,7 +176,7 @@ pub struct ForgeQueryGroupedOrchestrationAlignmentStop<
 impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     ForgeQueryGroupedOrchestrationAlignmentStop<D, I>
 {
-    fn new(
+    pub(crate) fn new(
         declaration: ForgeQueryGroupedDeclarationArtifact<D, I>,
         reason: impl Into<String>,
     ) -> Self {
@@ -183,7 +219,7 @@ pub struct ForgeQueryGroupedOrchestrationProof<
     I: ForgeQueryDeclarationInput<D>,
 > {
     declaration: ForgeQueryGroupedDeclarationArtifact<D, I>,
-    member_transcripts: Vec<ForgeQueryDeclarationEntryOrchestrationProof<D, I>>,
+    member_transcripts: Vec<ForgeQueryDeclarationEnvelopeOrchestrationTranscript<D, I>>,
     outcome: ForgeQueryGroupedOrchestrationChecked<D, I>,
     orchestration_digest: String,
 }
@@ -191,9 +227,9 @@ pub struct ForgeQueryGroupedOrchestrationProof<
 impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     ForgeQueryGroupedOrchestrationProof<D, I>
 {
-    fn new(
+    pub(crate) fn new(
         declaration: ForgeQueryGroupedDeclarationArtifact<D, I>,
-        member_transcripts: Vec<ForgeQueryDeclarationEntryOrchestrationProof<D, I>>,
+        member_transcripts: Vec<ForgeQueryDeclarationEnvelopeOrchestrationTranscript<D, I>>,
         outcome: ForgeQueryGroupedOrchestrationChecked<D, I>,
     ) -> Self {
         let orchestration_digest = hash_parts(&[
@@ -219,7 +255,9 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         &self.declaration
     }
 
-    pub fn member_transcripts(&self) -> &[ForgeQueryDeclarationEntryOrchestrationProof<D, I>] {
+    pub fn member_transcripts(
+        &self,
+    ) -> &[ForgeQueryDeclarationEnvelopeOrchestrationTranscript<D, I>] {
         &self.member_transcripts
     }
 
@@ -246,49 +284,7 @@ pub(crate) fn forge_query_grouped_orchestration_checked_on_handle<
     handle: &ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
     declaration: ForgeQueryGroupedDeclarationArtifact<D, I>,
 ) -> ForgeQueryGroupedOrchestrationChecked<D, I> {
-    if declaration.operating_context_identity_digest() != handle.operating_context_identity_digest()
-    {
-        return ForgeQueryGroupedOrchestrationChecked::WrongWorld(
-            ForgeQueryGroupedOrchestrationAlignmentStop::new(
-                declaration,
-                "the grouped declaration was admitted in a different operating context",
-            ),
-        );
-    }
-    if declaration.handle_identity_digest() != handle.handle_identity_digest() {
-        return ForgeQueryGroupedOrchestrationChecked::WrongHandle(
-            ForgeQueryGroupedOrchestrationAlignmentStop::new(
-                declaration,
-                "the grouped declaration was admitted on a different configured domain handle",
-            ),
-        );
-    }
-    let mut member_envelopes = Vec::with_capacity(declaration.members().len());
-    for member in declaration.members() {
-        let checked = handle.orchestrate_declaration_entry_checked(member.input().clone());
-        match checked {
-            ForgeQueryDeclarationEntryOrchestrationOutcome::Enveloped(envelope) => {
-                member_envelopes.push(ForgeQueryGroupedEnvelopeMember::new(
-                    member.member_index(),
-                    envelope,
-                ));
-            }
-            terminal => {
-                let stop_declaration = declaration.clone();
-                return ForgeQueryGroupedOrchestrationChecked::MemberStopped(
-                    ForgeQueryGroupedMemberOrchestrationStop::new(
-                        stop_declaration,
-                        member.member_index(),
-                        terminal,
-                    ),
-                );
-            }
-        }
-    }
-    ForgeQueryGroupedOrchestrationChecked::Bound(ForgeQueryGroupedOrchestration::new(
-        declaration,
-        member_envelopes,
-    ))
+    lower_grouped_members_on_handle(handle, declaration, false).checked()
 }
 
 pub(crate) fn forge_query_grouped_orchestration_proof_on_handle<
@@ -299,24 +295,7 @@ pub(crate) fn forge_query_grouped_orchestration_proof_on_handle<
     handle: &ForgeQueryAdmittedConfiguredDomainHandle<D, C>,
     declaration: ForgeQueryGroupedDeclarationArtifact<D, I>,
 ) -> ForgeQueryGroupedOrchestrationTranscript<D, I> {
-    let mut member_transcripts = Vec::with_capacity(declaration.members().len());
-    for member in declaration.members() {
-        let transcript = handle.orchestrate_declaration_entry_proof(member.input().clone());
-        let failed = !matches!(
-            transcript.outcome(),
-            ForgeQueryDeclarationEntryOrchestrationOutcome::Enveloped(_)
-        );
-        member_transcripts.push(transcript);
-        if failed {
-            let checked =
-                forge_query_grouped_orchestration_checked_on_handle(handle, declaration.clone());
-            return ForgeQueryGroupedOrchestrationProof::new(
-                declaration,
-                member_transcripts,
-                checked,
-            );
-        }
-    }
-    let checked = forge_query_grouped_orchestration_checked_on_handle(handle, declaration.clone());
+    let (checked, member_transcripts) =
+        lower_grouped_members_on_handle(handle, declaration.clone(), true).into_parts();
     ForgeQueryGroupedOrchestrationProof::new(declaration, member_transcripts, checked)
 }

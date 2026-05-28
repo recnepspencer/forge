@@ -7,7 +7,8 @@ use crate::contribution_composed_orchestration::{
     ForgeQueryContributionComposedOrchestrationInput, ForgeQueryContributionIntent,
 };
 use crate::domain_capabilities::{
-    ForgeQuerySupportContributionAuthoring, ForgeQueryWorkflowContributionAuthoring,
+    ForgeQueryExplanationContributionAuthoring, ForgeQuerySupportContributionAuthoring,
+    ForgeQueryWorkflowContributionAuthoring,
 };
 
 use super::ForgeQueryGeometryMaterialAttachmentHelperFamily;
@@ -47,6 +48,13 @@ where
         contribution: ForgeQuerySupportContributionAuthoring,
     ) -> Self {
         self.with_contribution(ForgeQueryContributionIntent::support(contribution))
+    }
+
+    pub fn with_explanation_contribution(
+        self,
+        contribution: ForgeQueryExplanationContributionAuthoring,
+    ) -> Self {
+        self.with_contribution(ForgeQueryContributionIntent::explanation(contribution))
     }
 
     pub fn with_workflow_contribution(

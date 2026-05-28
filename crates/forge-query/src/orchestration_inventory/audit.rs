@@ -20,6 +20,7 @@ pub struct ForgeQueryOrchestrationInventoryAudit {
     missing_binding_projection_rows: Vec<String>,
     ordinary_projection_mismatches: Vec<String>,
     family_visibility_gaps: Vec<String>,
+    semantic_attachment_gaps: Vec<String>,
 }
 
 impl ForgeQueryOrchestrationInventoryAudit {
@@ -84,8 +85,6 @@ impl ForgeQueryOrchestrationInventoryAudit {
         uninventoried_public_verbs.sort();
         undocumented_exports.sort();
 
-        let family_visibility_gaps = family_visibility_gaps(inventory.rows());
-
         Self {
             inventory_digest: inventory.inventory_digest().to_string(),
             duplicate_public_names,
@@ -97,7 +96,8 @@ impl ForgeQueryOrchestrationInventoryAudit {
             missing_support_rows,
             missing_binding_projection_rows,
             ordinary_projection_mismatches,
-            family_visibility_gaps,
+            family_visibility_gaps: family_visibility_gaps(inventory.rows()),
+            semantic_attachment_gaps: semantic_attachment_gaps(inventory.rows()),
         }
     }
 
@@ -144,6 +144,10 @@ impl ForgeQueryOrchestrationInventoryAudit {
     pub fn family_visibility_gaps(&self) -> &[String] {
         &self.family_visibility_gaps
     }
+
+    pub fn semantic_attachment_gaps(&self) -> &[String] {
+        &self.semantic_attachment_gaps
+    }
 }
 
 fn binding_projection_missing(row: &ForgeQueryOrchestrationSurfaceRow) -> bool {
@@ -166,6 +170,9 @@ fn binding_projection_missing(row: &ForgeQueryOrchestrationSurfaceRow) -> bool {
             row.binding_projection()
                 != ForgeQueryOrchestrationBindingProjection::SharedGroupedBinding
         }
+        ForgeQueryOrchestrationSurfaceFamily::RecoveryBoundary => {
+            row.binding_projection() != ForgeQueryOrchestrationBindingProjection::None
+        }
         ForgeQueryOrchestrationSurfaceFamily::DeclarationEntry
         | ForgeQueryOrchestrationSurfaceFamily::RouteFromProgressed
         | ForgeQueryOrchestrationSurfaceFamily::ReceiptFromProgressed
@@ -173,6 +180,106 @@ fn binding_projection_missing(row: &ForgeQueryOrchestrationSurfaceRow) -> bool {
             row.binding_projection() != ForgeQueryOrchestrationBindingProjection::None
         }
     }
+}
+
+fn semantic_attachment_gaps(rows: &[ForgeQueryOrchestrationSurfaceRow]) -> Vec<String> {
+    let mut gaps = Vec::new();
+    for row in rows {
+        if aspect_posture_missing(row) {
+            gaps.push(format!("{}:missing aspect posture", row.public_name()));
+        }
+        if lower_authority_missing(row) {
+            gaps.push(format!(
+                "{}:missing lower authority attachment",
+                row.public_name()
+            ));
+        }
+        if strategy_attachment_missing(row) {
+            gaps.push(format!("{}:missing strategy attachment", row.public_name()));
+        }
+        if contribution_compatibility_missing(row) {
+            gaps.push(format!(
+                "{}:missing contribution compatibility",
+                row.public_name()
+            ));
+        }
+    }
+    gaps.extend(helper_semantic_drift(rows));
+    gaps
+}
+
+fn aspect_posture_missing(row: &ForgeQueryOrchestrationSurfaceRow) -> bool {
+    matches!(
+        row.family(),
+        ForgeQueryOrchestrationSurfaceFamily::DeclarationEntry
+            | ForgeQueryOrchestrationSurfaceFamily::RouteFromProgressed
+            | ForgeQueryOrchestrationSurfaceFamily::ReceiptFromProgressed
+            | ForgeQueryOrchestrationSurfaceFamily::EnvelopeFromProgressed
+            | ForgeQueryOrchestrationSurfaceFamily::ContinuationPrepareTarget
+            | ForgeQueryOrchestrationSurfaceFamily::ContinuationPrepareContext
+            | ForgeQueryOrchestrationSurfaceFamily::ContinuationExecute
+            | ForgeQueryOrchestrationSurfaceFamily::SignalCompatibilityOrchestration
+            | ForgeQueryOrchestrationSurfaceFamily::ContributionComposedOrchestration
+            | ForgeQueryOrchestrationSurfaceFamily::GroupedNeighborhoodOrchestration
+    ) && row.aspect_posture().as_str() == "none"
+}
+
+fn lower_authority_missing(row: &ForgeQueryOrchestrationSurfaceRow) -> bool {
+    let attachment = row.lower_authority_attachment();
+    !(attachment.includes_relational()
+        || attachment.includes_signal()
+        || attachment.includes_runtime_bridge()
+        || attachment.includes_foundational_profile())
+}
+
+fn strategy_attachment_missing(row: &ForgeQueryOrchestrationSurfaceRow) -> bool {
+    matches!(
+        row.family(),
+        ForgeQueryOrchestrationSurfaceFamily::DeclarationEntry
+            | ForgeQueryOrchestrationSurfaceFamily::SignalCompatibilityOrchestration
+            | ForgeQueryOrchestrationSurfaceFamily::ContributionComposedOrchestration
+    ) && row.strategy_attachment().as_str() == "none"
+}
+
+fn contribution_compatibility_missing(row: &ForgeQueryOrchestrationSurfaceRow) -> bool {
+    match row.family() {
+        ForgeQueryOrchestrationSurfaceFamily::ContributionComposedOrchestration => {
+            let compatibility = row.contribution_compatibility();
+            compatibility.kind().as_str() == "none" || compatibility.supported_families().is_empty()
+        }
+        ForgeQueryOrchestrationSurfaceFamily::GroupedNeighborhoodOrchestration => false,
+        ForgeQueryOrchestrationSurfaceFamily::RecoveryBoundary => false,
+        _ => false,
+    }
+}
+
+fn helper_semantic_drift(rows: &[ForgeQueryOrchestrationSurfaceRow]) -> Vec<String> {
+    let generics = rows
+        .iter()
+        .filter(|row| {
+            row.doc_reference().path()
+                != "crates/forge-query/docs/domain-capabilities/family-helpers.md"
+                && row.visibility() == ForgeQueryOrchestrationSurfaceVisibility::Ordinary
+        })
+        .map(|row| (row.family(), row))
+        .collect::<BTreeMap<_, _>>();
+
+    rows.iter()
+        .filter(|row| {
+            row.doc_reference().path()
+                == "crates/forge-query/docs/domain-capabilities/family-helpers.md"
+                && row.visibility() == ForgeQueryOrchestrationSurfaceVisibility::Ordinary
+        })
+        .filter_map(|row| {
+            let generic = generics.get(&row.family())?;
+            let drift = row.aspect_posture() != generic.aspect_posture()
+                || row.lower_authority_attachment() != generic.lower_authority_attachment()
+                || row.strategy_attachment() != generic.strategy_attachment()
+                || row.collaborative_extension_posture()
+                    != generic.collaborative_extension_posture();
+            drift.then(|| format!("{}:helper semantic drift", row.public_name()))
+        })
+        .collect()
 }
 
 fn doc_reference_exists(row: &ForgeQueryOrchestrationSurfaceRow) -> bool {
@@ -203,7 +310,7 @@ fn actual_orchestration_public_verbs() -> BTreeSet<String> {
     verbs
 }
 
-fn admitted_handle_sources() -> [&'static str; 7] {
+fn admitted_handle_sources() -> [&'static str; 8] {
     [
         include_str!(
             "../application/domain_handle/admitted_handle/declaration_entry/orchestration.rs"
@@ -216,6 +323,7 @@ fn admitted_handle_sources() -> [&'static str; 7] {
         include_str!(
             "../application/domain_handle/admitted_handle/contribution_composed_orchestration.rs"
         ),
+        include_str!("../application/domain_handle/admitted_handle/recovery.rs"),
         include_str!("../family_helpers/geometry/mod.rs"),
         include_str!("../family_helpers/geometry/continuation.rs"),
     ]
@@ -241,6 +349,7 @@ fn extract_pub_fn_names(source: &str) -> BTreeSet<String> {
                 || name == "execute_prepared_continuation_outcome"
                 || name == "execute_prepared_continuation_checked"
                 || name == "execute_prepared_continuation_proof"
+                || name.starts_with("recover_from_")
         })
         .collect()
 }
@@ -259,6 +368,9 @@ fn family_visibility_gaps(rows: &[ForgeQueryOrchestrationSurfaceRow]) -> Vec<Str
 
     let mut gaps = Vec::new();
     for ((canonical_base_name, family), visibilities) in groups {
+        if family == ForgeQueryOrchestrationSurfaceFamily::RecoveryBoundary {
+            continue;
+        }
         if !visibilities.contains(ForgeQueryOrchestrationSurfaceVisibility::Ordinary.as_str()) {
             gaps.push(format!("{family:?}:{canonical_base_name}:missing ordinary"));
         }

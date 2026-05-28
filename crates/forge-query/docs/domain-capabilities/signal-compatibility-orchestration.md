@@ -3,7 +3,7 @@
 ## What This Feature Is
 
 Signal compatibility orchestration is the Query-owned surface that composes two
-already-shipped boundaries into one signal-facing next-step result:
+existing retained surfaces into one signal-facing next-step result:
 
 - retained declaration signal compatibility
 - optional prepared continuation
@@ -25,8 +25,8 @@ stops honestly at retained compatibility.
 - keep `Compatible`, `Prepared`, and later explicit execution as separate states
 - preserve wrong-world, wrong-handle, deferred, basis-mismatch, and denied
   posture as typed outcomes
-- start either from retained signal-compatibility input or from admitted
-  progression truth
+- start from retained signal-compatibility input after declaration entry has
+  already produced envelope-backed truth
 - keep the concise `..._outcome(...)` lane on the shared ordinary outcome
   vocabulary instead of learning a signal-only convenience error family
 
@@ -35,7 +35,6 @@ stops honestly at retained compatibility.
 Core orchestration types:
 
 - `ForgeQuerySignalCompatibilityOrchestrationInput`
-- `ForgeQuerySignalCompatibilityOrchestrationSubject`
 - `ForgeQuerySignalCompatibilityOrchestration`
 - `ForgeQuerySignalCompatibilityOrchestrationClass`
 - `ForgeQuerySignalCompatibilityOrchestrationOutcome`
@@ -52,10 +51,9 @@ Admitted-handle entry points:
 Good to know:
 
 - this is a composition boundary, not a second signal-compatibility engine
-- it reuses retained Phase 14 signal truth when it prepares continuation
+- it reuses retained declaration signal-compatibility truth when it prepares
+  continuation
 - it can stop at retained compatibility without preparing continuation
-- it can start from admitted progression truth when you do not already hold a
-  signal-compatibility input
 
 ## Core Mental Model
 
@@ -86,9 +84,7 @@ pipeline.
 The orchestration path is:
 
 1. accept `ForgeQuerySignalCompatibilityOrchestrationInput`
-2. resolve the subject:
-   - retained signal-compatibility input
-   - or admitted progression truth plus optional route intent
+2. start from retained declaration signal-compatibility input
 3. produce one retained signal-compatibility checked result
 4. if no bridge request is present:
    - stop at retained compatibility
@@ -101,17 +97,20 @@ The orchestration path is:
    - or typed non-success posture
 
 The important cost boundary is that the bridge-request path does not rediscover
-signal compatibility from scratch after it already has retained Phase 14 truth.
+signal compatibility from scratch after it already has retained compatibility
+truth.
 
 ## Small Example
 
 ```rust
-let progressed = handle.declare_review_and_progress(
+let envelope = handle.orchestrate_declaration_entry(
     geometry_session.prepare_preview_for_active_face_selection()?,
 )?;
 
 let outcome = handle.orchestrate_signal_compatibility(
-    ForgeQuerySignalCompatibilityOrchestrationInput::from_progressed(progressed),
+    ForgeQuerySignalCompatibilityOrchestrationInput::new(
+        ForgeQueryDeclarationSignalCompatibilityInput::enveloped(envelope),
+    ),
 );
 
 match outcome {
@@ -127,8 +126,9 @@ match outcome {
 }
 ```
 
-Use this when you want the signal-facing classification from progression truth
-without manually lowering through envelope and compatibility yourself.
+Use this when declaration entry already gave you envelope-backed truth and you
+want the signal-facing classification without manually stitching together the
+compatibility lane and the optional continuation lane yourself.
 
 ## Real Example
 
@@ -171,6 +171,10 @@ match outcome {
 What this example is showing:
 
 - the public input starts from retained declaration truth
+- declaration entry gets you to envelope truth
+- declaration signal compatibility consumes envelope-backed truth
+- this feature composes retained signal truth into either `Compatible` or
+  `Prepared`
 - the optional bridge request asks Query to continue one step farther
 - the result still stays explicit about whether it stopped at compatibility or
   advanced into preparation
@@ -188,9 +192,12 @@ What this example is showing:
 - [Recovery Boundary](./recovery-boundary.md) is the next-step surface when
   this lane stops at basis mismatch, wrong world, wrong handle, or other typed
   non-success posture.
+- [Recovery Requests And Next-Step Actions](./recovery/recovery-requests-and-next-step-actions.md)
+  is the action-oriented follow-up guide for those stops.
 - [Family Helpers](./family-helpers.md) expose geometry-specific preview,
   runtime-route, and truth-view helper verbs that lower onto this same
-  signal-facing orchestration surface after declaration progression succeeds.
+  signal-facing orchestration surface after declaration progression succeeds
+  and checked envelope truth has been re-established.
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
   remains the generic declaration-entry front door through the envelope
   ceiling.
@@ -242,6 +249,8 @@ Use the recovery lane when the app now needs one typed repair answer:
 - treating `Prepared` as if continuation was already executed
 - recomputing signal compatibility manually after Query already returned
   retained compatibility truth
+- lowering helper progression by hand inside app code instead of reusing the
+  checked-envelope seam before entering this feature
 - flattening `BasisMismatch`, `WrongWorld`, and `WrongHandle` into generic
   "signal not ready"
 - using this feature when you actually need explicit continuation execution
@@ -250,9 +259,9 @@ Use the recovery lane when the app now needs one typed repair answer:
 
 - this feature does not execute Signal work
 - this feature does not execute continuation work
-- the first shipped slice supports signal-facing orchestration from retained
-  signal compatibility or admitted progression truth
-- grouped or neighborhood signal orchestration is not part of this slice
+- this surface currently supports signal-facing orchestration from retained
+  signal compatibility input only
+- grouped or neighborhood signal orchestration is not part of this surface
 - this feature reuses bridge requests only for continuation preparation, not
   for later execution
 
@@ -262,6 +271,7 @@ Use the recovery lane when the app now needs one typed repair answer:
 - [Continuation Pipeline](./continuation-pipeline.md)
 - [Ordinary Outcomes](./ordinary-outcomes.md)
 - [Recovery Boundary](./recovery-boundary.md)
+- [Aspect-Native Recovery](./recovery/aspect-native-recovery.md)
 - [Family Helpers](./family-helpers.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Configured Domain Handles](./configured-domain-handles.md)

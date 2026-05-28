@@ -95,6 +95,13 @@ fn coverage_for_surface(
             golden("contribution_composed_surface_readout"),
             ForgeQueryPublicJourneyKind::ContributionComposed,
         ),
+        ForgeQueryOrchestrationSurfaceFamily::RecoveryBoundary => (
+            inventory_doc_path,
+            section_key,
+            "Recovery Boundary",
+            golden("recovery_boundary_surface_readout"),
+            ForgeQueryPublicJourneyKind::Recovery,
+        ),
         ForgeQueryOrchestrationSurfaceFamily::GroupedNeighborhoodOrchestration => (
             inventory_doc_path,
             section_key,

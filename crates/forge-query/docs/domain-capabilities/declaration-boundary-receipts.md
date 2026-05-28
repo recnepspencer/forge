@@ -12,7 +12,7 @@ They are built from retained declaration truth, not from fresh discovery:
 - retained route truth from route planning
 - foundational boundary-receipt materialization primitives
 
-They are not the same thing as Phase 8 descriptive receipts. Foundational
+They are not the same thing as foundational descriptive receipts. Foundational
 evidence receipts describe retained declaration truth. Declaration boundary
 receipts record the Query crossing posture that followed from that truth.
 
@@ -161,7 +161,7 @@ construction and later continuation surfaces should bind from this receipt
 identity directly instead of rebuilding crossing posture from lower-level
 artifacts.
 
-Phase 24b makes the retained receipt explicitly route-scoped:
+The retained receipt is explicitly route-scoped:
 
 - `aspect_contract()` records which semantic slices the crossing claim is
   actually about
@@ -355,14 +355,14 @@ These surfaces help answer:
 - which retained receipt identity later envelope or continuation consumers
   should bind to directly
 
-## Aspect-aware retrofit note
+## Aspect Semantics
 
-Phase 24b requires receipts to state which semantic slices the crossing claim
+Receipts state which semantic slices the crossing claim
 actually covers. A receipt is no longer allowed to overclaim broad crossing
 truth when only some route-backed slices truly crossed. Later binding and
 envelope publication must be able to distinguish covered, masked, and merely
-adjacent semantics from the retained receipt itself. The shipped receipt
-surface now exposes `aspect_contract()`, `aspect_coverage()`, and
+adjacent semantics from the retained receipt itself. The receipt surface
+exposes `aspect_contract()`, `aspect_coverage()`, and
 `aspect_publication()` so later layers can consume that retained crossing truth
 directly.
 

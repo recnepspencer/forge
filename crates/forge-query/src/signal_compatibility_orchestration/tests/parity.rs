@@ -3,7 +3,7 @@ use crate::application::ForgeQueryDeclarationSignalCompatibilityInput;
 
 use super::support::{
     admitted_handle, bridge_request, continuation_outcome_token, envelope, orchestration_input,
-    orchestration_outcome_token, progressed_input, OutcomeDigestToken, SignalFamily,
+    orchestration_outcome_token, OutcomeDigestToken, SignalFamily,
 };
 use crate::signal_compatibility_orchestration::ForgeQuerySignalCompatibilityOrchestrationClass;
 
@@ -31,22 +31,6 @@ fn compatible_only_orchestration_matches_retained_signal_truth() {
             assert_eq!(value.envelope_digest(), expected.envelope_digest());
         }
         _ => panic!("expected compatible orchestration outcome"),
-    }
-}
-
-#[test]
-fn progressed_input_can_lower_through_signal_orchestration() {
-    let handle = admitted_handle("main");
-    let outcome = handle.orchestrate_signal_compatibility(progressed_input(&handle, "face-a"));
-
-    match outcome {
-        crate::signal_compatibility_orchestration::ForgeQuerySignalCompatibilityOrchestrationOutcome::Bound(value) => {
-            assert_eq!(
-                value.class(),
-                ForgeQuerySignalCompatibilityOrchestrationClass::Compatible
-            );
-        }
-        _ => panic!("expected progressed input to lower into signal compatibility"),
     }
 }
 

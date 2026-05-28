@@ -1,7 +1,9 @@
 use std::collections::BTreeSet;
 
+use crate::application::ForgeQueryDeclarationEntryContributionCategoryFamily;
 use crate::orchestration_inventory::{
-    ForgeQueryOrchestrationBindingProjection, ForgeQueryOrchestrationSurfaceFamily,
+    ForgeQueryOrchestrationAspectPosture, ForgeQueryOrchestrationBindingProjection,
+    ForgeQueryOrchestrationContributionCompatibility, ForgeQueryOrchestrationSurfaceFamily,
     ForgeQueryOrchestrationSurfaceInventory, ForgeQueryOrchestrationSurfaceVisibility,
 };
 
@@ -101,4 +103,68 @@ fn shared_binding_projection_stays_explicit_for_composed_families() {
             ForgeQueryOrchestrationBindingProjection::SharedContributionBinding
         );
     }
+}
+
+#[test]
+fn semantic_attachments_stay_visible_for_signal_and_contribution_rows() {
+    let inventory = ForgeQueryOrchestrationSurfaceInventory::current();
+
+    let signal = inventory
+        .row_for_public_name("orchestrate_signal_compatibility")
+        .expect("signal row should exist");
+    assert_eq!(
+        signal.aspect_posture(),
+        ForgeQueryOrchestrationAspectPosture::RetainedContractAndCoverage
+    );
+    assert!(signal.strategy_attachment().is_merge_strategy_aware());
+
+    let contribution = inventory
+        .row_for_public_name("orchestrate_declaration_with_contributions")
+        .expect("contribution row should exist");
+    assert_eq!(
+        contribution.aspect_posture(),
+        ForgeQueryOrchestrationAspectPosture::CategoryScopedAspectComposition
+    );
+    assert!(contribution
+        .strategy_attachment()
+        .foundational_materialization_profile_relevant());
+    assert!(contribution
+        .contribution_compatibility()
+        .supports(ForgeQueryDeclarationEntryContributionCategoryFamily::WorkflowPreview));
+}
+
+#[test]
+fn grouped_rows_advertise_grouped_neighborhood_contribution_posture_honestly() {
+    let inventory = ForgeQueryOrchestrationSurfaceInventory::current();
+    let grouped = inventory
+        .row_for_public_name("orchestrate_local_neighborhood_for_active_face_selection")
+        .expect("grouped helper row should exist");
+
+    assert_eq!(
+        grouped.family(),
+        ForgeQueryOrchestrationSurfaceFamily::GroupedNeighborhoodOrchestration
+    );
+    assert_eq!(
+        grouped.contribution_compatibility().kind().as_str(),
+        "grouped_neighborhood"
+    );
+    assert!(!grouped
+        .contribution_compatibility()
+        .supports(ForgeQueryDeclarationEntryContributionCategoryFamily::WorkflowPreview));
+}
+
+#[test]
+fn declaration_scoped_contribution_compatibility_canonicalizes_family_order() {
+    let left = ForgeQueryOrchestrationContributionCompatibility::declaration_scoped(vec![
+        ForgeQueryDeclarationEntryContributionCategoryFamily::WorkflowPreview,
+        ForgeQueryDeclarationEntryContributionCategoryFamily::Admission,
+        ForgeQueryDeclarationEntryContributionCategoryFamily::WorkflowPreview,
+    ]);
+    let right = ForgeQueryOrchestrationContributionCompatibility::declaration_scoped(vec![
+        ForgeQueryDeclarationEntryContributionCategoryFamily::Admission,
+        ForgeQueryDeclarationEntryContributionCategoryFamily::WorkflowPreview,
+    ]);
+
+    assert_eq!(left.supported_families(), right.supported_families());
+    assert_eq!(left.as_digest_fragment(), right.as_digest_fragment());
 }

@@ -44,4 +44,5 @@ fn current_audit_is_clean() {
     assert!(audit.missing_binding_projection_rows().is_empty());
     assert!(audit.ordinary_projection_mismatches().is_empty());
     assert!(audit.family_visibility_gaps().is_empty());
+    assert!(audit.semantic_attachment_gaps().is_empty());
 }

@@ -157,7 +157,8 @@ fn verbs_from_orchestration_inventory() -> Vec<ForgeQueryDeclarationEntryOrchest
                 | ForgeQueryOrchestrationSurfaceFamily::ContinuationExecute
                 | ForgeQueryOrchestrationSurfaceFamily::SignalCompatibilityOrchestration
                 | ForgeQueryOrchestrationSurfaceFamily::ContributionComposedOrchestration
-                | ForgeQueryOrchestrationSurfaceFamily::GroupedNeighborhoodOrchestration => {
+                | ForgeQueryOrchestrationSurfaceFamily::GroupedNeighborhoodOrchestration
+                | ForgeQueryOrchestrationSurfaceFamily::RecoveryBoundary => {
                     return None;
                 }
             };

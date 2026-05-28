@@ -230,8 +230,10 @@ pub use domain_handle::{
     ForgeQueryAdmittedConfiguredDomainHandle, ForgeQueryConfiguredDomainHandleAdmissionError,
     ForgeQueryConfiguredDomainHandleChecked, ForgeQueryConfiguredDomainHandleDeferred,
     ForgeQueryConfiguredDomainHandleDraft, ForgeQueryConfiguredDomainHandleInvalidContext,
-    ForgeQueryConfiguredDomainHandleUnsupported, ForgeQueryDeclarationEntryProgressionError,
-    ForgeQueryDomainOperatingContext, ForgeQueryValidatedConfiguredDomainHandle,
+    ForgeQueryConfiguredDomainHandleUnsupported,
+    ForgeQueryContinuationExecutionReadmissionObservation,
+    ForgeQueryDeclarationEntryProgressionError, ForgeQueryDomainOperatingContext,
+    ForgeQueryValidatedConfiguredDomainHandle,
 };
 pub use support::{
     ForgeQueryCapabilityDescriptor, ForgeQueryCapabilityFamily, ForgeQueryCapabilityRegistry,

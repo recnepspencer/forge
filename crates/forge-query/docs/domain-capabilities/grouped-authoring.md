@@ -2,299 +2,252 @@
 
 ## What This Feature Is
 
-Grouped authoring is the Query-owned surface for turning a meaningful
-multi-member declaration into one typed grouped artifact and one typed grouped
-orchestration lane.
+Grouped authoring is the Query surface for neighborhood-shaped work where the
+group itself is part of the meaning.
 
-Use it when the operation you mean is not "run these declarations one by one,"
-but "treat these declarations as one neighborhood-shaped unit with shared
-intent and shared group posture."
+Use it when your app means:
 
-The current shipped slice is intentionally narrow:
+- "these members belong to one local neighborhood"
+- "this neighborhood has one shared rationale or posture"
+- "I need group-level and member-level truth retained together"
 
-- one grouped declaration input type
-- one grouped declaration artifact
-- one grouped orchestration lane
-- one grouped recovery lane
-- one geometry helper front door for local-neighborhood authoring from active
-  face selection
+Do not use it as a prettier `Vec<I>` loop. If the members stand alone, keep
+them on the single-declaration path.
 
-## Why You Use It
+## What You Can Do
 
-- keep grouped intent explicit instead of passing a raw `Vec<I>`
-- preserve both group-level and member-level truth
-- bind grouped work to the admitted handle and operating world that admitted it
-- keep grouped wrong-world and wrong-handle posture typed instead of flattening
-  it into generic failure
-- let grouped helper calls lower onto the same canonical grouped boundary every
-  time
+Grouped authoring now gives you one grouped declaration plus several grouped
+projections over the existing declaration-entry product stack:
+
+- grouped declaration admission
+- grouped orchestration over member envelopes
+- grouped route products
+- grouped receipt products
+- grouped envelope products
+- grouped support/readiness reporting
+- grouped contribution composition with shared and member-local contributions
+
+Every grouped surface reuses retained member progression truth. Query does not
+invent a second grouped authority system.
 
 ## Stable Entry Points
 
-Core grouped types:
+Most callers start here:
 
-- `ForgeQueryGroupedDeclarationInput<D, I>`
-- `ForgeQueryGroupedDeclarationArtifact<D, I>`
-- `ForgeQueryGroupedDeclarationMember<D, I>`
-- `ForgeQueryGroupedDeclarationChecked<D, I>`
-- `ForgeQueryGroupedDeclarationStop`
-- `ForgeQueryGroupedDeclarationStopKind`
-- `ForgeQueryGroupedSemantics`
-- `ForgeQueryGroupedOrdering`
-- `ForgeQueryGroupedOrchestration<D, I>`
-- `ForgeQueryGroupedEnvelopeMember<D, I>`
-- `ForgeQueryGroupedMemberOrchestrationStop<D, I>`
-- `ForgeQueryGroupedOrchestrationAlignmentStop<D, I>`
-- `ForgeQueryGroupedOrchestrationStop<D, I>`
-- `ForgeQueryGroupedOrchestrationChecked<D, I>`
-- `ForgeQueryGroupedOrchestrationProof<D, I>`
-- `ForgeQueryGroupedOrchestrationTranscript<D, I>`
+- `ForgeQueryGroupedDeclarationInput::local_neighborhood(...)`
+- `with_member(...)`
+- `with_atomicity(...)`
+- `with_grouping_intent(...)`
+- `with_continuity_assumption(...)`
+- `with_shared_posture_claim(...)`
+- `with_shared_rationale(...)`
+- `declare_grouped(...)`
+- `orchestrate_grouped_outcome(...)`
+- `grouped_route_checked(...)`
+- `grouped_receipt_checked(...)`
+- `grouped_envelope_checked(...)`
+- `grouped_support_report(...)`
+- `grouped_contributions_checked(...)`
 
-Geometry helper entry points:
+If you prefer the geometry front door, the parallel helper entry points live on
+`geometry_helpers()`.
 
-- `local_neighborhood_for_active_face_selection(...)`
-- `declare_local_neighborhood_for_active_face_selection(...)`
-- `declare_local_neighborhood_for_active_face_selection_checked(...)`
-- `orchestrate_local_neighborhood_for_active_face_selection(...)`
-- `orchestrate_local_neighborhood_for_active_face_selection_outcome(...)`
-- `orchestrate_local_neighborhood_for_active_face_selection_checked(...)`
-- `orchestrate_local_neighborhood_for_active_face_selection_proof(...)`
+## Grouped Meaning
 
-Grouped recovery entry points:
+One grouped declaration now retains more than member order.
+
+It records:
+
+- grouped semantics
+- ordering
+- atomicity
+- grouping intent
+- continuity assumption
+- shared posture claims
+- shared rationale
+- grouped aspect contract and grouped aspect participation summary
+- member roles and member-local aspect coverage
+
+These values are part of the grouped digest because they change the meaning of
+the neighborhood.
+
+That means Query can distinguish:
+
+- one exploratory neighborhood from one authoritative neighborhood
+- one atomic grouped claim from one member-independent grouped claim
+- one neighborhood that assumes continuity from one that does not
+
+## Typical Workflow
+
+```rust
+let declaration = handle
+    .declare_grouped(
+        handle
+            .geometry_helpers()
+            .local_neighborhood_for_active_face_selection(seed_face)
+            .with_member(neighbor_a)
+            .with_member(neighbor_b)
+            .with_atomicity(ForgeQueryGroupedAtomicity::Atomic)
+            .with_grouping_intent(ForgeQueryGroupedIntent::Authoritative)
+            .with_continuity_assumption(
+                ForgeQueryGroupedContinuityAssumption::PreserveNeighborhood,
+            )
+            .with_shared_posture_claim(
+                ForgeQueryGroupedSharedPostureClaim::SharedSelectionFocus,
+            )
+            .with_shared_rationale("preserve a stable local cut"),
+    )?;
+
+let grouped = handle.orchestrate_grouped_outcome(declaration);
+```
+
+Once you have the grouped declaration, pick the next grouped product that
+matches the question:
+
+- use grouped orchestration when you want the compact envelope-facing grouped
+  execution lane
+- use grouped routes when you want route posture per member
+- use grouped receipts when you want retained crossing truth per member
+- use grouped envelopes when you want the public crossing artifact per member
+- use grouped support when you want to know whether the grouped claim itself is
+  supportable
+
+## Grouped Contributions
+
+Grouped contribution composition is for neighborhoods that need both shared
+group posture and member-local additions.
+
+You can attach:
+
+- shared support contributions
+- shared explanation contributions
+- shared workflow contributions
+- member-local contributions by member index
+
+Example:
+
+```rust
+let input = handle
+    .geometry_helpers()
+    .local_neighborhood_for_active_face_selection(seed_face)
+    .with_member(neighbor_a)
+    .with_shared_support_contribution(
+        ForgeQuerySupportContributionAuthoring::declaration_support(
+            "geometry.trace",
+            "track the neighborhood through grouped authoring",
+        ),
+    )
+    .with_member_contribution(
+        1,
+        ForgeQueryContributionIntent::explanation(
+            ForgeQueryExplanationContributionAuthoring::explains_fallback(
+                "geometry.member.fallback",
+                "neighbor-a needs a local fallback explanation",
+            ),
+        ),
+    );
+
+let grouped = handle.grouped_contributions_checked(input)?;
+```
+
+This still lowers onto the canonical contribution-composed seam. The grouped
+surface just preserves which contributions were shared and which belonged to a
+specific member.
+
+## Support And Readiness
+
+Use `grouped_support_report(...)` when your app needs to know whether the
+grouped claim itself is honest before or beside execution.
+
+The report answers whether Query currently supports:
+
+- grouped declaration authoring
+- grouped routes
+- grouped receipts
+- grouped envelopes
+- grouped contribution composition
+- grouped atomicity and grouped intent posture
+- continuity assumptions
+- shared posture claims
+
+If a shared posture claim is too strong for the current retained grouped truth,
+the report keeps that explicit through `unsupported_claims()`.
+
+## Recovery
+
+The compact ordinary grouped lane is still useful, but use the richer grouped
+checked or proof recovery entry points when you care about neighborhood-local
+repair:
 
 - `recover_from_grouped_orchestration_checked(...)`
 - `recover_from_grouped_orchestration_proof(...)`
 
-Grouped input builders:
+Those preserve:
 
-- `ForgeQueryGroupedDeclarationInput::local_neighborhood(...)`
-- `with_member(...)`
-- `with_members(...)`
-- `with_shared_rationale(...)`
-- `with_ordering(...)`
+- whether the stop was group-level alignment or member-level execution
+- stopped member index
+- stopped member role
+- stopped member aspect record
 
-## Core Mental Model
+That is the lane you want when you need to tell:
 
-Think of grouped authoring as "one typed group first, then one grouped run."
+- stale basis from wrong world
+- one failed member from one broken grouped claim
+- one refresh/rebind action from one manual inspection case
 
-The important boundary is:
-
-- single-declaration helpers still express one declaration
-- grouped authoring expresses one retained group with member declarations inside
-
-That means grouped authoring is not a loop helper.
-
-You first build one `ForgeQueryGroupedDeclarationInput`. Query then admits each
-member through the normal declaration path and freezes the successful result as
-one `ForgeQueryGroupedDeclarationArtifact`.
-
-That grouped artifact retains:
-
-- the handle identity that admitted the group
-- the operating-context identity that admitted the group
-- the shared grouped posture
-- the grouped semantics and ordering
-- the optional shared rationale
-- the retained member declarations
-
-Grouped orchestration then lowers those retained member declarations through
-the existing declaration-entry envelope lane while keeping grouped alignment
-truth visible.
-
-If the group was admitted on the wrong world or wrong handle, the grouped lane
-stops before member lowering. If a member stops later, the grouped lane keeps
-that stop positioned on the member rather than flattening it into vague partial
-success.
-
-## How It Executes
-
-The current local-neighborhood lifecycle is:
-
-1. start from an admitted configured handle
-2. choose the geometry helper facade with `geometry_helpers()`
-3. build one grouped input with
-   `local_neighborhood_for_active_face_selection(...)`
-4. optionally add more members, a shared rationale, or explicit ordering
-5. declare the grouped artifact
-6. orchestrate the grouped artifact through the grouped orchestration lane
-7. inspect:
-   - grouped alignment posture
-   - grouped member envelopes
-   - grouped ordinary or recovery posture
-
-Grouped declaration admission can stop before orchestration with one
-`ForgeQueryGroupedDeclarationStopKind`:
-
-- `Deferred`
-- `Unsupported`
-- `InvalidContext`
-- `Canonicalization`
-
-Grouped orchestration can then:
-
-- bind successfully and return grouped member envelopes
-- stop at `WrongWorld`
-- stop at `WrongHandle`
-- stop at one member-level declaration-entry orchestration outcome
-
-## Small Example
-
-```rust
-let declaration = handle
-    .geometry_helpers()
-    .declare_local_neighborhood_for_active_face_selection(
-        handle
-            .geometry_helpers()
-            .local_neighborhood_for_active_face_selection(
-                geometry_session.select_active_face("face-a")?,
-            )
-            .with_member(geometry_session.select_active_face("face-b")?)
-            .with_shared_rationale("split the local neighborhood"),
-    )?;
-
-let outcome = handle
-    .geometry_helpers()
-    .orchestrate_local_neighborhood_for_active_face_selection_outcome(declaration);
-
-match outcome {
-    ForgeQueryOrdinaryOutcome::Bound(grouped) => {
-        let _ = grouped.group_digest();
-        let _ = grouped.member_envelopes();
-    }
-    other => {
-        let _ = handle.recover_from_outcome(&other);
-    }
-}
-```
-
-Use this when you want the compact public lane and a family-native grouped
-entry point.
-
-## Real Example
-
-```rust
-let declaration = handle
-    .geometry_helpers()
-    .declare_local_neighborhood_for_active_face_selection(
-        handle
-            .geometry_helpers()
-            .local_neighborhood_for_active_face_selection(
-                geometry_session.select_active_face("seed-face")?,
-            )
-            .with_member(geometry_session.select_active_face("neighbor-a")?)
-            .with_member(geometry_session.select_active_face("neighbor-b")?)
-            .with_shared_rationale("preserve a stable local cut around the seed face"),
-    )?;
-
-let proof = handle
-    .geometry_helpers()
-    .orchestrate_local_neighborhood_for_active_face_selection_proof(declaration);
-
-match proof.outcome() {
-    ForgeQueryGroupedOrchestrationChecked::Bound(grouped) => {
-        let _ = grouped.declaration().grouped_posture();
-        let _ = grouped.declaration().shared_rationale();
-        let _ = grouped.member_envelopes()[0].envelope().declaration_digest();
-    }
-    _ => {
-        let brief = handle
-            .recover_from_grouped_orchestration_proof(proof)
-            .expect("grouped non-success should yield grouped recovery");
-        let _ = brief.stop_family();
-        let _ = brief.recommended_action();
-    }
-}
-```
-
-What this example is showing:
-
-- the group is declared once and retained as one artifact
-- grouped proof can still expose the checked grouped stop lane
-- grouped recovery stays on the shared recovery boundary
-- member-level truth remains inspectable after grouped success
-
-## How It Relates To Other Features
-
-- [Family Helpers](./family-helpers.md) own the ergonomic geometry front door
-  for grouped local-neighborhood authoring.
-- [Configured Domain Handles](./configured-domain-handles.md) own the admitted
-  handle that grouped declaration and grouped orchestration remain bound to.
-- [Ordinary Outcomes](./ordinary-outcomes.md) own the compact grouped outcome
-  lane when you choose `..._outcome(...)`.
-- [Recovery Boundary](./recovery-boundary.md) owns grouped repair guidance
-  through `recover_from_grouped_orchestration_checked(...)` and
-  `recover_from_grouped_orchestration_proof(...)`.
-- [Canonical Domain Declarations](./canonical-domain-declarations.md) own the
-  member declaration artifacts carried inside the grouped declaration artifact.
-- [Declaration Family Taxonomy](./declaration-family-taxonomy.md) owns the
-  grouped posture classification that grouped authoring consumes.
-
-Use grouped authoring when the group itself is part of the meaning. Use single
-family helpers when each declaration stands alone.
-
-## Inspection And Debugging
+## Inspection
 
 Useful grouped declaration accessors:
 
 - `group_digest()`
-- `handle_identity_digest()`
-- `operating_context_identity_digest()`
-- `declaration_family_key()`
-- `grouped_posture()`
-- `semantics()`
-- `ordering()`
-- `shared_rationale()`
+- `atomicity()`
+- `grouping_intent()`
+- `continuity_assumption()`
+- `shared_posture_claims()`
+- `aspect_record()`
+- `aspect_participation()`
 - `members()`
 
-Useful grouped orchestration accessors:
+Useful grouped product accessors:
 
-- `orchestration_digest()`
 - `declaration()`
-- `member_envelopes()`
+- `members()`
 - `member_index()`
-- `envelope()`
-- `member_outcome()`
-- `reason()`
+- `role()`
+- `aspect_record()`
+- `product()`
 
-Useful grouped recovery accessors:
+Useful grouped contribution accessors:
 
-- `recover_from_grouped_orchestration_checked(...)`
-- `recover_from_grouped_orchestration_proof(...)`
-- `stop_family()`
-- `stop_kind()`
-- `authority_surface()`
-- `recommended_action()`
+- `members()[i].0.shared_contribution_count()`
+- `members()[i].0.member_contribution_count()`
+- `members()[i].1.composition_digest()`
 
-## Anti-Patterns
+## How It Relates To Other Features
 
-- using grouped authoring as a prettier `Vec<I>` batch helper
-- assuming grouped success means every member can no longer be inspected
-- rebuilding grouped meaning from helper names instead of one grouped artifact
-- treating grouped wrong-world or wrong-handle posture as ordinary member
-  failure
-- expecting grouped authoring to imply grouped contribution composition or
-  grouped continuation execution
-- teaching grouped recovery as if it were separate from the shared recovery
-  boundary
+- [Family Helpers](./family-helpers.md) provide the geometry-native entry
+  points for grouped neighborhood work.
+- [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
+  owns the single-declaration contribution engine that grouped contributions
+  reuse.
+- [Recovery Boundary](./recovery-boundary.md) owns the next-step repair surface
+  when grouped orchestration stops.
+- [Orchestration Inventory](./orchestration-inventory.md) documents the grouped
+  helper orchestration lane and its semantic attachments.
 
 ## Current Limits
 
-- the current shipped grouped semantics are `LocalNeighborhood` only
-- the current grouped front door is geometry-only
-- grouped declaration admission and grouped orchestration are shipped, but
-  grouped contribution composition is not
-- grouped route-plan, receipt, envelope, relational-routing, bridge-routing,
-  and signal-compatibility families are not shipped as standalone grouped
-  public surfaces
-- grouped recovery currently focuses on grouped orchestration stops, not a
-  broader grouped support matrix
+- grouped semantics are still neighborhood-shaped, not arbitrary graph-shaped
+- the helper front door is currently geometry-oriented
+- grouped recovery is richest on grouped orchestration; grouped routes,
+  receipts, envelopes, and grouped contributions are primarily inspection
+  surfaces today
+- grouped merge resolution is still out of scope; the current goal is to
+  preserve enough grouped/member/aspect/basis truth to support it later
 
 ## Related Docs
 
 - [Family Helpers](./family-helpers.md)
-- [Configured Domain Handles](./configured-domain-handles.md)
-- [Ordinary Outcomes](./ordinary-outcomes.md)
+- [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
 - [Recovery Boundary](./recovery-boundary.md)
-- [Canonical Domain Declarations](./canonical-domain-declarations.md)
-- [Declaration Family Taxonomy](./declaration-family-taxonomy.md)
-- [Domain Capabilities](./README.md)
+- [Orchestration Inventory](./orchestration-inventory.md)

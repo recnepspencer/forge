@@ -1,55 +1,76 @@
 use crate::ordinary_outcome::{
-    ForgeQueryOrdinaryContributionComposedCheckedTopologyKind, ForgeQueryOrdinaryOutcome,
-    ForgeQueryOrdinaryPosture, ForgeQueryOrdinaryPostureKind,
+    ForgeQueryOrdinaryContributionComposedCheckedTopologyKind, ForgeQueryOrdinaryPosture,
+    ForgeQueryOrdinaryPostureKind,
 };
+use crate::ForgeQueryContributionComposedClassification;
 
-use super::brief::{
-    ForgeQueryRecoveryAction, ForgeQueryRecoveryAuthoritySurface, ForgeQueryRecoveryBrief,
-    ForgeQueryRecoveryStopFamily, ForgeQueryRecoveryStopKind,
+use super::contribution::enrich_contribution_explanation;
+use crate::recovery_boundary::foundational::{
+    basis_posture_for_foundational_disclosure, diagnostic_context_for_stop_kind,
+    support_context_for_basis_mismatch, support_context_for_stale_basis,
 };
-use super::explanation::ForgeQueryRecoveryExplanation;
-
-pub fn forge_query_recovery_brief_from_ordinary_outcome<T>(
-    outcome: &ForgeQueryOrdinaryOutcome<T>,
-) -> Option<ForgeQueryRecoveryBrief> {
-    match outcome {
-        ForgeQueryOrdinaryOutcome::Bound(_) => None,
-        ForgeQueryOrdinaryOutcome::Ambiguous(posture)
-        | ForgeQueryOrdinaryOutcome::AspectConflict(posture)
-        | ForgeQueryOrdinaryOutcome::AuthorityMismatch(posture)
-        | ForgeQueryOrdinaryOutcome::BasisMismatch(posture)
-        | ForgeQueryOrdinaryOutcome::Deferred(posture)
-        | ForgeQueryOrdinaryOutcome::Denied(posture)
-        | ForgeQueryOrdinaryOutcome::ExplicitNarrowingRequired(posture)
-        | ForgeQueryOrdinaryOutcome::Failed(posture)
-        | ForgeQueryOrdinaryOutcome::MissingRequiredAspect(posture)
-        | ForgeQueryOrdinaryOutcome::RebindRequired(posture)
-        | ForgeQueryOrdinaryOutcome::Refused(posture)
-        | ForgeQueryOrdinaryOutcome::Stale(posture)
-        | ForgeQueryOrdinaryOutcome::Unavailable(posture)
-        | ForgeQueryOrdinaryOutcome::Unsupported(posture)
-        | ForgeQueryOrdinaryOutcome::WrongHandle(posture)
-        | ForgeQueryOrdinaryOutcome::WrongWorld(posture) => {
-            Some(recovery_brief_from_posture(posture))
-        }
-    }
-}
+use crate::recovery_boundary::{
+    ForgeQueryRecoveryAction, ForgeQueryRecoveryAspectPosture, ForgeQueryRecoveryAuthoritySurface,
+    ForgeQueryRecoveryBasisPosture, ForgeQueryRecoveryBrief, ForgeQueryRecoveryExplanation,
+    ForgeQueryRecoverySourceFamily, ForgeQueryRecoveryStopFamily, ForgeQueryRecoveryStopKind,
+};
 
 pub(crate) fn recovery_brief_from_posture(
     posture: &ForgeQueryOrdinaryPosture,
 ) -> ForgeQueryRecoveryBrief {
     let stop_family = stop_family(posture);
     let stop_kind = stop_kind(posture);
+    let source_family = source_family(stop_family);
     let authority_surface = authority_surface(posture, stop_kind);
     let recommended_action = recommended_action(posture, stop_kind);
+    let explanation = enrich_explanation(
+        ForgeQueryRecoveryExplanation::new_with_source_family(
+            posture.checked_topology().clone(),
+            source_family,
+        ),
+        posture,
+        stop_kind,
+    );
     ForgeQueryRecoveryBrief::new(
         stop_family,
         stop_kind,
         authority_surface,
         recommended_action,
         posture.reason(),
-        ForgeQueryRecoveryExplanation::new(posture.checked_topology().clone()),
+        explanation,
     )
+}
+
+fn enrich_explanation(
+    explanation: ForgeQueryRecoveryExplanation,
+    posture: &ForgeQueryOrdinaryPosture,
+    stop_kind: ForgeQueryRecoveryStopKind,
+) -> ForgeQueryRecoveryExplanation {
+    let mut explanation = explanation
+        .with_basis_posture(basis_posture(posture))
+        .with_aspect_posture(aspect_posture(posture))
+        .with_diagnostic_context(diagnostic_context_for_stop_kind(stop_kind));
+
+    if posture.kind() == ForgeQueryOrdinaryPostureKind::Stale {
+        let support_context = support_context_for_stale_basis();
+        explanation = explanation
+            .with_basis_posture(basis_posture_for_foundational_disclosure(
+                support_context.basis_disclosure(),
+            ))
+            .with_support_context(support_context);
+    } else if posture.kind() == ForgeQueryOrdinaryPostureKind::BasisMismatch {
+        explanation = explanation.with_support_context(support_context_for_basis_mismatch());
+    }
+
+    if posture
+        .checked_topology()
+        .contribution_composed_kind()
+        .is_some()
+    {
+        explanation = enrich_contribution_explanation(explanation, posture);
+    }
+
+    explanation
 }
 
 fn stop_family(posture: &ForgeQueryOrdinaryPosture) -> ForgeQueryRecoveryStopFamily {
@@ -64,6 +85,31 @@ fn stop_family(posture: &ForgeQueryOrdinaryPosture) -> ForgeQueryRecoveryStopFam
         ForgeQueryRecoveryStopFamily::SignalCompatibilityOrchestration
     } else {
         ForgeQueryRecoveryStopFamily::ContributionComposedOrchestration
+    }
+}
+
+fn source_family(stop_family: ForgeQueryRecoveryStopFamily) -> ForgeQueryRecoverySourceFamily {
+    match stop_family {
+        ForgeQueryRecoveryStopFamily::Binding => ForgeQueryRecoverySourceFamily::Binding,
+        ForgeQueryRecoveryStopFamily::Continuation => ForgeQueryRecoverySourceFamily::Continuation,
+        ForgeQueryRecoveryStopFamily::ContributionComposedOrchestration => {
+            ForgeQueryRecoverySourceFamily::ContributionComposed
+        }
+        ForgeQueryRecoveryStopFamily::DeclarationEntry => {
+            ForgeQueryRecoverySourceFamily::DeclarationEntry
+        }
+        ForgeQueryRecoveryStopFamily::DeclarationReceipt => {
+            ForgeQueryRecoverySourceFamily::DeclarationReceipt
+        }
+        ForgeQueryRecoveryStopFamily::DeclarationRoutePlan => {
+            ForgeQueryRecoverySourceFamily::DeclarationRoutePlan
+        }
+        ForgeQueryRecoveryStopFamily::GroupedNeighborhoodOrchestration => {
+            ForgeQueryRecoverySourceFamily::GroupedNeighborhood
+        }
+        ForgeQueryRecoveryStopFamily::SignalCompatibilityOrchestration => {
+            ForgeQueryRecoverySourceFamily::SignalCompatibility
+        }
     }
 }
 
@@ -198,5 +244,60 @@ fn recommended_action(
             ForgeQueryOrdinaryPostureKind::WrongHandle => ForgeQueryRecoveryAction::CorrectHandle,
             ForgeQueryOrdinaryPostureKind::WrongWorld => ForgeQueryRecoveryAction::CorrectWorld,
         },
+    }
+}
+
+fn basis_posture(posture: &ForgeQueryOrdinaryPosture) -> ForgeQueryRecoveryBasisPosture {
+    match posture.kind() {
+        ForgeQueryOrdinaryPostureKind::BasisMismatch => {
+            ForgeQueryRecoveryBasisPosture::BasisMismatch
+        }
+        ForgeQueryOrdinaryPostureKind::Stale => ForgeQueryRecoveryBasisPosture::StaleBasis,
+        _ => ForgeQueryRecoveryBasisPosture::Unknown,
+    }
+}
+
+fn aspect_posture(posture: &ForgeQueryOrdinaryPosture) -> ForgeQueryRecoveryAspectPosture {
+    if posture
+        .checked_topology()
+        .contribution_composed_kind()
+        .is_some()
+    {
+        return ForgeQueryRecoveryAspectPosture::CategoryScopedAspectComposition;
+    }
+    if posture
+        .checked_topology()
+        .signal_compatibility_orchestration_kind()
+        .is_some()
+    {
+        return ForgeQueryRecoveryAspectPosture::RequiredContract;
+    }
+    if posture.checked_topology().continuation_kind().is_some() {
+        return ForgeQueryRecoveryAspectPosture::AspectSensitiveReadmission;
+    }
+    match posture.kind() {
+        ForgeQueryOrdinaryPostureKind::AspectConflict
+        | ForgeQueryOrdinaryPostureKind::MissingRequiredAspect => {
+            ForgeQueryRecoveryAspectPosture::RequiredContract
+        }
+        _ => ForgeQueryRecoveryAspectPosture::None,
+    }
+}
+
+pub(crate) fn kind_for_contribution_posture(
+    kind: ForgeQueryOrdinaryContributionComposedCheckedTopologyKind,
+) -> ForgeQueryContributionComposedClassification {
+    match kind {
+        ForgeQueryOrdinaryContributionComposedCheckedTopologyKind::Deferred
+        | ForgeQueryOrdinaryContributionComposedCheckedTopologyKind::DeclarationDenied
+        | ForgeQueryOrdinaryContributionComposedCheckedTopologyKind::Unsupported
+        | ForgeQueryOrdinaryContributionComposedCheckedTopologyKind::Failed => {
+            ForgeQueryContributionComposedClassification::NoContributionAdmitted
+        }
+        ForgeQueryOrdinaryContributionComposedCheckedTopologyKind::ContributionDenied
+        | ForgeQueryOrdinaryContributionComposedCheckedTopologyKind::Stale
+        | ForgeQueryOrdinaryContributionComposedCheckedTopologyKind::RebindRequired => {
+            ForgeQueryContributionComposedClassification::PartiallyAdmitted
+        }
     }
 }

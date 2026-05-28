@@ -93,15 +93,15 @@ That means:
 3. the narrower relational, bridge, and signal support helpers should agree
    with the matching readiness rows, including status instead of only sharing a
    descriptive reason string
-4. optional declaration-scoped `9.3.7` contribution evidence may be attached
-   explicitly, but readiness remains the source of entry-phase seam truth
+4. optional declaration-scoped contribution evidence may be attached
+   explicitly, but readiness remains the source of declaration-entry seam truth
 5. when contribution evidence should be reconciled against one concrete
    retained declaration crossing, attach a retained seam subject explicitly so
    readiness can fail closed on wrong-handle, wrong-world, or mismatched
    declaration digest posture
 6. retained-subject-aware readiness now carries the retained envelope
    publication plus relational, bridge, and signal authority summaries on the
-   matching rows, but it still does not pretend those lower-authority phases
+   matching rows, but it still does not pretend those lower-authority surfaces
    executed successfully
 7. if a retained envelope publication is missing, conflicting, or only
    partially maps the required lower-authority slice, the matching readiness
@@ -114,7 +114,7 @@ That means:
    require matching retained downstream proof explicitly; readiness does not
    infer that proof from family posture alone
 10. the narrower relational, bridge, and signal support helpers remain
-   entry-phase-only seam projections; declaration-entry readiness is the
+   declaration-entry seam projections; declaration-entry readiness is the
    composed public support surface when contribution evidence matters
 
 Readiness is not a substitute for retained inspection of a concrete declaration
@@ -237,7 +237,7 @@ Use readiness when you need to know:
   a retained declaration-entry subject and matching retained lower-runtime
   boundary proof are attached
 - it does not replace retained route, receipt, envelope, or signal inspection
-- later orchestration and recovery remain separate phases
+- later orchestration and recovery remain separate surfaces
 
 ## Related Docs
 

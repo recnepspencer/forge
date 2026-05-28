@@ -14,6 +14,12 @@ The important boundary is:
 That lifecycle gives you draft, validated, admitted, and checked forms without
 falling back to raw IDs, ambient builder state, or host-local policy glue.
 
+Configured handles also own the current operating-world side of continuation
+execution readmission. Most domains can keep the default behavior, but this is
+also the place where a domain-specific operating context can report that the
+current runtime basis or lower-authority evidence has drifted since a prepared
+continuation was created.
+
 ## Why You Use It
 
 - freeze the stable operating regime your domain is working inside
@@ -26,6 +32,7 @@ falling back to raw IDs, ambient builder state, or host-local policy glue.
 ## Stable Entry Points
 
 - `ForgeQueryDomainOperatingContext`
+- `ForgeQueryContinuationExecutionReadmissionObservation`
 - `ForgeQueryDomainEntryRoot::with_operating_context(...)`
 - `ForgeQueryDomainEntryProofRoot::with_operating_context(...)`
 - `ForgeQueryDomainEntryChecked::with_operating_context(...)`
@@ -41,6 +48,7 @@ Operating-context contract:
 - `required_capability_families() -> &'static [ForgeQueryCapabilityFamily]`
 - `required_config_sections() -> &'static [ForgeQueryConfigSectionFamily]`
 - `context_identity_digest() -> String`
+- `continuation_execution_readmission_observation(retained, support_snapshot) -> ForgeQueryContinuationExecutionReadmissionObservation`
 
 Configured-handle entry points:
 
@@ -316,25 +324,27 @@ Instead, it lets the admitted handle verify:
 
 before it prepares the next explicit Query input.
 
-Phase 26 adds the ordinary outcome layer on top of both binding and
-declaration-entry orchestration. The admitted handle now exposes
+The admitted handle also exposes the ordinary outcome layer on top of both
+binding and declaration-entry orchestration:
 `..._outcome(...)` entry points when you want one compact public result type
 without dropping the checked topology underneath.
 
-Phase 27 adds the continuation pipeline on top of binding and retained bridge
-or signal truth. The admitted handle now owns one explicit prepared/executed
+The admitted handle also owns one explicit prepared/executed continuation lane
+on top of binding and retained bridge or signal truth:
 continuation lane instead of leaving callers to manually rebuild continuation
 requests, basis posture, workspace posture, and execution handoff glue.
 
-Phase 28 adds one signal-facing composition lane on top of retained signal
-compatibility and optional continuation preparation. The admitted handle now
+The admitted handle also exposes one signal-facing composition lane on top of
+retained signal compatibility and optional continuation preparation:
 owns an `orchestrate_signal_compatibility(...)` family when your app wants to
 ask "do we stop at signal compatibility, or can Query also prepare the next
 continuation step right now?" without flattening compatibility, preparation,
-and execution into one result.
+and execution into one result. That orchestration family starts from retained
+signal input only. If you begin from progression, the supported path is to
+lower through envelope-backed truth first and then enter signal orchestration.
 
-Phase 29 adds one declaration-plus-contribution composition lane on top of the
-retained declaration-entry path and the standalone contribution-authoring
+The admitted handle also exposes one declaration-plus-contribution composition
+lane on top of the retained declaration-entry path and the standalone contribution-authoring
 surfaces. The admitted handle now owns an
 `orchestrate_declaration_with_contributions(...)` family when your app wants
 one public call that can:
@@ -344,18 +354,21 @@ one public call that can:
 - preserve declaration-side and contribution-side non-success posture
 - optionally materialize contribution summaries
 
-Phase 31 adds one recovery lane over the shipped ordinary, checked, and
-proof-visible stop surfaces. The admitted handle now owns
+The admitted handle also owns one recovery lane over the ordinary, checked,
+and proof-visible stop surfaces:
 `recover_from_...(...)` entry points when your app wants one typed answer to
 "what stopped, who owns the fix, and what is the next supported repair step?"
 without flattening declaration, continuation, signal, or contribution posture
 into one generic retry.
 
-Phase 32 adds one family-helper projection lane on top of those same shipped
-surfaces. The admitted handle now owns `family_helpers()` and
+The admitted handle also owns `family_helpers()` and one family-helper
+projection lane over those same public surfaces:
 `geometry_helpers()` when your app already knows the declaration family it is
 working with and wants domain-native helper calls that still compile onto the
-shared generic Query paths.
+shared generic Query paths. The continuation-style helper verbs still follow
+the same boundary rule: they accept progressed family input ergonomically, then
+lower through checked envelope truth before they call the generic
+signal-orchestration surface.
 
 When later declaration-entry artifacts expose shared binding targets, those
 targets are still scoped by this admitted world. The binding seam does not
@@ -644,7 +657,7 @@ It also locks one materialization boundary:
   silently changing declaration-entry truth
 - prepared publication still does not imply later execution
 
-That trio remains the generic declaration-input front door. Phase 24 adds
+That trio remains the generic declaration-input front door. Query also exposes
 public route/receipt/envelope orchestration from progressed declarations, but
 those product-target methods still compile onto the same retained plan,
 materialization policy, and stop-boundary law rather than introducing a second

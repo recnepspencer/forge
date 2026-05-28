@@ -3,11 +3,11 @@
 ## What This Feature Is
 
 The public doc coverage boundary is Query's published registry for the teaching
-surface of the platform-entry product.
+surface of its public product.
 
 Use it when you need to answer questions like:
 
-- which shipped public orchestration surfaces are actually documented
+- which public orchestration surfaces are actually documented
 - which golden readout is supposed to certify a surface
 - whether a surface is discoverable from the docs index
 - whether a surface participates in a named user-facing journey
@@ -19,7 +19,7 @@ some pages" into a real contract.
 
 ## Why You Use It
 
-- inspect the real teaching coverage for the shipped public Query surface
+- inspect the real teaching coverage for the public Query surface
 - audit missing docs, missing goldens, README discovery gaps, and journey gaps
 - distinguish surface goldens from coverage-boundary readouts
 - keep helper and grouped-authoring surfaces visible as first-class documented
@@ -130,7 +130,7 @@ assert!(row.has_journey_coverage());
 ## Real Example
 
 Use the audit when you need to treat docs and goldens as part of release-grade
-surface closure.
+surface certification.
 
 ```rust
 let audit = ForgeQueryPublicDocCoverageAudit::current();
@@ -164,15 +164,15 @@ for golden in forge_query_public_doc_coverage_golden_transcripts() {
   now have explicit documented coverage rows instead of being treated as side
   notes on generic orchestration pages.
 - [Recovery Boundary](./recovery-boundary.md) participates in the public
-  teaching story through journey coverage even though this phase is focused on
-  orchestration-surface publication.
+  teaching story through journey coverage even though this inventory is focused
+  on orchestration-surface publication.
 - [Certification Surface And Closeout Bundle](./certification/certification-surface-and-closeout-bundle.md)
   and [Goldens, Boundaries, And Hostile Certification](./certification/goldens-boundaries-and-hostile-certification.md)
   remain the broader certification docs around the proof surface that these
   rows point into.
 - [Platform Entry Closeout](./platform-entry-closeout.md) consumes this
-  coverage inventory and its audit directly when it closes the late
-  platform-entry public product.
+  coverage inventory and its audit directly when it certifies the broader
+  public product bundle.
 
 ## Inspection And Debugging
 
@@ -231,7 +231,7 @@ Useful golden-manifest accessors:
 
 ## Current Limits
 
-- this boundary currently covers the shipped public orchestration/helper/grouped
+- this boundary currently covers the public orchestration/helper/grouped
   surface published through the orchestration inventory
 - the audit proves file existence, section presence, golden-kind alignment, and
   journey alignment, but it is still a code-level certification surface rather

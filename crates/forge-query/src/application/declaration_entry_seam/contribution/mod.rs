@@ -169,7 +169,10 @@ pub struct ForgeQueryDeclarationEntryContributionComposition {
 }
 
 impl ForgeQueryDeclarationEntryContributionComposition {
-    pub(crate) fn new(evidence: Vec<ForgeQueryDeclarationEntryContributionEvidence>) -> Self {
+    pub(crate) fn new(
+        evidence: Vec<ForgeQueryDeclarationEntryContributionEvidence>,
+        rejected_category_families: Vec<ForgeQueryDeclarationEntryContributionCategoryFamily>,
+    ) -> Self {
         let contribution_digest = crate::identity::hash_parts(
             &evidence
                 .iter()
@@ -184,7 +187,7 @@ impl ForgeQueryDeclarationEntryContributionComposition {
             evidence,
             contribution_digest,
             composed_category_families,
-            rejected_category_families: Vec::new(),
+            rejected_category_families,
         }
     }
 

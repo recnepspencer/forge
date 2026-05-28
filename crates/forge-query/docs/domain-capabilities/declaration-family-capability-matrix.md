@@ -175,10 +175,10 @@ support the family's declared slices if support posture were otherwise
 admitted?", while the row `status()` remains the operating-world answer about
 support, config, and structural availability.
 
-The important Phase 24b detail is that aspect coverage is not inferred back
+The important detail is that aspect coverage is not inferred back
 from the contract itself. The family can now report declared semantic coverage
 separately, including masked slices, so a family may remain broadly admitted
-while still telling later phases that a particular semantic slice is not
+while still telling later consumers that a particular semantic slice is not
 currently bindable.
 
 ## Small Example
@@ -351,13 +351,13 @@ What this example is showing:
 - the primary app-facing geometry story is dynamic context, while the canonical
   declaration entries remain an internal retained shape
 
-## Aspect-aware retrofit note
+## Aspect Semantics
 
-Phase 24b turns this matrix into the first aspect-aware declaration-entry gate.
+This matrix is the first aspect-aware declaration-entry gate.
 Family admission remains the outer shape, but the retained support surface must
 be allowed to say "this family is admitted while this semantic slice is
 unsupported, masked, permission-limited, or invariant-sensitive." Later
-legality and progression phases consume that narrower support truth instead of
+legality and progression surfaces consume that narrower support truth instead of
 pretending broad family admission already proved everything they need.
 
 ## How It Relates To Other Features

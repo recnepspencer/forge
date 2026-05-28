@@ -6,12 +6,13 @@ use crate::application::{
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationFamilyMarker,
     ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityContract,
     ForgeQueryDeclarationRouteContract, ForgeQueryDeclarationSignalCompatibilityContract,
-    ForgeQueryDeclarationSignalExecutionFamily, ForgeQueryDomainEntryMarker,
-    ForgeQueryDomainOperatingContext, ForgeQueryNeighborhoodCapableGrouping,
-    ForgeQuerySignalCompatiblePosture,
+    ForgeQueryDeclarationSignalCompatibilityInput, ForgeQueryDeclarationSignalExecutionFamily,
+    ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
+    ForgeQueryNeighborhoodCapableGrouping, ForgeQuerySignalCompatiblePosture,
 };
 use crate::domain_capabilities::{
-    ForgeQuerySupportContributionAuthoring, ForgeQueryWorkflowContributionAuthoring,
+    ForgeQueryExplanationContributionAuthoring, ForgeQuerySupportContributionAuthoring,
+    ForgeQueryWorkflowContributionAuthoring,
 };
 use crate::family_helpers::{
     ForgeQueryGeometryActiveFaceSelectionHelperFamily,
@@ -185,7 +186,7 @@ fn preview_helper_matches_generic_signal_orchestration_path() {
         .geometry_helpers()
         .prepare_preview_for_active_face_selection_checked(helper_progressed);
     let generic = handle.orchestrate_signal_compatibility_checked(
-        ForgeQuerySignalCompatibilityOrchestrationInput::from_progressed(generic_progressed)
+        generic_signal_orchestration_input(&handle, generic_progressed)
             .with_bridge_request(preview_request()),
     );
 
@@ -210,26 +211,22 @@ fn truth_view_helpers_keep_current_and_historical_meaning_distinct() {
             &handle, "face-c",
         ));
     let current_generic = handle.orchestrate_signal_compatibility_checked(
-        ForgeQuerySignalCompatibilityOrchestrationInput::from_progressed(progressed(
-            &handle, "face-b",
-        ))
-        .with_bridge_request(
-            crate::application::ForgeQueryDeclarationBridgeContinuationRequest::new(
-                crate::application::ForgeQueryDeclarationBridgeContinuationMode::TruthView,
-                crate::application::ForgeQueryDeclarationBridgeTruthContext::Current,
+        generic_signal_orchestration_input(&handle, progressed(&handle, "face-b"))
+            .with_bridge_request(
+                crate::application::ForgeQueryDeclarationBridgeContinuationRequest::new(
+                    crate::application::ForgeQueryDeclarationBridgeContinuationMode::TruthView,
+                    crate::application::ForgeQueryDeclarationBridgeTruthContext::Current,
+                ),
             ),
-        ),
     );
     let historical_generic = handle.orchestrate_signal_compatibility_checked(
-        ForgeQuerySignalCompatibilityOrchestrationInput::from_progressed(progressed(
-            &handle, "face-c",
-        ))
-        .with_bridge_request(
-            crate::application::ForgeQueryDeclarationBridgeContinuationRequest::new(
-                crate::application::ForgeQueryDeclarationBridgeContinuationMode::TruthView,
-                crate::application::ForgeQueryDeclarationBridgeTruthContext::Historical,
+        generic_signal_orchestration_input(&handle, progressed(&handle, "face-c"))
+            .with_bridge_request(
+                crate::application::ForgeQueryDeclarationBridgeContinuationRequest::new(
+                    crate::application::ForgeQueryDeclarationBridgeContinuationMode::TruthView,
+                    crate::application::ForgeQueryDeclarationBridgeTruthContext::Historical,
+                ),
             ),
-        ),
     );
 
     assert_eq!(
@@ -265,6 +262,12 @@ fn material_attachment_helper_matches_generic_composed_path() {
                 "track selection to material attachment",
             ),
         )
+        .with_explanation_contribution(
+            ForgeQueryExplanationContributionAuthoring::requires_context(
+                "geometry.material.context",
+                "material attachment needs explicit context from the active face selection",
+            ),
+        )
         .with_workflow_contribution(ForgeQueryWorkflowContributionAuthoring::preview_only(
             "geometry.preview",
             "preview material attachment before promotion",
@@ -277,6 +280,12 @@ fn material_attachment_helper_matches_generic_composed_path() {
             ForgeQuerySupportContributionAuthoring::declaration_traceability(
                 "geometry.trace",
                 "track selection to material attachment",
+            ),
+        ))
+        .with_contribution(crate::contribution_composed_orchestration::ForgeQueryContributionIntent::explanation(
+            ForgeQueryExplanationContributionAuthoring::requires_context(
+                "geometry.material.context",
+                "material attachment needs explicit context from the active face selection",
             ),
         ))
         .with_contribution(crate::contribution_composed_orchestration::ForgeQueryContributionIntent::workflow(
@@ -304,10 +313,8 @@ fn helper_wrong_world_matches_generic_path() {
         .geometry_helpers()
         .prepare_runtime_route_for_active_face_selection_outcome(progressed(&left, "face-e"));
     let generic = right.orchestrate_signal_compatibility_outcome(
-        ForgeQuerySignalCompatibilityOrchestrationInput::from_progressed(progressed(
-            &left, "face-e",
-        ))
-        .with_bridge_request(runtime_route_request()),
+        generic_signal_orchestration_input(&right, progressed(&left, "face-e"))
+            .with_bridge_request(runtime_route_request()),
     );
 
     match (helper, generic) {
@@ -352,4 +359,20 @@ fn material_attachment_helper_preserves_contribution_checked_topology() {
         }
         _ => {}
     }
+}
+
+fn generic_signal_orchestration_input(
+    handle: &crate::application::ForgeQueryAdmittedConfiguredDomainHandle<
+        GeometryDomain,
+        GeometryWorld,
+    >,
+    progressed: crate::application::ForgeQueryAdmittedDeclarationProgression<
+        GeometryDomain,
+        GeometryInput,
+    >,
+) -> ForgeQuerySignalCompatibilityOrchestrationInput<GeometryDomain, GeometryInput> {
+    let envelope_checked = handle.orchestrate_envelope_from_progressed_checked(progressed);
+    ForgeQuerySignalCompatibilityOrchestrationInput::new(
+        ForgeQueryDeclarationSignalCompatibilityInput::envelope_checked(envelope_checked),
+    )
 }

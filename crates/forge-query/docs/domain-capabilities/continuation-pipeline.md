@@ -13,18 +13,26 @@ Use it when you already have one of these:
 - a continuation binding request from current context
 - a prepared continuation artifact that is ready for explicit execution
 
-This feature solves the next step after Phase 25 binding. Binding answers
+This feature solves the next step after typed binding. Binding answers
 "which continuation input is the right one?" The continuation pipeline answers
 "what can Query prepare from that input, and what can it execute explicitly
 without lying about basis, world, or runtime posture?"
+
+In this doc, "basis" means the concrete runtime or truth-view identity that the
+prepared continuation was built against. If that identity drifts before
+execution, Query should tell you that directly instead of collapsing it into a
+generic failure.
 
 ## Why You Use It
 
 - prepare continuation without rebuilding bridge, basis, and workspace
   handoff glue yourself
 - keep prepared and executed continuation as separate typed states
-- preserve wrong-world, wrong-handle, stale, authority-mismatch, and
-  basis-mismatch posture as typed outcomes
+- preserve stale, deferred, denied, unsupported, wrong-world, wrong-handle,
+  authority-mismatch, and basis-mismatch posture on the prepared lane
+- preserve world-mismatch, support-mismatch, stale-basis, basis-mismatch,
+  authority-mismatch, and handle-mismatch posture on the explicit execution
+  lane
 - inspect which bridge continuation family, truth context, workspace contract,
   and runtime contract Query selected
 - keep concise `..._outcome(...)` calls on the same shared ordinary outcome
@@ -84,10 +92,10 @@ Admitted-handle execution entry points:
 
 Good to know:
 
-- preparation consumes the Phase 25 binding pipeline
+- preparation consumes the typed binding pipeline
 - execution consumes only a prepared continuation artifact
 - the concise `..._outcome(...)` lane reuses `ForgeQueryOrdinaryOutcome<T>`
-- this first shipped slice prepares and executes bridge-backed continuation
+- this surface currently prepares and executes bridge-backed continuation
   families only
 
 ## Core Mental Model
@@ -106,9 +114,25 @@ knows:
 - which workspace and runtime contract later execution would need
 - whether signal posture is compatible, deferred, denied, or failed
 
+Preparation also freezes one execution-readmission witness. That witness is the
+retained proof execution will later use to revalidate the concrete basis
+identity, lower-runtime authority, and required capability support before it
+admits execution.
+
 Execution is a separate step that consumes that proof-bearing prepared artifact
-and checks that it still belongs to the current admitted handle and operating
-world.
+and rechecks:
+
+- admitted-world alignment
+- the capability families the prepared continuation still requires
+- retained lower-runtime basis freshness
+- retained lower-runtime basis identity
+- retained lower-runtime authority expectations
+- admitted-handle alignment
+
+Execution does not re-plan continuation semantics, rebuild bridge routing, or
+re-run signal compatibility from scratch. Preparation derives one retained
+execution-readmission witness once, and execution revalidates the world,
+support, basis, and authority facts that witness carries forward.
 
 The important rule is:
 
@@ -135,14 +159,19 @@ The preparation path is:
 The execution path is:
 
 1. accept one `ForgeQueryPreparedContinuation`
-2. verify handle alignment
-3. verify admitted-world alignment
-4. derive one execution digest and execution artifact
-5. return executed or typed non-success outcome
+2. verify admitted-world alignment
+3. verify the prepared continuation's required capability families are still admitted
+4. verify retained lower-runtime basis freshness
+5. verify retained lower-runtime basis identity
+6. verify retained lower-runtime authority alignment
+7. verify handle alignment
+8. derive one execution digest and execution artifact
+9. return executed, wrong-world, unsupported, stale, basis-mismatch,
+   authority-mismatch, or wrong-handle
 
 Preparation does not build a second planning system. It reuses:
 
-- the Phase 25 typed binding pipeline
+- the typed binding pipeline
 - retained bridge continuation routing truth
 - retained signal compatibility truth
 
@@ -229,6 +258,8 @@ What this example is showing:
 - preparation freezes continuation-family, truth-context, basis, workspace,
   runtime, and signal posture on one retained artifact
 - execution is explicit and only starts from that prepared artifact
+- execution revalidates world, support, basis, and authority against the
+  retained readmission witness instead of trusting preparation blindly
 - the final execution artifact still links back to prepared continuation truth
 
 ## How It Relates To Other Features
@@ -239,6 +270,8 @@ What this example is showing:
   lane for both preparation and execution.
 - [Recovery Boundary](./recovery-boundary.md) is the next-step surface when
   preparation or execution stopped and your app needs a typed repair answer.
+- [Aspect-Native Recovery](./recovery/aspect-native-recovery.md) explains how
+  continuation readmission posture shows up on that recovery lane.
 - [Declaration Bridge Continuation Routing](./declaration-bridge-continuation-routing.md)
   remains the authority for which bridge continuation family and truth context
   Query selected.
@@ -269,6 +302,7 @@ execution:
 - `runtime_contract()`
 - `execution_mode()`
 - `required_basis_families()`
+- `execution_readmission()`
 - `signal_posture()`
 - `signal_execution_family()`
 - `signal_compatibility_digest()`
@@ -285,6 +319,26 @@ execution stopped:
 
 - `ForgeQueryPreparedContinuationTranscript::{request, outcome, witness_checks, narrowing_decisions, prepared_digest, linked_artifacts}`
 - `ForgeQueryContinuationExecutionTranscript::{request, outcome, witness_checks, execution_digest, linked_artifacts}`
+
+The execution proof currently explains only alignment and explicit execution:
+
+- `Executed`
+- `WrongWorld`
+- `Stale`
+- `BasisMismatch`
+- `AuthorityMismatch`
+- `Unsupported`
+- `WrongHandle`
+
+The retained execution-readmission surface can also explain what execution was
+checking:
+
+- `execution_readmission().basis_witness().kind()`
+- `execution_readmission().basis_witness().basis_identity_digest()`
+- `execution_readmission().basis_witness().expected_lower_runtime_binding_digest()`
+- `execution_readmission().basis_witness().source_basis_identity_digest()`
+- `execution_readmission().authority_witness()`
+- `execution_readmission().freshness_posture()`
 
 Use the ordinary lane when you want the compact public result but still need a
 checked-topology link:
@@ -308,20 +362,23 @@ Use the recovery lane when you want Query to classify who owns the fix:
   envelope instead of using the prepared artifact
 - skipping the prepared artifact and trying to execute from raw envelopes or
   ids
-- flattening `WrongWorld`, `WrongHandle`, `Stale`, `AuthorityMismatch`, and
-  `BasisMismatch` into one generic continuation failure
+- flattening prepared-lane `Stale`, `AuthorityMismatch`, and `BasisMismatch`
+  into one generic continuation failure
+- pretending the explicit execution lane still trusts prepared basis and
+  authority posture without revalidation
 - using this feature as if it replaced bridge routing or signal compatibility
   authority
 
 ## Current Limits
 
-- the first shipped slice prepares and executes bridge-backed continuation
+- this surface currently prepares and executes bridge-backed continuation
   families only
-- signal posture is carried forward into the prepared artifact, but this phase
+- signal posture is carried forward into the prepared artifact, but this
+  feature
   does not execute Signal work
 - preparation does not create a broad ambient runtime or workspace session by
   itself
-- grouped or neighborhood continuation preparation is not part of this slice
+- grouped or neighborhood continuation preparation is not part of this surface
 - this feature does not replace the explicit lower-authority bridge and signal
   docs when you need their direct artifacts
 
@@ -334,6 +391,7 @@ Use the recovery lane when you want Query to classify who owns the fix:
 - [Declaration Signal Compatibility](./declaration-signal-compatibility.md)
 - [Signal Compatibility Orchestration](./signal-compatibility-orchestration.md)
 - [Recovery Boundary](./recovery-boundary.md)
+- [Recovery Overview](./recovery/README.md)
 - [Declaration Boundary Envelopes](./declaration-boundary-envelopes.md)
 - [Declaration Entry Orchestration](./declaration-entry-orchestration.md)
 - [Domain Capabilities](./README.md)

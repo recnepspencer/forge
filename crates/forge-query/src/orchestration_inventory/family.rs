@@ -10,6 +10,7 @@ pub enum ForgeQueryOrchestrationSurfaceFamily {
     SignalCompatibilityOrchestration,
     ContributionComposedOrchestration,
     GroupedNeighborhoodOrchestration,
+    RecoveryBoundary,
 }
 
 impl ForgeQueryOrchestrationSurfaceFamily {
@@ -25,6 +26,7 @@ impl ForgeQueryOrchestrationSurfaceFamily {
             Self::SignalCompatibilityOrchestration => "signal_compatibility_orchestration",
             Self::ContributionComposedOrchestration => "contribution_composed_orchestration",
             Self::GroupedNeighborhoodOrchestration => "grouped_neighborhood_orchestration",
+            Self::RecoveryBoundary => "recovery_boundary",
         }
     }
 }
@@ -59,6 +61,7 @@ pub enum ForgeQueryOrchestrationTranscriptFamily {
     SignalCompatibilityOrchestration,
     ContributionComposedOrchestration,
     GroupedNeighborhoodOrchestration,
+    RecoveryBoundary,
 }
 
 impl ForgeQueryOrchestrationTranscriptFamily {
@@ -73,6 +76,7 @@ impl ForgeQueryOrchestrationTranscriptFamily {
             Self::SignalCompatibilityOrchestration => "signal_compatibility_orchestration",
             Self::ContributionComposedOrchestration => "contribution_composed_orchestration",
             Self::GroupedNeighborhoodOrchestration => "grouped_neighborhood_orchestration",
+            Self::RecoveryBoundary => "recovery_boundary",
         }
     }
 }
@@ -84,6 +88,7 @@ pub enum ForgeQueryOrchestrationSupportSurface {
     ContinuationPreparedContract,
     SignalCompatibilityOrchestration,
     ContributionComposedOrchestration,
+    RecoveryBoundary,
 }
 
 impl ForgeQueryOrchestrationSupportSurface {
@@ -94,6 +99,7 @@ impl ForgeQueryOrchestrationSupportSurface {
             Self::ContinuationPreparedContract => "continuation_prepared_contract",
             Self::SignalCompatibilityOrchestration => "signal_compatibility_orchestration",
             Self::ContributionComposedOrchestration => "contribution_composed_orchestration",
+            Self::RecoveryBoundary => "recovery_boundary",
         }
     }
 }
@@ -104,6 +110,7 @@ pub enum ForgeQueryOrchestrationCheckedTopologyKind {
     Continuation,
     SignalCompatibilityOrchestration,
     ContributionComposed,
+    RecoveryBoundary,
 }
 
 impl ForgeQueryOrchestrationCheckedTopologyKind {
@@ -113,6 +120,7 @@ impl ForgeQueryOrchestrationCheckedTopologyKind {
             Self::Continuation => "continuation",
             Self::SignalCompatibilityOrchestration => "signal_compatibility_orchestration",
             Self::ContributionComposed => "contribution_composed",
+            Self::RecoveryBoundary => "recovery_boundary",
         }
     }
 }

@@ -2,8 +2,8 @@
 
 ## What This Feature Is
 
-The platform-entry closeout boundary is Query's machine-checkable milestone
-closure surface for the late platform-entry product.
+The platform-entry closeout boundary is Query's machine-checkable certification
+surface for the public platform-entry product bundle.
 
 Use it when you need one authoritative answer to questions like:
 
@@ -13,12 +13,12 @@ Use it when you need one authoritative answer to questions like:
 - which proof class is missing when a closeout claim is no longer honest
 
 This is not another feature-runtime surface like orchestration or recovery.
-It is the certification layer that consumes those shipped surfaces and proves
+It is the certification layer that consumes those public surfaces and proves
 that they close together as one public product.
 
 ## Why You Use It
 
-- inspect one closeout readout instead of checking inventory, docs coverage,
+- inspect one certification readout instead of checking inventory, docs coverage,
   trybuild, parity tests, and hostile tests separately
 - get one bundle of digests for release-grade certification or tooling
 - verify that helper, grouped, continuation, signal, contribution-composed,
@@ -54,8 +54,8 @@ that they close together as one public product.
 
 ## Core Mental Model
 
-Think of this boundary as the closeout ledger for Query's platform-entry
-product.
+Think of this boundary as the certification ledger for Query's platform-entry
+product bundle.
 
 It consumes five proof classes:
 
@@ -67,7 +67,7 @@ It consumes five proof classes:
 
 The closeout surface tells you whether those proof classes still agree.
 
-The closeout bundle turns that agreement into one output manifest with stable
+The certification bundle turns that agreement into one output manifest with stable
 digest keys.
 
 The current output manifest is:
@@ -84,7 +84,7 @@ The current output manifest is:
 `forge_query_platform_entry_closeout_surface()` does not rediscover the world
 by scanning docs or tests heuristically.
 
-It consumes the already-shipped authority surfaces:
+It consumes the authority surfaces directly:
 
 1. `ForgeQueryOrchestrationSurfaceInventory::current()`
 2. `ForgeQueryPublicDocCoverageInventory::current()`
@@ -99,7 +99,7 @@ Then it builds:
 - compile-fail audit
 - parity audit
 - hostile audit
-- one closeout digest over those digests
+- one final certification digest over those digests
 
 `certify_platform_entry_closeout()` then emits the stable output manifest over
 that surface.
@@ -138,7 +138,7 @@ assert_eq!(
 
 let final_digest = bundle
     .output_digest("milestone_closeout_digest")
-    .expect("final closeout digest should exist");
+    .expect("final certification digest should exist");
 
 assert!(!final_digest.is_empty());
 ```
@@ -166,8 +166,7 @@ test or inventory boundary.
   and [Contribution-Composed Orchestration](./contribution-composed-orchestration.md)
   are all part of the public product this surface certifies.
 - [Certification Surface And Closeout Bundle](./certification/certification-surface-and-closeout-bundle.md)
-  describes the older domain-capability closeout seam. This page is the
-  platform-entry closeout surface added for the later phases.
+  describes the broader certification bundle patterns this page builds on.
 - [Goldens, Boundaries, And Hostile Certification](./certification/goldens-boundaries-and-hostile-certification.md)
   explains the proof styles this closeout surface consumes.
 
@@ -214,7 +213,7 @@ Useful audit details:
 
 ## Anti-Patterns
 
-- treating a green `cargo test` run as equivalent to a stable closeout bundle
+- treating a green `cargo test` run as equivalent to a stable certification bundle
 - adding a new public orchestration/helper/grouped surface without updating the
   underlying inventory or docs coverage surfaces this closeout seam consumes
 - certifying a parity claim that is broader than the current real behavior
@@ -225,8 +224,8 @@ Useful audit details:
 
 ## Current Limits
 
-- this boundary currently closes the late platform-entry public product, not
-  every historical Query certification surface
+- this boundary currently certifies the public platform-entry product bundle,
+  not every Query certification surface
 - the compile-fail manifest is intentionally tied to the domain-handle UI
   golden/boundary suite rather than a second trybuild world
 - parity and hostile manifests are explicit proof ledgers; they do not

@@ -24,7 +24,7 @@ Boundary receipts are the next declaration-side artifact boundary.
 - preserve zero, one, or many lower-authority routes as explicit public truth
 - keep caller route narrowing typed instead of stringly
 - preserve deferred, denied, and failed route posture without flattening it
-- hand later crossing and receipt phases one retained route artifact instead of
+- hand later crossing and receipt surfaces one retained route artifact instead of
   recomputing route meaning
 
 Use [Declaration Boundary Receipts](./declaration-boundary-receipts.md) when
@@ -242,7 +242,7 @@ envelope, and later continuation surfaces should bind from this retained
 artifact seam instead of reconstructing route meaning or inventing
 route-local binding helpers.
 
-Phase 24b makes that binding seam explicitly aspect-aware:
+That binding seam is explicitly aspect-aware:
 
 - the route plan carries a route-scoped `aspect_contract()` derived from the
   admitted declaration contract, not from family labels alone
@@ -463,13 +463,13 @@ What this example is showing:
   retained route-plan target into the next receipt input without reconstructing
   the route-plan input family yourself
 
-## Aspect-aware retrofit note
+## Aspect Semantics
 
-Phase 24b requires route plans to expose which semantic slices are required for
+Route plans expose which semantic slices are required for
 route admission, which are preserved into route explanation, and which are
 incompatible with the requested route intent. Later receipts, envelopes, and
 orchestration must bind from that route-scoped semantic contract rather than
-from broad route artifact shape. The shipped route surface now exposes
+from broad route artifact shape. The route surface exposes
 `aspect_contract()`, `aspect_fit()`, and `aspect_publication()` for exactly
 that reason.
 

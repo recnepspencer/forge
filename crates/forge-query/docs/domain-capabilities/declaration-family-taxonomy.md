@@ -164,8 +164,8 @@ impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for AttachFaceMaterial {
 }
 ```
 
-Phase 24b note: the family key remains canonical retained vocabulary, but it is
-not the primary app-facing targeting story. Later declaration-entry and binding
+The family key remains canonical retained vocabulary, but it is not the
+primary app-facing targeting story. Declaration-entry and binding
 surfaces should treat dynamic context and semantic aspect contracts as the
 ordinary geometry mental model while preserving canonical family identity as
 internal proof shape.

@@ -63,7 +63,7 @@ impl ForgeQueryPublicGoldenTranscript {
     }
 }
 
-const GOLDEN_TRANSCRIPTS: [ForgeQueryPublicGoldenTranscript; 7] = [
+const GOLDEN_TRANSCRIPTS: [ForgeQueryPublicGoldenTranscript; 8] = [
     ForgeQueryPublicGoldenTranscript::new(
         "public_doc_coverage_surface_readout",
         "tests/ui/domain_handle/golden/public_doc_coverage_surface_readout_compiles.rs",
@@ -113,6 +113,13 @@ const GOLDEN_TRANSCRIPTS: [ForgeQueryPublicGoldenTranscript; 7] = [
         ForgeQueryPublicGoldenTranscriptKind::SurfaceCoverage,
         Some(ForgeQueryPublicJourneyKind::GroupedAuthoring),
     ),
+    ForgeQueryPublicGoldenTranscript::new(
+        "recovery_boundary_surface_readout",
+        "tests/ui/domain_handle/golden/recovery_boundary_surface_readout_compiles.rs",
+        "recovery boundary coverage surface readout",
+        ForgeQueryPublicGoldenTranscriptKind::SurfaceCoverage,
+        Some(ForgeQueryPublicJourneyKind::Recovery),
+    ),
 ];
 
 pub fn forge_query_public_doc_coverage_golden_transcripts(
@@ -159,7 +166,7 @@ mod tests {
         let labels = rows.iter().map(|row| row.label()).collect::<Vec<_>>();
         let paths = rows.iter().map(|row| row.path()).collect::<Vec<_>>();
 
-        assert_eq!(rows.len(), 7);
+        assert_eq!(rows.len(), 8);
         assert_eq!(
             labels.len(),
             labels.iter().copied().collect::<BTreeSet<_>>().len()

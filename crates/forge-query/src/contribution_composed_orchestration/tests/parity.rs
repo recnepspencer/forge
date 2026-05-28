@@ -66,6 +66,10 @@ fn composed_orchestration_matches_explicit_declaration_bound_support_pipeline() 
         composed.envelope().envelope_digest(),
         envelope.envelope_digest()
     );
+    assert_eq!(
+        composed.classification(),
+        crate::contribution_composed_orchestration::ForgeQueryContributionComposedClassification::FullyAdmitted
+    );
     assert_eq!(composed.contribution_composition().evidence().len(), 1);
     assert_eq!(
         composed.contribution_composition().evidence()[0].evidence_digest(),
@@ -90,6 +94,21 @@ fn composed_orchestration_matches_explicit_declaration_bound_support_pipeline() 
     assert_eq!(
         summary.forensic_row_count(),
         expected_summary.forensic_row_count()
+    );
+    assert_eq!(composed.intent_results().len(), 1);
+    assert_eq!(composed.rejected_intents().len(), 0);
+    assert_eq!(
+        composed.intent_results()[0]
+            .aspect_record()
+            .declaration_contract(),
+        composed.envelope().aspect_contract()
+    );
+    assert_eq!(
+        composed.intent_results()[0]
+            .aspect_record()
+            .declaration_coverage()
+            .present(),
+        composed.envelope().aspect_publication().present()
     );
 }
 
@@ -116,4 +135,45 @@ fn composed_request_digest_changes_with_declaration_and_contribution_meaning() {
     );
 
     assert_ne!(first.request_digest(), second.request_digest());
+}
+
+#[test]
+fn equivalent_intent_orderings_share_the_same_composition_digest() {
+    let handle = admitted_handle();
+    let left = handle
+        .orchestrate_declaration_with_contributions(
+            ForgeQueryContributionComposedOrchestrationInput::new(ContributionInput::new("face-e"))
+                .with_contribution(ForgeQueryContributionIntent::support(
+                    ForgeQuerySupportContributionAuthoring::declaration_traceability(
+                        "domain.traceability.face",
+                        "support detail",
+                    ),
+                ))
+                .with_contribution(ForgeQueryContributionIntent::support(
+                    ForgeQuerySupportContributionAuthoring::declaration_traceability(
+                        "domain.traceability.edge",
+                        "secondary support detail",
+                    ),
+                )),
+        )
+        .unwrap_or_else(|_| panic!("expected left composition"));
+    let right = handle
+        .orchestrate_declaration_with_contributions(
+            ForgeQueryContributionComposedOrchestrationInput::new(ContributionInput::new("face-e"))
+                .with_contribution(ForgeQueryContributionIntent::support(
+                    ForgeQuerySupportContributionAuthoring::declaration_traceability(
+                        "domain.traceability.edge",
+                        "secondary support detail",
+                    ),
+                ))
+                .with_contribution(ForgeQueryContributionIntent::support(
+                    ForgeQuerySupportContributionAuthoring::declaration_traceability(
+                        "domain.traceability.face",
+                        "support detail",
+                    ),
+                )),
+        )
+        .unwrap_or_else(|_| panic!("expected right composition"));
+
+    assert_eq!(left.composition_digest(), right.composition_digest());
 }

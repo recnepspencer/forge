@@ -116,14 +116,14 @@ That means:
 5. envelope-only inspection still exposes the retained public publication slice
    and then correlates it with readiness posture for later relational, bridge,
    and signal consequences
-6. optional `9.3.7` contribution evidence may be attached on demand, but only
+6. optional declaration-scoped contribution evidence may be attached on demand, but only
    when the retained seam subject can honestly justify that contribution target
    and category
 7. stronger admitted-plan-bound and lower-runtime-bound contribution categories
    require matching retained downstream proof explicitly; they are not inferred
    from declaration-entry posture alone
 8. the narrower relational, bridge, and signal support helpers remain
-   entry-phase-only projections; they do not become contribution-composed
+   declaration-entry seam projections; they do not become contribution-composed
    inspection surfaces just because contribution evidence is attached here
 
 If a stronger lower seam artifact is missing, inspection keeps that absence
@@ -199,7 +199,7 @@ Use inspection when you need to answer:
 - what route and receipt posture was retained?
 - what semantic slice did the retained envelope actually publish?
 - did the seam reach relational, bridge, or signal posture?
-- if a lower-authority phase did not succeed, what retained aspect contract,
+- if a lower-authority surface did not succeed, what retained aspect contract,
   coverage basis, mismatch, mapped slice, or produced-aspect posture still
   survived for diagnosis?
 - whether a denied lower-authority artifact actually proved one concrete truth

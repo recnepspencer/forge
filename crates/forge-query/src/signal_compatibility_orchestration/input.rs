@@ -1,26 +1,14 @@
 use crate::application::{
-    ForgeQueryAdmittedDeclarationProgression, ForgeQueryDeclarationAspectContract,
-    ForgeQueryDeclarationBridgeContinuationRequest, ForgeQueryDeclarationFamilyMarker,
-    ForgeQueryDeclarationInput, ForgeQueryDeclarationRouteIntent,
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationBridgeContinuationRequest,
+    ForgeQueryDeclarationFamilyMarker, ForgeQueryDeclarationInput,
     ForgeQueryDeclarationSignalCompatibilityInput, ForgeQueryDomainEntryMarker,
 };
-
-pub enum ForgeQuerySignalCompatibilityOrchestrationSubject<
-    D: ForgeQueryDomainEntryMarker,
-    I: ForgeQueryDeclarationInput<D>,
-> {
-    SignalCompatibility(ForgeQueryDeclarationSignalCompatibilityInput<D, I>),
-    Progressed {
-        progression: ForgeQueryAdmittedDeclarationProgression<D, I>,
-        route_intent: Option<ForgeQueryDeclarationRouteIntent>,
-    },
-}
 
 pub struct ForgeQuerySignalCompatibilityOrchestrationInput<
     D: ForgeQueryDomainEntryMarker,
     I: ForgeQueryDeclarationInput<D>,
 > {
-    subject: ForgeQuerySignalCompatibilityOrchestrationSubject<D, I>,
+    subject: ForgeQueryDeclarationSignalCompatibilityInput<D, I>,
     required_aspect_contract: ForgeQueryDeclarationAspectContract,
     bridge_request: Option<ForgeQueryDeclarationBridgeContinuationRequest>,
 }
@@ -30,20 +18,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 {
     pub fn new(subject: ForgeQueryDeclarationSignalCompatibilityInput<D, I>) -> Self {
         Self {
-            subject: ForgeQuerySignalCompatibilityOrchestrationSubject::SignalCompatibility(
-                subject,
-            ),
-            required_aspect_contract: I::Family::aspect_contract(),
-            bridge_request: None,
-        }
-    }
-
-    pub fn from_progressed(progression: ForgeQueryAdmittedDeclarationProgression<D, I>) -> Self {
-        Self {
-            subject: ForgeQuerySignalCompatibilityOrchestrationSubject::Progressed {
-                progression,
-                route_intent: None,
-            },
+            subject,
             required_aspect_contract: I::Family::aspect_contract(),
             bridge_request: None,
         }
@@ -65,17 +40,6 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         self
     }
 
-    pub fn with_route_intent(mut self, route_intent: ForgeQueryDeclarationRouteIntent) -> Self {
-        if let ForgeQuerySignalCompatibilityOrchestrationSubject::Progressed {
-            route_intent: existing,
-            ..
-        } = &mut self.subject
-        {
-            *existing = Some(route_intent);
-        }
-        self
-    }
-
     pub fn required_aspect_contract(&self) -> &ForgeQueryDeclarationAspectContract {
         &self.required_aspect_contract
     }
@@ -87,7 +51,7 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     pub(crate) fn into_parts(
         self,
     ) -> (
-        ForgeQuerySignalCompatibilityOrchestrationSubject<D, I>,
+        ForgeQueryDeclarationSignalCompatibilityInput<D, I>,
         ForgeQueryDeclarationAspectContract,
         Option<ForgeQueryDeclarationBridgeContinuationRequest>,
     ) {

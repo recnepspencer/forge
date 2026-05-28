@@ -250,7 +250,7 @@ The most important places to check lanes and aspects are:
 
 ## Declaration-entry retrofit
 
-Phase 24b extends the aspect story beyond runtime reads, computed surfaces, and
+The aspect story extends beyond runtime reads, computed surfaces, and
 effects. Declaration-entry artifacts such as progression, foundational
 evidence, route plans, receipts, envelopes, relational routing, bridge
 routing, and signal compatibility now need to carry aspect-aware semantic

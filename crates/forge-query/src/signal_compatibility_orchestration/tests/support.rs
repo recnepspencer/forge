@@ -2,7 +2,7 @@ use std::marker::PhantomData;
 
 use crate::application::{
     ForgeQueryApplicationFacade, ForgeQueryBridgeContinuationAuthority, ForgeQueryCapabilityFamily,
-    ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
+    ForgeQueryConfig, ForgeQueryConfigSectionFamily, ForgeQueryDeclarationAspectContract,
     ForgeQueryDeclarationAspectCoverage, ForgeQueryDeclarationBridgeContinuationMode,
     ForgeQueryDeclarationBridgeContinuationRequest, ForgeQueryDeclarationBridgeTruthContext,
     ForgeQueryDeclarationCanonicalEntry, ForgeQueryDeclarationFamilyMarker,
@@ -167,7 +167,15 @@ impl ForgeQueryDeclarationInput<SignalDomain> for SignalInput {
 pub(super) fn admitted_handle(
     world: &'static str,
 ) -> crate::application::ForgeQueryAdmittedConfiguredDomainHandle<SignalDomain, SignalWorld> {
-    ForgeQueryApplicationFacade::runtime_backed_default()
+    admitted_handle_with_config(world, ForgeQueryConfig::runtime_backed_default())
+}
+
+fn admitted_handle_with_config(
+    world: &'static str,
+    config: ForgeQueryConfig,
+) -> crate::application::ForgeQueryAdmittedConfiguredDomainHandle<SignalDomain, SignalWorld> {
+    ForgeQueryApplicationFacade::new(config)
+        .unwrap()
         .domain(SignalDomain)
         .with_operating_context(SignalWorld(world))
         .validate()
@@ -207,20 +215,6 @@ pub(super) fn orchestration_input(
 ) -> ForgeQuerySignalCompatibilityOrchestrationInput<SignalDomain, SignalInput> {
     ForgeQuerySignalCompatibilityOrchestrationInput::new(
         ForgeQueryDeclarationSignalCompatibilityInput::enveloped(envelope(handle, id)),
-    )
-}
-
-pub(super) fn progressed_input(
-    handle: &crate::application::ForgeQueryAdmittedConfiguredDomainHandle<
-        SignalDomain,
-        SignalWorld,
-    >,
-    id: &'static str,
-) -> ForgeQuerySignalCompatibilityOrchestrationInput<SignalDomain, SignalInput> {
-    ForgeQuerySignalCompatibilityOrchestrationInput::from_progressed(
-        handle
-            .declare_review_and_progress(SignalInput::new(id))
-            .unwrap_or_else(|_| panic!("expected progressed signal declaration")),
     )
 }
 

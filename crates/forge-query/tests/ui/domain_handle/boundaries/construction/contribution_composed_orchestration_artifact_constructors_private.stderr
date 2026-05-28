@@ -1,31 +1,37 @@
-error[E0451]: fields `envelope`, `contribution_composition`, `contributions` and `composed_digest` of struct `ForgeQueryContributionComposedOrchestration` are private
-  --> tests/ui/domain_handle/boundaries/construction/contribution_composed_orchestration_artifact_constructors_private.rs:77:9
+error[E0560]: struct `ForgeQueryContributionComposedOrchestration<GeometryDomainEntry, GeometryInput>` has no field named `composed_digest`
+  --> tests/ui/domain_handle/boundaries/construction/contribution_composed_orchestration_artifact_constructors_private.rs:80:9
    |
-76 |     let _ = ForgeQueryContributionComposedOrchestration::<GeometryDomainEntry, GeometryInput> {
-   |             --------------------------------------------------------------------------------- in this type
-77 |         envelope: unsafe { std::mem::zeroed() },
-   |         ^^^^^^^^ private field
-78 |         contribution_composition: unsafe { std::mem::zeroed() },
-   |         ^^^^^^^^^^^^^^^^^^^^^^^^ private field
-79 |         contributions: vec![],
-   |         ^^^^^^^^^^^^^ private field
 80 |         composed_digest: String::new(),
-   |         ^^^^^^^^^^^^^^^ private field
+   |         ^^^^^^^^^^^^^^^ `ForgeQueryContributionComposedOrchestration<GeometryDomainEntry, GeometryInput>` does not have this field
+   |
+   = note: all struct fields are already assigned
 
-error[E0451]: fields `request_digest`, `outcome`, `linked_artifacts` and `contribution_digest` of struct `ForgeQueryContributionComposedOrchestrationTranscript` are private
-  --> tests/ui/domain_handle/boundaries/construction/contribution_composed_orchestration_artifact_constructors_private.rs:86:9
+error: cannot construct `ForgeQueryContributionComposedOrchestrationTranscript<GeometryDomainEntry, GeometryInput>` with struct literal syntax due to private fields
+  --> tests/ui/domain_handle/boundaries/construction/contribution_composed_orchestration_artifact_constructors_private.rs:82:13
    |
 82 |       let _ = ForgeQueryContributionComposedOrchestrationTranscript::<
-   |  _____________-
+   |  _____________^
 83 | |         GeometryDomainEntry,
 84 | |         GeometryInput,
 85 | |     > {
-   | |_____- in this type
+   | |_____^
 86 |           request_digest: String::new(),
-   |           ^^^^^^^^^^^^^^ private field
+   |           ----------------------------- private field
 87 |           outcome: unsafe { std::mem::zeroed() },
-   |           ^^^^^^^ private field
+   |           -------------------------------------- private field
 88 |           linked_artifacts: unsafe { std::mem::zeroed() },
-   |           ^^^^^^^^^^^^^^^^ private field
+   |           ----------------------------------------------- private field
 89 |           contribution_digest: None,
-   |           ^^^^^^^^^^^^^^^^^^^ private field
+   |           ------------------------- private field
+   |
+   = note: ...and other private fields `request_descriptor`, `materialization_policy`, `declaration`, `composition_classification` and `intent_results` that were not provided
+help: you might have meant to use the `new` associated function
+   |
+85 -     > {
+86 -         request_digest: String::new(),
+87 -         outcome: unsafe { std::mem::zeroed() },
+88 -         linked_artifacts: unsafe { std::mem::zeroed() },
+89 -         contribution_digest: None,
+90 -     };
+85 +     >::new(_, _, _, _, _, _, _, _, _);
+   |

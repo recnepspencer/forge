@@ -24,7 +24,8 @@ typed vocabulary while still linking back to the checked topology underneath.
   orchestration
 - get a machine-readable next step instead of parsing prose
 - inspect which checked topology the ordinary outcome came from
-- keep `Denied`, `Refused`, `Stale`, `RebindRequired`, `Unsupported`, and
+- keep `Denied`, `Refused`, `Stale`, `RebindRequired`, `WrongWorld`,
+  `WrongHandle`, `BasisMismatch`, `AuthorityMismatch`, `Unsupported`, and
   `Ambiguous` distinct
 - hand the stop directly into the recovery boundary when the next job is repair
   guidance instead of local branching
@@ -259,7 +260,7 @@ Binding linked artifacts can expose:
 
 ## Current Limits
 
-- ordinary outcomes are currently shipped for typed binding,
+- ordinary outcomes are available for typed binding,
   continuation preparation/execution, signal-compatibility orchestration, and
   declaration-entry orchestration
 - the ordinary surface is intentionally projection-only; it does not own new

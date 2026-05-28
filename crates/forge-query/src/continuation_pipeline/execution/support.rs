@@ -12,6 +12,49 @@ use crate::identity::hash_parts;
 use crate::continuation_pipeline::artifacts::ForgeQueryPreparedContinuationSignalPosture;
 use crate::continuation_pipeline::ForgeQueryPreparedContinuation;
 
+pub(super) fn required_capability_families_for_prepared<
+    D: ForgeQueryDomainEntryMarker,
+    I: ForgeQueryDeclarationInput<D>,
+>(
+    bridge_request: &ForgeQueryDeclarationBridgeContinuationRequest,
+    signal_execution_family: Option<ForgeQueryDeclarationSignalExecutionFamily>,
+) -> Vec<crate::application::ForgeQueryCapabilityFamily> {
+    let mut required = Vec::new();
+
+    if let Some(contract) = I::Family::bridge_continuation_contract() {
+        required.extend_from_slice(contract.required_capability_families());
+    }
+
+    if let Some(family) = signal_execution_family {
+        let signal_required = match family {
+            ForgeQueryDeclarationSignalExecutionFamily::RuntimeDerivedExecution
+            | ForgeQueryDeclarationSignalExecutionFamily::MixedDerivedExecution => {
+                &[crate::application::ForgeQueryCapabilityFamily::QueryComposition][..]
+            }
+            ForgeQueryDeclarationSignalExecutionFamily::HistoricalDerivedExecution => &[
+                crate::application::ForgeQueryCapabilityFamily::QueryComposition,
+                crate::application::ForgeQueryCapabilityFamily::HistoricalEvaluation,
+            ][..],
+            ForgeQueryDeclarationSignalExecutionFamily::PreviewDerivedExecution => &[
+                crate::application::ForgeQueryCapabilityFamily::QueryComposition,
+                crate::application::ForgeQueryCapabilityFamily::PreviewSession,
+            ][..],
+        };
+        required.extend_from_slice(signal_required);
+    }
+
+    if matches!(
+        bridge_request.truth_context(),
+        crate::application::ForgeQueryDeclarationBridgeTruthContext::Historical
+    ) {
+        required.push(crate::application::ForgeQueryCapabilityFamily::HistoricalEvaluation);
+    }
+
+    required.sort();
+    required.dedup();
+    required
+}
+
 pub(super) struct ResolvedSignalContinuationTruth {
     pub(super) posture: ForgeQueryPreparedContinuationSignalPosture,
     pub(super) execution_family: Option<ForgeQueryDeclarationSignalExecutionFamily>,

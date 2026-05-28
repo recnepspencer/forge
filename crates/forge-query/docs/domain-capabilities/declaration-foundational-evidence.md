@@ -169,7 +169,7 @@ same retained truth with a leaner materialized bundle or when another surface,
 such as declaration-entry orchestration, has already chosen the lean
 foundational default for you.
 
-Under the Phase 24b retrofit, those profiles now carry explicit semantic
+Those profiles now carry explicit semantic
 publication meaning:
 
 - `ElideSupportAndDiagnostics` publishes only the required semantic slices that
@@ -363,17 +363,17 @@ What this example is showing:
 - the evidence wrapper preserves admitted-world identity and declaration truth
 - materialization profile changes the bundle shape without changing the retained
   declaration truth being described
-- `aspect_publication()` is where later route and orchestration phases learn
+- `aspect_publication()` is where later route and orchestration surfaces learn
   which semantic slices were actually present, widened, elided, or masked
 
-## Aspect-aware retrofit note
+## Aspect Semantics
 
-Phase 24b makes foundational evidence the first publication-oriented aspect
+Foundational evidence is the first publication-oriented aspect
 surface in the declaration-entry pipeline. Profiles such as lean,
 support-ready, and richer publication are no longer allowed to mean only
 "different descriptive richness." They must also describe which semantic
 slices are present, widened, elided, or masked so later route/materialization/
-orchestration phases can stay semantically honest without rediscovering that
+orchestration surfaces can stay semantically honest without rediscovering that
 publication breadth themselves.
 
 ## How It Relates To Other Features

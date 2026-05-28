@@ -74,6 +74,7 @@ impl ForgeQueryDomainCapabilityTargetSemantics {
                 input_contract,
                 source_lane,
                 target_lane,
+                ..
             } => Some(Self::IntentDeclaration {
                 name: name.clone(),
                 strategy_name: strategy_name.clone(),

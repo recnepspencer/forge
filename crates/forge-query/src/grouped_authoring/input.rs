@@ -5,7 +5,10 @@ use crate::application::{
     ForgeQueryDomainEntryMarker,
 };
 
-use super::artifact::{ForgeQueryGroupedOrdering, ForgeQueryGroupedSemantics};
+use super::posture::{
+    ForgeQueryGroupedAtomicity, ForgeQueryGroupedContinuityAssumption, ForgeQueryGroupedIntent,
+    ForgeQueryGroupedOrdering, ForgeQueryGroupedSemantics, ForgeQueryGroupedSharedPostureClaim,
+};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct ForgeQueryGroupedDeclarationInput<
@@ -14,6 +17,10 @@ pub struct ForgeQueryGroupedDeclarationInput<
 > {
     semantics: ForgeQueryGroupedSemantics,
     ordering: ForgeQueryGroupedOrdering,
+    atomicity: ForgeQueryGroupedAtomicity,
+    grouping_intent: ForgeQueryGroupedIntent,
+    continuity_assumption: ForgeQueryGroupedContinuityAssumption,
+    shared_posture_claims: Vec<ForgeQueryGroupedSharedPostureClaim>,
     shared_rationale: Option<String>,
     member_inputs: Vec<I>,
     _marker: PhantomData<D>,
@@ -28,6 +35,10 @@ where
         Self {
             semantics: ForgeQueryGroupedSemantics::LocalNeighborhood,
             ordering: ForgeQueryGroupedOrdering::Declared,
+            atomicity: ForgeQueryGroupedAtomicity::MemberIndependent,
+            grouping_intent: ForgeQueryGroupedIntent::Exploratory,
+            continuity_assumption: ForgeQueryGroupedContinuityAssumption::None,
+            shared_posture_claims: Vec::new(),
             shared_rationale: None,
             member_inputs: vec![seed_member],
             _marker: PhantomData,
@@ -53,6 +64,32 @@ where
         self.ordering = ordering;
         self
     }
+
+    pub fn with_atomicity(mut self, atomicity: ForgeQueryGroupedAtomicity) -> Self {
+        self.atomicity = atomicity;
+        self
+    }
+
+    pub fn with_grouping_intent(mut self, grouping_intent: ForgeQueryGroupedIntent) -> Self {
+        self.grouping_intent = grouping_intent;
+        self
+    }
+
+    pub fn with_continuity_assumption(
+        mut self,
+        continuity_assumption: ForgeQueryGroupedContinuityAssumption,
+    ) -> Self {
+        self.continuity_assumption = continuity_assumption;
+        self
+    }
+
+    pub fn with_shared_posture_claim(mut self, claim: ForgeQueryGroupedSharedPostureClaim) -> Self {
+        if !self.shared_posture_claims.contains(&claim) {
+            self.shared_posture_claims.push(claim);
+            self.shared_posture_claims.sort();
+        }
+        self
+    }
 }
 
 impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
@@ -64,6 +101,22 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
 
     pub fn ordering(&self) -> ForgeQueryGroupedOrdering {
         self.ordering
+    }
+
+    pub fn atomicity(&self) -> ForgeQueryGroupedAtomicity {
+        self.atomicity
+    }
+
+    pub fn grouping_intent(&self) -> ForgeQueryGroupedIntent {
+        self.grouping_intent
+    }
+
+    pub fn continuity_assumption(&self) -> ForgeQueryGroupedContinuityAssumption {
+        self.continuity_assumption
+    }
+
+    pub fn shared_posture_claims(&self) -> &[ForgeQueryGroupedSharedPostureClaim] {
+        &self.shared_posture_claims
     }
 
     pub fn shared_rationale(&self) -> Option<&str> {
@@ -79,12 +132,20 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
     ) -> (
         ForgeQueryGroupedSemantics,
         ForgeQueryGroupedOrdering,
+        ForgeQueryGroupedAtomicity,
+        ForgeQueryGroupedIntent,
+        ForgeQueryGroupedContinuityAssumption,
+        Vec<ForgeQueryGroupedSharedPostureClaim>,
         Option<String>,
         Vec<I>,
     ) {
         (
             self.semantics,
             self.ordering,
+            self.atomicity,
+            self.grouping_intent,
+            self.continuity_assumption,
+            self.shared_posture_claims,
             self.shared_rationale,
             self.member_inputs,
         )

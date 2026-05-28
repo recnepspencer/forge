@@ -9,9 +9,11 @@ use crate::binding_pipeline::{
     ForgeQueryContinuationBindingRequest, ForgeQueryResolveContinuationFromTargetRequest,
 };
 
+use super::readmission::prepared_execution_readmission_from_routing;
 use super::support::{
     bridge_subject_and_signal_truth, linked_from_subject, prepared_digest,
-    signal_basis_families_from_family, signal_subject_from_bridge_subject, transcript_digest,
+    required_capability_families_for_prepared, signal_basis_families_from_family,
+    signal_subject_from_bridge_subject, transcript_digest,
 };
 use crate::continuation_pipeline::artifacts::{
     basis_posture_for_families, family_for_mode, runtime_contract_for_mode, truth_context_for_mode,
@@ -182,6 +184,15 @@ fn prepared_outcome_from_bridge_checked<
         ForgeQueryDeclarationBridgeRoutingChecked::Routed(routing) => {
             witness_checks.push(ForgeQueryBindingWitnessCheck::passed("bridge_routing"));
             let basis_families = signal_basis_families_from_family::<D, I>();
+            let required_capability_families = required_capability_families_for_prepared::<D, I>(
+                bridge_request,
+                signal_truth.execution_family,
+            );
+            let execution_readmission = prepared_execution_readmission_from_routing(
+                bridge_request,
+                &routing,
+                required_capability_families,
+            );
             let prepared = ForgeQueryPreparedContinuation::new(
                 family_for_mode(bridge_request.mode()),
                 truth_context_for_mode(routing.truth_context()),
@@ -190,6 +201,7 @@ fn prepared_outcome_from_bridge_checked<
                 runtime_contract_for_mode(bridge_request.mode()),
                 ForgeQueryPreparedContinuationExecutionMode::ExplicitBridgeLowering,
                 basis_families,
+                execution_readmission,
                 routing,
                 signal_truth.posture,
                 signal_truth.execution_family,

@@ -9,8 +9,10 @@ pub enum ForgeQueryRecoveryRequestKind {
     GatherAvailability,
     InspectCheckedLane,
     InspectProofLane,
+    InspectSourceConflict,
     NarrowInput,
     RebindContext,
+    RebuildSupportState,
     RefreshBasis,
     RepairDeclarationMeaning,
     RetryLater,
@@ -41,10 +43,16 @@ pub enum ForgeQueryRecoveryRequest {
     InspectProofLane {
         explanation: ForgeQueryRecoveryExplanation,
     },
+    InspectSourceConflict {
+        explanation: ForgeQueryRecoveryExplanation,
+    },
     NarrowInput {
         explanation: ForgeQueryRecoveryExplanation,
     },
     RebindContext {
+        explanation: ForgeQueryRecoveryExplanation,
+    },
+    RebuildSupportState {
         explanation: ForgeQueryRecoveryExplanation,
     },
     RefreshBasis {
@@ -83,8 +91,14 @@ impl ForgeQueryRecoveryRequest {
             ForgeQueryRecoveryRequestKind::InspectProofLane => {
                 Self::InspectProofLane { explanation }
             }
+            ForgeQueryRecoveryRequestKind::InspectSourceConflict => {
+                Self::InspectSourceConflict { explanation }
+            }
             ForgeQueryRecoveryRequestKind::NarrowInput => Self::NarrowInput { explanation },
             ForgeQueryRecoveryRequestKind::RebindContext => Self::RebindContext { explanation },
+            ForgeQueryRecoveryRequestKind::RebuildSupportState => {
+                Self::RebuildSupportState { explanation }
+            }
             ForgeQueryRecoveryRequestKind::RefreshBasis => Self::RefreshBasis { explanation },
             ForgeQueryRecoveryRequestKind::RepairDeclarationMeaning => {
                 Self::RepairDeclarationMeaning { explanation }
@@ -108,8 +122,12 @@ impl ForgeQueryRecoveryRequest {
             Self::GatherAvailability { .. } => ForgeQueryRecoveryRequestKind::GatherAvailability,
             Self::InspectCheckedLane { .. } => ForgeQueryRecoveryRequestKind::InspectCheckedLane,
             Self::InspectProofLane { .. } => ForgeQueryRecoveryRequestKind::InspectProofLane,
+            Self::InspectSourceConflict { .. } => {
+                ForgeQueryRecoveryRequestKind::InspectSourceConflict
+            }
             Self::NarrowInput { .. } => ForgeQueryRecoveryRequestKind::NarrowInput,
             Self::RebindContext { .. } => ForgeQueryRecoveryRequestKind::RebindContext,
+            Self::RebuildSupportState { .. } => ForgeQueryRecoveryRequestKind::RebuildSupportState,
             Self::RefreshBasis { .. } => ForgeQueryRecoveryRequestKind::RefreshBasis,
             Self::RepairDeclarationMeaning { .. } => {
                 ForgeQueryRecoveryRequestKind::RepairDeclarationMeaning
@@ -131,8 +149,10 @@ impl ForgeQueryRecoveryRequest {
             | Self::GatherAvailability { explanation }
             | Self::InspectCheckedLane { explanation }
             | Self::InspectProofLane { explanation }
+            | Self::InspectSourceConflict { explanation }
             | Self::NarrowInput { explanation }
             | Self::RebindContext { explanation }
+            | Self::RebuildSupportState { explanation }
             | Self::RefreshBasis { explanation }
             | Self::RepairDeclarationMeaning { explanation }
             | Self::RetryLater { explanation }

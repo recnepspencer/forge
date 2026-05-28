@@ -148,7 +148,7 @@ rejection.
    - canonical declaration artifact
    - admitted family support report
    - the family legality contract
-   - the retained Phase 5 aspect coverage carried by that family support report
+   - the retained aspect coverage carried by that family support report
 5. Query evaluates:
    - boundary role claim legality
    - boundary surface disposition legality
@@ -161,8 +161,9 @@ Important:
 
 - legality now carries semantic aspect coverage, not raw declaration field names
 - if a declaration uses a canonical field like `face_ref`, that remains part of
-  canonical declaration identity, but the legality proof handed to later phases
-  is the semantic slice coverage retained from Phase 5 support
+  canonical declaration identity, but the legality proof handed to later
+  consumers
+  is the semantic slice coverage retained from family support
 - reviewed aspect coverage is allowed to preserve masked slices explicitly; a
   legality success does not silently promote masked support into visible
   semantic presence
@@ -313,12 +314,12 @@ What this example is showing:
 - the primary geometry mental model is active context, while the canonicalized
   declaration entries are internal retained evidence
 
-## Aspect-aware retrofit note
+## Aspect Semantics
 
-Phase 24b requires legality to record which semantic slices were actually
+Legality records which semantic slices were actually
 reviewed. A future legality success is no longer allowed to mean only "the
 broad declaration artifact passed." It must also say which aspect-qualified
-structural scope was cleared so progression and later route/binding phases do
+structural scope was cleared so progression and later route/binding surfaces do
 not over-trust a coarse legality success.
 
 ## How It Relates To Other Features

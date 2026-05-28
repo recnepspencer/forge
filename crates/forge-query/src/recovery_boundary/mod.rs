@@ -2,6 +2,9 @@ mod brief;
 mod checked;
 mod declaration;
 mod explanation;
+mod family;
+mod foundational;
+mod materialization;
 mod ordinary;
 mod request;
 mod route_receipt;
@@ -26,7 +29,14 @@ pub use declaration::{
     forge_query_recovery_brief_from_declaration_entry_checked,
     forge_query_recovery_brief_from_declaration_entry_proof,
 };
-pub use explanation::ForgeQueryRecoveryExplanation;
+pub use explanation::{ForgeQueryRecoveryExplanation, ForgeQueryRecoveryGroupedMemberContext};
+pub use family::{
+    ForgeQueryRecoveryAspectPosture, ForgeQueryRecoveryBasisPosture,
+    ForgeQueryRecoveryConflictPosture, ForgeQueryRecoveryEvidenceStrength,
+    ForgeQueryRecoveryFoundationalDiagnosticContext, ForgeQueryRecoveryFoundationalSupportContext,
+    ForgeQueryRecoverySourceFamily,
+};
+pub use materialization::ForgeQueryRecoveryMaterialization;
 pub use ordinary::forge_query_recovery_brief_from_ordinary_outcome;
 pub use request::{ForgeQueryRecoveryRequest, ForgeQueryRecoveryRequestKind};
 pub use route_receipt::{

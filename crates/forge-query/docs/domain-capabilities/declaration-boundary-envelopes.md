@@ -154,14 +154,15 @@ over already-proved declaration truth:
    receipt-backed truth
 
 That means envelopes do not invent new route or receipt meaning. They preserve
-and present retained meaning that earlier phases already proved.
+and present retained meaning that earlier declaration-entry surfaces already
+proved.
 
 The retained envelope artifact is also now one shared binding target. Later
 relational-routing, bridge-continuation, signal-compatibility, and grouped
 binding work should bind from this envelope identity rather than reopening the
 declaration-entry seam.
 
-Phase 24b makes that public seam explicitly aspect-scoped:
+That public seam is explicitly aspect-scoped:
 
 - `aspect_contract()` tells later consumers which semantic crossing contract
   the envelope is actually publishing
@@ -390,13 +391,13 @@ These surfaces help answer:
 - which retained public crossing identity later continuation-oriented features
   should bind from directly
 
-## Aspect-aware retrofit note
+## Aspect Semantics
 
-Phase 24b requires envelopes to publish one self-describing aspect-scoped
-crossing story. Later continuation and grouped-authoring surfaces should be
+Envelopes publish one self-describing aspect-scoped crossing story. Continuation
+and grouped-authoring surfaces should be
 able to bind from what the envelope really published, including what it masked,
 without reopening the lower receipt or route artifacts just to rediscover the
-semantic slice that crossed. The shipped envelope surface now exposes
+semantic slice that crossed. The envelope surface exposes
 `aspect_contract()` and `aspect_publication()` for that purpose.
 
 ## Anti-Patterns
