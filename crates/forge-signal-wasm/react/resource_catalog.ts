@@ -9,7 +9,7 @@ import type {
 } from "./model.js";
 
 type ResourceCatalogCacheEntry = {
-  definition: ResourceCatalogDefinition<object, unknown>;
+  definition: ResourceCatalogDefinition<SignalsLike, unknown>;
   value: unknown;
 };
 
@@ -26,7 +26,7 @@ function cacheForSignals(signals: object): Map<string, ResourceCatalogCacheEntry
 }
 
 export function createResourceCatalog<
-  TSignals extends object,
+  TSignals extends SignalsLike,
   TCatalog,
 >(options: {
   id: string;
@@ -34,7 +34,7 @@ export function createResourceCatalog<
 }): ResourceCatalogDefinition<TSignals, TCatalog>;
 
 export function createResourceCatalog<
-  TSignals extends object,
+  TSignals extends SignalsLike,
   TScope,
   TDomains extends Record<string, (scope: TScope, signals: TSignals) => unknown>,
 >(options: {
@@ -55,10 +55,10 @@ export function createResourceCatalog<
 
 export function createResourceCatalog(options: {
   id: string;
-  build?(signals: object): unknown;
-  scope?(signals: object): unknown;
-  domains?: Record<string, (scope: unknown, signals: object) => unknown>;
-}): ResourceCatalogDefinition<object, unknown> {
+  build?(signals: SignalsLike): unknown;
+  scope?(signals: SignalsLike): unknown;
+  domains?: Record<string, (scope: unknown, signals: SignalsLike) => unknown>;
+}): ResourceCatalogDefinition<SignalsLike, unknown> {
   if (typeof options.build === "function") {
     return Object.freeze({
       id: options.id,
@@ -73,8 +73,8 @@ export function createResourceCatalog(options: {
   const domainEntries = Object.entries(options.domains);
   return Object.freeze({
     id: options.id,
-    build(signals: object) {
-      const scope = options.scope(signals);
+    build(signals: SignalsLike) {
+      const scope = options.scope!(signals);
       const domains = Object.fromEntries(
         domainEntries.map(([name, build]) => [name, build(scope, signals)]),
       );
@@ -88,7 +88,7 @@ export function createResourceCatalog(options: {
 }
 
 export function getResourceCatalog<
-  TSignals extends object,
+  TSignals extends SignalsLike,
   TCatalog,
 >(
   signals: TSignals,
@@ -106,7 +106,7 @@ export function getResourceCatalog<
   }
   const created = definition.build(signals);
   cache.set(definition.id, {
-    definition: definition as ResourceCatalogDefinition<object, unknown>,
+    definition: definition as unknown as ResourceCatalogDefinition<SignalsLike, unknown>,
     value: created,
   });
   return created;
@@ -182,28 +182,36 @@ function resolveResourceCatalogHookInputs<
 }
 
 function isReactSignalsStore(value: unknown): value is ReactSignalsStore {
+  const candidate = value as {
+    signals?: unknown;
+    subscribeSignal?: unknown;
+    getSignalSnapshot?: unknown;
+  } | null;
   return Boolean(
-    value
-    && typeof value === "object"
-    && "signals" in value
-    && typeof value.subscribeSignal === "function"
-    && typeof value.getSignalSnapshot === "function",
+    candidate
+    && typeof candidate === "object"
+    && "signals" in candidate
+    && typeof candidate.subscribeSignal === "function"
+    && typeof candidate.getSignalSnapshot === "function",
   );
 }
 
-function isResourceCatalogDefinition<TSignals extends object, TCatalog>(
+function isResourceCatalogDefinition<TSignals extends SignalsLike, TCatalog>(
   value: unknown,
 ): value is ResourceCatalogDefinition<TSignals, TCatalog> {
+  const candidate = value as {
+    id?: unknown;
+    build?: unknown;
+  } | null;
   return Boolean(
-    value
-    && typeof value === "object"
-    && "id" in value
-    && typeof value.id === "string"
-    && typeof value.build === "function",
+    candidate
+    && typeof candidate === "object"
+    && typeof candidate.id === "string"
+    && typeof candidate.build === "function",
   );
 }
 
-function requireResourceCatalogDefinition<TSignals extends object, TCatalog>(
+function requireResourceCatalogDefinition<TSignals extends SignalsLike, TCatalog>(
   value: ReactSignalsStore<TSignals> | ResourceCatalogDefinition<TSignals, TCatalog>,
 ): ResourceCatalogDefinition<TSignals, TCatalog> {
   if (isResourceCatalogDefinition(value)) {

@@ -20,10 +20,11 @@ import type {
   ResourceOperationView,
   ResourceLineSelection,
   ResourceViewResult,
+  SignalsLike,
 } from "./model.js";
 
 export declare function createResourceCatalog<
-  TSignals extends object,
+  TSignals extends SignalsLike,
   TCatalog,
 >(options: {
   id: string;
@@ -31,7 +32,7 @@ export declare function createResourceCatalog<
 }): ResourceCatalogDefinition<TSignals, TCatalog>;
 
 export declare function createResourceCatalog<
-  TSignals extends object,
+  TSignals extends SignalsLike,
   TScope,
   TDomains extends Record<string, (scope: TScope, signals: TSignals) => unknown>,
 >(options: {
@@ -51,7 +52,7 @@ export declare function createResourceCatalog<
 >;
 
 export declare function getResourceCatalog<
-  TSignals extends object,
+  TSignals extends SignalsLike,
   TCatalog,
 >(
   signals: TSignals,
@@ -59,7 +60,7 @@ export declare function getResourceCatalog<
 ): TCatalog;
 
 export declare function useResourceCatalog<
-  TSignals extends object,
+  TSignals extends SignalsLike,
   TCatalog,
 >(
   store: ReactSignalsStore<TSignals>,
@@ -67,7 +68,7 @@ export declare function useResourceCatalog<
 ): TCatalog;
 
 export declare function useResourceCatalog<
-  TSignals extends object,
+  TSignals extends SignalsLike,
   TCatalog,
 >(
   definition: ResourceCatalogDefinition<TSignals, TCatalog>,

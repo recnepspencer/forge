@@ -73,7 +73,7 @@ export function useResourceOperation<
       status,
       freshness,
       diagnosticsSummary,
-      mutationResponse,
+      mutationResponse: mutationResponse as ReturnType<TLine["mutationResponse"]>,
       confirmationKind: mutationResponse?.confirmation.kind ?? null,
       resultKind,
       pending: resultKind === "pending",

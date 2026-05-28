@@ -38,7 +38,7 @@ export function useResourceView<
     errorMessage?: string;
   },
 ): ResourceViewResult<TLine, TValue, TInactive> {
-  const resourceLine = useOptionalResourceLine<TValue, TInactive, TLine>(
+  const resourceLine = useOptionalResourceLine<TValue, TInactive, unknown, TLine>(
     line,
     store,
     options,
@@ -60,7 +60,7 @@ export function useResourceView<
         hasVisibleValue: false,
         isRefreshing: false,
         isEmpty: false,
-      });
+      }) as ResourceViewResult<TLine, TValue, TInactive>;
     }
 
     const { diagnosticsSummary, status, value, summary, freshness } = resourceLine;
@@ -84,7 +84,7 @@ export function useResourceView<
     return Object.freeze({
       kind: "active",
       contentState,
-      line: resourceLine.line,
+      line: resourceLine.line as TLine,
       value,
       summary,
       status,
@@ -98,6 +98,6 @@ export function useResourceView<
       hasVisibleValue,
       isRefreshing,
       isEmpty,
-    });
+    }) as ResourceViewResult<TLine, TValue, TInactive>;
   }, [options?.emptyWhen, options?.errorMessage, resourceLine]);
 }

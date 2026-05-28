@@ -5,8 +5,10 @@ import type {
 } from "../package/types/diagnostics.js";
 import type {
   ResourceLineAwaitSettlementResult,
+  ResourceLineFreshness,
   ResourceLineStatus,
 } from "../package/types/resource/resource_lifecycle.js";
+import type { ResourceMutationResponsePlan } from "../package/types/resource/resource_mutation_response.js";
 import type {
   ResourceLineDiagnosticsSummary,
   ResourceLineSummary,
@@ -38,6 +40,7 @@ export interface BrowserHistoryStoryReactLike<
   TBackProvenance = unknown,
 > {
   subscribe(listener: () => void): () => void;
+  record(report: unknown): unknown;
   current(): TEntry | null;
   admittedEntries(): readonly TEntry[];
   breadcrumbTrail(): TBreadcrumbTrail;
@@ -280,7 +283,7 @@ export interface ReactSignalsStore<TSignals extends SignalsLike = SignalsLike> {
 }
 
 export interface ResourceCatalogDefinition<
-  TSignals extends object = object,
+  TSignals extends SignalsLike = SignalsLike,
   TCatalog = unknown,
 > {
   readonly id: string;

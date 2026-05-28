@@ -11,11 +11,11 @@ export function ReactSignalsStoreProvider({
   store: ReactSignalsStore;
   children?: React.ReactNode;
 }): React.JSX.Element {
-  return (
-    <ReactSignalsStoreContext.Provider value={store}>
-      {children}
-    </ReactSignalsStoreContext.Provider>
-  );
+  return React.createElement(
+    ReactSignalsStoreContext.Provider,
+    { value: store },
+    children,
+  ) as React.JSX.Element;
 }
 
 export function useReactSignalsStore(): ReactSignalsStore {

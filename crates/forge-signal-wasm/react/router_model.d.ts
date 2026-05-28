@@ -2,6 +2,7 @@ import type {
   BrowserHistoryStoryReactLike,
   BrowserHistoryStoryView,
   ReactSignalsStore,
+  SignalsLike,
 } from "./model.js";
 
 export interface RouterHistoryMethodMapReactLike<
@@ -52,7 +53,7 @@ export interface SignalsWithRouterLike<
   TStory extends BrowserHistoryStoryReactLike = BrowserHistoryStoryReactLike,
   TIngressOptions extends object = Record<string, unknown>,
   TCarriedBreadcrumbs = unknown,
-> {
+> extends SignalsLike {
   readonly router: RouterNamespaceReactLike<
     TLocation,
     TIngress,

@@ -4,15 +4,15 @@ import type {
   WebPerformanceSummary,
 } from "../package/types/diagnostics.js";
 import type {
-  ResourceLine,
+  ResourceLineAwaitSettlementResult,
   ResourceLineFreshness,
   ResourceLineStatus,
 } from "../package/types/resource/resource_lifecycle.js";
+import type { ResourceMutationResponsePlan } from "../package/types/resource/resource_mutation_response.js";
 import type {
   ResourceLineDiagnosticsSummary,
   ResourceLineSummary,
 } from "../package/types/resource/resource_line_summary.js";
-import type { ResourceMutationResponsePlan } from "../package/types/resource/resource_mutation_response.js";
 
 export interface SignalsDiagnosticsSnapshot {
   latestObservation: ObservationSurfaceSummary | null;
@@ -29,6 +29,8 @@ export interface SignalsHistoryReactLike<TBranch = unknown> {
 export interface SignalsHistoryView<TBranch = unknown> {
   readonly currentBranch: TBranch;
   readonly branches: readonly TBranch[];
+  readonly canUndo: boolean;
+  readonly canRedo: boolean;
 }
 
 export interface BrowserHistoryStoryReactLike<
@@ -38,6 +40,7 @@ export interface BrowserHistoryStoryReactLike<
   TBackProvenance = unknown,
 > {
   subscribe(listener: () => void): () => void;
+  record(report: unknown): unknown;
   current(): TEntry | null;
   admittedEntries(): readonly TEntry[];
   breadcrumbTrail(): TBreadcrumbTrail;
@@ -138,6 +141,24 @@ export interface ResourceOperationView<
   readonly settled: boolean;
   readonly message: string | null;
 }
+
+export interface ResourceLineFamilyReactLike<
+  TParams = unknown,
+  TLine extends ResourceLineReactLike<any, TParams> = ResourceLineReactLike<any, TParams>,
+> {
+  line(params: TParams): TLine;
+  optionalLine?(selection: ResourceLineSelection<TParams>): TLine | null;
+}
+
+export interface DisabledResourceLineSelection {
+  readonly enabled: false;
+}
+
+export type ResourceLineSelection<TParams> =
+  | TParams
+  | null
+  | undefined
+  | DisabledResourceLineSelection;
 
 export interface OptionalResourceLineInactiveResult<TInactive = undefined> {
   readonly kind: "inactive";
@@ -262,185 +283,50 @@ export interface ReactSignalsStore<TSignals extends SignalsLike = SignalsLike> {
 }
 
 export interface ResourceCatalogDefinition<
-  TSignals extends object = object,
+  TSignals extends SignalsLike = SignalsLike,
   TCatalog = unknown,
 > {
   readonly id: string;
   build(signals: TSignals): TCatalog;
 }
 
-export interface FormBoundInputReactLike<TValue = unknown, TRaw = TValue> {
-  input(rawValue: TRaw, options?: { readonly commit?: boolean; readonly source?: string }): void;
-  focus(): void;
-  blur(): void;
-  touch(): void;
-  visit(): void;
-  set(value: TValue): void;
-  clearDraft(): void;
-}
-
-export interface FormFieldHandleReactLike<TValue = unknown, TRaw = TValue> {
-  id: string;
-  path: string;
-  value(): TValue;
-  dirty(): unknown;
-  diagnostics(): unknown;
-}
-
-export interface FormActionPlanReactLike {
-  readonly status: string;
-  readonly readiness: {
-    readonly canRun: boolean;
-    readonly blockers: readonly unknown[];
-  };
-}
-
-export interface FormActionDebugReactLike {
-  readonly pending: boolean;
-  readonly latestExecution: unknown;
-}
-
-export interface FormVisibleMessageReactLike {
-  readonly target?: string;
-  readonly visibility?: string;
-}
-
-export interface FormInteractionFieldReactLike {
-  readonly field: string;
-}
-
-export interface FormControllerReactLike {
-  bindInput<TValue = unknown, TRaw = TValue>(
-    fieldId: string,
-    options?: unknown,
-  ): FormBoundInputReactLike<TValue, TRaw>;
-  field<TValue = unknown, TRaw = TValue>(
-    fieldId: string,
-  ): FormFieldHandleReactLike<TValue, TRaw>;
-  visibleMessages(): readonly FormVisibleMessageReactLike[];
-  interaction(): {
-    readonly fields: readonly FormInteractionFieldReactLike[];
-  };
-  fieldWritePosture(fieldId: string, capability?: "edit" | "patch"): unknown;
-  actionPlan(actionId: string): FormActionPlanReactLike;
-  debugAction(actionId: string): FormActionDebugReactLike;
-  executeAction(actionId: string): unknown;
-}
-
-export interface ManagedResourceWriteLineLike<
-  TParams = unknown,
-  TValue = unknown,
-> extends ResourceLine<TParams, TValue> {
-  mutationResponse(): ResourceMutationResponsePlan | null;
-  diagnosticsSummary(): ResourceLineDiagnosticsSummary;
-}
-
-export interface ManagedResourceRecoveryLineLike {
-  refresh(): ResourceLineStatus;
-  revalidate(): ResourceLineStatus;
-}
-
-export type ManagedResourceWriteRecoveryKind =
-  | "refreshResourceLine"
-  | "revalidateResourceLine";
-
-interface ManagedResourceWriteRecoveryBase<
-  TLine extends ManagedResourceRecoveryLineLike = ManagedResourceRecoveryLineLike,
-> {
-  readonly reason?: string;
-  readonly line: TLine | (() => TLine);
-}
-
-export interface ManagedResourceWriteRefreshRecovery<
-  TLine extends ManagedResourceRecoveryLineLike = ManagedResourceRecoveryLineLike,
-> extends ManagedResourceWriteRecoveryBase<TLine> {
-  readonly kind: "refreshResourceLine";
-}
-
-export interface ManagedResourceWriteRevalidateRecovery<
-  TLine extends ManagedResourceRecoveryLineLike = ManagedResourceRecoveryLineLike,
-> extends ManagedResourceWriteRecoveryBase<TLine> {
-  readonly kind: "revalidateResourceLine";
-}
-
-export type ManagedResourceWriteRecoveryDeclaration<
-  TLine extends ManagedResourceRecoveryLineLike = ManagedResourceRecoveryLineLike,
-> =
-  | ManagedResourceWriteRefreshRecovery<TLine>
-  | ManagedResourceWriteRevalidateRecovery<TLine>;
-
-export interface ManagedResourceWriteRecoveryExecution<
-  TLine extends ManagedResourceRecoveryLineLike = ManagedResourceRecoveryLineLike,
-> {
-  readonly kind: ManagedResourceWriteRecoveryKind;
-  readonly line: TLine;
-  readonly reason: string | null;
-  readonly status: ResourceLineStatus;
-}
-
-export interface ManagedResourceWriteRecoveryPolicy<
-  TLine extends ManagedResourceRecoveryLineLike = ManagedResourceRecoveryLineLike,
-> {
-  readonly partial?: readonly ManagedResourceWriteRecoveryDeclaration<TLine>[];
-  readonly rejected?: readonly ManagedResourceWriteRecoveryDeclaration<TLine>[];
-  readonly timedOut?: readonly ManagedResourceWriteRecoveryDeclaration<TLine>[];
-}
-
-export interface ManagedResourceWriteSuccessResult<
-  TLine extends ManagedResourceWriteLineLike = ManagedResourceWriteLineLike,
-> {
-  readonly resultKind: "fulfilled" | "partial";
-  readonly status: Extract<ResourceLineStatus, { kind: "fulfilled" }>;
-  readonly summary: ReturnType<TLine["summary"]>;
-  readonly freshness: ResourceLineFreshness;
-  readonly diagnosticsSummary: ResourceLineDiagnosticsSummary;
-  readonly mutationResponse: ResourceMutationResponsePlan | null;
-  readonly confirmationKind: ResourceMutationResponsePlan["confirmation"]["kind"] | null;
-  readonly value: ReturnType<TLine["value"]>;
-  readonly recovery: readonly ManagedResourceWriteRecoveryExecution[];
-}
-
-export interface ManagedResourceWriteFailureResult<
-  TLine extends ManagedResourceWriteLineLike = ManagedResourceWriteLineLike,
-> {
-  readonly resultKind: "rejected" | "timedOut";
-  readonly status: Extract<ResourceLineStatus, { kind: "rejected" | "timedOut" }>;
-  readonly summary: ReturnType<TLine["summary"]>;
-  readonly freshness: ResourceLineFreshness;
-  readonly diagnosticsSummary: ResourceLineDiagnosticsSummary;
-  readonly mutationResponse: ResourceMutationResponsePlan | null;
-  readonly confirmationKind: null;
-  readonly recovery: readonly ManagedResourceWriteRecoveryExecution[];
-}
-
-export type ManagedResourceWriteResult<
-  TLine extends ManagedResourceWriteLineLike = ManagedResourceWriteLineLike,
-> =
-  | ManagedResourceWriteSuccessResult<TLine>
-  | ManagedResourceWriteFailureResult<TLine>;
-
-type MaybePromise<TValue> = TValue | Promise<TValue>;
-
-export interface ManagedResourceWriteOptions<
-  TLine extends ManagedResourceWriteLineLike = ManagedResourceWriteLineLike,
-> {
-  timeoutMs?: number;
-  freeOnSettle?: boolean;
-  recovery?: ManagedResourceWriteRecoveryPolicy;
-  onPendingChange?(pending: boolean): MaybePromise<void>;
-  onFulfilled?(result: ManagedResourceWriteSuccessResult<TLine>): MaybePromise<void>;
-  onPartial?(result: Extract<ManagedResourceWriteResult<TLine>, { resultKind: "partial" }>): MaybePromise<void>;
-  onRejected?(result: ManagedResourceWriteFailureResult<TLine>): MaybePromise<void>;
-  onSettled?(result: ManagedResourceWriteResult<TLine>): MaybePromise<void>;
-}
-
-export interface ManagedResourceWriteState<
-  TArgs,
-  TLine extends ManagedResourceWriteLineLike = ManagedResourceWriteLineLike,
-> {
-  readonly pending: boolean;
-  readonly lastResult: ManagedResourceWriteResult<TLine> | null;
-  readonly lastError: unknown;
-  execute(args: TArgs): Promise<ManagedResourceWriteResult<TLine>>;
-  reset(): void;
-}
+export type {
+  FormActionDebugReactLike,
+  FormActionPlanReactLike,
+  FormBoundInputReactLike,
+  FormControllerReactLike,
+  FormFieldHandleReactLike,
+  FormInteractionFieldReactLike,
+  FormVisibleMessageReactLike,
+  RuntimeFormController,
+  RuntimeFormDeclaration,
+  RuntimeFormFieldHandleFor,
+  SignalsFormActionBinding,
+  SignalsFormBinding,
+  SignalsFormCheckboxBinding,
+  SignalsFormFieldBinding,
+  SignalsFormFieldState,
+  SignalsFormMultiSelectBinding,
+  SignalsFormOption,
+  SignalsFormSelectBinding,
+  SignalsWithFormLike,
+} from "./form_model.js";
+export type {
+  ManagedResourceWriteExecution,
+  ManagedResourceWriteFeedback,
+  ManagedResourceWriteFeedbackMessages,
+  ManagedResourceRecoveryLineLike,
+  ManagedResourceWriteFailureResult,
+  ManagedResourceWriteHookOptions,
+  ManagedResourceWriteLineLike,
+  ManagedResourceWriteOptions,
+  ManagedResourceWriteRecoveryDeclaration,
+  ManagedResourceWriteRecoveryExecution,
+  ManagedResourceWriteRecoveryKind,
+  ManagedResourceWriteRecoveryPolicy,
+  ManagedResourceWriteRecoverySummary,
+  ManagedResourceWriteRecoverySurface,
+  ManagedResourceWriteResult,
+  ManagedResourceWriteState,
+  ManagedResourceWriteSuccessResult,
+} from "./resource_write_model.js";

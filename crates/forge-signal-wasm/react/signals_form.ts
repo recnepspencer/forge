@@ -17,9 +17,9 @@ import type {
 } from "./model.js";
 import type {
   RuntimeFormDeclaration,
-  RuntimeFormFieldHandleFor,
   SignalsWithFormLike,
 } from "./form_model.js";
+import type { FormFieldDeclaration } from "../package/types/forms/core.js";
 
 function eventValue(eventOrValue: unknown): unknown {
   if (
@@ -118,11 +118,15 @@ function readFieldState<TValue = unknown, TRaw = TValue>(
   form: RuntimeFormController,
   fieldId: string,
 ): SignalsFormFieldState<TValue, TRaw> {
-  const field = form.field<TValue, TRaw>(fieldId);
+  const field = form.field(fieldId) as unknown as {
+    value(): TValue;
+    dirty(): SignalsFormFieldState<TValue, TRaw>["dirty"];
+    diagnostics(): SignalsFormFieldState<TValue, TRaw>["diagnostics"];
+  };
   const value = field.value();
   const writePosture = form.fieldWritePosture(fieldId);
   const blocked = !Boolean((writePosture as { canWrite?: boolean }).canWrite);
-  return Object.freeze({
+  const state = {
     name: fieldId,
     value,
     disabled: blocked,
@@ -133,7 +137,8 @@ function readFieldState<TValue = unknown, TRaw = TValue>(
     messages: readFieldMessages(form, fieldId),
     interaction: readFieldInteraction(form, fieldId),
     writePosture,
-  });
+  };
+  return Object.freeze(state) as SignalsFormFieldState<TValue, TRaw>;
 }
 
 function readFieldBinding<TValue = unknown, TRaw = TValue>(
@@ -142,7 +147,7 @@ function readFieldBinding<TValue = unknown, TRaw = TValue>(
   options?: { readonly input?: unknown },
 ): SignalsFormFieldBinding<TValue, TRaw> {
   const state = readFieldState<TValue, TRaw>(form, fieldId);
-  const binding = form.bindInput<TValue, TRaw>(fieldId, options?.input);
+  const binding = form.bindInput<TValue, TRaw>(fieldId, options?.input as never);
   return Object.freeze({
     ...state,
     binding,
@@ -163,11 +168,15 @@ function readCheckboxBinding<TValue = boolean>(
   fieldId: string,
   options?: { readonly input?: unknown },
 ): SignalsFormCheckboxBinding<TValue> {
-  const field = form.field<TValue, boolean>(fieldId);
-  const binding = form.bindInput<TValue, boolean>(fieldId, options?.input);
+  const field = form.field(fieldId) as unknown as {
+    value(): TValue;
+    dirty(): unknown;
+    diagnostics(): unknown;
+  };
+  const binding = form.bindInput<TValue, boolean>(fieldId, options?.input as never);
   const writePosture = form.fieldWritePosture(fieldId);
   const blocked = !Boolean((writePosture as { canWrite?: boolean }).canWrite);
-  return Object.freeze({
+  const checkboxBinding = {
     name: fieldId,
     checked: Boolean(field.value()),
     disabled: blocked,
@@ -186,7 +195,8 @@ function readCheckboxBinding<TValue = boolean>(
     onFocus() {
       binding.focus();
     },
-  });
+  };
+  return Object.freeze(checkboxBinding) as SignalsFormCheckboxBinding<TValue>;
 }
 
 function readSelectBinding<TValue = unknown, TRaw = TValue>(
@@ -207,12 +217,16 @@ function readMultiSelectBinding<TValue = string>(
   fieldOptions: readonly SignalsFormOption<TValue>[],
   options?: { readonly input?: unknown },
 ): SignalsFormMultiSelectBinding<TValue> {
-  const field = form.field<readonly TValue[], readonly TValue[]>(fieldId);
-  const binding = form.bindInput<readonly TValue[], readonly TValue[]>(fieldId, options?.input);
+  const field = form.field(fieldId) as unknown as {
+    value(): readonly TValue[] | null | undefined;
+    dirty(): unknown;
+    diagnostics(): unknown;
+  };
+  const binding = form.bindInput<readonly TValue[], readonly TValue[]>(fieldId, options?.input as never);
   const writePosture = form.fieldWritePosture(fieldId);
   const blocked = !Boolean((writePosture as { canWrite?: boolean }).canWrite);
   const value = field.value() ?? [];
-  return Object.freeze({
+  const multiSelectBinding = {
     name: fieldId,
     value: Array.isArray(value) ? value : [],
     disabled: blocked,
@@ -232,7 +246,8 @@ function readMultiSelectBinding<TValue = string>(
     onFocus() {
       binding.focus();
     },
-  });
+  };
+  return Object.freeze(multiSelectBinding) as SignalsFormMultiSelectBinding<TValue>;
 }
 
 function readActionBinding(form: RuntimeFormController, actionId: string): SignalsFormActionBinding {
@@ -289,7 +304,7 @@ function requireSignalsFormFactory(signals: SignalsWithFormLike): SignalsWithFor
 
 export function useSignalsForm<
   TSource = unknown,
-  TFields extends Record<string, unknown> = Record<string, unknown>,
+  TFields extends Record<string, FormFieldDeclaration> = Record<string, FormFieldDeclaration>,
   TActions extends Record<string, unknown> = Record<string, unknown>,
   TSignals extends SignalsWithFormLike = SignalsWithFormLike,
 >(
@@ -303,10 +318,7 @@ export function useSignalsForm<
 ): SignalsFormBinding<
   Extract<keyof TFields, string>,
   Extract<keyof TActions, string>,
-  RuntimeFormController<
-    TSource,
-    { [TKey in keyof TFields]: RuntimeFormFieldHandleFor<TFields[TKey]> }
-  >
+  RuntimeFormController<TSource>
 > {
   const providerStore = useMaybeReactSignalsStore();
   const resolvedStore = requireSignalsFormStore(store, providerStore);
@@ -330,10 +342,7 @@ export function useSignalsForm<
     });
   }
 
-  const controller = controllerRef.current.controller as RuntimeFormController<
-    TSource,
-    { [TKey in keyof TFields]: RuntimeFormFieldHandleFor<TFields[TKey]> }
-  >;
+  const controller = controllerRef.current.controller as RuntimeFormController<TSource>;
   const summarySnapshot = useSignalValue(controller.summarySignal(), resolvedStore);
 
   return useMemo(() => {
@@ -388,6 +397,10 @@ export function useSignalsForm<
       reset(resetOptions?: { readonly reason?: string }) {
         return controller.reset(resetOptions);
       },
-    });
+    }) as SignalsFormBinding<
+      Extract<keyof TFields, string>,
+      Extract<keyof TActions, string>,
+      RuntimeFormController<TSource>
+    >;
   }, [controller, summarySnapshot]);
 }

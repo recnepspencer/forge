@@ -46,6 +46,7 @@ import type {
 } from "./router_warmup_surface.js";
 import type {
   RouteLayoutReference,
+  RouteLocation,
   RouteReference,
   RouterHashField,
   RouterRouteDeclaration,

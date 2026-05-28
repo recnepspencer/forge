@@ -45,7 +45,7 @@ function createManagedWriteFeedback<TLine extends ManagedResourceWriteLineLike>(
       confirmationKind: result.confirmationKind,
       status: result.status,
       diagnosticsSummary: result.diagnosticsSummary,
-    });
+    }) as ManagedResourceWriteFeedback<TLine>;
   }
   if (result.resultKind === "partial") {
     return Object.freeze({
@@ -56,7 +56,7 @@ function createManagedWriteFeedback<TLine extends ManagedResourceWriteLineLike>(
       confirmationKind: result.confirmationKind,
       status: result.status,
       diagnosticsSummary: result.diagnosticsSummary,
-    });
+    }) as ManagedResourceWriteFeedback<TLine>;
   }
   if (result.resultKind === "timedOut") {
     return Object.freeze({
@@ -67,7 +67,7 @@ function createManagedWriteFeedback<TLine extends ManagedResourceWriteLineLike>(
       confirmationKind: null,
       status: result.status,
       diagnosticsSummary: result.diagnosticsSummary,
-    });
+    }) as ManagedResourceWriteFeedback<TLine>;
   }
   return Object.freeze({
     kind: "error",
@@ -77,7 +77,7 @@ function createManagedWriteFeedback<TLine extends ManagedResourceWriteLineLike>(
     confirmationKind: null,
     status: result.status,
     diagnosticsSummary: result.diagnosticsSummary,
-  });
+  }) as ManagedResourceWriteFeedback<TLine>;
 }
 
 function createManagedWriteRecoverySummary(
@@ -156,7 +156,7 @@ function createManagedWriteExecution<TLine extends ManagedResourceWriteLineLike>
       }
       return settlementPromise;
     },
-    async feedback(messages) {
+    async feedback(messages?: ManagedResourceWriteFeedbackMessages) {
       const result = await this.settled();
       return messages
         ? createManagedWriteFeedback(result, messages)
@@ -230,12 +230,12 @@ async function dispatchManagedWriteCallbacks<TLine extends ManagedResourceWriteL
 ): Promise<void> {
   await options.onFeedback?.(result.feedback);
   if (result.resultKind === "partial") {
-    await options.onPartial?.(result);
+    await options.onPartial?.(result as Extract<ManagedResourceWriteResult<TLine>, { resultKind: "partial" }>);
     await options.onFulfilled?.(result);
   } else if (result.resultKind === "fulfilled") {
     await options.onFulfilled?.(result);
   } else {
-    await options.onRejected?.(result);
+    await options.onRejected?.(result as Extract<ManagedResourceWriteResult<TLine>, { resultKind: "rejected" | "timedOut" }>);
   }
   await options.onSettled?.(result);
 }
@@ -262,7 +262,7 @@ function createManagedWriteRecoverySurface<TLine extends ManagedResourceWriteLin
     summary() {
       return createManagedWriteRecoverySummary(result);
     },
-    apply(policy) {
+    apply(policy?: ManagedResourceWriteRecoveryPolicy) {
       return executeManagedWriteRecovery(result, policy, feedbackMessages);
     },
   });
@@ -326,7 +326,10 @@ export async function executeManagedResourceWrite<TLine extends ManagedResourceW
     settled,
     {
       ...options.recovery,
-      ...(await options.recoveryPolicy?.({ line, result: settled })),
+      ...(await options.recoveryPolicy?.({
+        line,
+        result: settled as never,
+      })),
     },
     options.feedback,
   );
@@ -340,7 +343,7 @@ function resolveManagedWriteLineFactory<TArgs, TLine extends ManagedResourceWrit
   if ("line" in options && typeof options.line === "function") {
     return options.line;
   }
-  return options.createLine;
+  return "createLine" in options ? options.createLine : options.line;
 }
 
 export function useManagedResourceWrite<

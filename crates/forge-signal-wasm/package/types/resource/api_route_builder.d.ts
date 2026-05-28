@@ -22,13 +22,13 @@ import type {
   ApiRouteCollectionDeclarationForState,
   ApiRouteCreateDeclarationForState,
   ApiRouteDetailDeclarationForState,
-  ApiRouteMutationDeclarationForState,
   ApiRouteMutationSemantics,
   ApiRouteOwnedEffectsDeclaration,
   ApiRouteOwnedHeadersDeclaration,
   ApiRoutePagedDeclarationForState,
   ApiRouteReconcile,
   ApiRouteResolvedDownloadValue,
+  ApiRouteSemanticMutationDeclarationForState,
   ApiRouteSettledTransferValue,
 } from "./api_route_builder_declarations.js";
 import type { ResourceDetailReconcile } from "./resource_reconciliation.js";
@@ -251,7 +251,7 @@ interface ApiRouteBuilderStandardFinalizers<
     TSemantics extends ApiRouteMutationSemantics,
   >(
     declaration: ApiRouteOwnedEffectsDeclaration<ApiRouteOwnedHeadersDeclaration<
-      ApiRouteMutationDeclarationForState<
+      ApiRouteSemanticMutationDeclarationForState<
         TRoute,
         ApiRouteResolvedDownloadValue<TValue, TDownloadValue, TDownloadsOwned>,
         TWriteBody,

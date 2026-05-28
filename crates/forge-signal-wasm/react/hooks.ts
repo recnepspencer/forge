@@ -113,12 +113,12 @@ export function useOptionalResourceLine<
           kind: "inactive",
           reason: "authorInactive",
           line: null,
-          value: signalState.value,
+          value: signalState.value as TInactive,
           summary: null,
           status: null,
           freshness: null,
           diagnosticsSummary: null,
-        });
+        }) as OptionalResourceLineResult<TLine, TValue, TInactive>;
       }
 
       const summary = summaryState.value;
@@ -130,7 +130,7 @@ export function useOptionalResourceLine<
         status: summary.current.status,
         freshness: summary.current.freshness,
         diagnosticsSummary: summary.diagnostics,
-      });
+      }) as OptionalResourceLineResult<TLine, TValue, TInactive>;
     },
     [line, signalState.kind, signalState.value, summaryState],
   );

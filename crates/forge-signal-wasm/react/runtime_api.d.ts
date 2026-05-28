@@ -1,4 +1,6 @@
-import type React from "react";
+/// <reference path="./react-shim.d.ts" />
+
+import type { JSX, ReactNode } from "react";
 
 import type {
   BrowserHistoryStoryReactLike,
@@ -24,8 +26,8 @@ export declare function createReactSignalsStore<TSignals extends SignalsLike>(
 
 export declare function ReactSignalsStoreProvider(props: {
   store: ReactSignalsStore;
-  children?: React.ReactNode;
-}): React.JSX.Element;
+  children?: ReactNode;
+}): JSX.Element;
 
 export declare function useReactSignalsStore(): ReactSignalsStore;
 

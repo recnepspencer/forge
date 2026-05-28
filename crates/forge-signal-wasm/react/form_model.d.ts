@@ -8,7 +8,6 @@ import type {
   FormFieldDeclaration,
   FormFieldHandle,
 } from "../package/types/forms/core.js";
-import type { SignalValue } from "../package/types/model.js";
 import type { SignalsLike } from "./model.js";
 
 export type RuntimeFormController<

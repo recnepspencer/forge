@@ -131,17 +131,15 @@ export function useRouterSession<
   const providerStore = useMaybeReactSignalsStore();
   const resolvedStore = requireRouterSessionStore(options.store, providerStore);
   const sessionRef = useRef<RouterSessionCacheEntry<TStory> | null>(null);
-  if (sessionRef.current === null || sessionRef.current.story !== getRetainedRouterSessionEntry(
+  const retainedEntry = getRetainedRouterSessionEntry(
     resolvedStore.signals as TSignals,
     routes,
-  ).story) {
-    sessionRef.current = getRetainedRouterSessionEntry(
-      resolvedStore.signals as TSignals,
-      routes,
-    );
+  ) as RouterSessionCacheEntry<TStory>;
+  if (sessionRef.current === null || sessionRef.current.story !== retainedEntry.story) {
+    sessionRef.current = retainedEntry;
   }
 
-  const storyHandle = sessionRef.current.story;
+  const storyHandle = sessionRef.current!.story;
   const story = useBrowserHistoryStory(storyHandle);
 
   const navigate = useCallback(async (
@@ -166,6 +164,9 @@ export function useRouterSession<
     if (sessionRef.current?.initialized) {
       return;
     }
+    if (sessionRef.current === null) {
+      return;
+    }
     sessionRef.current.initialized = true;
     const initialLocation = options.initialLocation ?? (readDefaultBrowserLocation() as TLocation | null);
     if (initialLocation === null) {
@@ -179,9 +180,17 @@ export function useRouterSession<
   }, [navigate, options.initialFacts, options.initialLocation]);
 
   return useMemo(() => Object.freeze({
-    currentRoute: story.current,
+    currentRoute: story.current as TStoryEntry | null,
     story,
     breadcrumbs: story.breadcrumbTrail,
     navigate,
-  }), [navigate, story]);
+  }) as RouterSessionView<
+    TStoryEntry,
+    BrowserHistoryStoryView<TStoryEntry, TStoryEvent, TBreadcrumbTrail, TBackProvenance>,
+    TBreadcrumbTrail,
+    TLocation,
+    TReport,
+    Record<string, unknown>,
+    TFacts
+  >, [navigate, story]);
 }

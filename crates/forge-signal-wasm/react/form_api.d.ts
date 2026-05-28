@@ -4,10 +4,10 @@ import type {
   ReactSignalsStore,
   RuntimeFormController,
   RuntimeFormDeclaration,
-  RuntimeFormFieldHandleFor,
   SignalsFormBinding,
   SignalsWithFormLike,
 } from "./model.js";
+import type { FormFieldDeclaration } from "../package/types/forms/core.js";
 
 export declare function useFormField<
   TValue = unknown,
@@ -63,7 +63,7 @@ export declare function useFormAction<
 
 export declare function useSignalsForm<
   TSource = unknown,
-  TFields extends Record<string, unknown> = Record<string, unknown>,
+  TFields extends Record<string, FormFieldDeclaration> = Record<string, FormFieldDeclaration>,
   TActions extends Record<string, unknown> = Record<string, unknown>,
   TSignals extends SignalsWithFormLike = SignalsWithFormLike,
 >(
@@ -77,8 +77,5 @@ export declare function useSignalsForm<
 ): SignalsFormBinding<
   Extract<keyof TFields, string>,
   Extract<keyof TActions, string>,
-  RuntimeFormController<
-    TSource,
-    { [TKey in keyof TFields]: RuntimeFormFieldHandleFor<TFields[TKey]> }
-  >
+  RuntimeFormController<TSource>
 >;
