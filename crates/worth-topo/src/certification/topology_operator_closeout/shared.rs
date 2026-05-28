@@ -14,7 +14,7 @@ use crate::topology_operators::{
 use crate::validation::{validate_interpreted_topology, DerivedTopologyValidationReport};
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::identity::{EntityId, PartitionId, RelationId};
-use schema::facade::TopologyRelationKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 
 pub(super) fn first_source_identity_for_relation_kind(
     relation_rows: &[ForgeQueryEntity],
@@ -317,3 +317,7 @@ fn digest_rows(rows: impl IntoIterator<Item = String>) -> TopologyOperatorDigest
         row_count: count,
     }
 }
+
+
+
+

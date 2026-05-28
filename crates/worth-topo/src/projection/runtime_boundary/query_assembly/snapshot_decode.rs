@@ -34,3 +34,7 @@ pub(super) fn snapshot_from_query_rows(
         equivalence_contract: decoded_equivalence,
     })
 }
+
+
+
+

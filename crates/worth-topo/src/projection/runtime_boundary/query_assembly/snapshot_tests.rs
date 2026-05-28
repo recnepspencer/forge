@@ -1,9 +1,9 @@
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::TopologyEntityKind;
+use schema::facade::platform::entities::TopologyEntityKind;
 use serde_json::json;
 
 use super::*;
-use crate::facade::milestone_one_runtime_builder;
+use crate::validation::reference_integrity::milestone_one_runtime_builder;
 use crate::projection::equivalence_contract_from_diagnostics_rows;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
@@ -129,3 +129,7 @@ fn current_head_snapshot_decoder_rejects_malformed_retained_validation_rows() {
 
     assert!(error.to_string().contains("topology validation"));
 }
+
+
+
+

@@ -4,6 +4,7 @@ pub use crate::brep::topology_graph::{
     TopologyBody, TopologyEdge, TopologyFace, TopologyHalfEdge, TopologyLoop, TopologyLump,
     TopologyModel, TopologyRegion, TopologyShell, TopologyVertex, TopologyView, TopologyWire,
 };
+pub use crate::committed_artifact::TopologyCommittedArtifact;
 pub use crate::certification::support::parity::{
     build_derived_equivalence_contract, compare_derived_equivalence_contracts,
     digest_derived_validation_report, digest_interpreted_topology_view,
@@ -77,6 +78,9 @@ pub use crate::certification::{
     ReplayParityStatus, TopologyCertificationError, TopologyLocalizationAggregateEntityRow,
     TopologyLocalizationAggregateRelationRow, TopologyLocalizationAggregateReport,
     TopologyLocalizationEntityRow, TopologyLocalizationRelationRow, TopologyLocalizationReport,
+    AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure,
+    BridgeTraceAnchor, DecisionTrace, DerivedTraceAnchor, DerivedTraceEvidence,
+    IntegrityMarkers, NamedCounter, PerformanceAccounting, TraceAvailability, TraceWarning,
     TopologyQueryBoundaryCleanupArea, TopologyQueryBoundaryCleanupCloseoutReport,
     TopologyQueryBoundaryCleanupRow, TopologyQueryBoundaryCleanupStatus,
     TracedMilestoneOneCertificationReport, TracedMilestoneTwoDerivedReadReport,
@@ -161,13 +165,13 @@ pub use crate::topology_operators::{
     TopologyEditNamingRow, TopologyEditNamingScope, TopologyEditRejectionClass,
     TopologyOperatorExecution, TopologyOperatorExecutionError,
 };
-pub use crate::validation::reference_integrity::{
-    build_milestone_one_runtime, configure_milestone_one_runtime_builder,
-    milestone_one_runtime_builder, milestone_one_runtime_invariants, MilestoneOneRuntimeSetupError,
-};
 pub use crate::validation::{
     topology_validation_report, validate_interpreted_topology, validate_materialized_topology,
     validate_named_topology_truth, validate_topology_view, DerivedTopologyValidationReport,
     TopologyValidationError, TopologyValidationInputClass, TopologyValidationPhase,
     TopologyValidationReport, TopologyValidationRow, TopologyValidator,
 };
+
+
+
+

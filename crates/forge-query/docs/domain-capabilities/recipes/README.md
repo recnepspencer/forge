@@ -5,6 +5,15 @@ These pages are short, copy-oriented examples for common Query jobs.
 Use this section when you already know roughly what you want to do and you want
 to see one practical call shape without reading a full feature doc first.
 
+## Table Of Contents
+
+- [Start Here](#start-here)
+  Short recipes for common Query tasks.
+- [How To Use These Pages](#how-to-use-these-pages)
+  When to prefer recipes versus feature docs or workflow guides.
+- [Related Docs](#related-docs)
+  The neighboring chooser, workflow, helper, and recovery docs.
+
 ## Start Here
 
 - [Prepare Preview From An Active Face Selection](./prepare-preview-from-active-face-selection.md)

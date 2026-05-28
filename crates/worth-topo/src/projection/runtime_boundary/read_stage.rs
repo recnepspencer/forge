@@ -1,5 +1,5 @@
 use forge_relational::facade::runtime::{RelationalReadView, RelationalRuntime};
-use schema::facade::DerivedTopologyReadBasis;
+use schema::facade::platform::authority::DerivedTopologyReadBasis;
 
 use crate::facade::{
     interpret_topology_view, validate_interpreted_topology, InterpretedTopologyView,
@@ -86,3 +86,7 @@ pub(crate) fn stage_topology_read_from_view(
         validation,
     })
 }
+
+
+
+

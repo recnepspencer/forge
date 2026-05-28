@@ -6,6 +6,15 @@ surfaces.
 Use this section when you already know the feature pages exist, but you want a
 short path for one job instead of reading each surface in isolation.
 
+## Table Of Contents
+
+- [Start Here](#start-here)
+  Task-first workflow guides by job.
+- [Quick Rules](#quick-rules)
+  One-line heuristics for choosing the right workflow guide.
+- [Related Docs](#related-docs)
+  Feature references and older workflow contribution docs.
+
 ## Start Here
 
 - [Single Declaration To Envelope](./single-declaration-to-envelope.md)

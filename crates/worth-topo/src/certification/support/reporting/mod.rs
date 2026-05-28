@@ -11,9 +11,10 @@ use forge_relational::facade::replay::{ReplayFailureClass, ReplayObservableSurfa
 use schema::facade::topology_authoring::{
     MilestoneOnePrimitiveCase, MilestoneOnePrimitiveExpectedOutcome, MilestoneOnePrimitiveRole,
 };
-use schema::facade::{
-    BridgeTraceAnchor, CertifiedTopologyInterpretation, MutationOrigin, TopologyReadArtifact,
+use schema::facade::platform::authority::{
+    CertifiedTopologyInterpretation, MutationOrigin, TopologyReadArtifact,
 };
+use crate::certification::BridgeTraceAnchor;
 use serde::{Deserialize, Serialize};
 
 mod authority_reports;
@@ -23,3 +24,7 @@ mod primitive_corpus_reports;
 pub use authority_reports::*;
 pub use derived_topology_reports::*;
 pub use primitive_corpus_reports::*;
+
+
+
+

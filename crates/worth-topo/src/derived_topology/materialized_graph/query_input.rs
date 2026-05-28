@@ -46,3 +46,7 @@ impl TopologyQueryMaterializationInput {
         self.relation_count
     }
 }
+
+
+
+

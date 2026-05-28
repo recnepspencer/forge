@@ -69,3 +69,7 @@ impl CustomInvariantRule for NamingCoverageRule {
         Ok(CustomInvariantVerdict::Pass)
     }
 }
+
+
+
+

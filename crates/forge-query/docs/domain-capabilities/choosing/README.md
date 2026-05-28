@@ -6,6 +6,15 @@ code.
 Use this section when you already know the general problem you are solving, but
 the neighboring Query docs feel close together.
 
+## Table Of Contents
+
+- [Start Here](#start-here)
+  The shortest chooser pages for common Query surface overlaps.
+- [Quick Rules](#quick-rules)
+  One-line heuristics for picking the right lane.
+- [Related Docs](#related-docs)
+  Feature references behind the chooser pages.
+
 ## Start Here
 
 - [Binding Vs Orchestration Vs Helpers](./binding-vs-orchestration-vs-helpers.md)

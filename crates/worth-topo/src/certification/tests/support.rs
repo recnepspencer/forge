@@ -1,7 +1,7 @@
 use super::*;
 
 pub(super) fn counter_value(
-    accounting: &schema::facade::PerformanceAccounting,
+    accounting: &crate::certification::PerformanceAccounting,
     name: &str,
 ) -> Option<u64> {
     accounting
@@ -378,3 +378,7 @@ pub(super) fn assert_milestone_one_closeout_bridge_and_corpus(report: &Milestone
             .any(|row| &row.family == family));
     }
 }
+
+
+
+

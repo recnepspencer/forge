@@ -2,7 +2,7 @@ use std::collections::BTreeSet;
 
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::TopologyRelationKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 use serde_json::Value;
 
 use super::super::hostile_categories::milestone_three_expected_primitive_family_labels;
@@ -329,3 +329,7 @@ pub(in crate::certification::topology_operator_closeout) fn primitive_family_clo
         "milestone three primitive family closure failed: {reason}"
     ))
 }
+
+
+
+

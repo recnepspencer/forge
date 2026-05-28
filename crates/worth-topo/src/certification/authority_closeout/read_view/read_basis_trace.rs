@@ -8,6 +8,7 @@ use super::query_evidence::{
     traced_certification_envelope, traced_certification_failure,
 };
 use super::*;
+use crate::committed_artifact::TopologyCommittedArtifact;
 
 impl MilestoneOneCertificationHarness {
     pub(crate) fn certify_read_basis_with_runtime_traced(
@@ -262,7 +263,7 @@ impl MilestoneOneCertificationHarness {
 
     pub fn certify_verified_commit(
         runtime: &mut RelationalRuntime,
-        verified: &VerifiedTopologyCommit,
+        verified: &TopologyCommittedArtifact,
     ) -> Result<MilestoneOneCertificationReport, MilestoneOneCertificationError> {
         Self::certify_verified_commit_traced(runtime, verified)
             .map(BoundaryEnvelope::into_primary_result)
@@ -271,7 +272,7 @@ impl MilestoneOneCertificationHarness {
 
     pub fn certify_verified_commit_traced(
         runtime: &mut RelationalRuntime,
-        verified: &VerifiedTopologyCommit,
+        verified: &TopologyCommittedArtifact,
     ) -> Result<
         TracedMilestoneOneCertificationReport,
         BoundaryFailure<MilestoneOneCertificationError>,
@@ -377,3 +378,7 @@ impl MilestoneOneCertificationHarness {
             .with_performance_accounting(performance_accounting))
     }
 }
+
+
+
+

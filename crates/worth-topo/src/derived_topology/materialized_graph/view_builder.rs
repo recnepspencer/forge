@@ -1,4 +1,4 @@
-use schema::facade::{EntityKind, TopologyEntityKind};
+use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 
 use crate::brep::topology_graph::{
     TopologyBody, TopologyEdge, TopologyFace, TopologyHalfEdge, TopologyLoop, TopologyLump,
@@ -115,3 +115,7 @@ pub fn has_topology_content(view: &TopologyView) -> bool {
         || !view.edges.is_empty()
         || !view.vertices.is_empty()
 }
+
+
+
+

@@ -1,22 +1,22 @@
 #[cfg(test)]
 mod parity_tests {
-    use schema::facade::topology_authoring::{
-        seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
-    };
+    use schema::facade::topology_authoring::MilestoneOnePrimitiveCase;
 
     use crate::facade::{
         build_derived_equivalence_contract, compare_derived_equivalence_contracts,
         digest_derived_validation_report, digest_interpreted_topology_view,
-        digest_materialized_topology_view, interpret_topology_view, milestone_one_runtime_builder,
-        validate_interpreted_topology, MilestoneOneCertificationHarness, TopologyMaterializer,
+        digest_materialized_topology_view, interpret_topology_view, validate_interpreted_topology,
+        MilestoneOneCertificationHarness, TopologyMaterializer,
     };
+    use crate::test_support::primitive_corpus::validated_topology::verified_primitive;
+    use crate::validation::reference_integrity::milestone_one_runtime_builder;
 
     #[test]
     fn derived_equivalence_contract_is_deterministic_for_same_snapshot() {
         let mut runtime = milestone_one_runtime_builder()
             .expect(" milestone one runtime builder")
             .build();
-        let verified = seed_milestone_one_primitive(
+        let verified = verified_primitive(
             &mut runtime,
             "phase-six-parity",
             &MilestoneOnePrimitiveCase::SheetPatch { face_count: 3 },
@@ -65,7 +65,7 @@ mod parity_tests {
         let mut runtime = milestone_one_runtime_builder()
             .expect(" milestone one runtime builder")
             .build();
-        let verified = seed_milestone_one_primitive(
+        let verified = verified_primitive(
             &mut runtime,
             "phase-six-replay",
             &MilestoneOnePrimitiveCase::WireBranch { branch_count: 4 },
@@ -107,7 +107,7 @@ mod parity_tests {
         let mut runtime = milestone_one_runtime_builder()
             .expect(" milestone one runtime builder")
             .build();
-        let verified = seed_milestone_one_primitive(
+        let verified = verified_primitive(
             &mut runtime,
             "phase-six-certification",
             &MilestoneOnePrimitiveCase::SolidShell { face_count: 4 },
@@ -132,3 +132,7 @@ mod parity_tests {
             .is_some());
     }
 }
+
+
+
+

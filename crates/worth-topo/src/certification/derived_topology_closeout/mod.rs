@@ -5,10 +5,12 @@ use forge_query::facade::{
 };
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::CommitResult;
-use schema::facade::{
-    AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure, DecisionTrace,
-    DerivedTopologyReadBasis, DerivedTraceAnchor, DerivedTraceEvidence, NamedCounter,
-    PerformanceAccounting, TraceAvailability, VerifiedTopologyCommit,
+use schema::facade::platform::authority::DerivedTopologyReadBasis;
+
+use crate::certification::{
+    AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure,
+    DecisionTrace, DerivedTraceAnchor, DerivedTraceEvidence, NamedCounter,
+    PerformanceAccounting, TraceAvailability,
 };
 
 use crate::certification::authority_closeout::read_view::certification_integrity_markers;
@@ -66,3 +68,7 @@ pub(crate) use read_basis::{
     certify_milestone_two_read_basis_runtime_traced_impl,
     certify_milestone_two_verified_commit_traced_impl,
 };
+
+
+
+

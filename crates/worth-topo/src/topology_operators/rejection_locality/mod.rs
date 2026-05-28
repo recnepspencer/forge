@@ -111,3 +111,7 @@ fn rejected_contracts<'a>(
         _ => batch.contracts().iter().collect(),
     }
 }
+
+
+
+

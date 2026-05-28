@@ -1,5 +1,5 @@
 use forge_relational::facade::history::BranchId;
-use schema::facade::{MutationOrigin, RawTopologyIntent};
+use schema::facade::platform::authority::{MutationOrigin, RawTopologyIntent};
 
 use super::contracts::{TopologyEditContract, TopologyEditFamily, TopologyEditNamingReport};
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -72,3 +72,7 @@ fn mutation_origin_for_mode(mode: &TopologyEditApplicationMode) -> MutationOrigi
         TopologyEditApplicationMode::BranchLocal(_) => MutationOrigin::BranchLocalApplication,
     }
 }
+
+
+
+

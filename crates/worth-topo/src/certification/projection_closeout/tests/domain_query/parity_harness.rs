@@ -1,6 +1,6 @@
 use forge_relational::facade::runtime::RelationalRuntime;
-use schema::facade::DerivedTopologyReadBasis;
-use schema::facade::TopologyRelationKind;
+use schema::facade::platform::authority::DerivedTopologyReadBasis;
+use schema::facade::platform::relations::TopologyRelationKind;
 
 use crate::projection::read_views::domain::parity::{
     build_domain_query_view_parity_artifact, TopologyDomainQueryViewParityArtifact,
@@ -70,3 +70,7 @@ pub(super) fn radial_parity_artifact(
         .expect("radial neighborhood should load");
     build_domain_query_view_parity_artifact(read_basis, TopologyDomainQueryViewRef::Radial(&radial))
 }
+
+
+
+

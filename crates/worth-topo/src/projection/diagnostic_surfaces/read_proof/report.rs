@@ -332,3 +332,7 @@ fn scope_class_key(scope_class: &ForgeQueryReadScopeClass) -> &'static str {
         ForgeQueryReadScopeClass::ExplicitBroadSearch => "explicit_broad_search",
     }
 }
+
+
+
+

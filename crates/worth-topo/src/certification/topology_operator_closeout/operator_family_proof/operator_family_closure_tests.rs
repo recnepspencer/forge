@@ -24,3 +24,7 @@ fn operator_family_closure_rejects_decorative_rows_without_counts() {
         "operator-family closeout must reject rows whose labels are not backed by proof counts"
     );
 }
+
+
+
+

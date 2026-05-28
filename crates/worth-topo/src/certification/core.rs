@@ -118,3 +118,7 @@ pub struct CertificationSuiteDefinition {
     pub parity_rows: Vec<CertificationParityRow>,
     pub required_outputs: Vec<CertificationRequiredOutput>,
 }
+
+
+
+

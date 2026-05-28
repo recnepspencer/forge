@@ -3,9 +3,10 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{
     created_ref, seed_milestone_one_primitive, MilestoneOnePrimitiveCase,
 };
-use schema::facade::{
-    CreateKey, DerivedTopologyReadBasis, EntityKind, RelationKind, TopologyEntityKind,
-    TopologyRelationKind,
+use schema::facade::platform::authority::{CreateKey, DerivedTopologyReadBasis};
+use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
+use schema::facade::platform::relations::{
+    RelationKind, TopologyRelationKind,
 };
 
 use super::super::report::{
@@ -325,3 +326,7 @@ fn half_edge_identities(
         })
         .collect()
 }
+
+
+
+

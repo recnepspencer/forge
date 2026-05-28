@@ -1,9 +1,10 @@
 use crate::facade::{
-    certify_milestone_three_closeout, milestone_one_runtime_builder,
-    milestone_three_closeout_requirements, CertificationRequiredOutput,
-    MilestoneThreeEditFalloutClass, MilestoneThreeHostileScenario,
-    TopologyEditDerivedFallbackPolicy, TopologyEditRejectionClass,
+    certify_milestone_three_closeout, milestone_three_closeout_requirements,
+    CertificationRequiredOutput, MilestoneThreeEditFalloutClass,
+    MilestoneThreeHostileScenario, TopologyEditDerivedFallbackPolicy,
+    TopologyEditRejectionClass,
 };
+use crate::validation::reference_integrity::milestone_one_runtime_builder;
 
 #[test]
 fn milestone_three_closeout_requires_derived_fallback_policy_denial_rows() {
@@ -43,3 +44,7 @@ fn milestone_three_closeout_requires_derived_fallback_policy_denial_rows() {
                 && row.observed_fallout_class() == MilestoneThreeEditFalloutClass::WholeViewFallback
         }));
 }
+
+
+
+

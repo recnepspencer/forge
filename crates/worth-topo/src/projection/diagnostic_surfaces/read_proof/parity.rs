@@ -1,4 +1,4 @@
-use schema::facade::DerivedTopologyReadBasis;
+use schema::facade::platform::authority::DerivedTopologyReadBasis;
 
 use super::fallback::TopologyDomainQueryFallbackPosture;
 use super::report::{
@@ -325,3 +325,7 @@ fn digest_parts(parts: &[String]) -> String {
     }
     format!("{state:016x}")
 }
+
+
+
+

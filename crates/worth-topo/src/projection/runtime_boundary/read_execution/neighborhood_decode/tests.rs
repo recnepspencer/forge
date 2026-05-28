@@ -104,3 +104,7 @@ fn local_rewire_decode_fails_closed_when_previous_relation_is_missing() {
 
     assert!(error.to_string().contains("prev"));
 }
+
+
+
+

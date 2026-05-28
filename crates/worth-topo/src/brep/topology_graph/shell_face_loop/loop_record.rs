@@ -8,3 +8,7 @@ pub struct TopologyLoop {
     pub face_ids: Vec<EntityId>,
     pub half_edge_ids: Vec<EntityId>,
 }
+
+
+
+

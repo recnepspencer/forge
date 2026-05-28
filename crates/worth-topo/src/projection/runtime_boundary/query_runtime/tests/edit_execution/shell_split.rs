@@ -7,7 +7,8 @@ use forge_query::facade::{
 use schema::facade::topology_authoring::{
     created_ref, seed_milestone_one_primitive, seed_minimal_topology, MilestoneOnePrimitiveCase,
 };
-use schema::facade::{CreateKey, DerivedTopologyReadBasis, EntityKind, TopologyEntityKind};
+use schema::facade::platform::authority::{CreateKey, DerivedTopologyReadBasis};
+use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 
 use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
@@ -338,3 +339,7 @@ fn seeded_patch_region_shell_and_faces(
         face_ids,
     )
 }
+
+
+
+

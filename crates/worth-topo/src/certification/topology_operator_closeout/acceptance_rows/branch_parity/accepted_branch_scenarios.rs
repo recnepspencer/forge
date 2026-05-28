@@ -1,6 +1,8 @@
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{created_ref, seed_milestone_one_primitive};
-use schema::facade::{CreateKey, TopologyEntityKind, TopologyRelationKind};
+use schema::facade::platform::authority::CreateKey;
+use schema::facade::platform::entities::TopologyEntityKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 use serde_json::Value;
 
 use super::super::super::scenario_programs::successor_relocation_batch;
@@ -195,3 +197,7 @@ where
             })?;
     successor_relocation_batch(&neighborhood, &chosen_successor_identity)
 }
+
+
+
+

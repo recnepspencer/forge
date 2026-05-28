@@ -1,6 +1,6 @@
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::TopologyRelationKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 use serde_json::Value;
 
 use super::super::report::{MilestoneThreeHostileScenario, MilestoneThreeHostileSuiteReport};
@@ -222,3 +222,7 @@ fn edited_query_traversal_error(reason: &str) -> TopologyCertificationError {
         "milestone three edited topology query traversal failed: {reason}"
     ))
 }
+
+
+
+

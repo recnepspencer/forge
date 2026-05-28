@@ -1,0 +1,18 @@
+error[E0432]: unresolved imports `schema::facade::CreateKey`, `schema::facade::MutationOrigin`, `schema::facade::RawTopologyIntent`, `schema::facade::TopologyMutationBatch`
+ --> tests/compile_fail/removed_facade_exports/platform/removed_root_authority_vocab_exports.rs:1:22
+  |
+1 | use schema::facade::{CreateKey, MutationOrigin, RawTopologyIntent, TopologyMutationBatch};
+  |                      ^^^^^^^^^  ^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^ no `TopologyMutationBatch` in `facade`
+  |                      |          |               |
+  |                      |          |               no `RawTopologyIntent` in `facade`
+  |                      |          no `MutationOrigin` in `facade`
+  |                      no `CreateKey` in `facade`
+  |
+  = help: consider importing this struct instead:
+          schema::facade::platform::authority::CreateKey
+  = help: consider importing this enum instead:
+          schema::facade::platform::authority::MutationOrigin
+  = help: consider importing this struct instead:
+          schema::facade::platform::authority::RawTopologyIntent
+  = help: consider importing this struct instead:
+          schema::facade::platform::authority::TopologyMutationBatch

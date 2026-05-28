@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, BTreeSet, VecDeque};
 
 use forge_relational::facade::identity::EntityId;
-use schema::facade::WireInterpretationClass;
+use schema::facade::platform::authority::WireInterpretationClass;
 
 use crate::brep::topology_graph::TopologyHalfEdge;
 
@@ -136,3 +136,7 @@ fn incident_vertices(
     }
     vertices
 }
+
+
+
+

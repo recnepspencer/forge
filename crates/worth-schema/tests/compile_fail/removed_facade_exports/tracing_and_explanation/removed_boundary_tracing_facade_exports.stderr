@@ -1,0 +1,29 @@
+error[E0432]: unresolved imports `schema::facade::AuthorityTraceAnchor`, `schema::facade::AuthorityTraceEvidence`, `schema::facade::BoundaryEnvelope`, `schema::facade::BoundaryFailure`, `schema::facade::BridgeTraceAnchor`, `schema::facade::BridgeTraceEvidence`, `schema::facade::DecisionTrace`, `schema::facade::DerivedTraceAnchor`, `schema::facade::DerivedTraceEvidence`, `schema::facade::IntegrityMarkers`, `schema::facade::NamedCounter`, `schema::facade::PerformanceAccounting`, `schema::facade::SignalTraceAnchor`, `schema::facade::SignalTraceEvidence`, `schema::facade::TraceAvailability`, `schema::facade::TraceWarning`
+ --> tests/compile_fail/removed_facade_exports/tracing_and_explanation/removed_boundary_tracing_facade_exports.rs:2:5
+  |
+2 |     AuthorityTraceAnchor, AuthorityTraceEvidence, BoundaryEnvelope, BoundaryFailure,
+  |     ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^ no `BoundaryFailure` in `facade`
+  |     |                     |                       |
+  |     |                     |                       no `BoundaryEnvelope` in `facade`
+  |     |                     no `AuthorityTraceEvidence` in `facade`
+  |     no `AuthorityTraceAnchor` in `facade`
+3 |     BridgeTraceAnchor, BridgeTraceEvidence, DecisionTrace, DerivedTraceAnchor,
+  |     ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^ no `DerivedTraceAnchor` in `facade`
+  |     |                  |                    |
+  |     |                  |                    no `DecisionTrace` in `facade`
+  |     |                  no `BridgeTraceEvidence` in `facade`
+  |     no `BridgeTraceAnchor` in `facade`
+4 |     DerivedTraceEvidence, IntegrityMarkers, NamedCounter, PerformanceAccounting,
+  |     ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^^^
+  |     |                     |
+  |     |                     no `IntegrityMarkers` in `facade`
+  |     no `DerivedTraceEvidence` in `facade`
+5 |     SignalTraceAnchor, SignalTraceEvidence, TraceAvailability, TraceWarning,
+  |     ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^
+  |
+  = help: consider importing this variant instead:
+          forge_query::facade::ForgeQueryLowerRuntimePhaseArtifact::BoundaryEnvelope
+  = help: consider importing this variant instead:
+          forge_query::facade::CausalInspectionBoundaryEnvelopeCategory::DecisionTrace
+  = help: consider importing this variant instead:
+          forge_query::facade::CausalInspectionBoundaryEnvelopeCategory::IntegrityMarkers

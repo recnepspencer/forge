@@ -1,8 +1,9 @@
 use forge_query::facade::{ForgeQueryExistingTruthAssertionDenialKind, ForgeQueryRuntimeError};
-use schema::facade::{
-    EntityKind, MutationOrigin, RawTopologyIntent, RelationKind, TopologyEntityKind,
-    TopologyMutation, TopologyRelationKind,
+use schema::facade::platform::authority::{
+    MutationOrigin, RawTopologyIntent, TopologyMutation,
 };
+use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
+use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 
 use super::upsert_assertion_support::{
     decode_entity_id, decode_entity_kind, decode_relation_endpoints, decode_relation_id,
@@ -291,3 +292,7 @@ fn query_native_assembly_retains_both_live_and_desired_relation_aspect_families_
         "expected touched aspect evidence to include the desired relation family"
     );
 }
+
+
+
+

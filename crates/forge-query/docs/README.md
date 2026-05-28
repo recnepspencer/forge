@@ -6,6 +6,13 @@ Start with the section that matches the job you are doing. Use
 `domain-capabilities/` when a downstream domain wants Query to own the
 artifact, orchestration, grouping, and recovery model.
 
+## Table Of Contents
+
+- [Start Here](#start-here)
+  Fastest entry points by broad job.
+- [Best Starting Points](#best-starting-points)
+  Shortcuts for the most common Query doc searches.
+
 ## Start Here
 
 - [Domain Capabilities](./domain-capabilities/README.md)

@@ -7,6 +7,31 @@ model instead of rebuilding a domain-local copy.
 The goal of this tree is simple: start from the kind of domain work you are
 trying to do, not from the internal module name you happen to remember.
 
+## Table Of Contents
+
+- [Start Here](#start-here)
+  Fastest entry points for most domain work.
+- [Choosing The Right Surface](#choosing-the-right-surface)
+  Cross-surface chooser docs when several Query lanes seem close together.
+- [Workflow Guides](#workflow-guides)
+  Task-first multi-surface guides.
+- [Recipes](#recipes)
+  Short copy-oriented examples.
+- [Core Domain Work](#core-domain-work)
+  Handle entry, binding, ordinary outcomes, and recovery.
+- [Helpers And Grouped Work](#helpers-and-grouped-work)
+  Family-native helper surfaces and grouped neighborhood work.
+- [Declaration Pipeline](#declaration-pipeline)
+  Canonical declaration, progression, route, receipt, envelope, and entry docs.
+- [Lower-Authority And Continuation](#lower-authority-and-continuation)
+  Relational, bridge, signal, and continuation-facing next steps.
+- [Composition, Support, And Certification](#composition-support-and-certification)
+  Contributions, inventory, coverage, support, workflow satellites, and certification.
+- [Reading Order](#reading-order)
+  Shortest suggested path through the tree.
+- [Related Docs](#related-docs)
+  Nearby doc roots and high-value neighbors.
+
 ## Start Here
 
 - [Configured Domain Handles](./configured-domain-handles.md)

@@ -14,7 +14,7 @@ mod interpretation_tests {
         open_sheet_patch_view, open_shell_nmt_fan_view, open_wire_chain_view,
         single_face_sheet_disk_view,
     };
-    use schema::facade::{ShellInterpretationClass, WireInterpretationClass};
+    use schema::facade::platform::authority::{ShellInterpretationClass, WireInterpretationClass};
 
     #[test]
     fn seeded_bootstrap_interprets_as_open_sheet_with_one_wire() {
@@ -240,3 +240,7 @@ mod interpretation_tests {
         assert!(shell.non_manifold_edge_ids.is_empty());
     }
 }
+
+
+
+

@@ -15,3 +15,7 @@ pub struct TopologyHalfEdge {
     pub target_vertex_id: Option<EntityId>,
     pub face_id: Option<EntityId>,
 }
+
+
+
+

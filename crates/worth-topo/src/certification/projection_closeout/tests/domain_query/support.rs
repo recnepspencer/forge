@@ -1,4 +1,4 @@
-use crate::facade::milestone_one_runtime_builder;
+use crate::validation::reference_integrity::milestone_one_runtime_builder;
 use crate::facade::TopologyQueryMutationEvidence;
 use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
@@ -10,7 +10,7 @@ use forge_query::facade::ForgeQueryEntity;
 use forge_query::facade::ForgeQueryWorkspace;
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::{DerivedTopologyReadBasis, MutationOrigin};
+use schema::facade::platform::authority::{DerivedTopologyReadBasis, MutationOrigin};
 use serde_json::Value;
 
 pub(in crate::certification::projection_closeout::tests) fn seeded_sheet_disk_workspace(
@@ -18,7 +18,7 @@ pub(in crate::certification::projection_closeout::tests) fn seeded_sheet_disk_wo
 ) -> (
     ForgeQueryWorkspace,
     TopologyQueryAssembly,
-    schema::facade::DerivedTopologyReadBasis,
+    schema::facade::platform::authority::DerivedTopologyReadBasis,
 ) {
     let mut runtime = milestone_one_runtime_builder()
         .expect(" milestone one runtime builder")
@@ -88,3 +88,7 @@ pub(in crate::certification::projection_closeout::tests) fn current_lookup_rows(
         relation_rows: workspace.read::<Value>(assembly.relations()),
     }
 }
+
+
+
+

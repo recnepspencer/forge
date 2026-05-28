@@ -1,3 +1,10 @@
+//! Worth authority vocabulary and lower authority support.
+//!
+//! This module owns Worth-specific write-side truth semantics and related
+//! authority descriptors. It is not the ordinary Query lifecycle entry
+//! surface; public consumers should reach it through
+//! `worth_schema::facade::platform::authority`.
+
 mod commit_flow;
 mod derived_invalidation;
 mod gateway;

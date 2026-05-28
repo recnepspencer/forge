@@ -3,7 +3,7 @@ use super::*;
 
 #[test]
 fn traced_certification_read_view_surfaces_schema_owned_trace() {
-    let mut runtime = crate::facade::milestone_one_runtime_builder()
+    let mut runtime = crate::validation::reference_integrity::milestone_one_runtime_builder()
         .expect(" milestone one runtime builder")
         .build();
 
@@ -64,7 +64,7 @@ fn traced_certification_read_view_surfaces_schema_owned_trace() {
 
 #[test]
 fn traced_milestone_two_read_view_reuses_certification_trace_packet() {
-    let mut runtime = crate::facade::milestone_one_runtime_builder()
+    let mut runtime = crate::validation::reference_integrity::milestone_one_runtime_builder()
         .expect(" milestone one runtime builder")
         .build();
 
@@ -125,7 +125,7 @@ fn traced_milestone_two_read_view_reuses_certification_trace_packet() {
 
 #[test]
 fn verified_commit_earns_direct_milestone_two_read_report() {
-    let mut runtime = crate::facade::milestone_one_runtime_builder()
+    let mut runtime = crate::validation::reference_integrity::milestone_one_runtime_builder()
         .expect(" milestone one runtime builder")
         .build();
 
@@ -154,7 +154,7 @@ fn verified_commit_earns_direct_milestone_two_read_report() {
 fn default_primitive_corpus_earns_direct_milestone_two_derived_corpus_report() {
     let report = certify_milestone_two_default_derived_corpus(
         || {
-            crate::facade::milestone_one_runtime_builder()
+            crate::validation::reference_integrity::milestone_one_runtime_builder()
                 .expect(" milestone one runtime builder")
                 .build()
         },
@@ -179,3 +179,7 @@ fn default_primitive_corpus_earns_direct_milestone_two_derived_corpus_report() {
     assert!(report.bridge_historical_evaluation_digest.row_count > 0);
     assert!(report.milestone_2_counter_report.derived_read_count > 0);
 }
+
+
+
+

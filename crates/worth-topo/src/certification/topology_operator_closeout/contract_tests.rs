@@ -1,5 +1,6 @@
 use forge_relational::facade::identity::{EntityId, PartitionId};
-use schema::facade::{Aspect, DiagnosticsAspect, NamingAspect, TopologyAspect, TopologyEntityKind};
+use schema::facade::platform::aspects::{Aspect, DiagnosticsAspect, NamingAspect, TopologyAspect};
+use schema::facade::platform::entities::TopologyEntityKind;
 
 use crate::topology_operators::{
     BoundaryMembershipKind, TopologyDerivedRegion, TopologyEditBatch, TopologyEditChangedScope,
@@ -214,3 +215,7 @@ fn missing_authoritative_scope_reports_scope_localization_unavailable() {
         "a missing live authority binding means the edit runner cannot localize the requested scope, not that a specific invariant was proven false"
     );
 }
+
+
+
+

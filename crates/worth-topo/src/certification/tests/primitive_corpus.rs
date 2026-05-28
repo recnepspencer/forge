@@ -4,7 +4,7 @@ use super::*;
 fn primitive_corpus_certification_runs_cases_through_authority_and_reports_family_coverage() {
     let corpus = certify_milestone_one_primitive_corpus(
         || {
-            crate::facade::milestone_one_runtime_builder()
+            crate::validation::reference_integrity::milestone_one_runtime_builder()
                 .expect(" milestone one runtime builder")
                 .build()
         },
@@ -84,7 +84,7 @@ fn primitive_corpus_certification_runs_cases_through_authority_and_reports_famil
 fn primitive_corpus_reports_keep_the_full_canonical_family_set_even_when_input_is_partial() {
     let corpus = certify_milestone_one_primitive_corpus(
         || {
-            crate::facade::milestone_one_runtime_builder()
+            crate::validation::reference_integrity::milestone_one_runtime_builder()
                 .expect(" milestone one runtime builder")
                 .build()
         },
@@ -116,7 +116,7 @@ fn primitive_corpus_reports_keep_the_full_canonical_family_set_even_when_input_i
 fn default_primitive_corpus_includes_smallest_generic_hostile_and_out_of_class_members() {
     let corpus = certify_milestone_one_default_primitive_corpus(
         || {
-            crate::facade::milestone_one_runtime_builder()
+            crate::validation::reference_integrity::milestone_one_runtime_builder()
                 .expect(" milestone one runtime builder")
                 .build()
         },
@@ -195,7 +195,7 @@ fn branch_local_default_primitive_corpus_preserves_branch_local_reports_for_admi
 
     let corpus = certify_milestone_one_branch_local_primitive_scenarios(
         &mut || {
-            crate::facade::milestone_one_runtime_builder()
+            crate::validation::reference_integrity::milestone_one_runtime_builder()
                 .expect(" milestone one runtime builder")
                 .build()
         },
@@ -240,3 +240,7 @@ fn branch_local_default_primitive_corpus_preserves_branch_local_reports_for_admi
             && entry.parity_closure_complete
     }));
 }
+
+
+
+

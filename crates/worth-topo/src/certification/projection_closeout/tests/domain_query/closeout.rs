@@ -1,5 +1,5 @@
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::TopologyRelationKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 
 use crate::projection::read_views::domain::closeout::{
     TopologyDomainQueryCloseoutStatus, TopologyDomainQueryPhaseThreeBlocker,
@@ -287,3 +287,7 @@ fn domain_query_proof_report_aggregates_request_and_parity_evidence_on_the_bound
         .contains("exact scope-class breadth"));
     assert!(!closeout_report.phase_three_ready);
 }
+
+
+
+

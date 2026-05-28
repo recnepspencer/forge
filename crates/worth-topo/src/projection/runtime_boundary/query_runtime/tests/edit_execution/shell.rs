@@ -5,7 +5,8 @@ use forge_query::facade::{
 use schema::facade::topology_authoring::{
     created_ref, seed_milestone_one_primitive, seed_minimal_topology, MilestoneOnePrimitiveCase,
 };
-use schema::facade::{CreateKey, EntityKind, TopologyEntityKind};
+use schema::facade::platform::authority::CreateKey;
+use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
 
 use crate::projection::runtime_boundary::query_assembly::TopologyQueryAssembly;
 use crate::projection::runtime_boundary::query_runtime::{
@@ -248,7 +249,7 @@ fn current_head_runtime_denies_single_face_shell_rehome_when_old_shell_still_own
 
 fn seeded_patch_region_shell_and_face(
     runtime: &forge_relational::facade::runtime::RelationalRuntime,
-    read_basis: &schema::facade::DerivedTopologyReadBasis,
+    read_basis: &schema::facade::platform::authority::DerivedTopologyReadBasis,
 ) -> (
     forge_relational::facade::identity::EntityId,
     forge_relational::facade::identity::EntityId,
@@ -279,3 +280,7 @@ fn seeded_patch_region_shell_and_face(
         face.expect("seeded patch should contain at least one face"),
     )
 }
+
+
+
+

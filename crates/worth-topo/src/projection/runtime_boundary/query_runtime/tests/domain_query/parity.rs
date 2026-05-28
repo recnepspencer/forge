@@ -51,7 +51,7 @@ fn relation_update_query_support_reports_domain_query_proof_report_with_replay_p
     let (mut snapshot_workspace, snapshot_assembly) = replay_workspace;
     let replay_support = QueryRuntimeSupport::load(&mut snapshot_workspace, &snapshot_assembly);
     let moved_identity = current_head_support.first_source_identity_for_relation_kind(
-        schema::facade::TopologyRelationKind::HalfEdgeNext,
+        schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
     );
 
     let left = current_head_support.local_rewire_parity_artifact(
@@ -139,3 +139,7 @@ fn relation_update_query_support_reports_domain_query_proof_report_with_replay_p
     );
     assert!(!closeout_report.phase_three_ready);
 }
+
+
+
+

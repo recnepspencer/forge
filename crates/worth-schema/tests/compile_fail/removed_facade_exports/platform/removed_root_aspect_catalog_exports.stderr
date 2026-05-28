@@ -1,0 +1,15 @@
+error[E0432]: unresolved imports `schema::facade::Aspect`, `schema::facade::TopologyAspect`
+ --> tests/compile_fail/removed_facade_exports/platform/removed_root_aspect_catalog_exports.rs:1:22
+  |
+1 | use schema::facade::{Aspect, TopologyAspect};
+  |                      ^^^^^^  ^^^^^^^^^^^^^^ no `TopologyAspect` in `facade`
+  |                      |
+  |                      no `Aspect` in `facade`
+  |
+  = help: consider importing one of these items instead:
+          forge_runtime_bridge::facade::BridgeMappingFallbackClass::Aspect
+          forge_signal::facade::Aspect
+          schema::facade::QueryLiveField::Aspect
+          schema::facade::platform::aspects::Aspect
+  = help: consider importing this enum instead:
+          schema::facade::platform::aspects::TopologyAspect

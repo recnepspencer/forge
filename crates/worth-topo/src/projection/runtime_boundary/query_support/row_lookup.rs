@@ -1,6 +1,6 @@
 use forge_query::facade::ForgeQueryEntity;
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::TopologyRelationKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 
 use super::query_rows::{
     query_entity_id_from_row, query_relation_id_from_row, relation_kind_name,
@@ -195,3 +195,7 @@ impl<'a> TopologyQueryRowLookup<'a> {
         ])
     }
 }
+
+
+
+

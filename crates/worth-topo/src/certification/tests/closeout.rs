@@ -8,7 +8,7 @@ use super::*;
 fn milestone_one_closeout_emits_bootstrap_and_corpus_proof_surfaces() {
     let report = certify_milestone_one_closeout(
         || {
-            crate::facade::milestone_one_runtime_builder()
+            crate::validation::reference_integrity::milestone_one_runtime_builder()
                 .expect(" milestone one runtime builder")
                 .build()
         },
@@ -24,7 +24,7 @@ fn milestone_one_closeout_emits_bootstrap_and_corpus_proof_surfaces() {
 fn milestone_two_closeout_emits_direct_derived_proof_surfaces() {
     let report = certify_milestone_two_closeout(
         || {
-            crate::facade::milestone_one_runtime_builder()
+            crate::validation::reference_integrity::milestone_one_runtime_builder()
                 .expect(" milestone one runtime builder")
                 .build()
         },
@@ -198,3 +198,7 @@ fn fixtures_provide_named_phase_inputs_for_milestone_one_closeout() {
         scenario.expected_outcome == MilestoneOnePrimitiveExpectedOutcome::Admit
     }));
 }
+
+
+
+

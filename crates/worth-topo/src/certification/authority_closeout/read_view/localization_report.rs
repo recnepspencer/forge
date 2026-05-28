@@ -80,7 +80,7 @@ fn required_payload_text<'a>(
 }
 
 pub(crate) fn build_primitive_family_coverage_matrix(
-    interpretations: &schema::facade::TopologyInterpretationRecordSet,
+    interpretations: &schema::facade::platform::authority::TopologyInterpretationRecordSet,
 ) -> PrimitiveFamilyCoverageMatrix {
     let wire_open = interpretations
         .wires
@@ -192,3 +192,7 @@ pub(crate) fn build_counter_report(
         replay_interpretation_rerun_count: usize::from(touched_topology_aspect_count > 0),
     }
 }
+
+
+
+

@@ -1,7 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
 use forge_relational::facade::runtime::RelationalRuntime;
-use schema::facade::BoundaryFailure;
 
 use crate::certification::authority_closeout::read_view::MilestoneOneCertificationHarness;
 use crate::certification::bridge::certify_milestone_one_bridge_proof;
@@ -26,6 +25,7 @@ use crate::certification::support::reporting::{
     TopologyLocalizationAggregateEntityRow, TopologyLocalizationAggregateRelationRow,
     TopologyLocalizationAggregateReport,
 };
+use crate::certification::BoundaryFailure;
 use crate::test_support::primitive_corpus::validated_topology::seeded_bootstrap;
 
 mod aggregates_a;
@@ -158,3 +158,7 @@ where
     ensure_required_output_closure(&closeout, &requirements)?;
     Ok(closeout)
 }
+
+
+
+

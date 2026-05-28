@@ -1,17 +1,19 @@
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::{
-    CreateKey, EntityKind, EntityReference, MutationOrigin, RawTopologyIntent, TopologyEntityKind,
-    TopologyMutation, TopologyRelationKind,
+use schema::facade::platform::authority::{
+    CreateKey, EntityReference, MutationOrigin, RawTopologyIntent, TopologyMutation,
 };
+use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
+use schema::facade::platform::relations::TopologyRelationKind;
 
 use super::*;
-use crate::facade::{certify_milestone_one_read_basis_traced, milestone_one_runtime_builder};
+use crate::facade::certify_milestone_one_read_basis_traced;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
 };
 use crate::projection::runtime_boundary::read_stage::{
     open_topology_read_view, stage_topology_read_from_view,
 };
+use crate::validation::reference_integrity::milestone_one_runtime_builder;
 
 fn current_head_workspace(
     runtime: forge_relational::facade::runtime::RelationalRuntime,
@@ -242,7 +244,7 @@ fn query_native_assembly_denies_created_entity_refs_when_partial_subgraph_breaks
                     },
                     TopologyMutation::CreateRelation {
                         create_key: CreateKey::new("query.apply.link"),
-                        kind: schema::facade::RelationKind::Topology(
+                        kind: schema::facade::platform::relations::RelationKind::Topology(
                             TopologyRelationKind::HalfEdgeStartsAtVertex,
                         ),
                         source: EntityReference::Created(CreateKey::new("query.apply.half-edge-a")),
@@ -325,3 +327,7 @@ fn query_native_assembly_applies_topology_relation_delete_through_existing_bindi
             == Some(relation_id)
     }));
 }
+
+
+
+

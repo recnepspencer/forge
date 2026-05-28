@@ -5,7 +5,7 @@ use crate::projection::runtime_boundary::read_stage::stage_topology_read_from_vi
 
 #[test]
 fn seeded_bootstrap_earns_milestone_one_certification_report() {
-    let mut runtime = crate::facade::milestone_one_runtime_builder()
+    let mut runtime = crate::validation::reference_integrity::milestone_one_runtime_builder()
         .expect(" milestone one runtime builder")
         .build();
 
@@ -29,7 +29,7 @@ fn seeded_bootstrap_earns_milestone_one_certification_report() {
     assert!(report.naming_attachment_report.fully_named);
     assert_eq!(
         report.branch_local_topology_report.mutation_origin,
-        schema::facade::MutationOrigin::Seed
+        schema::facade::platform::authority::MutationOrigin::Seed
     );
     assert!(!report.branch_local_topology_report.branch_local);
     assert_eq!(report.branch_local_topology_report.branch_id.0, "main");
@@ -101,7 +101,7 @@ fn seeded_bootstrap_earns_milestone_one_certification_report() {
 
 #[test]
 fn seeded_bootstrap_earns_direct_milestone_two_read_report() {
-    let mut runtime = crate::facade::milestone_one_runtime_builder()
+    let mut runtime = crate::validation::reference_integrity::milestone_one_runtime_builder()
         .expect(" milestone one runtime builder")
         .build();
 
@@ -125,7 +125,7 @@ fn seeded_bootstrap_earns_direct_milestone_two_read_report() {
 
 #[test]
 fn certification_read_view_matches_traced_reader_diagnostics_on_same_basis() {
-    let mut runtime = crate::facade::milestone_one_runtime_builder()
+    let mut runtime = crate::validation::reference_integrity::milestone_one_runtime_builder()
         .expect(" milestone one runtime builder")
         .build();
 
@@ -171,3 +171,7 @@ fn certification_read_view_matches_traced_reader_diagnostics_on_same_basis() {
         traced_equivalence.truth_basis_digest_hex
     );
 }
+
+
+
+

@@ -1,7 +1,8 @@
 use forge_query::facade::{
     ForgeQueryAuthorityLane, ForgeQueryInspection, ForgeQueryRuntimeStateKind,
 };
-use schema::facade::{TopologyEntityKind, TopologyRelationKind};
+use schema::facade::platform::entities::TopologyEntityKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 use serde_json::json;
 
 use crate::facade::{
@@ -24,3 +25,7 @@ mod domain_query;
 mod failures;
 mod materialization;
 mod row_lookup;
+
+
+
+

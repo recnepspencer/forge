@@ -5,8 +5,8 @@ use forge_runtime_bridge::facade::{
     BridgeDeliveryReceipt, BridgeSignalInvalidationDelivery, BridgeTruthViewEvaluationRequest,
     InvalidationSink, SignalBridgeSinkError, TruthBranchIdentity,
 };
-use schema::facade::BridgeTraceAnchor;
 
+use crate::certification::BridgeTraceAnchor;
 use crate::certification::error::MilestoneOneCertificationError;
 use crate::certification::shared::{
     canonical_milestone_one_primitive_families, digest_rows, primitive_family_name,
@@ -79,7 +79,7 @@ pub(crate) fn certify_milestone_one_bridge_proof(
     let mut family_rows = Vec::with_capacity(proof_cases.len());
 
     for (index, primitive) in proof_cases.iter().enumerate() {
-        let mut runtime = crate::facade::milestone_one_runtime_builder()
+        let mut runtime = crate::validation::reference_integrity::milestone_one_runtime_builder()
             .map_err(|error| {
                 MilestoneOneCertificationError::ReadView(format!(
                     " milestone one bridge proof could not build runtime builder: {error:?}"
@@ -190,3 +190,7 @@ pub(crate) fn certify_milestone_one_bridge_proof(
         source_snapshot: source_snapshot.unwrap_or_default(),
     })
 }
+
+
+
+

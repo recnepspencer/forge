@@ -4,8 +4,9 @@ use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{
     seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch, MilestoneOnePrimitiveCase,
 };
-use schema::facade::{
-    DerivedTopologyReadBasis, MutationOrigin, RelationKind, TopologyRelationKind,
+use schema::facade::platform::authority::{DerivedTopologyReadBasis, MutationOrigin};
+use schema::facade::platform::relations::{
+    RelationKind, TopologyRelationKind,
 };
 
 use super::side_quest_types::{
@@ -266,3 +267,7 @@ fn first_source_identity_for_snapshot_relation(
             ))
         })
 }
+
+
+
+
