@@ -77,6 +77,7 @@ import { validationReadinessBlockers } from "./validation/artifacts.js";
 import { createAsyncValidationStore } from "./validation/async_execution.js";
 import { materializeValidationDeclarations } from "./validation/declarations.js";
 import { cloneFormValue, mergeDraft } from "./values/value_paths.js";
+import { createFormControllerBootstrapFacade } from "./form_controller_bootstrap.js";
 
 export function createFormController(signalNamespace, declaration, options = {}) {
   if (!declaration || typeof declaration !== "object") {
@@ -123,7 +124,7 @@ export function createFormController(signalNamespace, declaration, options = {})
   const messages = createMessagePresentationStore();
   const diagnosticsHistory = createFormDiagnosticsHistoryStore();
   const stateHistory = createFormStateHistoryStore();
-  let form;
+  const form = createFormControllerBootstrapFacade();
   const reactiveBindings = createReactiveFormBindings(
     signalNamespace,
     formDeclaration.formId,
@@ -266,7 +267,7 @@ export function createFormController(signalNamespace, declaration, options = {})
     layoutMeasurements,
   });
 
-  form = {
+  Object.assign(form, {
     source() {
       const currentSource = authoritativeSource();
       syncSourceCompatibility(currentSource);
@@ -348,7 +349,7 @@ export function createFormController(signalNamespace, declaration, options = {})
     },
     fields: fieldHandles,
     namespace: signalNamespace,
-  };
+  });
 
   for (const declaration of fieldDeclarations) {
     const handle = reactiveBindings.wrapFieldHandle(createFieldHandle(declaration, form, {

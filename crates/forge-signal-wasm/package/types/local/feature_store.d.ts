@@ -2,9 +2,41 @@ import type {
   OutputSignalHandle,
   ScopedSignalNamespace,
 } from "../callable_surface.js";
-import type { SignalValue } from "../model.js";
+export type FeatureStoreStateCompatible<TValue> =
+  TValue extends null | boolean | number | string
+    ? TValue
+    : TValue extends readonly (infer TItem)[]
+      ? readonly FeatureStoreStateCompatible<TItem>[]
+      : TValue extends (infer TItem)[]
+        ? FeatureStoreStateCompatible<TItem>[]
+        : TValue extends object
+          ? { [TKey in keyof TValue]: FeatureStoreStateCompatible<TValue[TKey]> }
+          : never;
 
-export type FeatureStoreStateDefinition = Record<string, SignalValue>;
+export type FeatureStoreStateDefinition = Record<string, unknown>;
+
+export type FeatureStoreStateConstraint<
+  TState extends FeatureStoreStateDefinition,
+> = {
+  readonly [TKey in keyof TState]: FeatureStoreStateCompatible<TState[TKey]>;
+};
+
+export type FeatureStoreSetValue<TValue> =
+  TValue extends null
+    ? null
+    : TValue extends string
+      ? string
+      : TValue extends number
+        ? number
+        : TValue extends boolean
+          ? boolean
+          : TValue extends readonly (infer TItem)[]
+            ? readonly FeatureStoreSetValue<TItem>[]
+            : TValue extends (infer TItem)[]
+              ? FeatureStoreSetValue<TItem>[]
+              : TValue extends object
+                ? { [TKey in keyof TValue]: FeatureStoreSetValue<TValue[TKey]> }
+                : never;
 
 export type FeatureStoreStateHandles<TState extends FeatureStoreStateDefinition> = {
   readonly [TKey in keyof TState]: import("../callable_surface.js").InputSignalHandle<TState[TKey]>;
@@ -17,7 +49,7 @@ export interface FeatureStoreActionContext<
   readonly state: FeatureStoreStateHandles<TState>;
   set<TKey extends keyof TState>(
     key: TKey,
-    value: TState[TKey],
+    value: FeatureStoreSetValue<TState[TKey]>,
   ): unknown;
   reset<TKey extends keyof TState>(
     key?: TKey,
@@ -48,7 +80,7 @@ export interface FeatureStoreFactory {
     TActions extends Record<string, (...args: never[]) => unknown>,
   >(options: {
     readonly id: string;
-    readonly state: TState;
+    readonly state: FeatureStoreStateConstraint<TState>;
     readonly actions: (
       context: FeatureStoreActionContext<TState>,
     ) => TActions;

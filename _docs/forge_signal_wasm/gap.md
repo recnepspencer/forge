@@ -7,7 +7,7 @@ The goal is not to blame application code for every failure mode. Some observed
 failures were triggered by local workarounds, but those workarounds also exposed
 places where the library likely lacks a first-class, honest authoring lane.
 
-This report currently tracks nineteen gaps:
+This report currently tracks twenty-one gaps:
 
 1. mutation-response finalizer / semantics / reconciliation drift
 2. optional resource line consumption for React
@@ -28,6 +28,8 @@ This report currently tracks nineteen gaps:
 17. core async is first-class, but the web/wasm async consumption surface is still fragmented
 18. router web-session orchestration is still too manual
 19. route sequence simulation and playback are still app-authored
+20. feature store state typing is too narrow for ordinary object-shaped app state
+21. local dialog state is too small for real modal CRUD workflows
 
 ## Gap 1: Mutation Finalizer / Semantics / Reconciliation Drift
 
@@ -1621,6 +1623,197 @@ with:
 - replay views over the resulting sequence
 - no app-authored ingress/admit/record loop for the common case
 
+## Gap 20: Feature Store State Typing Is Too Narrow For Ordinary Object-Shaped App State
+
+### Problem Statement
+
+`signals.featureStore(...)` works cleanly for simple scalar state, but the
+public type lane becomes too narrow once a store needs ordinary object-shaped
+UI values.
+
+Examples from the admin app included state values such as:
+
+- `DataTableUserLayoutConfig`
+- `WorkplaceAuditLogsAdminQueryValues`
+
+Those values are routine app state, not exotic runtime payloads. But the
+feature-store type surface currently pushes authors toward casts like:
+
+- `INITIAL_LAYOUT as SignalValue`
+- `INITIAL_QUERY as unknown as SignalValue`
+- `set("queryValues", next as unknown as SignalValue)`
+
+That pressure showed up in:
+
+- `workplace-api-keys-admin.store.ts`
+- `workplace-audit-logs-admin.store.ts`
+- `workplace-projects-admin.store.ts`
+- `workplace-user-groups-admin.store.ts`
+
+### Why This Looks Like A Real Library Gap
+
+The runtime clearly supports object values. The issue appears to be the public
+state contract:
+
+- `type FeatureStoreStateDefinition = Record<string, SignalValue>`
+
+If an app's domain state is structurally richer than that alias admits
+comfortably, authors fall into cast-land even though the runtime behavior is
+fine.
+
+That creates bad incentives:
+
+- shared store code gets noisy
+- authors stop trusting inference
+- wrappers accumulate `unknown as SignalValue`
+- proof-carrying ergonomics break down at the boundary
+
+### Why This Matters
+
+This is not just an aesthetic type complaint.
+
+Feature stores are supposed to be a first-class app-facing lane for ordinary
+local state. If object-shaped state values require casts at declaration and
+write sites, the library is effectively saying:
+
+- scalar state is first-class
+- ordinary structured app state is tolerated through type erasure
+
+That is too weak for a store surface that is meant to replace app-invented
+store scaffolding.
+
+### Desired Outcome
+
+The ideal surface should let feature stores accept a broader domain-state
+generic and only lower to signal-compatible runtime values internally.
+
+The important shape is:
+
+- app authors declare their real domain state type directly
+- `set(...)` is typed in terms of that domain state
+- runtime-safety narrowing happens inside the implementation, not at app call
+  sites
+
+### Acceptance Criteria For Closing The Gap
+
+This gap is not closed until a feature store with ordinary object-shaped state
+can be authored without:
+
+- `as SignalValue`
+- `unknown as SignalValue`
+- duplicated state wrapper types whose only job is to appease the current
+  boundary
+
+## Gap 21: Local Dialog State Is Too Small For Real Modal CRUD Workflows
+
+### Problem Statement
+
+`signals.local.dialogState(...)` is fine for plain boolean open/close state,
+but it is too small to act as a first-class lane for real admin dialogs.
+
+The current helper basically offers:
+
+- `open()`
+- `close()`
+- `toggle()`
+- `signal` as a boolean
+
+That is enough for a toy modal. It is not enough for the kinds of dialog
+authority real product flows actually need:
+
+- mode / key
+- payload data
+- optional context
+- loading state
+- close readiness / blocker posture
+- reset / discard semantics
+- action lifecycle
+- inspectable dialog history
+
+### Why This Looks Like A Real Library Gap
+
+This mismatch showed up directly during the admin integration. We could not
+hard-cut the app's `useDialogState.ts` helper, because it still owns real
+behavior the library does not replace yet.
+
+The app-side shape we still need looks more like:
+
+- typed dialog mode
+- typed payload
+- typed context
+- lifecycle state like loading
+- open helpers that carry mode plus payload together
+
+That is not an edge case. It is the normal shape of modal CRUD workflows.
+
+### Why This Matters
+
+This gap is especially embarrassing relative to the rest of the library,
+because the form/runtime surface is aiming at much richer truth:
+
+- readiness
+- patch plans
+- actions
+- canonical source vs draft posture
+- visible validation and message policy
+
+Against that backdrop, a dialog helper that stops at `boolean open/close` feels
+far below the surrounding product ambition.
+
+If the form lane can think in terms of source truth, draft truth, action
+lifecycle, and validation posture, the dialog lane should not force app authors
+back into custom wrappers just to represent:
+
+- create vs edit vs delete
+- current payload target
+- contextual modal metadata
+- transient dialog loading state
+
+### Desired Outcome
+
+The library likely needs either:
+
+- a richer dialog controller surface
+- or a dialog state helper that can declare typed keys plus typed payload and
+  contextual state
+
+But the actual target should be set by the form system that already exists.
+Relative to `useSignalsForm(...)`, the dialog lane should not just learn
+"payloads." It should cover the same categories of workflow authority at the
+modal level.
+
+At minimum, a first-class dialog lane should cover:
+
+- source / draft / effective dialog state
+- typed mode, payload, and context
+- dirty and reset semantics
+- close readiness / blocker posture
+- dialog actions with pending / result lifecycle
+- visible messages or interaction posture for close / discard workflows
+- first-class composition with `useSignalsForm(...)`
+- dialog history / diagnostics surfaces
+
+The key requirement is that modal CRUD workflows become first-class enough that
+app foundations do not need to re-invent the dialog authority model beside the
+form authority model.
+
+### Acceptance Criteria For Closing The Gap
+
+This gap is not closed until a typical CRUD modal workflow can express:
+
+- open/close
+- create/edit/delete mode
+- typed payload data
+- optional contextual metadata
+- loading or pending posture
+- close/discard blockers
+- reset / restore semantics
+- action lifecycle and result posture
+- honest composition with the library's form surface
+
+without falling back to an app-authored dialog controller wrapper for the
+common case.
+
 ## Integration Warnings
 
 These are not necessarily correctness bugs, but they are important warnings
@@ -1858,10 +2051,16 @@ api.url('/groups/:groupId/users/:userId').mutation({
 
 **Wrapper reduction goal**
 
+- this should be a true peer surface to forms rather than a tiny visibility
+  helper that forces workflow authority back into app-local wrappers
+
 - wrappers should not need to reinterpret transport method as mutation
   semantics
 
 **Acceptance signal**
+
+- the same flow can also express close blockers, reset semantics, and dialog
+  action lifecycle without app-authored controller glue
 
 - a `POST` command-style route can be authored honestly without pretending to be
   create/update/delete
@@ -2686,3 +2885,133 @@ result.replay.outcomes();
 
 - route rehearsal/playback can be done from a first-class sequence surface
   without app-authored orchestration loops
+
+### Gap 20: Feature Store State Typing Is Too Narrow For Ordinary Object-Shaped App State
+
+**DX Target**
+
+A feature architect must be able to declare ordinary object-shaped store state
+without casts, while keeping `set(...)` and `read(...)` typed in terms of the
+real domain state.
+
+**Desired authoring shape**
+
+```ts
+const auditStore = signals.featureStore({
+  id: "workplace-audit-logs-admin",
+  state: {
+    search: "",
+    page: 1,
+    layoutConfig: {} as DataTableUserLayoutConfig,
+    queryValues: INITIAL_QUERY_VALUES,
+    quickReportId: null as string | null,
+  },
+  actions: ({ set, read }) => ({
+    setQueryValues: (next) => set("queryValues", next),
+    resetFilters: () => {
+      set("queryValues", INITIAL_QUERY_VALUES);
+    },
+  }),
+});
+```
+
+**Boilerplate that should disappear**
+
+- `as SignalValue`
+- `unknown as SignalValue`
+- wrapper-only state aliases whose sole purpose is satisfying the current store
+  boundary
+
+**Failure mode improvement**
+
+- ordinary structured app state should fail only when it is truly unsupported
+  by runtime value semantics, not because the public state alias is too narrow
+
+**Wrapper reduction goal**
+
+- stores should carry real domain state directly instead of accumulating
+  cast-heavy type-erasure at declaration and write sites
+
+**Acceptance signal**
+
+- feature stores with layout config, query values, and other object-shaped app
+  state compile cleanly without cast folklore
+
+### Gap 21: Local Dialog State Is Too Small For Real Modal CRUD Workflows
+
+**DX Target**
+
+A feature author must be able to model real modal CRUD authority through a
+first-class dialog lane that is meaningfully peer-level with the form surface,
+not just boolean open/close state.
+
+**Desired authoring shape**
+
+```ts
+const dialog = signals.local.dialogController({
+  identity: "project-dialog",
+  initial: {
+    isOpen: false,
+    key: null as "create" | "edit" | "delete" | null,
+    data: null as Project | DeleteTarget | null,
+    context: null as DialogContext | null,
+    loading: false,
+  },
+});
+
+dialog.open("edit", { data: project });
+dialog.setLoading(true);
+dialog.close();
+```
+
+And at the richer form-symmetry level:
+
+```ts
+dialog.source;
+dialog.draft;
+dialog.effective;
+dialog.dirty;
+dialog.readiness;
+dialog.visibleMessages;
+dialog.action("close");
+dialog.action("confirm");
+dialog.reset();
+dialog.stateHistory();
+```
+
+Or at minimum:
+
+```ts
+const dialog = signals.local.dialogState({
+  identity: "project-dialog",
+  keys: ["create", "edit", "delete"] as const,
+});
+
+dialog.open("edit", { data: project, context });
+dialog.loading.set(true);
+```
+
+**Boilerplate that should disappear**
+
+- app-authored dialog controller wrappers for mode/payload/context
+- parallel local state just to represent loading inside a modal workflow
+- custom glue to bind dialog identity and typed payload together
+- custom close-blocker and discard-confirmation glue beside forms
+- custom result/pending wiring for modal actions
+
+**Failure mode improvement**
+
+- modal workflow wiring should fail through a dialog contract with typed mode
+  and payload semantics, not through ad hoc app controllers
+- modal close/discard policy should fail through explicit readiness/blocker
+  posture, not app-local folklore
+
+**Wrapper reduction goal**
+
+- app foundations should not need to re-invent dialog authority beside the
+  library’s much richer form authority surface
+
+**Acceptance signal**
+
+- a typical create/edit/delete modal flow can be expressed with typed mode,
+  payload, context, and loading posture without a custom dialog controller

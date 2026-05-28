@@ -34,8 +34,7 @@ export function createReactiveFormBindings(signalNamespace, formId, formRef) {
     noteMutation,
     summarySignalHandle,
     wrapFieldHandle(handle) {
-      wrapMutationMethods(handle, FIELD_MUTATION_METHODS, noteMutation);
-      return handle;
+      return createWrappedMutationFacade(handle, FIELD_MUTATION_METHODS, noteMutation);
     },
     wrapControllerMutations(form) {
       wrapMutationMethods(form, FORM_MUTATION_METHODS, noteMutation);
@@ -116,4 +115,12 @@ function wrapMutationMethod(target, methodName, noteMutation) {
       return result;
     },
   });
+}
+
+function createWrappedMutationFacade(target, methodNames, noteMutation) {
+  const wrapped = {
+    ...target,
+  };
+  wrapMutationMethods(wrapped, methodNames, noteMutation);
+  return Object.isFrozen(target) ? Object.freeze(wrapped) : wrapped;
 }

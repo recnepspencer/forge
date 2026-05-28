@@ -329,7 +329,43 @@ Use the local helpers instead:
 
 ```ts
 const dialog = signals.local.dialogState({
-  identity: "invite-user-dialog",
+  identity: "project-dialog",
+  modes: ["create", "edit", "delete"] as const,
+  initial: {
+    isOpen: false,
+    mode: null,
+    data: null as Project | DeleteTarget | null,
+    context: null as DialogContext | null,
+    loading: false,
+  },
+  collaboration: {
+    mode: "singleWriterLock",
+    actorId: "alex",
+  },
+  actions: ({ custom }) => ({
+    saveDraft: custom({
+      writes: true,
+      execute: ({ state }) => persistDraft(state.data),
+    }),
+  }),
+});
+
+const projectForm = useSignalsForm({
+  source: dialog.data,
+  fields: ({ field }) => ({
+    title: field("title"),
+    status: field("status"),
+  }),
+  actions: {
+    submit: updateProjectLine,
+  },
+});
+
+dialog.bindForm(projectForm.controller, {
+  confirmActionId: "submit",
+  blockCloseWhenDirty: true,
+  closeOnSuccess: true,
+  stayOpenOnError: true,
 });
 
 const candidateUsers = signals.local.listState({
@@ -348,7 +384,32 @@ These helpers give named local runtime shapes for common app patterns without:
 - manual `signals.scope(identity)`
 - manual `scope.spec.input(...)`
 - repeated debug-name ceremony
+- app-authored dialog controllers for mode, payload, context, loading,
+  readiness, custom actions, and collaboration posture
 - app-authored source binding wrappers for ordinary dialog form state
+
+`signals.local.dialogState(...)` is no longer just a boolean visibility helper.
+It is the local modal workflow surface. The returned controller exposes:
+
+- state layers through `source()`, `draft()`, and `effective()`
+- dialog-local dirty truth through `dirty()` and `patchPlan()`
+- close and action posture through `readiness()`
+- visible modal blockers through `visibleMessages()`
+- custom and built-in actions through `action(...)` and `actions()`
+- native dialog collaboration through `collaboration()`,
+  `reportCollaboration(...)`, and `clearCollaboration(...)`
+- real form composition through `bindForm(...)`
+
+That is the intended lane for ordinary CRUD dialogs, multistep modal flows, and
+collaborative modal workflows. Do not rebuild a parallel dialog controller with
+extra `useState` for:
+
+- mode / payload / context
+- loading
+- close blockers
+- discard confirmation
+- custom modal actions
+- collaboration or reviewer posture
 
 Each helper also owns the runtime handles it authors:
 
@@ -364,17 +425,40 @@ invent a second store framework on top of raw `signals.scope(...)`.
 Use `signals.featureStore(...)` instead.
 
 ```ts
+type AuditQueryValues = {
+  search: string;
+  severities: readonly string[];
+  actorIds: readonly string[];
+};
+
 const userGroupsStore = signals.featureStore({
   id: "workplace-user-groups-admin",
   state: {
     selectedGroupId: null as string | null,
     selectedCandidateId: "",
     view: "users" as "users" | "groups",
+    queryValues: {
+      search: "",
+      severities: [],
+      actorIds: [],
+    } satisfies AuditQueryValues,
+    layoutConfig: {
+      density: "comfortable" as "comfortable" | "compact",
+      visibleColumns: ["actor", "action", "timestamp"] as const,
+    },
   },
-  actions: ({ set }) => ({
+  actions: ({ set, read }) => ({
     setSelectedGroupId: (next) => set("selectedGroupId", next),
     setSelectedCandidateId: (next) => set("selectedCandidateId", next),
     showGroups: () => set("view", "groups"),
+    setQueryValues: (next) => set("queryValues", next),
+    resetFilters: () =>
+      set("queryValues", {
+        ...read().queryValues,
+        search: "",
+        severities: [],
+        actorIds: [],
+      }),
   }),
 });
 ```
@@ -384,6 +468,8 @@ This gives you:
 - one scoped runtime per named store id
 - named state handles such as `store.state.selectedGroupId`
 - a store snapshot signal through `store.snapshot`
+- object-shaped state without `as SignalValue` / `unknown as SignalValue`
+  casts at the call site
 - authored actions without rebuilding custom store plumbing
 
 If the store belongs under an existing scope, use the scoped lane:

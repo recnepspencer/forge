@@ -86,6 +86,89 @@ describe("feature store authoring", () => {
     }
   });
 
+  it("accepts ordinary object-shaped state values without cast-only store wrappers", async () => {
+    const signals = await createSignals({ deployment: "mainThreadCompatibility" });
+
+    try {
+      type LayoutConfig = {
+        density: "compact" | "comfortable";
+        visibleColumns: readonly string[];
+        pinned: {
+          left: readonly string[];
+          right: readonly string[];
+        };
+      };
+
+      type QueryValues = {
+        search: string;
+        severities: readonly ("info" | "warning" | "error")[];
+        includeResolved: boolean;
+      };
+
+      const initialLayoutConfig: LayoutConfig = {
+        density: "comfortable",
+        visibleColumns: ["event", "actor", "severity"],
+        pinned: {
+          left: ["event"],
+          right: [],
+        },
+      };
+
+      const initialQueryValues: QueryValues = {
+        search: "",
+        severities: ["warning"],
+        includeResolved: false,
+      };
+
+      const store = signals.featureStore({
+        id: "workplace-audit-logs-admin",
+        state: {
+          search: "",
+          page: 1,
+          layoutConfig: initialLayoutConfig,
+          queryValues: initialQueryValues,
+          quickReportId: null as string | null,
+        },
+        actions: ({ set, read }) => ({
+          setQueryValues(next: QueryValues) {
+            return set("queryValues", next);
+          },
+          setLayoutConfig(next: LayoutConfig) {
+            return set("layoutConfig", next);
+          },
+          snapshot() {
+            return read();
+          },
+        }),
+      });
+
+      expect(store.read().layoutConfig).toEqual(initialLayoutConfig);
+      expect(store.read().queryValues).toEqual(initialQueryValues);
+
+      const nextQueryValues: QueryValues = {
+        search: "billing",
+        severities: ["error"],
+        includeResolved: true,
+      };
+      const nextLayoutConfig: LayoutConfig = {
+        density: "compact",
+        visibleColumns: ["event", "severity"],
+        pinned: {
+          left: ["severity"],
+          right: [],
+        },
+      };
+
+      store.actions.setQueryValues(nextQueryValues);
+      store.actions.setLayoutConfig(nextLayoutConfig);
+
+      expect(store.actions.snapshot().queryValues).toEqual(nextQueryValues);
+      expect(store.actions.snapshot().layoutConfig).toEqual(nextLayoutConfig);
+    } finally {
+      signals.free();
+    }
+  });
+
   it("rejects non-object action surfaces instead of exporting a fake store contract", async () => {
     const signals = await createSignals({ deployment: "mainThreadCompatibility" });
 

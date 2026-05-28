@@ -82,6 +82,32 @@ function DiagnosticsSelectorStabilityProbe({
   return <div data-testid="diagnostics-selector-stability">{observationState}</div>;
 }
 
+function CompositeRuntimeProbe({
+  output,
+  store,
+  revision,
+}: {
+  output: ReturnType<ReturnType<typeof createSignals>["output"]>;
+  store: ReturnType<typeof createReactSignalsStore>;
+  revision: number;
+}): JSX.Element {
+  const value = useOutputValue<{ count: number }>(output, store);
+  const observationState = useSignalsDiagnosticsValue(
+    (snapshot) => (snapshot.latestObservation === null ? "none" : "present"),
+    store,
+  );
+
+  return (
+    <div data-testid="composite-runtime-probe">
+      {JSON.stringify({
+        revision,
+        count: value.count,
+        observationState,
+      })}
+    </div>
+  );
+}
+
 afterEach(() => {
   cleanup();
 });
@@ -212,6 +238,87 @@ describe("React snapshot stability", () => {
       expect(renderCountRef.current).toBe(2);
       rendered.unmount();
     } finally {
+      fixture.dispose();
+    }
+  });
+
+  it("stays stable when React output reads, diagnostics selectors, watch, and effect all run together", async () => {
+    const fixture = await buildFixture();
+    const notices: Array<{ signalId: string; meaningfulChange: boolean }> = [];
+    let effectCount = 0;
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const watchHandle = fixture.signals.watch(fixture.panel, (notice) => {
+      notices.push({
+        signalId: notice.signalId,
+        meaningfulChange: notice.meaningfulChange,
+      });
+    });
+    const effectHandle = fixture.signals.effect(fixture.panel, () => {
+      effectCount += 1;
+    });
+
+    try {
+      const rendered = render(
+        <ReactSignalsStoreProvider store={fixture.store}>
+          <CompositeRuntimeProbe
+            output={fixture.panel}
+            store={fixture.store}
+            revision={0}
+          />
+        </ReactSignalsStoreProvider>,
+      );
+
+      for (const nextCount of [2, 3, 4]) {
+        act(() => {
+          fixture.count.set(nextCount);
+        });
+        await flushReact();
+      }
+
+      rendered.rerender(
+        <ReactSignalsStoreProvider store={fixture.store}>
+          <CompositeRuntimeProbe
+            output={fixture.panel}
+            store={fixture.store}
+            revision={1}
+          />
+        </ReactSignalsStoreProvider>,
+      );
+      await flushReact();
+
+      expect(rendered.getByTestId("composite-runtime-probe").textContent).toContain(
+        "\"count\":4",
+      );
+      expect(rendered.getByTestId("composite-runtime-probe").textContent).toContain(
+        "\"observationState\":\"present\"",
+      );
+      expect(notices.length).toBeGreaterThanOrEqual(1);
+      expect(notices.every((notice) => notice.signalId === fixture.panel.id)).toBe(true);
+      expect(effectCount).toBeGreaterThanOrEqual(1);
+      expect(
+        consoleError.mock.calls.some((call) =>
+          call.some(
+            (entry) =>
+              typeof entry === "string" &&
+              entry.includes("getSnapshot should be cached"),
+          ),
+        ),
+      ).toBe(false);
+      expect(
+        consoleError.mock.calls.some((call) =>
+          call.some(
+            (entry) =>
+              typeof entry === "string" &&
+              entry.includes("Maximum update depth exceeded"),
+          ),
+        ),
+      ).toBe(false);
+
+      rendered.unmount();
+    } finally {
+      fixture.signals.nuke(watchHandle);
+      fixture.signals.nuke(effectHandle);
+      consoleError.mockRestore();
       fixture.dispose();
     }
   });

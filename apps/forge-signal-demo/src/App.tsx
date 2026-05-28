@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useRouter } from "./ui/router";
 import { Layout } from "./ui/Layout";
 import { LandingPage } from "./ui/LandingPage";
@@ -9,16 +9,15 @@ import { createSignals } from "forge-signal-wasm";
 
 function App() {
   const { route, navigate } = useRouter();
-  const [isWasmBooted, setIsWasmBooted] = useState(false);
 
   useEffect(() => {
     createSignals({ deployment: "mainThreadCompatibility" })
-      .then(() => setIsWasmBooted(true))
+      .then(() => undefined)
       .catch((err) => console.error("Failed to boot WASM signals", err));
   }, []);
 
   return (
-    <Layout currentRoute={route} onNavigate={navigate} isWasmBooted={isWasmBooted}>
+    <Layout currentRoute={route} onNavigate={navigate}>
       {route.type === "landing" && <LandingPage onNavigate={navigate} />}
       {route.type === "docs" && <DocsPage subpath={route.subpath} onNavigate={navigate} />}
       {route.type === "demos" && <DemosIndex onNavigate={navigate} />}
