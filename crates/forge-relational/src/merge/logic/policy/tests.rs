@@ -35,6 +35,27 @@ fn deleted_on_both_sides_without_aspect_rows_is_auto_resolved() {
 }
 
 #[test]
+fn one_sided_deletion_stays_manual_even_when_aspect_rows_auto_resolve() {
+    let aspects = [crate::merge::data::AspectPolicyResolutionRecord {
+        aspect_key: AspectKey::new("name").unwrap(),
+        comparison: crate::merge::data::AspectComparisonState::Equal,
+        applied_policy: None,
+        decision_boundary: MergePolicyDecisionBoundary::AutoResolved,
+        resolved_value_strategy: None,
+    }];
+
+    assert_eq!(
+        aggregate_record_resolution(
+            MergeConflictClass::Deletion(DeletionMergeClass::SourceLiveTargetDeleted),
+            &aspects,
+        ),
+        MergePolicyDecisionBoundary::RequiresManualResolution {
+            class: MergeManualResolutionClass::GenericRuntimeConflict,
+        }
+    );
+}
+
+#[test]
 fn ownership_class_distinguishes_runtime_and_custom_policies() {
     assert_eq!(
         AspectMergePolicyKind::PreferRicher.ownership_class(),

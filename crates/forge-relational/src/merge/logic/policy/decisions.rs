@@ -106,6 +106,10 @@ pub(super) fn aggregate_record_resolution(
 
     if let Some(class) = reject_class {
         MergePolicyDecisionBoundary::Reject { class }
+    } else if deletion_conflict_requires_manual_resolution(classification) {
+        MergePolicyDecisionBoundary::RequiresManualResolution {
+            class: MergeManualResolutionClass::GenericRuntimeConflict,
+        }
     } else if classification == MergeConflictClass::StrategyIntentConflict {
         MergePolicyDecisionBoundary::RequiresManualResolution {
             class: MergeManualResolutionClass::StrategyIntentConflict,
@@ -115,6 +119,18 @@ pub(super) fn aggregate_record_resolution(
     } else {
         MergePolicyDecisionBoundary::AutoResolved
     }
+}
+
+fn deletion_conflict_requires_manual_resolution(classification: MergeConflictClass) -> bool {
+    matches!(
+        classification,
+        MergeConflictClass::Deletion(
+            DeletionMergeClass::SourceDeletedTargetLive
+                | DeletionMergeClass::SourceLiveTargetDeleted
+                | DeletionMergeClass::DeletedVsModified
+                | DeletionMergeClass::DeletedVsRewired
+        )
+    )
 }
 
 pub(super) fn summarize_policy_records(

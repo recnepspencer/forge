@@ -528,23 +528,10 @@ fn blocked_reason_for_record(
         return None;
     }
     if aspect_outcomes.is_empty() {
-        return match classification {
-            crate::merge::data::MergeConflictClass::Deletion(class) => {
-                Some(blocked_reason_for_deletion_class(class))
-            }
-            crate::merge::data::MergeConflictClass::RelationEndpointDivergence => Some(
-                blocked_reason_for_topology_resolution_class(resolution_class),
-            ),
-            crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence
-            | crate::merge::data::MergeConflictClass::DivergentVisibleState
-            | crate::merge::data::MergeConflictClass::ExactSharedTruth
-            | crate::merge::data::MergeConflictClass::SourceOnlyAddition => {
-                Some(LoweredMergeBlockedReason::ManualConflictResolutionRequired)
-            }
-            crate::merge::data::MergeConflictClass::StrategyIntentConflict => {
-                Some(LoweredMergeBlockedReason::StrategyIntentConflictRequiresManualResolution)
-            }
-        };
+        return Some(classification_blocked_reason(
+            classification,
+            resolution_class,
+        ));
     }
     if let Some(reason) = aspect_outcomes.iter().find_map(|aspect| {
         aspect
@@ -568,10 +555,48 @@ fn blocked_reason_for_record(
         .any(|aspect| aspect.blocked_reason.is_some())
     {
         Some(LoweredMergeBlockedReason::ManualConflictResolutionRequired)
+    } else if classification_requires_record_level_blocked_reason(classification) {
+        Some(classification_blocked_reason(
+            classification,
+            resolution_class,
+        ))
     } else if classification == crate::merge::data::MergeConflictClass::StrategyIntentConflict {
         Some(LoweredMergeBlockedReason::StrategyIntentConflictRequiresManualResolution)
     } else {
         None
+    }
+}
+
+fn classification_requires_record_level_blocked_reason(
+    classification: crate::merge::data::MergeConflictClass,
+) -> bool {
+    matches!(
+        classification,
+        crate::merge::data::MergeConflictClass::Deletion(_)
+            | crate::merge::data::MergeConflictClass::RelationEndpointDivergence
+    )
+}
+
+fn classification_blocked_reason(
+    classification: crate::merge::data::MergeConflictClass,
+    resolution_class: MergeResolutionClass,
+) -> LoweredMergeBlockedReason {
+    match classification {
+        crate::merge::data::MergeConflictClass::Deletion(class) => {
+            blocked_reason_for_deletion_class(class)
+        }
+        crate::merge::data::MergeConflictClass::RelationEndpointDivergence => {
+            blocked_reason_for_topology_resolution_class(resolution_class)
+        }
+        crate::merge::data::MergeConflictClass::StrategyIntentConflict => {
+            LoweredMergeBlockedReason::StrategyIntentConflictRequiresManualResolution
+        }
+        crate::merge::data::MergeConflictClass::SchemaDeclaredCorrespondence
+        | crate::merge::data::MergeConflictClass::DivergentVisibleState
+        | crate::merge::data::MergeConflictClass::ExactSharedTruth
+        | crate::merge::data::MergeConflictClass::SourceOnlyAddition => {
+            LoweredMergeBlockedReason::ManualConflictResolutionRequired
+        }
     }
 }
 
