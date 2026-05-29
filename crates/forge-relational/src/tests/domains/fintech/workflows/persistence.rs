@@ -174,7 +174,7 @@ fn fintech_complexity_hooks_measure_seeded_workflows() {
             selector: |counters| counters.full_state_clones,
         });
 
-    assert!(contracts.contains(&"runtime.partition_local_commit"));
+    assert!(contracts.contains(&"runtime.partition_local_commit".into()));
 
     let counters = measure_world_action(&mut world, |world| {
         let _ = correct_seeded_trade_candidate(world, analysis.clone());
@@ -351,7 +351,7 @@ fn fintech_recovery_falls_back_from_corrupt_latest_checkpoint_and_keeps_truth() 
     assert!(result
         .entities
         .iter()
-        .any(|entity| read_entity_field(entity, "corrected") == Some("true")));
+        .any(|entity| read_entity_field(entity, "corrected") == Some("true".into())));
 }
 use crate::facade::diagnostics::DiagnosticCode;
 use crate::facade::replay::ReplayFailureClass;

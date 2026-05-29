@@ -497,7 +497,10 @@ fn prepare_merge_execution_compiles_source_addition_record_plan() {
     match &prepared.bound_executable_plan().record_plans[0] {
         BoundExecutableMergeRecordPlan::AdoptSource(plan) => match &plan.source_visible_snapshot {
             crate::merge::data::VisibleMergeRecordSnapshot::Entity(entity) => {
-                assert_eq!(read_entity_field(entity, "name"), Some("feature-only"));
+                assert_eq!(
+                    read_entity_field(entity, "name"),
+                    Some("feature-only".into())
+                );
             }
             other => panic!("expected entity source snapshot, got {other:?}"),
         },

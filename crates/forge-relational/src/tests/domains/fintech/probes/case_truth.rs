@@ -163,5 +163,5 @@ pub(crate) fn read_version_probe(
 }
 
 fn field_is(entity: &EntityReadRecord, field: &str, expected: &str) -> bool {
-    read_entity_field(entity, field) == Some(expected)
+    read_entity_field(entity, field) == Some(expected.to_string())
 }

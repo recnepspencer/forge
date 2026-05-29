@@ -52,10 +52,10 @@ fn savepoint_abandoned_work_never_appears_in_subscriber_cdc() {
         .filter_map(|record| read_entity_name(record))
         .collect::<Vec<_>>();
 
-    assert!(names.contains(&"surviving"));
-    assert!(names.contains(&"survived-anchor"));
-    assert!(!names.contains(&"abandoned"));
-    assert!(!names.contains(&"abandoned-anchor"));
+    assert!(names.contains(&"surviving".into()));
+    assert!(names.contains(&"survived-anchor".into()));
+    assert!(!names.contains(&"abandoned".into()));
+    assert!(!names.contains(&"abandoned-anchor".into()));
 }
 
 #[test]
@@ -215,9 +215,9 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
         .filter_map(|record| read_entity_name(record))
         .collect::<Vec<_>>();
 
-    assert!(entity_names.contains(&"target"));
-    assert!(entity_names.contains(&"surviving-final"));
-    assert!(entity_names.contains(&"surviving-final-anchor"));
+    assert!(entity_names.contains(&"target".into()));
+    assert!(entity_names.contains(&"surviving-final".into()));
+    assert!(entity_names.contains(&"surviving-final-anchor".into()));
     assert!(!entity_names.iter().any(|name| name.contains("abandoned")));
     assert_eq!(read.relations().len(), 1);
     let replay = runtime.replay();

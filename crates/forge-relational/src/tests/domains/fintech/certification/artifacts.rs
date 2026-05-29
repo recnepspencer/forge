@@ -27,22 +27,22 @@ pub(super) fn read_summary(
     let corrected_trades = read
         .entities()
         .iter()
-        .filter(|entity| read_entity_field(entity, "corrected") == Some("true"))
+        .filter(|entity| read_entity_field(entity, "corrected") == Some("true".into()))
         .count();
     let repaired_settlements = read
         .entities()
         .iter()
         .filter(|entity| {
-            read_entity_field(entity, "entity_type") == Some("settlement")
-                && read_entity_field(entity, "status") == Some("repaired")
+            read_entity_field(entity, "entity_type") == Some("settlement".into())
+                && read_entity_field(entity, "status") == Some("repaired".into())
         })
         .count();
     let open_breaches = read
         .entities()
         .iter()
         .filter(|entity| {
-            read_entity_field(entity, "entity_type") == Some("limit_breach")
-                && read_entity_field(entity, "status") == Some("open")
+            read_entity_field(entity, "entity_type") == Some("limit_breach".into())
+                && read_entity_field(entity, "status") == Some("open".into())
         })
         .count();
     Ok(json!({

@@ -158,15 +158,15 @@ fn merge_commit_uses_deterministic_parent_order_and_advances_target_branch() {
         .find(|entry| entry.code == DiagnosticCode::MergeCommitPublished)
         .expect("merge publication diagnostic");
     assert_eq!(
-        merge_diagnostic.fields["history_shape"],
+        merge_diagnostic.fields.root_value()["history_shape"],
         serde_json::json!("MergeReady")
     );
     assert_eq!(
-        merge_diagnostic.fields["parent_count"],
+        merge_diagnostic.fields.root_value()["parent_count"],
         serde_json::json!(2)
     );
     assert_eq!(
-        merge_diagnostic.fields["authoritative_parent_list"],
+        merge_diagnostic.fields.root_value()["authoritative_parent_list"],
         serde_json::json!([
             main_outcome.commit.commit_id.0,
             feature_outcome.commit.commit_id.0

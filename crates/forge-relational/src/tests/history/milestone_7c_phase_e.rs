@@ -130,15 +130,15 @@ fn execute_prepared_merge_survives_durability_append_and_recovery() {
         .find(|entry| entry.code == DiagnosticCode::MergeExecutionPublished)
         .expect("merge execution summary entry");
     assert_eq!(
-        merge_execution_entry.fields["commit_id"],
+        merge_execution_entry.fields.root_value()["commit_id"],
         serde_json::json!(merge.commit.commit.commit_id.0)
     );
     assert_eq!(
-        merge_execution_entry.fields["execution_digest"],
+        merge_execution_entry.fields.root_value()["execution_digest"],
         serde_json::json!(merge.execution_summary.execution_digest)
     );
     assert_eq!(
-        merge_execution_entry.fields["diagnostics_digest"],
+        merge_execution_entry.fields.root_value()["diagnostics_digest"],
         serde_json::json!(merge.execution_summary.diagnostics_digest)
     );
     assert_eq!(
@@ -273,8 +273,8 @@ fn execute_prepared_merge_reports_execution_counters_and_structural_summary() {
         .expect("merge execution detailed artifact");
     assert!(execution_artifact.entries.iter().all(|entry| {
         entry.code == DiagnosticCode::MergeExecutionPublished
-            && entry.fields.get("blocked_count").is_none()
-            && entry.fields.get("rejected_count").is_none()
+            && entry.fields.root_value().get("blocked_count").is_none()
+            && entry.fields.root_value().get("rejected_count").is_none()
     }));
 }
 

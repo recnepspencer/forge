@@ -17,11 +17,13 @@ pub(crate) fn assert_partitioned_aspect_state(read: &RelationalReadView) {
             RISK_PARTITION => saw_risk = true,
             _ => {}
         }
-        match read_entity_field(entity, "entity_type") {
-            Some("instrument") => saw_instrument = true,
-            Some("settlement") => saw_settlement = true,
-            Some("limit") => saw_limit = true,
-            _ => {}
+        if let Some(entity_type) = read_entity_field(entity, "entity_type") {
+            match entity_type.as_ref() {
+                "instrument" => saw_instrument = true,
+                "settlement" => saw_settlement = true,
+                "limit" => saw_limit = true,
+                _ => {}
+            }
         }
         if entity.entity_id.partition_id == MARKET_PARTITION {
             assert!(entity.authoritative_aspect_state.is_some());

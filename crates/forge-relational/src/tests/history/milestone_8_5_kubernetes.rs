@@ -664,8 +664,7 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
             runtime.history().branch_head(&controller_branch).cloned(),
         )),
         visible_truth_digest: certification_digest(&(
-            read_entity_name(current.get_entity(entity).expect("entity visible"))
-                .map(str::to_string),
+            read_entity_name(current.get_entity(entity).expect("entity visible")),
             current
                 .get_entity(entity)
                 .expect("entity visible")
@@ -840,8 +839,7 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
                 recovered_current
                     .get_entity(entity)
                     .expect("recovered entity visible"),
-            )
-            .map(str::to_string),
+            ),
             recovered_current
                 .get_entity(entity)
                 .expect("recovered entity visible")

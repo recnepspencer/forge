@@ -1226,7 +1226,7 @@ fn transaction_inspection_marks_lineage_affecting_intents_without_previewing_com
         }
         _ => None,
     };
-    assert_eq!(current_name, Some("replace-target"));
+    assert_eq!(current_name, Some("replace-target".into()));
 }
 
 #[test]

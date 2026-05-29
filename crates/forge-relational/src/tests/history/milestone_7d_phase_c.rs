@@ -168,11 +168,11 @@ fn promoted_deleted_on_both_sides_executes_through_authoritative_merge_publicati
         .find(|entry| entry.code == DiagnosticCode::MergeExecutionPublished)
         .expect("merge execution summary entry");
     assert_eq!(
-        summary_entry.fields["converged_deleted_on_both_sides_count"],
+        summary_entry.fields.root_value()["converged_deleted_on_both_sides_count"],
         serde_json::json!(1)
     );
     assert_eq!(
-        summary_entry.fields["deleted_on_both_sides_lineage_unchanged_count"],
+        summary_entry.fields.root_value()["deleted_on_both_sides_lineage_unchanged_count"],
         serde_json::json!(1)
     );
 
@@ -184,7 +184,7 @@ fn promoted_deleted_on_both_sides_executes_through_authoritative_merge_publicati
             artifact.kind == DiagnosticsArtifactKind::DetailedTrace
                 && artifact.entries.iter().any(|entry| {
                     entry.code == DiagnosticCode::MergeExecutionPublished
-                        && entry.fields["commit_id"]
+                        && entry.fields.root_value()["commit_id"]
                             == serde_json::json!(merge.commit.commit.commit_id.0.clone())
                 })
         })
@@ -193,16 +193,17 @@ fn promoted_deleted_on_both_sides_executes_through_authoritative_merge_publicati
         .entries
         .iter()
         .find(|entry| {
-            entry.fields["record_class"] == serde_json::json!("converge_deleted_on_both_sides")
+            entry.fields.root_value()["record_class"]
+                == serde_json::json!("converge_deleted_on_both_sides")
         })
         .expect("deleted-on-both-sides record entry");
-    assert!(record_entry.fields["equality_witness_digest"].is_string());
+    assert!(record_entry.fields.root_value()["equality_witness_digest"].is_string());
     assert_eq!(
-        record_entry.fields["deletion_semantics"],
+        record_entry.fields.root_value()["deletion_semantics"],
         serde_json::json!("AuthoritativeMutualDeletionConvergence")
     );
     assert_eq!(
-        record_entry.fields["lineage_continuity"],
+        record_entry.fields.root_value()["lineage_continuity"],
         serde_json::json!("Unchanged")
     );
 }

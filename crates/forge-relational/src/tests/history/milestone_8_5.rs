@@ -979,8 +979,7 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
                 recovered_current
                     .get_entity(entity)
                     .expect("recovered entity visible"),
-            )
-            .map(str::to_string),
+            ),
             recovered
                 .history()
                 .branch_head(&BranchId("main".to_string()))

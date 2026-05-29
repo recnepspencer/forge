@@ -492,19 +492,21 @@ fn replay_certification_audit_drift_is_explained_and_counted() {
         .flat_map(|artifact| artifact.entries.iter())
         .find(|entry| {
             entry.code == DiagnosticCode::InvariantViolation
-                && entry.fields.get("verification_mode").is_some()
+                && entry.fields.root_value().get("verification_mode").is_some()
         })
         .expect("replay certification diagnostic");
     assert_eq!(
-        compatibility_entry.fields["verification_mode"],
+        compatibility_entry.fields.root_value()["verification_mode"],
         serde_json::json!("AuditRecoveryVerification")
     );
-    assert!(compatibility_entry.fields["mismatch_verification_layers"]
-        .as_array()
-        .unwrap()
-        .iter()
-        .any(|value| value == "DeepArtifactParity"));
-    assert!(compatibility_entry.fields["mismatch_classes"]
+    assert!(
+        compatibility_entry.fields.root_value()["mismatch_verification_layers"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|value| value == "DeepArtifactParity")
+    );
+    assert!(compatibility_entry.fields.root_value()["mismatch_classes"]
         .as_array()
         .unwrap()
         .iter()
@@ -1118,7 +1120,7 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
         .flat_map(|artifact| artifact.entries.iter())
         .any(|entry| {
             entry.code == DiagnosticCode::CommitPublished
-                && entry.fields["verification_mode"]
+                && entry.fields.root_value()["verification_mode"]
                     == serde_json::json!("NormalRecoveryVerification")
         }));
     let replay_counters = runtime.performance_access().counters();
@@ -1318,7 +1320,7 @@ fn hostile_commit_replay_equivalence_test() {
         .flat_map(|artifact| artifact.entries.iter())
         .any(|entry| {
             entry.code == DiagnosticCode::CommitPublished
-                && entry.fields["verification_mode"]
+                && entry.fields.root_value()["verification_mode"]
                     == serde_json::json!("NormalRecoveryVerification")
         }));
 

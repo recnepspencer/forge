@@ -42,7 +42,7 @@ fn unsupported_continuation_failure_counts_current_boundary_when_no_prior_proof_
         .find(|entry| entry.code == DiagnosticCode::SubscriberContractEvaluated)
         .unwrap();
     assert_eq!(
-        rejection_entry.fields["normalized_boundary_count_at_failure"],
+        rejection_entry.fields.root_value()["normalized_boundary_count_at_failure"],
         serde_json::json!(1)
     );
 }
@@ -80,7 +80,7 @@ fn unsupported_continuation_failure_deduplicates_boundary_already_present_in_pri
         .find(|entry| entry.code == DiagnosticCode::SubscriberContractEvaluated)
         .unwrap();
     assert_eq!(
-        rejection_entry.fields["normalized_boundary_count_at_failure"],
+        rejection_entry.fields.root_value()["normalized_boundary_count_at_failure"],
         serde_json::json!(1)
     );
 }

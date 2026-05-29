@@ -91,7 +91,7 @@ fn fintech_scenario_selectors_expose_canonical_cases_and_expected_invariants() {
     );
     assert_eq!(selection.scenario_key, "late-trade-correction");
     assert!(!selection.expected_invariants.is_empty());
-    assert!(selection.expected_artifacts.contains(&"diagnostics"));
+    assert!(selection.expected_artifacts.contains(&"diagnostics".into()));
     assert_eq!(
         selection.expected_read_alias,
         "trade-correction.read.post-mutation"
@@ -213,7 +213,7 @@ fn fintech_analysis_workflow_preserves_branching_snapshots_and_trade_correction(
     assert!(analysis_read
         .entities()
         .iter()
-        .any(|entity| read_entity_field(entity, "corrected") == Some("true")));
+        .any(|entity| read_entity_field(entity, "corrected") == Some("true".into())));
     assert_eq!(
         world
             .runtime
@@ -257,8 +257,8 @@ fn fintech_intraday_risk_workflow_exposes_open_breach_on_analysis_branch() {
     );
 
     assert!(analysis_read.entities().iter().any(|entity| {
-        read_entity_field(entity, "entity_type") == Some("limit_breach")
-            && read_entity_field(entity, "status") == Some("open")
+        read_entity_field(entity, "entity_type") == Some("limit_breach".into())
+            && read_entity_field(entity, "status") == Some("open".into())
     }));
     assert_eq!(
         world
@@ -293,8 +293,8 @@ fn fintech_settlement_repair_workflow_exposes_repaired_settlement_on_analysis_br
     let analysis_read = world.read_latest();
 
     assert!(analysis_read.entities().iter().any(|entity| {
-        read_entity_field(entity, "entity_type") == Some("settlement")
-            && read_entity_field(entity, "status") == Some("repaired")
+        read_entity_field(entity, "entity_type") == Some("settlement".into())
+            && read_entity_field(entity, "status") == Some("repaired".into())
     }));
     assert_eq!(
         world

@@ -564,11 +564,11 @@ fn durability_recovery_emits_compatibility_diagnostic_before_execution() {
         .find(|entry| entry.code == DiagnosticCode::DurableRecoveryCompatibilityEvaluated)
         .expect("recovery compatibility diagnostic");
     assert_eq!(
-        compatibility_entry.fields["verification_rejected"],
+        compatibility_entry.fields.root_value()["verification_rejected"],
         json!(false)
     );
     assert_eq!(
-        compatibility_entry.fields["verification_layer"],
+        compatibility_entry.fields.root_value()["verification_layer"],
         json!("DigestParity")
     );
 }
@@ -593,26 +593,26 @@ fn durability_certification_recovery_compatibility_is_explained_and_counted() {
         .find(|entry| entry.code == DiagnosticCode::DurableRecoveryCompatibilityEvaluated)
         .expect("recovery certification diagnostic");
     assert_eq!(
-        compatibility_entry.fields["verification_mode"],
+        compatibility_entry.fields.root_value()["verification_mode"],
         json!("NormalRecoveryVerification")
     );
     assert_eq!(
-        compatibility_entry.fields["verification_rejected"],
+        compatibility_entry.fields.root_value()["verification_rejected"],
         json!(false)
     );
     assert_eq!(
-        compatibility_entry.fields["verification_layer"],
+        compatibility_entry.fields.root_value()["verification_layer"],
         json!("DigestParity")
     );
     assert_eq!(
-        compatibility_entry.fields["descriptor_version_parity"],
+        compatibility_entry.fields.root_value()["descriptor_version_parity"],
         json!({
             "parity": "VerifiedAtLayer",
             "verification_layer": "DigestParity"
         })
     );
     assert_eq!(
-        compatibility_entry.fields["schema_transition_parity"],
+        compatibility_entry.fields.root_value()["schema_transition_parity"],
         json!({
             "parity": "VerifiedAtLayer",
             "verification_layer": "DigestParity"
@@ -712,7 +712,7 @@ fn durable_recovery_and_schema_mismatch_test() {
         .flat_map(|artifact| artifact.entries.iter())
         .any(|entry| {
             entry.code == DiagnosticCode::DurableRecoveryCompatibilityEvaluated
-                && entry.fields["verification_layer"] == json!("DigestParity")
+                && entry.fields.root_value()["verification_layer"] == json!("DigestParity")
         }));
     let recovered_counters = recovered.performance_access().counters();
     assert!(recovered_counters.replay_digest_parity_checks >= 1);

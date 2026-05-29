@@ -723,7 +723,7 @@ mod tests {
             .read_version(runtime.current_version_id());
         assert_eq!(
             read_entity_name(current.get_entity(entity).expect("committed entity")),
-            Some("after")
+            Some("after".into())
         );
         assert_eq!(
             commit
@@ -830,7 +830,7 @@ mod tests {
             .expect("replacement strategy artifacts");
 
         assert_ne!(original_lineage, replacement_lineage);
-        assert_eq!(read_entity_name(&replacement_record), Some("before"));
+        assert_eq!(read_entity_name(&replacement_record), Some("before".into()));
         let expected_replicas_key =
             crate::storage::data::authoritative_aspect_value_field_comparison_key(
                 &AspectValue::UInt64(3),

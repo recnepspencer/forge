@@ -1,5 +1,3 @@
-use std::ops::Index;
-
 use forge_foundational::facade::{
     AspectKey, AspectMask, AspectValue, AspectValueLocator, DiagnosticMask, FieldKey,
     StructAspectValue,
@@ -56,10 +54,6 @@ impl RelationalDiagnosticFields {
 
     pub fn root(&self) -> &RelationalDiagnosticValue {
         &self.root
-    }
-
-    pub fn get(&self, field_name: &str) -> Option<&Value> {
-        self.projected_root.get(field_name)
     }
 }
 
@@ -279,14 +273,6 @@ impl PartialEq<Value> for RelationalDiagnosticFields {
 impl PartialEq<RelationalDiagnosticFields> for Value {
     fn eq(&self, other: &RelationalDiagnosticFields) -> bool {
         self == &other.projected_root
-    }
-}
-
-impl Index<&str> for RelationalDiagnosticFields {
-    type Output = Value;
-
-    fn index(&self, index: &str) -> &Self::Output {
-        &self.projected_root[index]
     }
 }
 

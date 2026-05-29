@@ -254,8 +254,11 @@ fn certify_prefer_richer_merge_execution() -> MergeExecutionCertificationArtifac
     let current_record = current
         .get_entity(main_entity)
         .expect("merged target entity remains visible");
-    assert_eq!(read_entity_name(current_record), Some("shared-name"));
-    assert_eq!(read_entity_field(current_record, "status"), Some("active"));
+    assert_eq!(read_entity_name(current_record), Some("shared-name".into()));
+    assert_eq!(
+        read_entity_field(current_record, "status"),
+        Some("active".into())
+    );
 
     certify_merge_execution_with_recovery(&mut runtime, &merge, move || {
         persisted_runtime_with_registry(registry.clone(), store_path.clone())

@@ -701,7 +701,7 @@ fn commit_rejects_undeclared_schema_drift_against_branch_head() {
         .expect("schema continuity failure artifact");
     assert!(failure_artifact.entries.iter().any(|entry| {
         entry.code == DiagnosticCode::SchemaContinuityViolation
-            && entry.fields["conflict_class"]
+            && entry.fields.root_value()["conflict_class"]
                 .as_str()
                 .is_some_and(|class: &str| class.contains("UndeclaredSchemaTransition"))
     }));
@@ -837,18 +837,18 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
         .find(|entry| entry.message.contains("schema diff atom 0"))
         .expect("per-diff schema trace entry");
     assert_eq!(
-        diff_entry.fields["strata"],
+        diff_entry.fields.root_value()["strata"],
         Value::Array(vec![
             Value::String("StructuralShape".to_string()),
             Value::String("PublicationContract".to_string()),
         ])
     );
     assert_eq!(
-        diff_entry.fields["detail"]["kind"],
+        diff_entry.fields.root_value()["detail"]["kind"],
         Value::String("AddedField".to_string())
     );
     assert_eq!(
-        diff_entry.fields["detail"]["field_path"],
+        diff_entry.fields.root_value()["detail"]["field_path"],
         Value::Array(vec![Value::String("tag".to_string())])
     );
 }
@@ -1075,8 +1075,9 @@ fn declared_schema_transition_rejects_wrong_target_basis() {
         .expect("schema continuity failure artifact");
     assert!(failure_artifact.entries.iter().any(|entry| {
         entry.message.contains("rejected schema diff atom 0")
-            && entry.fields["detail"]["kind"] == Value::String("AddedField".to_string())
-            && entry.fields["strata"]
+            && entry.fields.root_value()["detail"]["kind"]
+                == Value::String("AddedField".to_string())
+            && entry.fields.root_value()["strata"]
                 == Value::Array(vec![Value::String("StructuralShape".to_string())])
     }));
 }

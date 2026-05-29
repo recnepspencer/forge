@@ -235,7 +235,7 @@ fn replay_retention_preserves_historical_live_entity_aspects_across_updates() {
     assert_eq!(historical.entities.len(), 1);
     assert_eq!(
         read_entity_name(&historical.entities[0]),
-        Some("replay-history")
+        Some("replay-history".into())
     );
 
     assert!(runtime
@@ -284,15 +284,15 @@ fn retention_plan_reports_explicit_replay_pins_for_deleted_relations_until_relea
     assert_eq!(pinned.reclaimable_relations, 0);
     assert_eq!(latest_entry.code, DiagnosticCode::RetentionPlanInspected);
     assert_eq!(
-        latest_entry.fields["replay_pinned_relations"].as_u64(),
+        latest_entry.fields.root_value()["replay_pinned_relations"].as_u64(),
         Some(pinned.replay_pinned_relations as u64)
     );
     assert_eq!(
-        latest_entry.fields["branch_pinned_relations"].as_u64(),
+        latest_entry.fields.root_value()["branch_pinned_relations"].as_u64(),
         Some(pinned.branch_pinned_relations as u64)
     );
     assert!(
-        latest_entry.fields["branch_replay_overlap_relations"]
+        latest_entry.fields.root_value()["branch_replay_overlap_relations"]
             .as_u64()
             .unwrap_or(0)
             >= 1

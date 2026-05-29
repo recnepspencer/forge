@@ -41,13 +41,11 @@ fn display_text_for_test_aspect_value(value: AspectValue) -> String {
         AspectValue::Float64(value) => format!("f64-bits:{}", value.bits()),
         AspectValue::Decimal(value) => value.as_str().to_string(),
         AspectValue::BigInt(value) => value.as_str().to_string(),
-        AspectValue::Rational(value) => {
-            format!(
-                "{}/{}",
-                value.numerator.as_str(),
-                value.denominator.as_str()
-            )
-        }
+        AspectValue::Rational(value) => format!(
+            "{}/{}",
+            value.numerator.as_str(),
+            value.denominator.as_str()
+        ),
         AspectValue::String(value) => display_text_for_test_interned_string(value),
         AspectValue::Bytes(value) => format!("bytes-ref:{}", value.0),
         AspectValue::Uuid(value) => value.iter().map(|byte| format!("{byte:02x}")).collect(),

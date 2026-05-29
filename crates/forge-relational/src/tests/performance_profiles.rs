@@ -1083,7 +1083,10 @@ fn rebuild_pseudorealistic_entity_order(
         else {
             continue;
         };
-        let Some((start, end)) = expected_ranges.get(&(section, subsystem)).copied() else {
+        let Some((start, end)) = expected_ranges
+            .get(&(section.as_str(), subsystem.as_str()))
+            .copied()
+        else {
             continue;
         };
         assert!(
@@ -2223,7 +2226,7 @@ fn perf_replay_recovery_matrix() {
             counter_u64(metrics, "full_state_clones") == 0
                 && metrics["failure"].is_null()
                 && metrics["mismatch_count"].as_u64() == Some(0)
-                && metrics["lineage_authority_basis"].as_str() == Some("DurableLogCanonical")
+                && metrics["lineage_authority_basis"].as_str() == Some("DurableLogCanonical".into())
                 && counter_u64(metrics, "replay_lineage_authority_lookup_requests") == 1
         },
     );
@@ -2668,7 +2671,7 @@ fn perf_geometry_kernel_matrix() {
                 && metrics["component_count"].as_u64() == Some(1)
                 && metrics["largest_component_size"].as_u64() == Some(12)
                 && metrics["enumerated_entity_count"].as_u64() == Some(12)
-                && metrics["availability"].as_str() == Some("Direct")
+                && metrics["availability"].as_str() == Some("Direct".into())
                 && metrics["degradation_count"].as_u64() == Some(1)
                 && counter_u64(metrics, "full_state_clones") == 0
                 && counter_u64(metrics, "relation_slots_touched_by_commit") == 1
@@ -2795,7 +2798,7 @@ fn perf_geometry_kernel_matrix() {
                 && metrics["component_count"].as_u64() == Some(1)
                 && metrics["largest_component_size"].as_u64() == Some(12)
                 && metrics["enumerated_entity_count"].as_u64() == Some(12)
-                && metrics["availability"].as_str() == Some("Direct")
+                && metrics["availability"].as_str() == Some("Direct".into())
                 && metrics["degradation_count"].as_u64() == Some(1)
                 && metrics["diagnostic_artifact_count"].as_u64().unwrap_or(0) >= 1
                 && metrics["detailed_trace_entries"].as_u64() == Some(0)
@@ -2924,7 +2927,7 @@ fn perf_geometry_kernel_matrix() {
                 && metrics["component_count"].as_u64() == Some(1)
                 && metrics["largest_component_size"].as_u64() == Some(12)
                 && metrics["enumerated_entity_count"].as_u64() == Some(12)
-                && metrics["availability"].as_str() == Some("Direct")
+                && metrics["availability"].as_str() == Some("Direct".into())
                 && metrics["degradation_count"].as_u64() == Some(1)
                 && metrics["diagnostic_artifact_count"].as_u64().unwrap_or(0) >= 1
                 && metrics["detailed_trace_entries"].as_u64() == Some(0)
@@ -3100,7 +3103,7 @@ fn perf_cad_topology_matrix() {
                 && metrics["component_count"].as_u64() == Some(1)
                 && metrics["largest_component_size"].as_u64() == Some(12)
                 && metrics["enumerated_entity_count"].as_u64() == Some(12)
-                && metrics["availability"].as_str() == Some("Direct")
+                && metrics["availability"].as_str() == Some("Direct".into())
                 && counter_u64(metrics, "full_state_clones") == 0
                 && counter_u64(metrics, "inspection_connectivity_summary_requests") == 1
                 && counter_u64(metrics, "query_packet_count") <= 6
@@ -7485,8 +7488,8 @@ fn perf_inspection_budget_matrix() {
             metric_u64(metrics, "query_match_count") == 1
                 && metrics["historical_has_value"].as_bool() == Some(false)
                 && metrics["historical_lineage_context_present"].as_bool() == Some(false)
-                && metrics["direct_availability"].as_str() == Some("Direct")
-                && metrics["historical_availability"].as_str() == Some("Reconstructed")
+                && metrics["direct_availability"].as_str() == Some("Direct".into())
+                && metrics["historical_availability"].as_str() == Some("Reconstructed".into())
                 && counter_u64(metrics, "inspection_structural_identity_query_scans") == 1
                 && counter_u64(metrics, "inspection_structural_identity_lookups") >= 3
                 && counter_u64(metrics, "full_state_clones") == 0
@@ -7559,7 +7562,7 @@ fn perf_inspection_budget_matrix() {
         &retention_commit_samples,
         "retention and commit inspection windows should stay index-backed and bounded",
         |metrics| {
-            metrics["retention_availability"].as_str() == Some("Direct")
+            metrics["retention_availability"].as_str() == Some("Direct".into())
                 && metric_u64(metrics, "commit_changed_records") == 1
                 && metric_u64(metrics, "recent_commit_count") == 3
                 && counter_u64(metrics, "inspection_commit_reads") == 4

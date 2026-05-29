@@ -81,7 +81,10 @@ fn relation_aspect_history_remains_available_for_historical_reads_after_reclaim(
         .iter()
         .find(|record| record.relation_id == relation)
         .expect("retained relation aspect record");
-    assert_eq!(read_relation_field(relation_record, "label"), Some("r1"));
+    assert_eq!(
+        read_relation_field(relation_record, "label"),
+        Some("r1".into())
+    );
 }
 
 #[test]
@@ -144,6 +147,7 @@ fn explicit_snapshots_can_skip_cache_protection_and_still_read_until_release() {
         entry.code == DiagnosticCode::SnapshotReadPathInspected
             && entry
                 .fields
+                .root_value()
                 .get("recent_candidate")
                 .and_then(|value| value.as_bool())
                 == Some(false)
@@ -155,7 +159,7 @@ fn explicit_snapshots_can_skip_cache_protection_and_still_read_until_release() {
 
     assert_eq!(
         read_entity_field(read.get_entity(entity).unwrap(), "name"),
-        Some("first")
+        Some("first".into())
     );
     assert_eq!(inspection.pinned_entity_count, 1);
     assert_eq!(stats.snapshot_count, 1);
@@ -228,6 +232,7 @@ fn visibility_cache_recent_window_is_bounded_and_reports_hits() {
         entry.code == DiagnosticCode::VisibilityCacheRecentAdmissionCandidate
             && entry
                 .fields
+                .root_value()
                 .get("recent_admission_candidate")
                 .and_then(|value| value.as_bool())
                 == Some(true)
@@ -262,11 +267,13 @@ fn visibility_cache_recent_window_is_bounded_and_reports_hits() {
         entry.code == DiagnosticCode::SnapshotReadPathInspected
             && entry
                 .fields
+                .root_value()
                 .get("cached_visibility_state")
                 .and_then(|value| value.as_bool())
                 == Some(false)
             && entry
                 .fields
+                .root_value()
                 .get("recent_resident")
                 .and_then(|value| value.as_bool())
                 == Some(false)

@@ -263,9 +263,15 @@ fn invariant_failure_artifact_preserves_specific_code_localization_and_proof_bou
         }
         other => panic!("expected conflict, got {:?}", other),
     }
-    assert_eq!(entry.fields["execution_point"], json!("commit_boundary"));
-    assert_eq!(entry.fields["failure_effect"], json!("block_commit"));
-    let violation = &entry.fields["violation"];
+    assert_eq!(
+        entry.fields.root_value()["execution_point"],
+        json!("commit_boundary")
+    );
+    assert_eq!(
+        entry.fields.root_value()["failure_effect"],
+        json!("block_commit")
+    );
+    let violation = &entry.fields.root_value()["violation"];
     assert_eq!(violation["violation_kind"], json!("relation_symmetry"));
     assert_eq!(violation["contract_id"], json!("paired_twin"));
     assert_eq!(violation["relation_kind_id"], json!(2));
@@ -279,10 +285,13 @@ fn invariant_failure_artifact_preserves_specific_code_localization_and_proof_bou
     );
     assert_eq!(violation["mode"], json!("paired_twin_required"));
     assert_eq!(
-        entry.fields["proof_boundary"]["scope_class"],
+        entry.fields.root_value()["proof_boundary"]["scope_class"],
         json!("partition_scope")
     );
-    assert_eq!(entry.fields["proof_boundary"]["packet_count"], json!(1));
+    assert_eq!(
+        entry.fields.root_value()["proof_boundary"]["packet_count"],
+        json!(1)
+    );
 }
 
 fn typed_existing_entity_reference_json(
@@ -352,19 +361,25 @@ fn invariant_diagnostics_trace_proof_boundary_for_relation_integrity_execution()
         .flat_map(|artifact| artifact.entries.iter())
         .find(|entry| {
             entry.code == DiagnosticCode::InvariantProofBoundaryObserved
-                && entry.fields["execution_point"] == json!("commit_boundary")
-                && entry.fields["proof_boundary"]["packet_count"] == json!(1)
+                && entry.fields.root_value()["execution_point"] == json!("commit_boundary")
+                && entry.fields.root_value()["proof_boundary"]["packet_count"] == json!(1)
         })
         .expect("proof boundary trace entry");
 
-    assert_eq!(entry.fields["execution_point"], json!("commit_boundary"));
     assert_eq!(
-        entry.fields["proof_boundary"]["scope_class"],
+        entry.fields.root_value()["execution_point"],
+        json!("commit_boundary")
+    );
+    assert_eq!(
+        entry.fields.root_value()["proof_boundary"]["scope_class"],
         json!("partition_scope")
     );
-    assert_eq!(entry.fields["proof_boundary"]["packet_count"], json!(1));
     assert_eq!(
-        entry.fields["proof_boundary"]["touched_partition_count"],
+        entry.fields.root_value()["proof_boundary"]["packet_count"],
+        json!(1)
+    );
+    assert_eq!(
+        entry.fields.root_value()["proof_boundary"]["touched_partition_count"],
         json!(1)
     );
 }
@@ -521,7 +536,10 @@ fn publication_snapshot_reads_use_authoritative_published_binding_version() {
     assert_eq!(read.snapshot.version_id, updated.snapshot.version_id);
     assert_eq!(inspection.version_id, updated.snapshot.version_id);
     assert_eq!(read.entities.len(), 1);
-    assert_eq!(read_entity_field(&read.entities[0], "name"), Some("second"));
+    assert_eq!(
+        read_entity_field(&read.entities[0], "name"),
+        Some("second".into())
+    );
 }
 
 #[test]
@@ -976,7 +994,7 @@ fn harness_snapshot_marks_missing_targets_unknown() {
     );
     assert_eq!(
         snapshot.observations[0].detail.as_deref(),
-        Some("target not visible at captured snapshot")
+        Some("target not visible at captured snapshot".into())
     );
     assert!(snapshot.observations[0].value.is_none());
 }
@@ -1007,7 +1025,7 @@ fn harness_fixture_loads_declared_aspect_field_patches() {
     let entity_id = crate::facade::identity::EntityId::new(PartitionId::main(), 0, 1);
     let entity = read.get_entity(entity_id).expect("fixture entity visible");
 
-    assert_eq!(read_entity_name(entity), Some("from-fixture"));
+    assert_eq!(read_entity_name(entity), Some("from-fixture".into()));
 }
 
 #[test]

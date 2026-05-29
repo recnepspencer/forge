@@ -164,19 +164,19 @@ fn cdc_certification_snapshot_pinning_is_neutral_under_rewrite_churn() {
 
     assert_eq!(
         read_entity_name(pinned_snapshot_read.get_entity(pinned_left).unwrap()),
-        Some("baseline-left")
+        Some("baseline-left".into())
     );
     assert_eq!(
         read_entity_name(pinned_snapshot_read.get_entity(pinned_right).unwrap()),
-        Some("baseline-right")
+        Some("baseline-right".into())
     );
     assert_eq!(
         read_entity_name(pinned_latest_read.get_entity(pinned_left).unwrap()),
-        Some("left-rewrite-47")
+        Some("left-rewrite-47".into())
     );
     assert_eq!(
         read_entity_name(pinned_latest_read.get_entity(pinned_right).unwrap()),
-        Some("right-rewrite-47")
+        Some("right-rewrite-47".into())
     );
 
     let retention = pinned_runtime.retention().inspect_plan();
@@ -326,12 +326,12 @@ fn cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth() {
         .filter_map(|record| read_entity_name(record))
         .collect::<Vec<_>>();
 
-    assert!(names.contains(&"surviving"));
-    assert!(names.contains(&"survived-left"));
-    assert!(names.contains(&"survived-right"));
-    assert!(!names.contains(&"abandoned"));
-    assert!(!names.contains(&"abandoned-left"));
-    assert!(!names.contains(&"abandoned-right"));
+    assert!(names.contains(&"surviving".into()));
+    assert!(names.contains(&"survived-left".into()));
+    assert!(names.contains(&"survived-right".into()));
+    assert!(!names.contains(&"abandoned".into()));
+    assert!(!names.contains(&"abandoned-left".into()));
+    assert!(!names.contains(&"abandoned-right".into()));
 }
 
 #[test]

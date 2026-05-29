@@ -1398,7 +1398,7 @@ fn snapshot_audit_failure_discards_only_touched_overlay() {
     assert!(committed_read
         .entities()
         .iter()
-        .any(|record| read_entity_name(record) == Some("baseline")));
+        .any(|record| read_entity_name(record) == Some("baseline".into())));
     assert_eq!(
         runtime.history().latest_commit().unwrap().commit_id,
         baseline.commit.commit_id
@@ -1497,15 +1497,15 @@ fn snapshots_resolve_historical_entity_payloads_by_version() {
 
     assert_eq!(
         read_entity_name(old_read.get_entity(entity).unwrap()),
-        Some("before")
+        Some("before".into())
     );
     assert_eq!(
         read_entity_name(current_read.get_entity(entity).unwrap()),
-        Some("after")
+        Some("after".into())
     );
     assert_eq!(
         read_entity_name(version_read.get_entity(entity).unwrap()),
-        Some("before")
+        Some("before".into())
     );
 }
 
@@ -1528,7 +1528,7 @@ fn historical_reads_preserve_generation_and_payload_after_slot_reuse() {
     let record = historical.get_entity(original).unwrap();
 
     assert_eq!(record.entity_id, original);
-    assert_eq!(read_entity_name(record), Some("before"));
+    assert_eq!(read_entity_name(record), Some("before".into()));
     assert_eq!(original.local_slot, replacement.local_slot);
     assert!(replacement.generation.0 > original.generation.0);
 }

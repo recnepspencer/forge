@@ -156,7 +156,7 @@ fn published_snapshot_read_diagnostics_use_authoritative_binding_version() {
         .expect("published snapshot entry");
 
     assert_eq!(
-        publication_entry.fields["version_id"],
+        publication_entry.fields.root_value()["version_id"],
         json!(updated.snapshot.version_id.0)
     );
 }
