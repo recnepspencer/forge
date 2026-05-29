@@ -1,6 +1,7 @@
 use std::collections::BTreeSet;
 
-use schema::facade::{EntityReference, TopologyEntityKind};
+use schema::facade::platform::authority::EntityReference;
+use schema::facade::platform::entities::TopologyEntityKind;
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::bindings::{
@@ -133,14 +134,14 @@ pub(super) fn supports_owned_face_set_shell_rehome_program(
     let Ok(incoming_region_ids) = query_incoming_relation_ids(
         bindings,
         &retired_shell_binding.query_identity,
-        schema::facade::TopologyRelationKind::RegionOwnsShell,
+        schema::facade::platform::relations::TopologyRelationKind::RegionOwnsShell,
     ) else {
         return false;
     };
     let Ok(outgoing_face_targets) = query_outgoing_relation_target_identities(
         bindings,
         &retired_shell_binding.query_identity,
-        schema::facade::TopologyRelationKind::ShellOwnsFace,
+        schema::facade::platform::relations::TopologyRelationKind::ShellOwnsFace,
     ) else {
         return false;
     };
@@ -186,7 +187,7 @@ pub(super) fn resolve_single_face_two_face_shell_split_program(
     let incoming_shell_ids = query_incoming_relation_ids(
         bindings,
         &face_binding.query_identity,
-        schema::facade::TopologyRelationKind::ShellOwnsFace,
+        schema::facade::platform::relations::TopologyRelationKind::ShellOwnsFace,
     )
     .ok()?;
     let [shell_owns_face_relation_id] = incoming_shell_ids.as_slice() else {
@@ -209,7 +210,7 @@ pub(super) fn resolve_single_face_two_face_shell_split_program(
     let incoming_region_ids = query_incoming_relation_ids(
         bindings,
         &retained_shell_binding.query_identity,
-        schema::facade::TopologyRelationKind::RegionOwnsShell,
+        schema::facade::platform::relations::TopologyRelationKind::RegionOwnsShell,
     )
     .ok()?;
     let [region_owns_shell_relation_id] = incoming_region_ids.as_slice() else {
@@ -232,7 +233,7 @@ pub(super) fn resolve_single_face_two_face_shell_split_program(
     let outgoing_face_targets = query_outgoing_relation_target_identities(
         bindings,
         &retained_shell_binding.query_identity,
-        schema::facade::TopologyRelationKind::ShellOwnsFace,
+        schema::facade::platform::relations::TopologyRelationKind::ShellOwnsFace,
     )
     .ok()?;
     if outgoing_face_targets.len() != 2 {
@@ -252,3 +253,7 @@ pub(super) fn resolve_single_face_two_face_shell_split_program(
     program.retained_shell_id = Some(retained_shell_id);
     Some(program)
 }
+
+
+
+

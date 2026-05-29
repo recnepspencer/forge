@@ -197,3 +197,7 @@ pub(crate) fn closed_shell_view() -> TopologyView {
         vertices: vec![vertex("v1", v1), vertex("v2", v2), vertex("v3", v3)],
     }
 }
+
+
+
+

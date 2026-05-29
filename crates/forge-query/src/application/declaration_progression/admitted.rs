@@ -4,9 +4,11 @@ use forge_proof::{
 };
 
 use crate::application::{
+    ForgeQueryDeclarationAspectContract, ForgeQueryDeclarationAspectCoverage,
     ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityContract,
     ForgeQueryDeclarationLegalityEvidence, ForgeQueryDomainEntryMarker,
 };
+use crate::target_binding::ForgeQueryAdmittedDeclarationProgressionBindingTarget;
 
 use super::payload::{derive_progression_digest, ForgeQueryDeclarationProgressionPayload};
 use super::review::{
@@ -71,12 +73,24 @@ impl<D: ForgeQueryDomainEntryMarker, I: ForgeQueryDeclarationInput<D>>
         self.legality_evidence().legality_contract()
     }
 
+    pub fn aspect_contract(&self) -> &ForgeQueryDeclarationAspectContract {
+        self.legality_evidence().aspect_contract()
+    }
+
+    pub fn reviewed_aspect_coverage(&self) -> &ForgeQueryDeclarationAspectCoverage {
+        self.legality_evidence().reviewed_aspect_coverage()
+    }
+
     pub fn declaration_family_key(&self) -> &'static str {
         self.legality_evidence().declaration_family_key()
     }
 
     pub fn progression_digest(&self) -> &str {
         &self.progression_digest
+    }
+
+    pub fn binding_target(&self) -> ForgeQueryAdmittedDeclarationProgressionBindingTarget {
+        ForgeQueryAdmittedDeclarationProgressionBindingTarget::for_progressed(self)
     }
 
     pub fn outcome(&self) -> ForgeQueryDeclarationProgressionOutcomeView {

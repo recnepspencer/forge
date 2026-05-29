@@ -1,6 +1,7 @@
 use forge_query::facade::{ForgeQueryRuntimeError, ForgeQueryWorkspaceError};
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::{TopologyEntityKind, TopologyRelationKind};
+use schema::facade::platform::entities::TopologyEntityKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 
 use super::super::contracts::TopologyEditFamily;
 use super::TopologyEditApplicationMode;
@@ -187,3 +188,7 @@ impl From<ForgeQueryWorkspaceError> for TopologyOperatorExecutionError {
         Self::Query(ForgeQueryRuntimeError::Workspace(value))
     }
 }
+
+
+
+

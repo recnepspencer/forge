@@ -3,7 +3,8 @@ use forge_query::facade::{
     ForgeQueryMutationBatchBuilder,
 };
 use forge_relational::facade::identity::{EntityId, RelationId};
-use schema::facade::{TopologyEntityKind, TopologyRelationKind};
+use schema::facade::platform::entities::TopologyEntityKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 
 use crate::projection::runtime_boundary::query_runtime::TopologyQueryBindingIndex;
 use crate::topology_operators::application::bindings::{
@@ -120,7 +121,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
             current_target_query_identity: relation_binding.target_query_identity,
             updated_target_query_identity: target_half_edge_binding.query_identity,
             dependency_path: topology_relation_dependency_path(
-                schema::facade::RelationKind::Topology(relation_kind),
+                schema::facade::platform::relations::RelationKind::Topology(relation_kind),
             ),
         })
     }
@@ -233,7 +234,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         let current_target_query_identity = relation_binding.target_query_identity;
         let updated_target_query_identity = vertex_binding.query_identity;
         let dependency_path = topology_relation_dependency_path(
-            schema::facade::RelationKind::Topology(endpoint.relation_kind()),
+            schema::facade::platform::relations::RelationKind::Topology(endpoint.relation_kind()),
         );
         Ok(builder.update_existing_verified(
             binding,
@@ -262,3 +263,7 @@ impl<'workspace, 'assembly> TopologyOperatorRunner<'workspace, 'assembly> {
         ))
     }
 }
+
+
+
+

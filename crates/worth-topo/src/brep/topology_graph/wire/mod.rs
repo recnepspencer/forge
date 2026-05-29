@@ -7,3 +7,7 @@ pub struct TopologyWire {
     pub label: String,
     pub half_edge_ids: Vec<EntityId>,
 }
+
+
+
+

@@ -1,8 +1,8 @@
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{
-    MilestoneOnePrimitiveCase, MilestoneOnePrimitiveScenario,
+    DerivedTopologyReadBasis, MilestoneOnePrimitiveCase, MilestoneOnePrimitiveScenario,
 };
-use schema::facade::{DerivedTopologyReadBasis, VerifiedTopologyCommit};
+use crate::committed_artifact::TopologyCommittedArtifact;
 
 use crate::certification::authority_closeout::certify_milestone_one_closeout_impl;
 use crate::certification::authority_closeout::read_view::{
@@ -36,7 +36,7 @@ use crate::certification::topology_operator_closeout::{
     certify_milestone_three_hostile_suite_impl, certify_milestone_three_split_collapse_churn_impl,
     MilestoneThreeHostileScenarioReport, MilestoneThreeHostileSuiteReport,
 };
-use schema::facade::BoundaryFailure;
+use crate::certification::BoundaryFailure;
 
 pub fn certify_milestone_one_read_basis_traced(
     runtime: &mut RelationalRuntime,
@@ -50,7 +50,7 @@ pub fn certify_milestone_one_read_basis_traced(
 
 pub fn certify_verified_topology_commit_traced(
     runtime: &mut RelationalRuntime,
-    verified: &VerifiedTopologyCommit,
+    verified: &TopologyCommittedArtifact,
 ) -> Result<TracedMilestoneOneCertificationReport, BoundaryFailure<MilestoneOneCertificationError>>
 {
     MilestoneOneCertificationHarness::certify_verified_commit_traced(runtime, verified)
@@ -65,7 +65,7 @@ pub fn certify_milestone_two_read_basis_traced(
 
 pub fn certify_milestone_two_verified_topology_commit_traced(
     runtime: &mut RelationalRuntime,
-    verified: &VerifiedTopologyCommit,
+    verified: &TopologyCommittedArtifact,
 ) -> Result<TracedMilestoneTwoDerivedReadReport, BoundaryFailure<MilestoneOneCertificationError>> {
     certify_milestone_two_verified_commit_traced_impl(runtime, verified)
 }
@@ -223,3 +223,7 @@ where
         scenarios,
     )
 }
+
+
+
+

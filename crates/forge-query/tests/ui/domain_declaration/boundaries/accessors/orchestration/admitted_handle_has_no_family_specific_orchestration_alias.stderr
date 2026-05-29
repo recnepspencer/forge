@@ -1,0 +1,5 @@
+error[E0599]: no method named `orchestrate_trim_segment` found for struct `ForgeQueryAdmittedConfiguredDomainHandle<D, C>` in the current scope
+  --> tests/ui/domain_declaration/boundaries/accessors/orchestration/admitted_handle_has_no_family_specific_orchestration_alias.rs:75:20
+   |
+75 |     let _ = handle.orchestrate_trim_segment(TrimSegmentAtIntersection);
+   |                    ^^^^^^^^^^^^^^^^^^^^^^^^ method not found in `ForgeQueryAdmittedConfiguredDomainHandle<GeometryDomain, GeometryOperatingContext>`

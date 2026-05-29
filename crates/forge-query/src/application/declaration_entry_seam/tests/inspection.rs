@@ -1,0 +1,257 @@
+use crate::application::{
+    ForgeQueryDeclarationAspectCoverageBasis, ForgeQueryDeclarationAspectFit,
+    ForgeQueryDeclarationBridgeRoutingInput, ForgeQueryDeclarationEntryInspectionInput,
+    ForgeQueryDeclarationEntryReadinessStatus, ForgeQueryDeclarationRelationalRoutingInput,
+    ForgeQueryDeclarationSignalCompatibilityInput,
+};
+
+use super::support::{
+    authority_rich_envelope, bridge_signal_envelope, handle, Input, RelationalFamily,
+};
+
+#[test]
+fn wrong_handle_retained_artifacts_are_denied_before_inspection() {
+    let source = handle("source");
+    let target = handle("target");
+    let envelope = bridge_signal_envelope(&source, "edge:42");
+
+    let error = match target.inspect_declaration_entry(
+        ForgeQueryDeclarationEntryInspectionInput::envelope_checked(
+            crate::application::ForgeQueryDeclarationEnvelopeChecked::Enveloped(envelope),
+        ),
+    ) {
+        Ok(_) => panic!("wrong-handle inspection must deny"),
+        Err(error) => error,
+    };
+    assert!(error.reason().contains("same admitted handle"));
+}
+
+#[test]
+fn envelope_only_inspection_does_not_fake_lower_authority_posture() {
+    let handle = handle("preview");
+    let envelope = bridge_signal_envelope(&handle, "edge:42");
+
+    let inspection = match handle.inspect_declaration_entry(
+        ForgeQueryDeclarationEntryInspectionInput::envelope_checked(
+            crate::application::ForgeQueryDeclarationEnvelopeChecked::Enveloped(envelope),
+        ),
+    ) {
+        Ok(inspection) => inspection,
+        Err(_) => panic!("inspection should succeed"),
+    };
+
+    assert!(inspection.relational_posture().is_none());
+    assert!(inspection.bridge_posture().is_none());
+    assert!(inspection.signal_posture().is_none());
+    assert_eq!(inspection.matching_row_digests().len(), 5);
+}
+
+#[test]
+fn signal_checked_inspection_exposes_signal_posture() {
+    let handle = handle("preview");
+    let envelope = bridge_signal_envelope(&handle, "edge:42");
+    let checked = handle.signal_compatibility_checked(
+        ForgeQueryDeclarationSignalCompatibilityInput::enveloped(envelope),
+    );
+    let inspection = match handle.inspect_declaration_entry(
+        ForgeQueryDeclarationEntryInspectionInput::signal_compatibility_checked(checked),
+    ) {
+        Ok(inspection) => inspection,
+        Err(_) => panic!("inspection should succeed"),
+    };
+
+    assert!(inspection.signal_posture().is_some());
+    assert!(inspection.matching_row_digests().len() >= 2);
+}
+
+#[test]
+fn authority_rich_envelope_inspection_surfaces_authority_summaries_in_readiness() {
+    let handle = handle("preview");
+    let envelope = authority_rich_envelope(&handle, "edge:42");
+
+    let inspection = match handle.inspect_declaration_entry(
+        ForgeQueryDeclarationEntryInspectionInput::envelope_checked(
+            crate::application::ForgeQueryDeclarationEnvelopeChecked::Enveloped(envelope),
+        ),
+    ) {
+        Ok(inspection) => inspection,
+        Err(_) => panic!("inspection should succeed"),
+    };
+
+    assert_eq!(
+        inspection.envelope_aspect_publication().masked(),
+        &["selection.private_authority".to_string()]
+    );
+
+    let relational_row = inspection
+        .readiness()
+        .rows()
+        .iter()
+        .find(|row| row.crossing_row().relational_truth_claim().is_some())
+        .expect("relational row should exist");
+    assert_eq!(
+        relational_row
+            .relational_authority_summary()
+            .expect("relational summary should exist")
+            .aspect_coverage_basis(),
+        ForgeQueryDeclarationAspectCoverageBasis::EnvelopePublishedCoverage
+    );
+
+    let bridge_row = inspection
+        .readiness()
+        .rows()
+        .iter()
+        .find(|row| row.crossing_row().bridge_continuation_family().is_some())
+        .expect("bridge row should exist");
+    assert_eq!(
+        bridge_row.status(),
+        ForgeQueryDeclarationEntryReadinessStatus::Unsupported
+    );
+    assert_eq!(
+        bridge_row
+            .bridge_authority_summary()
+            .expect("bridge summary should exist")
+            .mapped_aspects()
+            .present(),
+        &Vec::<String>::new()
+    );
+    assert!(bridge_row
+        .bridge_authority_summary()
+        .expect("bridge summary should exist")
+        .aspect_mismatch()
+        .is_some());
+
+    let signal_row = inspection
+        .readiness()
+        .rows()
+        .iter()
+        .find(|row| row.crossing_row().signal_execution_family().is_some())
+        .expect("signal row should exist");
+    let signal_summary = signal_row
+        .signal_authority_summary()
+        .expect("signal summary should exist");
+    assert_eq!(
+        signal_summary.dependency_aspects().required(),
+        &["signal.material_edit".to_string()]
+    );
+    assert_eq!(
+        signal_summary.produced_aspects().required(),
+        &["signal.preview_patch".to_string()]
+    );
+}
+
+#[test]
+fn relational_and_bridge_checked_inspection_expose_authority_specific_posture() {
+    let handle = handle("preview");
+    let relational = handle.route_relational_truth_checked(
+        ForgeQueryDeclarationRelationalRoutingInput::envelope_checked(
+            crate::application::ForgeQueryDeclarationEnvelopeChecked::Enveloped(
+                authority_rich_envelope(&handle, "edge:42"),
+            ),
+        ),
+    );
+    let bridge = handle.route_bridge_continuation_checked(
+        ForgeQueryDeclarationBridgeRoutingInput::envelope_checked(
+            crate::application::ForgeQueryDeclarationEnvelopeChecked::Enveloped(
+                authority_rich_envelope(&handle, "edge:42"),
+            ),
+        ),
+    );
+
+    let relational_inspection = match handle.inspect_declaration_entry(
+        ForgeQueryDeclarationEntryInspectionInput::relational_routing_checked(relational),
+    ) {
+        Ok(inspection) => inspection,
+        Err(_) => panic!("relational inspection should succeed"),
+    };
+    let bridge_inspection = match handle.inspect_declaration_entry(
+        ForgeQueryDeclarationEntryInspectionInput::bridge_routing_checked(bridge),
+    ) {
+        Ok(inspection) => inspection,
+        Err(_) => panic!("bridge inspection should succeed"),
+    };
+
+    assert_eq!(
+        relational_inspection
+            .relational_posture()
+            .expect("relational posture should exist")
+            .aspect_summary()
+            .aspect_fit(),
+        ForgeQueryDeclarationAspectFit::CompatibleSuperset
+    );
+    let bridge_posture = bridge_inspection
+        .bridge_posture()
+        .expect("bridge posture should exist");
+    assert!(bridge_posture.denial_cause().is_some());
+    assert_eq!(
+        bridge_posture.continuation_mode(),
+        Some(crate::application::ForgeQueryDeclarationBridgeContinuationMode::PreviewSession)
+    );
+    assert_eq!(
+        bridge_posture.truth_context(),
+        Some(crate::application::ForgeQueryDeclarationBridgeTruthContext::Preview)
+    );
+    assert_eq!(
+        bridge_posture.continuation_family(),
+        Some(crate::application::ForgeQueryDeclarationBridgeContinuationFamily::PreviewSession)
+    );
+    assert_ne!(
+        bridge_posture.aspect_summary().mapping_fit(),
+        ForgeQueryDeclarationAspectFit::Exact
+    );
+    assert_eq!(
+        bridge_posture.aspect_summary().mapped_aspects().present(),
+        &Vec::<String>::new()
+    );
+}
+
+#[test]
+fn denied_relational_inspection_keeps_unproven_authority_metadata_absent() {
+    let handle = handle("preview");
+    let envelope = bridge_signal_envelope(&handle, "edge:42");
+    let checked = handle.route_relational_truth_checked(
+        ForgeQueryDeclarationRelationalRoutingInput::enveloped(envelope),
+    );
+
+    let inspection = match handle.inspect_declaration_entry(
+        ForgeQueryDeclarationEntryInspectionInput::relational_routing_checked(checked),
+    ) {
+        Ok(inspection) => inspection,
+        Err(_) => panic!("relational inspection should succeed"),
+    };
+
+    let posture = inspection
+        .relational_posture()
+        .expect("relational posture should exist");
+    assert!(posture.denial_cause().is_some());
+    assert_eq!(posture.truth_claim(), None);
+    assert_eq!(posture.authority_family(), None);
+}
+
+#[test]
+fn denied_signal_inspection_keeps_unproven_execution_metadata_absent() {
+    let handle = handle("preview");
+    let progressed = handle
+        .declare_review_and_progress(Input::<RelationalFamily>::new("edge:42"))
+        .unwrap_or_else(|_| panic!("progression should admit"));
+    let envelope = handle
+        .envelope_routes_from_progressed(progressed)
+        .unwrap_or_else(|_| panic!("envelope should succeed"));
+    let checked = handle.signal_compatibility_checked(
+        ForgeQueryDeclarationSignalCompatibilityInput::enveloped(envelope),
+    );
+
+    let inspection = match handle.inspect_declaration_entry(
+        ForgeQueryDeclarationEntryInspectionInput::signal_compatibility_checked(checked),
+    ) {
+        Ok(inspection) => inspection,
+        Err(_) => panic!("signal inspection should succeed"),
+    };
+
+    let posture = inspection
+        .signal_posture()
+        .expect("signal posture should exist");
+    assert!(posture.denial_cause().is_some());
+    assert_eq!(posture.execution_family(), None);
+    assert!(posture.basis_families().is_empty());
+}

@@ -45,3 +45,7 @@ pub(crate) fn half_edge_full(
         face_id,
     }
 }
+
+
+
+

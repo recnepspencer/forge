@@ -1,23 +1,14 @@
 use std::collections::BTreeSet;
 
-use crate::facade::topology_authoring::created_ref;
+use forge_query::facade::{ForgeQueryComputedBuilder, ForgeQueryLiveViewBuilder};
+
+use crate::facade::platform::aspects::{
+    Aspect, DiagnosticsAspect, GeometryAspect, LineageAspect, NamingAspect, TopologyAspect,
+};
 use crate::facade::{
-    admit_query_mutation_batch, query_aspect_path_strings, query_aspect_paths_from_set,
-    query_mutation_support_contract, Aspect, DiagnosticsAspect, DiagnosticsRelationKind,
-    EntityKind, GeometryAspect, GeometryEntityKind, LineageAspect, NamingAspect, QueryAspectFamily,
-    QueryAspectPath, QueryCollection, QueryComputedDeclarationBuilder, QueryDeclarationError,
-    QueryLiveDeclarationBuilder, QueryLiveField, QueryMutationAdmission,
-    QueryMutationAdmissionBlocker, QuerySchemaBasis, RawTopologyIntent, RelationKind,
-    TopologyAspect, TopologyEntityKind, TopologyMutation,
+    query_aspect_path_strings, query_aspect_paths_from_set, QueryAspectFamily, QueryAspectPath,
+    QueryCollection, QueryLiveField, QuerySchemaBasis,
 };
-use forge_query::facade::{
-    ForgeQueryAuthoritativeMutationEvidenceCloseout,
-    ForgeQueryAuthoritativeMutationEvidenceSupport, ForgeQueryMutationSurfaceReport,
-    ForgeQueryRuntimeBackendPosture, ForgeQueryRuntimePublicApiContract,
-    ForgeQueryRuntimePublicApiNamingContract, ForgeQueryRuntimePublicSupportMatrix,
-    ForgeQueryRuntimeSupportProfile,
-};
-use forge_runtime_bridge::facade::RuntimeBridge;
 
 #[test]
 fn query_collections_and_schema_bases_have_stable_names() {
@@ -123,19 +114,17 @@ fn query_aspect_families_preserve_domain_boundaries_without_runtime_behavior() {
 
 #[test]
 fn live_query_declarations_lower_with_owned_vocabularies() {
-    let declaration = QueryLiveDeclarationBuilder::new(
-        ".topology.entities",
-        QueryCollection::TopologyEntity,
-        QuerySchemaBasis::TopologyEntityLiveView,
-    )
-    .grouped_by(QueryAspectPath::TOPOLOGY_BOUNDARY)
-    .select([
-        QueryAspectPath::TOPOLOGY_STRUCTURE,
-        QueryAspectPath::NAMING_PERSISTENT_NAME,
-    ])
-    .order_by(QueryAspectPath::NAMING_PERSISTENT_NAME)
-    .build()
-    .expect(" live declaration should lower into forge-query");
+    let declaration = ForgeQueryLiveViewBuilder::surface(".topology.entities")
+        .grouped_by(QueryAspectPath::TOPOLOGY_BOUNDARY.as_str())
+        .select([
+            QueryAspectPath::TOPOLOGY_STRUCTURE.as_str(),
+            QueryAspectPath::NAMING_PERSISTENT_NAME.as_str(),
+        ])
+        .order_by(QueryAspectPath::NAMING_PERSISTENT_NAME.as_str())
+        .from(QueryCollection::TopologyEntity.as_str())
+        .schema_basis(QuerySchemaBasis::TopologyEntityLiveView.as_str())
+        .build()
+        .expect(" live declaration should lower into forge-query");
 
     assert_eq!(declaration.request().target(), "TopologyEntity");
     assert_eq!(
@@ -166,20 +155,18 @@ fn live_query_declarations_lower_with_owned_vocabularies() {
 
 #[test]
 fn live_query_declarations_can_carry_topology_runtime_metadata_fields() {
-    let declaration = QueryLiveDeclarationBuilder::new(
-        ".topology.relations",
-        QueryCollection::TopologyRelation,
-        QuerySchemaBasis::TopologyRelationLiveView,
-    )
-    .select_fields([
-        QueryLiveField::IdentityId,
-        QueryLiveField::TopologyKind,
-        QueryLiveField::TopologySourceIdentity,
-        QueryLiveField::TopologyTargetIdentity,
-    ])
-    .order_by_field(QueryLiveField::IdentityId)
-    .build()
-    .expect(" relation live declaration should lower runtime metadata fields");
+    let declaration = ForgeQueryLiveViewBuilder::surface(".topology.relations")
+        .select([
+            QueryLiveField::IdentityId.delivered_name(),
+            QueryLiveField::TopologyKind.delivered_name(),
+            QueryLiveField::TopologySourceIdentity.delivered_name(),
+            QueryLiveField::TopologyTargetIdentity.delivered_name(),
+        ])
+        .order_by(QueryLiveField::IdentityId.delivered_name())
+        .from(QueryCollection::TopologyRelation.as_str())
+        .schema_basis(QuerySchemaBasis::TopologyRelationLiveView.as_str())
+        .build()
+        .expect(" relation live declaration should lower runtime metadata fields");
 
     assert_eq!(declaration.request().target(), "TopologyRelation");
     assert_eq!(declaration.request().projection().len(), 4);
@@ -204,14 +191,14 @@ fn live_query_declarations_can_carry_topology_runtime_metadata_fields() {
 
 #[test]
 fn computed_query_declarations_lower_with_owned_aspect_contracts() {
-    let declaration = QueryComputedDeclarationBuilder::new(".topology.validation")
+    let declaration = ForgeQueryComputedBuilder::surface(".topology.validation")
         .reads([
-            QueryAspectPath::TOPOLOGY_STRUCTURE,
-            QueryAspectPath::NAMING_PERSISTENT_NAME,
+            QueryAspectPath::TOPOLOGY_STRUCTURE.as_str(),
+            QueryAspectPath::NAMING_PERSISTENT_NAME.as_str(),
         ])
         .produces([
-            QueryAspectPath::DIAGNOSTICS_DECISIONS,
-            QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS,
+            QueryAspectPath::DIAGNOSTICS_DECISIONS.as_str(),
+            QueryAspectPath::DIAGNOSTICS_INTERPRETATIONS.as_str(),
         ])
         .whole_refresh_fallback()
         .build()
@@ -233,168 +220,4 @@ fn computed_query_declarations_lower_with_owned_aspect_contracts() {
         ]
     );
     assert!(!declaration.incremental());
-}
-
-#[test]
-fn query_declarations_reject_blank_surface_names_early() {
-    let error = QueryLiveDeclarationBuilder::new(
-        "   ",
-        QueryCollection::TopologyEntity,
-        QuerySchemaBasis::TopologyEntityLiveView,
-    )
-    .select([QueryAspectPath::TOPOLOGY_STRUCTURE])
-    .build()
-    .expect_err("blank  live surface names must fail early");
-    assert!(matches!(error, QueryDeclarationError::EmptySurfaceName));
-
-    let error = QueryComputedDeclarationBuilder::new("")
-        .reads([QueryAspectPath::TOPOLOGY_STRUCTURE])
-        .produces([QueryAspectPath::DIAGNOSTICS_DECISIONS])
-        .build()
-        .expect_err("blank  computed surface names must fail early");
-    assert!(matches!(error, QueryDeclarationError::EmptySurfaceName));
-}
-
-#[test]
-fn query_mutation_support_contract_tracks_upstream_authority_closeout() {
-    let contract =
-        query_mutation_support_contract().expect(" query support contract should derive");
-    let support_profile = ForgeQueryRuntimeSupportProfile::bridge_backed(
-        "query-mutation-support-contract-live",
-        "query-mutation-support-contract-preview",
-        "query-mutation-support-contract-inspect",
-    );
-    let public_api_contract =
-        ForgeQueryRuntimePublicApiContract::from_support_profile(&support_profile);
-    assert_eq!(
-        public_api_contract.backend_posture(),
-        ForgeQueryRuntimeBackendPosture::Primary
-    );
-    let support_matrix =
-        ForgeQueryRuntimePublicSupportMatrix::from_public_api_contract(&public_api_contract);
-    let naming_contract = ForgeQueryRuntimePublicApiNamingContract::standard();
-    let mutation_surface = ForgeQueryMutationSurfaceReport::derive(
-        public_api_contract.backend_posture(),
-        &support_matrix,
-        &naming_contract,
-    );
-    let query_support = ForgeQueryAuthoritativeMutationEvidenceSupport::derive(&support_profile);
-    let bridge_support = RuntimeBridge::public_authoritative_mutation_evidence_support();
-    let bridge_closeout = RuntimeBridge::public_authoritative_mutation_evidence_closeout();
-    let closeout = ForgeQueryAuthoritativeMutationEvidenceCloseout::derive(
-        public_api_contract.backend_posture(),
-        &support_matrix,
-        &mutation_surface,
-        &naming_contract,
-        &query_support,
-        &bridge_support,
-        &bridge_closeout,
-    );
-
-    assert!(contract
-        .admitted_query_substrate_families
-        .iter()
-        .any(|family| {
-            family == "insert_topology_relation_with_same_batch_symbolic_entity_identity_refs"
-        }));
-    assert!(contract
-        .blocked_until_invariant_complete_workflow
-        .iter()
-        .any(|family| {
-            family
-                == "topology_relation_create_workflows_beyond_face_inner_loop_require_invariant_complete_subgraphs"
-        }));
-    assert!(contract
-        .blocked_until_invariant_complete_workflow
-        .iter()
-        .any(|family| {
-            family
-                == "topology_shell_or_wire_membership_workflows_beyond_admitted_full_wire_rehome_connected_wire_split_single_face_two_face_shell_split_and_full_shell_face_set_rehome_require_invariant_complete_owner_rehome_or_shell_subgraphs"
-        }));
-    assert!(contract
-        .blocked_until_explicit_lowering
-        .iter()
-        .any(|family| family == "raw_naming_truth_requires_projected_naming_writeback"));
-    assert!(contract
-        .admitted_query_substrate_families
-        .iter()
-        .any(|family| family == "verify_existing_topology_entity_kind"));
-    assert!(contract
-        .admitted_query_substrate_families
-        .iter()
-        .any(|family| family == "verify_existing_topology_relation_shape"));
-    assert!(contract
-        .admitted_query_substrate_families
-        .iter()
-        .any(|family| family == "update_existing_topology_relation_shape_identity_preserving"));
-    assert_eq!(
-        contract.query_support_digest,
-        query_support.support_digest()
-    );
-    assert_eq!(contract.query_closeout_digest, closeout.closeout_digest());
-}
-
-#[test]
-fn query_mutation_admission_marks_simple_topology_creates_as_ready() {
-    let admission = admit_query_mutation_batch(&RawTopologyIntent::new(
-        vec![TopologyMutation::CreateEntity {
-            create_key: crate::facade::CreateKey::new("query-ready.model"),
-            kind: EntityKind::Topology(TopologyEntityKind::Model),
-        }],
-        crate::facade::MutationOrigin::Seed,
-    ));
-
-    assert!(matches!(admission, QueryMutationAdmission::Admitted));
-}
-
-#[test]
-fn query_mutation_admission_marks_same_batch_topology_relation_creation_as_ready() {
-    let admission = admit_query_mutation_batch(&RawTopologyIntent::new(
-        vec![
-            TopologyMutation::CreateEntity {
-                create_key: crate::facade::CreateKey::new("query-ready.source"),
-                kind: EntityKind::Topology(TopologyEntityKind::Vertex),
-            },
-            TopologyMutation::CreateEntity {
-                create_key: crate::facade::CreateKey::new("query-ready.target"),
-                kind: EntityKind::Topology(TopologyEntityKind::Vertex),
-            },
-            TopologyMutation::CreateRelation {
-                create_key: crate::facade::CreateKey::new("query-ready.edge"),
-                kind: RelationKind::Topology(crate::facade::TopologyRelationKind::HalfEdgeNext),
-                source: created_ref("query-ready.source"),
-                target: created_ref("query-ready.target"),
-            },
-        ],
-        crate::facade::MutationOrigin::LocalEdit,
-    ));
-
-    assert!(matches!(admission, QueryMutationAdmission::Admitted));
-}
-
-#[test]
-fn query_mutation_admission_rejects_geometry_and_diagnostics_truth_outside_topology_lane() {
-    let admission = admit_query_mutation_batch(&RawTopologyIntent::new(
-        vec![
-            TopologyMutation::CreateEntity {
-                create_key: crate::facade::CreateKey::new("query-gap.geometry"),
-                kind: EntityKind::Geometry(GeometryEntityKind::SurfaceBinding),
-            },
-            TopologyMutation::CreateRelation {
-                create_key: crate::facade::CreateKey::new("query-gap.diag-rel"),
-                kind: RelationKind::Diagnostics(DiagnosticsRelationKind::WireHasInterpretation),
-                source: created_ref("query-gap.a"),
-                target: created_ref("query-gap.b"),
-            },
-        ],
-        crate::facade::MutationOrigin::LocalEdit,
-    ));
-
-    let blockers = admission.blockers();
-    assert!(blockers.iter().any(|row| {
-        row.blocker == QueryMutationAdmissionBlocker::UnsupportedGeometryTruthMutation
-    }));
-    assert!(blockers.iter().any(|row| {
-        row.blocker == QueryMutationAdmissionBlocker::UnsupportedDiagnosticsTruthMutation
-    }));
 }

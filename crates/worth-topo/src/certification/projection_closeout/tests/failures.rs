@@ -56,3 +56,7 @@ fn validation_surface_rejects_malformed_interpreted_rows() {
 
     assert!(error.to_string().contains("failed to decode"));
 }
+
+
+
+

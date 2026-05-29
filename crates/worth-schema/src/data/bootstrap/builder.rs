@@ -63,7 +63,9 @@ impl SchemaBuilder {
 #[cfg(test)]
 mod tests {
     use super::{SchemaBuildError, SchemaBuilder};
-    use crate::facade::{EntityKind, NamingEntityKind, TopologyEntityKind};
+    use crate::facade::platform::entities::{
+        EntityKind, NamingEntityKind, TopologyEntityKind,
+    };
 
     #[test]
     fn builder_requires_topology_and_naming_surfaces() {

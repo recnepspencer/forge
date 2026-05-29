@@ -1,9 +1,10 @@
+use forge_query::facade::{ForgeQueryComputedBuilder, ForgeQueryLiveViewBuilder};
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::snapshots::SnapshotHandle;
-use schema::facade::{
-    BoundaryFailure, DerivedTopologyReadBasis, QueryAspectPath, QueryCollection,
-    QueryComputedDeclarationBuilder, QueryLiveDeclarationBuilder, QuerySchemaBasis,
-    VerifiedTopologyCommit,
+use schema::facade::{QueryAspectPath, QueryCollection, QuerySchemaBasis};
+use schema::facade::topology_authoring::DerivedTopologyReadBasis;
+use topology::facade::{
+    BoundaryFailure,
 };
 use topology::facade::{
     build_topology_construction_fact_report, certify_milestone_one_read_basis_traced,
@@ -42,7 +43,7 @@ use topology::facade::{
     TopologyRuntimeCloseoutStatus, TopologyRuntimeEditFamilySupportRow,
     TopologyRuntimeEditLaneSupportRow, TopologyRuntimeFailure, TopologyRuntimePostureCapability,
     TopologyRuntimePostureRow, TopologyRuntimePostureStatus, TopologyRuntimeReadFamilySupportRow,
-    TopologyRuntimeSupport, TracedMilestoneOneCertificationReport,
+    TopologyRuntimeSupport, TopologyCommittedArtifact, TracedMilestoneOneCertificationReport,
     TracedMilestoneTwoDerivedReadReport,
 };
 use worth_spatial::facade::SpatialConstructionBirthPlan;
@@ -57,7 +58,7 @@ fn _m1_read_cert_contract(
 
 fn _m1_commit_cert_contract(
     runtime: &mut RelationalRuntime,
-    verified: &VerifiedTopologyCommit,
+    verified: &TopologyCommittedArtifact,
 ) -> Result<TracedMilestoneOneCertificationReport, BoundaryFailure<MilestoneOneCertificationError>>
 {
     certify_verified_topology_commit_traced(runtime, verified)
@@ -72,7 +73,7 @@ fn _m2_read_cert_contract(
 
 fn _m2_commit_cert_contract(
     runtime: &mut RelationalRuntime,
-    verified: &VerifiedTopologyCommit,
+    verified: &TopologyCommittedArtifact,
 ) -> Result<TracedMilestoneTwoDerivedReadReport, BoundaryFailure<MilestoneOneCertificationError>> {
     certify_milestone_two_verified_topology_commit_traced(runtime, verified)
 }
@@ -87,23 +88,21 @@ fn _edit_apply_contract(
 }
 
 fn _vocab_live_query_declaration_contract() {
-    let _ = QueryLiveDeclarationBuilder::new(
-        ".topo.query.entities",
-        QueryCollection::TopologyEntity,
-        QuerySchemaBasis::TopologyEntityLiveView,
-    )
-    .select([
-        QueryAspectPath::TOPOLOGY_STRUCTURE,
-        QueryAspectPath::NAMING_PERSISTENT_NAME,
-    ])
-    .build()
-    .unwrap();
+    let _ = ForgeQueryLiveViewBuilder::surface(".topo.query.entities")
+        .select([
+            QueryAspectPath::TOPOLOGY_STRUCTURE.as_str(),
+            QueryAspectPath::NAMING_PERSISTENT_NAME.as_str(),
+        ])
+        .from(QueryCollection::TopologyEntity.as_str())
+        .schema_basis(QuerySchemaBasis::TopologyEntityLiveView.as_str())
+        .build()
+        .unwrap();
 }
 
 fn _vocab_computed_query_declaration_contract() {
-    let _ = QueryComputedDeclarationBuilder::new(".topo.query.validation")
-        .reads([QueryAspectPath::TOPOLOGY_STRUCTURE])
-        .produces([QueryAspectPath::DIAGNOSTICS_DECISIONS])
+    let _ = ForgeQueryComputedBuilder::surface(".topo.query.validation")
+        .reads([QueryAspectPath::TOPOLOGY_STRUCTURE.as_str()])
+        .produces([QueryAspectPath::DIAGNOSTICS_DECISIONS.as_str()])
         .build()
         .unwrap();
 }
@@ -235,8 +234,8 @@ fn _topology_operator_surface_contracts() {
     let _: fn(
         &TopologyQueryAssembly,
         &mut forge_query::facade::ForgeQueryWorkspace,
-        schema::facade::RawTopologyIntent,
-        &schema::facade::DerivedTopologyReadBasis,
+        schema::facade::platform::authority::RawTopologyIntent,
+        &DerivedTopologyReadBasis,
     ) -> Result<TopologyQueryAppliedIntent, TopologyQueryApplyError> =
         TopologyQueryAssembly::apply_raw_intent;
     let _: fn(
@@ -264,7 +263,7 @@ fn _topology_operator_surface_contracts() {
         String,
     ) -> Result<
         forge_query::facade::ForgeQueryWorkspaceLiveViewDeclaration,
-        schema::facade::QueryDeclarationError,
+        forge_query::facade::ForgeQueryRuntimeError,
     > = persistent_name_live_view_declaration;
     let _: fn(
         &mut forge_query::facade::ForgeQueryWorkspace,
@@ -330,7 +329,7 @@ fn _topology_operator_surface_contracts() {
         topology::facade::TopologyQuerySurfaceError,
     > = naming_attachment_report_from_query_input;
     let _: fn(
-        &schema::facade::DerivedTopologyReadBasis,
+        &DerivedTopologyReadBasis,
     ) -> topology::facade::TopologyQueryMutationEvidence =
         TopologyQueryMutationEvidence::from_read_basis;
     let _: fn() -> TopologyConstructionAuthority = topology_construction_authority;
@@ -392,3 +391,7 @@ fn topo_public_traced_boundaries_compile_with_envelope_contracts() {
     let _ = _vocab_computed_query_declaration_contract;
     let _ = _topology_operator_surface_contracts;
 }
+
+
+
+

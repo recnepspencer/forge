@@ -1,42 +1,44 @@
-use crate::facade::{
-    QueryCollection, QueryLiveDeclarationBuilder, QueryLiveField, QuerySchemaBasis, RelationKind,
-    TopologyRelationKind,
-};
+use forge_query::facade::ForgeQueryLiveViewBuilder;
+
+use crate::facade::platform::relations::{RelationKind, TopologyRelationKind};
+use crate::facade::{QueryCollection, QueryLiveField, QuerySchemaBasis};
 
 #[test]
 fn live_query_declarations_can_admit_traversal_relations_in_schema_view() {
-    let domain_declaration = QueryLiveDeclarationBuilder::new(
-        ".topology.domain-query-schema",
-        QueryCollection::TopologyEntity,
-        QuerySchemaBasis::TopologyDomainQuery,
-    )
-    .select_fields([QueryLiveField::IdentityId, QueryLiveField::TopologyKind])
-    .allow_traversal_relation(
-        RelationKind::Topology(TopologyRelationKind::HalfEdgeNext),
-        64,
-    )
-    .allow_traversal_relation(
-        RelationKind::Topology(TopologyRelationKind::HalfEdgeEndsAtVertex),
-        1,
-    )
-    .build()
-    .expect("traversal-aware domain declaration should lower");
-    let live_declaration = QueryLiveDeclarationBuilder::new(
-        ".topology.entity-live-schema",
-        QueryCollection::TopologyEntity,
-        QuerySchemaBasis::TopologyEntityLiveView,
-    )
-    .select_fields([QueryLiveField::IdentityId, QueryLiveField::TopologyKind])
-    .allow_traversal_relation(
-        RelationKind::Topology(TopologyRelationKind::HalfEdgeNext),
-        64,
-    )
-    .allow_traversal_relation(
-        RelationKind::Topology(TopologyRelationKind::HalfEdgeEndsAtVertex),
-        1,
-    )
-    .build()
-    .expect("entity live declaration should lower");
+    let domain_declaration = ForgeQueryLiveViewBuilder::surface(".topology.domain-query-schema")
+        .select([
+            QueryLiveField::IdentityId.delivered_name(),
+            QueryLiveField::TopologyKind.delivered_name(),
+        ])
+        .allow_traversal_relation(
+            RelationKind::Topology(TopologyRelationKind::HalfEdgeNext).kind_name(),
+            64,
+        )
+        .allow_traversal_relation(
+            RelationKind::Topology(TopologyRelationKind::HalfEdgeEndsAtVertex).kind_name(),
+            1,
+        )
+        .from(QueryCollection::TopologyEntity.as_str())
+        .schema_basis(QuerySchemaBasis::TopologyDomainQuery.as_str())
+        .build()
+        .expect("traversal-aware domain declaration should lower");
+    let live_declaration = ForgeQueryLiveViewBuilder::surface(".topology.entity-live-schema")
+        .select([
+            QueryLiveField::IdentityId.delivered_name(),
+            QueryLiveField::TopologyKind.delivered_name(),
+        ])
+        .allow_traversal_relation(
+            RelationKind::Topology(TopologyRelationKind::HalfEdgeNext).kind_name(),
+            64,
+        )
+        .allow_traversal_relation(
+            RelationKind::Topology(TopologyRelationKind::HalfEdgeEndsAtVertex).kind_name(),
+            1,
+        )
+        .from(QueryCollection::TopologyEntity.as_str())
+        .schema_basis(QuerySchemaBasis::TopologyEntityLiveView.as_str())
+        .build()
+        .expect("entity live declaration should lower");
 
     let next = domain_declaration
         .schema_view()
@@ -57,18 +59,16 @@ fn live_query_declarations_can_admit_traversal_relations_in_schema_view() {
 
 #[test]
 fn live_query_declarations_reject_zero_depth_traversal_relations() {
-    let error = QueryLiveDeclarationBuilder::new(
-        ".topology.domain-query-schema",
-        QueryCollection::TopologyEntity,
-        QuerySchemaBasis::TopologyDomainQuery,
-    )
-    .select_fields([QueryLiveField::IdentityId])
-    .allow_traversal_relation(
-        RelationKind::Topology(TopologyRelationKind::HalfEdgeNext),
-        0,
-    )
-    .build()
-    .expect_err("zero-depth traversal relations must fail early");
+    let error = ForgeQueryLiveViewBuilder::surface(".topology.domain-query-schema")
+        .select([QueryLiveField::IdentityId.delivered_name()])
+        .allow_traversal_relation(
+            RelationKind::Topology(TopologyRelationKind::HalfEdgeNext).kind_name(),
+            0,
+        )
+        .from(QueryCollection::TopologyEntity.as_str())
+        .schema_basis(QuerySchemaBasis::TopologyDomainQuery.as_str())
+        .build()
+        .expect_err("zero-depth traversal relations must fail early");
 
     assert!(error
         .to_string()
@@ -77,22 +77,20 @@ fn live_query_declarations_reject_zero_depth_traversal_relations() {
 
 #[test]
 fn live_query_declarations_reject_duplicate_traversal_relations() {
-    let error = QueryLiveDeclarationBuilder::new(
-        ".topology.domain-query-schema",
-        QueryCollection::TopologyEntity,
-        QuerySchemaBasis::TopologyDomainQuery,
-    )
-    .select_fields([QueryLiveField::IdentityId])
-    .allow_traversal_relation(
-        RelationKind::Topology(TopologyRelationKind::HalfEdgeNext),
-        2,
-    )
-    .allow_traversal_relation(
-        RelationKind::Topology(TopologyRelationKind::HalfEdgeNext),
-        4,
-    )
-    .build()
-    .expect_err("duplicate traversal relations must fail early");
+    let error = ForgeQueryLiveViewBuilder::surface(".topology.domain-query-schema")
+        .select([QueryLiveField::IdentityId.delivered_name()])
+        .allow_traversal_relation(
+            RelationKind::Topology(TopologyRelationKind::HalfEdgeNext).kind_name(),
+            2,
+        )
+        .allow_traversal_relation(
+            RelationKind::Topology(TopologyRelationKind::HalfEdgeNext).kind_name(),
+            4,
+        )
+        .from(QueryCollection::TopologyEntity.as_str())
+        .schema_basis(QuerySchemaBasis::TopologyDomainQuery.as_str())
+        .build()
+        .expect_err("duplicate traversal relations must fail early");
 
     assert!(error
         .to_string()

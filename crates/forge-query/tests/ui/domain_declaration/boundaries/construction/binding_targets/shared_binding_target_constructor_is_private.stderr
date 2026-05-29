@@ -1,0 +1,13 @@
+error[E0451]: fields `kind`, `target_digest`, `binding_digest` and `semantics` of struct `ForgeQueryBindingTarget` are private
+  --> tests/ui/domain_declaration/boundaries/construction/binding_targets/shared_binding_target_constructor_is_private.rs:11:9
+   |
+10 |     let _ = ForgeQueryBindingTarget {
+   |             ----------------------- in this type
+11 |         kind: ForgeQueryBindingTargetKind::DeclarationRoutePlan,
+   |         ^^^^ private field
+12 |         target_digest: String::new(),
+   |         ^^^^^^^^^^^^^ private field
+13 |         binding_digest: String::new(),
+   |         ^^^^^^^^^^^^^^ private field
+14 |         semantics: semantics(),
+   |         ^^^^^^^^^ private field

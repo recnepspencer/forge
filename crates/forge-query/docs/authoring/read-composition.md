@@ -715,8 +715,8 @@ frozen extension seams:
 - `domain_decoder`
 - `domain_result_certification`
 
-Those are the sanctioned Phase 1 hooks for later Worth adoption. They exist so
-later topology, trim, carrier, NURBS, fillet, or branch-history domains do not
+Those are the sanctioned kernel extension hooks for later Worth adoption. They
+exist so topology, trim, carrier, NURBS, fillet, or branch-history domains do not
 need to invent a second local read stack around raw rows.
 
 ## Inspection And Debugging
@@ -768,16 +768,16 @@ If you need the closeout/readiness answer for the generic kernel itself, the
 public support artifacts are part of this feature too:
 
 - `workspace.public_read_composition_support_report()` freezes the admitted
-  Phase 1 kernel surface
+  generic kernel surface
 - `workspace.public_read_composition_phase_one_closeout()` freezes the safe
   assumptions, remaining non-assumptions, migration guidance, and required
   verification commands
 - `workspace.public_read_composition_phase_gate()` turns the readiness answer
   into typed runtime evidence for:
-  - Phase 1 completion
-  - Phase 2 Worth-adoption readiness
-  - the fact that the topology-first Phase 3 aggregate closeout gate is now
-    satisfied for Milestone 3 resume
+  - generic-kernel completion
+  - Worth-adoption readiness
+  - the fact that the broader topology-first aggregate closeout gate is now
+    satisfied for resume
 
 ## Anti-Patterns
 
@@ -808,7 +808,8 @@ Current limits:
 
 - public builder coverage is still small and centered on detail/collection
   shapes across three scope classes
-- the Phase 1 phase gate now freezes the generic operator surface as complete
+- the `public_read_composition_phase_gate()` artifact now freezes the generic
+  operator surface as complete
   for initial domain adoption, including both shared-neighborhood lanes:
   `SharedEndpoint` and `SharedAttachment`
 - `ForgeQueryReadFamily` is currently a process-owned reusable artifact, not a
@@ -816,12 +817,14 @@ Current limits:
 - invariant-admitted reusable families now carry explicit admission evidence,
   but family admission is still an artifact-level proof surface rather than a
   separate compile-time family type
-- the Phase 1 closeout gate now freezes the extension-hook posture for later
-  domain adoption, but those hooks still certify the generic kernel boundary,
-  not completed Worth-side domain vocabularies
-- the Phase 1 phase-gate artifact now freezes that the generic kernel is
-  complete, that Worth may adopt it through domain-owned facades, and that the
-  topology-first Phase 3 aggregate proof has closed for Milestone 3 resume
+- the `public_read_composition_phase_one_closeout()` artifact now freezes the
+  extension-hook posture for later domain adoption, but those hooks still
+  certify the generic kernel boundary, not completed Worth-side domain
+  vocabularies
+- the `public_read_composition_phase_gate()` artifact now freezes that the
+  generic kernel is complete, that Worth may adopt it through domain-owned
+  facades, and that the broader topology-first aggregate proof has closed for
+  resume
 - read-family execution can now use an already-admitted current, branch,
   historical, or preview-derived query basis context, while the one-shot
   `compose_read(...)` path still resolves the current runtime snapshot basis
@@ -851,7 +854,7 @@ Query roadmap.
 ## Related Docs
 
 - [Workspace Overview](../foundations/workspace-overview.md)
-- [Read Composition Phase 1 Closeout](../../../../_docs/forge-query/read-composition-phase1-closeout.md)
+- [Read Composition Closeout](../../../../_docs/forge-query/read-composition-phase1-closeout.md)
 - [Projection Consumption](../capabilities/projection-consumption.md)
 
 

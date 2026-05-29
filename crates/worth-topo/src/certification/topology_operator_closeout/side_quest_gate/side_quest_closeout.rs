@@ -2,10 +2,12 @@ use forge_query::facade::ForgeQueryWorkspace;
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::runtime::RelationalRuntime;
 use schema::facade::topology_authoring::{
-    seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch, MilestoneOnePrimitiveCase,
+    seed_milestone_one_primitive, seed_milestone_one_primitive_on_branch,
+    DerivedTopologyReadBasis, MilestoneOnePrimitiveCase,
 };
-use schema::facade::{
-    DerivedTopologyReadBasis, MutationOrigin, RelationKind, TopologyRelationKind,
+use schema::facade::platform::authority::MutationOrigin;
+use schema::facade::platform::relations::{
+    RelationKind, TopologyRelationKind,
 };
 
 use super::side_quest_types::{
@@ -108,12 +110,12 @@ where
         &format!("{stem}.side_quest.replay"),
         &MilestoneOnePrimitiveCase::SheetDisk { edge_count: 6 },
     )?;
-    let replay_basis = verified.read_basis.replay_of();
+    let replay_basis = verified.read_basis().replay_of();
     Ok((
         local_rewire_parity_artifact(
             &runtime,
             &format!("{stem}.side_quest.replay.left"),
-            &verified.read_basis,
+            &verified.read_basis(),
             query,
         )?,
         local_rewire_parity_artifact(
@@ -154,12 +156,12 @@ where
         BranchId("feature".to_string()),
         MutationOrigin::BranchLocalApplication,
     )?;
-    let replay_basis = verified.read_basis.replay_of();
+    let replay_basis = verified.read_basis().replay_of();
     Ok((
         loop_cycle_parity_artifact(
             &runtime,
             &format!("{stem}.side_quest.branch.left"),
-            &verified.read_basis,
+            &verified.read_basis(),
             query,
             5,
         )?,
@@ -266,3 +268,7 @@ fn first_source_identity_for_snapshot_relation(
             ))
         })
 }
+
+
+
+

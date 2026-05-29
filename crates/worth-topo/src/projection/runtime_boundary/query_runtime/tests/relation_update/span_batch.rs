@@ -42,7 +42,7 @@ pub(super) fn successor_span_relocation_batch(
         TopologyEditContract::rewire_loop_successor(
             support.relation_id_for_source_kind(
                 moved_start_identity,
-                schema::facade::TopologyRelationKind::HalfEdgePrev,
+                schema::facade::platform::relations::TopologyRelationKind::HalfEdgePrev,
             ),
             LoopSuccessorKind::Prev,
             moved_start_id,
@@ -51,7 +51,7 @@ pub(super) fn successor_span_relocation_batch(
         TopologyEditContract::rewire_loop_successor(
             support.relation_id_for_source_kind(
                 moved_end_identity,
-                schema::facade::TopologyRelationKind::HalfEdgeNext,
+                schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
             ),
             LoopSuccessorKind::Next,
             moved_end_id,
@@ -60,7 +60,7 @@ pub(super) fn successor_span_relocation_batch(
         TopologyEditContract::rewire_loop_successor(
             support.relation_id_for_source_kind(
                 &old_predecessor_identity,
-                schema::facade::TopologyRelationKind::HalfEdgeNext,
+                schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
             ),
             LoopSuccessorKind::Next,
             old_predecessor_id,
@@ -69,7 +69,7 @@ pub(super) fn successor_span_relocation_batch(
         TopologyEditContract::rewire_loop_successor(
             support.relation_id_for_source_kind(
                 &old_successor_identity,
-                schema::facade::TopologyRelationKind::HalfEdgePrev,
+                schema::facade::platform::relations::TopologyRelationKind::HalfEdgePrev,
             ),
             LoopSuccessorKind::Prev,
             old_successor_id,
@@ -78,7 +78,7 @@ pub(super) fn successor_span_relocation_batch(
         TopologyEditContract::rewire_loop_successor(
             support.relation_id_for_source_kind(
                 &new_predecessor_identity,
-                schema::facade::TopologyRelationKind::HalfEdgeNext,
+                schema::facade::platform::relations::TopologyRelationKind::HalfEdgeNext,
             ),
             LoopSuccessorKind::Next,
             new_predecessor_id,
@@ -87,7 +87,7 @@ pub(super) fn successor_span_relocation_batch(
         TopologyEditContract::rewire_loop_successor(
             support.relation_id_for_source_kind(
                 new_successor_identity,
-                schema::facade::TopologyRelationKind::HalfEdgePrev,
+                schema::facade::platform::relations::TopologyRelationKind::HalfEdgePrev,
             ),
             LoopSuccessorKind::Prev,
             new_successor_id,
@@ -96,3 +96,7 @@ pub(super) fn successor_span_relocation_batch(
     ])
     .expect("non-empty successor span relocation batch")
 }
+
+
+
+

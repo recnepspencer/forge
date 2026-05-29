@@ -8,7 +8,7 @@ use crate::projection::read_views::domain::TopologyDomainQuery;
 use crate::validation::reference_integrity::build_milestone_one_runtime;
 use forge_query::facade::{ForgeQueryReadBuiltInOperator, ForgeQueryReadScopeClass};
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::TopologyRelationKind;
+use schema::facade::platform::relations::TopologyRelationKind;
 
 #[test]
 fn domain_query_reports_request_only_posture() {
@@ -281,7 +281,7 @@ fn snapshot_domain_query_uses_historical_basis_context_receipt() {
     )
     .expect("seed primitive");
     let (mut workspace, assembly) =
-        snapshot_basis_workspace(&runtime, &format!("{stem}.snapshot"), &verified.read_basis);
+        snapshot_basis_workspace(&runtime, &format!("{stem}.snapshot"), &verified.read_basis());
     let domain_query = TopologyDomainQuery::load();
     let lookup_rows = current_lookup_rows(&mut workspace, &assembly);
     let start_identity = lookup_rows
@@ -363,3 +363,7 @@ fn seeded_workspace(
     let assembly = TopologyQueryAssembly::declare(&mut workspace).expect("declare assembly");
     (workspace, assembly)
 }
+
+
+
+

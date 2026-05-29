@@ -1,3 +1,9 @@
+//! Worth aspect catalogs for platform bootstrap and descriptor assembly.
+//!
+//! This module is the authority for Worth-specific aspect identity and lower
+//! publication contract data. It is not the ordinary Query lifecycle entry
+//! surface; downstream runtime work should enter through `forge-query`.
+
 mod diagnostics;
 mod geometry;
 mod lineage;

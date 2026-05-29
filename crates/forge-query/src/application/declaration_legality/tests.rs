@@ -1,247 +1,14 @@
-use forge_foundational::facade::{
-    FoundationalBoundaryArtifactCategory, FoundationalBoundaryArtifactRole,
-    FoundationalBoundaryAvailability, FoundationalBoundaryDeliveryClass,
-};
-
 use crate::application::{
-    ForgeQueryApplicationFacade, ForgeQueryCapabilityFamily, ForgeQueryConfigSectionFamily,
-    ForgeQueryDeclarationAdmissionOrLegalityError, ForgeQueryDeclarationCanonicalEntry,
-    ForgeQueryDeclarationCapabilityStatus, ForgeQueryDeclarationFamilyMarker,
-    ForgeQueryDeclarationInput, ForgeQueryDeclarationLegalityChecked,
-    ForgeQueryDeclarationLegalityClass, ForgeQueryDeclarationLegalityContract,
-    ForgeQueryDomainEntryMarker, ForgeQueryDomainOperatingContext,
-    ForgeQueryNeighborhoodCapableGrouping, ForgeQueryRelationalTruthAuthority,
-    ForgeQuerySignalCompatiblePosture,
+    ForgeQueryDeclarationAdmissionOrLegalityError, ForgeQueryDeclarationCapabilityStatus,
+    ForgeQueryDeclarationLegalityChecked, ForgeQueryDeclarationLegalityContract,
 };
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct GeometryDomain;
+mod fixtures;
 
-impl ForgeQueryDomainEntryMarker for GeometryDomain {
-    fn domain_key(&self) -> &'static str {
-        "test.geometry.legality"
-    }
-
-    fn display_name(&self) -> &'static str {
-        "GeometryLegalityDomain"
-    }
-
-    fn required_capability_families(&self) -> &'static [ForgeQueryCapabilityFamily] {
-        &[ForgeQueryCapabilityFamily::QueryComposition]
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct CollaborativeWorld {
-    regime: &'static str,
-}
-
-impl CollaborativeWorld {
-    fn named(regime: &'static str) -> Self {
-        Self { regime }
-    }
-}
-
-impl ForgeQueryDomainOperatingContext<GeometryDomain> for CollaborativeWorld {
-    fn required_capability_families(&self) -> &'static [ForgeQueryCapabilityFamily] {
-        &[ForgeQueryCapabilityFamily::HistoricalEvaluation]
-    }
-
-    fn required_config_sections(&self) -> &'static [ForgeQueryConfigSectionFamily] {
-        &[
-            ForgeQueryConfigSectionFamily::Query,
-            ForgeQueryConfigSectionFamily::Relational,
-        ]
-    }
-
-    fn context_identity_digest(&self) -> String {
-        format!("geometry.{}", self.regime)
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct LegalFamily;
-
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for LegalFamily {
-    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
-    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
-    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
-
-    fn semantic_family_key() -> &'static str {
-        "split-edge"
-    }
-
-    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
-        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct IllegalRoleFamily;
-
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for IllegalRoleFamily {
-    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
-    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
-    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
-
-    fn semantic_family_key() -> &'static str {
-        "split-edge"
-    }
-
-    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
-        ForgeQueryDeclarationLegalityContract::new(
-            ForgeQueryDeclarationLegalityClass::AuthoritativeHotArtifact,
-            FoundationalBoundaryArtifactCategory::Summary,
-            FoundationalBoundaryArtifactRole::AuthoritativeCurrent,
-            FoundationalBoundaryDeliveryClass::MustBeHot,
-            FoundationalBoundaryAvailability::Present,
-        )
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct IllegalDispositionFamily;
-
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for IllegalDispositionFamily {
-    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
-    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
-    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
-
-    fn semantic_family_key() -> &'static str {
-        "split-edge"
-    }
-
-    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
-        ForgeQueryDeclarationLegalityContract::new(
-            ForgeQueryDeclarationLegalityClass::AuthoritativeHotArtifact,
-            FoundationalBoundaryArtifactCategory::Artifact,
-            FoundationalBoundaryArtifactRole::AuthoritativeCurrent,
-            FoundationalBoundaryDeliveryClass::MustBeHot,
-            FoundationalBoundaryAvailability::Deferred,
-        )
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct DeferredLegalityFamily;
-
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for DeferredLegalityFamily {
-    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
-    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
-    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
-
-    fn semantic_family_key() -> &'static str {
-        "split-edge"
-    }
-
-    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
-        ForgeQueryDeclarationLegalityContract::deferred_boundary()
-    }
-}
-
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct DurableAdmissionFamily;
-
-impl ForgeQueryDeclarationFamilyMarker<GeometryDomain> for DurableAdmissionFamily {
-    type PrimaryAuthority = ForgeQueryRelationalTruthAuthority;
-    type SignalCompatibility = ForgeQuerySignalCompatiblePosture;
-    type GroupedPosture = ForgeQueryNeighborhoodCapableGrouping;
-
-    fn semantic_family_key() -> &'static str {
-        "split-edge"
-    }
-
-    fn required_capability_families() -> &'static [ForgeQueryCapabilityFamily] {
-        &[ForgeQueryCapabilityFamily::DurableArtifacts]
-    }
-
-    fn legality_contract() -> ForgeQueryDeclarationLegalityContract {
-        ForgeQueryDeclarationLegalityContract::authoritative_hot_artifact()
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-struct Declaration<F> {
-    edge_ref: &'static str,
-    _family: std::marker::PhantomData<F>,
-}
-
-impl<F> Declaration<F> {
-    fn new(edge_ref: &'static str) -> Self {
-        Self {
-            edge_ref,
-            _family: std::marker::PhantomData,
-        }
-    }
-}
-
-impl ForgeQueryDeclarationInput<GeometryDomain> for Declaration<LegalFamily> {
-    type Family = LegalFamily;
-
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::text(
-            "edge_ref",
-            self.edge_ref,
-        )]
-    }
-}
-
-impl ForgeQueryDeclarationInput<GeometryDomain> for Declaration<IllegalRoleFamily> {
-    type Family = IllegalRoleFamily;
-
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::text(
-            "edge_ref",
-            self.edge_ref,
-        )]
-    }
-}
-
-impl ForgeQueryDeclarationInput<GeometryDomain> for Declaration<IllegalDispositionFamily> {
-    type Family = IllegalDispositionFamily;
-
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::text(
-            "edge_ref",
-            self.edge_ref,
-        )]
-    }
-}
-
-impl ForgeQueryDeclarationInput<GeometryDomain> for Declaration<DeferredLegalityFamily> {
-    type Family = DeferredLegalityFamily;
-
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::text(
-            "edge_ref",
-            self.edge_ref,
-        )]
-    }
-}
-
-impl ForgeQueryDeclarationInput<GeometryDomain> for Declaration<DurableAdmissionFamily> {
-    type Family = DurableAdmissionFamily;
-
-    fn canonical_declaration_entries(&self) -> Vec<ForgeQueryDeclarationCanonicalEntry> {
-        vec![ForgeQueryDeclarationCanonicalEntry::text(
-            "edge_ref",
-            self.edge_ref,
-        )]
-    }
-}
-
-fn admitted_handle(
-    regime: &'static str,
-) -> crate::application::ForgeQueryAdmittedConfiguredDomainHandle<GeometryDomain, CollaborativeWorld>
-{
-    ForgeQueryApplicationFacade::runtime_backed_default()
-        .domain(GeometryDomain)
-        .with_operating_context(CollaborativeWorld::named(regime))
-        .validate()
-        .expect("context should validate")
-        .admit()
-        .expect("context should admit")
-}
+use fixtures::{
+    admitted_handle, Declaration, DeferredLegalityFamily, DurableAdmissionFamily,
+    IllegalDispositionFamily, IllegalRoleFamily, LegalFamily, MaskedCoverageFamily,
+};
 
 #[test]
 fn legal_declaration_review_yields_legality_evidence() {
@@ -267,6 +34,14 @@ fn legal_declaration_review_yields_legality_evidence() {
     assert_eq!(
         legal.operating_context_identity_digest(),
         "geometry.collaborative"
+    );
+    assert_eq!(
+        legal.aspect_contract().required(),
+        &["selection.active_edge".to_string()]
+    );
+    assert_eq!(
+        legal.reviewed_aspect_coverage().present(),
+        &["selection.active_edge".to_string()]
     );
 }
 
@@ -362,4 +137,25 @@ fn declare_and_review_preserves_admission_vs_legality_split() {
         )) => {}
         _ => panic!("expected legality denial"),
     }
+}
+
+#[test]
+fn legality_evidence_preserves_masked_aspect_coverage_without_promoting_it_to_reviewed_presence() {
+    let handle = admitted_handle("collaborative");
+    let declaration = handle
+        .declare(Declaration::<MaskedCoverageFamily>::new("edge:42"))
+        .expect("declaration should admit");
+
+    let legal = handle
+        .review_legality(declaration)
+        .expect("legality review should pass");
+
+    assert_eq!(
+        legal.reviewed_aspect_coverage().present(),
+        &["selection.active_edge".to_string()]
+    );
+    assert_eq!(
+        legal.reviewed_aspect_coverage().masked(),
+        &["selection.active_edge".to_string()]
+    );
 }

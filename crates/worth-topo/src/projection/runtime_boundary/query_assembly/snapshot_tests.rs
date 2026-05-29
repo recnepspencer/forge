@@ -1,9 +1,9 @@
 use schema::facade::topology_authoring::{seed_milestone_one_primitive, MilestoneOnePrimitiveCase};
-use schema::facade::TopologyEntityKind;
+use schema::facade::platform::entities::TopologyEntityKind;
 use serde_json::json;
 
 use super::*;
-use crate::facade::milestone_one_runtime_builder;
+use crate::validation::reference_integrity::milestone_one_runtime_builder;
 use crate::projection::equivalence_contract_from_diagnostics_rows;
 use crate::projection::runtime_boundary::query_runtime::{
     topology_runtime, TopologyRuntimeAdapters,
@@ -36,10 +36,10 @@ fn snapshot_read_only_assembly_synthesizes_complete_query_shaped_derived_rows() 
     )
     .expect("verified primitive");
     let read_view =
-        open_topology_read_view(&runtime, &verified.read_basis).expect("read view should open");
+        open_topology_read_view(&runtime, &verified.read_basis()).expect("read view should open");
     let adapters = TopologyRuntimeAdapters::snapshot_read_only(
         read_view,
-        verified.read_basis.snapshot().clone(),
+        verified.read_basis().snapshot().clone(),
     );
     let mut workspace =
         topology_runtime(adapters, "topology-query-assembly-historical-derived-rows")
@@ -53,10 +53,10 @@ fn snapshot_read_only_assembly_synthesizes_complete_query_shaped_derived_rows() 
         .is_empty());
 
     let rows =
-        historical_rows::historical_snapshot_rows(&assembly, &mut workspace, &verified.read_basis)
+        historical_rows::historical_snapshot_rows(&assembly, &mut workspace, &verified.read_basis())
             .expect("historical rows should synthesize from query-native surfaces");
     let snapshot = assembly
-        .snapshot_for_read_basis(&mut workspace, &verified.read_basis)
+        .snapshot_for_read_basis(&mut workspace, &verified.read_basis())
         .expect("historical snapshot should decode");
 
     assert_eq!(rows.materialized_rows.len(), 1);
@@ -93,7 +93,7 @@ fn current_head_snapshot_decoder_rejects_malformed_retained_validation_rows() {
                 .metadata(
                     crate::projection::TopologyQueryMutationEvidence::metadata_key(),
                     crate::projection::TopologyQueryMutationEvidence::from_read_basis(
-                        &verified.read_basis,
+                        &verified.read_basis(),
                     ),
                 )
                 .aspect("topology.kind", TopologyEntityKind::Vertex.kind_name())
@@ -129,3 +129,7 @@ fn current_head_snapshot_decoder_rejects_malformed_retained_validation_rows() {
 
     assert!(error.to_string().contains("topology validation"));
 }
+
+
+
+

@@ -1,5 +1,6 @@
 use super::traced_reports::{traced_milestone_two_envelope, traced_milestone_two_failure};
 use super::*;
+use crate::committed_artifact::TopologyCommittedArtifact;
 
 pub(crate) fn certify_milestone_two_read_basis_runtime_traced_impl(
     runtime: &mut RelationalRuntime,
@@ -18,16 +19,16 @@ pub(crate) fn certify_milestone_two_read_basis_runtime_traced_impl(
 
 pub(crate) fn certify_milestone_two_verified_commit_traced_impl(
     runtime: &mut RelationalRuntime,
-    verified: &VerifiedTopologyCommit,
+    verified: &TopologyCommittedArtifact,
 ) -> Result<TracedMilestoneTwoDerivedReadReport, BoundaryFailure<MilestoneOneCertificationError>> {
     let mut certified =
-        certify_milestone_two_query_read_basis(runtime, verified.read_basis.clone()).map_err(
+        certify_milestone_two_query_read_basis(runtime, verified.read_basis().clone()).map_err(
             |error| {
                 traced_milestone_two_failure(
                     error,
-                    &verified.read_basis,
-                    Some(&verified.commits),
-                    verified.commits.len(),
+                    &verified.read_basis(),
+                    Some(verified.commits()),
+                    verified.commits().len(),
                 )
             },
         )?;
@@ -39,7 +40,7 @@ pub(crate) fn certify_milestone_two_verified_commit_traced_impl(
         let replay = runtime
             .replay_authority()
             .replay_commit(forge_relational::facade::replay::RelationalReplayRequest {
-                branch_id: verified.branch_id.clone(),
+                branch_id: verified.branch_id().clone(),
                 commit_id: replay_commit_id,
                 execution_mode:
                     forge_relational::facade::replay::ReplayExecutionMode::SerialDeterministic,
@@ -97,9 +98,9 @@ pub(crate) fn certify_milestone_two_verified_commit_traced_impl(
     Ok(traced_milestone_two_envelope(
         certified.report,
         certified.query_evidence,
-        &verified.read_basis,
-        Some(&verified.commits),
-        verified.commits.len(),
+        &verified.read_basis(),
+        Some(verified.commits()),
+        verified.commits().len(),
     ))
 }
 
@@ -181,7 +182,7 @@ fn certify_milestone_two_query_read_basis(
         mutation_origin: read_basis.derivation_origin(),
         branch_local: matches!(
             read_basis.derivation_origin(),
-            schema::facade::MutationOrigin::BranchLocalApplication
+            schema::facade::platform::authority::MutationOrigin::BranchLocalApplication
         ),
         branch_id: read_basis.branch_id().clone(),
         snapshot_id: read_basis.snapshot().snapshot_id.0,
@@ -191,7 +192,7 @@ fn certify_milestone_two_query_read_basis(
         mutation_origin: read_basis.derivation_origin(),
         replay_origin: matches!(
             read_basis.derivation_origin(),
-            schema::facade::MutationOrigin::Replay
+            schema::facade::platform::authority::MutationOrigin::Replay
         ),
         branch_id: read_basis.branch_id().clone(),
         parity_status: ReplayParityStatus::NotChecked,
@@ -248,7 +249,7 @@ fn certify_milestone_two_query_read_basis(
             replay_checked_count: 0,
             branch_local_case_count: usize::from(matches!(
                 read_basis.derivation_origin(),
-                schema::facade::MutationOrigin::BranchLocalApplication
+                schema::facade::platform::authority::MutationOrigin::BranchLocalApplication
             )),
         },
         read_artifact,
@@ -309,3 +310,7 @@ fn derived_query_inspection<T>(
         ))),
     }
 }
+
+
+
+

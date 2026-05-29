@@ -9,7 +9,8 @@ use forge_relational::facade::runtime::{
     InvariantCostClass, InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup,
     InvariantGroupSet,
 };
-use schema::facade::{EntityKind, RelationKind, TopologyEntityKind, TopologyRelationKind};
+use schema::facade::platform::entities::{EntityKind, TopologyEntityKind};
+use schema::facade::platform::relations::{RelationKind, TopologyRelationKind};
 
 use super::shared::{RuntimeEntityRef, RuntimeTopologyGraph};
 use super::shared_queries::connected_components;
@@ -105,3 +106,7 @@ impl CustomInvariantRule for WireConnectivityRule {
         Ok(CustomInvariantVerdict::Pass)
     }
 }
+
+
+
+
