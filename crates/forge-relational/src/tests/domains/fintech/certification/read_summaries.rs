@@ -2,9 +2,9 @@ use std::collections::BTreeMap;
 
 use super::super::fixture::FintechCaseRole;
 use super::super::probes::{capture_case_truth_probe, CaseTruthProbe, ProbeStage};
-use super::artifact_projection_value::{
-    artifact_object, dynamic_artifact_object, string_field, u64_field, usize_field,
-    CertificationArtifactProjectionValue,
+use super::external_harness_artifact_json::{
+    dynamic_external_harness_artifact_object, external_harness_artifact_object, string_field,
+    u64_field, usize_field, ExternalHarnessArtifactJson,
 };
 use super::session::CertifiedRelationalFintechSession;
 use crate::facade::snapshots::SnapshotHandle;
@@ -82,7 +82,7 @@ impl CertifiedFintechReadSummary {
             .unwrap_or(false)
     }
 
-    pub(super) fn to_artifact_projection_value(&self) -> CertificationArtifactProjectionValue {
+    pub(super) fn to_external_harness_artifact_json(&self) -> ExternalHarnessArtifactJson {
         let mut fields = vec![
             u64_field("snapshot_id", self.snapshot_id),
             usize_field("entity_count", self.entity_count),
@@ -95,17 +95,17 @@ impl CertifiedFintechReadSummary {
         if let Some(case_role) = self.case_role {
             fields.push(string_field("case_role", format!("{case_role:?}")));
         }
-        artifact_object(fields)
+        external_harness_artifact_object(fields)
     }
 }
 
 pub(super) fn read_summary_artifacts(
     summaries: &BTreeMap<String, CertifiedFintechReadSummary>,
-) -> CertificationArtifactProjectionValue {
-    dynamic_artifact_object(
+) -> ExternalHarnessArtifactJson {
+    dynamic_external_harness_artifact_object(
         summaries
             .iter()
-            .map(|(alias, summary)| (alias.clone(), summary.to_artifact_projection_value()))
+            .map(|(alias, summary)| (alias.clone(), summary.to_external_harness_artifact_json()))
             .collect::<Vec<_>>(),
     )
 }

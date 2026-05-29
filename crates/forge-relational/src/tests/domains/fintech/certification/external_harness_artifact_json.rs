@@ -1,17 +1,17 @@
 use serde_json::{Number as ExternalHarnessJsonNumber, Value as ExternalHarnessJson};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub(super) enum CertificationArtifactProjectionValue {
+pub(super) enum ExternalHarnessArtifactJson {
     Null,
     Bool(bool),
     Unsigned(u64),
     String(String),
-    Array(Vec<CertificationArtifactProjectionValue>),
-    Object(Vec<(&'static str, CertificationArtifactProjectionValue)>),
-    DynamicObject(Vec<(String, CertificationArtifactProjectionValue)>),
+    Array(Vec<ExternalHarnessArtifactJson>),
+    Object(Vec<(&'static str, ExternalHarnessArtifactJson)>),
+    DynamicObject(Vec<(String, ExternalHarnessArtifactJson)>),
 }
 
-impl CertificationArtifactProjectionValue {
+impl ExternalHarnessArtifactJson {
     pub(super) fn into_external_harness_json(self) -> ExternalHarnessJson {
         match self {
             Self::Null => ExternalHarnessJson::Null,
@@ -42,49 +42,49 @@ impl CertificationArtifactProjectionValue {
     }
 }
 
-pub(super) fn artifact_object(
-    fields: impl IntoIterator<Item = (&'static str, CertificationArtifactProjectionValue)>,
-) -> CertificationArtifactProjectionValue {
-    CertificationArtifactProjectionValue::Object(fields.into_iter().collect())
+pub(super) fn external_harness_artifact_object(
+    fields: impl IntoIterator<Item = (&'static str, ExternalHarnessArtifactJson)>,
+) -> ExternalHarnessArtifactJson {
+    ExternalHarnessArtifactJson::Object(fields.into_iter().collect())
 }
 
-pub(super) fn dynamic_artifact_object(
-    fields: impl IntoIterator<Item = (String, CertificationArtifactProjectionValue)>,
-) -> CertificationArtifactProjectionValue {
-    CertificationArtifactProjectionValue::DynamicObject(fields.into_iter().collect())
+pub(super) fn dynamic_external_harness_artifact_object(
+    fields: impl IntoIterator<Item = (String, ExternalHarnessArtifactJson)>,
+) -> ExternalHarnessArtifactJson {
+    ExternalHarnessArtifactJson::DynamicObject(fields.into_iter().collect())
 }
 
-pub(super) fn artifact_field(
+pub(super) fn external_harness_artifact_field(
     field: &'static str,
-    value: CertificationArtifactProjectionValue,
-) -> (&'static str, CertificationArtifactProjectionValue) {
+    value: ExternalHarnessArtifactJson,
+) -> (&'static str, ExternalHarnessArtifactJson) {
     (field, value)
 }
 
 pub(super) fn bool_field(
     field: &'static str,
     value: bool,
-) -> (&'static str, CertificationArtifactProjectionValue) {
-    (field, CertificationArtifactProjectionValue::Bool(value))
+) -> (&'static str, ExternalHarnessArtifactJson) {
+    (field, ExternalHarnessArtifactJson::Bool(value))
 }
 
 pub(super) fn string_field(
     field: &'static str,
     value: String,
-) -> (&'static str, CertificationArtifactProjectionValue) {
-    (field, CertificationArtifactProjectionValue::String(value))
+) -> (&'static str, ExternalHarnessArtifactJson) {
+    (field, ExternalHarnessArtifactJson::String(value))
 }
 
 pub(super) fn string_array_field(
     field: &'static str,
     values: impl IntoIterator<Item = String>,
-) -> (&'static str, CertificationArtifactProjectionValue) {
+) -> (&'static str, ExternalHarnessArtifactJson) {
     (
         field,
-        CertificationArtifactProjectionValue::Array(
+        ExternalHarnessArtifactJson::Array(
             values
                 .into_iter()
-                .map(CertificationArtifactProjectionValue::String)
+                .map(ExternalHarnessArtifactJson::String)
                 .collect(),
         ),
     )
@@ -93,44 +93,44 @@ pub(super) fn string_array_field(
 pub(super) fn usize_field(
     field: &'static str,
     value: usize,
-) -> (&'static str, CertificationArtifactProjectionValue) {
+) -> (&'static str, ExternalHarnessArtifactJson) {
     u64_field(field, value as u64)
 }
 
 pub(super) fn u64_field(
     field: &'static str,
     value: u64,
-) -> (&'static str, CertificationArtifactProjectionValue) {
-    (field, CertificationArtifactProjectionValue::Unsigned(value))
+) -> (&'static str, ExternalHarnessArtifactJson) {
+    (field, ExternalHarnessArtifactJson::Unsigned(value))
 }
 
 pub(super) fn optional_u64_field(
     field: &'static str,
     value: Option<u64>,
-) -> (&'static str, CertificationArtifactProjectionValue) {
+) -> (&'static str, ExternalHarnessArtifactJson) {
     (
         field,
         value
-            .map(CertificationArtifactProjectionValue::Unsigned)
-            .unwrap_or(CertificationArtifactProjectionValue::Null),
+            .map(ExternalHarnessArtifactJson::Unsigned)
+            .unwrap_or(ExternalHarnessArtifactJson::Null),
     )
 }
 
 pub(super) fn optional_usize_field(
     field: &'static str,
     value: Option<usize>,
-) -> (&'static str, CertificationArtifactProjectionValue) {
+) -> (&'static str, ExternalHarnessArtifactJson) {
     optional_u64_field(field, value.map(|number| number as u64))
 }
 
 pub(super) fn optional_string_field(
     field: &'static str,
     value: Option<String>,
-) -> (&'static str, CertificationArtifactProjectionValue) {
+) -> (&'static str, ExternalHarnessArtifactJson) {
     (
         field,
         value
-            .map(CertificationArtifactProjectionValue::String)
-            .unwrap_or(CertificationArtifactProjectionValue::Null),
+            .map(ExternalHarnessArtifactJson::String)
+            .unwrap_or(ExternalHarnessArtifactJson::Null),
     )
 }

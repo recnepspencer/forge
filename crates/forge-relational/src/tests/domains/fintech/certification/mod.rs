@@ -4,8 +4,8 @@
 //! behavior, artifacts, invariants, and tests are split by responsibility.
 
 mod adapter;
-mod artifact_projection_value;
 mod artifacts;
+mod external_harness_artifact_json;
 mod invariants;
 mod plans;
 mod read_summaries;
