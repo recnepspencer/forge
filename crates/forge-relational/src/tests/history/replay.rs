@@ -1233,42 +1233,14 @@ fn hostile_commit_replay_equivalence_test() {
         });
     assert!(runtime.replay().compare_outcome(&replay));
 
-    let truth_digest = certification_digest(&(
-        format!("{:?}", &original_bundle.visible_truth),
-        &original_bundle.entity_history_digests,
-        &original_bundle.relation_history_digests,
-        &original_bundle.lineage_history_digests,
-    ));
-    let patch_digest = certification_digest(&original_envelope.patch);
-    let lineage_digest = certification_digest(&(
-        original_envelope.lineage_digest_basis(),
-        original_envelope.derived_index_artifacts(),
-        &original_bundle.lineage_history_digests,
-    ));
-    let replay_digest = certification_digest(&(
-        &replay.compared_surfaces,
-        &replay.mismatches,
-        &replay.failure,
-    ));
-    let diagnostics_digest = certification_digest(&original_envelope.diagnostics_summary);
-    let branch_heads_digest = certification_digest(&(
-        runtime
-            .history()
-            .branch_head(&BranchId("main".to_string()))
-            .cloned(),
-        runtime
-            .history()
-            .branch_head(&BranchId("feature".to_string()))
-            .cloned(),
-    ));
-    let query_surface_digest = certification_digest(&(
-        format!("{:?}", &original_inspection.graph_summary),
-        format!("{:?}", &original_inspection.kind_summary),
-        format!("{:?}", &original_inspection.connectivity_summary),
-        format!("{:?}", &original_inspection.historical_record),
-        format!("{:?}", &original_inspection.retention_summary),
-        format!("{:?}", &original_inspection.record_retention),
-    ));
+    let original_main_branch_head = runtime
+        .history()
+        .branch_head(&BranchId("main".to_string()))
+        .cloned();
+    let original_feature_branch_head = runtime
+        .history()
+        .branch_head(&BranchId("feature".to_string()))
+        .cloned();
 
     let recovery_plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
@@ -1324,63 +1296,24 @@ fn hostile_commit_replay_equivalence_test() {
                     == serde_json::json!("NormalRecoveryVerification")
         }));
 
+    assert_stable_aspect_truth_bundle_eq(&original_bundle, &recovered_bundle);
+    assert_eq!(original_envelope, recovered_envelope);
+    assert_eq!(replay, recovered_replay);
     assert_eq!(
-        truth_digest,
-        certification_digest(&(
-            format!("{:?}", &recovered_bundle.visible_truth),
-            &recovered_bundle.entity_history_digests,
-            &recovered_bundle.relation_history_digests,
-            &recovered_bundle.lineage_history_digests,
-        ))
+        original_main_branch_head,
+        recovered
+            .history()
+            .branch_head(&BranchId("main".to_string()))
+            .cloned()
     );
     assert_eq!(
-        patch_digest,
-        certification_digest(&recovered_envelope.patch)
+        original_feature_branch_head,
+        recovered
+            .history()
+            .branch_head(&BranchId("feature".to_string()))
+            .cloned()
     );
-    assert_eq!(
-        lineage_digest,
-        certification_digest(&(
-            recovered_envelope.lineage_digest_basis(),
-            recovered_envelope.derived_index_artifacts(),
-            &recovered_bundle.lineage_history_digests,
-        ))
-    );
-    assert_eq!(
-        replay_digest,
-        certification_digest(&(
-            &recovered_replay.compared_surfaces,
-            &recovered_replay.mismatches,
-            &recovered_replay.failure,
-        ))
-    );
-    assert_eq!(
-        diagnostics_digest,
-        certification_digest(&recovered_envelope.diagnostics_summary)
-    );
-    assert_eq!(
-        branch_heads_digest,
-        certification_digest(&(
-            recovered
-                .history()
-                .branch_head(&BranchId("main".to_string()))
-                .cloned(),
-            recovered
-                .history()
-                .branch_head(&BranchId("feature".to_string()))
-                .cloned(),
-        ))
-    );
-    assert_eq!(
-        query_surface_digest,
-        certification_digest(&(
-            format!("{:?}", &recovered_inspection.graph_summary),
-            format!("{:?}", &recovered_inspection.kind_summary),
-            format!("{:?}", &recovered_inspection.connectivity_summary),
-            format!("{:?}", &recovered_inspection.historical_record),
-            format!("{:?}", &recovered_inspection.retention_summary),
-            format!("{:?}", &recovered_inspection.record_retention),
-        ))
-    );
+    assert_eq!(original_inspection, recovered_inspection);
     let recovered_counters = recovered.performance_access().counters();
     assert!(recovered_counters.replay_digest_parity_checks > 0);
 }
