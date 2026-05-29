@@ -4,8 +4,8 @@ use crate::aspect_wire::{
     encode_aspect_value, encode_string, encode_u32, AspectValueCanonicalCodecError,
 };
 use crate::merge::logic::aspect_components::MergeAspectComponent;
-use crate::publication::patch::data::AspectKey;
 use crate::storage::data::RecordLifecycleState;
+use forge_foundational::facade::AspectKey;
 
 pub(crate) fn canonical_aspect_witness_digest(
     aspect_key: &AspectKey,

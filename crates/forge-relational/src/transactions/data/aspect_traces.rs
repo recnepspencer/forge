@@ -8,13 +8,13 @@ use crate::diagnostics::data::{
 };
 use crate::identity::data::{EntityId, KindId};
 use crate::publication::patch::data::{
-    AspectKey, CanonicalAspectSet, PatchStreamPosition, RecordStructuralChange,
+    CanonicalAspectSet, PatchStreamPosition, RecordStructuralChange,
 };
 use crate::schema::data::AspectPlanRevision;
 
 use super::RecordRef;
 use diagnostic_fields::{emission_trace_diagnostic_fields, evaluation_trace_diagnostic_fields};
-use forge_foundational::facade::{AspectValue, FieldKey, StructAspectValue};
+use forge_foundational::facade::{AspectKey, AspectValue, FieldKey, StructAspectValue};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use]

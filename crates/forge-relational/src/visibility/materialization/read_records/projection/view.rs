@@ -1,9 +1,9 @@
 use crate::capabilities::AspectPlanSource;
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
 use crate::logic::runtime::RelationalRuntime;
-use crate::publication::patch::data::AspectKey;
 use crate::snapshots::data::SnapshotHandle;
 use crate::storage::data::{EntityReadRecord, RecordLifecycleState, RelationReadRecord};
+use forge_foundational::facade::AspectKey;
 use forge_foundational::facade::{
     AspectValue, AuthoritativeRecordAspectState, ContractValidatedAspectValueView,
     StructAspectValue,

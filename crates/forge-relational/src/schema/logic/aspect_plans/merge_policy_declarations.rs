@@ -27,7 +27,7 @@ pub(super) fn canonicalize_merge_policy_declarations(
 fn reject_policy_for_undeclared_aspect(
     kind_id: crate::identity::data::KindId,
     declaration: &AspectMergePolicyDeclaration,
-    aspect_keys: &BTreeSet<crate::publication::patch::data::AspectKey>,
+    aspect_keys: &BTreeSet<forge_foundational::facade::AspectKey>,
 ) -> Result<(), SchemaRegistryError> {
     if aspect_keys.contains(&declaration.aspect_key) {
         return Ok(());
@@ -44,7 +44,7 @@ fn reject_policy_for_undeclared_aspect(
 fn reject_duplicate_policy(
     kind_id: crate::identity::data::KindId,
     declaration: &AspectMergePolicyDeclaration,
-    seen: &mut BTreeSet<crate::publication::patch::data::AspectKey>,
+    seen: &mut BTreeSet<forge_foundational::facade::AspectKey>,
 ) -> Result<(), SchemaRegistryError> {
     if seen.insert(declaration.aspect_key.clone()) {
         return Ok(());

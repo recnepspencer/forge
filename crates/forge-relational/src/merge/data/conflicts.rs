@@ -7,9 +7,9 @@ use crate::history::data::CommitId;
 use crate::identity::data::VersionId;
 use crate::merge::data::AspectComparisonState;
 use crate::merge::data::IdentityResolutionReason;
-use crate::publication::patch::data::AspectKey;
 use crate::storage::data::RecordLifecycleState;
 use crate::transactions::data::RecordRef;
+use forge_foundational::facade::AspectKey;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DeletionMergeClass {

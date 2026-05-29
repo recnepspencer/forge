@@ -27,7 +27,6 @@ use crate::diagnostics::data::{
 };
 use crate::history::data::AspectFilter;
 use crate::logic::runtime::{RelationalRuntime, VisibilityResidency};
-use crate::publication::patch::data::AspectKey;
 use crate::publication::patch::data::CanonicalAspectSet;
 use crate::query::data::{
     PlannedQueryPacket, QueryExecutionOutcome, QueryOrderingContract, QueryParallelLegality,
@@ -45,6 +44,7 @@ use crate::visibility::snapshot_states::{
     build_visibility_state, read_view_from_snapshot_state, resolve_snapshot_handle,
     resolve_snapshot_inspection, resolve_snapshot_state,
 };
+use forge_foundational::facade::AspectKey;
 use rayon::prelude::*;
 use std::collections::{BTreeMap, BTreeSet};
 

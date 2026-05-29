@@ -1,6 +1,6 @@
 use crate::identity::data::KindId;
 use crate::logic::runtime::RelationalRuntime;
-use crate::publication::patch::data::AspectKey;
+use forge_foundational::facade::AspectKey;
 
 pub(super) fn assert_declared_projection_aspects(
     _runtime: &RelationalRuntime,

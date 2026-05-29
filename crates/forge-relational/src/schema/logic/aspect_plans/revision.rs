@@ -2,8 +2,8 @@ use crate::merge::data::{
     AspectMergePolicyDeclaration, AspectMergePolicyKind, IdentityBasisDeclaration,
     IdentityBasisKind, IdentityBasisScope,
 };
-use crate::publication::patch::data::AspectKey;
 use crate::schema::data::{AspectBinding, AspectPlanRevision, DeclaredAspect};
+use forge_foundational::facade::AspectKey;
 use forge_foundational::{
     AspectShape, FieldDeclaration, FieldKey, ReferenceAspectType, ScalarAspectType,
 };

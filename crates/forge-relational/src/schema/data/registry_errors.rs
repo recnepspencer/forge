@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::errors::data::{ErrorContext, ErrorOperation, RelationalSubsystem, SuggestedFix};
 use crate::identity::data::KindId;
-use crate::publication::patch::data::AspectKey;
+use forge_foundational::facade::AspectKey;
 
 use super::{ContractId, SchemaVersionId};
 

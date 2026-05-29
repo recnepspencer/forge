@@ -1,8 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use crate::diagnostics::data::DiagnosticCode;
-use crate::publication::patch::data::AspectKey;
 use crate::transactions::data::{AspectFieldPatchTarget, RecordRef};
+use forge_foundational::facade::AspectKey;
 use forge_foundational::facade::{AuthoritativePatchConstructionDenial, ContractValidationDenial};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

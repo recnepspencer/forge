@@ -178,11 +178,11 @@ mod tests {
     use crate::authority::mutation::CanonicalRecordAspectDelta;
     use crate::identity::data::{EntityId, KindId, PartitionId};
     use crate::publication::patch::data::{
-        AspectKey, CanonicalAspectSet, PatchDetail, PatchRecord, PatchStreamPosition,
-        RecordStructuralChange,
+        CanonicalAspectSet, PatchDetail, PatchRecord, PatchStreamPosition, RecordStructuralChange,
     };
     use crate::schema::data::AspectPlanRevision;
     use crate::transactions::data::RecordRef;
+    use forge_foundational::facade::AspectKey;
 
     #[test]
     fn aspect_emission_traces_use_indexed_target_lookup() {

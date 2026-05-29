@@ -13,7 +13,7 @@ use crate::config::data::{
     AdjacencyBackend, AdjacencyPolicy, CascadeDeletePolicy, CrossContextPolicy,
 };
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
-use crate::publication::patch::data::{AspectKey, CanonicalAspectSet};
+use crate::publication::patch::data::CanonicalAspectSet;
 use crate::schema::data::{
     AspectPlanCatalog, AspectPlanRevision, LoweredAspectBinding, LoweredAspectPlan,
     LoweredExecutableAspectBindingKind, RelationalSchemaRegistry,
@@ -116,7 +116,7 @@ fn missing_relation_aspect_plan_returns_typed_error() {
 #[test]
 fn entity_field_patch_evidence_denial_carries_typed_target() {
     let target = AspectFieldPatchTarget::single(
-        AspectKey::new("name").expect("valid aspect key"),
+        FoundationalAspectKey::new("name").expect("valid aspect key"),
         forge_foundational::facade::FieldKey::new("name").expect("valid field key"),
     );
     let conflict = CanonicalDeltaError::EntityFieldBindingRequiresAuthoritativePatchEvidence {
@@ -151,7 +151,7 @@ fn entity_field_delta_requires_authoritative_state() {
             kind_id: KindId(1),
             plan_revision: AspectPlanRevision(7),
             executable_bindings: smallvec::smallvec![LoweredAspectBinding {
-                aspect_key: AspectKey::new("name").unwrap(),
+                aspect_key: FoundationalAspectKey::new("name").unwrap(),
                 contract: aspects()
                     .contract()
                     .for_key(
@@ -212,7 +212,7 @@ fn entity_field_delta_materializes_authoritative_aspect_patch() {
             kind_id: KindId(1),
             plan_revision: AspectPlanRevision(7),
             executable_bindings: smallvec::smallvec![LoweredAspectBinding {
-                aspect_key: AspectKey::new("name").unwrap(),
+                aspect_key: FoundationalAspectKey::new("name").unwrap(),
                 contract: contract.clone(),
                 binding_kind: LoweredExecutableAspectBindingKind::EntityFieldScalar {
                     field: forge_foundational::facade::FieldKey::new("name").expect("valid field"),
@@ -234,7 +234,7 @@ fn entity_field_delta_materializes_authoritative_aspect_patch() {
 
     assert_eq!(
         delta.changed_aspects,
-        CanonicalAspectSet::new([AspectKey::new("name").unwrap()])
+        CanonicalAspectSet::new([FoundationalAspectKey::new("name").unwrap()])
     );
     let CanonicalAspectDeltaEvidence::AuthoritativePatchOperation {
         locator,
@@ -268,7 +268,7 @@ fn relation_field_delta_materializes_authoritative_aspect_patch() {
             kind_id: KindId(2),
             plan_revision: AspectPlanRevision(3),
             executable_bindings: smallvec::smallvec![LoweredAspectBinding {
-                aspect_key: AspectKey::new("relation.label").unwrap(),
+                aspect_key: FoundationalAspectKey::new("relation.label").unwrap(),
                 contract: contract.clone(),
                 binding_kind: LoweredExecutableAspectBindingKind::RelationFieldScalar {
                     field: forge_foundational::facade::FieldKey::new("label").expect("valid field"),

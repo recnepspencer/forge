@@ -272,7 +272,6 @@ pub mod replay {
 }
 
 pub mod schema {
-    pub use crate::publication::patch::data::AspectKey;
     pub use crate::schema::data::{
         AcyclicityContractDeclaration, AllowedCycleClass, AspectBinding, AspectDeclarationTrace,
         AspectDeclarationTraceRow, AspectLoweringTrace, AspectLoweringTraceRow, AspectPlanRevision,

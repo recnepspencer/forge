@@ -6,7 +6,7 @@ use crate::diagnostics::data::{
 };
 use crate::identity::data::KindId;
 use crate::merge::data::{AspectMergePolicyDeclaration, IdentityBasisDeclaration};
-use crate::publication::patch::data::AspectKey;
+use forge_foundational::facade::AspectKey;
 
 use super::{
     AspectBinding, AspectPlanRevision, KindAspectDeclarations, LoweredAspectExtractor,

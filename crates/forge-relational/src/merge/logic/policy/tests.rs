@@ -12,8 +12,8 @@ use crate::merge::data::{
     MergePolicyOwnershipSurface, MergePolicyProofBoundary, MergePolicyRejectClass,
     MergePolicyResolutionRecord, ResolvedAspectMergePolicy, TopologyRewireAdmissionPolicy,
 };
-use crate::publication::patch::data::AspectKey;
 use crate::transactions::data::RecordRef;
+use forge_foundational::facade::AspectKey;
 
 #[test]
 fn topology_rewire_policy_is_explicitly_fail_closed_in_7d() {

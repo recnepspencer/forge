@@ -1,14 +1,14 @@
 use smallvec::SmallVec;
 
 use crate::identity::data::EntityId;
-use crate::publication::patch::data::{AspectKey, CanonicalAspectSet, RecordStructuralChange};
+use crate::publication::patch::data::{CanonicalAspectSet, RecordStructuralChange};
 use crate::schema::data::AspectPlanRevision;
 use crate::transactions::data::{
     AspectDeltaFailureFields, AspectDeltaPatchConstructionDenial, AspectDeltaPatchValueDenial,
     AspectDeltaRecordClass, CommitConflict, ConflictClass,
 };
 use crate::transactions::data::{AspectFieldPatchTarget, RecordRef};
-use forge_foundational::facade::{AspectFieldLocator, AspectValueLocator, FieldKey};
+use forge_foundational::facade::{AspectFieldLocator, AspectKey, AspectValueLocator, FieldKey};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct CanonicalRecordAspectDelta {

@@ -37,7 +37,7 @@ pub(super) use crate::facade::runtime::{
     RelationalRuntime, RelationalRuntimeApi,
 };
 pub(super) use crate::facade::schema::{
-    AspectBinding, AspectKey, DeclaredAspect, EntityKindRegistration, KindAspectDeclarations,
+    AspectBinding, DeclaredAspect, EntityKindRegistration, KindAspectDeclarations,
     RelationIntegrityDeclarations, RelationKindRegistration, RelationalSchemaRegistry, SchemaId,
     SchemaVersionId,
 };
@@ -53,6 +53,7 @@ pub(super) use crate::publication::patch::data::{
 };
 pub(super) use crate::symbols::data::ClientKeySymbolPolicy;
 use crate::tests::harness::model::truth_model::VisibleTruthSummary;
+pub(super) use forge_foundational::facade::AspectKey;
 
 // Test helper index:
 // - `schema`: baseline schema builders plus declared-aspect fixtures

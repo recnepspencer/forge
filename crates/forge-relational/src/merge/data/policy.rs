@@ -2,8 +2,8 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
-use crate::publication::patch::data::AspectKey;
 use crate::transactions::data::RecordRef;
+use forge_foundational::facade::AspectKey;
 
 use super::MergeResolvedAspectValueStrategy;
 

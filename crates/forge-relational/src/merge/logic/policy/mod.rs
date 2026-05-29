@@ -33,15 +33,15 @@ impl<'runtime> MergeAccess<'runtime> {
 fn binding_matches_aspect(
     runtime: &RelationalRuntime,
     binding: &crate::schema::data::LoweredAspectBinding,
-    aspect_key: &crate::publication::patch::data::AspectKey,
+    aspect_key: &forge_foundational::facade::AspectKey,
 ) -> bool {
     aspect_key_equivalent(runtime, &binding.aspect_key, aspect_key)
 }
 
 fn aspect_key_equivalent(
     _runtime: &RelationalRuntime,
-    left: &crate::publication::patch::data::AspectKey,
-    right: &crate::publication::patch::data::AspectKey,
+    left: &forge_foundational::facade::AspectKey,
+    right: &forge_foundational::facade::AspectKey,
 ) -> bool {
     left == right
 }

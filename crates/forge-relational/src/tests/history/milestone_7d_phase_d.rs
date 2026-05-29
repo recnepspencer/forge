@@ -14,7 +14,6 @@ use crate::facade::transactions::{
     UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 use crate::merge::data::AspectMergePolicyDeclaration;
-use crate::publication::patch::data::AspectKey;
 use crate::schema::data::{
     EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration, SchemaId,
     SchemaRegistryErrorClass, SchemaVersionId,
@@ -26,6 +25,7 @@ use crate::tests::support::{
     diagnostic_field_optional, entity_field_aspect, entity_i64_field_aspect, field_key,
     persisted_runtime_with_test_schema, read_entity_field, unique_test_store_path, update_entity,
 };
+use forge_foundational::facade::AspectKey;
 
 #[test]
 fn deleted_on_both_sides_merge_commit_has_replay_and_recovery_parity() {
@@ -1403,7 +1403,7 @@ fn drifted_schema_registry() -> crate::facade::schema::RelationalSchemaRegistry 
 }
 
 fn topology_identity_registry() -> crate::facade::schema::RelationalSchemaRegistry {
-    let label_key = crate::facade::schema::AspectKey::new("label").unwrap();
+    let label_key = forge_foundational::facade::AspectKey::new("label").unwrap();
     crate::facade::schema::RelationalSchemaRegistry::new()
         .register_entity_kind(crate::facade::schema::EntityKindRegistration {
             kind_id: crate::facade::identity::KindId(1),

@@ -42,12 +42,13 @@ mod tests {
     use crate::authority::mutation::canonical_deltas::CanonicalRecordAspectDelta;
     use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
     use crate::identity::data::{EntityId, KindId, PartitionId, VersionId};
-    use crate::publication::patch::data::{AspectKey, CanonicalAspectSet, RecordStructuralChange};
+    use crate::publication::patch::data::{CanonicalAspectSet, RecordStructuralChange};
     use crate::schema::data::AspectPlanRevision;
     use crate::storage::overlay::WorkingState;
     use crate::storage::substrate::{EntityRecordKind, SlotInit};
     use crate::symbols::data::StringInterner;
     use crate::transactions::data::RecordRef;
+    use forge_foundational::facade::AspectKey;
 
     use super::write_aspect_versions_for_delta;
     #[test]

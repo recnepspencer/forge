@@ -1,4 +1,4 @@
-use forge_foundational::{AspectShape, FieldKey, ReferenceAspectType, ScalarAspectType};
+use forge_foundational::{AspectKey, AspectShape, FieldKey, ReferenceAspectType, ScalarAspectType};
 
 use crate::capabilities::AspectPlanSource;
 use crate::facade::merge::{
@@ -6,7 +6,7 @@ use crate::facade::merge::{
     IdentityBasisKind, IdentityBasisScope,
 };
 use crate::facade::schema::{
-    AspectBinding, AspectKey, DeclaredAspect, EntityKindRegistration, KindAspectDeclarations,
+    AspectBinding, DeclaredAspect, EntityKindRegistration, KindAspectDeclarations,
     RelationKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaRegistryErrorClass,
     SchemaVersionId,
 };

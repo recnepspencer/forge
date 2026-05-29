@@ -14,7 +14,7 @@ pub use crate::publication::logic::{
     PublicationSubscriberStreamAccess, PublicationSurface,
 };
 pub use crate::publication::patch::facade::{
-    AspectKey, CanonicalAspectSet, PatchDetail, PatchFragmentBudget, PatchOrdering,
-    PatchPublicationMode, PatchRecord, PatchStreamBatch, PatchStreamPosition, PatchStreamReadError,
+    CanonicalAspectSet, PatchDetail, PatchFragmentBudget, PatchOrdering, PatchPublicationMode,
+    PatchRecord, PatchStreamBatch, PatchStreamPosition, PatchStreamReadError,
     PatchStreamReadErrorClass, PatchStreamRequest, RecordStructuralChange, RelationalPatchRecord,
 };

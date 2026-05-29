@@ -1,6 +1,6 @@
 use smallvec::SmallVec;
 
-use crate::publication::patch::data::AspectKey;
+use forge_foundational::facade::AspectKey;
 use serde::{Deserialize, Deserializer, Serialize, Serializer};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

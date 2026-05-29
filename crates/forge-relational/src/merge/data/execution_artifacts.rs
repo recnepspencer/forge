@@ -25,7 +25,7 @@ pub enum ExecutedMergeAspectClass {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ExecutedMergeAspectDiagnosticRow {
-    pub aspect_key: crate::publication::patch::data::AspectKey,
+    pub aspect_key: forge_foundational::facade::AspectKey,
     pub class: ExecutedMergeAspectClass,
     pub source_value: Option<MaterializedAspectValue>,
     pub target_value: Option<MaterializedAspectValue>,

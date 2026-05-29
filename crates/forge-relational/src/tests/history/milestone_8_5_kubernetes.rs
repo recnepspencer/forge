@@ -62,7 +62,7 @@ struct KubernetesConflictEvidence {
     target_strategy_descriptors:
         Arc<[Arc<[crate::commit_strategies::data::StrategyMergeDescriptor]>]>,
     relation_evidence: Arc<[Option<crate::merge::data::RelationConflictEvidence>]>,
-    aspect_evidence_keys: Arc<[Arc<[crate::publication::patch::data::AspectKey]>]>,
+    aspect_evidence_keys: Arc<[Arc<[forge_foundational::facade::AspectKey]>]>,
     aspect_evidence_comparisons: Arc<[Arc<[crate::merge::data::AspectComparisonState]>]>,
 }
 

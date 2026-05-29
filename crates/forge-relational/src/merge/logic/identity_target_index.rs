@@ -10,9 +10,9 @@ use crate::merge::logic::aspect_components::{
 };
 use crate::merge::logic::aspect_plan_lookup::lowered_plan_for_record;
 use crate::merge::logic::identity_digest::{declared_identity_signature, DeclaredIdentityDigest};
-use crate::publication::patch::data::AspectKey;
 use crate::storage::data::{EntityReadRecord, RelationReadRecord, RelationalReadView};
 use crate::transactions::data::RecordRef;
+use forge_foundational::facade::AspectKey;
 
 pub(crate) struct TargetIdentityIndex {
     entities_by_storage: BTreeMap<EntityId, EntityReadRecord>,

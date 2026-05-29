@@ -168,24 +168,24 @@ pub enum MergeExecutionCompilationError {
     },
     MissingAspectExecutionIntent {
         record: RecordRef,
-        aspect_key: crate::publication::patch::data::AspectKey,
+        aspect_key: forge_foundational::facade::AspectKey,
     },
     MissingAuthorizedAspectValues {
         record: RecordRef,
-        aspect_key: crate::publication::patch::data::AspectKey,
+        aspect_key: forge_foundational::facade::AspectKey,
     },
     MissingAspectValueWitness {
         record: RecordRef,
-        aspect_key: crate::publication::patch::data::AspectKey,
+        aspect_key: forge_foundational::facade::AspectKey,
     },
     UnsupportedAspectValueWitness {
         record: RecordRef,
-        aspect_key: crate::publication::patch::data::AspectKey,
+        aspect_key: forge_foundational::facade::AspectKey,
         detail: String,
     },
     MissingAspectBinding {
         record: RecordRef,
-        aspect_key: crate::publication::patch::data::AspectKey,
+        aspect_key: forge_foundational::facade::AspectKey,
     },
     PreparedAuthorityBindingMismatch {
         detail: &'static str,
@@ -207,16 +207,16 @@ pub enum MergeExecutionMutationPlanError {
     },
     UnsupportedAspectMutationMaterialization {
         record: RecordRef,
-        aspect_key: crate::publication::patch::data::AspectKey,
+        aspect_key: forge_foundational::facade::AspectKey,
         detail: &'static str,
     },
     MissingResolvedAspectValue {
         record: RecordRef,
-        aspect_key: crate::publication::patch::data::AspectKey,
+        aspect_key: forge_foundational::facade::AspectKey,
     },
     InvalidPinnedVisibleAspect {
         record: RecordRef,
-        aspect_key: crate::publication::patch::data::AspectKey,
+        aspect_key: forge_foundational::facade::AspectKey,
         detail: &'static str,
     },
 }

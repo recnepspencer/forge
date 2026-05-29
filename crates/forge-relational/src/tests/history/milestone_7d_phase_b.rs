@@ -8,7 +8,6 @@ use crate::facade::merge::{
 use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::transactions::RecordRef;
 use crate::merge::data::AspectMergePolicyDeclaration;
-use crate::publication::patch::data::AspectKey;
 use crate::schema::data::{
     EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration, SchemaId,
     SchemaVersionId,
@@ -26,6 +25,7 @@ use crate::{
     },
     schema::data::RelationalSchemaRegistry,
 };
+use forge_foundational::facade::AspectKey;
 
 fn runtime_with_name_merge_policy(
     merge_policy: AspectMergePolicyKind,

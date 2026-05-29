@@ -1,7 +1,7 @@
 use std::collections::BTreeMap;
 
-use crate::publication::patch::data::AspectKey;
 use crate::storage::data::{EntityReadRecord, RelationReadRecord, RelationalReadView};
+use forge_foundational::facade::AspectKey;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(super) enum BindingSide {

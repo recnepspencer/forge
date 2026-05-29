@@ -1,6 +1,6 @@
 use crate::identity::data::EntityId;
-use crate::publication::patch::data::AspectKey;
 use crate::schema::data::{LoweredAspectBinding, LoweredExecutableAspectBindingKind};
+use forge_foundational::facade::AspectKey;
 use forge_foundational::facade::{
     AuthoritativeRecordAspectState, ContractValidatedAspectValueView, StructAspectValue,
 };

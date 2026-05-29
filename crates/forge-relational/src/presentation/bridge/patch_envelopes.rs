@@ -1,10 +1,9 @@
 use crate::history::data::CommitId;
 use crate::logic::runtime::RelationalReplayRecord;
 use crate::publication::bundle::PublicationBundle;
-use crate::publication::patch::data::{
-    AspectKey, PatchRecord, RecordStructuralChange, RelationalPatchRecord,
-};
+use crate::publication::patch::data::{PatchRecord, RecordStructuralChange, RelationalPatchRecord};
 use crate::replay::data::CanonicalCommitEnvelope;
+use forge_foundational::facade::AspectKey;
 use forge_runtime_bridge::facade::{
     BridgeCommittedPatchItem, RawCommittedPatchEnvelope, TruthBranchIdentity, TruthCommitIdentity,
     TruthPatchIdentity, TruthSnapshotIdentity,

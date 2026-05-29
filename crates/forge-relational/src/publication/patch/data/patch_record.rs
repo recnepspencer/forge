@@ -1,8 +1,9 @@
 use crate::publication::patch::data::{
-    AspectKey, CanonicalAspectSet, PatchDetail, PatchOrdering, PatchPublicationMode,
-    PatchStreamPosition, PublishedAuthoritativePatch, RecordStructuralChange,
+    CanonicalAspectSet, PatchDetail, PatchOrdering, PatchPublicationMode, PatchStreamPosition,
+    PublishedAuthoritativePatch, RecordStructuralChange,
 };
 use crate::transactions::data::RecordRef;
+use forge_foundational::facade::AspectKey;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

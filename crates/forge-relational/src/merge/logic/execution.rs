@@ -561,7 +561,7 @@ fn aspect_materialized_reference(
     usage: crate::merge::data::AuthorizedAspectValueUsage,
     side: MergeValueSourceSide,
     record: RecordRef,
-    aspect_key: crate::publication::patch::data::AspectKey,
+    aspect_key: forge_foundational::facade::AspectKey,
 ) -> Option<MaterializedAspectValue> {
     match usage {
         crate::merge::data::AuthorizedAspectValueUsage::NotAuthorized => None,
@@ -576,7 +576,7 @@ fn aspect_materialized_reference(
 fn aspect_shared_witness_digest(
     runtime: &crate::logic::runtime::RelationalRuntime,
     source_record: &crate::merge::data::VisibleMergeRecord,
-    aspect_key: &crate::publication::patch::data::AspectKey,
+    aspect_key: &forge_foundational::facade::AspectKey,
     record: RecordRef,
 ) -> Result<String, MergeExecutionCompilationError> {
     let binding =
@@ -614,7 +614,7 @@ fn aspect_shared_witness_digest(
 fn aspect_binding_for_record<'a>(
     runtime: &'a crate::logic::runtime::RelationalRuntime,
     source_record: &crate::merge::data::VisibleMergeRecord,
-    aspect_key: &crate::publication::patch::data::AspectKey,
+    aspect_key: &forge_foundational::facade::AspectKey,
 ) -> Option<&'a LoweredAspectBinding> {
     let kind_id = source_record.source_kind_id.or(source_record.kind_id)?;
     let plan = match source_record.record_kind {

@@ -44,15 +44,15 @@ pub enum DeletedOnBothSidesSemantics {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum ExecutableAspectPlan {
     AdoptSourceValue {
-        aspect_key: crate::publication::patch::data::AspectKey,
+        aspect_key: forge_foundational::facade::AspectKey,
         source_value: MaterializedAspectValue,
     },
     PreserveSharedValue {
-        aspect_key: crate::publication::patch::data::AspectKey,
+        aspect_key: forge_foundational::facade::AspectKey,
         shared_value: MaterializedAspectValue,
     },
     ReconcileValue {
-        aspect_key: crate::publication::patch::data::AspectKey,
+        aspect_key: forge_foundational::facade::AspectKey,
         source_value: Option<MaterializedAspectValue>,
         target_value: Option<MaterializedAspectValue>,
         base_value: Option<MaterializedAspectValue>,

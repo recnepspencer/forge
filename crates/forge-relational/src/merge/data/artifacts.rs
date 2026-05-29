@@ -75,7 +75,7 @@ pub struct MergeConflictDigestBasis {
     pub target_visibility_evidence: std::sync::Arc<[MergeVisibilityEvidence]>,
     pub base_visibility_evidence: std::sync::Arc<[MergeVisibilityEvidence]>,
     pub aspect_evidence_keys:
-        std::sync::Arc<[std::sync::Arc<[crate::publication::patch::data::AspectKey]>]>,
+        std::sync::Arc<[std::sync::Arc<[forge_foundational::facade::AspectKey]>]>,
     pub aspect_evidence_comparisons:
         std::sync::Arc<[std::sync::Arc<[crate::merge::data::AspectComparisonState]>]>,
 }
@@ -129,7 +129,7 @@ pub struct MergeExecutionAuthorityContract {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MergePolicyAspectDigestRow {
-    pub aspect_key: crate::publication::patch::data::AspectKey,
+    pub aspect_key: forge_foundational::facade::AspectKey,
     pub comparison: AspectComparisonState,
     pub applied_policy: Option<AspectMergePolicyKind>,
     pub policy_ownership: Option<MergePolicyOwnershipClass>,
@@ -139,7 +139,7 @@ pub struct MergePolicyAspectDigestRow {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct MergeLoweredAspectDigestRow {
-    pub aspect_key: crate::publication::patch::data::AspectKey,
+    pub aspect_key: forge_foundational::facade::AspectKey,
     pub readiness: MergeExecutionReadiness,
     pub lowered_action: Option<LoweredAspectAction>,
     pub authorized_values: Option<AuthorizedAspectValueSurface>,

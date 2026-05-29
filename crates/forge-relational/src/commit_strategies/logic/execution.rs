@@ -408,11 +408,11 @@ mod tests {
     {
         const KIND: KindId = KindId(100);
 
-        fn required_aspects() -> &'static [crate::publication::patch::data::AspectKey] {
-            static REQUIRED: OnceLock<Box<[crate::publication::patch::data::AspectKey]>> =
+        fn required_aspects() -> &'static [forge_foundational::facade::AspectKey] {
+            static REQUIRED: OnceLock<Box<[forge_foundational::facade::AspectKey]>> =
                 OnceLock::new();
             REQUIRED.get_or_init(|| {
-                vec![crate::publication::patch::data::AspectKey::new("missing.aspect").unwrap()]
+                vec![forge_foundational::facade::AspectKey::new("missing.aspect").unwrap()]
                     .into_boxed_slice()
             })
         }

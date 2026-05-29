@@ -8,7 +8,6 @@ mod patch_record;
 mod published_authoritative_patch;
 
 pub use canonical_aspects::*;
-pub use forge_foundational::facade::AspectKey;
 pub use patch_batch::*;
 pub use patch_detail::*;
 pub use patch_errors::*;

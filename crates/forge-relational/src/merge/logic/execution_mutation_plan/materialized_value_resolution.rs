@@ -13,7 +13,7 @@ pub(super) fn resolved_entity_field_patch_value(
     source_entity: &EntityReadRecord,
     target_entity: &EntityReadRecord,
     binding: &LoweredAspectBinding,
-    aspect_key: &crate::publication::patch::data::AspectKey,
+    aspect_key: &forge_foundational::facade::AspectKey,
     resolved_value: &MaterializedAspectValue,
 ) -> Result<Option<(AspectFieldPatchTarget, AspectValue)>, MergeExecutionMutationPlanError> {
     match &binding.binding_kind {
@@ -65,7 +65,7 @@ pub(super) fn resolved_entity_field_patch_value(
 
 fn resolve_materialized_aspect_value(
     plan: &ReconcileRecordPlan,
-    aspect_key: &crate::publication::patch::data::AspectKey,
+    aspect_key: &forge_foundational::facade::AspectKey,
     value: &MaterializedAspectValue,
     source_entity: &EntityReadRecord,
     target_entity: &EntityReadRecord,
@@ -110,7 +110,7 @@ fn resolve_materialized_aspect_value(
 
 fn resolve_pinned_visible_aspect_value(
     plan: &ReconcileRecordPlan,
-    aspect_key: &crate::publication::patch::data::AspectKey,
+    aspect_key: &forge_foundational::facade::AspectKey,
     side: crate::merge::data::MergeValueSourceSide,
     record: &crate::transactions::data::RecordRef,
     source_entity: &EntityReadRecord,
@@ -150,7 +150,7 @@ fn resolve_pinned_visible_aspect_value(
 
 fn ensure_pinned_record_matches(
     plan: &ReconcileRecordPlan,
-    aspect_key: &crate::publication::patch::data::AspectKey,
+    aspect_key: &forge_foundational::facade::AspectKey,
     actual: &crate::transactions::data::RecordRef,
     expected: &crate::transactions::data::RecordRef,
     side_label: &'static str,

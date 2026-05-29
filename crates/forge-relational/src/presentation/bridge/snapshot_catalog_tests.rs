@@ -1,12 +1,13 @@
 use crate::facade::history::CommitId;
 use crate::facade::identity::{EntityId, PartitionId};
 use crate::facade::publication::{
-    AspectKey, PatchOrdering, PatchPublicationMode, PatchRecord, PatchStreamPosition,
-    RecordStructuralChange, RelationalPatchRecord,
+    PatchOrdering, PatchPublicationMode, PatchRecord, PatchStreamPosition, RecordStructuralChange,
+    RelationalPatchRecord,
 };
 use crate::publication::patch::data::{
     PatchDetail, PublishedAuthoritativePatch, PublishedAuthoritativePatchOperation,
 };
+use forge_foundational::facade::AspectKey;
 use forge_runtime_bridge::facade::{
     CommittedPatchSource, SnapshotReadRecord, SnapshotReadSource, TruthSnapshotIdentity,
 };

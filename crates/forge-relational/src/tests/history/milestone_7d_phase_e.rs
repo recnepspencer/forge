@@ -5,7 +5,6 @@ use crate::facade::merge::{
     RelationalMergeInspectionArtifact, TopologyExecutionClass,
 };
 use crate::facade::runtime::RelationalRuntimeApi;
-use crate::publication::patch::data::AspectKey;
 use crate::schema::data::{
     EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration, SchemaId,
     SchemaVersionId,
@@ -17,6 +16,7 @@ use crate::tests::support::{
     relation_target_aspect, unique_test_store_path, update_entity, CascadeDeletePolicy,
     CrossContextPolicy, KindId, PartitionId, RelationalRuntime, RelationalSchemaRegistry,
 };
+use forge_foundational::facade::AspectKey;
 
 #[test]
 fn inspection_input_round_trips_deleted_vs_modified_without_host_projection() {

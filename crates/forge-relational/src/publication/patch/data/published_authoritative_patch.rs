@@ -1,5 +1,5 @@
-use crate::publication::patch::data::{AspectKey, CanonicalAspectSet};
-use forge_foundational::facade::{AspectValue, FieldKey, StructAspectValue};
+use crate::publication::patch::data::CanonicalAspectSet;
+use forge_foundational::facade::{AspectKey, AspectValue, FieldKey, StructAspectValue};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]

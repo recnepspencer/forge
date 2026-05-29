@@ -9,7 +9,7 @@ use crate::facade::merge::{
 };
 use crate::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use crate::facade::schema::{
-    AspectKey, EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
+    EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
     RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use crate::facade::transactions::{
@@ -23,6 +23,7 @@ use crate::tests::support::{
     unique_test_store_path, update_entity, update_entity_on_branch, CascadeDeletePolicy,
     CrossContextPolicy, DurabilityMode, DurableStoreLayout, RelationalRuntimeProfile,
 };
+use forge_foundational::facade::AspectKey;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct MergeExecutionCertificationArtifacts {

@@ -1,11 +1,11 @@
 use crate::facade;
-use forge_foundational::facade::AspectValue;
+use forge_foundational::facade::{AspectKey, AspectValue};
 use std::sync::OnceLock;
 
-fn public_api_projection_aspects() -> &'static [facade::publication::AspectKey] {
-    static ASPECTS: OnceLock<Vec<facade::publication::AspectKey>> = OnceLock::new();
+fn public_api_projection_aspects() -> &'static [AspectKey] {
+    static ASPECTS: OnceLock<Vec<AspectKey>> = OnceLock::new();
     ASPECTS
-        .get_or_init(|| vec![facade::publication::AspectKey::new("name").unwrap()])
+        .get_or_init(|| vec![AspectKey::new("name").unwrap()])
         .as_slice()
 }
 
@@ -14,14 +14,12 @@ struct PublicApiProjection;
 impl facade::runtime::EntityRecordProjection for PublicApiProjection {
     const KIND: facade::identity::KindId = facade::identity::KindId(1);
 
-    fn required_aspects() -> &'static [facade::publication::AspectKey] {
+    fn required_aspects() -> &'static [AspectKey] {
         public_api_projection_aspects()
     }
 
     fn from_record(record: facade::runtime::EntityProjectionRecord<'_>) -> Option<Self> {
-        let AspectValue::String(_) =
-            record.aspect_value(&facade::publication::AspectKey::new("name").unwrap())?
-        else {
+        let AspectValue::String(_) = record.aspect_value(&AspectKey::new("name").unwrap())? else {
             return None;
         };
         Some(Self)

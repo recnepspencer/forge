@@ -5,13 +5,14 @@ use crate::facade::merge::{
 };
 use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::schema::{
-    AspectKey, EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
+    EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
     RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use crate::tests::support::{
     checkpoint_and_recover_with, create_branch_from_main, create_entity, entity_field_aspect,
     persisted_runtime_with_test_schema, update_entity, update_entity_on_branch,
 };
+use forge_foundational::facade::AspectKey;
 
 fn inspect_recovered_merge_planning_artifact() -> crate::facade::merge::MergePlanningArtifactCore {
     let mut runtime = persisted_runtime_with_test_schema();

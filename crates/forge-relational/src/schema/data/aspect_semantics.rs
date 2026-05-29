@@ -6,7 +6,7 @@ use smallvec::SmallVec;
 
 use crate::identity::data::KindId;
 use crate::merge::data::{AspectMergePolicyDeclaration, IdentityBasisDeclaration};
-use crate::publication::patch::data::AspectKey;
+use forge_foundational::facade::AspectKey;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct AspectPlanRevision(pub u128);
@@ -229,7 +229,7 @@ mod tests {
         LoweredExecutableAspectBindingKind,
     };
     use crate::identity::data::KindId;
-    use crate::publication::patch::data::AspectKey;
+    use forge_foundational::facade::AspectKey;
     use forge_foundational::FieldKey;
 
     #[test]

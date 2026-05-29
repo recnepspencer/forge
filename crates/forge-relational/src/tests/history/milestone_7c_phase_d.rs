@@ -8,7 +8,7 @@ use crate::facade::merge::{
 };
 use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::schema::{
-    AspectKey, EntityKindRegistration, KindAspectDeclarations, RelationIntegrityDeclarations,
+    EntityKindRegistration, KindAspectDeclarations, RelationIntegrityDeclarations,
     RelationKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use crate::facade::transactions::{
@@ -19,6 +19,7 @@ use crate::tests::support::{
     persisted_runtime_with_test_schema, runtime_with_test_schema, update_entity,
     CascadeDeletePolicy, CrossContextPolicy,
 };
+use forge_foundational::facade::AspectKey;
 
 #[test]
 fn derive_merge_commit_mutation_plan_emits_source_authorized_create_intent() {

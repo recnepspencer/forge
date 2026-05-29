@@ -3,8 +3,8 @@ use std::sync::Arc;
 use serde::{Deserialize, Serialize};
 
 use crate::identity::data::{KindId, LineageId, StructuralFingerprint};
-use crate::publication::patch::data::AspectKey;
 use crate::transactions::data::RecordRef;
+use forge_foundational::facade::AspectKey;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum MergeRecordIdentity {

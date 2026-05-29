@@ -5,7 +5,7 @@ use forge_foundational::{aspects, AspectContractRevision, AspectIdentity, Scalar
 
 use crate::identity::data::{EntityId, KindId, PartitionId};
 use crate::publication::patch::data::{
-    AspectKey, PatchDetail, PublishedAuthoritativePatchOperation, PublishedAuthoritativePatchValue,
+    PatchDetail, PublishedAuthoritativePatchOperation, PublishedAuthoritativePatchValue,
     RecordStructuralChange,
 };
 use crate::schema::data::AspectPlanRevision;
@@ -15,6 +15,7 @@ use super::data::{
     CanonicalAspectDeltaEvidence, CanonicalRecordAspectDelta, EvaluatedAspectBinding,
     LifecycleTransitionClass,
 };
+use forge_foundational::facade::AspectKey;
 
 #[test]
 fn scalar_changed_binding_materializes_foundational_whole_aspect_set() {
