@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crate::authority::commit::phases::schema_continuity::{
     validate_schema_continuity_publication, SchemaContinuityPlan,
 };
-use crate::diagnostics::data::DiagnosticsArtifactKind;
+use crate::diagnostics::data::{DiagnosticsArtifactKind, RelationalDiagnosticValue};
 use crate::facade::history::BranchId;
 use crate::facade::identity::KindId;
 use crate::facade::schema::{
@@ -24,7 +24,22 @@ use crate::schema::logic::{
 };
 use crate::tests::support::*;
 use crate::transactions::data::ConflictClass;
-use serde_json::Value;
+
+fn diagnostic_object_field<'a>(
+    value: &'a RelationalDiagnosticValue,
+    field: &str,
+) -> &'a RelationalDiagnosticValue {
+    let RelationalDiagnosticValue::Object(fields) = value else {
+        panic!("diagnostic value is not an object: {value:?}");
+    };
+    fields
+        .get(field)
+        .unwrap_or_else(|| panic!("diagnostic object field '{field}' missing from {value:?}"))
+}
+
+fn diagnostic_string_contains(value: &RelationalDiagnosticValue, expected: &str) -> bool {
+    matches!(value, RelationalDiagnosticValue::String(text) if text.contains(expected))
+}
 
 #[test]
 fn schema_boundary_fingerprint_is_explicit_256_bit_authority_surface() {
@@ -701,9 +716,10 @@ fn commit_rejects_undeclared_schema_drift_against_branch_head() {
         .expect("schema continuity failure artifact");
     assert!(failure_artifact.entries.iter().any(|entry| {
         entry.code == DiagnosticCode::SchemaContinuityViolation
-            && entry.fields.root_value()["conflict_class"]
-                .as_str()
-                .is_some_and(|class: &str| class.contains("UndeclaredSchemaTransition"))
+            && diagnostic_string_contains(
+                diagnostic_field(entry, "conflict_class"),
+                "UndeclaredSchemaTransition",
+            )
     }));
 }
 
@@ -837,19 +853,20 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
         .find(|entry| entry.message.contains("schema diff atom 0"))
         .expect("per-diff schema trace entry");
     assert_eq!(
-        diff_entry.fields.root_value()["strata"],
-        Value::Array(vec![
-            Value::String("StructuralShape".to_string()),
-            Value::String("PublicationContract".to_string()),
+        diagnostic_field(diff_entry, "strata"),
+        &RelationalDiagnosticValue::Array(vec![
+            RelationalDiagnosticValue::string("StructuralShape"),
+            RelationalDiagnosticValue::string("PublicationContract"),
         ])
     );
+    let detail = diagnostic_field(diff_entry, "detail");
     assert_eq!(
-        diff_entry.fields.root_value()["detail"]["kind"],
-        Value::String("AddedField".to_string())
+        diagnostic_object_field(detail, "kind"),
+        &RelationalDiagnosticValue::string("AddedField")
     );
     assert_eq!(
-        diff_entry.fields.root_value()["detail"]["field_path"],
-        Value::Array(vec![Value::String("tag".to_string())])
+        diagnostic_object_field(detail, "field_path"),
+        &RelationalDiagnosticValue::FieldPath(vec![field_key("tag")])
     );
 }
 
@@ -1075,10 +1092,12 @@ fn declared_schema_transition_rejects_wrong_target_basis() {
         .expect("schema continuity failure artifact");
     assert!(failure_artifact.entries.iter().any(|entry| {
         entry.message.contains("rejected schema diff atom 0")
-            && entry.fields.root_value()["detail"]["kind"]
-                == Value::String("AddedField".to_string())
-            && entry.fields.root_value()["strata"]
-                == Value::Array(vec![Value::String("StructuralShape".to_string())])
+            && diagnostic_object_field(diagnostic_field(entry, "detail"), "kind")
+                == &RelationalDiagnosticValue::string("AddedField")
+            && diagnostic_field(entry, "strata")
+                == &RelationalDiagnosticValue::Array(vec![RelationalDiagnosticValue::string(
+                    "StructuralShape",
+                )])
     }));
 }
 
