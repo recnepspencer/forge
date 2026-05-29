@@ -32,16 +32,14 @@ fn proof_boundary_trace_projection_is_publication_only_diagnostic_fields() {
     );
 
     assert_eq!(
-        document.root_value(),
-        &serde_json::json!({
-            "execution_point": "commit_boundary",
-            "proof_boundary": {
-                "scope_class": "partition_scope",
-                "widened_causes": ["all_observed_partition_scope"],
-                "packet_count": 1,
-                "touched_partition_count": 1,
-            }
-        })
+        document.root(),
+        &RelationalDiagnosticValue::object([
+            (
+                "execution_point",
+                RelationalDiagnosticValue::string("commit_boundary"),
+            ),
+            ("proof_boundary", expected_proof_boundary_value()),
+        ])
     );
 }
 
@@ -56,21 +54,26 @@ fn failure_projection_preserves_typed_invariant_artifact_payload() {
     let document = failure_diagnostic_fields(&result.failure_artifact(&failure));
 
     assert_eq!(
-        document.root_value(),
-        &serde_json::json!({
-            "execution_point": "commit_boundary",
-            "failure_effect": "block_commit",
-            "proof_boundary": {
-                "scope_class": "partition_scope",
-                "widened_causes": ["all_observed_partition_scope"],
-                "packet_count": 1,
-                "touched_partition_count": 1,
-            },
-            "violation": {
-                "violation_kind": "none",
-            },
-            "custom_provenance": null,
-        })
+        document.root(),
+        &RelationalDiagnosticValue::object([
+            (
+                "execution_point",
+                RelationalDiagnosticValue::string("commit_boundary"),
+            ),
+            (
+                "failure_effect",
+                RelationalDiagnosticValue::string("block_commit"),
+            ),
+            ("proof_boundary", expected_proof_boundary_value()),
+            (
+                "violation",
+                RelationalDiagnosticValue::object([(
+                    "violation_kind",
+                    RelationalDiagnosticValue::string("none"),
+                )]),
+            ),
+            ("custom_provenance", RelationalDiagnosticValue::Null),
+        ])
     );
 }
 
@@ -97,7 +100,6 @@ fn failure_projection_emits_aspect_field_diagnostic_payload() {
     )]);
     let failure = invariant_failure_for(violation);
     let document = failure_diagnostic_fields(&result.failure_artifact(&failure));
-    let aspect_field = &document.root_value()["violation"]["aspect_field"];
     let RelationalDiagnosticValue::Object(root) = document.root() else {
         panic!("expected typed diagnostic object root");
     };
@@ -113,6 +115,10 @@ fn failure_projection_emits_aspect_field_diagnostic_payload() {
         Some(RelationalDiagnosticValue::AspectKey(key)) if key == &aspect_key
     ));
     assert!(matches!(
+        typed_aspect_field.get("field_path"),
+        Some(RelationalDiagnosticValue::FieldPath(path)) if path == &vec![field.clone()]
+    ));
+    assert!(matches!(
         typed_aspect_field.get("diagnostic_mask"),
         Some(RelationalDiagnosticValue::DiagnosticMask(mask)) if !mask.is_whole_aspect()
     ));
@@ -120,29 +126,10 @@ fn failure_projection_emits_aspect_field_diagnostic_payload() {
         typed_aspect_field.get("value"),
         Some(RelationalDiagnosticValue::AspectValue(value)) if value == &AspectValue::String(InternedString::Raw("dupe@example.test".to_string()))
     ));
-
     assert_eq!(
-        document.root_value()["violation"]["violation_kind"],
-        serde_json::json!("unique_entity_field")
+        diagnostic_object_field(violation, "violation_kind"),
+        &RelationalDiagnosticValue::string("unique_entity_field")
     );
-    assert_eq!(
-        aspect_field["aspect_key"],
-        serde_json::json!("profile.email")
-    );
-    assert_eq!(aspect_field["field_path"], serde_json::json!(["email"]));
-    assert_eq!(
-        aspect_field["diagnostic_mask"],
-        serde_json::json!({
-            "mask_kind": "fields",
-            "field_paths": [["email"]],
-        })
-    );
-    assert_eq!(
-        aspect_field["value"]["value_family"],
-        serde_json::json!("String")
-    );
-    assert!(aspect_field["value"]["canonical_value_bytes"].is_array());
-    assert!(aspect_field["value"].get("String").is_none());
 }
 
 #[test]
@@ -187,9 +174,38 @@ fn failure_projection_preserves_custom_provenance_as_typed_diagnostic_payload() 
             if values == &vec![RelationalDiagnosticValue::RelationId(visible_relation_id)]
     ));
     assert_eq!(
-        document.root_value()["custom_provenance"]["observation_kind"],
-        serde_json::json!("speculative")
+        diagnostic_object_field(custom_provenance, "observation_kind"),
+        &RelationalDiagnosticValue::string("speculative")
     );
+}
+
+fn expected_proof_boundary_value() -> RelationalDiagnosticValue {
+    RelationalDiagnosticValue::object([
+        (
+            "scope_class",
+            RelationalDiagnosticValue::string("partition_scope"),
+        ),
+        (
+            "widened_causes",
+            RelationalDiagnosticValue::array([RelationalDiagnosticValue::string(
+                "all_observed_partition_scope",
+            )]),
+        ),
+        ("packet_count", RelationalDiagnosticValue::Unsigned(1)),
+        (
+            "touched_partition_count",
+            RelationalDiagnosticValue::Unsigned(1),
+        ),
+    ])
+}
+
+fn diagnostic_object_field<'a>(
+    object: &'a std::collections::BTreeMap<String, RelationalDiagnosticValue>,
+    field: &str,
+) -> &'a RelationalDiagnosticValue {
+    object
+        .get(field)
+        .unwrap_or_else(|| panic!("missing diagnostic field {field}"))
 }
 
 fn check_result_for_violation(
