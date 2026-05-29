@@ -310,16 +310,18 @@ fn subscriber_stream_rejects_unsupported_contract_upgrade_boundary() {
         .find(|entry| entry.code == DiagnosticCode::SubscriberContractEvaluated)
         .unwrap();
     assert_eq!(
-        rejection_entry.fields.root_value()["subscriber_contract_id"],
-        json!("subscriber.contract.geometry.v1")
+        diagnostic_field(rejection_entry, "subscriber_contract_id"),
+        &crate::diagnostics::data::RelationalDiagnosticValue::string(
+            "subscriber.contract.geometry.v1"
+        )
     );
     assert_eq!(
-        rejection_entry.fields.root_value()["failure_class"],
-        json!("ContractUpgradeUnsupported")
+        diagnostic_field(rejection_entry, "failure_class"),
+        &crate::diagnostics::data::RelationalDiagnosticValue::string("ContractUpgradeUnsupported")
     );
     assert_eq!(
-        rejection_entry.fields.root_value()["normalized_boundary_count_at_failure"],
-        json!(1)
+        diagnostic_field(rejection_entry, "normalized_boundary_count_at_failure"),
+        &crate::diagnostics::data::RelationalDiagnosticValue::Unsigned(1)
     );
 }
 
@@ -513,8 +515,8 @@ fn subscriber_stream_rejects_renegotiation_required_boundary() {
         .find(|entry| entry.code == DiagnosticCode::SubscriberContractEvaluated)
         .unwrap();
     assert_eq!(
-        rejection_entry.fields.root_value()["normalized_boundary_count_at_failure"],
-        json!(1)
+        diagnostic_field(rejection_entry, "normalized_boundary_count_at_failure"),
+        &crate::diagnostics::data::RelationalDiagnosticValue::Unsigned(1)
     );
 }
 

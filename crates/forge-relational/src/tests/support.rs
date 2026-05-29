@@ -2,7 +2,6 @@ pub(super) use forge_harness::facade::{
     DiagnosticsHarnessAdapter, ExecutionProfile, ExecutionRequest, HarnessAdapter, MutationBatch,
     ReplayHarnessAdapter, ReplayRequest, ScenarioPlan,
 };
-pub(super) use serde_json::json;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};

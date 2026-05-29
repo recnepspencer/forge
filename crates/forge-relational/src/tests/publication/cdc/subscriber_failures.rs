@@ -173,8 +173,8 @@ fn subscriber_stream_rejects_when_normalized_continuation_proof_exceeds_complexi
         .find(|entry| entry.code == DiagnosticCode::SubscriberContractEvaluated)
         .unwrap();
     assert_eq!(
-        rejection_entry.fields.root_value()["normalized_boundary_count_at_failure"],
-        json!(65)
+        diagnostic_field(rejection_entry, "normalized_boundary_count_at_failure"),
+        &crate::diagnostics::data::RelationalDiagnosticValue::Unsigned(65)
     );
     assert!(error
         .diagnostics
