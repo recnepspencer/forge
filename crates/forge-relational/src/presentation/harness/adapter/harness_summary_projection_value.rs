@@ -47,10 +47,10 @@ impl HarnessSummaryProjectionValue {
 fn diagnostic_fields_projection(value: RelationalDiagnosticValue) -> HarnessSummaryProjectionValue {
     let projected =
         RelationalDiagnosticFields::from_diagnostic_value(value).to_external_projection_value();
-    harness_projection_value_from_diagnostic_projection(projected)
+    harness_summary_projection_value_from_diagnostic_projection(projected)
 }
 
-fn harness_projection_value_from_diagnostic_projection(
+fn harness_summary_projection_value_from_diagnostic_projection(
     value: RelationalDiagnosticValue,
 ) -> HarnessSummaryProjectionValue {
     match value {
@@ -64,7 +64,7 @@ fn harness_projection_value_from_diagnostic_projection(
         RelationalDiagnosticValue::Array(values) => HarnessSummaryProjectionValue::Array(
             values
                 .into_iter()
-                .map(harness_projection_value_from_diagnostic_projection)
+                .map(harness_summary_projection_value_from_diagnostic_projection)
                 .collect(),
         ),
         RelationalDiagnosticValue::Object(fields) => HarnessSummaryProjectionValue::Object(
@@ -73,12 +73,12 @@ fn harness_projection_value_from_diagnostic_projection(
                 .map(|(field, value)| {
                     (
                         field,
-                        harness_projection_value_from_diagnostic_projection(value),
+                        harness_summary_projection_value_from_diagnostic_projection(value),
                     )
                 })
                 .collect(),
         ),
-        other => harness_projection_value_from_diagnostic_projection(
+        other => harness_summary_projection_value_from_diagnostic_projection(
             RelationalDiagnosticFields::from_diagnostic_value(other).to_external_projection_value(),
         ),
     }
