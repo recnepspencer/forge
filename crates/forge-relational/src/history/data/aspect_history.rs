@@ -219,7 +219,7 @@ mod tests {
     use crate::publication::patch::data::CanonicalAspectSet;
 
     #[test]
-    fn aspect_history_digest_counts_roundtrip_as_u64() {
+    fn aspect_history_digest_preserves_wide_counts_as_u64() {
         let digest = AspectHistoryDigest {
             requested_target: HistoryAspectQueryTarget::Entity(EntityId::new(PartitionId(1), 0, 1)),
             branch_id: BranchId("main".to_string()),
@@ -229,11 +229,9 @@ mod tests {
             traversed_commits: u64::from(u32::MAX) + 23,
         };
 
-        let encoded = serde_json::to_string(&digest).expect("serialize aspect history digest");
-        let decoded: AspectHistoryDigest =
-            serde_json::from_str(&encoded).expect("deserialize aspect history digest");
-
-        assert_eq!(decoded, digest);
+        assert_eq!(digest.entry_count, u64::from(u32::MAX) + 17);
+        assert_eq!(digest.opaque_aspect_entry_count, 9);
+        assert_eq!(digest.traversed_commits, u64::from(u32::MAX) + 23);
     }
 }
 

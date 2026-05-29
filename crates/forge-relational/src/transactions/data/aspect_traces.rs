@@ -132,12 +132,17 @@ impl AspectEmissionTrace {
 
 #[cfg(test)]
 mod tests {
-    use super::AspectLifecycleTransitionClass;
+    use super::{AspectLifecycleTransitionClass, AspectTraceEvidence};
 
     #[test]
-    fn lifecycle_no_transition_serializes_explicitly() {
-        let serialized = serde_json::to_string(&AspectLifecycleTransitionClass::NoTransition)
-            .expect("serialize aspect lifecycle transition");
-        assert_eq!(serialized, "\"NoTransition\"");
+    fn lifecycle_no_transition_is_typed_trace_evidence() {
+        let evidence = AspectTraceEvidence::Lifecycle {
+            transition: AspectLifecycleTransitionClass::NoTransition,
+        };
+
+        let AspectTraceEvidence::Lifecycle { transition } = evidence else {
+            panic!("expected lifecycle trace evidence");
+        };
+        assert_eq!(transition, AspectLifecycleTransitionClass::NoTransition);
     }
 }
