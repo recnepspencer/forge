@@ -123,7 +123,6 @@ crates/forge-relational/src/facade.rs
 crates/forge-relational/src/history/logic/access.rs
 crates/forge-relational/src/indexes/logic/access.rs
 crates/forge-relational/src/indexes/logic/authority.rs
-crates/forge-relational/src/inspection/data/mod.rs
 crates/forge-relational/src/lineage/data/artifacts.rs
 crates/forge-relational/src/logic/builder.rs
 crates/forge-relational/src/merge/data/artifacts.rs
