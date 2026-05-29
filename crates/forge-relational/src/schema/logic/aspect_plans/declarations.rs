@@ -259,7 +259,7 @@ fn validate_declared_aspect(
 
 fn validate_declared_aspect_key(
     kind_id: crate::identity::data::KindId,
-    field_name: &str,
+    contract_key_label: &str,
     aspect: &DeclaredAspect,
 ) -> Result<(), SchemaRegistryError> {
     let declared_key = aspect.aspect_key();
@@ -267,7 +267,7 @@ fn validate_declared_aspect_key(
     if foundational_key.trim().is_empty() {
         return Err(SchemaRegistryError::invalid_aspect_declaration(
             kind_id,
-            format!("{field_name} must not be empty"),
+            format!("{contract_key_label} must not be empty"),
         ));
     }
     if declared_key.as_str() != foundational_key {
