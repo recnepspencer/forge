@@ -13,8 +13,14 @@ use crate::tests::support::{
 fn strategy_registry() -> crate::schema::data::RelationalSchemaRegistry {
     AspectSchemaFixture {
         entity_aspects: vec![
-            entity_field_aspect("name", "name"),
-            entity_u64_field_aspect("replicas", "replicas"),
+            entity_field_aspect(
+                crate::tests::support::aspect_key("name"),
+                crate::tests::support::field_key("name"),
+            ),
+            entity_u64_field_aspect(
+                crate::tests::support::aspect_key("replicas"),
+                crate::tests::support::field_key("replicas"),
+            ),
             lifecycle_aspect(),
         ],
         ..AspectSchemaFixture::default()

@@ -14,43 +14,35 @@ pub(crate) fn field_key(name: &str) -> FieldKey {
     FieldKey::new(name).expect("test field names must be foundational field keys")
 }
 
-pub(crate) fn entity_field_aspect(name: &str, field: &str) -> DeclaredAspect {
+pub(crate) fn entity_field_aspect(name: AspectKey, field: FieldKey) -> DeclaredAspect {
     DeclaredAspect {
-        binding: AspectBinding::EntityField {
-            field: test_field_key(field),
-        },
+        binding: AspectBinding::EntityField { field },
         contract: scalar_string_contract(name),
     }
 }
 
-pub(crate) fn entity_u64_field_aspect(name: &str, field: &str) -> DeclaredAspect {
+pub(crate) fn entity_u64_field_aspect(name: AspectKey, field: FieldKey) -> DeclaredAspect {
     DeclaredAspect {
-        binding: AspectBinding::EntityField {
-            field: test_field_key(field),
-        },
+        binding: AspectBinding::EntityField { field },
         contract: scalar_u64_contract(name),
     }
 }
 
-pub(crate) fn entity_i64_field_aspect(name: &str, field: &str) -> DeclaredAspect {
+pub(crate) fn entity_i64_field_aspect(name: AspectKey, field: FieldKey) -> DeclaredAspect {
     DeclaredAspect {
-        binding: AspectBinding::EntityField {
-            field: test_field_key(field),
-        },
+        binding: AspectBinding::EntityField { field },
         contract: scalar_i64_contract(name),
     }
 }
 
-pub(crate) fn entity_bool_field_aspect(name: &str, field: &str) -> DeclaredAspect {
+pub(crate) fn entity_bool_field_aspect(name: AspectKey, field: FieldKey) -> DeclaredAspect {
     DeclaredAspect {
-        binding: AspectBinding::EntityField {
-            field: test_field_key(field),
-        },
+        binding: AspectBinding::EntityField { field },
         contract: scalar_bool_contract(name),
     }
 }
 
-pub(crate) fn entity_summary_struct_aspect(name: &str, field: &str) -> DeclaredAspect {
+pub(crate) fn entity_summary_struct_aspect(name: AspectKey, field: FieldKey) -> DeclaredAspect {
     let shape = aspects()
         .struct_fields()
         .required("title", ScalarAspectType::String)
@@ -58,28 +50,19 @@ pub(crate) fn entity_summary_struct_aspect(name: &str, field: &str) -> DeclaredA
         .finish()
         .expect("valid entity summary struct aspect shape");
     DeclaredAspect {
-        binding: AspectBinding::EntityField {
-            field: test_field_key(field),
-        },
+        binding: AspectBinding::EntityField { field },
         contract: aspects()
             .contract()
-            .for_key(
-                aspects()
-                    .vocabulary()
-                    .key(name)
-                    .expect("valid foundational aspect key"),
-            )
-            .identified_by(AspectIdentity(test_contract_identity(name)))
+            .for_key(name.clone())
+            .identified_by(AspectIdentity(test_contract_identity(name.as_str())))
             .at_revision(aspects().vocabulary().revision(1))
             .struct_aspect(shape),
     }
 }
 
-pub(crate) fn relation_field_aspect(name: &str, field: &str) -> DeclaredAspect {
+pub(crate) fn relation_field_aspect(name: AspectKey, field: FieldKey) -> DeclaredAspect {
     DeclaredAspect {
-        binding: AspectBinding::RelationField {
-            field: test_field_key(field),
-        },
+        binding: AspectBinding::RelationField { field },
         contract: scalar_string_contract(name),
     }
 }
@@ -87,12 +70,8 @@ pub(crate) fn relation_field_aspect(name: &str, field: &str) -> DeclaredAspect {
 pub(crate) fn lifecycle_aspect() -> DeclaredAspect {
     DeclaredAspect {
         binding: AspectBinding::LifecycleTransition,
-        contract: scalar_string_contract("lifecycle"),
+        contract: scalar_string_contract(aspect_key("lifecycle")),
     }
-}
-
-fn test_field_key(field: &str) -> FieldKey {
-    field_key(field)
 }
 
 pub(crate) fn relation_source_aspect() -> DeclaredAspect {
@@ -109,58 +88,38 @@ pub(crate) fn relation_target_aspect() -> DeclaredAspect {
     }
 }
 
-fn scalar_string_contract(name: &str) -> forge_foundational::AspectContract {
+fn scalar_string_contract(name: AspectKey) -> forge_foundational::AspectContract {
     aspects()
         .contract()
-        .for_key(
-            aspects()
-                .vocabulary()
-                .key(name)
-                .expect("valid foundational aspect key"),
-        )
-        .identified_by(AspectIdentity(test_contract_identity(name)))
+        .for_key(name.clone())
+        .identified_by(AspectIdentity(test_contract_identity(name.as_str())))
         .at_revision(aspects().vocabulary().revision(1))
         .scalar(ScalarAspectType::String)
 }
 
-fn scalar_bool_contract(name: &str) -> forge_foundational::AspectContract {
+fn scalar_bool_contract(name: AspectKey) -> forge_foundational::AspectContract {
     aspects()
         .contract()
-        .for_key(
-            aspects()
-                .vocabulary()
-                .key(name)
-                .expect("valid foundational aspect key"),
-        )
-        .identified_by(AspectIdentity(test_contract_identity(name)))
+        .for_key(name.clone())
+        .identified_by(AspectIdentity(test_contract_identity(name.as_str())))
         .at_revision(aspects().vocabulary().revision(1))
         .scalar(ScalarAspectType::Bool)
 }
 
-fn scalar_u64_contract(name: &str) -> forge_foundational::AspectContract {
+fn scalar_u64_contract(name: AspectKey) -> forge_foundational::AspectContract {
     aspects()
         .contract()
-        .for_key(
-            aspects()
-                .vocabulary()
-                .key(name)
-                .expect("valid foundational aspect key"),
-        )
-        .identified_by(AspectIdentity(test_contract_identity(name)))
+        .for_key(name.clone())
+        .identified_by(AspectIdentity(test_contract_identity(name.as_str())))
         .at_revision(aspects().vocabulary().revision(1))
         .scalar(ScalarAspectType::UInt64)
 }
 
-fn scalar_i64_contract(name: &str) -> forge_foundational::AspectContract {
+fn scalar_i64_contract(name: AspectKey) -> forge_foundational::AspectContract {
     aspects()
         .contract()
-        .for_key(
-            aspects()
-                .vocabulary()
-                .key(name)
-                .expect("valid foundational aspect key"),
-        )
-        .identified_by(AspectIdentity(test_contract_identity(name)))
+        .for_key(name.clone())
+        .identified_by(AspectIdentity(test_contract_identity(name.as_str())))
         .at_revision(aspects().vocabulary().revision(1))
         .scalar(ScalarAspectType::Int64)
 }
@@ -225,9 +184,12 @@ impl AspectSchemaFixture {
     ) -> Self {
         Self {
             cascade_delete_policy,
-            entity_aspects: vec![entity_field_aspect("name", "name"), lifecycle_aspect()],
+            entity_aspects: vec![
+                entity_field_aspect(aspect_key("name"), field_key("name")),
+                lifecycle_aspect(),
+            ],
             relation_aspects: vec![
-                relation_field_aspect("label", "label"),
+                relation_field_aspect(aspect_key("label"), field_key("label")),
                 lifecycle_aspect(),
                 relation_source_aspect(),
                 relation_target_aspect(),

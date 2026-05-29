@@ -77,7 +77,8 @@ fn derive_merge_commit_mutation_plan_preserves_exact_shared_truth_without_mutati
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
-                "name", "name",
+                crate::tests::support::aspect_key("name"),
+                crate::tests::support::field_key("name"),
             )]),
         })
         .and_then(|registry| {
@@ -135,8 +136,14 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![
-                entity_field_aspect("name", "name"),
-                entity_field_aspect("status", "status"),
+                entity_field_aspect(
+                    crate::tests::support::aspect_key("name"),
+                    crate::tests::support::field_key("name"),
+                ),
+                entity_field_aspect(
+                    crate::tests::support::aspect_key("status"),
+                    crate::tests::support::field_key("status"),
+                ),
             ])
             .with_identity_declarations(vec![IdentityBasisDeclaration {
                 scope: IdentityBasisScope::AspectKey(name_key.clone()),

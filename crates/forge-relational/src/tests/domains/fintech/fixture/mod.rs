@@ -18,9 +18,9 @@ use self::relation_seeding::seed_relations;
 use self::seed_catalog::seeded_trade_cases;
 use super::scales::FintechScale;
 use crate::tests::support::{
-    entity_bool_field_aspect, entity_field_aspect, entity_u64_field_aspect, lifecycle_aspect,
-    relation_field_aspect, relation_source_aspect, relation_target_aspect, unique_test_store_path,
-    AspectSchemaFixture,
+    aspect_key, entity_bool_field_aspect, entity_field_aspect, entity_u64_field_aspect, field_key,
+    lifecycle_aspect, relation_field_aspect, relation_source_aspect, relation_target_aspect,
+    unique_test_store_path, AspectSchemaFixture,
 };
 
 pub(super) const LEDGER_PARTITION: PartitionId = PartitionId(10);
@@ -316,7 +316,7 @@ fn fintech_schema_registry() -> crate::facade::schema::RelationalSchemaRegistry 
     AspectSchemaFixture {
         entity_aspects: fintech_entity_aspects(),
         relation_aspects: vec![
-            relation_field_aspect("role", "role"),
+            relation_field_aspect(aspect_key("role"), field_key("role")),
             lifecycle_aspect(),
             relation_source_aspect(),
             relation_target_aspect(),
@@ -371,16 +371,16 @@ fn fintech_entity_aspects() -> Vec<crate::facade::schema::DeclaredAspect> {
 
     string_fields
         .into_iter()
-        .map(|field| entity_field_aspect(field, field))
+        .map(|field| entity_field_aspect(aspect_key(field), field_key(field)))
         .chain(
             unsigned_fields
                 .into_iter()
-                .map(|field| entity_u64_field_aspect(field, field)),
+                .map(|field| entity_u64_field_aspect(aspect_key(field), field_key(field))),
         )
         .chain(
             bool_fields
                 .into_iter()
-                .map(|field| entity_bool_field_aspect(field, field)),
+                .map(|field| entity_bool_field_aspect(aspect_key(field), field_key(field))),
         )
         .chain(std::iter::once(lifecycle_aspect()))
         .collect()

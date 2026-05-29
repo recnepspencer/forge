@@ -35,8 +35,14 @@ fn registry_with_replicas_field() -> crate::schema::data::RelationalSchemaRegist
     AspectSchemaFixture {
         cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
         entity_aspects: vec![
-            entity_field_aspect("name", "name"),
-            entity_u64_field_aspect("replicas", "replicas"),
+            entity_field_aspect(
+                crate::tests::support::aspect_key("name"),
+                crate::tests::support::field_key("name"),
+            ),
+            entity_u64_field_aspect(
+                crate::tests::support::aspect_key("replicas"),
+                crate::tests::support::field_key("replicas"),
+            ),
             lifecycle_aspect(),
         ],
         ..AspectSchemaFixture::default()
@@ -145,7 +151,13 @@ fn aspect_field_reconciliation_strategy_rejects_undeclared_field() {
     );
     let registry = AspectSchemaFixture {
         cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-        entity_aspects: vec![entity_field_aspect("name", "name"), lifecycle_aspect()],
+        entity_aspects: vec![
+            entity_field_aspect(
+                crate::tests::support::aspect_key("name"),
+                crate::tests::support::field_key("name"),
+            ),
+            lifecycle_aspect(),
+        ],
         ..AspectSchemaFixture::default()
     }
     .build_registry();

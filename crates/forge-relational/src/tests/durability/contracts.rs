@@ -757,11 +757,17 @@ fn durability_contract_failure_aspect_plan_mismatch_is_explicit() {
         declared_aspect_schema_registry(CascadeDeletePolicy::CascadeDeleteRelations);
     let mismatched_registry = AspectSchemaFixture {
         entity_aspects: vec![
-            entity_field_aspect("display_name", "name"),
+            entity_field_aspect(
+                crate::tests::support::aspect_key("display_name"),
+                crate::tests::support::field_key("name"),
+            ),
             lifecycle_aspect(),
         ],
         relation_aspects: vec![
-            relation_field_aspect("label", "label"),
+            relation_field_aspect(
+                crate::tests::support::aspect_key("label"),
+                crate::tests::support::field_key("label"),
+            ),
             lifecycle_aspect(),
             relation_source_aspect(),
             relation_target_aspect(),

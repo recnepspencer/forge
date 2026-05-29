@@ -16,8 +16,14 @@ use forge_foundational::facade::{AspectValue, FieldKey, InternedString};
 fn strategy_registry() -> crate::schema::data::RelationalSchemaRegistry {
     AspectSchemaFixture {
         entity_aspects: vec![
-            entity_field_aspect("name", "name"),
-            entity_u64_field_aspect("replicas", "replicas"),
+            entity_field_aspect(
+                crate::tests::support::aspect_key("name"),
+                crate::tests::support::field_key("name"),
+            ),
+            entity_u64_field_aspect(
+                crate::tests::support::aspect_key("replicas"),
+                crate::tests::support::field_key("replicas"),
+            ),
             lifecycle_aspect(),
         ],
         ..AspectSchemaFixture::default()
@@ -176,7 +182,13 @@ fn entity_replacement_reconciliation_strategy_rejects_undeclared_fields() {
         crate::commit_strategies::data::CommitStrategyId(712),
     );
     let registry = AspectSchemaFixture {
-        entity_aspects: vec![entity_field_aspect("name", "name"), lifecycle_aspect()],
+        entity_aspects: vec![
+            entity_field_aspect(
+                crate::tests::support::aspect_key("name"),
+                crate::tests::support::field_key("name"),
+            ),
+            lifecycle_aspect(),
+        ],
         ..AspectSchemaFixture::default()
     }
     .build_registry();

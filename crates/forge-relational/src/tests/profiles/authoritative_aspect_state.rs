@@ -32,8 +32,14 @@ fn fieldless_entity_create_commits_with_absent_authoritative_aspect_state() {
 fn compatibility_field_patches_canonicalize_into_patch_output() {
     let canonicalization_schema = AspectSchemaFixture {
         entity_aspects: vec![
-            entity_field_aspect("a", "a"),
-            entity_field_aspect("b", "b"),
+            entity_field_aspect(
+                crate::tests::support::aspect_key("a"),
+                crate::tests::support::field_key("a"),
+            ),
+            entity_field_aspect(
+                crate::tests::support::aspect_key("b"),
+                crate::tests::support::field_key("b"),
+            ),
             lifecycle_aspect(),
         ],
         relation_aspects: vec![

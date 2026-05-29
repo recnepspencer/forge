@@ -84,8 +84,8 @@ fn merge_planning_schema_snapshot_changes_when_schema_semantics_change() {
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
                 aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
-                    name_key.as_str(),
-                    "name",
+                    name_key.clone(),
+                    crate::tests::support::field_key("name"),
                 )])
                 .with_identity_declarations(vec![IdentityBasisDeclaration {
                     scope: IdentityBasisScope::AspectKey(name_key.clone()),

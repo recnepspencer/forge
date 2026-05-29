@@ -145,7 +145,10 @@ fn runtime_with_topology_identity_registry(root_path: std::path::PathBuf) -> Rel
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::new(vec![
-                    relation_field_aspect(label_key.as_str(), "label"),
+                    relation_field_aspect(
+                        label_key.clone(),
+                        crate::tests::support::field_key("label"),
+                    ),
                     relation_source_aspect(),
                     relation_target_aspect(),
                 ])

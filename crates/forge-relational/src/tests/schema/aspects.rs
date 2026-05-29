@@ -16,10 +16,16 @@ use crate::tests::support::*;
 fn schema_aspect_declarations_are_canonicalized_before_revision_is_derived() {
     let first = KindAspectDeclarations::new(vec![
         lifecycle_aspect_named("zeta"),
-        entity_field_aspect("alpha", "name"),
+        entity_field_aspect(
+            crate::tests::support::aspect_key("alpha"),
+            crate::tests::support::field_key("name"),
+        ),
     ]);
     let second = KindAspectDeclarations::new(vec![
-        entity_field_aspect("alpha", "name"),
+        entity_field_aspect(
+            crate::tests::support::aspect_key("alpha"),
+            crate::tests::support::field_key("name"),
+        ),
         lifecycle_aspect_named("zeta"),
     ]);
 
@@ -73,7 +79,10 @@ fn duplicate_aspect_keys_are_rejected() {
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![
-                entity_field_aspect("name", "name"),
+                entity_field_aspect(
+                    crate::tests::support::aspect_key("name"),
+                    crate::tests::support::field_key("name"),
+                ),
                 lifecycle_aspect_named("name"),
             ]),
         })
@@ -97,7 +106,8 @@ fn declared_aspect_contract_keys_round_trip_through_registration() {
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
-                "name", "name",
+                crate::tests::support::aspect_key("name"),
+                crate::tests::support::field_key("name"),
             )]),
         })
         .expect("registry");
@@ -231,12 +241,15 @@ fn schema_accepts_runtime_owned_record_field_merge_policies_and_rejects_unsuppor
     let accepted = [
         (
             name_key.clone(),
-            entity_field_aspect(name_key.as_str(), "name"),
+            entity_field_aspect(name_key.clone(), crate::tests::support::field_key("name")),
             AspectMergePolicyKind::LastWriterWins,
         ),
         (
             counter_key.clone(),
-            entity_i64_field_aspect(counter_key.as_str(), "counter"),
+            entity_i64_field_aspect(
+                counter_key.clone(),
+                crate::tests::support::field_key("counter"),
+            ),
             AspectMergePolicyKind::MonotonicCounter,
         ),
     ];
@@ -279,8 +292,8 @@ fn schema_accepts_runtime_owned_record_field_merge_policies_and_rejects_unsuppor
                     schema_id: SchemaId("test".to_string()),
                     schema_version_id: SchemaVersionId(1),
                     aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
-                        name_key.as_str(),
-                        "name",
+                        name_key.clone(),
+                        crate::tests::support::field_key("name"),
                     )])
                     .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
                         aspect_key: name_key.clone(),
@@ -309,8 +322,8 @@ fn schema_rejects_monotonic_counter_on_non_integer_foundational_contract() {
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
-                name_key.as_str(),
-                "name",
+                name_key.clone(),
+                crate::tests::support::field_key("name"),
             )])
             .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
                 aspect_key: name_key,
@@ -375,7 +388,7 @@ fn schema_merge_policy_declarations_are_traced_and_available_through_registry() 
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![
-                entity_field_aspect(name_key.as_str(), "name"),
+                entity_field_aspect(name_key.clone(), crate::tests::support::field_key("name")),
                 lifecycle_aspect(),
             ])
             .with_merge_policy_declarations(vec![
@@ -414,7 +427,10 @@ fn schema_merge_policy_declarations_are_traced_and_available_through_registry() 
 #[test]
 fn schema_plan_revision_changes_when_identity_or_merge_policy_semantics_change() {
     let name_key = AspectKey::new("name").unwrap();
-    let base = KindAspectDeclarations::new(vec![entity_field_aspect(name_key.as_str(), "name")]);
+    let base = KindAspectDeclarations::new(vec![entity_field_aspect(
+        name_key.clone(),
+        crate::tests::support::field_key("name"),
+    )]);
     let identity_variant = base.clone().with_identity_declarations(vec![
         IdentityBasisDeclaration {
             scope: IdentityBasisScope::EntityKind(KindId(1)),
@@ -518,7 +534,8 @@ fn relation_field_aspects_are_governed_by_foundational_contract_shape() {
             cross_context_policy: CrossContextPolicy::AllowExplicit,
             cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
             aspect_declarations: KindAspectDeclarations::new(vec![relation_field_aspect(
-                "payload", "label",
+                crate::tests::support::aspect_key("payload"),
+                crate::tests::support::field_key("label"),
             )]),
             relation_integrity: crate::schema::data::RelationIntegrityDeclarations::default(),
         })
@@ -565,7 +582,10 @@ fn runtime_build_lowers_schema_aspect_plans() {
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![
-                entity_field_aspect("name", "name"),
+                entity_field_aspect(
+                    crate::tests::support::aspect_key("name"),
+                    crate::tests::support::field_key("name"),
+                ),
                 lifecycle_aspect(),
             ]),
         })
@@ -699,8 +719,14 @@ fn schema_traces_emit_diagnostic_artifacts_without_reinterpreting_semantics() {
 fn aspect_schema_fixture_builds_runtime_with_lowered_plans_for_customized_aspects() {
     let fixture = AspectSchemaFixture {
         entity_aspects: vec![
-            entity_field_aspect("name", "name"),
-            entity_field_aspect("status", "status"),
+            entity_field_aspect(
+                crate::tests::support::aspect_key("name"),
+                crate::tests::support::field_key("name"),
+            ),
+            entity_field_aspect(
+                crate::tests::support::aspect_key("status"),
+                crate::tests::support::field_key("status"),
+            ),
             lifecycle_aspect(),
         ],
         relation_aspects: vec![relation_source_aspect(), relation_target_aspect()],

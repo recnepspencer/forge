@@ -290,8 +290,14 @@ fn update_entity_fields_canonical_delta_uses_authoritative_patch_evidence() {
 fn update_entity_fields_applies_struct_contract_field_patch() {
     let mut runtime = AspectSchemaFixture {
         entity_aspects: vec![
-            entity_field_aspect("name", "name"),
-            entity_summary_struct_aspect("summary", "summary"),
+            entity_field_aspect(
+                crate::tests::support::aspect_key("name"),
+                crate::tests::support::field_key("name"),
+            ),
+            entity_summary_struct_aspect(
+                crate::tests::support::aspect_key("summary"),
+                crate::tests::support::field_key("summary"),
+            ),
         ],
         ..AspectSchemaFixture::default()
     }
@@ -395,8 +401,14 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
 fn update_entity_fields_rejects_explicit_aspect_field_path_mismatch() {
     let mut runtime = AspectSchemaFixture {
         entity_aspects: vec![
-            entity_field_aspect("title.scalar", "title"),
-            entity_summary_struct_aspect("summary", "summary"),
+            entity_field_aspect(
+                crate::tests::support::aspect_key("title.scalar"),
+                crate::tests::support::field_key("title"),
+            ),
+            entity_summary_struct_aspect(
+                crate::tests::support::aspect_key("summary"),
+                crate::tests::support::field_key("summary"),
+            ),
         ],
         ..AspectSchemaFixture::default()
     }
@@ -870,8 +882,14 @@ fn detailed_trace_profile_emits_commit_side_aspect_trace_diagnostics() {
 fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
     let fixture = AspectSchemaFixture {
         entity_aspects: vec![
-            entity_field_aspect("name", "name"),
-            entity_field_aspect("status", "status"),
+            entity_field_aspect(
+                crate::tests::support::aspect_key("name"),
+                crate::tests::support::field_key("name"),
+            ),
+            entity_field_aspect(
+                crate::tests::support::aspect_key("status"),
+                crate::tests::support::field_key("status"),
+            ),
             lifecycle_aspect(),
         ],
         relation_aspects: vec![relation_source_aspect(), relation_target_aspect()],

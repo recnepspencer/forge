@@ -38,8 +38,8 @@ fn runtime_with_name_merge_policy(
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
-                name_key.as_str(),
-                "name",
+                name_key.clone(),
+                crate::tests::support::field_key("name"),
             )])
             .with_identity_declarations(vec![IdentityBasisDeclaration {
                 scope: IdentityBasisScope::AspectKey(name_key.clone()),

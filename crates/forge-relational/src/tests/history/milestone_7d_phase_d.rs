@@ -588,7 +588,10 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
 fn built_in_additive_set_merge_policy_is_rejected_without_native_foundational_set_contract() {
     let error = register_aspect_field_merge_policy(
         AspectKey::new("value").unwrap(),
-        entity_field_aspect("value", "value"),
+        entity_field_aspect(
+            crate::tests::support::aspect_key("value"),
+            crate::tests::support::field_key("value"),
+        ),
         AspectMergePolicyKind::AdditiveSet,
     )
     .unwrap_err();
@@ -1353,8 +1356,14 @@ fn drifted_schema_registry() -> crate::facade::schema::RelationalSchemaRegistry 
             schema_id: crate::facade::schema::SchemaId("test".to_string()),
             schema_version_id: crate::facade::schema::SchemaVersionId(2),
             aspect_declarations: crate::facade::schema::KindAspectDeclarations::new(vec![
-                crate::tests::support::entity_field_aspect("name", "name"),
-                crate::tests::support::entity_field_aspect("status", "status"),
+                crate::tests::support::entity_field_aspect(
+                    crate::tests::support::aspect_key("name"),
+                    crate::tests::support::field_key("name"),
+                ),
+                crate::tests::support::entity_field_aspect(
+                    crate::tests::support::aspect_key("status"),
+                    crate::tests::support::field_key("status"),
+                ),
             ]),
         })
         .and_then(|registry| {
@@ -1393,7 +1402,10 @@ fn topology_identity_registry() -> crate::facade::schema::RelationalSchemaRegist
                 cascade_delete_policy:
                     crate::tests::support::CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: crate::facade::schema::KindAspectDeclarations::new(vec![
-                    crate::tests::support::relation_field_aspect("label", "label"),
+                    crate::tests::support::relation_field_aspect(
+                        crate::tests::support::aspect_key("label"),
+                        crate::tests::support::field_key("label"),
+                    ),
                     crate::tests::support::relation_source_aspect(),
                     crate::tests::support::relation_target_aspect(),
                 ])
@@ -1440,9 +1452,9 @@ fn runtime_with_aspect_field_merge_policy(
 ) -> crate::facade::runtime::RelationalRuntime {
     let value_aspect = match merge_policy {
         AspectMergePolicyKind::MonotonicCounter => {
-            entity_i64_field_aspect(aspect_key.as_str(), field_key.as_str())
+            entity_i64_field_aspect(aspect_key.clone(), field_key.clone())
         }
-        _ => entity_field_aspect(aspect_key.as_str(), field_key.as_str()),
+        _ => entity_field_aspect(aspect_key.clone(), field_key.clone()),
     };
     let registry = register_aspect_field_merge_policy(aspect_key, value_aspect, merge_policy)
         .expect("schema registry");
@@ -1464,7 +1476,7 @@ fn register_aspect_field_merge_policy(
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![
-                entity_field_aspect(name_key.as_str(), "name"),
+                entity_field_aspect(name_key.clone(), crate::tests::support::field_key("name")),
                 value_aspect,
             ])
             .with_identity_declarations(vec![IdentityBasisDeclaration {

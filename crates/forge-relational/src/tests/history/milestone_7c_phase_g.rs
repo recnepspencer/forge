@@ -370,8 +370,14 @@ fn prefer_richer_registry() -> RelationalSchemaRegistry {
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![
-                entity_field_aspect("name", "name"),
-                entity_field_aspect(status_key.as_str(), "status"),
+                entity_field_aspect(
+                    crate::tests::support::aspect_key("name"),
+                    crate::tests::support::field_key("name"),
+                ),
+                entity_field_aspect(
+                    status_key.clone(),
+                    crate::tests::support::field_key("status"),
+                ),
             ])
             .with_identity_declarations(vec![IdentityBasisDeclaration {
                 scope: IdentityBasisScope::AspectKey(name_key.clone()),
@@ -405,8 +411,14 @@ fn drifted_schema_registry() -> RelationalSchemaRegistry {
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(2),
             aspect_declarations: KindAspectDeclarations::new(vec![
-                entity_field_aspect("name", "name"),
-                entity_field_aspect("status", "status"),
+                entity_field_aspect(
+                    crate::tests::support::aspect_key("name"),
+                    crate::tests::support::field_key("name"),
+                ),
+                entity_field_aspect(
+                    crate::tests::support::aspect_key("status"),
+                    crate::tests::support::field_key("status"),
+                ),
             ]),
         })
         .and_then(|registry| {

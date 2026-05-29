@@ -102,7 +102,8 @@ fn prepare_merge_execution_rejects_rejected_merge_plans() {
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
-                "name", "name",
+                crate::tests::support::aspect_key("name"),
+                crate::tests::support::field_key("name"),
             )])
             .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
                 aspect_key: AspectKey::new("name").unwrap(),
@@ -325,8 +326,14 @@ fn verify_prepared_merge_execution_rejects_schema_semantic_drift() {
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(2),
             aspect_declarations: KindAspectDeclarations::new(vec![
-                entity_field_aspect("name", "name"),
-                entity_field_aspect("status", "status"),
+                entity_field_aspect(
+                    crate::tests::support::aspect_key("name"),
+                    crate::tests::support::field_key("name"),
+                ),
+                entity_field_aspect(
+                    crate::tests::support::aspect_key("status"),
+                    crate::tests::support::field_key("status"),
+                ),
             ]),
         })
         .and_then(|registry| {
@@ -517,7 +524,8 @@ fn prepare_merge_execution_compiles_exact_shared_record_plan() {
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
-                "name", "name",
+                crate::tests::support::aspect_key("name"),
+                crate::tests::support::field_key("name"),
             )]),
         })
         .and_then(|registry| {
@@ -593,7 +601,8 @@ fn prepare_merge_execution_compiles_reconcile_record_plan() {
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
-                "name", "name",
+                crate::tests::support::aspect_key("name"),
+                crate::tests::support::field_key("name"),
             )])
             .with_identity_declarations(vec![crate::facade::merge::IdentityBasisDeclaration {
                 scope: crate::facade::merge::IdentityBasisScope::AspectKey(name_key.clone()),
