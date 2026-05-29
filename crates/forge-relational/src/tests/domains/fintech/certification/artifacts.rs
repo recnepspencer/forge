@@ -3,20 +3,20 @@ use std::collections::BTreeMap;
 use forge_harness::facade::{
     ArtifactBundle, ArtifactClass, ArtifactSurface, WorkflowCaptureRequest,
 };
-use serde_json::Value;
 
 use crate::facade::replay::RelationalReplayOutcome;
 
 use super::super::complexity::workflow_budgets;
-use super::harness_json_artifact_fields::{
-    bool_field, harness_object, optional_string_field, optional_u64_field, optional_usize_field,
-    string_array_field, string_field, usize_field, value_field,
+use super::certification_artifact_value::{
+    artifact_field, artifact_object, bool_field, dynamic_artifact_object, optional_string_field,
+    optional_u64_field, optional_usize_field, string_array_field, string_field, usize_field,
+    CertificationArtifactValue,
 };
-use super::read_summaries::read_summary_json_artifacts;
+use super::read_summaries::read_summary_artifacts;
 use super::session::CertifiedRelationalFintechSession;
 
-fn replay_summary(replay: &RelationalReplayOutcome) -> Value {
-    harness_object([
+fn replay_summary(replay: &RelationalReplayOutcome) -> CertificationArtifactValue {
+    artifact_object([
         optional_u64_field(
             "commit_id",
             replay.commit.as_ref().map(|commit| commit.commit_id.0),
@@ -71,7 +71,7 @@ fn replay_summary(replay: &RelationalReplayOutcome) -> Value {
     ])
 }
 
-fn branch_summary(session: &CertifiedRelationalFintechSession) -> Value {
+fn branch_summary(session: &CertifiedRelationalFintechSession) -> CertificationArtifactValue {
     let latest_commit = session
         .world
         .runtime
@@ -84,7 +84,7 @@ fn branch_summary(session: &CertifiedRelationalFintechSession) -> Value {
         .map(|(alias, branch)| {
             (
                 alias.clone(),
-                harness_object([
+                artifact_object([
                     string_field("branch_id", branch.0.clone()),
                     optional_u64_field(
                         "head_commit",
@@ -98,14 +98,14 @@ fn branch_summary(session: &CertifiedRelationalFintechSession) -> Value {
                 ]),
             )
         })
-        .collect::<BTreeMap<_, _>>();
-    harness_object([
+        .collect::<Vec<_>>();
+    artifact_object([
         optional_u64_field("latest_commit", latest_commit),
-        value_field("branches", Value::Object(branches.into_iter().collect())),
+        artifact_field("branches", dynamic_artifact_object(branches)),
     ])
 }
 
-fn diagnostics_summary(session: &CertifiedRelationalFintechSession) -> Value {
+fn diagnostics_summary(session: &CertifiedRelationalFintechSession) -> CertificationArtifactValue {
     let recovery = session.world.runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
@@ -116,7 +116,7 @@ fn diagnostics_summary(session: &CertifiedRelationalFintechSession) -> Value {
         .diagnostic_access()
         .snapshot();
     let observation = &publication_diagnostics.observation;
-    harness_object([
+    artifact_object([
         bool_field("latest_patch_present", observation.latest_patch_present),
         bool_field("latest_replay_present", observation.latest_replay_present),
         usize_field(
@@ -139,11 +139,11 @@ fn diagnostics_summary(session: &CertifiedRelationalFintechSession) -> Value {
     ])
 }
 
-fn patch_summary(session: &CertifiedRelationalFintechSession) -> Value {
+fn patch_summary(session: &CertifiedRelationalFintechSession) -> CertificationArtifactValue {
     let publication = session.world.runtime.publication();
     let artifacts = publication.artifact_snapshot();
     let observation = &artifacts.observation;
-    harness_object([
+    artifact_object([
         optional_u64_field(
             "latest_commit",
             observation.latest_commit_id.map(|commit_id| commit_id.0),
@@ -193,9 +193,9 @@ fn patch_summary(session: &CertifiedRelationalFintechSession) -> Value {
     ])
 }
 
-fn complexity_summary(session: &CertifiedRelationalFintechSession) -> Value {
+fn complexity_summary(session: &CertifiedRelationalFintechSession) -> CertificationArtifactValue {
     let counters = session.world.runtime.performance_access().counters();
-    harness_object([
+    artifact_object([
         usize_field("full_state_clones", counters.full_state_clones),
         usize_field(
             "snapshot_pin_full_rebuilds",
@@ -220,26 +220,26 @@ fn complexity_summary(session: &CertifiedRelationalFintechSession) -> Value {
     ])
 }
 
-fn budget_summary(session: &CertifiedRelationalFintechSession) -> Value {
+fn budget_summary(session: &CertifiedRelationalFintechSession) -> CertificationArtifactValue {
     let counters = session.world.runtime.performance_access().counters();
+    let mut all_passed = true;
     let checks = workflow_budgets()
         .into_iter()
         .map(|budget| {
             let actual = (budget.selector)(&counters);
-            harness_object([
+            let passed = actual <= budget.max;
+            all_passed &= passed;
+            artifact_object([
                 string_field("label", budget.label.to_string()),
                 usize_field("max", budget.max),
                 usize_field("actual", actual),
-                bool_field("passed", actual <= budget.max),
+                bool_field("passed", passed),
             ])
         })
         .collect::<Vec<_>>();
-    let all_passed = checks
-        .iter()
-        .all(|check| check.get("passed").and_then(|value| value.as_bool()) == Some(true));
-    harness_object([
+    artifact_object([
         bool_field("all_passed", all_passed),
-        value_field("checks", Value::Array(checks)),
+        artifact_field("checks", CertificationArtifactValue::Array(checks)),
     ])
 }
 
@@ -255,7 +255,7 @@ pub(super) fn capture_artifacts(
                 surface: ArtifactSurface::SnapshotVisibleTruth,
                 name: "snapshot-visible-truth".to_string(),
                 boundary: request.boundary,
-                payload: read_summary_json_artifacts(&session.named_reads),
+                payload: read_summary_artifacts(&session.named_reads).into_json(),
                 attachments: Vec::new(),
                 metadata: BTreeMap::new(),
             }),
@@ -264,7 +264,7 @@ pub(super) fn capture_artifacts(
                 surface: ArtifactSurface::BranchHeadState,
                 name: "branch-head-state".to_string(),
                 boundary: request.boundary,
-                payload: branch_summary(session),
+                payload: branch_summary(session).into_json(),
                 attachments: Vec::new(),
                 metadata: BTreeMap::new(),
             }),
@@ -273,13 +273,14 @@ pub(super) fn capture_artifacts(
                 surface: ArtifactSurface::ReplayRecoveryTruthState,
                 name: "replay-recovery-truth".to_string(),
                 boundary: request.boundary,
-                payload: Value::Object(
+                payload: dynamic_artifact_object(
                     session
                         .named_replays
                         .iter()
                         .map(|(alias, replay)| (alias.clone(), replay_summary(replay)))
-                        .collect(),
-                ),
+                        .collect::<Vec<_>>(),
+                )
+                .into_json(),
                 attachments: Vec::new(),
                 metadata: BTreeMap::new(),
             }),
@@ -288,7 +289,7 @@ pub(super) fn capture_artifacts(
                 surface: ArtifactSurface::Diagnostics,
                 name: "diagnostics".to_string(),
                 boundary: request.boundary,
-                payload: diagnostics_summary(session),
+                payload: diagnostics_summary(session).into_json(),
                 attachments: Vec::new(),
                 metadata: BTreeMap::new(),
             }),
@@ -297,7 +298,7 @@ pub(super) fn capture_artifacts(
                 surface: ArtifactSurface::PatchChangeSurface,
                 name: "patch-change-surface".to_string(),
                 boundary: request.boundary,
-                payload: patch_summary(session),
+                payload: patch_summary(session).into_json(),
                 attachments: Vec::new(),
                 metadata: BTreeMap::new(),
             }),
@@ -306,14 +307,15 @@ pub(super) fn capture_artifacts(
                 surface: ArtifactSurface::StepTrace,
                 name: "step-trace".to_string(),
                 boundary: request.boundary,
-                payload: Value::Array(
+                payload: CertificationArtifactValue::Array(
                     session
                         .executed_steps
                         .iter()
                         .cloned()
-                        .map(Value::String)
+                        .map(CertificationArtifactValue::String)
                         .collect(),
-                ),
+                )
+                .into_json(),
                 attachments: Vec::new(),
                 metadata: BTreeMap::new(),
             }),
@@ -322,10 +324,11 @@ pub(super) fn capture_artifacts(
                 surface: ArtifactSurface::CheckpointTrace,
                 name: "checkpoint-trace".to_string(),
                 boundary: request.boundary,
-                payload: harness_object([
+                payload: artifact_object([
                     string_array_field("checkpoints", session.checkpoints.iter().cloned()),
                     string_array_field("snapshots", session.named_snapshots.keys().cloned()),
-                ]),
+                ])
+                .into_json(),
                 attachments: Vec::new(),
                 metadata: BTreeMap::new(),
             }),
@@ -334,7 +337,7 @@ pub(super) fn capture_artifacts(
                 surface: ArtifactSurface::ComplexityCounters,
                 name: "complexity-counters".to_string(),
                 boundary: request.boundary,
-                payload: complexity_summary(session),
+                payload: complexity_summary(session).into_json(),
                 attachments: Vec::new(),
                 metadata: BTreeMap::new(),
             }),
@@ -343,7 +346,7 @@ pub(super) fn capture_artifacts(
                 surface: ArtifactSurface::BudgetOutcome,
                 name: "budget-outcome".to_string(),
                 boundary: request.boundary,
-                payload: budget_summary(session),
+                payload: budget_summary(session).into_json(),
                 attachments: Vec::new(),
                 metadata: BTreeMap::new(),
             }),

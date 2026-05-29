@@ -1,9 +1,11 @@
 use std::collections::BTreeMap;
 
-use serde_json::{Map, Number, Value};
-
 use super::super::fixture::FintechCaseRole;
 use super::super::probes::{capture_case_truth_probe, CaseTruthProbe, ProbeStage};
+use super::certification_artifact_value::{
+    artifact_object, dynamic_artifact_object, string_field, u64_field, usize_field,
+    CertificationArtifactValue,
+};
 use super::session::CertifiedRelationalFintechSession;
 use crate::facade::snapshots::SnapshotHandle;
 use crate::tests::support::read_entity_field;
@@ -80,48 +82,31 @@ impl CertifiedFintechReadSummary {
             .unwrap_or(false)
     }
 
-    pub(super) fn to_harness_json_artifact(&self) -> Value {
-        let mut fields = Map::new();
-        fields.insert("snapshot_id".to_string(), u64_value(self.snapshot_id));
-        fields.insert("entity_count".to_string(), usize_value(self.entity_count));
-        fields.insert(
-            "relation_count".to_string(),
-            usize_value(self.relation_count),
-        );
-        fields.insert(
-            "corrected_trade_count".to_string(),
-            usize_value(self.corrected_trade_count),
-        );
-        fields.insert(
-            "repaired_settlement_count".to_string(),
-            usize_value(self.repaired_settlement_count),
-        );
-        fields.insert(
-            "open_breach_count".to_string(),
-            usize_value(self.open_breach_count),
-        );
-        fields.insert(
-            "audit_record_count".to_string(),
-            usize_value(self.audit_record_count),
-        );
+    pub(super) fn to_artifact_value(&self) -> CertificationArtifactValue {
+        let mut fields = vec![
+            u64_field("snapshot_id", self.snapshot_id),
+            usize_field("entity_count", self.entity_count),
+            usize_field("relation_count", self.relation_count),
+            usize_field("corrected_trade_count", self.corrected_trade_count),
+            usize_field("repaired_settlement_count", self.repaired_settlement_count),
+            usize_field("open_breach_count", self.open_breach_count),
+            usize_field("audit_record_count", self.audit_record_count),
+        ];
         if let Some(case_role) = self.case_role {
-            fields.insert(
-                "case_role".to_string(),
-                Value::String(format!("{case_role:?}")),
-            );
+            fields.push(string_field("case_role", format!("{case_role:?}")));
         }
-        Value::Object(fields)
+        artifact_object(fields)
     }
 }
 
-pub(super) fn read_summary_json_artifacts(
+pub(super) fn read_summary_artifacts(
     summaries: &BTreeMap<String, CertifiedFintechReadSummary>,
-) -> Value {
-    Value::Object(
+) -> CertificationArtifactValue {
+    dynamic_artifact_object(
         summaries
             .iter()
-            .map(|(alias, summary)| (alias.clone(), summary.to_harness_json_artifact()))
-            .collect(),
+            .map(|(alias, summary)| (alias.clone(), summary.to_artifact_value()))
+            .collect::<Vec<_>>(),
     )
 }
 
@@ -172,12 +157,4 @@ pub(super) fn case_read_summary(
 ) -> CertifiedFintechReadSummary {
     let probe = capture_case_truth_probe(&session.world, case_role, ProbeStage::PostMutation);
     CertifiedFintechReadSummary::case_probe(&probe)
-}
-
-fn usize_value(value: usize) -> Value {
-    u64_value(value as u64)
-}
-
-fn u64_value(value: u64) -> Value {
-    Value::Number(Number::from(value))
 }
