@@ -25,20 +25,20 @@ Schema truth:
 - `schema::data::KindAspectDeclarations`
 - `schema::data::DeclaredAspect`
 - `schema::data::AspectBinding`
-- `schema::data::AspectComparator`
-- `schema::data::AspectPrecision`
+- `forge_foundational::facade::AspectContract`
+- `forge_foundational::facade::AspectKey`
 
 Executable truth:
 
-- `schema::logic::LoweredAspectPlan`
-- `schema::logic::LoweredAspectBinding`
-- `logic::runtime::state::subsystems::AspectPlanCatalog`
+- `schema::data::LoweredAspectPlan`
+- `schema::data::LoweredAspectBinding`
+- `schema::data::AspectPlanCatalog`
 
 Commit-time truth:
 
 - `authority::mutation::canonical_deltas::CanonicalRecordAspectDelta`
 - `authority::mutation::canonical_deltas::EvaluatedAspectBinding`
-- `publication::patch::data::CanonicalAspectSet`
+- ordered `forge_foundational::facade::AspectKey` lists
 - `publication::patch::data::RecordStructuralChange`
 
 Durable/public consumption:

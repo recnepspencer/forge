@@ -38,12 +38,12 @@ pub(super) enum PacketizedQueryWork {
     AspectFilteredEntities {
         partition_id: crate::identity::data::PartitionId,
         kind_id: Option<crate::identity::data::KindId>,
-        aspect_filter: AspectFilter,
+        aspect_filter: ProjectionAspectFilter,
     },
     AspectFilteredRelations {
         partition_id: crate::identity::data::PartitionId,
         kind_id: Option<crate::identity::data::KindId>,
-        aspect_filter: AspectFilter,
+        aspect_filter: ProjectionAspectFilter,
     },
     OutgoingNeighborhood {
         seeds: Vec<crate::identity::data::EntityId>,

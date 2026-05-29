@@ -12,6 +12,7 @@ use crate::publication::patch::data::{
 };
 use crate::transactions::data::RecordRef;
 
+use super::changed_authoritative_patch::authoritative_patch_filtered_to_changed_bindings;
 use super::data::{
     CanonicalAspectDeltaEvidence, CanonicalDeltaError, CanonicalRecordAspectDelta,
     EvaluatedAspectBinding, LifecycleTransitionClass,
@@ -72,12 +73,17 @@ pub(crate) fn authoritative_patch_with_delta_supplements(
     delta: &CanonicalRecordAspectDelta,
     authoritative_patch: AuthoritativeRecordAspectPatch,
 ) -> Result<AuthoritativeRecordAspectPatch, CanonicalDeltaError> {
+    let changed_authoritative_patch =
+        authoritative_patch_filtered_to_changed_bindings(delta, &authoritative_patch)?;
     let supplemental_patch = non_authoritative_delta_patch(delta)?;
+    if changed_authoritative_patch.is_empty() && supplemental_patch.is_empty() {
+        return Ok(AuthoritativeRecordAspectPatch::empty());
+    }
     if supplemental_patch.is_empty() {
-        return Ok(authoritative_patch);
+        return Ok(changed_authoritative_patch);
     }
 
-    match AuthoritativeRecordAspectPatch::combine(authoritative_patch, supplemental_patch) {
+    match AuthoritativeRecordAspectPatch::combine(changed_authoritative_patch, supplemental_patch) {
         TransitionOutcome::Success(patch) => Ok(patch),
         TransitionOutcome::Denied(denial) => {
             Err(CanonicalDeltaError::FoundationalPatchConstruction {
@@ -251,7 +257,7 @@ fn accumulate_patch_action(
     Ok(())
 }
 
-fn validate_patch_value(
+pub(super) fn validate_patch_value(
     target: &RecordRef,
     binding: &EvaluatedAspectBinding,
     value: FoundationalAspectValue,
@@ -268,7 +274,7 @@ fn validate_patch_value(
     }
 }
 
-fn validate_struct_patch_value(
+pub(super) fn validate_struct_patch_value(
     target: &RecordRef,
     binding: &EvaluatedAspectBinding,
     value: StructAspectValue,

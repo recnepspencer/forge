@@ -1,4 +1,3 @@
-use crate::history::data::{AspectFilter, AspectFilterMode};
 use crate::indexes::data::DerivedIndexGenerationId;
 use crate::query::data::{
     FallbackParityMode, IndexQueryRejectionClass, QueryAccessPath, QueryExecutionShape,
@@ -6,6 +5,9 @@ use crate::query::data::{
     QueryPlanEvidenceBasis, QueryScope, ReductionDiscipline,
 };
 use crate::transactions::data::RecordRef;
+use crate::visibility::materialization::read_records::{
+    ProjectionAspectFilter, ProjectionAspectFilterMode,
+};
 
 use super::primitive_terms::{
     encode_descriptor_semantics_version, encode_entity_id, encode_entity_ids, encode_kind_id,
@@ -193,7 +195,7 @@ fn encode_aspect_filtered_scope(
     bytes: &mut Vec<u8>,
     tag: u8,
     kind_id: Option<crate::identity::data::KindId>,
-    aspect_filter: &AspectFilter,
+    aspect_filter: &ProjectionAspectFilter,
     partition_scope: Option<&[crate::identity::data::PartitionId]>,
 ) {
     bytes.push(tag);
@@ -243,14 +245,26 @@ fn encode_kind_scope(bytes: &mut Vec<u8>, kinds: Option<&[crate::identity::data:
     }
 }
 
-fn encode_aspect_filter(bytes: &mut Vec<u8>, filter: &AspectFilter) {
-    match filter.mode {
-        AspectFilterMode::Any => bytes.push(0),
-        AspectFilterMode::All => bytes.push(1),
+fn encode_aspect_filter(bytes: &mut Vec<u8>, filter: &ProjectionAspectFilter) {
+    match filter.mode() {
+        ProjectionAspectFilterMode::Any => bytes.push(0),
+        ProjectionAspectFilterMode::All => bytes.push(1),
     }
-    encode_usize(bytes, filter.aspects.iter().count());
-    for aspect in filter.aspects.iter() {
-        encode_string(bytes, aspect.as_str());
+    encode_usize(bytes, filter.projection_scope().requirements().len());
+    for requirement in filter.projection_scope().requirements() {
+        encode_string(bytes, requirement.aspect_key().as_str());
+        if requirement.mask().is_whole_aspect() {
+            bytes.push(0);
+            continue;
+        }
+        bytes.push(1);
+        encode_usize(bytes, requirement.mask().paths().len());
+        for path in requirement.mask().paths() {
+            encode_usize(bytes, path.fields().len());
+            for field in path.fields() {
+                encode_string(bytes, field.as_str());
+            }
+        }
     }
 }
 

@@ -255,7 +255,7 @@ impl CommitResult {
                         })
                         .count() as u64
                 }),
-            touched_aspects: crate::publication::patch::data::CanonicalAspectSet::new(
+            touched_aspects: crate::publication::patch::data::ordered_aspect_keys(
                 traces
                     .iter()
                     .flat_map(|trace| trace.changed_aspects.iter().cloned()),

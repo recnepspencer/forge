@@ -697,7 +697,7 @@ fn commit_inspection_is_canonical_and_not_story_shaped() {
     );
     assert_eq!(
         inspection.changed_aspects,
-        crate::publication::patch::data::CanonicalAspectSet::new(
+        crate::publication::patch::data::ordered_aspect_keys(
             envelope
                 .patch
                 .records
@@ -784,7 +784,7 @@ fn merge_commit_inspection_stays_envelope_projected() {
     );
     assert_eq!(
         inspection.changed_aspects,
-        crate::publication::patch::data::CanonicalAspectSet::new(
+        crate::publication::patch::data::ordered_aspect_keys(
             envelope
                 .patch
                 .records

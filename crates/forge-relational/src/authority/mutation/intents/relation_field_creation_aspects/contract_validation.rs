@@ -6,7 +6,7 @@ use forge_proof::TransitionOutcome;
 use std::collections::BTreeMap;
 
 use crate::identity::data::EntityId;
-use crate::schema::data::{LoweredAspectBinding, LoweredAspectPlan, LoweredAspectTarget};
+use crate::schema::data::{AspectBinding, LoweredAspectBinding, LoweredAspectPlan};
 use crate::transactions::data::{
     AspectFieldPatch, AspectFieldPatchTarget, RelationAuthoritativeAspectStateDenial,
 };
@@ -112,10 +112,10 @@ pub(super) fn validate_endpoint_identity_aspects(
     let mut endpoint_artifacts = Vec::new();
     for binding in &lowered_plan.executable_bindings {
         match &binding.target {
-            LoweredAspectTarget::RelationSourceEndpoint => {
+            AspectBinding::RelationSourceEndpoint => {
                 endpoint_artifacts.push(validate_endpoint_identity(binding, source)?);
             }
-            LoweredAspectTarget::RelationTargetEndpoint => {
+            AspectBinding::RelationTargetEndpoint => {
                 endpoint_artifacts.push(validate_endpoint_identity(binding, target)?);
             }
             _ => {}

@@ -4,11 +4,12 @@ use serde::{Deserialize, Serialize};
 
 use forge_foundational::facade::{AspectFieldLocator, AspectValue};
 
-use crate::history::data::{AspectFilter, CommitId};
+use crate::history::data::CommitId;
 use crate::identity::data::{EntityId, KindId, PartitionId, VersionId};
 use crate::schema::data::{DescriptorSemanticsVersion, SchemaVersionId};
 use crate::snapshots::data::{SnapshotHandle, SnapshotId};
 use crate::transactions::data::RecordRef;
+use crate::visibility::materialization::read_records::ProjectionAspectFilter;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct DeterministicQueryPlanKey(pub u128);
@@ -129,12 +130,12 @@ pub enum QueryScope {
     },
     AspectFilteredEntities {
         kind_id: Option<KindId>,
-        aspect_filter: AspectFilter,
+        aspect_filter: ProjectionAspectFilter,
         partition_scope: Option<Arc<[PartitionId]>>,
     },
     AspectFilteredRelations {
         kind_id: Option<KindId>,
-        aspect_filter: AspectFilter,
+        aspect_filter: ProjectionAspectFilter,
         partition_scope: Option<Arc<[PartitionId]>>,
     },
     OutgoingNeighborhood {

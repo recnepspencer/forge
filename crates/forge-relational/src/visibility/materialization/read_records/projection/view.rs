@@ -3,13 +3,12 @@ use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId
 use crate::logic::runtime::RelationalRuntime;
 use crate::snapshots::data::SnapshotHandle;
 use crate::storage::data::{EntityReadRecord, RecordLifecycleState, RelationReadRecord};
-use forge_foundational::facade::AspectKey;
 use forge_foundational::facade::{
-    AspectValue, AuthoritativeRecordAspectState, ContractValidatedAspectValueView,
+    AspectValue, AuthoritativeRecordAspectState, ContractValidatedAspectValueView, FieldKey,
     StructAspectValue,
 };
 
-use super::contracts::assert_declared_projection_aspects;
+use super::contracts::{assert_declared_projection_aspects, ProjectionAspectScope};
 use super::read_record_identity_ordering::{
     entity_records_are_identity_ordered, relation_records_are_identity_ordered,
 };
@@ -20,8 +19,8 @@ use super::super::reader::VisibilityReadContext;
 pub trait EntityRecordProjection: Sized {
     const KIND: KindId;
 
-    fn required_aspects() -> &'static [AspectKey] {
-        &[]
+    fn projection_scope() -> ProjectionAspectScope {
+        ProjectionAspectScope::empty()
     }
 
     fn from_record(record: EntityProjectionRecord<'_>) -> Option<Self>;
@@ -30,8 +29,8 @@ pub trait EntityRecordProjection: Sized {
 pub trait RelationRecordProjection: Sized {
     const KIND: KindId;
 
-    fn required_aspects() -> &'static [AspectKey] {
-        &[]
+    fn projection_scope() -> ProjectionAspectScope {
+        ProjectionAspectScope::empty()
     }
 
     fn from_record(record: RelationProjectionRecord<'_>) -> Option<Self>;
@@ -40,11 +39,18 @@ pub trait RelationRecordProjection: Sized {
 #[derive(Debug, Clone, Copy)]
 pub struct EntityProjectionRecord<'a> {
     record: &'a EntityReadRecord,
+    projection_scope: &'a ProjectionAspectScope,
 }
 
 impl<'a> EntityProjectionRecord<'a> {
-    const fn new(record: &'a EntityReadRecord) -> Self {
-        Self { record }
+    const fn new(
+        record: &'a EntityReadRecord,
+        projection_scope: &'a ProjectionAspectScope,
+    ) -> Self {
+        Self {
+            record,
+            projection_scope,
+        }
     }
 
     pub const fn entity_id(self) -> EntityId {
@@ -55,21 +61,47 @@ impl<'a> EntityProjectionRecord<'a> {
         self.record.lifecycle
     }
 
-    pub fn authoritative_aspect_state(self) -> Option<&'a AuthoritativeRecordAspectState> {
+    fn authoritative_aspect_state(self) -> Option<&'a AuthoritativeRecordAspectState> {
         self.record.authoritative_aspect_state.as_ref()
     }
 
-    pub fn aspect_value(self, aspect_key: &AspectKey) -> Option<&'a AspectValue> {
+    pub fn aspect_value(
+        self,
+        aspect_key: &forge_foundational::facade::AspectKey,
+    ) -> Option<&'a AspectValue> {
+        if !self.projection_scope.contains_whole_aspect(aspect_key) {
+            return None;
+        }
         match self.authoritative_aspect_state()?.get(aspect_key)?.view() {
             ContractValidatedAspectValueView::Scalar(value) => Some(value),
             ContractValidatedAspectValueView::Struct(_) => None,
         }
     }
 
-    pub fn struct_aspect_value(self, aspect_key: &AspectKey) -> Option<&'a StructAspectValue> {
+    pub fn struct_aspect_value(
+        self,
+        aspect_key: &forge_foundational::facade::AspectKey,
+    ) -> Option<&'a StructAspectValue> {
+        if !self.projection_scope.contains_whole_aspect(aspect_key) {
+            return None;
+        }
         match self.authoritative_aspect_state()?.get(aspect_key)?.view() {
             ContractValidatedAspectValueView::Scalar(_) => None,
             ContractValidatedAspectValueView::Struct(value) => Some(value),
+        }
+    }
+
+    pub fn aspect_field_value(
+        self,
+        aspect_key: &forge_foundational::facade::AspectKey,
+        field: &FieldKey,
+    ) -> Option<&'a AspectValue> {
+        if !self.projection_scope.contains_field(aspect_key, field) {
+            return None;
+        }
+        match self.authoritative_aspect_state()?.get(aspect_key)?.view() {
+            ContractValidatedAspectValueView::Scalar(_) => None,
+            ContractValidatedAspectValueView::Struct(value) => value.get(field),
         }
     }
 }
@@ -77,11 +109,18 @@ impl<'a> EntityProjectionRecord<'a> {
 #[derive(Debug, Clone, Copy)]
 pub struct RelationProjectionRecord<'a> {
     record: &'a RelationReadRecord,
+    projection_scope: &'a ProjectionAspectScope,
 }
 
 impl<'a> RelationProjectionRecord<'a> {
-    const fn new(record: &'a RelationReadRecord) -> Self {
-        Self { record }
+    const fn new(
+        record: &'a RelationReadRecord,
+        projection_scope: &'a ProjectionAspectScope,
+    ) -> Self {
+        Self {
+            record,
+            projection_scope,
+        }
     }
 
     pub const fn relation_id(self) -> RelationId {
@@ -100,21 +139,47 @@ impl<'a> RelationProjectionRecord<'a> {
         self.record.lifecycle
     }
 
-    pub fn authoritative_aspect_state(self) -> Option<&'a AuthoritativeRecordAspectState> {
+    fn authoritative_aspect_state(self) -> Option<&'a AuthoritativeRecordAspectState> {
         self.record.authoritative_aspect_state.as_ref()
     }
 
-    pub fn aspect_value(self, aspect_key: &AspectKey) -> Option<&'a AspectValue> {
+    pub fn aspect_value(
+        self,
+        aspect_key: &forge_foundational::facade::AspectKey,
+    ) -> Option<&'a AspectValue> {
+        if !self.projection_scope.contains_whole_aspect(aspect_key) {
+            return None;
+        }
         match self.authoritative_aspect_state()?.get(aspect_key)?.view() {
             ContractValidatedAspectValueView::Scalar(value) => Some(value),
             ContractValidatedAspectValueView::Struct(_) => None,
         }
     }
 
-    pub fn struct_aspect_value(self, aspect_key: &AspectKey) -> Option<&'a StructAspectValue> {
+    pub fn struct_aspect_value(
+        self,
+        aspect_key: &forge_foundational::facade::AspectKey,
+    ) -> Option<&'a StructAspectValue> {
+        if !self.projection_scope.contains_whole_aspect(aspect_key) {
+            return None;
+        }
         match self.authoritative_aspect_state()?.get(aspect_key)?.view() {
             ContractValidatedAspectValueView::Scalar(_) => None,
             ContractValidatedAspectValueView::Struct(value) => Some(value),
+        }
+    }
+
+    pub fn aspect_field_value(
+        self,
+        aspect_key: &forge_foundational::facade::AspectKey,
+        field: &FieldKey,
+    ) -> Option<&'a AspectValue> {
+        if !self.projection_scope.contains_field(aspect_key, field) {
+            return None;
+        }
+        match self.authoritative_aspect_state()?.get(aspect_key)?.view() {
+            ContractValidatedAspectValueView::Scalar(_) => None,
+            ContractValidatedAspectValueView::Struct(value) => value.get(field),
         }
     }
 }
@@ -138,47 +203,57 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
     }
 
     pub fn entities<T: EntityRecordProjection>(&self) -> Vec<T> {
-        self.assert_entity_projection_contract::<T>();
+        let projection_scope = self.assert_entity_projection_contract::<T>();
         self.entity_records(T::KIND)
             .into_iter()
-            .filter_map(|record| T::from_record(EntityProjectionRecord::new(&record)))
+            .filter_map(|record| {
+                T::from_record(EntityProjectionRecord::new(&record, &projection_scope))
+            })
             .collect()
     }
 
     pub fn entities_in<T: EntityRecordProjection>(&self, partition_id: PartitionId) -> Vec<T> {
-        self.assert_entity_projection_contract::<T>();
+        let projection_scope = self.assert_entity_projection_contract::<T>();
         self.entity_records_in(partition_id, T::KIND)
             .into_iter()
-            .filter_map(|record| T::from_record(EntityProjectionRecord::new(&record)))
+            .filter_map(|record| {
+                T::from_record(EntityProjectionRecord::new(&record, &projection_scope))
+            })
             .collect()
     }
 
     pub fn entity<T: EntityRecordProjection>(&self, entity_id: EntityId) -> Option<T> {
-        self.assert_entity_projection_contract::<T>();
-        self.entity_record(entity_id)
-            .and_then(|record| T::from_record(EntityProjectionRecord::new(&record)))
+        let projection_scope = self.assert_entity_projection_contract::<T>();
+        self.entity_record(entity_id).and_then(|record| {
+            T::from_record(EntityProjectionRecord::new(&record, &projection_scope))
+        })
     }
 
     pub fn relations<T: RelationRecordProjection>(&self) -> Vec<T> {
-        self.assert_relation_projection_contract::<T>();
+        let projection_scope = self.assert_relation_projection_contract::<T>();
         self.relation_records(T::KIND)
             .into_iter()
-            .filter_map(|record| T::from_record(RelationProjectionRecord::new(&record)))
+            .filter_map(|record| {
+                T::from_record(RelationProjectionRecord::new(&record, &projection_scope))
+            })
             .collect()
     }
 
     pub fn relations_in<T: RelationRecordProjection>(&self, partition_id: PartitionId) -> Vec<T> {
-        self.assert_relation_projection_contract::<T>();
+        let projection_scope = self.assert_relation_projection_contract::<T>();
         self.relation_records_in(partition_id, T::KIND)
             .into_iter()
-            .filter_map(|record| T::from_record(RelationProjectionRecord::new(&record)))
+            .filter_map(|record| {
+                T::from_record(RelationProjectionRecord::new(&record, &projection_scope))
+            })
             .collect()
     }
 
     pub fn relation<T: RelationRecordProjection>(&self, relation_id: RelationId) -> Option<T> {
-        self.assert_relation_projection_contract::<T>();
-        self.relation_record(relation_id)
-            .and_then(|record| T::from_record(RelationProjectionRecord::new(&record)))
+        let projection_scope = self.assert_relation_projection_contract::<T>();
+        self.relation_record(relation_id).and_then(|record| {
+            T::from_record(RelationProjectionRecord::new(&record, &projection_scope))
+        })
     }
 
     pub fn entity_records(&self, kind_id: KindId) -> Vec<EntityReadRecord> {
@@ -237,24 +312,30 @@ impl<'runtime> VisibilityProjectionView<'runtime> {
         VisibilityReadContext::new(self.runtime)
     }
 
-    fn assert_entity_projection_contract<T: EntityRecordProjection>(&self) {
+    fn assert_entity_projection_contract<T: EntityRecordProjection>(
+        &self,
+    ) -> ProjectionAspectScope {
+        let projection_scope = T::projection_scope();
         assert_declared_projection_aspects(
-            self.runtime,
-            T::required_aspects(),
+            &projection_scope,
             self.runtime.entity_aspect_plan(T::KIND),
             "entity",
             T::KIND,
         );
+        projection_scope
     }
 
-    fn assert_relation_projection_contract<T: RelationRecordProjection>(&self) {
+    fn assert_relation_projection_contract<T: RelationRecordProjection>(
+        &self,
+    ) -> ProjectionAspectScope {
+        let projection_scope = T::projection_scope();
         assert_declared_projection_aspects(
-            self.runtime,
-            T::required_aspects(),
+            &projection_scope,
             self.runtime.relation_aspect_plan(T::KIND),
             "relation",
             T::KIND,
         );
+        projection_scope
     }
 }
 

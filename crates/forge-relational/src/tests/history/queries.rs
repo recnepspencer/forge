@@ -389,7 +389,7 @@ fn record_local_aspect_history_reads_committed_patch_truth() {
     );
     let artifact = traced.trace.diagnostic_artifact();
     let digest = traced.aspect_history_digest();
-    let resolved_aspects = CanonicalAspectSet::new([
+    let resolved_aspects = ordered_aspect_keys([
         AspectKey::new("lifecycle").unwrap(),
         AspectKey::new("name").unwrap(),
     ]);
@@ -433,24 +433,98 @@ fn record_local_aspect_history_reads_committed_patch_truth() {
     let filtered = runtime.history().entity_aspect_history(
         &BranchId("main".to_string()),
         entity,
-        Some(&AspectFilter {
-            mode: AspectFilterMode::All,
-            aspects: CanonicalAspectSet::new([AspectKey::new("name").unwrap()]),
-        }),
+        Some(&ProjectionAspectFilter::whole_aspects(
+            ProjectionAspectFilterMode::All,
+            [AspectKey::new("name").unwrap()],
+        )),
     );
     let any_filtered = runtime.history().entity_aspect_history(
         &BranchId("main".to_string()),
         entity,
-        Some(&AspectFilter {
-            mode: AspectFilterMode::Any,
-            aspects: CanonicalAspectSet::new([
+        Some(&ProjectionAspectFilter::whole_aspects(
+            ProjectionAspectFilterMode::Any,
+            [
                 AspectKey::new("missing").unwrap(),
                 AspectKey::new("name").unwrap(),
-            ]),
-        }),
+            ],
+        )),
     );
     assert_eq!(filtered.len(), 2);
     assert_eq!(any_filtered.len(), 2);
+}
+
+#[test]
+fn aspect_history_projection_filter_matches_field_level_patch_locus() {
+    let mut runtime = AspectSchemaFixture {
+        entity_aspects: vec![
+            entity_summary_struct_aspect(aspect_key("summary"), field_key("summary")),
+            lifecycle_aspect(),
+        ],
+        ..AspectSchemaFixture::default()
+    }
+    .build_runtime();
+    let mut create_txn = runtime.begin_transaction(TransactionOptions::default());
+    create_txn.push_batch(
+        WorkerIntentBatch::new("summary-history").push(MutationIntent::Create(
+            CreateIntent::Entity(crate::transactions::data::EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: crate::symbols::data::ClientKey::raw("summary-record"),
+                fields: AspectFieldPatch::new(std::collections::BTreeMap::from([(
+                    crate::transactions::data::AspectFieldPatchTarget::single(
+                        aspect_key("summary"),
+                        field_key("title"),
+                    ),
+                    string_aspect_value("title v1"),
+                )])),
+            }),
+        )),
+    );
+    let created = create_txn.commit().unwrap();
+    let entity = changed_entities(&created)[0];
+    let mut update_txn = runtime.begin_transaction(TransactionOptions::default());
+    update_txn.push_batch(WorkerIntentBatch::new("summary-history-update").push(
+        MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+            UpdateEntityFieldsIntent {
+                entity_id: entity,
+                fields: AspectFieldPatch::from_target(
+                    crate::transactions::data::AspectFieldPatchTarget::single(
+                        aspect_key("summary"),
+                        field_key("status"),
+                    ),
+                    string_aspect_value("ready"),
+                ),
+            },
+        )),
+    ));
+    update_txn.commit().unwrap();
+
+    let status_filter = ProjectionAspectFilter::new(
+        ProjectionAspectFilterMode::All,
+        ProjectionAspectScope::fields(aspect_key("summary"), [field_key("status")]),
+    );
+    let missing_sibling_filter = ProjectionAspectFilter::new(
+        ProjectionAspectFilterMode::All,
+        ProjectionAspectScope::fields(aspect_key("summary"), [field_key("missing")]),
+    );
+
+    let status_history = runtime.history().entity_aspect_history(
+        &BranchId("main".to_string()),
+        entity,
+        Some(&status_filter),
+    );
+    let missing_sibling_history = runtime.history().entity_aspect_history(
+        &BranchId("main".to_string()),
+        entity,
+        Some(&missing_sibling_filter),
+    );
+
+    assert_eq!(status_history.len(), 1);
+    assert_eq!(
+        status_history[0].origin.changed_aspects,
+        ordered_aspect_keys([aspect_key("summary")])
+    );
+    assert!(missing_sibling_history.is_empty());
 }
 
 #[test]

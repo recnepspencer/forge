@@ -4,7 +4,7 @@ use forge_foundational::facade::ContractValidatedAspectValueView;
 
 use crate::capabilities::AspectPlanSource;
 use crate::merge::data::{AdoptSourceRecordPlan, MergeExecutionMutationPlanError};
-use crate::schema::data::LoweredAspectTarget;
+use crate::schema::data::AspectBinding;
 use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 use crate::transactions::data::{AspectFieldPatch, AspectFieldPatchTarget};
 
@@ -39,7 +39,7 @@ pub(super) fn entity_create_fields_from_authoritative_state(
         match artifact.view() {
             ContractValidatedAspectValueView::Scalar(value) => {
                 let (
-                    LoweredAspectTarget::EntityField { field },
+                    AspectBinding::EntityField { field },
                     forge_foundational::AspectShape::Scalar(_),
                 ) = (&binding.target, binding.contract.shape())
                 else {
@@ -58,7 +58,7 @@ pub(super) fn entity_create_fields_from_authoritative_state(
                 if !matches!(
                     (&binding.target, binding.contract.shape()),
                     (
-                        LoweredAspectTarget::EntityField { .. },
+                        AspectBinding::EntityField { .. },
                         forge_foundational::AspectShape::Struct(_)
                     )
                 ) {
@@ -108,7 +108,7 @@ pub(super) fn relation_create_fields_from_authoritative_state(
         };
         match (&binding.target, binding.contract.shape(), artifact.view()) {
             (
-                LoweredAspectTarget::RelationField { field },
+                AspectBinding::RelationField { field },
                 forge_foundational::AspectShape::Scalar(_),
                 ContractValidatedAspectValueView::Scalar(value),
             ) => {
@@ -118,7 +118,7 @@ pub(super) fn relation_create_fields_from_authoritative_state(
                 );
             }
             (
-                LoweredAspectTarget::RelationField { .. },
+                AspectBinding::RelationField { .. },
                 forge_foundational::AspectShape::Struct(_),
                 ContractValidatedAspectValueView::Struct(struct_value),
             ) => {
@@ -130,8 +130,7 @@ pub(super) fn relation_create_fields_from_authoritative_state(
                 }
             }
             (
-                LoweredAspectTarget::RelationSourceEndpoint
-                | LoweredAspectTarget::RelationTargetEndpoint,
+                AspectBinding::RelationSourceEndpoint | AspectBinding::RelationTargetEndpoint,
                 _,
                 _,
             ) => {}

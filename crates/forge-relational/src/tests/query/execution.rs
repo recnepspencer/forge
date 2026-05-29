@@ -1,6 +1,4 @@
 use crate::facade::snapshots::SnapshotHandle;
-use crate::history::data::{AspectFilter, AspectFilterMode};
-use crate::publication::patch::data::CanonicalAspectSet;
 use crate::tests::support::*;
 use std::sync::Arc;
 
@@ -279,10 +277,10 @@ fn planned_query_execution_supports_aspect_filtered_entity_scans_through_reducer
         context_id: context,
         scope: QueryScope::AspectFilteredEntities {
             kind_id: Some(KindId(1)),
-            aspect_filter: AspectFilter {
-                mode: AspectFilterMode::All,
-                aspects: CanonicalAspectSet::new([aspect_key("name"), aspect_key("lifecycle")]),
-            },
+            aspect_filter: ProjectionAspectFilter::whole_aspects(
+                ProjectionAspectFilterMode::All,
+                [aspect_key("name")],
+            ),
             partition_scope: Some(Arc::from([PartitionId(7), PartitionId(11)])),
         },
         locality: QueryLocalityClass::PartitionBounded {
@@ -318,6 +316,116 @@ fn planned_query_execution_supports_aspect_filtered_entity_scans_through_reducer
 }
 
 #[test]
+fn planned_query_execution_aspect_filter_requires_projected_authoritative_presence() {
+    let mut fixture = AspectSchemaFixture::with_default_declared_aspects(
+        CascadeDeletePolicy::CascadeDeleteRelations,
+    );
+    fixture.entity_aspects.push(entity_field_aspect(
+        aspect_key("status"),
+        field_key("status"),
+    ));
+    let mut runtime = fixture.build_runtime();
+    create_entity_in_partition(&mut runtime, "declared-without-status", PartitionId(7));
+    let snapshot = runtime.visibility_authority().snapshot();
+    let context = runtime
+        .read_truth()
+        .query_plan_context(&snapshot)
+        .expect("query plan context");
+    let packet = PlannedQueryPacket {
+        label: "actual-authoritative-aspect-filter".to_string(),
+        context_id: context,
+        scope: QueryScope::AspectFilteredEntities {
+            kind_id: Some(KindId(1)),
+            aspect_filter: ProjectionAspectFilter::whole_aspects(
+                ProjectionAspectFilterMode::All,
+                [aspect_key("status")],
+            ),
+            partition_scope: Some(Arc::from([PartitionId(7)])),
+        },
+        locality: QueryLocalityClass::PartitionBounded {
+            partitions: Arc::from([PartitionId(7)]),
+        },
+        ordering: QueryOrderingContract::CanonicalEntityIdOrder,
+        fallback: QueryFallbackContract::StorageOnly,
+        execution_shape: QueryExecutionShape::BulkPacketized,
+        reduction: ReductionDiscipline::DeterministicMerge,
+        plan_key: DeterministicQueryPlanKey(903),
+        target_count_hint: 0,
+    };
+
+    let plan = runtime
+        .read_truth()
+        .plan_query_packet(&snapshot, packet)
+        .expect("planned query packet");
+    let outcome = runtime
+        .read_truth()
+        .execute_query_plan(plan)
+        .expect("query execution outcome");
+
+    assert_eq!(outcome.result.entities.len(), 0);
+    assert_eq!(outcome.complexity.entity_records_emitted, 0);
+}
+
+#[test]
+fn planned_query_execution_aspect_filter_supports_field_mask_presence() {
+    let mut runtime = AspectSchemaFixture {
+        entity_aspects: vec![
+            entity_field_aspect(aspect_key("name"), field_key("name")),
+            entity_summary_struct_aspect(aspect_key("summary"), field_key("summary")),
+        ],
+        ..AspectSchemaFixture::default()
+    }
+    .build_runtime();
+    let matched = create_entity_with_summary_title(&mut runtime, "matched", "visible-title");
+    create_entity_in_partition(&mut runtime, "missing-summary", PartitionId(7));
+    let snapshot = runtime.visibility_authority().snapshot();
+    let context = runtime
+        .read_truth()
+        .query_plan_context(&snapshot)
+        .expect("query plan context");
+    let packet = PlannedQueryPacket {
+        label: "field-mask-aspect-filter".to_string(),
+        context_id: context,
+        scope: QueryScope::AspectFilteredEntities {
+            kind_id: Some(KindId(1)),
+            aspect_filter: ProjectionAspectFilter::new(
+                ProjectionAspectFilterMode::All,
+                ProjectionAspectScope::fields(aspect_key("summary"), [field_key("title")]),
+            ),
+            partition_scope: Some(Arc::from([PartitionId::main(), PartitionId(7)])),
+        },
+        locality: QueryLocalityClass::PartitionBounded {
+            partitions: Arc::from([PartitionId::main(), PartitionId(7)]),
+        },
+        ordering: QueryOrderingContract::CanonicalEntityIdOrder,
+        fallback: QueryFallbackContract::StorageOnly,
+        execution_shape: QueryExecutionShape::BulkPacketized,
+        reduction: ReductionDiscipline::DeterministicMerge,
+        plan_key: DeterministicQueryPlanKey(905),
+        target_count_hint: 0,
+    };
+
+    let plan = runtime
+        .read_truth()
+        .plan_query_packet(&snapshot, packet)
+        .expect("planned query packet");
+    let outcome = runtime
+        .read_truth()
+        .execute_query_plan(plan)
+        .expect("query execution outcome");
+
+    assert_eq!(
+        outcome
+            .result
+            .entities
+            .iter()
+            .map(|record| record.entity_id)
+            .collect::<Vec<_>>(),
+        vec![matched]
+    );
+}
+
+#[test]
 fn planned_query_execution_supports_aspect_filtered_relation_scans_through_reducer_path() {
     let mut runtime =
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
@@ -338,15 +446,10 @@ fn planned_query_execution_supports_aspect_filtered_relation_scans_through_reduc
         context_id: context,
         scope: QueryScope::AspectFilteredRelations {
             kind_id: Some(KindId(2)),
-            aspect_filter: AspectFilter {
-                mode: AspectFilterMode::All,
-                aspects: CanonicalAspectSet::new([
-                    aspect_key("label"),
-                    aspect_key("lifecycle"),
-                    aspect_key("source"),
-                    aspect_key("target"),
-                ]),
-            },
+            aspect_filter: ProjectionAspectFilter::whole_aspects(
+                ProjectionAspectFilterMode::All,
+                [aspect_key("label")],
+            ),
             partition_scope: Some(Arc::from([PartitionId(7), PartitionId(11)])),
         },
         locality: QueryLocalityClass::PartitionBounded {
@@ -379,6 +482,40 @@ fn planned_query_execution_supports_aspect_filtered_relation_scans_through_reduc
             .collect::<Vec<_>>(),
         vec![first_relation, second_relation]
     );
+}
+
+fn create_entity_with_summary_title(
+    runtime: &mut RelationalRuntime,
+    client_key: &str,
+    summary_title: &str,
+) -> crate::facade::identity::EntityId {
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new(format!("summary-{client_key}")).push(MutationIntent::Create(
+            CreateIntent::Entity(crate::transactions::data::EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: crate::symbols::data::ClientKey::raw(client_key),
+                fields: AspectFieldPatch::new(std::collections::BTreeMap::from([
+                    (
+                        crate::transactions::data::AspectFieldPatchTarget::single(
+                            aspect_key("name"),
+                            field_key("name"),
+                        ),
+                        string_aspect_value(client_key),
+                    ),
+                    (
+                        crate::transactions::data::AspectFieldPatchTarget::single(
+                            aspect_key("summary"),
+                            field_key("title"),
+                        ),
+                        string_aspect_value(summary_title),
+                    ),
+                ])),
+            }),
+        )),
+    );
+    changed_entities(&txn.commit().unwrap())[0]
 }
 
 #[test]

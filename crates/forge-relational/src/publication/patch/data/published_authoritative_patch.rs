@@ -1,6 +1,7 @@
-use crate::publication::patch::data::CanonicalAspectSet;
 use forge_foundational::facade::{AspectKey, AspectValue, FieldKey, StructAspectValue};
 use serde::{Deserialize, Serialize};
+
+use super::ordered_aspect_keys;
 
 #[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct PublishedAuthoritativePatch {
@@ -18,18 +19,87 @@ impl PublishedAuthoritativePatch {
 
     pub fn canonicalized(&self) -> Self {
         let mut operations = self.operations.clone();
-        operations.sort_unstable_by(published_operation_order);
+        operations.sort_by(published_operation_order);
         Self { operations }
     }
 
-    pub fn changed_aspects(&self) -> CanonicalAspectSet {
-        CanonicalAspectSet::new(self.changed_aspect_keys().cloned())
+    pub fn changed_aspects(&self) -> Vec<AspectKey> {
+        ordered_aspect_keys(self.changed_aspect_keys().cloned())
     }
 
     pub fn changed_aspect_keys(&self) -> impl Iterator<Item = &AspectKey> {
         self.operations
             .iter()
             .map(PublishedAuthoritativePatchOperation::aspect_key)
+    }
+
+    pub fn scalar_set_for(&self, aspect_key: &AspectKey) -> Option<&AspectValue> {
+        self.operations
+            .iter()
+            .find_map(|operation| match operation {
+                PublishedAuthoritativePatchOperation::WholeAspectSet {
+                    aspect_key: operation_aspect_key,
+                    value: PublishedAuthoritativePatchValue::Scalar(value),
+                } if operation_aspect_key == aspect_key => Some(value),
+                _ => None,
+            })
+    }
+
+    pub fn struct_set_for(&self, aspect_key: &AspectKey) -> Option<&StructAspectValue> {
+        self.operations
+            .iter()
+            .find_map(|operation| match operation {
+                PublishedAuthoritativePatchOperation::WholeAspectSet {
+                    aspect_key: operation_aspect_key,
+                    value: PublishedAuthoritativePatchValue::Struct(value),
+                } if operation_aspect_key == aspect_key => Some(value),
+                _ => None,
+            })
+    }
+
+    pub fn field_sets_for<'a>(
+        &'a self,
+        aspect_key: &'a AspectKey,
+    ) -> impl Iterator<Item = &'a PublishedAuthoritativeFieldSet> + 'a {
+        self.operations
+            .iter()
+            .filter_map(move |operation| match operation {
+                PublishedAuthoritativePatchOperation::FieldLevelPatch {
+                    aspect_key: operation_aspect_key,
+                    field_sets,
+                    ..
+                } if operation_aspect_key == aspect_key => Some(field_sets.as_slice()),
+                _ => None,
+            })
+            .flatten()
+    }
+
+    pub fn field_clears_for<'a>(
+        &'a self,
+        aspect_key: &'a AspectKey,
+    ) -> impl Iterator<Item = &'a FieldKey> + 'a {
+        self.operations
+            .iter()
+            .filter_map(move |operation| match operation {
+                PublishedAuthoritativePatchOperation::FieldLevelPatch {
+                    aspect_key: operation_aspect_key,
+                    field_clears,
+                    ..
+                } if operation_aspect_key == aspect_key => Some(field_clears.as_slice()),
+                _ => None,
+            })
+            .flatten()
+    }
+
+    pub fn whole_clear_for(&self, aspect_key: &AspectKey) -> bool {
+        self.operations.iter().any(|operation| {
+            matches!(
+                operation,
+                PublishedAuthoritativePatchOperation::WholeAspectClear {
+                    aspect_key: operation_aspect_key,
+                } if operation_aspect_key == aspect_key
+            )
+        })
     }
 }
 
@@ -85,5 +155,110 @@ fn operation_rank(operation: &PublishedAuthoritativePatchOperation) -> u8 {
         PublishedAuthoritativePatchOperation::WholeAspectSet { .. } => 0,
         PublishedAuthoritativePatchOperation::WholeAspectClear { .. } => 1,
         PublishedAuthoritativePatchOperation::FieldLevelPatch { .. } => 2,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn scalar_set_query_ignores_field_level_patch_values_for_same_aspect() {
+        let aspect_key = AspectKey::new("counter").unwrap();
+        let field = FieldKey::new("value").unwrap();
+        let patch = PublishedAuthoritativePatch::new(vec![
+            PublishedAuthoritativePatchOperation::FieldLevelPatch {
+                aspect_key: aspect_key.clone(),
+                field_sets: vec![PublishedAuthoritativeFieldSet {
+                    field,
+                    value: AspectValue::Int64(99),
+                }],
+                field_clears: Vec::new(),
+            },
+        ]);
+
+        assert_eq!(patch.scalar_set_for(&aspect_key), None);
+        let field_sets = patch.field_sets_for(&aspect_key).collect::<Vec<_>>();
+        assert_eq!(field_sets[0].value, AspectValue::Int64(99));
+    }
+
+    #[test]
+    fn shape_specific_patch_queries_keep_operation_lanes_distinct() {
+        let scalar_key = AspectKey::new("counter").unwrap();
+        let struct_key = AspectKey::new("profile").unwrap();
+        let clear_key = AspectKey::new("retired").unwrap();
+        let patch = PublishedAuthoritativePatch::new(vec![
+            PublishedAuthoritativePatchOperation::WholeAspectSet {
+                aspect_key: scalar_key.clone(),
+                value: PublishedAuthoritativePatchValue::Scalar(AspectValue::Int64(7)),
+            },
+            PublishedAuthoritativePatchOperation::WholeAspectSet {
+                aspect_key: struct_key.clone(),
+                value: PublishedAuthoritativePatchValue::Struct(
+                    StructAspectValue::new(Vec::<(FieldKey, AspectValue)>::new()).unwrap(),
+                ),
+            },
+            PublishedAuthoritativePatchOperation::WholeAspectClear {
+                aspect_key: clear_key.clone(),
+            },
+        ]);
+
+        assert_eq!(
+            patch.scalar_set_for(&scalar_key),
+            Some(&AspectValue::Int64(7))
+        );
+        assert!(patch.struct_set_for(&struct_key).is_some());
+        assert!(patch.whole_clear_for(&clear_key));
+        assert_eq!(patch.field_sets_for(&scalar_key).count(), 0);
+    }
+
+    #[test]
+    fn field_patch_queries_cover_every_operation_for_requested_aspect() {
+        let aspect_key = AspectKey::new("summary").unwrap();
+        let sibling_key = AspectKey::new("other").unwrap();
+        let title = FieldKey::new("title").unwrap();
+        let status = FieldKey::new("status").unwrap();
+        let stale = FieldKey::new("stale").unwrap();
+        let patch = PublishedAuthoritativePatch::new(vec![
+            PublishedAuthoritativePatchOperation::FieldLevelPatch {
+                aspect_key: aspect_key.clone(),
+                field_sets: vec![PublishedAuthoritativeFieldSet {
+                    field: title.clone(),
+                    value: AspectValue::String("draft".into()),
+                }],
+                field_clears: vec![],
+            },
+            PublishedAuthoritativePatchOperation::FieldLevelPatch {
+                aspect_key: sibling_key,
+                field_sets: vec![PublishedAuthoritativeFieldSet {
+                    field: FieldKey::new("ignored").unwrap(),
+                    value: AspectValue::String("ignored".into()),
+                }],
+                field_clears: vec![FieldKey::new("ignored_clear").unwrap()],
+            },
+            PublishedAuthoritativePatchOperation::FieldLevelPatch {
+                aspect_key: aspect_key.clone(),
+                field_sets: vec![PublishedAuthoritativeFieldSet {
+                    field: status.clone(),
+                    value: AspectValue::String("ready".into()),
+                }],
+                field_clears: vec![stale.clone()],
+            },
+        ]);
+
+        let field_sets = patch
+            .field_sets_for(&aspect_key)
+            .map(|field_set| (&field_set.field, &field_set.value))
+            .collect::<Vec<_>>();
+        let field_clears = patch.field_clears_for(&aspect_key).collect::<Vec<_>>();
+
+        assert_eq!(
+            field_sets,
+            vec![
+                (&title, &AspectValue::String("draft".into())),
+                (&status, &AspectValue::String("ready".into()))
+            ]
+        );
+        assert_eq!(field_clears, vec![&stale]);
     }
 }

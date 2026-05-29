@@ -3,8 +3,8 @@ use serde::{Deserialize, Serialize};
 use crate::history::data::{BranchId, CommitReference};
 use crate::indexes::data::DerivedIndexArtifacts;
 use crate::lineage::data::{LineageArtifactCounters, LineageDigestBasis, LineageEventRecord};
-use crate::publication::patch::data::CanonicalAspectSet;
 use crate::transactions::data::RecordRef;
+use forge_foundational::facade::AspectKey;
 
 use super::{InspectionAccessPath, InspectionOrigin};
 
@@ -17,7 +17,7 @@ pub struct CommitInspection {
     pub lineage_digest_basis: LineageDigestBasis,
     pub lineage_artifact_counters: LineageArtifactCounters,
     pub derived_index_artifacts: DerivedIndexArtifacts,
-    pub changed_aspects: CanonicalAspectSet,
+    pub changed_aspects: Vec<AspectKey>,
     pub origin: InspectionOrigin,
     pub access_path: InspectionAccessPath,
 }

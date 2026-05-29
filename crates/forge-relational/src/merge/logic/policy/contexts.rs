@@ -1,22 +1,6 @@
 use std::collections::BTreeMap;
 
 use crate::storage::data::{EntityReadRecord, RelationReadRecord, RelationalReadView};
-use forge_foundational::facade::AspectKey;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum BindingSide {
-    Source,
-    Target,
-}
-
-#[derive(Debug, Clone)]
-pub(super) enum RuntimeAspectValueBinding {
-    EntityScalar(AspectKey),
-    EntityStruct,
-    RelationScalar(AspectKey),
-    RelationStruct,
-}
-
 pub(super) struct PolicyReadViewContext<'a> {
     view: &'a RelationalReadView,
     index: &'a PolicyReadViewIndex,
@@ -29,13 +13,6 @@ pub(super) struct PolicyReadViewIndex {
         BTreeMap<(crate::identity::data::PartitionId, u64), crate::identity::data::EntityId>,
     relations_by_slot:
         BTreeMap<(crate::identity::data::PartitionId, u64), crate::identity::data::RelationId>,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub(super) enum ValueLookupFailure {
-    MissingRecordBasis,
-    MissingField,
-    InvalidValueShape,
 }
 
 impl PolicyReadViewIndex {

@@ -42,7 +42,7 @@ mod tests {
     use crate::authority::mutation::canonical_deltas::CanonicalRecordAspectDelta;
     use crate::config::data::{AdjacencyBackend, AdjacencyPolicy};
     use crate::identity::data::{EntityId, KindId, PartitionId, VersionId};
-    use crate::publication::patch::data::{CanonicalAspectSet, RecordStructuralChange};
+    use crate::publication::patch::data::{ordered_aspect_keys, RecordStructuralChange};
     use crate::schema::data::AspectPlanRevision;
     use crate::storage::overlay::WorkingState;
     use crate::storage::substrate::{EntityRecordKind, SlotInit};
@@ -77,7 +77,7 @@ mod tests {
             kind_id: KindId(1),
             plan_revision: AspectPlanRevision(1),
             structural_change: RecordStructuralChange::Created,
-            changed_aspects: CanonicalAspectSet::new([AspectKey::new("name").unwrap()]),
+            changed_aspects: ordered_aspect_keys([AspectKey::new("name").unwrap()]),
             evaluated_bindings: smallvec::SmallVec::new(),
             contains_opaque_aspect: false,
         };

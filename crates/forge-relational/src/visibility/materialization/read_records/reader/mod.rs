@@ -25,9 +25,7 @@ use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
     RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
 };
-use crate::history::data::AspectFilter;
 use crate::logic::runtime::{RelationalRuntime, VisibilityResidency};
-use crate::publication::patch::data::CanonicalAspectSet;
 use crate::query::data::{
     PlannedQueryPacket, QueryExecutionOutcome, QueryOrderingContract, QueryParallelLegality,
     QueryParallelProfitability, QueryPlanContextId, QueryPlanEvidenceBasis, QueryScope,
@@ -56,6 +54,7 @@ use super::visibility::{
     entity_slot_matches_kind_at_version, relation_slot_matches_kind_at_version,
     slot_kind_matches_current, visible_slots_in_partition_from_state,
 };
+use super::ProjectionAspectFilter;
 
 const TARGET_TRAVERSAL_SEEDS_PER_PACKET: usize = 4;
 pub use context::VisibilityReadContext;

@@ -1,7 +1,7 @@
 use smallvec::SmallVec;
 
 use crate::identity::data::EntityId;
-use crate::publication::patch::data::{CanonicalAspectSet, RecordStructuralChange};
+use crate::publication::patch::data::{ordered_aspect_keys, RecordStructuralChange};
 use crate::schema::data::LoweredAspectPlan;
 use crate::transactions::data::RecordRef;
 
@@ -276,10 +276,9 @@ fn evaluate_entity_update_delta(
                     authoritative_patch,
                 ) {
                     binding.evidence = evidence;
-                    binding.changed = true;
                 }
             }
-            delta.changed_aspects = CanonicalAspectSet::new(
+            delta.changed_aspects = ordered_aspect_keys(
                 delta
                     .evaluated_bindings
                     .iter()
@@ -366,7 +365,7 @@ fn assemble_delta(
     structural_change: RecordStructuralChange,
     evaluated_bindings: SmallVec<[EvaluatedAspectBinding; 4]>,
 ) -> CanonicalRecordAspectDelta {
-    let changed_aspects = CanonicalAspectSet::new(
+    let changed_aspects = ordered_aspect_keys(
         evaluated_bindings
             .iter()
             .filter(|binding| binding.changed)

@@ -14,7 +14,10 @@ use super::decisions::{
     aggregate_record_resolution, decision_boundary_for_aspect, effective_merge_policies_for_record,
     ownership_surface_for_policies, summarize_policy_records,
 };
-use super::value_strategy::{resolve_aspect_value_strategy, AutoResolutionStrategy};
+use super::value_strategy::{
+    resolve_aspect_value_strategy, resolve_policy_aspect_value_basis, scalar_policy_aspect_binding,
+    AutoResolutionStrategy, ScalarPolicyBindingDenial,
+};
 
 pub(super) fn resolve_policy_scope(
     runtime: &RelationalRuntime,
@@ -112,6 +115,8 @@ pub(super) fn resolve_policy_scope(
                     .ok_or_else(|| MergePlanningError::MissingCausalAnnotation {
                         record: classification.record.clone(),
                     })?,
+                &causal_plan.source_head.branch_id,
+                &causal_plan.target_head.branch_id,
                 base_commit_id,
                 &source_view_context,
                 &target_view_context,
@@ -168,6 +173,8 @@ fn resolve_aspects_for_record(
     classification: &crate::merge::data::MergeConflictClassification,
     applied_policies: &[crate::merge::data::ResolvedAspectMergePolicy],
     causal_disposition: crate::merge::data::MergeRecordCausalDisposition,
+    source_branch: &crate::history::data::BranchId,
+    target_branch: &crate::history::data::BranchId,
     base_commit_id: crate::history::data::CommitId,
     source_view: &PolicyReadViewContext<'_>,
     target_view: &PolicyReadViewContext<'_>,
@@ -193,19 +200,27 @@ fn resolve_aspects_for_record(
                 applied_policy.as_ref(),
                 causal_disposition,
             );
-            let auto_resolution = resolve_aspect_value_strategy(
+            let value_basis = policy_value_basis_for_aspect(
                 runtime,
                 record,
                 classification,
                 binding,
-                aspect.comparison,
                 applied_policy.as_ref(),
-                initial_decision_boundary,
-                causal_disposition,
+                source_branch,
+                target_branch,
                 base_commit_id,
                 source_view,
                 target_view,
                 base_view,
+            );
+            let auto_resolution = resolve_aspect_value_strategy(
+                record.record_kind.clone(),
+                binding,
+                value_basis.as_ref(),
+                aspect.comparison,
+                applied_policy.as_ref(),
+                initial_decision_boundary,
+                causal_disposition,
             );
             let (decision_boundary, resolved_value_strategy) = match auto_resolution {
                 AutoResolutionStrategy::NotRequired => (initial_decision_boundary, None),
@@ -232,6 +247,62 @@ fn resolve_aspects_for_record(
             }
         })
         .collect())
+}
+
+fn policy_value_basis_for_aspect(
+    runtime: &RelationalRuntime,
+    record: &crate::merge::data::VisibleMergeRecord,
+    classification: &crate::merge::data::MergeConflictClassification,
+    binding: Option<&crate::schema::data::LoweredAspectBinding>,
+    applied_policy: Option<&crate::merge::data::AspectMergePolicyKind>,
+    source_branch: &crate::history::data::BranchId,
+    target_branch: &crate::history::data::BranchId,
+    base_commit_id: crate::history::data::CommitId,
+    source_view: &PolicyReadViewContext<'_>,
+    target_view: &PolicyReadViewContext<'_>,
+    base_view: &PolicyReadViewContext<'_>,
+) -> Option<super::value_strategy::PolicyAspectValueBasis> {
+    if !matches!(
+        applied_policy,
+        Some(crate::merge::data::AspectMergePolicyKind::MonotonicCounter)
+    ) {
+        return None;
+    }
+    let binding = match scalar_policy_aspect_binding(record.record_kind.clone(), binding) {
+        Ok(binding) => binding,
+        Err(ScalarPolicyBindingDenial::MissingBinding)
+        | Err(ScalarPolicyBindingDenial::InvalidBuiltInPolicyValueShape) => return None,
+    };
+    let basis = resolve_policy_aspect_value_basis(
+        runtime,
+        record,
+        classification,
+        binding,
+        source_branch,
+        target_branch,
+        base_commit_id,
+        source_view,
+        target_view,
+        base_view,
+    );
+    let _basis_aspect_key = basis.binding().aspect_key();
+    let _merge_basis = basis.merge_basis();
+    let _merge_base_selection_basis = basis.merge_base_selection_basis();
+    let _strategy_basis = basis.strategy_basis();
+    let _policy_admission_receipt = basis.receipt().admission_receipt();
+    let counters = basis.receipt().counters();
+    runtime
+        .performance_access()
+        .count_merge_policy_value_lookup(
+            counters.source_state_hit,
+            counters.target_state_hit,
+            counters.base_state_hit,
+            counters.base_patch_fallback_hit,
+            counters.missing_ancestor_basis,
+            counters.missing_visible_state,
+            counters.invalid_shape,
+        );
+    Some(basis)
 }
 
 fn resolved_target_record_ref(

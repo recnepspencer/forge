@@ -103,24 +103,28 @@ fn display_text_for_test_interned_string(value: InternedString) -> String {
     }
 }
 
-pub(crate) fn all_aspect_filter(names: impl IntoIterator<Item = &'static str>) -> AspectFilter {
-    AspectFilter {
-        mode: AspectFilterMode::All,
-        aspects: CanonicalAspectSet::new(names.into_iter().map(aspect_key)),
-    }
+pub(crate) fn all_aspect_filter(
+    names: impl IntoIterator<Item = &'static str>,
+) -> ProjectionAspectFilter {
+    ProjectionAspectFilter::whole_aspects(
+        ProjectionAspectFilterMode::All,
+        names.into_iter().map(aspect_key),
+    )
 }
 
-pub(crate) fn any_aspect_filter(names: impl IntoIterator<Item = &'static str>) -> AspectFilter {
-    AspectFilter {
-        mode: AspectFilterMode::Any,
-        aspects: CanonicalAspectSet::new(names.into_iter().map(aspect_key)),
-    }
+pub(crate) fn any_aspect_filter(
+    names: impl IntoIterator<Item = &'static str>,
+) -> ProjectionAspectFilter {
+    ProjectionAspectFilter::whole_aspects(
+        ProjectionAspectFilterMode::Any,
+        names.into_iter().map(aspect_key),
+    )
 }
 
 pub(crate) fn entity_aspect_history_digest(
     runtime: &RelationalRuntime,
     entity_id: crate::facade::identity::EntityId,
-    filter: Option<&AspectFilter>,
+    filter: Option<&ProjectionAspectFilter>,
 ) -> crate::facade::history::AspectHistoryDigest {
     entity_aspect_history_digest_on_branch(
         runtime,
@@ -134,7 +138,7 @@ pub(crate) fn entity_aspect_history_digest_on_branch(
     runtime: &RelationalRuntime,
     branch_id: &BranchId,
     entity_id: crate::facade::identity::EntityId,
-    filter: Option<&AspectFilter>,
+    filter: Option<&ProjectionAspectFilter>,
 ) -> crate::facade::history::AspectHistoryDigest {
     runtime
         .history()
@@ -145,7 +149,7 @@ pub(crate) fn entity_aspect_history_digest_on_branch(
 pub(crate) fn relation_aspect_history_digest(
     runtime: &RelationalRuntime,
     relation_id: RelationId,
-    filter: Option<&AspectFilter>,
+    filter: Option<&ProjectionAspectFilter>,
 ) -> crate::facade::history::AspectHistoryDigest {
     relation_aspect_history_digest_on_branch(
         runtime,
@@ -159,7 +163,7 @@ pub(crate) fn relation_aspect_history_digest_on_branch(
     runtime: &RelationalRuntime,
     branch_id: &BranchId,
     relation_id: RelationId,
-    filter: Option<&AspectFilter>,
+    filter: Option<&ProjectionAspectFilter>,
 ) -> crate::facade::history::AspectHistoryDigest {
     runtime
         .history()
@@ -170,7 +174,7 @@ pub(crate) fn relation_aspect_history_digest_on_branch(
 pub(crate) fn lineage_aspect_history_digest(
     runtime: &RelationalRuntime,
     lineage_id: LineageId,
-    filter: Option<&AspectFilter>,
+    filter: Option<&ProjectionAspectFilter>,
 ) -> crate::facade::history::LineageAspectResolutionDigest {
     lineage_aspect_history_digest_on_branch(
         runtime,
@@ -184,7 +188,7 @@ pub(crate) fn lineage_aspect_history_digest_on_branch(
     runtime: &RelationalRuntime,
     branch_id: &BranchId,
     lineage_id: LineageId,
-    filter: Option<&AspectFilter>,
+    filter: Option<&ProjectionAspectFilter>,
 ) -> crate::facade::history::LineageAspectResolutionDigest {
     runtime
         .lineage_access()

@@ -99,17 +99,7 @@ pub struct LoweredAspectPlan {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoweredAspectBinding {
     pub contract: AspectContract,
-    pub target: LoweredAspectTarget,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub enum LoweredAspectTarget {
-    EntityField { field: FieldKey },
-    RelationField { field: FieldKey },
-    RelationSourceEndpoint,
-    RelationTargetEndpoint,
-    LifecycleTransition,
+    pub target: AspectBinding,
 }
 
 impl DeclaredAspect {
@@ -132,7 +122,7 @@ impl LoweredAspectBinding {
     }
 
     pub fn targets_entity_scalar_field(&self, target: &FieldKey) -> bool {
-        matches!(&self.target, LoweredAspectTarget::EntityField { field } if field == target)
+        matches!(&self.target, AspectBinding::EntityField { field } if field == target)
             && matches!(
                 self.contract.shape(),
                 forge_foundational::AspectShape::Scalar(_)
@@ -140,12 +130,12 @@ impl LoweredAspectBinding {
     }
 
     pub fn targets_entity_struct_field(&self, target: &FieldKey) -> bool {
-        matches!(&self.target, LoweredAspectTarget::EntityField { .. })
+        matches!(&self.target, AspectBinding::EntityField { .. })
             && self.struct_contract_declares_field(target)
     }
 
     pub fn targets_relation_scalar_field(&self, target: &FieldKey) -> bool {
-        matches!(&self.target, LoweredAspectTarget::RelationField { field } if field == target)
+        matches!(&self.target, AspectBinding::RelationField { field } if field == target)
             && matches!(
                 self.contract.shape(),
                 forge_foundational::AspectShape::Scalar(_)
@@ -153,7 +143,7 @@ impl LoweredAspectBinding {
     }
 
     pub fn targets_relation_struct_field(&self, target: &FieldKey) -> bool {
-        matches!(&self.target, LoweredAspectTarget::RelationField { .. })
+        matches!(&self.target, AspectBinding::RelationField { .. })
             && self.struct_contract_declares_field(target)
     }
 
@@ -186,7 +176,7 @@ impl LoweredAspectPlan {
 
 #[cfg(test)]
 mod tests {
-    use super::{AspectPlanRevision, LoweredAspectBinding, LoweredAspectPlan, LoweredAspectTarget};
+    use super::{AspectBinding, AspectPlanRevision, LoweredAspectBinding, LoweredAspectPlan};
     use crate::identity::data::KindId;
     use forge_foundational::FieldKey;
 
@@ -203,7 +193,7 @@ mod tests {
                         forge_foundational::AspectContractRevision(1),
                         forge_foundational::ScalarAspectType::String,
                     ),
-                    target: LoweredAspectTarget::EntityField {
+                    target: AspectBinding::EntityField {
                         field: FieldKey::new("name").expect("valid field"),
                     },
                 },
@@ -214,7 +204,7 @@ mod tests {
                         forge_foundational::AspectContractRevision(1),
                         forge_foundational::ScalarAspectType::String,
                     ),
-                    target: LoweredAspectTarget::LifecycleTransition,
+                    target: AspectBinding::LifecycleTransition,
                 }
             ],
         };

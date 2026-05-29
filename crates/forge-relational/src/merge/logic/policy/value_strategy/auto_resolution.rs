@@ -1,16 +1,11 @@
-use crate::logic::runtime::RelationalRuntime;
 use crate::merge::data::{
     AspectComparisonState, AspectMergePolicyKind, MergeManualResolutionClass,
     MergePolicyDecisionBoundary, MergePolicyRejectClass, MergeResolvedAspectValueStrategy,
-    VisibleMergeRecord,
 };
 use crate::schema::data::LoweredAspectBinding;
 
-use super::binding_values::{binding_aspect_i64, binding_aspect_i64_from_view};
-use super::runtime_aspect_value_binding;
-use crate::merge::logic::policy::contexts::{
-    BindingSide, PolicyReadViewContext, RuntimeAspectValueBinding, ValueLookupFailure,
-};
+use super::value_basis::PolicyValueLookupFailure;
+use super::{scalar_policy_aspect_binding, PolicyAspectValueBasis, ScalarPolicyBindingDenial};
 
 pub(in crate::merge::logic::policy) enum AutoResolutionStrategy {
     NotRequired,
@@ -20,23 +15,17 @@ pub(in crate::merge::logic::policy) enum AutoResolutionStrategy {
 }
 
 pub(in crate::merge::logic::policy) fn resolve_aspect_value_strategy(
-    runtime: &RelationalRuntime,
-    record: &VisibleMergeRecord,
-    classification: &crate::merge::data::MergeConflictClassification,
+    record_kind: crate::merge::data::VisibleMergeRecordKind,
     binding: Option<&LoweredAspectBinding>,
+    value_basis: Option<&PolicyAspectValueBasis>,
     comparison: AspectComparisonState,
     applied_policy: Option<&AspectMergePolicyKind>,
     decision_boundary: MergePolicyDecisionBoundary,
     causal_disposition: crate::merge::data::MergeRecordCausalDisposition,
-    base_commit_id: crate::history::data::CommitId,
-    source_view: &PolicyReadViewContext<'_>,
-    target_view: &PolicyReadViewContext<'_>,
-    base_view: &PolicyReadViewContext<'_>,
 ) -> AutoResolutionStrategy {
     if decision_boundary != MergePolicyDecisionBoundary::AutoResolved {
         return AutoResolutionStrategy::NotRequired;
     }
-    let value_binding = runtime_aspect_value_binding(binding);
     match applied_policy {
         Some(AspectMergePolicyKind::PreferRicher) => match comparison {
             AspectComparisonState::Equal
@@ -81,22 +70,15 @@ pub(in crate::merge::logic::policy) fn resolve_aspect_value_strategy(
             AspectComparisonState::Unavailable => AutoResolutionStrategy::NotRequired,
         },
         Some(AspectMergePolicyKind::MonotonicCounter) => {
-            let Some(binding) = value_binding.as_ref() else {
-                return AutoResolutionStrategy::Reject(
-                    MergePolicyRejectClass::InvalidBuiltInPolicyValueShape,
-                );
-            };
-            monotonic_counter_strategy(
-                runtime,
-                record,
-                classification,
-                binding,
-                comparison,
-                base_commit_id,
-                source_view,
-                target_view,
-                base_view,
-            )
+            match scalar_policy_aspect_binding(record_kind, binding) {
+                Ok(_) => monotonic_counter_strategy(value_basis, comparison),
+                Err(ScalarPolicyBindingDenial::MissingBinding)
+                | Err(ScalarPolicyBindingDenial::InvalidBuiltInPolicyValueShape) => {
+                    AutoResolutionStrategy::Reject(
+                        MergePolicyRejectClass::InvalidBuiltInPolicyValueShape,
+                    )
+                }
+            }
         }
         Some(AspectMergePolicyKind::AdditiveSet) => {
             AutoResolutionStrategy::Reject(MergePolicyRejectClass::InvalidBuiltInPolicyValueShape)
@@ -118,119 +100,94 @@ pub(in crate::merge::logic::policy) fn resolve_aspect_value_strategy(
 }
 
 fn monotonic_counter_strategy(
-    runtime: &RelationalRuntime,
-    record: &VisibleMergeRecord,
-    classification: &crate::merge::data::MergeConflictClassification,
-    binding: &RuntimeAspectValueBinding,
+    value_basis: Option<&PolicyAspectValueBasis>,
     comparison: AspectComparisonState,
-    base_commit_id: crate::history::data::CommitId,
-    source_view: &PolicyReadViewContext<'_>,
-    target_view: &PolicyReadViewContext<'_>,
-    base_view: &PolicyReadViewContext<'_>,
 ) -> AutoResolutionStrategy {
+    let Some(value_basis) = value_basis else {
+        return AutoResolutionStrategy::Reject(
+            MergePolicyRejectClass::InvalidBuiltInPolicyValueShape,
+        );
+    };
+    let numeric = value_basis.numeric();
     let resolved_value = match comparison {
         AspectComparisonState::Equal | AspectComparisonState::SourceOnly => {
-            match binding_aspect_i64(
-                runtime,
-                record,
-                classification,
-                binding,
-                BindingSide::Source,
-                source_view,
-                target_view,
-            ) {
+            match numeric.source_i64() {
                 Ok(value) => forge_foundational::facade::AspectValue::Int64(value),
-                Err(ValueLookupFailure::InvalidValueShape | ValueLookupFailure::MissingField) => {
+                Err(
+                    PolicyValueLookupFailure::InvalidValueShape
+                    | PolicyValueLookupFailure::MissingField,
+                ) => {
                     return AutoResolutionStrategy::Reject(
                         MergePolicyRejectClass::InvalidBuiltInPolicyValueShape,
                     );
                 }
-                Err(ValueLookupFailure::MissingRecordBasis) => {
+                Err(PolicyValueLookupFailure::MissingRecordBasis) => {
                     return AutoResolutionStrategy::RequiresManual(
                         MergeManualResolutionClass::MissingVisibleState,
                     );
                 }
             }
         }
-        AspectComparisonState::TargetOnly => match binding_aspect_i64(
-            runtime,
-            record,
-            classification,
-            binding,
-            BindingSide::Target,
-            source_view,
-            target_view,
-        ) {
+        AspectComparisonState::TargetOnly => match numeric.target_i64() {
             Ok(value) => forge_foundational::facade::AspectValue::Int64(value),
-            Err(ValueLookupFailure::InvalidValueShape | ValueLookupFailure::MissingField) => {
+            Err(
+                PolicyValueLookupFailure::InvalidValueShape
+                | PolicyValueLookupFailure::MissingField,
+            ) => {
                 return AutoResolutionStrategy::Reject(
                     MergePolicyRejectClass::InvalidBuiltInPolicyValueShape,
                 );
             }
-            Err(ValueLookupFailure::MissingRecordBasis) => {
+            Err(PolicyValueLookupFailure::MissingRecordBasis) => {
                 return AutoResolutionStrategy::RequiresManual(
                     MergeManualResolutionClass::MissingVisibleState,
                 );
             }
         },
         AspectComparisonState::Divergent => {
-            let source = match binding_aspect_i64(
-                runtime,
-                record,
-                classification,
-                binding,
-                BindingSide::Source,
-                source_view,
-                target_view,
-            ) {
+            let source = match numeric.source_i64() {
                 Ok(value) => value,
-                Err(ValueLookupFailure::InvalidValueShape | ValueLookupFailure::MissingField) => {
+                Err(
+                    PolicyValueLookupFailure::InvalidValueShape
+                    | PolicyValueLookupFailure::MissingField,
+                ) => {
                     return AutoResolutionStrategy::Reject(
                         MergePolicyRejectClass::InvalidBuiltInPolicyValueShape,
                     );
                 }
-                Err(ValueLookupFailure::MissingRecordBasis) => {
+                Err(PolicyValueLookupFailure::MissingRecordBasis) => {
                     return AutoResolutionStrategy::RequiresManual(
                         MergeManualResolutionClass::MissingVisibleState,
                     );
                 }
             };
-            let target = match binding_aspect_i64(
-                runtime,
-                record,
-                classification,
-                binding,
-                BindingSide::Target,
-                source_view,
-                target_view,
-            ) {
+            let target = match numeric.target_i64() {
                 Ok(value) => value,
-                Err(ValueLookupFailure::InvalidValueShape | ValueLookupFailure::MissingField) => {
+                Err(
+                    PolicyValueLookupFailure::InvalidValueShape
+                    | PolicyValueLookupFailure::MissingField,
+                ) => {
                     return AutoResolutionStrategy::Reject(
                         MergePolicyRejectClass::InvalidBuiltInPolicyValueShape,
                     );
                 }
-                Err(ValueLookupFailure::MissingRecordBasis) => {
+                Err(PolicyValueLookupFailure::MissingRecordBasis) => {
                     return AutoResolutionStrategy::RequiresManual(
                         MergeManualResolutionClass::MissingVisibleState,
                     );
                 }
             };
-            let base = match binding_aspect_i64_from_view(
-                runtime,
-                record,
-                classification,
-                binding,
-                base_commit_id,
-                base_view,
-            ) {
+            let base = match numeric.base_i64() {
                 Ok(value) => value,
-                Err(ValueLookupFailure::InvalidValueShape | ValueLookupFailure::MissingField) => {
+                Err(
+                    PolicyValueLookupFailure::InvalidValueShape
+                    | PolicyValueLookupFailure::MissingField,
+                ) => {
                     return AutoResolutionStrategy::Reject(
                         MergePolicyRejectClass::InvalidBuiltInPolicyValueShape,
                     );
                 }
-                Err(ValueLookupFailure::MissingRecordBasis) => {
+                Err(PolicyValueLookupFailure::MissingRecordBasis) => {
                     return AutoResolutionStrategy::RequiresManual(
                         MergeManualResolutionClass::MissingAncestorValueBasis,
                     );

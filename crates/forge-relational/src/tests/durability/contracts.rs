@@ -144,7 +144,7 @@ fn durability_contract_recovery_preserves_aspect_bearing_patch_truth_and_history
     );
     assert_eq!(
         recovered_envelope.patch.records[0].authoritative_changed_aspects(),
-        CanonicalAspectSet::new([aspect_key("name")])
+        ordered_aspect_keys([aspect_key("name")])
     );
     assert!(!recovered_envelope.patch.records[0].contains_opaque_aspect);
 }
@@ -186,7 +186,7 @@ fn durability_contract_recovery_preserves_relation_aspect_history_for_retained_a
     assert_direct_history_origin_invariants(&recovered_history, RecordRef::Relation(relation));
     assert_eq!(
         recovered_history[0].origin.changed_aspects,
-        CanonicalAspectSet::new([
+        ordered_aspect_keys([
             aspect_key("label"),
             aspect_key("lifecycle"),
             aspect_key("source"),
@@ -195,7 +195,7 @@ fn durability_contract_recovery_preserves_relation_aspect_history_for_retained_a
     );
     assert_eq!(
         recovered_history[1].origin.changed_aspects,
-        CanonicalAspectSet::new([aspect_key("lifecycle")])
+        ordered_aspect_keys([aspect_key("lifecycle")])
     );
 }
 

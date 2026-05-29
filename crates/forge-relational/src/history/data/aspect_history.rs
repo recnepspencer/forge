@@ -7,24 +7,13 @@ use crate::diagnostics::data::{
     RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
 };
 use crate::identity::data::{EntityId, LineageId, RelationId, VersionId};
-use crate::publication::patch::data::{CanonicalAspectSet, RecordStructuralChange};
+use crate::publication::patch::data::RecordStructuralChange;
 use crate::transactions::data::RecordRef;
+use crate::visibility::materialization::read_records::ProjectionAspectFilter;
+use forge_foundational::facade::AspectKey;
 
 use super::{BranchId, CommitId};
 use diagnostic_fields::aspect_history_resolution_trace_fields;
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub enum AspectFilterMode {
-    Any,
-    All,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AspectFilter {
-    pub mode: AspectFilterMode,
-    pub aspects: CanonicalAspectSet,
-}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AspectHistoryOrigin {
@@ -33,7 +22,7 @@ pub struct AspectHistoryOrigin {
     pub branch_id: BranchId,
     pub target: RecordRef,
     pub structural_change: RecordStructuralChange,
-    pub changed_aspects: CanonicalAspectSet,
+    pub changed_aspects: Vec<AspectKey>,
     pub contains_opaque_aspect: bool,
 }
 
@@ -74,8 +63,8 @@ pub enum HistoryAspectQueryTarget {
 pub struct AspectHistoryResolutionTrace {
     pub requested_target: HistoryAspectQueryTarget,
     pub branch_id: BranchId,
-    pub filter: Option<AspectFilter>,
-    pub resolved_aspects: CanonicalAspectSet,
+    pub filter: Option<ProjectionAspectFilter>,
+    pub resolved_aspects: Vec<AspectKey>,
     pub searched_commit_span: Option<AspectHistoryCommitSpan>,
     pub searched_lineage_event_span: Option<AspectHistoryLineageEventSpan>,
     pub returned_entries: u64,
@@ -114,7 +103,7 @@ pub struct LineageAspectHistoryQueryResult {
 pub struct AspectHistoryDigest {
     pub requested_target: HistoryAspectQueryTarget,
     pub branch_id: BranchId,
-    pub resolved_aspects: CanonicalAspectSet,
+    pub resolved_aspects: Vec<AspectKey>,
     pub entry_count: u64,
     pub opaque_aspect_entry_count: u64,
     pub traversed_commits: u64,
@@ -125,59 +114,12 @@ pub struct AspectHistoryDigest {
 pub struct LineageAspectResolutionDigest {
     pub requested_target: HistoryAspectQueryTarget,
     pub branch_id: BranchId,
-    pub resolved_aspects: CanonicalAspectSet,
+    pub resolved_aspects: Vec<AspectKey>,
     pub entry_count: u64,
     pub opaque_aspect_entry_count: u64,
     pub traversed_commits: u64,
     pub traversed_lineage_events: u64,
     pub resolved_lineage_chain_len: u64,
-}
-
-impl AspectFilter {
-    pub fn matches(&self, aspects: &CanonicalAspectSet) -> bool {
-        match self.mode {
-            AspectFilterMode::Any => intersects_sorted(&self.aspects, aspects),
-            AspectFilterMode::All => contains_all_sorted(&self.aspects, aspects),
-        }
-    }
-}
-
-fn intersects_sorted(requested: &CanonicalAspectSet, actual: &CanonicalAspectSet) -> bool {
-    let mut requested = requested.iter().peekable();
-    let mut actual = actual.iter().peekable();
-    while let (Some(left), Some(right)) = (requested.peek(), actual.peek()) {
-        match left.cmp(right) {
-            std::cmp::Ordering::Equal => return true,
-            std::cmp::Ordering::Less => {
-                requested.next();
-            }
-            std::cmp::Ordering::Greater => {
-                actual.next();
-            }
-        }
-    }
-    false
-}
-
-fn contains_all_sorted(requested: &CanonicalAspectSet, actual: &CanonicalAspectSet) -> bool {
-    let mut requested = requested.iter().peekable();
-    let mut actual = actual.iter().peekable();
-    while let Some(left) = requested.peek() {
-        let Some(right) = actual.peek() else {
-            return false;
-        };
-        match left.cmp(right) {
-            std::cmp::Ordering::Equal => {
-                requested.next();
-                actual.next();
-            }
-            std::cmp::Ordering::Less => return false,
-            std::cmp::Ordering::Greater => {
-                actual.next();
-            }
-        }
-    }
-    true
 }
 
 impl AspectHistoryResolutionTrace {
@@ -216,14 +158,14 @@ impl AspectHistoryResolutionTrace {
 mod tests {
     use crate::history::data::{AspectHistoryDigest, BranchId, HistoryAspectQueryTarget};
     use crate::identity::data::{EntityId, PartitionId};
-    use crate::publication::patch::data::CanonicalAspectSet;
+    use crate::publication::patch::data::ordered_aspect_keys;
 
     #[test]
     fn aspect_history_digest_preserves_wide_counts_as_u64() {
         let digest = AspectHistoryDigest {
             requested_target: HistoryAspectQueryTarget::Entity(EntityId::new(PartitionId(1), 0, 1)),
             branch_id: BranchId("main".to_string()),
-            resolved_aspects: CanonicalAspectSet::new([]),
+            resolved_aspects: ordered_aspect_keys([]),
             entry_count: u64::from(u32::MAX) + 17,
             opaque_aspect_entry_count: 9,
             traversed_commits: u64::from(u32::MAX) + 23,

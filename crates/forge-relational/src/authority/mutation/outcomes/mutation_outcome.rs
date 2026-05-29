@@ -35,14 +35,16 @@ impl MutationOutcome {
     pub(crate) fn entity_updated_with_authoritative_patch(
         entity_id: EntityId,
         kind_id: KindId,
+        old_authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
+        new_authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
         authoritative_patch: forge_foundational::facade::AuthoritativeRecordAspectPatch,
     ) -> Self {
         let mut outcome = Self::with_capacity(1, 1);
         outcome.record_change(RecordMutation::EntityUpdated {
             entity_id,
             kind_id,
-            old_authoritative_aspect_state: None,
-            new_authoritative_aspect_state: None,
+            old_authoritative_aspect_state,
+            new_authoritative_aspect_state,
             authoritative_patch: Some(authoritative_patch),
         });
         outcome.record_event(MutationEvent::EntityUpdated { entity_id });

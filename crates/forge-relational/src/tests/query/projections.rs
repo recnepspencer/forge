@@ -1,21 +1,23 @@
 use crate::facade::identity::EntityId;
-use crate::facade::runtime::{EntityProjectionRecord, EntityRecordProjection};
+use crate::facade::runtime::{
+    EntityProjectionRecord, EntityRecordProjection, ProjectionAspectScope,
+};
 use crate::tests::support::*;
 use forge_foundational::facade::{AspectValue, InternedString};
 use std::sync::OnceLock;
 
-fn entity_name_aspects() -> &'static [AspectKey] {
+fn entity_name_aspects() -> Vec<AspectKey> {
     static ASPECTS: OnceLock<Vec<AspectKey>> = OnceLock::new();
     ASPECTS
         .get_or_init(|| vec![AspectKey::new("name").unwrap()])
-        .as_slice()
+        .clone()
 }
 
-fn undeclared_projection_aspects() -> &'static [AspectKey] {
+fn undeclared_projection_aspects() -> Vec<AspectKey> {
     static ASPECTS: OnceLock<Vec<AspectKey>> = OnceLock::new();
     ASPECTS
         .get_or_init(|| vec![AspectKey::new("undeclared_projection").unwrap()])
-        .as_slice()
+        .clone()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -27,8 +29,8 @@ struct NamedEntityProjection {
 impl EntityRecordProjection for NamedEntityProjection {
     const KIND: KindId = KindId(1);
 
-    fn required_aspects() -> &'static [AspectKey] {
-        entity_name_aspects()
+    fn projection_scope() -> ProjectionAspectScope {
+        ProjectionAspectScope::whole_aspects(entity_name_aspects())
     }
 
     fn from_record(record: EntityProjectionRecord<'_>) -> Option<Self> {
@@ -56,8 +58,8 @@ struct UndeclaredAspectProjection;
 impl EntityRecordProjection for UndeclaredAspectProjection {
     const KIND: KindId = KindId(1);
 
-    fn required_aspects() -> &'static [AspectKey] {
-        undeclared_projection_aspects()
+    fn projection_scope() -> ProjectionAspectScope {
+        ProjectionAspectScope::whole_aspects(undeclared_projection_aspects())
     }
 
     fn from_record(_record: EntityProjectionRecord<'_>) -> Option<Self> {
@@ -110,9 +112,47 @@ fn snapshot_projection_resolves_version_without_manual_kind_scan_parameters() {
     assert_eq!(projected.len(), 1);
     assert_eq!(projected[0].name, "visible");
     assert_eq!(
-        <NamedEntityProjection as EntityRecordProjection>::required_aspects(),
+        <NamedEntityProjection as EntityRecordProjection>::projection_scope()
+            .requirements()
+            .iter()
+            .map(|requirement| requirement.aspect_key().clone())
+            .collect::<Vec<_>>(),
         entity_name_aspects()
     );
+}
+
+#[test]
+fn projection_record_refuses_aspect_reads_outside_declared_scope() {
+    #[derive(Debug, Clone, PartialEq, Eq)]
+    struct EmptyScopeProjection {
+        entity_id: EntityId,
+        name_was_visible: bool,
+    }
+
+    impl EntityRecordProjection for EmptyScopeProjection {
+        const KIND: KindId = KindId(1);
+
+        fn from_record(record: EntityProjectionRecord<'_>) -> Option<Self> {
+            Some(Self {
+                entity_id: record.entity_id(),
+                name_was_visible: record
+                    .aspect_value(&AspectKey::new("name").unwrap())
+                    .is_some(),
+            })
+        }
+    }
+
+    let mut runtime =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let entity_id = create_entity(&mut runtime, "hidden-by-scope");
+
+    let projected = runtime
+        .read_truth()
+        .project_version(runtime.current_version_id())
+        .entities::<EmptyScopeProjection>();
+
+    assert_eq!(projected[0].entity_id, entity_id);
+    assert!(!projected[0].name_was_visible);
 }
 
 #[test]

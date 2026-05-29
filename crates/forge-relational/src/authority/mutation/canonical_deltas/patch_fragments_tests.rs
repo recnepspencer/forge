@@ -29,7 +29,7 @@ fn scalar_changed_binding_materializes_foundational_whole_aspect_set() {
     let published_record = fragment.published_record();
     assert_eq!(
         published_record.authoritative_changed_aspects(),
-        crate::publication::patch::data::CanonicalAspectSet::new([name_key.clone()])
+        crate::publication::patch::data::ordered_aspect_keys([name_key.clone()])
     );
     assert!(matches!(
         published_record.authoritative_patch.operations.as_slice(),
@@ -51,9 +51,7 @@ fn scalar_delta(aspect_key: AspectKey, value: &str) -> CanonicalRecordAspectDelt
         kind_id: KindId(7),
         plan_revision: AspectPlanRevision(1),
         structural_change: RecordStructuralChange::Updated,
-        changed_aspects: crate::publication::patch::data::CanonicalAspectSet::new([
-            aspect_key.clone()
-        ]),
+        changed_aspects: crate::publication::patch::data::ordered_aspect_keys([aspect_key.clone()]),
         evaluated_bindings: smallvec::smallvec![
             EvaluatedAspectBinding {
                 aspect_key: aspect_key.clone(),

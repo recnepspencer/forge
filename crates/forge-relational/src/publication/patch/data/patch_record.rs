@@ -1,5 +1,5 @@
 use crate::publication::patch::data::{
-    CanonicalAspectSet, PatchDetail, PatchOrdering, PatchPublicationMode, PatchStreamPosition,
+    PatchDetail, PatchOrdering, PatchPublicationMode, PatchStreamPosition,
     PublishedAuthoritativePatch, RecordStructuralChange,
 };
 use crate::transactions::data::RecordRef;
@@ -20,7 +20,7 @@ impl PatchRecord {
         self.authoritative_patch.changed_aspect_keys()
     }
 
-    pub fn authoritative_changed_aspects(&self) -> CanonicalAspectSet {
+    pub fn authoritative_changed_aspects(&self) -> Vec<AspectKey> {
         self.authoritative_patch.changed_aspects()
     }
 

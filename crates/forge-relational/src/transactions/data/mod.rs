@@ -13,6 +13,7 @@ pub use aspect_reports::{AspectTagAccuracyReport, PatchVsTruthDeltaReport};
 pub use aspect_traces::{
     AspectEmissionTrace, AspectEvaluationTrace, AspectEvaluationTraceRow,
     AspectLifecycleTransitionClass, AspectTraceEvidence, AspectTracePatchOperation,
+    AspectTracePatchSetValue,
 };
 pub(crate) use bulk_plan_digest::{
     bulk_lineage_plan_digest, bulk_naming_plan_digest, bulk_provenance_plan_digest,

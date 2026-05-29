@@ -8,7 +8,7 @@ use forge_proof::TransitionOutcome;
 use crate::transactions::data::EntityFieldAspectPatchDenial;
 
 pub(super) fn apply_entity_authoritative_patch(
-    current_state: Option<AuthoritativeRecordAspectState>,
+    current_state: Option<&AuthoritativeRecordAspectState>,
     patch: &AuthoritativeRecordAspectPatch,
 ) -> Result<AuthoritativeRecordAspectState, EntityFieldAspectPatchDenial> {
     let patch_aspect_key = first_patch_aspect_key(patch);
@@ -21,7 +21,7 @@ pub(super) fn apply_entity_authoritative_patch(
         return Err(EntityFieldAspectPatchDenial::EmptyAuthoritativePatchPlan);
     };
 
-    match patch.apply_to(&current_state) {
+    match patch.apply_to(current_state) {
         TransitionOutcome::Success(artifact) => {
             let (state, _proofs, _basis) = artifact.into_parts().into_parts();
             Ok(state)

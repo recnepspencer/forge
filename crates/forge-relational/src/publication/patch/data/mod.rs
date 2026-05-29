@@ -1,4 +1,4 @@
-mod canonical_aspects;
+mod aspect_key_ordering;
 mod patch_batch;
 mod patch_detail;
 mod patch_errors;
@@ -6,8 +6,8 @@ mod patch_ordering;
 mod patch_position;
 mod patch_record;
 mod published_authoritative_patch;
+mod record_structural_change;
 
-pub use canonical_aspects::{CanonicalAspectSet, RecordStructuralChange};
 pub use patch_batch::{PatchStreamBatch, PatchStreamRequest};
 pub use patch_detail::{PatchDetail, PatchFragmentBudget};
 pub use patch_errors::{PatchStreamReadError, PatchStreamReadErrorClass};
@@ -18,3 +18,6 @@ pub use published_authoritative_patch::{
     PublishedAuthoritativeFieldSet, PublishedAuthoritativePatch,
     PublishedAuthoritativePatchOperation, PublishedAuthoritativePatchValue,
 };
+pub use record_structural_change::RecordStructuralChange;
+
+pub(crate) use aspect_key_ordering::ordered_aspect_keys;

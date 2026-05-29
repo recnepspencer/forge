@@ -1,7 +1,7 @@
 use smallvec::SmallVec;
 
 use crate::identity::data::EntityId;
-use crate::publication::patch::data::{CanonicalAspectSet, RecordStructuralChange};
+use crate::publication::patch::data::RecordStructuralChange;
 use crate::schema::data::AspectPlanRevision;
 use crate::transactions::data::{
     AspectDeltaFailureFields, AspectDeltaPatchConstructionDenial, AspectDeltaPatchValueDenial,
@@ -16,7 +16,7 @@ pub(crate) struct CanonicalRecordAspectDelta {
     pub(crate) kind_id: crate::identity::data::KindId,
     pub(crate) plan_revision: AspectPlanRevision,
     pub(crate) structural_change: RecordStructuralChange,
-    pub(crate) changed_aspects: CanonicalAspectSet,
+    pub(crate) changed_aspects: Vec<AspectKey>,
     pub(crate) evaluated_bindings: SmallVec<[EvaluatedAspectBinding; 4]>,
     pub(crate) contains_opaque_aspect: bool,
 }
@@ -64,13 +64,19 @@ pub(crate) enum CanonicalAspectDeltaEvidence {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum AuthoritativeDeltaPatchOperation {
     WholeAspectSet {
-        value: Option<forge_foundational::facade::AspectValue>,
+        value: AuthoritativeDeltaPatchSetValue,
     },
     WholeAspectClear,
     FieldLevelPatch {
         field_sets: Vec<AuthoritativeFieldSetEvidence>,
         field_clears: Vec<AspectFieldLocator>,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub(crate) enum AuthoritativeDeltaPatchSetValue {
+    Scalar(forge_foundational::facade::AspectValue),
+    Struct(forge_foundational::facade::StructAspectValue),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

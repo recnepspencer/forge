@@ -2,11 +2,12 @@ use crate::diagnostics::data::{
     aspect_shape_diagnostic_value, RelationalDiagnosticFields, RelationalDiagnosticValue,
 };
 use crate::identity::data::{EntityId, RelationId};
-use crate::publication::patch::data::{CanonicalAspectSet, RecordStructuralChange};
+use crate::publication::patch::data::RecordStructuralChange;
 
 use super::{
     AspectEmissionTrace, AspectEvaluationTrace, AspectEvaluationTraceRow,
-    AspectLifecycleTransitionClass, AspectTraceEvidence, AspectTracePatchOperation, RecordRef,
+    AspectLifecycleTransitionClass, AspectTraceEvidence, AspectTracePatchOperation,
+    AspectTracePatchSetValue, RecordRef,
 };
 
 pub(super) fn evaluation_trace_diagnostic_fields(
@@ -191,12 +192,7 @@ fn patch_operation_value(operation: &AspectTracePatchOperation) -> RelationalDia
                 "operation_kind",
                 RelationalDiagnosticValue::string("whole_aspect_set"),
             ),
-            (
-                "value",
-                RelationalDiagnosticValue::optional(
-                    value.clone().map(RelationalDiagnosticValue::AspectValue),
-                ),
-            ),
+            ("value", patch_set_value(value)),
         ]),
         AspectTracePatchOperation::WholeAspectClear => RelationalDiagnosticValue::object([(
             "operation_kind",
@@ -232,6 +228,17 @@ fn patch_operation_value(operation: &AspectTracePatchOperation) -> RelationalDia
                 ),
             ),
         ]),
+    }
+}
+
+fn patch_set_value(value: &AspectTracePatchSetValue) -> RelationalDiagnosticValue {
+    match value {
+        AspectTracePatchSetValue::Scalar(value) => {
+            RelationalDiagnosticValue::AspectValue(value.clone())
+        }
+        AspectTracePatchSetValue::Struct(value) => {
+            RelationalDiagnosticValue::StructAspectValue(value.clone())
+        }
     }
 }
 
@@ -282,7 +289,9 @@ fn relation_id_value(relation_id: RelationId) -> RelationalDiagnosticValue {
     ])
 }
 
-fn canonical_aspect_set_value(aspects: &CanonicalAspectSet) -> RelationalDiagnosticValue {
+fn canonical_aspect_set_value(
+    aspects: &[forge_foundational::facade::AspectKey],
+) -> RelationalDiagnosticValue {
     RelationalDiagnosticValue::array(
         aspects
             .iter()

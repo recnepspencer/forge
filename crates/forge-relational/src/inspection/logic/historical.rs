@@ -1,4 +1,4 @@
-use crate::history::data::{AspectFilter, BranchId};
+use crate::history::data::BranchId;
 use crate::inspection::data::{
     HistoricalAspectObservation, HistoricalAvailabilityObservation, HistoricalInspectionMode,
     HistoricalOpenResult, HistoricalRecordInspection, HistoricalRecordObservation,
@@ -109,21 +109,13 @@ impl<'runtime> InspectionAccess<'runtime> {
         };
         let aspect_history_observation = match record_observation.target {
             RecordRef::Entity(entity_id) => Some(HistoricalAspectObservation {
-                query_result: self.entity_aspect_history_with_trace(
-                    branch_id,
-                    entity_id,
-                    None::<&AspectFilter>,
-                ),
+                query_result: self.entity_aspect_history_with_trace(branch_id, entity_id, None),
                 origin: InspectionOrigin::CanonicalCommitStorage,
                 access_path: InspectionAccessPath::CommitIndexRead,
                 availability: InspectionAvailability::Direct,
             }),
             RecordRef::Relation(relation_id) => Some(HistoricalAspectObservation {
-                query_result: self.relation_aspect_history_with_trace(
-                    branch_id,
-                    relation_id,
-                    None::<&AspectFilter>,
-                ),
+                query_result: self.relation_aspect_history_with_trace(branch_id, relation_id, None),
                 origin: InspectionOrigin::CanonicalCommitStorage,
                 access_path: InspectionAccessPath::CommitIndexRead,
                 availability: InspectionAvailability::Direct,

@@ -1,33 +1,32 @@
 mod auto_resolution;
-mod binding_values;
+mod value_basis;
 
-use crate::schema::data::{LoweredAspectBinding, LoweredAspectTarget};
-
-use super::contexts::RuntimeAspectValueBinding;
+use crate::schema::data::{AspectBinding, LoweredAspectBinding};
 
 pub(super) use auto_resolution::{resolve_aspect_value_strategy, AutoResolutionStrategy};
+pub(crate) use value_basis::{
+    resolve_policy_aspect_value_basis, PolicyAspectValueBasis, ScalarPolicyAspectBinding,
+    ScalarPolicyBindingDenial,
+};
 
-fn runtime_aspect_value_binding(
+pub(super) fn scalar_policy_aspect_binding(
+    record_kind: crate::merge::data::VisibleMergeRecordKind,
     binding: Option<&LoweredAspectBinding>,
-) -> Option<RuntimeAspectValueBinding> {
-    let binding = binding?;
+) -> Result<ScalarPolicyAspectBinding, ScalarPolicyBindingDenial> {
+    let binding = binding.ok_or(ScalarPolicyBindingDenial::MissingBinding)?;
     match (&binding.target, binding.contract.shape()) {
-        (LoweredAspectTarget::EntityField { .. }, forge_foundational::AspectShape::Scalar(_)) => {
-            Some(RuntimeAspectValueBinding::EntityScalar(
-                binding.aspect_key().clone(),
-            ))
+        (AspectBinding::EntityField { .. }, forge_foundational::AspectShape::Scalar(_)) => {
+            ScalarPolicyAspectBinding::entity(record_kind, binding.aspect_key().clone())
         }
-        (LoweredAspectTarget::EntityField { .. }, forge_foundational::AspectShape::Struct(_)) => {
-            Some(RuntimeAspectValueBinding::EntityStruct)
+        (AspectBinding::EntityField { .. }, forge_foundational::AspectShape::Struct(_)) => {
+            Err(ScalarPolicyBindingDenial::InvalidBuiltInPolicyValueShape)
         }
-        (LoweredAspectTarget::RelationField { .. }, forge_foundational::AspectShape::Scalar(_)) => {
-            Some(RuntimeAspectValueBinding::RelationScalar(
-                binding.aspect_key().clone(),
-            ))
+        (AspectBinding::RelationField { .. }, forge_foundational::AspectShape::Scalar(_)) => {
+            ScalarPolicyAspectBinding::relation(record_kind, binding.aspect_key().clone())
         }
-        (LoweredAspectTarget::RelationField { .. }, forge_foundational::AspectShape::Struct(_)) => {
-            Some(RuntimeAspectValueBinding::RelationStruct)
+        (AspectBinding::RelationField { .. }, forge_foundational::AspectShape::Struct(_)) => {
+            Err(ScalarPolicyBindingDenial::InvalidBuiltInPolicyValueShape)
         }
-        _ => None,
+        _ => Err(ScalarPolicyBindingDenial::MissingBinding),
     }
 }

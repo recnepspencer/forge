@@ -22,9 +22,9 @@ use crate::tests::support::{
     capture_aspect_truth_bundle, changed_entities, checkpoint_and_recover_with,
     create_branch_from_main, create_entity, create_relation_in_partition_on_branch, delete_entity,
     delete_entity_on_branch, delete_relation_on_branch, diagnostic_field,
-    diagnostic_field_optional, entity_field_aspect, entity_i64_field_aspect, field_key,
-    persisted_runtime_with_test_schema, read_entity_aspect_field, unique_test_store_path,
-    update_entity,
+    diagnostic_field_optional, entity_field_aspect, entity_i64_field_aspect,
+    entity_summary_struct_aspect, field_key, persisted_runtime_with_test_schema,
+    read_entity_aspect_field, unique_test_store_path, update_entity,
 };
 use forge_foundational::facade::AspectKey;
 
@@ -203,6 +203,7 @@ fn built_in_last_writer_wins_reject_fallback_is_stable_across_recovery() {
         BranchId("feature".to_string()),
     );
 
+    runtime.performance_access().reset_counters();
     let live_artifact = runtime
         .merge()
         .inspect_planning_scope(
@@ -534,6 +535,20 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
         )),
         "monotonic-counter policy row: {live_policy_row:?}"
     );
+    let value_lookup_counters = runtime.performance_access().counters();
+    assert_eq!(
+        value_lookup_counters.merge_policy_value_source_state_hits,
+        1
+    );
+    assert_eq!(
+        value_lookup_counters.merge_policy_value_target_state_hits,
+        1
+    );
+    assert_eq!(value_lookup_counters.merge_policy_value_base_state_hits, 0);
+    assert_eq!(
+        value_lookup_counters.merge_policy_value_base_patch_fallback_hits,
+        1
+    );
 
     let prepared = runtime
         .prepare_merge_execution(MergeExecutionRequest {
@@ -629,6 +644,27 @@ fn built_in_additive_set_merge_policy_is_rejected_without_native_foundational_se
     assert!(error
         .detail
         .contains("requires a native foundational set contract"));
+}
+
+#[test]
+fn monotonic_counter_merge_policy_rejects_struct_shape_during_schema_planning() {
+    let error = register_aspect_field_merge_policy(
+        AspectKey::new("summary").unwrap(),
+        entity_summary_struct_aspect(
+            crate::tests::support::aspect_key("summary"),
+            crate::tests::support::field_key("summary"),
+        ),
+        AspectMergePolicyKind::MonotonicCounter,
+    )
+    .unwrap_err();
+
+    assert!(matches!(
+        error.class,
+        SchemaRegistryErrorClass::InvalidAspectDeclaration { .. }
+    ));
+    assert!(error
+        .detail
+        .contains("requires an integer scalar record-field foundational contract"));
 }
 
 #[test]

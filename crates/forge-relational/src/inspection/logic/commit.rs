@@ -3,7 +3,7 @@ use crate::inspection::data::{
     CommitInspection, InspectionAccessPath, InspectionOrigin, RecentCommitInspectionRequest,
     RecentCommitInspectionWindow,
 };
-use crate::publication::patch::data::CanonicalAspectSet;
+use crate::publication::patch::data::ordered_aspect_keys;
 
 use super::access::InspectionAccess;
 
@@ -27,7 +27,7 @@ impl<'runtime> InspectionAccess<'runtime> {
             lineage_digest_basis: envelope.lineage_digest_basis().clone(),
             lineage_artifact_counters: envelope.lineage_artifact_counters(),
             derived_index_artifacts: envelope.derived_index_artifacts().clone(),
-            changed_aspects: CanonicalAspectSet::new(
+            changed_aspects: ordered_aspect_keys(
                 envelope
                     .patch
                     .records

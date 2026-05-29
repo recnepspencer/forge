@@ -1,4 +1,5 @@
 mod aspect_trace_projection;
+mod changed_authoritative_patch;
 mod data;
 mod engine;
 mod lifecycle_transition_evidence;

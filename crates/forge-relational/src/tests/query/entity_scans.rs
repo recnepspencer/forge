@@ -1,14 +1,16 @@
 use crate::facade::identity::EntityId;
-use crate::facade::runtime::{EntityProjectionRecord, EntityRecordProjection};
+use crate::facade::runtime::{
+    EntityProjectionRecord, EntityRecordProjection, ProjectionAspectScope,
+};
 use crate::tests::support::*;
 use forge_foundational::facade::{AspectValue, InternedString};
 use std::sync::OnceLock;
 
-fn entity_name_aspects() -> &'static [AspectKey] {
+fn entity_name_aspects() -> Vec<AspectKey> {
     static ASPECTS: OnceLock<Vec<AspectKey>> = OnceLock::new();
     ASPECTS
         .get_or_init(|| vec![AspectKey::new("name").unwrap()])
-        .as_slice()
+        .clone()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,8 +22,8 @@ struct NamedEntityProjection {
 impl EntityRecordProjection for NamedEntityProjection {
     const KIND: KindId = KindId(1);
 
-    fn required_aspects() -> &'static [AspectKey] {
-        entity_name_aspects()
+    fn projection_scope() -> ProjectionAspectScope {
+        ProjectionAspectScope::whole_aspects(entity_name_aspects())
     }
 
     fn from_record(record: EntityProjectionRecord<'_>) -> Option<Self> {

@@ -160,7 +160,7 @@ fn chip_profile_declared_aspect_fanout_preserves_endpoint_history_for_netlist_li
         assert_direct_history_origin_invariants(&history, RecordRef::Relation(relation));
         assert_eq!(
             history[0].origin.changed_aspects,
-            CanonicalAspectSet::new([
+            ordered_aspect_keys([
                 aspect_key("label"),
                 aspect_key("lifecycle"),
                 aspect_key("source"),
@@ -169,7 +169,7 @@ fn chip_profile_declared_aspect_fanout_preserves_endpoint_history_for_netlist_li
         );
         assert_eq!(
             history[1].origin.changed_aspects,
-            CanonicalAspectSet::new([aspect_key("lifecycle")])
+            ordered_aspect_keys([aspect_key("lifecycle")])
         );
     }
 }
@@ -283,7 +283,7 @@ fn chip_profile_branch_local_topology_pressure_preserves_relation_history_isolat
     assert_direct_history_origin_invariants(&main_history, RecordRef::Relation(relation));
     assert_eq!(
         main_history[0].origin.changed_aspects,
-        CanonicalAspectSet::new([
+        ordered_aspect_keys([
             aspect_key("label"),
             aspect_key("lifecycle"),
             aspect_key("source"),

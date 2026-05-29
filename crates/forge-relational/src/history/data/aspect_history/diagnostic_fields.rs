@@ -1,9 +1,11 @@
 use crate::diagnostics::data::{RelationalDiagnosticFields, RelationalDiagnosticValue};
-use crate::publication::patch::data::CanonicalAspectSet;
+use crate::visibility::materialization::read_records::{
+    ProjectionAspectFilter, ProjectionAspectFilterMode,
+};
 
 use super::{
-    AspectFilter, AspectFilterMode, AspectHistoryCommitSpan, AspectHistoryLineageEventSpan,
-    AspectHistoryResolutionTrace, HistoryAspectQueryTarget,
+    AspectHistoryCommitSpan, AspectHistoryLineageEventSpan, AspectHistoryResolutionTrace,
+    HistoryAspectQueryTarget,
 };
 
 pub(super) fn aspect_history_resolution_trace_fields(
@@ -74,32 +76,51 @@ fn history_query_target_value(target: &HistoryAspectQueryTarget) -> RelationalDi
     }
 }
 
-fn filter_value(filter: Option<&AspectFilter>) -> RelationalDiagnosticValue {
+fn filter_value(filter: Option<&ProjectionAspectFilter>) -> RelationalDiagnosticValue {
     RelationalDiagnosticValue::optional(filter.map(|filter| {
         RelationalDiagnosticValue::object([
-            ("filter_mode", filter_mode_value(filter.mode)),
+            ("filter_mode", filter_mode_value(filter.mode())),
             (
-                "requested_aspects",
+                "requested_projection_scope",
                 RelationalDiagnosticValue::array(
                     filter
-                        .aspects
+                        .projection_scope()
+                        .requirements()
                         .iter()
-                        .cloned()
-                        .map(RelationalDiagnosticValue::AspectKey),
+                        .map(|requirement| {
+                            RelationalDiagnosticValue::object([
+                                (
+                                    "aspect_key",
+                                    RelationalDiagnosticValue::AspectKey(
+                                        requirement.aspect_key().clone(),
+                                    ),
+                                ),
+                                (
+                                    "mask_locus",
+                                    if requirement.mask().is_whole_aspect() {
+                                        RelationalDiagnosticValue::string("whole_aspect")
+                                    } else {
+                                        RelationalDiagnosticValue::string("field_paths")
+                                    },
+                                ),
+                            ])
+                        }),
                 ),
             ),
         ])
     }))
 }
 
-fn filter_mode_value(mode: AspectFilterMode) -> RelationalDiagnosticValue {
+fn filter_mode_value(mode: ProjectionAspectFilterMode) -> RelationalDiagnosticValue {
     match mode {
-        AspectFilterMode::Any => RelationalDiagnosticValue::string("any"),
-        AspectFilterMode::All => RelationalDiagnosticValue::string("all"),
+        ProjectionAspectFilterMode::Any => RelationalDiagnosticValue::string("any"),
+        ProjectionAspectFilterMode::All => RelationalDiagnosticValue::string("all"),
     }
 }
 
-fn canonical_aspect_set_value(aspects: &CanonicalAspectSet) -> RelationalDiagnosticValue {
+fn canonical_aspect_set_value(
+    aspects: &[forge_foundational::facade::AspectKey],
+) -> RelationalDiagnosticValue {
     RelationalDiagnosticValue::array(
         aspects
             .iter()

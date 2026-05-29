@@ -1,5 +1,5 @@
 use crate::identity::data::EntityId;
-use crate::schema::data::{LoweredAspectBinding, LoweredAspectTarget};
+use crate::schema::data::{AspectBinding, LoweredAspectBinding};
 use forge_foundational::facade::AspectKey;
 use forge_foundational::facade::{
     AspectShape, AuthoritativeRecordAspectState, ContractValidatedAspectValueView,
@@ -56,23 +56,21 @@ fn materialize_binding_state(
     side: MaterializationSide,
 ) -> Result<MaterializedAspectState, CanonicalDeltaError> {
     match &binding.target {
-        LoweredAspectTarget::EntityField { field } => {
+        AspectBinding::EntityField { field } => {
             materialize_entity_field_binding_state(binding, context, side, field)
         }
-        LoweredAspectTarget::RelationField { .. } => {
+        AspectBinding::RelationField { .. } => {
             materialize_relation_field_binding_state(binding, context, side)
         }
-        LoweredAspectTarget::RelationSourceEndpoint => {
+        AspectBinding::RelationSourceEndpoint => {
             materialize_relation_source_endpoint_binding_state(binding, context, side)
         }
-        LoweredAspectTarget::RelationTargetEndpoint => {
+        AspectBinding::RelationTargetEndpoint => {
             materialize_relation_target_endpoint_binding_state(binding, context, side)
         }
-        LoweredAspectTarget::LifecycleTransition => {
-            Ok(MaterializedAspectState::LifecycleTransition(
-                lifecycle_transition(context.structural_change()),
-            ))
-        }
+        AspectBinding::LifecycleTransition => Ok(MaterializedAspectState::LifecycleTransition(
+            lifecycle_transition(context.structural_change()),
+        )),
     }
 }
 

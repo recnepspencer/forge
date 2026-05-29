@@ -8,10 +8,7 @@ use crate::identity::data::KindId;
 use crate::merge::data::{AspectMergePolicyDeclaration, IdentityBasisDeclaration};
 use forge_foundational::facade::AspectKey;
 
-use super::{
-    AspectBinding, AspectPlanRevision, KindAspectDeclarations, LoweredAspectPlan,
-    LoweredAspectTarget,
-};
+use super::{AspectBinding, AspectPlanRevision, KindAspectDeclarations, LoweredAspectPlan};
 use diagnostic_fields::{declaration_trace_diagnostic_fields, lowering_trace_diagnostic_fields};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -44,7 +41,7 @@ pub struct AspectLoweringTrace {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AspectLoweringTraceRow {
     pub aspect_key: AspectKey,
-    pub target: LoweredAspectTarget,
+    pub target: AspectBinding,
     pub aspect_shape: forge_foundational::AspectShape,
 }
 

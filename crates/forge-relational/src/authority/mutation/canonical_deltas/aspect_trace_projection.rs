@@ -4,8 +4,9 @@ use crate::transactions::data::{
 };
 
 use super::data::{
-    AuthoritativeDeltaPatchOperation, CanonicalAspectDeltaEvidence, CanonicalRecordAspectDelta,
-    EvaluatedAspectBinding, LifecycleTransitionClass,
+    AuthoritativeDeltaPatchOperation, AuthoritativeDeltaPatchSetValue,
+    CanonicalAspectDeltaEvidence, CanonicalRecordAspectDelta, EvaluatedAspectBinding,
+    LifecycleTransitionClass,
 };
 
 impl CanonicalRecordAspectDelta {
@@ -85,7 +86,7 @@ impl AuthoritativeDeltaPatchOperation {
         match self {
             Self::WholeAspectSet { value } => {
                 crate::transactions::data::AspectTracePatchOperation::WholeAspectSet {
-                    value: value.clone(),
+                    value: value.trace_patch_set_value(),
                 }
             }
             Self::WholeAspectClear => {
@@ -104,6 +105,19 @@ impl AuthoritativeDeltaPatchOperation {
                     .filter_map(|locator| locator.field_path().fields().first().cloned())
                     .collect(),
             },
+        }
+    }
+}
+
+impl AuthoritativeDeltaPatchSetValue {
+    fn trace_patch_set_value(&self) -> crate::transactions::data::AspectTracePatchSetValue {
+        match self {
+            Self::Scalar(value) => {
+                crate::transactions::data::AspectTracePatchSetValue::Scalar(value.clone())
+            }
+            Self::Struct(value) => {
+                crate::transactions::data::AspectTracePatchSetValue::Struct(value.clone())
+            }
         }
     }
 }

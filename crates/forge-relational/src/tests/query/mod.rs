@@ -1,6 +1,7 @@
 mod concurrency;
 mod entity_scans;
 mod execution;
+mod field_mask_projections;
 mod index_observation_paths;
 mod indexes;
 mod planning;

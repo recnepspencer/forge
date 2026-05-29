@@ -1,16 +1,17 @@
 use std::collections::BTreeSet;
 
 use crate::history::data::{
-    AspectFilter, AspectHistoryCommitSpan, AspectHistoryEntry, AspectHistoryLineageEventSpan,
+    AspectHistoryCommitSpan, AspectHistoryEntry, AspectHistoryLineageEventSpan,
     AspectHistoryOrigin, AspectHistoryQueryResult, AspectHistoryResolutionTrace,
     AspectResolutionContext, BranchId, HistoryAspectQueryTarget, LineageAspectHistory,
     LineageAspectHistoryQueryResult,
 };
 use crate::identity::data::{EntityId, LineageId, RelationId};
 use crate::lineage::data::HistoricalResolutionRequest;
-use crate::publication::patch::data::CanonicalAspectSet;
+use crate::publication::patch::data::ordered_aspect_keys;
 use crate::replay::data::CanonicalCommitEnvelope;
 use crate::transactions::data::RecordRef;
+use crate::visibility::materialization::read_records::ProjectionAspectFilter;
 
 use super::HistoryAccess;
 
@@ -19,7 +20,7 @@ impl<'runtime> HistoryAccess<'runtime> {
         &self,
         branch_id: &BranchId,
         entity_id: EntityId,
-        filter: Option<&AspectFilter>,
+        filter: Option<&ProjectionAspectFilter>,
     ) -> Vec<AspectHistoryEntry> {
         self.entity_aspect_history_with_trace(branch_id, entity_id, filter)
             .entries
@@ -29,7 +30,7 @@ impl<'runtime> HistoryAccess<'runtime> {
         &self,
         branch_id: &BranchId,
         relation_id: RelationId,
-        filter: Option<&AspectFilter>,
+        filter: Option<&ProjectionAspectFilter>,
     ) -> Vec<AspectHistoryEntry> {
         self.relation_aspect_history_with_trace(branch_id, relation_id, filter)
             .entries
@@ -39,7 +40,7 @@ impl<'runtime> HistoryAccess<'runtime> {
         &self,
         branch_id: &BranchId,
         entity_id: EntityId,
-        filter: Option<&AspectFilter>,
+        filter: Option<&ProjectionAspectFilter>,
     ) -> AspectHistoryQueryResult {
         self.record_aspect_history_with_trace(
             branch_id,
@@ -53,7 +54,7 @@ impl<'runtime> HistoryAccess<'runtime> {
         &self,
         branch_id: &BranchId,
         relation_id: RelationId,
-        filter: Option<&AspectFilter>,
+        filter: Option<&ProjectionAspectFilter>,
     ) -> AspectHistoryQueryResult {
         self.record_aspect_history_with_trace(
             branch_id,
@@ -67,7 +68,7 @@ impl<'runtime> HistoryAccess<'runtime> {
         &self,
         branch_id: &BranchId,
         lineage_id: LineageId,
-        filter: Option<&AspectFilter>,
+        filter: Option<&ProjectionAspectFilter>,
     ) -> Option<LineageAspectHistory> {
         self.lineage_entity_aspect_history_with_trace(branch_id, lineage_id, filter)
             .history
@@ -77,7 +78,7 @@ impl<'runtime> HistoryAccess<'runtime> {
         &self,
         branch_id: &BranchId,
         lineage_id: LineageId,
-        filter: Option<&AspectFilter>,
+        filter: Option<&ProjectionAspectFilter>,
     ) -> LineageAspectHistoryQueryResult {
         let resolution = self
             .runtime
@@ -90,10 +91,15 @@ impl<'runtime> HistoryAccess<'runtime> {
             });
         let lineage_scope = self.lineage_scope(&resolution.start, &resolution.traversed_event_ids);
         let envelopes = self.branch_commit_envelopes(branch_id);
-        let mut entries = envelopes
+        let entries = envelopes
             .iter()
             .flat_map(|envelope| {
                 envelope.committed_record_changes().filter_map(|change| {
+                    if filter.is_some_and(|aspect_filter| {
+                        !aspect_filter.matches_published_patch(&change.record.authoritative_patch)
+                    }) {
+                        return None;
+                    }
                     match change.record.target {
                         RecordRef::Entity(entity_id)
                             if self
@@ -115,9 +121,6 @@ impl<'runtime> HistoryAccess<'runtime> {
                 })
             })
             .collect::<Vec<_>>();
-        if let Some(filter) = filter {
-            entries.retain(|entry| filter.matches(&entry.origin.changed_aspects));
-        }
         let trace = AspectHistoryResolutionTrace {
             requested_target: HistoryAspectQueryTarget::Lineage(lineage_id),
             branch_id: branch_id.clone(),
@@ -148,7 +151,7 @@ impl<'runtime> HistoryAccess<'runtime> {
         branch_id: &BranchId,
         target: RecordRef,
         requested_target: HistoryAspectQueryTarget,
-        filter: Option<&AspectFilter>,
+        filter: Option<&ProjectionAspectFilter>,
     ) -> AspectHistoryQueryResult {
         let envelopes = self.branch_commit_envelopes(branch_id);
         let entries = envelopes
@@ -157,8 +160,10 @@ impl<'runtime> HistoryAccess<'runtime> {
                 envelope
                     .committed_record_changes_for_target(&target)
                     .filter(move |change| {
-                        let changed_aspects = change.record.authoritative_changed_aspects();
-                        filter.is_none_or(|aspect_filter| aspect_filter.matches(&changed_aspects))
+                        filter.is_none_or(|aspect_filter| {
+                            aspect_filter
+                                .matches_published_patch(&change.record.authoritative_patch)
+                        })
                     })
                     .map(|change| AspectHistoryEntry {
                         origin: aspect_history_origin(change),
@@ -203,8 +208,8 @@ impl<'runtime> HistoryAccess<'runtime> {
 
     fn resolved_aspects<'a>(
         entries: impl IntoIterator<Item = &'a AspectHistoryEntry>,
-    ) -> CanonicalAspectSet {
-        CanonicalAspectSet::new(
+    ) -> Vec<forge_foundational::facade::AspectKey> {
+        ordered_aspect_keys(
             entries
                 .into_iter()
                 .flat_map(|entry| entry.origin.changed_aspects.iter().cloned()),

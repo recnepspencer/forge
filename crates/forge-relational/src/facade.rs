@@ -99,10 +99,10 @@ pub mod errors {
 
 pub mod history {
     pub use crate::history::data::{
-        AspectFilter, AspectFilterMode, AspectHistoryCommitSpan, AspectHistoryDigest,
-        AspectHistoryEntry, AspectHistoryLineageEventSpan, AspectHistoryOrigin,
-        AspectHistoryQueryResult, AspectHistoryResolutionTrace, AspectResolutionContext,
-        BranchCreateError, BranchCreateErrorClass, BranchHead, BranchId, CommitId, CommitReference,
+        AspectHistoryCommitSpan, AspectHistoryDigest, AspectHistoryEntry,
+        AspectHistoryLineageEventSpan, AspectHistoryOrigin, AspectHistoryQueryResult,
+        AspectHistoryResolutionTrace, AspectResolutionContext, BranchCreateError,
+        BranchCreateErrorClass, BranchHead, BranchId, CommitId, CommitReference,
         HistoryAspectQueryTarget, HistoryDriftClass, HistoryRetentionClass,
         HistoryShapeClassification, LineageAspectHistory, LineageAspectHistoryQueryResult,
         LineageAspectResolutionDigest, MergeConflictRecord, MergeInspection, OrderedParentList,
@@ -239,6 +239,10 @@ pub mod runtime {
         StructuralRelationRecord, StructuralRelationView, UniqueEntityAspectField,
     };
     pub use crate::visibility::authority::VisibilityAuthority as SnapshotAuthority;
+    pub use crate::visibility::materialization::read_records::{
+        ProjectionAspectFilter, ProjectionAspectFilterMode, ProjectionAspectRequirement,
+        ProjectionAspectScope,
+    };
 }
 
 #[cfg(test)]
@@ -267,10 +271,9 @@ pub mod publication {
         PublicationSubscriberStreamAccess, PublicationSurface,
     };
     pub use crate::publication::patch::data::{
-        CanonicalAspectSet, PatchDetail, PatchFragmentBudget, PatchOrdering, PatchPublicationMode,
-        PatchRecord, PatchStreamBatch, PatchStreamPosition, PatchStreamReadError,
-        PatchStreamReadErrorClass, PatchStreamRequest, RecordStructuralChange,
-        RelationalPatchRecord,
+        PatchDetail, PatchFragmentBudget, PatchOrdering, PatchPublicationMode, PatchRecord,
+        PatchStreamBatch, PatchStreamPosition, PatchStreamReadError, PatchStreamReadErrorClass,
+        PatchStreamRequest, RecordStructuralChange, RelationalPatchRecord,
     };
 }
 
@@ -310,7 +313,7 @@ pub mod schema {
         EndpointDeletionIntegrityMode, EndpointKindContractDeclaration, EntityKindRegistration,
         FreeFormSchemaDiffIntent, HistoricalInterpretationSensitivity, KindAspectDeclarations,
         KindResolution, LoweredAcyclicityContract, LoweredAspectBinding, LoweredAspectPlan,
-        LoweredAspectTarget, LoweredCardinalityMaximumContract, LoweredCardinalityMinimumContract,
+        LoweredCardinalityMaximumContract, LoweredCardinalityMinimumContract,
         LoweredConnectivityMinimumContract, LoweredEndpointDeletionIntegrityContract,
         LoweredEndpointKindContract, LoweredPartitionIsolationContract,
         LoweredRelationIntegrityPlan, LoweredSchemaTransitionPlan, LoweredSymmetryContract,
@@ -352,13 +355,13 @@ pub mod transactions {
     pub use crate::transactions::data::{
         AspectEmissionTrace, AspectEvaluationTrace, AspectEvaluationTraceRow, AspectFieldPatch,
         AspectFieldPatchTarget, AspectLifecycleTransitionClass, AspectTagAccuracyReport,
-        AspectTraceEvidence, AspectTracePatchOperation, AuthoritativeApplyPlan, AuthorityMode,
-        BulkEntityCreateIntent, BulkMutationLineagePlan, BulkMutationLocalityFootprint,
-        BulkMutationNamingPlan, BulkMutationProvenancePlan, BulkMutationScope,
-        BulkRelationCreateIntent, CommitAspectSummary, CommitAuthority, CommitChangeSummary,
-        CommitConflict, CommitHistorySummary, CommitLog, CommitOutcome, CommitPatchBudgetSummary,
-        CommitPhase, CommitPhaseTiming, CommitPublicationSummary, CommitResult,
-        CommitSchemaSummary, CommitStructuralSummary, CommitSummary, CommitTopology,
+        AspectTraceEvidence, AspectTracePatchOperation, AspectTracePatchSetValue,
+        AuthoritativeApplyPlan, AuthorityMode, BulkEntityCreateIntent, BulkMutationLineagePlan,
+        BulkMutationLocalityFootprint, BulkMutationNamingPlan, BulkMutationProvenancePlan,
+        BulkMutationScope, BulkRelationCreateIntent, CommitAspectSummary, CommitAuthority,
+        CommitChangeSummary, CommitConflict, CommitHistorySummary, CommitLog, CommitOutcome,
+        CommitPatchBudgetSummary, CommitPhase, CommitPhaseTiming, CommitPublicationSummary,
+        CommitResult, CommitSchemaSummary, CommitStructuralSummary, CommitSummary, CommitTopology,
         CommitTraceEvent, ConflictClass, CreateIntent, CreatedEntityRef, CrossContextEndpointClass,
         DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent, EntityReference,
         EntitySpec, LineageSafeBulkMutationBatch, MergeCommitMutationPlan, MergeExecutionOutcome,

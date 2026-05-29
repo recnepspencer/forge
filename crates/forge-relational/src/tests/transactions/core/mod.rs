@@ -14,9 +14,9 @@ use crate::facade::runtime::{InvariantExecutionPoint, RelationalExecutionModel};
 use crate::facade::schema::SchemaRegistryError;
 use crate::facade::storage::RecordLifecycleState;
 use crate::facade::transactions::{
-    AspectTraceEvidence, AspectTracePatchOperation, AuthorityMode, CommitPatchBudgetSummary,
-    CommitPhase, CommitTopology, CommitTraceEvent, EntitySpec, MutationIntent, RelationSpec,
-    TransactionCommitError,
+    AspectTraceEvidence, AspectTracePatchOperation, AspectTracePatchSetValue, AuthorityMode,
+    CommitPatchBudgetSummary, CommitPhase, CommitTopology, CommitTraceEvent, EntitySpec,
+    MutationIntent, RelationSpec, TransactionCommitError,
 };
 use crate::publication::patch::data::{
     PublishedAuthoritativePatchOperation, PublishedAuthoritativePatchValue,
@@ -254,11 +254,11 @@ fn update_entity_fields_canonical_delta_uses_authoritative_patch_evidence() {
     assert!(row.changed);
     assert_eq!(
         trace.changed_aspects,
-        CanonicalAspectSet::new([AspectKey::new("name").unwrap()])
+        ordered_aspect_keys([AspectKey::new("name").unwrap()])
     );
     assert_eq!(
         patch_record.authoritative_changed_aspects(),
-        CanonicalAspectSet::new([AspectKey::new("name").unwrap()])
+        ordered_aspect_keys([AspectKey::new("name").unwrap()])
     );
     assert!(matches!(
         patch_record.authoritative_patch.operations.as_slice(),
@@ -284,7 +284,7 @@ fn update_entity_fields_canonical_delta_uses_authoritative_patch_evidence() {
         &row.evidence,
         AspectTraceEvidence::AuthoritativePatchOperation {
             operation: AspectTracePatchOperation::WholeAspectSet {
-                value: Some(value)
+                value: AspectTracePatchSetValue::Scalar(value)
             }
         } if value == &AspectValue::String("after".into())
     ));
@@ -361,7 +361,7 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
     );
     assert_eq!(
         patch_record.authoritative_changed_aspects(),
-        CanonicalAspectSet::new([AspectKey::new("summary").unwrap()])
+        ordered_aspect_keys([AspectKey::new("summary").unwrap()])
     );
     assert!(matches!(
         patch_record.authoritative_patch.operations.as_slice(),
@@ -833,7 +833,7 @@ fn commit_publication_exposes_aspect_evaluation_and_emission_traces() {
     );
     assert_eq!(
         evaluation_traces[0].changed_aspects,
-        CanonicalAspectSet::new([
+        ordered_aspect_keys([
             AspectKey::new("lifecycle").unwrap(),
             AspectKey::new("name").unwrap(),
         ])
@@ -1056,18 +1056,11 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: crate::symbols::data::ClientKey::raw("aspect-entity"),
-                fields: crate::tests::support::string_aspect_field_patch([
-                    (
-                        crate::tests::support::aspect_key("name"),
-                        crate::tests::support::field_key("name"),
-                        "before",
-                    ),
-                    (
-                        crate::tests::support::aspect_key("ignored"),
-                        crate::tests::support::field_key("ignored"),
-                        "not-an-aspect",
-                    ),
-                ]),
+                fields: crate::tests::support::string_aspect_field_patch([(
+                    crate::tests::support::aspect_key("name"),
+                    crate::tests::support::field_key("name"),
+                    "before",
+                )]),
             },
         ))),
     );
@@ -1084,7 +1077,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
     );
     assert_eq!(
         created_patch.authoritative_changed_aspects(),
-        CanonicalAspectSet::new([
+        ordered_aspect_keys([
             AspectKey::new("lifecycle").unwrap(),
             AspectKey::new("name").unwrap(),
         ])
@@ -1099,18 +1092,11 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
             WorkerIntentBatch::new("update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    fields: crate::tests::support::string_aspect_field_patch([
-                        (
-                            crate::tests::support::aspect_key("name"),
-                            crate::tests::support::field_key("name"),
-                            "after",
-                        ),
-                        (
-                            crate::tests::support::aspect_key("ignored"),
-                            crate::tests::support::field_key("ignored"),
-                            "still-not-an-aspect",
-                        ),
-                    ]),
+                    fields: crate::tests::support::string_aspect_field_patch([(
+                        crate::tests::support::aspect_key("name"),
+                        crate::tests::support::field_key("name"),
+                        "after",
+                    )]),
                 }),
             )),
         );
@@ -1127,7 +1113,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
     );
     assert_eq!(
         updated_patch.authoritative_changed_aspects(),
-        CanonicalAspectSet::new([AspectKey::new("name").unwrap()])
+        ordered_aspect_keys([AspectKey::new("name").unwrap()])
     );
     let updated_read = runtime
         .read_truth()
@@ -1146,41 +1132,30 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
         ContractValidatedAspectValueView::Scalar(AspectValue::String(value))
             if value == &"after".into()
     ));
-    assert!(!updated_patch
-        .authoritative_changed_aspects()
-        .iter()
-        .any(|aspect| { *aspect == AspectKey::new("ignored").unwrap() }));
     assert_eq!(updated_aspect_summary.changed_entity_aspect_count, 1);
 
-    let ignored_only_update = {
+    let idempotent_declared_update = {
         let mut txn = runtime.begin_transaction(TransactionOptions::default());
-        txn.push_batch(
-            WorkerIntentBatch::new("ignored-only-update").push(MutationIntent::Entity(
-                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
+        txn.push_batch(WorkerIntentBatch::new("idempotent-declared-update").push(
+            MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    fields: crate::tests::support::string_aspect_field_patch([
-                        (
-                            crate::tests::support::aspect_key("name"),
-                            crate::tests::support::field_key("name"),
-                            "after",
-                        ),
-                        (
-                            crate::tests::support::aspect_key("ignored"),
-                            crate::tests::support::field_key("ignored"),
-                            "ignored-only-change",
-                        ),
-                    ]),
-                }),
+                    fields: crate::tests::support::single_string_aspect_field_patch(
+                        crate::tests::support::aspect_key("name"),
+                        crate::tests::support::field_key("name"),
+                        "after",
+                    ),
+                },
             )),
-        );
+        ));
         txn.commit().unwrap()
     };
     assert_eq!(
-        ignored_only_update.patch()[0].authoritative_changed_aspects(),
-        CanonicalAspectSet::empty()
+        idempotent_declared_update.patch()[0].authoritative_changed_aspects(),
+        Vec::new()
     );
     assert_eq!(
-        ignored_only_update
+        idempotent_declared_update
             .aspect_summary()
             .unwrap()
             .changed_entity_aspect_count,
@@ -1196,7 +1171,7 @@ fn entity_patch_aspects_follow_declared_contract_targets() {
     );
     assert_eq!(
         deleted_patch.authoritative_changed_aspects(),
-        CanonicalAspectSet::new([
+        ordered_aspect_keys([
             AspectKey::new("lifecycle").unwrap(),
             AspectKey::new("name").unwrap(),
         ])
@@ -1223,7 +1198,7 @@ fn retained_relation_patch_only_emits_declared_lifecycle_delta_when_endpoints_an
     );
     assert_eq!(
         relation_patch.authoritative_changed_aspects(),
-        CanonicalAspectSet::new([
+        ordered_aspect_keys([
             AspectKey::new("label").unwrap(),
             AspectKey::new("lifecycle").unwrap(),
             AspectKey::new("source").unwrap(),
@@ -1248,7 +1223,7 @@ fn retained_relation_patch_only_emits_declared_lifecycle_delta_when_endpoints_an
     );
     assert_eq!(
         retained_relation_patch.authoritative_changed_aspects(),
-        CanonicalAspectSet::new([AspectKey::new("lifecycle").unwrap()])
+        ordered_aspect_keys([AspectKey::new("lifecycle").unwrap()])
     );
     assert!(!retained_relation_patch.contains_opaque_aspect);
     assert_eq!(deleted_source_aspect_summary.changed_entity_aspect_count, 2);
@@ -1607,6 +1582,9 @@ fn historical_reads_preserve_generation_and_aspects_after_slot_reuse() {
     assert!(runtime
         .visibility_authority()
         .release_snapshot(&deleted.snapshot));
+    assert!(runtime
+        .history_authority()
+        .retain_version_for_replay(created.version_id));
     let _ = runtime.retention().run_pass();
     let replacement = create_entity(&mut runtime, "after");
 
@@ -1617,6 +1595,9 @@ fn historical_reads_preserve_generation_and_aspects_after_slot_reuse() {
     assert_eq!(read_entity_name(record), Some("before".into()));
     assert_eq!(original.local_slot, replacement.local_slot);
     assert!(replacement.generation.0 > original.generation.0);
+    assert!(runtime
+        .history_authority()
+        .release_version_replay_retention(created.version_id));
 }
 
 #[test]

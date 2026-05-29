@@ -7,11 +7,10 @@ use crate::identity::data::VersionId;
 use crate::identity::data::{EntityId, RelationId};
 
 pub use aspect_history::{
-    AspectFilter, AspectFilterMode, AspectHistoryCommitSpan, AspectHistoryDigest,
-    AspectHistoryEntry, AspectHistoryLineageEventSpan, AspectHistoryOrigin,
-    AspectHistoryQueryResult, AspectHistoryResolutionTrace, AspectResolutionContext,
-    HistoryAspectQueryTarget, LineageAspectHistory, LineageAspectHistoryQueryResult,
-    LineageAspectResolutionDigest,
+    AspectHistoryCommitSpan, AspectHistoryDigest, AspectHistoryEntry,
+    AspectHistoryLineageEventSpan, AspectHistoryOrigin, AspectHistoryQueryResult,
+    AspectHistoryResolutionTrace, AspectResolutionContext, HistoryAspectQueryTarget,
+    LineageAspectHistory, LineageAspectHistoryQueryResult, LineageAspectResolutionDigest,
 };
 pub use branch_creation::{BranchCreateError, BranchCreateErrorClass};
 

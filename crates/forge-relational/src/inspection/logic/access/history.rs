@@ -1,9 +1,8 @@
-use crate::history::data::{
-    AspectFilter, AspectHistoryQueryResult, BranchId, CommitId, CommitReference,
-};
+use crate::history::data::{AspectHistoryQueryResult, BranchId, CommitId, CommitReference};
 use crate::identity::data::{EntityId, RelationId};
 use crate::lineage::data::HistoricalLineageResolution;
 use crate::replay::data::CanonicalCommitEnvelope;
+use crate::visibility::materialization::read_records::ProjectionAspectFilter;
 
 use super::InspectionAccess;
 
@@ -43,7 +42,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         &self,
         branch_id: &BranchId,
         entity_id: EntityId,
-        filter: Option<&AspectFilter>,
+        filter: Option<&ProjectionAspectFilter>,
     ) -> AspectHistoryQueryResult {
         self.runtime
             .history()
@@ -54,7 +53,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         &self,
         branch_id: &BranchId,
         relation_id: RelationId,
-        filter: Option<&AspectFilter>,
+        filter: Option<&ProjectionAspectFilter>,
     ) -> AspectHistoryQueryResult {
         self.runtime
             .history()

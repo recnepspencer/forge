@@ -8,26 +8,17 @@ pub(super) enum TraversalMode {
 }
 
 pub(super) fn aspect_filter_matches_entity(
-    runtime: &RelationalRuntime,
     record: &EntityReadRecord,
-    aspect_filter: &AspectFilter,
+    aspect_filter: &ProjectionAspectFilter,
 ) -> bool {
-    let aspects = CanonicalAspectSet::new(super::aspect_catalog::declared_aspects_for_entity_kind(
-        runtime,
-        record.kind.kind_id,
-    ));
-    aspect_filter.matches(&aspects)
+    aspect_filter.matches_authoritative_state(record.authoritative_aspect_state.as_ref())
 }
 
 pub(super) fn aspect_filter_matches_relation(
-    runtime: &RelationalRuntime,
     record: &RelationReadRecord,
-    aspect_filter: &AspectFilter,
+    aspect_filter: &ProjectionAspectFilter,
 ) -> bool {
-    let aspects = CanonicalAspectSet::new(
-        super::aspect_catalog::declared_aspects_for_relation_kind(runtime, record.kind.kind_id),
-    );
-    aspect_filter.matches(&aspects)
+    aspect_filter.matches_authoritative_state(record.authoritative_aspect_state.as_ref())
 }
 
 pub(super) fn traversal_fragment(

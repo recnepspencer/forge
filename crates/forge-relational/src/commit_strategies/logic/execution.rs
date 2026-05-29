@@ -408,13 +408,19 @@ mod tests {
     {
         const KIND: KindId = KindId(100);
 
-        fn required_aspects() -> &'static [forge_foundational::facade::AspectKey] {
+        fn projection_scope(
+        ) -> crate::visibility::materialization::read_records::ProjectionAspectScope {
             static REQUIRED: OnceLock<Box<[forge_foundational::facade::AspectKey]>> =
                 OnceLock::new();
-            REQUIRED.get_or_init(|| {
-                vec![forge_foundational::facade::AspectKey::new("missing.aspect").unwrap()]
-                    .into_boxed_slice()
-            })
+            crate::visibility::materialization::read_records::ProjectionAspectScope::whole_aspects(
+                REQUIRED
+                    .get_or_init(|| {
+                        vec![forge_foundational::facade::AspectKey::new("missing.aspect").unwrap()]
+                            .into_boxed_slice()
+                    })
+                    .iter()
+                    .cloned(),
+            )
         }
 
         fn from_record(

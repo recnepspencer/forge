@@ -1,13 +1,15 @@
 use crate::facade::identity::EntityId;
-use crate::facade::runtime::{RelationProjectionRecord, RelationRecordProjection};
+use crate::facade::runtime::{
+    ProjectionAspectScope, RelationProjectionRecord, RelationRecordProjection,
+};
 use crate::tests::support::*;
 use std::sync::OnceLock;
 
-fn relation_label_aspects() -> &'static [AspectKey] {
+fn relation_label_aspects() -> Vec<AspectKey> {
     static ASPECTS: OnceLock<Vec<AspectKey>> = OnceLock::new();
     ASPECTS
         .get_or_init(|| vec![AspectKey::new("label").unwrap()])
-        .as_slice()
+        .clone()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,8 +22,8 @@ struct EdgeProjection {
 impl RelationRecordProjection for EdgeProjection {
     const KIND: KindId = KindId(2);
 
-    fn required_aspects() -> &'static [AspectKey] {
-        relation_label_aspects()
+    fn projection_scope() -> ProjectionAspectScope {
+        ProjectionAspectScope::whole_aspects(relation_label_aspects())
     }
 
     fn from_record(record: RelationProjectionRecord<'_>) -> Option<Self> {

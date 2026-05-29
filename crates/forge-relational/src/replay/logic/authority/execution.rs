@@ -1,3 +1,4 @@
+mod envelope_self_audit;
 mod surface_audit;
 
 use crate::capabilities::{RuntimeConfigSource, SchemaSource};
@@ -23,6 +24,7 @@ use super::lineage_authority::{
 use super::strategy_replay::verify_strategy_reexecution_surface;
 use super::ReplayAuthority;
 
+use self::envelope_self_audit::audit_retained_envelope_authority;
 use self::surface_audit::compare_replay_surfaces;
 
 impl<'runtime> ReplayAuthority<'runtime> {
@@ -97,6 +99,30 @@ impl<'runtime> ReplayAuthority<'runtime> {
                     )
                 }
             };
+
+        let retained_envelope_surfaces =
+            promised_replay_surfaces(self.runtime, &envelope, &commit_closure, None);
+        let mut retained_envelope_mismatches = Vec::new();
+        audit_retained_envelope_authority(
+            self.runtime,
+            &mut retained_envelope_mismatches,
+            &envelope,
+            None,
+        );
+        if !retained_envelope_mismatches.is_empty() {
+            let outcome = RelationalReplayOutcome {
+                requested: request,
+                commit: Some(envelope.commit.clone()),
+                reconstructed_commit_closure: commit_closure.clone(),
+                snapshot_version: Some(envelope.commit.version_id),
+                lineage_authority_basis: None,
+                compared_surfaces: retained_envelope_surfaces,
+                mismatches: retained_envelope_mismatches,
+                failure: Some(ReplayFailureClass::ObservableMismatch),
+            };
+            record_replay_diagnostic(self.runtime, &outcome.requested, &outcome);
+            return outcome;
+        }
 
         let replay_plan = replay_recovery_plan_for_chain(
             self.runtime,
@@ -202,6 +228,13 @@ impl<'runtime> ReplayAuthority<'runtime> {
         } else {
             None
         };
+
+        audit_retained_envelope_authority(
+            self.runtime,
+            &mut mismatches,
+            &envelope,
+            selected_lineage_authority.as_ref(),
+        );
 
         compare_replay_surfaces(
             self.runtime,

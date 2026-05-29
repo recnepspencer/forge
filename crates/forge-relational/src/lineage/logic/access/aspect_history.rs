@@ -1,12 +1,13 @@
-use crate::history::data::{AspectFilter, LineageAspectHistory, LineageAspectHistoryQueryResult};
+use crate::history::data::{LineageAspectHistory, LineageAspectHistoryQueryResult};
 use crate::lineage::data::HistoricalResolutionRequest;
 use crate::lineage::logic::access::LineageAccess;
+use crate::visibility::materialization::read_records::ProjectionAspectFilter;
 
 impl<'runtime> LineageAccess<'runtime> {
     pub fn entity_aspect_history(
         &self,
         request: HistoricalResolutionRequest,
-        filter: Option<&AspectFilter>,
+        filter: Option<&ProjectionAspectFilter>,
     ) -> Option<LineageAspectHistory> {
         self.entity_aspect_history_with_trace(request, filter)
             .history
@@ -15,7 +16,7 @@ impl<'runtime> LineageAccess<'runtime> {
     pub fn entity_aspect_history_with_trace(
         &self,
         request: HistoricalResolutionRequest,
-        filter: Option<&AspectFilter>,
+        filter: Option<&ProjectionAspectFilter>,
     ) -> LineageAspectHistoryQueryResult {
         self.runtime
             .history()

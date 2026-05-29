@@ -178,7 +178,7 @@ mod tests {
     use crate::authority::mutation::CanonicalRecordAspectDelta;
     use crate::identity::data::{EntityId, KindId, PartitionId};
     use crate::publication::patch::data::{
-        CanonicalAspectSet, PatchDetail, PatchRecord, PatchStreamPosition, RecordStructuralChange,
+        ordered_aspect_keys, PatchDetail, PatchRecord, PatchStreamPosition, RecordStructuralChange,
     };
     use crate::schema::data::AspectPlanRevision;
     use crate::transactions::data::RecordRef;
@@ -196,7 +196,7 @@ mod tests {
                 kind_id: KindId(7),
                 plan_revision: AspectPlanRevision(1),
                 structural_change: RecordStructuralChange::Updated,
-                changed_aspects: CanonicalAspectSet::new([aspect_a.clone()]),
+                changed_aspects: ordered_aspect_keys([aspect_a.clone()]),
                 evaluated_bindings: Default::default(),
                 contains_opaque_aspect: false,
             },
@@ -205,7 +205,7 @@ mod tests {
                 kind_id: KindId(7),
                 plan_revision: AspectPlanRevision(1),
                 structural_change: RecordStructuralChange::Created,
-                changed_aspects: CanonicalAspectSet::new([aspect_b.clone()]),
+                changed_aspects: ordered_aspect_keys([aspect_b.clone()]),
                 evaluated_bindings: Default::default(),
                 contains_opaque_aspect: true,
             },
@@ -232,16 +232,10 @@ mod tests {
         let traces = derive_aspect_emission_traces(PatchStreamPosition(9), &patch_records, &deltas);
         assert_eq!(traces.len(), 2);
         assert_eq!(traces[0].target, target_b);
-        assert_eq!(
-            traces[0].changed_aspects,
-            CanonicalAspectSet::new([aspect_b])
-        );
+        assert_eq!(traces[0].changed_aspects, ordered_aspect_keys([aspect_b]));
         assert!(traces[0].contains_opaque_aspect);
         assert_eq!(traces[1].target, target_a);
-        assert_eq!(
-            traces[1].changed_aspects,
-            CanonicalAspectSet::new([aspect_a])
-        );
+        assert_eq!(traces[1].changed_aspects, ordered_aspect_keys([aspect_a]));
         assert!(!traces[1].contains_opaque_aspect);
     }
 }
@@ -273,7 +267,7 @@ fn summarize_commit_aspects(
     CommitAspectSummary {
         changed_entity_aspect_count,
         changed_relation_aspect_count,
-        touched_aspects: crate::publication::patch::data::CanonicalAspectSet::new(touched_aspects),
+        touched_aspects: crate::publication::patch::data::ordered_aspect_keys(touched_aspects),
         opaque_aspect_delta_count,
         zero_aspect_structural_delta_count,
     }

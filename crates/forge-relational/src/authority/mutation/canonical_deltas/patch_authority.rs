@@ -1,15 +1,16 @@
 use smallvec::SmallVec;
 
-use crate::publication::patch::data::{CanonicalAspectSet, RecordStructuralChange};
-use crate::schema::data::{LoweredAspectPlan, LoweredAspectTarget};
+use crate::publication::patch::data::{ordered_aspect_keys, RecordStructuralChange};
+use crate::schema::data::{AspectBinding, LoweredAspectPlan};
 use crate::transactions::data::RecordRef;
 use forge_foundational::facade::{
     AspectFieldLocator, AspectLocator, AspectValueLocator, FieldKey, LocatorAuthority,
 };
 
 use super::data::{
-    AuthoritativeDeltaPatchOperation, AuthoritativeFieldSetEvidence, CanonicalAspectDeltaEvidence,
-    CanonicalRecordAspectDelta, EvaluatedAspectBinding,
+    AuthoritativeDeltaPatchOperation, AuthoritativeDeltaPatchSetValue,
+    AuthoritativeFieldSetEvidence, CanonicalAspectDeltaEvidence, CanonicalRecordAspectDelta,
+    EvaluatedAspectBinding,
 };
 use super::lifecycle_transition_evidence::lifecycle_transition;
 
@@ -21,7 +22,7 @@ pub(super) fn evaluate_authoritative_patch_delta(
     patch: &forge_foundational::facade::AuthoritativeRecordAspectPatch,
 ) -> CanonicalRecordAspectDelta {
     let evaluated_bindings = authoritative_patch_evaluated_bindings(plan, structural_change, patch);
-    let changed_aspects = CanonicalAspectSet::new(
+    let changed_aspects = ordered_aspect_keys(
         evaluated_bindings
             .iter()
             .filter(|binding| binding.changed)
@@ -82,7 +83,7 @@ fn lifecycle_structural_evidence(
     binding: &crate::schema::data::LoweredAspectBinding,
     structural_change: RecordStructuralChange,
 ) -> Option<CanonicalAspectDeltaEvidence> {
-    if !matches!(&binding.target, LoweredAspectTarget::LifecycleTransition) {
+    if !matches!(&binding.target, AspectBinding::LifecycleTransition) {
         return None;
     }
     match structural_change {
@@ -108,9 +109,11 @@ fn whole_aspect_set_evidence(
         operation: AuthoritativeDeltaPatchOperation::WholeAspectSet {
             value: match value.view() {
                 forge_foundational::facade::ContractValidatedAspectValueView::Scalar(value) => {
-                    Some(value.clone())
+                    AuthoritativeDeltaPatchSetValue::Scalar(value.clone())
                 }
-                forge_foundational::facade::ContractValidatedAspectValueView::Struct(_) => None,
+                forge_foundational::facade::ContractValidatedAspectValueView::Struct(value) => {
+                    AuthoritativeDeltaPatchSetValue::Struct(value.clone())
+                }
             },
         },
     })

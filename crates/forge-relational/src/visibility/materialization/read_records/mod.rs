@@ -4,8 +4,9 @@ mod reader;
 mod visibility;
 
 pub use projection::{
-    EntityProjectionRecord, EntityRecordProjection, RelationProjectionRecord,
-    RelationRecordProjection, VisibilityProjectionView,
+    EntityProjectionRecord, EntityRecordProjection, ProjectionAspectFilter,
+    ProjectionAspectFilterMode, ProjectionAspectRequirement, ProjectionAspectScope,
+    RelationProjectionRecord, RelationRecordProjection, VisibilityProjectionView,
 };
 pub use reader::VisibilityReadContext;
 

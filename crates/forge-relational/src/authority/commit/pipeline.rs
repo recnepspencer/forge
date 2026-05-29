@@ -1390,6 +1390,27 @@ fn complexity_delta(
         merge_policy_records_resolved: after
             .merge_policy_records_resolved
             .saturating_sub(before.merge_policy_records_resolved),
+        merge_policy_value_source_state_hits: after
+            .merge_policy_value_source_state_hits
+            .saturating_sub(before.merge_policy_value_source_state_hits),
+        merge_policy_value_target_state_hits: after
+            .merge_policy_value_target_state_hits
+            .saturating_sub(before.merge_policy_value_target_state_hits),
+        merge_policy_value_base_state_hits: after
+            .merge_policy_value_base_state_hits
+            .saturating_sub(before.merge_policy_value_base_state_hits),
+        merge_policy_value_base_patch_fallback_hits: after
+            .merge_policy_value_base_patch_fallback_hits
+            .saturating_sub(before.merge_policy_value_base_patch_fallback_hits),
+        merge_policy_value_missing_ancestor_basis: after
+            .merge_policy_value_missing_ancestor_basis
+            .saturating_sub(before.merge_policy_value_missing_ancestor_basis),
+        merge_policy_value_missing_visible_state: after
+            .merge_policy_value_missing_visible_state
+            .saturating_sub(before.merge_policy_value_missing_visible_state),
+        merge_policy_value_invalid_shape: after
+            .merge_policy_value_invalid_shape
+            .saturating_sub(before.merge_policy_value_invalid_shape),
         merge_lowered_records_emitted: after
             .merge_lowered_records_emitted
             .saturating_sub(before.merge_lowered_records_emitted),

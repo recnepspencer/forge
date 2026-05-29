@@ -19,8 +19,8 @@ pub(super) use crate::facade::diagnostics::{
 pub(super) use crate::facade::durability::{DurabilityMode, DurableStoreLayout};
 pub(super) use crate::facade::harness::RelationalHarnessAdapter;
 pub(super) use crate::facade::history::{
-    AspectFilter, AspectFilterMode, AspectHistoryCommitSpan, AspectHistoryEntry,
-    AspectResolutionContext, BranchId, HistoryAspectQueryTarget,
+    AspectHistoryCommitSpan, AspectHistoryEntry, AspectResolutionContext, BranchId,
+    HistoryAspectQueryTarget,
 };
 pub(super) use crate::facade::identity::{KindId, LineageId, PartitionId, RelationId};
 pub(super) use crate::facade::publication::{
@@ -34,7 +34,8 @@ pub(super) use crate::facade::query::{
 };
 pub(super) use crate::facade::runtime::{
     EntityReadRecord, InvariantCatalog, InvariantClass, InvariantRegistration, InvariantRule,
-    RelationalRuntime, RelationalRuntimeApi,
+    ProjectionAspectFilter, ProjectionAspectFilterMode, ProjectionAspectScope, RelationalRuntime,
+    RelationalRuntimeApi,
 };
 pub(super) use crate::facade::schema::{
     AspectBinding, DeclaredAspect, EntityKindRegistration, KindAspectDeclarations,
@@ -49,7 +50,7 @@ pub(super) use crate::facade::transactions::{
 };
 pub(super) use crate::publication::cdc::planning::checkpoint_for_schema_version;
 pub(super) use crate::publication::patch::data::{
-    CanonicalAspectSet, PatchDetail, RecordStructuralChange,
+    ordered_aspect_keys, PatchDetail, RecordStructuralChange,
 };
 pub(super) use crate::symbols::data::ClientKeySymbolPolicy;
 use crate::tests::harness::model::truth_model::VisibleTruthSummary;

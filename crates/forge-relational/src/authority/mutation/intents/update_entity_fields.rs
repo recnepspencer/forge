@@ -55,7 +55,7 @@ pub(super) fn apply(
         })
     })?;
     let new_authoritative_aspect_state = apply_entity_authoritative_patch(
-        authoritative_aspect_state,
+        authoritative_aspect_state.as_ref(),
         &patch_plan.authoritative_patch,
     )
     .map_err(|denial| {
@@ -72,7 +72,7 @@ pub(super) fn apply(
             .state
             .get_partition_mut(intent.entity_id.partition_id);
         let mut updated_extra = partition.entity_arena.extra[slot].clone();
-        updated_extra.authoritative_aspect_state = Some(new_authoritative_aspect_state);
+        updated_extra.authoritative_aspect_state = Some(new_authoritative_aspect_state.clone());
         partition
             .entity_arena
             .apply_extra_update(slot, updated_extra, version_id);
@@ -81,6 +81,8 @@ pub(super) fn apply(
     Ok(MutationOutcome::entity_updated_with_authoritative_patch(
         intent.entity_id,
         kind_id,
+        authoritative_aspect_state,
+        Some(new_authoritative_aspect_state),
         patch_plan.authoritative_patch,
     ))
 }

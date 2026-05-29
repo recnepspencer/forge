@@ -141,7 +141,7 @@ pub(crate) fn execute_query_fragment(
             |record| {
                 record.entity_id.partition_id == *partition_id
                     && kind_id.is_none_or(|kind_id| record.kind.kind_id == kind_id)
-                    && aspect_filter_matches_entity(runtime, record, aspect_filter)
+                    && aspect_filter_matches_entity(record, aspect_filter)
             },
         )),
         PacketizedQueryWork::AspectFilteredRelations {
@@ -158,7 +158,7 @@ pub(crate) fn execute_query_fragment(
             |record| {
                 record.relation_id.partition_id == *partition_id
                     && kind_id.is_none_or(|kind_id| record.kind.kind_id == kind_id)
-                    && aspect_filter_matches_relation(runtime, record, aspect_filter)
+                    && aspect_filter_matches_relation(record, aspect_filter)
             },
         )),
         PacketizedQueryWork::OutgoingNeighborhood {

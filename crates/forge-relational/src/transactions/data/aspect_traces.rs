@@ -7,9 +7,7 @@ use crate::diagnostics::data::{
     RelationalDiagnosticArtifact, RelationalDiagnosticsEntry,
 };
 use crate::identity::data::{EntityId, KindId};
-use crate::publication::patch::data::{
-    CanonicalAspectSet, PatchStreamPosition, RecordStructuralChange,
-};
+use crate::publication::patch::data::{PatchStreamPosition, RecordStructuralChange};
 use crate::schema::data::AspectPlanRevision;
 
 use super::RecordRef;
@@ -23,7 +21,7 @@ pub struct AspectEvaluationTrace {
     pub kind_id: KindId,
     pub plan_revision: AspectPlanRevision,
     pub structural_change: RecordStructuralChange,
-    pub changed_aspects: CanonicalAspectSet,
+    pub changed_aspects: Vec<AspectKey>,
     pub contains_opaque_aspect: bool,
     pub binding_rows: Vec<AspectEvaluationTraceRow>,
 }
@@ -68,13 +66,20 @@ pub enum AspectTraceEvidence {
 #[non_exhaustive]
 pub enum AspectTracePatchOperation {
     WholeAspectSet {
-        value: Option<AspectValue>,
+        value: AspectTracePatchSetValue,
     },
     WholeAspectClear,
     FieldLevelPatch {
         field_sets: Vec<(FieldKey, AspectValue)>,
         field_clears: Vec<FieldKey>,
     },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum AspectTracePatchSetValue {
+    Scalar(AspectValue),
+    Struct(StructAspectValue),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -94,7 +99,7 @@ pub struct AspectEmissionTrace {
     pub patch_position: PatchStreamPosition,
     pub patch_record_index: u64,
     pub structural_change: RecordStructuralChange,
-    pub changed_aspects: CanonicalAspectSet,
+    pub changed_aspects: Vec<AspectKey>,
     pub contains_opaque_aspect: bool,
 }
 

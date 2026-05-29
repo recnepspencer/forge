@@ -9,7 +9,7 @@ use crate::merge::data::{
 
 use super::{
     AspectBinding, AspectDeclarationTrace, AspectDeclarationTraceRow, AspectLoweringTrace,
-    AspectLoweringTraceRow, AspectPlanRevision, LoweredAspectTarget,
+    AspectLoweringTraceRow, AspectPlanRevision,
 };
 
 pub(super) fn declaration_trace_diagnostic_fields(
@@ -95,7 +95,7 @@ fn aspect_lowering_trace_row_value(row: &AspectLoweringTraceRow) -> RelationalDi
             "aspect_key",
             RelationalDiagnosticValue::AspectKey(row.aspect_key.clone()),
         ),
-        ("target", lowered_aspect_target_value(&row.target)),
+        ("target", aspect_binding_target_value(&row.target)),
         (
             "aspect_shape",
             aspect_shape_diagnostic_value(&row.aspect_shape),
@@ -134,31 +134,31 @@ fn aspect_binding_value(binding: &AspectBinding) -> RelationalDiagnosticValue {
     }
 }
 
-fn lowered_aspect_target_value(target: &LoweredAspectTarget) -> RelationalDiagnosticValue {
+fn aspect_binding_target_value(target: &AspectBinding) -> RelationalDiagnosticValue {
     match target {
-        LoweredAspectTarget::EntityField { field } => RelationalDiagnosticValue::object([
+        AspectBinding::EntityField { field } => RelationalDiagnosticValue::object([
             (
                 "target_kind",
                 RelationalDiagnosticValue::string("entity_field"),
             ),
             ("field", RelationalDiagnosticValue::FieldKey(field.clone())),
         ]),
-        LoweredAspectTarget::RelationField { field } => RelationalDiagnosticValue::object([
+        AspectBinding::RelationField { field } => RelationalDiagnosticValue::object([
             (
                 "target_kind",
                 RelationalDiagnosticValue::string("relation_field"),
             ),
             ("field", RelationalDiagnosticValue::FieldKey(field.clone())),
         ]),
-        LoweredAspectTarget::RelationSourceEndpoint => RelationalDiagnosticValue::object([(
+        AspectBinding::RelationSourceEndpoint => RelationalDiagnosticValue::object([(
             "target_kind",
             RelationalDiagnosticValue::string("relation_source_endpoint"),
         )]),
-        LoweredAspectTarget::RelationTargetEndpoint => RelationalDiagnosticValue::object([(
+        AspectBinding::RelationTargetEndpoint => RelationalDiagnosticValue::object([(
             "target_kind",
             RelationalDiagnosticValue::string("relation_target_endpoint"),
         )]),
-        LoweredAspectTarget::LifecycleTransition => RelationalDiagnosticValue::object([(
+        AspectBinding::LifecycleTransition => RelationalDiagnosticValue::object([(
             "target_kind",
             RelationalDiagnosticValue::string("lifecycle_transition"),
         )]),
