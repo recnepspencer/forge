@@ -145,11 +145,11 @@ fn intent_reconciliation_strategy_request(
 ) -> Result<NativeStrategyCommitRequest, WorkflowLoweringError> {
     let MutationLoweringInput::IntentReconciliation {
         entity_id,
-        desired_fields_json,
+        desired_aspect_fields_json,
     } = input;
     IntentReconciliationInput {
         entity_id,
-        desired_fields: intent_reconciliation_field_patch(desired_fields_json)?,
+        desired_fields: intent_reconciliation_field_patch(desired_aspect_fields_json)?,
     }
     .into_native_canonical_request(StrategyCallerProvenance {
         request_origin: StrategyRequestOrigin::Api,
@@ -167,12 +167,12 @@ fn intent_reconciliation_strategy_request(
 }
 
 fn intent_reconciliation_field_patch(
-    desired_fields_json: serde_json::Value,
+    desired_aspect_fields_json: serde_json::Value,
 ) -> Result<forge_relational::facade::transactions::AspectFieldPatch, WorkflowLoweringError> {
-    let serde_json::Value::Object(fields) = desired_fields_json else {
+    let serde_json::Value::Object(fields) = desired_aspect_fields_json else {
         return Err(WorkflowLoweringError::new(
             WorkflowLoweringFailureClass::LoweringSerializationFailed,
-            "intent reconciliation desired payload must be a flat object of aspect fields",
+            "intent reconciliation desired aspect fields must be a flat object of aspect fields",
             WorkflowStalenessClass::ExactBasisPreserved,
             lowering_denial_counters(1, LoweringDenialClass::General),
         ));
@@ -189,7 +189,7 @@ fn intent_reconciliation_field_patch(
     .map_err(|_| {
         WorkflowLoweringError::new(
             WorkflowLoweringFailureClass::LoweringSerializationFailed,
-            "intent reconciliation desired payload could not lower into aspect field patches",
+            "intent reconciliation desired aspect fields could not lower into aspect field patches",
             WorkflowStalenessClass::ExactBasisPreserved,
             lowering_denial_counters(1, LoweringDenialClass::General),
         )

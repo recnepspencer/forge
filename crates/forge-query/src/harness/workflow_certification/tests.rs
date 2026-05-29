@@ -125,7 +125,7 @@ fn workflow_certification_mutation_lowering_matches_direct_relational_control() 
         binding.basis_digest(),
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
-            desired_fields_json: json!({"name":"after"}),
+            desired_aspect_fields_json: json!({"name":"after"}),
         },
     )
     .expect("mutation lowering should succeed");
@@ -363,7 +363,7 @@ fn workflow_certification_lane_specific_counters_are_exercised() {
         binding.basis_digest(),
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
-            desired_fields_json: json!({"name":"after"}),
+            desired_aspect_fields_json: json!({"name":"after"}),
         },
     )
     .expect("mutation lowering should succeed");

@@ -161,10 +161,10 @@ impl ForgeQueryWorkflowLoweringSemantics {
                 let input_digest = match input {
                     MutationLoweringInput::IntentReconciliation {
                         entity_id,
-                        desired_fields_json,
+                        desired_aspect_fields_json,
                     } => format!(
                         "intent_reconciliation:{entity_id:?}:{}",
-                        serde_json::to_string(desired_fields_json)
+                        serde_json::to_string(desired_aspect_fields_json)
                             .unwrap_or_else(|_| "serialization_failed".to_string())
                     ),
                 };

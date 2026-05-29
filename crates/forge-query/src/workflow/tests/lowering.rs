@@ -43,7 +43,7 @@ fn runtime_mutation_lowering_emits_explicit_strategy_request() {
         binding.basis_digest(),
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
-            desired_fields_json: json!({"name":"after"}),
+            desired_aspect_fields_json: json!({"name":"after"}),
         },
     )
     .expect("runtime mutation lowering should succeed");

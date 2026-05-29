@@ -31,7 +31,7 @@ impl RelationalStrategyTarget {
 pub enum MutationLoweringInput {
     IntentReconciliation {
         entity_id: EntityId,
-        desired_fields_json: serde_json::Value,
+        desired_aspect_fields_json: serde_json::Value,
     },
 }
 
