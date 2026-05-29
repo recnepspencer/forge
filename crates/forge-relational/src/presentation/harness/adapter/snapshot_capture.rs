@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 
 use forge_harness::facade::{
     run_id, snapshot_id, ExecutionProfile, ExecutionRequest, ObservationStatus,
-    SnapshotObservation, SnapshotPayload, SnapshotRecord, StructuredValue,
+    SnapshotObservation, SnapshotRecord,
 };
 
 use crate::facade::harness::RelationalHarnessError;
@@ -12,7 +12,7 @@ use crate::transactions::data::RecordRef;
 
 use super::super::data::{RelationalFixture, RelationalHarnessAdapter};
 use super::super::targets::{parse_target, resolve_targets};
-use super::aspect_snapshot_fields::{entity_snapshot_fields, relation_snapshot_fields};
+use super::aspect_snapshot_payloads::{entity_snapshot_payload, relation_snapshot_payload};
 
 pub(super) fn capture_snapshot(
     _adapter: &RelationalHarnessAdapter,
@@ -54,12 +54,14 @@ fn capture_target_snapshot(
     target: String,
 ) -> Result<SnapshotObservation<String>, RelationalHarnessError> {
     let snapshot_value = match parse_target(&target)? {
-        RecordRef::Entity(entity_id) => read_view.get_entity(entity_id).map(|entity| {
-            SnapshotPayload::Structured(StructuredValue::Fields(entity_snapshot_fields(entity)))
-        }),
-        RecordRef::Relation(relation_id) => read_view.get_relation(relation_id).map(|relation| {
-            SnapshotPayload::Structured(StructuredValue::Fields(relation_snapshot_fields(relation)))
-        }),
+        RecordRef::Entity(entity_id) => read_view
+            .get_entity(entity_id)
+            .map(entity_snapshot_payload)
+            .transpose()?,
+        RecordRef::Relation(relation_id) => read_view
+            .get_relation(relation_id)
+            .map(relation_snapshot_payload)
+            .transpose()?,
     };
     let (status, detail) = match snapshot_value {
         Some(_) => (ObservationStatus::Clean, None),

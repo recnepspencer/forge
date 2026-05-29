@@ -924,7 +924,29 @@ fn harness_runner_captures_snapshot_diagnostics_and_replay() {
         snapshot.observations[0].status,
         forge_harness::facade::ObservationStatus::Clean
     );
-    assert!(snapshot.observations[0].value.is_some());
+    let Some(forge_harness::facade::SnapshotPayload::Binary(snapshot_payload)) =
+        &snapshot.observations[0].value
+    else {
+        panic!(
+            "expected aspect-native binary snapshot payload, got {:?}",
+            snapshot.observations[0].value
+        );
+    };
+    assert_eq!(
+        snapshot_payload.media_type,
+        "application/vnd.forge.relational.harness.aspect-snapshot.v1+octet-stream"
+    );
+    assert!(snapshot_payload
+        .bytes
+        .starts_with(b"forge.relational.harness.aspect-snapshot.v1"));
+    assert_eq!(
+        snapshot_payload.size_bytes,
+        Some(snapshot_payload.bytes.len() as u64)
+    );
+    assert!(snapshot_payload
+        .content_hash
+        .as_deref()
+        .is_some_and(|hash| { hash.starts_with("sha256:") }));
     assert!(diagnostics.summary.is_object());
     assert!(replay.summary.is_object());
 }
