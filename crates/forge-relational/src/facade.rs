@@ -211,29 +211,32 @@ pub mod runtime {
     #[cfg(test)]
     pub use crate::logic::runtime::HarnessAuditMode;
     pub use crate::logic::runtime::{
-        ChunkVisibilitySummary, ChunkedStorageSummary, CompiledArtifactCompatibility,
-        CompiledArtifactError, CompiledExecutionArtifact, ComplexityContract, ComplexityStatus,
-        EntityProjectionRecord, EntityReadRecord, EntityRecordProjection, InvariantAccess,
-        InvariantCatalog, InvariantCheckResult, InvariantClass, InvariantDecisionKind,
-        InvariantDecisionRecord, InvariantExecutionPoint, InvariantFailureEffect,
-        InvariantRegistration, InvariantRule, PartitionStorageStats, RelationProjectionRecord,
-        RelationReadRecord, RelationRecordProjection, RelationalReadView, RelationalReplayRecord,
-        RelationalRuntime, RelationalRuntimeConfig, ReplaySchemaVersion, RuntimeComplexityCounters,
-        SimulationAccess, SimulationAuthority, SnapshotGuard, StorageStats, TopologyFreezeMode,
-        VisibilityProjectionView, VisibilityReadContext, VisibilityRetentionAuthority,
+        CompiledArtifactCompatibility, CompiledArtifactError, CompiledExecutionArtifact,
+        ComplexityContract, ComplexityStatus, EntityProjectionRecord, EntityRecordProjection,
+        InvariantAccess, RelationProjectionRecord, RelationRecordProjection,
+        RelationalReplayRecord, RelationalRuntime, RelationalRuntimeConfig, ReplaySchemaVersion,
+        RuntimeComplexityCounters, SimulationAccess, SimulationAuthority, SnapshotGuard,
+        TopologyFreezeMode, VisibilityProjectionView, VisibilityReadContext,
+        VisibilityRetentionAuthority,
     };
     pub use crate::presentation::facade::runtime::{
         ImmutableReadContract, RelationalBoundaryContract, RelationalRuntimeApi,
         SerializedAuthorityContract,
+    };
+    pub use crate::storage::data::{
+        ChunkVisibilitySummary, ChunkedStorageSummary, EntityReadRecord, PartitionStorageStats,
+        RelationReadRecord, RelationalReadView, StorageStats,
     };
     pub use crate::validation::data::{
         CustomInvariantDescriptor, CustomInvariantExecutionContext, CustomInvariantExecutionError,
         CustomInvariantOperationalMetadata, CustomInvariantPreparationError,
         CustomInvariantRegistration, CustomInvariantRegistrationError, CustomInvariantRule,
         CustomInvariantRuleId, CustomInvariantScopePlanner, CustomInvariantSemanticIdentity,
-        CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantCostClass, InvariantGroup,
-        InvariantGroupSet, PlannedRelationEndpointUpdate, StructuralRelationRecord,
-        StructuralRelationView, UniqueEntityAspectField,
+        CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantCatalog,
+        InvariantCheckResult, InvariantClass, InvariantCostClass, InvariantDecisionKind,
+        InvariantDecisionRecord, InvariantExecutionPoint, InvariantFailureEffect, InvariantGroup,
+        InvariantGroupSet, InvariantRegistration, InvariantRule, PlannedRelationEndpointUpdate,
+        StructuralRelationRecord, StructuralRelationView, UniqueEntityAspectField,
     };
     pub use crate::visibility::authority::VisibilityAuthority as SnapshotAuthority;
 }

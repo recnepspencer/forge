@@ -9,24 +9,20 @@ mod touched_scope;
 mod traversal;
 
 pub use errors::{
-    CustomInvariantExecutionError, CustomInvariantPreparationError, CustomInvariantTraversalError,
-    CustomInvariantVerdict,
+    CustomInvariantExecutionError, CustomInvariantPreparationError, CustomInvariantVerdict,
 };
 pub use execution_context::{CustomInvariantExecutionContext, CustomInvariantProvenance};
 pub use registration::{
     CustomInvariantRegistration, CustomInvariantRegistrationError, CustomInvariantRule,
 };
 pub use scope_planner::CustomInvariantScopePlanner;
-pub use structural_views::{
-    StructuralAspectStateView, StructuralRelationRecord, StructuralRelationView,
-};
+pub use structural_views::{StructuralRelationRecord, StructuralRelationView};
+#[cfg(test)]
+pub use touched_scope::TouchedStructuralSet;
 pub use touched_scope::{
-    CustomInvariantTouchedSummary, PlannedEntityCreate, PlannedRelationCreate,
-    PlannedRelationEndpointUpdate, StructuralCountView, TouchedStructuralSet,
+    CustomInvariantTouchedSummary, PlannedRelationEndpointUpdate, StructuralCountView,
 };
-pub use traversal::{
-    BoundedStructuralTraversal, CustomInvariantTraversalSummary, StructuralTraversalResult,
-};
+pub use traversal::CustomInvariantTraversalSummary;
 
 pub(crate) use errors::{
     CustomInvariantFailure, CustomInvariantFailureKind, CustomInvariantRuntimePhase,

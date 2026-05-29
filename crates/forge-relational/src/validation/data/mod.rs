@@ -13,15 +13,15 @@ pub use aspect_field_target::UniqueEntityAspectField;
 pub(crate) use catalog::relation_integrity_registrations_for_plan;
 pub use catalog::{InvariantCatalog, InvariantRegistration};
 pub use contracts::InvariantPlanContract;
+#[cfg(test)]
+pub use custom_rule::TouchedStructuralSet;
 pub use custom_rule::{
-    BoundedStructuralTraversal, CustomInvariantExecutionContext, CustomInvariantExecutionError,
+    CustomInvariantExecutionContext, CustomInvariantExecutionError,
     CustomInvariantPreparationError, CustomInvariantProvenance, CustomInvariantRegistration,
     CustomInvariantRegistrationError, CustomInvariantRule, CustomInvariantScopePlanner,
-    CustomInvariantTouchedSummary, CustomInvariantTraversalError, CustomInvariantTraversalSummary,
-    CustomInvariantVerdict, PlannedEntityCreate, PlannedRelationCreate,
-    PlannedRelationEndpointUpdate, StructuralAspectStateView, StructuralCountView,
-    StructuralRelationRecord, StructuralRelationView, StructuralTraversalResult,
-    TouchedStructuralSet,
+    CustomInvariantTouchedSummary, CustomInvariantTraversalSummary, CustomInvariantVerdict,
+    PlannedRelationEndpointUpdate, StructuralCountView, StructuralRelationRecord,
+    StructuralRelationView,
 };
 pub(crate) use custom_rule::{
     CustomInvariantFailure, CustomInvariantFailureKind, CustomInvariantRuntimePhase,

@@ -13,11 +13,9 @@ mod validation;
 pub(crate) use canonical_digest::commit_strategy_registry_digest;
 pub(super) use canonical_digest::strategy_mutation_program_digest;
 
-#[allow(unused_imports)]
 pub use artifacts::{
     StrategyCommitArtifactBundle, StrategyIntentScopeDigest, StrategyMergeConflictClass,
     StrategyMergeDescriptor, StrategyMergeSemantics, StrategyReplayDescriptor,
-    StrategyRuntimeDeterminismBasis,
 };
 pub use descriptor::{
     CommitStrategyDescriptor, CommitStrategyDescriptorDigest, CommitStrategyFamilyName,

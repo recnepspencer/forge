@@ -17,29 +17,6 @@ pub use crate::simulation::data::{
     TopologyFreezeMode,
 };
 pub use crate::simulation::logic::{SimulationAccess, SimulationAuthority};
-#[allow(unused_imports)]
-pub use crate::storage::data::{
-    ChunkDiagnostics, ChunkVisibilitySummary, ChunkedStorageSummary, EntityReadRecord,
-    PartitionStorageStats, RecordLifecycleState, RelationReadRecord, RelationalReadView,
-    RetentionPassOutcome, RetentionPlan, StorageStats,
-};
-#[allow(unused_imports)]
-pub use crate::validation::data::{
-    BoundedStructuralTraversal, CustomInvariantDescriptor, CustomInvariantExecutionContext,
-    CustomInvariantExecutionError, CustomInvariantOperationalMetadata,
-    CustomInvariantPreparationError, CustomInvariantProvenance, CustomInvariantRegistration,
-    CustomInvariantRegistrationError, CustomInvariantRule, CustomInvariantRuleId,
-    CustomInvariantScopePlanner, CustomInvariantSemanticIdentity, CustomInvariantSemanticVersion,
-    CustomInvariantTouchedSummary, CustomInvariantTraversalError, CustomInvariantTraversalSummary,
-    CustomInvariantVerdict, InvariantCatalog, InvariantCheckResult, InvariantClass,
-    InvariantDecisionKind, InvariantDecisionRecord, InvariantExecutionPoint,
-    InvariantFailureEffect, InvariantRegistration, InvariantRule, InvariantRuleDescriptor,
-    InvariantRuleId, InvariantSemanticsClass, InvariantViolation, NativeInvariantRuleId,
-    PlannedEntityCreate, PlannedRelationCreate, PlannedRelationEndpointUpdate,
-    StructuralAspectStateView, StructuralCountView, StructuralRelationRecord,
-    StructuralRelationView, StructuralTraversalResult, SupportedExecutionPoints,
-    TouchedStructuralSet, UniqueEntityAspectField,
-};
 #[cfg(test)]
 pub use crate::validation::engine::HarnessAuditMode;
 pub use crate::validation::logic::InvariantAccess;
