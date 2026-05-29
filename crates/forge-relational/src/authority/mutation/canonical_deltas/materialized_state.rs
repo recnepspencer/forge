@@ -1,8 +1,9 @@
 use crate::identity::data::EntityId;
-use crate::schema::data::{LoweredAspectBinding, LoweredExecutableAspectBindingKind};
+use crate::schema::data::{LoweredAspectBinding, LoweredAspectTarget};
 use forge_foundational::facade::AspectKey;
 use forge_foundational::facade::{
-    AuthoritativeRecordAspectState, ContractValidatedAspectValueView, StructAspectValue,
+    AspectShape, AuthoritativeRecordAspectState, ContractValidatedAspectValueView,
+    StructAspectValue,
 };
 
 use super::data::{
@@ -54,24 +55,20 @@ fn materialize_binding_state(
     context: BindingEvaluationContext<'_>,
     side: MaterializationSide,
 ) -> Result<MaterializedAspectState, CanonicalDeltaError> {
-    match &binding.binding_kind {
-        LoweredExecutableAspectBindingKind::EntityFieldScalar { field }
-        | LoweredExecutableAspectBindingKind::EntityFieldStruct { field } => {
+    match &binding.target {
+        LoweredAspectTarget::EntityField { field } => {
             materialize_entity_field_binding_state(binding, context, side, field)
         }
-        LoweredExecutableAspectBindingKind::RelationFieldScalar { .. } => {
-            materialize_relation_scalar_binding_state(binding, context, side)
+        LoweredAspectTarget::RelationField { .. } => {
+            materialize_relation_field_binding_state(binding, context, side)
         }
-        LoweredExecutableAspectBindingKind::RelationFieldStruct { .. } => {
-            materialize_relation_struct_binding_state(binding, context, side)
-        }
-        LoweredExecutableAspectBindingKind::RelationSourceEndpointIdentity => {
+        LoweredAspectTarget::RelationSourceEndpoint => {
             materialize_relation_source_endpoint_binding_state(binding, context, side)
         }
-        LoweredExecutableAspectBindingKind::RelationTargetEndpointIdentity => {
+        LoweredAspectTarget::RelationTargetEndpoint => {
             materialize_relation_target_endpoint_binding_state(binding, context, side)
         }
-        LoweredExecutableAspectBindingKind::LifecycleTransitionEquality => {
+        LoweredAspectTarget::LifecycleTransition => {
             Ok(MaterializedAspectState::LifecycleTransition(
                 lifecycle_transition(context.structural_change()),
             ))
@@ -91,19 +88,19 @@ fn materialize_entity_field_binding_state(
             "entity field aspect cannot be evaluated against relation context",
         ));
     }
-    match &binding.binding_kind {
-        LoweredExecutableAspectBindingKind::EntityFieldScalar { .. } => Ok(
-            MaterializedAspectState::ScalarValue(materialize_authoritative_scalar_state(
+    match binding.contract.shape() {
+        AspectShape::Scalar(_) => Ok(MaterializedAspectState::ScalarValue(
+            materialize_authoritative_scalar_state(
                 &binding.aspect_key,
                 authoritative_state_for_side(context, side),
-            )?),
-        ),
-        LoweredExecutableAspectBindingKind::EntityFieldStruct { .. } => Ok(
-            MaterializedAspectState::StructValue(materialize_authoritative_struct_state(
+            )?,
+        )),
+        AspectShape::Struct(_) => Ok(MaterializedAspectState::StructValue(
+            materialize_authoritative_struct_state(
                 &binding.aspect_key,
                 authoritative_state_for_side(context, side),
-            )?),
-        ),
+            )?,
+        )),
         _ => Err(entity_field_binding_requires_authoritative_patch(
             &binding.aspect_key,
             field,
@@ -111,7 +108,7 @@ fn materialize_entity_field_binding_state(
     }
 }
 
-fn materialize_relation_scalar_binding_state(
+fn materialize_relation_field_binding_state(
     binding: &LoweredAspectBinding,
     context: BindingEvaluationContext<'_>,
     side: MaterializationSide,
@@ -122,31 +119,24 @@ fn materialize_relation_scalar_binding_state(
             "relation field aspect cannot be evaluated against entity context",
         ));
     }
-    Ok(MaterializedAspectState::ScalarValue(
-        materialize_authoritative_scalar_state(
+    match binding.contract.shape() {
+        AspectShape::Scalar(_) => Ok(MaterializedAspectState::ScalarValue(
+            materialize_authoritative_scalar_state(
+                &binding.aspect_key,
+                authoritative_state_for_side(context, side),
+            )?,
+        )),
+        AspectShape::Struct(_) => Ok(MaterializedAspectState::StructValue(
+            materialize_authoritative_struct_state(
+                &binding.aspect_key,
+                authoritative_state_for_side(context, side),
+            )?,
+        )),
+        _ => Err(invalid_binding_context(
             &binding.aspect_key,
-            authoritative_state_for_side(context, side),
-        )?,
-    ))
-}
-
-fn materialize_relation_struct_binding_state(
-    binding: &LoweredAspectBinding,
-    context: BindingEvaluationContext<'_>,
-    side: MaterializationSide,
-) -> Result<MaterializedAspectState, CanonicalDeltaError> {
-    if !matches!(context, BindingEvaluationContext::Relation { .. }) {
-        return Err(invalid_binding_context(
-            &binding.aspect_key,
-            "relation struct field aspect cannot be evaluated against entity context",
-        ));
+            "relation field aspect requires scalar or struct contract shape",
+        )),
     }
-    Ok(MaterializedAspectState::StructValue(
-        materialize_authoritative_struct_state(
-            &binding.aspect_key,
-            authoritative_state_for_side(context, side),
-        )?,
-    ))
 }
 
 fn materialize_relation_source_endpoint_binding_state(

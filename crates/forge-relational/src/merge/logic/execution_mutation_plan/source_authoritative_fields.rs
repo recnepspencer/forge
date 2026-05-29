@@ -4,7 +4,7 @@ use forge_foundational::facade::ContractValidatedAspectValueView;
 
 use crate::capabilities::AspectPlanSource;
 use crate::merge::data::{AdoptSourceRecordPlan, MergeExecutionMutationPlanError};
-use crate::schema::data::LoweredExecutableAspectBindingKind;
+use crate::schema::data::LoweredAspectTarget;
 use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 use crate::transactions::data::{AspectFieldPatch, AspectFieldPatchTarget};
 
@@ -38,8 +38,10 @@ pub(super) fn entity_create_fields_from_authoritative_state(
             })?;
         match artifact.view() {
             ContractValidatedAspectValueView::Scalar(value) => {
-                let LoweredExecutableAspectBindingKind::EntityFieldScalar { field } =
-                    &binding.binding_kind
+                let (
+                    LoweredAspectTarget::EntityField { field },
+                    forge_foundational::AspectShape::Scalar(_),
+                ) = (&binding.target, binding.contract.shape())
                 else {
                     return Err(MergeExecutionMutationPlanError::UnsupportedAspectMutationMaterialization {
                         record: plan.source_record.clone(),
@@ -54,8 +56,11 @@ pub(super) fn entity_create_fields_from_authoritative_state(
             }
             ContractValidatedAspectValueView::Struct(struct_value) => {
                 if !matches!(
-                    &binding.binding_kind,
-                    LoweredExecutableAspectBindingKind::EntityFieldStruct { .. }
+                    (&binding.target, binding.contract.shape()),
+                    (
+                        LoweredAspectTarget::EntityField { .. },
+                        forge_foundational::AspectShape::Struct(_)
+                    )
                 ) {
                     return Err(MergeExecutionMutationPlanError::UnsupportedAspectMutationMaterialization {
                         record: plan.source_record.clone(),
@@ -101,9 +106,10 @@ pub(super) fn relation_create_fields_from_authoritative_state(
         else {
             continue;
         };
-        match (&binding.binding_kind, artifact.view()) {
+        match (&binding.target, binding.contract.shape(), artifact.view()) {
             (
-                LoweredExecutableAspectBindingKind::RelationFieldScalar { field },
+                LoweredAspectTarget::RelationField { field },
+                forge_foundational::AspectShape::Scalar(_),
                 ContractValidatedAspectValueView::Scalar(value),
             ) => {
                 fields.insert(
@@ -112,7 +118,8 @@ pub(super) fn relation_create_fields_from_authoritative_state(
                 );
             }
             (
-                LoweredExecutableAspectBindingKind::RelationFieldStruct { .. },
+                LoweredAspectTarget::RelationField { .. },
+                forge_foundational::AspectShape::Struct(_),
                 ContractValidatedAspectValueView::Struct(struct_value),
             ) => {
                 for (field, value) in struct_value.fields() {
@@ -123,8 +130,9 @@ pub(super) fn relation_create_fields_from_authoritative_state(
                 }
             }
             (
-                LoweredExecutableAspectBindingKind::RelationSourceEndpointIdentity
-                | LoweredExecutableAspectBindingKind::RelationTargetEndpointIdentity,
+                LoweredAspectTarget::RelationSourceEndpoint
+                | LoweredAspectTarget::RelationTargetEndpoint,
+                _,
                 _,
             ) => {}
             _ => {

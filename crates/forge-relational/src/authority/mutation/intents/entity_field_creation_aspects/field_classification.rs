@@ -1,10 +1,8 @@
 use forge_foundational::facade::{
-    AspectLocator, AspectShape, AspectValue, BoundarySourceLocator, FieldKey, LocatorAuthority,
+    AspectLocator, AspectValue, BoundarySourceLocator, FieldKey, LocatorAuthority,
 };
 
-use crate::schema::data::{
-    LoweredAspectBinding, LoweredAspectPlan, LoweredExecutableAspectBindingKind,
-};
+use crate::schema::data::{LoweredAspectBinding, LoweredAspectPlan};
 use crate::transactions::data::{AspectFieldPatchTarget, EntityAuthoritativeAspectStateDenial};
 
 pub(super) enum EntityCreationFieldTarget<'a> {
@@ -31,25 +29,19 @@ pub(super) fn resolve_creation_field_target<'a>(
         return Err(unsupported_target(target, "undeclared entity aspect"));
     };
 
-    match &binding.binding_kind {
-        LoweredExecutableAspectBindingKind::EntityFieldScalar { field: declared }
-            if declared == field =>
-        {
-            Ok(EntityCreationFieldTarget::Scalar(binding))
-        }
-        LoweredExecutableAspectBindingKind::EntityFieldStruct { .. }
-            if struct_contract_declares_field(binding, field) =>
-        {
-            Ok(EntityCreationFieldTarget::StructField {
-                binding_index,
-                field: field.clone(),
-            })
-        }
-        _ => Err(unsupported_target(
-            target,
-            "field path not admitted by entity aspect binding",
-        )),
+    if binding.targets_entity_scalar_field(field) {
+        return Ok(EntityCreationFieldTarget::Scalar(binding));
     }
+    if binding.targets_entity_struct_field(field) {
+        return Ok(EntityCreationFieldTarget::StructField {
+            binding_index,
+            field: field.clone(),
+        });
+    }
+    Err(unsupported_target(
+        target,
+        "field path not admitted by entity aspect binding",
+    ))
 }
 
 pub(super) fn source_locator_for_target(target: &AspectFieldPatchTarget) -> BoundarySourceLocator {
@@ -70,19 +62,6 @@ fn single_creation_field(target: &AspectFieldPatchTarget) -> Option<&FieldKey> {
         [field] => Some(field),
         _ => None,
     }
-}
-
-fn struct_contract_declares_field(binding: &LoweredAspectBinding, field: &FieldKey) -> bool {
-    if !matches!(
-        &binding.binding_kind,
-        LoweredExecutableAspectBindingKind::EntityFieldStruct { .. }
-    ) {
-        return false;
-    }
-    let AspectShape::Struct(shape) = binding.contract.shape() else {
-        return false;
-    };
-    shape.field(field).is_some()
 }
 
 fn unsupported_target(

@@ -9,8 +9,8 @@ use crate::merge::data::{AspectMergePolicyDeclaration, IdentityBasisDeclaration}
 use forge_foundational::facade::AspectKey;
 
 use super::{
-    AspectBinding, AspectPlanRevision, KindAspectDeclarations, LoweredAspectExtractor,
-    LoweredAspectPlan,
+    AspectBinding, AspectPlanRevision, KindAspectDeclarations, LoweredAspectPlan,
+    LoweredAspectTarget,
 };
 use diagnostic_fields::{declaration_trace_diagnostic_fields, lowering_trace_diagnostic_fields};
 
@@ -44,7 +44,7 @@ pub struct AspectLoweringTrace {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AspectLoweringTraceRow {
     pub aspect_key: AspectKey,
-    pub extractor: LoweredAspectExtractor,
+    pub target: LoweredAspectTarget,
     pub aspect_shape: forge_foundational::AspectShape,
 }
 
@@ -80,7 +80,7 @@ impl LoweredAspectPlan {
                 .iter()
                 .map(|binding| AspectLoweringTraceRow {
                     aspect_key: binding.aspect_key.clone(),
-                    extractor: binding.extractor(),
+                    target: binding.target.clone(),
                     aspect_shape: binding.aspect_shape(),
                 })
                 .collect(),

@@ -1,8 +1,6 @@
-use forge_foundational::facade::{AspectShape, CanonicalFieldPath, FieldKey};
+use forge_foundational::facade::{CanonicalFieldPath, FieldKey};
 
-use crate::schema::data::{
-    LoweredAspectBinding, LoweredAspectPlan, LoweredExecutableAspectBindingKind,
-};
+use crate::schema::data::{LoweredAspectBinding, LoweredAspectPlan};
 use crate::transactions::data::{AspectFieldPatchTarget, EntityFieldAspectPatchDenial};
 
 pub(super) enum EntityFieldPatchTarget<'a> {
@@ -29,24 +27,20 @@ pub(super) fn resolve_entity_field_patch_target<'a>(
         });
     };
 
-    match &binding.binding_kind {
-        LoweredExecutableAspectBindingKind::EntityFieldScalar { field } if field == field_key => {
-            Ok(EntityFieldPatchTarget::Scalar(binding))
-        }
-        LoweredExecutableAspectBindingKind::EntityFieldStruct { .. }
-            if entity_struct_contract_declares_field(binding, field_key) =>
-        {
-            Ok(EntityFieldPatchTarget::StructField {
-                binding_index,
-                field: field_key.clone(),
-            })
-        }
-        _ => Err(
-            EntityFieldAspectPatchDenial::EntityAspectFieldPathMismatch {
-                field_locator: target.locator().clone(),
-            },
-        ),
+    if binding.targets_entity_scalar_field(field_key) {
+        return Ok(EntityFieldPatchTarget::Scalar(binding));
     }
+    if binding.targets_entity_struct_field(field_key) {
+        return Ok(EntityFieldPatchTarget::StructField {
+            binding_index,
+            field: field_key.clone(),
+        });
+    }
+    Err(
+        EntityFieldAspectPatchDenial::EntityAspectFieldPathMismatch {
+            field_locator: target.locator().clone(),
+        },
+    )
 }
 
 fn single_field_path_key(
@@ -60,20 +54,4 @@ fn single_field_path_key(
             },
         ),
     }
-}
-
-fn entity_struct_contract_declares_field(
-    binding: &LoweredAspectBinding,
-    field_key: &FieldKey,
-) -> bool {
-    if !matches!(
-        &binding.binding_kind,
-        LoweredExecutableAspectBindingKind::EntityFieldStruct { .. }
-    ) {
-        return false;
-    }
-    let AspectShape::Struct(shape) = binding.contract.shape() else {
-        return false;
-    };
-    shape.field(field_key).is_some()
 }

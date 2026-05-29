@@ -4,7 +4,7 @@ use crate::merge::data::{
     materialized_value_aspect_key, MaterializedAspectValue, MaterializedAspectValueEvidence,
     MergeExecutionMutationPlanError, ReconcileRecordPlan,
 };
-use crate::schema::data::{LoweredAspectBinding, LoweredExecutableAspectBindingKind};
+use crate::schema::data::{LoweredAspectBinding, LoweredAspectTarget};
 use crate::storage::data::EntityReadRecord;
 use crate::transactions::data::AspectFieldPatchTarget;
 
@@ -16,8 +16,11 @@ pub(super) fn resolved_entity_field_patch_value(
     aspect_key: &forge_foundational::facade::AspectKey,
     resolved_value: &MaterializedAspectValue,
 ) -> Result<Option<(AspectFieldPatchTarget, AspectValue)>, MergeExecutionMutationPlanError> {
-    match &binding.binding_kind {
-        LoweredExecutableAspectBindingKind::EntityFieldScalar { field } => {
+    match (&binding.target, binding.contract.shape()) {
+        (
+            LoweredAspectTarget::EntityField { field },
+            forge_foundational::AspectShape::Scalar(_),
+        ) => {
             let resolved_value = resolve_materialized_aspect_value(
                 plan,
                 aspect_key,
@@ -36,24 +39,36 @@ pub(super) fn resolved_entity_field_patch_value(
                 resolved_value,
             )))
         }
-        LoweredExecutableAspectBindingKind::EntityFieldStruct { .. } => Err(
+        (
+            LoweredAspectTarget::EntityField { .. },
+            forge_foundational::AspectShape::Struct(_),
+        ) => Err(
             MergeExecutionMutationPlanError::UnsupportedAspectMutationMaterialization {
                 record: plan.target_record.clone(),
                 aspect_key: aspect_key.clone(),
                 detail: "struct entity aspect reconcile is not executable through scalar field update intents",
             },
         ),
-        LoweredExecutableAspectBindingKind::LifecycleTransitionEquality => Err(
+        (LoweredAspectTarget::EntityField { .. }, _) => Err(
+            MergeExecutionMutationPlanError::UnsupportedAspectMutationMaterialization {
+                record: plan.target_record.clone(),
+                aspect_key: aspect_key.clone(),
+                detail: "entity field reconcile requires scalar or struct foundational contract shape",
+            },
+        ),
+        (LoweredAspectTarget::LifecycleTransition, _) => Err(
             MergeExecutionMutationPlanError::UnsupportedAspectMutationMaterialization {
                 record: plan.target_record.clone(),
                 aspect_key: aspect_key.clone(),
                 detail: "lifecycle reconcile is not executable through entity update intents",
             },
         ),
-        LoweredExecutableAspectBindingKind::RelationFieldScalar { .. }
-        | LoweredExecutableAspectBindingKind::RelationFieldStruct { .. }
-        | LoweredExecutableAspectBindingKind::RelationSourceEndpointIdentity
-        | LoweredExecutableAspectBindingKind::RelationTargetEndpointIdentity => Err(
+        (
+            LoweredAspectTarget::RelationField { .. }
+            | LoweredAspectTarget::RelationSourceEndpoint
+            | LoweredAspectTarget::RelationTargetEndpoint,
+            _,
+        ) => Err(
             MergeExecutionMutationPlanError::UnsupportedAspectMutationMaterialization {
                 record: plan.target_record.clone(),
                 aspect_key: aspect_key.clone(),
@@ -175,8 +190,8 @@ fn entity_authoritative_binding_aspect_value(
     entity: &EntityReadRecord,
     binding: &LoweredAspectBinding,
 ) -> Option<AspectValue> {
-    match &binding.binding_kind {
-        LoweredExecutableAspectBindingKind::EntityFieldScalar { .. } => {
+    match (&binding.target, binding.contract.shape()) {
+        (LoweredAspectTarget::EntityField { .. }, forge_foundational::AspectShape::Scalar(_)) => {
             let authoritative_state = entity.authoritative_aspect_state.as_ref()?;
             let entry = authoritative_state.get(&binding.aspect_key)?;
             match entry.view() {

@@ -1,5 +1,5 @@
 use crate::merge::data::VisibleMergeRecord;
-use crate::schema::data::{LoweredAspectBinding, LoweredExecutableAspectBindingKind};
+use crate::schema::data::{LoweredAspectBinding, LoweredAspectTarget};
 use crate::storage::data::{EntityReadRecord, RecordLifecycleState, RelationReadRecord};
 use forge_foundational::facade::{
     AuthoritativeRecordAspectState, ContractValidatedAspectValueView, StructAspectValue,
@@ -33,32 +33,42 @@ pub(crate) fn binding_component_from_visible_record(
         VisibleRecordSide::Target => record.target_relation.as_ref(),
     };
 
-    match (&record.record_kind, &binding.binding_kind) {
+    match (
+        &record.record_kind,
+        &binding.target,
+        binding.contract.shape(),
+    ) {
         (
             crate::merge::data::VisibleMergeRecordKind::Entity,
-            LoweredExecutableAspectBindingKind::EntityFieldScalar { .. },
+            LoweredAspectTarget::EntityField { .. },
+            forge_foundational::AspectShape::Scalar(_),
         ) => entity.and_then(|entity| entity_scalar_aspect_component(entity, binding)),
         (
             crate::merge::data::VisibleMergeRecordKind::Entity,
-            LoweredExecutableAspectBindingKind::EntityFieldStruct { .. },
+            LoweredAspectTarget::EntityField { .. },
+            forge_foundational::AspectShape::Struct(_),
         ) => entity.and_then(|entity| entity_struct_aspect_component(entity, binding)),
         (
             crate::merge::data::VisibleMergeRecordKind::Relation,
-            LoweredExecutableAspectBindingKind::RelationFieldScalar { .. },
+            LoweredAspectTarget::RelationField { .. },
+            forge_foundational::AspectShape::Scalar(_),
         ) => relation.and_then(|relation| relation_scalar_aspect_component(relation, binding)),
         (
             crate::merge::data::VisibleMergeRecordKind::Relation,
-            LoweredExecutableAspectBindingKind::RelationFieldStruct { .. },
+            LoweredAspectTarget::RelationField { .. },
+            forge_foundational::AspectShape::Struct(_),
         ) => relation.and_then(|relation| relation_struct_aspect_component(relation, binding)),
         (
             crate::merge::data::VisibleMergeRecordKind::Relation,
-            LoweredExecutableAspectBindingKind::RelationSourceEndpointIdentity,
+            LoweredAspectTarget::RelationSourceEndpoint,
+            _,
         ) => relation.map(|relation| MergeAspectComponent::EntityEndpoint(relation.source)),
         (
             crate::merge::data::VisibleMergeRecordKind::Relation,
-            LoweredExecutableAspectBindingKind::RelationTargetEndpointIdentity,
+            LoweredAspectTarget::RelationTargetEndpoint,
+            _,
         ) => relation.map(|relation| MergeAspectComponent::EntityEndpoint(relation.target)),
-        (_, LoweredExecutableAspectBindingKind::LifecycleTransitionEquality) => entity
+        (_, LoweredAspectTarget::LifecycleTransition, _) => entity
             .map(|entity| MergeAspectComponent::Lifecycle(entity.lifecycle))
             .or_else(|| {
                 relation.map(|relation| MergeAspectComponent::Lifecycle(relation.lifecycle))

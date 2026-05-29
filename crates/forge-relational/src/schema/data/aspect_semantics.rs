@@ -100,29 +100,17 @@ pub struct LoweredAspectPlan {
 pub struct LoweredAspectBinding {
     pub aspect_key: AspectKey,
     pub contract: AspectContract,
-    pub binding_kind: LoweredExecutableAspectBindingKind,
+    pub target: LoweredAspectTarget,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
-pub enum LoweredAspectExtractor {
+pub enum LoweredAspectTarget {
     EntityField { field: FieldKey },
     RelationField { field: FieldKey },
     RelationSourceEndpoint,
     RelationTargetEndpoint,
     LifecycleTransition,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub enum LoweredExecutableAspectBindingKind {
-    EntityFieldScalar { field: FieldKey },
-    EntityFieldStruct { field: FieldKey },
-    RelationFieldScalar { field: FieldKey },
-    RelationFieldStruct { field: FieldKey },
-    RelationSourceEndpointIdentity,
-    RelationTargetEndpointIdentity,
-    LifecycleTransitionEquality,
 }
 
 impl DeclaredAspect {
@@ -136,42 +124,41 @@ impl DeclaredAspect {
 }
 
 impl LoweredAspectBinding {
-    pub fn extractor(&self) -> LoweredAspectExtractor {
-        match &self.binding_kind {
-            LoweredExecutableAspectBindingKind::EntityFieldScalar { field } => {
-                LoweredAspectExtractor::EntityField {
-                    field: field.clone(),
-                }
-            }
-            LoweredExecutableAspectBindingKind::EntityFieldStruct { field } => {
-                LoweredAspectExtractor::EntityField {
-                    field: field.clone(),
-                }
-            }
-            LoweredExecutableAspectBindingKind::RelationFieldScalar { field } => {
-                LoweredAspectExtractor::RelationField {
-                    field: field.clone(),
-                }
-            }
-            LoweredExecutableAspectBindingKind::RelationFieldStruct { field } => {
-                LoweredAspectExtractor::RelationField {
-                    field: field.clone(),
-                }
-            }
-            LoweredExecutableAspectBindingKind::RelationSourceEndpointIdentity => {
-                LoweredAspectExtractor::RelationSourceEndpoint
-            }
-            LoweredExecutableAspectBindingKind::RelationTargetEndpointIdentity => {
-                LoweredAspectExtractor::RelationTargetEndpoint
-            }
-            LoweredExecutableAspectBindingKind::LifecycleTransitionEquality => {
-                LoweredAspectExtractor::LifecycleTransition
-            }
-        }
-    }
-
     pub fn aspect_shape(&self) -> forge_foundational::AspectShape {
         self.contract.shape().clone()
+    }
+
+    pub fn targets_entity_scalar_field(&self, target: &FieldKey) -> bool {
+        matches!(&self.target, LoweredAspectTarget::EntityField { field } if field == target)
+            && matches!(
+                self.contract.shape(),
+                forge_foundational::AspectShape::Scalar(_)
+            )
+    }
+
+    pub fn targets_entity_struct_field(&self, target: &FieldKey) -> bool {
+        matches!(&self.target, LoweredAspectTarget::EntityField { .. })
+            && self.struct_contract_declares_field(target)
+    }
+
+    pub fn targets_relation_scalar_field(&self, target: &FieldKey) -> bool {
+        matches!(&self.target, LoweredAspectTarget::RelationField { field } if field == target)
+            && matches!(
+                self.contract.shape(),
+                forge_foundational::AspectShape::Scalar(_)
+            )
+    }
+
+    pub fn targets_relation_struct_field(&self, target: &FieldKey) -> bool {
+        matches!(&self.target, LoweredAspectTarget::RelationField { .. })
+            && self.struct_contract_declares_field(target)
+    }
+
+    pub fn struct_contract_declares_field(&self, target: &FieldKey) -> bool {
+        let forge_foundational::AspectShape::Struct(shape) = self.contract.shape() else {
+            return false;
+        };
+        shape.field(target).is_some()
     }
 }
 
@@ -183,51 +170,20 @@ impl LoweredAspectPlan {
     pub fn entity_scalar_field_aspect_key(&self, target: &FieldKey) -> Option<AspectKey> {
         self.executable_bindings
             .iter()
-            .find(|binding| {
-                matches!(
-                    &binding.binding_kind,
-                    LoweredExecutableAspectBindingKind::EntityFieldScalar { field }
-                        if field == target
-                )
-            })
+            .find(|binding| binding.targets_entity_scalar_field(target))
             .map(|binding| binding.aspect_key.clone())
     }
 
     pub fn admits_entity_field_update_target(&self, field: &FieldKey) -> bool {
         self.executable_bindings.iter().any(|binding| {
-            entity_scalar_binding_targets_field(binding, field)
-                || entity_struct_binding_declares_field(binding, field)
+            binding.targets_entity_scalar_field(field) || binding.targets_entity_struct_field(field)
         })
     }
 }
 
-fn entity_scalar_binding_targets_field(binding: &LoweredAspectBinding, target: &FieldKey) -> bool {
-    matches!(
-        &binding.binding_kind,
-        LoweredExecutableAspectBindingKind::EntityFieldScalar { field }
-            if field == target
-    )
-}
-
-fn entity_struct_binding_declares_field(binding: &LoweredAspectBinding, target: &FieldKey) -> bool {
-    if !matches!(
-        &binding.binding_kind,
-        LoweredExecutableAspectBindingKind::EntityFieldStruct { .. }
-    ) {
-        return false;
-    }
-    let forge_foundational::AspectShape::Struct(shape) = binding.contract.shape() else {
-        return false;
-    };
-    shape.field(target).is_some()
-}
-
 #[cfg(test)]
 mod tests {
-    use super::{
-        AspectPlanRevision, LoweredAspectBinding, LoweredAspectPlan,
-        LoweredExecutableAspectBindingKind,
-    };
+    use super::{AspectPlanRevision, LoweredAspectBinding, LoweredAspectPlan, LoweredAspectTarget};
     use crate::identity::data::KindId;
     use forge_foundational::facade::AspectKey;
     use forge_foundational::FieldKey;
@@ -246,7 +202,7 @@ mod tests {
                         forge_foundational::AspectContractRevision(1),
                         forge_foundational::ScalarAspectType::String,
                     ),
-                    binding_kind: LoweredExecutableAspectBindingKind::EntityFieldScalar {
+                    target: LoweredAspectTarget::EntityField {
                         field: FieldKey::new("name").expect("valid field"),
                     },
                 },
@@ -258,7 +214,7 @@ mod tests {
                         forge_foundational::AspectContractRevision(1),
                         forge_foundational::ScalarAspectType::String,
                     ),
-                    binding_kind: LoweredExecutableAspectBindingKind::LifecycleTransitionEquality,
+                    target: LoweredAspectTarget::LifecycleTransition,
                 }
             ],
         };

@@ -16,7 +16,7 @@ use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId
 use crate::publication::patch::data::CanonicalAspectSet;
 use crate::schema::data::{
     AspectPlanCatalog, AspectPlanRevision, LoweredAspectBinding, LoweredAspectPlan,
-    LoweredExecutableAspectBindingKind, RelationalSchemaRegistry,
+    LoweredAspectTarget, RelationalSchemaRegistry,
 };
 use crate::storage::overlay::WorkingState;
 use crate::symbols::data::StringInterner;
@@ -161,7 +161,7 @@ fn entity_field_delta_requires_authoritative_state() {
                     .identified_by(AspectIdentity(1))
                     .at_revision(AspectContractRevision(7))
                     .scalar(ScalarAspectType::String),
-                binding_kind: LoweredExecutableAspectBindingKind::EntityFieldScalar {
+                target: LoweredAspectTarget::EntityField {
                     field: forge_foundational::facade::FieldKey::new("name").expect("valid field"),
                 },
             }],
@@ -214,7 +214,7 @@ fn entity_field_delta_materializes_authoritative_aspect_patch() {
             executable_bindings: smallvec::smallvec![LoweredAspectBinding {
                 aspect_key: FoundationalAspectKey::new("name").unwrap(),
                 contract: contract.clone(),
-                binding_kind: LoweredExecutableAspectBindingKind::EntityFieldScalar {
+                target: LoweredAspectTarget::EntityField {
                     field: forge_foundational::facade::FieldKey::new("name").expect("valid field"),
                 },
             }],
@@ -270,7 +270,7 @@ fn relation_field_delta_materializes_authoritative_aspect_patch() {
             executable_bindings: smallvec::smallvec![LoweredAspectBinding {
                 aspect_key: FoundationalAspectKey::new("relation.label").unwrap(),
                 contract: contract.clone(),
-                binding_kind: LoweredExecutableAspectBindingKind::RelationFieldScalar {
+                target: LoweredAspectTarget::RelationField {
                     field: forge_foundational::facade::FieldKey::new("label").expect("valid field"),
                 },
             }],

@@ -1,7 +1,7 @@
 use smallvec::SmallVec;
 
 use crate::publication::patch::data::{CanonicalAspectSet, RecordStructuralChange};
-use crate::schema::data::LoweredAspectPlan;
+use crate::schema::data::{LoweredAspectPlan, LoweredAspectTarget};
 use crate::transactions::data::RecordRef;
 use forge_foundational::facade::{
     AspectFieldLocator, AspectLocator, AspectValueLocator, FieldKey, LocatorAuthority,
@@ -82,10 +82,7 @@ fn lifecycle_structural_evidence(
     binding: &crate::schema::data::LoweredAspectBinding,
     structural_change: RecordStructuralChange,
 ) -> Option<CanonicalAspectDeltaEvidence> {
-    if !matches!(
-        binding.binding_kind,
-        crate::schema::data::LoweredExecutableAspectBindingKind::LifecycleTransitionEquality
-    ) {
+    if !matches!(&binding.target, LoweredAspectTarget::LifecycleTransition) {
         return None;
     }
     match structural_change {

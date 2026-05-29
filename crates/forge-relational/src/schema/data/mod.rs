@@ -16,8 +16,7 @@ use crate::merge::data::{AspectMergePolicyDeclaration, IdentityBasisDeclaration}
 
 pub use aspect_semantics::{
     AspectBinding, AspectPlanCatalog, AspectPlanRevision, DeclaredAspect, KindAspectDeclarations,
-    LoweredAspectBinding, LoweredAspectExtractor, LoweredAspectPlan,
-    LoweredExecutableAspectBindingKind,
+    LoweredAspectBinding, LoweredAspectPlan, LoweredAspectTarget,
 };
 pub use aspect_traces::{
     AspectDeclarationTrace, AspectDeclarationTraceRow, AspectLoweringTrace, AspectLoweringTraceRow,
