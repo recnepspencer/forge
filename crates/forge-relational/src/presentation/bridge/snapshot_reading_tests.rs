@@ -123,6 +123,42 @@ fn snapshot_reader_rejects_undeclared_dotted_document_paths() {
     );
 }
 
+#[test]
+fn snapshot_reader_rejects_invalid_aspect_key_at_request_boundary() {
+    let mut runtime =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let created = create_entity_outcome(&mut runtime, "visible");
+    let published_snapshot = created.snapshot.clone();
+    let published_entity = crate::tests::support::changed_entities(&created)[0];
+
+    let snapshot_identity = bridge_snapshot_identity_for_handle(&published_snapshot);
+    let reader = RuntimePublicationSnapshotReader::new(
+        Arc::new(runtime),
+        snapshot_identity,
+        published_snapshot.version_id,
+    );
+    let packet = SnapshotReadPacket::new(vec![SnapshotReadRequest::for_coarse(
+        format!(
+            "entity:{}:{}:{}",
+            published_entity.partition_id.0,
+            published_entity.local_slot.0,
+            published_entity.generation.0
+        ),
+        "profile name",
+    )]);
+
+    let error = reader
+        .read_packet(&packet)
+        .expect_err("invalid aspect key should be rejected before lookup");
+
+    assert!(
+        error
+            .to_string()
+            .contains("rejected invalid aspect key `profile name`"),
+        "unexpected bridge snapshot error: {error}"
+    );
+}
+
 fn runtime_with_test_schema() -> crate::facade::runtime::RelationalRuntime {
     runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations)
 }

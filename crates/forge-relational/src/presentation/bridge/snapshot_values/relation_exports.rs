@@ -12,31 +12,30 @@ use super::lifecycle_snapshot_values::lifecycle_aspect_value;
 
 pub(crate) fn export_relation_aspect_snapshot_bytes(
     record: &RelationReadRecord,
-    aspect_label: &str,
+    aspect_key: &AspectKey,
 ) -> Option<Vec<u8>> {
-    let value = relation_snapshot_aspect_value(record, aspect_label)?;
+    let value = relation_snapshot_aspect_value(record, aspect_key)?;
     encode_snapshot_aspect_value(&value)
 }
 
 fn relation_snapshot_aspect_value(
     record: &RelationReadRecord,
-    aspect_label: &str,
+    aspect_key: &AspectKey,
 ) -> Option<AspectValue> {
-    match aspect_label {
+    match aspect_key.as_str() {
         "source" => Some(endpoint_aspect_value(record.source)),
         "target" => Some(endpoint_aspect_value(record.target)),
         "lifecycle" => Some(lifecycle_aspect_value(record.lifecycle)),
-        _ => authoritative_relation_scalar_aspect_value(record, aspect_label),
+        _ => authoritative_relation_scalar_aspect_value(record, aspect_key),
     }
 }
 
 fn authoritative_relation_scalar_aspect_value(
     record: &RelationReadRecord,
-    aspect_label: &str,
+    aspect_key: &AspectKey,
 ) -> Option<AspectValue> {
-    let aspect_key = AspectKey::new(aspect_label)?;
     let authoritative_state = record.authoritative_aspect_state.as_ref()?;
-    let aspect_entry = authoritative_state.get(&aspect_key)?;
+    let aspect_entry = authoritative_state.get(aspect_key)?;
     match aspect_entry.view() {
         ContractValidatedAspectValueView::Scalar(value) => Some(value.clone()),
         ContractValidatedAspectValueView::Struct(_) => None,
