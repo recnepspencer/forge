@@ -9,7 +9,7 @@ use crate::tests::support::{
     AspectSchemaFixture,
 };
 use crate::transactions::data::{AspectFieldPatch, AspectFieldPatchTarget};
-use forge_foundational::facade::{AspectValue, FieldKey, InternedString};
+use forge_foundational::facade::{AspectValue, InternedString};
 
 fn strategy_registry() -> crate::schema::data::RelationalSchemaRegistry {
     AspectSchemaFixture {
@@ -36,6 +36,13 @@ fn replicas_patch_target() -> AspectFieldPatchTarget {
     )
 }
 
+fn name_patch_target() -> AspectFieldPatchTarget {
+    AspectFieldPatchTarget::single(
+        crate::tests::support::aspect_key("name"),
+        crate::tests::support::field_key("name"),
+    )
+}
+
 #[test]
 fn intent_reconciliation_strategy_emits_update_when_aspect_fields_differ() {
     let descriptor = IntentReconciliationStrategy::descriptor(
@@ -57,10 +64,8 @@ fn intent_reconciliation_strategy_emits_update_when_aspect_fields_differ() {
         .canonicalize_request(
             &IntentReconciliationInput {
                 entity_id: entity,
-                desired_fields: AspectFieldPatch::single(
-                    forge_foundational::facade::AspectKey::new("name")
-                        .expect("valid test aspect key"),
-                    FieldKey::new("name").expect("valid test field key"),
+                desired_fields: AspectFieldPatch::from_target(
+                    name_patch_target(),
                     AspectValue::String(InternedString::Raw("after".to_string())),
                 ),
             }
@@ -106,10 +111,8 @@ fn intent_reconciliation_strategy_emits_noop_when_aspect_fields_match() {
         .canonicalize_request(
             &IntentReconciliationInput {
                 entity_id: entity,
-                desired_fields: AspectFieldPatch::single(
-                    forge_foundational::facade::AspectKey::new("name")
-                        .expect("valid test aspect key"),
-                    FieldKey::new("name").expect("valid test field key"),
+                desired_fields: AspectFieldPatch::from_target(
+                    name_patch_target(),
                     AspectValue::String(InternedString::Raw("stable".to_string())),
                 ),
             }
@@ -154,10 +157,8 @@ fn intent_reconciliation_strategy_preserves_untouched_declared_fields() {
         .canonicalize_request(
             &IntentReconciliationInput {
                 entity_id: entity,
-                desired_fields: AspectFieldPatch::single(
-                    forge_foundational::facade::AspectKey::new("replicas")
-                        .expect("valid test aspect key"),
-                    FieldKey::new("replicas").expect("valid test field key"),
+                desired_fields: AspectFieldPatch::from_target(
+                    replicas_patch_target(),
                     AspectValue::UInt64(3),
                 ),
             }

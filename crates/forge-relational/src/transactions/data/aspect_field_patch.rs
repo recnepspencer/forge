@@ -59,27 +59,10 @@ impl AspectFieldPatch {
         Self { targets }
     }
 
-    pub fn single(aspect_key: AspectKey, field: FieldKey, value: AspectValue) -> Self {
+    pub fn from_target(target: AspectFieldPatchTarget, value: AspectValue) -> Self {
         let mut targets = BTreeMap::new();
-        targets.insert(AspectFieldPatchTarget::single(aspect_key, field), value);
+        targets.insert(target, value);
         Self { targets }
-    }
-
-    pub fn from_single_field_map(
-        aspect_key: AspectKey,
-        fields: BTreeMap<FieldKey, AspectValue>,
-    ) -> Self {
-        Self::new(
-            fields
-                .into_iter()
-                .map(|(field, value)| {
-                    (
-                        AspectFieldPatchTarget::single(aspect_key.clone(), field),
-                        value,
-                    )
-                })
-                .collect(),
-        )
     }
 
     pub fn is_empty(&self) -> bool {

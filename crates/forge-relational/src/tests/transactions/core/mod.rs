@@ -221,10 +221,12 @@ fn update_entity_fields_canonical_delta_uses_authoritative_patch_evidence() {
             EntityMutationIntent::UpdateFields(
                 crate::transactions::data::UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    fields: crate::transactions::data::AspectFieldPatch::single(
-                        forge_foundational::facade::AspectKey::new("name")
-                            .expect("valid test aspect key"),
-                        FieldKey::new("name").expect("valid test field key"),
+                    fields: crate::transactions::data::AspectFieldPatch::from_target(
+                        crate::transactions::data::AspectFieldPatchTarget::single(
+                            forge_foundational::facade::AspectKey::new("name")
+                                .expect("valid test aspect key"),
+                            FieldKey::new("name").expect("valid test field key"),
+                        ),
                         forge_foundational::facade::AspectValue::String("after".into()),
                     ),
                 },
@@ -319,10 +321,12 @@ fn update_entity_fields_applies_struct_contract_field_patch() {
             EntityMutationIntent::UpdateFields(
                 crate::transactions::data::UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    fields: crate::transactions::data::AspectFieldPatch::single(
-                        forge_foundational::facade::AspectKey::new("summary")
-                            .expect("valid test aspect key"),
-                        FieldKey::new("title").expect("valid test field key"),
+                    fields: crate::transactions::data::AspectFieldPatch::from_target(
+                        crate::transactions::data::AspectFieldPatchTarget::single(
+                            forge_foundational::facade::AspectKey::new("summary")
+                                .expect("valid test aspect key"),
+                            FieldKey::new("title").expect("valid test field key"),
+                        ),
                         forge_foundational::facade::AspectValue::String("after".into()),
                     ),
                 },
@@ -430,10 +434,12 @@ fn update_entity_fields_rejects_explicit_aspect_field_path_mismatch() {
             EntityMutationIntent::UpdateFields(
                 crate::transactions::data::UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    fields: crate::transactions::data::AspectFieldPatch::single(
-                        forge_foundational::facade::AspectKey::new("title.scalar")
-                            .expect("valid test aspect key"),
-                        FieldKey::new("status").expect("valid test field key"),
+                    fields: crate::transactions::data::AspectFieldPatch::from_target(
+                        crate::transactions::data::AspectFieldPatchTarget::single(
+                            forge_foundational::facade::AspectKey::new("title.scalar")
+                                .expect("valid test aspect key"),
+                            FieldKey::new("status").expect("valid test field key"),
+                        ),
                         forge_foundational::facade::AspectValue::String("after".into()),
                     ),
                 },
@@ -470,10 +476,12 @@ fn update_entity_fields_validation_denial_carries_aspect_field_path() {
             EntityMutationIntent::UpdateFields(
                 crate::transactions::data::UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    fields: crate::transactions::data::AspectFieldPatch::single(
-                        forge_foundational::facade::AspectKey::new("name")
-                            .expect("valid test aspect key"),
-                        FieldKey::new("name").expect("valid test field key"),
+                    fields: crate::transactions::data::AspectFieldPatch::from_target(
+                        crate::transactions::data::AspectFieldPatchTarget::single(
+                            forge_foundational::facade::AspectKey::new("name")
+                                .expect("valid test aspect key"),
+                            FieldKey::new("name").expect("valid test field key"),
+                        ),
                         forge_foundational::facade::AspectValue::UInt64(7),
                     ),
                 },

@@ -8,9 +8,11 @@ use crate::data::aspects::{entity_domain_aspect, entity_domain_field, field_key}
 use crate::data::entities::EntityKind;
 
 pub fn entity_create_fields(kind: EntityKind, label: &str) -> AspectFieldPatch {
-    AspectFieldPatch::single(
-        entity_domain_aspect(kind).aspect_key(),
-        field_key(entity_domain_field(kind)),
+    AspectFieldPatch::from_target(
+        AspectFieldPatchTarget::single(
+            entity_domain_aspect(kind).aspect_key(),
+            field_key(entity_domain_field(kind)),
+        ),
         AspectValue::String(label.to_string().into()),
     )
 }

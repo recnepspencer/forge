@@ -305,10 +305,12 @@ mod tests {
             .canonicalize_request(
                 &IntentReconciliationInput {
                     entity_id: entity,
-                    desired_fields: crate::transactions::data::AspectFieldPatch::single(
-                        forge_foundational::facade::AspectKey::new("name")
-                            .expect("valid test aspect key"),
-                        FieldKey::new("name").expect("valid test field key"),
+                    desired_fields: crate::transactions::data::AspectFieldPatch::from_target(
+                        AspectFieldPatchTarget::single(
+                            forge_foundational::facade::AspectKey::new("name")
+                                .expect("valid test aspect key"),
+                            FieldKey::new("name").expect("valid test field key"),
+                        ),
                         forge_foundational::facade::AspectValue::String(
                             forge_foundational::facade::InternedString::Raw("after".to_string()),
                         ),
@@ -387,9 +389,11 @@ mod tests {
         let batch = WorkerIntentBatch::new("reconcile-update").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id,
-                fields: crate::transactions::data::AspectFieldPatch::single(
-                    AspectKey::new("name").expect("valid name aspect key"),
-                    FieldKey::new("name").expect("valid name field key"),
+                fields: crate::transactions::data::AspectFieldPatch::from_target(
+                    AspectFieldPatchTarget::single(
+                        AspectKey::new("name").expect("valid name aspect key"),
+                        FieldKey::new("name").expect("valid name field key"),
+                    ),
                     AspectValue::String(InternedString::Raw(name.to_string())),
                 ),
             }),
@@ -687,10 +691,12 @@ mod tests {
             .canonicalize_request(
                 &IntentReconciliationInput {
                     entity_id: entity,
-                    desired_fields: crate::transactions::data::AspectFieldPatch::single(
-                        forge_foundational::facade::AspectKey::new("name")
-                            .expect("valid test aspect key"),
-                        FieldKey::new("name").expect("valid test field key"),
+                    desired_fields: crate::transactions::data::AspectFieldPatch::from_target(
+                        AspectFieldPatchTarget::single(
+                            forge_foundational::facade::AspectKey::new("name")
+                                .expect("valid test aspect key"),
+                            FieldKey::new("name").expect("valid test field key"),
+                        ),
                         forge_foundational::facade::AspectValue::String(
                             forge_foundational::facade::InternedString::Raw("after".to_string()),
                         ),
@@ -928,10 +934,12 @@ mod tests {
                 .canonicalize_request(
                     &IntentReconciliationInput {
                         entity_id: entity,
-                        desired_fields: AspectFieldPatch::single(
-                            forge_foundational::facade::AspectKey::new("name")
-                                .expect("valid test aspect key"),
-                            FieldKey::new("name").expect("valid test field key"),
+                        desired_fields: AspectFieldPatch::from_target(
+                            AspectFieldPatchTarget::single(
+                                forge_foundational::facade::AspectKey::new("name")
+                                    .expect("valid test aspect key"),
+                                FieldKey::new("name").expect("valid test field key"),
+                            ),
                             forge_foundational::facade::AspectValue::String("main-strategy".into()),
                         ),
                     }

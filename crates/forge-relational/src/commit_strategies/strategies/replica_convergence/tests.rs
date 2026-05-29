@@ -109,11 +109,8 @@ fn replica_convergence_strategy_noops_when_authoritative_replicas_match() {
                 crate::transactions::data::EntityMutationIntent::UpdateFields(
                     crate::transactions::data::UpdateEntityFieldsIntent {
                         entity_id: entity,
-                        fields: crate::transactions::data::AspectFieldPatch::single(
-                            forge_foundational::facade::AspectKey::new("replicas")
-                                .expect("valid test aspect key"),
-                            forge_foundational::facade::FieldKey::new("replicas")
-                                .expect("valid test field key"),
+                        fields: crate::transactions::data::AspectFieldPatch::from_target(
+                            replicas_patch_target(),
                             AspectValue::UInt64(5),
                         ),
                     },

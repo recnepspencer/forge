@@ -17,9 +17,11 @@ pub(crate) fn batch_create(name: &str) -> WorkerIntentBatch {
 }
 
 pub(crate) fn name_field_patch(name: &str) -> AspectFieldPatch {
-    AspectFieldPatch::single(
-        AspectKey::new("name").expect("valid name aspect key"),
-        forge_foundational::facade::FieldKey::new("name").expect("valid name field key"),
+    AspectFieldPatch::from_target(
+        crate::transactions::data::AspectFieldPatchTarget::single(
+            AspectKey::new("name").expect("valid name aspect key"),
+            forge_foundational::facade::FieldKey::new("name").expect("valid name field key"),
+        ),
         forge_foundational::facade::AspectValue::String(
             forge_foundational::facade::InternedString::Raw(name.to_string()),
         ),
@@ -27,9 +29,11 @@ pub(crate) fn name_field_patch(name: &str) -> AspectFieldPatch {
 }
 
 pub(crate) fn relation_label_field_patch(label: &str) -> AspectFieldPatch {
-    AspectFieldPatch::single(
-        AspectKey::new("label").expect("valid relation label aspect key"),
-        forge_foundational::facade::FieldKey::new("label").expect("valid label field key"),
+    AspectFieldPatch::from_target(
+        crate::transactions::data::AspectFieldPatchTarget::single(
+            AspectKey::new("label").expect("valid relation label aspect key"),
+            forge_foundational::facade::FieldKey::new("label").expect("valid label field key"),
+        ),
         forge_foundational::facade::AspectValue::String(
             forge_foundational::facade::InternedString::Raw(label.to_string()),
         ),

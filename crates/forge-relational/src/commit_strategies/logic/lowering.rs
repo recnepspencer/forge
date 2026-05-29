@@ -119,7 +119,7 @@ mod tests {
     use crate::identity::data::{KindId, PartitionId};
     use crate::logic::builder::RelationalRuntimeBuilder;
     use crate::symbols::data::ClientKey;
-    use crate::transactions::data::{AspectFieldPatch, EntitySpec};
+    use crate::transactions::data::{AspectFieldPatch, AspectFieldPatchTarget, EntitySpec};
     use forge_foundational::facade::{AspectKey, AspectValue, FieldKey, InternedString};
 
     fn canonical_request() -> CanonicalStrategyCommitRequest {
@@ -147,9 +147,11 @@ mod tests {
                 partition_id: PartitionId(1),
                 kind_id: KindId(1),
                 client_key: ClientKey::from("deployment-a"),
-                fields: AspectFieldPatch::single(
-                    AspectKey::new("name").expect("valid name aspect key"),
-                    FieldKey::new("name").expect("valid name field key"),
+                fields: AspectFieldPatch::from_target(
+                    AspectFieldPatchTarget::single(
+                        AspectKey::new("name").expect("valid name aspect key"),
+                        FieldKey::new("name").expect("valid name field key"),
+                    ),
                     AspectValue::String(InternedString::Raw("deployment-a".to_string())),
                 ),
             }),

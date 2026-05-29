@@ -547,9 +547,13 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
         &mut runtime,
         IntentReconciliationInput {
             entity_id: entity,
-            desired_fields: crate::transactions::data::AspectFieldPatch::single(
-                forge_foundational::facade::AspectKey::new("name").expect("valid test aspect key"),
-                forge_foundational::facade::FieldKey::new("name").expect("valid test field key"),
+            desired_fields: crate::transactions::data::AspectFieldPatch::from_target(
+                crate::transactions::data::AspectFieldPatchTarget::single(
+                    forge_foundational::facade::AspectKey::new("name")
+                        .expect("valid test aspect key"),
+                    forge_foundational::facade::FieldKey::new("name")
+                        .expect("valid test field key"),
+                ),
                 forge_foundational::facade::AspectValue::String(
                     forge_foundational::facade::InternedString::Raw("svc-v2".to_string()),
                 ),
