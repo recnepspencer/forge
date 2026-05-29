@@ -195,6 +195,7 @@ pub fn forge_query_platform_entry_compile_fail_manifest(
         ForgeQueryPlatformEntryUiProofRow::new("ordinary_configured_handle", "tests/ui/domain_handle/golden/ordinary_configured_handle_compiles.rs", G),
         ForgeQueryPlatformEntryUiProofRow::new("proof_configured_handle", "tests/ui/domain_handle/golden/proof_configured_handle_compiles.rs", G),
         ForgeQueryPlatformEntryUiProofRow::new("public_doc_coverage_surface_readout", "tests/ui/domain_handle/golden/public_doc_coverage_surface_readout_compiles.rs", G),
+        ForgeQueryPlatformEntryUiProofRow::new("recovery_boundary_surface_readout", "tests/ui/domain_handle/golden/recovery_boundary_surface_readout_compiles.rs", G),
         ForgeQueryPlatformEntryUiProofRow::new("signal_compatibility_surface_readout", "tests/ui/domain_handle/golden/signal_compatibility_surface_readout_compiles.rs", G),
         ForgeQueryPlatformEntryUiProofRow::new("configured_handle_rejects_bool_shortcut_context", "tests/ui/domain_handle/boundaries/configured_handle_rejects_bool_shortcut_context.rs", B),
         ForgeQueryPlatformEntryUiProofRow::new("configured_handle_rejects_callback_context", "tests/ui/domain_handle/boundaries/configured_handle_rejects_callback_context.rs", B),
@@ -268,7 +269,7 @@ mod tests {
         let actual = manifest_paths();
 
         assert_eq!(expected, actual.iter().map(String::as_str).collect());
-        assert_eq!(manifest.rows().len(), 24);
+        assert_eq!(manifest.rows().len(), 25);
         assert!(!manifest.manifest_digest().is_empty());
         assert!(!manifest.boundary_digest().is_empty());
         for label in required_ui_proof_labels() {

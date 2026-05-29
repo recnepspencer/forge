@@ -210,8 +210,8 @@ pub fn forge_query_platform_entry_hostile_manifest() -> ForgeQueryPlatformEntryH
             "prepared_continuation_remains_distinct_from_execution",
             Some("execute_prepared_continuation"),
             S,
-            "src/continuation_pipeline/tests.rs",
-            "prepare_and_execute_continuation_from_target",
+            "src/continuation_pipeline/tests/execution.rs",
+            "execution_stays_separate_from_preparation_and_produces_runtime_artifact",
         ),
         ForgeQueryPlatformEntryHostileRow::new(
             "declaration_denial_remains_distinct_from_contribution_denial",
