@@ -82,7 +82,7 @@ impl CertifiedFintechReadSummary {
             .unwrap_or(false)
     }
 
-    pub(super) fn to_artifact_value(&self) -> CertificationArtifactProjectionValue {
+    pub(super) fn to_artifact_projection_value(&self) -> CertificationArtifactProjectionValue {
         let mut fields = vec![
             u64_field("snapshot_id", self.snapshot_id),
             usize_field("entity_count", self.entity_count),
@@ -105,7 +105,7 @@ pub(super) fn read_summary_artifacts(
     dynamic_artifact_object(
         summaries
             .iter()
-            .map(|(alias, summary)| (alias.clone(), summary.to_artifact_value()))
+            .map(|(alias, summary)| (alias.clone(), summary.to_artifact_projection_value()))
             .collect::<Vec<_>>(),
     )
 }

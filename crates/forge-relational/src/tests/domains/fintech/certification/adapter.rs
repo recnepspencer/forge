@@ -324,14 +324,14 @@ impl WorkflowCertificationAdapter for RelationalFintechWorkflowCertificationAdap
     ) -> Result<ReproductionMetadata, Self::Error> {
         Ok(ReproductionMetadata {
             format: "json".to_string(),
-            payload: reproduction_artifact_value(session, failure)
+            payload: reproduction_artifact_projection(session, failure)
                 .into_external_harness_json()
                 .to_string(),
         })
     }
 }
 
-fn reproduction_artifact_value(
+fn reproduction_artifact_projection(
     session: &CertifiedRelationalFintechSession,
     failure: &WorkflowFailureContext,
 ) -> CertificationArtifactProjectionValue {
