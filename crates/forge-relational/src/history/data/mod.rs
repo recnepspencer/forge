@@ -6,8 +6,14 @@ use serde::{Deserialize, Serialize};
 use crate::identity::data::VersionId;
 use crate::identity::data::{EntityId, RelationId};
 
-pub use aspect_history::*;
-pub use branch_creation::*;
+pub use aspect_history::{
+    AspectFilter, AspectFilterMode, AspectHistoryCommitSpan, AspectHistoryDigest,
+    AspectHistoryEntry, AspectHistoryLineageEventSpan, AspectHistoryOrigin,
+    AspectHistoryQueryResult, AspectHistoryResolutionTrace, AspectResolutionContext,
+    HistoryAspectQueryTarget, LineageAspectHistory, LineageAspectHistoryQueryResult,
+    LineageAspectResolutionDigest,
+};
+pub use branch_creation::{BranchCreateError, BranchCreateErrorClass};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct CommitId(pub u64);

@@ -6,10 +6,29 @@ mod conflict_class;
 mod plan_artifacts;
 mod rollback;
 
-pub use aspect_delta_failure_fields::*;
-pub use commit_conflict::*;
-pub use commit_result::*;
-pub use commit_validation::*;
-pub use conflict_class::*;
-pub use plan_artifacts::*;
-pub use rollback::*;
+pub use aspect_delta_failure_fields::{
+    AspectDeltaFailureFields, AspectDeltaPatchConstructionDenial, AspectDeltaPatchValueDenial,
+    AspectDeltaRecordClass,
+};
+pub use commit_conflict::{CommitConflict, TransactionCommitError};
+pub use commit_result::{
+    CommitExecution, CommitOutcome, CommitPhaseTiming, CommitPublication, CommitResult,
+    CommitSchemaSummary, CommitStructuralSummary,
+};
+pub use commit_validation::{CommitValidation, CommitValidationSummary};
+#[cfg(test)]
+pub(crate) use conflict_class::EntityUpdateMissingState;
+pub use conflict_class::{
+    BulkImportRowDomain, BulkImportStage, BulkMutationAdmissionDenial, ConflictClass,
+    EntityAuthoritativeAspectStateDenial, EntityCascadeDeleteMissingState,
+    EntityFieldAspectPatchDenial, EntityFieldIntentValidationMissingState,
+    EntityFieldUpdateMissingState, MutationStateInconsistencyEvidence,
+    RelationAuthoritativeAspectStateDenial, RelationEndpointUpdateMissingState,
+};
+pub(crate) use plan_artifacts::merge_commit_mutation_plan_token;
+pub use plan_artifacts::{
+    AuthoritativeApplyPlan, LoweredCommitPlan, MergeCommitMutationPlan, MergeExecutionOutcome,
+    MergeExecutionStructuralSummary, MergeExecutionSummary, MergedCommitPlan,
+    PublishedMergeExecutionAuthority, UndoRecord,
+};
+pub use rollback::{RollbackEffect, RollbackOutcome, RollbackSummary};

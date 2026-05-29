@@ -14,12 +14,46 @@ use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
 use crate::identity::data::KindId;
 use crate::merge::data::{AspectMergePolicyDeclaration, IdentityBasisDeclaration};
 
-pub use aspect_semantics::*;
-pub use aspect_traces::*;
-pub use continuity::*;
-pub use registry_errors::*;
-pub use relation_integrity::*;
-pub use structural_invariants::*;
+pub use aspect_semantics::{
+    AspectBinding, AspectPlanCatalog, AspectPlanRevision, DeclaredAspect, KindAspectDeclarations,
+    LoweredAspectBinding, LoweredAspectExtractor, LoweredAspectPlan,
+    LoweredExecutableAspectBindingKind,
+};
+pub use aspect_traces::{
+    AspectDeclarationTrace, AspectDeclarationTraceRow, AspectLoweringTrace, AspectLoweringTraceRow,
+};
+pub use continuity::{
+    runtime_descriptor_canonicalization_policy, runtime_descriptor_semantics_policy,
+    CompatibilityObservation, DescriptorCanonicalizationCompatibilityPolicy,
+    DescriptorCanonicalizationVersion, DescriptorSemanticsCompatibilityPolicy,
+    DescriptorSemanticsVersion, FreeFormSchemaDiffIntent, HistoricalInterpretationSensitivity,
+    LoweredSchemaTransitionPlan, ProposedSchemaTransition, SchemaBoundaryFingerprint,
+    SchemaBridgeDescriptor, SchemaBridgeabilityClassification, SchemaContinuationClassification,
+    SchemaContinuationDescriptor, SchemaDiffAtom, SchemaDiffDetail, SchemaElementKind,
+    SchemaElementRef, SchemaLineageArtifact, SchemaLineageOrderingSemantics,
+    SchemaPublicationImpact, SchemaReconciliationClassification, SchemaReconciliationDescriptor,
+    SchemaReconciliationOrderingMode, SchemaReconciliationPolicy, SchemaStratum,
+    SchemaSubscriberImpact, SchemaTransitionArtifact, SchemaTransitionBarrier,
+    SchemaTransitionSummary, SubscriberBoundaryVisibility, ValidatedSchemaTransition,
+};
+pub use registry_errors::{SchemaRegistryError, SchemaRegistryErrorClass};
+pub(crate) use relation_integrity::derive_relation_integrity_plan_revision;
+pub use relation_integrity::{
+    CardinalityContractDeclaration, ContractId, EndpointDeletionIntegrityDeclaration,
+    EndpointDeletionIntegrityMode, EndpointKindContractDeclaration,
+    LoweredCardinalityMaximumContract, LoweredCardinalityMinimumContract,
+    LoweredEndpointDeletionIntegrityContract, LoweredEndpointKindContract,
+    LoweredRelationIntegrityPlan, LoweredSymmetryContract, LoweredUniquenessContract,
+    MinimumCardinalityEnforcement, PairMinimumSemantics, RelationIntegrityDeclarations,
+    RelationIntegrityPlanCatalog, RelationIntegrityPlanRevision, SymmetryContractDeclaration,
+    SymmetryMode, UniquenessContractDeclaration, UniquenessScope,
+};
+pub use structural_invariants::{
+    AcyclicityContractDeclaration, AllowedCycleClass, ConnectivityMinimumContractDeclaration,
+    ConnectivityMinimumEnforcement, DirectedTraversalKind, LoweredAcyclicityContract,
+    LoweredConnectivityMinimumContract, LoweredPartitionIsolationContract,
+    PartitionIsolationContractDeclaration, PartitionIsolationMode,
+};
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct SchemaId(pub String);
