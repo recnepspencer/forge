@@ -6,7 +6,7 @@ use crate::facade::transactions::TransactionOptions;
 use crate::tests::support::{
     capture_aspect_truth_bundle, checkpoint_and_recover_with, create_branch_from_main,
     create_entity_outcome, create_entity_outcome_on_branch, diagnostic_field,
-    persisted_runtime_with_test_schema,
+    diagnostic_field_optional, persisted_runtime_with_test_schema,
 };
 
 fn execute_feature_into_main_merge() -> (
@@ -266,8 +266,8 @@ fn execute_prepared_merge_reports_execution_counters_and_structural_summary() {
         .expect("merge execution detailed artifact");
     assert!(execution_artifact.entries.iter().all(|entry| {
         entry.code == DiagnosticCode::MergeExecutionPublished
-            && entry.fields.root_value().get("blocked_count").is_none()
-            && entry.fields.root_value().get("rejected_count").is_none()
+            && diagnostic_field_optional(entry, "blocked_count").is_none()
+            && diagnostic_field_optional(entry, "rejected_count").is_none()
     }));
 }
 
