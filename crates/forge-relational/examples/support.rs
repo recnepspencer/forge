@@ -30,7 +30,8 @@ pub fn demo_schema_registry() -> RelationalSchemaRegistry {
             schema_id: SchemaId("demo".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![entity_string_field_aspect(
-                "name", "name",
+                aspect_key("name"),
+                field_key("name"),
             )]),
         })
         .and_then(|registry| {
@@ -42,7 +43,7 @@ pub fn demo_schema_registry() -> RelationalSchemaRegistry {
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::new(vec![
-                    relation_string_field_aspect("label", "label"),
+                    relation_string_field_aspect(aspect_key("label"), field_key("label")),
                 ]),
                 relation_integrity: RelationIntegrityDeclarations::default(),
             })
@@ -68,7 +69,7 @@ pub fn create_entity(
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: ClientKey::raw(name),
-                fields: string_field_patch("name", "name", name),
+                fields: string_field_patch(aspect_key("name"), field_key("name"), name),
             }),
         )),
     );
@@ -99,7 +100,7 @@ pub fn update_entity_on_branch(
         WorkerIntentBatch::new(format!("update-{name}")).push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id,
-                fields: string_field_patch("name", "name", name),
+                fields: string_field_patch(aspect_key("name"), field_key("name"), name),
             }),
         )),
     );
@@ -137,7 +138,7 @@ pub fn create_relation(
                 client_key: ClientKey::raw(label),
                 source: EntityReference::Existing(source),
                 target: EntityReference::Existing(target),
-                fields: string_field_patch("label", "label", label),
+                fields: string_field_patch(aspect_key("label"), field_key("label"), label),
             }),
         )),
     );
@@ -178,10 +179,10 @@ pub fn field_key(label: &str) -> FieldKey {
     FieldKey::new(label).expect("example field key must be foundational")
 }
 
-fn string_field_patch(aspect_label: &str, field_label: &str, value: &str) -> AspectFieldPatch {
+fn string_field_patch(aspect_key: AspectKey, field_key: FieldKey, value: &str) -> AspectFieldPatch {
     let mut fields = BTreeMap::new();
     fields.insert(
-        AspectFieldPatchTarget::single(aspect_key(aspect_label), field_key(field_label)),
+        AspectFieldPatchTarget::single(aspect_key, field_key),
         AspectValue::String(value.to_string().into()),
     );
     AspectFieldPatch::from(fields)
@@ -191,36 +192,33 @@ fn aspect_key(label: &str) -> AspectKey {
     AspectKey::new(label).expect("example aspect key must be foundational")
 }
 
-fn entity_string_field_aspect(aspect_label: &str, field_label: &str) -> DeclaredAspect {
+fn entity_string_field_aspect(aspect_key: AspectKey, field_key: FieldKey) -> DeclaredAspect {
     DeclaredAspect {
-        binding: AspectBinding::EntityField {
-            field: field_key(field_label),
-        },
-        contract: scalar_string_contract(aspect_label),
+        binding: AspectBinding::EntityField { field: field_key },
+        contract: scalar_string_contract(aspect_key),
     }
 }
 
-fn relation_string_field_aspect(aspect_label: &str, field_label: &str) -> DeclaredAspect {
+fn relation_string_field_aspect(aspect_key: AspectKey, field_key: FieldKey) -> DeclaredAspect {
     DeclaredAspect {
-        binding: AspectBinding::RelationField {
-            field: field_key(field_label),
-        },
-        contract: scalar_string_contract(aspect_label),
+        binding: AspectBinding::RelationField { field: field_key },
+        contract: scalar_string_contract(aspect_key),
     }
 }
 
-fn scalar_string_contract(aspect_label: &str) -> forge_foundational::AspectContract {
+fn scalar_string_contract(aspect_key: AspectKey) -> forge_foundational::AspectContract {
+    let identity = stable_contract_identity(&aspect_key);
     aspects()
         .contract()
-        .for_key(aspect_key(aspect_label))
-        .identified_by(AspectIdentity(stable_contract_identity(aspect_label)))
+        .for_key(aspect_key)
+        .identified_by(AspectIdentity(identity))
         .at_revision(aspects().vocabulary().revision(1))
         .scalar(ScalarAspectType::String)
 }
 
-fn stable_contract_identity(label: &str) -> u64 {
+fn stable_contract_identity(aspect_key: &AspectKey) -> u64 {
     let mut hash = 14695981039346656037_u64;
-    for byte in label.as_bytes() {
+    for byte in aspect_key.as_str().as_bytes() {
         hash ^= *byte as u64;
         hash = hash.wrapping_mul(1099511628211_u64);
     }

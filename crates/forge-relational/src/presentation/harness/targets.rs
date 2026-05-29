@@ -1,4 +1,4 @@
-use forge_foundational::{aspects, AspectIdentity, FieldKey, ScalarAspectType};
+use forge_foundational::{aspects, AspectIdentity, AspectKey, FieldKey, ScalarAspectType};
 
 use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
 use crate::facade::harness::RelationalHarnessError;
@@ -107,52 +107,54 @@ pub(super) fn default_harness_schema_registry() -> RelationalSchemaRegistry {
 }
 
 fn default_harness_entity_aspects() -> Vec<DeclaredAspect> {
-    vec![scalar_entity_field_aspect("name", "name")]
+    vec![scalar_entity_field_aspect(
+        aspect_key("name"),
+        field_key("name"),
+    )]
 }
 
 fn default_harness_relation_aspects() -> Vec<DeclaredAspect> {
-    vec![scalar_relation_field_aspect("label", "label")]
+    vec![scalar_relation_field_aspect(
+        aspect_key("label"),
+        field_key("label"),
+    )]
 }
 
-fn scalar_entity_field_aspect(aspect_name: &str, field_key_text: &str) -> DeclaredAspect {
+fn scalar_entity_field_aspect(aspect_key: AspectKey, field_key: FieldKey) -> DeclaredAspect {
     DeclaredAspect {
-        binding: AspectBinding::EntityField {
-            field: field_key(field_key_text),
-        },
-        contract: scalar_string_contract(aspect_name),
+        binding: AspectBinding::EntityField { field: field_key },
+        contract: scalar_string_contract(aspect_key),
     }
 }
 
-fn scalar_relation_field_aspect(aspect_name: &str, field_key_text: &str) -> DeclaredAspect {
+fn scalar_relation_field_aspect(aspect_key: AspectKey, field_key: FieldKey) -> DeclaredAspect {
     DeclaredAspect {
-        binding: AspectBinding::RelationField {
-            field: field_key(field_key_text),
-        },
-        contract: scalar_string_contract(aspect_name),
+        binding: AspectBinding::RelationField { field: field_key },
+        contract: scalar_string_contract(aspect_key),
     }
 }
 
-fn scalar_string_contract(aspect_name: &str) -> forge_foundational::AspectContract {
+fn scalar_string_contract(aspect_key: AspectKey) -> forge_foundational::AspectContract {
+    let identity = stable_harness_aspect_identity(&aspect_key);
     aspects()
         .contract()
-        .for_key(
-            aspects()
-                .vocabulary()
-                .key(aspect_name)
-                .expect("default harness aspect name must be a foundational key"),
-        )
-        .identified_by(AspectIdentity(stable_harness_aspect_identity(aspect_name)))
+        .for_key(aspect_key)
+        .identified_by(AspectIdentity(identity))
         .at_revision(aspects().vocabulary().revision(1))
         .scalar(ScalarAspectType::String)
+}
+
+fn aspect_key(aspect_key_text: &str) -> AspectKey {
+    AspectKey::new(aspect_key_text).expect("default harness aspect key must be foundational")
 }
 
 fn field_key(field_key_text: &str) -> FieldKey {
     FieldKey::new(field_key_text).expect("default harness field key must be foundational")
 }
 
-fn stable_harness_aspect_identity(aspect_name: &str) -> u64 {
+fn stable_harness_aspect_identity(aspect_key: &AspectKey) -> u64 {
     let mut hash = 14695981039346656037_u64;
-    for byte in aspect_name.as_bytes() {
+    for byte in aspect_key.as_str().as_bytes() {
         hash ^= *byte as u64;
         hash = hash.wrapping_mul(1099511628211_u64);
     }
