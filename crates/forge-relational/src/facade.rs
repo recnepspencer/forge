@@ -62,7 +62,11 @@ pub mod commit_strategies {
 }
 
 pub mod bridge {
-    pub use crate::presentation::facade::bridge::*;
+    pub use crate::presentation::bridge::{
+        bridge_snapshot_identity_for_commit, bridge_snapshot_identity_for_handle,
+        commit_envelope_to_bridge_envelope, publication_bundle_to_bridge_envelope,
+        publication_patch_to_bridge_envelope, RuntimeBridgeRelationalSource,
+    };
 }
 
 pub mod diagnostics {
