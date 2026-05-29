@@ -17,8 +17,8 @@ use crate::facade::transactions::{
 };
 use crate::schema::data::RelationIntegrityDeclarations;
 use crate::tests::support::{
-    capture_aspect_truth_bundle, certification_digest, checkpoint_and_recover_with,
-    create_branch_from_main, create_entity, create_entity_outcome_on_branch, entity_field_aspect,
+    capture_aspect_truth_bundle, checkpoint_and_recover_with, create_branch_from_main,
+    create_entity, create_entity_outcome_on_branch, entity_field_aspect,
     persisted_runtime_with_test_schema, read_entity_field, read_entity_name,
     unique_test_store_path, update_entity, update_entity_on_branch, CascadeDeletePolicy,
     CrossContextPolicy, DurabilityMode, DurableStoreLayout, RelationalRuntimeProfile,
@@ -28,10 +28,12 @@ use crate::tests::support::{
 struct MergeExecutionCertificationArtifacts {
     merge_execution_digest: String,
     merge_execution_diagnostics_digest: String,
-    merge_execution_truth_digest: String,
-    merge_execution_replay_digest: String,
-    merge_execution_recovery_digest: String,
-    merge_execution_branch_heads_digest: String,
+    visible_entity_count: usize,
+    visible_relation_count: usize,
+    replay_verified: bool,
+    recovery_envelope_matches: bool,
+    recovery_truth_matches: bool,
+    branch_heads_match: bool,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -56,10 +58,12 @@ fn authoritative_merge_execution_certification_emits_machine_checkable_artifacts
     ] {
         assert!(certification.merge_execution_digest.len() > 8);
         assert!(certification.merge_execution_diagnostics_digest.len() > 8);
-        assert!(certification.merge_execution_truth_digest.len() > 8);
-        assert!(certification.merge_execution_replay_digest.len() > 8);
-        assert!(certification.merge_execution_recovery_digest.len() > 8);
-        assert!(certification.merge_execution_branch_heads_digest.len() > 8);
+        assert!(certification.visible_entity_count > 0);
+        assert_eq!(certification.visible_relation_count, 0);
+        assert!(certification.replay_verified);
+        assert!(certification.recovery_envelope_matches);
+        assert!(certification.recovery_truth_matches);
+        assert!(certification.branch_heads_match);
     }
 }
 
@@ -307,11 +311,10 @@ where
         .expect("recovered merge envelope");
     let recovered_truth_bundle = capture_aspect_truth_bundle(&mut recovered, &[], &[], &[]);
 
-    assert_eq!(envelope, recovered_envelope);
-    assert_eq!(
-        truth_bundle.visible_truth,
-        recovered_truth_bundle.visible_truth
-    );
+    let recovery_envelope_matches = envelope == recovered_envelope;
+    let recovery_truth_matches = truth_bundle.visible_truth == recovered_truth_bundle.visible_truth;
+    assert!(recovery_envelope_matches);
+    assert!(recovery_truth_matches);
     assert_eq!(
         runtime.history().latest_common_ancestor_between_branches(
             &BranchId("main".to_string()),
@@ -322,29 +325,38 @@ where
             &BranchId("feature".to_string())
         )
     );
+    let live_branch_heads = (
+        runtime
+            .history()
+            .branch_head(&BranchId("main".to_string()))
+            .map(|head| head.commit_id),
+        runtime
+            .history()
+            .branch_head(&BranchId("feature".to_string()))
+            .map(|head| head.commit_id),
+    );
+    let recovered_branch_heads = (
+        recovered
+            .history()
+            .branch_head(&BranchId("main".to_string()))
+            .map(|head| head.commit_id),
+        recovered
+            .history()
+            .branch_head(&BranchId("feature".to_string()))
+            .map(|head| head.commit_id),
+    );
+    let branch_heads_match = live_branch_heads == recovered_branch_heads;
+    assert!(branch_heads_match);
 
     MergeExecutionCertificationArtifacts {
         merge_execution_digest: merge.execution_summary.execution_digest.clone(),
         merge_execution_diagnostics_digest: merge.execution_summary.diagnostics_digest.clone(),
-        merge_execution_truth_digest: certification_digest(&format!(
-            "{:?}",
-            truth_bundle.visible_truth
-        )),
-        merge_execution_replay_digest: certification_digest(&replay),
-        merge_execution_recovery_digest: certification_digest(&(
-            recovered_envelope.clone(),
-            format!("{:?}", recovered_truth_bundle.visible_truth),
-        )),
-        merge_execution_branch_heads_digest: certification_digest(&(
-            runtime
-                .history()
-                .branch_head(&BranchId("main".to_string()))
-                .map(|head| head.commit_id),
-            runtime
-                .history()
-                .branch_head(&BranchId("feature".to_string()))
-                .map(|head| head.commit_id),
-        )),
+        visible_entity_count: truth_bundle.visible_truth.entity_names.len(),
+        visible_relation_count: truth_bundle.visible_truth.relations.len(),
+        replay_verified: replay.failure.is_none(),
+        recovery_envelope_matches,
+        recovery_truth_matches,
+        branch_heads_match,
     }
 }
 
