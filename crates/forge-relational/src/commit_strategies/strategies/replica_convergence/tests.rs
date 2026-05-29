@@ -9,6 +9,7 @@ use crate::logic::builder::RelationalRuntimeBuilder;
 use crate::tests::support::{
     entity_field_aspect, entity_u64_field_aspect, lifecycle_aspect, AspectSchemaFixture,
 };
+use crate::transactions::data::AspectFieldPatchTarget;
 
 fn strategy_registry() -> crate::schema::data::RelationalSchemaRegistry {
     AspectSchemaFixture {
@@ -26,6 +27,13 @@ fn strategy_registry() -> crate::schema::data::RelationalSchemaRegistry {
         ..AspectSchemaFixture::default()
     }
     .build_registry()
+}
+
+fn replicas_patch_target() -> AspectFieldPatchTarget {
+    AspectFieldPatchTarget::single(
+        crate::tests::support::aspect_key("replicas"),
+        crate::tests::support::field_key("replicas"),
+    )
 }
 
 #[test]
@@ -70,10 +78,7 @@ fn replica_convergence_strategy_updates_replicas_and_preserves_other_fields() {
     let updated_replicas = match intent {
         crate::transactions::data::MutationIntent::Entity(
             crate::transactions::data::EntityMutationIntent::UpdateFields(intent),
-        ) => intent.fields.get_single_field(
-            &forge_foundational::facade::AspectKey::new("replicas").expect("valid test aspect key"),
-            &forge_foundational::facade::FieldKey::new("replicas").expect("valid test field key"),
-        ),
+        ) => intent.fields.get(&replicas_patch_target()),
         other => panic!("expected update entity fields intent, got {other:?}"),
     };
 

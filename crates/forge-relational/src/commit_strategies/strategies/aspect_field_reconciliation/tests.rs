@@ -12,6 +12,7 @@ use crate::tests::support::{
     create_entity, entity_field_aspect, entity_u64_field_aspect, lifecycle_aspect,
     AspectSchemaFixture,
 };
+use crate::transactions::data::AspectFieldPatchTarget;
 use forge_foundational::facade::{
     AspectFieldLocator, AspectKey, CanonicalFieldPath, FieldKey, LocatorAuthority,
 };
@@ -59,6 +60,13 @@ fn field_locator(aspect_key: AspectKey, field_key: FieldKey) -> AspectFieldLocat
     )
 }
 
+fn replicas_patch_target() -> AspectFieldPatchTarget {
+    AspectFieldPatchTarget::single(
+        crate::tests::support::aspect_key("replicas"),
+        crate::tests::support::field_key("replicas"),
+    )
+}
+
 #[test]
 fn aspect_field_reconciliation_strategy_updates_only_declared_field_aspect() {
     let descriptor = AspectFieldReconciliationStrategy::descriptor(
@@ -96,10 +104,7 @@ fn aspect_field_reconciliation_strategy_updates_only_declared_field_aspect() {
     let updated_replicas = match &execution.mutation_program().worker_batches()[0].intents[0] {
         crate::transactions::data::MutationIntent::Entity(
             crate::transactions::data::EntityMutationIntent::UpdateFields(intent),
-        ) => intent.fields.get_single_field(
-            &forge_foundational::facade::AspectKey::new("replicas").expect("valid test aspect key"),
-            &forge_foundational::facade::FieldKey::new("replicas").expect("valid test field key"),
-        ),
+        ) => intent.fields.get(&replicas_patch_target()),
         other => panic!("expected update entity fields intent, got {other:?}"),
     };
 

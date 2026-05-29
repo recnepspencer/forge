@@ -10,7 +10,7 @@ use crate::tests::support::{
     create_entity, entity_field_aspect, entity_u64_field_aspect, lifecycle_aspect,
     AspectSchemaFixture,
 };
-use crate::transactions::data::AspectFieldPatch;
+use crate::transactions::data::{AspectFieldPatch, AspectFieldPatchTarget};
 use forge_foundational::facade::{
     AspectFieldLocator, AspectKey, AspectValue, CanonicalFieldPath, FieldKey, InternedString,
     LocatorAuthority,
@@ -32,6 +32,13 @@ fn strategy_registry() -> crate::schema::data::RelationalSchemaRegistry {
         ..AspectSchemaFixture::default()
     }
     .build_registry()
+}
+
+fn replicas_patch_target() -> AspectFieldPatchTarget {
+    AspectFieldPatchTarget::single(
+        crate::tests::support::aspect_key("replicas"),
+        crate::tests::support::field_key("replicas"),
+    )
 }
 
 #[test]
@@ -86,10 +93,7 @@ fn entity_replacement_reconciliation_strategy_replaces_with_normalized_client_ke
         ) => intent,
         other => panic!("expected replace entity intent, got {other:?}"),
     };
-    let replacement_replicas = replacement.replacement.fields.get_single_field(
-        &forge_foundational::facade::AspectKey::new("replicas").expect("valid test aspect key"),
-        &FieldKey::new("replicas").expect("valid test field key"),
-    );
+    let replacement_replicas = replacement.replacement.fields.get(&replicas_patch_target());
 
     assert_eq!(
         output.action,

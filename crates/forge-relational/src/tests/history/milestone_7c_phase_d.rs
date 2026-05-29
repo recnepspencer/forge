@@ -12,14 +12,21 @@ use crate::facade::schema::{
     RelationKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use crate::facade::transactions::{
-    CreateIntent, EntityMutationIntent, MutationIntent, TransactionId,
+    AspectFieldPatchTarget, CreateIntent, EntityMutationIntent, MutationIntent, TransactionId,
 };
 use crate::tests::support::{
     create_branch_from_main, create_entity, create_entity_outcome_on_branch, entity_field_aspect,
     persisted_runtime_with_test_schema, runtime_with_test_schema, update_entity,
     CascadeDeletePolicy, CrossContextPolicy,
 };
-use forge_foundational::facade::AspectKey;
+use forge_foundational::facade::{AspectKey, AspectValue, InternedString};
+
+fn test_patch_target(aspect: &str, field: &str) -> AspectFieldPatchTarget {
+    AspectFieldPatchTarget::single(
+        crate::tests::support::aspect_key(aspect),
+        crate::tests::support::field_key(field),
+    )
+}
 
 #[test]
 fn derive_merge_commit_mutation_plan_emits_source_authorized_create_intent() {
@@ -54,15 +61,10 @@ fn derive_merge_commit_mutation_plan_emits_source_authorized_create_intent() {
         MutationIntent::Create(CreateIntent::Entity(spec)) => {
             assert_eq!(spec.kind_id, KindId(1));
             assert_eq!(
-                spec.fields.get_single_field(
-                    &forge_foundational::facade::AspectKey::new("name")
-                        .expect("valid name aspect key"),
-                    &forge_foundational::facade::FieldKey::new("name")
-                        .expect("valid name field key"),
-                ),
-                Some(&forge_foundational::facade::AspectValue::String(
-                    forge_foundational::facade::InternedString::Raw("feature-only".to_string())
-                ))
+                spec.fields.get(&test_patch_target("name", "name")),
+                Some(&AspectValue::String(InternedString::Raw(
+                    "feature-only".to_string()
+                )))
             );
         }
         other => panic!("expected entity create intent, got {other:?}"),
@@ -242,25 +244,10 @@ fn derive_merge_commit_mutation_plan_reconciles_target_with_source_authorized_as
     match &plan.merged_plan.merged_intents[0] {
         MutationIntent::Entity(EntityMutationIntent::UpdateFields(intent)) => {
             assert_eq!(
-                intent.fields.get_single_field(
-                    &forge_foundational::facade::AspectKey::new("status")
-                        .expect("valid test aspect key"),
-                    &forge_foundational::facade::FieldKey::new("status")
-                        .expect("valid test field key")
-                ),
-                Some(&forge_foundational::facade::AspectValue::String(
-                    "active".into()
-                ))
+                intent.fields.get(&test_patch_target("status", "status")),
+                Some(&AspectValue::String("active".into()))
             );
-            assert_eq!(
-                intent.fields.get_single_field(
-                    &forge_foundational::facade::AspectKey::new("name")
-                        .expect("valid test aspect key"),
-                    &forge_foundational::facade::FieldKey::new("name")
-                        .expect("valid test field key")
-                ),
-                None
-            );
+            assert_eq!(intent.fields.get(&test_patch_target("name", "name")), None);
         }
         other => panic!("expected entity field update intent, got {other:?}"),
     }

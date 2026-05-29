@@ -102,17 +102,6 @@ impl AspectFieldPatch {
         self.targets.get(target)
     }
 
-    pub fn get_single_field(
-        &self,
-        aspect_key: &AspectKey,
-        field: &FieldKey,
-    ) -> Option<&AspectValue> {
-        self.get(&AspectFieldPatchTarget::single(
-            aspect_key.clone(),
-            field.clone(),
-        ))
-    }
-
     pub fn to_canonical_bytes(&self) -> Result<Vec<u8>, AspectFieldPatchCodecError> {
         encode_aspect_field_patch_canonical_bytes(self)
     }
