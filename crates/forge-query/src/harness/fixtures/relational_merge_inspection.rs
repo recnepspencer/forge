@@ -21,9 +21,9 @@ use forge_relational::facade::transactions::{
 };
 use serde_json::json;
 
-use crate::relational_aspect_write::{
+use crate::aspect_field_authoring::{
     entity_string_field_aspect, relation_source_endpoint_aspect, relation_string_field_aspect,
-    relation_target_endpoint_aspect, single_field_patch,
+    relation_target_endpoint_aspect, single_aspect_field_patch_from_json,
 };
 
 const TARGET_BRANCH: &str = "main";
@@ -250,7 +250,7 @@ fn commit_entity_create(
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: ClientKey::raw(name),
-                fields: single_field_patch("name", "name", json!(name))
+                fields: single_aspect_field_patch_from_json("name", "name", json!(name))
                     .expect("entity name aspect patch"),
             }),
         )),
@@ -272,7 +272,7 @@ fn update_entity_on_branch(
         WorkerIntentBatch::new("update-entity").push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id,
-                fields: single_field_patch("name", "name", json!(name))
+                fields: single_aspect_field_patch_from_json("name", "name", json!(name))
                     .expect("entity name aspect patch"),
             }),
         )),
@@ -317,7 +317,7 @@ fn create_relation_on_branch(
                 client_key: ClientKey::raw(client_key),
                 source: EntityReference::Existing(source),
                 target: EntityReference::Existing(target),
-                fields: single_field_patch("label", "label", json!(label))
+                fields: single_aspect_field_patch_from_json("label", "label", json!(label))
                     .expect("relation label aspect patch"),
             }),
         )),
@@ -365,7 +365,7 @@ fn changed_relations(outcome: &CommitResult) -> Vec<RelationId> {
 }
 
 fn aspect_key(name: &str) -> AspectKey {
-    crate::relational_aspect_write::aspect_key(name).expect("valid aspect key")
+    crate::aspect_field_authoring::aspect_key(name).expect("valid aspect key")
 }
 
 fn entity_field_aspect(name: &str, field: &str) -> DeclaredAspect {

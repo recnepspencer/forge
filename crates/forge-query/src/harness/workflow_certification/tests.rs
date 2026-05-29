@@ -2,10 +2,10 @@ use super::{
     MilestoneFivePointFiveWorkflowCertificationAdapter, WorkflowFailureClass,
     WORKFLOW_REQUIRED_CANONICAL_ROW_NAMES, WORKFLOW_REQUIRED_REJECTION_ROW_NAMES,
 };
+use crate::aspect_field_authoring::single_aspect_field_patch_from_json;
 use crate::harness::certification::{milestone_five_point_five_requirements, unmet_required_rows};
 use crate::harness::fixtures::execution_preflights;
 use crate::harness::fixtures::relational_merge_inspection::deleted_vs_modified_inspection_artifact;
-use crate::relational_aspect_write::single_field_patch;
 use crate::workflow::{
     admit_query_workflow_declaration, bind_workflow_context, lower_merge_workflow_declaration,
     lower_mutation_intent_declaration, lower_query_writeback_declaration, MergeLoweringInput,
@@ -132,7 +132,7 @@ fn workflow_certification_mutation_lowering_matches_direct_relational_control() 
 
     let control = IntentReconciliationInput {
         entity_id: EntityId::new(PartitionId(1), 41, 0),
-        desired_fields: single_field_patch("name", "name", json!("after"))
+        desired_fields: single_aspect_field_patch_from_json("name", "name", json!("after"))
             .expect("control field patch"),
     }
     .into_native_canonical_request(StrategyCallerProvenance {

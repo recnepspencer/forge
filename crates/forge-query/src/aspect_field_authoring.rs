@@ -59,28 +59,28 @@ pub(crate) fn relation_target_endpoint_aspect(
     })
 }
 
-pub(crate) fn single_field_patch(
+pub(crate) fn single_aspect_field_patch_from_json(
     aspect_label: &str,
     field_label: &str,
     value: Value,
 ) -> Result<AspectFieldPatch, String> {
-    field_patch_from_values([(aspect_label, field_label, value)])
+    aspect_field_patch_from_json_values([(aspect_label, field_label, value)])
 }
 
-pub(crate) fn field_patch_from_values<'a>(
+pub(crate) fn aspect_field_patch_from_json_values<'a>(
     values: impl IntoIterator<Item = (&'a str, &'a str, Value)>,
 ) -> Result<AspectFieldPatch, String> {
     let mut targets = BTreeMap::new();
     for (aspect_label, field_label, value) in values {
         targets.insert(
             AspectFieldPatchTarget::single(aspect_key(aspect_label)?, field_key(field_label)?),
-            json_scalar_to_aspect_value(value)?,
+            lower_json_scalar_to_aspect_value(value)?,
         );
     }
     Ok(AspectFieldPatch::from(targets))
 }
 
-pub(crate) fn json_scalar_to_aspect_value(value: Value) -> Result<AspectValue, String> {
+pub(crate) fn lower_json_scalar_to_aspect_value(value: Value) -> Result<AspectValue, String> {
     match value {
         Value::Null => Ok(AspectValue::Null),
         Value::Bool(value) => Ok(AspectValue::Bool(value)),
@@ -93,7 +93,7 @@ pub(crate) fn json_scalar_to_aspect_value(value: Value) -> Result<AspectValue, S
     }
 }
 
-pub(crate) fn aspect_value_to_json(value: &AspectValue) -> Value {
+pub(crate) fn project_aspect_value_to_workspace_json(value: &AspectValue) -> Value {
     match value {
         AspectValue::Null => Value::Null,
         AspectValue::Bool(value) => Value::Bool(*value),

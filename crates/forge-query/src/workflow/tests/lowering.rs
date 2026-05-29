@@ -1,9 +1,9 @@
+use crate::aspect_field_authoring::single_aspect_field_patch_from_json;
 use crate::harness::fixtures::{execution_preflights, preview_bridge::active_preview_artifacts};
 use crate::preview::{
     admit_preview_workflow_foundation_request, bind_preflight_to_preview_session,
     PreviewEvaluationClass, PreviewSessionQueryContext, PreviewWorkflowFoundationRequest,
 };
-use crate::relational_aspect_write::single_field_patch;
 use crate::workflow::{
     admit_query_workflow_declaration, bind_workflow_context, lower_merge_workflow_declaration,
     lower_mutation_intent_declaration, lower_query_writeback_declaration, MergeLoweringInput,
@@ -73,7 +73,7 @@ fn runtime_mutation_lowering_emits_explicit_strategy_request() {
 
     let control = IntentReconciliationInput {
         entity_id: EntityId::new(PartitionId(1), 41, 0),
-        desired_fields: single_field_patch("name", "name", json!("after"))
+        desired_fields: single_aspect_field_patch_from_json("name", "name", json!("after"))
             .expect("control field patch"),
     }
     .into_native_canonical_request(StrategyCallerProvenance {

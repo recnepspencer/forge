@@ -10,11 +10,11 @@ use super::support::{
     admitted_branch_merge_effect, admitted_mutation_effect_for_entity_with_binding,
     admitted_tenant_writeback_effect, runtime_workflow_binding_with_snapshot,
 };
+use crate::aspect_field_authoring::aspect_key;
 use crate::effect_lifecycle::{
     scope_admitted_effect_plan, EffectExecutionAuthority, EffectExecutionDenialKind,
     ExecutedEffectAuthorityArtifact,
 };
-use crate::relational_aspect_write::aspect_key;
 
 pub(super) use super::execution_support::{branch_snapshot_token, runtime_snapshot_token};
 

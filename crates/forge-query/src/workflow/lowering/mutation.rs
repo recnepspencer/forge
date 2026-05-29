@@ -1,5 +1,5 @@
+use crate::aspect_field_authoring::aspect_field_patch_from_json_values;
 use crate::identity::hash_parts;
-use crate::relational_aspect_write::field_patch_from_values;
 use crate::workflow::{
     QueryWorkflowDeclaration, WorkflowBasisFamily, WorkflowFreshnessPolicy,
     WorkflowLoweringCounters,
@@ -181,7 +181,7 @@ fn intent_reconciliation_field_patch(
         .into_iter()
         .map(|(field, value)| (field.clone(), field, value))
         .collect::<Vec<_>>();
-    field_patch_from_values(
+    aspect_field_patch_from_json_values(
         flattened_fields
             .iter()
             .map(|(aspect, field, value)| (aspect.as_str(), field.as_str(), value.clone())),

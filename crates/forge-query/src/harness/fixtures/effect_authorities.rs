@@ -23,8 +23,8 @@ use forge_runtime_bridge::facade::{
     TruthWritebackAuthorityError, TruthWritebackReceipt, TruthWritebackRequest,
 };
 
-use crate::relational_aspect_write::{
-    entity_string_field_aspect, lifecycle_string_aspect, single_field_patch,
+use crate::aspect_field_authoring::{
+    entity_string_field_aspect, lifecycle_string_aspect, single_aspect_field_patch_from_json,
 };
 
 pub(crate) fn relational_runtime_with_intent_strategy() -> RelationalRuntime {
@@ -55,8 +55,12 @@ pub(crate) fn create_entity(
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: ClientKey::raw(name),
-                fields: single_field_patch("name", "name", serde_json::json!(name))
-                    .expect("seed name aspect patch"),
+                fields: single_aspect_field_patch_from_json(
+                    "name",
+                    "name",
+                    serde_json::json!(name),
+                )
+                .expect("seed name aspect patch"),
             }),
         )),
     );
@@ -85,8 +89,12 @@ pub(crate) fn update_entity_name(
         WorkerIntentBatch::new(format!("update-{name}")).push(MutationIntent::Entity(
             EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id,
-                fields: single_field_patch("name", "name", serde_json::json!(name))
-                    .expect("update name aspect patch"),
+                fields: single_aspect_field_patch_from_json(
+                    "name",
+                    "name",
+                    serde_json::json!(name),
+                )
+                .expect("update name aspect patch"),
             }),
         )),
     );

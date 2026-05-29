@@ -1,7 +1,8 @@
 use super::*;
-use crate::relational_aspect_write::{
-    aspect_key, aspect_value_to_json, entity_string_field_aspect, field_key,
-    field_patch_from_values, json_scalar_to_aspect_value, terminal_field_label,
+use crate::aspect_field_authoring::{
+    aspect_field_patch_from_json_values, aspect_key, entity_string_field_aspect, field_key,
+    lower_json_scalar_to_aspect_value, project_aspect_value_to_workspace_json,
+    terminal_field_label,
 };
 use crate::runtime::ForgeQueryAspectValue;
 use forge_foundational::facade::ContractValidatedAspectValueView;
@@ -98,8 +99,12 @@ impl ForgeQueryMemoryWorkspace {
             WorkerIntentBatch::new("query-memory-update").push(MutationIntent::Entity(
                 EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id,
-                    fields: field_patch_from_values([(aspect_path, field_label.as_str(), value)])
-                        .map_err(ForgeQueryWorkspaceError::new)?,
+                    fields: aspect_field_patch_from_json_values([(
+                        aspect_path,
+                        field_label.as_str(),
+                        value,
+                    )])
+                    .map_err(ForgeQueryWorkspaceError::new)?,
                 }),
             )),
         );
@@ -258,7 +263,7 @@ impl ForgeQueryMemoryWorkspace {
                 ));
             }
         }
-        field_patch_from_values(values).map_err(ForgeQueryWorkspaceError::new)
+        aspect_field_patch_from_json_values(values).map_err(ForgeQueryWorkspaceError::new)
     }
 
     fn field_patch_from_aspect_values(
@@ -278,7 +283,7 @@ impl ForgeQueryMemoryWorkspace {
                     )
                     .map_err(ForgeQueryWorkspaceError::new)?,
                 ),
-                json_scalar_to_aspect_value(aspect.value().clone())
+                lower_json_scalar_to_aspect_value(aspect.value().clone())
                     .map_err(ForgeQueryWorkspaceError::new)?,
             );
         }
@@ -303,7 +308,7 @@ impl ForgeQueryMemoryWorkspace {
             let _ = super::helpers::set_json_path(
                 &mut payload,
                 aspect.payload_path(),
-                aspect_value_to_json(value),
+                project_aspect_value_to_workspace_json(value),
             );
         }
         payload

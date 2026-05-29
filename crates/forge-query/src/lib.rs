@@ -11,6 +11,7 @@
 #![forbid(unsafe_code)]
 
 mod application;
+mod aspect_field_authoring;
 mod authoring;
 mod authorized_projection;
 mod basis;
@@ -51,7 +52,6 @@ mod program;
 mod projection_consumption;
 mod query_basis_lifecycle;
 mod query_context;
-mod relational_aspect_write;
 mod result_shape;
 mod runtime;
 mod saved_query;

@@ -1,11 +1,11 @@
 use forge_relational::facade::history::BranchId;
 use serde_json::json;
 
+use crate::aspect_field_authoring::aspect_key;
 use crate::effect_lifecycle::{
     effect_batch, EffectAuthoringBasis, EffectBatchExecutionDenialKind, EffectExecutionAuthority,
     EffectExecutionDenialKind,
 };
-use crate::relational_aspect_write::aspect_key;
 
 use super::super::execution_support::{
     branch_snapshot_token, create_entity, relational_runtime_with_intent_strategy,
