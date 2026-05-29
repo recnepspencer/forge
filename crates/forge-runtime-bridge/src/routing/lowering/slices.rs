@@ -1,12 +1,14 @@
 use std::sync::Arc;
 
+use forge_foundational::facade::AspectKey;
+
 use crate::mapping::SubscriptionSliceKind;
 use crate::routing::matching::FineGrainedMatchStatus;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct BridgeSubscriptionSlice {
     entity_identity: Arc<str>,
-    aspect_label: Arc<str>,
+    aspect_key: AspectKey,
     surface_label: Arc<str>,
     slice_kind: SubscriptionSliceKind,
     match_status: FineGrainedMatchStatus,
@@ -15,14 +17,14 @@ pub struct BridgeSubscriptionSlice {
 impl BridgeSubscriptionSlice {
     pub(crate) fn new(
         entity_identity: impl Into<Arc<str>>,
-        aspect_label: impl Into<Arc<str>>,
+        aspect_key: AspectKey,
         surface_label: impl Into<Arc<str>>,
         slice_kind: SubscriptionSliceKind,
         match_status: FineGrainedMatchStatus,
     ) -> Self {
         Self {
             entity_identity: entity_identity.into(),
-            aspect_label: aspect_label.into(),
+            aspect_key,
             surface_label: surface_label.into(),
             slice_kind,
             match_status,
@@ -34,7 +36,11 @@ impl BridgeSubscriptionSlice {
     }
 
     pub fn aspect_label(&self) -> &str {
-        self.aspect_label.as_ref()
+        self.aspect_key.as_str()
+    }
+
+    pub fn aspect_key(&self) -> &AspectKey {
+        &self.aspect_key
     }
 
     pub fn surface_label(&self) -> &str {

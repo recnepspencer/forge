@@ -135,7 +135,8 @@ fn runtime_bridge_lineage_source_resolves_real_relational_history() {
                 "entity:{}:{}:{}",
                 entity.partition_id.0, entity.local_slot.0, entity.generation.0
             ),
-            "profile.name",
+            forge_foundational::facade::AspectKey::new("profile.name")
+                .expect("valid bridge lineage test aspect key"),
             "name",
             forge_runtime_bridge::facade::SubscriptionSliceKind::SignalField,
             forge_runtime_bridge::facade::FineGrainedMatchStatus::Matched,

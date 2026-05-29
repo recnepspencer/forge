@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use forge_foundational::facade::AspectKey;
+
 use crate::mapping::SubscriptionSliceKind;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash)]
@@ -20,7 +22,7 @@ impl BridgeSubscriptionDeliveryIntentClass {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NormalizedSubscriptionSliceIntentErrorKind {
     EmptyEntityIdentity,
-    EmptyAspectLabel,
+    InvalidAspectKey,
     EmptySurfaceLabel,
 }
 
@@ -42,7 +44,7 @@ impl NormalizedSubscriptionSliceIntentError {
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct NormalizedSubscriptionSliceIntent {
     entity_identity: Arc<str>,
-    aspect_label: Arc<str>,
+    aspect_key: AspectKey,
     surface_label: Arc<str>,
     slice_kind: SubscriptionSliceKind,
 }
@@ -61,11 +63,11 @@ impl NormalizedSubscriptionSliceIntent {
             ));
         }
         let aspect_label = aspect_label.into();
-        if aspect_label.is_empty() {
+        let Some(aspect_key) = AspectKey::new(aspect_label.as_ref()) else {
             return Err(NormalizedSubscriptionSliceIntentError::new(
-                NormalizedSubscriptionSliceIntentErrorKind::EmptyAspectLabel,
+                NormalizedSubscriptionSliceIntentErrorKind::InvalidAspectKey,
             ));
-        }
+        };
         let surface_label = surface_label.into();
         if surface_label.is_empty() {
             return Err(NormalizedSubscriptionSliceIntentError::new(
@@ -74,7 +76,7 @@ impl NormalizedSubscriptionSliceIntent {
         }
         Ok(Self {
             entity_identity,
-            aspect_label,
+            aspect_key,
             surface_label,
             slice_kind,
         })
@@ -85,7 +87,11 @@ impl NormalizedSubscriptionSliceIntent {
     }
 
     pub fn aspect_label(&self) -> &str {
-        self.aspect_label.as_ref()
+        self.aspect_key.as_str()
+    }
+
+    pub fn aspect_key(&self) -> &AspectKey {
+        &self.aspect_key
     }
 
     pub fn surface_label(&self) -> &str {

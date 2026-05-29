@@ -54,6 +54,10 @@ impl TruthDeltaSurface {
         self.aspect_key.as_str()
     }
 
+    pub(crate) fn aspect_key(&self) -> &AspectKey {
+        &self.aspect_key
+    }
+
     pub(crate) fn surface_label(&self) -> &str {
         self.surface_label.as_ref()
     }

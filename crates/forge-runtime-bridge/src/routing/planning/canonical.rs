@@ -1,10 +1,7 @@
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
-use forge_foundational::facade::AspectKey;
-
 use crate::diagnostics::BridgeRouteRecordEntry;
-use crate::error::{BridgeRouteError, BridgeRouteErrorKind};
 use crate::routing::canonicalization::{canonical_snapshot_request_order, canonical_target_order};
 use crate::routing::eligibility::EligibleRouteEntry;
 use crate::routing::lowering::BridgeSubscriptionSlice;
@@ -30,7 +27,7 @@ pub(super) fn canonical_invalidation_targets(
 pub(super) fn canonical_read_packet(
     subscription_slices: &[BridgeSubscriptionSlice],
     entries: &[EligibleRouteEntry],
-) -> Result<SnapshotReadPacket, BridgeRouteError> {
+) -> SnapshotReadPacket {
     if subscription_slices.is_empty() {
         return canonical_coarse_read_packet(entries);
     }
@@ -39,7 +36,7 @@ pub(super) fn canonical_read_packet(
     for slice in subscription_slices {
         deduped.insert((
             slice.entity_identity().to_owned(),
-            slice.aspect_label().to_owned(),
+            slice.aspect_key().clone(),
             slice.surface_label().to_owned(),
             slice.slice_kind().clone(),
         ));
@@ -47,54 +44,36 @@ pub(super) fn canonical_read_packet(
 
     let mut reads = deduped
         .into_iter()
-        .map(
-            |(entity_identity, aspect_label, surface_label, slice_kind)| {
-                Ok(SnapshotReadRequest::for_subscription_slice(
-                    entity_identity,
-                    read_request_aspect_key(&aspect_label)?,
-                    surface_label,
-                    slice_kind,
-                ))
-            },
-        )
-        .collect::<Result<Vec<_>, BridgeRouteError>>()?;
+        .map(|(entity_identity, aspect_key, surface_label, slice_kind)| {
+            SnapshotReadRequest::for_subscription_slice(
+                entity_identity,
+                aspect_key,
+                surface_label,
+                slice_kind,
+            )
+        })
+        .collect::<Vec<_>>();
     reads.sort_by(canonical_snapshot_request_order);
-    Ok(SnapshotReadPacket::new(reads))
+    SnapshotReadPacket::new(reads)
 }
 
-fn canonical_coarse_read_packet(
-    entries: &[EligibleRouteEntry],
-) -> Result<SnapshotReadPacket, BridgeRouteError> {
+fn canonical_coarse_read_packet(entries: &[EligibleRouteEntry]) -> SnapshotReadPacket {
     let mut deduped = BTreeSet::new();
     for entry in entries {
         deduped.insert((
             entry.item().entity_identity().to_owned(),
-            entry.item().aspect_label().to_owned(),
+            entry.item().aspect_key().clone(),
         ));
     }
 
     let mut reads = deduped
         .into_iter()
-        .map(|(entity_identity, aspect_label)| {
-            Ok(SnapshotReadRequest::for_coarse(
-                entity_identity,
-                read_request_aspect_key(&aspect_label)?,
-            ))
+        .map(|(entity_identity, aspect_key)| {
+            SnapshotReadRequest::for_coarse(entity_identity, aspect_key)
         })
-        .collect::<Result<Vec<_>, BridgeRouteError>>()?;
+        .collect::<Vec<_>>();
     reads.sort_by(canonical_snapshot_request_order);
-    Ok(SnapshotReadPacket::new(reads))
-}
-
-fn read_request_aspect_key(aspect_label: &str) -> Result<AspectKey, BridgeRouteError> {
-    AspectKey::new(aspect_label).ok_or_else(|| {
-        BridgeRouteError::new(
-            BridgeRouteErrorKind::SliceReadPacketConstructionFailure,
-            format!(
-                "Snapshot read packet construction rejected invalid aspect key `{aspect_label}`."
-            ),
-        )
-    })
+    SnapshotReadPacket::new(reads)
 }
 
 pub(super) fn canonical_subscription_slices(
@@ -110,7 +89,7 @@ pub(super) fn canonical_subscription_slices(
 
                 deduped.insert(BridgeSubscriptionSlice::new(
                     entry.normalized_surface().entity_identity(),
-                    entry.normalized_surface().aspect_label(),
+                    entry.normalized_surface().aspect_key().clone(),
                     entry.normalized_surface().surface_label(),
                     slice_kind.clone(),
                     entry.fine_grained_match().status(),
