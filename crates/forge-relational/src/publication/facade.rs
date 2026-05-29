@@ -13,7 +13,7 @@ pub use crate::publication::logic::{
     PublicationArtifactsAccess, PublicationDiagnosticsAccess, PublicationPatchStreamAccess,
     PublicationSubscriberStreamAccess, PublicationSurface,
 };
-pub use crate::publication::patch::facade::{
+pub use crate::publication::patch::data::{
     CanonicalAspectSet, PatchDetail, PatchFragmentBudget, PatchOrdering, PatchPublicationMode,
     PatchRecord, PatchStreamBatch, PatchStreamPosition, PatchStreamReadError,
     PatchStreamReadErrorClass, PatchStreamRequest, RecordStructuralChange, RelationalPatchRecord,
