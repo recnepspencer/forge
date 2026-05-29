@@ -3,7 +3,10 @@ mod projection;
 mod reader;
 mod visibility;
 
-pub use projection::{EntityRecordProjection, RelationRecordProjection, VisibilityProjectionView};
+pub use projection::{
+    EntityProjectionRecord, EntityRecordProjection, RelationProjectionRecord,
+    RelationRecordProjection, VisibilityProjectionView,
+};
 pub use reader::VisibilityReadContext;
 
 use crate::logic::runtime::RelationalRuntime;

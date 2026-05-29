@@ -3,12 +3,13 @@ use forge_foundational::{
     locator_canonical_basis_entries, mutation_mask_locator_canonical_basis_entries,
     prepare_canonical_basis_sequence, prepare_identity_for_canonical_basis,
     prepare_locator_for_canonical_basis, projection_mask_locator_canonical_basis_entries,
-    AspectFieldLocator, AspectKey, AspectLocator, AspectMask, BoundaryArtifactField,
-    BoundaryArtifactId, BoundaryArtifactLocator, BoundaryEpoch, BoundaryHandle,
-    BoundaryMismatchLocator, BoundarySourceLocator, CanonicalBasisDomain, CanonicalBasisEntryKind,
-    CanonicalBasisLocus, CanonicalBasisValue, CanonicalFieldPath, CanonicalIdentityInput,
-    CanonicalIntegerWidth, CanonicalLocatorInput, CanonicalizationRuleVersion, DiagnosticMask,
-    EquivalenceBasisId, FieldKey, LocatorAuthority, MutationMask, ProjectionMask,
+    AspectFieldLocator, AspectKey, AspectLocator, AspectMask, AspectValueLocator,
+    BoundaryArtifactField, BoundaryArtifactId, BoundaryArtifactLocator, BoundaryEpoch,
+    BoundaryHandle, BoundaryMismatchLocator, BoundarySourceLocator, CanonicalBasisDomain,
+    CanonicalBasisEntryKind, CanonicalBasisLocus, CanonicalBasisValue, CanonicalFieldPath,
+    CanonicalIdentityInput, CanonicalIntegerWidth, CanonicalLocatorInput,
+    CanonicalizationRuleVersion, DiagnosticMask, EquivalenceBasisId, FieldKey, LocatorAuthority,
+    MutationMask, ProjectionMask,
 };
 use forge_proof::TransitionOutcome;
 
@@ -81,14 +82,14 @@ fn locator_basis_canonicalizes_source_and_mismatch_categories() {
         BoundaryArtifactLocator::new(BoundaryArtifactId::new(11), BoundaryArtifactField::Basis);
     let source = match prepare_locator_for_canonical_basis(
         version(),
-        CanonicalLocatorInput::Source(BoundarySourceLocator::BoundaryArtifact(artifact)),
+        CanonicalLocatorInput::Source(BoundarySourceLocator::boundary_artifact(artifact)),
     ) {
         TransitionOutcome::Success(ready) => ready,
         _ => panic!("source locator basis should be ready"),
     };
     let mismatch = match prepare_locator_for_canonical_basis(
         version(),
-        CanonicalLocatorInput::Mismatch(BoundaryMismatchLocator::BoundaryArtifact(artifact)),
+        CanonicalLocatorInput::Mismatch(BoundaryMismatchLocator::boundary_artifact(artifact)),
     ) {
         TransitionOutcome::Success(ready) => ready,
         _ => panic!("mismatch locator basis should be ready"),
@@ -245,4 +246,59 @@ fn aspect_locator_basis_preserves_authority_as_identity() {
         authoritative.payload().entries(),
         projected.payload().entries()
     );
+}
+
+#[test]
+fn value_locator_basis_is_distinct_from_plain_aspect_and_field_locator_basis() {
+    let aspect = AspectLocator::new(LocatorAuthority::Authoritative, key("task.summary"));
+    let field = AspectFieldLocator::new(
+        LocatorAuthority::Authoritative,
+        key("task.summary"),
+        CanonicalFieldPath::new([field("body"), field("plain")]).expect("non-empty path"),
+    );
+
+    let whole_value = match prepare_locator_for_canonical_basis(
+        version(),
+        CanonicalLocatorInput::Value(AspectValueLocator::whole_aspect(aspect.clone())),
+    ) {
+        TransitionOutcome::Success(ready) => ready,
+        _ => panic!("whole-aspect value locator basis should be ready"),
+    };
+    let plain_aspect =
+        match prepare_locator_for_canonical_basis(version(), CanonicalLocatorInput::Aspect(aspect))
+        {
+            TransitionOutcome::Success(ready) => ready,
+            _ => panic!("plain aspect locator basis should be ready"),
+        };
+    let field_value = match prepare_locator_for_canonical_basis(
+        version(),
+        CanonicalLocatorInput::Value(AspectValueLocator::struct_field(field.clone())),
+    ) {
+        TransitionOutcome::Success(ready) => ready,
+        _ => panic!("field value locator basis should be ready"),
+    };
+    let plain_field = match prepare_locator_for_canonical_basis(
+        version(),
+        CanonicalLocatorInput::AspectField(field),
+    ) {
+        TransitionOutcome::Success(ready) => ready,
+        _ => panic!("plain aspect field locator basis should be ready"),
+    };
+
+    assert_ne!(
+        whole_value.payload().entries(),
+        plain_aspect.payload().entries()
+    );
+    assert_ne!(
+        field_value.payload().entries(),
+        plain_field.payload().entries()
+    );
+    assert!(whole_value.payload().entries().iter().any(|entry| {
+        entry.locus() == &CanonicalBasisLocus::Named("value.kind".into())
+            && entry.value() == &CanonicalBasisValue::ExactText("whole_aspect".into())
+    }));
+    assert!(field_value.payload().entries().iter().any(|entry| {
+        entry.locus() == &CanonicalBasisLocus::Named("value.kind".into())
+            && entry.value() == &CanonicalBasisValue::ExactText("struct_field".into())
+    }));
 }

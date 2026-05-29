@@ -1,9 +1,6 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use serde::Serialize;
-use sha2::{Digest, Sha256};
-
 use crate::capabilities::AspectPlanSource;
 use crate::merge::data::{
     AdoptSourceRecordPlan, BoundExecutableMergePlan, BoundExecutableMergeRecordPlan,
@@ -14,14 +11,13 @@ use crate::merge::data::{
     MergeExecutionRequest, MergeValueMaterialization, MergeValueSourceSide, PreparedMergeExecution,
     PreserveSharedRecordPlan, ReconcileRecordPlan, ReconciledIdentityBasis, RuntimeInstanceId,
 };
-use crate::merge::data::{MaterializedAspectValue, MaterializedAspectValuePayload};
-use crate::merge::logic::naming::resolve_interned_string;
-use crate::payloads::data::RecordPayload;
-use crate::schema::data::{LoweredAspectBinding, LoweredExecutableAspectBindingKind};
-use crate::storage::data::RecordLifecycleState;
-use crate::symbols::data::InternedString;
+use crate::merge::data::{MaterializedAspectValue, MaterializedAspectValueEvidence};
+use crate::merge::logic::aspect_components::{
+    binding_component_from_visible_record, VisibleRecordSide,
+};
+use crate::merge::logic::aspect_witness_digest::canonical_aspect_witness_digest;
+use crate::schema::data::LoweredAspectBinding;
 use crate::transactions::data::RecordRef;
-use serde_json::Value;
 
 use super::planning_artifact::{
     materialize_planning_artifact, merge_schema_snapshot_for_execution_ready,
@@ -480,7 +476,7 @@ fn compile_executable_aspect_plans(
                     aspect_key: aspect.aspect_key.clone(),
                     shared_value: MaterializedAspectValue {
                         policy: MergeValueMaterialization::EqualityWitnessDigest,
-                        payload: MaterializedAspectValuePayload::EqualityWitnessDigest(
+                        evidence: MaterializedAspectValueEvidence::EqualityWitnessDigest(
                             witness_digest,
                         ),
                     },
@@ -552,10 +548,10 @@ fn resolved_materialized_value(
                 aspect.aspect_key.clone(),
             ))
         }
-        crate::merge::data::MergeResolvedAspectValueStrategy::InlineCanonicalJson(value) => {
+        crate::merge::data::MergeResolvedAspectValueStrategy::InlineAspectValue(value) => {
             Some(MaterializedAspectValue {
-                policy: MergeValueMaterialization::EagerInlineCanonicalValue,
-                payload: MaterializedAspectValuePayload::InlineCanonicalJson(value.clone()),
+                policy: MergeValueMaterialization::EagerInlineAspectValue,
+                evidence: MaterializedAspectValueEvidence::InlineAspectValue(value.clone()),
             })
         }
     }
@@ -591,7 +587,7 @@ fn aspect_shared_witness_digest(
             }
         })?;
     let source_component =
-        extract_binding_component(runtime, source_record, binding, BindingSide::Source)
+        binding_component_from_visible_record(source_record, binding, VisibleRecordSide::Source)
             .ok_or_else(
                 || MergeExecutionCompilationError::MissingAspectValueWitness {
                     record: record.clone(),
@@ -599,16 +595,20 @@ fn aspect_shared_witness_digest(
                 },
             )?;
     let target_component =
-        extract_binding_component(runtime, source_record, binding, BindingSide::Target)
+        binding_component_from_visible_record(source_record, binding, VisibleRecordSide::Target)
             .ok_or_else(
                 || MergeExecutionCompilationError::MissingAspectValueWitness {
-                    record,
+                    record: record.clone(),
                     aspect_key: aspect_key.clone(),
                 },
             )?;
-    let bytes = serde_json::to_vec(&(aspect_key, source_component, target_component))
-        .expect("aspect witness serialization");
-    Ok(sha256_hex(&bytes))
+    canonical_aspect_witness_digest(aspect_key, &source_component, &target_component).map_err(
+        |error| MergeExecutionCompilationError::UnsupportedAspectValueWitness {
+            record,
+            aspect_key: aspect_key.clone(),
+            detail: error.detail().to_owned(),
+        },
+    )
 }
 
 fn aspect_binding_for_record<'a>(
@@ -626,104 +626,6 @@ fn aspect_binding_for_record<'a>(
     plan.executable_bindings
         .iter()
         .find(|binding| binding.aspect_key == *aspect_key)
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
-enum AspectComponent {
-    Json(Value),
-    Endpoint(crate::identity::data::EntityId),
-    Lifecycle(RecordLifecycleState),
-    Opaque(Vec<u8>),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum BindingSide {
-    Source,
-    Target,
-}
-
-fn extract_binding_component(
-    runtime: &crate::logic::runtime::RelationalRuntime,
-    record: &crate::merge::data::VisibleMergeRecord,
-    binding: &LoweredAspectBinding,
-    side: BindingSide,
-) -> Option<AspectComponent> {
-    let entity = match side {
-        BindingSide::Source => record.source_entity.as_ref(),
-        BindingSide::Target => record.target_entity.as_ref(),
-    };
-    let relation = match side {
-        BindingSide::Source => record.source_relation.as_ref(),
-        BindingSide::Target => record.target_relation.as_ref(),
-    };
-
-    match (&record.record_kind, &binding.binding_kind) {
-        (
-            crate::merge::data::VisibleMergeRecordKind::Entity,
-            LoweredExecutableAspectBindingKind::EntityJsonScalarField { field },
-        ) => entity.and_then(|entity| {
-            interned_field_name(runtime, field)
-                .and_then(|name| json_component(&entity.payload, name))
-        }),
-        (
-            crate::merge::data::VisibleMergeRecordKind::Relation,
-            LoweredExecutableAspectBindingKind::RelationJsonScalarField { field },
-        ) => relation
-            .and_then(|relation| relation.payload.as_ref())
-            .and_then(|payload| {
-                interned_field_name(runtime, field).and_then(|name| json_component(payload, name))
-            }),
-        (
-            crate::merge::data::VisibleMergeRecordKind::Relation,
-            LoweredExecutableAspectBindingKind::RelationSourceEndpointIdentity,
-        ) => relation.map(|relation| AspectComponent::Endpoint(relation.source)),
-        (
-            crate::merge::data::VisibleMergeRecordKind::Relation,
-            LoweredExecutableAspectBindingKind::RelationTargetEndpointIdentity,
-        ) => relation.map(|relation| AspectComponent::Endpoint(relation.target)),
-        (_, LoweredExecutableAspectBindingKind::LifecycleTransitionEquality) => entity
-            .map(|entity| AspectComponent::Lifecycle(entity.lifecycle))
-            .or_else(|| relation.map(|relation| AspectComponent::Lifecycle(relation.lifecycle))),
-        (
-            crate::merge::data::VisibleMergeRecordKind::Entity,
-            LoweredExecutableAspectBindingKind::OpaqueWholePayloadBytes,
-        ) => opaque_component(entity.map(|entity| &entity.payload)),
-        (
-            crate::merge::data::VisibleMergeRecordKind::Relation,
-            LoweredExecutableAspectBindingKind::OpaqueWholePayloadBytes,
-        ) => opaque_component(relation.and_then(|relation| relation.payload.as_ref())),
-        _ => None,
-    }
-}
-
-fn json_component(payload: &RecordPayload, field_name: &str) -> Option<AspectComponent> {
-    payload
-        .as_json()?
-        .get(field_name)
-        .cloned()
-        .map(AspectComponent::Json)
-}
-
-fn opaque_component(payload: Option<&RecordPayload>) -> Option<AspectComponent> {
-    match payload? {
-        RecordPayload::StructuredJson(_) => None,
-        RecordPayload::OpaqueBytes(bytes) => Some(AspectComponent::Opaque(bytes.clone())),
-    }
-}
-
-fn interned_field_name<'a>(
-    runtime: &'a crate::logic::runtime::RelationalRuntime,
-    field: &'a InternedString,
-) -> Option<&'a str> {
-    resolve_interned_string(runtime, field).map(|field_name| match field_name {
-        std::borrow::Cow::Borrowed(name) => name,
-        std::borrow::Cow::Owned(_) => unreachable!("interned merge field names never allocate"),
-    })
-}
-
-fn sha256_hex(bytes: &[u8]) -> String {
-    let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 fn derive_deleted_on_both_sides_lineage_continuity(

@@ -9,7 +9,7 @@ error[E0308]: mismatched types
   = note: expected struct `forge_proof::artifact::carrier::Artifact<forge_foundational::aspects::validation::validated_value::ContractValidated, ContractValidatedAspectValue>`
                found enum `AspectValue`
 note: method defined here
- --> src/aspects/front_doors/patches.rs
+ --> src/aspects/front_doors/patches/whole_aspect_builder.rs
   |
   |     pub fn set(mut self, artifact: ContractValidatedAspectArtifact) -> Self {
   |            ^^^

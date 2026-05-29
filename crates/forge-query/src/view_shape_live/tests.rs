@@ -19,8 +19,10 @@ use crate::view_shape::{
     admit_view_shape, plan_admitted_view_shape, validate_canonical_bundle_for_admitted_view_shape,
     ViewShapeDescriptor,
 };
+use forge_foundational::facade::AspectValue;
 use forge_relational::facade::grouped_truth::{
-    materialize_relational_authoritative_row_set, project_relational_grouped_truth,
+    encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
+    project_relational_grouped_truth,
     GroupedProjectionContract as RelationalGroupedProjectionContract,
 };
 use forge_runtime_bridge::facade::{
@@ -370,20 +372,22 @@ fn grouped_rows_result(
             .reads()
             .iter()
             .map(|read| {
-                let payload = rows
+                let value = rows
                     .iter()
                     .find_map(|(member_key, display_name, lane)| {
                         (read.entity_identity() == format!("result:{member_key}")).then(|| {
                             match read.aspect_label() {
-                                "identity.id" => member_key.as_bytes().to_vec(),
-                                "profile.display_name" => display_name.as_bytes().to_vec(),
-                                "status.lane" => lane.as_bytes().to_vec(),
-                                _ => b"unknown".to_vec(),
+                                "identity.id" => AspectValue::String(member_key.as_str().into()),
+                                "profile.display_name" => {
+                                    AspectValue::String(display_name.as_str().into())
+                                }
+                                "status.lane" => AspectValue::String(lane.as_str().into()),
+                                _ => AspectValue::String("unknown".into()),
                             }
                         })
                     })
-                    .unwrap_or_else(|| b"unknown".to_vec());
-                SnapshotReadRecord::new(read.request_key(), payload)
+                    .unwrap_or_else(|| AspectValue::String("unknown".into()));
+                SnapshotReadRecord::new(read.request_key(), aspect_bytes(value))
             })
             .collect(),
     )
@@ -476,12 +480,17 @@ fn grouped_truth_view_with_rows(
                 .grouping_aspect(),
             identity_field,
             grouping_field_override.unwrap_or(grouping_field),
-        ),
+        )
+        .expect("grouped projection contract should use valid aspect keys"),
     )
     .expect("relational grouped projection");
 
     materialize_bridge_grouped_truth_view_from_projection(&row_set, &relational_projection)
         .expect("grouped truth view")
+}
+
+fn aspect_bytes(value: AspectValue) -> Vec<u8> {
+    encode_snapshot_aspect_read_value(&value).expect("test aspect value bytes")
 }
 
 #[test]

@@ -10,6 +10,14 @@ use crate::facade::transactions::RecordRef;
 use crate::tests::support::*;
 use std::sync::Arc;
 
+fn runtime_with_index_field_aspects() -> RelationalRuntime {
+    runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations)
+}
+
+fn persisted_runtime_with_index_field_aspects() -> RelationalRuntime {
+    persisted_runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations)
+}
+
 fn sampled_plan_key_for(
     generation_id: crate::facade::indexes::DerivedIndexGenerationId,
     version_id: crate::facade::identity::VersionId,
@@ -30,7 +38,7 @@ fn sampled_plan_key_for(
 
 #[test]
 fn derived_index_contract_success_branch_scoped_build_keeps_storage_fallback() {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime = runtime_with_index_field_aspects();
     let main_outcome = create_entity_outcome(&mut runtime, "main-a");
     runtime
         .history_authority()
@@ -44,8 +52,8 @@ fn derived_index_contract_success_branch_scoped_build_keeps_storage_fallback() {
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field: field_key("name"),
         },
         branch_scoped: true,
     });
@@ -95,7 +103,7 @@ fn derived_index_contract_success_branch_scoped_build_keeps_storage_fallback() {
 
 #[test]
 fn derived_index_contract_unscoped_generation_is_rejected_for_unsupported_scope() {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime = runtime_with_index_field_aspects();
     let main_outcome = create_entity_outcome(&mut runtime, "main-a");
     runtime
         .history_authority()
@@ -109,8 +117,8 @@ fn derived_index_contract_unscoped_generation_is_rejected_for_unsupported_scope(
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name.global".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field: field_key("name"),
         },
         branch_scoped: false,
     });
@@ -160,7 +168,7 @@ fn derived_index_contract_unscoped_generation_is_rejected_for_unsupported_scope(
 
 #[test]
 fn derived_index_contract_failure_unknown_index_keeps_truth_reads_correct() {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime = runtime_with_index_field_aspects();
     let outcome = create_entity_outcome(&mut runtime, "main-a");
     let snapshot = runtime.visibility_authority().snapshot();
     let storage_only = execute_explicit_query(
@@ -213,13 +221,13 @@ fn derived_index_contract_failure_unknown_index_keeps_truth_reads_correct() {
 
 #[test]
 fn derived_index_contract_certification_mode_emits_stable_parity_digest() {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime = runtime_with_index_field_aspects();
     let outcome = create_entity_outcome(&mut runtime, "main-a");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name.global".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field: field_key("name"),
         },
         branch_scoped: false,
     });
@@ -267,14 +275,14 @@ fn derived_index_contract_certification_mode_emits_stable_parity_digest() {
 #[test]
 fn derived_index_contract_entity_field_equals_executes_through_real_index_path_with_storage_parity()
 {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime = runtime_with_index_field_aspects();
     let alpha = create_entity_outcome(&mut runtime, "alpha");
     let _beta = create_entity_outcome(&mut runtime, "beta");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field: field_key("name"),
         },
         branch_scoped: false,
     });
@@ -295,9 +303,9 @@ fn derived_index_contract_entity_field_equals_executes_through_real_index_path_w
     let packet = crate::facade::query::PlannedQueryPacket {
         label: "entity-name-equals".to_string(),
         context_id: context,
-        scope: crate::facade::query::QueryScope::EntityPayloadFieldEquals {
-            field: "name".to_string(),
-            value: "alpha".to_string(),
+        scope: crate::facade::query::QueryScope::EntityFieldEquals {
+            field: field_key("name"),
+            value: string_aspect_value("alpha"),
             partition_scope: None,
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
@@ -338,7 +346,7 @@ fn derived_index_contract_entity_field_equals_executes_through_real_index_path_w
 #[test]
 fn derived_index_contract_relation_field_equals_executes_through_real_index_path_with_storage_parity(
 ) {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime = runtime_with_index_field_aspects();
     let source = create_entity_outcome(&mut runtime, "source");
     let source_id = changed_entities(&source)[0];
     let target = create_entity_outcome(&mut runtime, "target");
@@ -347,8 +355,8 @@ fn derived_index_contract_relation_field_equals_executes_through_real_index_path
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(1),
         name: "relation.label.lookup".to_string(),
-        kind: DerivedIndexKind::RelationPayloadField {
-            field: "label".to_string(),
+        kind: DerivedIndexKind::RelationField {
+            field: field_key("label"),
         },
         branch_scoped: false,
     });
@@ -369,9 +377,9 @@ fn derived_index_contract_relation_field_equals_executes_through_real_index_path
     let packet = crate::facade::query::PlannedQueryPacket {
         label: "relation-label-equals".to_string(),
         context_id: context,
-        scope: crate::facade::query::QueryScope::RelationPayloadFieldEquals {
-            field: "label".to_string(),
-            value: "edge".to_string(),
+        scope: crate::facade::query::QueryScope::RelationFieldEquals {
+            field: field_key("label"),
+            value: string_aspect_value("edge"),
             partition_scope: None,
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
@@ -411,7 +419,7 @@ fn derived_index_contract_relation_field_equals_executes_through_real_index_path
 
 #[test]
 fn derived_index_contract_relation_field_equals_reports_corrupt_generation() {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime = runtime_with_index_field_aspects();
     let source = create_entity_outcome(&mut runtime, "source");
     let target = create_entity_outcome(&mut runtime, "target");
     let relation = create_relation_outcome(
@@ -423,8 +431,8 @@ fn derived_index_contract_relation_field_equals_reports_corrupt_generation() {
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(1),
         name: "relation.label.lookup".to_string(),
-        kind: DerivedIndexKind::RelationPayloadField {
-            field: "label".to_string(),
+        kind: DerivedIndexKind::RelationField {
+            field: field_key("label"),
         },
         branch_scoped: false,
     });
@@ -453,9 +461,9 @@ fn derived_index_contract_relation_field_equals_reports_corrupt_generation() {
     let packet = crate::facade::query::PlannedQueryPacket {
         label: "relation-label-equals".to_string(),
         context_id: context,
-        scope: crate::facade::query::QueryScope::RelationPayloadFieldEquals {
-            field: "label".to_string(),
-            value: "edge".to_string(),
+        scope: crate::facade::query::QueryScope::RelationFieldEquals {
+            field: field_key("label"),
+            value: string_aspect_value("edge"),
             partition_scope: None,
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
@@ -480,14 +488,14 @@ fn derived_index_contract_relation_field_equals_reports_corrupt_generation() {
     assert_eq!(
         outcome.access_path,
         QueryAccessPath::DerivedIndexRejectedStorageFallback {
-            rejection: IndexQueryRejectionClass::CorruptPayload,
+            rejection: IndexQueryRejectionClass::CorruptIndexEntries,
         }
     );
 }
 
 #[test]
 fn derived_index_contract_relation_field_equals_persisted_recovery_preserves_parity() {
-    let mut runtime = persisted_runtime_with_test_schema();
+    let mut runtime = persisted_runtime_with_index_field_aspects();
     let source = create_entity_outcome(&mut runtime, "source");
     let target = create_entity_outcome(&mut runtime, "target");
     let relation = create_relation_outcome(
@@ -499,8 +507,8 @@ fn derived_index_contract_relation_field_equals_persisted_recovery_preserves_par
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(1),
         name: "relation.label.lookup".to_string(),
-        kind: DerivedIndexKind::RelationPayloadField {
-            field: "label".to_string(),
+        kind: DerivedIndexKind::RelationField {
+            field: field_key("label"),
         },
         branch_scoped: false,
     });
@@ -521,9 +529,9 @@ fn derived_index_contract_relation_field_equals_persisted_recovery_preserves_par
     let packet = crate::facade::query::PlannedQueryPacket {
         label: "relation-label-equals".to_string(),
         context_id: context,
-        scope: crate::facade::query::QueryScope::RelationPayloadFieldEquals {
-            field: "label".to_string(),
-            value: "edge".to_string(),
+        scope: crate::facade::query::QueryScope::RelationFieldEquals {
+            field: field_key("label"),
+            value: string_aspect_value("edge"),
             partition_scope: None,
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
@@ -546,7 +554,7 @@ fn derived_index_contract_relation_field_equals_persisted_recovery_preserves_par
         .expect("original outcome");
 
     let (_recovery, mut recovered) =
-        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
+        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_index_field_aspects);
     let recovered_snapshot = recovered.visibility_authority().snapshot();
     let recovered_context = recovered
         .read_truth()
@@ -578,13 +586,13 @@ fn derived_index_contract_relation_field_equals_persisted_recovery_preserves_par
 
 #[test]
 fn derived_index_contract_sampled_parity_is_bounded_and_deterministic() {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime = runtime_with_index_field_aspects();
     let alpha = create_entity_outcome(&mut runtime, "alpha");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(9),
         name: "entity.name.sampled".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field: field_key("name"),
         },
         branch_scoped: false,
     });
@@ -609,9 +617,9 @@ fn derived_index_contract_sampled_parity_is_bounded_and_deterministic() {
     let sampled_packet = crate::facade::query::PlannedQueryPacket {
         label: "entity-name-sampled".to_string(),
         context_id: context.clone(),
-        scope: crate::facade::query::QueryScope::EntityPayloadFieldEquals {
-            field: "name".to_string(),
-            value: "alpha".to_string(),
+        scope: crate::facade::query::QueryScope::EntityFieldEquals {
+            field: field_key("name"),
+            value: string_aspect_value("alpha"),
             partition_scope: None,
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
@@ -684,15 +692,15 @@ fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
     let baseline_hint_count = crate::indexes::logic::index_query_scratch_hint_count();
     let runtime_id;
     {
-        let mut runtime = runtime_with_test_schema();
+        let mut runtime = runtime_with_index_field_aspects();
         runtime_id = runtime.runtime_instance_id();
         let _alpha_a = create_entity_outcome(&mut runtime, "alpha");
         let _alpha_b = create_entity_outcome(&mut runtime, "alpha");
         let index = runtime.index_authority().register(DerivedIndexDefinition {
             index_id: DerivedIndexId(77),
             name: "entity.name.drop-release".to_string(),
-            kind: DerivedIndexKind::EntityPayloadField {
-                field: "name".to_string(),
+            kind: DerivedIndexKind::EntityField {
+                field: field_key("name"),
             },
             branch_scoped: false,
         });
@@ -718,9 +726,9 @@ fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
         let packet = crate::facade::query::PlannedQueryPacket {
             label: "entity-name-drop-release".to_string(),
             context_id: context,
-            scope: crate::facade::query::QueryScope::EntityPayloadFieldEquals {
-                field: "name".to_string(),
-                value: "alpha".to_string(),
+            scope: crate::facade::query::QueryScope::EntityFieldEquals {
+                field: field_key("name"),
+                value: string_aspect_value("alpha"),
                 partition_scope: None,
             },
             locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
@@ -763,15 +771,15 @@ fn derived_index_contract_runtime_drop_releases_index_scratch_hints() {
 #[test]
 fn derived_index_contract_entity_field_any_of_executes_through_real_index_path_with_storage_parity()
 {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime = runtime_with_index_field_aspects();
     let alpha = create_entity_outcome(&mut runtime, "alpha");
     let beta = create_entity_outcome(&mut runtime, "beta");
     let _gamma = create_entity_outcome(&mut runtime, "gamma");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(10),
         name: "entity.name.any-of".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field: field_key("name"),
         },
         branch_scoped: false,
     });
@@ -797,9 +805,9 @@ fn derived_index_contract_entity_field_any_of_executes_through_real_index_path_w
     let packet = crate::facade::query::PlannedQueryPacket {
         label: "entity-name-any-of".to_string(),
         context_id: context,
-        scope: crate::facade::query::QueryScope::EntityPayloadFieldAnyOf {
-            field: "name".to_string(),
-            values: Arc::from(["beta".to_string(), "alpha".to_string()]),
+        scope: crate::facade::query::QueryScope::EntityFieldAnyOf {
+            field: field_key("name"),
+            values: Arc::from([string_aspect_value("beta"), string_aspect_value("alpha")]),
             partition_scope: None,
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
@@ -845,7 +853,7 @@ fn derived_index_contract_entity_field_any_of_executes_through_real_index_path_w
 #[test]
 fn derived_index_contract_relation_field_any_of_executes_through_real_index_path_with_storage_parity(
 ) {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime = runtime_with_index_field_aspects();
     let source = create_entity_outcome(&mut runtime, "source");
     let target = create_entity_outcome(&mut runtime, "target");
     let third = create_entity_outcome(&mut runtime, "third");
@@ -870,8 +878,8 @@ fn derived_index_contract_relation_field_any_of_executes_through_real_index_path
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(11),
         name: "relation.label.any-of".to_string(),
-        kind: DerivedIndexKind::RelationPayloadField {
-            field: "label".to_string(),
+        kind: DerivedIndexKind::RelationField {
+            field: field_key("label"),
         },
         branch_scoped: false,
     });
@@ -897,9 +905,9 @@ fn derived_index_contract_relation_field_any_of_executes_through_real_index_path
     let packet = crate::facade::query::PlannedQueryPacket {
         label: "relation-label-any-of".to_string(),
         context_id: context,
-        scope: crate::facade::query::QueryScope::RelationPayloadFieldAnyOf {
-            field: "label".to_string(),
-            values: Arc::from(["arc".to_string(), "edge".to_string()]),
+        scope: crate::facade::query::QueryScope::RelationFieldAnyOf {
+            field: field_key("label"),
+            values: Arc::from([string_aspect_value("arc"), string_aspect_value("edge")]),
             partition_scope: None,
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
@@ -945,7 +953,7 @@ fn derived_index_contract_relation_field_any_of_executes_through_real_index_path
 #[test]
 fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports_incompatible_branch(
 ) {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime = runtime_with_index_field_aspects();
     let main_source = create_entity_outcome(&mut runtime, "main-source");
     let main_target = create_entity_outcome(&mut runtime, "main-target");
     let main_relation = create_relation_outcome(
@@ -980,16 +988,14 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
             crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("edge".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("edge"),
                 source: crate::transactions::data::EntityReference::Existing(
                     changed_entities(&feature_source)[0],
                 ),
                 target: crate::transactions::data::EntityReference::Existing(
                     changed_entities(&feature_target)[0],
                 ),
-                payload: Some(RecordPayload::StructuredJson(
-                    serde_json::json!({"label":"edge"}),
-                )),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         )),
     ));
@@ -997,8 +1003,8 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(1),
         name: "relation.label.branch".to_string(),
-        kind: DerivedIndexKind::RelationPayloadField {
-            field: "label".to_string(),
+        kind: DerivedIndexKind::RelationField {
+            field: field_key("label"),
         },
         branch_scoped: true,
     });
@@ -1018,9 +1024,9 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
     let packet = crate::facade::query::PlannedQueryPacket {
         label: "relation-branch-mismatch".to_string(),
         context_id: context,
-        scope: crate::facade::query::QueryScope::RelationPayloadFieldEquals {
-            field: "label".to_string(),
-            value: "edge".to_string(),
+        scope: crate::facade::query::QueryScope::RelationFieldEquals {
+            field: field_key("label"),
+            value: string_aspect_value("edge"),
             partition_scope: None,
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
@@ -1052,7 +1058,7 @@ fn derived_index_contract_relation_field_equals_branch_scoped_generation_reports
 
 #[test]
 fn derived_index_contract_relation_field_equals_partition_scope_keeps_bounded_parity() {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime = runtime_with_index_field_aspects();
     let left_source = create_entity_in_partition(&mut runtime, "left-source", PartitionId(7));
     let left_target = create_entity_in_partition(&mut runtime, "left-target", PartitionId(7));
     let right_source = create_entity_in_partition(&mut runtime, "right-source", PartitionId(11));
@@ -1079,8 +1085,8 @@ fn derived_index_contract_relation_field_equals_partition_scope_keeps_bounded_pa
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(1),
         name: "relation.label.partitioned".to_string(),
-        kind: DerivedIndexKind::RelationPayloadField {
-            field: "label".to_string(),
+        kind: DerivedIndexKind::RelationField {
+            field: field_key("label"),
         },
         branch_scoped: false,
     });
@@ -1101,9 +1107,9 @@ fn derived_index_contract_relation_field_equals_partition_scope_keeps_bounded_pa
     let packet = crate::facade::query::PlannedQueryPacket {
         label: "relation-label-left-only".to_string(),
         context_id: context,
-        scope: crate::facade::query::QueryScope::RelationPayloadFieldEquals {
-            field: "label".to_string(),
-            value: "edge".to_string(),
+        scope: crate::facade::query::QueryScope::RelationFieldEquals {
+            field: field_key("label"),
+            value: string_aspect_value("edge"),
             partition_scope: Some(std::sync::Arc::from([PartitionId(7)])),
         },
         locality: crate::facade::query::QueryLocalityClass::PartitionBounded {
@@ -1145,7 +1151,7 @@ fn derived_index_contract_relation_field_equals_partition_scope_keeps_bounded_pa
 
 #[test]
 fn derived_index_contract_branch_scoped_generation_reports_incompatible_branch() {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime = runtime_with_index_field_aspects();
     let main_outcome = create_entity_outcome(&mut runtime, "main-a");
     runtime
         .history_authority()
@@ -1159,8 +1165,8 @@ fn derived_index_contract_branch_scoped_generation_reports_incompatible_branch()
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name.branch".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field: field_key("name"),
         },
         branch_scoped: true,
     });
@@ -1180,9 +1186,9 @@ fn derived_index_contract_branch_scoped_generation_reports_incompatible_branch()
     let packet = crate::facade::query::PlannedQueryPacket {
         label: "branch-mismatch".to_string(),
         context_id: context,
-        scope: crate::facade::query::QueryScope::EntityPayloadFieldEquals {
-            field: "name".to_string(),
-            value: "main-a".to_string(),
+        scope: crate::facade::query::QueryScope::EntityFieldEquals {
+            field: field_key("name"),
+            value: string_aspect_value("main-a"),
             partition_scope: None,
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
@@ -1212,13 +1218,13 @@ fn derived_index_contract_branch_scoped_generation_reports_incompatible_branch()
 
 #[test]
 fn derived_index_contract_index_counters_track_attempts_paths_and_rejections() {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime = runtime_with_index_field_aspects();
     let alpha = create_entity_outcome(&mut runtime, "alpha");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field: field_key("name"),
         },
         branch_scoped: false,
     });
@@ -1240,9 +1246,9 @@ fn derived_index_contract_index_counters_track_attempts_paths_and_rejections() {
     let success_packet = crate::facade::query::PlannedQueryPacket {
         label: "entity-name-equals".to_string(),
         context_id: context.clone(),
-        scope: crate::facade::query::QueryScope::EntityPayloadFieldEquals {
-            field: "name".to_string(),
-            value: "alpha".to_string(),
+        scope: crate::facade::query::QueryScope::EntityFieldEquals {
+            field: field_key("name"),
+            value: string_aspect_value("alpha"),
             partition_scope: None,
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
@@ -1299,13 +1305,13 @@ fn derived_index_contract_index_counters_track_attempts_paths_and_rejections() {
 
 #[test]
 fn derived_index_contract_prefers_older_compatible_generation_over_newer_incompatible_one() {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime = runtime_with_index_field_aspects();
     let main_alpha = create_entity_outcome(&mut runtime, "alpha");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field: field_key("name"),
         },
         branch_scoped: true,
     });
@@ -1345,9 +1351,9 @@ fn derived_index_contract_prefers_older_compatible_generation_over_newer_incompa
     let packet = crate::facade::query::PlannedQueryPacket {
         label: "entity-name-equals-main".to_string(),
         context_id: context,
-        scope: crate::facade::query::QueryScope::EntityPayloadFieldEquals {
-            field: "name".to_string(),
-            value: "alpha".to_string(),
+        scope: crate::facade::query::QueryScope::EntityFieldEquals {
+            field: field_key("name"),
+            value: string_aspect_value("alpha"),
             partition_scope: None,
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
@@ -1377,13 +1383,13 @@ fn derived_index_contract_prefers_older_compatible_generation_over_newer_incompa
 
 #[test]
 fn derived_index_contract_matching_definition_without_generation_reports_missing_generation() {
-    let mut runtime = runtime_with_test_schema();
+    let mut runtime = runtime_with_index_field_aspects();
     let outcome = create_entity_outcome(&mut runtime, "alpha");
     let _index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field: field_key("name"),
         },
         branch_scoped: false,
     });
@@ -1395,9 +1401,9 @@ fn derived_index_contract_matching_definition_without_generation_reports_missing
     let packet = crate::facade::query::PlannedQueryPacket {
         label: "entity-name-equals".to_string(),
         context_id: context,
-        scope: crate::facade::query::QueryScope::EntityPayloadFieldEquals {
-            field: "name".to_string(),
-            value: "alpha".to_string(),
+        scope: crate::facade::query::QueryScope::EntityFieldEquals {
+            field: field_key("name"),
+            value: string_aspect_value("alpha"),
             partition_scope: None,
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
@@ -1426,14 +1432,14 @@ fn derived_index_contract_matching_definition_without_generation_reports_missing
 }
 
 #[test]
-fn derived_index_contract_explicit_corrupt_generation_reports_corrupt_payload() {
-    let mut runtime = runtime_with_test_schema();
+fn derived_index_contract_explicit_corrupt_generation_reports_corrupt_entries() {
+    let mut runtime = runtime_with_index_field_aspects();
     let alpha = create_entity_outcome(&mut runtime, "alpha");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field: field_key("name"),
         },
         branch_scoped: false,
     });
@@ -1461,9 +1467,9 @@ fn derived_index_contract_explicit_corrupt_generation_reports_corrupt_payload() 
     let packet = crate::facade::query::PlannedQueryPacket {
         label: "entity-name-equals".to_string(),
         context_id: context,
-        scope: crate::facade::query::QueryScope::EntityPayloadFieldEquals {
-            field: "name".to_string(),
-            value: "alpha".to_string(),
+        scope: crate::facade::query::QueryScope::EntityFieldEquals {
+            field: field_key("name"),
+            value: string_aspect_value("alpha"),
             partition_scope: None,
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
@@ -1488,20 +1494,20 @@ fn derived_index_contract_explicit_corrupt_generation_reports_corrupt_payload() 
     assert_eq!(
         outcome.access_path,
         QueryAccessPath::DerivedIndexRejectedStorageFallback {
-            rejection: IndexQueryRejectionClass::CorruptPayload,
+            rejection: IndexQueryRejectionClass::CorruptIndexEntries,
         }
     );
 }
 
 #[test]
 fn derived_index_contract_persisted_recovery_preserves_entity_field_equals_parity() {
-    let mut runtime = persisted_runtime_with_test_schema();
+    let mut runtime = persisted_runtime_with_index_field_aspects();
     let alpha = create_entity_outcome(&mut runtime, "alpha");
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field: field_key("name"),
         },
         branch_scoped: false,
     });
@@ -1522,9 +1528,9 @@ fn derived_index_contract_persisted_recovery_preserves_entity_field_equals_parit
     let packet = crate::facade::query::PlannedQueryPacket {
         label: "entity-name-equals".to_string(),
         context_id: context,
-        scope: crate::facade::query::QueryScope::EntityPayloadFieldEquals {
-            field: "name".to_string(),
-            value: "alpha".to_string(),
+        scope: crate::facade::query::QueryScope::EntityFieldEquals {
+            field: field_key("name"),
+            value: string_aspect_value("alpha"),
             partition_scope: None,
         },
         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
@@ -1547,7 +1553,7 @@ fn derived_index_contract_persisted_recovery_preserves_entity_field_equals_parit
         .expect("original outcome");
 
     let (_recovery, mut recovered) =
-        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_test_schema);
+        checkpoint_and_recover_with(&mut runtime, persisted_runtime_with_index_field_aspects);
     let recovered_snapshot = recovered.visibility_authority().snapshot();
     let recovered_context = recovered
         .read_truth()
@@ -1590,8 +1596,8 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
         let index = runtime.index_authority().register(DerivedIndexDefinition {
             index_id: DerivedIndexId(0),
             name: "entity.name.lookup".to_string(),
-            kind: DerivedIndexKind::EntityPayloadField {
-                field: "name".to_string(),
+            kind: DerivedIndexKind::EntityField {
+                field: field_key("name"),
             },
             branch_scoped: false,
         });
@@ -1630,9 +1636,9 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
                     crate::facade::query::PlannedQueryPacket {
                         label: "entity-name-equals".to_string(),
                         context_id: serial_context,
-                        scope: crate::facade::query::QueryScope::EntityPayloadFieldEquals {
-                            field: "name".to_string(),
-                            value: "alpha".to_string(),
+                        scope: crate::facade::query::QueryScope::EntityFieldEquals {
+                            field: field_key("name"),
+                            value: string_aspect_value("alpha"),
                             partition_scope: None,
                         },
                         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
@@ -1660,9 +1666,9 @@ fn derived_index_contract_entity_field_equals_is_stable_across_execution_models(
                     crate::facade::query::PlannedQueryPacket {
                         label: "entity-name-equals".to_string(),
                         context_id: staged_context,
-                        scope: crate::facade::query::QueryScope::EntityPayloadFieldEquals {
-                            field: "name".to_string(),
-                            value: "alpha".to_string(),
+                        scope: crate::facade::query::QueryScope::EntityFieldEquals {
+                            field: field_key("name"),
+                            value: string_aspect_value("alpha"),
                             partition_scope: None,
                         },
                         locality: crate::facade::query::QueryLocalityClass::CrossPartitionTraversal,
@@ -1705,16 +1711,16 @@ fn derived_index_contract_staged_parallel_generation_matches_serial_reference() 
         let name_index = runtime.index_authority().register(DerivedIndexDefinition {
             index_id: DerivedIndexId(0),
             name: "entity.name".to_string(),
-            kind: DerivedIndexKind::EntityPayloadField {
-                field: "name".to_string(),
+            kind: DerivedIndexKind::EntityField {
+                field: field_key("name"),
             },
             branch_scoped: false,
         });
         let missing_index = runtime.index_authority().register(DerivedIndexDefinition {
             index_id: DerivedIndexId(0),
             name: "entity.missing".to_string(),
-            kind: DerivedIndexKind::EntityPayloadField {
-                field: "missing".to_string(),
+            kind: DerivedIndexKind::EntityField {
+                field: field_key("missing"),
             },
             branch_scoped: false,
         });

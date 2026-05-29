@@ -1,5 +1,6 @@
 mod access;
 mod authority;
+mod observed_field_indexes;
 mod unique_field_index;
 
 #[cfg(test)]
@@ -11,4 +12,3 @@ pub(crate) use access::purge_index_query_scratch_hints;
 pub use access::IndexAccess;
 #[allow(unused_imports)]
 pub use authority::IndexAuthority;
-pub(crate) use unique_field_index::payload_field_key;

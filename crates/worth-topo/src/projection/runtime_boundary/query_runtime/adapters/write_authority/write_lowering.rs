@@ -3,19 +3,21 @@ use std::sync::{Arc, RwLock};
 
 use forge_query::facade::{ForgeQuerySymbolicAspectReference, ForgeQueryWorkspaceError};
 use forge_relational::facade::identity::PartitionId;
-use forge_relational::facade::payloads::RecordPayload;
 use forge_relational::facade::runtime::RelationalRuntime;
-use forge_relational::facade::symbols::InternedString;
+use forge_relational::facade::symbols::ClientKey;
 use forge_relational::facade::transactions::{
     CreateIntent, EntityReference, EntitySpec, MutationIntent, RelationSpec,
     UpdateRelationEndpointsIntent,
 };
 use schema::facade::{EntityKind, NamingEntityKind, NamingRelationKind, RelationKind};
-use serde_json::{json, Value};
+use serde_json::Value;
 
 use super::super::write_support::{
     ensure_live_entity_exists, live_entity_label_exists, optional_text, parse_entity_identity,
     parse_relation_identity, required_text,
+};
+use crate::relational_aspect_boundary::{
+    persistent_name_create_fields, topology_entity_create_fields,
 };
 
 pub(super) fn lower_topology_entity_insert(
@@ -42,44 +44,36 @@ pub(super) fn lower_topology_entity_insert(
     let topology_ref = forge_relational::facade::transactions::CreatedEntityRef {
         partition_id: PartitionId::main(),
         kind_id: kind.kind_id(),
-        client_key: InternedString::Raw(structure.clone()),
+        client_key: ClientKey::raw(structure.clone()),
     };
     let naming_key = format!("{persistent_name}.persistent_name");
     let naming_ref = forge_relational::facade::transactions::CreatedEntityRef {
         partition_id: PartitionId::main(),
         kind_id: EntityKind::Naming(NamingEntityKind::PersistentName).kind_id(),
-        client_key: InternedString::Raw(naming_key.clone()),
+        client_key: ClientKey::raw(naming_key.clone()),
     };
     Ok((
         vec![
             MutationIntent::Create(CreateIntent::Entity(EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: kind.kind_id(),
-                client_key: InternedString::Raw(structure.clone()),
-                payload: RecordPayload::StructuredJson(json!({
-                    "label": structure,
-                    "structure": persistent_name,
-                    "topology": { "structure": persistent_name }
-                })),
+                client_key: ClientKey::raw(structure.clone()),
+                fields: topology_entity_create_fields(kind, &structure),
             })),
             MutationIntent::Create(CreateIntent::Entity(EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: EntityKind::Naming(NamingEntityKind::PersistentName).kind_id(),
-                client_key: InternedString::Raw(naming_key),
-                payload: RecordPayload::StructuredJson(json!({
-                    "label": persistent_name,
-                    "persistent_name": persistent_name,
-                    "naming": { "persistent_name": persistent_name }
-                })),
+                client_key: ClientKey::raw(naming_key),
+                fields: persistent_name_create_fields(&persistent_name),
             })),
             MutationIntent::Create(CreateIntent::Relation(RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: RelationKind::Naming(NamingRelationKind::PersistentNameTargetsEntity)
                     .kind_id(),
-                client_key: InternedString::Raw(format!("{persistent_name}.targets")),
+                client_key: ClientKey::raw(format!("{persistent_name}.targets")),
                 source: EntityReference::Created(naming_ref),
                 target: EntityReference::Created(topology_ref.clone()),
-                payload: None,
+                fields: Default::default(),
             })),
         ],
         EntityReference::Created(topology_ref),
@@ -128,10 +122,10 @@ pub(super) fn lower_topology_relation_insert(
     Ok(RelationSpec {
         partition_id: PartitionId::main(),
         kind_id: kind.kind_id(),
-        client_key: InternedString::Raw(client_key),
+        client_key: ClientKey::raw(client_key),
         source,
         target,
-        payload: None,
+        fields: Default::default(),
     })
 }
 
@@ -212,12 +206,9 @@ pub(super) fn relation_endpoint_identity(
             "entity:{}:{}:{}",
             entity_id.partition_id.0, entity_id.local_slot.0, entity_id.generation.0
         )),
-        EntityReference::Created(created) => match &created.client_key {
-            InternedString::Raw(label) => Ok(format!("created:{label}")),
-            other => Err(ForgeQueryWorkspaceError::new(format!(
-                "topology production runtime could not derive stable created endpoint identity from `{other:?}`"
-            ))),
-        },
+        EntityReference::Created(created) => {
+            Ok(format!("created:{}", created.client_key.canonical_text()))
+        }
     }
 }
 

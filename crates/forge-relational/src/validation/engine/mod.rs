@@ -1,7 +1,6 @@
 pub(crate) mod context;
 mod engine;
 pub(crate) mod evaluator;
-mod index_view;
 mod metrics;
 mod observation;
 mod policy;
@@ -18,7 +17,7 @@ pub use profile::HarnessAuditMode;
 pub(crate) use profile::InvariantRequestProfile;
 pub(crate) use request::{InvariantExecutionRequest, PreparedRelationIntegrityScopes};
 pub use result::{
-    InvariantExecutionDisposition, InvariantExecutionMetadata, InvariantExecutionResult,
-    InvariantFailure, InvariantPlanScopeClass, InvariantProofBoundarySummary,
-    InvariantScopeWideningCause,
+    CustomInvariantTraceArtifact, InvariantExecutionDisposition, InvariantExecutionMetadata,
+    InvariantExecutionResult, InvariantFailure, InvariantFailureArtifact, InvariantPlanScopeClass,
+    InvariantProofBoundaryArtifact, InvariantProofBoundarySummary, InvariantScopeWideningCause,
 };

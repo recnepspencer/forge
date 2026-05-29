@@ -5,9 +5,10 @@ use forge_relational::facade::identity::VersionId;
 use forge_relational::facade::publication::PatchRecord;
 use forge_relational::facade::runtime::RelationalRuntime;
 use forge_relational::facade::transactions::RecordRef;
-use serde_json::Value;
+use schema::facade::{Aspect, NamingAspect};
 
 use super::super::write_support::{record_identity, target_collection_for_patch};
+use crate::relational_aspect_boundary::{entity_record_domain_label, entity_record_string_aspect};
 
 pub(super) enum LoweredPatchMatch {
     TopologyEntityInsert {
@@ -62,12 +63,8 @@ impl LoweredPatchMatch {
                     Some("TopologyEntity") => match record.target {
                         RecordRef::Entity(entity_id) => {
                             projection.entity_record(entity_id).is_some_and(|entity| {
-                                entity
-                                    .payload
-                                    .as_json()
-                                    .and_then(|payload| payload.get("label"))
-                                    .and_then(serde_json::Value::as_str)
-                                    .is_some_and(|label| label == structure_label)
+                                entity_record_domain_label(&entity)
+                                    .is_some_and(|label| label == *structure_label)
                             })
                         }
                         RecordRef::Relation(_) => false,
@@ -75,13 +72,12 @@ impl LoweredPatchMatch {
                     Some("PersistentName") => match record.target {
                         RecordRef::Entity(entity_id) => {
                             projection.entity_record(entity_id).is_some_and(|entity| {
-                                entity
-                                    .payload
-                                    .as_json()
-                                    .and_then(|payload| payload.get("naming"))
-                                    .and_then(|payload| payload.get("persistent_name"))
-                                    .and_then(serde_json::Value::as_str)
-                                    .is_some_and(|name| name == persistent_name)
+                                entity_record_string_aspect(
+                                    &entity,
+                                    &Aspect::Naming(NamingAspect::PersistentName),
+                                    "persistent_name",
+                                )
+                                .is_some_and(|name| name == *persistent_name)
                             })
                         }
                         RecordRef::Relation(_) => false,
@@ -144,11 +140,6 @@ fn entity_matches_identity(
         .project_version(version_id)
         .entity_record(entity_id)
         .is_some_and(|entity| {
-            entity
-                .payload
-                .as_json()
-                .and_then(|payload| payload.get("label"))
-                .and_then(Value::as_str)
-                .is_some_and(|label| label == created_label)
+            entity_record_domain_label(&entity).is_some_and(|label| label == created_label)
         })
 }

@@ -7,15 +7,14 @@ use crate::facade::merge::{
 use crate::facade::runtime::RelationalRuntimeApi;
 use crate::publication::patch::data::AspectKey;
 use crate::schema::data::{
-    AspectBinding, AspectComparator, AspectPrecision, DeclaredAspect, EntityKindRegistration,
-    KindAspectDeclarations, RelationKindRegistration, RelationPayloadClass, SchemaId,
+    EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration, SchemaId,
     SchemaVersionId,
 };
-use crate::symbols::data::InternedString;
 use crate::tests::support::{
     create_branch_from_main, create_entity, create_relation,
     create_relation_in_partition_on_branch, delete_entity_on_branch, delete_relation_on_branch,
-    persisted_runtime_with_test_schema, unique_test_store_path, update_entity, CascadeDeletePolicy,
+    persisted_runtime_with_test_schema, relation_field_aspect, relation_source_aspect,
+    relation_target_aspect, unique_test_store_path, update_entity, CascadeDeletePolicy,
     CrossContextPolicy, KindId, PartitionId, RelationalRuntime, RelationalSchemaRegistry,
 };
 
@@ -128,7 +127,7 @@ fn execution_surface_preserves_topology_region_conflict_authority_rows() {
 }
 
 fn runtime_with_topology_identity_registry(root_path: std::path::PathBuf) -> RelationalRuntime {
-    let label_key = AspectKey(InternedString::Raw("label".to_string()));
+    let label_key = AspectKey::new("label").unwrap();
     let registry = RelationalSchemaRegistry::new()
         .register_entity_kind(EntityKindRegistration {
             kind_id: KindId(1),
@@ -143,30 +142,12 @@ fn runtime_with_topology_identity_registry(root_path: std::path::PathBuf) -> Rel
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::new(vec![
-                    DeclaredAspect {
-                        key: label_key.clone(),
-                        binding: AspectBinding::RelationPayloadField {
-                            field: InternedString::Raw("label".to_string()),
-                        },
-                        comparator: AspectComparator::JsonScalarEquality,
-                        precision: AspectPrecision::Structured,
-                    },
-                    DeclaredAspect {
-                        key: AspectKey(InternedString::Raw("source".to_string())),
-                        binding: AspectBinding::RelationSourceEndpoint,
-                        comparator: AspectComparator::EndpointIdentityEquality,
-                        precision: AspectPrecision::Structured,
-                    },
-                    DeclaredAspect {
-                        key: AspectKey(InternedString::Raw("target".to_string())),
-                        binding: AspectBinding::RelationTargetEndpoint,
-                        comparator: AspectComparator::EndpointIdentityEquality,
-                        precision: AspectPrecision::Structured,
-                    },
+                    relation_field_aspect(label_key.as_str(), "label"),
+                    relation_source_aspect(),
+                    relation_target_aspect(),
                 ])
                 .with_identity_declarations(vec![IdentityBasisDeclaration {
                     scope: IdentityBasisScope::AspectKey(label_key.clone()),

@@ -8,13 +8,9 @@ fn chip_profile_emits_dense_patch_surface_details() {
     let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
     let right = create_entity_in_partition(&mut runtime, "right", PartitionId(11));
     let _ = create_relation_in_partition(&mut runtime, left, right, "bridge", PartitionId(29));
-    let publication = runtime.publication();
+    let publication = runtime.publication().artifacts();
     let patch = publication.latest_patch().unwrap();
 
-    assert_eq!(
-        patch.compatibility,
-        PatchCompatibilityClass::DenseCompatible
-    );
     assert!(patch
         .records
         .iter()

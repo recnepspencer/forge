@@ -1,5 +1,4 @@
-use serde::{Deserialize, Serialize};
-use serde_json::{json, to_value, Value};
+mod diagnostic_fields;
 
 use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
@@ -10,11 +9,12 @@ use crate::merge::data::{AspectMergePolicyDeclaration, IdentityBasisDeclaration}
 use crate::publication::patch::data::AspectKey;
 
 use super::{
-    AspectBinding, AspectComparator, AspectPlanRevision, AspectPrecision, KindAspectDeclarations,
-    LoweredAspectComparator, LoweredAspectExtractor, LoweredAspectPlan,
+    AspectBinding, AspectPlanRevision, KindAspectDeclarations, LoweredAspectExtractor,
+    LoweredAspectPlan,
 };
+use diagnostic_fields::{declaration_trace_diagnostic_fields, lowering_trace_diagnostic_fields};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use]
 pub struct AspectDeclarationTrace {
     pub kind_id: KindId,
@@ -24,15 +24,16 @@ pub struct AspectDeclarationTrace {
     pub merge_policy_declarations: Vec<AspectMergePolicyDeclaration>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AspectDeclarationTraceRow {
     pub aspect_key: AspectKey,
     pub binding: AspectBinding,
-    pub comparator: AspectComparator,
-    pub precision: AspectPrecision,
+    pub contract_identity: u64,
+    pub contract_revision: u64,
+    pub aspect_shape: forge_foundational::AspectShape,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use]
 pub struct AspectLoweringTrace {
     pub kind_id: KindId,
@@ -40,12 +41,11 @@ pub struct AspectLoweringTrace {
     pub bindings: Vec<AspectLoweringTraceRow>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AspectLoweringTraceRow {
     pub aspect_key: AspectKey,
     pub extractor: LoweredAspectExtractor,
-    pub comparator: LoweredAspectComparator,
-    pub precision: AspectPrecision,
+    pub aspect_shape: forge_foundational::AspectShape,
 }
 
 impl KindAspectDeclarations {
@@ -57,10 +57,11 @@ impl KindAspectDeclarations {
                 .aspects
                 .iter()
                 .map(|aspect| AspectDeclarationTraceRow {
-                    aspect_key: aspect.key.clone(),
+                    aspect_key: aspect.aspect_key(),
                     binding: aspect.binding.clone(),
-                    comparator: aspect.comparator,
-                    precision: aspect.precision,
+                    contract_identity: aspect.contract.identity().0,
+                    contract_revision: aspect.contract.revision().0,
+                    aspect_shape: aspect.contract.shape().clone(),
                 })
                 .collect(),
             identity_declarations: self.identity_declarations.clone(),
@@ -80,8 +81,7 @@ impl LoweredAspectPlan {
                 .map(|binding| AspectLoweringTraceRow {
                     aspect_key: binding.aspect_key.clone(),
                     extractor: binding.extractor(),
-                    comparator: binding.comparator(),
-                    precision: binding.precision,
+                    aspect_shape: binding.aspect_shape(),
                 })
                 .collect(),
         }
@@ -90,85 +90,32 @@ impl LoweredAspectPlan {
 
 impl AspectDeclarationTrace {
     pub fn diagnostic_artifact(&self) -> RelationalDiagnosticArtifact {
-        let fields = AspectDeclarationTraceFields::from_trace(self);
-        RelationalDiagnosticArtifact {
-            scope: DiagnosticsScope::Schema,
-            kind: DiagnosticsArtifactKind::DetailedTrace,
-            determinism: DeterminismExpectation::Required,
-            entries: vec![RelationalDiagnosticsEntry {
-                code: DiagnosticCode::AspectDeclarationTraced,
-                message: "aspect declaration trace derived from canonical schema declarations"
-                    .to_string(),
-                fields: trace_fields_value(&fields, "aspect declaration trace"),
-            }],
-        }
+        let fields = declaration_trace_diagnostic_fields(self);
+        RelationalDiagnosticArtifact::new(
+            DiagnosticsScope::Schema,
+            DiagnosticsArtifactKind::DetailedTrace,
+            DeterminismExpectation::Required,
+            vec![RelationalDiagnosticsEntry::new(
+                DiagnosticCode::AspectDeclarationTraced,
+                "aspect declaration trace derived from canonical schema declarations",
+                fields,
+            )],
+        )
     }
 }
 
 impl AspectLoweringTrace {
     pub fn diagnostic_artifact(&self) -> RelationalDiagnosticArtifact {
-        let fields = AspectLoweringTraceFields::from_trace(self);
-        RelationalDiagnosticArtifact {
-            scope: DiagnosticsScope::Schema,
-            kind: DiagnosticsArtifactKind::DetailedTrace,
-            determinism: DeterminismExpectation::Required,
-            entries: vec![RelationalDiagnosticsEntry {
-                code: DiagnosticCode::AspectLoweringTraced,
-                message: "aspect lowering trace derived from canonical lowered aspect plan"
-                    .to_string(),
-                fields: trace_fields_value(&fields, "aspect lowering trace"),
-            }],
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-struct AspectDeclarationTraceFields {
-    kind_id: u64,
-    plan_revision: String,
-    declarations: Vec<AspectDeclarationTraceRow>,
-    identity_declarations: Vec<IdentityBasisDeclaration>,
-    merge_policy_declarations: Vec<AspectMergePolicyDeclaration>,
-}
-
-impl AspectDeclarationTraceFields {
-    fn from_trace(trace: &AspectDeclarationTrace) -> Self {
-        Self {
-            kind_id: trace.kind_id.0 as u64,
-            plan_revision: trace.plan_revision.0.to_string(),
-            declarations: trace.declarations.clone(),
-            identity_declarations: trace.identity_declarations.clone(),
-            merge_policy_declarations: trace.merge_policy_declarations.clone(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-struct AspectLoweringTraceFields {
-    kind_id: u64,
-    plan_revision: String,
-    bindings: Vec<AspectLoweringTraceRow>,
-}
-
-impl AspectLoweringTraceFields {
-    fn from_trace(trace: &AspectLoweringTrace) -> Self {
-        Self {
-            kind_id: trace.kind_id.0 as u64,
-            plan_revision: trace.plan_revision.0.to_string(),
-            bindings: trace.bindings.clone(),
-        }
-    }
-}
-
-fn trace_fields_value<T>(fields: &T, trace_kind: &str) -> Value
-where
-    T: Serialize,
-{
-    match to_value(fields) {
-        Ok(value) => value,
-        Err(error) => json!({
-            "trace_kind": trace_kind,
-            "serialization_failure": error.to_string(),
-        }),
+        let fields = lowering_trace_diagnostic_fields(self);
+        RelationalDiagnosticArtifact::new(
+            DiagnosticsScope::Schema,
+            DiagnosticsArtifactKind::DetailedTrace,
+            DeterminismExpectation::Required,
+            vec![RelationalDiagnosticsEntry::new(
+                DiagnosticCode::AspectLoweringTraced,
+                "aspect lowering trace derived from canonical lowered aspect plan",
+                fields,
+            )],
+        )
     }
 }

@@ -137,9 +137,10 @@ fn complexity_contract_visibility_scans_are_explicitly_measured() {
 
 #[test]
 fn complexity_contract_invariant_materialization_is_declared_and_measured() {
-    let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
+    let mut runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
         registrations: vec![InvariantRegistration::commit_boundary_blocking(
-            InvariantRule::UniqueEntityPayloadField("name".to_string()),
+            InvariantRule::unique_entity_aspect_field("name", "name")
+                .expect("valid unique aspect field target"),
         )],
         ..InvariantCatalog::default()
     });
@@ -287,8 +288,8 @@ fn complexity_budget_index_entity_field_equals_avoids_snapshot_materialization()
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity.name.lookup".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field: field_key("name"),
         },
         branch_scoped: false,
     });
@@ -309,9 +310,9 @@ fn complexity_budget_index_entity_field_equals_avoids_snapshot_materialization()
     let packet = PlannedQueryPacket {
         label: "entity-name-equals".to_string(),
         context_id: context,
-        scope: QueryScope::EntityPayloadFieldEquals {
-            field: "name".to_string(),
-            value: "alpha".to_string(),
+        scope: QueryScope::EntityFieldEquals {
+            field: field_key("name"),
+            value: string_aspect_value("alpha"),
             partition_scope: None,
         },
         locality: QueryLocalityClass::CrossPartitionTraversal,
@@ -354,8 +355,8 @@ fn complexity_budget_index_relation_field_equals_avoids_snapshot_materialization
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(1),
         name: "relation.label.lookup".to_string(),
-        kind: DerivedIndexKind::RelationPayloadField {
-            field: "label".to_string(),
+        kind: DerivedIndexKind::RelationField {
+            field: field_key("label"),
         },
         branch_scoped: false,
     });
@@ -376,9 +377,9 @@ fn complexity_budget_index_relation_field_equals_avoids_snapshot_materialization
     let packet = PlannedQueryPacket {
         label: "relation-label-equals".to_string(),
         context_id: context,
-        scope: QueryScope::RelationPayloadFieldEquals {
-            field: "label".to_string(),
-            value: "edge".to_string(),
+        scope: QueryScope::RelationFieldEquals {
+            field: field_key("label"),
+            value: string_aspect_value("edge"),
             partition_scope: None,
         },
         locality: QueryLocalityClass::CrossPartitionTraversal,
@@ -417,8 +418,8 @@ fn complexity_budget_index_field_equals_reuses_warm_index_scratch_on_repeated_lo
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(2),
         name: "entity.name.reuse".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field: field_key("name"),
         },
         branch_scoped: false,
     });
@@ -439,9 +440,9 @@ fn complexity_budget_index_field_equals_reuses_warm_index_scratch_on_repeated_lo
     let packet = PlannedQueryPacket {
         label: "entity-name-reuse".to_string(),
         context_id: context,
-        scope: QueryScope::EntityPayloadFieldEquals {
-            field: "name".to_string(),
-            value: "alpha".to_string(),
+        scope: QueryScope::EntityFieldEquals {
+            field: field_key("name"),
+            value: string_aspect_value("alpha"),
             partition_scope: None,
         },
         locality: QueryLocalityClass::CrossPartitionTraversal,
@@ -481,8 +482,8 @@ fn complexity_budget_index_field_equals_reports_actual_result_width() {
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(3),
         name: "entity.name.width".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field: field_key("name"),
         },
         branch_scoped: false,
     });
@@ -508,9 +509,9 @@ fn complexity_budget_index_field_equals_reports_actual_result_width() {
     let packet = PlannedQueryPacket {
         label: "entity-name-width".to_string(),
         context_id: context,
-        scope: QueryScope::EntityPayloadFieldEquals {
-            field: "name".to_string(),
-            value: "alpha".to_string(),
+        scope: QueryScope::EntityFieldEquals {
+            field: field_key("name"),
+            value: string_aspect_value("alpha"),
             partition_scope: None,
         },
         locality: QueryLocalityClass::CrossPartitionTraversal,

@@ -1,10 +1,9 @@
 use serde_json::json;
 
 use crate::facade::history::BranchId;
-use crate::facade::payloads::RecordPayload;
 use crate::facade::transactions::{
-    CommitResult, EntityMutationIntent, MutationIntent, TransactionOptions, UpdateEntityIntent,
-    WorkerIntentBatch,
+    CommitResult, EntityMutationIntent, MutationIntent, TransactionOptions,
+    UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 
 use super::super::fixture::{FintechCaseRole, FintechWorld};
@@ -22,9 +21,9 @@ pub(crate) fn diverge_case_trade_on_branch(
     });
     txn.push_batch(
         WorkerIntentBatch::new("diverge-case-trade").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: case.trade,
-                payload: RecordPayload::StructuredJson(json!({
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(json!({
                     "entity_type": "trade",
                     "case": format!("{:?}", case.role),
                     "desk": "analysis-branch",

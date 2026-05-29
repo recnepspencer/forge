@@ -1,11 +1,12 @@
-use serde_json::json;
-
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
 use crate::lineage::data::{
     CorrespondencePromotionExecutionFailureClass, CorrespondenceResolution, LineageDecisionKind,
     LineageEventKind, LineageFinalizationArtifact,
+};
+use crate::lineage::logic::authority::diagnostic_fields::{
+    execution_failure_fields, promotion_published_fields,
 };
 use crate::lineage::logic::authority::phase_types::{
     ExecutionAuthorizedPromotionPlan, LoweredPromotionPlan,
@@ -75,17 +76,17 @@ impl<'runtime> LineageAuthority<'runtime> {
             .push_bounded_diagnostic(
                 DiagnosticsScope::Lineage,
                 DiagnosticsArtifactKind::MinimalSummary,
-                vec![RelationalDiagnosticsEntry {
-                    code: DiagnosticCode::LineagePromotionPublished,
-                    message: "correspondence promoted into lineage".to_string(),
-                    fields: json!({
-                        "candidate_id": resolution.candidate_id(),
-                        "event_id": event_id,
-                        "commit_id": promotion_commit.commit_id.0,
-                        "anchor_commit_id": plan.commit().commit_id.0,
-                        "branch_id": plan.branch_id().0,
-                    }),
-                }],
+                vec![RelationalDiagnosticsEntry::new(
+                    DiagnosticCode::LineagePromotionPublished,
+                    "correspondence promoted into lineage",
+                    promotion_published_fields(
+                        resolution.candidate_id(),
+                        event_id,
+                        promotion_commit.commit_id,
+                        plan.commit().commit_id,
+                        plan.branch_id(),
+                    ),
+                )],
             );
         resolution
     }
@@ -109,17 +110,17 @@ impl<'runtime> LineageAuthority<'runtime> {
             .push_bounded_diagnostic(
                 DiagnosticsScope::Lineage,
                 DiagnosticsArtifactKind::MinimalSummary,
-                vec![RelationalDiagnosticsEntry {
-                    code: DiagnosticCode::LineagePromotionExecutionFailed,
-                    message: detail.to_string(),
-                    fields: json!({
-                        "candidate_id": plan.map(|plan| plan.candidate_id()),
-                        "event_id": event_id,
-                        "anchor_commit_id": plan.map(|plan| plan.commit().commit_id.0),
-                        "branch_id": plan.map(|plan| plan.branch_id().0.clone()),
-                        "execution_failure_class": format!("{failure_class:?}"),
-                    }),
-                }],
+                vec![RelationalDiagnosticsEntry::new(
+                    DiagnosticCode::LineagePromotionExecutionFailed,
+                    detail,
+                    execution_failure_fields(
+                        plan.map(|plan| plan.candidate_id()),
+                        event_id,
+                        plan.map(|plan| plan.commit().commit_id),
+                        plan.map(|plan| plan.branch_id()),
+                        failure_class,
+                    ),
+                )],
             );
     }
 }

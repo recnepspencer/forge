@@ -90,7 +90,6 @@ fn preview_strategy_post_mutation_validation(
         merged_intents: lowered.merged_plan().merged_intents.clone(),
     };
     let mutation_config = crate::config::data::MutationConfig {
-        patch_surface_policy: runtime.config().publication.policy.patch_surface_policy,
         cascade_delete_policy: runtime.config().storage.cascade_delete_policy,
         adjacency_policy: runtime.config().storage.adjacency_policy.clone(),
         cross_context_policy: runtime.config().storage.cross_context_policy,

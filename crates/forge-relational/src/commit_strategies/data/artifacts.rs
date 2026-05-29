@@ -1,14 +1,23 @@
 use serde::{de::Error as DeError, Deserialize, Deserializer, Serialize};
-use sha2::{Digest, Sha256};
-use std::io::{self, Write};
 
 use crate::config::data::RelationalRuntimeConfig;
 use crate::history::data::CommitId;
 use crate::identity::data::VersionId;
-use crate::schema::data::{DescriptorCanonicalizationVersion, DescriptorSemanticsVersion};
-use crate::transactions::data::CommitValidationSummary;
+use crate::schema::data::{
+    schema_authority_snapshot_digest_bytes, DescriptorCanonicalizationVersion,
+    DescriptorSemanticsVersion,
+};
+use crate::transactions::data::{AspectFieldPatchTarget, CommitValidationSummary};
 use std::sync::Arc;
 
+use super::canonical_digest::{
+    commit_validation_summary_digest, fallback_intent_scope_digest, lowering_summary_digest,
+    preview_validation_cost_digest, runtime_execution_model_digest,
+    runtime_invariant_catalog_digest, runtime_planning_contract_digest,
+};
+use super::native_strategy_intent_scope::{
+    native_strategy_intent_scope_digest, native_strategy_intent_scope_targets,
+};
 use super::{
     CanonicalStrategyCommitRequest, CanonicalStrategyInputArtifact, CanonicalStrategyInputDigest,
     CanonicalStrategyOutputDigest, CommitStrategyDescriptor, CommitStrategyDescriptorDigest,
@@ -82,7 +91,7 @@ pub struct StrategyMergeDescriptor {
     version: CommitStrategyVersion,
     intent_name: StrategyIntentName,
     intent_scope_digest: StrategyIntentScopeDigest,
-    intent_scope_fields: Arc<[String]>,
+    intent_scope_targets: Arc<[AspectFieldPatchTarget]>,
     merge_semantics: StrategyMergeSemantics,
     lowering_summary_digest: [u8; 32],
 }
@@ -100,9 +109,9 @@ impl StrategyMergeDescriptor {
             version: descriptor.version(),
             intent_name: descriptor.intent_name().clone(),
             intent_scope_digest: strategy_intent_scope_digest(descriptor, lowered),
-            intent_scope_fields: strategy_intent_scope_fields(descriptor, lowered),
+            intent_scope_targets: strategy_intent_scope_targets(descriptor, lowered),
             merge_semantics: merge_semantics_for_descriptor(descriptor),
-            lowering_summary_digest: stable_digest(lowered.lowering_summary()),
+            lowering_summary_digest: lowering_summary_digest(lowered.lowering_summary()),
         }
     }
 
@@ -134,8 +143,8 @@ impl StrategyMergeDescriptor {
         self.intent_scope_digest
     }
 
-    pub fn intent_scope_fields(&self) -> &[String] {
-        &self.intent_scope_fields
+    pub fn intent_scope_targets(&self) -> &[AspectFieldPatchTarget] {
+        &self.intent_scope_targets
     }
 
     pub fn merge_semantics(&self) -> StrategyMergeSemantics {
@@ -181,7 +190,7 @@ impl StrategyReplayDescriptor {
             input_schema_version: lowered.request().canonical_input().schema_version(),
             input_canonicalization: lowered.request().canonical_input().canonicalization(),
             output_schema_name: lowered.execution().output().schema_name().clone(),
-            lowering_summary_digest: stable_digest(lowered.lowering_summary()),
+            lowering_summary_digest: lowering_summary_digest(lowered.lowering_summary()),
             preview_validation_summary_digest: None,
             preview_validation_cost_digest: None,
             validated_against_commit_id: None,
@@ -199,8 +208,10 @@ impl StrategyReplayDescriptor {
         validated_against_commit_id: Option<CommitId>,
         validated_against_version_id: VersionId,
     ) -> Self {
-        self.preview_validation_summary_digest = Some(stable_digest(preview_validation_summary));
-        self.preview_validation_cost_digest = Some(stable_digest(preview_validation_cost));
+        self.preview_validation_summary_digest =
+            Some(commit_validation_summary_digest(preview_validation_summary));
+        self.preview_validation_cost_digest =
+            Some(preview_validation_cost_digest(preview_validation_cost));
         self.validated_against_commit_id = validated_against_commit_id;
         self.validated_against_version_id = Some(validated_against_version_id);
         self
@@ -279,11 +290,18 @@ pub struct StrategyRuntimeDeterminismBasis {
 
 impl StrategyRuntimeDeterminismBasis {
     pub fn from_runtime_config(runtime_config: &RelationalRuntimeConfig) -> Self {
+        let schema_authority = runtime_config.schema.registry.authority_snapshot();
         Self {
-            schema_registry_digest: stable_digest(&runtime_config.schema.registry),
-            invariant_catalog_digest: stable_digest(&runtime_config.schema.invariant_catalog),
-            planning_contract_digest: stable_digest(&runtime_config.execution.planning),
-            execution_model_digest: stable_digest(&runtime_config.execution.execution_model),
+            schema_registry_digest: schema_authority_snapshot_digest_bytes(&schema_authority),
+            invariant_catalog_digest: runtime_invariant_catalog_digest(
+                &runtime_config.schema.invariant_catalog,
+            ),
+            planning_contract_digest: runtime_planning_contract_digest(
+                &runtime_config.execution.planning,
+            ),
+            execution_model_digest: runtime_execution_model_digest(
+                runtime_config.execution.execution_model,
+            ),
             descriptor_semantics_version: runtime_config
                 .schema
                 .descriptor_semantics_policy
@@ -520,7 +538,7 @@ impl StrategyCommitArtifactBundle {
                 "strategy canonical input canonicalization does not match strategy replay descriptor",
             );
         }
-        if stable_digest(&self.lowering_summary)
+        if lowering_summary_digest(&self.lowering_summary)
             != *self.replay_descriptor.lowering_summary_digest()
         {
             return Err(
@@ -548,7 +566,7 @@ impl StrategyCommitArtifactBundle {
             self.replay_descriptor.preview_validation_summary_digest(),
         ) {
             (Some(summary), Some(expected_digest))
-                if stable_digest(summary) == *expected_digest => {}
+                if commit_validation_summary_digest(summary) == *expected_digest => {}
             (None, None) => {}
             _ => {
                 return Err(
@@ -561,7 +579,7 @@ impl StrategyCommitArtifactBundle {
             self.replay_descriptor.preview_validation_cost_digest(),
         ) {
             (Some(summary), Some(expected_digest))
-                if stable_digest(summary) == *expected_digest => {}
+                if preview_validation_cost_digest(summary) == *expected_digest => {}
             (None, None) => {}
             _ => return Err(
                 "strategy preview validation cost does not match strategy replay descriptor digest",
@@ -619,40 +637,6 @@ impl<'de> Deserialize<'de> for StrategyCommitArtifactBundle {
     }
 }
 
-struct DigestWriter<'a> {
-    hasher: &'a mut Sha256,
-}
-
-impl Write for DigestWriter<'_> {
-    fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
-        self.hasher.update(buf);
-        Ok(buf.len())
-    }
-
-    fn flush(&mut self) -> io::Result<()> {
-        Ok(())
-    }
-}
-
-fn stable_digest<T: Serialize + ?Sized>(value: &T) -> [u8; 32] {
-    let mut hasher = Sha256::new();
-    if let Err(error) = serde_json::to_writer(
-        DigestWriter {
-            hasher: &mut hasher,
-        },
-        value,
-    ) {
-        hasher.update(b"stable-digest-serialization-error:");
-        hasher.update(std::any::type_name::<T>().as_bytes());
-        hasher.update(b":");
-        hasher.update(error.to_string().as_bytes());
-    }
-    let digest = hasher.finalize();
-    let mut out = [0_u8; 32];
-    out.copy_from_slice(&digest);
-    out
-}
-
 fn merge_conflict_class_for_descriptor(
     descriptor: &CommitStrategyDescriptor,
 ) -> StrategyMergeConflictClass {
@@ -689,20 +673,20 @@ fn strategy_intent_scope_digest(
         .collect::<Vec<_>>();
     targets.sort();
     targets.dedup();
-    StrategyIntentScopeDigest::new(stable_digest(&(
+    StrategyIntentScopeDigest::new(fallback_intent_scope_digest(
         lowered.request().strategy_id(),
         lowered.request().canonical_input().schema_name(),
         lowered.request().canonical_input().schema_version(),
         lowered.request().canonical_input().digest(),
-        targets,
-    )))
+        &targets,
+    ))
 }
 
-fn strategy_intent_scope_fields(
+fn strategy_intent_scope_targets(
     descriptor: &CommitStrategyDescriptor,
     lowered: &LoweredStrategyCommitPlan,
-) -> Arc<[String]> {
-    semantic_intent_scope_fields(descriptor, lowered)
+) -> Arc<[AspectFieldPatchTarget]> {
+    semantic_intent_scope_targets(descriptor, lowered)
         .unwrap_or_default()
         .into()
 }
@@ -711,68 +695,24 @@ fn semantic_intent_scope_digest(
     descriptor: &CommitStrategyDescriptor,
     lowered: &LoweredStrategyCommitPlan,
 ) -> Option<[u8; 32]> {
-    let fields = semantic_intent_scope_fields(descriptor, lowered)?;
-    let input = serde_json::from_slice::<serde_json::Value>(
-        lowered.request().canonical_input().canonical_bytes(),
-    )
-    .ok()?;
-    let scope = match descriptor.family_name().as_str() {
-        "strategy.aspect" => {
-            let entity_id = input.get("entity_id")?.clone();
-            stable_digest(&("entity-fields", entity_id, &fields))
-        }
-        "strategy.replica" => {
-            let entity_id = input.get("entity_id")?.clone();
-            stable_digest(&("entity-fields", entity_id, &fields))
-        }
-        "strategy.intent" => {
-            let entity_id = input.get("entity_id")?.clone();
-            stable_digest(&("entity-fields", entity_id, &fields))
-        }
-        "strategy.replace" => {
-            let entity_id = input.get("entity_id")?.clone();
-            let replacement_client_key = input.get("replacement_client_key")?.as_str()?;
-            stable_digest(&(
-                "entity-replacement",
-                entity_id,
-                replacement_client_key.to_string(),
-                &fields,
-            ))
-        }
-        _ => return None,
-    };
-    Some(scope)
+    native_strategy_intent_scope_digest(descriptor, lowered)
 }
 
-fn semantic_intent_scope_fields(
+fn semantic_intent_scope_targets(
     descriptor: &CommitStrategyDescriptor,
     lowered: &LoweredStrategyCommitPlan,
-) -> Option<Vec<String>> {
-    let input = serde_json::from_slice::<serde_json::Value>(
-        lowered.request().canonical_input().canonical_bytes(),
-    )
-    .ok()?;
-    let mut fields = match descriptor.family_name().as_str() {
-        "strategy.aspect" => vec![input.get("field_name")?.as_str()?.to_string()],
-        "strategy.replica" => vec!["replicas".to_string()],
-        "strategy.intent" | "strategy.replace" => input
-            .get("desired_payload")?
-            .as_object()?
-            .keys()
-            .cloned()
-            .collect::<Vec<_>>(),
-        _ => return None,
-    };
-    fields.sort();
-    fields.dedup();
-    Some(fields)
+) -> Option<Vec<AspectFieldPatchTarget>> {
+    native_strategy_intent_scope_targets(descriptor, lowered)
 }
 
 #[cfg(test)]
 mod tests {
-    use super::stable_digest;
-    use super::StrategyCommitArtifactBundle;
+    use super::{
+        StrategyCommitArtifactBundle, StrategyIntentScopeDigest, StrategyMergeConflictClass,
+        StrategyMergeDescriptor, StrategyMergeSemantics,
+    };
     use crate::capabilities::{RuntimeConfigSource, SchemaSource};
+    use crate::commit_strategies::data::canonical_digest::native_entity_fields_scope_digest;
     use crate::commit_strategies::data::{
         CanonicalStrategyCommitRequest, CanonicalStrategyInputArtifact,
         CanonicalStrategyInputDigest, CanonicalStrategyOutputArtifact, CommitStrategyDescriptor,
@@ -788,12 +728,14 @@ mod tests {
     use crate::facade::transactions::{
         CreateIntent, MutationIntent, TransactionOptions, WorkerIntentBatch,
     };
-    use crate::identity::data::{KindId, PartitionId};
+    use crate::identity::data::{EntityId, KindId, PartitionId};
     use crate::logic::builder::RelationalRuntimeBuilder;
-    use crate::payloads::data::RecordPayload;
-    use crate::symbols::data::InternedString;
-    use crate::transactions::data::{CommitValidationSummary, EntitySpec};
-    use serde_json::json;
+    use crate::symbols::data::ClientKey;
+    use crate::transactions::data::{
+        AspectFieldPatch, AspectFieldPatchTarget, CommitValidationSummary, EntitySpec,
+    };
+    use forge_foundational::facade::{AspectKey, AspectValue, FieldKey, InternedString};
+    use std::sync::Arc;
 
     fn descriptor() -> CommitStrategyDescriptor {
         CommitStrategyDescriptor::new(
@@ -805,7 +747,7 @@ mod tests {
             StrategyInputSchemaName::new("intent.reconcile.input.v1"),
             StrategyInputSchemaVersion(1),
             StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
-            StrategyRequestCanonicalization::JsonStableObjectOrderV1,
+            StrategyRequestCanonicalization::NativeCanonicalBytesV1,
             StrategyReadContract {
                 scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
                 locality_class: StrategyReadLocalityClass::SinglePartition,
@@ -825,7 +767,7 @@ mod tests {
             CanonicalStrategyInputArtifact::new(
                 StrategyInputSchemaName::new("intent.reconcile.input.v1"),
                 StrategyInputSchemaVersion(1),
-                StrategyRequestCanonicalization::JsonStableObjectOrderV1,
+                StrategyRequestCanonicalization::NativeCanonicalBytesV1,
                 br#"{"replicas":3}"#.to_vec().into(),
                 CanonicalStrategyInputDigest([9; 32]),
                 PersistentArtifactName::new("strategy.intent.reconcile.input"),
@@ -843,8 +785,12 @@ mod tests {
             CreateIntent::Entity(EntitySpec {
                 partition_id: PartitionId(1),
                 kind_id: KindId(1),
-                client_key: InternedString::from("deployment-a"),
-                payload: RecordPayload::from(json!({"replicas": 3})),
+                client_key: ClientKey::from("deployment-a"),
+                fields: AspectFieldPatch::single(
+                    AspectKey::new("name").expect("valid name aspect key"),
+                    FieldKey::new("name").expect("valid name field key"),
+                    AspectValue::String(InternedString::Raw("deployment-a".to_string())),
+                ),
             }),
         ));
 
@@ -900,7 +846,7 @@ mod tests {
                 .replay_descriptor()
                 .runtime_determinism_basis()
                 .schema_registry_digest(),
-            &stable_digest(runtime.schema_registry())
+            &runtime.schema_registry().authority_digest_bytes()
         );
     }
 
@@ -968,5 +914,61 @@ mod tests {
         assert!(error.to_string().contains(
             "strategy preview validation cost does not match strategy replay descriptor digest"
         ));
+    }
+
+    #[test]
+    fn strategy_intent_scope_targets_preserve_aspect_identity() {
+        let field = FieldKey::new("replicas").expect("valid field");
+        let desired_target = AspectFieldPatchTarget::single(
+            AspectKey::new("deployment.desired").expect("valid desired aspect"),
+            field.clone(),
+        );
+        let observed_target = AspectFieldPatchTarget::single(
+            AspectKey::new("deployment.observed").expect("valid observed aspect"),
+            field,
+        );
+
+        assert_ne!(
+            native_entity_fields_scope_digest(
+                EntityId::new(PartitionId(1), 7, 0),
+                &[desired_target]
+            ),
+            native_entity_fields_scope_digest(
+                EntityId::new(PartitionId(1), 7, 0),
+                &[observed_target]
+            ),
+            "strategy scope digest must not collapse same field path under different aspects"
+        );
+    }
+
+    #[test]
+    fn strategy_merge_descriptor_roundtrips_typed_intent_scope_targets() {
+        let field = FieldKey::new("replicas").expect("valid field");
+        let target = AspectFieldPatchTarget::single(
+            AspectKey::new("deployment.desired").expect("valid aspect"),
+            field,
+        );
+        let descriptor = StrategyMergeDescriptor {
+            strategy_id: CommitStrategyId(41),
+            descriptor_digest: descriptor().digest(),
+            semantic_name: CommitStrategySemanticName::new("strategy.intent.reconcile"),
+            family_name: CommitStrategyFamilyName::new("strategy.intent"),
+            version: CommitStrategyVersion::new(1, 0),
+            intent_name: StrategyIntentName::new("reconcile.desired.state"),
+            intent_scope_digest: StrategyIntentScopeDigest::new([5; 32]),
+            intent_scope_targets: Arc::from([target.clone()]),
+            merge_semantics: StrategyMergeSemantics::new(
+                StrategyMergeConflictClass::IntentReconciliation,
+                true,
+                true,
+            ),
+            lowering_summary_digest: [9; 32],
+        };
+
+        let bytes = serde_json::to_vec(&descriptor).expect("serialize merge descriptor");
+        let roundtripped: StrategyMergeDescriptor =
+            serde_json::from_slice(&bytes).expect("deserialize merge descriptor");
+
+        assert_eq!(roundtripped.intent_scope_targets(), &[target]);
     }
 }

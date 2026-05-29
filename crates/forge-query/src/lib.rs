@@ -51,6 +51,7 @@ mod program;
 mod projection_consumption;
 mod query_basis_lifecycle;
 mod query_context;
+mod relational_aspect_write;
 mod result_shape;
 mod runtime;
 mod saved_query;

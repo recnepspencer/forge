@@ -31,7 +31,7 @@ pub struct RawStrategyCommitRequest {
 }
 
 impl RawStrategyCommitRequest {
-    pub fn new(
+    pub fn from_canonical_bytes(
         strategy_name: CommitStrategySemanticName,
         input_bytes: impl Into<Arc<[u8]>>,
         caller_provenance: StrategyCallerProvenance,
@@ -158,7 +158,7 @@ pub enum StrategyCommitRequestError {
     UnknownStrategyName {
         strategy_name: CommitStrategySemanticName,
     },
-    InvalidJsonInput {
+    InvalidCanonicalInput {
         strategy_name: CommitStrategySemanticName,
         detail: Arc<str>,
     },

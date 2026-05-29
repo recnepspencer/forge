@@ -1,9 +1,7 @@
 use std::collections::BTreeMap;
 
 use crate::facade::identity::{EntityId, KindId, PartitionId};
-use crate::facade::payloads::RecordPayload;
 use crate::facade::runtime::RelationalRuntime;
-use crate::facade::symbols::InternedString;
 use crate::facade::transactions::{
     BulkEntityCreateIntent, CommitResult, CreateIntent, MutationIntent, RecordRef,
     TransactionOptions, WorkerIntentBatch,
@@ -281,12 +279,12 @@ pub(super) fn bulk_create_entities<I>(
 where
     I: IntoIterator<Item = (String, serde_json::Value)>,
 {
-    let (client_keys, payloads): (Vec<_>, Vec<_>) = specs
+    let (client_keys, field_patches): (Vec<_>, Vec<_>) = specs
         .into_iter()
         .map(|(key, payload)| {
             (
-                InternedString::Raw(key),
-                RecordPayload::StructuredJson(payload),
+                crate::facade::symbols::ClientKey::raw(key),
+                crate::tests::support::aspect_field_patch_from_compatibility_json(payload),
             )
         })
         .unzip();
@@ -297,7 +295,7 @@ where
                 partition_id,
                 kind_id: KindId(1),
                 client_keys,
-                payloads,
+                field_patches,
             }),
         )),
     );

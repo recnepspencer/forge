@@ -74,10 +74,6 @@ impl<'a> MutationWorkspace<'a> {
         })
     }
 
-    pub(crate) fn patch_surface_policy(&self) -> crate::config::data::PatchSurfacePolicy {
-        self.config.patch_surface_policy
-    }
-
     pub(crate) fn cascade_delete_policy(&self) -> crate::config::data::CascadeDeletePolicy {
         self.config.cascade_delete_policy
     }

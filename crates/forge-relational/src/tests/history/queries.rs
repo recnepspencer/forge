@@ -389,8 +389,8 @@ fn record_local_aspect_history_reads_committed_patch_truth() {
     let artifact = traced.trace.diagnostic_artifact();
     let digest = traced.aspect_history_digest();
     let resolved_aspects = CanonicalAspectSet::new([
-        AspectKey(InternedString::Raw("lifecycle".to_string())),
-        AspectKey(InternedString::Raw("name".to_string())),
+        AspectKey::new("lifecycle").unwrap(),
+        AspectKey::new("name").unwrap(),
     ]);
 
     assert_eq!(history.len(), 2);
@@ -434,7 +434,7 @@ fn record_local_aspect_history_reads_committed_patch_truth() {
         entity,
         Some(&AspectFilter {
             mode: AspectFilterMode::All,
-            aspects: RequestedAspectSet::new([AspectKey(InternedString::Raw("name".to_string()))]),
+            aspects: CanonicalAspectSet::new([AspectKey::new("name").unwrap()]),
         }),
     );
     let any_filtered = runtime.history().entity_aspect_history(
@@ -442,9 +442,9 @@ fn record_local_aspect_history_reads_committed_patch_truth() {
         entity,
         Some(&AspectFilter {
             mode: AspectFilterMode::Any,
-            aspects: RequestedAspectSet::new([
-                AspectKey(InternedString::Raw("missing".to_string())),
-                AspectKey(InternedString::Raw("name".to_string())),
+            aspects: CanonicalAspectSet::new([
+                AspectKey::new("missing").unwrap(),
+                AspectKey::new("name").unwrap(),
             ]),
         }),
     );

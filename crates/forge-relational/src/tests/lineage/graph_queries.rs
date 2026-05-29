@@ -49,10 +49,8 @@ fn lineage_graph_replace_emits_replace_edge() {
                 replacement: crate::transactions::data::EntitySpec {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(1),
-                    client_key: crate::symbols::data::InternedString::Raw(
-                        "replacement".to_string(),
-                    ),
-                    payload: crate::payloads::data::RecordPayload::StructuredJson(
+                    client_key: crate::symbols::data::ClientKey::raw("replacement"),
+                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
                         serde_json::json!({"name":"replacement"}),
                     ),
                 },
@@ -94,10 +92,8 @@ fn lineage_graph_same_shape_replacements_do_not_cross_wire_targets() {
                     replacement: crate::transactions::data::EntitySpec {
                         partition_id: PartitionId::main(),
                         kind_id: KindId(1),
-                        client_key: crate::symbols::data::InternedString::Raw(
-                            "replacement-left".to_string(),
-                        ),
-                        payload: crate::payloads::data::RecordPayload::StructuredJson(
+                        client_key: crate::symbols::data::ClientKey::raw("replacement-left"),
+                        fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
                             serde_json::json!({"name":"replacement"}),
                         ),
                     },
@@ -109,10 +105,8 @@ fn lineage_graph_same_shape_replacements_do_not_cross_wire_targets() {
                     replacement: crate::transactions::data::EntitySpec {
                         partition_id: PartitionId::main(),
                         kind_id: KindId(1),
-                        client_key: crate::symbols::data::InternedString::Raw(
-                            "replacement-right".to_string(),
-                        ),
-                        payload: crate::payloads::data::RecordPayload::StructuredJson(
+                        client_key: crate::symbols::data::ClientKey::raw("replacement-right"),
+                        fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
                             serde_json::json!({"name":"replacement"}),
                         ),
                     },
@@ -177,10 +171,8 @@ fn lineage_graph_replace_commit_publishes_replace_decision_log_entry() {
                 replacement: crate::transactions::data::EntitySpec {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(1),
-                    client_key: crate::symbols::data::InternedString::Raw(
-                        "replacement".to_string(),
-                    ),
-                    payload: crate::payloads::data::RecordPayload::StructuredJson(
+                    client_key: crate::symbols::data::ClientKey::raw("replacement"),
+                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
                         serde_json::json!({"name":"replacement"}),
                     ),
                 },

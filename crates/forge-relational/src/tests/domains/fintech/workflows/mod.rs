@@ -1,5 +1,5 @@
 use crate::facade::history::BranchId;
-use crate::facade::payloads::RecordPayload;
+use crate::tests::support::read_entity_field;
 
 mod persistence;
 
@@ -27,7 +27,7 @@ use super::invariants::{
     assert_intraday_risk_case_transition, assert_merge_metadata_preserved,
     assert_metadata_preserved_after_recovery, assert_named_truth_world,
     assert_observability_overlap_stable, assert_observability_surfaces_agree,
-    assert_partitioned_payloads, assert_recovery_matches_truth, assert_replay_targets_branch,
+    assert_partitioned_aspect_state, assert_recovery_matches_truth, assert_replay_targets_branch,
     assert_settlement_repair_case_transition, assert_snapshot_release_contract,
 };
 use super::naming::{
@@ -56,7 +56,7 @@ fn fintech_fixture_builds_partitioned_truth_with_cross_context_relations() {
     let read = world.read_latest();
 
     assert_named_truth_world(&world);
-    assert_partitioned_payloads(&read);
+    assert_partitioned_aspect_state(&read);
     assert_cross_context_relations(&read);
 }
 
@@ -210,11 +210,10 @@ fn fintech_analysis_workflow_preserves_branching_snapshots_and_trade_correction(
         .unwrap();
     let analysis_read = world.read_latest();
     assert_ne!(main_read.entities().len(), 0);
-    assert!(analysis_read.entities().iter().any(|entity| matches!(
-        &entity.payload,
-        RecordPayload::StructuredJson(value)
-            if value.get("corrected").and_then(|flag| flag.as_bool()) == Some(true)
-    )));
+    assert!(analysis_read
+        .entities()
+        .iter()
+        .any(|entity| read_entity_field(entity, "corrected") == Some("true")));
     assert_eq!(
         world
             .runtime
@@ -257,12 +256,10 @@ fn fintech_intraday_risk_workflow_exposes_open_breach_on_analysis_branch() {
         ProbeStage::PostReplay,
     );
 
-    assert!(analysis_read.entities().iter().any(|entity| matches!(
-        &entity.payload,
-        RecordPayload::StructuredJson(value)
-            if value.get("entity_type").and_then(|value| value.as_str()) == Some("limit_breach")
-                && value.get("status").and_then(|value| value.as_str()) == Some("open")
-    )));
+    assert!(analysis_read.entities().iter().any(|entity| {
+        read_entity_field(entity, "entity_type") == Some("limit_breach")
+            && read_entity_field(entity, "status") == Some("open")
+    }));
     assert_eq!(
         world
             .runtime
@@ -295,12 +292,10 @@ fn fintech_settlement_repair_workflow_exposes_repaired_settlement_on_analysis_br
     );
     let analysis_read = world.read_latest();
 
-    assert!(analysis_read.entities().iter().any(|entity| matches!(
-        &entity.payload,
-        RecordPayload::StructuredJson(value)
-            if value.get("entity_type").and_then(|value| value.as_str()) == Some("settlement")
-                && value.get("status").and_then(|value| value.as_str()) == Some("repaired")
-    )));
+    assert!(analysis_read.entities().iter().any(|entity| {
+        read_entity_field(entity, "entity_type") == Some("settlement")
+            && read_entity_field(entity, "status") == Some("repaired")
+    }));
     assert_eq!(
         world
             .runtime

@@ -39,7 +39,7 @@ fn schema_transition_for_subscriber_impact(
             subscriber_impact,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: "tag".into(),
+                field: field_key("tag"),
                 required: false,
                 default_expression: Some("null".into()),
             },
@@ -142,11 +142,11 @@ fn subscriber_stream_without_schema_boundaries_reports_unchanged_continuity() {
         .unwrap();
 
     assert_eq!(
-        batch.continuation_outcome,
+        batch.continuation.continuation_outcome(),
         SchemaContinuationClassification::ContinueUnchanged
     );
-    assert!(batch.crossed_boundaries.is_empty());
-    assert!(!batch.contract_upgrade_applied);
+    assert!(batch.continuation.crossed_boundaries().is_empty());
+    assert!(!batch.continuation.contract_upgrade_applied());
 
     let next_checkpoint = batch.next_checkpoint.unwrap();
     assert_eq!(
@@ -190,15 +190,24 @@ fn subscriber_stream_reports_crossed_schema_boundary_from_in_memory_history() {
         .unwrap();
 
     assert_eq!(
-        batch.continuation_outcome,
+        batch.continuation.continuation_outcome(),
         SchemaContinuationClassification::ContinueWithVisibleBridge
     );
-    assert_eq!(batch.crossed_boundaries.len(), 1);
+    assert_eq!(batch.continuation.crossed_boundaries().len(), 1);
     assert_eq!(
-        batch.continuation_summary.continuation_outcome,
+        batch
+            .continuation
+            .continuation_summary()
+            .continuation_outcome,
         SchemaContinuationClassification::ContinueWithVisibleBridge
     );
-    assert_eq!(batch.continuation_summary.crossed_boundary_count, 1);
+    assert_eq!(
+        batch
+            .continuation
+            .continuation_summary()
+            .crossed_boundary_count,
+        1
+    );
     assert_eq!(
         batch
             .next_checkpoint
@@ -249,10 +258,10 @@ fn subscriber_stream_treats_unconsumed_boundary_as_unchanged() {
         .unwrap();
 
     assert_eq!(
-        batch.continuation_outcome,
+        batch.continuation.continuation_outcome(),
         SchemaContinuationClassification::ContinueUnchanged
     );
-    assert_eq!(batch.crossed_boundaries.len(), 1);
+    assert_eq!(batch.continuation.crossed_boundaries().len(), 1);
 }
 
 #[test]
@@ -308,6 +317,10 @@ fn subscriber_stream_rejects_unsupported_contract_upgrade_boundary() {
         rejection_entry.fields["failure_class"],
         json!("ContractUpgradeUnsupported")
     );
+    assert_eq!(
+        rejection_entry.fields["normalized_boundary_count_at_failure"],
+        json!(1)
+    );
 }
 
 #[test]
@@ -349,12 +362,15 @@ fn subscriber_stream_applies_contract_upgrade_when_declared_supported() {
         .unwrap();
 
     assert_eq!(
-        batch.continuation_outcome,
+        batch.continuation.continuation_outcome(),
         SchemaContinuationClassification::ContinueWithContractUpgrade
     );
-    assert!(batch.contract_upgrade_applied);
+    assert!(batch.continuation.contract_upgrade_applied());
     assert_eq!(
-        batch.continuation_summary.continuation_outcome,
+        batch
+            .continuation
+            .continuation_summary()
+            .continuation_outcome,
         SchemaContinuationClassification::ContinueWithContractUpgrade
     );
     assert_eq!(
@@ -490,6 +506,16 @@ fn subscriber_stream_rejects_renegotiation_required_boundary() {
         .iter()
         .flat_map(|artifact| artifact.entries.iter())
         .any(|entry| entry.code == DiagnosticCode::SubscriberRenegotiationDecision));
+    let rejection_entry = error
+        .diagnostics
+        .iter()
+        .flat_map(|artifact| artifact.entries.iter())
+        .find(|entry| entry.code == DiagnosticCode::SubscriberContractEvaluated)
+        .unwrap();
+    assert_eq!(
+        rejection_entry.fields["normalized_boundary_count_at_failure"],
+        json!(1)
+    );
 }
 
 #[test]
@@ -544,10 +570,10 @@ fn subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome_and_tra
         .unwrap();
 
     assert_eq!(
-        batch.continuation_outcome,
+        batch.continuation.continuation_outcome(),
         SchemaContinuationClassification::ContinueWithContractUpgrade
     );
-    assert_eq!(batch.crossed_boundaries.len(), 2);
+    assert_eq!(batch.continuation.crossed_boundaries().len(), 2);
     let boundary_entries = batch
         .diagnostics
         .iter()
@@ -618,14 +644,14 @@ fn resumed_subscriber_stream_mixed_boundaries_choose_strongest_supported_outcome
         .unwrap();
 
     assert_eq!(
-        resumed.continuation_outcome,
+        resumed.continuation.continuation_outcome(),
         SchemaContinuationClassification::ContinueWithContractUpgrade
     );
     assert_eq!(
         resumed.recovery_decision.disposition,
         crate::publication::cdc::data::SubscriberRecoveryDisposition::ContinueWithContractUpgrade
     );
-    assert_eq!(resumed.crossed_boundaries.len(), 2);
+    assert_eq!(resumed.continuation.crossed_boundaries().len(), 2);
     let next_checkpoint = resumed.next_checkpoint.unwrap();
     assert_eq!(
         next_checkpoint
@@ -714,7 +740,7 @@ fn resumed_subscriber_stream_preserves_prior_boundary_and_adds_new_boundary_trac
             .len(),
         2
     );
-    assert_eq!(resumed.crossed_boundaries.len(), 1);
+    assert_eq!(resumed.continuation.crossed_boundaries().len(), 1);
     let boundary_entries = resumed
         .diagnostics
         .iter()

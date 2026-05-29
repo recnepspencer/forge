@@ -61,7 +61,7 @@ fn estimated_mutation_effect_shape(
     for intent in intents {
         match intent {
             MutationIntent::Create(CreateIntent::BulkEntities(spec)) => {
-                change_count += spec.payloads.len();
+                change_count += spec.field_patches.len();
                 event_count += 1;
             }
             MutationIntent::Create(CreateIntent::BulkRelations(spec)) => {
@@ -70,7 +70,6 @@ fn estimated_mutation_effect_shape(
             }
             MutationIntent::Create(CreateIntent::Entity(_))
             | MutationIntent::Create(CreateIntent::Relation(_))
-            | MutationIntent::Entity(EntityMutationIntent::Update(_))
             | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_))
             | MutationIntent::Entity(EntityMutationIntent::Delete(_))
             | MutationIntent::Entity(EntityMutationIntent::Replace(_))

@@ -1,11 +1,17 @@
 mod artifacts;
+mod canonical_digest;
 mod descriptor;
 mod execution;
 mod lowering;
+mod native_codec;
+mod native_strategy_intent_scope;
 mod registration;
 mod request;
 mod strategy_id;
 mod validation;
+
+pub(crate) use canonical_digest::commit_strategy_registry_digest;
+pub(super) use canonical_digest::strategy_mutation_program_digest;
 
 #[allow(unused_imports)]
 pub use artifacts::{
@@ -32,6 +38,7 @@ pub use lowering::{
     LoweredStrategyCommitPlan, StrategyLoweringError, StrategyLoweringProvenance,
     StrategyLoweringSummary,
 };
+pub(crate) use native_codec::*;
 pub use registration::{CommitStrategyRegistration, CommitStrategyRegistrationError};
 pub use request::{
     CanonicalStrategyCommitRequest, CanonicalStrategyInputArtifact, CanonicalStrategyInputDigest,

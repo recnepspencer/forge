@@ -2,7 +2,7 @@ use std::collections::BTreeMap;
 use std::panic::{catch_unwind, AssertUnwindSafe};
 use std::sync::Arc;
 
-use crate::capabilities::SchemaSource;
+use crate::capabilities::{AspectPlanSource, SchemaSource};
 use crate::commit_strategies::data::{
     CanonicalStrategyCommitRequest, CommitStrategyDescriptorDigest,
     CommitStrategyExecutionRegistration, CommitStrategyExecutor, CommitStrategyId,
@@ -174,9 +174,11 @@ pub(crate) fn bind_execution<'runtime>(
         request,
         executor: Arc::clone(&binding.executor),
         observation: StrategyObservationContext::new(
+            runtime,
             snapshot,
             descriptor.read_contract(),
             runtime.schema_registry(),
+            runtime.aspect_plan_catalog(),
             visibility,
         ),
     })
@@ -392,7 +394,9 @@ mod tests {
     {
         const KIND: KindId = KindId(100);
 
-        fn from_record(_record: &crate::storage::data::EntityReadRecord) -> Option<Self> {
+        fn from_record(
+            _record: crate::visibility::materialization::read_records::EntityProjectionRecord<'_>,
+        ) -> Option<Self> {
             Some(Self)
         }
     }
@@ -408,14 +412,14 @@ mod tests {
             static REQUIRED: OnceLock<Box<[crate::publication::patch::data::AspectKey]>> =
                 OnceLock::new();
             REQUIRED.get_or_init(|| {
-                vec![crate::publication::patch::data::AspectKey(
-                    crate::symbols::data::InternedString::from("missing.aspect"),
-                )]
-                .into_boxed_slice()
+                vec![crate::publication::patch::data::AspectKey::new("missing.aspect").unwrap()]
+                    .into_boxed_slice()
             })
         }
 
-        fn from_record(_record: &crate::storage::data::EntityReadRecord) -> Option<Self> {
+        fn from_record(
+            _record: crate::visibility::materialization::read_records::EntityProjectionRecord<'_>,
+        ) -> Option<Self> {
             Some(Self)
         }
     }
@@ -430,7 +434,7 @@ mod tests {
             StrategyInputSchemaName::new("intent.reconcile.input.v1"),
             StrategyInputSchemaVersion(1),
             StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
-            StrategyRequestCanonicalization::JsonStableObjectOrderV1,
+            StrategyRequestCanonicalization::NativeCanonicalBytesV1,
             StrategyReadContract {
                 scope_class: StrategyReadScopeClass::PartitionBoundedScan,
                 locality_class: StrategyReadLocalityClass::SinglePartition,
@@ -473,7 +477,7 @@ mod tests {
             StrategyInputSchemaName::new("intent.reconcile.input.v1"),
             StrategyInputSchemaVersion(1),
             StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
-            StrategyRequestCanonicalization::JsonStableObjectOrderV1,
+            StrategyRequestCanonicalization::NativeCanonicalBytesV1,
             StrategyReadContract {
                 scope_class: StrategyReadScopeClass::KindBoundedScan,
                 locality_class: StrategyReadLocalityClass::CrossPartitionBounded,

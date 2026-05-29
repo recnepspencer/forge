@@ -6,7 +6,7 @@ pub(crate) fn outgoing_relations_for_entity(
     entity_id: crate::identity::data::EntityId,
     version_id: crate::identity::data::VersionId,
 ) -> Vec<crate::identity::data::RelationId> {
-    let slot = entity_id.local_slot.0 as usize;
+    let slot = entity_id.slot_index();
     let reader = runtime.read_truth();
     runtime
         .storage_access()
@@ -25,7 +25,7 @@ pub(crate) fn incoming_relations_for_entity(
     entity_id: crate::identity::data::EntityId,
     version_id: crate::identity::data::VersionId,
 ) -> Vec<crate::identity::data::RelationId> {
-    let slot = entity_id.local_slot.0 as usize;
+    let slot = entity_id.slot_index();
     let reader = runtime.read_truth();
     runtime
         .storage_access()
@@ -44,7 +44,7 @@ pub(crate) fn all_relations_for_entity(
     entity_id: crate::identity::data::EntityId,
     version_id: crate::identity::data::VersionId,
 ) -> Vec<crate::identity::data::RelationId> {
-    let slot = entity_id.local_slot.0 as usize;
+    let slot = entity_id.slot_index();
     let reader = runtime.read_truth();
     let mut relation_ids = BTreeSet::new();
     if let Some(partition) = runtime

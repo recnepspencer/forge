@@ -1,24 +1,36 @@
 use super::*;
 
 pub(crate) fn read_entity_name(record: &EntityReadRecord) -> Option<&str> {
-    record
-        .payload
-        .as_json()
-        .and_then(|value| value.get("name"))
-        .and_then(|value| value.as_str())
+    read_entity_field(record, "name")
+}
+
+pub(crate) fn read_entity_field<'record>(
+    record: &'record EntityReadRecord,
+    field_name: &str,
+) -> Option<&'record str> {
+    let field_key = forge_foundational::facade::FieldKey::new(field_name).expect("valid field key");
+    record.authoritative_field_display_value(&field_key)
+}
+
+pub(crate) fn read_relation_field<'record>(
+    record: &'record crate::facade::runtime::RelationReadRecord,
+    field_name: &str,
+) -> Option<&'record str> {
+    let field_key = forge_foundational::facade::FieldKey::new(field_name).expect("valid field key");
+    record.authoritative_field_display_value(&field_key)
 }
 
 pub(crate) fn all_aspect_filter(names: impl IntoIterator<Item = &'static str>) -> AspectFilter {
     AspectFilter {
         mode: AspectFilterMode::All,
-        aspects: RequestedAspectSet::new(names.into_iter().map(aspect_key)),
+        aspects: CanonicalAspectSet::new(names.into_iter().map(aspect_key)),
     }
 }
 
 pub(crate) fn any_aspect_filter(names: impl IntoIterator<Item = &'static str>) -> AspectFilter {
     AspectFilter {
         mode: AspectFilterMode::Any,
-        aspects: RequestedAspectSet::new(names.into_iter().map(aspect_key)),
+        aspects: CanonicalAspectSet::new(names.into_iter().map(aspect_key)),
     }
 }
 

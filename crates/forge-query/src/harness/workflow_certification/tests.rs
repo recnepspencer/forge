@@ -5,6 +5,7 @@ use super::{
 use crate::harness::certification::{milestone_five_point_five_requirements, unmet_required_rows};
 use crate::harness::fixtures::execution_preflights;
 use crate::harness::fixtures::relational_merge_inspection::deleted_vs_modified_inspection_artifact;
+use crate::relational_aspect_write::single_field_patch;
 use crate::workflow::{
     admit_query_workflow_declaration, bind_workflow_context, lower_merge_workflow_declaration,
     lower_mutation_intent_declaration, lower_query_writeback_declaration, MergeLoweringInput,
@@ -13,8 +14,7 @@ use crate::workflow::{
     WorkflowFreshnessPolicy, WritebackLoweringInput,
 };
 use forge_relational::facade::commit_strategies::{
-    CommitStrategySemanticName, RawStrategyCommitRequest, StrategyCallerProvenance,
-    StrategyRequestOrigin,
+    IntentReconciliationInput, StrategyCallerProvenance, StrategyRequestOrigin,
 };
 use forge_relational::facade::history::BranchId;
 use forge_relational::facade::identity::{EntityId, PartitionId};
@@ -125,24 +125,22 @@ fn workflow_certification_mutation_lowering_matches_direct_relational_control() 
         binding.basis_digest(),
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
-            desired_payload: json!({"name":"after"}),
+            desired_fields_json: json!({"name":"after"}),
         },
     )
     .expect("mutation lowering should succeed");
 
-    let control = RawStrategyCommitRequest::new(
-        CommitStrategySemanticName::new("strategy.intent.reconcile"),
-        serde_json::to_vec(&json!({
-            "entity_id": EntityId::new(PartitionId(1), 41, 0),
-            "desired_payload": json!({"name":"after"}),
-        }))
-        .expect("control request should serialize"),
-        StrategyCallerProvenance {
-            request_origin: StrategyRequestOrigin::Api,
-            actor_identity: Some("forge-query".to_string()),
-            correlation_id: Some(declaration.report().declaration_digest().to_string()),
-        },
-    );
+    let control = IntentReconciliationInput {
+        entity_id: EntityId::new(PartitionId(1), 41, 0),
+        desired_fields: single_field_patch("name", "name", json!("after"))
+            .expect("control field patch"),
+    }
+    .into_raw_request(StrategyCallerProvenance {
+        request_origin: StrategyRequestOrigin::Api,
+        actor_identity: Some("forge-query".to_string()),
+        correlation_id: Some(declaration.report().declaration_digest().to_string()),
+    })
+    .expect("control request should encode");
 
     assert_eq!(
         lowered.strategy_request().strategy_name(),
@@ -365,7 +363,7 @@ fn workflow_certification_lane_specific_counters_are_exercised() {
         binding.basis_digest(),
         MutationLoweringInput::IntentReconciliation {
             entity_id: EntityId::new(PartitionId(1), 41, 0),
-            desired_payload: json!({"name":"after"}),
+            desired_fields_json: json!({"name":"after"}),
         },
     )
     .expect("mutation lowering should succeed");

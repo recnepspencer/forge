@@ -37,6 +37,8 @@ Good to know:
 
 - `compatibility()` is a separate common lane from `aspects()` on purpose.
 - the bridge still relies on real aspect contracts and typed source locators.
+- JSON state lowering inherits the native state-admission law, including the
+  empty-state denial.
 
 ## Core Mental Model
 
@@ -60,6 +62,11 @@ The normal flow is:
    lowering helpers
 4. lower one JSON value or a whole JSON-backed state
 5. inspect the structured lowering outcome
+
+State lowering does not bypass the native authority boundary:
+
+- duplicate lowered aspect keys are still denied by state admission
+- empty lowering requests are denied instead of minting an empty admitted state
 
 ## Small Example
 

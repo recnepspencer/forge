@@ -4,7 +4,7 @@ use std::sync::Arc;
 use crate::history::data::{BranchId, CommitId, VersionNode};
 use crate::identity::data::VersionId;
 use crate::logic::runtime::state::subsystems::RuntimeSubsystem;
-use crate::publication::data::diff::PatchStreamPosition;
+use crate::publication::patch::data::PatchStreamPosition;
 use crate::replay::data::CanonicalCommitEnvelope;
 
 #[derive(Debug, Clone)]

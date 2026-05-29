@@ -5,9 +5,9 @@ use forge_harness::facade::{
 };
 use serde_json::{json, Value};
 
-use crate::facade::payloads::RecordPayload;
 use crate::facade::replay::RelationalReplayOutcome;
 use crate::facade::snapshots::SnapshotHandle;
+use crate::tests::support::read_entity_field;
 
 use super::super::complexity::workflow_budgets;
 use super::super::fixture::FintechCaseRole;
@@ -27,36 +27,22 @@ pub(super) fn read_summary(
     let corrected_trades = read
         .entities()
         .iter()
-        .filter(|entity| {
-            matches!(
-                &entity.payload,
-                RecordPayload::StructuredJson(value)
-                    if value.get("corrected").and_then(|flag| flag.as_bool()) == Some(true)
-            )
-        })
+        .filter(|entity| read_entity_field(entity, "corrected") == Some("true"))
         .count();
     let repaired_settlements = read
         .entities()
         .iter()
         .filter(|entity| {
-            matches!(
-                &entity.payload,
-                RecordPayload::StructuredJson(value)
-                    if value.get("entity_type").and_then(|value| value.as_str()) == Some("settlement")
-                        && value.get("status").and_then(|value| value.as_str()) == Some("repaired")
-            )
+            read_entity_field(entity, "entity_type") == Some("settlement")
+                && read_entity_field(entity, "status") == Some("repaired")
         })
         .count();
     let open_breaches = read
         .entities()
         .iter()
         .filter(|entity| {
-            matches!(
-                &entity.payload,
-                RecordPayload::StructuredJson(value)
-                    if value.get("entity_type").and_then(|value| value.as_str()) == Some("limit_breach")
-                        && value.get("status").and_then(|value| value.as_str()) == Some("open")
-            )
+            read_entity_field(entity, "entity_type") == Some("limit_breach")
+                && read_entity_field(entity, "status") == Some("open")
         })
         .count();
     Ok(json!({
@@ -130,9 +116,17 @@ fn diagnostics_summary(session: &CertifiedRelationalFintechSession) -> Value {
     let recovery = session.world.runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
     );
+    let publication_diagnostics = session
+        .world
+        .runtime
+        .publication()
+        .diagnostic_access()
+        .snapshot();
+    let observation = &publication_diagnostics.observation;
     json!({
-        "latest_patch_present": session.world.runtime.publication().latest_patch().is_some(),
-        "latest_replay_present": session.world.runtime.publication().latest_replay().is_some(),
+        "latest_patch_present": observation.latest_patch_present,
+        "latest_replay_present": observation.latest_replay_present,
+        "diagnostics_artifact_count": observation.diagnostics_artifact_count,
         "checkpoint_count": recovery
             .store
             .as_ref()
@@ -145,22 +139,26 @@ fn diagnostics_summary(session: &CertifiedRelationalFintechSession) -> Value {
 
 fn patch_summary(session: &CertifiedRelationalFintechSession) -> Value {
     let publication = session.world.runtime.publication();
-    let bundle = publication.latest_bundle();
+    let artifacts = publication.artifact_snapshot();
+    let observation = &artifacts.observation;
     json!({
-        "latest_commit": session.world.runtime.history().latest_commit().map(|commit| commit.commit_id.0),
-        "publication_snapshot": bundle.as_ref().map(|bundle| bundle.snapshot.snapshot_id.0),
-        "patch_position": session.world.runtime.publication().latest_patch().map(|patch| patch.position.0),
-        "patch_record_count": session.world.runtime.publication().latest_patch().map(|patch| patch.records.len()),
-        "replay_commit": session.world.runtime.publication().latest_replay().map(|replay| replay.commit_id.0),
-        "bundle_matches_latest_patch": bundle
+        "latest_commit": observation.latest_commit_id.map(|commit_id| commit_id.0),
+        "publication_snapshot": observation.publication_snapshot_id.map(|snapshot_id| snapshot_id.0),
+        "publication_status": observation.publication_status.as_ref().map(|status| format!("{status:?}")),
+        "patch_position": observation.latest_patch_position.map(|position| position.0),
+        "patch_record_count": observation.latest_patch_record_count,
+        "replay_commit": observation.latest_replay_commit_id.map(|commit_id| commit_id.0),
+        "snapshot_patch_matches_latest_patch": artifacts
+            .latest_patch
             .as_ref()
-            .zip(session.world.runtime.publication().latest_patch())
-            .map(|(bundle, patch)| bundle.patch == *patch)
+            .zip(publication.latest_patch())
+            .map(|(snapshot_patch, patch)| snapshot_patch == patch)
             .unwrap_or(false),
-        "bundle_matches_latest_replay": bundle
+        "snapshot_replay_matches_latest_replay": artifacts
+            .latest_replay
             .as_ref()
-            .zip(session.world.runtime.publication().latest_replay())
-            .map(|(bundle, replay)| bundle.replay == *replay)
+            .zip(publication.latest_replay())
+            .map(|(snapshot_replay, replay)| snapshot_replay == replay)
             .unwrap_or(false),
     })
 }

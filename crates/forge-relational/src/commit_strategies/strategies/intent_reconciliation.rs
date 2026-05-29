@@ -1,11 +1,14 @@
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
+
+use forge_foundational::facade::FieldKey;
 
 use crate::commit_strategies::data::{
+    decode_aspect_field_patch, decode_entity_id, encode_aspect_field_patch, encode_entity_id,
     CanonicalStrategyCommitRequest, CanonicalStrategyOutputArtifact, CommitStrategyDescriptor,
     CommitStrategyExecutionRegistration, CommitStrategyExecutor, CommitStrategyFamilyName,
     CommitStrategyId, CommitStrategyRegistration, CommitStrategyRegistrationError,
-    CommitStrategySemanticName, CommitStrategyVersion, PersistentArtifactName,
+    CommitStrategySemanticName, CommitStrategyVersion, NativeCodecError, NativeCodecReader,
+    PersistentArtifactName, RawStrategyCommitRequest, StrategyCallerProvenance,
     StrategyExecutionResult, StrategyExecutorFailure, StrategyExecutorFailureClass,
     StrategyInputSchemaName, StrategyInputSchemaVersion, StrategyIntentName,
     StrategyMutationProgram, StrategyObservationContext, StrategyOutputSchemaName,
@@ -13,8 +16,8 @@ use crate::commit_strategies::data::{
     StrategyReadScopeClass, StrategyRequestCanonicalization, StrategyTraversalBasis,
 };
 use crate::identity::data::EntityId;
-use crate::payloads::data::canonicalize_json;
-use crate::schema::data::{AspectBinding, AspectComparator};
+use crate::storage::data::authoritative_aspect_value_field_comparison_key;
+use crate::transactions::data::AspectFieldPatch;
 use crate::transactions::data::{
     EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
@@ -22,20 +25,33 @@ use crate::transactions::data::{
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct IntentReconciliationInput {
     pub entity_id: EntityId,
-    pub desired_payload: serde_json::Value,
+    pub desired_fields: AspectFieldPatch,
 }
 
 impl IntentReconciliationInput {
-    fn desired_payload_object(
-        &self,
-    ) -> Result<serde_json::Map<String, Value>, StrategyExecutorFailure> {
-        match canonicalize_json(&self.desired_payload) {
-            Value::Object(map) => Ok(map),
-            _ => Err(StrategyExecutorFailure::new(
-                StrategyExecutorFailureClass::InvalidInput,
-                "intent reconciliation requires desired_payload to be a JSON object",
-            )),
-        }
+    pub fn into_raw_request(
+        self,
+        caller_provenance: StrategyCallerProvenance,
+    ) -> Result<RawStrategyCommitRequest, NativeCodecError> {
+        let mut bytes = Vec::new();
+        encode_entity_id(&mut bytes, self.entity_id);
+        encode_aspect_field_patch(&mut bytes, &self.desired_fields)?;
+        Ok(RawStrategyCommitRequest::from_canonical_bytes(
+            CommitStrategySemanticName::new(IntentReconciliationStrategy::DEFAULT_SEMANTIC_NAME),
+            bytes,
+            caller_provenance,
+        ))
+    }
+
+    fn decode(bytes: &[u8]) -> Result<Self, NativeCodecError> {
+        let mut reader = NativeCodecReader::new(bytes);
+        let entity_id = decode_entity_id(&mut reader)?;
+        let desired_fields = decode_aspect_field_patch(&mut reader)?;
+        reader.finish()?;
+        Ok(Self {
+            entity_id,
+            desired_fields,
+        })
     }
 }
 
@@ -49,6 +65,24 @@ pub enum IntentReconciliationAction {
 pub struct IntentReconciliationOutput {
     pub entity_id: EntityId,
     pub action: IntentReconciliationAction,
+}
+
+impl IntentReconciliationOutput {
+    pub fn decode(bytes: &[u8]) -> Result<Self, NativeCodecError> {
+        let mut reader = NativeCodecReader::new(bytes);
+        let entity_id = decode_entity_id(&mut reader)?;
+        let action = match reader.read_u8()? {
+            0 => IntentReconciliationAction::NoChange,
+            1 => IntentReconciliationAction::UpdateEntity,
+            tag => {
+                return Err(NativeCodecError::new(format!(
+                    "unknown intent reconciliation action tag {tag}"
+                )))
+            }
+        };
+        reader.finish()?;
+        Ok(Self { entity_id, action })
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -72,7 +106,7 @@ impl IntentReconciliationStrategy {
             StrategyInputSchemaName::new(Self::DEFAULT_INPUT_SCHEMA_NAME),
             StrategyInputSchemaVersion(1),
             StrategyOutputSchemaName::new(Self::DEFAULT_OUTPUT_SCHEMA_NAME),
-            StrategyRequestCanonicalization::JsonStableObjectOrderV1,
+            StrategyRequestCanonicalization::NativeCanonicalBytesV1,
             StrategyReadContract {
                 scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
                 locality_class: StrategyReadLocalityClass::SinglePartition,
@@ -99,76 +133,102 @@ impl IntentReconciliationStrategy {
     fn parse_input(
         request: &CanonicalStrategyCommitRequest,
     ) -> Result<IntentReconciliationInput, StrategyExecutorFailure> {
-        serde_json::from_slice(request.canonical_input().canonical_bytes()).map_err(|error| {
-            StrategyExecutorFailure::new(
-                StrategyExecutorFailureClass::InvalidInput,
-                format!("intent reconciliation input could not be decoded: {error}"),
-            )
-        })
+        IntentReconciliationInput::decode(request.canonical_input().canonical_bytes()).map_err(
+            |error| {
+                StrategyExecutorFailure::new(
+                    StrategyExecutorFailureClass::InvalidInput,
+                    format!(
+                        "intent reconciliation input could not be decoded: {}",
+                        error.detail()
+                    ),
+                )
+            },
+        )
     }
 
-    fn output_artifact(
-        output: &IntentReconciliationOutput,
-    ) -> Result<CanonicalStrategyOutputArtifact, StrategyExecutorFailure> {
-        let bytes = serde_json::to_vec(output).map_err(|error| {
-            StrategyExecutorFailure::new(
-                StrategyExecutorFailureClass::DomainRejection,
-                format!("intent reconciliation output could not be serialized: {error}"),
-            )
-        })?;
-        Ok(CanonicalStrategyOutputArtifact::new(
+    fn output_artifact(output: &IntentReconciliationOutput) -> CanonicalStrategyOutputArtifact {
+        let mut bytes = Vec::new();
+        encode_entity_id(&mut bytes, output.entity_id);
+        bytes.push(match output.action {
+            IntentReconciliationAction::NoChange => 0,
+            IntentReconciliationAction::UpdateEntity => 1,
+        });
+        CanonicalStrategyOutputArtifact::new(
             StrategyOutputSchemaName::new(Self::DEFAULT_OUTPUT_SCHEMA_NAME),
             bytes,
             PersistentArtifactName::new(Self::DEFAULT_ARTIFACT_NAME),
-        ))
+        )
+    }
+
+    fn require_lowered_entity_scalar_field(
+        observation: &StrategyObservationContext<'_>,
+        existing: &crate::storage::data::EntityReadRecord,
+        field: &FieldKey,
+    ) -> Result<forge_foundational::facade::AspectKey, StrategyExecutorFailure> {
+        let lowered_plan =
+            observation
+                .entity_aspect_plan(existing.kind.kind_id)
+                .ok_or_else(|| {
+                    StrategyExecutorFailure::new(
+                        StrategyExecutorFailureClass::DomainRejection,
+                        format!(
+                            "lowered foundational entity aspect plan is missing for kind {} during intent reconciliation",
+                            existing.kind.kind_name
+                        ),
+                    )
+                })?;
+        lowered_plan
+            .entity_scalar_field_aspect_key(field)
+            .ok_or_else(|| {
+                StrategyExecutorFailure::new(
+                    StrategyExecutorFailureClass::DomainRejection,
+                    format!(
+                        "field '{}' is not a lowered foundational scalar entity aspect on kind {}",
+                        field.as_str(),
+                        existing.kind.kind_name
+                    ),
+                )
+            })
     }
 
     fn reconcile_fields(
         observation: &StrategyObservationContext<'_>,
         existing: &crate::storage::data::EntityReadRecord,
-        desired_payload: &serde_json::Map<String, Value>,
-    ) -> Result<std::collections::BTreeMap<String, Value>, StrategyExecutorFailure> {
-        let registration = observation
-            .schema_registry()
-            .entity_registration(existing.kind.kind_id)
-            .map_err(|error| {
-                StrategyExecutorFailure::new(
-                    StrategyExecutorFailureClass::DomainRejection,
-                    format!(
-                        "entity kind registration missing during intent reconciliation: {error:?}"
-                    ),
-                )
-            })?;
-        let declared_scalar_fields = registration
-            .aspect_declarations
-            .aspects
-            .iter()
-            .filter_map(|aspect| match (&aspect.binding, aspect.comparator) {
-                (
-                    AspectBinding::EntityPayloadField { field },
-                    AspectComparator::JsonScalarEquality,
-                ) => match field {
-                    crate::symbols::data::InternedString::Raw(raw) => Some(raw.as_str()),
-                    _ => None,
-                },
-                _ => None,
-            })
-            .collect::<std::collections::BTreeSet<_>>();
-        for key in desired_payload.keys() {
-            if !declared_scalar_fields.contains(key.as_str()) {
+        desired_fields: &AspectFieldPatch,
+    ) -> Result<AspectFieldPatch, StrategyExecutorFailure> {
+        for target in desired_fields.targets() {
+            let [field] = target.field_path().fields() else {
                 return Err(StrategyExecutorFailure::new(
                     StrategyExecutorFailureClass::DomainRejection,
                     format!(
-                        "field '{}' is not a declared scalar entity aspect on kind {}",
-                        key, existing.kind.kind_name
+                        "intent reconciliation target field path '{}' is not a single foundational field path",
+                        crate::transactions::data::aspect_field_patch_target_label(target)
+                    ),
+                ));
+            };
+            let aspect_key =
+                Self::require_lowered_entity_scalar_field(observation, existing, field)?;
+            if &aspect_key != target.aspect_key() {
+                return Err(StrategyExecutorFailure::new(
+                    StrategyExecutorFailureClass::DomainRejection,
+                    format!(
+                        "intent reconciliation target '{}' does not match lowered scalar aspect {:?}",
+                        crate::transactions::data::aspect_field_patch_target_label(target),
+                        aspect_key
                     ),
                 ));
             }
         }
-        Ok(desired_payload
-            .iter()
-            .map(|(key, value)| (key.clone(), canonicalize_json(value)))
-            .collect())
+        Ok(desired_fields.clone())
+    }
+
+    fn authoritative_field_matches(
+        existing: &crate::storage::data::EntityReadRecord,
+        key: &FieldKey,
+        desired_value: &forge_foundational::facade::AspectValue,
+    ) -> bool {
+        let desired_comparison_key = authoritative_aspect_value_field_comparison_key(desired_value);
+        existing.authoritative_field_comparison_key(key) == Some(&desired_comparison_key)
     }
 }
 
@@ -179,7 +239,6 @@ impl CommitStrategyExecutor for IntentReconciliationStrategy {
         observation: &StrategyObservationContext<'_>,
     ) -> Result<StrategyExecutionResult, StrategyExecutorFailure> {
         let input = Self::parse_input(request)?;
-        let desired_payload = input.desired_payload_object()?;
         let existing = observation
             .visibility()
             .entity_record(input.entity_id)?
@@ -192,9 +251,12 @@ impl CommitStrategyExecutor for IntentReconciliationStrategy {
                     ),
                 )
             })?;
-        let desired_fields = Self::reconcile_fields(observation, &existing, &desired_payload)?;
-        let unchanged = desired_fields.iter().all(|(key, desired_value)| {
-            existing.payload.as_json().and_then(|value| value.get(key)) == Some(desired_value)
+        let desired_fields = Self::reconcile_fields(observation, &existing, &input.desired_fields)?;
+        let unchanged = desired_fields.iter().all(|(target, desired_value)| {
+            let [field] = target.field_path().fields() else {
+                return false;
+            };
+            Self::authoritative_field_matches(&existing, field, desired_value)
         });
 
         let (action, mutation_program) = if unchanged {
@@ -220,188 +282,10 @@ impl CommitStrategyExecutor for IntentReconciliationStrategy {
         let output = Self::output_artifact(&IntentReconciliationOutput {
             entity_id: input.entity_id,
             action,
-        })?;
+        });
         Ok(StrategyExecutionResult::new(output, mutation_program))
     }
 }
 
 #[cfg(test)]
-mod tests {
-    use super::{
-        IntentReconciliationAction, IntentReconciliationInput, IntentReconciliationOutput,
-        IntentReconciliationStrategy,
-    };
-    use crate::commit_strategies::data::{
-        RawStrategyCommitRequest, StrategyCallerProvenance, StrategyRequestOrigin,
-    };
-    use crate::logic::builder::RelationalRuntimeBuilder;
-    use crate::tests::support::{
-        create_entity, entity_payload_aspect, lifecycle_aspect, update_entity, AspectSchemaFixture,
-    };
-    use serde_json::Value;
-
-    fn strategy_registry() -> crate::schema::data::RelationalSchemaRegistry {
-        AspectSchemaFixture {
-            entity_aspects: vec![
-                entity_payload_aspect("name", "name"),
-                entity_payload_aspect("replicas", "replicas"),
-                lifecycle_aspect(),
-            ],
-            ..AspectSchemaFixture::default()
-        }
-        .build_registry()
-    }
-
-    #[test]
-    fn intent_reconciliation_strategy_emits_update_when_payload_differs() {
-        let descriptor = IntentReconciliationStrategy::descriptor(
-            crate::commit_strategies::data::CommitStrategyId(501),
-        );
-        let mut runtime = RelationalRuntimeBuilder::new()
-            .schema_registry(strategy_registry())
-            .commit_strategy(
-                crate::commit_strategies::data::CommitStrategyRegistration::new(descriptor.clone())
-                    .expect("strategy registration"),
-            )
-            .commit_strategy_executor(IntentReconciliationStrategy::execution_registration(
-                &descriptor,
-            ))
-            .build();
-        let entity = create_entity(&mut runtime, "before");
-        let request = runtime
-            .commit_strategies()
-            .canonicalize_request(&RawStrategyCommitRequest::new(
-                crate::commit_strategies::data::CommitStrategySemanticName::new(
-                    IntentReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
-                ),
-                serde_json::to_vec(&IntentReconciliationInput {
-                    entity_id: entity,
-                    desired_payload: serde_json::json!({"name":"after"}),
-                })
-                .expect("serialize input"),
-                StrategyCallerProvenance {
-                    request_origin: StrategyRequestOrigin::Test,
-                    actor_identity: None,
-                    correlation_id: None,
-                },
-            ))
-            .expect("canonical request");
-        let snapshot = runtime.visibility_authority().snapshot();
-        let execution = runtime
-            .commit_strategies()
-            .execute(&request, &snapshot)
-            .expect("strategy execution");
-        let output: IntentReconciliationOutput =
-            serde_json::from_slice(execution.output().canonical_bytes()).expect("output decode");
-
-        assert_eq!(output.action, IntentReconciliationAction::UpdateEntity);
-        assert_eq!(execution.mutation_program().total_intent_count(), 1);
-    }
-
-    #[test]
-    fn intent_reconciliation_strategy_emits_noop_when_payload_matches() {
-        let descriptor = IntentReconciliationStrategy::descriptor(
-            crate::commit_strategies::data::CommitStrategyId(502),
-        );
-        let mut runtime = RelationalRuntimeBuilder::new()
-            .schema_registry(strategy_registry())
-            .commit_strategy(
-                crate::commit_strategies::data::CommitStrategyRegistration::new(descriptor.clone())
-                    .expect("strategy registration"),
-            )
-            .commit_strategy_executor(IntentReconciliationStrategy::execution_registration(
-                &descriptor,
-            ))
-            .build();
-        let entity = create_entity(&mut runtime, "before");
-        update_entity(&mut runtime, entity, "stable");
-        let request = runtime
-            .commit_strategies()
-            .canonicalize_request(&RawStrategyCommitRequest::new(
-                crate::commit_strategies::data::CommitStrategySemanticName::new(
-                    IntentReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
-                ),
-                serde_json::to_vec(&IntentReconciliationInput {
-                    entity_id: entity,
-                    desired_payload: serde_json::json!({"name":"stable"}),
-                })
-                .expect("serialize input"),
-                StrategyCallerProvenance {
-                    request_origin: StrategyRequestOrigin::Test,
-                    actor_identity: None,
-                    correlation_id: None,
-                },
-            ))
-            .expect("canonical request");
-        let snapshot = runtime.visibility_authority().snapshot();
-        let execution = runtime
-            .commit_strategies()
-            .execute(&request, &snapshot)
-            .expect("strategy execution");
-        let output: IntentReconciliationOutput =
-            serde_json::from_slice(execution.output().canonical_bytes()).expect("output decode");
-
-        assert_eq!(output.action, IntentReconciliationAction::NoChange);
-        assert_eq!(execution.mutation_program().total_intent_count(), 0);
-    }
-
-    #[test]
-    fn intent_reconciliation_strategy_preserves_untouched_declared_fields() {
-        let descriptor = IntentReconciliationStrategy::descriptor(
-            crate::commit_strategies::data::CommitStrategyId(503),
-        );
-        let mut runtime = RelationalRuntimeBuilder::new()
-            .schema_registry(strategy_registry())
-            .commit_strategy(
-                crate::commit_strategies::data::CommitStrategyRegistration::new(descriptor.clone())
-                    .expect("strategy registration"),
-            )
-            .commit_strategy_executor(IntentReconciliationStrategy::execution_registration(
-                &descriptor,
-            ))
-            .build();
-        let entity = create_entity(&mut runtime, "before");
-        let request = runtime
-            .commit_strategies()
-            .canonicalize_request(&RawStrategyCommitRequest::new(
-                crate::commit_strategies::data::CommitStrategySemanticName::new(
-                    IntentReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
-                ),
-                serde_json::to_vec(&IntentReconciliationInput {
-                    entity_id: entity,
-                    desired_payload: serde_json::json!({"replicas":3}),
-                })
-                .expect("serialize input"),
-                StrategyCallerProvenance {
-                    request_origin: StrategyRequestOrigin::Test,
-                    actor_identity: None,
-                    correlation_id: None,
-                },
-            ))
-            .expect("canonical request");
-        let snapshot = runtime.visibility_authority().snapshot();
-        let execution = runtime
-            .commit_strategies()
-            .execute(&request, &snapshot)
-            .expect("strategy execution");
-        let intent = &execution.mutation_program().worker_batches()[0].intents[0];
-        let updated_payload = match intent {
-            crate::transactions::data::MutationIntent::Entity(
-                crate::transactions::data::EntityMutationIntent::UpdateFields(intent),
-            ) => serde_json::Value::Object(
-                intent
-                    .fields
-                    .iter()
-                    .map(|(key, value)| (key.clone(), value.clone()))
-                    .collect(),
-            ),
-            other => panic!("expected update entity fields intent, got {other:?}"),
-        };
-
-        assert_eq!(
-            updated_payload.get("replicas"),
-            Some(&Value::Number(serde_json::Number::from(3_u64)))
-        );
-        assert_eq!(updated_payload.as_object().expect("object").len(), 1);
-    }
-}
+mod tests;

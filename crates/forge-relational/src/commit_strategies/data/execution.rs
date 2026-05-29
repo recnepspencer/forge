@@ -6,7 +6,7 @@ use serde::{de::Error as DeError, Deserialize, Deserializer, Serialize};
 use sha2::{Digest, Sha256};
 
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
-use crate::schema::data::RelationalSchemaRegistry;
+use crate::schema::data::{AspectPlanCatalog, LoweredAspectPlan, RelationalSchemaRegistry};
 use crate::snapshots::data::SnapshotHandle;
 use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 use crate::transactions::data::WorkerIntentBatch;
@@ -15,9 +15,9 @@ use crate::visibility::materialization::read_records::{
 };
 
 use super::{
-    CanonicalStrategyCommitRequest, CanonicalStrategyInputDigest, CommitStrategyDescriptor,
-    CommitStrategyDescriptorDigest, CommitStrategyId, PersistentArtifactName,
-    StrategyOutputSchemaName, StrategyReadContract,
+    strategy_mutation_program_digest, CanonicalStrategyCommitRequest, CanonicalStrategyInputDigest,
+    CommitStrategyDescriptor, CommitStrategyDescriptorDigest, CommitStrategyId,
+    PersistentArtifactName, StrategyOutputSchemaName, StrategyReadContract,
 };
 
 pub trait CommitStrategyExecutor: Send + Sync + 'static {
@@ -655,21 +655,25 @@ pub struct StrategyObservationContext<'runtime> {
     snapshot: &'runtime SnapshotHandle,
     read_contract: &'runtime StrategyReadContract,
     schema_registry: &'runtime RelationalSchemaRegistry,
+    aspect_plans: &'runtime AspectPlanCatalog,
     metrics: RefCell<StrategyObservationMetrics>,
     projection: VisibilityProjectionView<'runtime>,
 }
 
 impl<'runtime> StrategyObservationContext<'runtime> {
     pub(crate) fn new(
+        _runtime: &'runtime crate::logic::runtime::RelationalRuntime,
         snapshot: &'runtime SnapshotHandle,
         read_contract: &'runtime StrategyReadContract,
         schema_registry: &'runtime RelationalSchemaRegistry,
+        aspect_plans: &'runtime AspectPlanCatalog,
         visibility: VisibilityProjectionView<'runtime>,
     ) -> Self {
         Self {
             snapshot,
             read_contract,
             schema_registry,
+            aspect_plans,
             metrics: RefCell::new(StrategyObservationMetrics::default()),
             projection: visibility,
         }
@@ -689,6 +693,10 @@ impl<'runtime> StrategyObservationContext<'runtime> {
 
     pub fn schema_registry(&self) -> &RelationalSchemaRegistry {
         self.schema_registry
+    }
+
+    pub fn entity_aspect_plan(&self, kind_id: KindId) -> Option<&LoweredAspectPlan> {
+        self.aspect_plans.entity_plans.get(&kind_id)
     }
 
     pub fn visibility(&self) -> StrategyVisibilityReadView<'_, 'runtime> {
@@ -725,9 +733,7 @@ fn compute_output_digest(canonical_bytes: &[u8]) -> CanonicalStrategyOutputDiges
 fn compute_mutation_program_digest(
     worker_batches: &[WorkerIntentBatch],
 ) -> StrategyMutationProgramDigest {
-    let bytes =
-        serde_json::to_vec(worker_batches).expect("strategy mutation program digest serialization");
-    StrategyMutationProgramDigest(Sha256::digest(bytes).into())
+    strategy_mutation_program_digest(worker_batches)
 }
 
 #[cfg(test)]
@@ -738,10 +744,9 @@ mod tests {
     };
     use crate::facade::transactions::{CreateIntent, MutationIntent, WorkerIntentBatch};
     use crate::identity::data::{KindId, PartitionId};
-    use crate::payloads::data::RecordPayload;
-    use crate::symbols::data::InternedString;
-    use crate::transactions::data::EntitySpec;
-    use serde_json::json;
+    use crate::symbols::data::ClientKey;
+    use crate::transactions::data::{AspectFieldPatch, EntitySpec};
+    use forge_foundational::facade::{AspectKey, AspectValue, FieldKey, InternedString};
 
     fn artifact() -> CanonicalStrategyOutputArtifact {
         CanonicalStrategyOutputArtifact::new(
@@ -756,8 +761,12 @@ mod tests {
             MutationIntent::Create(CreateIntent::Entity(EntitySpec {
                 partition_id: PartitionId(1),
                 kind_id: KindId(1),
-                client_key: InternedString::from("deployment-a"),
-                payload: RecordPayload::from(json!({"replicas": 3})),
+                client_key: ClientKey::from("deployment-a"),
+                fields: AspectFieldPatch::single(
+                    AspectKey::new("name").expect("valid name aspect key"),
+                    FieldKey::new("name").expect("valid name field key"),
+                    AspectValue::String(InternedString::Raw("deployment-a".to_string())),
+                ),
             })),
         )])
     }

@@ -1,5 +1,6 @@
+mod diagnostic_fields;
+
 use serde::{Deserialize, Serialize};
-use serde_json::{json, to_value, Value};
 
 use crate::diagnostics::data::{
     DeterminismExpectation, DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope,
@@ -9,11 +10,13 @@ use crate::identity::data::{EntityId, KindId};
 use crate::publication::patch::data::{
     AspectKey, CanonicalAspectSet, PatchStreamPosition, RecordStructuralChange,
 };
-use crate::schema::data::{AspectPlanRevision, AspectPrecision};
+use crate::schema::data::AspectPlanRevision;
 
 use super::RecordRef;
+use diagnostic_fields::{emission_trace_diagnostic_fields, evaluation_trace_diagnostic_fields};
+use forge_foundational::facade::{AspectValue, FieldKey, StructAspectValue};
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use]
 pub struct AspectEvaluationTrace {
     pub target: RecordRef,
@@ -21,27 +24,33 @@ pub struct AspectEvaluationTrace {
     pub plan_revision: AspectPlanRevision,
     pub structural_change: RecordStructuralChange,
     pub changed_aspects: CanonicalAspectSet,
-    pub contains_degraded_precision: bool,
+    pub contains_opaque_aspect: bool,
     pub binding_rows: Vec<AspectEvaluationTraceRow>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 #[must_use]
 pub struct AspectEvaluationTraceRow {
     pub aspect_key: AspectKey,
     pub changed: bool,
-    pub precision: AspectPrecision,
+    pub aspect_shape: forge_foundational::AspectShape,
     pub evidence: AspectTraceEvidence,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum AspectTraceEvidence {
-    JsonFieldPresenceOrValue {
+    ScalarAspectPresenceOrValue {
         old_present: bool,
         new_present: bool,
-        old_canonical_json: Option<String>,
-        new_canonical_json: Option<String>,
+        old_value: Option<AspectValue>,
+        new_value: Option<AspectValue>,
+    },
+    StructAspectPresenceOrValue {
+        old_present: bool,
+        new_present: bool,
+        old_value: Option<StructAspectValue>,
+        new_value: Option<StructAspectValue>,
     },
     EndpointIdentity {
         old: Option<EntityId>,
@@ -50,11 +59,21 @@ pub enum AspectTraceEvidence {
     Lifecycle {
         transition: AspectLifecycleTransitionClass,
     },
-    OpaquePayloadDigest {
-        old_present: bool,
-        new_present: bool,
-        old_diagnostic_digest: Option<u128>,
-        new_diagnostic_digest: Option<u128>,
+    AuthoritativePatchOperation {
+        operation: AspectTracePatchOperation,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[non_exhaustive]
+pub enum AspectTracePatchOperation {
+    WholeAspectSet {
+        value: Option<AspectValue>,
+    },
+    WholeAspectClear,
+    FieldLevelPatch {
+        field_sets: Vec<(FieldKey, AspectValue)>,
+        field_clears: Vec<FieldKey>,
     },
 }
 
@@ -76,101 +95,38 @@ pub struct AspectEmissionTrace {
     pub patch_record_index: u64,
     pub structural_change: RecordStructuralChange,
     pub changed_aspects: CanonicalAspectSet,
-    pub contains_degraded_precision: bool,
+    pub contains_opaque_aspect: bool,
 }
 
 impl AspectEvaluationTrace {
     pub fn diagnostic_artifact(&self) -> RelationalDiagnosticArtifact {
-        let fields = AspectEvaluationTraceFields::from_trace(self);
-        RelationalDiagnosticArtifact {
-            scope: DiagnosticsScope::Transaction,
-            kind: DiagnosticsArtifactKind::DetailedTrace,
-            determinism: DeterminismExpectation::Required,
-            entries: vec![RelationalDiagnosticsEntry {
-                code: DiagnosticCode::AspectEvaluationTraced,
-                message: "aspect evaluation trace derived from canonical commit-time delta"
-                    .to_string(),
-                fields: trace_fields_value(&fields, "aspect evaluation trace"),
-            }],
-        }
+        let fields = evaluation_trace_diagnostic_fields(self);
+        RelationalDiagnosticArtifact::new(
+            DiagnosticsScope::Transaction,
+            DiagnosticsArtifactKind::DetailedTrace,
+            DeterminismExpectation::Required,
+            vec![RelationalDiagnosticsEntry::new(
+                DiagnosticCode::AspectEvaluationTraced,
+                "aspect evaluation trace derived from canonical commit-time delta",
+                fields,
+            )],
+        )
     }
 }
 
 impl AspectEmissionTrace {
     pub fn diagnostic_artifact(&self) -> RelationalDiagnosticArtifact {
-        let fields = AspectEmissionTraceFields::from_trace(self);
-        RelationalDiagnosticArtifact {
-            scope: DiagnosticsScope::PatchPublication,
-            kind: DiagnosticsArtifactKind::DetailedTrace,
-            determinism: DeterminismExpectation::Required,
-            entries: vec![RelationalDiagnosticsEntry {
-                code: DiagnosticCode::AspectEmissionTraced,
-                message: "aspect emission trace derived from canonical patch publication"
-                    .to_string(),
-                fields: trace_fields_value(&fields, "aspect emission trace"),
-            }],
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-struct AspectEvaluationTraceFields {
-    target: RecordRef,
-    kind_id: u64,
-    plan_revision: String,
-    structural_change: RecordStructuralChange,
-    changed_aspects: CanonicalAspectSet,
-    contains_degraded_precision: bool,
-    binding_rows: Vec<AspectEvaluationTraceRow>,
-}
-
-impl AspectEvaluationTraceFields {
-    fn from_trace(trace: &AspectEvaluationTrace) -> Self {
-        Self {
-            target: trace.target.clone(),
-            kind_id: trace.kind_id.0 as u64,
-            plan_revision: trace.plan_revision.0.to_string(),
-            structural_change: trace.structural_change,
-            changed_aspects: trace.changed_aspects.clone(),
-            contains_degraded_precision: trace.contains_degraded_precision,
-            binding_rows: trace.binding_rows.clone(),
-        }
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-struct AspectEmissionTraceFields {
-    target: RecordRef,
-    patch_position: PatchStreamPosition,
-    patch_record_index: u64,
-    structural_change: RecordStructuralChange,
-    changed_aspects: CanonicalAspectSet,
-    contains_degraded_precision: bool,
-}
-
-impl AspectEmissionTraceFields {
-    fn from_trace(trace: &AspectEmissionTrace) -> Self {
-        Self {
-            target: trace.target.clone(),
-            patch_position: trace.patch_position,
-            patch_record_index: trace.patch_record_index,
-            structural_change: trace.structural_change,
-            changed_aspects: trace.changed_aspects.clone(),
-            contains_degraded_precision: trace.contains_degraded_precision,
-        }
-    }
-}
-
-fn trace_fields_value<T>(fields: &T, trace_kind: &str) -> Value
-where
-    T: Serialize,
-{
-    match to_value(fields) {
-        Ok(value) => value,
-        Err(error) => json!({
-            "trace_kind": trace_kind,
-            "serialization_failure": error.to_string(),
-        }),
+        let fields = emission_trace_diagnostic_fields(self);
+        RelationalDiagnosticArtifact::new(
+            DiagnosticsScope::PatchPublication,
+            DiagnosticsArtifactKind::DetailedTrace,
+            DeterminismExpectation::Required,
+            vec![RelationalDiagnosticsEntry::new(
+                DiagnosticCode::AspectEmissionTraced,
+                "aspect emission trace derived from canonical patch publication",
+                fields,
+            )],
+        )
     }
 }
 

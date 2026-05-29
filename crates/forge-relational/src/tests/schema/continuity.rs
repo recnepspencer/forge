@@ -54,7 +54,7 @@ fn schema_diff_atom_requires_structured_detail_and_strata() {
         SchemaSubscriberImpact::ContractUpgradeRequired,
         HistoricalInterpretationSensitivity::SensitiveToPublicationMeaning,
         SchemaDiffDetail::TypeChanged {
-            field_name: Arc::<str>::from("timing_domain"),
+            field: field_key("timing_domain"),
             from_type: Arc::<str>::from("enum<legacy>"),
             to_type: Arc::<str>::from("enum<expanded>"),
         },
@@ -272,7 +272,7 @@ fn schema_transition_validation_rejects_unstratified_change_sets() {
             SchemaSubscriberImpact::None,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: Arc::<str>::from("length"),
+                field: field_key("length"),
                 required: false,
                 default_expression: None,
             },
@@ -305,7 +305,7 @@ fn schema_transition_validation_requires_explicit_policy_for_narrowing() {
             SchemaSubscriberImpact::RenegotiationRequired,
             HistoricalInterpretationSensitivity::SensitiveToPublicationMeaning,
             SchemaDiffDetail::RemovedField {
-                field_name: Arc::<str>::from("timing_margin"),
+                field: field_key("timing_margin"),
             },
         )],
     };
@@ -340,7 +340,7 @@ fn schema_transition_classification_and_lowering_are_deterministic_for_visible_b
                 SchemaSubscriberImpact::ConsumableSurfaceChanged,
                 HistoricalInterpretationSensitivity::NotSensitive,
                 SchemaDiffDetail::AddedField {
-                    field_name: Arc::<str>::from("optional_tag"),
+                    field: field_key("optional_tag"),
                     required: false,
                     default_expression: Some(Arc::<str>::from("null")),
                 },
@@ -444,7 +444,7 @@ fn consumable_surface_change_requires_explicit_visible_bridge_proof() {
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: Arc::<str>::from("optional_tag"),
+                field: field_key("optional_tag"),
                 required: false,
                 default_expression: Some(Arc::<str>::from("null")),
             },
@@ -500,7 +500,7 @@ fn schema_boundary_fingerprint_is_canonical_across_diff_atom_orderings() {
         SchemaSubscriberImpact::ConsumableSurfaceChanged,
         HistoricalInterpretationSensitivity::NotSensitive,
         SchemaDiffDetail::AddedField {
-            field_name: Arc::<str>::from("optional_tag"),
+            field: field_key("optional_tag"),
             required: false,
             default_expression: Some(Arc::<str>::from("null")),
         },
@@ -593,7 +593,7 @@ fn type_incompatible_schema_transition_is_rejected_not_continued() {
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
             HistoricalInterpretationSensitivity::SensitiveToValueMeaning,
             SchemaDiffDetail::TypeChanged {
-                field_name: Arc::<str>::from("timing_domain"),
+                field: field_key("timing_domain"),
                 from_type: Arc::<str>::from("enum<legacy>"),
                 to_type: Arc::<str>::from("enum<expanded>"),
             },
@@ -640,7 +640,6 @@ fn schema_registry_authoritative_basis_rejects_mixed_schema_identity() {
                 kind_name: "relation".to_string(),
                 schema_id: SchemaId("test-b".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -670,8 +669,10 @@ fn commit_rejects_undeclared_schema_drift_against_branch_head() {
             crate::transactions::data::EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
-                client_key: InternedString::Raw("b".to_string()),
-                payload: RecordPayload::StructuredJson(serde_json::json!({ "name": "b" })),
+                client_key: crate::symbols::data::ClientKey::raw("b"),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    serde_json::json!({ "name": "b" }),
+                ),
             },
         ))),
     );
@@ -760,7 +761,7 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: Arc::<str>::from("tag"),
+                field: field_key("tag"),
                 required: false,
                 default_expression: Some(Arc::<str>::from("null")),
             },
@@ -779,8 +780,10 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
             CreateIntent::Entity(crate::transactions::data::EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
-                client_key: InternedString::Raw("b".to_string()),
-                payload: RecordPayload::StructuredJson(serde_json::json!({ "name": "b" })),
+                client_key: crate::symbols::data::ClientKey::raw("b"),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    serde_json::json!({ "name": "b" }),
+                ),
             }),
         )),
     );
@@ -848,6 +851,10 @@ fn explicit_schema_transition_is_lowered_into_canonical_commit_artifacts() {
         diff_entry.fields["detail"]["kind"],
         Value::String("AddedField".to_string())
     );
+    assert_eq!(
+        diff_entry.fields["detail"]["field_path"],
+        Value::Array(vec![Value::String("tag".to_string())])
+    );
 }
 
 #[test]
@@ -882,7 +889,7 @@ fn schema_certification_transition_is_explained_and_counted() {
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: Arc::<str>::from("tag"),
+                field: field_key("tag"),
                 required: false,
                 default_expression: Some(Arc::<str>::from("null")),
             },
@@ -902,8 +909,10 @@ fn schema_certification_transition_is_explained_and_counted() {
             crate::transactions::data::EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
-                client_key: InternedString::Raw("b".to_string()),
-                payload: RecordPayload::StructuredJson(serde_json::json!({ "name": "b" })),
+                client_key: crate::symbols::data::ClientKey::raw("b"),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    serde_json::json!({ "name": "b" }),
+                ),
             },
         )),
     ));
@@ -979,7 +988,7 @@ fn declared_schema_transition_rejects_wrong_source_basis() {
             SchemaSubscriberImpact::None,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: Arc::<str>::from("tag"),
+                field: field_key("tag"),
                 required: false,
                 default_expression: None,
             },
@@ -1037,7 +1046,7 @@ fn declared_schema_transition_rejects_wrong_target_basis() {
             SchemaSubscriberImpact::None,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: Arc::<str>::from("tag"),
+                field: field_key("tag"),
                 required: false,
                 default_expression: None,
             },
@@ -1158,7 +1167,7 @@ fn declared_type_incompatible_schema_transition_reports_specific_conflict_class(
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
             HistoricalInterpretationSensitivity::SensitiveToValueMeaning,
             SchemaDiffDetail::TypeChanged {
-                field_name: Arc::<str>::from("tag"),
+                field: field_key("tag"),
                 from_type: Arc::<str>::from("string"),
                 to_type: Arc::<str>::from("enum<tag>"),
             },
@@ -1207,7 +1216,7 @@ fn schema_continuity_publication_rejects_incomplete_canonical_bundle() {
             SchemaSubscriberImpact::None,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: Arc::<str>::from("tag"),
+                field: field_key("tag"),
                 required: false,
                 default_expression: None,
             },
@@ -1294,7 +1303,7 @@ fn schema_continuity_publication_rejects_descriptor_semantics_mismatch() {
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: Arc::<str>::from("tag"),
+                field: field_key("tag"),
                 required: false,
                 default_expression: Some(Arc::<str>::from("null")),
             },
@@ -1384,7 +1393,7 @@ fn shared_continuity_bundle_validator_reports_boundary_fingerprint_mismatch() {
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: Arc::<str>::from("tag"),
+                field: field_key("tag"),
                 required: false,
                 default_expression: Some(Arc::<str>::from("null")),
             },

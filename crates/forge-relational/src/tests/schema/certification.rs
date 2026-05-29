@@ -44,7 +44,7 @@ fn schema_transition_for_subscriber_impact(
             subscriber_impact,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: "tag".into(),
+                field: field_key("tag"),
                 required: false,
                 default_expression: Some("null".into()),
             },
@@ -96,11 +96,12 @@ fn schema_evolution_cdc_contract_test() {
         certification_digest(committed.envelope().schema_transition.as_ref().unwrap());
     let schema_boundary_cdc_digest = certification_digest(&(
         &live_batch.patches,
-        &live_batch.crossed_boundaries,
-        &live_batch.continuation_summary,
+        live_batch.continuation.crossed_boundaries(),
+        live_batch.continuation.continuation_summary(),
         &live_batch.recovery_decision,
     ));
-    let subscriber_contract_matrix = certification_digest(&live_batch.continuation_summary);
+    let subscriber_contract_matrix =
+        certification_digest(live_batch.continuation.continuation_summary());
     let transition_decision_digest = certification_digest(&(
         committed
             .envelope()
@@ -154,14 +155,14 @@ fn schema_evolution_cdc_contract_test() {
         schema_boundary_cdc_digest,
         certification_digest(&(
             &recovered_batch.patches,
-            &recovered_batch.crossed_boundaries,
-            &recovered_batch.continuation_summary,
+            recovered_batch.continuation.crossed_boundaries(),
+            recovered_batch.continuation.continuation_summary(),
             &recovered_batch.recovery_decision,
         ))
     );
     assert_eq!(
         subscriber_contract_matrix,
-        certification_digest(&recovered_batch.continuation_summary)
+        certification_digest(recovered_batch.continuation.continuation_summary())
     );
     assert_eq!(
         transition_decision_digest,
@@ -220,7 +221,7 @@ fn schema_reconciliation_classification_test() {
             SchemaSubscriberImpact::RenegotiationRequired,
             HistoricalInterpretationSensitivity::SensitiveToPublicationMeaning,
             SchemaDiffDetail::RemovedField {
-                field_name: "obsolete_field".into(),
+                field: field_key("obsolete_field"),
             },
         )],
     };
@@ -259,7 +260,7 @@ fn schema_reconciliation_classification_test() {
                 SchemaSubscriberImpact::RenegotiationRequired,
                 HistoricalInterpretationSensitivity::SensitiveToValueMeaning,
                 SchemaDiffDetail::TypeChanged {
-                    field_name: "timing_domain".into(),
+                    field: field_key("timing_domain"),
                     from_type: "enum<legacy>".into(),
                     to_type: "enum<expanded>".into(),
                 },

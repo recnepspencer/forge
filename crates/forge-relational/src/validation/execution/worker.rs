@@ -198,32 +198,52 @@ fn custom_invariant_failure_violation(
     class: crate::validation::data::InvariantClass,
     failure: &CustomInvariantFailure,
 ) -> crate::validation::data::InvariantViolation {
-    let phase = match failure.phase {
-        CustomInvariantRuntimePhase::Preparation => "preparation",
-        CustomInvariantRuntimePhase::Execution => "execution",
-    };
-    let failure_kind = match failure.kind {
-        CustomInvariantFailureKind::PreparationError => "preparation_error",
-        CustomInvariantFailureKind::ExecutionError => "execution_error",
-        CustomInvariantFailureKind::Panic => "panic",
-    };
     crate::validation::data::InvariantViolation {
         class,
         code: crate::diagnostics::data::DiagnosticCode::InvariantViolation,
         detail: format!(
             "custom invariant '{}' failed during {}: {}",
             failure.identity.rule_id.as_str(),
-            phase,
+            failure.phase.diagnostic_label(),
             failure.detail
         ),
         fields: crate::validation::data::InvariantViolationFields::CustomInvariantFailure {
-            rule_id: failure.identity.rule_id.as_str().to_string(),
-            semantic_version_major: failure.identity.semantic_version.major,
-            semantic_version_minor: failure.identity.semantic_version.minor,
-            phase: phase.to_string(),
-            failure_kind: failure_kind.to_string(),
+            identity: crate::validation::data::CustomInvariantFailureIdentity::new(
+                failure.identity.clone(),
+            ),
+            phase: custom_invariant_failure_phase(failure.phase),
+            failure: custom_invariant_failure_kind(failure.kind),
             detail: failure.detail.to_string(),
         },
+    }
+}
+
+fn custom_invariant_failure_phase(
+    phase: CustomInvariantRuntimePhase,
+) -> crate::validation::data::CustomInvariantFailurePhase {
+    match phase {
+        CustomInvariantRuntimePhase::Preparation => {
+            crate::validation::data::CustomInvariantFailurePhase::Preparation
+        }
+        CustomInvariantRuntimePhase::Execution => {
+            crate::validation::data::CustomInvariantFailurePhase::Execution
+        }
+    }
+}
+
+fn custom_invariant_failure_kind(
+    failure: CustomInvariantFailureKind,
+) -> crate::validation::data::ResultCustomInvariantFailureKind {
+    match failure {
+        CustomInvariantFailureKind::PreparationError => {
+            crate::validation::data::ResultCustomInvariantFailureKind::PreparationError
+        }
+        CustomInvariantFailureKind::ExecutionError => {
+            crate::validation::data::ResultCustomInvariantFailureKind::ExecutionError
+        }
+        CustomInvariantFailureKind::Panic => {
+            crate::validation::data::ResultCustomInvariantFailureKind::Panic
+        }
     }
 }
 

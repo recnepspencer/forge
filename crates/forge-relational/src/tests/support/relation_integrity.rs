@@ -35,7 +35,6 @@ impl RelationIntegritySchemaFixture {
                     kind_name: self.relation_kind_name.clone(),
                     schema_id: SchemaId("test".to_string()),
                     schema_version_id: SchemaVersionId(1),
-                    payload_class: RelationPayloadClass::PayloadBearingRelation,
                     cross_context_policy: CrossContextPolicy::AllowExplicit,
                     cascade_delete_policy: self.cascade_delete_policy,
                     aspect_declarations: KindAspectDeclarations::default(),

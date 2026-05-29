@@ -39,14 +39,14 @@ pub(super) fn task_summary_contract() -> AspectContract {
 }
 
 pub(super) fn source_for(name: &str) -> BoundarySourceLocator {
-    BoundarySourceLocator::Aspect(AspectLocator::new(
+    BoundarySourceLocator::aspect(AspectLocator::new(
         LocatorAuthority::SupportOnly,
         AspectKey::new(name).expect("valid aspect key"),
     ))
 }
 
 pub(super) fn field_source_for(aspect: &str, field: &str) -> BoundarySourceLocator {
-    BoundarySourceLocator::AspectField(AspectFieldLocator::new(
+    BoundarySourceLocator::aspect_field(AspectFieldLocator::new(
         LocatorAuthority::SupportOnly,
         AspectKey::new(aspect).expect("valid aspect key"),
         CanonicalFieldPath::single(FieldKey::new(field).expect("valid field key")),

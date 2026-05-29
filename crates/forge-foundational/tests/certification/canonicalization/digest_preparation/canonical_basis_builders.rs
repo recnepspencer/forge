@@ -136,7 +136,7 @@ fn state_canonical_basis_matches_compatibility_equivalent_struct_truth() {
     };
     let json_state = lower_json_record_aspect_state([JsonCompatibilityAspectInput::new(
         contract,
-        BoundarySourceLocator::Aspect(AspectLocator::new(
+        BoundarySourceLocator::aspect(AspectLocator::new(
             LocatorAuthority::SupportOnly,
             key("task.summary"),
         )),

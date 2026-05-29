@@ -1,9 +1,8 @@
 #[cfg(test)]
 mod validator_tests {
     use forge_relational::facade::identity::PartitionId;
-    use forge_relational::facade::payloads::RecordPayload;
     use forge_relational::facade::runtime::RelationalRuntimeApi;
-    use forge_relational::facade::symbols::InternedString;
+    use forge_relational::facade::symbols::ClientKey;
     use forge_relational::facade::transactions::{
         CreateIntent, EntitySpec, MutationIntent, TransactionOptions, WorkerIntentBatch,
     };
@@ -73,10 +72,13 @@ mod validator_tests {
                         schema::facade::TopologyEntityKind::Vertex,
                     )
                     .kind_id(),
-                    client_key: InternedString::Raw("missing-name.vertex".to_string()),
-                    payload: RecordPayload::StructuredJson(serde_json::json!({
-                        "label": "missing-name.vertex"
-                    })),
+                    client_key: ClientKey::raw("missing-name.vertex"),
+                    fields: crate::relational_aspect_boundary::topology_entity_create_fields(
+                        schema::facade::EntityKind::Topology(
+                            schema::facade::TopologyEntityKind::Vertex,
+                        ),
+                        "missing-name.vertex",
+                    ),
                 }),
             )),
         );

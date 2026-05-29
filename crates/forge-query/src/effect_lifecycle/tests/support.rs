@@ -172,15 +172,15 @@ pub(super) fn admitted_mutation_effect() -> AdmittedEffectIntent {
 
 pub(super) fn raw_mutation_effect(
     entity_id: EntityId,
-    desired_payload: serde_json::Value,
+    desired_fields_json: serde_json::Value,
 ) -> RawEffectIntent {
-    raw_mutation_effect_with_binding(runtime_workflow_binding(), entity_id, desired_payload)
+    raw_mutation_effect_with_binding(runtime_workflow_binding(), entity_id, desired_fields_json)
 }
 
 pub(super) fn raw_mutation_effect_with_binding(
     binding: WorkflowContextBinding,
     entity_id: EntityId,
-    desired_payload: serde_json::Value,
+    desired_fields_json: serde_json::Value,
 ) -> RawEffectIntent {
     RawEffectIntent::Mutation {
         binding,
@@ -191,7 +191,7 @@ pub(super) fn raw_mutation_effect_with_binding(
         ),
         input: MutationLoweringInput::IntentReconciliation {
             entity_id,
-            desired_payload,
+            desired_fields_json,
         },
     }
 }
@@ -233,11 +233,11 @@ pub(super) fn admitted_tenant_mutation_effect() -> AdmittedEffectIntent {
 pub(super) fn admitted_mutation_effect_for_entity_with_binding(
     binding: WorkflowContextBinding,
     entity_id: EntityId,
-    desired_payload: serde_json::Value,
+    desired_fields_json: serde_json::Value,
 ) -> AdmittedEffectIntent {
     let normalized = normalize_raw_effect_intent(
         &EffectAuthoringBasis::from(branch_mutation_basis()),
-        raw_mutation_effect_with_binding(binding, entity_id, desired_payload),
+        raw_mutation_effect_with_binding(binding, entity_id, desired_fields_json),
     )
     .expect("mutation effect should normalize");
 

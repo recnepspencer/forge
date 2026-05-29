@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
+use crate::diagnostics::data::DiagnosticCode;
 use crate::facade::indexes::{
     DerivedIndexBuildRequest, DerivedIndexDefinition, DerivedIndexId, DerivedIndexKind,
 };
 use crate::facade::query::FallbackParityMode;
 use crate::tests::support::*;
+use serde_json::json;
 
 #[test]
 fn concurrent_snapshot_and_version_reads_match_serial_truth() {
@@ -132,6 +134,31 @@ fn concurrent_read_pressure_keeps_cache_diagnostics_coherent() {
 
     let counters = runtime.performance_access().counters();
     assert!(counters.visibility_cache_hits > 0);
+}
+
+#[test]
+fn published_snapshot_read_diagnostics_use_authoritative_binding_version() {
+    let mut runtime = runtime_with_test_schema_profile(RelationalRuntimeProfile::GeometryKernel);
+    let created = create_entity_outcome(&mut runtime, "baseline");
+    let entity = changed_entities(&created)[0];
+    let updated = update_entity(&mut runtime, entity, "mutated");
+    let mut stale_handle = updated.snapshot.clone();
+    stale_handle.version_id = created.snapshot.version_id;
+
+    let diagnostics = runtime
+        .read_truth()
+        .inspect_snapshot_read_path(&stale_handle)
+        .expect("published snapshot diagnostics");
+    let publication_entry = diagnostics
+        .entries
+        .iter()
+        .find(|entry| entry.code == DiagnosticCode::PublishedSnapshotHandleRead)
+        .expect("published snapshot entry");
+
+    assert_eq!(
+        publication_entry.fields["version_id"],
+        json!(updated.snapshot.version_id.0)
+    );
 }
 
 #[test]
@@ -264,8 +291,8 @@ fn concurrent_relation_index_certification_parity_stays_stable_under_scheduler_p
     let relation_index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "relation.name".to_string(),
-        kind: DerivedIndexKind::RelationPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::RelationField {
+            field: field_key("name"),
         },
         branch_scoped: false,
     });
@@ -285,9 +312,9 @@ fn concurrent_relation_index_certification_parity_stays_stable_under_scheduler_p
     let packet = PlannedQueryPacket {
         label: "relation-index-certification".to_string(),
         context_id: context,
-        scope: QueryScope::RelationPayloadFieldEquals {
-            field: "name".to_string(),
-            value: "fast".to_string(),
+        scope: QueryScope::RelationFieldEquals {
+            field: field_key("name"),
+            value: string_aspect_value("fast"),
             partition_scope: None,
         },
         locality: QueryLocalityClass::CrossPartitionTraversal,

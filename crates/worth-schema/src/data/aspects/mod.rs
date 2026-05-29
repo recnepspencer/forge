@@ -1,14 +1,15 @@
 mod diagnostics;
+mod domain_bindings;
 mod geometry;
 mod lineage;
 mod naming;
 mod topology;
 
-use forge_relational::facade::publication::AspectKey;
-use forge_relational::facade::symbols::InternedString;
+use forge_foundational::facade::{aspects, AspectIdentity, AspectKey, FieldKey, ScalarAspectType};
 use serde::{Deserialize, Serialize};
 
 pub use diagnostics::DiagnosticsAspect;
+pub use domain_bindings::{entity_domain_aspect, entity_domain_field, relation_domain_aspect};
 pub use geometry::GeometryAspect;
 pub use lineage::LineageAspect;
 pub use naming::NamingAspect;
@@ -53,6 +54,41 @@ impl Aspect {
     }
 
     pub fn aspect_key(self) -> AspectKey {
-        AspectKey(InternedString::Raw(self.as_str().to_string()))
+        aspect_key(self.as_str())
     }
+}
+
+pub fn aspect_key(label: &str) -> AspectKey {
+    AspectKey::new(label).expect("worth aspect key must be foundational")
+}
+
+pub fn field_key(label: &str) -> FieldKey {
+    FieldKey::new(label).expect("worth aspect field must be foundational")
+}
+
+pub fn scalar_string_contract(label: &str) -> forge_foundational::AspectContract {
+    aspects()
+        .contract()
+        .for_key(aspect_key(label))
+        .identified_by(AspectIdentity(stable_contract_identity(label)))
+        .at_revision(aspects().vocabulary().revision(1))
+        .scalar(ScalarAspectType::String)
+}
+
+pub fn entity_reference_contract(label: &str) -> forge_foundational::AspectContract {
+    aspects()
+        .contract()
+        .for_key(aspect_key(label))
+        .identified_by(AspectIdentity(stable_contract_identity(label)))
+        .at_revision(aspects().vocabulary().revision(1))
+        .reference_entity()
+}
+
+fn stable_contract_identity(label: &str) -> u64 {
+    let mut hash = 14695981039346656037_u64;
+    for byte in label.as_bytes() {
+        hash ^= *byte as u64;
+        hash = hash.wrapping_mul(1099511628211_u64);
+    }
+    hash
 }

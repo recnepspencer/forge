@@ -1,5 +1,4 @@
 use forge_relational::facade::history::BranchId;
-use forge_relational::facade::payloads::RecordPayload;
 use forge_runtime_bridge::facade::BridgeWritebackOutcomeClass;
 use serde_json::json;
 
@@ -15,6 +14,7 @@ use crate::effect_lifecycle::{
     scope_admitted_effect_plan, EffectExecutionAuthority, EffectExecutionDenialKind,
     ExecutedEffectAuthorityArtifact,
 };
+use crate::relational_aspect_write::aspect_key;
 
 pub(super) use super::execution_support::{branch_snapshot_token, runtime_snapshot_token};
 
@@ -61,10 +61,7 @@ fn lowered_mutation_execution_runs_through_relational_strategy_authority() {
         .iter()
         .find(|record| record.entity_id == entity_id)
         .expect("entity should still exist after execution");
-    assert_eq!(
-        updated.payload,
-        RecordPayload::StructuredJson(json!({ "name": "authority-plan" }))
-    );
+    assert_eq!(entity_name(updated), Some("authority-plan".to_string()));
 }
 
 #[test]
@@ -232,4 +229,17 @@ fn lowered_writeback_execution_runs_through_bridge_authority() {
     assert_eq!(record.outcome_digest(), Some(outcome.digest()));
     assert_eq!(record.receipt_digest(), Some(receipt.digest()));
     assert_eq!(record.request_digest(), Some(receipt.request_digest()));
+}
+
+fn entity_name(record: &forge_relational::facade::runtime::EntityReadRecord) -> Option<String> {
+    let state = record.authoritative_aspect_state.as_ref()?;
+    let value = state.get(&aspect_key("name").ok()?)?;
+    match value.view() {
+        forge_foundational::facade::ContractValidatedAspectValueView::Scalar(
+            forge_foundational::facade::AspectValue::String(
+                forge_foundational::facade::InternedString::Raw(actual),
+            ),
+        ) => Some(actual.clone()),
+        _ => None,
+    }
 }

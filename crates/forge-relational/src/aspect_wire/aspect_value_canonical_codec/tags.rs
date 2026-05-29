@@ -1,0 +1,27 @@
+pub(super) const NULL: u8 = 0;
+pub(super) const BOOL: u8 = 1;
+pub(super) const INT8: u8 = 2;
+pub(super) const INT16: u8 = 3;
+pub(super) const INT32: u8 = 4;
+pub(super) const INT64: u8 = 5;
+pub(super) const UINT8: u8 = 6;
+pub(super) const UINT16: u8 = 7;
+pub(super) const UINT32: u8 = 8;
+pub(super) const UINT64: u8 = 9;
+pub(super) const FLOAT32: u8 = 10;
+pub(super) const FLOAT64: u8 = 11;
+pub(super) const STRING: u8 = 12;
+pub(super) const DECIMAL: u8 = 13;
+pub(super) const BIG_INT: u8 = 14;
+pub(super) const RATIONAL: u8 = 15;
+pub(super) const BYTES: u8 = 16;
+pub(super) const UUID: u8 = 17;
+pub(super) const DATE: u8 = 18;
+pub(super) const TIME: u8 = 19;
+pub(super) const TIMESTAMP: u8 = 20;
+pub(super) const TIMESTAMP_TZ: u8 = 21;
+pub(super) const ENTITY_REF: u8 = 22;
+pub(super) const CONTENT_REF: u8 = 23;
+
+pub(super) const RAW_STRING: u8 = 0;
+pub(super) const SYMBOL_STRING: u8 = 1;

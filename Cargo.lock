@@ -1383,6 +1383,7 @@ name = "forge-foundational"
 version = "0.1.0"
 dependencies = [
  "forge-proof",
+ "serde",
  "serde_json",
  "trybuild",
 ]
@@ -1457,10 +1458,13 @@ dependencies = [
 name = "forge-relational"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
  "forge-harness",
+ "forge-proof",
  "forge-runtime-bridge",
  "proptest",
  "rayon",
+ "rmp-serde",
  "serde",
  "serde_json",
  "sha2",
@@ -1476,6 +1480,7 @@ version = "0.1.0"
 name = "forge-runtime-bridge"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
  "forge-harness",
  "serde_json",
  "sha2",
@@ -5226,6 +5231,7 @@ dependencies = [
 name = "worth-schema"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
  "forge-query",
  "forge-relational",
  "forge-runtime-bridge",
@@ -5254,6 +5260,7 @@ dependencies = [
 name = "worth-topo"
 version = "0.1.0"
 dependencies = [
+ "forge-foundational",
  "forge-query",
  "forge-relational",
  "forge-runtime-bridge",

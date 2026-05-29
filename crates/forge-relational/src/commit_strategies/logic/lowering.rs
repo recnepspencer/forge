@@ -119,10 +119,9 @@ mod tests {
     };
     use crate::identity::data::{KindId, PartitionId};
     use crate::logic::builder::RelationalRuntimeBuilder;
-    use crate::payloads::data::RecordPayload;
-    use crate::symbols::data::InternedString;
-    use crate::transactions::data::EntitySpec;
-    use serde_json::json;
+    use crate::symbols::data::ClientKey;
+    use crate::transactions::data::{AspectFieldPatch, EntitySpec};
+    use forge_foundational::facade::{AspectKey, AspectValue, FieldKey, InternedString};
 
     fn canonical_request() -> CanonicalStrategyCommitRequest {
         CanonicalStrategyCommitRequest::new(
@@ -131,7 +130,7 @@ mod tests {
             CanonicalStrategyInputArtifact::new(
                 StrategyInputSchemaName::new("intent.reconcile.input.v1"),
                 StrategyInputSchemaVersion(1),
-                StrategyRequestCanonicalization::JsonStableObjectOrderV1,
+                StrategyRequestCanonicalization::NativeCanonicalBytesV1,
                 br#"{"replicas":3}"#.to_vec().into(),
                 CanonicalStrategyInputDigest([9; 32]),
                 PersistentArtifactName::new("strategy.intent.reconcile.input"),
@@ -149,8 +148,12 @@ mod tests {
             CreateIntent::Entity(EntitySpec {
                 partition_id: PartitionId(1),
                 kind_id: KindId(1),
-                client_key: InternedString::from("deployment-a"),
-                payload: RecordPayload::from(json!({"replicas": 3})),
+                client_key: ClientKey::from("deployment-a"),
+                fields: AspectFieldPatch::single(
+                    AspectKey::new("name").expect("valid name aspect key"),
+                    FieldKey::new("name").expect("valid name field key"),
+                    AspectValue::String(InternedString::Raw("deployment-a".to_string())),
+                ),
             }),
         ));
 

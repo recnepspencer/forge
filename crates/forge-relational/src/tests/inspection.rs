@@ -5,8 +5,8 @@ use super::support::{
     read_entity_name, recent_commit_window, reconstructed_record_inspection,
     retained_record_inspection, runtime_with_test_schema, snapshot_graph_request,
     test_schema_registry, version_graph_request, EntityMutationIntent, MutationIntent,
-    RecordPayload, RelationalRuntimeApi, TransactionOptions, UpdateEntityIntent,
-    VisibilityCachePolicy, WorkerIntentBatch,
+    RelationalRuntimeApi, TransactionOptions, UpdateEntityFieldsIntent, VisibilityCachePolicy,
+    WorkerIntentBatch,
 };
 use crate::facade::history::{BranchId, CommitId};
 use crate::facade::identity::{LineageId, StructuralFingerprint};
@@ -457,7 +457,6 @@ fn structural_identity_historical_scope_does_not_leak_reused_slot_sidecars() {
     let replacement_entity = runtime
         .simulate_entity_slot_reuse_for_test(
             original_entity,
-            RecordPayload::StructuredJson(serde_json::json!({"name":"replacement"})),
             Some(StructuralFingerprint::new(Symbol(42), 222)),
             Some(LineageId(42)),
         )
@@ -695,10 +694,9 @@ fn commit_inspection_is_canonical_and_not_story_shaped() {
         envelope.lineage_artifact_counters()
     );
     assert_eq!(
-        inspection.index_generation_ids,
-        envelope.index_generation_ids
+        inspection.derived_index_artifacts,
+        *envelope.derived_index_artifacts()
     );
-    assert_eq!(inspection.index_generations, envelope.index_generations);
     assert_eq!(
         inspection.changed_aspects,
         crate::publication::patch::data::CanonicalAspectSet::new(
@@ -706,7 +704,7 @@ fn commit_inspection_is_canonical_and_not_story_shaped() {
                 .patch
                 .records
                 .iter()
-                .flat_map(|record| record.aspects.iter().cloned())
+                .flat_map(|record| record.authoritative_changed_aspect_keys().cloned())
         )
     );
 }
@@ -730,9 +728,11 @@ fn merge_commit_inspection_stays_envelope_projected() {
     });
     feature_txn.push_batch(
         WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: entity,
-                payload: RecordPayload::StructuredJson(serde_json::json!({"name":"feature"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    serde_json::json!({"name":"feature"}),
+                ),
             }),
         )),
     );
@@ -779,10 +779,9 @@ fn merge_commit_inspection_stays_envelope_projected() {
         envelope.lineage_artifact_counters()
     );
     assert_eq!(
-        inspection.index_generation_ids,
-        envelope.index_generation_ids
+        inspection.derived_index_artifacts,
+        *envelope.derived_index_artifacts()
     );
-    assert_eq!(inspection.index_generations, envelope.index_generations);
     assert_eq!(
         inspection.changed_aspects,
         crate::publication::patch::data::CanonicalAspectSet::new(
@@ -790,7 +789,7 @@ fn merge_commit_inspection_stays_envelope_projected() {
                 .patch
                 .records
                 .iter()
-                .flat_map(|record| record.aspects.iter().cloned())
+                .flat_map(|record| record.authoritative_changed_aspect_keys().cloned())
         )
     );
 }
@@ -1113,9 +1112,11 @@ fn transaction_inspection_savepoint_rollback_scrubs_abandoned_work_and_commit_tr
     let savepoint = txn.create_savepoint();
     txn.push_batch(
         WorkerIntentBatch::new("abandoned-update").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: existing,
-                payload: RecordPayload::StructuredJson(serde_json::json!({"name":"abandoned"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    serde_json::json!({"name":"abandoned"}),
+                ),
             }),
         )),
     );
@@ -1182,10 +1183,8 @@ fn transaction_inspection_marks_lineage_affecting_intents_without_previewing_com
                 replacement: crate::transactions::data::EntitySpec {
                     partition_id: crate::facade::identity::PartitionId::main(),
                     kind_id: crate::facade::identity::KindId(1),
-                    client_key: crate::symbols::data::InternedString::Raw(
-                        "replacement".to_string(),
-                    ),
-                    payload: RecordPayload::StructuredJson(
+                    client_key: crate::symbols::data::ClientKey::raw("replacement"),
+                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
                         serde_json::json!({"name":"replacement"}),
                     ),
                 },
@@ -1256,9 +1255,11 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
         let mut txn = runtime.begin_transaction(TransactionOptions::default());
         txn.push_batch(
             WorkerIntentBatch::new("main-update").push(MutationIntent::Entity(
-                EntityMutationIntent::Update(UpdateEntityIntent {
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    payload: RecordPayload::StructuredJson(serde_json::json!({"name":"main"})),
+                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                        serde_json::json!({"name":"main"}),
+                    ),
                 }),
             )),
         );
@@ -1271,9 +1272,11 @@ fn historical_inspection_stays_branch_local_under_divergence_and_reclaim_pressur
         });
         txn.push_batch(
             WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
-                EntityMutationIntent::Update(UpdateEntityIntent {
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    payload: RecordPayload::StructuredJson(serde_json::json!({"name":"feature"})),
+                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                        serde_json::json!({"name":"feature"}),
+                    ),
                 }),
             )),
         );
@@ -1361,9 +1364,11 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
         let mut txn = runtime.begin_transaction(TransactionOptions::default());
         txn.push_batch(
             WorkerIntentBatch::new("main-update").push(MutationIntent::Entity(
-                EntityMutationIntent::Update(UpdateEntityIntent {
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    payload: RecordPayload::StructuredJson(serde_json::json!({"name":"main"})),
+                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                        serde_json::json!({"name":"main"}),
+                    ),
                 }),
             )),
         );
@@ -1376,9 +1381,11 @@ fn recent_commit_inspection_and_branch_head_reads_stay_branch_local() {
         });
         txn.push_batch(
             WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
-                EntityMutationIntent::Update(UpdateEntityIntent {
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    payload: RecordPayload::StructuredJson(serde_json::json!({"name":"feature"})),
+                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                        serde_json::json!({"name":"feature"}),
+                    ),
                 }),
             )),
         );

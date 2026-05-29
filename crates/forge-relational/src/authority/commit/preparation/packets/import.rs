@@ -1,8 +1,7 @@
 use crate::authority::commit::preparation::proofs::kinds::PreparationProofKind;
 use crate::authority::commit::preparation::proofs::locality::PreparationLocalityProof;
 use crate::identity::data::{KindId, PartitionId};
-use crate::payloads::data::RecordPayload;
-use crate::transactions::data::EntityReference;
+use crate::transactions::data::{AspectFieldPatch, EntityReference};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum ImportFragmentKind {
@@ -21,12 +20,12 @@ pub(crate) struct ImportFragmentIdentity {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) enum ImportStagedRow {
     Entity {
-        payload: RecordPayload,
+        fields: AspectFieldPatch,
     },
     Relation {
         source: EntityReference,
         target: EntityReference,
-        payload: Option<RecordPayload>,
+        fields: AspectFieldPatch,
     },
 }
 

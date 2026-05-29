@@ -1,50 +1,26 @@
+use forge_foundational::{AspectShape, ReferenceAspectType, ScalarAspectType};
+
 use crate::capabilities::AspectPlanSource;
 use crate::facade::merge::{
     AspectMergePolicyDeclaration, AspectMergePolicyKind, IdentityBasisDeclaration,
     IdentityBasisKind, IdentityBasisScope,
 };
 use crate::facade::schema::{
-    AspectBinding, AspectComparator, AspectKey, AspectPrecision, DeclaredAspect,
-    EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
-    RelationalSchemaRegistry, SchemaId, SchemaRegistryErrorClass, SchemaVersionId,
+    AspectBinding, AspectKey, DeclaredAspect, EntityKindRegistration, KindAspectDeclarations,
+    RelationKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaRegistryErrorClass,
+    SchemaVersionId,
 };
-use crate::schema::data::RelationPayloadClass;
-use crate::symbols::data::InternedString;
 use crate::tests::support::*;
 
 #[test]
 fn schema_aspect_declarations_are_canonicalized_before_revision_is_derived() {
     let first = KindAspectDeclarations::new(vec![
-        DeclaredAspect {
-            key: AspectKey(InternedString::Raw("zeta".to_string())),
-            binding: AspectBinding::LifecycleTransition,
-            comparator: AspectComparator::LifecycleTransitionEquality,
-            precision: AspectPrecision::Structured,
-        },
-        DeclaredAspect {
-            key: AspectKey(InternedString::Raw("alpha".to_string())),
-            binding: AspectBinding::EntityPayloadField {
-                field: InternedString::Raw("name".to_string()),
-            },
-            comparator: AspectComparator::JsonScalarEquality,
-            precision: AspectPrecision::Structured,
-        },
+        lifecycle_aspect_named("zeta"),
+        entity_field_aspect("alpha", "name"),
     ]);
     let second = KindAspectDeclarations::new(vec![
-        DeclaredAspect {
-            key: AspectKey(InternedString::Raw("alpha".to_string())),
-            binding: AspectBinding::EntityPayloadField {
-                field: InternedString::Raw("name".to_string()),
-            },
-            comparator: AspectComparator::JsonScalarEquality,
-            precision: AspectPrecision::Structured,
-        },
-        DeclaredAspect {
-            key: AspectKey(InternedString::Raw("zeta".to_string())),
-            binding: AspectBinding::LifecycleTransition,
-            comparator: AspectComparator::LifecycleTransitionEquality,
-            precision: AspectPrecision::Structured,
-        },
+        entity_field_aspect("alpha", "name"),
+        lifecycle_aspect_named("zeta"),
     ]);
 
     let first_registry = RelationalSchemaRegistry::new()
@@ -77,13 +53,13 @@ fn schema_aspect_declarations_are_canonicalized_before_revision_is_derived() {
         left.aspect_declarations
             .aspects
             .iter()
-            .map(|aspect| &aspect.key)
+            .map(DeclaredAspect::aspect_key)
             .collect::<Vec<_>>(),
         right
             .aspect_declarations
             .aspects
             .iter()
-            .map(|aspect| &aspect.key)
+            .map(DeclaredAspect::aspect_key)
             .collect::<Vec<_>>()
     );
 }
@@ -97,20 +73,8 @@ fn duplicate_aspect_keys_are_rejected() {
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![
-                DeclaredAspect {
-                    key: AspectKey(InternedString::Raw("name".to_string())),
-                    binding: AspectBinding::EntityPayloadField {
-                        field: InternedString::Raw("name".to_string()),
-                    },
-                    comparator: AspectComparator::JsonScalarEquality,
-                    precision: AspectPrecision::Structured,
-                },
-                DeclaredAspect {
-                    key: AspectKey(InternedString::Raw("name".to_string())),
-                    binding: AspectBinding::LifecycleTransition,
-                    comparator: AspectComparator::LifecycleTransitionEquality,
-                    precision: AspectPrecision::Structured,
-                },
+                entity_field_aspect("name", "name"),
+                lifecycle_aspect_named("name"),
             ]),
         })
         .unwrap_err();
@@ -122,6 +86,28 @@ fn duplicate_aspect_keys_are_rejected() {
             ..
         }
     ));
+}
+
+#[test]
+fn declared_aspect_contract_keys_round_trip_through_registration() {
+    let registry = RelationalSchemaRegistry::new()
+        .register_entity_kind(EntityKindRegistration {
+            kind_id: KindId(1),
+            kind_name: "test.entity".to_string(),
+            schema_id: SchemaId("test".to_string()),
+            schema_version_id: SchemaVersionId(1),
+            aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
+                "name", "name",
+            )]),
+        })
+        .expect("registry");
+
+    let trace = registry.entity_aspect_declaration_trace(KindId(1)).unwrap();
+    assert_eq!(
+        trace.declarations[0].aspect_key,
+        AspectKey::new("name").unwrap()
+    );
+    assert_eq!(trace.declarations[0].contract_revision, 1);
 }
 
 #[test]
@@ -140,7 +126,6 @@ fn schema_identity_declarations_are_defaulted_and_visible_in_trace() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -184,7 +169,6 @@ fn relation_schema_rejects_lineage_identity_declarations() {
             kind_name: "test.relation".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            payload_class: RelationPayloadClass::PayloadBearingRelation,
             cross_context_policy: CrossContextPolicy::AllowExplicit,
             cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
             aspect_declarations: KindAspectDeclarations::default().with_identity_declarations(
@@ -241,92 +225,51 @@ fn schema_rejects_unsupported_structural_fingerprint_identity_declarations() {
 }
 
 #[test]
-fn schema_accepts_runtime_owned_payload_field_merge_policies_and_rejects_custom_policy() {
-    let name_key = AspectKey(InternedString::Raw("name".to_string()));
-    for policy in [
-        AspectMergePolicyKind::LastWriterWins,
-        AspectMergePolicyKind::MonotonicCounter,
-        AspectMergePolicyKind::AdditiveSet,
-    ] {
-        let registry =
-            RelationalSchemaRegistry::new()
-                .register_entity_kind(EntityKindRegistration {
-                    kind_id: KindId(1),
-                    kind_name: "test.entity".to_string(),
-                    schema_id: SchemaId("test".to_string()),
-                    schema_version_id: SchemaVersionId(1),
-                    aspect_declarations: KindAspectDeclarations::new(vec![DeclaredAspect {
-                        key: name_key.clone(),
-                        binding: AspectBinding::EntityPayloadField {
-                            field: InternedString::Raw("name".to_string()),
-                        },
-                        comparator: AspectComparator::JsonScalarEquality,
-                        precision: AspectPrecision::Structured,
-                    }])
+fn schema_accepts_runtime_owned_record_field_merge_policies_and_rejects_unsupported_policies() {
+    let name_key = AspectKey::new("name").unwrap();
+    let counter_key = AspectKey::new("counter").unwrap();
+    let accepted = [
+        (
+            name_key.clone(),
+            entity_field_aspect(name_key.as_str(), "name"),
+            AspectMergePolicyKind::LastWriterWins,
+        ),
+        (
+            counter_key.clone(),
+            entity_i64_field_aspect(counter_key.as_str(), "counter"),
+            AspectMergePolicyKind::MonotonicCounter,
+        ),
+    ];
+
+    for (aspect_key, declared_aspect, policy) in accepted {
+        let registry = RelationalSchemaRegistry::new()
+            .register_entity_kind(EntityKindRegistration {
+                kind_id: KindId(1),
+                kind_name: "test.entity".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                aspect_declarations: KindAspectDeclarations::new(vec![declared_aspect])
                     .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
-                        aspect_key: name_key.clone(),
+                        aspect_key: aspect_key.clone(),
                         policy: policy.clone(),
                     }]),
-                })
-                .expect("runtime-owned payload field policy should register");
+            })
+            .expect("runtime-owned record field policy should register");
 
         assert_eq!(
             registry
                 .entity_merge_policy_declarations(KindId(1))
                 .unwrap(),
-            &[AspectMergePolicyDeclaration {
-                aspect_key: name_key.clone(),
-                policy,
-            }]
+            &[AspectMergePolicyDeclaration { aspect_key, policy }]
         );
     }
 
-    let error = RelationalSchemaRegistry::new()
-        .register_entity_kind(EntityKindRegistration {
-            kind_id: KindId(1),
-            kind_name: "test.entity".to_string(),
-            schema_id: SchemaId("test".to_string()),
-            schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![DeclaredAspect {
-                key: name_key.clone(),
-                binding: AspectBinding::EntityPayloadField {
-                    field: InternedString::Raw("name".to_string()),
-                },
-                comparator: AspectComparator::JsonScalarEquality,
-                precision: AspectPrecision::Structured,
-            }])
-            .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
-                aspect_key: name_key.clone(),
-                policy: AspectMergePolicyKind::Custom(
-                    crate::facade::merge::CustomMergePolicyIdentity {
-                        name: "custom.merge".into(),
-                        semantic_version: 1,
-                    },
-                ),
-            }]),
-        })
-        .unwrap_err();
-
-    assert!(matches!(
-        error.class,
-        SchemaRegistryErrorClass::InvalidAspectDeclaration {
-            kind_id: KindId(1),
-            ..
-        }
-    ));
-}
-
-#[test]
-fn schema_rejects_runtime_owned_merge_policies_on_non_payload_field_aspects() {
-    let lifecycle_key = AspectKey(InternedString::Raw("lifecycle".to_string()));
-    for policy in [
+    for rejected_policy in [
+        AspectMergePolicyKind::AdditiveSet,
         AspectMergePolicyKind::Custom(crate::facade::merge::CustomMergePolicyIdentity {
             name: "custom.merge".into(),
             semantic_version: 1,
         }),
-        AspectMergePolicyKind::LastWriterWins,
-        AspectMergePolicyKind::MonotonicCounter,
-        AspectMergePolicyKind::AdditiveSet,
     ] {
         let error =
             RelationalSchemaRegistry::new()
@@ -335,15 +278,13 @@ fn schema_rejects_runtime_owned_merge_policies_on_non_payload_field_aspects() {
                     kind_name: "test.entity".to_string(),
                     schema_id: SchemaId("test".to_string()),
                     schema_version_id: SchemaVersionId(1),
-                    aspect_declarations: KindAspectDeclarations::new(vec![DeclaredAspect {
-                        key: lifecycle_key.clone(),
-                        binding: AspectBinding::LifecycleTransition,
-                        comparator: AspectComparator::LifecycleTransitionEquality,
-                        precision: AspectPrecision::Structured,
-                    }])
+                    aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
+                        name_key.as_str(),
+                        "name",
+                    )])
                     .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
-                        aspect_key: lifecycle_key.clone(),
-                        policy,
+                        aspect_key: name_key.clone(),
+                        policy: rejected_policy,
                     }]),
                 })
                 .unwrap_err();
@@ -359,9 +300,74 @@ fn schema_rejects_runtime_owned_merge_policies_on_non_payload_field_aspects() {
 }
 
 #[test]
+fn schema_rejects_monotonic_counter_on_non_integer_foundational_contract() {
+    let name_key = AspectKey::new("name").unwrap();
+    let error = RelationalSchemaRegistry::new()
+        .register_entity_kind(EntityKindRegistration {
+            kind_id: KindId(1),
+            kind_name: "test.entity".to_string(),
+            schema_id: SchemaId("test".to_string()),
+            schema_version_id: SchemaVersionId(1),
+            aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
+                name_key.as_str(),
+                "name",
+            )])
+            .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
+                aspect_key: name_key,
+                policy: AspectMergePolicyKind::MonotonicCounter,
+            }]),
+        })
+        .unwrap_err();
+
+    assert!(matches!(
+        error.class,
+        SchemaRegistryErrorClass::InvalidAspectDeclaration {
+            kind_id: KindId(1),
+            ..
+        }
+    ));
+}
+
+#[test]
+fn schema_rejects_runtime_owned_merge_policies_on_non_record_field_aspects() {
+    let lifecycle_key = AspectKey::new("lifecycle").unwrap();
+    for policy in [
+        AspectMergePolicyKind::Custom(crate::facade::merge::CustomMergePolicyIdentity {
+            name: "custom.merge".into(),
+            semantic_version: 1,
+        }),
+        AspectMergePolicyKind::LastWriterWins,
+        AspectMergePolicyKind::MonotonicCounter,
+        AspectMergePolicyKind::AdditiveSet,
+    ] {
+        let error = RelationalSchemaRegistry::new()
+            .register_entity_kind(EntityKindRegistration {
+                kind_id: KindId(1),
+                kind_name: "test.entity".to_string(),
+                schema_id: SchemaId("test".to_string()),
+                schema_version_id: SchemaVersionId(1),
+                aspect_declarations: KindAspectDeclarations::new(vec![lifecycle_aspect()])
+                    .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
+                        aspect_key: lifecycle_key.clone(),
+                        policy,
+                    }]),
+            })
+            .unwrap_err();
+
+        assert!(matches!(
+            error.class,
+            SchemaRegistryErrorClass::InvalidAspectDeclaration {
+                kind_id: KindId(1),
+                ..
+            }
+        ));
+    }
+}
+
+#[test]
 fn schema_merge_policy_declarations_are_traced_and_available_through_registry() {
-    let name_key = AspectKey(InternedString::Raw("name".to_string()));
-    let lifecycle_key = AspectKey(InternedString::Raw("lifecycle".to_string()));
+    let name_key = AspectKey::new("name").unwrap();
+    let lifecycle_key = AspectKey::new("lifecycle").unwrap();
     let registry = RelationalSchemaRegistry::new()
         .register_entity_kind(EntityKindRegistration {
             kind_id: KindId(1),
@@ -369,20 +375,8 @@ fn schema_merge_policy_declarations_are_traced_and_available_through_registry() 
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![
-                DeclaredAspect {
-                    key: name_key.clone(),
-                    binding: AspectBinding::EntityPayloadField {
-                        field: InternedString::Raw("name".to_string()),
-                    },
-                    comparator: AspectComparator::JsonScalarEquality,
-                    precision: AspectPrecision::Structured,
-                },
-                DeclaredAspect {
-                    key: lifecycle_key.clone(),
-                    binding: AspectBinding::LifecycleTransition,
-                    comparator: AspectComparator::LifecycleTransitionEquality,
-                    precision: AspectPrecision::Structured,
-                },
+                entity_field_aspect(name_key.as_str(), "name"),
+                lifecycle_aspect(),
             ])
             .with_merge_policy_declarations(vec![
                 AspectMergePolicyDeclaration {
@@ -419,15 +413,8 @@ fn schema_merge_policy_declarations_are_traced_and_available_through_registry() 
 
 #[test]
 fn schema_plan_revision_changes_when_identity_or_merge_policy_semantics_change() {
-    let name_key = AspectKey(InternedString::Raw("name".to_string()));
-    let base = KindAspectDeclarations::new(vec![DeclaredAspect {
-        key: name_key.clone(),
-        binding: AspectBinding::EntityPayloadField {
-            field: InternedString::Raw("name".to_string()),
-        },
-        comparator: AspectComparator::JsonScalarEquality,
-        precision: AspectPrecision::Structured,
-    }]);
+    let name_key = AspectKey::new("name").unwrap();
+    let base = KindAspectDeclarations::new(vec![entity_field_aspect(name_key.as_str(), "name")]);
     let identity_variant = base.clone().with_identity_declarations(vec![
         IdentityBasisDeclaration {
             scope: IdentityBasisScope::EntityKind(KindId(1)),
@@ -504,7 +491,7 @@ fn schema_rejects_merge_policy_for_undeclared_aspect_key() {
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::default().with_merge_policy_declarations(
                 vec![AspectMergePolicyDeclaration {
-                    aspect_key: AspectKey(InternedString::Raw("missing".to_string())),
+                    aspect_key: AspectKey::new("missing").unwrap(),
                     policy: AspectMergePolicyKind::FailOnConflict,
                 }],
             ),
@@ -521,24 +508,41 @@ fn schema_rejects_merge_policy_for_undeclared_aspect_key() {
 }
 
 #[test]
-fn topology_only_relations_reject_payload_field_aspects() {
-    let error = RelationalSchemaRegistry::new()
+fn relation_field_aspects_are_governed_by_foundational_contract_shape() {
+    let registry = RelationalSchemaRegistry::new()
         .register_relation_kind(RelationKindRegistration {
             kind_id: KindId(2),
             kind_name: "test.relation".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            payload_class: RelationPayloadClass::TopologyOnlyRelation,
             cross_context_policy: CrossContextPolicy::AllowExplicit,
             cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-            aspect_declarations: KindAspectDeclarations::new(vec![DeclaredAspect {
-                key: AspectKey(InternedString::Raw("payload".to_string())),
-                binding: AspectBinding::RelationPayloadField {
-                    field: InternedString::Raw("label".to_string()),
-                },
-                comparator: AspectComparator::JsonScalarEquality,
-                precision: AspectPrecision::Structured,
-            }]),
+            aspect_declarations: KindAspectDeclarations::new(vec![relation_field_aspect(
+                "payload", "label",
+            )]),
+            relation_integrity: crate::schema::data::RelationIntegrityDeclarations::default(),
+        })
+        .expect("relation field aspect with scalar contract registers");
+
+    let relation_trace = registry
+        .relation_aspect_declaration_trace(KindId(2))
+        .expect("relation declaration trace");
+    assert_eq!(
+        relation_trace.declarations[0].aspect_key,
+        aspect_key("payload")
+    );
+
+    let error = RelationalSchemaRegistry::new()
+        .register_relation_kind(RelationKindRegistration {
+            kind_id: KindId(3),
+            kind_name: "test.invalid_relation".to_string(),
+            schema_id: SchemaId("test".to_string()),
+            schema_version_id: SchemaVersionId(1),
+            cross_context_policy: CrossContextPolicy::AllowExplicit,
+            cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
+            aspect_declarations: KindAspectDeclarations::new(vec![
+                relation_field_with_entity_reference_contract("target_as_field", "label"),
+            ]),
             relation_integrity: crate::schema::data::RelationIntegrityDeclarations::default(),
         })
         .unwrap_err();
@@ -546,7 +550,7 @@ fn topology_only_relations_reject_payload_field_aspects() {
     assert!(matches!(
         error.class,
         SchemaRegistryErrorClass::InvalidAspectDeclaration {
-            kind_id: KindId(2),
+            kind_id: KindId(3),
             ..
         }
     ));
@@ -561,20 +565,8 @@ fn runtime_build_lowers_schema_aspect_plans() {
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![
-                DeclaredAspect {
-                    key: AspectKey(InternedString::Raw("name".to_string())),
-                    binding: AspectBinding::EntityPayloadField {
-                        field: InternedString::Raw("name".to_string()),
-                    },
-                    comparator: AspectComparator::JsonScalarEquality,
-                    precision: AspectPrecision::Structured,
-                },
-                DeclaredAspect {
-                    key: AspectKey(InternedString::Raw("lifecycle".to_string())),
-                    binding: AspectBinding::LifecycleTransition,
-                    comparator: AspectComparator::LifecycleTransitionEquality,
-                    precision: AspectPrecision::Structured,
-                },
+                entity_field_aspect("name", "name"),
+                lifecycle_aspect(),
             ]),
         })
         .and_then(|registry| {
@@ -583,7 +575,6 @@ fn runtime_build_lowers_schema_aspect_plans() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -601,11 +592,19 @@ fn runtime_build_lowers_schema_aspect_plans() {
     assert_eq!(plan.executable_bindings.len(), 2);
     assert_eq!(
         plan.executable_bindings[0].aspect_key,
-        AspectKey(InternedString::Raw("lifecycle".to_string()))
+        AspectKey::new("lifecycle").unwrap()
     );
     assert_eq!(
         plan.executable_bindings[1].aspect_key,
-        AspectKey(InternedString::Raw("name".to_string()))
+        AspectKey::new("name").unwrap()
+    );
+    assert_eq!(
+        plan.executable_bindings[0].contract.shape(),
+        &AspectShape::Scalar(ScalarAspectType::String)
+    );
+    assert_eq!(
+        plan.executable_bindings[1].contract.shape(),
+        &AspectShape::Scalar(ScalarAspectType::String)
     );
 }
 
@@ -649,19 +648,19 @@ fn schema_and_runtime_expose_consistent_aspect_declaration_and_lowering_traces()
     assert_eq!(relation_lowering_trace.bindings.len(), 4);
     assert_eq!(
         relation_lowering_trace.bindings[0].aspect_key,
-        AspectKey(InternedString::Raw("label".to_string()))
+        AspectKey::new("label").unwrap()
     );
     assert_eq!(
         relation_lowering_trace.bindings[1].aspect_key,
-        AspectKey(InternedString::Raw("lifecycle".to_string()))
+        AspectKey::new("lifecycle").unwrap()
     );
     assert_eq!(
         relation_lowering_trace.bindings[2].aspect_key,
-        AspectKey(InternedString::Raw("source".to_string()))
+        AspectKey::new("source").unwrap()
     );
     assert_eq!(
         relation_lowering_trace.bindings[3].aspect_key,
-        AspectKey(InternedString::Raw("target".to_string()))
+        AspectKey::new("target").unwrap()
     );
 }
 
@@ -700,8 +699,8 @@ fn schema_traces_emit_diagnostic_artifacts_without_reinterpreting_semantics() {
 fn aspect_schema_fixture_builds_runtime_with_lowered_plans_for_customized_aspects() {
     let fixture = AspectSchemaFixture {
         entity_aspects: vec![
-            entity_payload_aspect("name", "name"),
-            entity_payload_aspect("status", "status"),
+            entity_field_aspect("name", "name"),
+            entity_field_aspect("status", "status"),
             lifecycle_aspect(),
         ],
         relation_aspects: vec![relation_source_aspect(), relation_target_aspect()],
@@ -733,4 +732,52 @@ fn aspect_schema_fixture_builds_runtime_with_lowered_plans_for_customized_aspect
             .collect::<Vec<_>>(),
         vec![aspect_key("source"), aspect_key("target")]
     );
+    assert_eq!(
+        relation_plan.executable_bindings[0].contract.shape(),
+        &AspectShape::Reference(ReferenceAspectType::Entity)
+    );
+    assert_eq!(
+        relation_plan.executable_bindings[1].contract.shape(),
+        &AspectShape::Reference(ReferenceAspectType::Entity)
+    );
+}
+
+fn lifecycle_aspect_named(name: &str) -> DeclaredAspect {
+    DeclaredAspect {
+        binding: AspectBinding::LifecycleTransition,
+        contract: test_scalar_contract(name),
+    }
+}
+
+fn test_scalar_contract(name: &str) -> forge_foundational::AspectContract {
+    forge_foundational::aspects()
+        .contract()
+        .for_key(
+            forge_foundational::aspects()
+                .vocabulary()
+                .key(name)
+                .expect("valid foundational aspect key"),
+        )
+        .identified_by(forge_foundational::AspectIdentity(41))
+        .at_revision(forge_foundational::aspects().vocabulary().revision(1))
+        .scalar(forge_foundational::ScalarAspectType::String)
+}
+
+fn relation_field_with_entity_reference_contract(name: &str, field: &str) -> DeclaredAspect {
+    DeclaredAspect {
+        binding: AspectBinding::RelationField {
+            field: forge_foundational::FieldKey::new(field).expect("valid field key"),
+        },
+        contract: forge_foundational::aspects()
+            .contract()
+            .for_key(
+                forge_foundational::aspects()
+                    .vocabulary()
+                    .key(name)
+                    .expect("valid foundational aspect key"),
+            )
+            .identified_by(forge_foundational::AspectIdentity(42))
+            .at_revision(forge_foundational::aspects().vocabulary().revision(1))
+            .reference_entity(),
+    }
 }

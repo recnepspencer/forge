@@ -1,114 +1,86 @@
 use crate::authority::mutation::outcomes::MutationOutcome;
 use crate::authority::mutation::stale_targets::ensure_entity_target_is_current;
 use crate::authority::mutation::MutationWorkspace;
-use crate::payloads::data::{canonicalize_json, RecordPayload};
 use crate::storage::logic::state::PartitionAccess;
-use crate::transactions::data::{CommitConflict, ConflictClass, UpdateEntityFieldsIntent};
-use serde_json::Value;
+use crate::transactions::data::{
+    CommitConflict, ConflictClass, EntityFieldUpdateMissingState, UpdateEntityFieldsIntent,
+};
+
+use super::entity_authoritative_patch_application::apply_entity_authoritative_patch;
+use super::entity_field_aspect_patch::plan_entity_field_aspect_patch;
 
 pub(super) fn apply(
     intent: &UpdateEntityFieldsIntent,
     workspace: &mut MutationWorkspace<'_>,
 ) -> Result<MutationOutcome, CommitConflict> {
     let version_id = workspace.version_id();
-    let slot = intent.entity_id.local_slot.0 as usize;
-    let (kind_id, old_payload, new_payload) = workspace.with_context(|context| {
+    let slot = intent.entity_id.slot_index();
+    let (kind_id, authoritative_aspect_state) = workspace.with_context(|context| {
         ensure_entity_target_is_current(context.state, intent.entity_id)?;
         let partition = context
             .state
             .get_partition(intent.entity_id.partition_id)
             .ok_or_else(|| {
-                CommitConflict::new(ConflictClass::MutationStateInconsistency {
-                    detail:
-                        "entity field update requires an existing partition after stale-target validation"
-                            .to_string(),
-                    fields: serde_json::json!({
-                        "record_class": "entity",
-                        "entity_id": intent.entity_id,
-                        "phase": "update_entity_fields",
-                        "missing": "partition",
-                    }),
+                CommitConflict::new(ConflictClass::EntityFieldUpdateStateInconsistency {
+                    entity_id: intent.entity_id,
+                    missing: EntityFieldUpdateMissingState::Partition,
                 })
             })?;
         let slot_view = partition.entity_arena.get_slot(slot).ok_or_else(|| {
-            CommitConflict::new(ConflictClass::MutationStateInconsistency {
-                detail: "entity field update requires an existing slot after stale-target validation"
-                    .to_string(),
-                fields: serde_json::json!({
-                    "record_class": "entity",
-                    "entity_id": intent.entity_id,
-                    "phase": "update_entity_fields",
-                    "missing": "slot",
-                }),
+            CommitConflict::new(ConflictClass::EntityFieldUpdateStateInconsistency {
+                entity_id: intent.entity_id,
+                missing: EntityFieldUpdateMissingState::Slot,
             })
         })?;
         let kind_id = slot_view.kind_id().ok_or_else(|| {
-            CommitConflict::new(ConflictClass::MutationStateInconsistency {
-                detail: "entity field update requires a retained kind id after stale-target validation"
-                    .to_string(),
-                fields: serde_json::json!({
-                    "record_class": "entity",
-                    "entity_id": intent.entity_id,
-                    "phase": "update_entity_fields",
-                    "missing": "kind_id",
-                }),
+            CommitConflict::new(ConflictClass::EntityFieldUpdateStateInconsistency {
+                entity_id: intent.entity_id,
+                missing: EntityFieldUpdateMissingState::KindId,
             })
         })?;
-        let old_payload = slot_view.payload().cloned().ok_or_else(|| {
-            CommitConflict::new(ConflictClass::MutationStateInconsistency {
-                detail: "entity field update requires a retained payload after stale-target validation"
-                    .to_string(),
-                fields: serde_json::json!({
-                    "record_class": "entity",
-                    "entity_id": intent.entity_id,
-                    "phase": "update_entity_fields",
-                    "missing": "payload",
-                }),
-            })
-        })?;
-        let existing_json = old_payload.as_json().ok_or_else(|| {
-            CommitConflict::new(ConflictClass::MutationStateInconsistency {
-                detail: "entity field update requires a structured-json payload".to_string(),
-                fields: serde_json::json!({
-                    "record_class": "entity",
-                    "entity_id": intent.entity_id,
-                    "phase": "update_entity_fields",
-                    "payload_class": "non_structured_json",
-                }),
-            })
-        })?;
-        let mut object = match existing_json {
-            Value::Object(map) => map.clone(),
-            _ => {
-                return Err(CommitConflict::new(ConflictClass::MutationStateInconsistency {
-                    detail: "entity field update requires the existing payload to be a JSON object"
-                        .to_string(),
-                    fields: serde_json::json!({
-                        "record_class": "entity",
-                        "entity_id": intent.entity_id,
-                        "phase": "update_entity_fields",
-                        "payload_shape": "non_object",
-                    }),
-                }))
-            }
-        };
-        for (key, value) in &intent.fields {
-            object.insert(key.clone(), canonicalize_json(value));
-        }
-        let new_payload = RecordPayload::StructuredJson(canonicalize_json(&Value::Object(object)));
+        Ok::<_, CommitConflict>((
+            kind_id,
+            slot_view.extra().authoritative_aspect_state.clone(),
+        ))
+    })?;
+    let patch_plan = plan_entity_field_aspect_patch(
+        kind_id,
+        workspace.entity_aspect_plan(kind_id),
+        &intent.fields,
+    )
+    .map_err(|denial| {
+        CommitConflict::new(ConflictClass::EntityFieldAspectPatchDenied {
+            entity_id: intent.entity_id,
+            denial,
+        })
+    })?;
+    let new_authoritative_aspect_state = apply_entity_authoritative_patch(
+        authoritative_aspect_state,
+        &patch_plan.authoritative_patch,
+    )
+    .map_err(|denial| {
+        CommitConflict::new(ConflictClass::EntityFieldAspectPatchDenied {
+            entity_id: intent.entity_id,
+            denial,
+        })
+    })?;
+    workspace.with_context(|context| {
         context
             .state
             .mark_entity_slot_touched(intent.entity_id.partition_id, slot);
-        let partition = context.state.get_partition_mut(intent.entity_id.partition_id);
+        let partition = context
+            .state
+            .get_partition_mut(intent.entity_id.partition_id);
+        let mut updated_extra = partition.entity_arena.extra[slot].clone();
+        updated_extra.authoritative_aspect_state = Some(new_authoritative_aspect_state);
         partition
             .entity_arena
-            .apply_payload_update(slot, new_payload.clone(), version_id);
-        Ok::<_, CommitConflict>((kind_id, old_payload, new_payload))
+            .apply_extra_update(slot, updated_extra, version_id);
+        Ok::<_, CommitConflict>(())
     })?;
-    Ok(MutationOutcome::entity_updated(
+    Ok(MutationOutcome::entity_updated_with_authoritative_patch(
         intent.entity_id,
         kind_id,
-        old_payload,
-        new_payload,
+        patch_plan.authoritative_patch,
     ))
 }

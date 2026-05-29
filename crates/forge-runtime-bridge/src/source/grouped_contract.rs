@@ -1,40 +1,40 @@
 use std::sync::Arc;
 
-use serde_json::Value;
+use forge_foundational::facade::AspectValue;
 
 use crate::snapshot::TruthSnapshotIdentity;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct IdentityBindingProof {
-    field_key: Arc<str>,
+    aspect_key: Arc<str>,
 }
 
 impl IdentityBindingProof {
-    pub(crate) fn new(field_key: impl Into<Arc<str>>) -> Self {
+    pub(crate) fn new(aspect_key: impl Into<Arc<str>>) -> Self {
         Self {
-            field_key: field_key.into(),
+            aspect_key: aspect_key.into(),
         }
     }
 
-    pub fn field_key(&self) -> &str {
-        self.field_key.as_ref()
+    pub fn aspect_key(&self) -> &str {
+        self.aspect_key.as_ref()
     }
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GroupingBindingProof {
-    field_key: Arc<str>,
+    aspect_key: Arc<str>,
 }
 
 impl GroupingBindingProof {
-    pub(crate) fn new(field_key: impl Into<Arc<str>>) -> Self {
+    pub(crate) fn new(aspect_key: impl Into<Arc<str>>) -> Self {
         Self {
-            field_key: field_key.into(),
+            aspect_key: aspect_key.into(),
         }
     }
 
-    pub fn field_key(&self) -> &str {
-        self.field_key.as_ref()
+    pub fn aspect_key(&self) -> &str {
+        self.aspect_key.as_ref()
     }
 }
 
@@ -50,10 +50,10 @@ impl GroupedProjectionContract {
         Self {
             grouping_aspect: Arc::from(source.grouping_aspect().to_string()),
             identity_binding: IdentityBindingProof::new(
-                source.identity_binding_field_key().to_string(),
+                source.identity_binding_aspect_key().to_string(),
             ),
             grouping_binding: GroupingBindingProof::new(
-                source.grouping_binding_field_key().to_string(),
+                source.grouping_binding_aspect_key().to_string(),
             ),
         }
     }
@@ -73,8 +73,8 @@ impl GroupedProjectionContract {
 
 pub trait GroupedProjectionMemberSource {
     fn row_identity(&self) -> &str;
-    fn identity_value(&self) -> &Value;
-    fn grouping_value(&self) -> &Value;
+    fn identity_value(&self) -> &AspectValue;
+    fn grouping_value(&self) -> &AspectValue;
 }
 
 pub trait GroupedProjectionSource {
@@ -82,7 +82,7 @@ pub trait GroupedProjectionSource {
 
     fn basis_snapshot_identity(&self) -> &TruthSnapshotIdentity;
     fn grouping_aspect(&self) -> &str;
-    fn identity_binding_field_key(&self) -> &str;
-    fn grouping_binding_field_key(&self) -> &str;
+    fn identity_binding_aspect_key(&self) -> &str;
+    fn grouping_binding_aspect_key(&self) -> &str;
     fn members(&self) -> &[Self::Member];
 }

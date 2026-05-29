@@ -1,6 +1,6 @@
 use serde::{de::Error as DeError, Deserialize, Deserializer, Serialize};
-use sha2::{Digest, Sha256};
 
+use super::canonical_digest::commit_strategy_descriptor_digest;
 use super::strategy_id::CommitStrategyId;
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize)]
@@ -157,7 +157,7 @@ impl CommitStrategyVersion {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub enum StrategyRequestCanonicalization {
-    JsonStableObjectOrderV1,
+    NativeCanonicalBytesV1,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -235,19 +235,19 @@ impl CommitStrategyDescriptor {
         read_contract: StrategyReadContract,
         artifact_name: PersistentArtifactName,
     ) -> Self {
-        let digest = compute_descriptor_digest(&DescriptorDigestBasis {
+        let digest = commit_strategy_descriptor_digest(
             id,
-            semantic_name: &semantic_name,
-            family_name: &family_name,
+            &semantic_name,
+            &family_name,
             version,
-            intent_name: &intent_name,
-            input_schema_name: &input_schema_name,
+            &intent_name,
+            &input_schema_name,
             input_schema_version,
-            output_schema_name: &output_schema_name,
+            &output_schema_name,
             request_canonicalization,
-            read_contract: &read_contract,
-            artifact_name: &artifact_name,
-        });
+            &read_contract,
+            &artifact_name,
+        );
         Self {
             id,
             semantic_name,
@@ -335,19 +335,19 @@ impl<'de> Deserialize<'de> for CommitStrategyDescriptor {
         }
 
         let raw = RawCommitStrategyDescriptor::deserialize(deserializer)?;
-        let expected = compute_descriptor_digest(&DescriptorDigestBasis {
-            id: raw.id,
-            semantic_name: &raw.semantic_name,
-            family_name: &raw.family_name,
-            version: raw.version,
-            intent_name: &raw.intent_name,
-            input_schema_name: &raw.input_schema_name,
-            input_schema_version: raw.input_schema_version,
-            output_schema_name: &raw.output_schema_name,
-            request_canonicalization: raw.request_canonicalization,
-            read_contract: &raw.read_contract,
-            artifact_name: &raw.artifact_name,
-        });
+        let expected = commit_strategy_descriptor_digest(
+            raw.id,
+            &raw.semantic_name,
+            &raw.family_name,
+            raw.version,
+            &raw.intent_name,
+            &raw.input_schema_name,
+            raw.input_schema_version,
+            &raw.output_schema_name,
+            raw.request_canonicalization,
+            &raw.read_contract,
+            &raw.artifact_name,
+        );
         if raw.digest != expected {
             return Err(D::Error::custom(
                 "commit strategy descriptor digest does not match descriptor contents",
@@ -368,27 +368,6 @@ impl<'de> Deserialize<'de> for CommitStrategyDescriptor {
             digest: raw.digest,
         })
     }
-}
-
-#[derive(Serialize)]
-struct DescriptorDigestBasis<'a> {
-    id: CommitStrategyId,
-    semantic_name: &'a CommitStrategySemanticName,
-    family_name: &'a CommitStrategyFamilyName,
-    version: CommitStrategyVersion,
-    intent_name: &'a StrategyIntentName,
-    input_schema_name: &'a StrategyInputSchemaName,
-    input_schema_version: StrategyInputSchemaVersion,
-    output_schema_name: &'a StrategyOutputSchemaName,
-    request_canonicalization: StrategyRequestCanonicalization,
-    read_contract: &'a StrategyReadContract,
-    artifact_name: &'a PersistentArtifactName,
-}
-
-fn compute_descriptor_digest<T: Serialize>(value: &T) -> CommitStrategyDescriptorDigest {
-    let bytes = serde_json::to_vec(value).expect("commit strategy descriptor serialization");
-    let digest = Sha256::digest(bytes);
-    CommitStrategyDescriptorDigest(digest.into())
 }
 
 fn deserialize_non_empty_name<'de, D>(
@@ -426,7 +405,7 @@ mod tests {
             StrategyInputSchemaName::new("intent.input.v1"),
             StrategyInputSchemaVersion(1),
             StrategyOutputSchemaName::new("intent.output.v1"),
-            StrategyRequestCanonicalization::JsonStableObjectOrderV1,
+            StrategyRequestCanonicalization::NativeCanonicalBytesV1,
             StrategyReadContract {
                 scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
                 locality_class: StrategyReadLocalityClass::SinglePartition,
@@ -448,7 +427,7 @@ mod tests {
         assert_eq!(roundtripped.digest(), descriptor.digest());
         assert_eq!(
             roundtripped.request_canonicalization(),
-            StrategyRequestCanonicalization::JsonStableObjectOrderV1
+            StrategyRequestCanonicalization::NativeCanonicalBytesV1
         );
     }
 

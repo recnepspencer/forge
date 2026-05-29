@@ -119,31 +119,61 @@ mod tests {
         ReplayObservableSurface, ReplayVerificationMode,
     };
     use crate::facade::transactions::{
-        CreateIntent, EntityMutationIntent, MutationIntent, TransactionOptions, UpdateEntityIntent,
-        WorkerIntentBatch,
+        CreateIntent, EntityMutationIntent, MutationIntent, TransactionOptions,
+        UpdateEntityFieldsIntent, WorkerIntentBatch,
     };
     use crate::identity::data::{EntityId, KindId, PartitionId};
     use crate::logic::builder::RelationalRuntimeBuilder;
-    use crate::payloads::data::RecordPayload;
     use crate::snapshots::data::SnapshotHandle;
-    use crate::symbols::data::InternedString;
+    use crate::symbols::data::ClientKey;
     use crate::tests::support::{
-        changed_entities, entity_payload_aspect, lifecycle_aspect, read_entity_name,
-        unique_test_store_path, AspectSchemaFixture,
+        changed_entities, entity_field_aspect, entity_u64_field_aspect, lifecycle_aspect,
+        read_entity_name, unique_test_store_path, AspectSchemaFixture,
     };
+    use crate::transactions::data::{AspectFieldPatch, AspectFieldPatchTarget};
     use crate::transactions::data::{EntitySpec, TransactionCommitError};
-    use serde_json::json;
+    use forge_foundational::facade::{
+        AspectFieldLocator, AspectKey, AspectValue, CanonicalFieldPath, FieldKey, InternedString,
+        LocatorAuthority,
+    };
 
     fn strategy_schema_registry() -> crate::schema::data::RelationalSchemaRegistry {
         AspectSchemaFixture {
             entity_aspects: vec![
-                entity_payload_aspect("name", "name"),
-                entity_payload_aspect("replicas", "replicas"),
+                entity_field_aspect("name", "name"),
+                entity_u64_field_aspect("replicas", "replicas"),
                 lifecycle_aspect(),
             ],
             ..AspectSchemaFixture::default()
         }
         .build_registry()
+    }
+
+    fn strategy_name_and_replicas_patch(name: &str, replicas: u64) -> AspectFieldPatch {
+        AspectFieldPatch::from(std::collections::BTreeMap::from([
+            (
+                AspectFieldPatchTarget::single(
+                    AspectKey::new("name").expect("valid name aspect key"),
+                    FieldKey::new("name").expect("valid name field key"),
+                ),
+                AspectValue::String(InternedString::Raw(name.to_string())),
+            ),
+            (
+                AspectFieldPatchTarget::single(
+                    AspectKey::new("replicas").expect("valid replicas aspect key"),
+                    FieldKey::new("replicas").expect("valid replicas field key"),
+                ),
+                AspectValue::UInt64(replicas),
+            ),
+        ]))
+    }
+
+    fn strategy_field_locator(aspect_key: &str, field_key: &str) -> AspectFieldLocator {
+        AspectFieldLocator::new(
+            LocatorAuthority::Planned,
+            AspectKey::new(aspect_key).expect("valid strategy aspect key"),
+            CanonicalFieldPath::single(FieldKey::new(field_key).expect("valid strategy field key")),
+        )
     }
 
     fn strategy_descriptor() -> CommitStrategyDescriptor {
@@ -170,7 +200,7 @@ mod tests {
             StrategyInputSchemaName::new("intent.reconcile.input.v1"),
             StrategyInputSchemaVersion(1),
             StrategyOutputSchemaName::new("intent.reconcile.output.v1"),
-            StrategyRequestCanonicalization::JsonStableObjectOrderV1,
+            StrategyRequestCanonicalization::NativeCanonicalBytesV1,
             StrategyReadContract {
                 scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
                 locality_class: StrategyReadLocalityClass::SinglePartition,
@@ -268,21 +298,23 @@ mod tests {
         let request = runtime
             .commit_strategies()
             .canonicalize_request(
-                &crate::commit_strategies::data::RawStrategyCommitRequest::new(
-                    crate::commit_strategies::data::CommitStrategySemanticName::new(
-                        IntentReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
+                &IntentReconciliationInput {
+                    entity_id: entity,
+                    desired_fields: crate::transactions::data::AspectFieldPatch::single(
+                        forge_foundational::facade::AspectKey::new("name")
+                            .expect("valid test aspect key"),
+                        FieldKey::new("name").expect("valid test field key"),
+                        forge_foundational::facade::AspectValue::String(
+                            forge_foundational::facade::InternedString::Raw("after".to_string()),
+                        ),
                     ),
-                    serde_json::to_vec(&IntentReconciliationInput {
-                        entity_id: entity,
-                        desired_payload: json!({"name":"after"}),
-                    })
-                    .expect("serialize input"),
-                    StrategyCallerProvenance {
-                        request_origin: StrategyRequestOrigin::Test,
-                        actor_identity: None,
-                        correlation_id: None,
-                    },
-                ),
+                }
+                .into_raw_request(StrategyCallerProvenance {
+                    request_origin: StrategyRequestOrigin::Test,
+                    actor_identity: None,
+                    correlation_id: None,
+                })
+                .expect("raw strategy request"),
             )
             .expect("canonical request");
         let snapshot = runtime.visibility_authority().snapshot();
@@ -310,8 +342,8 @@ mod tests {
             CanonicalStrategyInputArtifact::new(
                 StrategyInputSchemaName::new("intent.reconcile.input.v1"),
                 StrategyInputSchemaVersion(1),
-                StrategyRequestCanonicalization::JsonStableObjectOrderV1,
-                br#"{"replicas":3}"#.to_vec().into(),
+                StrategyRequestCanonicalization::NativeCanonicalBytesV1,
+                b"fixture-input".to_vec().into(),
                 CanonicalStrategyInputDigest([9; 32]),
                 PersistentArtifactName::new("strategy.intent.reconcile.input"),
             ),
@@ -328,8 +360,8 @@ mod tests {
             CreateIntent::Entity(EntitySpec {
                 partition_id: PartitionId(1),
                 kind_id: KindId(1),
-                client_key: InternedString::from("deployment-a"),
-                payload: RecordPayload::from(json!({"replicas": 3})),
+                client_key: ClientKey::from("deployment-a"),
+                fields: strategy_name_and_replicas_patch("deployment-a", 3),
             }),
         ));
 
@@ -349,9 +381,13 @@ mod tests {
         name: &str,
     ) -> StrategyExecutionDraft {
         let batch = WorkerIntentBatch::new("reconcile-update").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id,
-                payload: RecordPayload::from(json!({ "name": name })),
+                fields: crate::transactions::data::AspectFieldPatch::single(
+                    AspectKey::new("name").expect("valid name aspect key"),
+                    FieldKey::new("name").expect("valid name field key"),
+                    AspectValue::String(InternedString::Raw(name.to_string())),
+                ),
             }),
         ));
 
@@ -380,7 +416,7 @@ mod tests {
     #[test]
     fn execute_lowered_commit_routes_strategy_plan_through_authoritative_pipeline() {
         let mut runtime = RelationalRuntimeBuilder::new()
-            .schema_registry(crate::tests::support::test_schema_registry())
+            .schema_registry(strategy_schema_registry())
             .commit_strategy(strategy_registration())
             .build();
         let request = canonical_request();
@@ -420,7 +456,7 @@ mod tests {
     #[test]
     fn validate_lowered_plan_preserves_strategy_provenance_and_commit_boundary_summary() {
         let mut runtime = RelationalRuntimeBuilder::new()
-            .schema_registry(crate::tests::support::test_schema_registry())
+            .schema_registry(strategy_schema_registry())
             .commit_strategy(strategy_registration())
             .build();
         let request = canonical_request();
@@ -465,7 +501,7 @@ mod tests {
     #[test]
     fn execute_validated_commit_routes_prevalidated_strategy_plan_through_authoritative_pipeline() {
         let mut runtime = RelationalRuntimeBuilder::new()
-            .schema_registry(crate::tests::support::test_schema_registry())
+            .schema_registry(strategy_schema_registry())
             .commit_strategy(strategy_registration())
             .build();
         let request = canonical_request();
@@ -519,7 +555,7 @@ mod tests {
     #[test]
     fn execute_validated_commit_rejects_stale_validation_basis_after_intervening_commit() {
         let mut runtime = RelationalRuntimeBuilder::new()
-            .schema_registry(crate::tests::support::test_schema_registry())
+            .schema_registry(strategy_schema_registry())
             .commit_strategy(strategy_registration())
             .build();
         let request = canonical_request();
@@ -539,8 +575,8 @@ mod tests {
             MutationIntent::Create(CreateIntent::Entity(EntitySpec {
                 partition_id: PartitionId(1),
                 kind_id: KindId(1),
-                client_key: InternedString::from("ordinary-a"),
-                payload: RecordPayload::from(json!({"replicas": 1})),
+                client_key: ClientKey::from("ordinary-a"),
+                fields: strategy_name_and_replicas_patch("ordinary-a", 1),
             })),
         ));
         ordinary_txn.commit().expect("ordinary commit succeeds");
@@ -567,7 +603,7 @@ mod tests {
     fn replay_commit_certifies_strategy_surface_for_strategy_bearing_commit() {
         let descriptor = strategy_descriptor();
         let mut runtime = RelationalRuntimeBuilder::new()
-            .schema_registry(crate::tests::support::test_schema_registry())
+            .schema_registry(strategy_schema_registry())
             .commit_strategy(strategy_registration())
             .commit_strategy_executor(CommitStrategyExecutionRegistration::new(
                 &descriptor,
@@ -577,9 +613,9 @@ mod tests {
         let request = runtime
             .commit_strategies()
             .canonicalize_request(
-                &crate::commit_strategies::data::RawStrategyCommitRequest::new(
+                &crate::commit_strategies::data::RawStrategyCommitRequest::from_canonical_bytes(
                     CommitStrategySemanticName::new("strategy.intent.reconcile"),
-                    br#"{"replicas":3}"#.to_vec(),
+                    b"fixture-input".to_vec(),
                     StrategyCallerProvenance {
                         request_origin: StrategyRequestOrigin::Test,
                         actor_identity: None,
@@ -645,21 +681,23 @@ mod tests {
         let request = runtime
             .commit_strategies()
             .canonicalize_request(
-                &crate::commit_strategies::data::RawStrategyCommitRequest::new(
-                    crate::commit_strategies::data::CommitStrategySemanticName::new(
-                        IntentReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
+                &IntentReconciliationInput {
+                    entity_id: entity,
+                    desired_fields: crate::transactions::data::AspectFieldPatch::single(
+                        forge_foundational::facade::AspectKey::new("name")
+                            .expect("valid test aspect key"),
+                        FieldKey::new("name").expect("valid test field key"),
+                        forge_foundational::facade::AspectValue::String(
+                            forge_foundational::facade::InternedString::Raw("after".to_string()),
+                        ),
                     ),
-                    serde_json::to_vec(&IntentReconciliationInput {
-                        entity_id: entity,
-                        desired_payload: json!({"name":"after"}),
-                    })
-                    .expect("serialize intent reconciliation input"),
-                    StrategyCallerProvenance {
-                        request_origin: StrategyRequestOrigin::Test,
-                        actor_identity: None,
-                        correlation_id: None,
-                    },
-                ),
+                }
+                .into_raw_request(StrategyCallerProvenance {
+                    request_origin: StrategyRequestOrigin::Test,
+                    actor_identity: None,
+                    correlation_id: None,
+                })
+                .expect("raw strategy request"),
             )
             .expect("canonical request");
         let snapshot: SnapshotHandle = runtime.visibility_authority().snapshot();
@@ -743,22 +781,17 @@ mod tests {
         let request = runtime
             .commit_strategies()
             .canonicalize_request(
-                &crate::commit_strategies::data::RawStrategyCommitRequest::new(
-                    crate::commit_strategies::data::CommitStrategySemanticName::new(
-                        EntityReplacementReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
-                    ),
-                    serde_json::to_vec(&EntityReplacementReconciliationInput {
-                        entity_id: entity,
-                        replacement_client_key: "service-replacement".to_string(),
-                        desired_payload: json!({"replicas":3}),
-                    })
-                    .expect("serialize replacement input"),
-                    StrategyCallerProvenance {
-                        request_origin: StrategyRequestOrigin::Test,
-                        actor_identity: None,
-                        correlation_id: None,
-                    },
-                ),
+                &EntityReplacementReconciliationInput {
+                    entity_id: entity,
+                    replacement_client_key: "service-replacement".to_string(),
+                    desired_fields: strategy_name_and_replicas_patch("before", 3),
+                }
+                .into_raw_request(StrategyCallerProvenance {
+                    request_origin: StrategyRequestOrigin::Test,
+                    actor_identity: None,
+                    correlation_id: None,
+                })
+                .expect("raw strategy request"),
             )
             .expect("canonical replacement request");
         let snapshot: SnapshotHandle = runtime.visibility_authority().snapshot();
@@ -799,12 +832,10 @@ mod tests {
         assert_ne!(original_lineage, replacement_lineage);
         assert_eq!(read_entity_name(&replacement_record), Some("before"));
         assert_eq!(
-            replacement_record
-                .payload
-                .as_json()
-                .and_then(|json_value| json_value.get("replicas"))
-                .and_then(serde_json::Value::as_u64),
-            Some(3)
+            replacement_record.authoritative_field_display_value(
+                &FieldKey::new("replicas").expect("valid replicas field")
+            ),
+            Some("3")
         );
         assert_eq!(
             strategy_artifacts
@@ -858,12 +889,12 @@ mod tests {
         );
         let feature_descriptor = strategy_descriptor_named(
             CommitStrategyId(42),
-            "strategy.replica.converge",
-            "strategy.replica",
-            "replica.desired.state",
+            "strategy.aspect.field.reconcile",
+            "strategy.aspect",
+            "aspect.scalar.field.reconcile",
         );
         let mut runtime = RelationalRuntimeBuilder::new()
-            .schema_registry(crate::tests::support::test_schema_registry())
+            .schema_registry(strategy_schema_registry())
             .commit_strategy(
                 CommitStrategyRegistration::new(main_descriptor.clone())
                     .expect("main strategy registration"),
@@ -878,25 +909,26 @@ mod tests {
             crate::tests::support::create_branch_from_main(&mut runtime, "feature");
 
         {
-            let request = CanonicalStrategyCommitRequest::new(
-                main_descriptor.id(),
-                main_descriptor.digest(),
-                CanonicalStrategyInputArtifact::new(
-                    StrategyInputSchemaName::new("intent.reconcile.input.v1"),
-                    StrategyInputSchemaVersion(1),
-                    StrategyRequestCanonicalization::JsonStableObjectOrderV1,
-                    br#"{"entity_id":{"partition_id":1,"local_slot":0,"generation":1},"desired_payload":{"name":"main-strategy","replicas":3}}"#
-                        .to_vec()
-                        .into(),
-                    CanonicalStrategyInputDigest([11; 32]),
-                    PersistentArtifactName::new("strategy.intent.reconcile.input"),
-                ),
-                StrategyCallerProvenance {
-                    request_origin: StrategyRequestOrigin::Test,
-                    actor_identity: None,
-                    correlation_id: None,
-                },
-            );
+            let request = runtime
+                .commit_strategies()
+                .canonicalize_request(
+                    &IntentReconciliationInput {
+                        entity_id: entity,
+                        desired_fields: AspectFieldPatch::single(
+                            forge_foundational::facade::AspectKey::new("name")
+                                .expect("valid test aspect key"),
+                            FieldKey::new("name").expect("valid test field key"),
+                            forge_foundational::facade::AspectValue::String("main-strategy".into()),
+                        ),
+                    }
+                    .into_raw_request(StrategyCallerProvenance {
+                        request_origin: StrategyRequestOrigin::Test,
+                        actor_identity: None,
+                        correlation_id: None,
+                    })
+                    .expect("raw main strategy request"),
+                )
+                .expect("main canonical request");
             let execution = update_execution_draft(&request, entity, "main-strategy");
             let mut authority = runtime.commit_strategies_authority();
             let lowered = authority
@@ -911,25 +943,24 @@ mod tests {
         }
 
         {
-            let request = CanonicalStrategyCommitRequest::new(
-                feature_descriptor.id(),
-                feature_descriptor.digest(),
-                CanonicalStrategyInputArtifact::new(
-                    StrategyInputSchemaName::new("intent.reconcile.input.v1"),
-                    StrategyInputSchemaVersion(1),
-                    StrategyRequestCanonicalization::JsonStableObjectOrderV1,
-                    br#"{"entity_id":{"partition_id":1,"local_slot":0,"generation":1},"desired_replicas":7}"#
-                        .to_vec()
-                        .into(),
-                    CanonicalStrategyInputDigest([12; 32]),
-                    PersistentArtifactName::new("strategy.replica.converge.input"),
-                ),
-                StrategyCallerProvenance {
-                    request_origin: StrategyRequestOrigin::Test,
-                    actor_identity: None,
-                    correlation_id: None,
-                },
-            );
+            let request = runtime
+                .commit_strategies()
+                .canonicalize_request(
+                    &AspectFieldReconciliationInput {
+                        entity_id: entity,
+                        field_locator: strategy_field_locator("name", "name"),
+                        desired_value: forge_foundational::facade::AspectValue::String(
+                            "feature-strategy".into(),
+                        ),
+                    }
+                    .into_raw_request(StrategyCallerProvenance {
+                        request_origin: StrategyRequestOrigin::Test,
+                        actor_identity: None,
+                        correlation_id: None,
+                    })
+                    .expect("raw feature strategy request"),
+                )
+                .expect("feature canonical request");
             let execution = update_execution_draft(&request, entity, "feature-strategy");
             let mut authority = runtime.commit_strategies_authority();
             let lowered = authority
@@ -1019,21 +1050,16 @@ mod tests {
             let request = runtime
                 .commit_strategies()
                 .canonicalize_request(
-                    &crate::commit_strategies::data::RawStrategyCommitRequest::new(
-                        crate::commit_strategies::data::CommitStrategySemanticName::new(
-                            IntentReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
-                        ),
-                        serde_json::to_vec(&IntentReconciliationInput {
-                            entity_id: entity,
-                            desired_payload: json!({"name":"main-intent","replicas":1}),
-                        })
-                        .expect("serialize intent input"),
-                        StrategyCallerProvenance {
-                            request_origin: StrategyRequestOrigin::Test,
-                            actor_identity: None,
-                            correlation_id: None,
-                        },
-                    ),
+                    &IntentReconciliationInput {
+                        entity_id: entity,
+                        desired_fields: strategy_name_and_replicas_patch("main-intent", 1),
+                    }
+                    .into_raw_request(StrategyCallerProvenance {
+                        request_origin: StrategyRequestOrigin::Test,
+                        actor_identity: None,
+                        correlation_id: None,
+                    })
+                    .expect("raw strategy request"),
                 )
                 .expect("intent canonical request");
             let snapshot = runtime.visibility_authority().snapshot();
@@ -1057,21 +1083,16 @@ mod tests {
             let request = runtime
                 .commit_strategies()
                 .canonicalize_request(
-                    &crate::commit_strategies::data::RawStrategyCommitRequest::new(
-                        crate::commit_strategies::data::CommitStrategySemanticName::new(
-                            ReplicaConvergenceStrategy::DEFAULT_SEMANTIC_NAME,
-                        ),
-                        serde_json::to_vec(&ReplicaConvergenceInput {
-                            entity_id: entity,
-                            desired_replicas: 7,
-                        })
-                        .expect("serialize replica input"),
-                        StrategyCallerProvenance {
-                            request_origin: StrategyRequestOrigin::Test,
-                            actor_identity: None,
-                            correlation_id: None,
-                        },
-                    ),
+                    &ReplicaConvergenceInput {
+                        entity_id: entity,
+                        desired_replicas: 7,
+                    }
+                    .into_raw_request(StrategyCallerProvenance {
+                        request_origin: StrategyRequestOrigin::Test,
+                        actor_identity: None,
+                        correlation_id: None,
+                    })
+                    .expect("raw strategy request"),
                 )
                 .expect("replica canonical request");
             let snapshot = runtime.visibility_authority().snapshot();
@@ -1142,8 +1163,8 @@ mod tests {
         let registry = AspectSchemaFixture {
             cascade_delete_policy: crate::config::data::CascadeDeletePolicy::CascadeDeleteRelations,
             entity_aspects: vec![
-                entity_payload_aspect("name", "name"),
-                entity_payload_aspect("replicas", "replicas"),
+                entity_field_aspect("name", "name"),
+                entity_u64_field_aspect("replicas", "replicas"),
                 lifecycle_aspect(),
             ],
             ..AspectSchemaFixture::default()
@@ -1174,22 +1195,19 @@ mod tests {
             let request = runtime
                 .commit_strategies()
                 .canonicalize_request(
-                    &crate::commit_strategies::data::RawStrategyCommitRequest::new(
-                        crate::commit_strategies::data::CommitStrategySemanticName::new(
-                            AspectFieldReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
+                    &AspectFieldReconciliationInput {
+                        entity_id: entity,
+                        field_locator: strategy_field_locator("name", "name"),
+                        desired_value: forge_foundational::facade::AspectValue::String(
+                            "main-name".into(),
                         ),
-                        serde_json::to_vec(&AspectFieldReconciliationInput {
-                            entity_id: entity,
-                            field_name: "name".to_string(),
-                            desired_value: serde_json::json!("main-name"),
-                        })
-                        .expect("serialize aspect input"),
-                        StrategyCallerProvenance {
-                            request_origin: StrategyRequestOrigin::Test,
-                            actor_identity: None,
-                            correlation_id: None,
-                        },
-                    ),
+                    }
+                    .into_raw_request(StrategyCallerProvenance {
+                        request_origin: StrategyRequestOrigin::Test,
+                        actor_identity: None,
+                        correlation_id: None,
+                    })
+                    .expect("raw strategy request"),
                 )
                 .expect("aspect canonical request");
             let snapshot = runtime.visibility_authority().snapshot();
@@ -1213,21 +1231,16 @@ mod tests {
             let request = runtime
                 .commit_strategies()
                 .canonicalize_request(
-                    &crate::commit_strategies::data::RawStrategyCommitRequest::new(
-                        crate::commit_strategies::data::CommitStrategySemanticName::new(
-                            ReplicaConvergenceStrategy::DEFAULT_SEMANTIC_NAME,
-                        ),
-                        serde_json::to_vec(&ReplicaConvergenceInput {
-                            entity_id: entity,
-                            desired_replicas: 7,
-                        })
-                        .expect("serialize replica input"),
-                        StrategyCallerProvenance {
-                            request_origin: StrategyRequestOrigin::Test,
-                            actor_identity: None,
-                            correlation_id: None,
-                        },
-                    ),
+                    &ReplicaConvergenceInput {
+                        entity_id: entity,
+                        desired_replicas: 7,
+                    }
+                    .into_raw_request(StrategyCallerProvenance {
+                        request_origin: StrategyRequestOrigin::Test,
+                        actor_identity: None,
+                        correlation_id: None,
+                    })
+                    .expect("raw strategy request"),
                 )
                 .expect("replica canonical request");
             let snapshot = runtime.visibility_authority().snapshot();
@@ -1288,8 +1301,8 @@ mod tests {
         let registry = AspectSchemaFixture {
             cascade_delete_policy: crate::config::data::CascadeDeletePolicy::CascadeDeleteRelations,
             entity_aspects: vec![
-                entity_payload_aspect("name", "name"),
-                entity_payload_aspect("replicas", "replicas"),
+                entity_field_aspect("name", "name"),
+                entity_u64_field_aspect("replicas", "replicas"),
                 lifecycle_aspect(),
             ],
             ..AspectSchemaFixture::default()
@@ -1310,31 +1323,25 @@ mod tests {
             crate::tests::support::create_branch_from_main(&mut runtime, "feature-same-aspect");
 
         for (branch, desired_value) in [
-            (None, serde_json::json!("main-name")),
-            (
-                Some(feature_branch.clone()),
-                serde_json::json!("feature-name"),
-            ),
+            (None, "main-name"),
+            (Some(feature_branch.clone()), "feature-name"),
         ] {
             let request = runtime
                 .commit_strategies()
                 .canonicalize_request(
-                    &crate::commit_strategies::data::RawStrategyCommitRequest::new(
-                        crate::commit_strategies::data::CommitStrategySemanticName::new(
-                            AspectFieldReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
+                    &AspectFieldReconciliationInput {
+                        entity_id: entity,
+                        field_locator: strategy_field_locator("name", "name"),
+                        desired_value: forge_foundational::facade::AspectValue::String(
+                            desired_value.into(),
                         ),
-                        serde_json::to_vec(&AspectFieldReconciliationInput {
-                            entity_id: entity,
-                            field_name: "name".to_string(),
-                            desired_value,
-                        })
-                        .expect("serialize aspect input"),
-                        StrategyCallerProvenance {
-                            request_origin: StrategyRequestOrigin::Test,
-                            actor_identity: None,
-                            correlation_id: None,
-                        },
-                    ),
+                    }
+                    .into_raw_request(StrategyCallerProvenance {
+                        request_origin: StrategyRequestOrigin::Test,
+                        actor_identity: None,
+                        correlation_id: None,
+                    })
+                    .expect("raw strategy request"),
                 )
                 .expect("aspect canonical request");
             let snapshot = runtime.visibility_authority().snapshot();

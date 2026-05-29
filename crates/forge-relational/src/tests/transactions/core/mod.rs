@@ -14,10 +14,17 @@ use crate::facade::runtime::{InvariantExecutionPoint, RelationalExecutionModel};
 use crate::facade::schema::SchemaRegistryError;
 use crate::facade::storage::RecordLifecycleState;
 use crate::facade::transactions::{
-    AuthorityMode, CommitPatchBudgetSummary, CommitPhase, CommitTopology, CommitTraceEvent,
-    EntitySpec, MutationIntent, RelationSpec, TransactionCommitError,
+    AspectTraceEvidence, AspectTracePatchOperation, AuthorityMode, CommitPatchBudgetSummary,
+    CommitPhase, CommitTopology, CommitTraceEvent, EntitySpec, MutationIntent, RelationSpec,
+    TransactionCommitError,
+};
+use crate::publication::patch::data::{
+    PublishedAuthoritativePatchOperation, PublishedAuthoritativePatchValue,
 };
 use crate::tests::support::*;
+use forge_foundational::facade::{
+    AspectKey, AspectValue, ContractValidatedAspectValueView, FieldKey,
+};
 
 mod relation_integrity;
 mod relation_updates;
@@ -66,9 +73,11 @@ fn relational_error_wraps_authority_failures_with_context() {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
         WorkerIntentBatch::new("stale-update").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: entity,
-                payload: RecordPayload::StructuredJson(json!({"name":"stale"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    json!({"name":"stale"}),
+                ),
             }),
         )),
     );
@@ -107,8 +116,10 @@ fn transaction_intent_is_the_shared_mutation_intent_type() {
         crate::transactions::data::EntitySpec {
             partition_id: PartitionId::main(),
             kind_id: KindId(1),
-            client_key: InternedString::Raw("alias".to_string()),
-            payload: RecordPayload::StructuredJson(json!({"name":"alias"})),
+            client_key: crate::symbols::data::ClientKey::raw("alias"),
+            fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                json!({"name":"alias"}),
+            ),
         },
     ));
     let transaction_intent: MutationIntent = create.clone();
@@ -123,31 +134,414 @@ fn update_entity_fields_rejects_undeclared_payload_keys() {
     let entity = create_entity(&mut runtime, "field-guard");
 
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
-    txn.push_batch(WorkerIntentBatch::new("update-fields-undeclared").push(
-        MutationIntent::Entity(
+    txn.push_batch(
+        WorkerIntentBatch::new("update-fields-undeclared").push(MutationIntent::Entity(
             crate::transactions::data::EntityMutationIntent::UpdateFields(
                 crate::transactions::data::UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    fields: std::collections::BTreeMap::from([(
-                        "undeclared".to_string(),
-                        json!("nope"),
-                    )]),
+                    fields: crate::transactions::data::AspectFieldPatch::from(
+                        std::collections::BTreeMap::from([(
+                            crate::transactions::data::AspectFieldPatchTarget::single(
+                                forge_foundational::facade::AspectKey::new("undeclared")
+                                    .expect("valid test aspect key"),
+                                forge_foundational::facade::FieldKey::new("undeclared").unwrap(),
+                            ),
+                            forge_foundational::facade::AspectValue::String(
+                                forge_foundational::facade::InternedString::Raw("nope".to_string()),
+                            ),
+                        )]),
+                    ),
                 },
             ),
-        ),
-    ));
+        )),
+    );
 
     let error = txn.commit().unwrap_err();
     match error {
         crate::transactions::data::TransactionCommitError::Conflict { error, .. } => {
-            assert!(matches!(
-                error.class,
-                crate::transactions::data::ConflictClass::KindSchemaMismatch { .. }
-            ));
-            assert!(error.detail.contains("not a declared scalar entity aspect"));
+            match error.class {
+                crate::transactions::data::ConflictClass::EntityFieldAspectPatchDenied {
+                    denial:
+                        crate::transactions::data::EntityFieldAspectPatchDenial::UndeclaredEntityAspectTarget {
+                            ref field_locator,
+                            ..
+                        },
+                    ..
+                } => assert_eq!(field_locator.aspect().aspect_key().as_str(), "undeclared"),
+                other => panic!("expected typed entity field aspect patch denial, got {other:?}"),
+            }
+            assert!(error.detail.contains("targets undeclared aspect"));
         }
         other => panic!("expected conflict error, got {other:?}"),
     }
+}
+
+#[test]
+fn update_entity_fields_state_conflict_is_typed_not_json() {
+    let entity_id = EntityId::new(PartitionId::main(), 7, 0);
+    let conflict = crate::transactions::data::CommitConflict::new(
+        crate::transactions::data::ConflictClass::EntityFieldUpdateStateInconsistency {
+            entity_id,
+            missing:
+                crate::transactions::data::EntityFieldUpdateMissingState::AuthoritativeAspectState,
+        },
+    );
+
+    match conflict.class {
+        crate::transactions::data::ConflictClass::EntityFieldUpdateStateInconsistency {
+            entity_id: actual_entity_id,
+            missing,
+        } => {
+            assert_eq!(actual_entity_id, entity_id);
+            assert_eq!(
+                missing,
+                crate::transactions::data::EntityFieldUpdateMissingState::AuthoritativeAspectState
+            );
+        }
+        other => panic!("expected typed entity field update state conflict, got {other:?}"),
+    }
+    assert!(conflict
+        .detail
+        .contains("retained authoritative aspect state after stale-target validation"));
+}
+
+#[test]
+fn update_entity_fields_canonical_delta_uses_authoritative_patch_evidence() {
+    let mut runtime =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let entity = create_entity(&mut runtime, "before");
+
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("field-patch").push(MutationIntent::Entity(
+            EntityMutationIntent::UpdateFields(
+                crate::transactions::data::UpdateEntityFieldsIntent {
+                    entity_id: entity,
+                    fields: crate::transactions::data::AspectFieldPatch::single(
+                        forge_foundational::facade::AspectKey::new("name")
+                            .expect("valid test aspect key"),
+                        FieldKey::new("name").expect("valid test field key"),
+                        forge_foundational::facade::AspectValue::String("after".into()),
+                    ),
+                },
+            ),
+        )),
+    );
+    let outcome = txn.commit().unwrap();
+    let patch_record = &outcome.patch()[0];
+    let current_read = runtime
+        .read_truth()
+        .read_snapshot(&outcome.snapshot)
+        .unwrap();
+
+    let trace = outcome
+        .aspect_evaluation_traces()
+        .iter()
+        .find(|trace| trace.target == RecordRef::Entity(entity))
+        .expect("entity field patch trace");
+    let row = trace
+        .binding_rows
+        .iter()
+        .find(|row| row.aspect_key == AspectKey::new("name").unwrap())
+        .expect("name aspect row");
+
+    assert!(row.changed);
+    assert_eq!(
+        trace.changed_aspects,
+        CanonicalAspectSet::new([AspectKey::new("name").unwrap()])
+    );
+    assert_eq!(
+        patch_record.authoritative_changed_aspects(),
+        CanonicalAspectSet::new([AspectKey::new("name").unwrap()])
+    );
+    assert!(matches!(
+        patch_record.authoritative_patch.operations.as_slice(),
+        [PublishedAuthoritativePatchOperation::WholeAspectSet {
+            aspect_key,
+            value: PublishedAuthoritativePatchValue::Scalar(value),
+        }] if aspect_key == &AspectKey::new("name").unwrap()
+            && value == &AspectValue::String("after".into())
+    ));
+    let authoritative_name = current_read
+        .get_entity(entity)
+        .unwrap()
+        .authoritative_aspect_state
+        .as_ref()
+        .and_then(|state| state.get(&AspectKey::new("name").unwrap()))
+        .expect("name aspect state");
+    assert!(matches!(
+        authoritative_name.view(),
+        ContractValidatedAspectValueView::Scalar(value)
+            if value == &AspectValue::String("after".into())
+    ));
+    assert!(matches!(
+        &row.evidence,
+        AspectTraceEvidence::AuthoritativePatchOperation {
+            operation: AspectTracePatchOperation::WholeAspectSet {
+                value: Some(value)
+            }
+        } if value == &AspectValue::String("after".into())
+    ));
+}
+
+#[test]
+fn update_entity_fields_applies_struct_contract_field_patch() {
+    let mut runtime = AspectSchemaFixture {
+        entity_aspects: vec![
+            entity_field_aspect("name", "name"),
+            entity_summary_struct_aspect("summary", "summary"),
+        ],
+        ..AspectSchemaFixture::default()
+    }
+    .build_runtime();
+    let entity = create_entity_with_summary_fields(
+        &mut runtime,
+        "struct-patch",
+        "before",
+        "open",
+        true,
+        false,
+    );
+
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("summary-field-patch").push(MutationIntent::Entity(
+            EntityMutationIntent::UpdateFields(
+                crate::transactions::data::UpdateEntityFieldsIntent {
+                    entity_id: entity,
+                    fields: crate::transactions::data::AspectFieldPatch::single(
+                        forge_foundational::facade::AspectKey::new("summary")
+                            .expect("valid test aspect key"),
+                        FieldKey::new("title").expect("valid test field key"),
+                        forge_foundational::facade::AspectValue::String("after".into()),
+                    ),
+                },
+            ),
+        )),
+    );
+    let outcome = txn.commit().unwrap();
+    let patch_record = &outcome.patch()[0];
+    let current_read = runtime
+        .read_truth()
+        .read_snapshot(&outcome.snapshot)
+        .unwrap();
+    let record = current_read.get_entity(entity).unwrap();
+
+    let authoritative_summary = record
+        .authoritative_aspect_state
+        .as_ref()
+        .and_then(|state| state.get(&AspectKey::new("summary").unwrap()))
+        .expect("summary aspect state");
+    let ContractValidatedAspectValueView::Struct(authoritative_summary) =
+        authoritative_summary.view()
+    else {
+        panic!("summary aspect state must remain struct shaped");
+    };
+    assert_eq!(
+        authoritative_summary.get(&FieldKey::new("title").unwrap()),
+        Some(&AspectValue::String("after".into()))
+    );
+    assert_eq!(
+        authoritative_summary.get(&FieldKey::new("status").unwrap()),
+        Some(&AspectValue::String("open".into()))
+    );
+    assert_eq!(
+        patch_record.authoritative_changed_aspects(),
+        CanonicalAspectSet::new([AspectKey::new("summary").unwrap()])
+    );
+    assert!(matches!(
+        patch_record.authoritative_patch.operations.as_slice(),
+        [PublishedAuthoritativePatchOperation::FieldLevelPatch {
+            aspect_key,
+            field_sets,
+            field_clears,
+        }] if aspect_key == &AspectKey::new("summary").unwrap()
+            && field_sets.len() == 1
+            && field_sets[0].field == FieldKey::new("title").unwrap()
+            && field_sets[0].value == AspectValue::String("after".into())
+            && field_clears.is_empty()
+    ));
+
+    let trace = outcome
+        .aspect_evaluation_traces()
+        .iter()
+        .find(|trace| trace.target == RecordRef::Entity(entity))
+        .expect("summary field patch trace");
+    let row = trace
+        .binding_rows
+        .iter()
+        .find(|row| row.aspect_key == AspectKey::new("summary").unwrap())
+        .expect("summary aspect row");
+
+    assert!(row.changed);
+    assert!(matches!(
+        &row.evidence,
+        AspectTraceEvidence::AuthoritativePatchOperation {
+            operation: AspectTracePatchOperation::FieldLevelPatch {
+                field_sets,
+                field_clears,
+            }
+        } if field_sets == &vec![(
+                FieldKey::new("title").expect("valid test field key"),
+                AspectValue::String("after".into()),
+            )]
+            && field_clears.is_empty()
+    ));
+}
+
+#[test]
+fn update_entity_fields_rejects_explicit_aspect_field_path_mismatch() {
+    let mut runtime = AspectSchemaFixture {
+        entity_aspects: vec![
+            entity_field_aspect("title.scalar", "title"),
+            entity_summary_struct_aspect("summary", "summary"),
+        ],
+        ..AspectSchemaFixture::default()
+    }
+    .build_runtime();
+    let entity = create_entity_with_summary_fields(
+        &mut runtime,
+        "ambiguous-title",
+        "before",
+        "open",
+        false,
+        true,
+    );
+
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("mismatched-aspect-field").push(MutationIntent::Entity(
+            EntityMutationIntent::UpdateFields(
+                crate::transactions::data::UpdateEntityFieldsIntent {
+                    entity_id: entity,
+                    fields: crate::transactions::data::AspectFieldPatch::single(
+                        forge_foundational::facade::AspectKey::new("title.scalar")
+                            .expect("valid test aspect key"),
+                        FieldKey::new("status").expect("valid test field key"),
+                        forge_foundational::facade::AspectValue::String("after".into()),
+                    ),
+                },
+            ),
+        )),
+    );
+
+    let error = txn.commit().unwrap_err();
+    match error {
+        TransactionCommitError::Conflict { error, .. } => match error.class {
+            crate::transactions::data::ConflictClass::EntityFieldAspectPatchDenied {
+                denial:
+                    crate::transactions::data::EntityFieldAspectPatchDenial::EntityAspectFieldPathMismatch {
+                        field_locator,
+                        ..
+                    },
+                ..
+            } => assert_eq!(field_locator.aspect().aspect_key().as_str(), "title.scalar"),
+            other => panic!("expected entity aspect field path mismatch denial, got {other:?}"),
+        },
+        other => panic!("expected conflict error, got {other:?}"),
+    }
+}
+
+#[test]
+fn update_entity_fields_validation_denial_carries_aspect_field_path() {
+    let mut runtime =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let entity = create_entity(&mut runtime, "type-denial");
+
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(
+        WorkerIntentBatch::new("field-patch-type-denial").push(MutationIntent::Entity(
+            EntityMutationIntent::UpdateFields(
+                crate::transactions::data::UpdateEntityFieldsIntent {
+                    entity_id: entity,
+                    fields: crate::transactions::data::AspectFieldPatch::single(
+                        forge_foundational::facade::AspectKey::new("name")
+                            .expect("valid test aspect key"),
+                        FieldKey::new("name").expect("valid test field key"),
+                        forge_foundational::facade::AspectValue::UInt64(7),
+                    ),
+                },
+            ),
+        )),
+    );
+
+    let error = txn.commit().unwrap_err();
+    match error {
+        TransactionCommitError::Conflict { error, .. } => match error.class {
+            crate::transactions::data::ConflictClass::EntityFieldAspectPatchDenied {
+                denial:
+                    crate::transactions::data::EntityFieldAspectPatchDenial::ContractValidationDenied {
+                        field_locator,
+                        ..
+                    },
+                ..
+            } => {
+                assert_eq!(field_locator.aspect().aspect_key().as_str(), "name");
+                assert_eq!(
+                    field_locator.field_path(),
+                    &forge_foundational::facade::CanonicalFieldPath::single(
+                        FieldKey::new("name").expect("valid test field key")
+                    )
+                );
+            }
+            other => panic!("expected contract validation denial, got {other:?}"),
+        },
+        other => panic!("expected conflict error, got {other:?}"),
+    }
+}
+
+fn create_entity_with_summary_fields(
+    runtime: &mut RelationalRuntime,
+    client_key: &str,
+    summary_title: &str,
+    summary_status: &str,
+    include_name: bool,
+    include_scalar_title: bool,
+) -> EntityId {
+    let mut fields = std::collections::BTreeMap::from([
+        (
+            crate::transactions::data::AspectFieldPatchTarget::single(
+                AspectKey::new("summary").expect("valid summary aspect key"),
+                FieldKey::new("title").expect("valid title field key"),
+            ),
+            AspectValue::String(summary_title.into()),
+        ),
+        (
+            crate::transactions::data::AspectFieldPatchTarget::single(
+                AspectKey::new("summary").expect("valid summary aspect key"),
+                FieldKey::new("status").expect("valid status field key"),
+            ),
+            AspectValue::String(summary_status.into()),
+        ),
+    ]);
+    if include_name {
+        fields.insert(
+            crate::transactions::data::AspectFieldPatchTarget::single(
+                AspectKey::new("name").expect("valid name aspect key"),
+                FieldKey::new("name").expect("valid name field key"),
+            ),
+            AspectValue::String(client_key.into()),
+        );
+    }
+    if include_scalar_title {
+        fields.insert(
+            crate::transactions::data::AspectFieldPatchTarget::single(
+                AspectKey::new("title.scalar").expect("valid scalar title aspect key"),
+                FieldKey::new("title").expect("valid title field key"),
+            ),
+            AspectValue::String("scalar-title".into()),
+        );
+    }
+    let mut txn = runtime.begin_transaction(TransactionOptions::default());
+    txn.push_batch(WorkerIntentBatch::new(format!("batch-{client_key}")).push(
+        MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+            partition_id: PartitionId::main(),
+            kind_id: KindId(1),
+            client_key: crate::symbols::data::ClientKey::raw(client_key),
+            fields: crate::transactions::data::AspectFieldPatch::new(fields),
+        })),
+    ));
+    changed_entities(&txn.commit().unwrap())[0]
 }
 
 #[test]
@@ -333,7 +727,8 @@ fn commit_returns_envelope_with_patch_diagnostics_invariants_and_complexity() {
 fn visibility_aspect_versions_follow_canonical_delta_truth_and_ignore_undeclared_fields() {
     let mut runtime =
         runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
-    let entity = create_entity(&mut runtime, "alpha");
+    let created = create_entity_outcome(&mut runtime, "alpha");
+    let entity = changed_entities(&created)[0];
     let updated = update_entity(&mut runtime, entity, "beta");
     let versions = runtime.read_truth().entity_aspect_versions(entity).unwrap();
 
@@ -343,13 +738,17 @@ fn visibility_aspect_versions_follow_canonical_delta_truth_and_ignore_undeclared
             .map(|(aspect, _)| aspect.clone())
             .collect::<Vec<_>>(),
         vec![
-            AspectKey(InternedString::Raw("lifecycle".to_string())),
-            AspectKey(InternedString::Raw("name".to_string())),
+            AspectKey::new("lifecycle").unwrap(),
+            AspectKey::new("name").unwrap(),
         ]
     );
-    assert!(versions
-        .iter()
-        .all(|(_, version)| *version == updated.version_id.0));
+    assert_eq!(
+        versions,
+        vec![
+            (AspectKey::new("lifecycle").unwrap(), created.version_id.0),
+            (AspectKey::new("name").unwrap(), updated.version_id.0),
+        ]
+    );
 
     let relation = create_relation(&mut runtime, entity, entity, "edge");
     let relation_versions = runtime
@@ -362,10 +761,10 @@ fn visibility_aspect_versions_follow_canonical_delta_truth_and_ignore_undeclared
             .map(|(aspect, _)| aspect.clone())
             .collect::<Vec<_>>(),
         vec![
-            AspectKey(InternedString::Raw("label".to_string())),
-            AspectKey(InternedString::Raw("lifecycle".to_string())),
-            AspectKey(InternedString::Raw("source".to_string())),
-            AspectKey(InternedString::Raw("target".to_string())),
+            AspectKey::new("label").unwrap(),
+            AspectKey::new("lifecycle").unwrap(),
+            AspectKey::new("source").unwrap(),
+            AspectKey::new("target").unwrap(),
         ]
     );
 }
@@ -411,8 +810,8 @@ fn commit_publication_exposes_aspect_evaluation_and_emission_traces() {
     assert_eq!(
         evaluation_traces[0].changed_aspects,
         CanonicalAspectSet::new([
-            AspectKey(InternedString::Raw("lifecycle".to_string())),
-            AspectKey(InternedString::Raw("name".to_string())),
+            AspectKey::new("lifecycle").unwrap(),
+            AspectKey::new("name").unwrap(),
         ])
     );
     assert_eq!(evaluation_traces[0].binding_rows.len(), 2);
@@ -469,8 +868,8 @@ fn detailed_trace_profile_emits_commit_side_aspect_trace_diagnostics() {
 fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
     let fixture = AspectSchemaFixture {
         entity_aspects: vec![
-            entity_payload_aspect("name", "name"),
-            entity_payload_aspect("status", "status"),
+            entity_field_aspect("name", "name"),
+            entity_field_aspect("status", "status"),
             lifecycle_aspect(),
         ],
         relation_aspects: vec![relation_source_aspect(), relation_target_aspect()],
@@ -483,8 +882,8 @@ fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
             crate::transactions::data::EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
-                client_key: InternedString::Raw("row".to_string()),
-                payload: RecordPayload::StructuredJson(json!({
+                client_key: crate::symbols::data::ClientKey::raw("row"),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(json!({
                     "name": "before",
                     "status": "stable"
                 })),
@@ -497,9 +896,9 @@ fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
     let mut update_txn = runtime.begin_transaction(TransactionOptions::default());
     update_txn.push_batch(
         WorkerIntentBatch::new("update-name-only").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: entity,
-                payload: RecordPayload::StructuredJson(json!({
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(json!({
                     "name": "after",
                     "status": "stable"
                 })),
@@ -508,7 +907,7 @@ fn aspect_evaluation_trace_retains_unchanged_bindings_for_auditability() {
     );
     let result = update_txn.commit().unwrap();
     let trace = &result.aspect_evaluation_traces()[0];
-    let status_key = AspectKey(InternedString::Raw("status".to_string()));
+    let status_key = AspectKey::new("status").unwrap();
     let status_row = trace
         .binding_rows
         .iter()
@@ -610,8 +1009,8 @@ fn entity_patch_aspects_follow_declared_semantics_not_payload_keys() {
             crate::transactions::data::EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
-                client_key: InternedString::Raw("aspect-entity".to_string()),
-                payload: RecordPayload::StructuredJson(json!({
+                client_key: crate::symbols::data::ClientKey::raw("aspect-entity"),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(json!({
                     "name": "before",
                     "ignored": "not-an-aspect"
                 })),
@@ -630,13 +1029,13 @@ fn entity_patch_aspects_follow_declared_semantics_not_payload_keys() {
         RecordStructuralChange::Created
     );
     assert_eq!(
-        created_patch.aspects,
+        created_patch.authoritative_changed_aspects(),
         CanonicalAspectSet::new([
-            AspectKey(InternedString::Raw("lifecycle".to_string())),
-            AspectKey(InternedString::Raw("name".to_string())),
+            AspectKey::new("lifecycle").unwrap(),
+            AspectKey::new("name").unwrap(),
         ])
     );
-    assert!(!created_patch.contains_degraded_precision);
+    assert!(!created_patch.contains_opaque_aspect);
     assert_eq!(created_aspect_summary.changed_entity_aspect_count, 2);
     assert_eq!(created_aspect_summary.changed_relation_aspect_count, 0);
 
@@ -644,12 +1043,14 @@ fn entity_patch_aspects_follow_declared_semantics_not_payload_keys() {
         let mut txn = runtime.begin_transaction(TransactionOptions::default());
         txn.push_batch(
             WorkerIntentBatch::new("update").push(MutationIntent::Entity(
-                EntityMutationIntent::Update(UpdateEntityIntent {
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    payload: RecordPayload::StructuredJson(json!({
-                        "name": "after",
-                        "ignored": "still-not-an-aspect"
-                    })),
+                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                        json!({
+                            "name": "after",
+                            "ignored": "still-not-an-aspect"
+                        }),
+                    ),
                 }),
             )),
         );
@@ -665,17 +1066,60 @@ fn entity_patch_aspects_follow_declared_semantics_not_payload_keys() {
         RecordStructuralChange::Updated
     );
     assert_eq!(
-        updated_patch.aspects,
-        CanonicalAspectSet::new([
-            AspectKey(InternedString::Raw("lifecycle".to_string())),
-            AspectKey(InternedString::Raw("name".to_string())),
-        ])
+        updated_patch.authoritative_changed_aspects(),
+        CanonicalAspectSet::new([AspectKey::new("name").unwrap()])
     );
+    let updated_read = runtime
+        .read_truth()
+        .read_snapshot(&updated.snapshot)
+        .expect("updated snapshot should read");
+    let updated_record = updated_read
+        .get_entity(entity)
+        .expect("updated entity should read");
+    let authoritative_name = updated_record
+        .authoritative_aspect_state
+        .as_ref()
+        .and_then(|state| state.get(&AspectKey::new("name").unwrap()))
+        .expect("updated name aspect state");
+    assert!(matches!(
+        authoritative_name.view(),
+        ContractValidatedAspectValueView::Scalar(AspectValue::String(value))
+            if value == &"after".into()
+    ));
     assert!(!updated_patch
-        .aspects
+        .authoritative_changed_aspects()
         .iter()
-        .any(|aspect| { *aspect == AspectKey(InternedString::Raw("ignored".to_string())) }));
-    assert_eq!(updated_aspect_summary.changed_entity_aspect_count, 2);
+        .any(|aspect| { *aspect == AspectKey::new("ignored").unwrap() }));
+    assert_eq!(updated_aspect_summary.changed_entity_aspect_count, 1);
+
+    let ignored_only_update = {
+        let mut txn = runtime.begin_transaction(TransactionOptions::default());
+        txn.push_batch(
+            WorkerIntentBatch::new("ignored-only-update").push(MutationIntent::Entity(
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
+                    entity_id: entity,
+                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                        json!({
+                            "name": "after",
+                            "ignored": "ignored-only-change"
+                        }),
+                    ),
+                }),
+            )),
+        );
+        txn.commit().unwrap()
+    };
+    assert_eq!(
+        ignored_only_update.patch()[0].authoritative_changed_aspects(),
+        CanonicalAspectSet::empty()
+    );
+    assert_eq!(
+        ignored_only_update
+            .aspect_summary()
+            .unwrap()
+            .changed_entity_aspect_count,
+        0
+    );
 
     let deleted = delete_entity(&mut runtime, entity);
     let deleted_patch = &deleted.patch()[0];
@@ -685,10 +1129,10 @@ fn entity_patch_aspects_follow_declared_semantics_not_payload_keys() {
         RecordStructuralChange::Deleted
     );
     assert_eq!(
-        deleted_patch.aspects,
+        deleted_patch.authoritative_changed_aspects(),
         CanonicalAspectSet::new([
-            AspectKey(InternedString::Raw("lifecycle".to_string())),
-            AspectKey(InternedString::Raw("name".to_string())),
+            AspectKey::new("lifecycle").unwrap(),
+            AspectKey::new("name").unwrap(),
         ])
     );
     assert_eq!(deleted_aspect_summary.changed_entity_aspect_count, 2);
@@ -712,12 +1156,12 @@ fn retained_relation_patch_only_emits_declared_lifecycle_delta_when_endpoints_an
         RecordStructuralChange::Created
     );
     assert_eq!(
-        relation_patch.aspects,
+        relation_patch.authoritative_changed_aspects(),
         CanonicalAspectSet::new([
-            AspectKey(InternedString::Raw("label".to_string())),
-            AspectKey(InternedString::Raw("lifecycle".to_string())),
-            AspectKey(InternedString::Raw("source".to_string())),
-            AspectKey(InternedString::Raw("target".to_string())),
+            AspectKey::new("label").unwrap(),
+            AspectKey::new("lifecycle").unwrap(),
+            AspectKey::new("source").unwrap(),
+            AspectKey::new("target").unwrap(),
         ])
     );
     assert_eq!(relation_aspect_summary.changed_relation_aspect_count, 4);
@@ -737,10 +1181,10 @@ fn retained_relation_patch_only_emits_declared_lifecycle_delta_when_endpoints_an
         RecordStructuralChange::RetainedForAudit
     );
     assert_eq!(
-        retained_relation_patch.aspects,
-        CanonicalAspectSet::new([AspectKey(InternedString::Raw("lifecycle".to_string()))])
+        retained_relation_patch.authoritative_changed_aspects(),
+        CanonicalAspectSet::new([AspectKey::new("lifecycle").unwrap()])
     );
-    assert!(!retained_relation_patch.contains_degraded_precision);
+    assert!(!retained_relation_patch.contains_opaque_aspect);
     assert_eq!(deleted_source_aspect_summary.changed_entity_aspect_count, 2);
     assert_eq!(
         deleted_source_aspect_summary.changed_relation_aspect_count,
@@ -757,9 +1201,11 @@ fn failed_commit_carries_attempt_log() {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
         WorkerIntentBatch::new("stale-update").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: entity,
-                payload: RecordPayload::StructuredJson(json!({"name":"stale"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    json!({"name":"stale"}),
+                ),
             }),
         )),
     );
@@ -786,7 +1232,6 @@ fn patch_budget_failure_carries_artifact_phase_decision_trace() {
             coherent_publication_required: true,
             max_patch_records_per_commit: 0,
             max_published_snapshot_handles: 8,
-            patch_surface_policy: PatchSurfacePolicy::StructuredPatchSurface,
         })
         .build();
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
@@ -847,9 +1292,11 @@ fn stale_entity_ids_are_rejected() {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
         WorkerIntentBatch::new("update").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: entity,
-                payload: RecordPayload::StructuredJson(json!({"name":"stale"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    json!({"name":"stale"}),
+                ),
             }),
         )),
     );
@@ -870,8 +1317,10 @@ fn unknown_entity_kind_fails_explicitly() {
             crate::transactions::data::EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(999),
-                client_key: InternedString::Raw("bad".to_string()),
-                payload: RecordPayload::StructuredJson(json!({"name":"bad"})),
+                client_key: crate::symbols::data::ClientKey::raw("bad"),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    json!({"name":"bad"}),
+                ),
             },
         ))),
     );
@@ -898,10 +1347,10 @@ fn duplicate_relation_identity_is_rejected() {
             crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("r2".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("r2"),
                 source: crate::transactions::data::EntityReference::Existing(source),
                 target: crate::transactions::data::EntityReference::Existing(target),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"rel"}))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
     );
@@ -986,7 +1435,6 @@ fn audit_retained_relations_remain_visible_after_endpoint_delete() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::RetainDanglingForAudit,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -1191,12 +1639,16 @@ fn bulk_mutation_plan_normalizes_client_keys_and_tracks_locality() {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(1),
                     client_keys: vec![
-                        InternedString::Raw("bulk-a".to_string()),
-                        InternedString::Raw("bulk-b".to_string()),
+                        crate::symbols::data::ClientKey::raw("bulk-a"),
+                        crate::symbols::data::ClientKey::raw("bulk-b"),
                     ],
-                    payloads: vec![
-                        RecordPayload::StructuredJson(json!({"name":"bulk-a"})),
-                        RecordPayload::StructuredJson(json!({"name":"bulk-b"})),
+                    field_patches: vec![
+                        crate::tests::support::aspect_field_patch_from_compatibility_json(
+                            json!({"name":"bulk-a"}),
+                        ),
+                        crate::tests::support::aspect_field_patch_from_compatibility_json(
+                            json!({"name":"bulk-b"}),
+                        ),
                     ],
                 },
             )))
@@ -1204,14 +1656,12 @@ fn bulk_mutation_plan_normalizes_client_keys_and_tracks_locality() {
                 crate::facade::transactions::BulkRelationCreateIntent {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(2),
-                    client_keys: vec![InternedString::Raw("cross-edge".to_string())],
+                    client_keys: vec![crate::symbols::data::ClientKey::raw("cross-edge")],
                     endpoints: vec![(
                         crate::transactions::data::EntityReference::Existing(source),
                         crate::transactions::data::EntityReference::Existing(target),
                     )],
-                    payloads: vec![Some(RecordPayload::StructuredJson(
-                        json!({"label":"cross"}),
-                    ))],
+                    field_patches: vec![crate::transactions::data::AspectFieldPatch::default()],
                 },
             ))),
     );
@@ -1240,12 +1690,14 @@ fn bulk_mutation_plan_normalizes_client_keys_and_tracks_locality() {
     assert!(!plan.naming.naming_digest.is_empty());
     assert!(!plan.provenance.provenance_digest.is_empty());
     assert_eq!(plan.naming.normalized_client_keys.len(), 3);
-    if runtime.config().identity.symbol_policy != crate::symbols::data::SymbolPolicy::Disabled {
+    if runtime.config().identity.client_key_symbol_policy
+        != crate::symbols::data::ClientKeySymbolPolicy::Disabled
+    {
         assert!(plan
             .naming
             .normalized_client_keys
             .iter()
-            .all(|value| matches!(value, InternedString::Symbol(_))));
+            .all(|value| value.as_symbol().is_some()));
     }
 }
 
@@ -1265,8 +1717,10 @@ fn bulk_mutation_plan_captures_lineage_and_provenance_for_topology_rewrite() {
                     replacement: crate::transactions::data::EntitySpec {
                         partition_id: PartitionId(9),
                         kind_id: KindId(1),
-                        client_key: InternedString::Raw("replacement".to_string()),
-                        payload: RecordPayload::StructuredJson(json!({"name":"replacement"})),
+                        client_key: crate::symbols::data::ClientKey::raw("replacement"),
+                        fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                            json!({"name":"replacement"}),
+                        ),
                     },
                 },
             )))
@@ -1329,14 +1783,12 @@ fn bulk_mutation_commit_records_admission_counters() {
             CreateIntent::BulkRelations(crate::facade::transactions::BulkRelationCreateIntent {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_keys: vec![InternedString::Raw("edge-a".to_string())],
+                client_keys: vec![crate::symbols::data::ClientKey::raw("edge-a")],
                 endpoints: vec![(
                     crate::transactions::data::EntityReference::Existing(source),
                     crate::transactions::data::EntityReference::Existing(target),
                 )],
-                payloads: vec![Some(RecordPayload::StructuredJson(
-                    json!({"label":"edge-a"}),
-                ))],
+                field_patches: vec![crate::transactions::data::AspectFieldPatch::default()],
             }),
         )),
     );
@@ -1382,8 +1834,8 @@ fn bulk_mutation_commit_records_admission_counters() {
 #[test]
 fn same_commit_graph_creation_allows_relation_to_target_created_entities() {
     let mut runtime = runtime_with_test_schema();
-    let source_key = InternedString::Raw("same-commit-source".to_string());
-    let target_key = InternedString::Raw("same-commit-target".to_string());
+    let source_key = crate::symbols::data::ClientKey::raw("same-commit-source");
+    let target_key = crate::symbols::data::ClientKey::raw("same-commit-target");
 
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
@@ -1392,19 +1844,23 @@ fn same_commit_graph_creation_allows_relation_to_target_created_entities() {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: source_key.clone(),
-                payload: RecordPayload::StructuredJson(json!({"name":"same-commit-source"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    json!({"name":"same-commit-source"}),
+                ),
             })))
             .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
                 client_key: target_key.clone(),
-                payload: RecordPayload::StructuredJson(json!({"name":"same-commit-target"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    json!({"name":"same-commit-target"}),
+                ),
             })))
             .push(MutationIntent::Create(CreateIntent::Relation(
                 RelationSpec {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(2),
-                    client_key: InternedString::Raw("same-commit-edge".to_string()),
+                    client_key: crate::symbols::data::ClientKey::raw("same-commit-edge"),
                     source: crate::facade::transactions::EntityReference::Created(
                         crate::facade::transactions::CreatedEntityRef {
                             partition_id: PartitionId::main(),
@@ -1419,9 +1875,7 @@ fn same_commit_graph_creation_allows_relation_to_target_created_entities() {
                             client_key: target_key.clone(),
                         },
                     ),
-                    payload: Some(RecordPayload::StructuredJson(
-                        json!({"label":"same-commit"}),
-                    )),
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
                 },
             ))),
     );
@@ -1439,8 +1893,8 @@ fn same_commit_graph_creation_allows_relation_to_target_created_entities() {
 #[test]
 fn bulk_relation_create_can_target_same_commit_created_entities() {
     let mut runtime = runtime_with_test_schema();
-    let source_key = InternedString::Raw("bulk-created-source".to_string());
-    let target_key = InternedString::Raw("bulk-created-target".to_string());
+    let source_key = crate::symbols::data::ClientKey::raw("bulk-created-source");
+    let target_key = crate::symbols::data::ClientKey::raw("bulk-created-target");
 
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
@@ -1450,9 +1904,13 @@ fn bulk_relation_create_can_target_same_commit_created_entities() {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(1),
                     client_keys: vec![source_key.clone(), target_key.clone()],
-                    payloads: vec![
-                        RecordPayload::StructuredJson(json!({"name":"bulk-created-source"})),
-                        RecordPayload::StructuredJson(json!({"name":"bulk-created-target"})),
+                    field_patches: vec![
+                        crate::tests::support::aspect_field_patch_from_compatibility_json(
+                            json!({"name":"bulk-created-source"}),
+                        ),
+                        crate::tests::support::aspect_field_patch_from_compatibility_json(
+                            json!({"name":"bulk-created-target"}),
+                        ),
                     ],
                 },
             )))
@@ -1460,7 +1918,7 @@ fn bulk_relation_create_can_target_same_commit_created_entities() {
                 crate::facade::transactions::BulkRelationCreateIntent {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(2),
-                    client_keys: vec![InternedString::Raw("bulk-created-edge".to_string())],
+                    client_keys: vec![crate::symbols::data::ClientKey::raw("bulk-created-edge")],
                     endpoints: vec![(
                         crate::facade::transactions::EntityReference::Created(
                             crate::facade::transactions::CreatedEntityRef {
@@ -1477,7 +1935,7 @@ fn bulk_relation_create_can_target_same_commit_created_entities() {
                             },
                         ),
                     )],
-                    payloads: vec![Some(RecordPayload::StructuredJson(json!({"label":"bulk"})))],
+                    field_patches: vec![crate::transactions::data::AspectFieldPatch::default()],
                 },
             ))),
     );
@@ -1493,7 +1951,7 @@ fn bulk_relation_create_can_target_same_commit_created_entities() {
 #[test]
 fn relation_create_rejects_created_entity_refs_missing_from_same_commit() {
     let mut runtime = runtime_with_test_schema();
-    let missing_key = InternedString::Raw("missing-created-endpoint".to_string());
+    let missing_key = crate::symbols::data::ClientKey::raw("missing-created-endpoint");
 
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
@@ -1501,7 +1959,7 @@ fn relation_create_rejects_created_entity_refs_missing_from_same_commit() {
             CreateIntent::Relation(RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("invalid-created-edge".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("invalid-created-edge"),
                 source: crate::facade::transactions::EntityReference::Created(
                     crate::facade::transactions::CreatedEntityRef {
                         partition_id: PartitionId::main(),
@@ -1516,7 +1974,7 @@ fn relation_create_rejects_created_entity_refs_missing_from_same_commit() {
                         client_key: missing_key,
                     },
                 ),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"invalid"}))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
     );

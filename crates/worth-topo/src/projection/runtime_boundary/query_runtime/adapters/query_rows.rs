@@ -6,6 +6,7 @@ use forge_relational::facade::runtime::{EntityReadRecord, RelationReadRecord};
 use schema::facade::{EntityKind, NamingEntityKind, NamingRelationKind, RelationKind};
 use serde_json::Value;
 
+use crate::relational_aspect_boundary::{entity_record_domain_label, entity_record_string_aspect};
 use crate::topology_operators::topology_relation_dependency_path;
 
 use super::binding::TopologyRuntimeBinding;
@@ -80,13 +81,11 @@ fn topology_entity_persistent_name_map(
             (EntityKind::from_kind_id(entity.kind.kind_id)
                 == Some(EntityKind::Naming(NamingEntityKind::PersistentName)))
             .then(|| {
-                let name = entity
-                    .payload
-                    .as_json()
-                    .and_then(|value| value.get("naming"))
-                    .and_then(|value| value.get("persistent_name"))
-                    .and_then(|value| value.as_str())
-                    .map(str::to_string)?;
+                let name = entity_record_string_aspect(
+                    &entity,
+                    &schema::facade::Aspect::Naming(schema::facade::NamingAspect::PersistentName),
+                    "persistent_name",
+                )?;
                 Some((entity.entity_id, name))
             })?
         })
@@ -118,17 +117,14 @@ fn entity_row(
     if !kind.is_topological() {
         return None;
     }
-    let payload = entity.payload.as_json();
+    let structure =
+        entity_record_domain_label(entity).unwrap_or_else(|| kind.kind_name().to_string());
     Some(ForgeQueryEntity {
         identity: entity_identity(entity.entity_id),
         payload: serde_json::json!({
             "topology": {
                 "kind": kind.kind_name(),
-                "structure": payload
-                    .and_then(|value| value.get("topology"))
-                    .and_then(|value| value.get("structure"))
-                    .cloned()
-                    .unwrap_or_else(|| Value::String(kind.kind_name().to_string()))
+                "structure": structure
             },
             "lineage": { "provenance": entity.entity_id },
             "naming": {
@@ -208,16 +204,18 @@ fn persistent_name_row(
     if kind != EntityKind::Naming(NamingEntityKind::PersistentName) {
         return None;
     }
-    let payload = entity.payload.as_json();
+    let persistent_name = entity_record_string_aspect(
+        entity,
+        &schema::facade::Aspect::Naming(schema::facade::NamingAspect::PersistentName),
+        "persistent_name",
+    )
+    .map(Value::String)
+    .unwrap_or(Value::Null);
     let mut row = serde_json::json!({
         "topology": { "kind": kind.kind_name() },
         "lineage": { "provenance": entity.entity_id },
         "naming": {
-            "persistent_name": payload
-                .and_then(|value| value.get("naming"))
-                .and_then(|value| value.get("persistent_name"))
-                .cloned()
-                .unwrap_or(Value::Null)
+            "persistent_name": persistent_name
         }
     });
     if let Some(target_identity) = targets.get(&entity.entity_id) {

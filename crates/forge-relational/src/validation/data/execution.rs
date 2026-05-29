@@ -57,6 +57,16 @@ pub enum InvariantFailureEffect {
     AuditOnly,
 }
 
+impl InvariantFailureEffect {
+    pub const fn diagnostic_label(self) -> &'static str {
+        match self {
+            Self::BlockCommit => "block_commit",
+            Self::BlockPublication => "block_publication",
+            Self::AuditOnly => "audit_only",
+        }
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum InvariantVerdict {
@@ -66,6 +76,16 @@ pub enum InvariantVerdict {
         advisory: InvariantAdvisory,
     },
     Violation(InvariantViolation),
+}
+
+impl InvariantVerdict {
+    pub const fn diagnostic_label(&self) -> &'static str {
+        match self {
+            Self::Pass => "pass",
+            Self::Advisory { .. } => "advisory",
+            Self::Violation(_) => "violation",
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]

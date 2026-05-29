@@ -1,14 +1,37 @@
 use super::*;
+use crate::capabilities::AspectPlanSource;
 
 pub(crate) fn batch_create(name: &str) -> WorkerIntentBatch {
     WorkerIntentBatch::new(format!("batch-{name}")).push(MutationIntent::Create(
         CreateIntent::Entity(crate::transactions::data::EntitySpec {
             partition_id: PartitionId::main(),
             kind_id: KindId(1),
-            client_key: InternedString::Raw(name.to_string()),
-            payload: RecordPayload::StructuredJson(json!({ "name": name })),
+            client_key: crate::symbols::data::ClientKey::raw(name),
+            fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                json!({ "name": name }),
+            ),
         }),
     ))
+}
+
+pub(crate) fn name_field_patch(name: &str) -> AspectFieldPatch {
+    AspectFieldPatch::single(
+        AspectKey::new("name").expect("valid name aspect key"),
+        forge_foundational::facade::FieldKey::new("name").expect("valid name field key"),
+        forge_foundational::facade::AspectValue::String(
+            forge_foundational::facade::InternedString::Raw(name.to_string()),
+        ),
+    )
+}
+
+pub(crate) fn relation_label_field_patch(label: &str) -> AspectFieldPatch {
+    AspectFieldPatch::single(
+        AspectKey::new("label").expect("valid relation label aspect key"),
+        forge_foundational::facade::FieldKey::new("label").expect("valid label field key"),
+        forge_foundational::facade::AspectValue::String(
+            forge_foundational::facade::InternedString::Raw(label.to_string()),
+        ),
+    )
 }
 
 pub(crate) fn create_entity(
@@ -23,14 +46,15 @@ pub(crate) fn create_entity_in_partition(
     name: &str,
     partition_id: PartitionId,
 ) -> crate::facade::identity::EntityId {
+    let fields = entity_fields_for_runtime(&*runtime, name);
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
         WorkerIntentBatch::new(format!("batch-{name}")).push(MutationIntent::Create(
             CreateIntent::Entity(crate::transactions::data::EntitySpec {
                 partition_id,
                 kind_id: KindId(1),
-                client_key: InternedString::Raw(name.to_string()),
-                payload: RecordPayload::StructuredJson(json!({ "name": name })),
+                client_key: crate::symbols::data::ClientKey::raw(name),
+                fields,
             }),
         )),
     );
@@ -46,12 +70,37 @@ pub(crate) fn create_entity_outcome_on_branch(
     name: &str,
     branch_id: BranchId,
 ) -> CommitResult {
+    let fields = entity_fields_for_runtime(&*runtime, name);
     let mut txn = runtime.begin_transaction(TransactionOptions {
         target_branch: Some(branch_id),
         ..TransactionOptions::default()
     });
-    txn.push_batch(batch_create(name));
+    let mut batch = WorkerIntentBatch::new(format!("batch-{name}"));
+    batch
+        .intents
+        .push(MutationIntent::Create(CreateIntent::Entity(
+            crate::transactions::data::EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: KindId(1),
+                client_key: crate::symbols::data::ClientKey::raw(name),
+                fields,
+            },
+        )));
+    txn.push_batch(batch);
     txn.commit().unwrap()
+}
+
+fn entity_fields_for_runtime(runtime: &RelationalRuntime, name: &str) -> AspectFieldPatch {
+    let declares_name = runtime.entity_aspect_plan(KindId(1)).is_some_and(|plan| {
+        plan.executable_bindings.iter().any(|binding| {
+            binding.aspect_key == AspectKey::new("name").expect("valid name aspect key")
+        })
+    });
+    if declares_name {
+        crate::tests::support::aspect_field_patch_from_compatibility_json(json!({ "name": name }))
+    } else {
+        AspectFieldPatch::default()
+    }
 }
 
 pub(crate) fn delete_entity(
@@ -109,18 +158,18 @@ pub(crate) fn update_entity_on_branch(
     name: &str,
     branch_id: BranchId,
 ) -> CommitResult {
+    let fields = entity_fields_for_runtime(&*runtime, name);
     let mut txn = runtime.begin_transaction(TransactionOptions {
         target_branch: Some(branch_id),
         ..TransactionOptions::default()
     });
-    txn.push_batch(
-        WorkerIntentBatch::new("update").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
-                entity_id,
-                payload: RecordPayload::StructuredJson(json!({ "name": name })),
-            }),
-        )),
-    );
+    if !fields.is_empty() {
+        txn.push_batch(
+            WorkerIntentBatch::new("update").push(MutationIntent::Entity(
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent { entity_id, fields }),
+            )),
+        );
+    }
     txn.commit().unwrap()
 }
 
@@ -185,6 +234,7 @@ pub(crate) fn create_relation_in_partition_on_branch(
     partition_id: PartitionId,
     branch_id: BranchId,
 ) -> RelationId {
+    let fields = relation_fields_for_runtime(runtime, label);
     let mut txn = runtime.begin_transaction(TransactionOptions {
         target_branch: Some(branch_id),
         ..TransactionOptions::default()
@@ -194,10 +244,10 @@ pub(crate) fn create_relation_in_partition_on_branch(
             crate::transactions::data::RelationSpec {
                 partition_id,
                 kind_id: KindId(2),
-                client_key: InternedString::Raw(client_key.to_string()),
+                client_key: crate::symbols::data::ClientKey::raw(client_key),
                 source: crate::transactions::data::EntityReference::Existing(source),
                 target: crate::transactions::data::EntityReference::Existing(target),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":label}))),
+                fields,
             },
         ))),
     );
@@ -211,20 +261,34 @@ pub(crate) fn create_relation_outcome(
     target: crate::facade::identity::EntityId,
     client_key: &str,
 ) -> CommitResult {
+    let fields = relation_fields_for_runtime(runtime, client_key);
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
         WorkerIntentBatch::new("relation").push(MutationIntent::Create(CreateIntent::Relation(
             crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw(client_key.to_string()),
+                client_key: crate::symbols::data::ClientKey::raw(client_key),
                 source: crate::transactions::data::EntityReference::Existing(source),
                 target: crate::transactions::data::EntityReference::Existing(target),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":client_key}))),
+                fields,
             },
         ))),
     );
     txn.commit().unwrap()
+}
+
+fn relation_fields_for_runtime(runtime: &RelationalRuntime, label: &str) -> AspectFieldPatch {
+    let declares_label = runtime.relation_aspect_plan(KindId(2)).is_some_and(|plan| {
+        plan.executable_bindings.iter().any(|binding| {
+            binding.aspect_key == AspectKey::new("label").expect("valid label aspect key")
+        })
+    });
+    if declares_label {
+        relation_label_field_patch(label)
+    } else {
+        AspectFieldPatch::default()
+    }
 }
 
 pub(crate) fn changed_entities(outcome: &CommitResult) -> Vec<crate::facade::identity::EntityId> {

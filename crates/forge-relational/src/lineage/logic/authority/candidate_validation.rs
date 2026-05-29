@@ -1,6 +1,6 @@
-use serde_json::json;
 use std::collections::BTreeSet;
 
+use crate::capabilities::LineageNodeSource;
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
@@ -10,6 +10,7 @@ use crate::lineage::data::{
     CorrespondenceCandidate, CorrespondenceCandidateId, CorrespondencePromotionRejectionClass,
     LineageDecisionKind, LineageDecisionRecord, LineageRejectionArtifact,
 };
+use crate::lineage::logic::authority::diagnostic_fields::promotion_rejection_fields;
 use crate::lineage::logic::authority::phase_types::{
     BranchScopedLineageRef, RecordedCorrespondenceCandidate, ValidatedCorrespondenceCandidate,
 };
@@ -113,7 +114,7 @@ impl<'runtime> LineageAuthority<'runtime> {
             .sources
             .iter()
             .chain(candidate.targets.iter())
-            .any(|lineage_id| !self.runtime.lineage.nodes.contains_key(lineage_id))
+            .any(|lineage_id| self.runtime.lineage_node(*lineage_id).is_none())
         {
             self.runtime
                 .performance_access()
@@ -225,14 +226,11 @@ impl<'runtime> LineageAuthority<'runtime> {
             .push_bounded_diagnostic(
                 DiagnosticsScope::Lineage,
                 DiagnosticsArtifactKind::Failure,
-                vec![RelationalDiagnosticsEntry {
-                    code: DiagnosticCode::InvariantViolation,
-                    message: message.to_string(),
-                    fields: json!({
-                        "candidate_id": candidate_id,
-                        "rejection_class": format!("{:?}", class),
-                    }),
-                }],
+                vec![RelationalDiagnosticsEntry::new(
+                    DiagnosticCode::InvariantViolation,
+                    message,
+                    promotion_rejection_fields(candidate_id, class),
+                )],
             );
     }
 }

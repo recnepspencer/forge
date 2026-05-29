@@ -7,6 +7,7 @@ use schema::facade::{
 };
 
 use crate::certification::error::TopologyCertificationError;
+use crate::relational_aspect_boundary::entity_record_domain_label;
 use crate::topology_operators::{
     ShellOrWireMembershipKind, TopologyEditAction, TopologyEditBatch, TopologyEditContract,
 };
@@ -207,12 +208,7 @@ pub(super) fn entity_id_by_label(
         .iter()
         .find(|record| {
             EntityKind::from_kind_id(record.kind.kind_id) == Some(EntityKind::Topology(kind))
-                && record
-                    .payload
-                    .as_json()
-                    .and_then(|json| json.get("label"))
-                    .and_then(|value| value.as_str())
-                    == Some(label)
+                && entity_record_domain_label(record).as_deref() == Some(label)
         })
         .map(|record| record.entity_id)
         .ok_or_else(|| TopologyCertificationError::Query(format!("entity `{label}` missing")))

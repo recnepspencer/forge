@@ -1,4 +1,4 @@
-use forge_relational::facade::schema::{RelationPayloadClass, SchemaId, SchemaVersionId};
+use forge_relational::facade::schema::{SchemaId, SchemaVersionId};
 
 use crate::data::bootstrap::{
     bootstrap_invariant_plan, bootstrap_schema_registry, bootstrap_tracing_plan, SCHEMA_ID,
@@ -24,10 +24,6 @@ fn bootstrap_schema_registry_registers_all_bootstrap_kinds() {
             .relation_registration(kind.kind_id())
             .expect("registered  relation kind");
         assert_eq!(registration.kind_name, kind.kind_name());
-        assert_eq!(
-            registration.payload_class,
-            RelationPayloadClass::TopologyOnlyRelation
-        );
         assert!(registration.relation_integrity.contract_count() >= 3);
     }
 }

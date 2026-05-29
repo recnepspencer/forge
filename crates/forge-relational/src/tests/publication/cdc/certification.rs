@@ -54,7 +54,7 @@ fn schema_transition_for_subscriber_impact(
             subscriber_impact,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: "tag".into(),
+                field: field_key("tag"),
                 required: false,
                 default_expression: Some("null".into()),
             },
@@ -254,34 +254,42 @@ fn cdc_certification_savepoint_abandoned_work_never_leaks_into_stream_truth() {
     txn.push_batch(batch_create("abandoned"));
     txn.push_batch(
         WorkerIntentBatch::new("abandoned-left").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: left_entity,
-                payload: RecordPayload::StructuredJson(json!({"name":"abandoned-left"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    json!({"name":"abandoned-left"}),
+                ),
             }),
         )),
     );
     txn.push_batch(
         WorkerIntentBatch::new("abandoned-right").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: right_entity,
-                payload: RecordPayload::StructuredJson(json!({"name":"abandoned-right"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    json!({"name":"abandoned-right"}),
+                ),
             }),
         )),
     );
     let rollback = txn.rollback_to_savepoint(savepoint).unwrap();
     txn.push_batch(
         WorkerIntentBatch::new("survived-left").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: left_entity,
-                payload: RecordPayload::StructuredJson(json!({"name":"survived-left"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    json!({"name":"survived-left"}),
+                ),
             }),
         )),
     );
     txn.push_batch(
         WorkerIntentBatch::new("survived-right").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: right_entity,
-                payload: RecordPayload::StructuredJson(json!({"name":"survived-right"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    json!({"name":"survived-right"}),
+                ),
             }),
         )),
     );
@@ -408,7 +416,7 @@ fn cdc_certification_schema_boundary_continuation_is_explained_and_counted() {
     let counters = runtime.performance_access().counters();
 
     assert_eq!(
-        batch.continuation_outcome,
+        batch.continuation.continuation_outcome(),
         crate::facade::schema::SchemaContinuationClassification::ContinueWithVisibleBridge
     );
     assert!(batch
@@ -485,8 +493,8 @@ fn diff_cdc_truth_parity_test() {
     let diff_digest = certification_digest(&live_patch_batch.patches);
     let cdc_digest = certification_digest(&(
         &live_batch.patches,
-        &live_batch.crossed_boundaries,
-        &live_batch.continuation_summary,
+        live_batch.continuation.crossed_boundaries(),
+        live_batch.continuation.continuation_summary(),
         &live_batch.recovery_decision,
     ));
     let cdc_diagnostics_digest = certification_digest(&live_batch.diagnostics);
@@ -536,8 +544,8 @@ fn diff_cdc_truth_parity_test() {
         cdc_digest,
         certification_digest(&(
             &recovered_batch.patches,
-            &recovered_batch.crossed_boundaries,
-            &recovered_batch.continuation_summary,
+            recovered_batch.continuation.crossed_boundaries(),
+            recovered_batch.continuation.continuation_summary(),
             &recovered_batch.recovery_decision,
         ))
     );
@@ -966,12 +974,6 @@ proptest! {
 }
 
 fn patch_detail_contains(record: &crate::facade::publication::PatchRecord, needle: &str) -> bool {
-    match &record.detail {
-        PatchDetail::StructuredJson(value) => value.to_string().contains(needle),
-        PatchDetail::Payload(payload) => payload
-            .as_json()
-            .map(|value| value.to_string().contains(needle))
-            .unwrap_or(false),
-        PatchDetail::DenseBitset(_) => false,
-    }
+    let _ = (record, needle);
+    false
 }

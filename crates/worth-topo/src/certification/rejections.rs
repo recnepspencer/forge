@@ -61,7 +61,7 @@ pub(crate) fn summarize_authority_rejection(
                     .or_else(|| infer_validator_family(Some(error.code()), Some(&error.context))),
                 diagnostic_code: Some(error.code()),
                 detail: error.detail(),
-                fields_json: error.fields().map(ToString::to_string),
+                fields_json: None,
                 context: Some(error.context.clone()),
                 localized_entity_count,
                 localized_relation_count,

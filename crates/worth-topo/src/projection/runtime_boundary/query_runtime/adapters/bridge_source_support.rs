@@ -6,7 +6,10 @@ use forge_relational::facade::transactions::RecordRef;
 use forge_runtime_bridge::facade::{
     BridgeSnapshotReadError, RelationalBridgeSourceError, TruthSnapshotIdentity,
 };
+use schema::facade::{Aspect, NamingAspect, RelationKind};
 use serde_json::Value;
+
+use crate::relational_aspect_boundary::{entity_record_domain_label, entity_record_string_aspect};
 
 pub(super) fn parse_bridge_commit_identity(
     identity: &str,
@@ -130,51 +133,55 @@ pub(super) fn missing_aspect_error(
     ))
 }
 
-pub(super) fn payload_bytes_for_entity_aspect(
+pub(super) fn snapshot_bytes_for_entity_aspect(
     record: &EntityReadRecord,
     aspect_label: &str,
 ) -> Option<Vec<u8>> {
-    payload_bytes_for_aspect(record.payload.as_json(), aspect_label, || {
-        Some(Value::String(format!(
-            "entity:{}:{}:{}",
-            record.entity_id.partition_id.0,
-            record.entity_id.local_slot.0,
-            record.entity_id.generation.0
-        )))
-    })
+    let value = match aspect_label {
+        "identity.id" => Value::String(entity_identity(record.entity_id)),
+        "lifecycle" => Value::String("live".to_string()),
+        "topology.structure" => Value::String(entity_record_domain_label(record)?),
+        "naming.persistent_name" => Value::String(entity_record_string_aspect(
+            record,
+            &Aspect::Naming(NamingAspect::PersistentName),
+            "persistent_name",
+        )?),
+        _ => return None,
+    };
+    serde_json::to_vec(&value).ok()
 }
 
-pub(super) fn payload_bytes_for_relation_aspect(
+pub(super) fn snapshot_bytes_for_relation_aspect(
     record: &RelationReadRecord,
     aspect_label: &str,
 ) -> Option<Vec<u8>> {
-    payload_bytes_for_aspect(
-        record.payload.as_ref().and_then(|value| value.as_json()),
-        aspect_label,
-        || {
-            Some(Value::String(format!(
-                "relation:{}:{}:{}",
-                record.relation_id.partition_id.0,
-                record.relation_id.local_slot.0,
-                record.relation_id.generation.0
-            )))
-        },
+    let value = match aspect_label {
+        "identity.id" => Value::String(relation_identity(record.relation_id)),
+        "source" => Value::String(entity_identity(record.source)),
+        "target" => Value::String(entity_identity(record.target)),
+        "topology.ownership"
+        | "topology.boundary"
+        | "topology.radial"
+        | "naming.persistent_name" => Value::String(
+            RelationKind::from_kind_id(record.kind.kind_id)?
+                .kind_name()
+                .to_string(),
+        ),
+        _ => return None,
+    };
+    serde_json::to_vec(&value).ok()
+}
+
+fn entity_identity(entity_id: EntityId) -> String {
+    format!(
+        "entity:{}:{}:{}",
+        entity_id.partition_id.0, entity_id.local_slot.0, entity_id.generation.0
     )
 }
 
-fn payload_bytes_for_aspect(
-    payload: Option<&Value>,
-    aspect_label: &str,
-    identity_value: impl FnOnce() -> Option<Value>,
-) -> Option<Vec<u8>> {
-    let value = if aspect_label == "identity.id" {
-        identity_value()?
-    } else {
-        let mut current = payload?;
-        for segment in aspect_label.split('.') {
-            current = current.get(segment)?;
-        }
-        current.clone()
-    };
-    serde_json::to_vec(&value).ok()
+fn relation_identity(relation_id: RelationId) -> String {
+    format!(
+        "relation:{}:{}:{}",
+        relation_id.partition_id.0, relation_id.local_slot.0, relation_id.generation.0
+    )
 }

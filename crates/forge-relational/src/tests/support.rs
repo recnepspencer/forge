@@ -5,14 +5,15 @@ pub(super) use forge_harness::facade::{
 use serde::Serialize;
 pub(super) use serde_json::json;
 use sha2::{Digest, Sha256};
+use std::collections::BTreeMap;
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+pub(super) use crate::config::data::PublicationConfig;
 pub(super) use crate::config::data::{CascadeDeletePolicy, CrossContextPolicy};
 pub(super) use crate::config::data::{DurableLogPolicy, DurableLogRetentionMode};
-pub(super) use crate::config::data::{PatchSurfacePolicy, PublicationConfig};
 pub(super) use crate::facade::config::{
     RelationalRuntimeProfile, StorageLayoutConfig, VisibilityCachePolicy,
 };
@@ -23,7 +24,7 @@ pub(super) use crate::facade::durability::{DurabilityMode, DurableStoreLayout};
 pub(super) use crate::facade::harness::RelationalHarnessAdapter;
 pub(super) use crate::facade::history::{
     AspectFilter, AspectFilterMode, AspectHistoryCommitSpan, AspectHistoryEntry,
-    AspectResolutionContext, BranchId, HistoryAspectQueryTarget, RequestedAspectSet,
+    AspectResolutionContext, BranchId, HistoryAspectQueryTarget,
 };
 pub(super) use crate::facade::identity::{KindId, LineageId, PartitionId, RelationId};
 pub(super) use crate::facade::publication::{
@@ -40,24 +41,76 @@ pub(super) use crate::facade::runtime::{
     RelationalRuntime, RelationalRuntimeApi,
 };
 pub(super) use crate::facade::schema::{
-    AspectBinding, AspectComparator, AspectKey, AspectPrecision, DeclaredAspect,
-    EntityKindRegistration, KindAspectDeclarations, RelationIntegrityDeclarations,
-    RelationKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
+    AspectBinding, AspectKey, DeclaredAspect, EntityKindRegistration, KindAspectDeclarations,
+    RelationIntegrityDeclarations, RelationKindRegistration, RelationalSchemaRegistry, SchemaId,
+    SchemaVersionId,
 };
 pub(super) use crate::facade::transactions::{
-    BulkEntityCreateIntent, CommitResult, CreateIntent, DeleteEntityIntent, DeleteRelationIntent,
-    EntityMutationIntent, MutationIntent, PatchVsTruthDeltaReport, RecordRef,
+    AspectFieldPatch, BulkEntityCreateIntent, CommitResult, CreateIntent, DeleteEntityIntent,
+    DeleteRelationIntent, EntityMutationIntent, MutationIntent, PatchVsTruthDeltaReport, RecordRef,
     RelationMutationIntent, ReplaceEntityIntent, TransactionCommitError, TransactionOptions,
-    UpdateEntityIntent, UpdateRelationEndpointsIntent, WorkerIntentBatch,
+    UpdateEntityFieldsIntent, UpdateRelationEndpointsIntent, WorkerIntentBatch,
 };
-pub(super) use crate::payloads::data::RecordPayload;
 pub(super) use crate::publication::cdc::planning::checkpoint_for_schema_version;
-pub(super) use crate::publication::data::diff::{
-    CanonicalAspectSet, PatchCompatibilityClass, PatchDetail, RecordStructuralChange,
+pub(super) use crate::publication::patch::data::{
+    CanonicalAspectSet, PatchDetail, RecordStructuralChange,
 };
-pub(super) use crate::schema::data::RelationPayloadClass;
-pub(super) use crate::symbols::data::{InternedString, SymbolPolicy};
+pub(super) use crate::symbols::data::ClientKeySymbolPolicy;
 use crate::tests::harness::model::truth_model::VisibleTruthSummary;
+
+pub(crate) fn aspect_field_patch_from_compatibility_json(
+    value: serde_json::Value,
+) -> AspectFieldPatch {
+    let fields = value
+        .as_object()
+        .expect("test aspect field patch fixture must be a JSON object")
+        .iter()
+        .map(|(field, value)| {
+            let field_key = forge_foundational::facade::FieldKey::new(field.clone())
+                .expect("test field key must be valid");
+            let aspect_key = AspectKey::new(field.clone()).expect("test aspect key must be valid");
+            (
+                crate::transactions::data::AspectFieldPatchTarget::single(aspect_key, field_key),
+                aspect_value_from_fixture_json(value),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    AspectFieldPatch::from(fields)
+}
+
+pub(super) fn string_aspect_value(value: &str) -> forge_foundational::facade::AspectValue {
+    forge_foundational::facade::AspectValue::String(
+        forge_foundational::facade::InternedString::Raw(value.to_string()),
+    )
+}
+
+fn aspect_value_from_fixture_json(
+    value: &serde_json::Value,
+) -> forge_foundational::facade::AspectValue {
+    match value {
+        serde_json::Value::Null => forge_foundational::facade::AspectValue::Null,
+        serde_json::Value::Bool(value) => forge_foundational::facade::AspectValue::Bool(*value),
+        serde_json::Value::Number(value) => {
+            if let Some(value) = value.as_u64() {
+                forge_foundational::facade::AspectValue::UInt64(value)
+            } else if let Some(value) = value.as_i64() {
+                forge_foundational::facade::AspectValue::Int64(value)
+            } else {
+                forge_foundational::facade::AspectValue::Float64(
+                    forge_foundational::facade::CanonicalF64::from_f64(
+                        value
+                            .as_f64()
+                            .expect("test numeric aspect fixture must fit f64"),
+                    ),
+                )
+            }
+        }
+        serde_json::Value::String(value) => string_aspect_value(value),
+        serde_json::Value::Array(_) | serde_json::Value::Object(_) => {
+            panic!("test aspect field patch fixture does not support nested JSON values")
+        }
+    }
+}
 
 // Test helper index:
 // - `schema`: baseline schema builders plus declared-aspect fixtures
@@ -131,9 +184,9 @@ pub(super) fn capture_aspect_truth_bundle(
 ) -> AspectTruthBundle {
     AspectTruthBundle {
         visible_truth: VisibleTruthSummary::capture(runtime),
-        latest_patch: runtime.publication().latest_patch().cloned(),
-        latest_replay: runtime.publication().latest_replay().cloned(),
-        diagnostics: runtime.publication().diagnostics().clone(),
+        latest_patch: runtime.publication().artifacts().latest_patch().cloned(),
+        latest_replay: runtime.publication().artifacts().latest_replay().cloned(),
+        diagnostics: runtime.publication().diagnostics(),
         entity_history_digests: entity_ids
             .iter()
             .map(|entity_id| {

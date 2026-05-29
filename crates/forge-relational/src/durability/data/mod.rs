@@ -8,9 +8,8 @@ use crate::history::data::{BranchHead, CommitId, CommitReference};
 use crate::identity::data::{
     EntityId, KindId, LineageId, PartitionId, RelationId, StructuralFingerprint, VersionId,
 };
-use crate::indexes::data::{DerivedIndexDefinition, DerivedIndexGeneration};
+use crate::indexes::data::{DerivedIndexArtifacts, DerivedIndexDefinition};
 use crate::lineage::data::LineageCheckpointArtifact;
-use crate::payloads::data::RecordPayload;
 use crate::replay::data::CanonicalCommitEnvelope;
 use crate::replay::data::ReplayVerificationLayer;
 use crate::schema::data::{DescriptorSemanticsVersion, SchemaVersionId};
@@ -85,26 +84,22 @@ pub struct DurableBitSet {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct VersionedPayloadImage {
-    pub effective_at: VersionId,
-    pub retired_at: Option<VersionId>,
-    pub generation: u32,
-    pub value: RecordPayload,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VersionedEntityMetadataImage {
     pub effective_at: VersionId,
     pub retired_at: Option<VersionId>,
     pub generation: u32,
     pub kind_id: KindId,
     pub lineage_id: Option<LineageId>,
+    pub authoritative_aspect_state:
+        Option<forge_foundational::facade::AuthoritativeRecordAspectState>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct EntityExtraImage {
     pub structural_fingerprint: Option<StructuralFingerprint>,
     pub lineage_id: Option<LineageId>,
+    pub authoritative_aspect_state:
+        Option<forge_foundational::facade::AuthoritativeRecordAspectState>,
 }
 
 pub trait RecordArenaCheckpointKind: Clone + PartialEq + Eq {
@@ -125,7 +120,7 @@ pub struct RelationCheckpointImageKind;
 
 impl RecordArenaCheckpointKind for RelationCheckpointImageKind {
     type MetaImage = VersionedRelationMetadataImage;
-    type ExtraImage = Option<RelationEndpointsImage>;
+    type ExtraImage = RelationExtraImage;
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -137,8 +132,6 @@ pub struct RecordArenaCheckpointImage<K: RecordArenaCheckpointKind> {
     pub generations: Vec<u32>,
     pub lifecycle: Vec<RecordLifecycleState>,
     pub kind_ids: Vec<Option<KindId>>,
-    pub payloads: Vec<Option<RecordPayload>>,
-    pub payload_history: Vec<Vec<VersionedPayloadImage>>,
     pub metadata_history: Vec<Vec<K::MetaImage>>,
     pub created_at: Vec<VersionId>,
     pub retired_at: Vec<Option<VersionId>>,
@@ -162,12 +155,21 @@ pub struct RelationEndpointsImage {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct RelationExtraImage {
+    pub endpoints: Option<RelationEndpointsImage>,
+    pub authoritative_aspect_state:
+        Option<forge_foundational::facade::AuthoritativeRecordAspectState>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct VersionedRelationMetadataImage {
     pub effective_at: VersionId,
     pub retired_at: Option<VersionId>,
     pub generation: u32,
     pub kind_id: KindId,
     pub endpoints: RelationEndpointsImage,
+    pub authoritative_aspect_state:
+        Option<forge_foundational::facade::AuthoritativeRecordAspectState>,
 }
 
 pub type EntityArenaCheckpointImage = RecordArenaCheckpointImage<EntityCheckpointImageKind>;
@@ -190,7 +192,7 @@ pub struct DurableCheckpoint {
     pub partition_images: Vec<PartitionCheckpointImage>,
     pub lineage: LineageCheckpointArtifact,
     pub index_definitions: Vec<DerivedIndexDefinition>,
-    pub index_generations: Vec<DerivedIndexGeneration>,
+    pub derived_index_artifacts: DerivedIndexArtifacts,
     pub symbol_table: SymbolTableSnapshot,
     pub runtime_name: String,
 }
@@ -272,7 +274,7 @@ pub enum RecoveryAuthorityParity {
     Drift,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone)]
 pub struct RecoveryPlan {
     pub config: crate::logic::runtime::RelationalRuntimeConfig,
     pub store: Option<DurableStore>,
@@ -285,7 +287,6 @@ pub struct RecoveryPlan {
     pub verification_plan: RecoveryVerificationPlan,
     pub descriptor_semantics_version: DescriptorSemanticsVersion,
     pub restore_authoritative_envelope_commit_ids: Vec<crate::history::data::CommitId>,
-    #[serde(skip, default)]
     pub(crate) commit_strategy_executors:
         crate::commit_strategies::FrozenCommitStrategyExecutorRegistry,
 }

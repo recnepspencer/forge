@@ -1,27 +1,60 @@
+use forge_foundational::facade::{AspectValue, FieldKey};
 use serde::{Deserialize, Serialize};
-use serde_json::Value;
 
 use crate::commit_strategies::data::{
-    CanonicalStrategyCommitRequest, CanonicalStrategyOutputArtifact, CommitStrategyDescriptor,
-    CommitStrategyExecutionRegistration, CommitStrategyExecutor, CommitStrategyFamilyName,
-    CommitStrategyId, CommitStrategyRegistration, CommitStrategyRegistrationError,
-    CommitStrategySemanticName, CommitStrategyVersion, PersistentArtifactName,
-    StrategyExecutionResult, StrategyExecutorFailure, StrategyExecutorFailureClass,
-    StrategyInputSchemaName, StrategyInputSchemaVersion, StrategyIntentName,
-    StrategyMutationProgram, StrategyObservationContext, StrategyOutputSchemaName,
-    StrategyPacketContract, StrategyReadContract, StrategyReadCostClass, StrategyReadLocalityClass,
-    StrategyReadScopeClass, StrategyRequestCanonicalization, StrategyTraversalBasis,
+    decode_entity_id, encode_entity_id, encode_u64, CanonicalStrategyCommitRequest,
+    CanonicalStrategyOutputArtifact, CommitStrategyDescriptor, CommitStrategyExecutionRegistration,
+    CommitStrategyExecutor, CommitStrategyFamilyName, CommitStrategyId, CommitStrategyRegistration,
+    CommitStrategyRegistrationError, CommitStrategySemanticName, CommitStrategyVersion,
+    NativeCodecError, NativeCodecReader, PersistentArtifactName, RawStrategyCommitRequest,
+    StrategyCallerProvenance, StrategyExecutionResult, StrategyExecutorFailure,
+    StrategyExecutorFailureClass, StrategyInputSchemaName, StrategyInputSchemaVersion,
+    StrategyIntentName, StrategyMutationProgram, StrategyObservationContext,
+    StrategyOutputSchemaName, StrategyPacketContract, StrategyReadContract, StrategyReadCostClass,
+    StrategyReadLocalityClass, StrategyReadScopeClass, StrategyRequestCanonicalization,
+    StrategyTraversalBasis,
 };
 use crate::identity::data::EntityId;
-use crate::schema::data::{AspectBinding, AspectComparator};
+use crate::storage::data::authoritative_aspect_value_field_comparison_key;
+use crate::transactions::data::AspectFieldPatch;
 use crate::transactions::data::{
     EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
+
+#[cfg(test)]
+mod tests;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ReplicaConvergenceInput {
     pub entity_id: EntityId,
     pub desired_replicas: u64,
+}
+
+impl ReplicaConvergenceInput {
+    pub fn into_raw_request(
+        self,
+        caller_provenance: StrategyCallerProvenance,
+    ) -> Result<RawStrategyCommitRequest, NativeCodecError> {
+        let mut bytes = Vec::new();
+        encode_entity_id(&mut bytes, self.entity_id);
+        encode_u64(&mut bytes, self.desired_replicas);
+        Ok(RawStrategyCommitRequest::from_canonical_bytes(
+            CommitStrategySemanticName::new(ReplicaConvergenceStrategy::DEFAULT_SEMANTIC_NAME),
+            bytes,
+            caller_provenance,
+        ))
+    }
+
+    fn decode(bytes: &[u8]) -> Result<Self, NativeCodecError> {
+        let mut reader = NativeCodecReader::new(bytes);
+        let entity_id = decode_entity_id(&mut reader)?;
+        let desired_replicas = reader.read_u64()?;
+        reader.finish()?;
+        Ok(Self {
+            entity_id,
+            desired_replicas,
+        })
+    }
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -35,6 +68,29 @@ pub struct ReplicaConvergenceOutput {
     pub entity_id: EntityId,
     pub action: ReplicaConvergenceAction,
     pub desired_replicas: u64,
+}
+
+impl ReplicaConvergenceOutput {
+    pub fn decode(bytes: &[u8]) -> Result<Self, NativeCodecError> {
+        let mut reader = NativeCodecReader::new(bytes);
+        let entity_id = decode_entity_id(&mut reader)?;
+        let action = match reader.read_u8()? {
+            0 => ReplicaConvergenceAction::NoChange,
+            1 => ReplicaConvergenceAction::UpdateReplicas,
+            tag => {
+                return Err(NativeCodecError::new(format!(
+                    "unknown replica convergence action tag {tag}"
+                )))
+            }
+        };
+        let desired_replicas = reader.read_u64()?;
+        reader.finish()?;
+        Ok(Self {
+            entity_id,
+            action,
+            desired_replicas,
+        })
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -58,7 +114,7 @@ impl ReplicaConvergenceStrategy {
             StrategyInputSchemaName::new(Self::DEFAULT_INPUT_SCHEMA_NAME),
             StrategyInputSchemaVersion(1),
             StrategyOutputSchemaName::new(Self::DEFAULT_OUTPUT_SCHEMA_NAME),
-            StrategyRequestCanonicalization::JsonStableObjectOrderV1,
+            StrategyRequestCanonicalization::NativeCanonicalBytesV1,
             StrategyReadContract {
                 scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
                 locality_class: StrategyReadLocalityClass::SinglePartition,
@@ -85,77 +141,78 @@ impl ReplicaConvergenceStrategy {
     fn parse_input(
         request: &CanonicalStrategyCommitRequest,
     ) -> Result<ReplicaConvergenceInput, StrategyExecutorFailure> {
-        serde_json::from_slice(request.canonical_input().canonical_bytes()).map_err(|error| {
-            StrategyExecutorFailure::new(
-                StrategyExecutorFailureClass::InvalidInput,
-                format!("replica convergence input could not be decoded: {error}"),
-            )
-        })
+        ReplicaConvergenceInput::decode(request.canonical_input().canonical_bytes()).map_err(
+            |error| {
+                StrategyExecutorFailure::new(
+                    StrategyExecutorFailureClass::InvalidInput,
+                    format!(
+                        "replica convergence input could not be decoded: {}",
+                        error.detail()
+                    ),
+                )
+            },
+        )
     }
 
-    fn output_artifact(
-        output: &ReplicaConvergenceOutput,
-    ) -> Result<CanonicalStrategyOutputArtifact, StrategyExecutorFailure> {
-        let bytes = serde_json::to_vec(output).map_err(|error| {
-            StrategyExecutorFailure::new(
-                StrategyExecutorFailureClass::DomainRejection,
-                format!("replica convergence output could not be serialized: {error}"),
-            )
-        })?;
-        Ok(CanonicalStrategyOutputArtifact::new(
+    fn output_artifact(output: &ReplicaConvergenceOutput) -> CanonicalStrategyOutputArtifact {
+        let mut bytes = Vec::new();
+        encode_entity_id(&mut bytes, output.entity_id);
+        bytes.push(match output.action {
+            ReplicaConvergenceAction::NoChange => 0,
+            ReplicaConvergenceAction::UpdateReplicas => 1,
+        });
+        encode_u64(&mut bytes, output.desired_replicas);
+        CanonicalStrategyOutputArtifact::new(
             StrategyOutputSchemaName::new(Self::DEFAULT_OUTPUT_SCHEMA_NAME),
             bytes,
             PersistentArtifactName::new(Self::DEFAULT_ARTIFACT_NAME),
-        ))
+        )
+    }
+
+    fn require_lowered_entity_scalar_field(
+        observation: &StrategyObservationContext<'_>,
+        existing: &crate::storage::data::EntityReadRecord,
+        field: &FieldKey,
+    ) -> Result<forge_foundational::facade::AspectKey, StrategyExecutorFailure> {
+        let lowered_plan =
+            observation
+                .entity_aspect_plan(existing.kind.kind_id)
+                .ok_or_else(|| {
+                    StrategyExecutorFailure::new(
+                        StrategyExecutorFailureClass::DomainRejection,
+                        format!(
+                            "lowered foundational entity aspect plan is missing for kind {} during replica convergence",
+                            existing.kind.kind_name
+                        ),
+                    )
+                })?;
+        lowered_plan
+            .entity_scalar_field_aspect_key(field)
+            .ok_or_else(|| {
+                StrategyExecutorFailure::new(
+                    StrategyExecutorFailureClass::DomainRejection,
+                    format!(
+                        "field '{}' is not a lowered foundational scalar entity aspect on kind {}",
+                        field.as_str(),
+                        existing.kind.kind_name
+                    ),
+                )
+            })
     }
 
     fn reconcile_fields(
         observation: &StrategyObservationContext<'_>,
         existing: &crate::storage::data::EntityReadRecord,
         desired_replicas: u64,
-    ) -> Result<std::collections::BTreeMap<String, Value>, StrategyExecutorFailure> {
-        let registration = observation
-            .schema_registry()
-            .entity_registration(existing.kind.kind_id)
-            .map_err(|error| {
-                StrategyExecutorFailure::new(
-                    StrategyExecutorFailureClass::DomainRejection,
-                    format!(
-                        "entity kind registration missing during replica convergence: {error:?}"
-                    ),
-                )
-            })?;
-        let replicas_declared = registration
-            .aspect_declarations
-            .aspects
-            .iter()
-            .any(|aspect| {
-                matches!(
-                    (&aspect.binding, aspect.comparator),
-                    (
-                        AspectBinding::EntityPayloadField { field },
-                        AspectComparator::JsonScalarEquality,
-                    ) if matches!(
-                        field,
-                        crate::symbols::data::InternedString::Raw(raw) if raw == "replicas"
-                    )
-                )
-            });
-        if !replicas_declared {
-            return Err(StrategyExecutorFailure::new(
-                StrategyExecutorFailureClass::DomainRejection,
-                format!(
-                    "field 'replicas' is not a declared scalar entity aspect on kind {}",
-                    existing.kind.kind_name
-                ),
-            ));
-        }
-        let mut fields = std::collections::BTreeMap::new();
-        fields.insert(
-            "replicas".to_string(),
-            Value::Number(serde_json::Number::from(desired_replicas)),
-        );
-        Ok(fields)
+    ) -> Result<AspectFieldPatch, StrategyExecutorFailure> {
+        let replicas = FieldKey::new("replicas").expect("static field key must be valid");
+        let aspect_key =
+            Self::require_lowered_entity_scalar_field(observation, existing, &replicas)?;
+        Ok(AspectFieldPatch::single(
+            aspect_key,
+            replicas,
+            AspectValue::UInt64(desired_replicas),
+        ))
     }
 }
 
@@ -180,18 +237,18 @@ impl CommitStrategyExecutor for ReplicaConvergenceStrategy {
             })?;
         let desired_fields =
             Self::reconcile_fields(observation, &existing, input.desired_replicas)?;
+        let replicas = FieldKey::new("replicas").expect("static field key must be valid");
+        let replicas_aspect_key =
+            Self::require_lowered_entity_scalar_field(observation, &existing, &replicas)?;
         let desired_replicas_value = desired_fields
-            .get("replicas")
+            .get_single_field(&replicas_aspect_key, &replicas)
             .cloned()
             .expect("replicas field");
-        let existing_replicas = existing
-            .payload
-            .as_json()
-            .and_then(|value| value.get("replicas"))
-            .cloned();
+        let desired_replicas_comparison_key =
+            authoritative_aspect_value_field_comparison_key(&desired_replicas_value);
 
-        let (action, mutation_program) = if existing_replicas.as_ref()
-            == Some(&desired_replicas_value)
+        let (action, mutation_program) = if existing.authoritative_field_comparison_key(&replicas)
+            == Some(&desired_replicas_comparison_key)
         {
             (
                 ReplicaConvergenceAction::NoChange,
@@ -215,96 +272,7 @@ impl CommitStrategyExecutor for ReplicaConvergenceStrategy {
             entity_id: input.entity_id,
             action,
             desired_replicas: input.desired_replicas,
-        })?;
+        });
         Ok(StrategyExecutionResult::new(output, mutation_program))
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{
-        ReplicaConvergenceAction, ReplicaConvergenceInput, ReplicaConvergenceOutput,
-        ReplicaConvergenceStrategy,
-    };
-    use crate::commit_strategies::data::{
-        RawStrategyCommitRequest, StrategyCallerProvenance, StrategyRequestOrigin,
-    };
-    use crate::logic::builder::RelationalRuntimeBuilder;
-    use crate::tests::support::{entity_payload_aspect, lifecycle_aspect, AspectSchemaFixture};
-    use serde_json::Value;
-
-    fn strategy_registry() -> crate::schema::data::RelationalSchemaRegistry {
-        AspectSchemaFixture {
-            entity_aspects: vec![
-                entity_payload_aspect("name", "name"),
-                entity_payload_aspect("replicas", "replicas"),
-                lifecycle_aspect(),
-            ],
-            ..AspectSchemaFixture::default()
-        }
-        .build_registry()
-    }
-
-    #[test]
-    fn replica_convergence_strategy_updates_replicas_and_preserves_other_fields() {
-        let descriptor = ReplicaConvergenceStrategy::descriptor(
-            crate::commit_strategies::data::CommitStrategyId(601),
-        );
-        let mut runtime = RelationalRuntimeBuilder::new()
-            .schema_registry(strategy_registry())
-            .commit_strategy(
-                crate::commit_strategies::data::CommitStrategyRegistration::new(descriptor.clone())
-                    .expect("strategy registration"),
-            )
-            .commit_strategy_executor(ReplicaConvergenceStrategy::execution_registration(
-                &descriptor,
-            ))
-            .build();
-        let entity = crate::tests::support::create_entity(&mut runtime, "before");
-        let request = runtime
-            .commit_strategies()
-            .canonicalize_request(&RawStrategyCommitRequest::new(
-                crate::commit_strategies::data::CommitStrategySemanticName::new(
-                    ReplicaConvergenceStrategy::DEFAULT_SEMANTIC_NAME,
-                ),
-                serde_json::to_vec(&ReplicaConvergenceInput {
-                    entity_id: entity,
-                    desired_replicas: 5,
-                })
-                .expect("serialize input"),
-                StrategyCallerProvenance {
-                    request_origin: StrategyRequestOrigin::Test,
-                    actor_identity: None,
-                    correlation_id: None,
-                },
-            ))
-            .expect("canonical request");
-        let snapshot = runtime.visibility_authority().snapshot();
-        let execution = runtime
-            .commit_strategies()
-            .execute(&request, &snapshot)
-            .expect("strategy execution");
-        let output: ReplicaConvergenceOutput =
-            serde_json::from_slice(execution.output().canonical_bytes()).expect("output decode");
-        let intent = &execution.mutation_program().worker_batches()[0].intents[0];
-        let updated_payload = match intent {
-            crate::transactions::data::MutationIntent::Entity(
-                crate::transactions::data::EntityMutationIntent::UpdateFields(intent),
-            ) => serde_json::Value::Object(
-                intent
-                    .fields
-                    .iter()
-                    .map(|(key, value)| (key.clone(), value.clone()))
-                    .collect(),
-            ),
-            other => panic!("expected update entity fields intent, got {other:?}"),
-        };
-
-        assert_eq!(output.action, ReplicaConvergenceAction::UpdateReplicas);
-        assert_eq!(
-            updated_payload.get("replicas"),
-            Some(&Value::Number(serde_json::Number::from(5_u64)))
-        );
-        assert_eq!(updated_payload.as_object().expect("object").len(), 1);
     }
 }

@@ -10,23 +10,20 @@ use crate::facade::merge::{
 use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::transactions::{
     CreateIntent, EntityMutationIntent, MutationIntent, RecordRef, TransactionOptions,
-    UpdateEntityIntent, WorkerIntentBatch,
+    UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 use crate::merge::data::AspectMergePolicyDeclaration;
-use crate::payloads::data::RecordPayload;
 use crate::publication::patch::data::AspectKey;
 use crate::schema::data::{
-    AspectBinding, AspectComparator, AspectPrecision, DeclaredAspect, EntityKindRegistration,
-    KindAspectDeclarations, RelationKindRegistration, RelationPayloadClass, SchemaId,
-    SchemaVersionId,
+    EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration, SchemaId,
+    SchemaRegistryErrorClass, SchemaVersionId,
 };
-use crate::symbols::data::InternedString;
 use crate::tests::support::{
     capture_aspect_truth_bundle, certification_digest, changed_entities,
     checkpoint_and_recover_with, create_branch_from_main, create_entity,
     create_relation_in_partition_on_branch, delete_entity, delete_entity_on_branch,
-    delete_relation_on_branch, persisted_runtime_with_test_schema, unique_test_store_path,
-    update_entity,
+    delete_relation_on_branch, entity_field_aspect, entity_i64_field_aspect,
+    persisted_runtime_with_test_schema, read_entity_field, unique_test_store_path, update_entity,
 };
 
 #[test]
@@ -200,7 +197,7 @@ fn built_in_last_writer_wins_reject_fallback_is_stable_across_recovery() {
     let live_policy_row = live_artifact.policy_resolution.records[0]
         .aspect_resolutions
         .iter()
-        .find(|row| row.aspect_key.0 == InternedString::Raw("value".to_string()))
+        .find(|row| row.aspect_key == AspectKey::new("value").unwrap())
         .expect("live policy row");
 
     assert_eq!(
@@ -288,7 +285,7 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
     let live_policy_row = live_artifact.policy_resolution.records[0]
         .aspect_resolutions
         .iter()
-        .find(|row| row.aspect_key.0 == InternedString::Raw("value".to_string()))
+        .find(|row| row.aspect_key == AspectKey::new("value").unwrap())
         .expect("live policy row");
 
     assert_eq!(
@@ -345,6 +342,49 @@ fn built_in_last_writer_wins_auto_resolution_is_stable_across_recovery() {
 }
 
 #[test]
+fn auto_resolved_merge_reads_pinned_visible_value_through_declared_aspect_binding() {
+    let mut runtime = runtime_with_payload_field_merge_policy_for_aspect(
+        "display_name",
+        "display",
+        AspectMergePolicyKind::PreferRicher,
+    );
+    let entity = create_entity_with_payload(
+        &mut runtime,
+        "identity",
+        serde_json::json!({ "display": "base" }),
+    );
+    create_branch_from_main(&mut runtime, "feature");
+    update_entity_payload_on_branch(
+        &mut runtime,
+        entity,
+        serde_json::json!({ "display": "main-change" }),
+        BranchId("main".to_string()),
+    );
+    update_entity_payload_on_branch(
+        &mut runtime,
+        entity,
+        serde_json::json!({ "display": "feature-change" }),
+        BranchId("feature".to_string()),
+    );
+
+    let prepared = runtime
+        .prepare_merge_execution(MergeExecutionRequest {
+            target_branch: BranchId("main".to_string()),
+            source_branch: BranchId("feature".to_string()),
+            merge_intent: MergeIntent::ReconcileIntoTarget,
+        })
+        .expect("prepared binding-native merge");
+    runtime
+        .execute_prepared_merge(prepared)
+        .expect("executed binding-native merge");
+
+    assert_eq!(
+        read_entity_json_field(&runtime, &BranchId("main".to_string()), entity, "display"),
+        serde_json::json!("feature-change")
+    );
+}
+
+#[test]
 fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recovery_parity() {
     let mut runtime =
         runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::MonotonicCounter);
@@ -384,12 +424,12 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
     let live_policy_row = live_artifact.policy_resolution.records[0]
         .aspect_resolutions
         .iter()
-        .find(|row| row.aspect_key.0 == InternedString::Raw("value".to_string()))
+        .find(|row| row.aspect_key == AspectKey::new("value").unwrap())
         .expect("live policy row");
     assert_eq!(
         live_policy_row.resolved_value_strategy,
-        Some(MergeResolvedAspectValueStrategy::InlineCanonicalJson(
-            serde_json::json!(18)
+        Some(MergeResolvedAspectValueStrategy::InlineAspectValue(
+            forge_foundational::facade::AspectValue::Int64(18)
         )),
         "monotonic-counter policy row: {live_policy_row:?}"
     );
@@ -443,107 +483,32 @@ fn built_in_monotonic_counter_merge_is_auto_resolved_with_inline_value_and_recov
         serde_json::json!(merge.execution_summary.execution_digest)
     );
     assert_eq!(merge.execution_summary.executed_record_count, 1);
+    assert!(
+        merge.commit.patch().iter().any(|record| record
+            .authoritative_changed_aspects()
+            .iter()
+            .any(|aspect| aspect == &AspectKey::new("value").unwrap())),
+        "counter merge patch should tag the declared aspect key: {:?}",
+        merge.commit.patch()
+    );
 }
 
 #[test]
-fn built_in_additive_set_merge_is_auto_resolved_with_observed_remove_semantics_and_recovery_parity()
-{
-    let mut runtime =
-        runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::AdditiveSet);
-    let entity =
-        create_entity_with_payload(&mut runtime, "set", serde_json::json!({ "value": [] }));
-    update_entity_payload_on_branch(
-        &mut runtime,
-        entity,
-        serde_json::json!({ "value": ["a"] }),
-        BranchId("main".to_string()),
-    );
-    create_branch_from_main(&mut runtime, "feature");
-    update_entity_payload_on_branch(
-        &mut runtime,
-        entity,
-        serde_json::json!({ "value": [] }),
-        BranchId("main".to_string()),
-    );
-    update_entity_payload_on_branch(
-        &mut runtime,
-        entity,
-        serde_json::json!({ "value": ["a", "b"] }),
-        BranchId("feature".to_string()),
-    );
+fn built_in_additive_set_merge_policy_is_rejected_without_native_foundational_set_contract() {
+    let error = register_payload_field_merge_policy(
+        "value",
+        entity_field_aspect("value", "value"),
+        AspectMergePolicyKind::AdditiveSet,
+    )
+    .unwrap_err();
 
-    let live_artifact = runtime
-        .merge()
-        .inspect_planning_scope(
-            MergeExecutionRequest {
-                target_branch: BranchId("main".to_string()),
-                source_branch: BranchId("feature".to_string()),
-                merge_intent: MergeIntent::ReconcileIntoTarget,
-            }
-            .into(),
-        )
-        .expect("live planning artifact");
-    let live_policy_row = live_artifact.policy_resolution.records[0]
-        .aspect_resolutions
-        .iter()
-        .find(|row| row.aspect_key.0 == InternedString::Raw("value".to_string()))
-        .expect("live policy row");
-    assert_eq!(
-        live_policy_row.resolved_value_strategy,
-        Some(MergeResolvedAspectValueStrategy::InlineCanonicalJson(
-            serde_json::json!(["a", "b"])
-        )),
-        "additive-set policy row: {live_policy_row:?}"
-    );
-
-    let prepared = runtime
-        .prepare_merge_execution(MergeExecutionRequest {
-            target_branch: BranchId("main".to_string()),
-            source_branch: BranchId("feature".to_string()),
-            merge_intent: MergeIntent::ReconcileIntoTarget,
-        })
-        .expect("prepared set merge");
-    let merge = runtime
-        .execute_prepared_merge(prepared)
-        .expect("executed set merge");
-    let live_commit_id = merge.commit.commit.commit_id;
-
-    assert_eq!(
-        read_entity_json_field(&runtime, &BranchId("main".to_string()), entity, "value"),
-        serde_json::json!(["a", "b"])
-    );
-
-    let (_recovery, recovered) = checkpoint_and_recover_with(&mut runtime, || {
-        runtime_with_payload_field_merge_policy("value", AspectMergePolicyKind::AdditiveSet)
-    });
-    let live_envelope = runtime
-        .replay()
-        .canonical_commit_envelope(live_commit_id)
-        .cloned()
-        .expect("live merge envelope");
-    let recovered_envelope = recovered
-        .replay()
-        .canonical_commit_envelope(live_commit_id)
-        .cloned()
-        .expect("recovered merge envelope");
-    assert_eq!(
-        read_entity_json_field(&recovered, &BranchId("main".to_string()), entity, "value"),
-        serde_json::json!(["a", "b"])
-    );
-    assert_eq!(
-        certification_digest(&live_envelope.diagnostics_summary),
-        certification_digest(&recovered_envelope.diagnostics_summary)
-    );
-    let summary_entry = live_envelope
-        .diagnostics_summary
-        .entries
-        .iter()
-        .find(|entry| entry.code == DiagnosticCode::MergeExecutionPublished)
-        .expect("merge execution summary entry");
-    assert_eq!(
-        summary_entry.fields["execution_digest"],
-        serde_json::json!(merge.execution_summary.execution_digest)
-    );
+    assert!(matches!(
+        error.class,
+        SchemaRegistryErrorClass::InvalidAspectDeclaration { .. }
+    ));
+    assert!(error
+        .detail
+        .contains("requires a native foundational set contract"));
 }
 
 #[test]
@@ -1295,8 +1260,8 @@ fn drifted_schema_registry() -> crate::facade::schema::RelationalSchemaRegistry 
             schema_id: crate::facade::schema::SchemaId("test".to_string()),
             schema_version_id: crate::facade::schema::SchemaVersionId(2),
             aspect_declarations: crate::facade::schema::KindAspectDeclarations::new(vec![
-                crate::tests::support::entity_payload_aspect("name", "name"),
-                crate::tests::support::entity_payload_aspect("status", "status"),
+                crate::tests::support::entity_field_aspect("name", "name"),
+                crate::tests::support::entity_field_aspect("status", "status"),
             ]),
         })
         .and_then(|registry| {
@@ -1305,7 +1270,6 @@ fn drifted_schema_registry() -> crate::facade::schema::RelationalSchemaRegistry 
                 kind_name: "test.relation".to_string(),
                 schema_id: crate::facade::schema::SchemaId("test".to_string()),
                 schema_version_id: crate::facade::schema::SchemaVersionId(2),
-                payload_class: crate::schema::data::RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: crate::tests::support::CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy:
                     crate::tests::support::CascadeDeletePolicy::CascadeDeleteRelations,
@@ -1317,9 +1281,7 @@ fn drifted_schema_registry() -> crate::facade::schema::RelationalSchemaRegistry 
 }
 
 fn topology_identity_registry() -> crate::facade::schema::RelationalSchemaRegistry {
-    let label_key = crate::facade::schema::AspectKey(crate::symbols::data::InternedString::Raw(
-        "label".to_string(),
-    ));
+    let label_key = crate::facade::schema::AspectKey::new("label").unwrap();
     crate::facade::schema::RelationalSchemaRegistry::new()
         .register_entity_kind(crate::facade::schema::EntityKindRegistration {
             kind_id: crate::facade::identity::KindId(1),
@@ -1334,12 +1296,11 @@ fn topology_identity_registry() -> crate::facade::schema::RelationalSchemaRegist
                 kind_name: "test.relation".to_string(),
                 schema_id: crate::facade::schema::SchemaId("test".to_string()),
                 schema_version_id: crate::facade::schema::SchemaVersionId(1),
-                payload_class: crate::schema::data::RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: crate::tests::support::CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy:
                     crate::tests::support::CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: crate::facade::schema::KindAspectDeclarations::new(vec![
-                    crate::tests::support::relation_payload_aspect("label", "label"),
+                    crate::tests::support::relation_field_aspect("label", "label"),
                     crate::tests::support::relation_source_aspect(),
                     crate::tests::support::relation_target_aspect(),
                 ])
@@ -1376,38 +1337,56 @@ use crate::{
     config::data::{CascadeDeletePolicy, CrossContextPolicy},
     facade::identity::KindId,
     facade::merge::AspectMergePolicyKind,
-    schema::data::RelationalSchemaRegistry,
+    schema::data::{RelationalSchemaRegistry, SchemaRegistryError},
 };
 
 fn runtime_with_payload_field_merge_policy(
     field_name: &str,
     merge_policy: AspectMergePolicyKind,
 ) -> crate::facade::runtime::RelationalRuntime {
-    let name_key = AspectKey(InternedString::Raw("name".to_string()));
-    let aspect_key = AspectKey(InternedString::Raw(field_name.to_string()));
-    let registry = RelationalSchemaRegistry::new()
+    let value_aspect = match merge_policy {
+        AspectMergePolicyKind::MonotonicCounter => entity_i64_field_aspect(field_name, field_name),
+        _ => entity_field_aspect(field_name, field_name),
+    };
+    let registry = register_payload_field_merge_policy(field_name, value_aspect, merge_policy)
+        .expect("schema registry");
+    RelationalRuntimeApi::builder()
+        .schema_registry(registry)
+        .build()
+}
+
+fn runtime_with_payload_field_merge_policy_for_aspect(
+    aspect_name: &str,
+    field_name: &str,
+    merge_policy: AspectMergePolicyKind,
+) -> crate::facade::runtime::RelationalRuntime {
+    let value_aspect = match merge_policy {
+        AspectMergePolicyKind::MonotonicCounter => entity_i64_field_aspect(aspect_name, field_name),
+        _ => entity_field_aspect(aspect_name, field_name),
+    };
+    let registry = register_payload_field_merge_policy(aspect_name, value_aspect, merge_policy)
+        .expect("schema registry");
+    RelationalRuntimeApi::builder()
+        .schema_registry(registry)
+        .build()
+}
+
+fn register_payload_field_merge_policy(
+    aspect_name: &str,
+    value_aspect: crate::schema::data::DeclaredAspect,
+    merge_policy: AspectMergePolicyKind,
+) -> Result<RelationalSchemaRegistry, SchemaRegistryError> {
+    let name_key = AspectKey::new("name").unwrap();
+    let aspect_key = AspectKey::new(aspect_name).unwrap();
+    RelationalSchemaRegistry::new()
         .register_entity_kind(EntityKindRegistration {
             kind_id: KindId(1),
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![
-                DeclaredAspect {
-                    key: name_key.clone(),
-                    binding: AspectBinding::EntityPayloadField {
-                        field: InternedString::Raw("name".to_string()),
-                    },
-                    comparator: AspectComparator::JsonScalarEquality,
-                    precision: AspectPrecision::Structured,
-                },
-                DeclaredAspect {
-                    key: aspect_key.clone(),
-                    binding: AspectBinding::EntityPayloadField {
-                        field: InternedString::Raw(field_name.to_string()),
-                    },
-                    comparator: AspectComparator::JsonScalarEquality,
-                    precision: AspectPrecision::Structured,
-                },
+                entity_field_aspect(name_key.as_str(), "name"),
+                value_aspect,
             ])
             .with_identity_declarations(vec![IdentityBasisDeclaration {
                 scope: IdentityBasisScope::AspectKey(name_key.clone()),
@@ -1424,17 +1403,12 @@ fn runtime_with_payload_field_merge_policy(
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
                 relation_integrity: crate::schema::data::RelationIntegrityDeclarations::default(),
             })
         })
-        .expect("schema registry");
-    RelationalRuntimeApi::builder()
-        .schema_registry(registry)
-        .build()
 }
 
 fn create_entity_with_payload(
@@ -1460,10 +1434,10 @@ fn create_entity_with_payload_on_branch(
             crate::transactions::data::EntitySpec {
                 partition_id: crate::facade::identity::PartitionId::main(),
                 kind_id: KindId(1),
-                client_key: InternedString::Raw(client_key.to_string()),
-                payload: RecordPayload::StructuredJson(payload_with_identity_name(
-                    client_key, payload,
-                )),
+                client_key: crate::symbols::data::ClientKey::raw(client_key),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    payload_with_identity_name(client_key, payload),
+                ),
             },
         )),
     ));
@@ -1486,12 +1460,11 @@ fn update_entity_payload_on_branch(
     });
     txn.push_batch(
         WorkerIntentBatch::new("update-payload").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id,
-                payload: RecordPayload::StructuredJson(payload_with_identity_name(
-                    &stable_name,
-                    payload,
-                )),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    payload_with_identity_name(&stable_name, payload),
+                ),
             }),
         )),
     );
@@ -1524,8 +1497,14 @@ fn read_entity_json_field(
         .read_truth()
         .read_version(version_id)
         .get_entity(entity_id)
-        .and_then(|entity| entity.payload.as_json())
-        .and_then(|json| json.get(field))
-        .cloned()
+        .and_then(|entity| read_entity_field(entity, field))
+        .map(json_value_from_comparison_key)
         .expect("json field value")
+}
+
+fn json_value_from_comparison_key(value: &str) -> serde_json::Value {
+    value
+        .parse::<i64>()
+        .map(serde_json::Value::from)
+        .unwrap_or_else(|_| serde_json::Value::String(value.to_string()))
 }

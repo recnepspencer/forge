@@ -4,7 +4,7 @@ use crate::history::data::{AspectHistoryQueryResult, BranchId, CommitReference};
 use crate::identity::data::{
     EntityId, KindId, LineageId, PartitionId, RelationId, StructuralFingerprint, VersionId,
 };
-use crate::indexes::data::DerivedIndexGeneration;
+use crate::indexes::data::DerivedIndexArtifacts;
 use crate::lineage::data::{HistoricalLineageResolution, LineageEventRecord};
 use crate::lineage::data::{LineageArtifactCounters, LineageDigestBasis};
 use crate::publication::patch::data::CanonicalAspectSet;
@@ -388,8 +388,7 @@ pub struct CommitInspection {
     pub lineage_events: Vec<LineageEventRecord>,
     pub lineage_digest_basis: LineageDigestBasis,
     pub lineage_artifact_counters: LineageArtifactCounters,
-    pub index_generation_ids: Vec<u64>,
-    pub index_generations: Vec<DerivedIndexGeneration>,
+    pub derived_index_artifacts: DerivedIndexArtifacts,
     pub changed_aspects: CanonicalAspectSet,
     pub origin: InspectionOrigin,
     pub access_path: InspectionAccessPath,

@@ -1,16 +1,34 @@
+mod canonical_digest;
+mod executable_plan;
+mod materialized_aspect_values;
+
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
+
+pub(crate) use canonical_digest::{
+    compiled_executable_plan_digest, equality_witness_digest, merge_execution_diagnostics_digest,
+    schema_snapshot_digest,
+};
+pub(crate) use executable_plan::{bound_parent_order, visible_record_snapshot};
+pub use executable_plan::{
+    AdoptSourceRecordPlan, BoundExecutableMergePlan, BoundExecutableMergeRecordPlan,
+    ConvergeDeletedOnBothSidesRecordPlan, DeletedOnBothSidesSemantics, ExecutableAspectPlan,
+    MergeExecutableRecordProvenance, MergeLineageContinuityVerdict, PreserveSharedRecordPlan,
+    ReconcileRecordPlan, ReconciledIdentityBasis, SharedTruthWitness, VisibleMergeRecordSnapshot,
+};
+pub(crate) use materialized_aspect_values::{aspect_reference, materialized_value_aspect_key};
+pub use materialized_aspect_values::{
+    MaterializedAspectValue, MaterializedAspectValueEvidence, MergeValueMaterialization,
+    MergeValueSourceSide,
+};
 
 use crate::history::data::{BranchId, CommitId, CommitReference};
 use crate::merge::data::{
     BranchTouchedRecordDelta, LoweredMergePlanRecord, LoweredRecordDecision,
-    LoweredRecordDecisionKind, MergeConflictClass, MergePlanningArtifactCore, MergePlanningError,
-    MergePlanningRequest, MergeSchemaSnapshotDigestBasis, ResolvedAspectMergePolicy,
-    ResolvedMergeBase, VisibleMergeRecord, VisibleMergeRecordKind,
+    LoweredRecordDecisionKind, MergePlanningArtifactCore, MergePlanningError, MergePlanningRequest,
+    MergeSchemaSnapshotDigestBasis, ResolvedMergeBase, VisibleMergeRecord,
 };
-use crate::storage::data::{EntityReadRecord, RelationReadRecord};
 use crate::transactions::data::RecordRef;
 
 use super::plans::LoweredMergePlan;
@@ -160,6 +178,11 @@ pub enum MergeExecutionCompilationError {
         record: RecordRef,
         aspect_key: crate::publication::patch::data::AspectKey,
     },
+    UnsupportedAspectValueWitness {
+        record: RecordRef,
+        aspect_key: crate::publication::patch::data::AspectKey,
+        detail: String,
+    },
     MissingAspectBinding {
         record: RecordRef,
         aspect_key: crate::publication::patch::data::AspectKey,
@@ -171,6 +194,7 @@ pub enum MergeExecutionCompilationError {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum MergeExecutionMutationPlanError {
+    MissingSourceHeadEnvelope,
     MissingTargetEntitySnapshot {
         record: RecordRef,
     },
@@ -190,7 +214,7 @@ pub enum MergeExecutionMutationPlanError {
         record: RecordRef,
         aspect_key: crate::publication::patch::data::AspectKey,
     },
-    InvalidVisibleAspectReference {
+    InvalidPinnedVisibleAspect {
         record: RecordRef,
         aspect_key: crate::publication::patch::data::AspectKey,
         detail: &'static str,
@@ -293,17 +317,7 @@ impl ExecutionReadyLoweredMergePlan {
         let denied_records = plan
             .lowered_records
             .iter()
-            .filter_map(|record| match record.record_decision {
-                LoweredRecordDecision::Execute(_) => None,
-                LoweredRecordDecision::Block(_) => Some(MergeExecutionDeniedRecord {
-                    record: record.record.clone(),
-                    decision: LoweredRecordDecisionKind::Block,
-                }),
-                LoweredRecordDecision::Reject(_) => Some(MergeExecutionDeniedRecord {
-                    record: record.record.clone(),
-                    decision: LoweredRecordDecisionKind::Reject,
-                }),
-            })
+            .filter_map(readiness_denial_for_lowered_record)
             .collect::<Vec<_>>();
 
         if !denied_records.is_empty() {
@@ -328,371 +342,18 @@ impl ExecutionReadyLoweredMergePlan {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MergeValueMaterialization {
-    EqualityWitnessDigest,
-    SnapshotPinnedRead,
-    InternedCanonicalValueHandle,
-    EagerInlineCanonicalValue,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MergeValueSourceSide {
-    Source,
-    Target,
-    Base,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MaterializedAspectValue {
-    pub policy: MergeValueMaterialization,
-    pub payload: MaterializedAspectValuePayload,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MaterializedAspectValuePayload {
-    EqualityWitnessDigest(String),
-    VisibleAspectReference {
-        side: MergeValueSourceSide,
-        record: RecordRef,
-        aspect_key: crate::publication::patch::data::AspectKey,
-    },
-    InlineCanonicalJson(serde_json::Value),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum VisibleMergeRecordSnapshot {
-    Entity(EntityReadRecord),
-    Relation(RelationReadRecord),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct SharedTruthWitness {
-    pub witness_digest: String,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ReconciledIdentityBasis {
-    pub source_record: RecordRef,
-    pub target_record: RecordRef,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum MergeLineageContinuityVerdict {
-    Unchanged,
-    Preserved,
-    Transformed,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-pub enum DeletedOnBothSidesSemantics {
-    AuthoritativeMutualDeletionConvergence,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum ExecutableAspectPlan {
-    AdoptSourceValue {
-        aspect_key: crate::publication::patch::data::AspectKey,
-        source_value: MaterializedAspectValue,
-    },
-    PreserveSharedValue {
-        aspect_key: crate::publication::patch::data::AspectKey,
-        shared_value: MaterializedAspectValue,
-    },
-    ReconcileValue {
-        aspect_key: crate::publication::patch::data::AspectKey,
-        source_value: Option<MaterializedAspectValue>,
-        target_value: Option<MaterializedAspectValue>,
-        base_value: Option<MaterializedAspectValue>,
-        resolved_value: Option<MaterializedAspectValue>,
-    },
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct MergeExecutableRecordProvenance {
-    pub classification: MergeConflictClass,
-    pub resolution_class: crate::merge::data::MergeResolutionClass,
-    pub executable_class: crate::merge::data::MergeExecutableClass,
-    pub causal_disposition: crate::merge::data::MergeRecordCausalDisposition,
-    pub policy_proof_boundary: crate::merge::data::MergePolicyProofBoundary,
-    pub applied_policies: Arc<[ResolvedAspectMergePolicy]>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct AdoptSourceRecordPlan {
-    pub source_record: RecordRef,
-    pub(crate) record_kind: VisibleMergeRecordKind,
-    pub source_visible_snapshot: VisibleMergeRecordSnapshot,
-    pub provenance: MergeExecutableRecordProvenance,
-    pub aspect_plan: Arc<[ExecutableAspectPlan]>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PreserveSharedRecordPlan {
-    pub record: RecordRef,
-    pub target_record: Option<RecordRef>,
-    pub equality_witness: SharedTruthWitness,
-    pub provenance: MergeExecutableRecordProvenance,
-    pub aspect_plan: Arc<[ExecutableAspectPlan]>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ReconcileRecordPlan {
-    pub source_record: RecordRef,
-    pub target_record: RecordRef,
-    pub source_visible_snapshot: VisibleMergeRecordSnapshot,
-    pub identity_basis: ReconciledIdentityBasis,
-    pub causal_disposition: crate::merge::data::MergeRecordCausalDisposition,
-    pub provenance: MergeExecutableRecordProvenance,
-    pub aspect_plan: Arc<[ExecutableAspectPlan]>,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct ConvergeDeletedOnBothSidesRecordPlan {
-    pub source_record: RecordRef,
-    pub target_record: Option<RecordRef>,
-    pub equality_witness: SharedTruthWitness,
-    pub semantics: DeletedOnBothSidesSemantics,
-    pub lineage_continuity: MergeLineageContinuityVerdict,
-    pub provenance: MergeExecutableRecordProvenance,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum BoundExecutableMergeRecordPlan {
-    AdoptSource(AdoptSourceRecordPlan),
-    PreserveShared(PreserveSharedRecordPlan),
-    Reconcile(ReconcileRecordPlan),
-    ConvergeDeletedOnBothSides(ConvergeDeletedOnBothSidesRecordPlan),
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct BoundExecutableMergePlan {
-    pub authority_binding: MergeExecutionAuthorityBinding,
-    pub parent_order: Arc<[CommitId]>,
-    pub record_plans: Arc<[BoundExecutableMergeRecordPlan]>,
-    pub diagnostics_plan: crate::merge::data::MergeExecutionDiagnosticsPlan,
-}
-
-pub(crate) fn compiled_executable_plan_digest(
-    target_branch: &BranchId,
-    source_branch: &BranchId,
-    merge_intent: crate::merge::data::MergeIntent,
-    parent_order: &[CommitId],
-    record_plans: &[BoundExecutableMergeRecordPlan],
-) -> String {
-    let bytes = serde_json::to_vec(&(
-        target_branch,
-        source_branch,
-        merge_intent,
-        parent_order,
-        executable_record_plan_digest_rows(record_plans),
-    ))
-    .expect("compiled executable merge plan serialization");
-    let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
-}
-
-pub(crate) fn schema_snapshot_digest(schema_snapshot: &MergeSchemaSnapshotDigestBasis) -> String {
-    let bytes = serde_json::to_vec(schema_snapshot).expect("merge schema snapshot serialization");
-    let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
-}
-
-pub(crate) fn bound_parent_order(
-    execution_ready: &ExecutionReadyLoweredMergePlan,
-) -> Arc<[CommitId]> {
-    Arc::from([
-        execution_ready.target_head.commit_id,
-        execution_ready.source_head.commit_id,
-    ])
-}
-
-pub(crate) fn visible_record_snapshot(
-    record: &VisibleMergeRecord,
-) -> Option<VisibleMergeRecordSnapshot> {
-    match record.record_kind {
-        VisibleMergeRecordKind::Entity => record
-            .source_entity
-            .clone()
-            .map(VisibleMergeRecordSnapshot::Entity),
-        VisibleMergeRecordKind::Relation => record
-            .source_relation
-            .clone()
-            .map(VisibleMergeRecordSnapshot::Relation),
+fn readiness_denial_for_lowered_record(
+    record: &LoweredMergePlanRecord,
+) -> Option<MergeExecutionDeniedRecord> {
+    match record.record_decision {
+        LoweredRecordDecision::Execute(_) => None,
+        LoweredRecordDecision::Block(_) => Some(MergeExecutionDeniedRecord {
+            record: record.record.clone(),
+            decision: LoweredRecordDecisionKind::Block,
+        }),
+        LoweredRecordDecision::Reject(_) => Some(MergeExecutionDeniedRecord {
+            record: record.record.clone(),
+            decision: LoweredRecordDecisionKind::Reject,
+        }),
     }
-}
-
-pub(crate) fn equality_witness_digest(record: &VisibleMergeRecord) -> String {
-    let bytes = serde_json::to_vec(&(
-        record.record_ref.clone(),
-        record.source_entity.as_ref(),
-        record.target_entity.as_ref(),
-        record.source_relation.as_ref(),
-        record.target_relation.as_ref(),
-    ))
-    .expect("visible merge record serialization");
-    let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
-}
-
-pub(crate) fn aspect_reference(
-    side: MergeValueSourceSide,
-    record: RecordRef,
-    aspect_key: crate::publication::patch::data::AspectKey,
-) -> MaterializedAspectValue {
-    MaterializedAspectValue {
-        policy: MergeValueMaterialization::SnapshotPinnedRead,
-        payload: MaterializedAspectValuePayload::VisibleAspectReference {
-            side,
-            record,
-            aspect_key,
-        },
-    }
-}
-
-fn executable_record_plan_digest_rows(
-    record_plans: &[BoundExecutableMergeRecordPlan],
-) -> Vec<ExecutableRecordPlanDigestRow<'_>> {
-    record_plans
-        .iter()
-        .map(|plan| match plan {
-            BoundExecutableMergeRecordPlan::AdoptSource(plan) => ExecutableRecordPlanDigestRow {
-                variant: "adopt_source",
-                source_record: Some(&plan.source_record),
-                target_record: None,
-                record: None,
-                record_kind: Some(match plan.record_kind {
-                    VisibleMergeRecordKind::Entity => "entity",
-                    VisibleMergeRecordKind::Relation => "relation",
-                }),
-                source_visible_snapshot: Some(&plan.source_visible_snapshot),
-                equality_witness: None,
-                deletion_semantics: None,
-                lineage_continuity: None,
-                identity_basis: None,
-                provenance: Some(&plan.provenance),
-                aspect_plan: executable_aspect_plan_digest_rows(&plan.aspect_plan),
-            },
-            BoundExecutableMergeRecordPlan::PreserveShared(plan) => ExecutableRecordPlanDigestRow {
-                variant: "preserve_shared",
-                source_record: None,
-                target_record: plan.target_record.as_ref(),
-                record: Some(&plan.record),
-                record_kind: None,
-                source_visible_snapshot: None,
-                equality_witness: Some(&plan.equality_witness),
-                deletion_semantics: None,
-                lineage_continuity: None,
-                identity_basis: None,
-                provenance: Some(&plan.provenance),
-                aspect_plan: executable_aspect_plan_digest_rows(&plan.aspect_plan),
-            },
-            BoundExecutableMergeRecordPlan::Reconcile(plan) => ExecutableRecordPlanDigestRow {
-                variant: "reconcile",
-                source_record: Some(&plan.source_record),
-                target_record: Some(&plan.target_record),
-                record: None,
-                record_kind: None,
-                source_visible_snapshot: Some(&plan.source_visible_snapshot),
-                equality_witness: None,
-                deletion_semantics: None,
-                lineage_continuity: None,
-                identity_basis: Some(&plan.identity_basis),
-                provenance: Some(&plan.provenance),
-                aspect_plan: executable_aspect_plan_digest_rows(&plan.aspect_plan),
-            },
-            BoundExecutableMergeRecordPlan::ConvergeDeletedOnBothSides(plan) => {
-                ExecutableRecordPlanDigestRow {
-                    variant: "converge_deleted_on_both_sides",
-                    source_record: Some(&plan.source_record),
-                    target_record: plan.target_record.as_ref(),
-                    record: None,
-                    record_kind: None,
-                    source_visible_snapshot: None,
-                    equality_witness: Some(&plan.equality_witness),
-                    deletion_semantics: Some(&plan.semantics),
-                    lineage_continuity: Some(&plan.lineage_continuity),
-                    identity_basis: None,
-                    provenance: Some(&plan.provenance),
-                    aspect_plan: Vec::new(),
-                }
-            }
-        })
-        .collect()
-}
-
-fn executable_aspect_plan_digest_rows(
-    aspect_plans: &[ExecutableAspectPlan],
-) -> Vec<ExecutableAspectPlanDigestRow<'_>> {
-    aspect_plans
-        .iter()
-        .map(|plan| match plan {
-            ExecutableAspectPlan::AdoptSourceValue {
-                aspect_key,
-                source_value,
-            } => ExecutableAspectPlanDigestRow {
-                variant: "adopt_source",
-                aspect_key,
-                source_value: Some(source_value),
-                target_value: None,
-                base_value: None,
-                shared_value: None,
-                resolved_value: None,
-            },
-            ExecutableAspectPlan::PreserveSharedValue {
-                aspect_key,
-                shared_value,
-            } => ExecutableAspectPlanDigestRow {
-                variant: "preserve_shared",
-                aspect_key,
-                source_value: None,
-                target_value: None,
-                base_value: None,
-                shared_value: Some(shared_value),
-                resolved_value: None,
-            },
-            ExecutableAspectPlan::ReconcileValue {
-                aspect_key,
-                source_value,
-                target_value,
-                base_value,
-                resolved_value,
-            } => ExecutableAspectPlanDigestRow {
-                variant: "reconcile",
-                aspect_key,
-                source_value: source_value.as_ref(),
-                target_value: target_value.as_ref(),
-                base_value: base_value.as_ref(),
-                shared_value: None,
-                resolved_value: resolved_value.as_ref(),
-            },
-        })
-        .collect()
-}
-
-#[derive(Serialize)]
-struct ExecutableRecordPlanDigestRow<'a> {
-    variant: &'static str,
-    source_record: Option<&'a RecordRef>,
-    target_record: Option<&'a RecordRef>,
-    record: Option<&'a RecordRef>,
-    record_kind: Option<&'static str>,
-    source_visible_snapshot: Option<&'a VisibleMergeRecordSnapshot>,
-    equality_witness: Option<&'a SharedTruthWitness>,
-    deletion_semantics: Option<&'a DeletedOnBothSidesSemantics>,
-    lineage_continuity: Option<&'a MergeLineageContinuityVerdict>,
-    identity_basis: Option<&'a ReconciledIdentityBasis>,
-    provenance: Option<&'a MergeExecutableRecordProvenance>,
-    aspect_plan: Vec<ExecutableAspectPlanDigestRow<'a>>,
-}
-
-#[derive(Serialize)]
-struct ExecutableAspectPlanDigestRow<'a> {
-    variant: &'static str,
-    aspect_key: &'a crate::publication::patch::data::AspectKey,
-    source_value: Option<&'a MaterializedAspectValue>,
-    target_value: Option<&'a MaterializedAspectValue>,
-    base_value: Option<&'a MaterializedAspectValue>,
-    shared_value: Option<&'a MaterializedAspectValue>,
-    resolved_value: Option<&'a MaterializedAspectValue>,
 }

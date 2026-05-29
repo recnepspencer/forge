@@ -1,8 +1,8 @@
 use crate::diagnostics::data::DiagnosticCode;
 use crate::history::data::CommitId;
 use crate::logic::planning::RelationalExecutionModel;
-use crate::publication::data::diff::PatchStreamPosition;
-use crate::publication::data::PublicationStage;
+use crate::publication::bundle::PublicationStage;
+use crate::publication::patch::data::PatchStreamPosition;
 use crate::snapshots::data::SnapshotId;
 use crate::validation::data::{InvariantExecutionPoint, InvariantGroupSet};
 use crate::validation::engine::{
@@ -57,7 +57,7 @@ pub struct CommitAspectSummary {
     pub changed_entity_aspect_count: usize,
     pub changed_relation_aspect_count: usize,
     pub touched_aspects: CanonicalAspectSet,
-    pub opaque_precision_delta_count: usize,
+    pub opaque_aspect_delta_count: usize,
     pub zero_aspect_structural_delta_count: usize,
 }
 

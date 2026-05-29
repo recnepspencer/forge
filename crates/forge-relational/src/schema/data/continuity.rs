@@ -3,6 +3,8 @@ use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 
+use forge_foundational::FieldKey;
+
 use crate::history::data::BranchId;
 use crate::identity::data::KindId;
 
@@ -256,20 +258,20 @@ pub enum FreeFormSchemaDiffIntent {
 #[non_exhaustive]
 pub enum SchemaDiffDetail {
     AddedField {
-        field_name: Arc<str>,
+        field: FieldKey,
         required: bool,
         default_expression: Option<Arc<str>>,
     },
     RemovedField {
-        field_name: Arc<str>,
+        field: FieldKey,
     },
     TypeChanged {
-        field_name: Arc<str>,
+        field: FieldKey,
         from_type: Arc<str>,
         to_type: Arc<str>,
     },
     EnumDomainExpanded {
-        field_name: Arc<str>,
+        field: FieldKey,
         added_variants: Vec<Arc<str>>,
     },
     InvariantContractChanged {

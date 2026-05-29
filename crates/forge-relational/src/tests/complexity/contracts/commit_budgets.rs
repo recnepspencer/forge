@@ -162,7 +162,7 @@ fn schema_transition_for_subscriber_impact(
             subscriber_impact,
             crate::schema::data::HistoricalInterpretationSensitivity::NotSensitive,
             crate::schema::data::SchemaDiffDetail::AddedField {
-                field_name: "tag".into(),
+                field: field_key("tag"),
                 required: false,
                 default_expression: Some("null".into()),
             },
@@ -261,14 +261,20 @@ fn complexity_budget_bulk_create_reserves_partition_local_capacity() {
                 partition_id: PartitionId(41),
                 kind_id: KindId(1),
                 client_keys: vec![
-                    InternedString::Raw("a".to_string()),
-                    InternedString::Raw("b".to_string()),
-                    InternedString::Raw("c".to_string()),
+                    crate::symbols::data::ClientKey::raw("a"),
+                    crate::symbols::data::ClientKey::raw("b"),
+                    crate::symbols::data::ClientKey::raw("c"),
                 ],
-                payloads: vec![
-                    RecordPayload::StructuredJson(json!({"name":"a"})),
-                    RecordPayload::StructuredJson(json!({"name":"b"})),
-                    RecordPayload::StructuredJson(json!({"name":"c"})),
+                field_patches: vec![
+                    crate::tests::support::aspect_field_patch_from_compatibility_json(
+                        json!({"name":"a"}),
+                    ),
+                    crate::tests::support::aspect_field_patch_from_compatibility_json(
+                        json!({"name":"b"}),
+                    ),
+                    crate::tests::support::aspect_field_patch_from_compatibility_json(
+                        json!({"name":"c"}),
+                    ),
                 ],
             }),
         )),
@@ -336,10 +342,10 @@ fn complexity_budget_relation_identity_validation_avoids_partition_scan() {
             crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("dup".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("dup"),
                 source: crate::transactions::data::EntityReference::Existing(source),
                 target: crate::transactions::data::EntityReference::Existing(target),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"rel"}))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
     );
@@ -356,9 +362,10 @@ fn complexity_budget_relation_identity_validation_avoids_partition_scan() {
 
 #[test]
 fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
-    let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
+    let mut runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
         registrations: vec![InvariantRegistration::mutation_sensitive_blocking(
-            InvariantRule::UniqueEntityPayloadField("name".to_string()),
+            InvariantRule::unique_entity_aspect_field("name", "name")
+                .expect("valid unique aspect field target"),
         )],
         ..InvariantCatalog::default()
     });
@@ -370,9 +377,11 @@ fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
         WorkerIntentBatch::new("duplicate-name").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: target,
-                payload: RecordPayload::StructuredJson(json!({"name":"other"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    json!({"name":"other"}),
+                ),
             }),
         )),
     );
@@ -390,9 +399,10 @@ fn complexity_budget_unique_entity_invariant_uses_changed_set_lookup() {
 
 #[test]
 fn complexity_budget_commit_boundary_unique_invariant_uses_merged_plan_lookup() {
-    let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
+    let mut runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
         registrations: vec![InvariantRegistration::commit_boundary_blocking(
-            InvariantRule::UniqueEntityPayloadField("name".to_string()),
+            InvariantRule::unique_entity_aspect_field("name", "name")
+                .expect("valid unique aspect field target"),
         )],
         ..InvariantCatalog::default()
     });
@@ -404,9 +414,11 @@ fn complexity_budget_commit_boundary_unique_invariant_uses_merged_plan_lookup() 
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
         WorkerIntentBatch::new("duplicate-name").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: target,
-                payload: RecordPayload::StructuredJson(json!({"name":"other"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    json!({"name":"other"}),
+                ),
             }),
         )),
     );
@@ -455,11 +467,13 @@ fn complexity_budget_preparation_packetization_is_chunked_for_broad_deltas() {
                 partition_id: PartitionId(41),
                 kind_id: KindId(1),
                 client_keys: (0..65)
-                    .map(|index| InternedString::Raw(format!("e{index}")))
+                    .map(|index| crate::symbols::data::ClientKey::raw(format!("e{index}")))
                     .collect(),
-                payloads: (0..65)
+                field_patches: (0..65)
                     .map(|index| {
-                        RecordPayload::StructuredJson(json!({"name": format!("e{index}")}))
+                        crate::tests::support::aspect_field_patch_from_compatibility_json(
+                            json!({"name": format!("e{index}")}),
+                        )
                     })
                     .collect(),
             }),
@@ -535,10 +549,10 @@ fn complexity_budget_relation_integrity_uniqueness_uses_adjacency_local_candidat
             crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("duplicate".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("duplicate"),
                 source: crate::transactions::data::EntityReference::Existing(target),
                 target: crate::transactions::data::EntityReference::Existing(source),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"duplicate"}))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         )),
     ));
@@ -568,12 +582,10 @@ fn complexity_budget_relation_integrity_symmetry_checks_only_touched_pairs() {
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("missing-twin".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("missing-twin"),
                 source: crate::transactions::data::EntityReference::Existing(source),
                 target: crate::transactions::data::EntityReference::Existing(target),
-                payload: Some(RecordPayload::StructuredJson(
-                    json!({"label":"missing-twin"}),
-                )),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
     );
@@ -630,10 +642,10 @@ fn complexity_budget_relation_integrity_reuses_touched_scope_across_multiple_con
             crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("duplicate".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("duplicate"),
                 source: crate::transactions::data::EntityReference::Existing(target),
                 target: crate::transactions::data::EntityReference::Existing(source),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"duplicate"}))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         )),
     ));
@@ -894,12 +906,16 @@ fn complexity_budget_bulk_mutation_planning_reports_identity_scope_and_batch_evi
                 partition_id: PartitionId(7),
                 kind_id: KindId(1),
                 client_keys: vec![
-                    InternedString::Raw("alpha".to_string()),
-                    InternedString::Raw("beta".to_string()),
+                    crate::symbols::data::ClientKey::raw("alpha"),
+                    crate::symbols::data::ClientKey::raw("beta"),
                 ],
-                payloads: vec![
-                    RecordPayload::StructuredJson(json!({"name":"alpha"})),
-                    RecordPayload::StructuredJson(json!({"name":"beta"})),
+                field_patches: vec![
+                    crate::tests::support::aspect_field_patch_from_compatibility_json(
+                        json!({"name":"alpha"}),
+                    ),
+                    crate::tests::support::aspect_field_patch_from_compatibility_json(
+                        json!({"name":"beta"}),
+                    ),
                 ],
             }),
         )),
@@ -909,12 +925,12 @@ fn complexity_budget_bulk_mutation_planning_reports_identity_scope_and_batch_evi
             CreateIntent::BulkRelations(BulkRelationCreateIntent {
                 partition_id: PartitionId(13),
                 kind_id: KindId(2),
-                client_keys: vec![InternedString::Raw("edge".to_string())],
+                client_keys: vec![crate::symbols::data::ClientKey::raw("edge")],
                 endpoints: vec![(
                     crate::transactions::data::EntityReference::Existing(source),
                     crate::transactions::data::EntityReference::Existing(target),
                 )],
-                payloads: vec![Some(RecordPayload::StructuredJson(json!({"label":"edge"})))],
+                field_patches: vec![crate::transactions::data::AspectFieldPatch::default()],
             }),
         )),
     );
@@ -947,12 +963,12 @@ fn complexity_budget_bulk_mutation_admission_remains_side_effect_free_until_comm
             CreateIntent::BulkRelations(BulkRelationCreateIntent {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_keys: vec![InternedString::Raw("edge".to_string())],
+                client_keys: vec![crate::symbols::data::ClientKey::raw("edge")],
                 endpoints: vec![(
                     crate::transactions::data::EntityReference::Existing(source),
                     crate::transactions::data::EntityReference::Existing(target),
                 )],
-                payloads: vec![Some(RecordPayload::StructuredJson(json!({"label":"edge"})))],
+                field_patches: vec![crate::transactions::data::AspectFieldPatch::default()],
             }),
         )),
     );
@@ -977,12 +993,12 @@ fn complexity_budget_bulk_mutation_admission_remains_side_effect_free_until_comm
             CreateIntent::BulkRelations(BulkRelationCreateIntent {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_keys: vec![InternedString::Raw("edge-commit".to_string())],
+                client_keys: vec![crate::symbols::data::ClientKey::raw("edge-commit")],
                 endpoints: vec![(
                     crate::transactions::data::EntityReference::Existing(source),
                     crate::transactions::data::EntityReference::Existing(target),
                 )],
-                payloads: vec![Some(RecordPayload::StructuredJson(json!({"label":"edge"})))],
+                field_patches: vec![crate::transactions::data::AspectFieldPatch::default()],
             }),
         )),
     );

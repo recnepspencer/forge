@@ -1,5 +1,6 @@
 use crate::facade::snapshots::SnapshotHandle;
-use crate::history::data::{AspectFilter, AspectFilterMode, RequestedAspectSet};
+use crate::history::data::{AspectFilter, AspectFilterMode};
+use crate::publication::patch::data::CanonicalAspectSet;
 use crate::tests::support::*;
 use std::sync::Arc;
 
@@ -280,7 +281,7 @@ fn planned_query_execution_supports_aspect_filtered_entity_scans_through_reducer
             kind_id: Some(KindId(1)),
             aspect_filter: AspectFilter {
                 mode: AspectFilterMode::All,
-                aspects: RequestedAspectSet::new([aspect_key("name"), aspect_key("lifecycle")]),
+                aspects: CanonicalAspectSet::new([aspect_key("name"), aspect_key("lifecycle")]),
             },
             partition_scope: Some(Arc::from([PartitionId(7), PartitionId(11)])),
         },
@@ -339,7 +340,7 @@ fn planned_query_execution_supports_aspect_filtered_relation_scans_through_reduc
             kind_id: Some(KindId(2)),
             aspect_filter: AspectFilter {
                 mode: AspectFilterMode::All,
-                aspects: RequestedAspectSet::new([
+                aspects: CanonicalAspectSet::new([
                     aspect_key("label"),
                     aspect_key("lifecycle"),
                     aspect_key("source"),

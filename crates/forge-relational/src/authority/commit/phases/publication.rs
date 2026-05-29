@@ -1,32 +1,33 @@
-use serde_json::json;
-
 use crate::authority::commit::phases::schema_continuity::validate_schema_continuity_publication;
 use crate::capabilities::{
-    DiagnosticsSink, DurabilityWrite, PublicationPolicySource, SchemaSource, SchemaVersionSource,
+    DiagnosticArtifactSink, DurabilityWrite, PublicationPolicySource, SchemaSource,
+    SchemaVersionSource,
 };
-use crate::diagnostics::data::{DiagnosticCode, DiagnosticsScope};
+use crate::diagnostics::data::{
+    DiagnosticCode, DiagnosticsScope, RelationalDiagnosticFields, RelationalDiagnosticValue,
+};
 use crate::history::data::{BranchId, CommitId, CommitReference};
-use crate::indexes::data::DerivedIndexGeneration;
+use crate::indexes::data::DerivedIndexArtifacts;
 use crate::lineage::data::LineageFinalizationArtifact;
-use crate::publication::data::diff::RelationalPatchRecord;
-use crate::publication::data::{PublicationError, PublicationStage};
+use crate::publication::bundle::PublicationStage;
+use crate::publication::data::PublicationError;
+use crate::publication::patch::data::RelationalPatchRecord;
 use crate::replay::data::{CanonicalCommitAuthorityKind, CanonicalCommitEnvelope};
-use crate::transactions::data::{MergedCommitPlan, RecordRef, TransactionCommitError};
+use crate::transactions::data::{
+    MergedCommitPlan, PublishedMergeExecutionAuthority, RecordRef, TransactionCommitError,
+};
 
 pub(crate) fn enforce_patch_budget(
-    runtime: &mut (impl DiagnosticsSink + PublicationPolicySource),
+    runtime: &mut (impl DiagnosticArtifactSink + PublicationPolicySource),
     patch: &RelationalPatchRecord,
 ) -> Result<(), TransactionCommitError> {
     let max_patch_records_per_commit = runtime.max_patch_records_per_commit();
     if patch.records.len() > max_patch_records_per_commit {
-        runtime.emit_diagnostic_entry(
+        runtime.emit_failure_diagnostic(
             DiagnosticsScope::PatchPublication,
             DiagnosticCode::DiagnosticsPublicationFailure,
             "patch record budget exceeded",
-            json!({
-                "patch_records": patch.records.len(),
-                "max_patch_records_per_commit": max_patch_records_per_commit,
-            }),
+            patch_record_budget_exceeded_fields(patch.records.len(), max_patch_records_per_commit),
         );
         return Err(TransactionCommitError::publication(PublicationError::new(
             PublicationStage::BundleAssembly,
@@ -42,14 +43,14 @@ pub(crate) fn canonical_commit_envelope(
     branch_id: &BranchId,
     authority_kind: CanonicalCommitAuthorityKind,
     strategy_artifacts: Option<crate::commit_strategies::data::StrategyCommitArtifactBundle>,
+    merge_execution_authority: Option<PublishedMergeExecutionAuthority>,
     merge_parent_branches: &[BranchId],
     merge_base_commits: &[CommitId],
     merged_plan: &MergedCommitPlan,
-    patch: crate::publication::data::diff::RelationalPatchRecord,
+    patch: crate::publication::patch::data::RelationalPatchRecord,
     diagnostics_summary: crate::diagnostics::data::RelationalDiagnosticArtifact,
     lineage_artifact: LineageFinalizationArtifact,
-    index_generation_ids: Vec<u64>,
-    index_generations: Vec<DerivedIndexGeneration>,
+    derived_index_artifacts: DerivedIndexArtifacts,
     schema_continuity: &crate::authority::commit::phases::schema_continuity::SchemaContinuityPlan,
 ) -> Result<CanonicalCommitEnvelope, TransactionCommitError> {
     let published_lineage = lineage_artifact.publish();
@@ -60,14 +61,11 @@ pub(crate) fn canonical_commit_envelope(
             published_lineage.lineage_decision_log().len(),
         );
     if published_lineage.branch_id() != branch_id || lineage_artifact.branch_id() != branch_id {
-        runtime.emit_diagnostic_entry(
+        runtime.emit_failure_diagnostic(
             DiagnosticsScope::Lineage,
             DiagnosticCode::DiagnosticsPublicationFailure,
             "lineage artifact branch scope did not match publication branch",
-            json!({
-                "publication_branch_id": branch_id.0,
-                "artifact_branch_id": lineage_artifact.branch_id().0,
-            }),
+            lineage_branch_scope_mismatch_fields(branch_id, lineage_artifact.branch_id()),
         );
         return Err(TransactionCommitError::publication(PublicationError::new(
             PublicationStage::BundleAssembly,
@@ -79,16 +77,16 @@ pub(crate) fn canonical_commit_envelope(
         published_lineage.branch_id().clone(),
         authority_kind,
         strategy_artifacts,
+        merge_execution_authority,
         merge_parent_branches.to_vec(),
         merge_base_commits.to_vec(),
         runtime.primary_schema_version_id(),
-        runtime.schema_registry().clone(),
+        runtime.schema_registry().authority_snapshot(),
         merged_plan.clone(),
         patch,
         diagnostics_summary,
-        index_generation_ids,
         published_lineage,
-        index_generations,
+        derived_index_artifacts,
         schema_continuity.schema_transition.clone(),
         schema_continuity.schema_continuation_descriptor.clone(),
         schema_continuity.schema_reconciliation_descriptor.clone(),
@@ -99,20 +97,17 @@ pub(crate) fn canonical_commit_envelope(
 }
 
 pub(crate) fn append_durable_commit(
-    runtime: &mut (impl DiagnosticsSink + DurabilityWrite),
+    runtime: &mut (impl DiagnosticArtifactSink + DurabilityWrite),
     canonical_commit_envelope: &CanonicalCommitEnvelope,
     commit_id: CommitId,
     branch_id: &BranchId,
 ) -> Result<(), TransactionCommitError> {
     if let Err(error) = runtime.append_durable_envelope(canonical_commit_envelope) {
-        runtime.emit_diagnostic_entry(
+        runtime.emit_failure_diagnostic(
             DiagnosticsScope::History,
             DiagnosticCode::DurableAppendFailed,
             error.detail.clone(),
-            json!({
-                "commit_id": commit_id.0,
-                "branch_id": branch_id.0,
-            }),
+            durable_append_failure_fields(commit_id, branch_id),
         );
         return Err(TransactionCommitError::publication(PublicationError::new(
             PublicationStage::Visibility,
@@ -125,4 +120,55 @@ pub(crate) fn append_durable_commit(
 pub(crate) fn canonicalize_changed_records(records: &mut Vec<RecordRef>) {
     records.sort_unstable();
     records.dedup();
+}
+
+fn patch_record_budget_exceeded_fields(
+    patch_records: usize,
+    max_patch_records_per_commit: usize,
+) -> RelationalDiagnosticFields {
+    RelationalDiagnosticValue::object([
+        (
+            "patch_records",
+            RelationalDiagnosticValue::unsigned(patch_records),
+        ),
+        (
+            "max_patch_records_per_commit",
+            RelationalDiagnosticValue::unsigned(max_patch_records_per_commit),
+        ),
+    ])
+    .into()
+}
+
+fn lineage_branch_scope_mismatch_fields(
+    publication_branch: &BranchId,
+    artifact_branch: &BranchId,
+) -> RelationalDiagnosticFields {
+    RelationalDiagnosticValue::object([
+        (
+            "publication_branch_id",
+            RelationalDiagnosticValue::string(publication_branch.0.clone()),
+        ),
+        (
+            "artifact_branch_id",
+            RelationalDiagnosticValue::string(artifact_branch.0.clone()),
+        ),
+    ])
+    .into()
+}
+
+fn durable_append_failure_fields(
+    commit_id: CommitId,
+    branch_id: &BranchId,
+) -> RelationalDiagnosticFields {
+    RelationalDiagnosticValue::object([
+        (
+            "commit_id",
+            RelationalDiagnosticValue::Unsigned(commit_id.0),
+        ),
+        (
+            "branch_id",
+            RelationalDiagnosticValue::string(branch_id.0.clone()),
+        ),
+    ])
+    .into()
 }

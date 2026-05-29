@@ -1,10 +1,9 @@
 use serde_json::json;
 
 use crate::facade::history::BranchId;
-use crate::facade::payloads::RecordPayload;
 use crate::facade::transactions::{
     CommitResult, EntityMutationIntent, MutationIntent, RollbackOutcome, TransactionOptions,
-    UpdateEntityIntent, WorkerIntentBatch,
+    UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 
 use super::super::fixture::FintechWorld;
@@ -20,21 +19,25 @@ pub(crate) fn rollback_case_trade_after_savepoint(
     });
     let savepoint = txn.create_savepoint();
     txn.push_batch(
-        WorkerIntentBatch::new("temporary-case-trade-correction").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
-                entity_id: case.trade,
-                payload: RecordPayload::StructuredJson(json!({
-                    "entity_type": "trade",
-                    "case": "LateTradeCorrection",
-                    "desk": "analysis-risk",
-                    "book": "temporary-correction",
-                    "notional": 1_999_999,
-                    "ccy": "USD",
-                    "corrected": true,
-                    "transient": true,
-                })),
-            }),
-        )),
+        WorkerIntentBatch::new("temporary-case-trade-correction")
+            .push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                UpdateEntityFieldsIntent {
+                    entity_id: case.trade,
+                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                        json!({
+                            "entity_type": "trade",
+                            "case": "LateTradeCorrection",
+                            "desk": "analysis-risk",
+                            "book": "temporary-correction",
+                            "notional": 1_999_999,
+                            "ccy": "USD",
+                            "corrected": true,
+                            "transient": true,
+                        }),
+                    ),
+                },
+            )))
+            .into(),
     );
     txn.rollback_to_savepoint(savepoint).unwrap()
 }
@@ -49,20 +52,27 @@ pub(crate) fn commit_case_trade_after_savepoint(
         ..TransactionOptions::default()
     });
     let _savepoint = txn.create_savepoint();
-    txn.push_batch(WorkerIntentBatch::new("saved-case-trade-correction").push(
-        MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-            entity_id: case.trade,
-            payload: RecordPayload::StructuredJson(json!({
-                "entity_type": "trade",
-                "case": "LateTradeCorrection",
-                "desk": "analysis-risk",
-                "book": "saved-correction",
-                "notional": 1_800_000,
-                "ccy": "USD",
-                "corrected": true,
-                "savepoint_applied": true,
-            })),
-        })),
-    ));
+    txn.push_batch(
+        WorkerIntentBatch::new("saved-case-trade-correction").push(
+            MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                UpdateEntityFieldsIntent {
+                    entity_id: case.trade,
+                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                        json!({
+                            "entity_type": "trade",
+                            "case": "LateTradeCorrection",
+                            "desk": "analysis-risk",
+                            "book": "saved-correction",
+                            "notional": 1_800_000,
+                            "ccy": "USD",
+                            "corrected": true,
+                            "savepoint_applied": true,
+                        }),
+                    ),
+                },
+            ))
+            .into(),
+        ),
+    );
     txn.commit().unwrap()
 }

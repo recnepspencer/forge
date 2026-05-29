@@ -45,7 +45,7 @@ fn digest_preparation_basis_matches_compatibility_lowering_for_equivalent_truth(
 
     let json_state = lower_json_record_aspect_state([JsonCompatibilityAspectInput::new(
         contract,
-        forge_foundational::BoundarySourceLocator::Aspect(forge_foundational::AspectLocator::new(
+        forge_foundational::BoundarySourceLocator::aspect(forge_foundational::AspectLocator::new(
             forge_foundational::LocatorAuthority::SupportOnly,
             key("task.summary"),
         )),

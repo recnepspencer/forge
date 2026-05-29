@@ -111,7 +111,6 @@ fn relation_integrity_commit_boundary_rejects_forbidden_self_edge() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -142,10 +141,10 @@ fn relation_integrity_commit_boundary_rejects_forbidden_self_edge() {
             crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("self".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("self"),
                 source: crate::transactions::data::EntityReference::Existing(entity),
                 target: crate::transactions::data::EntityReference::Existing(entity),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"self"}))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
     );
@@ -174,10 +173,10 @@ fn relation_integrity_commit_boundary_rejects_source_cardinality_overflow() {
             crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("b".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("b"),
                 source: crate::transactions::data::EntityReference::Existing(source),
                 target: crate::transactions::data::EntityReference::Existing(target_b),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"b"}))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
     );
@@ -203,12 +202,26 @@ fn relation_integrity_certification_boundary_rejects_zero_edge_entity_for_minimu
         .expect("certification minimum cardinality failure");
 
     assert_eq!(failure.code(), DiagnosticCode::RelationCardinalityViolation);
-    let fields = failure.fields();
-    assert_eq!(fields["contract_id"], json!("source_min_one"));
-    assert_eq!(fields["relation_kind_id"], json!(2));
-    assert_eq!(fields["boundary"], json!("source"));
-    assert_eq!(fields["count"], json!(0));
-    assert_eq!(fields["limit"], json!(1));
+    match failure.fields() {
+        crate::validation::data::InvariantViolationFields::RelationCardinalityEndpoint {
+            contract_id,
+            relation_kind_id,
+            boundary,
+            count,
+            limit,
+            ..
+        } => {
+            assert_eq!(contract_id.as_str(), "source_min_one");
+            assert_eq!(*relation_kind_id, KindId(2));
+            assert_eq!(
+                *boundary,
+                crate::validation::data::RelationCardinalityBoundary::Source
+            );
+            assert_eq!(*count, 0);
+            assert_eq!(*limit, 1);
+        }
+        fields => panic!("expected typed cardinality endpoint fields, got {fields:?}"),
+    }
     assert_eq!(
         result.metadata().execution_point().diagnostic_label(),
         "certification_boundary"
@@ -229,19 +242,30 @@ fn relation_integrity_certification_boundary_rejects_observed_pair_below_paralle
         .expect("certification pair minimum failure");
 
     assert_eq!(failure.code(), DiagnosticCode::RelationCardinalityViolation);
-    let fields = failure.fields();
-    assert_eq!(fields["contract_id"], json!("pair_min_two"));
-    assert_eq!(fields["relation_kind_id"], json!(2));
-    assert_eq!(
-        fields["source"],
-        json!(crate::transactions::data::EntityReference::Existing(source))
-    );
-    assert_eq!(
-        fields["target"],
-        json!(crate::transactions::data::EntityReference::Existing(target))
-    );
-    assert_eq!(fields["count"], json!(1));
-    assert_eq!(fields["limit"], json!(2));
+    match failure.fields() {
+        crate::validation::data::InvariantViolationFields::RelationCardinalityPair {
+            contract_id,
+            relation_kind_id,
+            source: actual_source,
+            target: actual_target,
+            count,
+            limit,
+        } => {
+            assert_eq!(contract_id.as_str(), "pair_min_two");
+            assert_eq!(*relation_kind_id, KindId(2));
+            assert_eq!(
+                *actual_source,
+                crate::transactions::data::EntityReference::Existing(source)
+            );
+            assert_eq!(
+                *actual_target,
+                crate::transactions::data::EntityReference::Existing(target)
+            );
+            assert_eq!(*count, 1);
+            assert_eq!(*limit, 2);
+        }
+        fields => panic!("expected typed cardinality pair fields, got {fields:?}"),
+    }
 }
 
 #[test]
@@ -291,7 +315,12 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
         changed_relations(&accepted)[0],
         None,
     );
-    let latest_patch_before = runtime.publication().latest_patch().unwrap().position;
+    let latest_patch_before = runtime
+        .publication()
+        .artifacts()
+        .latest_patch()
+        .unwrap()
+        .position;
 
     let mut txn = runtime.begin_transaction(TransactionOptions {
         target_branch: Some(BranchId("feature".to_string())),
@@ -302,12 +331,10 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
             crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("illegal-feature".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("illegal-feature"),
                 source: crate::transactions::data::EntityReference::Existing(source),
                 target: crate::transactions::data::EntityReference::Existing(target_b),
-                payload: Some(RecordPayload::StructuredJson(
-                    json!({"label":"illegal-feature"}),
-                )),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         )),
     ));
@@ -349,11 +376,21 @@ fn relation_integrity_rejected_branch_local_commit_does_not_advance_truth_or_lea
         feature_digest_before
     );
     assert_eq!(
-        runtime.publication().latest_patch().unwrap().position,
+        runtime
+            .publication()
+            .artifacts()
+            .latest_patch()
+            .unwrap()
+            .position,
         latest_patch_before
     );
     assert_eq!(
-        runtime.publication().latest_bundle().unwrap().commit,
+        runtime
+            .publication()
+            .artifacts()
+            .latest_bundle()
+            .unwrap()
+            .commit,
         accepted.commit
     );
 }
@@ -374,7 +411,6 @@ fn relation_integrity_commit_boundary_rejects_duplicate_normalized_symmetric_edg
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -405,10 +441,10 @@ fn relation_integrity_commit_boundary_rejects_duplicate_normalized_symmetric_edg
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("reverse".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("reverse"),
                 source: crate::transactions::data::EntityReference::Existing(target),
                 target: crate::transactions::data::EntityReference::Existing(source),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"reverse"}))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
     );
@@ -438,7 +474,6 @@ fn relation_integrity_commit_boundary_requires_paired_inverse_edge() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -467,10 +502,10 @@ fn relation_integrity_commit_boundary_requires_paired_inverse_edge() {
             crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("one-way".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("one-way"),
                 source: crate::transactions::data::EntityReference::Existing(source),
                 target: crate::transactions::data::EntityReference::Existing(target),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"one-way"}))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
     );
@@ -479,18 +514,35 @@ fn relation_integrity_commit_boundary_requires_paired_inverse_edge() {
     match error {
         TransactionCommitError::Conflict { error, .. } => {
             assert_eq!(error.code(), DiagnosticCode::RelationSymmetryViolation);
-            let fields = error.fields().expect("symmetry localization fields");
-            assert_eq!(fields["contract_id"], json!("paired_inverse"));
-            assert_eq!(fields["relation_kind_id"], json!(2));
-            assert_eq!(
-                fields["source"],
-                json!(crate::transactions::data::EntityReference::Existing(source))
-            );
-            assert_eq!(
-                fields["target"],
-                json!(crate::transactions::data::EntityReference::Existing(target))
-            );
-            assert_eq!(fields["mode"], json!("paired"));
+            match error.class {
+                crate::transactions::data::ConflictClass::InvariantViolation {
+                    fields:
+                        crate::validation::data::InvariantViolationFields::RelationSymmetry {
+                            contract_id,
+                            relation_kind_id,
+                            source: actual_source,
+                            target: actual_target,
+                            mode,
+                        },
+                    ..
+                } => {
+                    assert_eq!(contract_id.as_str(), "paired_inverse");
+                    assert_eq!(relation_kind_id, KindId(2));
+                    assert_eq!(
+                        actual_source,
+                        crate::transactions::data::EntityReference::Existing(source)
+                    );
+                    assert_eq!(
+                        actual_target,
+                        crate::transactions::data::EntityReference::Existing(target)
+                    );
+                    assert_eq!(
+                        mode,
+                        crate::schema::data::SymmetryMode::PairedInverseRequired
+                    );
+                }
+                other => panic!("expected typed symmetry invariant conflict, got {other:?}"),
+            }
         }
         other => panic!("expected conflict, got {:?}", other),
     }
@@ -512,7 +564,6 @@ fn relation_integrity_commit_boundary_requires_canonical_undirected_ordering() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -541,12 +592,10 @@ fn relation_integrity_commit_boundary_requires_canonical_undirected_ordering() {
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("reverse-undirected".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("reverse-undirected"),
                 source: crate::transactions::data::EntityReference::Existing(second),
                 target: crate::transactions::data::EntityReference::Existing(first),
-                payload: Some(RecordPayload::StructuredJson(
-                    json!({"label":"reverse-undirected"}),
-                )),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
     );
@@ -576,7 +625,6 @@ fn relation_integrity_commit_boundary_prohibits_inverse_duplication() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -607,10 +655,10 @@ fn relation_integrity_commit_boundary_prohibits_inverse_duplication() {
             crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("inverse".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("inverse"),
                 source: crate::transactions::data::EntityReference::Existing(target),
                 target: crate::transactions::data::EntityReference::Existing(source),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"inverse"}))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
     );
@@ -640,7 +688,6 @@ fn relation_integrity_commit_boundary_requires_paired_twin_edge() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -669,12 +716,10 @@ fn relation_integrity_commit_boundary_requires_paired_twin_edge() {
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("missing-twin".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("missing-twin"),
                 source: crate::transactions::data::EntityReference::Existing(source),
                 target: crate::transactions::data::EntityReference::Existing(target),
-                payload: Some(RecordPayload::StructuredJson(
-                    json!({"label":"missing-twin"}),
-                )),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
     );
@@ -711,13 +756,30 @@ fn relation_integrity_commit_boundary_rejects_endpoint_delete_with_live_relation
                 error.code(),
                 DiagnosticCode::RelationEndpointDeletionIntegrityViolation
             );
-            let fields = error
-                .fields()
-                .expect("endpoint deletion localization fields");
-            assert_eq!(fields["contract_id"], json!("endpoint_delete"));
-            assert_eq!(fields["relation_kind_id"], json!(2));
-            assert_eq!(fields["entity_id"], json!(source));
-            assert_eq!(fields["mode"], json!("reject_delete_with_live_relations"));
+            match error.class {
+                crate::transactions::data::ConflictClass::InvariantViolation {
+                    fields:
+                        crate::validation::data::InvariantViolationFields::RelationEndpointDeletionIntegrity {
+                            contract_id,
+                            relation_kind_id,
+                            entity_id,
+                            mode,
+                            ..
+                        },
+                    ..
+                } => {
+                    assert_eq!(contract_id.as_str(), "endpoint_delete");
+                    assert_eq!(relation_kind_id, KindId(2));
+                    assert_eq!(entity_id, source);
+                    assert_eq!(
+                        mode,
+                        crate::schema::data::EndpointDeletionIntegrityMode::RejectDeleteWithLiveRelations
+                    );
+                }
+                other => {
+                    panic!("expected typed endpoint deletion invariant conflict, got {other:?}")
+                }
+            }
         }
         other => panic!("expected conflict, got {:?}", other),
     }
@@ -739,7 +801,6 @@ fn relation_integrity_commit_reports_contract_counters_on_success() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -810,8 +871,10 @@ fn relation_integrity_commit_boundary_rejects_replace_when_retained_relation_kee
                 replacement: crate::transactions::data::EntitySpec {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(1),
-                    client_key: InternedString::Raw("source-replacement".to_string()),
-                    payload: RecordPayload::StructuredJson(json!({"name":"source-replacement"})),
+                    client_key: crate::symbols::data::ClientKey::raw("source-replacement"),
+                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                        json!({"name":"source-replacement"}),
+                    ),
                 },
             }),
         )),

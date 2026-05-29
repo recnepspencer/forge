@@ -12,14 +12,12 @@ use crate::facade::schema::{
     RelationKindRegistration, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use crate::merge::data::{
-    BoundExecutableMergeRecordPlan, ExecutableAspectPlan, MaterializedAspectValuePayload,
+    BoundExecutableMergeRecordPlan, ExecutableAspectPlan, MaterializedAspectValueEvidence,
     MergeExecutionCompilationError, MergeValueMaterialization,
 };
-use crate::schema::data::RelationPayloadClass;
-use crate::symbols::data::InternedString;
 use crate::tests::support::{
-    create_branch_from_main, create_entity, create_entity_outcome_on_branch, entity_payload_aspect,
-    persisted_runtime_with_test_schema, update_entity, update_entity_on_branch,
+    create_branch_from_main, create_entity, create_entity_outcome_on_branch, entity_field_aspect,
+    persisted_runtime_with_test_schema, read_entity_field, update_entity, update_entity_on_branch,
     CascadeDeletePolicy, CrossContextPolicy,
 };
 
@@ -103,11 +101,11 @@ fn prepare_merge_execution_rejects_rejected_merge_plans() {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![entity_payload_aspect(
+            aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
                 "name", "name",
             )])
             .with_merge_policy_declarations(vec![AspectMergePolicyDeclaration {
-                aspect_key: AspectKey(InternedString::Raw("name".to_string())),
+                aspect_key: AspectKey::new("name").unwrap(),
                 policy: AspectMergePolicyKind::FailOnConflict,
             }]),
         })
@@ -117,7 +115,6 @@ fn prepare_merge_execution_rejects_rejected_merge_plans() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -328,8 +325,8 @@ fn verify_prepared_merge_execution_rejects_schema_semantic_drift() {
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(2),
             aspect_declarations: KindAspectDeclarations::new(vec![
-                entity_payload_aspect("name", "name"),
-                entity_payload_aspect("status", "status"),
+                entity_field_aspect("name", "name"),
+                entity_field_aspect("status", "status"),
             ]),
         })
         .and_then(|registry| {
@@ -338,7 +335,6 @@ fn verify_prepared_merge_execution_rejects_schema_semantic_drift() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(2),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -501,10 +497,7 @@ fn prepare_merge_execution_compiles_source_addition_record_plan() {
     match &prepared.bound_executable_plan().record_plans[0] {
         BoundExecutableMergeRecordPlan::AdoptSource(plan) => match &plan.source_visible_snapshot {
             crate::merge::data::VisibleMergeRecordSnapshot::Entity(entity) => {
-                assert_eq!(
-                    entity.payload.as_json().and_then(|json| json.get("name")),
-                    Some(&serde_json::Value::String("feature-only".to_string()))
-                );
+                assert_eq!(read_entity_field(entity, "name"), Some("feature-only"));
             }
             other => panic!("expected entity source snapshot, got {other:?}"),
         },
@@ -520,7 +513,7 @@ fn prepare_merge_execution_compiles_exact_shared_record_plan() {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![entity_payload_aspect(
+            aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
                 "name", "name",
             )]),
         })
@@ -530,7 +523,6 @@ fn prepare_merge_execution_compiles_exact_shared_record_plan() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -574,11 +566,11 @@ fn prepare_merge_execution_compiles_exact_shared_record_plan() {
                         shared_value.policy,
                         MergeValueMaterialization::EqualityWitnessDigest
                     );
-                    match &shared_value.payload {
-                        MaterializedAspectValuePayload::EqualityWitnessDigest(digest) => {
+                    match &shared_value.evidence {
+                        MaterializedAspectValueEvidence::EqualityWitnessDigest(digest) => {
                             assert!(!digest.is_empty());
                         }
-                        other => panic!("expected equality witness payload, got {other:?}"),
+                        other => panic!("expected equality witness evidence, got {other:?}"),
                     }
                 }
                 other => panic!("expected preserve-shared aspect plan, got {other:?}"),
@@ -590,14 +582,14 @@ fn prepare_merge_execution_compiles_exact_shared_record_plan() {
 
 #[test]
 fn prepare_merge_execution_compiles_reconcile_record_plan() {
-    let name_key = AspectKey(InternedString::Raw("name".to_string()));
+    let name_key = AspectKey::new("name").unwrap();
     let registry = RelationalSchemaRegistry::new()
         .register_entity_kind(EntityKindRegistration {
             kind_id: KindId(1),
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![entity_payload_aspect(
+            aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
                 "name", "name",
             )])
             .with_identity_declarations(vec![crate::facade::merge::IdentityBasisDeclaration {
@@ -617,7 +609,6 @@ fn prepare_merge_execution_compiles_reconcile_record_plan() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -669,19 +660,30 @@ fn prepare_merge_execution_compiles_reconcile_record_plan() {
                         base_value.policy,
                         MergeValueMaterialization::SnapshotPinnedRead
                     );
-                    match &source_value.payload {
-                        MaterializedAspectValuePayload::VisibleAspectReference { .. } => {}
-                        other => panic!("expected source aspect reference, got {other:?}"),
-                    }
-                    match &base_value.payload {
-                        MaterializedAspectValuePayload::VisibleAspectReference { .. } => {}
-                        other => panic!("expected base aspect reference, got {other:?}"),
-                    }
+                    assert_pinned_visible_aspect_evidence(source_value);
+                    assert_pinned_visible_aspect_evidence(base_value);
                 }
                 other => panic!("expected reconcile aspect plan, got {other:?}"),
             }
         }
         other => panic!("expected reconcile record plan, got {other:?}"),
+    }
+}
+
+fn assert_pinned_visible_aspect_evidence(value: &crate::merge::data::MaterializedAspectValue) {
+    match &value.evidence {
+        MaterializedAspectValueEvidence::PinnedVisibleAspect { locator, .. } => {
+            assert!(
+                matches!(
+                    locator,
+                    forge_foundational::facade::AspectValueLocator::WholeAspect(aspect)
+                        if aspect.authority()
+                            == forge_foundational::facade::LocatorAuthority::Authoritative
+                ),
+                "expected authoritative whole-aspect locator, got {locator:?}"
+            );
+        }
+        other => panic!("expected pinned visible aspect evidence, got {other:?}"),
     }
 }
 

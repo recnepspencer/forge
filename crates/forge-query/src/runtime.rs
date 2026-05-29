@@ -403,9 +403,9 @@ pub use intent::{
     ForgeQueryPreviewIntentReceipt,
 };
 pub use live_subscription::ForgeQueryRuntimeLiveSubscriptionInstallation;
+pub(crate) use mutation::command_declared_aspect_value_digest;
 pub(crate) use mutation::ForgeQueryVerifiedExistingTruthAssertion;
 use mutation::{admit_continuity_intent, admit_naming_intent};
-pub(crate) use mutation::{aspect_values_to_payload, command_declared_aspect_value_digest};
 #[allow(unused_imports)]
 pub use mutation::{
     ForgeQueryAspectMutationBuilder, ForgeQueryAspectMutationOperation,

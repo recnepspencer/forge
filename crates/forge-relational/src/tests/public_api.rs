@@ -1,14 +1,11 @@
 use crate::facade;
+use forge_foundational::facade::AspectValue;
 use std::sync::OnceLock;
 
 fn public_api_projection_aspects() -> &'static [facade::publication::AspectKey] {
     static ASPECTS: OnceLock<Vec<facade::publication::AspectKey>> = OnceLock::new();
     ASPECTS
-        .get_or_init(|| {
-            vec![facade::publication::AspectKey(
-                facade::symbols::InternedString::Raw("name".to_string()),
-            )]
-        })
+        .get_or_init(|| vec![facade::publication::AspectKey::new("name").unwrap()])
         .as_slice()
 }
 
@@ -21,8 +18,12 @@ impl facade::runtime::EntityRecordProjection for PublicApiProjection {
         public_api_projection_aspects()
     }
 
-    fn from_record(record: &facade::runtime::EntityReadRecord) -> Option<Self> {
-        record.payload.as_json()?.get("name")?.as_str()?;
+    fn from_record(record: facade::runtime::EntityProjectionRecord<'_>) -> Option<Self> {
+        let AspectValue::String(_) =
+            record.aspect_value(&facade::publication::AspectKey::new("name").unwrap())?
+        else {
+            return None;
+        };
         Some(Self)
     }
 }

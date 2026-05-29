@@ -3,8 +3,6 @@ use crate::facade::merge::{MergeExecutionRequest, MergeIntent};
 use crate::facade::transactions::{
     CreateIntent, MutationIntent, TransactionOptions, WorkerIntentBatch,
 };
-use crate::payloads::data::RecordPayload;
-use crate::symbols::data::InternedString;
 use crate::tests::support::{
     changed_entities, create_branch_from_main, create_entity, persisted_runtime_with_test_schema,
     update_entity, update_entity_on_branch,
@@ -84,16 +82,20 @@ fn complexity_budget_merge_execution_reports_admitted_records_and_emitted_mutati
         ..TransactionOptions::default()
     });
     txn.push_batch(
-        WorkerIntentBatch::new("create-feature-only").push(MutationIntent::Create(
-            CreateIntent::Entity(crate::transactions::data::EntitySpec {
-                partition_id: crate::facade::identity::PartitionId::main(),
-                kind_id: crate::facade::identity::KindId(1),
-                client_key: InternedString::Raw("feature-only".to_string()),
-                payload: RecordPayload::StructuredJson(serde_json::json!({
-                    "name": "feature-only"
-                })),
-            }),
-        )),
+        WorkerIntentBatch::new("create-feature-only")
+            .push(MutationIntent::Create(CreateIntent::Entity(
+                crate::transactions::data::EntitySpec {
+                    partition_id: crate::facade::identity::PartitionId::main(),
+                    kind_id: crate::facade::identity::KindId(1),
+                    client_key: crate::symbols::data::ClientKey::raw("feature-only"),
+                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                        serde_json::json!({
+                            "name": "feature-only"
+                        }),
+                    ),
+                },
+            )))
+            .into(),
     );
     let feature_only = changed_entities(&txn.commit().expect("feature-only create"))[0];
 

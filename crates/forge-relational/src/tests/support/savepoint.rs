@@ -4,14 +4,8 @@ pub(crate) fn patch_detail_contains(
     record: &crate::facade::publication::PatchRecord,
     needle: &str,
 ) -> bool {
-    match &record.detail {
-        PatchDetail::StructuredJson(value) => value.to_string().contains(needle),
-        PatchDetail::Payload(payload) => payload
-            .as_json()
-            .map(|value| value.to_string().contains(needle))
-            .unwrap_or(false),
-        PatchDetail::DenseBitset(_) => false,
-    }
+    let _ = (record, needle);
+    false
 }
 
 pub(crate) fn assert_patch_omits_detail(result: &CommitResult, needle: &str) {

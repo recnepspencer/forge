@@ -1,10 +1,8 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use sha2::{Digest, Sha256};
-
 use crate::commit_strategies::data::{
-    CommitStrategyDescriptor, CommitStrategyFamilyName, CommitStrategyRegistration,
+    commit_strategy_registry_digest, CommitStrategyFamilyName, CommitStrategyRegistration,
     CommitStrategySemanticName, CommitStrategyVersion,
 };
 
@@ -70,7 +68,7 @@ impl FrozenCommitStrategyRegistry {
             registrations: registrations.into(),
             index_by_id: Arc::new(ids),
             index_by_name: Arc::new(names),
-            registry_digest: registry_digest(&digest_basis),
+            registry_digest: commit_strategy_registry_digest(&digest_basis),
         })
     }
 
@@ -109,20 +107,6 @@ impl FrozenCommitStrategyRegistry {
     }
 }
 
-fn registry_digest(descriptors: &[CommitStrategyDescriptor]) -> String {
-    let mut canonical_descriptors = descriptors.to_vec();
-    canonical_descriptors.sort_by(|left, right| {
-        left.semantic_name()
-            .cmp(right.semantic_name())
-            .then_with(|| left.version().cmp(&right.version()))
-            .then_with(|| left.id().cmp(&right.id()))
-    });
-    let bytes =
-        serde_json::to_vec(&canonical_descriptors).expect("commit strategy registry serialization");
-    let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
-}
-
 #[cfg(test)]
 mod tests {
     use super::{DuplicateCommitStrategyRegistration, FrozenCommitStrategyRegistry};
@@ -150,7 +134,7 @@ mod tests {
             StrategyInputSchemaName::new("replica.input.v1"),
             StrategyInputSchemaVersion(1),
             StrategyOutputSchemaName::new("replica.output.v1"),
-            StrategyRequestCanonicalization::JsonStableObjectOrderV1,
+            StrategyRequestCanonicalization::NativeCanonicalBytesV1,
             StrategyReadContract {
                 scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
                 locality_class: StrategyReadLocalityClass::SinglePartition,
@@ -240,7 +224,7 @@ mod tests {
     }
 
     #[test]
-    fn frozen_registry_exposes_stable_digest_and_iteration() {
+    fn frozen_registry_exposes_canonical_digest_and_iteration() {
         let registry = FrozenCommitStrategyRegistry::from_registrations(vec![
             registration(
                 7,

@@ -21,7 +21,7 @@ fn durable_log_compaction_respects_checkpoint_policy() {
 }
 
 #[test]
-fn relation_payload_history_remains_available_for_historical_reads_after_reclaim() {
+fn relation_aspect_history_remains_available_for_historical_reads_after_reclaim() {
     let mut runtime = RelationalRuntimeApi::builder()
         .schema_registry(test_schema_registry())
         .mvcc(MvccConfig {
@@ -37,20 +37,18 @@ fn relation_payload_history_remains_available_for_historical_reads_after_reclaim
     let source = changed_entities(&source_outcome)[0];
     let target = changed_entities(&target_outcome)[0];
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
-    txn.push_batch(WorkerIntentBatch::new("payload-bearing-relation").push(
-        MutationIntent::Create(CreateIntent::Relation(
-            crate::transactions::data::RelationSpec {
+    txn.push_batch(
+        WorkerIntentBatch::new("aspect-bearing-relation").push(MutationIntent::Create(
+            CreateIntent::Relation(crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("r1".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("r1"),
                 source: crate::transactions::data::EntityReference::Existing(source),
                 target: crate::transactions::data::EntityReference::Existing(target),
-                payload: Some(RecordPayload::StructuredJson(
-                    json!({"weight": 1, "name": "r1"}),
-                )),
-            },
+                fields: relation_label_field_patch("r1"),
+            }),
         )),
-    ));
+    );
     let created = txn.commit().unwrap();
     let relation = changed_relations(&created)[0];
     assert_eq!(runtime.relation_history_len_for_test(relation), 1);
@@ -78,16 +76,12 @@ fn relation_payload_history_remains_available_for_historical_reads_after_reclaim
 
     assert_eq!(runtime.relation_history_len_for_test(relation), 1);
     let historical = runtime.read_truth().read_version(created.version_id);
-    let record = historical.get_relation(relation).unwrap();
-    assert_eq!(
-        record
-            .payload
-            .as_ref()
-            .and_then(|payload| payload.as_json())
-            .and_then(|value| value.get("name"))
-            .and_then(|value| value.as_str()),
-        Some("r1")
-    );
+    let relation_record = historical
+        .relations
+        .iter()
+        .find(|record| record.relation_id == relation)
+        .expect("retained relation aspect record");
+    assert_eq!(read_relation_field(relation_record, "label"), Some("r1"));
 }
 
 #[test]
@@ -160,8 +154,8 @@ fn explicit_snapshots_can_skip_cache_protection_and_still_read_until_release() {
     let stats = runtime.storage_access().storage_stats();
 
     assert_eq!(
-        read.get_entity(entity).unwrap().payload,
-        RecordPayload::StructuredJson(json!({"name":"first"}))
+        read_entity_field(read.get_entity(entity).unwrap(), "name"),
+        Some("first")
     );
     assert_eq!(inspection.pinned_entity_count, 1);
     assert_eq!(stats.snapshot_count, 1);

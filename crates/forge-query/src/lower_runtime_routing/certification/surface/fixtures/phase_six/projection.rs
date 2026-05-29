@@ -8,9 +8,10 @@ use crate::lower_runtime_routing::{
 };
 use crate::projection_consumption::ProjectionConsumptionSource;
 use crate::runtime::{ForgeQueryAspectMutationBuilder, ForgeQueryWriteReceipt};
+use forge_foundational::facade::AspectValue;
 use forge_relational::facade::grouped_truth::{
-    materialize_relational_authoritative_row_set, project_relational_grouped_truth,
-    GroupedProjectionContract,
+    encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
+    project_relational_grouped_truth, GroupedProjectionContract,
 };
 use forge_runtime_bridge::facade::{
     materialize_bridge_grouped_truth_view_from_projection, materialize_bridge_row_set,
@@ -19,7 +20,6 @@ use forge_runtime_bridge::facade::{
     SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest,
     SourceDeclaration, SourceDeclarationIdentity, TruthBranchIdentity, TruthSnapshotIdentity,
 };
-use serde_json::Value;
 
 use super::super::{ForgeQueryLowerRuntimeRepresentativeEvidenceSource, RepresentativeArtifacts};
 use super::projection_bridge_runtime::projection_bridge_runtime;
@@ -61,17 +61,30 @@ pub(crate) fn representative_projection_relational_row() -> RepresentativeArtifa
     let result = SnapshotReadPacketResult::new(
         TruthSnapshotIdentity::new("relational-snapshot-a"),
         vec![
-            SnapshotReadRecord::new("entity-1:identity.id", b"task-1".to_vec()),
-            SnapshotReadRecord::new("entity-1:status.lane", b"todo".to_vec()),
-            SnapshotReadRecord::new("entity-2:identity.id", b"task-2".to_vec()),
-            SnapshotReadRecord::new("entity-2:status.lane", b"doing".to_vec()),
+            SnapshotReadRecord::new(
+                "entity-1:identity.id",
+                aspect_bytes(AspectValue::String("task-1".into())),
+            ),
+            SnapshotReadRecord::new(
+                "entity-1:status.lane",
+                aspect_bytes(AspectValue::String("todo".into())),
+            ),
+            SnapshotReadRecord::new(
+                "entity-2:identity.id",
+                aspect_bytes(AspectValue::String("task-2".into())),
+            ),
+            SnapshotReadRecord::new(
+                "entity-2:status.lane",
+                aspect_bytes(AspectValue::String("doing".into())),
+            ),
         ],
     );
     let row_set = materialize_relational_authoritative_row_set(&packet, &result)
         .expect("relational projection fixture should materialize row set");
     let grouped = project_relational_grouped_truth(
         &row_set,
-        GroupedProjectionContract::new("status", "identity.id", "status.lane"),
+        GroupedProjectionContract::new("status", "identity.id", "status.lane")
+            .expect("grouped projection contract should use valid aspect keys"),
     )
     .expect("relational projection fixture should group row set");
     let source = ProjectionConsumptionSource::from_relational_grouped_projection(&grouped);
@@ -124,8 +137,8 @@ pub(crate) fn representative_projection_bridge_row() -> RepresentativeArtifacts 
         &BridgeProjection {
             snapshot_identity: TruthSnapshotIdentity::new("snapshot-a"),
             grouping_aspect: "status".to_string(),
-            identity_binding_field_key: "identity.id".to_string(),
-            grouping_binding_field_key: "status".to_string(),
+            identity_binding_aspect_key: "identity.id".to_string(),
+            grouping_binding_aspect_key: "status".to_string(),
             members: vec![
                 BridgeProjectionMember::new("entity-1", "task-1", "todo"),
                 BridgeProjectionMember::new("entity-2", "task-2", "doing"),
@@ -205,24 +218,24 @@ fn certification_query_write_receipt() -> ForgeQueryWriteReceipt {
 struct BridgeProjection {
     snapshot_identity: TruthSnapshotIdentity,
     grouping_aspect: String,
-    identity_binding_field_key: String,
-    grouping_binding_field_key: String,
+    identity_binding_aspect_key: String,
+    grouping_binding_aspect_key: String,
     members: Vec<BridgeProjectionMember>,
 }
 
 #[derive(Debug)]
 struct BridgeProjectionMember {
     row_identity: String,
-    identity_value: Value,
-    grouping_value: Value,
+    identity_value: AspectValue,
+    grouping_value: AspectValue,
 }
 
 impl BridgeProjectionMember {
     fn new(row_identity: &str, identity_value: &str, grouping_value: &str) -> Self {
         Self {
             row_identity: row_identity.to_string(),
-            identity_value: Value::String(identity_value.to_string()),
-            grouping_value: Value::String(grouping_value.to_string()),
+            identity_value: AspectValue::String(identity_value.into()),
+            grouping_value: AspectValue::String(grouping_value.into()),
         }
     }
 }
@@ -232,11 +245,11 @@ impl GroupedProjectionMemberSource for BridgeProjectionMember {
         &self.row_identity
     }
 
-    fn identity_value(&self) -> &Value {
+    fn identity_value(&self) -> &AspectValue {
         &self.identity_value
     }
 
-    fn grouping_value(&self) -> &Value {
+    fn grouping_value(&self) -> &AspectValue {
         &self.grouping_value
     }
 }
@@ -252,15 +265,19 @@ impl GroupedProjectionSource for BridgeProjection {
         &self.grouping_aspect
     }
 
-    fn identity_binding_field_key(&self) -> &str {
-        &self.identity_binding_field_key
+    fn identity_binding_aspect_key(&self) -> &str {
+        &self.identity_binding_aspect_key
     }
 
-    fn grouping_binding_field_key(&self) -> &str {
-        &self.grouping_binding_field_key
+    fn grouping_binding_aspect_key(&self) -> &str {
+        &self.grouping_binding_aspect_key
     }
 
     fn members(&self) -> &[Self::Member] {
         &self.members
     }
+}
+
+fn aspect_bytes(value: AspectValue) -> Vec<u8> {
+    encode_snapshot_aspect_read_value(&value).expect("fixture aspect value bytes")
 }

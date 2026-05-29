@@ -1,7 +1,6 @@
 use std::marker::PhantomData;
 
 use crate::identity::data::{KindId, PartitionId, VersionId};
-use crate::payloads::data::RecordPayload;
 use crate::storage::data::RecordLifecycleState;
 
 use super::{RecordArena, RecordKind};
@@ -35,9 +34,6 @@ impl<'a, K: RecordKind> SlotView<'a, K> {
     }
     pub(crate) fn kind_id(&self) -> Option<KindId> {
         self.arena.kind_ids[self.index]
-    }
-    pub(crate) fn payload(&self) -> Option<&RecordPayload> {
-        self.arena.payloads[self.index].as_ref()
     }
     pub(crate) fn retired_at(&self) -> Option<VersionId> {
         self.arena.retired_at[self.index]

@@ -15,18 +15,22 @@ fn savepoint_abandoned_work_never_appears_in_subscriber_cdc() {
     txn.push_batch(batch_create("abandoned"));
     txn.push_batch(
         WorkerIntentBatch::new("abandoned-update").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: anchor_entity,
-                payload: RecordPayload::StructuredJson(json!({"name":"abandoned-anchor"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    json!({"name":"abandoned-anchor"}),
+                ),
             }),
         )),
     );
     let rollback = txn.rollback_to_savepoint(savepoint).unwrap();
     txn.push_batch(
         WorkerIntentBatch::new("survived-update").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: anchor_entity,
-                payload: RecordPayload::StructuredJson(json!({"name":"survived-anchor"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    json!({"name":"survived-anchor"}),
+                ),
             }),
         )),
     );
@@ -74,9 +78,11 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
     txn.push_batch(batch_create("surviving-a"));
     txn.push_batch(
         WorkerIntentBatch::new("surviving-a-update").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: anchor,
-                payload: RecordPayload::StructuredJson(json!({"name":"surviving-a-anchor"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    json!({"name":"surviving-a-anchor"}),
+                ),
             }),
         )),
     );
@@ -88,12 +94,10 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("abandoned-r".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("abandoned-r"),
                 source: crate::transactions::data::EntityReference::Existing(anchor),
                 target: crate::transactions::data::EntityReference::Existing(target),
-                payload: Some(RecordPayload::StructuredJson(
-                    json!({"label":"abandoned-label"}),
-                )),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
     );
@@ -104,8 +108,10 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
                 replacement: crate::transactions::data::EntitySpec {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(1),
-                    client_key: InternedString::Raw("abandoned-replacement".to_string()),
-                    payload: RecordPayload::StructuredJson(json!({"name":"abandoned-replacement"})),
+                    client_key: crate::symbols::data::ClientKey::raw("abandoned-replacement"),
+                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                        json!({"name":"abandoned-replacement"}),
+                    ),
                 },
             }),
         )),
@@ -115,9 +121,11 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
     txn.push_batch(batch_create("surviving-b"));
     txn.push_batch(
         WorkerIntentBatch::new("surviving-b-update").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: anchor,
-                payload: RecordPayload::StructuredJson(json!({"name":"surviving-b-anchor"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    json!({"name":"surviving-b-anchor"}),
+                ),
             }),
         )),
     );
@@ -126,9 +134,11 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
     txn.push_batch(batch_create("surviving-final"));
     txn.push_batch(
         WorkerIntentBatch::new("surviving-final-update").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: anchor,
-                payload: RecordPayload::StructuredJson(json!({"name":"surviving-final-anchor"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    json!({"name":"surviving-final-anchor"}),
+                ),
             }),
         )),
     );
@@ -137,12 +147,10 @@ fn nested_savepoint_abandoned_aspect_work_leaves_zero_patch_cdc_history_and_line
             crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("surviving-r".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("surviving-r"),
                 source: crate::transactions::data::EntityReference::Existing(anchor),
                 target: crate::transactions::data::EntityReference::Existing(target),
-                payload: Some(RecordPayload::StructuredJson(
-                    json!({"label":"surviving-label"}),
-                )),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         )),
     ));
@@ -232,7 +240,6 @@ fn rolled_back_illegal_relation_work_leaves_zero_cdc_and_diagnostic_residue() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -269,10 +276,10 @@ fn rolled_back_illegal_relation_work_leaves_zero_cdc_and_diagnostic_residue() {
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("illegal".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("illegal"),
                 source: crate::transactions::data::EntityReference::Existing(source),
                 target: crate::transactions::data::EntityReference::Existing(source),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"illegal"}))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
     );
@@ -282,10 +289,10 @@ fn rolled_back_illegal_relation_work_leaves_zero_cdc_and_diagnostic_residue() {
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("surviving".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("surviving"),
                 source: crate::transactions::data::EntityReference::Existing(source),
                 target: crate::transactions::data::EntityReference::Existing(target),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"surviving"}))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
     );
@@ -320,7 +327,6 @@ fn rolled_back_endpoint_deletion_work_leaves_zero_cdc_and_diagnostic_residue() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::RetainDanglingForAudit,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -360,9 +366,11 @@ fn rolled_back_endpoint_deletion_work_leaves_zero_cdc_and_diagnostic_residue() {
     let rollback = txn.rollback_to_savepoint(savepoint).unwrap();
     txn.push_batch(
         WorkerIntentBatch::new("surviving-update").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id: target,
-                payload: RecordPayload::StructuredJson(json!({"name":"target-survived"})),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    json!({"name":"target-survived"}),
+                ),
             }),
         )),
     );

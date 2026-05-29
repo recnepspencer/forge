@@ -12,6 +12,8 @@ use forge_relational::facade::transactions::{CommitResult, RecordRef};
 use schema::facade::{EntityKind, NamingEntityKind, RelationKind};
 use serde_json::Value;
 
+use crate::relational_aspect_boundary::entity_record_domain_label;
+
 pub(super) fn mutation_deltas_from_commit(
     runtime: &Arc<RwLock<RelationalRuntime>>,
     commit: &CommitResult,
@@ -207,12 +209,7 @@ pub(super) fn live_entity_label_exists(
             .entity_records(kind.kind_id())
             .into_iter()
             .any(|record| {
-                record
-                    .payload
-                    .as_json()
-                    .and_then(|payload| payload.get("label"))
-                    .and_then(Value::as_str)
-                    .is_some_and(|existing| existing == label)
+                entity_record_domain_label(&record).is_some_and(|existing| existing == label)
             })
     })
 }

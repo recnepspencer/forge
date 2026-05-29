@@ -217,7 +217,7 @@ fn retention_plan_reports_explicit_replay_pins_until_released() {
 }
 
 #[test]
-fn replay_retention_preserves_historical_live_entity_payloads_across_updates() {
+fn replay_retention_preserves_historical_live_entity_aspects_across_updates() {
     let mut runtime = runtime_with_test_schema();
     let created = create_entity_outcome(&mut runtime, "replay-history");
     let entity = changed_entities(&created)[0];
@@ -234,8 +234,8 @@ fn replay_retention_preserves_historical_live_entity_payloads_across_updates() {
 
     assert_eq!(historical.entities.len(), 1);
     assert_eq!(
-        historical.entities[0].payload,
-        RecordPayload::StructuredJson(serde_json::json!({"name":"replay-history"}))
+        read_entity_name(&historical.entities[0]),
+        Some("replay-history")
     );
 
     assert!(runtime

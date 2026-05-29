@@ -13,6 +13,7 @@ use crate::facade::indexes::{
 use crate::facade::lineage::{
     CorrespondencePromotionRejectionClass, LineageDecisionKind, LineageEventKind,
 };
+use crate::facade::merge::{MergeExecutionRequest, MergeIntent};
 use crate::facade::replay::ReplayVerificationLayer;
 use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::schema::{DescriptorCanonicalizationVersion, DescriptorSemanticsVersion};
@@ -54,7 +55,7 @@ fn schema_transition_for_subscriber_impact(
             subscriber_impact,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: "tag".into(),
+                field: field_key("tag"),
                 required: false,
                 default_expression: Some("null".into()),
             },
@@ -142,10 +143,10 @@ fn durability_contract_recovery_preserves_aspect_bearing_patch_truth_and_history
         recovered_envelope.patch.records
     );
     assert_eq!(
-        recovered_envelope.patch.records[0].aspects,
-        CanonicalAspectSet::new([aspect_key("lifecycle"), aspect_key("name")])
+        recovered_envelope.patch.records[0].authoritative_changed_aspects(),
+        CanonicalAspectSet::new([aspect_key("name")])
     );
-    assert!(!recovered_envelope.patch.records[0].contains_degraded_precision);
+    assert!(!recovered_envelope.patch.records[0].contains_opaque_aspect);
 }
 
 #[test]
@@ -214,7 +215,6 @@ fn durability_contract_recovery_preserves_branch_local_endpoint_deletion_retirem
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::RetainDanglingForAudit,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -442,10 +442,10 @@ fn durability_recovery_plan_reports_descriptor_version_mismatch_before_recovery(
         .expect("persisted segment after commit")
         .path
         .clone();
-    let mut file: crate::durability::log::local_store::DurableSegmentFile =
-        crate::durability::log::local_store::read_json(&segment_path).unwrap();
+    let mut file =
+        crate::durability::log::native_file_codec::read_segment_file(&segment_path).unwrap();
     file.entries[0].descriptor_semantics_version = DescriptorSemanticsVersion(99);
-    crate::durability::log::local_store::write_json(&segment_path, &file).unwrap();
+    crate::durability::log::native_file_codec::write_segment_file(&segment_path, &file).unwrap();
 
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
@@ -485,7 +485,9 @@ fn durability_contract_failure_descriptor_canonicalization_version_mismatch_is_e
 
     runtime.config.schema.registry = AspectSchemaFixture {
         schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
+        ..AspectSchemaFixture::with_default_declared_aspects(
+            CascadeDeletePolicy::CascadeDeleteRelations,
+        )
     }
     .build_registry();
     let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
@@ -510,12 +512,12 @@ fn durability_contract_failure_descriptor_canonicalization_version_mismatch_is_e
         .expect("persisted segment after transition")
         .path
         .clone();
-    let mut file: crate::durability::log::local_store::DurableSegmentFile =
-        crate::durability::log::local_store::read_json(&segment_path).unwrap();
+    let mut file =
+        crate::durability::log::native_file_codec::read_segment_file(&segment_path).unwrap();
     if let Some(descriptor) = file.entries[1].schema_continuation_descriptor.as_mut() {
         descriptor.bridge.canonicalization_version = DescriptorCanonicalizationVersion(99);
     }
-    crate::durability::log::local_store::write_json(&segment_path, &file).unwrap();
+    crate::durability::log::native_file_codec::write_segment_file(&segment_path, &file).unwrap();
 
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
@@ -604,11 +606,17 @@ fn durability_certification_recovery_compatibility_is_explained_and_counted() {
     );
     assert_eq!(
         compatibility_entry.fields["descriptor_version_parity"],
-        json!("VerifiedAtLayer(DigestParity)")
+        json!({
+            "parity": "VerifiedAtLayer",
+            "verification_layer": "DigestParity"
+        })
     );
     assert_eq!(
         compatibility_entry.fields["schema_transition_parity"],
-        json!("VerifiedAtLayer(DigestParity)")
+        json!({
+            "parity": "VerifiedAtLayer",
+            "verification_layer": "DigestParity"
+        })
     );
     let counters = runtime.performance_access().counters();
     assert!(counters.replay_digest_parity_checks >= 1);
@@ -622,7 +630,9 @@ fn durable_recovery_and_schema_mismatch_test() {
 
     runtime.config.schema.registry = AspectSchemaFixture {
         schema_version_id: SchemaVersionId(2),
-        ..AspectSchemaFixture::default()
+        ..AspectSchemaFixture::with_default_declared_aspects(
+            CascadeDeletePolicy::CascadeDeleteRelations,
+        )
     }
     .build_registry();
     let mut txn = runtime.begin_transaction(TransactionOptions::default().with_schema_transition(
@@ -656,7 +666,9 @@ fn durable_recovery_and_schema_mismatch_test() {
         .schema_registry(
             AspectSchemaFixture {
                 schema_version_id: SchemaVersionId(2),
-                ..AspectSchemaFixture::default()
+                ..AspectSchemaFixture::with_default_declared_aspects(
+                    CascadeDeletePolicy::CascadeDeleteRelations,
+                )
             }
             .build_registry(),
         )
@@ -749,11 +761,11 @@ fn durability_contract_failure_aspect_plan_mismatch_is_explicit() {
         declared_aspect_schema_registry(CascadeDeletePolicy::CascadeDeleteRelations);
     let mismatched_registry = AspectSchemaFixture {
         entity_aspects: vec![
-            entity_payload_aspect("display_name", "name"),
+            entity_field_aspect("display_name", "name"),
             lifecycle_aspect(),
         ],
         relation_aspects: vec![
-            relation_payload_aspect("label", "label"),
+            relation_field_aspect("label", "label"),
             lifecycle_aspect(),
             relation_source_aspect(),
             relation_target_aspect(),
@@ -805,7 +817,6 @@ fn durability_contract_failure_relation_integrity_plan_mismatch_is_explicit() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -860,7 +871,6 @@ fn durability_contract_failure_relation_integrity_plan_mismatch_is_explicit() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -959,12 +969,10 @@ fn durability_contract_recovery_ignores_rejected_relation_integrity_attempts() {
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("illegal-overflow".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("illegal-overflow"),
                 source: crate::transactions::data::EntityReference::Existing(source),
                 target: crate::transactions::data::EntityReference::Existing(target_b),
-                payload: Some(RecordPayload::StructuredJson(
-                    json!({"label":"illegal-overflow"}),
-                )),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
     );
@@ -1124,6 +1132,66 @@ fn durability_contract_recovery_preserves_merge_parent_order() {
 }
 
 #[test]
+fn durability_contract_replays_merge_from_typed_authority_when_diagnostics_are_absent() {
+    let mut runtime = persisted_runtime_with_test_schema();
+    create_entity_outcome(&mut runtime, "main");
+    create_branch_from_main(&mut runtime, "feature");
+    create_entity_outcome_on_branch(&mut runtime, "feature", BranchId("feature".to_string()));
+    let prepared = runtime
+        .prepare_merge_execution(MergeExecutionRequest {
+            target_branch: BranchId("main".to_string()),
+            source_branch: BranchId("feature".to_string()),
+            merge_intent: MergeIntent::ReconcileIntoTarget,
+        })
+        .expect("prepared merge execution");
+    let merge = runtime
+        .execute_prepared_merge(prepared)
+        .expect("executed prepared merge");
+
+    let segment_path = runtime
+        .durability()
+        .recovery_plan(RecoveryVerificationMode::NormalRecoveryVerification)
+        .store
+        .unwrap()
+        .segments
+        .last()
+        .expect("persisted segment after merge")
+        .path
+        .clone();
+    let mut file =
+        crate::durability::log::native_file_codec::read_segment_file(&segment_path).unwrap();
+    let merge_entry = file
+        .entries
+        .iter_mut()
+        .find(|entry| entry.commit.commit_id == merge.commit.commit.commit_id)
+        .expect("merge entry in durable segment");
+    assert!(merge_entry.merge_execution_authority.is_some());
+    merge_entry.diagnostics_summary.entries.clear();
+    crate::durability::log::native_file_codec::write_segment_file(&segment_path, &file).unwrap();
+
+    let plan = runtime
+        .durability()
+        .recovery_plan(RecoveryVerificationMode::NormalRecoveryVerification);
+    let mut recovered = persisted_runtime_with_test_schema();
+    recovered.durability_authority().recover(plan).unwrap();
+    let replay = recovered.replay();
+    let recovered_merge = replay
+        .canonical_commit_envelope(merge.commit.commit.commit_id)
+        .expect("recovered merge envelope");
+
+    assert!(recovered_merge.diagnostics_summary.entries.is_empty());
+    assert!(recovered_merge.merge_execution_authority.is_some());
+    assert_eq!(
+        recovered
+            .history()
+            .branch_head(&BranchId("main".to_string()))
+            .expect("main head after recovery")
+            .commit_id,
+        merge.commit.commit.commit_id
+    );
+}
+
+#[test]
 fn durability_contract_reports_parent_order_parity_drift_when_durable_segment_is_tampered() {
     let mut runtime = persisted_runtime_with_test_schema();
     let main = create_entity_outcome(&mut runtime, "main");
@@ -1148,8 +1216,8 @@ fn durability_contract_reports_parent_order_parity_drift_when_durable_segment_is
         .expect("persisted segment after merge")
         .path
         .clone();
-    let mut file: crate::durability::log::local_store::DurableSegmentFile =
-        crate::durability::log::local_store::read_json(&segment_path).unwrap();
+    let mut file =
+        crate::durability::log::native_file_codec::read_segment_file(&segment_path).unwrap();
     let merge_entry = file
         .entries
         .iter_mut()
@@ -1160,7 +1228,7 @@ fn durability_contract_reports_parent_order_parity_drift_when_durable_segment_is
         vec![main.commit.commit_id, feature.commit.commit_id]
     );
     merge_entry.commit.parents.reverse();
-    crate::durability::log::local_store::write_json(&segment_path, &file).unwrap();
+    crate::durability::log::native_file_codec::write_segment_file(&segment_path, &file).unwrap();
 
     let plan = runtime.durability().recovery_plan(
         crate::durability::data::RecoveryVerificationMode::NormalRecoveryVerification,
@@ -1214,8 +1282,8 @@ fn durability_contract_checkpoint_recovers_index_metadata() {
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity-name".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field: field_key("name"),
         },
         branch_scoped: false,
     });
@@ -1482,9 +1550,11 @@ fn durability_contract_recovery_preserves_inspection_truth_bundle() {
         });
         txn.push_batch(
             WorkerIntentBatch::new("feature-update").push(MutationIntent::Entity(
-                EntityMutationIntent::Update(UpdateEntityIntent {
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: entity,
-                    payload: RecordPayload::StructuredJson(json!({"name":"feature"})),
+                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                        json!({"name":"feature"}),
+                    ),
                 }),
             )),
         );

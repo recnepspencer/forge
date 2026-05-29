@@ -14,7 +14,8 @@ pub mod topology_authoring {
 }
 
 pub use crate::data::aspects::{
-    Aspect, DiagnosticsAspect, GeometryAspect, LineageAspect, NamingAspect, TopologyAspect,
+    entity_domain_aspect, entity_domain_field, relation_domain_aspect, Aspect, DiagnosticsAspect,
+    GeometryAspect, LineageAspect, NamingAspect, TopologyAspect,
 };
 pub use crate::data::authority::{
     milestone_two_invalidation_declarations, AuthoritativeTopologySnapshot,

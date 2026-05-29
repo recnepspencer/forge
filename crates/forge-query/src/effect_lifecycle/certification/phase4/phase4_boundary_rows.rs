@@ -43,7 +43,7 @@ pub(super) fn batch_lane_denial_row() -> EffectLifecyclePhase4CertificationRow {
                     99,
                     0,
                 ),
-                desired_payload: json!({ "name": "mixed-authority" }),
+                desired_fields_json: json!({ "name": "mixed-authority" }),
             },
         })
         .push(RawEffectIntent::Writeback {
@@ -81,7 +81,7 @@ pub(super) fn preview_rebind_row() -> EffectLifecyclePhase4CertificationRow {
                 77,
                 0,
             ),
-            desired_payload: json!({ "name": "preview-rebind" }),
+            desired_fields_json: json!({ "name": "preview-rebind" }),
         },
     };
     let normalized = normalize_raw_effect_intent(&basis, raw).expect("preview mutation normalizes");

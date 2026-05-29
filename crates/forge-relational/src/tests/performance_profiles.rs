@@ -368,9 +368,9 @@ struct EntityIdentityProjection {
 impl EntityRecordProjection for EntityIdentityProjection {
     const KIND: KindId = KindId(1);
 
-    fn from_record(record: &EntityReadRecord) -> Option<Self> {
+    fn from_record(record: crate::facade::runtime::EntityProjectionRecord<'_>) -> Option<Self> {
         Some(Self {
-            entity_id: record.entity_id,
+            entity_id: record.entity_id(),
         })
     }
 }
@@ -504,9 +504,9 @@ fn entity_name_index_packet(
     PlannedQueryPacket {
         label: label.to_string(),
         context_id: context,
-        scope: QueryScope::EntityPayloadFieldEquals {
-            field: "name".to_string(),
-            value: value.to_string(),
+        scope: QueryScope::EntityFieldEquals {
+            field: field_key("name"),
+            value: string_aspect_value(value),
             partition_scope: None,
         },
         locality: QueryLocalityClass::CrossPartitionTraversal,
@@ -662,8 +662,8 @@ fn seed_rocketship_world(
             entity_specs.push(crate::transactions::data::EntitySpec {
                 partition_id,
                 kind_id: KindId(1),
-                client_key: InternedString::Raw(format!("rocket-node-{index}")),
-                payload: RecordPayload::StructuredJson(json!({
+                client_key: crate::symbols::data::ClientKey::raw(format!("rocket-node-{index}")),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(json!({
                     "name": format!("rocket-node-{index}"),
                     "zone": index % ROCKETSHIP_PARTITION_WIDTH,
                 })),
@@ -688,27 +688,21 @@ fn seed_rocketship_world(
         relation_specs.push(crate::transactions::data::RelationSpec {
             partition_id: PartitionId(101 + (index % ROCKETSHIP_PARTITION_WIDTH) as u32),
             kind_id: KindId(2),
-            client_key: InternedString::Raw(format!("rocket-edge-{index}")),
+            client_key: crate::symbols::data::ClientKey::raw(format!("rocket-edge-{index}")),
             source: crate::transactions::data::EntityReference::Existing(entities[index]),
             target: crate::transactions::data::EntityReference::Existing(entities[index + 1]),
-            payload: Some(RecordPayload::StructuredJson(json!({
-                "label": format!("rocket-edge-{index}"),
-                "kind": "spine",
-            }))),
+            fields: crate::transactions::data::AspectFieldPatch::default(),
         });
         if index + ROCKETSHIP_PARTITION_WIDTH < entities.len() && index % 64 == 0 {
             relation_specs.push(crate::transactions::data::RelationSpec {
                 partition_id: PartitionId(201 + ((index / 64) % ROCKETSHIP_PARTITION_WIDTH) as u32),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw(format!("rocket-rib-{index}")),
+                client_key: crate::symbols::data::ClientKey::raw(format!("rocket-rib-{index}")),
                 source: crate::transactions::data::EntityReference::Existing(entities[index]),
                 target: crate::transactions::data::EntityReference::Existing(
                     entities[index + ROCKETSHIP_PARTITION_WIDTH],
                 ),
-                payload: Some(RecordPayload::StructuredJson(json!({
-                    "label": format!("rocket-rib-{index}"),
-                    "kind": "rib",
-                }))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             });
         }
     }
@@ -828,16 +822,18 @@ fn seed_pseudorealistic_rocketship_world(
                 entity_specs.push(crate::transactions::data::EntitySpec {
                     partition_id,
                     kind_id: KindId(1),
-                    client_key: InternedString::Raw(format!(
+                    client_key: crate::symbols::data::ClientKey::raw(format!(
                         "rocket.{}.{}.{}",
                         layout.section, layout.subsystem, local_index
                     )),
-                    payload: RecordPayload::StructuredJson(json!({
-                        "section": layout.section,
-                        "subsystem": layout.subsystem,
-                        "aspect": aspect,
-                        "ordinal": local_index,
-                    })),
+                    fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                        json!({
+                            "section": layout.section,
+                            "subsystem": layout.subsystem,
+                            "aspect": aspect,
+                            "ordinal": local_index,
+                        }),
+                    ),
                 });
             }
         }
@@ -866,27 +862,24 @@ fn seed_pseudorealistic_rocketship_world(
             relation_specs.push(crate::transactions::data::RelationSpec {
                 partition_id: PartitionId(201 + ((range_index + local_index) % 32) as u32),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw(format!(
+                client_key: crate::symbols::data::ClientKey::raw(format!(
                     "rocket.local.{}.{}.{}",
                     layout.section, layout.subsystem, local_index
-                )),
+                ))
+                .into(),
                 source: crate::transactions::data::EntityReference::Existing(
                     subsystem_entities[local_index],
                 ),
                 target: crate::transactions::data::EntityReference::Existing(
                     subsystem_entities[local_index + 1],
                 ),
-                payload: Some(RecordPayload::StructuredJson(json!({
-                    "edge_type": "local",
-                    "section": layout.section,
-                    "subsystem": layout.subsystem,
-                }))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             });
             if local_index + 8 < subsystem_entities.len() && local_index % 16 == 0 {
                 relation_specs.push(crate::transactions::data::RelationSpec {
                     partition_id: PartitionId(301 + ((range_index + local_index) % 32) as u32),
                     kind_id: KindId(2),
-                    client_key: InternedString::Raw(format!(
+                    client_key: crate::symbols::data::ClientKey::raw(format!(
                         "rocket.aspect.{}.{}.{}",
                         layout.section, layout.subsystem, local_index
                     )),
@@ -896,11 +889,7 @@ fn seed_pseudorealistic_rocketship_world(
                     target: crate::transactions::data::EntityReference::Existing(
                         subsystem_entities[local_index + 8],
                     ),
-                    payload: Some(RecordPayload::StructuredJson(json!({
-                        "edge_type": "aspect",
-                        "section": layout.section,
-                        "subsystem": layout.subsystem,
-                    }))),
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
                 });
             }
         }
@@ -930,7 +919,7 @@ fn seed_pseudorealistic_rocketship_world(
             relation_specs.push(crate::transactions::data::RelationSpec {
                 partition_id: PartitionId(401 + (interface_index % 32) as u32),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw(format!(
+                client_key: crate::symbols::data::ClientKey::raw(format!(
                     "rocket.interface.{}.{}.{}.{}",
                     left_layout.section,
                     left_layout.subsystem,
@@ -943,11 +932,7 @@ fn seed_pseudorealistic_rocketship_world(
                 target: crate::transactions::data::EntityReference::Existing(
                     right_entities[interface_index],
                 ),
-                payload: Some(RecordPayload::StructuredJson(json!({
-                    "edge_type": "interface",
-                    "left_subsystem": left_layout.subsystem,
-                    "right_subsystem": right_layout.subsystem,
-                }))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             });
         }
     }
@@ -960,40 +945,34 @@ fn seed_pseudorealistic_rocketship_world(
     relation_specs.push(crate::transactions::data::RelationSpec {
         partition_id: PartitionId(501),
         kind_id: KindId(2),
-        client_key: InternedString::Raw("rocket.control.guidance-avionics".to_string()),
+        client_key: crate::symbols::data::ClientKey::raw("rocket.control.guidance-avionics"),
         source: crate::transactions::data::EntityReference::Existing(guidance_anchor),
         target: crate::transactions::data::EntityReference::Existing(avionics_anchor),
-        payload: Some(RecordPayload::StructuredJson(
-            json!({"edge_type": "control"}),
-        )),
+        fields: crate::transactions::data::AspectFieldPatch::default(),
     });
     relation_specs.push(crate::transactions::data::RelationSpec {
         partition_id: PartitionId(502),
         kind_id: KindId(2),
-        client_key: InternedString::Raw("rocket.control.avionics-engine".to_string()),
+        client_key: crate::symbols::data::ClientKey::raw("rocket.control.avionics-engine"),
         source: crate::transactions::data::EntityReference::Existing(avionics_anchor),
         target: crate::transactions::data::EntityReference::Existing(engine_anchor),
-        payload: Some(RecordPayload::StructuredJson(
-            json!({"edge_type": "control"}),
-        )),
+        fields: crate::transactions::data::AspectFieldPatch::default(),
     });
     relation_specs.push(crate::transactions::data::RelationSpec {
         partition_id: PartitionId(503),
         kind_id: KindId(2),
-        client_key: InternedString::Raw("rocket.feed.plumbing-engine".to_string()),
+        client_key: crate::symbols::data::ClientKey::raw("rocket.feed.plumbing-engine"),
         source: crate::transactions::data::EntityReference::Existing(plumbing_anchor),
         target: crate::transactions::data::EntityReference::Existing(engine_anchor),
-        payload: Some(RecordPayload::StructuredJson(json!({"edge_type": "feed"}))),
+        fields: crate::transactions::data::AspectFieldPatch::default(),
     });
     relation_specs.push(crate::transactions::data::RelationSpec {
         partition_id: PartitionId(504),
         kind_id: KindId(2),
-        client_key: InternedString::Raw("rocket.control.avionics-fin".to_string()),
+        client_key: crate::symbols::data::ClientKey::raw("rocket.control.avionics-fin"),
         source: crate::transactions::data::EntityReference::Existing(avionics_anchor),
         target: crate::transactions::data::EntityReference::Existing(fin_anchor),
-        payload: Some(RecordPayload::StructuredJson(
-            json!({"edge_type": "control"}),
-        )),
+        fields: crate::transactions::data::AspectFieldPatch::default(),
     });
 
     let relation_count = relation_specs.len();
@@ -1093,22 +1072,20 @@ fn rebuild_pseudorealistic_entity_order(
         if record.kind.kind_id != KindId(1) {
             continue;
         }
-        let Some(payload) = record.payload.as_json() else {
+        let Some(section) = read_entity_field(record, "section") else {
             continue;
         };
-        let Some(section) = payload.get("section").and_then(serde_json::Value::as_str) else {
+        let Some(subsystem) = read_entity_field(record, "subsystem") else {
             continue;
         };
-        let Some(subsystem) = payload.get("subsystem").and_then(serde_json::Value::as_str) else {
-            continue;
-        };
-        let Some(ordinal) = payload.get("ordinal").and_then(serde_json::Value::as_u64) else {
+        let Some(ordinal) =
+            read_entity_field(record, "ordinal").and_then(|value| value.parse::<usize>().ok())
+        else {
             continue;
         };
         let Some((start, end)) = expected_ranges.get(&(section, subsystem)).copied() else {
             continue;
         };
-        let ordinal = ordinal as usize;
         assert!(
             ordinal < end - start,
             "pseudorealistic entity ordinal must fit subsystem range"
@@ -1137,12 +1114,12 @@ fn bulk_relation_create_intents(
     let mut by_partition: BTreeMap<
         (PartitionId, KindId),
         (
-            Vec<InternedString>,
+            Vec<crate::symbols::data::ClientKey>,
             Vec<(
                 crate::transactions::data::EntityReference,
                 crate::transactions::data::EntityReference,
             )>,
-            Vec<Option<RecordPayload>>,
+            Vec<crate::transactions::data::AspectFieldPatch>,
         ),
     > = BTreeMap::new();
 
@@ -1154,20 +1131,20 @@ fn bulk_relation_create_intents(
         entry
             .1
             .push((relation.source.clone(), relation.target.clone()));
-        entry.2.push(relation.payload.clone());
+        entry.2.push(relation.fields.clone());
     }
 
     by_partition
         .into_iter()
         .map(
-            |((partition_id, kind_id), (client_keys, endpoints, payloads))| {
+            |((partition_id, kind_id), (client_keys, endpoints, field_patches))| {
                 MutationIntent::Create(CreateIntent::BulkRelations(
                     crate::transactions::data::BulkRelationCreateIntent {
                         partition_id,
                         kind_id,
                         client_keys,
                         endpoints,
-                        payloads,
+                        field_patches,
                     },
                 ))
             },
@@ -1180,7 +1157,10 @@ fn bulk_entity_create_intents(
 ) -> Vec<MutationIntent> {
     let mut by_partition: BTreeMap<
         (PartitionId, KindId),
-        (Vec<InternedString>, Vec<RecordPayload>),
+        (
+            Vec<crate::symbols::data::ClientKey>,
+            Vec<crate::transactions::data::AspectFieldPatch>,
+        ),
     > = BTreeMap::new();
 
     for entity in entity_specs {
@@ -1188,18 +1168,18 @@ fn bulk_entity_create_intents(
             .entry((entity.partition_id, entity.kind_id))
             .or_insert_with(|| (Vec::new(), Vec::new()));
         entry.0.push(entity.client_key.clone());
-        entry.1.push(entity.payload.clone());
+        entry.1.push(entity.fields.clone());
     }
 
     by_partition
         .into_iter()
-        .map(|((partition_id, kind_id), (client_keys, payloads))| {
+        .map(|((partition_id, kind_id), (client_keys, field_patches))| {
             MutationIntent::Create(CreateIntent::BulkEntities(
                 crate::transactions::data::BulkEntityCreateIntent {
                     partition_id,
                     kind_id,
                     client_keys,
-                    payloads,
+                    field_patches,
                 },
             ))
         })
@@ -1345,12 +1325,12 @@ fn perf_commit_delta_matrix() {
                         crate::transactions::data::RelationSpec {
                             partition_id: PartitionId(9),
                             kind_id: KindId(2),
-                            client_key: InternedString::Raw(format!("cross-{index}")),
+                            client_key: crate::symbols::data::ClientKey::raw(format!(
+                                "cross-{index}"
+                            )),
                             source: crate::transactions::data::EntityReference::Existing(*source),
                             target: crate::transactions::data::EntityReference::Existing(*target),
-                            payload: Some(RecordPayload::StructuredJson(json!({
-                                "label": format!("cross-{index}")
-                            }))),
+                            fields: crate::transactions::data::AspectFieldPatch::default(),
                         },
                     )));
                 }
@@ -3161,13 +3141,12 @@ fn perf_chip_simulator_matrix() {
                     crate::transactions::data::RelationSpec {
                         partition_id: PartitionId(29),
                         kind_id: KindId(2),
-                        client_key: InternedString::Raw(format!("chip-fanout-{index}")),
+                        client_key: crate::symbols::data::ClientKey::raw(format!(
+                            "chip-fanout-{index}"
+                        )),
                         source: crate::transactions::data::EntityReference::Existing(source),
                         target: crate::transactions::data::EntityReference::Existing(*target),
-                        payload: Some(RecordPayload::StructuredJson(json!({
-                            "channel": index,
-                            "kind": "fanout"
-                        }))),
+                        fields: crate::transactions::data::AspectFieldPatch::default(),
                     },
                 )));
             }
@@ -3327,13 +3306,12 @@ fn perf_chip_simulator_matrix() {
                         crate::transactions::data::RelationSpec {
                             partition_id: PartitionId(29),
                             kind_id: KindId(2),
-                            client_key: InternedString::Raw(format!("chip-fanout-rich-{index}")),
+                            client_key: crate::symbols::data::ClientKey::raw(format!(
+                                "chip-fanout-rich-{index}"
+                            )),
                             source: crate::transactions::data::EntityReference::Existing(source),
                             target: crate::transactions::data::EntityReference::Existing(*target),
-                            payload: Some(RecordPayload::StructuredJson(json!({
-                                "channel": index,
-                                "kind": "fanout"
-                            }))),
+                            fields: crate::transactions::data::AspectFieldPatch::default(),
                         },
                     )));
                 }
@@ -3651,13 +3629,12 @@ fn perf_chip_simulator_matrix() {
                     CreateIntent::Relation(crate::transactions::data::RelationSpec {
                         partition_id: PartitionId(43),
                         kind_id: KindId(2),
-                        client_key: InternedString::Raw(format!("rollback-transient-edge-{index}")),
+                        client_key: crate::symbols::data::ClientKey::raw(format!(
+                            "rollback-transient-edge-{index}"
+                        )),
                         source: crate::transactions::data::EntityReference::Existing(source),
                         target: crate::transactions::data::EntityReference::Existing(*target),
-                        payload: Some(RecordPayload::StructuredJson(json!({
-                            "channel": index,
-                            "kind": "transient"
-                        }))),
+                        fields: crate::transactions::data::AspectFieldPatch::default(),
                     }),
                 ));
             }
@@ -3669,16 +3646,24 @@ fn perf_chip_simulator_matrix() {
                 .expect("chip savepoint rollback");
             let rollback_micros = rollback_started_at.elapsed().as_micros();
 
-            txn.push_batch(WorkerIntentBatch::new("chip-committed-step").push(
-                MutationIntent::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-                    entity_id: source,
-                    payload: RecordPayload::StructuredJson(json!({
-                        "name": "rollback-driver",
-                        "step": 1,
-                        "branch": "feature"
-                    })),
-                })),
-            ));
+            txn.push_batch(
+                WorkerIntentBatch::new("chip-committed-step").push(
+                    MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                        UpdateEntityFieldsIntent {
+                            entity_id: source,
+                            fields:
+                                crate::tests::support::aspect_field_patch_from_compatibility_json(
+                                    json!({
+                                        "name": "rollback-driver",
+                                        "step": 1,
+                                        "branch": "feature"
+                                    }),
+                                ),
+                        },
+                    ))
+                    .into(),
+                ),
+            );
             let commit_started_at = Instant::now();
             let commit_outcome = txn.commit().expect("chip branch step commit");
             let commit_micros = commit_started_at.elapsed().as_micros();
@@ -3811,10 +3796,10 @@ fn perf_chip_simulator_matrix() {
                 let mut batch = WorkerIntentBatch::new("chip-flat-entity-step-batch");
                 for (partition_id, targets) in &partition_targets {
                     for (index, entity) in targets.iter().enumerate().take(4) {
-                        batch = batch.push(MutationIntent::Entity(EntityMutationIntent::Update(
-                            UpdateEntityIntent {
+                        batch = batch.push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                            UpdateEntityFieldsIntent {
                                 entity_id: *entity,
-                                payload: RecordPayload::StructuredJson(json!({
+                                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(json!({
                                     "partition": partition_id.0,
                                     "lane": "global-step",
                                     "step": index,
@@ -5169,14 +5154,17 @@ fn perf_rocketship_scale_matrix() {
                 let mut txn = runtime.begin_transaction(TransactionOptions::default());
                 let mut batch = WorkerIntentBatch::new("rocketship-flat-entity-batch-wave");
                 for (index, entity) in batch_targets.iter().enumerate() {
-                    batch = batch.push(MutationIntent::Entity(EntityMutationIntent::Update(
-                        UpdateEntityIntent {
+                    batch = batch.push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                        UpdateEntityFieldsIntent {
                             entity_id: *entity,
-                            payload: RecordPayload::StructuredJson(json!({
-                                "section": "batch-wave",
-                                "tag": format!("rocket.batch.{index}"),
-                                "partition": entity.partition_id.0,
-                            })),
+                            fields:
+                                crate::tests::support::aspect_field_patch_from_compatibility_json(
+                                    json!({
+                                        "section": "batch-wave",
+                                        "tag": format!("rocket.batch.{index}"),
+                                        "partition": entity.partition_id.0,
+                                    }),
+                                ),
                         },
                     )));
                 }
@@ -5423,14 +5411,17 @@ fn perf_rocketship_scale_matrix() {
                 let mut txn = runtime.begin_transaction(TransactionOptions::default());
                 let mut batch = WorkerIntentBatch::new("rocketship-varied-locality-batch-wave");
                 for (index, entity) in batch_targets.iter().enumerate() {
-                    batch = batch.push(MutationIntent::Entity(EntityMutationIntent::Update(
-                        UpdateEntityIntent {
+                    batch = batch.push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                        UpdateEntityFieldsIntent {
                             entity_id: *entity,
-                            payload: RecordPayload::StructuredJson(json!({
-                                "section": "varied-batch-wave",
-                                "tag": format!("rocket.varied.{index}"),
-                                "partition": entity.partition_id.0,
-                            })),
+                            fields:
+                                crate::tests::support::aspect_field_patch_from_compatibility_json(
+                                    json!({
+                                        "section": "varied-batch-wave",
+                                        "tag": format!("rocket.varied.{index}"),
+                                        "partition": entity.partition_id.0,
+                                    }),
+                                ),
                         },
                     )));
                 }
@@ -5643,14 +5634,17 @@ fn perf_rocketship_scale_matrix() {
                 let mut txn = runtime.begin_transaction(TransactionOptions::default());
                 let mut batch = WorkerIntentBatch::new("rocketship-large-flat-entity-batch-wave");
                 for (index, entity) in batch_targets.iter().enumerate() {
-                    batch = batch.push(MutationIntent::Entity(EntityMutationIntent::Update(
-                        UpdateEntityIntent {
+                    batch = batch.push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                        UpdateEntityFieldsIntent {
                             entity_id: *entity,
-                            payload: RecordPayload::StructuredJson(json!({
-                                "section": "large-batch-wave",
-                                "tag": format!("rocket.large_batch.{index}"),
-                                "partition": entity.partition_id.0,
-                            })),
+                            fields:
+                                crate::tests::support::aspect_field_patch_from_compatibility_json(
+                                    json!({
+                                        "section": "large-batch-wave",
+                                        "tag": format!("rocket.large_batch.{index}"),
+                                        "partition": entity.partition_id.0,
+                                    }),
+                                ),
                         },
                     )));
                 }
@@ -5867,7 +5861,7 @@ fn perf_rocketship_scale_matrix() {
                             move |(edge_index, pair)| crate::transactions::data::RelationSpec {
                                 partition_id: PartitionId(601 + partition_index as u32),
                                 kind_id: KindId(2),
-                                client_key: InternedString::Raw(format!(
+                                client_key: crate::symbols::data::ClientKey::raw(format!(
                                     "rocket.batch.local.{}.{}",
                                     partition_index, edge_index
                                 )),
@@ -5877,11 +5871,7 @@ fn perf_rocketship_scale_matrix() {
                                 target: crate::transactions::data::EntityReference::Existing(
                                     pair[1],
                                 ),
-                                payload: Some(RecordPayload::StructuredJson(json!({
-                                    "edge_type": "batch-local",
-                                    "partition": partition_index,
-                                    "edge": edge_index,
-                                }))),
+                                fields: crate::transactions::data::AspectFieldPatch::default(),
                             },
                         )
                 })
@@ -5898,14 +5888,17 @@ fn perf_rocketship_scale_matrix() {
                 let mut batch =
                     WorkerIntentBatch::new("rocketship-mixed-entity-relation-batch-wave");
                 for (index, entity) in batch_targets.iter().enumerate() {
-                    batch = batch.push(MutationIntent::Entity(EntityMutationIntent::Update(
-                        UpdateEntityIntent {
+                    batch = batch.push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                        UpdateEntityFieldsIntent {
                             entity_id: *entity,
-                            payload: RecordPayload::StructuredJson(json!({
-                                "section": "mixed-batch-wave",
-                                "tag": format!("rocket.mixed_batch.{index}"),
-                                "partition": entity.partition_id.0,
-                            })),
+                            fields:
+                                crate::tests::support::aspect_field_patch_from_compatibility_json(
+                                    json!({
+                                        "section": "mixed-batch-wave",
+                                        "tag": format!("rocket.mixed_batch.{index}"),
+                                        "partition": entity.partition_id.0,
+                                    }),
+                                ),
                         },
                     )));
                 }
@@ -7529,7 +7522,7 @@ fn perf_inspection_budget_matrix() {
         let recent_started_at = Instant::now();
         let recent = runtime.inspect_what_happened().inspect_recent_commits(
             &RecentCommitInspectionRequest {
-                branch_id: Some(BranchId("main".to_string())),
+                branch_id: Some(BranchId("main".to_string()).into()),
                 limit: 3,
             },
         );
@@ -7592,8 +7585,8 @@ fn perf_index_parity_matrix() {
             let index = runtime.index_authority().register(DerivedIndexDefinition {
                 index_id: DerivedIndexId(0),
                 name: "entity.name.lookup".to_string(),
-                kind: DerivedIndexKind::EntityPayloadField {
-                    field: "name".to_string(),
+                kind: DerivedIndexKind::EntityField {
+                    field: field_key("name"),
                 },
                 branch_scoped: false,
             });
@@ -7683,8 +7676,8 @@ fn perf_index_parity_matrix() {
             let index = runtime.index_authority().register(DerivedIndexDefinition {
                 index_id: DerivedIndexId(0),
                 name: "entity.name.lookup".to_string(),
-                kind: DerivedIndexKind::EntityPayloadField {
-                    field: "name".to_string(),
+                kind: DerivedIndexKind::EntityField {
+                    field: field_key("name"),
                 },
                 branch_scoped: false,
             });
@@ -7761,7 +7754,7 @@ fn perf_index_parity_matrix() {
                 && metrics["access_path"]
                     .as_str()
                     .unwrap_or("")
-                    .contains("CorruptPayload")
+                    .contains("CorruptIndexEntries")
                 && counter_u64(metrics, "query_index_attempt_count") == 1
                 && counter_u64(metrics, "query_index_path_count") == 0
                 && counter_u64(metrics, "query_index_rejection_count") == 1
@@ -7777,8 +7770,8 @@ fn perf_index_parity_matrix() {
             let index = runtime.index_authority().register(DerivedIndexDefinition {
                 index_id: DerivedIndexId(0),
                 name: "entity.name.lookup".to_string(),
-                kind: DerivedIndexKind::EntityPayloadField {
-                    field: "name".to_string(),
+                kind: DerivedIndexKind::EntityField {
+                    field: field_key("name"),
                 },
                 branch_scoped: false,
             });
@@ -8036,8 +8029,8 @@ fn perf_mixed_load_matrix() {
             let relation_index = runtime.index_authority().register(DerivedIndexDefinition {
                 index_id: DerivedIndexId(0),
                 name: "relation.name".to_string(),
-                kind: DerivedIndexKind::RelationPayloadField {
-                    field: "name".to_string(),
+                kind: DerivedIndexKind::RelationField {
+                    field: field_key("name"),
                 },
                 branch_scoped: false,
             });
@@ -8057,9 +8050,9 @@ fn perf_mixed_load_matrix() {
             let packet = PlannedQueryPacket {
                 label: "relation-index-certification".to_string(),
                 context_id: context,
-                scope: QueryScope::RelationPayloadFieldEquals {
-                    field: "name".to_string(),
-                    value: "fast".to_string(),
+                scope: QueryScope::RelationFieldEquals {
+                    field: field_key("name"),
+                    value: string_aspect_value("fast"),
                     partition_scope: None,
                 },
                 locality: QueryLocalityClass::CrossPartitionTraversal,
@@ -8160,8 +8153,10 @@ fn perf_mixed_load_matrix() {
 fn perf_workflow_matrix() {
     let suite = "workflow_matrix";
 
-    let trade_correction_samples =
-        capture_perf_samples(suite, "trade_correction_analysis_round_trip", || {
+    let trade_correction_samples = capture_perf_samples(
+        suite,
+        "trade_correction_analysis_round_trip",
+        || {
             let mut runtime = persisted_runtime_with_test_schema();
             let account =
                 create_entity_in_partition(&mut runtime, "portfolio-account", PartitionId(10));
@@ -8174,51 +8169,63 @@ fn perf_workflow_matrix() {
                     target_branch: Some(BranchId("analysis".to_string())),
                     ..TransactionOptions::default()
                 });
-                txn.push_batch(WorkerIntentBatch::new("correct-trade").push(
-                    MutationIntent::Create(CreateIntent::Entity(
-                        crate::transactions::data::EntitySpec {
-                            partition_id: PartitionId(10),
-                            kind_id: KindId(1),
-                            client_key: InternedString::Raw(
-                                "analysis-trade-correction".to_string(),
-                            ),
-                            payload: RecordPayload::StructuredJson(json!({
-                                "entity_type": "trade",
-                                "case": "trade-correction",
-                                "status": "corrected",
-                                "account": "portfolio-account",
-                            })),
-                        },
-                    )),
-                ));
-                txn.push_batch(WorkerIntentBatch::new("refresh-risk").push(
-                    MutationIntent::Create(CreateIntent::Entity(
-                        crate::transactions::data::EntitySpec {
-                            partition_id: PartitionId(30),
-                            kind_id: KindId(1),
-                            client_key: InternedString::Raw("analysis-risk-refresh".to_string()),
-                            payload: RecordPayload::StructuredJson(json!({
-                                "entity_type": "risk_view",
-                                "case": "trade-correction",
-                                "status": "refreshed",
-                                "severity": "medium",
-                            })),
-                        },
-                    )),
-                ));
                 txn.push_batch(
-                    WorkerIntentBatch::new("emit-audit").push(MutationIntent::Create(
-                        CreateIntent::Entity(crate::transactions::data::EntitySpec {
-                            partition_id: PartitionId(40),
-                            kind_id: KindId(1),
-                            client_key: InternedString::Raw("analysis-audit-record".to_string()),
-                            payload: RecordPayload::StructuredJson(json!({
-                                "entity_type": "audit_record",
-                                "case": "trade-correction",
-                                "event": "analysis-reviewed",
-                            })),
-                        }),
-                    )),
+                    WorkerIntentBatch::new("correct-trade").push(
+                        MutationIntent::Create(CreateIntent::Entity(
+                            crate::transactions::data::EntitySpec {
+                                partition_id: PartitionId(10),
+                                kind_id: KindId(1),
+                                client_key: crate::symbols::data::ClientKey::raw(
+                                    "analysis-trade-correction".to_string(),
+                                ),
+                                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(json!({
+                                    "entity_type": "trade",
+                                    "case": "trade-correction",
+                                    "status": "corrected",
+                                    "account": "portfolio-account",
+                                })),
+                            },
+                        ))
+                        .into(),
+                    ),
+                );
+                txn.push_batch(
+                    WorkerIntentBatch::new("refresh-risk").push(
+                        MutationIntent::Create(CreateIntent::Entity(
+                            crate::transactions::data::EntitySpec {
+                                partition_id: PartitionId(30),
+                                kind_id: KindId(1),
+                                client_key: crate::symbols::data::ClientKey::raw(
+                                    "analysis-risk-refresh".to_string(),
+                                ),
+                                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(json!({
+                                    "entity_type": "risk_view",
+                                    "case": "trade-correction",
+                                    "status": "refreshed",
+                                    "severity": "medium",
+                                })),
+                            },
+                        ))
+                        .into(),
+                    ),
+                );
+                txn.push_batch(
+                    WorkerIntentBatch::new("emit-audit")
+                        .push(MutationIntent::Create(CreateIntent::Entity(
+                            crate::transactions::data::EntitySpec {
+                                partition_id: PartitionId(40),
+                                kind_id: KindId(1),
+                                client_key: crate::symbols::data::ClientKey::raw(
+                                    "analysis-audit-record".to_string(),
+                                ),
+                                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(json!({
+                                    "entity_type": "audit_record",
+                                    "case": "trade-correction",
+                                    "event": "analysis-reviewed",
+                                })),
+                            },
+                        )))
+                        .into(),
                 );
                 txn.commit().expect("analysis branch correction commit")
             };
@@ -8287,7 +8294,8 @@ fn perf_workflow_matrix() {
                     "counters": counters,
                 })
             })
-        });
+        },
+    );
     emit_metric_summaries(
         suite,
         "trade_correction_analysis_round_trip",
@@ -10375,8 +10383,6 @@ fn perf_geometry_artifact_decomposition_matrix() {
                 .publication
                 .policy
                 .max_patch_records_per_commit = node_count * 4;
-            runtime.config.publication.policy.patch_surface_policy =
-                PatchSurfacePolicy::DensePatchSurface;
             let diagnostics_start = runtime.publication().diagnostic_artifacts().len();
             let seeded =
                 seed_pseudorealistic_rocketship_world(&mut runtime, node_count, query_target_count);
@@ -11167,14 +11173,17 @@ fn perf_game_engine_matrix() {
                 let mut txn = runtime.begin_transaction(TransactionOptions::default());
                 let mut batch = WorkerIntentBatch::new("scene-batch-flat-entity-wave");
                 for (index, entity) in batch_targets.iter().enumerate() {
-                    batch = batch.push(MutationIntent::Entity(EntityMutationIntent::Update(
-                        UpdateEntityIntent {
+                    batch = batch.push(MutationIntent::Entity(EntityMutationIntent::UpdateFields(
+                        UpdateEntityFieldsIntent {
                             entity_id: *entity,
-                            payload: RecordPayload::StructuredJson(json!({
-                                "name": format!("scene-batch-updated-{index}"),
-                                "phase": "batch-wave",
-                                "partition": entity.partition_id.0,
-                            })),
+                            fields:
+                                crate::tests::support::aspect_field_patch_from_compatibility_json(
+                                    json!({
+                                        "name": format!("scene-batch-updated-{index}"),
+                                        "phase": "batch-wave",
+                                        "partition": entity.partition_id.0,
+                                    }),
+                                ),
                         },
                     )));
                 }
@@ -11840,18 +11849,24 @@ fn perf_merge_lineage_matrix() {
                 target_branch: Some(BranchId("feature".to_string())),
                 ..TransactionOptions::default()
             });
-            txn.push_batch(WorkerIntentBatch::new("create-feature-only").push(
-                MutationIntent::Create(CreateIntent::Entity(
-                    crate::transactions::data::EntitySpec {
-                        partition_id: PartitionId::main(),
-                        kind_id: KindId(1),
-                        client_key: InternedString::Raw("feature-only".to_string()),
-                        payload: RecordPayload::StructuredJson(json!({
-                            "name": "feature-only"
-                        })),
-                    },
-                )),
-            ));
+            txn.push_batch(
+                WorkerIntentBatch::new("create-feature-only").push(
+                    MutationIntent::Create(CreateIntent::Entity(
+                        crate::transactions::data::EntitySpec {
+                            partition_id: PartitionId::main(),
+                            kind_id: KindId(1),
+                            client_key: crate::symbols::data::ClientKey::raw("feature-only"),
+                            fields:
+                                crate::tests::support::aspect_field_patch_from_compatibility_json(
+                                    json!({
+                                        "name": "feature-only"
+                                    }),
+                                ),
+                        },
+                    ))
+                    .into(),
+                ),
+            );
             let _feature_only = changed_entities(&txn.commit().expect("feature create"))[0];
 
             let prepared = runtime
@@ -11913,18 +11928,24 @@ fn perf_merge_lineage_matrix() {
                 target_branch: Some(BranchId("feature".to_string())),
                 ..TransactionOptions::default()
             });
-            txn.push_batch(WorkerIntentBatch::new("create-feature-only").push(
-                MutationIntent::Create(CreateIntent::Entity(
-                    crate::transactions::data::EntitySpec {
-                        partition_id: PartitionId::main(),
-                        kind_id: KindId(1),
-                        client_key: InternedString::Raw("feature-only".to_string()),
-                        payload: RecordPayload::StructuredJson(json!({
-                            "name": "feature-only"
-                        })),
-                    },
-                )),
-            ));
+            txn.push_batch(
+                WorkerIntentBatch::new("create-feature-only").push(
+                    MutationIntent::Create(CreateIntent::Entity(
+                        crate::transactions::data::EntitySpec {
+                            partition_id: PartitionId::main(),
+                            kind_id: KindId(1),
+                            client_key: crate::symbols::data::ClientKey::raw("feature-only"),
+                            fields:
+                                crate::tests::support::aspect_field_patch_from_compatibility_json(
+                                    json!({
+                                        "name": "feature-only"
+                                    }),
+                                ),
+                        },
+                    ))
+                    .into(),
+                ),
+            );
             let _feature_only = changed_entities(&txn.commit().expect("feature create"))[0];
 
             let prepared = runtime
@@ -11997,18 +12018,24 @@ fn perf_merge_lineage_matrix() {
                 target_branch: Some(BranchId("feature".to_string())),
                 ..TransactionOptions::default()
             });
-            txn.push_batch(WorkerIntentBatch::new("create-feature-only").push(
-                MutationIntent::Create(CreateIntent::Entity(
-                    crate::transactions::data::EntitySpec {
-                        partition_id: PartitionId::main(),
-                        kind_id: KindId(1),
-                        client_key: InternedString::Raw("feature-only".to_string()),
-                        payload: RecordPayload::StructuredJson(json!({
-                            "name": "feature-only"
-                        })),
-                    },
-                )),
-            ));
+            txn.push_batch(
+                WorkerIntentBatch::new("create-feature-only").push(
+                    MutationIntent::Create(CreateIntent::Entity(
+                        crate::transactions::data::EntitySpec {
+                            partition_id: PartitionId::main(),
+                            kind_id: KindId(1),
+                            client_key: crate::symbols::data::ClientKey::raw("feature-only"),
+                            fields:
+                                crate::tests::support::aspect_field_patch_from_compatibility_json(
+                                    json!({
+                                        "name": "feature-only"
+                                    }),
+                                ),
+                        },
+                    ))
+                    .into(),
+                ),
+            );
             let _feature_only = changed_entities(&txn.commit().expect("feature create"))[0];
 
             runtime.performance_access().reset_counters();
@@ -12074,18 +12101,24 @@ fn perf_merge_lineage_matrix() {
                 target_branch: Some(BranchId("feature".to_string())),
                 ..TransactionOptions::default()
             });
-            txn.push_batch(WorkerIntentBatch::new("create-feature-only").push(
-                MutationIntent::Create(CreateIntent::Entity(
-                    crate::transactions::data::EntitySpec {
-                        partition_id: PartitionId::main(),
-                        kind_id: KindId(1),
-                        client_key: InternedString::Raw("feature-only".to_string()),
-                        payload: RecordPayload::StructuredJson(json!({
-                            "name": "feature-only"
-                        })),
-                    },
-                )),
-            ));
+            txn.push_batch(
+                WorkerIntentBatch::new("create-feature-only").push(
+                    MutationIntent::Create(CreateIntent::Entity(
+                        crate::transactions::data::EntitySpec {
+                            partition_id: PartitionId::main(),
+                            kind_id: KindId(1),
+                            client_key: crate::symbols::data::ClientKey::raw("feature-only"),
+                            fields:
+                                crate::tests::support::aspect_field_patch_from_compatibility_json(
+                                    json!({
+                                        "name": "feature-only"
+                                    }),
+                                ),
+                        },
+                    ))
+                    .into(),
+                ),
+            );
             let _feature_only = changed_entities(&txn.commit().expect("feature create"))[0];
 
             let prepared = merge_runtime
@@ -12165,18 +12198,24 @@ fn perf_merge_lineage_matrix() {
                 target_branch: Some(BranchId("feature".to_string())),
                 ..TransactionOptions::default()
             });
-            txn.push_batch(WorkerIntentBatch::new("create-feature-only").push(
-                MutationIntent::Create(CreateIntent::Entity(
-                    crate::transactions::data::EntitySpec {
-                        partition_id: PartitionId::main(),
-                        kind_id: KindId(1),
-                        client_key: InternedString::Raw("feature-only".to_string()),
-                        payload: RecordPayload::StructuredJson(json!({
-                            "name": "feature-only"
-                        })),
-                    },
-                )),
-            ));
+            txn.push_batch(
+                WorkerIntentBatch::new("create-feature-only").push(
+                    MutationIntent::Create(CreateIntent::Entity(
+                        crate::transactions::data::EntitySpec {
+                            partition_id: PartitionId::main(),
+                            kind_id: KindId(1),
+                            client_key: crate::symbols::data::ClientKey::raw("feature-only"),
+                            fields:
+                                crate::tests::support::aspect_field_patch_from_compatibility_json(
+                                    json!({
+                                        "name": "feature-only"
+                                    }),
+                                ),
+                        },
+                    ))
+                    .into(),
+                ),
+            );
             let _feature_only = changed_entities(&txn.commit().expect("feature create"))[0];
 
             let prepared = runtime
@@ -12256,18 +12295,24 @@ fn perf_merge_lineage_matrix() {
                 target_branch: Some(BranchId("feature".to_string())),
                 ..TransactionOptions::default()
             });
-            txn.push_batch(WorkerIntentBatch::new("create-feature-only").push(
-                MutationIntent::Create(CreateIntent::Entity(
-                    crate::transactions::data::EntitySpec {
-                        partition_id: PartitionId::main(),
-                        kind_id: KindId(1),
-                        client_key: InternedString::Raw("feature-only".to_string()),
-                        payload: RecordPayload::StructuredJson(json!({
-                            "name": "feature-only"
-                        })),
-                    },
-                )),
-            ));
+            txn.push_batch(
+                WorkerIntentBatch::new("create-feature-only").push(
+                    MutationIntent::Create(CreateIntent::Entity(
+                        crate::transactions::data::EntitySpec {
+                            partition_id: PartitionId::main(),
+                            kind_id: KindId(1),
+                            client_key: crate::symbols::data::ClientKey::raw("feature-only"),
+                            fields:
+                                crate::tests::support::aspect_field_patch_from_compatibility_json(
+                                    json!({
+                                        "name": "feature-only"
+                                    }),
+                                ),
+                        },
+                    ))
+                    .into(),
+                ),
+            );
             let _feature_only = changed_entities(&txn.commit().expect("feature create"))[0];
 
             let prepared = runtime

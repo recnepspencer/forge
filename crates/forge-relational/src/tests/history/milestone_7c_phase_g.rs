@@ -9,21 +9,19 @@ use crate::facade::merge::{
 };
 use crate::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use crate::facade::schema::{
-    AspectBinding, AspectComparator, AspectKey, AspectPrecision, DeclaredAspect,
-    EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
+    AspectKey, EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
     RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
 use crate::facade::transactions::{
     CreateIntent, MutationIntent, TransactionOptions, WorkerIntentBatch,
 };
-use crate::schema::data::{RelationIntegrityDeclarations, RelationPayloadClass};
-use crate::symbols::data::InternedString;
+use crate::schema::data::RelationIntegrityDeclarations;
 use crate::tests::support::{
     capture_aspect_truth_bundle, certification_digest, checkpoint_and_recover_with,
-    create_branch_from_main, create_entity, create_entity_outcome_on_branch, entity_payload_aspect,
-    persisted_runtime_with_test_schema, read_entity_name, unique_test_store_path, update_entity,
-    update_entity_on_branch, CascadeDeletePolicy, CrossContextPolicy, DurabilityMode,
-    DurableStoreLayout, RelationalRuntimeProfile,
+    create_branch_from_main, create_entity, create_entity_outcome_on_branch, entity_field_aspect,
+    persisted_runtime_with_test_schema, read_entity_field, read_entity_name,
+    unique_test_store_path, update_entity, update_entity_on_branch, CascadeDeletePolicy,
+    CrossContextPolicy, DurabilityMode, DurableStoreLayout, RelationalRuntimeProfile,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -226,11 +224,13 @@ fn certify_prefer_richer_merge_execution() -> MergeExecutionCertificationArtifac
             crate::transactions::data::EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
-                client_key: InternedString::Raw("feature-shared".to_string()),
-                payload: crate::payloads::data::RecordPayload::StructuredJson(serde_json::json!({
-                    "name": "shared-name",
-                    "status": "active"
-                })),
+                client_key: crate::symbols::data::ClientKey::raw("feature-shared"),
+                fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                    serde_json::json!({
+                        "name": "shared-name",
+                        "status": "active"
+                    }),
+                ),
             },
         ))),
     );
@@ -257,14 +257,7 @@ fn certify_prefer_richer_merge_execution() -> MergeExecutionCertificationArtifac
         .get_entity(main_entity)
         .expect("merged target entity remains visible");
     assert_eq!(read_entity_name(current_record), Some("shared-name"));
-    assert_eq!(
-        current_record
-            .payload
-            .as_json()
-            .and_then(|json| json.get("status"))
-            .and_then(|value| value.as_str()),
-        Some("active")
-    );
+    assert_eq!(read_entity_field(current_record, "status"), Some("active"));
 
     certify_merge_execution_with_recovery(&mut runtime, &merge, move || {
         persisted_runtime_with_registry(registry.clone(), store_path.clone())
@@ -355,8 +348,8 @@ where
 }
 
 fn prefer_richer_registry() -> RelationalSchemaRegistry {
-    let name_key = AspectKey(InternedString::Raw("name".to_string()));
-    let status_key = AspectKey(InternedString::Raw("status".to_string()));
+    let name_key = AspectKey::new("name").unwrap();
+    let status_key = AspectKey::new("status").unwrap();
     RelationalSchemaRegistry::new()
         .register_entity_kind(EntityKindRegistration {
             kind_id: KindId(1),
@@ -364,15 +357,8 @@ fn prefer_richer_registry() -> RelationalSchemaRegistry {
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
             aspect_declarations: KindAspectDeclarations::new(vec![
-                entity_payload_aspect("name", "name"),
-                DeclaredAspect {
-                    key: status_key.clone(),
-                    binding: AspectBinding::EntityPayloadField {
-                        field: InternedString::Raw("status".to_string()),
-                    },
-                    comparator: AspectComparator::JsonScalarEquality,
-                    precision: AspectPrecision::Structured,
-                },
+                entity_field_aspect("name", "name"),
+                entity_field_aspect(status_key.as_str(), "status"),
             ])
             .with_identity_declarations(vec![IdentityBasisDeclaration {
                 scope: IdentityBasisScope::AspectKey(name_key.clone()),
@@ -389,7 +375,6 @@ fn prefer_richer_registry() -> RelationalSchemaRegistry {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -407,8 +392,8 @@ fn drifted_schema_registry() -> RelationalSchemaRegistry {
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(2),
             aspect_declarations: KindAspectDeclarations::new(vec![
-                entity_payload_aspect("name", "name"),
-                entity_payload_aspect("status", "status"),
+                entity_field_aspect("name", "name"),
+                entity_field_aspect("status", "status"),
             ]),
         })
         .and_then(|registry| {
@@ -417,7 +402,6 @@ fn drifted_schema_registry() -> RelationalSchemaRegistry {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(2),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),

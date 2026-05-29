@@ -1,3 +1,4 @@
+use crate::capabilities::SchemaSource;
 use crate::facade::diagnostics::{DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope};
 use crate::facade::history::BranchId;
 use crate::facade::indexes::{
@@ -68,7 +69,7 @@ fn schema_transition_for_subscriber_impact(
             subscriber_impact,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: "tag".into(),
+                field: field_key("tag"),
                 required: false,
                 default_expression: Some("null".into()),
             },
@@ -209,8 +210,7 @@ fn replay_contract_reports_structured_patch_drift_when_canonical_envelope_is_tam
     assert!(runtime.history_authority().tamper_commit_patch_for_test(
         outcome.commit.commit_id,
         |patch| {
-            patch.records[0].detail =
-                PatchDetail::StructuredJson(serde_json::json!({"tampered": true}));
+            patch.records[0].detail = PatchDetail::DenseBitset(vec![99]);
         }
     ));
 
@@ -300,7 +300,7 @@ fn replay_contract_reports_schema_continuation_descriptor_drift_when_envelope_is
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: "tag".into(),
+                field: field_key("tag"),
                 required: false,
                 default_expression: Some("null".into()),
             },
@@ -376,7 +376,7 @@ fn replay_contract_audit_mode_confirms_schema_continuation_descriptor_drift_at_d
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: "tag".into(),
+                field: field_key("tag"),
                 required: false,
                 default_expression: Some("null".into()),
             },
@@ -452,7 +452,7 @@ fn replay_certification_audit_drift_is_explained_and_counted() {
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: "tag".into(),
+                field: field_key("tag"),
                 required: false,
                 default_expression: Some("null".into()),
             },
@@ -546,7 +546,7 @@ fn replay_contract_reports_schema_lineage_drift_at_summary_layer_when_digest_is_
             SchemaSubscriberImpact::ConsumableSurfaceChanged,
             HistoricalInterpretationSensitivity::NotSensitive,
             SchemaDiffDetail::AddedField {
-                field_name: "tag".into(),
+                field: field_key("tag"),
                 required: false,
                 default_expression: Some("null".into()),
             },
@@ -1013,8 +1013,8 @@ fn replay_contract_reports_derived_index_drift_at_digest_layer_when_artifacts_ar
     let index = runtime.index_authority().register(DerivedIndexDefinition {
         index_id: DerivedIndexId(0),
         name: "entity-name".to_string(),
-        kind: DerivedIndexKind::EntityPayloadField {
-            field: "name".to_string(),
+        kind: DerivedIndexKind::EntityField {
+            field: field_key("name"),
         },
         branch_scoped: false,
     });
@@ -1029,7 +1029,11 @@ fn replay_contract_reports_derived_index_drift_at_digest_layer_when_artifacts_ar
     assert!(runtime.history_authority().tamper_commit_envelope_for_test(
         commit.commit.commit_id,
         |envelope| {
-            if let Some(generation) = envelope.index_generations.first_mut() {
+            if let Some(generation) = envelope
+                .derived_index_artifacts
+                .generations_mut_for_test()
+                .first_mut()
+            {
                 generation.status =
                     crate::facade::indexes::DerivedIndexPublicationStatus::BuildFailed;
             }
@@ -1079,8 +1083,10 @@ fn replay_and_recovery_preserve_aspect_bearing_truth_across_a_hostile_mixed_work
                     replacement: crate::transactions::data::EntitySpec {
                         partition_id: PartitionId::main(),
                         kind_id: KindId(1),
-                        client_key: InternedString::Raw("anchor-replaced".to_string()),
-                        payload: RecordPayload::StructuredJson(json!({"name":"anchor-replaced"})),
+                        client_key: crate::symbols::data::ClientKey::raw("anchor-replaced"),
+                        fields: crate::tests::support::aspect_field_patch_from_compatibility_json(
+                            json!({"name":"anchor-replaced"}),
+                        ),
                     },
                 }),
             )),
@@ -1233,7 +1239,7 @@ fn hostile_commit_replay_equivalence_test() {
     let patch_digest = certification_digest(&original_envelope.patch);
     let lineage_digest = certification_digest(&(
         original_envelope.lineage_digest_basis(),
-        &original_envelope.index_generations,
+        original_envelope.derived_index_artifacts(),
         &original_bundle.lineage_history_digests,
     ));
     let replay_digest = certification_digest(&(
@@ -1332,7 +1338,7 @@ fn hostile_commit_replay_equivalence_test() {
         lineage_digest,
         certification_digest(&(
             recovered_envelope.lineage_digest_basis(),
-            &recovered_envelope.index_generations,
+            recovered_envelope.derived_index_artifacts(),
             &recovered_bundle.lineage_history_digests,
         ))
     );
@@ -1392,7 +1398,6 @@ fn replay_contract_preserves_relation_integrity_declared_schema() {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -1441,25 +1446,29 @@ fn replay_contract_preserves_relation_integrity_declared_schema() {
         .unwrap();
 
     assert!(runtime.replay().compare_outcome(&replay));
+    let relation_authority = envelope
+        .schema_authority
+        .relation_kinds
+        .iter()
+        .find(|kind| kind.kind_id == KindId(2))
+        .expect("relation schema authority");
     assert_eq!(
-        envelope
-            .schema_registry
+        relation_authority.aspect_plan_revision,
+        runtime
+            .schema_registry()
             .relation_registration(KindId(2))
             .unwrap()
-            .relation_integrity
-            .cardinality_contracts[0]
-            .contract_id,
-        crate::schema::data::ContractId::from("source_max_one")
+            .aspect_declarations
+            .plan_revision
     );
     assert_eq!(
-        envelope
-            .schema_registry
+        relation_authority.relation_integrity_plan_revision,
+        runtime
+            .schema_registry()
             .relation_registration(KindId(2))
             .unwrap()
             .relation_integrity
-            .uniqueness_contracts[0]
-            .contract_id,
-        crate::schema::data::ContractId::from("uniq")
+            .plan_revision
     );
 }
 
@@ -1488,12 +1497,10 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
                 crate::transactions::data::RelationSpec {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(2),
-                    client_key: InternedString::Raw("feature-accepted".to_string()),
+                    client_key: crate::symbols::data::ClientKey::raw("feature-accepted"),
                     source: crate::transactions::data::EntityReference::Existing(source),
                     target: crate::transactions::data::EntityReference::Existing(target_a),
-                    payload: Some(RecordPayload::StructuredJson(
-                        json!({"label":"feature-accepted"}),
-                    )),
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
                 },
             )),
         ));
@@ -1513,12 +1520,10 @@ fn replay_contract_preserves_branch_local_relation_integrity_truth_after_rejecte
             crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("feature-rejected".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("feature-rejected"),
                 source: crate::transactions::data::EntityReference::Existing(source),
                 target: crate::transactions::data::EntityReference::Existing(target_b),
-                payload: Some(RecordPayload::StructuredJson(
-                    json!({"label":"feature-rejected"}),
-                )),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         )),
     ));

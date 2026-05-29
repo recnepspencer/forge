@@ -1,35 +1,84 @@
-use serde::{Deserialize, Serialize};
-use serde_json::Value;
+use forge_foundational::facade::{AspectFieldLocator, AspectValue, FieldKey};
 
 use crate::commit_strategies::data::{
+    decode_aspect_field_locator, decode_aspect_value, decode_entity_id,
+    encode_aspect_field_locator, encode_aspect_value, encode_entity_id,
     CanonicalStrategyCommitRequest, CanonicalStrategyOutputArtifact, CommitStrategyDescriptor,
     CommitStrategyExecutionRegistration, CommitStrategyExecutor, CommitStrategyFamilyName,
     CommitStrategyId, CommitStrategyRegistration, CommitStrategyRegistrationError,
-    CommitStrategySemanticName, CommitStrategyVersion, PersistentArtifactName,
+    CommitStrategySemanticName, CommitStrategyVersion, NativeCodecError, NativeCodecReader,
+    PersistentArtifactName, RawStrategyCommitRequest, StrategyCallerProvenance,
     StrategyExecutionResult, StrategyExecutorFailure, StrategyExecutorFailureClass,
     StrategyInputSchemaName, StrategyInputSchemaVersion, StrategyIntentName,
     StrategyMutationProgram, StrategyObservationContext, StrategyOutputSchemaName,
     StrategyPacketContract, StrategyReadContract, StrategyReadCostClass, StrategyReadLocalityClass,
     StrategyReadScopeClass, StrategyRequestCanonicalization, StrategyTraversalBasis,
 };
-use crate::payloads::data::canonicalize_json;
-use crate::schema::data::{AspectBinding, AspectComparator};
+use crate::storage::data::authoritative_aspect_value_field_comparison_key;
+use crate::transactions::data::AspectFieldPatch;
 use crate::transactions::data::{
     EntityMutationIntent, MutationIntent, UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AspectFieldReconciliationInput {
     pub entity_id: crate::identity::data::EntityId,
-    pub field_name: String,
-    pub desired_value: Value,
+    pub field_locator: AspectFieldLocator,
+    pub desired_value: AspectValue,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+impl AspectFieldReconciliationInput {
+    pub fn into_raw_request(
+        self,
+        caller_provenance: StrategyCallerProvenance,
+    ) -> Result<RawStrategyCommitRequest, NativeCodecError> {
+        let mut bytes = Vec::new();
+        encode_entity_id(&mut bytes, self.entity_id);
+        encode_aspect_field_locator(&mut bytes, &self.field_locator);
+        encode_aspect_value(&mut bytes, &self.desired_value)?;
+        Ok(RawStrategyCommitRequest::from_canonical_bytes(
+            CommitStrategySemanticName::new(
+                AspectFieldReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
+            ),
+            bytes,
+            caller_provenance,
+        ))
+    }
+
+    fn decode(bytes: &[u8]) -> Result<Self, NativeCodecError> {
+        let mut reader = NativeCodecReader::new(bytes);
+        let entity_id = decode_entity_id(&mut reader)?;
+        let field_locator = decode_aspect_field_locator(&mut reader)?;
+        let desired_value = decode_aspect_value(&mut reader)?;
+        reader.finish()?;
+        Ok(Self {
+            entity_id,
+            field_locator,
+            desired_value,
+        })
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct AspectFieldReconciliationOutput {
     pub entity_id: crate::identity::data::EntityId,
-    pub field_name: String,
+    pub field_locator: AspectFieldLocator,
     pub updated: bool,
+}
+
+impl AspectFieldReconciliationOutput {
+    pub fn decode(bytes: &[u8]) -> Result<Self, NativeCodecError> {
+        let mut reader = NativeCodecReader::new(bytes);
+        let entity_id = decode_entity_id(&mut reader)?;
+        let field_locator = decode_aspect_field_locator(&mut reader)?;
+        let updated = reader.read_bool()?;
+        reader.finish()?;
+        Ok(Self {
+            entity_id,
+            field_locator,
+            updated,
+        })
+    }
 }
 
 #[derive(Debug, Clone, Copy, Default)]
@@ -38,8 +87,8 @@ pub struct AspectFieldReconciliationStrategy;
 impl AspectFieldReconciliationStrategy {
     pub const DEFAULT_SEMANTIC_NAME: &'static str = "strategy.aspect.field.reconcile";
     pub const DEFAULT_FAMILY_NAME: &'static str = "strategy.aspect";
-    pub const DEFAULT_INPUT_SCHEMA_NAME: &'static str = "aspect.field.reconcile.input.v1";
-    pub const DEFAULT_OUTPUT_SCHEMA_NAME: &'static str = "aspect.field.reconcile.output.v1";
+    pub const DEFAULT_INPUT_SCHEMA_NAME: &'static str = "aspect.field.reconcile.input.v2";
+    pub const DEFAULT_OUTPUT_SCHEMA_NAME: &'static str = "aspect.field.reconcile.output.v2";
     pub const DEFAULT_INTENT_NAME: &'static str = "aspect.scalar.field.reconcile";
     pub const DEFAULT_ARTIFACT_NAME: &'static str = "strategy.aspect.field.reconcile";
 
@@ -53,7 +102,7 @@ impl AspectFieldReconciliationStrategy {
             StrategyInputSchemaName::new(Self::DEFAULT_INPUT_SCHEMA_NAME),
             StrategyInputSchemaVersion(1),
             StrategyOutputSchemaName::new(Self::DEFAULT_OUTPUT_SCHEMA_NAME),
-            StrategyRequestCanonicalization::JsonStableObjectOrderV1,
+            StrategyRequestCanonicalization::NativeCanonicalBytesV1,
             StrategyReadContract {
                 scope_class: StrategyReadScopeClass::ExplicitTargetsOnly,
                 locality_class: StrategyReadLocalityClass::SinglePartition,
@@ -80,28 +129,59 @@ impl AspectFieldReconciliationStrategy {
     fn parse_input(
         request: &CanonicalStrategyCommitRequest,
     ) -> Result<AspectFieldReconciliationInput, StrategyExecutorFailure> {
-        serde_json::from_slice(request.canonical_input().canonical_bytes()).map_err(|error| {
-            StrategyExecutorFailure::new(
-                StrategyExecutorFailureClass::InvalidInput,
-                format!("aspect field reconciliation input could not be decoded: {error}"),
-            )
-        })
+        AspectFieldReconciliationInput::decode(request.canonical_input().canonical_bytes()).map_err(
+            |error| {
+                StrategyExecutorFailure::new(
+                    StrategyExecutorFailureClass::InvalidInput,
+                    format!(
+                        "aspect field reconciliation input could not be decoded: {}",
+                        error.detail()
+                    ),
+                )
+            },
+        )
     }
 
     fn output_artifact(
         output: &AspectFieldReconciliationOutput,
-    ) -> Result<CanonicalStrategyOutputArtifact, StrategyExecutorFailure> {
-        let bytes = serde_json::to_vec(output).map_err(|error| {
-            StrategyExecutorFailure::new(
-                StrategyExecutorFailureClass::DomainRejection,
-                format!("aspect field reconciliation output could not be serialized: {error}"),
-            )
-        })?;
-        Ok(CanonicalStrategyOutputArtifact::new(
+    ) -> CanonicalStrategyOutputArtifact {
+        let mut bytes = Vec::new();
+        encode_entity_id(&mut bytes, output.entity_id);
+        encode_aspect_field_locator(&mut bytes, &output.field_locator);
+        bytes.push(u8::from(output.updated));
+        CanonicalStrategyOutputArtifact::new(
             StrategyOutputSchemaName::new(Self::DEFAULT_OUTPUT_SCHEMA_NAME),
             bytes,
             PersistentArtifactName::new(Self::DEFAULT_ARTIFACT_NAME),
-        ))
+        )
+    }
+
+    fn require_declared_entity_scalar_field_locator(
+        observation: &StrategyObservationContext<'_>,
+        existing: &crate::storage::data::EntityReadRecord,
+        field_locator: &AspectFieldLocator,
+    ) -> Result<FieldKey, StrategyExecutorFailure> {
+        let lowered_plan =
+            observation
+                .entity_aspect_plan(existing.kind.kind_id)
+                .ok_or_else(|| {
+                    StrategyExecutorFailure::new(
+                        StrategyExecutorFailureClass::DomainRejection,
+                        format!(
+                            "lowered foundational entity aspect plan is missing for kind {} during aspect reconciliation",
+                            existing.kind.kind_name
+                        ),
+                    )
+                })?;
+        let field = single_field_path(field_locator)?;
+        let declared_aspect_key = lowered_plan
+            .entity_scalar_field_aspect_key(&field)
+            .ok_or_else(|| undeclared_locator_failure(existing, field_locator))?;
+        if declared_aspect_key == field_locator.aspect().aspect_key().clone() {
+            Ok(field)
+        } else {
+            Err(undeclared_locator_failure(existing, field_locator))
+        }
     }
 }
 
@@ -124,56 +204,25 @@ impl CommitStrategyExecutor for AspectFieldReconciliationStrategy {
                     ),
                 )
             })?;
-        let registration = observation
-            .schema_registry()
-            .entity_registration(existing.kind.kind_id)
-            .map_err(|error| {
-                StrategyExecutorFailure::new(
-                    StrategyExecutorFailureClass::DomainRejection,
-                    format!(
-                        "entity kind registration missing during aspect reconciliation: {error:?}"
-                    ),
-                )
-            })?;
-        let field_aspect_declared = registration
-            .aspect_declarations
-            .aspects
-            .iter()
-            .any(|aspect| {
-                matches!(
-                    (&aspect.binding, aspect.comparator),
-                    (
-                        AspectBinding::EntityPayloadField { field },
-                        AspectComparator::JsonScalarEquality,
-                    ) if matches!(
-                        field,
-                        crate::symbols::data::InternedString::Raw(raw) if raw == &input.field_name
-                    )
-                )
-            });
-        if !field_aspect_declared {
-            return Err(StrategyExecutorFailure::new(
-                StrategyExecutorFailureClass::DomainRejection,
-                format!(
-                    "field '{}' is not a declared scalar entity aspect on kind {}",
-                    input.field_name, existing.kind.kind_name
-                ),
-            ));
-        }
-        let desired_value = canonicalize_json(&input.desired_value);
-        let updated = existing
-            .payload
-            .as_json()
-            .and_then(|value| value.get(&input.field_name))
-            != Some(&desired_value);
+        let field_key = Self::require_declared_entity_scalar_field_locator(
+            observation,
+            &existing,
+            &input.field_locator,
+        )?;
+        let desired_comparison_key =
+            authoritative_aspect_value_field_comparison_key(&input.desired_value);
+        let updated = existing.authoritative_field_comparison_key(&field_key)
+            != Some(&desired_comparison_key);
         let mutation_program = if updated {
-            let mut fields = std::collections::BTreeMap::new();
-            fields.insert(input.field_name.clone(), desired_value);
             let batch = WorkerIntentBatch::new("aspect-field-reconciliation-update").push(
                 MutationIntent::Entity(EntityMutationIntent::UpdateFields(
                     UpdateEntityFieldsIntent {
                         entity_id: input.entity_id,
-                        fields,
+                        fields: AspectFieldPatch::single(
+                            input.field_locator.aspect().aspect_key().clone(),
+                            field_key.clone(),
+                            input.desired_value.clone(),
+                        ),
                     },
                 )),
             );
@@ -184,161 +233,45 @@ impl CommitStrategyExecutor for AspectFieldReconciliationStrategy {
 
         let output = Self::output_artifact(&AspectFieldReconciliationOutput {
             entity_id: input.entity_id,
-            field_name: input.field_name,
+            field_locator: input.field_locator,
             updated,
-        })?;
+        });
         Ok(StrategyExecutionResult::new(output, mutation_program))
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::{
-        AspectFieldReconciliationInput, AspectFieldReconciliationOutput,
-        AspectFieldReconciliationStrategy,
-    };
-    use crate::commit_strategies::data::{
-        RawStrategyCommitRequest, StrategyCallerProvenance, StrategyExecutorFailureClass,
-        StrategyRequestOrigin,
-    };
-    use crate::config::data::CascadeDeletePolicy;
-    use crate::logic::builder::RelationalRuntimeBuilder;
-    use crate::tests::support::{
-        create_entity, entity_payload_aspect, lifecycle_aspect, AspectSchemaFixture,
-    };
-    use serde_json::{json, Value};
-
-    #[test]
-    fn aspect_field_reconciliation_strategy_updates_only_declared_field_aspect() {
-        let descriptor = AspectFieldReconciliationStrategy::descriptor(
-            crate::commit_strategies::data::CommitStrategyId(701),
-        );
-        let registry = AspectSchemaFixture {
-            cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-            entity_aspects: vec![
-                entity_payload_aspect("name", "name"),
-                entity_payload_aspect("replicas", "replicas"),
-                lifecycle_aspect(),
-            ],
-            ..AspectSchemaFixture::default()
-        }
-        .build_registry();
-        let mut runtime = RelationalRuntimeBuilder::new()
-            .schema_registry(registry)
-            .commit_strategy(
-                crate::commit_strategies::data::CommitStrategyRegistration::new(descriptor.clone())
-                    .expect("strategy registration"),
-            )
-            .commit_strategy_executor(AspectFieldReconciliationStrategy::execution_registration(
-                &descriptor,
-            ))
-            .build();
-        let entity = create_entity(&mut runtime, "before");
-        crate::tests::support::update_entity(&mut runtime, entity, "before");
-        let request = runtime
-            .commit_strategies()
-            .canonicalize_request(&RawStrategyCommitRequest::new(
-                crate::commit_strategies::data::CommitStrategySemanticName::new(
-                    AspectFieldReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
-                ),
-                serde_json::to_vec(&AspectFieldReconciliationInput {
-                    entity_id: entity,
-                    field_name: "replicas".to_string(),
-                    desired_value: json!(5),
-                })
-                .expect("serialize input"),
-                StrategyCallerProvenance {
-                    request_origin: StrategyRequestOrigin::Test,
-                    actor_identity: None,
-                    correlation_id: None,
-                },
-            ))
-            .expect("canonical request");
-        let snapshot = runtime.visibility_authority().snapshot();
-        let execution = runtime
-            .commit_strategies()
-            .execute(&request, &snapshot)
-            .expect("strategy execution");
-        let output: AspectFieldReconciliationOutput =
-            serde_json::from_slice(execution.output().canonical_bytes()).expect("output decode");
-        let updated_payload = match &execution.mutation_program().worker_batches()[0].intents[0] {
-            crate::transactions::data::MutationIntent::Entity(
-                crate::transactions::data::EntityMutationIntent::UpdateFields(intent),
-            ) => serde_json::Value::Object(
-                intent
-                    .fields
-                    .iter()
-                    .map(|(key, value)| (key.clone(), value.clone()))
-                    .collect(),
-            ),
-            other => panic!("expected update entity fields intent, got {other:?}"),
-        };
-
-        assert!(output.updated);
-        assert_eq!(
-            updated_payload.get("replicas"),
-            Some(&Value::Number(serde_json::Number::from(5_u64)))
-        );
-        assert_eq!(updated_payload.as_object().expect("object").len(), 1);
-    }
-
-    #[test]
-    fn aspect_field_reconciliation_strategy_rejects_undeclared_field() {
-        let descriptor = AspectFieldReconciliationStrategy::descriptor(
-            crate::commit_strategies::data::CommitStrategyId(702),
-        );
-        let registry = AspectSchemaFixture {
-            cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
-            entity_aspects: vec![entity_payload_aspect("name", "name"), lifecycle_aspect()],
-            ..AspectSchemaFixture::default()
-        }
-        .build_registry();
-        let mut runtime = RelationalRuntimeBuilder::new()
-            .schema_registry(registry)
-            .commit_strategy(
-                crate::commit_strategies::data::CommitStrategyRegistration::new(descriptor.clone())
-                    .expect("strategy registration"),
-            )
-            .commit_strategy_executor(AspectFieldReconciliationStrategy::execution_registration(
-                &descriptor,
-            ))
-            .build();
-        let entity = create_entity(&mut runtime, "before");
-        let request = runtime
-            .commit_strategies()
-            .canonicalize_request(&RawStrategyCommitRequest::new(
-                crate::commit_strategies::data::CommitStrategySemanticName::new(
-                    AspectFieldReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
-                ),
-                serde_json::to_vec(&AspectFieldReconciliationInput {
-                    entity_id: entity,
-                    field_name: "replicas".to_string(),
-                    desired_value: json!(5),
-                })
-                .expect("serialize input"),
-                StrategyCallerProvenance {
-                    request_origin: StrategyRequestOrigin::Test,
-                    actor_identity: None,
-                    correlation_id: None,
-                },
-            ))
-            .expect("canonical request");
-        let snapshot = runtime.visibility_authority().snapshot();
-        let error = runtime
-            .commit_strategies()
-            .execute(&request, &snapshot)
-            .expect_err("undeclared aspect field should be rejected");
-
-        match error {
-            crate::commit_strategies::StrategyExecutionError::ExecutorFailed {
-                failure, ..
-            } => {
-                assert_eq!(failure.class, StrategyExecutorFailureClass::DomainRejection);
-                assert!(failure
-                    .detail
-                    .contains("not a declared scalar entity aspect"));
-            }
-            other => panic!("expected executor failure, got {other:?}"),
-        }
+fn single_field_path(
+    field_locator: &AspectFieldLocator,
+) -> Result<FieldKey, StrategyExecutorFailure> {
+    match field_locator.field_path().fields() {
+        [field] => Ok(field.clone()),
+        _ => Err(StrategyExecutorFailure::new(
+            StrategyExecutorFailureClass::InvalidInput,
+            "aspect field reconciliation target must be a single foundational field path",
+        )),
     }
 }
+
+fn undeclared_locator_failure(
+    existing: &crate::storage::data::EntityReadRecord,
+    field_locator: &AspectFieldLocator,
+) -> StrategyExecutorFailure {
+    StrategyExecutorFailure::new(
+        StrategyExecutorFailureClass::DomainRejection,
+        format!(
+            "aspect field locator '{}:{}' is not a lowered foundational scalar entity aspect on kind {}",
+            field_locator.aspect().aspect_key().as_str(),
+            field_locator
+                .field_path()
+                .fields()
+                .iter()
+                .map(|field| field.as_str())
+                .collect::<Vec<_>>()
+                .join("."),
+            existing.kind.kind_name
+        ),
+    )
+}
+
+#[cfg(test)]
+mod tests;

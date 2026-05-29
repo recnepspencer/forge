@@ -230,9 +230,7 @@ mod eval {
 
 #[cfg(test)]
 mod tests {
-    use crate::primitives::implicit_vertex::{
-        resolve_position, PlaneRef, Vertex,
-    };
+    use crate::primitives::implicit_vertex::{resolve_position, PlaneRef, Vertex};
     use crate::primitives::plane::Plane;
     use crate::spatial::acceleration::bsp::PlaneSet;
 

@@ -2,9 +2,12 @@ use std::collections::BTreeMap;
 
 use serde::{Deserialize, Serialize};
 
+use forge_foundational::facade::FieldKey;
+
 use crate::history::data::{BranchId, CommitId};
 use crate::identity::data::{EntityId, RelationId, VersionId};
 use crate::schema::data::SchemaVersionId;
+use crate::storage::data::AuthoritativeFieldComparisonKey;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct DerivedIndexId(pub u64);
@@ -14,8 +17,8 @@ pub struct DerivedIndexGenerationId(pub u64);
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum DerivedIndexKind {
-    EntityPayloadField { field: String },
-    RelationPayloadField { field: String },
+    EntityField { field: FieldKey },
+    RelationField { field: FieldKey },
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -27,9 +30,9 @@ pub struct DerivedIndexDefinition {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum DerivedIndexPayload {
-    EntityField(BTreeMap<String, Vec<EntityId>>),
-    RelationField(BTreeMap<String, Vec<RelationId>>),
+pub enum DerivedIndexEntries {
+    EntityField(BTreeMap<AuthoritativeFieldComparisonKey, Vec<EntityId>>),
+    RelationField(BTreeMap<AuthoritativeFieldComparisonKey, Vec<RelationId>>),
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -53,7 +56,56 @@ pub struct DerivedIndexGeneration {
     pub source_branch_id: BranchId,
     pub compatibility: DerivedIndexCompatibility,
     pub status: DerivedIndexPublicationStatus,
-    pub payload: DerivedIndexPayload,
+    pub entries: DerivedIndexEntries,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
+pub struct DerivedIndexArtifacts {
+    generations: Vec<DerivedIndexGeneration>,
+}
+
+impl DerivedIndexArtifacts {
+    pub fn new(generations: Vec<DerivedIndexGeneration>) -> Self {
+        let mut artifacts = Self::default();
+        artifacts.extend_canonical(&generations);
+        artifacts
+    }
+
+    pub fn is_empty(&self) -> bool {
+        self.generations.is_empty()
+    }
+
+    pub fn generations(&self) -> &[DerivedIndexGeneration] {
+        &self.generations
+    }
+
+    pub fn generation_ids(&self) -> Vec<u64> {
+        self.generations
+            .iter()
+            .map(|generation| generation.generation_id.0)
+            .collect()
+    }
+
+    pub fn extend_canonical(&mut self, generations: &[DerivedIndexGeneration]) {
+        for generation in generations {
+            if let Some(existing) = self
+                .generations
+                .iter_mut()
+                .find(|candidate| candidate.generation_id == generation.generation_id)
+            {
+                *existing = generation.clone();
+            } else {
+                self.generations.push(generation.clone());
+            }
+        }
+        self.generations
+            .sort_by_key(|generation| (generation.index_id.0, generation.generation_id.0));
+    }
+
+    #[cfg(test)]
+    pub(crate) fn generations_mut_for_test(&mut self) -> &mut Vec<DerivedIndexGeneration> {
+        &mut self.generations
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

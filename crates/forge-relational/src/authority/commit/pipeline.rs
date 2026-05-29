@@ -24,13 +24,14 @@ use crate::capabilities::RuntimeConfigSource;
 use crate::commit_strategies::data::{
     LoweredStrategyCommitPlan, StrategyCommitArtifactBundle, ValidatedStrategyCommitPlan,
 };
-use crate::publication::data::PublicationStatus;
+use crate::publication::bundle::PublicationStatus;
 use crate::schema::data::SchemaTransitionSummary;
 use crate::transactions::data::{
     CommitExecution, CommitLog, CommitOutcome, CommitPatchBudgetSummary, CommitPhase,
     CommitPhaseTiming, CommitPublication, CommitResult, CommitSchemaSummary, CommitValidation,
     CreateIntent, EntityMutationIntent, LoweredCommitPlan, MergeCommitMutationPlan, MutationIntent,
-    RelationMutationIntent, TransactionCommitError, TransactionId, TransactionOptions,
+    PublishedMergeExecutionAuthority, RelationMutationIntent, TransactionCommitError,
+    TransactionId, TransactionOptions,
 };
 use crate::transactions::logic::RelationalTransaction;
 use crate::validation::engine::InvariantExecutionResult;
@@ -118,7 +119,7 @@ fn summarize_bulk_mutation_telemetry(
                 lineage_transition_count += 1;
             }
             MutationIntent::Create(CreateIntent::BulkEntities(spec)) => {
-                entity_target_count += spec.payloads.len();
+                entity_target_count += spec.field_patches.len();
                 normalized_client_key_count += spec.client_keys.len();
                 lineage_transition_count += spec.client_keys.len();
             }
@@ -140,8 +141,7 @@ fn summarize_bulk_mutation_telemetry(
                     .filter(|(source, target)| source.partition_id() != target.partition_id())
                     .count();
             }
-            MutationIntent::Entity(EntityMutationIntent::Update(_))
-            | MutationIntent::Entity(EntityMutationIntent::UpdateFields(_)) => {
+            MutationIntent::Entity(EntityMutationIntent::UpdateFields(_)) => {
                 entity_target_count += 1;
             }
             MutationIntent::Entity(EntityMutationIntent::Replace(_)) => {
@@ -415,7 +415,7 @@ pub(crate) fn execute_authoritative_commit(
         strategy_commit_artifacts,
     } = context;
     let mut commit_log = CommitLog::new();
-    let diagnostics_start = runtime.publication().diagnostics().artifacts().len();
+    let diagnostics_start = runtime.publication().diagnostic_access().artifact_count();
     let complexity_before = runtime
         .services
         .instrumentation
@@ -580,6 +580,9 @@ pub(crate) fn execute_authoritative_commit(
             )]
         })
         .unwrap_or_default();
+    let merge_execution_authority = merge_history_plan
+        .as_ref()
+        .map(PublishedMergeExecutionAuthority::from_merge_plan);
 
     let schema_continuity = resolve_schema_continuity(runtime, &branch_id, &options)
         .map_err(|error| attach_rejection(&mut commit_log, CommitPhase::ArtifactAssembly, error))?;
@@ -607,29 +610,24 @@ pub(crate) fn execute_authoritative_commit(
 
     commit_log.begin_phase(CommitPhase::ArtifactAssembly);
     let phase_started = Instant::now();
-    let patch_records = std::mem::take(&mut effect.publication.patch_records);
-    let patch = assemble_patch(runtime, commit_reference.commit_id, patch_records);
+    let patch_fragments = std::mem::take(&mut effect.publication.patch_fragments);
+    let patch = assemble_patch(runtime, commit_reference.commit_id, patch_fragments);
     #[cfg(test)]
     if let Some(fault) = current_test_diff_preparation_fault() {
-        let (failure_class, label) = match fault {
-            TestDiffPreparationFault::FragmentCanonicalizationFailure => (
-                PreparationFailureClass::FragmentCanonicalizationFailure,
-                "fragment_canonicalization_failure",
-            ),
-            TestDiffPreparationFault::PacketOverlapDetected => (
-                PreparationFailureClass::PacketOverlapDetected,
-                "packet_overlap_detected",
-            ),
+        let failure_class = match fault {
+            TestDiffPreparationFault::FragmentCanonicalizationFailure => {
+                PreparationFailureClass::FragmentCanonicalizationFailure
+            }
+            TestDiffPreparationFault::PacketOverlapDetected => {
+                PreparationFailureClass::PacketOverlapDetected
+            }
         };
         emit_preparation_failure(
             runtime,
             crate::diagnostics::data::DiagnosticsScope::PatchPublication,
             failure_class,
-            serde_json::json!({
-                "failure_class": label,
-                "commit_id": commit_reference.commit_id.0,
-                "patch_record_count": patch.records.len(),
-            }),
+            commit_reference.commit_id,
+            patch.records.len(),
         )
     }
     let patch_budget_summary = CommitPatchBudgetSummary {
@@ -654,6 +652,7 @@ pub(crate) fn execute_authoritative_commit(
         &merge_base_commits,
         &merged_plan,
         strategy_commit_artifacts.clone(),
+        merge_execution_authority,
         &schema_continuity,
         effect,
         additional_diagnostics_entries,
@@ -767,7 +766,10 @@ pub(crate) fn execute_authoritative_commit(
         .lock()
         .expect("complexity counter lock poisoned")
         .clone();
-    let diagnostics = runtime.publication().diagnostics_since(diagnostics_start);
+    let diagnostics = runtime
+        .publication()
+        .diagnostic_access()
+        .artifacts_since(diagnostics_start);
     let commit_summary = commit_log.summary().clone();
     let schema_summary = CommitSchemaSummary {
         transition: canonical_commit_envelope

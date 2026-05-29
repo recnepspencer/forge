@@ -16,5 +16,5 @@ pub(super) use case_workflows::{
     assert_settlement_repair_case_transition, assert_snapshot_release_contract,
 };
 pub(super) use fixture_shape::assert_fixture_shape;
-pub(super) use read_surfaces::{assert_cross_context_relations, assert_partitioned_payloads};
+pub(super) use read_surfaces::{assert_cross_context_relations, assert_partitioned_aspect_state};
 pub(super) use truth_world::assert_named_truth_world;

@@ -8,13 +8,13 @@ use crate::application::{ForgeQueryDeclarationInput, ForgeQueryDomainEntryMarker
 
 use super::admitted::ForgeQueryAdmittedDeclarationProgression;
 use super::checked::ForgeQueryDeclarationProgressionChecked;
+use super::denial::ForgeQueryDeclarationProgressionFailed;
 use super::denial::{
     ForgeQueryDeclarationProgressionDeferred, ForgeQueryDeclarationProgressionDenied,
 };
 use super::payload::ForgeQueryDeclarationProgressionPayload;
 use super::rebind::ForgeQueryDeclarationProgressionRebindRequired;
 use super::recipe::ForgeQueryDeclarationProgressionRecipe;
-use super::denial::ForgeQueryDeclarationProgressionFailed;
 use super::stale::ForgeQueryDeclarationProgressionStale;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

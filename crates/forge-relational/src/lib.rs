@@ -22,6 +22,7 @@
 #![forbid(unsafe_code)]
 #![deny(unreachable_patterns)]
 
+mod aspect_wire;
 mod authority;
 mod capabilities;
 mod commit_strategies;
@@ -37,7 +38,6 @@ mod inspection;
 mod lineage;
 mod logic;
 mod merge;
-mod payloads;
 mod performance;
 mod presentation;
 mod publication;

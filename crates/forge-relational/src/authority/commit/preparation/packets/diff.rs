@@ -1,4 +1,5 @@
-use crate::publication::data::diff::PatchRecord;
+use crate::publication::patch::data::PatchRecord;
+use crate::publication::patch::data::RecordStructuralChange;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub(crate) enum DiffFragmentKind {
@@ -8,15 +9,13 @@ pub(crate) enum DiffFragmentKind {
     RetainedForAudit,
 }
 
-impl From<&crate::publication::data::diff::PatchRecordKind> for DiffFragmentKind {
-    fn from(value: &crate::publication::data::diff::PatchRecordKind) -> Self {
+impl From<RecordStructuralChange> for DiffFragmentKind {
+    fn from(value: RecordStructuralChange) -> Self {
         match value {
-            crate::publication::data::diff::PatchRecordKind::Created => Self::Created,
-            crate::publication::data::diff::PatchRecordKind::Updated => Self::Updated,
-            crate::publication::data::diff::PatchRecordKind::Deleted => Self::Deleted,
-            crate::publication::data::diff::PatchRecordKind::RetainedForAudit => {
-                Self::RetainedForAudit
-            }
+            RecordStructuralChange::Created => Self::Created,
+            RecordStructuralChange::Updated => Self::Updated,
+            RecordStructuralChange::Deleted => Self::Deleted,
+            RecordStructuralChange::RetainedForAudit => Self::RetainedForAudit,
         }
     }
 }

@@ -118,9 +118,92 @@ fn diagnostics_and_replay_are_emitted_for_commit() {
             .publication()
             .latest_replay()
             .unwrap()
-            .schema_registry,
-        test_schema_registry()
+            .schema_authority,
+        test_schema_registry().authority_snapshot()
     );
+    assert_eq!(
+        runtime.publication().diagnostic_artifact_count(),
+        diagnostics.artifacts().len()
+    );
+}
+
+#[test]
+fn publication_diagnostics_since_fail_closes_for_stale_cursor() {
+    let mut runtime = runtime_with_test_schema();
+    let _entity = create_entity(&mut runtime, "first");
+    let artifact_count = runtime.publication().diagnostic_artifact_count();
+
+    assert!(runtime
+        .publication()
+        .diagnostics_since(artifact_count + 100)
+        .is_empty());
+}
+
+#[test]
+fn publication_observation_snapshot_tracks_latest_publication_state() {
+    let mut runtime = runtime_with_test_schema();
+
+    let empty = runtime.publication().observation_snapshot();
+    assert_eq!(empty.latest_commit_id, None);
+    assert_eq!(empty.publication_snapshot_id, None);
+    assert_eq!(empty.publication_status, None);
+    assert_eq!(empty.latest_patch_position, None);
+    assert!(!empty.latest_patch_present);
+    assert!(!empty.latest_replay_present);
+    assert_eq!(empty.diagnostics_artifact_count, 0);
+
+    let created = create_entity_outcome(&mut runtime, "first");
+    let observed = runtime.publication().observation_snapshot();
+    let publication = runtime.publication();
+    let bundle = publication.latest_bundle().unwrap();
+
+    assert_eq!(observed.latest_commit_id, Some(created.commit.commit_id));
+    assert_eq!(
+        observed.publication_snapshot_id,
+        Some(bundle.snapshot.snapshot_id)
+    );
+    assert_eq!(observed.publication_status, Some(bundle.status.clone()));
+    assert_eq!(observed.latest_patch_position, Some(bundle.patch.position));
+    assert_eq!(
+        observed.latest_patch_record_count,
+        Some(bundle.patch.records.len())
+    );
+    assert_eq!(
+        observed.latest_replay_commit_id,
+        Some(bundle.replay.commit_id)
+    );
+    assert!(observed.latest_patch_present);
+    assert!(observed.latest_replay_present);
+    assert!(observed.diagnostics_artifact_count > 0);
+}
+
+#[test]
+fn publication_artifact_snapshot_tracks_latest_patch_and_replay_with_observation() {
+    let mut runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&mut runtime, "first");
+
+    let snapshot = runtime.publication().artifact_snapshot();
+    let publication = runtime.publication();
+    let bundle = publication.latest_bundle().unwrap();
+
+    assert_eq!(
+        snapshot.observation.latest_commit_id,
+        Some(created.commit.commit_id)
+    );
+    assert_eq!(snapshot.latest_patch, Some(bundle.patch.clone()));
+    assert_eq!(snapshot.latest_replay, Some(bundle.replay.clone()));
+}
+
+#[test]
+fn publication_diagnostics_snapshot_tracks_observation_and_artifacts_together() {
+    let mut runtime = runtime_with_test_schema();
+    let _created = create_entity_outcome(&mut runtime, "first");
+
+    let snapshot = runtime.publication().diagnostics_snapshot();
+    let publication = runtime.publication();
+
+    assert_eq!(snapshot.observation, publication.observation_snapshot());
+    assert_eq!(snapshot.diagnostics, publication.diagnostic_artifacts());
 }
 
 #[test]
@@ -148,10 +231,10 @@ fn invariant_failure_artifact_preserves_specific_code_localization_and_proof_bou
             crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("one-way".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("one-way"),
                 source: crate::transactions::data::EntityReference::Existing(source),
                 target: crate::transactions::data::EntityReference::Existing(target),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"one-way"}))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
     );
@@ -181,24 +264,39 @@ fn invariant_failure_artifact_preserves_specific_code_localization_and_proof_bou
         other => panic!("expected conflict, got {:?}", other),
     }
     assert_eq!(entry.fields["execution_point"], json!("commit_boundary"));
+    assert_eq!(entry.fields["failure_effect"], json!("block_commit"));
+    let violation = &entry.fields["violation"];
+    assert_eq!(violation["violation_kind"], json!("relation_symmetry"));
+    assert_eq!(violation["contract_id"], json!("paired_twin"));
+    assert_eq!(violation["relation_kind_id"], json!(2));
     assert_eq!(
-        entry.fields["violation"]["contract_id"],
-        json!("paired_twin")
-    );
-    assert_eq!(entry.fields["violation"]["relation_kind_id"], json!(2));
-    assert_eq!(
-        entry.fields["violation"]["source"],
-        json!(crate::transactions::data::EntityReference::Existing(source))
+        violation["source"],
+        typed_existing_entity_reference_json(source)
     );
     assert_eq!(
-        entry.fields["violation"]["target"],
-        json!(crate::transactions::data::EntityReference::Existing(target))
+        violation["target"],
+        typed_existing_entity_reference_json(target)
     );
+    assert_eq!(violation["mode"], json!("paired_twin_required"));
     assert_eq!(
         entry.fields["proof_boundary"]["scope_class"],
-        json!("PartitionScope")
+        json!("partition_scope")
     );
     assert_eq!(entry.fields["proof_boundary"]["packet_count"], json!(1));
+}
+
+fn typed_existing_entity_reference_json(
+    entity_id: crate::identity::data::EntityId,
+) -> serde_json::Value {
+    json!({
+        "reference_kind": "existing",
+        "entity_id": {
+            "record_kind": "entity",
+            "partition_id": entity_id.partition_id.0,
+            "local_slot": entity_id.local_slot.0,
+            "generation": entity_id.generation.0,
+        }
+    })
 }
 
 #[test]
@@ -225,10 +323,10 @@ fn invariant_diagnostics_trace_proof_boundary_for_relation_integrity_execution()
             crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("forward".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("forward"),
                 source: crate::transactions::data::EntityReference::Existing(source),
                 target: crate::transactions::data::EntityReference::Existing(target),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"forward"}))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
     );
@@ -237,10 +335,10 @@ fn invariant_diagnostics_trace_proof_boundary_for_relation_integrity_execution()
             CreateIntent::Relation(crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("reverse".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("reverse"),
                 source: crate::transactions::data::EntityReference::Existing(target),
                 target: crate::transactions::data::EntityReference::Existing(source),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"reverse"}))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             }),
         )),
     );
@@ -255,14 +353,20 @@ fn invariant_diagnostics_trace_proof_boundary_for_relation_integrity_execution()
         .find(|entry| {
             entry.code == DiagnosticCode::InvariantProofBoundaryObserved
                 && entry.fields["execution_point"] == json!("commit_boundary")
-                && entry.fields["packet_count"] == json!(1)
+                && entry.fields["proof_boundary"]["packet_count"] == json!(1)
         })
         .expect("proof boundary trace entry");
 
     assert_eq!(entry.fields["execution_point"], json!("commit_boundary"));
-    assert_eq!(entry.fields["scope_class"], json!("PartitionScope"));
-    assert_eq!(entry.fields["packet_count"], json!(1));
-    assert_eq!(entry.fields["touched_partition_count"], json!(1));
+    assert_eq!(
+        entry.fields["proof_boundary"]["scope_class"],
+        json!("partition_scope")
+    );
+    assert_eq!(entry.fields["proof_boundary"]["packet_count"], json!(1));
+    assert_eq!(
+        entry.fields["proof_boundary"]["touched_partition_count"],
+        json!(1)
+    );
 }
 
 #[test]
@@ -304,10 +408,10 @@ fn collect_all_invariant_failures_emits_multiple_relation_integrity_entries_for_
             crate::transactions::data::RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw("self-edge".to_string()),
+                client_key: crate::symbols::data::ClientKey::raw("self-edge"),
                 source: crate::transactions::data::EntityReference::Existing(source),
                 target: crate::transactions::data::EntityReference::Existing(source),
-                payload: Some(RecordPayload::StructuredJson(json!({"label":"self-edge"}))),
+                fields: crate::transactions::data::AspectFieldPatch::default(),
             },
         ))),
     );
@@ -401,6 +505,26 @@ fn publication_snapshot_handle_reads_without_becoming_a_pinned_snapshot() {
 }
 
 #[test]
+fn publication_snapshot_reads_use_authoritative_published_binding_version() {
+    let mut runtime = runtime_with_test_schema();
+    let created = create_entity_outcome(&mut runtime, "first");
+    let updated = update_entity(&mut runtime, changed_entities(&created)[0], "second");
+    let mut stale_handle = updated.snapshot.clone();
+    stale_handle.version_id = created.snapshot.version_id;
+
+    let read = runtime.read_truth().read_snapshot(&stale_handle).unwrap();
+    let inspection = runtime
+        .read_truth()
+        .inspect_snapshot(&stale_handle)
+        .unwrap();
+
+    assert_eq!(read.snapshot.version_id, updated.snapshot.version_id);
+    assert_eq!(inspection.version_id, updated.snapshot.version_id);
+    assert_eq!(read.entities.len(), 1);
+    assert_eq!(read_entity_field(&read.entities[0], "name"), Some("second"));
+}
+
+#[test]
 fn released_publication_handles_stop_counting_as_readable_runtime_state() {
     let mut runtime = runtime_with_test_schema();
     let first = create_entity_outcome(&mut runtime, "first");
@@ -438,7 +562,6 @@ fn publication_handle_retention_is_bounded_by_policy() {
             coherent_publication_required: true,
             max_patch_records_per_commit: 4096,
             max_published_snapshot_handles: 2,
-            patch_surface_policy: PatchSurfacePolicy::StructuredPatchSurface,
         })
         .build();
     let first = create_entity_outcome(&mut runtime, "first");
@@ -470,7 +593,6 @@ fn parallel_post_commit_consumption_preserves_publication_surfaces() {
             coherent_publication_required: true,
             max_patch_records_per_commit: 4096,
             max_published_snapshot_handles: 2,
-            patch_surface_policy: PatchSurfacePolicy::StructuredPatchSurface,
         })
         .execution_model(crate::facade::runtime::RelationalExecutionModel::SerialAuthority)
         .build();
@@ -480,7 +602,6 @@ fn parallel_post_commit_consumption_preserves_publication_surfaces() {
             coherent_publication_required: true,
             max_patch_records_per_commit: 4096,
             max_published_snapshot_handles: 2,
-            patch_surface_policy: PatchSurfacePolicy::StructuredPatchSurface,
         })
         .execution_model(
             crate::facade::runtime::RelationalExecutionModel::ParallelPostCommitConsumption,
@@ -524,14 +645,21 @@ fn parallel_post_commit_consumption_preserves_publication_surfaces() {
             .performance_access()
             .counters()
             .post_commit_consumer_packet_count,
-        6
+        3
+    );
+    assert_eq!(
+        parallel
+            .performance_access()
+            .counters()
+            .post_commit_serial_strategy_count,
+        3
     );
     assert_eq!(
         parallel
             .performance_access()
             .counters()
             .post_commit_parallel_strategy_count,
-        3
+        0
     );
 }
 
@@ -708,7 +836,7 @@ fn geometry_operational_hot_path_policy_defers_replay_reconstructable_artifacts(
 
 #[test]
 fn snapshot_audit_failure_blocks_publication() {
-    let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
+    let mut runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
         registrations: vec![InvariantRegistration::snapshot_publication_blocking(
             InvariantRule::MaxSnapshotEntities(0),
         )],
@@ -792,8 +920,72 @@ fn harness_runner_captures_snapshot_diagnostics_and_replay() {
         .unwrap();
 
     assert_eq!(snapshot.observations.len(), 1);
+    assert_eq!(
+        snapshot.observations[0].status,
+        forge_harness::facade::ObservationStatus::Clean
+    );
+    assert!(snapshot.observations[0].value.is_some());
     assert!(diagnostics.summary.is_object());
     assert!(replay.summary.is_object());
+}
+
+#[test]
+fn harness_snapshot_marks_missing_targets_unknown() {
+    let adapter = RelationalHarnessAdapter;
+    let fixture = ScenarioPlan::new(
+        "fixture",
+        crate::presentation::harness::RelationalFixture {
+            entities: Vec::new(),
+            relations: Vec::new(),
+        },
+    )
+    .compile();
+    let profile = ExecutionProfile::forensic("forensic");
+    let request = ExecutionRequest::target("missing", "entity:0:999".to_string());
+    let runtime = adapter.create_runtime().unwrap();
+    let snapshot = adapter
+        .capture_snapshot(&runtime, &fixture, &request, &profile)
+        .unwrap();
+
+    assert_eq!(snapshot.observations.len(), 1);
+    assert_eq!(
+        snapshot.observations[0].status,
+        forge_harness::facade::ObservationStatus::Unknown
+    );
+    assert_eq!(
+        snapshot.observations[0].detail.as_deref(),
+        Some("target not visible at captured snapshot")
+    );
+    assert!(snapshot.observations[0].value.is_none());
+}
+
+#[test]
+fn harness_fixture_loads_declared_aspect_field_patches() {
+    let adapter = RelationalHarnessAdapter;
+    let fixture = ScenarioPlan::new(
+        "fixture",
+        crate::presentation::harness::RelationalFixture {
+            entities: vec![crate::presentation::harness::FixtureEntity {
+                kind_id: KindId(1),
+                client_key: "from-fixture".to_string(),
+                fields: name_field_patch("from-fixture"),
+            }],
+            relations: Vec::new(),
+        },
+    )
+    .compile();
+    let mut runtime = RelationalRuntimeApi::builder()
+        .schema_registry(test_schema_registry())
+        .build();
+
+    adapter.load_fixture(&mut runtime, &fixture).unwrap();
+
+    let snapshot = runtime.visibility_authority().snapshot();
+    let read = runtime.read_truth().read_version(snapshot.version_id);
+    let entity_id = crate::facade::identity::EntityId::new(PartitionId::main(), 0, 1);
+    let entity = read.get_entity(entity_id).expect("fixture entity visible");
+
+    assert_eq!(read_entity_name(entity), Some("from-fixture"));
 }
 
 #[test]
@@ -872,7 +1064,7 @@ fn harness_diagnostic_entries<'a>(
     summary: &'a serde_json::Value,
     code: &str,
 ) -> Vec<&'a serde_json::Value> {
-    summary["artifacts"]
+    summary["publication_diagnostics"]["diagnostics"]
         .as_array()
         .into_iter()
         .flatten()
@@ -897,7 +1089,8 @@ fn profitable_commit_boundary_adapter() -> InvariantHarnessAdapter {
         registrations: vec![
             InvariantRegistration::commit_boundary_blocking(InvariantRule::MaxMergedIntents(16)),
             InvariantRegistration::commit_boundary_blocking(
-                InvariantRule::UniqueEntityPayloadField("name".to_string()),
+                InvariantRule::unique_entity_aspect_field("name", "name")
+                    .expect("valid unique aspect field target"),
             ),
         ],
         ..InvariantCatalog::default()
@@ -1318,7 +1511,7 @@ fn harness_phase8_fallbacks_are_harness_visible_and_still_parity_safe() {
 
     assert!(fallback_entries
         .iter()
-        .any(|entry| { entry["fields"]["reason"] == json!("InsufficientPacketBreadth") }));
+        .any(|entry| { entry["fields"]["reason"] == json!("insufficient_packet_breadth") }));
     assert!(failure_entries
         .iter()
         .any(|entry| { entry["fields"]["failure_class"] == json!("fallback_to_serial") }));
@@ -1507,9 +1700,13 @@ fn harness_phase8_post_commit_consumer_failures_are_harness_visible() {
         json!("ParallelPostCommitConsumption")
     );
     assert!(
-        summary["performance_counters"]["post_commit_parallel_strategy_count"]
+        summary["performance_counters"]["post_commit_serial_strategy_count"]
             .as_u64()
             .is_some_and(|count| count >= 1)
+    );
+    assert_eq!(
+        summary["performance_counters"]["post_commit_parallel_strategy_count"],
+        json!(0)
     );
 }
 
@@ -1609,7 +1806,7 @@ fn harness_phase8_certification_matrix_closes_out_preparation_failures() {
     assert!(
         harness_diagnostic_entries(fallback_summary, "PreparationFallback")
             .iter()
-            .any(|entry| entry["fields"]["reason"] == json!("InsufficientPacketBreadth"))
+            .any(|entry| entry["fields"]["reason"] == json!("insufficient_packet_breadth"))
     );
     assert!(
         harness_diagnostic_entries(fallback_summary, "PreparationFailure")
@@ -1816,9 +2013,10 @@ fn harness_phase8_certification_matrix_closes_out_preparation_failures() {
 
 #[test]
 fn harness_heavy_invariants_are_opt_in() {
-    let mut runtime = runtime_with_test_schema_and_invariants(InvariantCatalog {
+    let mut runtime = runtime_with_declared_aspect_schema_and_invariants(InvariantCatalog {
         registrations: vec![InvariantRegistration::harness_audit_only(
-            InvariantRule::UniqueEntityPayloadField("name".to_string()),
+            InvariantRule::unique_entity_aspect_field("name", "name")
+                .expect("valid unique aspect field target"),
         )],
         ..InvariantCatalog::default()
     });

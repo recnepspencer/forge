@@ -533,7 +533,6 @@ fn merge_schema_snapshot(
                     .aspect_declarations
                     .merge_policy_declarations
                     .clone(),
-                relation_payload_class: None,
                 relation_integrity_plan_revision: None,
             });
         }
@@ -555,7 +554,6 @@ fn merge_schema_snapshot(
                     .aspect_declarations
                     .merge_policy_declarations
                     .clone(),
-                relation_payload_class: Some(registration.payload_class),
                 relation_integrity_plan_revision: Some(
                     registration.relation_integrity.plan_revision,
                 ),
@@ -578,7 +576,6 @@ fn merge_schema_snapshot(
 }
 
 fn schema_registry_digest(registry: &RelationalSchemaRegistry) -> String {
-    let bytes = serde_json::to_vec(registry).expect("schema registry serialization");
-    let digest = sha2::Sha256::digest(bytes);
+    let digest = sha2::Sha256::digest(registry.authority_digest_bytes());
     digest.iter().map(|byte| format!("{byte:02x}")).collect()
 }

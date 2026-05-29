@@ -1,7 +1,7 @@
 use super::{
     BulkRelationCreateIntent, CreateIntent, DeleteEntityIntent, EntityMutationIntent,
     ExistingRecordTarget, MutationIntent, RelationIdentity, RelationMutationIntent,
-    ReplaceEntityIntent, RollbackEffect, UpdateEntityIntent,
+    ReplaceEntityIntent, RollbackEffect,
 };
 use crate::identity::data::PartitionId;
 use crate::validation::data::{InvariantGroup, InvariantGroupSet, InvariantPlanContract};
@@ -35,9 +35,6 @@ impl MutationIntent {
             }
             Self::Create(CreateIntent::BulkEntities(spec)) => {
                 touched.insert(spec.partition_id);
-            }
-            Self::Entity(EntityMutationIntent::Update(spec)) => {
-                touched.insert(spec.entity_id.partition_id);
             }
             Self::Entity(EntityMutationIntent::UpdateFields(spec)) => {
                 touched.insert(spec.entity_id.partition_id);
@@ -75,7 +72,7 @@ impl MutationIntent {
     pub(crate) fn bulk_entity_reservation(&self) -> Option<(PartitionId, usize)> {
         match self {
             Self::Create(CreateIntent::BulkEntities(spec)) => {
-                Some((spec.partition_id, spec.payloads.len()))
+                Some((spec.partition_id, spec.field_patches.len()))
             }
             _ => None,
         }
@@ -95,10 +92,7 @@ impl MutationIntent {
             Self::Create(CreateIntent::Entity(_)) | Self::Create(CreateIntent::BulkEntities(_)) => {
                 RollbackEffect::DiscardedEntityCreation
             }
-            Self::Entity(EntityMutationIntent::Update(UpdateEntityIntent {
-                entity_id, ..
-            }))
-            | Self::Entity(EntityMutationIntent::UpdateFields(super::UpdateEntityFieldsIntent {
+            Self::Entity(EntityMutationIntent::UpdateFields(super::UpdateEntityFieldsIntent {
                 entity_id,
                 ..
             }))
@@ -123,9 +117,6 @@ impl MutationIntent {
 
     pub(crate) fn existing_record_target(&self) -> Option<ExistingRecordTarget> {
         match self {
-            Self::Entity(EntityMutationIntent::Update(spec)) => {
-                Some(ExistingRecordTarget::Entity(spec.entity_id))
-            }
             Self::Entity(EntityMutationIntent::UpdateFields(spec)) => {
                 Some(ExistingRecordTarget::Entity(spec.entity_id))
             }

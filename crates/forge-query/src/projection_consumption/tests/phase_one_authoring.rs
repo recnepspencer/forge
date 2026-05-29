@@ -11,10 +11,11 @@ use crate::facade::{
     ProjectionConsumptionDeclaration, ProjectionConsumptionDeclarationError,
     ProjectionSourceFamily, QueryContextExecutionArtifact,
 };
+use forge_foundational::facade::AspectValue;
 use forge_relational::facade::grouped_truth::{
-    materialize_relational_authoritative_row_set, project_relational_grouped_truth,
-    GroupedProjectionContract, RelationalAuthoritativeRowSetArtifact,
-    RelationalGroupedProjectionArtifact,
+    encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
+    project_relational_grouped_truth, GroupedProjectionContract,
+    RelationalAuthoritativeRowSetArtifact, RelationalGroupedProjectionArtifact,
 };
 use forge_runtime_bridge::facade::{
     BridgeGroupedTruthViewArtifact, BridgeMaterializedRowSetArtifact,
@@ -62,10 +63,22 @@ fn relational_row_set() -> RelationalAuthoritativeRowSetArtifact {
         &SnapshotReadPacketResult::new(
             TruthSnapshotIdentity::new("snapshot-a"),
             vec![
-                SnapshotReadRecord::new("entity-1:identity.id", b"task-1".to_vec()),
-                SnapshotReadRecord::new("entity-1:status.lane", b"todo".to_vec()),
-                SnapshotReadRecord::new("entity-2:identity.id", b"task-2".to_vec()),
-                SnapshotReadRecord::new("entity-2:status.lane", b"doing".to_vec()),
+                SnapshotReadRecord::new(
+                    "entity-1:identity.id",
+                    aspect_bytes(AspectValue::String("task-1".into())),
+                ),
+                SnapshotReadRecord::new(
+                    "entity-1:status.lane",
+                    aspect_bytes(AspectValue::String("todo".into())),
+                ),
+                SnapshotReadRecord::new(
+                    "entity-2:identity.id",
+                    aspect_bytes(AspectValue::String("task-2".into())),
+                ),
+                SnapshotReadRecord::new(
+                    "entity-2:status.lane",
+                    aspect_bytes(AspectValue::String("doing".into())),
+                ),
             ],
         ),
     )
@@ -146,7 +159,8 @@ fn relational_phase_one_authoring_surfaces_build_declarations() {
     let row_set = relational_row_set();
     let grouped_projection = project_relational_grouped_truth(
         &row_set,
-        GroupedProjectionContract::new("status", "identity.id", "status.lane"),
+        GroupedProjectionContract::new("status", "identity.id", "status.lane")
+            .expect("grouped projection contract should use valid aspect keys"),
     )
     .unwrap();
 
@@ -181,4 +195,8 @@ fn relational_phase_one_authoring_surfaces_build_declarations() {
         ProjectionSourceFamily::RelationalGroupedProjection,
         result_shape.digest().as_str(),
     );
+}
+
+fn aspect_bytes(value: AspectValue) -> Vec<u8> {
+    encode_snapshot_aspect_read_value(&value).expect("test aspect value bytes")
 }

@@ -1,8 +1,10 @@
 use crate::snapshots::data::{SnapshotHandle, SnapshotId};
 
+mod configuration;
+mod construction;
 mod guided;
-mod session;
 mod state;
+mod transactions;
 
 pub use crate::config::data::RelationalRuntimeConfig;
 pub use crate::durability::data::RecoveryOutcome;
@@ -33,20 +35,22 @@ pub use crate::validation::data::{
     InvariantDecisionKind, InvariantDecisionRecord, InvariantExecutionPoint,
     InvariantFailureEffect, InvariantRegistration, InvariantRule, InvariantRuleDescriptor,
     InvariantRuleId, InvariantSemanticsClass, InvariantViolation, NativeInvariantRuleId,
-    PlannedEntityCreate, PlannedRelationCreate, PlannedRelationEndpointUpdate, StructuralCountView,
-    StructuralPayloadView, StructuralRelationRecord, StructuralRelationView,
-    StructuralTraversalResult, SupportedExecutionPoints, TouchedStructuralSet,
+    PlannedEntityCreate, PlannedRelationCreate, PlannedRelationEndpointUpdate,
+    StructuralAspectStateView, StructuralCountView, StructuralRelationRecord,
+    StructuralRelationView, StructuralTraversalResult, SupportedExecutionPoints,
+    TouchedStructuralSet, UniqueEntityAspectField,
 };
 #[cfg(test)]
 pub use crate::validation::engine::HarnessAuditMode;
 pub use crate::validation::logic::InvariantAccess;
 pub use crate::visibility::materialization::read_records::{
-    EntityRecordProjection, RelationRecordProjection, VisibilityProjectionView,
-    VisibilityReadContext,
+    EntityProjectionRecord, EntityRecordProjection, RelationProjectionRecord,
+    RelationRecordProjection, VisibilityProjectionView, VisibilityReadContext,
 };
 pub use crate::visibility::retention::VisibilityRetentionAuthority;
 
 pub(crate) use crate::storage::logic::state::{PartitionAccess, WorkingState};
+pub(crate) use construction::RuntimeExtensions;
 pub use state::RelationalRuntime;
 pub(crate) use state::{
     AspectSemanticsSubsystem, CommitStrategiesSubsystem, DurabilitySubsystem, HistorySubsystem,

@@ -9,11 +9,8 @@ use super::access::InspectionAccess;
 
 impl<'runtime> InspectionAccess<'runtime> {
     pub fn inspect_commit(&self, commit_id: CommitId) -> Option<CommitInspection> {
-        self.runtime.services.instrumentation.count(|counters| {
-            counters.inspection_commit_reads += 1;
-        });
-        let history_access = self.runtime.history();
-        let envelope = history_access.commit_envelope(commit_id)?;
+        self.count_commit_read();
+        let envelope = self.commit_envelope(commit_id)?;
         Some(CommitInspection {
             commit: envelope.commit.clone(),
             changed_records: envelope
@@ -29,14 +26,13 @@ impl<'runtime> InspectionAccess<'runtime> {
             lineage_events: envelope.lineage_events().to_vec(),
             lineage_digest_basis: envelope.lineage_digest_basis().clone(),
             lineage_artifact_counters: envelope.lineage_artifact_counters(),
-            index_generation_ids: envelope.index_generation_ids.clone(),
-            index_generations: envelope.index_generations.clone(),
+            derived_index_artifacts: envelope.derived_index_artifacts().clone(),
             changed_aspects: CanonicalAspectSet::new(
                 envelope
                     .patch
                     .records
                     .iter()
-                    .flat_map(|record| record.aspects.iter().cloned()),
+                    .flat_map(|record| record.authoritative_changed_aspect_keys().cloned()),
             ),
             origin: InspectionOrigin::CanonicalCommitStorage,
             access_path: InspectionAccessPath::CommitIndexRead,
@@ -47,11 +43,8 @@ impl<'runtime> InspectionAccess<'runtime> {
         &self,
         request: &RecentCommitInspectionRequest,
     ) -> RecentCommitInspectionWindow {
-        let history_access = self.runtime.history();
         let limit = usize::try_from(request.limit).unwrap_or(usize::MAX);
         let commits = self
-            .runtime
-            .history()
             .recent_commit_ids(request.branch_id.as_ref(), limit)
             .into_iter()
             .filter_map(|commit_id| self.inspect_commit(commit_id))
@@ -59,7 +52,7 @@ impl<'runtime> InspectionAccess<'runtime> {
         let branch_head = request
             .branch_id
             .as_ref()
-            .and_then(|branch_id| history_access.branch_head(branch_id).cloned());
+            .and_then(|branch_id| self.branch_head_ref(branch_id));
         RecentCommitInspectionWindow {
             branch_head,
             commits,
@@ -69,8 +62,7 @@ impl<'runtime> InspectionAccess<'runtime> {
     }
 
     pub fn inspect_branch_head(&self, branch_id: &BranchId) -> Option<CommitInspection> {
-        let history = self.runtime.history();
-        let head = history.branch_head(branch_id)?;
+        let head = self.branch_head_ref(branch_id)?;
         self.inspect_commit(head.commit_id)
     }
 }

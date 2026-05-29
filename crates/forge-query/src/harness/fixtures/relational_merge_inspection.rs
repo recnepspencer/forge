@@ -7,21 +7,24 @@ use forge_relational::facade::merge::{
     IdentityBasisDeclaration, IdentityBasisKind, IdentityBasisScope, MergeIntent,
     MergePlanningRequest, RelationalMergeInspectionArtifact,
 };
-use forge_relational::facade::payloads::RecordPayload;
 use forge_relational::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use forge_relational::facade::schema::{
-    AspectBinding, AspectComparator, AspectKey, AspectPrecision, DeclaredAspect,
-    EntityKindRegistration, KindAspectDeclarations, RelationIntegrityDeclarations,
-    RelationKindRegistration, RelationPayloadClass, RelationalSchemaRegistry, SchemaId,
+    AspectKey, DeclaredAspect, EntityKindRegistration, KindAspectDeclarations,
+    RelationIntegrityDeclarations, RelationKindRegistration, RelationalSchemaRegistry, SchemaId,
     SchemaVersionId,
 };
-use forge_relational::facade::symbols::InternedString;
+use forge_relational::facade::symbols::ClientKey;
 use forge_relational::facade::transactions::{
     CommitResult, CreateIntent, DeleteEntityIntent, DeleteRelationIntent, EntityMutationIntent,
     EntityReference, EntitySpec, MutationIntent, RecordRef, RelationMutationIntent, RelationSpec,
-    TransactionOptions, UpdateEntityIntent, WorkerIntentBatch,
+    TransactionOptions, UpdateEntityFieldsIntent, WorkerIntentBatch,
 };
 use serde_json::json;
+
+use crate::relational_aspect_write::{
+    entity_string_field_aspect, relation_source_endpoint_aspect, relation_string_field_aspect,
+    relation_target_endpoint_aspect, single_field_patch,
+};
 
 const TARGET_BRANCH: &str = "main";
 const SOURCE_BRANCH: &str = "candidate";
@@ -158,7 +161,7 @@ fn default_merge_registry() -> RelationalSchemaRegistry {
             kind_name: "test.entity".to_string(),
             schema_id: SchemaId("test".to_string()),
             schema_version_id: SchemaVersionId(1),
-            aspect_declarations: KindAspectDeclarations::new(vec![entity_payload_aspect(
+            aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
                 "name", "name",
             )])
             .with_identity_declarations(vec![IdentityBasisDeclaration {
@@ -172,7 +175,6 @@ fn default_merge_registry() -> RelationalSchemaRegistry {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::default(),
@@ -198,11 +200,10 @@ fn topology_merge_registry() -> RelationalSchemaRegistry {
                 kind_name: "test.relation".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                payload_class: RelationPayloadClass::PayloadBearingRelation,
                 cross_context_policy: CrossContextPolicy::AllowExplicit,
                 cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                 aspect_declarations: KindAspectDeclarations::new(vec![
-                    relation_payload_aspect("label", "label"),
+                    relation_field_aspect("label", "label"),
                     relation_source_aspect(),
                     relation_target_aspect(),
                 ])
@@ -248,8 +249,9 @@ fn commit_entity_create(
             CreateIntent::Entity(EntitySpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(1),
-                client_key: InternedString::Raw(name.to_string()),
-                payload: RecordPayload::StructuredJson(json!({ "name": name })),
+                client_key: ClientKey::raw(name),
+                fields: single_field_patch("name", "name", json!(name))
+                    .expect("entity name aspect patch"),
             }),
         )),
     );
@@ -268,9 +270,10 @@ fn update_entity_on_branch(
     });
     txn.push_batch(
         WorkerIntentBatch::new("update-entity").push(MutationIntent::Entity(
-            EntityMutationIntent::Update(UpdateEntityIntent {
+            EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                 entity_id,
-                payload: RecordPayload::StructuredJson(json!({ "name": name })),
+                fields: single_field_patch("name", "name", json!(name))
+                    .expect("entity name aspect patch"),
             }),
         )),
     );
@@ -311,10 +314,11 @@ fn create_relation_on_branch(
             CreateIntent::Relation(RelationSpec {
                 partition_id: PartitionId::main(),
                 kind_id: KindId(2),
-                client_key: InternedString::Raw(client_key.to_string()),
+                client_key: ClientKey::raw(client_key),
                 source: EntityReference::Existing(source),
                 target: EntityReference::Existing(target),
-                payload: Some(RecordPayload::StructuredJson(json!({ "label": label }))),
+                fields: single_field_patch("label", "label", json!(label))
+                    .expect("relation label aspect patch"),
             }),
         )),
     );
@@ -361,45 +365,21 @@ fn changed_relations(outcome: &CommitResult) -> Vec<RelationId> {
 }
 
 fn aspect_key(name: &str) -> AspectKey {
-    AspectKey(InternedString::Raw(name.to_string()))
+    crate::relational_aspect_write::aspect_key(name).expect("valid aspect key")
 }
 
-fn entity_payload_aspect(name: &str, field: &str) -> DeclaredAspect {
-    DeclaredAspect {
-        key: aspect_key(name),
-        binding: AspectBinding::EntityPayloadField {
-            field: InternedString::Raw(field.to_string()),
-        },
-        comparator: AspectComparator::JsonScalarEquality,
-        precision: AspectPrecision::Structured,
-    }
+fn entity_field_aspect(name: &str, field: &str) -> DeclaredAspect {
+    entity_string_field_aspect(name, field).expect("entity field aspect")
 }
 
-fn relation_payload_aspect(name: &str, field: &str) -> DeclaredAspect {
-    DeclaredAspect {
-        key: aspect_key(name),
-        binding: AspectBinding::RelationPayloadField {
-            field: InternedString::Raw(field.to_string()),
-        },
-        comparator: AspectComparator::JsonScalarEquality,
-        precision: AspectPrecision::Structured,
-    }
+fn relation_field_aspect(name: &str, field: &str) -> DeclaredAspect {
+    relation_string_field_aspect(name, field).expect("relation field aspect")
 }
 
 fn relation_source_aspect() -> DeclaredAspect {
-    DeclaredAspect {
-        key: aspect_key("source"),
-        binding: AspectBinding::RelationSourceEndpoint,
-        comparator: AspectComparator::EndpointIdentityEquality,
-        precision: AspectPrecision::Structured,
-    }
+    relation_source_endpoint_aspect("source").expect("relation source aspect")
 }
 
 fn relation_target_aspect() -> DeclaredAspect {
-    DeclaredAspect {
-        key: aspect_key("target"),
-        binding: AspectBinding::RelationTargetEndpoint,
-        comparator: AspectComparator::EndpointIdentityEquality,
-        precision: AspectPrecision::Structured,
-    }
+    relation_target_endpoint_aspect("target").expect("relation target aspect")
 }

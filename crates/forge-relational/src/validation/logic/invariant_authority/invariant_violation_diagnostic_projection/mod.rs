@@ -1,0 +1,208 @@
+use forge_foundational::facade::{AspectKey, AspectMask, AspectValue, DiagnosticMask, FieldKey};
+use serde::Serialize;
+
+use crate::config::data::CascadeDeletePolicy;
+use crate::diagnostics::data::RelationalDiagnosticValue;
+use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
+use crate::schema::data::{
+    ContractId, EndpointDeletionIntegrityMode, SymmetryMode, UniquenessScope,
+};
+use crate::transactions::data::EntityReference;
+use crate::validation::data::{
+    CustomInvariantFailureIdentity, CustomInvariantFailurePhase, RelationCardinalityBoundary,
+    RelationEndpointBoundary, ResultCustomInvariantFailureKind, StorageInconsistencyFailure,
+    StorageInconsistencyLookup, StorageInconsistencyScan,
+};
+
+mod from_invariant_violation_fields;
+mod typed_projection;
+
+#[derive(Debug, Serialize)]
+#[serde(tag = "violation_kind", rename_all = "snake_case")]
+pub(super) enum InvariantViolationDiagnosticProjection<'a> {
+    None,
+    MergedIntentLimit {
+        merged_intent_count: usize,
+        limit: usize,
+    },
+    SnapshotEntityLimit {
+        version_id: VersionId,
+        visible_entities: usize,
+        limit: usize,
+    },
+    UniqueEntityField {
+        aspect_field: AspectFieldDiagnosticProjection<'a>,
+    },
+    SidecarConsistency {
+        partition_id: PartitionId,
+        slot: usize,
+        missing_label: &'a str,
+    },
+    RelationEndpointKindMismatch {
+        contract_id: &'a ContractId,
+        relation_kind_id: KindId,
+        source: &'a EntityReference,
+        target: &'a EntityReference,
+        source_kind_id: KindId,
+        target_kind_id: KindId,
+        boundary: RelationEndpointBoundary,
+    },
+    RelationEndpointKindSelfEdge {
+        contract_id: &'a ContractId,
+        relation_kind_id: KindId,
+        source: &'a EntityReference,
+        target: &'a EntityReference,
+        self_edge: bool,
+    },
+    RelationEndpointKindCrossContext {
+        contract_id: &'a ContractId,
+        relation_kind_id: KindId,
+        source_partition_id: PartitionId,
+        target_partition_id: PartitionId,
+    },
+    RelationCardinalityEndpoint {
+        contract_id: &'a ContractId,
+        relation_kind_id: KindId,
+        entity_id: &'a EntityReference,
+        boundary: RelationCardinalityBoundary,
+        count: usize,
+        limit: u64,
+    },
+    RelationCardinalityPair {
+        contract_id: &'a ContractId,
+        relation_kind_id: KindId,
+        source: &'a EntityReference,
+        target: &'a EntityReference,
+        count: usize,
+        limit: u64,
+    },
+    RelationUniqueness {
+        contract_id: &'a ContractId,
+        relation_kind_id: KindId,
+        scope: UniquenessScope,
+        source: &'a EntityReference,
+        target: &'a EntityReference,
+        count: usize,
+    },
+    RelationSymmetry {
+        contract_id: &'a ContractId,
+        relation_kind_id: KindId,
+        source: &'a EntityReference,
+        target: &'a EntityReference,
+        mode: SymmetryMode,
+    },
+    RelationEndpointDeletionIntegrity {
+        contract_id: &'a ContractId,
+        relation_kind_id: KindId,
+        entity_id: EntityId,
+        remaining_relation_endpoint_count: usize,
+        mode: EndpointDeletionIntegrityMode,
+        cascade_delete_policy: Option<CascadeDeletePolicy>,
+    },
+    StorageInconsistency {
+        entity_id: Option<EntityId>,
+        partition_id: Option<PartitionId>,
+        slot: Option<usize>,
+        field: Option<&'a FieldKey>,
+        missing_label: Option<&'a str>,
+        scan: Option<StorageInconsistencyScan>,
+        lookup: Option<StorageInconsistencyLookup>,
+        failure: Option<StorageInconsistencyFailure>,
+    },
+    RelationIntegrityScopeBudgetExceeded {
+        limit_name: &'a str,
+        limit: usize,
+        observed: usize,
+        relation_kind_count: usize,
+        touched_entity_count: usize,
+        deleted_entity_count: usize,
+        scanned_relation_count: usize,
+        planned_edge_count: usize,
+    },
+    CustomInvariantFailure {
+        identity: &'a CustomInvariantFailureIdentity,
+        phase: CustomInvariantFailurePhase,
+        failure: ResultCustomInvariantFailureKind,
+        detail: &'a str,
+    },
+    PartitionIsolation {
+        contract_id: &'a ContractId,
+        relation_kind_id: KindId,
+        relation_id: Option<RelationId>,
+        source_partition_id: PartitionId,
+        target_partition_id: PartitionId,
+    },
+    Acyclicity {
+        contract_id: &'a ContractId,
+        relation_kind_id: KindId,
+        source: &'a EntityReference,
+        target: &'a EntityReference,
+    },
+    ConnectivityMinimum {
+        contract_id: &'a ContractId,
+        relation_kind_id: KindId,
+        source: &'a EntityReference,
+        reachable_target_count: usize,
+        minimum_reachable_targets: u32,
+    },
+}
+
+#[derive(Debug, Serialize)]
+pub(super) struct AspectFieldDiagnosticProjection<'a> {
+    aspect_key: &'a AspectKey,
+    field_path: &'a [FieldKey],
+    #[serde(skip_serializing)]
+    diagnostic_mask: AspectMask<DiagnosticMask>,
+    value: &'a AspectValue,
+}
+
+impl<'a> AspectFieldDiagnosticProjection<'a> {
+    fn new(aspect_key: &'a AspectKey, field_path: &'a [FieldKey], value: &'a AspectValue) -> Self {
+        let diagnostic_mask = AspectMask::<DiagnosticMask>::new([
+            forge_foundational::facade::CanonicalFieldPath::new(field_path.to_vec())
+                .expect("invariant field locator has a non-empty field path"),
+        ]);
+
+        Self {
+            aspect_key,
+            field_path,
+            diagnostic_mask,
+            value,
+        }
+    }
+
+    fn to_diagnostic_value(&self) -> RelationalDiagnosticValue {
+        RelationalDiagnosticValue::object([
+            (
+                "aspect_key",
+                RelationalDiagnosticValue::AspectKey(self.aspect_key.clone()),
+            ),
+            (
+                "field_path",
+                RelationalDiagnosticValue::FieldPath(self.field_path.to_vec()),
+            ),
+            (
+                "diagnostic_mask",
+                RelationalDiagnosticValue::DiagnosticMask(self.diagnostic_mask.clone()),
+            ),
+            (
+                "value",
+                RelationalDiagnosticValue::AspectValue(self.value.clone()),
+            ),
+        ])
+    }
+}
+
+fn violation_diagnostic_object(
+    violation_kind: &'static str,
+    fields: impl IntoIterator<Item = (impl Into<String>, RelationalDiagnosticValue)>,
+) -> RelationalDiagnosticValue {
+    RelationalDiagnosticValue::object(
+        [(
+            "violation_kind".to_string(),
+            RelationalDiagnosticValue::string(violation_kind),
+        )]
+        .into_iter()
+        .chain(fields.into_iter().map(|(key, value)| (key.into(), value))),
+    )
+}

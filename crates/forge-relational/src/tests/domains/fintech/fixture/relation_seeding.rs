@@ -1,7 +1,5 @@
 use crate::facade::identity::{EntityId, KindId, PartitionId, RelationId};
-use crate::facade::payloads::RecordPayload;
 use crate::facade::runtime::RelationalRuntime;
-use crate::facade::symbols::InternedString;
 use crate::facade::transactions::{
     BulkRelationCreateIntent, CommitResult, CreateIntent, MutationIntent, RecordRef,
     TransactionOptions, WorkerIntentBatch,
@@ -189,14 +187,15 @@ where
 {
     let mut client_keys = Vec::new();
     let mut endpoints = Vec::new();
-    let mut payloads = Vec::new();
+    let mut field_patches = Vec::new();
     for (key, (source, target), payload) in specs {
-        client_keys.push(InternedString::Raw(key));
+        client_keys.push(crate::facade::symbols::ClientKey::raw(key));
         endpoints.push((
             crate::transactions::data::EntityReference::Existing(source),
             crate::transactions::data::EntityReference::Existing(target),
         ));
-        payloads.push(Some(RecordPayload::StructuredJson(payload)));
+        field_patches
+            .push(crate::tests::support::aspect_field_patch_from_compatibility_json(payload));
     }
     let mut txn = runtime.begin_transaction(TransactionOptions::default());
     txn.push_batch(
@@ -206,7 +205,7 @@ where
                 kind_id: KindId(2),
                 client_keys,
                 endpoints,
-                payloads,
+                field_patches,
             }),
         )),
     );

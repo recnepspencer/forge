@@ -122,12 +122,13 @@ impl SpatialArbitrationRuntimeDeclaration {
         let relevant_families = graph_composition_capability_families(&self.declaration);
         support
             .graph_composition_capability_support_rows()
-            .into_iter()
+            .iter()
             .filter(|row| {
                 relevant_families
                     .iter()
                     .any(|family| *family == row.capability_family())
             })
+            .cloned()
             .collect()
     }
 

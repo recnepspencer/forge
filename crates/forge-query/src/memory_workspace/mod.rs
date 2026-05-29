@@ -22,6 +22,14 @@ impl ForgeQueryAspect {
             payload_path: payload_path.into(),
         }
     }
+
+    pub fn label(&self) -> &str {
+        &self.label
+    }
+
+    pub fn payload_path(&self) -> &str {
+        &self.payload_path
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -103,5 +111,6 @@ pub struct ForgeQueryMemoryWorkspace {
     runtime: RelationalRuntime,
     kind_id: KindId,
     kind_name: String,
+    aspects: Vec<ForgeQueryAspect>,
     next_client_key: u64,
 }

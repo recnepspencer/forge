@@ -1,0 +1,287 @@
+use forge_foundational::facade::{
+    AspectFieldLocator, AspectKey, AspectValue, CanonicalFieldPath, FieldKey, InternedString,
+    LocatorAuthority,
+};
+
+use crate::diagnostics::data::{DiagnosticCode, RelationalDiagnosticValue};
+use crate::identity::data::{EntityId, PartitionId, RelationId, VersionId};
+use crate::logic::planning::RelationalExecutionModel;
+use crate::validation::data::{
+    CustomInvariantProvenance, CustomInvariantTraversalSummary, InvariantClass, InvariantCostClass,
+    InvariantExecutionPoint, InvariantFailureEffect, InvariantGroupSet, InvariantReportedRule,
+    InvariantRule, InvariantVerdict, InvariantViolation, InvariantViolationFields,
+    InvariantWitnessKey, StructuralCountView, TouchedStructuralSet,
+};
+use crate::validation::engine::{
+    InvariantExecutionDisposition, InvariantExecutionMetadata, InvariantExecutionResult,
+    InvariantObservationKind, InvariantPlanScopeClass, InvariantProofBoundarySummary,
+    InvariantScopeWideningCause,
+};
+
+use super::{failure_diagnostic_fields, proof_boundary_trace_diagnostic_fields};
+
+#[test]
+fn proof_boundary_trace_projection_is_publication_only_diagnostic_fields() {
+    let result = execution_result_with_proof_boundary(Vec::new());
+    let proof_boundary = result
+        .proof_boundary_artifact()
+        .expect("proof boundary artifact");
+    let document = proof_boundary_trace_diagnostic_fields(
+        result.metadata().execution_point(),
+        &proof_boundary,
+    );
+
+    assert_eq!(
+        document.root_value(),
+        &serde_json::json!({
+            "execution_point": "commit_boundary",
+            "proof_boundary": {
+                "scope_class": "partition_scope",
+                "widened_causes": ["all_observed_partition_scope"],
+                "packet_count": 1,
+                "touched_partition_count": 1,
+            }
+        })
+    );
+}
+
+#[test]
+fn failure_projection_preserves_typed_invariant_artifact_payload() {
+    let violation = none_violation();
+    let result = execution_result_with_proof_boundary(vec![check_result_for_violation(
+        violation.clone(),
+        None,
+    )]);
+    let failure = invariant_failure_for(violation);
+    let document = failure_diagnostic_fields(&result.failure_artifact(&failure));
+
+    assert_eq!(
+        document.root_value(),
+        &serde_json::json!({
+            "execution_point": "commit_boundary",
+            "failure_effect": "block_commit",
+            "proof_boundary": {
+                "scope_class": "partition_scope",
+                "widened_causes": ["all_observed_partition_scope"],
+                "packet_count": 1,
+                "touched_partition_count": 1,
+            },
+            "violation": {
+                "violation_kind": "none",
+            },
+            "custom_provenance": null,
+        })
+    );
+}
+
+#[test]
+fn failure_projection_emits_aspect_field_diagnostic_payload() {
+    let aspect_key = AspectKey::new("profile.email").expect("valid aspect key");
+    let field = FieldKey::new("email").expect("valid field key");
+    let violation = InvariantViolation {
+        class: InvariantClass::CommitBoundary,
+        code: DiagnosticCode::InvariantViolation,
+        detail: "duplicate email".to_string(),
+        fields: InvariantViolationFields::UniqueEntityField {
+            field_locator: AspectFieldLocator::new(
+                LocatorAuthority::Planned,
+                aspect_key.clone(),
+                CanonicalFieldPath::single(field.clone()),
+            ),
+            value: AspectValue::String(InternedString::Raw("dupe@example.test".to_string())),
+        },
+    };
+    let result = execution_result_with_proof_boundary(vec![check_result_for_violation(
+        violation.clone(),
+        None,
+    )]);
+    let failure = invariant_failure_for(violation);
+    let document = failure_diagnostic_fields(&result.failure_artifact(&failure));
+    let aspect_field = &document.root_value()["violation"]["aspect_field"];
+    let RelationalDiagnosticValue::Object(root) = document.root() else {
+        panic!("expected typed diagnostic object root");
+    };
+    let Some(RelationalDiagnosticValue::Object(violation)) = root.get("violation") else {
+        panic!("expected typed violation diagnostic object");
+    };
+    let Some(RelationalDiagnosticValue::Object(typed_aspect_field)) = violation.get("aspect_field")
+    else {
+        panic!("expected typed aspect-field diagnostic object");
+    };
+    assert!(matches!(
+        typed_aspect_field.get("aspect_key"),
+        Some(RelationalDiagnosticValue::AspectKey(key)) if key == &aspect_key
+    ));
+    assert!(matches!(
+        typed_aspect_field.get("diagnostic_mask"),
+        Some(RelationalDiagnosticValue::DiagnosticMask(mask)) if !mask.is_whole_aspect()
+    ));
+    assert!(matches!(
+        typed_aspect_field.get("value"),
+        Some(RelationalDiagnosticValue::AspectValue(value)) if value == &AspectValue::String(InternedString::Raw("dupe@example.test".to_string()))
+    ));
+
+    assert_eq!(
+        document.root_value()["violation"]["violation_kind"],
+        serde_json::json!("unique_entity_field")
+    );
+    assert_eq!(
+        aspect_field["aspect_key"],
+        serde_json::json!("profile.email")
+    );
+    assert_eq!(aspect_field["field_path"], serde_json::json!(["email"]));
+    assert_eq!(
+        aspect_field["diagnostic_mask"],
+        serde_json::json!({
+            "mask_kind": "fields",
+            "field_paths": [["email"]],
+        })
+    );
+    assert_eq!(
+        aspect_field["value"]["value_family"],
+        serde_json::json!("String")
+    );
+    assert!(aspect_field["value"]["canonical_value_bytes"].is_array());
+    assert!(aspect_field["value"].get("String").is_none());
+}
+
+#[test]
+fn failure_projection_preserves_custom_provenance_as_typed_diagnostic_payload() {
+    let visible_entity_id = EntityId::new(PartitionId::new(7), 11, 2);
+    let visible_relation_id = RelationId::new(PartitionId::new(9), 13, 4);
+    let provenance = custom_provenance_with_visible_records(visible_entity_id, visible_relation_id);
+    let violation = none_violation();
+    let result = execution_result_with_proof_boundary(vec![check_result_for_violation(
+        violation.clone(),
+        Some(provenance),
+    )]);
+    let failure = invariant_failure_for(violation);
+    let document = failure_diagnostic_fields(&result.failure_artifact(&failure));
+
+    let RelationalDiagnosticValue::Object(root) = document.root() else {
+        panic!("expected typed diagnostic object root");
+    };
+    let Some(RelationalDiagnosticValue::Object(custom_provenance)) = root.get("custom_provenance")
+    else {
+        panic!("expected typed custom provenance diagnostic object");
+    };
+    assert!(matches!(
+        custom_provenance.get("version_id"),
+        Some(RelationalDiagnosticValue::VersionId(version_id)) if *version_id == VersionId::new(20)
+    ));
+    assert!(matches!(
+        custom_provenance.get("current_version_id"),
+        Some(RelationalDiagnosticValue::VersionId(version_id)) if *version_id == VersionId::new(21)
+    ));
+    let Some(RelationalDiagnosticValue::Object(touched)) = custom_provenance.get("touched") else {
+        panic!("expected typed touched provenance object");
+    };
+    assert!(matches!(
+        touched.get("visible_entity_ids"),
+        Some(RelationalDiagnosticValue::Array(values))
+            if values == &vec![RelationalDiagnosticValue::EntityId(visible_entity_id)]
+    ));
+    assert!(matches!(
+        touched.get("visible_relation_ids"),
+        Some(RelationalDiagnosticValue::Array(values))
+            if values == &vec![RelationalDiagnosticValue::RelationId(visible_relation_id)]
+    ));
+    assert_eq!(
+        document.root_value()["custom_provenance"]["observation_kind"],
+        serde_json::json!("speculative")
+    );
+}
+
+fn check_result_for_violation(
+    violation: InvariantViolation,
+    custom_provenance: Option<CustomInvariantProvenance>,
+) -> crate::validation::data::InvariantCheckResult {
+    crate::validation::data::InvariantCheckResult {
+        execution_point: InvariantExecutionPoint::CommitBoundary,
+        failure_effect: InvariantFailureEffect::BlockCommit,
+        rule: InvariantReportedRule::Native(InvariantRule::MaxMergedIntents(1)),
+        witness: InvariantWitnessKey::pass(),
+        groups: InvariantGroupSet::empty(),
+        cost: InvariantCostClass::Touched,
+        custom_provenance,
+        verdict: InvariantVerdict::Violation(violation),
+    }
+}
+
+fn none_violation() -> InvariantViolation {
+    InvariantViolation {
+        class: InvariantClass::CommitBoundary,
+        code: DiagnosticCode::InvariantViolation,
+        detail: "detail".to_string(),
+        fields: InvariantViolationFields::None,
+    }
+}
+
+fn invariant_failure_for(
+    violation: InvariantViolation,
+) -> crate::validation::engine::InvariantFailure {
+    crate::validation::engine::InvariantFailure::new(
+        InvariantExecutionPoint::CommitBoundary,
+        InvariantFailureEffect::BlockCommit,
+        violation,
+    )
+}
+
+fn custom_provenance_with_visible_records(
+    visible_entity_id: EntityId,
+    visible_relation_id: RelationId,
+) -> CustomInvariantProvenance {
+    let touched_scope = TouchedStructuralSet::new(
+        vec![visible_entity_id].into(),
+        vec![visible_relation_id].into(),
+        vec![PartitionId::new(7), PartitionId::new(9)].into(),
+        Vec::new().into(),
+        Vec::new().into(),
+        Vec::new().into(),
+        Vec::new().into(),
+        Vec::new().into(),
+    );
+    CustomInvariantProvenance {
+        observation_kind: InvariantObservationKind::Speculative,
+        version_id: VersionId::new(20),
+        current_version_id: VersionId::new(21),
+        touched: touched_scope.provenance_summary(),
+        counts: StructuralCountView::from_touched_scope(&touched_scope),
+        traversal: CustomInvariantTraversalSummary {
+            consumed_frontier: 1,
+            consumed_steps: 2,
+            remaining_frontier: 3,
+            remaining_steps: 4,
+            max_depth: 5,
+        },
+    }
+}
+
+fn execution_result_with_proof_boundary(
+    check_results: Vec<crate::validation::data::InvariantCheckResult>,
+) -> InvariantExecutionResult {
+    InvariantExecutionResult::executed(
+        InvariantExecutionMetadata::new(
+            InvariantExecutionPoint::CommitBoundary,
+            InvariantObservationKind::Committed,
+            crate::identity::data::VersionId(2),
+            crate::identity::data::VersionId(2),
+            InvariantGroupSet::empty(),
+            InvariantGroupSet::empty(),
+            InvariantCostClass::Touched,
+            InvariantExecutionDisposition::Executed,
+            None,
+            false,
+            RelationalExecutionModel::SerialAuthority,
+            None,
+            Vec::new(),
+            Some(InvariantProofBoundarySummary::new(
+                InvariantPlanScopeClass::PartitionScope,
+                vec![InvariantScopeWideningCause::AllObservedPartitionScope],
+                1,
+                1,
+            )),
+        ),
+        check_results,
+    )
+}

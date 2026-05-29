@@ -341,10 +341,7 @@ mod tests {
     };
     use crate::identity::data::KindId;
     use crate::identity::data::PartitionId;
-    use crate::payloads::data::RecordPayload;
-    use crate::schema::data::{
-        EndpointKindContractDeclaration, RelationIntegrityDeclarations, RelationPayloadClass,
-    };
+    use crate::schema::data::{EndpointKindContractDeclaration, RelationIntegrityDeclarations};
     use crate::transactions::data::{
         CreateIntent, EntitySpec, MergedCommitPlan, MutationIntent, RelationSpec,
         TransactionOptions, WorkerIntentBatch,
@@ -354,7 +351,6 @@ mod tests {
         InvariantExecutionRequest, InvariantObservation, InvariantRequestProfile,
     };
     use crate::validation::engine::{InvariantPlanScopeClass, InvariantScopeWideningCause};
-    use serde_json::json;
 
     fn relation_runtime() -> crate::logic::runtime::RelationalRuntime {
         let registry = RelationalSchemaRegistry::new()
@@ -371,7 +367,6 @@ mod tests {
                     kind_name: "test.edge.a".to_string(),
                     schema_id: SchemaId("test".to_string()),
                     schema_version_id: SchemaVersionId(1),
-                    payload_class: RelationPayloadClass::PayloadBearingRelation,
                     cross_context_policy: CrossContextPolicy::AllowExplicit,
                     cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                     aspect_declarations: KindAspectDeclarations::default(),
@@ -396,7 +391,6 @@ mod tests {
                     kind_name: "test.edge.b".to_string(),
                     schema_id: SchemaId("test".to_string()),
                     schema_version_id: SchemaVersionId(1),
-                    payload_class: RelationPayloadClass::PayloadBearingRelation,
                     cross_context_policy: CrossContextPolicy::AllowExplicit,
                     cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                     aspect_declarations: KindAspectDeclarations::default(),
@@ -440,14 +434,17 @@ mod tests {
         name: &str,
     ) -> crate::identity::data::EntityId {
         let mut txn = runtime.begin_transaction(TransactionOptions::default());
-        txn.push_batch(WorkerIntentBatch::new(format!("entity-{name}")).push(
-            MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(1),
-                client_key: crate::symbols::data::InternedString::Raw(name.to_string()),
-                payload: RecordPayload::StructuredJson(json!({"name": name})),
-            })),
-        ));
+        txn.push_batch(
+            WorkerIntentBatch::new(format!("entity-{name}")).push(
+                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: KindId(1),
+                    client_key: crate::symbols::data::ClientKey::raw(name),
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
+                }))
+                .into(),
+            ),
+        );
         let outcome = txn.commit().unwrap();
         outcome
             .changed_records
@@ -470,10 +467,10 @@ mod tests {
                 RelationSpec {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(2),
-                    client_key: crate::symbols::data::InternedString::Raw("planned".to_string()),
+                    client_key: crate::symbols::data::ClientKey::raw("planned"),
                     source: crate::transactions::data::EntityReference::Existing(source),
                     target: crate::transactions::data::EntityReference::Existing(target),
-                    payload: Some(RecordPayload::StructuredJson(json!({"label":"planned"}))),
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
                 },
             ))),
         );
@@ -525,10 +522,10 @@ mod tests {
                 RelationSpec {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(2),
-                    client_key: crate::symbols::data::InternedString::Raw("planned".to_string()),
+                    client_key: crate::symbols::data::ClientKey::raw("planned"),
                     source: crate::transactions::data::EntityReference::Existing(source),
                     target: crate::transactions::data::EntityReference::Existing(target),
-                    payload: Some(RecordPayload::StructuredJson(json!({"label":"planned"}))),
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
                 },
             ))),
         );

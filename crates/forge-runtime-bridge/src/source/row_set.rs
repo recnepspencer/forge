@@ -1,9 +1,10 @@
 use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use serde_json::Value;
+use forge_foundational::facade::AspectValue;
 use sha2::{Digest, Sha256};
 
+use super::aspect_values::{canonical_aspect_value_text, decode_snapshot_aspect_bytes};
 use crate::snapshot::MaterializedTruthViewObservation;
 
 #[derive(Clone, Debug, Eq, PartialEq, Ord, PartialOrd, Hash)]
@@ -20,14 +21,14 @@ impl BridgeRowIdentity {
 }
 
 #[derive(Clone, Debug, PartialEq)]
-pub struct BridgeMaterializedFieldValue(Value);
+pub struct BridgeMaterializedFieldValue(AspectValue);
 
 impl BridgeMaterializedFieldValue {
-    pub fn value(&self) -> &Value {
+    pub fn value(&self) -> &AspectValue {
         &self.0
     }
 
-    fn new(value: Value) -> Self {
+    fn new(value: AspectValue) -> Self {
         Self(value)
     }
 }
@@ -91,7 +92,7 @@ impl BridgeMaterializedRowSetArtifact {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BridgeRowSetMaterializationError {
-    PayloadDecodeFailure { request_key: String },
+    AspectBytesDecodeFailure { request_key: String },
 }
 
 pub fn materialize_bridge_row_set(
@@ -109,7 +110,11 @@ pub fn materialize_bridge_row_set(
         .iter()
         .zip(result.records().iter())
     {
-        let value = decode_record_value(record.request_key(), record.payload())?;
+        let value = decode_snapshot_aspect_bytes(record.aspect_bytes()).map_err(|_| {
+            BridgeRowSetMaterializationError::AspectBytesDecodeFailure {
+                request_key: record.request_key().to_string(),
+            }
+        })?;
         rows.entry(Arc::from(read.entity_identity()))
             .or_default()
             .insert(
@@ -133,7 +138,11 @@ pub fn materialize_bridge_row_set(
     for row in &rows {
         digest_parts.push(format!("row:{}", row.row_identity().as_str()));
         for (field, value) in row.fields() {
-            digest_parts.push(format!("field:{}={}", field, canonical_json(value.value())));
+            digest_parts.push(format!(
+                "field:{}={}",
+                field,
+                canonical_aspect_value_text(value.value())
+            ));
         }
     }
 
@@ -143,25 +152,6 @@ pub fn materialize_bridge_row_set(
         rows,
         digest: BridgeMaterializedRowSetDigest::new(&digest_parts),
     })
-}
-
-fn decode_record_value(
-    request_key: &str,
-    payload: &[u8],
-) -> Result<Value, BridgeRowSetMaterializationError> {
-    if let Ok(value) = serde_json::from_slice::<Value>(payload) {
-        return Ok(value);
-    }
-    let text = std::str::from_utf8(payload).map_err(|_| {
-        BridgeRowSetMaterializationError::PayloadDecodeFailure {
-            request_key: request_key.to_string(),
-        }
-    })?;
-    Ok(Value::String(text.to_string()))
-}
-
-fn canonical_json(value: &Value) -> String {
-    serde_json::to_string(value).unwrap_or_else(|_| "<invalid-json>".to_string())
 }
 
 #[cfg(test)]
@@ -196,14 +186,14 @@ mod tests {
                 .reads()
                 .iter()
                 .map(|read| {
-                    let payload = match (read.entity_identity(), read.aspect_label()) {
+                    let aspect_bytes = match (read.entity_identity(), read.aspect_label()) {
                         ("entity-1", "identity.id") => b"task-1".to_vec(),
                         ("entity-1", "status") => b"todo".to_vec(),
                         ("entity-2", "identity.id") => b"task-2".to_vec(),
                         ("entity-2", "status") => b"doing".to_vec(),
                         _ => b"unknown".to_vec(),
                     };
-                    crate::snapshot::SnapshotReadRecord::new(read.request_key(), payload)
+                    crate::snapshot::SnapshotReadRecord::new(read.request_key(), aspect_bytes)
                 })
                 .collect();
             Ok(SnapshotReadPacketResult::new(

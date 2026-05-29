@@ -1,4 +1,5 @@
 use crate::identity::hash_parts;
+use forge_foundational::facade::{AspectValue, InternedString};
 use serde_json::Value;
 
 use super::fixtures::{
@@ -247,18 +248,19 @@ fn row_set_control_expected_digest(row_count: usize) -> String {
             .iter()
             .flat_map(|row| {
                 let entity_identity = row
-                    .fields()
+                    .aspect_values()
                     .iter()
                     .find_map(|(field, value)| {
-                        (field.as_str() == "identity.id").then(|| canonical_json(value.value()))
+                        (field.as_str() == "identity.id")
+                            .then(|| canonical_aspect_value(value.value()))
                     })
                     .expect("identity.id should exist");
                 let display_name = row
-                    .fields()
+                    .aspect_values()
                     .iter()
                     .find_map(|(field, value)| {
                         (field.as_str() == "profile.display_name")
-                            .then(|| canonical_json(value.value()))
+                            .then(|| canonical_aspect_value(value.value()))
                     })
                     .expect("display name should exist");
                 [
@@ -315,14 +317,14 @@ fn grouped_worth_expected_digest(row_count: usize) -> String {
                     format!(
                         "membership:{}:{}:{}",
                         member.row_identity().as_str(),
-                        grouped.contract().grouping_aspect(),
-                        canonical_json(member.grouping_value().value())
+                        grouped.contract().grouping_aspect().as_str(),
+                        canonical_aspect_value(member.grouping_value().value())
                     ),
                     format!(
                         "relation_endpoint:{}:{}:{}",
                         member.row_identity().as_str(),
-                        grouped.contract().grouping_aspect(),
-                        canonical_json(member.grouping_value().value())
+                        grouped.contract().grouping_aspect().as_str(),
+                        canonical_aspect_value(member.grouping_value().value())
                     ),
                     format!(
                         "view_local_identity:{}:{}",
@@ -371,6 +373,54 @@ fn grouped_worth_actual_digest(
 
 fn canonical_json(value: &Value) -> String {
     serde_json::to_string(value).unwrap_or_else(|_| "<invalid-json>".to_string())
+}
+
+fn canonical_aspect_value(value: &AspectValue) -> String {
+    match value {
+        AspectValue::String(text) => interned_string_text(text),
+        AspectValue::Null => "null".to_string(),
+        AspectValue::Bool(value) => format!("bool:{value}"),
+        AspectValue::Int8(value) => format!("i8:{value}"),
+        AspectValue::Int16(value) => format!("i16:{value}"),
+        AspectValue::Int32(value) => format!("i32:{value}"),
+        AspectValue::Int64(value) => format!("i64:{value}"),
+        AspectValue::UInt8(value) => format!("u8:{value}"),
+        AspectValue::UInt16(value) => format!("u16:{value}"),
+        AspectValue::UInt32(value) => format!("u32:{value}"),
+        AspectValue::UInt64(value) => format!("u64:{value}"),
+        AspectValue::Float32(value) => format!("f32-bits:{}", value.bits()),
+        AspectValue::Float64(value) => format!("f64-bits:{}", value.bits()),
+        AspectValue::Decimal(value) => format!("decimal:{}", value.as_str()),
+        AspectValue::BigInt(value) => format!("bigint:{}", value.as_str()),
+        AspectValue::Rational(value) => format!(
+            "rational:{}/{}",
+            value.numerator.as_str(),
+            value.denominator.as_str()
+        ),
+        AspectValue::Bytes(value) => format!("bytes-ref:{}", value.0),
+        AspectValue::Uuid(value) => value.iter().map(|byte| format!("{byte:02x}")).collect(),
+        AspectValue::Date(value) => format!("date-days:{}", value.days_from_unix_epoch),
+        AspectValue::Time(value) => format!("time-nanos:{}", value.nanos_since_midnight),
+        AspectValue::Timestamp(value) => {
+            format!("timestamp-micros:{}", value.micros_since_unix_epoch)
+        }
+        AspectValue::TimestampTz(value) => format!(
+            "timestamp-tz:{}:{}",
+            value.utc_micros_since_unix_epoch, value.offset_minutes
+        ),
+        AspectValue::EntityRef(value) => format!(
+            "entity-ref:{}:{}:{}",
+            value.partition_id.0, value.local_slot.0, value.generation.0
+        ),
+        AspectValue::ContentRef(value) => format!("content-ref:{}", value.0),
+    }
+}
+
+fn interned_string_text(value: &InternedString) -> String {
+    match value {
+        InternedString::Raw(text) => text.clone(),
+        InternedString::Symbol(symbol) => format!("symbol:{}", symbol.0),
+    }
 }
 
 #[cfg(test)]

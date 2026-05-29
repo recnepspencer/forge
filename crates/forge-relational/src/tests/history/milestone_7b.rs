@@ -7,15 +7,13 @@ use crate::facade::merge::{
 };
 use crate::facade::runtime::RelationalRuntimeApi;
 use crate::facade::schema::{
-    AspectBinding, AspectComparator, AspectKey, AspectPrecision, DeclaredAspect,
-    EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
+    AspectKey, EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
     RelationalSchemaRegistry, SchemaId, SchemaVersionId,
 };
-use crate::schema::data::RelationPayloadClass;
-use crate::symbols::data::InternedString;
 use crate::tests::support::{
     certification_digest, checkpoint_and_recover_with, create_branch_from_main, create_entity,
-    persisted_runtime_with_test_schema, update_entity, update_entity_on_branch,
+    entity_field_aspect, persisted_runtime_with_test_schema, update_entity,
+    update_entity_on_branch,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -99,21 +97,17 @@ fn merge_planning_schema_snapshot_changes_when_schema_semantics_change() {
     fn runtime_with_registry(
         merge_policy: AspectMergePolicyKind,
     ) -> crate::facade::runtime::RelationalRuntime {
-        let name_key = AspectKey(InternedString::Raw("name".to_string()));
+        let name_key = AspectKey::new("name").unwrap();
         let registry = RelationalSchemaRegistry::new()
             .register_entity_kind(EntityKindRegistration {
                 kind_id: crate::facade::identity::KindId(1),
                 kind_name: "test.entity".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                aspect_declarations: KindAspectDeclarations::new(vec![DeclaredAspect {
-                    key: name_key.clone(),
-                    binding: AspectBinding::EntityPayloadField {
-                        field: InternedString::Raw("name".to_string()),
-                    },
-                    comparator: AspectComparator::JsonScalarEquality,
-                    precision: AspectPrecision::Structured,
-                }])
+                aspect_declarations: KindAspectDeclarations::new(vec![entity_field_aspect(
+                    name_key.as_str(),
+                    "name",
+                )])
                 .with_identity_declarations(vec![IdentityBasisDeclaration {
                     scope: IdentityBasisScope::AspectKey(name_key.clone()),
                     basis: IdentityBasisKind::DeclaredKeySet(vec![name_key.clone()].into()),
@@ -131,7 +125,6 @@ fn merge_planning_schema_snapshot_changes_when_schema_semantics_change() {
                     kind_name: "test.relation".to_string(),
                     schema_id: SchemaId("test".to_string()),
                     schema_version_id: SchemaVersionId(1),
-                    payload_class: RelationPayloadClass::PayloadBearingRelation,
                     cross_context_policy: crate::config::data::CrossContextPolicy::AllowExplicit,
                     cascade_delete_policy:
                         crate::config::data::CascadeDeletePolicy::CascadeDeleteRelations,

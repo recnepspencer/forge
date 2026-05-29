@@ -1,7 +1,5 @@
 use std::sync::Arc;
 
-use serde_json::json;
-
 use crate::authority::commit::phases::publication::{
     append_durable_commit, canonical_commit_envelope,
 };
@@ -15,13 +13,13 @@ use crate::lineage::data::{
     CorrespondenceCandidateId, CorrespondencePromotionExecutionFailureClass,
     LineageFinalizationArtifact,
 };
+use crate::lineage::logic::authority::diagnostic_fields::metadata_promotion_summary_fields;
 use crate::lineage::logic::authority::phase_types::{
     ExecutionAuthorizedPromotionPlan, LoweredPromotionPlan,
 };
 use crate::lineage::logic::authority::LineageAuthority;
-use crate::publication::data::diff::RelationalPatchRecord;
 use crate::publication::patch::data::{
-    PatchCompatibilityClass, PatchOrdering, PatchPublicationMode, PatchStreamPosition,
+    PatchOrdering, PatchPublicationMode, PatchStreamPosition, RelationalPatchRecord,
 };
 use crate::replay::data::CanonicalCommitAuthorityKind;
 use crate::transactions::data::{MergedCommitPlan, TransactionId};
@@ -76,6 +74,7 @@ impl<'runtime> LineageAuthority<'runtime> {
             &promotion_commit.branch_id,
             CanonicalCommitAuthorityKind::MetadataOnlyLineage,
             None,
+            None,
             &[],
             &[],
             &MergedCommitPlan {
@@ -85,8 +84,7 @@ impl<'runtime> LineageAuthority<'runtime> {
             metadata_only_patch(self.runtime, promotion_commit.commit_id),
             diagnostics_summary.clone(),
             artifact.clone(),
-            Vec::new(),
-            Vec::new(),
+            crate::indexes::data::DerivedIndexArtifacts::default(),
             &SchemaContinuityPlan::current(
                 self.runtime
                     .config
@@ -126,21 +124,13 @@ impl<'runtime> LineageAuthority<'runtime> {
 }
 
 fn metadata_only_patch(
-    runtime: &crate::logic::runtime::RelationalRuntime,
+    _runtime: &crate::logic::runtime::RelationalRuntime,
     commit_id: crate::history::data::CommitId,
 ) -> RelationalPatchRecord {
     RelationalPatchRecord {
         ordering: PatchOrdering::CanonicalCommitOrder,
         publication_mode: PatchPublicationMode::CommitNative,
         position: PatchStreamPosition(commit_id.0),
-        compatibility: match runtime.config.publication.policy.patch_surface_policy {
-            crate::config::data::PatchSurfacePolicy::StructuredPatchSurface => {
-                PatchCompatibilityClass::StructuredCompatible
-            }
-            crate::config::data::PatchSurfacePolicy::DensePatchSurface => {
-                PatchCompatibilityClass::DenseCompatible
-            }
-        },
         records: Vec::new(),
     }
     .canonicalized()
@@ -151,19 +141,14 @@ fn promotion_diagnostics_summary(
     commit_id: crate::history::data::CommitId,
     candidate_id: CorrespondenceCandidateId,
 ) -> RelationalDiagnosticArtifact {
-    RelationalDiagnosticArtifact {
-        scope: DiagnosticsScope::Lineage,
-        kind: DiagnosticsArtifactKind::MinimalSummary,
-        determinism: DeterminismExpectation::Required,
-        entries: vec![RelationalDiagnosticsEntry {
-            code: DiagnosticCode::LineagePromotionPublished,
-            message: "lineage correspondence promotion published as a metadata-only commit"
-                .to_string(),
-            fields: json!({
-                "branch_id": branch_id.0,
-                "commit_id": commit_id.0,
-                "candidate_id": candidate_id.0,
-            }),
-        }],
-    }
+    RelationalDiagnosticArtifact::new(
+        DiagnosticsScope::Lineage,
+        DiagnosticsArtifactKind::MinimalSummary,
+        DeterminismExpectation::Required,
+        vec![RelationalDiagnosticsEntry::new(
+            DiagnosticCode::LineagePromotionPublished,
+            "lineage correspondence promotion published as a metadata-only commit",
+            metadata_promotion_summary_fields(branch_id, commit_id, candidate_id),
+        )],
+    )
 }

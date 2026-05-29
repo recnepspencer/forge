@@ -154,7 +154,7 @@ fn preview_derived_mutation_returns_real_advisory_effect_posture() {
             ),
             input: MutationLoweringInput::IntentReconciliation {
                 entity_id: EntityId::new(PartitionId(1), 41, 0),
-                desired_payload: serde_json::json!({ "name": "advisory-preview-derived" }),
+                desired_fields_json: serde_json::json!({ "name": "advisory-preview-derived" }),
             },
         },
     )

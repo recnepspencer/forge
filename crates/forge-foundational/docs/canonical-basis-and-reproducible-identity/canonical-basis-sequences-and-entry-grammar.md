@@ -29,7 +29,14 @@ Common path:
 - `.from_patch(...)`
 - `.from_state(...)`
 - `.from_identity(...)`
-- `.from_locator(...)`
+- `.from_aspect_locator(...)`
+- `.from_aspect_field_locator(...)`
+- `.from_aspect_contract_locator(...)`
+- `.from_value_locator(...)`
+- `.from_source_locator(...)`
+- `.from_mismatch_locator(...)`
+- `.from_transition_locator(...)`
+- `.from_boundary_artifact_locator(...)`
 - `.bundle(...)`
 
 Lower lane:

@@ -1,15 +1,14 @@
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 use crate::history::data::BranchId;
 use crate::identity::data::{EntityId, KindId, PartitionId, RelationId};
-use crate::payloads::data::RecordPayload;
 use crate::schema::data::{ProposedSchemaTransition, SchemaReconciliationPolicy};
-use crate::symbols::data::InternedString;
+use crate::symbols::data::ClientKey;
 
 use super::intents::MutationIntent;
+use super::AspectFieldPatch;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct TransactionId(pub u64);
@@ -144,15 +143,15 @@ pub enum CrossContextEndpointClass {
 pub struct EntitySpec {
     pub partition_id: PartitionId,
     pub kind_id: KindId,
-    pub client_key: InternedString,
-    pub payload: RecordPayload,
+    pub client_key: ClientKey,
+    pub fields: AspectFieldPatch,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct CreatedEntityRef {
     pub partition_id: PartitionId,
     pub kind_id: KindId,
-    pub client_key: InternedString,
+    pub client_key: ClientKey,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
@@ -174,10 +173,10 @@ impl EntityReference {
 pub struct RelationSpec {
     pub partition_id: PartitionId,
     pub kind_id: KindId,
-    pub client_key: InternedString,
+    pub client_key: ClientKey,
     pub source: EntityReference,
     pub target: EntityReference,
-    pub payload: Option<RecordPayload>,
+    pub fields: AspectFieldPatch,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -198,7 +197,7 @@ pub struct BulkMutationLocalityFootprint {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct BulkMutationNamingPlan {
-    pub normalized_client_keys: Arc<[InternedString]>,
+    pub normalized_client_keys: Arc<[ClientKey]>,
     pub naming_digest: String,
 }
 
@@ -207,13 +206,13 @@ pub enum PlannedLineageTransition {
     CreateEntity {
         partition_id: PartitionId,
         kind_id: KindId,
-        client_key: InternedString,
+        client_key: ClientKey,
     },
     ReplaceEntity {
         entity_id: EntityId,
         replacement_partition_id: PartitionId,
         replacement_kind_id: KindId,
-        replacement_client_key: InternedString,
+        replacement_client_key: ClientKey,
     },
     DeleteEntity {
         entity_id: EntityId,
@@ -223,7 +222,7 @@ pub enum PlannedLineageTransition {
         kind_id: KindId,
         source: EntityReference,
         target: EntityReference,
-        client_key: InternedString,
+        client_key: ClientKey,
     },
     UpdateRelationEndpoints {
         relation_id: RelationId,
@@ -326,10 +325,4 @@ pub(crate) fn provenance_complete_bulk_mutation_batch(
     lineage_safe: LineageSafeBulkMutationBatch,
 ) -> ProvenanceCompleteBulkMutationBatch {
     ProvenanceCompleteBulkMutationBatch { lineage_safe }
-}
-
-pub(crate) fn certification_digest<T: Serialize>(value: &T) -> String {
-    let bytes = serde_json::to_vec(value).expect("transaction plan digest serialization");
-    let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
 }

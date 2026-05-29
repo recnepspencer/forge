@@ -2,6 +2,7 @@ use std::collections::{BTreeMap, BTreeSet};
 
 use super::{FieldDeclaration, FieldKey};
 use crate::values::AspectValue;
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StructAspectShape {
@@ -32,7 +33,7 @@ impl StructAspectShape {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct StructAspectValue {
     fields: BTreeMap<FieldKey, AspectValue>,
 }
@@ -67,7 +68,7 @@ impl StructAspectValue {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum StructAspectValueConstructionDenial {
     DuplicateField(FieldKey),
 }

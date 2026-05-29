@@ -12,16 +12,16 @@ use crate::merge::data::{
     StrategyConflictEvidence, TopologyRegionConflictReason, VisibleMergeRecord,
     VisibleMergeRecordKind,
 };
+use crate::merge::logic::aspect_components::{
+    binding_component_from_visible_record, VisibleRecordSide,
+};
 use crate::merge::logic::aspect_plan_lookup::lowered_plan_for_record;
-use crate::merge::logic::naming::resolve_interned_string;
 use crate::merge::logic::MergeAccess;
-use crate::payloads::data::RecordPayload;
-use crate::schema::data::{LoweredAspectBinding, LoweredExecutableAspectBindingKind};
+use crate::schema::data::LoweredAspectBinding;
 use crate::storage::data::{
     EntityReadRecord, RecordLifecycleState, RelationReadRecord, RelationalReadView,
 };
 use crate::transactions::data::RecordRef;
-use serde_json::Value;
 
 impl<'runtime> MergeAccess<'runtime> {
     pub(crate) fn plan_conflict_scope(
@@ -321,7 +321,11 @@ fn strategy_descriptors_for_delta(
     };
     let history = runtime.history();
     let mut dedup = BTreeMap::<
-        ([u8; 32], [u8; 32], Vec<String>),
+        (
+            [u8; 32],
+            [u8; 32],
+            Vec<crate::transactions::data::AspectFieldPatchTarget>,
+        ),
         crate::commit_strategies::data::StrategyMergeDescriptor,
     >::new();
     for commit_id in delta.commit_ids.iter().rev().copied() {
@@ -336,7 +340,7 @@ fn strategy_descriptors_for_delta(
             descriptor.descriptor_digest().0,
             *descriptor.intent_scope_digest().bytes(),
             descriptor
-                .intent_scope_fields()
+                .intent_scope_targets()
                 .iter()
                 .cloned()
                 .collect::<Vec<_>>(),
@@ -353,9 +357,9 @@ fn strategy_scope_overlaps(
     if source.intent_scope_digest() == target.intent_scope_digest() {
         return true;
     }
-    source.intent_scope_fields().iter().any(|field| {
+    source.intent_scope_targets().iter().any(|field| {
         target
-            .intent_scope_fields()
+            .intent_scope_targets()
             .iter()
             .any(|other| other == field)
     })
@@ -490,11 +494,13 @@ fn classify_visible_exact_state(record: &VisibleMergeRecord) -> MergeConflictCla
 }
 
 fn entity_state_equal(source: &EntityReadRecord, target: &EntityReadRecord) -> bool {
-    source.lifecycle == target.lifecycle && source.payload == target.payload
+    source.lifecycle == target.lifecycle
+        && source.authoritative_aspect_state == target.authoritative_aspect_state
 }
 
 fn relation_state_equal(source: &RelationReadRecord, target: &RelationReadRecord) -> bool {
-    source.lifecycle == target.lifecycle && source.payload == target.payload
+    source.lifecycle == target.lifecycle
+        && source.authoritative_aspect_state == target.authoritative_aspect_state
 }
 
 fn relation_endpoints_equal(source: &RelationReadRecord, target: &RelationReadRecord) -> bool {
@@ -763,7 +769,7 @@ fn aspect_conflict_evidence(
         .iter()
         .map(|binding| AspectConflictEvidence {
             aspect_key: binding.aspect_key.clone(),
-            comparison: compare_binding(runtime, source_record, target_record, binding),
+            comparison: compare_binding(source_record, target_record, binding),
         })
         .collect()
 }
@@ -811,14 +817,14 @@ fn visible_target_record(
 }
 
 fn compare_binding(
-    runtime: &crate::logic::runtime::RelationalRuntime,
     source_record: &VisibleMergeRecord,
     target_record: Option<&VisibleMergeRecord>,
     binding: &LoweredAspectBinding,
 ) -> AspectComparisonState {
-    let source = extract_binding_component(runtime, source_record, binding, BindingSide::Source);
+    let source =
+        binding_component_from_visible_record(source_record, binding, VisibleRecordSide::Source);
     let target = target_record.and_then(|record| {
-        extract_binding_component(runtime, record, binding, BindingSide::Target)
+        binding_component_from_visible_record(record, binding, VisibleRecordSide::Target)
     });
     match (source, target) {
         (Some(source), Some(target)) if source == target => AspectComparisonState::Equal,
@@ -826,90 +832,6 @@ fn compare_binding(
         (Some(_), None) => AspectComparisonState::SourceOnly,
         (None, Some(_)) => AspectComparisonState::TargetOnly,
         (None, None) => AspectComparisonState::Unavailable,
-    }
-}
-
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum AspectComponent {
-    Json(Value),
-    Endpoint(crate::identity::data::EntityId),
-    Lifecycle(RecordLifecycleState),
-    Opaque(Vec<u8>),
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum BindingSide {
-    Source,
-    Target,
-}
-
-fn extract_binding_component(
-    runtime: &crate::logic::runtime::RelationalRuntime,
-    record: &VisibleMergeRecord,
-    binding: &LoweredAspectBinding,
-    side: BindingSide,
-) -> Option<AspectComponent> {
-    let entity = match side {
-        BindingSide::Source => record.source_entity.as_ref(),
-        BindingSide::Target => record.target_entity.as_ref(),
-    };
-    let relation = match side {
-        BindingSide::Source => record.source_relation.as_ref(),
-        BindingSide::Target => record.target_relation.as_ref(),
-    };
-
-    match (&record.record_kind, &binding.binding_kind) {
-        (
-            VisibleMergeRecordKind::Entity,
-            LoweredExecutableAspectBindingKind::EntityJsonScalarField { field },
-        ) => entity.and_then(|entity| {
-            resolve_interned_string(runtime, field)
-                .and_then(|name| json_component(&entity.payload, name.as_ref()))
-        }),
-        (
-            VisibleMergeRecordKind::Relation,
-            LoweredExecutableAspectBindingKind::RelationJsonScalarField { field },
-        ) => relation
-            .and_then(|relation| relation.payload.as_ref())
-            .and_then(|payload| {
-                resolve_interned_string(runtime, field)
-                    .and_then(|name| json_component(payload, name.as_ref()))
-            }),
-        (
-            VisibleMergeRecordKind::Relation,
-            LoweredExecutableAspectBindingKind::RelationSourceEndpointIdentity,
-        ) => relation.map(|relation| AspectComponent::Endpoint(relation.source)),
-        (
-            VisibleMergeRecordKind::Relation,
-            LoweredExecutableAspectBindingKind::RelationTargetEndpointIdentity,
-        ) => relation.map(|relation| AspectComponent::Endpoint(relation.target)),
-        (_, LoweredExecutableAspectBindingKind::LifecycleTransitionEquality) => entity
-            .map(|entity| AspectComponent::Lifecycle(entity.lifecycle))
-            .or_else(|| relation.map(|relation| AspectComponent::Lifecycle(relation.lifecycle))),
-        (
-            VisibleMergeRecordKind::Entity,
-            LoweredExecutableAspectBindingKind::OpaqueWholePayloadBytes,
-        ) => opaque_component(entity.map(|entity| &entity.payload)),
-        (
-            VisibleMergeRecordKind::Relation,
-            LoweredExecutableAspectBindingKind::OpaqueWholePayloadBytes,
-        ) => opaque_component(relation.and_then(|relation| relation.payload.as_ref())),
-        _ => None,
-    }
-}
-
-fn json_component(payload: &RecordPayload, field_name: &str) -> Option<AspectComponent> {
-    payload
-        .as_json()?
-        .get(field_name)
-        .cloned()
-        .map(AspectComponent::Json)
-}
-
-fn opaque_component(payload: Option<&RecordPayload>) -> Option<AspectComponent> {
-    match payload? {
-        RecordPayload::StructuredJson(_) => None,
-        RecordPayload::OpaqueBytes(bytes) => Some(AspectComponent::Opaque(bytes.clone())),
     }
 }
 

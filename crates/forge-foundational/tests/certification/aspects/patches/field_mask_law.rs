@@ -138,3 +138,20 @@ fn field_level_patch_requires_explicit_field_mask() {
         )
     );
 }
+
+#[test]
+fn field_level_patch_rejects_empty_field_mutation_requests() {
+    let contract = task_summary_contract();
+
+    let outcome = AuthoritativeRecordAspectPatch::field_level(
+        &contract,
+        &AspectMask::<MutationMask>::new([CanonicalFieldPath::single(field("done"))]),
+        [],
+        [],
+    );
+
+    assert_eq!(
+        outcome,
+        TransitionOutcome::Denied(AuthoritativePatchConstructionDenial::EmptyFieldPatch)
+    );
+}

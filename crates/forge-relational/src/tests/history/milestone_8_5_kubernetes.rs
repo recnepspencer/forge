@@ -1,5 +1,4 @@
 use serde::Serialize;
-use serde_json::json;
 use std::collections::BTreeSet;
 
 use crate::capabilities::DurabilityRead;
@@ -19,9 +18,11 @@ use crate::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use crate::facade::transactions::{CommitResult, TransactionOptions};
 use crate::tests::support::{
     certification_digest, checkpoint_and_recover_with, create_branch_from_main, create_entity,
-    entity_payload_aspect, lifecycle_aspect, read_entity_name, unique_test_store_path,
-    AspectSchemaFixture,
+    entity_field_aspect, entity_u64_field_aspect, lifecycle_aspect, read_entity_name,
+    unique_test_store_path, AspectSchemaFixture,
 };
+use crate::transactions::data::{AspectFieldPatch, AspectFieldPatchTarget};
+use forge_foundational::facade::{AspectKey, AspectValue, FieldKey, InternedString};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 struct KubernetesIntentCertificationBundle {
@@ -41,13 +42,32 @@ struct KubernetesIntentCertificationBundle {
 fn strategy_schema_registry() -> crate::schema::data::RelationalSchemaRegistry {
     AspectSchemaFixture {
         entity_aspects: vec![
-            entity_payload_aspect("name", "name"),
-            entity_payload_aspect("replicas", "replicas"),
+            entity_field_aspect("name", "name"),
+            entity_u64_field_aspect("replicas", "replicas"),
             lifecycle_aspect(),
         ],
         ..AspectSchemaFixture::default()
     }
     .build_registry()
+}
+
+fn strategy_name_and_replicas_patch(name: &str, replicas: u64) -> AspectFieldPatch {
+    AspectFieldPatch::from(std::collections::BTreeMap::from([
+        (
+            AspectFieldPatchTarget::single(
+                AspectKey::new("name").expect("valid name aspect key"),
+                FieldKey::new("name").expect("valid name field key"),
+            ),
+            AspectValue::String(InternedString::Raw(name.to_string())),
+        ),
+        (
+            AspectFieldPatchTarget::single(
+                AspectKey::new("replicas").expect("valid replicas aspect key"),
+                FieldKey::new("replicas").expect("valid replicas field key"),
+            ),
+            AspectValue::UInt64(replicas),
+        ),
+    ]))
 }
 
 fn persisted_strategy_runtime(root_path: std::path::PathBuf) -> RelationalRuntime {
@@ -88,21 +108,12 @@ fn persisted_strategy_runtime(root_path: std::path::PathBuf) -> RelationalRuntim
 
 fn execute_strategy_commit(
     runtime: &mut RelationalRuntime,
-    strategy_name: &str,
-    input: serde_json::Value,
+    request: RawStrategyCommitRequest,
     target_branch: Option<BranchId>,
 ) -> CommitResult {
     let request = runtime
         .commit_strategies()
-        .canonicalize_request(&RawStrategyCommitRequest::new(
-            crate::facade::commit_strategies::CommitStrategySemanticName::new(strategy_name),
-            serde_json::to_vec(&input).expect("serialize strategy input"),
-            crate::facade::commit_strategies::StrategyCallerProvenance {
-                request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
-                actor_identity: None,
-                correlation_id: None,
-            },
-        ))
+        .canonicalize_request(&request)
         .expect("canonical strategy request");
     let snapshot = if let Some(branch_id) = target_branch.as_ref() {
         let branch_head = runtime
@@ -401,22 +412,30 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
 
     let broad_intent_commit = execute_strategy_commit(
         &mut runtime,
-        IntentReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
-        serde_json::to_value(IntentReconciliationInput {
+        IntentReconciliationInput {
             entity_id: entity,
-            desired_payload: json!({"name":"svc-v1","replicas":3}),
+            desired_fields: strategy_name_and_replicas_patch("svc-v1", 3),
+        }
+        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+            request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
+            actor_identity: None,
+            correlation_id: None,
         })
-        .expect("broad intent input"),
+        .expect("raw strategy request"),
         None,
     );
     let first_converge_commit = execute_strategy_commit(
         &mut runtime,
-        ReplicaConvergenceStrategy::DEFAULT_SEMANTIC_NAME,
-        serde_json::to_value(ReplicaConvergenceInput {
+        ReplicaConvergenceInput {
             entity_id: entity,
             desired_replicas: 7,
+        }
+        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+            request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
+            actor_identity: None,
+            correlation_id: None,
         })
-        .expect("first converge input"),
+        .expect("raw strategy request"),
         Some(controller_branch.clone()),
     );
     let overlap_planning = planning_for(&runtime, controller_branch.clone(), main_branch.clone());
@@ -443,22 +462,36 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
 
     let _narrowed_intent_commit = execute_strategy_commit(
         &mut runtime,
-        IntentReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
-        serde_json::to_value(IntentReconciliationInput {
+        IntentReconciliationInput {
             entity_id: entity,
-            desired_payload: json!({"name":"svc-v2"}),
+            desired_fields: crate::transactions::data::AspectFieldPatch::single(
+                forge_foundational::facade::AspectKey::new("name").expect("valid test aspect key"),
+                forge_foundational::facade::FieldKey::new("name").expect("valid test field key"),
+                forge_foundational::facade::AspectValue::String(
+                    forge_foundational::facade::InternedString::Raw("svc-v2".to_string()),
+                ),
+            ),
+        }
+        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+            request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
+            actor_identity: None,
+            correlation_id: None,
         })
-        .expect("narrowed intent input"),
+        .expect("raw strategy request"),
         None,
     );
     let idempotent_converge_commit = execute_strategy_commit(
         &mut runtime,
-        ReplicaConvergenceStrategy::DEFAULT_SEMANTIC_NAME,
-        serde_json::to_value(ReplicaConvergenceInput {
+        ReplicaConvergenceInput {
             entity_id: entity,
             desired_replicas: 7,
+        }
+        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+            request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
+            actor_identity: None,
+            correlation_id: None,
         })
-        .expect("idempotent converge input"),
+        .expect("raw strategy request"),
         Some(controller_branch.clone()),
     );
     assert_eq!(
@@ -492,12 +525,16 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
 
     let rebroadened_intent_commit = execute_strategy_commit(
         &mut runtime,
-        IntentReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
-        serde_json::to_value(IntentReconciliationInput {
+        IntentReconciliationInput {
             entity_id: entity,
-            desired_payload: json!({"name":"svc-v2","replicas":9}),
+            desired_fields: strategy_name_and_replicas_patch("svc-v2", 9),
+        }
+        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+            request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
+            actor_identity: None,
+            correlation_id: None,
         })
-        .expect("rebroadened intent input"),
+        .expect("raw strategy request"),
         None,
     );
     let rebroadened_planning =
@@ -547,12 +584,16 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
 
     let revalidation_commit = execute_strategy_commit(
         &mut runtime,
-        ReplicaConvergenceStrategy::DEFAULT_SEMANTIC_NAME,
-        serde_json::to_value(ReplicaConvergenceInput {
+        ReplicaConvergenceInput {
             entity_id: entity,
             desired_replicas: 9,
+        }
+        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+            request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
+            actor_identity: None,
+            correlation_id: None,
         })
-        .expect("revalidation converge input"),
+        .expect("raw strategy request"),
         Some(controller_branch.clone()),
     );
     assert_eq!(
@@ -628,10 +669,11 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
             current
                 .get_entity(entity)
                 .expect("entity visible")
-                .payload
-                .as_json()
-                .and_then(|payload| payload.get("replicas"))
-                .cloned(),
+                .authoritative_field_display_value(
+                    &forge_foundational::facade::FieldKey::new("replicas")
+                        .expect("valid replicas field"),
+                )
+                .map(str::to_string),
         )),
     };
 
@@ -803,10 +845,11 @@ fn run_kubernetes_style_certification() -> KubernetesIntentCertificationBundle {
             recovered_current
                 .get_entity(entity)
                 .expect("recovered entity visible")
-                .payload
-                .as_json()
-                .and_then(|payload| payload.get("replicas"))
-                .cloned(),
+                .authoritative_field_display_value(
+                    &forge_foundational::facade::FieldKey::new("replicas")
+                        .expect("valid replicas field"),
+                )
+                .map(str::to_string),
         )),
         live_bundle.visible_truth_digest
     );

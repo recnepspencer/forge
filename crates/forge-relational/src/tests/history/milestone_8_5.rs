@@ -1,5 +1,4 @@
 use serde::Serialize;
-use serde_json::json;
 
 use crate::commit_strategies::data::{
     CommitStrategyExecutionRegistration, CommitStrategyExecutor, CommitStrategyRegistration,
@@ -25,8 +24,13 @@ use crate::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
 use crate::facade::transactions::TransactionOptions;
 use crate::tests::support::{
     certification_digest, changed_entities, checkpoint_and_recover_with, create_branch_from_main,
-    create_entity, entity_payload_aspect, lifecycle_aspect, read_entity_name,
-    unique_test_store_path, AspectSchemaFixture,
+    create_entity, entity_field_aspect, entity_u64_field_aspect, lifecycle_aspect,
+    read_entity_name, unique_test_store_path, AspectSchemaFixture,
+};
+use crate::transactions::data::{AspectFieldPatch, AspectFieldPatchTarget};
+use forge_foundational::facade::{
+    AspectFieldLocator, AspectKey, AspectValue, CanonicalFieldPath, FieldKey, InternedString,
+    LocatorAuthority,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -53,6 +57,14 @@ struct StrategyCertificationBundle {
     visible_truth_digest: String,
 }
 
+fn strategy_field_locator(aspect_key: &str, field_key: &str) -> AspectFieldLocator {
+    AspectFieldLocator::new(
+        LocatorAuthority::Planned,
+        AspectKey::new(aspect_key).expect("valid strategy aspect key"),
+        CanonicalFieldPath::single(FieldKey::new(field_key).expect("valid strategy field key")),
+    )
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 struct ReplacementCertificationBundle {
     replacement_commit_strategy_digest: String,
@@ -74,6 +86,25 @@ impl CommitStrategyExecutor for DeterministicFailureExecutor {
             "milestone-8.5 hostile deterministic executor rejection",
         ))
     }
+}
+
+fn strategy_name_and_replicas_patch(name: &str, replicas: u64) -> AspectFieldPatch {
+    AspectFieldPatch::from(std::collections::BTreeMap::from([
+        (
+            AspectFieldPatchTarget::single(
+                AspectKey::new("name").expect("valid name aspect key"),
+                FieldKey::new("name").expect("valid name field key"),
+            ),
+            AspectValue::String(InternedString::Raw(name.to_string())),
+        ),
+        (
+            AspectFieldPatchTarget::single(
+                AspectKey::new("replicas").expect("valid replicas aspect key"),
+                FieldKey::new("replicas").expect("valid replicas field key"),
+            ),
+            AspectValue::UInt64(replicas),
+        ),
+    ]))
 }
 
 fn persisted_strategy_runtime(root_path: std::path::PathBuf) -> RelationalRuntime {
@@ -263,8 +294,8 @@ fn persisted_strategy_runtime_with_failing_intent_executor(
 fn strategy_schema_registry() -> crate::schema::data::RelationalSchemaRegistry {
     AspectSchemaFixture {
         entity_aspects: vec![
-            entity_payload_aspect("name", "name"),
-            entity_payload_aspect("replicas", "replicas"),
+            entity_field_aspect("name", "name"),
+            entity_u64_field_aspect("replicas", "replicas"),
             lifecycle_aspect(),
         ],
         ..AspectSchemaFixture::default()
@@ -274,21 +305,12 @@ fn strategy_schema_registry() -> crate::schema::data::RelationalSchemaRegistry {
 
 fn execute_strategy_commit(
     runtime: &mut RelationalRuntime,
-    strategy_name: &str,
-    input: serde_json::Value,
+    request: RawStrategyCommitRequest,
     target_branch: Option<BranchId>,
 ) -> crate::facade::transactions::CommitResult {
     let request = runtime
         .commit_strategies()
-        .canonicalize_request(&RawStrategyCommitRequest::new(
-            crate::facade::commit_strategies::CommitStrategySemanticName::new(strategy_name),
-            serde_json::to_vec(&input).expect("serialize strategy input"),
-            crate::facade::commit_strategies::StrategyCallerProvenance {
-                request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
-                actor_identity: None,
-                correlation_id: None,
-            },
-        ))
+        .canonicalize_request(&request)
         .expect("canonical strategy request");
     let snapshot = runtime.visibility_authority().snapshot();
     let execution = runtime
@@ -336,22 +358,30 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
 
     let main_commit = execute_strategy_commit(
         &mut runtime,
-        IntentReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
-        serde_json::to_value(IntentReconciliationInput {
+        IntentReconciliationInput {
             entity_id: entity,
-            desired_payload: json!({"name":"service-main","replicas":1}),
+            desired_fields: strategy_name_and_replicas_patch("service-main", 1),
+        }
+        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+            request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
+            actor_identity: None,
+            correlation_id: None,
         })
-        .expect("intent input value"),
+        .expect("raw strategy request"),
         None,
     );
     let feature_commit = execute_strategy_commit(
         &mut runtime,
-        ReplicaConvergenceStrategy::DEFAULT_SEMANTIC_NAME,
-        serde_json::to_value(ReplicaConvergenceInput {
+        ReplicaConvergenceInput {
             entity_id: entity,
             desired_replicas: 7,
+        }
+        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+            request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
+            actor_identity: None,
+            correlation_id: None,
         })
-        .expect("replica input value"),
+        .expect("raw strategy request"),
         Some(feature_branch.clone()),
     );
     let planning = runtime
@@ -390,24 +420,32 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
     let aspect_overlap_entity = create_entity(&mut runtime, "aspect-overlap");
     let _aspect_overlap_main_commit = execute_strategy_commit(
         &mut runtime,
-        AspectFieldReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
-        serde_json::to_value(AspectFieldReconciliationInput {
+        AspectFieldReconciliationInput {
             entity_id: aspect_overlap_entity,
-            field_name: "name".to_string(),
-            desired_value: json!("aspect-main"),
+            field_locator: strategy_field_locator("name", "name"),
+            desired_value: forge_foundational::facade::AspectValue::String("aspect-main".into()),
+        }
+        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+            request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
+            actor_identity: None,
+            correlation_id: None,
         })
-        .expect("aspect overlap main input value"),
+        .expect("raw strategy request"),
         None,
     );
     let _aspect_overlap_feature_commit = execute_strategy_commit(
         &mut runtime,
-        AspectFieldReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
-        serde_json::to_value(AspectFieldReconciliationInput {
+        AspectFieldReconciliationInput {
             entity_id: aspect_overlap_entity,
-            field_name: "name".to_string(),
-            desired_value: json!("aspect-feature"),
+            field_locator: strategy_field_locator("name", "name"),
+            desired_value: forge_foundational::facade::AspectValue::String("aspect-feature".into()),
+        }
+        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+            request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
+            actor_identity: None,
+            correlation_id: None,
         })
-        .expect("aspect overlap feature input value"),
+        .expect("raw strategy request"),
         Some(aspect_overlap_branch.clone()),
     );
     let aspect_overlap_planning = runtime
@@ -435,23 +473,31 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
     let aspect_disjoint_entity = create_entity(&mut runtime, "aspect-disjoint");
     let _aspect_disjoint_main_commit = execute_strategy_commit(
         &mut runtime,
-        AspectFieldReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
-        serde_json::to_value(AspectFieldReconciliationInput {
+        AspectFieldReconciliationInput {
             entity_id: aspect_disjoint_entity,
-            field_name: "name".to_string(),
-            desired_value: json!("disjoint-main"),
+            field_locator: strategy_field_locator("name", "name"),
+            desired_value: forge_foundational::facade::AspectValue::String("disjoint-main".into()),
+        }
+        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+            request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
+            actor_identity: None,
+            correlation_id: None,
         })
-        .expect("aspect disjoint main input value"),
+        .expect("raw strategy request"),
         None,
     );
     let _aspect_disjoint_feature_commit = execute_strategy_commit(
         &mut runtime,
-        ReplicaConvergenceStrategy::DEFAULT_SEMANTIC_NAME,
-        serde_json::to_value(ReplicaConvergenceInput {
+        ReplicaConvergenceInput {
             entity_id: aspect_disjoint_entity,
             desired_replicas: 9,
+        }
+        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+            request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
+            actor_identity: None,
+            correlation_id: None,
         })
-        .expect("aspect disjoint feature input value"),
+        .expect("raw strategy request"),
         Some(aspect_disjoint_branch.clone()),
     );
     let aspect_disjoint_planning = runtime
@@ -485,42 +531,66 @@ fn run_strategy_merge_certification() -> StrategyCertificationBundle {
         create_branch_from_main(&mut runtime, "controller-sequence-feature");
     let _controller_initial_intent = execute_strategy_commit(
         &mut runtime,
-        IntentReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
-        serde_json::to_value(IntentReconciliationInput {
+        IntentReconciliationInput {
             entity_id: controller_sequence_entity,
-            desired_payload: json!({"name":"controller-main","replicas":2}),
+            desired_fields: strategy_name_and_replicas_patch("controller-main", 2),
+        }
+        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+            request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
+            actor_identity: None,
+            correlation_id: None,
         })
-        .expect("controller initial intent input"),
+        .expect("raw strategy request"),
         None,
     );
     let _controller_feature_converge = execute_strategy_commit(
         &mut runtime,
-        ReplicaConvergenceStrategy::DEFAULT_SEMANTIC_NAME,
-        serde_json::to_value(ReplicaConvergenceInput {
+        ReplicaConvergenceInput {
             entity_id: controller_sequence_entity,
             desired_replicas: 7,
+        }
+        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+            request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
+            actor_identity: None,
+            correlation_id: None,
         })
-        .expect("controller feature converge input"),
+        .expect("raw strategy request"),
         Some(controller_sequence_branch.clone()),
     );
     let _controller_narrowed_intent = execute_strategy_commit(
         &mut runtime,
-        IntentReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
-        serde_json::to_value(IntentReconciliationInput {
+        IntentReconciliationInput {
             entity_id: controller_sequence_entity,
-            desired_payload: json!({"name":"controller-renamed"}),
+            desired_fields: crate::transactions::data::AspectFieldPatch::single(
+                forge_foundational::facade::AspectKey::new("name").expect("valid test aspect key"),
+                forge_foundational::facade::FieldKey::new("name").expect("valid test field key"),
+                forge_foundational::facade::AspectValue::String(
+                    forge_foundational::facade::InternedString::Raw(
+                        "controller-renamed".to_string(),
+                    ),
+                ),
+            ),
+        }
+        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+            request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
+            actor_identity: None,
+            correlation_id: None,
         })
-        .expect("controller narrowed intent input"),
+        .expect("raw strategy request"),
         None,
     );
     let controller_feature_idempotent_commit = execute_strategy_commit(
         &mut runtime,
-        ReplicaConvergenceStrategy::DEFAULT_SEMANTIC_NAME,
-        serde_json::to_value(ReplicaConvergenceInput {
+        ReplicaConvergenceInput {
             entity_id: controller_sequence_entity,
             desired_replicas: 7,
+        }
+        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+            request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
+            actor_identity: None,
+            correlation_id: None,
         })
-        .expect("controller idempotent converge input"),
+        .expect("raw strategy request"),
         Some(controller_sequence_branch.clone()),
     );
     assert_eq!(
@@ -934,13 +1004,17 @@ fn run_replacement_strategy_certification() -> ReplacementCertificationBundle {
         .lineage_id;
     let replacement_commit = execute_strategy_commit(
         &mut runtime,
-        EntityReplacementReconciliationStrategy::DEFAULT_SEMANTIC_NAME,
-        serde_json::to_value(EntityReplacementReconciliationInput {
+        EntityReplacementReconciliationInput {
             entity_id: replacement_entity,
             replacement_client_key: "replace-target-v2".to_string(),
-            desired_payload: json!({"name":"replace-main","replicas":2}),
+            desired_fields: strategy_name_and_replicas_patch("replace-main", 2),
+        }
+        .into_raw_request(crate::facade::commit_strategies::StrategyCallerProvenance {
+            request_origin: crate::facade::commit_strategies::StrategyRequestOrigin::Test,
+            actor_identity: None,
+            correlation_id: None,
         })
-        .expect("replacement input value"),
+        .expect("raw strategy request"),
         None,
     );
     let current = runtime

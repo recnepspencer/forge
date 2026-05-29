@@ -1,65 +1,52 @@
+use forge_foundational::facade::{AspectKey, AspectValue};
 use forge_runtime_bridge::facade::{
     GroupedProjectionMemberSource, GroupedProjectionSource, TruthSnapshotIdentity,
 };
-use serde_json::Value;
-use sha2::{Digest, Sha256};
+
+use super::canonical_digest::grouped_projection_digest;
 
 use super::row_set::{
-    RelationalAuthoritativeRowSetArtifact, RelationalFieldBindingKey, RelationalRowIdentity,
-    RelationalRowSetDigest,
+    RelationalAuthoritativeRowSetArtifact, RelationalRowIdentity, RelationalRowSetDigest,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct GroupedProjectionContract {
-    grouping_aspect: String,
-    identity_binding_field_key: String,
-    grouping_binding_field_key: String,
+    grouping_aspect: AspectKey,
+    identity_binding_aspect_key: AspectKey,
+    grouping_binding_aspect_key: AspectKey,
 }
 
 impl GroupedProjectionContract {
     pub fn new(
-        grouping_aspect: impl Into<String>,
-        identity_binding_field_key: impl Into<String>,
-        grouping_binding_field_key: impl Into<String>,
+        grouping_aspect: AspectKey,
+        identity_binding_aspect_key: AspectKey,
+        grouping_binding_aspect_key: AspectKey,
     ) -> Self {
         Self {
-            grouping_aspect: grouping_aspect.into(),
-            identity_binding_field_key: identity_binding_field_key.into(),
-            grouping_binding_field_key: grouping_binding_field_key.into(),
+            grouping_aspect,
+            identity_binding_aspect_key,
+            grouping_binding_aspect_key,
         }
     }
 
-    pub fn grouping_aspect(&self) -> &str {
+    pub fn grouping_aspect(&self) -> &AspectKey {
         &self.grouping_aspect
     }
 
-    pub fn identity_binding_field_key(&self) -> &str {
-        &self.identity_binding_field_key
+    pub fn identity_binding_aspect_key(&self) -> &AspectKey {
+        &self.identity_binding_aspect_key
     }
 
-    pub fn grouping_binding_field_key(&self) -> &str {
-        &self.grouping_binding_field_key
-    }
-}
-
-#[derive(Clone, Debug, PartialEq)]
-pub struct RelationalGroupingValue(Value);
-
-impl RelationalGroupingValue {
-    pub fn value(&self) -> &Value {
-        &self.0
-    }
-
-    pub(crate) fn new(value: Value) -> Self {
-        Self(value)
+    pub fn grouping_binding_aspect_key(&self) -> &AspectKey {
+        &self.grouping_binding_aspect_key
     }
 }
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct RelationalGroupedMemberRow {
     row_identity: RelationalRowIdentity,
-    identity_value: Value,
-    grouping_value: RelationalGroupingValue,
+    identity_value: AspectValue,
+    grouping_value: AspectValue,
 }
 
 impl RelationalGroupedMemberRow {
@@ -67,11 +54,11 @@ impl RelationalGroupedMemberRow {
         &self.row_identity
     }
 
-    pub fn identity_value(&self) -> &Value {
+    pub fn identity_value(&self) -> &AspectValue {
         &self.identity_value
     }
 
-    pub fn grouping_value(&self) -> &RelationalGroupingValue {
+    pub fn grouping_value(&self) -> &AspectValue {
         &self.grouping_value
     }
 }
@@ -81,12 +68,12 @@ impl GroupedProjectionMemberSource for RelationalGroupedMemberRow {
         self.row_identity.as_str()
     }
 
-    fn identity_value(&self) -> &Value {
+    fn identity_value(&self) -> &AspectValue {
         &self.identity_value
     }
 
-    fn grouping_value(&self) -> &Value {
-        self.grouping_value.value()
+    fn grouping_value(&self) -> &AspectValue {
+        &self.grouping_value
     }
 }
 
@@ -98,10 +85,11 @@ impl RelationalGroupedProjectionDigest {
         &self.0
     }
 
-    pub(crate) fn new(parts: &[String]) -> Self {
-        let canonical = parts.join("|");
-        let digest = Sha256::digest(canonical.as_bytes());
-        Self(format!("relational-grouped-projection:sha256:{digest:x}"))
+    pub(crate) fn from_canonical_bytes(bytes: &[u8]) -> Self {
+        Self(super::canonical_digest::digest_with_prefix(
+            "relational-grouped-projection",
+            bytes,
+        ))
     }
 }
 
@@ -144,15 +132,15 @@ impl GroupedProjectionSource for RelationalGroupedProjectionArtifact {
     }
 
     fn grouping_aspect(&self) -> &str {
-        self.contract.grouping_aspect()
+        self.contract.grouping_aspect().as_str()
     }
 
-    fn identity_binding_field_key(&self) -> &str {
-        self.contract.identity_binding_field_key()
+    fn identity_binding_aspect_key(&self) -> &str {
+        self.contract.identity_binding_aspect_key().as_str()
     }
 
-    fn grouping_binding_field_key(&self) -> &str {
-        self.contract.grouping_binding_field_key()
+    fn grouping_binding_aspect_key(&self) -> &str {
+        self.contract.grouping_binding_aspect_key().as_str()
     }
 
     fn members(&self) -> &[Self::Member] {
@@ -163,16 +151,22 @@ impl GroupedProjectionSource for RelationalGroupedProjectionArtifact {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum RelationalGroupedTruthError {
     PacketResultShapeMismatch,
-    PayloadDecodeFailure {
+    InvalidAspectBindingKey {
+        aspect_key: String,
+    },
+    AspectValueEncodeFailure {
+        detail: String,
+    },
+    AspectValueDecodeFailure {
         request_key: String,
     },
-    MissingIdentityField {
+    MissingIdentityAspect {
         row_identity: String,
-        field_key: String,
+        aspect_key: AspectKey,
     },
-    MissingGroupingField {
+    MissingGroupingAspect {
         row_identity: String,
-        field_key: String,
+        aspect_key: AspectKey,
     },
 }
 
@@ -180,64 +174,50 @@ pub fn project_relational_grouped_truth(
     row_set: &RelationalAuthoritativeRowSetArtifact,
     contract: GroupedProjectionContract,
 ) -> Result<RelationalGroupedProjectionArtifact, RelationalGroupedTruthError> {
-    let identity_field = RelationalFieldBindingKey::new(contract.identity_binding_field_key());
-    let grouping_field = RelationalFieldBindingKey::new(contract.grouping_binding_field_key());
+    let identity_aspect = contract.identity_binding_aspect_key();
+    let grouping_aspect = contract.grouping_binding_aspect_key();
 
     let mut members = Vec::with_capacity(row_set.rows().len());
     for row in row_set.rows() {
-        let Some(identity_value) = row.fields().get(&identity_field).cloned() else {
-            return Err(RelationalGroupedTruthError::MissingIdentityField {
+        let Some(identity_value) = row.aspect_values().get(&identity_aspect).cloned() else {
+            return Err(RelationalGroupedTruthError::MissingIdentityAspect {
                 row_identity: row.row_identity().as_str().to_string(),
-                field_key: contract.identity_binding_field_key().to_string(),
+                aspect_key: contract.identity_binding_aspect_key().clone(),
             });
         };
-        let Some(grouping_value) = row.fields().get(&grouping_field).cloned() else {
-            return Err(RelationalGroupedTruthError::MissingGroupingField {
+        let Some(grouping_value) = row.aspect_values().get(&grouping_aspect).cloned() else {
+            return Err(RelationalGroupedTruthError::MissingGroupingAspect {
                 row_identity: row.row_identity().as_str().to_string(),
-                field_key: contract.grouping_binding_field_key().to_string(),
+                aspect_key: contract.grouping_binding_aspect_key().clone(),
             });
         };
 
         members.push(RelationalGroupedMemberRow {
             row_identity: row.row_identity().clone(),
-            identity_value: identity_value.value().clone(),
-            grouping_value: RelationalGroupingValue::new(grouping_value.value().clone()),
+            identity_value: identity_value.clone(),
+            grouping_value: grouping_value.clone(),
         });
     }
 
-    let mut digest_parts = vec![
-        format!("row_set:{}", row_set.digest().as_str()),
-        format!("snapshot:{}", row_set.snapshot_identity().as_str()),
-        format!("grouping:{}", contract.grouping_aspect()),
-        format!("identity_binding:{}", contract.identity_binding_field_key()),
-        format!("grouping_binding:{}", contract.grouping_binding_field_key()),
-    ];
-    for member in &members {
-        digest_parts.push(format!(
-            "member:{}|id={}|lane={}",
-            member.row_identity().as_str(),
-            canonical_json(member.identity_value()),
-            canonical_json(member.grouping_value().value())
-        ));
-    }
+    let digest = grouped_projection_digest(
+        row_set.digest(),
+        row_set.snapshot_identity(),
+        &contract,
+        &members,
+    )?;
 
     Ok(RelationalGroupedProjectionArtifact {
         row_set_digest: row_set.digest().clone(),
         snapshot_identity: row_set.snapshot_identity().clone(),
         contract,
         members,
-        digest: RelationalGroupedProjectionDigest::new(&digest_parts),
+        digest,
     })
-}
-
-fn canonical_json(value: &Value) -> String {
-    serde_json::to_string(value).unwrap_or_else(|_| "<invalid-json>".to_string())
 }
 
 #[cfg(test)]
 mod tests {
-    use serde_json::Value;
-
+    use forge_foundational::facade::{AspectKey, AspectValue};
     use forge_runtime_bridge::facade::{
         SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest,
         TruthSnapshotIdentity,
@@ -257,17 +237,33 @@ mod tests {
         let result = SnapshotReadPacketResult::new(
             TruthSnapshotIdentity::new("snapshot-a"),
             vec![
-                SnapshotReadRecord::new("entity-1:identity.id", b"task-1".to_vec()),
-                SnapshotReadRecord::new("entity-1:status.lane", b"todo".to_vec()),
-                SnapshotReadRecord::new("entity-2:identity.id", b"task-2".to_vec()),
-                SnapshotReadRecord::new("entity-2:status.lane", b"doing".to_vec()),
+                SnapshotReadRecord::new(
+                    "entity-1:identity.id",
+                    aspect_bytes(AspectValue::String("task-1".into())),
+                ),
+                SnapshotReadRecord::new(
+                    "entity-1:status.lane",
+                    aspect_bytes(AspectValue::String("todo".into())),
+                ),
+                SnapshotReadRecord::new(
+                    "entity-2:identity.id",
+                    aspect_bytes(AspectValue::String("task-2".into())),
+                ),
+                SnapshotReadRecord::new(
+                    "entity-2:status.lane",
+                    aspect_bytes(AspectValue::String("doing".into())),
+                ),
             ],
         );
         let row_set = materialize_relational_authoritative_row_set(&packet, &result).unwrap();
 
         let grouped = project_relational_grouped_truth(
             &row_set,
-            GroupedProjectionContract::new("status", "identity.id", "status.lane"),
+            GroupedProjectionContract::new(
+                AspectKey::new("status").unwrap(),
+                AspectKey::new("identity.id").unwrap(),
+                AspectKey::new("status.lane").unwrap(),
+            ),
         )
         .unwrap();
 
@@ -275,7 +271,11 @@ mod tests {
         assert_eq!(grouped.members()[0].row_identity().as_str(), "entity-1");
         assert_eq!(
             grouped.members()[0].identity_value(),
-            &Value::String("task-1".to_string())
+            &AspectValue::String("task-1".into())
         );
+    }
+
+    fn aspect_bytes(value: AspectValue) -> Vec<u8> {
+        crate::aspect_wire::encode_aspect_value(&value).expect("test aspect value bytes")
     }
 }

@@ -1,5 +1,3 @@
-use serde_json::json;
-
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
@@ -8,6 +6,8 @@ use crate::storage::data::{RecordLifecycleState, RetentionPassOutcome, Retention
 use crate::storage::logic::state::{
     EntityRecordKind, HistoricalMetadata, RecordKind, RelationRecordKind,
 };
+
+use super::diagnostic_fields::retention_plan_inspection_fields;
 
 pub struct VisibilityRetentionAuthority<'runtime> {
     runtime: &'runtime mut RelationalRuntime,
@@ -77,24 +77,15 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
             .push_bounded_diagnostic(
                 DiagnosticsScope::Retention,
                 DiagnosticsArtifactKind::MinimalSummary,
-                vec![RelationalDiagnosticsEntry {
-                    code: DiagnosticCode::RetentionPlanInspected,
-                    message: "retention plan inspected with raw pin surface counts".to_string(),
-                    fields: json!({
-                        "retention_fence_version": plan.retention_fence_version.0,
-                        "active_snapshot_count": plan.active_snapshot_count,
-                        "branch_pinned_entities": plan.branch_pinned_entities,
-                        "replay_pinned_entities": plan.replay_pinned_entities,
-                        "snapshot_pinned_entities": plan.snapshot_pinned_entities,
-                        "branch_pinned_relations": plan.branch_pinned_relations,
-                        "replay_pinned_relations": plan.replay_pinned_relations,
-                        "snapshot_pinned_relations": plan.snapshot_pinned_relations,
-                        "branch_replay_overlap_entities": branch_replay_overlap_entities,
-                        "branch_replay_overlap_relations": branch_replay_overlap_relations,
-                        "reclaimable_entities": plan.reclaimable_entities,
-                        "reclaimable_relations": plan.reclaimable_relations,
-                    }),
-                }],
+                vec![RelationalDiagnosticsEntry::new(
+                    DiagnosticCode::RetentionPlanInspected,
+                    "retention plan inspected with raw pin surface counts",
+                    retention_plan_inspection_fields(
+                        &plan,
+                        branch_replay_overlap_entities,
+                        branch_replay_overlap_relations,
+                    ),
+                )],
             );
         plan
     }
@@ -188,13 +179,13 @@ impl<'runtime> VisibilityRetentionAuthority<'runtime> {
                     entity_slots
                         .entry(entity_id.partition_id)
                         .or_insert_with(std::collections::BTreeSet::new)
-                        .insert(entity_id.local_slot.0 as usize);
+                        .insert(entity_id.slot_index());
                 }
                 crate::transactions::data::RecordRef::Relation(relation_id) => {
                     relation_slots
                         .entry(relation_id.partition_id)
                         .or_insert_with(std::collections::BTreeSet::new)
-                        .insert(relation_id.local_slot.0 as usize);
+                        .insert(relation_id.slot_index());
                 }
             }
         }

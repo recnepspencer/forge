@@ -1,4 +1,5 @@
 use forge_proof::{Artifact, TransitionOutcome};
+use serde::{Deserialize, Serialize};
 
 use super::{
     AuthoritativeRecordAspectState, AuthoritativeRecordAspectStateAdmitted,
@@ -17,6 +18,10 @@ pub fn admit_authoritative_record_aspect_state(
         validated_entries.push(entry);
     }
 
+    if validated_entries.is_empty() {
+        return TransitionOutcome::denied(AuthoritativeStateAdmissionDenial::EmptyAdmission);
+    }
+
     match AuthoritativeRecordAspectState::from_validated_entries(validated_entries) {
         Ok(state) => TransitionOutcome::success(Artifact::<
             AuthoritativeRecordAspectStateAdmitted,
@@ -26,7 +31,8 @@ pub fn admit_authoritative_record_aspect_state(
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum AuthoritativeStateAdmissionDenial {
+    EmptyAdmission,
     DuplicateAspectKey(AspectKey),
 }

@@ -57,6 +57,9 @@ Good to know:
 
 - `aspects()` is the hardened common lane for Milestone 1 authoring.
 - scalar contracts are still real contracts; they just use the simplest shape.
+- `opaque_with(...)` is intentionally narrower than the other custom shape
+  builders: it fails closed if the supplied mask contract is not diagnostic
+  only.
 
 ## Core Mental Model
 
@@ -143,8 +146,18 @@ The same is true for reference and opaque shapes. A content reference or opaque
 token is authoritative because the contract says so, not because the payload
 "looks like an id."
 
+Opaque contract authoring also preserves one extra law at the front door:
+
+- `opaque_token()` always chooses the milestone's diagnostic-only opaque mask
+  contract
+- `opaque_with(...)` exists only for explicit opaque authoring, and it rejects
+  any non-diagnostic mask contract instead of silently constructing an
+  incoherent opaque contract
+
 ## How It Relates To Other Features
 
+- [Aspect Shapes And Value Carriers](./aspect-shapes-and-value-carriers.md)
+  explains the exact Rust carrier types these contracts validate.
 - [Struct Contracts, Fields, And Field Paths](./struct-contracts-fields-and-field-paths.md)
   covers the richer shape lane for non-scalar aspects.
 - [Validation And Authoritative State Admission](./validation-and-authoritative-state-admission.md)
@@ -173,6 +186,8 @@ state-admission lane.
 - Do not use plain scalar types as a substitute for a real aspect contract.
 - Do not collapse scalar, reference, and opaque shapes into one informal
   "primitive value" bucket.
+- Do not treat opaque authoring as if it could legally reuse scalar mutation or
+  projection mask contracts.
 - Do not let equality or evolution rules live only in comments.
 
 ## Current Limits
@@ -184,5 +199,6 @@ state-admission lane.
 
 ## Related Docs
 
+- [Aspect Shapes And Value Carriers](./aspect-shapes-and-value-carriers.md)
 - [Struct Contracts, Fields, And Field Paths](./struct-contracts-fields-and-field-paths.md)
 - [Validation And Authoritative State Admission](./validation-and-authoritative-state-admission.md)

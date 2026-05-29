@@ -12,6 +12,7 @@ mod certification;
 mod construction;
 mod derived_topology;
 mod projection;
+mod relational_aspect_boundary;
 mod test_support;
 mod topology_operators;
 mod validation;

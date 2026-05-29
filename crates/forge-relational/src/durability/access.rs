@@ -6,9 +6,8 @@ use crate::durability::data::{
     RecoveryCompatibilityMismatch, RecoveryCursor, RecoveryIntegrityReport, RecoveryPlan,
     RecoveryVerificationOutcome,
 };
-use crate::durability::log::local_store::{
-    load_store_from_disk, read_json, read_segment_entries, DurableCheckpointFile,
-};
+use crate::durability::log::local_store::{load_store_from_disk, read_segment_entries};
+use crate::durability::log::native_file_codec::read_checkpoint_file;
 use crate::history::data::BranchHead;
 use crate::logic::runtime::RelationalRuntime;
 use crate::replay::data::ReplayVerificationLayer;
@@ -85,7 +84,7 @@ impl<'runtime> DurabilityAccess<'runtime> {
         let mut selected_checkpoint = None;
         let mut selected_checkpoint_manifest = None;
         for manifest in store.checkpoints.iter().rev() {
-            match read_json::<DurableCheckpointFile>(&manifest.path) {
+            match read_checkpoint_file(&manifest.path) {
                 Ok(file) => {
                     selected_checkpoint = Some(file.checkpoint);
                     selected_checkpoint_manifest = Some(manifest.clone());

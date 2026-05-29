@@ -1,6 +1,6 @@
-use serde_json::json;
-
-use crate::diagnostics::data::{DiagnosticCode, DiagnosticsScope};
+use crate::diagnostics::data::{
+    DiagnosticCode, DiagnosticsScope, RelationalDiagnosticFields, RelationalDiagnosticValue,
+};
 use crate::transactions::data::{
     CommitConflict, ConflictClass, RollbackOutcome, RollbackSummary, SavepointId, WorkerIntentBatch,
 };
@@ -55,7 +55,7 @@ impl<'a> RelationalTransaction<'a> {
             .emit_entry(
                 DiagnosticCode::SavepointRolledBack,
                 "rolled back to savepoint",
-                json!({ "savepoint_id": savepoint_id.0 }),
+                savepoint_rollback_fields(savepoint_id),
             );
         Ok(RollbackOutcome {
             transaction_id: self.transaction_id,
@@ -63,4 +63,12 @@ impl<'a> RelationalTransaction<'a> {
             effects,
         })
     }
+}
+
+fn savepoint_rollback_fields(savepoint_id: SavepointId) -> RelationalDiagnosticFields {
+    RelationalDiagnosticValue::object([(
+        "savepoint_id",
+        RelationalDiagnosticValue::Unsigned(savepoint_id.0),
+    )])
+    .into()
 }

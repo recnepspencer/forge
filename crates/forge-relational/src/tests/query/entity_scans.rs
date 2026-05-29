@@ -1,19 +1,20 @@
 use crate::facade::identity::EntityId;
-use crate::facade::runtime::EntityRecordProjection;
+use crate::facade::runtime::{EntityProjectionRecord, EntityRecordProjection};
 use crate::tests::support::*;
+use forge_foundational::facade::{AspectValue, InternedString};
 use std::sync::OnceLock;
 
 fn entity_name_aspects() -> &'static [AspectKey] {
     static ASPECTS: OnceLock<Vec<AspectKey>> = OnceLock::new();
     ASPECTS
-        .get_or_init(|| vec![AspectKey(InternedString::Raw("name".to_string()))])
+        .get_or_init(|| vec![AspectKey::new("name").unwrap()])
         .as_slice()
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 struct NamedEntityProjection {
     entity_id: EntityId,
-    payload: RecordPayload,
+    name: String,
 }
 
 impl EntityRecordProjection for NamedEntityProjection {
@@ -23,11 +24,22 @@ impl EntityRecordProjection for NamedEntityProjection {
         entity_name_aspects()
     }
 
-    fn from_record(record: &EntityReadRecord) -> Option<Self> {
+    fn from_record(record: EntityProjectionRecord<'_>) -> Option<Self> {
+        let AspectValue::String(name) = record.aspect_value(&AspectKey::new("name").unwrap())?
+        else {
+            return None;
+        };
         Some(Self {
-            entity_id: record.entity_id,
-            payload: record.payload.clone(),
+            entity_id: record.entity_id(),
+            name: raw_interned_string(name)?.to_string(),
         })
+    }
+}
+
+fn raw_interned_string(value: &InternedString) -> Option<&str> {
+    match value {
+        InternedString::Raw(value) => Some(value.as_str()),
+        InternedString::Symbol(_) => None,
     }
 }
 
@@ -125,8 +137,5 @@ fn entity_kind_scans_preserve_historical_partition_visibility() {
 
     assert_eq!(historical.len(), 1);
     assert_eq!(historical[0].entity_id, left);
-    assert_eq!(
-        historical[0].payload,
-        RecordPayload::StructuredJson(json!({ "name": "left" }))
-    );
+    assert_eq!(historical[0].name, "left");
 }

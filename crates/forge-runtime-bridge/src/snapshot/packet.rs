@@ -160,14 +160,14 @@ impl SnapshotReadPacket {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct SnapshotReadRecord {
     request_key: Arc<str>,
-    payload: Arc<[u8]>,
+    aspect_bytes: Arc<[u8]>,
 }
 
 impl SnapshotReadRecord {
-    pub fn new(request_key: impl Into<Arc<str>>, payload: impl Into<Arc<[u8]>>) -> Self {
+    pub fn new(request_key: impl Into<Arc<str>>, aspect_bytes: impl Into<Arc<[u8]>>) -> Self {
         Self {
             request_key: request_key.into(),
-            payload: payload.into(),
+            aspect_bytes: aspect_bytes.into(),
         }
     }
 
@@ -175,8 +175,8 @@ impl SnapshotReadRecord {
         self.request_key.as_ref()
     }
 
-    pub fn payload(&self) -> &[u8] {
-        self.payload.as_ref()
+    pub fn aspect_bytes(&self) -> &[u8] {
+        self.aspect_bytes.as_ref()
     }
 }
 

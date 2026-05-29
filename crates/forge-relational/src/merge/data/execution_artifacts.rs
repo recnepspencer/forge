@@ -1,11 +1,10 @@
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 use crate::merge::data::{
-    BoundExecutableMergeRecordPlan, ExecutableAspectPlan, MaterializedAspectValue,
-    MergeExecutableRecordProvenance,
+    merge_execution_diagnostics_digest, BoundExecutableMergeRecordPlan, ExecutableAspectPlan,
+    MaterializedAspectValue, MergeExecutableRecordProvenance,
 };
 use crate::transactions::data::RecordRef;
 
@@ -68,15 +67,6 @@ pub(crate) fn diagnostics_plan_from_record_plans(
         executed_records,
         digest,
     }
-}
-
-pub(crate) fn merge_execution_diagnostics_digest(
-    executed_records: &[ExecutedMergeRecordDiagnosticRow],
-) -> String {
-    let bytes = serde_json::to_vec(executed_records)
-        .expect("merge execution diagnostics plan serialization");
-    let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
 }
 
 fn executed_record_row(plan: &BoundExecutableMergeRecordPlan) -> ExecutedMergeRecordDiagnosticRow {

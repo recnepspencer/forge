@@ -1,25 +1,33 @@
 #![allow(dead_code)]
 
+mod current_snapshots;
+mod materialized_value_resolution;
+mod merge_client_keys;
+mod source_authoritative_fields;
+
+use std::collections::BTreeMap;
 use std::sync::Arc;
 
-use serde_json::{Map, Value};
+use forge_foundational::facade::AspectValue;
 
 use crate::capabilities::AspectPlanSource;
 use crate::merge::data::{
     AdoptSourceRecordPlan, BoundExecutableMergeRecordPlan, ExecutableAspectPlan,
-    MaterializedAspectValue, MaterializedAspectValuePayload, MergeExecutionMutationPlanError,
-    PreparedMergeExecution, ReconcileRecordPlan,
+    MergeExecutionMutationPlanError, PreparedMergeExecution, ReconcileRecordPlan,
 };
-use crate::merge::logic::naming::resolve_interned_string;
-use crate::payloads::data::RecordPayload;
-use crate::schema::data::{LoweredAspectBinding, LoweredExecutableAspectBindingKind};
-use crate::storage::data::{EntityReadRecord, RelationReadRecord};
-use crate::storage::overlay::PartitionAccess;
-use crate::symbols::data::InternedString;
+use crate::storage::data::EntityReadRecord;
+use crate::transactions::data::{AspectFieldPatch, AspectFieldPatchTarget};
 use crate::transactions::data::{
     CreateIntent, EntityMutationIntent, EntitySpec, MergeCommitMutationPlan,
     MergeExecutionStructuralSummary, MergeExecutionSummary, MergedCommitPlan, MutationIntent,
-    RelationSpec, TransactionId, UpdateEntityIntent,
+    RelationSpec, TransactionId, UpdateEntityFieldsIntent,
+};
+
+use current_snapshots::current_entity_snapshot;
+use materialized_value_resolution::resolved_entity_field_patch_value;
+use merge_client_keys::merge_client_key;
+use source_authoritative_fields::{
+    entity_create_fields_from_authoritative_state, relation_create_fields_from_authoritative_state,
 };
 
 use super::MergeAccess;
@@ -43,12 +51,24 @@ impl<'runtime> MergeAccess<'runtime> {
             emitted_relation_create_count: 0,
             emitted_entity_update_count: 0,
         };
+        let source_head_version_id = self
+            .runtime
+            .history()
+            .commit_envelope(
+                prepared
+                    .bound_executable_plan()
+                    .authority_binding
+                    .source_head_commit_id,
+            )
+            .map(|envelope| envelope.commit.version_id)
+            .ok_or(MergeExecutionMutationPlanError::MissingSourceHeadEnvelope)?;
 
         for record_plan in prepared.bound_executable_plan().record_plans.iter() {
             match record_plan {
                 BoundExecutableMergeRecordPlan::AdoptSource(plan) => {
                     summary.adopted_source_record_count += 1;
-                    let intent = derive_source_adoption_intent(plan)?;
+                    let intent =
+                        self.derive_source_adoption_intent(plan, source_head_version_id)?;
                     match &intent {
                         MutationIntent::Create(CreateIntent::Entity(_)) => {
                             summary.emitted_entity_create_count += 1;
@@ -69,7 +89,7 @@ impl<'runtime> MergeAccess<'runtime> {
                     if let Some(intent) = self.derive_reconcile_intent(plan)? {
                         if matches!(
                             intent,
-                            MutationIntent::Entity(EntityMutationIntent::Update(_))
+                            MutationIntent::Entity(EntityMutationIntent::UpdateFields(_))
                         ) {
                             summary.emitted_entity_update_count += 1;
                         }
@@ -134,28 +154,40 @@ impl<'runtime> MergeAccess<'runtime> {
     }
 }
 
-fn derive_source_adoption_intent(
-    plan: &AdoptSourceRecordPlan,
-) -> Result<MutationIntent, MergeExecutionMutationPlanError> {
-    match &plan.source_visible_snapshot {
-        crate::merge::data::VisibleMergeRecordSnapshot::Entity(entity) => {
-            Ok(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-                partition_id: entity.entity_id.partition_id,
-                kind_id: entity.kind.kind_id,
-                client_key: merge_client_key("adopt-source-entity", &plan.source_record),
-                payload: entity.payload.clone(),
-            })))
+impl<'runtime> MergeAccess<'runtime> {
+    fn derive_source_adoption_intent(
+        &self,
+        plan: &AdoptSourceRecordPlan,
+        _source_head_version_id: crate::identity::data::VersionId,
+    ) -> Result<MutationIntent, MergeExecutionMutationPlanError> {
+        match &plan.source_visible_snapshot {
+            crate::merge::data::VisibleMergeRecordSnapshot::Entity(entity) => {
+                Ok(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                    partition_id: entity.entity_id.partition_id,
+                    kind_id: entity.kind.kind_id,
+                    client_key: merge_client_key("adopt-source-entity", &plan.source_record),
+                    fields: entity_create_fields_from_authoritative_state(
+                        self.runtime,
+                        plan,
+                        entity,
+                    )?,
+                })))
+            }
+            crate::merge::data::VisibleMergeRecordSnapshot::Relation(relation) => Ok(
+                MutationIntent::Create(CreateIntent::Relation(RelationSpec {
+                    partition_id: relation.relation_id.partition_id,
+                    kind_id: relation.kind.kind_id,
+                    client_key: merge_client_key("adopt-source-relation", &plan.source_record),
+                    source: crate::transactions::data::EntityReference::Existing(relation.source),
+                    target: crate::transactions::data::EntityReference::Existing(relation.target),
+                    fields: relation_create_fields_from_authoritative_state(
+                        self.runtime,
+                        plan,
+                        relation,
+                    )?,
+                })),
+            ),
         }
-        crate::merge::data::VisibleMergeRecordSnapshot::Relation(relation) => Ok(
-            MutationIntent::Create(CreateIntent::Relation(RelationSpec {
-                partition_id: relation.relation_id.partition_id,
-                kind_id: relation.kind.kind_id,
-                client_key: merge_client_key("adopt-source-relation", &plan.source_record),
-                source: crate::transactions::data::EntityReference::Existing(relation.source),
-                target: crate::transactions::data::EntityReference::Existing(relation.target),
-                payload: relation.payload.clone(),
-            })),
-        ),
     }
 }
 
@@ -208,18 +240,7 @@ impl<'runtime> MergeAccess<'runtime> {
                     detail: "target entity kind has no executable aspect plan",
                 },
             )?;
-        let mut payload = target_entity.payload.as_json().cloned().ok_or_else(|| {
-            MergeExecutionMutationPlanError::UnsupportedReconcileRecordKind {
-                record: plan.target_record.clone(),
-                detail: "entity reconcile requires structured json payload",
-            }
-        })?;
-        let object = payload.as_object_mut().ok_or_else(|| {
-            MergeExecutionMutationPlanError::UnsupportedReconcileRecordKind {
-                record: plan.target_record.clone(),
-                detail: "entity reconcile requires top-level object payload",
-            }
-        })?;
+        let mut resolved_fields = BTreeMap::<AspectFieldPatchTarget, AspectValue>::new();
 
         for aspect_plan in plan.aspect_plan.iter() {
             let ExecutableAspectPlan::ReconcileValue {
@@ -245,251 +266,27 @@ impl<'runtime> MergeAccess<'runtime> {
                     aspect_key: aspect_key.clone(),
                 }
             })?;
-            apply_entity_aspect_resolution(
-                self.runtime,
-                object,
+            if let Some((field, value)) = resolved_entity_field_patch_value(
                 plan,
                 source_entity,
                 &target_entity,
                 binding,
                 aspect_key,
                 resolved_value,
-            )?;
+            )? {
+                resolved_fields.insert(field, value);
+            }
         }
 
-        let next_payload = RecordPayload::from(payload);
-        if next_payload == target_entity.payload {
+        if resolved_fields.is_empty() {
             Ok(None)
         } else {
-            Ok(Some(MutationIntent::Entity(EntityMutationIntent::Update(
-                UpdateEntityIntent {
+            Ok(Some(MutationIntent::Entity(
+                EntityMutationIntent::UpdateFields(UpdateEntityFieldsIntent {
                     entity_id: target_entity_id,
-                    payload: next_payload,
-                },
-            ))))
+                    fields: AspectFieldPatch::from(resolved_fields),
+                }),
+            )))
         }
     }
-}
-
-fn apply_entity_aspect_resolution(
-    runtime: &crate::logic::runtime::RelationalRuntime,
-    payload: &mut Map<String, Value>,
-    plan: &ReconcileRecordPlan,
-    source_entity: &EntityReadRecord,
-    target_entity: &EntityReadRecord,
-    binding: &LoweredAspectBinding,
-    aspect_key: &crate::publication::patch::data::AspectKey,
-    resolved_value: &MaterializedAspectValue,
-) -> Result<(), MergeExecutionMutationPlanError> {
-    match &binding.binding_kind {
-        LoweredExecutableAspectBindingKind::EntityJsonScalarField { field } => {
-            let field_name = interned_field_name(runtime, field).ok_or_else(|| {
-                MergeExecutionMutationPlanError::UnsupportedAspectMutationMaterialization {
-                    record: plan.target_record.clone(),
-                    aspect_key: aspect_key.clone(),
-                    detail: "entity json field binding could not be resolved",
-                }
-            })?;
-            let resolved_json = resolve_materialized_json_value(
-                runtime,
-                plan,
-                aspect_key,
-                resolved_value,
-                source_entity,
-                target_entity,
-            )?;
-            payload.insert(field_name.to_string(), resolved_json);
-            Ok(())
-        }
-        LoweredExecutableAspectBindingKind::OpaqueWholePayloadBytes => Err(
-            MergeExecutionMutationPlanError::UnsupportedAspectMutationMaterialization {
-                record: plan.target_record.clone(),
-                aspect_key: aspect_key.clone(),
-                detail: "opaque entity payload reconcile is not executable through update intents",
-            },
-        ),
-        LoweredExecutableAspectBindingKind::LifecycleTransitionEquality => Err(
-            MergeExecutionMutationPlanError::UnsupportedAspectMutationMaterialization {
-                record: plan.target_record.clone(),
-                aspect_key: aspect_key.clone(),
-                detail: "lifecycle reconcile is not executable through entity update intents",
-            },
-        ),
-        LoweredExecutableAspectBindingKind::RelationJsonScalarField { .. }
-        | LoweredExecutableAspectBindingKind::RelationSourceEndpointIdentity
-        | LoweredExecutableAspectBindingKind::RelationTargetEndpointIdentity => Err(
-            MergeExecutionMutationPlanError::UnsupportedAspectMutationMaterialization {
-                record: plan.target_record.clone(),
-                aspect_key: aspect_key.clone(),
-                detail: "relation-scoped aspect binding is not executable for entity reconcile",
-            },
-        ),
-    }
-}
-
-fn resolve_materialized_json_value(
-    runtime: &crate::logic::runtime::RelationalRuntime,
-    plan: &ReconcileRecordPlan,
-    aspect_key: &crate::publication::patch::data::AspectKey,
-    value: &MaterializedAspectValue,
-    source_entity: &EntityReadRecord,
-    target_entity: &EntityReadRecord,
-) -> Result<Value, MergeExecutionMutationPlanError> {
-    match &value.payload {
-        MaterializedAspectValuePayload::VisibleAspectReference {
-            side,
-            record,
-            aspect_key: reference_key,
-        } => {
-            if reference_key != aspect_key {
-                return Err(
-                    MergeExecutionMutationPlanError::InvalidVisibleAspectReference {
-                        record: plan.target_record.clone(),
-                        aspect_key: aspect_key.clone(),
-                        detail:
-                            "resolved aspect reference key does not match executable aspect key",
-                    },
-                );
-            }
-            match side {
-                crate::merge::data::MergeValueSourceSide::Source => {
-                    if *record != plan.source_record {
-                        return Err(MergeExecutionMutationPlanError::InvalidVisibleAspectReference {
-                            record: plan.target_record.clone(),
-                            aspect_key: aspect_key.clone(),
-                            detail: "resolved source aspect reference points at a different source record",
-                        });
-                    }
-                    source_entity
-                        .payload
-                        .as_json()
-                        .and_then(|json| json.get(aspect_key_name(runtime, aspect_key)?.as_ref()))
-                        .cloned()
-                        .ok_or_else(|| MergeExecutionMutationPlanError::InvalidVisibleAspectReference {
-                            record: plan.target_record.clone(),
-                            aspect_key: aspect_key.clone(),
-                            detail: "resolved source aspect reference is missing from source payload",
-                        })
-                }
-                crate::merge::data::MergeValueSourceSide::Target => {
-                    if *record != plan.target_record {
-                        return Err(MergeExecutionMutationPlanError::InvalidVisibleAspectReference {
-                            record: plan.target_record.clone(),
-                            aspect_key: aspect_key.clone(),
-                            detail: "resolved target aspect reference points at a different target record",
-                        });
-                    }
-                    target_entity
-                        .payload
-                        .as_json()
-                        .and_then(|json| json.get(aspect_key_name(runtime, aspect_key)?.as_ref()))
-                        .cloned()
-                        .ok_or_else(|| MergeExecutionMutationPlanError::InvalidVisibleAspectReference {
-                            record: plan.target_record.clone(),
-                            aspect_key: aspect_key.clone(),
-                            detail: "resolved target aspect reference is missing from target payload",
-                        })
-                }
-                crate::merge::data::MergeValueSourceSide::Base => Err(
-                    MergeExecutionMutationPlanError::UnsupportedAspectMutationMaterialization {
-                        record: plan.target_record.clone(),
-                        aspect_key: aspect_key.clone(),
-                        detail: "base-bound resolved values are not executable in phase D",
-                    },
-                ),
-            }
-        }
-        MaterializedAspectValuePayload::EqualityWitnessDigest(_) => Err(
-            MergeExecutionMutationPlanError::UnsupportedAspectMutationMaterialization {
-                record: plan.target_record.clone(),
-                aspect_key: aspect_key.clone(),
-                detail: "digest-only equality witnesses cannot be lowered into payload mutation",
-            },
-        ),
-        MaterializedAspectValuePayload::InlineCanonicalJson(value) => Ok(value.clone()),
-    }
-}
-
-fn current_entity_snapshot(
-    runtime: &crate::logic::runtime::RelationalRuntime,
-    entity_id: crate::identity::data::EntityId,
-) -> Option<EntityReadRecord> {
-    let current_state = runtime.storage_access().current_state();
-    let partition = current_state.get_partition(entity_id.partition_id)?;
-    let slot = partition.entity_arena.get(&entity_id)?;
-    let kind_id = slot.kind_id()?;
-    let kind = runtime
-        .config
-        .schema
-        .registry
-        .resolve_entity(kind_id)
-        .ok()?;
-    Some(EntityReadRecord {
-        entity_id,
-        lineage_id: None,
-        kind,
-        lifecycle: slot.lifecycle(),
-        created_at_version: partition.entity_arena.created_at[entity_id.local_slot.0 as usize],
-        retired_at_version: slot.retired_at(),
-        payload: slot.payload()?.clone(),
-    })
-}
-
-#[allow(dead_code)]
-fn current_relation_snapshot(
-    runtime: &crate::logic::runtime::RelationalRuntime,
-    relation_id: crate::identity::data::RelationId,
-) -> Option<RelationReadRecord> {
-    let current_state = runtime.storage_access().current_state();
-    let partition = current_state.get_partition(relation_id.partition_id)?;
-    let slot = partition.relation_arena.get(&relation_id)?;
-    let kind_id = slot.kind_id()?;
-    let endpoints = slot.extra().as_ref()?;
-    let kind = runtime
-        .config
-        .schema
-        .registry
-        .resolve_relation(kind_id)
-        .ok()?;
-    Some(RelationReadRecord {
-        relation_id,
-        kind,
-        lifecycle: slot.lifecycle(),
-        created_at_version: partition.relation_arena.created_at[relation_id.local_slot.0 as usize],
-        retired_at_version: slot.retired_at(),
-        source: endpoints.source,
-        target: endpoints.target,
-        payload: slot.payload().cloned(),
-    })
-}
-
-fn merge_client_key(prefix: &str, record: &crate::transactions::data::RecordRef) -> InternedString {
-    let suffix = match record {
-        crate::transactions::data::RecordRef::Entity(entity_id) => format!(
-            "entity-{}-{}-{}",
-            entity_id.partition_id.0, entity_id.local_slot.0, entity_id.generation.0
-        ),
-        crate::transactions::data::RecordRef::Relation(relation_id) => format!(
-            "relation-{}-{}-{}",
-            relation_id.partition_id.0, relation_id.local_slot.0, relation_id.generation.0
-        ),
-    };
-    InternedString::Raw(format!("{prefix}-{suffix}"))
-}
-
-fn aspect_key_name<'a>(
-    runtime: &'a crate::logic::runtime::RelationalRuntime,
-    aspect_key: &'a crate::publication::patch::data::AspectKey,
-) -> Option<std::borrow::Cow<'a, str>> {
-    resolve_interned_string(runtime, &aspect_key.0)
-}
-
-fn interned_field_name<'a>(
-    runtime: &'a crate::logic::runtime::RelationalRuntime,
-    field: &'a InternedString,
-) -> Option<&'a str> {
-    resolve_interned_string(runtime, field).map(|field_name| match field_name {
-        std::borrow::Cow::Borrowed(name) => name,
-        std::borrow::Cow::Owned(_) => unreachable!("interned merge field names never allocate"),
-    })
 }

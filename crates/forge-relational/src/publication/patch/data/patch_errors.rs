@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 pub enum PatchStreamReadErrorClass {
     UnknownResumePosition,
     InvalidBatchSize,
+    RetainedHistoryGap,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

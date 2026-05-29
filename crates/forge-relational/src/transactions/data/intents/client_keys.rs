@@ -1,6 +1,6 @@
 use std::collections::BTreeSet;
 
-use crate::symbols::data::{InternedString, StringInterner, SymbolPolicy};
+use crate::symbols::data::{ClientKey, ClientKeySymbolPolicy, StringInterner};
 
 use super::{CreateIntent, EntityMutationIntent, MutationIntent, RelationMutationIntent};
 use crate::transactions::data::EntityReference;
@@ -9,8 +9,8 @@ impl MutationIntent {
     pub(crate) fn collect_raw_client_keys(&self, raw_values: &mut BTreeSet<String>) {
         match self {
             Self::Create(CreateIntent::Entity(spec)) => {
-                if let InternedString::Raw(raw) = &spec.client_key {
-                    raw_values.insert(raw.clone());
+                if let Some(raw) = spec.client_key.as_raw_str() {
+                    raw_values.insert(raw.to_string());
                 }
             }
             Self::Create(CreateIntent::BulkEntities(spec)) => {
@@ -24,15 +24,15 @@ impl MutationIntent {
                 }
             }
             Self::Create(CreateIntent::Relation(spec)) => {
-                if let InternedString::Raw(raw) = &spec.client_key {
-                    raw_values.insert(raw.clone());
+                if let Some(raw) = spec.client_key.as_raw_str() {
+                    raw_values.insert(raw.to_string());
                 }
                 collect_entity_reference_raw_client_key(&spec.source, raw_values);
                 collect_entity_reference_raw_client_key(&spec.target, raw_values);
             }
             Self::Entity(EntityMutationIntent::Replace(spec)) => {
-                if let InternedString::Raw(raw) = &spec.replacement.client_key {
-                    raw_values.insert(raw.clone());
+                if let Some(raw) = spec.replacement.client_key.as_raw_str() {
+                    raw_values.insert(raw.to_string());
                 }
             }
             Self::Relation(RelationMutationIntent::UpdateEndpoints(spec)) => {
@@ -46,12 +46,11 @@ impl MutationIntent {
     pub(crate) fn normalize_client_keys(
         &mut self,
         interner: &mut StringInterner,
-        policy: SymbolPolicy,
+        policy: ClientKeySymbolPolicy,
     ) {
         match self {
             Self::Create(CreateIntent::Entity(spec)) => {
-                spec.client_key =
-                    normalize_interned_string(interner, policy, spec.client_key.clone());
+                spec.client_key = normalize_client_key(interner, policy, spec.client_key.clone());
             }
             Self::Create(CreateIntent::BulkEntities(spec)) => {
                 normalize_bulk_client_keys(&mut spec.client_keys, interner, policy);
@@ -64,17 +63,13 @@ impl MutationIntent {
                 }
             }
             Self::Create(CreateIntent::Relation(spec)) => {
-                spec.client_key =
-                    normalize_interned_string(interner, policy, spec.client_key.clone());
+                spec.client_key = normalize_client_key(interner, policy, spec.client_key.clone());
                 normalize_entity_reference_client_key(&mut spec.source, interner, policy);
                 normalize_entity_reference_client_key(&mut spec.target, interner, policy);
             }
             Self::Entity(EntityMutationIntent::Replace(spec)) => {
-                spec.replacement.client_key = normalize_interned_string(
-                    interner,
-                    policy,
-                    spec.replacement.client_key.clone(),
-                );
+                spec.replacement.client_key =
+                    normalize_client_key(interner, policy, spec.replacement.client_key.clone());
             }
             Self::Relation(RelationMutationIntent::UpdateEndpoints(spec)) => {
                 normalize_entity_reference_client_key(&mut spec.source, interner, policy);
@@ -85,21 +80,21 @@ impl MutationIntent {
     }
 }
 
-fn collect_bulk_raw_client_keys(client_keys: &[InternedString], raw_values: &mut BTreeSet<String>) {
+fn collect_bulk_raw_client_keys(client_keys: &[ClientKey], raw_values: &mut BTreeSet<String>) {
     for client_key in client_keys {
-        if let InternedString::Raw(raw) = client_key {
-            raw_values.insert(raw.clone());
+        if let Some(raw) = client_key.as_raw_str() {
+            raw_values.insert(raw.to_string());
         }
     }
 }
 
 fn normalize_bulk_client_keys(
-    client_keys: &mut [InternedString],
+    client_keys: &mut [ClientKey],
     interner: &mut StringInterner,
-    policy: SymbolPolicy,
+    policy: ClientKeySymbolPolicy,
 ) {
     for client_key in client_keys {
-        *client_key = normalize_interned_string(interner, policy, client_key.clone());
+        *client_key = normalize_client_key(interner, policy, client_key.clone());
     }
 }
 
@@ -108,8 +103,8 @@ fn collect_entity_reference_raw_client_key(
     raw_values: &mut BTreeSet<String>,
 ) {
     if let EntityReference::Created(created) = entity_reference {
-        if let InternedString::Raw(raw) = &created.client_key {
-            raw_values.insert(raw.clone());
+        if let Some(raw) = created.client_key.as_raw_str() {
+            raw_values.insert(raw.to_string());
         }
     }
 }
@@ -117,21 +112,17 @@ fn collect_entity_reference_raw_client_key(
 fn normalize_entity_reference_client_key(
     entity_reference: &mut EntityReference,
     interner: &mut StringInterner,
-    policy: SymbolPolicy,
+    policy: ClientKeySymbolPolicy,
 ) {
     if let EntityReference::Created(created) = entity_reference {
-        created.client_key =
-            normalize_interned_string(interner, policy, created.client_key.clone());
+        created.client_key = normalize_client_key(interner, policy, created.client_key.clone());
     }
 }
 
-fn normalize_interned_string(
+fn normalize_client_key(
     interner: &mut StringInterner,
-    policy: SymbolPolicy,
-    value: InternedString,
-) -> InternedString {
-    match policy {
-        SymbolPolicy::Disabled => value,
-        SymbolPolicy::PreferInterned | SymbolPolicy::RequireInterned => interner.normalize(value),
-    }
+    policy: ClientKeySymbolPolicy,
+    value: ClientKey,
+) -> ClientKey {
+    value.normalize_with(interner, policy)
 }

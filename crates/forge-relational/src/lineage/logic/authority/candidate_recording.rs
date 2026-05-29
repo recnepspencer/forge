@@ -1,11 +1,10 @@
-use serde_json::json;
-
 use crate::diagnostics::data::{
     DiagnosticCode, DiagnosticsArtifactKind, DiagnosticsScope, RelationalDiagnosticsEntry,
 };
 use crate::history::data::BranchId;
 use crate::identity::data::LineageId;
 use crate::lineage::data::CorrespondenceCandidate;
+use crate::lineage::logic::authority::diagnostic_fields::candidate_recorded_fields;
 use crate::lineage::logic::authority::LineageAuthority;
 
 impl<'runtime> LineageAuthority<'runtime> {
@@ -32,14 +31,11 @@ impl<'runtime> LineageAuthority<'runtime> {
             .push_bounded_diagnostic(
                 DiagnosticsScope::Lineage,
                 DiagnosticsArtifactKind::MinimalSummary,
-                vec![RelationalDiagnosticsEntry {
-                    code: DiagnosticCode::LineageCandidateRecorded,
-                    message: "correspondence candidate recorded".to_string(),
-                    fields: json!({
-                        "candidate_id": candidate.candidate_id,
-                        "branch_id": branch_id.0,
-                    }),
-                }],
+                vec![RelationalDiagnosticsEntry::new(
+                    DiagnosticCode::LineageCandidateRecorded,
+                    "correspondence candidate recorded",
+                    candidate_recorded_fields(candidate.candidate_id, &branch_id),
+                )],
             );
         candidate
     }

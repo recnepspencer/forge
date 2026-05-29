@@ -3,8 +3,9 @@ use std::collections::BTreeMap;
 use serde_json::{json, Value};
 
 use crate::facade::identity::VersionId;
-use crate::facade::payloads::RecordPayload;
+use crate::facade::runtime::EntityReadRecord;
 use crate::facade::snapshots::SnapshotHandle;
+use crate::tests::support::read_entity_field;
 
 use super::super::fixture::{FintechCaseRole, FintechWorld};
 
@@ -56,36 +57,28 @@ pub(crate) fn read_snapshot_probe(
         corrected_trade_count: result
             .entities
             .iter()
-            .filter(|entity| {
-                payload_has(&entity.payload, "corrected", |value| {
-                    value.as_bool() == Some(true)
-                })
-            })
+            .filter(|entity| field_is(entity, "corrected", "true"))
             .count(),
         repaired_settlement_count: result
             .entities
             .iter()
             .filter(|entity| {
-                payload_type_is(&entity.payload, "settlement")
-                    && payload_has(&entity.payload, "status", |value| {
-                        value.as_str() == Some("repaired")
-                    })
+                field_is(entity, "entity_type", "settlement")
+                    && field_is(entity, "status", "repaired")
             })
             .count(),
         open_breach_count: result
             .entities
             .iter()
             .filter(|entity| {
-                payload_type_is(&entity.payload, "limit_breach")
-                    && payload_has(&entity.payload, "status", |value| {
-                        value.as_str() == Some("open")
-                    })
+                field_is(entity, "entity_type", "limit_breach")
+                    && field_is(entity, "status", "open")
             })
             .count(),
         audit_record_count: result
             .entities
             .iter()
-            .filter(|entity| payload_type_is(&entity.payload, "audit_record"))
+            .filter(|entity| field_is(entity, "entity_type", "audit_record"))
             .count(),
         payload_fingerprints: result
             .entities
@@ -94,7 +87,8 @@ pub(crate) fn read_snapshot_probe(
             .map(|(idx, entity)| {
                 (
                     format!("entity-{idx}"),
-                    serde_json::to_value(&entity.payload).unwrap_or_else(|_| json!(null)),
+                    serde_json::to_value(&entity.authoritative_aspect_state)
+                        .unwrap_or_else(|_| json!(null)),
                 )
             })
             .collect(),
@@ -134,33 +128,25 @@ pub(crate) fn read_version_probe(
         relation_count: relations.len(),
         corrected_trade_count: entities
             .iter()
-            .filter(|entity| {
-                payload_has(&entity.payload, "corrected", |value| {
-                    value.as_bool() == Some(true)
-                })
-            })
+            .filter(|entity| field_is(entity, "corrected", "true"))
             .count(),
         repaired_settlement_count: entities
             .iter()
             .filter(|entity| {
-                payload_type_is(&entity.payload, "settlement")
-                    && payload_has(&entity.payload, "status", |value| {
-                        value.as_str() == Some("repaired")
-                    })
+                field_is(entity, "entity_type", "settlement")
+                    && field_is(entity, "status", "repaired")
             })
             .count(),
         open_breach_count: entities
             .iter()
             .filter(|entity| {
-                payload_type_is(&entity.payload, "limit_breach")
-                    && payload_has(&entity.payload, "status", |value| {
-                        value.as_str() == Some("open")
-                    })
+                field_is(entity, "entity_type", "limit_breach")
+                    && field_is(entity, "status", "open")
             })
             .count(),
         audit_record_count: entities
             .iter()
-            .filter(|entity| payload_type_is(&entity.payload, "audit_record"))
+            .filter(|entity| field_is(entity, "entity_type", "audit_record"))
             .count(),
         payload_fingerprints: entities
             .iter()
@@ -168,22 +154,14 @@ pub(crate) fn read_version_probe(
             .map(|(idx, entity)| {
                 (
                     format!("entity-{idx}"),
-                    serde_json::to_value(&entity.payload).unwrap_or_else(|_| json!(null)),
+                    serde_json::to_value(&entity.authoritative_aspect_state)
+                        .unwrap_or_else(|_| json!(null)),
                 )
             })
             .collect(),
     }
 }
 
-fn payload_has(payload: &RecordPayload, key: &str, predicate: impl Fn(&Value) -> bool) -> bool {
-    match payload {
-        RecordPayload::StructuredJson(value) => value.get(key).is_some_and(predicate),
-        _ => false,
-    }
-}
-
-fn payload_type_is(payload: &RecordPayload, expected: &str) -> bool {
-    payload_has(payload, "entity_type", |value| {
-        value.as_str() == Some(expected)
-    })
+fn field_is(entity: &EntityReadRecord, field: &str, expected: &str) -> bool {
+    read_entity_field(entity, field) == Some(expected)
 }

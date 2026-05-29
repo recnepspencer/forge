@@ -9,10 +9,11 @@ use crate::projection_consumption::{
     ProjectionConsumptionBindingContext, ProjectionConsumptionDeclaration,
     ProjectionConsumptionEligibility, ProjectionConsumptionSource,
 };
+use forge_foundational::facade::AspectValue;
 use forge_relational::facade::grouped_truth::{
-    materialize_relational_authoritative_row_set, project_relational_grouped_truth,
-    GroupedProjectionContract, RelationalAuthoritativeRowSetArtifact,
-    RelationalGroupedProjectionArtifact,
+    encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
+    project_relational_grouped_truth, GroupedProjectionContract,
+    RelationalAuthoritativeRowSetArtifact, RelationalGroupedProjectionArtifact,
 };
 use forge_runtime_bridge::facade::{
     SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest,
@@ -270,7 +271,8 @@ fn control_authorized_projection(visible_fields: &[&str]) -> AuthorizedProjectio
 pub fn certification_grouped_projection(row_count: usize) -> RelationalGroupedProjectionArtifact {
     project_relational_grouped_truth(
         &certification_row_set(row_count),
-        GroupedProjectionContract::new("status", "identity.id", "status.lane"),
+        GroupedProjectionContract::new("status", "identity.id", "status.lane")
+            .expect("grouped projection contract should use valid aspect keys"),
     )
     .expect("grouped projection certification fixture")
 }
@@ -301,19 +303,19 @@ pub fn certification_row_set(row_count: usize) -> RelationalAuthoritativeRowSetA
         ));
         records.push(SnapshotReadRecord::new(
             format!("{entity}:identity.id"),
-            task.into_bytes(),
+            aspect_bytes(AspectValue::String(task.into())),
         ));
         records.push(SnapshotReadRecord::new(
             format!("{entity}:status.lane"),
-            lane.as_bytes().to_vec(),
+            aspect_bytes(AspectValue::String(lane.into())),
         ));
         records.push(SnapshotReadRecord::new(
             format!("{entity}:profile.display_name"),
-            name.into_bytes(),
+            aspect_bytes(AspectValue::String(name.into())),
         ));
         records.push(SnapshotReadRecord::new(
             format!("{entity}:metrics.priority"),
-            serde_json::to_vec(&(index + 1)).expect("priority json"),
+            aspect_bytes(AspectValue::UInt64((index + 1) as u64)),
         ));
     }
     materialize_relational_authoritative_row_set(
@@ -324,6 +326,10 @@ pub fn certification_row_set(row_count: usize) -> RelationalAuthoritativeRowSetA
         ),
     )
     .expect("row set certification fixture")
+}
+
+fn aspect_bytes(value: AspectValue) -> Vec<u8> {
+    encode_snapshot_aspect_read_value(&value).expect("certification aspect value bytes")
 }
 
 pub(crate) fn intent_admission_admitted_projection_declaration() -> ProjectionConsumptionDeclaration

@@ -18,8 +18,7 @@ use crate::facade::transactions::{
 use crate::tests::harness::fixtures::runtime::{build_runtime, RuntimeHarnessMode};
 use crate::tests::support::{
     checkpoint_for_schema_version, create_entity_in_partition, create_relation_in_partition,
-    test_schema_registry, update_entity_on_branch, InternedString, KindId, RecordPayload,
-    SchemaVersionId,
+    test_schema_registry, update_entity_on_branch, KindId, SchemaVersionId,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -113,7 +112,12 @@ pub(crate) fn run_seeded_scenario(config: SeededScenarioConfig) -> SeededScenari
         create_entity_in_partition(&mut runtime, "seed-center", PartitionId(29)),
     ];
     let baseline_checkpoint = checkpoint_for_schema_version(
-        runtime.publication().latest_patch().unwrap().position,
+        runtime
+            .publication()
+            .artifacts()
+            .latest_patch()
+            .unwrap()
+            .position,
         SchemaVersionId(1),
     );
     let mut checkpoints = vec![baseline_checkpoint.clone()];
@@ -174,7 +178,12 @@ pub(crate) fn run_seeded_scenario(config: SeededScenarioConfig) -> SeededScenari
             operations.push(ScenarioOperation::RunRetentionPass);
         }
 
-        let latest_position = runtime.publication().latest_patch().unwrap().position;
+        let latest_position = runtime
+            .publication()
+            .artifacts()
+            .latest_patch()
+            .unwrap()
+            .position;
         if latest_position.0 > checkpoints.last().unwrap().position().0
             && latest_position.0 as usize % config.checkpoint_stride == 0
         {
@@ -185,7 +194,12 @@ pub(crate) fn run_seeded_scenario(config: SeededScenarioConfig) -> SeededScenari
         }
     }
 
-    let latest_position = runtime.publication().latest_patch().unwrap().position;
+    let latest_position = runtime
+        .publication()
+        .artifacts()
+        .latest_patch()
+        .unwrap()
+        .position;
     if checkpoints
         .last()
         .map(|checkpoint| checkpoint.position() != latest_position)
@@ -219,7 +233,12 @@ pub(crate) fn run_property_scenario(
         create_entity_in_partition(&mut runtime, "property-center", PartitionId(29)),
     ];
     let baseline_checkpoint = checkpoint_for_schema_version(
-        runtime.publication().latest_patch().unwrap().position,
+        runtime
+            .publication()
+            .artifacts()
+            .latest_patch()
+            .unwrap()
+            .position,
         SchemaVersionId(1),
     );
     let mut checkpoints = vec![baseline_checkpoint.clone()];
@@ -242,7 +261,12 @@ pub(crate) fn run_property_scenario(
             step,
             operation,
         );
-        let latest_position = runtime.publication().latest_patch().unwrap().position;
+        let latest_position = runtime
+            .publication()
+            .artifacts()
+            .latest_patch()
+            .unwrap()
+            .position;
         if latest_position.0 > checkpoints.last().unwrap().position().0 {
             checkpoints.push(checkpoint_for_schema_version(
                 latest_position,
@@ -381,12 +405,13 @@ fn apply_operation(
                         replacement: crate::transactions::data::EntitySpec {
                             partition_id: *partition,
                             kind_id: KindId(1),
-                            client_key: InternedString::Raw(format!(
+                            client_key: crate::symbols::data::ClientKey::raw(format!(
                                 "replace-{seed}-{step}-{name_counter}"
                             )),
-                            payload: RecordPayload::StructuredJson(
-                                serde_json::json!({ "name": name }),
-                            ),
+                            fields:
+                                crate::tests::support::aspect_field_patch_from_compatibility_json(
+                                    serde_json::json!({ "name": name }),
+                                ),
                         },
                     }),
                 )),

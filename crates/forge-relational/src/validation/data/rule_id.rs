@@ -14,7 +14,7 @@ pub enum NativeInvariantRuleId {
     MaxMergedIntents,
     RelationIntegrityScopeBudget,
     MaxSnapshotEntities,
-    UniqueEntityPayloadField,
+    UniqueEntityField,
     EndpointKindContract,
     CardinalityMaximumContract,
     CardinalityMinimumContract,
@@ -22,7 +22,6 @@ pub enum NativeInvariantRuleId {
     SymmetryContract,
     EndpointDeletionIntegrityContract,
     AcyclicityContract,
-    PayloadSchemaContract,
     PartitionIsolationContract,
     ConnectivityMinimumContract,
 }

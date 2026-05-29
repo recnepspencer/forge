@@ -27,6 +27,17 @@ pub enum PreparationFallbackReason {
     ProfitabilityThreshold,
 }
 
+impl PreparationFallbackReason {
+    pub const fn diagnostic_label(self) -> &'static str {
+        match self {
+            Self::ExecutionModelSerial => "execution_model_serial",
+            Self::ProofRequiresSerial => "proof_requires_serial",
+            Self::InsufficientPacketBreadth => "insufficient_packet_breadth",
+            Self::ProfitabilityThreshold => "profitability_threshold",
+        }
+    }
+}
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PreparationStrategy {
     pub(crate) parallel_legality: ParallelLegality,

@@ -1,36 +1,34 @@
 use crate::publication::patch::data::{
-    CanonicalAspectSet, PatchCompatibilityClass, PatchDetail, PatchOrdering, PatchPublicationMode,
-    PatchStreamPosition, RecordStructuralChange,
+    AspectKey, CanonicalAspectSet, PatchDetail, PatchOrdering, PatchPublicationMode,
+    PatchStreamPosition, PublishedAuthoritativePatch, RecordStructuralChange,
 };
 use crate::transactions::data::RecordRef;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PatchRecordKind {
-    Created,
-    Updated,
-    Deleted,
-    RetainedForAudit,
-}
-
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PatchRecord {
-    pub kind: PatchRecordKind,
     pub target: RecordRef,
     pub structural_change: RecordStructuralChange,
-    pub aspects: CanonicalAspectSet,
-    pub contains_degraded_precision: bool,
+    pub authoritative_patch: PublishedAuthoritativePatch,
+    pub contains_opaque_aspect: bool,
     pub detail: PatchDetail,
 }
 
 impl PatchRecord {
+    pub fn authoritative_changed_aspect_keys(&self) -> impl Iterator<Item = &AspectKey> {
+        self.authoritative_patch.changed_aspect_keys()
+    }
+
+    pub fn authoritative_changed_aspects(&self) -> CanonicalAspectSet {
+        self.authoritative_patch.changed_aspects()
+    }
+
     pub fn canonicalized(&self) -> Self {
         Self {
-            kind: self.kind.clone(),
             target: self.target.clone(),
             structural_change: self.structural_change,
-            aspects: self.aspects.clone(),
-            contains_degraded_precision: self.contains_degraded_precision,
+            authoritative_patch: self.authoritative_patch.canonicalized(),
+            contains_opaque_aspect: self.contains_opaque_aspect,
             detail: self.detail.canonicalized(),
         }
     }
@@ -41,7 +39,6 @@ pub struct RelationalPatchRecord {
     pub ordering: PatchOrdering,
     pub publication_mode: PatchPublicationMode,
     pub position: PatchStreamPosition,
-    pub compatibility: PatchCompatibilityClass,
     pub records: Vec<PatchRecord>,
 }
 
@@ -51,7 +48,6 @@ impl RelationalPatchRecord {
             ordering: self.ordering,
             publication_mode: self.publication_mode,
             position: self.position,
-            compatibility: self.compatibility,
             records: self
                 .records
                 .iter()

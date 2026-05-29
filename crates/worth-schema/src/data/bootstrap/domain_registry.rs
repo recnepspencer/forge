@@ -1,7 +1,6 @@
 use forge_relational::facade::config::{CascadeDeletePolicy, CrossContextPolicy};
 use forge_relational::facade::schema::{
-    EntityKindRegistration, RelationKindRegistration, RelationPayloadClass,
-    RelationalSchemaRegistry, SchemaRegistryError,
+    EntityKindRegistration, RelationKindRegistration, RelationalSchemaRegistry, SchemaRegistryError,
 };
 
 use crate::data::bootstrap::entity_aspects::entity_aspects;
@@ -34,7 +33,6 @@ pub fn register_topology_schema(
             kind_name: kind.kind_name().to_string(),
             schema_id: schema_id(),
             schema_version_id: schema_version_id(),
-            payload_class: RelationPayloadClass::TopologyOnlyRelation,
             cross_context_policy: CrossContextPolicy::Forbid,
             cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
             aspect_declarations: relation_aspects(kind),
@@ -64,7 +62,6 @@ pub fn register_geometry_schema(
             kind_name: kind.kind_name().to_string(),
             schema_id: schema_id(),
             schema_version_id: schema_version_id(),
-            payload_class: RelationPayloadClass::TopologyOnlyRelation,
             cross_context_policy: CrossContextPolicy::Forbid,
             cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
             aspect_declarations: relation_aspects(kind),
@@ -100,7 +97,6 @@ pub fn register_naming_schema(
             kind_name: kind.kind_name().to_string(),
             schema_id: schema_id(),
             schema_version_id: schema_version_id(),
-            payload_class: RelationPayloadClass::TopologyOnlyRelation,
             cross_context_policy: CrossContextPolicy::Forbid,
             cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
             aspect_declarations: relation_aspects(kind),
@@ -130,7 +126,6 @@ pub fn register_diagnostics_schema(
             kind_name: kind.kind_name().to_string(),
             schema_id: schema_id(),
             schema_version_id: schema_version_id(),
-            payload_class: RelationPayloadClass::TopologyOnlyRelation,
             cross_context_policy: CrossContextPolicy::Forbid,
             cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
             aspect_declarations: relation_aspects(kind),

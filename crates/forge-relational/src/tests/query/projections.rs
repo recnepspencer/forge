@@ -1,12 +1,20 @@
 use crate::facade::identity::EntityId;
-use crate::facade::runtime::EntityRecordProjection;
+use crate::facade::runtime::{EntityProjectionRecord, EntityRecordProjection};
 use crate::tests::support::*;
+use forge_foundational::facade::{AspectValue, InternedString};
 use std::sync::OnceLock;
 
 fn entity_name_aspects() -> &'static [AspectKey] {
     static ASPECTS: OnceLock<Vec<AspectKey>> = OnceLock::new();
     ASPECTS
-        .get_or_init(|| vec![AspectKey(InternedString::Raw("name".to_string()))])
+        .get_or_init(|| vec![AspectKey::new("name").unwrap()])
+        .as_slice()
+}
+
+fn undeclared_projection_aspects() -> &'static [AspectKey] {
+    static ASPECTS: OnceLock<Vec<AspectKey>> = OnceLock::new();
+    ASPECTS
+        .get_or_init(|| vec![AspectKey::new("undeclared_projection").unwrap()])
         .as_slice()
 }
 
@@ -23,11 +31,37 @@ impl EntityRecordProjection for NamedEntityProjection {
         entity_name_aspects()
     }
 
-    fn from_record(record: &EntityReadRecord) -> Option<Self> {
+    fn from_record(record: EntityProjectionRecord<'_>) -> Option<Self> {
+        let AspectValue::String(name) = record.aspect_value(&AspectKey::new("name").unwrap())?
+        else {
+            return None;
+        };
         Some(Self {
-            entity_id: record.entity_id,
-            name: record.payload.as_json()?.get("name")?.as_str()?.to_string(),
+            entity_id: record.entity_id(),
+            name: raw_interned_string(name)?.to_string(),
         })
+    }
+}
+
+fn raw_interned_string(value: &InternedString) -> Option<&str> {
+    match value {
+        InternedString::Raw(value) => Some(value.as_str()),
+        InternedString::Symbol(_) => None,
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+struct UndeclaredAspectProjection;
+
+impl EntityRecordProjection for UndeclaredAspectProjection {
+    const KIND: KindId = KindId(1);
+
+    fn required_aspects() -> &'static [AspectKey] {
+        undeclared_projection_aspects()
+    }
+
+    fn from_record(_record: EntityProjectionRecord<'_>) -> Option<Self> {
+        Some(Self)
     }
 }
 
@@ -82,6 +116,26 @@ fn snapshot_projection_resolves_version_without_manual_kind_scan_parameters() {
 }
 
 #[test]
+fn snapshot_projection_uses_authoritative_published_binding_version() {
+    let mut runtime =
+        runtime_with_declared_aspect_schema(CascadeDeletePolicy::CascadeDeleteRelations);
+    let created = create_entity_outcome(&mut runtime, "visible");
+    let entity = changed_entities(&created)[0];
+    let updated = update_entity(&mut runtime, entity, "updated");
+    let mut stale_handle = updated.snapshot.clone();
+    stale_handle.version_id = created.snapshot.version_id;
+
+    let projected = runtime
+        .read_truth()
+        .project_snapshot(&stale_handle)
+        .unwrap()
+        .entities::<NamedEntityProjection>();
+
+    assert_eq!(projected.len(), 1);
+    assert_eq!(projected[0].name, "updated");
+}
+
+#[test]
 fn projection_raw_record_escape_hatches_preserve_full_visible_record_sets() {
     let mut runtime = runtime_with_test_schema();
     let left = create_entity_in_partition(&mut runtime, "left", PartitionId(7));
@@ -118,5 +172,5 @@ fn projection_rejects_undeclared_required_aspects() {
     let _ = runtime
         .read_truth()
         .project_version(runtime.current_version_id())
-        .entities::<NamedEntityProjection>();
+        .entities::<UndeclaredAspectProjection>();
 }

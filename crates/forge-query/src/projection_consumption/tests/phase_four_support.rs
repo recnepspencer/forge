@@ -13,10 +13,11 @@ use crate::runtime::{
     ForgeQueryContinuityOutcomeClass, ForgeQueryMutationTargetClass, ForgeQueryReadExecutionEngine,
     ForgeQueryReadReceipt, ForgeQueryReadResult, ForgeQueryWriteReceipt,
 };
+use forge_foundational::facade::AspectValue;
 use forge_relational::facade::grouped_truth::{
-    materialize_relational_authoritative_row_set, project_relational_grouped_truth,
-    GroupedProjectionContract, RelationalAuthoritativeRowSetArtifact,
-    RelationalGroupedProjectionArtifact,
+    encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
+    project_relational_grouped_truth, GroupedProjectionContract,
+    RelationalAuthoritativeRowSetArtifact, RelationalGroupedProjectionArtifact,
 };
 use forge_runtime_bridge::facade::{
     SnapshotReadPacket, SnapshotReadPacketResult, SnapshotReadRecord, SnapshotReadRequest,
@@ -106,12 +107,30 @@ pub(super) fn relational_row_set() -> RelationalAuthoritativeRowSetArtifact {
     let result = SnapshotReadPacketResult::new(
         TruthSnapshotIdentity::new("snapshot-a"),
         vec![
-            SnapshotReadRecord::new("entity-1:identity.id", b"task-1".to_vec()),
-            SnapshotReadRecord::new("entity-1:status.lane", b"todo".to_vec()),
-            SnapshotReadRecord::new("entity-1:profile.display_name", b"Task One".to_vec()),
-            SnapshotReadRecord::new("entity-2:identity.id", b"task-2".to_vec()),
-            SnapshotReadRecord::new("entity-2:status.lane", b"doing".to_vec()),
-            SnapshotReadRecord::new("entity-2:profile.display_name", b"Task Two".to_vec()),
+            SnapshotReadRecord::new(
+                "entity-1:identity.id",
+                aspect_bytes(AspectValue::String("task-1".into())),
+            ),
+            SnapshotReadRecord::new(
+                "entity-1:status.lane",
+                aspect_bytes(AspectValue::String("todo".into())),
+            ),
+            SnapshotReadRecord::new(
+                "entity-1:profile.display_name",
+                aspect_bytes(AspectValue::String("Task One".into())),
+            ),
+            SnapshotReadRecord::new(
+                "entity-2:identity.id",
+                aspect_bytes(AspectValue::String("task-2".into())),
+            ),
+            SnapshotReadRecord::new(
+                "entity-2:status.lane",
+                aspect_bytes(AspectValue::String("doing".into())),
+            ),
+            SnapshotReadRecord::new(
+                "entity-2:profile.display_name",
+                aspect_bytes(AspectValue::String("Task Two".into())),
+            ),
         ],
     );
     materialize_relational_authoritative_row_set(&packet, &result).unwrap()
@@ -120,9 +139,14 @@ pub(super) fn relational_row_set() -> RelationalAuthoritativeRowSetArtifact {
 pub(super) fn relational_grouped_projection() -> RelationalGroupedProjectionArtifact {
     project_relational_grouped_truth(
         &relational_row_set(),
-        GroupedProjectionContract::new("status", "identity.id", "status.lane"),
+        GroupedProjectionContract::new("status", "identity.id", "status.lane")
+            .expect("grouped projection contract should use valid aspect keys"),
     )
     .expect("grouped projection")
+}
+
+fn aspect_bytes(value: AspectValue) -> Vec<u8> {
+    encode_snapshot_aspect_read_value(&value).expect("test aspect value bytes")
 }
 
 pub(super) fn write_receipt() -> ForgeQueryWriteReceipt {

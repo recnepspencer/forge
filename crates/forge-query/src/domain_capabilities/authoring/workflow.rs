@@ -112,7 +112,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
         runtime_snapshot_token: impl Into<String>,
         authority_binding_digest: impl Into<String>,
         entity_id: EntityId,
-        desired_payload: serde_json::Value,
+        desired_fields_json: serde_json::Value,
     ) -> Self {
         Self::with_runtime_and_lowering_semantics(
             ForgeQueryWorkflowContributionPosture::ConfirmationRequired,
@@ -132,7 +132,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
                 authority_binding_digest,
                 MutationLoweringInput::IntentReconciliation {
                     entity_id,
-                    desired_payload,
+                    desired_fields_json,
                 },
             ),
         )
@@ -144,7 +144,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
         preflight: ExecutionPreflightBundle,
         authority_binding_digest: impl Into<String>,
         entity_id: EntityId,
-        desired_payload: serde_json::Value,
+        desired_fields_json: serde_json::Value,
     ) -> Self {
         Self::with_runtime_and_lowering_semantics(
             ForgeQueryWorkflowContributionPosture::ConfirmationRequired,
@@ -162,7 +162,7 @@ impl ForgeQueryWorkflowContributionAuthoring {
                 authority_binding_digest,
                 MutationLoweringInput::IntentReconciliation {
                     entity_id,
-                    desired_payload,
+                    desired_fields_json,
                 },
             ),
         )

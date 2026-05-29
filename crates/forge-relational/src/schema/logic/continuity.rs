@@ -3,6 +3,8 @@ use std::cmp::Ordering;
 use std::collections::BTreeSet;
 use std::sync::Arc;
 
+use forge_foundational::FieldKey;
+
 use crate::schema::data::{
     CompatibilityObservation, DescriptorCanonicalizationVersion, DescriptorSemanticsVersion,
     FreeFormSchemaDiffIntent, HistoricalInterpretationSensitivity, LoweredSchemaTransitionPlan,
@@ -151,20 +153,20 @@ struct CanonicalSchemaDiffAtom<'a> {
 #[derive(Debug, Clone)]
 enum CanonicalSchemaDiffDetail<'a> {
     AddedField {
-        field_name: &'a str,
+        field: &'a FieldKey,
         required: bool,
         default_expression: Option<&'a str>,
     },
     RemovedField {
-        field_name: &'a str,
+        field: &'a FieldKey,
     },
     TypeChanged {
-        field_name: &'a str,
+        field: &'a FieldKey,
         from_type: &'a str,
         to_type: &'a str,
     },
     EnumDomainExpanded {
-        field_name: &'a str,
+        field: &'a FieldKey,
         added_variants: Vec<&'a str>,
     },
     InvariantContractChanged {
@@ -459,28 +461,26 @@ impl<'a> CanonicalSchemaDiffDetail<'a> {
     fn new(detail: &'a SchemaDiffDetail) -> Self {
         match detail {
             SchemaDiffDetail::AddedField {
-                field_name,
+                field,
                 required,
                 default_expression,
             } => Self::AddedField {
-                field_name: field_name.as_ref(),
+                field,
                 required: *required,
                 default_expression: default_expression.as_deref(),
             },
-            SchemaDiffDetail::RemovedField { field_name } => Self::RemovedField {
-                field_name: field_name.as_ref(),
-            },
+            SchemaDiffDetail::RemovedField { field } => Self::RemovedField { field },
             SchemaDiffDetail::TypeChanged {
-                field_name,
+                field,
                 from_type,
                 to_type,
             } => Self::TypeChanged {
-                field_name: field_name.as_ref(),
+                field,
                 from_type: from_type.as_ref(),
                 to_type: to_type.as_ref(),
             },
             SchemaDiffDetail::EnumDomainExpanded {
-                field_name,
+                field,
                 added_variants,
             } => {
                 let mut normalized_variants = added_variants
@@ -490,7 +490,7 @@ impl<'a> CanonicalSchemaDiffDetail<'a> {
                 normalized_variants.sort_unstable();
                 normalized_variants.dedup();
                 Self::EnumDomainExpanded {
-                    field_name: field_name.as_ref(),
+                    field,
                     added_variants: normalized_variants,
                 }
             }
@@ -592,28 +592,28 @@ fn detail_cmp_payload(
     match (left, right) {
         (
             CanonicalSchemaDiffDetail::AddedField {
-                field_name: lf,
+                field: lf,
                 required: lr,
                 default_expression: ld,
             },
             CanonicalSchemaDiffDetail::AddedField {
-                field_name: rf,
+                field: rf,
                 required: rr,
                 default_expression: rd,
             },
         ) => lf.cmp(rf).then_with(|| lr.cmp(rr)).then_with(|| ld.cmp(rd)),
         (
-            CanonicalSchemaDiffDetail::RemovedField { field_name: lf },
-            CanonicalSchemaDiffDetail::RemovedField { field_name: rf },
+            CanonicalSchemaDiffDetail::RemovedField { field: lf },
+            CanonicalSchemaDiffDetail::RemovedField { field: rf },
         ) => lf.cmp(rf),
         (
             CanonicalSchemaDiffDetail::TypeChanged {
-                field_name: lf,
+                field: lf,
                 from_type: lfrom,
                 to_type: lto,
             },
             CanonicalSchemaDiffDetail::TypeChanged {
-                field_name: rf,
+                field: rf,
                 from_type: rfrom,
                 to_type: rto,
             },
@@ -623,11 +623,11 @@ fn detail_cmp_payload(
             .then_with(|| lto.cmp(rto)),
         (
             CanonicalSchemaDiffDetail::EnumDomainExpanded {
-                field_name: lf,
+                field: lf,
                 added_variants: lv,
             },
             CanonicalSchemaDiffDetail::EnumDomainExpanded {
-                field_name: rf,
+                field: rf,
                 added_variants: rv,
             },
         ) => lf.cmp(rf).then_with(|| lv.cmp(rv)),
@@ -687,11 +687,11 @@ fn write_detail_to_hasher(hasher: &mut Sha256, detail: &CanonicalSchemaDiffDetai
     hasher.update([detail_sort_key(detail)]);
     match detail {
         CanonicalSchemaDiffDetail::AddedField {
-            field_name,
+            field,
             required,
             default_expression,
         } => {
-            update_tagged_bytes(hasher, field_name.as_bytes());
+            update_tagged_bytes(hasher, field.as_str().as_bytes());
             hasher.update([u8::from(*required)]);
             match default_expression {
                 Some(expr) => {
@@ -701,23 +701,23 @@ fn write_detail_to_hasher(hasher: &mut Sha256, detail: &CanonicalSchemaDiffDetai
                 None => hasher.update([0]),
             }
         }
-        CanonicalSchemaDiffDetail::RemovedField { field_name } => {
-            update_tagged_bytes(hasher, field_name.as_bytes());
+        CanonicalSchemaDiffDetail::RemovedField { field } => {
+            update_tagged_bytes(hasher, field.as_str().as_bytes());
         }
         CanonicalSchemaDiffDetail::TypeChanged {
-            field_name,
+            field,
             from_type,
             to_type,
         } => {
-            update_tagged_bytes(hasher, field_name.as_bytes());
+            update_tagged_bytes(hasher, field.as_str().as_bytes());
             update_tagged_bytes(hasher, from_type.as_bytes());
             update_tagged_bytes(hasher, to_type.as_bytes());
         }
         CanonicalSchemaDiffDetail::EnumDomainExpanded {
-            field_name,
+            field,
             added_variants,
         } => {
-            update_tagged_bytes(hasher, field_name.as_bytes());
+            update_tagged_bytes(hasher, field.as_str().as_bytes());
             hasher.update((added_variants.len() as u64).to_le_bytes());
             for variant in added_variants {
                 update_tagged_bytes(hasher, variant.as_bytes());

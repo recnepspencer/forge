@@ -1,0 +1,56 @@
+use crate::facade::harness::{FixtureEntity, FixtureRelation};
+use crate::facade::identity::PartitionId;
+use crate::facade::transactions::{CreateIntent, MutationIntent, WorkerIntentBatch};
+use crate::symbols::data::ClientKey;
+use crate::transactions::data::{EntityReference, EntitySpec, RelationSpec};
+
+use super::data::RelationalHarnessError;
+
+pub(super) fn entity_fixture_batch(entities: &[FixtureEntity]) -> WorkerIntentBatch {
+    let mut batch = WorkerIntentBatch::new("fixture");
+    for entity in entities {
+        batch
+            .intents
+            .push(MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                partition_id: PartitionId::main(),
+                kind_id: entity.kind_id,
+                client_key: ClientKey::raw(entity.client_key.clone()),
+                fields: entity.fields.clone(),
+            })));
+    }
+    batch
+}
+
+pub(super) fn relation_fixture_batch(
+    relations: &[FixtureRelation],
+    entity_ids: &[crate::identity::data::EntityId],
+) -> Result<WorkerIntentBatch, RelationalHarnessError> {
+    let mut batch = WorkerIntentBatch::new("fixture-relations");
+    for relation in relations {
+        let source = entity_ids
+            .get(relation.source_slot as usize)
+            .copied()
+            .ok_or_else(|| {
+                RelationalHarnessError("fixture relation source is missing".to_string())
+            })?;
+        let target = entity_ids
+            .get(relation.target_slot as usize)
+            .copied()
+            .ok_or_else(|| {
+                RelationalHarnessError("fixture relation target is missing".to_string())
+            })?;
+        batch
+            .intents
+            .push(MutationIntent::Create(CreateIntent::Relation(
+                RelationSpec {
+                    partition_id: PartitionId::main(),
+                    kind_id: relation.kind_id,
+                    client_key: ClientKey::raw(relation.client_key.clone()),
+                    source: EntityReference::Existing(source),
+                    target: EntityReference::Existing(target),
+                    fields: relation.fields.clone(),
+                },
+            )));
+    }
+    Ok(batch)
+}

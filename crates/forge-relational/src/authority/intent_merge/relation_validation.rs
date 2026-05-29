@@ -295,9 +295,7 @@ fn existing_relation_targets_for_source(
     let Some(source_partition) = state.get_partition(source_entity.partition_id) else {
         return false;
     };
-    let Some(outgoing_relations) = source_partition
-        .adjacency
-        .get(source_entity.local_slot.0 as usize)
+    let Some(outgoing_relations) = source_partition.adjacency.get(source_entity.slot_index())
     else {
         return false;
     };
@@ -318,7 +316,7 @@ fn existing_relation_targets_for_source(
         if relation_slot.kind_id() != Some(kind_id) {
             continue;
         }
-        let Some(endpoints) = relation_slot.extra().as_ref() else {
+        let Some(endpoints) = relation_slot.extra().endpoints.as_ref() else {
             continue;
         };
         if endpoints.source == *source_entity
@@ -349,7 +347,8 @@ mod tests {
     use crate::identity::data::{EntityId, KindId, PartitionId, RelationId, VersionId};
     use crate::logic::runtime::RuntimeInstrumentation;
     use crate::storage::logic::state::{
-        AdjacencySet, EntityArena, PartitionState, RelationArena, RelationEndpoints, WorkingState,
+        AdjacencySet, EntityArena, PartitionState, RelationArena, RelationEndpoints, RelationExtra,
+        WorkingState,
     };
     use crate::storage::substrate::{EntityRecordKind, RecordKind, SlotInit};
     use crate::transactions::facade::EntityReference;
@@ -367,21 +366,18 @@ mod tests {
         let (source_slot, source_generation, _) = entity_arena.push_slot(SlotInit {
             partition_id,
             kind_id: KindId(1),
-            payload: None,
             version_id: VersionId(1),
             extra: EntityRecordKind::empty_extra(),
         });
         let (left_slot, left_generation, _) = entity_arena.push_slot(SlotInit {
             partition_id,
             kind_id: KindId(1),
-            payload: None,
             version_id: VersionId(1),
             extra: EntityRecordKind::empty_extra(),
         });
         let (right_slot, right_generation, _) = entity_arena.push_slot(SlotInit {
             partition_id,
             kind_id: KindId(1),
-            payload: None,
             version_id: VersionId(1),
             extra: EntityRecordKind::empty_extra(),
         });
@@ -393,12 +389,14 @@ mod tests {
         let (relation_slot, relation_generation, _) = relation_arena.push_slot(SlotInit {
             partition_id,
             kind_id: KindId(9),
-            payload: None,
             version_id: VersionId(1),
-            extra: Some(RelationEndpoints {
-                source,
-                target: left,
-            }),
+            extra: RelationExtra {
+                endpoints: Some(RelationEndpoints {
+                    source,
+                    target: left,
+                }),
+                authoritative_aspect_state: None,
+            },
         });
         let relation_id = RelationId::new(partition_id, relation_slot as u64, relation_generation);
         let mut adjacency = vec![AdjacencySet::new(&adjacency_policy); 3];

@@ -142,7 +142,8 @@ fn grouped_extraction_rejects_source_identity_mismatch() {
     .bind_contract();
     let mismatched = project_relational_grouped_truth(
         &relational_row_set(),
-        GroupedProjectionContract::new("status", "identity.id", "profile.display_name"),
+        GroupedProjectionContract::new("status", "identity.id", "profile.display_name")
+            .expect("grouped projection contract should use valid aspect keys"),
     )
     .unwrap();
 

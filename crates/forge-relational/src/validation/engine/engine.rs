@@ -134,22 +134,20 @@ mod tests {
     use crate::facade::runtime::{RelationalRuntime, RelationalRuntimeApi};
     use crate::facade::schema::{
         EntityKindRegistration, KindAspectDeclarations, RelationKindRegistration,
-        RelationPayloadClass, RelationalSchemaRegistry, SchemaId, SchemaVersionId,
+        RelationalSchemaRegistry, SchemaId, SchemaVersionId,
     };
     use crate::facade::transactions::{
         CreateIntent, DeleteRelationIntent, MergedCommitPlan, MutationIntent,
         RelationMutationIntent, TransactionId,
     };
     use crate::identity::data::KindId;
-    use crate::payloads::data::RecordPayload;
     use crate::schema::data::{
         AcyclicityContractDeclaration, AllowedCycleClass, ConnectivityMinimumContractDeclaration,
         ConnectivityMinimumEnforcement, DirectedTraversalKind,
         PartitionIsolationContractDeclaration, PartitionIsolationMode,
-        PayloadFieldConstraintDeclaration, PayloadSchemaDeclaration, PayloadSchemaValueType,
         RelationIntegrityDeclarations,
     };
-    use crate::symbols::data::InternedString;
+    use crate::symbols::data::ClientKey;
     use crate::transactions::data::{
         EntitySpec, RelationSpec, TransactionOptions, WorkerIntentBatch,
     };
@@ -161,7 +159,6 @@ mod tests {
         CustomInvariantSemanticVersion, CustomInvariantVerdict, InvariantGroup, InvariantGroupSet,
         InvariantReportedRule, InvariantViolationFields,
     };
-    use serde_json::json;
 
     fn runtime_with_invariants(invariant_catalog: InvariantCatalog) -> RelationalRuntime {
         RelationalRuntimeApi::builder()
@@ -170,28 +167,14 @@ mod tests {
             .build()
     }
 
-    fn runtime_with_payload_schema_and_partition_isolation() -> RelationalRuntime {
+    fn runtime_with_partition_isolation() -> RelationalRuntime {
         let registry = RelationalSchemaRegistry::new()
             .register_entity_kind(EntityKindRegistration {
                 kind_id: KindId(1),
                 kind_name: "geom.vertex".to_string(),
                 schema_id: SchemaId("test".to_string()),
                 schema_version_id: SchemaVersionId(1),
-                aspect_declarations: KindAspectDeclarations::default().with_payload_schema(
-                    PayloadSchemaDeclaration {
-                        contract_id: "vertex_payload".into(),
-                        allowed_payload_class: crate::payloads::data::PayloadClass::StructuredJson,
-                        field_constraints: vec![
-                            PayloadFieldConstraintDeclaration::Required {
-                                field: "name".to_string(),
-                            },
-                            PayloadFieldConstraintDeclaration::Type {
-                                field: "rank".to_string(),
-                                expected: PayloadSchemaValueType::Number,
-                            },
-                        ],
-                    },
-                ),
+                aspect_declarations: KindAspectDeclarations::default(),
             })
             .and_then(|registry| {
                 registry.register_relation_kind(RelationKindRegistration {
@@ -199,7 +182,6 @@ mod tests {
                     kind_name: "geom.edge".to_string(),
                     schema_id: SchemaId("test".to_string()),
                     schema_version_id: SchemaVersionId(1),
-                    payload_class: RelationPayloadClass::PayloadBearingRelation,
                     cross_context_policy: CrossContextPolicy::AllowExplicit,
                     cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                     aspect_declarations: KindAspectDeclarations::default(),
@@ -234,7 +216,6 @@ mod tests {
                     kind_name: "geom.edge".to_string(),
                     schema_id: SchemaId("test".to_string()),
                     schema_version_id: SchemaVersionId(1),
-                    payload_class: RelationPayloadClass::TopologyOnlyRelation,
                     cross_context_policy: CrossContextPolicy::AllowExplicit,
                     cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                     aspect_declarations: KindAspectDeclarations::default(),
@@ -295,7 +276,6 @@ mod tests {
                     kind_name: "geom.constraint".to_string(),
                     schema_id: SchemaId("test".to_string()),
                     schema_version_id: SchemaVersionId(1),
-                    payload_class: RelationPayloadClass::TopologyOnlyRelation,
                     cross_context_policy: CrossContextPolicy::AllowExplicit,
                     cascade_delete_policy: CascadeDeletePolicy::CascadeDeleteRelations,
                     aspect_declarations: KindAspectDeclarations::default(),
@@ -341,14 +321,17 @@ mod tests {
         client_key: &str,
     ) -> crate::identity::data::EntityId {
         let mut txn = runtime.begin_transaction(TransactionOptions::default());
-        txn.push_batch(WorkerIntentBatch::new(format!("entity-{client_key}")).push(
-            MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-                partition_id: PartitionId::main(),
-                kind_id,
-                client_key: InternedString::Raw(client_key.to_string()),
-                payload: RecordPayload::StructuredJson(json!({ "name": client_key })),
-            })),
-        ));
+        txn.push_batch(
+            WorkerIntentBatch::new(format!("entity-{client_key}")).push(
+                MutationIntent::Create(CreateIntent::Entity(EntitySpec {
+                    partition_id: PartitionId::main(),
+                    kind_id,
+                    client_key: ClientKey::raw(client_key),
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
+                }))
+                .into(),
+            ),
+        );
         let outcome = txn.commit().expect("entity creation must succeed");
         outcome
             .changed_records
@@ -373,10 +356,10 @@ mod tests {
                 CreateIntent::Relation(RelationSpec {
                     partition_id: PartitionId::main(),
                     kind_id,
-                    client_key: InternedString::Raw(client_key.to_string()),
+                    client_key: ClientKey::raw(client_key),
                     source: crate::transactions::data::EntityReference::Existing(source),
                     target: crate::transactions::data::EntityReference::Existing(target),
-                    payload: None,
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
                 }),
             )),
         );
@@ -566,7 +549,8 @@ mod tests {
     fn engine_skips_rules_when_request_groups_do_not_intersect() {
         let runtime = runtime_with_invariants(InvariantCatalog {
             registrations: vec![InvariantRegistration::commit_boundary_blocking(
-                InvariantRule::UniqueEntityPayloadField("name".to_string()),
+                InvariantRule::unique_entity_aspect_field("name", "name")
+                    .expect("valid unique aspect field target"),
             )],
             ..InvariantCatalog::default()
         });
@@ -598,7 +582,8 @@ mod tests {
     fn engine_marks_unrelated_commit_boundary_rules_not_applicable() {
         let runtime = runtime_with_invariants(InvariantCatalog {
             registrations: vec![InvariantRegistration::commit_boundary_blocking(
-                InvariantRule::UniqueEntityPayloadField("name".to_string()),
+                InvariantRule::unique_entity_aspect_field("name", "name")
+                    .expect("valid unique aspect field target"),
             )],
             ..InvariantCatalog::default()
         });
@@ -617,111 +602,8 @@ mod tests {
     }
 
     #[test]
-    fn engine_rejects_entity_payloads_that_violate_payload_schema_contracts() {
-        let runtime = runtime_with_payload_schema_and_partition_isolation();
-        let plan = MergedCommitPlan {
-            transaction_id: TransactionId(10),
-            merged_intents: vec![MutationIntent::Create(CreateIntent::Entity(EntitySpec {
-                partition_id: PartitionId::main(),
-                kind_id: KindId(1),
-                client_key: InternedString::Raw("vertex-a".to_string()),
-                payload: RecordPayload::StructuredJson(json!({"name": "vertex-a", "rank": "bad"})),
-            }))],
-        };
-
-        let results = InvariantEngine::new(&runtime).execute(
-            InvariantExecutionRequest::from_profile_with_contract(
-                InvariantRequestProfile::CommitBoundary,
-                &runtime,
-                InvariantObservation::committed(runtime.storage_access().current_state()),
-                runtime.current_version_id(),
-                Some(&plan),
-                Some(crate::validation::data::InvariantPlanContract::from_merged_plan(&plan)),
-            ),
-        );
-
-        let failure = results
-            .results()
-            .iter()
-            .find_map(|result| match &result.verdict {
-                crate::validation::data::InvariantVerdict::Violation(violation) => Some(violation),
-                _ => None,
-            })
-            .expect("payload schema violation");
-        match &failure.fields {
-            InvariantViolationFields::PayloadSchema {
-                contract_id,
-                field,
-                failure_kind,
-                expected_type,
-                ..
-            } => {
-                assert_eq!(contract_id.as_str(), "vertex_payload");
-                assert_eq!(field, "rank");
-                assert_eq!(failure_kind, "type");
-                assert_eq!(expected_type, &Some(PayloadSchemaValueType::Number));
-            }
-            other => panic!("expected payload schema violation, got {other:?}"),
-        }
-    }
-
-    #[test]
-    fn engine_emits_multiple_payload_schema_witnesses_from_one_packet() {
-        let runtime = runtime_with_payload_schema_and_partition_isolation();
-        let plan = MergedCommitPlan {
-            transaction_id: TransactionId(10),
-            merged_intents: vec![MutationIntent::Create(CreateIntent::BulkEntities(
-                crate::transactions::data::BulkEntityCreateIntent {
-                    partition_id: PartitionId::main(),
-                    kind_id: KindId(1),
-                    client_keys: vec![
-                        InternedString::Raw("bad-a".to_string()),
-                        InternedString::Raw("bad-b".to_string()),
-                    ],
-                    payloads: vec![
-                        RecordPayload::StructuredJson(json!({"rank":"bad"})),
-                        RecordPayload::StructuredJson(json!({"rank":"also-bad"})),
-                    ],
-                },
-            ))],
-        };
-
-        let results = InvariantEngine::new(&runtime).execute(
-            InvariantExecutionRequest::from_profile_with_contract(
-                InvariantRequestProfile::CommitBoundary,
-                &runtime,
-                InvariantObservation::committed(runtime.storage_access().current_state()),
-                runtime.current_version_id(),
-                Some(&plan),
-                Some(crate::validation::data::InvariantPlanContract::from_merged_plan(&plan)),
-            ),
-        );
-
-        let payload_failures = results
-            .results()
-            .iter()
-            .filter(|result| {
-                matches!(
-                    result.verdict,
-                    crate::validation::data::InvariantVerdict::Violation(
-                        crate::validation::data::InvariantViolation {
-                            fields: InvariantViolationFields::PayloadSchema { .. },
-                            ..
-                        }
-                    )
-                )
-            })
-            .collect::<Vec<_>>();
-
-        assert_eq!(payload_failures.len(), 2);
-        assert!(payload_failures
-            .windows(2)
-            .all(|window| window[0].witness().as_str() <= window[1].witness().as_str()));
-    }
-
-    #[test]
     fn engine_rejects_cross_partition_relations_under_partition_isolation_contracts() {
-        let runtime = runtime_with_payload_schema_and_partition_isolation();
+        let runtime = runtime_with_partition_isolation();
         let source = crate::identity::data::EntityId::new(PartitionId(1), 0, 1);
         let target = crate::identity::data::EntityId::new(PartitionId(2), 0, 1);
         let plan = MergedCommitPlan {
@@ -730,10 +612,10 @@ mod tests {
                 RelationSpec {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(2),
-                    client_key: InternedString::Raw("edge-a".to_string()),
+                    client_key: ClientKey::raw("edge-a"),
                     source: crate::transactions::data::EntityReference::Existing(source),
                     target: crate::transactions::data::EntityReference::Existing(target),
-                    payload: Some(RecordPayload::StructuredJson(json!({"kind": "edge"}))),
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
                 },
             ))],
         };
@@ -783,18 +665,18 @@ mod tests {
                 MutationIntent::Create(CreateIntent::Relation(RelationSpec {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(2),
-                    client_key: InternedString::Raw("edge-ab".to_string()),
+                    client_key: ClientKey::raw("edge-ab"),
                     source: crate::transactions::data::EntityReference::Existing(a),
                     target: crate::transactions::data::EntityReference::Existing(b),
-                    payload: None,
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
                 })),
                 MutationIntent::Create(CreateIntent::Relation(RelationSpec {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(2),
-                    client_key: InternedString::Raw("edge-ba".to_string()),
+                    client_key: ClientKey::raw("edge-ba"),
                     source: crate::transactions::data::EntityReference::Existing(b),
                     target: crate::transactions::data::EntityReference::Existing(a),
-                    payload: None,
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
                 })),
             ],
         };
@@ -852,10 +734,10 @@ mod tests {
                 RelationSpec {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(2),
-                    client_key: InternedString::Raw("edge-ea".to_string()),
+                    client_key: ClientKey::raw("edge-ea"),
                     source: crate::transactions::data::EntityReference::Existing(e),
                     target: crate::transactions::data::EntityReference::Existing(a),
-                    payload: None,
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
                 },
             ))],
         };
@@ -901,8 +783,8 @@ mod tests {
                 EntitySpec {
                     partition_id: PartitionId::main(),
                     kind_id: KindId(1),
-                    client_key: InternedString::Raw("node-a".to_string()),
-                    payload: RecordPayload::StructuredJson(json!({ "name": "node-a" })),
+                    client_key: ClientKey::raw("node-a"),
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
                 },
             ))),
         );
@@ -1001,25 +883,23 @@ mod tests {
                 MutationIntent::Create(CreateIntent::Entity(EntitySpec {
                     partition_id: PartitionId::main(),
                     kind_id: crate::facade::identity::KindId(1),
-                    client_key: crate::symbols::data::InternedString::Raw("source".to_string()),
-                    payload: crate::payloads::data::RecordPayload::StructuredJson(
-                        serde_json::json!({"name": "source"}),
-                    ),
-                })),
+                    client_key: crate::symbols::data::ClientKey::raw("source"),
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
+                }))
+                .into(),
                 MutationIntent::Create(CreateIntent::Relation(RelationSpec {
                     partition_id: PartitionId::main(),
                     kind_id: crate::facade::identity::KindId(2),
-                    client_key: crate::symbols::data::InternedString::Raw("edge".to_string()),
+                    client_key: crate::symbols::data::ClientKey::raw("edge"),
                     source: crate::transactions::data::EntityReference::Existing(
                         crate::facade::identity::EntityId::new(PartitionId::main(), 10, 1),
                     ),
                     target: crate::transactions::data::EntityReference::Existing(
                         crate::facade::identity::EntityId::new(PartitionId::main(), 11, 1),
                     ),
-                    payload: Some(crate::payloads::data::RecordPayload::StructuredJson(
-                        serde_json::json!({"kind": "edge"}),
-                    )),
-                })),
+                    fields: crate::transactions::data::AspectFieldPatch::default(),
+                }))
+                .into(),
             ],
         };
 
@@ -1027,7 +907,7 @@ mod tests {
             InvariantExecutionRequest::from_profile_with_contract(
                 InvariantRequestProfile::CommitBoundary,
                 &runtime,
-                InvariantObservation::committed(runtime.storage_access().current_state()),
+                InvariantObservation::committed(runtime.storage_access().current_state()).into(),
                 runtime.current_version_id(),
                 Some(&plan),
                 None,
@@ -1072,14 +952,23 @@ mod tests {
         };
         match &violation.fields {
             crate::validation::data::InvariantViolationFields::CustomInvariantFailure {
-                rule_id,
+                identity,
                 phase,
-                failure_kind,
+                failure,
                 ..
             } => {
-                assert_eq!(rule_id, "test.custom.panic-prepare");
-                assert_eq!(phase, "preparation");
-                assert_eq!(failure_kind, "panic");
+                assert_eq!(
+                    identity.semantic_identity().rule_id.as_str(),
+                    "test.custom.panic-prepare"
+                );
+                assert_eq!(
+                    phase,
+                    &crate::validation::data::CustomInvariantFailurePhase::Preparation
+                );
+                assert_eq!(
+                    failure,
+                    &crate::validation::data::ResultCustomInvariantFailureKind::Panic
+                );
             }
             other => panic!("expected custom invariant failure fields, got {other:?}"),
         }
@@ -1118,14 +1007,23 @@ mod tests {
         };
         match &violation.fields {
             crate::validation::data::InvariantViolationFields::CustomInvariantFailure {
-                rule_id,
+                identity,
                 phase,
-                failure_kind,
+                failure,
                 ..
             } => {
-                assert_eq!(rule_id, "test.custom.panic-evaluate");
-                assert_eq!(phase, "execution");
-                assert_eq!(failure_kind, "panic");
+                assert_eq!(
+                    identity.semantic_identity().rule_id.as_str(),
+                    "test.custom.panic-evaluate"
+                );
+                assert_eq!(
+                    phase,
+                    &crate::validation::data::CustomInvariantFailurePhase::Execution
+                );
+                assert_eq!(
+                    failure,
+                    &crate::validation::data::ResultCustomInvariantFailureKind::Panic
+                );
             }
             other => panic!("expected custom invariant failure fields, got {other:?}"),
         }

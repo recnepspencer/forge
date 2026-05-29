@@ -1,26 +1,22 @@
 use std::collections::BTreeMap;
 
+use forge_foundational::{AspectContract, FieldKey};
 use serde::{Deserialize, Serialize};
 use smallvec::SmallVec;
 
 use crate::identity::data::KindId;
 use crate::merge::data::{AspectMergePolicyDeclaration, IdentityBasisDeclaration};
 use crate::publication::patch::data::AspectKey;
-use crate::schema::data::PayloadSchemaDeclaration;
-use crate::symbols::data::InternedString;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, Serialize, Deserialize)]
 pub struct AspectPlanRevision(pub u128);
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct KindAspectDeclarations {
     pub plan_revision: AspectPlanRevision,
     pub aspects: Vec<DeclaredAspect>,
-    #[serde(default)]
     pub identity_declarations: Vec<IdentityBasisDeclaration>,
-    #[serde(default)]
     pub merge_policy_declarations: Vec<AspectMergePolicyDeclaration>,
-    pub payload_schema: Option<PayloadSchemaDeclaration>,
 }
 
 impl KindAspectDeclarations {
@@ -30,7 +26,6 @@ impl KindAspectDeclarations {
             aspects,
             identity_declarations: Vec::new(),
             merge_policy_declarations: Vec::new(),
-            payload_schema: None,
         }
     }
 
@@ -49,11 +44,6 @@ impl KindAspectDeclarations {
         self.merge_policy_declarations = merge_policy_declarations;
         self
     }
-
-    pub fn with_payload_schema(mut self, payload_schema: PayloadSchemaDeclaration) -> Self {
-        self.payload_schema = Some(payload_schema);
-        self
-    }
 }
 
 impl Default for KindAspectDeclarations {
@@ -62,39 +52,20 @@ impl Default for KindAspectDeclarations {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeclaredAspect {
-    pub key: AspectKey,
     pub binding: AspectBinding,
-    pub comparator: AspectComparator,
-    pub precision: AspectPrecision,
+    pub contract: AspectContract,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum AspectBinding {
-    EntityPayloadField { field: InternedString },
-    RelationPayloadField { field: InternedString },
+    EntityField { field: FieldKey },
+    RelationField { field: FieldKey },
     RelationSourceEndpoint,
     RelationTargetEndpoint,
     LifecycleTransition,
-    OpaqueWholePayload,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub enum AspectComparator {
-    JsonScalarEquality,
-    EndpointIdentityEquality,
-    LifecycleTransitionEquality,
-    OpaquePayloadByteEquality,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub enum AspectPrecision {
-    Structured,
-    Opaque,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -128,51 +99,62 @@ pub struct LoweredAspectPlan {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct LoweredAspectBinding {
     pub aspect_key: AspectKey,
+    pub contract: AspectContract,
     pub binding_kind: LoweredExecutableAspectBindingKind,
-    pub precision: AspectPrecision,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum LoweredAspectExtractor {
-    EntityJsonField { field: InternedString },
-    RelationJsonField { field: InternedString },
+    EntityField { field: FieldKey },
+    RelationField { field: FieldKey },
     RelationSourceEndpoint,
     RelationTargetEndpoint,
     LifecycleTransition,
-    OpaqueWholePayloadBytes,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
-#[non_exhaustive]
-pub enum LoweredAspectComparator {
-    JsonScalarEquality,
-    EndpointIdentityEquality,
-    LifecycleTransitionEquality,
-    OpaquePayloadByteEquality,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[non_exhaustive]
 pub enum LoweredExecutableAspectBindingKind {
-    EntityJsonScalarField { field: InternedString },
-    RelationJsonScalarField { field: InternedString },
+    EntityFieldScalar { field: FieldKey },
+    EntityFieldStruct { field: FieldKey },
+    RelationFieldScalar { field: FieldKey },
+    RelationFieldStruct { field: FieldKey },
     RelationSourceEndpointIdentity,
     RelationTargetEndpointIdentity,
     LifecycleTransitionEquality,
-    OpaqueWholePayloadBytes,
+}
+
+impl DeclaredAspect {
+    pub fn aspect_key(&self) -> AspectKey {
+        self.contract.key().clone()
+    }
+
+    pub fn foundational_key(&self) -> &forge_foundational::AspectKey {
+        self.contract.key()
+    }
 }
 
 impl LoweredAspectBinding {
     pub fn extractor(&self) -> LoweredAspectExtractor {
         match &self.binding_kind {
-            LoweredExecutableAspectBindingKind::EntityJsonScalarField { field } => {
-                LoweredAspectExtractor::EntityJsonField {
+            LoweredExecutableAspectBindingKind::EntityFieldScalar { field } => {
+                LoweredAspectExtractor::EntityField {
                     field: field.clone(),
                 }
             }
-            LoweredExecutableAspectBindingKind::RelationJsonScalarField { field } => {
-                LoweredAspectExtractor::RelationJsonField {
+            LoweredExecutableAspectBindingKind::EntityFieldStruct { field } => {
+                LoweredAspectExtractor::EntityField {
+                    field: field.clone(),
+                }
+            }
+            LoweredExecutableAspectBindingKind::RelationFieldScalar { field } => {
+                LoweredAspectExtractor::RelationField {
+                    field: field.clone(),
+                }
+            }
+            LoweredExecutableAspectBindingKind::RelationFieldStruct { field } => {
+                LoweredAspectExtractor::RelationField {
                     field: field.clone(),
                 }
             }
@@ -185,28 +167,108 @@ impl LoweredAspectBinding {
             LoweredExecutableAspectBindingKind::LifecycleTransitionEquality => {
                 LoweredAspectExtractor::LifecycleTransition
             }
-            LoweredExecutableAspectBindingKind::OpaqueWholePayloadBytes => {
-                LoweredAspectExtractor::OpaqueWholePayloadBytes
-            }
         }
     }
 
-    pub fn comparator(&self) -> LoweredAspectComparator {
-        match self.binding_kind {
-            LoweredExecutableAspectBindingKind::EntityJsonScalarField { .. }
-            | LoweredExecutableAspectBindingKind::RelationJsonScalarField { .. } => {
-                LoweredAspectComparator::JsonScalarEquality
-            }
-            LoweredExecutableAspectBindingKind::RelationSourceEndpointIdentity
-            | LoweredExecutableAspectBindingKind::RelationTargetEndpointIdentity => {
-                LoweredAspectComparator::EndpointIdentityEquality
-            }
-            LoweredExecutableAspectBindingKind::LifecycleTransitionEquality => {
-                LoweredAspectComparator::LifecycleTransitionEquality
-            }
-            LoweredExecutableAspectBindingKind::OpaqueWholePayloadBytes => {
-                LoweredAspectComparator::OpaquePayloadByteEquality
-            }
-        }
+    pub fn aspect_shape(&self) -> forge_foundational::AspectShape {
+        self.contract.shape().clone()
+    }
+}
+
+impl LoweredAspectPlan {
+    pub fn admits_entity_scalar_field(&self, target: &FieldKey) -> bool {
+        self.entity_scalar_field_aspect_key(target).is_some()
+    }
+
+    pub fn entity_scalar_field_aspect_key(&self, target: &FieldKey) -> Option<AspectKey> {
+        self.executable_bindings
+            .iter()
+            .find(|binding| {
+                matches!(
+                    &binding.binding_kind,
+                    LoweredExecutableAspectBindingKind::EntityFieldScalar { field }
+                        if field == target
+                )
+            })
+            .map(|binding| binding.aspect_key.clone())
+    }
+
+    pub fn admits_entity_field_update_target(&self, field: &FieldKey) -> bool {
+        self.executable_bindings.iter().any(|binding| {
+            entity_scalar_binding_targets_field(binding, field)
+                || entity_struct_binding_declares_field(binding, field)
+        })
+    }
+}
+
+fn entity_scalar_binding_targets_field(binding: &LoweredAspectBinding, target: &FieldKey) -> bool {
+    matches!(
+        &binding.binding_kind,
+        LoweredExecutableAspectBindingKind::EntityFieldScalar { field }
+            if field == target
+    )
+}
+
+fn entity_struct_binding_declares_field(binding: &LoweredAspectBinding, target: &FieldKey) -> bool {
+    if !matches!(
+        &binding.binding_kind,
+        LoweredExecutableAspectBindingKind::EntityFieldStruct { .. }
+    ) {
+        return false;
+    }
+    let forge_foundational::AspectShape::Struct(shape) = binding.contract.shape() else {
+        return false;
+    };
+    shape.field(target).is_some()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        AspectPlanRevision, LoweredAspectBinding, LoweredAspectPlan,
+        LoweredExecutableAspectBindingKind,
+    };
+    use crate::identity::data::KindId;
+    use crate::publication::patch::data::AspectKey;
+    use forge_foundational::FieldKey;
+
+    #[test]
+    fn lowered_plan_admits_only_lowered_entity_scalar_fields() {
+        let lowered = LoweredAspectPlan {
+            kind_id: KindId(1),
+            plan_revision: AspectPlanRevision(1),
+            executable_bindings: smallvec::smallvec![
+                LoweredAspectBinding {
+                    aspect_key: AspectKey::new("name").unwrap(),
+                    contract: forge_foundational::AspectContract::scalar(
+                        forge_foundational::AspectKey::new("name").expect("valid key"),
+                        forge_foundational::AspectIdentity(1),
+                        forge_foundational::AspectContractRevision(1),
+                        forge_foundational::ScalarAspectType::String,
+                    ),
+                    binding_kind: LoweredExecutableAspectBindingKind::EntityFieldScalar {
+                        field: FieldKey::new("name").expect("valid field"),
+                    },
+                },
+                LoweredAspectBinding {
+                    aspect_key: AspectKey::new("lifecycle").unwrap(),
+                    contract: forge_foundational::AspectContract::scalar(
+                        forge_foundational::AspectKey::new("lifecycle").expect("valid key"),
+                        forge_foundational::AspectIdentity(2),
+                        forge_foundational::AspectContractRevision(1),
+                        forge_foundational::ScalarAspectType::String,
+                    ),
+                    binding_kind: LoweredExecutableAspectBindingKind::LifecycleTransitionEquality,
+                }
+            ],
+        };
+
+        assert!(lowered.admits_entity_scalar_field(&FieldKey::new("name").expect("valid field")));
+        assert!(
+            !lowered.admits_entity_scalar_field(&FieldKey::new("lifecycle").expect("valid field"))
+        );
+        assert!(
+            !lowered.admits_entity_scalar_field(&FieldKey::new("replicas").expect("valid field"))
+        );
     }
 }

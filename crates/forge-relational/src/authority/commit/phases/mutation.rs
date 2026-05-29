@@ -36,7 +36,6 @@ pub(crate) fn run_authoritative_mutation_for_runtime(
         merged_intents: merged_plan.merged_intents.clone(),
     };
     let mutation_config = crate::config::data::MutationConfig {
-        patch_surface_policy: runtime.config.publication.policy.patch_surface_policy,
         cascade_delete_policy: runtime.config.storage.cascade_delete_policy,
         adjacency_policy: runtime.config.storage.adjacency_policy.clone(),
         cross_context_policy: runtime.config.storage.cross_context_policy,

@@ -1,5 +1,5 @@
 use crate::identity::data::{EntityId, KindId, RelationId};
-use crate::payloads::data::RecordPayload;
+use forge_foundational::facade::AuthoritativeRecordAspectState;
 
 use super::{MutationEvent, RecordMutation};
 
@@ -20,30 +20,30 @@ impl MutationOutcome {
     pub(crate) fn entity_created(
         entity_id: EntityId,
         kind_id: KindId,
-        payload: RecordPayload,
+        authoritative_patch: Option<forge_foundational::facade::AuthoritativeRecordAspectPatch>,
     ) -> Self {
         let mut outcome = Self::with_capacity(1, 1);
         outcome.record_change(RecordMutation::EntityCreated {
             entity_id,
             kind_id,
-            payload,
+            authoritative_patch,
         });
         outcome.record_event(MutationEvent::EntityCreated { entity_id, kind_id });
         outcome
     }
 
-    pub(crate) fn entity_updated(
+    pub(crate) fn entity_updated_with_authoritative_patch(
         entity_id: EntityId,
         kind_id: KindId,
-        old_payload: RecordPayload,
-        new_payload: RecordPayload,
+        authoritative_patch: forge_foundational::facade::AuthoritativeRecordAspectPatch,
     ) -> Self {
         let mut outcome = Self::with_capacity(1, 1);
         outcome.record_change(RecordMutation::EntityUpdated {
             entity_id,
             kind_id,
-            old_payload,
-            new_payload,
+            old_authoritative_aspect_state: None,
+            new_authoritative_aspect_state: None,
+            authoritative_patch: Some(authoritative_patch),
         });
         outcome.record_event(MutationEvent::EntityUpdated { entity_id });
         outcome
@@ -59,13 +59,13 @@ impl MutationOutcome {
         replaced_entity_id: EntityId,
         replacement_entity_id: EntityId,
         kind_id: KindId,
-        payload: RecordPayload,
+        authoritative_patch: Option<forge_foundational::facade::AuthoritativeRecordAspectPatch>,
     ) -> Self {
         let mut outcome = Self::with_capacity(1, 1);
         outcome.record_change(RecordMutation::EntityCreated {
             entity_id: replacement_entity_id,
             kind_id,
-            payload,
+            authoritative_patch,
         });
         outcome.record_event(MutationEvent::EntityReplaced {
             replaced_entity_id,
@@ -80,7 +80,7 @@ impl MutationOutcome {
         source: EntityId,
         target: EntityId,
         kind_id: KindId,
-        payload: Option<RecordPayload>,
+        authoritative_patch: Option<forge_foundational::facade::AuthoritativeRecordAspectPatch>,
     ) -> Self {
         let mut outcome = Self::with_capacity(1, 1);
         outcome.record_change(RecordMutation::RelationCreated {
@@ -88,7 +88,7 @@ impl MutationOutcome {
             kind_id,
             source,
             target,
-            payload,
+            authoritative_patch,
         });
         outcome.record_event(MutationEvent::RelationCreated {
             relation_id,
@@ -106,7 +106,8 @@ impl MutationOutcome {
         old_target: EntityId,
         new_source: EntityId,
         new_target: EntityId,
-        payload: Option<RecordPayload>,
+        old_authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
+        new_authoritative_aspect_state: Option<AuthoritativeRecordAspectState>,
     ) -> Self {
         let mut outcome = Self::with_capacity(1, 1);
         outcome.record_change(RecordMutation::RelationUpdated {
@@ -116,7 +117,8 @@ impl MutationOutcome {
             old_target,
             new_source,
             new_target,
-            payload,
+            old_authoritative_aspect_state,
+            new_authoritative_aspect_state,
         });
         outcome.record_event(MutationEvent::RelationUpdated { relation_id });
         outcome

@@ -3,7 +3,6 @@ mod masks;
 mod patches;
 mod state;
 mod validation;
-mod values;
 mod vocabulary;
 
 pub use contract::{
@@ -17,8 +16,9 @@ pub use masks::{
 pub use patches::{AspectPatchFrontDoor, FieldLevelPatchBuilder, WholeAspectPatchBuilder};
 pub use state::AuthoritativeStateFrontDoor;
 pub use validation::{AspectValidationFrontDoor, AspectValidationInputStep};
-pub use values::{AspectVocabularyFrontDoor, StructValueBuilder};
-pub use vocabulary::AspectFrontDoorConstructionDenial;
+pub use vocabulary::{
+    AspectFrontDoorConstructionDenial, AspectVocabularyFrontDoor, StructValueBuilder,
+};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
 pub struct AspectsFrontDoor;

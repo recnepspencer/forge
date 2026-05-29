@@ -40,8 +40,10 @@ use crate::view_shape_live::{
     materialize_authoritative_grouped_baseline,
     materialize_grouped_execution_surface_from_truth_view,
 };
+use forge_foundational::facade::AspectValue;
 use forge_relational::facade::grouped_truth::{
-    materialize_relational_authoritative_row_set, project_relational_grouped_truth,
+    encode_snapshot_aspect_read_value, materialize_relational_authoritative_row_set,
+    project_relational_grouped_truth,
     GroupedProjectionContract as RelationalGroupedProjectionContract,
 };
 use forge_runtime_bridge::facade::{
@@ -496,20 +498,22 @@ fn grouped_rows_result(
             .reads()
             .iter()
             .map(|read| {
-                let payload = rows
+                let value = rows
                     .iter()
                     .find_map(|(member_key, display_name, lane)| {
                         (read.entity_identity() == format!("result:{member_key}")).then(|| {
                             match read.aspect_label() {
-                                "identity.id" => member_key.as_bytes().to_vec(),
-                                "profile.display_name" => display_name.as_bytes().to_vec(),
-                                "status.lane" => lane.as_bytes().to_vec(),
-                                _ => b"unknown".to_vec(),
+                                "identity.id" => AspectValue::String(member_key.as_str().into()),
+                                "profile.display_name" => {
+                                    AspectValue::String(display_name.as_str().into())
+                                }
+                                "status.lane" => AspectValue::String(lane.as_str().into()),
+                                _ => AspectValue::String("unknown".into()),
                             }
                         })
                     })
-                    .unwrap_or_else(|| b"unknown".to_vec());
-                SnapshotReadRecord::new(read.request_key(), payload)
+                    .unwrap_or_else(|| AspectValue::String("unknown".into()));
+                SnapshotReadRecord::new(read.request_key(), aspect_bytes(value))
             })
             .collect(),
     )
@@ -598,12 +602,17 @@ fn grouped_truth_view_for_plan_with_rows(
                 .grouping_aspect(),
             "identity.id",
             grouping_field,
-        ),
+        )
+        .expect("grouped projection contract should use valid aspect keys"),
     )
     .expect("relational grouped projection");
 
     materialize_bridge_grouped_truth_view_from_projection(&row_set, &relational_projection)
         .expect("grouped truth view")
+}
+
+fn aspect_bytes(value: AspectValue) -> Vec<u8> {
+    encode_snapshot_aspect_read_value(&value).expect("certification aspect value bytes")
 }
 
 fn detail_live_bundle(

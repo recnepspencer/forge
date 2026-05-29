@@ -6,7 +6,6 @@ use crate::authority::intent_merge::{
 use crate::capabilities::{InstrumentationSource, RuntimeConfigSource};
 use crate::history::data::{BranchId, CommitId};
 use crate::logic::runtime::PartitionAccess;
-use crate::symbols::data::SymbolPolicy;
 use crate::transactions::data::{CommitConflict, ConflictClass, MergedCommitPlan, MutationIntent};
 use crate::transactions::logic::RelationalTransaction;
 use std::time::Instant;
@@ -159,8 +158,12 @@ impl<'a> RelationalTransaction<'a> {
     }
 
     fn normalize_intents_for_merge(&mut self, intents: &mut [MutationIntent]) {
-        let symbol_policy = self.runtime.runtime_config().identity.symbol_policy;
-        if symbol_policy == SymbolPolicy::Disabled {
+        let client_key_symbol_policy = self
+            .runtime
+            .runtime_config()
+            .identity
+            .client_key_symbol_policy;
+        if !client_key_symbol_policy.interns_requested_strings() {
             return;
         }
 
@@ -181,7 +184,7 @@ impl<'a> RelationalTransaction<'a> {
         }
 
         for intent in intents {
-            intent.normalize_client_keys(interner, symbol_policy);
+            intent.normalize_client_keys(interner, client_key_symbol_policy);
         }
         if !new_snapshot_entries.is_empty() {
             self.runtime

@@ -146,7 +146,7 @@ fn subscriber_stream_rejects_when_normalized_continuation_proof_exceeds_complexi
                 SchemaSubscriberImpact::ConsumableSurfaceChanged,
                 HistoricalInterpretationSensitivity::NotSensitive,
                 SchemaDiffDetail::AddedField {
-                    field_name: "tag".into(),
+                    field: field_key("tag"),
                     required: false,
                     default_expression: Some("null".into()),
                 },
@@ -174,7 +174,7 @@ fn subscriber_stream_rejects_when_normalized_continuation_proof_exceeds_complexi
         .unwrap();
     assert_eq!(
         rejection_entry.fields["normalized_boundary_count_at_failure"],
-        json!(64)
+        json!(65)
     );
     assert!(error
         .diagnostics
@@ -265,6 +265,13 @@ fn subscriber_stream_rejects_durable_only_checkpoint_with_descriptor_version_mis
         error.class,
         SubscriberStreamFailureClass::DescriptorVersionMismatch
     );
+    assert_eq!(
+        error
+            .latest_available_checkpoint
+            .as_ref()
+            .map(|checkpoint| checkpoint.position().0),
+        Some(1)
+    );
 }
 
 #[test]
@@ -297,7 +304,7 @@ fn subscriber_stream_rejects_checkpoint_with_mismatched_authoritative_boundary_b
                     SchemaSubscriberImpact::ConsumableSurfaceChanged,
                     HistoricalInterpretationSensitivity::NotSensitive,
                     SchemaDiffDetail::AddedField {
-                        field_name: "tag".into(),
+                        field: field_key("tag"),
                         required: false,
                         default_expression: Some("null".into()),
                     },

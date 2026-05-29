@@ -33,7 +33,7 @@ pub(super) fn preview_mutation_rebind_row(
             ),
             input: MutationLoweringInput::IntentReconciliation {
                 entity_id: EntityId::new(PartitionId(1), 100 + index as u64, 0),
-                desired_payload: serde_json::json!({
+                desired_fields_json: serde_json::json!({
                     "name": seeded_label("preview-mutation", stepper, index)
                 }),
             },

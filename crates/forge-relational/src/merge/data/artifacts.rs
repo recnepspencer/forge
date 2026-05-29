@@ -1,25 +1,24 @@
 use serde::{Deserialize, Serialize};
-use sha2::{Digest, Sha256};
 
 use crate::history::data::CommitId;
 use crate::identity::data::KindId;
 use crate::merge::data::{
-    AspectComparisonState, AspectMergePolicyDeclaration, AspectMergePolicyKind,
-    AuthorizedAspectValueSurface, CausalAnnotationSummary, ConflictClassificationSummary,
-    IdentityBasisDeclaration, IdentityBasisKind, IdentityBasisScope, IdentityDiscoverySummary,
-    LoweredAspectAction, LoweredAspectDenialIntent, LoweredAspectExecutionIntent,
-    LoweredMergeAction, LoweredMergeBlockedReason, LoweredMergePlanSummary,
-    LoweredMergeRejectedReason, LoweredRecordDecisionKind, LoweredRecordDenialKind,
-    LoweredRecordExecutionIntentKind, MergeAncestrySummary, MergeConflictClass,
-    MergeExecutableClass, MergeExecutionReadiness, MergePlanningDecisionLog,
+    merge_inspection_artifact_digest, merge_inspection_lowered_plan_digest,
+    merge_inspection_row_digest, AspectComparisonState, AspectMergePolicyDeclaration,
+    AspectMergePolicyKind, AuthorizedAspectValueSurface, CausalAnnotationSummary,
+    ConflictClassificationSummary, IdentityBasisDeclaration, IdentityBasisKind, IdentityBasisScope,
+    IdentityDiscoverySummary, LoweredAspectAction, LoweredAspectDenialIntent,
+    LoweredAspectExecutionIntent, LoweredMergeAction, LoweredMergeBlockedReason,
+    LoweredMergePlanSummary, LoweredMergeRejectedReason, LoweredRecordDecisionKind,
+    LoweredRecordDenialKind, LoweredRecordExecutionIntentKind, MergeAncestrySummary,
+    MergeConflictClass, MergeExecutableClass, MergeExecutionReadiness, MergePlanningDecisionLog,
     MergePlanningDecisionLogDigestBasis, MergePlanningRequest, MergePolicyDecisionBoundary,
     MergePolicyOwnershipClass, MergePolicyProofBoundary, MergePolicyResolutionSummary,
     MergeResolutionClass, MergeVisibilityEvidence, RelationConflictEvidence,
     ResolvedAspectMergePolicy, ResolvedMergeBase, StrategyConflictClass,
 };
 use crate::schema::data::{
-    AspectPlanRevision, RelationIntegrityPlanRevision, RelationPayloadClass, SchemaId,
-    SchemaVersionId,
+    AspectPlanRevision, RelationIntegrityPlanRevision, SchemaId, SchemaVersionId,
 };
 use crate::transactions::data::RecordRef;
 
@@ -167,7 +166,6 @@ pub struct MergeSchemaKindSemanticSnapshot {
     pub aspect_plan_revision: AspectPlanRevision,
     pub identity_declarations: Vec<IdentityBasisDeclaration>,
     pub merge_policy_declarations: Vec<AspectMergePolicyDeclaration>,
-    pub relation_payload_class: Option<RelationPayloadClass>,
     pub relation_integrity_plan_revision: Option<RelationIntegrityPlanRevision>,
 }
 
@@ -315,7 +313,7 @@ impl RelationalMergeInspectionArtifact {
             .iter()
             .map(RelationalMergeInspectionRow::from_lowered_record)
             .collect::<Vec<_>>();
-        let lowered_plan_digest = digest_merge_lowered_plan(
+        let lowered_plan_digest = merge_inspection_lowered_plan_digest(
             &request,
             &rows,
             lowered_plan.record_count,
@@ -323,7 +321,7 @@ impl RelationalMergeInspectionArtifact {
             lowered_plan.rejected_count,
         );
         let artifact_digest =
-            digest_merge_inspection_artifact(&request, &lowered_plan_digest, &rows);
+            merge_inspection_artifact_digest(&request, &lowered_plan_digest, &rows);
 
         Self {
             request,
@@ -375,7 +373,7 @@ impl RelationalMergeInspectionRow {
                 RelationalMergeInspectionAdmission::ExecutionDenied
             }
         };
-        let row_digest = digest_merge_inspection_row(
+        let row_digest = merge_inspection_row_digest(
             &record.record,
             record.target_record.as_ref(),
             &record.classification,
@@ -400,63 +398,4 @@ impl RelationalMergeInspectionRow {
             row_digest,
         }
     }
-}
-
-fn digest_merge_inspection_row(
-    record: &RecordRef,
-    target_record: Option<&RecordRef>,
-    classification: &MergeConflictClass,
-    resolution_class: &MergeResolutionClass,
-    readiness: &MergeExecutionReadiness,
-    decision_kind: LoweredRecordDecisionKind,
-    blocked_reason: Option<LoweredMergeBlockedReason>,
-    rejected_reason: Option<LoweredMergeRejectedReason>,
-    admission: RelationalMergeInspectionAdmission,
-) -> String {
-    let bytes = serde_json::to_vec(&(
-        record,
-        target_record,
-        classification,
-        resolution_class,
-        readiness,
-        decision_kind,
-        blocked_reason,
-        rejected_reason,
-        admission,
-    ))
-    .expect("merge inspection row serialization");
-    let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
-}
-
-fn digest_merge_lowered_plan(
-    request: &crate::merge::data::MergeExecutionRequest,
-    rows: &[RelationalMergeInspectionRow],
-    record_count: usize,
-    blocked_count: usize,
-    rejected_count: usize,
-) -> String {
-    let row_digests = rows.iter().map(|row| row.row_digest()).collect::<Vec<_>>();
-    let bytes = serde_json::to_vec(&(
-        request,
-        row_digests,
-        record_count,
-        blocked_count,
-        rejected_count,
-    ))
-    .expect("merge inspection lowered plan serialization");
-    let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
-}
-
-fn digest_merge_inspection_artifact(
-    request: &crate::merge::data::MergeExecutionRequest,
-    lowered_plan_digest: &str,
-    rows: &[RelationalMergeInspectionRow],
-) -> String {
-    let row_digests = rows.iter().map(|row| row.row_digest()).collect::<Vec<_>>();
-    let bytes = serde_json::to_vec(&(request, lowered_plan_digest, row_digests))
-        .expect("merge inspection artifact serialization");
-    let digest = Sha256::digest(bytes);
-    digest.iter().map(|byte| format!("{byte:02x}")).collect()
 }
