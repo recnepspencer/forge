@@ -3,9 +3,8 @@ use crate::facade::history::BranchId;
 use crate::facade::merge::{MergeExecutionOutcome, MergeExecutionRequest, MergeIntent};
 use crate::facade::transactions::TransactionOptions;
 use crate::tests::support::{
-    capture_aspect_truth_bundle, certification_digest, checkpoint_and_recover_with,
-    create_branch_from_main, create_entity_outcome, create_entity_outcome_on_branch,
-    persisted_runtime_with_test_schema,
+    capture_aspect_truth_bundle, checkpoint_and_recover_with, create_branch_from_main,
+    create_entity_outcome, create_entity_outcome_on_branch, persisted_runtime_with_test_schema,
 };
 
 fn execute_feature_into_main_merge() -> (
@@ -114,10 +113,6 @@ fn execute_prepared_merge_survives_durability_append_and_recovery() {
 
     assert_eq!(before_bundle.visible_truth, recovered_bundle.visible_truth);
     assert_eq!(merge_envelope, recovered_envelope);
-    assert_eq!(
-        certification_digest(&merge_envelope.merge_parent_branches),
-        certification_digest(&recovered_envelope.merge_parent_branches)
-    );
     assert!(merge_envelope
         .diagnostics_summary
         .entries
@@ -140,10 +135,6 @@ fn execute_prepared_merge_survives_durability_append_and_recovery() {
     assert_eq!(
         merge_execution_entry.fields.root_value()["diagnostics_digest"],
         serde_json::json!(merge.execution_summary.diagnostics_digest)
-    );
-    assert_eq!(
-        certification_digest(&merge_envelope.diagnostics_summary),
-        certification_digest(&recovered_envelope.diagnostics_summary)
     );
 }
 
